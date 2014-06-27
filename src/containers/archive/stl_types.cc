@@ -1,17 +1,21 @@
 #include "containers/archive/stl_types.hpp"
 
+#include "containers/archive/versioned.hpp"
+
 namespace std {
 
-size_t serialized_size(const std::string &s) {
+// You're not allowed to change the wire format of serialize_universal
+// implementations.
+size_t serialize_universal_size(const std::string &s) {
     return varint_uint64_serialized_size(s.size()) + s.size();
 }
 
-void serialize(write_message_t *wm, const std::string &s) {
+void serialize_universal(write_message_t *wm, const std::string &s) {
     serialize_varint_uint64(wm, s.size());
     wm->append(s.data(), s.size());
 }
 
-archive_result_t deserialize(read_stream_t *s, std::string *out) {
+archive_result_t deserialize_universal(read_stream_t *s, std::string *out) {
     out->clear();
 
     uint64_t sz;

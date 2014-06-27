@@ -25,13 +25,15 @@ TPTEST(ClusteringNamespaceInterface, MissingMaster) {
     std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > empty_reactor_directory;
     watchable_variable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > > reactor_directory(empty_reactor_directory);
 
+    rdb_context_t invalid_context;
+
     /* Set up a namespace dispatcher */
     cluster_namespace_interface_t namespace_interface(
         cluster.get_mailbox_manager(),
         &region_to_primary_maps,
         reactor_directory.get_watchable(),
         generate_uuid(),
-        NULL); //<-- this should be a valid context by passing null we're assuming this unit test doesn't do anything complicated enough to need it
+        &invalid_context);
     namespace_interface.get_initial_ready_signal()->wait_lazily_unordered();
 
     order_source_t order_source;
@@ -64,8 +66,8 @@ TPTEST(ClusteringNamespaceInterface, ReadOutdated) {
 
     cluster_group.wait_until_blueprint_is_satisfied("p,s");
 
-    scoped_ptr_t<cluster_namespace_interface_t> namespace_if;
-    cluster_group.make_namespace_interface(0, &namespace_if);
+    scoped_ptr_t<cluster_namespace_interface_t> namespace_if
+        = cluster_group.make_namespace_interface(0);
 
     read_t r = mock_read("a");
     read_response_t rr;

@@ -74,7 +74,8 @@ void mock_store_t::new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_wr
 void mock_store_t::do_get_metainfo(order_token_t order_token,
                                    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
                                    signal_t *interruptor,
-                                   metainfo_t *out) THROWS_ONLY(interrupted_exc_t) {
+                                   region_map_t<binary_blob_t> *out)
+    THROWS_ONLY(interrupted_exc_t) {
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(token);
 
     wait_interruptible(token->get(), interruptor);
@@ -84,11 +85,11 @@ void mock_store_t::do_get_metainfo(order_token_t order_token,
     if (rng_.randint(2) == 0) {
         nap(rng_.randint(10), interruptor);
     }
-    metainfo_t res = metainfo_.mask(get_region());
+    region_map_t<binary_blob_t> res = metainfo_.mask(get_region());
     *out = res;
 }
 
-void mock_store_t::set_metainfo(const metainfo_t &new_metainfo,
+void mock_store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                                 order_token_t order_token,
                                 object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
                                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
@@ -155,7 +156,7 @@ void mock_store_t::read(
 
 void mock_store_t::write(
         DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
-        const metainfo_t &new_metainfo,
+        const region_map_t<binary_blob_t> &new_metainfo,
         const write_t &write,
         write_response_t *response,
         UNUSED write_durability_t durability,
@@ -227,7 +228,8 @@ bool mock_store_t::send_backfill(
 
     wait_interruptible(token->main_read_token.get(), interruptor);
 
-    metainfo_t masked_metainfo = metainfo_.mask(start_point.get_domain());
+    region_map_t<binary_blob_t> masked_metainfo
+        = metainfo_.mask(start_point.get_domain());
     if (send_backfill_cb->should_backfill(masked_metainfo)) {
         /* Make a copy so we can sleep and still have the correct semantics */
         std::map<store_key_t, std::pair<repli_timestamp_t, counted_t<const ql::datum_t> > > snapshot = table_;

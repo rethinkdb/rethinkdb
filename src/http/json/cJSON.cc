@@ -578,9 +578,9 @@ static char *print_object(cJSON *item,int depth,int fmt)
 }
 
 /* Get Array size/item / object item. */
-int    cJSON_GetArraySize(const cJSON *array)                                        {cJSON *c=array->head;int i=0;while(c)i++,c=c->next;return i;}
-cJSON *cJSON_GetArrayItem(cJSON *array,int item)                                {cJSON *c=array->head;  while (c && item>0) item--,c=c->next; return c;}
-cJSON *cJSON_GetObjectItem(cJSON *object,const char *string)        {cJSON *c=object->head; while (c && cJSON_strcasecmp(c->string,string)) c=c->next; return c;}
+int    cJSON_slow_GetArraySize(const cJSON *array)                {cJSON *c=array->head;int i=0;while(c)i++,c=c->next;return i;}
+cJSON *cJSON_slow_GetArrayItem(cJSON *array,int item)             {cJSON *c=array->head;  while (c && item>0) item--,c=c->next; return c;}
+cJSON *cJSON_slow_GetObjectItem(cJSON *object,const char *string) {cJSON *c=object->head; while (c && cJSON_strcasecmp(c->string,string)) c=c->next; return c;}
 
 /* Utility for array list handling. */
 static void suffix_object(cJSON *prev,cJSON *item) {prev->next=item;item->prev=prev;}
@@ -853,7 +853,7 @@ bool cJSON_Equal(cJSON *x, cJSON *y) {
             while (xhd) {
                 child_count++;
                 //inefficient becase cjson sucks
-                cJSON *other_item = cJSON_GetObjectItem(y, xhd->string);
+                cJSON *other_item = cJSON_slow_GetObjectItem(y, xhd->string);
 
                 if (!other_item || !cJSON_Equal(xhd, other_item)) {
                     return false;

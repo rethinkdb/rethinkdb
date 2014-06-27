@@ -35,8 +35,9 @@ void btree_slice_t::init_superblock(buf_lock_t *superblock,
 }
 
 btree_slice_t::btree_slice_t(cache_t *c, perfmon_collection_t *parent,
-                             const std::string &identifier)
-    : stats(parent, identifier),
+                             const std::string &identifier,
+                             index_type_t index_type)
+    : stats(parent, identifier, index_type),
       cache_(c),
       backfill_account_(cache()->create_cache_account(BACKFILL_CACHE_PRIORITY)) { }
 

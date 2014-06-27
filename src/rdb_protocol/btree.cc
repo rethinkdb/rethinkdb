@@ -22,6 +22,7 @@
 #include "rdb_protocol/blob_wrapper.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/lazy_json.hpp"
+#include "rdb_protocol/serialize_datum_onto_blob.hpp"
 #include "rdb_protocol/shards.hpp"
 
 #include "debug.hpp"
@@ -138,7 +139,10 @@ void kv_location_set(keyvalue_location_t *kv_location,
     const max_block_size_t block_size = kv_location->buf.cache()->max_block_size();
     {
         blob_t blob(block_size, new_value->value_ref(), blob::btree_maxreflen);
-        serialize_onto_blob(buf_parent_t(&kv_location->buf), &blob, data);
+        datum_serialize_onto_blob(
+                buf_parent_t(&kv_location->buf),
+                &blob,
+                data);
     }
 
     if (mod_info_out) {
@@ -491,7 +495,7 @@ public:
             atom.recency = recencies[i];
             chunk_atoms.push_back(atom);
             current_chunk_size += static_cast<size_t>(atom.key.size())
-                                  + serialized_size(atom.value);
+                + serialized_size<cluster_version_t::CLUSTER>(atom.value);
 
             if (current_chunk_size >= BACKFILL_MAX_KVPAIRS_SIZE) {
                 // To avoid flooding the receiving node with overly large chunks
@@ -499,6 +503,7 @@ public:
                 // cases), pass on what we have got so far. Then continue
                 // with the remaining values.
                 slice_->stats.pm_keys_read.record(chunk_atoms.size());
+                slice_->stats.pm_total_keys_read += chunk_atoms.size();
                 cb_->on_keyvalues(std::move(chunk_atoms), interruptor);
                 chunk_atoms = std::vector<backfill_atom_t>();
                 chunk_atoms.reserve(keys.size() - (i+1));
@@ -508,6 +513,7 @@ public:
         if (!chunk_atoms.empty()) {
             // Pass on the final chunk
             slice_->stats.pm_keys_read.record(chunk_atoms.size());
+            slice_->stats.pm_total_keys_read += chunk_atoms.size();
             cb_->on_keyvalues(std::move(chunk_atoms), interruptor);
         }
     }
@@ -700,13 +706,6 @@ void rdb_erase_small_range(key_tester_t *tester,
                   ph::_1, ph::_2, ph::_3, mod_reports_out));
 }
 
-// This is actually a kind of misleading name. This function estimates the size
-// of a datum, not a whole rget, though it is used for that purpose (by summing
-// up these responses).
-size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum) {
-    return serialized_size(datum);
-}
-
 
 typedef ql::transform_variant_t transform_variant_t;
 typedef ql::terminal_variant_t terminal_variant_t;
@@ -735,10 +734,10 @@ public:
           batcher(batchspec.to_batcher()),
           sorting(_sorting),
           accumulator(_terminal
-                      ? ql::make_terminal(env, *_terminal)
+                      ? ql::make_terminal(*_terminal)
                       : ql::make_append(sorting, &batcher)) {
         for (size_t i = 0; i < _transforms.size(); ++i) {
-            transformers.emplace_back(ql::make_op(env, _transforms[i]));
+            transformers.push_back(ql::make_op(_transforms[i]));
         }
         guarantee(transformers.size() == _transforms.size());
     }
@@ -836,6 +835,7 @@ THROWS_ONLY(interrupted_exc_t) {
     if (job.accumulator->uses_val() || job.transformers.size() != 0 || sindex) {
         val = row.get();
         io.slice->stats.pm_keys_read.record();
+        io.slice->stats.pm_total_keys_read += 1;
     } else {
         row.reset();
     }
@@ -869,13 +869,15 @@ THROWS_ONLY(interrupted_exc_t) {
         ql::groups_t data = {{counted_t<const ql::datum_t>(), ql::datums_t{val}}};
 
         for (auto it = job.transformers.begin(); it != job.transformers.end(); ++it) {
-            (**it)(&data, sindex_val);
-            //            ^^^^^^^^^^ NULL if no sindex
+            (**it)(job.env, &data, sindex_val);
+            //                     ^^^^^^^^^^ NULL if no sindex
         }
         // We need lots of extra data for the accumulation because we might be
         // accumulating `rget_item_t`s for a batch.
-        return (*job.accumulator)(&data, std::move(key), std::move(sindex_val));
-        //                                       NULL if no sindex ^^^^^^^^^^
+        return (*job.accumulator)(job.env,
+                                  &data,
+                                  std::move(key),
+                                  std::move(sindex_val)); // NULL if no sindex
     } catch (const ql::exc_t &e) {
         io.response->result = e;
         return done_traversing_t::YES;
@@ -966,46 +968,50 @@ void rdb_distribution_get(int max_depth,
 static const int8_t HAS_VALUE = 0;
 static const int8_t HAS_NO_VALUE = 1;
 
-void rdb_modification_info_t::rdb_serialize(write_message_t *wm) const {
-    if (!deleted.first.get()) {
-        guarantee(deleted.second.empty());
-        serialize(wm, HAS_NO_VALUE);
+template <cluster_version_t W>
+void serialize(write_message_t *wm, const rdb_modification_info_t &info) {
+    if (!info.deleted.first.get()) {
+        guarantee(info.deleted.second.empty());
+        serialize<W>(wm, HAS_NO_VALUE);
     } else {
-        serialize(wm, HAS_VALUE);
-        serialize(wm, deleted);
+        serialize<W>(wm, HAS_VALUE);
+        serialize<W>(wm, info.deleted);
     }
 
-    if (!added.first.get()) {
-        guarantee(added.second.empty());
-        serialize(wm, HAS_NO_VALUE);
+    if (!info.added.first.get()) {
+        guarantee(info.added.second.empty());
+        serialize<W>(wm, HAS_NO_VALUE);
     } else {
-        serialize(wm, HAS_VALUE);
-        serialize(wm, added);
+        serialize<W>(wm, HAS_VALUE);
+        serialize<W>(wm, info.added);
     }
 }
 
-archive_result_t rdb_modification_info_t::rdb_deserialize(read_stream_t *s) {
+template <cluster_version_t W>
+archive_result_t deserialize(read_stream_t *s, rdb_modification_info_t *info) {
     int8_t has_value;
-    archive_result_t res = deserialize(s, &has_value);
+    archive_result_t res = deserialize<W>(s, &has_value);
     if (bad(res)) { return res; }
 
     if (has_value == HAS_VALUE) {
-        res = deserialize(s, &deleted);
+        res = deserialize<W>(s, &info->deleted);
         if (bad(res)) { return res; }
     }
 
-    res = deserialize(s, &has_value);
+    res = deserialize<W>(s, &has_value);
     if (bad(res)) { return res; }
 
     if (has_value == HAS_VALUE) {
-        res = deserialize(s, &added);
+        res = deserialize<W>(s, &info->added);
         if (bad(res)) { return res; }
     }
 
     return archive_result_t::SUCCESS;
 }
 
-RDB_IMPL_ME_SERIALIZABLE_2(rdb_modification_report_t, primary_key, info);
+INSTANTIATE_SINCE_v1_13(rdb_modification_info_t);
+
+RDB_IMPL_SERIALIZABLE_2(rdb_modification_report_t, primary_key, info);
 
 rdb_modification_report_cb_t::rdb_modification_report_cb_t(
         store_t *store,
@@ -1049,10 +1055,7 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
     scoped_ptr_t<new_mutex_in_line_t> acq =
         store_->get_in_line_for_sindex_queue(sindex_block_);
 
-    // This is for a disk backed queue so there are no versioning issues.
-    write_message_t wm;
-    serialize(&wm, mod_report);
-    store_->sindex_queue_push(wm, acq.get());
+    store_->sindex_queue_push(mod_report, acq.get());
 
     rdb_live_deletion_context_t deletion_context;
     rdb_update_sindexes(sindexes_, &mod_report, sindex_block_->txn(),
@@ -1080,9 +1083,9 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
 void serialize_sindex_info(write_message_t *wm,
                            const ql::map_wire_func_t &mapping,
                            const sindex_multi_bool_t &multi) {
-    serialize(wm, cluster_version_t::LATEST_VERSION);
-    serialize_for_version(cluster_version_t::LATEST_VERSION, wm, mapping);
-    serialize_for_version(cluster_version_t::LATEST_VERSION, wm, multi);
+    serialize_cluster_version(wm, cluster_version_t::LATEST);
+    serialize_for_version(cluster_version_t::LATEST, wm, mapping);
+    serialize_for_version(cluster_version_t::LATEST, wm, multi);
 }
 
 void deserialize_sindex_info(const std::vector<char> &data,
@@ -1090,7 +1093,8 @@ void deserialize_sindex_info(const std::vector<char> &data,
                              sindex_multi_bool_t *multi) {
     inplace_vector_read_stream_t read_stream(&data);
     cluster_version_t cluster_version;
-    archive_result_t success = deserialize(&read_stream, &cluster_version);
+    archive_result_t success
+        = deserialize_cluster_version(&read_stream, &cluster_version);
     guarantee_deserialization(success, "sindex description");
     success = deserialize_for_version(cluster_version, &read_stream, mapping);
     guarantee_deserialization(success, "sindex description");
@@ -1117,13 +1121,12 @@ void rdb_update_single_sindex(
     sindex_multi_bool_t multi;
     deserialize_sindex_info(sindex->sindex.opaque_definition, &mapping, &multi);
 
-    // TODO we just use a NULL environment here. People should not be able
-    // to do anything that requires an environment like gets from other
-    // tables etc. but we don't have a nice way to disallow those things so
-    // for now we pass null and it will segfault if an illegal sindex
-    // mapping is passed.
+    // TODO we have no rdb context here. People should not be able to do anything
+    // that requires an environment like gets from other tables etc. but we don't
+    // have a nice way to disallow those things so for now we pass null and it will
+    // segfault if an illegal sindex mapping is passed.
     cond_t non_interruptor;
-    ql::env_t env(NULL, &non_interruptor);
+    ql::env_t env(&non_interruptor);
 
     superblock_t *super_block = sindex->super_block.get();
 
@@ -1307,6 +1310,7 @@ public:
             }
 
             store_->btree->stats.pm_keys_read.record();
+            store_->btree->stats.pm_total_keys_read += 1;
 
             /* Grab relevant values from the leaf node. */
             const btree_key_t *key = (*it).first;
@@ -1325,6 +1329,7 @@ public:
 
             rdb_update_sindexes(sindexes, &mod_report, wtxn.get(), &deletion_context);
             store_->btree->stats.pm_keys_set.record();
+            store_->btree->stats.pm_total_keys_set += 1;
 
             ++current_chunk_size;
             if (current_chunk_size >= MAX_CHUNK_SIZE) {

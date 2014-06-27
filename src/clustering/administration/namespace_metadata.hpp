@@ -16,10 +16,6 @@
 #include "clustering/reactor/directory_echo.hpp"
 #include "clustering/reactor/reactor_json_adapters.hpp"
 #include "clustering/reactor/metadata.hpp"
-#include "containers/archive/archive.hpp"
-#include "containers/archive/boost_types.hpp"
-#include "containers/archive/cow_ptr_type.hpp"
-#include "containers/archive/stl_types.hpp"
 #include "containers/cow_ptr.hpp"
 #include "containers/name_string.hpp"
 #include "containers/uuid.hpp"
@@ -58,6 +54,8 @@ private:
     bool hard_durability_;
 };
 
+RDB_SERIALIZE_OUTSIDE(ack_expectation_t);
+
 void debug_print(printf_buffer_t *buf, const ack_expectation_t &x);
 
 class namespace_semilattice_metadata_t {
@@ -74,11 +72,10 @@ public:
     vclock_t<region_map_t<std::set<machine_id_t> > > secondary_pinnings;
     vclock_t<std::string> primary_key; //TODO this should actually never be changed...
     vclock_t<database_id_t> database;
-
-    RDB_MAKE_ME_SERIALIZABLE_10(blueprint, primary_datacenter, replica_affinities,
-                                ack_expectations, shards, name, primary_pinnings,
-                                secondary_pinnings, primary_key, database);
 };
+
+RDB_DECLARE_SERIALIZABLE(namespace_semilattice_metadata_t);
+
 
 namespace_semilattice_metadata_t new_namespace(
     uuid_u machine, uuid_u database, uuid_u datacenter,
@@ -107,10 +104,9 @@ class namespaces_semilattice_metadata_t {
 public:
     typedef std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > namespace_map_t;
     namespace_map_t namespaces;
-
-    RDB_MAKE_ME_SERIALIZABLE_1(namespaces);
 };
 
+RDB_DECLARE_SERIALIZABLE(namespaces_semilattice_metadata_t);
 RDB_DECLARE_SEMILATTICE_JOINABLE(namespaces_semilattice_metadata_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(namespaces_semilattice_metadata_t);
 
@@ -149,11 +145,10 @@ public:
     typedef std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > reactor_bcards_map_t;
 
     reactor_bcards_map_t reactor_bcards;
-
-    RDB_MAKE_ME_SERIALIZABLE_1(reactor_bcards);
 };
 
-RDB_MAKE_EQUALITY_COMPARABLE_1(namespaces_directory_metadata_t, reactor_bcards);
+RDB_DECLARE_SERIALIZABLE(namespaces_directory_metadata_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(namespaces_directory_metadata_t);
 
 // ctx-less json adapter concept for namespaces_directory_metadata_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(namespaces_directory_metadata_t *target);

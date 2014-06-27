@@ -44,10 +44,10 @@ def generate_async_message_template(nargs):
         print "            %s" % csep("arg#(_arg#)")
         print "        { }"
     if nargs == 0:
-        print "        void write(cluster_version_t cluster_version, write_message_t *) {"
-        print "            rassert(cluster_version == cluster_version_t::ONLY_VERSION);"
+        print "        void write(DEBUG_VAR cluster_version_t cluster_version, write_message_t *) {"
     else:
         print "        void write(cluster_version_t cluster_version, write_message_t *wm) {"
+    print "            rassert(cluster_version == cluster_version_t::CLUSTER);"
     for i in xrange(nargs):
         print "            serialize_for_version(cluster_version, wm, arg%d);" % i
     print "        }"
@@ -58,9 +58,9 @@ def generate_async_message_template(nargs):
     print "        explicit read_impl_t(%s *_parent) : parent(_parent) { }" % mailbox_t_str
     if nargs == 0:
         print "        void read(DEBUG_VAR cluster_version_t cluster_version, UNUSED read_stream_t *stream) {"
-        print "            rassert(cluster_version == cluster_version_t::ONLY_VERSION);"
     else:
         print "        void read(cluster_version_t cluster_version, read_stream_t *stream) {"
+    print "            rassert(cluster_version == cluster_version_t::CLUSTER);"
     for i in xrange(nargs):
         print "            arg%d_t arg%d;" % (i, i)
         print "            %sres = deserialize_for_version(cluster_version, stream, &arg%d);" % ("archive_result_t " if i == 0 else "", i)
@@ -116,7 +116,7 @@ def generate_async_message_template(nargs):
     print
 
 if __name__ == "__main__":
-    print "// Copyright 2010-2012 RethinkDB, all rights reserved."
+    print "// Copyright 2010-2014 RethinkDB, all rights reserved."
     print "#ifndef RPC_MAILBOX_TYPED_HPP_"
     print "#define RPC_MAILBOX_TYPED_HPP_"
     print
@@ -127,7 +127,7 @@ if __name__ == "__main__":
 
     print "#include <functional>"
     print
-    print "#include \"containers/archive/archive.hpp\""
+    print "#include \"containers/archive/versioned.hpp\""
     print "#include \"rpc/serialize_macros.hpp\""
     print "#include \"rpc/mailbox/mailbox.hpp\""
     print "#include \"rpc/semilattice/joins/macros.hpp\""
@@ -137,6 +137,9 @@ if __name__ == "__main__":
     print "template <class T>"
     print "class mailbox_addr_t {"
     print "public:"
+    print "    bool operator<(const mailbox_addr_t<T> &other) const {"
+    print "        return addr < other.addr;"
+    print "    }"
     print "    bool is_nil() const { return addr.is_nil(); }"
     print "    peer_id_t get_peer() const { return addr.get_peer(); }"
     print
@@ -154,6 +157,8 @@ if __name__ == "__main__":
     print
     print "    raw_mailbox_t::address_t addr;"
     print "};"
+    print
+    print "RDB_SERIALIZE_TEMPLATED_OUTSIDE(mailbox_addr_t);"
 
     for nargs in xrange(15):
         generate_async_message_template(nargs)

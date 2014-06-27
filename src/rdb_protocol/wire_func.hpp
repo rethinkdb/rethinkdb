@@ -38,7 +38,9 @@ public:
     counted_t<func_t> compile_wire_func() const;
     protob_t<const Backtrace> get_bt() const;
 
+    template <cluster_version_t W>
     void rdb_serialize(write_message_t *wm) const;
+    template <cluster_version_t W>
     archive_result_t rdb_deserialize(read_stream_t *s);
 
 private:
@@ -48,13 +50,17 @@ private:
     counted_t<func_t> func;
 };
 
+RDB_SERIALIZE_OUTSIDE(wire_func_t);
+
 class maybe_wire_func_t {
 protected:
     template<class... Args>
     explicit maybe_wire_func_t(Args... args) : wrapped(args...) { }
 
 public:
+    template <cluster_version_t W>
     void rdb_serialize(write_message_t *wm) const;
+    template <cluster_version_t W>
     archive_result_t rdb_deserialize(read_stream_t *s);
 
     counted_t<func_t> compile_wire_func_or_null() const;
@@ -62,6 +68,8 @@ public:
 private:
     wire_func_t wrapped;
 };
+
+RDB_SERIALIZE_OUTSIDE(maybe_wire_func_t);
 
 class map_wire_func_t : public wire_func_t {
 public:
@@ -101,20 +109,25 @@ public:
 // These are fake functions because we don't need to send anything.
 // TODO: make `count` behave like `sum`, `avg`, etc.
 struct count_wire_func_t {
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+RDB_DECLARE_SERIALIZABLE(count_wire_func_t);
 
 class bt_wire_func_t {
 public:
     bt_wire_func_t() : bt(make_counted_backtrace()) { }
     explicit bt_wire_func_t(const protob_t<const Backtrace> &_bt) : bt(_bt) { }
 
-    void rdb_serialize(write_message_t *wm) const;
-    archive_result_t rdb_deserialize(read_stream_t *s);
     protob_t<const Backtrace> get_bt() const { return bt; }
+
+    template <cluster_version_t W>
+    void rdb_serialize(write_message_t *wm) const;
+    template <cluster_version_t W>
+    archive_result_t rdb_deserialize(read_stream_t *s);
 private:
     protob_t<const Backtrace> bt;
 };
+
+RDB_SERIALIZE_OUTSIDE(bt_wire_func_t);
 
 class group_wire_func_t {
 public:
@@ -131,6 +144,8 @@ private:
     bool append_index, multi;
     bt_wire_func_t bt;
 };
+
+RDB_SERIALIZE_OUTSIDE(group_wire_func_t);
 
 template <class T>
 class skip_terminal_t;

@@ -2,6 +2,8 @@
 #ifndef RDB_PROTOCOL_DATUM_HPP_
 #define RDB_PROTOCOL_DATUM_HPP_
 
+#include <float.h>
+
 #include <map>
 #include <memory>
 #include <set>
@@ -19,6 +21,8 @@
 #include "containers/wire_string.hpp"
 #include "http/json.hpp"
 #include "rdb_protocol/error.hpp"
+#include "rdb_protocol/serialize_datum.hpp"
+#include "version.hpp"
 
 // Enough precision to reconstruct doubles from their decimal representations.
 // Unlike the late DBLPRI, this lacks a percent sign.
@@ -29,6 +33,7 @@ class Datum;
 RDB_DECLARE_SERIALIZABLE(Datum);
 
 namespace ql {
+
 class datum_stream_t;
 class env_t;
 class val_t;
@@ -38,6 +43,9 @@ class datum_cmp_t;
 void time_to_str_key(const datum_t &d, std::string *str_out);
 void sanitize_time(datum_t *time);
 } // namespace pseudo
+
+static const double max_dbl_int = 0x1LL << DBL_MANT_DIG;
+static const double min_dbl_int = max_dbl_int * -1;
 
 // These let us write e.g. `foo(NOTHROW) instead of `foo(false/*nothrow*/)`.
 // They should be passed to functions that have multiple behaviors (like `get` or
@@ -229,19 +237,11 @@ private:
     };
 
 public:
-    static const char* const reql_type_string;
+    static const char *const reql_type_string;
 
 private:
     DISABLE_COPYING(datum_t);
 };
-
-size_t serialized_size(const counted_t<const datum_t> &datum);
-
-void serialize(write_message_t *wm, const counted_t<const datum_t> &datum);
-archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum);
-
-void serialize(write_message_t *wm, const empty_ok_t<const counted_t<const datum_t> > &datum);
-archive_result_t deserialize(read_stream_t *s, empty_ok_ref_t<counted_t<const datum_t> > datum);
 
 // Converts a double to int, but returns false if it's not an integer or out of range.
 bool number_as_integer(double d, int64_t *i_out);

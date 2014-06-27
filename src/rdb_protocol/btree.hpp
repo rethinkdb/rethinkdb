@@ -175,9 +175,6 @@ void rdb_erase_small_range(key_tester_t *tester,
                            signal_t *interruptor,
                            std::vector<rdb_modification_report_t> *mod_reports_out);
 
-/* RGETS */
-size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum);
-
 void rdb_rget_slice(
     btree_slice_t *slice,
     const key_range_t &range,
@@ -216,9 +213,9 @@ struct rdb_modification_info_t {
                       std::vector<char> > data_pair_t;
     data_pair_t deleted;
     data_pair_t added;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(rdb_modification_info_t);
 
 struct rdb_modification_report_t {
     rdb_modification_report_t() { }
@@ -227,9 +224,9 @@ struct rdb_modification_report_t {
 
     store_key_t primary_key;
     rdb_modification_info_t info;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(rdb_modification_report_t);
 
 void serialize_sindex_info(write_message_t *wm,
                            const ql::map_wire_func_t &mapping,

@@ -37,10 +37,12 @@ public:
     backfill_session_id_t backfill_session_id;
     peer_id_t peer_id;
     reactor_activity_id_t activity_id;
-    RDB_MAKE_ME_SERIALIZABLE_3(backfill_session_id, peer_id, activity_id);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_3(backfill_location_t,
         backfill_session_id, peer_id, activity_id);
 };
+
+RDB_MAKE_SERIALIZABLE_3(backfill_location_t,
+                        backfill_session_id, peer_id, activity_id);
 
 class primary_when_safe_t {
 public:
@@ -50,9 +52,10 @@ public:
         : backfills_waited_on(_backfills_waited_on)
     { }
     std::vector<backfill_location_t> backfills_waited_on;
-    RDB_MAKE_ME_SERIALIZABLE_1(backfills_waited_on);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_1(primary_when_safe_t, backfills_waited_on);
 };
+
+RDB_MAKE_SERIALIZABLE_1(primary_when_safe_t, backfills_waited_on);
 
 /* This peer is currently a primary in working order. */
 class primary_t {
@@ -84,10 +87,12 @@ public:
     boost::optional<master_business_card_t> master;
     boost::optional<direct_reader_business_card_t> direct_reader;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(broadcaster, replier, master, direct_reader);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_4(primary_t,
         broadcaster, replier, master, direct_reader);
 };
+
+RDB_MAKE_SERIALIZABLE_4(primary_t,
+                        broadcaster, replier, master, direct_reader);
 
 /* This peer is currently a secondary in working order. */
 class secondary_up_to_date_t {
@@ -104,10 +109,11 @@ public:
     replier_business_card_t replier;
     direct_reader_business_card_t direct_reader;
 
-    RDB_MAKE_ME_SERIALIZABLE_3(branch_id, replier, direct_reader);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_3(secondary_up_to_date_t,
         branch_id, replier, direct_reader);
 };
+
+RDB_MAKE_SERIALIZABLE_3(secondary_up_to_date_t, branch_id, replier, direct_reader);
 
 /* This peer would like to be a secondary but cannot because it failed to
  * find a primary. It may or may not have ever seen a primary. */
@@ -125,10 +131,12 @@ public:
     direct_reader_business_card_t direct_reader;
     branch_history_t branch_history;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(current_state, backfiller, direct_reader, branch_history);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_4(secondary_without_primary_t,
         current_state, backfiller, direct_reader, branch_history);
 };
+
+RDB_MAKE_SERIALIZABLE_4(secondary_without_primary_t,
+                        current_state, backfiller, direct_reader, branch_history);
 
 /* This peer is in the process of becoming a secondary, barring failures it
  * will become a secondary when it completes backfilling. */
@@ -141,9 +149,10 @@ public:
     { }
 
     backfill_location_t backfill;
-    RDB_MAKE_ME_SERIALIZABLE_1(backfill);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_1(secondary_backfilling_t, backfill);
 };
+
+RDB_MAKE_SERIALIZABLE_1(secondary_backfilling_t, backfill);
 
 /* This peer would like to erase its data and not do any job for this
  * shard, however it must stay up until every other peer is ready for it to
@@ -163,28 +172,31 @@ public:
     backfiller_business_card_t backfiller;
     branch_history_t branch_history;
 
-    RDB_MAKE_ME_SERIALIZABLE_3(current_state, backfiller, branch_history);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_3(nothing_when_safe_t,
         current_state, backfiller, branch_history);
 };
+
+RDB_MAKE_SERIALIZABLE_3(nothing_when_safe_t,
+                        current_state, backfiller, branch_history);
 
 /* This peer is in the process of erasing data that it previously held,
  * this is identical to nothing in terms of cluster behavior but is a state
  * the we would like to display in the ui. */
 class nothing_when_done_erasing_t {
 public:
-    RDB_MAKE_ME_SERIALIZABLE_0();
     RDB_MAKE_ME_EQUALITY_COMPARABLE_0(nothing_when_done_erasing_t);
 };
+
+RDB_MAKE_SERIALIZABLE_0(nothing_when_done_erasing_t);
 
 /* This peer has no data for the shard, is not backfilling and is not a
  * primary or a secondary. */
 class nothing_t {
 public:
-    RDB_MAKE_ME_SERIALIZABLE_0();
     RDB_MAKE_ME_EQUALITY_COMPARABLE_0(nothing_t);
 };
 
+RDB_MAKE_SERIALIZABLE_0(nothing_t);
 
 } //namespace reactor_business_card_details
 
@@ -212,9 +224,10 @@ struct reactor_activity_entry_t {
         : region(_region), activity(_activity) { }
     reactor_activity_entry_t() { }
 
-    RDB_MAKE_ME_SERIALIZABLE_2(region, activity);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_2(reactor_activity_entry_t, region, activity);
 };
+
+RDB_MAKE_SERIALIZABLE_2(reactor_activity_entry_t, region, activity);
 
 class reactor_business_card_t {
 public:
@@ -232,9 +245,9 @@ public:
     typedef std::map<reactor_activity_id_t, activity_entry_t> activity_map_t;
     activity_map_t activities;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(activities);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_1(reactor_business_card_t, activities);
 };
 
+RDB_MAKE_SERIALIZABLE_1(reactor_business_card_t, activities);
 
 #endif /* CLUSTERING_REACTOR_METADATA_HPP_ */

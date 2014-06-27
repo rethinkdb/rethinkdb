@@ -11,7 +11,6 @@
 #include "clustering/generic/registration_metadata.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
-#include "containers/archive/stl_types.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/mailbox/typed.hpp"
 
@@ -19,7 +18,6 @@
 Parsers use it to find the master. */
 
 class master_business_card_t {
-
 public:
     class read_request_t {
     public:
@@ -34,7 +32,6 @@ public:
         order_token_t order_token;
         fifo_enforcer_read_token_t fifo_token;
         mailbox_addr_t< void(boost::variant<read_response_t, std::string>)> cont_addr;
-        RDB_MAKE_ME_SERIALIZABLE_4(read, order_token, fifo_token, cont_addr);
     };
 
     class write_request_t {
@@ -50,7 +47,6 @@ public:
         order_token_t order_token;
         fifo_enforcer_write_token_t fifo_token;
         mailbox_addr_t< void(boost::variant<write_response_t, std::string>)> cont_addr;
-        RDB_MAKE_ME_SERIALIZABLE_4(write, order_token, fifo_token, cont_addr);
     };
 
     typedef boost::variant< read_request_t, write_request_t > request_t;
@@ -58,7 +54,6 @@ public:
     class inner_client_business_card_t {
     public:
         /* nothing here */
-        RDB_MAKE_ME_SERIALIZABLE_0();
     };
 
     master_business_card_t() { }
@@ -71,11 +66,15 @@ public:
 
     /* Contact info for the master itself */
     multi_throttling_business_card_t<request_t, inner_client_business_card_t> multi_throttling;
-
-    RDB_MAKE_ME_SERIALIZABLE_2(region, multi_throttling);
 };
 
-RDB_MAKE_EQUALITY_COMPARABLE_2(master_business_card_t,
-    region, multi_throttling);
+RDB_DECLARE_SERIALIZABLE(master_business_card_t::read_request_t);
+
+RDB_DECLARE_SERIALIZABLE(master_business_card_t::write_request_t);
+
+RDB_DECLARE_SERIALIZABLE(master_business_card_t::inner_client_business_card_t);
+
+RDB_DECLARE_SERIALIZABLE(master_business_card_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(master_business_card_t);
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_METADATA_HPP_ */

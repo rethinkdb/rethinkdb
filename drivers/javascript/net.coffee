@@ -357,17 +357,18 @@ class TcpConnection extends Connection
 
         @rawSocket.once 'connect', =>
             # Initialize connection with magic number to validate version
-            buf = new Buffer(4)
-            buf.writeUInt32LE(protoVersion, 0)
-            @rawSocket.write buf
+            version = new Buffer(4)
+            version.writeUInt32LE(protoVersion, 0)
 
-            buf = new Buffer(@authKey, 'ascii')
-            @write buf
+            auth_buffer = new Buffer(@authKey, 'ascii')
+            auth_length = new Buffer(4)
+            auth_length.writeUInt32LE(auth_buffer.length, 0)
 
             # Send the protocol type that we will be using to communicate with the server
-            buf = new Buffer(4)
-            buf.writeUInt32LE(protoProtocol, 0)
-            @rawSocket.write buf
+            protocol = new Buffer(4)
+            protocol.writeUInt32LE(protoProtocol, 0)
+
+            @rawSocket.write Buffer.concat([version, auth_length, auth_buffer, protocol])
 
             # Now we have to wait for a response from the server
             # acknowledging the new connection

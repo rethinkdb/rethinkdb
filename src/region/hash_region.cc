@@ -4,6 +4,7 @@
 #include <limits.h>
 
 #include "btree/keys.hpp"
+#include "containers/archive/versioned.hpp"
 #include "region/region.hpp"
 #include "stl_utils.hpp"
 
@@ -238,3 +239,35 @@ bool region_contains_key(const hash_region_t<key_range_t> &region, const store_k
     const uint64_t hash_value = hash_region_hasher(key.contents(), key.size());
     return region_contains_key_with_precomputed_hash(region, key, hash_value);
 }
+
+
+// The wire format of serialize_for_metainfo and deserialize_for_metainfo must not
+// change.
+void serialize_for_metainfo(write_message_t *wm, const hash_region_t<key_range_t> &h) {
+    serialize_universal(wm, h.beg);
+    serialize_universal(wm, h.end);
+    serialize_for_metainfo(wm, h.inner);
+}
+archive_result_t deserialize_for_metainfo(read_stream_t *s,
+                                          hash_region_t<key_range_t> *out) {
+    archive_result_t res = deserialize_universal(s, &out->beg);
+    if (bad(res)) { return res; }
+    res = deserialize_universal(s, &out->end);
+    if (bad(res)) { return res; }
+    if (!((0 == out->end && 0 == out->beg) || out->beg < out->end)) {
+        return archive_result_t::RANGE_ERROR;
+    }
+    res = deserialize_for_metainfo(s, &out->inner);
+    return res;
+}
+
+template <cluster_version_t W>
+void serialize(write_message_t *wm, const hash_region_t<key_range_t> &h) {
+    serialize_for_metainfo(wm, h);
+}
+template <cluster_version_t W>
+archive_result_t deserialize(read_stream_t *s, hash_region_t<key_range_t> *h) {
+    return deserialize_for_metainfo(s, h);
+}
+
+INSTANTIATE_SINCE_v1_13(hash_region_t<key_range_t>);

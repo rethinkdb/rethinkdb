@@ -82,8 +82,9 @@ struct stamped_msg_t {
     uuid_u server_uuid;
     uint64_t stamp;
     msg_t submsg;
-    RDB_MAKE_ME_SERIALIZABLE_3(server_uuid, stamp, submsg);
 };
+
+RDB_MAKE_SERIALIZABLE_3(stamped_msg_t, server_uuid, stamp, submsg);
 
 // This function takes a `lock_t` to make sure you have one.  (We can't just
 // always ackquire a drainer lock before sending because we sometimes send a
@@ -149,9 +150,9 @@ msg_t::change_t::change_t(counted_t<const datum_t> _old_val,
     : old_val(std::move(_old_val)), new_val(std::move(_new_val)) { }
 msg_t::change_t::~change_t() { }
 
-RDB_IMPL_ME_SERIALIZABLE_1(msg_t, op);
+RDB_IMPL_SERIALIZABLE_1(msg_t, op);
 RDB_IMPL_ME_SERIALIZABLE_2(msg_t::change_t, empty_ok(old_val), empty_ok(new_val));
-RDB_IMPL_ME_SERIALIZABLE_0(msg_t::stop_t);
+RDB_IMPL_SERIALIZABLE_0(msg_t::stop_t);
 
 enum class detach_t { NO, YES };
 
@@ -618,7 +619,7 @@ client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
             if (feed_it == feeds.end()) {
                 spot.write_signal()->wait_lazily_unordered();
                 auto val = make_scoped<feed_t>(
-                    this, manager, env->cluster_access.ns_repo, uuid, &interruptor);
+                        this, manager, env->ns_repo(), uuid, &interruptor);
                 feed_it = feeds.insert(std::make_pair(uuid, std::move(val))).first;
             }
 
@@ -629,8 +630,7 @@ client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
             addr = feed->get_addr();
             sub.init(new subscription_t(feed));
         }
-        base_namespace_repo_t::access_t access(
-            env->cluster_access.ns_repo, uuid, env->interruptor);
+        base_namespace_repo_t::access_t access(env->ns_repo(), uuid, env->interruptor);
         namespace_interface_t *nif = access.get_namespace_if();
         read_t read(changefeed_stamp_t(addr), profile_bool_t::DONT_PROFILE);
         read_response_t read_resp;

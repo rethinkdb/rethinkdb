@@ -25,23 +25,21 @@ store_key_t key_max(sorting_t sorting) {
     return !reversed(sorting) ? store_key_t::max() : store_key_t::min();
 }
 
-//TODO figure out how to do 0 copy serialization with this.
-
-#define RDB_MAKE_PROTOB_SERIALIZABLE_HELPER(pb_t, isinline)             \
-    isinline void serialize(write_message_t *wm, const pb_t &p) {       \
+#define RDB_IMPL_PROTOB_SERIALIZABLE(pb_t)                              \
+    void serialize_protobuf(write_message_t *wm, const pb_t &p) {       \
         CT_ASSERT(sizeof(int) == sizeof(int32_t));                      \
         int size = p.ByteSize();                                        \
         scoped_array_t<char> data(size);                                \
         p.SerializeToArray(data.data(), size);                          \
         int32_t size32 = size;                                          \
-        serialize(wm, size32);                                          \
+        serialize_universal(wm, size32);                                \
         wm->append(data.data(), data.size());                           \
     }                                                                   \
                                                                         \
-    isinline MUST_USE archive_result_t deserialize(read_stream_t *s, pb_t *p) { \
+    MUST_USE archive_result_t deserialize_protobuf(read_stream_t *s, pb_t *p) { \
         CT_ASSERT(sizeof(int) == sizeof(int32_t));                      \
         int32_t size;                                                   \
-        archive_result_t res = deserialize(s, &size);                   \
+        archive_result_t res = deserialize_universal(s, &size);         \
         if (bad(res)) { return res; }                                   \
         if (size < 0) { return archive_result_t::RANGE_ERROR; }         \
         scoped_array_t<char> data(size);                                \
@@ -50,8 +48,6 @@ store_key_t key_max(sorting_t sorting) {
         p->ParseFromArray(data.data(), data.size());                    \
         return archive_result_t::SUCCESS;                               \
     }
-
-#define RDB_IMPL_PROTOB_SERIALIZABLE(pb_t) RDB_MAKE_PROTOB_SERIALIZABLE_HELPER(pb_t, )
 
 RDB_IMPL_PROTOB_SERIALIZABLE(Term);
 RDB_IMPL_PROTOB_SERIALIZABLE(Datum);
@@ -145,6 +141,7 @@ void bring_sindexes_up_to_date(
      * and perfmon_collection, so that is important. */
     auto_drainer_t::lock_t store_drainer_acq(&store->drainer);
 
+    // TODO: This can now be a disk_backed_queue_t<rdb_modification_report_t>.
     scoped_ptr_t<internal_disk_backed_queue_t> mod_queue(
             new internal_disk_backed_queue_t(
                 store->io_backender_,
@@ -339,17 +336,52 @@ void add_status(const single_sindex_status_t &new_status,
 rdb_context_t::rdb_context_t()
     : extproc_pool(NULL),
       ns_repo(NULL),
-      cross_thread_namespace_watchables(get_num_threads()),
-      cross_thread_database_watchables(get_num_threads()),
       directory_read_manager(NULL),
-      signals(get_num_threads()),
       manager(NULL),
       changefeed_client(NULL),
       ql_stats_membership(
           &get_global_perfmon_collection(), &ql_stats_collection, "query_language"),
       ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running"),
-      reql_http_proxy()
+      reql_http_proxy(),
+      cross_thread_namespace_watchables(get_num_threads()),
+      cross_thread_database_watchables(get_num_threads())
 { }
+
+void rdb_context_t::help_construct_cross_thread_watchables() {
+    for (int thread = 0; thread < get_num_threads(); ++thread) {
+        cross_thread_namespace_watchables[thread].init(new cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t> >(
+                                                    clone_ptr_t<semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
+                                                        (new semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> >(
+                                                            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, cluster_metadata))), threadnum_t(thread)));
+
+        cross_thread_database_watchables[thread].init(new cross_thread_watchable_variable_t<databases_semilattice_metadata_t>(
+                                                    clone_ptr_t<semilattice_watchable_t<databases_semilattice_metadata_t> >
+                                                        (new semilattice_watchable_t<databases_semilattice_metadata_t>(
+                                                            metadata_field(&cluster_semilattice_metadata_t::databases, cluster_metadata))), threadnum_t(thread)));
+
+    }
+}
+
+rdb_context_t::rdb_context_t(
+        extproc_pool_t *_extproc_pool,
+        base_namespace_repo_t *_ns_repo,
+        boost::shared_ptr< semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _cluster_metadata,
+        uuid_u _machine_id)
+    : extproc_pool(_extproc_pool),
+      ns_repo(_ns_repo),
+      cluster_metadata(_cluster_metadata),
+      directory_read_manager(NULL),
+      machine_id(_machine_id),
+      manager(NULL),
+      changefeed_client(NULL),
+      ql_stats_membership(
+          &get_global_perfmon_collection(), &ql_stats_collection, "query_language"),
+      ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running"),
+      reql_http_proxy(),
+      cross_thread_namespace_watchables(get_num_threads()),
+      cross_thread_database_watchables(get_num_threads()) {
+    help_construct_cross_thread_watchables();
+}
 
 rdb_context_t::rdb_context_t(
     extproc_pool_t *_extproc_pool,
@@ -364,13 +396,11 @@ rdb_context_t::rdb_context_t(
     machine_id_t _machine_id,
     perfmon_collection_t *global_stats,
     const std::string &_reql_http_proxy)
-    : extproc_pool(_extproc_pool), ns_repo(_ns_repo),
-      cross_thread_namespace_watchables(get_num_threads()),
-      cross_thread_database_watchables(get_num_threads()),
+    : extproc_pool(_extproc_pool),
+      ns_repo(_ns_repo),
       cluster_metadata(_cluster_metadata),
       auth_metadata(_auth_metadata),
       directory_read_manager(_directory_read_manager),
-      signals(get_num_threads()),
       machine_id(_machine_id),
       manager(mailbox_manager),
       changefeed_client(manager
@@ -378,24 +408,54 @@ rdb_context_t::rdb_context_t(
                         : scoped_ptr_t<ql::changefeed::client_t>()),
       ql_stats_membership(global_stats, &ql_stats_collection, "query_language"),
       ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running"),
-      reql_http_proxy(_reql_http_proxy)
+      reql_http_proxy(_reql_http_proxy),
+      cross_thread_namespace_watchables(get_num_threads()),
+      cross_thread_database_watchables(get_num_threads())
 {
-    for (int thread = 0; thread < get_num_threads(); ++thread) {
-        cross_thread_namespace_watchables[thread].init(new cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t> >(
-                                                    clone_ptr_t<semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
-                                                        (new semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> >(
-                                                            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, _cluster_metadata))), threadnum_t(thread)));
-
-        cross_thread_database_watchables[thread].init(new cross_thread_watchable_variable_t<databases_semilattice_metadata_t>(
-                                                    clone_ptr_t<semilattice_watchable_t<databases_semilattice_metadata_t> >
-                                                        (new semilattice_watchable_t<databases_semilattice_metadata_t>(
-                                                            metadata_field(&cluster_semilattice_metadata_t::databases, _cluster_metadata))), threadnum_t(thread)));
-
-        signals[thread].init(new cross_thread_signal_t(&interruptor, threadnum_t(thread)));
-    }
+    help_construct_cross_thread_watchables();
 }
 
 rdb_context_t::~rdb_context_t() { }
+
+template <class T>
+void copy_value(const T *in, T *out) {
+    *out = *in;
+}
+
+clone_ptr_t< watchable_t< cow_ptr_t<namespaces_semilattice_metadata_t> > >
+rdb_context_t::get_namespaces_watchable() {
+    int threadnum = get_thread_id().threadnum;
+    r_sanity_check(cross_thread_namespace_watchables[threadnum].has());
+    return cross_thread_namespace_watchables[threadnum]->get_watchable();
+}
+
+cow_ptr_t<namespaces_semilattice_metadata_t> rdb_context_t::get_namespaces_metadata() {
+    int threadnum = get_thread_id().threadnum;
+    r_sanity_check(cross_thread_namespace_watchables[threadnum].has());
+    cow_ptr_t<namespaces_semilattice_metadata_t> ret;
+    cross_thread_namespace_watchables[threadnum]->apply_read(
+            std::bind(&copy_value< cow_ptr_t<namespaces_semilattice_metadata_t> >,
+                      ph::_1, &ret));
+    return ret;
+}
+
+clone_ptr_t< watchable_t<databases_semilattice_metadata_t> >
+rdb_context_t::get_databases_watchable() {
+    int threadnum = get_thread_id().threadnum;
+    r_sanity_check(cross_thread_database_watchables[threadnum].has());
+    return cross_thread_database_watchables[threadnum]->get_watchable();
+}
+
+void rdb_context_t::get_databases_metadata(databases_semilattice_metadata_t *out) {
+    int threadnum = get_thread_id().threadnum;
+    r_sanity_check(cross_thread_database_watchables[threadnum].has());
+    cross_thread_database_watchables[threadnum]->apply_read(
+            std::bind(&copy_value<databases_semilattice_metadata_t>,
+                      ph::_1, out));
+}
+
+
+
 
 namespace rdb_protocol {
 // Construct a region containing only the specified key
@@ -588,13 +648,15 @@ void scale_down_distribution(size_t result_limit, std::map<store_key_t, int64_t>
 
 class rdb_r_unshard_visitor_t : public boost::static_visitor<void> {
 public:
-    rdb_r_unshard_visitor_t(read_response_t *_responses,
+    rdb_r_unshard_visitor_t(profile_bool_t _profile,
+                            read_response_t *_responses,
                             size_t _count,
                             read_response_t *_response_out,
-                            rdb_context_t *ctx,
-                            signal_t *interruptor)
-        : responses(_responses), count(_count), response_out(_response_out),
-          env(ctx, interruptor) { }
+                            rdb_context_t *_ctx,
+                            signal_t *_interruptor)
+        : profile(_profile), responses(_responses),
+          count(_count), response_out(_response_out),
+          ctx(_ctx), interruptor(_interruptor) { }
 
     void operator()(const point_read_t &);
 
@@ -606,10 +668,12 @@ public:
     void operator()(const changefeed_stamp_t &);
 
 private:
-    read_response_t *responses; // Cannibalized for efficiency.
-    size_t count;
-    read_response_t *response_out;
-    ql::env_t env;
+    const profile_bool_t profile;
+    read_response_t *const responses; // Cannibalized for efficiency.
+    const size_t count;
+    read_response_t *const response_out;
+    rdb_context_t *const ctx;
+    signal_t *const interruptor;
 };
 
 void rdb_r_unshard_visitor_t::operator()(const changefeed_subscribe_t &) {
@@ -656,7 +720,7 @@ void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
         // 'db' optarg.)  We have the same assertion in rdb_read_visitor_t.
         rassert(rg.optargs.size() != 0);
     }
-    env.global_optargs.init_optargs(rg.optargs);
+    ql::env_t env(ctx, interruptor, rg.optargs, profile);
 
     // Initialize response.
     response_out->response = rget_read_response_t();
@@ -687,9 +751,9 @@ void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
 
     // Unshard and finish up.
     scoped_ptr_t<ql::accumulator_t> acc(rg.terminal
-        ? ql::make_terminal(&env, *rg.terminal)
+        ? ql::make_terminal(*rg.terminal)
         : ql::make_append(rg.sorting, NULL));
-    acc->unshard(out->last_key, results);
+    acc->unshard(&env, out->last_key, results);
     acc->finish(&out->result);
 }
 
@@ -784,7 +848,9 @@ void read_t::unshard(read_response_t *responses, size_t count,
                      read_response_t *response_out, rdb_context_t *ctx,
                      signal_t *interruptor) const
     THROWS_ONLY(interrupted_exc_t) {
-    rdb_r_unshard_visitor_t v(responses, count, response_out, ctx, interruptor);
+    rassert(ctx != NULL);
+    rdb_r_unshard_visitor_t v(profile, responses, count,
+                              response_out, ctx, interruptor);
     boost::apply_visitor(v, read);
 
     /* We've got some profiling to do. */
@@ -1087,22 +1153,24 @@ void write_t::unshard(write_response_t *responses, size_t count,
 }
 
 
-RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol::single_sindex_status_t,
-                           blocks_total, blocks_processed, ready);
+RDB_IMPL_SERIALIZABLE_3(rdb_protocol::single_sindex_status_t,
+                        blocks_total, blocks_processed, ready);
 
-RDB_IMPL_ME_SERIALIZABLE_1(point_read_response_t, data);
-RDB_IMPL_ME_SERIALIZABLE_4(rget_read_response_t,
-                           result, key_range, truncated, last_key);
-RDB_IMPL_ME_SERIALIZABLE_2(distribution_read_response_t,
-                           region, key_counts);
-RDB_IMPL_ME_SERIALIZABLE_1(sindex_list_response_t, sindexes);
-RDB_IMPL_ME_SERIALIZABLE_3(read_response_t,
-                           response, event_log, n_shards);
-RDB_IMPL_ME_SERIALIZABLE_1(sindex_status_response_t, statuses);
+RDB_IMPL_SERIALIZABLE_1(point_read_response_t, data);
+RDB_IMPL_SERIALIZABLE_4(rget_read_response_t,
+                        result, key_range, truncated, last_key);
+RDB_IMPL_SERIALIZABLE_2(distribution_read_response_t,
+                        region, key_counts);
+RDB_IMPL_SERIALIZABLE_1(sindex_list_response_t, sindexes);
+RDB_IMPL_SERIALIZABLE_1(sindex_status_response_t, statuses);
+RDB_IMPL_SERIALIZABLE_2(changefeed_subscribe_response_t, server_uuids, addrs);
+RDB_IMPL_SERIALIZABLE_1(changefeed_stamp_response_t, stamps);
+RDB_IMPL_SERIALIZABLE_3(read_response_t,
+                        response, event_log, n_shards);
 
-RDB_IMPL_ME_SERIALIZABLE_1(point_read_t, key);
-RDB_IMPL_ME_SERIALIZABLE_3(sindex_rangespec_t,
-                           id, region, original_range);
+RDB_IMPL_SERIALIZABLE_1(point_read_t, key);
+RDB_IMPL_SERIALIZABLE_3(sindex_rangespec_t,
+                        id, region, original_range);
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(key_range_t::bound_t, int8_t,
                                       key_range_t::open, key_range_t::none);
@@ -1112,47 +1180,45 @@ RDB_IMPL_ME_SERIALIZABLE_4(datum_range_t,
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
-RDB_IMPL_ME_SERIALIZABLE_8(rget_read_t, region, optargs, table_name, batchspec,
-                           transforms, terminal, sindex, sorting);
+RDB_IMPL_SERIALIZABLE_8(rget_read_t, region, optargs, table_name, batchspec,
+                        transforms, terminal, sindex, sorting);
 
-RDB_IMPL_ME_SERIALIZABLE_3(distribution_read_t,
-                           max_depth, result_limit, region);
-RDB_IMPL_ME_SERIALIZABLE_0(sindex_list_t);
-RDB_IMPL_ME_SERIALIZABLE_2(sindex_status_t, sindexes, region);
-RDB_IMPL_ME_SERIALIZABLE_2(read_t, read, profile);
-RDB_IMPL_ME_SERIALIZABLE_1(point_write_response_t, result);
+RDB_IMPL_SERIALIZABLE_3(distribution_read_t,
+                        max_depth, result_limit, region);
+RDB_IMPL_SERIALIZABLE_0(sindex_list_t);
+RDB_IMPL_SERIALIZABLE_2(sindex_status_t, sindexes, region);
+RDB_IMPL_SERIALIZABLE_2(changefeed_subscribe_t, addr, region);
+RDB_IMPL_SERIALIZABLE_2(changefeed_stamp_t, addr, region);
+RDB_IMPL_SERIALIZABLE_2(read_t, read, profile);
 
-RDB_IMPL_ME_SERIALIZABLE_1(point_delete_response_t, result);
-RDB_IMPL_ME_SERIALIZABLE_2(changefeed_subscribe_response_t, server_uuids, addrs);
-RDB_IMPL_ME_SERIALIZABLE_1(changefeed_stamp_response_t, stamps);
-RDB_IMPL_ME_SERIALIZABLE_1(sindex_create_response_t, success);
-RDB_IMPL_ME_SERIALIZABLE_1(sindex_drop_response_t, success);
-RDB_IMPL_ME_SERIALIZABLE_0(sync_response_t);
+RDB_IMPL_SERIALIZABLE_1(point_write_response_t, result);
+RDB_IMPL_SERIALIZABLE_1(point_delete_response_t, result);
+RDB_IMPL_SERIALIZABLE_1(sindex_create_response_t, success);
+RDB_IMPL_SERIALIZABLE_1(sindex_drop_response_t, success);
+RDB_IMPL_SERIALIZABLE_0(sync_response_t);
 
-RDB_IMPL_ME_SERIALIZABLE_3(write_response_t, response, event_log, n_shards);
+RDB_IMPL_SERIALIZABLE_3(write_response_t, response, event_log, n_shards);
 
-RDB_IMPL_ME_SERIALIZABLE_5(batched_replace_t,
-                           keys, pkey, f, optargs, return_vals);
-RDB_IMPL_ME_SERIALIZABLE_4(batched_insert_t,
-                           inserts, pkey, upsert, return_vals);
+RDB_IMPL_SERIALIZABLE_5(batched_replace_t,
+                        keys, pkey, f, optargs, return_vals);
+RDB_IMPL_SERIALIZABLE_4(batched_insert_t,
+                        inserts, pkey, upsert, return_vals);
 
-RDB_IMPL_ME_SERIALIZABLE_3(point_write_t, key, data, overwrite);
-RDB_IMPL_ME_SERIALIZABLE_1(point_delete_t, key);
-RDB_IMPL_ME_SERIALIZABLE_2(changefeed_subscribe_t, addr, region);
-RDB_IMPL_ME_SERIALIZABLE_2(changefeed_stamp_t, addr, region);
-RDB_IMPL_ME_SERIALIZABLE_4(sindex_create_t, id, mapping, region, multi);
-RDB_IMPL_ME_SERIALIZABLE_2(sindex_drop_t, id, region);
-RDB_IMPL_ME_SERIALIZABLE_1(sync_t, region);
+RDB_IMPL_SERIALIZABLE_3(point_write_t, key, data, overwrite);
+RDB_IMPL_SERIALIZABLE_1(point_delete_t, key);
+RDB_IMPL_SERIALIZABLE_4(sindex_create_t, id, mapping, region, multi);
+RDB_IMPL_SERIALIZABLE_2(sindex_drop_t, id, region);
+RDB_IMPL_SERIALIZABLE_1(sync_t, region);
 
-RDB_IMPL_ME_SERIALIZABLE_3(write_t,
-                           write, durability_requirement, profile);
-RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t::delete_key_t, key);
+RDB_IMPL_SERIALIZABLE_3(write_t,
+                        write, durability_requirement, profile);
+RDB_IMPL_SERIALIZABLE_1(backfill_chunk_t::delete_key_t, key);
 
-RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t::delete_range_t, range);
+RDB_IMPL_SERIALIZABLE_1(backfill_chunk_t::delete_range_t, range);
 
-RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t::key_value_pairs_t,
-                           backfill_atoms);
+RDB_IMPL_SERIALIZABLE_1(backfill_chunk_t::key_value_pairs_t,
+                        backfill_atoms);
 
-RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t::sindexes_t, sindexes);
+RDB_IMPL_SERIALIZABLE_1(backfill_chunk_t::sindexes_t, sindexes);
 
-RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t, val);
+RDB_IMPL_SERIALIZABLE_1(backfill_chunk_t, val);

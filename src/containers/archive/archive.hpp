@@ -8,6 +8,7 @@
 
 #include "containers/printf_buffer.hpp"
 #include "containers/intrusive_list.hpp"
+#include "version.hpp"
 #include "valgrind.hpp"
 
 class uuid_u;
@@ -54,25 +55,6 @@ const char *archive_result_as_str(archive_result_t archive_result);
                   archive_result_as_str(result));                       \
     } while (0)
 
-// We wrap things in this class for making friend declarations more
-// compilable under gcc-4.5.
-class archive_deserializer_t {
-private:
-    template <class T> friend archive_result_t deserialize(read_stream_t *s, T *thing);
-
-    template <class T>
-    static MUST_USE archive_result_t deserialize(read_stream_t *s, T *thing) {
-        return thing->rdb_deserialize(s);
-    }
-
-    archive_deserializer_t();
-};
-
-template <class T>
-MUST_USE archive_result_t deserialize(read_stream_t *s, T *thing) {
-    return archive_deserializer_t::deserialize(s, thing);
-}
-
 // Returns the number of bytes written, or -1.  Returns a
 // non-negative value less than n upon EOF.
 MUST_USE int64_t force_read(read_stream_t *s, void *p, int64_t n);
@@ -117,11 +99,6 @@ public:
 
     intrusive_list_t<write_buffer_t> *unsafe_expose_buffers() { return &buffers_; }
 
-    template <class T>
-    void append_value(const T &x) {
-        x.rdb_serialize(this);
-    }
-
 private:
     friend int send_write_message(write_stream_t *s, const write_message_t *wm);
 
@@ -129,11 +106,6 @@ private:
 
     DISABLE_COPYING(write_message_t);
 };
-
-template <class T>
-void serialize(write_message_t *wm, const T &x) {
-    wm->append_value(x);
-}
 
 // Returns 0 upon success, -1 upon failure.
 MUST_USE int send_write_message(write_stream_t *s, const write_message_t *wm);
@@ -192,24 +164,23 @@ empty_ok_t<T> empty_ok(T &field) {  // NOLINT(runtime/references)
 
 template <class T>
 struct serialized_size_t;
-
-// Keep in sync with serialized_size_t defined below.
-#define ARCHIVE_PRIM_MAKE_WRITE_SERIALIZABLE(typ1, typ2)   \
-    inline void serialize(write_message_t *wm, typ1 x) {   \
-        union {                                            \
-            typ2 v;                                        \
-            char buf[sizeof(typ2)];                        \
-        } u;                                               \
-        u.v = static_cast<typ2>(x);                        \
-        wm->append(u.buf, sizeof(typ2));                   \
-    }
-
+template <class T>
+struct serialize_universal_size_t;
 
 // Makes typ1 serializable, sending a typ2 over the wire.  Has range
 // checking on the closed interval [lo, hi] when deserializing.
 #define ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(typ1, typ2, lo, hi)       \
-    ARCHIVE_PRIM_MAKE_WRITE_SERIALIZABLE(typ1, typ2);                   \
+    template <cluster_version_t W>                                      \
+    void serialize(write_message_t *wm, typ1 x) {                       \
+        union {                                                         \
+            typ2 v;                                                     \
+            char buf[sizeof(typ2)];                                     \
+        } u;                                                            \
+        u.v = static_cast<typ2>(x);                                     \
+        wm->append(u.buf, sizeof(typ2));                                \
+    }                                                                   \
                                                                         \
+    template <cluster_version_t W>                                      \
     inline MUST_USE archive_result_t deserialize(read_stream_t *s, typ1 *x) { \
         union {                                                         \
             typ2 v;                                                     \
@@ -231,10 +202,26 @@ struct serialized_size_t;
 
 // Designed for <stdint.h>'s u?int[0-9]+_t types, which are just sent
 // raw over the wire.
+//
+// serialize_universal and deserialize_universal are functions whose behavior must
+// never change: if you want to serialize values differently, make a different
+// function.
 #define ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(typ)                         \
-    ARCHIVE_PRIM_MAKE_WRITE_SERIALIZABLE(typ, typ);                     \
+    inline void serialize_universal(write_message_t *wm, typ x) {       \
+        union {                                                         \
+            typ v;                                                      \
+            char buf[sizeof(typ)];                                      \
+        } u;                                                            \
+        u.v = x;                                                        \
+        wm->append(u.buf, sizeof(typ));                                 \
+    }                                                                   \
+    template <cluster_version_t W>                                      \
+    void serialize(write_message_t *wm, typ x) {                        \
+        serialize_universal(wm, x);                                     \
+    }                                                                   \
                                                                         \
-    inline MUST_USE archive_result_t deserialize(read_stream_t *s, typ *x) { \
+    inline MUST_USE archive_result_t                                    \
+    deserialize_universal(read_stream_t *s, typ *x) {                   \
         union {                                                         \
             typ v;                                                      \
             char buf[sizeof(typ)];                                      \
@@ -252,8 +239,16 @@ struct serialized_size_t;
         return archive_result_t::SUCCESS;                               \
     }                                                                   \
                                                                         \
+    template <cluster_version_t W>                                      \
+    MUST_USE archive_result_t deserialize(read_stream_t *s, typ *x) {   \
+        return deserialize_universal(s, x);                             \
+    }                                                                   \
+                                                                        \
     template <>                                                         \
     struct serialized_size_t<typ>                                       \
+        : public std::integral_constant<size_t, sizeof(typ)> { };       \
+    template <>                                                         \
+    struct serialize_universal_size_t<typ>                              \
         : public std::integral_constant<size_t, sizeof(typ)> { }
 
 
@@ -273,20 +268,35 @@ ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(double);
 // Single-precision float is omitted on purpose, don't add it.  Go
 // change your code to use doubles.
 
+// Note: serialize_universal depends on this not changing.
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(bool, int8_t, 0, 1);
 template <>
 struct serialized_size_t<bool> : public serialized_size_t<int8_t> { };
+template <>
+struct serialize_universal_size_t<bool> : public serialize_universal_size_t<int8_t> { };
 
+void serialize_universal(write_message_t *wm, bool b);
+MUST_USE archive_result_t deserialize_universal(read_stream_t *s, bool *b);
+
+void serialize_universal(write_message_t *wm, const uuid_u &uuid);
+MUST_USE archive_result_t deserialize_universal(read_stream_t *s, uuid_u *uuid);
+
+template <cluster_version_t W>
 void serialize(write_message_t *wm, const uuid_u &uuid);
+template <cluster_version_t W>
 MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid);
 
 struct in_addr;
 struct in6_addr;
 
+template <cluster_version_t W>
 void serialize(write_message_t *wm, const in_addr &addr);
+template <cluster_version_t W>
 MUST_USE archive_result_t deserialize(read_stream_t *s, in_addr *addr);
 
+template <cluster_version_t W>
 void serialize(write_message_t *wm, const in6_addr &addr);
+template <cluster_version_t W>
 MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr);
 
 #endif  // CONTAINERS_ARCHIVE_ARCHIVE_HPP_

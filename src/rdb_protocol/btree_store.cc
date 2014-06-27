@@ -15,6 +15,7 @@
 #include "containers/archive/vector_stream.hpp"
 #include "containers/archive/versioned.hpp"
 #include "containers/disk_backed_queue.hpp"
+#include "containers/scoped.hpp"
 #include "logger.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -84,7 +85,7 @@ store_t::store_t(serializer_t *serializer,
         // VSI: Do this better.
         write_message_t wm;
         region_t kr = region_t::universe();
-        serialize_for_version(cluster_version_t::ONLY_VERSION, &wm, kr);
+        serialize_for_metainfo(&wm, kr);
         key.reserve(wm.size());
         int res = send_write_message(&key, &wm);
         guarantee(!res);
@@ -97,7 +98,10 @@ store_t::store_t(serializer_t *serializer,
         create_stat_block(&sb);
     }
 
-    btree.init(new btree_slice_t(cache.get(), &perfmon_collection, "primary"));
+    btree.init(new btree_slice_t(cache.get(),
+                                 &perfmon_collection,
+                                 "primary",
+                                 index_type_t::PRIMARY));
 
     // Initialize sindex slices
     {
@@ -124,7 +128,8 @@ store_t::store_t(serializer_t *serializer,
             secondary_index_slices.insert(it->second.id,
                                           new btree_slice_t(cache.get(),
                                                             &perfmon_collection,
-                                                            it->first.name));
+                                                            it->first.name,
+                                                            index_type_t::SECONDARY));
         }
     }
 
@@ -158,7 +163,7 @@ void store_t::read(
 
 void store_t::write(
         DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
-        const metainfo_t& new_metainfo,
+        const region_map_t<binary_blob_t>& new_metainfo,
         const write_t &write,
         write_response_t *response,
         const write_durability_t durability,
@@ -407,7 +412,6 @@ void store_t::update_sindexes(
             bool release_sindex_block) {
     scoped_ptr_t<new_mutex_in_line_t> acq =
             get_in_line_for_sindex_queue(sindex_block);
-    scoped_array_t<write_message_t> queue_wms(mod_reports.size());
     {
         sindex_access_vector_t sindexes;
         acquire_post_constructed_sindex_superblocks_for_write(
@@ -418,35 +422,49 @@ void store_t::update_sindexes(
 
         rdb_live_deletion_context_t deletion_context;
         for (size_t i = 0; i < mod_reports.size(); ++i) {
-            // This is for a disk backed queue so there's no versioning issues.
-            serialize(&queue_wms[i], mod_reports[i]);
             rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
         }
     }
 
     // Write mod reports onto the sindex queue. We are in line for the
     // sindex_queue mutex and can already release all other locks.
-    sindex_queue_push(queue_wms, acq.get());
+    sindex_queue_push(mod_reports, acq.get());
 }
 
-void store_t::sindex_queue_push(const write_message_t &value,
+void store_t::sindex_queue_push(const rdb_modification_report_t &mod_report,
                                 const new_mutex_in_line_t *acq) {
     assert_thread();
     acq->acq_signal()->wait_lazily_unordered();
 
-    for (auto it = sindex_queues.begin(); it != sindex_queues.end(); ++it) {
-        (*it)->push(value);
+    if (!sindex_queues.empty()) {
+        // This is for a disk backed queue so there's no versioning issues.
+        // (deserializating_viewer_t in disk_backed_queue.hpp also uses the
+        // LATEST version, and such queues are ephemeral).
+        write_message_t wm;
+        serialize<cluster_version_t::LATEST>(&wm, mod_report);
+
+        for (auto it = sindex_queues.begin(); it != sindex_queues.end(); ++it) {
+            (*it)->push(wm);
+        }
     }
 }
 
 void store_t::sindex_queue_push(
-        const scoped_array_t<write_message_t> &values,
+        const std::vector<rdb_modification_report_t> &mod_reports,
         const new_mutex_in_line_t *acq) {
     assert_thread();
     acq->acq_signal()->wait_lazily_unordered();
 
-    for (auto it = sindex_queues.begin(); it != sindex_queues.end(); ++it) {
-        (*it)->push(values);
+    if (!sindex_queues.empty()) {
+        scoped_array_t<write_message_t> wms(mod_reports.size());
+        for (size_t i = 0; i < mod_reports.size(); ++i) {
+            // This is for a disk backed queue so there are no versioning issues.
+            serialize<cluster_version_t::LATEST>(&wms[i], mod_reports[i]);
+        }
+
+        for (auto it = sindex_queues.begin(); it != sindex_queues.end(); ++it) {
+            (*it)->push(wms);
+        }
     }
 }
 
@@ -503,7 +521,10 @@ bool store_t::add_sindex(
         }
 
         secondary_index_slices.insert(
-            sindex.id, new btree_slice_t(cache.get(), &perfmon_collection, name.name));
+            sindex.id, new btree_slice_t(cache.get(),
+                                         &perfmon_collection,
+                                         name.name,
+                                         index_type_t::SECONDARY));
 
         sindex.post_construction_complete = false;
 
@@ -746,7 +767,8 @@ void store_t::set_sindexes(
             secondary_index_slices.insert(it->second.id,
                                           new btree_slice_t(cache.get(),
                                                             &perfmon_collection,
-                                                            it->first.name));
+                                                            it->first.name,
+                                                            index_type_t::SECONDARY));
 
             sindex.post_construction_complete = false;
 
@@ -1015,15 +1037,16 @@ bool store_t::acquire_sindex_superblocks_for_write(
 
 void store_t::check_and_update_metainfo(
         DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
-        const metainfo_t &new_metainfo,
+        const region_map_t<binary_blob_t> &new_metainfo,
         real_superblock_t *superblock) const
         THROWS_NOTHING {
     assert_thread();
-    metainfo_t old_metainfo = check_metainfo(DEBUG_ONLY(metainfo_checker, ) superblock);
+    region_map_t<binary_blob_t> old_metainfo
+        = check_metainfo(DEBUG_ONLY(metainfo_checker, ) superblock);
     update_metainfo(old_metainfo, new_metainfo, superblock);
 }
 
-metainfo_t
+region_map_t<binary_blob_t>
 store_t::check_metainfo(
         DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
         real_superblock_t *superblock) const
@@ -1037,8 +1060,8 @@ store_t::check_metainfo(
     return old_metainfo;
 }
 
-void store_t::update_metainfo(const metainfo_t &old_metainfo,
-                              const metainfo_t &new_metainfo,
+void store_t::update_metainfo(const region_map_t<binary_blob_t> &old_metainfo,
+                              const region_map_t<binary_blob_t> &new_metainfo,
                               real_superblock_t *superblock)
     const THROWS_NOTHING {
     assert_thread();
@@ -1064,10 +1087,7 @@ void store_t::update_metainfo(const metainfo_t &old_metainfo,
          ++i) {
         vector_stream_t key;
         write_message_t wm;
-        // Versioning of this serialization will depend on the block magic.  But
-        // right now there's just one version.
-        // VSI: Make this code better.
-        serialize_for_version(cluster_version_t::ONLY_VERSION, &wm, i->first);
+        serialize_for_metainfo(&wm, i->first);
         key.reserve(wm.size());
         DEBUG_VAR int res = send_write_message(&key, &wm);
         rassert(!res);
@@ -1082,7 +1102,8 @@ void store_t::update_metainfo(const metainfo_t &old_metainfo,
 void store_t::do_get_metainfo(UNUSED order_token_t order_token,  // TODO
                               object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
                               signal_t *interruptor,
-                              metainfo_t *out) THROWS_ONLY(interrupted_exc_t) {
+                              region_map_t<binary_blob_t> *out)
+    THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
@@ -1110,9 +1131,7 @@ get_metainfo_internal(buf_lock_t *sb_buf,
         region_t region;
         {
             inplace_vector_read_stream_t key(&i->first);
-            // Versioning of this deserialization will depend on the block magic.
-            // VSI: Make this code better.
-            archive_result_t res = deserialize_for_version(cluster_version_t::ONLY_VERSION, &key, &region);
+            archive_result_t res = deserialize_for_metainfo(&key, &region);
             guarantee_deserialization(res, "region");
         }
 
@@ -1123,7 +1142,7 @@ get_metainfo_internal(buf_lock_t *sb_buf,
     *out = res;
 }
 
-void store_t::set_metainfo(const metainfo_t &new_metainfo,
+void store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                            UNUSED order_token_t order_token,  // TODO
                            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {

@@ -1,21 +1,23 @@
 #include "perfmon/archive.hpp"
 
 #include "containers/archive/stl_types.hpp"
+#include "containers/archive/versioned.hpp"
 
+template <cluster_version_t W>
 void serialize(write_message_t *wm, const perfmon_result_t &x) {
     perfmon_result_t::perfmon_result_type_t type = x.get_type();
-    serialize(wm, type);
+    serialize<W>(wm, type);
     switch (type) {
     case perfmon_result_t::type_value: {
-        serialize(wm, *x.get_string());
+        serialize<W>(wm, *x.get_string());
     } break;
     case perfmon_result_t::type_map: {
         int64_t size = x.get_map_size();
-        serialize(wm, size);
+        serialize<W>(wm, size);
         for (perfmon_result_t::const_iterator it = x.begin(); it != x.end(); ++it) {
-            serialize(wm, it->first);
+            serialize<W>(wm, it->first);
             rassert(it->second != NULL);
-            serialize(wm, *it->second);
+            serialize<W>(wm, *it->second);
         }
     } break;
     default:
@@ -23,9 +25,10 @@ void serialize(write_message_t *wm, const perfmon_result_t &x) {
     }
 }
 
+template <cluster_version_t W>
 archive_result_t deserialize(read_stream_t *s, perfmon_result_t *thing) {
     perfmon_result_t::perfmon_result_type_t type;
-    archive_result_t res = deserialize(s, &type);
+    archive_result_t res = deserialize<W>(s, &type);
     if (bad(res)) {
         return res;
     }
@@ -33,26 +36,26 @@ archive_result_t deserialize(read_stream_t *s, perfmon_result_t *thing) {
     thing->reset_type(type);
     switch (type) {
     case perfmon_result_t::type_value: {
-        res = deserialize(s, thing->get_string());
+        res = deserialize<W>(s, thing->get_string());
         if (bad(res)) {
             return res;
         }
     } break;
     case perfmon_result_t::type_map: {
         int64_t size;
-        res = deserialize(s, &size);
+        res = deserialize<W>(s, &size);
         if (bad(res)) {
             return res;
         }
 
         for (int64_t i = 0; i < size; ++i) {
             std::pair<std::string, perfmon_result_t *> p;
-            res = deserialize(s, &p.first);
+            res = deserialize<W>(s, &p.first);
             if (bad(res)) {
                 return res;
             }
             p.second = new perfmon_result_t;
-            res = deserialize(s, p.second);
+            res = deserialize<W>(s, p.second);
             if (bad(res)) {
                 delete p.second;
                 return res;
@@ -71,3 +74,5 @@ archive_result_t deserialize(read_stream_t *s, perfmon_result_t *thing) {
 
     return archive_result_t::SUCCESS;
 }
+
+INSTANTIATE_SINCE_v1_13(perfmon_result_t);

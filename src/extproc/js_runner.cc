@@ -69,18 +69,24 @@ js_runner_t::js_runner_t() { }
 js_runner_t::~js_runner_t() {
     assert_thread();
     if (job_data.has()) {
-        // Have the worker job exit its loop - if anything fails,
-        //  don't worry, the worker will be cleaned up
-        try {
-            for (auto it = job_data->id_cache.begin();
-                 it != job_data->id_cache.end(); ++it) {
-                job_data->js_job.release(it->second.id);
-            }
-            job_data->js_job.exit();
-        } catch (...) {
-            // Do nothing
-        }
+        end();
     }
+}
+
+void js_runner_t::end() {
+    assert_thread();
+    // Have the worker job exit its loop - if anything fails,
+    //  don't worry, the worker will be cleaned up
+    try {
+        for (auto it = job_data->id_cache.begin();
+             it != job_data->id_cache.end(); ++it) {
+            job_data->js_job.release(it->second.id);
+        }
+        job_data->js_job.exit();
+    } catch (...) {
+        // Do nothing
+    }
+    job_data.reset();
 }
 
 bool js_runner_t::connected() const {

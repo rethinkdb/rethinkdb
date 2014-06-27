@@ -266,24 +266,12 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                        rdb_context_t *ctx,
                        read_response_t *_response,
                        profile_bool_t profile,
-                       signal_t *_interruptor) :
+                       signal_t *interruptor) :
         response(_response),
         btree(_btree),
         store(_store),
         superblock(_superblock),
-        interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
-        ql_env(ctx->extproc_pool,
-               ctx->changefeed_client.has() ? ctx->changefeed_client.get() : NULL,
-               ctx->reql_http_proxy,
-               ctx->ns_repo,
-               ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()
-                   ->get_watchable(),
-               ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()
-                   ->get_watchable(),
-               ctx->cluster_metadata,
-               NULL,
-               &interruptor,
-               ctx->machine_id,
+        ql_env(ctx, interruptor, std::map<std::string, ql::wire_func_t>(),
                profile)
     { }
 
@@ -300,11 +288,10 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
 private:
-    read_response_t *response;
-    btree_slice_t *btree;
-    store_t *store;
-    superblock_t *superblock;
-    wait_any_t interruptor;
+    read_response_t *const response;
+    btree_slice_t *const btree;
+    store_t *const store;
+    superblock_t *const superblock;
     ql::env_t ql_env;
 
     DISABLE_COPYING(rdb_read_visitor_t);
@@ -371,7 +358,6 @@ private:
     const bool return_vals;
 };
 
-// TODO: get rid of this extra response_t copy on the stack
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const batched_replace_t &br) {
         ql_env.global_optargs.init_optargs(br.optargs);
@@ -483,26 +469,17 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                         scoped_ptr_t<superblock_t> *_superblock,
                         repli_timestamp_t _timestamp,
                         rdb_context_t *ctx,
+                        profile_bool_t profile,
                         write_response_t *_response,
-                        signal_t *_interruptor) :
+                        signal_t *interruptor) :
         btree(_btree),
         store(_store),
         txn(_txn),
         response(_response),
         superblock(_superblock),
         timestamp(_timestamp),
-        interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
-        ql_env(ctx->extproc_pool,
-               ctx->changefeed_client.has() ? ctx->changefeed_client.get() : NULL,
-               ctx->reql_http_proxy,
-               ctx->ns_repo,
-               ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()->get_watchable(),
-               ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()->get_watchable(),
-               ctx->cluster_metadata,
-               NULL,
-               &interruptor,
-               ctx->machine_id,
-               ql::protob_t<Query>()) {
+        ql_env(ctx, interruptor, std::map<std::string, ql::wire_func_t>(),
+               profile) {
         sindex_block =
             store->acquire_sindex_block_for_write((*superblock)->expose_buf(),
                                                   (*superblock)->get_sindex_block_id());
@@ -530,13 +507,12 @@ private:
                                true /* release_sindex_block */);
     }
 
-    btree_slice_t *btree;
-    store_t *store;
-    txn_t *txn;
-    write_response_t *response;
-    scoped_ptr_t<superblock_t> *superblock;
-    repli_timestamp_t timestamp;
-    wait_any_t interruptor;
+    btree_slice_t *const btree;
+    store_t *const store;
+    txn_t *const txn;
+    write_response_t *const response;
+    scoped_ptr_t<superblock_t> *const superblock;
+    const repli_timestamp_t timestamp;
     ql::env_t ql_env;
     buf_lock_t sindex_block;
 
@@ -548,12 +524,15 @@ void store_t::protocol_write(const write_t &write,
                              transition_timestamp_t timestamp,
                              scoped_ptr_t<superblock_t> *superblock,
                              signal_t *interruptor) {
-    rdb_write_visitor_t v(btree.get(), this,
+    rdb_write_visitor_t v(btree.get(),
+                          this,
                           (*superblock)->expose_buf().txn(),
                           superblock,
                           timestamp.to_repli_timestamp(),
                           ctx,
-                          response, interruptor);
+                          write.profile,
+                          response,
+                          interruptor);
     {
         profile::starter_t start_write("Perform write on shard.", v.get_env()->trace);
         boost::apply_visitor(v, write.write);

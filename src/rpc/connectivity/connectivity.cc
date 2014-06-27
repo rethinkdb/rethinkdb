@@ -1,5 +1,20 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rpc/connectivity/connectivity.hpp"
+
+RDB_IMPL_ME_SERIALIZABLE_1(peer_id_t, uuid);
+
+// Universal serialization functions: you MUST NOT change their implementations.
+// (You could find a way to remove these functions, though.)
+void serialize_universal(write_message_t *wm, const peer_id_t &peer_id) {
+    serialize_universal(wm, peer_id.get_uuid());
+}
+archive_result_t deserialize_universal(read_stream_t *s, peer_id_t *peer_id) {
+    uuid_u uuid;
+    archive_result_t res = deserialize_universal(s, &uuid);
+    if (bad(res)) { return res; }
+    *peer_id = peer_id_t(uuid);
+    return archive_result_t::SUCCESS;
+}
 
 connectivity_service_t::peers_list_freeze_t::peers_list_freeze_t(connectivity_service_t *connectivity) :
     acq(connectivity->get_peers_list_lock()) { }

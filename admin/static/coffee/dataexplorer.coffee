@@ -2536,7 +2536,7 @@ module 'DataExplorerView', ->
 
                     
                     if @index is @queries.length # @index was incremented in execute_portion
-                        if typeof cursor._next is 'function' # If the result is a cursor
+                        if cursor? and typeof cursor._next is 'function' # If the result is a cursor
                             @state.cursor = cursor
                             @state.cursor.next get_result_callback
                         else

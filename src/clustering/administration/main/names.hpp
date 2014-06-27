@@ -5,6 +5,6 @@
 #include <set>
 #include <string>
 
-std::string get_machine_name(const int port_offset);
+std::string get_machine_name();
 
 #endif // CLUSTERING_ADMINISTRATION_MAIN_NAMES_HPP_

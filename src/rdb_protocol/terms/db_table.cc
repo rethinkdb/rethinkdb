@@ -45,8 +45,8 @@ private:
 // `const_rethreading_metadata_accessor_t` instead which is more efficient.
 struct rethreading_metadata_accessor_t : public on_thread_t {
     explicit rethreading_metadata_accessor_t(scope_env_t *env)
-    : on_thread_t(env->env->cluster_access.semilattice_metadata->home_thread()),
-      metadata(env->env->cluster_access.semilattice_metadata->get()),
+    : on_thread_t(env->env->cluster_metadata()->home_thread()),
+      metadata(env->env->cluster_metadata()->get()),
       ns_change(&metadata.rdb_namespaces),
       ns_searcher(&ns_change.get()->namespaces),
       db_searcher(&metadata.databases.databases),
@@ -61,8 +61,8 @@ struct rethreading_metadata_accessor_t : public on_thread_t {
 
 struct const_rethreading_metadata_accessor_t : public on_thread_t {
     explicit const_rethreading_metadata_accessor_t(scope_env_t *env)
-    : on_thread_t(env->env->cluster_access.semilattice_metadata->home_thread()),
-      metadata(env->env->cluster_access.semilattice_metadata->get()),
+    : on_thread_t(env->env->cluster_metadata()->home_thread()),
+      metadata(env->env->cluster_metadata()->get()),
       dc_searcher(&metadata.datacenters.datacenters)
     { }
     cluster_semilattice_metadata_t metadata;
@@ -79,15 +79,11 @@ public:
 protected:
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > >
     directory_metadata(env_t *env) const {
-        rcheck(env->cluster_access.directory_read_manager != NULL,
-               base_exc_t::GENERIC,
-               "Cannot nest meta operations inside queries.");
-        r_sanity_check(env->cluster_access.directory_read_manager->home_thread() == get_thread_id());
-        return env->cluster_access.directory_read_manager->get_root_view();
+        r_sanity_check(env->directory_read_manager()->home_thread() == get_thread_id());
+        return env->directory_read_manager()->get_root_view();
     }
 
 private:
-
     virtual std::string write_eval_impl(scope_env_t *env, eval_flags_t flags) = 0;
     virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t flags) {
         std::string op = write_eval_impl(env, flags);
@@ -105,8 +101,8 @@ private:
         name_string_t db_name = get_name(arg(env, 0), this, "Database");
         uuid_u uuid;
         {
-            databases_semilattice_metadata_t db_metadata
-                = env->env->cluster_access.databases_semilattice_metadata->get();
+            databases_semilattice_metadata_t db_metadata;
+            env->env->get_databases_metadata(&db_metadata);
             const_metadata_searcher_t<database_semilattice_metadata_t>
                 db_searcher(&db_metadata.databases);
 
@@ -138,18 +134,18 @@ private:
 
         // Create database, insert into metadata, then join into real metadata.
         database_semilattice_metadata_t db;
-        db.name = vclock_t<name_string_t>(db_name, env->env->cluster_access.this_machine);
+        db.name = vclock_t<name_string_t>(db_name, env->env->this_machine());
         meta.metadata.databases.databases.insert(
             std::make_pair(generate_uuid(), make_deletable(db)));
         try {
             fill_in_blueprints(&meta.metadata,
                                directory_metadata(env->env)->get().get_inner(),
-                               env->env->cluster_access.this_machine,
+                               env->env->this_machine(),
                                boost::optional<namespace_id_t>());
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
         }
-        env->env->cluster_access.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
+        env->env->join_and_wait_to_propagate(meta.metadata);
 
         return "created";
     }
@@ -228,8 +224,8 @@ private:
             // Create namespace (DB + table pair) and insert into metadata.
             namespace_semilattice_metadata_t ns =
                 new_namespace(
-                    env->env->cluster_access.this_machine, db_id, dc_id, tbl_name,
-                    primary_key);
+                        env->env->this_machine(), db_id, dc_id, tbl_name,
+                        primary_key);
 
             // Set Durability
             std::map<datacenter_id_t, ack_expectation_t> *ack_map =
@@ -238,27 +234,27 @@ private:
                 it->second = ack_expectation_t(
                     it->second.expectation(), hard_durability);
             }
-            ns.ack_expectations.upgrade_version(env->env->cluster_access.this_machine);
+            ns.ack_expectations.upgrade_version(env->env->this_machine());
 
             meta.ns_change.get()->namespaces.insert(
                                                     std::make_pair(namespace_id, make_deletable(ns)));
             try {
                 fill_in_blueprints(&meta.metadata,
                                    directory_metadata(env->env)->get().get_inner(),
-                                   env->env->cluster_access.this_machine,
+                                   env->env->this_machine(),
                                    boost::optional<namespace_id_t>());
             } catch (const missing_machine_exc_t &e) {
                 rfail(base_exc_t::GENERIC, "%s", e.what());
             }
-            env->env->cluster_access.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
+            env->env->join_and_wait_to_propagate(meta.metadata);
         }
 
         // UGLY HACK BELOW (see wait_for_rdb_table_readiness)
 
         try {
-            wait_for_rdb_table_readiness(env->env->cluster_access.ns_repo, namespace_id,
+            wait_for_rdb_table_readiness(env->env->ns_repo(), namespace_id,
                                          env->env->interruptor,
-                                         env->env->cluster_access.semilattice_metadata);
+                                         env->env->cluster_metadata());
         } catch (const interrupted_exc_t &e) {
             rfail(base_exc_t::GENERIC, "Query interrupted, probably by user.");
         }
@@ -303,12 +299,12 @@ private:
         try {
             fill_in_blueprints(&meta.metadata,
                                directory_metadata(env->env)->get().get_inner(),
-                               env->env->cluster_access.this_machine,
+                               env->env->this_machine(),
                                boost::optional<namespace_id_t>());
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
         }
-        env->env->cluster_access.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
+        env->env->join_and_wait_to_propagate(meta.metadata);
 
         return "dropped";
     }
@@ -354,12 +350,12 @@ private:
         try {
             fill_in_blueprints(&meta.metadata,
                                directory_metadata(env->env)->get().get_inner(),
-                               env->env->cluster_access.this_machine,
+                               env->env->this_machine(),
                                boost::optional<namespace_id_t>());
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
         }
-        env->env->cluster_access.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
+        env->env->join_and_wait_to_propagate(meta.metadata);
 
         return "dropped";
     }
@@ -374,8 +370,8 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         std::vector<std::string> dbs;
         {
-            databases_semilattice_metadata_t db_metadata
-                = env->env->cluster_access.databases_semilattice_metadata->get();
+            databases_semilattice_metadata_t db_metadata;
+            env->env->get_databases_metadata(&db_metadata);
             const_metadata_searcher_t<database_semilattice_metadata_t>
                 db_searcher(&db_metadata.databases);
 
@@ -419,7 +415,7 @@ private:
         namespace_predicate_t pred(&db_id);
         {
             cow_ptr_t<namespaces_semilattice_metadata_t> ns_metadata
-                = env->env->cluster_access.namespaces_semilattice_metadata->get();
+                = env->env->get_namespaces_metadata();
             const_metadata_searcher_t<namespace_semilattice_metadata_t>
                 ns_searcher(&ns_metadata->namespaces);
 
