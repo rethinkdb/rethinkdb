@@ -18,6 +18,7 @@ Bug fix update.
 * Fixed a bug that caused `Failed to parse  as valid uuid` errors (#2401)
 * Improved the `bad magic number` error message (#2302)
 * `default` now catches index out of bounds errors on streams (#1922)
+* Improved arity error messages in the JavaScript driver (#2449)
 
 --
 
