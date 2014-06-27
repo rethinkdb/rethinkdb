@@ -1,6 +1,6 @@
 err = require('./errors')
 
-plural = (number) -> if number == 1 then "s" else ""
+plural = (number) -> if number == 1 then "" else "s"
 
 # Function wrapper that enforces that the function is
 # called with the correct number of arguments
