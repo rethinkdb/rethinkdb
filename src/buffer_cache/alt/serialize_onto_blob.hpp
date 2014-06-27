@@ -15,6 +15,15 @@ template <cluster_version_t W, class T>
 void serialize_onto_blob(buf_parent_t parent, blob_t *blob,
                          const T &value) {
     // It _should_ never make sense to serialize an earlier version onto a blob.
+    // Instead, you should probably update the version tag for the thing that you are
+    // serializing (often stored in a block magic somewhere) and serialize with the
+    // latest version.  See cluster_metadata_superblock_t in persist.cc for an
+    // example -- things that modify the blobs call bring_up_to_date (which brings
+    // everything serialized up to the latest version, if necessary) and then
+    // serialize with the 'LATEST' version.
+    //
+    // The reason this type parameter exists at all is to make sure the person
+    // writing the code on the calling end has their head in gear.
     static_assert(W == cluster_version_t::LATEST,
                   "It never makes sense to statically serialize an earlier version "
                   "onto a blob.  (Or does it?)");

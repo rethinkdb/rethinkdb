@@ -160,7 +160,6 @@ void write_branch_history_blob(buf_parent_t sb_buf,
                   history);
 }
 
-
 void bring_up_to_date(
         buf_parent_t sb_buf,
         cluster_metadata_superblock_t *sb) {
