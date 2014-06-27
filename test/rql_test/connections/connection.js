@@ -311,7 +311,7 @@ describe('Javascript connection API', function(){
         it("test hard durability", withConnection(function(done, c){
             r.db('test').tableCreate('t1').run(c, noError(function(){
                 r.db('test').table('t1').insert({data:"5"}).run(c, {durability: "hard"}, noError(done));
-            }))//;
+            }));
         }));
 
         it("test non-deterministic durability", withConnection(function(done, c){
