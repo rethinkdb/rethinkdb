@@ -901,7 +901,7 @@ class FunCall(RqlQuery):
     # them around before passing it down to the base class constructor.
     def __init__(self, *args):
         if len(args) == 0:
-            raise RqlDriverError("Expected 1 or more argument(s) but found 0.")
+            raise RqlDriverError("Expected 1 or more arguments but found 0.")
         args = [func_wrap(args[-1])] + list(args[:-1])
         RqlQuery.__init__(self, *args)
 
