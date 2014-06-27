@@ -135,7 +135,7 @@ describe('Javascript connection API', function(){
                     }
 
                     if (data.toString().match(/Could not bind to/)) {
-                        // A port is somehow used by someone else, let's spin up another server
+                        // The port is somehow used by someone else, let's spin up another server
                         cpp_server.removeAllListeners();
                         setup();
                     }
