@@ -127,10 +127,10 @@ tests:
     # For kicks, let's test arity checking in map and filter (Python driver doesn't require this)
     - js: r.expr([1, 2, 3]).filter()
       cd: []
-      ot: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [0])
+      ot: err("RqlDriverError", "Expected 1 argument (not including options) but found 0.", [0])
     - js: r.expr([1, 2, 3]).filter(1, 2)
       cd: []
-      ot: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [0])
+      ot: err("RqlDriverError", "Expected 1 argument (not including options) but found 2.", [0])
 
     # r.js()
     - cd: r.js('1 + 1')
