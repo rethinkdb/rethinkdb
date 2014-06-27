@@ -1,10 +1,12 @@
 err = require('./errors')
 
+plural = (number) -> if number == 1 then "s" else ""
+
 # Function wrapper that enforces that the function is
 # called with the correct number of arguments
 module.exports.ar = (fun) -> (args...) ->
     if args.length isnt fun.length
-        throw new err.RqlDriverError "Expected #{fun.length} argument(s) but found #{args.length}."
+        throw new err.RqlDriverError "Expected #{fun.length} argument#{plural(fun.length)} but found #{args.length}."
     fun.apply(@, args)
 
 # Like ar for variable argument functions. Takes minimum
@@ -12,10 +14,10 @@ module.exports.ar = (fun) -> (args...) ->
 module.exports.varar = (min, max, fun) -> (args...) ->
     if (min? and args.length < min) or (max? and args.length > max)
         if min? and not max?
-            throw new err.RqlDriverError "Expected #{min} or more argument(s) but found #{args.length}."
+            throw new err.RqlDriverError "Expected #{min} or more arguments but found #{args.length}."
         if max? and not min?
-            throw new err.RqlDriverError "Expected #{max} or fewer argument(s) but found #{args.length}."
-        throw new err.RqlDriverError "Expected between #{min} and #{max} argument(s) but found #{args.length}."
+            throw new err.RqlDriverError "Expected #{max} or fewer arguments but found #{args.length}."
+        throw new err.RqlDriverError "Expected between #{min} and #{max} arguments but found #{args.length}."
     fun.apply(@, args)
 
 # Like ar but for functions that take an optional options dict as the last argument
