@@ -22,6 +22,7 @@
 #include "rdb_protocol/blob_wrapper.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/lazy_json.hpp"
+#include "rdb_protocol/serialize_datum_onto_blob.hpp"
 #include "rdb_protocol/shards.hpp"
 
 #include "debug.hpp"
@@ -138,8 +139,7 @@ void kv_location_set(keyvalue_location_t *kv_location,
     const max_block_size_t block_size = kv_location->buf.cache()->max_block_size();
     {
         blob_t blob(block_size, new_value->value_ref(), blob::btree_maxreflen);
-        serialize_for_version_onto_blob(
-                cluster_version_t::ONLY_VERSION,
+        datum_serialize_onto_blob(
                 buf_parent_t(&kv_location->buf),
                 &blob,
                 data);
@@ -495,7 +495,7 @@ public:
             atom.recency = recencies[i];
             chunk_atoms.push_back(atom);
             current_chunk_size += static_cast<size_t>(atom.key.size())
-                + serialized_size<cluster_version_t::ONLY_VERSION>(atom.value);
+                + serialized_size<cluster_version_t::CLUSTER>(atom.value);
 
             if (current_chunk_size >= BACKFILL_MAX_KVPAIRS_SIZE) {
                 // To avoid flooding the receiving node with overly large chunks
@@ -704,13 +704,6 @@ void rdb_erase_small_range(key_tester_t *tester,
         superblock, interruptor, release_superblock_t::RELEASE,
         std::bind(&on_erase_cb_t::on_erase,
                   ph::_1, ph::_2, ph::_3, mod_reports_out));
-}
-
-// This is actually a kind of misleading name. This function estimates the size
-// of a datum, not a whole rget, though it is used for that purpose (by summing
-// up these responses).
-size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum) {
-    return serialized_size<cluster_version_t::ONLY_VERSION>(datum);
 }
 
 

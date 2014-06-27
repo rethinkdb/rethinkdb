@@ -45,9 +45,9 @@ def generate_async_message_template(nargs):
         print "        { }"
     if nargs == 0:
         print "        void write(DEBUG_VAR cluster_version_t cluster_version, write_message_t *) {"
-        print "            rassert(cluster_version == cluster_version_t::ONLY_VERSION);"
     else:
         print "        void write(cluster_version_t cluster_version, write_message_t *wm) {"
+    print "            rassert(cluster_version == cluster_version_t::CLUSTER);"
     for i in xrange(nargs):
         print "            serialize_for_version(cluster_version, wm, arg%d);" % i
     print "        }"
@@ -58,9 +58,9 @@ def generate_async_message_template(nargs):
     print "        explicit read_impl_t(%s *_parent) : parent(_parent) { }" % mailbox_t_str
     if nargs == 0:
         print "        void read(DEBUG_VAR cluster_version_t cluster_version, UNUSED read_stream_t *stream) {"
-        print "            rassert(cluster_version == cluster_version_t::ONLY_VERSION);"
     else:
         print "        void read(cluster_version_t cluster_version, read_stream_t *stream) {"
+    print "            rassert(cluster_version == cluster_version_t::CLUSTER);"
     for i in xrange(nargs):
         print "            arg%d_t arg%d;" % (i, i)
         print "            %sres = deserialize_for_version(cluster_version, stream, &arg%d);" % ("archive_result_t " if i == 0 else "", i)

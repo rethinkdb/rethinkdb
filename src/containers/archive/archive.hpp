@@ -164,6 +164,8 @@ empty_ok_t<T> empty_ok(T &field) {  // NOLINT(runtime/references)
 
 template <class T>
 struct serialized_size_t;
+template <class T>
+struct serialize_universal_size_t;
 
 // Makes typ1 serializable, sending a typ2 over the wire.  Has range
 // checking on the closed interval [lo, hi] when deserializing.
@@ -244,6 +246,9 @@ struct serialized_size_t;
                                                                         \
     template <>                                                         \
     struct serialized_size_t<typ>                                       \
+        : public std::integral_constant<size_t, sizeof(typ)> { };       \
+    template <>                                                         \
+    struct serialize_universal_size_t<typ>                              \
         : public std::integral_constant<size_t, sizeof(typ)> { }
 
 
@@ -263,9 +268,15 @@ ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(double);
 // Single-precision float is omitted on purpose, don't add it.  Go
 // change your code to use doubles.
 
+// Note: serialize_universal depends on this not changing.
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(bool, int8_t, 0, 1);
 template <>
 struct serialized_size_t<bool> : public serialized_size_t<int8_t> { };
+template <>
+struct serialize_universal_size_t<bool> : public serialize_universal_size_t<int8_t> { };
+
+void serialize_universal(write_message_t *wm, bool b);
+MUST_USE archive_result_t deserialize_universal(read_stream_t *s, bool *b);
 
 void serialize_universal(write_message_t *wm, const uuid_u &uuid);
 MUST_USE archive_result_t deserialize_universal(read_stream_t *s, uuid_u *uuid);

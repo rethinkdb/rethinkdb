@@ -128,17 +128,16 @@ public:
         return sized_strcmp(contents(), size(), k.contents(), k.size());
     }
 
-    template <cluster_version_t W>
-    void rdb_serialize(write_message_t *wm) const {
+    // The wire format of serialize_for_metainfo must not change.
+    void serialize_for_metainfo(write_message_t *wm) const {
         uint8_t sz = size();
-        serialize<W>(wm, sz);
+        serialize_universal(wm, sz);
         wm->append(contents(), sz);
     }
 
-    template <cluster_version_t W>
-    archive_result_t rdb_deserialize(read_stream_t *s) {
+    archive_result_t deserialize_for_metainfo(read_stream_t *s) {
         uint8_t sz;
-        archive_result_t res = deserialize<W>(s, &sz);
+        archive_result_t res = deserialize_universal(s, &sz);
         if (bad(res)) { return res; }
         int64_t num_read = force_read(s, contents(), sz);
         if (num_read == -1) {
@@ -150,6 +149,16 @@ public:
         rassert(num_read == sz);
         set_size(sz);
         return archive_result_t::SUCCESS;
+    }
+
+    template <cluster_version_t W>
+    void rdb_serialize(write_message_t *wm) const {
+        serialize_for_metainfo(wm);
+    }
+
+    template <cluster_version_t W>
+    archive_result_t rdb_deserialize(read_stream_t *s) {
+        return deserialize_for_metainfo(s);
     }
 
 private:
@@ -259,6 +268,10 @@ struct key_range_t {
 
 RDB_DECLARE_SERIALIZABLE(key_range_t::right_bound_t);
 RDB_DECLARE_SERIALIZABLE(key_range_t);
+
+// Serialization with stable wire format for metainfo blob.
+void serialize_for_metainfo(write_message_t *wm, const key_range_t &kr);
+MUST_USE archive_result_t deserialize_for_metainfo(read_stream_t *s, key_range_t *out);
 
 void debug_print(printf_buffer_t *buf, const store_key_t &k);
 void debug_print(printf_buffer_t *buf, const store_key_t *k);

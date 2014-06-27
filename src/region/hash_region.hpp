@@ -61,7 +61,13 @@ public:
     inner_region_t inner;
 };
 
+// Stable serialization functions that must not change.
+void serialize_for_metainfo(write_message_t *wm, const hash_region_t<key_range_t> &h);
+MUST_USE archive_result_t deserialize_for_metainfo(read_stream_t *s,
+                                                   hash_region_t<key_range_t> *out);
+
 RDB_DECLARE_SERIALIZABLE(hash_region_t<key_range_t>);
+
 
 template <class inner_region_t>
 bool region_is_empty(const hash_region_t<inner_region_t> &r) {

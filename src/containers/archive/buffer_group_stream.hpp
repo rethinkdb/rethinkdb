@@ -65,5 +65,4 @@ void deserialize_for_version_from_group(cluster_version_t cluster_version,
 };
 
 
-
 #endif  // CONTAINERS_ARCHIVE_BUFFER_GROUP_STREAM_HPP_

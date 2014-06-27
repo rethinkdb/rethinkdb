@@ -63,13 +63,6 @@ protected:
 };
 
 
-// At some point the region maps become a binary_blob_t before being stored.  It
-// keeps the raw btree code abstract.  That doesn't mean you couldn't redefine
-// metainfo_t (used in interfaces above the btree code) to be whatever
-// region_map_t<version...> it actually is, pushing the region_map_transform calls to
-// a different API layer.  You are welcome to do so.
-typedef region_map_t<binary_blob_t> metainfo_t;
-
 #ifndef NDEBUG
 // Checks that the metainfo has a certain value, or certain kind of value.
 class metainfo_checker_callback_t {
@@ -131,14 +124,14 @@ private:
 
 class send_backfill_callback_t : public chunk_fun_callback_t {
 public:
-    bool should_backfill(const metainfo_t &metainfo) {
+    bool should_backfill(const region_map_t<binary_blob_t> &metainfo) {
         guarantee(!should_backfill_was_called_);
         should_backfill_was_called_ = true;
         return should_backfill_impl(metainfo);
     }
 
 protected:
-    virtual bool should_backfill_impl(const metainfo_t &metainfo) = 0;
+    virtual bool should_backfill_impl(const region_map_t<binary_blob_t> &metainfo) = 0;
 
     send_backfill_callback_t() : should_backfill_was_called_(false) { }
     virtual ~send_backfill_callback_t() { }

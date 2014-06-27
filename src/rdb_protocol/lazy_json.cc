@@ -18,7 +18,7 @@ counted_t<const ql::datum_t> get_data(const rdb_value_t *value, buf_parent_t par
     blob.expose_all(parent, access_t::read, &buffer_group, &acq_group);
     buffer_group_read_stream_t read_stream(const_view(&buffer_group));
     archive_result_t res
-        = deserialize<cluster_version_t::ONLY_VERSION>(&read_stream, &data);
+        = datum_deserialize(&read_stream, &data);
     guarantee_deserialization(res, "rdb value");
 
     return data;

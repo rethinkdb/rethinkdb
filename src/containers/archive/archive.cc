@@ -124,6 +124,15 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid) {
 
 INSTANTIATE_SINCE_v1_13(uuid_u);
 
+void serialize_universal(write_message_t *wm, bool b) {
+    // We depend on the versioned implementation for booleans not changing.
+    serialize<cluster_version_t::LATEST>(wm, b);
+}
+MUST_USE archive_result_t deserialize_universal(read_stream_t *s, bool *b) {
+    return deserialize<cluster_version_t::LATEST>(s, b);
+}
+
+
 template <cluster_version_t W>
 void serialize(write_message_t *wm, const in6_addr &addr) {
     wm->append(&addr.s6_addr, sizeof(addr.s6_addr));
