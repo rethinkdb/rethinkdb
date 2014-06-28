@@ -83,7 +83,7 @@ public:
             for (auto it = optargs.begin(); it != optargs.end(); ++it) {
                 bool dup = acc.add(it->first, it->second->eval(env, new_flags)->as_datum());
                 rcheck(!dup, base_exc_t::GENERIC,
-                       strprintf("Duplicate key in object: %s.", it->first.c_str()));
+                       strprintf("Duplicate object key: %s.", it->first.c_str()));
                 sampler.new_sample();
             }
         }
