@@ -35,7 +35,7 @@ wire_func_t &wire_func_t::operator=(const wire_func_t &assignee) {
 wire_func_t::~wire_func_t() { }
 
 counted_t<func_t> wire_func_t::compile_wire_func() const {
-    r_sanity_check(func.has() || func_can_be_null());
+    r_sanity_check(func.has());
     return func;
 }
 
@@ -49,76 +49,67 @@ enum class wire_func_type_t { REQL, JS };
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(wire_func_type_t, int8_t,
                                       wire_func_type_t::REQL, wire_func_type_t::JS);
 
+template <cluster_version_t W>
 class wire_func_serialization_visitor_t : public func_visitor_t {
 public:
     explicit wire_func_serialization_visitor_t(write_message_t *_wm) : wm(_wm) { }
 
     void on_reql_func(const reql_func_t *reql_func) {
-        serialize(wm, wire_func_type_t::REQL);
+        serialize<W>(wm, wire_func_type_t::REQL);
         const var_scope_t &scope = reql_func->captured_scope;
-        serialize(wm, scope);
+        serialize<W>(wm, scope);
         const std::vector<sym_t> &arg_names = reql_func->arg_names;
-        serialize(wm, arg_names);
+        serialize<W>(wm, arg_names);
         const protob_t<const Term> &body = reql_func->body->get_src();
-        serialize(wm, *body);
+        serialize_protobuf(wm, *body);
         const protob_t<const Backtrace> &backtrace = reql_func->backtrace();
-        serialize(wm, *backtrace);
+        serialize_protobuf(wm, *backtrace);
     }
 
     void on_js_func(const js_func_t *js_func) {
-        serialize(wm, wire_func_type_t::JS);
+        serialize<W>(wm, wire_func_type_t::JS);
         const std::string &js_source = js_func->js_source;
-        serialize(wm, js_source);
+        serialize<W>(wm, js_source);
         const uint64_t &js_timeout_ms = js_func->js_timeout_ms;
-        serialize(wm, js_timeout_ms);
+        serialize<W>(wm, js_timeout_ms);
         const protob_t<const Backtrace> &backtrace = js_func->backtrace();
-        serialize(wm, *backtrace);
+        serialize_protobuf(wm, *backtrace);
     }
 
 private:
     write_message_t *wm;
 };
 
-
+template <cluster_version_t W>
 void wire_func_t::rdb_serialize(write_message_t *wm) const {
-    if (func_can_be_null()) {
-        serialize(wm, func.has());
-        if (!func.has()) return;
-    }
     r_sanity_check(func.has());
-    wire_func_serialization_visitor_t v(wm);
+    wire_func_serialization_visitor_t<W> v(wm);
     func->visit(&v);
 }
 
+template <cluster_version_t W>
 archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
     archive_result_t res;
 
-    if (func_can_be_null()) {
-        bool has;
-        res = deserialize(s, &has);
-        if (bad(res)) return res;
-        if (!has) return archive_result_t::SUCCESS;
-    }
-
     wire_func_type_t type;
-    res = deserialize(s, &type);
+    res = deserialize<W>(s, &type);
     if (bad(res)) { return res; }
     switch (type) {
     case wire_func_type_t::REQL: {
         var_scope_t scope;
-        res = deserialize(s, &scope);
+        res = deserialize<W>(s, &scope);
         if (bad(res)) { return res; }
 
         std::vector<sym_t> arg_names;
-        res = deserialize(s, &arg_names);
+        res = deserialize<W>(s, &arg_names);
         if (bad(res)) { return res; }
 
         protob_t<Term> body = make_counted_term();
-        res = deserialize(s, &*body);
+        res = deserialize_protobuf(s, &*body);
         if (bad(res)) { return res; }
 
         protob_t<Backtrace> backtrace = make_counted_backtrace();
-        res = deserialize(s, &*backtrace);
+        res = deserialize_protobuf(s, &*backtrace);
         if (bad(res)) { return res; }
 
         compile_env_t env(
@@ -129,15 +120,15 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
     } break;
     case wire_func_type_t::JS: {
         std::string js_source;
-        res = deserialize(s, &js_source);
+        res = deserialize<W>(s, &js_source);
         if (bad(res)) { return res; }
 
         uint64_t js_timeout_ms;
-        res = deserialize(s, &js_timeout_ms);
+        res = deserialize<W>(s, &js_timeout_ms);
         if (bad(res)) { return res; }
 
         protob_t<Backtrace> backtrace = make_counted_backtrace();
-        res = deserialize(s, &*backtrace);
+        res = deserialize_protobuf(s, &*backtrace);
         if (bad(res)) { return res; }
 
         func = make_counted<js_func_t>(js_source, js_timeout_ms, backtrace);
@@ -145,6 +136,41 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
     } break;
     default:
         unreachable();
+    }
+}
+
+INSTANTIATE_SELF_SINCE_v1_13(wire_func_t);
+
+
+template <cluster_version_t W>
+void maybe_wire_func_t::rdb_serialize(write_message_t *wm) const {
+    bool has_value = wrapped.has();
+    serialize<W>(wm, has_value);
+    if (has_value) {
+        serialize<W>(wm, wrapped);
+    }
+}
+
+template <cluster_version_t W>
+archive_result_t maybe_wire_func_t::rdb_deserialize(read_stream_t *s) {
+    bool has_value;
+    archive_result_t res = deserialize<W>(s, &has_value);
+    if (bad(res)) { return res; }
+    if (has_value) {
+        return deserialize<W>(s, &wrapped);
+    } else {
+        wrapped = wire_func_t();
+        return archive_result_t::SUCCESS;
+    }
+}
+
+INSTANTIATE_SELF_SINCE_v1_13(maybe_wire_func_t);
+
+counted_t<func_t> maybe_wire_func_t::compile_wire_func_or_null() const {
+    if (wrapped.has()) {
+        return wrapped.compile_wire_func();
+    } else {
+        return counted_t<func_t>();
     }
 }
 
@@ -180,27 +206,24 @@ protob_t<const Backtrace> group_wire_func_t::get_bt() const {
 
 RDB_IMPL_ME_SERIALIZABLE_4(group_wire_func_t, funcs, append_index, multi, bt);
 
-RDB_IMPL_ME_SERIALIZABLE_0(count_wire_func_t);
-
-map_wire_func_t map_wire_func_t::make_safely(
-    pb::dummy_var_t dummy_var,
-    const std::function<protob_t<Term>(sym_t argname)> &body_generator,
-    protob_t<const Backtrace> backtrace) {
-    const sym_t varname = dummy_var_to_sym(dummy_var);
-    protob_t<Term> body = body_generator(varname);
-    propagate_backtrace(body.get(), backtrace.get());
-    return map_wire_func_t(body, make_vector(varname), backtrace);
-}
+RDB_IMPL_SERIALIZABLE_0(count_wire_func_t);
 
 RDB_IMPL_SERIALIZABLE_2(filter_wire_func_t, filter_func, default_filter_val);
 
+template <cluster_version_t W>
 void bt_wire_func_t::rdb_serialize(write_message_t *wm) const {
-    serialize(wm, *bt);
+    serialize_protobuf(wm, *bt);
 }
 
+template <cluster_version_t W>
 archive_result_t bt_wire_func_t::rdb_deserialize(read_stream_t *s) {
-    // It's OK to cheat on const-ness during deserialization.
-    return deserialize(s, const_cast<Backtrace *>(&*bt));
+    protob_t<Backtrace> backtrace = make_counted_backtrace();
+    archive_result_t res = deserialize_protobuf(s, backtrace.get());
+    if (bad(res)) { return res; }
+    bt = std::move(backtrace);
+    return archive_result_t::SUCCESS;
 }
+
+INSTANTIATE_SELF_SINCE_v1_13(bt_wire_func_t);
 
 }  // namespace ql

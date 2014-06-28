@@ -5,21 +5,25 @@
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "utils.hpp"
 
+template <cluster_version_t W>
 void serialize(write_message_t *wm, const std::shared_ptr<const scoped_cJSON_t> &cjson) {
     rassert(NULL != cjson.get() && NULL != cjson->get());
-    serialize(wm, *cjson->get());
+    serialize<W>(wm, *cjson->get());
 }
 
+template <cluster_version_t W>
 MUST_USE archive_result_t deserialize(read_stream_t *s, std::shared_ptr<const scoped_cJSON_t> *cjson) {
     cJSON *data = cJSON_CreateBlank();
 
-    archive_result_t res = deserialize(s, data);
+    archive_result_t res = deserialize<W>(s, data);
     if (bad(res)) { return res; }
 
     *cjson = std::shared_ptr<const scoped_cJSON_t>(new scoped_cJSON_t(data));
 
     return archive_result_t::SUCCESS;
 }
+
+INSTANTIATE_SERIALIZE_SINCE_v1_13(std::shared_ptr<const scoped_cJSON_t>);
 
 namespace query_language {
 
@@ -97,18 +101,21 @@ int json_cmp(cJSON *l, cJSON *r) {
             break;
         case cJSON_Array:
             {
-                int lsize = cJSON_GetArraySize(l),
-                    rsize = cJSON_GetArraySize(r);
-                for (int i = 0; i < lsize; ++i) {
-                    if (i >= rsize) {
+                cJSON *left_item = l->head;
+                cJSON *right_item = r->head;
+                while (left_item != NULL) {
+                    if (right_item == NULL) {
                         return 1;  // e.g. cmp([0, 1], [0])
                     }
-                    int cmp = json_cmp(cJSON_GetArrayItem(l, i), cJSON_GetArrayItem(r, i));
+                    rassert(left_item != NULL && right_item != NULL);
+                    int cmp = json_cmp(left_item, right_item);
                     if (cmp != 0) {
                         return cmp;
                     }
+                    left_item = left_item->next;
+                    right_item = right_item->next;
                 }
-                if (rsize > lsize) return -1;  // e.g. cmp([0], [0, 1]);
+                if (right_item != NULL) return -1;  // e.g. cmp([0], [0, 1]);
                 return 0;
             }
             break;

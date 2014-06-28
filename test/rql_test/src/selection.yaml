@@ -205,7 +205,7 @@ tests:
 
     - js: tbl.between(2).count()
       cd: []
-      ot: err('RqlDriverError', 'Expected 2 argument(s) but found 1.', '[]')
+      ot: err('RqlDriverError', 'Expected 2 arguments (not including options) but found 1.', '[]')
 
     # test between table where id isn't a primary key
     - cd: tblpkey.between(9, 11).count()

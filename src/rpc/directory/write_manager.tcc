@@ -8,6 +8,7 @@
 #include <set>
 
 #include "arch/runtime/coroutines.hpp"
+#include "containers/archive/versioned.hpp"
 #include "rpc/connectivity/messages.hpp"
 
 template<class metadata_t>
@@ -89,7 +90,7 @@ public:
         write_message_t wm;
         // All cluster versions use a uint8_t code.
         const uint8_t code = 'I';
-        serialize(&wm, code);
+        serialize_universal(&wm, code);
         serialize_for_version(cluster_version, &wm, initial_value);
         serialize_for_version(cluster_version, &wm, metadata_fifo_state);
         int res = send_write_message(stream, &wm);
@@ -113,7 +114,7 @@ public:
         write_message_t wm;
         // All cluster versions use a uint8_t code.
         const uint8_t code = 'U';
-        serialize(&wm, code);
+        serialize_universal(&wm, code);
         serialize_for_version(cluster_version, &wm, new_value);
         serialize_for_version(cluster_version, &wm, metadata_fifo_token);
         int res = send_write_message(stream, &wm);

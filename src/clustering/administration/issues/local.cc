@@ -4,7 +4,9 @@
 #include "utils.hpp"
 #include "clustering/administration/persist.hpp"
 
-RDB_IMPL_ME_SERIALIZABLE_4(local_issue_t, type, critical, description, timestamp);
+RDB_IMPL_SERIALIZABLE_4(local_issue_t, type, critical, description, timestamp);
+RDB_IMPL_EQUALITY_COMPARABLE_4(local_issue_t,
+    type, critical, description, timestamp);
 
 
 local_issue_t::local_issue_t(const std::string& _type, bool _critical, const std::string& _description)

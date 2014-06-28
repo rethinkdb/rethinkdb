@@ -40,11 +40,8 @@ void btree_erase_range_generic(value_sizer_t *sizer, key_tester_t *tester,
         const btree_key_t *right_inclusive_or_null, superblock_t *superblock,
         signal_t *interruptor,
         release_superblock_t release_superblock = release_superblock_t::RELEASE,
-        const std::function<done_traversing_t(const store_key_t &,
-                                              const char *,
-                                              const buf_parent_t &)>
-            &on_erase_cb = std::function<done_traversing_t(const store_key_t &,
-                                                           const char *,
-                                                           const buf_parent_t &)>());
+        const std::function<void(const store_key_t &, const char *, const buf_parent_t &)>
+            &on_erase_cb = std::function<void(const store_key_t &, const char *,
+                                              const buf_parent_t &)>());
 
 #endif  // BTREE_ERASE_RANGE_HPP_

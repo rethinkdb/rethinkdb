@@ -139,7 +139,7 @@ tests:
 
     - js: tbl.get(1).update({}, 'foo')
       cd: []
-      ot: err('RqlDriverError', 'Expected 1 argument(s) but found 2.')
+      ot: err('RqlDriverError', 'Expected 1 argument (not including options) but found 2.')
 
     - js: tbl.get(1).update({}, {'foo':'bar'})
       cd: []

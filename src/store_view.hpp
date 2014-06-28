@@ -37,13 +37,14 @@ public:
     virtual void do_get_metainfo(order_token_t order_token,
                                  object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
                                  signal_t *interruptor,
-                                 metainfo_t *out) THROWS_ONLY(interrupted_exc_t) = 0;
+                                 region_map_t<binary_blob_t> *out)
+        THROWS_ONLY(interrupted_exc_t) = 0;
 
     /* Replaces the metainfo over the view's entire range with the given metainfo.
     [Precondition] region_is_superset(view->get_region(), new_metainfo.get_domain())
     [Postcondition] this->get_metainfo() == new_metainfo
     [May block] */
-    virtual void set_metainfo(const metainfo_t &new_metainfo,
+    virtual void set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                               order_token_t order_token,
                               object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
@@ -69,7 +70,7 @@ public:
     [May block] */
     virtual void write(
             DEBUG_ONLY(const metainfo_checker_t& metainfo_expecter, )
-            const metainfo_t& new_metainfo,
+            const region_map_t<binary_blob_t> &new_metainfo,
             const write_t &write,
             write_response_t *response,
             write_durability_t durability,
@@ -199,14 +200,15 @@ public:
     void do_get_metainfo(order_token_t order_token,
                          object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
                          signal_t *interruptor,
-                         metainfo_t *out) THROWS_ONLY(interrupted_exc_t) {
+                         region_map_t<binary_blob_t> *out)
+            THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
-        metainfo_t tmp;
+        region_map_t<binary_blob_t> tmp;
         store_view->do_get_metainfo(order_token, token, interruptor, &tmp);
         *out = tmp.mask(get_region());
     }
 
-    void set_metainfo(const metainfo_t &new_metainfo,
+    void set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                       order_token_t order_token,
                       object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
@@ -231,7 +233,7 @@ public:
 
     void write(
             DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
-            const metainfo_t& new_metainfo,
+            const region_map_t<binary_blob_t>& new_metainfo,
             const write_t &write,
             write_response_t *response,
             write_durability_t durability,

@@ -30,7 +30,10 @@ void message_multiplexer_t::run_t::on_message(peer_id_t source,
                                               read_stream_t *stream) {
     // All cluster versions currently use the same kinds of tags.
     tag_t tag;
-    archive_result_t res = deserialize(stream, &tag);
+    static_assert(std::is_same<tag_t, uint8_t>::value,
+                  "tag_t is no longer uint8_t -- the format of cluster messages has "
+                  "changed and you need to ask whether live cluster upgrades work.");
+    archive_result_t res = deserialize_universal(stream, &tag);
     if (bad(res)) { throw fake_archive_exc_t(); }
     client_t *client = parent->clients[tag];
     guarantee(client != NULL, "Got a message for an unfamiliar tag. Apparently "
@@ -84,7 +87,12 @@ public:
     void write(cluster_version_t cluster_version, write_stream_t *os) {
         // All cluster versions use a uint8_t tag here.
         write_message_t wm;
-        serialize(&wm, tag);
+        static_assert(std::is_same<decltype(tag), message_multiplexer_t::tag_t>::value
+                      && std::is_same<message_multiplexer_t::tag_t, uint8_t>::value,
+                      "We expect to be serializing a uint8_t -- if this has changed, "
+                      "the cluster communication format has changed and you need to "
+                      "ask yourself whether live cluster upgrades work.");
+        serialize_universal(&wm, tag);
         int res = send_write_message(os, &wm);
         if (res) { throw fake_archive_exc_t(); }
         subwriter->write(cluster_version, os);

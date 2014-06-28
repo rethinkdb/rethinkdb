@@ -891,7 +891,7 @@ options::help_section_t get_machine_options(std::vector<options::option_t> *opti
     options::help_section_t help("Machine name options");
     options_out->push_back(options::option_t(options::names_t("--machine-name", "-n"),
                                              options::OPTIONAL,
-                                             get_random_machine_name()));
+                                             get_machine_name()));
     help.add("-n [ --machine-name ] arg",
              "the name for this machine (as will appear in the metadata).  If not"
              " specified, it will be randomly chosen from a short list of names.");
@@ -1277,7 +1277,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
         std::string machine_name_str = get_single_option(opts, "--machine-name");
         name_string_t machine_name;
         if (!machine_name.assign_value(machine_name_str)) {
-            fprintf(stderr, "ERROR: machine-name '%s' is invalid.  (%s)", machine_name_str.c_str(), name_string_t::valid_char_msg);
+            fprintf(stderr, "ERROR: machine-name '%s' is invalid.  (%s)\n", machine_name_str.c_str(), name_string_t::valid_char_msg);
             return EXIT_FAILURE;
         }
 
@@ -1642,7 +1642,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         std::string machine_name_str = get_single_option(opts, "--machine-name");
         name_string_t machine_name;
         if (!machine_name.assign_value(machine_name_str)) {
-            fprintf(stderr, "ERROR: machine-name invalid.  (%s)\n", name_string_t::valid_char_msg);
+            fprintf(stderr, "ERROR: machine-name '%s' is invalid.  (%s)\n", machine_name_str.c_str(), name_string_t::valid_char_msg);
             return EXIT_FAILURE;
         }
 

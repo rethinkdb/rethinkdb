@@ -6,7 +6,6 @@
 #include <map>
 
 #include "errors.hpp"
-
 #include <boost/variant.hpp>
 
 #include "concurrency/rwlock.hpp"
@@ -45,7 +44,6 @@ struct msg_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
     struct stop_t {
-        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     msg_t() { }
@@ -65,12 +63,16 @@ struct msg_t {
 
     // Starts with STOP to avoid doing work for default initialization.
     boost::variant<stop_t, change_t> op;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_SERIALIZE_OUTSIDE(msg_t::change_t);
+RDB_DECLARE_SERIALIZABLE(msg_t::stop_t);
+RDB_DECLARE_SERIALIZABLE(msg_t);
 
 class feed_t;
 struct stamped_msg_t;
+
+typedef mailbox_addr_t<void(stamped_msg_t)> client_addr_t;
 
 // The `client_t` exists on the machine handling the changefeed query, in the
 // `rdb_context_t`.  When a query subscribes to the changes on a table, it
@@ -82,7 +84,7 @@ struct stamped_msg_t;
 // found in the `feed_t` class.
 class client_t : public home_thread_mixin_t {
 public:
-    typedef mailbox_addr_t<void(stamped_msg_t)> addr_t;
+    typedef client_addr_t addr_t;
     explicit client_t(mailbox_manager_t *_manager);
     ~client_t();
     // Throws QL exceptions.
@@ -108,12 +110,14 @@ private:
     auto_drainer_t drainer;
 };
 
+typedef mailbox_addr_t<void(client_addr_t)> server_addr_t;
+
 // There is one `server_t` per `store_t`, and it is used to send changes that
 // occur on that `store_t` to any subscribed `feed_t`s contained in a
 // `client_t`.
 class server_t {
 public:
-    typedef mailbox_addr_t<void(client_t::addr_t)> addr_t;
+    typedef server_addr_t addr_t;
     explicit server_t(mailbox_manager_t *_manager);
     ~server_t();
     void add_client(const client_t::addr_t &addr);

@@ -5,6 +5,6 @@
 #include <set>
 #include <string>
 
-std::string get_random_machine_name();
+std::string get_machine_name();
 
 #endif // CLUSTERING_ADMINISTRATION_MAIN_NAMES_HPP_

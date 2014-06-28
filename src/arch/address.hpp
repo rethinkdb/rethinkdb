@@ -22,14 +22,15 @@ class printf_buffer_t;
 
 class host_lookup_exc_t : public std::exception {
 public:
-    host_lookup_exc_t(const std::string &_host, int _errno_val);
+    host_lookup_exc_t(const std::string &_host, int _res, int _errno_res);
     ~host_lookup_exc_t() throw () { }
     const char *what() const throw () {
         return error_string.c_str();
     }
     const std::string host;
-    const int errno_val;
-    const std::string error_string;
+    const int res;
+    const int errno_res;
+    std::string error_string;
 };
 
 class invalid_address_exc_t : public std::exception {
@@ -80,14 +81,16 @@ public:
     const struct in6_addr &get_ipv6_addr() const;
     uint32_t get_ipv6_scope_id() const;
 
+    RDB_MAKE_ME_SERIALIZABLE_4(addr_type, ipv4_addr, ipv6_addr, ipv6_scope_id);
+
 private:
     addr_type_t addr_type;
     in_addr ipv4_addr;
     in6_addr ipv6_addr;
     uint32_t ipv6_scope_id;
-
-    RDB_MAKE_ME_SERIALIZABLE_4(addr_type, ipv4_addr, ipv6_addr, ipv6_scope_id);
 };
+
+RDB_SERIALIZE_OUTSIDE(ip_address_t);
 
 std::set<ip_address_t> hostname_to_ips(const std::string &host);
 std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter, bool get_all);
@@ -96,10 +99,13 @@ class port_t {
 public:
     explicit port_t(int _port);
     int value() const;
+    RDB_MAKE_ME_SERIALIZABLE_1(value_);
+
 private:
     int value_;
-    RDB_MAKE_ME_SERIALIZABLE_1(value_);
 };
+
+RDB_SERIALIZE_OUTSIDE(port_t);
 
 class ip_and_port_t {
 public:
@@ -112,12 +118,14 @@ public:
     const ip_address_t &ip() const;
     port_t port() const;
 
+    RDB_MAKE_ME_SERIALIZABLE_2(ip_, port_);
+
 private:
     ip_address_t ip_;
     port_t port_;
-
-    RDB_MAKE_ME_SERIALIZABLE_2(ip_, port_);
 };
+
+RDB_SERIALIZE_OUTSIDE(ip_and_port_t);
 
 class host_and_port_t {
 public:
@@ -132,12 +140,14 @@ public:
     const std::string &host() const;
     port_t port() const;
 
+    RDB_MAKE_ME_SERIALIZABLE_2(host_, port_);
+
 private:
     std::string host_;
     port_t port_;
-
-    RDB_MAKE_ME_SERIALIZABLE_2(host_, port_);
 };
+
+RDB_SERIALIZE_OUTSIDE(host_and_port_t);
 
 class peer_address_t {
 public:
@@ -158,6 +168,11 @@ private:
     std::set<host_and_port_t> hosts_;
     std::set<ip_and_port_t> resolved_ips;
 };
+
+void serialize_universal(write_message_t *wm, const std::set<host_and_port_t> &x);
+archive_result_t deserialize_universal(read_stream_t *s,
+                                       std::set<host_and_port_t> *thing);
+
 
 void debug_print(printf_buffer_t *buf, const ip_address_t &addr);
 void debug_print(printf_buffer_t *buf, const ip_and_port_t &addr);

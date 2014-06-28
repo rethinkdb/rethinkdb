@@ -22,7 +22,7 @@ TEST(WriteMessageTest, Variant) {
 
     write_message_t wm;
 
-    serialize(&wm, v);
+    serialize<cluster_version_t::LATEST>(&wm, v);
 
     std::string s;
     dump_to_string(&wm, &s);

@@ -56,8 +56,6 @@ private:
     typedef std::map<vclock_details::version_map_t, T> value_map_t;
     value_map_t values;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(values);
-
     explicit vclock_t(const stamped_value_t &_value);
 
     //if there exist 2 values a,b in values s.t. a.first < b.first remove a
@@ -88,7 +86,11 @@ public:
     T &get_mutable();
 
     std::vector<T> get_all_values() const;
+
+    RDB_MAKE_ME_SERIALIZABLE_1(values);
 };
+
+RDB_SERIALIZE_TEMPLATED_OUTSIDE(vclock_t);
 
 template <class T>
 vclock_t<T> make_vclock(const T& arg, const uuid_u& us) {

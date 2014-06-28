@@ -205,6 +205,7 @@ private:
     void add_namespaces(
             bool long_format,
             const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > &namespaces,
+            const std::map<database_id_t, deletable_t<database_semilattice_metadata_t> > &databases,
             std::vector<std::vector<std::string> > *table);
 
     struct shard_input_t {

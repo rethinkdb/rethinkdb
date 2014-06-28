@@ -29,7 +29,8 @@ public:
 private:
     friend class backfiller_send_backfill_callback_t;
 
-    bool confirm_and_send_metainfo(metainfo_t metainfo, region_map_t<version_range_t> start_point,
+    bool confirm_and_send_metainfo(region_map_t<binary_blob_t> metainfo,
+                                   region_map_t<version_range_t> start_point,
                                    mailbox_addr_t<void(region_map_t<version_range_t>, branch_history_t)> end_point_cont);
 
     void on_backfill(

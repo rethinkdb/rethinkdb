@@ -145,7 +145,6 @@ public:
         THROWS_ONLY(interrupted_exc_t);
 
 
-private:
     class write_queue_entry_t {
     public:
         write_queue_entry_t() { }
@@ -155,11 +154,9 @@ private:
         transition_timestamp_t transition_timestamp;
         order_token_t order_token;
         fifo_enforcer_write_token_t fifo_token;
-
-        // This is serializable because this gets written to a disk backed queue.
-        RDB_MAKE_ME_SERIALIZABLE_4(write, order_token, transition_timestamp, fifo_token);
     };
 
+private:
     // TODO: This boost optional boost optional crap is ... crap.  This isn't Haskell, this is *real* programming, people.
     static boost::optional<boost::optional<backfiller_business_card_t> > get_backfiller_from_replier_bcard(const boost::optional<boost::optional<replier_business_card_t> > &replier_bcard);
 
@@ -270,6 +267,7 @@ private:
     DISABLE_COPYING(listener_t);
 };
 
+RDB_DECLARE_SERIALIZABLE(listener_t::write_queue_entry_t);
 
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_LISTENER_HPP_ */

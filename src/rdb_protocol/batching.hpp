@@ -5,6 +5,8 @@
 #include <utility>
 
 #include "containers/archive/archive.hpp"
+#include "containers/archive/versioned.hpp"
+#include "rdb_protocol/datum.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "time.hpp"
 
@@ -36,12 +38,11 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
 
 class batcher_t {
 public:
-    template<class T>
-    bool note_el(const T &t) {
+    bool note_el(const counted_t<const datum_t> &t) {
         seen_one_el = true;
         els_left -= 1;
         min_els_left -= 1;
-        size_left -= serialized_size(t);
+        size_left -= serialized_size<cluster_version_t::CLUSTER>(t);
         return should_send_batch();
     }
     bool should_send_batch() const;
@@ -94,6 +95,8 @@ private:
     int64_t min_els, max_els, max_size, first_scaledown_factor;
     microtime_t end_time;
 };
+
+RDB_SERIALIZE_OUTSIDE(batchspec_t);
 
 // TODO: make user-tunable.
 size_t array_size_limit();

@@ -24,12 +24,10 @@ public:
     bool critical;
     std::string description;
     int64_t timestamp;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-RDB_MAKE_EQUALITY_COMPARABLE_4(local_issue_t,
-    type, critical, description, timestamp);
+RDB_DECLARE_SERIALIZABLE(local_issue_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(local_issue_t);
 
 class local_issue_tracker_t {
 public:

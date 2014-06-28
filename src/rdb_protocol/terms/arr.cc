@@ -107,7 +107,7 @@ private:
                     sampler.new_sample();
                     counted_t<const datum_t> d = s->next(env->env, batchspec);
                     if (!d.has()) {
-                        rcheck(n == -1 && last_d.has(), base_exc_t::GENERIC,
+                        rcheck(n == -1 && last_d.has(), base_exc_t::NON_EXISTENCE,
                                strprintf("Index out of bounds: %d", n));
                         return tbl.has() ? new_val(last_d, tbl) : new_val(last_d);
                     }

@@ -51,6 +51,8 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(t);
 };
 
+RDB_SERIALIZE_TEMPLATED_OUTSIDE(deletable_t);
+
 template <class T>
 deletable_t<T> make_deletable(const T &value) {
     return deletable_t<T>(value);

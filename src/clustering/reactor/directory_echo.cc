@@ -1,7 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_REACTOR_DIRECTORY_ECHO_TCC_
-#define CLUSTERING_REACTOR_DIRECTORY_ECHO_TCC_
-
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/reactor/directory_echo.hpp"
 
 #include <functional>
@@ -142,7 +139,7 @@ void directory_echo_mirror_t<internal_t>::on_change() {
                                 &drainer,
                                 &anything_changed,
                                 this,
-                                std::placeholders::_1));
+                                ph::_1));
 
     /* If nothing actually changed, don't bother sending out a spurious update
     to our sub-listeners. */
@@ -156,4 +153,15 @@ void directory_echo_mirror_t<internal_t>::ack_version(mailbox_t<void(peer_id_t, 
     send(mailbox_manager, peer, mailbox_manager->get_connectivity_service()->get_me(), version);
 }
 
-#endif   /* CLUSTERING_REACTOR_DIRECTORY_ECHO_TCC_ */
+#include "containers/cow_ptr.hpp"
+#include "clustering/reactor/metadata.hpp"
+
+template class directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> >;
+template class directory_echo_writer_t<cow_ptr_t<reactor_business_card_t> >;
+template class directory_echo_mirror_t<cow_ptr_t<reactor_business_card_t> >;
+
+#include <string>  // NOLINT(build/include_order)
+
+template class directory_echo_wrapper_t<std::string>;
+template class directory_echo_writer_t<std::string>;
+template class directory_echo_mirror_t<std::string>;

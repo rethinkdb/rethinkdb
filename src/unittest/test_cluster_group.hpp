@@ -39,9 +39,9 @@ class test_reactor_t;
 class test_cluster_directory_t {
 public:
     boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > reactor_directory;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(test_cluster_directory_t);
 
 
 class test_cluster_group_t {

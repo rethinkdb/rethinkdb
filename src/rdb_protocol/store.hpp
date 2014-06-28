@@ -93,11 +93,11 @@ public:
             order_token_t order_token,
             object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor,
-            metainfo_t *out)
+            region_map_t<binary_blob_t> *out)
         THROWS_ONLY(interrupted_exc_t);
 
     void set_metainfo(
-            const metainfo_t &new_metainfo,
+            const region_map_t<binary_blob_t> &new_metainfo,
             order_token_t order_token,
             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
             signal_t *interruptor)
@@ -114,7 +114,7 @@ public:
 
     void write(
             DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
-            const metainfo_t& new_metainfo,
+            const region_map_t<binary_blob_t>& new_metainfo,
             const write_t &write,
             write_response_t *response,
             write_durability_t durability,
@@ -171,10 +171,10 @@ public:
             bool release_sindex_block);
 
     void sindex_queue_push(
-            const write_message_t &value,
+            const rdb_modification_report_t &mod_report,
             const new_mutex_in_line_t *acq);
     void sindex_queue_push(
-            const scoped_array_t<write_message_t> &values,
+            const std::vector<rdb_modification_report_t> &mod_reports,
             const new_mutex_in_line_t *acq);
 
     void add_progress_tracker(
@@ -366,17 +366,17 @@ private:
 public:
     void check_and_update_metainfo(
         DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
-        const metainfo_t &new_metainfo,
+        const region_map_t<binary_blob_t> &new_metainfo,
         real_superblock_t *superblock) const
         THROWS_NOTHING;
 
-    metainfo_t check_metainfo(
+    region_map_t<binary_blob_t> check_metainfo(
         DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
         real_superblock_t *superblock) const
         THROWS_NOTHING;
 
-    void update_metainfo(const metainfo_t &old_metainfo,
-                         const metainfo_t &new_metainfo,
+    void update_metainfo(const region_map_t<binary_blob_t> &old_metainfo,
+                         const region_map_t<binary_blob_t> &new_metainfo,
                          real_superblock_t *superblock) const THROWS_NOTHING;
 
     fifo_enforcer_source_t main_token_source, sindex_token_source;
