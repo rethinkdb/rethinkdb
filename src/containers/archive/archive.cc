@@ -151,4 +151,4 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr) {
 
 INSTANTIATE_SINCE_v1_13(in6_addr);
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_1_13(in_addr, s_addr);
+RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(in_addr, s_addr);

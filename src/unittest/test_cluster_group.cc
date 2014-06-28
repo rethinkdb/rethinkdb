@@ -36,7 +36,7 @@
 
 namespace unittest {
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_1_13(test_cluster_directory_t, reactor_directory);
+RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(test_cluster_directory_t, reactor_directory);
 
 
 void generate_sample_region(int i, int n, region_t *out) {

@@ -18,11 +18,11 @@ RDB_MAKE_SERIALIZABLE_2(point_t, x, y) at the global scope, or write
 RDB_MAKE_ME_SERIALIZABLE(x, y) within the body of the point_t type and
 RDB_SERIALIZE_OUTSIDE(point_t) in the global scope.
 
-The _SINCE_1_13 variants of the macros exist to make the conversion to
+The _SINCE_v1_13 variants of the macros exist to make the conversion to
 versioned serialization easier. They must only be used for types which
 serialization format has not changed since version 1.13.0.
 Once the format changes, you can still use the macros without
-the _SINCE_1_13 suffix and instantiate the serialize() and deserialize()
+the _SINCE_v1_13 suffix and instantiate the serialize() and deserialize()
 functions explicitly for a certain version.
 
 We use dummy "extern int" declarations to force a compile error in
@@ -87,7 +87,7 @@ macros that should not be used inside of class bodies. */
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body
 #define RDB_IMPL_SERIALIZABLE_0(type_t) RDB_MAKE_SERIALIZABLE_0(type_t); \
 
-#define RDB_IMPL_SERIALIZABLE_0_SINCE_1_13(type_t) \
+#define RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(type_t) \
     RDB_IMPL_SERIALIZABLE_0(type_t); \
     INSTANTIATE_SINCE_v1_13(type_t)
 
@@ -113,7 +113,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
 
-#define RDB_IMPL_ME_SERIALIZABLE_0_SINCE_1_13(typ) \
+#define RDB_IMPL_ME_SERIALIZABLE_0_SINCE_v1_13(typ) \
     RDB_IMPL_ME_SERIALIZABLE_0(typ); \
     INSTANTIATE_SELF_SINCE_v1_13(typ)
 
@@ -132,7 +132,7 @@ macros that should not be used inside of class bodies. */
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body
 #define RDB_IMPL_SERIALIZABLE_1(type_t, field1) RDB_MAKE_SERIALIZABLE_1(type_t, field1); \
 
-#define RDB_IMPL_SERIALIZABLE_1_SINCE_1_13(type_t, field1) \
+#define RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(type_t, field1) \
     RDB_IMPL_SERIALIZABLE_1(type_t, field1); \
     INSTANTIATE_SINCE_v1_13(type_t)
 
@@ -164,7 +164,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
 
-#define RDB_IMPL_ME_SERIALIZABLE_1_SINCE_1_13(typ, field1) \
+#define RDB_IMPL_ME_SERIALIZABLE_1_SINCE_v1_13(typ, field1) \
     RDB_IMPL_ME_SERIALIZABLE_1(typ, field1); \
     INSTANTIATE_SELF_SINCE_v1_13(typ)
 
@@ -186,7 +186,7 @@ macros that should not be used inside of class bodies. */
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body
 #define RDB_IMPL_SERIALIZABLE_2(type_t, field1, field2) RDB_MAKE_SERIALIZABLE_2(type_t, field1, field2); \
 
-#define RDB_IMPL_SERIALIZABLE_2_SINCE_1_13(type_t, field1, field2) \
+#define RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(type_t, field1, field2) \
     RDB_IMPL_SERIALIZABLE_2(type_t, field1, field2); \
     INSTANTIATE_SINCE_v1_13(type_t)
 
@@ -224,7 +224,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
 
-#define RDB_IMPL_ME_SERIALIZABLE_2_SINCE_1_13(typ, field1, field2) \
+#define RDB_IMPL_ME_SERIALIZABLE_2_SINCE_v1_13(typ, field1, field2) \
     RDB_IMPL_ME_SERIALIZABLE_2(typ, field1, field2); \
     INSTANTIATE_SELF_SINCE_v1_13(typ)
 
@@ -249,7 +249,7 @@ macros that should not be used inside of class bodies. */
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body
 #define RDB_IMPL_SERIALIZABLE_3(type_t, field1, field2, field3) RDB_MAKE_SERIALIZABLE_3(type_t, field1, field2, field3); \
 
-#define RDB_IMPL_SERIALIZABLE_3_SINCE_1_13(type_t, field1, field2, field3) \
+#define RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(type_t, field1, field2, field3) \
     RDB_IMPL_SERIALIZABLE_3(type_t, field1, field2, field3); \
     INSTANTIATE_SINCE_v1_13(type_t)
 
@@ -293,7 +293,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
 
-#define RDB_IMPL_ME_SERIALIZABLE_3_SINCE_1_13(typ, field1, field2, field3) \
+#define RDB_IMPL_ME_SERIALIZABLE_3_SINCE_v1_13(typ, field1, field2, field3) \
     RDB_IMPL_ME_SERIALIZABLE_3(typ, field1, field2, field3); \
     INSTANTIATE_SELF_SINCE_v1_13(typ)
 
@@ -321,7 +321,7 @@ macros that should not be used inside of class bodies. */
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body
 #define RDB_IMPL_SERIALIZABLE_4(type_t, field1, field2, field3, field4) RDB_MAKE_SERIALIZABLE_4(type_t, field1, field2, field3, field4); \
 
-#define RDB_IMPL_SERIALIZABLE_4_SINCE_1_13(type_t, field1, field2, field3, field4) \
+#define RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(type_t, field1, field2, field3, field4) \
     RDB_IMPL_SERIALIZABLE_4(type_t, field1, field2, field3, field4); \
     INSTANTIATE_SINCE_v1_13(type_t)
 
@@ -371,7 +371,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
 
-#define RDB_IMPL_ME_SERIALIZABLE_4_SINCE_1_13(typ, field1, field2, field3, field4) \
+#define RDB_IMPL_ME_SERIALIZABLE_4_SINCE_v1_13(typ, field1, field2, field3, field4) \
     RDB_IMPL_ME_SERIALIZABLE_4(typ, field1, field2, field3, field4); \
     INSTANTIATE_SELF_SINCE_v1_13(typ)
 
@@ -402,7 +402,7 @@ macros that should not be used inside of class bodies. */
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body
 #define RDB_IMPL_SERIALIZABLE_5(type_t, field1, field2, field3, field4, field5) RDB_MAKE_SERIALIZABLE_5(type_t, field1, field2, field3, field4, field5); \
 
-#define RDB_IMPL_SERIALIZABLE_5_SINCE_1_13(type_t, field1, field2, field3, field4, field5) \
+#define RDB_IMPL_SERIALIZABLE_5_SINCE_v1_13(type_t, field1, field2, field3, field4, field5) \
     RDB_IMPL_SERIALIZABLE_5(type_t, field1, field2, field3, field4, field5); \
     INSTANTIATE_SINCE_v1_13(type_t)
 
@@ -458,7 +458,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
 
-#define RDB_IMPL_ME_SERIALIZABLE_5_SINCE_1_13(typ, field1, field2, field3, field4, field5) \
+#define RDB_IMPL_ME_SERIALIZABLE_5_SINCE_v1_13(typ, field1, field2, field3, field4, field5) \
     RDB_IMPL_ME_SERIALIZABLE_5(typ, field1, field2, field3, field4, field5); \
     INSTANTIATE_SELF_SINCE_v1_13(typ)
 
@@ -492,7 +492,7 @@ macros that should not be used inside of class bodies. */
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body
 #define RDB_IMPL_SERIALIZABLE_6(type_t, field1, field2, field3, field4, field5, field6) RDB_MAKE_SERIALIZABLE_6(type_t, field1, field2, field3, field4, field5, field6); \
 
-#define RDB_IMPL_SERIALIZABLE_6_SINCE_1_13(type_t, field1, field2, field3, field4, field5, field6) \
+#define RDB_IMPL_SERIALIZABLE_6_SINCE_v1_13(type_t, field1, field2, field3, field4, field5, field6) \
     RDB_IMPL_SERIALIZABLE_6(type_t, field1, field2, field3, field4, field5, field6); \
     INSTANTIATE_SINCE_v1_13(type_t)
 
@@ -554,7 +554,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
 
-#define RDB_IMPL_ME_SERIALIZABLE_6_SINCE_1_13(typ, field1, field2, field3, field4, field5, field6) \
+#define RDB_IMPL_ME_SERIALIZABLE_6_SINCE_v1_13(typ, field1, field2, field3, field4, field5, field6) \
     RDB_IMPL_ME_SERIALIZABLE_6(typ, field1, field2, field3, field4, field5, field6); \
     INSTANTIATE_SELF_SINCE_v1_13(typ)
 
@@ -591,7 +591,7 @@ macros that should not be used inside of class bodies. */
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body
 #define RDB_IMPL_SERIALIZABLE_7(type_t, field1, field2, field3, field4, field5, field6, field7) RDB_MAKE_SERIALIZABLE_7(type_t, field1, field2, field3, field4, field5, field6, field7); \
 
-#define RDB_IMPL_SERIALIZABLE_7_SINCE_1_13(type_t, field1, field2, field3, field4, field5, field6, field7) \
+#define RDB_IMPL_SERIALIZABLE_7_SINCE_v1_13(type_t, field1, field2, field3, field4, field5, field6, field7) \
     RDB_IMPL_SERIALIZABLE_7(type_t, field1, field2, field3, field4, field5, field6, field7); \
     INSTANTIATE_SINCE_v1_13(type_t)
 
@@ -659,7 +659,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
 
-#define RDB_IMPL_ME_SERIALIZABLE_7_SINCE_1_13(typ, field1, field2, field3, field4, field5, field6, field7) \
+#define RDB_IMPL_ME_SERIALIZABLE_7_SINCE_v1_13(typ, field1, field2, field3, field4, field5, field6, field7) \
     RDB_IMPL_ME_SERIALIZABLE_7(typ, field1, field2, field3, field4, field5, field6, field7); \
     INSTANTIATE_SELF_SINCE_v1_13(typ)
 
@@ -699,7 +699,7 @@ macros that should not be used inside of class bodies. */
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body
 #define RDB_IMPL_SERIALIZABLE_8(type_t, field1, field2, field3, field4, field5, field6, field7, field8) RDB_MAKE_SERIALIZABLE_8(type_t, field1, field2, field3, field4, field5, field6, field7, field8); \
 
-#define RDB_IMPL_SERIALIZABLE_8_SINCE_1_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8) \
+#define RDB_IMPL_SERIALIZABLE_8_SINCE_v1_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8) \
     RDB_IMPL_SERIALIZABLE_8(type_t, field1, field2, field3, field4, field5, field6, field7, field8); \
     INSTANTIATE_SINCE_v1_13(type_t)
 
@@ -773,7 +773,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
 
-#define RDB_IMPL_ME_SERIALIZABLE_8_SINCE_1_13(typ, field1, field2, field3, field4, field5, field6, field7, field8) \
+#define RDB_IMPL_ME_SERIALIZABLE_8_SINCE_v1_13(typ, field1, field2, field3, field4, field5, field6, field7, field8) \
     RDB_IMPL_ME_SERIALIZABLE_8(typ, field1, field2, field3, field4, field5, field6, field7, field8); \
     INSTANTIATE_SELF_SINCE_v1_13(typ)
 
@@ -816,7 +816,7 @@ macros that should not be used inside of class bodies. */
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body
 #define RDB_IMPL_SERIALIZABLE_9(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9) RDB_MAKE_SERIALIZABLE_9(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9); \
 
-#define RDB_IMPL_SERIALIZABLE_9_SINCE_1_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
+#define RDB_IMPL_SERIALIZABLE_9_SINCE_v1_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
     RDB_IMPL_SERIALIZABLE_9(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9); \
     INSTANTIATE_SINCE_v1_13(type_t)
 
@@ -896,7 +896,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
 
-#define RDB_IMPL_ME_SERIALIZABLE_9_SINCE_1_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
+#define RDB_IMPL_ME_SERIALIZABLE_9_SINCE_v1_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
     RDB_IMPL_ME_SERIALIZABLE_9(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9); \
     INSTANTIATE_SELF_SINCE_v1_13(typ)
 
@@ -942,7 +942,7 @@ macros that should not be used inside of class bodies. */
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body
 #define RDB_IMPL_SERIALIZABLE_10(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) RDB_MAKE_SERIALIZABLE_10(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10); \
 
-#define RDB_IMPL_SERIALIZABLE_10_SINCE_1_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
+#define RDB_IMPL_SERIALIZABLE_10_SINCE_v1_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
     RDB_IMPL_SERIALIZABLE_10(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10); \
     INSTANTIATE_SINCE_v1_13(type_t)
 
@@ -1028,7 +1028,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
 
-#define RDB_IMPL_ME_SERIALIZABLE_10_SINCE_1_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
+#define RDB_IMPL_ME_SERIALIZABLE_10_SINCE_v1_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
     RDB_IMPL_ME_SERIALIZABLE_10(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10); \
     INSTANTIATE_SELF_SINCE_v1_13(typ)
 
@@ -1077,7 +1077,7 @@ macros that should not be used inside of class bodies. */
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body
 #define RDB_IMPL_SERIALIZABLE_11(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) RDB_MAKE_SERIALIZABLE_11(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11); \
 
-#define RDB_IMPL_SERIALIZABLE_11_SINCE_1_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
+#define RDB_IMPL_SERIALIZABLE_11_SINCE_v1_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
     RDB_IMPL_SERIALIZABLE_11(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11); \
     INSTANTIATE_SINCE_v1_13(type_t)
 
@@ -1169,7 +1169,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
 
-#define RDB_IMPL_ME_SERIALIZABLE_11_SINCE_1_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
+#define RDB_IMPL_ME_SERIALIZABLE_11_SINCE_v1_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
     RDB_IMPL_ME_SERIALIZABLE_11(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11); \
     INSTANTIATE_SELF_SINCE_v1_13(typ)
 
@@ -1221,7 +1221,7 @@ macros that should not be used inside of class bodies. */
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body
 #define RDB_IMPL_SERIALIZABLE_12(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) RDB_MAKE_SERIALIZABLE_12(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12); \
 
-#define RDB_IMPL_SERIALIZABLE_12_SINCE_1_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
+#define RDB_IMPL_SERIALIZABLE_12_SINCE_v1_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
     RDB_IMPL_SERIALIZABLE_12(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12); \
     INSTANTIATE_SINCE_v1_13(type_t)
 
@@ -1319,7 +1319,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
 
-#define RDB_IMPL_ME_SERIALIZABLE_12_SINCE_1_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
+#define RDB_IMPL_ME_SERIALIZABLE_12_SINCE_v1_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
     RDB_IMPL_ME_SERIALIZABLE_12(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12); \
     INSTANTIATE_SELF_SINCE_v1_13(typ)
 
@@ -1374,7 +1374,7 @@ macros that should not be used inside of class bodies. */
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body
 #define RDB_IMPL_SERIALIZABLE_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) RDB_MAKE_SERIALIZABLE_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13); \
 
-#define RDB_IMPL_SERIALIZABLE_13_SINCE_1_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
+#define RDB_IMPL_SERIALIZABLE_13_SINCE_v1_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
     RDB_IMPL_SERIALIZABLE_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13); \
     INSTANTIATE_SINCE_v1_13(type_t)
 
@@ -1478,7 +1478,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
 
-#define RDB_IMPL_ME_SERIALIZABLE_13_SINCE_1_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
+#define RDB_IMPL_ME_SERIALIZABLE_13_SINCE_v1_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
     RDB_IMPL_ME_SERIALIZABLE_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13); \
     INSTANTIATE_SELF_SINCE_v1_13(typ)
 
@@ -1536,7 +1536,7 @@ macros that should not be used inside of class bodies. */
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body
 #define RDB_IMPL_SERIALIZABLE_14(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) RDB_MAKE_SERIALIZABLE_14(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14); \
 
-#define RDB_IMPL_SERIALIZABLE_14_SINCE_1_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
+#define RDB_IMPL_SERIALIZABLE_14_SINCE_v1_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
     RDB_IMPL_SERIALIZABLE_14(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14); \
     INSTANTIATE_SINCE_v1_13(type_t)
 
@@ -1646,7 +1646,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
 
-#define RDB_IMPL_ME_SERIALIZABLE_14_SINCE_1_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
+#define RDB_IMPL_ME_SERIALIZABLE_14_SINCE_v1_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
     RDB_IMPL_ME_SERIALIZABLE_14(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14); \
     INSTANTIATE_SELF_SINCE_v1_13(typ)
 
@@ -1707,7 +1707,7 @@ macros that should not be used inside of class bodies. */
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body
 #define RDB_IMPL_SERIALIZABLE_15(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) RDB_MAKE_SERIALIZABLE_15(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15); \
 
-#define RDB_IMPL_SERIALIZABLE_15_SINCE_1_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
+#define RDB_IMPL_SERIALIZABLE_15_SINCE_v1_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
     RDB_IMPL_SERIALIZABLE_15(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15); \
     INSTANTIATE_SINCE_v1_13(type_t)
 
@@ -1823,7 +1823,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
 
-#define RDB_IMPL_ME_SERIALIZABLE_15_SINCE_1_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
+#define RDB_IMPL_ME_SERIALIZABLE_15_SINCE_v1_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
     RDB_IMPL_ME_SERIALIZABLE_15(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15); \
     INSTANTIATE_SELF_SINCE_v1_13(typ)
 
@@ -1887,7 +1887,7 @@ macros that should not be used inside of class bodies. */
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body
 #define RDB_IMPL_SERIALIZABLE_16(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) RDB_MAKE_SERIALIZABLE_16(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16); \
 
-#define RDB_IMPL_SERIALIZABLE_16_SINCE_1_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
+#define RDB_IMPL_SERIALIZABLE_16_SINCE_v1_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
     RDB_IMPL_SERIALIZABLE_16(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16); \
     INSTANTIATE_SINCE_v1_13(type_t)
 
@@ -2009,7 +2009,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
 
-#define RDB_IMPL_ME_SERIALIZABLE_16_SINCE_1_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
+#define RDB_IMPL_ME_SERIALIZABLE_16_SINCE_v1_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
     RDB_IMPL_ME_SERIALIZABLE_16(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16); \
     INSTANTIATE_SELF_SINCE_v1_13(typ)
 
@@ -2076,7 +2076,7 @@ macros that should not be used inside of class bodies. */
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body
 #define RDB_IMPL_SERIALIZABLE_17(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) RDB_MAKE_SERIALIZABLE_17(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17); \
 
-#define RDB_IMPL_SERIALIZABLE_17_SINCE_1_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
+#define RDB_IMPL_SERIALIZABLE_17_SINCE_v1_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
     RDB_IMPL_SERIALIZABLE_17(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17); \
     INSTANTIATE_SINCE_v1_13(type_t)
 
@@ -2204,7 +2204,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
 
-#define RDB_IMPL_ME_SERIALIZABLE_17_SINCE_1_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
+#define RDB_IMPL_ME_SERIALIZABLE_17_SINCE_v1_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
     RDB_IMPL_ME_SERIALIZABLE_17(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17); \
     INSTANTIATE_SELF_SINCE_v1_13(typ)
 
@@ -2274,7 +2274,7 @@ macros that should not be used inside of class bodies. */
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body
 #define RDB_IMPL_SERIALIZABLE_18(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) RDB_MAKE_SERIALIZABLE_18(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18); \
 
-#define RDB_IMPL_SERIALIZABLE_18_SINCE_1_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
+#define RDB_IMPL_SERIALIZABLE_18_SINCE_v1_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
     RDB_IMPL_SERIALIZABLE_18(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18); \
     INSTANTIATE_SINCE_v1_13(type_t)
 
@@ -2408,7 +2408,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
 
-#define RDB_IMPL_ME_SERIALIZABLE_18_SINCE_1_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
+#define RDB_IMPL_ME_SERIALIZABLE_18_SINCE_v1_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
     RDB_IMPL_ME_SERIALIZABLE_18(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18); \
     INSTANTIATE_SELF_SINCE_v1_13(typ)
 
@@ -2481,7 +2481,7 @@ macros that should not be used inside of class bodies. */
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body
 #define RDB_IMPL_SERIALIZABLE_19(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) RDB_MAKE_SERIALIZABLE_19(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19); \
 
-#define RDB_IMPL_SERIALIZABLE_19_SINCE_1_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
+#define RDB_IMPL_SERIALIZABLE_19_SINCE_v1_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
     RDB_IMPL_SERIALIZABLE_19(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19); \
     INSTANTIATE_SINCE_v1_13(type_t)
 
@@ -2621,7 +2621,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
 
-#define RDB_IMPL_ME_SERIALIZABLE_19_SINCE_1_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
+#define RDB_IMPL_ME_SERIALIZABLE_19_SINCE_v1_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
     RDB_IMPL_ME_SERIALIZABLE_19(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19); \
     INSTANTIATE_SELF_SINCE_v1_13(typ)
 

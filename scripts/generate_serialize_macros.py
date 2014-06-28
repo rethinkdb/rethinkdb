@@ -36,7 +36,7 @@ def generate_make_serializable_macro(nfields):
     print "    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body"
     print "#define RDB_IMPL_SERIALIZABLE_%d(type_t%s) RDB_MAKE_SERIALIZABLE_%d(type_t%s); \\" % (nfields, fields, nfields, fields)
     print ""
-    print "#define RDB_IMPL_SERIALIZABLE_%d_SINCE_1_13(type_t%s) \\" % (nfields, fields)
+    print "#define RDB_IMPL_SERIALIZABLE_%d_SINCE_v1_13(type_t%s) \\" % (nfields, fields)
     print "    RDB_IMPL_SERIALIZABLE_%d(type_t%s); \\" % (nfields, fields)
     print "    INSTANTIATE_SINCE_v1_13(type_t)"
 
@@ -78,7 +78,7 @@ def generate_impl_me_serializable_macro(nfields):
     print "        return res; \\"
     print "    } \\"
     print ""
-    print "#define RDB_IMPL_ME_SERIALIZABLE_%d_SINCE_1_13(typ%s) \\" % \
+    print "#define RDB_IMPL_ME_SERIALIZABLE_%d_SINCE_v1_13(typ%s) \\" % \
        (nfields, "".join(", field%d" % (i + 1) for i in xrange(nfields)))
     print "    RDB_IMPL_ME_SERIALIZABLE_%d(typ%s); \\" % \
        (nfields, "".join(", field%d" % (i + 1) for i in xrange(nfields)))
@@ -111,11 +111,11 @@ RDB_MAKE_SERIALIZABLE_2(point_t, x, y) at the global scope, or write
 RDB_MAKE_ME_SERIALIZABLE(x, y) within the body of the point_t type and
 RDB_SERIALIZE_OUTSIDE(point_t) in the global scope.
 
-The _SINCE_1_13 variants of the macros exist to make the conversion to
+The _SINCE_v1_13 variants of the macros exist to make the conversion to
 versioned serialization easier. They must only be used for types which
 serialization format has not changed since version 1.13.0.
 Once the format changes, you can still use the macros without
-the _SINCE_1_13 suffix and instantiate the serialize() and deserialize()
+the _SINCE_v1_13 suffix and instantiate the serialize() and deserialize()
 functions explicitly for a certain version.
 
 We use dummy "extern int" declarations to force a compile error in

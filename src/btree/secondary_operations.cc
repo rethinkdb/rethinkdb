@@ -7,10 +7,11 @@
 #include "buffer_cache/alt/serialize_onto_blob.hpp"
 #include "containers/archive/vector_stream.hpp"
 
-RDB_IMPL_SERIALIZABLE_5_SINCE_1_13(secondary_index_t, superblock, opaque_definition,
-                        post_construction_complete, being_deleted, id);
+RDB_IMPL_SERIALIZABLE_5_SINCE_v1_13(
+        secondary_index_t, superblock, opaque_definition,
+        post_construction_complete, being_deleted, id);
 
-RDB_IMPL_SERIALIZABLE_2_SINCE_1_13(sindex_name_t, name, being_deleted);
+RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(sindex_name_t, name, being_deleted);
 
 struct btree_sindex_block_t {
     static const int SINDEX_BLOB_MAXREFLEN = 4076;
