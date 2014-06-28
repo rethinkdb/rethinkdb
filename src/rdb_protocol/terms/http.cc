@@ -40,31 +40,29 @@ private:
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const;
 
-    // RSI: Probably these functions can be static.
-
     // Functions to get optargs into the http_opts_t
     void get_optargs(scope_env_t *env, args_t *args, http_opts_t *opts_out) const;
 
-    void get_bool_optarg(const std::string &optarg_name,
-                         scope_env_t *env,
-                         args_t *args,
-                         bool *bool_out) const;
+    static void get_bool_optarg(const std::string &optarg_name,
+                                scope_env_t *env,
+                                args_t *args,
+                                bool *bool_out);
 
-    void get_redirects(scope_env_t *env,
-                       args_t *args,
-                       uint32_t *redirects_out) const;
+    static void get_redirects(scope_env_t *env,
+                              args_t *args,
+                              uint32_t *redirects_out);
 
-    void get_attempts(scope_env_t *env,
-                      args_t *args,
-                      uint64_t *attempts_out) const;
+    static void get_attempts(scope_env_t *env,
+                             args_t *args,
+                             uint64_t *attempts_out);
 
-    void get_result_format(scope_env_t *env,
+    static void get_result_format(scope_env_t *env,
+                                  args_t *args,
+                                  http_result_format_t *result_format_out);
+
+    static void get_params(scope_env_t *env,
                            args_t *args,
-                           http_result_format_t *result_format_out) const;
-
-    void get_params(scope_env_t *env,
-                    args_t *args,
-                    counted_t<const datum_t> *params_out) const;
+                           counted_t<const datum_t> *params_out);
 
     void get_data(scope_env_t *env,
                   args_t *args,
@@ -73,26 +71,26 @@ private:
                   std::vector<std::string> *header_out,
                   http_method_t method) const;
 
-    void get_timeout_ms(scope_env_t *env,
-                        args_t *args,
-                        uint64_t *timeout_ms_out) const;
+    static void get_timeout_ms(scope_env_t *env,
+                               args_t *args,
+                               uint64_t *timeout_ms_out);
 
-    void get_header(scope_env_t *env,
-                    args_t *args,
-                    std::vector<std::string> *header_out) const;
+    static void get_header(scope_env_t *env,
+                           args_t *args,
+                           std::vector<std::string> *header_out);
 
-    void get_method(scope_env_t *env,
-                    args_t *args,
-                    http_method_t *method_out) const;
+    static void get_method(scope_env_t *env,
+                           args_t *args,
+                           http_method_t *method_out);
 
-    void get_auth(scope_env_t *env,
-                  args_t *args,
-                  http_opts_t::http_auth_t *auth_out) const;
+    static void get_auth(scope_env_t *env,
+                         args_t *args,
+                         http_opts_t::http_auth_t *auth_out);
 
-    void get_page_and_limit(scope_env_t *env,
-                            args_t *args,
-                            counted_t<func_t> *depaginate_fn_out,
-                            int64_t *depaginate_limit_out) const;
+    static void get_page_and_limit(scope_env_t *env,
+                                   args_t *args,
+                                   counted_t<func_t> *depaginate_fn_out,
+                                   int64_t *depaginate_limit_out);
 
     // Helper functions, used in optarg parsing
     static void verify_header_string(const std::string &str,
@@ -367,7 +365,7 @@ bool http_datum_stream_t::handle_depage_result(counted_t<const datum_t> depage) 
 void http_term_t::get_page_and_limit(scope_env_t *env,
                                      args_t *args,
                                      counted_t<func_t> *depaginate_fn_out,
-                                     int64_t *depaginate_limit_out) const {
+                                     int64_t *depaginate_limit_out) {
     counted_t<val_t> page = args->optarg(env, "page");
     counted_t<val_t> page_limit = args->optarg(env, "page_limit");
 
@@ -412,7 +410,7 @@ void http_term_t::get_optargs(scope_env_t *env,
 // out of the HTTP request.  This must be a NUMBER, but may be fractional.
 void http_term_t::get_timeout_ms(scope_env_t *env,
                                  args_t *args,
-                                 uint64_t *timeout_ms_out) const {
+                                 uint64_t *timeout_ms_out) {
     counted_t<val_t> timeout = args->optarg(env, "timeout");
     if (timeout.has()) {
         double tmp = timeout->as_num();
@@ -446,7 +444,7 @@ void http_term_t::verify_header_string(const std::string &str,
 // Header lines are not allowed to contain newlines.
 void http_term_t::get_header(scope_env_t *env,
                              args_t *args,
-                             std::vector<std::string> *header_out) const {
+                             std::vector<std::string> *header_out) {
     counted_t<val_t> header = args->optarg(env, "header");
     if (header.has()) {
         counted_t<const datum_t> datum_header = header->as_datum();
@@ -490,7 +488,7 @@ void http_term_t::get_header(scope_env_t *env,
 // supported HTTP request methods: GET, HEAD, POST, PUT, PATCH, or DELETE.
 void http_term_t::get_method(scope_env_t *env,
                              args_t *args,
-                             http_method_t *method_out) const {
+                             http_method_t *method_out) {
     counted_t<val_t> method = args->optarg(env, "method");
     if (method.has()) {
         std::string method_str = method->as_str().to_std();
@@ -536,7 +534,7 @@ std::string http_term_t::get_auth_item(const counted_t<const datum_t> &datum,
 //  pass - STRING, the password to use
 void http_term_t::get_auth(scope_env_t *env,
                            args_t *args,
-                           http_opts_t::http_auth_t *auth_out) const {
+                           http_opts_t::http_auth_t *auth_out) {
     counted_t<val_t> auth = args->optarg(env, "auth");
     if (auth.has()) {
         counted_t<const datum_t> datum_auth = auth->as_datum();
@@ -662,7 +660,7 @@ void http_term_t::get_data(
 // Values are sanitized here, but converted in the extproc.
 void http_term_t::get_params(scope_env_t *env,
                              args_t *args,
-                             counted_t<const datum_t> *params_out) const {
+                             counted_t<const datum_t> *params_out) {
     counted_t<val_t> params = args->optarg(env, "params");
     if (params.has()) {
         *params_out = params->as_datum();
@@ -681,7 +679,7 @@ void http_term_t::get_params(scope_env_t *env,
 //         or a string otherwise.
 void http_term_t::get_result_format(scope_env_t *env,
                                     args_t *args,
-                                    http_result_format_t *result_format_out) const {
+                                    http_result_format_t *result_format_out) {
     counted_t<val_t> result_format = args->optarg(env, "result_format");
     if (result_format.has()) {
         std::string result_format_str = result_format->as_str().to_std();
@@ -706,7 +704,7 @@ void http_term_t::get_result_format(scope_env_t *env,
 // could feasibly be temporary.  This must be specified as an INTEGER >= 0.
 void http_term_t::get_attempts(scope_env_t *env,
                                args_t *args,
-                               uint64_t *attempts_out) const {
+                               uint64_t *attempts_out) {
     counted_t<val_t> attempts = args->optarg(env, "attempts");
     if (attempts.has()) {
         *attempts_out = attempts->as_int<uint64_t>();
@@ -717,7 +715,7 @@ void http_term_t::get_attempts(scope_env_t *env,
 // erroring the query.  This must be passed as an INTEGER between 0 and 2^32 - 1.
 void http_term_t::get_redirects(scope_env_t *env,
                                 args_t *args,
-                                uint32_t *redirects_out) const {
+                                uint32_t *redirects_out) {
     counted_t<val_t> redirects = args->optarg(env, "redirects");
     if (redirects.has()) {
         *redirects_out = redirects->as_int<uint32_t>();
@@ -729,7 +727,7 @@ void http_term_t::get_redirects(scope_env_t *env,
 void http_term_t::get_bool_optarg(const std::string &optarg_name,
                                   scope_env_t *env,
                                   args_t *args,
-                                  bool *bool_out) const {
+                                  bool *bool_out) {
     counted_t<val_t> option = args->optarg(env, optarg_name);
     if (option.has()) {
         *bool_out = option->as_bool();
