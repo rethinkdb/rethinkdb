@@ -61,7 +61,8 @@ class op_term_t;
 
 class args_t {
 public:
-    size_t num_args() const; // number of arguments
+    // number of arguments
+    size_t num_args() const;
     // Returns argument `i`.
     counted_t<val_t> arg(scope_env_t *env, size_t i,
                          eval_flags_t flags = NO_FLAGS) const;
@@ -72,7 +73,7 @@ public:
 
 private:
     // RSI: We need to do this reentrantly.
-    const op_term_t *op_term;
+    const op_term_t *const op_term;
 
     DISABLE_COPYING(args_t);
 };
@@ -85,13 +86,8 @@ protected:
               argspec_t argspec, optargspec_t optargspec = optargspec_t({}));
     virtual ~op_term_t();
 
-    friend class args_t;
-    size_t num_args() const; // number of arguments
-    // Returns argument `i`.
-    counted_t<val_t> arg(scope_env_t *env, size_t i,
-                         eval_flags_t flags = NO_FLAGS) const;
-    // Tries to get an optional argument, returns `counted_t<val_t>()` if not found.
-    counted_t<val_t> optarg(scope_env_t *env, const std::string &key) const;
+    friend class args_t;  // RSI: This will be removed?
+
     // This returns an optarg which is:
     // * lazy -- it's wrapped in a function, so you don't get the value until
     //   you call that function.
@@ -107,6 +103,15 @@ protected:
     virtual void accumulate_captures(var_captures_t *captures) const;
 
 private:
+    // RSI: These three functions should go away.
+    size_t num_args() const; // number of arguments
+    // Returns argument `i`.
+    counted_t<val_t> arg(scope_env_t *env, size_t i,
+                         eval_flags_t flags = NO_FLAGS) const;
+    // Tries to get an optional argument, returns `counted_t<val_t>()` if not found.
+    counted_t<val_t> optarg(scope_env_t *env, const std::string &key) const;
+
+    // RSI: This comment refers to arg0, what about the args_t param.
     // TODO: this interface is a terrible hack.  `term_eval` should be named
     // `eval_impl`, `eval_impl` should be named `op_eval`, and `op_eval` should
     // take `arg0` as one of its arguments.  (Actually, the `arg` function
@@ -115,6 +120,7 @@ private:
     virtual counted_t<val_t> term_eval(scope_env_t *env,
                                        eval_flags_t eval_flags) const;
     virtual counted_t<val_t> eval_impl(scope_env_t *env,
+                                       args_t *args,
                                        eval_flags_t eval_flags) const = 0;
     virtual bool can_be_grouped() const;
     virtual bool is_grouped_seq_op() const;
@@ -123,6 +129,7 @@ private:
 
     scoped_ptr_t<arg_terms_t> arg_terms;
 
+    // RSI: What the fuck is this shit?  Why the fuck is make_obj_term_t an op_term_t?
     friend class make_obj_term_t; // needs special access to optargs
     std::map<std::string, counted_t<const term_t> > optargs;
 };
@@ -144,11 +151,12 @@ public:
     virtual ~bounded_op_term_t() { }
 
 protected:
-    bool is_left_open(scope_env_t *env) const;
-    bool is_right_open(scope_env_t *env) const;
+    // RSI: Can these be... static?  Is there any point to bounded_op_term_t at all?
+    bool is_left_open(scope_env_t *env, args_t *args) const;
+    bool is_right_open(scope_env_t *env, args_t *args) const;
 
 private:
-    bool open_bool(scope_env_t *env, const std::string &key, bool def/*ault*/) const;
+    bool open_bool(scope_env_t *env, args_t *args, const std::string &key, bool def/*ault*/) const;
 };
 
 }  // namespace ql

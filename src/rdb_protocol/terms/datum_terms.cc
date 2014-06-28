@@ -27,7 +27,7 @@ public:
                     double constant, const char *name)
         : op_term_t(env, t, argspec_t(0)), _constant(constant), _name(name) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *, eval_flags_t) const {
+    virtual counted_t<val_t> eval_impl(scope_env_t *, args_t *, eval_flags_t) const {
         return new_val(make_counted<const datum_t>(_constant));
     }
     virtual const char *name() const { return _name; }
@@ -40,12 +40,12 @@ public:
     make_array_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         datum_ptr_t acc(datum_t::R_ARRAY);
         {
             profile::sampler_t sampler("Evaluating elements in make_array.", env->env->trace);
-            for (size_t i = 0; i < num_args(); ++i) {
-                acc.add(arg(env, i)->as_datum());
+            for (size_t i = 0; i < args->num_args(); ++i) {
+                acc.add(args->arg(env, i)->as_datum());
                 sampler.new_sample();
             }
         }
@@ -59,7 +59,8 @@ public:
     make_obj_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0), optargspec_t::make_object()) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t flags) const {
+    // RSI: Use args.  Or make this not be an op_term_t.
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *, eval_flags_t flags) const {
         bool literal_ok = flags & LITERAL_OK;
         eval_flags_t new_flags = literal_ok ? LITERAL_OK : NO_FLAGS;
         datum_ptr_t acc(datum_t::R_OBJECT);

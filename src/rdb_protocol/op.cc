@@ -247,12 +247,14 @@ counted_t<val_t> op_term_t::term_eval(scope_env_t *env,
             for (auto kv = gd->begin(); kv != gd->end(); ++kv) {
                 arg_terms->start_eval(env, eval_flags,
                                       make_counted<val_t>(kv->second, backtrace()));
-                (*out)[kv->first] = eval_impl(env, eval_flags)->as_datum();
+                args_t args(this);
+                (*out)[kv->first] = eval_impl(env, &args, eval_flags)->as_datum();
             }
             return make_counted<val_t>(out, backtrace());
         }
     }
-    return eval_impl(env, eval_flags);
+    args_t args(this);
+    return eval_impl(env, &args, eval_flags);
 }
 
 bool op_term_t::can_be_grouped() const { return true; }
@@ -312,17 +314,17 @@ bounded_op_term_t::bounded_op_term_t(compile_env_t *env, protob_t<const Term> te
     : op_term_t(env, term, argspec,
                 optargspec.with({"left_bound", "right_bound"})) { }
 
-bool bounded_op_term_t::is_left_open(scope_env_t *env) const {
-    return open_bool(env, "left_bound", false);
+bool bounded_op_term_t::is_left_open(scope_env_t *env, args_t *args) const {
+    return open_bool(env, args, "left_bound", false);
 }
 
-bool bounded_op_term_t::is_right_open(scope_env_t *env) const {
-    return open_bool(env, "right_bound", true);
+bool bounded_op_term_t::is_right_open(scope_env_t *env, args_t *args) const {
+    return open_bool(env, args, "right_bound", true);
 }
 
 bool bounded_op_term_t::open_bool(
-    scope_env_t *env, const std::string &key, bool def/*ault*/) const {
-    counted_t<val_t> v = optarg(env, key);
+        scope_env_t *env, args_t *args, const std::string &key, bool def/*ault*/) const {
+    counted_t<val_t> v = args->optarg(env, key);
     if (!v.has()) return def;
     const wire_string_t &s = v->as_str();
     if (s == "open") {

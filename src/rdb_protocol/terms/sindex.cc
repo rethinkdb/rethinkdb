@@ -18,17 +18,17 @@ public:
     sindex_create_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2, 3), optargspec_t({"multi"})) { }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
-        counted_t<table_t> table = arg(env, 0)->as_table();
-        counted_t<const datum_t> name_datum = arg(env, 1)->as_datum();
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<table_t> table = args->arg(env, 0)->as_table();
+        counted_t<const datum_t> name_datum = args->arg(env, 1)->as_datum();
         std::string name = name_datum->as_str().to_std();
         rcheck(name != table->get_pkey(),
                base_exc_t::GENERIC,
                strprintf("Index name conflict: `%s` is the name of the primary key.",
                          name.c_str()));
         counted_t<func_t> index_func;
-        if (num_args() == 3) {
-            index_func = arg(env, 2)->as_func();
+        if (args->num_args() == 3) {
+            index_func = args->arg(env, 2)->as_func();
         } else {
 
             pb::dummy_var_t x = pb::dummy_var_t::SINDEXCREATE_X;
@@ -45,7 +45,7 @@ public:
         r_sanity_check(index_func.has());
 
         /* Check if we're doing a multi index or a normal index. */
-        counted_t<val_t> multi_val = optarg(env, "multi");
+        counted_t<val_t> multi_val = args->optarg(env, "multi");
         sindex_multi_bool_t multi =
             (multi_val && multi_val->as_datum()->as_bool()
              ? sindex_multi_bool_t::MULTI
@@ -70,9 +70,9 @@ public:
     sindex_drop_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
-        counted_t<table_t> table = arg(env, 0)->as_table();
-        std::string name = arg(env, 1)->as_datum()->as_str().to_std();
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<table_t> table = args->arg(env, 0)->as_table();
+        std::string name = args->arg(env, 1)->as_datum()->as_str().to_std();
         bool success = table->sindex_drop(env->env, name);
         if (success) {
             datum_ptr_t res(datum_t::R_OBJECT);
@@ -92,8 +92,8 @@ public:
     sindex_list_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
-        counted_t<table_t> table = arg(env, 0)->as_table();
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<table_t> table = args->arg(env, 0)->as_table();
 
         return new_val(table->sindex_list(env->env));
     }
@@ -106,11 +106,11 @@ public:
     sindex_status_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
-        counted_t<table_t> table = arg(env, 0)->as_table();
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<table_t> table = args->arg(env, 0)->as_table();
         std::set<std::string> sindexes;
-        for (size_t i = 1; i < num_args(); ++i) {
-            sindexes.insert(arg(env, i)->as_str().to_std());
+        for (size_t i = 1; i < args->num_args(); ++i) {
+            sindexes.insert(args->arg(env, i)->as_str().to_std());
         }
         return new_val(table->sindex_status(env->env, sindexes));
     }
@@ -136,11 +136,11 @@ public:
     sindex_wait_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
-        counted_t<table_t> table = arg(env, 0)->as_table();
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<table_t> table = args->arg(env, 0)->as_table();
         std::set<std::string> sindexes;
-        for (size_t i = 1; i < num_args(); ++i) {
-            sindexes.insert(arg(env, i)->as_str().to_std());
+        for (size_t i = 1; i < args->num_args(); ++i) {
+            sindexes.insert(args->arg(env, i)->as_str().to_std());
         }
         // Start with initial_poll_ms, then double the waiting period after each
         // attempt up to a maximum of max_poll_ms.

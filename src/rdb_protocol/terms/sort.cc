@@ -28,8 +28,8 @@ public:
     asc_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
-        return arg(env, 0);
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        return args->arg(env, 0);
     }
     virtual const char *name() const { return "asc"; }
 };
@@ -39,8 +39,8 @@ public:
     desc_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
-        return arg(env, 0);
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        return args->arg(env, 0);
     }
     virtual const char *name() const { return "desc"; }
 };
@@ -107,23 +107,23 @@ private:
             comparisons;
     };
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         std::vector<std::pair<order_direction_t, counted_t<func_t> > > comparisons;
         scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
-        for (size_t i = 1; i < num_args(); ++i) {
+        for (size_t i = 1; i < args->num_args(); ++i) {
             if (get_src()->args(i).type() == Term::DESC) {
                 comparisons.push_back(
-                        std::make_pair(DESC, arg(env, i)->as_func(GET_FIELD_SHORTCUT)));
+                        std::make_pair(DESC, args->arg(env, i)->as_func(GET_FIELD_SHORTCUT)));
             } else {
                 comparisons.push_back(
-                        std::make_pair(ASC, arg(env, i)->as_func(GET_FIELD_SHORTCUT)));
+                        std::make_pair(ASC, args->arg(env, i)->as_func(GET_FIELD_SHORTCUT)));
             }
         }
         lt_cmp_t lt_cmp(comparisons);
 
         counted_t<table_t> tbl;
         counted_t<datum_stream_t> seq;
-        counted_t<val_t> v0 = arg(env, 0);
+        counted_t<val_t> v0 = args->arg(env, 0);
         if (v0->get_type().is_convertible(val_t::type_t::TABLE)) {
             tbl = v0->as_table();
         } else if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
@@ -135,7 +135,7 @@ private:
             seq = v0->as_seq(env->env);
         }
 
-        counted_t<val_t> index = optarg(env, "index");
+        counted_t<val_t> index = args->optarg(env, "index");
         if (seq.has() && seq->is_exhausted()){
             /* Do nothing for empty sequence */
             if (!index.has()) {
@@ -212,8 +212,8 @@ private:
                        counted_t<const datum_t> r) {
         return *l < *r;
     }
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
-        counted_t<datum_stream_t> s = arg(env, 0)->as_seq(env->env);
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<datum_stream_t> s = args->arg(env, 0)->as_seq(env->env);
         std::vector<counted_t<const datum_t> > arr;
         counted_t<const datum_t> last;
         batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
