@@ -264,18 +264,32 @@ counted_t<func_term_t> op_term_t::lazy_literal_optarg(compile_env_t *env, const 
     return counted_t<func_term_t>();
 }
 
+void accumulate_all_captures(
+        const std::map<std::string, counted_t<const term_t> > &optargs,
+        var_captures_t *captures) {
+    for (auto it = optargs.begin(); it != optargs.end(); ++it) {
+        it->second->accumulate_captures(captures);
+    }
+}
+
 void op_term_t::accumulate_captures(var_captures_t *captures) const {
     const std::vector<counted_t<const term_t> > &original_args
         = arg_terms->get_original_args();
     for (auto it = original_args.begin(); it != original_args.end(); ++it) {
         (*it)->accumulate_captures(captures);
     }
-    for (auto it = optargs.begin(); it != optargs.end(); ++it) {
-        it->second->accumulate_captures(captures);
-    }
-    return;
+    accumulate_all_captures(optargs, captures);
 }
 
+bool all_are_deterministic(
+        const std::map<std::string, counted_t<const term_t> > &optargs) {
+    for (auto it = optargs.begin(); it != optargs.end(); ++it) {
+        if (!it->second->is_deterministic()) {
+            return false;
+        }
+    }
+    return true;
+}
 
 bool op_term_t::is_deterministic() const {
     const std::vector<counted_t<const term_t> > &original_args
@@ -285,12 +299,7 @@ bool op_term_t::is_deterministic() const {
             return false;
         }
     }
-    for (auto it = optargs.begin(); it != optargs.end(); ++it) {
-        if (!it->second->is_deterministic()) {
-            return false;
-        }
-    }
-    return true;
+    return all_are_deterministic(optargs);
 }
 
 bounded_op_term_t::bounded_op_term_t(compile_env_t *env, protob_t<const Term> term,

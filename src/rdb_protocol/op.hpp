@@ -73,6 +73,15 @@ private:
     DISABLE_COPYING(args_t);
 };
 
+// Calls is_deterministic on the map entries.
+bool all_are_deterministic(
+        const std::map<std::string, counted_t<const term_t> > &optargs);
+
+// Calls accumulate_captures on the map entries.
+void accumulate_all_captures(
+        const std::map<std::string, counted_t<const term_t> > &optargs,
+        var_captures_t *captures);
+
 // Almost all terms will inherit from this and use its member functions to
 // access their arguments.
 class op_term_t : public term_t {

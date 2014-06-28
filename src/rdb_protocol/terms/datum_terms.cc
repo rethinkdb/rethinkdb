@@ -91,20 +91,11 @@ public:
     }
 
     bool is_deterministic() const {
-        // RSI: This dupes some code in op_term_t::is_deterministic.
-        for (auto it = optargs.begin(); it != optargs.end(); ++it) {
-            if (!it->second->is_deterministic()) {
-                return false;
-            }
-        }
-        return true;
+        return all_are_deterministic(optargs);
     }
 
     void accumulate_captures(var_captures_t *captures) const {
-        // RSI: This dupes some code in op_term_t::accumulate_captures.
-        for (auto it = optargs.begin(); it != optargs.end(); ++it) {
-            it->second->accumulate_captures(captures);
-        }
+        accumulate_all_captures(optargs, captures);
     }
 
     const char *name() const { return "make_obj"; }
