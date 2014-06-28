@@ -55,7 +55,7 @@ private:
     std::set<std::string> legal_args;
 };
 
-class args_t;
+class arg_terms_t;
 
 // Almost all terms will inherit from this and use its member functions to
 // access their arguments.
@@ -100,7 +100,7 @@ private:
 
     virtual bool is_deterministic() const;
 
-    scoped_ptr_t<args_t> args;
+    scoped_ptr_t<arg_terms_t> arg_terms;
 
     friend class make_obj_term_t; // needs special access to optargs
     std::map<std::string, counted_t<const term_t> > optargs;
