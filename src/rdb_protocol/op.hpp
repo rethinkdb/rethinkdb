@@ -151,12 +151,12 @@ public:
     virtual ~bounded_op_term_t() { }
 
 protected:
-    // RSI: Can these be... static?  Is there any point to bounded_op_term_t at all?
     bool is_left_open(scope_env_t *env, args_t *args) const;
     bool is_right_open(scope_env_t *env, args_t *args) const;
 
 private:
-    bool open_bool(scope_env_t *env, args_t *args, const std::string &key, bool def/*ault*/) const;
+    bool open_bool(scope_env_t *env, args_t *args, const std::string &key,
+                   bool def/*ault*/) const;
 };
 
 }  // namespace ql
