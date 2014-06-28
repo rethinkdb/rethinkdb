@@ -54,13 +54,27 @@ private:
     virtual const char *name() const { return "make_array"; }
 };
 
-class make_obj_term_t : public op_term_t {
+class make_obj_term_t : public term_t {
 public:
     make_obj_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(0), optargspec_t::make_object()) { }
-private:
-    // RSI: Use args.  Or make this not be an op_term_t.
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *, eval_flags_t flags) const {
+        : term_t(term) {
+        // An F.Y.I. for driver developers.
+        rcheck(term->args_size() == 0,
+               base_exc_t::GENERIC,
+               "MAKE_OBJ term must not have any args.");
+
+        for (int i = 0; i < term->optargs_size(); ++i) {
+            const Term_AssocPair *pair = &term->optargs(i);
+            counted_t<const term_t> t = compile_term(env, term.make_child(&pair->val()));
+            auto res = optargs.insert(std::make_pair(pair->key(), std::move(t)));
+            rcheck(res.second,
+                   base_exc_t::GENERIC,
+                   strprintf("Duplicate object key: %s",
+                             pair->key().c_str()));
+        }
+    }
+
+    counted_t<val_t> term_eval(scope_env_t *env, eval_flags_t flags) const {
         bool literal_ok = flags & LITERAL_OK;
         eval_flags_t new_flags = literal_ok ? LITERAL_OK : NO_FLAGS;
         datum_ptr_t acc(datum_t::R_OBJECT);
@@ -75,7 +89,29 @@ private:
         }
         return new_val(acc.to_counted());
     }
-    virtual const char *name() const { return "make_obj"; }
+
+    bool is_deterministic() const {
+        // RSI: This dupes some code in op_term_t::is_deterministic.
+        for (auto it = optargs.begin(); it != optargs.end(); ++it) {
+            if (!it->second->is_deterministic()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    void accumulate_captures(var_captures_t *captures) const {
+        // RSI: This dupes some code in op_term_t::accumulate_captures.
+        for (auto it = optargs.begin(); it != optargs.end(); ++it) {
+            it->second->accumulate_captures(captures);
+        }
+    }
+
+    const char *name() const { return "make_obj"; }
+
+private:
+    std::map<std::string, counted_t<const term_t> > optargs;
+    DISABLE_COPYING(make_obj_term_t);
 };
 
 counted_t<term_t> make_datum_term(const protob_t<const Term> &term) {

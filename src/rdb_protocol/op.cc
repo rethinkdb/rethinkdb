@@ -211,12 +211,14 @@ op_term_t::op_term_t(compile_env_t *env, protob_t<const Term> term,
 
     for (int i = 0; i < term->optargs_size(); ++i) {
         const Term_AssocPair *ap = &term->optargs(i);
+        // RSI: Drop is_make_object.
         if (!optargspec.is_make_object()) {
             rcheck(optargspec.contains(ap->key()),
                    base_exc_t::GENERIC,
                    strprintf("Unrecognized optional argument `%s`.",
                              ap->key().c_str()));
         }
+        // RSI: Drop MAKE_OBJ check here.
         rcheck(optargs.count(ap->key()) == 0,
                base_exc_t::GENERIC,
                strprintf("Duplicate %s: %s",
