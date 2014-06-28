@@ -126,10 +126,10 @@ INSTANTIATE_SINCE_v1_13(uuid_u);
 
 void serialize_universal(write_message_t *wm, bool b) {
     // We depend on the versioned implementation for booleans not changing.
-    serialize<cluster_version_t::LATEST>(wm, b);
+    serialize<cluster_version_t::LATEST_OVERALL>(wm, b);
 }
 MUST_USE archive_result_t deserialize_universal(read_stream_t *s, bool *b) {
-    return deserialize<cluster_version_t::LATEST>(s, b);
+    return deserialize<cluster_version_t::LATEST_OVERALL>(s, b);
 }
 
 
@@ -151,4 +151,4 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr) {
 
 INSTANTIATE_SINCE_v1_13(in6_addr);
 
-RDB_IMPL_SERIALIZABLE_1(in_addr, s_addr);
+RDB_IMPL_SERIALIZABLE_1_SINCE_1_13(in_addr, s_addr);

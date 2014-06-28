@@ -1006,7 +1006,7 @@ archive_result_t deserialize(read_stream_t *s, rdb_modification_info_t *info) {
 
 INSTANTIATE_SINCE_v1_13(rdb_modification_info_t);
 
-RDB_IMPL_SERIALIZABLE_2(rdb_modification_report_t, primary_key, info);
+RDB_IMPL_SERIALIZABLE_2_SINCE_1_13(rdb_modification_report_t, primary_key, info);
 
 rdb_modification_report_cb_t::rdb_modification_report_cb_t(
         store_t *store,
@@ -1052,7 +1052,7 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
 
     // This is for a disk backed queue so there are no versioning issues.
     write_message_t wm;
-    serialize<cluster_version_t::LATEST>(&wm, mod_report);
+    serialize<cluster_version_t::LATEST_DISK>(&wm, mod_report);
     store_->sindex_queue_push(wm, acq.get());
 
     rdb_live_deletion_context_t deletion_context;
@@ -1081,9 +1081,9 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
 void serialize_sindex_info(write_message_t *wm,
                            const ql::map_wire_func_t &mapping,
                            const sindex_multi_bool_t &multi) {
-    serialize_cluster_version(wm, cluster_version_t::LATEST);
-    serialize_for_version(cluster_version_t::LATEST, wm, mapping);
-    serialize_for_version(cluster_version_t::LATEST, wm, multi);
+    serialize_cluster_version(wm, cluster_version_t::LATEST_DISK);
+    serialize_for_version(cluster_version_t::LATEST_DISK, wm, mapping);
+    serialize_for_version(cluster_version_t::LATEST_DISK, wm, multi);
 }
 
 void deserialize_sindex_info(const std::vector<char> &data,

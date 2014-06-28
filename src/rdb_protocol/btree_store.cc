@@ -425,7 +425,7 @@ void store_t::update_sindexes(
             // This is for a disk backed queue so there's no versioning issues.
             // (deserializating_viewer_t in disk_backed_queue.hpp also uses the
             // LATEST version, and such queues are ephemeral).
-            serialize<cluster_version_t::LATEST>(&queue_wms[i], mod_reports[i]);
+            serialize<cluster_version_t::LATEST_DISK>(&queue_wms[i], mod_reports[i]);
             rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
         }
     }

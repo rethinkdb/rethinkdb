@@ -92,7 +92,7 @@ public:
         // which uses internal_disk_backed_queue_t directly.  (There's no good reason
         // for this today: it needed to be generic when that code was templatized on
         // protocol_t.)
-        deserialize_from_group<cluster_version_t::LATEST>(group, value_out_);
+        deserialize_from_group<cluster_version_t::LATEST_DISK>(group, value_out_);
     }
 
 private:
@@ -112,7 +112,7 @@ public:
         // serialization_size overloaded function to be implemented in order to eliminate).
         // TODO: We have such a serialization_size function.
         write_message_t wm;
-        serialize<cluster_version_t::LATEST>(&wm, t);
+        serialize<cluster_version_t::LATEST_DISK>(&wm, t);
         internal_.push(wm);
     }
 

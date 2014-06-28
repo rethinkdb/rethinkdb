@@ -24,7 +24,7 @@ void serialize_onto_blob(buf_parent_t parent, blob_t *blob,
     //
     // The reason this type parameter exists at all is to make sure the person
     // writing the code on the calling end has their head in gear.
-    static_assert(W == cluster_version_t::LATEST,
+    static_assert(W == cluster_version_t::LATEST_DISK,
                   "It never makes sense to statically serialize an earlier version "
                   "onto a blob.  (Or does it?)");
 
