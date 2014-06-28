@@ -30,24 +30,13 @@ optargspec_t::optargspec_t(std::initializer_list<const char *> args) {
 }
 
 
-optargspec_t::optargspec_t(bool _is_make_object_val)
-    : is_make_object_val(_is_make_object_val) { }
-
 void optargspec_t::init(int num_args, const char *const *args) {
-    is_make_object_val = false;
     for (int i = 0; i < num_args; ++i) {
         legal_args.insert(args[i]);
     }
 }
 
-optargspec_t optargspec_t::make_object() {
-    return optargspec_t(true);
-}
-bool optargspec_t::is_make_object() const {
-    return is_make_object_val;
-}
 bool optargspec_t::contains(const std::string &key) const {
-    r_sanity_check(!is_make_object());
     return legal_args.count(key) != 0;
 }
 
@@ -211,22 +200,15 @@ op_term_t::op_term_t(compile_env_t *env, protob_t<const Term> term,
 
     for (int i = 0; i < term->optargs_size(); ++i) {
         const Term_AssocPair *ap = &term->optargs(i);
-        // RSI: Drop is_make_object.
-        if (!optargspec.is_make_object()) {
-            rcheck(optargspec.contains(ap->key()),
-                   base_exc_t::GENERIC,
-                   strprintf("Unrecognized optional argument `%s`.",
-                             ap->key().c_str()));
-        }
-        // RSI: Drop MAKE_OBJ check here.
-        rcheck(optargs.count(ap->key()) == 0,
+        rcheck(optargspec.contains(ap->key()),
                base_exc_t::GENERIC,
-               strprintf("Duplicate %s: %s",
-                         (term->type() == Term_TermType_MAKE_OBJ ?
-                          "object key" : "optional argument"),
+               strprintf("Unrecognized optional argument `%s`.",
                          ap->key().c_str()));
         counted_t<const term_t> t = compile_term(env, term.make_child(&ap->val()));
-        optargs.insert(std::make_pair(ap->key(), t));
+        auto res = optargs.insert(std::make_pair(ap->key(), std::move(t)));
+        rcheck(res.second,
+               base_exc_t::GENERIC,
+               strprintf("Duplicate optional argument: %s", ap->key().c_str()));
     }
 }
 op_term_t::~op_term_t() { }

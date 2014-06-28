@@ -40,17 +40,12 @@ struct optargspec_t {
 public:
     explicit optargspec_t(std::initializer_list<const char *> args);
 
-    static optargspec_t make_object();
-    bool is_make_object() const;
-
     bool contains(const std::string &key) const;
 
     optargspec_t with(std::initializer_list<const char *> args) const;
 
 private:
     void init(int num_args, const char *const *args);
-    explicit optargspec_t(bool _is_make_object_val);
-    bool is_make_object_val;
 
     std::set<std::string> legal_args;
 };
@@ -129,8 +124,6 @@ private:
 
     scoped_ptr_t<arg_terms_t> arg_terms;
 
-    // RSI: What the fuck is this shit?  Why the fuck is make_obj_term_t an op_term_t?
-    friend class make_obj_term_t; // needs special access to optargs
     std::map<std::string, counted_t<const term_t> > optargs;
 };
 
