@@ -22,12 +22,12 @@ class bogus_made_up_type_t;
 // range error with the specific removed values.  Or maybe, we would do something
 // differently.
 inline void serialize_cluster_version(write_message_t *wm, cluster_version_t v) {
-    archive_internal::serialize<cluster_version_t::CLUSTER>(wm, v);
+    archive_internal::serialize<cluster_version_t::LATEST_OVERALL>(wm, v);
 }
 
 inline archive_result_t deserialize_cluster_version(read_stream_t *s,
                                                     cluster_version_t *thing) {
-    return archive_internal::deserialize<cluster_version_t::CLUSTER>(s, thing);
+    return archive_internal::deserialize<cluster_version_t::LATEST_OVERALL>(s, thing);
 }
 
 
