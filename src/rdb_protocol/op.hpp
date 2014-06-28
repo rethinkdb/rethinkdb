@@ -57,6 +57,26 @@ private:
 
 class arg_terms_t;
 
+class op_term_t;
+
+class args_t {
+public:
+    size_t num_args() const; // number of arguments
+    // Returns argument `i`.
+    counted_t<val_t> arg(scope_env_t *env, size_t i,
+                         eval_flags_t flags = NO_FLAGS) const;
+    // Tries to get an optional argument, returns `counted_t<val_t>()` if not found.
+    counted_t<val_t> optarg(scope_env_t *env, const std::string &key) const;
+
+    explicit args_t(const op_term_t *op_term);
+
+private:
+    // RSI: We need to do this reentrantly.
+    const op_term_t *op_term;
+
+    DISABLE_COPYING(args_t);
+};
+
 // Almost all terms will inherit from this and use its member functions to
 // access their arguments.
 class op_term_t : public term_t {
@@ -65,6 +85,7 @@ protected:
               argspec_t argspec, optargspec_t optargspec = optargspec_t({}));
     virtual ~op_term_t();
 
+    friend class args_t;
     size_t num_args() const; // number of arguments
     // Returns argument `i`.
     counted_t<val_t> arg(scope_env_t *env, size_t i,

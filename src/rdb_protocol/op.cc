@@ -181,6 +181,22 @@ counted_t<const term_t> arg_terms_t::get(size_t i) {
     return std::move(ret);
 }
 
+size_t args_t::num_args() const {
+    return op_term->num_args();
+}
+
+counted_t<val_t> args_t::arg(scope_env_t *env, size_t i,
+                             eval_flags_t flags) const {
+    return op_term->arg(env, i, flags);
+}
+
+counted_t<val_t> args_t::optarg(scope_env_t *env, const std::string &key) const {
+    return op_term->optarg(env, key);
+}
+
+args_t::args_t(const op_term_t *_op_term) : op_term(_op_term) { }
+
+
 op_term_t::op_term_t(compile_env_t *env, protob_t<const Term> term,
                      argspec_t argspec, optargspec_t optargspec)
     : term_t(term) {
