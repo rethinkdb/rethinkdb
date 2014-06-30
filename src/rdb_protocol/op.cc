@@ -95,6 +95,8 @@ counted_t<grouped_data_t> arg_terms_t::maybe_grouped_data(
         if (!arg0.has()) {
             arg0 = get(0)->eval(env, flags);
         }
+        // RSI: Does maybe_as_grouped_data() destructively modify *arg0?  What about
+        // maybe_as_promiscuous_grouped_data?
         gd = is_grouped_seq_op
             ? arg0->maybe_as_grouped_data()
             : arg0->maybe_as_promiscuous_grouped_data(env->env);
@@ -222,21 +224,28 @@ counted_t<val_t> op_term_t::arg(scope_env_t *env, size_t i,
 counted_t<val_t> op_term_t::term_eval(scope_env_t *env,
                                       eval_flags_t eval_flags) const {
     arg_terms->start_eval(env, eval_flags);
+    // At this point, arg0 is empty, args is initialized. (RSI)
     counted_t<val_t> ret;
     if (can_be_grouped()) {
         counted_t<grouped_data_t> gd
             = arg_terms->maybe_grouped_data(env, is_grouped_seq_op(), eval_flags);
+        // At this point, if args.size() > 0, arg0 is initialized if !gd.has(), and
+        // is empty if gd.has(). (RSI)
         if (gd.has()) {
+            // arg0 is empty. (RSI)
             counted_t<grouped_data_t> out(new grouped_data_t());
             for (auto kv = gd->begin(); kv != gd->end(); ++kv) {
                 arg_terms->start_eval(env, eval_flags,
                                       make_counted<val_t>(kv->second, backtrace()));
+                // arg0 is now not-empty. (RSI)
                 args_t args(this);
                 (*out)[kv->first] = eval_impl(env, &args, eval_flags)->as_datum();
             }
             return make_counted<val_t>(out, backtrace());
         }
+        // arg0 is not-empty (RSI)
     }
+    // arg0 is empty iff !can_be_grouped(); (RSI)
     args_t args(this);
     return eval_impl(env, &args, eval_flags);
 }
