@@ -3,10 +3,8 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
-#include <boost/ptr_container/ptr_map.hpp>
 
 #include "arch/timing.hpp"
-
 #include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/reactor/namespace_interface.hpp"
 #include "concurrency/cross_thread_signal.hpp"
@@ -17,7 +15,8 @@
 
 struct namespace_repo_t::namespace_cache_t {
 public:
-    boost::ptr_map<namespace_id_t, base_namespace_repo_t::namespace_cache_entry_t> entries;
+    std::map<namespace_id_t,
+             scoped_ptr_t<base_namespace_repo_t::namespace_cache_entry_t> > entries;
     auto_drainer_t drainer;
 };
 
@@ -178,7 +177,7 @@ void namespace_repo_t::create_and_destroy_namespace_interface(
     keepalive.assert_is_holding(&cache->drainer);
     threadnum_t thread = get_thread_id();
 
-    base_namespace_repo_t::namespace_cache_entry_t *cache_entry = cache->entries.find(namespace_id)->second;
+    base_namespace_repo_t::namespace_cache_entry_t *cache_entry = cache->entries.find(namespace_id)->second.get();
     guarantee(!cache_entry->namespace_if.get_ready_signal()->is_pulsed());
 
     /* We need to switch to `home_thread()` to construct
@@ -250,14 +249,14 @@ base_namespace_repo_t::namespace_cache_entry_t *namespace_repo_t::get_cache_entr
         cache_entry->pulse_when_ref_count_becomes_nonzero = NULL;
 
         namespace_id_t id(ns_id);
-        cache->entries.insert(id, cache_entry);
+        cache->entries.insert(std::make_pair(id, scoped_ptr_t<base_namespace_repo_t::namespace_cache_entry_t>(cache_entry)));
 
         coro_t::spawn_sometime(boost::bind(
             &namespace_repo_t::create_and_destroy_namespace_interface, this,
             cache, ns_id,
             auto_drainer_t::lock_t(&cache->drainer)));
     } else {
-        cache_entry = &cache->entries[ns_id];
+        cache_entry = cache->entries[ns_id].get();
     }
 
     return cache_entry;
