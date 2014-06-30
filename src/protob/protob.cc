@@ -160,7 +160,7 @@ query_server_t::query_server_t(rdb_context_t *_rdb_ctx,
         rdb_ctx(_rdb_ctx),
         handler(_handler),
         auth_metadata(_auth_metadata),
-        shutting_down_conds(get_num_threads()),
+        shutting_down_conds(),
         pulse_sdc_on_shutdown(&main_shutting_down_cond),
         next_thread(0)
 {
