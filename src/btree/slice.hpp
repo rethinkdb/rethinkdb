@@ -37,7 +37,9 @@ public:
           pm_keys_set(secs_to_ticks(1)),
           pm_keys_membership(&btree_collection,
               &pm_keys_read, "keys_read",
-              &pm_keys_set, "keys_set")
+              &pm_total_keys_read, "total_keys_read",
+              &pm_keys_set, "keys_set",
+              &pm_total_keys_set, "total_keys_set")
     { }
 
     perfmon_collection_t btree_collection;
@@ -45,6 +47,9 @@ public:
     perfmon_rate_monitor_t
         pm_keys_read,
         pm_keys_set;
+    perfmon_counter_t
+        pm_total_keys_read,
+        pm_total_keys_set;
     perfmon_multi_membership_t pm_keys_membership;
 };
 

@@ -28,19 +28,6 @@
     "name": "add", 
     "url": "add"
   }, 
-  "api/javascript/add_listener/": {
-    "body": "conn.addListener(event, listener)", 
-    "description": "<p>The connection object also supports the event emitter interface so you can listen for\nchanges in connection state.</p>", 
-    "example": "<p><strong>Example:</strong> Monitor connection state with events 'connect', 'close', and 'error'.</p>\n<p>```\nr.connect({}, function(err, conn) {\n    if (err) throw err;</p>\n<pre><code>conn.addListener('error', function(e) {\n    processNetworkError(e);\n});\n\nconn.addListener('close', function() {\n    cleanup();\n});\n\nrunQueries(conn);\n</code></pre>\n<p>});</p>\n<p>```</p>", 
-    "io": [
-      [
-        "connection", 
-        "undefined"
-      ]
-    ], 
-    "name": "addListener", 
-    "url": "add_listener"
-  }, 
   "api/javascript/and/": {
     "body": "bool.and(bool) &rarr; bool", 
     "description": "<p>Compute the logical and of two values.</p>", 
@@ -153,7 +140,7 @@
         "undefined"
       ]
     ], 
-    "name": "close (cursor)", 
+    "name": "close", 
     "url": "close-cursor"
   }, 
   "api/javascript/close/": {
@@ -170,9 +157,9 @@
     "url": "close"
   }, 
   "api/javascript/coerce_to/": {
-    "body": "sequence.coerceTo(typeName) &rarr; arrayvalue.coerceTo(typeName) &rarr; stringarray.coerceTo(typeName) &rarr; objectobject.coerceTo(typeName) &rarr; array", 
-    "description": "<p>Converts a value of one type into another.</p>\n<p>You can convert: a selection, sequence, or object into an ARRAY, an array of pairs into an OBJECT, and any DATUM into a STRING.</p>", 
-    "example": "<p><strong>Example:</strong> Convert a table to an array.</p>\n<p><code>r.table('marvel').coerceTo('array').run(conn, callback)</code></p>", 
+    "body": "sequence.coerceTo('array') &rarr; arrayvalue.coerceTo('string') &rarr; stringstring.coerceTo('number') &rarr; numberarray.coerceTo('object') &rarr; objectobject.coerceTo('array') &rarr; array", 
+    "description": "<p>Convert a value of one type into another.</p>", 
+    "example": "<p><strong>Example:</strong> Coerce a stream to an array.</p>\n<p><code>r.table('posts').map(function (post) {\n    post.merge({ comments: r.table('comments').getAll(post('id'), {index: 'postId'}).coerceTo('array')});\n}).run(conn, callback)</code></p>", 
     "io": [
       [
         "sequence", 
@@ -213,7 +200,7 @@
   }, 
   "api/javascript/connect/": {
     "body": "r.connect(options, callback)r.connect(host, callback)r.connect(options) &rarr; promiser.connect(host) &rarr; promise", 
-    "description": "<p>Create a new connection to the database server.  Accepts the following options:</p>\n<ul>\n<li><code>host</code>: the host to connect to (default <code>localhost</code>).</li>\n<li><code>port</code>: the port to connect on (default <code>28015</code>).</li>\n<li><code>db</code>: the default database (default <code>test</code>).</li>\n<li><code>authKey</code>: the authentication key (default none).</li>\n</ul>\n<p>If the connection cannot be established, a <code>RqlDriverError</code> will be passed to the callback instead of a connection.</p>", 
+    "description": "<p>Create a new connection to the database server.  Accepts the following options:</p>\n<ul>\n<li><code>host</code>: the host to connect to (default <code>localhost</code>).</li>\n<li><code>port</code>: the port to connect on (default <code>28015</code>).</li>\n<li><code>db</code>: the default database (default <code>test</code>).</li>\n<li><code>authKey</code>: the authentication key (default none).</li>\n<li><code>timeout</code>: timeout period in seconds for the connection to be opened (default <code>20</code>).</li>\n</ul>\n<p>If the connection cannot be established, a <code>RqlDriverError</code> will be passed to the callback instead of a connection.</p>", 
     "example": "<p><strong>Example:</strong> Opens a new connection to the database.</p>\n<p><code>r.connect({ host: 'localhost',\n            port: 28015,\n            db: 'marvel',\n            authKey: 'hunter2' },\n          function(err, conn) { ... })</code></p>", 
     "io": [
       [
@@ -394,8 +381,8 @@
   }, 
   "api/javascript/delete_at/": {
     "body": "array.deleteAt(index [,endIndex]) &rarr; array", 
-    "description": "<p>Remove an element from an array at a given index. Returns the modified array.</p>", 
-    "example": "<p><strong>Example:</strong> Hulk decides to leave the avengers.</p>\n<p><code>r.expr([\"Iron Man\", \"Hulk\", \"Spider-Man\"]).deleteAt(1).run(conn, callback)</code></p>", 
+    "description": "<p>Remove one or more elements from an array at a given index. Returns the modified array.</p>", 
+    "example": "<p><strong>Example:</strong> Delete the second element of an array.</p>\n<p>```</p>\n<blockquote>\n<p>r(['a','b','c','d','e','f']).deleteAt(1).run(conn, callback)</p>\n</blockquote>\n<p>['a', 'c', 'd', 'e', 'f']\n```</p>", 
     "io": [
       [
         "array", 
@@ -484,7 +471,7 @@
     "url": "during"
   }, 
   "api/javascript/each/": {
-    "body": "cursor.each(callback[, onFinishedCallback])array.each(callback[, onFinishedCallback])", 
+    "body": "cursor.each(callback[, onFinishedCallback])array.each(callback[, onFinishedCallback])feed.each(callback)", 
     "description": "<p>Lazily iterate over the result set one element at a time.</p>", 
     "example": "<p><strong>Example:</strong> Let's process all the elements!</p>\n<p><code>cursor.each(function(err, row) {\n    if (err) throw err;\n    processRow(row);\n});</code></p>", 
     "io": [
@@ -552,6 +539,32 @@
     "name": "error", 
     "url": "error"
   }, 
+  "api/javascript/event_emitter-cursor/": {
+    "body": "cursor.addListener(event, listener)cursor.on(event, listener)cursor.once(event, listener)cursor.removeListener(event, listener)cursor.removeAllListeners([event])cursor.setMaxListeners(n)cursor.listeners(event)cursor.emit(event, [arg1], [arg2], [...])", 
+    "description": "<p>Cursors and feeds implement the same interface as <a href=\"http://nodejs.org/api/events.html#events_class_events_eventemitter\">EventEmitter</a>.</p>\n<p>There are a few things to know about this interface:</p>\n<ul>\n<li>Two events can be emited, <code>data</code> and <code>error</code>.</li>\n<li>Once you start using the EventEmitter interface, the other commands like <code>next</code>,\n<code>toArray</code>, <code>each</code> will not be available anymore.</li>\n<li>The first time you call one of the EventEmitter's methods, the cursor or feed will\nemit data just after the I/O events callbacks and before <code>setTimeout</code> and <code>setInterval</code>\ncallbacks.</li>\n</ul>", 
+    "example": "<p><strong>Example:</strong> Broadcast all messages with <a href=\"http://socket.io\">socket.io</a>.</p>\n<p>```\nr.table(\"messages\").orderBy({index: \"date\"}).run(conn, function(err, cursor) {\n    if (err) {\n        // Handle error\n        return\n    }</p>\n<pre><code>cursor.on(\"error\", function(error) {\n    // Handle error\n})\ncursor.on(\"data\", function(message) {\n    socket.broadcast.emit(\"message\", message)\n})\n</code></pre>\n<p>});\n```</p>", 
+    "io": [
+      [
+        "cursor", 
+        "undefined"
+      ]
+    ], 
+    "name": "EventEmitter methods", 
+    "url": "event_emitter-cursor"
+  }, 
+  "api/javascript/event_emitter/": {
+    "body": "connection.addListener(event, listener)connection.on(event, listener)connection.once(event, listener)connection.removeListener(event, listener)connection.removeAllListeners([event])connection.setMaxListeners(n)connection.listeners(event)connection.emit(event, [arg1], [arg2], [...])", 
+    "description": "<p>The connection object supports the event emitter interface so you can listen for\nchanges in connection state.</p>", 
+    "example": "<p><strong>Example:</strong> Monitor connection state with events 'connect', 'close', and 'error'.</p>\n<p>```\nr.connect({}, function(err, conn) {\n    if (err) throw err;</p>\n<pre><code>conn.addListener('error', function(e) {\n    processNetworkError(e);\n});\n\nconn.addListener('close', function() {\n    cleanup();\n});\n\nrunQueries(conn);\n</code></pre>\n<p>});</p>\n<p>```</p>", 
+    "io": [
+      [
+        "connection", 
+        "undefined"
+      ]
+    ], 
+    "name": "EventEmitter methods", 
+    "url": "event_emitter"
+  }, 
   "api/javascript/expr/": {
     "body": "r.expr(value) &rarr; value", 
     "description": "<p>Construct a ReQL JSON object from a native object.</p>", 
@@ -566,7 +579,7 @@
     "url": "expr"
   }, 
   "api/javascript/filter/": {
-    "body": "sequence.filter(predicate[, {default: false}]) &rarr; selectionstream.filter(predicate[, {default: false}]) &rarr; streamarray.filter(predicate[, {default: false}]) &rarr; array", 
+    "body": "selection.filter(predicate[, {default: false}]) &rarr; selectionstream.filter(predicate[, {default: false}]) &rarr; streamarray.filter(predicate[, {default: false}]) &rarr; array", 
     "description": "<p>Get all the documents for which the given predicate is true.</p>\n<p><code>filter</code> can be called on a sequence, selection, or a field containing an array of\nelements. The return type is the same as the type on which the function was called on.</p>\n<p>The body of every filter is wrapped in an implicit <code>.default(false)</code>, which means that\nif a non-existence errors is thrown (when you try to access a field that does not exist\nin a document), RethinkDB will just ignore the document.\nThe <code>default</code> value can be changed by passing an object with a <code>default</code> field.\nSetting this optional argument to <code>r.error()</code> will cause any non-existence errors to\nreturn a <code>RqlRuntimeError</code>.</p>", 
     "example": "<p><strong>Example:</strong> Get all the users that are 30 years old.</p>\n<p><code>r.table('users').filter({age: 30}).run(conn, callback)</code></p>", 
     "io": [
@@ -993,6 +1006,19 @@
     ], 
     "name": "limit", 
     "url": "limit"
+  }, 
+  "api/javascript/literal/": {
+    "body": "r.literal(object) &rarr; special", 
+    "description": "<p>Replace an object in a field instead of merging it with an existing object in a <code>merge</code> or <code>update</code> operation.</p>\n<p><code>js\nr.table('users').get(1).update({ data: r.literal({ age: 19, job: 'Engineer' }) }).run(conn, callback)</code></p>", 
+    "example": "", 
+    "io": [
+      [
+        "object", 
+        "special"
+      ]
+    ], 
+    "name": "literal", 
+    "url": "literal"
   }, 
   "api/javascript/lt/": {
     "body": "value.lt(value) &rarr; bool", 

@@ -1,3 +1,27 @@
+# Release 1.13.1 (My Name is Nobody)
+
+Released on 2014-06-26
+
+Bug fix update.
+
+* Fixed a bug that caused `Assertion failed: [ptr_]` errors when shutting down (#2594)
+* Fixed a performance issue in the JSON parser (#2585)
+* The JavaScript driver no longer buffers change feeds (#2582)
+* Fixed a bug that caused `Uncaught exception of type "cannot_perform_query_exc_t"` errors (#2576)
+* No longer crash when a secondary index is named `primary` (#2575)
+* Queries that return `null` are now handled correctly in the Data Explorer (#2573)
+* `r.http` now properly parses headers when following a redirection (#2556)
+* Improved the performance of write operations on sharded tables (#2551)
+* Fixed a bug that caused `r.js` to crash in certain circumstances (#2435)
+* Correctly handle `EPIPE` errors when connecting to an old version of the server (#2422)
+* Fixed a bug that caused `Could not bind socket` errors when using `--bind` (#2405)
+* Fixed a bug that caused `Failed to parse  as valid uuid` errors (#2401)
+* Improved the `bad magic number` error message (#2302)
+* `default` now catches index out of bounds errors on streams (#1922)
+* Improved arity error messages in the JavaScript driver (#2449)
+
+--
+
 # Release 1.13.0 (My Name is Nobody)
 
 Released on 2014-06-13
@@ -129,7 +153,7 @@ helping us ship RethinkDB 1.13. In no particular order:
 
 Released on 2014-05-21
 
-Big fix update.
+Bug fix update.
 
 * Fixed a bug that caused `Guarantee failed: [!mod_info->deleted.second.empty() && mod_info->added.second.empty()]` errors (#2285)
 * Fixed the behaviour of `order_by` following `between` (#2307)
