@@ -390,7 +390,6 @@ public:
     base_path_t base_path_;
     perfmon_membership_t perfmon_collection_membership;
 
-    // RSI: Does this value ever shrink?
     std::map<uuid_u, scoped_ptr_t<btree_slice_t> > secondary_index_slices;
 
     std::vector<internal_disk_backed_queue_t *> sindex_queues;
