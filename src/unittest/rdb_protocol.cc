@@ -2,6 +2,7 @@
 #include "errors.hpp"
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
 
 #include "arch/io/disk.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
