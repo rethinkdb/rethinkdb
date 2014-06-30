@@ -125,7 +125,7 @@ argvec_t arg_terms_t::start_eval(scope_env_t *env, eval_flags_t flags) {
 argvec_t::argvec_t(std::vector<counted_t<const term_t> > &&v)
     : vec(std::move(v)) { }
 
-counted_t<const term_t> argvec_t::get(size_t i) {
+counted_t<const term_t> argvec_t::remove(size_t i) {
     r_sanity_check(i < vec.size());
     r_sanity_check(vec[i].has());
     counted_t<const term_t> ret;
@@ -138,11 +138,6 @@ size_t args_t::num_args() const {
     return argv.size();
 }
 
-// RSI: Rename to move or something.
-counted_t<const term_t> args_t::get(size_t i) {
-    return argv.get(i);
-}
-
 counted_t<val_t> args_t::arg(scope_env_t *env, size_t i,
                              eval_flags_t flags) {
     if (i == 0 && arg0.has()) {
@@ -150,7 +145,7 @@ counted_t<val_t> args_t::arg(scope_env_t *env, size_t i,
         v.swap(arg0);
         return v;
     } else {
-        return get(i)->eval(env, flags);
+        return argv.remove(i)->eval(env, flags);
     }
 }
 
@@ -290,7 +285,7 @@ void op_term_t::maybe_grouped_data(scope_env_t *env,
         grouped_data_out->reset();
         arg0_out->reset();
     } else {
-        counted_t<val_t> arg0 = argv->get(0)->eval(env, flags);
+        counted_t<val_t> arg0 = argv->remove(0)->eval(env, flags);
 
         // RSI: Does maybe_as_grouped_data() destructively modify *arg0?  What about
         // maybe_as_promiscuous_grouped_data?

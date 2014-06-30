@@ -58,8 +58,9 @@ class argvec_t {
 public:
     explicit argvec_t(std::vector<counted_t<const term_t> > &&v);
 
-    // RSI: Rename to make move semantics clear.
-    counted_t<const term_t> get(size_t i);
+    // Retrieves the arg.  The arg is removed (leaving an empty pointer in its
+    // slot), forcing you to call this function exactly once per argument.
+    MUST_USE counted_t<const term_t> remove(size_t i);
 
     size_t size() const { return vec.size(); }
 
@@ -83,8 +84,6 @@ public:
     args_t(const op_term_t *op_term, argvec_t argv, counted_t<val_t> arg0);
 
 private:
-    counted_t<const term_t> get(size_t i);
-
     // RSI: We need to do this reentrantly.
     const op_term_t *const op_term;
 
