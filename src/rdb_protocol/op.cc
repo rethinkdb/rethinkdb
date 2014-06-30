@@ -72,12 +72,11 @@ public:
     counted_t<val_t> eval_arg(scope_env_t *env, size_t i, eval_flags_t flags);
     size_t size() { return args.size(); }
 
-    counted_t<grouped_data_t> maybe_grouped_data(
-        scope_env_t *env, bool is_grouped_seq_op, eval_flags_t flags);
     const std::vector<counted_t<const term_t> > &get_original_args() const {
         return original_args;
     }
 private:
+    friend class op_term_t;  // RSI: Remove.
     counted_t<const term_t> get(size_t i);
     const protob_t<const Term> src;
     const argspec_t argspec;
@@ -87,28 +86,6 @@ private:
 
     DISABLE_COPYING(arg_terms_t);
 };
-
-counted_t<grouped_data_t> arg_terms_t::maybe_grouped_data(
-    scope_env_t *env, bool is_grouped_seq_op, eval_flags_t flags) {
-    counted_t<grouped_data_t> gd;
-    if (args.size() != 0) {
-        // This assertion matches comments in term_eval explaining that arg0 is
-        // always empty here. (RSI)
-        rassert(!arg0.has());
-        if (!arg0.has()) {
-            arg0 = get(0)->eval(env, flags);
-        }
-        // RSI: Does maybe_as_grouped_data() destructively modify *arg0?  What about
-        // maybe_as_promiscuous_grouped_data?
-        gd = is_grouped_seq_op
-            ? arg0->maybe_as_grouped_data()
-            : arg0->maybe_as_promiscuous_grouped_data(env->env);
-    }
-    if (gd.has()) {
-        arg0.reset();
-    }
-    return gd;
-}
 
 arg_terms_t::arg_terms_t(protob_t<const Term> _src,
                          argspec_t _argspec,
@@ -228,10 +205,12 @@ counted_t<val_t> op_term_t::term_eval(scope_env_t *env,
                                       eval_flags_t eval_flags) const {
     arg_terms->start_eval(env, eval_flags);
     // At this point, arg0 is empty, args is initialized. (RSI)
-    counted_t<val_t> ret;
     if (can_be_grouped()) {
-        counted_t<grouped_data_t> gd
-            = arg_terms->maybe_grouped_data(env, is_grouped_seq_op(), eval_flags);
+        counted_t<grouped_data_t> gd;
+        counted_t<val_t> arg0;
+        maybe_grouped_data(env, eval_flags, &gd, &arg0);
+        arg_terms->arg0 = std::move(arg0);
+
         // At this point, if args.size() > 0, arg0 is initialized if !gd.has(), and
         // is empty if gd.has(). (RSI)
         if (gd.has()) {
@@ -248,7 +227,7 @@ counted_t<val_t> op_term_t::term_eval(scope_env_t *env,
         }
         // arg0 is not-empty (RSI)
     }
-    // arg0 is empty iff !can_be_grouped(); (RSI)
+    // arg0 is possibly not-empty.
     args_t args(this);
     return eval_impl(env, &args, eval_flags);
 }
@@ -312,6 +291,32 @@ bool op_term_t::is_deterministic() const {
         }
     }
     return all_are_deterministic(optargs);
+}
+
+void op_term_t::maybe_grouped_data(scope_env_t *env, eval_flags_t flags,
+                                   counted_t<grouped_data_t> *grouped_data_out,
+                                   counted_t<val_t> *arg0_out) const {
+    rassert(!arg_terms->arg0.has());  // RSI: arg0 should go away?
+    if (arg_terms->args.empty()) {
+        grouped_data_out->reset();
+        arg0_out->reset();
+    } else {
+        counted_t<val_t> arg0 = arg_terms->get(0)->eval(env, flags);
+
+        // RSI: Does maybe_as_grouped_data() destructively modify *arg0?  What about
+        // maybe_as_promiscuous_grouped_data?
+        counted_t<grouped_data_t> gd = is_grouped_seq_op()
+            ? arg0->maybe_as_grouped_data()
+            : arg0->maybe_as_promiscuous_grouped_data(env->env);
+
+        if (gd.has()) {
+            *grouped_data_out = std::move(gd);
+            arg0_out->reset();
+        } else {
+            grouped_data_out->reset();
+            *arg0_out = std::move(arg0);
+        }
+    }
 }
 
 bounded_op_term_t::bounded_op_term_t(compile_env_t *env, protob_t<const Term> term,

@@ -115,6 +115,13 @@ private:
     // Tries to get an optional argument, returns `counted_t<val_t>()` if not found.
     counted_t<val_t> optarg(scope_env_t *env, const std::string &key) const;
 
+    // Evaluates args[0] and sets *grouped_data_out to non-nil if it's grouped.
+    // (Sets *arg0_out to non-nil if it's not grouped.  Both outputs are set to nil
+    // if args is empty.)
+    void maybe_grouped_data(scope_env_t *env, eval_flags_t flags,
+                            counted_t<grouped_data_t> *grouped_data_out,
+                            counted_t<val_t> *arg0_out) const;
+
     // RSI: This comment refers to arg0, what about the args_t param.
     // TODO: this interface is a terrible hack.  `term_eval` should be named
     // `eval_impl`, `eval_impl` should be named `op_eval`, and `op_eval` should
