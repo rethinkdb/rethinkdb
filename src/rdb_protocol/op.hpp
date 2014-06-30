@@ -60,15 +60,18 @@ public:
     size_t num_args() const;
     // Returns argument `i`.
     counted_t<val_t> arg(scope_env_t *env, size_t i,
-                         eval_flags_t flags = NO_FLAGS) const;
+                         eval_flags_t flags = NO_FLAGS);
     // Tries to get an optional argument, returns `counted_t<val_t>()` if not found.
     counted_t<val_t> optarg(scope_env_t *env, const std::string &key) const;
 
     explicit args_t(const op_term_t *op_term);
+    explicit args_t(const op_term_t *op_term, counted_t<val_t> arg0);
 
 private:
     // RSI: We need to do this reentrantly.
     const op_term_t *const op_term;
+
+    counted_t<val_t> arg0;
 
     DISABLE_COPYING(args_t);
 };
@@ -109,9 +112,6 @@ protected:
 private:
     // RSI: These three functions should go away.
     size_t num_args() const; // number of arguments
-    // Returns argument `i`.
-    counted_t<val_t> arg(scope_env_t *env, size_t i,
-                         eval_flags_t flags = NO_FLAGS) const;
     // Tries to get an optional argument, returns `counted_t<val_t>()` if not found.
     counted_t<val_t> optarg(scope_env_t *env, const std::string &key) const;
 
