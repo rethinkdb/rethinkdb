@@ -5,7 +5,6 @@
 #include <map>
 
 #include "errors.hpp"
-#include <boost/ptr_container/ptr_map.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "clustering/administration/machine_id_to_peer_id.hpp"
@@ -87,13 +86,13 @@ public:
 private:
     friend class watchable_and_reactor_t;
 
-    typedef boost::ptr_map<namespace_id_t, watchable_and_reactor_t> reactor_map_t;
+    typedef std::map<namespace_id_t, scoped_ptr_t<watchable_and_reactor_t> > reactor_map_t;
     typedef directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> >
         reactor_directory_entry_t;
 
     void delete_reactor_data(
             auto_drainer_t::lock_t lock,
-            reactor_map_t::auto_type *thing_to_delete,
+            watchable_and_reactor_t *thing_to_delete,
             namespace_id_t namespace_id);
     void on_change();
     void set_reactor_directory_entry(
