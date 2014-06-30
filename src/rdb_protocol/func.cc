@@ -58,8 +58,10 @@ counted_t<val_t> reql_func_t::call(
         // way (thanks to entropy).  TODO: This is bad.
         rcheck(arg_names.size() == args.size() || arg_names.size() == 0,
                base_exc_t::GENERIC,
-               strprintf("Expected %zd argument(s) but found %zu.",
-                         arg_names.size(), args.size()));
+               strprintf("Expected %zd argument%s but found %zu.",
+                         arg_names.size(),
+                         (arg_names.size() == 1 ? "" : "s"),
+                         args.size()));
 
         var_scope_t new_scope = arg_names.size() == 0
             ? captured_scope

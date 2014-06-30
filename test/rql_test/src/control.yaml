@@ -36,12 +36,12 @@ tests:
     - py: "r.do(1, 2, lambda x: x)"
       js: r.do(1, 2, function(x) { return x; })
       rb: r.do(1, 2) {|x| x}
-      ot: err("RqlRuntimeError", 'Expected 1 argument(s) but found 2.', [1])
+      ot: err("RqlRuntimeError", 'Expected 1 argument but found 2.', [1])
 
     - py: "r.do(1, 2, 3, lambda x, y: x + y)"
       js: r.do(1, 2, 3, function(x, y) { return x.add(y); })
       rb: r.do(1, 2, 3) {|x, y| x + y}
-      ot: err("RqlRuntimeError", 'Expected 2 argument(s) but found 3.', [1])
+      ot: err("RqlRuntimeError", 'Expected 2 arguments but found 3.', [1])
 
     - cd: "r.do(1)"
       ot: 1
@@ -56,7 +56,7 @@ tests:
 
     - cd: r.do()
       py: [] # Case handled by native python error
-      ot: err("RqlDriverError", 'Expected 1 or more argument(s) but found 0.', [1])
+      ot: err("RqlDriverError", 'Expected 1 or more arguments but found 0.', [1])
 
 
     # FunCall errors
@@ -79,12 +79,12 @@ tests:
     - py: "r.expr(0).do(lambda a,b: a + b)"
       js: r(0).do(function(a,b) { return a.add(b); })
       rb: r(0).do{ |a, b| a + b }
-      ot: err("RqlRuntimeError", 'Expected 2 argument(s) but found 1.', [1])
+      ot: err("RqlRuntimeError", 'Expected 2 arguments but found 1.', [1])
 
     - py: "r.do(1, 2, lambda a: a)"
       js: r.do(1,2, function(a) { return a; })
       rb: r.do(1, 2) { |a| a }
-      ot: err("RqlRuntimeError", 'Expected 1 argument(s) but found 2.', [1])
+      ot: err("RqlRuntimeError", 'Expected 1 argument but found 2.', [1])
 
     - cd: r.expr(5).do(r.row)
       rb: r(5).do{ |row| row }
