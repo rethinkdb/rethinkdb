@@ -11,9 +11,6 @@
 
 #include <string>
 
-#include "errors.hpp"
-#include <boost/ptr_container/ptr_map.hpp>
-
 #include "arch/runtime/coroutines.hpp"
 #include "containers/scoped.hpp"
 #include "logger.hpp"
