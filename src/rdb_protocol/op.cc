@@ -12,7 +12,7 @@ argspec_t::argspec_t(int _min, int _max)
     : min(_min), max(_max), eval_flags(NO_FLAGS) { }
 argspec_t::argspec_t(int _min, int _max, eval_flags_t _eval_flags)
     : min(_min), max(_max), eval_flags(_eval_flags) { }
-std::string argspec_t::print() {
+std::string argspec_t::print() const {
     if (min == max) {
         return strprintf("%d argument%s", min, (min == 1 ? "" : "s"));
     } else if (max == -1) {
@@ -79,10 +79,10 @@ public:
     }
 private:
     counted_t<const term_t> get(size_t i);
-    protob_t<const Term> src;
-    argspec_t argspec;
+    const protob_t<const Term> src;
+    const argspec_t argspec;
     counted_t<val_t> arg0;
-    std::vector<counted_t<const term_t> > original_args;
+    const std::vector<counted_t<const term_t> > original_args;
     std::vector<counted_t<const term_t> > args;
 
     DISABLE_COPYING(arg_terms_t);

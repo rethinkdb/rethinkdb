@@ -27,7 +27,7 @@ public:
     explicit argspec_t(int n);
     argspec_t(int _min, int _max);
     argspec_t(int _min, int _max, eval_flags_t eval_flags);
-    std::string print();
+    std::string print() const;
     bool contains(int n) const;
     eval_flags_t get_eval_flags() const { return eval_flags; }
 private:
