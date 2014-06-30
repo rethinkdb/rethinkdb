@@ -66,10 +66,9 @@ public:
     arg_terms_t(protob_t<const Term> _src,
                 argspec_t _argspec,
                 std::vector<counted_t<const term_t> > _original_args);
-    // Must be called before `eval_arg`.
-    void start_eval(scope_env_t *env, eval_flags_t flags);
-    counted_t<val_t> eval_arg(scope_env_t *env, size_t i, eval_flags_t flags);
-    size_t size() { return args.size(); }
+    // RSI: Evals the r.args arguments, and returns the expanded argument list.
+    std::vector<counted_t<const term_t> > start_eval(scope_env_t *env,
+                                                     eval_flags_t flags);
 
     const std::vector<counted_t<const term_t> > &get_original_args() const {
         return original_args;
@@ -77,11 +76,9 @@ public:
 private:
     friend class op_term_t;  // RSI: Remove.
     friend class args_t;  // RSI: Remove.
-    counted_t<const term_t> get(size_t i);
     const protob_t<const Term> src;
     const argspec_t argspec;
     const std::vector<counted_t<const term_t> > original_args;
-    std::vector<counted_t<const term_t> > args;
 
     DISABLE_COPYING(arg_terms_t);
 };
@@ -106,10 +103,12 @@ arg_terms_t::arg_terms_t(protob_t<const Term> _src,
                      argspec.print().c_str(), original_args.size()));
 }
 
-void arg_terms_t::start_eval(scope_env_t *env, eval_flags_t flags) {
+std::vector<counted_t<const term_t> >
+arg_terms_t::start_eval(scope_env_t *env, eval_flags_t flags) {
+
     eval_flags_t new_flags = static_cast<eval_flags_t>(
         flags | argspec.get_eval_flags());
-    args.clear();
+    std::vector<counted_t<const term_t> > args;
     for (auto it = original_args.begin(); it != original_args.end(); ++it) {
         if ((*it)->get_src()->type() == Term::ARGS) {
             counted_t<val_t> v = (*it)->eval(env, new_flags);
@@ -125,23 +124,20 @@ void arg_terms_t::start_eval(scope_env_t *env, eval_flags_t flags) {
            base_exc_t::GENERIC,
            strprintf("Expected %s but found %zu.",
                      argspec.print().c_str(), args.size()));
-}
-
-counted_t<val_t> arg_terms_t::eval_arg(scope_env_t *env, size_t i, eval_flags_t flags) {
-    return get(i)->eval(env, flags);
-}
-
-counted_t<const term_t> arg_terms_t::get(size_t i) {
-    r_sanity_check(i < args.size());
-    r_sanity_check(args[i].has());
-    counted_t<const term_t> ret;
-    ret.swap(args[i]);
-    r_sanity_check(!args[i].has());
-    return std::move(ret);
+    return args;
 }
 
 size_t args_t::num_args() const {
-    return op_term->num_args();
+    return argv.size();
+}
+
+counted_t<const term_t> args_t::get(size_t i) {
+    r_sanity_check(i < argv.size());
+    r_sanity_check(argv[i].has());
+    counted_t<const term_t> ret;
+    ret.swap(argv[i]);
+    r_sanity_check(!argv[i].has());
+    return std::move(ret);
 }
 
 counted_t<val_t> args_t::arg(scope_env_t *env, size_t i,
@@ -153,7 +149,7 @@ counted_t<val_t> args_t::arg(scope_env_t *env, size_t i,
         v.swap(arg0);
         return v;
     } else {
-        return op_term->arg_terms->get(i)->eval(env, flags);
+        return get(i)->eval(env, flags);
     }
 }
 
@@ -161,9 +157,12 @@ counted_t<val_t> args_t::optarg(scope_env_t *env, const std::string &key) const 
     return op_term->optarg(env, key);
 }
 
-args_t::args_t(const op_term_t *_op_term) : op_term(_op_term) { }
-args_t::args_t(const op_term_t *_op_term, counted_t<val_t> _arg0)
-    : op_term(_op_term), arg0(std::move(_arg0)) { }
+args_t::args_t(const op_term_t *_op_term, std::vector<counted_t<const term_t> > _argv)
+    : op_term(_op_term), argv(std::move(_argv)) { }
+args_t::args_t(const op_term_t *_op_term,
+               std::vector<counted_t<const term_t> > _argv,
+               counted_t<val_t> _arg0)
+    : op_term(_op_term), argv(std::move(_argv)), arg0(std::move(_arg0)) { }
 
 
 op_term_t::op_term_t(compile_env_t *env, protob_t<const Term> term,
@@ -193,31 +192,29 @@ op_term_t::op_term_t(compile_env_t *env, protob_t<const Term> term,
 }
 op_term_t::~op_term_t() { }
 
-size_t op_term_t::num_args() const { return arg_terms->size(); }
-
 counted_t<val_t> op_term_t::term_eval(scope_env_t *env,
                                       eval_flags_t eval_flags) const {
-    arg_terms->start_eval(env, eval_flags);
+    std::vector<counted_t<const term_t> > argv = arg_terms->start_eval(env, eval_flags);
     if (can_be_grouped()) {
         counted_t<grouped_data_t> gd;
         counted_t<val_t> arg0;
-        maybe_grouped_data(env, eval_flags, &gd, &arg0);
+        maybe_grouped_data(env, &argv, eval_flags, &gd, &arg0);
         if (gd.has()) {
             // (arg0 is empty, because maybe_grouped_data sets at most one of gd and
             // arg0, so we don't have to worry about re-evaluating it.
             counted_t<grouped_data_t> out(new grouped_data_t());
             for (auto kv = gd->begin(); kv != gd->end(); ++kv) {
                 arg_terms->start_eval(env, eval_flags);
-                args_t args(this, make_counted<val_t>(kv->second, backtrace()));
+                args_t args(this, argv, make_counted<val_t>(kv->second, backtrace()));
                 (*out)[kv->first] = eval_impl(env, &args, eval_flags)->as_datum();
             }
             return make_counted<val_t>(out, backtrace());
         } else {
-            args_t args(this, std::move(arg0));
+            args_t args(this, std::move(argv), std::move(arg0));
             return eval_impl(env, &args, eval_flags);
         }
     } else {
-        args_t args(this);
+        args_t args(this, std::move(argv));
         return eval_impl(env, &args, eval_flags);
     }
 }
@@ -283,14 +280,17 @@ bool op_term_t::is_deterministic() const {
     return all_are_deterministic(optargs);
 }
 
-void op_term_t::maybe_grouped_data(scope_env_t *env, eval_flags_t flags,
+void op_term_t::maybe_grouped_data(scope_env_t *env,
+                                   std::vector<counted_t<const term_t> > *argv,
+                                   eval_flags_t flags,
                                    counted_t<grouped_data_t> *grouped_data_out,
                                    counted_t<val_t> *arg0_out) const {
-    if (arg_terms->args.empty()) {
+    if (argv->empty()) {
         grouped_data_out->reset();
         arg0_out->reset();
     } else {
-        counted_t<val_t> arg0 = arg_terms->get(0)->eval(env, flags);
+        // RSI: Make argpack_t type that has .get()?
+        counted_t<val_t> arg0 = argv->at(0)->eval(env, flags);
 
         // RSI: Does maybe_as_grouped_data() destructively modify *arg0?  What about
         // maybe_as_promiscuous_grouped_data?
