@@ -67,7 +67,7 @@ public:
                 argspec_t _argspec,
                 std::vector<counted_t<const term_t> > _original_args);
     // Evals the r.args arguments, and returns the expanded argument list.
-    argvec_t start_eval(scope_env_t *env, eval_flags_t flags);
+    argvec_t start_eval(scope_env_t *env, eval_flags_t flags) const;
 
     const std::vector<counted_t<const term_t> > &get_original_args() const {
         return original_args;
@@ -100,7 +100,7 @@ arg_terms_t::arg_terms_t(protob_t<const Term> _src,
                      argspec.print().c_str(), original_args.size()));
 }
 
-argvec_t arg_terms_t::start_eval(scope_env_t *env, eval_flags_t flags) {
+argvec_t arg_terms_t::start_eval(scope_env_t *env, eval_flags_t flags) const {
     eval_flags_t new_flags = static_cast<eval_flags_t>(
         flags | argspec.get_eval_flags());
     std::vector<counted_t<const term_t> > args;

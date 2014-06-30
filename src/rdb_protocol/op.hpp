@@ -149,7 +149,7 @@ private:
 
     virtual bool is_deterministic() const;
 
-    scoped_ptr_t<arg_terms_t> arg_terms;
+    scoped_ptr_t<const arg_terms_t> arg_terms;
 
     std::map<std::string, counted_t<const term_t> > optargs;
 };
