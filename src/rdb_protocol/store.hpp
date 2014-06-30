@@ -9,7 +9,6 @@
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
-#include <boost/ptr_container/ptr_map.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 
 #include "btree/erase_range.hpp"
@@ -277,7 +276,7 @@ public:
     THROWS_ONLY(sindex_not_ready_exc_t);
 
     btree_slice_t *get_sindex_slice(const uuid_u &id) {
-        return &(secondary_index_slices.at(id));
+        return secondary_index_slices.at(id).get();
     }
 
     void protocol_read(const read_t &read,
@@ -392,7 +391,7 @@ public:
     base_path_t base_path_;
     perfmon_membership_t perfmon_collection_membership;
 
-    boost::ptr_map<const uuid_u, btree_slice_t> secondary_index_slices;
+    std::map<uuid_u, scoped_ptr_t<btree_slice_t> > secondary_index_slices;
 
     std::vector<internal_disk_backed_queue_t *> sindex_queues;
     new_mutex_t sindex_queue_mutex;
