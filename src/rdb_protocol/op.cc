@@ -287,8 +287,6 @@ void op_term_t::maybe_grouped_data(scope_env_t *env,
     } else {
         counted_t<val_t> arg0 = argv->remove(0)->eval(env, flags);
 
-        // RSI: Does maybe_as_grouped_data() destructively modify *arg0?  What about
-        // maybe_as_promiscuous_grouped_data?
         counted_t<grouped_data_t> gd = is_grouped_seq_op()
             ? arg0->maybe_as_grouped_data()
             : arg0->maybe_as_promiscuous_grouped_data(env->env);
