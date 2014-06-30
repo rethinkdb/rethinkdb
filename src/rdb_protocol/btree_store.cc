@@ -1,7 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/store.hpp"  // NOLINT(build/include_order)
 
-#include <functional>
+#include <functional>  // NOLINT(build/include_order)
 
 #include "arch/runtime/coroutines.hpp"
 #include "btree/depth_first_traversal.hpp"
