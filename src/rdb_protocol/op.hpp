@@ -111,8 +111,6 @@ protected:
               argspec_t argspec, optargspec_t optargspec = optargspec_t({}));
     virtual ~op_term_t();
 
-    friend class args_t;  // RSI: This will be removed?
-
     // This returns an optarg which is:
     // * lazy -- it's wrapped in a function, so you don't get the value until
     //   you call that function.
@@ -128,6 +126,7 @@ protected:
     virtual void accumulate_captures(var_captures_t *captures) const;
 
 private:
+    friend class args_t;
     // Tries to get an optional argument, returns `counted_t<val_t>()` if not found.
     counted_t<val_t> optarg(scope_env_t *env, const std::string &key) const;
 
@@ -140,12 +139,6 @@ private:
                             counted_t<grouped_data_t> *grouped_data_out,
                             counted_t<val_t> *arg0_out) const;
 
-    // RSI: This comment refers to arg0, what about the args_t param.
-    // TODO: this interface is a terrible hack.  `term_eval` should be named
-    // `eval_impl`, `eval_impl` should be named `op_eval`, and `op_eval` should
-    // take `arg0` as one of its arguments.  (Actually, the `arg` function
-    // should be passed down too so that the `arg_verifier` it shares with
-    // `term_eval` doesn't have to be on this object.)
     virtual counted_t<val_t> term_eval(scope_env_t *env,
                                        eval_flags_t eval_flags) const;
     virtual counted_t<val_t> eval_impl(scope_env_t *env,
