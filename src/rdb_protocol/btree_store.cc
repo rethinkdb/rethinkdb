@@ -998,9 +998,11 @@ bool store_t::acquire_sindex_superblocks_for_write(
         buf_lock_t superblock_lock(
                 sindex_block, it->second.superblock, access_t::write);
 
-        sindex_sbs_out->push_back(new
-                sindex_access_t(get_sindex_slice(it->second.id), it->second, new
-                    real_superblock_t(std::move(superblock_lock))));
+        // RSI: This 'new real_superblock_t' line.
+        sindex_sbs_out->push_back(
+                make_scoped<sindex_access_t>(
+                        get_sindex_slice(it->second.id), it->second,
+                        new real_superblock_t(std::move(superblock_lock))));
     }
 
     //return's true if we got all of the sindexes requested.
@@ -1029,9 +1031,10 @@ bool store_t::acquire_sindex_superblocks_for_write(
         buf_lock_t superblock_lock(
                 sindex_block, it->second.superblock, access_t::write);
 
-        sindex_sbs_out->push_back(new
-                sindex_access_t(get_sindex_slice(it->second.id), it->second, new
-                    real_superblock_t(std::move(superblock_lock))));
+        sindex_sbs_out->push_back(
+                make_scoped<sindex_access_t>(
+                        get_sindex_slice(it->second.id), it->second,
+                        new real_superblock_t(std::move(superblock_lock))));
     }
 
     //return's true if we got all of the sindexes requested.

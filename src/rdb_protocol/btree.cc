@@ -619,7 +619,7 @@ void spawn_sindex_erase_ranges(
         const value_deleter_t *deleter) {
     for (auto it = sindex_access->begin(); it != sindex_access->end(); ++it) {
         coro_t::spawn_sometime(std::bind(
-                    &sindex_erase_range, key_range, it->super_block.get(),
+                    &sindex_erase_range, key_range, (*it)->super_block.get(),
                     auto_drainer_t::lock_t(drainer), interruptor,
                     release_superblock, deleter));
     }
@@ -1216,7 +1216,7 @@ void rdb_update_sindexes(const store_t::sindex_access_vector_t &sindexes,
 
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
             coro_t::spawn_sometime(std::bind(
-                        &rdb_update_single_sindex, &*it, deletion_context,
+                        &rdb_update_single_sindex, it->get(), deletion_context,
                         modification, auto_drainer_t::lock_t(&drainer)));
         }
     }

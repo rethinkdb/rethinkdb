@@ -9,7 +9,6 @@
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
-#include <boost/ptr_container/ptr_vector.hpp>
 
 #include "btree/erase_range.hpp"
 #include "btree/operations.hpp"
@@ -245,7 +244,7 @@ public:
         scoped_ptr_t<real_superblock_t> super_block;
     };
 
-    typedef boost::ptr_vector<sindex_access_t> sindex_access_vector_t;
+    typedef std::vector<scoped_ptr_t<sindex_access_t> > sindex_access_vector_t;
 
     void acquire_all_sindex_superblocks_for_write(
             block_id_t sindex_block_id,
