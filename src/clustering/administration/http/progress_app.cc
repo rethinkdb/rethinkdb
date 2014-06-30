@@ -6,7 +6,6 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/variant/apply_visitor.hpp>
 #include <boost/variant/static_visitor.hpp>
 
@@ -95,7 +94,7 @@ public:
                              region_t _region,
                              mailbox_manager_t *_mbox_manager,
                              machine_id_map_t *_promise_map,
-                             boost::ptr_vector<request_record_t> *_things_to_destroy)
+                             std::vector<scoped_ptr_t<request_record_t> > *_things_to_destroy)
         : directory(_directory),
           n_id(_n_id),
           m_id(_m_id),
@@ -120,7 +119,7 @@ private:
     region_t region;
     mailbox_manager_t *mbox_manager;
     machine_id_map_t *promise_map;
-    boost::ptr_vector<request_record_t> *things_to_destroy;
+    std::vector<scoped_ptr_t<request_record_t> > *things_to_destroy;
 };
 
 void send_backfill_requests_t::handle_request_internal(const reactor_business_card_details::backfill_location_t& loc) const {
@@ -159,7 +158,7 @@ void send_backfill_requests_t::handle_request_internal(const reactor_business_ca
 
         request_record_t *req_rec = new request_record_t(value, resp_mbox);
         (*promise_map)[m_id][n_id][a_id].insert(std::make_pair(region, req_rec));
-        things_to_destroy->push_back(req_rec);
+        things_to_destroy->push_back(scoped_ptr_t<request_record_t>(req_rec));
     } else {
         // TODO: Why is this commented out?
         //scoped_cJSON_t scoped_region(render_as_json(region_activity_pair.first, 0));
@@ -238,7 +237,7 @@ void progress_app_t::handle(const http_req_t &req, http_res_t *result, signal_t 
     /* The actual map. The entire purpose of the block below is to put things
      * in this map. */
     machine_id_map_t promise_map;
-    boost::ptr_vector<request_record_t> things_to_destroy;
+    std::vector<scoped_ptr_t<request_record_t> > things_to_destroy;
 
     /* Check to see if we're only requesting the backfills happening on a
      * particular machine or for a particular namespace. */
