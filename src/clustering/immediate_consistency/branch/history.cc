@@ -5,6 +5,10 @@
 
 #include "containers/binary_blob.hpp"
 
+RDB_IMPL_SERIALIZABLE_2(version_t, branch, timestamp);
+RDB_IMPL_SERIALIZABLE_2(version_range_t, earliest, latest);
+
+
 bool version_is_ancestor(
         branch_history_manager_t *bhm,
         const version_t ancestor,
@@ -90,4 +94,10 @@ region_map_t<version_range_t> to_version_range_map(const region_map_t<binary_blo
 
 
 
+RDB_IMPL_SERIALIZABLE_3(branch_birth_certificate_t,
+                        region, initial_timestamp, origin);
+RDB_IMPL_EQUALITY_COMPARABLE_3(branch_birth_certificate_t,
+                               region, initial_timestamp, origin);
 
+RDB_IMPL_SERIALIZABLE_1(branch_history_t, branches);
+RDB_IMPL_EQUALITY_COMPARABLE_1(branch_history_t, branches);

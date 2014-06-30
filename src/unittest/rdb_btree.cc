@@ -64,10 +64,7 @@ void insert_rows(int start, int finish, store_t *store) {
             scoped_ptr_t<new_mutex_in_line_t> acq =
                 store->get_in_line_for_sindex_queue(&sindex_block);
 
-            write_message_t wm;
-            serialize(&wm, mod_report);
-
-            store->sindex_queue_push(wm, acq.get());
+            store->sindex_queue_push(mod_report, acq.get());
         }
     }
 }

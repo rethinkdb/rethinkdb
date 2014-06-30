@@ -15,14 +15,13 @@ public:
     erase_range_helper_t(value_sizer_t *sizer, key_tester_t *tester,
             const value_deleter_t *deleter, const btree_key_t *left_exclusive_or_null,
             const btree_key_t *right_inclusive_or_null,
-            const std::function<done_traversing_t(const store_key_t &,
-                                                  const char *,
-                                                  const buf_parent_t &)>
+            const std::function<void(const store_key_t &, const char *,
+                                     const buf_parent_t &)>
                 &on_erase_cb)
         : sizer_(sizer), tester_(tester), deleter_(deleter),
           left_exclusive_or_null_(left_exclusive_or_null),
           right_inclusive_or_null_(right_inclusive_or_null),
-          on_erase_cb_(on_erase_cb), stop_erasing_(false)
+          on_erase_cb_(on_erase_cb)
     { }
 
     void process_a_leaf(buf_lock_t *leaf_node_buf,
@@ -55,18 +54,12 @@ public:
         int population_change = 0;
 
         for (size_t i = 0; i < keys_to_delete.size(); ++i) {
-            if (stop_erasing_) {
-                break;
-            }
-
             bool found = leaf::lookup(sizer_, node, keys_to_delete[i].btree_key(),
                                       value.get());
             guarantee(found);
 
             if (on_erase_cb_) {
-                stop_erasing_ = on_erase_cb_(keys_to_delete[i], value.get(),
-                                             buf_parent_t(leaf_node_buf))
-                                == done_traversing_t::YES;
+                on_erase_cb_(keys_to_delete[i], value.get(), buf_parent_t(leaf_node_buf));
             }
 
             deleter_->delete_value(buf_parent_t(leaf_node_buf), value.get());
@@ -86,9 +79,6 @@ public:
                                      ranged_block_ids_t *ids_source,
                                      interesting_children_callback_t *cb) {
         for (int i = 0, e = ids_source->num_block_ids(); i < e; ++i) {
-            if (stop_erasing_) {
-                break;
-            }
             block_id_t block_id;
             const btree_key_t *left, *right;
             ids_source->get_block_id_and_bounding_interval(i, &block_id, &left, &right);
@@ -133,11 +123,8 @@ private:
     const value_deleter_t *deleter_;
     const btree_key_t *left_exclusive_or_null_;
     const btree_key_t *right_inclusive_or_null_;
-    std::function<done_traversing_t(const store_key_t &,
-                                    const char *,
-                                    const buf_parent_t &)>
+    std::function<void(const store_key_t &, const char *, const buf_parent_t &)>
         on_erase_cb_;
-    bool stop_erasing_;
 
     DISABLE_COPYING(erase_range_helper_t);
 };
@@ -148,9 +135,7 @@ void btree_erase_range_generic(value_sizer_t *sizer,
         const btree_key_t *right_inclusive_or_null,
         superblock_t *superblock, signal_t *interruptor,
         release_superblock_t release_superblock,
-        const std::function<done_traversing_t(const store_key_t &,
-                                              const char *,
-                                              const buf_parent_t &)>
+        const std::function<void(const store_key_t &, const char *, const buf_parent_t &)>
             &on_erase_cb) {
     erase_range_helper_t helper(sizer, tester, deleter,
                                 left_exclusive_or_null, right_inclusive_or_null,

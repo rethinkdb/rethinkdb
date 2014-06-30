@@ -86,16 +86,15 @@ private:
             counted_t<datum_stream_t> stream = v0->as_seq(env->env);
             switch (poly_type) {
             case MAP:
-                stream->add_transformation(
-                        env->env, map_wire_func_t(f), backtrace());
+                stream->add_transformation(map_wire_func_t(f), backtrace());
                 break;
             case FILTER:
-                stream->add_transformation(
-                        env->env, filter_wire_func_t(f, boost::none), backtrace());
+                stream->add_transformation(filter_wire_func_t(f, boost::none),
+                                           backtrace());
                 break;
             case SKIP_MAP:
-                stream->add_transformation(
-                        env->env, concatmap_wire_func_t(f), backtrace());
+                stream->add_transformation(concatmap_wire_func_t(f),
+                                           backtrace());
                 break;
             default: unreachable();
             }

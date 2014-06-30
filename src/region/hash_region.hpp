@@ -59,12 +59,15 @@ public:
     // beg < end unless 0 == end and 0 == beg.
     uint64_t beg, end;
     inner_region_t inner;
-
-private:
-    RDB_MAKE_ME_SERIALIZABLE_3(beg, end, inner);
-
-    // This is a copyable type.
 };
+
+// Stable serialization functions that must not change.
+void serialize_for_metainfo(write_message_t *wm, const hash_region_t<key_range_t> &h);
+MUST_USE archive_result_t deserialize_for_metainfo(read_stream_t *s,
+                                                   hash_region_t<key_range_t> *out);
+
+RDB_DECLARE_SERIALIZABLE(hash_region_t<key_range_t>);
+
 
 template <class inner_region_t>
 bool region_is_empty(const hash_region_t<inner_region_t> &r) {
@@ -146,46 +149,52 @@ hash_region_t<inner_region_t> drop_cpu_sharding(const hash_region_t<inner_region
 
 template <class inner_region_t>
 std::vector< hash_region_t<inner_region_t> > region_subtract_many(const hash_region_t<inner_region_t> &minuend,
-                                                                  const std::vector< hash_region_t<inner_region_t> >& subtrahends) {
+                                                                  const std::vector< hash_region_t<inner_region_t> > &subtrahends) {
     std::vector< hash_region_t<inner_region_t> > buf;
     std::vector< hash_region_t<inner_region_t> > temp_result_buf;
 
     buf.push_back(minuend);
 
-    for (typename std::vector< hash_region_t<inner_region_t> >::const_iterator s = subtrahends.begin(); s != subtrahends.end(); ++s) {
-        for (typename std::vector< hash_region_t<inner_region_t> >::const_iterator m = buf.begin(); m != buf.end(); ++m) {
+    for (typename std::vector<hash_region_t<inner_region_t> >::const_iterator s = subtrahends.begin(); s != subtrahends.end(); ++s) {
+        for (typename std::vector<hash_region_t<inner_region_t> >::const_iterator m = buf.begin(); m != buf.end(); ++m) {
             // Subtract s from m, push back onto temp_result_buf.
             // (See the "subtraction drawing" after this function.)
-            // We first subtract m.inner - s.inner, combining the
-            // difference with m's hash interval to create a set of
-            // regions w.  Then m.inner is intersected with s.inner,
-            // and the hash range is formed from subtracting s's hash
-            // range from m's, possibly creating x and/or z.
+            // We first subtract the hash range of s from the one from m,
+            // creating areas x and/or z if necessary.
+            // The remaining intersection of m's and s's hash ranges is
+            // then divided into sections l, r by subtracting s->inner from
+            // m->inner.
 
-            const std::vector<inner_region_t> s_vec(1, s->inner);
-            const std::vector<inner_region_t> w_inner = region_subtract_many(m->inner, s_vec);
-
-            for (typename std::vector<inner_region_t>::const_iterator it = w_inner.begin(); it != w_inner.end(); ++it) {
-                temp_result_buf.push_back(hash_region_t<inner_region_t>(m->beg, m->end, *it));
-            }
-
+            uint64_t isect_beg = std::max(m->beg, s->beg);
+            uint64_t isect_end = std::min(m->end, s->end);
             // This outer conditional check is unnecessary, but it
             // might improve performance because we avoid trying an
             // unnecessary region intersection.
             if (m->beg < s->beg || s->end < m->end) {
-                inner_region_t isect = region_intersection(m->inner, s->inner);
+                // Add x, if it exists.
+                if (m->beg < s->beg) {
+                    isect_beg = std::min(s->beg, m->end);
+                    temp_result_buf.push_back(
+                        hash_region_t<inner_region_t>(m->beg, isect_beg, m->inner));
+                }
 
-                if (!region_is_empty(isect)) {
+                // Add z, if it exists.
+                if (s->end < m->end) {
+                    isect_end = std::max(m->beg, s->end);
+                    temp_result_buf.push_back(
+                        hash_region_t<inner_region_t>(isect_end, m->end, m->inner));
+                }
+            }
 
-                    // Add x, if it exists.
-                    if (m->beg < s->beg) {
-                        temp_result_buf.push_back(hash_region_t<inner_region_t>(m->beg, std::min(s->beg, m->end), isect));
-                    }
+            if (isect_beg < isect_end) {
+                // The hash intersection is non-empty. Add l and r if necessary.
+                const std::vector<inner_region_t> s_vec = {s->inner};
+                const std::vector<inner_region_t> lr_inner =
+                    region_subtract_many(m->inner, s_vec);
 
-                    // Add z, if it exists.
-                    if (s->end < m->end) {
-                        temp_result_buf.push_back(hash_region_t<inner_region_t>(std::max(m->beg, s->end), m->end, isect));
-                    }
+                for (auto it = lr_inner.begin(); it != lr_inner.end(); ++it) {
+                    temp_result_buf.push_back(
+                        hash_region_t<inner_region_t>(isect_beg, isect_end, *it));
                 }
             }
         }
@@ -200,13 +209,13 @@ std::vector< hash_region_t<inner_region_t> > region_subtract_many(const hash_reg
 // The "subtraction drawing":
 /*
            _____________________
-          |   .  z   .          |
-          |   .______.          |
-          |w_j|  s   |    w_k   |
-          |   |______|          |
-          |   .      .          |
-          |   .  x   .          |
-   ^      |___.______.__________|
+          |      z              |
+          |... ______ ..........|
+          | l |  s   |     r    |
+          |...|______|..........|
+          |                     |
+          |      x              |
+   ^      |_____________________|
    |
    |
   hash values

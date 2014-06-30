@@ -31,9 +31,9 @@ public:
     void do_get_metainfo(order_token_t order_token,
                          object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
                          signal_t *interruptor,
-                         metainfo_t *out) THROWS_ONLY(interrupted_exc_t);
+                         region_map_t<binary_blob_t> *out) THROWS_ONLY(interrupted_exc_t);
 
-    void set_metainfo(const metainfo_t &new_metainfo,
+    void set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                       order_token_t order_token,
                       object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
@@ -49,7 +49,7 @@ public:
 
     void write(
             DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
-            const metainfo_t& new_metainfo,
+            const region_map_t<binary_blob_t> &new_metainfo,
             const write_t &write,
             write_response_t *response,
             write_durability_t durability,
@@ -93,7 +93,7 @@ private:
     order_sink_t order_sink_;
 
     rng_t rng_;
-    metainfo_t metainfo_;
+    region_map_t<binary_blob_t> metainfo_;
     std::map<store_key_t, std::pair<repli_timestamp_t, counted_t<const ql::datum_t> > > table_;
 
     DISABLE_COPYING(mock_store_t);

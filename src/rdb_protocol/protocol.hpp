@@ -73,9 +73,13 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         point_delete_result_t, int8_t,
         point_delete_result_t::DELETED, point_delete_result_t::MISSING);
 
-RDB_DECLARE_SERIALIZABLE(Term);
-RDB_DECLARE_SERIALIZABLE(Datum);
-RDB_DECLARE_SERIALIZABLE(Backtrace);
+#define RDB_DECLARE_PROTOB_SERIALIZABLE(pb_t) \
+    void serialize_protobuf(write_message_t *wm, const pb_t &p); \
+    MUST_USE archive_result_t deserialize_protobuf(read_stream_t *s, pb_t *p)
+
+RDB_DECLARE_PROTOB_SERIALIZABLE(Term);
+RDB_DECLARE_PROTOB_SERIALIZABLE(Datum);
+RDB_DECLARE_PROTOB_SERIALIZABLE(Backtrace);
 
 class key_le_t {
 public:
@@ -128,6 +132,8 @@ private:
     key_range_t::bound_t left_bound_type, right_bound_type;
 };
 
+RDB_SERIALIZE_OUTSIDE(datum_range_t);
+
 struct backfill_atom_t {
     store_key_t key;
     counted_t<const ql::datum_t> value;
@@ -164,11 +170,11 @@ struct single_sindex_status_t {
           blocks_total(_blocks_total), ready(_ready) { }
     size_t blocks_processed, blocks_total;
     bool ready;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
 } // namespace rdb_protocol
+
+RDB_DECLARE_SERIALIZABLE(rdb_protocol::single_sindex_status_t);
 
 enum class sindex_multi_bool_t { SINGLE = 0, MULTI = 1};
 
@@ -251,8 +257,9 @@ struct point_read_response_t {
     point_read_response_t() { }
     explicit point_read_response_t(counted_t<const ql::datum_t> _data)
         : data(_data) { }
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(point_read_response_t);
 
 struct rget_read_response_t {
     key_range_t key_range;
@@ -266,9 +273,9 @@ struct rget_read_response_t {
             bool _truncated, const store_key_t &_last_key)
         : key_range(_key_range), result(_result),
           truncated(_truncated), last_key(_last_key) { }
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(rget_read_response_t);
 
 void scale_down_distribution(size_t result_limit, std::map<store_key_t, int64_t> *key_counts);
 
@@ -281,31 +288,32 @@ struct distribution_read_response_t {
     // key_counts[kn] = the number of keys in [kn, right_key)
     region_t region;
     std::map<store_key_t, int64_t> key_counts;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(distribution_read_response_t);
 
 struct sindex_list_response_t {
     sindex_list_response_t() { }
     std::vector<std::string> sindexes;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(sindex_list_response_t);
 
 struct sindex_status_response_t {
     sindex_status_response_t()
     { }
     std::map<std::string, rdb_protocol::single_sindex_status_t> statuses;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(sindex_status_response_t);
 
 struct changefeed_subscribe_response_t {
     changefeed_subscribe_response_t() { }
     std::set<uuid_u> server_uuids;
     std::set<ql::changefeed::server_t::addr_t> addrs;
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(changefeed_subscribe_response_t);
 
 struct changefeed_stamp_response_t {
     changefeed_stamp_response_t() { }
@@ -313,8 +321,9 @@ struct changefeed_stamp_response_t {
     // different timestamps for each `server_t` because they're on different
     // machines and don't synchronize with each other.)
     std::map<uuid_u, uint64_t> stamps;
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(changefeed_stamp_response_t);
 
 struct read_response_t {
     typedef boost::variant<point_read_response_t,
@@ -331,9 +340,9 @@ struct read_response_t {
     read_response_t() { }
     explicit read_response_t(const variant_t &r)
         : response(r) { }
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(read_response_t);
 
 class point_read_t {
 public:
@@ -341,9 +350,9 @@ public:
     explicit point_read_t(const store_key_t& _key) : key(_key) { }
 
     store_key_t key;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(point_read_t);
 
 struct sindex_rangespec_t {
     sindex_rangespec_t() { }
@@ -357,8 +366,9 @@ struct sindex_rangespec_t {
     std::string id; // What sindex we're using.
     region_t region; // What keyspace we're currently operating on.
     datum_range_t original_range; // For dealing with truncation.
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(sindex_rangespec_t);
 
 class rget_read_t {
 public:
@@ -396,9 +406,9 @@ public:
     boost::optional<sindex_rangespec_t> sindex;
 
     sorting_t sorting; // Optional sorting info (UNORDERED means no sorting).
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(rget_read_t);
 
 class distribution_read_t {
 public:
@@ -413,15 +423,16 @@ public:
     int max_depth;
     size_t result_limit;
     region_t region;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(distribution_read_t);
 
 class sindex_list_t {
 public:
     sindex_list_t() { }
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(sindex_list_t);
 
 class sindex_status_t {
 public:
@@ -431,8 +442,9 @@ public:
     { }
     std::set<std::string> sindexes;
     region_t region;
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(sindex_status_t);
 
 class changefeed_subscribe_t {
 public:
@@ -441,8 +453,9 @@ public:
         : addr(_addr), region(region_t::universe()) { }
     ql::changefeed::client_t::addr_t addr;
     region_t region;
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(changefeed_subscribe_t);
 
 class changefeed_stamp_t {
 public:
@@ -451,8 +464,9 @@ public:
         : addr(std::move(_addr)), region(region_t::universe()) { }
     ql::changefeed::client_t::addr_t addr;
     region_t region;
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(changefeed_stamp_t);
 
 struct read_t {
     typedef boost::variant<point_read_t,
@@ -486,9 +500,9 @@ struct read_t {
 
     // Returns true if this read should be sent to every replica.
     bool all_read() const THROWS_NOTHING { return boost::get<sindex_status_t>(&read); }
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(read_t);
 
 
 struct point_write_response_t {
@@ -498,9 +512,9 @@ struct point_write_response_t {
     explicit point_write_response_t(point_write_result_t _result)
         : result(_result)
     { }
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(point_write_response_t);
 
 struct point_delete_response_t {
     point_delete_result_t result;
@@ -508,28 +522,33 @@ struct point_delete_response_t {
     explicit point_delete_response_t(point_delete_result_t _result)
         : result(_result)
     { }
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(point_delete_response_t);
 
 // TODO we're reusing the enums from row writes and reads to avoid name
 // shadowing. Nothing really wrong with this but maybe they could have a
 // more generic name.
 struct sindex_create_response_t {
     bool success;
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(sindex_create_response_t);
 
 struct sindex_drop_response_t {
     bool success;
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(sindex_drop_response_t);
 
 struct sync_response_t {
     // sync always succeeds
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
+RDB_DECLARE_SERIALIZABLE(sync_response_t);
+
 typedef counted_t<const ql::datum_t> batched_replace_response_t;
+
 struct write_response_t {
     boost::variant<batched_replace_response_t,
                    // batched_replace_response_t is also for batched_insert
@@ -545,9 +564,9 @@ struct write_response_t {
     write_response_t() { }
     template<class T>
     explicit write_response_t(const T &t) : response(t) { }
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(write_response_t);
 
 struct batched_replace_t {
     batched_replace_t() { }
@@ -567,8 +586,9 @@ struct batched_replace_t {
     ql::wire_func_t f;
     std::map<std::string, ql::wire_func_t > optargs;
     bool return_vals;
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(batched_replace_t);
 
 struct batched_insert_t {
     batched_insert_t() { }
@@ -600,8 +620,9 @@ struct batched_insert_t {
     std::string pkey;
     bool upsert;
     bool return_vals;
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(batched_insert_t);
 
 class point_write_t {
 public:
@@ -614,9 +635,9 @@ public:
     store_key_t key;
     counted_t<const ql::datum_t> data;
     bool overwrite;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(point_write_t);
 
 class point_delete_t {
 public:
@@ -625,9 +646,9 @@ public:
         : key(_key) { }
 
     store_key_t key;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(point_delete_t);
 
 class sindex_create_t {
 public:
@@ -641,9 +662,9 @@ public:
     ql::map_wire_func_t mapping;
     region_t region;
     sindex_multi_bool_t multi;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(sindex_create_t);
 
 class sindex_drop_t {
 public:
@@ -654,9 +675,9 @@ public:
 
     std::string id;
     region_t region;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(sindex_drop_t);
 
 class sync_t {
 public:
@@ -665,9 +686,9 @@ public:
     { }
 
     region_t region;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(sync_t);
 
 struct write_t {
     boost::variant<batched_replace_t,
@@ -710,9 +731,9 @@ struct write_t {
         : write(std::forward<T>(t)),
           durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
           profile(_profile) { }
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(write_t);
 
 
 struct backfill_chunk_t {
@@ -722,15 +743,11 @@ struct backfill_chunk_t {
 
         delete_key_t() { }
         delete_key_t(const store_key_t& _key, const repli_timestamp_t& _recency) : key(_key), recency(_recency) { }
-
-        // TODO: Wtf?  recency is not being serialized.
-        RDB_DECLARE_ME_SERIALIZABLE;
     };
     struct delete_range_t {
         region_t range;
         delete_range_t() { }
         explicit delete_range_t(const region_t& _range) : range(_range) { }
-        RDB_DECLARE_ME_SERIALIZABLE;
     };
     struct key_value_pairs_t {
         std::vector<backfill_atom_t> backfill_atoms;
@@ -738,8 +755,6 @@ struct backfill_chunk_t {
         key_value_pairs_t() { }
         explicit key_value_pairs_t(std::vector<backfill_atom_t> &&_backfill_atoms)
             : backfill_atoms(std::move(_backfill_atoms)) { }
-
-        RDB_DECLARE_ME_SERIALIZABLE;
     };
     struct sindexes_t {
         std::map<std::string, secondary_index_t> sindexes;
@@ -747,8 +762,6 @@ struct backfill_chunk_t {
         sindexes_t() { }
         explicit sindexes_t(const std::map<std::string, secondary_index_t> &_sindexes)
             : sindexes(_sindexes) { }
-
-        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     typedef boost::variant<delete_range_t, delete_key_t, key_value_pairs_t, sindexes_t> value_t;
@@ -773,9 +786,13 @@ struct backfill_chunk_t {
 
     /* This is for `store_t`; it's not part of the ICL protocol API. */
     repli_timestamp_t get_btree_repli_timestamp() const THROWS_NOTHING;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(backfill_chunk_t::delete_key_t);
+RDB_DECLARE_SERIALIZABLE(backfill_chunk_t::delete_range_t);
+RDB_DECLARE_SERIALIZABLE(backfill_chunk_t::key_value_pairs_t);
+RDB_DECLARE_SERIALIZABLE(backfill_chunk_t::sindexes_t);
+RDB_DECLARE_SERIALIZABLE(backfill_chunk_t);
 
 
 class store_t;

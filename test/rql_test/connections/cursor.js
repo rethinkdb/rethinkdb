@@ -30,7 +30,8 @@ var assertArgError = function(expected, found, callback) {
 
     if (!errFound) {
         throw new Error("No error thrown");
-    } else if (!(errFound.msg !== "Expected "+expected+" argument(s) but found "+found)) {
+    } else if (!(errFound.msg !== "Expected "+expected+" argument"
+                 +(expected === 1 ? "" : "s")+" but found "+found)) {
         throw new Error("Wrong error message: "+errFound.msg);
     }
 };
@@ -46,9 +47,9 @@ var assertArgVarError = function(min, max, found, callback) {
     if (!errFound) {
         throw new Error("No error thrown");
     } else if (
-            (errFound.msg !== "Expected "+min+" or more argument(s) but found "+found+".")
-            && (errFound.msg !== "Expected "+max+" or fewer argument(s) but found "+found+".")
-            && (errFound.msg !== "Expected between "+min+" and "+max+" argument(s) but found "+found+".")) {
+            (errFound.msg !== "Expected "+min+" or more arguments but found "+found+".")
+            && (errFound.msg !== "Expected "+max+" or fewer arguments but found "+found+".")
+            && (errFound.msg !== "Expected between "+min+" and "+max+" arguments but found "+found+".")) {
         throw new Error("Wrong error message: "+errFound.msg);
     }
 };

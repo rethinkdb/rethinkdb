@@ -18,10 +18,9 @@ class machine_semilattice_metadata_t {
 public:
     vclock_t<datacenter_id_t> datacenter;
     vclock_t<name_string_t> name;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
+RDB_DECLARE_SERIALIZABLE(machine_semilattice_metadata_t);
 RDB_DECLARE_SEMILATTICE_JOINABLE(machine_semilattice_metadata_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(machine_semilattice_metadata_t);
 
@@ -35,10 +34,9 @@ class machines_semilattice_metadata_t {
 public:
     typedef std::map<machine_id_t, deletable_t<machine_semilattice_metadata_t> > machine_map_t;
     machine_map_t machines;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
+RDB_DECLARE_SERIALIZABLE(machines_semilattice_metadata_t);
 RDB_DECLARE_SEMILATTICE_JOINABLE(machines_semilattice_metadata_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(machines_semilattice_metadata_t);
 

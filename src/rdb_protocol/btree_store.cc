@@ -15,6 +15,7 @@
 #include "containers/archive/vector_stream.hpp"
 #include "containers/archive/versioned.hpp"
 #include "containers/disk_backed_queue.hpp"
+#include "containers/scoped.hpp"
 #include "logger.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -84,7 +85,7 @@ store_t::store_t(serializer_t *serializer,
         // VSI: Do this better.
         write_message_t wm;
         region_t kr = region_t::universe();
-        serialize_for_version(cluster_version_t::ONLY_VERSION, &wm, kr);
+        serialize_for_metainfo(&wm, kr);
         key.reserve(wm.size());
         int res = send_write_message(&key, &wm);
         guarantee(!res);
@@ -92,12 +93,15 @@ store_t::store_t(serializer_t *serializer,
         txn_t txn(general_cache_conn.get(), write_durability_t::HARD,
                   repli_timestamp_t::distant_past, 1);
         buf_lock_t superblock(&txn, SUPERBLOCK_ID, alt_create_t::create);
-        btree_slice_t::init_superblock(&superblock, key.vector(), std::vector<char>());
+        btree_slice_t::init_superblock(&superblock, key.vector(), binary_blob_t());
         real_superblock_t sb(std::move(superblock));
         create_stat_block(&sb);
     }
 
-    btree.init(new btree_slice_t(cache.get(), &perfmon_collection, "primary"));
+    btree.init(new btree_slice_t(cache.get(),
+                                 &perfmon_collection,
+                                 "primary",
+                                 index_type_t::PRIMARY));
 
     // Initialize sindex slices
     {
@@ -124,7 +128,8 @@ store_t::store_t(serializer_t *serializer,
             secondary_index_slices.insert(it->second.id,
                                           new btree_slice_t(cache.get(),
                                                             &perfmon_collection,
-                                                            it->first.name));
+                                                            it->first.name,
+                                                            index_type_t::SECONDARY));
         }
     }
 
@@ -158,7 +163,7 @@ void store_t::read(
 
 void store_t::write(
         DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
-        const metainfo_t& new_metainfo,
+        const region_map_t<binary_blob_t>& new_metainfo,
         const write_t &write,
         write_response_t *response,
         const write_durability_t durability,
@@ -287,24 +292,52 @@ void store_t::reset_data(
                                      &superblock,
                                      interruptor);
 
+        key_range_t keyrange_left_to_erase = subregion.inner;
+        keyrange_left_to_erase.left = highest_erased_key_so_far;
+
+        // First we use an ordered depth-first-traversal to figure out the key range
+        // that corresponds to `max_erased_per_pass` keys. Then we use
+        // `rdb_erase_small_range()` to actually erase the keys in parallel.
+        struct counter_cb_t : public depth_first_traversal_callback_t {
+            counter_cb_t(unsigned int m) : max_erased_per_pass_(m), key_count_(0) { }
+            done_traversing_t handle_pair(scoped_key_value_t &&keyvalue) {
+                ++key_count_;
+                if (key_count_ > max_erased_per_pass_) {
+                    end_key_ = store_key_t(keyvalue.key());
+                    return done_traversing_t::YES;
+                }
+                return done_traversing_t::NO;
+            }
+            unsigned int max_erased_per_pass_;
+            unsigned int key_count_;
+            store_key_t end_key_;
+        };
+        counter_cb_t counter_cb(max_erased_per_pass);
+        keep_erasing = !btree_depth_first_traversal(superblock.get(),
+                                                    keyrange_left_to_erase,
+                                                    &counter_cb, direction_t::FORWARD,
+                                                    release_superblock_t::KEEP);
+
+        // Erase the determined range of `max_erased_per_pass` keys
+        key_range_t keyrange_this_pass = keyrange_left_to_erase;
+        if (keep_erasing) {
+            // `right` is exclusive
+            keyrange_this_pass.right = key_range_t::right_bound_t(counter_cb.end_key_);
+            highest_erased_key_so_far = counter_cb.end_key_;
+        }
+
         buf_lock_t sindex_block
             = acquire_sindex_block_for_write(superblock->expose_buf(),
                                          superblock->get_sindex_block_id());
 
-        key_range_t keyrange_left = subregion.inner;
-        keyrange_left.left = highest_erased_key_so_far;
-
         rdb_live_deletion_context_t deletion_context;
         std::vector<rdb_modification_report_t> mod_reports;
-        done_erasing_t done = rdb_erase_small_range(&key_tester,
-                                                    keyrange_left,
-                                                    superblock.get(),
-                                                    &deletion_context,
-                                                    interruptor,
-                                                    max_erased_per_pass,
-                                                    &highest_erased_key_so_far,
-                                                    &mod_reports);
-        keep_erasing = done != done_erasing_t::DONE;
+        rdb_erase_small_range(&key_tester,
+                              keyrange_this_pass,
+                              superblock.get(),
+                              &deletion_context,
+                              interruptor,
+                              &mod_reports);
         superblock.reset();
         if (!mod_reports.empty()) {
             update_sindexes(txn.get(), &sindex_block, mod_reports, true);
@@ -379,7 +412,6 @@ void store_t::update_sindexes(
             bool release_sindex_block) {
     scoped_ptr_t<new_mutex_in_line_t> acq =
             get_in_line_for_sindex_queue(sindex_block);
-    scoped_array_t<write_message_t> queue_wms(mod_reports.size());
     {
         sindex_access_vector_t sindexes;
         acquire_post_constructed_sindex_superblocks_for_write(
@@ -390,35 +422,49 @@ void store_t::update_sindexes(
 
         rdb_live_deletion_context_t deletion_context;
         for (size_t i = 0; i < mod_reports.size(); ++i) {
-            // This is for a disk backed queue so there's no versioning issues.
-            serialize(&queue_wms[i], mod_reports[i]);
             rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
         }
     }
 
     // Write mod reports onto the sindex queue. We are in line for the
     // sindex_queue mutex and can already release all other locks.
-    sindex_queue_push(queue_wms, acq.get());
+    sindex_queue_push(mod_reports, acq.get());
 }
 
-void store_t::sindex_queue_push(const write_message_t &value,
+void store_t::sindex_queue_push(const rdb_modification_report_t &mod_report,
                                 const new_mutex_in_line_t *acq) {
     assert_thread();
     acq->acq_signal()->wait_lazily_unordered();
 
-    for (auto it = sindex_queues.begin(); it != sindex_queues.end(); ++it) {
-        (*it)->push(value);
+    if (!sindex_queues.empty()) {
+        // This is for a disk backed queue so there's no versioning issues.
+        // (deserializating_viewer_t in disk_backed_queue.hpp also uses the
+        // LATEST version, and such queues are ephemeral).
+        write_message_t wm;
+        serialize<cluster_version_t::LATEST>(&wm, mod_report);
+
+        for (auto it = sindex_queues.begin(); it != sindex_queues.end(); ++it) {
+            (*it)->push(wm);
+        }
     }
 }
 
 void store_t::sindex_queue_push(
-        const scoped_array_t<write_message_t> &values,
+        const std::vector<rdb_modification_report_t> &mod_reports,
         const new_mutex_in_line_t *acq) {
     assert_thread();
     acq->acq_signal()->wait_lazily_unordered();
 
-    for (auto it = sindex_queues.begin(); it != sindex_queues.end(); ++it) {
-        (*it)->push(values);
+    if (!sindex_queues.empty()) {
+        scoped_array_t<write_message_t> wms(mod_reports.size());
+        for (size_t i = 0; i < mod_reports.size(); ++i) {
+            // This is for a disk backed queue so there are no versioning issues.
+            serialize<cluster_version_t::LATEST>(&wms[i], mod_reports[i]);
+        }
+
+        for (auto it = sindex_queues.begin(); it != sindex_queues.end(); ++it) {
+            (*it)->push(wms);
+        }
     }
 }
 
@@ -470,11 +516,15 @@ bool store_t::add_sindex(
              * it... on the other hand this code isn't exactly idiot proof even
              * with that. */
             btree_slice_t::init_superblock(&sindex_superblock,
-                                           std::vector<char>(), std::vector<char>());
+                                           std::vector<char>(),
+                                           binary_blob_t());
         }
 
         secondary_index_slices.insert(
-            sindex.id, new btree_slice_t(cache.get(), &perfmon_collection, name.name));
+            sindex.id, new btree_slice_t(cache.get(),
+                                         &perfmon_collection,
+                                         name.name,
+                                         index_type_t::SECONDARY));
 
         sindex.post_construction_complete = false;
 
@@ -711,13 +761,14 @@ void store_t::set_sindexes(
                 sindex.superblock = sindex_superblock.block_id();
                 btree_slice_t::init_superblock(&sindex_superblock,
                                                std::vector<char>(),
-                                               std::vector<char>());
+                                               binary_blob_t());
             }
 
             secondary_index_slices.insert(it->second.id,
                                           new btree_slice_t(cache.get(),
                                                             &perfmon_collection,
-                                                            it->first.name));
+                                                            it->first.name,
+                                                            index_type_t::SECONDARY));
 
             sindex.post_construction_complete = false;
 
@@ -986,15 +1037,16 @@ bool store_t::acquire_sindex_superblocks_for_write(
 
 void store_t::check_and_update_metainfo(
         DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
-        const metainfo_t &new_metainfo,
+        const region_map_t<binary_blob_t> &new_metainfo,
         real_superblock_t *superblock) const
         THROWS_NOTHING {
     assert_thread();
-    metainfo_t old_metainfo = check_metainfo(DEBUG_ONLY(metainfo_checker, ) superblock);
+    region_map_t<binary_blob_t> old_metainfo
+        = check_metainfo(DEBUG_ONLY(metainfo_checker, ) superblock);
     update_metainfo(old_metainfo, new_metainfo, superblock);
 }
 
-metainfo_t
+region_map_t<binary_blob_t>
 store_t::check_metainfo(
         DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
         real_superblock_t *superblock) const
@@ -1008,8 +1060,8 @@ store_t::check_metainfo(
     return old_metainfo;
 }
 
-void store_t::update_metainfo(const metainfo_t &old_metainfo,
-                              const metainfo_t &new_metainfo,
+void store_t::update_metainfo(const region_map_t<binary_blob_t> &old_metainfo,
+                              const region_map_t<binary_blob_t> &new_metainfo,
                               real_superblock_t *superblock)
     const THROWS_NOTHING {
     assert_thread();
@@ -1019,30 +1071,39 @@ void store_t::update_metainfo(const metainfo_t &old_metainfo,
     rassert(updated_metadata.get_domain() == region_t::universe());
 
     buf_lock_t *sb_buf = superblock->get();
+    // Clear the existing metainfo. This makes sure that we completely rewrite
+    // the metainfo. That avoids two issues:
+    // - `set_superblock_metainfo()` wouldn't remove any deleted keys
+    // - `set_superblock_metainfo()` is more efficient if we don't do any
+    //   in-place updates in its current implementation.
     clear_superblock_metainfo(sb_buf);
 
-    for (region_map_t<binary_blob_t>::const_iterator i = updated_metadata.begin(); i != updated_metadata.end(); ++i) {
+    std::vector<std::vector<char> > keys;
+    std::vector<binary_blob_t> values;
+    keys.reserve(updated_metadata.size());
+    values.reserve(updated_metadata.size());
+    for (region_map_t<binary_blob_t>::const_iterator i = updated_metadata.begin();
+         i != updated_metadata.end();
+         ++i) {
         vector_stream_t key;
         write_message_t wm;
-        // Versioning of this serialization will depend on the block magic.  But
-        // right now there's just one version.
-        // VSI: Make this code better.
-        serialize_for_version(cluster_version_t::ONLY_VERSION, &wm, i->first);
+        serialize_for_metainfo(&wm, i->first);
         key.reserve(wm.size());
         DEBUG_VAR int res = send_write_message(&key, &wm);
         rassert(!res);
 
-        std::vector<char> value(static_cast<const char*>(i->second.data()),
-                                static_cast<const char*>(i->second.data()) + i->second.size());
-
-        set_superblock_metainfo(sb_buf, key.vector(), value); // FIXME: this is not efficient either, see how value is created
+        keys.push_back(std::move(key.vector()));
+        values.push_back(i->second);
     }
+
+    set_superblock_metainfo(sb_buf, keys, values);
 }
 
 void store_t::do_get_metainfo(UNUSED order_token_t order_token,  // TODO
                               object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
                               signal_t *interruptor,
-                              metainfo_t *out) THROWS_ONLY(interrupted_exc_t) {
+                              region_map_t<binary_blob_t> *out)
+    THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
@@ -1070,9 +1131,7 @@ get_metainfo_internal(buf_lock_t *sb_buf,
         region_t region;
         {
             inplace_vector_read_stream_t key(&i->first);
-            // Versioning of this deserialization will depend on the block magic.
-            // VSI: Make this code better.
-            archive_result_t res = deserialize_for_version(cluster_version_t::ONLY_VERSION, &key, &region);
+            archive_result_t res = deserialize_for_metainfo(&key, &region);
             guarantee_deserialization(res, "region");
         }
 
@@ -1083,7 +1142,7 @@ get_metainfo_internal(buf_lock_t *sb_buf,
     *out = res;
 }
 
-void store_t::set_metainfo(const metainfo_t &new_metainfo,
+void store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                            UNUSED order_token_t order_token,  // TODO
                            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {

@@ -6,6 +6,7 @@
 #include <set>
 #include <vector>
 
+#include "containers/archive/versioned.hpp"
 #include "http/http.hpp"
 #include "stl_utils.hpp"
 #include "utils.hpp"
@@ -27,8 +28,7 @@ cJSON *cJSON_merge(cJSON *lhs, cJSON *rhs) {
     guarantee(rhs->type == cJSON_Object);
     cJSON *obj = cJSON_DeepCopy(lhs);
 
-    for (int i = 0; i < cJSON_GetArraySize(rhs); ++i) {
-        cJSON *item = cJSON_GetArrayItem(rhs, i);
+    for (cJSON *item = rhs->head; item != NULL; item = item->next) {
         cJSON_DeleteItemFromObject(obj, item->string);
         cJSON_AddItemToObject(obj, item->string, cJSON_DeepCopy(item));
     }
@@ -214,7 +214,9 @@ cJSON *merge(cJSON *x, cJSON *y) {
                                          it != keys.end();
                                          ++it) {
         // TODO: Make this a guarantee, or have a new cJSON_AddItemToObject implementation that checks this.
-        rassert(!cJSON_GetObjectItem(res, it->c_str()), "Overlapping names in merge, name was: %s\n", it->c_str());
+        rassert(!cJSON_slow_GetObjectItem(res, it->c_str()),
+                                          "Overlapping names in merge, name was: %s\n",
+                                          it->c_str());
         cJSON_AddItemToObject(res, it->c_str(), cJSON_DetachItemFromObject(y, it->c_str()));
     }
 
@@ -234,8 +236,9 @@ const char *cJSON_type_to_string(int type) {
     }
 }
 
+template <cluster_version_t W>
 void serialize(write_message_t *wm, const cJSON &cjson) {
-    serialize(wm, cjson.type);
+    serialize<W>(wm, cjson.type);
 
     switch (cjson.type) {
     case cJSON_False:
@@ -245,24 +248,24 @@ void serialize(write_message_t *wm, const cJSON &cjson) {
     case cJSON_NULL:
         break;
     case cJSON_Number:
-        serialize(wm, cjson.valuedouble);
+        serialize<W>(wm, cjson.valuedouble);
         break;
     case cJSON_String: {
         guarantee(cjson.valuestring);
         std::string s(cjson.valuestring);
-        serialize(wm, s);
+        serialize<W>(wm, s);
     } break;
     case cJSON_Array:
     case cJSON_Object: {
-        serialize(wm, cJSON_GetArraySize(&cjson));
+        serialize<W>(wm, cJSON_slow_GetArraySize(&cjson));
 
         cJSON *hd = cjson.head;
         while (hd) {
             if (cjson.type == cJSON_Object) {
                 guarantee(hd->string);
-                serialize(wm, std::string(hd->string));
+                serialize<W>(wm, std::string(hd->string));
             }
-            serialize(wm, *hd);
+            serialize<W>(wm, *hd);
             hd = hd->next;
         }
     } break;
@@ -272,8 +275,9 @@ void serialize(write_message_t *wm, const cJSON &cjson) {
     }
 }
 
+template <cluster_version_t W>
 MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson) {
-    archive_result_t res = deserialize(s, &cjson->type);
+    archive_result_t res = deserialize<W>(s, &cjson->type);
     if (bad(res)) { return res; }
 
     switch (cjson->type) {
@@ -283,7 +287,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson) {
         return archive_result_t::SUCCESS;
         break;
     case cJSON_Number:
-        res = deserialize(s, &cjson->valuedouble);
+        res = deserialize<W>(s, &cjson->valuedouble);
         if (bad(res)) { return res; }
         cjson->valueint = static_cast<int>(cjson->valuedouble);
         return archive_result_t::SUCCESS;
@@ -291,7 +295,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson) {
     case cJSON_String:
         {
             std::string str;
-            res = deserialize(s, &str);
+            res = deserialize<W>(s, &str);
             if (bad(res)) { return res; }
             cjson->valuestring = strdup(str.c_str());
             return archive_result_t::SUCCESS;
@@ -300,11 +304,11 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson) {
     case cJSON_Array:
         {
             int size;
-            res = deserialize(s, &size);
+            res = deserialize<W>(s, &size);
             if (bad(res)) { return res; }
             for (int i = 0; i < size; ++i) {
                 cJSON *item = cJSON_CreateBlank();
-                res = deserialize(s, item);
+                res = deserialize<W>(s, item);
                 if (bad(res)) { return res; }
                 cJSON_AddItemToArray(cjson, item);
             }
@@ -314,17 +318,17 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson) {
     case cJSON_Object:
         {
             int size;
-            res = deserialize(s, &size);
+            res = deserialize<W>(s, &size);
             if (bad(res)) { return res; }
             for (int i = 0; i < size; ++i) {
                 //grab the key
                 std::string key;
-                res = deserialize(s, &key);
+                res = deserialize<W>(s, &key);
                 if (bad(res)) { return res; }
 
                 //grab the item
                 cJSON *item = cJSON_CreateBlank();
-                res = deserialize(s, item);
+                res = deserialize<W>(s, item);
                 if (bad(res)) { return res; }
                 cJSON_AddItemToObject(cjson, key.c_str(), item);
             }
@@ -336,3 +340,5 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson) {
         break;
     }
 }
+
+INSTANTIATE_SINCE_v1_13(cJSON);

@@ -174,13 +174,15 @@ http_job_t::http_job_t(extproc_pool_t *pool, signal_t *interruptor) :
 void http_job_t::http(const http_opts_t &opts,
                       http_result_t *res_out) {
     write_message_t msg;
-    serialize(&msg, opts);
+    serialize<cluster_version_t::LATEST>(&msg, opts);
     {
         int res = send_write_message(extproc_job.write_stream(), &msg);
         if (res != 0) { throw http_worker_exc_t("failed to send data to the worker"); }
     }
 
-    archive_result_t res = deserialize(extproc_job.read_stream(), res_out);
+    archive_result_t res
+        = deserialize<cluster_version_t::LATEST>(extproc_job.read_stream(),
+                                                 res_out);
     if (bad(res)) {
         throw http_worker_exc_t(strprintf("failed to deserialize result from worker "
                                           "(%s)", archive_result_as_str(res)));
@@ -195,7 +197,8 @@ bool http_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out)
     static bool curl_initialized(false);
     http_opts_t opts;
     {
-        archive_result_t res = deserialize(stream_in, &opts);
+        archive_result_t res
+            = deserialize<cluster_version_t::LATEST>(stream_in, &opts);
         if (bad(res)) { return false; }
     }
 
@@ -221,7 +224,7 @@ bool http_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out)
     }
 
     write_message_t msg;
-    serialize(&msg, result);
+    serialize<cluster_version_t::LATEST>(&msg, result);
     int res = send_write_message(stream_out, &msg);
     if (res != 0) { return false; }
 
@@ -241,6 +244,19 @@ std::string exc_encode(CURL *curl_handle, const std::string &str) {
     }
 
     return res;
+}
+
+// We may get multiple headers due to authentication or redirection.  Filter out all but
+// the last response's header, which is all we care about.
+void truncate_header_data(std::string *header_data) {
+    size_t last_crlf = header_data->rfind("\r\n\r\n");
+
+    if (last_crlf != std::string::npos || last_crlf > 0) {
+        size_t second_to_last_crlf = header_data->rfind("\r\n\r\n", last_crlf - 1);
+        if (second_to_last_crlf != std::string::npos) {
+            header_data->erase(0, second_to_last_crlf + 4);
+        }
+    }
 }
 
 template <class T>
@@ -546,6 +562,7 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
 
     std::string body_data(curl_data.steal_body_data());
     std::string header_data(curl_data.steal_header_data());
+    truncate_header_data(&header_data);
 
     if (opts->attempts == 0) {
         res_out->error.assign("could not perform, no attempts allowed");
@@ -636,7 +653,7 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
 class header_parser_singleton_t {
 public:
     static counted_t<const ql::datum_t> parse(const std::string &header);
-    
+
 private:
     static void initialize();
     static header_parser_singleton_t *instance;
@@ -673,7 +690,7 @@ header_parser_singleton_t *header_parser_singleton_t::instance = NULL;
 //  - for the second, there is only one string, the link 'http://example.org',
 //     this will be stored in the result with an empty key.  If more than one of
 //     these is given in the response, the last one will take precedence.
-// 
+//
 // The link_parser regular expression consists of two main chunks, with gratuitous
 // whitespace padding:
 // <([^>]*)> - this is the first capture group, for the link portion.  Since the URL
@@ -691,7 +708,7 @@ header_parser_singleton_t::header_parser_singleton_t() :
     settings.on_header_value = &header_parser_singleton_t::on_header_value;
     settings.on_headers_complete = &header_parser_singleton_t::on_headers_complete;
 }
-    
+
 void header_parser_singleton_t::initialize() {
     if (instance == NULL) {
         instance = new header_parser_singleton_t();
@@ -714,7 +731,8 @@ header_parser_singleton_t::parse(const std::string &header) {
         // Upgrade header was present - error
         throw curl_exc_t("upgrade header present in response headers");
     } else if (res != header.length()) {
-        throw curl_exc_t("unknown error when parsing response headers");
+        throw curl_exc_t(strprintf("unknown error when parsing response headers:\n%s\n",
+                                   header.c_str()));
     }
 
     // Return an empty object if we didn't receive any headers

@@ -337,6 +337,18 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
     {{/if}}
 </script>
 
+<script id="dataexplorer_large_result_json_tree_container-template" type="text/x-handlebars-template">
+    <div class="json_tree">
+        <span class="jt_arrow"></span>
+        <span class="jt_b"></span>
+        <span class="jt_points">...</span>
+        <div class="jt_collapsible large_result">
+            {{json_data}}
+        </div>
+    </div>
+</script>
+
+
 <script id="dataexplorer_result_json_table_container-template" type="text/x-handlebars-template">
     <div class="json_table_container">
         <table class="json_table">

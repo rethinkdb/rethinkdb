@@ -44,9 +44,9 @@ public:
     explicit fifo_enforcer_read_token_t(state_timestamp_t t) THROWS_NOTHING :
         timestamp(t) { }
     state_timestamp_t timestamp;
-private:
-    RDB_MAKE_ME_SERIALIZABLE_1(timestamp);
 };
+
+RDB_MAKE_SERIALIZABLE_1(fifo_enforcer_read_token_t, timestamp);
 
 class fifo_enforcer_write_token_t {
 public:
@@ -55,9 +55,9 @@ public:
         timestamp(t), num_preceding_reads(npr) { }
     transition_timestamp_t timestamp;
     int64_t num_preceding_reads;
-private:
-    RDB_MAKE_ME_SERIALIZABLE_2(timestamp, num_preceding_reads);
 };
+
+RDB_MAKE_SERIALIZABLE_2(fifo_enforcer_write_token_t, timestamp, num_preceding_reads);
 
 class fifo_enforcer_state_t {
 public:
@@ -72,9 +72,9 @@ public:
 
     state_timestamp_t timestamp;
     int64_t num_reads;
-private:
-    RDB_MAKE_ME_SERIALIZABLE_2(timestamp, num_reads);
 };
+
+RDB_MAKE_SERIALIZABLE_2(fifo_enforcer_state_t, timestamp, num_reads);
 
 class fifo_enforcer_source_t : public home_thread_mixin_debug_only_t {
 public:

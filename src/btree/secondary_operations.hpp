@@ -54,9 +54,9 @@ struct secondary_index_t {
         return superblock == other.superblock &&
                opaque_definition == other.opaque_definition;
     }
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(secondary_index_t);
 
 struct sindex_name_t {
     sindex_name_t()
@@ -77,9 +77,9 @@ struct sindex_name_t {
     // of an index that's being deleted can never conflict with any newly created
     // index.
     bool being_deleted;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(sindex_name_t);
 
 //Secondary Index functions
 

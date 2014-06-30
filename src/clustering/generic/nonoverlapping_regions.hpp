@@ -52,6 +52,8 @@ private:
     std::set<region_t> regions_;
 };
 
+RDB_SERIALIZE_OUTSIDE(nonoverlapping_regions_t);
+
 // ctx-less json adapter concept for nonoverlapping_regions_t.
 json_adapter_if_t::json_adapter_map_t get_json_subfields(nonoverlapping_regions_t *target);
 cJSON *render_as_json(nonoverlapping_regions_t *target);

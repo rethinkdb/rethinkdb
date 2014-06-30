@@ -30,7 +30,7 @@ namespace_repo_t::namespace_repo_t(mailbox_manager_t *_mailbox_manager,
       namespaces_view(semilattice_view),
       namespaces_directory_metadata(_namespaces_directory_metadata),
       ctx(_ctx),
-      namespaces_subscription(boost::bind(&namespace_repo_t::on_namespaces_change, this))
+      namespaces_subscription(boost::bind(&namespace_repo_t::on_namespaces_change, this, drainer.lock()))
 {
     namespaces_subscription.reset(namespaces_view);
 }
@@ -129,7 +129,16 @@ void base_namespace_repo_t::access_t::ref_handler_t::reset() {
     }
 }
 
-void namespace_repo_t::on_namespaces_change() {
+void copy_region_maps_to_thread(
+        const std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > &from,
+        one_per_thread_t<std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > > *to,
+        int thread, UNUSED auto_drainer_t::lock_t keepalive) {
+    on_thread_t th((threadnum_t(thread)));
+    *to->get() = from;
+}
+
+void namespace_repo_t::on_namespaces_change(auto_drainer_t::lock_t keepalive) {
+    ASSERT_NO_CORO_WAITING;
     std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > new_reg_to_pri_maps;
 
     namespaces_semilattice_metadata_t::namespace_map_t::const_iterator it;
@@ -152,18 +161,12 @@ void namespace_repo_t::on_namespaces_change() {
         }
     }
 
-    struct per_thread_copyer_t {
-        static void copy(const std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > &from,
-                         one_per_thread_t<std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > > *to,
-                         int thread, UNUSED auto_drainer_t::lock_t keepalive) {
-            on_thread_t th((threadnum_t(thread)));
-            *to->get() = from;
-        }
-    };
-
     for (int thread = 0; thread < get_num_threads(); ++thread) {
-        coro_t::spawn_ordered(std::bind(&per_thread_copyer_t::copy, new_reg_to_pri_maps,
-                                        &region_to_primary_maps, thread, drainer.lock()));
+        coro_t::spawn_ordered(std::bind(&copy_region_maps_to_thread,
+                                        new_reg_to_pri_maps,
+                                        &region_to_primary_maps,
+                                        thread,
+                                        keepalive));
     }
 }
 

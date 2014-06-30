@@ -73,7 +73,7 @@ tests:
     ot: ({'replaced':0,'skipped':0,'deleted':0,'unchanged':1,'errors':0,'inserted':0})
   - rb: tbl.get(1, :ai)
     cd: tbl.get(1, 'ai')
-    ot: err("RqlCompileError", "Expected 2 argument(s) but found 3.", [])
+    ot: err("RqlCompileError", "Expected 2 arguments but found 3.", [])
 
   - rb: tbl.get_all(true, :index => :id)
     py: tbl.get_all(True, index='id')

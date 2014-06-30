@@ -7,6 +7,7 @@
 
 #include "containers/archive/archive.hpp"
 #include "containers/archive/vector_stream.hpp"
+#include "containers/archive/versioned.hpp"
 #include "concurrency/pmap.hpp"
 #include "logger.hpp"
 
@@ -61,17 +62,22 @@ public:
 
     void write(cluster_version_t cluster_version, write_stream_t *stream) {
         write_message_t wm;
-        serialize(&wm, dest_thread);
-        serialize(&wm, dest_mailbox_id);
+        // Right now, we serialize this length/thread/mailbox information the same
+        // way irrespective of version. (Serialization methods for primitive types
+        // all behave the same way anyway -- this is just for performance, avoiding
+        // unnecessary branching on cluster_version.)  See read_mailbox_header for
+        // the deserialization.
+        serialize_universal(&wm, dest_thread);
+        serialize_universal(&wm, dest_mailbox_id);
         uint64_t prefix_length = static_cast<uint64_t>(wm.size());
 
         subwriter->write(cluster_version, &wm);
 
-        // Prepend the message length
+        // Prepend the message length.
         // TODO: It would be more efficient if we could make this part of `msg`.
         //  e.g. with a `prepend()` method on write_message_t.
         write_message_t length_msg;
-        serialize(&length_msg, static_cast<uint64_t>(wm.size()) - prefix_length);
+        serialize_universal(&length_msg, static_cast<uint64_t>(wm.size()) - prefix_length);
 
         int res = send_write_message(stream, &length_msg);
         if (res) { throw fake_archive_exc_t(); }
@@ -122,17 +128,18 @@ struct mailbox_header_t {
 // Helper function for on_local_message and on_message
 void read_mailbox_header(read_stream_t *stream,
                          mailbox_header_t *header_out) {
+    // See raw_mailbox_writer_t::write for the serialization.
     uint64_t data_length;
-    archive_result_t res = deserialize(stream, &data_length);
+    archive_result_t res = deserialize_universal(stream, &data_length);
     if (res != archive_result_t::SUCCESS
         || data_length > std::numeric_limits<size_t>::max()
         || data_length > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
         throw fake_archive_exc_t();
     }
     header_out->data_length = data_length;
-    res = deserialize(stream, &header_out->dest_thread);
+    res = deserialize_universal(stream, &header_out->dest_thread);
     if (bad(res)) { throw fake_archive_exc_t(); }
-    res = deserialize(stream, &header_out->dest_mailbox_id);
+    res = deserialize_universal(stream, &header_out->dest_mailbox_id);
     if (bad(res)) { throw fake_archive_exc_t(); }
 }
 
@@ -140,7 +147,7 @@ void mailbox_manager_t::on_local_message(peer_id_t source_peer,
                                          cluster_version_t cluster_version,
                                          std::vector<char> &&data) {
     // This is only sensible:
-    rassert(cluster_version == cluster_version_t::LATEST_VERSION);
+    rassert(cluster_version == cluster_version_t::LATEST);
 
     vector_read_stream_t stream(std::move(data));
 

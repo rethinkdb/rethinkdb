@@ -82,8 +82,9 @@ struct stamped_msg_t {
     uuid_u server_uuid;
     uint64_t stamp;
     msg_t submsg;
-    RDB_MAKE_ME_SERIALIZABLE_3(server_uuid, stamp, submsg);
 };
+
+RDB_MAKE_SERIALIZABLE_3(stamped_msg_t, server_uuid, stamp, submsg);
 
 // This function takes a `lock_t` to make sure you have one.  (We can't just
 // always ackquire a drainer lock before sending because we sometimes send a
@@ -149,9 +150,9 @@ msg_t::change_t::change_t(counted_t<const datum_t> _old_val,
     : old_val(std::move(_old_val)), new_val(std::move(_new_val)) { }
 msg_t::change_t::~change_t() { }
 
-RDB_IMPL_ME_SERIALIZABLE_1(msg_t, op);
+RDB_IMPL_SERIALIZABLE_1(msg_t, op);
 RDB_IMPL_ME_SERIALIZABLE_2(msg_t::change_t, empty_ok(old_val), empty_ok(new_val));
-RDB_IMPL_ME_SERIALIZABLE_0(msg_t::stop_t);
+RDB_IMPL_SERIALIZABLE_0(msg_t::stop_t);
 
 enum class detach_t { NO, YES };
 

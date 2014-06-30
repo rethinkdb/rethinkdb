@@ -20,11 +20,11 @@
 class datacenter_semilattice_metadata_t {
 public:
     vclock_t<name_string_t> name;
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
 void debug_print(printf_buffer_t *buf, const datacenter_semilattice_metadata_t &m);
 
+RDB_DECLARE_SERIALIZABLE(datacenter_semilattice_metadata_t);
 RDB_DECLARE_SEMILATTICE_JOINABLE(datacenter_semilattice_metadata_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(datacenter_semilattice_metadata_t);
 
@@ -37,10 +37,9 @@ class datacenters_semilattice_metadata_t {
 public:
     typedef std::map<datacenter_id_t, deletable_t<datacenter_semilattice_metadata_t> > datacenter_map_t;
     datacenter_map_t datacenters;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
+RDB_DECLARE_SERIALIZABLE(datacenters_semilattice_metadata_t);
 RDB_DECLARE_SEMILATTICE_JOINABLE(datacenters_semilattice_metadata_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(datacenters_semilattice_metadata_t);
 

@@ -587,7 +587,7 @@ def main():
     if options.list_mode is True:
         for test in testList:
             print(test.name)
-        return 0
+        sys.exit()
     
     # -- check the build_directory
     
@@ -746,12 +746,12 @@ def main():
         if len(testList) > 1:
             testNumberMessage = 'all %s tests' % len(testList)
         print('\n== Sucessfully passed %s in %.2f seconds!' % (testNumberMessage, time.time() - startTime))
+        sys.exit()
     else:
         plural = ''
         if len(failedTests) > 1:
             plural = 's'
-        sys.stderr.write('\n== Failed %d test%s (of %d) in %.2f seconds!\n\t%s\n\n' % (len(failedTests), plural, len(testList), time.time() - startTime, '\n\t'.join(failedTests)))
-    return len(failedTests) == 0
+        sys.exit('\n== Failed %d test%s (of %d) in %.2f seconds!\n\t%s\n\n' % (len(failedTests), plural, len(testList), time.time() - startTime, '\n\t'.join(failedTests)))
         
 if __name__ == '__main__':
-    sys.exit(main())
+    main()

@@ -13,12 +13,17 @@
 #include "arch/io/network.hpp"
 #include "arch/runtime/thread_pool.hpp"
 
-host_lookup_exc_t::host_lookup_exc_t(const std::string &_host, int _errno_val)
+host_lookup_exc_t::host_lookup_exc_t(const std::string &_host,
+                                     int _res, int _errno_res)
     : host(_host),
-      errno_val(_errno_val),
-      error_string(strprintf("getaddrinfo() failed for hostname: %s, errno: %d",
-                             host.c_str(), errno_val)) { }
-
+      res(_res),
+      errno_res(_errno_res) {
+    std::string info = (res == EAI_SYSTEM) ?
+        strprintf("%s (errno %d)", errno_string(errno_res).c_str(), errno_res) :
+        strprintf("%s (gai_errno %d)", gai_strerror(res), res);
+    error_string = strprintf("getaddrinfo() failed for hostname '%s': %s",
+                             host.c_str(), info.c_str());
+}
 
 /* Get our hostname as an std::string. */
 std::string str_gethostname() {
@@ -40,7 +45,7 @@ void do_getaddrinfo(const char *node,
                     int *errno_res) {
     *errno_res = 0;
     *retval = getaddrinfo(node, service, hints, res);
-    if (*retval < 0) {
+    if (*retval != 0) {
         *errno_res = get_errno();
     }
 }
@@ -72,7 +77,7 @@ void hostname_to_ips_internal(const std::string &host,
     thread_pool_t::run_in_blocker_pool(fn);
 
     if (res != 0) {
-        throw host_lookup_exc_t(host, errno_res);
+        throw host_lookup_exc_t(host, res, errno_res);
     }
 
     guarantee(addrs);
@@ -109,7 +114,8 @@ bool check_address_filter(ip_address_t addr, const std::set<ip_address_t> &filte
     return filter.find(addr) != filter.end() || addr.is_loopback();
 }
 
-std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter, bool get_all) {
+std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
+                                     bool get_all) {
     std::set<ip_address_t> all_ips;
     std::set<ip_address_t> filtered_ips;
 
@@ -119,11 +125,24 @@ std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter, bool 
         // Continue on, this probably means there's no DNS entry for this host
     }
 
+    // Ignore loopback addresses - those will be returned by getifaddrs, and
+    // getaddrinfo is not so trustworthy.
+    // See https://github.com/rethinkdb/rethinkdb/issues/2405
+    for (auto it = all_ips.begin(); it != all_ips.end();) {
+        auto curr = it++;
+        if (!curr->is_loopback()) {
+            all_ips.erase(curr);
+        }
+    }
+
     struct ifaddrs *addrs;
     int res = getifaddrs(&addrs);
-    guarantee_err(res == 0, "getifaddrs() failed, could not determine local network interfaces");
+    guarantee_err(res == 0,
+                  "getifaddrs() failed, could not determine local network interfaces");
 
-    for (struct ifaddrs *current_addr = addrs; current_addr != NULL; current_addr = current_addr->ifa_next) {
+    for (auto *current_addr = addrs;
+         current_addr != NULL;
+         current_addr = current_addr->ifa_next) {
         struct sockaddr *addr_data = current_addr->ifa_addr;
         if (addr_data == NULL) {
             continue;
@@ -134,7 +153,7 @@ std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter, bool 
     freeifaddrs(addrs);
 
     // Remove any addresses that don't fit the filter
-    for (std::set<ip_address_t>::const_iterator it = all_ips.begin(); it != all_ips.end(); ++it) {
+    for (auto it = all_ips.begin(); it != all_ips.end(); ++it) {
         if (get_all || check_address_filter(*it, filter)) {
             filtered_ips.insert(*it);
         }
@@ -154,7 +173,8 @@ addr_type_t sanitize_address_family(int address_family) {
         result = RDB_IPV6_ADDR;
         break;
     default:
-        crash("ip_address_t constructed with unexpected address family: %d", address_family);
+        crash("ip_address_t constructed with unexpected address family: %d",
+              address_family);
     }
 
     return result;
@@ -194,14 +214,19 @@ ip_address_t::ip_address_t(const std::string &addr_str) {
     if (inet_pton(AF_INET, addr_str.c_str(), &ipv4_addr) == 1) {
         addr_type = RDB_IPV4_ADDR;
     } else {
-        // Try to parse as in IPv6 address, but it may contain scope ID, which complicates things
+        // Try to parse as in IPv6 address, but it may contain scope ID,
+        // which complicates things
         addr_type = RDB_IPV6_ADDR;
         ipv6_scope_id = 0;
         size_t percent_pos = addr_str.find_first_of('%');
         if (percent_pos != std::string::npos) {
-            // There is a scope in the string, first make sure the beginning is an IPv6 address
-            if (inet_pton(AF_INET6, addr_str.substr(0, percent_pos).c_str(), &ipv6_addr) != 1) {
-                throw invalid_address_exc_t(strprintf("could not parse IP address from string: '%s'", addr_str.c_str()));
+            // There is a scope in the string, first make sure the beginning
+            // is an IPv6 address
+            if (inet_pton(AF_INET6,
+                          addr_str.substr(0, percent_pos).c_str(),
+                          &ipv6_addr) != 1) {
+                throw invalid_address_exc_t(strprintf("Could not parse IP address from "
+                                                      "string: '%s'", addr_str.c_str()));
             }
 
             // Then, use getaddrinfo to figure out the value for the scope
@@ -209,8 +234,11 @@ ip_address_t::ip_address_t(const std::string &addr_str) {
             hostname_to_ips_internal(addr_str, AF_INET6, &addresses);
 
             bool scope_id_found = false;
-            // We may get multiple ips (not sure what that case would be, try to match to the one we have)
-            for (auto it = addresses.begin(); it != addresses.end() && !scope_id_found; ++it) {
+            // We may get multiple ips (not sure what that case would be,
+            // try to match to the one we have)
+            for (auto it = addresses.begin();
+                 it != addresses.end() && !scope_id_found;
+                 ++it) {
                 if (IN6_ARE_ADDR_EQUAL(&it->ipv6_addr, &ipv6_addr)) {
                     ipv6_scope_id = it->ipv6_scope_id;
                     scope_id_found = true;
@@ -218,10 +246,13 @@ ip_address_t::ip_address_t(const std::string &addr_str) {
             }
 
             if (!scope_id_found) {
-                throw invalid_address_exc_t(strprintf("Could not determine the scope id of address: '%s'", addr_str.c_str()));
+                throw invalid_address_exc_t(strprintf("Could not determine the scope "
+                                                      "id of address: '%s'",
+                                                      addr_str.c_str()));
             }
         } else if (inet_pton(AF_INET6, addr_str.c_str(), &ipv6_addr) != 1) {
-            throw invalid_address_exc_t(strprintf("could not parse IP address from string: '%s'", addr_str.c_str()));
+            throw invalid_address_exc_t(strprintf("Could not parse IP address from "
+                                                  "string: '%s'", addr_str.c_str()));
         }
     }
 }
@@ -266,7 +297,8 @@ const struct in6_addr &ip_address_t::get_ipv6_addr() const {
 
 uint32_t ip_address_t::get_ipv6_scope_id() const {
     if (!is_ipv6()) {
-        throw invalid_address_exc_t("get_ipv6_scope_id() called on a non-IPv6 ip_address_t");
+        throw invalid_address_exc_t("get_ipv6_scope_id() called on a "
+                                    "non-IPv6 ip_address_t");
     }
     return ipv6_scope_id;
 }
@@ -283,7 +315,8 @@ std::string ip_address_t::to_string() const {
             result += strprintf("%%%d", ipv6_scope_id);
         }
     } else {
-        crash("to_string called on an uninitialized ip_address_t, addr_type: %d", addr_type);
+        crash("to_string called on an uninitialized ip_address_t, addr_type: %d",
+              addr_type);
     }
 
     return result;
@@ -448,6 +481,18 @@ bool peer_address_t::operator == (const peer_address_t &a) const {
 bool peer_address_t::operator != (const peer_address_t &a) const {
     return !(*this == a);
 }
+
+// We specifically use the version 1.13 serialization method as the "universal one".
+// If that no longer works... you might want to change the caller in cluster.cc.  Or
+// maybe you'd want a more explicit implementation here.
+void serialize_universal(write_message_t *wm, const std::set<host_and_port_t> &x) {
+    serialize<cluster_version_t::v1_13>(wm, x);
+}
+archive_result_t deserialize_universal(read_stream_t *s,
+                                       std::set<host_and_port_t> *thing) {
+    return deserialize<cluster_version_t::v1_13>(s, thing);
+}
+
 
 void debug_print(printf_buffer_t *buf, const ip_address_t &addr) {
     buf->appendf("%s", addr.to_string().c_str());

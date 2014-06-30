@@ -49,16 +49,20 @@ protected:
         : default_val(std::move(_default_val)) { }
     virtual ~grouped_acc_t() { }
 private:
-    virtual done_traversing_t operator()(groups_t *groups,
-                              store_key_t &&key,
-                              counted_t<const datum_t> &&sindex_val) {
+    virtual done_traversing_t operator()(env_t *env,
+                                         groups_t *groups,
+                                         store_key_t &&key,
+                                         counted_t<const datum_t> &&sindex_val) {
         for (auto it = groups->begin(); it != groups->end(); ++it) {
             auto pair = acc.insert(std::make_pair(it->first, default_val));
             auto t_it = pair.first;
             bool keep = !pair.second;
             for (auto el = it->second.begin(); el != it->second.end(); ++el) {
-                keep |= accumulate(
-                    *el, &t_it->second, std::move(key), std::move(sindex_val));
+                keep |= accumulate(env,
+                                   *el,
+                                   &t_it->second,
+                                   std::move(key),
+                                   std::move(sindex_val));
             }
             if (!keep) {
                 acc.erase(t_it);
@@ -66,7 +70,8 @@ private:
         }
         return should_send_batch() ? done_traversing_t::YES : done_traversing_t::NO;
     }
-    virtual bool accumulate(const counted_t<const datum_t> &el,
+    virtual bool accumulate(env_t *env,
+                            const counted_t<const datum_t> &el,
                             T *t,
                             store_key_t &&key,
                             // sindex_val may be NULL
@@ -80,7 +85,8 @@ private:
         guarantee(acc.size() == 0);
     }
 
-    virtual void unshard(const store_key_t &last_key,
+    virtual void unshard(env_t *env,
+                         const store_key_t &last_key,
                          const std::vector<result_t *> &results) {
         guarantee(acc.size() == 0);
         std::map<counted_t<const datum_t>, std::vector<T *> > vecs;
@@ -94,10 +100,11 @@ private:
         }
         for (auto kv = vecs.begin(); kv != vecs.end(); ++kv) {
             auto t_it = acc.insert(std::make_pair(kv->first, default_val)).first;
-            unshard_impl(&t_it->second, last_key, kv->second);
+            unshard_impl(env, &t_it->second, last_key, kv->second);
         }
     }
-    virtual void unshard_impl(T *acc,
+    virtual void unshard_impl(env_t *env,
+                              T *acc,
                               const store_key_t &last_key,
                               const std::vector<T *> &ts) = 0;
 
@@ -118,7 +125,8 @@ private:
     virtual bool should_send_batch() {
         return batcher != NULL && batcher->should_send_batch();
     }
-    virtual bool accumulate(const counted_t<const datum_t> &el,
+    virtual bool accumulate(env_t *,
+                            const counted_t<const datum_t> &el,
                             stream_t *stream,
                             store_key_t &&key,
                             // sindex_val may be NULL
@@ -138,7 +146,8 @@ private:
         unreachable();
     }
 
-    virtual void unshard_impl(stream_t *out,
+    virtual void unshard_impl(env_t *,
+                              stream_t *out,
                               const store_key_t &last_key,
                               const std::vector<stream_t *> &streams) {
         uint64_t sz = 0;
@@ -192,7 +201,7 @@ class to_array_t : public eager_acc_t {
 public:
     to_array_t() : size(0) { }
 private:
-    virtual void operator()(groups_t *gs) {
+    virtual void operator()(env_t *, groups_t *gs) {
         for (auto kv = gs->begin(); kv != gs->end(); ++kv) {
             datums_t *lst1 = &groups[kv->first];
             datums_t *lst2 = &kv->second;
@@ -208,7 +217,7 @@ private:
         gs->clear();
     }
 
-    virtual void add_res(result_t *res) {
+    virtual void add_res(env_t *, result_t *res) {
         auto streams = boost::get<grouped_t<stream_t> >(res);
         r_sanity_check(streams);
         for (auto kv = streams->begin(); kv != streams->end(); ++kv) {
@@ -258,7 +267,7 @@ class terminal_t : public grouped_acc_t<T>, public eager_acc_t {
 protected:
     explicit terminal_t(T &&t) : grouped_acc_t<T>(std::move(t)) { }
 private:
-    virtual void operator()(groups_t *groups) {
+    virtual void operator()(env_t *env, groups_t *groups) {
         grouped_t<T> *acc = grouped_acc_t<T>::get_acc();
         const T *default_val = grouped_acc_t<T>::get_default_val();
         for (auto it = groups->begin(); it != groups->end(); ++it) {
@@ -266,7 +275,7 @@ private:
             auto t_it = pair.first;
             bool keep = !pair.second;
             for (auto el = it->second.begin(); el != it->second.end(); ++el) {
-                keep |= accumulate(*el, &t_it->second);
+                keep |= accumulate(env, *el, &t_it->second);
             }
             if (!keep) {
                 acc->erase(t_it);
@@ -299,7 +308,7 @@ private:
     }
     virtual counted_t<const datum_t> unpack(T *t) = 0;
 
-    virtual void add_res(result_t *res) {
+    virtual void add_res(env_t *env, result_t *res) {
         grouped_t<T> *acc = grouped_acc_t<T>::get_acc();
         const T *default_val = grouped_acc_t<T>::get_default_val();
         if (auto e = boost::get<exc_t>(res)) {
@@ -312,66 +321,73 @@ private:
         } else {
             for (auto kv = gres->begin(); kv != gres->end(); ++kv) {
                 auto t_it = acc->insert(std::make_pair(kv->first, *default_val)).first;
-                unshard_impl(&t_it->second, &kv->second);
+                unshard_impl(env, &t_it->second, &kv->second);
             }
         }
     }
 
-    virtual bool accumulate(
-        const counted_t<const datum_t> &el, T *t,
-        store_key_t &&, counted_t<const datum_t> &&) {
-        return accumulate(el, t);
+    virtual bool accumulate(env_t *env,
+                            const counted_t<const datum_t> &el,
+                            T *t,
+                            store_key_t &&,
+                            counted_t<const datum_t> &&) {
+        return accumulate(env, el, t);
     }
-    virtual bool accumulate(const counted_t<const datum_t> &el, T *t) = 0;
+    virtual bool accumulate(env_t *env,
+                            const counted_t<const datum_t> &el,
+                            T *t) = 0;
 
-    virtual void unshard_impl(T *out, const store_key_t &, const std::vector<T *> &ts) {
+    virtual void unshard_impl(env_t *env, T *out, const store_key_t &, const std::vector<T *> &ts) {
         for (auto it = ts.begin(); it != ts.end(); ++it) {
-            unshard_impl(out, *it);
+            unshard_impl(env, out, *it);
         }
     }
-    virtual void unshard_impl(T *out, T *el) = 0;
+    virtual void unshard_impl(env_t *env, T *out, T *el) = 0;
     virtual bool should_send_batch() { return false; }
 };
 
 class count_terminal_t : public terminal_t<uint64_t> {
 public:
-    count_terminal_t(env_t *, const count_wire_func_t &)
+    count_terminal_t(const count_wire_func_t &)
         : terminal_t<uint64_t>(0) { }
 private:
     virtual bool uses_val() { return false; }
-    virtual bool accumulate(const counted_t<const datum_t> &, uint64_t *out) {
+    virtual bool accumulate(env_t *,
+                            const counted_t<const datum_t> &,
+                            uint64_t *out) {
         *out += 1;
         return true;
     }
     virtual counted_t<const datum_t> unpack(uint64_t *sz) {
         return make_counted<const datum_t>(static_cast<double>(*sz));
     }
-    virtual void unshard_impl(uint64_t *out, uint64_t *el) {
+    virtual void unshard_impl(env_t *, uint64_t *out, uint64_t *el) {
         *out += *el;
     }
 };
 
 class acc_func_t {
 public:
-    acc_func_t(const counted_t<func_t> &_f, env_t *_env) : f(_f), env(_env) { }
-    counted_t<const datum_t> operator()(const counted_t<const datum_t> &el) const {
+    acc_func_t(const counted_t<func_t> &_f) : f(_f) { }
+    counted_t<const datum_t> operator()(env_t *env, const counted_t<const datum_t> &el) const {
         return f.has() ? f->call(env, el)->as_datum() : el;
     }
 private:
     counted_t<func_t> f;
-    env_t *env;
 };
 
 template<class T>
 class skip_terminal_t : public terminal_t<T> {
 protected:
-    skip_terminal_t(env_t *env, const skip_wire_func_t &wf, T &&t)
+    skip_terminal_t(const skip_wire_func_t &wf, T &&t)
         : terminal_t<T>(std::move(t)),
-          f(wf.compile_wire_func(), env),
+          f(wf.compile_wire_func_or_null()),
           bt(wf.bt.get_bt()) { }
-    virtual bool accumulate(const counted_t<const datum_t> &el, T *out) {
+    virtual bool accumulate(env_t *env,
+                            const counted_t<const datum_t> &el,
+                            T *out) {
         try {
-            maybe_acc(el, out, f);
+            maybe_acc(env, el, out, f);
             return true;
         } catch (const datum_exc_t &e) {
             if (e.get_type() != base_exc_t::NON_EXISTENCE) {
@@ -385,8 +401,10 @@ protected:
         return false;
     }
 private:
-    virtual void maybe_acc(
-        const counted_t<const datum_t> &el, T *out, const acc_func_t &f) = 0;
+    virtual void maybe_acc(env_t *env,
+                           const counted_t<const datum_t> &el,
+                           T *out,
+                           const acc_func_t &f) = 0;
 
     acc_func_t f;
     protob_t<const Backtrace> bt;
@@ -394,30 +412,34 @@ private:
 
 class sum_terminal_t : public skip_terminal_t<double> {
 public:
-    sum_terminal_t(env_t *env, const sum_wire_func_t &f)
-        : skip_terminal_t<double>(env, f, 0.0L) { }
+    sum_terminal_t(const sum_wire_func_t &f)
+        : skip_terminal_t<double>(f, 0.0L) { }
 private:
-    virtual void maybe_acc(
-        const counted_t<const datum_t> &el, double *out, const acc_func_t &f) {
-        *out += f(el)->as_num();
+    virtual void maybe_acc(env_t *env,
+                           const counted_t<const datum_t> &el,
+                           double *out,
+                           const acc_func_t &f) {
+        *out += f(env, el)->as_num();
     }
     virtual counted_t<const datum_t> unpack(double *d) {
         return make_counted<const datum_t>(*d);
     }
-    virtual void unshard_impl(double *out, double *el) {
+    virtual void unshard_impl(env_t *, double *out, double *el) {
         *out += *el;
     }
 };
 
 class avg_terminal_t : public skip_terminal_t<std::pair<double, uint64_t> > {
 public:
-    avg_terminal_t(env_t *env, const avg_wire_func_t &f)
+    avg_terminal_t(const avg_wire_func_t &f)
         : skip_terminal_t<std::pair<double, uint64_t> >(
-            env, f, std::make_pair(0.0L, 0ULL)) { }
+            f, std::make_pair(0.0L, 0ULL)) { }
 private:
-    virtual void maybe_acc(const counted_t<const datum_t> &el,
-                           std::pair<double, uint64_t> *out, const acc_func_t &f) {
-        out->first += f(el)->as_num();
+    virtual void maybe_acc(env_t *env,
+                           const counted_t<const datum_t> &el,
+                           std::pair<double, uint64_t> *out,
+                           const acc_func_t &f) {
+        out->first += f(env, el)->as_num();
         out->second += 1;
     }
     virtual counted_t<const datum_t> unpack(
@@ -428,7 +450,8 @@ private:
                      "had that field.)");
         return make_counted<const datum_t>(p->first / p->second);
     }
-    virtual void unshard_impl(std::pair<double, uint64_t> *out,
+    virtual void unshard_impl(env_t *,
+                              std::pair<double, uint64_t> *out,
                               std::pair<double, uint64_t> *el) {
         out->first += el->first;
         out->second += el->second;
@@ -478,22 +501,24 @@ bool datum_gt(const counted_t<const datum_t> &val1,
 
 class optimizing_terminal_t : public skip_terminal_t<optimizer_t> {
 public:
-    optimizing_terminal_t(env_t *env, const skip_wire_func_t &f,
+    optimizing_terminal_t(const skip_wire_func_t &f,
                           const char *_name,
                           bool (*_cmp)(const counted_t<const datum_t> &val1,
                                        const counted_t<const datum_t> &val2))
-        : skip_terminal_t<optimizer_t>(env, f, optimizer_t()),
+        : skip_terminal_t<optimizer_t>(f, optimizer_t()),
           name(_name), cmp(_cmp) { }
 private:
-    virtual void maybe_acc(
-        const counted_t<const datum_t> &el, optimizer_t *out, const acc_func_t &f) {
-        optimizer_t other(el, f(el));
+    virtual void maybe_acc(env_t *env,
+                           const counted_t<const datum_t> &el,
+                           optimizer_t *out,
+                           const acc_func_t &f) {
+        optimizer_t other(el, f(env, el));
         out->swap_if_other_better(other, cmp);
     }
     virtual counted_t<const datum_t> unpack(optimizer_t *el) {
         return el->unpack(name);
     }
-    virtual void unshard_impl(optimizer_t *out, optimizer_t *el) {
+    virtual void unshard_impl(env_t *, optimizer_t *out, optimizer_t *el) {
         out->swap_if_other_better(*el, cmp);
     }
     const char *name;
@@ -506,12 +531,12 @@ const char *const empty_stream_msg =
 
 class reduce_terminal_t : public terminal_t<counted_t<const datum_t> > {
 public:
-    reduce_terminal_t(env_t *_env, const reduce_wire_func_t &_f)
+    reduce_terminal_t(const reduce_wire_func_t &_f)
         : terminal_t<counted_t<const datum_t> >(counted_t<const datum_t>()),
-          env(_env),
           f(_f.compile_wire_func()) { }
 private:
-    virtual bool accumulate(const counted_t<const datum_t> &el,
+    virtual bool accumulate(env_t *env,
+                            const counted_t<const datum_t> &el,
                             counted_t<const datum_t> *out) {
         try {
             *out = out->has() ? f->call(env, *out, el)->as_datum() : el;
@@ -524,56 +549,54 @@ private:
         rcheck_target(f, base_exc_t::NON_EXISTENCE, el->has(), empty_stream_msg);
         return std::move(*el);
     }
-    virtual void unshard_impl(counted_t<const datum_t> *out,
+    virtual void unshard_impl(env_t *env,
+                              counted_t<const datum_t> *out,
                               counted_t<const datum_t> *el) {
-        if (el->has()) accumulate(*el, out);
+        if (el->has()) accumulate(env, *el, out);
     }
 
-    env_t *env;
     counted_t<func_t> f;
 };
 
 template<class T>
 class terminal_visitor_t : public boost::static_visitor<T *> {
 public:
-    explicit terminal_visitor_t(env_t *_env) : env(_env) { }
     T *operator()(const count_wire_func_t &f) const {
-        return new count_terminal_t(env, f);
+        return new count_terminal_t(f);
     }
     T *operator()(const sum_wire_func_t &f) const {
-        return new sum_terminal_t(env, f);
+        return new sum_terminal_t(f);
     }
     T *operator()(const avg_wire_func_t &f) const {
-        return new avg_terminal_t(env, f);
+        return new avg_terminal_t(f);
     }
     T *operator()(const min_wire_func_t &f) const {
-        return new optimizing_terminal_t(env, f, "min", datum_lt);
+        return new optimizing_terminal_t(f, "min", datum_lt);
     }
     T *operator()(const max_wire_func_t &f) const {
-        return new optimizing_terminal_t(env, f, "max", datum_gt);
+        return new optimizing_terminal_t(f, "max", datum_gt);
     }
     T *operator()(const reduce_wire_func_t &f) const {
-        return new reduce_terminal_t(env, f);
+        return new reduce_terminal_t(f);
     }
-    env_t *env;
 };
 
-scoped_ptr_t<accumulator_t> make_terminal(env_t *env, const terminal_variant_t &t) {
+scoped_ptr_t<accumulator_t> make_terminal(const terminal_variant_t &t) {
     return scoped_ptr_t<accumulator_t>(
-            boost::apply_visitor(terminal_visitor_t<accumulator_t>(env), t));
+            boost::apply_visitor(terminal_visitor_t<accumulator_t>(), t));
 }
 
-scoped_ptr_t<eager_acc_t> make_eager_terminal(env_t *env, const terminal_variant_t &t) {
+scoped_ptr_t<eager_acc_t> make_eager_terminal(const terminal_variant_t &t) {
     return scoped_ptr_t<eager_acc_t>(
-            boost::apply_visitor(terminal_visitor_t<eager_acc_t>(env), t));
+            boost::apply_visitor(terminal_visitor_t<eager_acc_t>(), t));
 }
 
 class ungrouped_op_t : public op_t {
 protected:
 private:
-    virtual void operator()(groups_t *groups, const counted_t<const datum_t> &) {
+    virtual void operator()(env_t *env, groups_t *groups, const counted_t<const datum_t> &) {
         for (auto it = groups->begin(); it != groups->end();) {
-            lst_transform(&it->second);
+            lst_transform(env, &it->second);
             if (it->second.size() == 0) {
                 groups->erase(it++); // This is important for batching with filter.
             } else {
@@ -581,21 +604,21 @@ private:
             }
         }
     }
-    virtual void lst_transform(datums_t *lst) = 0;
+    virtual void lst_transform(env_t *env, datums_t *lst) = 0;
 };
 
 class group_trans_t : public op_t {
 public:
-    group_trans_t(env_t *_env, const group_wire_func_t &f)
-        : env(_env),
-          funcs(f.compile_funcs()),
+    group_trans_t(const group_wire_func_t &f)
+        : funcs(f.compile_funcs()),
           append_index(f.should_append_index()),
           multi(f.is_multi()),
           bt(f.get_bt()) {
         r_sanity_check((funcs.size() + append_index) != 0);
     }
 private:
-    virtual void operator()(groups_t *groups,
+    virtual void operator()(env_t *env,
+                            groups_t *groups,
                             const counted_t<const datum_t> &sindex_val) {
         if (groups->size() == 0) return;
         r_sanity_check(groups->size() == 1 && !groups->begin()->first.has());
@@ -690,7 +713,6 @@ private:
         }
     }
 
-    env_t *env;
     std::vector<counted_t<func_t> > funcs;
     bool append_index, multi;
     protob_t<const Backtrace> bt;
@@ -698,10 +720,10 @@ private:
 
 class map_trans_t : public ungrouped_op_t {
 public:
-    map_trans_t(env_t *_env, const map_wire_func_t &_f)
-        : env(_env), f(_f.compile_wire_func()) { }
+    map_trans_t(const map_wire_func_t &_f)
+        : f(_f.compile_wire_func()) { }
 private:
-    virtual void lst_transform(datums_t *lst) {
+    virtual void lst_transform(env_t *env, datums_t *lst) {
         try {
             for (auto it = lst->begin(); it != lst->end(); ++it) {
                 *it = f->call(env, *it)->as_datum();
@@ -710,20 +732,18 @@ private:
             throw exc_t(e, f->backtrace().get(), 1);
         }
     }
-    env_t *env;
     counted_t<func_t> f;
 };
 
 class filter_trans_t : public ungrouped_op_t {
 public:
-    filter_trans_t(env_t *_env, const filter_wire_func_t &_f)
-        : env(_env),
-          f(_f.filter_func.compile_wire_func()),
+    filter_trans_t(const filter_wire_func_t &_f)
+        : f(_f.filter_func.compile_wire_func()),
           default_val(_f.default_filter_val
                       ? _f.default_filter_val->compile_wire_func()
                       : counted_t<func_t>()) { }
 private:
-    virtual void lst_transform(datums_t *lst) {
+    virtual void lst_transform(env_t *env, datums_t *lst) {
         auto it = lst->begin();
         auto loc = it;
         try {
@@ -738,16 +758,15 @@ private:
         }
         lst->erase(loc, lst->end());
     }
-    env_t *env;
     counted_t<func_t> f, default_val;
 };
 
 class concatmap_trans_t : public ungrouped_op_t {
 public:
-    concatmap_trans_t(env_t *_env, const concatmap_wire_func_t &_f)
-        : env(_env), f(_f.compile_wire_func()) { }
+    concatmap_trans_t(const concatmap_wire_func_t &_f)
+        : f(_f.compile_wire_func()) { }
 private:
-    virtual void lst_transform(datums_t *lst) {
+    virtual void lst_transform(env_t *env, datums_t *lst) {
         datums_t new_lst;
         batchspec_t bs = batchspec_t::user(batch_type_t::TERMINAL, env);
         profile::sampler_t sampler("Evaluating CONCAT_MAP elements.", env->trace);
@@ -767,31 +786,28 @@ private:
         }
         lst->swap(new_lst);
     }
-    env_t *env;
     counted_t<func_t> f;
 };
 
 class transform_visitor_t : public boost::static_visitor<op_t *> {
 public:
-    explicit transform_visitor_t(env_t *_env) : env(_env) { }
+    explicit transform_visitor_t() { }
     op_t *operator()(const map_wire_func_t &f) const {
-        return new map_trans_t(env, f);
+        return new map_trans_t(f);
     }
     op_t *operator()(const group_wire_func_t &f) const {
-        return new group_trans_t(env, f);
+        return new group_trans_t(f);
     }
     op_t *operator()(const filter_wire_func_t &f) const {
-        return new filter_trans_t(env, f);
+        return new filter_trans_t(f);
     }
     op_t *operator()(const concatmap_wire_func_t &f) const {
-        return new concatmap_trans_t(env, f);
+        return new concatmap_trans_t(f);
     }
-private:
-    env_t *env;
 };
 
-scoped_ptr_t<op_t> make_op(env_t *env, const transform_variant_t &tv) {
-    return scoped_ptr_t<op_t>(boost::apply_visitor(transform_visitor_t(env), tv));
+scoped_ptr_t<op_t> make_op(const transform_variant_t &tv) {
+    return scoped_ptr_t<op_t>(boost::apply_visitor(transform_visitor_t(), tv));
 }
 
 RDB_IMPL_ME_SERIALIZABLE_3(rget_item_t, key, empty_ok(sindex_key), data);

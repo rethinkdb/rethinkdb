@@ -1660,19 +1660,23 @@ void admin_cluster_link_t::do_admin_list_tables(const admin_command_parser_t::co
     std::vector<std::vector<std::string> > table;
     std::vector<std::string> header;
 
-    header.push_back("uuid");
-    header.push_back("name");
+    header.push_back("table uuid");
+    header.push_back("database");
+    header.push_back("table");
     if (long_format) {
         header.push_back("shards");
         header.push_back("replicas");
         header.push_back("primary");
-        header.push_back("database");
+        header.push_back("database uuid");
         header.push_back("durability");
     }
 
     table.push_back(header);
 
-    add_namespaces(long_format, cluster_metadata.rdb_namespaces->namespaces, &table);
+    add_namespaces(long_format,
+                   cluster_metadata.rdb_namespaces->namespaces,
+                   cluster_metadata.databases.databases,
+                   &table);
 
     if (table.size() > 1) {
         admin_print_table(table);
@@ -1682,15 +1686,33 @@ void admin_cluster_link_t::do_admin_list_tables(const admin_command_parser_t::co
 void admin_cluster_link_t::add_namespaces(
         bool long_format,
         const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > &namespaces,
+        const std::map<database_id_t, deletable_t<database_semilattice_metadata_t> > &databases,
         std::vector<std::vector<std::string> > *table) {
     for (auto i = namespaces.begin(); i != namespaces.end(); ++i) {
         if (!i->second.is_deleted()) {
             std::vector<std::string> delta;
+            namespace_info_t info = get_namespace_info(i->second.get_copy());
 
             if (long_format) {
                 delta.push_back(uuid_to_str(i->first));
             } else {
                 delta.push_back(truncate_uuid(i->first));
+            }
+
+            std::map<database_id_t, deletable_t<database_semilattice_metadata_t> >::const_iterator it;
+            it = databases.find(str_to_uuid(info.database));
+            if (it != databases.end()) {
+                if (!it->second.is_deleted()) {
+                    if (!it->second.get_ref().name.in_conflict()) {
+                        delta.push_back(it->second.get_ref().name.get().str());
+                    } else {
+                        delta.push_back("<conflict>");
+                    }
+                } else {
+                    delta.push_back("<deleted>");
+                }
+            } else {
+                delta.push_back("<not found>");
             }
 
             if (!i->second.get_ref().name.in_conflict()) {
@@ -1701,7 +1723,6 @@ void admin_cluster_link_t::add_namespaces(
 
             if (long_format) {
                 char buffer[64];
-                namespace_info_t info = get_namespace_info(i->second.get_copy());
 
                 if (info.shards != -1) {
                     snprintf(buffer, sizeof(buffer), "%i", info.shards);

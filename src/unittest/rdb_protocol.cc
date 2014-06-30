@@ -215,7 +215,7 @@ void wait_for_sindex(namespace_interface_t *nsi,
                           const std::string &id) {
     std::set<std::string> sindexes;
     sindexes.insert(id);
-    for (int attempts = 0; attempts < 25; ++attempts) {
+    for (int attempts = 0; attempts < 35; ++attempts) {
         sindex_status_t d(sindexes);
         read_t read(d, profile_bool_t::PROFILE);
         read_response_t response;
@@ -267,7 +267,7 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
     std::shared_ptr<const scoped_cJSON_t> data(
         new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0, \"sid\" : 1}")));
     counted_t<const ql::datum_t> d(
-        new ql::datum_t(cJSON_GetObjectItem(data->get(), "id")));
+        new ql::datum_t(cJSON_slow_GetObjectItem(data->get(), "id")));
     store_key_t pk = store_key_t(d->print_primary());
     counted_t<const ql::datum_t> sindex_key_literal = make_counted<ql::datum_t>(1.0);
 
@@ -371,7 +371,7 @@ void run_create_drop_sindex_with_data_test(namespace_interface_t *nsi,
         std::shared_ptr<const scoped_cJSON_t> data(
             new scoped_cJSON_t(cJSON_Parse(json_doc.c_str())));
         counted_t<const ql::datum_t> d(
-            new ql::datum_t(cJSON_GetObjectItem(data->get(), "id")));
+            new ql::datum_t(cJSON_slow_GetObjectItem(data->get(), "id")));
         store_key_t pk = store_key_t(d->print_primary());
 
         /* Insert a piece of data (it will be indexed using the secondary
@@ -499,7 +499,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t *nsi, order_source_t *
             store_key_t pk;
             try {
                 pk = store_key_t(make_counted<const ql::datum_t>(
-                    cJSON_GetObjectItem(data->get(), "id"))->print_primary());
+                    cJSON_slow_GetObjectItem(data->get(), "id"))->print_primary());
             } catch (const ql::base_exc_t &ex) {
                 ASSERT_TRUE(id.length() >= rdb_protocol::MAX_PRIMARY_KEY_SIZE);
                 continue;
@@ -574,7 +574,7 @@ void run_sindex_missing_attr_test(namespace_interface_t *nsi, order_source_t *os
     std::shared_ptr<const scoped_cJSON_t> data(
         new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0}")));
     store_key_t pk = store_key_t(make_counted<const ql::datum_t>(
-        cJSON_GetObjectItem(data->get(), "id"))->print_primary());
+        cJSON_slow_GetObjectItem(data->get(), "id"))->print_primary());
     ASSERT_TRUE(data->get());
     {
         /* Insert a piece of data (it will be indexed using the secondary

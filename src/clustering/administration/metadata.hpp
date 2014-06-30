@@ -17,7 +17,6 @@
 #include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/administration/stat_manager.hpp"
 #include "clustering/administration/metadata_change_handler.hpp"
-#include "containers/archive/cow_ptr_type.hpp"
 #include "containers/cow_ptr.hpp"
 #include "containers/auth_key.hpp"
 #include "http/json/json_adapter.hpp"
@@ -35,12 +34,11 @@ public:
     machines_semilattice_metadata_t machines;
     datacenters_semilattice_metadata_t datacenters;
     databases_semilattice_metadata_t databases;
-
-    RDB_MAKE_ME_SERIALIZABLE_4(rdb_namespaces, machines, datacenters, databases);
 };
 
-RDB_MAKE_SEMILATTICE_JOINABLE_4(cluster_semilattice_metadata_t, rdb_namespaces, machines, datacenters, databases);
-RDB_MAKE_EQUALITY_COMPARABLE_4(cluster_semilattice_metadata_t, rdb_namespaces, machines, datacenters, databases);
+RDB_DECLARE_SERIALIZABLE(cluster_semilattice_metadata_t);
+RDB_DECLARE_SEMILATTICE_JOINABLE(cluster_semilattice_metadata_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(cluster_semilattice_metadata_t);
 
 //json adapter concept for cluster_semilattice_metadata_t
 json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(cluster_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
@@ -53,12 +51,11 @@ public:
     auth_semilattice_metadata_t() { }
 
     vclock_t<auth_key_t> auth_key;
-
-    RDB_MAKE_ME_SERIALIZABLE_1(auth_key);
 };
 
-RDB_MAKE_SEMILATTICE_JOINABLE_1(auth_semilattice_metadata_t, auth_key);
-RDB_MAKE_EQUALITY_COMPARABLE_1(auth_semilattice_metadata_t, auth_key);
+RDB_DECLARE_SERIALIZABLE(auth_semilattice_metadata_t);
+RDB_DECLARE_SEMILATTICE_JOINABLE(auth_semilattice_metadata_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(auth_semilattice_metadata_t);
 
 // json adapter concept for auth_semilattice_metadata_t
 json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(auth_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
@@ -158,12 +155,9 @@ public:
     log_server_business_card_t log_mailbox;
     std::list<local_issue_t> local_issues;
     cluster_directory_peer_type_t peer_type;
-
-    RDB_MAKE_ME_SERIALIZABLE_11(rdb_namespaces, machine_id, peer_id, cache_size,
-                                ips, get_stats_mailbox_address,
-                                semilattice_change_mailbox, auth_change_mailbox,
-                                log_mailbox, local_issues, peer_type);
 };
+
+RDB_DECLARE_SERIALIZABLE(cluster_directory_metadata_t);
 
 // ctx-less json adapter for directory_echo_wrapper_t
 template <class T>

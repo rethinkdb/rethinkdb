@@ -4,6 +4,7 @@
 #include "debug.hpp"
 #include "utils.hpp"
 
+
 // fast-ish non-null terminated string comparison
 int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2) {
     int min_len = std::min(len1, len2);
@@ -204,3 +205,16 @@ bool operator<(const key_range_t &a, const key_range_t &b) THROWS_NOTHING {
 
 RDB_IMPL_SERIALIZABLE_2(key_range_t::right_bound_t, unbounded, key);
 RDB_IMPL_SERIALIZABLE_2(key_range_t, left, right);
+
+void serialize_for_metainfo(write_message_t *wm, const key_range_t &kr) {
+    kr.left.serialize_for_metainfo(wm);
+    serialize_universal(wm, kr.right.unbounded);
+    kr.right.key.serialize_for_metainfo(wm);
+}
+archive_result_t deserialize_for_metainfo(read_stream_t *s, key_range_t *out) {
+    archive_result_t res = out->left.deserialize_for_metainfo(s);
+    if (bad(res)) { return res; }
+    res = deserialize_universal(s, &out->right.unbounded);
+    if (bad(res)) { return res; }
+    return out->right.key.deserialize_for_metainfo(s);
+}

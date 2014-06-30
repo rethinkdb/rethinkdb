@@ -269,7 +269,9 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
             const char *success_msg = "SUCCESS";
             conn->write(success_msg, strlen(success_msg) + 1, &interruptor);
         } else {
-            throw protob_server_exc_t("This is the rdb protocol port (bad magic number).");
+            throw protob_server_exc_t("Received an unsupported protocol version. "
+                                      "This port is for RethinkDB queries. Does your "
+                                      "client driver version not match the server?");
         }
 
         // With version 0_3, the client driver specifies which protocol to use

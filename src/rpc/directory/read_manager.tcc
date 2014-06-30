@@ -10,6 +10,7 @@
 #include "concurrency/wait_any.hpp"
 #include "config/args.hpp"
 #include "containers/archive/archive.hpp"
+#include "containers/archive/versioned.hpp"
 #include "stl_utils.hpp"
 
 template<class metadata_t>
@@ -44,7 +45,7 @@ void directory_read_manager_t<metadata_t>::on_message(
     uint8_t code = 0;
     {
         // All cluster versions use the uint8_t code here.
-        archive_result_t res = deserialize(s, &code);
+        archive_result_t res = deserialize_universal(s, &code);
         if (res != archive_result_t::SUCCESS) { throw fake_archive_exc_t(); }
     }
 

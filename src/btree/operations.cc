@@ -9,6 +9,7 @@
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/blob.hpp"
 #include "containers/archive/vector_stream.hpp"
+#include "containers/binary_blob.hpp"
 #include "rdb_protocol/profile.hpp"
 
 // TODO: consider B#/B* trees to improve space efficiency
@@ -214,7 +215,15 @@ void get_superblock_metainfo(
 
 void set_superblock_metainfo(buf_lock_t *superblock,
                              const std::vector<char> &key,
-                             const std::vector<char> &value) {
+                             const binary_blob_t &value) {
+    std::vector<std::vector<char> > keys = {key};
+    std::vector<binary_blob_t> values = {value};
+    set_superblock_metainfo(superblock, keys, values);
+}
+
+void set_superblock_metainfo(buf_lock_t *superblock,
+                             const std::vector<std::vector<char> > &keys,
+                             const std::vector<binary_blob_t> &values) {
     buf_write_t write(superblock);
     btree_superblock_t *data
         = static_cast<btree_superblock_t *>(write.get_data_write(BTREE_SUPERBLOCK_SIZE));
@@ -241,33 +250,48 @@ void set_superblock_metainfo(buf_lock_t *superblock,
 
     blob.clear(buf_parent_t(superblock));
 
-    uint32_t *size;
-    char *verybeg, *info_begin, *info_end;
-    if (find_superblock_metainfo_entry(metainfo.data(), metainfo.data() + metainfo.size(), key, &verybeg, &size, &info_begin, &info_end)) {
-        std::vector<char>::iterator beg = metainfo.begin() + (info_begin - metainfo.data());
-        std::vector<char>::iterator end = metainfo.begin() + (info_end - metainfo.data());
-        // We must modify *size first because resizing the vector invalidates the pointer.
-        rassert(value.size() <= UINT32_MAX);
-        *size = value.size();
+    rassert(keys.size() == values.size());
+    auto value_it = values.begin();
+    for (auto key_it = keys.begin();
+         key_it != keys.end();
+         ++key_it, ++value_it) {
+        uint32_t *size;
+        char *verybeg, *info_begin, *info_end;
+        const bool found_entry =
+            find_superblock_metainfo_entry(metainfo.data(),
+                                           metainfo.data() + metainfo.size(),
+                                           *key_it, &verybeg, &size,
+                                           &info_begin, &info_end);
+        if (found_entry) {
+            std::vector<char>::iterator beg = metainfo.begin() + (info_begin - metainfo.data());
+            std::vector<char>::iterator end = metainfo.begin() + (info_end - metainfo.data());
+            // We must modify *size first because resizing the vector invalidates the pointer.
+            rassert(value_it->size() <= UINT32_MAX);
+            *size = value_it->size();
 
-        std::vector<char>::iterator p = metainfo.erase(beg, end);
+            std::vector<char>::iterator p = metainfo.erase(beg, end);
 
-        metainfo.insert(p, value.begin(), value.end());
-    } else {
-        union {
-            char x[sizeof(uint32_t)];
-            uint32_t y;
-        } u;
-        rassert(key.size() < UINT32_MAX);
-        rassert(value.size() < UINT32_MAX);
+            metainfo.insert(p, static_cast<const uint8_t *>(value_it->data()),
+                            static_cast<const uint8_t *>(value_it->data())
+                                + value_it->size());
+        } else {
+            union {
+                char x[sizeof(uint32_t)];
+                uint32_t y;
+            } u;
+            rassert(key_it->size() < UINT32_MAX);
+            rassert(value_it->size() < UINT32_MAX);
 
-        u.y = key.size();
-        metainfo.insert(metainfo.end(), u.x, u.x + sizeof(uint32_t));
-        metainfo.insert(metainfo.end(), key.begin(), key.end());
+            u.y = key_it->size();
+            metainfo.insert(metainfo.end(), u.x, u.x + sizeof(uint32_t));
+            metainfo.insert(metainfo.end(), key_it->begin(), key_it->end());
 
-        u.y = value.size();
-        metainfo.insert(metainfo.end(), u.x, u.x + sizeof(uint32_t));
-        metainfo.insert(metainfo.end(), value.begin(), value.end());
+            u.y = value_it->size();
+            metainfo.insert(metainfo.end(), u.x, u.x + sizeof(uint32_t));
+            metainfo.insert(metainfo.end(), static_cast<const uint8_t *>(value_it->data()),
+                            static_cast<const uint8_t *>(value_it->data())
+                                + value_it->size());
+        }
     }
 
     blob.append_region(buf_parent_t(superblock), metainfo.size());
@@ -876,6 +900,7 @@ void find_keyvalue_location_for_read(
         keyvalue_location_t *keyvalue_location_out,
         btree_stats_t *stats, profile::trace_t *trace) {
     stats->pm_keys_read.record();
+    stats->pm_total_keys_read += 1;
 
     const block_id_t root_id = superblock->get_root_block_id();
     rassert(root_id != SUPERBLOCK_ID);
@@ -996,6 +1021,7 @@ void apply_keyvalue_change(
         }
 
         kv_loc->stats->pm_keys_set.record();
+        kv_loc->stats->pm_total_keys_set += 1;
     } else {
         // Delete the value if it's there.
         if (kv_loc->there_originally_was_value) {
@@ -1011,6 +1037,7 @@ void apply_keyvalue_change(
             }
             population_change = -1;
             kv_loc->stats->pm_keys_set.record();
+            kv_loc->stats->pm_total_keys_set += 1;
         } else {
             population_change = 0;
         }

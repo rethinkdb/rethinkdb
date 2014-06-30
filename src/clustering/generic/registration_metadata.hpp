@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_GENERIC_REGISTRATION_METADATA_HPP_
 #define CLUSTERING_GENERIC_REGISTRATION_METADATA_HPP_
 
@@ -8,7 +8,6 @@
 
 template<class business_card_t>
 class registrar_business_card_t {
-
 public:
     typedef uuid_u registration_id_t;
 
@@ -28,6 +27,8 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_2(create_mailbox, delete_mailbox);
 };
+
+RDB_SERIALIZE_TEMPLATED_OUTSIDE(registrar_business_card_t);
 
 template <class business_card_t>
 RDB_MAKE_EQUALITY_COMPARABLE_2(registrar_business_card_t<business_card_t>,

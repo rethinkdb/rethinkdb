@@ -384,6 +384,7 @@ module 'DataExplorerView', ->
             'next': true
             'collect': true
             'run': true
+            'EventEmitter\'s methods': true
 
         # Method called on the content of reql_docs.json
         # Load the suggestions in @suggestions, @map_state, @descriptions
@@ -2535,7 +2536,7 @@ module 'DataExplorerView', ->
 
                     
                     if @index is @queries.length # @index was incremented in execute_portion
-                        if typeof cursor._next is 'function' # If the result is a cursor
+                        if cursor? and typeof cursor._next is 'function' # If the result is a cursor
                             @state.cursor = cursor
                             @state.cursor.next get_result_callback
                         else
@@ -2817,6 +2818,7 @@ module 'DataExplorerView', ->
     
     class @SharedResultView extends Backbone.View
         template_json_tree:
+            'large_container' : Handlebars.templates['dataexplorer_large_result_json_tree_container-template']
             'container' : Handlebars.templates['dataexplorer_result_json_tree_container-template']
             'span': Handlebars.templates['dataexplorer_result_json_tree_span-template']
             'span_with_quotes': Handlebars.templates['dataexplorer_result_json_tree_span_with_quotes-template']
@@ -3136,8 +3138,14 @@ module 'DataExplorerView', ->
 
 
         json_to_tree: (result) =>
-            return @template_json_tree.container
-                tree: @json_to_node(result)
+            result_json = JSON.stringify(result, null, 4)
+            # If the results are too large, we just display the raw indented JSON to avoid freezing the interface
+            if result_json.length > @large_response_threshold
+                return @template_json_tree.large_container
+                    json_data: result_json
+            else
+                return @template_json_tree.container
+                    tree: @json_to_node(result)
 
         json_to_table_get_attr: (flatten_attr) =>
             return @template_json_table.tr_attr
@@ -3355,6 +3363,7 @@ module 'DataExplorerView', ->
                 'click .activate_profiler': 'activate_profiler'
 
         current_result: []
+        large_response_threshold: 100000 # ~ 2000 uuids
 
         initialize: (args) =>
             @container = args.container

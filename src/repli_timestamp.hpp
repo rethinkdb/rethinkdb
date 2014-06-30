@@ -36,7 +36,9 @@ public:
 // Returns the max of x and y, treating invalid as a negative infinity value.
 repli_timestamp_t superceding_recency(repli_timestamp_t x, repli_timestamp_t y);
 
+template <cluster_version_t W>
 void serialize(write_message_t *wm, repli_timestamp_t tstamp);
+template <cluster_version_t W>
 archive_result_t deserialize(read_stream_t *s, repli_timestamp_t *tstamp);
 
 void debug_print(printf_buffer_t *buf, repli_timestamp_t tstamp);
