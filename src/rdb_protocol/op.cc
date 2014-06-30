@@ -74,8 +74,6 @@ public:
         return original_args;
     }
 private:
-    friend class op_term_t;  // RSI: Remove.
-    friend class args_t;  // RSI: Remove.
     const protob_t<const Term> src;
     const argspec_t argspec;
     const std::vector<counted_t<const term_t> > original_args;
