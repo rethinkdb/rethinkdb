@@ -54,6 +54,21 @@ class arg_terms_t;
 
 class op_term_t;
 
+class argvec_t {
+public:
+    explicit argvec_t(std::vector<counted_t<const term_t> > &&v);
+
+    // RSI: Rename to make move semantics clear.
+    counted_t<const term_t> get(size_t i);
+
+    size_t size() const { return vec.size(); }
+
+    bool empty() const { return vec.empty(); }
+
+private:
+    std::vector<counted_t<const term_t> > vec;
+};
+
 class args_t {
 public:
     // number of arguments
@@ -64,11 +79,8 @@ public:
     // Tries to get an optional argument, returns `counted_t<val_t>()` if not found.
     counted_t<val_t> optarg(scope_env_t *env, const std::string &key) const;
 
-    args_t(const op_term_t *op_term,
-           std::vector<counted_t<const term_t> > argv);
-    args_t(const op_term_t *op_term,
-           std::vector<counted_t<const term_t> > argv,
-           counted_t<val_t> arg0);
+    args_t(const op_term_t *op_term, argvec_t argv);
+    args_t(const op_term_t *op_term, argvec_t argv, counted_t<val_t> arg0);
 
 private:
     counted_t<const term_t> get(size_t i);
@@ -76,7 +88,7 @@ private:
     // RSI: We need to do this reentrantly.
     const op_term_t *const op_term;
 
-    std::vector<counted_t<const term_t> > argv;
+    argvec_t argv;
     counted_t<val_t> arg0;
 
     DISABLE_COPYING(args_t);
@@ -123,7 +135,7 @@ private:
     // (Sets *arg0_out to non-nil if it's not grouped.  Both outputs are set to nil
     // if args is empty.)
     void maybe_grouped_data(scope_env_t *env,
-                            std::vector<counted_t<const term_t> > *argv,
+                            argvec_t *argv,
                             eval_flags_t flags,
                             counted_t<grouped_data_t> *grouped_data_out,
                             counted_t<val_t> *arg0_out) const;
