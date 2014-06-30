@@ -7,10 +7,11 @@
 #include "buffer_cache/alt/serialize_onto_blob.hpp"
 #include "containers/archive/vector_stream.hpp"
 
-RDB_IMPL_SERIALIZABLE_5(secondary_index_t, superblock, opaque_definition,
-                        post_construction_complete, being_deleted, id);
+RDB_IMPL_SERIALIZABLE_5_SINCE_v1_13(
+        secondary_index_t, superblock, opaque_definition,
+        post_construction_complete, being_deleted, id);
 
-RDB_IMPL_SERIALIZABLE_2(sindex_name_t, name, being_deleted);
+RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(sindex_name_t, name, being_deleted);
 
 struct btree_sindex_block_t {
     static const int SINDEX_BLOB_MAXREFLEN = 4076;
@@ -24,13 +25,13 @@ struct btree_sindex_block_magic_t { static const block_magic_t value; };
 
 template <>
 const block_magic_t
-btree_sindex_block_magic_t<cluster_version_t::v1_13_is_latest>::value
+btree_sindex_block_magic_t<cluster_version_t::v1_13_is_latest_disk>::value
     = { { 's', 'i', 'n', 'd' } };
 
 cluster_version_t sindex_block_version(const btree_sindex_block_t *data) {
     if (data->magic
-        == btree_sindex_block_magic_t<cluster_version_t::v1_13_is_latest>::value) {
-        return cluster_version_t::v1_13_is_latest;
+        == btree_sindex_block_magic_t<cluster_version_t::v1_13_is_latest_disk>::value) {
+        return cluster_version_t::v1_13_is_latest_disk;
     } else {
         crash("Unexpected magic in btree_sindex_block_t.");
     }
@@ -62,8 +63,8 @@ void set_secondary_indexes_internal(
                        btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
     // There's just one field in btree_sindex_block_t, sindex_blob.  So we set
     // the magic to the latest value and serialize with the latest version.
-    data->magic = btree_sindex_block_magic_t<cluster_version_t::LATEST>::value;
-    serialize_onto_blob<cluster_version_t::LATEST>(
+    data->magic = btree_sindex_block_magic_t<cluster_version_t::LATEST_DISK>::value;
+    serialize_onto_blob<cluster_version_t::LATEST_DISK>(
             buf_parent_t(sindex_block), &sindex_blob, sindexes);
 }
 
@@ -71,7 +72,7 @@ void initialize_secondary_indexes(buf_lock_t *sindex_block) {
     buf_write_t write(sindex_block);
     btree_sindex_block_t *data
         = static_cast<btree_sindex_block_t *>(write.get_data_write());
-    data->magic = btree_sindex_block_magic_t<cluster_version_t::LATEST>::value;
+    data->magic = btree_sindex_block_magic_t<cluster_version_t::LATEST_DISK>::value;
     memset(data->sindex_blob, 0, btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
 
     set_secondary_indexes_internal(sindex_block,

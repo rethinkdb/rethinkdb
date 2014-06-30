@@ -35,8 +35,10 @@ def generate_make_serializable_macro(nfields):
     # See the note in the comment below.
     print "    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body"
     print "#define RDB_IMPL_SERIALIZABLE_%d(type_t%s) RDB_MAKE_SERIALIZABLE_%d(type_t%s); \\" % (nfields, fields, nfields, fields)
-    print "    template void serialize<cluster_version_t::v1_13_is_latest>(write_message_t *, const type_t &); \\"
-    print "    template archive_result_t deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *, type_t *)"
+    print ""
+    print "#define RDB_IMPL_SERIALIZABLE_%d_SINCE_v1_13(type_t%s) \\" % (nfields, fields)
+    print "    RDB_IMPL_SERIALIZABLE_%d(type_t%s); \\" % (nfields, fields)
+    print "    INSTANTIATE_SERIALIZABLE_SINCE_v1_13(type_t)"
 
 def generate_make_me_serializable_macro(nfields):
     print "#define RDB_MAKE_ME_SERIALIZABLE_%d(%s) \\" % \
@@ -58,7 +60,6 @@ def generate_make_me_serializable_macro(nfields):
     print "    } \\"
     print "    friend class archive_deserializer_t"
 
-
 def generate_impl_me_serializable_macro(nfields):
     print "#define RDB_IMPL_ME_SERIALIZABLE_%d(typ%s) \\" % \
         (nfields, "".join(", field%d" % (i + 1) for i in xrange(nfields)))
@@ -76,8 +77,13 @@ def generate_impl_me_serializable_macro(nfields):
         print "        if (bad(res)) { return res; } \\"
     print "        return res; \\"
     print "    } \\"
-    print "    template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \\"
-    print "    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)"
+    print ""
+    print "#define RDB_IMPL_ME_SERIALIZABLE_%d_SINCE_v1_13(typ%s) \\" % \
+       (nfields, "".join(", field%d" % (i + 1) for i in xrange(nfields)))
+    print "    RDB_IMPL_ME_SERIALIZABLE_%d(typ%s); \\" % \
+       (nfields, "".join(", field%d" % (i + 1) for i in xrange(nfields)))
+    print "    INSTANTIATE_SERIALIZABLE_SELF_SINCE_v1_13(typ)"
+
 
 if __name__ == "__main__":
 
@@ -91,6 +97,8 @@ if __name__ == "__main__":
     print
 
     print "#include \"containers/archive/archive.hpp\""
+    print "#include \"containers/archive/versioned.hpp\""
+    print "#include \"version.hpp\""
     print
 
     print """
@@ -102,6 +110,13 @@ serializable automatically, either write
 RDB_MAKE_SERIALIZABLE_2(point_t, x, y) at the global scope, or write
 RDB_MAKE_ME_SERIALIZABLE(x, y) within the body of the point_t type and
 RDB_SERIALIZE_OUTSIDE(point_t) in the global scope.
+
+The _SINCE_v1_13 variants of the macros exist to make the conversion to
+versioned serialization easier. They must only be used for types which
+serialization format has not changed since version 1.13.0.
+Once the format changes, you can still use the macros without
+the _SINCE_v1_13 suffix and instantiate the serialize() and deserialize()
+functions explicitly for a certain version.
 
 We use dummy "extern int" declarations to force a compile error in
 macros that should not be used inside of class bodies. */

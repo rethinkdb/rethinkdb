@@ -10,14 +10,14 @@ namespace unittest {
 void test_datum_serialization(const counted_t<const ql::datum_t> datum) {
     string_stream_t write_stream;
     write_message_t wm;
-    serialize<cluster_version_t::LATEST>(&wm, datum);
+    serialize<cluster_version_t::LATEST_OVERALL>(&wm, datum);
     int write_res = send_write_message(&write_stream, &wm);
     ASSERT_EQ(0, write_res);
 
     string_read_stream_t read_stream(std::move(write_stream.str()), 0);
     counted_t<const ql::datum_t> deserialized_datum;
     archive_result_t res
-        = deserialize<cluster_version_t::LATEST>(&read_stream, &deserialized_datum);
+        = deserialize<cluster_version_t::LATEST_OVERALL>(&read_stream, &deserialized_datum);
     ASSERT_EQ(archive_result_t::SUCCESS, res);
     ASSERT_EQ(datum, deserialized_datum);
 }

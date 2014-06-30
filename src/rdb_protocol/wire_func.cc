@@ -139,7 +139,7 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
     }
 }
 
-INSTANTIATE_SELF_SINCE_v1_13(wire_func_t);
+INSTANTIATE_SERIALIZABLE_SELF_SINCE_v1_13(wire_func_t);
 
 
 template <cluster_version_t W>
@@ -164,7 +164,7 @@ archive_result_t maybe_wire_func_t::rdb_deserialize(read_stream_t *s) {
     }
 }
 
-INSTANTIATE_SELF_SINCE_v1_13(maybe_wire_func_t);
+INSTANTIATE_SERIALIZABLE_SELF_SINCE_v1_13(maybe_wire_func_t);
 
 counted_t<func_t> maybe_wire_func_t::compile_wire_func_or_null() const {
     if (wrapped.has()) {
@@ -204,11 +204,11 @@ protob_t<const Backtrace> group_wire_func_t::get_bt() const {
     return bt.get_bt();
 }
 
-RDB_IMPL_ME_SERIALIZABLE_4(group_wire_func_t, funcs, append_index, multi, bt);
+RDB_IMPL_ME_SERIALIZABLE_4_SINCE_v1_13(group_wire_func_t, funcs, append_index, multi, bt);
 
-RDB_IMPL_SERIALIZABLE_0(count_wire_func_t);
+RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(count_wire_func_t);
 
-RDB_IMPL_SERIALIZABLE_2(filter_wire_func_t, filter_func, default_filter_val);
+RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(filter_wire_func_t, filter_func, default_filter_val);
 
 template <cluster_version_t W>
 void bt_wire_func_t::rdb_serialize(write_message_t *wm) const {
@@ -224,6 +224,6 @@ archive_result_t bt_wire_func_t::rdb_deserialize(read_stream_t *s) {
     return archive_result_t::SUCCESS;
 }
 
-INSTANTIATE_SELF_SINCE_v1_13(bt_wire_func_t);
+INSTANTIATE_SERIALIZABLE_SELF_SINCE_v1_13(bt_wire_func_t);
 
 }  // namespace ql

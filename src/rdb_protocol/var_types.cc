@@ -174,10 +174,12 @@ archive_result_t var_scope_t::rdb_deserialize(read_stream_t *s) {
     return archive_result_t::SUCCESS;
 }
 
-template void
-var_scope_t::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *wm) const;
+INSTANTIATE_SERIALIZE_FOR_CLUSTER_AND_DISK(var_scope_t);
+
 template archive_result_t
-var_scope_t::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s);
+var_scope_t::rdb_deserialize<cluster_version_t::v1_13>(read_stream_t *s);
+template archive_result_t
+var_scope_t::rdb_deserialize<cluster_version_t::v1_13_2_is_latest>(read_stream_t *s);
 
 
 }  // namespace ql

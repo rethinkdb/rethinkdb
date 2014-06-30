@@ -203,8 +203,8 @@ bool operator<(const key_range_t &a, const key_range_t &b) THROWS_NOTHING {
     return (a.left < b.left || (a.left == b.left && a.right < b.right));
 }
 
-RDB_IMPL_SERIALIZABLE_2(key_range_t::right_bound_t, unbounded, key);
-RDB_IMPL_SERIALIZABLE_2(key_range_t, left, right);
+RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(key_range_t::right_bound_t, unbounded, key);
+RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(key_range_t, left, right);
 
 void serialize_for_metainfo(write_message_t *wm, const key_range_t &kr) {
     kr.left.serialize_for_metainfo(wm);

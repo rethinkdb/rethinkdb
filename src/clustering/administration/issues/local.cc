@@ -4,7 +4,7 @@
 #include "utils.hpp"
 #include "clustering/administration/persist.hpp"
 
-RDB_IMPL_SERIALIZABLE_4(local_issue_t, type, critical, description, timestamp);
+RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(local_issue_t, type, critical, description, timestamp);
 RDB_IMPL_EQUALITY_COMPARABLE_4(local_issue_t,
     type, critical, description, timestamp);
 

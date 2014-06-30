@@ -439,9 +439,9 @@ void store_t::sindex_queue_push(const rdb_modification_report_t &mod_report,
     if (!sindex_queues.empty()) {
         // This is for a disk backed queue so there's no versioning issues.
         // (deserializating_viewer_t in disk_backed_queue.hpp also uses the
-        // LATEST version, and such queues are ephemeral).
+        // LATEST_DISK version, and such queues are ephemeral).
         write_message_t wm;
-        serialize<cluster_version_t::LATEST>(&wm, mod_report);
+        serialize<cluster_version_t::LATEST_DISK>(&wm, mod_report);
 
         for (auto it = sindex_queues.begin(); it != sindex_queues.end(); ++it) {
             (*it)->push(wm);
@@ -459,7 +459,7 @@ void store_t::sindex_queue_push(
         scoped_array_t<write_message_t> wms(mod_reports.size());
         for (size_t i = 0; i < mod_reports.size(); ++i) {
             // This is for a disk backed queue so there are no versioning issues.
-            serialize<cluster_version_t::LATEST>(&wms[i], mod_reports[i]);
+            serialize<cluster_version_t::LATEST_DISK>(&wms[i], mod_reports[i]);
         }
 
         for (auto it = sindex_queues.begin(); it != sindex_queues.end(); ++it) {
