@@ -1148,9 +1148,7 @@ RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
 // Serialization format changed in 1.13.2. We only support the latest version,
 // since this is a cluster-only type.
 RDB_IMPL_SERIALIZABLE_2(backfill_chunk_t::delete_key_t, key, recency);
-INSTANTIATE_SERIALIZE_FOR_CLUSTER(backfill_chunk_t::delete_key_t);
-template archive_result_t deserialize<cluster_version_t::CLUSTER>(
-        read_stream_t *, backfill_chunk_t::delete_key_t *);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t::delete_key_t);
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(backfill_chunk_t::delete_range_t, range);
 

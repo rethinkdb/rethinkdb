@@ -38,7 +38,7 @@ def generate_make_serializable_macro(nfields):
     print ""
     print "#define RDB_IMPL_SERIALIZABLE_%d_SINCE_v1_13(type_t%s) \\" % (nfields, fields)
     print "    RDB_IMPL_SERIALIZABLE_%d(type_t%s); \\" % (nfields, fields)
-    print "    INSTANTIATE_SINCE_v1_13(type_t)"
+    print "    INSTANTIATE_SERIALIZABLE_SINCE_v1_13(type_t)"
 
 def generate_make_me_serializable_macro(nfields):
     print "#define RDB_MAKE_ME_SERIALIZABLE_%d(%s) \\" % \
@@ -82,7 +82,7 @@ def generate_impl_me_serializable_macro(nfields):
        (nfields, "".join(", field%d" % (i + 1) for i in xrange(nfields)))
     print "    RDB_IMPL_ME_SERIALIZABLE_%d(typ%s); \\" % \
        (nfields, "".join(", field%d" % (i + 1) for i in xrange(nfields)))
-    print "    INSTANTIATE_SELF_SINCE_v1_13(typ)"
+    print "    INSTANTIATE_SERIALIZABLE_SELF_SINCE_v1_13(typ)"
 
 
 if __name__ == "__main__":

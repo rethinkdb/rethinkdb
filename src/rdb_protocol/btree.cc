@@ -1004,7 +1004,7 @@ archive_result_t deserialize(read_stream_t *s, rdb_modification_info_t *info) {
     return archive_result_t::SUCCESS;
 }
 
-INSTANTIATE_SINCE_v1_13(rdb_modification_info_t);
+INSTANTIATE_SERIALIZABLE_SINCE_v1_13(rdb_modification_info_t);
 
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(rdb_modification_report_t, primary_key, info);
 

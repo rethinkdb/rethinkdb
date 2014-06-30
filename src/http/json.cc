@@ -341,4 +341,4 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson) {
     }
 }
 
-INSTANTIATE_SINCE_v1_13(cJSON);
+INSTANTIATE_SERIALIZABLE_SINCE_v1_13(cJSON);

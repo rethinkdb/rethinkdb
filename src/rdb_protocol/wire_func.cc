@@ -150,7 +150,7 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
     }
 }
 
-INSTANTIATE_SELF_SINCE_v1_13(wire_func_t);
+INSTANTIATE_SERIALIZABLE_SELF_SINCE_v1_13(wire_func_t);
 
 group_wire_func_t::group_wire_func_t(std::vector<counted_t<func_t> > &&_funcs,
                                      bool _append_index, bool _multi)
@@ -212,6 +212,6 @@ archive_result_t bt_wire_func_t::rdb_deserialize(read_stream_t *s) {
     return archive_result_t::SUCCESS;
 }
 
-INSTANTIATE_SELF_SINCE_v1_13(bt_wire_func_t);
+INSTANTIATE_SERIALIZABLE_SELF_SINCE_v1_13(bt_wire_func_t);
 
 }  // namespace ql
