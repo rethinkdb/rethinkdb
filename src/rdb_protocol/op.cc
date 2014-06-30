@@ -14,9 +14,9 @@ argspec_t::argspec_t(int _min, int _max, eval_flags_t _eval_flags)
     : min(_min), max(_max), eval_flags(_eval_flags) { }
 std::string argspec_t::print() {
     if (min == max) {
-        return strprintf("%d argument(s)", min);
+        return strprintf("%d argument%s", min, (min == 1 ? "" : "s"));
     } else if (max == -1) {
-        return strprintf("%d or more argument(s)", min);
+        return strprintf("%d or more arguments", min);
     } else {
         return strprintf("between %d and %d arguments", min, max);
     }

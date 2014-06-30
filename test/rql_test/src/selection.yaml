@@ -117,12 +117,12 @@ tests:
     - cd: tbl.get()
       py: [] # Handled by native Python error
       rb: []
-      ot: err("RqlCompileError", 'Expected 2 argument(s) but found 1.', [1])
+      ot: err("RqlCompileError", 'Expected 2 arguments but found 1.', [1])
 
     - cd: tbl.get(10, 20)
       py: [] # Handled by native Python error
       rb: []
-      ot: err("RqlCompileError", 'Expected 2 argument(s) but found 3.', [1])
+      ot: err("RqlCompileError", 'Expected 2 arguments but found 3.', [1])
 
     # Create a table with a non-id primary key
     - py: r.db('test').table_create('testpkey', primary_key='foo')
