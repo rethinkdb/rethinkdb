@@ -84,10 +84,11 @@ public:
     args_t(const op_term_t *op_term, argvec_t argv, counted_t<val_t> arg0);
 
 private:
-    // RSI: We need to do this reentrantly.
     const op_term_t *const op_term;
 
     argvec_t argv;
+    // Sometimes the 0'th argument has already been evaluated, to see if we are doing
+    // a grouped operation.
     counted_t<val_t> arg0;
 
     DISABLE_COPYING(args_t);
