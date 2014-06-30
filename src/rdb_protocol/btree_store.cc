@@ -598,9 +598,8 @@ void store_t::clear_sindex(
         buf_lock_t sindex_superblock_lock(buf_parent_t(&sindex_block),
                                           sindex.superblock, access_t::write);
         sindex_block.reset_buf_lock();
-        scoped_ptr_t<superblock_t> sindex_superblock;
-        sindex_superblock.init(
-            new real_superblock_t(std::move(sindex_superblock_lock)));
+        scoped_ptr_t<superblock_t> sindex_superblock
+            = make_scoped<real_superblock_t>(std::move(sindex_superblock_lock));
 
         /* 1. Collect a bunch of keys to delete */
         clear_sindex_traversal_cb_t traversal_cb;
@@ -998,11 +997,10 @@ bool store_t::acquire_sindex_superblocks_for_write(
         buf_lock_t superblock_lock(
                 sindex_block, it->second.superblock, access_t::write);
 
-        // RSI: This 'new real_superblock_t' line.
         sindex_sbs_out->push_back(
                 make_scoped<sindex_access_t>(
                         get_sindex_slice(it->second.id), it->second,
-                        new real_superblock_t(std::move(superblock_lock))));
+                        make_scoped<real_superblock_t>(std::move(superblock_lock))));
     }
 
     //return's true if we got all of the sindexes requested.
@@ -1034,7 +1032,7 @@ bool store_t::acquire_sindex_superblocks_for_write(
         sindex_sbs_out->push_back(
                 make_scoped<sindex_access_t>(
                         get_sindex_slice(it->second.id), it->second,
-                        new real_superblock_t(std::move(superblock_lock))));
+                        make_scoped<real_superblock_t>(std::move(superblock_lock))));
     }
 
     //return's true if we got all of the sindexes requested.
