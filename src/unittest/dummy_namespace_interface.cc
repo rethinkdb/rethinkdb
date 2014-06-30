@@ -156,7 +156,7 @@ void dummy_sharder_t::write(const write_t &write, write_response_t *response, or
 
 dummy_namespace_interface_t::
 dummy_namespace_interface_t(std::vector<region_t> shards,
-                            store_view_t **stores, order_source_t
+                            store_view_t *const *stores, order_source_t
                             *order_source, rdb_context_t *_ctx,
                             bool initialize_metadata)
     : ctx(_ctx)
