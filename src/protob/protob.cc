@@ -166,10 +166,9 @@ query_server_t::query_server_t(rdb_context_t *_rdb_ctx,
 {
     rassert(rdb_ctx != NULL);
     for (int i = 0; i < get_num_threads(); ++i) {
-        cross_thread_signal_t *s =
-            new cross_thread_signal_t(&main_shutting_down_cond, threadnum_t(i));
-        shutting_down_conds.push_back(s);
-        rassert(s == &shutting_down_conds[i]);
+        shutting_down_conds.push_back(
+                make_scoped<cross_thread_signal_t>(&main_shutting_down_cond,
+                                                   threadnum_t(i)));
     }
 
     try {
