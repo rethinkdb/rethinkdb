@@ -92,6 +92,9 @@ counted_t<grouped_data_t> arg_terms_t::maybe_grouped_data(
     scope_env_t *env, bool is_grouped_seq_op, eval_flags_t flags) {
     counted_t<grouped_data_t> gd;
     if (args.size() != 0) {
+        // This assertion matches comments in term_eval explaining that arg0 is
+        // always empty here. (RSI)
+        rassert(!arg0.has());
         if (!arg0.has()) {
             arg0 = get(0)->eval(env, flags);
         }
