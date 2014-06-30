@@ -207,34 +207,30 @@ public:
     distinct_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    static bool lt_cmp(env_t *,
-                       counted_t<const datum_t> l,
-                       counted_t<const datum_t> r) {
-        return *l < *r;
-    }
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        counted_t<datum_stream_t> s = arg(env, 0)->as_seq(env->env);
-        std::vector<counted_t<const datum_t> > arr;
-        counted_t<const datum_t> last;
-        batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
-        {
-            profile::sampler_t sampler("Evaluating elements in distinct.",
-                                       env->env->trace);
-            while (counted_t<const datum_t> d = s->next(env->env, batchspec)) {
-                arr.push_back(std::move(d));
-                rcheck_array_size(arr, base_exc_t::GENERIC);
-                sampler.new_sample();
+        counted_t<val_t> v = arg(env, 0);
+        counted_t<val_t> idx = optarg(env, "index");
+        if (v->get_type().is_convertible(val_t::type_t::TABLE)) {
+            return v->as_table(env->env)->index_distinct(idx);
+        } else {
+            rcheck(!idx, base_exc_t::GENERIC,
+                   "Can only perform an indexed distinct on a TABLE.");
+            counted_t<datum_stream_t> s = v->as_seq(env->env);
+            std::set<counted_t<const datum_t> > results;
+            batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
+            {
+                profile::sampler_t sampler("Evaluating elements in distinct.",
+                                           env->env->trace);
+                while (counted_t<const datum_t> d = s->next(env->env, batchspec)) {
+                    results.insert(std::move(d));
+                    rcheck_array_size(results, base_exc_t::GENERIC);
+                    sampler.new_sample();
+                }
             }
+            std::vector<counted_t<const datum_t> > toret;
+            std::move(results.begin(), results.end(), std::back_inserter(toret));
+            return new_val(make_counted<const datum_t>(std::move(toret)));
         }
-        // This doesn't need to be a stable sort because we eliminate duplicates.
-        std::sort(arr.begin(), arr.end(), std::bind(lt_cmp, env->env, ph::_1, ph::_2));
-        std::vector<counted_t<const datum_t> > toret;
-        for (auto it = arr.begin(); it != arr.end(); ++it) {
-            if (toret.size() == 0 || **it != *toret[toret.size()-1]) {
-                toret.push_back(std::move(*it));
-            }
-        }
-        return new_val(make_counted<const datum_t>(std::move(toret)));
     }
     virtual const char *name() const { return "distinct"; }
 };
