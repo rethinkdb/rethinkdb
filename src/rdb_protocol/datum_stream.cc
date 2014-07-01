@@ -792,7 +792,6 @@ indexed_sort_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batch
 }
 
 // ORDERED_DISTINCT_DATUM_STREAM_T
-// RSI: can this be omitted?
 ordered_distinct_datum_stream_t::ordered_distinct_datum_stream_t(
     counted_t<datum_stream_t> _source) : wrapper_datum_stream_t(_source) { }
 
