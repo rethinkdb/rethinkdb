@@ -1,5 +1,6 @@
 #include "rdb_protocol/serialize_datum.hpp"
 
+#include <cmath>
 #include <string>
 #include <vector>
 
