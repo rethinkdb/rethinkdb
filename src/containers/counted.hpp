@@ -31,16 +31,12 @@ public:
         if (p_) { counted_add_ref(p_); }
     }
 
-    // TODO: Add noexcept on versions of compilers that support it.  noexcept is
-    // good to have because types like std::vectors use it to see whether to
-    // call the copy constructor or move constructor.
-    counted_t(counted_t &&movee) : p_(movee.p_) {
+    counted_t(counted_t &&movee) noexcept : p_(movee.p_) {
         movee.p_ = NULL;
     }
 
-    // TODO: Add noexcept on versions of compilers that support it.
     template <class U>
-    counted_t(counted_t<U> &&movee) : p_(movee.p_) {
+    counted_t(counted_t<U> &&movee) noexcept : p_(movee.p_) {
         movee.p_ = NULL;
     }
 
@@ -58,22 +54,20 @@ public:
 #pragma GCC diagnostic pop
 #endif
 
-    void swap(counted_t &other) {
+    void swap(counted_t &other) noexcept {
         T *tmp = p_;
         p_ = other.p_;
         other.p_ = tmp;
     }
 
-    // TODO: Add noexcept on versions of compilers that support it.
-    counted_t &operator=(counted_t &&other) {
+    counted_t &operator=(counted_t &&other) noexcept {
         counted_t tmp(std::move(other));
         swap(tmp);
         return *this;
     }
 
-    // TODO: Add noexcept on versions of compilers that support it.
     template <class U>
-    counted_t &operator=(counted_t<U> &&other) {
+    counted_t &operator=(counted_t<U> &&other) noexcept {
         counted_t tmp(std::move(other));
         swap(tmp);
         return *this;
