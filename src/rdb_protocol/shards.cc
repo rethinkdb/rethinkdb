@@ -594,9 +594,10 @@ scoped_ptr_t<eager_acc_t> make_eager_terminal(const terminal_variant_t &t) {
 class ungrouped_op_t : public op_t {
 protected:
 private:
-    virtual void operator()(env_t *env, groups_t *groups, const counted_t<const datum_t> &) {
+    virtual void operator()(
+        env_t *env, groups_t *groups, const counted_t<const datum_t> &sindex_val) {
         for (auto it = groups->begin(); it != groups->end();) {
-            lst_transform(env, &it->second);
+            lst_transform(env, &it->second, sindex_val);
             if (it->second.size() == 0) {
                 groups->erase(it++); // This is important for batching with filter.
             } else {
@@ -604,7 +605,9 @@ private:
             }
         }
     }
-    virtual void lst_transform(env_t *env, datums_t *lst) = 0;
+    // sindex_val may be NULL.
+    virtual void lst_transform(
+        env_t *env, datums_t *lst, const counted_t<const datum_t> &sindex_val) = 0;
 };
 
 class group_trans_t : public op_t {
@@ -723,7 +726,8 @@ public:
     map_trans_t(const map_wire_func_t &_f)
         : f(_f.compile_wire_func()) { }
 private:
-    virtual void lst_transform(env_t *env, datums_t *lst) {
+    virtual void lst_transform(
+        env_t *env, datums_t *lst, const counted_t<const datum_t> &) {
         try {
             for (auto it = lst->begin(); it != lst->end(); ++it) {
                 *it = f->call(env, *it)->as_datum();
@@ -735,6 +739,37 @@ private:
     counted_t<func_t> f;
 };
 
+// Note: this removes duplicates ONLY TO SAVE NETWORK TRAFFIC.  It's possible
+// for duplicates to survive, either because they're on different shards or
+// because they span shard boundaries.  `ordered_distinct_datum_stream_t` in
+// `datum_stream.cc` removes any duplicates that survive this `lst_transform`.
+class distinct_trans_t : public ungrouped_op_t {
+public:
+    distinct_trans_t(const distinct_wire_func_t &f) : use_index(f.use_index) { }
+private:
+    // sindex_val may be NULL
+    virtual void lst_transform(
+        env_t *, datums_t *lst, const counted_t<const datum_t> &sindex_val) {
+        auto it = lst->begin();
+        auto loc = it;
+        for (; it != lst->end(); ++it) {
+            if (use_index) {
+                r_sanity_check(sindex_val.has());
+                *it = sindex_val;
+            }
+            if (!last_val.has() || *it != last_val) {
+                loc->swap(*it);
+                last_val = *loc;
+                ++loc;
+            }
+        }
+        lst->erase(loc, lst->end());
+    }
+    bool use_index;
+    counted_t<const datum_t> last_val;
+};
+
+
 class filter_trans_t : public ungrouped_op_t {
 public:
     filter_trans_t(const filter_wire_func_t &_f)
@@ -743,7 +778,8 @@ public:
                       ? _f.default_filter_val->compile_wire_func()
                       : counted_t<func_t>()) { }
 private:
-    virtual void lst_transform(env_t *env, datums_t *lst) {
+    virtual void lst_transform(
+        env_t *env, datums_t *lst, const counted_t<const datum_t> &) {
         auto it = lst->begin();
         auto loc = it;
         try {
@@ -766,7 +802,8 @@ public:
     concatmap_trans_t(const concatmap_wire_func_t &_f)
         : f(_f.compile_wire_func()) { }
 private:
-    virtual void lst_transform(env_t *env, datums_t *lst) {
+    virtual void lst_transform(
+        env_t *env, datums_t *lst, const counted_t<const datum_t> &) {
         datums_t new_lst;
         batchspec_t bs = batchspec_t::user(batch_type_t::TERMINAL, env);
         profile::sampler_t sampler("Evaluating CONCAT_MAP elements.", env->trace);
@@ -803,6 +840,9 @@ public:
     }
     op_t *operator()(const concatmap_wire_func_t &f) const {
         return new concatmap_trans_t(f);
+    }
+    op_t *operator()(const distinct_wire_func_t &f) const {
+        return new distinct_trans_t(f);
     }
 };
 

@@ -1180,9 +1180,10 @@ RDB_IMPL_ME_SERIALIZABLE_4_SINCE_v1_13(
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
-RDB_IMPL_SERIALIZABLE_8_SINCE_v1_13(
-        rget_read_t, region, optargs, table_name, batchspec, transforms, terminal,
-        sindex, sorting);
+RDB_MAKE_SERIALIZABLE_8(
+    rget_read_t,
+    region, optargs, table_name, batchspec, transforms, terminal, sindex, sorting);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(rget_read_t);
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
         distribution_read_t, max_depth, result_limit, region);

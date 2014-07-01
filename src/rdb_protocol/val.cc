@@ -326,7 +326,7 @@ counted_t<datum_stream_t> table_t::get_all(
         const std::string &get_all_sindex_id,
         const protob_t<const Backtrace> &bt) {
     rcheck_src(bt.get(), base_exc_t::GENERIC, !sindex_id,
-            "Cannot chain get_all and other indexed operations.");
+               "Cannot chain get_all and other indexed operations.");
     r_sanity_check(sorting == sorting_t::UNORDERED);
     r_sanity_check(bounds.is_universe());
 

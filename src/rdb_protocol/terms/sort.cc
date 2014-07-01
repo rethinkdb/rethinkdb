@@ -211,7 +211,13 @@ private:
         counted_t<val_t> v = arg(env, 0);
         counted_t<val_t> idx = optarg(env, "index");
         if (v->get_type().is_convertible(val_t::type_t::TABLE)) {
-            return v->as_table(env->env)->index_distinct(idx);
+            counted_t<table_t> tbl = v->as_table();
+            tbl->add_sorting(idx.has() ? idx->as_str().to_std() : tbl->get_pkey(),
+                             sorting_t::UNORDERED,
+                             this);
+            counted_t<datum_stream_t> s = tbl->as_datum_stream(env->env, backtrace());
+            s->add_transformation(distinct_wire_func_t(idx.has()), backtrace());
+            return new_val(env->env, s->ordered_distinct());
         } else {
             rcheck(!idx, base_exc_t::GENERIC,
                    "Can only perform an indexed distinct on a TABLE.");
