@@ -20,22 +20,22 @@ public:
     /* Takes ownership of the argument. */
     explicit clone_ptr_t(T *p);
 
-    clone_ptr_t(clone_ptr_t &&movee) : object(std::move(movee.object)) { }
+    clone_ptr_t(clone_ptr_t &&movee) noexcept : object(std::move(movee.object)) { }
 
     template<class U>
-    clone_ptr_t(clone_ptr_t<U> &&movee) : object(std::move(movee.object)) { }
+    clone_ptr_t(clone_ptr_t<U> &&movee) noexcept : object(std::move(movee.object)) { }
 
     clone_ptr_t(const clone_ptr_t &x);
     template<class U>
     clone_ptr_t(const clone_ptr_t<U> &x);  // NOLINT(runtime/explicit)
 
     clone_ptr_t &operator=(const clone_ptr_t &x);
-    clone_ptr_t &operator=(const clone_ptr_t &&x);
+    clone_ptr_t &operator=(const clone_ptr_t &&x) noexcept;
 
     template<class U>
     clone_ptr_t &operator=(const clone_ptr_t<U> &x);
     template<class U>
-    clone_ptr_t &operator=(const clone_ptr_t<U> &&x);
+    clone_ptr_t &operator=(const clone_ptr_t<U> &&x) noexcept;
 
 
 

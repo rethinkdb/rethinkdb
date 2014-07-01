@@ -33,7 +33,7 @@ clone_ptr_t<T> &clone_ptr_t<T>::operator=(const clone_ptr_t &x) {
 }
 
 template<class T>
-clone_ptr_t<T> &clone_ptr_t<T>::operator=(const clone_ptr_t &&x) {
+clone_ptr_t<T> &clone_ptr_t<T>::operator=(const clone_ptr_t &&x) noexcept {
     clone_ptr_t tmp(std::move(x));
     object = std::move(tmp.object);
     return *this;
@@ -51,7 +51,7 @@ clone_ptr_t<T> &clone_ptr_t<T>::operator=(const clone_ptr_t<U> &x) {
 }
 
 template<class T> template<class U>
-clone_ptr_t<T> &clone_ptr_t<T>::operator=(const clone_ptr_t<U> &&x) {
+clone_ptr_t<T> &clone_ptr_t<T>::operator=(const clone_ptr_t<U> &&x) noexcept {
     clone_ptr_t tmp(std::move(x));
     object = std::move(tmp.object);
     return *this;
