@@ -49,7 +49,7 @@ def generate_async_message_template(nargs):
         print "        void write(cluster_version_t cluster_version, write_message_t *wm) {"
     print "            rassert(cluster_version == cluster_version_t::CLUSTER);"
     for i in xrange(nargs):
-        print "            serialize_for_version(cluster_version, wm, arg%d);" % i
+        print "            serialize<cluster_version_t::CLUSTER>(wm, arg%d);" % i
     print "        }"
     print "    };"
     print
@@ -63,7 +63,7 @@ def generate_async_message_template(nargs):
     print "            rassert(cluster_version == cluster_version_t::CLUSTER);"
     for i in xrange(nargs):
         print "            arg%d_t arg%d;" % (i, i)
-        print "            %sres = deserialize_for_version(cluster_version, stream, &arg%d);" % ("archive_result_t " if i == 0 else "", i)
+        print "            %sres = deserialize<cluster_version_t::CLUSTER>(stream, &arg%d);" % ("archive_result_t " if i == 0 else "", i)
         print "            if (bad(res)) { throw fake_archive_exc_t(); }"
     print "            parent->fun(%s);" % csep("std::move(arg#)")
     print "        }"
