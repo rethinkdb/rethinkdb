@@ -11,7 +11,6 @@
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
-#include <boost/ptr_container/ptr_map.hpp>
 
 #include "arch/io/network.hpp"
 #include "clustering/administration/cli/key_parsing.hpp"
@@ -1198,7 +1197,7 @@ struct admin_stats_request_t {
 void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::command_data_t& data) {
     std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get().get_inner();
     cluster_semilattice_metadata_t cluster_metadata = cluster_metadata_view->get();
-    boost::ptr_map<machine_id_t, admin_stats_request_t> request_map;
+    std::map<machine_id_t, scoped_ptr_t<admin_stats_request_t> > request_map;
     std::set<machine_id_t> machine_filters;
     std::set<namespace_id_t> namespace_filters;
     std::string stat_filter;
@@ -1227,13 +1226,15 @@ void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::com
              i != cluster_metadata.machines.machines.end(); ++i) {
             if (!i->second.is_deleted()) {
                 machine_id_t target = i->first;
-                request_map.insert(target, new admin_stats_request_t(&mailbox_manager));
+                request_map.insert(
+                        std::make_pair(target, make_scoped<admin_stats_request_t>(&mailbox_manager)));
             }
         }
     } else {
         for (std::set<machine_id_t>::iterator i = machine_filters.begin(); i != machine_filters.end(); ++i) {
             machine_id_t id = *i;
-            request_map.insert(id, new admin_stats_request_t(&mailbox_manager));
+            request_map.insert(
+                    std::make_pair(id, make_scoped<admin_stats_request_t>(&mailbox_manager)));
         }
     }
 
@@ -1244,7 +1245,7 @@ void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::com
     // Send the requests
     std::set<stat_manager_t::stat_id_t> requested_stats;
     requested_stats.insert(".*");
-    for (boost::ptr_map<machine_id_t, admin_stats_request_t>::iterator i = request_map.begin(); i != request_map.end(); ++i) {
+    for (auto i = request_map.begin(); i != request_map.end(); ++i) {
         bool found = false;
         // Find machine in directory
         // TODO: do a better than linear search
@@ -1273,7 +1274,7 @@ void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::com
     stats_table.push_back(header);
 
     // Wait for responses and output them, filtering as necessary
-    for (boost::ptr_map<machine_id_t, admin_stats_request_t>::iterator i = request_map.begin(); i != request_map.end(); ++i) {
+    for (auto i = request_map.begin(); i != request_map.end(); ++i) {
         const signal_t *stats_ready = i->second->stats_promise.get_ready_signal();
         wait_any_t waiter(&timer, stats_ready);
         waiter.wait();

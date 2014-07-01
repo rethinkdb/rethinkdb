@@ -270,4 +270,4 @@ archive_result_t deserialize(read_stream_t *s, hash_region_t<key_range_t> *h) {
     return deserialize_for_metainfo(s, h);
 }
 
-INSTANTIATE_SINCE_v1_13(hash_region_t<key_range_t>);
+INSTANTIATE_SERIALIZABLE_SINCE_v1_13(hash_region_t<key_range_t>);

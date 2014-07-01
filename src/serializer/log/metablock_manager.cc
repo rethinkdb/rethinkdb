@@ -121,9 +121,10 @@ void metablock_manager_t<metablock_t>::create(file_t *dbfile, int64_t extent_siz
     callback.wait();
 
     /* Write the first metablock */
-    // We use cluster_version_t::LATEST.  Maybe we'd want to decouple cluster
+    // We use cluster_version_t::LATEST_DISK.  Maybe we'd want to decouple cluster
     // versions from disk format versions?  We can do that later if we want.
-    buffer->prepare(static_cast<uint32_t>(cluster_version_t::LATEST), initial, MB_START_VERSION);
+    buffer->prepare(static_cast<uint32_t>(cluster_version_t::LATEST_DISK), initial,
+                                          MB_START_VERSION);
     co_write(dbfile, metablock_offsets[0], METABLOCK_SIZE, buffer.get(),
              DEFAULT_DISK_ACCOUNT, file_t::WRAP_IN_DATASYNCS);
 }
@@ -135,7 +136,7 @@ bool disk_format_version_is_recognized(uint32_t disk_format_version) {
     // cluster_version_t value and such changes have not happened, it is correct to
     // add the new cluster_version_t value to this list of recognized ones.
     return disk_format_version
-        == static_cast<uint32_t>(cluster_version_t::v1_13_is_latest);
+        == static_cast<uint32_t>(cluster_version_t::v1_13_is_latest_disk);
 }
 
 
@@ -259,7 +260,8 @@ void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb, file_
     rassert(state == state_ready);
     rassert(!mb_buffer_in_use);
 
-    mb_buffer->prepare(static_cast<uint32_t>(cluster_version_t::LATEST), mb, next_version_number++);
+    mb_buffer->prepare(static_cast<uint32_t>(cluster_version_t::LATEST_DISK), mb,
+                                             next_version_number++);
     rassert(mb_buffer->check_crc());
 
     mb_buffer_in_use = true;

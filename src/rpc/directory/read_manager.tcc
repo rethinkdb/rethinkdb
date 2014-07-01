@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RPC_DIRECTORY_READ_MANAGER_TCC_
 #define RPC_DIRECTORY_READ_MANAGER_TCC_
 
@@ -31,7 +31,7 @@ directory_read_manager_t<metadata_t>::~directory_read_manager_t() THROWS_NOTHING
 template<class metadata_t>
 void directory_read_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NOTHING {
     assert_thread();
-    std::pair<typename boost::ptr_map<peer_id_t, session_t>::iterator, bool> res = sessions.insert(peer, new session_t(connectivity_service->get_connection_session_id(peer)));
+    auto res = sessions.insert(std::make_pair(peer, make_scoped<session_t>(connectivity_service->get_connection_session_id(peer))));
     guarantee(res.second);
 }
 
@@ -104,9 +104,12 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
     assert_thread();
 
     /* Remove the `global_peer_info_t` object from the table */
-    typename boost::ptr_map<peer_id_t, session_t>::iterator it = sessions.find(peer);
+    typename std::map<peer_id_t, scoped_ptr_t<session_t> >::iterator it
+        = sessions.find(peer);
     guarantee(it != sessions.end());
-    session_t *session_to_destroy = sessions.release(it).release();
+
+    scoped_ptr_t<session_t> session_to_destroy = std::move(it->second);
+    sessions.erase(it);
 
     bool got_initialization = session_to_destroy->got_initial_message.is_pulsed();
 
@@ -116,7 +119,7 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
     a message that will now never come. */
     coro_t::spawn_sometime(std::bind(
         &directory_read_manager_t::interrupt_updates_and_free_session, this,
-        session_to_destroy,
+        session_to_destroy.release(),
         auto_drainer_t::lock_t(&global_drainer)));
 
     /* Notify that the peer has disconnected */
@@ -145,12 +148,13 @@ void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t pe
     ASSERT_FINITE_CORO_WAITING;
     /* Check to make sure that the peer didn't die while we were coming from the
     thread on which `on_message()` was run */
-    typename boost::ptr_map<peer_id_t, session_t>::iterator it = sessions.find(peer);
+    typename std::map<peer_id_t, scoped_ptr_t<session_t> >::iterator it
+        = sessions.find(peer);
     if (it == sessions.end()) {
         /* The peer disconnected since we got the message; ignore. */
         return;
     }
-    session_t *session = it->second;
+    session_t *session = it->second.get();
     if (session->session_id != session_id) {
         /* The peer disconnected and then reconnected since we got the message;
         ignore. */
@@ -192,12 +196,13 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
 
     /* Check to make sure that the peer didn't die while we were coming from the
     thread on which `on_message()` was run */
-    typename boost::ptr_map<peer_id_t, session_t>::iterator it = sessions.find(peer);
+    typename std::map<peer_id_t, scoped_ptr_t<session_t> >::iterator it
+        = sessions.find(peer);
     if (it == sessions.end()) {
         /* The peer disconnected since we got the message; ignore. */
         return;
     }
-    session_t *session = it->second;
+    session_t *session = it->second.get();
     if (session->session_id != session_id) {
         /* The peer disconnected and then reconnected since we got the message;
         ignore. */
@@ -228,7 +233,7 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
             struct op_closure_t {
                 static bool apply(const peer_id_t _peer,
                                   const boost::shared_ptr<metadata_t> &_new_value,
-                                  const boost::ptr_map<peer_id_t, session_t> &_sessions,
+                                  const std::map<peer_id_t, scoped_ptr_t<session_t> > &_sessions,
                                   change_tracking_map_t<peer_id_t, metadata_t> *map) {
                     typename std::map<peer_id_t, metadata_t>::const_iterator var_it
                         = map->get_inner().find(_peer);

@@ -1,5 +1,6 @@
 #include "rdb_protocol/serialize_datum.hpp"
 
+#include <cmath>
 #include <string>
 #include <vector>
 
@@ -27,12 +28,12 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(datum_serialized_type_t, int8_t,
                                       datum_serialized_type_t::INT_POSITIVE);
 
 void datum_serialize(write_message_t *wm, datum_serialized_type_t type) {
-    serialize<cluster_version_t::LATEST>(wm, type);
+    serialize<cluster_version_t::LATEST_OVERALL>(wm, type);
 }
 
 MUST_USE archive_result_t datum_deserialize(read_stream_t *s,
                                             datum_serialized_type_t *type) {
-    return deserialize<cluster_version_t::LATEST>(s, type);
+    return deserialize<cluster_version_t::LATEST_OVERALL>(s, type);
 }
 
 // This looks like it duplicates code of other deserialization functions.  It does.
@@ -338,7 +339,7 @@ void serialize(write_message_t *wm,
     }
 }
 
-INSTANTIATE_SERIALIZE_SINCE_v1_13(empty_ok_t<const counted_t<const datum_t> >);
+INSTANTIATE_SERIALIZE_FOR_CLUSTER_AND_DISK(empty_ok_t<const counted_t<const datum_t> >);
 
 template <cluster_version_t W>
 archive_result_t deserialize(read_stream_t *s,
@@ -359,7 +360,10 @@ archive_result_t deserialize(read_stream_t *s,
     }
 }
 
-template archive_result_t deserialize<cluster_version_t::v1_13_is_latest>(
+template archive_result_t deserialize<cluster_version_t::v1_13>(
+        read_stream_t *s,
+        empty_ok_ref_t<counted_t<const datum_t> > datum);
+template archive_result_t deserialize<cluster_version_t::v1_13_2_is_latest>(
         read_stream_t *s,
         empty_ok_ref_t<counted_t<const datum_t> > datum);
 

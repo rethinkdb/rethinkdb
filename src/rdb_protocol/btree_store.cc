@@ -125,11 +125,12 @@ store_t::store_t(serializer_t *serializer,
         get_secondary_indexes(&sindex_block, &sindexes);
 
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-            secondary_index_slices.insert(it->second.id,
-                                          new btree_slice_t(cache.get(),
-                                                            &perfmon_collection,
-                                                            it->first.name,
-                                                            index_type_t::SECONDARY));
+            secondary_index_slices.insert(
+                    std::make_pair(it->second.id,
+                                   make_scoped<btree_slice_t>(cache.get(),
+                                                              &perfmon_collection,
+                                                              it->first.name,
+                                                              index_type_t::SECONDARY)));
         }
     }
 
@@ -439,9 +440,9 @@ void store_t::sindex_queue_push(const rdb_modification_report_t &mod_report,
     if (!sindex_queues.empty()) {
         // This is for a disk backed queue so there's no versioning issues.
         // (deserializating_viewer_t in disk_backed_queue.hpp also uses the
-        // LATEST version, and such queues are ephemeral).
+        // LATEST_DISK version, and such queues are ephemeral).
         write_message_t wm;
-        serialize<cluster_version_t::LATEST>(&wm, mod_report);
+        serialize<cluster_version_t::LATEST_DISK>(&wm, mod_report);
 
         for (auto it = sindex_queues.begin(); it != sindex_queues.end(); ++it) {
             (*it)->push(wm);
@@ -459,7 +460,7 @@ void store_t::sindex_queue_push(
         scoped_array_t<write_message_t> wms(mod_reports.size());
         for (size_t i = 0; i < mod_reports.size(); ++i) {
             // This is for a disk backed queue so there are no versioning issues.
-            serialize<cluster_version_t::LATEST>(&wms[i], mod_reports[i]);
+            serialize<cluster_version_t::LATEST_DISK>(&wms[i], mod_reports[i]);
         }
 
         for (auto it = sindex_queues.begin(); it != sindex_queues.end(); ++it) {
@@ -521,10 +522,11 @@ bool store_t::add_sindex(
         }
 
         secondary_index_slices.insert(
-            sindex.id, new btree_slice_t(cache.get(),
-                                         &perfmon_collection,
-                                         name.name,
-                                         index_type_t::SECONDARY));
+                std::make_pair(sindex.id,
+                               make_scoped<btree_slice_t>(cache.get(),
+                                                          &perfmon_collection,
+                                                          name.name,
+                                                          index_type_t::SECONDARY)));
 
         sindex.post_construction_complete = false;
 
@@ -596,9 +598,8 @@ void store_t::clear_sindex(
         buf_lock_t sindex_superblock_lock(buf_parent_t(&sindex_block),
                                           sindex.superblock, access_t::write);
         sindex_block.reset_buf_lock();
-        scoped_ptr_t<superblock_t> sindex_superblock;
-        sindex_superblock.init(
-            new real_superblock_t(std::move(sindex_superblock_lock)));
+        scoped_ptr_t<superblock_t> sindex_superblock
+            = make_scoped<real_superblock_t>(std::move(sindex_superblock_lock));
 
         /* 1. Collect a bunch of keys to delete */
         clear_sindex_traversal_cb_t traversal_cb;
@@ -764,11 +765,12 @@ void store_t::set_sindexes(
                                                binary_blob_t());
             }
 
-            secondary_index_slices.insert(it->second.id,
-                                          new btree_slice_t(cache.get(),
-                                                            &perfmon_collection,
-                                                            it->first.name,
-                                                            index_type_t::SECONDARY));
+            secondary_index_slices.insert(
+                    std::make_pair(it->second.id,
+                                   make_scoped<btree_slice_t>(cache.get(),
+                                                              &perfmon_collection,
+                                                              it->first.name,
+                                                              index_type_t::SECONDARY)));
 
             sindex.post_construction_complete = false;
 
@@ -989,15 +991,16 @@ bool store_t::acquire_sindex_superblocks_for_write(
         }
 
         /* Getting the slice and asserting we're on the right thread. */
-        btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->second.id));
+        btree_slice_t *sindex_slice = secondary_index_slices.at(it->second.id).get();
         sindex_slice->assert_thread();
 
         buf_lock_t superblock_lock(
                 sindex_block, it->second.superblock, access_t::write);
 
-        sindex_sbs_out->push_back(new
-                sindex_access_t(get_sindex_slice(it->second.id), it->second, new
-                    real_superblock_t(std::move(superblock_lock))));
+        sindex_sbs_out->push_back(
+                make_scoped<sindex_access_t>(
+                        get_sindex_slice(it->second.id), it->second,
+                        make_scoped<real_superblock_t>(std::move(superblock_lock))));
     }
 
     //return's true if we got all of the sindexes requested.
@@ -1020,15 +1023,16 @@ bool store_t::acquire_sindex_superblocks_for_write(
         }
 
         /* Getting the slice and asserting we're on the right thread. */
-        btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->second.id));
+        btree_slice_t *sindex_slice = secondary_index_slices.at(it->second.id).get();
         sindex_slice->assert_thread();
 
         buf_lock_t superblock_lock(
                 sindex_block, it->second.superblock, access_t::write);
 
-        sindex_sbs_out->push_back(new
-                sindex_access_t(get_sindex_slice(it->second.id), it->second, new
-                    real_superblock_t(std::move(superblock_lock))));
+        sindex_sbs_out->push_back(
+                make_scoped<sindex_access_t>(
+                        get_sindex_slice(it->second.id), it->second,
+                        make_scoped<real_superblock_t>(std::move(superblock_lock))));
     }
 
     //return's true if we got all of the sindexes requested.

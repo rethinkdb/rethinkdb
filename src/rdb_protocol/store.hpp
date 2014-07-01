@@ -9,8 +9,6 @@
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
-#include <boost/ptr_container/ptr_map.hpp>
-#include <boost/ptr_container/ptr_vector.hpp>
 
 #include "btree/erase_range.hpp"
 #include "btree/operations.hpp"
@@ -236,9 +234,9 @@ public:
 
     struct sindex_access_t {
         sindex_access_t(btree_slice_t *_btree, secondary_index_t _sindex,
-                real_superblock_t *_super_block)
+                        scoped_ptr_t<real_superblock_t> _super_block)
             : btree(_btree), sindex(_sindex),
-              super_block(_super_block)
+              super_block(std::move(_super_block))
         { }
 
         btree_slice_t *btree;
@@ -246,7 +244,7 @@ public:
         scoped_ptr_t<real_superblock_t> super_block;
     };
 
-    typedef boost::ptr_vector<sindex_access_t> sindex_access_vector_t;
+    typedef std::vector<scoped_ptr_t<sindex_access_t> > sindex_access_vector_t;
 
     void acquire_all_sindex_superblocks_for_write(
             block_id_t sindex_block_id,
@@ -277,7 +275,7 @@ public:
     THROWS_ONLY(sindex_not_ready_exc_t);
 
     btree_slice_t *get_sindex_slice(const uuid_u &id) {
-        return &(secondary_index_slices.at(id));
+        return secondary_index_slices.at(id).get();
     }
 
     void protocol_read(const read_t &read,
@@ -392,7 +390,7 @@ public:
     base_path_t base_path_;
     perfmon_membership_t perfmon_collection_membership;
 
-    boost::ptr_map<const uuid_u, btree_slice_t> secondary_index_slices;
+    std::map<uuid_u, scoped_ptr_t<btree_slice_t> > secondary_index_slices;
 
     std::vector<internal_disk_backed_queue_t *> sindex_queues;
     new_mutex_t sindex_queue_mutex;

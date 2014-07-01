@@ -23,7 +23,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::shared_ptr<const sc
     return archive_result_t::SUCCESS;
 }
 
-INSTANTIATE_SERIALIZE_SINCE_v1_13(std::shared_ptr<const scoped_cJSON_t>);
+INSTANTIATE_SERIALIZE_FOR_CLUSTER(std::shared_ptr<const scoped_cJSON_t>);
 
 namespace query_language {
 

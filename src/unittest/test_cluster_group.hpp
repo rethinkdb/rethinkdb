@@ -8,7 +8,6 @@
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
-#include <boost/ptr_container/ptr_vector.hpp>
 
 #include "containers/cow_ptr.hpp"
 #include "containers/scoped.hpp"
@@ -47,15 +46,15 @@ RDB_DECLARE_SERIALIZABLE(test_cluster_directory_t);
 class test_cluster_group_t {
 public:
     const base_path_t base_path;
-    boost::ptr_vector<temp_file_t> files;
+    std::vector<scoped_ptr_t<temp_file_t> > files;
     scoped_ptr_t<io_backender_t> io_backender;
     scoped_ptr_t<cache_balancer_t> balancer;
-    boost::ptr_vector<serializer_t> serializers;
-    boost::ptr_vector<mock_store_t> stores;
-    boost::ptr_vector<multistore_ptr_t> svses;
-    boost::ptr_vector<reactor_test_cluster_t> test_clusters;
+    std::vector<scoped_ptr_t<serializer_t> > serializers;
+    std::vector<scoped_ptr_t<mock_store_t> > stores;
+    std::vector<scoped_ptr_t<multistore_ptr_t> > svses;
+    std::vector<scoped_ptr_t<reactor_test_cluster_t> > test_clusters;
 
-    boost::ptr_vector<test_reactor_t> test_reactors;
+    std::vector<scoped_ptr_t<test_reactor_t> > test_reactors;
 
     std::map<std::string, std::string> inserter_state;
 

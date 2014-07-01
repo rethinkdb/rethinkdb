@@ -36,7 +36,7 @@
 
 namespace unittest {
 
-RDB_IMPL_SERIALIZABLE_1(test_cluster_directory_t, reactor_directory);
+RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(test_cluster_directory_t, reactor_directory);
 
 
 void generate_sample_region(int i, int n, region_t *out) {
@@ -188,20 +188,21 @@ test_cluster_group_t::test_cluster_group_t(int n_machines)
     : base_path("/tmp"), io_backender(new io_backender_t(file_direct_io_mode_t::buffered_desired)),
       balancer(new dummy_cache_balancer_t(GIGABYTE)) {
     for (int i = 0; i < n_machines; i++) {
-        files.push_back(new temp_file_t);
-        filepath_file_opener_t file_opener(files[i].name(), io_backender.get());
+        files.push_back(make_scoped<temp_file_t>());
+        filepath_file_opener_t file_opener(files[i]->name(), io_backender.get());
         standard_serializer_t::create(&file_opener,
                                       standard_serializer_t::static_config_t());
-        serializers.push_back(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
-                                                        &file_opener,
-                                                        &get_global_perfmon_collection()));
-        stores.push_back(new mock_store_t(binary_blob_t(version_range_t(version_t::zero()))));
-        store_view_t *store_ptr = &stores[i];
-        svses.push_back(new multistore_ptr_t(&store_ptr, 1));
+        serializers.push_back(
+                make_scoped<standard_serializer_t>(standard_serializer_t::dynamic_config_t(),
+                                                   &file_opener,
+                                                   &get_global_perfmon_collection()));
+        stores.push_back(make_scoped<mock_store_t>(binary_blob_t(version_range_t(version_t::zero()))));
+        store_view_t *store_ptr = stores[i].get();
+        svses.push_back(make_scoped<multistore_ptr_t>(&store_ptr, 1));
 
-        test_clusters.push_back(new reactor_test_cluster_t(ANY_PORT));
+        test_clusters.push_back(make_scoped<reactor_test_cluster_t>(ANY_PORT));
         if (i > 0) {
-            test_clusters[0].connectivity_cluster_run.join(test_clusters[i].connectivity_cluster.get_peer_address(test_clusters[i].connectivity_cluster.get_me()));
+            test_clusters[0]->connectivity_cluster_run.join(test_clusters[i]->connectivity_cluster.get_peer_address(test_clusters[i]->connectivity_cluster.get_me()));
         }
     }
 }
@@ -210,13 +211,17 @@ test_cluster_group_t::~test_cluster_group_t() { }
 
 void test_cluster_group_t::construct_all_reactors(const blueprint_t &bp) {
     for (size_t i = 0; i < test_clusters.size(); i++) {
-        test_reactors.push_back(new test_reactor_t(base_path, io_backender.get(), &test_clusters[i], bp, &svses[i]));
+        test_reactors.push_back(make_scoped<test_reactor_t>(base_path,
+                                                            io_backender.get(),
+                                                            test_clusters[i].get(),
+                                                            bp,
+                                                            svses[i].get()));
     }
 }
 
 peer_id_t test_cluster_group_t::get_peer_id(size_t i) {
     rassert(i < test_clusters.size());
-    return test_clusters[i].get_me();
+    return test_clusters[i]->get_me();
 }
 
 blueprint_t test_cluster_group_t::compile_blueprint(const std::string &bp) {
@@ -260,7 +265,7 @@ blueprint_t test_cluster_group_t::compile_blueprint(const std::string &bp) {
 
 void test_cluster_group_t::set_all_blueprints(const blueprint_t &bp) {
     for (size_t i = 0; i < test_clusters.size(); i++) {
-        test_reactors[i].blueprint_watchable.set_value(bp);
+        test_reactors[i]->blueprint_watchable.set_value(bp);
     }
 }
 
@@ -281,9 +286,9 @@ scoped_ptr_t<cluster_namespace_interface_t>
 test_cluster_group_t::make_namespace_interface(int i) {
     std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > region_to_primary_maps;
     auto ret = make_scoped<cluster_namespace_interface_t>(
-            &test_clusters[i].mailbox_manager,
+            &test_clusters[i]->mailbox_manager,
             &region_to_primary_maps,
-            (&test_clusters[i])->directory_read_manager.get_root_view()
+            test_clusters[i]->directory_read_manager.get_root_view()
             ->subview(&test_cluster_group_t::extract_reactor_business_cards_no_optional),
             generate_uuid(),
             &ctx);
@@ -324,7 +329,7 @@ void test_cluster_group_t::wait_until_blueprint_is_satisfied(const blueprint_t &
         const int timeout_ms = 60000;
         signal_timer_t timer;
         timer.start(timeout_ms);
-        test_clusters[0].directory_read_manager.get_root_view()
+        test_clusters[0]->directory_read_manager.get_root_view()
             ->subview(&test_cluster_group_t::extract_reactor_business_cards)
             ->run_until_satisfied(boost::bind(&is_blueprint_satisfied, bp, _1), &timer);
     } catch (const interrupted_exc_t &) {

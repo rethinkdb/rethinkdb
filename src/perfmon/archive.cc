@@ -75,4 +75,4 @@ archive_result_t deserialize(read_stream_t *s, perfmon_result_t *thing) {
     return archive_result_t::SUCCESS;
 }
 
-INSTANTIATE_SINCE_v1_13(perfmon_result_t);
+INSTANTIATE_SERIALIZABLE_SINCE_v1_13(perfmon_result_t);

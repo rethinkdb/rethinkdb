@@ -29,7 +29,7 @@ public:
             virtual ~writer_t() { }
             void write(cluster_version_t, write_stream_t *stream) {
                 write_message_t wm;
-                serialize<cluster_version_t::LATEST>(&wm, data);
+                serialize<cluster_version_t::CLUSTER>(&wm, data);
                 int res = send_write_message(stream, &wm);
                 if (res) { throw fake_archive_exc_t(); }
             }
@@ -62,7 +62,7 @@ private:
                     read_stream_t *stream) {
         int i;
         archive_result_t res
-            = deserialize<cluster_version_t::LATEST>(stream, &i);
+            = deserialize<cluster_version_t::CLUSTER>(stream, &i);
         if (bad(res)) { throw fake_archive_exc_t(); }
         on_thread_t th(home_thread());
         inbox[i] = peer;
@@ -639,15 +639,15 @@ TPTEST(RPCConnectivityTest, DifferentVersion) {
     // Send bad version
     std::string bad_version_str("0.1.1b");
     write_message_t bad_version_msg;
-    serialize<cluster_version_t::LATEST>(&bad_version_msg,
+    serialize<cluster_version_t::CLUSTER>(&bad_version_msg,
                                          bad_version_str.length());
     bad_version_msg.append(bad_version_str.data(), bad_version_str.length());
-    serialize<cluster_version_t::LATEST>(
+    serialize<cluster_version_t::CLUSTER>(
             &bad_version_msg,
             connectivity_cluster_t::cluster_arch_bitsize.length());
     bad_version_msg.append(connectivity_cluster_t::cluster_arch_bitsize.data(),
                            connectivity_cluster_t::cluster_arch_bitsize.length());
-    serialize<cluster_version_t::LATEST>(
+    serialize<cluster_version_t::CLUSTER>(
             &bad_version_msg,
             connectivity_cluster_t::cluster_build_mode.length());
     bad_version_msg.append(connectivity_cluster_t::cluster_build_mode.data(),
@@ -689,14 +689,14 @@ TPTEST(RPCConnectivityTest, DifferentArch) {
     // Send the expected version but bad arch bitsize
     std::string bad_arch_str("96bit");
     write_message_t bad_arch_msg;
-    serialize<cluster_version_t::LATEST>(
+    serialize<cluster_version_t::CLUSTER>(
             &bad_arch_msg,
             connectivity_cluster_t::cluster_version_string.length());
     bad_arch_msg.append(connectivity_cluster_t::cluster_version_string.data(),
                         connectivity_cluster_t::cluster_version_string.length());
-    serialize<cluster_version_t::LATEST>(&bad_arch_msg, bad_arch_str.length());
+    serialize<cluster_version_t::CLUSTER>(&bad_arch_msg, bad_arch_str.length());
     bad_arch_msg.append(bad_arch_str.data(), bad_arch_str.length());
-    serialize<cluster_version_t::LATEST>(
+    serialize<cluster_version_t::CLUSTER>(
             &bad_arch_msg,
             connectivity_cluster_t::cluster_build_mode.length());
     bad_arch_msg.append(connectivity_cluster_t::cluster_build_mode.data(),
@@ -738,17 +738,17 @@ TPTEST(RPCConnectivityTest, DifferentBuildMode) {
     // Send the expected version but bad arch bitsize
     std::string bad_build_mode_str("build mode activated");
     write_message_t bad_build_mode_msg;
-    serialize<cluster_version_t::LATEST>(
+    serialize<cluster_version_t::CLUSTER>(
             &bad_build_mode_msg,
             connectivity_cluster_t::cluster_version_string.length());
     bad_build_mode_msg.append(connectivity_cluster_t::cluster_version_string.data(),
                               connectivity_cluster_t::cluster_version_string.length());
-    serialize<cluster_version_t::LATEST>(
+    serialize<cluster_version_t::CLUSTER>(
             &bad_build_mode_msg,
             connectivity_cluster_t::cluster_arch_bitsize.length());
     bad_build_mode_msg.append(connectivity_cluster_t::cluster_arch_bitsize.data(),
                               connectivity_cluster_t::cluster_arch_bitsize.length());
-    serialize<cluster_version_t::LATEST>(&bad_build_mode_msg,
+    serialize<cluster_version_t::CLUSTER>(&bad_build_mode_msg,
                                          bad_build_mode_str.length());
     bad_build_mode_msg.append(bad_build_mode_str.data(), bad_build_mode_str.length());
     ASSERT_FALSE(send_write_message(&stream, &bad_build_mode_msg));

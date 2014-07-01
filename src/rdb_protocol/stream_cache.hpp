@@ -7,9 +7,6 @@
 #include <map>
 #include <string>
 
-#include "errors.hpp"
-#include <boost/ptr_container/ptr_map.hpp>
-
 #include "concurrency/signal.hpp"
 #include "containers/scoped.hpp"
 #include "rdb_protocol/datum_stream.hpp"
@@ -62,7 +59,7 @@ private:
 
     rdb_context_t *const rdb_ctx;
     const reject_cfeeds_t reject_cfeeds;
-    boost::ptr_map<int64_t, entry_t> streams;
+    std::map<int64_t, scoped_ptr_t<entry_t> > streams;
     DISABLE_COPYING(stream_cache_t);
 };
 

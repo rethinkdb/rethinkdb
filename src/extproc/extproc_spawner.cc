@@ -37,7 +37,7 @@ public:
 
         // Send our pid over to the main process (because it didn't fork us directly)
         write_message_t wm;
-        serialize<cluster_version_t::LATEST>(&wm, getpid());
+        serialize<cluster_version_t::LATEST_OVERALL>(&wm, getpid());
         int res = send_write_message(&socket_stream, &wm);
         guarantee(res == 0);
     }
@@ -66,8 +66,8 @@ public:
             uint64_t magic_from_parent;
             {
                 archive_result_t res =
-                    deserialize<cluster_version_t::LATEST>(&socket_stream,
-                                                           &magic_from_parent);
+                    deserialize<cluster_version_t::LATEST_OVERALL>(&socket_stream,
+                                                                   &magic_from_parent);
                 if (res != archive_result_t::SUCCESS ||
                     magic_from_parent != extproc_worker_t::parent_to_worker_magic) {
                     break;
@@ -75,7 +75,7 @@ public:
             }
 
             write_message_t wm;
-            serialize<cluster_version_t::LATEST>(
+            serialize<cluster_version_t::LATEST_OVERALL>(
                     &wm, extproc_worker_t::worker_to_parent_magic);
             int res = send_write_message(&socket_stream, &wm);
             if (res != 0) {
@@ -222,8 +222,8 @@ fd_t extproc_spawner_t::spawn(object_buffer_t<socket_stream_t> *stream_out, pid_
 
     // Get the pid of the new worker process
     archive_result_t archive_res;
-    archive_res = deserialize<cluster_version_t::LATEST>(stream_out->get(),
-                                                         pid_out);
+    archive_res = deserialize<cluster_version_t::LATEST_OVERALL>(stream_out->get(),
+                                                                 pid_out);
     guarantee_deserialization(archive_res, "pid_out");
     guarantee(*pid_out != -1);
 

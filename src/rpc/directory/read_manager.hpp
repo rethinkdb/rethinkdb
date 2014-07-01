@@ -1,9 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RPC_DIRECTORY_READ_MANAGER_HPP_
 #define RPC_DIRECTORY_READ_MANAGER_HPP_
 
+#include <map>
+
 #include "errors.hpp"
-#include <boost/ptr_container/ptr_map.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "concurrency/auto_drainer.hpp"
@@ -67,7 +68,7 @@ private:
     watchable_variable_t<change_tracking_map_t<peer_id_t, metadata_t> > variable;
     mutex_assertion_t variable_lock;
 
-    boost::ptr_map<peer_id_t, session_t> sessions;
+    std::map<peer_id_t, scoped_ptr_t<session_t> > sessions;
 
     /* Instances of `propagate_initialization()` and `propagate_update()` hold
     a lock on one of these drainers. */

@@ -15,8 +15,8 @@ const uint64_t extproc_worker_t::worker_to_parent_magic = 0x9aa9a30dc74f9da1LL;
 
 NORETURN bool worker_exit_fn(read_stream_t *stream_in, write_stream_t *) {
     int exit_code;
-    archive_result_t res = deserialize<cluster_version_t::LATEST>(stream_in,
-                                                                  &exit_code);
+    archive_result_t res = deserialize<cluster_version_t::LATEST_OVERALL>(
+            stream_in, &exit_code);
     if (bad(res)) { exit_code = EXIT_FAILURE; }
     ::_exit(exit_code);
 }
@@ -35,7 +35,7 @@ extproc_worker_t::~extproc_worker_t() {
 
         int exit_code = 0;
         write_message_t wm;
-        serialize<cluster_version_t::LATEST>(&wm, exit_code);
+        serialize<cluster_version_t::LATEST_OVERALL>(&wm, exit_code);
         int res = send_write_message(get_write_stream(), &wm);
 
         socket_stream.reset();
@@ -84,7 +84,7 @@ void extproc_worker_t::released(bool user_error, signal_t *user_interruptor) {
         // Trade magic numbers with worker process to see if it is still coherent
         try {
             write_message_t wm;
-            serialize<cluster_version_t::LATEST>(&wm, parent_to_worker_magic);
+            serialize<cluster_version_t::LATEST_OVERALL>(&wm, parent_to_worker_magic);
             {
                 int res = send_write_message(socket_stream.get(), &wm);
                 if (res != 0) {
@@ -95,8 +95,8 @@ void extproc_worker_t::released(bool user_error, signal_t *user_interruptor) {
 
             uint64_t magic_from_child;
             archive_result_t res
-                = deserialize<cluster_version_t::LATEST>(socket_stream.get(),
-                                                         &magic_from_child);
+                = deserialize<cluster_version_t::LATEST_OVERALL>(socket_stream.get(),
+                                                                 &magic_from_child);
             if (bad(res) || magic_from_child != worker_to_parent_magic) {
                 throw std::runtime_error("did not receive magic number");
             }

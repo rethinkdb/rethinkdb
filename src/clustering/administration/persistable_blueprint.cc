@@ -10,7 +10,7 @@
 #include "region/region_json_adapter.hpp"
 #include "stl_utils.hpp"
 
-RDB_IMPL_SERIALIZABLE_1(persistable_blueprint_t, machines_roles);
+RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(persistable_blueprint_t, machines_roles);
 
 void debug_print(printf_buffer_t *buf, const persistable_blueprint_t &x) {
     buf->appendf("persistable_blueprint{machines_roles=");
