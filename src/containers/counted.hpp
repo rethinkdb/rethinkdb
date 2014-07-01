@@ -266,8 +266,8 @@ template <class T>
 class movable_t {
 public:
     explicit movable_t(const counted_t<T> &copyee) : ptr_(copyee) { }
-    movable_t(movable_t &&movee) : ptr_(std::move(movee.ptr_)) { }
-    movable_t &operator=(movable_t &&movee) {
+    movable_t(movable_t &&movee) noexcept : ptr_(std::move(movee.ptr_)) { }
+    movable_t &operator=(movable_t &&movee) noexcept {
         ptr_ = std::move(movee.ptr_);
         return *this;
     }
