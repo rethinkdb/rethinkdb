@@ -407,8 +407,8 @@ public:
 
     sorting_t sorting; // Optional sorting info (UNORDERED means no sorting).
 };
-RDB_DECLARE_SERIALIZABLE(rget_read_t);
 
+RDB_DECLARE_SERIALIZABLE(rget_read_t);
 
 class distribution_read_t {
 public:
