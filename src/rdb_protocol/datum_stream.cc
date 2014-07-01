@@ -10,6 +10,8 @@
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/val.hpp"
 
+#include "debug.hpp"
+
 namespace ql {
 
 rdb_namespace_interface_t::rdb_namespace_interface_t(
@@ -800,11 +802,13 @@ ordered_distinct_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &b
     profile::sampler_t sampler("Ordered distinct.", env->trace);
     while (ret.size() == 0) {
         std::vector<counted_t<const datum_t> > v = source->next_batch(env, bs);
+        if (v.size() == 0) break;
         for (auto &&el : v) {
             if (!last_val.has() || *last_val != *el) {
                 last_val = el;
                 ret.push_back(std::move(el));
             }
+            sampler.new_sample();
         }
     }
     return ret;

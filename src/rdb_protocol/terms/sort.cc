@@ -205,7 +205,7 @@ private:
 class distinct_term_t : public op_term_t {
 public:
     distinct_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1)) { }
+        : op_term_t(env, term, argspec_t(1), optargspec_t({"index"})) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<val_t> v = arg(env, 0);
@@ -213,7 +213,7 @@ private:
         if (v->get_type().is_convertible(val_t::type_t::TABLE)) {
             counted_t<table_t> tbl = v->as_table();
             tbl->add_sorting(idx.has() ? idx->as_str().to_std() : tbl->get_pkey(),
-                             sorting_t::UNORDERED,
+                             sorting_t::ASCENDING,
                              this);
             counted_t<datum_stream_t> s = tbl->as_datum_stream(env->env, backtrace());
             s->add_transformation(distinct_wire_func_t(idx.has()), backtrace());

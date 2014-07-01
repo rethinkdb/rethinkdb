@@ -741,7 +741,7 @@ private:
 
 // Note: this removes duplicates ONLY TO SAVE NETWORK TRAFFIC.  It's possible
 // for duplicates to survive, either because they're on different shards or
-// because they span shard boundaries.  `ordered_distinct_datum_stream_t` in
+// because they span batch boundaries.  `ordered_distinct_datum_stream_t` in
 // `datum_stream.cc` removes any duplicates that survive this `lst_transform`.
 class distinct_trans_t : public ungrouped_op_t {
 public:
@@ -757,7 +757,7 @@ private:
                 r_sanity_check(sindex_val.has());
                 *it = sindex_val;
             }
-            if (!last_val.has() || *it != last_val) {
+            if (!last_val.has() || **it != *last_val) {
                 loc->swap(*it);
                 last_val = *loc;
                 ++loc;
