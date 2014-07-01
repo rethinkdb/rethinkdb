@@ -1,7 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/store.hpp"  // NOLINT(build/include_order)
 
-#include <functional>
+#include <functional>  // NOLINT(build/include_order)
 
 #include "arch/runtime/coroutines.hpp"
 #include "btree/depth_first_traversal.hpp"
@@ -125,11 +125,12 @@ store_t::store_t(serializer_t *serializer,
         get_secondary_indexes(&sindex_block, &sindexes);
 
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-            secondary_index_slices.insert(it->second.id,
-                                          new btree_slice_t(cache.get(),
-                                                            &perfmon_collection,
-                                                            it->first.name,
-                                                            index_type_t::SECONDARY));
+            secondary_index_slices.insert(
+                    std::make_pair(it->second.id,
+                                   make_scoped<btree_slice_t>(cache.get(),
+                                                              &perfmon_collection,
+                                                              it->first.name,
+                                                              index_type_t::SECONDARY)));
         }
     }
 
@@ -521,10 +522,11 @@ bool store_t::add_sindex(
         }
 
         secondary_index_slices.insert(
-            sindex.id, new btree_slice_t(cache.get(),
-                                         &perfmon_collection,
-                                         name.name,
-                                         index_type_t::SECONDARY));
+                std::make_pair(sindex.id,
+                               make_scoped<btree_slice_t>(cache.get(),
+                                                          &perfmon_collection,
+                                                          name.name,
+                                                          index_type_t::SECONDARY)));
 
         sindex.post_construction_complete = false;
 
@@ -596,9 +598,8 @@ void store_t::clear_sindex(
         buf_lock_t sindex_superblock_lock(buf_parent_t(&sindex_block),
                                           sindex.superblock, access_t::write);
         sindex_block.reset_buf_lock();
-        scoped_ptr_t<superblock_t> sindex_superblock;
-        sindex_superblock.init(
-            new real_superblock_t(std::move(sindex_superblock_lock)));
+        scoped_ptr_t<superblock_t> sindex_superblock
+            = make_scoped<real_superblock_t>(std::move(sindex_superblock_lock));
 
         /* 1. Collect a bunch of keys to delete */
         clear_sindex_traversal_cb_t traversal_cb;
@@ -764,11 +765,12 @@ void store_t::set_sindexes(
                                                binary_blob_t());
             }
 
-            secondary_index_slices.insert(it->second.id,
-                                          new btree_slice_t(cache.get(),
-                                                            &perfmon_collection,
-                                                            it->first.name,
-                                                            index_type_t::SECONDARY));
+            secondary_index_slices.insert(
+                    std::make_pair(it->second.id,
+                                   make_scoped<btree_slice_t>(cache.get(),
+                                                              &perfmon_collection,
+                                                              it->first.name,
+                                                              index_type_t::SECONDARY)));
 
             sindex.post_construction_complete = false;
 
@@ -989,15 +991,16 @@ bool store_t::acquire_sindex_superblocks_for_write(
         }
 
         /* Getting the slice and asserting we're on the right thread. */
-        btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->second.id));
+        btree_slice_t *sindex_slice = secondary_index_slices.at(it->second.id).get();
         sindex_slice->assert_thread();
 
         buf_lock_t superblock_lock(
                 sindex_block, it->second.superblock, access_t::write);
 
-        sindex_sbs_out->push_back(new
-                sindex_access_t(get_sindex_slice(it->second.id), it->second, new
-                    real_superblock_t(std::move(superblock_lock))));
+        sindex_sbs_out->push_back(
+                make_scoped<sindex_access_t>(
+                        get_sindex_slice(it->second.id), it->second,
+                        make_scoped<real_superblock_t>(std::move(superblock_lock))));
     }
 
     //return's true if we got all of the sindexes requested.
@@ -1020,15 +1023,16 @@ bool store_t::acquire_sindex_superblocks_for_write(
         }
 
         /* Getting the slice and asserting we're on the right thread. */
-        btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->second.id));
+        btree_slice_t *sindex_slice = secondary_index_slices.at(it->second.id).get();
         sindex_slice->assert_thread();
 
         buf_lock_t superblock_lock(
                 sindex_block, it->second.superblock, access_t::write);
 
-        sindex_sbs_out->push_back(new
-                sindex_access_t(get_sindex_slice(it->second.id), it->second, new
-                    real_superblock_t(std::move(superblock_lock))));
+        sindex_sbs_out->push_back(
+                make_scoped<sindex_access_t>(
+                        get_sindex_slice(it->second.id), it->second,
+                        make_scoped<real_superblock_t>(std::move(superblock_lock))));
     }
 
     //return's true if we got all of the sindexes requested.

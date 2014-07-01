@@ -5,7 +5,6 @@
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
 #include <boost/optional.hpp>
-#include <boost/ptr_container/ptr_map.hpp>
 #include <boost/variant.hpp>
 
 #include "containers/archive/archive.hpp"
@@ -207,38 +206,6 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, boost::optional<T> *x) {
         x->reset();
         return archive_result_t::SUCCESS;
     }
-}
-
-
-template <cluster_version_t W, class K, class V>
-void serialize(write_message_t *wm, const boost::ptr_map<K, V> &x) {
-    serialize_varint_uint64(&wm, x.size());
-    for (typename boost::ptr_map<K, V>::const_iterator it = x.begin(); it != x.end(); ++it) {
-        serialize<W>(wm, it->first);
-        serialize<W>(wm, *it->second);
-    }
-}
-
-template <cluster_version_t W, class K, class V>
-MUST_USE archive_result_t deserialize(read_stream_t *s, boost::ptr_map<K, V> *x) {
-    x->clear();
-    boost::ptr_map<K, V> tmp;
-
-    uint64_t size;
-    archive_result_t res = deserialize_varint_uint64(s, &size);
-    if (res != archive_result_t::SUCCESS) { return res; }
-
-    for (typename boost::ptr_map<K, V>::size_type i = 0; i < size; ++i) {
-        K k;
-        res = deserialize<W>(s, &k);
-        if (res != archive_result_t::SUCCESS) { return res; }
-
-        res = deserialize<W>(s, &tmp[k]);
-        if (res != archive_result_t::SUCCESS) { return res; }
-    }
-
-    x->swap(tmp);
-    return archive_result_t::SUCCESS;
 }
 
 #endif  // CONTAINERS_ARCHIVE_BOOST_TYPES_HPP_

@@ -477,7 +477,7 @@ bool reactor_driver_t::apply_directory_changes(
 
 void reactor_driver_t::delete_reactor_data(
         auto_drainer_t::lock_t lock,
-        reactor_map_t::auto_type *thing_to_delete,
+        watchable_and_reactor_t *thing_to_delete,
         namespace_id_t namespace_id)
 {
     lock.assert_is_holding(&drainer);
@@ -490,7 +490,7 @@ void reactor_driver_t::on_change() {
     std::map<peer_id_t, machine_id_t> machine_id_translation_table_value = machine_id_translation_table->get().get_inner();
 
     for (namespaces_semilattice_metadata_t::namespace_map_t::const_iterator
-             it =  namespaces->namespaces.begin(); it != namespaces->namespaces.end(); it++) {
+             it = namespaces->namespaces.begin(); it != namespaces->namespaces.end(); it++) {
         if (it->second.is_deleted() && std_contains(reactor_data, it->first)) {
             /* on_change cannot block because it is called as part of
              * semilattice subscription, however the
@@ -500,11 +500,13 @@ void reactor_driver_t::on_change() {
              * map but the destructor hasn't been called... then this needs
              * to be heap allocated so that it can be safely passed to a
              * coroutine for destruction. */
+            watchable_and_reactor_t *reactor_datum = reactor_data.at(it->first).release();
+            reactor_data.erase(it->first);
             coro_t::spawn_sometime(boost::bind(
                 &reactor_driver_t::delete_reactor_data,
                 this,
                 auto_drainer_t::lock_t(&drainer),
-                new reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first))),
+                reactor_datum,
                 it->first));
         } else if (!it->second.is_deleted()) {
             const persistable_blueprint_t *pbp = NULL;
@@ -525,7 +527,9 @@ void reactor_driver_t::on_change() {
                  * existing reactor. */
                 if (!std_contains(reactor_data, it->first)) {
                     namespace_id_t tmp = it->first;
-                    reactor_data.insert(tmp, new watchable_and_reactor_t(base_path, io_backender, this, it->first, bp, svs_by_namespace, ctx));
+                    reactor_data.insert(
+                            std::make_pair(tmp,
+                                           make_scoped<watchable_and_reactor_t>(base_path, io_backender, this, it->first, bp, svs_by_namespace, ctx)));
                 } else {
                     struct op_closure_t {
                         static bool apply(const blueprint_t &_bp,
@@ -544,7 +548,9 @@ void reactor_driver_t::on_change() {
                 /* The blueprint does not mentions us so we destroy the
                  * reactor. */
                 if (std_contains(reactor_data, it->first)) {
-                    coro_t::spawn_sometime(boost::bind(&reactor_driver_t::delete_reactor_data, this, auto_drainer_t::lock_t(&drainer), new reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first))), it->first));
+                    watchable_and_reactor_t *reactor_datum = reactor_data.at(it->first).release();
+                    reactor_data.erase(it->first);
+                    coro_t::spawn_sometime(boost::bind(&reactor_driver_t::delete_reactor_data, this, auto_drainer_t::lock_t(&drainer), reactor_datum, it->first));
                 }
             }
         }

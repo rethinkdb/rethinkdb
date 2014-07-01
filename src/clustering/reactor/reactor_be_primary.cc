@@ -6,7 +6,6 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
-#include <boost/ptr_container/ptr_vector.hpp>
 
 #include "clustering/administration/http/json_adapters.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
@@ -346,7 +345,7 @@ bool reactor_t::attempt_backfill_from_peers(directory_entry_t *directory_entry,
     /* We may be backfilling from several sources, each requires a
      * promise be passed in which gets pulsed with a value indicating
      * whether or not the backfill succeeded. */
-    boost::ptr_vector<promise_t<bool> > promises;
+    std::vector<scoped_ptr_t<promise_t<bool> > > promises;
 
     std::vector<reactor_business_card_details::backfill_location_t> backfills;
 
@@ -358,7 +357,7 @@ bool reactor_t::attempt_backfill_from_peers(directory_entry_t *directory_entry,
         } else {
             backfill_session_id_t backfill_session_id = generate_uuid();
             promise_t<bool> *p = new promise_t<bool>;
-            promises.push_back(p);
+            promises.push_back(scoped_ptr_t<promise_t<bool> >(p));
             coro_t::spawn_sometime(boost::bind(&do_backfill,
                                                mailbox_manager,
                                                branch_history_manager,
@@ -385,11 +384,8 @@ bool reactor_t::attempt_backfill_from_peers(directory_entry_t *directory_entry,
      * need to wait for acks. */
 
     bool all_succeeded = true;
-    for (boost::ptr_vector<promise_t<bool> >::iterator it = promises.begin();
-         it != promises.end();
-         ++it) {
-        //DO NOT switch the order of it->wait() and all_succeeded
-        all_succeeded = it->wait() && all_succeeded;
+    for (auto it = promises.begin(); it != promises.end(); ++it) {
+        all_succeeded &= (*it)->wait();
     }
 
     /* If the interruptor was pulsed the interrupted_exc_t would have

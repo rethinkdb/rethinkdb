@@ -101,7 +101,7 @@ void cluster_namespace_interface_t::dispatch_immediate_op(
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
-    boost::ptr_vector<immediate_op_info_t<op_type, fifo_enforcer_token_type> >
+    std::vector<scoped_ptr_t<immediate_op_info_t<op_type, fifo_enforcer_token_type> > >
         masters_to_contact;
     scoped_ptr_t<immediate_op_info_t<op_type, fifo_enforcer_token_type> >
         new_op_info(new immediate_op_info_t<op_type, fifo_enforcer_token_type>());
@@ -141,7 +141,7 @@ void cluster_namespace_interface_t::dispatch_immediate_op(
                 &new_op_info->enforcement_token);
             new_op_info->keepalive = auto_drainer_t::lock_t(
                 &chosen_relationship->drainer);
-            masters_to_contact.push_back(new_op_info.release());
+            masters_to_contact.push_back(std::move(new_op_info));
             new_op_info.init(
                 new immediate_op_info_t<op_type, fifo_enforcer_token_type>());
         }
@@ -181,7 +181,7 @@ void cluster_namespace_interface_t::perform_immediate_op(
         fifo_enforcer_token_type *,
         signal_t *)
     /* THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t) */,
-    boost::ptr_vector<immediate_op_info_t<op_type, fifo_enforcer_token_type> > *
+    std::vector<scoped_ptr_t<immediate_op_info_t<op_type, fifo_enforcer_token_type> > > *
         masters_to_contact,
     std::vector<op_response_type> *results,
     std::vector<std::string> *failures,
@@ -191,7 +191,7 @@ void cluster_namespace_interface_t::perform_immediate_op(
     THROWS_NOTHING
 {
     immediate_op_info_t<op_type, fifo_enforcer_token_type> *master_to_contact
-        = &(*masters_to_contact)[i];
+        = (*masters_to_contact)[i].get();
 
     try {
         (master_to_contact->master_access->*how_to_run_query)(
@@ -221,7 +221,7 @@ cluster_namespace_interface_t::dispatch_outdated_read(
 
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
-    boost::ptr_vector<outdated_read_info_t> direct_readers_to_contact;
+    std::vector<scoped_ptr_t<outdated_read_info_t> > direct_readers_to_contact;
 
     scoped_ptr_t<outdated_read_info_t> new_op_info(new outdated_read_info_t());
     for (auto it = relationships.begin(); it != relationships.end(); ++it) {
@@ -256,7 +256,7 @@ cluster_namespace_interface_t::dispatch_outdated_read(
                 = chosen_relationship->direct_reader_access;
             new_op_info->keepalive = auto_drainer_t::lock_t(
                 &chosen_relationship->drainer);
-            direct_readers_to_contact.push_back(new_op_info.release());
+            direct_readers_to_contact.push_back(std::move(new_op_info));
             new_op_info.init(new outdated_read_info_t());
         }
     }
@@ -283,14 +283,12 @@ void outdated_read_store_result(read_response_t *result_out, const read_response
 }
 
 void cluster_namespace_interface_t::perform_outdated_read(
-    boost::ptr_vector<outdated_read_info_t> *direct_readers_to_contact,
-    std::vector<read_response_t> *results,
-    std::vector<std::string> *failures,
-    int i,
-    signal_t *interruptor)
-    THROWS_NOTHING
-{
-    outdated_read_info_t *direct_reader_to_contact = &(*direct_readers_to_contact)[i];
+        std::vector<scoped_ptr_t<outdated_read_info_t> > *direct_readers_to_contact,
+        std::vector<read_response_t> *results,
+        std::vector<std::string> *failures,
+        int i,
+        signal_t *interruptor) THROWS_NOTHING {
+    outdated_read_info_t *direct_reader_to_contact = (*direct_readers_to_contact)[i].get();
 
     try {
         cond_t done;

@@ -106,7 +106,7 @@ cache_t::matching_snapshot_node_or_null(block_id_t block_id,
     if (list_it == snapshot_nodes_by_block_id_.end()) {
         return NULL;
     }
-    intrusive_list_t<alt_snapshot_node_t> *list = list_it->second;
+    intrusive_list_t<alt_snapshot_node_t> *list = list_it->second.get();
     for (alt_snapshot_node_t *p = list->tail(); p != NULL; p = list->prev(p)) {
         if (p->current_page_acq_->block_version() == block_version) {
             return p;
@@ -118,7 +118,7 @@ cache_t::matching_snapshot_node_or_null(block_id_t block_id,
 void cache_t::add_snapshot_node(block_id_t block_id,
                                 alt_snapshot_node_t *node) {
     ASSERT_NO_CORO_WAITING;
-    snapshot_nodes_by_block_id_[block_id].push_back(node);
+    snapshot_nodes_by_block_id_[block_id]->push_back(node);
 }
 
 void cache_t::remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node) {

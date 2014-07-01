@@ -1,16 +1,15 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef BACKTRACE_HPP_
 #define BACKTRACE_HPP_
 
 #include <stdio.h>
 #include <time.h>
 
+#include <map>
 #include <string>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/ptr_container/ptr_map.hpp>
-
+#include "containers/scoped.hpp"
 
 /* `demangle_cpp_name()` attempts to de-mangle the given symbol name. If it
 succeeds, it returns the result as a `std::string`. If it fails, it throws
@@ -47,7 +46,7 @@ private:
     };
 
     // "Cache" to re-use addr2line processes
-    boost::ptr_map<const std::string, addr2line_t> procs;
+    std::map<std::string, scoped_ptr_t<addr2line_t> > procs;
 
     DISABLE_COPYING(address_to_line_t);
 };
