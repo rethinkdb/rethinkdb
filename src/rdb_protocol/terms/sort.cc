@@ -10,8 +10,12 @@
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
+#include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/op.hpp"
+#include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/term_walker.hpp"
+
+#include "debug.hpp"
 
 namespace ql {
 
@@ -207,17 +211,33 @@ public:
     distinct_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1), optargspec_t({"index"})) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) {
         counted_t<val_t> v = arg(env, 0);
         counted_t<val_t> idx = optarg(env, "index");
         if (v->get_type().is_convertible(val_t::type_t::TABLE)) {
             counted_t<table_t> tbl = v->as_table();
-            tbl->add_sorting(idx.has() ? idx->as_str().to_std() : tbl->get_pkey(),
-                             sorting_t::ASCENDING,
-                             this);
-            counted_t<datum_stream_t> s = tbl->as_datum_stream(env->env, backtrace());
-            s->add_transformation(distinct_wire_func_t(idx.has()), backtrace());
-            return new_val(env->env, s->ordered_distinct());
+            std::string idx_str = idx.has() ? idx->as_str().to_std() : tbl->get_pkey();
+            if (idx.has() && idx_str == tbl->get_pkey()) {
+                auto row = pb::dummy_var_t::DISTINCT_ROW;
+                std::vector<sym_t> args{dummy_var_to_sym(row)};
+                protob_t<Term> body(make_counted_term());
+                {
+                    r::reql_t f = r::var(row)[idx_str];
+                    body->Swap(&f.get());
+                }
+                propagate(body.get());
+                counted_t<datum_stream_t> s =
+                    tbl->as_datum_stream(env->env, backtrace());
+                map_wire_func_t mwf(body, std::move(args), backtrace());
+                s->add_transformation(std::move(mwf), backtrace());
+                return new_val(env->env, s);
+            } else {
+                tbl->add_sorting(idx_str, sorting_t::ASCENDING, this);
+                counted_t<datum_stream_t> s =
+                    tbl->as_datum_stream(env->env, backtrace());
+                s->add_transformation(distinct_wire_func_t(idx.has()), backtrace());
+                return new_val(env->env, s->ordered_distinct());
+            }
         } else {
             rcheck(!idx, base_exc_t::GENERIC,
                    "Can only perform an indexed distinct on a TABLE.");
