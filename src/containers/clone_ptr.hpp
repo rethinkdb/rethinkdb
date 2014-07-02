@@ -20,6 +20,8 @@ public:
     /* Takes ownership of the argument. */
     explicit clone_ptr_t(T *p);
 
+    // (We have noexcept specifiers on move operations in particular so that STL
+    // containers don't have to copy.)
     clone_ptr_t(clone_ptr_t &&movee) noexcept : object(std::move(movee.object)) { }
 
     template<class U>
