@@ -129,8 +129,6 @@ class rget_read_t;
 template <class T> struct archive_variant_deserialize_t {
     template <cluster_version_t W, class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20>
     static MUST_USE archive_result_t go(read_stream_t *s, boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *x) {
-        static_assert(!(std::is_same<T2, rget_read_t>::value
-                        && W != cluster_version_t::CLUSTER), "foo");
         T v;
         archive_result_t res = deserialize<W>(s, &v);
         if (bad(res)) { return res; }
