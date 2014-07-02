@@ -460,7 +460,10 @@ RDB_DECLARE_SERIALIZABLE(changefeed_subscribe_t);
 class changefeed_stamp_t {
 public:
     changefeed_stamp_t() : region(region_t::universe()) { }
-    explicit changefeed_stamp_t(ql::changefeed::client_t::addr_t _addr)
+    // TODO: long-term we should use this keyspec to limit what documents need
+    // to be sent by the changefeed server.
+    explicit changefeed_stamp_t(ql::changefeed::client_t::addr_t _addr,
+                                ql::changefeed::keyspec_t &&)
         : addr(std::move(_addr)), region(region_t::universe()) { }
     ql::changefeed::client_t::addr_t addr;
     region_t region;

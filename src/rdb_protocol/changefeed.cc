@@ -160,7 +160,7 @@ enum class detach_t { NO, YES };
 class subscription_t : public home_thread_mixin_t {
 public:
     // Throws QL exceptions.
-    explicit subscription_t(feed_t *_feed);
+    explicit subscription_t(feed_t *_feed, keyspec_t &&keyspec);
     ~subscription_t();
     std::vector<counted_t<const datum_t> >
     get_els(batcher_t *batcher, const signal_t *interruptor);
@@ -182,6 +182,8 @@ private:
     std::deque<counted_t<const datum_t> > els;
     // The feed we're subscribed to.
     feed_t *feed;
+    // What keys we care about on that feed.
+    keyspec_t keyspec;
     // The stamp (see `stamped_msg_t`) associated with our `changefeed_stamp_t`
     // read.  We use these to make sure we don't see changes from writes before
     // our subscription.
@@ -198,15 +200,30 @@ public:
            uuid_u uuid,
            signal_t *interruptor);
     ~feed_t();
-    void add_sub(subscription_t *sub) THROWS_NOTHING;
-    void del_sub(subscription_t *sub) THROWS_NOTHING;
+    void add_sub(subscription_t *sub, const keyspec_t &keyspec) THROWS_NOTHING;
+    void del_sub(subscription_t *sub, const keyspec_t &keyspec) THROWS_NOTHING;
+
+    void each_table_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
+    void each_point_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
     void each_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
+    void on_point_sub(counted_t<const datum_t> key,
+                      const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
+
+
     bool can_be_removed();
     client_t::addr_t get_addr() const;
+
+    const std::string pkey; // RSI: fill in
 private:
-    void each_subscription_cb(const std::function<void(subscription_t *)> &f,
-                     const std::vector<int> &subscription_threads,
-                     int i);
+    void each_sub_in_vec(
+        const std::vector<std::set<subscription_t *> > &vec,
+        rwlock_in_line_t *spot,
+        const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
+    void each_sub_in_vec_cb(const std::function<void(subscription_t *)> &f,
+                            const std::vector<std::set<subscription_t *> > &vec,
+                            const std::vector<int> &subscription_threads,
+                            int i);
+    void each_point_sub_cb(const std::function<void(subscription_t *)> &f, int i);
     void mailbox_cb(stamped_msg_t msg);
     void constructor_cb();
 
@@ -234,8 +251,11 @@ private:
     std::map<uuid_u, scoped_ptr_t<queue_t> > queues;
     cond_t queues_ready;
 
-    std::vector<std::set<subscription_t *> > subs;
-    rwlock_t subs_lock;
+    typedef std::vector<std::set<subscription_t *> > subvec_t;
+    friend class keyspec_visitor_t;
+    subvec_t table_subs;
+    std::map<counted_t<const datum_t>, subvec_t> point_subs;
+    rwlock_t table_subs_lock, point_subs_lock;
     int64_t num_subs;
 
     bool detached;
@@ -254,12 +274,17 @@ public:
             {"old_val", change.old_val.has() ? change.old_val : null}
         };
         auto d = make_counted<const datum_t>(std::move(obj));
-        feed->each_sub(
-            std::bind(&subscription_t::add_el,
-                      ph::_1,
-                      std::cref(server_uuid),
-                      stamp,
-                      d));
+        auto f = std::bind(&subscription_t::add_el,
+                           ph::_1,
+                           std::cref(server_uuid),
+                           stamp,
+                           d);
+        feed->each_table_sub(f);
+        auto val = change.new_val.has() ? change.new_val : change.old_val;
+        r_sanity_check(val.has());
+        auto pkey_val = val->get(feed->pkey, NOTHROW);
+        r_sanity_check(pkey_val.has());
+        feed->on_point_sub(pkey_val, f);
     }
     void operator()(const msg_t::stop_t &) const {
         const char *msg = "Changefeed aborted (table unavailable).";
@@ -294,16 +319,17 @@ private:
     scoped_ptr_t<subscription_t> sub;
 };
 
-subscription_t::subscription_t(feed_t *_feed) : skipped(0), cond(NULL), feed(_feed) {
+subscription_t::subscription_t(feed_t *_feed, keyspec_t &&_keyspec)
+    : skipped(0), cond(NULL), feed(_feed), keyspec(std::move(_keyspec)) {
     guarantee(feed != NULL);
-    feed->add_sub(this);
+    feed->add_sub(this, keyspec);
 }
 
 subscription_t::~subscription_t() {
     // This error is only sent if we're getting destroyed while blocking.
     stop("Subscription destroyed (shutting down?).", detach_t::NO);
     if (feed != NULL) {
-        feed->del_sub(this);
+        feed->del_sub(this, keyspec);
     } else {
         // We only get here if we were detached.
         guarantee(exc);
@@ -403,26 +429,80 @@ void subscription_t::maybe_signal_cond() THROWS_NOTHING {
     }
 }
 
+enum class action_t { ADD, DEL };
+class keyspec_visitor_t : public boost::static_visitor<void> {
+public:
+    keyspec_visitor_t(feed_t *_feed, action_t _action, subscription_t *_sub)
+        : feed(_feed), action(_action), sub(_sub) { }
+
+    void operator()(const keyspec_t::all_t &) const {
+        auto_drainer_t::lock_t lock(&feed->drainer);
+        rwlock_in_line_t spot(&feed->table_subs_lock, access_t::write);
+        spot.write_signal()->wait_lazily_unordered();
+        switch (action) {
+        case action_t::ADD: {
+            feed->table_subs[sub->home_thread().threadnum].insert(sub);
+        } break;
+        case action_t::DEL: {
+            size_t erased = feed->table_subs[sub->home_thread().threadnum].erase(sub);
+            guarantee(erased == 1);
+        } break;
+        default: unreachable();
+        }
+    }
+    void operator()(const keyspec_t::point_t &point_keyspec) const {
+        auto_drainer_t::lock_t lock(&feed->drainer);
+        rwlock_in_line_t spot(&feed->point_subs_lock, access_t::write);
+        spot.read_signal()->wait_lazily_unordered();
+        auto point_subs = &feed->point_subs;
+        auto subvec_it = point_subs->find(point_keyspec.key);
+        spot.write_signal()->wait_lazily_unordered();
+        switch (action) {
+        case action_t::ADD: {
+            if (subvec_it == point_subs->end()) {
+                subvec_it = point_subs->insert(
+                    std::make_pair(
+                        point_keyspec.key,
+                        decltype(subvec_it->second)(get_num_threads()))).first;
+            }
+            (subvec_it->second)[sub->home_thread().threadnum].insert(sub);
+        } break;
+        case action_t::DEL: {
+            guarantee(subvec_it != point_subs->end());
+            size_t erased = (subvec_it->second)[sub->home_thread().threadnum].erase(sub);
+            guarantee(erased == 1);
+
+            // If there are no more subscribers, remove the key from the map.
+            auto it = subvec_it->second.begin();
+            for (; it != subvec_it->second.end(); ++it) {
+                if (it->size() != 0) {
+                    break;
+                }
+            }
+            if (it == subvec_it->second.end()) {
+                point_subs->erase(subvec_it);
+            }
+        } break;
+        default: unreachable();
+        }
+    }
+private:
+    feed_t *feed;
+    action_t action;
+    subscription_t *sub;
+};
+
 // If this throws we might leak the increment to `num_subs`.
-void feed_t::add_sub(subscription_t *sub) THROWS_NOTHING {
+void feed_t::add_sub(subscription_t *sub, const keyspec_t &keyspec) THROWS_NOTHING {
     on_thread_t th(home_thread());
     guarantee(!detached);
     num_subs += 1;
-    auto_drainer_t::lock_t lock(&drainer);
-    rwlock_in_line_t spot(&subs_lock, access_t::write);
-    spot.write_signal()->wait_lazily_unordered();
-    subs[sub->home_thread().threadnum].insert(sub);
+    boost::apply_visitor(keyspec_visitor_t(this, action_t::ADD, sub), keyspec.spec);
 }
 // Can't throw because it's called in a destructor.
-void feed_t::del_sub(subscription_t *sub) THROWS_NOTHING {
+void feed_t::del_sub(subscription_t *sub, const keyspec_t &keyspec) THROWS_NOTHING {
     on_thread_t th(home_thread());
-    {
-        auto_drainer_t::lock_t lock(&drainer);
-        rwlock_in_line_t spot(&subs_lock, access_t::write);
-        spot.write_signal()->wait_lazily_unordered();
-        size_t erased = subs[sub->home_thread().threadnum].erase(sub);
-        guarantee(erased == 1);
-    }
+    boost::apply_visitor(keyspec_visitor_t(this, action_t::DEL, sub), keyspec.spec);
     num_subs -= 1;
     if (num_subs == 0) {
         // It's possible that by the time we get the lock to remove the feed,
@@ -431,34 +511,81 @@ void feed_t::del_sub(subscription_t *sub) THROWS_NOTHING {
     }
 }
 
-void feed_t::each_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
+void feed_t::each_sub_in_vec(
+    const std::vector<std::set<subscription_t *> > &vec,
+    rwlock_in_line_t *spot,
+    const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
     assert_thread();
     auto_drainer_t::lock_t lock(&drainer);
-    rwlock_in_line_t spot(&subs_lock, access_t::read);
-    spot.read_signal()->wait_lazily_unordered();
+    spot->read_signal()->wait_lazily_unordered();
 
     std::vector<int> subscription_threads;
     for (int i = 0; i < get_num_threads(); ++i) {
-        if (subs[i].size() != 0) {
+        if (vec[i].size() != 0) {
             subscription_threads.push_back(i);
         }
     }
     pmap(subscription_threads.size(),
-         std::bind(&feed_t::each_subscription_cb,
+         std::bind(&feed_t::each_sub_in_vec_cb,
                    this,
                    std::cref(f),
+                   std::cref(vec),
                    std::cref(subscription_threads),
                    ph::_1));
 }
-void feed_t::each_subscription_cb(const std::function<void(subscription_t *)> &f,
-                         const std::vector<int> &subscription_threads,
-                         int i) {
-    std::set<subscription_t *> *set = &subs[subscription_threads[i]];
-    guarantee(set->size() != 0);
+
+void feed_t::each_sub_in_vec_cb(const std::function<void(subscription_t *)> &f,
+                                const std::vector<std::set<subscription_t *> > &vec,
+                                const std::vector<int> &subscription_threads,
+                                int i) {
+    guarantee(vec[subscription_threads[i]].size() != 0);
     on_thread_t th((threadnum_t(subscription_threads[i])));
-    for (auto it = set->begin(); it != set->end(); ++it) {
-        f(*it);
+    for (subscription_t *sub : vec[subscription_threads[i]]) {
+        f(sub);
     }
+}
+
+void feed_t::each_table_sub(
+    const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
+    rwlock_in_line_t spot(&table_subs_lock, access_t::read);
+    each_sub_in_vec(table_subs, &spot, f);
+}
+
+void feed_t::each_point_sub(
+    const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
+    rwlock_in_line_t spot(&point_subs_lock, access_t::read);
+    pmap(get_num_threads(),
+         std::bind(&feed_t::each_point_sub_cb,
+                   this,
+                   std::cref(f),
+                   ph::_1));
+}
+
+void feed_t::each_point_sub_cb(const std::function<void(subscription_t *)> &f, int i) {
+    on_thread_t th((threadnum_t(i)));
+    for (const auto &pair : point_subs) {
+        for (subscription_t *sub : pair.second[i]) {
+            f(sub);
+        }
+    }
+}
+
+void feed_t::each_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
+    each_table_sub(f);
+    each_point_sub(f);
+}
+
+void feed_t::on_point_sub(
+    counted_t<const datum_t> key,
+    const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
+    assert_thread();
+    auto_drainer_t::lock_t lock(&drainer);
+    rwlock_in_line_t spot(&point_subs_lock, access_t::read);
+    spot.read_signal()->wait_lazily_unordered();
+
+    auto point_sub = point_subs.find(key);
+    guarantee(point_sub != point_subs.end());
+    each_sub_in_vec(point_sub->second, &spot, f);
 }
 
 bool feed_t::can_be_removed() {
@@ -517,7 +644,7 @@ feed_t::feed_t(client_t *_client,
       uuid(_uuid),
       manager(_manager),
       mailbox(manager, std::bind(&feed_t::mailbox_cb, this, ph::_1)),
-      subs(get_num_threads()),
+      table_subs(get_num_threads()),
       num_subs(0),
       detached(false) {
     base_namespace_repo_t::access_t access(ns_repo, uuid, interruptor);
@@ -603,7 +730,7 @@ client_t::client_t(mailbox_manager_t *_manager)
 client_t::~client_t() { }
 
 counted_t<datum_stream_t>
-client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
+client_t::new_feed(const counted_t<table_t> &tbl, keyspec_t &&keyspec, env_t *env) {
     try {
         uuid_u uuid = tbl->get_uuid();
         scoped_ptr_t<subscription_t> sub;
@@ -628,11 +755,12 @@ client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
             on_thread_t th2(old_thread);
             feed_t *feed = feed_it->second.get();
             addr = feed->get_addr();
-            sub.init(new subscription_t(feed));
+            sub.init(new subscription_t(feed, keyspec.copy()));
         }
         base_namespace_repo_t::access_t access(env->ns_repo(), uuid, env->interruptor);
         namespace_interface_t *nif = access.get_namespace_if();
-        read_t read(changefeed_stamp_t(addr), profile_bool_t::DONT_PROFILE);
+        read_t read(changefeed_stamp_t(addr, std::move(keyspec)),
+                    profile_bool_t::DONT_PROFILE);
         read_response_t read_resp;
         nif->read(read, &read_resp, order_token_t::ignore, env->interruptor);
         auto resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);

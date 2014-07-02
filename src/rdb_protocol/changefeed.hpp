@@ -74,6 +74,31 @@ struct stamped_msg_t;
 
 typedef mailbox_addr_t<void(stamped_msg_t)> client_addr_t;
 
+// We do it this way with a variant because in the near future this is going to
+// be serialized to the shards to prevent us from always sending every row to
+// the changefeed client.
+struct keyspec_t {
+    struct all_t { };
+    struct point_t {
+        point_t() { }
+        point_t(counted_t<const datum_t> _key) : key(std::move(_key)) { }
+        counted_t<const datum_t> key;
+    };
+
+    keyspec_t(keyspec_t &&keyspec) = default;
+    keyspec_t copy() { return keyspec_t(*this); }
+    explicit keyspec_t(all_t &&all) : spec(std::move(all)) { }
+    explicit keyspec_t(point_t &&point) : spec(std::move(point)) { }
+
+    boost::variant<all_t, point_t> spec;
+private:
+    keyspec_t() { }
+    keyspec_t(const keyspec_t &keyspec) = default;
+};
+RDB_DECLARE_SERIALIZABLE(keyspec_t::all_t);
+RDB_DECLARE_SERIALIZABLE(keyspec_t::point_t);
+RDB_DECLARE_SERIALIZABLE(keyspec_t);
+
 // The `client_t` exists on the machine handling the changefeed query, in the
 // `rdb_context_t`.  When a query subscribes to the changes on a table, it
 // should call `new_feed`.  The `client_t` will give it back a stream of rows.
@@ -88,7 +113,9 @@ public:
     explicit client_t(mailbox_manager_t *_manager);
     ~client_t();
     // Throws QL exceptions.
-    counted_t<datum_stream_t> new_feed(const counted_t<table_t> &tbl, env_t *env);
+    counted_t<datum_stream_t> new_feed(const counted_t<table_t> &tbl,
+                                       keyspec_t &&keyspec,
+                                       env_t *env);
     void maybe_remove_feed(const uuid_u &uuid);
     scoped_ptr_t<feed_t> detach_feed(const uuid_u &uuid);
 private:

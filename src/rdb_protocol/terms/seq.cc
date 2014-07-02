@@ -215,9 +215,35 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) {
-        counted_t<table_t> tbl = arg(env, 0)->as_table();
-        changefeed::client_t *client = env->env->get_changefeed_client();
-        return new_val(env->env, client->new_feed(tbl, env->env));
+        counted_t<val_t> v = arg(env, 0);
+        if (v->get_type().is_convertible(val_t::type_t::TABLE)) {
+            counted_t<table_t> tbl = arg(env, 0)->as_table();
+            changefeed::client_t *client = env->env->get_changefeed_client();
+            return new_val(
+                env->env,
+                client->new_feed(
+                    tbl,
+                    changefeed::keyspec_t(changefeed::keyspec_t::all_t()),
+                    env->env));
+        } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
+            auto single_selection = v->as_single_selection();
+            counted_t<table_t> tbl = std::move(single_selection.first);
+            counted_t<const datum_t> val = std::move(single_selection.second);
+
+            counted_t<const datum_t> key = val->get(tbl->get_pkey());
+            changefeed::client_t *client = env->env->get_changefeed_client();
+            return new_val(
+                env->env,
+                client->new_feed(
+                    tbl,
+                    changefeed::keyspec_t(
+                        changefeed::keyspec_t::point_t(std::move(key))),
+                    env->env));
+        }
+        std::pair<counted_t<table_t>, counted_t<datum_stream_t> > selection
+            = v->as_selection(env->env);
+        rfail(base_exc_t::GENERIC,
+              ".changes() not yet supported on range selections");
     }
     virtual const char *name() const { return "changes"; }
 };
