@@ -67,9 +67,9 @@ private:
     }
     virtual bool accumulate(const counted_t<const datum_t> &el,
                             T *t,
-                            store_key_t key,
+                            const store_key_t &key,
                             // sindex_val may be NULL
-                            counted_t<const datum_t> sindex_val) = 0;
+                            const counted_t<const datum_t> &sindex_val) = 0;
 
     virtual bool should_send_batch() = 0;
 
@@ -119,16 +119,16 @@ private:
     }
     virtual bool accumulate(const counted_t<const datum_t> &el,
                             stream_t *stream,
-                            store_key_t key,
+                            const store_key_t &key,
                             // sindex_val may be NULL
-                            counted_t<const datum_t> sindex_val) {
+                            const counted_t<const datum_t> &sindex_val) {
         if (batcher) batcher->note_el(el);
         // We don't bother storing the sindex if we aren't sorting (this is
         // purely a performance optimization).
         counted_t<const datum_t> rget_sindex_val = (sorting == sorting_t::UNORDERED)
             ? counted_t<const datum_t>()
-            : std::move(sindex_val);
-        stream->push_back(rget_item_t(std::move(key), rget_sindex_val, el));
+            : sindex_val;
+        stream->push_back(rget_item_t(store_key_t(key), rget_sindex_val, el));
         return true;
     }
 
@@ -318,7 +318,7 @@ private:
 
     virtual bool accumulate(
         const counted_t<const datum_t> &el, T *t,
-        store_key_t, counted_t<const datum_t>) {
+        const store_key_t &, const counted_t<const datum_t> &) {
         return accumulate(el, t);
     }
     virtual bool accumulate(const counted_t<const datum_t> &el, T *t) = 0;
