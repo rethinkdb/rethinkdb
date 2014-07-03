@@ -24,7 +24,8 @@ public:
     explicit scoped_ptr_t(T *p) : ptr_(p) { }
 
     // (These noexcepts don't actually do anything w.r.t. STL containers, since the
-    // type's not copyable.)
+    // type's not copyable.  There is no specific reason why these are many other
+    // functions need be marked noexcept with any degree of urgency.)
     scoped_ptr_t(scoped_ptr_t &&movee) noexcept : ptr_(movee.ptr_) {
         movee.ptr_ = NULL;
     }
@@ -135,7 +136,8 @@ public:
     }
 
     // (These noexcepts don't actually do anything w.r.t. STL containers, since the
-    // type's not copyable.)
+    // type's not copyable.  There is no specific reason why these are many other
+    // functions need be marked noexcept with any degree of urgency.)
     scoped_array_t(scoped_array_t &&movee) noexcept
         : ptr_(movee.ptr_), size_(movee.size_) {
         movee.ptr_ = NULL;
@@ -238,7 +240,8 @@ public:
         memcpy(ptr_, beg, n);
     }
     // (These noexcepts don't actually do anything w.r.t. STL containers, since the
-    // type's not copyable.)
+    // type's not copyable.  There is no specific reason why these are many other
+    // functions need be marked noexcept with any degree of urgency.)
     scoped_malloc_t(scoped_malloc_t &&movee) noexcept
         : ptr_(movee.ptr_) {
         movee.ptr_ = NULL;
