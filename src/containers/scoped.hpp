@@ -22,11 +22,15 @@ public:
 
     scoped_ptr_t() : ptr_(NULL) { }
     explicit scoped_ptr_t(T *p) : ptr_(p) { }
-    scoped_ptr_t(scoped_ptr_t &&movee) : ptr_(movee.ptr_) {
+
+    // (These noexcepts don't actually do anything w.r.t. STL containers, since the
+    // type's not copyable.  There is no specific reason why these are many other
+    // functions need be marked noexcept with any degree of urgency.)
+    scoped_ptr_t(scoped_ptr_t &&movee) noexcept : ptr_(movee.ptr_) {
         movee.ptr_ = NULL;
     }
     template <class U>
-    scoped_ptr_t(scoped_ptr_t<U> &&movee) : ptr_(movee.ptr_) {
+    scoped_ptr_t(scoped_ptr_t<U> &&movee) noexcept : ptr_(movee.ptr_) {
         movee.ptr_ = NULL;
     }
 
@@ -34,14 +38,14 @@ public:
         reset();
     }
 
-    scoped_ptr_t &operator=(scoped_ptr_t &&movee) {
+    scoped_ptr_t &operator=(scoped_ptr_t &&movee) noexcept {
         scoped_ptr_t tmp(std::move(movee));
         swap(tmp);
         return *this;
     }
 
     template <class U>
-    scoped_ptr_t &operator=(scoped_ptr_t<U> &&movee) {
+    scoped_ptr_t &operator=(scoped_ptr_t<U> &&movee) noexcept {
         scoped_ptr_t tmp(std::move(movee));
         swap(tmp);
         return *this;
@@ -78,7 +82,7 @@ public:
         return tmp;
     }
 
-    void swap(scoped_ptr_t &other) {
+    void swap(scoped_ptr_t &other) noexcept {
         T *tmp = ptr_;
         ptr_ = other.ptr_;
         other.ptr_ = tmp;
@@ -131,7 +135,11 @@ public:
         init(ptr, size);
     }
 
-    scoped_array_t(scoped_array_t &&movee) : ptr_(movee.ptr_), size_(movee.size_) {
+    // (These noexcepts don't actually do anything w.r.t. STL containers, since the
+    // type's not copyable.  There is no specific reason why these are many other
+    // functions need be marked noexcept with any degree of urgency.)
+    scoped_array_t(scoped_array_t &&movee) noexcept
+        : ptr_(movee.ptr_), size_(movee.size_) {
         movee.ptr_ = NULL;
         movee.size_ = 0;
     }
@@ -140,7 +148,7 @@ public:
         reset();
     }
 
-    scoped_array_t &operator=(scoped_array_t &&movee) {
+    scoped_array_t &operator=(scoped_array_t &&movee) noexcept {
         scoped_array_t tmp(std::move(movee));
         swap(tmp);
         return *this;
@@ -176,7 +184,7 @@ public:
         return tmp;
     }
 
-    void swap(scoped_array_t &other) {
+    void swap(scoped_array_t &other) noexcept {
         T *tmp = ptr_;
         size_t tmpsize = size_;
         ptr_ = other.ptr_;
@@ -231,13 +239,16 @@ public:
         ptr_ = static_cast<T *>(rmalloc(n));
         memcpy(ptr_, beg, n);
     }
-    scoped_malloc_t(scoped_malloc_t &&movee)
+    // (These noexcepts don't actually do anything w.r.t. STL containers, since the
+    // type's not copyable.  There is no specific reason why these are many other
+    // functions need be marked noexcept with any degree of urgency.)
+    scoped_malloc_t(scoped_malloc_t &&movee) noexcept
         : ptr_(movee.ptr_) {
         movee.ptr_ = NULL;
     }
 
     template <class U>
-    scoped_malloc_t(scoped_malloc_t<U> &&movee)
+    scoped_malloc_t(scoped_malloc_t<U> &&movee) noexcept
         : ptr_(movee.ptr_) {
         movee.ptr_ = NULL;
     }
@@ -246,7 +257,7 @@ public:
         free(ptr_);
     }
 
-    void operator=(scoped_malloc_t &&movee) {
+    void operator=(scoped_malloc_t &&movee) noexcept {
         scoped_malloc_t tmp(std::move(movee));
         swap(tmp);
     }
@@ -275,7 +286,7 @@ public:
     }
 
 private:
-    void swap(scoped_malloc_t &other) {  // NOLINT
+    void swap(scoped_malloc_t &other) noexcept {  // NOLINT
         T *tmp = ptr_;
         ptr_ = other.ptr_;
         other.ptr_ = tmp;
