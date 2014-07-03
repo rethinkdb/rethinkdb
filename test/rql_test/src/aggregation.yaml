@@ -406,9 +406,11 @@ tests:
       ot: 100
 
     - cd: tbl.distinct({index:'id'}).type_of()
+      py: tbl.distinct(index='id').type_of()
       ot: ("STREAM")
 
     - cd: tbl.distinct({index:'id'}).count()
+      py: tbl.distinct(index='id').count()
       ot: 100
 
     - cd: tbl.index_create('a')
@@ -418,9 +420,11 @@ tests:
       ot: ([{'index':'a','ready':true}])
 
     - cd: tbl.distinct({index:'a'}).type_of()
+      py: tbl.distinct(index='a').type_of()
       ot: ("STREAM")
 
     - cd: tbl.distinct({index:'a'}).count()
+      py: tbl.distinct(index='a').count()
       ot: 4
 
     - cd: tbl.group()
