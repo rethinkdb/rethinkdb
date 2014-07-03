@@ -153,10 +153,7 @@ public:
     distinct_wire_func_t(bool _use_index) : use_index(_use_index) { }
     bool use_index;
 };
-template <cluster_version_t W>
-void serialize(write_message_t *, const distinct_wire_func_t &);
-template <cluster_version_t W>
-archive_result_t deserialize(read_stream_t *s, distinct_wire_func_t *thing);
+RDB_DECLARE_SERIALIZABLE(distinct_wire_func_t);
 
 template <class T>
 class skip_terminal_t;
