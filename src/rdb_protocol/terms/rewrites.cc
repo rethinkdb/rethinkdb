@@ -37,14 +37,14 @@ private:
         return real->is_deterministic();
     }
 
-    virtual counted_t<val_t> term_eval(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> term_eval(scope_env_t *env, eval_flags_t) const {
         return real->eval(env);
     }
 
     protob_t<const Term> in;
     protob_t<Term> out;
 
-    counted_t<term_t> real;
+    counted_t<const term_t> real;
 };
 
 class inner_join_term_t : public rewrite_term_t {

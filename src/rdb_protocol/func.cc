@@ -41,7 +41,7 @@ void func_t::assert_deterministic(const char *extra_msg) const {
 reql_func_t::reql_func_t(const protob_t<const Backtrace> backtrace,
                          const var_scope_t &_captured_scope,
                          std::vector<sym_t> _arg_names,
-                         counted_t<term_t> _body)
+                         counted_t<const term_t> _body)
     : func_t(backtrace), captured_scope(_captured_scope),
       arg_names(std::move(_arg_names)), body(std::move(_body)) { }
 
@@ -181,7 +181,7 @@ func_term_t::func_term_t(compile_env_t *env, const protob_t<const Term> &t)
     compile_env_t body_env(std::move(varname_visibility));
 
     protob_t<const Term> body_source = t.make_child(&t->args(1));
-    counted_t<term_t> compiled_body = compile_term(&body_env, body_source);
+    counted_t<const term_t> compiled_body = compile_term(&body_env, body_source);
     r_sanity_check(compiled_body.has());
 
     var_captures_t captures;
@@ -204,11 +204,12 @@ void func_term_t::accumulate_captures(var_captures_t *captures) const {
     captures->implicit_is_captured |= external_captures.implicit_is_captured;
 }
 
-counted_t<val_t> func_term_t::term_eval(scope_env_t *env, UNUSED eval_flags_t flags) {
+counted_t<val_t> func_term_t::term_eval(scope_env_t *env,
+                                        UNUSED eval_flags_t flags) const {
     return new_val(eval_to_func(env->scope));
 }
 
-counted_t<func_t> func_term_t::eval_to_func(const var_scope_t &env_scope) {
+counted_t<func_t> func_term_t::eval_to_func(const var_scope_t &env_scope) const {
     return make_counted<reql_func_t>(get_backtrace(get_src()),
                                      env_scope.filtered_by_captures(external_captures),
                                      arg_names, body);

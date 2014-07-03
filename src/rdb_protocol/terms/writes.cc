@@ -29,7 +29,7 @@ counted_t<const datum_t> new_stats_object() {
 }
 
 durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
-                                                 pb_rcheckable_t *target) {
+                                                 const pb_rcheckable_t *target) {
     if (!arg.has()) { return DURABILITY_REQUIREMENT_DEFAULT; }
     const wire_string_t &str = arg->as_str();
     if (str == "hard") { return DURABILITY_REQUIREMENT_HARD; }
@@ -48,10 +48,10 @@ public:
                     optargspec_t({"upsert", "durability", "return_vals"})) { }
 
 private:
-    void maybe_generate_key(counted_t<table_t> tbl,
-                            std::vector<std::string> *generated_keys_out,
-                            size_t *keys_skipped_out,
-                            counted_t<const datum_t> *datum_out) {
+    static void maybe_generate_key(counted_t<table_t> tbl,
+                                   std::vector<std::string> *generated_keys_out,
+                                   size_t *keys_skipped_out,
+                                   counted_t<const datum_t> *datum_out) {
         if (!(*datum_out)->get(tbl->get_pkey(), NOTHROW).has()) {
             std::string key = uuid_to_str(generate_uuid());
             counted_t<const datum_t> keyd(new datum_t(std::string(key)));
@@ -67,21 +67,21 @@ private:
         }
     }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        counted_t<table_t> t = arg(env, 0)->as_table();
-        counted_t<val_t> upsert_val = optarg(env, "upsert");
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<table_t> t = args->arg(env, 0)->as_table();
+        counted_t<val_t> upsert_val = args->optarg(env, "upsert");
         bool upsert = upsert_val.has() ? upsert_val->as_bool() : false;
-        counted_t<val_t> return_vals_val = optarg(env, "return_vals");
+        counted_t<val_t> return_vals_val = args->optarg(env, "return_vals");
         bool return_vals = return_vals_val.has() ? return_vals_val->as_bool() : false;
 
         const durability_requirement_t durability_requirement
-            = parse_durability_optarg(optarg(env, "durability"), this);
+            = parse_durability_optarg(args->optarg(env, "durability"), this);
 
         bool done = false;
         counted_t<const datum_t> stats = new_stats_object();
         std::vector<std::string> generated_keys;
         size_t keys_skipped = 0;
-        counted_t<val_t> v1 = arg(env, 1);
+        counted_t<val_t> v1 = args->arg(env, 1);
         if (v1->get_type().is_convertible(val_t::type_t::DATUM)) {
             std::vector<counted_t<const datum_t> > datums;
             datums.push_back(v1->as_datum());
@@ -165,25 +165,25 @@ public:
                     optargspec_t({"non_atomic", "durability", "return_vals"})) { }
 
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         bool nondet_ok = false;
-        if (counted_t<val_t> v = optarg(env, "non_atomic")) {
+        if (counted_t<val_t> v = args->optarg(env, "non_atomic")) {
             nondet_ok = v->as_bool();
         }
         bool return_vals = false;
-        if (counted_t<val_t> v = optarg(env, "return_vals")) {
+        if (counted_t<val_t> v = args->optarg(env, "return_vals")) {
             return_vals = v->as_bool();
         }
 
         const durability_requirement_t durability_requirement
-            = parse_durability_optarg(optarg(env, "durability"), this);
+            = parse_durability_optarg(args->optarg(env, "durability"), this);
 
-        counted_t<func_t> f = arg(env, 1)->as_func(CONSTANT_SHORTCUT);
+        counted_t<func_t> f = args->arg(env, 1)->as_func(CONSTANT_SHORTCUT);
         if (!nondet_ok) {
             f->assert_deterministic("Maybe you want to use the non_atomic flag?");
         }
 
-        counted_t<val_t> v0 = arg(env, 0);
+        counted_t<val_t> v0 = args->arg(env, 0);
         counted_t<const datum_t> stats = new_stats_object();
         if (v0->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<const datum_t> > tblrow
@@ -244,16 +244,16 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         const char *fail_msg = "FOREACH expects one or more basic write queries.";
 
-        counted_t<datum_stream_t> ds = arg(env, 0)->as_seq(env->env);
+        counted_t<datum_stream_t> ds = args->arg(env, 0)->as_seq(env->env);
         counted_t<const datum_t> stats(new datum_t(datum_t::R_OBJECT));
         batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
         {
             profile::sampler_t sampler("Evaluating elements in for each.",
                                        env->env->trace);
-            counted_t<func_t> f = arg(env, 1)->as_func(CONSTANT_SHORTCUT);
+            counted_t<func_t> f = args->arg(env, 1)->as_func(CONSTANT_SHORTCUT);
             while (counted_t<const datum_t> row = ds->next(env->env, batchspec)) {
                 counted_t<val_t> v = f->call(env->env, row);
                 try {

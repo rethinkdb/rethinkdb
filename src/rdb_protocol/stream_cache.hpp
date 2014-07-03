@@ -5,6 +5,7 @@
 #include <time.h>
 
 #include <map>
+#include <string>
 
 #include "concurrency/signal.hpp"
 #include "containers/scoped.hpp"

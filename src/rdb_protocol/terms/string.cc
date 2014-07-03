@@ -13,9 +13,9 @@ public:
     match_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        std::string str = arg(env, 0)->as_str().to_std();
-        RE2 regexp(arg(env, 1)->as_str().c_str());
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        std::string str = args->arg(env, 0)->as_str().to_std();
+        RE2 regexp(args->arg(env, 1)->as_str().c_str());
         if (!regexp.ok()) {
             rfail(base_exc_t::GENERIC,
                   "Error in regexp `%s` (portion `%s`): %s",
@@ -73,20 +73,20 @@ public:
     split_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, 3)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        std::string s = arg(env, 0)->as_str().to_std();
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        std::string s = args->arg(env, 0)->as_str().to_std();
 
         boost::optional<std::string> delim;
-        if (num_args() > 1) {
-            counted_t<const datum_t> d = arg(env, 1)->as_datum();
+        if (args->num_args() > 1) {
+            counted_t<const datum_t> d = args->arg(env, 1)->as_datum();
             if (d->get_type() != datum_t::R_NULL) {
                 delim = d->as_str().to_std();
             }
         }
 
         int64_t n = -1; // -1 means unlimited
-        if (num_args() > 2) {
-            n = arg(env, 2)->as_int();
+        if (args->num_args() > 2) {
+            n = args->arg(env, 2)->as_int();
             rcheck(n >= -1 && n <= int64_t(array_size_limit()) - 1, base_exc_t::GENERIC,
                    strprintf("Error: `split` size argument must be in range [-1, %zu].",
                              array_size_limit() - 1));
