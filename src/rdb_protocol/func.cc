@@ -101,7 +101,7 @@ counted_t<val_t> js_func_t::call(
 
         try {
             result = env->get_js_runner()->call(js_source, args, config);
-        } catch (const js_worker_exc_t &e) {
+        } catch (const extproc_worker_exc_t &e) {
             rfail(base_exc_t::GENERIC,
                   "Javascript query `%s` caused a crash in a worker process.",
                   js_source.c_str());

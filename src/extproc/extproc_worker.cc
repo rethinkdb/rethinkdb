@@ -8,6 +8,7 @@
 #include "arch/timing.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "containers/archive/socket_stream.hpp"
+#include "extproc/extproc_job.hpp"
 
 // Guaranteed to be random, chosen by fair dice roll
 const uint64_t extproc_worker_t::parent_to_worker_magic = 0x700168fe5380e17bLL;
@@ -30,21 +31,24 @@ extproc_worker_t::~extproc_worker_t() {
     if (worker_pid != -1) {
         socket_stream.create(socket.get(), reinterpret_cast<fd_watcher_t*>(NULL));
 
-        // TODO: check that worker is extant and/or catch exceptions
-        run_job(&worker_exit_fn);
+        try {
+            run_job(&worker_exit_fn);
 
-        int exit_code = 0;
-        write_message_t wm;
-        serialize<cluster_version_t::LATEST_OVERALL>(&wm, exit_code);
-        int res = send_write_message(get_write_stream(), &wm);
+            int exit_code = 0;
+            write_message_t wm;
+            serialize<cluster_version_t::LATEST_OVERALL>(&wm, exit_code);
+            int res = send_write_message(get_write_stream(), &wm);
+            if (res != 0) {
+                throw extproc_worker_exc_t("failed to send exit code to worker");
+            }
 
-        socket_stream.reset();
+            socket_stream.reset();
 
-        if (res != 0) {
-            logERR("Could not shut down worker orderly, killing it...");
-            kill_process();
-        } else {
             // TODO: Give some time to exit, then kill
+        } catch (const extproc_worker_exc_t &ex) {
+            logERR("Failed to shutdown worker process: '%s'.  Killing it.", ex.what());
+            socket_stream.reset();
+            kill_process();
         }
     }
 }
@@ -88,7 +92,7 @@ void extproc_worker_t::released(bool user_error, signal_t *user_interruptor) {
             {
                 int res = send_write_message(socket_stream.get(), &wm);
                 if (res != 0) {
-                    throw std::runtime_error("failed to send magic number");
+                    throw extproc_worker_exc_t("failed to send magic number");
                 }
             }
 
@@ -98,7 +102,7 @@ void extproc_worker_t::released(bool user_error, signal_t *user_interruptor) {
                 = deserialize<cluster_version_t::LATEST_OVERALL>(socket_stream.get(),
                                                                  &magic_from_child);
             if (bad(res) || magic_from_child != worker_to_parent_magic) {
-                throw std::runtime_error("did not receive magic number");
+                throw extproc_worker_exc_t("did not receive magic number");
             }
         } catch (...) {
             // This would indicate a job is hanging or not reading out all its data
@@ -136,8 +140,11 @@ bool extproc_worker_t::is_process_alive()
 void extproc_worker_t::run_job(bool (*fn) (read_stream_t *, write_stream_t *)) {
     write_message_t wm;
     wm.append(&fn, sizeof(fn));
+
     int res = send_write_message(get_write_stream(), &wm);
-    if (res != 0) { throw std::runtime_error("failed to send job function to worker"); }
+    if (res != 0) {
+        throw extproc_worker_exc_t("failed to send job function to worker");
+    }
 }
 
 read_stream_t *extproc_worker_t::get_read_stream() {

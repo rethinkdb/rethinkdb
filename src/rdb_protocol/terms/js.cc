@@ -40,7 +40,7 @@ private:
             js_result_t result = env->env->get_js_runner()->eval(source, config);
             return boost::apply_visitor(js_result_visitor_t(source, timeout_ms, this),
                                         result);
-        } catch (const js_worker_exc_t &e) {
+        } catch (const extproc_worker_exc_t &e) {
             rfail(base_exc_t::GENERIC,
                   "Javascript query `%s` caused a crash in a worker process.",
                   source.c_str());
