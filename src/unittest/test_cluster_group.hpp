@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <set>
+#include <vector>
 
 #include "errors.hpp"
 #include <boost/optional.hpp>

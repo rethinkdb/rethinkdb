@@ -1,13 +1,14 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#include <algorithm>
+#include "clustering/administration/main/names.hpp"
+
 #include <ctype.h>
-#include <sstream>
-#include <string>
 #include <string.h>
 #include <unistd.h>
 
+#include <string>
+#include <algorithm>
+
 #include "utils.hpp"
-#include "clustering/administration/main/names.hpp"
 
 static const char* names[] = {
     "Akasha",

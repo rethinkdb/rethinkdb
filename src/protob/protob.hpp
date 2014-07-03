@@ -5,6 +5,7 @@
 #include <set>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>

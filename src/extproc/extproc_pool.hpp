@@ -32,7 +32,7 @@ public:
 
     class worker_acq_t {
     public:
-        worker_acq_t(extproc_pool_t *_pool) : pool(_pool) {
+        explicit worker_acq_t(extproc_pool_t *_pool) : pool(_pool) {
             pool->on_worker_acquired();
         }
         ~worker_acq_t() {
