@@ -20,7 +20,7 @@ module 'NamespaceView', ->
         state:
             0: 'read'
             1: 'edit'
-    
+
         events:
             'keypress .num-shards': 'keypress_shards_changes'
             'click .edit': 'switch_to_edit'
@@ -203,7 +203,7 @@ module 'NamespaceView', ->
         global_trigger_for_shards: =>
             if @current_state is @state[0]
                 @switch_to_read() # We are already reading, but we will also refresh the value of the number of shards
-                
+
             @render_data_repartition()
             @render_status_server_update()
 
@@ -218,7 +218,7 @@ module 'NamespaceView', ->
         #   - pbar_info: optional argument that informs the progress bar backing this status
         render_status: (progress_bar_info) =>
             # We check for the type because the listener on directory is called with the event type (which is a string like 'reset')
-            if not progress_bar_info? or typeof progress_bar_info isnt 'object' 
+            if not progress_bar_info? or typeof progress_bar_info isnt 'object'
                 progress_bar_info = {}
 
             # If blueprint not ready, we just skip. It shouldn't happen.
@@ -237,7 +237,7 @@ module 'NamespaceView', ->
                     acks_expected: _.extend {}, @model.get('ack_expectations').expectation
                 if (not (shards[shard]['acks_expected'][@model.get('primary_uuid')]?)) or shards[shard]['acks_expected'][@model.get('primary_uuid')] is 0
                     shards[shard]['acks_expected'][@model.get('primary_uuid')] = 1
-        
+
             # Let's make sure that the bluprint has been regenerated. If not we just exit
             for machine_id of blueprint
                 num_shards_in_blueprint = 0
@@ -352,7 +352,7 @@ module 'NamespaceView', ->
 
         switch_to_read: =>
 
-            
+
             @current_state = @state[0]
             @.$('.edit-shards').html @view_template
                 num_shards: @model.get('shards').length
@@ -440,12 +440,10 @@ module 'NamespaceView', ->
                                 keys[i] = keys[i].toString()
                             if typeof keys[i] is 'string'
                                 if keys[i].length > 7
-                                    keys[i] =keys[i].slice(0, 7)+'...'
-
-                        result = 'Shard: '
-                        result += '[ '+keys[0]+', '+keys[1]+']'
-                        result += '<br />~'+d.num_keys+' keys'
-                        return result
+                                    keys[i] = keys[i].slice(0, 7)+'...'
+                        lb = if /∞/.test(keys[0]) then '(' else '['
+                        rb = if /∞/.test(keys[1]) then ')' else ']'
+                        return "Shard: #{lb} #{keys[0]}, #{keys[1]}#{rb}<br />~#{d.num_keys} keys";
                     )
 
 
