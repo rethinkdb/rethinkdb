@@ -1,4 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
+#include <vector>
+
 #include "errors.hpp"
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
@@ -45,9 +47,9 @@ void run_with_namespace_interface(
     nsi_shards.push_back(region_t(key_range_t(key_range_t::none,   store_key_t(),  key_range_t::open, store_key_t("n"))));
     nsi_shards.push_back(region_t(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t() )));
 
-    boost::ptr_vector<temp_file_t> temp_files;
+    std::vector<scoped_ptr_t<temp_file_t> > temp_files;
     for (size_t i = 0; i < store_shards.size(); ++i) {
-        temp_files.push_back(new temp_file_t);
+        temp_files.push_back(make_scoped<temp_file_t>());
     }
 
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
@@ -55,7 +57,7 @@ void run_with_namespace_interface(
 
     scoped_array_t<scoped_ptr_t<serializer_t> > serializers(store_shards.size());
     for (size_t i = 0; i < store_shards.size(); ++i) {
-        filepath_file_opener_t file_opener(temp_files[i].name(), &io_backender);
+        filepath_file_opener_t file_opener(temp_files[i]->name(), &io_backender);
         standard_serializer_t::create(&file_opener,
                                       standard_serializer_t::static_config_t());
         serializers[i].init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
@@ -89,27 +91,32 @@ void run_with_namespace_interface(
 
     for (int rep = 0; rep < num_restarts; ++rep) {
         const bool do_create = rep == 0;
-        boost::ptr_vector<store_t> underlying_stores;
+        std::vector<scoped_ptr_t<store_t> > underlying_stores;
         for (size_t i = 0; i < store_shards.size(); ++i) {
             underlying_stores.push_back(
-                    new store_t(serializers[i].get(), &balancer,
-                        temp_files[i].name().permanent_path(), do_create,
+                    make_scoped<store_t>(serializers[i].get(), &balancer,
+                        temp_files[i]->name().permanent_path(), do_create,
                         &get_global_perfmon_collection(), &ctx,
                         &io_backender, base_path_t(".")));
         }
 
-        boost::ptr_vector<store_view_t> stores;
+        std::vector<scoped_ptr_t<store_view_t> > stores;
+        std::vector<store_view_t *> store_ptrs;
         for (size_t i = 0; i < nsi_shards.size(); ++i) {
             if (oversharding) {
-                stores.push_back(new store_subview_t(&underlying_stores[0], nsi_shards[i]));
+                stores.push_back(make_scoped<store_subview_t>(underlying_stores[0].get(),
+                                                              nsi_shards[i]));
             } else {
-                stores.push_back(new store_subview_t(&underlying_stores[i], nsi_shards[i]));
+                stores.push_back(make_scoped<store_subview_t>(underlying_stores[i].get(),
+                                                              nsi_shards[i]));
             }
+            store_ptrs.push_back(stores.back().get());
         }
 
         /* Set up namespace interface */
         order_source_t order_source;
-        dummy_namespace_interface_t nsi(nsi_shards, stores.c_array(),
+        dummy_namespace_interface_t nsi(nsi_shards,
+                                        store_ptrs.data(),
                                         &order_source,
                                         &ctx,
                                         do_create);

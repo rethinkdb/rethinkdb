@@ -11,9 +11,6 @@
 
 #include <string>
 
-#include "errors.hpp"
-#include <boost/ptr_container/ptr_map.hpp>
-
 #include "arch/runtime/coroutines.hpp"
 #include "containers/scoped.hpp"
 #include "logger.hpp"
@@ -144,15 +141,19 @@ address_to_line_t::addr2line_t::~addr2line_t() {
 }
 
 bool address_to_line_t::run_addr2line(const std::string &executable, const void *address, char *line, int line_size) {
-    addr2line_t* proc;
+    addr2line_t *proc;
 
-    boost::ptr_map<const std::string, addr2line_t>::iterator iter = procs.find(executable);
+    std::map<std::string, scoped_ptr_t<addr2line_t> >::iterator iter
+        = procs.find(executable);
 
     if (iter != procs.end()) {
-        proc = iter->second;
+        proc = iter->second.get();
     } else {
         proc = new addr2line_t(executable.c_str());
-        procs.insert(executable, proc);
+        auto p = procs.insert(
+                std::make_pair(executable,
+                               make_scoped<addr2line_t>(executable.c_str()))).first;
+        proc = p->second.get();
     }
 
     if (proc->bad) {

@@ -6,10 +6,6 @@
 #include <vector>
 #include <utility>
 
-#include "errors.hpp"
-
-#include <boost/ptr_container/ptr_map.hpp>
-
 #include "buffer_cache/alt/page_cache.hpp"
 #include "buffer_cache/types.hpp"
 #include "containers/two_level_array.hpp"
@@ -76,7 +72,7 @@ private:
     alt_txn_throttler_t throttler_;
     alt::page_cache_t page_cache_;
 
-    boost::ptr_map<block_id_t, intrusive_list_t<alt_snapshot_node_t> >
+    std::map<block_id_t, scoped_ptr_t<intrusive_list_t<alt_snapshot_node_t> > >
         snapshot_nodes_by_block_id_;
 
     DISABLE_COPYING(cache_t);

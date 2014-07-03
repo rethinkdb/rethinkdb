@@ -5,9 +5,6 @@
 #include <set>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/ptr_container/ptr_vector.hpp>
-
 #include "containers/scoped.hpp"
 #include "protocol_api.hpp"
 #include "timestamps.hpp"
@@ -85,7 +82,7 @@ private:
 class dummy_namespace_interface_t : public namespace_interface_t {
 public:
     dummy_namespace_interface_t(std::vector<region_t> shards,
-                                store_view_t **stores, order_source_t
+                                store_view_t *const *stores, order_source_t
                                 *order_source, rdb_context_t *_ctx,
                                 bool initialize_metadata);
 
@@ -104,8 +101,8 @@ public:
     std::set<region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t);
 
 private:
-    boost::ptr_vector<dummy_performer_t> performers;
-    boost::ptr_vector<dummy_timestamper_t> timestampers;
+    std::vector<scoped_ptr_t<dummy_performer_t> > performers;
+    std::vector<scoped_ptr_t<dummy_timestamper_t> > timestampers;
     scoped_ptr_t<dummy_sharder_t> sharder;
     rdb_context_t *ctx;
 };

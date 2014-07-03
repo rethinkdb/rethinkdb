@@ -4,8 +4,6 @@
 #include <map>
 
 #include "errors.hpp"
-
-#include <boost/ptr_container/ptr_map.hpp>
 #include <boost/optional.hpp>
 
 #include "concurrency/interruptor.hpp"
@@ -35,13 +33,10 @@ public:
         scoped_ptr_t<new_semaphore_acq_t> peer_acq;
     };
 
-    static const int64_t GLOBAL_LIMIT = 16;
-    static const int64_t PER_PEER_LIMIT = 4;
-
 private:
     friend class lock_t;
     new_semaphore_t global_sem;
-    boost::ptr_map<peer_id_t, new_semaphore_t> peer_sems;
+    std::map<peer_id_t, scoped_ptr_t<new_semaphore_t> > peer_sems;
     std::map<peer_id_t, intptr_t> peer_sems_refcount;
 
     DISABLE_COPYING(backfill_throttler_t);

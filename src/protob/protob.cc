@@ -160,16 +160,15 @@ query_server_t::query_server_t(rdb_context_t *_rdb_ctx,
         rdb_ctx(_rdb_ctx),
         handler(_handler),
         auth_metadata(_auth_metadata),
-        shutting_down_conds(get_num_threads()),
+        shutting_down_conds(),
         pulse_sdc_on_shutdown(&main_shutting_down_cond),
         next_thread(0)
 {
     rassert(rdb_ctx != NULL);
     for (int i = 0; i < get_num_threads(); ++i) {
-        cross_thread_signal_t *s =
-            new cross_thread_signal_t(&main_shutting_down_cond, threadnum_t(i));
-        shutting_down_conds.push_back(s);
-        rassert(s == &shutting_down_conds[i]);
+        shutting_down_conds.push_back(
+                make_scoped<cross_thread_signal_t>(&main_shutting_down_cond,
+                                                   threadnum_t(i)));
     }
 
     try {

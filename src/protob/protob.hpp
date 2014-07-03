@@ -7,8 +7,6 @@
 #include <string>
 
 #include "errors.hpp"
-#include <boost/ptr_container/ptr_map.hpp>
-#include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "arch/runtime/runtime.hpp"
@@ -180,10 +178,10 @@ private:
     /* WARNING: The order here is fragile. */
     cond_t main_shutting_down_cond;
     signal_t *shutdown_signal() {
-        return &shutting_down_conds[get_thread_id().threadnum];
+        return shutting_down_conds[get_thread_id().threadnum].get();
     }
 
-    boost::ptr_vector<cross_thread_signal_t> shutting_down_conds;
+    std::vector<scoped_ptr_t<cross_thread_signal_t> > shutting_down_conds;
 
     auto_drainer_t auto_drainer;
 

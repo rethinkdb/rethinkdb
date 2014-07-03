@@ -47,6 +47,8 @@ public:
         return *this;
     }
 
+    // These 'init' functions are largely obsolete, because move semantics are a
+    // better thing to use.
     template <class U>
     void init(scoped_ptr_t<U> &&movee) {
         rassert(ptr_ == NULL);

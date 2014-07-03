@@ -17,12 +17,13 @@ void stream_cache_t::insert(int64_t key,
                             profile_bool_t profile_requested,
                             counted_t<datum_stream_t> val_stream) {
     maybe_evict();
-    std::pair<boost::ptr_map<int64_t, entry_t>::iterator, bool> res = streams.insert(
-            key, new entry_t(time(0),
-                             use_json,
-                             std::move(global_optargs),
-                             profile_requested,
-                             val_stream));
+    auto res = streams.insert(
+            std::make_pair(key,
+                           make_scoped<entry_t>(time(0),
+                                                use_json,
+                                                std::move(global_optargs),
+                                                profile_requested,
+                                                val_stream)));
     guarantee(res.second);
 }
 
@@ -32,11 +33,11 @@ void stream_cache_t::erase(int64_t key) {
 }
 
 bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
-    boost::ptr_map<int64_t, entry_t>::iterator it = streams.find(key);
+    std::map<int64_t, scoped_ptr_t<entry_t> >::iterator it = streams.find(key);
     if (it == streams.end()) {
         return false;
     }
-    entry_t *const entry = it->second;
+    entry_t *const entry = it->second.get();
     entry->last_activity = time(0);
 
     std::exception_ptr exc;
