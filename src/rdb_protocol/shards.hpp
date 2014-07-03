@@ -268,9 +268,9 @@ public:
     virtual bool uses_val() { return true; }
     virtual bool should_send_batch() = 0;
     virtual done_traversing_t operator()(groups_t *groups,
-                              store_key_t &&key,
+                              const store_key_t &key,
                               // sindex_val may be NULL
-                              counted_t<const datum_t> &&sindex_val) = 0;
+                              const counted_t<const datum_t> &sindex_val) = 0;
     virtual void finish(result_t *out);
     virtual void unshard(
         const store_key_t &last_key,
