@@ -268,7 +268,8 @@ public:
     // May be overridden as an optimization (currently is for `count`).
     virtual bool uses_val() { return true; }
     virtual bool should_send_batch() = 0;
-    virtual done_traversing_t operator()(groups_t *groups,
+    virtual done_traversing_t operator()(env_t *env,
+                                         groups_t *groups,
                                          const store_key_t &key,
                                          // sindex_val may be NULL
                                          const counted_t<const datum_t> &sindex_val) = 0;

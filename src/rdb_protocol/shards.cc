@@ -49,7 +49,8 @@ protected:
         : default_val(std::move(_default_val)) { }
     virtual ~grouped_acc_t() { }
 private:
-    virtual done_traversing_t operator()(groups_t *groups,
+    virtual done_traversing_t operator()(env_t *env,
+                                         groups_t *groups,
                                          const store_key_t &key,
                                          const counted_t<const datum_t> &sindex_val) {
         for (auto it = groups->begin(); it != groups->end(); ++it) {
@@ -57,7 +58,7 @@ private:
             auto t_it = pair.first;
             bool keep = !pair.second;
             for (auto el = it->second.begin(); el != it->second.end(); ++el) {
-                keep |= accumulate(*el, &t_it->second, key, sindex_val);
+                keep |= accumulate(env, *el, &t_it->second, key, sindex_val);
             }
             if (!keep) {
                 acc.erase(t_it);
@@ -321,11 +322,12 @@ private:
         }
     }
 
-    virtual bool accumulate(const counted_t<const datum_t> &el,
+    virtual bool accumulate(env_t *env,
+                            const counted_t<const datum_t> &el,
                             T *t,
                             const store_key_t &,
                             const counted_t<const datum_t> &) {
-        return accumulate(el, t);
+        return accumulate(env, el, t);
     }
     virtual bool accumulate(env_t *env,
                             const counted_t<const datum_t> &el,
