@@ -49,20 +49,15 @@ protected:
         : default_val(std::move(_default_val)) { }
     virtual ~grouped_acc_t() { }
 private:
-    virtual done_traversing_t operator()(env_t *env,
-                                         groups_t *groups,
-                                         store_key_t &&key,
-                                         counted_t<const datum_t> &&sindex_val) {
+    virtual done_traversing_t operator()(groups_t *groups,
+                                         const store_key_t &key,
+                                         const counted_t<const datum_t> &sindex_val) {
         for (auto it = groups->begin(); it != groups->end(); ++it) {
             auto pair = acc.insert(std::make_pair(it->first, default_val));
             auto t_it = pair.first;
             bool keep = !pair.second;
             for (auto el = it->second.begin(); el != it->second.end(); ++el) {
-                keep |= accumulate(env,
-                                   *el,
-                                   &t_it->second,
-                                   std::move(key),
-                                   std::move(sindex_val));
+                keep |= accumulate(*el, &t_it->second, key, sindex_val);
             }
             if (!keep) {
                 acc.erase(t_it);
@@ -73,9 +68,9 @@ private:
     virtual bool accumulate(env_t *env,
                             const counted_t<const datum_t> &el,
                             T *t,
-                            store_key_t &&key,
+                            const store_key_t &key,
                             // sindex_val may be NULL
-                            counted_t<const datum_t> &&sindex_val) = 0;
+                            const counted_t<const datum_t> &sindex_val) = 0;
 
     virtual bool should_send_batch() = 0;
 
@@ -128,16 +123,16 @@ private:
     virtual bool accumulate(env_t *,
                             const counted_t<const datum_t> &el,
                             stream_t *stream,
-                            store_key_t &&key,
+                            const store_key_t &key,
                             // sindex_val may be NULL
-                            counted_t<const datum_t> &&sindex_val) {
+                            const counted_t<const datum_t> &sindex_val) {
         if (batcher) batcher->note_el(el);
         // We don't bother storing the sindex if we aren't sorting (this is
         // purely a performance optimization).
         counted_t<const datum_t> rget_sindex_val = (sorting == sorting_t::UNORDERED)
             ? counted_t<const datum_t>()
-            : std::move(sindex_val);
-        stream->push_back(rget_item_t(std::move(key), rget_sindex_val, el));
+            : sindex_val;
+        stream->push_back(rget_item_t(store_key_t(key), rget_sindex_val, el));
         return true;
     }
 
@@ -326,12 +321,11 @@ private:
         }
     }
 
-    virtual bool accumulate(env_t *env,
-                            const counted_t<const datum_t> &el,
+    virtual bool accumulate(const counted_t<const datum_t> &el,
                             T *t,
-                            store_key_t &&,
-                            counted_t<const datum_t> &&) {
-        return accumulate(env, el, t);
+                            const store_key_t &,
+                            const counted_t<const datum_t> &) {
+        return accumulate(el, t);
     }
     virtual bool accumulate(env_t *env,
                             const counted_t<const datum_t> &el,
