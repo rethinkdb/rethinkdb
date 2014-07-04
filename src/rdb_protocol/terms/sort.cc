@@ -15,8 +15,6 @@
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/term_walker.hpp"
 
-#include "debug.hpp"
-
 namespace ql {
 
 // NOTE: `asc` and `desc` don't fit into our type system (they're a hack for
