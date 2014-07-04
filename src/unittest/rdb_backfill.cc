@@ -151,15 +151,15 @@ void write_to_broadcaster(size_t value_padding_length,
     fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
     class : public broadcaster_t::write_callback_t, public cond_t {
     public:
-        void on_response(peer_id_t, const write_response_t &) {
-            /* ignore */
-        }
-        void on_done() {
+        void on_success(const write_response_t &) {
             pulse();
+        }
+        void on_failure(UNUSED bool might_have_been_run) {
+            EXPECT_TRUE(false);
         }
     } write_callback;
     cond_t non_interruptor;
-    spawn_write_fake_ack_checker_t ack_checker;
+    fake_ack_checker_t ack_checker(1);
     broadcaster->spawn_write(write, &exiter, otok, &write_callback, &non_interruptor, &ack_checker);
     write_callback.wait_lazily_unordered();
 }
@@ -270,6 +270,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     replier_t replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
+    nap(100);   /* make time for the broadcaster to find out about the replier */
 
     watchable_variable_t<boost::optional<boost::optional<replier_business_card_t> > >
         replier_business_card_variable(boost::optional<boost::optional<replier_business_card_t> >(boost::optional<replier_business_card_t>(replier.get_business_card())));
@@ -289,15 +290,15 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
             &enforce.sink, enforce.source.enter_write());
         class : public broadcaster_t::write_callback_t, public cond_t {
         public:
-            void on_response(peer_id_t, const write_response_t &) {
-                /* ignore */
-            }
-            void on_done() {
+            void on_success(const write_response_t &) {
                 pulse();
+            }
+            void on_failure(UNUSED bool might_have_been_run) {
+                EXPECT_TRUE(false);
             }
         } write_callback;
         cond_t non_interruptor;
-        spawn_write_fake_ack_checker_t ack_checker;
+        fake_ack_checker_t ack_checker(1);
         broadcaster->get()->spawn_write(write, &exiter, order_token_t::ignore,
                                         &write_callback, &non_interruptor, &ack_checker);
         write_callback.wait_lazily_unordered();
