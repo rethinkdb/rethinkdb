@@ -15,10 +15,10 @@ class term_t;
 class pathspec_t {
 public:
     pathspec_t(const pathspec_t &other);
-    pathspec_t& operator=(const pathspec_t &other);
-    pathspec_t(const std::string &str, term_t *creator);
-    pathspec_t(const std::map<std::string, pathspec_t> &map, term_t *creator);
-    pathspec_t(counted_t<const datum_t> datum, term_t *creator);
+    pathspec_t &operator=(const pathspec_t &other);
+    pathspec_t(const std::string &str, const term_t *creator);
+    pathspec_t(const std::map<std::string, pathspec_t> &map, const term_t *creator);
+    pathspec_t(counted_t<const datum_t> datum, const term_t *creator);
     ~pathspec_t();
     const std::string *as_str() const {
         return (type == STR ? str : NULL);
@@ -73,7 +73,7 @@ private:
         std::map<std::string, pathspec_t> *map;
     };
 
-    term_t *creator;
+    const term_t *creator;
 };
 
 enum recurse_flag_t {

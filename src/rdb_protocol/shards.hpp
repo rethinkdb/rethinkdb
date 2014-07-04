@@ -255,7 +255,8 @@ class op_t {
 public:
     op_t() { }
     virtual ~op_t() { }
-    virtual void operator()(groups_t *groups,
+    virtual void operator()(env_t *env,
+                            groups_t *groups,
                             // sindex_val may be NULL
                             const counted_t<const datum_t> &sindex_val) = 0;
 };
@@ -267,14 +268,15 @@ public:
     // May be overridden as an optimization (currently is for `count`).
     virtual bool uses_val() { return true; }
     virtual bool should_send_batch() = 0;
-    virtual done_traversing_t operator()(groups_t *groups,
-                              store_key_t &&key,
-                              // sindex_val may be NULL
-                              counted_t<const datum_t> &&sindex_val) = 0;
+    virtual done_traversing_t operator()(env_t *env,
+                                         groups_t *groups,
+                                         const store_key_t &key,
+                                         // sindex_val may be NULL
+                                         const counted_t<const datum_t> &sindex_val) = 0;
     virtual void finish(result_t *out);
-    virtual void unshard(
-        const store_key_t &last_key,
-        const std::vector<result_t *> &results) = 0;
+    virtual void unshard(env_t *env,
+                         const store_key_t &last_key,
+                         const std::vector<result_t *> &results) = 0;
 protected:
     void mark_finished();
 private:
@@ -286,23 +288,20 @@ class eager_acc_t {
 public:
     eager_acc_t() { }
     virtual ~eager_acc_t() { }
-    virtual void operator()(groups_t *groups) = 0;
-    virtual void add_res(result_t *res) = 0;
+    virtual void operator()(env_t *env, groups_t *groups) = 0;
+    virtual void add_res(env_t *env, result_t *res) = 0;
     virtual counted_t<val_t> finish_eager(
         protob_t<const Backtrace> bt, bool is_grouped) = 0;
 };
 
-// Make sure to put these right into a scoped pointer.
-accumulator_t *make_append(const sorting_t &sorting, batcher_t *batcher);
-//                                           NULL if unsharding ^^^^^^^
-accumulator_t *make_terminal(
-    ql::env_t *env, const terminal_variant_t &t);
+scoped_ptr_t<accumulator_t> make_append(const sorting_t &sorting, batcher_t *batcher);
+//                                                        NULL if unsharding ^^^^^^^
+scoped_ptr_t<accumulator_t> make_terminal(const terminal_variant_t &t);
 
-eager_acc_t *make_to_array();
-eager_acc_t *make_eager_terminal(
-    ql::env_t *env, const terminal_variant_t &t);
+scoped_ptr_t<eager_acc_t> make_to_array();
+scoped_ptr_t<eager_acc_t> make_eager_terminal(const terminal_variant_t &t);
 
-op_t *make_op(env_t *env, const transform_variant_t &tv);
+scoped_ptr_t<op_t> make_op(const transform_variant_t &tv);
 
 } // namespace ql
 

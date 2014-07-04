@@ -5,9 +5,7 @@
 #include <time.h>
 
 #include <map>
-
-#include "errors.hpp"
-#include <boost/ptr_container/ptr_map.hpp>
+#include <string>
 
 #include "concurrency/signal.hpp"
 #include "containers/scoped.hpp"
@@ -23,11 +21,17 @@ namespace ql {
 enum class reject_cfeeds_t { NO, YES };
 class stream_cache_t {
 public:
-    stream_cache_t(reject_cfeeds_t _reject_cfeeds) : reject_cfeeds(_reject_cfeeds) { }
+    stream_cache_t(rdb_context_t *_rdb_ctx,
+                   reject_cfeeds_t _reject_cfeeds)
+        : rdb_ctx(_rdb_ctx),
+          reject_cfeeds(_reject_cfeeds) {
+        rassert(rdb_ctx != NULL);
+    }
     MUST_USE bool contains(int64_t key);
     void insert(int64_t key,
                 use_json_t use_json,
-                scoped_ptr_t<env_t> &&val_env,
+                std::map<std::string, wire_func_t> global_optargs,
+                profile_bool_t profile_requested,
                 counted_t<datum_stream_t> val_stream);
     void erase(int64_t key);
     MUST_USE bool serve(int64_t key, Response *res, signal_t *interruptor);
@@ -35,15 +39,17 @@ private:
     void maybe_evict();
 
     struct entry_t {
-        ~entry_t(); // `env_t` is incomplete
+        ~entry_t();
         static const time_t DEFAULT_MAX_AGE = 0; // 0 = never evict
         entry_t(time_t _last_activity,
                 use_json_t use_json,
-                scoped_ptr_t<env_t> &&env_ptr,
+                std::map<std::string, wire_func_t> global_optargs,
+                profile_bool_t profile,
                 counted_t<datum_stream_t> _stream);
         time_t last_activity;
         use_json_t use_json;
-        scoped_ptr_t<env_t> env;
+        std::map<std::string, wire_func_t> global_optargs;
+        profile_bool_t profile;
         counted_t<datum_stream_t> stream;
         time_t max_age;
         bool has_sent_batch;
@@ -51,8 +57,9 @@ private:
         DISABLE_COPYING(entry_t);
     };
 
-    boost::ptr_map<int64_t, entry_t> streams;
-    reject_cfeeds_t reject_cfeeds;
+    rdb_context_t *const rdb_ctx;
+    const reject_cfeeds_t reject_cfeeds;
+    std::map<int64_t, scoped_ptr_t<entry_t> > streams;
     DISABLE_COPYING(stream_cache_t);
 };
 

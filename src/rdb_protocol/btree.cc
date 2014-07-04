@@ -619,7 +619,7 @@ void spawn_sindex_erase_ranges(
         const value_deleter_t *deleter) {
     for (auto it = sindex_access->begin(); it != sindex_access->end(); ++it) {
         coro_t::spawn_sometime(std::bind(
-                    &sindex_erase_range, key_range, it->super_block.get(),
+                    &sindex_erase_range, key_range, (*it)->super_block.get(),
                     auto_drainer_t::lock_t(drainer), interruptor,
                     release_superblock, deleter));
     }
@@ -734,10 +734,10 @@ public:
           batcher(batchspec.to_batcher()),
           sorting(_sorting),
           accumulator(_terminal
-                      ? ql::make_terminal(env, *_terminal)
+                      ? ql::make_terminal(*_terminal)
                       : ql::make_append(sorting, &batcher)) {
         for (size_t i = 0; i < _transforms.size(); ++i) {
-            transformers.emplace_back(ql::make_op(env, _transforms[i]));
+            transformers.push_back(ql::make_op(_transforms[i]));
         }
         guarantee(transformers.size() == _transforms.size());
     }
@@ -869,13 +869,15 @@ THROWS_ONLY(interrupted_exc_t) {
         ql::groups_t data = {{counted_t<const ql::datum_t>(), ql::datums_t{val}}};
 
         for (auto it = job.transformers.begin(); it != job.transformers.end(); ++it) {
-            (**it)(&data, sindex_val);
-            //            ^^^^^^^^^^ NULL if no sindex
+            (**it)(job.env, &data, sindex_val);
+            //                     ^^^^^^^^^^ NULL if no sindex
         }
         // We need lots of extra data for the accumulation because we might be
         // accumulating `rget_item_t`s for a batch.
-        return (*job.accumulator)(&data, std::move(key), std::move(sindex_val));
-        //                                       NULL if no sindex ^^^^^^^^^^
+        return (*job.accumulator)(job.env,
+                                  &data,
+                                  std::move(key),
+                                  std::move(sindex_val)); // NULL if no sindex
     } catch (const ql::exc_t &e) {
         io.response->result = e;
         return done_traversing_t::YES;
@@ -1053,10 +1055,7 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
     scoped_ptr_t<new_mutex_in_line_t> acq =
         store_->get_in_line_for_sindex_queue(sindex_block_);
 
-    // This is for a disk backed queue so there are no versioning issues.
-    write_message_t wm;
-    serialize<cluster_version_t::LATEST_DISK>(&wm, mod_report);
-    store_->sindex_queue_push(wm, acq.get());
+    store_->sindex_queue_push(mod_report, acq.get());
 
     rdb_live_deletion_context_t deletion_context;
     rdb_update_sindexes(sindexes_, &mod_report, sindex_block_->txn(),
@@ -1122,13 +1121,12 @@ void rdb_update_single_sindex(
     sindex_multi_bool_t multi;
     deserialize_sindex_info(sindex->sindex.opaque_definition, &mapping, &multi);
 
-    // TODO we just use a NULL environment here. People should not be able
-    // to do anything that requires an environment like gets from other
-    // tables etc. but we don't have a nice way to disallow those things so
-    // for now we pass null and it will segfault if an illegal sindex
-    // mapping is passed.
+    // TODO we have no rdb context here. People should not be able to do anything
+    // that requires an environment like gets from other tables etc. but we don't
+    // have a nice way to disallow those things so for now we pass null and it will
+    // segfault if an illegal sindex mapping is passed.
     cond_t non_interruptor;
-    ql::env_t env(NULL, &non_interruptor);
+    ql::env_t env(&non_interruptor);
 
     superblock_t *super_block = sindex->super_block.get();
 
@@ -1218,7 +1216,7 @@ void rdb_update_sindexes(const store_t::sindex_access_vector_t &sindexes,
 
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
             coro_t::spawn_sometime(std::bind(
-                        &rdb_update_single_sindex, &*it, deletion_context,
+                        &rdb_update_single_sindex, it->get(), deletion_context,
                         modification, auto_drainer_t::lock_t(&drainer)));
         }
     }

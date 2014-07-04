@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_ENV_HPP_
 #define RDB_PROTOCOL_ENV_HPP_
 
@@ -26,13 +26,13 @@ class term_t;
  * returned. Otherwise an empty counted_t<const datum_t> will be returned. */
 counted_t<const datum_t> static_optarg(const std::string &key, protob_t<Query> q);
 
+std::map<std::string, wire_func_t> global_optargs(protob_t<Query> q);
+
 class global_optargs_t {
 public:
     global_optargs_t();
-    explicit global_optargs_t(protob_t<Query> q);
+    explicit global_optargs_t(std::map<std::string, wire_func_t> optargs);
 
-    // Returns whether or not there was a key conflict.
-    MUST_USE bool add_optarg(const std::string &key, const Term &val);
     void init_optargs(const std::map<std::string, wire_func_t> &_optargs);
     // returns NULL if no entry
     counted_t<val_t> get_optarg(env_t *env, const std::string &key);
@@ -41,92 +41,21 @@ private:
     std::map<std::string, wire_func_t> optargs;
 };
 
-class cluster_access_t {
-public:
-    typedef namespaces_semilattice_metadata_t ns_metadata_t;
-    cluster_access_t(
-        base_namespace_repo_t *_ns_repo,
-
-        clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
-            _namespaces_semilattice_metadata,
-
-        clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
-             _databases_semilattice_metadata,
-        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
-            _semilattice_metadata,
-        directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
-        uuid_u _this_machine);
-
-    base_namespace_repo_t *ns_repo;
-
-    clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t > > >
-        namespaces_semilattice_metadata;
-    clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
-        databases_semilattice_metadata;
-    boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
-        semilattice_metadata;
-    directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
-
-    // Semilattice modification functions
-    void join_and_wait_to_propagate(
-            const cluster_semilattice_metadata_t &metadata_to_join,
-            signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
-
-
-    const uuid_u this_machine;
-};
-
 namespace changefeed {
 class client_t;
 } // namespace changefeed
 
+profile_bool_t profile_bool_optarg(const protob_t<Query> &query);
+
 class env_t : public home_thread_mixin_t {
 public:
-    typedef namespaces_semilattice_metadata_t ns_metadata_t;
+    env_t(rdb_context_t *ctx, signal_t *interruptor,
+          std::map<std::string, wire_func_t> optargs,
+          profile_bool_t is_profile_requested);
 
-    env_t(
-        extproc_pool_t *_extproc_pool,
-        changefeed::client_t *_changefeed_client,
-        const std::string &_reql_http_proxy,
-        base_namespace_repo_t *_ns_repo,
-
-        clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
-            _namespaces_semilattice_metadata,
-
-        clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
-             _databases_semilattice_metadata,
-        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
-            _semilattice_metadata,
-        directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
-        signal_t *_interruptor,
-        uuid_u _this_machine,
-        protob_t<Query> query);
-
-    env_t(
-        extproc_pool_t *_extproc_pool,
-        changefeed::client_t *_changefeed_client,
-        const std::string &_reql_http_proxy,
-        base_namespace_repo_t *_ns_repo,
-
-        clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
-            _namespaces_semilattice_metadata,
-
-        clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
-             _databases_semilattice_metadata,
-        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
-            _semilattice_metadata,
-        directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
-        signal_t *_interruptor,
-        uuid_u _this_machine,
-        profile_bool_t _profile);
-
-    env_t(rdb_context_t *ctx, signal_t *interruptor);
+    explicit env_t(signal_t *interruptor);
 
     ~env_t();
-    void throw_if_interruptor_pulsed() THROWS_ONLY(interrupted_exc_t) {
-        if (interruptor->is_pulsed()) throw interrupted_exc_t();
-    }
 
     static const uint32_t EVALS_BEFORE_YIELD = 256;
     uint32_t evals_since_yield;
@@ -134,10 +63,32 @@ public:
     // Will yield after EVALS_BEFORE_YIELD calls
     void maybe_yield();
 
+    extproc_pool_t *get_extproc_pool();
+
     // Returns js_runner, but first calls js_runner->begin() if it hasn't
     // already been called.
     js_runner_t *get_js_runner();
-    void clear_js_runner();
+
+    cow_ptr_t<namespaces_semilattice_metadata_t > get_namespaces_metadata();
+    void get_databases_metadata(databases_semilattice_metadata_t *out);
+
+    // Semilattice modification functions
+    void join_and_wait_to_propagate(
+            const cluster_semilattice_metadata_t &metadata_to_join)
+        THROWS_ONLY(interrupted_exc_t);
+
+    base_namespace_repo_t *ns_repo();
+
+    const boost::shared_ptr< semilattice_readwrite_view_t<
+                                 cluster_semilattice_metadata_t> > &cluster_metadata();
+
+    directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager();
+
+    uuid_u this_machine();
+
+    changefeed::client_t *get_changefeed_client();
+
+    std::string get_reql_http_proxy();
 
     // This is a callback used in unittests to control things during a query
     class eval_callback_t {
@@ -149,31 +100,22 @@ public:
     void set_eval_callback(eval_callback_t *callback);
     void do_eval_callback();
 
+
     // The global optargs values passed to .run(...) in the Python, Ruby, and JS
     // drivers.
     global_optargs_t global_optargs;
 
-    // A pool used for running external JS jobs.  Inexplicably this isn't inside of
-    // js_runner_t.
-    extproc_pool_t *extproc_pool;
+    // The interruptor signal while a query evaluates.
+    signal_t *const interruptor;
 
-    // Holds a bunch of mailboxes and maps them to streams.
-    changefeed::client_t *changefeed_client;
+    // This is non-empty when profiling is enabled.
+    const scoped_ptr_t<profile::trace_t> trace;
 
-    // HTTP proxy to use when running `r.http(...)` queries
-    const std::string reql_http_proxy;
-
-    // Access to the cluster, for talking over the cluster or about the cluster.
-    cluster_access_t cluster_access;
-
-    // The interruptor signal while a query evaluates.  This can get overwritten!
-    signal_t *interruptor;
-
-    scoped_ptr_t<profile::trace_t> trace;
-
-    profile_bool_t profile();
+    profile_bool_t profile() const;
 
 private:
+    rdb_context_t *const rdb_ctx;
+
     js_runner_t js_runner;
 
     eval_callback_t *eval_callback;
@@ -196,8 +138,10 @@ class scope_env_t {
 public:
     scope_env_t(env_t *_env, var_scope_t &&_scope)
         : env(_env), scope(std::move(_scope)) { }
-    env_t *env;
-    var_scope_t scope;
+    env_t *const env;
+    const var_scope_t scope;
+
+    DISABLE_COPYING(scope_env_t);
 };
 
 }  // namespace ql

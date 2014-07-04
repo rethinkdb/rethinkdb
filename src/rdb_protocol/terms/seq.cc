@@ -18,11 +18,12 @@ protected:
     map_acc_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : grouped_seq_op_term_t(env, term, argspec_t(1, 2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) {
-        return num_args() == 1
-            ? arg(env, 0)->as_seq(env->env)->run_terminal(env->env, T(backtrace()))
-            : arg(env, 0)->as_seq(env->env)->run_terminal(
-                env->env, T(backtrace(), arg(env, 1)->as_func(GET_FIELD_SHORTCUT)));
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args,
+                                       eval_flags_t) const {
+        return args->num_args() == 1
+            ? args->arg(env, 0)->as_seq(env->env)->run_terminal(env->env, T(backtrace()))
+            : args->arg(env, 0)->as_seq(env->env)->run_terminal(
+                env->env, T(backtrace(), args->arg(env, 1)->as_func(GET_FIELD_SHORTCUT)));
     }
 };
 
@@ -60,27 +61,28 @@ public:
     count_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : grouped_seq_op_term_t(env, term, argspec_t(1, 2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        counted_t<val_t> v0 = arg(env, 0);
-        if (num_args() == 1) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args,
+                                       eval_flags_t) const {
+        counted_t<val_t> v0 = args->arg(env, 0);
+        if (args->num_args() == 1) {
             return v0->as_seq(env->env)
                 ->run_terminal(env->env, count_wire_func_t());
         } else {
-            counted_t<val_t> v1 = arg(env, 1);
+            counted_t<val_t> v1 = args->arg(env, 1);
             if (v1->get_type().is_convertible(val_t::type_t::FUNC)) {
-                return v0->as_seq(env->env)
-                    ->add_transformation(
-                        env->env,
+                counted_t<datum_stream_t> stream = v0->as_seq(env->env);
+                stream->add_transformation(
                         filter_wire_func_t(v1->as_func(), boost::none),
-                        backtrace())
-                    ->run_terminal(env->env, count_wire_func_t());
+                        backtrace());
+                return stream->run_terminal(env->env, count_wire_func_t());
             } else {
                 counted_t<func_t> f =
                     new_eq_comparison_func(v1->as_datum(), backtrace());
-                return v0->as_seq(env->env)
-                    ->add_transformation(
-                        env->env, filter_wire_func_t(f, boost::none), backtrace())
-                    ->run_terminal(env->env, count_wire_func_t());
+                counted_t<datum_stream_t> stream = v0->as_seq(env->env);
+                stream->add_transformation(
+                        filter_wire_func_t(f, boost::none), backtrace());
+
+                return stream->run_terminal(env->env, count_wire_func_t());
             }
         }
     }
@@ -92,9 +94,11 @@ public:
     map_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : grouped_seq_op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        return new_val(env->env, arg(env, 0)->as_seq(env->env)->add_transformation(
-            env->env, map_wire_func_t(arg(env, 1)->as_func()), backtrace()));
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<datum_stream_t> stream = args->arg(env, 0)->as_seq(env->env);
+        stream->add_transformation(
+                map_wire_func_t(args->arg(env, 1)->as_func()), backtrace());
+        return new_val(env->env, stream);
     }
     virtual const char *name() const { return "map"; }
 };
@@ -104,9 +108,11 @@ public:
     concatmap_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : grouped_seq_op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        return new_val(env->env, arg(env, 0)->as_seq(env->env)->add_transformation(
-            env->env, concatmap_wire_func_t(arg(env, 1)->as_func()), backtrace()));
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<datum_stream_t> stream = args->arg(env, 0)->as_seq(env->env);
+        stream->add_transformation(
+                concatmap_wire_func_t(args->arg(env, 1)->as_func()), backtrace());
+        return new_val(env->env, stream);
     }
     virtual const char *name() const { return "concatmap"; }
 };
@@ -116,18 +122,18 @@ public:
     group_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : grouped_seq_op_term_t(env, term, argspec_t(1, -1), optargspec_t({"index", "multi"})) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         std::vector<counted_t<func_t> > funcs;
-        funcs.reserve(num_args() - 1);
-        for (size_t i = 1; i < num_args(); ++i) {
-            funcs.push_back(arg(env, i)->as_func(GET_FIELD_SHORTCUT));
+        funcs.reserve(args->num_args() - 1);
+        for (size_t i = 1; i < args->num_args(); ++i) {
+            funcs.push_back(args->arg(env, i)->as_func(GET_FIELD_SHORTCUT));
         }
 
         counted_t<datum_stream_t> seq;
         bool append_index = false;
-        if (counted_t<val_t> index = optarg(env, "index")) {
+        if (counted_t<val_t> index = args->optarg(env, "index")) {
             std::string index_str = index->as_str().to_std();
-            counted_t<table_t> tbl = arg(env, 0)->as_table();
+            counted_t<table_t> tbl = args->arg(env, 0)->as_table();
             if (index_str == tbl->get_pkey()) {
                 auto field = make_counted<const datum_t>(std::move(index_str));
                 funcs.push_back(new_get_field_func(field, backtrace()));
@@ -137,20 +143,21 @@ private:
             }
             seq = tbl->as_datum_stream(env->env, backtrace());
         } else {
-            seq = arg(env, 0)->as_seq(env->env);
+            seq = args->arg(env, 0)->as_seq(env->env);
         }
 
         rcheck((funcs.size() + append_index) != 0, base_exc_t::GENERIC,
                "Cannot group by nothing.");
 
         bool multi = false;
-        if (counted_t<val_t> multi_val = optarg(env, "multi")) {
+        if (counted_t<val_t> multi_val = args->optarg(env, "multi")) {
             multi = multi_val->as_bool();
         }
 
-        seq = seq->add_grouping(
-            env->env,
-            group_wire_func_t(std::move(funcs), append_index, multi), backtrace());
+        seq->add_grouping(group_wire_func_t(std::move(funcs),
+                                            append_index,
+                                            multi),
+                          backtrace());
 
         return new_val(env->env, seq);
     }
@@ -164,9 +171,9 @@ public:
           default_filter_term(lazy_literal_optarg(env, "default")) { }
 
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        counted_t<val_t> v0 = arg(env, 0);
-        counted_t<val_t> v1 = arg(env, 1, LITERAL_OK);
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<val_t> v0 = args->arg(env, 0);
+        counted_t<val_t> v1 = args->arg(env, 1, LITERAL_OK);
         counted_t<func_t> f = v1->as_func(CONSTANT_SHORTCUT);
         boost::optional<wire_func_t> defval;
         if (default_filter_term.has()) {
@@ -176,12 +183,14 @@ private:
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts
                 = v0->as_selection(env->env);
-            return new_val(ts.second->add_transformation(
-                               env->env, filter_wire_func_t(f, defval), backtrace()),
-                           ts.first);
+            ts.second->add_transformation(
+                    filter_wire_func_t(f, defval), backtrace());
+            return new_val(ts.second, ts.first);
         } else {
-            return new_val(env->env, v0->as_seq(env->env)->add_transformation(
-                               env->env, filter_wire_func_t(f, defval), backtrace()));
+            counted_t<datum_stream_t> stream = v0->as_seq(env->env);
+            stream->add_transformation(
+                    filter_wire_func_t(f, defval), backtrace());
+            return new_val(env->env, stream);
         }
     }
 
@@ -195,9 +204,9 @@ public:
     reduce_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         grouped_seq_op_term_t(env, term, argspec_t(2), optargspec_t({ "base" })) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        return arg(env, 0)->as_seq(env->env)->run_terminal(
-            env->env, reduce_wire_func_t(arg(env, 1)->as_func()));
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        return args->arg(env, 0)->as_seq(env->env)->run_terminal(
+            env->env, reduce_wire_func_t(args->arg(env, 1)->as_func()));
     }
     virtual const char *name() const { return "reduce"; }
 };
@@ -207,9 +216,9 @@ public:
     changes_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) {
-        counted_t<table_t> tbl = arg(env, 0)->as_table();
-        changefeed::client_t *client = env->env->changefeed_client;
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<table_t> tbl = args->arg(env, 0)->as_table();
+        changefeed::client_t *client = env->env->get_changefeed_client();
         return new_val(env->env, client->new_feed(tbl, env->env));
     }
     virtual const char *name() const { return "changes"; }
@@ -221,15 +230,15 @@ public:
     between_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : bounded_op_term_t(env, term, argspec_t(3), optargspec_t({"index"})) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        counted_t<table_t> tbl = arg(env, 0)->as_table();
-        bool left_open = is_left_open(env);
-        counted_t<const datum_t> lb = arg(env, 1)->as_datum();
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<table_t> tbl = args->arg(env, 0)->as_table();
+        bool left_open = is_left_open(env, args);
+        counted_t<const datum_t> lb = args->arg(env, 1)->as_datum();
         if (lb->get_type() == datum_t::R_NULL) {
             lb.reset();
         }
-        bool right_open = is_right_open(env);
-        counted_t<const datum_t> rb = arg(env, 2)->as_datum();
+        bool right_open = is_right_open(env, args);
+        counted_t<const datum_t> rb = args->arg(env, 2)->as_datum();
         if (rb->get_type() == datum_t::R_NULL) {
             rb.reset();
         }
@@ -243,7 +252,7 @@ private:
             }
         }
 
-        counted_t<val_t> sindex = optarg(env, "index");
+        counted_t<val_t> sindex = args->optarg(env, "index");
         std::string sid = (sindex.has() ? sindex->as_str().to_std() : tbl->get_pkey());
 
         tbl->add_bounds(
@@ -263,10 +272,10 @@ public:
     union_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         std::vector<counted_t<datum_stream_t> > streams;
-        for (size_t i = 0; i < num_args(); ++i) {
-            streams.push_back(arg(env, i)->as_seq(env->env));
+        for (size_t i = 0; i < args->num_args(); ++i) {
+            streams.push_back(args->arg(env, i)->as_seq(env->env));
         }
         counted_t<datum_stream_t> union_stream
             = make_counted<union_datum_stream_t>(std::move(streams), backtrace());
@@ -280,8 +289,8 @@ public:
     zip_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        return new_val(env->env, arg(env, 0)->as_seq(env->env)->zip());
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        return new_val(env->env, args->arg(env, 0)->as_seq(env->env)->zip());
     }
     virtual const char *name() const { return "zip"; }
 };

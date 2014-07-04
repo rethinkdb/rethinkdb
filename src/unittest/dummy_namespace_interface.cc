@@ -156,7 +156,7 @@ void dummy_sharder_t::write(const write_t &write, write_response_t *response, or
 
 dummy_namespace_interface_t::
 dummy_namespace_interface_t(std::vector<region_t> shards,
-                            store_view_t **stores, order_source_t
+                            store_view_t *const *stores, order_source_t
                             *order_source, rdb_context_t *_ctx,
                             bool initialize_metadata)
     : ctx(_ctx)
@@ -203,11 +203,9 @@ dummy_namespace_interface_t(std::vector<region_t> shards,
                     &interruptor);
         }
 
-        dummy_performer_t *performer = new dummy_performer_t(stores[i]);
-        performers.push_back(performer);
-        dummy_timestamper_t *timestamper = new dummy_timestamper_t(performer, order_source);
-        timestampers.push_back(timestamper);
-        shards_of_this_db.push_back(dummy_sharder_t::shard_t(timestamper, performer, shards[i]));
+        performers.push_back(make_scoped<dummy_performer_t>(stores[i]));
+        timestampers.push_back(make_scoped<dummy_timestamper_t>(performers.back().get(), order_source));
+        shards_of_this_db.push_back(dummy_sharder_t::shard_t(timestampers.back().get(), performers.back().get(), shards[i]));
     }
 
     sharder.init(new dummy_sharder_t(shards_of_this_db, ctx));

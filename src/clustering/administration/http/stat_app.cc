@@ -5,7 +5,6 @@
 #include <string>
 
 #include "errors.hpp"
-#include <boost/ptr_container/ptr_map.hpp>
 #include <boost/tokenizer.hpp>
 
 #include "stl_utils.hpp"
@@ -174,8 +173,7 @@ void stat_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t
 
     peers_to_metadata_t peers_to_metadata = directory->get().get_inner();
 
-    typedef boost::ptr_map<machine_id_t, stats_request_record_t> stats_promises_t;
-    stats_promises_t stats_promises;
+    std::map<machine_id_t, scoped_ptr_t<stats_request_record_t> > stats_promises;
 
     /* If a machine has disconnected, or the mailbox for the
      * get_stat function  has gone out of existence we'll never get a response.
@@ -193,12 +191,12 @@ void stat_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t
             continue;
         }
         stats_request_record_t *req_record = new stats_request_record_t(mbox_manager);
-        stats_promises.insert(machine, req_record);
+        stats_promises.insert(std::make_pair(machine, scoped_ptr_t<stats_request_record_t>(req_record)));
         send(mbox_manager, it->second.get_stats_mailbox_address, req_record->response_mailbox.get_address(), filter_paths);
     }
 
     std::vector<machine_id_t> not_replied;
-    for (stats_promises_t::iterator it = stats_promises.begin(); it != stats_promises.end(); ++it) {
+    for (auto it = stats_promises.begin(); it != stats_promises.end(); ++it) {
         machine_id_t machine = it->first;
 
         const signal_t * stats_ready = it->second->stats.get_ready_signal();

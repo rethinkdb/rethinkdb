@@ -20,6 +20,7 @@ class listener_t;
 template <class> class semilattice_readwrite_view_t;
 class multistore_ptr_t;
 class mailbox_manager_t;
+class rdb_context_t;
 class uuid_u;
 
 /* Each shard has a `broadcaster_t` on its primary machine. Each machine sends
@@ -57,6 +58,7 @@ public:
 
     broadcaster_t(
             mailbox_manager_t *mm,
+            rdb_context_t *rdb_context,
             branch_history_manager_t *bhm,
             store_view_t *initial_svs,
             perfmon_collection_t *parent_perfmon_collection,
@@ -160,16 +162,18 @@ private:
     perfmon_collection_t broadcaster_collection;
     perfmon_membership_t broadcaster_membership;
 
-    mailbox_manager_t *mailbox_manager;
+    rdb_context_t *const rdb_context;
 
-    branch_id_t branch_id;
+    mailbox_manager_t *const mailbox_manager;
+
+    const branch_id_t branch_id;
 
     /* Until our initial listener has been constructed, this holds the
     store_view that was passed to our constructor. After that, it's
     `NULL`. */
     store_view_t *bootstrap_svs;
 
-    branch_history_manager_t *branch_history_manager;
+    branch_history_manager_t *const branch_history_manager;
 
     /* If a write has begun, but some mirror might not have completed it yet,
     then it goes in `incomplete_writes`. The idea is that a new mirror that

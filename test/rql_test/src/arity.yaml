@@ -11,11 +11,11 @@ tests:
       ot: ({'created':1})
       def: tbl = db.table('test1')
 
-    - ot: err("RqlCompileError", "Expected 0 argument(s) but found 1.", [])
+    - ot: err("RqlCompileError", "Expected 0 arguments but found 1.", [])
       cd:
       - r.db_list(1)
 
-    - ot: err("RqlCompileError", "Expected 1 argument(s) but found 2.", [])
+    - ot: err("RqlCompileError", "Expected 1 argument but found 2.", [])
       cd:
       - tbl.zip(1)
       - tbl.distinct(1)
@@ -24,8 +24,8 @@ tests:
 
     - ot:
         js: err("RqlDriverError", "Expected 0 arguments (not including options) but found 1.", [])
-        rb: err("RqlCompileError", "Expected 1 argument(s) but found 2.", [])
-        py: err("RqlCompileError", "Expected 1 argument(s) but found 2.", [])
+        rb: err("RqlCompileError", "Expected 1 argument but found 2.", [])
+        py: err("RqlCompileError", "Expected 1 argument but found 2.", [])
       cd:
       - tbl.delete(1)
 
@@ -33,7 +33,7 @@ tests:
       ot: err("RqlCompileError", "Expected between 0 and 1 arguments but found 2.", [])
 
 
-    - ot: err("RqlCompileError", "Expected 1 argument(s) but found 0.", [])
+    - ot: err("RqlCompileError", "Expected 1 argument but found 0.", [])
       cd:
       - r.db_create()
       - r.db_drop()
@@ -45,16 +45,16 @@ tests:
     - cd: r.js()
       ot:
         js: err("RqlDriverError", "Expected 1 argument (not including options) but found 0.", [])
-        rb: err("RqlCompileError", "Expected 1 argument(s) but found 0.", [])
-        py: err("RqlCompileError", "Expected 1 argument(s) but found 0.", [])
+        rb: err("RqlCompileError", "Expected 1 argument but found 0.", [])
+        py: err("RqlCompileError", "Expected 1 argument but found 0.", [])
 
     - cd: r.expr()
       ot:
         py: err_regex('TypeError', ".*takes at least 1 argument \(0 given\)", [])
-        js: err("RqlDriverError", "Expected between 1 and 2 argument(s) but found 0.", [])
+        js: err("RqlDriverError", "Expected between 1 and 2 arguments but found 0.", [])
         rb: err_regex("ArgumentError", '.*wrong number of arguments \(0 for 1.*\)', [])
 
-    - ot: err("RqlCompileError", "Expected 2 argument(s) but found 1.", [])
+    - ot: err("RqlCompileError", "Expected 2 arguments but found 1.", [])
       cd:
       - tbl.map()
       - tbl.concat_map()
@@ -72,7 +72,7 @@ tests:
       - tbl.get()
       - r.expr([]).sample()
       - tbl.indexes_of()
-    - ot: err("RqlCompileError", "Expected 1 argument(s) but found 2.", [])
+    - ot: err("RqlCompileError", "Expected 1 argument but found 2.", [])
       cd:
       - r.db_create(1,2)
       - r.db_drop(1,2)
@@ -80,8 +80,8 @@ tests:
 
     - ot:
         js: err("RqlDriverError", "Expected 1 argument (not including options) but found 0.", [])
-        rb: err("RqlCompileError", "Expected 2 argument(s) but found 1.", [])
-        py: err("RqlCompileError", "Expected 2 argument(s) but found 1.", [])
+        rb: err("RqlCompileError", "Expected 2 arguments but found 1.", [])
+        py: err("RqlCompileError", "Expected 2 arguments but found 1.", [])
       cd:
       - tbl.filter()
 
@@ -101,11 +101,11 @@ tests:
 
     - cd: r.js(1,2)
       ot:
-        py: err("RqlCompileError", "Expected 1 argument(s) but found 2.", [])
-        rb: err("RqlCompileError", "Expected 1 argument(s) but found 2.", [])
+        py: err("RqlCompileError", "Expected 1 argument but found 2.", [])
+        rb: err("RqlCompileError", "Expected 1 argument but found 2.", [])
         js: err("RqlDriverError", "Expected 1 argument (not including options) but found 2.", [])
 
-    - ot: err("RqlCompileError", "Expected 2 argument(s) but found 3.", [])
+    - ot: err("RqlCompileError", "Expected 2 arguments but found 3.", [])
       cd:
       - tbl.map(1,2)
       - tbl.concat_map(1,2)
@@ -125,8 +125,8 @@ tests:
       - tbl.indexes_of(1,2)
 
     - ot:
-        py: err("RqlCompileError", "Expected 2 argument(s) but found 4.", [])
-        rb: err("RqlCompileError", "Expected 2 argument(s) but found 4.", [])
+        py: err("RqlCompileError", "Expected 2 arguments but found 4.", [])
+        rb: err("RqlCompileError", "Expected 2 arguments but found 4.", [])
         js: err("RqlDriverError", "Expected 1 argument (not including options) but found 3.", [])
       cd:
       - tbl.filter(1,2,3)
@@ -147,8 +147,8 @@ tests:
       ot: err("RqlCompileError", "Expected between 1 and 2 arguments but found 3.", [])
 
     - ot:
-        py: err("RqlCompileError", "Expected 2 argument(s) but found 1.", [])
-        rb: err("RqlCompileError", "Expected 2 argument(s) but found 1.", [])
+        py: err("RqlCompileError", "Expected 2 arguments but found 1.", [])
+        rb: err("RqlCompileError", "Expected 2 arguments but found 1.", [])
         js: err("RqlDriverError", "Expected 1 argument (not including options) but found 0.", [])
       cd:
       - tbl.update()
@@ -157,15 +157,15 @@ tests:
       # - db.table() # TODO: theerror message for this in ruby is wrong
 
     - cd: tbl.reduce()
-      ot: err("RqlCompileError", "Expected 2 argument(s) but found 1.", [])
+      ot: err("RqlCompileError", "Expected 2 arguments but found 1.", [])
 
     - cd: tbl.eq_join()
       ot:
-        py: err("RqlCompileError", "Expected 3 argument(s) but found 1.", [])
-        rb: err("RqlCompileError", "Expected 3 argument(s) but found 1.", [])
+        py: err("RqlCompileError", "Expected 3 arguments but found 1.", [])
+        rb: err("RqlCompileError", "Expected 3 arguments but found 1.", [])
         js: err("RqlDriverError", "Expected 2 arguments (not including options) but found 0.", [])
 
-    - ot: err("RqlCompileError", "Expected 3 argument(s) but found 1.", [])
+    - ot: err("RqlCompileError", "Expected 3 arguments but found 1.", [])
       cd:
       - tbl.inner_join()
       - tbl.outer_join()
@@ -176,11 +176,11 @@ tests:
     - cd:
       - tbl.eq_join(1)
       ot:
-        py: err("RqlCompileError", "Expected 3 argument(s) but found 2.", [])
-        rb: err("RqlCompileError", "Expected 3 argument(s) but found 2.", [])
+        py: err("RqlCompileError", "Expected 3 arguments but found 2.", [])
+        rb: err("RqlCompileError", "Expected 3 arguments but found 2.", [])
         js: err("RqlDriverError", "Expected 2 arguments (not including options) but found 1.", [])
 
-    - ot: err("RqlCompileError", "Expected 3 argument(s) but found 2.", [])
+    - ot: err("RqlCompileError", "Expected 3 arguments but found 2.", [])
       cd:
       - tbl.inner_join(1)
       - tbl.outer_join(1)
@@ -190,11 +190,11 @@ tests:
 
     - cd: tbl.eq_join(1,2,3,4)
       ot:
-        py: err("RqlCompileError", "Expected 3 argument(s) but found 5.", [])
-        rb: err("RqlCompileError", "Expected 3 argument(s) but found 5.", [])
+        py: err("RqlCompileError", "Expected 3 arguments but found 5.", [])
+        rb: err("RqlCompileError", "Expected 3 arguments but found 5.", [])
         js: err("RqlDriverError", "Expected 2 arguments (not including options) but found 4.", [])
 
-    - ot: err("RqlCompileError", "Expected 3 argument(s) but found 4.", [])
+    - ot: err("RqlCompileError", "Expected 3 arguments but found 4.", [])
       cd:
       - tbl.inner_join(1,2,3)
       - tbl.outer_join(1,2,3)
@@ -202,16 +202,16 @@ tests:
       - r.expr([]).splice_at(1, 2, 3)
       - r.expr([]).change_at(1, 2, 3)
 
-    - ot: err('RqlCompileError', "Expected 2 or more argument(s) but found 1.", [])
+    - ot: err('RqlCompileError', "Expected 2 or more arguments but found 1.", [])
       cd:
       - tbl.get_all()
 
-    - ot: err("RqlCompileError", "Expected 3 argument(s) but found 2.", [])
+    - ot: err("RqlCompileError", "Expected 3 arguments but found 2.", [])
       cd: r.branch(1,2)
-    - ot: err("RqlCompileError", "Expected 3 argument(s) but found 4.", [])
+    - ot: err("RqlCompileError", "Expected 3 arguments but found 4.", [])
       cd: r.branch(1,2,3,4)
 
-    - ot: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [])
+    - ot: err("RqlDriverError", "Expected 1 argument but found 2.", [])
       js: r.expr({})(1,2)
       py: []
       rb: []
@@ -270,7 +270,7 @@ tests:
     - cd: r.http("httpbin.org/get","bad_param")
       ot:
         js: err("RqlDriverError", "Expected 1 argument (not including options) but found 2.", [])
-        rb: err("RqlCompileError", "Expected 1 argument(s) but found 2.", [])
+        rb: err("RqlCompileError", "Expected 1 argument but found 2.", [])
         py: err_regex('TypeError', ".*takes exactly 1 argument \(2 given\)", [])
 
     # TODO: Math and logic

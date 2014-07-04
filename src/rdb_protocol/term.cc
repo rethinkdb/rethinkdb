@@ -16,7 +16,7 @@
 
 namespace ql {
 
-counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
+counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     switch (t->type()) {
     case Term::DATUM:              return make_datum_term(t);
     case Term::MAKE_ARRAY:         return make_make_array_term(env, t);
@@ -192,22 +192,10 @@ void run(protob_t<Query> q,
 
     switch (q->type()) {
     case Query_QueryType_START: {
-        threadnum_t th = get_thread_id();
-        scoped_ptr_t<ql::env_t> env(
-            new ql::env_t(
-                ctx->extproc_pool,
-                ctx->changefeed_client.get(),
-                ctx->reql_http_proxy,
-                ctx->ns_repo,
-                ctx->cross_thread_namespace_watchables[th.threadnum]->get_watchable(),
-                ctx->cross_thread_database_watchables[th.threadnum]->get_watchable(),
-                ctx->cluster_metadata,
-                ctx->directory_read_manager,
-                interruptor,
-                ctx->machine_id,
-                q));
+        const profile_bool_t profile = profile_bool_optarg(q);
+        env_t env(ctx, interruptor, global_optargs(q), profile);
 
-        counted_t<term_t> root_term;
+        counted_t<const term_t> root_term;
         try {
             Term *t = q->mutable_query();
             compile_env_t compile_env((var_visibility_t()));
@@ -234,14 +222,14 @@ void run(protob_t<Query> q,
         }
 
         try {
-            scope_env_t scope_env(env.get(), var_scope_t());
+            scope_env_t scope_env(&env, var_scope_t());
             counted_t<val_t> val = root_term->eval(&scope_env);
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
                 res->set_type(Response_ResponseType_SUCCESS_ATOM);
                 counted_t<const datum_t> d = val->as_datum();
                 d->write_to_protobuf(res->add_response(), use_json);
-                if (env->trace.has()) {
-                    env->trace->as_datum()->write_to_protobuf(
+                if (env.trace.has()) {
+                    env.trace->as_datum()->write_to_protobuf(
                         res->mutable_profile(), use_json);
                 }
             } else if (counted_t<grouped_data_t> gd
@@ -249,21 +237,25 @@ void run(protob_t<Query> q,
                 res->set_type(Response::SUCCESS_ATOM);
                 datum_t d(std::move(*gd));
                 d.write_to_protobuf(res->add_response(), use_json);
-                if (env->trace.has()) {
-                    env->trace->as_datum()->write_to_protobuf(
+                if (env.trace.has()) {
+                    env.trace->as_datum()->write_to_protobuf(
                         res->mutable_profile(), use_json);
                 }
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
-                counted_t<datum_stream_t> seq = val->as_seq(env.get());
-                if (counted_t<const datum_t> arr = seq->as_array(env.get())) {
+                counted_t<datum_stream_t> seq = val->as_seq(&env);
+                if (counted_t<const datum_t> arr = seq->as_array(&env)) {
                     res->set_type(Response_ResponseType_SUCCESS_ATOM);
                     arr->write_to_protobuf(res->add_response(), use_json);
-                    if (env->trace.has()) {
-                        env->trace->as_datum()->write_to_protobuf(
+                    if (env.trace.has()) {
+                        env.trace->as_datum()->write_to_protobuf(
                             res->mutable_profile(), use_json);
                     }
                 } else {
-                    stream_cache->insert(token, use_json, std::move(env), seq);
+                    stream_cache->insert(token,
+                                         use_json,
+                                         env.global_optargs.get_all_optargs(),
+                                         profile,
+                                         seq);
                     bool b = stream_cache->serve(token, res, interruptor);
                     r_sanity_check(b);
                 }
@@ -363,12 +355,14 @@ void term_t::prop_bt(Term *t) const {
     propagate_backtrace(t, &get_src()->GetExtension(ql2::extension::backtrace));
 }
 
-counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) {
+counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) const {
     // This is basically a hook for unit tests to change things mid-query
     profile::starter_t starter(strprintf("Evaluating %s.", name()), env->env->trace);
     DEBUG_ONLY_CODE(env->env->do_eval_callback());
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
-    env->env->throw_if_interruptor_pulsed();
+    if (env->env->interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
     env->env->maybe_yield();
     INC_DEPTH;
 
@@ -390,35 +384,38 @@ counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) {
     }
 }
 
-counted_t<val_t> term_t::new_val(counted_t<const datum_t> d) {
+counted_t<val_t> term_t::new_val(counted_t<const datum_t> d) const {
     return make_counted<val_t>(d, backtrace());
 }
-counted_t<val_t> term_t::new_val(counted_t<const datum_t> d, counted_t<table_t> t) {
+counted_t<val_t> term_t::new_val(counted_t<const datum_t> d,
+                                 counted_t<table_t> t) const {
     return make_counted<val_t>(d, t, backtrace());
 }
 
 counted_t<val_t> term_t::new_val(counted_t<const datum_t> d,
                                  counted_t<const datum_t> orig_key,
-                                 counted_t<table_t> t) {
+                                 counted_t<table_t> t) const {
     return make_counted<val_t>(d, orig_key, t, backtrace());
 }
 
-counted_t<val_t> term_t::new_val(env_t *env, counted_t<datum_stream_t> s) {
+counted_t<val_t> term_t::new_val(env_t *env,
+                                 counted_t<datum_stream_t> s) const {
     return make_counted<val_t>(env, s, backtrace());
 }
-counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s, counted_t<table_t> d) {
+counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s,
+                                 counted_t<table_t> d) const {
     return make_counted<val_t>(d, s, backtrace());
 }
-counted_t<val_t> term_t::new_val(counted_t<const db_t> db) {
+counted_t<val_t> term_t::new_val(counted_t<const db_t> db) const {
     return make_counted<val_t>(db, backtrace());
 }
-counted_t<val_t> term_t::new_val(counted_t<table_t> t) {
+counted_t<val_t> term_t::new_val(counted_t<table_t> t) const {
     return make_counted<val_t>(t, backtrace());
 }
-counted_t<val_t> term_t::new_val(counted_t<func_t> f) {
+counted_t<val_t> term_t::new_val(counted_t<func_t> f) const {
     return make_counted<val_t>(f, backtrace());
 }
-counted_t<val_t> term_t::new_val_bool(bool b) {
+counted_t<val_t> term_t::new_val_bool(bool b) const {
     return new_val(make_counted<const datum_t>(datum_t::R_BOOL, b));
 }
 

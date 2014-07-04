@@ -1,8 +1,16 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "utils.hpp"
 #include "clustering/administration/main/names.hpp"
 
-const char* names[] = {
+#include <ctype.h>
+#include <string.h>
+#include <unistd.h>
+
+#include <string>
+#include <algorithm>
+
+#include "utils.hpp"
+
+static const char* names[] = {
     "Akasha",
     "Alchemist",
     "Azwraith",
@@ -92,4 +100,28 @@ const char* names[] = {
 std::string get_random_machine_name() {
     int index = randint(sizeof(names) / sizeof(char *));
     return std::string(names[index]);
+}
+
+bool is_invalid_char(char ch) {
+    return !(isalpha(ch) || isdigit(ch) || ch == '_');
+}
+
+char rand_alnum() {
+    int rand_val = randint(10 + 26);
+    return (rand_val < 10) ? ('0' + rand_val) : ('a' + rand_val - 10);
+}
+
+std::string get_machine_name() {
+    char h[64];
+    h[sizeof(h) - 1] = '\0';
+
+    if (gethostname(h, sizeof(h) - 1) != 0 || strlen(h) == 0) {
+        return get_random_machine_name();
+    }
+
+    std::string sanitized(h);
+    std::replace_if(sanitized.begin(), sanitized.end(), is_invalid_char, '_');
+
+    return strprintf("%s_%c%c%c", sanitized.c_str(),
+                     rand_alnum(), rand_alnum(), rand_alnum());
 }

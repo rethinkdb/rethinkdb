@@ -54,10 +54,12 @@ public:
         prop_bt(func.get());
     }
 private:
-    virtual counted_t<val_t> obj_eval(scope_env_t *env, counted_t<val_t> v0) = 0;
+    virtual counted_t<val_t> obj_eval(scope_env_t *env,
+                                      args_t *args,
+                                      counted_t<val_t> v0) const = 0;
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        counted_t<val_t> v0 = arg(env, 0);
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<val_t> v0 = args->arg(env, 0);
         counted_t<const datum_t> d;
 
         if (v0->get_type().is_convertible(val_t::type_t::DATUM)) {
@@ -65,13 +67,13 @@ private:
         }
 
         if (d.has() && d->get_type() == datum_t::R_OBJECT) {
-            return obj_eval(env, v0);
+            return obj_eval(env, args, v0);
         } else if ((d.has() && d->get_type() == datum_t::R_ARRAY) ||
                    (!d.has()
                     && v0->get_type().is_convertible(val_t::type_t::SEQUENCE))) {
             // The above if statement is complicated because it produces better
             // error messages on e.g. strings.
-            if (counted_t<val_t> no_recurse = optarg(env, "_NO_RECURSE_")) {
+            if (counted_t<val_t> no_recurse = args->optarg(env, "_NO_RECURSE_")) {
                 rcheck(no_recurse->as_bool() == false, base_exc_t::GENERIC,
                        strprintf("Cannot perform %s on a sequence of sequences.",
                                  name()));
@@ -82,18 +84,23 @@ private:
                 = make_counted<func_term_t>(&compile_env, func);
             counted_t<func_t> f = func_term->eval_to_func(env->scope);
 
+            counted_t<datum_stream_t> stream = v0->as_seq(env->env);
             switch (poly_type) {
             case MAP:
-                return new_val(env->env, v0->as_seq(env->env)->add_transformation(
-                    env->env, map_wire_func_t(f), backtrace()));
+                stream->add_transformation(map_wire_func_t(f), backtrace());
+                break;
             case FILTER:
-                return new_val(env->env, v0->as_seq(env->env)->add_transformation(
-                    env->env, filter_wire_func_t(f, boost::none), backtrace()));
+                stream->add_transformation(filter_wire_func_t(f, boost::none),
+                                           backtrace());
+                break;
             case SKIP_MAP:
-                return new_val(env->env, v0->as_seq(env->env)->add_transformation(
-                    env->env, concatmap_wire_func_t(f), backtrace()));
+                stream->add_transformation(concatmap_wire_func_t(f),
+                                           backtrace());
+                break;
             default: unreachable();
             }
+
+            return new_val(env->env, stream);
         }
 
         rfail_typed_target(
@@ -110,15 +117,15 @@ public:
     pluck_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> obj_eval(scope_env_t *env, counted_t<val_t> v0) {
+    virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
         counted_t<const datum_t> obj = v0->as_datum();
         r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
 
-        const size_t n = num_args();
+        const size_t n = args->num_args();
         std::vector<counted_t<const datum_t> > paths;
         paths.reserve(n - 1);
         for (size_t i = 1; i < n; ++i) {
-            paths.push_back(arg(env, i)->as_datum());
+            paths.push_back(args->arg(env, i)->as_datum());
         }
         pathspec_t pathspec(make_counted<const datum_t>(std::move(paths)), this);
         return new_val(project(obj, pathspec, DONT_RECURSE));
@@ -131,15 +138,15 @@ public:
     without_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> obj_eval(scope_env_t *env, counted_t<val_t> v0) {
+    virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
         counted_t<const datum_t> obj = v0->as_datum();
         r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
 
         std::vector<counted_t<const datum_t> > paths;
-        const size_t n = num_args();
+        const size_t n = args->num_args();
         paths.reserve(n - 1);
         for (size_t i = 1; i < n; ++i) {
-            paths.push_back(arg(env, i)->as_datum());
+            paths.push_back(args->arg(env, i)->as_datum());
         }
         pathspec_t pathspec(make_counted<const datum_t>(std::move(paths)), this);
         return new_val(unproject(obj, pathspec, DONT_RECURSE));
@@ -152,15 +159,15 @@ public:
     literal_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0, 1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t flags) const {
         rcheck(flags & LITERAL_OK, base_exc_t::GENERIC,
                "Stray literal keyword found, literal can only be present inside merge "
                "and cannot nest inside other literals.");
         datum_ptr_t res(datum_t::R_OBJECT);
         bool clobber = res.add(datum_t::reql_type_string,
                                make_counted<const datum_t>(pseudo::literal_string));
-        if (num_args() == 1) {
-            clobber |= res.add(pseudo::value_key, arg(env, 0)->as_datum());
+        if (args->num_args() == 1) {
+            clobber |= res.add(pseudo::value_key, args->arg(env, 0)->as_datum());
         }
 
         r_sanity_check(!clobber);
@@ -169,7 +176,7 @@ private:
         return new_val(res.to_counted(permissible_ptypes));
     }
     virtual const char *name() const { return "literal"; }
-    virtual bool can_be_grouped() { return false; }
+    virtual bool can_be_grouped() const { return false; }
 };
 
 class merge_term_t : public obj_or_seq_op_term_t {
@@ -177,10 +184,10 @@ public:
     merge_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1, LITERAL_OK)) { }
 private:
-    virtual counted_t<val_t> obj_eval(scope_env_t *env, counted_t<val_t> v0) {
+    virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
         counted_t<const datum_t> d = v0->as_datum();
-        for (size_t i = 1; i < num_args(); ++i) {
-            counted_t<val_t> v = arg(env, i, LITERAL_OK);
+        for (size_t i = 1; i < args->num_args(); ++i) {
+            counted_t<val_t> v = args->arg(env, i, LITERAL_OK);
 
             // We branch here because compiling functions is expensive, and
             // `obj_eval` may be called many many times.
@@ -201,15 +208,15 @@ public:
     has_fields_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : obj_or_seq_op_term_t(env, term, FILTER, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> obj_eval(scope_env_t *env, counted_t<val_t> v0) {
+    virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
         counted_t<const datum_t> obj = v0->as_datum();
         r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
 
         std::vector<counted_t<const datum_t> > paths;
-        const size_t n = num_args();
+        const size_t n = args->num_args();
         paths.reserve(n - 1);
         for (size_t i = 1; i < n; ++i) {
-            paths.push_back(arg(env, i)->as_datum());
+            paths.push_back(args->arg(env, i)->as_datum());
         }
         pathspec_t pathspec(make_counted<const datum_t>(std::move(paths)), this);
         return new_val_bool(contains(obj, pathspec));
@@ -222,8 +229,8 @@ public:
     get_field_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : obj_or_seq_op_term_t(env, term, SKIP_MAP, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> obj_eval(scope_env_t *env, counted_t<val_t> v0) {
-        return new_val(v0->as_datum()->get(arg(env, 1)->as_str().to_std()));
+    virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
+        return new_val(v0->as_datum()->get(args->arg(env, 1)->as_str().to_std()));
     }
     virtual const char *name() const { return "get_field"; }
 };

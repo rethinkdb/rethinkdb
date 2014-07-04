@@ -14,6 +14,7 @@
 #include "containers/counted.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "concurrency/signal.hpp"
+#include "extproc/extproc_job.hpp"
 
 // http calls result either in a DATUM return value or an error string
 struct http_result_t {
@@ -29,15 +30,6 @@ RDB_SERIALIZE_OUTSIDE(http_result_t);
 class extproc_pool_t;
 class http_runner_t;
 class http_job_t;
-
-class http_worker_exc_t : public std::exception {
-public:
-    explicit http_worker_exc_t(const std::string& data) : info(data) { }
-    ~http_worker_exc_t() throw () { }
-    const char *what() const throw () { return info.c_str(); }
-private:
-    std::string info;
-};
 
 enum class http_method_t {
     GET,

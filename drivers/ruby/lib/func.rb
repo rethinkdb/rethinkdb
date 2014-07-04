@@ -137,7 +137,7 @@ module RethinkDB
     def do(*args, &b)
       a = ((@body != RQL) ? [self] : []) + args.dup
       if a == [] && !b
-        raise RqlDriverError, "Expected 1 or more argument(s) but found 0."
+        raise RqlDriverError, "Expected 1 or more arguments but found 0."
       end
       funcall_args = (b ? [new_func(&b)] : [a.pop]) + a
       # PP.pp funcall_args

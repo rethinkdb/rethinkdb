@@ -5,10 +5,10 @@
 #include <map>
 #include <string>
 #include <set>
+#include <vector>
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
-#include <boost/ptr_container/ptr_vector.hpp>
 
 #include "containers/cow_ptr.hpp"
 #include "containers/scoped.hpp"
@@ -47,15 +47,15 @@ RDB_DECLARE_SERIALIZABLE(test_cluster_directory_t);
 class test_cluster_group_t {
 public:
     const base_path_t base_path;
-    boost::ptr_vector<temp_file_t> files;
+    std::vector<scoped_ptr_t<temp_file_t> > files;
     scoped_ptr_t<io_backender_t> io_backender;
     scoped_ptr_t<cache_balancer_t> balancer;
-    boost::ptr_vector<serializer_t> serializers;
-    boost::ptr_vector<mock_store_t> stores;
-    boost::ptr_vector<multistore_ptr_t> svses;
-    boost::ptr_vector<reactor_test_cluster_t> test_clusters;
+    std::vector<scoped_ptr_t<serializer_t> > serializers;
+    std::vector<scoped_ptr_t<mock_store_t> > stores;
+    std::vector<scoped_ptr_t<multistore_ptr_t> > svses;
+    std::vector<scoped_ptr_t<reactor_test_cluster_t> > test_clusters;
 
-    boost::ptr_vector<test_reactor_t> test_reactors;
+    std::vector<scoped_ptr_t<test_reactor_t> > test_reactors;
 
     std::map<std::string, std::string> inserter_state;
 
@@ -66,7 +66,7 @@ public:
 
     void construct_all_reactors(const blueprint_t &bp);
 
-    peer_id_t get_peer_id(unsigned i);
+    peer_id_t get_peer_id(size_t i);
 
     blueprint_t compile_blueprint(const std::string& bp);
 
@@ -75,7 +75,7 @@ public:
     static std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > extract_reactor_business_cards_no_optional(
             const change_tracking_map_t<peer_id_t, test_cluster_directory_t> &input);
 
-    void make_namespace_interface(int i, scoped_ptr_t<cluster_namespace_interface_t> *out);
+    scoped_ptr_t<cluster_namespace_interface_t> make_namespace_interface(int i);
 
     void run_queries();
 

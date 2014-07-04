@@ -9,9 +9,6 @@
 #include <utility>
 #include <vector>
 
-#include "utils.hpp"
-#include <boost/ptr_container/ptr_vector.hpp>
-
 #include "arch/types.hpp"
 #include "config/args.hpp"
 #include "containers/scoped.hpp"

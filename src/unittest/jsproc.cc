@@ -210,7 +210,7 @@ void run_overalloc_function_test() {
     // Call the function
     ASSERT_THROW(js_runner.call(source_code,
                                 std::vector<counted_t<const ql::datum_t> >(),
-                                config), js_worker_exc_t);
+                                config), extproc_worker_exc_t);
 }
 
 // Disabling this test because it may cause complications depending on the user's system

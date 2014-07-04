@@ -19,6 +19,7 @@ extproc_job_t::extproc_job_t(extproc_pool_t *_pool,
 
     try {
         worker_lock.get()->get_value()->acquired(&combined_interruptor);
+        extproc_pool_t::worker_acq_t worker_acq(pool);
         worker_lock.get()->get_value()->run_job(worker_fn);
     } catch (...) {
         user_error = true;

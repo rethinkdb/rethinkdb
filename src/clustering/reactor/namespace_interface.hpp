@@ -10,10 +10,6 @@
 #include <vector>
 #include <set>
 
-#include "errors.hpp"
-#include <boost/ptr_container/ptr_vector.hpp>
-
-
 #include "arch/timing.hpp"
 #include "clustering/generic/resource.hpp"
 #include "clustering/reactor/metadata.hpp"
@@ -110,7 +106,7 @@ private:
     template <class op_type, class fifo_enforcer_token_type, class op_response_type>
     void perform_immediate_op(
             void (master_access_t::*how_to_run_query)(const op_type &, op_response_type *, order_token_t, fifo_enforcer_token_type *, signal_t *) /* THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t) */,
-            boost::ptr_vector<immediate_op_info_t<op_type, fifo_enforcer_token_type> > *masters_to_contact,
+            std::vector<scoped_ptr_t<immediate_op_info_t<op_type, fifo_enforcer_token_type> > > *masters_to_contact,
             std::vector<op_response_type> *results,
             std::vector<std::string> *failures,
             order_token_t order_token,
@@ -125,7 +121,7 @@ private:
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
     void perform_outdated_read(
-            boost::ptr_vector<outdated_read_info_t> *direct_readers_to_contact,
+            std::vector<scoped_ptr_t<outdated_read_info_t> > *direct_readers_to_contact,
             std::vector<read_response_t> *results,
             std::vector<std::string> *failures,
             int i,

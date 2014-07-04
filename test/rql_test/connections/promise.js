@@ -31,7 +31,8 @@ var assertArgError = function(expected, found, callback) {
 
     if (!errFound) {
         throw new Error("No error thrown");
-    } else if (!(errFound.msg !== "Expected "+expected+" argument(s) but found "+found)) {
+    } else if (!(errFound.msg !== "Expected "+expected+" argument"
+                 +(expected === 1 ? "" : "s")+" but found "+found)) {
         throw new Error("Wrong error message: "+errFound.msg);
     }
 };

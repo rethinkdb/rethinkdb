@@ -26,7 +26,7 @@ class wire_func_t {
 public:
     wire_func_t();
     explicit wire_func_t(const counted_t<func_t> &f);
-    virtual ~wire_func_t();
+    ~wire_func_t();
     wire_func_t(const wire_func_t &copyee);
     wire_func_t &operator=(const wire_func_t &assignee);
 
@@ -44,31 +44,37 @@ public:
     archive_result_t rdb_deserialize(read_stream_t *s);
 
 private:
-    virtual bool func_can_be_null() const { return false; }
+    friend class maybe_wire_func_t;  // for has().
+    bool has() const { return func.has(); }
+
     counted_t<func_t> func;
 };
 
 RDB_SERIALIZE_OUTSIDE(wire_func_t);
 
-class maybe_wire_func_t : public wire_func_t {
+class maybe_wire_func_t {
 protected:
     template<class... Args>
-    explicit maybe_wire_func_t(Args... args) : wire_func_t(args...) { }
+    explicit maybe_wire_func_t(Args... args) : wrapped(args...) { }
+
+public:
+    template <cluster_version_t W>
+    void rdb_serialize(write_message_t *wm) const;
+    template <cluster_version_t W>
+    archive_result_t rdb_deserialize(read_stream_t *s);
+
+    counted_t<func_t> compile_wire_func_or_null() const;
+
 private:
-    virtual bool func_can_be_null() const { return true; }
+    wire_func_t wrapped;
 };
+
+RDB_SERIALIZE_OUTSIDE(maybe_wire_func_t);
 
 class map_wire_func_t : public wire_func_t {
 public:
     template <class... Args>
     explicit map_wire_func_t(Args... args) : wire_func_t(args...) { }
-
-    // Safely constructs a map wire func, that couldn't possibly capture any surprise
-    // variables.
-    static map_wire_func_t make_safely(
-        pb::dummy_var_t dummy_var,
-        const std::function<protob_t<Term>(sym_t argname)> &body_generator,
-        protob_t<const Backtrace> backtrace);
 };
 
 class filter_wire_func_t {
