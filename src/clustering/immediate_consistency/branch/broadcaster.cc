@@ -125,6 +125,10 @@ public:
     const write_t write;
     const transition_timestamp_t timestamp;
     const ack_checker_t *ack_checker;
+
+    /* This is a callback to notify when the write has either succeeded or
+    failed. Once the write succeeds, we will set this to `NULL` so that we
+    don't call it again. */
     write_callback_t *callback;
 
     /* This is the set of peers that have acknowledged the write so far. When it satisfies
