@@ -200,7 +200,6 @@ void run(protob_t<Query> q,
             Term *t = q->mutable_query();
             compile_env_t compile_env((var_visibility_t()));
             root_term = compile_term(&compile_env, q.make_child(t));
-            // TODO: handle this properly
         } catch (const exc_t &e) {
             fill_error(res, Response::COMPILE_ERROR, e.what(), e.backtrace());
             return;
