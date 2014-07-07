@@ -701,7 +701,8 @@ void connectivity_cluster_t::run_t::handle(
         }
 
         if (!resolve_protocol_version(remote_version_string, &resolved_version)) {
-            logWRN("Connection attempt from %s with unresolvable protocol version: %s",
+            logWRN("Connection attempt from %s with unresolvable protocol version %s. "
+                   "The other node is running an incompatible version of RethinkDB.",
                    peername, sanitize_for_logger(remote_version_string).c_str());
             return;
         }
