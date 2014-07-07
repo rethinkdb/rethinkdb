@@ -26,7 +26,7 @@ class fake_ack_checker_t : public ack_checker_t {
 public:
     fake_ack_checker_t(int e) : expected(e) { }
     bool is_acceptable_ack_set(const std::set<peer_id_t> &ack_set) const {
-        return int(ack_set.size()) >= expected;
+        return static_cast<int>(ack_set.size()) >= expected;
     }
     write_durability_t get_write_durability(const peer_id_t &) const {
         return write_durability_t::SOFT;

@@ -425,7 +425,7 @@ void broadcaster_t::spawn_write(const write_t &write,
                                 signal_t *interruptor,
                                 const ack_checker_t *ack_checker) THROWS_ONLY(interrupted_exc_t) {
 
-    // TODO: Require that `cb` be non-NULL.
+    assert(cb != NULL);
 
     order_token.assert_write_mode();
 
@@ -596,11 +596,15 @@ void broadcaster_t::background_writeread(
 
         write_ref.get()->ack_set.insert(mirror->get_peer());
         if (write_ref.get()->ack_checker->is_acceptable_ack_set(write_ref.get()->ack_set)) {
-            if (write_ref.get()->callback) {
+            /* We might get here multiple times, if `is_acceptable_ack_set()`
+            returns `true` before all of the acks have come back. To avoid
+            calling the callback multiple times, we set `callback` to `NULL`
+            after the first time. This also signals `end_write()` not to call
+            `on_failure()`. */
+            if (write_ref.get()->callback != NULL) {
                 guarantee(write_ref.get()->callback->write == write_ref.get().get());
                 write_ref.get()->callback->write = NULL;
                 write_ref.get()->callback->on_success(response);
-                /* Prevent us from calling the callback a second time */
                 write_ref.get()->callback = NULL;
             }
         }
@@ -633,7 +637,9 @@ void broadcaster_t::end_write(boost::shared_ptr<incomplete_write_t> write) THROW
         guarantee(newest_complete_timestamp == removed_write->timestamp.timestamp_before());
         newest_complete_timestamp = removed_write->timestamp.timestamp_after();
     }
-    if (write->callback) {
+    /* `write->callback` could be `NULL` if we already called `on_success()` on
+    it */
+    if (write->callback != NULL) {
         guarantee(write->callback->write == write.get());
         write->callback->write = NULL;
         write->callback->on_failure(true);
@@ -749,7 +755,7 @@ void broadcaster_t::refresh_readable_dispatchees_as_set() {
     negligible. */
     readable_dispatchees_as_set.clear();
     dispatchee_t *dispatchee = readable_dispatchees.head();
-    while (dispatchee) {
+    while (dispatchee != NULL) {
         readable_dispatchees_as_set.insert(dispatchee->get_peer());
         dispatchee = readable_dispatchees.next(dispatchee);
     }
