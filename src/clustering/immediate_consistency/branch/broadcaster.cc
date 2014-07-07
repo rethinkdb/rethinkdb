@@ -425,7 +425,7 @@ void broadcaster_t::spawn_write(const write_t &write,
                                 signal_t *interruptor,
                                 const ack_checker_t *ack_checker) THROWS_ONLY(interrupted_exc_t) {
 
-    assert(cb != NULL);
+    rassert(cb != NULL);
 
     order_token.assert_write_mode();
 
