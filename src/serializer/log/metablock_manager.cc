@@ -200,7 +200,13 @@ void metablock_manager_t<metablock_t>::co_start_existing(file_t *file, bool *mb_
             // derived from the 4 bytes block_magic_t at the front of the block), so
             // we don't need to remember the version number -- we just assert it's
             // ok.
-            guarantee(disk_format_version_is_recognized(mb_temp->disk_format_version));
+            if (!disk_format_version_is_recognized(mb_temp->disk_format_version)) {
+                fail_due_to_user_error(
+                        "Data version not recognized. Is the data "
+                        "directory from a newer version of RethinkDB? "
+                        "(version on disk: %" PRIu32 ")",
+                        mb_temp->disk_format_version);
+            }
             if (mb_temp->version > latest_version) {
                 /* this metablock is good, maybe there are more? */
                 latest_version = mb_temp->version;
