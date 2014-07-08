@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_TERMS_TERMS_HPP_
 #define RDB_PROTOCOL_TERMS_TERMS_HPP_
 
@@ -106,6 +106,12 @@ counted_t<term_t> make_sync_term(
 counted_t<term_t> make_error_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_default_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+
+// geo.cc
+counted_t<term_t> make_geojson_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_to_geojson_term(
     compile_env_t *env, const protob_t<const Term> &term);
 
 // js.cc

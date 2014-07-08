@@ -650,6 +650,10 @@ message Term {
 
         CHANGES = 152; // TABLE -> STREAM
         ARGS = 154; // ARRAY -> SPECIAL (used to splice arguments)
+
+        // TODO! document
+        GEOJSON = 155;
+        TOGEOJSON = 156;
     }
     optional TermType type = 1;
 
