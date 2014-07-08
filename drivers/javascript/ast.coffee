@@ -1030,7 +1030,7 @@ rethinkdb.expr = varar 1, 2, (val, nestingDepth=20) ->
         new MakeArray {}, val...
     else if typeof(val) is 'number'
         new DatumTerm val
-    else if val == Object(val)
+    else if Object::toString.call(val) is '[object Object]'
         new MakeObject val
     else
         new DatumTerm val
