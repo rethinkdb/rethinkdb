@@ -12,8 +12,8 @@ void serialize(write_message_t *wm, repli_timestamp_t tstamp) {
     serialize<W>(wm, tstamp.longtime);
 }
 
-template void serialize<cluster_version_t::v1_13_2_is_latest>(write_message_t *wm,
-                                                              repli_timestamp_t tstamp);
+template void serialize<cluster_version_t::v1_14_is_latest>(write_message_t *wm,
+                                                            repli_timestamp_t tstamp);
 template void serialize<cluster_version_t::v1_13_is_latest_disk>(write_message_t *wm,
                                                                  repli_timestamp_t tstamp);
 

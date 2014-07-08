@@ -28,10 +28,10 @@
 #define MESSAGE_HANDLER_MAX_BATCH_SIZE           8
 
 // The cluster communication protocol version.
-static_assert(cluster_version_t::CLUSTER == cluster_version_t::v1_13_2_is_latest,
+static_assert(cluster_version_t::CLUSTER == cluster_version_t::v1_14_is_latest,
               "We need to update CLUSTER_VERSION_STRING when we add a new cluster "
               "version.");
-#define CLUSTER_VERSION_STRING "1.13.2"
+#define CLUSTER_VERSION_STRING "1.14"
 
 const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
 const std::string connectivity_cluster_t::cluster_version_string(CLUSTER_VERSION_STRING);
@@ -620,6 +620,21 @@ bool connectivity_cluster_t::run_t::get_routing_table_to_send_and_add_peer(
     return true;
 }
 
+void fail_handshake(keepalive_tcp_conn_stream_t *conn,
+                    const char *peername,
+                    const std::string &reason) {
+    logWRN("Connection attempt from %s failed, reason: %s ",
+           peername, sanitize_for_logger(reason).c_str());
+
+    // Send the reason for the failed handshake to the other side, so it can
+    // print a nice message or do something else with it.
+    write_message_t wm;
+    serialize_universal(&wm, reason);
+    if (send_write_message(conn, &wm)) {
+        // network error. Ignore
+    }
+}
+
 // We log error conditions as follows:
 // - silent: network error; conflict between parallel connections
 // - warning: invalid header
@@ -701,9 +716,24 @@ void connectivity_cluster_t::run_t::handle(
         }
 
         if (!resolve_protocol_version(remote_version_string, &resolved_version)) {
-            logWRN("Connection attempt from %s with unresolvable protocol version %s. "
-                   "The other node is running an incompatible version of RethinkDB.",
-                   peername, sanitize_for_logger(remote_version_string).c_str());
+            const std::string reason =
+                strprintf("incompatible version, local: %s, remote: %s",
+                          cluster_version_string.c_str(), remote_version_string.c_str());
+            // Peers before 1.14 don't support receiving a handshake error message.
+            // So we must not send one.
+            bool handshake_error_supported = false;
+            std::vector<int64_t> parts;
+            if (split_version_string(remote_version_string, &parts)) {
+                if (parts[0] > 1 || (parts[0] == 1 && parts[1] >= 14)) {
+                    handshake_error_supported = true;
+                }
+            }
+            if (handshake_error_supported) {
+                fail_handshake(conn, peername, reason);
+            } else {
+                logWRN("Connection attempt from %s failed, reason: %s ",
+                       peername, sanitize_for_logger(reason).c_str());
+            }
             return;
         }
 
@@ -720,9 +750,10 @@ void connectivity_cluster_t::run_t::handle(
         }
 
         if (remote_arch_bitsize != cluster_arch_bitsize) {
-            logWRN("Connection attempt with a RethinkDB node of the wrong architecture, "
-                   "peer: %s, local: %s, remote: %s, connection dropped\n",
-                   peername, cluster_arch_bitsize.c_str(), remote_arch_bitsize.c_str());
+            const std::string reason =
+                strprintf("incompatible architecture, local: %s, remote: %s",
+                          cluster_arch_bitsize.c_str(), remote_arch_bitsize.c_str());
+            fail_handshake(conn, peername, reason);
             return;
         }
 
@@ -737,9 +768,10 @@ void connectivity_cluster_t::run_t::handle(
         }
 
         if (remote_build_mode != cluster_build_mode) {
-            logWRN("Connection attempt with a RethinkDB node of the wrong build mode, "
-                   "peer: %s, local: %s, remote: %s, connection dropped\n",
-                   peername, cluster_build_mode.c_str(), remote_build_mode.c_str());
+            const std::string reason =
+                strprintf("incompatible build mode, local: %s, remote: %s",
+                          cluster_build_mode.c_str(), remote_build_mode.c_str());
+            fail_handshake(conn, peername, reason);
             return;
         }
     }
@@ -750,6 +782,27 @@ void connectivity_cluster_t::run_t::handle(
     if (deserialize_universal_and_check(conn, &other_id, peername) ||
         deserialize_universal_and_check(conn, &other_peer_addr_hosts, peername)) {
         return;
+    }
+
+    {
+        // Tell the other node that we are happy to connect with it by sending an
+        // empty error string.
+        write_message_t wm;
+        serialize_universal(&wm, std::string(""));
+        if (send_write_message(conn, &wm)) {
+            return; // network error.
+        }
+
+        // Check if there was an issue with the connection initiation
+        std::string handshake_error;
+        if (deserialize_universal_and_check(conn, &handshake_error, peername)) {
+            return;
+        }
+        if (!handshake_error.empty()) {
+            logWRN("Remote node refused to connect with us, peer: %s, reason: \"%s\"\n",
+                   peername, handshake_error.c_str());
+            return;
+        }
     }
 
     // Look up the ip addresses for the other host
