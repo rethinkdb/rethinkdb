@@ -15,13 +15,25 @@
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "timestamps.hpp"
 
-class ack_checker_t;
 class listener_t;
 template <class> class semilattice_readwrite_view_t;
 class multistore_ptr_t;
 class mailbox_manager_t;
 class rdb_context_t;
 class uuid_u;
+
+class ack_checker_t : public home_thread_mixin_t {
+public:
+    virtual bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) const = 0;
+    virtual write_durability_t get_write_durability(const peer_id_t &peer) const = 0;
+
+    ack_checker_t() { }
+protected:
+    virtual ~ack_checker_t() { }
+
+private:
+    DISABLE_COPYING(ack_checker_t);
+};
 
 /* Each shard has a `broadcaster_t` on its primary machine. Each machine sends
 queries via `cluster_namespace_interface_t` over the network to the `master_t`
@@ -42,17 +54,23 @@ public:
     class write_callback_t {
     public:
         write_callback_t();
-        virtual void on_response(peer_id_t peer,
-            const write_response_t &response) = 0;
-        virtual void on_done() = 0;
+        /* `on_success()` is called when a sufficiently large set of replicas have
+        acknowledged the write, as judged by the `ack_checker_t` passed to
+        `spawn_write()`. */
+        virtual void on_success(const write_response_t &response) = 0;
+        /* `on_failure()` is called when the `ack_checker_t` cannot be satisfied. If
+        `might_have_run_anyway` is `true`, then the write might have been performed
+        anyway; if `might_have_run_anyway` is `false`, then the write definitely wasn't
+        performed. */
+        virtual void on_failure(bool might_have_run_anyway) = 0;
 
     protected:
         virtual ~write_callback_t();
 
     private:
         friend class broadcaster_t;
-        /* This is so that if the write callback is destroyed before `on_done()`
-        is called, it will get deregistered. */
+        /* This is so that if the write callback is destroyed before `on_success()` or
+        `on_failure()` is called, it will get deregistered. */
         incomplete_write_t *write;
     };
 
@@ -153,6 +171,8 @@ private:
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
+    /* This recomputes `readable_dispatchees_as_set()` from `readable_dispatchees()` */
+    void refresh_readable_dispatchees_as_set();
 
     /* This function sanity-checks `incomplete_writes`, `current_timestamp`,
     and `newest_complete_timestamp`. It mostly exists as a form of executable
@@ -195,6 +215,12 @@ private:
 
     std::map<dispatchee_t *, auto_drainer_t::lock_t> dispatchees;
     intrusive_list_t<dispatchee_t> readable_dispatchees;
+
+    /* This is just a set that contains the peer ID of each dispatchee in
+    `readable_dispatchees`. We keep it as a `std::set` because we need to pass it to
+    `ack_checker->is_acceptable_ack_set()` for every single write operation, and this
+    avoids the overhead of recreating the `std::set` each time. */
+    std::set<peer_id_t> readable_dispatchees_as_set;
 
     registrar_t<listener_business_card_t, broadcaster_t *, dispatchee_t>
         registrar;

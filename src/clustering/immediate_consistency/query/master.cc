@@ -58,26 +58,15 @@ void master_t::client_t::perform_request(
         // TODO: avoid extra response_t copies here
         class write_callback_t : public broadcaster_t::write_callback_t {
         public:
-            explicit write_callback_t(ack_checker_t *ac) : ack_checker(ac) { }
-            void on_response(peer_id_t peer, const write_response_t &response) {
-                if (!response_promise.get_ready_signal()->is_pulsed()) {
-                    ASSERT_NO_CORO_WAITING;
-                    ack_set.insert(peer);
-                    // TODO: Having this centralized ack checker is horrible?  But maybe it's ok.
-                    bool is_acceptable = ack_checker->is_acceptable_ack_set(ack_set);
-                    if (is_acceptable) {
-                        response_promise.pulse(response);
-                    }
-                }
+            void on_success(const write_response_t &response) {
+                success_promise.pulse(response);
             }
-            void on_done() {
-                done_cond.pulse();
+            void on_failure(bool might_have_run_anyway) {
+                failure_promise.pulse(might_have_run_anyway);
             }
-            ack_checker_t *ack_checker;
-            std::set<peer_id_t> ack_set;
-            promise_t<write_response_t> response_promise;
-            cond_t done_cond;
-        } write_callback(parent->ack_checker);
+            promise_t<write_response_t> success_promise;
+            promise_t<bool> failure_promise;
+        } write_callback;
 
         /* Avoid a potential race condition where `parent->shutting_down` has
         been pulsed but the `multi_throttling_server_t` hasn't stopped accepting
@@ -90,7 +79,8 @@ void master_t::client_t::perform_request(
         fifo_enforcer_sink_t::exit_write_t exiter(&fifo_sink, write->fifo_token);
         parent->broadcaster->spawn_write(write->write, &exiter, write->order_token, &write_callback, interruptor, parent->ack_checker);
 
-        wait_any_t waiter(&write_callback.done_cond, write_callback.response_promise.get_ready_signal());
+        wait_any_t waiter(write_callback.success_promise.get_ready_signal(),
+                          write_callback.failure_promise.get_ready_signal());
         /* Now that we've called `spawn_write()`, we've added another entry to
         the broadcaster's write queue, and that entry will remain there until
         `on_done()` is called on the write callback above. If we were to respect
@@ -104,19 +94,25 @@ void master_t::client_t::perform_request(
         wait_interruptible(&waiter, &parent->shutdown_cond);
 
         write_response_t write_response;
-        if (write_callback.response_promise.try_get_value(&write_response)) {
+        if (write_callback.success_promise.try_get_value(&write_response)) {
             send(parent->mailbox_manager, write->cont_addr,
                  boost::variant<write_response_t, std::string>(write_response));
         } else {
-            guarantee(write_callback.done_cond.is_pulsed());
-            send(parent->mailbox_manager, write->cont_addr,
-                 boost::variant<write_response_t, std::string>("not enough replicas responded"));
+            guarantee(write_callback.failure_promise.get_ready_signal()->is_pulsed());
+            if (write_callback.failure_promise.wait()) {
+                send(parent->mailbox_manager, write->cont_addr,
+                     boost::variant<write_response_t, std::string>(
+                         "The number of replicas that responded to the write "
+                         "was fewer than the requested number. The write may "
+                         "or may not have been performed."));
+            } else {
+                send(parent->mailbox_manager, write->cont_addr,
+                     boost::variant<write_response_t, std::string>(
+                         "The number of available replicas is smaller than the "
+                         "requested number of replicas to acknowledge a write. "
+                         "The write was not performed."));
+            }
         }
-
-        /* When we return, our multi-throttler ticket will be returned to the
-        free pool. So don't return until the entry that we made on the
-        broadcaster's write queue is gone. */
-        wait_interruptible(&write_callback.done_cond, &parent->shutdown_cond);
 
     } else {
         unreachable();
