@@ -209,8 +209,9 @@ private:
             }
             counted_t<datum_stream_t> new_ds = seq->slice(real_l, real_r);
             return t.has() ? new_val(new_ds, t) : new_val(env->env, new_ds);
+        } else {
+            rcheck_typed_target(v, false, "Cannot slice non-sequences.");
         }
-        rcheck_typed_target(v, false, "Cannot slice non-sequences.");
         unreachable();
     }
     virtual const char *name() const { return "slice"; }
