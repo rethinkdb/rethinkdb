@@ -1031,12 +1031,7 @@ rethinkdb.expr = varar 1, 2, (val, nestingDepth=20) ->
     else if typeof(val) is 'number'
         new DatumTerm val
     else if val == Object(val)
-        obj = {}
-        for own k,v of val
-            if typeof v is 'undefined'
-                throw new err.RqlDriverError "Object field '#{k}' may not be undefined"
-            obj[k] = rethinkdb.expr(v, nestingDepth - 1)
-        new MakeObject obj
+        new MakeObject val
     else
         new DatumTerm val
 
