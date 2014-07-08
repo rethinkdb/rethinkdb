@@ -507,7 +507,7 @@ public:
                                        args_t *args,
                                        eval_flags_t eval_flags) const {
         counted_t<val_t> v0 = args->arg(env, 0, eval_flags);
-        v0->as_datum()->as_array(); // Force a type error
+        v0->as_datum()->as_array(); // If v0 is not an array, force a type error.
         return v0;
     }
 private:
