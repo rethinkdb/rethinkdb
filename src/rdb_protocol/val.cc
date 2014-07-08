@@ -118,7 +118,7 @@ counted_t<const datum_t> table_t::batched_replace(
             }
         }
         counted_t<const datum_t> insert_stats = batched_insert(
-            env, std::move(replacement_values), true,
+            env, std::move(replacement_values), CONFLICT_BEHAVIOR_REPLACE,
             durability_requirement, return_vals);
         return stats.to_counted()->merge(insert_stats, stats_merge);
     } else {
@@ -142,7 +142,7 @@ counted_t<const datum_t> table_t::batched_replace(
 counted_t<const datum_t> table_t::batched_insert(
     env_t *env,
     std::vector<counted_t<const datum_t> > &&insert_datums,
-    bool upsert,
+    conflict_behavior_t conflict_behavior,
     durability_requirement_t durability_requirement,
     bool return_vals) {
 
@@ -170,7 +170,8 @@ counted_t<const datum_t> table_t::batched_insert(
 
     counted_t<const datum_t> insert_stats = do_batched_write(
         env,
-        batched_insert_t(std::move(valid_inserts), get_pkey(), upsert, return_vals),
+        batched_insert_t(std::move(valid_inserts), get_pkey(),
+                         conflict_behavior, return_vals),
         durability_requirement);
     return stats.to_counted()->merge(insert_stats, stats_merge);
 }

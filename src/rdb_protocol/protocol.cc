@@ -1013,7 +1013,8 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         if (!shard_inserts.empty()) {
             *write_out = write_t(
                 batched_insert_t(
-                    std::move(shard_inserts), bi.pkey, bi.upsert, bi.return_vals),
+                    std::move(shard_inserts), bi.pkey, bi.conflict_behavior,
+                    bi.return_vals),
                 durability_requirement,
                 profile);
             return true;
@@ -1203,7 +1204,7 @@ RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(write_response_t, response, event_log, n_sha
 RDB_IMPL_SERIALIZABLE_5_SINCE_v1_13(
         batched_replace_t, keys, pkey, f, optargs, return_vals);
 RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(
-        batched_insert_t, inserts, pkey, upsert, return_vals);
+        batched_insert_t, inserts, pkey, conflict_behavior, return_vals);
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(point_write_t, key, data, overwrite);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_delete_t, key);
