@@ -72,7 +72,7 @@ private:
     alt_txn_throttler_t throttler_;
     alt::page_cache_t page_cache_;
 
-    std::map<block_id_t, scoped_ptr_t<intrusive_list_t<alt_snapshot_node_t> > >
+    std::map<block_id_t, intrusive_list_t<alt_snapshot_node_t> >
         snapshot_nodes_by_block_id_;
 
     DISABLE_COPYING(cache_t);

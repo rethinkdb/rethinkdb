@@ -25,8 +25,13 @@ inline void serialize_cluster_version(write_message_t *wm, cluster_version_t v) 
     archive_internal::serialize<cluster_version_t::LATEST_OVERALL>(wm, v);
 }
 
-inline archive_result_t deserialize_cluster_version(read_stream_t *s,
-                                                    cluster_version_t *thing) {
+inline MUST_USE archive_result_t deserialize_cluster_version(read_stream_t *s,
+                                                             cluster_version_t *thing) {
+    // Initialize `thing` to *something* because GCC 4.6.3 things that `thing`
+    // could be used uninitialized, even when the return value of this function
+    // is checked through `guarantee_deserialization()`.
+    // See https://github.com/rethinkdb/rethinkdb/issues/2640
+    *thing = cluster_version_t::LATEST_OVERALL;
     return archive_internal::deserialize<cluster_version_t::LATEST_OVERALL>(s, thing);
 }
 

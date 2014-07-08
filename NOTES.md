@@ -1,3 +1,16 @@
+# Release 1.13.2 (My Name is Nobody)
+
+Released on 2014-07-07
+
+Bug fix update.
+
+* Fix a compiler warning: `cluster_version may be used uninitialized` (#2640)
+* Fix code that used `std::move` twice on the same object (#2638)
+* Prepare for live cluster upgrades (#2563)
+* Fix a bug that could lead to inconsistent data (#2579)
+
+--
+
 # Release 1.13.1 (My Name is Nobody)
 
 Released on 2014-06-26

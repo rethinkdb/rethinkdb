@@ -102,7 +102,9 @@ js_result_t js_job_t::eval(const std::string &source) {
     serialize<cluster_version_t::LATEST_OVERALL>(&wm, source);
     {
         int res = send_write_message(extproc_job.write_stream(), &wm);
-        if (res != 0) { throw js_worker_exc_t("failed to send data to the worker"); }
+        if (res != 0) {
+            throw extproc_worker_exc_t("failed to send data to the worker");
+        }
     }
 
     js_result_t result;
@@ -110,8 +112,8 @@ js_result_t js_job_t::eval(const std::string &source) {
         = deserialize<cluster_version_t::LATEST_OVERALL>(extproc_job.read_stream(),
                                                          &result);
     if (bad(res)) {
-        throw js_worker_exc_t(strprintf("failed to deserialize result from worker (%s)",
-                                        archive_result_as_str(res)));
+        throw extproc_worker_exc_t(strprintf("failed to deserialize result from worker "
+                                             "(%s)", archive_result_as_str(res)));
     }
     return result;
 }
@@ -124,7 +126,9 @@ js_result_t js_job_t::call(js_id_t id, const std::vector<counted_t<const ql::dat
     serialize<cluster_version_t::LATEST_OVERALL>(&wm, args);
     {
         int res = send_write_message(extproc_job.write_stream(), &wm);
-        if (res != 0) { throw js_worker_exc_t("failed to send data to the worker"); }
+        if (res != 0) {
+            throw extproc_worker_exc_t("failed to send data to the worker");
+        }
     }
 
     js_result_t result;
@@ -132,8 +136,8 @@ js_result_t js_job_t::call(js_id_t id, const std::vector<counted_t<const ql::dat
         = deserialize<cluster_version_t::LATEST_OVERALL>(extproc_job.read_stream(),
                                                          &result);
     if (bad(res)) {
-        throw js_worker_exc_t(strprintf("failed to deserialize result from worker (%s)",
-                                        archive_result_as_str(res)));
+        throw extproc_worker_exc_t(strprintf("failed to deserialize result from worker "
+                                             "(%s)", archive_result_as_str(res)));
     }
     return result;
 }
@@ -144,7 +148,9 @@ void js_job_t::release(js_id_t id) {
     wm.append(&task, sizeof(task));
     serialize<cluster_version_t::LATEST_OVERALL>(&wm, id);
     int res = send_write_message(extproc_job.write_stream(), &wm);
-    if (res != 0) { throw js_worker_exc_t("failed to send data to the worker"); }
+    if (res != 0) {
+        throw extproc_worker_exc_t("failed to send data to the worker");
+    }
 }
 
 void js_job_t::exit() {
@@ -152,7 +158,9 @@ void js_job_t::exit() {
     write_message_t wm;
     wm.append(&task, sizeof(task));
     int res = send_write_message(extproc_job.write_stream(), &wm);
-    if (res != 0) { throw js_worker_exc_t("failed to send data to the worker"); }
+    if (res != 0) {
+        throw extproc_worker_exc_t("failed to send data to the worker");
+    }
 }
 
 void js_job_t::worker_error() {

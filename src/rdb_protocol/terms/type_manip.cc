@@ -137,8 +137,8 @@ public:
     coerce_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        counted_t<val_t> val = arg(env, 0);
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<val_t> val = args->arg(env, 0);
         val_t::type_t opaque_start_type = val->get_type();
         int start_supertype = opaque_start_type.raw_type;
         int start_subtype = 0;
@@ -148,7 +148,7 @@ private:
         }
         int start_type = merge_types(start_supertype, start_subtype);
 
-        std::string end_type_name = arg(env, 1)->as_str().to_std();
+        std::string end_type_name = args->arg(env, 1)->as_str().to_std();
         int end_type = get_type(end_type_name, this);
 
         // Identity
@@ -252,8 +252,8 @@ public:
     ungroup_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) {
-        auto groups = arg(env, 0)->as_promiscuous_grouped_data(env->env);
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto groups = args->arg(env, 0)->as_promiscuous_grouped_data(env->env);
         std::vector<counted_t<const datum_t> > v;
         v.reserve(groups->size());
         for (auto it = groups->begin(); it != groups->end(); ++it) {
@@ -265,7 +265,7 @@ private:
         return new_val(make_counted<const datum_t>(std::move(v)));
     }
     virtual const char *name() const { return "ungroup"; }
-    virtual bool can_be_grouped() { return false; }
+    virtual bool can_be_grouped() const { return false; }
 };
 
 int val_type(counted_t<val_t> v) {
@@ -285,8 +285,8 @@ public:
     typeof_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        counted_t<val_t> v = arg(env, 0);
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<val_t> v = args->arg(env, 0);
         if (v->get_type().raw_type == val_t::type_t::DATUM) {
             counted_t<const datum_t> d = v->as_datum();
             return new_val(make_counted<const datum_t>(d->get_type_name()));
@@ -299,7 +299,7 @@ private:
         }
     }
     virtual const char *name() const { return "typeof"; }
-    virtual bool can_be_grouped() { return false; }
+    virtual bool can_be_grouped() const { return false; }
 };
 
 class info_term_t : public op_term_t {
@@ -307,11 +307,11 @@ public:
     info_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        return new_val(val_info(env, arg(env, 0)));
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        return new_val(val_info(env, args->arg(env, 0)));
     }
 
-    counted_t<const datum_t> val_info(scope_env_t *env, counted_t<val_t> v) {
+    counted_t<const datum_t> val_info(scope_env_t *env, counted_t<val_t> v) const {
         datum_ptr_t info(datum_t::R_OBJECT);
         int type = val_type(v);
         bool b = info.add("type", make_counted<datum_t>(get_name(type)));
@@ -371,7 +371,7 @@ private:
     }
 
     virtual const char *name() const { return "info"; }
-    virtual bool can_be_grouped() { return false; }
+    virtual bool can_be_grouped() const { return false; }
 };
 
 counted_t<term_t> make_coerce_term(

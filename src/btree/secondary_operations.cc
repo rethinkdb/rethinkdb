@@ -21,7 +21,9 @@ struct btree_sindex_block_t {
 } __attribute__((__packed__));
 
 template <cluster_version_t W>
-struct btree_sindex_block_magic_t { static const block_magic_t value; };
+struct btree_sindex_block_magic_t {
+    static const block_magic_t value;
+};
 
 template <>
 const block_magic_t
