@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 import sys, os, time
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'drivers', 'python')))
-import driver, http_admin, scenario_common
+import driver, http_admin, scenario_common, utils
 from vcoptparse import *
-import rethinkdb as r
+ 
+r = utils.import_pyton_driver()
 
 op = OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)

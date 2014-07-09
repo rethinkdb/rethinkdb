@@ -1,8 +1,12 @@
+#!/usr/bin/env python
+
+import contextlib, time
+
 from vcoptparse import *
-import contextlib
-import rethinkdb as r
 import http_admin
-import time
+import utils
+
+r = utils.import_pyton_driver()
 
 def option_parser_for_connect():
     op = OptParser()
@@ -45,7 +49,7 @@ def wait_for_table(table, host="localhost", port=28015, attempts=20, delay=1):
                 r.table(table).limit(1).run(conn)
                 return
             except r.errors.RqlRuntimeError as e:
-                if "No master available" in str(e):
+                if 'Master for shard' in str(e):
                     poll = poll - 1
                     time.sleep(delay)
                 else:

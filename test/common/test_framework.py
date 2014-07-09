@@ -547,7 +547,9 @@ class TestProcess(object):
             raise
 
     def run(self, write_pipe):
-        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        def recordSignal(signum, frame):
+            print('Ignored signal SIGINT')
+        signal.signal(signal.SIGINT, recordSignal) # avoiding a problem where signal.SIG_IGN would cause the test to never stop
         sys.stdin.close()
         redirect_fd_to_file(1, join(self.dir, "stdout"), tee=self.runner.verbose)
         redirect_fd_to_file(2, join(self.dir, "stderr"), tee=self.runner.verbose)
