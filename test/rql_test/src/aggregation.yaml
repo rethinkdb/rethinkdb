@@ -399,11 +399,33 @@ tests:
       rb: tbl.map{ |row| row[:a] }.distinct.count
       ot: 4
 
+    - cd: tbl.distinct().type_of()
+      ot: ("STREAM")
+
+    - cd: tbl.distinct().count()
+      ot: 100
+
+    - cd: tbl.distinct({index:'id'}).type_of()
+      py: tbl.distinct(index='id').type_of()
+      ot: ("STREAM")
+
+    - cd: tbl.distinct({index:'id'}).count()
+      py: tbl.distinct(index='id').count()
+      ot: 100
+
     - cd: tbl.index_create('a')
       ot: ({'created':1})
 
     - cd: tbl.index_wait('a')
       ot: ([{'index':'a','ready':true}])
+
+    - cd: tbl.distinct({index:'a'}).type_of()
+      py: tbl.distinct(index='a').type_of()
+      ot: ("STREAM")
+
+    - cd: tbl.distinct({index:'a'}).count()
+      py: tbl.distinct(index='a').count()
+      ot: 4
 
     - cd: tbl.group()
       ot: err('RqlRuntimeError', 'Cannot group by nothing.', [])

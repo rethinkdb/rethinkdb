@@ -10,7 +10,9 @@
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
+#include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/op.hpp"
+#include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/term_walker.hpp"
 
 namespace ql {
@@ -205,36 +207,55 @@ private:
 class distinct_term_t : public op_term_t {
 public:
     distinct_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1)) { }
+        : op_term_t(env, term, argspec_t(1), optargspec_t({"index"})) { }
 private:
-    static bool lt_cmp(env_t *,
-                       counted_t<const datum_t> l,
-                       counted_t<const datum_t> r) {
-        return *l < *r;
-    }
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<datum_stream_t> s = args->arg(env, 0)->as_seq(env->env);
-        std::vector<counted_t<const datum_t> > arr;
-        counted_t<const datum_t> last;
-        batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
-        {
-            profile::sampler_t sampler("Evaluating elements in distinct.",
-                                       env->env->trace);
-            while (counted_t<const datum_t> d = s->next(env->env, batchspec)) {
-                arr.push_back(std::move(d));
-                rcheck_array_size(arr, base_exc_t::GENERIC);
-                sampler.new_sample();
+    virtual counted_t<val_t> eval_impl(
+        scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<val_t> v = args->arg(env, 0);
+        counted_t<val_t> idx = args->optarg(env, "index");
+        if (v->get_type().is_convertible(val_t::type_t::TABLE)) {
+            counted_t<table_t> tbl = v->as_table();
+            std::string idx_str = idx.has() ? idx->as_str().to_std() : tbl->get_pkey();
+            if (idx.has() && idx_str == tbl->get_pkey()) {
+                auto row = pb::dummy_var_t::DISTINCT_ROW;
+                std::vector<sym_t> distinct_args{dummy_var_to_sym(row)};
+                protob_t<Term> body(make_counted_term());
+                {
+                    r::reql_t f = r::var(row)[idx_str];
+                    body->Swap(&f.get());
+                }
+                propagate(body.get());
+                counted_t<datum_stream_t> s =
+                    tbl->as_datum_stream(env->env, backtrace());
+                map_wire_func_t mwf(body, std::move(distinct_args), backtrace());
+                s->add_transformation(std::move(mwf), backtrace());
+                return new_val(env->env, s);
+            } else {
+                tbl->add_sorting(idx_str, sorting_t::ASCENDING, this);
+                counted_t<datum_stream_t> s =
+                    tbl->as_datum_stream(env->env, backtrace());
+                s->add_transformation(distinct_wire_func_t(idx.has()), backtrace());
+                return new_val(env->env, s->ordered_distinct());
             }
-        }
-        // This doesn't need to be a stable sort because we eliminate duplicates.
-        std::sort(arr.begin(), arr.end(), std::bind(lt_cmp, env->env, ph::_1, ph::_2));
-        std::vector<counted_t<const datum_t> > toret;
-        for (auto it = arr.begin(); it != arr.end(); ++it) {
-            if (toret.size() == 0 || **it != *toret[toret.size()-1]) {
-                toret.push_back(std::move(*it));
+        } else {
+            rcheck(!idx, base_exc_t::GENERIC,
+                   "Can only perform an indexed distinct on a TABLE.");
+            counted_t<datum_stream_t> s = v->as_seq(env->env);
+            std::set<counted_t<const datum_t> > results;
+            batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
+            {
+                profile::sampler_t sampler("Evaluating elements in distinct.",
+                                           env->env->trace);
+                while (counted_t<const datum_t> d = s->next(env->env, batchspec)) {
+                    results.insert(std::move(d));
+                    rcheck_array_size(results, base_exc_t::GENERIC);
+                    sampler.new_sample();
+                }
             }
+            std::vector<counted_t<const datum_t> > toret;
+            std::move(results.begin(), results.end(), std::back_inserter(toret));
+            return new_val(make_counted<const datum_t>(std::move(toret)));
         }
-        return new_val(make_counted<const datum_t>(std::move(toret)));
     }
     virtual const char *name() const { return "distinct"; }
 };
