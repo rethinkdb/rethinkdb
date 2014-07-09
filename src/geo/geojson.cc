@@ -81,6 +81,10 @@ counted_t<const ql::datum_t> construct_geo_polygon(const lat_lon_line_t &shell) 
 
     std::vector<counted_t<const datum_t> > shell_coordinates =
         construct_line_coordinates(shell);
+    // Close the line
+    if (shell_coordinates.size() >= 1) {
+        shell_coordinates.push_back(shell_coordinates[0]);
+    }
     std::vector<counted_t<const datum_t> > coordinates;
     coordinates.push_back(make_counted<datum_t>(std::move(shell_coordinates)));
     dup = result.add("coordinates", make_counted<datum_t>(std::move(coordinates)));
