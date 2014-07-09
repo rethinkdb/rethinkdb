@@ -343,9 +343,9 @@ public:
         counted_t<const ql::datum_t> newd = (*datums)[index];
         if (d->get_type() == ql::datum_t::R_NULL) {
             return newd;
-        } else if (conflict_behavior == CONFLICT_BEHAVIOR_REPLACE) {
+        } else if (conflict_behavior == conflict_behavior_t::REPLACE) {
             return newd;
-        } else if (conflict_behavior == CONFLICT_BEHAVIOR_UPDATE) {
+        } else if (conflict_behavior == conflict_behavior_t::UPDATE) {
             return d->merge(newd);
         } else {
             rfail_target(d, ql::base_exc_t::GENERIC,

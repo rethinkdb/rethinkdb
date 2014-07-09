@@ -154,18 +154,17 @@ struct write_token_pair_t {
 
 // Specifies the desired behavior for insert operations, upon discovering a
 // conflict.
-//  - CONFLICT_BEHAVIOR_ERROR: Signal an error upon conflicts.
-//  - CONFLICT_BEHAVIOR_REPLACE: Replace the old row with the new row if a
+//  - conflict_behavior_t::ERROR: Signal an error upon conflicts.
+//  - conflict_behavior_t::REPLACE: Replace the old row with the new row if a
 //    conflict occurs.
-//  - CONFLICT_BEHAVIOR_UPDATE: Merge the old and new rows if a conflict occurs.
-enum conflict_behavior_t { CONFLICT_BEHAVIOR_ERROR,
-                           CONFLICT_BEHAVIOR_REPLACE,
-                           CONFLICT_BEHAVIOR_UPDATE };
+//  - conflict_behavior_t::UPDATE: Merge the old and new rows if a conflict
+//    occurs.
+enum class conflict_behavior_t { ERROR, REPLACE, UPDATE };
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(conflict_behavior_t,
                                       int8_t,
-                                      CONFLICT_BEHAVIOR_ERROR,
-                                      CONFLICT_BEHAVIOR_UPDATE);
+                                      conflict_behavior_t::ERROR,
+                                      conflict_behavior_t::UPDATE);
 
 // Specifies the durability requirements of a write operation.
 //  - DURABILITY_REQUIREMENT_DEFAULT: Use the table's durability settings.

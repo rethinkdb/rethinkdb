@@ -30,11 +30,11 @@ counted_t<const datum_t> new_stats_object() {
 
 conflict_behavior_t parse_conflict_optarg(counted_t<val_t> arg,
                                           const pb_rcheckable_t *target) {
-    if (!arg.has()) { return CONFLICT_BEHAVIOR_ERROR; }
+    if (!arg.has()) { return conflict_behavior_t::ERROR; }
     const wire_string_t &str = arg->as_str();
-    if (str == "error") { return CONFLICT_BEHAVIOR_ERROR; }
-    if (str == "replace") { return CONFLICT_BEHAVIOR_REPLACE; }
-    if (str == "update") { return CONFLICT_BEHAVIOR_UPDATE; }
+    if (str == "error") { return conflict_behavior_t::ERROR; }
+    if (str == "replace") { return conflict_behavior_t::REPLACE; }
+    if (str == "update") { return conflict_behavior_t::UPDATE; }
     rfail_target(target,
                  base_exc_t::GENERIC,
                  "Conflict option `%s` unrecognized "

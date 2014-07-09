@@ -118,7 +118,7 @@ counted_t<const datum_t> table_t::batched_replace(
             }
         }
         counted_t<const datum_t> insert_stats = batched_insert(
-            env, std::move(replacement_values), CONFLICT_BEHAVIOR_REPLACE,
+            env, std::move(replacement_values), conflict_behavior_t::REPLACE,
             durability_requirement, return_vals);
         return stats.to_counted()->merge(insert_stats, stats_merge);
     } else {
