@@ -384,8 +384,8 @@ class RqlQuery(object):
         kwargs.setdefault('index', ())
         return Between(self, *args, **kwargs)
 
-    def distinct(self, *args):
-        return Distinct(self, *args)
+    def distinct(self, *args, **kwargs):
+        return Distinct(self, *args, **kwargs)
 
     # NB: Can't overload __len__ because Python doesn't
     #     allow us to return a non-integer

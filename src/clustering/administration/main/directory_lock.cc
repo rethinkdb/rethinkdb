@@ -59,3 +59,16 @@ void directory_lock_t::directory_initialized() {
     initialize_done = true;
 }
 
+void directory_lock_t::change_ownership(gid_t group_id, const std::string &group_name,
+                                        uid_t user_id, const std::string &user_name) {
+    if (group_id != INVALID_GID || user_id != INVALID_UID) {
+        if (fchown(directory_fd.get(), user_id, group_id) != 0) {
+            throw std::runtime_error(strprintf("Failed to change ownership of data "
+                                               "directory '%s' to '%s:%s': %s",
+                                               directory_path.path().c_str(),
+                                               user_name.c_str(),
+                                               group_name.c_str(),
+                                               errno_string(get_errno()).c_str()));
+        }
+    }
+}

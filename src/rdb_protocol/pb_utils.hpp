@@ -45,6 +45,7 @@ enum class dummy_var_t {
     FUNC_PLUCK,
     FUNC_EQCOMPARISON,
     FUNC_PAGE,
+    DISTINCT_ROW
 };
 
 // Don't use this!  The minidriver uses this.  Returns the sym_t corresponding to a

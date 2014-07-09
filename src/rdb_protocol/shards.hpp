@@ -240,7 +240,8 @@ typedef boost::variant<
 typedef boost::variant<map_wire_func_t,
                        group_wire_func_t,
                        filter_wire_func_t,
-                       concatmap_wire_func_t
+                       concatmap_wire_func_t,
+                       distinct_wire_func_t
                        > transform_variant_t;
 
 typedef boost::variant<count_wire_func_t,
@@ -270,9 +271,9 @@ public:
     virtual bool should_send_batch() = 0;
     virtual done_traversing_t operator()(env_t *env,
                                          groups_t *groups,
-                                         store_key_t &&key,
+                                         const store_key_t &key,
                                          // sindex_val may be NULL
-                                         counted_t<const datum_t> &&sindex_val) = 0;
+                                         const counted_t<const datum_t> &sindex_val) = 0;
     virtual void finish(result_t *out);
     virtual void unshard(env_t *env,
                          const store_key_t &last_key,

@@ -231,7 +231,7 @@ public:
         return true;
     }
 
-    bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) {
+    bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) const {
         return compute_is_acceptable_ack_set(acks, namespace_id_, parent_->ack_info->per_thread_ack_info());
     }
 

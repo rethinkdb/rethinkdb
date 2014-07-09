@@ -3,8 +3,12 @@
 
 #include <exception>
 #include <string>
+#include <unistd.h>
 #include "utils.hpp"
 #include "arch/io/io_utils.hpp"
+
+#define INVALID_GID (static_cast<gid_t>(-1))
+#define INVALID_UID (static_cast<uid_t>(-1))
 
 bool check_existence(const base_path_t& base_path);
 
@@ -18,6 +22,12 @@ public:
     // Prevents deletion of the directory tree at destruction, if
     //  the directory was created in the constructor
     void directory_initialized();
+
+    // Sets the ownership of the directory to the given user and group.
+    // INVALID_GID or INVALID_UID is a no-op for that field.
+    // The strings are for error messages.
+    void change_ownership(gid_t group_id, const std::string &group_name,
+                          uid_t user_id, const std::string &user_name);
 
 private:
     const base_path_t directory_path;

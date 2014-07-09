@@ -68,15 +68,7 @@ static void run_read_write_test() {
     replier_t initial_replier(&initial_listener, cluster.get_mailbox_manager(), &branch_history_manager);
 
     /* Set up a master */
-    class : public ack_checker_t {
-    public:
-        bool is_acceptable_ack_set(const std::set<peer_id_t> &set) {
-            return set.size() >= 1;
-        }
-        write_durability_t get_write_durability(const peer_id_t&) const {
-            return write_durability_t::SOFT;
-        }
-    } ack_checker;
+    fake_ack_checker_t ack_checker(1);
     master_t master(cluster.get_mailbox_manager(), &ack_checker, region_t::universe(), &broadcaster);
 
     /* Set up a master access */
@@ -165,7 +157,7 @@ static void run_broadcaster_problem_test() {
     write will return an error. */
     class : public ack_checker_t {
     public:
-        bool is_acceptable_ack_set(const std::set<peer_id_t> &) {
+        bool is_acceptable_ack_set(const std::set<peer_id_t> &) const {
             return false;
         }
         write_durability_t get_write_durability(const peer_id_t &) const {

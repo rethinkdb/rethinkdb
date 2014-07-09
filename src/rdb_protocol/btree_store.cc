@@ -300,7 +300,8 @@ void store_t::reset_data(
         // that corresponds to `max_erased_per_pass` keys. Then we use
         // `rdb_erase_small_range()` to actually erase the keys in parallel.
         struct counter_cb_t : public depth_first_traversal_callback_t {
-            counter_cb_t(unsigned int m) : max_erased_per_pass_(m), key_count_(0) { }
+            explicit counter_cb_t(unsigned int m) :
+                max_erased_per_pass_(m), key_count_(0) { }
             done_traversing_t handle_pair(scoped_key_value_t &&keyvalue) {
                 ++key_count_;
                 if (key_count_ > max_erased_per_pass_) {

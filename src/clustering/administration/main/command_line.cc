@@ -190,7 +190,7 @@ bool get_group_id(const char *name, gid_t *group_id_out) {
 // Returns false if the user was not found.  This function replaces a call to
 // getpwnam(3).  That's right, getpwnam_r's interface is such that you have to
 // go through these shenanigans.
-bool get_user_ids(const char *name, int *user_id_out, gid_t *user_group_id_out) {
+bool get_user_ids(const char *name, uid_t *user_id_out, gid_t *user_group_id_out) {
     // On Linux we can use sysconf to learn what the bufsize should be but on OS
     // X we just have to guess.
     size_t bufsize = 4096;
@@ -233,42 +233,81 @@ bool get_user_ids(const char *name, int *user_id_out, gid_t *user_group_id_out) 
     return false;
 }
 
-
-void set_user_group(const std::map<std::string, options::values_t> &opts) {
+void get_user_group(const std::map<std::string, options::values_t> &opts,
+                    gid_t *group_id_out, std::string *group_name_out,
+                    uid_t *user_id_out, std::string *user_name_out) {
     boost::optional<std::string> rungroup = get_optional_option(opts, "--rungroup");
     boost::optional<std::string> runuser = get_optional_option(opts, "--runuser");
+    group_name_out->clear();
+    user_name_out->clear();
 
     if (rungroup) {
-        gid_t group_id;
-        if (!get_group_id(rungroup->c_str(), &group_id)) {
+        group_name_out->assign(*rungroup);
+        if (!get_group_id(rungroup->c_str(), group_id_out)) {
             throw std::runtime_error(strprintf("Group '%s' not found: %s",
-                                               rungroup->c_str(), errno_string(get_errno()).c_str()).c_str());
+                                               rungroup->c_str(),
+                                               errno_string(get_errno()).c_str()).c_str());
         }
-        if (setgid(group_id) != 0) {
-            throw std::runtime_error(strprintf("Could not set group to '%s': %s",
-                                               rungroup->c_str(), errno_string(get_errno()).c_str()).c_str());
-        }
+    } else {
+        *group_id_out = INVALID_GID;
     }
 
     if (runuser) {
-        int user_id;
+        user_name_out->assign(*runuser);
         gid_t user_group_id;
-        if (!get_user_ids(runuser->c_str(), &user_id, &user_group_id)) {
+        if (!get_user_ids(runuser->c_str(), user_id_out, &user_group_id)) {
             throw std::runtime_error(strprintf("User '%s' not found: %s",
-                                               runuser->c_str(), errno_string(get_errno()).c_str()).c_str());
+                                               runuser->c_str(),
+                                               errno_string(get_errno()).c_str()).c_str());
         }
         if (!rungroup) {
             // No group specified, use the user's group
-            if (setgid(user_group_id) != 0) {
-                throw std::runtime_error(strprintf("Could not use the group of user '%s': %s",
-                                                   runuser->c_str(), errno_string(get_errno()).c_str()).c_str());
-            }
+            group_name_out->assign(*runuser);
+            *group_id_out = user_group_id;
         }
-        if (setuid(user_id) != 0) {
-            throw std::runtime_error(strprintf("Could not set user account to '%s': %s",
-                                               runuser->c_str(), errno_string(get_errno()).c_str()).c_str());
+    } else {
+        *user_id_out = INVALID_UID;
+    }
+}
+
+void set_user_group(gid_t group_id, const std::string &group_name,
+                    uid_t user_id, const std::string user_name) {
+    if (group_id != INVALID_GID) {
+        if (setgid(group_id) != 0) {
+            throw std::runtime_error(strprintf("Could not set group to '%s': %s",
+                                               group_name.c_str(),
+                                               errno_string(get_errno()).c_str()).c_str());
         }
     }
+
+    if (user_id != INVALID_UID) {
+        if (setuid(user_id) != 0) {
+            throw std::runtime_error(strprintf("Could not set user account to '%s': %s",
+                                               user_name.c_str(),
+                                               errno_string(get_errno()).c_str()).c_str());
+        }
+    }
+}
+
+void get_and_set_user_group(const std::map<std::string, options::values_t> &opts) {
+    std::string group_name, user_name;
+    gid_t group_id;
+    uid_t user_id;
+
+    get_user_group(opts, &group_id, &group_name, &user_id, &user_name);
+    set_user_group(group_id, group_name, user_id, user_name);
+}
+
+void get_and_set_user_group_and_directory(
+        const std::map<std::string, options::values_t> &opts,
+        directory_lock_t *directory_lock) {
+    std::string group_name, user_name;
+    gid_t group_id;
+    uid_t user_id;
+
+    get_user_group(opts, &group_id, &group_name, &user_id, &user_name);
+    directory_lock->change_ownership(group_id, group_name, user_id, user_name);
+    set_user_group(group_id, group_name, user_id, user_name);
 }
 
 int check_pid_file(const std::map<std::string, options::values_t> &opts) {
@@ -1270,8 +1309,6 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
         options::verify_option_counts(options, opts);
 
-        set_user_group(opts);
-
         base_path_t base_path(get_single_option(opts, "--directory"));
 
         std::string machine_name_str = get_single_option(opts, "--machine-name");
@@ -1295,6 +1332,8 @@ int main_rethinkdb_create(int argc, char *argv[]) {
             fprintf(stderr, "The path '%s' already exists.  Delete it and try again.\n", base_path.path().c_str());
             return EXIT_FAILURE;
         }
+
+        get_and_set_user_group_and_directory(opts, &data_directory_lock);
 
         recreate_temporary_directory(base_path);
 
@@ -1377,7 +1416,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
         options::verify_option_counts(options, opts);
 
-        set_user_group(opts);
+        get_and_set_user_group(opts);
 
         base_path_t base_path(get_single_option(opts, "--directory"));
 
@@ -1521,7 +1560,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        set_user_group(opts);
+        get_and_set_user_group(opts);
 
         // Default to putting the log file in the current working directory
         base_path_t base_path(".");
@@ -1635,8 +1674,6 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
         options::verify_option_counts(options, opts);
 
-        set_user_group(opts);
-
         base_path_t base_path(get_single_option(opts, "--directory"));
 
         std::string machine_name_str = get_single_option(opts, "--machine-name");
@@ -1669,6 +1706,12 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         // is called on it.  This will be done after the metadata files have been created.
         bool is_new_directory = false;
         directory_lock_t data_directory_lock(base_path, true, &is_new_directory);
+
+        if (is_new_directory) {
+            get_and_set_user_group_and_directory(opts, &data_directory_lock);
+        } else {
+            get_and_set_user_group(opts);
+        }
 
         recreate_temporary_directory(base_path);
 

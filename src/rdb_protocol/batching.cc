@@ -18,27 +18,37 @@ static const int64_t DEFAULT_MAX_DURATION = 500 * 1000;
 static const int64_t DIVISOR_SCALING_FACTOR = 8;
 static const int64_t SCALE_CONSTANT = 8;
 
+RDB_IMPL_SERIALIZABLE_7(batchspec_t,
+                        batch_type,
+                        min_els,
+                        max_els,
+                        max_size,
+                        first_scaledown_factor,
+                        max_dur,
+                        start_time);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(batchspec_t);
+
 batchspec_t::batchspec_t(
     batch_type_t _batch_type,
     int64_t _min_els,
     int64_t _max_els,
     int64_t _max_size,
     int64_t _first_scaledown,
-    microtime_t _end_time)
+    int64_t _max_dur,
+    microtime_t _start_time)
     : batch_type(_batch_type),
       min_els(_min_els),
       max_els(_max_els),
       max_size(_max_size),
       first_scaledown_factor(_first_scaledown),
-      end_time(_batch_type == batch_type_t::NORMAL
-               || _batch_type == batch_type_t::NORMAL_FIRST
-                   ? _end_time
-                   : std::numeric_limits<decltype(batchspec_t().end_time)>::max()) {
+      max_dur(_max_dur),
+      start_time(_start_time) {
     r_sanity_check(first_scaledown_factor >= 1);
     r_sanity_check(max_els >= 1);
     r_sanity_check(min_els >= 1);
     r_sanity_check(max_els >= min_els);
     r_sanity_check(max_size >= 1);
+    r_sanity_check(max_dur >= 0);
 }
 
 batchspec_t batchspec_t::user(batch_type_t batch_type,
@@ -62,15 +72,14 @@ batchspec_t batchspec_t::user(batch_type_t batch_type,
     int64_t first_sd = first_scaledown_d.has()
                        ? first_scaledown_d->as_int()
                        : DEFAULT_FIRST_SCALEDOWN;
-    microtime_t end_time =
-        batch_type == batch_type_t::NORMAL
-        || batch_type == batch_type_t::NORMAL_FIRST
-            ? current_microtime() + (max_dur_d.has()
-                                     ? max_dur_d->as_int()
-                                     : DEFAULT_MAX_DURATION)
-            : std::numeric_limits<decltype(batchspec_t().end_time)>::max();
-
-    return batchspec_t(batch_type, min_els, max_els, max_size, first_sd, end_time);
+    int64_t max_dur = max_dur_d.has() ? max_dur_d->as_int() : DEFAULT_MAX_DURATION;
+    return batchspec_t(batch_type,
+                       min_els,
+                       max_els,
+                       max_size,
+                       first_sd,
+                       max_dur,
+                       current_microtime());
 }
 
 batchspec_t batchspec_t::all() {
@@ -79,19 +88,18 @@ batchspec_t batchspec_t::all() {
                        std::numeric_limits<decltype(batchspec_t().max_els)>::max(),
                        std::numeric_limits<decltype(batchspec_t().max_size)>::max(),
                        1,
-                       std::numeric_limits<decltype(batchspec_t().end_time)>::max());
+                       0,
+                       current_microtime());
 }
 
 batchspec_t batchspec_t::user(batch_type_t batch_type, env_t *env) {
-    counted_t<val_t> vconf = env->global_optargs.get_optarg(env, "batch_conf");
-    return user(
-        batch_type,
-        vconf.has() ? vconf->as_datum() : counted_t<const datum_t>());
+    counted_t<val_t> v = env->global_optargs.get_optarg(env, "batch_conf");
+    return user(batch_type, v.has() ? v->as_datum() : counted_t<const datum_t>());
 }
 
 batchspec_t batchspec_t::with_new_batch_type(batch_type_t new_batch_type) const {
     return batchspec_t(new_batch_type, min_els, max_els, max_size,
-                       first_scaledown_factor, end_time);
+                       first_scaledown_factor, max_dur, start_time);
 }
 
 batchspec_t batchspec_t::with_at_most(uint64_t _max_els) const {
@@ -111,7 +119,8 @@ batchspec_t batchspec_t::with_at_most(uint64_t _max_els) const {
         new_max_els,
         max_size,
         first_scaledown_factor,
-        end_time);
+        max_dur,
+        start_time);
 }
 
 batchspec_t batchspec_t::scale_down(int64_t divisor) const {
@@ -134,7 +143,7 @@ batchspec_t batchspec_t::scale_down(int64_t divisor) const {
                                  + SCALE_CONSTANT);
 
     return batchspec_t(batch_type, min_els, new_max_els, new_max_size,
-                       first_scaledown_factor, end_time);
+                       first_scaledown_factor, max_dur, start_time);
 }
 
 batcher_t batchspec_t::to_batcher() const {
@@ -153,19 +162,16 @@ batcher_t batchspec_t::to_batcher() const {
             ? max_size
             : std::max<int64_t>(1, max_size / first_scaledown_factor);
     microtime_t cur_time = current_microtime();
-    // TODO: Look into real_end_time. This logic seems somewhat odd.
-    microtime_t real_end_time =
-        batch_type == batch_type_t::NORMAL
-            ? (end_time > cur_time
-               ? end_time
-               : std::numeric_limits<decltype(batchspec_t().end_time)>::max())
-            : (batch_type == batch_type_t::NORMAL_FIRST
-               ? (end_time > cur_time
-                  ? cur_time + (end_time - cur_time) / first_scaledown_factor
-                  : cur_time)
-               : std::numeric_limits<decltype(batchspec_t().end_time)>::max());
-    return batcher_t(batch_type, real_min_els, real_max_els, real_max_size,
-                     real_end_time);
+    microtime_t end_time;
+    if (batch_type == batch_type_t::NORMAL) {
+        end_time = std::max(cur_time + (cur_time - start_time), start_time + max_dur);
+    } else if (batch_type == batch_type_t::NORMAL_FIRST) {
+        end_time = std::max(start_time + (max_dur / first_scaledown_factor),
+                            cur_time + (max_dur / (first_scaledown_factor * 2)));
+    } else {
+        end_time = std::numeric_limits<decltype(end_time)>::max();
+    }
+    return batcher_t(batch_type, real_min_els, real_max_els, real_max_size, end_time);
 }
 
 bool batcher_t::should_send_batch() const {

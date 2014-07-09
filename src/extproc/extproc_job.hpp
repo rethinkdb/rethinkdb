@@ -3,6 +3,7 @@
 #define EXTPROC_EXTPROC_JOB_HPP_
 
 #include <exception>
+#include <string>
 
 #include "utils.hpp"
 #include "containers/archive/archive.hpp"
@@ -12,6 +13,17 @@
 
 class extproc_pool_t;
 class extproc_worker_t;
+
+// Error that may be thrown when something goes wrong with a worker
+// Should be used by any derived extproc tasks (like HTTP or JS)
+class extproc_worker_exc_t : public std::exception {
+public:
+    explicit extproc_worker_exc_t(const std::string& data) : info(data) { }
+    ~extproc_worker_exc_t() throw () { }
+    const char *what() const throw () { return info.c_str(); }
+private:
+    std::string info;
+};
 
 class extproc_job_t : public home_thread_mixin_t {
 public:

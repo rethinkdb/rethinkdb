@@ -23,10 +23,10 @@ public:
         guarantee(namestr && op);
     }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        counted_t<const datum_t> acc = arg(env, 0)->as_datum();
-        for (size_t i = 1; i < num_args(); ++i) {
-            acc = (this->*op)(acc, arg(env, i)->as_datum());
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<const datum_t> acc = args->arg(env, 0)->as_datum();
+        for (size_t i = 1; i < args->num_args(); ++i) {
+            acc = (this->*op)(acc, args->arg(env, i)->as_datum());
         }
         return new_val(acc);
     }
@@ -35,7 +35,7 @@ public:
 
 private:
     counted_t<const datum_t> add(counted_t<const datum_t> lhs,
-                                 counted_t<const datum_t> rhs) {
+                                 counted_t<const datum_t> rhs) const {
         if (lhs->is_ptype(pseudo::time_string) ||
             rhs->is_ptype(pseudo::time_string)) {
             return pseudo::time_add(lhs, rhs);
@@ -55,17 +55,16 @@ private:
                 out.add(rhs->get(i));
             }
             return out.to_counted();
+        } else {
+            // If we get here lhs is neither number nor string
+            // so we'll just error saying we expect a number
+            lhs->check_type(datum_t::R_NUM);
         }
-
-        // If we get here lhs is neither number nor string
-        // so we'll just error saying we expect a number
-        lhs->check_type(datum_t::R_NUM);
-
         unreachable();
     }
 
     counted_t<const datum_t> sub(counted_t<const datum_t> lhs,
-                                 counted_t<const datum_t> rhs) {
+                                 counted_t<const datum_t> rhs) const {
         if (lhs->is_ptype(pseudo::time_string)) {
             return pseudo::time_sub(lhs, rhs);
         } else {
@@ -75,7 +74,7 @@ private:
         }
     }
     counted_t<const datum_t> mul(counted_t<const datum_t> lhs,
-                                 counted_t<const datum_t> rhs) {
+                                 counted_t<const datum_t> rhs) const {
         if (lhs->get_type() == datum_t::R_ARRAY ||
             rhs->get_type() == datum_t::R_ARRAY) {
             counted_t<const datum_t> array =
@@ -94,13 +93,14 @@ private:
                 }
             }
             return out.to_counted();
+        } else {
+            lhs->check_type(datum_t::R_NUM);
+            rhs->check_type(datum_t::R_NUM);
+            return make_counted<datum_t>(lhs->as_num() * rhs->as_num());
         }
-        lhs->check_type(datum_t::R_NUM);
-        rhs->check_type(datum_t::R_NUM);
-        return make_counted<datum_t>(lhs->as_num() * rhs->as_num());
     }
     counted_t<const datum_t> div(counted_t<const datum_t> lhs,
-                                 counted_t<const datum_t> rhs) {
+                                 counted_t<const datum_t> rhs) const {
         lhs->check_type(datum_t::R_NUM);
         rhs->check_type(datum_t::R_NUM);
         rcheck(rhs->as_num() != 0, base_exc_t::GENERIC, "Cannot divide by zero.");
@@ -109,16 +109,16 @@ private:
     }
 
     const char *namestr;
-    counted_t<const datum_t> (arith_term_t::*op)(counted_t<const datum_t> lhs, counted_t<const datum_t> rhs);
+    counted_t<const datum_t> (arith_term_t::*op)(counted_t<const datum_t> lhs, counted_t<const datum_t> rhs) const;
 };
 
 class mod_term_t : public op_term_t {
 public:
     mod_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        int64_t i0 = arg(env, 0)->as_int();
-        int64_t i1 = arg(env, 1)->as_int();
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        int64_t i0 = args->arg(env, 0)->as_int();
+        int64_t i1 = args->arg(env, 1)->as_int();
         rcheck(i1, base_exc_t::GENERIC, "Cannot take a number modulo 0.");
         rcheck(!(i0 == std::numeric_limits<int64_t>::min() && i1 == -1),
                base_exc_t::GENERIC,

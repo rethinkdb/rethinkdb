@@ -11,6 +11,8 @@
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/query/master_metadata.hpp"
 
+class ack_checker_t;
+
 /* Each shard has a `master_t` on its primary machine. The `master_t` is
 responsible for receiving queries from the machines that the clients connect to
 and forwarding those queries to the `broadcaster_t`. Specifically, the class
@@ -19,20 +21,6 @@ sends the queries to the `master_t`.
 
 `master_t` internally contains a `multi_throttling_server_t`, which is
 responsible for throttling queries from the different `master_access_t`s. */
-
-class ack_checker_t : public home_thread_mixin_t {
-public:
-    virtual bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) = 0;
-    virtual write_durability_t get_write_durability(const peer_id_t &peer) const = 0;
-
-    ack_checker_t() { }
-protected:
-    virtual ~ack_checker_t() { }
-
-private:
-    DISABLE_COPYING(ack_checker_t);
-};
-
 
 class master_t {
 public:

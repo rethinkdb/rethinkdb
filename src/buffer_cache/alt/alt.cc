@@ -106,7 +106,7 @@ cache_t::matching_snapshot_node_or_null(block_id_t block_id,
     if (list_it == snapshot_nodes_by_block_id_.end()) {
         return NULL;
     }
-    intrusive_list_t<alt_snapshot_node_t> *list = list_it->second.get();
+    intrusive_list_t<alt_snapshot_node_t> *list = &list_it->second;
     for (alt_snapshot_node_t *p = list->tail(); p != NULL; p = list->prev(p)) {
         if (p->current_page_acq_->block_version() == block_version) {
             return p;
@@ -118,7 +118,7 @@ cache_t::matching_snapshot_node_or_null(block_id_t block_id,
 void cache_t::add_snapshot_node(block_id_t block_id,
                                 alt_snapshot_node_t *node) {
     ASSERT_NO_CORO_WAITING;
-    snapshot_nodes_by_block_id_[block_id]->push_back(node);
+    snapshot_nodes_by_block_id_[block_id].push_back(node);
 }
 
 void cache_t::remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node) {
@@ -138,8 +138,8 @@ void cache_t::remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t *nod
         // snapshot_nodes_by_block_id_.
         auto list_it = snapshot_nodes_by_block_id_.find(pair.first);
         rassert(list_it != snapshot_nodes_by_block_id_.end());
-        list_it->second->remove(pair.second);
-        if (list_it->second->empty()) {
+        list_it->second.remove(pair.second);
+        if (list_it->second.empty()) {
             snapshot_nodes_by_block_id_.erase(list_it);
         }
 
@@ -346,9 +346,9 @@ void buf_lock_t::create_child_snapshot_attachments(cache_t *cache,
     if (list_it == cache->snapshot_nodes_by_block_id_.end()) {
         return;
     }
-    for (alt_snapshot_node_t *p = list_it->second->tail();
+    for (alt_snapshot_node_t *p = list_it->second.tail();
          p != NULL;
-         p = list_it->second->prev(p)) {
+         p = list_it->second.prev(p)) {
         auto it = p->children_.find(child_id);
         if (it != p->children_.end()) {
             // Already has a child, continue.
@@ -380,9 +380,9 @@ void buf_lock_t::create_empty_child_snapshot_attachments(cache_t *cache,
     if (list_it == cache->snapshot_nodes_by_block_id_.end()) {
         return;
     }
-    for (alt_snapshot_node_t *p = list_it->second->tail();
+    for (alt_snapshot_node_t *p = list_it->second.tail();
          p != NULL;
-         p = list_it->second->prev(p)) {
+         p = list_it->second.prev(p)) {
         auto it = p->children_.find(child_id);
         if (it != p->children_.end()) {
             // Already has a child, continue.

@@ -177,15 +177,17 @@ void http_job_t::http(const http_opts_t &opts,
     serialize<cluster_version_t::LATEST_OVERALL>(&msg, opts);
     {
         int res = send_write_message(extproc_job.write_stream(), &msg);
-        if (res != 0) { throw http_worker_exc_t("failed to send data to the worker"); }
+        if (res != 0) {
+            throw extproc_worker_exc_t("failed to send data to the worker");
+        }
     }
 
     archive_result_t res
         = deserialize<cluster_version_t::LATEST_OVERALL>(extproc_job.read_stream(),
                                                          res_out);
     if (bad(res)) {
-        throw http_worker_exc_t(strprintf("failed to deserialize result from worker "
-                                          "(%s)", archive_result_as_str(res)));
+        throw extproc_worker_exc_t(strprintf("failed to deserialize result from worker "
+                                             "(%s)", archive_result_as_str(res)));
     }
 }
 
