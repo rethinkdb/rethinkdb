@@ -447,13 +447,13 @@ class MakeObject extends RDBOp
     tt: protoTermType.MAKE_OBJECT
     st: '{...}' # This is only used by the `undefined` argument checker
 
-    constructor: (obj) ->
+    constructor: (obj, nestingDepth=20) ->
         self = super({})
         self.optargs = {}
         for own key,val of obj
             if typeof val is 'undefined'
                 throw new err.RqlDriverError "Object field '#{key}' may not be undefined"
-            self.optargs[key] = rethinkdb.expr val
+            self.optargs[key] = rethinkdb.expr val, nestingDepth-1
         return self
 
     compose: (args, optargs) -> kved(optargs)
@@ -1031,7 +1031,7 @@ rethinkdb.expr = varar 1, 2, (val, nestingDepth=20) ->
     else if typeof(val) is 'number'
         new DatumTerm val
     else if Object::toString.call(val) is '[object Object]'
-        new MakeObject val
+        new MakeObject val, nestingDepth
     else
         new DatumTerm val
 
