@@ -64,7 +64,7 @@ public:
     counted_t<const datum_t> batched_insert(
         env_t *env,
         std::vector<counted_t<const datum_t> > &&insert_datums,
-        bool upsert,
+        conflict_behavior_t conflict_behavior,
         durability_requirement_t durability_requirement,
         bool return_vals);
 
@@ -95,7 +95,7 @@ private:
         env_t *env,
         const std::vector<store_key_t> &keys,
         const std::vector<counted_t<const datum_t> > &insert_datums,
-        bool upsert,
+        conflict_behavior_t conflict_behavior,
         durability_requirement_t durability_requirement);
 
     MUST_USE bool sync_depending_on_durability(
