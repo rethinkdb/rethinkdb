@@ -96,7 +96,8 @@ sindex_name_t create_sindex(store_t *store) {
     sindex_multi_bool_t multi_bool = sindex_multi_bool_t::SINGLE;
 
     write_message_t wm;
-    serialize_sindex_info(&wm, m, multi_bool);
+    sindex_disk_info_t sindex_info(m, multi_bool, sindex_geo_bool_t::REGULAR);
+    serialize_sindex_info(&wm, sindex_info);
 
     vector_stream_t stream;
     stream.reserve(wm.size());

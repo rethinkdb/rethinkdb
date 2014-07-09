@@ -177,9 +177,12 @@ struct single_sindex_status_t {
 RDB_DECLARE_SERIALIZABLE(rdb_protocol::single_sindex_status_t);
 
 enum class sindex_multi_bool_t { SINGLE = 0, MULTI = 1};
+enum class sindex_geo_bool_t { REGULAR = 0, GEO = 1};
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_multi_bool_t, int8_t,
         sindex_multi_bool_t::SINGLE, sindex_multi_bool_t::MULTI);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_geo_bool_t, int8_t,
+        sindex_geo_bool_t::REGULAR, sindex_geo_bool_t::GEO);
 
 class auth_semilattice_metadata_t;
 class cluster_semilattice_metadata_t;
@@ -654,14 +657,16 @@ class sindex_create_t {
 public:
     sindex_create_t() { }
     sindex_create_t(const std::string &_id, const ql::map_wire_func_t &_mapping,
-                    sindex_multi_bool_t _multi)
-        : id(_id), mapping(_mapping), region(region_t::universe()), multi(_multi)
+                    sindex_multi_bool_t _multi, sindex_geo_bool_t _geo)
+        : id(_id), mapping(_mapping), region(region_t::universe()),
+          multi(_multi), geo(_geo)
     { }
 
     std::string id;
     ql::map_wire_func_t mapping;
     region_t region;
     sindex_multi_bool_t multi;
+    sindex_geo_bool_t geo;
 };
 
 RDB_DECLARE_SERIALIZABLE(sindex_create_t);

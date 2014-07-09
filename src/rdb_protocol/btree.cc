@@ -713,15 +713,17 @@ typedef ql::terminal_variant_t terminal_variant_t;
 class sindex_data_t {
 public:
     sindex_data_t(const key_range_t &_pkey_range, const datum_range_t &_range,
-                  ql::map_wire_func_t wire_func, sindex_multi_bool_t _multi)
+                  ql::map_wire_func_t wire_func, sindex_multi_bool_t _multi,
+                  sindex_geo_bool_t _geo)
         : pkey_range(_pkey_range), range(_range),
-          func(wire_func.compile_wire_func()), multi(_multi) { }
+          func(wire_func.compile_wire_func()), multi(_multi), geo(_geo) { }
 private:
     friend class rget_cb_t;
     const key_range_t pkey_range;
     const datum_range_t range;
     const counted_t<ql::func_t> func;
     const sindex_multi_bool_t multi;
+    const sindex_geo_bool_t geo;
 };
 
 class job_data_t {
@@ -853,6 +855,7 @@ THROWS_ONLY(interrupted_exc_t) {
         // Check whether we're out of sindex range.
         counted_t<const ql::datum_t> sindex_val; // NULL if no sindex.
         if (sindex) {
+            guarantee(sindex->geo == sindex_geo_bool_t::REGULAR);
             sindex_val = sindex->func->call(job.env, val)->as_datum();
             if (sindex->multi == sindex_multi_bool_t::MULTI
                 && sindex_val->get_type() == ql::datum_t::R_ARRAY) {
@@ -925,15 +928,15 @@ void rdb_rget_secondary_slice(
     const boost::optional<terminal_variant_t> &terminal,
     const key_range_t &pk_range,
     sorting_t sorting,
-    const ql::map_wire_func_t &sindex_func,
-    sindex_multi_bool_t sindex_multi,
+    const sindex_disk_info_t &sindex_info,
     rget_read_response_t *response) {
     r_sanity_check(boost::get<ql::exc_t>(&response->result) == NULL);
     profile::starter_t starter("Do range scan on secondary index.", ql_env->trace);
     rget_cb_t callback(
         io_data_t(response, slice),
         job_data_t(ql_env, batchspec, transforms, terminal, sorting),
-        sindex_data_t(pk_range, sindex_range, sindex_func, sindex_multi),
+        sindex_data_t(pk_range, sindex_range, sindex_info.mapping,
+                      sindex_info.multi, sindex_info.geo),
         sindex_region.inner);
     btree_concurrent_traversal(
         superblock, sindex_region.inner, &callback,
@@ -1081,25 +1084,30 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
 }
 
 void serialize_sindex_info(write_message_t *wm,
-                           const ql::map_wire_func_t &mapping,
-                           const sindex_multi_bool_t &multi) {
+                           const sindex_disk_info_t &info) {
     serialize_cluster_version(wm, cluster_version_t::LATEST_DISK);
-    serialize_for_version(cluster_version_t::LATEST_DISK, wm, mapping);
-    serialize_for_version(cluster_version_t::LATEST_DISK, wm, multi);
+    serialize_for_version(cluster_version_t::LATEST_DISK, wm, info.mapping);
+    serialize_for_version(cluster_version_t::LATEST_DISK, wm, info.multi);
+    serialize_for_version(cluster_version_t::LATEST_DISK, wm, info.geo);
 }
 
 void deserialize_sindex_info(const std::vector<char> &data,
-                             ql::map_wire_func_t *mapping,
-                             sindex_multi_bool_t *multi) {
+                             sindex_disk_info_t *info_out) {
     inplace_vector_read_stream_t read_stream(&data);
     cluster_version_t cluster_version;
     archive_result_t success
         = deserialize_cluster_version(&read_stream, &cluster_version);
     guarantee_deserialization(success, "sindex description");
-    success = deserialize_for_version(cluster_version, &read_stream, mapping);
+    success = deserialize_for_version(cluster_version, &read_stream, &info_out->mapping);
     guarantee_deserialization(success, "sindex description");
-    success = deserialize_for_version(cluster_version, &read_stream, multi);
+    success = deserialize_for_version(cluster_version, &read_stream, &info_out->multi);
     guarantee_deserialization(success, "sindex description");
+    if (cluster_version >= cluster_version_t::v1_14) {
+        success = deserialize_for_version(cluster_version, &read_stream, &info_out->geo);
+        guarantee_deserialization(success, "sindex description");
+    } else {
+        info_out->geo = sindex_geo_bool_t::REGULAR;
+    }
 
     guarantee(static_cast<size_t>(read_stream.tell()) == data.size(),
               "An sindex description was incompletely deserialized.");
@@ -1117,9 +1125,9 @@ void rdb_update_single_sindex(
     // function.
     guarantee(modification->primary_key.size() != 0);
 
-    ql::map_wire_func_t mapping;
-    sindex_multi_bool_t multi;
-    deserialize_sindex_info(sindex->sindex.opaque_definition, &mapping, &multi);
+    sindex_disk_info_t sindex_info;
+    deserialize_sindex_info(sindex->sindex.opaque_definition, &sindex_info);
+    // TODO! Use geo field
 
     // TODO we have no rdb context here. People should not be able to do anything
     // that requires an environment like gets from other tables etc. but we don't
@@ -1137,7 +1145,8 @@ void rdb_update_single_sindex(
 
             std::vector<store_key_t> keys;
 
-            compute_keys(modification->primary_key, deleted, &mapping, multi, &env, &keys);
+            compute_keys(modification->primary_key, deleted, &sindex_info.mapping,
+                         sindex_info.multi, &env, &keys);
 
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
@@ -1177,7 +1186,8 @@ void rdb_update_single_sindex(
 
             std::vector<store_key_t> keys;
 
-            compute_keys(modification->primary_key, added, &mapping, multi, &env, &keys);
+            compute_keys(modification->primary_key, added, &sindex_info.mapping,
+                         sindex_info.multi, &env, &keys);
 
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;

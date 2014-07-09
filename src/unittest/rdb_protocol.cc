@@ -204,7 +204,9 @@ std::string create_sindex(namespace_interface_t *nsi,
 
     ql::map_wire_func_t m(mapping, make_vector(arg), get_backtrace(mapping));
 
-    write_t write(sindex_create_t(id, m, sindex_multi_bool_t::SINGLE), profile_bool_t::PROFILE);
+    write_t write(sindex_create_t(id, m, sindex_multi_bool_t::SINGLE,
+                                  sindex_geo_bool_t::REGULAR),
+                  profile_bool_t::PROFILE);
     write_response_t response;
 
     cond_t interruptor;

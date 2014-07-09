@@ -75,7 +75,6 @@ lat_lon_line_t parse_line_from_args(scope_env_t *env, args_t *args) {
         const counted_t<const datum_t> &point_arg = args->arg(env, i)->as_datum();
         if (point_arg->is_ptype("geometry")) {
             // The argument is a point
-            line.push_back();
             // TODO! get its coordinate vector and append it
         } else {
             // The argument must be a coordinate pair

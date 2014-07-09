@@ -16,7 +16,7 @@ namespace ql {
 class sindex_create_term_t : public op_term_t {
 public:
     sindex_create_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(2, 3), optargspec_t({"multi"})) { }
+        : op_term_t(env, term, argspec_t(2, 3), optargspec_t({"multi", "geo"})) { }
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
@@ -50,8 +50,14 @@ public:
             (multi_val && multi_val->as_datum()->as_bool()
              ? sindex_multi_bool_t::MULTI
              : sindex_multi_bool_t::SINGLE);
+        /* Do we want to create a geo index? */
+        counted_t<val_t> geo_val = args->optarg(env, "geo");
+        sindex_geo_bool_t geo =
+            (geo_val && geo_val->as_datum()->as_bool()
+             ? sindex_geo_bool_t::GEO
+             : sindex_geo_bool_t::REGULAR);
 
-        bool success = table->sindex_create(env->env, name, index_func, multi);
+        bool success = table->sindex_create(env->env, name, index_func, multi, geo);
         if (success) {
             datum_ptr_t res(datum_t::R_OBJECT);
             UNUSED bool b = res.add("created", make_counted<datum_t>(1.0));

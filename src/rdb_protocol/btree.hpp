@@ -175,6 +175,22 @@ void rdb_erase_small_range(key_tester_t *tester,
                            signal_t *interruptor,
                            std::vector<rdb_modification_report_t> *mod_reports_out);
 
+struct sindex_disk_info_t {
+    sindex_disk_info_t() { }
+    sindex_disk_info_t(const ql::map_wire_func_t &_mapping,
+                       sindex_multi_bool_t _multi,
+                       sindex_geo_bool_t _geo) :
+        mapping(_mapping), multi(_multi), geo(_geo) { }
+    ql::map_wire_func_t mapping;
+    sindex_multi_bool_t multi;
+    sindex_geo_bool_t geo;
+};
+
+void serialize_sindex_info(write_message_t *wm,
+                           const sindex_disk_info_t &info);
+void deserialize_sindex_info(const std::vector<char> &data,
+                             sindex_disk_info_t *info_out);
+
 void rdb_rget_slice(
     btree_slice_t *slice,
     const key_range_t &range,
@@ -197,8 +213,7 @@ void rdb_rget_secondary_slice(
     const boost::optional<ql::terminal_variant_t> &terminal,
     const key_range_t &pk_range,
     sorting_t sorting,
-    const ql::map_wire_func_t &sindex_func,
-    sindex_multi_bool_t sindex_multi,
+    const sindex_disk_info_t &sindex_info,
     rget_read_response_t *response);
 
 void rdb_distribution_get(int max_depth,
@@ -227,13 +242,6 @@ struct rdb_modification_report_t {
 };
 
 RDB_DECLARE_SERIALIZABLE(rdb_modification_report_t);
-
-void serialize_sindex_info(write_message_t *wm,
-                           const ql::map_wire_func_t &mapping,
-                           const sindex_multi_bool_t &multi);
-void deserialize_sindex_info(const std::vector<char> &data,
-                             ql::map_wire_func_t *mapping,
-                             sindex_multi_bool_t *multi);
 
 /* An rdb_modification_cb_t is passed to BTree operations and allows them to
  * modify the secondary while they perform an operation. */

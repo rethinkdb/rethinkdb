@@ -9,6 +9,7 @@ enum class cluster_version_t {
     // that implements serialization.
     v1_13 = 0,
     v1_13_2 = 1,
+    v1_14 = v1_13_2, // TODO! Temporary, should be overwritten my merge later
 
     // This is used in places where _something_ needs to change when a new cluster
     // version is created.  (Template instantiations, switches on version number,

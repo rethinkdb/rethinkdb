@@ -1207,7 +1207,8 @@ RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(point_write_t, key, data, overwrite);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_delete_t, key);
-RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(sindex_create_t, id, mapping, region, multi);
+RDB_IMPL_SERIALIZABLE_5(sindex_create_t, id, mapping, region, multi, geo);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_create_t);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(sindex_drop_t, id, region);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sync_t, region);
 

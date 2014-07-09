@@ -163,16 +163,15 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             //  keys may have been truncated, we can't go by keys alone.  Therefore,
             //  we construct a filter function that ensures all returned items lie
             //  between sindex_start_value and sindex_end_value.
-            ql::map_wire_func_t sindex_mapping;
-            sindex_multi_bool_t multi_bool;
-            deserialize_sindex_info(sindex_mapping_data, &sindex_mapping, &multi_bool);
+            sindex_disk_info_t sindex_info;
+            deserialize_sindex_info(sindex_mapping_data, &sindex_info);
 
             rdb_rget_secondary_slice(
                 store->get_sindex_slice(sindex_uuid),
                 rget.sindex->original_range, rget.sindex->region,
                 sindex_sb.get(), &ql_env, rget.batchspec, rget.transforms,
                 rget.terminal, rget.region.inner, rget.sorting,
-                sindex_mapping, multi_bool, res);
+                sindex_info, res);
         }
     }
 
@@ -422,7 +421,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         sindex_create_response_t res;
 
         write_message_t wm;
-        serialize_sindex_info(&wm, c.mapping, c.multi);
+        sindex_disk_info_t info(c.mapping, c.multi, c.geo);
+        serialize_sindex_info(&wm, info);
 
         vector_stream_t stream;
         stream.reserve(wm.size());
