@@ -1203,8 +1203,11 @@ RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(write_response_t, response, event_log, n_sha
 
 RDB_IMPL_SERIALIZABLE_5_SINCE_v1_13(
         batched_replace_t, keys, pkey, f, optargs, return_vals);
-RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(
+// Serialization format for this changed in 1.14.  We only support the
+// latest version, since this is a cluster-only type.
+RDB_IMPL_SERIALIZABLE_4(
         batched_insert_t, inserts, pkey, conflict_behavior, return_vals);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(batched_insert_t);
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(point_write_t, key, data, overwrite);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_delete_t, key);
