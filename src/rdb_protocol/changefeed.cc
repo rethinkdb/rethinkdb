@@ -198,6 +198,7 @@ public:
            mailbox_manager_t *manager,
            base_namespace_repo_t *ns_repo,
            uuid_u uuid,
+           std::string pkey,
            signal_t *interruptor);
     ~feed_t();
     void add_sub(subscription_t *sub, const keyspec_t &keyspec) THROWS_NOTHING;
@@ -213,7 +214,7 @@ public:
     bool can_be_removed();
     client_t::addr_t get_addr() const;
 
-    const std::string pkey; // RSI: fill in
+    const std::string pkey;
 private:
     void each_sub_in_vec(
         const std::vector<std::set<subscription_t *> > &vec,
@@ -281,7 +282,9 @@ public:
                            d);
         feed->each_table_sub(f);
         auto val = change.new_val.has() ? change.new_val : change.old_val;
+        debugf("%s\n", val->print().c_str());
         r_sanity_check(val.has());
+        debugf("%s\n", feed->pkey.c_str());
         auto pkey_val = val->get(feed->pkey, NOTHROW);
         r_sanity_check(pkey_val.has());
         feed->on_point_sub(pkey_val, f);
@@ -584,8 +587,9 @@ void feed_t::on_point_sub(
     spot.read_signal()->wait_lazily_unordered();
 
     auto point_sub = point_subs.find(key);
-    guarantee(point_sub != point_subs.end());
-    each_sub_in_vec(point_sub->second, &spot, f);
+    if (point_sub != point_subs.end()) {
+        each_sub_in_vec(point_sub->second, &spot, f);
+    }
 }
 
 bool feed_t::can_be_removed() {
@@ -639,8 +643,10 @@ feed_t::feed_t(client_t *_client,
                mailbox_manager_t *_manager,
                base_namespace_repo_t *ns_repo,
                uuid_u _uuid,
+               std::string _pkey,
                signal_t *interruptor)
-    : client(_client),
+    : pkey(std::move(_pkey)),
+      client(_client),
       uuid(_uuid),
       manager(_manager),
       mailbox(manager, std::bind(&feed_t::mailbox_cb, this, ph::_1)),
@@ -733,6 +739,7 @@ counted_t<datum_stream_t>
 client_t::new_feed(const counted_t<table_t> &tbl, keyspec_t &&keyspec, env_t *env) {
     try {
         uuid_u uuid = tbl->get_uuid();
+        std::string pkey = tbl->get_pkey();
         scoped_ptr_t<subscription_t> sub;
         addr_t addr;
         {
@@ -746,7 +753,7 @@ client_t::new_feed(const counted_t<table_t> &tbl, keyspec_t &&keyspec, env_t *en
             if (feed_it == feeds.end()) {
                 spot.write_signal()->wait_lazily_unordered();
                 auto val = make_scoped<feed_t>(
-                        this, manager, env->ns_repo(), uuid, &interruptor);
+                    this, manager, env->ns_repo(), uuid, pkey, &interruptor);
                 feed_it = feeds.insert(std::make_pair(uuid, std::move(val))).first;
             }
 

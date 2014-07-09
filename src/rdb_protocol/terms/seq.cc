@@ -230,7 +230,7 @@ private:
             counted_t<table_t> tbl = std::move(single_selection.first);
             counted_t<const datum_t> val = std::move(single_selection.second);
 
-            counted_t<const datum_t> key = val->get(tbl->get_pkey());
+            counted_t<const datum_t> key = v->get_orig_key();
             changefeed::client_t *client = env->env->get_changefeed_client();
             return new_val(
                 env->env,
