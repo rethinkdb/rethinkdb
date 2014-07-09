@@ -169,6 +169,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::DECEMBER:           return make_constant_term(env, t, 12, "december");
     case Term::GEOJSON:            return make_geojson_term(env, t);
     case Term::TOGEOJSON:          return make_to_geojson_term(env, t);
+    case Term::INTERSECTS:         return make_intersects_term(env, t);
     default: unreachable();
     }
     unreachable();

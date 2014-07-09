@@ -113,6 +113,8 @@ counted_t<term_t> make_geojson_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_to_geojson_term(
     compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_intersects_term(
+    compile_env_t *env, const protob_t<const Term> &term);
 
 // js.cc
 counted_t<term_t> make_javascript_term(

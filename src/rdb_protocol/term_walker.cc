@@ -248,6 +248,7 @@ private:
         case Term::INDEX_STATUS:
         case Term::GEOJSON:
         case Term::TOGEOJSON:
+        case Term::INTERSECTS:
             return false;
         default: unreachable();
         }
@@ -418,6 +419,7 @@ private:
         case Term::DECEMBER:
         case Term::GEOJSON:
         case Term::TOGEOJSON:
+        case Term::INTERSECTS:
             return false;
         default: unreachable();
         }

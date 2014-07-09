@@ -385,6 +385,10 @@ void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
             pseudo::rcheck_literal_valid(this);
             return;
         }
+        // TODO!
+        if (get_reql_type() == "geometry") {
+            return;
+        }
         rfail(base_exc_t::GENERIC,
               "Unknown $reql_type$ `%s`.", get_type_name().c_str());
     }

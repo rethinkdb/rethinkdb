@@ -110,10 +110,6 @@ scoped_ptr_t<S2Polygon> coordinates_to_s2polygon(const counted_t<const datum_t> 
          exterior ring and any others must be interior rings or holes."
     */
     const std::vector<counted_t<const datum_t> > loops_arr = coords->as_array();
-    if (loops_arr.size() < 1) {
-        // TODO!
-        crash("GeoJSON Polygon must define at least one ring.");
-    }
     boost::ptr_vector<S2Loop> loops;
     loops.reserve(loops_arr.size());
     for (size_t i = 0; i < loops_arr.size(); ++i) {
@@ -156,6 +152,42 @@ scoped_ptr_t<S2Polygon> coordinates_to_s2polygon(const counted_t<const datum_t> 
     return std::move(result);
 }
 
+scoped_ptr_t<S2Point> to_s2point(const counted_t<const ql::datum_t> &geojson) {
+    // TODO! Ensure that geojson has either no "crs" member, or it is null.
+    // Fail otherwise.
+    const std::string type = geojson->get("type")->as_str().to_std();
+    counted_t<const datum_t> coordinates = geojson->get("coordinates");
+    if (type != "Point") {
+        // TODO!
+        crash("Wrong type");
+    }
+    return coordinates_to_s2point(coordinates);
+}
+
+scoped_ptr_t<S2Polyline> to_s2polyline(const counted_t<const ql::datum_t> &geojson) {
+    // TODO! Ensure that geojson has either no "crs" member, or it is null.
+    // Fail otherwise.
+    const std::string type = geojson->get("type")->as_str().to_std();
+    counted_t<const datum_t> coordinates = geojson->get("coordinates");
+    if (type != "LineString") {
+        // TODO!
+        crash("Wrong type");
+    }
+    return coordinates_to_s2polyline(coordinates);
+}
+
+scoped_ptr_t<S2Polygon> to_s2polygon(const counted_t<const ql::datum_t> &geojson) {
+    // TODO! Ensure that geojson has either no "crs" member, or it is null.
+    // Fail otherwise.
+    const std::string type = geojson->get("type")->as_str().to_std();
+    counted_t<const datum_t> coordinates = geojson->get("coordinates");
+    if (type != "Polygon") {
+        // TODO!
+        crash("Wrong type");
+    }
+    return coordinates_to_s2polygon(coordinates);
+}
+
 // TODO! What does it throw?
 void visit_geojson(geo_visitor_t *visitor, const counted_t<const datum_t> &geojson) {
     // TODO! Ensure that geojson has either no "crs" member, or it is null.
@@ -193,3 +225,18 @@ void visit_geojson(geo_visitor_t *visitor, const counted_t<const datum_t> &geojs
         }
     }
 }
+
+void validate_geojson(const counted_t<const ql::datum_t> &geojson) {
+    // We rely on `visit_geojson()` to perform all necessary validation
+    // TODO! Change that. Probably visit_geojson() should do less validation,
+    //       and we should do more.
+    class validator_t : public geo_visitor_t {
+    public:
+        void on_point(UNUSED const S2Point &) { }
+        void on_line(UNUSED const S2Polyline &) { }
+        void on_polygon(UNUSED const S2Polygon &) { }
+    };
+    validator_t validator;
+    visit_geojson(&validator, geojson);
+}
+
