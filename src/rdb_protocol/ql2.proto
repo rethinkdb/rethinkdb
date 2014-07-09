@@ -654,7 +654,10 @@ message Term {
         // TODO! document
         GEOJSON = 155;
         TOGEOJSON = 156;
-        INTERSECTS = 157;
+        POINT = 157;
+        LINE = 158;
+        POLYGON = 159;
+        INTERSECTS = 160;
     }
     optional TermType type = 1;
 

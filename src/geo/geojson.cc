@@ -4,7 +4,6 @@
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_vector.hpp>
 
-#include <list>
 #include <string>
 #include <vector>
 
@@ -23,6 +22,72 @@
 #include "debug.hpp" // TODO!
 
 using ql::datum_t;
+using ql::datum_ptr_t;
+
+counted_t<const ql::datum_t> construct_geo_point(const lat_lon_point_t &point) {
+    datum_ptr_t result(datum_t::R_OBJECT);
+    bool dup;
+    dup = result.add("$reql_type$", make_counted<datum_t>("geometry"));
+    r_sanity_check(!dup);
+    dup = result.add("type", make_counted<datum_t>("Point"));
+    r_sanity_check(!dup);
+
+    std::vector<counted_t<const datum_t> > coordinates;
+    coordinates.reserve(2);
+    coordinates.push_back(make_counted<datum_t>(point.first));
+    coordinates.push_back(make_counted<datum_t>(point.second));
+    dup = result.add("coordinates", make_counted<datum_t>(std::move(coordinates)));
+    r_sanity_check(!dup);
+
+    return result.to_counted();
+}
+
+std::vector<counted_t<const datum_t> > construct_line_coordinates(
+        const lat_lon_line_t &line) {
+    std::vector<counted_t<const datum_t> > coordinates;
+    coordinates.reserve(line.size());
+    for (size_t i = 0; i < line.size(); ++i) {
+        std::vector<counted_t<const datum_t> > point;
+        point.reserve(2);
+        point.push_back(make_counted<datum_t>(line[i].first));
+        point.push_back(make_counted<datum_t>(line[i].second));
+        coordinates.push_back(make_counted<datum_t>(std::move(point)));
+    }
+    return coordinates;
+}
+
+counted_t<const ql::datum_t> construct_geo_line(const lat_lon_line_t &line) {
+    datum_ptr_t result(datum_t::R_OBJECT);
+    bool dup;
+    dup = result.add("$reql_type$", make_counted<datum_t>("geometry"));
+    r_sanity_check(!dup);
+    dup = result.add("type", make_counted<datum_t>("LineString"));
+    r_sanity_check(!dup);
+
+    dup = result.add("coordinates",
+                      make_counted<datum_t>(std::move(construct_line_coordinates(line))));
+    r_sanity_check(!dup);
+
+    return result.to_counted();
+}
+
+counted_t<const ql::datum_t> construct_geo_polygon(const lat_lon_line_t &shell) {
+    datum_ptr_t result(datum_t::R_OBJECT);
+    bool dup;
+    dup = result.add("$reql_type$", make_counted<datum_t>("geometry"));
+    r_sanity_check(!dup);
+    dup = result.add("type", make_counted<datum_t>("Polygon"));
+    r_sanity_check(!dup);
+
+    std::vector<counted_t<const datum_t> > shell_coordinates =
+        construct_line_coordinates(shell);
+    std::vector<counted_t<const datum_t> > coordinates;
+    coordinates.push_back(make_counted<datum_t>(std::move(shell_coordinates)));
+    dup = result.add("coordinates", make_counted<datum_t>(std::move(coordinates)));
+    r_sanity_check(!dup);
+
+    return result.to_counted();
+}
 
 // Parses a GeoJSON "Position" array
 S2Point position_to_s2point(const counted_t<const datum_t> &position) {

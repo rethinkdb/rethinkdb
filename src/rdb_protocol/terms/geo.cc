@@ -47,6 +47,84 @@ private:
     virtual const char *name() const { return "to_geojson"; }
 };
 
+class point_term_t : public op_term_t {
+public:
+    point_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(2)) { }
+private:
+    counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        double lat = args->arg(env, 0)->as_num();
+        double lon = args->arg(env, 1)->as_num();
+        lat_lon_point_t point(lat, lon);
+        // TODO! Validation (range etc.)
+
+        const counted_t<const datum_t> result = construct_geo_point(point);
+        validate_geojson(result);
+
+        return new_val(result);
+    }
+    virtual const char *name() const { return "point"; }
+};
+
+// Used by line_term_t and polygon_term_t
+lat_lon_line_t parse_line_from_args(scope_env_t *env, args_t *args) {
+    // TODO! Validation (range etc.)
+    lat_lon_line_t line;
+    line.reserve(args->num_args());
+    for (size_t i = 0; i < args->num_args(); ++i) {
+        const counted_t<const datum_t> &point_arg = args->arg(env, i)->as_datum();
+        if (point_arg->is_ptype("geometry")) {
+            // The argument is a point
+        } else {
+            // The argument must be a coordinate pair
+            const std::vector<counted_t<const datum_t> > &point_arr =
+                point_arg->as_array();
+            if (point_arr.size() != 2) {
+                // TODO!
+                crash("Expected point coordinate pair in line constructor. "
+                      "Got TODO element array instead of a 2 element one.");
+            }
+            double lat = args->arg(env, 0)->as_num();
+            double lon = args->arg(env, 1)->as_num();
+            line.push_back(lat_lon_point_t(lat, lon));
+        }
+    }
+
+    return line;
+}
+
+class line_term_t : public op_term_t {
+public:
+    line_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(2, -1)) { }
+private:
+    counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        const lat_lon_line_t line = parse_line_from_args(env, args);
+
+        const counted_t<const datum_t> result = construct_geo_line(line);
+        validate_geojson(result);
+
+        return new_val(result);
+    }
+    virtual const char *name() const { return "line"; }
+};
+
+class polygon_term_t : public op_term_t {
+public:
+    polygon_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(3, -1)) { }
+private:
+    counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        const lat_lon_line_t shell = parse_line_from_args(env, args);
+
+        const counted_t<const datum_t> result = construct_geo_polygon(shell);
+        validate_geojson(result);
+
+        return new_val(result);
+    }
+    virtual const char *name() const { return "polygon"; }
+};
+
 class intersects_term_t : public op_term_t {
 public:
     intersects_term_t(compile_env_t *env, const protob_t<const Term> &term)
@@ -111,6 +189,15 @@ counted_t<term_t> make_geojson_term(compile_env_t *env, const protob_t<const Ter
 }
 counted_t<term_t> make_to_geojson_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<to_geojson_term_t>(env, term);
+}
+counted_t<term_t> make_point_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<point_term_t>(env, term);
+}
+counted_t<term_t> make_line_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<line_term_t>(env, term);
+}
+counted_t<term_t> make_polygon_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<polygon_term_t>(env, term);
 }
 counted_t<term_t> make_intersects_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<intersects_term_t>(env, term);
