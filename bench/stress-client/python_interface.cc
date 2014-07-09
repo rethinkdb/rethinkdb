@@ -53,7 +53,7 @@ void op_generator_poll(op_generator_t *opg, int *queries_out, float *worstlatenc
         /* We have to be smart about delivering the samples so that if they request less
         samples than we have, we deliver a random representative sample. */
         while (samples_we_need > 0) {
-            bool take_this_sample;
+            bool take_this_sample = false;
             if (samples_we_have == samples_we_need) {
                 /* We are taking every sample */
                 take_this_sample = true;

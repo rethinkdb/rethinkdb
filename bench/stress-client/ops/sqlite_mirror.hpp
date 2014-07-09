@@ -24,7 +24,7 @@ struct sqlite_mirror_t : public value_watcher_t {
     { }
 
 private:
-    friend class sqlite_mirror_verify_op_t;
+    friend struct sqlite_mirror_verify_op_t;
     seed_key_generator_t *key_generator;
     existence_tracker_t *existence_tracker;
     value_watcher_t *child;
