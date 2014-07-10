@@ -251,6 +251,7 @@ private:
         case Term::POINT:
         case Term::LINE:
         case Term::POLYGON:
+        case Term::DISTANCE:
         case Term::INTERSECTS:
             return false;
         default: unreachable();
@@ -425,6 +426,7 @@ private:
         case Term::POINT:
         case Term::LINE:
         case Term::POLYGON:
+        case Term::DISTANCE:
         case Term::INTERSECTS:
             return false;
         default: unreachable();

@@ -657,7 +657,8 @@ message Term {
         POINT = 157;
         LINE = 158;
         POLYGON = 159;
-        INTERSECTS = 160;
+        DISTANCE = 160;
+        INTERSECTS = 161;
     }
     optional TermType type = 1;
 

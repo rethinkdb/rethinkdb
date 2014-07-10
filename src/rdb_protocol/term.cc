@@ -172,6 +172,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::POINT:              return make_point_term(env, t);
     case Term::LINE:               return make_line_term(env, t);
     case Term::POLYGON:            return make_polygon_term(env, t);
+    case Term::DISTANCE:           return make_distance_term(env, t);
     case Term::INTERSECTS:         return make_intersects_term(env, t);
     default: unreachable();
     }

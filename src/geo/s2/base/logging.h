@@ -81,6 +81,7 @@ class DateLogger {
 };
 }  // namespace google_base
 
+// TODO! These should use our own logging
 class LogMessage {
  public:
   LogMessage(const char* file, int line) {

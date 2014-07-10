@@ -9,6 +9,7 @@
 
 #include "containers/scoped.hpp"
 #include "containers/wire_string.hpp"
+#include "geo/exceptions.hpp"
 #include "geo/geo_visitor.hpp"
 #include "geo/s2/s1angle.h"
 #include "geo/s2/s2.h"
@@ -34,8 +35,9 @@ counted_t<const ql::datum_t> construct_geo_point(const lat_lon_point_t &point) {
 
     std::vector<counted_t<const datum_t> > coordinates;
     coordinates.reserve(2);
-    coordinates.push_back(make_counted<datum_t>(point.first));
+    // lat, long -> long, lat
     coordinates.push_back(make_counted<datum_t>(point.second));
+    coordinates.push_back(make_counted<datum_t>(point.first));
     dup = result.add("coordinates", make_counted<datum_t>(std::move(coordinates)));
     r_sanity_check(!dup);
 
@@ -49,8 +51,9 @@ std::vector<counted_t<const datum_t> > construct_line_coordinates(
     for (size_t i = 0; i < line.size(); ++i) {
         std::vector<counted_t<const datum_t> > point;
         point.reserve(2);
-        point.push_back(make_counted<datum_t>(line[i].first));
+        // lat, long -> long, lat
         point.push_back(make_counted<datum_t>(line[i].second));
+        point.push_back(make_counted<datum_t>(line[i].first));
         coordinates.push_back(make_counted<datum_t>(std::move(point)));
     }
     return coordinates;
@@ -101,13 +104,13 @@ S2Point position_to_s2point(const counted_t<const datum_t> &position) {
 
     const std::vector<counted_t<const datum_t> > arr = position->as_array();
     if (arr.size() < 2) {
-        // TODO!
-        crash("Too few coordinates. Need at least longitude and latitude.");
+        throw geo_exception_t(
+            "Too few coordinates. Need at least longitude and latitude.");
     }
     if (arr.size() > 3) {
-        // TODO!
-        crash("Too many coordinates. GeoJSON position should have no more than "
-              "three coordinates.");
+        throw geo_exception_t(
+            strprintf("Too many coordinates. GeoJSON position should have no more than "
+                      "three coordinates, but got %zu", arr.size()));
     }
     if (arr.size() == 3) {
         // TODO! Error?
@@ -118,6 +121,22 @@ S2Point position_to_s2point(const counted_t<const datum_t> &position) {
     double longitude, latitude;
     longitude = arr[0]->as_num();
     latitude = arr[1]->as_num();
+
+    // Range checks. S2 crashes badly when those are violated.
+    if(longitude < 0.0 || longitude > 180.0) {
+        throw geo_range_exception_t(
+            strprintf("Longitude must be between 0 and 180. Got %f.", longitude));
+    }
+    if (longitude == 180.0) {
+        longitude = 0.0;
+    }
+    if(latitude < -90.0 || latitude > 90.0) {
+        throw geo_range_exception_t(
+            strprintf("Latitude must be between -90 and 90. Got %f.", latitude));
+    }
+    if (latitude == 90.0) {
+        latitude = -90.0;
+    }
 
     S2LatLng lat_lng(S1Angle::Degrees(latitude), S1Angle::Degrees(longitude));
     return lat_lng.ToPoint();
@@ -138,8 +157,8 @@ scoped_ptr_t<S2Polyline> coordinates_to_s2polyline(const counted_t<const datum_t
     */
     const std::vector<counted_t<const datum_t> > arr = coords->as_array();
     if (arr.size() < 2) {
-        // TODO!
-        crash("GeoJSON LineString must have at least two positions.");
+        throw geo_exception_t(
+            "GeoJSON LineString must have at least two positions.");
     }
     std::vector<S2Point> points;
     points.reserve(arr.size());
@@ -153,8 +172,8 @@ scoped_ptr_t<S2Loop> coordinates_to_s2loop(const counted_t<const datum_t> &coord
     // Like a LineString, but must be connected
     const std::vector<counted_t<const datum_t> > arr = coords->as_array();
     if (arr.size() < 4) {
-        // TODO!
-        crash("GeoJSON LinearRing must have at least four positions.");
+        throw geo_exception_t(
+            "GeoJSON LinearRing must have at least four positions.");
     }
     std::vector<S2Point> points;
     points.reserve(arr.size());
@@ -162,8 +181,8 @@ scoped_ptr_t<S2Loop> coordinates_to_s2loop(const counted_t<const datum_t> &coord
         points.push_back(position_to_s2point(arr[i]));
     }
     if (points[0] != points[points.size()-1]) {
-        // TODO!
-        crash("First and last vertex of GeoJSON LinearRing must be identical.");
+        throw geo_exception_t(
+            "First and last vertex of GeoJSON LinearRing must be identical.");
     }
     // Drop the last point. S2Loop closes the loop implicitly.
     points.pop_back();
@@ -186,9 +205,9 @@ scoped_ptr_t<S2Polygon> coordinates_to_s2polygon(const counted_t<const datum_t> 
         scoped_ptr_t<S2Loop> loop = coordinates_to_s2loop(loops_arr[i]);
         // TODO! Does PolygonBuilder already perform this validation?
         if (!loop->IsValid()) {
-            // TODO!
-            crash("Invalid LinearRing (are there duplicate vertices? is it "
-                  "self-intersecting?)");
+            throw geo_exception_t(
+                "Invalid LinearRing (are there duplicate vertices? is it "
+                "self-intersecting?)");
         }
         // Put the loop into the ptr_vector to avoid its destruction while
         // we are still building the polygon
@@ -215,8 +234,8 @@ scoped_ptr_t<S2Polygon> coordinates_to_s2polygon(const counted_t<const datum_t> 
     S2PolygonBuilder::EdgeList unused_edges;
     builder.AssemblePolygon(result.get(), &unused_edges);
     if (!unused_edges.empty()) {
-        // TODO!
-        crash("Some edges in GeoJSON polygon could not be used.");
+        throw geo_exception_t(
+            "Some edges in GeoJSON polygon could not be used.");
     }
 
     return std::move(result);
@@ -228,8 +247,7 @@ scoped_ptr_t<S2Point> to_s2point(const counted_t<const ql::datum_t> &geojson) {
     const std::string type = geojson->get("type")->as_str().to_std();
     counted_t<const datum_t> coordinates = geojson->get("coordinates");
     if (type != "Point") {
-        // TODO!
-        crash("Wrong type");
+        throw geo_exception_t("Encountered wrong type in to_s2point");
     }
     return coordinates_to_s2point(coordinates);
 }
@@ -240,8 +258,7 @@ scoped_ptr_t<S2Polyline> to_s2polyline(const counted_t<const ql::datum_t> &geojs
     const std::string type = geojson->get("type")->as_str().to_std();
     counted_t<const datum_t> coordinates = geojson->get("coordinates");
     if (type != "LineString") {
-        // TODO!
-        crash("Wrong type");
+        throw geo_exception_t("Encountered wrong type in to_s2polyline");
     }
     return coordinates_to_s2polyline(coordinates);
 }
@@ -252,8 +269,7 @@ scoped_ptr_t<S2Polygon> to_s2polygon(const counted_t<const ql::datum_t> &geojson
     const std::string type = geojson->get("type")->as_str().to_std();
     counted_t<const datum_t> coordinates = geojson->get("coordinates");
     if (type != "Polygon") {
-        // TODO!
-        crash("Wrong type");
+        throw geo_exception_t("Encountered wrong type in to_s2polygon");
     }
     return coordinates_to_s2polygon(coordinates);
 }
@@ -287,11 +303,11 @@ void visit_geojson(geo_visitor_t *visitor, const counted_t<const datum_t> &geojs
             || type == "Feature"
             || type == "FeatureCollection";
         if (valid_geojson) {
-            // TODO! Throw
-            crash("GeoJSON type %s not supported", type.c_str());
+            throw geo_exception_t(
+                strprintf("GeoJSON type %s not supported", type.c_str()));
         } else {
-            // TODO! Throw
-            crash("Unrecognized GeoJSON type %s", type.c_str());
+            throw geo_exception_t(
+                strprintf("Unrecognized GeoJSON type %s", type.c_str()));
         }
     }
 }
