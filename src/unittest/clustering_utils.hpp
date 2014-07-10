@@ -217,25 +217,22 @@ inline std::string mc_key_gen() {
 class simple_mailbox_cluster_t {
 public:
     simple_mailbox_cluster_t() :
-        mailbox_manager(&connectivity_cluster),
-        connectivity_cluster_run(&connectivity_cluster,
-                                 get_unittest_addresses(),
-                                 peer_address_t(),
-                                 ANY_PORT,
-                                 &mailbox_manager,
-                                 0,
-                                 NULL)
+        mailbox_manager(&cluster_manager, 'M'),
+        cluster_manager_run(&cluster_manager,
+                            get_unittest_addresses(),
+                            peer_address_t(),
+                            ANY_PORT, 0)
         { }
-    connectivity_service_t *get_connectivity_service() {
-        return &connectivity_cluster;
+    cluster_manager_t *get_cluster_manager() {
+        return &cluster_manager;
     }
     mailbox_manager_t *get_mailbox_manager() {
         return &mailbox_manager;
     }
 private:
-    connectivity_cluster_t connectivity_cluster;
+    cluster_manager_t cluster_manager;
     mailbox_manager_t mailbox_manager;
-    connectivity_cluster_t::run_t connectivity_cluster_run;
+    cluster_manager_t::run_t cluster_manager_run;
 };
 
 #ifndef NDEBUG
@@ -257,6 +254,13 @@ private:
     DISABLE_COPYING(equality_metainfo_checker_callback_t);
 };
 #endif
+
+inline peer_address_t get_cluster_local_address(cluster_manager_t *cm) {
+    auto_drainer_t::lock_t connection_keepalive;
+    cluster_manager_t::connection_t *loopback = cm->get_connection(cm->get_me(), &connection_keepalive);
+    guarantee(loopback != NULL);
+    return loopback->get_peer_address();
+}
 
 }  // namespace unittest
 

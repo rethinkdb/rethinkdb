@@ -35,7 +35,7 @@ public:
         void reset();
         bool has_lock() const;
         signal_t *get_drain_signal() const;
-        void assert_is_holding(auto_drainer_t *);
+        void assert_is_holding(auto_drainer_t *) const;
         ~lock_t();
     private:
         auto_drainer_t *parent;

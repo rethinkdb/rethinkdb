@@ -17,8 +17,8 @@
 class auto_reconnector_t {
 public:
     auto_reconnector_t(
-        connectivity_cluster_t *connectivity_cluster,
-        connectivity_cluster_t::run_t *connectivity_cluster_run,
+        cluster_manager_t *cluster_manager,
+        cluster_manager_t::run_t *cluster_manager_run,
         const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &machine_id_translation_table,
         const boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &machine_metadata);
 
@@ -32,12 +32,12 @@ private:
     void pulse_if_machine_declared_dead(machine_id_t machine, cond_t *c);
     void pulse_if_machine_reconnected(machine_id_t machine, cond_t *c);
 
-    connectivity_cluster_t *connectivity_cluster;
-    connectivity_cluster_t::run_t *connectivity_cluster_run;
+    cluster_manager_t *cluster_manager;
+    cluster_manager_t::run_t *cluster_manager_run;
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > machine_id_translation_table;
     boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machine_metadata;
 
-    /* this is so that `on_disconnect()` can find the machine ID and last
+    /* this is so that `on_connect_or_disconnect()` can find the machine ID and last
     known address of a peer that just disconnected. */
     std::map<peer_id_t, std::pair<machine_id_t, peer_address_t> > connected_peers;
 

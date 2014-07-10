@@ -8,12 +8,12 @@
 #include "concurrency/wait_any.hpp"
 
 auto_reconnector_t::auto_reconnector_t(
-        connectivity_cluster_t *connectivity_cluster_,
-        connectivity_cluster_t::run_t *connectivity_cluster_run_,
+        cluster_manager_t *cluster_manager_,
+        cluster_manager_t::run_t *cluster_manager_run_,
         const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &machine_id_translation_table_,
         const boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &machine_metadata_) :
-    connectivity_cluster(connectivity_cluster_),
-    connectivity_cluster_run(connectivity_cluster_run_),
+    cluster_manager(cluster_manager_),
+    cluster_manager_run(cluster_manager_run_),
     machine_id_translation_table(machine_id_translation_table_),
     machine_metadata(machine_metadata_),
     machine_id_translation_table_subs(boost::bind(&auto_reconnector_t::on_connect_or_disconnect, this))
@@ -27,11 +27,14 @@ void auto_reconnector_t::on_connect_or_disconnect() {
     std::map<peer_id_t, machine_id_t> map = machine_id_translation_table->get().get_inner();
     for (std::map<peer_id_t, machine_id_t>::iterator it = map.begin(); it != map.end(); it++) {
         if (connected_peers.find(it->first) == connected_peers.end()) {
+            auto_drainer_t::lock_t connection_keepalive;
+            cluster_manager_t::connection_t *connection = cluster_manager->get_connection(it->first, &connection_keepalive);
+            guarantee(connection != NULL);
             connected_peers.insert(std::make_pair(
                 it->first,
                 std::make_pair(
                     it->second,
-                    connectivity_cluster->get_peer_address(it->first))));
+                    connection->get_peer_address())));
         }
     }
     for (auto it = connected_peers.begin(); it != connected_peers.end();) {
@@ -75,7 +78,7 @@ void auto_reconnector_t::try_reconnect(machine_id_t machine,
     int backoff_ms = initial_backoff_ms;
     try {
         while (true) {
-            connectivity_cluster_run->join(last_known_address);
+            cluster_manager_run->join(last_known_address);
             signal_timer_t timer;
             timer.start(backoff_ms);
             wait_interruptible(&timer, &interruptor);

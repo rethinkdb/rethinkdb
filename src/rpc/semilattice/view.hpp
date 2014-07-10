@@ -7,7 +7,7 @@
 
 #include "concurrency/interruptor.hpp"
 #include "concurrency/pubsub.hpp"
-#include "rpc/connectivity/connectivity.hpp"
+#include "rpc/connectivity/cluster.hpp"
 #include "utils.hpp"
 
 class sync_failed_exc_t : public std::exception {
