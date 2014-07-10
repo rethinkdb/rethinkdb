@@ -98,7 +98,7 @@ counted_t<const ql::datum_t> construct_geo_polygon(const lat_lon_line_t &shell) 
 }
 
 // Parses a GeoJSON "Position" array
-S2Point position_to_s2point(const counted_t<const datum_t> &position) {
+lat_lon_point_t position_to_lat_lon_point(const counted_t<const datum_t> &position) {
     // This assumes the default spherical GeoJSON coordinate reference system,
     // with latitude and longitude given in degrees.
 
@@ -122,7 +122,8 @@ S2Point position_to_s2point(const counted_t<const datum_t> &position) {
     longitude = arr[0]->as_num();
     latitude = arr[1]->as_num();
 
-    // Range checks. S2 crashes badly when those are violated.
+    // Range checks.
+    // (S2 crashes badly if those are violated)
     if(longitude < 0.0 || longitude > 180.0) {
         throw geo_range_exception_t(
             strprintf("Longitude must be between 0 and 180. Got %f.", longitude));
@@ -138,7 +139,25 @@ S2Point position_to_s2point(const counted_t<const datum_t> &position) {
         latitude = -90.0;
     }
 
-    S2LatLng lat_lng(S1Angle::Degrees(latitude), S1Angle::Degrees(longitude));
+    return lat_lon_point_t(latitude, longitude);
+}
+
+lat_lon_point_t extract_lat_lon_point(const counted_t<const datum_t> &geojson) {;
+    if (geojson->get("type")->as_str().to_std() != "Position") {
+        throw geo_exception_t(
+            strprintf("Expected Point, but got %s", geojson->get("type")->as_str().c_str()));
+    }
+
+    const counted_t<const datum_t> &coordinates = geojson->get("coordinates");
+
+    return position_to_lat_lon_point(coordinates);
+}
+
+// Parses a GeoJSON "Position" array
+S2Point position_to_s2point(const counted_t<const datum_t> &position) {
+    lat_lon_point_t p = position_to_lat_lon_point(position);
+
+    S2LatLng lat_lng(S1Angle::Degrees(p.first), S1Angle::Degrees(p.second));
     return lat_lng.ToPoint();
 }
 
@@ -275,7 +294,7 @@ scoped_ptr_t<S2Polygon> to_s2polygon(const counted_t<const ql::datum_t> &geojson
 }
 
 // TODO! What does it throw?
-void visit_geojson(geo_visitor_t *visitor, const counted_t<const datum_t> &geojson) {
+void visit_geojson(s2_geo_visitor_t *visitor, const counted_t<const datum_t> &geojson) {
     // TODO! Ensure that geojson has either no "crs" member, or it is null.
     // Fail otherwise.
 
@@ -316,7 +335,8 @@ void validate_geojson(const counted_t<const ql::datum_t> &geojson) {
     // We rely on `visit_geojson()` to perform all necessary validation
     // TODO! Change that. Probably visit_geojson() should do less validation,
     //       and we should do more.
-    class validator_t : public geo_visitor_t {
+    // TODO! Check that the GeoJSON doesn't specify a reference system
+    class validator_t : public s2_geo_visitor_t {
     public:
         void on_point(UNUSED const S2Point &) { }
         void on_line(UNUSED const S2Polyline &) { }

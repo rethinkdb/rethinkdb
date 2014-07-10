@@ -8,9 +8,9 @@ typedef Vector3_d S2Point;
 class S2Polyline;
 class S2Polygon;
 
-class geo_visitor_t {
+class s2_geo_visitor_t {
 public:
-    virtual ~geo_visitor_t() { }
+    virtual ~s2_geo_visitor_t() { }
 
     virtual void on_point(const S2Point &) = 0;
     virtual void on_line(const S2Polyline &) = 0;

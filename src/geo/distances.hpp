@@ -2,12 +2,12 @@
 #ifndef GEO_DISTANCES_HPP_
 #define GEO_DISTANCES_HPP_
 
+#include <string>
 #include <utility>
 
-class ellipsoid_spec_t;
+#include "geo/lat_lon_types.hpp"
 
-// TODO!
-typedef std::pair<double, double> lat_lon_point_t;
+class ellipsoid_spec_t;
 
 // Returns the ellipsoidal distance between p1 and p2 on e (in meters).
 // (solves the inverse geodesic problem)
@@ -22,5 +22,16 @@ lat_lon_point_t karney_point_at_dist(const lat_lon_point_t &p,
                                      double dist,
                                      double azimuth,
                                      const ellipsoid_spec_t &e);
+
+// M meters
+// KM kilometers
+// MI international miles
+// NM nautical miles
+// FT international feet
+enum class dist_unit_t { M, KM, MI, NM, FT };
+
+dist_unit_t parse_dist_unit(const std::string &s);
+
+double convert_dist_unit(double d, dist_unit_t from, dist_unit_t to);
 
 #endif  // GEO_DISTANCES_HPP_

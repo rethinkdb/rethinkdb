@@ -15,7 +15,7 @@
 
 using ql::datum_t;
 
-class intersection_tester_t : public geo_visitor_t {
+class intersection_tester_t : public s2_geo_visitor_t {
 public:
     intersection_tester_t(const S2Polygon *polygon) : polygon_(polygon) { }
 

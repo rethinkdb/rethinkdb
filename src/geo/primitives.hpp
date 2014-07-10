@@ -5,12 +5,9 @@
 #include <utility>
 #include <vector>
 
+#include "geo/lat_lon_types.hpp"
+
 class ellipsoid_spec_t;
-
-// TODO!
-typedef std::pair<double, double> lat_lon_point_t;
-typedef std::vector<lat_lon_point_t> lat_lon_line_t;
-
 
 // Constructs a circle with of radius `radius` (in m)
 lat_lon_line_t build_circle(const lat_lon_point_t &center,
