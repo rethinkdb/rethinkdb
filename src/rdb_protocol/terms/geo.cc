@@ -5,7 +5,7 @@
 #include "geo/geojson.hpp"
 #include "geo/intersection.hpp"
 #include "geo/s2/s2polygon.h"
-#include "geo/vincenty.hpp"
+#include "geo/distances.hpp"
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/terms/terms.hpp"
@@ -187,7 +187,7 @@ private:
             lat_lon_point_t llp2(p2->as_datum()->get("coordinates")->get(0)->as_num(),
                                  p2->as_datum()->get("coordinates")->get(1)->as_num());
 
-            double result = vincenty_distance(llp1, llp2, WGS84_ELLIPSOID);
+            double result = karney_distance(llp1, llp2, WGS84_ELLIPSOID);
 
             return new_val(make_counted<const datum_t>(result));
         } catch (const geo_exception_t &e) {
