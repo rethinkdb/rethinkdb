@@ -15,6 +15,13 @@
 
 namespace ql {
 
+void check_is_geometry(const counted_t<val_t> &v) {
+    // TODO! Get rid of that "geometry" literal everywhere
+    rcheck_target(v.get(), base_exc_t::GENERIC,
+                  v->as_datum()->is_ptype("geometry"),
+                  "Value must be of geometry type.");
+}
+
 class geojson_term_t : public op_term_t {
 public:
     geojson_term_t(compile_env_t *env, const protob_t<const Term> &term)
@@ -47,7 +54,7 @@ public:
 private:
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> v = args->arg(env, 0);
-        // TODO! Make sure that the object is a geometry-typed object
+        check_is_geometry(v);
 
         datum_ptr_t result(v->as_datum()->as_object());
         bool success = result.delete_field("$reql_type$");
@@ -152,15 +159,13 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> poly = args->arg(env, 0);
-        counted_t<val_t> g = args->arg(env, 1);
-        // TODO! Type validation
+        counted_t<val_t> g1 = args->arg(env, 0);
+        counted_t<val_t> g2 = args->arg(env, 1);
+        check_is_geometry(g1);
+        check_is_geometry(g2);
 
         try {
-            // TODO! Support intersection tests with lines
-            scoped_ptr_t<S2Polygon> s2poly = to_s2polygon(poly->as_datum());
-
-            bool result = geo_does_intersect(*s2poly, g->as_datum());
+            bool result = geo_does_intersect(g1->as_datum(), g2->as_datum());
 
             return new_val(make_counted<const datum_t>(datum_t::R_BOOL, result));
         } catch (const geo_exception_t &e) {
@@ -214,6 +219,8 @@ private:
         // TODO! Support polygons / lines maybe?
         counted_t<val_t> p1_arg = args->arg(env, 0);
         counted_t<val_t> p2_arg = args->arg(env, 1);
+        check_is_geometry(p1_arg);
+        check_is_geometry(p2_arg);
 
         ellipsoid_spec_t reference_ellipsoid = pick_reference_ellipsoid(env, args);
         dist_unit_t result_unit = pick_dist_unit(env, args);
@@ -243,6 +250,7 @@ private:
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> center_arg = args->arg(env, 0);
         counted_t<val_t> radius_arg = args->arg(env, 1);
+        check_is_geometry(center_arg);
 
         ellipsoid_spec_t reference_ellipsoid = pick_reference_ellipsoid(env, args);
         dist_unit_t radius_unit = pick_dist_unit(env, args);

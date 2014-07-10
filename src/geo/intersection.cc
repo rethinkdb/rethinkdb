@@ -15,27 +15,20 @@
 
 using ql::datum_t;
 
-class intersection_tester_t : public s2_geo_visitor_t {
+template<class first_t>
+class inner_intersection_tester_t : public s2_geo_visitor_t {
 public:
-    intersection_tester_t(const S2Polygon *polygon) : polygon_(polygon) { }
+    inner_intersection_tester_t(const first_t *first) : first_(first) { }
 
     void on_point(const S2Point &point) {
-        // TODO! This doesn't catch points that are *exactly* on the boundary.
-        // Is that a problem? Maybe not. It just should be consistent.
-        result_ = polygon_->Contains(point);
+        result_ = geo_does_intersect(*first_, point);
     }
     void on_line(const S2Polyline &line) {
-        std::vector<S2Polyline *> intersecting_pieces;
-        polygon_->IntersectWithPolyline(&line, &intersecting_pieces);
-        result_ = !intersecting_pieces.empty();
-        for (size_t i = 0; i < intersecting_pieces.size(); ++i) {
-            delete intersecting_pieces[i];
-        }
+        result_ = geo_does_intersect(*first_, line);
     }
     void on_polygon(const S2Polygon &polygon) {
-        result_ = polygon_->Intersects(&polygon);
+        result_ = geo_does_intersect(*first_, polygon);
     }
-
 
     bool get_result() {
         guarantee(result_);
@@ -43,13 +36,104 @@ public:
     }
 
 private:
-    const S2Polygon *polygon_;
+    const first_t *first_;
     boost::optional<bool> result_;
 };
 
-bool geo_does_intersect(const S2Polygon &polygon,
-                        const counted_t<const ql::datum_t> &other) {
-    intersection_tester_t tester(&polygon);
-    visit_geojson(&tester, other);
+class intersection_tester_t : public s2_geo_visitor_t {
+public:
+    intersection_tester_t(const counted_t<const ql::datum_t> *other) : other_(other) { }
+
+    void on_point(const S2Point &point) {
+        inner_intersection_tester_t<S2Point> tester(&point);
+        visit_geojson(&tester, *other_);
+        result_ = tester.get_result();
+    }
+    void on_line(const S2Polyline &line) {
+        inner_intersection_tester_t<S2Polyline> tester(&line);
+        visit_geojson(&tester, *other_);
+        result_ = tester.get_result();
+    }
+    void on_polygon(const S2Polygon &polygon) {
+        inner_intersection_tester_t<S2Polygon> tester(&polygon);
+        visit_geojson(&tester, *other_);
+        result_ = tester.get_result();
+    }
+
+    bool get_result() {
+        guarantee(result_);
+        return result_.get();
+    }
+
+private:
+    const counted_t<const ql::datum_t> *other_;
+    boost::optional<bool> result_;
+};
+
+bool geo_does_intersect(const counted_t<const ql::datum_t> &g1,
+                        const counted_t<const ql::datum_t> &g2) {
+    intersection_tester_t tester(&g2);
+    visit_geojson(&tester, g1);
     return tester.get_result();
+}
+
+bool geo_does_intersect(const S2Point &point,
+                        const S2Point &other_point) {
+    return point == other_point;
+}
+
+bool geo_does_intersect(const S2Polyline &line,
+                        const S2Point &other_point) {
+    return geo_does_intersect(other_point, line);
+}
+
+bool geo_does_intersect(const S2Polygon &polygon,
+                        const S2Point &other_point) {
+    return geo_does_intersect(other_point, polygon);
+}
+
+// TODO! By the way: Test what happens with empty lines / polygons...
+// (i.e. make sure we forbid those)
+bool geo_does_intersect(const S2Point &point,
+                        const S2Polyline &other_line) {
+    // This is probably fragile due to numeric precision limits.
+    // On the other hand that should be expected from such an operation.
+    int next_vertex;
+    S2Point projection = other_line.Project(point, &next_vertex);
+    return projection == point;
+}
+
+bool geo_does_intersect(const S2Polyline &line,
+                        const S2Polyline &other_line) {
+    return other_line.Intersects(&line);
+}
+
+bool geo_does_intersect(const S2Polygon &polygon,
+                        const S2Polyline &other_line) {
+    return geo_does_intersect(other_line, polygon);
+}
+
+bool geo_does_intersect(const S2Point &point,
+                        const S2Polygon &other_polygon) {
+    // This returns the point itself if it's inside the polygon.
+    // In contrast to other_polygon.Contains(), it also works for points that
+    // are exactly on the edge of the polygon.
+    S2Point projection = other_polygon.Project(point);
+    return projection == point;
+}
+
+bool geo_does_intersect(const S2Polyline &line,
+                        const S2Polygon &other_polygon) {
+    std::vector<S2Polyline *> intersecting_pieces;
+    other_polygon.IntersectWithPolyline(&line, &intersecting_pieces);
+    // We're not interested in the actual line pieces that intersect
+    for (size_t i = 0; i < intersecting_pieces.size(); ++i) {
+        delete intersecting_pieces[i];
+    }
+    return !intersecting_pieces.empty();
+}
+
+bool geo_does_intersect(const S2Polygon &polygon,
+                        const S2Polygon &other_polygon) {
+    return other_polygon.Intersects(&polygon);
 }
