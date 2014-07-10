@@ -102,9 +102,20 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const changefeed_stamp_t &s) {
         guarantee(store->changefeed_server.has());
         response->response = changefeed_stamp_response_t();
-        boost::get<changefeed_stamp_response_t>(&response->response)
-            ->stamps[store->changefeed_server->get_uuid()]
+        auto res = boost::get<changefeed_stamp_response_t>(&response->response);
+        res->stamps[store->changefeed_server->get_uuid()]
             = store->changefeed_server->get_stamp(s.addr);
+    }
+
+    void operator()(const changefeed_point_stamp_t &s) {
+        guarantee(store->changefeed_server.has());
+        response->response = changefeed_point_stamp_response_t();
+        auto res = boost::get<changefeed_point_stamp_response_t>(&response->response);
+        res->stamp = std::make_pair(store->changefeed_server->get_uuid(),
+                                    store->changefeed_server->get_stamp(s.addr));
+        point_read_response_t val;
+        rdb_get(s.key, btree, superblock, &val, ql_env.trace.get_or_null());
+        res->initial_val = val.data;
     }
 
     void operator()(const point_read_t &get) {

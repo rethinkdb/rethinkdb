@@ -124,7 +124,9 @@ server_t::addr_t server_t::get_stop_addr() {
     return stop_mailbox.get_address();
 }
 
-uint64_t server_t::get_stamp(const client_t::addr_t &addr) {
+// RSI: undo
+uint64_t server_t::with_stamp(const client_t::addr_t &addr,
+                              const std::function<uint64_t(uint64_t *)> &f) {
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
@@ -133,8 +135,30 @@ uint64_t server_t::get_stamp(const client_t::addr_t &addr) {
         // The client was removed, so no future messages are coming.
         return std::numeric_limits<uint64_t>::max();
     } else {
-        return it->second.stamp;
+        return f(&it->second.stamp);
     }
+}
+
+
+uint64_t server_t::send_and_get_stamp(const client_t::addr_t &addr, msg_t msg) {
+    return with_stamp(
+        addr,
+        [this, &addr, &msg](uint64_t *stamp_ptr) {
+            uint64_t stamp;
+            {
+                // We don't need a write lock as long as we make sure the coroutine
+                // doesn't block between reading and updating the stamp.
+                ASSERT_NO_CORO_WAITING;
+                stamp = (*stamp_ptr)++;
+            }
+            send(manager, addr, stamped_msg_t(uuid, stamp, std::move(msg)));
+            return stamp;
+        }
+    );
+}
+
+uint64_t server_t::get_stamp(const client_t::addr_t &addr) {
+    return with_stamp(addr, [](uint64_t *stamp_ptr){ return *stamp_ptr; });
 }
 
 uuid_u server_t::get_uuid() {
@@ -152,7 +176,8 @@ msg_t::change_t::change_t(counted_t<const datum_t> _old_val,
 msg_t::change_t::~change_t() { }
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(msg_t, op);
-RDB_IMPL_ME_SERIALIZABLE_2_SINCE_v1_13(msg_t::change_t, empty_ok(old_val), empty_ok(new_val));
+RDB_IMPL_ME_SERIALIZABLE_2_SINCE_v1_13(
+    msg_t::change_t, empty_ok(old_val), empty_ok(new_val));
 RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(msg_t::stop_t);
 
 enum class detach_t { NO, YES };
@@ -167,6 +192,8 @@ public:
     get_els(batcher_t *batcher, const signal_t *interruptor);
     void add_el(const uuid_u &uuid, uint64_t stamp, counted_t<const datum_t> d);
     void start(std::map<uuid_u, uint64_t> &&_start_stamps);
+    void start(const std::pair<uuid_u, uint64_t> &start_stamp,
+               counted_t<const datum_t> &&initial_val);
     void stop(const std::string &msg, detach_t should_detach);
 private:
     void maybe_signal_cond() THROWS_NOTHING;
@@ -281,14 +308,27 @@ public:
                            std::cref(server_uuid),
                            stamp,
                            d);
-        feed->each_table_sub(f);
+        feed->each_table_sub(
+            std::bind(&subscription_t::add_el,
+                      ph::_1,
+                      std::cref(server_uuid),
+                      stamp,
+                      d));
         auto val = change.new_val.has() ? change.new_val : change.old_val;
         // debugf("%s\n", val->print().c_str());
         r_sanity_check(val.has());
         // debugf("%s\n", feed->pkey.c_str());
         auto pkey_val = val->get(feed->pkey, NOTHROW);
         r_sanity_check(pkey_val.has());
-        feed->on_point_sub(pkey_val, f);
+        feed->on_point_sub(
+            pkey_val,
+            std::bind(&subscription_t::add_el,
+                      ph::_1,
+                      std::cref(server_uuid),
+                      stamp,
+                      change.new_val.has()
+                      ? change.new_val
+                      : make_counted<const datum_t>(datum_t::R_NULL)));
     }
     void operator()(const msg_t::stop_t &) const {
         const char *msg = "Changefeed aborted (table unavailable).";
@@ -399,7 +439,19 @@ void subscription_t::add_el(
         auto it = start_stamps.find(uuid);
         guarantee(it != start_stamps.end());
         if (stamp >= it->second) {
-            els.push_back(d);
+            struct keyspec_visitor_t : public boost::static_visitor<void> {
+                keyspec_visitor_t(std::deque<counted_t<const datum_t> > *_els,
+                                  counted_t<const datum_t> *_d)
+                    : els(_els), d(_d) { }
+                void operator()(keyspec_t::all_t &) const { els->push_back(*d); }
+                void operator()(keyspec_t::point_t &) const {
+                    els->clear();
+                    els->push_back(*d);
+                }
+                std::deque<counted_t<const datum_t> > *els;
+                counted_t<const datum_t> *d;
+            };
+            boost::apply_visitor(keyspec_visitor_t(&els, &d), keyspec.spec);
             if (els.size() > array_size_limit()) {
                 skipped += els.size();
                 els.clear();
@@ -413,6 +465,14 @@ void subscription_t::start(std::map<uuid_u, uint64_t> &&_start_stamps) {
     assert_thread();
     start_stamps = std::move(_start_stamps);
     guarantee(start_stamps.size() != 0);
+}
+
+void subscription_t::start(const std::pair<uuid_u, uint64_t> &start_stamp,
+                           counted_t<const datum_t> &&initial_val) {
+    assert_thread();
+    start_stamps = decltype(start_stamps){start_stamp};
+    guarantee(start_stamps.size() != 0);
+    add_el(start_stamp.first, start_stamp.second, std::move(initial_val));
 }
 
 void subscription_t::stop(const std::string &msg, detach_t detach) {
@@ -789,13 +849,47 @@ client_t::new_feed(const counted_t<table_t> &tbl, keyspec_t &&keyspec, env_t *en
         }
         base_namespace_repo_t::access_t access(env->ns_repo(), uuid, env->interruptor);
         namespace_interface_t *nif = access.get_namespace_if();
-        read_t read(changefeed_stamp_t(addr, std::move(keyspec)),
-                    profile_bool_t::DONT_PROFILE);
-        read_response_t read_resp;
-        nif->read(read, &read_resp, order_token_t::ignore, env->interruptor);
-        auto resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
-        guarantee(resp != NULL);
-        sub->start(std::move(resp->stamps));
+        class keyspec_visitor_t : public boost::static_visitor<void> {
+        public:
+            explicit keyspec_visitor_t(env_t *_env,
+                                       subscription_t *_sub,
+                                       namespace_interface_t *_nif,
+                                       client_t::addr_t *_addr)
+                : env(_env), sub(_sub), nif(_nif), addr(_addr) { }
+            void operator()(keyspec_t::all_t &) const {
+                read_response_t read_resp;
+                nif->read(
+                    read_t(changefeed_stamp_t(*addr), profile_bool_t::DONT_PROFILE),
+                    &read_resp,
+                    order_token_t::ignore,
+                    env->interruptor);
+                auto resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
+                guarantee(resp != NULL);
+                sub->start(std::move(resp->stamps));
+            }
+            void operator()(keyspec_t::point_t &ks) const {
+                read_response_t read_resp;
+                nif->read(
+                    read_t(
+                        changefeed_point_stamp_t(
+                            *addr, store_key_t(ks.key->print_primary())),
+                        profile_bool_t::DONT_PROFILE),
+                    &read_resp,
+                    order_token_t::ignore,
+                    env->interruptor);
+                auto resp = boost::get<changefeed_point_stamp_response_t>(
+                    &read_resp.response);
+                guarantee(resp != NULL);
+                sub->start(std::move(resp->stamp), std::move(resp->initial_val));
+            }
+        private:
+            env_t *env;
+            subscription_t *sub;
+            namespace_interface_t *nif;
+            client_t::addr_t *addr;
+        };
+        boost::apply_visitor(keyspec_visitor_t(env, sub.get(), nif, &addr),
+                             keyspec.spec);
         return make_counted<stream_t>(std::move(sub), tbl->backtrace());
     } catch (const cannot_perform_query_exc_t &e) {
         rfail_datum(ql::base_exc_t::GENERIC,

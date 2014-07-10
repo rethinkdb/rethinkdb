@@ -322,14 +322,25 @@ struct changefeed_stamp_response_t {
     // machines and don't synchronize with each other.)
     std::map<uuid_u, uint64_t> stamps;
 };
-
 RDB_DECLARE_SERIALIZABLE(changefeed_stamp_response_t);
+
+struct changefeed_point_stamp_response_t {
+    changefeed_point_stamp_response_t() { }
+    // The `uuid_u` below is the uuid of the changefeed `server_t`.  (We have
+    // different timestamps for each `server_t` because they're on different
+    // machines and don't synchronize with each other.)
+    std::pair<uuid_u, uint64_t> stamp;
+    counted_t<const ql::datum_t> initial_val;
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+RDB_SERIALIZE_OUTSIDE(changefeed_point_stamp_response_t);
 
 struct read_response_t {
     typedef boost::variant<point_read_response_t,
                            rget_read_response_t,
                            changefeed_subscribe_response_t,
                            changefeed_stamp_response_t,
+                           changefeed_point_stamp_response_t,
                            distribution_read_response_t,
                            sindex_list_response_t,
                            sindex_status_response_t> variant_t;
@@ -459,27 +470,31 @@ RDB_DECLARE_SERIALIZABLE(changefeed_subscribe_t);
 
 class changefeed_stamp_t {
 public:
-    changefeed_stamp_t() : keyspec(ql::changefeed::keyspec_t::all_t()),
-                           region(region_t::universe()) { }
-    // TODO: long-term we should use this keyspec to limit what documents need
-    // to be sent by the changefeed server.
-    explicit changefeed_stamp_t(ql::changefeed::client_t::addr_t _addr,
-                                ql::changefeed::keyspec_t &&_keyspec)
-        : addr(std::move(_addr)),
-          keyspec(std::move(_keyspec)),
-          region(ql::changefeed::keyspec_to_region(keyspec)) { }
+    changefeed_stamp_t() : region(region_t::universe()) { }
+    explicit changefeed_stamp_t(ql::changefeed::client_t::addr_t _addr)
+        : addr(std::move(_addr)), region(region_t::universe()) { }
     ql::changefeed::client_t::addr_t addr;
-    ql::changefeed::keyspec_t keyspec;
     region_t region;
 };
-
 RDB_DECLARE_SERIALIZABLE(changefeed_stamp_t);
+
+// This is a separate class because it needs to shard and unshard differently.
+class changefeed_point_stamp_t {
+public:
+    changefeed_point_stamp_t() { }
+    explicit changefeed_point_stamp_t(ql::changefeed::client_t::addr_t _addr,
+                                      store_key_t &&_key)
+        : addr(std::move(_addr)), key(std::move(_key)) { }
+    ql::changefeed::client_t::addr_t addr;
+    store_key_t key;
+};
 
 struct read_t {
     typedef boost::variant<point_read_t,
                            rget_read_t,
                            changefeed_subscribe_t,
                            changefeed_stamp_t,
+                           changefeed_point_stamp_t,
                            distribution_read_t,
                            sindex_list_t,
                            sindex_status_t> variant_t;

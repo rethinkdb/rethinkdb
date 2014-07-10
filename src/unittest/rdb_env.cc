@@ -112,6 +112,10 @@ void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(const chang
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(const changefeed_point_stamp_t &) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
 void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const rget_read_t &rget) {
     throw cannot_perform_query_exc_t("unimplemented");
 }

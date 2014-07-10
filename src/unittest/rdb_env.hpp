@@ -70,6 +70,7 @@ private:
         void operator()(const point_read_t &get);
         void NORETURN operator()(const changefeed_subscribe_t &);
         void NORETURN operator()(const changefeed_stamp_t &);
+        void NORETURN operator()(const changefeed_point_stamp_t &);
         void NORETURN operator()(UNUSED const rget_read_t &rget);
         void NORETURN operator()(UNUSED const distribution_read_t &dg);
         void NORETURN operator()(UNUSED const sindex_list_t &sl);

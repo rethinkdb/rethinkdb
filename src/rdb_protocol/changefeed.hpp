@@ -75,14 +75,11 @@ struct stamped_msg_t;
 
 typedef mailbox_addr_t<void(stamped_msg_t)> client_addr_t;
 
-// We do it this way with a variant because in the near future this is going to
-// be serialized to the shards to prevent us from always sending every row to
-// the changefeed client.
 struct keyspec_t {
     struct all_t { };
     struct point_t {
         point_t() { }
-        point_t(counted_t<const datum_t> _key) : key(std::move(_key)) { }
+        explicit point_t(counted_t<const datum_t> _key) : key(std::move(_key)) { }
         counted_t<const datum_t> key;
     };
 
@@ -158,8 +155,11 @@ public:
     void stop_all();
     addr_t get_stop_addr();
     uint64_t get_stamp(const client_t::addr_t &addr);
+    uint64_t send_and_get_stamp(const client_t::addr_t &addr, msg_t msg);
     uuid_u get_uuid();
 private:
+    uint64_t with_stamp(const client_t::addr_t &addr,
+                        const std::function<uint64_t(uint64_t *)> &f);
     void send_all_with_lock(const auto_drainer_t::lock_t &lock, msg_t msg);
     void stop_mailbox_cb(client_t::addr_t addr);
     void add_client_cb(signal_t *stopped, client_t::addr_t addr);

@@ -533,6 +533,10 @@ struct rdb_r_get_region_visitor : public boost::static_visitor<region_t> {
         return t.region;
     }
 
+    region_t operator()(const changefeed_point_stamp_t &t) const {
+        return rdb_protocol::monokey_region(t.key);
+    }
+
     region_t operator()(const sindex_status_t &ss) const {
         return ss.region;
     }
@@ -582,6 +586,10 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
 
     bool operator()(const changefeed_stamp_t &t) const {
         return rangey_read(t);
+    }
+
+    bool operator()(const changefeed_point_stamp_t &t) const {
+        return keyed_read(t, t.key);
     }
 
     bool operator()(const rget_read_t &rg) const {
@@ -666,6 +674,7 @@ public:
     void operator()(const sindex_status_t &rg);
     void operator()(const changefeed_subscribe_t &);
     void operator()(const changefeed_stamp_t &);
+    void operator()(const changefeed_point_stamp_t &);
 
 private:
     const profile_bool_t profile;
@@ -706,6 +715,12 @@ void rdb_r_unshard_visitor_t::operator()(const changefeed_stamp_t &) {
             }
         }
     }
+}
+
+void rdb_r_unshard_visitor_t::operator()(const changefeed_point_stamp_t &) {
+    guarantee(count == 1);
+    guarantee(boost::get<changefeed_point_stamp_response_t>(&responses[0].response));
+    *response_out = responses[0];
 }
 
 void rdb_r_unshard_visitor_t::operator()(const point_read_t &) {
@@ -1165,7 +1180,12 @@ RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sindex_list_response_t, sindexes);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sindex_status_response_t, statuses);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(changefeed_subscribe_response_t, server_uuids, addrs);
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(changefeed_stamp_response_t, stamps);
+
+RDB_MAKE_SERIALIZABLE_1(changefeed_stamp_response_t, stamps);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_response_t);
+RDB_IMPL_ME_SERIALIZABLE_2(changefeed_point_stamp_response_t, stamp, initial_val);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_point_stamp_response_t);
+
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
         read_response_t, response, event_log, n_shards);
 
@@ -1192,8 +1212,10 @@ RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(sindex_list_t);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(sindex_status_t, sindexes, region);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(changefeed_subscribe_t, addr, region);
 
-RDB_MAKE_SERIALIZABLE_3(changefeed_stamp_t, addr, keyspec, region);
+RDB_MAKE_SERIALIZABLE_2(changefeed_stamp_t, addr, region);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_t);
+RDB_MAKE_SERIALIZABLE_2(changefeed_point_stamp_t, addr, key);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_point_stamp_t);
 
 RDB_MAKE_SERIALIZABLE_2(read_t, read, profile);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(read_t);
