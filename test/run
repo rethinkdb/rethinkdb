@@ -2,7 +2,7 @@
 
 import sys
 import os
-from os.path import abspath, join, dirname, pardir
+from os.path import abspath, join, dirname, pardir, splitext
 import time
 import argparse
 
@@ -33,11 +33,8 @@ def generate_test(tree):
 def load_tests():
     dirpath = join(dirname(__file__), "full_test")
     for filename in os.listdir(dirpath):
-        parts = filename.split('.')
-        if parts[-1] == 'test':
-            if len(parts) > 2:
-                raise Exception("Filename contains to many `.': %s" % (filename,))
-            base_name = parts[0]
+        base_name, ext = splitext(filename)
+        if ext == '.test':
             tree = TestTree();
             full_path = os.path.join(dirpath, filename)
             execfile(full_path, {"__builtins__": __builtins__, "generate_test": generate_test(tree)})
@@ -48,10 +45,10 @@ groups = {}
 
 # Load the test groups from full_test/*.group
 def load_groups():
-    for (dirpath, __, filenames) in os.walk(join(dirname(__file__), "full_test")):
-        filenames = [f for f in filenames if f.split('.')[-1] == 'group']
-        for filename in filenames:
-            base_name = filename.split('.')[0]
+    dirpath = join(dirname(__file__), "full_test")
+    for filename in os.listdir(dirpath):
+        base_name, ext = splitext(filename)
+        if ext == '.group':
             full_path = os.path.join(dirpath, filename)
             groups[base_name] = group_from_file(full_path)
 
