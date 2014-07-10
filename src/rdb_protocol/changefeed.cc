@@ -5,10 +5,11 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/interruptor.hpp"
 #include "containers/archive/boost_types.hpp"
-#include "rpc/mailbox/typed.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/val.hpp"
+#include "rpc/mailbox/typed.hpp"
 
 #include "debug.hpp"
 
@@ -160,7 +161,7 @@ enum class detach_t { NO, YES };
 class subscription_t : public home_thread_mixin_t {
 public:
     // Throws QL exceptions.
-    explicit subscription_t(feed_t *_feed, keyspec_t &&keyspec);
+    explicit subscription_t(feed_t *_feed, keyspec_t keyspec);
     ~subscription_t();
     std::vector<counted_t<const datum_t> >
     get_els(batcher_t *batcher, const signal_t *interruptor);
@@ -282,9 +283,9 @@ public:
                            d);
         feed->each_table_sub(f);
         auto val = change.new_val.has() ? change.new_val : change.old_val;
-        debugf("%s\n", val->print().c_str());
+        // debugf("%s\n", val->print().c_str());
         r_sanity_check(val.has());
-        debugf("%s\n", feed->pkey.c_str());
+        // debugf("%s\n", feed->pkey.c_str());
         auto pkey_val = val->get(feed->pkey, NOTHROW);
         r_sanity_check(pkey_val.has());
         feed->on_point_sub(pkey_val, f);
@@ -322,7 +323,7 @@ private:
     scoped_ptr_t<subscription_t> sub;
 };
 
-subscription_t::subscription_t(feed_t *_feed, keyspec_t &&_keyspec)
+subscription_t::subscription_t(feed_t *_feed, keyspec_t _keyspec)
     : skipped(0), cond(NULL), feed(_feed), keyspec(std::move(_keyspec)) {
     guarantee(feed != NULL);
     feed->add_sub(this, keyspec);
@@ -431,6 +432,28 @@ void subscription_t::maybe_signal_cond() THROWS_NOTHING {
         cond = NULL;
     }
 }
+
+class keyspec_to_region_visitor_t : public boost::static_visitor<region_t> {
+public:
+    region_t operator()(const keyspec_t::all_t &) const {
+        return region_t::universe();
+    }
+    region_t operator()(const keyspec_t::point_t &point_keyspec) const {
+        store_key_t sk(point_keyspec.key->print_primary());
+        return region_t(key_range_t(key_range_t::closed, sk, key_range_t::closed, sk));
+    }
+};
+
+region_t keyspec_to_region(const keyspec_t &keyspec) {
+    return boost::apply_visitor(keyspec_to_region_visitor_t(), keyspec.spec);
+}
+
+RDB_MAKE_SERIALIZABLE_0(keyspec_t::all_t);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::all_t);
+RDB_MAKE_SERIALIZABLE_1(keyspec_t::point_t, key);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::point_t);
+RDB_MAKE_SERIALIZABLE_1(keyspec_t, spec);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(keyspec_t);
 
 enum class action_t { ADD, DEL };
 class keyspec_visitor_t : public boost::static_visitor<void> {
@@ -762,7 +785,7 @@ client_t::new_feed(const counted_t<table_t> &tbl, keyspec_t &&keyspec, env_t *en
             on_thread_t th2(old_thread);
             feed_t *feed = feed_it->second.get();
             addr = feed->get_addr();
-            sub.init(new subscription_t(feed, keyspec.copy()));
+            sub.init(new subscription_t(feed, keyspec));
         }
         base_namespace_repo_t::access_t access(env->ns_repo(), uuid, env->interruptor);
         namespace_interface_t *nif = access.get_namespace_if();

@@ -1191,7 +1191,9 @@ RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
 RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(sindex_list_t);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(sindex_status_t, sindexes, region);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(changefeed_subscribe_t, addr, region);
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(changefeed_stamp_t, addr, region);
+
+RDB_MAKE_SERIALIZABLE_3(changefeed_stamp_t, addr, keyspec, region);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_t);
 
 RDB_MAKE_SERIALIZABLE_2(read_t, read, profile);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(read_t);

@@ -12,6 +12,7 @@
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "protocol_api.hpp"
+#include "region/region.hpp"
 #include "repli_timestamp.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/mailbox/typed.hpp"
@@ -86,15 +87,20 @@ struct keyspec_t {
     };
 
     keyspec_t(keyspec_t &&keyspec) = default;
-    keyspec_t copy() { return keyspec_t(*this); }
     explicit keyspec_t(all_t &&all) : spec(std::move(all)) { }
     explicit keyspec_t(point_t &&point) : spec(std::move(point)) { }
+
+    // This needs to be copyable and assignable because it goes inside a
+    // `changefeed_stamp_t`, which goes inside a variant.
+    keyspec_t(const keyspec_t &keyspec) = default;
+    keyspec_t &operator=(const keyspec_t &) = default;
 
     boost::variant<all_t, point_t> spec;
 private:
     keyspec_t() { }
-    keyspec_t(const keyspec_t &keyspec) = default;
 };
+region_t keyspec_to_region(const keyspec_t &keyspec);
+
 RDB_DECLARE_SERIALIZABLE(keyspec_t::all_t);
 RDB_DECLARE_SERIALIZABLE(keyspec_t::point_t);
 RDB_DECLARE_SERIALIZABLE(keyspec_t);
