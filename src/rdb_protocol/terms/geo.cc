@@ -173,15 +173,23 @@ private:
 ellipsoid_spec_t pick_reference_ellipsoid(scope_env_t *env, args_t *args) {
     counted_t<val_t> geo_system_arg = args->optarg(env, "geo_system");
     if (geo_system_arg.has()) {
-        const std::string v = geo_system_arg->as_str().to_std();
-        if (v == "WGS84") {
-            return WGS84_ELLIPSOID;
-        } else if (v == "unit_sphere") {
-            return UNIT_SPHERE;
+        if (geo_system_arg->as_datum()->get_type() == datum_t::R_OBJECT) {
+            // We expect a reference ellipsoid with parameters 'a' and 'f'.
+            // (equator radius and the flattening)
+            double a = geo_system_arg->as_datum()->get("a")->as_num();
+            double f = geo_system_arg->as_datum()->get("f")->as_num();
+            return ellipsoid_spec_t(a, f);
         } else {
-            rfail_target(geo_system_arg.get(), base_exc_t::GENERIC,
-                         "Unrecognized geo system \"%s\" (valid options: "
-                         "\"WGS84\", \"unit_sphere\")", v.c_str());
+            const std::string v = geo_system_arg->as_str().to_std();
+            if (v == "WGS84") {
+                return WGS84_ELLIPSOID;
+            } else if (v == "unit_sphere") {
+                return UNIT_SPHERE;
+            } else {
+                rfail_target(geo_system_arg.get(), base_exc_t::GENERIC,
+                             "Unrecognized geo system \"%s\" (valid options: "
+                             "\"WGS84\", \"unit_sphere\")", v.c_str());
+            }
         }
     } else {
         return WGS84_ELLIPSOID;
