@@ -124,9 +124,7 @@ server_t::addr_t server_t::get_stop_addr() {
     return stop_mailbox.get_address();
 }
 
-// RSI: undo
-uint64_t server_t::with_stamp(const client_t::addr_t &addr,
-                              const std::function<uint64_t(uint64_t *)> &f) {
+uint64_t server_t::get_stamp(const client_t::addr_t &addr) {
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
@@ -135,30 +133,8 @@ uint64_t server_t::with_stamp(const client_t::addr_t &addr,
         // The client was removed, so no future messages are coming.
         return std::numeric_limits<uint64_t>::max();
     } else {
-        return f(&it->second.stamp);
+        return it->second.stamp;
     }
-}
-
-
-uint64_t server_t::send_and_get_stamp(const client_t::addr_t &addr, msg_t msg) {
-    return with_stamp(
-        addr,
-        [this, &addr, &msg](uint64_t *stamp_ptr) {
-            uint64_t stamp;
-            {
-                // We don't need a write lock as long as we make sure the coroutine
-                // doesn't block between reading and updating the stamp.
-                ASSERT_NO_CORO_WAITING;
-                stamp = (*stamp_ptr)++;
-            }
-            send(manager, addr, stamped_msg_t(uuid, stamp, std::move(msg)));
-            return stamp;
-        }
-    );
-}
-
-uint64_t server_t::get_stamp(const client_t::addr_t &addr) {
-    return with_stamp(addr, [](uint64_t *stamp_ptr){ return *stamp_ptr; });
 }
 
 uuid_u server_t::get_uuid() {

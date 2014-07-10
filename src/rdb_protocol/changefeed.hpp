@@ -155,11 +155,8 @@ public:
     void stop_all();
     addr_t get_stop_addr();
     uint64_t get_stamp(const client_t::addr_t &addr);
-    uint64_t send_and_get_stamp(const client_t::addr_t &addr, msg_t msg);
     uuid_u get_uuid();
 private:
-    uint64_t with_stamp(const client_t::addr_t &addr,
-                        const std::function<uint64_t(uint64_t *)> &f);
     void send_all_with_lock(const auto_drainer_t::lock_t &lock, msg_t msg);
     void stop_mailbox_cb(client_t::addr_t addr);
     void add_client_cb(signal_t *stopped, client_t::addr_t addr);
