@@ -659,6 +659,7 @@ message Term {
         POLYGON = 159;
         DISTANCE = 160;
         INTERSECTS = 161;
+        CIRCLE = 162;
     }
     optional TermType type = 1;
 

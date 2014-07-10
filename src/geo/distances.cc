@@ -5,8 +5,6 @@
 #include "geo/exceptions.hpp"
 #include "geo/karney/geodesic.h"
 
-// The inverse problem of Vincenty's formulas
-// See http://en.wikipedia.org/w/index.php?title=Vincenty%27s_formulae&oldid=607167872
 double karney_distance(const lat_lon_point_t &p1,
                        const lat_lon_point_t &p2,
                        const ellipsoid_spec_t &e) {
@@ -14,8 +12,20 @@ double karney_distance(const lat_lon_point_t &p1,
     geod_init(&g, e.equator_radius(), e.flattening());
 
     double dist;
-    double azi1, azi2;
-    geod_inverse(&g, p1.first, p1.second, p2.first, p2.second, &dist, &azi1, &azi2);
+    geod_inverse(&g, p1.first, p1.second, p2.first, p2.second, &dist, NULL, NULL);
 
     return dist;
+}
+
+lat_lon_point_t karney_point_at_dist(const lat_lon_point_t &p,
+                                     double dist,
+                                     double azimuth,
+                                     const ellipsoid_spec_t &e) {
+    struct geod_geodesic g;
+    geod_init(&g, e.equator_radius(), e.flattening());
+
+    double lat, lon;
+    geod_direct(&g, p.first, p.second, azimuth, dist, &lat, &lon, NULL);
+
+    return lat_lon_point_t(lat, lon);
 }

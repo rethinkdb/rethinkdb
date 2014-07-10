@@ -1,11 +1,12 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 
+#include "geo/distances.hpp"
 #include "geo/ellipsoid.hpp"
 #include "geo/exceptions.hpp"
 #include "geo/geojson.hpp"
 #include "geo/intersection.hpp"
+#include "geo/primitives.hpp"
 #include "geo/s2/s2polygon.h"
-#include "geo/distances.hpp"
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/terms/terms.hpp"
@@ -47,7 +48,7 @@ private:
         // TODO! Make sure that the object is a geometry-typed object
 
         datum_ptr_t result(v->as_datum()->as_object());
-        bool success = result.delete_field("$reql_type");
+        bool success = result.delete_field("$reql_type$");
         r_sanity_check(success); // TODO! Assumes we verify the type beforehand...
         return new_val(result.to_counted());
     }
@@ -182,10 +183,10 @@ private:
 
         try {
             // TODO! This is just a quick hack for testing.
-            lat_lon_point_t llp1(p1->as_datum()->get("coordinates")->get(0)->as_num(),
-                                 p1->as_datum()->get("coordinates")->get(1)->as_num());
-            lat_lon_point_t llp2(p2->as_datum()->get("coordinates")->get(0)->as_num(),
-                                 p2->as_datum()->get("coordinates")->get(1)->as_num());
+            lat_lon_point_t llp1(p1->as_datum()->get("coordinates")->get(1)->as_num(),
+                                 p1->as_datum()->get("coordinates")->get(0)->as_num());
+            lat_lon_point_t llp2(p2->as_datum()->get("coordinates")->get(1)->as_num(),
+                                 p2->as_datum()->get("coordinates")->get(0)->as_num());
 
             double result = karney_distance(llp1, llp2, WGS84_ELLIPSOID);
 
@@ -195,6 +196,44 @@ private:
         }
     }
     virtual const char *name() const { return "distance"; }
+};
+
+class circle_term_t : public op_term_t {
+public:
+    circle_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(2)) { }
+private:
+    counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        // TODO! Support opt-args (distance things, num_vertices, fill)
+        // TODO! Support polygons / lines maybe?
+        counted_t<val_t> center = args->arg(env, 0);
+        counted_t<val_t> radius = args->arg(env, 1);
+        // TODO! Type validation
+
+        // TODO! Opt-args
+        bool fill = true;
+        unsigned int num_vertices = 20;
+
+        try {
+            // TODO! This is just a quick hack for testing.
+            lat_lon_point_t llcenter(center->as_datum()->get("coordinates")->get(1)->as_num(),
+                                     center->as_datum()->get("coordinates")->get(0)->as_num());
+
+            const lat_lon_line_t circle =
+                build_circle(llcenter, radius->as_num(), num_vertices, WGS84_ELLIPSOID);
+
+            const counted_t<const datum_t> result =
+                fill
+                ? construct_geo_polygon(circle)
+                : construct_geo_line(circle);
+            validate_geojson(result);
+
+            return new_val(result);
+        } catch (const geo_exception_t &e) {
+            rfail(base_exc_t::GENERIC, "%s", e.what());
+        }
+    }
+    virtual const char *name() const { return "circle"; }
 };
 
 /*
@@ -256,6 +295,9 @@ counted_t<term_t> make_intersects_term(compile_env_t *env, const protob_t<const 
 }
 counted_t<term_t> make_distance_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<distance_term_t>(env, term);
+}
+counted_t<term_t> make_circle_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<circle_term_t>(env, term);
 }
 
 } // namespace ql
