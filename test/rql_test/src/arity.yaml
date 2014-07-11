@@ -18,9 +18,20 @@ tests:
     - ot: err("RqlCompileError", "Expected 1 argument but found 2.", [])
       cd:
       - tbl.zip(1)
-      - tbl.distinct(1)
       - tbl.is_empty(1)
       - obj.keys(1)
+
+    - ot: err("RqlCompileError", "Expected 1 argument but found 2.", [])
+      py:
+      - tbl.distinct(1)
+
+    - ot: err("RqlCompileError", "Expected 1 argument but found 2.", [])
+      rb:
+      - tbl.distinct(1)
+
+    - ot: err("RqlDriverError", "Expected 0 arguments (not including options) but found 1.", [])
+      js:
+      - tbl.distinct(1)
 
     - ot:
         js: err("RqlDriverError", "Expected 0 arguments (not including options) but found 1.", [])

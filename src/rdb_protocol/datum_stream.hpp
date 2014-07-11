@@ -85,6 +85,7 @@ public:
     counted_t<datum_stream_t> slice(size_t l, size_t r);
     counted_t<datum_stream_t> zip();
     counted_t<datum_stream_t> indexes_of(counted_t<func_t> f);
+    counted_t<datum_stream_t> ordered_distinct();
 
     // Returns false or NULL respectively if stream is lazy.
     virtual bool is_array() = 0;
@@ -178,6 +179,15 @@ private:
 
     counted_t<func_t> f;
     int64_t index;
+};
+
+class ordered_distinct_datum_stream_t : public wrapper_datum_stream_t {
+public:
+    ordered_distinct_datum_stream_t(counted_t<datum_stream_t> _source);
+private:
+    std::vector<counted_t<const datum_t> >
+    next_raw_batch(env_t *env, const batchspec_t &batchspec);
+    counted_t<const datum_t> last_val;
 };
 
 class array_datum_stream_t : public eager_datum_stream_t {

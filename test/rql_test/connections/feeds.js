@@ -8,6 +8,8 @@ var assert = require('assert');
 var port = parseInt(process.argv[2], 10);
 var idValue = Math.floor(Math.random()*1000);
 
+var tableName = "floor" + (Math.floor(Math.random()*1000) + 1);
+
 process.on('uncaughtException', function(err) {
     console.log(err);
     if (err.stack) {
@@ -27,17 +29,17 @@ setTimeout(function() {
 function test1() {
     // Test insert, update, replace, delete and the basic case for `next`
     console.log("Running test1");
-    r.connect({port:port}, function(err, conn) {
+    
+    r.connect({port:port}, function(err, conn) {   
         if (err) throw err;
-
-        r.table('test').changes().run(conn, function(err, feed) {
+        r.table(tableName).changes().run(conn, function(err, feed) {
             if (err) throw err;
-
+    
             var count = 0;
             var fn = function(err, data) {
                 if (err) {
                     if ((count === 4) && (err.message.match(/^Changefeed aborted \(table unavailable/))) {
-                        r.tableCreate('test').run(conn, function(err, result) {
+                        r.tableCreate(tableName).run(conn, function(err, result) {
                             if (err) throw err;
                             conn.close();
                             test2();
@@ -46,7 +48,7 @@ function test1() {
                     else {
                         throw err;
                     }
-
+    
                 }
                 else {
                     if (count === 0) {
@@ -64,7 +66,7 @@ function test1() {
                     else if (count === 3) {
                         assert.deepEqual(data.old_val, {id: idValue, value: 'replace'});
                         assert.equal(data.new_val, null);
-                        r.tableDrop('test').run(conn).then(function(err) {
+                        r.tableDrop(tableName).run(conn).then(function(err) {
                             if (err) throw err;
                         }).error(function(err) { throw err});
                     }
@@ -77,18 +79,17 @@ function test1() {
     
         setTimeout(function() { // Wait 5 seconds to retrieve some empty responses
             r.connect({port: port}, function(err, conn) {
-                r.table('test').insert({id: idValue, value: 'insert'}).run(conn).then(function() {
-                    return r.table('test').get(idValue).update({value: 'update'}).run(conn);
+                r.table(tableName).insert({id: idValue, value: 'insert'}).run(conn).then(function() {
+                    return r.table(tableName).get(idValue).update({value: 'update'}).run(conn);
                 }).then(function() {
-                    return r.table('test').get(idValue).replace({id: idValue, value: 'replace'}).run(conn);
+                    return r.table(tableName).get(idValue).replace({id: idValue, value: 'replace'}).run(conn);
                 }).then(function() {
-                    return r.table('test').get(idValue).delete().run(conn);
+                    return r.table(tableName).get(idValue).delete().run(conn);
                 }).error(function(err) {
                     throw err;
                 });
             });
         }, 5000);
-
     });
 }
 
@@ -98,14 +99,14 @@ function test2() {
     r.connect({port:port}, function(err, conn) {
         if (err) throw err;
 
-        r.table('test').changes().run(conn, function(err, feed) {
+        r.table(tableName).changes().run(conn, function(err, feed) {
             if (err) throw err;
 
             var count = 0;
             feed.each(function(err, data) {
                 if (err) {
                     if ((count === 3) && (err.message.match(/^Changefeed aborted \(table unavailable/))) {
-                        r.tableCreate('test').run(conn, function(err, result) {
+                        r.tableCreate(tableName).run(conn, function(err, result) {
                             if (err) throw err;
                             test3();
                         })
@@ -126,12 +127,12 @@ function test2() {
         });
         setTimeout(function() { // Wait one seconds before doing the writes to be sure that the feed is opened
             r.connect({port: port}, function(err, conn) {
-                r.table('test').insert({}).run(conn).then(function() {
-                    return r.table('test').insert({}).run(conn);
+                r.table(tableName).insert({}).run(conn).then(function() {
+                    return r.table(tableName).insert({}).run(conn);
                 }).then(function() {
-                    return r.table('test').insert({}).run(conn);
+                    return r.table(tableName).insert({}).run(conn);
                 }).then(function() {
-                    return r.tableDrop('test').run(conn);
+                    return r.tableDrop(tableName).run(conn);
                 }).error(function(err) {
                     throw err;
                 });
@@ -147,7 +148,7 @@ function test3() {
     r.connect({port:port}, function(err, conn) {
         if (err) throw err;
 
-        r.table('test').changes().run(conn, function(err, feed) {
+        r.table(tableName).changes().run(conn, function(err, feed) {
             if (err) throw err;
             assert.throws(function() {
                 feed.hasNext();
@@ -176,7 +177,7 @@ function test4() {
     r.connect({port:port}, function(err, conn) {
         if (err) throw err;
 
-        r.table('test').changes().run(conn, function(err, feed) {
+        r.table(tableName).changes().run(conn, function(err, feed) {
             if (err) throw err;
 
             var count = 0;
@@ -200,7 +201,7 @@ function test4() {
                         }
                     });
 
-                    r.tableCreate('test').run(conn, function(err, result) {
+                    r.tableCreate(tableName).run(conn, function(err, result) {
                         if (err) throw err;
                         conn.close();
                         test5();
@@ -223,12 +224,12 @@ function test4() {
 
         setTimeout(function() { // Wait one seconds before doing the writes to be sure that the feed is opened
             r.connect({port: port}, function(err, conn) {
-                r.table('test').insert({}).run(conn).then(function() {
-                    return r.table('test').insert({}).run(conn);
+                r.table(tableName).insert({}).run(conn).then(function() {
+                    return r.table(tableName).insert({}).run(conn);
                 }).then(function() {
-                    return r.table('test').insert({}).run(conn);
+                    return r.table(tableName).insert({}).run(conn);
                 }).then(function() {
-                    return r.tableDrop('test').run(conn);
+                    return r.tableDrop(tableName).run(conn);
                 }).error(function(err) {
                     throw err;
                 });
@@ -243,7 +244,7 @@ function test5() {
     r.connect({port:port}, function(err, conn) {
         if (err) throw err;
 
-        r.table('test').changes().run(conn, function(err, feed) {
+        r.table(tableName).changes().run(conn, function(err, feed) {
             if (err) throw err;
 
             feed.close();
@@ -263,4 +264,16 @@ function done() {
     process.exit(0);
 }
 
-test1();
+r.connect({port:port}, function(err, conn) {
+    if (err) throw err;
+    r.tableList().run(conn, function(err, tables) {
+        if (tables.indexOf(tableName) > -1) {
+            test1();
+        } else {
+            r.tableCreate(tableName).run(conn, function(err, result) {
+                if (err) throw err;
+                test1();
+            });
+        }
+    });
+});

@@ -1013,7 +1013,8 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         if (!shard_inserts.empty()) {
             *write_out = write_t(
                 batched_insert_t(
-                    std::move(shard_inserts), bi.pkey, bi.upsert, bi.return_vals),
+                    std::move(shard_inserts), bi.pkey, bi.conflict_behavior,
+                    bi.return_vals),
                 durability_requirement,
                 profile);
             return true;
@@ -1180,9 +1181,10 @@ RDB_IMPL_ME_SERIALIZABLE_4_SINCE_v1_13(
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
-RDB_IMPL_SERIALIZABLE_8_SINCE_v1_13(
-        rget_read_t, region, optargs, table_name, batchspec, transforms, terminal,
-        sindex, sorting);
+RDB_MAKE_SERIALIZABLE_8(
+    rget_read_t,
+    region, optargs, table_name, batchspec, transforms, terminal, sindex, sorting);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(rget_read_t);
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
         distribution_read_t, max_depth, result_limit, region);
@@ -1190,7 +1192,9 @@ RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(sindex_list_t);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(sindex_status_t, sindexes, region);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(changefeed_subscribe_t, addr, region);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(changefeed_stamp_t, addr, region);
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(read_t, read, profile);
+
+RDB_MAKE_SERIALIZABLE_2(read_t, read, profile);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(read_t);
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_write_response_t, result);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_delete_response_t, result);
@@ -1202,8 +1206,11 @@ RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(write_response_t, response, event_log, n_sha
 
 RDB_IMPL_SERIALIZABLE_5_SINCE_v1_13(
         batched_replace_t, keys, pkey, f, optargs, return_vals);
-RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(
-        batched_insert_t, inserts, pkey, upsert, return_vals);
+// Serialization format for this changed in 1.14.  We only support the
+// latest version, since this is a cluster-only type.
+RDB_IMPL_SERIALIZABLE_4(
+        batched_insert_t, inserts, pkey, conflict_behavior, return_vals);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(batched_insert_t);
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(point_write_t, key, data, overwrite);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_delete_t, key);

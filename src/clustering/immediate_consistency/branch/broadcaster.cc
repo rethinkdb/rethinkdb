@@ -14,8 +14,6 @@
 #include "containers/uuid.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
-// TODO: Make us not include master.hpp -- we do it only for the ack_checker_t type.
-#include "clustering/immediate_consistency/query/master.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/view/member.hpp"
@@ -121,12 +119,21 @@ store_view_t *broadcaster_t::release_bootstrap_svs_for_listener() {
    but not completed yet. */
 class broadcaster_t::incomplete_write_t : public home_thread_mixin_debug_only_t {
 public:
-    incomplete_write_t(broadcaster_t *p, const write_t &w, transition_timestamp_t ts, write_callback_t *cb) :
-        write(w), timestamp(ts), callback(cb), parent(p), incomplete_count(0) { }
+    incomplete_write_t(broadcaster_t *p, const write_t &w, transition_timestamp_t ts, const ack_checker_t *ac, write_callback_t *cb) :
+        write(w), timestamp(ts), ack_checker(ac), callback(cb), parent(p), incomplete_count(0) { }
 
     const write_t write;
     const transition_timestamp_t timestamp;
+    const ack_checker_t *ack_checker;
+
+    /* This is a callback to notify when the write has either succeeded or
+    failed. Once the write succeeds, we will set this to `NULL` so that we
+    don't call it again. */
     write_callback_t *callback;
+
+    /* This is the set of peers that have acknowledged the write so far. When it satisfies
+    the ack checker, then `callback->on_success()` will be called. */
+    std::set<peer_id_t> ack_set;
 
 private:
     friend class incomplete_write_ref_t;
@@ -235,6 +242,7 @@ public:
         DEBUG_VAR mutex_assertion_t::acq_t acq(&controller->mutex);
         ASSERT_FINITE_CORO_WAITING;
         if (is_readable) controller->readable_dispatchees.remove(this);
+        controller->refresh_readable_dispatchees_as_set();
         controller->dispatchees.erase(this);
         controller->assert_thread();
     }
@@ -270,6 +278,7 @@ private:
         writeread_mailbox = wrm;
         read_mailbox = rm;
         controller->readable_dispatchees.push_back(this);
+        controller->refresh_readable_dispatchees_as_set();
     }
 
     void downgrade(mailbox_addr_t<void()> ack_addr, auto_drainer_t::lock_t) THROWS_NOTHING {
@@ -279,6 +288,7 @@ private:
             guarantee(is_readable);
             is_readable = false;
             controller->readable_dispatchees.remove(this);
+            controller->refresh_readable_dispatchees_as_set();
         }
         if (!ack_addr.is_nil()) {
             send(controller->mailbox_manager, ack_addr);
@@ -415,6 +425,8 @@ void broadcaster_t::spawn_write(const write_t &write,
                                 signal_t *interruptor,
                                 const ack_checker_t *ack_checker) THROWS_ONLY(interrupted_exc_t) {
 
+    rassert(cb != NULL);
+
     order_token.assert_write_mode();
 
     wait_interruptible(lock, interruptor);
@@ -432,12 +444,19 @@ void broadcaster_t::spawn_write(const write_t &write,
 
     lock->end();
 
+    /* If there are few enough readable dispatchees that the ack checker can't possibly be
+    satisfied, then bail out early */
+    if (!ack_checker->is_acceptable_ack_set(readable_dispatchees_as_set)) {
+        cb->on_failure(false);
+        return;
+    }
+
     transition_timestamp_t timestamp = transition_timestamp_t::starting_from(current_timestamp);
     current_timestamp = timestamp.timestamp_after();
     order_token = order_checkpoint.check_through(order_token);
 
     boost::shared_ptr<incomplete_write_t> write_wrapper = boost::make_shared<incomplete_write_t>(
-        this, write, timestamp, cb);
+        this, write, timestamp, ack_checker, cb);
     incomplete_writes.push_back(write_wrapper);
 
     // You can't reuse the same callback for two writes.
@@ -575,9 +594,19 @@ void broadcaster_t::background_writeread(
             wait_interruptible(&response_cond, mirror_lock.get_drain_signal());
         }
 
-        // TODO: Require that everybody provide a callback.
-        if (write_ref.get()->callback) {
-            write_ref.get()->callback->on_response(mirror->get_peer(), response);
+        write_ref.get()->ack_set.insert(mirror->get_peer());
+        if (write_ref.get()->ack_checker->is_acceptable_ack_set(write_ref.get()->ack_set)) {
+            /* We might get here multiple times, if `is_acceptable_ack_set()`
+            returns `true` before all of the acks have come back. To avoid
+            calling the callback multiple times, we set `callback` to `NULL`
+            after the first time. This also signals `end_write()` not to call
+            `on_failure()`. */
+            if (write_ref.get()->callback != NULL) {
+                guarantee(write_ref.get()->callback->write == write_ref.get().get());
+                write_ref.get()->callback->write = NULL;
+                write_ref.get()->callback->on_success(response);
+                write_ref.get()->callback = NULL;
+            }
         }
 
     } catch (const interrupted_exc_t &) {
@@ -608,10 +637,12 @@ void broadcaster_t::end_write(boost::shared_ptr<incomplete_write_t> write) THROW
         guarantee(newest_complete_timestamp == removed_write->timestamp.timestamp_before());
         newest_complete_timestamp = removed_write->timestamp.timestamp_after();
     }
-    if (write->callback) {
+    /* `write->callback` could be `NULL` if we already called `on_success()` on
+    it */
+    if (write->callback != NULL) {
         guarantee(write->callback->write == write.get());
         write->callback->write = NULL;
-        write->callback->on_done();
+        write->callback->on_failure(true);
     }
 }
 
@@ -712,6 +743,22 @@ void broadcaster_t::all_read(
         }
     }
 
+}
+
+void broadcaster_t::refresh_readable_dispatchees_as_set() {
+    /* You might think that we should update `readable_dispatchees_as_set`
+    incrementally instead of refreshing the entire thing each time. However,
+    this is difficult because two dispatchees could hypothetically have the same
+    peer ID. This won't happen in production, but it could happen in testing,
+    and we'd like the code not to break if that occurs. Besides, this code only
+    runs when a dispatchees are added or removed, so the performance cost is
+    negligible. */
+    readable_dispatchees_as_set.clear();
+    dispatchee_t *dispatchee = readable_dispatchees.head();
+    while (dispatchee != NULL) {
+        readable_dispatchees_as_set.insert(dispatchee->get_peer());
+        dispatchee = readable_dispatchees.next(dispatchee);
+    }
 }
 
 /* This function sanity-checks `incomplete_writes`, `current_timestamp`,
