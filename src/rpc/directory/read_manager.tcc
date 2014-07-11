@@ -122,29 +122,33 @@ void directory_read_manager_t<metadata_t>::handle_connection(
         fifo_enforcer_sink_t fifo_sink(metadata_fifo_state);
         connection_info_t connection_info;
         connection_info.fifo_sink = &fifo_sink;
-        map_insertion_sentry_t<cluster_manager_t::connection_t *, connection_info_t *> connection_info_insertion
-            (&connection_map, connection, &connection_info);
+        {
+            map_insertion_sentry_t<cluster_manager_t::connection_t *, connection_info_t *> connection_info_insertion
+                (&connection_map, connection, &connection_info);
 
-        for (auto it = waiting_for_initialization.lower_bound(connection);
-                  it != waiting_for_initialization.upper_bound(connection);
-                  it++) {
-            it->second->pulse();
+            for (auto it = waiting_for_initialization.lower_bound(connection);
+                      it != waiting_for_initialization.upper_bound(connection);
+                      it++) {
+                it->second->pulse();
+            }
+
+            mutex_assertion_lock.reset();
+            interruptor2.wait();
+            mutex_assertion_lock.reset(&mutex_assertion);
+
+            /* The `connection_info_insertion` destructor will run, so no further instances of `propagate_update`
+            can grab the `auto_drainer_t` in `connection_info`. If any instances of `propagate_update` come along after
+            this, they will put a `cond_t *` in `waiting_for_initialization` and then block until they realize that the
+            connection has been closed. */
         }
-
+        /* We don't want to be holding `mutex_assertion_lock` while the `auto_drainer_t` is being destroyed. */
         mutex_assertion_lock.reset();
-        interruptor2.wait();
-        mutex_assertion_lock.reset(&mutex_assertion);
 
-        /* First, the `connection_info_insertion` destructor will run, so no further instances of `propagate_update` can
-        grab the `auto_drainer_t` in `connection_info`. If any instances of `propagate_update` come along after this,
-        they will put a `cond_t *` in `waiting_for_initialization` and then block until they realize that the connection
-        has been closed.
+        /* This will block until all instances of `propagate_update` are finished with `fifo_sink`. After this point, no
+        instances of `propagate_update` for this connection can touch `variable`. */
+        connection_info.auto_drainer.drain();
 
-        Next, the `auto_drainer_t`'s destructor will run, which will block until all instances of `propagate_update`
-        are finished with `fifo_sink`. After this point, no instances of `propagate_update` for this connection can
-        touch `variable`.
-
-        Finally, it will be safe to delete `fifo_sink` and the directory entry. */
+        /* Now it's safe to delete `fifo_sink` and the directory entry. */
     }
 
     /* Delete the directory entry */

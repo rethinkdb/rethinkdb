@@ -7,12 +7,11 @@ auto_drainer_t::auto_drainer_t() :
     refcount(0), when_done(NULL) { }
 
 auto_drainer_t::~auto_drainer_t() {
-    if (refcount != 0) {
-        when_done = coro_t::self();
-        draining.pulse();
-        coro_t::wait();
+    if (!draining.is_pulsed()) {
+        drain();
+    } else {
+        guarantee(refcount == 0, "if you call drain() then don't destroy the auto_drainer_t until it returns");
     }
-    rassert(refcount == 0);
 }
 
 auto_drainer_t::lock_t::lock_t() : parent(NULL) {
@@ -73,6 +72,16 @@ void auto_drainer_t::lock_t::assert_is_holding(DEBUG_VAR auto_drainer_t *p) cons
 
 auto_drainer_t::lock_t::~lock_t() {
     if (parent) parent->decref();
+}
+
+void auto_drainer_t::drain() {
+    assert_not_draining();
+    if (refcount != 0) {
+        when_done = coro_t::self();
+        draining.pulse();
+        coro_t::wait();
+    }
+    rassert(refcount == 0);
 }
 
 void auto_drainer_t::incref() {

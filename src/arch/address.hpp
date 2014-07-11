@@ -130,19 +130,8 @@ RDB_SERIALIZE_OUTSIDE(ip_and_port_t);
 
 // This implementation is used over operator == because we want to ignore different scope ids
 //  in the case of IPv6
-inline bool is_similar_ip_address(const ip_and_port_t &left,
-                           const ip_and_port_t &right) {
-    if (left.port().value() != right.port().value() ||
-        left.ip().get_address_family() != right.ip().get_address_family()) {
-        return false;
-    }
-
-    if (left.ip().is_ipv4()) {
-        return left.ip().get_ipv4_addr().s_addr == right.ip().get_ipv4_addr().s_addr;
-    } else {
-        return IN6_ARE_ADDR_EQUAL(&left.ip().get_ipv6_addr(), &right.ip().get_ipv6_addr());
-    }
-}
+bool is_similar_ip_address(const ip_and_port_t &left,
+                           const ip_and_port_t &right);
 
 class host_and_port_t {
 public:
@@ -190,39 +179,8 @@ void serialize_universal(write_message_t *wm, const std::set<host_and_port_t> &x
 archive_result_t deserialize_universal(read_stream_t *s,
                                        std::set<host_and_port_t> *thing);
 
-inline bool is_similar_peer_address(const peer_address_t &left,
-                             const peer_address_t &right) {
-    bool left_loopback_only = true;
-    bool right_loopback_only = true;
-
-    // We ignore any loopback addresses because they don't give us any useful information
-    // Return true if any non-loopback addresses match
-    for (auto left_it = left.ips().begin();
-         left_it != left.ips().end(); ++left_it) {
-        if (left_it->ip().is_loopback()) {
-            continue;
-        } else {
-            left_loopback_only = false;
-        }
-
-        for (auto right_it = right.ips().begin();
-             right_it != right.ips().end(); ++right_it) {
-            if (right_it->ip().is_loopback()) {
-                continue;
-            } else {
-                right_loopback_only = false;
-            }
-
-            if (is_similar_ip_address(*right_it, *left_it)) {
-                return true;
-            }
-        }
-    }
-
-    // No non-loopback addresses matched, return true if either side was *only* loopback addresses
-    //  because we can't easily prove if they are the same or different addresses
-    return left_loopback_only || right_loopback_only;
-}
+bool is_similar_peer_address(const peer_address_t &left,
+                             const peer_address_t &right);
 
 /* TODO: This should either be a `std::set<peer_address_t>` with a custom comparator, or a generic container type that
 contains a set of anything equality-comparable. */

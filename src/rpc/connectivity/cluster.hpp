@@ -124,17 +124,7 @@ public:
         
         peer_id_t peer_id;
 
-        scoped_ptr_t<one_per_thread_t<auto_drainer_t>> drainers;
-
-        /* We have one `entry_installation_t` per thread. The constructor puts an entry in the
-        `cluster_manager_t`'s `connections` map, and the destructor removes the entry. */
-        struct entry_installation_t {
-            connection_t *that_;
-
-            explicit entry_installation_t(connection_t *that);
-            ~entry_installation_t();
-        };
-        scoped_ptr_t<one_per_thread_t<entry_installation_t> > entries;
+        one_per_thread_t<auto_drainer_t> drainers;
     };
 
     /* Construct one `run_t` for each `cluster_manager_t` after setting up the message handlers. The `run_t`'s
@@ -268,7 +258,7 @@ public:
 
     protected:
         /* Registers the message handler with the cluster */
-        message_handler_t(cluster_manager_t *cluster_manager, message_tag_t tag_);
+        message_handler_t(cluster_manager_t *cluster_manager, message_tag_t tag);
         virtual ~message_handler_t();
 
         /* This can be called on any thread. */
@@ -298,7 +288,7 @@ public:
     /* This returns a watchable table of every active connection. The returned `watchable_t` will be valid for the
     thread that `get_connections()` was called on. */
     typedef std::map<peer_id_t, std::pair<connection_t *, auto_drainer_t::lock_t>> connection_map_t;
-    clone_ptr_t<watchable_t<connection_map_t>> get_connections() THROWS_NOTHING;
+    clone_ptr_t<watchable_t<connection_map_t> > get_connections() THROWS_NOTHING;
 
     /* Shortcut if you just want to access one connection, which is by far the most common case. Returns `NULL` if there
     is no active connection to the given peer. */
@@ -323,7 +313,7 @@ private:
     peer we are fully and officially connected to, including us. That means it's a subset of the entries in
     `run_t::routing_table`. It also holds an `auto_drainer_t::lock_t` for each connection; that way, the connection can
     make sure nobody acquires a lock on its `auto_drainer_t` after it removes itself from `connections`. */
-    one_per_thread_t<watchable_variable_t<std::map<peer_id_t, std::pair<connection_t *, auto_drainer_t::lock_t>>>> connections;
+    one_per_thread_t<watchable_variable_t<connection_map_t> > connections;
 
     message_handler_t *message_handlers[max_message_tag];
 

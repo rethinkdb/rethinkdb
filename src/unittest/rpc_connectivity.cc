@@ -23,6 +23,12 @@ public:
         sequence_number(0)
         { }
     void send(int message, peer_id_t peer) {
+        auto_drainer_t::lock_t connection_keepalive;
+        if (cluster_manager_t::connection_t *connection = get_cluster_manager()->get_connection(peer, &connection_keepalive)) {
+            send(message, connection, connection_keepalive);
+        }
+    }
+    void send(int message, cluster_manager_t::connection_t *connection, auto_drainer_t::lock_t connection_keepalive) {
         class writer_t : public cluster_manager_t::send_message_write_callback_t {
         public:
             explicit writer_t(int _data) : data(_data) { }
@@ -35,10 +41,7 @@ public:
             }
             int32_t data;
         } writer(message);
-        auto_drainer_t::lock_t connection_keepalive;
-        if (cluster_manager_t::connection_t *connection = get_cluster_manager()->get_connection(peer, &connection_keepalive)) {
-            get_cluster_manager()->send_message(connection, connection_keepalive, get_message_tag(), &writer);
-        }
+        get_cluster_manager()->send_message(connection, connection_keepalive, get_message_tag(), &writer);
     }
     void expect(int message, peer_id_t peer) {
         expect_delivered(message);
@@ -131,6 +134,11 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, UnreachablePeer, 3) {
 
     let_stuff_happen();
 
+    /* We shouldn't see the other peer, and checking this shouldn't crash anything */
+    auto_drainer_t::lock_t connection_keepalive;
+    cluster_manager_t::connection_t *conn = c1.get_connection(c2.get_me(), &connection_keepalive);
+    EXPECT_TRUE(conn == NULL);
+
     a1.send(888, c2.get_me());
 
     let_stuff_happen();
@@ -149,6 +157,41 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, UnreachablePeer, 3) {
 
     a2.expect_undelivered(888);
     a2.expect(999, c1.get_me());
+}
+
+/* `LostPeer` tests that nothing crashes when we lose a connection. */
+
+TPTEST_MULTITHREAD(RPCConnectivityTest, LostPeer, 3) {
+    cluster_manager_t c1, c2;
+    recording_test_application_t a1(&c1, 'T'), a2(&c2, 'T');
+    cluster_manager_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+
+    auto_drainer_t::lock_t connection_keepalive;
+    cluster_manager_t::connection_t *connection;
+
+    {
+        cluster_manager_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+        cr2.join(get_cluster_local_address(&c1));
+
+        let_stuff_happen();
+
+        connection = c1.get_connection(c2.get_me(), &connection_keepalive);
+        ASSERT_TRUE(connection != NULL);
+        EXPECT_FALSE(connection_keepalive.get_drain_signal()->is_pulsed());
+        EXPECT_TRUE(connection->get_peer_id() == c2.get_me());
+
+        /* The `cr2` destructor happens here */
+    }
+
+    let_stuff_happen();
+
+    /* `c1` should see that `c2` is disconnected */
+    EXPECT_TRUE(connection_keepalive.get_drain_signal()->is_pulsed());
+    /* `connection` should still be valid */
+    EXPECT_TRUE(connection->get_peer_id() == c2.get_me());
+    a1.send(246, connection, connection_keepalive);
+
+    /* The `connection_keepalive` destructor must run before the `cr1` destructor */
 }
 
 /* `Ordering` tests that messages sent by the same route arrive in the same

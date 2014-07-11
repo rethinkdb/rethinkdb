@@ -49,39 +49,38 @@ cluster_manager_t::connection_t::connection_t(run_t *p,
     pm_collection_membership(&p->parent->connectivity_collection, &pm_collection, uuid_to_str(id.get_uuid())),
     pm_bytes_sent_membership(&pm_collection, &pm_bytes_sent, "bytes_sent"),
     parent(p), peer_id(id),
-    drainers(new one_per_thread_t<auto_drainer_t>),
-    entries(new one_per_thread_t<entry_installation_t>(this))
-    { }
+    drainers()
+{
+    pmap(get_num_threads(), [this] (int thread_id) {
+            on_thread_t thread_switcher((threadnum_t(thread_id)));
+            parent->parent->connections.get()->apply_atomic_op(
+                [&] (std::map<peer_id_t, std::pair<connection_t *, auto_drainer_t::lock_t>> *value) -> bool {
+                    auto res = value->insert(std::make_pair(
+                        peer_id,
+                        std::make_pair(this, auto_drainer_t::lock_t(drainers.get()))
+                        ));
+                    guarantee(res.second, "Somehow we tried to insert a duplicate entry.");
+                    return true;
+                    });
+        });
+}
 
 cluster_manager_t::connection_t::~connection_t() THROWS_NOTHING {
-    // Delete `entries` and `drainers` early just so we can make the assertion below.
-    entries.reset();
-    drainers.reset();
+    // Drain out any users
+    pmap(get_num_threads(), [this] (int thread_id) {
+            on_thread_t thread_switcher((threadnum_t(thread_id)));
+            parent->parent->connections.get()->apply_atomic_op(
+                [&] (std::map<peer_id_t, std::pair<connection_t *, auto_drainer_t::lock_t>> *value) -> bool {
+                    auto it = value->find(peer_id);
+                    guarantee(it != value->end() && it->second.first == this);
+                    value->erase(it);
+                    return true;
+                    });
+            drainers.get()->drain();
+        });
 
     /* The drainers have been destroyed, so nothing can be holding the `send_mutex`. */
     guarantee(!send_mutex.is_locked());
-}
-
-cluster_manager_t::connection_t::entry_installation_t::entry_installation_t(connection_t *that) : that_(that) {
-    that_->parent->parent->connections.get()->apply_atomic_op(
-        [&] (std::map<peer_id_t, std::pair<connection_t *, auto_drainer_t::lock_t>> *value) -> bool {
-            auto res = value->insert(std::make_pair(
-                that_->peer_id,
-                std::make_pair(that, auto_drainer_t::lock_t(that_->drainers->get()))
-                ));
-            guarantee(res.second, "Somehow we tried to insert a duplicate entry.");
-            return true;
-            });
-}
-
-cluster_manager_t::connection_t::entry_installation_t::~entry_installation_t() {
-    that_->parent->parent->connections.get()->apply_atomic_op(
-        [&] (std::map<peer_id_t, std::pair<connection_t *, auto_drainer_t::lock_t>> *value) -> bool {
-            auto it = value->find(that_->peer_id);
-            guarantee(it != value->end() && it->second.first == that_);
-            value->erase(it);
-            return true;
-            });
 }
 
 // Helper function for the `run_t` constructor's initialization list
@@ -901,7 +900,7 @@ void cluster_manager_t::run_t::handle(
         receive anything for a while. */
         heartbeat_manager_t heartbeat_manager(
             &conn_structure,
-            auto_drainer_t::lock_t(conn_structure.drainers.get()->get()),
+            auto_drainer_t::lock_t(conn_structure.drainers.get()),
             peerstr);
 
         /* Main message-handling loop: read messages off the connection until
@@ -923,7 +922,7 @@ void cluster_manager_t::run_t::handle(
 
                     handler->on_message(
                         &conn_structure,
-                        auto_drainer_t::lock_t(conn_structure.drainers.get()->get()),
+                        auto_drainer_t::lock_t(conn_structure.drainers.get()),
                         resolved_version,
                         conn); // might raise fake_archive_exc_t
                 }
@@ -950,8 +949,8 @@ void cluster_manager_t::run_t::handle(
     }
 }
 
-cluster_manager_t::message_handler_t::message_handler_t(cluster_manager_t *cluster_manager_, message_tag_t tag_) :
-        cluster_manager(cluster_manager_), tag(tag_)
+cluster_manager_t::message_handler_t::message_handler_t(cluster_manager_t *cm, message_tag_t t) :
+        cluster_manager(cm), tag(t)
 {
     guarantee(!cluster_manager->current_run);
     rassert(tag != heartbeat_tag, "Tag %d is reserved for heartbeat messages.", static_cast<int>(heartbeat_tag));
@@ -1052,7 +1051,7 @@ void cluster_manager_t::send_message(connection_t *connection,
 #endif
 
 #ifndef NDEBUG
-    connection_keepalive.assert_is_holding(connection->drainers->get());
+    connection_keepalive.assert_is_holding(connection->drainers.get());
 
     /* We're allowed to block indefinitely, but it's tempting to write code on
     the assumption that we won't. This might catch some programming errors. */
