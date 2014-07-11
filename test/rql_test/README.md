@@ -17,7 +17,8 @@ The test framework is written in python.
 
 ### Dependencies
 
-Rethinkdb needs to have `./configure` run, and been built before these tests will work. 
+Rethinkdb needs to have `./configure` run, been built, and `pip install PyYAML` has to be run before these tests will
+work.
 Additionally, the javascript tests require that both node.js and the mocha test framework be installed.
 
 ```
