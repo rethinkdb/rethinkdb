@@ -26,7 +26,6 @@ using std::set;
 using std::multiset;
 
 #include <string>
-using std::string;
 
 #include <utility>
 using std::pair;
@@ -79,17 +78,17 @@ static const unsigned int kFastToBufferSize = 32;
 //    represented in 16 hex digits.
 // ----------------------------------------------------------------------
 
-string FpToString(Fprint fp);
-string FloatToString(float f, const char* format);
-string IntToString(int i, const char* format);
-string Int64ToString(int64 i64, const char* format);
-string UInt64ToString(uint64 ui64, const char* format);
+std::string FpToString(Fprint fp);
+std::string FloatToString(float f, const char* format);
+std::string IntToString(int i, const char* format);
+std::string Int64ToString(int64 i64, const char* format);
+std::string UInt64ToString(uint64 ui64, const char* format);
 
 // The default formats are %7f, %7d, and %7u respectively
-string FloatToString(float f);
-string IntToString(int i);
-string Int64ToString(int64 i64);
-string UInt64ToString(uint64 ui64);
+std::string FloatToString(float f);
+std::string IntToString(int i);
+std::string Int64ToString(int64 i64);
+std::string UInt64ToString(uint64 ui64);
 
 // ----------------------------------------------------------------------
 // FastIntToBuffer()
@@ -210,7 +209,7 @@ inline char* FastUInt64ToBuffer(uint64 i, char* buffer) {
 // ConsumeStrayLeadingZeroes
 //    Eliminates all leading zeroes (unless the string itself is composed
 //    of nothing but zeroes, in which case one is kept: 0...0 becomes 0).
-void ConsumeStrayLeadingZeroes(string* str);
+void ConsumeStrayLeadingZeroes(std::string* str);
 
 // ----------------------------------------------------------------------
 // ParseLeadingInt32Value
@@ -221,7 +220,7 @@ void ConsumeStrayLeadingZeroes(string* str);
 //    treated as octal.  If you know it's decimal, use ParseLeadingDec32Value.
 // --------------------------------------------------------------------
 int32 ParseLeadingInt32Value(const char* str, int32 deflt);
-inline int32 ParseLeadingInt32Value(const string& str, int32 deflt) {
+inline int32 ParseLeadingInt32Value(const std::string& str, int32 deflt) {
   return ParseLeadingInt32Value(str.c_str(), deflt);
 }
 
@@ -233,7 +232,7 @@ inline int32 ParseLeadingInt32Value(const string& str, int32 deflt) {
 //    treated as octal.  If you know it's decimal, use ParseLeadingUDec32Value.
 // --------------------------------------------------------------------
 uint32 ParseLeadingUInt32Value(const char* str, uint32 deflt);
-inline uint32 ParseLeadingUInt32Value(const string& str, uint32 deflt) {
+inline uint32 ParseLeadingUInt32Value(const std::string& str, uint32 deflt) {
   return ParseLeadingUInt32Value(str.c_str(), deflt);
 }
 
@@ -247,7 +246,7 @@ inline uint32 ParseLeadingUInt32Value(const string& str, uint32 deflt) {
 //    See also: ParseLeadingDec64Value
 // --------------------------------------------------------------------
 int32 ParseLeadingDec32Value(const char* str, int32 deflt);
-inline int32 ParseLeadingDec32Value(const string& str, int32 deflt) {
+inline int32 ParseLeadingDec32Value(const std::string& str, int32 deflt) {
   return ParseLeadingDec32Value(str.c_str(), deflt);
 }
 
@@ -260,7 +259,7 @@ inline int32 ParseLeadingDec32Value(const string& str, int32 deflt) {
 //    See also: ParseLeadingUDec64Value
 // --------------------------------------------------------------------
 uint32 ParseLeadingUDec32Value(const char* str, uint32 deflt);
-inline uint32 ParseLeadingUDec32Value(const string& str, uint32 deflt) {
+inline uint32 ParseLeadingUDec32Value(const std::string& str, uint32 deflt) {
   return ParseLeadingUDec32Value(str.c_str(), deflt);
 }
 
@@ -275,23 +274,23 @@ inline uint32 ParseLeadingUDec32Value(const string& str, uint32 deflt) {
 //    valid integer is found; else returns deflt
 // --------------------------------------------------------------------
 uint64 ParseLeadingUInt64Value(const char* str, uint64 deflt);
-inline uint64 ParseLeadingUInt64Value(const string& str, uint64 deflt) {
+inline uint64 ParseLeadingUInt64Value(const std::string& str, uint64 deflt) {
   return ParseLeadingUInt64Value(str.c_str(), deflt);
 }
 int64 ParseLeadingInt64Value(const char* str, int64 deflt);
-inline int64 ParseLeadingInt64Value(const string& str, int64 deflt) {
+inline int64 ParseLeadingInt64Value(const std::string& str, int64 deflt) {
   return ParseLeadingInt64Value(str.c_str(), deflt);
 }
 uint64 ParseLeadingHex64Value(const char* str, uint64 deflt);
-inline uint64 ParseLeadingHex64Value(const string& str, uint64 deflt) {
+inline uint64 ParseLeadingHex64Value(const std::string& str, uint64 deflt) {
   return ParseLeadingHex64Value(str.c_str(), deflt);
 }
 int64 ParseLeadingDec64Value(const char* str, int64 deflt);
-inline int64 ParseLeadingDec64Value(const string& str, int64 deflt) {
+inline int64 ParseLeadingDec64Value(const std::string& str, int64 deflt) {
   return ParseLeadingDec64Value(str.c_str(), deflt);
 }
 uint64 ParseLeadingUDec64Value(const char* str, uint64 deflt);
-inline uint64 ParseLeadingUDec64Value(const string& str, uint64 deflt) {
+inline uint64 ParseLeadingUDec64Value(const std::string& str, uint64 deflt) {
   return ParseLeadingUDec64Value(str.c_str(), deflt);
 }
 
@@ -304,7 +303,7 @@ inline uint64 ParseLeadingUDec64Value(const string& str, uint64 deflt) {
 //   <key, value> pairs. Returns true if there if no error in parsing, false
 //    otherwise.
 // -------------------------------------------------------------------------
-bool DictionaryParse(const string& encoded_str,
-                      vector<pair<string, string> >* items);
+bool DictionaryParse(const std::string& encoded_str,
+                      vector<pair<std::string, std::string> >* items);
 
 #endif   /* #ifndef STRINGS_STRUTIL_H_ */

@@ -165,7 +165,7 @@ S2CellId S2CellId::FromFacePosLevel(int face, uint64 pos, int level) {
   return cell.parent(level);
 }
 
-string S2CellId::ToToken() const {
+std::string S2CellId::ToToken() const {
   // Simple implementation: convert the id to hex and strip trailing zeros.
   // Using hex has the advantage that the tokens are case-insensitive, all
   // characters are alphanumeric, no characters require any special escaping
@@ -180,13 +180,13 @@ string S2CellId::ToToken() const {
   FastHex64ToBuffer(id_, digits);
   for (int len = 16; len > 0; --len) {
     if (digits[len-1] != '0') {
-      return string(digits, len);
+      return std::string(digits, len);
     }
   }
   return "X";  // Invalid hex string.
 }
 
-S2CellId S2CellId::FromToken(string const& token) {
+S2CellId S2CellId::FromToken(std::string const& token) {
   if (token.size() > 16) return S2CellId::None();
   char digits[17] = "0000000000000000";
   memcpy(digits, token.data(), token.size());
@@ -504,11 +504,11 @@ void S2CellId::AppendAllNeighbors(int nbr_level,
   }
 }
 
-string S2CellId::ToString() const {
+std::string S2CellId::ToString() const {
   if (!is_valid()) {
     return StringPrintf("Invalid: %016llx", id());
   }
-  string out = IntToString(face(), "%d/");
+  std::string out = IntToString(face(), "%d/");
   for (int current_level = 1; current_level <= level(); ++current_level) {
     out += IntToString(child_position(current_level), "%d");
   }

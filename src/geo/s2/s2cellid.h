@@ -9,7 +9,6 @@ using std::cout;
 using std::endl;
 
 #include <string>
-using std::string;
 
 #include <vector>
 using std::vector;
@@ -233,12 +232,12 @@ class S2CellId {
   // These methods guarantee that FromToken(ToToken(x)) == x even when
   // "x" is an invalid cell id.  All tokens are alphanumeric strings.
   // FromToken() returns S2CellId::None() for malformed inputs.
-  string ToToken() const;
-  static S2CellId FromToken(string const& token);
+  std::string ToToken() const;
+  static S2CellId FromToken(std::string const& token);
 
   // Creates a debug human readable string. Used for << and available for direct
   // usage as well.
-  string ToString() const;
+  std::string ToString() const;
 
   // Return the four cells that are adjacent across the cell's four edges.
   // Neighbors are returned in the order defined by S2Cell::GetEdge.  All

@@ -6,7 +6,6 @@
 using std::vector;
 
 #include <string>
-using std::string;
 #include "geo/s2/strings/stringprintf.h"
 #include "geo/s2/base/logging.h"
 // Max arguments supported by StringPrintVector
@@ -17,7 +16,7 @@ const int kStringPrintfVectorMaxArgs = 32;
 // and we can fix the problem or protect against an attack.
 static const char string_printf_empty_block [256] = { '\0' };
 
-string StringPrintfVector(const char* format, const vector<string>& v) {
+std::string StringPrintfVector(const char* format, const vector<std::string>& v) {
   CHECK_LE(v.size(), kStringPrintfVectorMaxArgs)
       << "StringPrintfVector currently only supports up to "
       << kStringPrintfVectorMaxArgs << " arguments. "

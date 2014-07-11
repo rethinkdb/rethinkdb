@@ -17,7 +17,7 @@ using ql::datum_t;
 
 class inclusion_tester_t : public s2_geo_visitor_t {
 public:
-    inclusion_tester_t(const S2Polygon *polygon) : polygon_(polygon) { }
+    explicit inclusion_tester_t(const S2Polygon *polygon) : polygon_(polygon) { }
 
     void on_point(const S2Point &g) {
         result_ = geo_does_include(*polygon_, g);

@@ -45,4 +45,4 @@ void visit_geojson(s2_geo_visitor_t *visitor, const counted_t<const ql::datum_t>
 /* Checks the semantic and syntactic validity of a GeoJSON object. */
 void validate_geojson(const counted_t<const ql::datum_t> &geojson);
 
-#endif  // GEO_GEO_VISITOR_HPP_
+#endif  // GEO_GEOJSON_HPP_

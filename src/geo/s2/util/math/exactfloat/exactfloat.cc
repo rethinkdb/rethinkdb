@@ -3,6 +3,7 @@
 #include "geo/s2/util/math/exactfloat/exactfloat.h"
 #include <cstring>
 
+#include <openssl/crypto.h>
 #include <math.h>
 #include <algorithm>
 using std::min;
@@ -13,9 +14,9 @@ using std::reverse;
 #include <limits>
 using std::numeric_limits;
 
+#include "errors.hpp"
 #include "geo/s2/base/integral_types.h"
 #include "geo/s2/base/logging.h"
-#include "openssl/crypto.h"
 
 // Define storage for constants.
 const int ExactFloat::kMinExp;
@@ -98,11 +99,11 @@ ExactFloat::ExactFloat(double v) {
     // code).  "f" is a fraction in the range [0.5, 1), so if we shift it left
     // by the number of mantissa bits in a double (53, including the leading
     // "1") then the result is always an integer.
-    int exp;
-    double f = frexp(fabs(v), &exp);
+    int expl;
+    double f = frexp(fabs(v), &expl);
     uint64 m = static_cast<uint64>(ldexp(f, kDoubleMantissaBits));
     BN_ext_set_uint64(&bn_, m);
-    bn_exp_ = exp - kDoubleMantissaBits;
+    bn_exp_ = expl - kDoubleMantissaBits;
     Canonicalize();
   }
 }
@@ -192,20 +193,20 @@ double ExactFloat::ToDoubleHelper() const {
   return sign_ * ldexp(static_cast<double>(d_mantissa), bn_exp_);
 }
 
-ExactFloat ExactFloat::RoundToMaxPrec(int max_prec, RoundingMode mode) const {
+ExactFloat ExactFloat::RoundToMaxPrec(int _max_prec, RoundingMode mode) const {
   // The "kRoundTiesToEven" mode requires at least 2 bits of precision
   // (otherwise both adjacent representable values may be odd).
-  DCHECK_GE(max_prec, 2);
-  DCHECK_LE(max_prec, kMaxPrec);
+  DCHECK_GE(_max_prec, 2);
+  DCHECK_LE(_max_prec, kMaxPrec);
 
   // The following test also catches zero, infinity, and NaN.
-  int shift = prec() - max_prec;
+  int shift = prec() - _max_prec;
   if (shift <= 0) return *this;
 
   // Round by removing the appropriate number of bits from the mantissa.  Note
   // that if the value is rounded up to a power of 2, the high-order bit
   // position may increase, but in that case Canonicalize() will remove at
-  // least one zero bit and so the output will still have prec() <= max_prec.
+  // least one zero bit and so the output will still have prec() <= _max_prec.
   return RoundToPowerOf2(bn_exp_ + shift, mode);
 }
 
@@ -289,22 +290,22 @@ int ExactFloat::NumSignificantDigitsForPrec(int prec) {
 // (e.g. 1/512 == 0.001953125 formatted as 0.002).
 static const int kMinSignificantDigits = 10;
 
-string ExactFloat::ToString() const {
+std::string ExactFloat::ToString() const {
   int max_digits = max(kMinSignificantDigits,
                        NumSignificantDigitsForPrec(prec()));
   return ToStringWithMaxDigits(max_digits);
 }
 
-string ExactFloat::ToStringWithMaxDigits(int max_digits) const {
+std::string ExactFloat::ToStringWithMaxDigits(int max_digits) const {
   DCHECK_GT(max_digits, 0);
   if (!is_normal()) {
     if (is_nan()) return "nan";
     if (is_zero()) return (sign_ < 0) ? "-0" : "0";
     return (sign_ < 0) ? "-inf" : "inf";
   }
-  string digits;
+  std::string digits;
   int exp10 = GetDecimalDigits(max_digits, &digits);
-  string str;
+  std::string str;
   if (sign_ < 0) str.push_back('-');
 
   // We use the standard '%g' formatting rules.  If the exponent is less than
@@ -350,8 +351,8 @@ string ExactFloat::ToStringWithMaxDigits(int max_digits) const {
 }
 
 // Increment an unsigned integer represented as a string of ASCII digits.
-static void IncrementDecimalDigits(string* digits) {
-  string::iterator pos = digits->end();
+static void IncrementDecimalDigits(std::string* digits) {
+  std::string::iterator pos = digits->end();
   while (--pos >= digits->begin()) {
     if (*pos < '9') { ++*pos; return; }
     *pos = '0';
@@ -359,7 +360,7 @@ static void IncrementDecimalDigits(string* digits) {
   digits->insert(0, "1");
 }
 
-int ExactFloat::GetDecimalDigits(int max_digits, string* digits) const {
+int ExactFloat::GetDecimalDigits(int max_digits, std::string* digits) const {
   DCHECK(is_normal());
   // Convert the value to the form (bn * (10 ** bn_exp10)) where "bn" is a
   // positive integer (BIGNUM).
@@ -410,7 +411,7 @@ int ExactFloat::GetDecimalDigits(int max_digits, string* digits) const {
 
   // Now strip any trailing zeros.
   DCHECK_NE((*digits)[0], '0');
-  string::iterator pos = digits->end();
+  std::string::iterator pos = digits->end();
   while (pos[-1] == '0') --pos;
   if (pos < digits->end()) {
     bn_exp10 += digits->end() - pos;
@@ -423,7 +424,7 @@ int ExactFloat::GetDecimalDigits(int max_digits, string* digits) const {
   return bn_exp10 + digits->size();
 }
 
-string ExactFloat::ToUniqueString() const {
+std::string ExactFloat::ToUniqueString() const {
   char prec_buf[20];
   sprintf(prec_buf, "<%d>", prec());
   return ToString() + prec_buf;
@@ -743,7 +744,12 @@ ExactFloat logb(const ExactFloat& a) {
   return ExactFloat(a.exp() - 1);
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
+// Some versions of CLANG suggest noreturn...
+#pragma GCC diagnostic ignored "-Wsuggest-attribute=noreturn"
 ExactFloat ExactFloat::Unimplemented() {
   LOG(FATAL) << "Unimplemented ExactFloat method called";
   return NaN();
 }
+#pragma GCC diagnostic pop

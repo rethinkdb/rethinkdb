@@ -3,7 +3,7 @@
 // Printf variants that place their output in a C++ string.
 //
 // Usage:
-//      string result = StringPrintf("%d %s\n", 10, "hello");
+//      std::string result = StringPrintf("%d %s\n", 10, "hello");
 //      SStringPrintf(&result, "%d %s\n", 10, "hello");
 //      StringAppendF(&result, "%d %s\n", 20, "there");
 
@@ -12,7 +12,6 @@
 
 #include <stdarg.h>
 #include <string>
-using std::string;
 
 #include <vector>
 using std::vector;
@@ -35,6 +34,6 @@ extern const int kStringPrintfVectorMaxArgs;
 // You can use this version when all your arguments are strings, but
 // you don't know how many arguments you'll have at compile time.
 // StringPrintfVector will LOG(FATAL) if v.size() > kStringPrintfVectorMaxArgs
-extern string StringPrintfVector(const char* format, const vector<string>& v);
+extern std::string StringPrintfVector(const char* format, const vector<std::string>& v);
 
 #endif /* _STRINGS_STRINGPRINTF_H */

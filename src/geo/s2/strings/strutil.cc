@@ -36,7 +36,6 @@ using std::set;
 using std::multiset;
 
 #include <string>
-using std::string;
 
 #include <vector>
 using std::vector;
@@ -66,46 +65,46 @@ using std::vector;
 //    all do the obvious, trivial thing.
 // ----------------------------------------------------------------------
 
-string FpToString(Fprint fp) {
+std::string FpToString(Fprint fp) {
   char buf[17];
   snprintf(buf, sizeof(buf), "%016llx", fp);
-  return string(buf);
+  return std::string(buf);
 }
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
-string FloatToString(float f, const char* format) {
+std::string FloatToString(float f, const char* format) {
   char buf[80];
   snprintf(buf, sizeof(buf), format, f);
-  return string(buf);
+  return std::string(buf);
 }
 
-string IntToString(int i, const char* format) {
+std::string IntToString(int i, const char* format) {
   char buf[80];
   snprintf(buf, sizeof(buf), format, i);
-  return string(buf);
+  return std::string(buf);
 }
 
-string Int64ToString(int64 i64, const char* format) {
+std::string Int64ToString(int64 i64, const char* format) {
   char buf[80];
   snprintf(buf, sizeof(buf), format, i64);
-  return string(buf);
+  return std::string(buf);
 }
 
-string UInt64ToString(uint64 ui64, const char* format) {
+std::string UInt64ToString(uint64 ui64, const char* format) {
   char buf[80];
   snprintf(buf, sizeof(buf), format, ui64);
-  return string(buf);
+  return std::string(buf);
 }
 #pragma GCC diagnostic pop
 
 // Default arguments
-string FloatToString(float f)   { return FloatToString(f, "%7f"); }
-string IntToString(int i)       { return IntToString(i, "%7d"); }
-string Int64ToString(int64 i64) {
+std::string FloatToString(float f)   { return FloatToString(f, "%7f"); }
+std::string IntToString(int i)       { return IntToString(i, "%7d"); }
+std::string Int64ToString(int64 i64) {
   return Int64ToString(i64, "%7" GG_LL_FORMAT "d");
 }
-string UInt64ToString(uint64 ui64) {
+std::string UInt64ToString(uint64 ui64) {
   return UInt64ToString(ui64, "%7" GG_LL_FORMAT "u");
 }
 
@@ -157,8 +156,8 @@ char* FastInt32ToBufferLeft(int32 i, char* buffer) {
     return FastInt64ToBufferLeft(i, buffer);
 }
 char* FastInt64ToBufferLeft(int64 i, char* buffer) {
-  string s = Int64ToString(i);
-  guarantee(s.length() + 1u < kFastToBufferSize);
+  std::string s = Int64ToString(i);
+  guarantee(s.length() + 1 < kFastToBufferSize);
   memcpy(buffer, s.c_str(), s.length() + 1);
   return buffer + s.length();
 }
@@ -350,12 +349,12 @@ uint64 ParseLeadingUDec64Value(const char *str, uint64 deflt) {
   return (error == str) ? deflt : value;
 }
 
-bool DictionaryParse(const string& encoded_str,
-                      vector<pair<string, string> >* items) {
-  vector<string> entries;
+bool DictionaryParse(const std::string& encoded_str,
+                      vector<pair<std::string, std::string> >* items) {
+  vector<std::string> entries;
   SplitStringUsing(encoded_str, ",", &entries);
   for (size_t i = 0; i < entries.size(); ++i) {
-    vector<string> fields;
+    vector<std::string> fields;
     SplitStringAllowEmpty(entries[i], ":", &fields);
     if (fields.size() != 2) // parsing error
       return false;

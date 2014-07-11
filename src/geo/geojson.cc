@@ -1,11 +1,11 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "geo/geojson.hpp"
 
-#include "errors.hpp"
-#include <boost/ptr_container/ptr_vector.hpp>
-
 #include <string>
 #include <vector>
+
+#include "errors.hpp"
+#include <boost/ptr_container/ptr_vector.hpp>
 
 #include "containers/scoped.hpp"
 #include "containers/wire_string.hpp"

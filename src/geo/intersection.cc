@@ -18,7 +18,7 @@ using ql::datum_t;
 template<class first_t>
 class inner_intersection_tester_t : public s2_geo_visitor_t {
 public:
-    inner_intersection_tester_t(const first_t *first) : first_(first) { }
+    explicit inner_intersection_tester_t(const first_t *first) : first_(first) { }
 
     void on_point(const S2Point &point) {
         result_ = geo_does_intersect(*first_, point);
@@ -42,7 +42,7 @@ private:
 
 class intersection_tester_t : public s2_geo_visitor_t {
 public:
-    intersection_tester_t(const counted_t<const ql::datum_t> *other) : other_(other) { }
+    explicit intersection_tester_t(const counted_t<const ql::datum_t> *other) : other_(other) { }
 
     void on_point(const S2Point &point) {
         inner_intersection_tester_t<S2Point> tester(&point);

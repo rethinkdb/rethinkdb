@@ -1,7 +1,6 @@
 // Copyright 2001 and onwards Google Inc.
 
 #include <string>
-using std::string;
 
 #include "geo/s2/util/coding/varint.h"
 
@@ -175,19 +174,19 @@ const char* Varint::Skip64BackwardSlow(const char* p, const char* b) {
   return NULL; // value is too long to be a varint64
 }
 
-void Varint::Append32Slow(string* s, uint32 value) {
+void Varint::Append32Slow(std::string* s, uint32 value) {
   char buf[Varint::kMax32];
   const char* p = Varint::Encode32(buf, value);
   s->append(buf, p - buf);
 }
 
-void Varint::Append64Slow(string* s, uint64 value) {
+void Varint::Append64Slow(std::string* s, uint64 value) {
   char buf[Varint::kMax64];
   const char* p = Varint::Encode64(buf, value);
   s->append(buf, p - buf);
 }
 
-void Varint::EncodeTwo32Values(string* s, uint32 a, uint32 b) {
+void Varint::EncodeTwo32Values(std::string* s, uint32 a, uint32 b) {
   uint64 v = 0;
   int shift = 0;
   while ((a > 0) || (b > 0)) {

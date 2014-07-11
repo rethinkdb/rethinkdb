@@ -16,7 +16,6 @@
 // VC++ namespace / STL issues; make them explicit
 #include <wchar.h>
 #include <string>
-using std::string;
 
 #include <vector>
 using std::vector;

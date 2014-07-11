@@ -123,8 +123,8 @@ struct hash<basic_string<_CharT, _Traits, _Alloc> > {
 };
 
 // they don't define a hash for const string at all
-template<> struct hash<const string> {
-  size_t operator()(const string& k) const {
+template<> struct hash<const std::string> {
+  size_t operator()(const std::string& k) const {
     return HashTo32(k.data(), static_cast<uint32>(k.length()));
   }
 };
@@ -142,12 +142,12 @@ template<> struct hash<char const*> : PortableHashBase {
   }
 };
 
-template<> struct hash<string> : PortableHashBase {
-  size_t operator()(const string& k) const {
+template<> struct hash<std::string> : PortableHashBase {
+  size_t operator()(const std::string& k) const {
     return HashTo32(k.data(), k.length());
   }
   // Less than operator:
-  bool operator()(const string& a, const string& b) const {
+  bool operator()(const std::string& a, const std::string& b) const {
     return a < b;
   }
 };
@@ -227,12 +227,12 @@ void SplitStringToIteratorAllowEmpty(const StringType& full,
                                      const char* delim,
                                      int pieces,
                                      ITR& result) {
-  string::size_type begin_index, end_index;
+  std::string::size_type begin_index, end_index;
   begin_index = 0;
 
   for (int i=0; (i < pieces-1) || (pieces == 0); i++) {
     end_index = full.find_first_of(delim, begin_index);
-    if (end_index == string::npos) {
+    if (end_index == std::string::npos) {
       *result++ = full.substr(begin_index);
       return;
     }
@@ -242,11 +242,11 @@ void SplitStringToIteratorAllowEmpty(const StringType& full,
   *result++ = full.substr(begin_index);
 }
 
-void SplitStringIntoNPiecesAllowEmpty(const string& full,
+void SplitStringIntoNPiecesAllowEmpty(const std::string& full,
                                       const char* delim,
                                       int pieces,
-                                      vector<string>* result) {
-  back_insert_iterator<vector<string> > it(*result);
+                                      vector<std::string>* result) {
+  back_insert_iterator<vector<std::string> > it(*result);
   SplitStringToIteratorAllowEmpty(full, delim, pieces, it);
 }
 
@@ -259,27 +259,27 @@ void SplitStringIntoNPiecesAllowEmpty(const string& full,
 //    to 'result'.  If there are consecutive delimiters, this function
 //    will return corresponding empty strings.
 // ----------------------------------------------------------------------
-void SplitStringAllowEmpty(const string& full, const char* delim,
-                           vector<string>* result) {
-  back_insert_iterator<vector<string> > it((*result));
+void SplitStringAllowEmpty(const std::string& full, const char* delim,
+                           vector<std::string>* result) {
+  back_insert_iterator<vector<std::string> > it((*result));
   SplitStringToIteratorAllowEmpty(full, delim, 0, it);
 }
 
-void SplitStringToHashsetAllowEmpty(const string& full, const char* delim,
-                                    unordered_set<string>* result) {
-  simple_insert_iterator<unordered_set<string> > it((result));
+void SplitStringToHashsetAllowEmpty(const std::string& full, const char* delim,
+                                    unordered_set<std::string>* result) {
+  simple_insert_iterator<unordered_set<std::string> > it((result));
   SplitStringToIteratorAllowEmpty(full, delim, 0, it);
 }
 
-void SplitStringToSetAllowEmpty(const string& full, const char* delim,
-                                set<string>* result) {
-  simple_insert_iterator<set<string> > it((result));
+void SplitStringToSetAllowEmpty(const std::string& full, const char* delim,
+                                set<std::string>* result) {
+  simple_insert_iterator<set<std::string> > it((result));
   SplitStringToIteratorAllowEmpty(full, delim, 0, it);
 }
 
-void SplitStringToHashmapAllowEmpty(const string& full, const char* delim,
-                                    unordered_map<string, string>* result) {
-  simple_hash_map_iterator<string> it((result));
+void SplitStringToHashmapAllowEmpty(const std::string& full, const char* delim,
+                                    unordered_map<std::string, std::string>* result) {
+  simple_hash_map_iterator<std::string> it((result));
   SplitStringToIteratorAllowEmpty(full, delim, 0, it);
 }
 
@@ -294,7 +294,7 @@ void SplitStringToHashmapAllowEmpty(const string& full, const char* delim,
 // SplitStringToIteratorUsing. I could have written my own counting iterator,
 // and use the existing template function, but probably this is more clear
 // and more sure to get optimized to reasonable code.
-static int CalculateReserveForVector(const string& full, const char* delim) {
+static int CalculateReserveForVector(const std::string& full, const char* delim) {
   int count = 0;
   if (delim[0] != '\0' && delim[1] == '\0') {
     // Optimize the common case where delim is a single character.
@@ -350,11 +350,11 @@ void SplitStringToIteratorUsing(const StringType& full,
     return;
   }
 
-  string::size_type begin_index, end_index;
+  std::string::size_type begin_index, end_index;
   begin_index = full.find_first_not_of(delim);
-  while (begin_index != string::npos) {
+  while (begin_index != std::string::npos) {
     end_index = full.find_first_of(delim, begin_index);
-    if (end_index == string::npos) {
+    if (end_index == std::string::npos) {
       *result++ = full.substr(begin_index);
       return;
     }
@@ -363,29 +363,29 @@ void SplitStringToIteratorUsing(const StringType& full,
   }
 }
 
-void SplitStringUsing(const string& full,
+void SplitStringUsing(const std::string& full,
                       const char* delim,
-                      vector<string>* result) {
+                      vector<std::string>* result) {
   result->reserve(result->size() + CalculateReserveForVector(full, delim));
-  back_insert_iterator< vector<string> > it((*result));
+  back_insert_iterator< vector<std::string> > it((*result));
   SplitStringToIteratorUsing(full, delim, it);
 }
 
-void SplitStringToHashsetUsing(const string& full, const char* delim,
-                               unordered_set<string>* result) {
-  simple_insert_iterator<unordered_set<string> > it((result));
+void SplitStringToHashsetUsing(const std::string& full, const char* delim,
+                               unordered_set<std::string>* result) {
+  simple_insert_iterator<unordered_set<std::string> > it((result));
   SplitStringToIteratorUsing(full, delim, it);
 }
 
-void SplitStringToSetUsing(const string& full, const char* delim,
-                           set<string>* result) {
-  simple_insert_iterator<set<string> > it((result));
+void SplitStringToSetUsing(const std::string& full, const char* delim,
+                           set<std::string>* result) {
+  simple_insert_iterator<set<std::string> > it((result));
   SplitStringToIteratorUsing(full, delim, it);
 }
 
-void SplitStringToHashmapUsing(const string& full, const char* delim,
-                               unordered_map<string, string>* result) {
-  simple_hash_map_iterator<string> it((result));
+void SplitStringToHashmapUsing(const std::string& full, const char* delim,
+                               unordered_map<std::string, std::string>* result) {
+  simple_hash_map_iterator<std::string> it((result));
   SplitStringToIteratorUsing(full, delim, it);
 }
 
@@ -440,7 +440,7 @@ bool SplitOne##name##Token(const char ** source, const char * delim, \
   char * end;                                                   \
   *value = function(*source, &end);                             \
   if (end == *source)                                           \
-    return false; /* number not present at start of string */   \
+    return false; /* number not present at start of std::string */   \
   if (end[0] && !strchr(delim, end[0]))                         \
     return false; /* Garbage characters after int */            \
   /* Advance past token */                                      \
