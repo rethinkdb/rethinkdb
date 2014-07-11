@@ -226,7 +226,7 @@ ellipsoid_spec_t pick_reference_ellipsoid(scope_env_t *env, args_t *args) {
 }
 
 dist_unit_t pick_dist_unit(scope_env_t *env, args_t *args) {
-    counted_t<val_t> geo_system_arg = args->optarg(env, "geo_system");
+    counted_t<val_t> geo_system_arg = args->optarg(env, "unit");
     if (geo_system_arg.has()) {
         return parse_dist_unit(geo_system_arg->as_str().to_std());
     } else {
@@ -246,10 +246,10 @@ private:
         check_is_geometry(p1_arg);
         check_is_geometry(p2_arg);
 
-        ellipsoid_spec_t reference_ellipsoid = pick_reference_ellipsoid(env, args);
-        dist_unit_t result_unit = pick_dist_unit(env, args);
-
         try {
+            ellipsoid_spec_t reference_ellipsoid = pick_reference_ellipsoid(env, args);
+            dist_unit_t result_unit = pick_dist_unit(env, args);
+
             // TODO! Support [lat, long] syntax here too?
             lat_lon_point_t p1 = extract_lat_lon_point(p1_arg->as_datum());
             lat_lon_point_t p2 = extract_lat_lon_point(p2_arg->as_datum());
@@ -276,9 +276,6 @@ private:
         counted_t<val_t> radius_arg = args->arg(env, 1);
         check_is_geometry(center_arg);
 
-        ellipsoid_spec_t reference_ellipsoid = pick_reference_ellipsoid(env, args);
-        dist_unit_t radius_unit = pick_dist_unit(env, args);
-
         counted_t<val_t> fill_arg = args->optarg(env, "fill");
         bool fill = true;
         if (fill_arg.has()) {
@@ -298,6 +295,9 @@ private:
         }
 
         try {
+            ellipsoid_spec_t reference_ellipsoid = pick_reference_ellipsoid(env, args);
+            dist_unit_t radius_unit = pick_dist_unit(env, args);
+
             lat_lon_point_t center = extract_lat_lon_point(center_arg->as_datum());
             double radius = radius_arg->as_num();
             radius = convert_dist_unit(radius, radius_unit, dist_unit_t::M);
