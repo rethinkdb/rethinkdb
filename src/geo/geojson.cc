@@ -122,23 +122,6 @@ lat_lon_point_t position_to_lat_lon_point(const counted_t<const datum_t> &positi
     longitude = arr[0]->as_num();
     latitude = arr[1]->as_num();
 
-    // Range checks.
-    // (S2 crashes badly if those are violated)
-    if(longitude < 0.0 || longitude > 180.0) {
-        throw geo_range_exception_t(
-            strprintf("Longitude must be between 0 and 180. Got %f.", longitude));
-    }
-    if (longitude == 180.0) {
-        longitude = 0.0;
-    }
-    if(latitude < -90.0 || latitude > 90.0) {
-        throw geo_range_exception_t(
-            strprintf("Latitude must be between -90 and 90. Got %f.", latitude));
-    }
-    if (latitude == 90.0) {
-        latitude = -90.0;
-    }
-
     return lat_lon_point_t(latitude, longitude);
 }
 
@@ -157,6 +140,22 @@ lat_lon_point_t extract_lat_lon_point(const counted_t<const datum_t> &geojson) {
 S2Point position_to_s2point(const counted_t<const datum_t> &position) {
     lat_lon_point_t p = position_to_lat_lon_point(position);
 
+    // Range checks (or S2 will terminate the process in debug mode).
+    if(p.second < -180.0 || p.second > 180.0) {
+        throw geo_range_exception_t(
+            strprintf("Longitude must be between -180 and 180. Got %f.", p.second));
+    }
+    if (p.second == 180.0) {
+        p.second = -180.0;
+    }
+    if(p.first < -90.0 || p.first > 90.0) {
+        throw geo_range_exception_t(
+            strprintf("Latitude must be between -90 and 90. Got %f.", p.first));
+    }
+    if (p.first == 90.0) {
+        p.first = -90.0;
+    }
+
     S2LatLng lat_lng(S1Angle::Degrees(p.first), S1Angle::Degrees(p.second));
     return lat_lng.ToPoint();
 }
@@ -174,8 +173,6 @@ scoped_ptr_t<S2Polyline> coordinates_to_s2polyline(const counted_t<const datum_t
         "For type "LineString", the "coordinates" member must be an array of two
          or more positions."
     */
-    // TODO! We must catch the case where points are antipodal or identical.
-    // Currently S2 crashes.
     const std::vector<counted_t<const datum_t> > arr = coords->as_array();
     if (arr.size() < 2) {
         throw geo_exception_t(
@@ -185,6 +182,10 @@ scoped_ptr_t<S2Polyline> coordinates_to_s2polyline(const counted_t<const datum_t
     points.reserve(arr.size());
     for (size_t i = 0; i < arr.size(); ++i) {
         points.push_back(position_to_s2point(arr[i]));
+    }
+    if (!S2Polyline::IsValid(points)) {
+        throw geo_exception_t(
+            "Invalid LineString. Are there antipodal or duplicate vertices?");
     }
     return scoped_ptr_t<S2Polyline>(new S2Polyline(points));
 }
@@ -207,6 +208,13 @@ scoped_ptr_t<S2Loop> coordinates_to_s2loop(const counted_t<const datum_t> &coord
     }
     // Drop the last point. S2Loop closes the loop implicitly.
     points.pop_back();
+
+    // The second argument to IsValid is ignored...
+    if (!S2Loop::IsValid(points, points.size())) {
+        throw geo_exception_t(
+            "Invalid LinearRing. Are there antipodal or duplicate vertices? "
+            "Is it self-intersecting?");
+    }
     scoped_ptr_t<S2Loop> result(new S2Loop(points));
     // Normalize the loop
     result->Normalize();
@@ -224,12 +232,6 @@ scoped_ptr_t<S2Polygon> coordinates_to_s2polygon(const counted_t<const datum_t> 
     loops.reserve(loops_arr.size());
     for (size_t i = 0; i < loops_arr.size(); ++i) {
         scoped_ptr_t<S2Loop> loop = coordinates_to_s2loop(loops_arr[i]);
-        // TODO! Does PolygonBuilder already perform this validation?
-        if (!loop->IsValid()) {
-            throw geo_exception_t(
-                "Invalid LinearRing (are there duplicate vertices? is it "
-                "self-intersecting?)");
-        }
         // Put the loop into the ptr_vector to avoid its destruction while
         // we are still building the polygon
         loops.push_back(loop.release());
@@ -244,7 +246,12 @@ scoped_ptr_t<S2Polygon> coordinates_to_s2polygon(const counted_t<const datum_t> 
     // We use S2PolygonBuilder to automatically clean up identical edges and such
     S2PolygonBuilderOptions builder_opts = S2PolygonBuilderOptions::DIRECTED_XOR();
     // We want validation... for now
-    // TODO! Don't validate more often than necessary. It's probably expensive.
+    // TODO (daniel): We probably don't have to run validation after every
+    //  loop we add. It would be enough to do it once at the end.
+    //  However currently AssemblePolygon() would terminate the process
+    //  if compiled in debug mode (FLAGS_s2debug) upon encountering an invalid
+    //  polygon.
+    //  Probably we can stop using FLAGS_s2debug once things have settled.
     builder_opts.set_validate(true);
     S2PolygonBuilder builder(builder_opts);
     for (size_t i = 0; i < loops.size(); ++i) {
@@ -333,9 +340,8 @@ void visit_geojson(s2_geo_visitor_t *visitor, const counted_t<const datum_t> &ge
 }
 
 void validate_geojson(const counted_t<const ql::datum_t> &geojson) {
-    // We rely on `visit_geojson()` to perform all necessary validation
-    // TODO! Change that. Probably visit_geojson() should do less validation,
-    //       and we should do more.
+    // Note that `visit_geojson()` already performs the major amount of validation.
+    // We just add a few checks on top.
     // TODO! Check that the GeoJSON doesn't specify a reference system
     class validator_t : public s2_geo_visitor_t {
     public:

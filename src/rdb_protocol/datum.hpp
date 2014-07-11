@@ -219,6 +219,7 @@ private:
     void array_to_str_key(std::string *str_out) const;
 
     int pseudo_cmp(const datum_t &rhs) const;
+    bool should_compare_as_obj() const;
     static const std::set<std::string> _allowed_pts;
     void maybe_sanitize_ptype(const std::set<std::string> &allowed_pts = _allowed_pts);
 

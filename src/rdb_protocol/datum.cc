@@ -371,6 +371,17 @@ int datum_t::pseudo_cmp(const datum_t &rhs) const {
     rfail(base_exc_t::GENERIC, "Incomparable type %s.", get_type_name().c_str());
 }
 
+bool datum_t::should_compare_as_obj() const {
+    r_sanity_check(is_ptype());
+    if (get_reql_type() == "geometry") {
+        // We compare geometry by its object representation.
+        // That's not especially meaningful, but works for indexing etc.
+        return true;
+    } else {
+        return false;
+    }
+}
+
 void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
     if (is_ptype()) {
         if (get_reql_type() == pseudo::time_string) {
@@ -1005,7 +1016,7 @@ int datum_t::cmp(const datum_t &rhs) const {
         return i == rhs.as_array().size() ? 0 : -1;
     } unreachable();
     case R_OBJECT: {
-        if (is_ptype()) {
+        if (is_ptype() && !should_compare_as_obj()) {
             if (get_reql_type() != rhs.get_reql_type()) {
                 return derived_cmp(get_reql_type(), rhs.get_reql_type());
             }
