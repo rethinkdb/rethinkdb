@@ -42,13 +42,13 @@
 #define DCHECK_GE(val1, val2) CHECK_GE(val1, val2)
 #define DCHECK_GT(val1, val2) CHECK_GT(val1, val2)
 #else
-#define DCHECK(condition) CHECK(false)
-#define DCHECK_EQ(val1, val2) CHECK(false)
-#define DCHECK_NE(val1, val2) CHECK(false)
-#define DCHECK_LE(val1, val2) CHECK(false)
-#define DCHECK_LT(val1, val2) CHECK(false)
-#define DCHECK_GE(val1, val2) CHECK(false)
-#define DCHECK_GT(val1, val2) CHECK(false)
+#define DCHECK(condition) CHECK(true)
+#define DCHECK_EQ(val1, val2) CHECK(true)
+#define DCHECK_NE(val1, val2) CHECK(true)
+#define DCHECK_LE(val1, val2) CHECK(true)
+#define DCHECK_LT(val1, val2) CHECK(true)
+#define DCHECK_GE(val1, val2) CHECK(true)
+#define DCHECK_GT(val1, val2) CHECK(true)
 #endif
 
 #define LOG_INFO LogMessage(__FILE__, __LINE__)

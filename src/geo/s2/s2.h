@@ -587,7 +587,7 @@ inline S2Point S2::Origin() {
 #endif
 }
 
-inline int S2::TriageCCW(S2Point const& a, S2Point const& b,
+inline int S2::TriageCCW(DEBUG_VAR S2Point const& a, DEBUG_VAR S2Point const& b,
                          S2Point const& c, S2Point const& a_cross_b) {
   DCHECK(IsUnitLength(a));
   DCHECK(IsUnitLength(b));

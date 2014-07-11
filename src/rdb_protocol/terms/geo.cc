@@ -23,6 +23,7 @@ void check_is_geometry(const counted_t<val_t> &v) {
                   "Value must be of geometry type.");
 }
 
+// TODO! geoJson and toGeoJson should work on streams.
 class geojson_term_t : public op_term_t {
 public:
     geojson_term_t(compile_env_t *env, const protob_t<const Term> &term)
@@ -378,7 +379,7 @@ counted_t<term_t> make_intersects_term(compile_env_t *env, const protob_t<const 
     return make_counted<intersects_term_t>(env, term);
 }
 counted_t<term_t> make_includes_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<intersects_term_t>(env, term);
+    return make_counted<includes_term_t>(env, term);
 }
 counted_t<term_t> make_distance_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<distance_term_t>(env, term);
