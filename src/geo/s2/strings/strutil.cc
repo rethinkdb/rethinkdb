@@ -158,7 +158,7 @@ char* FastInt32ToBufferLeft(int32 i, char* buffer) {
 }
 char* FastInt64ToBufferLeft(int64 i, char* buffer) {
   string s = Int64ToString(i);
-  guarantee(s.length() + 1 < kFastToBufferSize);
+  guarantee(s.length() + 1u < kFastToBufferSize);
   memcpy(buffer, s.c_str(), s.length() + 1);
   return buffer + s.length();
 }

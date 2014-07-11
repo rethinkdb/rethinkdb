@@ -361,13 +361,13 @@ real geod_genposition(const struct geod_geodesicline* l,
   real omg12, lam12, lon12;
   real ssig2, csig2, sbet2, cbet2, somg2, comg2, salp2, calp2, dn2;
   unsigned outmask =
-    (plat2 ? GEOD_LATITUDE : 0U) |
-    (plon2 ? GEOD_LONGITUDE : 0U) |
-    (pazi2 ? GEOD_AZIMUTH : 0U) |
-    (ps12 ? GEOD_DISTANCE : 0U) |
-    (pm12 ? GEOD_REDUCEDLENGTH : 0U) |
-    (pM12 || pM21 ? GEOD_GEODESICSCALE : 0U) |
-    (pS12 ? GEOD_AREA : 0U);
+    (plat2 ? GEOD_LATITUDE : GEOD_NONE) |
+    (plon2 ? GEOD_LONGITUDE : GEOD_NONE) |
+    (pazi2 ? GEOD_AZIMUTH : GEOD_NONE) |
+    (ps12 ? GEOD_DISTANCE : GEOD_NONE) |
+    (pm12 ? GEOD_REDUCEDLENGTH : GEOD_NONE) |
+    (pM12 || pM21 ? GEOD_GEODESICSCALE : GEOD_NONE) |
+    (pS12 ? GEOD_AREA : GEOD_NONE);
 
   outmask &= l->caps & OUT_ALL;
   if (!( TRUE /*Init()*/ &&
@@ -558,13 +558,13 @@ real geod_gendirect(const struct geod_geodesic* g,
                     real* pS12) {
   struct geod_geodesicline l;
   unsigned outmask =
-    (plat2 ? GEOD_LATITUDE : 0U) |
-    (plon2 ? GEOD_LONGITUDE : 0U) |
-    (pazi2 ? GEOD_AZIMUTH : 0U) |
-    (ps12 ? GEOD_DISTANCE : 0U) |
-    (pm12 ? GEOD_REDUCEDLENGTH : 0U) |
-    (pM12 || pM21 ? GEOD_GEODESICSCALE : 0U) |
-    (pS12 ? GEOD_AREA : 0U);
+    (plat2 ? GEOD_LATITUDE : GEOD_NONE) |
+    (plon2 ? GEOD_LONGITUDE : GEOD_NONE) |
+    (pazi2 ? GEOD_AZIMUTH : GEOD_NONE) |
+    (ps12 ? GEOD_DISTANCE : GEOD_NONE) |
+    (pm12 ? GEOD_REDUCEDLENGTH : GEOD_NONE) |
+    (pM12 || pM21 ? GEOD_GEODESICSCALE : GEOD_NONE) |
+    (pS12 ? GEOD_AREA : GEOD_NONE);
 
   geod_lineinit(&l, g, lat1, lon1, azi1,
                 /* Automatically supply GEOD_DISTANCE_IN if necessary */
@@ -597,11 +597,11 @@ real geod_geninverse(const struct geod_geodesic* g,
   real omg12 = 0;
 
   unsigned outmask =
-    (ps12 ? GEOD_DISTANCE : 0U) |
-    (pazi1 || pazi2 ? GEOD_AZIMUTH : 0U) |
-    (pm12 ? GEOD_REDUCEDLENGTH : 0U) |
-    (pM12 || pM21 ? GEOD_GEODESICSCALE : 0U) |
-    (pS12 ? GEOD_AREA : 0U);
+    (ps12 ? GEOD_DISTANCE : GEOD_NONE) |
+    (pazi1 || pazi2 ? GEOD_AZIMUTH : GEOD_NONE) |
+    (pm12 ? GEOD_REDUCEDLENGTH : GEOD_NONE) |
+    (pM12 || pM21 ? GEOD_GEODESICSCALE : GEOD_NONE) |
+    (pS12 ? GEOD_AREA : GEOD_NONE);
 
   outmask &= OUT_ALL;
   /* Compute longitude difference (AngDiff does this carefully).  Result is

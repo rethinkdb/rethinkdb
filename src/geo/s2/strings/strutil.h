@@ -52,7 +52,7 @@ using namespace __gnu_cxx;
 // A buffer size which is large enough for all the FastToBuffer functions, as
 // well as DoubleToBuffer and FloatToBuffer.  We define this here in case other
 // string headers depend on it.
-static const int kFastToBufferSize =       32;
+static const unsigned int kFastToBufferSize = 32;
 
 #include "geo/s2/base/basictypes.h"
 #include "geo/s2/base/logging.h"  // for CHECK
