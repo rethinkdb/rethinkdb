@@ -143,7 +143,7 @@ lat_lon_point_t position_to_lat_lon_point(const counted_t<const datum_t> &positi
 }
 
 lat_lon_point_t extract_lat_lon_point(const counted_t<const datum_t> &geojson) {;
-    if (geojson->get("type")->as_str().to_std() != "Position") {
+    if (geojson->get("type")->as_str().to_std() != "Point") {
         throw geo_exception_t(
             strprintf("Expected Point, but got %s", geojson->get("type")->as_str().c_str()));
     }
@@ -174,6 +174,8 @@ scoped_ptr_t<S2Polyline> coordinates_to_s2polyline(const counted_t<const datum_t
         "For type "LineString", the "coordinates" member must be an array of two
          or more positions."
     */
+    // TODO! We must catch the case where points are antipodal or identical.
+    // Currently S2 crashes.
     const std::vector<counted_t<const datum_t> > arr = coords->as_array();
     if (arr.size() < 2) {
         throw geo_exception_t(

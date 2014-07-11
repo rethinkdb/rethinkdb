@@ -36,4 +36,4 @@ bool geo_does_intersect(const S2Polyline &line,
 bool geo_does_intersect(const S2Polygon &polygon,
                         const S2Polygon &other_polygon);
 
-#endif  // GEO_GEO_VISITOR_HPP_
+#endif  // GEO_INTERSECTION_HPP_

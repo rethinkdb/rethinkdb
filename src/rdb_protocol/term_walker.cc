@@ -253,7 +253,9 @@ private:
         case Term::POLYGON:
         case Term::DISTANCE:
         case Term::INTERSECTS:
+        case Term::INCLUDES:
         case Term::CIRCLE:
+        case Term::RECTANGLE:
             return false;
         default: unreachable();
         }
@@ -429,7 +431,9 @@ private:
         case Term::POLYGON:
         case Term::DISTANCE:
         case Term::INTERSECTS:
+        case Term::INCLUDES:
         case Term::CIRCLE:
+        case Term::RECTANGLE:
             return false;
         default: unreachable();
         }

@@ -121,9 +121,13 @@ counted_t<term_t> make_polygon_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_intersects_term(
     compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_includes_term(
+    compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_distance_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_circle_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_rectangle_term(
     compile_env_t *env, const protob_t<const Term> &term);
 
 // js.cc

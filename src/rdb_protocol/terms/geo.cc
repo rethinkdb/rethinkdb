@@ -6,6 +6,7 @@
 #include "geo/ellipsoid.hpp"
 #include "geo/exceptions.hpp"
 #include "geo/geojson.hpp"
+#include "geo/inclusion.hpp"
 #include "geo/intersection.hpp"
 #include "geo/primitives.hpp"
 #include "geo/s2/s2polygon.h"
@@ -175,6 +176,29 @@ private:
     virtual const char *name() const { return "intersects"; }
 };
 
+class includes_term_t : public op_term_t {
+public:
+    includes_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(2)) { }
+private:
+    counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<val_t> polygon = args->arg(env, 0);
+        counted_t<val_t> g = args->arg(env, 1);
+        check_is_geometry(polygon);
+        check_is_geometry(g);
+
+        try {
+            scoped_ptr_t<S2Polygon> s2polygon = to_s2polygon(polygon->as_datum());
+            bool result = geo_does_include(*s2polygon, g->as_datum());
+
+            return new_val(make_counted<const datum_t>(datum_t::R_BOOL, result));
+        } catch (const geo_exception_t &e) {
+            rfail(base_exc_t::GENERIC, "%s", e.what());
+        }
+    }
+    virtual const char *name() const { return "includes"; }
+};
+
 ellipsoid_spec_t pick_reference_ellipsoid(scope_env_t *env, args_t *args) {
     counted_t<val_t> geo_system_arg = args->optarg(env, "geo_system");
     if (geo_system_arg.has()) {
@@ -274,7 +298,6 @@ private:
         }
 
         try {
-            // TODO! This is just a quick hack for testing.
             lat_lon_point_t center = extract_lat_lon_point(center_arg->as_datum());
             double radius = radius_arg->as_num();
             radius = convert_dist_unit(radius, radius_unit, dist_unit_t::M);
@@ -296,44 +319,45 @@ private:
     virtual const char *name() const { return "circle"; }
 };
 
-/*
-class includes_term_t : public op_term_t {
+class rectangle_term_t : public op_term_t {
 public:
-    includes_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(2)) { }
+    rectangle_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(2),
+          optargspec_t({"fill"})) { }
 private:
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> poly = args->arg(env, 0);
-        counted_t<val_t> g = args->arg(env, 1);
-        // TODO! Type validation
+        counted_t<val_t> base_arg = args->arg(env, 0);
+        counted_t<val_t> opposite_arg = args->arg(env, 1);
+        check_is_geometry(base_arg);
+        check_is_geometry(opposite_arg);
+        // TODO! Support array points
 
-        // TODO! Use visitor
-        S2Polygon poly_s2 = polygon_to_s2(poly);
-        bool result;
-        if (g_type == "Polygon") {
-            S2Polygon g_poly = polygon_to_s2(g);
-            result = poly_s2.Contains(g_poly);
-        } else if (g_type == "LineString") {
-            S2Polyline g_line = line_to_s2(g);
-            // poly_s2 contains g_line, iff
-            // - Any of the points of poly_s2 is in g_line,
-            // - and g_line does not intersect with any of the outlines of g_poly
-            // TODO!
-            r_sanity_check(false);
-            result = false;
-        } else if (g_type == "Point") {
-            S2Point g_point = point_to_s2(g);
-            result = poly_s2.Contains(g_point);
-        } else {
-            // TODO! Handle properly
-            r_sanity_check(false);
-            result = false;
+        counted_t<val_t> fill_arg = args->optarg(env, "fill");
+        bool fill = true;
+        if (fill_arg.has()) {
+            fill = fill_arg->as_bool();
         }
 
-        return new_val(result.to_counted());
+        try {
+            lat_lon_point_t base = extract_lat_lon_point(base_arg->as_datum());
+            lat_lon_point_t opposite = extract_lat_lon_point(opposite_arg->as_datum());
+
+            const lat_lon_line_t rectangle =
+                build_rectangle(base, opposite);
+
+            const counted_t<const datum_t> result =
+                fill
+                ? construct_geo_polygon(rectangle)
+                : construct_geo_line(rectangle);
+            validate_geojson(result);
+
+            return new_val(result);
+        } catch (const geo_exception_t &e) {
+            rfail(base_exc_t::GENERIC, "%s", e.what());
+        }
     }
-    virtual const char *name() const { return "includes"; }
-};*/
+    virtual const char *name() const { return "rectangle"; }
+};
 
 counted_t<term_t> make_geojson_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<geojson_term_t>(env, term);
@@ -353,11 +377,17 @@ counted_t<term_t> make_polygon_term(compile_env_t *env, const protob_t<const Ter
 counted_t<term_t> make_intersects_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<intersects_term_t>(env, term);
 }
+counted_t<term_t> make_includes_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<intersects_term_t>(env, term);
+}
 counted_t<term_t> make_distance_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<distance_term_t>(env, term);
 }
 counted_t<term_t> make_circle_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<circle_term_t>(env, term);
+}
+counted_t<term_t> make_rectangle_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<rectangle_term_t>(env, term);
 }
 
 } // namespace ql
