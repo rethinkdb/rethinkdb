@@ -7,7 +7,6 @@ using std::multiset;
 #include <vector>
 using std::vector;
 
-#include "geo/s2/base/commandlineflags.h"
 #include "geo/s2/base/logging.h"
 #include "geo/s2/util/math/matrix3x3-inl.h"
 #include "geo/s2/s2polyline.h"

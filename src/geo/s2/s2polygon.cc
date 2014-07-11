@@ -17,7 +17,6 @@ using std::multiset;
 using std::vector;
 
 
-#include "geo/s2/base/commandlineflags.h"
 #include "geo/s2/s2polygon.h"
 
 #include "geo/s2/base/port.h"  // for HASH_NAMESPACE_DECLARATION_START
@@ -672,8 +671,7 @@ class S2LoopsAsVectorsIndex: public S2LoopSequenceIndex {
     DecodeIndex(index, &loop_index, &vertex_in_loop);
     vector<S2Point> const* loop = loops_[loop_index];
     *from = &loop->at(vertex_in_loop);
-    // TODO! static_cast
-    *to = &loop->at(static_cast<size_t>(vertex_in_loop) == loop->size() - 1
+    *to = &loop->at(vertex_in_loop == static_cast<int>(loop->size()) - 1
                       ? 0
                       : vertex_in_loop + 1);
   }

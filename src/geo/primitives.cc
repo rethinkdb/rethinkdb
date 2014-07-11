@@ -10,6 +10,7 @@ lat_lon_line_t build_circle(const lat_lon_point_t &center,
                             double radius,
                             unsigned int num_vertices,
                             const ellipsoid_spec_t &e) {
+    // TODO! What happens when radius is very big compared to the ellipsoid's radius?
     if (radius <= 0.0) {
         throw geo_exception_t("Radius must be positive");
     }

@@ -22,7 +22,6 @@ void StringAppendV(string* dst, const char* format, va_list ap) {
   int result = vsnprintf(space, sizeof(space), format, backup_ap);
   va_end(backup_ap);
 
-  // TODO! static_cast
   if ((result >= 0) && (result < static_cast<int>(sizeof(space)))) {
     // It fit
     dst->append(space, result);

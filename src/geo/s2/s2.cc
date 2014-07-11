@@ -2,7 +2,6 @@
 
 #include "s2.h"
 
-#include "geo/s2/base/commandlineflags.h"
 #include "geo/s2/base/integral_types.h"
 #include "geo/s2/base/logging.h"
 #include "geo/s2/util/math/matrix3x3-inl.h"
@@ -179,7 +178,7 @@ int S2::RobustCCW(S2Point const& a, S2Point const& b, S2Point const& c) {
 // therefore subject to an LGPL license) and ExactFloat (which is based on the
 // OpenSSL Bignum library and therefore has a permissive BSD-style license).
 
-// TODO! For now use exact float
+// Use exactfloat.
 #define S2_USE_EXACTFLOAT 1
 
 #ifdef S2_USE_EXACTFLOAT

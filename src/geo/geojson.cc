@@ -295,7 +295,6 @@ scoped_ptr_t<S2Polygon> to_s2polygon(const counted_t<const ql::datum_t> &geojson
     return coordinates_to_s2polygon(coordinates);
 }
 
-// TODO! What does it throw?
 void visit_geojson(s2_geo_visitor_t *visitor, const counted_t<const datum_t> &geojson) {
     // TODO! Ensure that geojson has either no "crs" member, or it is null.
     // Fail otherwise.

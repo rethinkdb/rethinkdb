@@ -59,7 +59,7 @@ private:
 
         datum_ptr_t result(v->as_datum()->as_object());
         bool success = result.delete_field("$reql_type$");
-        r_sanity_check(success); // TODO! Assumes we verify the type beforehand...
+        r_sanity_check(success);
         return new_val(result.to_counted());
     }
     virtual const char *name() const { return "to_geojson"; }
@@ -330,7 +330,7 @@ private:
         counted_t<val_t> opposite_arg = args->arg(env, 1);
         check_is_geometry(base_arg);
         check_is_geometry(opposite_arg);
-        // TODO! Support array points
+        // TODO! Support [lat, lon] points
 
         counted_t<val_t> fill_arg = args->optarg(env, "fill");
         bool fill = true;

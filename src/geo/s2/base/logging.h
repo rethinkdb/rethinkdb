@@ -15,13 +15,11 @@
 #define BASE_LOGGING_H
 
 #include <stdlib.h>
-#include <iostream>
-using std::ostream;
-using std::cout;
-using std::endl;
+#include <sstream>
 
 #include "errors.hpp"
 #include "geo/s2/base/macros.h"
+#include "clustering/administration/logger.hpp"
 
 // Always-on checking
 #define CHECK(x)	if(x){}else LogMessageFatal(__FILE__, __LINE__).stream() << "Check failed: " #x
@@ -81,16 +79,19 @@ class DateLogger {
 };
 }  // namespace google_base
 
-// TODO! These should use our own logging
 class LogMessage {
  public:
   LogMessage(const char* file, int line) {
-    std::cerr << "[" << pretty_date_.HumanDate() << "] "
-              << file << ":" << line << ": ";
+    str << "[" << pretty_date_.HumanDate() << "] "
+        << file << ":" << line << ": ";
   }
-  ~LogMessage() { std::cerr << "\n"; }
-  std::ostream& stream() { return std::cerr; }
+  ~LogMessage() {
+      logWRN("%s", str.str().c_str());
+  }
+  std::ostream& stream() { return str; }
 
+ protected:
+  std::stringstream str;
  private:
   google_base::DateLogger pretty_date_;
   DISALLOW_COPY_AND_ASSIGN(LogMessage);
@@ -101,7 +102,7 @@ class LogMessageFatal : public LogMessage {
   LogMessageFatal(const char* file, int line)
     : LogMessage(file, line) { }
   NORETURN ~LogMessageFatal() {
-    std::cerr << "\n";
+    logERR("%s", str.str().c_str());
     crash("Fatal S2 error");
   }
  private:

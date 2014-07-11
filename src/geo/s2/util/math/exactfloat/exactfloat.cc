@@ -54,7 +54,6 @@ inline static void BN_ext_set_uint64(BIGNUM* bn, uint64 v) {
 // Return the absolute value of a BIGNUM as a 64-bit unsigned integer.
 // Requires that BIGNUM fits into 64 bits.
 inline static uint64 BN_ext_get_uint64(const BIGNUM* bn) {
-  // TODO! static_cast
   DCHECK_LE(BN_num_bytes(bn), static_cast<int>(sizeof(uint64)));
 #if BN_BITS2 == 64
   return BN_get_word(bn);
@@ -329,7 +328,6 @@ string ExactFloat::ToStringWithMaxDigits(int max_digits) const {
     // Use fixed format.  We split this into two cases depending on whether
     // the integer portion is non-zero or not.
     if (exp10 > 0) {
-      // TODO! static_cast
       if (static_cast<size_t>(exp10) >= digits.size()) {
         str += digits;
         for (int i = exp10 - digits.size(); i > 0; --i) {
@@ -418,7 +416,6 @@ int ExactFloat::GetDecimalDigits(int max_digits, string* digits) const {
     bn_exp10 += digits->end() - pos;
     digits->erase(pos, digits->end());
   }
-  // TODO! static_cast
   DCHECK_LE(static_cast<int>(digits->size()), max_digits);
 
   // Finally, we adjust the base-10 exponent so that the mantissa is a

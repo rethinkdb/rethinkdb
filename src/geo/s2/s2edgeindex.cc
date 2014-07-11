@@ -68,7 +68,6 @@ using std::pair;
 using std::make_pair;
 
 
-#include "geo/s2/base/commandlineflags.h"
 #include "geo/s2/base/logging.h"
 #include "geo/s2/s2cell.h"
 #include "geo/s2/s2edgeutil.h"

@@ -4,7 +4,6 @@
 using std::numeric_limits;
 
 
-#include "geo/s2/base/commandlineflags.h"
 #include "geo/s2/base/integral_types.h"
 #include "geo/s2/base/logging.h"
 #include "geo/s2/base/macros.h"

@@ -252,13 +252,11 @@ void S2RegionCoverer::GetCoveringInternal(S2Region const& region) {
   candidates_created_counter_ = 0;
 
   GetInitialCandidates();
-  // TODO! static_cast
   while (!pq_->empty() &&
          (!interior_covering_ || result_->size() < static_cast<size_t>(max_cells_))) {
     Candidate* candidate = pq_->top().second;
     pq_->pop();
     VLOG(2) << "Pop: " << candidate->cell.id();
-    // TODO! static_cast
     if (candidate->cell.level() < min_level_ ||
         candidate->num_children == 1 ||
         result_->size() + (interior_covering_ ? 0 : pq_->size()) +

@@ -68,8 +68,7 @@ void S2CellUnion::Detach(vector<S2CellId>* cell_ids) {
 }
 
 void S2CellUnion::Pack(int excess) {
-  // TODO! static_cast
-  if (static_cast<int>(cell_ids_.capacity() - cell_ids_.size()) > excess) {
+  if (excess >= 0 && cell_ids_.capacity() - cell_ids_.size() > static_cast<size_t>(excess)) {
     vector<S2CellId> packed = cell_ids_;
     cell_ids_.swap(packed);
   }
@@ -128,8 +127,7 @@ bool S2CellUnion::Normalize() {
     }
     output.push_back(id);
   }
-  // TODO! static_cast
-  if (output.size() < static_cast<size_t>(num_cells())) {
+  if (static_cast<int>(output.size()) < num_cells()) {
     InitRawSwap(&output);
     return true;
   }

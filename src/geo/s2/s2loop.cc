@@ -23,7 +23,6 @@ using std::make_pair;
 
 #include "geo/s2/s2loop.h"
 
-#include "geo/s2/base/commandlineflags.h"
 #include "geo/s2/base/logging.h"
 #include "geo/s2/base/scoped_ptr.h"
 #include "geo/s2/util/coding/coder.h"

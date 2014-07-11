@@ -17,7 +17,6 @@ private:
     std::string msg_;
 };
 
-// TODO! Improve those
 class geo_range_exception_t : public geo_exception_t {
 public:
     geo_range_exception_t(std::string msg) : geo_exception_t(msg) { }

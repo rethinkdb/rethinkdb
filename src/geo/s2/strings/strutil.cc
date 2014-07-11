@@ -148,7 +148,7 @@ char *FastInt32ToBuffer(int32 i, char* buffer) {
   return buffer;
 }
 
-// TODO! These are note the original implementations. The original ones can be found at
+// These are not the original implementations. The original ones can be found at
 // http://protobuf-mercury.googlecode.com/svn-history/r49/trunk/src/google/protobuf/compiler/mercury/mercury_strutil.cc
 // under an unclear license, but seem to be missing in the S2 repository.
 // These ones are slower.
