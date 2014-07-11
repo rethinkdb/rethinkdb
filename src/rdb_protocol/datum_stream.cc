@@ -196,13 +196,13 @@ bool reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
             }
 
             rcheck_datum(
-                (items.size() + new_items.size()) <= array_size_limit(),
+                (items.size() + new_items.size()) <= env->limits.array_size_limit(),
                 base_exc_t::GENERIC,
                 strprintf("Too many rows (> %zu) with the same "
                           "truncated key for index `%s`.  "
                           "Example value:\n%s\n"
                           "Truncated key:\n%s",
-                          array_size_limit(),
+                          env->limits.array_size_limit(),
                           readgen->sindex_name().c_str(),
                           items[items.size() - 1].sindex_key->trunc_print().c_str(),
                           key_to_debug_str(items[items.size() - 1].key).c_str()));
@@ -259,10 +259,10 @@ reader_t::next_batch(env_t *env, const batchspec_t &batchspec) {
                 res.push_back(std::move(items[items_index].data));
 
                 rcheck_datum(
-                    res.size() <= array_size_limit(), base_exc_t::GENERIC,
+                    res.size() <= env->limits.array_size_limit(), base_exc_t::GENERIC,
                     strprintf("Too many rows (> %zu) with the same value "
                               "for index `%s`:\n%s",
-                              array_size_limit(),
+                              env->limits.array_size_limit(),
                               readgen->sindex_name().c_str(),
                               // This is safe because you can't have duplicate
                               // primary keys, so they will never exceed the

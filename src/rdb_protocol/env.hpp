@@ -28,6 +28,16 @@ counted_t<const datum_t> static_optarg(const std::string &key, protob_t<Query> q
 
 std::map<std::string, wire_func_t> global_optargs(protob_t<Query> q);
 
+class configured_limits_t {
+public:
+    configured_limits_t() : _array_size_limit(100000) {}
+    configured_limits_t(const size_t limit) : _array_size_limit(limit) {}
+
+    size_t array_size_limit() const { return _array_size_limit; }
+private:
+    const size_t _array_size_limit;
+};
+
 class global_optargs_t {
 public:
     global_optargs_t();
@@ -90,6 +100,9 @@ public:
     // The global optargs values passed to .run(...) in the Python, Ruby, and JS
     // drivers.
     global_optargs_t global_optargs;
+
+    // User specified configuration limits; e.g. array size limits
+    configured_limits_t limits;
 
     // The interruptor signal while a query evaluates.
     signal_t *const interruptor;

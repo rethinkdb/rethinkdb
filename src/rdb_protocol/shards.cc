@@ -197,16 +197,16 @@ class to_array_t : public eager_acc_t {
 public:
     to_array_t() : size(0) { }
 private:
-    virtual void operator()(env_t *, groups_t *gs) {
+    virtual void operator()(env_t *env, groups_t *gs) {
         for (auto kv = gs->begin(); kv != gs->end(); ++kv) {
             datums_t *lst1 = &groups[kv->first];
             datums_t *lst2 = &kv->second;
             size += lst2->size();
             rcheck_toplevel(
-                size <= array_size_limit(), base_exc_t::GENERIC,
+                size <= env->limits.array_size_limit(), base_exc_t::GENERIC,
                 strprintf("Grouped data over size limit %zu.  "
                           "Try putting a reduction (like `.reduce` or `.count`) "
-                          "on the end.", array_size_limit()).c_str());
+                          "on the end.", env->limits.array_size_limit()).c_str());
             lst1->reserve(lst1->size() + lst2->size());
             std::move(lst2->begin(), lst2->end(), std::back_inserter(*lst1));
         }
@@ -668,8 +668,8 @@ private:
 
             rcheck_src(
                 bt.get(), base_exc_t::GENERIC,
-                groups->size() <= array_size_limit(),
-                strprintf("Too many groups (> %zu).", array_size_limit()));
+                groups->size() <= env->limits.array_size_limit(),
+                strprintf("Too many groups (> %zu).", env->limits.array_size_limit()));
         }
         size_t erased = groups->erase(counted_t<const datum_t>());
         r_sanity_check(erased == 1);
