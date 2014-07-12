@@ -11,6 +11,8 @@ class wire_func_t;
 class configured_limits_t {
 public:
     configured_limits_t() : _array_size_limit(100000) {}
+    explicit configured_limits_t(const configured_limits_t &c)
+        : _array_size_limit(c._array_size_limit) {}
     explicit configured_limits_t(const size_t limit) : _array_size_limit(limit) {}
 
     size_t array_size_limit() const { return _array_size_limit; }
