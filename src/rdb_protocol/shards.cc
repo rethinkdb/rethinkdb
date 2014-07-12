@@ -232,12 +232,14 @@ private:
         }
     }
 
-    virtual counted_t<val_t> finish_eager(
-        protob_t<const Backtrace> bt, bool is_grouped) {
+    virtual counted_t<val_t> finish_eager(protob_t<const Backtrace> bt,
+                                          bool is_grouped,
+                                          const configured_limits_t &limits) {
         if (is_grouped) {
             counted_t<grouped_data_t> ret(new grouped_data_t());
             for (auto kv = groups.begin(); kv != groups.end(); ++kv) {
-                (*ret)[kv->first] = make_counted<const datum_t>(std::move(kv->second));
+                (*ret)[kv->first] = make_counted<const datum_t>(std::move(kv->second),
+                                                               limits);
             }
             return make_counted<val_t>(std::move(ret), bt);
         } else if (groups.size() == 0) {
@@ -245,7 +247,8 @@ private:
         } else {
             r_sanity_check(groups.size() == 1 && !groups.begin()->first.has());
             return make_counted<val_t>(
-                make_counted<const datum_t>(std::move(groups.begin()->second)), bt);
+                make_counted<const datum_t>(std::move(groups.begin()->second), limits),
+                bt);
         }
     }
 
@@ -280,7 +283,8 @@ private:
     }
 
     virtual counted_t<val_t> finish_eager(protob_t<const Backtrace> bt,
-                                          bool is_grouped) {
+                                          bool is_grouped,
+                                          UNUSED const configured_limits_t &limits) {
         accumulator_t::mark_finished();
         grouped_t<T> *acc = grouped_acc_t<T>::get_acc();
         const T *default_val = grouped_acc_t<T>::get_default_val();
@@ -646,7 +650,7 @@ private:
             r_sanity_check(arr.size() == (funcs.size() + append_index));
 
             if (!multi) {
-                add(groups, std::move(arr), *el);
+                add(groups, std::move(arr), *el, env->limits);
             } else {
                 std::vector<std::vector<counted_t<const datum_t> > > perms(arr.size());
                 for (size_t i = 0; i < arr.size(); ++i) {
@@ -662,7 +666,7 @@ private:
                 }
                 std::vector<counted_t<const datum_t> > instance;
                 instance.reserve(perms.size());
-                add_perms(groups, &instance, &perms, 0, *el);
+                add_perms(groups, &instance, &perms, 0, *el, env->limits);
                 r_sanity_check(instance.size() == 0);
             }
 
@@ -677,10 +681,11 @@ private:
 
     void add(groups_t *groups,
              std::vector<counted_t<const datum_t> > &&arr,
-             const counted_t<const datum_t> &el) {
+             const counted_t<const datum_t> &el,
+             const configured_limits_t &limits) {
         counted_t<const datum_t> group = arr.size() == 1
             ? std::move(arr[0])
-            : make_counted<const datum_t>(std::move(arr));
+            : make_counted<const datum_t>(std::move(arr), limits);
         r_sanity_check(group.has());
         (*groups)[group].push_back(el);
     }
@@ -689,22 +694,23 @@ private:
                    std::vector<counted_t<const datum_t> > *instance,
                    std::vector<std::vector<counted_t<const datum_t> > > *arr,
                    size_t index,
-                   const counted_t<const datum_t> &el) {
+                   const counted_t<const datum_t> &el,
+                   const configured_limits_t &limits) {
         r_sanity_check(index == instance->size());
         if (index >= arr->size()) {
             r_sanity_check(instance->size() == arr->size());
-            add(groups, std::vector<counted_t<const datum_t> >(*instance), el);
+            add(groups, std::vector<counted_t<const datum_t> >(*instance), el, limits);
         } else {
             auto vec = (*arr)[index];
             if (vec.size() != 0) {
                 for (auto it = vec.begin(); it != vec.end(); ++it) {
                     instance->push_back(std::move(*it));
-                    add_perms(groups, instance, arr, index + 1, el);
+                    add_perms(groups, instance, arr, index + 1, el, limits);
                     instance->pop_back();
                 }
             } else {
                 instance->push_back(datum_t::null());
-                add_perms(groups, instance, arr, index + 1, el);
+                add_perms(groups, instance, arr, index + 1, el, limits);
                 instance->pop_back();
             }
         }

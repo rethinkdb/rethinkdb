@@ -20,6 +20,7 @@
 #include "extproc/extproc_job.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
+#include "rdb_protocol/env.hpp"
 
 #include "debug.hpp"
 
@@ -38,6 +39,7 @@ const js_id_t MAX_ID = std::numeric_limits<js_id_t>::max();
 
 // Returns an empty counted_t on error.
 counted_t<const ql::datum_t> js_to_datum(const v8::Handle<v8::Value> &value,
+                                         const ql::configured_limits_t &limits,
                                          std::string *errmsg);
 
 // Should never error.
@@ -377,8 +379,12 @@ js_result_t js_env_t::eval(const std::string &source) {
             } else {
                 guarantee(!result_val.IsEmpty());
 
+                // HACK: haven't communicated user prefs, use default
+                ql::configured_limits_t limits;
+
                 // JSONify result.
-                counted_t<const ql::datum_t> datum = js_to_datum(result_val, errmsg);
+                counted_t<const ql::datum_t> datum = js_to_datum(result_val, limits,
+                                                                 errmsg);
                 if (datum.has()) {
                     result = datum;
                 }
@@ -465,8 +471,11 @@ js_result_t js_env_t::call(js_id_t id,
             v8::Handle<v8::Function> sub_func = v8::Handle<v8::Function>::Cast(value);
             result = remember_value(sub_func);
         } else {
+            // HACK: haven't communicated user prefs, use default
+            ql::configured_limits_t limits;
+
             // JSONify result.
-            counted_t<const ql::datum_t> datum = js_to_datum(value, errmsg);
+            counted_t<const ql::datum_t> datum = js_to_datum(value, limits, errmsg);
             if (datum.has()) {
                 result = datum;
             }
@@ -484,6 +493,7 @@ void js_env_t::release(js_id_t id) {
 // TODO: Is there a better way of detecting circular references than a recursion limit?
 counted_t<const ql::datum_t> js_make_datum(const v8::Handle<v8::Value> &value,
                                            int recursion_limit,
+                                           const ql::configured_limits_t &limits,
                                            std::string *errmsg) {
     counted_t<const ql::datum_t> result;
 
@@ -522,7 +532,8 @@ counted_t<const ql::datum_t> js_make_datum(const v8::Handle<v8::Value> &value,
                 v8::Handle<v8::Value> elth = arrayh->Get(i);
                 guarantee(!elth.IsEmpty());
 
-                counted_t<const ql::datum_t> item = js_make_datum(elth, recursion_limit, errmsg);
+                counted_t<const ql::datum_t> item = js_make_datum(elth, recursion_limit,
+                                                                  limits, errmsg);
                 if (!item.has()) {
                     // Result is still empty, the error message has been set
                     return result;
@@ -530,7 +541,7 @@ counted_t<const ql::datum_t> js_make_datum(const v8::Handle<v8::Value> &value,
                 datum_array.push_back(std::move(item));
             }
 
-            result = make_counted<const ql::datum_t>(std::move(datum_array));
+            result = make_counted<const ql::datum_t>(std::move(datum_array), limits);
         } else if (value->IsFunction()) {
             // We can't represent functions in JSON.
             errmsg->assign("Cannot convert function to ql::datum_t.");
@@ -556,7 +567,8 @@ counted_t<const ql::datum_t> js_make_datum(const v8::Handle<v8::Value> &value,
                 v8::Handle<v8::Value> valueh = objh->Get(keyh);
                 guarantee(!valueh.IsEmpty());
 
-                counted_t<const ql::datum_t> item = js_make_datum(valueh, recursion_limit, errmsg);
+                counted_t<const ql::datum_t> item
+                    = js_make_datum(valueh, recursion_limit, limits, errmsg);
 
                 if (!item.has()) {
                     // Result is still empty, the error message has been set
@@ -594,14 +606,16 @@ counted_t<const ql::datum_t> js_make_datum(const v8::Handle<v8::Value> &value,
     return result;
 }
 
-counted_t<const ql::datum_t> js_to_datum(const v8::Handle<v8::Value> &value, std::string *errmsg) {
+counted_t<const ql::datum_t> js_to_datum(const v8::Handle<v8::Value> &value,
+                                         const ql::configured_limits_t &limits,
+                                         std::string *errmsg) {
     guarantee(!value.IsEmpty());
     guarantee(errmsg != NULL);
 
     DECLARE_HANDLE_SCOPE(handle_scope);
     errmsg->assign("Unknown error when converting to ql::datum_t.");
 
-    return js_make_datum(value, TO_JSON_RECURSION_LIMIT, errmsg);
+    return js_make_datum(value, TO_JSON_RECURSION_LIMIT, limits, errmsg);
 }
 
 v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum) {

@@ -11,6 +11,7 @@
 #include "logger.hpp"
 #include "rdb_protocol/math_utils.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/env.hpp"
 
 namespace profile {
 
@@ -73,18 +74,20 @@ counted_t<const ql::datum_t> construct_sample(
 
 counted_t<const ql::datum_t> construct_datum(
         event_log_t::const_iterator *begin,
-        event_log_t::const_iterator end);
+        event_log_t::const_iterator end,
+        const ql::configured_limits_t &limits);
 
 class construct_datum_visitor_t : public boost::static_visitor<void> {
 public:
     construct_datum_visitor_t(
         event_log_t::const_iterator *begin, event_log_t::const_iterator end,
+        const ql::configured_limits_t &limits,
         std::vector<counted_t<const ql::datum_t> > *res)
-        : begin_(begin), end_(end), res_(res) { }
+        : begin_(begin), end_(end), limits_(limits), res_(res) { }
 
     void operator()(const start_t &start) const {
         (*begin_)++;
-        counted_t<const ql::datum_t> sub_tasks = construct_datum(begin_, end_);
+        counted_t<const ql::datum_t> sub_tasks = construct_datum(begin_, end_, limits_);
         auto stop = boost::get<stop_t>(&**begin_);
         guarantee(stop);
         res_->push_back(construct_start(
@@ -95,12 +98,12 @@ public:
         (*begin_)++;
         std::vector<counted_t<const ql::datum_t> > parallel_tasks;
         for (size_t i = 0; i < split.n_parallel_jobs_; ++i) {
-            parallel_tasks.push_back(construct_datum(begin_, end_));
+            parallel_tasks.push_back(construct_datum(begin_, end_, limits_));
             guarantee(boost::get<stop_t>(&**begin_));
             (*begin_)++;
         }
         res_->push_back(construct_split(
-            make_counted<const ql::datum_t>(std::move(parallel_tasks))));
+            make_counted<const ql::datum_t>(std::move(parallel_tasks), limits_)));
     }
     void operator()(const sample_t &sample) const {
         (*begin_)++;
@@ -113,20 +116,22 @@ public:
 private:
     event_log_t::const_iterator *begin_;
     event_log_t::const_iterator end_;
+    const ql::configured_limits_t &limits_;
     std::vector<counted_t<const ql::datum_t> > *res_;
 };
 
 counted_t<const ql::datum_t> construct_datum(
         event_log_t::const_iterator *begin,
-        event_log_t::const_iterator end) {
+        event_log_t::const_iterator end,
+        const ql::configured_limits_t &limits) {
     std::vector<counted_t<const ql::datum_t> > res;
 
-    construct_datum_visitor_t visitor(begin, end, &res);
+    construct_datum_visitor_t visitor(begin, end, limits, &res);
     while (*begin != end && !boost::get<stop_t>(&**begin)) {
         boost::apply_visitor(visitor, **begin);
     }
 
-    return make_counted<const ql::datum_t>(std::move(res));
+    return make_counted<const ql::datum_t>(std::move(res), limits);
 }
 
 class print_event_log_visitor_t : public boost::static_visitor<void> {
@@ -280,7 +285,8 @@ trace_t::trace_t()
 counted_t<const ql::datum_t> trace_t::as_datum() const {
     guarantee(!redirected_event_log_);
     event_log_t::const_iterator begin = event_log_.begin();
-    return construct_datum(&begin, event_log_.end());
+    ql::configured_limits_t limits;
+    return construct_datum(&begin, event_log_.end(), limits);
 }
 
 event_log_t trace_t::extract_event_log() RVALUE_THIS {
@@ -373,4 +379,4 @@ event_log_t *trace_t::event_log_target() {
     }
 }
 
-} //namespace profile 
+} //namespace profile

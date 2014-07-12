@@ -346,6 +346,7 @@ void do_a_replace_from_batched_replace(
     const fifo_enforcer_write_token_t &batched_replaces_fifo_token,
     const btree_loc_info_t &info,
     const one_replace_t one_replace,
+    const ql::configured_limits_t &limits,
     promise_t<superblock_t *> *superblock_promise,
     rdb_modification_report_cb_t *sindex_cb,
     batched_replace_response_t *stats_out,
@@ -359,7 +360,7 @@ void do_a_replace_from_batched_replace(
     counted_t<const ql::datum_t> res = rdb_replace_and_return_superblock(
         info, &one_replace, &deletion_context, superblock_promise, &mod_report.info,
         trace);
-    *stats_out = (*stats_out)->merge(res, ql::stats_merge);
+    *stats_out = (*stats_out)->merge(res, ql::stats_merge, limits);
 
     // KSI: What is this for?  are we waiting to get in line to call on_mod_report?
     // I guess so.
@@ -373,6 +374,7 @@ batched_replace_response_t rdb_batched_replace(
     const btree_info_t &info,
     scoped_ptr_t<superblock_t> *superblock,
     const std::vector<store_key_t> &keys,
+    const ql::configured_limits_t &limits,
     const btree_batched_replacer_t *replacer,
     rdb_modification_report_cb_t *sindex_cb,
     profile::trace_t *trace) {
@@ -410,6 +412,7 @@ batched_replace_response_t rdb_batched_replace(
 
                     btree_loc_info_t(&info, current_superblock.release(), &keys[i]),
                     one_replace_t(replacer, i),
+                    limits,
 
                     &superblock_promise,
                     sindex_cb,

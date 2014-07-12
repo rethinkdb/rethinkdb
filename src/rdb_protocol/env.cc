@@ -14,10 +14,13 @@
 namespace ql {
 
 counted_t<const datum_t> static_optarg(const std::string &key, protob_t<Query> q) {
+    // need to parse these to figure out what user wants; resulting
+    // bootstrap problem is a headache.  Just use default.
+    const configured_limits_t limits;
     for (int i = 0; i < q->global_optargs_size(); ++i) {
         const Query::AssocPair &ap = q->global_optargs(i);
         if (ap.key() == key && ap.val().type() == Term_TermType_DATUM) {
-            return to_datum(&ap.val().datum());
+            return to_datum(&ap.val().datum(), limits);
         }
     }
 

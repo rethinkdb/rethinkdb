@@ -1,6 +1,7 @@
 #include "unittest/dummy_namespace_interface.hpp"
 
 #include "unittest/clustering_utils.hpp"
+#include "rdb_protocol/env.hpp"
 
 namespace unittest {
 
@@ -111,7 +112,8 @@ void dummy_sharder_t::read(const read_t &read, read_response_t *response, order_
         }
     }
 
-    read.unshard(responses.data(), responses.size(), response, ctx, interruptor);
+    ql::configured_limits_t limits;
+    read.unshard(responses.data(), responses.size(), response, ctx, interruptor, limits);
 }
 
 void dummy_sharder_t::read_outdated(const read_t &read, read_response_t *response, signal_t *interruptor) {
@@ -131,7 +133,8 @@ void dummy_sharder_t::read_outdated(const read_t &read, read_response_t *respons
         }
     }
 
-    read.unshard(responses.data(), responses.size(), response, ctx, interruptor);
+    ql::configured_limits_t limits;
+    read.unshard(responses.data(), responses.size(), response, ctx, interruptor, limits);
 }
 
 void dummy_sharder_t::write(const write_t &write, write_response_t *response, order_token_t tok, signal_t *interruptor) {
@@ -151,7 +154,8 @@ void dummy_sharder_t::write(const write_t &write, write_response_t *response, or
         }
     }
 
-    write.unshard(responses.data(), responses.size(), response, ctx, interruptor);
+    ql::configured_limits_t limits;
+    write.unshard(responses.data(), responses.size(), response, ctx, interruptor, limits);
 }
 
 dummy_namespace_interface_t::

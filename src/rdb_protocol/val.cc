@@ -90,7 +90,8 @@ counted_t<const datum_t> table_t::batched_replace(
         counted_t<const datum_t> insert_stats = batched_insert(
             env, std::move(replacement_values), conflict_behavior_t::REPLACE,
             durability_requirement, return_vals);
-        return std::move(stats).to_counted()->merge(insert_stats, stats_merge);
+        return std::move(stats).to_counted()->merge(insert_stats, stats_merge,
+                                                   env->limits);
     } else {
         std::vector<store_key_t> store_keys;
         store_keys.reserve(keys.size());
@@ -143,7 +144,7 @@ counted_t<const datum_t> table_t::batched_insert(
         batched_insert_t(std::move(valid_inserts), get_pkey(),
                          conflict_behavior, return_vals),
         durability_requirement);
-    return std::move(stats).to_counted()->merge(insert_stats, stats_merge);
+    return std::move(stats).to_counted()->merge(insert_stats, stats_merge, env->limits);
 }
 
 MUST_USE bool table_t::sindex_create(env_t *env,
@@ -204,7 +205,7 @@ counted_t<const datum_t> table_t::sindex_list(env_t *env) {
          it != s_res->sindexes.end(); ++it) {
         array.push_back(make_counted<datum_t>(std::string(*it)));
     }
-    return make_counted<datum_t>(std::move(array));
+    return make_counted<datum_t>(std::move(array), env->limits);
 }
 
 counted_t<const datum_t> table_t::sindex_status(env_t *env, std::set<std::string> sindexes) {
@@ -242,7 +243,7 @@ counted_t<const datum_t> table_t::sindex_status(env_t *env, std::set<std::string
            strprintf("Index `%s` was not found on table `%s`.",
                      sindexes.begin()->c_str(),
                      display_name().c_str()));
-    return make_counted<const datum_t>(std::move(array));
+    return make_counted<const datum_t>(std::move(array), env->limits);
 }
 
 MUST_USE bool table_t::sync(env_t *env, const rcheckable_t *parent) {

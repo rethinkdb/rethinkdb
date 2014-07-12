@@ -38,11 +38,11 @@ private:
                                static_cast<double>(groups[0].begin() - str.data())));
             b |= match.add("end", make_counted<const datum_t>(
                                static_cast<double>(groups[0].end() - str.data())));
-            datum_array_builder_t match_groups;
+            datum_array_builder_t match_groups(env->env->limits);
             for (int i = 1; i < ngroups; ++i) {
                 const re2::StringPiece &group = groups[i];
                 if (group.data() == NULL) {
-                    match_groups.add(datum_t::null());
+                    match_groups.add(datum_t::null(), env->env->limits);
                 } else {
                     datum_object_builder_t match_group;
                     b |= match_group.add(
@@ -119,7 +119,7 @@ private:
                 : next + (delim ? delim->size() : 1);
         }
 
-        return new_val(make_counted<const datum_t>(std::move(res)));
+        return new_val(make_counted<const datum_t>(std::move(res), env->env->limits));
     }
     virtual const char *name() const { return "split"; }
 };

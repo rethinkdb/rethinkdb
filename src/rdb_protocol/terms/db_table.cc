@@ -225,7 +225,7 @@ private:
             arr.push_back(make_counted<datum_t>(std::string(it->str())));
         }
 
-        return new_val(make_counted<const datum_t>(std::move(arr)));
+        return new_val(make_counted<const datum_t>(std::move(arr), env->env->limits));
     }
     virtual const char *name() const { return "db_list"; }
 };
@@ -257,7 +257,7 @@ private:
         for (auto it = tables.begin(); it != tables.end(); ++it) {
             arr.push_back(make_counted<datum_t>(std::string(it->str())));
         }
-        return new_val(make_counted<const datum_t>(std::move(arr)));
+        return new_val(make_counted<const datum_t>(std::move(arr), env->env->limits));
     }
     virtual const char *name() const { return "table_list"; }
 };
@@ -343,7 +343,7 @@ private:
                 counted_t<const datum_t> key = args->arg(env, i)->as_datum();
                 counted_t<const datum_t> row = table->get_row(env->env, key);
                 if (row->get_type() != datum_t::R_NULL) {
-                    arr.add(row);
+                    arr.add(row, env->env->limits);
                 }
             }
             counted_t<datum_stream_t> stream

@@ -6,6 +6,7 @@
 #include "clustering/immediate_consistency/query/master_access.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/watchable.hpp"
+#include "rdb_protocol/env.hpp"
 
 cluster_namespace_interface_t::cluster_namespace_interface_t(
         mailbox_manager_t *mm,
@@ -99,6 +100,10 @@ void cluster_namespace_interface_t::dispatch_immediate_op(
     order_token_t order_token,
     signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+    // HACK: propagating user preferences is too hard here.  Use
+    // default.
+    ql::configured_limits_t limits;
+
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
     std::vector<scoped_ptr_t<immediate_op_info_t<op_type, fifo_enforcer_token_type> > >
@@ -169,7 +174,7 @@ void cluster_namespace_interface_t::dispatch_immediate_op(
         }
     }
 
-    op.unshard(results.data(), results.size(), response, ctx, interruptor);
+    op.unshard(results.data(), results.size(), response, ctx, interruptor, limits);
 }
 
 template<class op_type, class fifo_enforcer_token_type, class op_response_type>
@@ -218,6 +223,10 @@ cluster_namespace_interface_t::dispatch_outdated_read(
     read_response_t *response,
     signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+    // HACK: propagating user preferences is too hard here.  Use
+    // default.
+    ql::configured_limits_t limits;
+
 
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
@@ -274,7 +283,7 @@ cluster_namespace_interface_t::dispatch_outdated_read(
         }
     }
 
-    op.unshard(results.data(), results.size(), response, ctx, interruptor);
+    op.unshard(results.data(), results.size(), response, ctx, interruptor, limits);
 }
 
 void outdated_read_store_result(read_response_t *result_out, const read_response_t &result_in, cond_t *done) {

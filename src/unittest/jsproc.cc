@@ -6,6 +6,7 @@
 #include "rpc/serialize_macros.hpp"
 #include "unittest/extproc_test.hpp"
 #include "unittest/gtest.hpp"
+#include "rdb_protocol/env.hpp"
 
 SPAWNER_TEST(JSProc, EvalTimeout) {
     extproc_pool_t extproc_pool(1);
@@ -254,6 +255,7 @@ void passthrough_test_internal(extproc_pool_t *pool, const counted_t<const ql::d
 // correctly
 SPAWNER_TEST(JSProc, Passthrough) {
     extproc_pool_t pool(1);
+    ql::configured_limits_t limits;
 
     // Number
     passthrough_test_internal(&pool, make_counted<const ql::datum_t>(99.9999));
@@ -273,13 +275,13 @@ SPAWNER_TEST(JSProc, Passthrough) {
     counted_t<const ql::datum_t> array_datum;
     {
         std::vector<counted_t<const ql::datum_t> > array_data;
-        array_datum = make_counted<const ql::datum_t>(std::move(array_data));
+        array_datum = make_counted<const ql::datum_t>(std::move(array_data), limits);
         passthrough_test_internal(&pool, array_datum);
 
         for (size_t i = 0; i < 100; ++i) {
             array_data.push_back(make_counted<const ql::datum_t>(std::string(i, 'a')));
             std::vector<counted_t<const ql::datum_t> > copied_data(array_data);
-            array_datum = make_counted<const ql::datum_t>(std::move(copied_data));
+            array_datum = make_counted<const ql::datum_t>(std::move(copied_data), limits);
             passthrough_test_internal(&pool, array_datum);
         }
     }
@@ -305,17 +307,17 @@ SPAWNER_TEST(JSProc, Passthrough) {
     counted_t<const ql::datum_t> nested_datum;
     {
         std::vector<counted_t<const ql::datum_t> > nested_data;
-        nested_datum = make_counted<const ql::datum_t>(std::move(nested_data));
+        nested_datum = make_counted<const ql::datum_t>(std::move(nested_data), limits);
         passthrough_test_internal(&pool, nested_datum);
 
         nested_data.push_back(array_datum);
         std::vector<counted_t<const ql::datum_t> > copied_data(nested_data);
-        nested_datum = make_counted<const ql::datum_t>(std::move(copied_data));
+        nested_datum = make_counted<const ql::datum_t>(std::move(copied_data), limits);
         passthrough_test_internal(&pool, nested_datum);
 
         nested_data.push_back(object_datum);
         copied_data = nested_data;
-        nested_datum = make_counted<const ql::datum_t>(std::move(copied_data));
+        nested_datum = make_counted<const ql::datum_t>(std::move(copied_data), limits);
         passthrough_test_internal(&pool, nested_datum);
     }
 }

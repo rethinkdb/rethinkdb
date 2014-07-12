@@ -62,6 +62,7 @@ enum clobber_bool_t { NOCLOBBER = 0, CLOBBER = 1 };
 enum class use_json_t { NO = 0, YES = 1 };
 
 class grouped_data_t;
+class configured_limits_t;
 
 // A `datum_t` is basically a JSON value, although we may extend it later.
 class datum_t : public slow_atomic_countable_t<datum_t> {
@@ -111,7 +112,8 @@ public:
     explicit datum_t(std::string &&str);
     explicit datum_t(scoped_ptr_t<wire_string_t> str);
     explicit datum_t(const char *cstr);
-    explicit datum_t(std::vector<counted_t<const datum_t> > &&_array);
+    explicit datum_t(std::vector<counted_t<const datum_t> > &&_array,
+                     const cnofigured_limits_t &limits);
 
     enum class no_array_size_limit_check_t { };
     // Constructs a datum_t without checking the array size.  Used by
@@ -174,12 +176,15 @@ public:
     // Access an element of an object.
     counted_t<const datum_t> get(const std::string &key,
                                  throw_bool_t throw_bool = THROW) const;
-    counted_t<const datum_t> merge(counted_t<const datum_t> rhs) const;
+    counted_t<const datum_t> merge(counted_t<const datum_t> rhs,
+                                   const configured_limits_t &limits) const;
     typedef counted_t<const datum_t> (*merge_resoluter_t)(const std::string &key,
                                                           counted_t<const datum_t> l,
-                                                          counted_t<const datum_t> r);
+                                                          counted_t<const datum_t> r,
+                                                          const configured_limits_t &limits);
     counted_t<const datum_t> merge(counted_t<const datum_t> rhs,
-                                   merge_resoluter_t f) const;
+                                   merge_resoluter_t f,
+                                   const configured_limits_t &limits) const;
 
     cJSON *as_json_raw() const;
     scoped_cJSON_t as_json() const;
@@ -241,7 +246,8 @@ private:
     // Helper function for `merge()`:
     // Returns a version of this where all `literal` pseudotypes have been omitted.
     // Might return null, if this is a literal without a value.
-    counted_t<const datum_t> drop_literals(bool *encountered_literal_out) const;
+    counted_t<const datum_t> drop_literals(const configured_limits_t &limits,
+                                           bool *encountered_literal_out) const;
 
     type_t type;
     union {
@@ -308,8 +314,9 @@ private:
 // array-size checks on the fly.
 class datum_array_builder_t {
 public:
-    datum_array_builder_t() { }
-    explicit datum_array_builder_t(std::vector<counted_t<const datum_t> > &&v);
+    datum_array_builder_t(const configured_limits_t &_limits) : limits(_limits) {}
+    datum_array_builder_t(std::vector<counted_t<const datum_t> > &&,
+                          const configured_limits_t &);
 
     size_t size() const { return vector.size(); }
 
@@ -328,6 +335,7 @@ public:
 
 private:
     std::vector<counted_t<const datum_t> > vector;
+    configured_limits_t limits;
 
     DISABLE_COPYING(datum_array_builder_t);
 };
@@ -336,7 +344,8 @@ private:
 // operations.
 counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
                                      counted_t<const datum_t> l,
-                                     counted_t<const datum_t> r);
+                                     counted_t<const datum_t> r,
+                                     const configured_limits_t &limits);
 
 namespace pseudo {
 class datum_cmp_t {

@@ -8,6 +8,7 @@
 #include "containers/archive/stl_types.hpp"
 #include "containers/archive/versioned.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
 
 namespace ql {
@@ -233,6 +234,8 @@ void datum_serialize(write_message_t *wm, const counted_t<const datum_t> &datum)
     }
 }
 archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *datum) {
+    // HACK: just assume normal limits here
+    ql::configured_limits_t limits;
     datum_serialized_type_t type;
     archive_result_t res = datum_deserialize(s, &type);
     if (bad(res)) {
@@ -247,7 +250,7 @@ archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *d
             return res;
         }
         try {
-            datum->reset(new datum_t(std::move(value)));
+            datum->reset(new datum_t(std::move(value), limits));
         } catch (const base_exc_t &) {
             return archive_result_t::RANGE_ERROR;
         }

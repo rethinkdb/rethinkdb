@@ -184,16 +184,14 @@ private:
                     break;
                 }
                 std::move(data.begin(), data.end(), std::back_inserter(to_sort));
-                rcheck(to_sort.size() <= env->env->limits.array_size_limit(),
-                       base_exc_t::GENERIC,
-                       strprintf("Array over size limit %zu.",
-                                 env->env->limits.array_size_limit()).c_str());
+                rcheck_array_size(to_sort, env->env->limits, base_exc_t::GENERIC);
             }
             profile::sampler_t sampler("Sorting in-memory.", env->env->trace);
             auto fn = boost::bind(lt_cmp, env->env, &sampler, _1, _2);
             std::stable_sort(to_sort.begin(), to_sort.end(), fn);
             seq = make_counted<array_datum_stream_t>(
-                make_counted<const datum_t>(std::move(to_sort)), backtrace());
+                make_counted<const datum_t>(std::move(to_sort), env->env->limits),
+                backtrace());
         }
         return tbl.has() ? new_val(seq, tbl) : new_val(env->env, seq);
     }
@@ -209,8 +207,8 @@ public:
     distinct_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1), optargspec_t({"index"})) { }
 private:
-    virtual counted_t<val_t> eval_impl(
-        scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args,
+                                       eval_flags_t) const {
         counted_t<val_t> v = args->arg(env, 0);
         counted_t<val_t> idx = args->optarg(env, "index");
         if (v->get_type().is_convertible(val_t::type_t::TABLE)) {
@@ -248,13 +246,14 @@ private:
                                            env->env->trace);
                 while (counted_t<const datum_t> d = s->next(env->env, batchspec)) {
                     results.insert(std::move(d));
-                    rcheck_array_size(results, base_exc_t::GENERIC);
+                    rcheck_array_size(results, env->env->limits, base_exc_t::GENERIC);
                     sampler.new_sample();
                 }
             }
             std::vector<counted_t<const datum_t> > toret;
             std::move(results.begin(), results.end(), std::back_inserter(toret));
-            return new_val(make_counted<const datum_t>(std::move(toret)));
+            return new_val(make_counted<const datum_t>(std::move(toret),
+                                                       env->env->limits));
         }
     }
     virtual const char *name() const { return "distinct"; }

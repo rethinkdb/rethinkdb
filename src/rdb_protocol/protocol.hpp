@@ -432,7 +432,7 @@ struct read_t {
 
     void unshard(read_response_t *responses, size_t count,
                  read_response_t *response, rdb_context_t *ctx,
-                 signal_t *interruptor) const
+                 signal_t *interruptor, const ql::configured_limits_t &limits) const
         THROWS_ONLY(interrupted_exc_t);
 
     read_t() { }
@@ -654,7 +654,8 @@ struct write_t {
     bool shard(const region_t &region,
                write_t *write_out) const THROWS_NOTHING;
     void unshard(write_response_t *responses, size_t count,
-                 write_response_t *response, rdb_context_t *cache, signal_t *)
+                 write_response_t *response, rdb_context_t *cache, signal_t *,
+                 const ql::configured_limits_t &limits)
         const THROWS_NOTHING;
 
     durability_requirement_t durability() const { return durability_requirement; }

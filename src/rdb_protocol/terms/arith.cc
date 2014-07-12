@@ -26,7 +26,7 @@ public:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<const datum_t> acc = args->arg(env, 0)->as_datum();
         for (size_t i = 1; i < args->num_args(); ++i) {
-            acc = (this->*op)(acc, args->arg(env, i)->as_datum());
+            acc = (this->*op)(acc, args->arg(env, i)->as_datum(), env->env->limits);
         }
         return new_val(acc);
     }
@@ -35,7 +35,8 @@ public:
 
 private:
     counted_t<const datum_t> add(counted_t<const datum_t> lhs,
-                                 counted_t<const datum_t> rhs) const {
+                                 counted_t<const datum_t> rhs,
+                                 const configured_limits_t &limits) const {
         if (lhs->is_ptype(pseudo::time_string) ||
             rhs->is_ptype(pseudo::time_string)) {
             return pseudo::time_add(lhs, rhs);
@@ -49,10 +50,10 @@ private:
             rhs->check_type(datum_t::R_ARRAY);
             datum_array_builder_t out;
             for (size_t i = 0; i < lhs->size(); ++i) {
-                out.add(lhs->get(i));
+                out.add(lhs->get(i), limits);
             }
             for (size_t i = 0; i < rhs->size(); ++i) {
-                out.add(rhs->get(i));
+                out.add(rhs->get(i), limits);
             }
             return std::move(out).to_counted();
         } else {
@@ -64,7 +65,8 @@ private:
     }
 
     counted_t<const datum_t> sub(counted_t<const datum_t> lhs,
-                                 counted_t<const datum_t> rhs) const {
+                                 counted_t<const datum_t> rhs,
+                                 UNUSED const configured_limits_t &limits) const {
         if (lhs->is_ptype(pseudo::time_string)) {
             return pseudo::time_sub(lhs, rhs);
         } else {
@@ -74,7 +76,8 @@ private:
         }
     }
     counted_t<const datum_t> mul(counted_t<const datum_t> lhs,
-                                 counted_t<const datum_t> rhs) const {
+                                 counted_t<const datum_t> rhs,
+                                 const configured_limits_t &limits) const {
         if (lhs->get_type() == datum_t::R_ARRAY ||
             rhs->get_type() == datum_t::R_ARRAY) {
             counted_t<const datum_t> array =
@@ -89,7 +92,7 @@ private:
 
             for (int64_t j = 0; j < num_copies; ++j) {
                 for (size_t i = 0; i < array->size(); ++i) {
-                    out.add(array->get(i));
+                    out.add(array->get(i), limits);
                 }
             }
             return std::move(out).to_counted();
@@ -100,7 +103,8 @@ private:
         }
     }
     counted_t<const datum_t> div(counted_t<const datum_t> lhs,
-                                 counted_t<const datum_t> rhs) const {
+                                 counted_t<const datum_t> rhs,
+                                 UNUSED const configured_limits_t &limits) const {
         lhs->check_type(datum_t::R_NUM);
         rhs->check_type(datum_t::R_NUM);
         rcheck(rhs->as_num() != 0, base_exc_t::GENERIC, "Cannot divide by zero.");
@@ -109,7 +113,9 @@ private:
     }
 
     const char *namestr;
-    counted_t<const datum_t> (arith_term_t::*op)(counted_t<const datum_t> lhs, counted_t<const datum_t> rhs) const;
+    counted_t<const datum_t> (arith_term_t::*op)(counted_t<const datum_t> lhs,
+                                                 counted_t<const datum_t> rhs,
+                                                 const configured_limits_t &limits) const;
 };
 
 class mod_term_t : public op_term_t {
@@ -139,5 +145,3 @@ counted_t<term_t> make_mod_term(compile_env_t *env, const protob_t<const Term> &
 
 
 }  // namespace ql
-
-

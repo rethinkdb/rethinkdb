@@ -285,6 +285,8 @@ private:
     bool finished;
 };
 
+class configured_limits_t;
+
 class eager_acc_t {
 public:
     eager_acc_t() { }
@@ -292,7 +294,8 @@ public:
     virtual void operator()(env_t *env, groups_t *groups) = 0;
     virtual void add_res(env_t *env, result_t *res) = 0;
     virtual counted_t<val_t> finish_eager(
-        protob_t<const Backtrace> bt, bool is_grouped) = 0;
+        protob_t<const Backtrace> bt, bool is_grouped,
+        const configured_limits_t &limits) = 0;
 };
 
 scoped_ptr_t<accumulator_t> make_append(const sorting_t &sorting, batcher_t *batcher);

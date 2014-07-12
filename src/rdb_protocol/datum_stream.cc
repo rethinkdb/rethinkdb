@@ -526,13 +526,13 @@ counted_t<val_t> datum_stream_t::run_terminal(
     env_t *env, const terminal_variant_t &tv) {
     scoped_ptr_t<eager_acc_t> acc(make_eager_terminal(tv));
     accumulate(env, acc.get(), tv);
-    return acc->finish_eager(backtrace(), is_grouped());
+    return acc->finish_eager(backtrace(), is_grouped(), env->limits);
 }
 
 counted_t<val_t> datum_stream_t::to_array(env_t *env) {
     scoped_ptr_t<eager_acc_t> acc = make_to_array();
     accumulate_all(env, acc.get());
-    return acc->finish_eager(backtrace(), is_grouped());
+    return acc->finish_eager(backtrace(), is_grouped(), env->limits);
 }
 
 // DATUM_STREAM_T
@@ -668,7 +668,7 @@ counted_t<const datum_t> eager_datum_stream_t::as_array(env_t *env) {
     {
         profile::sampler_t sampler("Evaluating stream eagerly.", env->trace);
         while (counted_t<const datum_t> d = next(env, batchspec)) {
-            arr.add(d);
+            arr.add(d, env->limits);
             sampler.new_sample();
         }
     }
@@ -912,7 +912,7 @@ zip_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
         auto right = (*it)->get("right", NOTHROW);
         rcheck(left.has(), base_exc_t::GENERIC,
                "ZIP can only be called on the result of a join.");
-        *it = right.has() ? left->merge(right) : left;
+        *it = right.has() ? left->merge(right, env->limits) : left;
         sampler.new_sample();
     }
     return v;
@@ -958,7 +958,7 @@ counted_t<const datum_t> union_datum_stream_t::as_array(env_t *env) {
     {
         profile::sampler_t sampler("Evaluating stream eagerly.", env->trace);
         while (counted_t<const datum_t> d = next(env, batchspec)) {
-            arr.add(d);
+            arr.add(d, env->limits);
             sampler.new_sample();
         }
     }
