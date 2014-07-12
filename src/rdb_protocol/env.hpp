@@ -11,6 +11,7 @@
 #include "concurrency/one_per_thread.hpp"
 #include "containers/counted.hpp"
 #include "extproc/js_runner.hpp"
+#include "rdb_protocol/configured_limits.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/datum_stream.hpp"
@@ -27,16 +28,6 @@ class term_t;
 counted_t<const datum_t> static_optarg(const std::string &key, protob_t<Query> q);
 
 std::map<std::string, wire_func_t> global_optargs(protob_t<Query> q);
-
-class configured_limits_t {
-public:
-    configured_limits_t() : _array_size_limit(100000) {}
-    configured_limits_t(const size_t limit) : _array_size_limit(limit) {}
-
-    size_t array_size_limit() const { return _array_size_limit; }
-private:
-    const size_t _array_size_limit;
-};
 
 class global_optargs_t {
 public:

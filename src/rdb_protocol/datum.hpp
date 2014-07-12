@@ -20,6 +20,7 @@
 #include "containers/scoped.hpp"
 #include "containers/wire_string.hpp"
 #include "http/json.hpp"
+#include "rdb_protocol/configured_limits.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/serialize_datum.hpp"
 #include "version.hpp"
@@ -62,7 +63,6 @@ enum clobber_bool_t { NOCLOBBER = 0, CLOBBER = 1 };
 enum class use_json_t { NO = 0, YES = 1 };
 
 class grouped_data_t;
-class configured_limits_t;
 
 // A `datum_t` is basically a JSON value, although we may extend it later.
 class datum_t : public slow_atomic_countable_t<datum_t> {

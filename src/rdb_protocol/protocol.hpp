@@ -15,6 +15,7 @@
 #include <boost/variant.hpp>
 #include <boost/optional.hpp>
 
+#include "rdb_protocol/configured_limits.hpp"
 #include "btree/erase_range.hpp"
 #include "btree/secondary_operations.hpp"
 #include "concurrency/cond_var.hpp"
