@@ -92,7 +92,7 @@ function test_get(conn) {
     r.http(url).run(conn, function(err, res) {
             expect_no_error(err);
             expect_eq(res['args'], {});
-            expect_eq(res['headers']['Accept-Encoding'], 'deflate=1;gzip=0.5');
+            expect_eq(res['headers']['Accept-Encoding'], 'deflate;q=1, gzip;q=0.5');
             expect_eq(res['headers']['User-Agent'].split('/')[0], 'RethinkDB');
             pass("get", conn);
         });
