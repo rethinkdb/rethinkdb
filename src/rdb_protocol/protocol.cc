@@ -428,7 +428,7 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     template <class T>
     bool keyed_read(const T &arg, const store_key_t &key) const {
         if (region_contains_key(*region, key)) {
-            *read_out = read_t(arg, profile);
+            *read_out = read_t(arg, profile, read_out->limits);
             return true;
         } else {
             return false;
@@ -446,7 +446,7 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
         if (!region_is_empty(intersection)) {
             T tmp = arg;
             tmp.region = intersection;
-            *read_out = read_t(tmp, profile);
+            *read_out = read_t(tmp, profile, read_out->limits);
             return true;
         } else {
             return false;
@@ -614,7 +614,7 @@ void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
     response_out->response = rget_read_response_t();
     auto out = boost::get<rget_read_response_t>(&response_out->response);
     out->truncated = false;
-    out->key_range = read_t(rg, profile_bool_t::DONT_PROFILE).get_region().inner;
+    out->key_range = read_t(rg, profile_bool_t::DONT_PROFILE, env.limits).get_region().inner;
 
     // Fill in `truncated` and `last_key`, get responses, abort if there's an error.
     std::vector<ql::result_t *> results(count);
@@ -734,8 +734,7 @@ void rdb_r_unshard_visitor_t::operator()(UNUSED const sindex_status_t &ss) {
 
 void read_t::unshard(read_response_t *responses, size_t count,
                      read_response_t *response_out, rdb_context_t *ctx,
-                     signal_t *interruptor,
-                     UNUSED const ql::configured_limits_t &limits) const
+                     signal_t *interruptor) const
     THROWS_ONLY(interrupted_exc_t) {
     rassert(ctx != NULL);
     rdb_r_unshard_visitor_t v(profile, responses, count,
@@ -884,7 +883,8 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
                     br.optargs,
                     br.return_vals),
                 durability_requirement,
-                profile);
+                profile,
+                write_out->limits);
             return true;
         } else {
             return false;
@@ -905,7 +905,8 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
                     std::move(shard_inserts), bi.pkey, bi.conflict_behavior,
                     bi.return_vals),
                 durability_requirement,
-                profile);
+                profile,
+                write_out->limits);
             return true;
         } else {
             return false;
@@ -927,7 +928,8 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         if (!region_is_empty(intersection)) {
             T tmp = arg;
             tmp.region = intersection;
-            *write_out = write_t(tmp, durability_requirement, profile);
+            *write_out = write_t(tmp, durability_requirement, profile,
+                                 write_out->limits);
             return true;
         } else {
             return false;
@@ -1024,8 +1026,7 @@ private:
 };
 
 void write_t::unshard(write_response_t *responses, size_t count,
-                      write_response_t *response_out, rdb_context_t *, signal_t *,
-                      const ql::configured_limits_t &limits)
+                      write_response_t *response_out, rdb_context_t *, signal_t *)
     const THROWS_NOTHING {
     const rdb_w_unshard_visitor_t visitor(responses, count, response_out, limits);
     boost::apply_visitor(visitor, write);

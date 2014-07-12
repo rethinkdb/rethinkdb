@@ -698,9 +698,6 @@ void broadcaster_t::all_read(
 {
     guarantee(read.all_read());
     order_token.assert_read_mode();
-    // HACK: propagating user preferences is too hard here.  Use
-    // default.
-    ql::configured_limits_t limits;
 
     std::vector<dispatchee_t *> readers;
     std::vector<auto_drainer_t::lock_t> reader_locks;
@@ -738,7 +735,7 @@ void broadcaster_t::all_read(
         }
 
         read.unshard(responses.data(), responses.size(), response,
-                     rdb_context, &interruptor2, limits);
+                     rdb_context, &interruptor2);
     } catch (const interrupted_exc_t &) {
         if (interruptor->is_pulsed()) {
             throw;

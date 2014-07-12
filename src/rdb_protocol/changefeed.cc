@@ -197,7 +197,8 @@ public:
            base_namespace_repo_t *ns_repo,
            uuid_u uuid,
            std::string pkey,
-           signal_t *interruptor);
+           signal_t *interruptor,
+           const configured_limits_t &limits);
     ~feed_t();
 
     void add_point_sub(subscription_t *sub,
@@ -752,7 +753,8 @@ feed_t::feed_t(client_t *_client,
                base_namespace_repo_t *ns_repo,
                uuid_u _uuid,
                std::string _pkey,
-               signal_t *interruptor)
+               signal_t *interruptor,
+               const configured_limits_t &limits)
     : pkey(std::move(_pkey)),
       client(_client),
       uuid(_uuid),
@@ -764,7 +766,7 @@ feed_t::feed_t(client_t *_client,
     base_namespace_repo_t::access_t access(ns_repo, uuid, interruptor);
     namespace_interface_t *nif = access.get_namespace_if();
     read_t read(changefeed_subscribe_t(mailbox.get_address()),
-                profile_bool_t::DONT_PROFILE);
+                profile_bool_t::DONT_PROFILE, limits);
     read_response_t read_resp;
     nif->read(read, &read_resp, order_token_t::ignore, interruptor);
     auto resp = boost::get<changefeed_subscribe_response_t>(&read_resp.response);
@@ -861,7 +863,7 @@ client_t::new_feed(const counted_t<table_t> &tbl, keyspec_t &&keyspec, env_t *en
             if (feed_it == feeds.end()) {
                 spot.write_signal()->wait_lazily_unordered();
                 auto val = make_scoped<feed_t>(
-                    this, manager, env->ns_repo(), uuid, pkey, &interruptor);
+                    this, manager, env->ns_repo(), uuid, pkey, &interruptor, env->limits);
                 feed_it = feeds.insert(std::make_pair(uuid, std::move(val))).first;
             }
 

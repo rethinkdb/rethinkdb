@@ -100,9 +100,6 @@ void cluster_namespace_interface_t::dispatch_immediate_op(
     order_token_t order_token,
     signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    // HACK: propagating user preferences is too hard here.  Use
-    // default.
-    ql::configured_limits_t limits;
 
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
@@ -174,7 +171,7 @@ void cluster_namespace_interface_t::dispatch_immediate_op(
         }
     }
 
-    op.unshard(results.data(), results.size(), response, ctx, interruptor, limits);
+    op.unshard(results.data(), results.size(), response, ctx, interruptor);
 }
 
 template<class op_type, class fifo_enforcer_token_type, class op_response_type>
@@ -223,10 +220,6 @@ cluster_namespace_interface_t::dispatch_outdated_read(
     read_response_t *response,
     signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    // HACK: propagating user preferences is too hard here.  Use
-    // default.
-    ql::configured_limits_t limits;
-
 
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
@@ -283,7 +276,7 @@ cluster_namespace_interface_t::dispatch_outdated_read(
         }
     }
 
-    op.unshard(results.data(), results.size(), response, ctx, interruptor, limits);
+    op.unshard(results.data(), results.size(), response, ctx, interruptor);
 }
 
 void outdated_read_store_result(read_response_t *result_out, const read_response_t &result_in, cond_t *done) {

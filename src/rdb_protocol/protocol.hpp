@@ -424,6 +424,7 @@ struct read_t {
                            sindex_status_t> variant_t;
     variant_t read;
     profile_bool_t profile;
+    const ql::configured_limits_t limits;
 
     region_t get_region() const THROWS_NOTHING;
     // Returns true if the read has any operation for this region.  Returns
@@ -433,13 +434,16 @@ struct read_t {
 
     void unshard(read_response_t *responses, size_t count,
                  read_response_t *response, rdb_context_t *ctx,
-                 signal_t *interruptor, const ql::configured_limits_t &limits) const
+                 signal_t *interruptor) const
         THROWS_ONLY(interrupted_exc_t);
 
-    read_t() { }
+    read_t() : limits() { }
     template<class T>
-    read_t(T &&_read, profile_bool_t _profile)
-        : read(std::forward<T>(_read)), profile(_profile) { }
+    read_t(T &&_read, profile_bool_t _profile,
+           const ql::configured_limits_t &_limits)
+        : read(std::forward<T>(_read)), profile(_profile),
+          limits(_limits) { }
+
 
     // Only use snapshotting if we're doing a range get.
     bool use_snapshot() const THROWS_NOTHING { return boost::get<rget_read_t>(&read); }
@@ -648,6 +652,7 @@ struct write_t {
 
     durability_requirement_t durability_requirement;
     profile_bool_t profile;
+    const ql::configured_limits_t limits;
 
     region_t get_region() const THROWS_NOTHING;
     // Returns true if the write had any side effects applicable to the
@@ -655,13 +660,12 @@ struct write_t {
     bool shard(const region_t &region,
                write_t *write_out) const THROWS_NOTHING;
     void unshard(write_response_t *responses, size_t count,
-                 write_response_t *response, rdb_context_t *cache, signal_t *,
-                 const ql::configured_limits_t &limits)
+                 write_response_t *response, rdb_context_t *cache, signal_t *)
         const THROWS_NOTHING;
 
     durability_requirement_t durability() const { return durability_requirement; }
 
-    write_t() : durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
+    write_t() : durability_requirement(DURABILITY_REQUIREMENT_DEFAULT), limits() {}
     /*  Note that for durability != DURABILITY_REQUIREMENT_HARD, sync might
      *  not have the desired effect (of writing unsaved data to disk).
      *  However there are cases where we use sync internally (such as when
@@ -671,14 +675,18 @@ struct write_t {
     template<class T>
     write_t(T &&t,
             durability_requirement_t durability,
-            profile_bool_t _profile)
+            profile_bool_t _profile,
+            const ql::configured_limits_t &_limits)
         : write(std::forward<T>(t)),
-          durability_requirement(durability), profile(_profile) { }
+          durability_requirement(durability), profile(_profile),
+          limits(_limits) { }
     template<class T>
-    write_t(T &&t, profile_bool_t _profile)
+    write_t(T &&t, profile_bool_t _profile,
+            const ql::configured_limits_t &_limits)
         : write(std::forward<T>(t)),
           durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
-          profile(_profile) { }
+          profile(_profile),
+          limits(_limits) { }
 };
 
 RDB_DECLARE_SERIALIZABLE(write_t);

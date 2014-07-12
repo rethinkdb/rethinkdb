@@ -338,7 +338,8 @@ read_t readgen_t::next_read(
     const key_range_t &active_range,
     const std::vector<transform_variant_t> &transforms,
     const batchspec_t &batchspec) const {
-    return read_t(next_read_impl(active_range, transforms, batchspec), profile);
+    return read_t(next_read_impl(active_range, transforms, batchspec), profile,
+                  ql::from_optargs(global_optargs));
 }
 
 // TODO: this is how we did it before, but it sucks.
@@ -348,7 +349,7 @@ read_t readgen_t::terminal_read(
     const batchspec_t &batchspec) const {
     rget_read_t read = next_read_impl(original_keyrange(), transforms, batchspec);
     read.terminal = _terminal;
-    return read_t(read, profile);
+    return read_t(read, profile, ql::from_optargs(global_optargs));
 }
 
 primary_readgen_t::primary_readgen_t(
@@ -507,7 +508,8 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
                             region_t(key_range_t(rng)),
                             original_datum_range),
                         sorting),
-                    profile);
+                    profile,
+                    ql::from_optargs(global_optargs));
             }
         }
     }
