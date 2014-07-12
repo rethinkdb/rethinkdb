@@ -273,6 +273,7 @@ std::string datum_t::trunc_print() const {
 
 void datum_t::pt_to_str_key(std::string *str_out) const {
     r_sanity_check(is_ptype());
+    // TODO! Handle geometry
     if (get_reql_type() == pseudo::time_string) {
         pseudo::time_to_str_key(*this, str_out);
     } else {
@@ -571,6 +572,15 @@ std::string datum_t::mangle_secondary(const std::string &secondary,
     return res;
 }
 
+std::string datum_t::encode_tag_num(uint64_t tag_num) {
+    static_assert(sizeof(tag_num) == tag_size,
+            "tag_size constant is assumed to be the size of a uint64_t.");
+#ifndef BOOST_LITTLE_ENDIAN
+    static_assert(false, "This piece of code will break on big-endian systems.");
+#endif
+    return std::string(reinterpret_cast<const char *>(&tag_num), tag_size);
+}
+
 std::string datum_t::print_secondary(const store_key_t &primary_key,
                                      boost::optional<uint64_t> tag_num) const {
     std::string secondary_key_string;
@@ -602,12 +612,7 @@ std::string datum_t::print_secondary(const store_key_t &primary_key,
 
     std::string tag_string;
     if (tag_num) {
-        static_assert(sizeof(*tag_num) == tag_size,
-                "tag_size constant is assumed to be the size of a uint64_t.");
-#ifndef BOOST_LITTLE_ENDIAN
-        static_assert(false, "This piece of code will break on big-endian systems.");
-#endif
-        tag_string.assign(reinterpret_cast<const char *>(&*tag_num), tag_size);
+        tag_string = encode_tag_num(tag_num.get());
     }
 
     secondary_key_string =

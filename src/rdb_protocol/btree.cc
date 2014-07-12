@@ -5,6 +5,9 @@
 #include <string>
 #include <vector>
 
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
 #include "btree/backfill.hpp"
 #include "btree/concurrent_traversal.hpp"
 #include "btree/erase_range.hpp"
@@ -19,6 +22,8 @@
 #include "containers/archive/buffer_group_stream.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/scoped.hpp"
+#include "geo/exceptions.hpp"
+#include "geo/indexing.hpp"
 #include "rdb_protocol/blob_wrapper.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/lazy_json.hpp"
@@ -1066,20 +1071,85 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
     cond->pulse();
 }
 
+std::vector<std::string> expand_geo_key(
+        const counted_t<const ql::datum_t> &key,
+        const store_key_t &primary_key,
+        boost::optional<uint64_t> tag_num = boost::optional<uint64_t>()) {
+    // TODO! Support compound indexes
+    if (!key->is_ptype("geometry")) {
+        return std::vector<std::string>();
+    }
+
+    std::string primary_key_string = key_to_unescaped_str(primary_key);
+
+    if (primary_key_string.length() > rdb_protocol::MAX_PRIMARY_KEY_SIZE) {
+        rfail_target(key.get(), ql::base_exc_t::GENERIC,
+              "Primary key too long (max %zu characters): %s",
+              rdb_protocol::MAX_PRIMARY_KEY_SIZE - 1,
+              key_to_debug_str(primary_key).c_str());
+    }
+
+    std::string tag_string;
+    if (tag_num) {
+        tag_string = ql::datum_t::encode_tag_num(tag_num.get());
+    }
+
+    // TODO! Store these parameters in the index_info
+    const int goal_cells = 10;
+    try {
+        std::vector<std::string> grid_keys = compute_index_grid_keys(key, goal_cells);
+
+        std::vector<std::string> result;
+        result.reserve(grid_keys.size());
+        for (size_t i = 0; i < grid_keys.size(); ++i) {
+            // TODO! This has to change once we have compound index support
+            guarantee(grid_keys[i].length()
+                      <= ql::datum_t::trunc_size(primary_key_string.length()));
+            /* grid_keys[i].substr(0, ql::datum_t::trunc_size(primary_key_string.length())); */
+
+            result.push_back(
+                    ql::datum_t::mangle_secondary(grid_keys[i], primary_key_string,
+                                                  tag_string));
+        }
+
+        // TODO! std::move? (check other places as well)
+        return result;
+    } catch (const geo_exception_t &e) {
+        // TODO! Ignore?
+        rfail_target(key.get(), ql::base_exc_t::GENERIC,
+                "Failed to compute grid keys: %s", e.what());
+    }
+}
+
 void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> doc,
-                  ql::map_wire_func_t *mapping, sindex_multi_bool_t multi, ql::env_t *env,
+                  const sindex_disk_info_t &index_info, ql::env_t *env,
                   std::vector<store_key_t> *keys_out) {
     guarantee(keys_out->empty());
     counted_t<const ql::datum_t> index =
-        mapping->compile_wire_func()->call(env, doc)->as_datum();
+        index_info.mapping.compile_wire_func()->call(env, doc)->as_datum();
 
-    if (multi == sindex_multi_bool_t::MULTI && index->get_type() == ql::datum_t::R_ARRAY) {
+    if (index_info.multi == sindex_multi_bool_t::MULTI
+        && index->get_type() == ql::datum_t::R_ARRAY) {
         for (uint64_t i = 0; i < index->size(); ++i) {
-            keys_out->push_back(
-                store_key_t(index->get(i, ql::THROW)->print_secondary(primary_key, i)));
+            const counted_t<const ql::datum_t> &skey = index->get(i, ql::THROW);
+            if (index_info.geo == sindex_geo_bool_t::GEO) {
+                std::vector<std::string> geo_keys = expand_geo_key(skey, primary_key, i);
+                for (auto it = geo_keys.begin(); it != geo_keys.end(); ++it) {
+                    keys_out->push_back(store_key_t(*it));
+                }
+            } else {
+                keys_out->push_back(store_key_t(skey->print_secondary(primary_key, i)));
+            }
         }
     } else {
-        keys_out->push_back(store_key_t(index->print_secondary(primary_key)));
+        if (index_info.geo == sindex_geo_bool_t::GEO) {
+            std::vector<std::string> geo_keys = expand_geo_key(index, primary_key);
+            for (auto it = geo_keys.begin(); it != geo_keys.end(); ++it) {
+                keys_out->push_back(store_key_t(*it));
+            }
+        } else {
+            keys_out->push_back(store_key_t(index->print_secondary(primary_key)));
+        }
     }
 }
 
@@ -1102,6 +1172,8 @@ void deserialize_sindex_info(const std::vector<char> &data,
     guarantee_deserialization(success, "sindex description");
     success = deserialize_for_version(cluster_version, &read_stream, &info_out->multi);
     guarantee_deserialization(success, "sindex description");
+    // TODO! Temporary hack for testing
+    cluster_version = cluster_version_t::v1_14;
     if (cluster_version >= cluster_version_t::v1_14) {
         success = deserialize_for_version(cluster_version, &read_stream, &info_out->geo);
         guarantee_deserialization(success, "sindex description");
@@ -1127,7 +1199,6 @@ void rdb_update_single_sindex(
 
     sindex_disk_info_t sindex_info;
     deserialize_sindex_info(sindex->sindex.opaque_definition, &sindex_info);
-    // TODO! Use geo field
 
     // TODO we have no rdb context here. People should not be able to do anything
     // that requires an environment like gets from other tables etc. but we don't
@@ -1145,8 +1216,7 @@ void rdb_update_single_sindex(
 
             std::vector<store_key_t> keys;
 
-            compute_keys(modification->primary_key, deleted, &sindex_info.mapping,
-                         sindex_info.multi, &env, &keys);
+            compute_keys(modification->primary_key, deleted, sindex_info, &env, &keys);
 
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
@@ -1186,8 +1256,7 @@ void rdb_update_single_sindex(
 
             std::vector<store_key_t> keys;
 
-            compute_keys(modification->primary_key, added, &sindex_info.mapping,
-                         sindex_info.multi, &env, &keys);
+            compute_keys(modification->primary_key, added, sindex_info, &env, &keys);
 
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
