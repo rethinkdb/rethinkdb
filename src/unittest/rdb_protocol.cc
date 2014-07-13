@@ -156,7 +156,7 @@ void run_get_set_test(namespace_interface_t *nsi, order_source_t *osource) {
     {
         write_t write(
                 point_write_t(store_key_t("a"),
-                    make_counted<ql::datum_t>(ql::datum_t::R_NULL)),
+                    make_counted<ql::datum_t>(nullptr)),
                 DURABILITY_REQUIREMENT_DEFAULT,
                 profile_bool_t::PROFILE);
         write_response_t response;
@@ -180,7 +180,7 @@ void run_get_set_test(namespace_interface_t *nsi, order_source_t *osource) {
 
         if (point_read_response_t *maybe_point_read_response = boost::get<point_read_response_t>(&response.response)) {
             ASSERT_TRUE(maybe_point_read_response->data.has());
-            ASSERT_EQ(ql::datum_t(ql::datum_t::R_NULL), *maybe_point_read_response->data);
+            ASSERT_EQ(ql::datum_t(nullptr), *maybe_point_read_response->data);
         } else {
             ADD_FAILURE() << "got wrong result back";
         }

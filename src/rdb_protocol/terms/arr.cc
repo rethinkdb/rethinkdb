@@ -254,7 +254,7 @@ private:
         counted_t<const datum_t> arr = args->arg(env, 0)->as_datum();
         counted_t<const datum_t> new_el = args->arg(env, 1)->as_datum();
         std::set<counted_t<const datum_t> > el_set;
-        datum_ptr_t out(datum_t::R_ARRAY);
+        datum_array_builder_t out;
         for (size_t i = 0; i < arr->size(); ++i) {
             if (el_set.insert(arr->get(i)).second) {
                 out.add(arr->get(i));
@@ -264,7 +264,7 @@ private:
             out.add(new_el);
         }
 
-        return new_val(out.to_counted());
+        return new_val(std::move(out).to_counted());
     }
 
     virtual const char *name() const { return "set_insert"; }
@@ -279,7 +279,7 @@ private:
         counted_t<const datum_t> arr1 = args->arg(env, 0)->as_datum();
         counted_t<const datum_t> arr2 = args->arg(env, 1)->as_datum();
         std::set<counted_t<const datum_t> > el_set;
-        datum_ptr_t out(datum_t::R_ARRAY);
+        datum_array_builder_t out;
         for (size_t i = 0; i < arr1->size(); ++i) {
             if (el_set.insert(arr1->get(i)).second) {
                 out.add(arr1->get(i));
@@ -291,7 +291,7 @@ private:
             }
         }
 
-        return new_val(out.to_counted());
+        return new_val(std::move(out).to_counted());
     }
 
     virtual const char *name() const { return "set_union"; }
@@ -306,7 +306,7 @@ private:
         counted_t<const datum_t> arr1 = args->arg(env, 0)->as_datum();
         counted_t<const datum_t> arr2 = args->arg(env, 1)->as_datum();
         std::set<counted_t<const datum_t> > el_set;
-        datum_ptr_t out(datum_t::R_ARRAY);
+        datum_array_builder_t out;
         for (size_t i = 0; i < arr1->size(); ++i) {
             el_set.insert(arr1->get(i));
         }
@@ -317,7 +317,7 @@ private:
             }
         }
 
-        return new_val(out.to_counted());
+        return new_val(std::move(out).to_counted());
     }
 
     virtual const char *name() const { return "set_intersection"; }
@@ -332,7 +332,7 @@ private:
         counted_t<const datum_t> arr1 = args->arg(env, 0)->as_datum();
         counted_t<const datum_t> arr2 = args->arg(env, 1)->as_datum();
         std::set<counted_t<const datum_t> > el_set;
-        datum_ptr_t out(datum_t::R_ARRAY);
+        datum_array_builder_t out;
         for (size_t i = 0; i < arr2->size(); ++i) {
             el_set.insert(arr2->get(i));
         }
@@ -343,7 +343,7 @@ private:
             }
         }
 
-        return new_val(out.to_counted());
+        return new_val(std::move(out).to_counted());
     }
 
     virtual const char *name() const { return "set_difference"; }

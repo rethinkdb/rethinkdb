@@ -53,11 +53,11 @@ static const double min_dbl_int = max_dbl_int * -1;
 
 // NOTHROW: Return NULL
 // THROW: Throw an error
-enum throw_bool_t { NOTHROW = 0, THROW = 1};
+enum throw_bool_t { NOTHROW = 0, THROW = 1 };
 
 // NOCLOBBER: Don't overwrite existing values.
 // CLOBBER: Overwrite existing values.
-enum clobber_bool_t { NOCLOBBER = 0, CLOBBER = 1};
+enum clobber_bool_t { NOCLOBBER = 0, CLOBBER = 1 };
 
 enum class use_json_t { NO = 0, YES = 1 };
 

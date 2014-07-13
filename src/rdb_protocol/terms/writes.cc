@@ -69,10 +69,12 @@ private:
         if (!(*datum_out)->get(tbl->get_pkey(), NOTHROW).has()) {
             std::string key = uuid_to_str(generate_uuid());
             counted_t<const datum_t> keyd(new datum_t(std::string(key)));
-            datum_ptr_t d(datum_t::R_OBJECT);
-            bool conflict = d.add(tbl->get_pkey(), keyd);
-            r_sanity_check(!conflict);
-            *datum_out = (*datum_out)->merge(d.to_counted(), pure_merge);
+            {
+                datum_object_builder_t d;
+                bool conflict = d.add(tbl->get_pkey(), keyd);
+                r_sanity_check(!conflict);
+                *datum_out = (*datum_out)->merge(std::move(d).to_counted(), pure_merge);
+            }
             if (generated_keys_out->size() < array_size_limit()) {
                 generated_keys_out->push_back(key);
             } else {
@@ -148,10 +150,10 @@ private:
             for (size_t i = 0; i < generated_keys.size(); ++i) {
                 genkeys.push_back(make_counted<datum_t>(std::move(generated_keys[i])));
             }
-            datum_ptr_t d(datum_t::R_OBJECT);
+            datum_object_builder_t d;
             UNUSED bool b = d.add("generated_keys",
                                   make_counted<datum_t>(std::move(genkeys)));
-            stats = stats->merge(d.to_counted(), pure_merge);
+            stats = stats->merge(std::move(d).to_counted(), pure_merge);
         }
 
         if (keys_skipped > 0) {
@@ -161,10 +163,10 @@ private:
                     strprintf("Too many generated keys (%zu), array truncated to %zu.",
                               keys_skipped + generated_keys.size(),
                               generated_keys.size())));
-            datum_ptr_t d(datum_t::R_OBJECT);
+            datum_object_builder_t d;
             UNUSED bool b = d.add("warnings",
                                   make_counted<const datum_t>(std::move(warnings)));
-            stats = stats->merge(d.to_counted(), stats_merge);
+            stats = stats->merge(std::move(d).to_counted(), stats_merge);
         }
 
         return new_val(stats);

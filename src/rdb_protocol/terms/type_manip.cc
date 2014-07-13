@@ -311,7 +311,7 @@ private:
     }
 
     counted_t<const datum_t> val_info(scope_env_t *env, counted_t<val_t> v) const {
-        datum_ptr_t info(datum_t::R_OBJECT);
+        datum_object_builder_t info;
         int type = val_type(v);
         bool b = info.add("type", make_counted<datum_t>(get_name(type)));
 
@@ -366,7 +366,7 @@ private:
         default: r_sanity_check(false);
         }
         r_sanity_check(!b);
-        return info.to_counted();
+        return std::move(info).to_counted();
     }
 
     virtual const char *name() const { return "info"; }
