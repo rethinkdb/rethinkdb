@@ -270,7 +270,7 @@ public:
 
     counted_t<const datum_t> at(const std::string &key) const;
 
-    MUST_USE counted_t<const datum_t> finish() RVALUE_THIS;
+    MUST_USE counted_t<const datum_t> to_counted() RVALUE_THIS;
 
 private:
     std::map<std::string, counted_t<const datum_t> > map;

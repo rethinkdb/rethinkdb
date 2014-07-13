@@ -1205,9 +1205,11 @@ void datum_object_builder_t::overwrite(std::string key,
 // accumulative logic.
 void datum_object_builder_t::add_error(const char *msg) {
     // Insert or update the "errors" entry.
-    counted_t<const datum_t> &errors_entry = map["errors"];
-    double ecount = (errors_entry.has() ? errors_entry->as_num() : 0) + 1;
-    errors_entry = make_counted<datum_t>(ecount);
+    {
+        counted_t<const datum_t> &errors_entry = map["errors"];
+        double ecount = (errors_entry.has() ? errors_entry->as_num() : 0) + 1;
+        errors_entry = make_counted<datum_t>(ecount);
+    }
 
     // If first_error already exists, nothing gets inserted.
     map.insert(std::make_pair("first_error", make_counted<datum_t>(msg)));
@@ -1219,7 +1221,7 @@ counted_t<const datum_t> datum_object_builder_t::at(const std::string &key) cons
 }
 
 // RSI: It would be polite to rename this back to to_counted.
-counted_t<const datum_t> datum_object_builder_t::finish() RVALUE_THIS {
+counted_t<const datum_t> datum_object_builder_t::to_counted() RVALUE_THIS {
     return make_counted<const datum_t>(std::move(map));
 }
 

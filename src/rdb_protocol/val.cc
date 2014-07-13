@@ -51,22 +51,9 @@ table_t::table_t(env_t *env,
 }
 
 counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) {
-    datum_ptr_t d(datum_t::R_OBJECT);
-    std::string err = exception.what();
-
-    // The bool is true if there's a conflict when inserting the
-    // key, but since we just created an empty object above conflicts
-    // are impossible here.  If you want to harden this against future
-    // changes, you could store the bool and `r_sanity_check` that it's
-    // false.
-    DEBUG_VAR bool had_first_error
-        = d.add("first_error", make_counted<datum_t>(std::move(err)));
-    rassert(!had_first_error);
-
-    DEBUG_VAR bool had_errors = d.add("errors", make_counted<datum_t>(1.0));
-    rassert(!had_errors);
-
-    return d.to_counted();
+    datum_object_builder_t d;
+    d.add_error(exception.what());
+    return std::move(d).to_counted();
 }
 
 template<class T> // batched_replace_t and batched_insert_t

@@ -704,7 +704,7 @@ private:
                     instance->pop_back();
                 }
             } else {
-                instance->push_back(make_counted<const datum_t>(datum_t::R_NULL));
+                instance->push_back(make_counted<const datum_t>(nullptr));
                 add_perms(groups, instance, arr, index + 1, el);
                 instance->pop_back();
             }

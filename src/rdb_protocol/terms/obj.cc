@@ -48,7 +48,7 @@ private:
                              obj.at(key)->trunc_print().c_str(),
                              keyval->trunc_print().c_str()));
         }
-        return new_val(std::move(obj).finish());
+        return new_val(std::move(obj).to_counted());
     }
 
     virtual const char *name() const { return "object"; }

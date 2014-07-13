@@ -141,7 +141,7 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
         } else {
             unreachable();
         }
-        return std::move(res).finish();
+        return std::move(res).to_counted();
     }
 }
 
