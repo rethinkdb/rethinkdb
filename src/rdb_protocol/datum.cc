@@ -1224,6 +1224,11 @@ counted_t<const datum_t> datum_object_builder_t::to_counted() RVALUE_THIS {
     return make_counted<const datum_t>(std::move(map));
 }
 
+counted_t<const datum_t> datum_object_builder_t::to_counted(
+        const std::set<std::string> &permissible_ptypes) RVALUE_THIS {
+    return make_counted<const datum_t>(std::move(map), permissible_ptypes);
+}
+
 void datum_array_builder_t::add(counted_t<const datum_t> val) {
     vector.push_back(std::move(val));
     rcheck_array_size_datum(vector, base_exc_t::GENERIC);

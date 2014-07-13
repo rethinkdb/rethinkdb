@@ -149,6 +149,7 @@ public:
     // Access an element of an object.
     counted_t<const datum_t> get(const std::string &key,
                                  throw_bool_t throw_bool = THROW) const;
+    // RSI: Look at all the uses of datum_t::merge for slowness.
     counted_t<const datum_t> merge(counted_t<const datum_t> rhs) const;
     typedef counted_t<const datum_t> (*merge_resoluter_t)(const std::string &key,
                                                           counted_t<const datum_t> l,
@@ -272,6 +273,9 @@ public:
 
     MUST_USE counted_t<const datum_t> to_counted() RVALUE_THIS;
 
+    MUST_USE counted_t<const datum_t> to_counted(
+            const std::set<std::string> &permissible_ptypes) RVALUE_THIS;
+
 private:
     std::map<std::string, counted_t<const datum_t> > map;
     DISABLE_COPYING(datum_object_builder_t);
@@ -280,8 +284,6 @@ private:
 class datum_array_builder_t {
 public:
     datum_array_builder_t() { }
-
-    // RSI: Make add and reserve(?) check for size overflow appropriately.
 
     void reserve(size_t n) { vector.reserve(n); }
 

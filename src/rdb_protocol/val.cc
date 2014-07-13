@@ -90,7 +90,7 @@ counted_t<const datum_t> table_t::batched_replace(
 
     if (!replacement_generator->is_deterministic()) {
         r_sanity_check(nondeterministic_replacements_ok);
-        datum_ptr_t stats(datum_t::R_OBJECT);
+        datum_object_builder_t stats;
         std::vector<counted_t<const datum_t> > replacement_values;
         replacement_values.reserve(vals.size());
         for (size_t i = 0; i < vals.size(); ++i) {
@@ -107,7 +107,7 @@ counted_t<const datum_t> table_t::batched_replace(
         counted_t<const datum_t> insert_stats = batched_insert(
             env, std::move(replacement_values), conflict_behavior_t::REPLACE,
             durability_requirement, return_vals);
-        return stats.to_counted()->merge(insert_stats, stats_merge);
+        return std::move(stats).to_counted()->merge(insert_stats, stats_merge);
     } else {
         std::vector<store_key_t> store_keys;
         store_keys.reserve(keys.size());
@@ -133,7 +133,7 @@ counted_t<const datum_t> table_t::batched_insert(
     durability_requirement_t durability_requirement,
     bool return_vals) {
 
-    datum_ptr_t stats(datum_t::R_OBJECT);
+    datum_object_builder_t stats;
     std::vector<counted_t<const datum_t> > valid_inserts;
     valid_inserts.reserve(insert_datums.size());
     for (auto it = insert_datums.begin(); it != insert_datums.end(); ++it) {
@@ -150,7 +150,7 @@ counted_t<const datum_t> table_t::batched_insert(
     }
 
     if (valid_inserts.empty()) {
-        return stats.to_counted();
+        return std::move(stats).to_counted();
     } else if (insert_datums.size() != 1) {
         r_sanity_check(!return_vals);
     }
@@ -160,7 +160,7 @@ counted_t<const datum_t> table_t::batched_insert(
         batched_insert_t(std::move(valid_inserts), get_pkey(),
                          conflict_behavior, return_vals),
         durability_requirement);
-    return stats.to_counted()->merge(insert_stats, stats_merge);
+    return std::move(stats).to_counted()->merge(insert_stats, stats_merge);
 }
 
 MUST_USE bool table_t::sindex_create(env_t *env,

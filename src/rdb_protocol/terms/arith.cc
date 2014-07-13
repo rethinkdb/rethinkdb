@@ -47,14 +47,14 @@ private:
             return make_counted<datum_t>(concat(lhs->as_str(), rhs->as_str()));
         } else if (lhs->get_type() == datum_t::R_ARRAY) {
             rhs->check_type(datum_t::R_ARRAY);
-            datum_ptr_t out(datum_t::R_ARRAY);
+            datum_array_builder_t out;
             for (size_t i = 0; i < lhs->size(); ++i) {
                 out.add(lhs->get(i));
             }
             for (size_t i = 0; i < rhs->size(); ++i) {
                 out.add(rhs->get(i));
             }
-            return out.to_counted();
+            return std::move(out).to_counted();
         } else {
             // If we get here lhs is neither number nor string
             // so we'll just error saying we expect a number
@@ -82,19 +82,17 @@ private:
             counted_t<const datum_t> num =
                 (lhs->get_type() == datum_t::R_ARRAY ? rhs : lhs);
 
-            // RSI: Look at _all_ the array construction we've had.  Make an array
-            // builder type that checks the array size limit as it builds the array.
-            datum_ptr_t out(datum_t::R_ARRAY);
-            int64_t num_copies = num->as_int();
+            datum_array_builder_t out;
+            const int64_t num_copies = num->as_int();
             rcheck(num_copies >= 0, base_exc_t::GENERIC,
                    "Cannot multiply an ARRAY by a negative number.");
 
-            while (--num_copies >= 0) {
+            for (int64_t j = 0; j < num_copies; ++j) {
                 for (size_t i = 0; i < array->size(); ++i) {
                     out.add(array->get(i));
                 }
             }
-            return out.to_counted();
+            return std::move(out).to_counted();
         } else {
             lhs->check_type(datum_t::R_NUM);
             rhs->check_type(datum_t::R_NUM);

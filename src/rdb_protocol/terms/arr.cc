@@ -19,17 +19,22 @@ protected:
     counted_t<val_t> pend(scope_env_t *env, args_t *args, which_pend_t which_pend) const {
         counted_t<const datum_t> arr = args->arg(env, 0)->as_datum();
         counted_t<const datum_t> new_el = args->arg(env, 1)->as_datum();
-        datum_ptr_t out(datum_t::R_ARRAY);
+        datum_array_builder_t out;
+        out.reserve(arr->size() + 1);
         if (which_pend == PRE) {
             // TODO: this is horrendously inefficient.
             out.add(new_el);
-            for (size_t i = 0; i < arr->size(); ++i) out.add(arr->get(i));
+            for (size_t i = 0; i < arr->size(); ++i) {
+                out.add(arr->get(i));
+            }
         } else {
             // TODO: this is horrendously inefficient.
-            for (size_t i = 0; i < arr->size(); ++i) out.add(arr->get(i));
+            for (size_t i = 0; i < arr->size(); ++i) {
+                out.add(arr->get(i));
+            }
             out.add(new_el);
         }
-        return new_val(out.to_counted());
+        return new_val(std::move(out).to_counted());
     }
 };
 
@@ -170,14 +175,16 @@ private:
                 real_r += 1; // This is safe because it was an int64_t before.
             }
 
-            datum_ptr_t out(datum_t::R_ARRAY);
+            datum_array_builder_t out;
             if (!r_oob) {
                 for (uint64_t i = real_l; i < real_r; ++i) {
-                    if (i >= arr->size()) break;
+                    if (i >= arr->size()) {
+                        break;
+                    }
                     out.add(arr->get(i));
                 }
             }
-            return new_val(out.to_counted());
+            return new_val(std::move(out).to_counted());
         } else if (v->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
             counted_t<table_t> t;
             counted_t<datum_stream_t> seq;

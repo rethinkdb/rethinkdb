@@ -27,7 +27,7 @@ private:
         int ngroups = regexp.NumberOfCapturingGroups() + 1;
         scoped_array_t<re2::StringPiece> groups(ngroups);
         if (regexp.Match(str, 0, str.size(), RE2::UNANCHORED, groups.data(), ngroups)) {
-            datum_ptr_t match(datum_t::R_OBJECT);
+            datum_object_builder_t match;
             // We use `b` to store whether or not we got a conflict when writing
             // to an object.  This should never happen here because we aren't
             // using user-generated keys, but the result of `add` is marked
@@ -38,13 +38,13 @@ private:
                                static_cast<double>(groups[0].begin() - str.data())));
             b |= match.add("end", make_counted<const datum_t>(
                                static_cast<double>(groups[0].end() - str.data())));
-            datum_ptr_t match_groups(datum_t::R_ARRAY);
+            datum_array_builder_t match_groups;
             for (int i = 1; i < ngroups; ++i) {
                 const re2::StringPiece &group = groups[i];
                 if (group.data() == NULL) {
                     match_groups.add(make_counted<datum_t>(nullptr));
                 } else {
-                    datum_ptr_t match_group(datum_t::R_OBJECT);
+                    datum_object_builder_t match_group;
                     b |= match_group.add(
                         "str", make_counted<const datum_t>(group.as_string()));
                     b |= match_group.add(
@@ -53,12 +53,12 @@ private:
                     b |= match_group.add(
                         "end", make_counted<const datum_t>(
                             static_cast<double>(group.end() - str.data())));
-                    match_groups.add(match_group.to_counted());
+                    match_groups.add(std::move(match_group).to_counted());
                 }
             }
-            b |= match.add("groups", match_groups.to_counted());
+            b |= match.add("groups", std::move(match_groups).to_counted());
             r_sanity_check(!b);
-            return new_val(match.to_counted());
+            return new_val(std::move(match).to_counted());
         } else {
             return new_val(make_counted<const datum_t>(nullptr));
         }

@@ -19,13 +19,13 @@ counted_t<const datum_t> pure_merge(UNUSED const std::string &key,
 }
 
 counted_t<const datum_t> new_stats_object() {
-    datum_ptr_t stats(datum_t::R_OBJECT);
+    datum_object_builder_t stats;
     const char *const keys[] =
         {"inserted", "deleted", "skipped", "replaced", "unchanged", "errors"};
     for (size_t i = 0; i < sizeof(keys)/sizeof(*keys); ++i) {
         UNUSED bool b = stats.add(keys[i], make_counted<datum_t>(0.0));
     }
-    return stats.to_counted();
+    return std::move(stats).to_counted();
 }
 
 conflict_behavior_t parse_conflict_optarg(counted_t<val_t> arg,
