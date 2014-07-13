@@ -68,7 +68,7 @@ class datum_t : public slow_atomic_countable_t<datum_t> {
 public:
     // This ordering is important, because we use it to sort objects of
     // disparate type.  It should be alphabetical.
-    enum type_t { UNINITIALIZED = 0, R_ARRAY = 1, R_BOOL = 2, R_NULL = 3,
+    enum type_t { R_ARRAY = 1, R_BOOL = 2, R_NULL = 3,
                   R_NUM = 4, R_OBJECT = 5, R_STR = 6 };
     explicit datum_t(type_t _type);
 
@@ -93,11 +93,6 @@ public:
 
     // This should only be used to send responses to the client.
     explicit datum_t(grouped_data_t &&gd);
-
-    // These construct a datum from an equivalent representation.
-#if 0
-    datum_t();
-#endif
 
     ~datum_t();
 
