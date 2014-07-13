@@ -1220,9 +1220,13 @@ counted_t<const datum_t> datum_object_builder_t::at(const std::string &key) cons
     return map.at(key);
 }
 
-// RSI: It would be polite to rename this back to to_counted.
 counted_t<const datum_t> datum_object_builder_t::to_counted() RVALUE_THIS {
     return make_counted<const datum_t>(std::move(map));
+}
+
+void datum_array_builder_t::add(counted_t<const datum_t> val) {
+    vector.push_back(std::move(val));
+    rcheck_array_size_datum(vector, base_exc_t::GENERIC);
 }
 
 } // namespace ql

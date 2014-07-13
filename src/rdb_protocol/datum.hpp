@@ -285,9 +285,7 @@ public:
 
     void reserve(size_t n) { vector.reserve(n); }
 
-    void add(counted_t<const datum_t> val) {
-        vector.push_back(val);
-    }
+    void add(counted_t<const datum_t> val);
 
     counted_t<const datum_t> to_counted() RVALUE_THIS {
         return make_counted<datum_t>(std::move(vector));
