@@ -418,10 +418,12 @@ counted_t<const datum_t> datum_t::drop_literals(bool *encountered_literal_out) c
     // - this->counted_from_this()
     // - or if `need_to_copy` is true, `copied_result`
     bool need_to_copy = false;
-    scoped_ptr_t<datum_ptr_t> copied_result;
+    counted_t<const datum_t> copied_result;
 
     if (get_type() == R_OBJECT) {
         const std::map<std::string, counted_t<const datum_t> > &obj = as_object();
+        datum_object_builder_t builder;
+
         for (auto it = obj.begin(); it != obj.end(); ++it) {
             bool encountered_literal;
             counted_t<const datum_t> val =
@@ -431,25 +433,29 @@ counted_t<const datum_t> datum_t::drop_literals(bool *encountered_literal_out) c
                 // We have encountered the first field with a literal.
                 // This means we have to create a copy in `result_copy`.
                 need_to_copy = true;
-                // Copy everything up to now into the result
-                copied_result.init(new datum_ptr_t(R_OBJECT));
+                // Copy everything up to now into the builder.
                 for (auto copy_it = obj.begin(); copy_it != it; ++copy_it) {
-                    bool conflict = copied_result->add(copy_it->first, copy_it->second);
+                    bool conflict = builder.add(copy_it->first, copy_it->second);
                     r_sanity_check(!conflict);
                 }
             }
 
             if (need_to_copy) {
-                if (val) {
-                    bool conflict = copied_result->add(it->first, val);
+                if (val.has()) {
+                    bool conflict = builder.add(it->first, val);
                     r_sanity_check(!conflict);
                 } else {
                     // If `it->second` was a literal without a value, ignore it
                 }
             }
         }
+
+        copied_result = std::move(builder).to_counted();
+
     } else if (get_type() == R_ARRAY) {
         const std::vector<counted_t<const datum_t> > &arr = as_array();
+        datum_array_builder_t builder;
+
         for (auto it = arr.begin(); it != arr.end(); ++it) {
             bool encountered_literal;
             counted_t<const datum_t> val = (*it)->drop_literals(&encountered_literal);
@@ -458,16 +464,15 @@ counted_t<const datum_t> datum_t::drop_literals(bool *encountered_literal_out) c
                 // We have encountered the first element with a literal.
                 // This means we have to create a copy in `result_copy`.
                 need_to_copy = true;
-                // Copy everything up to now into the result
-                copied_result.init(new datum_ptr_t(R_ARRAY));
+                // Copy everything up to now into the builder.
                 for (auto copy_it = arr.begin(); copy_it != it; ++copy_it) {
-                    copied_result->add(*copy_it);
+                    builder.add(*copy_it);
                 }
             }
 
             if (need_to_copy) {
-                if (val) {
-                    copied_result->add(val);
+                if (val.has()) {
+                    builder.add(val);
                 } else {
                     // If `*it` was a literal without a value, ignore it
                 }
@@ -478,7 +483,7 @@ counted_t<const datum_t> datum_t::drop_literals(bool *encountered_literal_out) c
     if (need_to_copy) {
         *encountered_literal_out = true;
         rassert(copied_result.has());
-        return copied_result->to_counted();
+        return copied_result;
     } else {
         *encountered_literal_out = false;
         return counted_from_this();
