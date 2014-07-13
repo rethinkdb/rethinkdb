@@ -901,14 +901,14 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
         return rhs;
     }
 
-    datum_ptr_t d(as_object());
+    datum_object_builder_t d(as_object());
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
-        counted_t<const datum_t> sub_lhs = d->get(it->first, NOTHROW);
+        counted_t<const datum_t> sub_lhs = d.try_get(it->first);
         bool is_literal = it->second->is_ptype(pseudo::literal_string);
 
         if (it->second->get_type() == R_OBJECT && sub_lhs && !is_literal) {
-            UNUSED bool b = d.add(it->first, sub_lhs->merge(it->second), CLOBBER);
+            d.overwrite(it->first, sub_lhs->merge(it->second));
         } else {
             counted_t<const datum_t> val =
                 is_literal
@@ -921,15 +921,15 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
                 val = val->drop_literals(&encountered_literal);
                 r_sanity_check(!encountered_literal || !is_literal);
             }
-            if (val) {
-                UNUSED bool b = d.add(it->first, val, CLOBBER);
+            if (val.has()) {
+                d.overwrite(it->first, val);
             } else {
                 r_sanity_check(is_literal);
                 UNUSED bool b = d.delete_field(it->first);
             }
         }
     }
-    return d.to_counted();
+    return std::move(d).to_counted();
 }
 
 counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs,
