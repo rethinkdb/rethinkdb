@@ -145,7 +145,7 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
     }
 }
 
-void unproject_helper(datum_ptr_t *datum,
+void unproject_helper(datum_object_builder_t *datum,
                       const pathspec_t &pathspec,
                       recurse_flag_t recurse) {
     if (const std::string *str = pathspec.as_str()) {
@@ -156,12 +156,11 @@ void unproject_helper(datum_ptr_t *datum,
         }
     } else if (const std::map<std::string, pathspec_t> *map = pathspec.as_map()) {
         for (auto it = map->begin(); it != map->end(); ++it) {
-            if (counted_t<const datum_t> val = (*datum)->get(it->first, NOTHROW)) {
+            if (counted_t<const datum_t> val = datum->try_get(it->first)) {
                 try {
                     counted_t<const datum_t> sub_result =
                         unproject(val, it->second, RECURSE);
-                    /* We know we're clobbering, that's the point. */
-                    UNUSED bool clobbered = datum->add(it->first, sub_result, CLOBBER);
+                    datum->overwrite(it->first, sub_result);
                 } catch (const datum_exc_t &e) {
                     // do nothing
                 }
@@ -183,9 +182,9 @@ counted_t<const datum_t> unproject(counted_t<const datum_t> datum,
         }
         return std::move(res).to_counted();
     } else {
-        datum_ptr_t res(datum->as_object());
+        datum_object_builder_t res(datum->as_object());
         unproject_helper(&res, pathspec, recurse);
-        return res.to_counted();
+        return std::move(res).to_counted();
     }
 }
 

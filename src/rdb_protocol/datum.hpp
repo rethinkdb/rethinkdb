@@ -260,13 +260,27 @@ class datum_object_builder_t {
 public:
     datum_object_builder_t() { }
 
+    datum_object_builder_t(const std::map<std::string, counted_t<const datum_t> > &m)
+        : map(m) { }
+
     // Returns true if the insertion did _not_ happen because the key was already in
     // the object.
     MUST_USE bool add(const std::string &key, counted_t<const datum_t> val);
     void overwrite(std::string key, counted_t<const datum_t> val);
     void add_error(const char *msg);
 
+    MUST_USE bool delete_field(const std::string &key) {  // RSI cc file
+        return 0 != map.erase(key);
+    }
+
     counted_t<const datum_t> at(const std::string &key) const;
+
+    // Returns null if the key doesn't exist.
+    counted_t<const datum_t> try_get(const std::string &key) const {  // RSI cc file
+        auto it = map.find(key);
+        return it == map.end() ? counted_t<const datum_t>() : it->second;
+
+    }
 
     MUST_USE counted_t<const datum_t> to_counted() RVALUE_THIS;
 
