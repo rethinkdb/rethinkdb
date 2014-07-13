@@ -605,14 +605,12 @@ counted_t<const datum_t> time_sub(counted_t<const datum_t> time,
             time->get(epoch_time_key)->as_num()
             - time_or_duration->get(epoch_time_key)->as_num()));
     } else {
-        datum_ptr_t res(time->as_object());
-        bool clobbered = res.add(
+        datum_object_builder_t res(time->as_object());
+        res.overwrite(
             epoch_time_key,
-            make_counted<const datum_t>(res->get(epoch_time_key)->as_num() -
-                                        time_or_duration->as_num()),
-            CLOBBER);
-        r_sanity_check(clobbered);
-        return res.to_counted();
+            make_counted<const datum_t>(time->get(epoch_time_key)->as_num() -
+                                        time_or_duration->as_num()));
+        return std::move(res).to_counted();
     }
 }
 
