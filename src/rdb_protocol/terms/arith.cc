@@ -82,6 +82,8 @@ private:
             counted_t<const datum_t> num =
                 (lhs->get_type() == datum_t::R_ARRAY ? rhs : lhs);
 
+            // RSI: Look at _all_ the array construction we've had.  Make an array
+            // builder type that checks the array size limit as it builds the array.
             datum_ptr_t out(datum_t::R_ARRAY);
             int64_t num_copies = num->as_int();
             rcheck(num_copies >= 0, base_exc_t::GENERIC,
