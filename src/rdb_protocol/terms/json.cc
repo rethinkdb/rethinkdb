@@ -17,7 +17,7 @@ public:
                  (data.size() > 40
                   ? (data.to_std().substr(0, 37) + "...").c_str()
                   : data.c_str())));
-        return new_val(make_counted<const datum_t>(cjson.get()));
+        return new_val(to_datum(cjson.get()));
     }
 
     virtual const char *name() const { return "json"; }

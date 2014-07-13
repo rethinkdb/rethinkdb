@@ -98,7 +98,7 @@ void mock_namespace_interface_t::read_visitor_t::operator()(const point_read_t &
     point_read_response_t &res = boost::get<point_read_response_t>(response->response);
 
     if (data->find(get.key) != data->end()) {
-        res.data = make_counted<ql::datum_t>(scoped_cJSON_t(data->at(get.key)->DeepCopy()));
+        res.data = ql::to_datum(data->at(get.key)->get());
     } else {
         res.data = make_counted<ql::datum_t>(ql::datum_t::R_NULL);
     }
@@ -141,7 +141,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
         ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
         counted_t<const ql::datum_t> old_val;
         if (data->find(*it) != data->end()) {
-            old_val = make_counted<ql::datum_t>(data->at(*it)->get());
+            old_val = ql::to_datum(data->at(*it)->get());
         } else {
             old_val = make_counted<ql::datum_t>(ql::datum_t::R_NULL);
         }
@@ -186,7 +186,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
         ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
         counted_t<const ql::datum_t> old_val;
         if (data->find(key) != data->end()) {
-            old_val = make_counted<ql::datum_t>(data->at(key)->get());
+            old_val = ql::to_datum(data->at(key)->get());
         } else {
             old_val = make_counted<ql::datum_t>(ql::datum_t::R_NULL);
         }

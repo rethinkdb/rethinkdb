@@ -87,17 +87,15 @@ public:
     explicit datum_t(scoped_ptr_t<wire_string_t> str);
     explicit datum_t(const char *cstr);
     explicit datum_t(std::vector<counted_t<const datum_t> > &&_array);
-    explicit datum_t(std::map<std::string, counted_t<const datum_t> > &&object);
+    // RSI: This calls maybe_sanitize_ptype(allowed_pts).
+    explicit datum_t(std::map<std::string, counted_t<const datum_t> > &&object,
+                     const std::set<std::string> &allowed_pts = _allowed_pts);
 
     // This should only be used to send responses to the client.
     explicit datum_t(grouped_data_t &&gd);
 
     // These construct a datum from an equivalent representation.
     datum_t();
-    explicit datum_t(const Datum *d);
-    void init_from_pb(const Datum *d);
-    explicit datum_t(cJSON *json);
-    explicit datum_t(const scoped_cJSON_t &json);
 
     ~datum_t();
 
@@ -187,6 +185,8 @@ public:
                               counted_t<const datum_t> orig_key,
                               const std::string &pkey) const;
 
+    static void check_str_validity(const std::string &str);
+
 private:
     friend class datum_ptr_t;
     friend void pseudo::sanitize_time(datum_t *time);
@@ -206,10 +206,8 @@ private:
     void init_str(size_t size, const char *data);
     void init_array();
     void init_object();
-    void init_json(cJSON *json);
 
     void check_str_validity(const wire_string_t *str);
-    void check_str_validity(const std::string &str);
 
     friend void pseudo::time_to_str_key(const datum_t &d, std::string *str_out);
     void pt_to_str_key(std::string *str_out) const;
@@ -242,6 +240,9 @@ public:
 private:
     DISABLE_COPYING(datum_t);
 };
+
+counted_t<const datum_t> to_datum(const Datum *d);
+counted_t<const datum_t> to_datum(cJSON *json);
 
 // Converts a double to int, but returns false if it's not an integer or out of range.
 bool number_as_integer(double d, int64_t *i_out);

@@ -128,9 +128,9 @@ void run_in_thread_pool_with_broadcaster(
 counted_t<const ql::datum_t> generate_document(size_t value_padding_length, const std::string &value) {
     // This is a kind of hacky way to add an object to a map but I'm not sure
     // anyone really cares.
-    return make_counted<ql::datum_t>(scoped_cJSON_t(cJSON_Parse(strprintf("{\"id\" : %s, \"padding\" : \"%s\"}",
-                                                                          value.c_str(),
-                                                                          std::string(value_padding_length, 'a').c_str()).c_str())));
+    return ql::to_datum(scoped_cJSON_t(cJSON_Parse(strprintf("{\"id\" : %s, \"padding\" : \"%s\"}",
+                                                             value.c_str(),
+                                                             std::string(value_padding_length, 'a').c_str()).c_str())).get());
 }
 
 void write_to_broadcaster(size_t value_padding_length,
@@ -350,7 +350,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
         scoped_cJSON_t sindex_key_json(cJSON_Parse(it->second.c_str()));
-        auto sindex_key_literal = make_counted<const ql::datum_t>(sindex_key_json);
+        auto sindex_key_literal = ql::to_datum(sindex_key_json.get());
         read_t read = make_sindex_read(sindex_key_literal, id);
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());

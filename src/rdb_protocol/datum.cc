@@ -26,16 +26,14 @@ const size_t tag_size = 8;
 
 const std::set<std::string> datum_t::_allowed_pts = std::set<std::string>();
 
-const char* const datum_t::reql_type_string = "$reql_type$";
+const char *const datum_t::reql_type_string = "$reql_type$";
 
 datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
     r_sanity_check(_type == R_BOOL);
 }
 
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
-    // so we can use `isfinite` in a GCC 4.4.3-compatible way
-    using namespace std;  // NOLINT(build/namespaces)
-    rcheck(isfinite(r_num), base_exc_t::GENERIC,
+    rcheck(std::isfinite(r_num), base_exc_t::GENERIC,
            strprintf("Non-finite number: %" PR_RECONSTRUCTABLE_DOUBLE, r_num));
 }
 
@@ -58,11 +56,12 @@ datum_t::datum_t(std::vector<counted_t<const datum_t> > &&_array)
     rcheck_array_size(*r_array, base_exc_t::GENERIC);
 }
 
-datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object)
+datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object,
+                 const std::set<std::string> &allowed_pts)
     : type(R_OBJECT),
       r_object(new std::map<std::string, counted_t<const datum_t> >(
                    std::move(_object))) {
-    maybe_sanitize_ptype();
+    maybe_sanitize_ptype(allowed_pts);
 }
 
 datum_t::datum_t(grouped_data_t &&gd)
@@ -81,6 +80,7 @@ datum_t::datum_t(grouped_data_t &&gd)
     // be used for serialization.
 }
 
+// RSI: Get rid of this constructor.
 datum_t::datum_t(datum_t::type_t _type) : type(_type) {
     r_sanity_check(type == R_ARRAY || type == R_OBJECT || type == R_NULL);
     switch (type) {
@@ -138,51 +138,46 @@ void datum_t::init_object() {
     r_object = new std::map<std::string, counted_t<const datum_t> >();
 }
 
-void datum_t::init_json(cJSON *json) {
+counted_t<const datum_t> to_datum(cJSON *json) {
     switch (json->type) {
     case cJSON_False: {
-        type = R_BOOL;
-        r_bool = false;
+        return make_counted<datum_t>(datum_t::R_BOOL, false);
     } break;
     case cJSON_True: {
-        type = R_BOOL;
-        r_bool = true;
+        return make_counted<datum_t>(datum_t::R_BOOL, true);
     } break;
     case cJSON_NULL: {
-        type = R_NULL;
+        return make_counted<datum_t>(datum_t::R_NULL);
     } break;
     case cJSON_Number: {
-        type = R_NUM;
-        r_num = json->valuedouble;
-        // so we can use `isfinite` in a GCC 4.4.3-compatible way
-        using namespace std;  // NOLINT(build/namespaces)
-        rcheck(isfinite(r_num), base_exc_t::GENERIC,
-               strprintf("Non-finite value `%lf` in JSON.", r_num));
+        return make_counted<datum_t>(json->valuedouble);
     } break;
     case cJSON_String: {
-        init_str(strlen(json->valuestring), json->valuestring);
-        check_str_validity(r_str);
+        return make_counted<datum_t>(json->valuestring);
     } break;
     case cJSON_Array: {
-        init_array();
+        std::vector<counted_t<const datum_t> > array;
         json_array_iterator_t it(json);
         while (cJSON *item = it.next()) {
-            add(make_counted<datum_t>(item));
+            array.push_back(to_datum(item));
         }
+        return make_counted<datum_t>(std::move(array));
     } break;
     case cJSON_Object: {
-        init_object();
+        std::map<std::string, counted_t<const datum_t> > map;
         json_object_iterator_t it(json);
         while (cJSON *item = it.next()) {
-            bool conflict = add(item->string, make_counted<datum_t>(item));
-            rcheck(!conflict, base_exc_t::GENERIC,
-                   strprintf("Duplicate key `%s` in JSON.", item->string));
+            auto res = map.insert(std::make_pair(item->string, to_datum(item)));
+            rcheck_datum(res.second, base_exc_t::GENERIC,
+                         strprintf("Duplicate key `%s` in JSON.", item->string));
         }
-        maybe_sanitize_ptype();
+        return make_counted<datum_t>(std::move(map));
     } break;
     default: unreachable();
     }
 }
+
+
 
 void datum_t::check_str_validity(const wire_string_t *str) {
     for (size_t i = 0; i < str->size(); ++i) {
@@ -198,19 +193,12 @@ void datum_t::check_str_validity(const wire_string_t *str) {
 
 void datum_t::check_str_validity(const std::string &str) {
     size_t null_offset = str.find('\0');
-    rcheck(null_offset == std::string::npos,
-           base_exc_t::GENERIC,
-           // We truncate because lots of other places can call `c_str` on the
-           // error message.
-           strprintf("String `%.20s` (truncated) contains NULL byte at offset %zu.",
-                     str.c_str(), null_offset));
-}
-
-datum_t::datum_t(cJSON *json) {
-    init_json(json);
-}
-datum_t::datum_t(const scoped_cJSON_t &json) {
-    init_json(json.get());
+    rcheck_datum(null_offset == std::string::npos,
+                 base_exc_t::GENERIC,
+                 // We truncate because lots of other places can call `c_str` on the
+                 // error message.
+                 strprintf("String `%.20s` (truncated) contains NULL byte at offset %zu.",
+                           str.c_str(), null_offset));
 }
 
 datum_t::type_t datum_t::get_type() const { return type; }
@@ -907,7 +895,9 @@ MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
     check_str_validity(key);
     r_sanity_check(val.has());
     bool key_in_obj = r_object->count(key) > 0;
-    if (!key_in_obj || (clobber_bool == CLOBBER)) (*r_object)[key] = val;
+    if (!key_in_obj || (clobber_bool == CLOBBER)) {
+        (*r_object)[key] = val;
+    }
     return key_in_obj;
 }
 
@@ -1049,57 +1039,44 @@ void datum_t::runtime_fail(base_exc_t::type_t exc_type,
 
 datum_t::datum_t() : type(UNINITIALIZED) { }
 
-datum_t::datum_t(const Datum *d) : type(UNINITIALIZED) {
-    init_from_pb(d);
-}
-
-void datum_t::init_from_pb(const Datum *d) {
-    r_sanity_check(type == UNINITIALIZED);
+counted_t<const datum_t> to_datum(const Datum *d) {
     switch (d->type()) {
     case Datum::R_NULL: {
-        type = R_NULL;
+        return make_counted<datum_t>(datum_t::R_NULL);
     } break;
     case Datum::R_BOOL: {
-        type = R_BOOL;
-        r_bool = d->r_bool();
+        return make_counted<datum_t>(datum_t::R_BOOL, d->r_bool());
     } break;
     case Datum::R_NUM: {
-        type = R_NUM;
-        r_num = d->r_num();
-        // so we can use `isfinite` in a GCC 4.4.3-compatible way
-        using namespace std;  // NOLINT(build/namespaces)
-        rcheck(isfinite(r_num),
-               base_exc_t::GENERIC,
-               strprintf("Illegal non-finite number `%" PR_RECONSTRUCTABLE_DOUBLE "`.",
-                         r_num));
+        return make_counted<datum_t>(d->r_num());
     } break;
     case Datum::R_STR: {
-        init_str(d->r_str().size(), d->r_str().data());
-        check_str_validity(r_str);
+        return make_counted<datum_t>(std::string(d->r_str()));
     } break;
     case Datum::R_JSON: {
         scoped_cJSON_t cjson(cJSON_Parse(d->r_str().c_str()));
-        init_json(cjson.get());
+        return to_datum(cjson.get());
     } break;
     case Datum::R_ARRAY: {
-        init_array();
-        for (int i = 0; i < d->r_array_size(); ++i) {
-            r_array->push_back(make_counted<datum_t>(&d->r_array(i)));
+        std::vector<counted_t<const datum_t> > array;
+        array.reserve(d->r_array_size());
+        for (int i = 0, e = d->r_array_size(); i < e; ++i) {
+            array.push_back(to_datum(&d->r_array(i)));
         }
+        return make_counted<datum_t>(std::move(array));
     } break;
     case Datum::R_OBJECT: {
-        init_object();
-        for (int i = 0; i < d->r_object_size(); ++i) {
+        std::map<std::string, counted_t<const datum_t> > map;
+        for (int i = 0, e = d->r_object_size(); i < e; ++i) {
             const Datum_AssocPair *ap = &d->r_object(i);
             const std::string &key = ap->key();
-            check_str_validity(key);
-            rcheck(r_object->count(key) == 0,
-                   base_exc_t::GENERIC,
-                   strprintf("Duplicate key %s in object.", key.c_str()));
-            (*r_object)[key] = make_counted<datum_t>(&ap->val());
+            datum_t::check_str_validity(key);
+            auto res = map.insert(std::make_pair(key, to_datum(&ap->val())));
+            rcheck_datum(res.second, base_exc_t::GENERIC,
+                         strprintf("Duplicate key %s in object.", key.c_str()));
         }
-        std::set<std::string> allowed_ptypes = { pseudo::literal_string };
-        maybe_sanitize_ptype(allowed_ptypes);
+        const std::set<std::string> pts = { pseudo::literal_string };
+        return make_counted<datum_t>(std::move(map), pts);
     } break;
     default: unreachable();
     }

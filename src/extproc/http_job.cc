@@ -809,7 +809,7 @@ void json_to_datum(const std::string &json,
                    http_result_t *res_out) {
     scoped_cJSON_t cjson(cJSON_Parse(json.c_str()));
     if (cjson.get() != NULL) {
-        res_out->body = make_counted<const ql::datum_t>(cjson);
+        res_out->body = ql::to_datum(cjson.get());
     } else {
         res_out->error.assign("failed to parse JSON response");
     }
@@ -821,7 +821,7 @@ void json_to_datum(std::string &&json,
                    http_result_t *res_out) {
     scoped_cJSON_t cjson(cJSON_Parse(json.c_str()));
     if (cjson.get() != NULL) {
-        res_out->body = make_counted<const ql::datum_t>(cjson);
+        res_out->body = ql::to_datum(cjson.get());
     } else {
         res_out->error.assign("failed to parse JSON response");
         res_out->body = make_counted<const ql::datum_t>(std::move(json));
