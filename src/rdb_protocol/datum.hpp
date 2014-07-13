@@ -277,6 +277,28 @@ private:
     DISABLE_COPYING(datum_object_builder_t);
 };
 
+class datum_array_builder_t {
+public:
+    datum_array_builder_t() { }
+
+    // RSI: Make add and reserve(?) check for size overflow appropriately.
+
+    void reserve(size_t n) { vector.reserve(n); }
+
+    void add(counted_t<const datum_t> val) {
+        vector.push_back(val);
+    }
+
+    counted_t<const datum_t> to_counted() RVALUE_THIS {
+        return make_counted<datum_t>(std::move(vector));
+    }
+
+private:
+    std::vector<counted_t<const datum_t> > vector;
+
+    DISABLE_COPYING(datum_array_builder_t);
+};
+
 // If you need to do mutable operations to a `datum_t`, use one of these (it's
 // basically a `scoped_ptr_t` that can access private methods on `datum_t` and
 // checks for pseudotype validity when you turn it into a `counted_t<const

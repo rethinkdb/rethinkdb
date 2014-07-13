@@ -105,12 +105,12 @@ void pathspec_t::init_from(const pathspec_t &other) {
 counted_t<const datum_t> project(counted_t<const datum_t> datum,
         const pathspec_t &pathspec, recurse_flag_t recurse) {
     if (datum->get_type() == datum_t::R_ARRAY && recurse == RECURSE) {
-        std::vector<counted_t<const datum_t> > res;
+        datum_array_builder_t res;
         res.reserve(datum->size());
         for (const counted_t<const datum_t> &value : datum->as_array()) {
-            res.push_back(project(value, pathspec, DONT_RECURSE));
+            res.add(project(value, pathspec, DONT_RECURSE));
         }
-        return make_counted<datum_t>(std::move(res));
+        return std::move(res).to_counted();
     } else {
         datum_object_builder_t res;
         if (pathspec.as_str() != NULL) {
@@ -176,12 +176,12 @@ void unproject_helper(datum_ptr_t *datum,
 counted_t<const datum_t> unproject(counted_t<const datum_t> datum,
         const pathspec_t &pathspec, recurse_flag_t recurse) {
     if (datum->get_type() == datum_t::R_ARRAY && recurse == RECURSE) {
-        std::vector<counted_t<const datum_t> > array;
-        array.reserve(datum->size());
+        datum_array_builder_t res;
+        res.reserve(datum->size());
         for (const counted_t<const datum_t> &value : datum->as_array()) {
-            array.push_back(unproject(value, pathspec, DONT_RECURSE));
+            res.add(unproject(value, pathspec, DONT_RECURSE));
         }
-        return make_counted<datum_t>(std::move(array));
+        return std::move(res).to_counted();
     } else {
         datum_ptr_t res(datum->as_object());
         unproject_helper(&res, pathspec, recurse);
