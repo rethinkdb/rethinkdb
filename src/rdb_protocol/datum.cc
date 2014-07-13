@@ -934,18 +934,17 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
 
 counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs,
                                         merge_resoluter_t f) const {
-    datum_ptr_t d(as_object());
+    datum_object_builder_t d(as_object());
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
         if (counted_t<const datum_t> left = get(it->first, NOTHROW)) {
-            bool b = d.add(it->first, f(it->first, left, it->second), CLOBBER);
-            r_sanity_check(b);
+            d.overwrite(it->first, f(it->first, left, it->second));
         } else {
             bool b = d.add(it->first, it->second);
             r_sanity_check(!b);
         }
     }
-    return d.to_counted();
+    return std::move(d).to_counted();
 }
 
 template<class T>
