@@ -245,8 +245,7 @@ private:
 
         if (lb.has() && rb.has()) {
             if (*lb > *rb || ((left_open || right_open) && *lb == *rb)) {
-                counted_t<const datum_t> arr
-                    = make_counted<datum_t>(std::vector<counted_t<const datum_t> >());
+                counted_t<const datum_t> arr = datum_t::empty_array();
                 counted_t<datum_stream_t> ds(
                     new array_datum_stream_t(arr, backtrace()));
                 return new_val(ds, tbl);

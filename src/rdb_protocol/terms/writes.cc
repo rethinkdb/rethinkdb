@@ -263,8 +263,7 @@ private:
 
         counted_t<datum_stream_t> ds = args->arg(env, 0)->as_seq(env->env);
         // RSI: This seems somewhat messed up.
-        counted_t<const datum_t> stats
-            = make_counted<datum_t>(std::map<std::string, counted_t<const datum_t> >());
+        counted_t<const datum_t> stats = datum_t::empty_object();
         batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
         {
             profile::sampler_t sampler("Evaluating elements in for each.",

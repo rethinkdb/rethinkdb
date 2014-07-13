@@ -74,6 +74,11 @@ public:
     explicit datum_t(type_t _type);
 #endif
 
+    // RSI: Many uses of this function are very questionable (~(n^2) algorithms) --
+    // look at them, and make github issues!
+    static counted_t<const datum_t> empty_array();
+    static counted_t<const datum_t> empty_object();
+
     // These allow you to construct a datum from the type of value it
     // represents.  We have some gotchya-constructors to scare away implicit
     // conversions.

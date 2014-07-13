@@ -383,8 +383,7 @@ batched_replace_response_t rdb_batched_replace(
 
     // RSI: This looks somewhat messed up -- we allocate an object that we expect to
     // replace?
-    counted_t<const ql::datum_t> stats =
-        make_counted<ql::datum_t>(std::map<std::string, counted_t<const ql::datum_t> >());
+    counted_t<const ql::datum_t> stats = ql::datum_t::empty_object();
 
     // We have to drain write operations before destructing everything above us,
     // because the coroutines being drained use them.
