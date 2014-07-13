@@ -919,7 +919,9 @@ MUST_USE bool datum_t::delete_field(const std::string &key) {
 }
 
 counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
-    if (get_type() != R_OBJECT || rhs->get_type() != R_OBJECT) { return rhs; }
+    if (get_type() != R_OBJECT || rhs->get_type() != R_OBJECT) {
+        return rhs;
+    }
 
     datum_ptr_t d(as_object());
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
@@ -1170,14 +1172,14 @@ counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
     if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
         return make_counted<datum_t>(l->as_num() + r->as_num());
     } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
-        datum_ptr_t arr(datum_t::R_ARRAY);
+        datum_array_builder_t arr;
         for (size_t i = 0; i < l->size(); ++i) {
             arr.add(l->get(i));
         }
         for (size_t i = 0; i < r->size(); ++i) {
             arr.add(r->get(i));
         }
-        return arr.to_counted();
+        return std::move(arr).to_counted();
     }
 
     // Merging a string is left-preferential, which is just a no-op.
