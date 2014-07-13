@@ -1074,12 +1074,16 @@ bool first_less(const std::pair<int64_t, T> &left, const std::pair<int64_t, T> &
     return left.first < right.first;
 }
 
+// RSI: Look for make_counted<ql::datum_t>(std::(map|vector)) and replace empty ones with some empty-datum function.
+
 struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
     // The special case here is batched_replaces_response_t, which actually gets
     // sharded into multiple operations instead of getting sent unsplit in a
     // single direction.
     void merge_stats() const {
-        counted_t<const ql::datum_t> stats(new ql::datum_t(ql::datum_t::R_OBJECT));
+        counted_t<const ql::datum_t> stats
+            = make_counted<ql::datum_t>(std::map<std::string, counted_t<const ql::datum_t> >());
+        // RSI: This is an O(n^2) algorithm.
         for (size_t i = 0; i < count; ++i) {
             const counted_t<const ql::datum_t> *stats_i =
                 boost::get<counted_t<const ql::datum_t> >(&responses[i].response);

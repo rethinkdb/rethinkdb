@@ -381,7 +381,10 @@ batched_replace_response_t rdb_batched_replace(
     fifo_enforcer_source_t batched_replaces_fifo_source;
     fifo_enforcer_sink_t batched_replaces_fifo_sink;
 
-    counted_t<const ql::datum_t> stats(new ql::datum_t(ql::datum_t::R_OBJECT));
+    // RSI: This looks somewhat messed up -- we allocate an object that we expect to
+    // replace?
+    counted_t<const ql::datum_t> stats =
+        make_counted<ql::datum_t>(std::map<std::string, counted_t<const ql::datum_t> >());
 
     // We have to drain write operations before destructing everything above us,
     // because the coroutines being drained use them.
@@ -476,7 +479,8 @@ public:
         cb_->on_deletion(key, recency, interruptor);
     }
 
-    void on_pairs(buf_parent_t leaf_node, const std::vector<repli_timestamp_t> &recencies,
+    void on_pairs(buf_parent_t leaf_node,
+                  const std::vector<repli_timestamp_t> &recencies,
                   const std::vector<const btree_key_t *> &keys,
                   const std::vector<const void *> &vals,
                   signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
