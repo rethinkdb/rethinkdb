@@ -82,28 +82,6 @@ datum_t::datum_t(grouped_data_t &&gd)
     // be used for serialization.
 }
 
-#if 1 // RSI
-// RSI: Get rid of this constructor.
-datum_t::datum_t(datum_t::type_t _type) : type(_type) {
-    r_sanity_check(type == R_ARRAY || type == R_OBJECT || type == R_NULL);
-    switch (type) {
-    case R_NULL: {
-        r_str = NULL; // Zeroing here is probably good for debugging.
-    } break;
-    case R_BOOL: // fallthru
-    case R_NUM: // fallthru
-    case R_STR: unreachable();
-    case R_ARRAY: {
-        r_array = new std::vector<counted_t<const datum_t> >();
-    } break;
-    case R_OBJECT: {
-        r_object = new std::map<std::string, counted_t<const datum_t> >();
-    } break;
-    default: unreachable();
-    }
-}
-#endif
-
 datum_t::~datum_t() {
     switch (type) {
     case R_NULL: // fallthru

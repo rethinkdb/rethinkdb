@@ -70,9 +70,6 @@ public:
     // disparate type.  It should be alphabetical.
     enum type_t { R_ARRAY = 1, R_BOOL = 2, R_NULL = 3,
                   R_NUM = 4, R_OBJECT = 5, R_STR = 6 };
-#if 1  // RSI
-    explicit datum_t(type_t _type);
-#endif
 
     // RSI: Many uses of this function are very questionable (~(n^2) algorithms) --
     // look at them, and make github issues!
