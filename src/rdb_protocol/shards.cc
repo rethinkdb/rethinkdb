@@ -241,8 +241,7 @@ private:
             }
             return make_counted<val_t>(std::move(ret), bt);
         } else if (groups.size() == 0) {
-            return make_counted<val_t>(
-                make_counted<const datum_t>(datum_t::R_ARRAY), bt);
+            return make_counted<val_t>(datum_t::empty_array(), bt);
         } else {
             r_sanity_check(groups.size() == 1 && !groups.begin()->first.has());
             return make_counted<val_t>(
@@ -632,7 +631,7 @@ private:
                     } catch (const base_exc_t &e) {
                         if (e.get_type() == base_exc_t::NON_EXISTENCE) {
                             arr.push_back(
-                                make_counted<const datum_t>(datum_t::R_NULL));
+                                make_counted<const datum_t>(nullptr));
                         } else {
                             throw;
                         }

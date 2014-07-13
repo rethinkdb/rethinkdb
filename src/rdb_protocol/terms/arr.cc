@@ -165,7 +165,7 @@ private:
             bool r_oob = false;
             uint64_t real_r = canonicalize(this, fake_r, arr->size(), &r_oob);
             if (r_oob) {
-                return new_val(make_counted<const datum_t>(datum_t::R_ARRAY));
+                return new_val(datum_t::empty_array());
             } else if (!right_open) {
                 real_r += 1; // This is safe because it was an int64_t before.
             }

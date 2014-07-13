@@ -96,7 +96,7 @@ counted_t<const datum_t> table_t::batched_replace(
     r_sanity_check(vals.size() == keys.size());
 
     if (vals.empty()) {
-        return make_counted<const datum_t>(ql::datum_t::R_OBJECT);
+        return ql::datum_t::empty_object();
     } else if (vals.size() != 1) {
         r_sanity_check(!return_vals);
     }

@@ -160,7 +160,7 @@ counted_t<const datum_t> to_datum(cJSON *json) {
         return make_counted<datum_t>(datum_t::R_BOOL, true);
     } break;
     case cJSON_NULL: {
-        return make_counted<datum_t>(datum_t::R_NULL);
+        return make_counted<datum_t>(nullptr);
     } break;
     case cJSON_Number: {
         return make_counted<datum_t>(json->valuedouble);
@@ -1047,7 +1047,7 @@ void datum_t::runtime_fail(base_exc_t::type_t exc_type,
 counted_t<const datum_t> to_datum(const Datum *d) {
     switch (d->type()) {
     case Datum::R_NULL: {
-        return make_counted<datum_t>(datum_t::R_NULL);
+        return make_counted<datum_t>(nullptr);
     } break;
     case Datum::R_BOOL: {
         return make_counted<datum_t>(datum_t::R_BOOL, d->r_bool());
@@ -1201,6 +1201,24 @@ void datum_object_builder_t::overwrite(std::string key,
     map[std::move(key)] = std::move(val);
 }
 
+// RSI: Look at the add_error callers to see who uses and doesn't use this
+// accumulative logic.
+void datum_object_builder_t::add_error(const char *msg) {
+    // Insert or update the "errors" entry.
+    counted_t<const datum_t> &errors_entry = map["errors"];
+    double ecount = (errors_entry.has() ? errors_entry->as_num() : 0) + 1;
+    errors_entry = make_counted<datum_t>(ecount);
+
+    // If first_error already exists, nothing gets inserted.
+    map.insert(std::make_pair("first_error", make_counted<datum_t>(msg)));
+}
+
+
+counted_t<const datum_t> datum_object_builder_t::at(const std::string &key) const {
+    return map.at(key);
+}
+
+// RSI: It would be polite to rename this back to to_counted.
 counted_t<const datum_t> datum_object_builder_t::finish() RVALUE_THIS {
     return make_counted<const datum_t>(std::move(map));
 }

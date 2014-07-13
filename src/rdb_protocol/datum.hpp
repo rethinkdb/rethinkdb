@@ -266,6 +266,9 @@ public:
     // the object.
     MUST_USE bool add(const std::string &key, counted_t<const datum_t> val);
     void overwrite(std::string key, counted_t<const datum_t> val);
+    void add_error(const char *msg);
+
+    counted_t<const datum_t> at(const std::string &key) const;
 
     MUST_USE counted_t<const datum_t> finish() RVALUE_THIS;
 
