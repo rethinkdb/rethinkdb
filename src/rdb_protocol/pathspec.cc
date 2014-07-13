@@ -105,26 +105,25 @@ void pathspec_t::init_from(const pathspec_t &other) {
 counted_t<const datum_t> project(counted_t<const datum_t> datum,
         const pathspec_t &pathspec, recurse_flag_t recurse) {
     if (datum->get_type() == datum_t::R_ARRAY && recurse == RECURSE) {
-        datum_ptr_t res(datum_t::R_ARRAY);
-        for (size_t i = 0; i < datum->size(); ++i) {
-            res.add(project(datum->get(i), pathspec, DONT_RECURSE));
+        std::vector<counted_t<const datum_t> > res;
+        res.reserve(datum->size());
+        for (const counted_t<const datum_t> &value : datum->as_array()) {
+            res.push_back(project(value, pathspec, DONT_RECURSE));
         }
-        return res.to_counted();
+        return make_counted<datum_t>(std::move(res));
     } else {
-        datum_ptr_t res(datum_t::R_OBJECT);
+        datum_object_builder_t res;
         if (pathspec.as_str() != NULL) {
-            const std::string str = static_cast<std::string>(*pathspec.as_str());
+            std::string str = static_cast<std::string>(*pathspec.as_str());
             if (counted_t<const datum_t> val = datum->get(str, NOTHROW)) {
-                // This bool indicates if things were clobbered. We're fine
-                // with things being clobbered so we ignore it.
-                UNUSED bool b = res.add(str, val, CLOBBER);
+                res.overwrite(std::move(str), val);
             }
         } else if (const std::vector<pathspec_t> *vec = pathspec.as_vec()) {
             for (auto it = vec->begin(); it != vec->end(); ++it) {
                 counted_t<const datum_t> sub_result = project(datum, *it, recurse);
                 for (auto jt = sub_result->as_object().begin();
                      jt != sub_result->as_object().end(); ++jt) {
-                    UNUSED bool b = res.add(jt->first, jt->second, CLOBBER);
+                    res.overwrite(jt->first, jt->second);
                 }
             }
         } else if (const std::map<std::string, pathspec_t> *map = pathspec.as_map()) {
@@ -133,8 +132,7 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
                     try {
                         counted_t<const datum_t> sub_result =
                             project(val, it->second, RECURSE);
-                        // We know we're clobbering, that's the point.
-                        UNUSED bool b = res.add(it->first, sub_result, CLOBBER);
+                        res.overwrite(it->first, sub_result);
                     } catch (const datum_exc_t &e) {
                         // do nothing
                     }
@@ -143,7 +141,7 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
         } else {
             unreachable();
         }
-        return res.to_counted();
+        return std::move(res).finish();
     }
 }
 
@@ -178,11 +176,12 @@ void unproject_helper(datum_ptr_t *datum,
 counted_t<const datum_t> unproject(counted_t<const datum_t> datum,
         const pathspec_t &pathspec, recurse_flag_t recurse) {
     if (datum->get_type() == datum_t::R_ARRAY && recurse == RECURSE) {
-        datum_ptr_t res(datum_t::R_ARRAY);
-        for (size_t i = 0; i < datum->size(); ++i) {
-            res.add(unproject(datum->get(i), pathspec, DONT_RECURSE));
+        std::vector<counted_t<const datum_t> > array;
+        array.reserve(datum->size());
+        for (const counted_t<const datum_t> &value : datum->as_array()) {
+            array.push_back(unproject(value, pathspec, DONT_RECURSE));
         }
-        return res.to_counted();
+        return make_counted<datum_t>(std::move(array));
     } else {
         datum_ptr_t res(datum->as_object());
         unproject_helper(&res, pathspec, recurse);

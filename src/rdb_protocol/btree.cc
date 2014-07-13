@@ -89,7 +89,7 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice,
                                     &slice->stats, trace);
 
     if (!kv_location.value.has()) {
-        response->data.reset(new ql::datum_t(ql::datum_t::R_NULL));
+        response->data.reset(new ql::datum_t(nullptr));
     } else {
         response->data = get_data(static_cast<rdb_value_t *>(kv_location.value.get()),
                                   buf_parent_t(&kv_location.buf));

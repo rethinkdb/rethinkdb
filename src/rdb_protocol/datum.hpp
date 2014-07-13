@@ -70,7 +70,9 @@ public:
     // disparate type.  It should be alphabetical.
     enum type_t { R_ARRAY = 1, R_BOOL = 2, R_NULL = 3,
                   R_NUM = 4, R_OBJECT = 5, R_STR = 6 };
+#if 1  // RSI
     explicit datum_t(type_t _type);
+#endif
 
     // These allow you to construct a datum from the type of value it
     // represents.  We have some gotchya-constructors to scare away implicit
@@ -78,7 +80,11 @@ public:
     explicit datum_t(bool) = delete;
     explicit datum_t(int) = delete;
     explicit datum_t(float) = delete;
-    // Need to explicitly ask to construct a bool.
+
+    // Constructs an R_NULL datum.
+    explicit datum_t(std::nullptr_t);
+
+    // You need to explicitly ask to construct a bool (to avoid perilous conversions).
     datum_t(type_t _type, bool _bool);
     explicit datum_t(double _num);
     // TODO: Eventually get rid of the std::string constructor (in favor of
@@ -246,6 +252,22 @@ bool number_as_integer(double d, int64_t *i_out);
 
 // Converts a double to int, calling number_as_integer and throwing if it fails.
 int64_t checked_convert_to_int(const rcheckable_t *target, double d);
+
+class datum_object_builder_t {
+public:
+    datum_object_builder_t() { }
+
+    // Returns true if the insertion did _not_ happen because the key was already in
+    // the object.
+    MUST_USE bool add(const std::string &key, counted_t<const datum_t> val);
+    void overwrite(std::string key, counted_t<const datum_t> val);
+
+    MUST_USE counted_t<const datum_t> finish() RVALUE_THIS;
+
+private:
+    std::map<std::string, counted_t<const datum_t> > map;
+    DISABLE_COPYING(datum_object_builder_t);
+};
 
 // If you need to do mutable operations to a `datum_t`, use one of these (it's
 // basically a `scoped_ptr_t` that can access private methods on `datum_t` and

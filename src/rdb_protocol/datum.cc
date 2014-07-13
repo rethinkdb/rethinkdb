@@ -28,6 +28,8 @@ const std::set<std::string> datum_t::_allowed_pts = std::set<std::string>();
 
 const char *const datum_t::reql_type_string = "$reql_type$";
 
+datum_t::datum_t(std::nullptr_t) : type(R_NULL) { }
+
 datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
     r_sanity_check(_type == R_BOOL);
 }
@@ -80,6 +82,7 @@ datum_t::datum_t(grouped_data_t &&gd)
     // be used for serialization.
 }
 
+#if 1 // RSI
 // RSI: Get rid of this constructor.
 datum_t::datum_t(datum_t::type_t _type) : type(_type) {
     r_sanity_check(type == R_ARRAY || type == R_OBJECT || type == R_NULL);
@@ -99,6 +102,7 @@ datum_t::datum_t(datum_t::type_t _type) : type(_type) {
     default: unreachable();
     }
 }
+#endif
 
 datum_t::~datum_t() {
     switch (type) {
@@ -1168,6 +1172,26 @@ counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
                   l->trunc_print().c_str(), l->get_type_name().c_str(),
                   r->trunc_print().c_str(), r->get_type_name().c_str()));
     return l;
+}
+
+bool datum_object_builder_t::add(const std::string &key, counted_t<const datum_t> val) {
+    datum_t::check_str_validity(key);
+    r_sanity_check(val.has());
+    auto res = map.insert(std::make_pair(key, std::move(val)));
+    // Return _false_ if the insertion actually happened.  Because we are being
+    // backwards to the C++ convention.
+    return !res.second;
+}
+
+void datum_object_builder_t::overwrite(std::string key,
+                                       counted_t<const datum_t> val) {
+    datum_t::check_str_validity(key);
+    r_sanity_check(val.has());
+    map[std::move(key)] = std::move(val);
+}
+
+counted_t<const datum_t> datum_object_builder_t::finish() RVALUE_THIS {
+    return make_counted<const datum_t>(std::move(map));
 }
 
 } // namespace ql
