@@ -587,15 +587,13 @@ counted_t<const datum_t> time_add(counted_t<const datum_t> x,
         duration = x;
     }
 
-    datum_ptr_t res(time->as_object());
-    bool clobbered = res.add(
+    datum_object_builder_t res(time->as_object());
+    res.overwrite(
         epoch_time_key,
-        make_counted<const datum_t>(res->get(epoch_time_key)->as_num() +
-                                    duration->as_num()),
-        CLOBBER);
-    r_sanity_check(clobbered);
+        make_counted<datum_t>(time->get(epoch_time_key)->as_num() +
+                              duration->as_num()));
 
-    return res.to_counted();
+    return std::move(res).to_counted();
 }
 
 counted_t<const datum_t> time_sub(counted_t<const datum_t> time,
