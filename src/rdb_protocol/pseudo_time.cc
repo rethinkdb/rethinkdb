@@ -104,7 +104,7 @@ const boost::local_time::local_date_time epoch(raw_epoch, utc);
     }                                                                   \
 
 // Produces a datum_exc_t instead
-const datum_t dummy_datum;
+static const datum_t dummy_datum(datum_t::R_NULL);
 #define HANDLE_BOOST_ERRORS_NO_TARGET HANDLE_BOOST_ERRORS(&dummy_datum)
 
 enum date_format_t { UNSET, MONTH_DAY, WEEKCOUNT, DAYCOUNT };

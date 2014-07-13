@@ -1037,8 +1037,6 @@ void datum_t::runtime_fail(base_exc_t::type_t exc_type,
     ql::runtime_fail(exc_type, test, file, line, msg);
 }
 
-datum_t::datum_t() : type(UNINITIALIZED) { }
-
 counted_t<const datum_t> to_datum(const Datum *d) {
     switch (d->type()) {
     case Datum::R_NULL: {

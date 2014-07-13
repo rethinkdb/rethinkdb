@@ -95,7 +95,9 @@ public:
     explicit datum_t(grouped_data_t &&gd);
 
     // These construct a datum from an equivalent representation.
+#if 0
     datum_t();
+#endif
 
     ~datum_t();
 
