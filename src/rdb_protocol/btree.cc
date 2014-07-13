@@ -323,7 +323,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
         // function will also be interrupted, but we document where it comes
         // from to aid in future debugging if that invariant becomes violated.
     }
-    return resp.finish();
+    return std::move(resp).finish();
 }
 
 
