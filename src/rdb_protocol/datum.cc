@@ -1220,10 +1220,13 @@ void datum_array_builder_t::add(counted_t<const datum_t> val) {
     rcheck_array_size_datum(vector, base_exc_t::GENERIC);
 }
 
-counted_t<const datum_t> datum_array_builder_t::to_counted() RVALUE_THIS {
-    return make_counted<datum_t>(std::move(vector));
+void datum_array_builder_t::change(size_t index, counted_t<const datum_t> val) {
+    rcheck_datum(index < vector.size(),
+                 base_exc_t::NON_EXISTENCE,
+                 strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
+                           index, vector.size()));
+    vector[index] = std::move(val);
 }
-
 
 void datum_array_builder_t::insert(size_t index, counted_t<const datum_t> val) {
     rcheck_datum(index <= vector.size(),
@@ -1270,6 +1273,10 @@ void datum_array_builder_t::erase(size_t index) {
                  strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
                            index, vector.size()));
     vector.erase(vector.begin() + index);
+}
+
+counted_t<const datum_t> datum_array_builder_t::to_counted() RVALUE_THIS {
+    return make_counted<datum_t>(std::move(vector));
 }
 
 

@@ -362,21 +362,23 @@ public:
               argspec_t argspec, index_method_t index_method)
         : op_term_t(env, term, argspec), index_method_(index_method) { }
 
-    virtual void modify(scope_env_t *env, args_t *args, size_t index, datum_ptr_t *array) const = 0;
+    virtual void modify(scope_env_t *env, args_t *args, size_t index,
+                        datum_array_builder_t *array) const = 0;
 
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        datum_ptr_t arr(args->arg(env, 0)->as_datum()->as_array());
+        auto arg0_array = args->arg(env, 0)->as_datum()->as_array();
+        datum_array_builder_t arr(std::move(arg0_array));
         size_t index;
         if (index_method_ == ELEMENTS) {
-            index = canonicalize(this, args->arg(env, 1)->as_datum()->as_int(), arr->size());
+            index = canonicalize(this, args->arg(env, 1)->as_datum()->as_int(), arr.size());
         } else if (index_method_ == SPACES) {
-            index = canonicalize(this, args->arg(env, 1)->as_datum()->as_int(), arr->size() + 1);
+            index = canonicalize(this, args->arg(env, 1)->as_datum()->as_int(), arr.size() + 1);
         } else {
             unreachable();
         }
 
         modify(env, args, index, &arr);
-        return new_val(arr.to_counted());
+        return new_val(std::move(arr).to_counted());
     }
 private:
     index_method_t index_method_;
@@ -387,7 +389,8 @@ public:
     insert_at_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : at_term_t(env, term, argspec_t(3), SPACES) { }
 private:
-    void modify(scope_env_t *env, args_t *args, size_t index, datum_ptr_t *array) const {
+    void modify(scope_env_t *env, args_t *args, size_t index,
+                datum_array_builder_t *array) const {
         counted_t<const datum_t> new_el = args->arg(env, 2)->as_datum();
         array->insert(index, new_el);
     }
@@ -400,7 +403,8 @@ public:
     splice_at_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : at_term_t(env, term, argspec_t(3), SPACES) { }
 private:
-    void modify(scope_env_t *env, args_t *args, size_t index, datum_ptr_t *array) const {
+    void modify(scope_env_t *env, args_t *args, size_t index,
+                datum_array_builder_t *array) const {
         counted_t<const datum_t> new_els = args->arg(env, 2)->as_datum();
         array->splice(index, new_els);
     }
@@ -412,12 +416,13 @@ public:
     delete_at_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : at_term_t(env, term, argspec_t(2, 3), ELEMENTS) { }
 private:
-    void modify(scope_env_t *env, args_t *args, size_t index, datum_ptr_t *array) const {
+    void modify(scope_env_t *env, args_t *args, size_t index,
+                datum_array_builder_t *array) const {
         if (args->num_args() == 2) {
             array->erase(index);
         } else {
             int end_index =
-                canonicalize(this, args->arg(env, 2)->as_datum()->as_int(), (*array)->size());
+                canonicalize(this, args->arg(env, 2)->as_datum()->as_int(), array->size());
             array->erase_range(index, end_index);
         }
     }
@@ -429,7 +434,8 @@ public:
     change_at_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : at_term_t(env, term, argspec_t(3), ELEMENTS) { }
 private:
-    void modify(scope_env_t *env, args_t *args, size_t index, datum_ptr_t *array) const {
+    void modify(scope_env_t *env, args_t *args, size_t index,
+                datum_array_builder_t *array) const {
         counted_t<const datum_t> new_el = args->arg(env, 2)->as_datum();
         array->change(index, new_el);
     }

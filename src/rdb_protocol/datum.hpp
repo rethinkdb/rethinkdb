@@ -295,12 +295,17 @@ private:
 class datum_array_builder_t {
 public:
     datum_array_builder_t() { }
+    datum_array_builder_t(std::vector<counted_t<const datum_t> > &&v)
+        : vector(v) { }
+
+    size_t size() const { return vector.size(); }
 
     void reserve(size_t n);
 
     // Note that these methods produce behavior that is actually specific to the
     // definition of certain ReQL terms.
     void add(counted_t<const datum_t> val);
+    void change(size_t i, counted_t<const datum_t> val);
     void insert(size_t index, counted_t<const datum_t> val);
     void splice(size_t index, counted_t<const datum_t> values);
     void erase_range(size_t start, size_t end);
