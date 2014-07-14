@@ -739,60 +739,6 @@ const std::vector<counted_t<const datum_t> > &datum_t::as_array() const {
     return *r_array;
 }
 
-void datum_t::change(size_t index, counted_t<const datum_t> val) {
-    check_type(R_ARRAY);
-    rcheck(index < r_array->size(),
-           base_exc_t::NON_EXISTENCE,
-           strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
-                     index, r_array->size()));
-    (*r_array)[index] = val;
-}
-
-void datum_t::insert(size_t index, counted_t<const datum_t> val) {
-    check_type(R_ARRAY);
-    rcheck(index <= r_array->size(),
-           base_exc_t::NON_EXISTENCE,
-           strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
-                     index, r_array->size()));
-    r_array->insert(r_array->begin() + index, val);
-}
-
-void datum_t::erase(size_t index) {
-    check_type(R_ARRAY);
-    rcheck(index < r_array->size(),
-           base_exc_t::NON_EXISTENCE,
-           strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
-                     index, r_array->size()));
-    r_array->erase(r_array->begin() + index);
-}
-
-void datum_t::erase_range(size_t start, size_t end) {
-    check_type(R_ARRAY);
-    rcheck(start < r_array->size(),
-           base_exc_t::NON_EXISTENCE,
-           strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
-                     start, r_array->size()));
-    rcheck(end <= r_array->size(),
-           base_exc_t::NON_EXISTENCE,
-           strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
-                     end, r_array->size()));
-    rcheck(start <= end,
-           base_exc_t::GENERIC,
-           strprintf("Start index `%zu` is greater than end index `%zu`.",
-                      start, end));
-    r_array->erase(r_array->begin() + start, r_array->begin() + end);
-}
-
-void datum_t::splice(size_t index, counted_t<const datum_t> values) {
-    check_type(R_ARRAY);
-    rcheck(index <= r_array->size(),
-           base_exc_t::NON_EXISTENCE,
-           strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
-                     index, r_array->size()));
-    r_array->insert(r_array->begin() + index,
-                    values->as_array().begin(), values->as_array().end());
-}
-
 size_t datum_t::size() const {
     return as_array().size();
 }
@@ -873,13 +819,6 @@ datum_t::as_datum_stream(const protob_t<const Backtrace> &backtrace) const {
     unreachable();
 };
 
-void datum_t::add(counted_t<const datum_t> val) {
-    check_type(R_ARRAY);
-    r_sanity_check(val.has());
-    r_array->push_back(val);
-    rcheck_array_size(*r_array, base_exc_t::GENERIC);
-}
-
 MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
                            clobber_bool_t clobber_bool) {
     check_type(R_OBJECT);
@@ -890,10 +829,6 @@ MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
         (*r_object)[key] = val;
     }
     return key_in_obj;
-}
-
-MUST_USE bool datum_t::delete_field(const std::string &key) {
-    return r_object->erase(key);
 }
 
 counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {

@@ -194,19 +194,9 @@ public:
     static void check_str_validity(const std::string &str);
 
 private:
-    friend class datum_ptr_t;
     friend void pseudo::sanitize_time(datum_t *time);
-    void add(counted_t<const datum_t> val); // add to an array
-    // change an element of an array
-    void change(size_t index, counted_t<const datum_t> val);
-    void insert(size_t index, counted_t<const datum_t> val); // insert into an array
-    void erase(size_t index); // erase from an array
-    void erase_range(size_t start, size_t end); // erase a range from an array
-    void splice(size_t index, counted_t<const datum_t> values);
     MUST_USE bool add(const std::string &key, counted_t<const datum_t> val,
                       clobber_bool_t clobber_bool = NOCLOBBER); // add to an object
-    // Returns true if key was in object.
-    MUST_USE bool delete_field(const std::string &key);
 
     void init_empty();
     void init_str(size_t size, const char *data);
