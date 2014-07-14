@@ -327,8 +327,30 @@ public:
         // rcheck_array_size_datum(vector, base_exc_t::GENERIC);
     }
 
+    void erase_range(size_t start, size_t end) {
+        // RSI: Don't change this to <=.  See #2696.
+        rcheck_datum(start < vector.size(),
+                     base_exc_t::NON_EXISTENCE,
+                     strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
+                     start, vector.size()));
+        rcheck_datum(end <= vector.size(),
+                     base_exc_t::NON_EXISTENCE,
+                     strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
+                               end, vector.size()));
+        rcheck_datum(start <= end,
+                     base_exc_t::GENERIC,
+                     strprintf("Start index `%zu` is greater than end index `%zu`.",
+                               start, end));
+        vector.erase(vector.begin() + start, vector.begin() + end);
+    }
 
-
+    void erase(size_t index) {
+        rcheck_datum(index < vector.size(),
+                     base_exc_t::NON_EXISTENCE,
+                     strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
+                               index, vector.size()));
+        vector.erase(vector.begin() + index);
+    }
 
 private:
     std::vector<counted_t<const datum_t> > vector;
