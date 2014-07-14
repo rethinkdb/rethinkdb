@@ -93,6 +93,13 @@ public:
     explicit datum_t(scoped_ptr_t<wire_string_t> str);
     explicit datum_t(const char *cstr);
     explicit datum_t(std::vector<counted_t<const datum_t> > &&_array);
+
+    enum class no_array_size_limit_check_t { NO };
+    // Constructs a datum_t without checking the array size.  Used by
+    // datum_array_builder_t to maintain identical non-checking behavior with insert
+    // and splice operations -- see https://github.com/rethinkdb/rethinkdb/issues/2697
+    explicit datum_t(std::vector<counted_t<const datum_t> > &&_array,
+                     no_array_size_limit_check_t);
     // RSI: This calls maybe_sanitize_ptype(allowed_pts).
     explicit datum_t(std::map<std::string, counted_t<const datum_t> > &&object,
                      const std::set<std::string> &allowed_pts = _allowed_pts);
@@ -275,8 +282,7 @@ private:
 class datum_array_builder_t {
 public:
     datum_array_builder_t() { }
-    datum_array_builder_t(std::vector<counted_t<const datum_t> > &&v)
-        : vector(v) { }
+    datum_array_builder_t(std::vector<counted_t<const datum_t> > &&v);
 
     size_t size() const { return vector.size(); }
 
