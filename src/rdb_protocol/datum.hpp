@@ -256,6 +256,8 @@ bool number_as_integer(double d, int64_t *i_out);
 // Converts a double to int, calling number_as_integer and throwing if it fails.
 int64_t checked_convert_to_int(const rcheckable_t *target, double d);
 
+// Useful for building an object datum and doing mutation operations -- otherwise,
+// you'll have to do check_str_validity checks yourself.
 class datum_object_builder_t {
 public:
     datum_object_builder_t() { }
@@ -266,6 +268,7 @@ public:
     // Returns true if the insertion did _not_ happen because the key was already in
     // the object.
     MUST_USE bool add(const std::string &key, counted_t<const datum_t> val);
+    // Inserts a new key or overwrites the existing key's value.
     void overwrite(std::string key, counted_t<const datum_t> val);
     void add_error(const char *msg);
 
@@ -292,6 +295,8 @@ private:
     DISABLE_COPYING(datum_object_builder_t);
 };
 
+// Useful for building an array datum and doing mutation operations -- while having
+// array-size checks on the fly.
 class datum_array_builder_t {
 public:
     datum_array_builder_t() { }
@@ -317,59 +322,6 @@ private:
     std::vector<counted_t<const datum_t> > vector;
 
     DISABLE_COPYING(datum_array_builder_t);
-};
-
-// If you need to do mutable operations to a `datum_t`, use one of these (it's
-// basically a `scoped_ptr_t` that can access private methods on `datum_t` and
-// checks for pseudotype validity when you turn it into a `counted_t<const
-// datum_t>`).
-class datum_ptr_t {
-public:
-    template<class... Args>
-    explicit datum_ptr_t(Args... args)
-        : ptr_(make_scoped<datum_t>(std::forward<Args>(args)...)) { }
-    counted_t<const datum_t> to_counted(
-            const std::set<std::string> &allowed_ptypes = std::set<std::string>()) {
-        ptr()->maybe_sanitize_ptype(allowed_ptypes);
-        return counted_t<const datum_t>(ptr_.release());
-    }
-    const datum_t *operator->() const { return const_ptr(); }
-    void add_error(const char *msg) {
-        counted_t<const datum_t> old_ecount = ptr()->get("errors", NOTHROW);
-        double ecount = (old_ecount.has() ? old_ecount->as_num() : 0) + 1;
-        UNUSED bool errors_clobber =
-            ptr()->add("errors", make_counted<const datum_t>(ecount), CLOBBER);
-        UNUSED bool first_error_clobber =
-            ptr()->add("first_error", make_counted<const datum_t>(msg), NOCLOBBER);
-    }
-    void add(counted_t<const datum_t> val) { ptr()->add(val); }
-    void change(size_t i, counted_t<const datum_t> val) { ptr()->change(i, val); }
-    void insert(size_t i, counted_t<const datum_t> val) { ptr()->insert(i, val); }
-    void erase(size_t i) { ptr()->erase(i); }
-    void erase_range(size_t start, size_t end) { ptr()->erase_range(start, end); }
-    void splice(size_t index, counted_t<const datum_t> values) {
-        ptr()->splice(index, values);
-    }
-    MUST_USE bool add(const std::string &key, counted_t<const datum_t> val,
-                      clobber_bool_t clobber_bool = NOCLOBBER) {
-        return ptr()->add(key, val, clobber_bool);
-    }
-    MUST_USE bool delete_field(const std::string &key) {
-        return ptr()->delete_field(key);
-    }
-
-private:
-    datum_t *ptr() {
-        r_sanity_check(ptr_.has());
-        return ptr_.get();
-    }
-    const datum_t *const_ptr() const {
-        r_sanity_check(ptr_.has());
-        return ptr_.get();
-    }
-
-    scoped_ptr_t<datum_t> ptr_;
-    DISABLE_COPYING(datum_ptr_t);
 };
 
 // This function is used by e.g. foreach to merge statistics from multiple write
