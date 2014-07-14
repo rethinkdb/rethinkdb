@@ -1163,7 +1163,9 @@ void datum_array_builder_t::splice(size_t index, counted_t<const datum_t> values
 }
 
 void datum_array_builder_t::erase_range(size_t start, size_t end) {
-    // RSI: Don't change this to <=.  See #2696.
+    // Don't change this to <=.  See #2696.  Probably you'll want to move the logic
+    // of this (and some other functions here) into particular ReQL term
+    // implementations.
     rcheck_datum(start < vector.size(),
                  base_exc_t::NON_EXISTENCE,
                  strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
