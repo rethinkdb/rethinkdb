@@ -433,6 +433,11 @@ module 'DataExplorerView', ->
             @state.history.length = 0
             window.localStorage.rethinkdb_history = JSON.stringify @state.history
 
+        # Save the current query (the one in codemirror) in local storage
+        save_current_query: =>
+            if window.localStorage?
+                window.localStorage.current_query = JSON.stringify @codemirror.getValue()
+
         initialize: (args) =>
             @TermBaseConstructor = r.expr(1).constructor.__super__.constructor.__super__.constructor
 
@@ -442,6 +447,10 @@ module 'DataExplorerView', ->
             # Load options from local storage
             if window.localStorage?.options?
                 @state.options = JSON.parse window.localStorage.options
+
+            # Load the query that was written in code mirror (that may not have been executed before)
+            if typeof window.localStorage?.current_query is 'string'
+                @state.current_query = JSON.parse window.localStorage.current_query
 
             if window.localStorage?.rethinkdb_history?
                 @state.history = JSON.parse window.localStorage.rethinkdb_history
@@ -854,6 +863,7 @@ module 'DataExplorerView', ->
 
             # Save the last query (even incomplete)
             @state.current_query = @codemirror.getValue()
+            @save_current_query()
 
             # Look for special commands
             if event?.which?
@@ -3726,6 +3736,7 @@ module 'DataExplorerView', ->
             # Set + save codemirror
             @container.codemirror.setValue @history[parseInt(id)].query
             @container.state.current_query = @history[parseInt(id)].query
+            @save_current_query()
 
         delete_query: (event) =>
             that = @
