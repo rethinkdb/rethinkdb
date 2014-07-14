@@ -192,13 +192,12 @@ public:
                               const std::string &pkey) const;
 
     static void check_str_validity(const std::string &str);
+    static void check_str_validity(const wire_string_t *str);
 
 private:
     friend void pseudo::sanitize_time(datum_t *time);
     MUST_USE bool add(const std::string &key, counted_t<const datum_t> val,
                       clobber_bool_t clobber_bool = NOCLOBBER); // add to an object
-
-    void check_str_validity(const wire_string_t *str);
 
     friend void pseudo::time_to_str_key(const datum_t &d, std::string *str_out);
     void pt_to_str_key(std::string *str_out) const;

@@ -151,27 +151,22 @@ counted_t<const datum_t> to_datum(cJSON *json) {
 }
 
 
-
-void datum_t::check_str_validity(const wire_string_t *str) {
-    for (size_t i = 0; i < str->size(); ++i) {
-        if (str->data()[i] == '\0') {
-            rfail(base_exc_t::GENERIC,
-                  // We truncate because lots of other places can call `c_str` on the
-                  // error message.
-                  "String `%.20s` (truncated) contains NULL byte at offset %zu.",
-                  str->c_str(), i);
-        }
-    }
-}
-
-void datum_t::check_str_validity(const std::string &str) {
-    size_t null_offset = str.find('\0');
-    rcheck_datum(null_offset == std::string::npos,
+void check_str_validity(const char *bytes, size_t count) {
+    const char *pos = static_cast<const char *>(memchr(bytes, 0, count));
+    rcheck_datum(pos == NULL,
                  base_exc_t::GENERIC,
                  // We truncate because lots of other places can call `c_str` on the
                  // error message.
                  strprintf("String `%.20s` (truncated) contains NULL byte at offset %zu.",
-                           str.c_str(), null_offset));
+                           bytes, pos - bytes));
+}
+
+void datum_t::check_str_validity(const wire_string_t *str) {
+    ::ql::check_str_validity(str->data(), str->size());
+}
+
+void datum_t::check_str_validity(const std::string &str) {
+    ::ql::check_str_validity(str.data(), str.size());
 }
 
 datum_t::type_t datum_t::get_type() const { return type; }
