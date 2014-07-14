@@ -3,40 +3,38 @@
 require 'test/unit'
 require 'pp'
 
-importFilePath = ''
+# -- import the rethinkdb driver
+
+expectedDriverPath = ''
 if ENV['RUBY_DRIVER_DIR']
-  if File.file?(File.join(ENV['RUBY_DRIVER_DIR'], 'rethinkdb.rb'))
-    importFilePath = File.join(ENV['RUBY_DRIVER_DIR'], 'rethinkdb.rb')
-  elsif File.file?(File.join(ENV['RUBY_DRIVER_DIR'], 'lib', 'rethinkdb.rb'))
-    importFilePath = File.join(ENV['RUBY_DRIVER_DIR'], 'lib', 'rethinkdb.rb')
-  else 
-    abort('The Ruby driver was not where it was expected based on RUBY_DRIVER_DIR: ' + ENV['RUBY_DRIVER_DIR'])
-  end
-  $LOAD_PATH.unshift File.dirname(importFilePath)
-  require File.join(importFilePath)
-  $LOAD_PATH.shift
+  expectedDriverPath = ENV['RUBY_DRIVER_DIR']
 else
-  projectDir = File.dirname(File.dirname(File.dirname(File.expand_path(__FILE__))))
-  
-  ['build', ''].each do |pathPrefix|
-    dirPath = File.join(projectDir, pathPrefix, 'drivers', 'ruby', 'lib')
-    if File.file?(File.join(dirPath, 'rethinkdb.rb')) && File.file?(File.join(dirPath, 'ql2.pb.rb'))
-      importFilePath = File.join(dirPath, 'rethinkdb.rb')
+  # look for the source directory
+  targetPath = File.expand_path(File.dirname(__FILE__))
+  while targetPath != File::Separator
+    sourceDir = File.join(targetPath, 'drivers', 'ruby')
+    if File.directory?(sourceDir)
+      expectedDriverPath = File.join(sourceDir, 'lib')
       break
     end
+    targetPath = File.dirname(targetPath)
   end
-  
-  # import or fail
-  if importFilePath == ''
-    abort('Could not find a built ruby driver. Please build it.')
-  end
-  
-  $LOAD_PATH.unshift File.dirname(importFilePath)
-  require File.join(importFilePath)
-  $LOAD_PATH.shift
 end
-puts('RethinkDB driver loaded from: ' + File.dirname(importFilePath))
-include RethinkDB::Shortcuts
+if Dir.exists?(expectedDriverPath)
+  $LOAD_PATH.unshift expectedDriverPath
+  require 'rethinkdb'
+  $LOAD_PATH.shift
+  extend RethinkDB::Shortcuts
+  
+  actualDirverPath = File.dirname(r.method(:connect).source_location[0])
+  if actualDirverPath != expectedDriverPath
+    abort "Wrong Ruby driver loaded, expected from: " + expectedDriverPath + " but got :" + actualDirverPath
+  end
+else
+  abort "Unable to locate the Ruby driver"
+end
+
+# --
 
 $port ||= ARGV[0].to_i
 ARGV.clear

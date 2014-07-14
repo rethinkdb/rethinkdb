@@ -7,14 +7,12 @@ import time
 import argparse
 
 sys.path.insert(0, abspath(join(dirname(__file__), "common")))
-
-from test_framework import run, Test, TestTree, SimpleTest, group_from_file
-import test_framework
+import test_framework, utils
 from unit import AllUnitTests
 from shelltest import ShellCommandTest
 
 # Initialise the list of tests with the dumy tests and the unit tests
-tests = TestTree({
+tests = test_framework.TestTree({
     'unit': AllUnitTests()
 })
 
@@ -35,7 +33,7 @@ def load_tests():
     for filename in os.listdir(dirpath):
         base_name, ext = splitext(filename)
         if ext == '.test':
-            tree = TestTree();
+            tree = test_framework.TestTree();
             full_path = os.path.join(dirpath, filename)
             execfile(full_path, {"__builtins__": __builtins__, "generate_test": generate_test(tree)})
             tests.add(base_name, tree)
@@ -50,29 +48,16 @@ def load_groups():
         base_name, ext = splitext(filename)
         if ext == '.group':
             full_path = os.path.join(dirpath, filename)
-            groups[base_name] = group_from_file(full_path)
+            groups[base_name] = test_framework.group_from_file(full_path)
 
 # Take the requirements for the tests, and build a configuration
 def configure(reqs, args):
-    src_root = abspath(join(dirname(__file__), pardir))
+    src_root = utils.project_root_dir()
     if args.build_dir:
         build_dir = args.build_dir
     else:
-        build_dir = None
-        build_dir_mtime = 0
-        build_root_dir = join(src_root, 'build')
-        for subdir in os.listdir(build_root_dir):
-            path = join(build_root_dir, subdir)
-            if os.path.isdir(path) and (subdir.startswith("debug") or subdir.startswith("release")):
-                mtime = os.path.getmtime(path)
-                if mtime > build_dir_mtime:
-                    build_dir_mtime = mtime
-                    build_dir = path
-        if not build_dir:
-            raise Exception('Could not find a build directory in %s' % (build_root_dir,))
-    return dict(
-        SRC_ROOT = src_root,
-        BUILD_DIR = build_dir)
+        build_dir = utils.latest_build_dir()
+    return dict(SRC_ROOT=src_root, BUILD_DIR=build_dir)
 
 argparser = argparse.ArgumentParser(parents=[test_framework.argparser])
 argparser.add_argument('-b', '--build-dir', default=None,
@@ -83,6 +68,6 @@ if __name__ == '__main__':
     args = argparser.parse_args(sys.argv[1:])
     load_tests()
     load_groups()
-    ret = run(tests, groups, lambda reqs: configure(reqs, args), args)
+    ret = test_framework.run(tests, groups, lambda reqs: configure(reqs, args), args)
     if ret is not None:
         sys.exit(1)

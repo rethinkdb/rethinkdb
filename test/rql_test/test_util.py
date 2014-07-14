@@ -8,6 +8,9 @@ import sys
 from time import sleep
 from subprocess import call, check_call, Popen, PIPE, STDOUT
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import utils
+
 runningServers = []
 def shutdown_servers():
     global runningServers
@@ -175,7 +178,7 @@ class RethinkDBTestServer(object):
         
         self.log_file = open(os.path.join(self.server_data_dir, 'server-log.txt'), 'a+')
         
-        self.executable = os.path.join(self.server_build_dir or os.getenv('RETHINKDB_BUILD_DIR') or '../../build/debug', 'rethinkdb')
+        self.executable = os.path.join(self.server_build_dir, 'rethinkdb') if self.server_build_dir else utils.rethinkdb_binary_path()
         check_call([self.executable, 'create', '--directory', self.rdbfile_path], stdout=self.log_file, stderr=STDOUT)
 
     def stop(self):
