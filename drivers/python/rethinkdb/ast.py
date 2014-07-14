@@ -5,6 +5,7 @@ import numbers
 import collections
 import time
 import re
+import base64
 import json as py_json
 from threading import Lock
 
@@ -49,6 +50,12 @@ def expr(val, nesting_depth=20):
             use one of ReQL's bultin time constructors, r.now, r.time, or r.iso8601.
             """ % (type(val).__name__))
         return ISO8601(val.isoformat())
+    elif isinstance(val, RqlBinary):
+        return Binary(val)
+    elif isinstance(val, str):
+        return Datum(val)
+    elif isinstance(val, bytes):
+        return Binary(val)
     else:
         return Datum(val)
 
@@ -607,8 +614,15 @@ def recursively_make_hashable(obj):
 
 def reql_type_grouped_data_to_object(obj):
     if not 'data' in obj:
-        raise RqlDriverError('pseudo-type GROUPED_DATA object %s does not have the expected field "data".' % py_json.dumps(obj))
+        raise RqlDriverError('pseudo-type GROUPED_DATA object %s does not have the ' \
+                             'expected field "data".' % py_json.dumps(obj))
     return dict([(recursively_make_hashable(k),v) for (k,v) in obj['data']])
+
+def reql_type_binary_to_bytes(obj):
+    if not 'data' in obj:
+        raise RqlDriverError('pseudo-type BINARY object %s does not have the ' \
+                             'expected field "data".' % py_json.dumps(obj))
+    return RqlBinary(base64.b64decode(obj['data']))
 
 def convert_pseudotype(obj, format_opts):
     reql_type = obj.get('$reql_type$')
@@ -626,6 +640,8 @@ def convert_pseudotype(obj, format_opts):
                 return reql_type_grouped_data_to_object(obj)
             elif group_format != 'raw':
                 raise RqlDriverError("Unknown group_format run option \"%s\"." % group_format)
+        elif reql_type == 'BINARY':
+            return reql_type_binary_to_bytes(obj)
         else:
             raise RqlDriverError("Unknown pseudo-type %s" % reql_type)
     # If there was no pseudotype, or the time format is raw, return the original object
@@ -1198,6 +1214,41 @@ class Json(RqlTopLevelQuery):
 class Args(RqlTopLevelQuery):
     tt = pTerm.ARGS
     st = 'args'
+
+# Use this class as a wrapper to 'bytes' so we can tell the difference in Python2
+# (when reusing the result of a previous query)
+class RqlBinary(bytes):
+    def __new__(cls, *args, **kwargs):
+        return bytes.__new__(cls, *args, **kwargs)
+
+class Binary(RqlTopLevelQuery):
+    # Note: this term isn't actually serialized, it should exist only in the client
+    tt = None
+    st = 'binary'
+
+    def __init__(self, data):
+        # We only allow 'bytes' objects to be serialized as binary
+        # Python 2 - `bytes` is equivalent to `str`, either will be accepted
+        # Python 3 - `unicode` is equivalent to `str`, neither will be accepted
+        if isinstance(data, unicode):
+            raise RqlDriverError("Cannot convert a unicode string to binary, " \
+                                 "use `unicode.encode()` to specify the encoding.")
+        elif not isinstance(data, bytes):
+            raise RqlDriverError("Cannot convert %s to binary, convert the object " \
+                                 "to a `bytes` object first." % type(data).__name__)
+
+        self.data = data
+        self.base64_data = base64.b64encode(data)
+
+        # Kind of a hack to get around composing
+        self.args = []
+        self.optargs = {}
+
+    def compose(self, args, optargs):
+        return T('r.', self.st, '(bytes(', str(self.data), '))')
+        
+    def build(self):
+        return { '$reql_type$': 'BINARY', 'data': self.base64_data }
 
 class ToISO8601(RqlMethodQuery):
     tt = pTerm.TO_ISO8601

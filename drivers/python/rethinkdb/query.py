@@ -126,6 +126,9 @@ def type_of(*args):
 def info(*args):
     return Info(*args)
 
+def binary(data):
+    return Binary(data)
+
 def time(*args):
     return Time(*args)
 
