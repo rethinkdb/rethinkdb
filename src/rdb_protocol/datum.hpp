@@ -300,9 +300,35 @@ public:
 
     void add(counted_t<const datum_t> val);
 
+    // RSI: Move these to cc file.
     counted_t<const datum_t> to_counted() RVALUE_THIS {
         return make_counted<datum_t>(std::move(vector));
     }
+
+    void insert(size_t index, counted_t<const datum_t> val) {
+        rcheck_datum(index <= vector.size(),
+                     base_exc_t::NON_EXISTENCE,
+                     strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
+                               index, vector.size()));
+        vector.insert(vector.begin() + index, std::move(val));
+        // RSI: We used to not check this.
+        // rcheck_array_size_datum(vector, base_exc_t::GENERIC);
+    }
+
+    void splice(size_t index, counted_t<const datum_t> values) {
+        rcheck_datum(index <= vector.size(),
+                     base_exc_t::NON_EXISTENCE,
+                     strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
+                               index, vector.size()));
+
+        const std::vector<counted_t<const datum_t> > &arr = values->as_array();
+        vector.insert(vector.begin() + index, arr.begin(), arr.end());
+        // RSI: We used to not check this.
+        // rcheck_array_size_datum(vector, base_exc_t::GENERIC);
+    }
+
+
+
 
 private:
     std::vector<counted_t<const datum_t> > vector;
