@@ -100,7 +100,7 @@ public:
     // and splice operations -- see https://github.com/rethinkdb/rethinkdb/issues/2697
     explicit datum_t(std::vector<counted_t<const datum_t> > &&_array,
                      no_array_size_limit_check_t);
-    // RSI: This calls maybe_sanitize_ptype(allowed_pts).
+    // This calls maybe_sanitize_ptype(allowed_pts).
     explicit datum_t(std::map<std::string, counted_t<const datum_t> > &&object,
                      const std::set<std::string> &allowed_pts = _allowed_pts);
 
