@@ -1081,7 +1081,6 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
     void merge_stats() const {
         counted_t<const ql::datum_t> stats = ql::datum_t::empty_object();
 
-        // RSI: This is an O(n^2) algorithm.
         for (size_t i = 0; i < count; ++i) {
             const counted_t<const ql::datum_t> *stats_i =
                 boost::get<counted_t<const ql::datum_t> >(&responses[i].response);

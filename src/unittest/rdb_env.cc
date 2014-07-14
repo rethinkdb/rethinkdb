@@ -136,7 +136,6 @@ mock_namespace_interface_t::read_visitor_t::read_visitor_t(std::map<store_key_t,
 
 void mock_namespace_interface_t::write_visitor_t::operator()(
     const batched_replace_t &r) {
-    // RSI: ~(n^2) performance here with stats = stats->merge.
     counted_t<const ql::datum_t> stats = ql::datum_t::empty_object();
     for (auto it = r.keys.begin(); it != r.keys.end(); ++it) {
         ql::datum_object_builder_t resp;
@@ -181,7 +180,6 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
 
 void mock_namespace_interface_t::write_visitor_t::operator()(
     const batched_insert_t &bi) {
-    // RSI: ~(n^2) performance here with stats->merge.
     counted_t<const ql::datum_t> stats = ql::datum_t::empty_object();
     for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
         store_key_t key((*it)->get(bi.pkey)->print_primary());

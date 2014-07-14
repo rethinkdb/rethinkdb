@@ -1097,8 +1097,6 @@ void datum_object_builder_t::overwrite(std::string key,
     map[std::move(key)] = std::move(val);
 }
 
-// RSI: Look at the add_error callers to see who uses and doesn't use this
-// accumulative logic.
 void datum_object_builder_t::add_error(const char *msg) {
     // Insert or update the "errors" entry.
     {
@@ -1111,9 +1109,18 @@ void datum_object_builder_t::add_error(const char *msg) {
     map.insert(std::make_pair("first_error", make_counted<datum_t>(msg)));
 }
 
+MUST_USE bool datum_object_builder_t::delete_field(const std::string &key) {
+    return 0 != map.erase(key);
+}
+
 
 counted_t<const datum_t> datum_object_builder_t::at(const std::string &key) const {
     return map.at(key);
+}
+
+counted_t<const datum_t> datum_object_builder_t::try_get(const std::string &key) const {
+    auto it = map.find(key);
+    return it == map.end() ? counted_t<const datum_t>() : it->second;
 }
 
 counted_t<const datum_t> datum_object_builder_t::to_counted() RVALUE_THIS {

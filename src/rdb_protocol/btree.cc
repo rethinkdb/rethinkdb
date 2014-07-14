@@ -203,7 +203,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
     rdb_modification_info_t *mod_info_out,
     profile::trace_t *trace)
 {
-    bool return_vals = replacer->should_return_vals();
+    const bool return_vals = replacer->should_return_vals();
     const std::string &primary_key = *info.btree->primary_key;
     const store_key_t &key = *info.key;
     ql::datum_object_builder_t resp;
@@ -240,7 +240,6 @@ batched_replace_response_t rdb_replace_and_return_superblock(
 
         counted_t<const ql::datum_t> new_val = replacer->replace(old_val);
         if (return_vals == RETURN_VALS) {
-            // RSI: This logic is F'd up w.r.t. the if block above.
             resp.overwrite("new_val", new_val);
         }
         if (new_val->get_type() == ql::datum_t::R_NULL) {
@@ -381,8 +380,6 @@ batched_replace_response_t rdb_batched_replace(
     fifo_enforcer_source_t batched_replaces_fifo_source;
     fifo_enforcer_sink_t batched_replaces_fifo_sink;
 
-    // RSI: This looks somewhat messed up -- we allocate an object that we expect to
-    // replace?
     counted_t<const ql::datum_t> stats = ql::datum_t::empty_object();
 
     // We have to drain write operations before destructing everything above us,

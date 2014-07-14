@@ -245,9 +245,9 @@ private:
 
         if (lb.has() && rb.has()) {
             if (*lb > *rb || ((left_open || right_open) && *lb == *rb)) {
-                counted_t<const datum_t> arr = datum_t::empty_array();
-                counted_t<datum_stream_t> ds(
-                    new array_datum_stream_t(arr, backtrace()));
+                counted_t<datum_stream_t> ds
+                    =  make_counted<array_datum_stream_t>(datum_t::empty_array(),
+                                                          backtrace());
                 return new_val(ds, tbl);
             }
         }

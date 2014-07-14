@@ -71,8 +71,6 @@ public:
     enum type_t { R_ARRAY = 1, R_BOOL = 2, R_NULL = 3,
                   R_NUM = 4, R_OBJECT = 5, R_STR = 6 };
 
-    // RSI: Many uses of this function are very questionable (~(n^2) algorithms) --
-    // look at them, and make github issues!
     static counted_t<const datum_t> empty_array();
     static counted_t<const datum_t> empty_object();
 
@@ -146,7 +144,6 @@ public:
     // Access an element of an object.
     counted_t<const datum_t> get(const std::string &key,
                                  throw_bool_t throw_bool = THROW) const;
-    // RSI: Look at all the uses of datum_t::merge for slowness.
     counted_t<const datum_t> merge(counted_t<const datum_t> rhs) const;
     typedef counted_t<const datum_t> (*merge_resoluter_t)(const std::string &key,
                                                           counted_t<const datum_t> l,
@@ -256,18 +253,12 @@ public:
     void overwrite(std::string key, counted_t<const datum_t> val);
     void add_error(const char *msg);
 
-    MUST_USE bool delete_field(const std::string &key) {  // RSI cc file
-        return 0 != map.erase(key);
-    }
+    MUST_USE bool delete_field(const std::string &key);
 
     counted_t<const datum_t> at(const std::string &key) const;
 
     // Returns null if the key doesn't exist.
-    counted_t<const datum_t> try_get(const std::string &key) const {  // RSI cc file
-        auto it = map.find(key);
-        return it == map.end() ? counted_t<const datum_t>() : it->second;
-
-    }
+    counted_t<const datum_t> try_get(const std::string &key) const;
 
     MUST_USE counted_t<const datum_t> to_counted() RVALUE_THIS;
 
