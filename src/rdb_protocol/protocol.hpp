@@ -424,7 +424,7 @@ struct read_t {
                            sindex_status_t> variant_t;
     variant_t read;
     profile_bool_t profile;
-    const ql::configured_limits_t limits;
+    ql::configured_limits_t limits;
 
     region_t get_region() const THROWS_NOTHING;
     // Returns true if the read has any operation for this region.  Returns
@@ -652,7 +652,7 @@ struct write_t {
 
     durability_requirement_t durability_requirement;
     profile_bool_t profile;
-    const ql::configured_limits_t limits;
+    ql::configured_limits_t limits;
 
     region_t get_region() const THROWS_NOTHING;
     // Returns true if the write had any side effects applicable to the
