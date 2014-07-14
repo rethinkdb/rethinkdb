@@ -296,61 +296,17 @@ class datum_array_builder_t {
 public:
     datum_array_builder_t() { }
 
-    void reserve(size_t n) { vector.reserve(n); }
+    void reserve(size_t n);
 
+    // Note that these methods produce behavior that is actually specific to the
+    // definition of certain ReQL terms.
     void add(counted_t<const datum_t> val);
+    void insert(size_t index, counted_t<const datum_t> val);
+    void splice(size_t index, counted_t<const datum_t> values);
+    void erase_range(size_t start, size_t end);
+    void erase(size_t index);
 
-    // RSI: Move these to cc file.
-    counted_t<const datum_t> to_counted() RVALUE_THIS {
-        return make_counted<datum_t>(std::move(vector));
-    }
-
-    void insert(size_t index, counted_t<const datum_t> val) {
-        rcheck_datum(index <= vector.size(),
-                     base_exc_t::NON_EXISTENCE,
-                     strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
-                               index, vector.size()));
-        vector.insert(vector.begin() + index, std::move(val));
-        // RSI: We used to not check this.
-        // rcheck_array_size_datum(vector, base_exc_t::GENERIC);
-    }
-
-    void splice(size_t index, counted_t<const datum_t> values) {
-        rcheck_datum(index <= vector.size(),
-                     base_exc_t::NON_EXISTENCE,
-                     strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
-                               index, vector.size()));
-
-        const std::vector<counted_t<const datum_t> > &arr = values->as_array();
-        vector.insert(vector.begin() + index, arr.begin(), arr.end());
-        // RSI: We used to not check this.
-        // rcheck_array_size_datum(vector, base_exc_t::GENERIC);
-    }
-
-    void erase_range(size_t start, size_t end) {
-        // RSI: Don't change this to <=.  See #2696.
-        rcheck_datum(start < vector.size(),
-                     base_exc_t::NON_EXISTENCE,
-                     strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
-                     start, vector.size()));
-        rcheck_datum(end <= vector.size(),
-                     base_exc_t::NON_EXISTENCE,
-                     strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
-                               end, vector.size()));
-        rcheck_datum(start <= end,
-                     base_exc_t::GENERIC,
-                     strprintf("Start index `%zu` is greater than end index `%zu`.",
-                               start, end));
-        vector.erase(vector.begin() + start, vector.begin() + end);
-    }
-
-    void erase(size_t index) {
-        rcheck_datum(index < vector.size(),
-                     base_exc_t::NON_EXISTENCE,
-                     strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
-                               index, vector.size()));
-        vector.erase(vector.begin() + index);
-    }
+    counted_t<const datum_t> to_counted() RVALUE_THIS;
 
 private:
     std::vector<counted_t<const datum_t> > vector;
