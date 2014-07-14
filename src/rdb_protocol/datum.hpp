@@ -198,11 +198,6 @@ private:
     MUST_USE bool add(const std::string &key, counted_t<const datum_t> val,
                       clobber_bool_t clobber_bool = NOCLOBBER); // add to an object
 
-    void init_empty();
-    void init_str(size_t size, const char *data);
-    void init_array();
-    void init_object();
-
     void check_str_validity(const wire_string_t *str);
 
     friend void pseudo::time_to_str_key(const datum_t &d, std::string *str_out);

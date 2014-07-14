@@ -111,24 +111,6 @@ counted_t<const datum_t> datum_t::empty_object() {
     return make_counted<datum_t>(std::map<std::string, counted_t<const datum_t> >());
 }
 
-// RSI: Probably get rid of this.
-void datum_t::init_str(size_t size, const char *data) {
-    type = R_STR;
-    r_str = wire_string_t::create_and_init(size, data).release();
-}
-
-// RSI: Probably get rid of this.
-void datum_t::init_array() {
-    type = R_ARRAY;
-    r_array = new std::vector<counted_t<const datum_t> >();
-}
-
-// RSI: Probably get rid of this.
-void datum_t::init_object() {
-    type = R_OBJECT;
-    r_object = new std::map<std::string, counted_t<const datum_t> >();
-}
-
 counted_t<const datum_t> to_datum(cJSON *json) {
     switch (json->type) {
     case cJSON_False: {
