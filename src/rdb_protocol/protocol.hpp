@@ -424,7 +424,7 @@ struct read_t {
                            sindex_status_t> variant_t;
     variant_t read;
     profile_bool_t profile;
-    ql::configured_limits_t limits;
+    scoped_ptr_t<const ql::configured_limits_t> limits;
 
     region_t get_region() const THROWS_NOTHING;
     // Returns true if the read has any operation for this region.  Returns
@@ -442,7 +442,7 @@ struct read_t {
     read_t(T &&_read, profile_bool_t _profile,
            const ql::configured_limits_t &_limits)
         : read(std::forward<T>(_read)), profile(_profile),
-          limits(_limits) { }
+          limits(make_scoped<const ql::configured_limits_t>(_limits)) { }
 
 
     // Only use snapshotting if we're doing a range get.
@@ -652,7 +652,7 @@ struct write_t {
 
     durability_requirement_t durability_requirement;
     profile_bool_t profile;
-    ql::configured_limits_t limits;
+    scoped_ptr_t<const ql::configured_limits_t> limits;
 
     region_t get_region() const THROWS_NOTHING;
     // Returns true if the write had any side effects applicable to the
@@ -679,14 +679,14 @@ struct write_t {
             const ql::configured_limits_t &_limits)
         : write(std::forward<T>(t)),
           durability_requirement(durability), profile(_profile),
-          limits(_limits) { }
+          limits(make_scoped<const ql::configured_limits_t>(_limits)) { }
     template<class T>
     write_t(T &&t, profile_bool_t _profile,
             const ql::configured_limits_t &_limits)
         : write(std::forward<T>(t)),
           durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
           profile(_profile),
-          limits(_limits) { }
+          limits(make_scoped<const ql::configured_limits_t>(_limits)) { }
 };
 
 RDB_DECLARE_SERIALIZABLE(write_t);
