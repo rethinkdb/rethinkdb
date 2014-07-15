@@ -34,7 +34,7 @@ def test_get()
 
     res = r.http(url).run()
     expect_eq(res['args'], {})
-    expect_eq(res['headers']['Accept-Encoding'], 'deflate=1;gzip=0.5')
+    expect_eq(res['headers']['Accept-Encoding'], 'deflate;q=1, gzip;q=0.5')
     expect_eq(res['headers']['User-Agent'].split('/')[0], 'RethinkDB')
 end
 

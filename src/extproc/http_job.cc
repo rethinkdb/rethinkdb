@@ -502,7 +502,7 @@ void set_default_opts(CURL *curl_handle,
 
     exc_setopt(curl_handle, CURLOPT_USERAGENT, RETHINKDB_USER_AGENT, "USER AGENT");
 
-    exc_setopt(curl_handle, CURLOPT_ENCODING, "deflate=1;gzip=0.5", "PROTOCOLS");
+    exc_setopt(curl_handle, CURLOPT_ENCODING, "deflate;q=1, gzip;q=0.5", "PROTOCOLS");
 
     exc_setopt(curl_handle, CURLOPT_NOSIGNAL, 1, "NOSIGNAL");
 
