@@ -431,9 +431,7 @@ public:
             /* The purpose of `heartbeat_manager_keepalive` is to ensure that we don't shut down while the heartbeat
             sending coroutine is still active */
             auto_drainer_t::lock_t this_keepalive(&drainer);
-            coro_t::spawn_later_ordered([=] {
-                    /* Force the lambda to capture `this_keepalive` */
-                    this_keepalive.assert_is_holding(&drainer);
+            coro_t::spawn_later_ordered([this, this_keepalive /* important to capture */] {
                     /* This might block, so we have to run it in a sub-coroutine. */
                     connection->parent->parent->send_message(connection,
                                                              connection_keepalive,

@@ -84,8 +84,9 @@ void semilattice_manager_t<metadata_t>::root_view_t::join(const metadata_t &adde
     for (auto pair : parent->last_connections) {
         connectivity_cluster_t::connection_t *connection = pair.first;
         auto_drainer_t::lock_t connection_keepalive = pair.second;
-        coro_t::spawn_sometime([=] () {
-                parent_keepalive.assert_is_holding(parent->drainers.get());   /* force the lambda to capture `parent_keepalive` */
+        coro_t::spawn_sometime([parent, parent_keepalive /* important to capture */,
+                                connection, connection_keepalive /* important to capture */,
+                                new_version, added_metadata_copy] () {
                 metadata_writer_t writer(added_metadata_copy, new_version);
                 new_semaphore_acq_t acq(&parent->semaphore, 1);
                 acq.acquisition_signal()->wait();
@@ -317,8 +318,7 @@ void semilattice_manager_t<metadata_t>::on_message(
                 if (bad(res)) { throw fake_archive_exc_t(); }
             }
             /* We have to spawn a new coroutine in order to go to the home thread */
-            coro_t::spawn_sometime([=] () {
-                    this_keepalive.assert_is_holding(drainers.get());   /* force the lambda to capture `this_keepalive` */
+            coro_t::spawn_sometime([this, this_keepalive /* important to capture */, added_metadata, change_version] () {
                     on_thread_t thread_switcher(home_thread());
                     /* This is the meat of the change */
                     join_metadata_locally(added_metadata);
@@ -344,8 +344,7 @@ void semilattice_manager_t<metadata_t>::on_message(
                 archive_result_t res = deserialize_for_version(cluster_version, stream, &query_id);
                 if (bad(res)) { throw fake_archive_exc_t(); }
             }
-            coro_t::spawn_sometime([=] () {
-                    this_keepalive.assert_is_holding(drainers.get());   /* force the lambda to capture `this_keepalive` */
+            coro_t::spawn_sometime([this, this_keepalive /* important to capture */, query_id] () {
                     metadata_version_t local_version;
                     {
                         on_thread_t thread_switcher(home_thread());
@@ -370,8 +369,7 @@ void semilattice_manager_t<metadata_t>::on_message(
                 res = deserialize_for_version(cluster_version, stream, &version);
                 if (bad(res)) { throw fake_archive_exc_t(); }
             }
-            coro_t::spawn_sometime([=] () {
-                    this_keepalive.assert_is_holding(drainers.get());   /* force the lambda to capture `this_keepalive` */
+            coro_t::spawn_sometime([this, this_keepalive /* important to capture */, query_id, version] () {
                     on_thread_t thread_switcher(home_thread());
                     auto it = sync_from_waiters.find(query_id);
                     if (it != sync_from_waiters.end()) {
@@ -394,8 +392,7 @@ void semilattice_manager_t<metadata_t>::on_message(
                 res = deserialize_for_version(cluster_version, stream, &version);
                 if (bad(res)) { throw fake_archive_exc_t(); }
             }
-            coro_t::spawn_sometime([=] () {
-                    this_keepalive.assert_is_holding(drainers.get());   /* force the lambda to capture `this_keepalive` */
+            coro_t::spawn_sometime([this, this_keepalive /* important to capture */, query_id, version] () {
                     wait_any_t interruptor(this_keepalive.get_drain_signal(), connection_keepalive.get_drain_signal());
                     cross_thread_signal_t interruptor2(&interruptor, home_thread());
                     {
@@ -424,8 +421,7 @@ void semilattice_manager_t<metadata_t>::on_message(
                 archive_result_t res = deserialize_for_version(cluster_version, stream, &query_id);
                 if (bad(res)) { throw fake_archive_exc_t(); }
             }
-            coro_t::spawn_sometime([=] () {
-                    this_keepalive.assert_is_holding(drainers.get());   /* force the lambda to capture `this_keepalive` */
+            coro_t::spawn_sometime([this, this_keepalive /* important to capture */, query_id] () {
                     on_thread_t thread_switcher(home_thread());
                     auto it = sync_to_waiters.find(query_id);
                     if (it != sync_to_waiters.end()) {
@@ -456,8 +452,8 @@ void semilattice_manager_t<metadata_t>::on_connections_change() {
         if (last_connections.count(connection) == 0) {
             last_connections.insert(std::make_pair(connection, connection_keepalive));
             auto_drainer_t::lock_t this_keepalive(drainers.get());
-            coro_t::spawn_sometime([=] () {
-                    this_keepalive.assert_is_holding(drainers.get());   /* force the lambda to capture `this_keepalive` */
+            coro_t::spawn_sometime([this, this_keepalive /* important to capture */,
+                                    connection, connection_keepalive /* important to capture */] () {
                     metadata_writer_t writer(metadata, metadata_version);
                     new_semaphore_acq_t acq(&semaphore, 1);
                     acq.acquisition_signal()->wait();
