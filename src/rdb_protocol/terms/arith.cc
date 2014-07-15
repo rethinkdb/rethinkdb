@@ -55,12 +55,11 @@ private:
                 out.add(rhs->get(i));
             }
             return out.to_counted();
+        } else {
+            // If we get here lhs is neither number nor string
+            // so we'll just error saying we expect a number
+            lhs->check_type(datum_t::R_NUM);
         }
-
-        // If we get here lhs is neither number nor string
-        // so we'll just error saying we expect a number
-        lhs->check_type(datum_t::R_NUM);
-
         unreachable();
     }
 
@@ -94,10 +93,11 @@ private:
                 }
             }
             return out.to_counted();
+        } else {
+            lhs->check_type(datum_t::R_NUM);
+            rhs->check_type(datum_t::R_NUM);
+            return make_counted<datum_t>(lhs->as_num() * rhs->as_num());
         }
-        lhs->check_type(datum_t::R_NUM);
-        rhs->check_type(datum_t::R_NUM);
-        return make_counted<datum_t>(lhs->as_num() * rhs->as_num());
     }
     counted_t<const datum_t> div(counted_t<const datum_t> lhs,
                                  counted_t<const datum_t> rhs) const {

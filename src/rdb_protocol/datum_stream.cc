@@ -10,6 +10,8 @@
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/val.hpp"
 
+#include "debug.hpp"
+
 namespace ql {
 
 rdb_namespace_interface_t::rdb_namespace_interface_t(
@@ -544,6 +546,9 @@ counted_t<datum_stream_t> datum_stream_t::zip() {
 counted_t<datum_stream_t> datum_stream_t::indexes_of(counted_t<func_t> f) {
     return make_counted<indexes_of_datum_stream_t>(f, counted_from_this());
 }
+counted_t<datum_stream_t> datum_stream_t::ordered_distinct() {
+    return make_counted<ordered_distinct_datum_stream_t>(counted_from_this());
+}
 
 datum_stream_t::datum_stream_t(const protob_t<const Backtrace> &bt_src)
     : pb_rcheckable_t(bt_src), batch_cache_index(0), grouped(false) {
@@ -781,6 +786,28 @@ indexed_sort_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batch
         for (; index < data.size() && !batcher.should_send_batch(); ++index) {
             batcher.note_el(data[index]);
             ret.push_back(std::move(data[index]));
+        }
+    }
+    return ret;
+}
+
+// ORDERED_DISTINCT_DATUM_STREAM_T
+ordered_distinct_datum_stream_t::ordered_distinct_datum_stream_t(
+    counted_t<datum_stream_t> _source) : wrapper_datum_stream_t(_source) { }
+
+std::vector<counted_t<const datum_t> >
+ordered_distinct_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &bs) {
+    std::vector<counted_t<const datum_t> > ret;
+    profile::sampler_t sampler("Ordered distinct.", env->trace);
+    while (ret.size() == 0) {
+        std::vector<counted_t<const datum_t> > v = source->next_batch(env, bs);
+        if (v.size() == 0) break;
+        for (auto &&el : v) {
+            if (!last_val.has() || *last_val != *el) {
+                last_val = el;
+                ret.push_back(std::move(el));
+            }
+            sampler.new_sample();
         }
     }
     return ret;

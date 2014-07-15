@@ -147,6 +147,14 @@ private:
 
 RDB_SERIALIZE_OUTSIDE(group_wire_func_t);
 
+class distinct_wire_func_t {
+public:
+    distinct_wire_func_t() : use_index(false) { }
+    distinct_wire_func_t(bool _use_index) : use_index(_use_index) { }
+    bool use_index;
+};
+RDB_DECLARE_SERIALIZABLE(distinct_wire_func_t);
+
 template <class T>
 class skip_terminal_t;
 

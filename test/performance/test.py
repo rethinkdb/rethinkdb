@@ -7,14 +7,14 @@ import json
 import os
 import math
 import subprocess
+from os import environ
 
 from util import gen_doc, gen_num_docs, compare
 from queries import constant_queries, table_queries, write_queries, delete_queries
 
-path.insert(0, "../../drivers/python")
-
-from os import environ
-import rethinkdb as r
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import utils
+r = utils.import_pyton_driver()
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'rql_test')))
 from test_util import RethinkDBTestServers

@@ -152,6 +152,20 @@ struct write_token_pair_t {
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t> main_write_token;
 };
 
+// Specifies the desired behavior for insert operations, upon discovering a
+// conflict.
+//  - conflict_behavior_t::ERROR: Signal an error upon conflicts.
+//  - conflict_behavior_t::REPLACE: Replace the old row with the new row if a
+//    conflict occurs.
+//  - conflict_behavior_t::UPDATE: Merge the old and new rows if a conflict
+//    occurs.
+enum class conflict_behavior_t { ERROR, REPLACE, UPDATE };
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(conflict_behavior_t,
+                                      int8_t,
+                                      conflict_behavior_t::ERROR,
+                                      conflict_behavior_t::UPDATE);
+
 // Specifies the durability requirements of a write operation.
 //  - DURABILITY_REQUIREMENT_DEFAULT: Use the table's durability settings.
 //  - DURABILITY_REQUIREMENT_HARD: Override the table's durability settings with

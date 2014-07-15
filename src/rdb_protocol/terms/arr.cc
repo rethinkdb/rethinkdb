@@ -98,9 +98,11 @@ private:
                    base_exc_t::GENERIC,
                    strprintf("Cannot use an index < -1 (%d) on a stream.", n));
 
-            batchspec_t batchspec =
-                batchspec_t::user(batch_type_t::TERMINAL, env->env).with_at_most(
-                    int64_t(n)+1);
+            batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
+            if (n != -1) {
+                batchspec = batchspec.with_at_most(int64_t(n)+1);
+            }
+
             counted_t<const datum_t> last_d;
             {
                 profile::sampler_t sampler("Find nth element.", env->env->trace);
@@ -207,8 +209,9 @@ private:
             }
             counted_t<datum_stream_t> new_ds = seq->slice(real_l, real_r);
             return t.has() ? new_val(new_ds, t) : new_val(env->env, new_ds);
+        } else {
+            rcheck_typed_target(v, false, "Cannot slice non-sequences.");
         }
-        rcheck_typed_target(v, false, "Cannot slice non-sequences.");
         unreachable();
     }
     virtual const char *name() const { return "slice"; }
@@ -504,7 +507,7 @@ public:
                                        args_t *args,
                                        eval_flags_t eval_flags) const {
         counted_t<val_t> v0 = args->arg(env, 0, eval_flags);
-        v0->as_datum()->as_array(); // Force a type error
+        v0->as_datum()->as_array(); // If v0 is not an array, force a type error.
         return v0;
     }
 private:

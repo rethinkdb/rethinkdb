@@ -178,7 +178,7 @@ class RDBVal extends TermBase
     map: (args...) -> new Map {}, @, args.map(funcWrap)...
     filter: aropt (predicate, opts) -> new Filter opts, @, funcWrap(predicate)
     concatMap: (args...) -> new ConcatMap {}, @, args.map(funcWrap)...
-    distinct: (args...) -> new Distinct {}, @, args...
+    distinct: aropt (opts) -> new Distinct opts, @
     count: (args...) -> new Count {}, @, args.map(funcWrap)...
     union: (args...) -> new Union {}, @, args...
     nth: (args...) -> new Nth {}, @, args...
@@ -447,13 +447,13 @@ class MakeObject extends RDBOp
     tt: protoTermType.MAKE_OBJECT
     st: '{...}' # This is only used by the `undefined` argument checker
 
-    constructor: (obj) ->
+    constructor: (obj, nestingDepth=20) ->
         self = super({})
         self.optargs = {}
         for own key,val of obj
             if typeof val is 'undefined'
                 throw new err.RqlDriverError "Object field '#{key}' may not be undefined"
-            self.optargs[key] = rethinkdb.expr val
+            self.optargs[key] = rethinkdb.expr val, nestingDepth-1
         return self
 
     compose: (args, optargs) -> kved(optargs)
@@ -1030,13 +1030,8 @@ rethinkdb.expr = varar 1, 2, (val, nestingDepth=20) ->
         new MakeArray {}, val...
     else if typeof(val) is 'number'
         new DatumTerm val
-    else if val == Object(val)
-        obj = {}
-        for own k,v of val
-            if typeof v is 'undefined'
-                throw new err.RqlDriverError "Object field '#{k}' may not be undefined"
-            obj[k] = rethinkdb.expr(v, nestingDepth - 1)
-        new MakeObject obj
+    else if Object::toString.call(val) is '[object Object]'
+        new MakeObject val, nestingDepth
     else
         new DatumTerm val
 

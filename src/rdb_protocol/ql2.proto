@@ -427,9 +427,11 @@ message Term {
         // to be replaced, and then discards it and stores the result of that
         // call.
         REPLACE  = 55; // StreamSelection, Function(1), {non_atomic:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT
-        // Inserts into a table.  If `upsert` is true, overwrites entries with
-        // the same primary key (otherwise errors).
-        INSERT   = 56; // Table, OBJECT, {upsert:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT | Table, Sequence, {upsert:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT
+        // Inserts into a table.  If `conflict` is replace, overwrites
+        // entries with the same primary key.  If `conflict` is
+        // update, does an update on the entry.  If `conflict` is
+        // error, or is omitted, conflicts will trigger an error.
+        INSERT   = 56; // Table, OBJECT, {conflict:STRING, durability:STRING, return_vals:BOOL} -> OBJECT | Table, Sequence, {conflict:STRING, durability:STRING, return_vals:BOOL} -> OBJECT
 
         // * Administrative OPs
         // Creates a database with a particular name.
@@ -650,6 +652,7 @@ message Term {
 
         CHANGES = 152; // TABLE -> STREAM
         ARGS = 154; // ARRAY -> SPECIAL (used to splice arguments)
+        BINARY = 155; // STRING -> PSEUDOTYPE(BINARY)
     }
     optional TermType type = 1;
 

@@ -407,8 +407,8 @@ public:
 
     sorting_t sorting; // Optional sorting info (UNORDERED means no sorting).
 };
-
 RDB_DECLARE_SERIALIZABLE(rget_read_t);
+
 
 class distribution_read_t {
 public:
@@ -594,9 +594,10 @@ struct batched_insert_t {
     batched_insert_t() { }
     batched_insert_t(
             std::vector<counted_t<const ql::datum_t> > &&_inserts,
-            const std::string &_pkey, bool _upsert, bool _return_vals)
+            const std::string &_pkey, conflict_behavior_t _conflict_behavior,
+            bool _return_vals)
         : inserts(std::move(_inserts)), pkey(_pkey),
-          upsert(_upsert), return_vals(_return_vals) {
+          conflict_behavior(_conflict_behavior), return_vals(_return_vals) {
         r_sanity_check(inserts.size() != 0);
         r_sanity_check(inserts.size() == 1 || !return_vals);
 #ifndef NDEBUG
@@ -618,7 +619,7 @@ struct batched_insert_t {
     }
     std::vector<counted_t<const ql::datum_t> > inserts;
     std::string pkey;
-    bool upsert;
+    conflict_behavior_t conflict_behavior;
     bool return_vals;
 };
 
@@ -826,4 +827,3 @@ struct range_key_tester_t : public key_tester_t {
 } // namespace rdb_protocol
 
 #endif  // RDB_PROTOCOL_PROTOCOL_HPP_
-

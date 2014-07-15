@@ -82,21 +82,24 @@ public:
     batchspec_t with_at_most(uint64_t max_els) const;
     batchspec_t scale_down(int64_t divisor) const;
     batcher_t to_batcher() const;
-    RDB_MAKE_ME_SERIALIZABLE_6(batch_type, min_els, max_els, max_size, \
-                               first_scaledown_factor, end_time);
+
 private:
+    template<cluster_version_t W>
+    friend void serialize(write_message_t *, const batchspec_t &);
+    template<cluster_version_t W>
+    friend archive_result_t deserialize(read_stream_t *, batchspec_t *);
     // I made this private and accessible through a static function because it
     // was being accidentally default-initialized.
     batchspec_t() { } // USE ONLY FOR SERIALIZATION
     batchspec_t(batch_type_t batch_type, int64_t min_els, int64_t max_els,
-                int64_t max_size, int64_t first_scaledown, microtime_t end);
+                int64_t max_size, int64_t first_scaledown,
+                int64_t max_dur, microtime_t start_time);
 
     batch_type_t batch_type;
-    int64_t min_els, max_els, max_size, first_scaledown_factor;
-    microtime_t end_time;
+    int64_t min_els, max_els, max_size, first_scaledown_factor, max_dur;
+    microtime_t start_time;
 };
-
-RDB_SERIALIZE_OUTSIDE(batchspec_t);
+RDB_DECLARE_SERIALIZABLE(batchspec_t);
 
 // TODO: make user-tunable.
 size_t array_size_limit();

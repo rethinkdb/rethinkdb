@@ -21,6 +21,8 @@
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
 
+#include "debug.hpp"
+
 #ifdef V8_PRE_3_19
 #define DECLARE_HANDLE_SCOPE(scope) v8::HandleScope scope
 #else
@@ -112,7 +114,7 @@ js_result_t js_job_t::eval(const std::string &source) {
         = deserialize<cluster_version_t::LATEST_OVERALL>(extproc_job.read_stream(),
                                                          &result);
     if (bad(res)) {
-        throw extproc_worker_exc_t(strprintf("failed to deserialize result from worker "
+        throw extproc_worker_exc_t(strprintf("failed to deserialize eval result from worker "
                                              "(%s)", archive_result_as_str(res)));
     }
     return result;
@@ -136,7 +138,7 @@ js_result_t js_job_t::call(js_id_t id, const std::vector<counted_t<const ql::dat
         = deserialize<cluster_version_t::LATEST_OVERALL>(extproc_job.read_stream(),
                                                          &result);
     if (bad(res)) {
-        throw extproc_worker_exc_t(strprintf("failed to deserialize result from worker "
+        throw extproc_worker_exc_t(strprintf("failed to deserialize call result from worker "
                                              "(%s)", archive_result_as_str(res)));
     }
     return result;
@@ -147,9 +149,22 @@ void js_job_t::release(js_id_t id) {
     write_message_t wm;
     wm.append(&task, sizeof(task));
     serialize<cluster_version_t::LATEST_OVERALL>(&wm, id);
-    int res = send_write_message(extproc_job.write_stream(), &wm);
-    if (res != 0) {
-        throw extproc_worker_exc_t("failed to send data to the worker");
+    {
+        int res = send_write_message(extproc_job.write_stream(), &wm);
+        if (res != 0) {
+            throw extproc_worker_exc_t("failed to send data to the worker");
+        }
+    }
+
+    // Wait for a response so we don't flood the job with requests
+    bool dummy_result;
+    archive_result_t res
+        = deserialize<cluster_version_t::LATEST_OVERALL>(extproc_job.read_stream(),
+                                                         &dummy_result);
+    // dummy_result should always be true
+    if (bad(res) || !dummy_result) {
+        throw extproc_worker_exc_t(strprintf("failed to deserialize release result from worker "
+                                             "(%s)", archive_result_as_str(res)));
     }
 }
 
@@ -157,9 +172,22 @@ void js_job_t::exit() {
     js_task_t task = js_task_t::TASK_EXIT;
     write_message_t wm;
     wm.append(&task, sizeof(task));
-    int res = send_write_message(extproc_job.write_stream(), &wm);
-    if (res != 0) {
-        throw extproc_worker_exc_t("failed to send data to the worker");
+    {
+        int res = send_write_message(extproc_job.write_stream(), &wm);
+        if (res != 0) {
+            throw extproc_worker_exc_t("failed to send data to the worker");
+        }
+    }
+
+    // Wait for a response so we don't flood the job with requests
+    bool dummy_result;
+    archive_result_t res
+        = deserialize<cluster_version_t::LATEST_OVERALL>(extproc_job.read_stream(),
+                                                         &dummy_result);
+    // dummy_result should always be true
+    if (bad(res) || !dummy_result) {
+        throw extproc_worker_exc_t(strprintf("failed to deserialize exit result from worker "
+                                             "(%s)", archive_result_as_str(res)));
     }
 }
 
@@ -167,11 +195,100 @@ void js_job_t::worker_error() {
     extproc_job.worker_error();
 }
 
+void maybe_garbage_collect(uint64_t task_counter) {
+    if (task_counter % 128 == 0) {
+        v8::V8::IdleNotification();
+    }
+}
+
+bool send_js_result(write_stream_t *stream_out, const js_result_t &js_result) {
+    write_message_t wm;
+    serialize<cluster_version_t::LATEST_OVERALL>(&wm, js_result);
+    int res = send_write_message(stream_out, &wm);
+    return res == 0;
+}
+
+bool send_dummy_result(write_stream_t *stream_out) {
+    write_message_t wm;
+    serialize<cluster_version_t::LATEST_OVERALL>(&wm, true);
+    int res = send_write_message(stream_out, &wm);
+    return res == 0;
+}
+
+bool run_eval(read_stream_t *stream_in,
+              write_stream_t *stream_out,
+              js_env_t *js_env,
+              uint64_t task_counter) {
+    std::string source;
+    archive_result_t res = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in,
+                                                                          &source);
+    if (bad(res)) { return false; }
+
+    js_result_t js_result;
+    try {
+        js_result = js_env->eval(source);
+    } catch (const std::exception &e) {
+        js_result = e.what();
+    } catch (...) {
+        js_result = std::string("encountered an unknown exception");
+    }
+
+    maybe_garbage_collect(task_counter);
+    return send_js_result(stream_out, js_result);
+}
+
+bool run_call(read_stream_t *stream_in,
+              write_stream_t *stream_out,
+              js_env_t *js_env,
+              uint64_t task_counter) {
+    js_id_t id;
+    std::vector<counted_t<const ql::datum_t> > args;
+    archive_result_t res = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in,
+                                                                          &id);
+    if (bad(res)) { return false; }
+    res = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in, &args);
+    if (bad(res)) { return false; }
+
+    js_result_t js_result;
+    try {
+        js_result = js_env->call(id, args);
+    } catch (const std::exception &e) {
+        js_result = e.what();
+    } catch (...) {
+        js_result = std::string("encountered an unknown exception");
+    }
+
+    maybe_garbage_collect(task_counter);
+    return send_js_result(stream_out, js_result);
+}
+
+bool run_release(read_stream_t *stream_in,
+                 write_stream_t *stream_out,
+                 js_env_t *js_env,
+                 uint64_t task_counter) {
+    js_id_t id;
+    archive_result_t res = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in,
+                                                                          &id);
+    if (bad(res)) { return false; }
+
+    js_env->release(id);
+    maybe_garbage_collect(task_counter);
+    return send_dummy_result(stream_out);
+}
+
+bool run_exit(write_stream_t *stream_out,
+              uint64_t task_counter) {
+    maybe_garbage_collect(task_counter);
+    return send_dummy_result(stream_out);
+}
+
 bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
+    static uint64_t task_counter = 0;
     bool running = true;
     js_env_t js_env;
 
     while (running) {
+        task_counter += 1;
         js_task_t task;
         int64_t read_size = sizeof(task);
         {
@@ -181,73 +298,25 @@ bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
 
         switch (task) {
         case TASK_EVAL:
-            {
-                std::string source;
-                {
-                    archive_result_t res
-                        = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in,
-                                                                         &source);
-                    if (bad(res)) { return false; }
-                }
-
-                js_result_t js_result;
-                try {
-                    js_result = js_env.eval(source);
-                } catch (const std::exception &e) {
-                    js_result = e.what();
-                } catch (...) {
-                    js_result = std::string("encountered an unknown exception");
-                }
-
-                write_message_t wm;
-                serialize<cluster_version_t::LATEST_OVERALL>(&wm, js_result);
-                int res = send_write_message(stream_out, &wm);
-                if (res != 0) { return false; }
+            if (!run_eval(stream_in, stream_out, &js_env, task_counter)) {
+                return false;
             }
             break;
         case TASK_CALL:
-            {
-                js_id_t id;
-                std::vector<counted_t<const ql::datum_t> > args;
-                {
-                    archive_result_t res
-                        = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in, &id);
-                    if (bad(res)) { return false; }
-                    res = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in, &args);
-                    if (bad(res)) { return false; }
-                }
-
-                js_result_t js_result;
-                try {
-                    js_result = js_env.call(id, args);
-                } catch (const std::exception &e) {
-                    js_result = e.what();
-                } catch (...) {
-                    js_result = std::string("encountered an unknown exception");
-                }
-
-                write_message_t wm;
-                serialize<cluster_version_t::LATEST_OVERALL>(&wm, js_result);
-                int res = send_write_message(stream_out, &wm);
-                if (res != 0) { return false; }
+            if (!run_call(stream_in, stream_out, &js_env, task_counter)) {
+                return false;
             }
             break;
         case TASK_RELEASE:
-            {
-                js_id_t id;
-                archive_result_t res
-                    = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in, &id);
-                if (bad(res)) { return false; }
-                js_env.release(id);
+            if (!run_release(stream_in, stream_out, &js_env, task_counter)) {
+                return false;
             }
             break;
         case TASK_EXIT:
-            return true;
-            break;
+            return run_exit(stream_out, task_counter);
         default:
             return false;
         }
-        v8::V8::IdleNotification();
     }
     unreachable();
 }

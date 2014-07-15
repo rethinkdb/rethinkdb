@@ -28,6 +28,20 @@ counted_t<const datum_t> new_stats_object() {
     return stats.to_counted();
 }
 
+conflict_behavior_t parse_conflict_optarg(counted_t<val_t> arg,
+                                          const pb_rcheckable_t *target) {
+    if (!arg.has()) { return conflict_behavior_t::ERROR; }
+    const wire_string_t &str = arg->as_str();
+    if (str == "error") { return conflict_behavior_t::ERROR; }
+    if (str == "replace") { return conflict_behavior_t::REPLACE; }
+    if (str == "update") { return conflict_behavior_t::UPDATE; }
+    rfail_target(target,
+                 base_exc_t::GENERIC,
+                 "Conflict option `%s` unrecognized "
+                 "(options are \"error\", \"replace\" and \"update\").",
+                 str.c_str());
+}
+
 durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
                                                  const pb_rcheckable_t *target) {
     if (!arg.has()) { return DURABILITY_REQUIREMENT_DEFAULT; }
@@ -45,7 +59,7 @@ class insert_term_t : public op_term_t {
 public:
     insert_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2),
-                    optargspec_t({"upsert", "durability", "return_vals"})) { }
+                    optargspec_t({"conflict", "durability", "return_vals"})) { }
 
 private:
     static void maybe_generate_key(counted_t<table_t> tbl,
@@ -69,11 +83,11 @@ private:
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> t = args->arg(env, 0)->as_table();
-        counted_t<val_t> upsert_val = args->optarg(env, "upsert");
-        bool upsert = upsert_val.has() ? upsert_val->as_bool() : false;
         counted_t<val_t> return_vals_val = args->optarg(env, "return_vals");
         bool return_vals = return_vals_val.has() ? return_vals_val->as_bool() : false;
 
+        const conflict_behavior_t conflict_behavior
+            = parse_conflict_optarg(args->optarg(env, "conflict"), this);
         const durability_requirement_t durability_requirement
             = parse_durability_optarg(args->optarg(env, "durability"), this);
 
@@ -93,7 +107,7 @@ private:
                     // TODO: that solution sucks.
                 }
                 counted_t<const datum_t> replace_stats = t->batched_insert(
-                    env->env, std::move(datums), upsert,
+                    env->env, std::move(datums), conflict_behavior,
                     durability_requirement, return_vals);
                 stats = stats->merge(replace_stats, stats_merge);
                 done = true;
@@ -123,7 +137,7 @@ private:
                 }
 
                 counted_t<const datum_t> replace_stats = t->batched_insert(
-                    env->env, std::move(datums), upsert, durability_requirement, false);
+                    env->env, std::move(datums), conflict_behavior, durability_requirement, false);
                 stats = stats->merge(replace_stats, stats_merge);
             }
         }

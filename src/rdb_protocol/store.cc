@@ -334,26 +334,31 @@ private:
 
 class datum_replacer_t : public btree_batched_replacer_t {
 public:
-    datum_replacer_t(const std::vector<counted_t<const ql::datum_t> > *_datums,
-                     bool _upsert, const std::string &_pkey, bool _return_vals)
-        : datums(_datums), upsert(_upsert), pkey(_pkey), return_vals(_return_vals) { }
-    counted_t<const ql::datum_t> replace(
-        const counted_t<const ql::datum_t> &d, size_t index) const {
+    datum_replacer_t(const batched_insert_t &bi)
+        : datums(&bi.inserts), conflict_behavior(bi.conflict_behavior),
+          pkey(bi.pkey), return_vals(bi.return_vals) { }
+    counted_t<const ql::datum_t> replace(const counted_t<const ql::datum_t> &d,
+                                         size_t index) const {
         guarantee(index < datums->size());
         counted_t<const ql::datum_t> newd = (*datums)[index];
-        if (d->get_type() == ql::datum_t::R_NULL || upsert) {
+        if (d->get_type() == ql::datum_t::R_NULL) {
             return newd;
+        } else if (conflict_behavior == conflict_behavior_t::REPLACE) {
+            return newd;
+        } else if (conflict_behavior == conflict_behavior_t::UPDATE) {
+            return d->merge(newd);
         } else {
             rfail_target(d, ql::base_exc_t::GENERIC,
                          "Duplicate primary key `%s`:\n%s\n%s",
-                         pkey.c_str(), d->print().c_str(), newd->print().c_str());
+                         pkey.c_str(), d->print().c_str(),
+                         newd->print().c_str());
         }
         unreachable();
     }
     bool should_return_vals() const { return return_vals; }
 private:
     const std::vector<counted_t<const ql::datum_t> > *const datums;
-    const bool upsert;
+    const conflict_behavior_t conflict_behavior;
     const std::string pkey;
     const bool return_vals;
 };
@@ -378,7 +383,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             store,
             &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));
-        datum_replacer_t replacer(&bi.inserts, bi.upsert, bi.pkey, bi.return_vals);
+        datum_replacer_t replacer(bi);
         std::vector<store_key_t> keys;
         keys.reserve(bi.inserts.size());
         for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {

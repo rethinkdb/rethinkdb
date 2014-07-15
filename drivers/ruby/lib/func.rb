@@ -36,7 +36,8 @@ module RethinkDB
       :iso8601 => -1,
       :index_create => -1,
       :random => -1,
-      :http => 1
+      :http => 1,
+      :distinct => -1
     }
     @@method_aliases = {
       :lt => :<,

@@ -63,6 +63,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::MERGE:              return make_merge_term(env, t);
     case Term::LITERAL:            return make_literal_term(env, t);
     case Term::ARGS:               return make_args_term(env, t);
+    case Term::BINARY:             unreachable();
     case Term::BETWEEN:            return make_between_term(env, t);
     case Term::CHANGES:            return make_changes_term(env, t);
     case Term::REDUCE:             return make_reduce_term(env, t);
@@ -200,7 +201,6 @@ void run(protob_t<Query> q,
             Term *t = q->mutable_query();
             compile_env_t compile_env((var_visibility_t()));
             root_term = compile_term(&compile_env, q.make_child(t));
-            // TODO: handle this properly
         } catch (const exc_t &e) {
             fill_error(res, Response::COMPILE_ERROR, e.what(), e.backtrace());
             return;
@@ -225,7 +225,7 @@ void run(protob_t<Query> q,
             scope_env_t scope_env(&env, var_scope_t());
             counted_t<val_t> val = root_term->eval(&scope_env);
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
-                res->set_type(Response_ResponseType_SUCCESS_ATOM);
+                res->set_type(Response::SUCCESS_ATOM);
                 counted_t<const datum_t> d = val->as_datum();
                 d->write_to_protobuf(res->add_response(), use_json);
                 if (env.trace.has()) {
@@ -244,7 +244,7 @@ void run(protob_t<Query> q,
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
                 counted_t<datum_stream_t> seq = val->as_seq(&env);
                 if (counted_t<const datum_t> arr = seq->as_array(&env)) {
-                    res->set_type(Response_ResponseType_SUCCESS_ATOM);
+                    res->set_type(Response::SUCCESS_ATOM);
                     arr->write_to_protobuf(res->add_response(), use_json);
                     if (env.trace.has()) {
                         env.trace->as_datum()->write_to_protobuf(
@@ -318,7 +318,7 @@ void run(protob_t<Query> q,
         // we know that all previous Queries have completed processing.
 
         // Send back a WAIT_COMPLETE response.
-        res->set_type(Response_ResponseType_WAIT_COMPLETE);
+        res->set_type(Response::WAIT_COMPLETE);
     } break;
     default: unreachable();
     }

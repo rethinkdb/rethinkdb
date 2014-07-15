@@ -1,9 +1,11 @@
 #ifndef CLUSTERING_ADMINISTRATION_MAIN_DIRECTORY_LOCK_HPP_
 #define CLUSTERING_ADMINISTRATION_MAIN_DIRECTORY_LOCK_HPP_
 
+#include <unistd.h>
+
 #include <exception>
 #include <string>
-#include <unistd.h>
+
 #include "utils.hpp"
 #include "arch/io/io_utils.hpp"
 
