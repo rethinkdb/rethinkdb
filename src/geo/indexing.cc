@@ -141,21 +141,6 @@ void geo_index_traversal_helper_t::filter_interesting_children(
 
 bool geo_index_traversal_helper_t::any_query_cell_intersects(
         const btree_key_t *left_excl, const btree_key_t *right_incl) {
-    // Check if any of the query cells intersects with the given range
-    for (size_t j = 0; j < query_cells_.size(); ++j) {
-        if (cell_intersects_with_range(query_cells_[j], left_excl, right_incl)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool geo_index_traversal_helper_t::cell_intersects_with_range(
-        const S2CellId c,
-        const btree_key_t *left_excl, const btree_key_t *right_incl) {
-
-    // TODO! Double-check that this works.
-
     // We ignore the fact that left_excl is exclusive and not inclusive.
     // In rare cases this costs us a little bit of efficiency, but saves us
     // some complexity.
@@ -172,5 +157,18 @@ bool geo_index_traversal_helper_t::cell_intersects_with_range(
             std::string(reinterpret_cast<const char *>(right_incl->contents),
                 right_incl->size))).range_max();
 
-    return range_min <= c.range_max() && range_max >= c.range_min();
+    // Check if any of the query cells intersects with the given range
+    for (size_t j = 0; j < query_cells_.size(); ++j) {
+        if (cell_intersects_with_range(query_cells_[j], range_min, range_max)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool geo_index_traversal_helper_t::cell_intersects_with_range(
+        const S2CellId c,
+        const S2CellId left_min, const S2CellId right_max) {
+
+    return left_min <= c.range_max() && right_max >= c.range_min();
 }

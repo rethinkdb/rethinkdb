@@ -51,7 +51,7 @@ public:
 
 private:
     static bool cell_intersects_with_range(
-            S2CellId c, const btree_key_t *left_excl, const btree_key_t *right_incl);
+            S2CellId c, const S2CellId left_min, const S2CellId right_max);
     bool any_query_cell_intersects(const btree_key_t *left_excl,
                                    const btree_key_t *right_incl);
 
