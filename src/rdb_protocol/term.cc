@@ -195,7 +195,6 @@ void run(protob_t<Query> q,
     case Query_QueryType_START: {
         const profile_bool_t profile = profile_bool_optarg(q);
         env_t env(ctx, interruptor, global_optargs(q), profile);
-        // XXX: initialize limits here
 
         counted_t<const term_t> root_term;
         try {
