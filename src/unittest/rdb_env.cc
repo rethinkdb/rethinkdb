@@ -104,32 +104,44 @@ void mock_namespace_interface_t::read_visitor_t::operator()(const point_read_t &
     }
 }
 
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(const changefeed_subscribe_t &) {
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        const changefeed_subscribe_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(const changefeed_stamp_t &) {
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        const changefeed_stamp_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const rget_read_t &rget) {
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        UNUSED const rget_read_t &rget) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const distribution_read_t &dg) {
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        UNUSED const intersecting_geo_read_t &gr) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const sindex_list_t &sinner) {
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        UNUSED const distribution_read_t &dg) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const sindex_status_t &ss) {
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        UNUSED const sindex_list_t &sinner) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-mock_namespace_interface_t::read_visitor_t::read_visitor_t(std::map<store_key_t, scoped_cJSON_t *> *_data,
-                                                           read_response_t *_response) :
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        UNUSED const sindex_status_t &ss) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
+mock_namespace_interface_t::read_visitor_t::read_visitor_t(
+        std::map<store_key_t, scoped_cJSON_t *> *_data,
+        read_response_t *_response) :
     data(_data), response(_response) {
     // Do nothing
 }

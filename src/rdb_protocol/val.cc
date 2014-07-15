@@ -392,6 +392,37 @@ counted_t<datum_stream_t> table_t::as_datum_stream(env_t *env,
         bt);
 }
 
+counted_t<datum_stream_t> table_t::get_intersecting(
+        env_t *env,
+        counted_t<const datum_t> query_geometry,
+        const std::string &new_sindex_id,
+        const protob_t<const Backtrace> &bt) {
+    rcheck_src(bt.get(), base_exc_t::GENERIC, !sindex_id,
+               "Cannot chain get_intersecting with other indexed operations.");
+    sindex_id = new_sindex_id;
+    r_sanity_check(sorting == sorting_t::UNORDERED);
+    r_sanity_check(bounds.is_universe());
+
+    intersecting_geo_read_t geo_read(query_geometry, name, sindex_id.get());
+    read_t read(geo_read, env->profile());
+    read_response_t res;
+    try {
+        access->get_namespace_if().read(env, read, &res, order_token_t::ignore);
+    } catch (const cannot_perform_query_exc_t &ex) {
+        rfail(ql::base_exc_t::GENERIC, "Cannot perform read: %s", ex.what());
+    }
+
+    intersecting_geo_read_response_t *g_res =
+        boost::get<intersecting_geo_read_response_t>(&res.response);
+    r_sanity_check(g_res);
+
+    if (g_res->error) {
+        throw g_res->error.get();
+    }
+
+    return make_counted<array_datum_stream_t>(g_res->results, bt);
+}
+
 val_t::type_t::type_t(val_t::type_t::raw_type_t _raw_type) : raw_type(_raw_type) { }
 
 // NOTE: This *MUST* be kept in sync with the surrounding code (not that it

@@ -44,11 +44,17 @@ public:
             const std::string &sindex_id,
             const protob_t<const Backtrace> &bt);
     void add_sorting(
-        const std::string &sindex_id, sorting_t sorting,
-        const rcheckable_t *parent);
-    void add_bounds(datum_range_t &&new_bounds,
-                    const std::string &new_sindex_id,
-                    const rcheckable_t *parent);
+            const std::string &sindex_id, sorting_t sorting,
+            const rcheckable_t *parent);
+    void add_bounds(
+            datum_range_t &&new_bounds,
+            const std::string &new_sindex_id,
+            const rcheckable_t *parent);
+    counted_t<datum_stream_t> get_intersecting(
+            env_t *env,
+            counted_t<const datum_t> query_geometry,
+            const std::string &new_sindex_id,
+            const protob_t<const Backtrace> &bt);
 
     counted_t<const datum_t> make_error_datum(const base_exc_t &exception);
 

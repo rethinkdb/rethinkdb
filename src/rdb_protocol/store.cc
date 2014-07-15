@@ -114,13 +114,10 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         rdb_get(get.key, btree, superblock, res, ql_env.trace.get_or_null());
     }
 
-    void operator()(const geo_read_t &geo_read) {
-        // See comment in operator(const rget_read_t &)
-        rassert(geo_read.optargs.size() != 0);
-        ql_env.global_optargs.init_optargs(geo_read.optargs);
-        response->response = geo_read_response_t();
-        geo_read_response_t *res =
-            boost::get<geo_read_response_t>(&response->response);
+    void operator()(const intersecting_geo_read_t &geo_read) {
+        response->response = intersecting_geo_read_response_t();
+        intersecting_geo_read_response_t *res =
+            boost::get<intersecting_geo_read_response_t>(&response->response);
 
         sindex_disk_info_t sindex_info;
         uuid_u sindex_uuid;
@@ -130,12 +127,12 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 acquire_sindex_for_read(geo_read.table_name, geo_read.sindex_id,
                 &sindex_info, &sindex_uuid);
         } catch (const ql::exc_t &e) {
-            res->result = e;
+            res->error = e;
             return;
         }
 
         if (sindex_info.geo != sindex_geo_bool_t::GEO) {
-            res->result = ql::exc_t(
+            res->error = ql::exc_t(
                 ql::base_exc_t::GENERIC,
                 strprintf(
                     "Index '%s' is not a geospatial index. This term can only be "
@@ -148,10 +145,10 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         // TODO! What happens if we have multiple shards on the same node?
         //   Will we actually perform multiple sindex traversals just to post-filter
         //   most of the results based on primary key?
-        rdb_rget_geo_slice(
+        rdb_get_intersecting_slice(
             store->get_sindex_slice(sindex_uuid),
             geo_read.query_geometry,
-            sindex_sb.get(), &ql_env, geo_read.transforms, geo_read.terminal,
+            sindex_sb.get(), &ql_env,
             geo_read.region.inner, sindex_info, res);
     }
 

@@ -951,28 +951,23 @@ void rdb_rget_secondary_slice(
     callback.finish();
 }
 
-void rdb_rget_geo_slice(
+void rdb_get_intersecting_slice(
         btree_slice_t *slice,
         const counted_t<const ql::datum_t> &query_geometry,
         superblock_t *superblock,
         ql::env_t *ql_env,
-        const std::vector<ql::transform_variant_t> &transforms,
-        const boost::optional<ql::terminal_variant_t> &terminal,
         const key_range_t &pk_range,
         const sindex_disk_info_t &sindex_info,
-        geo_read_response_t *response) {
+        intersecting_geo_read_response_t *response) {
 
-    r_sanity_check(boost::get<ql::exc_t>(&response->result) == NULL);
     guarantee(sindex_info.geo == sindex_geo_bool_t::GEO);
     profile::starter_t starter("Do intersection scan on geospatial index.", ql_env->trace);
 
-    rget_geo_cb_t callback(
+    geo_intersecting_cb_t callback(
         geo_io_data_t(response, slice),
         geo_sindex_data_t(pk_range, query_geometry, sindex_info.mapping,
                           sindex_info.multi),
-        ql_env,
-        transforms,
-        terminal);
+        ql_env);
     btree_parallel_traversal(
         superblock, &callback,
         NULL, /* TODO! Can we get an interruptor from somewhere? We should! */

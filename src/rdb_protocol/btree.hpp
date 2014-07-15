@@ -216,16 +216,14 @@ void rdb_rget_secondary_slice(
     const sindex_disk_info_t &sindex_info,
     rget_read_response_t *response);
 
-void rdb_rget_geo_slice(
+void rdb_get_intersecting_slice(
     btree_slice_t *slice,
     const counted_t<const ql::datum_t> &query_geometry,
     superblock_t *superblock,
     ql::env_t *ql_env,
-    const std::vector<ql::transform_variant_t> &transforms,
-    const boost::optional<ql::terminal_variant_t> &terminal,
     const key_range_t &pk_range,
     const sindex_disk_info_t &sindex_info,
-    geo_read_response_t *response);
+    intersecting_geo_read_response_t *response);
 
 void rdb_distribution_get(int max_depth,
                           const store_key_t &left_key,

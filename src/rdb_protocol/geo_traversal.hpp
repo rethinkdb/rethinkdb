@@ -12,8 +12,8 @@
 #include "btree/slice.hpp"
 #include "containers/counted.hpp"
 #include "geo/indexing.hpp"
+#include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "rdb_protocol/shards.hpp"
 
 namespace ql {
 class datum_t;
@@ -25,11 +25,11 @@ class profile::sampler_t;
 
 class geo_io_data_t {
 public:
-    geo_io_data_t(geo_read_response_t *_response, btree_slice_t *_slice)
+    geo_io_data_t(intersecting_geo_read_response_t *_response, btree_slice_t *_slice)
         : response(_response), slice(_slice) { }
 private:
-    friend class rget_geo_cb_t;
-    geo_read_response_t *const response;
+    friend class geo_intersecting_cb_t;
+    intersecting_geo_read_response_t *const response;
     btree_slice_t *const slice;
 };
 
@@ -41,21 +41,19 @@ public:
         : pkey_range(_pkey_range), query_geometry(_query_geometry),
           func(wire_func.compile_wire_func()), multi(_multi) { }
 private:
-    friend class rget_geo_cb_t;
+    friend class geo_intersecting_cb_t;
     const key_range_t pkey_range;
     const counted_t<const ql::datum_t> query_geometry;
     const counted_t<ql::func_t> func;
     const sindex_multi_bool_t multi;
 };
 
-class rget_geo_cb_t : public geo_index_traversal_helper_t {
+class geo_intersecting_cb_t : public geo_index_traversal_helper_t {
 public:
-    rget_geo_cb_t(
+    geo_intersecting_cb_t(
             geo_io_data_t &&_io,
             const geo_sindex_data_t &&_sindex,
-            ql::env_t *_env,
-            const std::vector<ql::transform_variant_t> &_transforms,
-            const boost::optional<ql::terminal_variant_t> &_terminal);
+            ql::env_t *_env);
 
     void on_candidate(
             const btree_key_t *key,
@@ -69,8 +67,8 @@ private:
     const geo_sindex_data_t sindex;
 
     ql::env_t *env;
-    std::vector<scoped_ptr_t<ql::op_t> > transformers;
-    scoped_ptr_t<ql::eager_acc_t> accumulator;
+    // Accumulates the data
+    ql::datum_ptr_t result_acc;
 
     // Stores the primary key of previously processed documents
     std::set<store_key_t> already_processed;

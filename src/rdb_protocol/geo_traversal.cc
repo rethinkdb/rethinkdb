@@ -9,37 +9,26 @@
 #include "rdb_protocol/lazy_json.hpp"
 #include "rdb_protocol/profile.hpp"
 
-rget_geo_cb_t::rget_geo_cb_t(
+geo_intersecting_cb_t::geo_intersecting_cb_t(
         geo_io_data_t &&_io,
         const geo_sindex_data_t &&_sindex,
-        ql::env_t *_env,
-        const std::vector<ql::transform_variant_t> &_transforms,
-        const boost::optional<ql::terminal_variant_t> &_terminal)
+        ql::env_t *_env)
     : geo_index_traversal_helper_t(compute_index_grid_keys(_sindex.query_geometry, 12)), // TODO! (don't hard-code 12 here)
       io(std::move(_io)),
       sindex(std::move(_sindex)),
       env(_env),
-      // TODO (daniel): Implement lazy geo rgets
-      accumulator(_terminal
-                  ? ql::make_eager_terminal(*_terminal)
-                  : ql::make_to_array()) {
-    for (size_t i = 0; i < _transforms.size(); ++i) {
-        transformers.push_back(ql::make_op(_transforms[i]));
-    }
-    guarantee(transformers.size() == _transforms.size());
+      result_acc(ql::datum_t::R_ARRAY) {
+    // TODO (daniel): Implement lazy geo rgets, push down transformations and terminals to here
     disabler.init(new profile::disabler_t(env->trace));
     sampler.init(new profile::sampler_t("Geospatial intersection traversal doc evaluation.",
                                         env->trace));
 }
 
-void rget_geo_cb_t::finish() THROWS_ONLY(interrupted_exc_t) {
-    // TODO! How does this work?
-    //counted_t<val_t> finish_eager(
-    //    protob_t<const Backtrace> bt, bool is_grouped)
-    //accumulator->finish_eager(&io.response->result);
+void geo_intersecting_cb_t::finish() THROWS_ONLY(interrupted_exc_t) {
+    io.response->results = result_acc.to_counted();
 }
 
-void rget_geo_cb_t::on_candidate(
+void geo_intersecting_cb_t::on_candidate(
         const btree_key_t *key,
         const void *value,
         buf_parent_t parent)
@@ -94,26 +83,20 @@ void rget_geo_cb_t::on_candidate(
         // TODO! Check the size of this.
         already_processed.insert(primary_key);
 
-        ql::groups_t data = {{counted_t<const ql::datum_t>(), ql::datums_t{val}}};
-
-        for (auto it = transformers.begin(); it != transformers.end(); ++it) {
-            (**it)(env, &data, sindex_val);
-        }
-
-        (*accumulator)(env, &data);
+        result_acc.add(val);
     } catch (const ql::exc_t &e) {
-        io.response->result = e;
+        io.response->error = e;
         // TODO! Abort
         return;
     } catch (const geo_exception_t &e) {
-        io.response->result = ql::exc_t(ql::base_exc_t::GENERIC, e.what(), NULL);
+        io.response->error = ql::exc_t(ql::base_exc_t::GENERIC, e.what(), NULL);
         // TODO! Abort
         return;
     } catch (const ql::datum_exc_t &e) {
 #ifndef NDEBUG
         unreachable();
 #else
-        io.response->result = ql::exc_t(e, NULL);
+        io.response->error = ql::exc_t(e, NULL);
         // TODO! Abort
         return;
 #endif // NDEBUG

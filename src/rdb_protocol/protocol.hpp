@@ -280,13 +280,15 @@ struct rget_read_response_t {
 
 RDB_DECLARE_SERIALIZABLE(rget_read_response_t);
 
-struct geo_read_response_t {
-    //key_range_t key_range; // TODO! What is this used for?
-    ql::result_t result;
+struct intersecting_geo_read_response_t {
+    counted_t<const ql::datum_t> results;
+    boost::optional<ql::exc_t> error;
 
-    geo_read_response_t() { }
-    geo_read_response_t(const ql::result_t &_result)
-        : result(_result) { }
+    intersecting_geo_read_response_t() { }
+    intersecting_geo_read_response_t(
+            const counted_t<const ql::datum_t> &_results,
+            const boost::optional<ql::exc_t> &_error)
+        : results(_results), error(_error) { }
 };
 
 RDB_DECLARE_SERIALIZABLE(rget_read_response_t);
@@ -342,7 +344,7 @@ RDB_DECLARE_SERIALIZABLE(changefeed_stamp_response_t);
 struct read_response_t {
     typedef boost::variant<point_read_response_t,
                            rget_read_response_t,
-                           geo_read_response_t,
+                           intersecting_geo_read_response_t,
                            changefeed_subscribe_response_t,
                            changefeed_stamp_response_t,
                            distribution_read_response_t,
@@ -424,36 +426,25 @@ public:
 };
 RDB_DECLARE_SERIALIZABLE(rget_read_t);
 
-class geo_read_t {
+class intersecting_geo_read_t {
 public:
-    geo_read_t() { }
+    intersecting_geo_read_t() { }
 
-    geo_read_t(const counted_t<const ql::datum_t> &_query_geometry,
-               const std::map<std::string, ql::wire_func_t> &_optargs,
+    intersecting_geo_read_t(const counted_t<const ql::datum_t> &_query_geometry,
                const std::string _table_name,
-               const std::vector<ql::transform_variant_t> &_transforms,
-               boost::optional<ql::terminal_variant_t> &&_terminal,
                std::string &_sindex_id)
         : query_geometry(_query_geometry),
-          optargs(_optargs),
           table_name(std::move(_table_name)),
-          transforms(_transforms),
-          terminal(std::move(_terminal)),
           sindex_id(_sindex_id) { }
 
     counted_t<const ql::datum_t> query_geometry; // Tested for intersection
 
     region_t region; // We need this even for sindex reads due to sharding.
-    std::map<std::string, ql::wire_func_t> optargs;
     std::string table_name;
-
-    // We use these two for lazy maps, reductions, etc.
-    std::vector<ql::transform_variant_t> transforms;
-    boost::optional<ql::terminal_variant_t> terminal;
 
     std::string sindex_id;
 };
-RDB_DECLARE_SERIALIZABLE(geo_read_t);
+RDB_DECLARE_SERIALIZABLE(intersecting_geo_read_t);
 
 class distribution_read_t {
 public:
@@ -516,6 +507,7 @@ RDB_DECLARE_SERIALIZABLE(changefeed_stamp_t);
 struct read_t {
     typedef boost::variant<point_read_t,
                            rget_read_t,
+                           intersecting_geo_read_t,
                            changefeed_subscribe_t,
                            changefeed_stamp_t,
                            distribution_read_t,
