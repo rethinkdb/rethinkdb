@@ -1225,7 +1225,8 @@ RDB_MAKE_SERIALIZABLE_8(
         rget_read_t,
         region, optargs, table_name, batchspec, transforms, terminal, sindex, sorting);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(rget_read_t);
-RDB_MAKE_SERIALIZABLE_3(intersecting_geo_read_t, region, table_name, sindex_id);
+RDB_MAKE_SERIALIZABLE_4(
+        intersecting_geo_read_t, query_geometry, region, table_name, sindex_id);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(intersecting_geo_read_t);
 RDB_IMPL_SERIALIZABLE_3(distribution_read_t, max_depth, result_limit, region);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(distribution_read_t);

@@ -959,6 +959,7 @@ void rdb_get_intersecting_slice(
         const key_range_t &pk_range,
         const sindex_disk_info_t &sindex_info,
         intersecting_geo_read_response_t *response) {
+    guarantee(query_geometry.has());
 
     guarantee(sindex_info.geo == sindex_geo_bool_t::GEO);
     profile::starter_t starter("Do intersection scan on geospatial index.", ql_env->trace);
@@ -968,9 +969,10 @@ void rdb_get_intersecting_slice(
         geo_sindex_data_t(pk_range, query_geometry, sindex_info.mapping,
                           sindex_info.multi),
         ql_env);
+    cond_t dummy_interruptor; /* TODO! Can we get an interruptor from somewhere? We should! */
     btree_parallel_traversal(
         superblock, &callback,
-        NULL, /* TODO! Can we get an interruptor from somewhere? We should! */
+        &dummy_interruptor,
         release_superblock_t::RELEASE);
     callback.finish();
 }

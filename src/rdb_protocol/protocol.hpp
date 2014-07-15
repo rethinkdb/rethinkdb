@@ -434,6 +434,7 @@ public:
                const std::string _table_name,
                std::string &_sindex_id)
         : query_geometry(_query_geometry),
+          region(region_t::universe()),
           table_name(std::move(_table_name)),
           sindex_id(_sindex_id) { }
 

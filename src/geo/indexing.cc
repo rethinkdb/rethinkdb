@@ -59,6 +59,7 @@ S2CellId key_to_s2cellid(const std::string &sid) {
 
 std::vector<std::string> compute_index_grid_keys(
         const counted_t<const ql::datum_t> &key, int goal_cells) {
+    rassert(key.has());
 
     if (!key->is_ptype("geometry")) {
         throw geo_exception_t("Expected geometry, got " + key->get_type_name());
@@ -161,13 +162,15 @@ bool geo_index_traversal_helper_t::cell_intersects_with_range(
     S2CellId range_min =
         left_excl == NULL
         ? S2CellId::None()
-        : key_to_s2cellid(std::string(reinterpret_cast<const char *>(left_excl->contents),
-                                      left_excl->size)).range_min();
+        : key_to_s2cellid(datum_t::extract_secondary(
+            std::string(reinterpret_cast<const char *>(left_excl->contents),
+                left_excl->size))).range_min();
     S2CellId range_max =
         right_incl == NULL
         ? S2CellId::Sentinel()
-        : key_to_s2cellid(std::string(reinterpret_cast<const char *>(right_incl->contents),
-                                      right_incl->size)).range_max();
+        : key_to_s2cellid(datum_t::extract_secondary(
+            std::string(reinterpret_cast<const char *>(right_incl->contents),
+                right_incl->size))).range_max();
 
     return range_min <= c.range_max() && range_max >= c.range_min();
 }

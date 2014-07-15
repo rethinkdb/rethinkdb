@@ -360,6 +360,28 @@ private:
     virtual const char *name() const { return "rectangle"; }
 };
 
+class get_intersecting_term_t : public op_term_t {
+public:
+    get_intersecting_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(2), optargspec_t({ "index" })) { }
+private:
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<table_t> table = args->arg(env, 0)->as_table();
+        counted_t<val_t> query_arg = args->arg(env, 1);
+        check_is_geometry(query_arg);
+        counted_t<val_t> index = args->optarg(env, "index");
+        if (!index.has()) {
+            rfail(base_exc_t::GENERIC, "get_intersecting requires an index argument.");
+        }
+        std::string index_str = index->as_str().to_std();
+
+        counted_t<datum_stream_t> stream =
+            table->get_intersecting(env->env, query_arg->as_datum(), index_str, backtrace());
+        return new_val(stream, table);
+    }
+    virtual const char *name() const { return "get_all"; }
+};
+
 counted_t<term_t> make_geojson_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<geojson_term_t>(env, term);
 }
@@ -389,6 +411,9 @@ counted_t<term_t> make_circle_term(compile_env_t *env, const protob_t<const Term
 }
 counted_t<term_t> make_rectangle_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<rectangle_term_t>(env, term);
+}
+counted_t<term_t> make_get_intersecting_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<get_intersecting_term_t>(env, term);
 }
 
 } // namespace ql

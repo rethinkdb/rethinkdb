@@ -257,6 +257,7 @@ private:
         case Term::INCLUDES:
         case Term::CIRCLE:
         case Term::RECTANGLE:
+        case Term::GET_INTERSECTING:
             return false;
         default: unreachable();
         }
@@ -436,6 +437,7 @@ private:
         case Term::INCLUDES:
         case Term::CIRCLE:
         case Term::RECTANGLE:
+        case Term::GET_INTERSECTING:
             return false;
         default: unreachable();
         }

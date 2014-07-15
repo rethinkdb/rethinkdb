@@ -666,6 +666,7 @@ message Term {
         INCLUDES = 163;
         CIRCLE = 164;
         RECTANGLE = 165;
+        GET_INTERSECTING = 166;
 
     }
     optional TermType type = 1;

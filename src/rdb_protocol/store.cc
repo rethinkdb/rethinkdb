@@ -14,8 +14,6 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 
-#include "debug.hpp"
-
 void store_t::note_reshard() {
     if (changefeed_server.has()) {
         changefeed_server->stop_all();

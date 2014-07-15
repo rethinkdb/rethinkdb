@@ -9,6 +9,8 @@
 #include "rdb_protocol/lazy_json.hpp"
 #include "rdb_protocol/profile.hpp"
 
+#include "debug.hpp" // TODO!
+
 geo_intersecting_cb_t::geo_intersecting_cb_t(
         geo_io_data_t &&_io,
         const geo_sindex_data_t &&_sindex,
