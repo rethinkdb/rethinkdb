@@ -428,7 +428,7 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     template <class T>
     bool keyed_read(const T &arg, const store_key_t &key) const {
         if (region_contains_key(*region, key)) {
-            *read_out = read_t(arg, profile, read_out->limits);
+            *read_out = std::move(read_t(arg, profile, read_out->limits));
             return true;
         } else {
             return false;
@@ -446,7 +446,7 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
         if (!region_is_empty(intersection)) {
             T tmp = arg;
             tmp.region = intersection;
-            *read_out = read_t(tmp, profile, read_out->limits);
+            *read_out = std::move(read_t(tmp, profile, read_out->limits));
             return true;
         } else {
             return false;
@@ -860,7 +860,8 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
     template <class T>
     bool keyed_write(const T &arg) const {
         if (region_contains_key(*region, arg.key)) {
-            *write_out = write_t(arg, durability_requirement, profile);
+            *write_out = std::move(write_t(arg, durability_requirement,
+                                           profile, write_out->limits));
             return true;
         } else {
             return false;
@@ -875,7 +876,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
             }
         }
         if (!shard_keys.empty()) {
-            *write_out = write_t(
+            *write_out = std::move(write_t(
                 batched_replace_t(
                     std::move(shard_keys),
                     br.pkey,
@@ -884,7 +885,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
                     br.return_vals),
                 durability_requirement,
                 profile,
-                write_out->limits);
+                write_out->limits));
             return true;
         } else {
             return false;
@@ -900,13 +901,13 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
             }
         }
         if (!shard_inserts.empty()) {
-            *write_out = write_t(
+            *write_out = std::move(write_t(
                 batched_insert_t(
                     std::move(shard_inserts), bi.pkey, bi.conflict_behavior,
                     bi.return_vals),
                 durability_requirement,
                 profile,
-                write_out->limits);
+                write_out->limits));
             return true;
         } else {
             return false;
@@ -928,8 +929,8 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         if (!region_is_empty(intersection)) {
             T tmp = arg;
             tmp.region = intersection;
-            *write_out = write_t(tmp, durability_requirement, profile,
-                                 write_out->limits);
+            *write_out = std::move(write_t(tmp, durability_requirement, profile,
+                                           write_out->limits));
             return true;
         } else {
             return false;

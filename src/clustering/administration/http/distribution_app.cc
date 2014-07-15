@@ -59,7 +59,8 @@ void distribution_app_t::handle(const http_req_t &req, http_res_t *result, signa
             namespace_repo_t::access_t rdb_ns_access(rdb_ns_repo, n_id, interruptor);
 
             distribution_read_t inner_read(depth, limit);
-            read_t read(inner_read, profile_bool_t::DONT_PROFILE);
+            read_t read(inner_read, profile_bool_t::DONT_PROFILE,
+                        ql::configured_limits_t());
             read_response_t db_res;
             rdb_ns_access.get_namespace_if()->read_outdated(read,
                                                             &db_res,
