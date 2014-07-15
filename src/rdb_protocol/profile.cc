@@ -285,8 +285,10 @@ trace_t::trace_t()
 counted_t<const ql::datum_t> trace_t::as_datum() const {
     guarantee(!redirected_event_log_);
     event_log_t::const_iterator begin = event_log_.begin();
-    ql::configured_limits_t limits;
-    return construct_datum(&begin, event_log_.end(), limits);
+    // Again, use defaults, as there's no predicting where this could
+    // come in response to user requests.
+    return construct_datum(&begin, event_log_.end(),
+                           ql::configured_limits_t());
 }
 
 event_log_t trace_t::extract_event_log() RVALUE_THIS {
