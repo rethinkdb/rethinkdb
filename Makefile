@@ -78,6 +78,10 @@ include $(TOP)/mk/pipe-stderr.mk
 PHONY_LIST = var-%
 -include $(TOP)/mk/gen/phony-list.mk
 
+# Explicitely add `deps' to the phony list, which was not being rebuilt properly (see review 1773).
+# This line can be removed after #2700 is fixed.
+PHONY_LIST += deps
+
 .PHONY: debug-count
 debug-count:
 	@$(eval MAKE_GOALS := $(filter-out $@,$(MAKE_GOALS)))$(COUNTDOWN_COMMAND)
