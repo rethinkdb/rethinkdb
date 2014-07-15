@@ -11,15 +11,15 @@
 #include "geo/primitives.hpp"
 #include "geo/s2/s2polygon.h"
 #include "rdb_protocol/op.hpp"
+#include "rdb_protocol/pseudo_geometry.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/terms/terms.hpp"
 
 namespace ql {
 
 void check_is_geometry(const counted_t<val_t> &v) {
-    // TODO! Get rid of that "geometry" literal everywhere
     rcheck_target(v.get(), base_exc_t::GENERIC,
-                  v->as_datum()->is_ptype("geometry"),
+                  v->as_datum()->is_ptype(pseudo::geometry_string),
                   "Value must be of geometry type.");
 }
 
@@ -40,8 +40,10 @@ private:
 
         // Store the geo_json object inline, just add a $reql_type$ field
         datum_ptr_t type_obj((datum_t::R_OBJECT));
-        bool dup = type_obj.add("$reql_type$", datum_ptr_t("geometry").to_counted());
-        rcheck(!dup, base_exc_t::GENERIC, "GeoJSON object contained a $reql_type$ field");
+        bool dup = type_obj.add(datum_t::reql_type_string,
+                                datum_ptr_t(pseudo::geometry_string).to_counted());
+        rcheck(!dup, base_exc_t::GENERIC, "GeoJSON object already had a "
+                                          "$reql_type$ field");
         counted_t<const datum_t> result = type_obj->merge(geo_json);
 
         return new_val(result);
@@ -59,7 +61,7 @@ private:
         check_is_geometry(v);
 
         datum_ptr_t result(v->as_datum()->as_object());
-        bool success = result.delete_field("$reql_type$");
+        bool success = result.delete_field(datum_t::reql_type_string);
         r_sanity_check(success);
         return new_val(result.to_counted());
     }
@@ -95,7 +97,7 @@ lat_lon_line_t parse_line_from_args(scope_env_t *env, args_t *args) {
     for (size_t i = 0; i < args->num_args(); ++i) {
         counted_t<const val_t> point_arg = args->arg(env, i);
         const counted_t<const datum_t> &point_datum = point_arg->as_datum();
-        if (point_datum->is_ptype("geometry")) {
+        if (point_datum->is_ptype(pseudo::geometry_string)) {
             // The argument is a point (should be at least, if not this will throw)
             line.push_back(extract_lat_lon_point(point_datum));
         } else {

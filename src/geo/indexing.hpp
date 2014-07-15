@@ -6,21 +6,22 @@
 #include <vector>
 
 #include "btree/parallel_traversal.hpp"
-#include "btree/types.hpp"
 #include "containers/counted.hpp"
 #include "geo/s2/s2cellid.h"
 
 namespace ql {
 class datum_t;
 }
+class signal_t;
 
+
+extern const int GEO_INDEX_GOAL_GRID_CELLS;
 
 std::vector<std::string> compute_index_grid_keys(
         const counted_t<const ql::datum_t> &key,
         int goal_cells);
 
-// TODO! Support compound indexes. Somehow.
-// TODO! Implement aborting the traversal early
+// TODO (daniel): Support compound indexes somehow.
 class geo_index_traversal_helper_t : public btree_traversal_helper_t {
 public:
     geo_index_traversal_helper_t(const std::vector<std::string> &query_grid_keys);
@@ -30,7 +31,8 @@ public:
     virtual void on_candidate(
             const btree_key_t *key,
             const void *value,
-            buf_parent_t parent)
+            buf_parent_t parent,
+            signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
     /* btree_traversal_helper_t interface */
@@ -49,6 +51,11 @@ public:
     access_t btree_superblock_mode() { return access_t::read; }
     access_t btree_node_mode() { return access_t::read; }
 
+protected:
+    // Once called, no further calls to on_candidate() will be made and
+    // the traversal will be aborted as quickly as possible.
+    void abort_traversal();
+
 private:
     static bool cell_intersects_with_range(
             S2CellId c, const S2CellId left_min, const S2CellId right_max);
@@ -58,6 +65,7 @@ private:
                                    const S2CellId right_max);
 
     std::vector<S2CellId> query_cells_;
+    bool abort_;
 };
 
 #endif  // GEO_INDEXING_HPP_

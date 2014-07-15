@@ -33,7 +33,6 @@ ostream& operator<<(ostream& os, S1Angle const& a) {
   double degrees = a.degrees();
   char buffer[13];
   int sz = snprintf(buffer, sizeof(buffer), "%.7f", degrees);
-  // TODO! static_cast
   if (sz >= 0 && static_cast<size_t>(sz) < sizeof(buffer)) {
     return os << buffer;
   } else {

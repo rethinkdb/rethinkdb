@@ -351,7 +351,6 @@ inline void Encoder::put32(uint32 v) {
 }
 
 inline void Encoder::put64(uint64 v) {
-    // TODO! This static_cast is bad. Move everything to size_t?
   DCHECK_GE(avail(), static_cast<int>(sizeof(v)));
   LittleEndian::Store64(buf_, v);
   buf_ += sizeof(v);

@@ -6,6 +6,7 @@
 
 #include "btree/keys.hpp"
 #include "btree/leaf_node.hpp"
+#include "concurrency/interruptor.hpp"
 #include "geo/exceptions.hpp"
 #include "geo/geojson.hpp"
 #include "geo/geo_visitor.hpp"
@@ -15,10 +16,13 @@
 #include "geo/s2/s2regioncoverer.h"
 #include "geo/s2/strings/strutil.h"
 #include "rdb_protocol/datum.hpp"
-
-#include "debug.hpp" // TODO!
+#include "rdb_protocol/pseudo_geometry.hpp"
 
 using ql::datum_t;
+
+// TODO (daniel): Consider making this configurable through an opt-arg
+//   (...at index creation?)
+extern const int GEO_INDEX_GOAL_GRID_CELLS = 12;
 
 class compute_covering_t : public s2_geo_visitor_t {
 public:
@@ -67,7 +71,7 @@ std::vector<std::string> compute_index_grid_keys(
         const counted_t<const ql::datum_t> &key, int goal_cells) {
     rassert(key.has());
 
-    if (!key->is_ptype("geometry")) {
+    if (!key->is_ptype(ql::pseudo::geometry_string)) {
         throw geo_exception_t("Expected geometry, got " + key->get_type_name());
     }
     if (goal_cells <= 0) {
@@ -83,17 +87,17 @@ std::vector<std::string> compute_index_grid_keys(
     // Generate keys
     std::vector<std::string> result;
     result.reserve(covering.size());
-    debugf("Computing grid keys:\n"); // TODO!
     for (size_t i = 0; i < covering.size(); ++i) {
         result.push_back(s2cellid_to_key(covering[i]));
-        debugf(" K: %s\n", s2cellid_to_key(covering[i]).c_str()); // TODO!
     }
 
     return result;
 }
 
 geo_index_traversal_helper_t::geo_index_traversal_helper_t(
-        const std::vector<std::string> &query_grid_keys) {
+        const std::vector<std::string> &query_grid_keys)
+    : abort_(false) {
+
     query_cells_.reserve(query_grid_keys.size());
     for (size_t i = 0; i < query_grid_keys.size(); ++i) {
         query_cells_.push_back(key_to_s2cellid(query_grid_keys[i]));
@@ -103,10 +107,14 @@ geo_index_traversal_helper_t::geo_index_traversal_helper_t(
 void geo_index_traversal_helper_t::process_a_leaf(buf_lock_t *leaf_node_buf,
         const btree_key_t *left_exclusive_or_null,
         const btree_key_t *right_inclusive_or_null,
-        UNUSED signal_t *interruptor, // TODO! Should we pass it through?
+        signal_t *interruptor,
         int *population_change_out) THROWS_ONLY(interrupted_exc_t) {
 
     *population_change_out = 0;
+
+    if (interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
 
     if (!any_query_cell_intersects(left_exclusive_or_null, right_inclusive_or_null)) {
         return;
@@ -116,14 +124,14 @@ void geo_index_traversal_helper_t::process_a_leaf(buf_lock_t *leaf_node_buf,
     const leaf_node_t *node = static_cast<const leaf_node_t *>(read.get_data_read());
 
     for (auto it = leaf::begin(*node); it != leaf::end(*node); ++it) {
-        const btree_key_t *k = (*it).first;
-        if (!k) {
+        const btree_key_t *key = (*it).first;
+        if (abort_ || !key) {
             break;
         }
 
-        const S2CellId key_cell = btree_key_to_s2cellid(k);
+        const S2CellId key_cell = btree_key_to_s2cellid(key);
         if (any_query_cell_intersects(key_cell.range_min(), key_cell.range_max())) {
-            on_candidate(k, (*it).second, buf_parent_t(leaf_node_buf));
+            on_candidate(key, (*it).second, buf_parent_t(leaf_node_buf), interruptor);
         }
     }
 }
@@ -133,7 +141,7 @@ void geo_index_traversal_helper_t::filter_interesting_children(
         ranged_block_ids_t *ids_source,
         interesting_children_callback_t *cb) {
 
-    for (int i = 0, e = ids_source->num_block_ids(); i < e; ++i) {
+    for (int i = 0, e = ids_source->num_block_ids(); i < e && !abort_; ++i) {
         block_id_t block_id;
         const btree_key_t *left, *right;
         ids_source->get_block_id_and_bounding_interval(i, &block_id, &left, &right);
@@ -144,6 +152,10 @@ void geo_index_traversal_helper_t::filter_interesting_children(
     }
 
     cb->no_more_interesting_children();
+}
+
+void geo_index_traversal_helper_t::abort_traversal() {
+    abort_ = true;
 }
 
 bool geo_index_traversal_helper_t::any_query_cell_intersects(

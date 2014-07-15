@@ -29,6 +29,7 @@
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/geo_traversal.hpp"
 #include "rdb_protocol/lazy_json.hpp"
+#include "rdb_protocol/pseudo_geometry.hpp"
 #include "rdb_protocol/serialize_datum_onto_blob.hpp"
 #include "rdb_protocol/shards.hpp"
 
@@ -969,10 +970,9 @@ void rdb_get_intersecting_slice(
         geo_sindex_data_t(pk_range, query_geometry, sindex_info.mapping,
                           sindex_info.multi),
         ql_env);
-    cond_t dummy_interruptor; /* TODO! Can we get an interruptor from somewhere? We should! */
     btree_parallel_traversal(
         superblock, &callback,
-        &dummy_interruptor,
+        ql_env->interruptor,
         release_superblock_t::RELEASE);
     callback.finish();
 }
@@ -1103,8 +1103,10 @@ std::vector<std::string> expand_geo_key(
         const counted_t<const ql::datum_t> &key,
         const store_key_t &primary_key,
         boost::optional<uint64_t> tag_num = boost::optional<uint64_t>()) {
-    // TODO! Support compound indexes
-    if (!key->is_ptype("geometry")) {
+    // Ignore non-geometry objects in geo indexes.
+    // TODO (daniel): This needs to be changed once compound geo index
+    // support gets added.
+    if (!key->is_ptype(ql::pseudo::geometry_string)) {
         return std::vector<std::string>();
     }
 
@@ -1122,18 +1124,17 @@ std::vector<std::string> expand_geo_key(
         tag_string = ql::datum_t::encode_tag_num(tag_num.get());
     }
 
-    // TODO! Store these parameters in the index_info
-    const int goal_cells = 10;
     try {
-        std::vector<std::string> grid_keys = compute_index_grid_keys(key, goal_cells);
+        std::vector<std::string> grid_keys =
+            compute_index_grid_keys(key, GEO_INDEX_GOAL_GRID_CELLS);
 
         std::vector<std::string> result;
         result.reserve(grid_keys.size());
         for (size_t i = 0; i < grid_keys.size(); ++i) {
-            // TODO! This has to change once we have compound index support
+            // TODO (daniel): Something else that needs change for compound index
+            //   support.
             guarantee(grid_keys[i].length()
                       <= ql::datum_t::trunc_size(primary_key_string.length()));
-            /* grid_keys[i].substr(0, ql::datum_t::trunc_size(primary_key_string.length())); */
 
             result.push_back(
                     ql::datum_t::mangle_secondary(grid_keys[i], primary_key_string,

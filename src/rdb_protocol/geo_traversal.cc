@@ -9,13 +9,12 @@
 #include "rdb_protocol/lazy_json.hpp"
 #include "rdb_protocol/profile.hpp"
 
-#include "debug.hpp" // TODO!
-
 geo_intersecting_cb_t::geo_intersecting_cb_t(
         geo_io_data_t &&_io,
         const geo_sindex_data_t &&_sindex,
         ql::env_t *_env)
-    : geo_index_traversal_helper_t(compute_index_grid_keys(_sindex.query_geometry, 12)), // TODO! (don't hard-code 12 here)
+    : geo_index_traversal_helper_t(
+          compute_index_grid_keys(_sindex.query_geometry, GEO_INDEX_GOAL_GRID_CELLS)),
       io(std::move(_io)),
       sindex(std::move(_sindex)),
       env(_env),
@@ -33,7 +32,8 @@ void geo_intersecting_cb_t::finish() THROWS_ONLY(interrupted_exc_t) {
 void geo_intersecting_cb_t::on_candidate(
         const btree_key_t *key,
         const void *value,
-        buf_parent_t parent)
+        buf_parent_t parent,
+        UNUSED signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     sampler->new_sample();
 
@@ -76,7 +76,6 @@ void geo_intersecting_cb_t::on_candidate(
             sindex_val = sindex_val->get(*tag, ql::NOTHROW);
             guarantee(sindex_val);
         }
-        // TODO! Support compound indexes
         // TODO (daniel): This is a little inefficient because we re-parse
         //   the query_geometry for each test.
         if (!geo_does_intersect(sindex.query_geometry, sindex_val)) {
@@ -87,18 +86,18 @@ void geo_intersecting_cb_t::on_candidate(
         result_acc.add(val);
     } catch (const ql::exc_t &e) {
         io.response->error = e;
-        // TODO! Abort
+        abort_traversal();
         return;
     } catch (const geo_exception_t &e) {
         io.response->error = ql::exc_t(ql::base_exc_t::GENERIC, e.what(), NULL);
-        // TODO! Abort
+        abort_traversal();
         return;
     } catch (const ql::datum_exc_t &e) {
 #ifndef NDEBUG
         unreachable();
 #else
         io.response->error = ql::exc_t(e, NULL);
-        // TODO! Abort
+        abort_traversal();
         return;
 #endif // NDEBUG
     }

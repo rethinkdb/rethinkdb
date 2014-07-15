@@ -19,8 +19,7 @@
 #include "geo/s2/s2polygonbuilder.h"
 #include "geo/s2/s2polyline.h"
 #include "rdb_protocol/datum.hpp"
-
-#include "debug.hpp" // TODO!
+#include "rdb_protocol/pseudo_geometry.hpp"
 
 using ql::datum_t;
 using ql::datum_ptr_t;
@@ -28,7 +27,8 @@ using ql::datum_ptr_t;
 counted_t<const ql::datum_t> construct_geo_point(const lat_lon_point_t &point) {
     datum_ptr_t result(datum_t::R_OBJECT);
     bool dup;
-    dup = result.add("$reql_type$", make_counted<datum_t>("geometry"));
+    dup = result.add(datum_t::reql_type_string,
+                     make_counted<datum_t>(ql::pseudo::geometry_string));
     r_sanity_check(!dup);
     dup = result.add("type", make_counted<datum_t>("Point"));
     r_sanity_check(!dup);
@@ -62,7 +62,8 @@ std::vector<counted_t<const datum_t> > construct_line_coordinates(
 counted_t<const ql::datum_t> construct_geo_line(const lat_lon_line_t &line) {
     datum_ptr_t result(datum_t::R_OBJECT);
     bool dup;
-    dup = result.add("$reql_type$", make_counted<datum_t>("geometry"));
+    dup = result.add(datum_t::reql_type_string,
+                     make_counted<datum_t>(ql::pseudo::geometry_string));
     r_sanity_check(!dup);
     dup = result.add("type", make_counted<datum_t>("LineString"));
     r_sanity_check(!dup);
@@ -77,7 +78,8 @@ counted_t<const ql::datum_t> construct_geo_line(const lat_lon_line_t &line) {
 counted_t<const ql::datum_t> construct_geo_polygon(const lat_lon_line_t &shell) {
     datum_ptr_t result(datum_t::R_OBJECT);
     bool dup;
-    dup = result.add("$reql_type$", make_counted<datum_t>("geometry"));
+    dup = result.add(datum_t::reql_type_string,
+                     make_counted<datum_t>(ql::pseudo::geometry_string));
     r_sanity_check(!dup);
     dup = result.add("type", make_counted<datum_t>("Polygon"));
     r_sanity_check(!dup);
@@ -113,8 +115,11 @@ lat_lon_point_t position_to_lat_lon_point(const counted_t<const datum_t> &positi
                       "three coordinates, but got %zu", arr.size()));
     }
     if (arr.size() == 3) {
-        // TODO! Error?
-        debugf("Ignoring altitude in GeoJSON position.");
+        // TODO (daniel): We could just ignore the altitude, but would need
+        //   a way of informing the user about that fact. So for the time being
+        //   we error instead.
+        throw geo_exception_t("A third altitude coordinate in GeoJSON positions "
+                              "was found, but is not supported.");
     }
 
     // GeoJSON positions are in order longitude, latitude, altitude
@@ -269,9 +274,20 @@ scoped_ptr_t<S2Polygon> coordinates_to_s2polygon(const counted_t<const datum_t> 
     return std::move(result);
 }
 
+void ensure_no_crs(const counted_t<const ql::datum_t> &geojson) {
+    const counted_t<const ql::datum_t> &crs_field =
+        geojson->get("crs", ql::throw_bool_t::NOTHROW);
+    if (crs_field.has()) {
+        if (crs_field->get_type() != ql::datum_t::R_NULL) {
+            throw geo_exception_t("Non-default coordinate reference systems "
+                                  "are not supported in GeoJSON objects. "
+                                  "Make sure the 'crs' field of the geometry is "
+                                  "null or non-existent.");
+        }
+    }
+}
+
 scoped_ptr_t<S2Point> to_s2point(const counted_t<const ql::datum_t> &geojson) {
-    // TODO! Ensure that geojson has either no "crs" member, or it is null.
-    // Fail otherwise.
     const std::string type = geojson->get("type")->as_str().to_std();
     counted_t<const datum_t> coordinates = geojson->get("coordinates");
     if (type != "Point") {
@@ -281,8 +297,6 @@ scoped_ptr_t<S2Point> to_s2point(const counted_t<const ql::datum_t> &geojson) {
 }
 
 scoped_ptr_t<S2Polyline> to_s2polyline(const counted_t<const ql::datum_t> &geojson) {
-    // TODO! Ensure that geojson has either no "crs" member, or it is null.
-    // Fail otherwise.
     const std::string type = geojson->get("type")->as_str().to_std();
     counted_t<const datum_t> coordinates = geojson->get("coordinates");
     if (type != "LineString") {
@@ -292,8 +306,6 @@ scoped_ptr_t<S2Polyline> to_s2polyline(const counted_t<const ql::datum_t> &geojs
 }
 
 scoped_ptr_t<S2Polygon> to_s2polygon(const counted_t<const ql::datum_t> &geojson) {
-    // TODO! Ensure that geojson has either no "crs" member, or it is null.
-    // Fail otherwise.
     const std::string type = geojson->get("type")->as_str().to_std();
     counted_t<const datum_t> coordinates = geojson->get("coordinates");
     if (type != "Polygon") {
@@ -303,9 +315,6 @@ scoped_ptr_t<S2Polygon> to_s2polygon(const counted_t<const ql::datum_t> &geojson
 }
 
 void visit_geojson(s2_geo_visitor_t *visitor, const counted_t<const datum_t> &geojson) {
-    // TODO! Ensure that geojson has either no "crs" member, or it is null.
-    // Fail otherwise.
-
     const std::string type = geojson->get("type")->as_str().to_std();
     counted_t<const datum_t> coordinates = geojson->get("coordinates");
 
@@ -340,9 +349,10 @@ void visit_geojson(s2_geo_visitor_t *visitor, const counted_t<const datum_t> &ge
 }
 
 void validate_geojson(const counted_t<const ql::datum_t> &geojson) {
-    // Note that `visit_geojson()` already performs the major amount of validation.
-    // We just add a few checks on top.
-    // TODO! Check that the GeoJSON doesn't specify a reference system
+    // Note that `visit_geojson()` already performs the majority of validations.
+
+    ensure_no_crs(geojson);
+
     class validator_t : public s2_geo_visitor_t {
     public:
         void on_point(UNUSED const S2Point &) { }

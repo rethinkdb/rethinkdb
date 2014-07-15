@@ -15,6 +15,7 @@
 #include "containers/scoped.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
+#include "rdb_protocol/pseudo_geometry.hpp"
 #include "rdb_protocol/pseudo_literal.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
 #include "rdb_protocol/shards.hpp"
@@ -273,12 +274,15 @@ std::string datum_t::trunc_print() const {
 
 void datum_t::pt_to_str_key(std::string *str_out) const {
     r_sanity_check(is_ptype());
-    // TODO! Handle geometry
     if (get_reql_type() == pseudo::time_string) {
         pseudo::time_to_str_key(*this, str_out);
+    } else if (get_reql_type() == pseudo::geometry_string) {
+        rfail(base_exc_t::GENERIC,
+              "Cannot use a geometry value as a key value in a primary or "
+              " non-geospatial secondary index.");
     } else {
         rfail(base_exc_t::GENERIC,
-              "Cannot use psuedotype %s as a primary or secondary key value .",
+              "Cannot use pseudotype %s as a primary or secondary key value .",
               get_type_name().c_str());
     }
 }
@@ -374,7 +378,7 @@ int datum_t::pseudo_cmp(const datum_t &rhs) const {
 
 bool datum_t::should_compare_as_obj() const {
     r_sanity_check(is_ptype());
-    if (get_reql_type() == "geometry") {
+    if (get_reql_type() == pseudo::geometry_string) {
         // We compare geometry by its object representation.
         // That's not especially meaningful, but works for indexing etc.
         return true;
@@ -397,8 +401,9 @@ void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
             pseudo::rcheck_literal_valid(this);
             return;
         }
-        // TODO!
-        if (get_reql_type() == "geometry") {
+        if (get_reql_type() == pseudo::geometry_string) {
+            // Geometry validation is handled separately whenever a geometry
+            // object is created (or used, when necessary).
             return;
         }
         rfail(base_exc_t::GENERIC,
