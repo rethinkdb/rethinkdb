@@ -10,6 +10,7 @@
 
 #include "btree/backfill.hpp"
 #include "btree/concurrent_traversal.hpp"
+#include "btree/parallel_traversal.hpp"
 #include "btree/erase_range.hpp"
 #include "btree/get_distribution.hpp"
 #include "btree/operations.hpp"
@@ -26,6 +27,7 @@
 #include "geo/indexing.hpp"
 #include "rdb_protocol/blob_wrapper.hpp"
 #include "rdb_protocol/func.hpp"
+#include "rdb_protocol/geo_traversal.hpp"
 #include "rdb_protocol/lazy_json.hpp"
 #include "rdb_protocol/serialize_datum_onto_blob.hpp"
 #include "rdb_protocol/shards.hpp"
@@ -715,20 +717,18 @@ void rdb_erase_small_range(key_tester_t *tester,
 typedef ql::transform_variant_t transform_variant_t;
 typedef ql::terminal_variant_t terminal_variant_t;
 
-class sindex_data_t {
+class rget_sindex_data_t {
 public:
-    sindex_data_t(const key_range_t &_pkey_range, const datum_range_t &_range,
-                  ql::map_wire_func_t wire_func, sindex_multi_bool_t _multi,
-                  sindex_geo_bool_t _geo)
+    rget_sindex_data_t(const key_range_t &_pkey_range, const datum_range_t &_range,
+                       ql::map_wire_func_t wire_func, sindex_multi_bool_t _multi)
         : pkey_range(_pkey_range), range(_range),
-          func(wire_func.compile_wire_func()), multi(_multi), geo(_geo) { }
+          func(wire_func.compile_wire_func()), multi(_multi) { }
 private:
     friend class rget_cb_t;
     const key_range_t pkey_range;
     const datum_range_t range;
     const counted_t<ql::func_t> func;
     const sindex_multi_bool_t multi;
-    const sindex_geo_bool_t geo;
 };
 
 class job_data_t {
@@ -764,9 +764,9 @@ private:
     scoped_ptr_t<ql::accumulator_t> accumulator;
 };
 
-class io_data_t {
+class rget_io_data_t {
 public:
-    io_data_t(rget_read_response_t *_response, btree_slice_t *_slice)
+    rget_io_data_t(rget_read_response_t *_response, btree_slice_t *_slice)
         : response(_response), slice(_slice) { }
 private:
     friend class rget_cb_t;
@@ -776,9 +776,9 @@ private:
 
 class rget_cb_t : public concurrent_traversal_callback_t {
 public:
-    rget_cb_t(io_data_t &&_io,
+    rget_cb_t(rget_io_data_t &&_io,
               job_data_t &&_job,
-              boost::optional<sindex_data_t> &&_sindex,
+              boost::optional<rget_sindex_data_t> &&_sindex,
               const key_range_t &range);
 
     virtual done_traversing_t handle_pair(scoped_key_value_t &&keyvalue,
@@ -786,9 +786,9 @@ public:
     THROWS_ONLY(interrupted_exc_t);
     void finish() THROWS_ONLY(interrupted_exc_t);
 private:
-    const io_data_t io; // How do get data in/out.
+    const rget_io_data_t io; // How do get data in/out.
     job_data_t job; // What to do next (stateful).
-    const boost::optional<sindex_data_t> sindex; // Optional sindex information.
+    const boost::optional<rget_sindex_data_t> sindex; // Optional sindex information.
 
     // State for internal bookkeeping.
     bool bad_init;
@@ -796,9 +796,9 @@ private:
     scoped_ptr_t<profile::sampler_t> sampler;
 };
 
-rget_cb_t::rget_cb_t(io_data_t &&_io,
+rget_cb_t::rget_cb_t(rget_io_data_t &&_io,
                      job_data_t &&_job,
-                     boost::optional<sindex_data_t> &&_sindex,
+                     boost::optional<rget_sindex_data_t> &&_sindex,
                      const key_range_t &range)
     : io(std::move(_io)),
       job(std::move(_job)),
@@ -860,7 +860,6 @@ THROWS_ONLY(interrupted_exc_t) {
         // Check whether we're out of sindex range.
         counted_t<const ql::datum_t> sindex_val; // NULL if no sindex.
         if (sindex) {
-            guarantee(sindex->geo == sindex_geo_bool_t::REGULAR);
             sindex_val = sindex->func->call(job.env, val)->as_datum();
             if (sindex->multi == sindex_multi_bool_t::MULTI
                 && sindex_val->get_type() == ql::datum_t::R_ARRAY) {
@@ -901,21 +900,22 @@ THROWS_ONLY(interrupted_exc_t) {
 
 // TODO: Having two functions which are 99% the same sucks.
 void rdb_rget_slice(
-    btree_slice_t *slice,
-    const key_range_t &range,
-    superblock_t *superblock,
-    ql::env_t *ql_env,
-    const ql::batchspec_t &batchspec,
-    const std::vector<transform_variant_t> &transforms,
-    const boost::optional<terminal_variant_t> &terminal,
-    sorting_t sorting,
-    rget_read_response_t *response) {
+        btree_slice_t *slice,
+        const key_range_t &range,
+        superblock_t *superblock,
+        ql::env_t *ql_env,
+        const ql::batchspec_t &batchspec,
+        const std::vector<transform_variant_t> &transforms,
+        const boost::optional<terminal_variant_t> &terminal,
+        sorting_t sorting,
+        rget_read_response_t *response) {
+
     r_sanity_check(boost::get<ql::exc_t>(&response->result) == NULL);
     profile::starter_t starter("Do range scan on primary index.", ql_env->trace);
     rget_cb_t callback(
-        io_data_t(response, slice),
+        rget_io_data_t(response, slice),
         job_data_t(ql_env, batchspec, transforms, terminal, sorting),
-        boost::optional<sindex_data_t>(),
+        boost::optional<rget_sindex_data_t>(),
         range);
     btree_concurrent_traversal(superblock, range, &callback,
                                (!reversed(sorting) ? FORWARD : BACKWARD));
@@ -923,29 +923,60 @@ void rdb_rget_slice(
 }
 
 void rdb_rget_secondary_slice(
-    btree_slice_t *slice,
-    const datum_range_t &sindex_range,
-    const region_t &sindex_region,
-    superblock_t *superblock,
-    ql::env_t *ql_env,
-    const ql::batchspec_t &batchspec,
-    const std::vector<transform_variant_t> &transforms,
-    const boost::optional<terminal_variant_t> &terminal,
-    const key_range_t &pk_range,
-    sorting_t sorting,
-    const sindex_disk_info_t &sindex_info,
-    rget_read_response_t *response) {
+        btree_slice_t *slice,
+        const datum_range_t &sindex_range,
+        const region_t &sindex_region,
+        superblock_t *superblock,
+        ql::env_t *ql_env,
+        const ql::batchspec_t &batchspec,
+        const std::vector<transform_variant_t> &transforms,
+        const boost::optional<terminal_variant_t> &terminal,
+        const key_range_t &pk_range,
+        sorting_t sorting,
+        const sindex_disk_info_t &sindex_info,
+        rget_read_response_t *response) {
+
     r_sanity_check(boost::get<ql::exc_t>(&response->result) == NULL);
+    guarantee(sindex_info.geo == sindex_geo_bool_t::REGULAR);
     profile::starter_t starter("Do range scan on secondary index.", ql_env->trace);
     rget_cb_t callback(
-        io_data_t(response, slice),
+        rget_io_data_t(response, slice),
         job_data_t(ql_env, batchspec, transforms, terminal, sorting),
-        sindex_data_t(pk_range, sindex_range, sindex_info.mapping,
-                      sindex_info.multi, sindex_info.geo),
+        rget_sindex_data_t(pk_range, sindex_range, sindex_info.mapping,
+                           sindex_info.multi),
         sindex_region.inner);
     btree_concurrent_traversal(
         superblock, sindex_region.inner, &callback,
         (!reversed(sorting) ? FORWARD : BACKWARD));
+    callback.finish();
+}
+
+void rdb_rget_geo_slice(
+        btree_slice_t *slice,
+        const counted_t<const ql::datum_t> &query_geometry,
+        superblock_t *superblock,
+        ql::env_t *ql_env,
+        const std::vector<ql::transform_variant_t> &transforms,
+        const boost::optional<ql::terminal_variant_t> &terminal,
+        const key_range_t &pk_range,
+        const sindex_disk_info_t &sindex_info,
+        geo_read_response_t *response) {
+
+    r_sanity_check(boost::get<ql::exc_t>(&response->result) == NULL);
+    guarantee(sindex_info.geo == sindex_geo_bool_t::GEO);
+    profile::starter_t starter("Do intersection scan on geospatial index.", ql_env->trace);
+
+    rget_geo_cb_t callback(
+        geo_io_data_t(response, slice),
+        geo_sindex_data_t(pk_range, query_geometry, sindex_info.mapping,
+                          sindex_info.multi),
+        ql_env,
+        transforms,
+        terminal);
+    btree_parallel_traversal(
+        superblock, &callback,
+        NULL, /* TODO! Can we get an interruptor from somewhere? We should! */
+        release_superblock_t::RELEASE);
     callback.finish();
 }
 

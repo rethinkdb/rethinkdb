@@ -115,7 +115,7 @@ void geo_index_traversal_helper_t::process_a_leaf(buf_lock_t *leaf_node_buf,
         }
 
         if (any_query_cell_intersects(k, k)) {
-            on_candidate(k, (*it).second);
+            on_candidate(k, (*it).second, buf_parent_t(leaf_node_buf));
         }
     }
 }

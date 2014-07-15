@@ -114,6 +114,47 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         rdb_get(get.key, btree, superblock, res, ql_env.trace.get_or_null());
     }
 
+    void operator()(const geo_read_t &geo_read) {
+        // See comment in operator(const rget_read_t &)
+        rassert(geo_read.optargs.size() != 0);
+        ql_env.global_optargs.init_optargs(geo_read.optargs);
+        response->response = geo_read_response_t();
+        geo_read_response_t *res =
+            boost::get<geo_read_response_t>(&response->response);
+
+        sindex_disk_info_t sindex_info;
+        uuid_u sindex_uuid;
+        scoped_ptr_t<real_superblock_t> sindex_sb;
+        try {
+            sindex_sb =
+                acquire_sindex_for_read(geo_read.table_name, geo_read.sindex_id,
+                &sindex_info, &sindex_uuid);
+        } catch (const ql::exc_t &e) {
+            res->result = e;
+            return;
+        }
+
+        if (sindex_info.geo != sindex_geo_bool_t::GEO) {
+            res->result = ql::exc_t(
+                ql::base_exc_t::GENERIC,
+                strprintf(
+                    "Index '%s' is not a geospatial index. This term can only be "
+                    "used with a geospatial index.",
+                    geo_read.sindex_id.c_str()),
+                NULL);
+            return;
+        }
+
+        // TODO! What happens if we have multiple shards on the same node?
+        //   Will we actually perform multiple sindex traversals just to post-filter
+        //   most of the results based on primary key?
+        rdb_rget_geo_slice(
+            store->get_sindex_slice(sindex_uuid),
+            geo_read.query_geometry,
+            sindex_sb.get(), &ql_env, geo_read.transforms, geo_read.terminal,
+            geo_read.region.inner, sindex_info, res);
+    }
+
     void operator()(const rget_read_t &rget) {
         if (rget.transforms.size() != 0 || rget.terminal) {
             // This asserts that the optargs have been initialized.  (There is always
@@ -132,39 +173,33 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                            &ql_env, rget.batchspec, rget.transforms, rget.terminal,
                            rget.sorting, res);
         } else {
-            scoped_ptr_t<real_superblock_t> sindex_sb;
-            std::vector<char> sindex_mapping_data;
-
-            uuid_u sindex_uuid;
-            try {
-                bool found = store->acquire_sindex_superblock_for_read(
-                    sindex_name_t(rget.sindex->id),
-                    rget.table_name,
-                    superblock,
-                    &sindex_sb,
-                    &sindex_mapping_data,
-                    &sindex_uuid);
-                if (!found) {
-                    res->result = ql::exc_t(
-                        ql::base_exc_t::GENERIC,
-                        strprintf("Index `%s` was not found on table `%s`.",
-                                  rget.sindex->id.c_str(), rget.table_name.c_str()),
-                        NULL);
-                    return;
-                }
-            } catch (const sindex_not_ready_exc_t &e) {
-                res->result = ql::exc_t(
-                    ql::base_exc_t::GENERIC, e.what(), NULL);
-                return;
-            }
-
             // This chunk of code puts together a filter so we can exclude any items
             //  that don't fall in the specified range.  Because the secondary index
             //  keys may have been truncated, we can't go by keys alone.  Therefore,
             //  we construct a filter function that ensures all returned items lie
             //  between sindex_start_value and sindex_end_value.
             sindex_disk_info_t sindex_info;
-            deserialize_sindex_info(sindex_mapping_data, &sindex_info);
+            uuid_u sindex_uuid;
+            scoped_ptr_t<real_superblock_t> sindex_sb;
+            try {
+                sindex_sb =
+                    acquire_sindex_for_read(rget.table_name, rget.sindex->id,
+                    &sindex_info, &sindex_uuid);
+            } catch (const ql::exc_t &e) {
+                res->result = e;
+                return;
+            }
+
+            if (sindex_info.geo == sindex_geo_bool_t::GEO) {
+                res->result = ql::exc_t(
+                    ql::base_exc_t::GENERIC,
+                    strprintf(
+                        "Index '%s' is a geospatial index. This term cannot be "
+                        "used with a geospatial index.",
+                        rget.sindex->id.c_str()),
+                    NULL);
+                return;
+            }
 
             rdb_rget_secondary_slice(
                 store->get_sindex_slice(sindex_uuid),
@@ -287,6 +322,43 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
 private:
+    scoped_ptr_t<real_superblock_t> acquire_sindex_for_read(
+            const std::string &table_name,
+            const std::string &sindex_id,
+            sindex_disk_info_t *sindex_info_out,
+            uuid_u *sindex_uuid_out) {
+        rassert(sindex_info_out != NULL);
+        rassert(sindex_uuid_out != NULL);
+
+        scoped_ptr_t<real_superblock_t> sindex_sb;
+        std::vector<char> sindex_mapping_data;
+
+        uuid_u sindex_uuid;
+        try {
+            bool found = store->acquire_sindex_superblock_for_read(
+                sindex_name_t(sindex_id),
+                table_name,
+                superblock,
+                &sindex_sb,
+                &sindex_mapping_data,
+                &sindex_uuid);
+            if (!found) {
+                throw ql::exc_t(
+                    ql::base_exc_t::GENERIC,
+                    strprintf("Index `%s` was not found on table `%s`.",
+                              sindex_id.c_str(), table_name.c_str()),
+                    NULL);
+            }
+        } catch (const sindex_not_ready_exc_t &e) {
+            throw ql::exc_t(
+                ql::base_exc_t::GENERIC, e.what(), NULL);
+        }
+
+        deserialize_sindex_info(sindex_mapping_data, sindex_info_out);
+        *sindex_uuid_out = sindex_uuid;
+        return std::move(sindex_sb);
+    }
+
     read_response_t *const response;
     btree_slice_t *const btree;
     store_t *const store;
@@ -304,7 +376,7 @@ void store_t::protocol_read(const read_t &read,
                          superblock,
                          ctx, response, read.profile, interruptor);
     {
-        profile::starter_t start_write("Perform read on shard.", v.get_env()->trace);
+        profile::starter_t start_read("Perform read on shard.", v.get_env()->trace);
         boost::apply_visitor(v, read.read);
     }
 

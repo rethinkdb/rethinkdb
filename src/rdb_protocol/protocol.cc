@@ -1154,30 +1154,40 @@ void write_t::unshard(write_response_t *responses, size_t count,
 }
 
 
-RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
+RDB_IMPL_SERIALIZABLE_3(
         rdb_protocol::single_sindex_status_t, blocks_total, blocks_processed, ready);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(rdb_protocol::single_sindex_status_t);
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_read_response_t, data);
-RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(
-        rget_read_response_t, result, key_range, truncated, last_key);
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(
-        distribution_read_response_t, region, key_counts);
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sindex_list_response_t, sindexes);
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sindex_status_response_t, statuses);
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(changefeed_subscribe_response_t, server_uuids, addrs);
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(changefeed_stamp_response_t, stamps);
-RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
-        read_response_t, response, event_log, n_shards);
+RDB_IMPL_SERIALIZABLE_1(point_read_response_t, data);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(point_read_response_t);
+RDB_IMPL_SERIALIZABLE_4(rget_read_response_t, result, key_range, truncated, last_key);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(rget_read_response_t);
+RDB_IMPL_SERIALIZABLE_1(geo_read_response_t, result);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(geo_read_response_t);
+RDB_IMPL_SERIALIZABLE_2(distribution_read_response_t, region, key_counts);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(distribution_read_response_t);
+RDB_IMPL_SERIALIZABLE_1(sindex_list_response_t, sindexes);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_list_response_t);
+RDB_IMPL_SERIALIZABLE_1(sindex_status_response_t, statuses);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_status_response_t);
+RDB_IMPL_SERIALIZABLE_2(changefeed_subscribe_response_t, server_uuids, addrs);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_subscribe_response_t);
+RDB_IMPL_SERIALIZABLE_1(changefeed_stamp_response_t, stamps);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_response_t);
+RDB_IMPL_SERIALIZABLE_3(read_response_t, response, event_log, n_shards);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(read_response_t);
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_read_t, key);
-RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
-        sindex_rangespec_t, id, region, original_range);
+RDB_IMPL_SERIALIZABLE_1(point_read_t, key);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(point_read_t);
+RDB_IMPL_SERIALIZABLE_3(sindex_rangespec_t, id, region, original_range);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_rangespec_t);
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(key_range_t::bound_t, int8_t,
                                       key_range_t::open, key_range_t::none);
-RDB_IMPL_ME_SERIALIZABLE_4_SINCE_v1_13(
+RDB_IMPL_ME_SERIALIZABLE_4(
         datum_range_t, empty_ok(left_bound), empty_ok(right_bound),
         left_bound_type, right_bound_type);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(datum_range_t);
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
@@ -1186,23 +1196,33 @@ RDB_MAKE_SERIALIZABLE_8(
     region, optargs, table_name, batchspec, transforms, terminal, sindex, sorting);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(rget_read_t);
 
-RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
-        distribution_read_t, max_depth, result_limit, region);
-RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(sindex_list_t);
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(sindex_status_t, sindexes, region);
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(changefeed_subscribe_t, addr, region);
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(changefeed_stamp_t, addr, region);
+RDB_IMPL_SERIALIZABLE_3(distribution_read_t, max_depth, result_limit, region);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(distribution_read_t);
+RDB_IMPL_SERIALIZABLE_0(sindex_list_t);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_list_t);
+RDB_IMPL_SERIALIZABLE_2(sindex_status_t, sindexes, region);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_status_t);
+RDB_IMPL_SERIALIZABLE_2(changefeed_subscribe_t, addr, region);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_subscribe_t);
+RDB_IMPL_SERIALIZABLE_2(changefeed_stamp_t, addr, region);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_t);
 
 RDB_MAKE_SERIALIZABLE_2(read_t, read, profile);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(read_t);
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_write_response_t, result);
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_delete_response_t, result);
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sindex_create_response_t, success);
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sindex_drop_response_t, success);
-RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(sync_response_t);
+RDB_IMPL_SERIALIZABLE_1(point_write_response_t, result);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(point_write_response_t);
+RDB_IMPL_SERIALIZABLE_1(point_delete_response_t, result);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(point_delete_response_t);
+RDB_IMPL_SERIALIZABLE_1(sindex_create_response_t, success);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_create_response_t);
+RDB_IMPL_SERIALIZABLE_1(sindex_drop_response_t, success);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_drop_response_t);
+RDB_IMPL_SERIALIZABLE_0(sync_response_t);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sync_response_t);
 
-RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(write_response_t, response, event_log, n_shards);
+RDB_IMPL_SERIALIZABLE_3(write_response_t, response, event_log, n_shards);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(write_response_t);
 
 RDB_IMPL_SERIALIZABLE_5_SINCE_v1_13(
         batched_replace_t, keys, pkey, f, optargs, return_vals);
@@ -1222,16 +1242,17 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sync_t, region);
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
         write_t, write, durability_requirement, profile);
 
-// Serialization format changed in 1.13.2. We only support the latest version,
-// since this is a cluster-only type.
 RDB_IMPL_SERIALIZABLE_2(backfill_chunk_t::delete_key_t, key, recency);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t::delete_key_t);
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(backfill_chunk_t::delete_range_t, range);
+RDB_IMPL_SERIALIZABLE_1(backfill_chunk_t::delete_range_t, range);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t::delete_range_t);
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(
-        backfill_chunk_t::key_value_pairs_t, backfill_atoms);
+RDB_IMPL_SERIALIZABLE_1(backfill_chunk_t::key_value_pairs_t, backfill_atoms);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t::key_value_pairs_t);
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(backfill_chunk_t::sindexes_t, sindexes);
+RDB_IMPL_SERIALIZABLE_1(backfill_chunk_t::sindexes_t, sindexes);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t::sindexes_t);
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(backfill_chunk_t, val);
+RDB_IMPL_SERIALIZABLE_1(backfill_chunk_t, val);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t);

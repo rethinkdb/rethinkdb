@@ -16,6 +16,7 @@
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/wait_any.hpp"
+#include "containers/archive/versioned.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "store_view.hpp"
 

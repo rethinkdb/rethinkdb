@@ -6,29 +6,18 @@
 #include <vector>
 
 #include "btree/parallel_traversal.hpp"
+#include "btree/types.hpp"
 #include "containers/counted.hpp"
+#include "geo/s2/s2cellid.h"
 
 namespace ql {
 class datum_t;
 }
-class S2CellId;
 
 
 std::vector<std::string> compute_index_grid_keys(
         const counted_t<const ql::datum_t> &key,
         int goal_cells);
-
-// TODO! The next step is:
-//  Somewhere in rdb_protocol, add a function that actually performs the
-//  traversal using this helper.
-//  When it gets a candidate, it should first extract the primary key
-//  and see if it had previously handled that document. If not, it should load
-//  the data and perform an intersection test on the actual geometry.
-//  If the test is positive, it should store the primary key in the duplicates set.
-//  It should also check the current size of that set and potentially abort the
-//  traversal (ignore that at first).
-// It should then emit the object with the data (since it has already loaded it).
-// Something around it should then apply transformations etc.
 
 // TODO! Support compound indexes. Somehow.
 // TODO! Implement aborting the traversal early
@@ -40,7 +29,8 @@ public:
     Note that this might be called multiple times for the same value. */
     virtual void on_candidate(
             const btree_key_t *key,
-            const void *value)
+            const void *value,
+            buf_parent_t parent)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
     /* btree_traversal_helper_t interface */
