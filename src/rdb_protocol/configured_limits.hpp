@@ -15,7 +15,7 @@ public:
 
     size_t array_size_limit() const { return _array_size_limit; }
 private:
-    const size_t _array_size_limit;
+    size_t _array_size_limit;
 };
 
 configured_limits_t from_optargs(const std::map<std::string, wire_func_t> &optargs);
