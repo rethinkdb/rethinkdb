@@ -100,7 +100,6 @@
 
 #include <string>
 
-// TODO! We now require OpenSSL
 #include <openssl/bn.h>
 
 #include "geo/s2/base/logging.h"

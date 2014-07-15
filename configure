@@ -25,7 +25,7 @@ init () {
     must_fetch_list='bluebird'
     please_fetch_list="handlebars gtest re2 $must_fetch_list"
 
-    required_libs="protobuf v8 re2 z curl"
+    required_libs="protobuf v8 re2 z curl crypto"
     optional_libs="gtest termcap boost_system"
     other_libs="unwind tcmalloc_minimal"
     all_libs="$required_libs $optional_libs $other_libs"
