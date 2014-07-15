@@ -20,8 +20,10 @@ class datum_t;
 class func_t;
 class op_t;
 }
-class profile::disabler_t;
-class profile::sampler_t;
+namespace profile {
+class disabler_t;
+class sampler_t;
+}
 
 class geo_io_data_t {
 public:
