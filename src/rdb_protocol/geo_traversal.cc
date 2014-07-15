@@ -85,6 +85,7 @@ void geo_intersecting_cb_t::on_candidate(
         // TODO! Check the size of this.
         already_processed.insert(primary_key);
 
+        // TODO! Check the size of this.
         result_acc.add(val);
     } catch (const ql::exc_t &e) {
         io.response->error = e;
