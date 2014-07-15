@@ -44,17 +44,19 @@ void geo_intersecting_cb_t::on_candidate(
         return;
     }
 
-    // Check if this is a duplicate of a previously emitted value.
-    // Note that we sacrifice some performance by only storing primary keys
-    // of objects that we have actually *emitted* rather than of each object
-    // we have post-filtered. We may load the same document multiple times, but
-    // reject it each time. The advantage of this is using memory linear to the
-    // size of the actual result set, not in the size of the pre-filtered result
-    // set.
-    // TODO (daniel): That might not be worth it. Consider doing the opposite.
+    // Check if this is a duplicate of a previously processed value.
+    // Note that this uses memory linear in the number of candidates.
+    // TODO (daniel): If I can get the efficiency of the rest of this logic up,
+    //  consider storing keys into already_processed only when a document
+    //  is actually added to the result set.
     if (already_processed.count(primary_key) > 0) {
         return;
     }
+    // TODO! Check and limit the size of this
+    // TODO! Another option would be to store keys like this up to a certain
+    //  size, and after that only store actually emitted keys.
+    //  That should give the best of both approaches.
+    already_processed.insert(primary_key);
 
     lazy_json_t row(static_cast<const rdb_value_t *>(value), parent);
     counted_t<const ql::datum_t> val;
@@ -81,11 +83,7 @@ void geo_intersecting_cb_t::on_candidate(
             return;
         }
 
-        // Make sure we don't emit this value again.
-        // TODO! Check the size of this.
-        already_processed.insert(primary_key);
-
-        // TODO! Check the size of this.
+        // TODO! Check and limit the size of this.
         result_acc.add(val);
     } catch (const ql::exc_t &e) {
         io.response->error = e;
