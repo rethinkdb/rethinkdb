@@ -10,12 +10,12 @@ class wire_func_t;
 
 class configured_limits_t {
 public:
-    configured_limits_t() : _array_size_limit(100000) {}
-    explicit configured_limits_t(const size_t limit) : _array_size_limit(limit) {}
+    configured_limits_t() : array_size_limit_(100000) {}
+    explicit configured_limits_t(const size_t limit) : array_size_limit_(limit) {}
 
-    size_t array_size_limit() const { return _array_size_limit; }
+    size_t array_size_limit() const { return array_size_limit_; }
 private:
-    size_t _array_size_limit;
+    size_t array_size_limit_;
 };
 
 configured_limits_t from_optargs(const std::map<std::string, wire_func_t> &optargs);
