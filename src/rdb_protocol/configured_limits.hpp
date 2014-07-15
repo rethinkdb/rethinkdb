@@ -3,6 +3,7 @@
 
 #include <map>
 #include <string>
+#include "rpc/serialize_macros.hpp"
 
 namespace ql {
 
@@ -14,9 +15,15 @@ public:
     explicit configured_limits_t(const size_t limit) : array_size_limit_(limit) {}
 
     size_t array_size_limit() const { return array_size_limit_; }
+
+    static const configured_limits_t unlimited;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
 private:
     size_t array_size_limit_;
 };
+
+RDB_SERIALIZE_OUTSIDE(configured_limits_t);
 
 configured_limits_t from_optargs(const std::map<std::string, wire_func_t> &optargs);
 

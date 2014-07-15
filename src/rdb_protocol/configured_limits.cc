@@ -1,3 +1,4 @@
+#include <limits>
 #include "rdb_protocol/configured_limits.hpp"
 #include "rdb_protocol/wire_func.hpp"
 #include "rdb_protocol/func.hpp"
@@ -22,5 +23,9 @@ from_optargs(const std::map<std::string, wire_func_t> &arguments)
         return configured_limits_t();
     }
 }
+
+RDB_IMPL_ME_SERIALIZABLE_1(configured_limits_t, array_size_limit_);
+
+const configured_limits_t configured_limits_t::unlimited(std::numeric_limits<size_t>::max());
 
 } // namespace ql
