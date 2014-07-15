@@ -57,6 +57,12 @@ S2CellId key_to_s2cellid(const std::string &sid) {
     return S2CellId::FromToken(sid);
 }
 
+S2CellId btree_key_to_s2cellid(const btree_key_t *key) {
+    rassert(key != NULL);
+    return key_to_s2cellid(datum_t::extract_secondary(
+        std::string(reinterpret_cast<const char *>(key->contents), key->size)));
+}
+
 std::vector<std::string> compute_index_grid_keys(
         const counted_t<const ql::datum_t> &key, int goal_cells) {
     rassert(key.has());
@@ -115,7 +121,8 @@ void geo_index_traversal_helper_t::process_a_leaf(buf_lock_t *leaf_node_buf,
             break;
         }
 
-        if (any_query_cell_intersects(k, k)) {
+        const S2CellId key_cell = btree_key_to_s2cellid(k);
+        if (any_query_cell_intersects(key_cell.range_min(), key_cell.range_max())) {
             on_candidate(k, (*it).second, buf_parent_t(leaf_node_buf));
         }
     }
@@ -147,19 +154,20 @@ bool geo_index_traversal_helper_t::any_query_cell_intersects(
     S2CellId range_min =
         left_excl == NULL
         ? S2CellId::None()
-        : key_to_s2cellid(datum_t::extract_secondary(
-            std::string(reinterpret_cast<const char *>(left_excl->contents),
-                left_excl->size))).range_min();
+        : btree_key_to_s2cellid(left_excl).range_min();
     S2CellId range_max =
         right_incl == NULL
         ? S2CellId::Sentinel()
-        : key_to_s2cellid(datum_t::extract_secondary(
-            std::string(reinterpret_cast<const char *>(right_incl->contents),
-                right_incl->size))).range_max();
+        : btree_key_to_s2cellid(right_incl).range_max();
 
+    return any_query_cell_intersects(range_min, range_max);
+}
+
+bool geo_index_traversal_helper_t::any_query_cell_intersects(
+        const S2CellId left_min, const S2CellId right_max) {
     // Check if any of the query cells intersects with the given range
     for (size_t j = 0; j < query_cells_.size(); ++j) {
-        if (cell_intersects_with_range(query_cells_[j], range_min, range_max)) {
+        if (cell_intersects_with_range(query_cells_[j], left_min, right_max)) {
             return true;
         }
     }
@@ -169,6 +177,5 @@ bool geo_index_traversal_helper_t::any_query_cell_intersects(
 bool geo_index_traversal_helper_t::cell_intersects_with_range(
         const S2CellId c,
         const S2CellId left_min, const S2CellId right_max) {
-
     return left_min <= c.range_max() && right_max >= c.range_min();
 }

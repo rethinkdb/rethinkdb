@@ -54,6 +54,8 @@ private:
             S2CellId c, const S2CellId left_min, const S2CellId right_max);
     bool any_query_cell_intersects(const btree_key_t *left_excl,
                                    const btree_key_t *right_incl);
+    bool any_query_cell_intersects(const S2CellId left_min,
+                                   const S2CellId right_max);
 
     std::vector<S2CellId> query_cells_;
 };
