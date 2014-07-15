@@ -26,6 +26,90 @@
 // Number of messages after which the message handling loop yields
 #define MESSAGE_HANDLER_MAX_BATCH_SIZE           8
 
+// The cluster communication protocol version.
+static_assert(cluster_version_t::CLUSTER == cluster_version_t::v1_13_2_is_latest,
+              "We need to update CLUSTER_VERSION_STRING when we add a new cluster "
+              "version.");
+#define CLUSTER_VERSION_STRING "1.13.2"
+
+const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
+const std::string connectivity_cluster_t::cluster_version_string(CLUSTER_VERSION_STRING);
+
+// Returns true and sets *out to the version number, if the version number in
+// version_string is a recognized version and the same or earlier than our version.
+static bool version_number_recognized_compatible(const std::string &version_string,
+                                                 cluster_version_t *out) {
+    // Right now, we only support one cluster version -- ours.
+    if (version_string == CLUSTER_VERSION_STRING) {
+        *out = cluster_version_t::CLUSTER;
+        return true;
+    }
+    return false;
+}
+
+// Returns false if the string is not a valid version string (matching /\d+(\.\d+)*/)
+static bool split_version_string(const std::string &version_string, std::vector<int64_t> *out) {
+    const std::vector<std::string> parts = split_string(version_string, '.');
+    std::vector<int64_t> ret(parts.size());
+    for (size_t i = 0; i < parts.size(); ++i) {
+        if (!strtoi64_strict(parts[i], 10, &ret[i])) {
+            return false;
+        }
+    }
+    *out = std::move(ret);
+    return true;
+}
+
+// Returns true if the version string is recognized as a _greater_ version string
+// (than our software's connectivity_cluster_t::cluster_version_string).  Returns
+// false for unparseable version strings (see split_version_string) or lesser or
+// equal version strings.
+static bool version_number_unrecognized_greater(const std::string &version_string) {
+    std::vector<int64_t> parts;
+    if (!split_version_string(version_string, &parts)) {
+        return false;
+    }
+
+    std::vector<int64_t> our_parts;
+    const bool success = split_version_string(
+            connectivity_cluster_t::cluster_version_string,
+            &our_parts);
+    guarantee(success);
+    return std::lexicographical_compare(our_parts.begin(), our_parts.end(),
+                                        parts.begin(), parts.end());
+}
+
+// Given a remote version string, we figure out whether we can try to talk to it, and
+// if we can, what version we shall talk on.
+static bool resolve_protocol_version(const std::string &remote_version_string,
+                                     cluster_version_t *out) {
+    if (version_number_recognized_compatible(remote_version_string, out)) {
+        return true;
+    }
+    if (version_number_unrecognized_greater(remote_version_string)) {
+        static_assert(cluster_version_t::CLUSTER == cluster_version_t::LATEST_OVERALL,
+                      "If you've made CLUSTER != LATEST_OVERALL, presumably you know "
+                      "how to change this code.");
+        *out = cluster_version_t::CLUSTER;
+        return true;
+    }
+    return false;
+}
+
+#if defined (__x86_64__)
+const std::string connectivity_cluster_t::cluster_arch_bitsize("64bit");
+#elif defined (__i386__) || defined(__arm__)
+const std::string connectivity_cluster_t::cluster_arch_bitsize("32bit");
+#else
+#error "Could not determine architecture"
+#endif
+
+#if defined (NDEBUG)
+const std::string connectivity_cluster_t::cluster_build_mode("release");
+#else
+const std::string connectivity_cluster_t::cluster_build_mode("debug");
+#endif
+
 void connectivity_cluster_t::connection_t::kill_connection() {
     /* `heartbeat_manager_t` assumes this doesn't block as long as it's called on the home thread. */
     guarantee(!is_loopback(), "Attempted to kill connection to myself.");
@@ -115,9 +199,9 @@ static peer_address_t our_peer_address(std::set<ip_address_t> local_addresses,
 }
 
 connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
-                                const std::set<ip_address_t> &local_addresses,
-                                const peer_address_t &canonical_addresses,
-                                int port, int client_port)
+                                     const std::set<ip_address_t> &local_addresses,
+                                     const peer_address_t &canonical_addresses,
+                                     int port, int client_port)
         THROWS_ONLY(address_in_use_exc_t, tcp_socket_exc_t) :
     parent(p),
 
@@ -195,11 +279,11 @@ void connectivity_cluster_t::run_t::on_new_connection(const scoped_ptr_t<tcp_con
 }
 
 void connectivity_cluster_t::run_t::connect_to_peer(const peer_address_t *address,
-                                               int index,
-                                               boost::optional<peer_id_t> expected_id,
-                                               auto_drainer_t::lock_t drainer_lock,
-                                               bool *successful_join,
-                                               co_semaphore_t *rate_control) THROWS_NOTHING {
+                                                    int index,
+                                                    boost::optional<peer_id_t> expected_id,
+                                                    auto_drainer_t::lock_t drainer_lock,
+                                                    bool *successful_join,
+                                                    co_semaphore_t *rate_control) THROWS_NOTHING {
     // Wait to start the connection attempt, max time is one second per address
     signal_timer_t timeout;
     timeout.start(index * 1000);
@@ -319,11 +403,11 @@ public:
     {
         connection->conn->set_keepalive_callback(this);
     }
-    
+
     ~heartbeat_manager_t() {
         connection->conn->set_keepalive_callback(NULL);
     }
-    
+
     /* These are called by the `keepalive_tcp_conn_stream_t`. */
     void keepalive_read() {
         read_done = true;
@@ -335,12 +419,12 @@ public:
         ASSERT_FINITE_CORO_WAITING;
         if (intervals_since_last_read_done > HEARTBEAT_TIMEOUT_INTERVALS) {
             logERR("Heartbeat timeout, killing connection to peer %s", peer_str.c_str());
-            
+
             /* This won't block if we call it from the same thread. This is an implementation detail that outside code
             shouldn't rely on, but since `heartbeat_manager_t` is part of `connectivity_cluster_t` it's OK. */
             connection->kill_connection();
             return;
-        } 
+        }
         if (write_done) {
             write_done = false;
         } else {
@@ -373,7 +457,7 @@ public:
     bool read_done, write_done;
     int intervals_since_last_read_done;
     std::string peer_str;
-    
+
     /* Order is important here. When destroying the `heartbeat_manager_t`, we must first destroy the timer so that new
     `on_ring()` calls don't get spawned; then destroy the `auto_drainer_t` to drain any ongoing coroutines; and only
     then is it safe to destroy the other fields. */
@@ -508,90 +592,6 @@ bool connectivity_cluster_t::run_t::get_routing_table_to_send_and_add_peer(
 
     return true;
 }
-
-// The cluster communication protocol version.
-static_assert(cluster_version_t::CLUSTER == cluster_version_t::v1_13_2_is_latest,
-              "We need to update CLUSTER_VERSION_STRING when we add a new cluster "
-              "version.");
-#define CLUSTER_VERSION_STRING "1.13.2"
-
-const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
-const std::string connectivity_cluster_t::cluster_version_string(CLUSTER_VERSION_STRING);
-
-// Returns true and sets *out to the version number, if the version number in
-// version_string is a recognized version and the same or earlier than our version.
-static bool version_number_recognized_compatible(const std::string &version_string,
-                                                cluster_version_t *out) {
-    // Right now, we only support one cluster version -- ours.
-    if (version_string == CLUSTER_VERSION_STRING) {
-        *out = cluster_version_t::CLUSTER;
-        return true;
-    }
-    return false;
-}
-
-// Returns false if the string is not a valid version string (matching /\d+(\.\d+)*/)
-static bool split_version_string(const std::string &version_string, std::vector<int64_t> *out) {
-    const std::vector<std::string> parts = split_string(version_string, '.');
-    std::vector<int64_t> ret(parts.size());
-    for (size_t i = 0; i < parts.size(); ++i) {
-        if (!strtoi64_strict(parts[i], 10, &ret[i])) {
-            return false;
-        }
-    }
-    *out = std::move(ret);
-    return true;
-}
-
-// Returns true if the version string is recognized as a _greater_ version string
-// (than our software's connectivity_cluster_t::cluster_version_string).  Returns
-// false for unparseable version strings (see split_version_string) or lesser or
-// equal version strings.
-static bool version_number_unrecognized_greater(const std::string &version_string) {
-    std::vector<int64_t> parts;
-    if (!split_version_string(version_string, &parts)) {
-        return false;
-    }
-
-    std::vector<int64_t> our_parts;
-    const bool success = split_version_string(
-            connectivity_cluster_t::cluster_version_string,
-            &our_parts);
-    guarantee(success);
-    return std::lexicographical_compare(our_parts.begin(), our_parts.end(),
-                                        parts.begin(), parts.end());
-}
-
-// Given a remote version string, we figure out whether we can try to talk to it, and
-// if we can, what version we shall talk on.
-static bool resolve_protocol_version(const std::string &remote_version_string,
-                                     cluster_version_t *out) {
-    if (version_number_recognized_compatible(remote_version_string, out)) {
-        return true;
-    }
-    if (version_number_unrecognized_greater(remote_version_string)) {
-        static_assert(cluster_version_t::CLUSTER == cluster_version_t::LATEST_OVERALL,
-                      "If you've made CLUSTER != LATEST_OVERALL, presumably you know "
-                      "how to change this code.");
-        *out = cluster_version_t::CLUSTER;
-        return true;
-    }
-    return false;
-}
-
-#if defined (__x86_64__)
-const std::string connectivity_cluster_t::cluster_arch_bitsize("64bit");
-#elif defined (__i386__) || defined(__arm__)
-const std::string connectivity_cluster_t::cluster_arch_bitsize("32bit");
-#else
-#error "Could not determine architecture"
-#endif
-
-#if defined (NDEBUG)
-const std::string connectivity_cluster_t::cluster_build_mode("release");
-#else
-const std::string connectivity_cluster_t::cluster_build_mode("debug");
-#endif
 
 // We log error conditions as follows:
 // - silent: network error; conflict between parallel connections
@@ -894,7 +894,7 @@ void connectivity_cluster_t::run_t::handle(
         constructor registers it in the `connectivity_cluster_t`'s connection
         map. */
         connection_t conn_structure(this, other_id, conn, other_peer_addr);
-        
+
         /* `heartbeat_manager` will periodically send a heartbeat message to
         other machines, and it will also close the connection if we don't
         receive anything for a while. */
@@ -912,7 +912,7 @@ void connectivity_cluster_t::run_t::handle(
                 message_tag_t tag;
                 archive_result_t res = deserialize_universal(conn, &tag);
                 if (bad(res)) { throw fake_archive_exc_t(); }
-                
+
                 /* Ignore messages tagged with the heartbeat tag. The `keepalive_tcp_conn_stream_t` will have already
                 notified the `heartbeat_manager_t` as soon as the heartbeat arrived. */
                 if (tag != heartbeat_tag) {
