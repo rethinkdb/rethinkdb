@@ -521,7 +521,7 @@ void reactor_driver_t::on_change() {
 
             blueprint_t bp = translate_blueprint(*pbp, machine_id_translation_table_value);
 
-            if (std_contains(bp.peers_roles, mbox_manager->get_cluster_manager()->get_me())) {
+            if (std_contains(bp.peers_roles, mbox_manager->get_connectivity_cluster()->get_me())) {
                 /* Either construct a new reactor (if this is a namespace we
                  * haven't seen before). Or send the new blueprint to the
                  * existing reactor. */

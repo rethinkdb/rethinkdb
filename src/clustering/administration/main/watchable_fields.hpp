@@ -6,7 +6,7 @@
 
 #include "concurrency/watchable.hpp"
 #include "containers/incremental_lenses.hpp"
-#include "rpc/connectivity/cluster.hpp"
+#include "rpc/connectivity/peer_id.hpp"
 
 template<class inner_t, class outer_t>
 class field_copier_t {

@@ -13,7 +13,7 @@
 #include "containers/scoped.hpp"
 #include "protocol_api.hpp"
 #include "repli_timestamp.hpp"
-#include "rpc/connectivity/cluster.hpp"
+#include "rpc/connectivity/peer_id.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/serialize_macros.hpp"
 

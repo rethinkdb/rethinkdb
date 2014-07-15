@@ -18,8 +18,8 @@ a warning message. */
 class initial_joiner_t {
 public:
     initial_joiner_t(
-            cluster_manager_t *cluster,
-            cluster_manager_t::run_t *cluster_run,
+            connectivity_cluster_t *cluster,
+            connectivity_cluster_t::run_t *cluster_run,
             const peer_address_set_t &peers,
             int timeout = -1);
 
@@ -32,15 +32,15 @@ public:
     }
 
 private:
-    void main_coro(cluster_manager_t::run_t *cluster_run, auto_drainer_t::lock_t keepalive);
+    void main_coro(connectivity_cluster_t::run_t *cluster_run, auto_drainer_t::lock_t keepalive);
     void on_connections_change();
 
-    cluster_manager_t *cluster;
+    connectivity_cluster_t *cluster;
     peer_address_set_t peers_not_heard_from;
     cond_t done_signal;
     signal_timer_t grace_period_timer;
     auto_drainer_t drainer;
-    typename watchable_t<cluster_manager_t::connection_map_t>::subscription_t subs;
+    typename watchable_t<connectivity_cluster_t::connection_map_t>::subscription_t subs;
     bool successful_connection;
 
     DISABLE_COPYING(initial_joiner_t);

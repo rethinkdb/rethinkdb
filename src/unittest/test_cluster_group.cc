@@ -120,20 +120,20 @@ private:
  * have a reactor due to the annoyance of needing the peer ids to create a
  * correct blueprint. */
 reactor_test_cluster_t::reactor_test_cluster_t(int port) :
-    cluster_manager(),
-    mailbox_manager(&cluster_manager, 'M'),
+    connectivity_cluster(),
+    mailbox_manager(&connectivity_cluster, 'M'),
     our_directory_variable(test_cluster_directory_t()),
-    directory_read_manager(&cluster_manager, 'D'),
-    directory_write_manager(&cluster_manager, 'D', our_directory_variable.get_watchable()),
-    cluster_manager_run(&cluster_manager,
-                        get_unittest_addresses(),
-                        peer_address_t(),
-                        port, 0) { }
+    directory_read_manager(&connectivity_cluster, 'D'),
+    directory_write_manager(&connectivity_cluster, 'D', our_directory_variable.get_watchable()),
+    connectivity_cluster_run(&connectivity_cluster,
+                             get_unittest_addresses(),
+                             peer_address_t(),
+                             port, 0) { }
 
 reactor_test_cluster_t::~reactor_test_cluster_t() { }
 
 peer_id_t reactor_test_cluster_t::get_me() {
-    return cluster_manager.get_me();
+    return connectivity_cluster.get_me();
 }
 
 test_reactor_t::test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t *r, const blueprint_t &initial_blueprint, multistore_ptr_t *svs) :
@@ -185,7 +185,7 @@ test_cluster_group_t::test_cluster_group_t(int n_machines)
 
         test_clusters.push_back(make_scoped<reactor_test_cluster_t>(ANY_PORT));
         if (i > 0) {
-            test_clusters[0]->cluster_manager_run.join(get_cluster_local_address(&test_clusters[i]->cluster_manager));
+            test_clusters[0]->connectivity_cluster_run.join(get_cluster_local_address(&test_clusters[i]->connectivity_cluster));
         }
     }
 }

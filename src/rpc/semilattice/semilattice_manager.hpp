@@ -33,10 +33,10 @@ Currently it's not thread-safe at all; all accesses to the metadata must be on
 the home thread of the `semilattice_manager_t`. */
 
 template<class metadata_t>
-class semilattice_manager_t : public home_thread_mixin_t, public cluster_manager_t::message_handler_t {
+class semilattice_manager_t : public home_thread_mixin_t, public connectivity_cluster_t::message_handler_t {
 public:
-    semilattice_manager_t(cluster_manager_t *cluster_manager,
-                          cluster_manager_t::message_tag_t message_tag,
+    semilattice_manager_t(connectivity_cluster_t *connectivity_cluster,
+                          connectivity_cluster_t::message_tag_t message_tag,
                           const metadata_t &initial_metadata);
     ~semilattice_manager_t() THROWS_NOTHING;
 
@@ -64,8 +64,8 @@ private:
     class sync_to_query_writer_t;
     class sync_to_reply_writer_t;
 
-    /* These are called by the `cluster_manager_t`. They shouldn't block. */
-    void on_message(cluster_manager_t::connection_t *, auto_drainer_t::lock_t, cluster_version_t, read_stream_t *);
+    /* These are called by the `connectivity_cluster_t`. They shouldn't block. */
+    void on_message(connectivity_cluster_t::connection_t *, auto_drainer_t::lock_t, cluster_version_t, read_stream_t *);
     void on_connections_change();
 
     /* These are spawned in new coroutines. */
@@ -86,7 +86,7 @@ private:
     publisher_controller_t<std::function<void()> > metadata_publisher;
     rwi_lock_assertion_t metadata_mutex;
 
-    std::map<cluster_manager_t::connection_t *, auto_drainer_t::lock_t> last_connections;
+    std::map<connectivity_cluster_t::connection_t *, auto_drainer_t::lock_t> last_connections;
 
     std::map<peer_id_t, metadata_version_t> last_versions_seen;
     std::multimap<std::pair<peer_id_t, metadata_version_t>, cond_t *> version_waiters;
@@ -103,13 +103,13 @@ private:
 
     /* Destructor order is important here. First we destroy the `connection_change_subscription`, so that we don't spawn
     any more coroutines. (We rely on the code that constructed us to make sure to delete the
-    `cluster_manager_t::run_t` before deleting us, so `on_message()` won't get called.) Then we destroy `drainers`,
+    `connectivity_cluster_t::run_t` before deleting us, so `on_message()` won't get called.) Then we destroy `drainers`,
     which blocks until all of the coroutines are done. Only once all the coroutines are done is it safe to desstroy the
     member variables. */
 
     one_per_thread_t<auto_drainer_t> drainers;
 
-    typename watchable_t<cluster_manager_t::connection_map_t>::subscription_t connection_change_subscription;
+    typename watchable_t<connectivity_cluster_t::connection_map_t>::subscription_t connection_change_subscription;
 };
 
 #endif /* RPC_SEMILATTICE_SEMILATTICE_MANAGER_HPP_ */

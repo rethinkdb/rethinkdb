@@ -70,13 +70,13 @@ void run_with_namespace_interface(
      * stomach for such things. */
     extproc_pool_t extproc_pool(2);
 
-    cluster_manager_t c;
+    connectivity_cluster_t c;
     semilattice_manager_t<cluster_semilattice_metadata_t> slm(&c, 'S', cluster_semilattice_metadata_t());
-    cluster_manager_t::run_t cr(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
 
-    cluster_manager_t c2;
+    connectivity_cluster_t c2;
     directory_read_manager_t<cluster_directory_metadata_t> read_manager(&c2, 'D');
-    cluster_manager_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
 
     boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > dummy_auth;
     rdb_context_t ctx(&extproc_pool,

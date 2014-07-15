@@ -373,7 +373,7 @@ private:
 
     local_issue_tracker_t local_issue_tracker;
     thread_pool_log_writer_t log_writer;
-    cluster_manager_t cluster_manager;
+    connectivity_cluster_t connectivity_cluster;
     mailbox_manager_t mailbox_manager;
     stat_manager_t stat_manager;
     log_server_t log_server;
@@ -391,7 +391,7 @@ private:
     // TODO: Do we actually need directory_write_manager?
     const scoped_ptr_t<directory_write_manager_t<cluster_directory_metadata_t> > directory_write_manager;
 
-    cluster_manager_t::run_t cluster_manager_run;
+    connectivity_cluster_t::run_t connectivity_cluster_run;
 
     // Issue tracking etc.
     admin_tracker_t admin_tracker;

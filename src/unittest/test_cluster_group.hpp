@@ -96,12 +96,12 @@ public:
 
     peer_id_t get_me();
 
-    cluster_manager_t cluster_manager;
+    connectivity_cluster_t connectivity_cluster;
     mailbox_manager_t mailbox_manager;
     watchable_variable_t<test_cluster_directory_t> our_directory_variable;
     directory_read_manager_t<test_cluster_directory_t> directory_read_manager;
     directory_write_manager_t<test_cluster_directory_t> directory_write_manager;
-    cluster_manager_t::run_t cluster_manager_run;
+    connectivity_cluster_t::run_t connectivity_cluster_run;
 
     in_memory_branch_history_manager_t branch_history_manager;
 };

@@ -43,7 +43,7 @@ std::string admin_cluster_link_t::peer_id_to_machine_name(const std::string& pee
     if (is_uuid(peer_id)) {
         peer_id_t peer(str_to_uuid(peer_id));
 
-        if (peer == cluster_manager.get_me()) {
+        if (peer == connectivity_cluster.get_me()) {
             result.assign("admin_cli");
         } else {
             std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get().get_inner();
@@ -249,18 +249,18 @@ admin_cluster_link_t::admin_cluster_link_t(const peer_address_set_t &joins,
                                            int client_port, signal_t *interruptor) :
     local_issue_tracker(),
     log_writer(&local_issue_tracker), // TODO: come up with something else for this file
-    cluster_manager(),
-    mailbox_manager(&cluster_manager, 'M'),
+    connectivity_cluster(),
+    mailbox_manager(&connectivity_cluster, 'M'),
     stat_manager(&mailbox_manager),
     log_server(&mailbox_manager, &log_writer),
-    semilattice_manager_cluster(new semilattice_manager_t<cluster_semilattice_metadata_t>(&cluster_manager, 'S', cluster_semilattice_metadata_t())),
+    semilattice_manager_cluster(new semilattice_manager_t<cluster_semilattice_metadata_t>(&connectivity_cluster, 'S', cluster_semilattice_metadata_t())),
     cluster_metadata_view(semilattice_manager_cluster->get_root_view()),
     metadata_change_handler(&mailbox_manager, cluster_metadata_view),
-    auth_manager_cluster(new semilattice_manager_t<auth_semilattice_metadata_t>(&cluster_manager, 'A', auth_semilattice_metadata_t())),
+    auth_manager_cluster(new semilattice_manager_t<auth_semilattice_metadata_t>(&connectivity_cluster, 'A', auth_semilattice_metadata_t())),
     auth_metadata_view(auth_manager_cluster->get_root_view()),
     auth_change_handler(&mailbox_manager, auth_metadata_view),
-    our_directory_metadata(cluster_directory_metadata_t(machine_id_t(cluster_manager.get_me().get_uuid()),
-                                                        cluster_manager.get_me(),
+    our_directory_metadata(cluster_directory_metadata_t(machine_id_t(connectivity_cluster.get_me().get_uuid()),
+                                                        connectivity_cluster.get_me(),
                                                         0, // No cache = no cache size
                                                         get_ips(),
                                                         stat_manager.get_address(),
@@ -268,14 +268,14 @@ admin_cluster_link_t::admin_cluster_link_t(const peer_address_set_t &joins,
                                                         auth_change_handler.get_request_mailbox_address(),
                                                         log_server.get_business_card(),
                                                         ADMIN_PEER)),
-    directory_read_manager(new directory_read_manager_t<cluster_directory_metadata_t>(&cluster_manager, 'M')),
-    directory_write_manager(new directory_write_manager_t<cluster_directory_metadata_t>(&cluster_manager, 'M', our_directory_metadata.get_watchable())),
-    cluster_manager_run(&cluster_manager,
-                        get_local_ips(std::set<ip_address_t>(), false),
-                        canonical_addresses,
-                        0, client_port),
+    directory_read_manager(new directory_read_manager_t<cluster_directory_metadata_t>(&connectivity_cluster, 'M')),
+    directory_write_manager(new directory_write_manager_t<cluster_directory_metadata_t>(&connectivity_cluster, 'M', our_directory_metadata.get_watchable())),
+    connectivity_cluster_run(&connectivity_cluster,
+                             get_local_ips(std::set<ip_address_t>(), false),
+                             canonical_addresses,
+                             0, client_port),
     admin_tracker(cluster_metadata_view, auth_metadata_view, directory_read_manager->get_root_view()),
-    initial_joiner(&cluster_manager, &cluster_manager_run, joins, 5000)
+    initial_joiner(&connectivity_cluster, &connectivity_cluster_run, joins, 5000)
 {
     wait_interruptible(initial_joiner.get_ready_signal(), interruptor);
     if (!initial_joiner.get_success()) {

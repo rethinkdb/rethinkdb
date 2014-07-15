@@ -19,10 +19,10 @@
 #define MAX_OUTSTANDING_SEMILATTICE_WRITES 4
 
 template<class metadata_t>
-semilattice_manager_t<metadata_t>::semilattice_manager_t(cluster_manager_t *cluster_manager,
-                                                         cluster_manager_t::message_tag_t message_tag,
+semilattice_manager_t<metadata_t>::semilattice_manager_t(connectivity_cluster_t *connectivity_cluster,
+                                                         connectivity_cluster_t::message_tag_t message_tag,
                                                          const metadata_t &initial_metadata) :
-    cluster_manager_t::message_handler_t(cluster_manager, message_tag),
+    connectivity_cluster_t::message_handler_t(connectivity_cluster, message_tag),
     root_view(boost::make_shared<root_view_t>(this)),
     metadata_version(0),
     metadata(initial_metadata),
@@ -31,9 +31,9 @@ semilattice_manager_t<metadata_t>::semilattice_manager_t(cluster_manager_t *clus
     connection_change_subscription([this] () { on_connections_change(); })
 {
     ASSERT_FINITE_CORO_WAITING;
-    typename watchable_t<cluster_manager_t::connection_map_t>::freeze_t freeze(get_cluster_manager()->get_connections());
-    guarantee(get_cluster_manager()->get_connections()->get().empty());
-    connection_change_subscription.reset(get_cluster_manager()->get_connections(), &freeze);
+    typename watchable_t<connectivity_cluster_t::connection_map_t>::freeze_t freeze(get_connectivity_cluster()->get_connections());
+    guarantee(get_connectivity_cluster()->get_connections()->get().empty());
+    connection_change_subscription.reset(get_connectivity_cluster()->get_connections(), &freeze);
 }
 
 template<class metadata_t>
@@ -82,14 +82,14 @@ void semilattice_manager_t<metadata_t>::root_view_t::join(const metadata_t &adde
     metadata_t added_metadata_copy = added_metadata;
 
     for (auto pair : parent->last_connections) {
-        cluster_manager_t::connection_t *connection = pair.first;
+        connectivity_cluster_t::connection_t *connection = pair.first;
         auto_drainer_t::lock_t connection_keepalive = pair.second;
         coro_t::spawn_sometime([=] () {
                 parent_keepalive.assert_is_holding(parent->drainers.get());   /* force the lambda to capture `parent_keepalive` */
                 metadata_writer_t writer(added_metadata_copy, new_version);
                 new_semaphore_acq_t acq(&parent->semaphore, 1);
                 acq.acquisition_signal()->wait();
-                parent->get_cluster_manager()->send_message(connection, connection_keepalive, parent->get_message_tag(), &writer);
+                parent->get_connectivity_cluster()->send_message(connection, connection_keepalive, parent->get_message_tag(), &writer);
             });
     }
 }
@@ -102,7 +102,7 @@ static const char message_code_sync_to_reply = 't';
 
 template <class metadata_t>
 class semilattice_manager_t<metadata_t>::metadata_writer_t :
-        public cluster_manager_t::send_message_write_callback_t
+        public connectivity_cluster_t::send_message_write_callback_t
 {
 public:
     metadata_writer_t(const metadata_t &_md, metadata_version_t _mdv) :
@@ -125,7 +125,7 @@ private:
 
 template <class metadata_t>
 class semilattice_manager_t<metadata_t>::sync_from_query_writer_t :
-        public cluster_manager_t::send_message_write_callback_t
+        public connectivity_cluster_t::send_message_write_callback_t
 {
 public:
     explicit sync_from_query_writer_t(sync_from_query_id_t _query_id) :
@@ -146,7 +146,7 @@ private:
 
 template <class metadata_t>
 class semilattice_manager_t<metadata_t>::sync_from_reply_writer_t :
-        public cluster_manager_t::send_message_write_callback_t
+        public connectivity_cluster_t::send_message_write_callback_t
 {
 public:
     sync_from_reply_writer_t(sync_from_query_id_t _query_id, metadata_version_t _version) :
@@ -169,7 +169,7 @@ private:
 
 template <class metadata_t>
 class semilattice_manager_t<metadata_t>::sync_to_query_writer_t :
-        public cluster_manager_t::send_message_write_callback_t
+        public connectivity_cluster_t::send_message_write_callback_t
 {
 public:
     sync_to_query_writer_t(sync_to_query_id_t _query_id, metadata_version_t _version) :
@@ -192,7 +192,7 @@ private:
 
 template <class metadata_t>
 class semilattice_manager_t<metadata_t>::sync_to_reply_writer_t :
-        public cluster_manager_t::send_message_write_callback_t
+        public connectivity_cluster_t::send_message_write_callback_t
 {
 public:
     explicit sync_to_reply_writer_t(sync_to_query_id_t _query_id) :
@@ -217,9 +217,9 @@ void semilattice_manager_t<metadata_t>::root_view_t::sync_from(peer_id_t peer, s
     parent->assert_thread();
 
     /* Confirm that we are connected to the target peer */
-    cluster_manager_t::connection_t *connection;
+    connectivity_cluster_t::connection_t *connection;
     auto_drainer_t::lock_t connection_keepalive;
-    if (!(connection = parent->get_cluster_manager()->get_connection(peer, &connection_keepalive))) {
+    if (!(connection = parent->get_connectivity_cluster()->get_connection(peer, &connection_keepalive))) {
         throw sync_failed_exc_t();
     }
 
@@ -233,7 +233,7 @@ void semilattice_manager_t<metadata_t>::root_view_t::sync_from(peer_id_t peer, s
     {
         new_semaphore_acq_t acq(&parent->semaphore, 1);
         wait_interruptible(acq.acquisition_signal(), interruptor);
-        parent->get_cluster_manager()->send_message(connection, connection_keepalive, parent->get_message_tag(), &writer);
+        parent->get_connectivity_cluster()->send_message(connection, connection_keepalive, parent->get_message_tag(), &writer);
     }
 
     /* Wait until the peer replies, so we know what version to wait for */
@@ -253,9 +253,9 @@ void semilattice_manager_t<metadata_t>::root_view_t::sync_to(peer_id_t peer, sig
     parent->assert_thread();
 
     /* Confirm that we are connected to the target peer */
-    cluster_manager_t::connection_t *connection;
+    connectivity_cluster_t::connection_t *connection;
     auto_drainer_t::lock_t connection_keepalive;
-    if (!(connection = parent->get_cluster_manager()->get_connection(peer, &connection_keepalive))) {
+    if (!(connection = parent->get_connectivity_cluster()->get_connection(peer, &connection_keepalive))) {
         throw sync_failed_exc_t();
     }
 
@@ -269,7 +269,7 @@ void semilattice_manager_t<metadata_t>::root_view_t::sync_to(peer_id_t peer, sig
     {
         new_semaphore_acq_t acq(&parent->semaphore, 1);
         wait_interruptible(acq.acquisition_signal(), interruptor);
-        parent->get_cluster_manager()->send_message(connection, connection_keepalive, parent->get_message_tag(), &writer);
+        parent->get_connectivity_cluster()->send_message(connection, connection_keepalive, parent->get_message_tag(), &writer);
     }
 
     /* Wait until the peer replies; it won't reply until it's seen the version we told it to */
@@ -290,7 +290,7 @@ publisher_t<std::function<void()> > *semilattice_manager_t<metadata_t>::root_vie
 
 template<class metadata_t>
 void semilattice_manager_t<metadata_t>::on_message(
-        cluster_manager_t::connection_t *connection,
+        connectivity_cluster_t::connection_t *connection,
         auto_drainer_t::lock_t connection_keepalive,
         cluster_version_t cluster_version,
         read_stream_t *stream) {
@@ -355,7 +355,7 @@ void semilattice_manager_t<metadata_t>::on_message(
                     {
                         new_semaphore_acq_t acq(&semaphore, 1);
                         acq.acquisition_signal()->wait();
-                        get_cluster_manager()->send_message(connection, connection_keepalive, get_message_tag(), &writer);
+                        get_connectivity_cluster()->send_message(connection, connection_keepalive, get_message_tag(), &writer);
                     }
                 });
             break;
@@ -412,7 +412,7 @@ void semilattice_manager_t<metadata_t>::on_message(
                     {
                         new_semaphore_acq_t acq(&semaphore, 1);
                         acq.acquisition_signal()->wait();
-                        get_cluster_manager()->send_message(connection, connection_keepalive, get_message_tag(), &writer);
+                        get_connectivity_cluster()->send_message(connection, connection_keepalive, get_message_tag(), &writer);
                     }
                 });
             break;
@@ -449,9 +449,9 @@ void semilattice_manager_t<metadata_t>::on_message(
 
 template<class metadata_t>
 void semilattice_manager_t<metadata_t>::on_connections_change() {
-    cluster_manager_t::connection_map_t current_connections = get_cluster_manager()->get_connections()->get();
+    connectivity_cluster_t::connection_map_t current_connections = get_connectivity_cluster()->get_connections()->get();
     for (auto pair : current_connections) {
-        cluster_manager_t::connection_t *connection = pair.second.first;
+        connectivity_cluster_t::connection_t *connection = pair.second.first;
         auto_drainer_t::lock_t connection_keepalive = pair.second.second;
         if (last_connections.count(connection) == 0) {
             last_connections.insert(std::make_pair(connection, connection_keepalive));
@@ -461,7 +461,7 @@ void semilattice_manager_t<metadata_t>::on_connections_change() {
                     metadata_writer_t writer(metadata, metadata_version);
                     new_semaphore_acq_t acq(&semaphore, 1);
                     acq.acquisition_signal()->wait();
-                    get_cluster_manager()->send_message(connection, connection_keepalive, get_message_tag(), &writer);
+                    get_connectivity_cluster()->send_message(connection, connection_keepalive, get_message_tag(), &writer);
                 });
         }
     }
@@ -489,9 +489,9 @@ void semilattice_manager_t<metadata_t>::wait_for_version_from_peer(peer_id_t pee
         return;
     }
 
-    cluster_manager_t::connection_t *connection;
+    connectivity_cluster_t::connection_t *connection;
     auto_drainer_t::lock_t connection_keepalive;
-    if (!(connection = get_cluster_manager()->get_connection(peer, &connection_keepalive))) {
+    if (!(connection = get_connectivity_cluster()->get_connection(peer, &connection_keepalive))) {
         throw sync_failed_exc_t();
     }
 

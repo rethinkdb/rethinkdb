@@ -58,8 +58,8 @@ peer_address_set_t::iterator find_peer_address_in_set(const peer_address_set_t &
 }
 
 initial_joiner_t::initial_joiner_t(
-        cluster_manager_t *cluster_,
-        cluster_manager_t::run_t *cluster_run,
+        connectivity_cluster_t *cluster_,
+        connectivity_cluster_t::run_t *cluster_run,
         const peer_address_set_t &peers,
         int timeout_ms) :
     cluster(cluster_),
@@ -69,7 +69,7 @@ initial_joiner_t::initial_joiner_t(
     guarantee(!peers.empty());
 
     auto_drainer_t::lock_t connection_keepalive;
-    cluster_manager_t::connection_t *loopback = cluster->get_connection(cluster->get_me(), &connection_keepalive);
+    connectivity_cluster_t::connection_t *loopback = cluster->get_connection(cluster->get_me(), &connection_keepalive);
     guarantee(loopback != NULL);
     peer_address_t self_addr = loopback->get_peer_address();
     for (peer_address_set_t::iterator join_self_it = find_peer_address_in_set(peers_not_heard_from, self_addr);
@@ -85,7 +85,7 @@ initial_joiner_t::initial_joiner_t(
 
     coro_t::spawn_sometime(boost::bind(&initial_joiner_t::main_coro, this, cluster_run, auto_drainer_t::lock_t(&drainer)));
 
-    typename watchable_t<cluster_manager_t::connection_map_t>::freeze_t freeze(cluster->get_connections());
+    typename watchable_t<connectivity_cluster_t::connection_map_t>::freeze_t freeze(cluster->get_connections());
     subs.reset(cluster->get_connections(), &freeze);
     on_connections_change();
 }
@@ -95,7 +95,7 @@ static const int max_retry_interval_ms = 1000 * 15;
 static const double retry_interval_growth_rate = 1.5;
 static const int grace_period_before_warn_ms = 1000 * 5;
 
-void initial_joiner_t::main_coro(cluster_manager_t::run_t *cluster_run, auto_drainer_t::lock_t keepalive) {
+void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run, auto_drainer_t::lock_t keepalive) {
     try {
         int retry_interval_ms = initial_retry_interval_ms;
         logINF("Attempting connection to %zu peer%s...",

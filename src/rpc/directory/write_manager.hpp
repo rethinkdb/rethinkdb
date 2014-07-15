@@ -19,8 +19,8 @@ template<class metadata_t>
 class directory_write_manager_t {
 public:
     directory_write_manager_t(
-        cluster_manager_t *cluster_manager,
-        cluster_manager_t::message_tag_t message_tag,
+        connectivity_cluster_t *connectivity_cluster,
+        connectivity_cluster_t::message_tag_t message_tag,
         const clone_ptr_t<watchable_t<metadata_t> > &value) THROWS_NOTHING;
 
 private:
@@ -30,12 +30,12 @@ private:
     void on_connections_change() THROWS_NOTHING;
     void on_value_change() THROWS_NOTHING;
 
-    cluster_manager_t *cluster_manager;
-    cluster_manager_t::message_tag_t message_tag;
+    connectivity_cluster_t *connectivity_cluster;
+    connectivity_cluster_t::message_tag_t message_tag;
     clone_ptr_t<watchable_t<metadata_t> > value;
 
     fifo_enforcer_source_t metadata_fifo_source;
-    std::map<cluster_manager_t::connection_t *, auto_drainer_t::lock_t> last_connections;
+    std::map<connectivity_cluster_t::connection_t *, auto_drainer_t::lock_t> last_connections;
     mutex_assertion_t mutex_assertion;   /* protects `metadata_fifo_source` and `last_connections` */
 
     /* Any time we want to write to the network, we acquire this first. */
@@ -48,7 +48,7 @@ private:
     auto_drainer_t drainer;
 
     typename watchable_t<metadata_t>::subscription_t value_change_subscription;
-    typename watchable_t<cluster_manager_t::connection_map_t>::subscription_t connections_change_subscription;
+    typename watchable_t<connectivity_cluster_t::connection_map_t>::subscription_t connections_change_subscription;
 
     DISABLE_COPYING(directory_write_manager_t);
 };

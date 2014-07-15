@@ -18,9 +18,9 @@
 template<class metadata_t>
 class directory_read_manager_t :
     public home_thread_mixin_t,
-    public cluster_manager_t::message_handler_t {
+    public connectivity_cluster_t::message_handler_t {
 public:
-    explicit directory_read_manager_t(cluster_manager_t *cm, cluster_manager_t::message_tag_t tag) THROWS_NOTHING;
+    explicit directory_read_manager_t(connectivity_cluster_t *cm, connectivity_cluster_t::message_tag_t tag) THROWS_NOTHING;
     ~directory_read_manager_t() THROWS_NOTHING;
 
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, metadata_t> > > get_root_view() THROWS_NOTHING {
@@ -33,9 +33,9 @@ private:
     have received initial metadata from the peer. Peers only show up in the
     `watchable_t` once initialization is complete. */
 
-    /* This will be called by `cluster_manager_t`. It mustn't block. */
+    /* This will be called by `connectivity_cluster_t`. It mustn't block. */
     void on_message(
-            cluster_manager_t::connection_t *connection,
+            connectivity_cluster_t::connection_t *connection,
             auto_drainer_t::lock_t connection_keepalive,
             cluster_version_t version,
             read_stream_t *stream)
@@ -47,7 +47,7 @@ private:
     They assume ownership of `new_value`. Semantically, the argument here is `metadata_t &&new_value` but we cannot
     easily pass that through to the coroutine call, which is why we use `boost::shared_ptr` instead. */
     void handle_connection(
-            cluster_manager_t::connection_t *connection,
+            connectivity_cluster_t::connection_t *connection,
             auto_drainer_t::lock_t connection_keepalive,
             const boost::shared_ptr<metadata_t> &new_value,
             fifo_enforcer_state_t metadata_fifo_state,
@@ -55,7 +55,7 @@ private:
             THROWS_NOTHING;
 
     void propagate_update(
-            cluster_manager_t::connection_t *connection,
+            connectivity_cluster_t::connection_t *connection,
             auto_drainer_t::lock_t connection_keepalive,
             const boost::shared_ptr<metadata_t> &new_value,
             fifo_enforcer_write_token_t metadata_fifo_token,
@@ -72,12 +72,12 @@ private:
         goes out of scope. */
         auto_drainer_t drainer;
     };    
-    std::map<cluster_manager_t::connection_t *, connection_info_t *> connection_map;
+    std::map<connectivity_cluster_t::connection_t *, connection_info_t *> connection_map;
 
     /* It's possible that messages can be reordered so that a `propagate_update()` reaches the home thread before the
     corresponding `handle_connection`. If this happens, the `propagate_update()` will put an entry in
     `waiting_for_initialization` and wait for `handle_connection()` to signal it. */
-    std::multimap<cluster_manager_t::connection_t *, cond_t *> waiting_for_initialization;
+    std::multimap<connectivity_cluster_t::connection_t *, cond_t *> waiting_for_initialization;
 
     /* This protects `variable`, `fifo_sinks`, and `waiting_for_initialization` */
     mutex_assertion_t mutex_assertion;

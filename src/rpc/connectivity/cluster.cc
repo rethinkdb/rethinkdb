@@ -26,7 +26,7 @@
 // Number of messages after which the message handling loop yields
 #define MESSAGE_HANDLER_MAX_BATCH_SIZE           8
 
-void cluster_manager_t::connection_t::kill_connection() {
+void connectivity_cluster_t::connection_t::kill_connection() {
     /* `heartbeat_manager_t` assumes this doesn't block as long as it's called on the home thread. */
     guarantee(!is_loopback(), "Attempted to kill connection to myself.");
     on_thread_t thread_switcher(conn->home_thread());
@@ -39,7 +39,7 @@ void cluster_manager_t::connection_t::kill_connection() {
     }
 }
 
-cluster_manager_t::connection_t::connection_t(run_t *p,
+connectivity_cluster_t::connection_t::connection_t(run_t *p,
                                               peer_id_t id,
                                               keepalive_tcp_conn_stream_t *c,
                                               const peer_address_t &a) THROWS_NOTHING :
@@ -65,7 +65,7 @@ cluster_manager_t::connection_t::connection_t(run_t *p,
         });
 }
 
-cluster_manager_t::connection_t::~connection_t() THROWS_NOTHING {
+connectivity_cluster_t::connection_t::~connection_t() THROWS_NOTHING {
     // Drain out any users
     pmap(get_num_threads(), [this] (int thread_id) {
             on_thread_t thread_switcher((threadnum_t(thread_id)));
@@ -114,7 +114,7 @@ static peer_address_t our_peer_address(std::set<ip_address_t> local_addresses,
     return peer_address_t(our_addrs);
 }
 
-cluster_manager_t::run_t::run_t(cluster_manager_t *p,
+connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
                                 const std::set<ip_address_t> &local_addresses,
                                 const peer_address_t &canonical_addresses,
                                 int port, int client_port)
@@ -153,29 +153,29 @@ cluster_manager_t::run_t::run_t(cluster_manager_t *p,
     connection_to_ourself(this, parent->me, NULL, routing_table[parent->me]),
 
     listener(new tcp_listener_t(cluster_listener_socket.get(),
-                                std::bind(&cluster_manager_t::run_t::on_new_connection,
+                                std::bind(&connectivity_cluster_t::run_t::on_new_connection,
                                           this, ph::_1, auto_drainer_t::lock_t(&drainer))))
 {
     parent->assert_thread();
 }
 
-cluster_manager_t::run_t::~run_t() {
+connectivity_cluster_t::run_t::~run_t() {
     /* The member destructors take care of cutting off TCP connections, cleaning up, etc. */
 }
 
-std::set<ip_and_port_t> cluster_manager_t::run_t::get_ips() const {
+std::set<ip_and_port_t> connectivity_cluster_t::run_t::get_ips() const {
     parent->assert_thread();
     return routing_table.at(parent->me).ips();
 }
 
-int cluster_manager_t::run_t::get_port() {
+int connectivity_cluster_t::run_t::get_port() {
     return cluster_listener_port;
 }
 
-void cluster_manager_t::run_t::join(const peer_address_t &address) THROWS_NOTHING {
+void connectivity_cluster_t::run_t::join(const peer_address_t &address) THROWS_NOTHING {
     parent->assert_thread();
     coro_t::spawn_now_dangerously(std::bind(
-        &cluster_manager_t::run_t::join_blocking,
+        &connectivity_cluster_t::run_t::join_blocking,
         this,
         address,
         /* We don't know what `peer_id_t` the peer has until we connect to it */
@@ -183,7 +183,7 @@ void cluster_manager_t::run_t::join(const peer_address_t &address) THROWS_NOTHIN
         auto_drainer_t::lock_t(&drainer)));
 }
 
-void cluster_manager_t::run_t::on_new_connection(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn, auto_drainer_t::lock_t lock) THROWS_NOTHING {
+void connectivity_cluster_t::run_t::on_new_connection(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn, auto_drainer_t::lock_t lock) THROWS_NOTHING {
     parent->assert_thread();
 
     // conn gets owned by the keepalive_tcp_conn_stream_t.
@@ -194,7 +194,7 @@ void cluster_manager_t::run_t::on_new_connection(const scoped_ptr_t<tcp_conn_des
     handle(&conn_stream, boost::none, boost::none, lock, NULL);
 }
 
-void cluster_manager_t::run_t::connect_to_peer(const peer_address_t *address,
+void connectivity_cluster_t::run_t::connect_to_peer(const peer_address_t *address,
                                                int index,
                                                boost::optional<peer_id_t> expected_id,
                                                auto_drainer_t::lock_t drainer_lock,
@@ -239,7 +239,7 @@ void cluster_manager_t::run_t::connect_to_peer(const peer_address_t *address,
     rate_control->unlock(1);
 }
 
-void cluster_manager_t::run_t::join_blocking(
+void connectivity_cluster_t::run_t::join_blocking(
         const peer_address_t peer,
         boost::optional<peer_id_t> expected_id,
         auto_drainer_t::lock_t drainer_lock) THROWS_NOTHING {
@@ -262,7 +262,7 @@ void cluster_manager_t::run_t::join_blocking(
     rate_control.co_lock(peer.ips().size() - 1); // Start with only one coroutine able to run
 
     pmap(peer.ips().size(),
-         std::bind(&cluster_manager_t::run_t::connect_to_peer,
+         std::bind(&connectivity_cluster_t::run_t::connect_to_peer,
                    this,
                    &peer,
                    ph::_1,
@@ -296,18 +296,18 @@ private:
 };
 
 /* `heartbeat_manager_t` is responsible for sending heartbeats over a single connection and making sure that heartbeats
-have arrived on time. `cluster_manager_t::run_t::handle()` constructs one after constructing the `connection_t`. */
-class cluster_manager_t::heartbeat_manager_t :
+have arrived on time. `connectivity_cluster_t::run_t::handle()` constructs one after constructing the `connection_t`. */
+class connectivity_cluster_t::heartbeat_manager_t :
     public keepalive_tcp_conn_stream_t::keepalive_callback_t,
     private repeating_timer_callback_t,
-    private cluster_manager_t::send_message_write_callback_t
+    private connectivity_cluster_t::send_message_write_callback_t
 {
 public:
     static const int64_t HEARTBEAT_INTERVAL_MS = 2000;
     static const int HEARTBEAT_TIMEOUT_INTERVALS = 5;
 
     heartbeat_manager_t(
-            cluster_manager_t::connection_t *connection_,
+            connectivity_cluster_t::connection_t *connection_,
             auto_drainer_t::lock_t connection_keepalive_,
             std::string peer_str_) :
         connection(connection_),
@@ -337,7 +337,7 @@ public:
             logERR("Heartbeat timeout, killing connection to peer %s", peer_str.c_str());
             
             /* This won't block if we call it from the same thread. This is an implementation detail that outside code
-            shouldn't rely on, but since `heartbeat_manager_t` is part of `cluster_manager_t` it's OK. */
+            shouldn't rely on, but since `heartbeat_manager_t` is part of `connectivity_cluster_t` it's OK. */
             connection->kill_connection();
             return;
         } 
@@ -353,7 +353,7 @@ public:
                     /* This might block, so we have to run it in a sub-coroutine. */
                     connection->parent->parent->send_message(connection,
                                                              connection_keepalive,
-                                                             cluster_manager_t::heartbeat_tag,
+                                                             connectivity_cluster_t::heartbeat_tag,
                                                              this);
                 });
         }
@@ -368,7 +368,7 @@ public:
         /* Do nothing. The cluster will end up sending just the tag 'H' with no message attached, which will trigger
         `keepalive_read()` on the remote machine. */
     }
-    cluster_manager_t::connection_t *connection;
+    connectivity_cluster_t::connection_t *connection;
     auto_drainer_t::lock_t connection_keepalive;
     bool read_done, write_done;
     int intervals_since_last_read_done;
@@ -383,7 +383,7 @@ public:
     DISABLE_COPYING(heartbeat_manager_t);
 };
 
-// Error-handling helper for cluster_manager_t::run_t::handle(). Returns true if handle()
+// Error-handling helper for connectivity_cluster_t::run_t::handle(). Returns true if handle()
 // should return.
 template <class T>
 bool deserialize_and_check(cluster_version_t cluster_version,
@@ -477,7 +477,7 @@ bool deserialize_compatible_string(keepalive_tcp_conn_stream_t *conn,
 //  without the interference of any other connections. This ensures that
 //  any conflicts are resolved consistently. It also ensures that if we get
 //  two connections from different nodes, one will find out about the other.
-bool cluster_manager_t::run_t::get_routing_table_to_send_and_add_peer(
+bool connectivity_cluster_t::run_t::get_routing_table_to_send_and_add_peer(
         const peer_id_t &other_peer_id,
         const peer_address_t &other_peer_addr,
         object_buffer_t<map_insertion_sentry_t<peer_id_t, peer_address_t> > *routing_table_entry_sentry,
@@ -515,8 +515,8 @@ static_assert(cluster_version_t::CLUSTER == cluster_version_t::v1_13_2_is_latest
               "version.");
 #define CLUSTER_VERSION_STRING "1.13.2"
 
-const std::string cluster_manager_t::cluster_proto_header("RethinkDB cluster\n");
-const std::string cluster_manager_t::cluster_version_string(CLUSTER_VERSION_STRING);
+const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
+const std::string connectivity_cluster_t::cluster_version_string(CLUSTER_VERSION_STRING);
 
 // Returns true and sets *out to the version number, if the version number in
 // version_string is a recognized version and the same or earlier than our version.
@@ -544,7 +544,7 @@ static bool split_version_string(const std::string &version_string, std::vector<
 }
 
 // Returns true if the version string is recognized as a _greater_ version string
-// (than our software's cluster_manager_t::cluster_version_string).  Returns
+// (than our software's connectivity_cluster_t::cluster_version_string).  Returns
 // false for unparseable version strings (see split_version_string) or lesser or
 // equal version strings.
 static bool version_number_unrecognized_greater(const std::string &version_string) {
@@ -555,7 +555,7 @@ static bool version_number_unrecognized_greater(const std::string &version_strin
 
     std::vector<int64_t> our_parts;
     const bool success = split_version_string(
-            cluster_manager_t::cluster_version_string,
+            connectivity_cluster_t::cluster_version_string,
             &our_parts);
     guarantee(success);
     return std::lexicographical_compare(our_parts.begin(), our_parts.end(),
@@ -580,17 +580,17 @@ static bool resolve_protocol_version(const std::string &remote_version_string,
 }
 
 #if defined (__x86_64__)
-const std::string cluster_manager_t::cluster_arch_bitsize("64bit");
+const std::string connectivity_cluster_t::cluster_arch_bitsize("64bit");
 #elif defined (__i386__) || defined(__arm__)
-const std::string cluster_manager_t::cluster_arch_bitsize("32bit");
+const std::string connectivity_cluster_t::cluster_arch_bitsize("32bit");
 #else
 #error "Could not determine architecture"
 #endif
 
 #if defined (NDEBUG)
-const std::string cluster_manager_t::cluster_build_mode("release");
+const std::string connectivity_cluster_t::cluster_build_mode("release");
 #else
-const std::string cluster_manager_t::cluster_build_mode("debug");
+const std::string connectivity_cluster_t::cluster_build_mode("debug");
 #endif
 
 // We log error conditions as follows:
@@ -598,7 +598,7 @@ const std::string cluster_manager_t::cluster_build_mode("debug");
 // - warning: invalid header
 // - error: id or address don't match expected id or address; deserialization range error; unknown error
 // In all cases we close the connection and quit.
-void cluster_manager_t::run_t::handle(
+void connectivity_cluster_t::run_t::handle(
         /* `conn` should remain valid until `handle()` returns.
          * `handle()` does not take ownership of `conn`. */
         keepalive_tcp_conn_stream_t *conn,
@@ -861,7 +861,7 @@ void cluster_manager_t::run_t::handle(
                 // `it->first` is the ID of a peer that our peer is connected
                 //  to, but we aren't connected to.
                 coro_t::spawn_now_dangerously(std::bind(
-                    &cluster_manager_t::run_t::join_blocking, this,
+                    &connectivity_cluster_t::run_t::join_blocking, this,
                     peer_address_t(it->second), // This is where we resolve the peer's ip addresses
                     boost::optional<peer_id_t>(it->first),
                     drainer_lock));
@@ -891,7 +891,7 @@ void cluster_manager_t::run_t::handle(
 
     {
         /* `connection_t` is the public interface of this coroutine. Its
-        constructor registers it in the `cluster_manager_t`'s connection
+        constructor registers it in the `connectivity_cluster_t`'s connection
         map. */
         connection_t conn_structure(this, other_id, conn, other_peer_addr);
         
@@ -916,7 +916,7 @@ void cluster_manager_t::run_t::handle(
                 /* Ignore messages tagged with the heartbeat tag. The `keepalive_tcp_conn_stream_t` will have already
                 notified the `heartbeat_manager_t` as soon as the heartbeat arrived. */
                 if (tag != heartbeat_tag) {
-                    cluster_manager_t::message_handler_t *handler = parent->message_handlers[tag];
+                    connectivity_cluster_t::message_handler_t *handler = parent->message_handlers[tag];
                     guarantee(handler != NULL, "Got a message for an unfamiliar tag. Apparently we aren't compatible "
                         "with the cluster on the other end.");
 
@@ -949,22 +949,22 @@ void cluster_manager_t::run_t::handle(
     }
 }
 
-cluster_manager_t::message_handler_t::message_handler_t(cluster_manager_t *cm, message_tag_t t) :
-        cluster_manager(cm), tag(t)
+connectivity_cluster_t::message_handler_t::message_handler_t(connectivity_cluster_t *cm, message_tag_t t) :
+        connectivity_cluster(cm), tag(t)
 {
-    guarantee(!cluster_manager->current_run);
+    guarantee(!connectivity_cluster->current_run);
     rassert(tag != heartbeat_tag, "Tag %d is reserved for heartbeat messages.", static_cast<int>(heartbeat_tag));
-    rassert(cluster_manager->message_handlers[tag] == NULL);
-    cluster_manager->message_handlers[tag] = this;
+    rassert(connectivity_cluster->message_handlers[tag] == NULL);
+    connectivity_cluster->message_handlers[tag] = this;
 }
 
-cluster_manager_t::message_handler_t::~message_handler_t() {
-    guarantee(!cluster_manager->current_run);
-    rassert(cluster_manager->message_handlers[tag] == this);
-    cluster_manager->message_handlers[tag] = NULL;
+connectivity_cluster_t::message_handler_t::~message_handler_t() {
+    guarantee(!connectivity_cluster->current_run);
+    rassert(connectivity_cluster->message_handlers[tag] == this);
+    connectivity_cluster->message_handlers[tag] = NULL;
 }
 
-void cluster_manager_t::message_handler_t::on_local_message(connection_t *conn,
+void connectivity_cluster_t::message_handler_t::on_local_message(connection_t *conn,
                                                             auto_drainer_t::lock_t keepalive,
                                                             cluster_version_t version,
                                                             std::vector<char> &&data)
@@ -977,7 +977,7 @@ void cluster_manager_t::message_handler_t::on_local_message(connection_t *conn,
     on_message(conn, keepalive, version, &read_stream);
 }
 
-cluster_manager_t::cluster_manager_t() THROWS_NOTHING :
+connectivity_cluster_t::connectivity_cluster_t() THROWS_NOTHING :
     me(peer_id_t(generate_uuid())),
     connections(connection_map_t()),
     current_run(NULL),
@@ -989,20 +989,20 @@ cluster_manager_t::cluster_manager_t() THROWS_NOTHING :
     }
 }
 
-cluster_manager_t::~cluster_manager_t() THROWS_NOTHING {
+connectivity_cluster_t::~connectivity_cluster_t() THROWS_NOTHING {
     guarantee(!current_run);
 }
 
-peer_id_t cluster_manager_t::get_me() THROWS_NOTHING {
+peer_id_t connectivity_cluster_t::get_me() THROWS_NOTHING {
     return me;
 }
 
-clone_ptr_t<watchable_t<cluster_manager_t::connection_map_t>> cluster_manager_t::get_connections() THROWS_NOTHING {
+clone_ptr_t<watchable_t<connectivity_cluster_t::connection_map_t>> connectivity_cluster_t::get_connections() THROWS_NOTHING {
     return connections.get()->get_watchable();
 }
 
-cluster_manager_t::connection_t *cluster_manager_t::get_connection(peer_id_t peer_id, auto_drainer_t::lock_t *keepalive_out) THROWS_NOTHING {
-    cluster_manager_t::connection_t *conn;
+connectivity_cluster_t::connection_t *connectivity_cluster_t::get_connection(peer_id_t peer_id, auto_drainer_t::lock_t *keepalive_out) THROWS_NOTHING {
+    connectivity_cluster_t::connection_t *conn;
     connections.get()->apply_read([&] (const std::map<peer_id_t, std::pair<connection_t *, auto_drainer_t::lock_t>> *value) {
         auto it = value->find(peer_id);
         if (it == value->end()) {
@@ -1015,7 +1015,7 @@ cluster_manager_t::connection_t *cluster_manager_t::get_connection(peer_id_t pee
     return conn;
 }
 
-void cluster_manager_t::send_message(connection_t *connection,
+void connectivity_cluster_t::send_message(connection_t *connection,
                                      auto_drainer_t::lock_t connection_keepalive,
                                      message_tag_t tag,
                                      send_message_write_callback_t *callback) {
@@ -1098,7 +1098,7 @@ void cluster_manager_t::send_message(connection_t *connection,
             int64_t res = connection->conn->write(buffer.vector().data(), buffer.vector().size());
             if (res == -1) {
                 /* Close the other half of the connection to make sure that
-                   `cluster_manager_t::run_t::handle()` notices that something is
+                   `connectivity_cluster_t::run_t::handle()` notices that something is
                    up */
                 if (connection->conn->is_read_open()) {
                     connection->conn->shutdown_read();

@@ -116,12 +116,12 @@ void send(mailbox_manager_t *src,
           raw_mailbox_t::address_t dest,
           mailbox_write_callback_t *callback);
 
-/* `mailbox_manager_t` is a `cluster_manager_t::message_handler_t` that takes care of actually routing messages to
+/* `mailbox_manager_t` is a `connectivity_cluster_t::message_handler_t` that takes care of actually routing messages to
 mailboxes. */
 
-class mailbox_manager_t : public cluster_manager_t::message_handler_t {
+class mailbox_manager_t : public connectivity_cluster_t::message_handler_t {
 public:
-    mailbox_manager_t(cluster_manager_t *cluster_manager, cluster_manager_t::message_tag_t message_tag);
+    mailbox_manager_t(connectivity_cluster_t *connectivity_cluster, connectivity_cluster_t::message_tag_t message_tag);
 
 private:
     friend struct raw_mailbox_t;
@@ -151,17 +151,17 @@ private:
                                       raw_mailbox_t::id_t dest_mailbox_id,
                                       mailbox_write_callback_t *callback);
 
-    void on_message(cluster_manager_t::connection_t *connection,
+    void on_message(connectivity_cluster_t::connection_t *connection,
                     auto_drainer_t::lock_t connection_keeepalive,
                     cluster_version_t version,
                     read_stream_t *stream);
-    void on_local_message(cluster_manager_t::connection_t *connection,
+    void on_local_message(connectivity_cluster_t::connection_t *connection,
                           auto_drainer_t::lock_t connection_keepalive,
                           cluster_version_t version,
                           std::vector<char> &&data);
 
     enum force_yield_t {FORCE_YIELD, MAYBE_YIELD};
-    void mailbox_read_coroutine(cluster_manager_t::connection_t *connection,
+    void mailbox_read_coroutine(connectivity_cluster_t::connection_t *connection,
                                 auto_drainer_t::lock_t connection_keepalive,
                                 cluster_version_t cluster_version,
                                 threadnum_t dest_thread,

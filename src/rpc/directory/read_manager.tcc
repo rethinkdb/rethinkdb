@@ -15,21 +15,21 @@
 #include "stl_utils.hpp"
 
 template<class metadata_t>
-directory_read_manager_t<metadata_t>::directory_read_manager_t(cluster_manager_t *cm, cluster_manager_t::message_tag_t tag) THROWS_NOTHING :
-    cluster_manager_t::message_handler_t(cm, tag),
+directory_read_manager_t<metadata_t>::directory_read_manager_t(connectivity_cluster_t *cm, connectivity_cluster_t::message_tag_t tag) THROWS_NOTHING :
+    connectivity_cluster_t::message_handler_t(cm, tag),
     variable(change_tracking_map_t<peer_id_t, metadata_t>())
 {
-    guarantee(get_cluster_manager()->get_connections()->get().empty());
+    guarantee(get_connectivity_cluster()->get_connections()->get().empty());
 }
 
 template<class metadata_t>
 directory_read_manager_t<metadata_t>::~directory_read_manager_t() THROWS_NOTHING {
-    guarantee(get_cluster_manager()->get_connections()->get().empty());
+    guarantee(get_connectivity_cluster()->get_connections()->get().empty());
 }
 
 template<class metadata_t>
 void directory_read_manager_t<metadata_t>::on_message(
-        cluster_manager_t::connection_t *connection,
+        connectivity_cluster_t::connection_t *connection,
         auto_drainer_t::lock_t connection_keepalive,
         cluster_version_t cluster_version,
         read_stream_t *s)
@@ -97,7 +97,7 @@ void directory_read_manager_t<metadata_t>::on_message(
 
 template<class metadata_t>
 void directory_read_manager_t<metadata_t>::handle_connection(
-        cluster_manager_t::connection_t *connection,
+        connectivity_cluster_t::connection_t *connection,
         auto_drainer_t::lock_t connection_keepalive,
         const boost::shared_ptr<metadata_t> &new_value,
         fifo_enforcer_state_t metadata_fifo_state,
@@ -123,7 +123,7 @@ void directory_read_manager_t<metadata_t>::handle_connection(
         connection_info_t connection_info;
         connection_info.fifo_sink = &fifo_sink;
         {
-            map_insertion_sentry_t<cluster_manager_t::connection_t *, connection_info_t *> connection_info_insertion
+            map_insertion_sentry_t<connectivity_cluster_t::connection_t *, connection_info_t *> connection_info_insertion
                 (&connection_map, connection, &connection_info);
 
             for (auto it = waiting_for_initialization.lower_bound(connection);
@@ -146,7 +146,7 @@ void directory_read_manager_t<metadata_t>::handle_connection(
 
         /* This will block until all instances of `propagate_update` are finished with `fifo_sink`. After this point, no
         instances of `propagate_update` for this connection can touch `variable`. */
-        connection_info.auto_drainer.drain();
+        connection_info.drainer.drain();
 
         /* Now it's safe to delete `fifo_sink` and the directory entry. */
     }
@@ -161,7 +161,7 @@ void directory_read_manager_t<metadata_t>::handle_connection(
 
 template<class metadata_t>
 void directory_read_manager_t<metadata_t>::propagate_update(
-        cluster_manager_t::connection_t *connection,
+        connectivity_cluster_t::connection_t *connection,
         auto_drainer_t::lock_t connection_keepalive,
         const boost::shared_ptr<metadata_t> &new_value,
         fifo_enforcer_write_token_t metadata_fifo_token,
@@ -184,7 +184,7 @@ void directory_read_manager_t<metadata_t>::propagate_update(
                 /* There are two possibilities: either we reached this thread before the initialization message did, or
                 the connection was just closed and we haven't found out yet. */
                 cond_t wait_for_initialization;
-                multimap_insertion_sentry_t<cluster_manager_t::connection_t *, cond_t *> wait_insertion(
+                multimap_insertion_sentry_t<connectivity_cluster_t::connection_t *, cond_t *> wait_insertion(
                     &waiting_for_initialization, connection, &wait_for_initialization);
                 mutex_assertion_lock.reset();
                 /* If we reached this thread before the initialization message did, then `wait_for_initialization` will

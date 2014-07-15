@@ -25,11 +25,11 @@ template <class> class optional;
 
 class co_semaphore_t;
 
-/* `cluster_manager_t` is responsible for establishing connections with other machines and communicating with them.
+/* `connectivity_cluster_t` is responsible for establishing connections with other machines and communicating with them.
 It's the foundation of the entire clustering system. However, it's very low-level; most code will instead use the
-directory or mailbox mechanisms, which are built on top of `cluster_manager_t`.
+directory or mailbox mechanisms, which are built on top of `connectivity_cluster_t`.
 
-Clustering is based around the concept of a "connection", as represented by `cluster_manager_t::connection_t`. When the
+Clustering is based around the concept of a "connection", as represented by `connectivity_cluster_t::connection_t`. When the
 `cluster_t::run_t` is constructed, we automatically create a `connection_t` to ourself, the "loopback connection". We
 also accept TCP connections on some port. When we get a TCP connection, we perform a handshake; if this succeeds, then
 we create a `connection_t` to represent the new connection. Once a connection is established, messages can be sent
@@ -40,7 +40,7 @@ Can messages be reordered? I think the current implementation doesn't ever reord
 guarantee. However, some old code may rely on this guarantee (I'm not sure) so don't break this property without
 checking first. */
 
-class cluster_manager_t :
+class connectivity_cluster_t :
     public home_thread_mixin_debug_only_t
 {
 public:
@@ -98,7 +98,7 @@ public:
         void kill_connection();
 
     private:
-        friend class cluster_manager_t;
+        friend class connectivity_cluster_t;
 
         /* The constructor registers us in every thread's `connections` map, thereby notifying event subscribers. */
         connection_t(run_t *, peer_id_t, keepalive_tcp_conn_stream_t *, const peer_address_t &peer) THROWS_NOTHING;
@@ -127,13 +127,13 @@ public:
         one_per_thread_t<auto_drainer_t> drainers;
     };
 
-    /* Construct one `run_t` for each `cluster_manager_t` after setting up the message handlers. The `run_t`'s
+    /* Construct one `run_t` for each `connectivity_cluster_t` after setting up the message handlers. The `run_t`'s
     constructor is what actually starts listening for connections from other nodes, and the destructor is what stops
     listening. This way, we use RAII to ensure that we stop sending messages to the message handlers before we destroy
     the message handlers. */
     class run_t {
     public:
-        run_t(cluster_manager_t *parent,
+        run_t(connectivity_cluster_t *parent,
               const std::set<ip_address_t> &local_addresses,
               const peer_address_t &canonical_addresses,
               int port, int client_port)
@@ -150,7 +150,7 @@ public:
         int get_port();
 
     private:
-        friend class cluster_manager_t;
+        friend class connectivity_cluster_t;
 
         /* Sets a variable to a value in its constructor; sets it to NULL in its
         destructor. This is kind of silly. The reason we need it is that we need
@@ -209,7 +209,7 @@ public:
             auto_drainer_t::lock_t,
             bool *successful_join) THROWS_NOTHING;
 
-        cluster_manager_t *parent;
+        connectivity_cluster_t *parent;
 
         /* `attempt_table` is a table of all the host:port pairs we're currently
         trying to connect to or have connected to. If we are told to connect to
@@ -253,12 +253,12 @@ public:
     is no `run_t` in existence. */
     class message_handler_t {
     public:
-        cluster_manager_t *get_cluster_manager() { return cluster_manager; }
+        connectivity_cluster_t *get_connectivity_cluster() { return connectivity_cluster; }
         message_tag_t get_message_tag() { return tag; }
 
     protected:
         /* Registers the message handler with the cluster */
-        message_handler_t(cluster_manager_t *cluster_manager, message_tag_t tag);
+        message_handler_t(connectivity_cluster_t *connectivity_cluster, message_tag_t tag);
         virtual ~message_handler_t();
 
         /* This can be called on any thread. */
@@ -275,13 +275,13 @@ public:
                                       std::vector<char> &&data);
 
     private:
-        friend class cluster_manager_t;
-        cluster_manager_t *cluster_manager;
+        friend class connectivity_cluster_t;
+        connectivity_cluster_t *connectivity_cluster;
         const message_tag_t tag;
     };
 
-    cluster_manager_t() THROWS_NOTHING;
-    ~cluster_manager_t() THROWS_NOTHING;
+    connectivity_cluster_t() THROWS_NOTHING;
+    ~connectivity_cluster_t() THROWS_NOTHING;
 
     peer_id_t get_me() THROWS_NOTHING;
 
@@ -326,7 +326,7 @@ private:
     perfmon_collection_t connectivity_collection;
     perfmon_membership_t stats_membership;
 
-    DISABLE_COPYING(cluster_manager_t);
+    DISABLE_COPYING(connectivity_cluster_t);
 };
 
 #endif /* RPC_CONNECTIVITY_CLUSTER_HPP_ */

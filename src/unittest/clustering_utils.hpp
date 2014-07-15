@@ -217,22 +217,22 @@ inline std::string mc_key_gen() {
 class simple_mailbox_cluster_t {
 public:
     simple_mailbox_cluster_t() :
-        mailbox_manager(&cluster_manager, 'M'),
-        cluster_manager_run(&cluster_manager,
-                            get_unittest_addresses(),
-                            peer_address_t(),
-                            ANY_PORT, 0)
+        mailbox_manager(&connectivity_cluster, 'M'),
+        connectivity_cluster_run(&connectivity_cluster,
+                                 get_unittest_addresses(),
+                                 peer_address_t(),
+                                 ANY_PORT, 0)
         { }
-    cluster_manager_t *get_cluster_manager() {
-        return &cluster_manager;
+    connectivity_cluster_t *get_connectivity_cluster() {
+        return &connectivity_cluster;
     }
     mailbox_manager_t *get_mailbox_manager() {
         return &mailbox_manager;
     }
 private:
-    cluster_manager_t cluster_manager;
+    connectivity_cluster_t connectivity_cluster;
     mailbox_manager_t mailbox_manager;
-    cluster_manager_t::run_t cluster_manager_run;
+    connectivity_cluster_t::run_t connectivity_cluster_run;
 };
 
 #ifndef NDEBUG
@@ -255,9 +255,9 @@ private:
 };
 #endif
 
-inline peer_address_t get_cluster_local_address(cluster_manager_t *cm) {
+inline peer_address_t get_cluster_local_address(connectivity_cluster_t *cm) {
     auto_drainer_t::lock_t connection_keepalive;
-    cluster_manager_t::connection_t *loopback = cm->get_connection(cm->get_me(), &connection_keepalive);
+    connectivity_cluster_t::connection_t *loopback = cm->get_connection(cm->get_me(), &connection_keepalive);
     guarantee(loopback != NULL);
     return loopback->get_peer_address();
 }
