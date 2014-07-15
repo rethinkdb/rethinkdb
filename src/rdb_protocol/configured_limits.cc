@@ -17,7 +17,7 @@ from_optargs(const std::map<std::string, wire_func_t> &arguments)
         rdb_context_t context;
         env_t env(&context, &cond, std::map<std::string, wire_func_t>(),
                   profile_bool_t::DONT_PROFILE);
-        return configured_limits_t((*p).second.compile_wire_func()->call(&env)->as_int());
+        return configured_limits_t(p->second.compile_wire_func()->call(&env)->as_int());
     } else {
         return configured_limits_t();
     }
