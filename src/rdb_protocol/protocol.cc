@@ -421,14 +421,14 @@ region_t read_t::get_region() const THROWS_NOTHING {
 
 struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     explicit rdb_r_shard_visitor_t(const hash_region_t<key_range_t> *_region,
-                                   profile_bool_t _profile, read_t *_read_out)
-        : region(_region), profile(_profile), read_out(_read_out) { }
+                                   read_t *_read_out)
+        : region(_region), read_out(_read_out) { }
 
     // The key was somehow already extracted from the arg.
     template <class T>
     bool keyed_read(const T &arg, const store_key_t &key) const {
         if (region_contains_key(*region, key)) {
-            *read_out = read_t(arg, profile, read_out->limits);
+            read_out->read = arg;
             return true;
         } else {
             return false;
@@ -446,7 +446,7 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
         if (!region_is_empty(intersection)) {
             T tmp = arg;
             tmp.region = intersection;
-            *read_out = read_t(tmp, profile, read_out->limits);
+            read_out->read = tmp;
             return true;
         } else {
             return false;
@@ -487,13 +487,12 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     }
 
     const hash_region_t<key_range_t> *region;
-    profile_bool_t profile;
     read_t *read_out;
 };
 
 bool read_t::shard(const hash_region_t<key_range_t> &region,
                    read_t *read_out) const THROWS_NOTHING {
-    return boost::apply_visitor(rdb_r_shard_visitor_t(&region, profile, read_out), read);
+    return boost::apply_visitor(rdb_r_shard_visitor_t(&region, read_out), read);
 }
 
 /* A visitor to handle this unsharding process for us. */
@@ -850,18 +849,13 @@ region_t write_t::get_region() const THROWS_NOTHING {
 /* write_t::shard implementation */
 
 struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
-    rdb_w_shard_visitor_t(const region_t *_region,
-                          durability_requirement_t _durability_requirement,
-                          profile_bool_t _profile, write_t *_write_out)
-        : region(_region),
-          durability_requirement(_durability_requirement),
-          profile(_profile), write_out(_write_out) {}
+    rdb_w_shard_visitor_t(const region_t *_region, write_t *_write_out)
+        : region(_region), write_out(_write_out) {}
 
     template <class T>
     bool keyed_write(const T &arg) const {
         if (region_contains_key(*region, arg.key)) {
-            *write_out = write_t(arg, durability_requirement,
-                                 profile, write_out->limits);
+            write_out->write = arg;
             return true;
         } else {
             return false;
@@ -876,16 +870,9 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
             }
         }
         if (!shard_keys.empty()) {
-            *write_out = write_t(
-                batched_replace_t(
-                    std::move(shard_keys),
-                    br.pkey,
-                    br.f.compile_wire_func(),
-                    br.optargs,
-                    br.return_vals),
-                durability_requirement,
-                profile,
-                write_out->limits);
+            write_out->write = batched_replace_t(std::move(shard_keys), br.pkey,
+                                                br.f.compile_wire_func(), br.optargs,
+                                                br.return_vals);
             return true;
         } else {
             return false;
@@ -901,13 +888,8 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
             }
         }
         if (!shard_inserts.empty()) {
-            *write_out = write_t(
-                batched_insert_t(
-                    std::move(shard_inserts), bi.pkey, bi.conflict_behavior,
-                    bi.return_vals),
-                durability_requirement,
-                profile,
-                write_out->limits);
+            write_out->write = batched_insert_t(std::move(shard_inserts), bi.pkey,
+                                               bi.conflict_behavior, bi.return_vals);
             return true;
         } else {
             return false;
@@ -929,8 +911,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         if (!region_is_empty(intersection)) {
             T tmp = arg;
             tmp.region = intersection;
-            *write_out = write_t(tmp, durability_requirement, profile,
-                                           write_out->limits);
+            write_out->write = tmp;
             return true;
         } else {
             return false;
@@ -950,14 +931,12 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
     }
 
     const region_t *region;
-    durability_requirement_t durability_requirement;
-    profile_bool_t profile;
     write_t *write_out;
 };
 
 bool write_t::shard(const region_t &region,
                     write_t *write_out) const THROWS_NOTHING {
-    const rdb_w_shard_visitor_t v(&region, durability_requirement, profile, write_out);
+    const rdb_w_shard_visitor_t v(&region, write_out);
     return boost::apply_visitor(v, write);
 }
 
