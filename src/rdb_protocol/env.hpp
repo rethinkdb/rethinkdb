@@ -48,6 +48,8 @@ class client_t;
 
 profile_bool_t profile_bool_optarg(const protob_t<Query> &query);
 
+scoped_ptr_t<profile::trace_t> maybe_make_profile_trace(profile_bool_t profile);
+
 class env_t : public home_thread_mixin_t {
 public:
     env_t(rdb_context_t *ctx, signal_t *interruptor,

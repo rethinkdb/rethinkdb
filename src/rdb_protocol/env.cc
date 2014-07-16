@@ -141,6 +141,12 @@ js_runner_t *env_t::get_js_runner() {
     return &js_runner;
 }
 
+scoped_ptr_t<profile::trace_t> maybe_make_profile_trace(profile_bool_t profile) {
+    return profile == profile_bool_t::PROFILE
+        ? make_scoped<profile::trace_t>()
+        : scoped_ptr_t<profile::trace_t>();
+}
+
 env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
              std::map<std::string, wire_func_t> optargs,
              profile_bool_t profile)
@@ -148,9 +154,7 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
       global_optargs(std::move(optargs)),
       limits(from_optargs(ctx, _interruptor, optargs)),
       interruptor(_interruptor),
-      trace(profile == profile_bool_t::PROFILE
-            ? make_scoped<profile::trace_t>()
-            : scoped_ptr_t<profile::trace_t>()),
+      trace(maybe_make_profile_trace(profile)),
       rdb_ctx(ctx),
       eval_callback(NULL) {
     rassert(ctx != NULL);

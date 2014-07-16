@@ -89,23 +89,26 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
     class dump_event_log_t {
     public:
-        explicit dump_event_log_t(rdb_read_visitor_t *_v)
-            : v(_v) { }
+        dump_event_log_t(rdb_read_visitor_t *_v,
+                         profile::trace_t *_trace_or_null)
+            : v(_v), trace_or_null(_trace_or_null) { }
 
         ~dump_event_log_t() {
-            if (v->ql_env.trace.has()) {
-                v->event_log_out = std::move(*v->ql_env.trace).extract_event_log();
+            if (trace_or_null != nullptr) {
+                v->event_log_out = std::move(*trace_or_null).extract_event_log();
             }
         }
 
     private:
         rdb_read_visitor_t *v;
+        profile::trace_t *trace_or_null;
     };
 
 
     void operator()(const changefeed_subscribe_t &s) {
-        dump_event_log_t dump(this);
-        profile::starter_t start_read("Perform read on shard.", ql_env.trace);
+        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
+        dump_event_log_t dump(this, trace.get_or_null());
+        profile::starter_t start_read("Perform read on shard.", trace);
 
         guarantee(store->changefeed_server.has());
         store->changefeed_server->add_client(s.addr);
@@ -117,8 +120,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const changefeed_stamp_t &s) {
-        dump_event_log_t dump(this);
-        profile::starter_t start_read("Perform read on shard.", ql_env.trace);
+        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
+        dump_event_log_t dump(this, trace.get_or_null());
+        profile::starter_t start_read("Perform read on shard.", trace);
 
         guarantee(store->changefeed_server.has());
         response->response = changefeed_stamp_response_t();
@@ -140,17 +144,21 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const point_read_t &get) {
-        dump_event_log_t dump(this);
-        profile::starter_t start_read("Perform read on shard.", ql_env.trace);
+        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
+        dump_event_log_t dump(this, trace.get_or_null());
+        profile::starter_t start_read("Perform read on shard.", trace);
 
         response->response = point_read_response_t();
         point_read_response_t *res =
             boost::get<point_read_response_t>(&response->response);
-        rdb_get(get.key, btree, superblock, res, ql_env.trace.get_or_null());
+        rdb_get(get.key, btree, superblock, res, trace.get_or_null());
     }
 
     void operator()(const rget_read_t &rget) {
-        dump_event_log_t dump(this);
+        // RSI: Pass global optargs directly.
+        ql::env_t ql_env(ctx, interruptor, std::map<std::string, ql::wire_func_t>(),
+                         profile);
+        dump_event_log_t dump(this, ql_env.trace.get_or_null());
         profile::starter_t start_read("Perform read on shard.", ql_env.trace);
 
         if (rget.transforms.size() != 0 || rget.terminal) {
@@ -215,8 +223,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const distribution_read_t &dg) {
-        dump_event_log_t dump(this);
-        profile::starter_t start_read("Perform read on shard.", ql_env.trace);
+        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
+        dump_event_log_t dump(this, trace.get_or_null());
+        profile::starter_t start_read("Perform read on shard.", trace);
 
         response->response = distribution_read_response_t();
         distribution_read_response_t *res = boost::get<distribution_read_response_t>(&response->response);
@@ -241,8 +250,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(UNUSED const sindex_list_t &sinner) {
-        dump_event_log_t dump(this);
-        profile::starter_t start_read("Perform read on shard.", ql_env.trace);
+        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
+        dump_event_log_t dump(this, trace.get_or_null());
+        profile::starter_t start_read("Perform read on shard.", trace);
 
         response->response = sindex_list_response_t();
         sindex_list_response_t *res = &boost::get<sindex_list_response_t>(response->response);
@@ -266,8 +276,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_status_t &sindex_status) {
-        dump_event_log_t dump(this);
-        profile::starter_t start_read("Perform read on shard.", ql_env.trace);
+        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
+        dump_event_log_t dump(this, trace.get_or_null());
+        profile::starter_t start_read("Perform read on shard.", trace);
 
         response->response = sindex_status_response_t();
         auto res = &boost::get<sindex_status_response_t>(response->response);
@@ -310,17 +321,19 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     rdb_read_visitor_t(btree_slice_t *_btree,
                        store_t *_store,
                        superblock_t *_superblock,
-                       rdb_context_t *ctx,
+                       rdb_context_t *_ctx,
                        read_response_t *_response,
-                       profile_bool_t profile,
-                       signal_t *interruptor) :
+                       profile_bool_t _profile,
+                       signal_t *_interruptor) :
         response(_response),
+        ctx(_ctx),
+        interruptor(_interruptor),
         btree(_btree),
         store(_store),
         superblock(_superblock),
-        ql_env(ctx, interruptor, std::map<std::string, ql::wire_func_t>(),
-               profile)
-    { }
+        profile(_profile)
+    {
+    }
 
     profile::event_log_t extract_event_log() {
         return std::move(event_log_out);
@@ -328,10 +341,12 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
 private:
     read_response_t *const response;
+    rdb_context_t *const ctx;
+    signal_t *const interruptor;
     btree_slice_t *const btree;
     store_t *const store;
     superblock_t *const superblock;
-    ql::env_t ql_env;
+    const profile_bool_t profile;
     profile::event_log_t event_log_out;
 
     DISABLE_COPYING(rdb_read_visitor_t);
@@ -344,9 +359,7 @@ void store_t::protocol_read(const read_t &read,
     rdb_read_visitor_t v(btree.get(), this,
                          superblock,
                          ctx, response, read.profile, interruptor);
-    {
-        boost::apply_visitor(v, read.read);
-    }
+    boost::apply_visitor(v, read.read);
 
     response->n_shards = 1;
     response->event_log = v.extract_event_log();
