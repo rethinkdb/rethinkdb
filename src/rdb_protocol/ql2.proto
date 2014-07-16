@@ -655,19 +655,17 @@ message Term {
 
         BINARY = 155; // STRING -> PSEUDOTYPE(BINARY)
 
-        // TODO! document
-        GEOJSON = 156;
-        TOGEOJSON = 157;
-        POINT = 158;
-        LINE = 159;
-        POLYGON = 160;
-        DISTANCE = 161;
-        INTERSECTS = 162;
-        INCLUDES = 163;
-        CIRCLE = 164;
-        RECTANGLE = 165;
-        GET_INTERSECTING = 166;
-
+        GEOJSON = 156;           // OBJECT -> PSEUDOTYPE(GEOMETRY)
+        TOGEOJSON = 157;         // PSEUDOTYPE(GEOMETRY) -> OBJECT
+        POINT = 158;             // NUMBER, NUMBER -> PSEUDOTYPE(GEOMETRY)
+        LINE = 159;              // ARRAY -> PSEUDOTYPE(GEOMETRY)
+        POLYGON = 160;           // ARRAY -> PSEUDOTYPE(GEOMETRY)
+        DISTANCE = 161;          // PSEUDOTYPE(GEOMETRY), PSEUDOTYPE(GEOMETRY) {geo_system:STRING, unit:STRING} -> NUMBER
+        INTERSECTS = 162;        // PSEUDOTYPE(GEOMETRY), PSEUDOTYPE(GEOMETRY) -> BOOL
+        INCLUDES = 163;          // PSEUDOTYPE(GEOMETRY), PSEUDOTYPE(GEOMETRY) -> BOOL
+        CIRCLE = 164;            // PSEUDOTYPE(GEOMETRY), NUMBER {num_vertices:NUMBER, geo_system:STRING, unit:STRING, fill:BOOL} -> PSEUDOTYPE(GEOMETRY)
+        RECTANGLE = 165;         // PSEUDOTYPE(GEOMETRY), PSEUDOTYPE(GEOMETRY) {fill:BOOL} -> PSEUDOTYPE(GEOMETRY)
+        GET_INTERSECTING = 166;  // TABLE, PSEUDOTYPE(GEOMETRY) {index:!STRING} -> ARRAY
     }
     optional TermType type = 1;
 
