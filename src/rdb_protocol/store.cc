@@ -106,6 +106,12 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
 
     void operator()(const changefeed_subscribe_t &s) {
+        // Things would be cleaner if the env_t constructor took an external
+        // `profile::trace *` instead of making its own -- because each method here
+        // wouldn't have to construct its own trace variable and dump_event_log_t
+        // variable.  The only reason this isn't done already is to avoid an
+        // impending merge conflict, so you're welcome to do it.
+
         scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
         dump_event_log_t dump(this, trace.get_or_null());
         profile::starter_t start_read("Perform read on shard.", trace);
