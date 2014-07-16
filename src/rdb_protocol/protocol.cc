@@ -1109,6 +1109,27 @@ RDB_IMPL_SERIALIZABLE_4(
     write_t, write, durability_requirement, profile, optargs);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(write_t);
 
+template <>
+void serialize<cluster_version_t::v1_13>(write_message_t *s, const write_t &w) {
+    serialize<cluster_version_t::v1_13>(s, w.write);
+    serialize<cluster_version_t::v1_13>(s, w.durability_requirement);
+    serialize<cluster_version_t::v1_13>(s, w.profile);
+}
+
+template <>
+archive_result_t deserialize<cluster_version_t::v1_13>(read_stream_t *s, write_t *w) {
+    archive_result_t res = archive_result_t::SUCCESS;
+    res = deserialize<cluster_version_t::v1_13>(s, deserialize_deref(w->write));
+    if (bad(res)) { return res; }
+    res = deserialize<cluster_version_t::v1_13>(s, deserialize_deref(w->durability_requirement));
+    if (bad(res)) { return res; }
+    res = deserialize<cluster_version_t::v1_13>(s, deserialize_deref(w->profile));
+    if (bad(res)) { return res; }
+    // N.B.: leave optargs as default, since we don't have sufficient
+    // information to recreate them and shouldn't, even if we did.
+    return res;
+}
+
 // Serialization format changed in 1.13.2. We only support the latest version,
 // since this is a cluster-only type.
 RDB_IMPL_SERIALIZABLE_2(backfill_chunk_t::delete_key_t, key, recency);
