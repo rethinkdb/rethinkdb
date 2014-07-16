@@ -88,8 +88,6 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const changefeed_subscribe_t &s) {
-        profile::starter_t start_read("Perform read on shard.", trace);
-
         guarantee(store->changefeed_server.has());
         store->changefeed_server->add_client(s.addr);
         response->response = changefeed_subscribe_response_t();
@@ -100,8 +98,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const changefeed_stamp_t &s) {
-        profile::starter_t start_read("Perform read on shard.", trace);
-
         guarantee(store->changefeed_server.has());
         response->response = changefeed_stamp_response_t();
         auto res = boost::get<changefeed_stamp_response_t>(&response->response);
@@ -122,8 +118,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const point_read_t &get) {
-        profile::starter_t start_read("Perform read on shard.", trace);
-
         response->response = point_read_response_t();
         point_read_response_t *res =
             boost::get<point_read_response_t>(&response->response);
@@ -139,7 +133,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         }
 
         ql::env_t ql_env(ctx, interruptor, rget.optargs, trace);
-        profile::starter_t start_read("Perform read on shard.", trace);
 
         response->response = rget_read_response_t();
         rget_read_response_t *res =
@@ -196,8 +189,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const distribution_read_t &dg) {
-        profile::starter_t start_read("Perform read on shard.", trace);
-
         response->response = distribution_read_response_t();
         distribution_read_response_t *res = boost::get<distribution_read_response_t>(&response->response);
         rdb_distribution_get(dg.max_depth, dg.region.inner.left,
@@ -221,8 +212,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(UNUSED const sindex_list_t &sinner) {
-        profile::starter_t start_read("Perform read on shard.", trace);
-
         response->response = sindex_list_response_t();
         sindex_list_response_t *res = &boost::get<sindex_list_response_t>(response->response);
 
@@ -245,8 +234,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_status_t &sindex_status) {
-        profile::starter_t start_read("Perform read on shard.", trace);
-
         response->response = sindex_status_response_t();
         auto res = &boost::get<sindex_status_response_t>(response->response);
 
@@ -320,10 +307,13 @@ void store_t::protocol_read(const read_t &read,
                             signal_t *interruptor) {
     scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(read.profile);
 
-    rdb_read_visitor_t v(btree.get(), this,
-                         superblock,
-                         ctx, response, trace.get_or_null(), interruptor);
-    boost::apply_visitor(v, read.read);
+    {
+        profile::starter_t start_read("Perform read on shard.", trace);
+        rdb_read_visitor_t v(btree.get(), this,
+                             superblock,
+                             ctx, response, trace.get_or_null(), interruptor);
+        boost::apply_visitor(v, read.read);
+    }
 
     response->n_shards = 1;
     if (trace.has()) {
@@ -387,7 +377,6 @@ private:
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const batched_replace_t &br) {
         ql::env_t ql_env(ctx, interruptor, br.optargs, trace);
-        profile::starter_t start_write("Perform write on shard.", trace);
         rdb_modification_report_cb_t sindex_cb(
             store, &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));
@@ -397,14 +386,11 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                 btree_info_t(btree, timestamp,
                              &br.pkey),
                 superblock, br.keys, ql_env.limits, &replacer, &sindex_cb,
-                ql_env.trace.get_or_null());
+                trace);
     }
 
     void operator()(const batched_insert_t &bi) {
         ql::env_t ql_env(ctx, interruptor, bi.optargs, profile);
-        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
-        dump_event_log_t dump(this, trace.get_or_null());
-        profile::starter_t start_write("Perform write on shard.", trace);
         rdb_modification_report_cb_t sindex_cb(
             store,
             &sindex_block,
@@ -420,11 +406,10 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                 btree_info_t(btree, timestamp,
                              &bi.pkey),
                 superblock, keys, ql_env.limits, &replacer, &sindex_cb,
-                ql_env.trace.get_or_null());
+                trace);
     }
 
     void operator()(const point_write_t &w) {
-        profile::starter_t start_write("Perform write on shard.", trace);
         response->response = point_write_response_t();
         point_write_response_t *res =
             boost::get<point_write_response_t>(&response->response);
@@ -438,7 +423,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const point_delete_t &d) {
-        profile::starter_t start_write("Perform write on shard.", trace);
         response->response = point_delete_response_t();
         point_delete_response_t *res =
             boost::get<point_delete_response_t>(&response->response);
@@ -452,7 +436,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_create_t &c) {
-        profile::starter_t start_write("Perform write on shard.", trace);
         sindex_create_response_t res;
 
         write_message_t wm;
@@ -480,7 +463,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_drop_t &d) {
-        profile::starter_t start_write("Perform write on shard.", trace);
         sindex_drop_response_t res;
         res.success = store->drop_sindex(sindex_name_t(d.id), std::move(sindex_block));
 
@@ -488,7 +470,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sync_t &) {
-        profile::starter_t start_write("Perform write on shard.", trace);
         response->response = sync_response_t();
 
         // We know this sync_t operation will force all preceding write transactions
@@ -554,16 +535,17 @@ void store_t::protocol_write(const write_t &write,
                              signal_t *interruptor) {
     scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(write.profile);
 
-    rdb_write_visitor_t v(btree.get(),
-                          this,
-                          (*superblock)->expose_buf().txn(),
-                          superblock,
-                          timestamp.to_repli_timestamp(),
-                          ctx,
-                          trace.get_or_null(),
-                          response,
-                          interruptor);
     {
+        profile::starter_t start_write("Perform write on shard.", trace);
+        rdb_write_visitor_t v(btree.get(),
+                              this,
+                              (*superblock)->expose_buf().txn(),
+                              superblock,
+                              timestamp.to_repli_timestamp(),
+                              ctx,
+                              trace.get_or_null(),
+                              response,
+                              interruptor);
         boost::apply_visitor(v, write.write);
     }
 
