@@ -157,9 +157,6 @@ S2Point position_to_s2point(const counted_t<const datum_t> &position) {
         throw geo_range_exception_t(
             strprintf("Latitude must be between -90 and 90. Got %f.", p.first));
     }
-    if (p.first == 90.0) {
-        p.first = -90.0;
-    }
 
     S2LatLng lat_lng(S1Angle::Degrees(p.first), S1Angle::Degrees(p.second));
     return lat_lng.ToPoint();
