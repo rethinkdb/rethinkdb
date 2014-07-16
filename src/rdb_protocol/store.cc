@@ -87,33 +87,7 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
 
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
-    class dump_event_log_t {
-    public:
-        dump_event_log_t(rdb_read_visitor_t *_v,
-                         profile::trace_t *_trace_or_null)
-            : v(_v), trace_or_null(_trace_or_null) { }
-
-        ~dump_event_log_t() {
-            if (trace_or_null != nullptr) {
-                v->event_log_out = std::move(*trace_or_null).extract_event_log();
-            }
-        }
-
-    private:
-        rdb_read_visitor_t *const v;
-        profile::trace_t *const trace_or_null;
-    };
-
-
     void operator()(const changefeed_subscribe_t &s) {
-        // Things would be cleaner if the env_t constructor took an external
-        // `profile::trace *` instead of making its own -- because each method here
-        // wouldn't have to construct its own trace variable and dump_event_log_t
-        // variable.  The only reason this isn't done already is to avoid an
-        // impending merge conflict, so you're welcome to do it.
-
-        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
-        dump_event_log_t dump(this, trace.get_or_null());
         profile::starter_t start_read("Perform read on shard.", trace);
 
         guarantee(store->changefeed_server.has());
@@ -126,8 +100,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const changefeed_stamp_t &s) {
-        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
-        dump_event_log_t dump(this, trace.get_or_null());
         profile::starter_t start_read("Perform read on shard.", trace);
 
         guarantee(store->changefeed_server.has());
@@ -150,14 +122,12 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const point_read_t &get) {
-        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
-        dump_event_log_t dump(this, trace.get_or_null());
         profile::starter_t start_read("Perform read on shard.", trace);
 
         response->response = point_read_response_t();
         point_read_response_t *res =
             boost::get<point_read_response_t>(&response->response);
-        rdb_get(get.key, btree, superblock, res, trace.get_or_null());
+        rdb_get(get.key, btree, superblock, res, trace);
     }
 
     void operator()(const rget_read_t &rget) {
@@ -168,10 +138,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             rassert(rget.optargs.size() != 0);
         }
 
-        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
-        ql::env_t ql_env(ctx, interruptor, rget.optargs, trace.get_or_null());
-        dump_event_log_t dump(this, trace.get_or_null());
-        profile::starter_t start_read("Perform read on shard.", ql_env.trace);
+        ql::env_t ql_env(ctx, interruptor, rget.optargs, trace);
+        profile::starter_t start_read("Perform read on shard.", trace);
 
         response->response = rget_read_response_t();
         rget_read_response_t *res =
@@ -228,8 +196,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const distribution_read_t &dg) {
-        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
-        dump_event_log_t dump(this, trace.get_or_null());
         profile::starter_t start_read("Perform read on shard.", trace);
 
         response->response = distribution_read_response_t();
@@ -255,8 +221,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(UNUSED const sindex_list_t &sinner) {
-        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
-        dump_event_log_t dump(this, trace.get_or_null());
         profile::starter_t start_read("Perform read on shard.", trace);
 
         response->response = sindex_list_response_t();
@@ -281,8 +245,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_status_t &sindex_status) {
-        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
-        dump_event_log_t dump(this, trace.get_or_null());
         profile::starter_t start_read("Perform read on shard.", trace);
 
         response->response = sindex_status_response_t();
@@ -328,7 +290,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                        superblock_t *_superblock,
                        rdb_context_t *_ctx,
                        read_response_t *_response,
-                       profile_bool_t _profile,
+                       profile::trace_t *_trace,
                        signal_t *_interruptor) :
         response(_response),
         ctx(_ctx),
@@ -336,12 +298,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         btree(_btree),
         store(_store),
         superblock(_superblock),
-        profile(_profile)
+        trace(_trace)
     {
-    }
-
-    profile::event_log_t extract_event_log() {
-        return std::move(event_log_out);
     }
 
 private:
@@ -351,8 +309,7 @@ private:
     btree_slice_t *const btree;
     store_t *const store;
     superblock_t *const superblock;
-    const profile_bool_t profile;
-    profile::event_log_t event_log_out;
+    profile::trace_t *const trace;
 
     DISABLE_COPYING(rdb_read_visitor_t);
 };
@@ -361,15 +318,21 @@ void store_t::protocol_read(const read_t &read,
                             read_response_t *response,
                             superblock_t *superblock,
                             signal_t *interruptor) {
+    scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(read.profile);
+
     rdb_read_visitor_t v(btree.get(), this,
                          superblock,
-                         ctx, response, read.profile, interruptor);
+                         ctx, response, trace.get_or_null(), interruptor);
     boost::apply_visitor(v, read.read);
 
     response->n_shards = 1;
-    response->event_log = v.extract_event_log();
+    if (trace.has()) {
+        response->event_log = std::move(*trace).extract_event_log();
+    }
     // This is a tad hacky, this just adds a stop event to signal the end of the
     // parallel task.
+
+    // TODO: Is this is the right thing to do if profiling's not enabled?
     response->event_log.push_back(profile::stop_t());
 }
 
@@ -422,28 +385,9 @@ private:
 };
 
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
-    class dump_event_log_t {
-    public:
-        dump_event_log_t(rdb_write_visitor_t *_v,
-                         profile::trace_t *_trace_or_null)
-            : v(_v), trace_or_null(_trace_or_null) { }
-
-        ~dump_event_log_t() {
-            if (trace_or_null != nullptr) {
-                v->event_log_out = std::move(*trace_or_null).extract_event_log();
-            }
-        }
-
-    private:
-        rdb_write_visitor_t *const v;
-        profile::trace_t *const trace_or_null;
-    };
-
     void operator()(const batched_replace_t &br) {
-        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
-        ql::env_t ql_env(ctx, interruptor, br.optargs, trace.get_or_null());
-        dump_event_log_t dump(this, trace.get_or_null());
-        profile::starter_t start_write("Perform write on shard.", ql_env.trace);
+        ql::env_t ql_env(ctx, interruptor, br.optargs, trace);
+        profile::starter_t start_write("Perform write on shard.", trace);
         rdb_modification_report_cb_t sindex_cb(
             store, &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));
@@ -480,8 +424,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const point_write_t &w) {
-        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
-        dump_event_log_t dump(this, trace.get_or_null());
         profile::starter_t start_write("Perform write on shard.", trace);
         response->response = point_write_response_t();
         point_write_response_t *res =
@@ -490,14 +432,12 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         rdb_live_deletion_context_t deletion_context;
         rdb_modification_report_t mod_report(w.key);
         rdb_set(w.key, w.data, w.overwrite, btree, timestamp, superblock->get(),
-                &deletion_context, res, &mod_report.info, trace.get_or_null());
+                &deletion_context, res, &mod_report.info, trace);
 
         update_sindexes(mod_report);
     }
 
     void operator()(const point_delete_t &d) {
-        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
-        dump_event_log_t dump(this, trace.get_or_null());
         profile::starter_t start_write("Perform write on shard.", trace);
         response->response = point_delete_response_t();
         point_delete_response_t *res =
@@ -506,14 +446,12 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         rdb_live_deletion_context_t deletion_context;
         rdb_modification_report_t mod_report(d.key);
         rdb_delete(d.key, btree, timestamp, superblock->get(), &deletion_context,
-                res, &mod_report.info, trace.get_or_null());
+                res, &mod_report.info, trace);
 
         update_sindexes(mod_report);
     }
 
     void operator()(const sindex_create_t &c) {
-        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
-        dump_event_log_t dump(this, trace.get_or_null());
         profile::starter_t start_write("Perform write on shard.", trace);
         sindex_create_response_t res;
 
@@ -542,8 +480,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_drop_t &d) {
-        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
-        dump_event_log_t dump(this, trace.get_or_null());
         profile::starter_t start_write("Perform write on shard.", trace);
         sindex_drop_response_t res;
         res.success = store->drop_sindex(sindex_name_t(d.id), std::move(sindex_block));
@@ -552,8 +488,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sync_t &) {
-        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
-        dump_event_log_t dump(this, trace.get_or_null());
         profile::starter_t start_write("Perform write on shard.", trace);
         response->response = sync_response_t();
 
@@ -571,7 +505,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                         scoped_ptr_t<superblock_t> *_superblock,
                         repli_timestamp_t _timestamp,
                         rdb_context_t *_ctx,
-                        profile_bool_t _profile,
+                        profile::trace_t *_trace,
                         write_response_t *_response,
                         signal_t *_interruptor) :
         btree(_btree),
@@ -586,10 +520,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         sindex_block =
             store->acquire_sindex_block_for_write((*superblock)->expose_buf(),
                                                   (*superblock)->get_sindex_block_id());
-    }
-
-    profile::event_log_t extract_event_log() {
-        return event_log_out;
     }
 
 private:
@@ -610,7 +540,7 @@ private:
     signal_t *const interruptor;
     scoped_ptr_t<superblock_t> *const superblock;
     const repli_timestamp_t timestamp;
-    const profile_bool_t profile;
+    profile::trace_t *const trace;
     buf_lock_t sindex_block;
     profile::event_log_t event_log_out;
 
@@ -622,13 +552,15 @@ void store_t::protocol_write(const write_t &write,
                              transition_timestamp_t timestamp,
                              scoped_ptr_t<superblock_t> *superblock,
                              signal_t *interruptor) {
+    scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(write.profile);
+
     rdb_write_visitor_t v(btree.get(),
                           this,
                           (*superblock)->expose_buf().txn(),
                           superblock,
                           timestamp.to_repli_timestamp(),
                           ctx,
-                          write.profile,
+                          trace.get_or_null(),
                           response,
                           interruptor);
     {
@@ -636,9 +568,13 @@ void store_t::protocol_write(const write_t &write,
     }
 
     response->n_shards = 1;
-    response->event_log = v.extract_event_log();
+    if (trace.has()) {
+        response->event_log = std::move(*trace).extract_event_log();
+    }
     // This is a tad hacky, this just adds a stop event to signal the end of the
     // parallel task.
+
+    // TODO: Is this the right thing to do if profiling's not enabled?
     response->event_log.push_back(profile::stop_t());
 }
 
