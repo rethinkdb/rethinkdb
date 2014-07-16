@@ -87,7 +87,24 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
 
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
+    class dump_event_log_t {
+    public:
+        explicit dump_event_log_t(rdb_read_visitor_t *_v)
+            : v(_v) { }
+
+        ~dump_event_log_t() {
+            if (v->ql_env.trace.has()) {
+                v->event_log_out = std::move(*v->ql_env.trace).extract_event_log();
+            }
+        }
+
+    private:
+        rdb_read_visitor_t *v;
+    };
+
+
     void operator()(const changefeed_subscribe_t &s) {
+        dump_event_log_t dump(this);
         profile::starter_t start_read("Perform read on shard.", ql_env.trace);
 
         guarantee(store->changefeed_server.has());
@@ -100,6 +117,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const changefeed_stamp_t &s) {
+        dump_event_log_t dump(this);
         profile::starter_t start_read("Perform read on shard.", ql_env.trace);
 
         guarantee(store->changefeed_server.has());
@@ -122,6 +140,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const point_read_t &get) {
+        dump_event_log_t dump(this);
         profile::starter_t start_read("Perform read on shard.", ql_env.trace);
 
         response->response = point_read_response_t();
@@ -131,6 +150,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const rget_read_t &rget) {
+        dump_event_log_t dump(this);
         profile::starter_t start_read("Perform read on shard.", ql_env.trace);
 
         if (rget.transforms.size() != 0 || rget.terminal) {
@@ -195,6 +215,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const distribution_read_t &dg) {
+        dump_event_log_t dump(this);
         profile::starter_t start_read("Perform read on shard.", ql_env.trace);
 
         response->response = distribution_read_response_t();
@@ -220,6 +241,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(UNUSED const sindex_list_t &sinner) {
+        dump_event_log_t dump(this);
         profile::starter_t start_read("Perform read on shard.", ql_env.trace);
 
         response->response = sindex_list_response_t();
@@ -244,6 +266,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_status_t &sindex_status) {
+        dump_event_log_t dump(this);
         profile::starter_t start_read("Perform read on shard.", ql_env.trace);
 
         response->response = sindex_status_response_t();
@@ -299,12 +322,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                profile)
     { }
 
-    profile::event_log_t extract_event_log() {
-        if (ql_env.trace.has()) {
-            return std::move(*ql_env.trace).extract_event_log();
-        } else {
-            return profile::event_log_t();
-        }
+    profile::event_log_t extract_event_log() RVALUE_THIS {
+        return std::move(event_log_out);
     }
 
 private:
@@ -313,6 +332,7 @@ private:
     store_t *const store;
     superblock_t *const superblock;
     ql::env_t ql_env;
+    profile::event_log_t event_log_out;
 
     DISABLE_COPYING(rdb_read_visitor_t);
 };
