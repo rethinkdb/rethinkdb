@@ -197,8 +197,7 @@ public:
            base_namespace_repo_t *ns_repo,
            uuid_u uuid,
            std::string pkey,
-           signal_t *interruptor,
-           const configured_limits_t &limits);
+           signal_t *interruptor);
     ~feed_t();
 
     void add_point_sub(subscription_t *sub,
@@ -753,8 +752,7 @@ feed_t::feed_t(client_t *_client,
                base_namespace_repo_t *ns_repo,
                uuid_u _uuid,
                std::string _pkey,
-               signal_t *interruptor,
-               const configured_limits_t &limits)
+               signal_t *interruptor)
     : pkey(std::move(_pkey)),
       client(_client),
       uuid(_uuid),
@@ -867,8 +865,7 @@ client_t::new_feed(const counted_t<table_t> &tbl, keyspec_t &&keyspec, env_t *en
                 // only be run for the first one.  Rather than mess
                 // about, just use the defaults.
                 auto val = make_scoped<feed_t>(
-                    this, manager, env->ns_repo(), uuid, pkey, &interruptor,
-                    configured_limits_t());
+                    this, manager, env->ns_repo(), uuid, pkey, &interruptor);
                 feed_it = feeds.insert(std::make_pair(uuid, std::move(val))).first;
             }
 
