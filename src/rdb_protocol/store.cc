@@ -100,8 +100,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         }
 
     private:
-        rdb_read_visitor_t *v;
-        profile::trace_t *trace_or_null;
+        rdb_read_visitor_t *const v;
+        profile::trace_t *const trace_or_null;
     };
 
 
@@ -421,7 +421,26 @@ private:
 };
 
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
+    class dump_event_log_t {
+    public:
+        dump_event_log_t(rdb_write_visitor_t *_v,
+                         profile::trace_t *_trace_or_null)
+            : v(_v), trace_or_null(_trace_or_null) { }
+
+        ~dump_event_log_t() {
+            if (trace_or_null != nullptr) {
+                v->event_log_out = std::move(*trace_or_null).extract_event_log();
+            }
+        }
+
+    private:
+        rdb_write_visitor_t *const v;
+        profile::trace_t *const trace_or_null;
+    };
+
     void operator()(const batched_replace_t &br) {
+        dump_event_log_t dump(this, ql_env.trace.get_or_null());
+        profile::starter_t start_write("Perform write on shard.", ql_env.trace);
         ql_env.global_optargs.init_optargs(br.optargs);
         rdb_modification_report_cb_t sindex_cb(
             store, &sindex_block,
@@ -436,6 +455,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const batched_insert_t &bi) {
+        dump_event_log_t dump(this, ql_env.trace.get_or_null());
+        profile::starter_t start_write("Perform write on shard.", ql_env.trace);
         rdb_modification_report_cb_t sindex_cb(
             store,
             &sindex_block,
@@ -455,6 +476,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const point_write_t &w) {
+        dump_event_log_t dump(this, ql_env.trace.get_or_null());
+        profile::starter_t start_write("Perform write on shard.", ql_env.trace);
         response->response = point_write_response_t();
         point_write_response_t *res =
             boost::get<point_write_response_t>(&response->response);
@@ -468,6 +491,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const point_delete_t &d) {
+        dump_event_log_t dump(this, ql_env.trace.get_or_null());
+        profile::starter_t start_write("Perform write on shard.", ql_env.trace);
         response->response = point_delete_response_t();
         point_delete_response_t *res =
             boost::get<point_delete_response_t>(&response->response);
@@ -481,6 +506,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_create_t &c) {
+        dump_event_log_t dump(this, ql_env.trace.get_or_null());
+        profile::starter_t start_write("Perform write on shard.", ql_env.trace);
         sindex_create_response_t res;
 
         write_message_t wm;
@@ -508,6 +535,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_drop_t &d) {
+        dump_event_log_t dump(this, ql_env.trace.get_or_null());
+        profile::starter_t start_write("Perform write on shard.", ql_env.trace);
         sindex_drop_response_t res;
         res.success = store->drop_sindex(sindex_name_t(d.id), std::move(sindex_block));
 
@@ -515,6 +544,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sync_t &) {
+        dump_event_log_t dump(this, ql_env.trace.get_or_null());
+        profile::starter_t start_write("Perform write on shard.", ql_env.trace);
         response->response = sync_response_t();
 
         // We know this sync_t operation will force all preceding write transactions
@@ -549,16 +580,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                                                   (*superblock)->get_sindex_block_id());
     }
 
-    ql::env_t *get_env() {
-        return &ql_env;
-    }
-
     profile::event_log_t extract_event_log() {
-        if (ql_env.trace.has()) {
-            return std::move(*ql_env.trace).extract_event_log();
-        } else {
-            return profile::event_log_t();
-        }
+        return event_log_out;
     }
 
 private:
@@ -580,6 +603,7 @@ private:
     ql::env_t ql_env;
     buf_lock_t sindex_block;
     const ql::configured_limits_t &limits;
+    profile::event_log_t event_log_out;
 
     DISABLE_COPYING(rdb_write_visitor_t);
 };
@@ -602,7 +626,6 @@ void store_t::protocol_write(const write_t &write,
                           response,
                           interruptor, limits);
     {
-        profile::starter_t start_write("Perform write on shard.", v.get_env()->trace);
         boost::apply_visitor(v, write.write);
     }
 
