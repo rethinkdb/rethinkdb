@@ -129,7 +129,7 @@ void write_to_broadcaster(size_t value_padding_length,
                 true),
             DURABILITY_REQUIREMENT_DEFAULT,
             profile_bool_t::PROFILE,
-            ql::configured_limits_t());
+            std::map<std::string, ql::wire_func_t>());
 
     fake_fifo_enforcement_t enforce;
     fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
@@ -212,8 +212,7 @@ void run_backfill_test(size_t value_padding_length,
 
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
-        read_t read(point_read_t(store_key_t(it->first)), profile_bool_t::PROFILE,
-                    ql::configured_limits_t());
+        read_t read(point_read_t(store_key_t(it->first)), profile_bool_t::PROFILE);
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
         cond_t non_interruptor;
@@ -268,7 +267,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
         ql::map_wire_func_t m(mapping, make_vector(one), get_backtrace(mapping));
 
         write_t write(sindex_create_t(id, m, sindex_multi_bool_t::SINGLE),
-                      profile_bool_t::PROFILE, ql::configured_limits_t());
+                      profile_bool_t::PROFILE, std::map<std::string, ql::wire_func_t>());
 
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_write_t exiter(

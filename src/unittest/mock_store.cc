@@ -14,13 +14,12 @@ write_t mock_overwrite(std::string key, std::string value) {
                                      make_counted<ql::datum_t>(std::move(m)),
                                      true);
     return write_t(pw, DURABILITY_REQUIREMENT_SOFT, profile_bool_t::DONT_PROFILE,
-                   ql::configured_limits_t());
+                   std::map<std::string, ql::wire_func_t>());
 }
 
 read_t mock_read(std::string key) {
     point_read_t pr((store_key_t(key)));
-    return read_t(pr, profile_bool_t::DONT_PROFILE,
-                  ql::configured_limits_t());
+    return read_t(pr, profile_bool_t::DONT_PROFILE);
 }
 
 std::string mock_parse_read_response(const read_response_t &rr) {
