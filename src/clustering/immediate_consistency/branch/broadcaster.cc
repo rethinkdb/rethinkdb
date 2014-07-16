@@ -19,7 +19,6 @@
 #include "rpc/semilattice/view/member.hpp"
 #include "logger.hpp"
 #include "store_view.hpp"
-#include "rdb_protocol/env.hpp"
 
 broadcaster_t::broadcaster_t(
         mailbox_manager_t *mm,
