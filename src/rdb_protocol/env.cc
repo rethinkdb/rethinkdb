@@ -146,7 +146,7 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
              profile_bool_t profile)
     : evals_since_yield(0),
       global_optargs(std::move(optargs)),
-      limits(from_optargs(optargs)),
+      limits(from_optargs(ctx, _interruptor, optargs)),
       interruptor(_interruptor),
       trace(profile == profile_bool_t::PROFILE
             ? make_scoped<profile::trace_t>()
