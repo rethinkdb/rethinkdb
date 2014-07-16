@@ -221,10 +221,10 @@ private:
             stream_t *stream = &kv->second;
             size += stream->size();
             rcheck_toplevel(
-                size <= env->limits->array_size_limit(), base_exc_t::GENERIC,
+                size <= env->limits.array_size_limit(), base_exc_t::GENERIC,
                 strprintf("Grouped data over size limit %zu.  "
                           "Try putting a reduction (like `.reduce` or `.count`) "
-                          "on the end.", env->limits->array_size_limit()).c_str());
+                          "on the end.", env->limits.array_size_limit()).c_str());
             lst->reserve(lst->size() + stream->size());
             for (auto it = stream->begin(); it != stream->end(); ++it) {
                 lst->push_back(std::move(it->data));
