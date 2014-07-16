@@ -90,6 +90,26 @@ private:
     virtual const char *name() const { return "point"; }
 };
 
+// Accepts either a geometry object of type Point, or an array with two coordinates.
+// We typically want to support both.
+lat_lon_point_t parse_point_argument(const counted_t<const datum_t> &point_datum) {
+    if (point_datum->is_ptype(pseudo::geometry_string)) {
+        // The argument is a point (should be at least, if not this will throw)
+        return extract_lat_lon_point(point_datum);
+    } else {
+        // The argument must be a coordinate pair
+        const std::vector<counted_t<const datum_t> > &point_arr =
+            point_datum->as_array();
+        rcheck_target(point_datum.get(), base_exc_t::GENERIC, point_arr.size() == 2,
+            strprintf("Expected point coordinate pair. "
+                      "Got %zu element array instead of a 2 element one.",
+                      point_arr.size()));
+        double lat = point_arr[0]->as_num();
+        double lon = point_arr[1]->as_num();
+        return lat_lon_point_t(lat, lon);
+    }
+}
+
 // Used by line_term_t and polygon_term_t
 lat_lon_line_t parse_line_from_args(scope_env_t *env, args_t *args) {
     lat_lon_line_t line;
@@ -97,21 +117,7 @@ lat_lon_line_t parse_line_from_args(scope_env_t *env, args_t *args) {
     for (size_t i = 0; i < args->num_args(); ++i) {
         counted_t<const val_t> point_arg = args->arg(env, i);
         const counted_t<const datum_t> &point_datum = point_arg->as_datum();
-        if (point_datum->is_ptype(pseudo::geometry_string)) {
-            // The argument is a point (should be at least, if not this will throw)
-            line.push_back(extract_lat_lon_point(point_datum));
-        } else {
-            // The argument must be a coordinate pair
-            const std::vector<counted_t<const datum_t> > &point_arr =
-                point_datum->as_array();
-            rcheck_target(point_arg.get(), base_exc_t::GENERIC, point_arr.size() == 2,
-                strprintf("Expected point coordinate pair in line constructor. "
-                          "Got %zu element array instead of a 2 element one.",
-                          point_arr.size()));
-            double lat = point_arr[0]->as_num();
-            double lon = point_arr[1]->as_num();
-            line.push_back(lat_lon_point_t(lat, lon));
-        }
+        line.push_back(parse_point_argument(point_datum));
     }
 
     return line;
@@ -243,7 +249,6 @@ public:
         : op_term_t(env, term, argspec_t(2), optargspec_t({"geo_system", "unit"})) { }
 private:
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        // TODO! Support polygons / lines maybe?
         counted_t<val_t> p1_arg = args->arg(env, 0);
         counted_t<val_t> p2_arg = args->arg(env, 1);
         check_is_geometry(p1_arg);
@@ -253,9 +258,8 @@ private:
             ellipsoid_spec_t reference_ellipsoid = pick_reference_ellipsoid(env, args);
             dist_unit_t result_unit = pick_dist_unit(env, args);
 
-            // TODO! Support [lat, long] syntax here too?
-            lat_lon_point_t p1 = extract_lat_lon_point(p1_arg->as_datum());
-            lat_lon_point_t p2 = extract_lat_lon_point(p2_arg->as_datum());
+            lat_lon_point_t p1 = parse_point_argument(p1_arg->as_datum());
+            lat_lon_point_t p2 = parse_point_argument(p2_arg->as_datum());
 
             double result = karney_distance(p1, p2, reference_ellipsoid);
             result = convert_dist_unit(result, dist_unit_t::M, result_unit);
@@ -301,7 +305,7 @@ private:
             ellipsoid_spec_t reference_ellipsoid = pick_reference_ellipsoid(env, args);
             dist_unit_t radius_unit = pick_dist_unit(env, args);
 
-            lat_lon_point_t center = extract_lat_lon_point(center_arg->as_datum());
+            lat_lon_point_t center = parse_point_argument(center_arg->as_datum());
             double radius = radius_arg->as_num();
             radius = convert_dist_unit(radius, radius_unit, dist_unit_t::M);
 
@@ -333,7 +337,6 @@ private:
         counted_t<val_t> opposite_arg = args->arg(env, 1);
         check_is_geometry(base_arg);
         check_is_geometry(opposite_arg);
-        // TODO! Support [lat, lon] points
 
         counted_t<val_t> fill_arg = args->optarg(env, "fill");
         bool fill = true;
@@ -342,8 +345,8 @@ private:
         }
 
         try {
-            lat_lon_point_t base = extract_lat_lon_point(base_arg->as_datum());
-            lat_lon_point_t opposite = extract_lat_lon_point(opposite_arg->as_datum());
+            lat_lon_point_t base = parse_point_argument(base_arg->as_datum());
+            lat_lon_point_t opposite = parse_point_argument(opposite_arg->as_datum());
 
             const lat_lon_line_t rectangle =
                 build_rectangle(base, opposite);

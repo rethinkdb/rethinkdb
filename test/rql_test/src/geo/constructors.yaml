@@ -19,3 +19,11 @@ tests:
     ot: err("RqlRuntimeError", 'Longitude must be between -180 and 180. Got -181.000000.', [0])
   - cd: r.point(0, 181)
     ot: err("RqlRuntimeError", 'Longitude must be between -180 and 180. Got 181.000000.', [0])
+
+  # Line
+  # TODO!
+
+  # Polygon
+  # TODO!
+
+  # TODO! Own file for geojson, and for primitives
