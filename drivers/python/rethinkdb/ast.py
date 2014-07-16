@@ -482,6 +482,22 @@ class RqlQuery(object):
     def in_timezone(self, *args):
         return InTimezone(self, *args)
 
+    ## Geospatial support
+
+    def to_geojson(self, *args):
+        return ToGeoJson(self, *args)
+
+    def distance(self, *args, **kwargs):
+        kwargs.setdefault('geo_system', ())
+        kwargs.setdefault('unit', ())
+        return Distance(self, *args, **kwargs)
+
+    def intersects(self, *args):
+        return Intersects(self, *args)
+
+    def includes(self, *args):
+        return Includes(self, *args)
+
 # These classes define how nodes are printed by overloading `compose`
 
 def needs_wrap(arg):
@@ -932,6 +948,7 @@ class Table(RqlQuery):
 
     def index_create(self, *args, **kwargs):
         kwargs.setdefault('multi', ())
+        kwargs.setdefault('geo', ())
         if len(args) > 1:
             args = [args[0]] + [func_wrap(arg) for arg in args[1:]]
         return IndexCreate(self, *args, **kwargs)
@@ -951,6 +968,9 @@ class Table(RqlQuery):
     def sync(self, *args):
         return Sync(self, *args)
 
+    def get_intersecting(self, *args, **kwargs):
+        return GetIntersecting(self, *args, **kwargs)
+
     def compose(self, args, optargs):
         if isinstance(self.args[0], DB):
             return T(args[0], '.table(', T(*(args[1:]), intsp=', '), ')')
@@ -964,6 +984,10 @@ class Get(RqlMethodQuery):
 class GetAll(RqlMethodQuery):
     tt = pTerm.GET_ALL
     st = 'get_all'
+
+class GetIntersecting(RqlMethodQuery):
+    tt = pTerm.GET_INTERSECTING
+    st = 'get_intersecting'
 
 class Reduce(RqlMethodQuery):
     tt = pTerm.REDUCE
@@ -1274,6 +1298,46 @@ class InTimezone(RqlMethodQuery):
 class ToEpochTime(RqlMethodQuery):
     tt = pTerm.TO_EPOCH_TIME
     st = 'to_epoch_time'
+
+class GeoJson(RqlMethodQuery):
+    tt = pTerm.GEOJSON
+    st = 'geojson'
+
+class ToGeoJson(RqlMethodQuery):
+    tt = pTerm.TO_GEOJSON
+    st = 'to_geojson'
+
+class Point(RqlMethodQuery):
+    tt = pTerm.POINT
+    st = 'point'
+
+class Line(RqlMethodQuery):
+    tt = pTerm.LINE
+    st = 'line'
+
+class Polygon(RqlMethodQuery):
+    tt = pTerm.POLYGON
+    st = 'polygon'
+
+class Distance(RqlMethodQuery):
+    tt = pTerm.DISTANCE
+    st = 'distance'
+
+class Intersects(RqlMethodQuery):
+    tt = pTerm.INTERSECTS
+    st = 'intersects'
+
+class Includes(RqlMethodQuery):
+    tt = pTerm.INCLUDES
+    st = 'includes'
+
+class Circle(RqlMethodQuery):
+    tt = pTerm.CIRCLE
+    st = 'circle'
+
+class Rectangle(RqlMethodQuery):
+    tt = pTerm.RECTANGLE
+    st = 'rectangle'
 
 # Returns True if IMPLICIT_VAR is found in the subquery
 def _ivar_scan(query):
