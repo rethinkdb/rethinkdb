@@ -591,9 +591,6 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
         }
         res_out->error = strprintf("status code %ld", response_code);
     } else {
-        // HACK: haven't communicated user prefs, use default
-        ql::configured_limits_t limits;
-
         parse_header(header_data, res_out);
 
         // If this was a HEAD request, we should not be handling data, just return R_NULL
@@ -623,16 +620,16 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
                 }
 
                 if (content_type.find("application/json") == 0) {
-                    json_to_datum(std::move(body_data), limits, res_out);
+                    json_to_datum(std::move(body_data), opts->limits, res_out);
                 } else if (content_type.find("text/javascript") == 0 ||
                            content_type.find("application/json-p") == 0 ||
                            content_type.find("text/json-p") == 0) {
                     // Try to parse the result as JSON, then as JSONP, then plaintext
                     // Do not use move semantics here, as we retry on errors
-                    json_to_datum(body_data, limits, res_out);
+                    json_to_datum(body_data, opts->limits, res_out);
                     if (!res_out->error.empty()) {
                         res_out->error.clear();
-                        jsonp_to_datum(body_data, limits, res_out);
+                        jsonp_to_datum(body_data, opts->limits, res_out);
                         if (!res_out->error.empty()) {
                             res_out->error.clear();
                             res_out->body =
@@ -646,10 +643,10 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
             }
             break;
         case http_result_format_t::JSON:
-            json_to_datum(std::move(body_data), limits, res_out);
+            json_to_datum(std::move(body_data), opts->limits, res_out);
             break;
         case http_result_format_t::JSONP:
-            jsonp_to_datum(std::move(body_data), limits, res_out);
+            jsonp_to_datum(std::move(body_data), opts->limits, res_out);
             break;
         case http_result_format_t::TEXT:
             res_out->body = make_counted<const ql::datum_t>(std::move(body_data));

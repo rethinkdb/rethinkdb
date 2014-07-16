@@ -102,6 +102,9 @@ struct http_opts_t {
     std::string data;
     std::map<std::string, std::string> form_data;
 
+    // Limits on execution size
+    ql::configured_limits_t limits;
+
     uint64_t timeout_ms;
     uint64_t attempts;
     uint32_t max_redirects;
