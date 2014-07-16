@@ -956,7 +956,7 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
             const counted_t<const ql::datum_t> *stats_i =
                 boost::get<counted_t<const ql::datum_t> >(&responses[i].response);
             guarantee(stats_i != NULL);
-            stats = stats->merge(*stats_i, ql::stats_merge, limits);
+            stats = stats->merge(*stats_i, ql::stats_merge, *limits);
         }
         *response_out = write_response_t(stats);
     }
@@ -985,7 +985,7 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
 
     rdb_w_unshard_visitor_t(const write_response_t *_responses, size_t _count,
                             write_response_t *_response_out,
-                            const ql::configured_limits_t &_limits)
+                            const ql::configured_limits_t *_limits)
         : responses(_responses), count(_count), response_out(_response_out),
           limits(_limits) { }
 
@@ -1002,13 +1002,13 @@ private:
     const write_response_t *const responses;
     const size_t count;
     write_response_t *const response_out;
-    const ql::configured_limits_t &limits;
+    const ql::configured_limits_t *limits;
 };
 
 void write_t::unshard(write_response_t *responses, size_t count,
                       write_response_t *response_out, rdb_context_t *, signal_t *)
     const THROWS_NOTHING {
-    const rdb_w_unshard_visitor_t visitor(responses, count, response_out, limits);
+    const rdb_w_unshard_visitor_t visitor(responses, count, response_out, &limits);
     boost::apply_visitor(visitor, write);
 
     /* We've got some profiling to do. */
