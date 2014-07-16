@@ -1077,7 +1077,9 @@ INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_t);
 RDB_MAKE_SERIALIZABLE_2(changefeed_point_stamp_t, addr, key);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_point_stamp_t);
 
-RDB_MAKE_SERIALIZABLE_3(read_t, read, profile, limits);
+// Serialization format changed in 1.14.0. We only support the latest version,
+// since this is a cluster-only type.
+RDB_IMPL_SERIALIZABLE_3(read_t, read, profile, limits);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(read_t);
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_write_response_t, result);
@@ -1102,8 +1104,11 @@ RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(sindex_create_t, id, mapping, region, multi)
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(sindex_drop_t, id, region);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sync_t, region);
 
+// Serialization format changed in 1.14.0. We only support the latest version,
+// since this is a cluster-only type.
 RDB_IMPL_SERIALIZABLE_4(
     write_t, write, durability_requirement, profile, limits);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(write_t);
 
 // Serialization format changed in 1.13.2. We only support the latest version,
 // since this is a cluster-only type.
