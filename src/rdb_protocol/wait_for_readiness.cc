@@ -34,8 +34,7 @@ void wait_for_rdb_table_readiness(base_namespace_repo_t *ns_repo,
         boost::optional<ql::terminal_variant_t>(),
         boost::optional<sindex_rangespec_t>(),
         sorting_t::UNORDERED);
-    read_t empty_read(empty_rget_read, profile_bool_t::DONT_PROFILE,
-                      ql::configured_limits_t());
+    read_t empty_read(empty_rget_read, profile_bool_t::DONT_PROFILE);
     for (int num_attempts = 0; true; ++num_attempts) {
         nap(poll_ms, interruptor);
         try {

@@ -613,7 +613,7 @@ void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
     response_out->response = rget_read_response_t();
     auto out = boost::get<rget_read_response_t>(&response_out->response);
     out->truncated = false;
-    out->key_range = read_t(rg, profile_bool_t::DONT_PROFILE, env.limits).get_region().inner;
+    out->key_range = read_t(rg, profile_bool_t::DONT_PROFILE).get_region().inner;
 
     // Fill in `truncated` and `last_key`, get responses, abort if there's an error.
     std::vector<ql::result_t *> results(count);
@@ -1006,8 +1006,10 @@ private:
 };
 
 void write_t::unshard(write_response_t *responses, size_t count,
-                      write_response_t *response_out, rdb_context_t *, signal_t *)
+                      write_response_t *response_out, rdb_context_t *ctx,
+                      signal_t *signal)
     const THROWS_NOTHING {
+    const ql::configured_limits_t limits = ql::from_optargs(ctx, signal, optargs);
     const rdb_w_unshard_visitor_t visitor(responses, count, response_out, &limits);
     boost::apply_visitor(visitor, write);
 
@@ -1079,7 +1081,7 @@ INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_point_stamp_t);
 
 // Serialization format changed in 1.14.0. We only support the latest version,
 // since this is a cluster-only type.
-RDB_IMPL_SERIALIZABLE_3(read_t, read, profile, limits);
+RDB_IMPL_SERIALIZABLE_2(read_t, read, profile);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(read_t);
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_write_response_t, result);
@@ -1107,7 +1109,7 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sync_t, region);
 // Serialization format changed in 1.14.0. We only support the latest version,
 // since this is a cluster-only type.
 RDB_IMPL_SERIALIZABLE_4(
-    write_t, write, durability_requirement, profile, limits);
+    write_t, write, durability_requirement, profile, optargs);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(write_t);
 
 // Serialization format changed in 1.13.2. We only support the latest version,

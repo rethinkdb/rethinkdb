@@ -42,7 +42,8 @@ counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) 
 template<class T> // batched_replace_t and batched_insert_t
 counted_t<const datum_t> table_t::do_batched_write(
     env_t *env, T &&t, durability_requirement_t durability_requirement) {
-    write_t write(std::move(t), durability_requirement, env->profile(), env->limits);
+    write_t write(std::move(t), durability_requirement, env->profile(),
+                  env->global_optargs.get_all_optargs());
     write_response_t response;
     try {
         access->get_namespace_if().write(env, &write, &response,
@@ -153,7 +154,8 @@ MUST_USE bool table_t::sindex_create(env_t *env,
                                      sindex_multi_bool_t multi) {
     index_func->assert_deterministic("Index functions must be deterministic.");
     map_wire_func_t wire_func(index_func);
-    write_t write(sindex_create_t(id, wire_func, multi), env->profile(), env->limits);
+    write_t write(sindex_create_t(id, wire_func, multi), env->profile(),
+                  env->global_optargs.get_all_optargs());
 
     write_response_t res;
     try {
@@ -169,7 +171,8 @@ MUST_USE bool table_t::sindex_create(env_t *env,
 }
 
 MUST_USE bool table_t::sindex_drop(env_t *env, const std::string &id) {
-    write_t write(sindex_drop_t(id), env->profile(), env->limits);
+    write_t write(sindex_drop_t(id), env->profile(),
+                  env->global_optargs.get_all_optargs());
 
     write_response_t res;
     try {
@@ -186,7 +189,7 @@ MUST_USE bool table_t::sindex_drop(env_t *env, const std::string &id) {
 
 counted_t<const datum_t> table_t::sindex_list(env_t *env) {
     sindex_list_t sindex_list;
-    read_t read(sindex_list, env->profile(), env->limits);
+    read_t read(sindex_list, env->profile());
     read_response_t res;
     try {
         access->get_namespace_if().read(env, read, &res, order_token_t::ignore);
@@ -210,7 +213,7 @@ counted_t<const datum_t> table_t::sindex_list(env_t *env) {
 
 counted_t<const datum_t> table_t::sindex_status(env_t *env, std::set<std::string> sindexes) {
     sindex_status_t sindex_status(sindexes);
-    read_t read(sindex_status, env->profile(), env->limits);
+    read_t read(sindex_status, env->profile());
     read_response_t res;
     try {
         access->get_namespace_if().read(env, read, &res, order_token_t::ignore);
@@ -257,7 +260,8 @@ MUST_USE bool table_t::sync(env_t *env, const rcheckable_t *parent) {
 
 MUST_USE bool table_t::sync_depending_on_durability(env_t *env,
                 durability_requirement_t durability_requirement) {
-    write_t write(sync_t(), durability_requirement, env->profile(), env->limits);
+    write_t write(sync_t(), durability_requirement, env->profile(),
+                  env->global_optargs.get_all_optargs());
     write_response_t res;
     try {
         access->get_namespace_if().write(env, &write, &res, order_token_t::ignore);
@@ -274,7 +278,7 @@ const std::string &table_t::get_pkey() { return pkey; }
 
 counted_t<const datum_t> table_t::get_row(env_t *env, counted_t<const datum_t> pval) {
     std::string pks = pval->print_primary();
-    read_t read(point_read_t(store_key_t(pks)), env->profile(), env->limits);
+    read_t read(point_read_t(store_key_t(pks)), env->profile());
     read_response_t res;
     try {
         if (use_outdated) {
