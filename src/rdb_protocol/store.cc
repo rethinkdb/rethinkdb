@@ -161,19 +161,17 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const rget_read_t &rget) {
-        // RSI: Pass global optargs directly.
-        ql::env_t ql_env(ctx, interruptor, std::map<std::string, ql::wire_func_t>(),
-                         profile);
-        dump_event_log_t dump(this, ql_env.trace.get_or_null());
-        profile::starter_t start_read("Perform read on shard.", ql_env.trace);
-
         if (rget.transforms.size() != 0 || rget.terminal) {
             // This asserts that the optargs have been initialized.  (There is always
             // a 'db' optarg.)  We have the same assertion in
             // rdb_r_unshard_visitor_t.
             rassert(rget.optargs.size() != 0);
         }
-        ql_env.global_optargs.init_optargs(rget.optargs);
+
+        ql::env_t ql_env(ctx, interruptor, rget.optargs, profile);
+        dump_event_log_t dump(this, ql_env.trace.get_or_null());
+        profile::starter_t start_read("Perform read on shard.", ql_env.trace);
+
         response->response = rget_read_response_t();
         rget_read_response_t *res =
             boost::get<rget_read_response_t>(&response->response);
