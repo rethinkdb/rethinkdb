@@ -1146,6 +1146,7 @@ std::vector<std::string> expand_geo_key(
         // As things are now, this exception is actually ignored in
         // `compute_keys()`. That's ok, though it would be nice if we could
         // pass on some kind of warning to the user.
+        logWRN("Failed to compute grid keys for an index: %s", e.what());
         rfail_target(key.get(), ql::base_exc_t::GENERIC,
                 "Failed to compute grid keys: %s", e.what());
     }

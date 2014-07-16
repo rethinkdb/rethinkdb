@@ -258,6 +258,7 @@ class RDBVal extends TermBase
     distance: aropt (g, opts) -> new Distance opts, @, g
     intersects: (args...) -> new Intersects {}, @, args...
     includes: (args...) -> new Includes {}, @, args...
+    fill: (args...) -> new Fill {}, @, args...
 
     # Database operations
 
@@ -1058,7 +1059,9 @@ class GetIntersecting extends RDBOp
     tt: protoTermType.GET_INTERSECTING
     mt: 'getIntersecting'
 
-
+class Fill extends RDBOp
+    tt: protoTermType.FILL
+    mt: 'fill'
 
 
 # All top level exported functions

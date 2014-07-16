@@ -31,7 +31,8 @@ counted_t<const ql::datum_t> construct_geo_polygon(const lat_lon_line_t &shell);
 
 /* These functions extract coordinates from GeoJSON objects */
 lat_lon_point_t extract_lat_lon_point(const counted_t<const ql::datum_t> &geojson);
-// ...add similar functions for lines and polygons when needed...
+lat_lon_line_t extract_lat_lon_line(const counted_t<const ql::datum_t> &geojson);
+lat_lon_line_t extract_lat_lon_shell(const counted_t<const ql::datum_t> &geojson);
 
 /* These functions convert from a GeoJSON object to S2 types */
 scoped_ptr_t<S2Point> to_s2point(const counted_t<const ql::datum_t> &geojson);

@@ -22,7 +22,7 @@ using ql::datum_t;
 
 // TODO (daniel): Consider making this configurable through an opt-arg
 //   (...at index creation?)
-extern const int GEO_INDEX_GOAL_GRID_CELLS = 12;
+extern const int GEO_INDEX_GOAL_GRID_CELLS = 8;
 
 class compute_covering_t : public s2_geo_visitor_t {
 public:

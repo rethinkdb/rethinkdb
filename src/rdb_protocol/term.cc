@@ -179,6 +179,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::CIRCLE:             return make_circle_term(env, t);
     case Term::RECTANGLE:          return make_rectangle_term(env, t);
     case Term::GET_INTERSECTING:   return make_get_intersecting_term(env, t);
+    case Term::FILL:               return make_fill_term(env, t);
     default: unreachable();
     }
     unreachable();

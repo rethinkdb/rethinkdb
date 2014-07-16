@@ -498,6 +498,9 @@ class RqlQuery(object):
     def includes(self, *args):
         return Includes(self, *args)
 
+    def fill(self, *args):
+        return Fill(self, *args)
+
 # These classes define how nodes are printed by overloading `compose`
 
 def needs_wrap(arg):
@@ -1341,6 +1344,10 @@ class Circle(RqlMethodQuery):
 class Rectangle(RqlMethodQuery):
     tt = pTerm.RECTANGLE
     st = 'rectangle'
+
+class Fill(RqlMethodQuery):
+    tt = pTerm.FILL
+    st = 'fill'
 
 # Returns True if IMPLICIT_VAR is found in the subquery
 def _ivar_scan(query):

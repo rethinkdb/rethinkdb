@@ -130,7 +130,7 @@ lat_lon_point_t position_to_lat_lon_point(const counted_t<const datum_t> &positi
     return lat_lon_point_t(latitude, longitude);
 }
 
-lat_lon_point_t extract_lat_lon_point(const counted_t<const datum_t> &geojson) {;
+lat_lon_point_t extract_lat_lon_point(const counted_t<const datum_t> &geojson) {
     if (geojson->get("type")->as_str().to_std() != "Point") {
         throw geo_exception_t(
             strprintf("Expected Point, but got %s", geojson->get("type")->as_str().c_str()));
@@ -139,6 +139,47 @@ lat_lon_point_t extract_lat_lon_point(const counted_t<const datum_t> &geojson) {
     const counted_t<const datum_t> &coordinates = geojson->get("coordinates");
 
     return position_to_lat_lon_point(coordinates);
+}
+
+lat_lon_line_t extract_lat_lon_line(const counted_t<const ql::datum_t> &geojson) {
+    if (geojson->get("type")->as_str().to_std() != "LineString") {
+        throw geo_exception_t(
+            strprintf("Expected LineString, but got %s",
+                      geojson->get("type")->as_str().c_str()));
+    }
+
+    const counted_t<const datum_t> &coordinates = geojson->get("coordinates");
+    const std::vector<counted_t<const datum_t> > &arr = coordinates->as_array();
+    lat_lon_line_t result;
+    result.reserve(arr.size());
+    for (size_t i = 0; i < arr.size(); ++i) {
+        result.push_back(position_to_lat_lon_point(arr[i]));
+    }
+
+    return result;
+}
+
+lat_lon_line_t extract_lat_lon_shell(const counted_t<const ql::datum_t> &geojson) {
+    if (geojson->get("type")->as_str().to_std() != "Polygon") {
+        throw geo_exception_t(
+            strprintf("Expected Polygon, but got %s",
+                      geojson->get("type")->as_str().c_str()));
+    }
+
+    const counted_t<const datum_t> &coordinates = geojson->get("coordinates");
+    const std::vector<counted_t<const datum_t> > &ring_arr = coordinates->as_array();
+    if (ring_arr.size() < 1) {
+        throw geo_exception_t("The polygon is empty. It must have at least "
+                              "an outer shell.");
+    }
+    const std::vector<counted_t<const datum_t> > &arr = ring_arr[0]->as_array();
+    lat_lon_line_t result;
+    result.reserve(arr.size());
+    for (size_t i = 0; i < arr.size(); ++i) {
+        result.push_back(position_to_lat_lon_point(arr[i]));
+    }
+
+    return result;
 }
 
 // Parses a GeoJSON "Position" array

@@ -47,7 +47,7 @@ private:
 
         return new_val(result);
     }
-    virtual const char *name() const { return "geo_json"; }
+    virtual const char *name() const { return "geojson"; }
 };
 
 class to_geojson_term_t : public op_term_t {
@@ -394,7 +394,29 @@ private:
             table->get_intersecting(env->env, query_arg->as_datum(), index_str, backtrace());
         return new_val(stream, table);
     }
-    virtual const char *name() const { return "get_all"; }
+    virtual const char *name() const { return "get_intersecting"; }
+};
+
+class fill_term_t : public op_term_t {
+public:
+    fill_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(1)) { }
+private:
+    counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<val_t> l_arg = args->arg(env, 1);
+        check_is_geometry(l_arg);
+        try {
+            const lat_lon_line_t shell = extract_lat_lon_line(l_arg->as_datum());
+
+            const counted_t<const datum_t> result = construct_geo_polygon(shell);
+            validate_geojson(result);
+
+            return new_val(result);
+        } catch (const geo_exception_t &e) {
+            rfail(base_exc_t::GENERIC, "%s", e.what());
+        }
+    }
+    virtual const char *name() const { return "fill"; }
 };
 
 counted_t<term_t> make_geojson_term(compile_env_t *env, const protob_t<const Term> &term) {
@@ -429,6 +451,9 @@ counted_t<term_t> make_rectangle_term(compile_env_t *env, const protob_t<const T
 }
 counted_t<term_t> make_get_intersecting_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<get_intersecting_term_t>(env, term);
+}
+counted_t<term_t> make_fill_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<fill_term_t>(env, term);
 }
 
 } // namespace ql
