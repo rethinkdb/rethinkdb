@@ -322,7 +322,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                profile)
     { }
 
-    profile::event_log_t extract_event_log() RVALUE_THIS {
+    profile::event_log_t extract_event_log() {
         return std::move(event_log_out);
     }
 
