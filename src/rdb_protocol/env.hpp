@@ -53,7 +53,7 @@ class env_t : public home_thread_mixin_t {
 public:
     env_t(rdb_context_t *ctx, signal_t *interruptor,
           std::map<std::string, wire_func_t> optargs,
-          profile_bool_t is_profile_requested);
+          profile::trace_t *trace);
 
     explicit env_t(signal_t *interruptor);
 
@@ -100,7 +100,7 @@ public:
     signal_t *const interruptor;
 
     // This is non-empty when profiling is enabled.
-    const scoped_ptr_t<profile::trace_t> trace;
+    profile::trace_t *const trace;
 
     profile_bool_t profile() const;
 

@@ -95,7 +95,7 @@ void env_t::do_eval_callback() {
 }
 
 profile_bool_t env_t::profile() const {
-    return trace.has() ? profile_bool_t::PROFILE : profile_bool_t::DONT_PROFILE;
+    return trace != nullptr ? profile_bool_t::PROFILE : profile_bool_t::DONT_PROFILE;
 }
 
 base_namespace_repo_t *env_t::ns_repo() {
@@ -143,12 +143,12 @@ scoped_ptr_t<profile::trace_t> maybe_make_profile_trace(profile_bool_t profile) 
 
 env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
              std::map<std::string, wire_func_t> optargs,
-             profile_bool_t profile)
+             profile::trace_t *_trace)
     : evals_since_yield(0),
       global_optargs(std::move(optargs)),
       limits(from_optargs(ctx, _interruptor, optargs)),
       interruptor(_interruptor),
-      trace(maybe_make_profile_trace(profile)),
+      trace(_trace),
       rdb_ctx(ctx),
       eval_callback(NULL) {
     rassert(ctx != NULL);
@@ -161,7 +161,7 @@ env_t::env_t(signal_t *_interruptor)
     : evals_since_yield(0),
       global_optargs(),
       interruptor(_interruptor),
-      trace(),
+      trace(NULL),
       rdb_ctx(NULL),
       eval_callback(NULL) {
     rassert(interruptor != NULL);

@@ -1153,7 +1153,7 @@ void rdb_update_single_sindex(
                                                      deletion_context->balancing_detacher(),
                                                      &kv_location,
                                                      &sindex->btree->stats,
-                                                     env.trace.get_or_null(),
+                                                     env.trace,
                                                      &return_superblock_local);
 
                     if (kv_location.value.has()) {
@@ -1194,7 +1194,7 @@ void rdb_update_single_sindex(
                                                      deletion_context->balancing_detacher(),
                                                      &kv_location,
                                                      &sindex->btree->stats,
-                                                     env.trace.get_or_null(),
+                                                     env.trace,
                                                      &return_superblock_local);
 
                     kv_location_set(&kv_location, *it,

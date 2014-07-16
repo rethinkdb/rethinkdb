@@ -16,7 +16,7 @@ from_optargs(rdb_context_t *ctx, signal_t *interruptor,
         // because we use an empty argument list do we prevent an
         // infinite loop.
         env_t env(ctx, interruptor, std::map<std::string, wire_func_t>(),
-                  profile_bool_t::DONT_PROFILE);
+                  nullptr);
         return configured_limits_t(p->second.compile_wire_func()->call(&env)->as_int());
     } else {
         return configured_limits_t();

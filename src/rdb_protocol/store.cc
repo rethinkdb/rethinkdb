@@ -168,8 +168,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             rassert(rget.optargs.size() != 0);
         }
 
-        ql::env_t ql_env(ctx, interruptor, rget.optargs, profile);
-        dump_event_log_t dump(this, ql_env.trace.get_or_null());
+        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
+        ql::env_t ql_env(ctx, interruptor, rget.optargs, trace.get_or_null());
+        dump_event_log_t dump(this, trace.get_or_null());
         profile::starter_t start_read("Perform read on shard.", ql_env.trace);
 
         response->response = rget_read_response_t();
@@ -439,8 +440,9 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     };
 
     void operator()(const batched_replace_t &br) {
-        ql::env_t ql_env(ctx, interruptor, br.optargs, profile);
-        dump_event_log_t dump(this, ql_env.trace.get_or_null());
+        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
+        ql::env_t ql_env(ctx, interruptor, br.optargs, trace.get_or_null());
+        dump_event_log_t dump(this, trace.get_or_null());
         profile::starter_t start_write("Perform write on shard.", ql_env.trace);
         rdb_modification_report_cb_t sindex_cb(
             store, &sindex_block,
