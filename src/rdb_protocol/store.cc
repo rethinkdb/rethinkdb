@@ -450,11 +450,12 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             rdb_batched_replace(
                 btree_info_t(btree, timestamp,
                              &br.pkey),
-                superblock, br.keys, limits, &replacer, &sindex_cb,
+                superblock, br.keys, ql_env.limits, &replacer, &sindex_cb,
                 ql_env.trace.get_or_null());
     }
 
     void operator()(const batched_insert_t &bi) {
+        ql::env_t ql_env(ctx, interruptor, bi.optargs, profile);
         scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
         dump_event_log_t dump(this, trace.get_or_null());
         profile::starter_t start_write("Perform write on shard.", trace);
@@ -462,7 +463,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             store,
             &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));
-        datum_replacer_t replacer(bi, limits);
+        datum_replacer_t replacer(bi, ql_env.limits);
         std::vector<store_key_t> keys;
         keys.reserve(bi.inserts.size());
         for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
@@ -472,8 +473,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             rdb_batched_replace(
                 btree_info_t(btree, timestamp,
                              &bi.pkey),
-                superblock, keys, limits, &replacer, &sindex_cb,
-                trace.get_or_null());
+                superblock, keys, ql_env.limits, &replacer, &sindex_cb,
+                ql_env.trace.get_or_null());
     }
 
     void operator()(const point_write_t &w) {
@@ -570,8 +571,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                         rdb_context_t *_ctx,
                         profile_bool_t _profile,
                         write_response_t *_response,
-                        signal_t *_interruptor,
-                        const ql::configured_limits_t &_limits) :
+                        signal_t *_interruptor) :
         btree(_btree),
         store(_store),
         txn(_txn),
@@ -580,8 +580,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         interruptor(_interruptor),
         superblock(_superblock),
         timestamp(_timestamp),
-        profile(_profile),
-        limits(_limits) {
+        profile(_profile) {
         sindex_block =
             store->acquire_sindex_block_for_write((*superblock)->expose_buf(),
                                                   (*superblock)->get_sindex_block_id());
@@ -611,7 +610,6 @@ private:
     const repli_timestamp_t timestamp;
     const profile_bool_t profile;
     buf_lock_t sindex_block;
-    const ql::configured_limits_t &limits;
     profile::event_log_t event_log_out;
 
     DISABLE_COPYING(rdb_write_visitor_t);
@@ -622,9 +620,6 @@ void store_t::protocol_write(const write_t &write,
                              transition_timestamp_t timestamp,
                              scoped_ptr_t<superblock_t> *superblock,
                              signal_t *interruptor) {
-    // HACK: propagating user preferences is too hard here.  Use
-    // default.
-    ql::configured_limits_t limits;
     rdb_write_visitor_t v(btree.get(),
                           this,
                           (*superblock)->expose_buf().txn(),
@@ -633,7 +628,7 @@ void store_t::protocol_write(const write_t &write,
                           ctx,
                           write.profile,
                           response,
-                          interruptor, limits);
+                          interruptor);
     {
         boost::apply_visitor(v, write.write);
     }
