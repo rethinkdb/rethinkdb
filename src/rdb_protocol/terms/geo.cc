@@ -129,9 +129,9 @@ public:
         : op_term_t(env, term, argspec_t(2, -1)) { }
 private:
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        const lat_lon_line_t line = parse_line_from_args(env, args);
-
         try {
+            const lat_lon_line_t line = parse_line_from_args(env, args);
+
             const counted_t<const datum_t> result = construct_geo_line(line);
             validate_geojson(result);
 
@@ -149,9 +149,9 @@ public:
         : op_term_t(env, term, argspec_t(3, -1)) { }
 private:
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        const lat_lon_line_t shell = parse_line_from_args(env, args);
-
         try {
+            const lat_lon_line_t shell = parse_line_from_args(env, args);
+
             const counted_t<const datum_t> result = construct_geo_polygon(shell);
             validate_geojson(result);
 
