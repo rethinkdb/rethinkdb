@@ -1,0 +1,21 @@
+desc: Test geo constructors
+tests:
+  # Point
+  - cd: r.point(0, 0)
+    ot: ({"$reql_type$":"GEOMETRY", "coordinates":[0.0, 0.0], "type":"Point"})
+  - cd: r.point(-90, 0)
+    ot: ({"$reql_type$":"GEOMETRY", "coordinates":[0.0, -90.0], "type":"Point"})
+  - cd: r.point(90, 0)
+    ot: ({"$reql_type$":"GEOMETRY", "coordinates":[0.0, 90.0], "type":"Point"})
+  - cd: r.point(0, -180)
+    ot: ({"$reql_type$":"GEOMETRY", "coordinates":[-180.0, 0.0], "type":"Point"})
+  - cd: r.point(0, 180)
+    ot: ({"$reql_type$":"GEOMETRY", "coordinates":[180.0, 0.0], "type":"Point"})
+  - cd: r.point(-91, 0)
+    ot: err("RqlRuntimeError", 'Latitude must be between -90 and 90. Got -91.000000.', [0])
+  - cd: r.point(91, 0)
+    ot: err("RqlRuntimeError", 'Latitude must be between -90 and 90. Got 91.000000.', [0])
+  - cd: r.point(0, -181)
+    ot: err("RqlRuntimeError", 'Longitude must be between -180 and 180. Got -181.000000.', [0])
+  - cd: r.point(0, 181)
+    ot: err("RqlRuntimeError", 'Longitude must be between -180 and 180. Got 181.000000.', [0])

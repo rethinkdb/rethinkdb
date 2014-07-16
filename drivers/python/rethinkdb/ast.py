@@ -642,6 +642,9 @@ def convert_pseudotype(obj, format_opts):
                 return reql_type_grouped_data_to_object(obj)
             elif group_format != 'raw':
                 raise RqlDriverError("Unknown group_format run option \"%s\"." % group_format)
+        elif reql_type == 'GEOMETRY':
+            # No special support for this. Just return the raw object
+            return obj
         else:
             raise RqlDriverError("Unknown pseudo-type %s" % reql_type)
     # If there was no pseudotype, or the time format is raw, return the original object
