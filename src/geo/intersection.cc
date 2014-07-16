@@ -92,8 +92,6 @@ bool geo_does_intersect(const S2Polygon &polygon,
     return geo_does_intersect(other_point, polygon);
 }
 
-// TODO! By the way: Test what happens with empty lines / polygons...
-// (i.e. make sure we forbid those)
 bool geo_does_intersect(const S2Point &point,
                         const S2Polyline &other_line) {
     // This is probably fragile due to numeric precision limits.

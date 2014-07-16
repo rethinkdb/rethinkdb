@@ -3,11 +3,18 @@
 
 #include "geo/ellipsoid.hpp"
 #include "geo/exceptions.hpp"
+#include "geo/geojson.hpp"
+#include "geo/geo_visitor.hpp"
 #include "geo/karney/geodesic.h"
+#include "geo/s2/s2.h"
+#include "geo/s2/s2latlng.h"
+#include "geo/s2/s2polygon.h"
+#include "geo/s2/s2polyline.h"
 
-double karney_distance(const lat_lon_point_t &p1,
-                       const lat_lon_point_t &p2,
-                       const ellipsoid_spec_t &e) {
+double geodesic_distance(const lat_lon_point_t &p1,
+                         const lat_lon_point_t &p2,
+                         const ellipsoid_spec_t &e) {
+    // Use Karney's algorithm
     struct geod_geodesic g;
     geod_init(&g, e.equator_radius(), e.flattening());
 
@@ -17,10 +24,67 @@ double karney_distance(const lat_lon_point_t &p1,
     return dist;
 }
 
-lat_lon_point_t karney_point_at_dist(const lat_lon_point_t &p,
-                                     double dist,
-                                     double azimuth,
-                                     const ellipsoid_spec_t &e) {
+double geodesic_distance(const S2Point &p,
+                         const counted_t<const ql::datum_t> &g,
+                         const ellipsoid_spec_t &e) {
+    class distance_estimator_t : public s2_geo_visitor_t {
+    public:
+        distance_estimator_t(
+                lat_lon_point_t r, const S2Point &r_s2, const ellipsoid_spec_t &_e)
+            : ref_(r), ref_s2_(r_s2), e_(_e) { }
+        void on_point(const S2Point &point) {
+            lat_lon_point_t llpoint =
+                lat_lon_point_t(S2LatLng::Latitude(point).degrees(),
+                                S2LatLng::Longitude(point).degrees());
+            result_ = geodesic_distance(ref_, llpoint, e_);
+        }
+        void on_line(const S2Polyline &line) {
+            // This sometimes over-estimates large distances, because the
+            // projection assumes spherical rather than ellipsoid geometry.
+            int next_vertex;
+            S2Point prj = line.Project(ref_s2_, &next_vertex);
+            if (prj == ref_s2_) {
+                // ref_ is on the line
+                result_ = 0.0;
+            } else {
+                lat_lon_point_t llprj =
+                    lat_lon_point_t(S2LatLng::Latitude(prj).degrees(),
+                                    S2LatLng::Longitude(prj).degrees());
+                result_ = geodesic_distance(ref_, llprj, e_);
+            }
+        }
+        void on_polygon(const S2Polygon &polygon) {
+            // This sometimes over-estimates large distances, because the
+            // projection assumes spherical rather than ellipsoid geometry.
+            S2Point prj = polygon.Project(ref_s2_);
+            if (prj == ref_s2_) {
+                // ref_ is inside/on the polygon
+                result_ = 0.0;
+            } else {
+                lat_lon_point_t llprj =
+                    lat_lon_point_t(S2LatLng::Latitude(prj).degrees(),
+                                    S2LatLng::Longitude(prj).degrees());
+                result_ = geodesic_distance(ref_, llprj, e_);
+            }
+        }
+        double result_;
+        lat_lon_point_t ref_;
+        const S2Point &ref_s2_;
+        const ellipsoid_spec_t &e_;
+    };
+    distance_estimator_t estimator(
+        lat_lon_point_t(S2LatLng::Latitude(p).degrees(),
+                        S2LatLng::Longitude(p).degrees()),
+        p, e);
+    visit_geojson(&estimator, g);
+    return estimator.result_;
+}
+
+lat_lon_point_t geodesic_point_at_dist(const lat_lon_point_t &p,
+                                       double dist,
+                                       double azimuth,
+                                       const ellipsoid_spec_t &e) {
+    // Use Karney's algorithm
     struct geod_geodesic g;
     geod_init(&g, e.equator_radius(), e.flattening());
 

@@ -20,7 +20,7 @@ lat_lon_line_t build_circle(const lat_lon_point_t &center,
 
     for (unsigned int i = 0; i < num_vertices; ++i) {
         double azimuth = -180.0 + (360.0 / num_vertices * i);
-        lat_lon_point_t v = karney_point_at_dist(center, radius, azimuth, e);
+        lat_lon_point_t v = geodesic_point_at_dist(center, radius, azimuth, e);
         result.push_back(v);
     }
 

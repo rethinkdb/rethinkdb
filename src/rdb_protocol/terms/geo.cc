@@ -23,7 +23,6 @@ void check_is_geometry(const counted_t<val_t> &v) {
                   "Value must be of geometry type.");
 }
 
-// TODO! geoJson and toGeoJson should work on streams.
 class geojson_term_t : public op_term_t {
 public:
     geojson_term_t(compile_env_t *env, const protob_t<const Term> &term)
@@ -91,7 +90,7 @@ private:
 };
 
 // Accepts either a geometry object of type Point, or an array with two coordinates.
-// We typically want to support both.
+// We often want to support both.
 lat_lon_point_t parse_point_argument(const counted_t<const datum_t> &point_datum) {
     if (point_datum->is_ptype(pseudo::geometry_string)) {
         // The argument is a point (should be at least, if not this will throw)
@@ -249,19 +248,31 @@ public:
         : op_term_t(env, term, argspec_t(2), optargspec_t({"geo_system", "unit"})) { }
 private:
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> p1_arg = args->arg(env, 0);
-        counted_t<val_t> p2_arg = args->arg(env, 1);
-        check_is_geometry(p1_arg);
-        check_is_geometry(p2_arg);
+        counted_t<val_t> g1_arg = args->arg(env, 0);
+        counted_t<val_t> g2_arg = args->arg(env, 1);
+        check_is_geometry(g1_arg);
+        check_is_geometry(g2_arg);
 
         try {
             ellipsoid_spec_t reference_ellipsoid = pick_reference_ellipsoid(env, args);
             dist_unit_t result_unit = pick_dist_unit(env, args);
 
-            lat_lon_point_t p1 = parse_point_argument(p1_arg->as_datum());
-            lat_lon_point_t p2 = parse_point_argument(p2_arg->as_datum());
+            // (At least) one of the arguments must be a point.
+            // Find out which one it is.
+            S2Point p;
+            counted_t<const datum_t> g;
+            try {
+                scoped_ptr_t<S2Point> ptr = to_s2point(g1_arg->as_datum());
+                p = *ptr;
+                g = g2_arg->as_datum();
+            } catch (const geo_exception_t &e) {
+                // Try the other argument
+                scoped_ptr_t<S2Point> ptr = to_s2point(g2_arg->as_datum());
+                p = *ptr;
+                g = g1_arg->as_datum();
+            }
 
-            double result = karney_distance(p1, p2, reference_ellipsoid);
+            double result = geodesic_distance(p, g, reference_ellipsoid);
             result = convert_dist_unit(result, dist_unit_t::M, result_unit);
 
             return new_val(make_counted<const datum_t>(result));
@@ -281,7 +292,6 @@ private:
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> center_arg = args->arg(env, 0);
         counted_t<val_t> radius_arg = args->arg(env, 1);
-        check_is_geometry(center_arg);
 
         counted_t<val_t> fill_arg = args->optarg(env, "fill");
         bool fill = true;
