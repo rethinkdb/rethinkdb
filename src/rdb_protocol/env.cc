@@ -74,12 +74,6 @@ global_optargs_t::global_optargs_t() { }
 global_optargs_t::global_optargs_t(std::map<std::string, wire_func_t> _optargs)
     : optargs(_optargs) { }
 
-void global_optargs_t::init_optargs(
-    const std::map<std::string, wire_func_t> &_optargs) {
-    r_sanity_check(optargs.size() == 0);
-    optargs = _optargs;
-}
-
 counted_t<val_t> global_optargs_t::get_optarg(env_t *env, const std::string &key){
     if (!optargs.count(key)) {
         return counted_t<val_t>();
