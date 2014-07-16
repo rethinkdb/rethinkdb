@@ -253,6 +253,12 @@ class RDBVal extends TermBase
 
         new OrderBy opts, @, attrs...
 
+    # Geo operations
+    toGeoJson: (args...) -> new ToGeoJson {}, @, args...
+    distance: aropt (g, opts) -> new Distance opts, @, g
+    intersects: (args...) -> new Intersects {}, @, args...
+    includes: (args...) -> new Includes {}, @, args...
+
     # Database operations
 
     tableCreate: aropt (tblName, opts) -> new TableCreate opts, @, tblName
@@ -317,6 +323,8 @@ class RDBVal extends TermBase
     hours: (args...) -> new Hours {}, @, args...
     minutes: (args...) -> new Minutes {}, @, args...
     seconds: (args...) -> new Seconds {}, @, args...
+
+    getIntersecting: aropt (g, opts) -> new GetIntersecting opts, @, g
 
 class DatumTerm extends RDBVal
     args: []
@@ -1006,6 +1014,53 @@ class Time extends RDBOp
     tt: protoTermType.TIME
     st: 'time'
 
+class GeoJson extends RDBOp
+    tt: protoTermType.GEOJSON
+    mt: 'geoJson'
+
+class ToGeoJson extends RDBOp
+    tt: protoTermType.TO_GEOJSON
+    mt: 'toGeoJson'
+
+class Point extends RDBOp
+    tt: protoTermType.POINT
+    mt: 'point'
+
+class Line extends RDBOp
+    tt: protoTermType.LINE
+    mt: 'line'
+
+class Polygon extends RDBOp
+    tt: protoTermType.POLYGON
+    mt: 'polygon'
+
+class Distance extends RDBOp
+    tt: protoTermType.DISTANCE
+    mt: 'distance'
+
+class Intersects extends RDBOp
+    tt: protoTermType.INTERSECTS
+    mt: 'intersects'
+
+class Includes extends RDBOp
+    tt: protoTermType.INCLUDES
+    mt: 'includes'
+
+class Circle extends RDBOp
+    tt: protoTermType.CIRCLE
+    mt: 'circle'
+
+class Rectangle extends RDBOp
+    tt: protoTermType.RECTANGLE
+    mt: 'rectangle'
+
+class GetIntersecting extends RDBOp
+    tt: protoTermType.GET_INTERSECTING
+    mt: 'getIntersecting'
+
+
+
+
 # All top level exported functions
 
 # Wrap a native JS value in an ReQL datum
@@ -1130,6 +1185,15 @@ rethinkdb.december = new (class extends RDBOp then tt: protoTermType.DECEMBER)()
 rethinkdb.object = (args...) -> new Object_ {}, args...
 
 rethinkdb.args = (args...) -> new Args {}, args...
+
+rethinkdb.geoJson = (args...) -> new GeoJson {}, args...
+rethinkdb.point = (args...) -> new Point {}, args...
+rethinkdb.line = (args...) -> new Line {}, args...
+rethinkdb.polygon = (args...) -> new Polygon {}, args...
+rethinkdb.intersects = (args...) -> new Intersects {}, args...
+rethinkdb.distance = aropt (g1, g2, opts) -> new Distance opts, g1, g2
+rethinkdb.circle = aropt (cen, rad, opts) -> new Circle opts, cen, rad
+rethinkdb.rectangle = aropt (p1, p2, opts) -> new Rectangle opts, p1, p2
 
 # Export all names defined on rethinkdb
 module.exports = rethinkdb

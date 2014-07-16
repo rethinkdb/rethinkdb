@@ -248,7 +248,7 @@ private:
         case Term::INDEX_LIST:
         case Term::INDEX_STATUS:
         case Term::GEOJSON:
-        case Term::TOGEOJSON:
+        case Term::TO_GEOJSON:
         case Term::POINT:
         case Term::LINE:
         case Term::POLYGON:
@@ -428,7 +428,7 @@ private:
         case Term::NOVEMBER:
         case Term::DECEMBER:
         case Term::GEOJSON:
-        case Term::TOGEOJSON:
+        case Term::TO_GEOJSON:
         case Term::POINT:
         case Term::LINE:
         case Term::POLYGON:
