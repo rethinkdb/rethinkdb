@@ -130,7 +130,7 @@ js_runner_t *env_t::get_js_runner() {
     assert_thread();
     extproc_pool_t *extproc_pool = get_extproc_pool();
     if (!js_runner.connected()) {
-        js_runner.begin(extproc_pool, interruptor);
+        js_runner.begin(extproc_pool, interruptor, limits);
     }
     return &js_runner;
 }

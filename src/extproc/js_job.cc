@@ -51,8 +51,9 @@ public:
     js_env_t();
     ~js_env_t();
 
-    js_result_t eval(const std::string &source);
-    js_result_t call(js_id_t id, const std::vector<counted_t<const ql::datum_t> > &args);
+    js_result_t eval(const std::string &source, const ql::configured_limits_t &limits);
+    js_result_t call(js_id_t id, const std::vector<counted_t<const ql::datum_t> > &args,
+                     const ql::configured_limits_t &limits);
     void release(js_id_t id);
 
 private:
@@ -96,14 +97,16 @@ enum js_task_t {
 };
 
 // The job_t runs in the context of the main rethinkdb process
-js_job_t::js_job_t(extproc_pool_t *pool, signal_t *interruptor) :
-    extproc_job(pool, &worker_fn, interruptor) { }
+js_job_t::js_job_t(extproc_pool_t *pool, signal_t *interruptor,
+                   const ql::configured_limits_t &_limits) :
+    extproc_job(pool, &worker_fn, interruptor), limits(_limits) { }
 
 js_result_t js_job_t::eval(const std::string &source) {
     js_task_t task = js_task_t::TASK_EVAL;
     write_message_t wm;
     wm.append(&task, sizeof(task));
     serialize<cluster_version_t::LATEST_OVERALL>(&wm, source);
+    serialize<cluster_version_t::LATEST_OVERALL>(&wm, limits);
     {
         int res = send_write_message(extproc_job.write_stream(), &wm);
         if (res != 0) {
@@ -128,6 +131,7 @@ js_result_t js_job_t::call(js_id_t id, const std::vector<counted_t<const ql::dat
     wm.append(&task, sizeof(task));
     serialize<cluster_version_t::LATEST_OVERALL>(&wm, id);
     serialize<cluster_version_t::LATEST_OVERALL>(&wm, args);
+    serialize<cluster_version_t::LATEST_OVERALL>(&wm, limits);
     {
         int res = send_write_message(extproc_job.write_stream(), &wm);
         if (res != 0) {
@@ -222,13 +226,20 @@ bool run_eval(read_stream_t *stream_in,
               js_env_t *js_env,
               uint64_t task_counter) {
     std::string source;
-    archive_result_t res = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in,
-                                                                          &source);
-    if (bad(res)) { return false; }
+    ql::configured_limits_t limits;
+    {
+        archive_result_t res
+            = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in,
+                                                             &source);
+        if (bad(res)) { return false; }
+        res = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in,
+                                                             &limits);
+        if (bad(res)) { return false; }
+    }
 
     js_result_t js_result;
     try {
-        js_result = js_env->eval(source);
+        js_result = js_env->eval(source, limits);
     } catch (const std::exception &e) {
         js_result = e.what();
     } catch (...) {
@@ -245,15 +256,20 @@ bool run_call(read_stream_t *stream_in,
               uint64_t task_counter) {
     js_id_t id;
     std::vector<counted_t<const ql::datum_t> > args;
-    archive_result_t res = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in,
-                                                                          &id);
-    if (bad(res)) { return false; }
-    res = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in, &args);
-    if (bad(res)) { return false; }
+    ql::configured_limits_t limits;
+    {
+        archive_result_t res
+            = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in, &id);
+        if (bad(res)) { return false; }
+        res = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in, &args);
+        if (bad(res)) { return false; }
+        res = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in, &limits);
+        if (bad(res)) { return false; }
+    }
 
     js_result_t js_result;
     try {
-        js_result = js_env->call(id, args);
+        js_result = js_env->call(id, args, limits);
     } catch (const std::exception &e) {
         js_result = e.what();
     } catch (...) {
@@ -343,7 +359,8 @@ js_env_t::~js_env_t() {
     }
 }
 
-js_result_t js_env_t::eval(const std::string &source) {
+js_result_t js_env_t::eval(const std::string &source,
+                           const ql::configured_limits_t &limits) {
     js_context_t clean_context;
     js_result_t result("");
     std::string *errmsg = boost::get<std::string>(&result);
@@ -378,9 +395,6 @@ js_result_t js_env_t::eval(const std::string &source) {
                 result = remember_value(func);
             } else {
                 guarantee(!result_val.IsEmpty());
-
-                // HACK: haven't communicated user prefs, use default
-                ql::configured_limits_t limits;
 
                 // JSONify result.
                 counted_t<const ql::datum_t> datum = js_to_datum(result_val, limits,
@@ -445,7 +459,8 @@ v8::Handle<v8::Value> run_js_func(v8::Handle<v8::Function> fn,
 }
 
 js_result_t js_env_t::call(js_id_t id,
-                           const std::vector<counted_t<const ql::datum_t> > &args) {
+                           const std::vector<counted_t<const ql::datum_t> > &args,
+                           const ql::configured_limits_t &limits) {
     js_context_t clean_context;
     js_result_t result("");
     std::string *errmsg = boost::get<std::string>(&result);
@@ -471,9 +486,6 @@ js_result_t js_env_t::call(js_id_t id,
             v8::Handle<v8::Function> sub_func = v8::Handle<v8::Function>::Cast(value);
             result = remember_value(sub_func);
         } else {
-            // HACK: haven't communicated user prefs, use default
-            ql::configured_limits_t limits;
-
             // JSONify result.
             counted_t<const ql::datum_t> datum = js_to_datum(value, limits, errmsg);
             if (datum.has()) {
