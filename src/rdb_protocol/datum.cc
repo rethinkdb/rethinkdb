@@ -140,7 +140,12 @@ counted_t<const datum_t> to_datum(cJSON *json) {
         while (cJSON *item = it.next()) {
             array.push_back(to_datum(item));
         }
-        return make_counted<datum_t>(std::move(array));
+        // TODO(v1.14): This uses no array size limit to be compatible with existing
+        // behavior.  This should (a) use the array size limit, and (b) use the
+        // query-specific array size limit, and (c?) depend on the query evaluation
+        // version, once that exists.
+        return make_counted<datum_t>(std::move(array),
+                                     datum_t::no_array_size_limit_check_t::NO);
     } break;
     case cJSON_Object: {
         std::map<std::string, counted_t<const datum_t> > map;
