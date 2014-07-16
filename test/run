@@ -86,4 +86,6 @@ if __name__ == '__main__':
     args = argparser.parse_args(sys.argv[1:])
     load_tests()
     load_groups()
-    run(tests, groups, lambda reqs: configure(reqs, args), args)
+    ret = run(tests, groups, lambda reqs: configure(reqs, args), args)
+    if ret is not None:
+        sys.exit(1)
