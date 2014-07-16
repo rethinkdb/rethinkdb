@@ -88,6 +88,8 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const changefeed_subscribe_t &s) {
+        profile::starter_t start_read("Perform read on shard.", ql_env.trace);
+
         guarantee(store->changefeed_server.has());
         store->changefeed_server->add_client(s.addr);
         response->response = changefeed_subscribe_response_t();
@@ -98,6 +100,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const changefeed_stamp_t &s) {
+        profile::starter_t start_read("Perform read on shard.", ql_env.trace);
+
         guarantee(store->changefeed_server.has());
         response->response = changefeed_stamp_response_t();
         auto res = boost::get<changefeed_stamp_response_t>(&response->response);
@@ -118,6 +122,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const point_read_t &get) {
+        profile::starter_t start_read("Perform read on shard.", ql_env.trace);
+
         response->response = point_read_response_t();
         point_read_response_t *res =
             boost::get<point_read_response_t>(&response->response);
@@ -125,6 +131,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const rget_read_t &rget) {
+        profile::starter_t start_read("Perform read on shard.", ql_env.trace);
+
         if (rget.transforms.size() != 0 || rget.terminal) {
             // This asserts that the optargs have been initialized.  (There is always
             // a 'db' optarg.)  We have the same assertion in
@@ -187,6 +195,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const distribution_read_t &dg) {
+        profile::starter_t start_read("Perform read on shard.", ql_env.trace);
+
         response->response = distribution_read_response_t();
         distribution_read_response_t *res = boost::get<distribution_read_response_t>(&response->response);
         rdb_distribution_get(dg.max_depth, dg.region.inner.left,
@@ -210,6 +220,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(UNUSED const sindex_list_t &sinner) {
+        profile::starter_t start_read("Perform read on shard.", ql_env.trace);
+
         response->response = sindex_list_response_t();
         sindex_list_response_t *res = &boost::get<sindex_list_response_t>(response->response);
 
@@ -232,6 +244,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_status_t &sindex_status) {
+        profile::starter_t start_read("Perform read on shard.", ql_env.trace);
+
         response->response = sindex_status_response_t();
         auto res = &boost::get<sindex_status_response_t>(response->response);
 
@@ -285,10 +299,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                profile)
     { }
 
-    ql::env_t *get_env() {
-        return &ql_env;
-    }
-
     profile::event_log_t extract_event_log() {
         if (ql_env.trace.has()) {
             return std::move(*ql_env.trace).extract_event_log();
@@ -315,7 +325,6 @@ void store_t::protocol_read(const read_t &read,
                          superblock,
                          ctx, response, read.profile, interruptor);
     {
-        profile::starter_t start_write("Perform read on shard.", v.get_env()->trace);
         boost::apply_visitor(v, read.read);
     }
 
