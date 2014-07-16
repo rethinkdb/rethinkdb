@@ -3,23 +3,31 @@
 
 #include "geo/exceptions.hpp"
 #include "geo/intersection.hpp"
+#include "rdb_protocol/batching.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/lazy_json.hpp"
 #include "rdb_protocol/profile.hpp"
 
+// How many primary keys to keep in memory for avoiding processing the same
+// document multiple times (efficiency optimization).
+const static size_t MAX_PROCESSED_SET_SIZE = 10000;
+
 geo_intersecting_cb_t::geo_intersecting_cb_t(
         geo_io_data_t &&_io,
         const geo_sindex_data_t &&_sindex,
-        ql::env_t *_env)
+        ql::env_t *_env,
+        std::set<store_key_t> *_distinct_emitted_in_out)
     : geo_index_traversal_helper_t(
           compute_index_grid_keys(_sindex.query_geometry, GEO_INDEX_GOAL_GRID_CELLS)),
       io(std::move(_io)),
       sindex(std::move(_sindex)),
       env(_env),
-      result_acc(ql::datum_t::R_ARRAY) {
+      result_acc(ql::datum_t::R_ARRAY),
+      distinct_emitted(_distinct_emitted_in_out) {
     // TODO (daniel): Implement lazy geo rgets, push down transformations and terminals to here
+    guarantee(distinct_emitted != NULL);
     disabler.init(new profile::disabler_t(env->trace));
     sampler.init(new profile::sampler_t("Geospatial intersection traversal doc evaluation.",
                                         env->trace));
@@ -44,19 +52,14 @@ void geo_intersecting_cb_t::on_candidate(
         return;
     }
 
-    // Check if this is a duplicate of a previously processed value.
-    // Note that this uses memory linear in the number of candidates.
-    // TODO (daniel): If I can get the efficiency of the rest of this logic up,
-    //  consider storing keys into already_processed only when a document
-    //  is actually added to the result set.
+    // Check if this document has already been processed (lower bound).
     if (already_processed.count(primary_key) > 0) {
         return;
     }
-    // TODO! Check and limit the size of this
-    // TODO! Another option would be to store keys like this up to a certain
-    //  size, and after that only store actually emitted keys.
-    //  That should give the best of both approaches.
-    already_processed.insert(primary_key);
+    // Check if this document has already been emitted.
+    if (distinct_emitted->count(primary_key) > 0) {
+        return;
+    }
 
     lazy_json_t row(static_cast<const rdb_value_t *>(value), parent);
     counted_t<const ql::datum_t> val;
@@ -78,12 +81,24 @@ void geo_intersecting_cb_t::on_candidate(
         }
         // TODO (daniel): This is a little inefficient because we re-parse
         //   the query_geometry for each test.
-        if (!geo_does_intersect(sindex.query_geometry, sindex_val)) {
-            return;
+        if (geo_does_intersect(sindex.query_geometry, sindex_val)) {
+            if (distinct_emitted->size() > ql::array_size_limit()) {
+                io.response->error = ql::exc_t(ql::base_exc_t::GENERIC,
+                        "Result size limit exceeded (array size).", NULL);;
+                abort_traversal();
+                return;
+            }
+            distinct_emitted->insert(primary_key);
+            result_acc.add(val);
+        } else {
+            // Mark the document as processed so we don't have to load it again.
+            // This is relevant only for polygons and lines, since those can be
+            // encountered multiple times in the index.
+            if (already_processed.size() < MAX_PROCESSED_SET_SIZE
+                && sindex_val->get("type")->as_str().to_std() != "Point") {
+                already_processed.insert(primary_key);
+            }
         }
-
-        // TODO! Check and limit the size of this.
-        result_acc.add(val);
     } catch (const ql::exc_t &e) {
         io.response->error = e;
         abort_traversal();

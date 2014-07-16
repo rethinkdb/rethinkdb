@@ -25,7 +25,6 @@ They do not perform any validation. */
 counted_t<const ql::datum_t> construct_geo_point(const lat_lon_point_t &point);
 counted_t<const ql::datum_t> construct_geo_line(const lat_lon_line_t &line);
 // Only an outer shell is supported through this. No holes.
-// TODO! Describe how to construct polygons with holes
 // Closes the shell implicitly (i.e. connects the first point to the last point).
 counted_t<const ql::datum_t> construct_geo_polygon(const lat_lon_line_t &shell);
 

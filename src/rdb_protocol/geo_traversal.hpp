@@ -55,7 +55,8 @@ public:
     geo_intersecting_cb_t(
             geo_io_data_t &&_io,
             const geo_sindex_data_t &&_sindex,
-            ql::env_t *_env);
+            ql::env_t *_env,
+            std::set<store_key_t> *_distinct_emitted_in_out);
 
     void on_candidate(
             const btree_key_t *key,
@@ -73,8 +74,12 @@ private:
     // Accumulates the data
     ql::datum_ptr_t result_acc;
 
-    // Stores the primary key of previously processed documents
+    // Stores the primary key of previously processed documents, up to some limit
+    // (this is an optimization for small query ranges, trading memory for efficiency)
     std::set<store_key_t> already_processed;
+    // In contrast to `already_processed`, this set is critical to avoid emitting
+    // duplicates. It's not just an optimization.
+    std::set<store_key_t> *distinct_emitted;
 
     // State for profiling.
     scoped_ptr_t<profile::disabler_t> disabler;
