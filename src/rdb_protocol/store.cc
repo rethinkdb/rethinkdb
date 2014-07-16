@@ -439,9 +439,9 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     };
 
     void operator()(const batched_replace_t &br) {
+        ql::env_t ql_env(ctx, interruptor, br.optargs, profile);
         dump_event_log_t dump(this, ql_env.trace.get_or_null());
         profile::starter_t start_write("Perform write on shard.", ql_env.trace);
-        ql_env.global_optargs.init_optargs(br.optargs);
         rdb_modification_report_cb_t sindex_cb(
             store, &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));
@@ -455,8 +455,9 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const batched_insert_t &bi) {
-        dump_event_log_t dump(this, ql_env.trace.get_or_null());
-        profile::starter_t start_write("Perform write on shard.", ql_env.trace);
+        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
+        dump_event_log_t dump(this, trace.get_or_null());
+        profile::starter_t start_write("Perform write on shard.", trace);
         rdb_modification_report_cb_t sindex_cb(
             store,
             &sindex_block,
@@ -472,12 +473,13 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                 btree_info_t(btree, timestamp,
                              &bi.pkey),
                 superblock, keys, limits, &replacer, &sindex_cb,
-                ql_env.trace.get_or_null());
+                trace.get_or_null());
     }
 
     void operator()(const point_write_t &w) {
-        dump_event_log_t dump(this, ql_env.trace.get_or_null());
-        profile::starter_t start_write("Perform write on shard.", ql_env.trace);
+        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
+        dump_event_log_t dump(this, trace.get_or_null());
+        profile::starter_t start_write("Perform write on shard.", trace);
         response->response = point_write_response_t();
         point_write_response_t *res =
             boost::get<point_write_response_t>(&response->response);
@@ -485,14 +487,15 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         rdb_live_deletion_context_t deletion_context;
         rdb_modification_report_t mod_report(w.key);
         rdb_set(w.key, w.data, w.overwrite, btree, timestamp, superblock->get(),
-                &deletion_context, res, &mod_report.info, ql_env.trace.get_or_null());
+                &deletion_context, res, &mod_report.info, trace.get_or_null());
 
         update_sindexes(mod_report);
     }
 
     void operator()(const point_delete_t &d) {
-        dump_event_log_t dump(this, ql_env.trace.get_or_null());
-        profile::starter_t start_write("Perform write on shard.", ql_env.trace);
+        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
+        dump_event_log_t dump(this, trace.get_or_null());
+        profile::starter_t start_write("Perform write on shard.", trace);
         response->response = point_delete_response_t();
         point_delete_response_t *res =
             boost::get<point_delete_response_t>(&response->response);
@@ -500,14 +503,15 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         rdb_live_deletion_context_t deletion_context;
         rdb_modification_report_t mod_report(d.key);
         rdb_delete(d.key, btree, timestamp, superblock->get(), &deletion_context,
-                res, &mod_report.info, ql_env.trace.get_or_null());
+                res, &mod_report.info, trace.get_or_null());
 
         update_sindexes(mod_report);
     }
 
     void operator()(const sindex_create_t &c) {
-        dump_event_log_t dump(this, ql_env.trace.get_or_null());
-        profile::starter_t start_write("Perform write on shard.", ql_env.trace);
+        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
+        dump_event_log_t dump(this, trace.get_or_null());
+        profile::starter_t start_write("Perform write on shard.", trace);
         sindex_create_response_t res;
 
         write_message_t wm;
@@ -535,8 +539,9 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_drop_t &d) {
-        dump_event_log_t dump(this, ql_env.trace.get_or_null());
-        profile::starter_t start_write("Perform write on shard.", ql_env.trace);
+        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
+        dump_event_log_t dump(this, trace.get_or_null());
+        profile::starter_t start_write("Perform write on shard.", trace);
         sindex_drop_response_t res;
         res.success = store->drop_sindex(sindex_name_t(d.id), std::move(sindex_block));
 
@@ -544,8 +549,9 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sync_t &) {
-        dump_event_log_t dump(this, ql_env.trace.get_or_null());
-        profile::starter_t start_write("Perform write on shard.", ql_env.trace);
+        scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
+        dump_event_log_t dump(this, trace.get_or_null());
+        profile::starter_t start_write("Perform write on shard.", trace);
         response->response = sync_response_t();
 
         // We know this sync_t operation will force all preceding write transactions
@@ -561,19 +567,20 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                         txn_t *_txn,
                         scoped_ptr_t<superblock_t> *_superblock,
                         repli_timestamp_t _timestamp,
-                        rdb_context_t *ctx,
-                        profile_bool_t profile,
+                        rdb_context_t *_ctx,
+                        profile_bool_t _profile,
                         write_response_t *_response,
-                        signal_t *interruptor,
+                        signal_t *_interruptor,
                         const ql::configured_limits_t &_limits) :
         btree(_btree),
         store(_store),
         txn(_txn),
         response(_response),
+        ctx(_ctx),
+        interruptor(_interruptor),
         superblock(_superblock),
         timestamp(_timestamp),
-        ql_env(ctx, interruptor, std::map<std::string, ql::wire_func_t>(),
-               profile),
+        profile(_profile),
         limits(_limits) {
         sindex_block =
             store->acquire_sindex_block_for_write((*superblock)->expose_buf(),
@@ -598,9 +605,11 @@ private:
     store_t *const store;
     txn_t *const txn;
     write_response_t *const response;
+    rdb_context_t *const ctx;
+    signal_t *const interruptor;
     scoped_ptr_t<superblock_t> *const superblock;
     const repli_timestamp_t timestamp;
-    ql::env_t ql_env;
+    const profile_bool_t profile;
     buf_lock_t sindex_block;
     const ql::configured_limits_t &limits;
     profile::event_log_t event_log_out;
