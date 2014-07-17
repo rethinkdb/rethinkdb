@@ -325,7 +325,7 @@ scoped_ptr_t<S2Polygon> coordinates_to_s2polygon(const counted_t<const datum_t> 
     builder.AssemblePolygon(result.get(), &unused_edges);
     if (!unused_edges.empty()) {
         throw geo_exception_t(
-            "Some edges in GeoJSON polygon could not be used.");
+            "Some edges in GeoJSON polygon could not be used. Are they intersecting?");
     }
 
     return std::move(result);

@@ -401,7 +401,7 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> l_arg = args->arg(env, 1);
+        counted_t<val_t> l_arg = args->arg(env, 0);
         check_is_geometry(l_arg);
         try {
             const lat_lon_line_t shell = extract_lat_lon_line(l_arg->as_datum());

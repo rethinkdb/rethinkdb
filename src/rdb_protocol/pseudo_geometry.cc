@@ -1,8 +1,11 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/pseudo_geometry.hpp"
 
+#include "geo/exceptions.hpp"
 #include "geo/geojson.hpp"
+#include "geo/inclusion.hpp"
 #include "geo/lat_lon_types.hpp"
+#include "geo/s2/s2polygon.h"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"
 
@@ -33,6 +36,13 @@ counted_t<const datum_t> geo_sub(counted_t<const datum_t> lhs,
                   lhs->get("coordinates")->size() >= 1,
                   "The minuend is an empty polygon. It must at least have "
                   "an outer shell.");
+
+    {
+        scoped_ptr_t<S2Polygon> lhs_poly = to_s2polygon(lhs);
+        if (!geo_does_include(*lhs_poly, rhs)) {
+            throw geo_exception_t("The subtrahend is not contained in the minuend.");
+        }
+    }
 
     datum_ptr_t result(datum_t::R_OBJECT);
     bool dup;

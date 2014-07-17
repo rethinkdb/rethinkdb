@@ -8,6 +8,7 @@
 
 #include "geo/geojson.hpp"
 #include "geo/geo_visitor.hpp"
+#include "geo/intersection.hpp"
 #include "geo/s2/s2.h"
 #include "geo/s2/s2polygon.h"
 #include "geo/s2/s2polyline.h"
@@ -48,12 +49,13 @@ bool geo_does_include(const S2Polygon &polygon,
 
 bool geo_does_include(const S2Polygon &polygon,
                       const S2Point &g) {
-    return polygon.Contains(g);
+    // polygon.Contains(g) doesn't work for points that are exactly on a corner
+    // of the polygon, so we use geo_does_intersect instead.
+    return geo_does_intersect(polygon, g);;
 }
 
 bool geo_does_include(const S2Polygon &polygon,
                       const S2Polyline &g) {
-    // TODO! Check edge-cases
     std::vector<S2Polyline *> remaining_pieces;
     polygon.SubtractFromPolyline(&g, &remaining_pieces);
     // We're not interested in the actual line pieces that are not contained

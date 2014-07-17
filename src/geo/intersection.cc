@@ -115,7 +115,7 @@ bool geo_does_intersect(const S2Point &point,
                         const S2Polygon &other_polygon) {
     // This returns the point itself if it's inside the polygon.
     // In contrast to other_polygon.Contains(), it also works for points that
-    // are exactly on the edge of the polygon.
+    // are exactly on the corner of the polygon.
     // That's probably the behavior we want for points (as far as "intersection"
     // on a point makes sense at all).
     S2Point projection = other_polygon.Project(point);
@@ -124,11 +124,6 @@ bool geo_does_intersect(const S2Point &point,
 
 bool geo_does_intersect(const S2Polyline &line,
                         const S2Polygon &other_polygon) {
-    // This does *not* consider the end points of the line.
-    // (i.e. if the beginning or end of `line` is exactly on an edge of
-    // `other_polygon`)
-    // That seems to be consistent with what the term "intersects" means for
-    // lines (and polygons).
     std::vector<S2Polyline *> intersecting_pieces;
     other_polygon.IntersectWithPolyline(&line, &intersecting_pieces);
     // We're not interested in the actual line pieces that intersect
