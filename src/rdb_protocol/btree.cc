@@ -139,10 +139,10 @@ void kv_location_set(keyvalue_location_t *kv_location,
     const max_block_size_t block_size = kv_location->buf.cache()->max_block_size();
     {
         blob_t blob(block_size, new_value->value_ref(), blob::btree_maxreflen);
-        datum_serialize_onto_blob(
-                buf_parent_t(&kv_location->buf),
-                &blob,
-                data);
+        UNUSED ql::serialization_result_t res
+            = datum_serialize_onto_blob(buf_parent_t(&kv_location->buf),
+                                        &blob, data);
+        // okay, now what.
     }
 
     if (mod_info_out) {
