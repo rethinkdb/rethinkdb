@@ -4,17 +4,44 @@
 #include "containers/archive/archive.hpp"
 #include "containers/archive/buffer_group_stream.hpp"
 #include "containers/counted.hpp"
+#include "containers/wire_string.hpp"
 
 namespace ql {
 
 class datum_t;
 
+enum class serialization_result_t {
+    SUCCESS,
+    ARRAY_TOO_BIG,
+};
+
+inline bool bad(serialization_result_t res) {
+    return res != serialization_result_t::SUCCESS;
+}
+
+inline const serialization_result_t & operator |(const serialization_result_t &first,
+                                                 const serialization_result_t &second) {
+    if (bad(first))
+        return first;
+    else
+        return second;
+}
+
 // More stable versions of datum serialization, kept separate from the versioned
 // serialization functions.  Don't change these in a backwards-uncompatible way!  See
 // the FAQ at the end of this file.
 size_t datum_serialized_size(const counted_t<const datum_t> &datum);
-void datum_serialize(write_message_t *wm, const counted_t<const datum_t> &datum);
+serialization_result_t datum_serialize(write_message_t *wm, const counted_t<const datum_t> &datum);
 archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *datum);
+
+size_t datum_serialized_size(const wire_string_t &s);
+serialization_result_t datum_serialize(write_message_t *wm, const wire_string_t &s);
+
+// The deserialized value cannot be an empty scoped_ptr_t.  As with all deserialize
+// functions, the value of `*out` is left in an unspecified state, should
+// deserialization fail.
+MUST_USE archive_result_t datum_deserialize(read_stream_t *s,
+                                            scoped_ptr_t<wire_string_t> *out);
 
 // The versioned serialization functions.
 template <cluster_version_t W>
@@ -23,6 +50,7 @@ size_t serialized_size(const counted_t<const datum_t> &datum) {
 }
 template <cluster_version_t W>
 void serialize(write_message_t *wm, const counted_t<const datum_t> &datum) {
+    // ignore the datum_serialize result for in memory writes
     datum_serialize(wm, datum);
 }
 template <cluster_version_t W>

@@ -60,14 +60,4 @@ private:
 
 scoped_ptr_t<wire_string_t> concat(const wire_string_t &a, const wire_string_t &b);
 
-size_t datum_serialized_size(const wire_string_t &s);
-void datum_serialize(write_message_t *wm, const wire_string_t &s);
-
-// The deserialized value cannot be an empty scoped_ptr_t.  As with all deserialize
-// functions, the value of `*out` is left in an unspecified state, should
-// deserialization fail.
-MUST_USE archive_result_t datum_deserialize(read_stream_t *s,
-                                            scoped_ptr_t<wire_string_t> *out);
-
-
 #endif  // CONTAINERS_WIRE_STRING_HPP_
