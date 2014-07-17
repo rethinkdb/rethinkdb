@@ -4,8 +4,6 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "clustering/administration/database_metadata.hpp"
-#include "clustering/administration/metadata.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "extproc/js_runner.hpp"
 #include "rdb_protocol/counted_term.hpp"

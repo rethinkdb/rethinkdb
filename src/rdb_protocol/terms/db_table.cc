@@ -4,7 +4,7 @@
 #include <map>
 #include <string>
 
-#include "clustering/administration/main/ports.hpp"
+#include "containers/name_string.hpp"
 #include "containers/wire_string.hpp"
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/wait_for_readiness.hpp"

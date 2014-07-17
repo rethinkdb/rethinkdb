@@ -4,9 +4,9 @@
 #include <algorithm>
 #include <functional>
 
-#include "clustering/administration/metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
+#include "containers/archive/boost_types.hpp"
 #include "containers/cow_ptr.hpp"
 #include "containers/disk_backed_queue.hpp"
 #include "rdb_protocol/btree.hpp"
@@ -15,9 +15,6 @@
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/store.hpp"
-#include "rpc/semilattice/view.hpp"
-#include "rpc/semilattice/view/field.hpp"
-#include "rpc/semilattice/watchable.hpp"
 
 #include "debug.hpp"
 
