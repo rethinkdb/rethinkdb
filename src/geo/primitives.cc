@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "geo/primitives.hpp"
 
+#include <algorithm>
+
 #include "geo/ellipsoid.hpp"
 #include "geo/exceptions.hpp"
 #include "geo/distances.hpp"
@@ -10,9 +12,14 @@ lat_lon_line_t build_circle(const lat_lon_point_t &center,
                             double radius,
                             unsigned int num_vertices,
                             const ellipsoid_spec_t &e) {
-    // TODO! What happens when radius is very big compared to the ellipsoid's radius?
     if (radius <= 0.0) {
         throw geo_exception_t("Radius must be positive");
+    }
+    if (radius >= std::min(e.equator_radius(), e.poles_radius())) {
+        throw geo_exception_t(
+            strprintf("Radius must be smaller than the minimal radius of the "
+                      "reference ellipsoid (which is %f).",
+                      std::min(e.equator_radius(), e.poles_radius())));
     }
 
     lat_lon_line_t result;
