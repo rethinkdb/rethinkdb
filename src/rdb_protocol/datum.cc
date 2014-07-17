@@ -1117,9 +1117,9 @@ void datum_object_builder_t::overwrite(std::string key,
 void datum_object_builder_t::add_error(const char *msg) {
     // Insert or update the "errors" entry.
     {
-        counted_t<const datum_t> &errors_entry = map["errors"];
-        double ecount = (errors_entry.has() ? errors_entry->as_num() : 0) + 1;
-        errors_entry = make_counted<datum_t>(ecount);
+        counted_t<const datum_t> *errors_entry = &map["errors"];
+        double ecount = (errors_entry->has() ? (*errors_entry)->as_num() : 0) + 1;
+        *errors_entry = make_counted<datum_t>(ecount);
     }
 
     // If first_error already exists, nothing gets inserted.
