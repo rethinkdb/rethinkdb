@@ -362,6 +362,7 @@ translateBackOptargs = (optargs) ->
             when 'default_timezone' then 'defaultTimezone'
             when 'result_format' then 'resultFormat'
             when 'page_limit' then 'pageLimit'
+            when 'num_vertices' then 'numVertices'
             else key
 
         result[key] = val
@@ -381,6 +382,7 @@ translateOptargs = (optargs) ->
             when 'defaultTimezone' then 'default_timezone'
             when 'resultFormat' then 'result_format'
             when 'pageLimit' then 'page_limit'
+            when 'numVertices' then 'num_vertices'
             else key
 
         if key is undefined or val is undefined then continue
