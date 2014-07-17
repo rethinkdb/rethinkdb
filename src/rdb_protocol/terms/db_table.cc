@@ -63,7 +63,8 @@ private:
         name_string_t db_name = get_name(args->arg(env, 0), this, "Database");
         counted_t<const db_t> db;
         std::string error;
-        if (!env->env->reql_admin_interface()->db_find(db_name, env->env->interruptor, &db, &error)) {
+        if (!env->env->reql_admin_interface()->db_find(db_name, env->env->interruptor,
+                &db, &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
         return new_val(db);
@@ -79,7 +80,8 @@ private:
     virtual std::string write_eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         name_string_t db_name = get_name(args->arg(env, 0), this, "Database");
         std::string error;
-        if (!env->env->reql_admin_interface()->db_create(db_name, env->env->interruptor, &error)) {
+        if (!env->env->reql_admin_interface()->db_create(db_name, env->env->interruptor,
+                &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
         return "created";

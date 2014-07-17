@@ -8,7 +8,9 @@ base_namespace_repo_t::access_t::access_t() :
     thread(INVALID_THREAD)
     { }
 
-base_namespace_repo_t::access_t::access_t(base_namespace_repo_t *parent, const uuid_u &namespace_id, signal_t *interruptor) :
+base_namespace_repo_t::access_t::access_t(base_namespace_repo_t *parent,
+                                          const uuid_u &namespace_id,
+                                          signal_t *interruptor) :
     thread(get_thread_id())
 {
     {
@@ -29,7 +31,8 @@ base_namespace_repo_t::access_t::access_t(const access_t& access) :
     }
 }
 
-base_namespace_repo_t::access_t &base_namespace_repo_t::access_t::operator=(const access_t &access) {
+base_namespace_repo_t::access_t &base_namespace_repo_t::access_t::operator=(
+        const access_t &access) {
     if (this != &access) {
         cache_entry = access.cache_entry;
         ref_handler.reset();
@@ -53,14 +56,16 @@ base_namespace_repo_t::access_t::ref_handler_t::~ref_handler_t() {
     reset();
 }
 
-void base_namespace_repo_t::access_t::ref_handler_t::init(namespace_cache_entry_t *_ref_target) {
+void base_namespace_repo_t::access_t::ref_handler_t::init(
+        namespace_cache_entry_t *_ref_target) {
     ASSERT_NO_CORO_WAITING;
     guarantee(ref_target == NULL);
     ref_target = _ref_target;
     ref_target->ref_count++;
     if (ref_target->ref_count == 1) {
         if (ref_target->pulse_when_ref_count_becomes_nonzero) {
-            ref_target->pulse_when_ref_count_becomes_nonzero->pulse_if_not_already_pulsed();
+            ref_target->pulse_when_ref_count_becomes_nonzero->
+                pulse_if_not_already_pulsed();
         }
     }
 }
@@ -71,7 +76,8 @@ void base_namespace_repo_t::access_t::ref_handler_t::reset() {
         ref_target->ref_count--;
         if (ref_target->ref_count == 0) {
             if (ref_target->pulse_when_ref_count_becomes_zero) {
-                ref_target->pulse_when_ref_count_becomes_zero->pulse_if_not_already_pulsed();
+                ref_target->pulse_when_ref_count_becomes_zero->
+                    pulse_if_not_already_pulsed();
             }
         }
     }
@@ -107,7 +113,8 @@ rdb_context_t::rdb_context_t(
         mailbox_manager_t *_mailbox_manager,
         base_namespace_repo_t *_ns_repo,
         reql_admin_interface_t *_reql_admin_interface,
-        boost::shared_ptr< semilattice_readwrite_view_t<auth_semilattice_metadata_t> > _auth_metadata,
+        boost::shared_ptr< semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
+            _auth_metadata,
         perfmon_collection_t *_global_stats,
         const std::string &_reql_http_proxy)
     : extproc_pool(_extproc_pool),

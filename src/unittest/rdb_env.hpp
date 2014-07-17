@@ -109,8 +109,10 @@ public:
 
     mock_namespace_interface_t *get_ns_if(const namespace_id_t &ns_id);
 
-    bool check_namespace_exists(UNUSED const namespace_id_t &ns_id, UNUSED signal_t *interruptor) {
-        /* The `mock_namespace_repo_t` creates namespaces on the fly, so they always exist */
+    bool check_namespace_exists(UNUSED const namespace_id_t &ns_id,
+                                UNUSED signal_t *interruptor) {
+        /* The `mock_namespace_repo_t` creates namespaces on the fly, so they always
+        exist */
         return true;
     }
 
@@ -136,22 +138,28 @@ public:
     bool db_drop(const name_string_t &name,
             signal_t *interruptor, std::string *error_out);
     bool db_list(
-            signal_t *interruptor, std::set<name_string_t> *names_out, std::string *error_out);
+            signal_t *interruptor, std::set<name_string_t> *names_out,
+            std::string *error_out);
     bool db_find(const name_string_t &name,
-            signal_t *interruptor, counted_t<const ql::db_t> *db_out, std::string *error_out);
+            signal_t *interruptor, counted_t<const ql::db_t> *db_out,
+            std::string *error_out);
 
     bool table_create(const name_string_t &name, counted_t<const ql::db_t> db,
-            const boost::optional<name_string_t> &primary_dc, bool hard_durability, const std::string &primary_key,
+            const boost::optional<name_string_t> &primary_dc, bool hard_durability,
+            const std::string &primary_key,
             signal_t *interruptor, uuid_u *namespace_id_out, std::string *error_out);
     bool table_drop(const name_string_t &name, counted_t<const ql::db_t> db,
             signal_t *interruptor, std::string *error_out);
     bool table_list(counted_t<const ql::db_t> db,
-            signal_t *interruptor, std::set<name_string_t> *names_out, std::string *error_out);
+            signal_t *interruptor, std::set<name_string_t> *names_out,
+            std::string *error_out);
     bool table_find(const name_string_t &name, counted_t<const ql::db_t> db,
-            signal_t *interruptor, uuid_u *id_out, std::string *primary_key_out, std::string *error_out);
+            signal_t *interruptor, uuid_u *id_out, std::string *primary_key_out,
+            std::string *error_out);
 
     std::map<name_string_t, database_id_t> databases;
-    std::map<std::pair<database_id_t, name_string_t>, std::pair<namespace_id_t, std::string> > tables;
+    std::map<std::pair<database_id_t, name_string_t>,
+        std::pair<namespace_id_t, std::string> > tables;
 };
 
 class invalid_name_exc_t : public std::exception {

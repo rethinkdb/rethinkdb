@@ -26,7 +26,8 @@ table_t::table_t(env_t *env,
            strprintf("Table name `%s` invalid (%s).",
                      name.c_str(), name_string_t::valid_char_msg));
     std::string error;
-    if (!env->reql_admin_interface()->table_find(table_name, db, env->interruptor, &uuid, &pkey, &error)) {
+    if (!env->reql_admin_interface()->table_find(table_name, db, env->interruptor, &uuid,
+            &pkey, &error)) {
         rfail(base_exc_t::GENERIC, "%s", error.c_str());
     }
     access.init(new rdb_namespace_access_t(uuid, env));

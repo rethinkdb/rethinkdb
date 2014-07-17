@@ -262,7 +262,8 @@ bool mock_reql_admin_interface_t::db_drop(UNUSED const name_string_t &name,
 }
 
 bool mock_reql_admin_interface_t::db_list(
-        UNUSED signal_t *interruptor, std::set<name_string_t> *names_out, UNUSED std::string *error_out) {
+        UNUSED signal_t *interruptor, std::set<name_string_t> *names_out,
+        UNUSED std::string *error_out) {
     for (auto pair : databases) {
         names_out->insert(pair.first);
     }
@@ -270,7 +271,8 @@ bool mock_reql_admin_interface_t::db_list(
 }
 
 bool mock_reql_admin_interface_t::db_find(const name_string_t &name,
-        UNUSED signal_t *interruptor, counted_t<const ql::db_t> *db_out, std::string *error_out) {
+        UNUSED signal_t *interruptor, counted_t<const ql::db_t> *db_out,
+        std::string *error_out) {
     auto it = databases.find(name);
     if (it == databases.end()) {
         *error_out = "No database with that name";
@@ -281,21 +283,26 @@ bool mock_reql_admin_interface_t::db_find(const name_string_t &name,
     }
 }
 
-bool mock_reql_admin_interface_t::table_create(UNUSED const name_string_t &name, UNUSED counted_t<const ql::db_t> db,
-        UNUSED const boost::optional<name_string_t> &primary_dc, UNUSED bool hard_durability, UNUSED const std::string &primary_key,
-        UNUSED signal_t *interruptor, UNUSED uuid_u *namespace_id_out, std::string *error_out) {
+bool mock_reql_admin_interface_t::table_create(UNUSED const name_string_t &name,
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const boost::optional<name_string_t> &primary_dc,
+        UNUSED bool hard_durability, UNUSED const std::string &primary_key,
+        UNUSED signal_t *interruptor, UNUSED uuid_u *namespace_id_out,
+        std::string *error_out) {
     *error_out = "mock_reql_admin_interface_t doesn't support mutation";
     return false;
 }
 
-bool mock_reql_admin_interface_t::table_drop(UNUSED const name_string_t &name, UNUSED counted_t<const ql::db_t> db,
+bool mock_reql_admin_interface_t::table_drop(UNUSED const name_string_t &name,
+        UNUSED counted_t<const ql::db_t> db,
         UNUSED signal_t *interruptor, std::string *error_out) {
     *error_out = "mock_reql_admin_interface_t doesn't support mutation";
     return false;
 }
 
 bool mock_reql_admin_interface_t::table_list(counted_t<const ql::db_t> db,
-        UNUSED signal_t *interruptor, std::set<name_string_t> *names_out, UNUSED std::string *error_out) {
+        UNUSED signal_t *interruptor, std::set<name_string_t> *names_out,
+        UNUSED std::string *error_out) {
     for (auto pair : tables) {
         if (pair.first.first == db->id) {
             names_out->insert(pair.first.second);
@@ -304,8 +311,10 @@ bool mock_reql_admin_interface_t::table_list(counted_t<const ql::db_t> db,
     return true;
 }
 
-bool mock_reql_admin_interface_t::table_find(const name_string_t &name, counted_t<const ql::db_t> db,
-        UNUSED signal_t *interruptor, uuid_u *id_out, std::string *primary_key_out, std::string *error_out) {
+bool mock_reql_admin_interface_t::table_find(const name_string_t &name,
+        counted_t<const ql::db_t> db,
+        UNUSED signal_t *interruptor, uuid_u *id_out, std::string *primary_key_out,
+        std::string *error_out) {
     auto it = tables.find(std::make_pair(db->id, name));
     if (it == tables.end()) {
         *error_out = "No table with that name";
@@ -333,7 +342,8 @@ namespace_id_t test_rdb_env_t::add_table(const std::string &table_name,
     name_string_t table_name_string;
     if (!table_name_string.assign_value(table_name)) throw invalid_name_exc_t(table_name);
     namespace_id_t namespace_id = generate_uuid();
-    reql_admin_interface.tables[std::make_pair(db_id,table_name_string)] = std::make_pair(namespace_id, primary_key);
+    reql_admin_interface.tables[std::make_pair(db_id,table_name_string)] =
+            std::make_pair(namespace_id, primary_key);
 
     // Set up initial data
     std::map<store_key_t, scoped_cJSON_t*> *data = new std::map<store_key_t, scoped_cJSON_t*>();

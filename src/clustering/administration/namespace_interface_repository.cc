@@ -36,7 +36,8 @@ namespace_repo_t::namespace_repo_t(mailbox_manager_t *_mailbox_manager,
 
 namespace_repo_t::~namespace_repo_t() { }
 
-bool namespace_repo_t::check_namespace_exists(const uuid_u &ns_id, UNUSED signal_t *interruptor) {
+bool namespace_repo_t::check_namespace_exists(const uuid_u &ns_id,
+                                              UNUSED signal_t *interruptor) {
     on_thread_t rethread(namespaces_view->home_thread());
     cow_ptr_t<namespaces_semilattice_metadata_t> metadata = namespaces_view->get();
     cow_ptr_t<namespaces_semilattice_metadata_t>::change_t change(&metadata);

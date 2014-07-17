@@ -32,30 +32,36 @@ public:
 
 class reql_admin_interface_t {
 public:
-    /* All of these methods return `true` on success and `false` on failure; if they fail, they will set `*error_out` to
-    a description of the problem. They can all throw `interrupted_exc_t`.
+    /* All of these methods return `true` on success and `false` on failure; if they
+    fail, they will set `*error_out` to a description of the problem. They can all throw
+    `interrupted_exc_t`.
     
-    These methods are safe to call from any thread, and the calls can overlap concurrently in arbitrary ways. By the
-    time a method returns, any changes it makes must be visible on every thread. */
+    These methods are safe to call from any thread, and the calls can overlap
+    concurrently in arbitrary ways. By the time a method returns, any changes it makes
+    must be visible on every thread. */
 
     virtual bool db_create(const name_string_t &name,
             signal_t *interruptor, std::string *error_out) = 0; 
     virtual bool db_drop(const name_string_t &name,
             signal_t *interruptor, std::string *error_out) = 0;
     virtual bool db_list(
-            signal_t *interruptor, std::set<name_string_t> *names_out, std::string *error_out) = 0;
+            signal_t *interruptor,
+            std::set<name_string_t> *names_out, std::string *error_out) = 0;
     virtual bool db_find(const name_string_t &name,
-            signal_t *interruptor, counted_t<const ql::db_t> *db_out, std::string *error_out) = 0;
-
+            signal_t *interruptor,
+            counted_t<const ql::db_t> *db_out, std::string *error_out) = 0;
     virtual bool table_create(const name_string_t &name, counted_t<const ql::db_t> db,
-            const boost::optional<name_string_t> &primary_dc, bool hard_durability, const std::string &primary_key,
-            signal_t *interruptor, uuid_u *namespace_id_out, std::string *error_out) = 0; 
+            const boost::optional<name_string_t> &primary_dc, bool hard_durability,
+            const std::string &primary_key,
+            signal_t *interruptor, uuid_u *namespace_id_out, std::string *error_out) = 0;
     virtual bool table_drop(const name_string_t &name, counted_t<const ql::db_t> db,
             signal_t *interruptor, std::string *error_out) = 0;
     virtual bool table_list(counted_t<const ql::db_t> db,
-            signal_t *interruptor, std::set<name_string_t> *names_out, std::string *error_out) = 0;
+            signal_t *interruptor, std::set<name_string_t> *names_out,
+            std::string *error_out) = 0;
     virtual bool table_find(const name_string_t &name, counted_t<const ql::db_t> db,
-            signal_t *interruptor, uuid_u *namespace_id_out, std::string *primary_key_out, std::string *error_out) = 0;
+            signal_t *interruptor, uuid_u *namespace_id_out,
+            std::string *primary_key_out, std::string *error_out) = 0;
 
 protected:
     virtual ~reql_admin_interface_t() { }   // silence compiler warnings
@@ -94,9 +100,9 @@ public:
         threadnum_t thread;
     };
 
-    /* Tests whether a table with the given UUID exists or not. If you construct an `access_t` for a namespace that
-    doesn't exist, you will still get a `namespace_interface_t` object, but any operations you try to run on it will
-    fail. */
+    /* Tests whether a table with the given UUID exists or not. If you construct an
+    `access_t` for a namespace that doesn't exist, you will still get a
+    `namespace_interface_t` object, but any operations you try to run on it will fail. */
     virtual bool check_namespace_exists(const uuid_u &ns_id, signal_t *interruptor) = 0;
 
 protected:
@@ -127,7 +133,9 @@ public:
                   mailbox_manager_t *_mailbox_manager,
                   base_namespace_repo_t *_ns_repo,
                   reql_admin_interface_t *_reql_admin_interface,
-                  boost::shared_ptr< semilattice_readwrite_view_t<auth_semilattice_metadata_t> > _auth_metadata,
+                  boost::shared_ptr<
+                    semilattice_readwrite_view_t<
+                        auth_semilattice_metadata_t> > _auth_metadata,
                   perfmon_collection_t *_global_stats,
                   const std::string &_reql_http_proxy);
 

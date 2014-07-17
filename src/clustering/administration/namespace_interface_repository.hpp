@@ -12,10 +12,12 @@
 #include "containers/incremental_lenses.hpp"
 #include "rdb_protocol/context.hpp"
 
-/* `namespace_repo_t` is responsible for providing `namespace_interface_t` objects to the ReQL code, by subclassing
-`base_namespace_interface_t`. Internally, it constructs and caches `cluster_namespace_interface_t` objects. Caching
-`cluster_namespace_interface_t` objects is important because every time a new `cluster_namespace_interface_t` is
-created, it must perform a handshake with every `master_t`, which means several network round-trips. */
+/* `namespace_repo_t` is responsible for providing `namespace_interface_t` objects to the
+ReQL code, by subclassing `base_namespace_interface_t`. Internally, it constructs and
+caches `cluster_namespace_interface_t` objects. Caching `cluster_namespace_interface_t`
+objects is important because every time a new `cluster_namespace_interface_t` is created,
+it must perform a handshake with every `master_t`, which means several network
+round-trips. */
 
 class mailbox_manager_t;
 class namespace_interface_t;
