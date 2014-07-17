@@ -88,7 +88,8 @@ counted_t<const ql::datum_t> construct_geo_line(const lat_lon_line_t &line) {
 }
 
 counted_t<const ql::datum_t> construct_geo_polygon(const lat_lon_line_t &shell) {
-    return construct_geo_polygon(shell, std::vector<lat_lon_line_t>());
+    std::vector<lat_lon_line_t> holes;
+    return construct_geo_polygon(shell, holes);
 }
 
 counted_t<const ql::datum_t> construct_geo_polygon(
