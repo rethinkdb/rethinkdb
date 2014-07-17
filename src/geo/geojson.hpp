@@ -24,9 +24,11 @@ They also insert the correct $reql_type$ field into the output.
 They do not perform any validation. */
 counted_t<const ql::datum_t> construct_geo_point(const lat_lon_point_t &point);
 counted_t<const ql::datum_t> construct_geo_line(const lat_lon_line_t &line);
-// Only an outer shell is supported through this. No holes.
 // Closes the shell implicitly (i.e. connects the first point to the last point).
 counted_t<const ql::datum_t> construct_geo_polygon(const lat_lon_line_t &shell);
+counted_t<const ql::datum_t> construct_geo_polygon(
+        const lat_lon_line_t &shell,
+        std::vector<lat_lon_line_t> &holes);
 
 /* These functions extract coordinates from GeoJSON objects */
 lat_lon_point_t extract_lat_lon_point(const counted_t<const ql::datum_t> &geojson);

@@ -59,6 +59,18 @@ std::vector<counted_t<const datum_t> > construct_line_coordinates(
     return coordinates;
 }
 
+std::vector<counted_t<const datum_t> > construct_loop_coordinates(
+        const lat_lon_line_t &line) {
+    std::vector<counted_t<const datum_t> > loop_coordinates =
+        construct_line_coordinates(line);
+    // Close the line
+    if (line.size() >= 1 && line[0] != line[line.size()-1]) {
+        rassert(!loop_coordinates.empty());
+        loop_coordinates.push_back(loop_coordinates[0]);
+    }
+    return loop_coordinates;
+}
+
 counted_t<const ql::datum_t> construct_geo_line(const lat_lon_line_t &line) {
     datum_ptr_t result(datum_t::R_OBJECT);
     bool dup;
@@ -76,6 +88,12 @@ counted_t<const ql::datum_t> construct_geo_line(const lat_lon_line_t &line) {
 }
 
 counted_t<const ql::datum_t> construct_geo_polygon(const lat_lon_line_t &shell) {
+    return construct_geo_polygon(shell, std::vector<lat_lon_line_t>());
+}
+
+counted_t<const ql::datum_t> construct_geo_polygon(
+        const lat_lon_line_t &shell,
+        std::vector<lat_lon_line_t> &holes) {
     datum_ptr_t result(datum_t::R_OBJECT);
     bool dup;
     dup = result.add(datum_t::reql_type_string,
@@ -84,15 +102,15 @@ counted_t<const ql::datum_t> construct_geo_polygon(const lat_lon_line_t &shell) 
     dup = result.add("type", make_counted<datum_t>("Polygon"));
     r_sanity_check(!dup);
 
-    std::vector<counted_t<const datum_t> > shell_coordinates =
-        construct_line_coordinates(shell);
-    // Close the line
-    if (shell.size() >= 1 && shell[0] != shell[shell.size()-1]) {
-        rassert(!shell_coordinates.empty());
-        shell_coordinates.push_back(shell_coordinates[0]);
-    }
     std::vector<counted_t<const datum_t> > coordinates;
+    std::vector<counted_t<const datum_t> > shell_coordinates =
+        construct_loop_coordinates(shell);
     coordinates.push_back(make_counted<datum_t>(std::move(shell_coordinates)));
+    for (size_t i = 0; i < holes.size(); ++i) {
+        std::vector<counted_t<const datum_t> > hole_coordinates =
+            construct_loop_coordinates(holes[i]);
+        coordinates.push_back(make_counted<datum_t>(std::move(hole_coordinates)));
+    }
     dup = result.add("coordinates", make_counted<datum_t>(std::move(coordinates)));
     r_sanity_check(!dup);
 
