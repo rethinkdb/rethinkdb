@@ -7,6 +7,7 @@
 #include "arch/io/io_utils.hpp"
 
 bool check_existence(const base_path_t& base_path);
+bool check_dir_emptiness(const base_path_t& base_path);
 
 class directory_lock_t {
 public:
