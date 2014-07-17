@@ -81,7 +81,7 @@ counted_t<const ql::datum_t> construct_geo_line(const lat_lon_line_t &line) {
     r_sanity_check(!dup);
 
     dup = result.add("coordinates",
-                      make_counted<datum_t>(std::move(construct_line_coordinates(line))));
+                     make_counted<datum_t>(construct_line_coordinates(line)));
     r_sanity_check(!dup);
 
     return result.to_counted();

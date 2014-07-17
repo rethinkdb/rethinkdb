@@ -345,8 +345,6 @@ private:
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> base_arg = args->arg(env, 0);
         counted_t<val_t> opposite_arg = args->arg(env, 1);
-        check_is_geometry(base_arg);
-        check_is_geometry(opposite_arg);
 
         counted_t<val_t> fill_arg = args->optarg(env, "fill");
         bool fill = true;

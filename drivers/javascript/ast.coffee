@@ -363,6 +363,7 @@ translateBackOptargs = (optargs) ->
             when 'result_format' then 'resultFormat'
             when 'page_limit' then 'pageLimit'
             when 'num_vertices' then 'numVertices'
+            when 'geo_system' then 'geoSystem'
             else key
 
         result[key] = val
@@ -383,6 +384,7 @@ translateOptargs = (optargs) ->
             when 'resultFormat' then 'result_format'
             when 'pageLimit' then 'page_limit'
             when 'numVertices' then 'num_vertices'
+            when 'geoSystem' then 'geo_system'
             else key
 
         if key is undefined or val is undefined then continue

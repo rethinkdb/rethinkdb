@@ -39,7 +39,8 @@ module RethinkDB
       :http => 1,
       :distinct => -1,
       :distance => 2,
-      :circle => 2
+      :circle => 2,
+      :rectangle => 2
     }
     @@method_aliases = {
       :lt => :<,

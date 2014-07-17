@@ -103,6 +103,8 @@ dist_unit_t parse_dist_unit(const std::string &s) {
         return dist_unit_t::MI;
     } else if (s == "nm") {
         return dist_unit_t::NM;
+    } else if (s == "ft") {
+        return dist_unit_t::FT;
     } else {
         throw geo_exception_t("Unrecognized distance unit: " + s);
     }
