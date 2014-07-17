@@ -23,6 +23,7 @@
 #include "clustering/administration/persist.hpp"
 #include "clustering/administration/proc_stats.hpp"
 #include "clustering/administration/reactor_driver.hpp"
+#include "clustering/administration/reql_admin_interface.hpp"
 #include "clustering/administration/sys_stats.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "rdb_protocol/query_server.hpp"
@@ -235,14 +236,18 @@ bool do_serve(io_backender_t *io_backender,
 
         perfmon_collection_repo_t perfmon_repo(&get_global_perfmon_collection());
 
-        // Namespace repo
+        // ReQL evaluation context and supporting structures
+        cluster_reql_admin_interface_t reql_admin_interface(
+                machine_id,
+                semilattice_manager_cluster.get_root_view(),
+                directory_read_manager.get_root_view()
+                );
+
         rdb_context_t rdb_ctx(&extproc_pool,
                               &mailbox_manager,
                               NULL,
-                              semilattice_manager_cluster.get_root_view(),
+                              &reql_admin_interface,
                               auth_manager_cluster.get_root_view(),
-                              &directory_read_manager,
-                              machine_id,
                               &get_global_perfmon_collection(),
                               serve_info.reql_http_proxy);
 
