@@ -975,7 +975,12 @@ counted_t<const datum_t> to_datum(const Datum *d) {
         for (int i = 0, e = d->r_array_size(); i < e; ++i) {
             array.push_back(to_datum(&d->r_array(i)));
         }
-        return make_counted<datum_t>(std::move(array));
+        // TODO(v1.14): Check the array size limit here, or check the query-specific
+        // array size limit here, or don't check it.  Could a sindex function have
+        // Datum deserialization?  Right now, we don't check the array size limit
+        // because we didn't check it in v1.13.
+        return make_counted<datum_t>(std::move(array),
+                                     datum_t::no_array_size_limit_check_t::NO);
     } break;
     case Datum::R_OBJECT: {
         std::map<std::string, counted_t<const datum_t> > map;
