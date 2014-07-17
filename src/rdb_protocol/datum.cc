@@ -984,7 +984,8 @@ counted_t<const datum_t> to_datum(const Datum *d) {
     } break;
     case Datum::R_OBJECT: {
         std::map<std::string, counted_t<const datum_t> > map;
-        for (int i = 0, e = d->r_object_size(); i < e; ++i) {
+        const int count = d->r_object_size();
+        for (int i = 0; i < count; ++i) {
             const Datum_AssocPair *ap = &d->r_object(i);
             const std::string &key = ap->key();
             datum_t::check_str_validity(key);
