@@ -235,8 +235,8 @@ void run(protob_t<Query> q,
             } else if (counted_t<grouped_data_t> gd
                        = val->maybe_as_promiscuous_grouped_data(scope_env.env)) {
                 res->set_type(Response::SUCCESS_ATOM);
-                datum_t d(std::move(*gd));
-                d.write_to_protobuf(res->add_response(), use_json);
+                counted_t<const datum_t> d = to_datum(std::move(*gd));
+                d->write_to_protobuf(res->add_response(), use_json);
                 if (env.trace.has()) {
                     env.trace->as_datum()->write_to_protobuf(
                         res->mutable_profile(), use_json);

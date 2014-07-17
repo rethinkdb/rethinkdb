@@ -72,20 +72,31 @@ datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object,
     maybe_sanitize_ptype(allowed_pts);
 }
 
-datum_t::datum_t(grouped_data_t &&gd)
+datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object,
+                 no_sanitize_ptype_t)
     : type(R_OBJECT),
-      r_object(new std::map<std::string, counted_t<const datum_t> >()) {
-    (*r_object)[reql_type_string] = make_counted<const datum_t>("GROUPED_DATA");
-    std::vector<counted_t<const datum_t> > v;
-    v.reserve(gd.size());
-    for (auto kv = gd.begin(); kv != gd.end(); ++kv) {
-        v.push_back(make_counted<const datum_t>(
-                        std::vector<counted_t<const datum_t> >{
-                            std::move(kv->first), std::move(kv->second)}));
+      r_object(new std::map<std::string, counted_t<const datum_t> >(
+                   std::move(_object))) { }
+
+counted_t<const datum_t> to_datum(grouped_data_t &&gd) {
+    std::map<std::string, counted_t<const datum_t> > map;
+    map[datum_t::reql_type_string] = make_counted<const datum_t>("GROUPED_DATA");
+
+    {
+        datum_array_builder_t arr;
+        arr.reserve(gd.size());
+        for (auto kv = gd.begin(); kv != gd.end(); ++kv) {
+            arr.add(make_counted<const datum_t>(
+                            std::vector<counted_t<const datum_t> >{
+                                std::move(kv->first), std::move(kv->second) }));
+        }
+        map["data"] = std::move(arr).to_counted();
     }
-    (*r_object)["data"] = make_counted<const datum_t>(std::move(v));
+
     // We don't sanitize the ptype because this is a fake ptype that should only
     // be used for serialization.
+    // TODO(2014-08): This is a bad thing.
+    return make_counted<datum_t>(std::move(map), datum_t::no_sanitize_ptype_t::NO);
 }
 
 datum_t::~datum_t() {

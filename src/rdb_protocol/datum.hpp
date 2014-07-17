@@ -98,14 +98,17 @@ public:
     // Constructs a datum_t without checking the array size.  Used by
     // datum_array_builder_t to maintain identical non-checking behavior with insert
     // and splice operations -- see https://github.com/rethinkdb/rethinkdb/issues/2697
-    explicit datum_t(std::vector<counted_t<const datum_t> > &&_array,
-                     no_array_size_limit_check_t);
+    datum_t(std::vector<counted_t<const datum_t> > &&_array,
+            no_array_size_limit_check_t);
     // This calls maybe_sanitize_ptype(allowed_pts).
     explicit datum_t(std::map<std::string, counted_t<const datum_t> > &&object,
                      const std::set<std::string> &allowed_pts = _allowed_pts);
 
-    // This should only be used to send responses to the client.
-    explicit datum_t(grouped_data_t &&gd);
+    enum class no_sanitize_ptype_t { NO };
+    // This .. does not call maybe_sanitize_ptype.
+    // TODO(2014-08): Remove this constructor, it's a hack.
+    datum_t(std::map<std::string, counted_t<const datum_t> > &&object,
+            no_sanitize_ptype_t);
 
     ~datum_t();
 
@@ -237,6 +240,9 @@ private:
 
 counted_t<const datum_t> to_datum(const Datum *d);
 counted_t<const datum_t> to_datum(cJSON *json);
+
+// This should only be used to send responses to the client.
+counted_t<const datum_t> to_datum(grouped_data_t &&gd);
 
 // Converts a double to int, but returns false if it's not an integer or out of range.
 bool number_as_integer(double d, int64_t *i_out);
