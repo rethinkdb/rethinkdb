@@ -67,7 +67,7 @@ class IterableResult
         if @_closeAsap is false
             @_promptNext()
         else
-            @close()
+            @close @_closeCb
         @
 
     _getCallback: ->
