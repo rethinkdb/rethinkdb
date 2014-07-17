@@ -12,7 +12,7 @@ usage = "\
   rethinkdb import -d DIR [-c HOST:PORT] [-a AUTH_KEY] [--force]\n\
       [-i (DB | DB.TABLE)] [--clients NUM]\n\
   rethinkdb import -f FILE --table DB.TABLE [-c HOST:PORT] [-a AUTH_KEY]\n\
-      [--force] [--clients NUM] [--format (csv | json)] [--pkey PRIMARY_KEY]\n\
+      [--force] [--clients NUM] [--format (csv | json)] [--json_doc_per_line] [--pkey PRIMARY_KEY]\n\
       [--delimiter CHARACTER] [--custom-header FIELD,FIELD... [--no-header]]"
 
 def print_import_help():
@@ -185,6 +185,10 @@ def parse_options():
             raise RuntimeError("Error: Unknown format '%s', valid options are 'csv' and 'json'" % options.import_format)
         else:
             res["import_format"] = options.import_format
+
+        # Verify options of json format
+        if options.import_format != "json" and options.json_doc_per_line:
+            raise RuntimeError("Error: 'json_doc_per_line' is only applicable to json format")
 
         # Verify valid --table option
         if options.import_table is None:
