@@ -73,7 +73,7 @@ r.connect({port:port}, function(err, c) {
         assertNoError(err);
 
         // Closing the cursor should work. The cursor should wait for the outstanding request
-        // to be complete, then call send a STOP_QUERY
+        // to be completed, then call send a STOP_QUERY
         cur.close(function(err) {
             assertNoError(err);
             console.log("First cursor was closed");
