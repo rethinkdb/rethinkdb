@@ -390,7 +390,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const batched_insert_t &bi) {
-        ql::env_t ql_env(ctx, interruptor, bi.optargs, profile);
+        ql::env_t ql_env(ctx, interruptor, bi.optargs, trace);
         rdb_modification_report_cb_t sindex_cb(
             store,
             &sindex_block,

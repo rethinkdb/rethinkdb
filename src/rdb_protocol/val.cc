@@ -143,7 +143,8 @@ counted_t<const datum_t> table_t::batched_insert(
     counted_t<const datum_t> insert_stats = do_batched_write(
         env,
         batched_insert_t(std::move(valid_inserts), get_pkey(),
-                         conflict_behavior, return_vals),
+                         conflict_behavior, env->global_optargs.get_all_optargs(),
+                         return_vals),
         durability_requirement);
     return std::move(stats).to_counted()->merge(insert_stats, stats_merge, env->limits);
 }

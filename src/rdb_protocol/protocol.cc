@@ -890,7 +890,8 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         }
         if (!shard_inserts.empty()) {
             write_out->write = batched_insert_t(std::move(shard_inserts), bi.pkey,
-                                               bi.conflict_behavior, bi.return_vals);
+                                               bi.conflict_behavior, bi.optargs,
+                                               bi.return_vals);
             return true;
         } else {
             return false;
@@ -1094,8 +1095,8 @@ RDB_IMPL_SERIALIZABLE_5_SINCE_v1_13(
         batched_replace_t, keys, pkey, f, optargs, return_vals);
 // Serialization format for this changed in 1.14.  We only support the
 // latest version, since this is a cluster-only type.
-RDB_IMPL_SERIALIZABLE_4(
-        batched_insert_t, inserts, pkey, conflict_behavior, return_vals);
+RDB_IMPL_SERIALIZABLE_5(
+        batched_insert_t, inserts, pkey, conflict_behavior, optargs, return_vals);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(batched_insert_t);
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(point_write_t, key, data, overwrite);
