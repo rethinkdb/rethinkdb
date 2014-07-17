@@ -19,7 +19,7 @@ bool check_dir_emptiness(const base_path_t& base_path) {
 
     dp = opendir(base_path.path().c_str());
     if (dp != NULL) {
-        while ((ep = readdir(dp))) {
+        while ((ep = readdir(dp)) && cnt <= 2) {
             ++cnt;
         }
         closedir(dp);
