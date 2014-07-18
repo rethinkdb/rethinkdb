@@ -19,21 +19,13 @@ namespace ql {
 class datum_t;
 class func_t;
 class op_t;
+class exc_t;
 }
 namespace profile {
 class disabler_t;
 class sampler_t;
 }
 
-class geo_io_data_t {
-public:
-    geo_io_data_t(intersecting_geo_read_response_t *_response, btree_slice_t *_slice)
-        : response(_response), slice(_slice) { }
-private:
-    friend class geo_intersecting_cb_t;
-    intersecting_geo_read_response_t *const response;
-    btree_slice_t *const slice;
-};
 
 class geo_sindex_data_t {
 public:
@@ -50,13 +42,16 @@ private:
     const sindex_multi_bool_t multi;
 };
 
+// Calls `emit_result()` exactly once for each document that's intersecting
+// with the query_geometry.
 class geo_intersecting_cb_t : public geo_index_traversal_helper_t {
 public:
     geo_intersecting_cb_t(
-            geo_io_data_t &&_io,
+            btree_slice_t *_slice,
             const geo_sindex_data_t &&_sindex,
             ql::env_t *_env,
             std::set<store_key_t> *_distinct_emitted_in_out);
+    virtual ~geo_intersecting_cb_t() { }
 
     void on_candidate(
             const btree_key_t *key,
@@ -65,14 +60,26 @@ public:
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
-    void finish() THROWS_ONLY(interrupted_exc_t);
+protected:
+    virtual bool post_filter(
+            const counted_t<const ql::datum_t> &sindex_val,
+            const counted_t<const ql::datum_t> &val)
+            THROWS_ONLY(interrupted_exc_t) = 0;
+
+    virtual void emit_result(
+            const counted_t<const ql::datum_t> &sindex_val,
+            const counted_t<const ql::datum_t> &val)
+            THROWS_ONLY(interrupted_exc_t) = 0;
+
+    virtual void emit_error(
+            const ql::exc_t &error)
+            THROWS_ONLY(interrupted_exc_t) = 0;
+
 private:
-    const geo_io_data_t io; // How do get data in/out.
+    btree_slice_t *slice;
     const geo_sindex_data_t sindex;
 
     ql::env_t *env;
-    // Accumulates the data
-    ql::datum_ptr_t result_acc;
 
     // Stores the primary key of previously processed documents, up to some limit
     // (this is an optimization for small query ranges, trading memory for efficiency)
@@ -85,5 +92,63 @@ private:
     scoped_ptr_t<profile::disabler_t> disabler;
     scoped_ptr_t<profile::sampler_t> sampler;
 };
+
+// Simply accumulates all intersecting results in an array without any
+// post-filtering.
+class collect_all_geo_intersecting_cb_t : public geo_intersecting_cb_t {
+public:
+    collect_all_geo_intersecting_cb_t(
+            btree_slice_t *_slice,
+            const geo_sindex_data_t &&_sindex,
+            ql::env_t *_env);
+
+    void finish(intersecting_geo_read_response_t *resp_out);
+
+protected:
+    bool post_filter(
+            const counted_t<const ql::datum_t> &sindex_val,
+            const counted_t<const ql::datum_t> &val)
+            THROWS_ONLY(interrupted_exc_t);
+
+    void emit_result(
+            const counted_t<const ql::datum_t> &sindex_val,
+            const counted_t<const ql::datum_t> &val)
+            THROWS_ONLY(interrupted_exc_t);
+
+    void emit_error(
+            const ql::exc_t &error)
+            THROWS_ONLY(interrupted_exc_t);
+
+private:
+    // Accumulates the data until finish() is called.
+    ql::datum_ptr_t result_acc;
+
+    boost::optional<ql::exc_t> error;
+
+    std::set<store_key_t> distinct_emitted;
+};
+
+
+
+
+
+
+
+
+// TODO!
+/*
+struct nearest_traversal_state_t {
+    nearest_traversal_state_t(
+            const lat_lon_point_t &_center,
+            const ellipsoid_spec_t &_reference_ellipsoid);
+
+    std::set<store_key_t> distinct_emitted;
+    const lat_lon_point_t center;
+    lat_lon_line_t inner_circle;
+    lat_lon_line_t outer_circle;
+    double next_radius;
+    const ellipsoid_spec_t reference_ellipsoid;
+    // TODO! Max radius? Max results?
+};*/
 
 #endif  // RDB_PROTOCOL_GEO_TRAVERSAL_HPP_

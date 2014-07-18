@@ -966,18 +966,16 @@ void rdb_get_intersecting_slice(
     guarantee(sindex_info.geo == sindex_geo_bool_t::GEO);
     profile::starter_t starter("Do intersection scan on geospatial index.", ql_env->trace);
 
-    std::set<store_key_t> distinct_emitted;
-    geo_intersecting_cb_t callback(
-        geo_io_data_t(response, slice),
+    collect_all_geo_intersecting_cb_t callback(
+        slice,
         geo_sindex_data_t(pk_range, query_geometry, sindex_info.mapping,
                           sindex_info.multi),
-        ql_env,
-        &distinct_emitted);
+        ql_env);
     btree_parallel_traversal(
         superblock, &callback,
         ql_env->interruptor,
         release_superblock_t::RELEASE);
-    callback.finish();
+    callback.finish(response);
 }
 
 void rdb_distribution_get(int max_depth,
