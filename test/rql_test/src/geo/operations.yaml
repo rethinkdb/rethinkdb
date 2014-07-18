@@ -1,7 +1,48 @@
 desc: Test basic geometry operators
 tests:
   # Distance
-  # TODO
+  # coerce_to('STRING') because the test utility has some issues with rounding and I'm too lazy to investigate that now.
+  - cd: r.distance(r.point(37, -122), r.point(37, -123)).coerce_to('STRING')
+    ot: ("89011.262538353315904")
+  - cd: r.distance(r.point(37, -122), r.point(36, -122)).coerce_to('STRING')
+    ot: ("110968.30443995493988")
+  - cd: r.distance(r.point(37, -122), r.point(36, -122)).eq(r.distance(r.point(36, -122), r.point(37, -122)))
+    ot: true
+  - cd: r.point(37, -122).distance(r.point(37, -123)).coerce_to('STRING')
+    ot: ("89011.262538353315904")
+  - def: someDist = r.distance(r.point(37, -122), r.point(37, -123))
+    js: someDist.eq(r.distance(r.point(37, -122), r.point(37, -123), {unit:'m'}))
+    py: someDist.eq(r.distance(r.point(37, -122), r.point(37, -123), unit='m'))
+    rb: someDist.eq(r.distance(r.point(37, -122), r.point(37, -123), :unit=>'m'))
+    ot: true
+  - js: someDist.mul(1.0/1000.0).eq(r.distance(r.point(37, -122), r.point(37, -123), {unit:'km'}))
+    py: someDist.mul(1.0/1000.0).eq(r.distance(r.point(37, -122), r.point(37, -123), unit='km'))
+    rb: someDist.mul(1.0/1000.0).eq(r.distance(r.point(37, -122), r.point(37, -123), :unit=>'km'))
+    ot: true
+  - js: someDist.mul(1.0/1609.344).eq(r.distance(r.point(37, -122), r.point(37, -123), {unit:'mi'}))
+    py: someDist.mul(1.0/1609.344).eq(r.distance(r.point(37, -122), r.point(37, -123), unit='mi'))
+    rb: someDist.mul(1.0/1609.344).eq(r.distance(r.point(37, -122), r.point(37, -123), :unit=>'mi'))
+    ot: true
+  - js: someDist.mul(1.0/0.3048).eq(r.distance(r.point(37, -122), r.point(37, -123), {unit:'ft'}))
+    py: someDist.mul(1.0/0.3048).eq(r.distance(r.point(37, -122), r.point(37, -123), unit='ft'))
+    rb: someDist.mul(1.0/0.3048).eq(r.distance(r.point(37, -122), r.point(37, -123), :unit=>'ft'))
+    ot: true
+  - js: someDist.mul(1.0/1852.0).eq(r.distance(r.point(37, -122), r.point(37, -123), {unit:'nm'}))
+    py: someDist.mul(1.0/1852.0).eq(r.distance(r.point(37, -122), r.point(37, -123), unit='nm'))
+    rb: someDist.mul(1.0/1852.0).eq(r.distance(r.point(37, -122), r.point(37, -123), :unit=>'nm'))
+    ot: true
+  - js: someDist.eq(r.distance(r.point(37, -122), r.point(37, -123), {geo_system:'WGS84'}))
+    py: someDist.eq(r.distance(r.point(37, -122), r.point(37, -123), geo_system='WGS84'))
+    rb: someDist.eq(r.distance(r.point(37, -122), r.point(37, -123), :geo_system=>'WGS84'))
+    ot: true
+  # Mearth is a small planet, just 1/10th of earth's size.
+  - js: someDist.div(10).eq(r.distance(r.point(37, -122), r.point(37, -123), {geo_system:{'a':637813.7, 'f':(1.0/298.257223563)}}))
+    py: someDist.div(10).eq(r.distance(r.point(37, -122), r.point(37, -123), geo_system={'a':637813.7, 'f':(1.0/298.257223563)}))
+    rb: someDist.div(10).eq(r.distance(r.point(37, -122), r.point(37, -123), :geo_system=>{'a':637813.7, 'f':(1.0/298.257223563)}))
+    ot: true
+  - py: r.distance(r.point(37, -122), r.point(37, -123), geo_system='unit_sphere').coerce_to('STRING')
+    rb: r.distance(r.point(37, -122), r.point(37, -123), :geo_system=>'unit_sphere').coerce_to('STRING')
+    ot: ("0.01393875509649327056")
 
   # Fill
   - js: r.rectangle([0,0], [1,1], {fill:false}).eq(r.rectangle([0,0], [1,1], {fill:true}))
