@@ -29,7 +29,7 @@ semilattice_manager_t<metadata_t>::semilattice_manager_t(
     metadata(initial_metadata),
     next_sync_from_query_id(0), next_sync_to_query_id(0),
     semaphore(MAX_OUTSTANDING_SEMILATTICE_WRITES),
-    connection_change_subscription([this]() { on_connections_change(); })
+    connection_change_subscription([this]() { this->on_connections_change(); })
 {
     ASSERT_FINITE_CORO_WAITING;
     typename watchable_t<connectivity_cluster_t::connection_map_t>::freeze_t freeze(
@@ -334,7 +334,7 @@ void semilattice_manager_t<metadata_t>::on_message(
                     added_metadata, change_version, sender]() {
                 on_thread_t thread_switcher(home_thread());
                 /* This is the meat of the change */
-                join_metadata_locally(added_metadata);
+                this->join_metadata_locally(added_metadata);
                 /* Also notify anything that was waiting for us to reach this version */
                 DEBUG_VAR mutex_assertion_t::acq_t acq(&peer_version_mutex);
                 auto inserted = last_versions_seen.insert(
@@ -427,7 +427,7 @@ void semilattice_manager_t<metadata_t>::on_message(
                 {
                     on_thread_t thread_switcher(home_thread());
                     try {
-                        wait_for_version_from_peer(connection->get_peer_id(), version,
+                        this->wait_for_version_from_peer(connection->get_peer_id(), version,
                             &interruptor2);
                     } catch (const interrupted_exc_t &) {
                         return;

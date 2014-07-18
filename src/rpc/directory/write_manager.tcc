@@ -21,8 +21,8 @@ directory_write_manager_t<metadata_t>::directory_write_manager_t(
     message_tag(message_tag_),
     value(value_),
     semaphore(MAX_OUTSTANDING_DIRECTORY_WRITES),
-    value_change_subscription([this]() { on_value_change(); }),
-    connections_change_subscription([this]() { on_connections_change(); })
+    value_change_subscription([this]() { this->on_value_change(); }),
+    connections_change_subscription([this]() { this->on_connections_change(); })
 {
     typename watchable_t<metadata_t>::freeze_t value_freeze(value);
     typename watchable_t<connectivity_cluster_t::connection_map_t>::freeze_t
