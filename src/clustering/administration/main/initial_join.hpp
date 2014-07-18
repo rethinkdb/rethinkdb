@@ -40,7 +40,7 @@ private:
     cond_t done_signal;
     signal_timer_t grace_period_timer;
     auto_drainer_t drainer;
-    typename watchable_t<connectivity_cluster_t::connection_map_t>::subscription_t subs;
+    watchable_t<connectivity_cluster_t::connection_map_t>::subscription_t subs;
     bool successful_connection;
 
     DISABLE_COPYING(initial_joiner_t);

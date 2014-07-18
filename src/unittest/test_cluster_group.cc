@@ -128,7 +128,8 @@ reactor_test_cluster_t::reactor_test_cluster_t(int port) :
     connectivity_cluster_run(&connectivity_cluster,
                              get_unittest_addresses(),
                              peer_address_t(),
-                             port, 0) { }
+                             port,
+                             0) { }
 
 reactor_test_cluster_t::~reactor_test_cluster_t() { }
 

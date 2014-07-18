@@ -273,7 +273,8 @@ admin_cluster_link_t::admin_cluster_link_t(const peer_address_set_t &joins,
     connectivity_cluster_run(&connectivity_cluster,
                              get_local_ips(std::set<ip_address_t>(), false),
                              canonical_addresses,
-                             0, client_port),
+                             0,
+                             client_port),
     admin_tracker(cluster_metadata_view, auth_metadata_view, directory_read_manager->get_root_view()),
     initial_joiner(&connectivity_cluster, &connectivity_cluster_run, joins, 5000)
 {

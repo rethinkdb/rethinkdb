@@ -21,8 +21,8 @@ directory_write_manager_t<metadata_t>::directory_write_manager_t(
     message_tag(message_tag_),
     value(value_),
     semaphore(MAX_OUTSTANDING_DIRECTORY_WRITES),
-    value_change_subscription([this] () { on_value_change(); }),
-    connections_change_subscription([this] () { on_connections_change(); })
+    value_change_subscription([this]() { on_value_change(); }),
+    connections_change_subscription([this]() { on_connections_change(); })
 {
     typename watchable_t<metadata_t>::freeze_t value_freeze(value);
     typename watchable_t<connectivity_cluster_t::connection_map_t>::freeze_t connections_freeze(connectivity_cluster->get_connections());
@@ -44,7 +44,9 @@ void directory_write_manager_t<metadata_t>::on_connections_change() THROWS_NOTHI
             metadata_t initial_value = value.get()->get();
             fifo_enforcer_state_t initial_state = metadata_fifo_source.get_state();
             coro_t::spawn_sometime(
-                [this, this_keepalive /* important to capture */, initial_value, initial_state] () {
+                [this, this_keepalive /* important to capture */,
+                        connection, connection_keepalive /* important to capture */,
+                        initial_value, initial_state]() {
                     new_semaphore_acq_t acq(&semaphore, 1);
                     acq.acquisition_signal()->wait();
                     initialization_writer_t writer(initial_value, initial_state);
@@ -69,7 +71,9 @@ void directory_write_manager_t<metadata_t>::on_value_change() THROWS_NOTHING {
         connectivity_cluster_t::connection_t *connection = pair.first;
         auto_drainer_t::lock_t connection_keepalive = pair.second;
         coro_t::spawn_sometime(
-            [this, this_keepalive /* important to capture */, connection, current_value, token] () {
+            [this, this_keepalive /* important to capture */,
+                    connection, connection_keepalive /* important to capture */,
+                    current_value, token]() {
                 update_writer_t writer(current_value, token);
                 connectivity_cluster->send_message(connection, connection_keepalive, message_tag, &writer);
             });

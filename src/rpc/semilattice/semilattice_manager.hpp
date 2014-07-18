@@ -109,7 +109,7 @@ private:
 
     one_per_thread_t<auto_drainer_t> drainers;
 
-    typename watchable_t<connectivity_cluster_t::connection_map_t>::subscription_t connection_change_subscription;
+    watchable_t<connectivity_cluster_t::connection_map_t>::subscription_t connection_change_subscription;
 };
 
 #endif /* RPC_SEMILATTICE_SEMILATTICE_MANAGER_HPP_ */

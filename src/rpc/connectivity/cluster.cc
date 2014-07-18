@@ -135,10 +135,10 @@ connectivity_cluster_t::connection_t::connection_t(run_t *p,
     parent(p), peer_id(id),
     drainers()
 {
-    pmap(get_num_threads(), [this] (int thread_id) {
+    pmap(get_num_threads(), [this](int thread_id) {
             on_thread_t thread_switcher((threadnum_t(thread_id)));
             parent->parent->connections.get()->apply_atomic_op(
-                [&] (std::map<peer_id_t, std::pair<connection_t *, auto_drainer_t::lock_t>> *value) -> bool {
+                [&](std::map<peer_id_t, std::pair<connection_t *, auto_drainer_t::lock_t>> *value) -> bool {
                     auto res = value->insert(std::make_pair(
                         peer_id,
                         std::make_pair(this, auto_drainer_t::lock_t(drainers.get()))
@@ -151,10 +151,10 @@ connectivity_cluster_t::connection_t::connection_t(run_t *p,
 
 connectivity_cluster_t::connection_t::~connection_t() THROWS_NOTHING {
     // Drain out any users
-    pmap(get_num_threads(), [this] (int thread_id) {
+    pmap(get_num_threads(), [this](int thread_id) {
             on_thread_t thread_switcher((threadnum_t(thread_id)));
             parent->parent->connections.get()->apply_atomic_op(
-                [&] (std::map<peer_id_t, std::pair<connection_t *, auto_drainer_t::lock_t>> *value) -> bool {
+                [&](std::map<peer_id_t, std::pair<connection_t *, auto_drainer_t::lock_t>> *value) -> bool {
                     auto it = value->find(peer_id);
                     guarantee(it != value->end() && it->second.first == this);
                     value->erase(it);
@@ -1001,7 +1001,7 @@ clone_ptr_t<watchable_t<connectivity_cluster_t::connection_map_t>> connectivity_
 
 connectivity_cluster_t::connection_t *connectivity_cluster_t::get_connection(peer_id_t peer_id, auto_drainer_t::lock_t *keepalive_out) THROWS_NOTHING {
     connectivity_cluster_t::connection_t *conn;
-    connections.get()->apply_read([&] (const std::map<peer_id_t, std::pair<connection_t *, auto_drainer_t::lock_t>> *value) {
+    connections.get()->apply_read([&](const std::map<peer_id_t, std::pair<connection_t *, auto_drainer_t::lock_t>> *value) {
         auto it = value->find(peer_id);
         if (it == value->end()) {
             conn = NULL;

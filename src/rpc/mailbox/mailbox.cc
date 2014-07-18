@@ -104,7 +104,7 @@ void send(mailbox_manager_t *src, raw_mailbox_t::address_t dest, mailbox_write_c
     src->get_connectivity_cluster()->send_message(connection, connection_keepalive, src->get_message_tag(), &writer);
 }
 
-#define MAX_OUTSTANDING_MAILBOX_WRITES_PER_THREAD 4
+static const int MAX_OUTSTANDING_MAILBOX_WRITES_PER_THREAD = 4;
 
 mailbox_manager_t::mailbox_manager_t(connectivity_cluster_t *connectivity_cluster, connectivity_cluster_t::message_tag_t message_tag) :
     connectivity_cluster_t::message_handler_t(connectivity_cluster, message_tag),
@@ -184,7 +184,9 @@ void mailbox_manager_t::on_local_message(connectivity_cluster_t::connection_t *c
     // We use `spawn_now_dangerously()` to avoid having to heap-allocate `stream_data`.
     // Instead we pass in a pointer to our local automatically allocated object
     // and `mailbox_read_coroutine()` moves the data out of it before it yields.
-    coro_t::spawn_now_dangerously([&] () {
+    coro_t::spawn_now_dangerously(
+        [this, connection, connection_keepalive /* important to capture */,
+                cluster_version, mbox_header, &stream_data, stream_data_offset]() {
             mailbox_read_coroutine(connection, connection_keepalive, cluster_version,
                 threadnum_t(mbox_header.dest_thread), mbox_header.dest_mailbox_id,
                 &stream_data, stream_data_offset, FORCE_YIELD);
@@ -213,7 +215,9 @@ void mailbox_manager_t::on_message(connectivity_cluster_t::connection_t *connect
     // We use `spawn_now_dangerously()` to avoid having to heap-allocate `stream_data`.
     // Instead we pass in a pointer to our local automatically allocated object
     // and `mailbox_read_coroutine()` moves the data out of it before it yields.
-    coro_t::spawn_now_dangerously([&] () {
+    coro_t::spawn_now_dangerously(
+        [this, connection, connection_keepalive /* important to capture */,
+                cluster_version, mbox_header, &stream_data]() {
             mailbox_read_coroutine(connection, connection_keepalive, cluster_version,
                 threadnum_t(mbox_header.dest_thread), mbox_header.dest_mailbox_id,
                 &stream_data, 0, MAYBE_YIELD);

@@ -23,7 +23,8 @@ public:
         connectivity_cluster_run(&connectivity_cluster,
                                  get_unittest_addresses(),
                                  peer_address_t(),
-                                 port, 0),
+                                 port,
+                                 0),
         echo_mirror(&mailbox_manager, directory_read_manager.get_root_view())
         { }
     connectivity_cluster_t connectivity_cluster;

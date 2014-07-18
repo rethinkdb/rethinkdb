@@ -112,7 +112,7 @@ void directory_read_manager_t<metadata_t>::handle_connection(
     mutex_assertion_t::acq_t mutex_assertion_lock(&mutex_assertion);
 
     /* Insert the initial value into the directory */
-    variable.apply_atomic_op([&] (change_tracking_map_t<peer_id_t, metadata_t> *map) -> bool {
+    variable.apply_atomic_op([&](change_tracking_map_t<peer_id_t, metadata_t> *map) -> bool {
             map->begin_version();
             map->set_value(connection->get_peer_id(), std::move(*new_value));
             return true;
@@ -152,7 +152,7 @@ void directory_read_manager_t<metadata_t>::handle_connection(
     }
 
     /* Delete the directory entry */
-    variable.apply_atomic_op([&] (change_tracking_map_t<peer_id_t, metadata_t> *map) -> bool {
+    variable.apply_atomic_op([&](change_tracking_map_t<peer_id_t, metadata_t> *map) -> bool {
             map->begin_version();
             map->delete_value(connection->get_peer_id());
             return true;
@@ -211,7 +211,7 @@ void directory_read_manager_t<metadata_t>::propagate_update(
         coro_t::yield();
 
         mutex_assertion_t::acq_t mutex_assertion_lock(&mutex_assertion);
-        variable.apply_atomic_op([&] (change_tracking_map_t<peer_id_t, metadata_t> *map) -> bool {
+        variable.apply_atomic_op([&](change_tracking_map_t<peer_id_t, metadata_t> *map) -> bool {
                 map->begin_version();
                 map->set_value(connection->get_peer_id(), std::move(*new_value));
                 return true;

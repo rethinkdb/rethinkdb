@@ -85,7 +85,7 @@ initial_joiner_t::initial_joiner_t(
 
     coro_t::spawn_sometime(boost::bind(&initial_joiner_t::main_coro, this, cluster_run, auto_drainer_t::lock_t(&drainer)));
 
-    typename watchable_t<connectivity_cluster_t::connection_map_t>::freeze_t freeze(cluster->get_connections());
+    watchable_t<connectivity_cluster_t::connection_map_t>::freeze_t freeze(cluster->get_connections());
     subs.reset(cluster->get_connections(), &freeze);
     on_connections_change();
 }

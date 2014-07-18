@@ -75,7 +75,8 @@ TPTEST(RPCSemilatticeTest, MetadataExchange, 2) {
     /* Block until the connection is established */
     signal_timer_t timeout;
     timeout.start(1000);
-    cluster1.get_connections()->run_until_satisfied([] (connectivity_cluster_t::connection_map_t connections) -> bool {
+    cluster1.get_connections()->run_until_satisfied(
+        [](connectivity_cluster_t::connection_map_t connections) -> bool {
             return connections.size() == 2;
         }, &timeout);
 
@@ -112,7 +113,8 @@ TPTEST(RPCSemilatticeTest, SyncFrom, 2) {
     /* Block until the connection is established */
     signal_timer_t timeout;
     timeout.start(1000);
-    cluster1.get_connections()->run_until_satisfied([] (connectivity_cluster_t::connection_map_t connections) -> bool {
+    cluster1.get_connections()->run_until_satisfied(
+        [](const connectivity_cluster_t::connection_map_t &connections) -> bool {
             return connections.size() == 2;
         }, &timeout);
 
