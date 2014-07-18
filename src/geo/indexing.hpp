@@ -24,7 +24,10 @@ std::vector<std::string> compute_index_grid_keys(
 // TODO (daniel): Support compound indexes somehow.
 class geo_index_traversal_helper_t : public btree_traversal_helper_t {
 public:
-    geo_index_traversal_helper_t(const std::vector<std::string> &query_grid_keys);
+    geo_index_traversal_helper_t();
+    explicit geo_index_traversal_helper_t(const std::vector<std::string> &query_grid_keys);
+
+    void init_query(const std::vector<std::string> &query_grid_keys);
 
     /* Called for every pair that could potentially intersect with query_grid_keys.
     Note that this might be called multiple times for the same value. */
@@ -66,6 +69,7 @@ private:
 
     std::vector<S2CellId> query_cells_;
     bool abort_;
+    bool is_initialized_;
 };
 
 #endif  // GEO_INDEXING_HPP_

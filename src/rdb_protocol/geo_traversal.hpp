@@ -11,6 +11,7 @@
 
 #include "btree/keys.hpp"
 #include "btree/slice.hpp"
+#include "btree/types.hpp"
 #include "containers/counted.hpp"
 #include "geo/ellipsoid.hpp"
 #include "geo/indexing.hpp"
@@ -31,15 +32,16 @@ class sampler_t;
 
 class geo_sindex_data_t {
 public:
-    geo_sindex_data_t(const key_range_t &_pkey_range,
-                      const counted_t<const ql::datum_t> &_query_geometry,
-                      ql::map_wire_func_t wire_func, sindex_multi_bool_t _multi)
-        : pkey_range(_pkey_range), query_geometry(_query_geometry),
-          func(wire_func.compile_wire_func()), multi(_multi) { }
+    geo_sindex_data_t(
+            const key_range_t &_pkey_range,
+            ql::map_wire_func_t wire_func,
+            sindex_multi_bool_t _multi) :
+        pkey_range(_pkey_range),
+        func(wire_func.compile_wire_func()),
+        multi(_multi) { }
 private:
     friend class geo_intersecting_cb_t;
     const key_range_t pkey_range;
-    const counted_t<const ql::datum_t> query_geometry;
     const counted_t<ql::func_t> func;
     const sindex_multi_bool_t multi;
 };
@@ -54,6 +56,8 @@ public:
             ql::env_t *_env,
             std::set<store_key_t> *_distinct_emitted_in_out);
     virtual ~geo_intersecting_cb_t() { }
+
+    void init_query(const counted_t<const ql::datum_t> &_query_geometry);
 
     void on_candidate(
             const btree_key_t *key,
@@ -79,7 +83,8 @@ protected:
 
 private:
     btree_slice_t *slice;
-    const geo_sindex_data_t sindex;
+    geo_sindex_data_t sindex;
+    counted_t<const ql::datum_t> query_geometry;
 
     ql::env_t *env;
 
@@ -102,7 +107,8 @@ public:
     collect_all_geo_intersecting_cb_t(
             btree_slice_t *_slice,
             const geo_sindex_data_t &&_sindex,
-            ql::env_t *_env);
+            ql::env_t *_env,
+            const counted_t<const ql::datum_t> &_query_geometry);
 
     void finish(intersecting_geo_read_response_t *resp_out);
 
@@ -140,7 +146,7 @@ public:
 
     // Modifies the state such that the next batch will be generated the next
     // time this state is used.
-    void proceed_to_next_batch();
+    done_traversing_t proceed_to_next_batch();
 private:
     friend class nearest_traversal_cb_t;
 
@@ -148,6 +154,7 @@ private:
     std::set<store_key_t> distinct_emitted;
     // Which radius around `center` has been previously processed?
     double processed_inradius;
+    double current_inradius;
 
     /* Constant data, initialized by the constructor */
     const lat_lon_point_t center;
@@ -163,7 +170,7 @@ public:
             btree_slice_t *_slice,
             const geo_sindex_data_t &&_sindex,
             ql::env_t *_env,
-            collect_all_geo_intersecting_cb_t *_state);
+            nearest_traversal_state_t *_state);
 
     void finish(intersecting_geo_read_response_t *resp_out);
 
@@ -183,11 +190,15 @@ protected:
             THROWS_ONLY(interrupted_exc_t);
 
 private:
+    void init_query_geometry();
+    lat_lon_line_t construct_hole() const;
+    lat_lon_line_t construct_shell() const;
+
     // Accumulate results for the current batch until finish() is called
     std::vector<std::pair<double, counted_t<const ql::datum_t> > > result_acc;
     boost::optional<ql::exc_t> error;
 
-    collect_all_geo_intersecting_cb_t *state;
+    nearest_traversal_state_t *state;
 };
 
 #endif  // RDB_PROTOCOL_GEO_TRAVERSAL_HPP_

@@ -968,9 +968,9 @@ void rdb_get_intersecting_slice(
 
     collect_all_geo_intersecting_cb_t callback(
         slice,
-        geo_sindex_data_t(pk_range, query_geometry, sindex_info.mapping,
-                          sindex_info.multi),
-        ql_env);
+        geo_sindex_data_t(pk_range, sindex_info.mapping, sindex_info.multi),
+        ql_env,
+        query_geometry);
     btree_parallel_traversal(
         superblock, &callback,
         ql_env->interruptor,

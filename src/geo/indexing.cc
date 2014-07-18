@@ -94,14 +94,24 @@ std::vector<std::string> compute_index_grid_keys(
     return result;
 }
 
+geo_index_traversal_helper_t::geo_index_traversal_helper_t()
+    : abort_(false), is_initialized_(false) { }
+
 geo_index_traversal_helper_t::geo_index_traversal_helper_t(
         const std::vector<std::string> &query_grid_keys)
-    : abort_(false) {
+    : abort_(false), is_initialized_(false) {
+    init_query(query_grid_keys);
+}
 
+void geo_index_traversal_helper_t::init_query(
+        const std::vector<std::string> &query_grid_keys) {
+    guarantee(!is_initialized_);
+    rassert(query_cells_.empty());
     query_cells_.reserve(query_grid_keys.size());
     for (size_t i = 0; i < query_grid_keys.size(); ++i) {
         query_cells_.push_back(key_to_s2cellid(query_grid_keys[i]));
     }
+    is_initialized_ = true;
 }
 
 void geo_index_traversal_helper_t::process_a_leaf(buf_lock_t *leaf_node_buf,
@@ -109,6 +119,7 @@ void geo_index_traversal_helper_t::process_a_leaf(buf_lock_t *leaf_node_buf,
         const btree_key_t *right_inclusive_or_null,
         signal_t *interruptor,
         int *population_change_out) THROWS_ONLY(interrupted_exc_t) {
+    guarantee(is_initialized_);
 
     *population_change_out = 0;
 
@@ -140,6 +151,7 @@ void geo_index_traversal_helper_t::filter_interesting_children(
         UNUSED buf_parent_t parent,
         ranged_block_ids_t *ids_source,
         interesting_children_callback_t *cb) {
+    guarantee(is_initialized_);
 
     for (int i = 0, e = ids_source->num_block_ids(); i < e && !abort_; ++i) {
         block_id_t block_id;
