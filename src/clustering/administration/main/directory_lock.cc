@@ -19,7 +19,7 @@ bool check_dir_emptiness(const base_path_t& base_path) {
 
     dp = opendir(base_path.path().c_str());
     if (dp != NULL) {
-        while ((ep = readdir(dp)) && cnt <= 2) {
+        while ((ep = readdir(dp)) != NULL && cnt <= 2) {
             ++cnt;
         }
         closedir(dp);
@@ -54,7 +54,7 @@ directory_lock_t::directory_lock_t(const base_path_t &path, bool create, bool *c
         // Call fsync() on the parent directory to guarantee that the newly
         // created directory's directory entry is persisted to disk.
         warn_fsync_parent_directory(directory_path.path().c_str());
-    }else if (create && check_dir_emptiness(directory_path)) {
+    } else if (create && check_dir_emptiness(directory_path)) {
         created = true;
         *created_out = true;
     }

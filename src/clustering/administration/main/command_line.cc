@@ -877,7 +877,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
                             NULL, NULL, data_directory_lock,
                             result_out);
     } else {
-        logINF("Creating directory %s\n", base_path.path().c_str());
+        logINF("Initializing directory %s\n", base_path.path().c_str());
 
         machine_id_t our_machine_id = generate_uuid();
 
