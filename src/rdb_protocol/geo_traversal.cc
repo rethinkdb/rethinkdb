@@ -1,6 +1,9 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/geo_traversal.hpp"
 
+#include "errors.hpp"
+#include <boost/variant/get.hpp>
+
 #include "geo/exceptions.hpp"
 #include "geo/intersection.hpp"
 #include "rdb_protocol/batching.hpp"
@@ -34,7 +37,9 @@ geo_intersecting_cb_t::geo_intersecting_cb_t(
 }
 
 void geo_intersecting_cb_t::finish() THROWS_ONLY(interrupted_exc_t) {
-    io.response->results = result_acc.to_counted();
+    if (boost::get<ql::exc_t>(&io.response->results_or_error) == NULL) {
+        io.response->results_or_error = result_acc.to_counted();
+    }
 }
 
 void geo_intersecting_cb_t::on_candidate(
@@ -83,7 +88,7 @@ void geo_intersecting_cb_t::on_candidate(
         //   the query_geometry for each test.
         if (geo_does_intersect(sindex.query_geometry, sindex_val)) {
             if (distinct_emitted->size() > ql::array_size_limit()) {
-                io.response->error = ql::exc_t(ql::base_exc_t::GENERIC,
+                io.response->results_or_error = ql::exc_t(ql::base_exc_t::GENERIC,
                         "Result size limit exceeded (array size).", NULL);;
                 abort_traversal();
                 return;
@@ -100,18 +105,19 @@ void geo_intersecting_cb_t::on_candidate(
             }
         }
     } catch (const ql::exc_t &e) {
-        io.response->error = e;
+        io.response->results_or_error = e;
         abort_traversal();
         return;
     } catch (const geo_exception_t &e) {
-        io.response->error = ql::exc_t(ql::base_exc_t::GENERIC, e.what(), NULL);
+        io.response->results_or_error =
+            ql::exc_t(ql::base_exc_t::GENERIC, e.what(), NULL);
         abort_traversal();
         return;
     } catch (const ql::datum_exc_t &e) {
 #ifndef NDEBUG
         unreachable();
 #else
-        io.response->error = ql::exc_t(e, NULL);
+        io.response->results_or_error = ql::exc_t(e, NULL);
         abort_traversal();
         return;
 #endif // NDEBUG

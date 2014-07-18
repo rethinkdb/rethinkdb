@@ -18,20 +18,57 @@ tests:
     py: tbl.index_create('m', geo=true, multi=true)
     js: tbl.indexCreate('m', {'geo':true, 'multi':true})
     ot: ({'created':1})
+  - cd: tbl.index_create('other')
+    ot: ({'created':1})
 
   - cd: tbl.index_wait()
 
+  - js: tbl.get_intersecting(r.point(0,0), {'index':'other'}).count()
+    py: tbl.get_intersecting(r.point(0,0), index='other').count()
+    rb: tbl.get_intersecting(r.point(0,0), :index=>'other').count()
+    ot: err('RqlRuntimeError', 'Index `other` is not a geospatial index. This term can only be used with a geospatial index.', [0])
+  - js: tbl.get_intersecting(r.point(0,0), {'index':'missing'}).count()
+    py: tbl.get_intersecting(r.point(0,0), index='missing').count()
+    rb: tbl.get_intersecting(r.point(0,0), :index=>'missing').count()
+    ot: err('RqlRuntimeError', 'Index `missing` was not found on table `geoindex`.', [0])
+  - cd: tbl.get_intersecting(r.point(0,0)).count()
+    ot: err('RqlRuntimeError', 'get_intersecting requires an index argument.', [0])
+  - js: tbl.get_all(0, {'index':'g'}).count()
+    py: tbl.get_all(0, index='g').count()
+    rb: tbl.get_all(0, :index=>'g').count()
+    ot: err('RqlRuntimeError', 'Index `g` is a geospatial index. This term cannot be used with a geospatial index.', [0])
+  - js: tbl.between(0, 1, {'index':'g'}).count()
+    py: tbl.between(0, 1, index='g').count()
+    rb: tbl.between(0, 1, :index=>'g').count()
+    ot: err('RqlRuntimeError', 'Index `g` is a geospatial index. This term cannot be used with a geospatial index.', [0])
+  - js: tbl.order_by({'index':'g'}).count()
+    py: tbl.order_by(index='g').count()
+    rb: tbl.order_by(:index=>'g').count()
+    ot: err('RqlRuntimeError', 'Index `g` is a geospatial index. This term cannot be used with a geospatial index.', [0])
+
   - js: tbl.get_intersecting(r.point(0,0), {'index':'g'}).count()
+    py: tbl.get_intersecting(r.point(0,0), index='g').count()
+    rb: tbl.get_intersecting(r.point(0,0), :index=>'g').count()
     ot: 2
   - js: tbl.get_intersecting(r.point(10,10), {'index':'g'}).count()
+    py: tbl.get_intersecting(r.point(10,10), index='g').count()
+    rb: tbl.get_intersecting(r.point(10,10), :index=>'g').count()
     ot: 1
   - js: tbl.get_intersecting(r.point(0.5,0.5), {'index':'g'}).count()
+    py: tbl.get_intersecting(r.point(0.5,0.5), index='g').count()
+    rb: tbl.get_intersecting(r.point(0.5,0.5), :index=>'g').count()
     ot: 1
   - js: tbl.get_intersecting(r.point(20,20), {'index':'g'}).count()
+    py: tbl.get_intersecting(r.point(20,20), index='g').count()
+    rb: tbl.get_intersecting(r.point(20,20), :index=>'g').count()
     ot: 0
   - js: tbl.get_intersecting(r.rectangle([0,0], [1,1]), {'index':'g'}).count()
+    py: tbl.get_intersecting(r.rectangle([0,0], [1,1]), index='g').count()
+    rb: tbl.get_intersecting(r.rectangle([0,0], [1,1]), :index=>'g').count()
     ot: 2
   - js: tbl.get_intersecting(r.line([0,0], [10,10]), {'index':'g'}).count()
+    py: tbl.get_intersecting(r.line([0,0], [10,10]), index='g').count()
+    rb: tbl.get_intersecting(r.line([0,0], [10,10]), :index=>'g').count()
     ot: 3
 
   - js: tbl.get_intersecting(r.point(0,0), {'index':'m'}).count()

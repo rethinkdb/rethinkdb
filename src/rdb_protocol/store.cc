@@ -125,15 +125,15 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 acquire_sindex_for_read(geo_read.table_name, geo_read.sindex_id,
                 &sindex_info, &sindex_uuid);
         } catch (const ql::exc_t &e) {
-            res->error = e;
+            res->results_or_error = e;
             return;
         }
 
         if (sindex_info.geo != sindex_geo_bool_t::GEO) {
-            res->error = ql::exc_t(
+            res->results_or_error = ql::exc_t(
                 ql::base_exc_t::GENERIC,
                 strprintf(
-                    "Index '%s' is not a geospatial index. This term can only be "
+                    "Index `%s` is not a geospatial index. This term can only be "
                     "used with a geospatial index.",
                     geo_read.sindex_id.c_str()),
                 NULL);
@@ -189,7 +189,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 res->result = ql::exc_t(
                     ql::base_exc_t::GENERIC,
                     strprintf(
-                        "Index '%s' is a geospatial index. This term cannot be "
+                        "Index `%s` is a geospatial index. This term cannot be "
                         "used with a geospatial index.",
                         rget.sindex->id.c_str()),
                     NULL);

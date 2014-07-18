@@ -416,11 +416,14 @@ counted_t<datum_stream_t> table_t::get_intersecting(
         boost::get<intersecting_geo_read_response_t>(&res.response);
     r_sanity_check(g_res);
 
-    if (g_res->error) {
-        throw g_res->error.get();
+    ql::exc_t *error = boost::get<ql::exc_t>(&g_res->results_or_error);
+    if (error != NULL) {
+        throw *error;
     }
 
-    return make_counted<array_datum_stream_t>(g_res->results, bt);
+    auto *result = boost::get<counted_t<const datum_t> >(&g_res->results_or_error);
+    guarantee(result != NULL);
+    return make_counted<array_datum_stream_t>(*result, bt);
 }
 
 val_t::type_t::type_t(val_t::type_t::raw_type_t _raw_type) : raw_type(_raw_type) { }

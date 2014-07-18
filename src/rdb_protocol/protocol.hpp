@@ -281,14 +281,15 @@ struct rget_read_response_t {
 RDB_DECLARE_SERIALIZABLE(rget_read_response_t);
 
 struct intersecting_geo_read_response_t {
-    counted_t<const ql::datum_t> results;
-    boost::optional<ql::exc_t> error;
+    boost::variant<counted_t<const ql::datum_t>, ql::exc_t> results_or_error;
 
     intersecting_geo_read_response_t() { }
     intersecting_geo_read_response_t(
-            const counted_t<const ql::datum_t> &_results,
-            const boost::optional<ql::exc_t> &_error)
-        : results(_results), error(_error) { }
+            const counted_t<const ql::datum_t> &_results)
+        : results_or_error(_results) { }
+    intersecting_geo_read_response_t(
+            const ql::exc_t &_error)
+        : results_or_error(_error) { }
 };
 
 RDB_DECLARE_SERIALIZABLE(rget_read_response_t);

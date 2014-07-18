@@ -728,20 +728,20 @@ void rdb_r_unshard_visitor_t::operator()(const intersecting_geo_read_t &) {
     for (size_t i = 0; i < count; ++i) {
         auto res = boost::get<intersecting_geo_read_response_t>(&responses[i].response);
         guarantee(res != NULL);;
-        if (res->error) {
-            // Ignore the results in case of an error.
-            // TODO! Maybe results should be a variant in the first place?
-            response_out->response = intersecting_geo_read_response_t(
-                make_counted<ql::datum_t>(ql::datum_t::R_ARRAY), res->error);
+        ql::exc_t *error = boost::get<ql::exc_t>(&res->results_or_error);
+        if (error != NULL) {
+            response_out->response = intersecting_geo_read_response_t(*error);
             return;
         }
-        const std::vector<counted_t<const ql::datum_t> > &arr = res->results->as_array();
+        auto results = boost::get<counted_t<const ql::datum_t> >(&res->results_or_error);
+        guarantee(results != NULL);
+        const std::vector<counted_t<const ql::datum_t> > &arr = (*results)->as_array();
         for (size_t j = 0; j < arr.size(); ++j) {
             combined_results.add(arr[j]);
         }
     }
     response_out->response = intersecting_geo_read_response_t(
-        combined_results.to_counted(), boost::optional<ql::exc_t>());
+        combined_results.to_counted());
 }
 
 void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
@@ -1192,7 +1192,7 @@ RDB_IMPL_SERIALIZABLE_1(point_read_response_t, data);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(point_read_response_t);
 RDB_IMPL_SERIALIZABLE_4(rget_read_response_t, result, key_range, truncated, last_key);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(rget_read_response_t);
-RDB_IMPL_SERIALIZABLE_2(intersecting_geo_read_response_t, results, error);
+RDB_IMPL_SERIALIZABLE_1(intersecting_geo_read_response_t, results_or_error);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(intersecting_geo_read_response_t);
 RDB_IMPL_SERIALIZABLE_2(distribution_read_response_t, region, key_counts);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(distribution_read_response_t);
