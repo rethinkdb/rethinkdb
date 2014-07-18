@@ -1,0 +1,49 @@
+desc: Test ReQL interface to geo indexes
+tests:
+  - cd: r.db('test').table_create('geoindex')
+    def: tbl = r.db('test').table('geoindex')
+
+  - def: rows = [{'id':0, 'g':r.point(10,10), 'm':[r.point(0,0),r.point(0,1),r.point(0,2)]},
+                 {'id':1, 'g':r.rectangle([0,0],[1,1])},
+                 {'id':2, 'g':r.line([-1,0], [1,0])}]
+
+  - cd: tbl.insert(rows)
+    ot: ({'deleted':0,'inserted':3,'skipped':0,'errors':0,'replaced':0,'unchanged':0})
+
+  - rb: tbl.index_create('g', :geo=>true)
+    py: tbl.index_create('g', geo=true)
+    js: tbl.indexCreate('g', {'geo':true})
+    ot: ({'created':1})
+  - rb: tbl.index_create('m', :geo=>true, :multi=>true)
+    py: tbl.index_create('m', geo=true, multi=true)
+    js: tbl.indexCreate('m', {'geo':true, 'multi':true})
+    ot: ({'created':1})
+
+  - cd: tbl.index_wait()
+
+  - js: tbl.get_intersecting(r.point(0,0), {'index':'g'}).count()
+    ot: 2
+  - js: tbl.get_intersecting(r.point(10,10), {'index':'g'}).count()
+    ot: 1
+  - js: tbl.get_intersecting(r.point(0.5,0.5), {'index':'g'}).count()
+    ot: 1
+  - js: tbl.get_intersecting(r.point(20,20), {'index':'g'}).count()
+    ot: 0
+  - js: tbl.get_intersecting(r.rectangle([0,0], [1,1]), {'index':'g'}).count()
+    ot: 2
+  - js: tbl.get_intersecting(r.line([0,0], [10,10]), {'index':'g'}).count()
+    ot: 3
+
+  - js: tbl.get_intersecting(r.point(0,0), {'index':'m'}).count()
+    ot: 1
+  - js: tbl.get_intersecting(r.point(0,1), {'index':'m'}).count()
+    ot: 1
+  - js: tbl.get_intersecting(r.point(0,2), {'index':'m'}).count()
+    ot: 1
+  - js: tbl.get_intersecting(r.point(0,3), {'index':'m'}).count()
+    ot: 0
+  # The document is only emitted a single time, despite having multiple matches.
+  - js: tbl.get_intersecting(r.rectangle([0,0], [1,1]), {'index':'m'}).count()
+    ot: 1
+
+  - cd: r.db('test').table_drop('geoindex')
