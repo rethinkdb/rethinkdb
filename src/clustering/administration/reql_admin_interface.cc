@@ -69,6 +69,7 @@ static bool check_metadata_status(metadata_search_status_t status,
             } else {
                 return true;
             }
+        default: unreachable();
         }
     }
 }

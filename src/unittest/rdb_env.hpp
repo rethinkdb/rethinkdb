@@ -130,7 +130,9 @@ private:
     std::map<namespace_id_t, mock_namespace_cache_entry_t *> cache;
 };
 
-/* This is read-only; it will give an error if you try to create or delete anything */
+/* This is read-only; it will give an error if you call the `db_create()`,
+`table_create()`, etc. methods. The only way to create databases and tables is by
+modifying the `databases` and `tables` fields directly. */
 class mock_reql_admin_interface_t : public reql_admin_interface_t {
 public:
     bool db_create(const name_string_t &name,
