@@ -42,17 +42,17 @@ static bool check_metadata_status(metadata_search_status_t status,
             if (expect_present) {
                 return true;
             } else {
-                *error_out = strprintf("There is already a %s called `%s`.",
+                *error_out = strprintf("%s `%s` already exists.",
                     entity_type, entity_name.c_str());
                 return false;
             }
         }
         case METADATA_ERR_MULTIPLE: {
             if (expect_present) {
-                *error_out = strprintf("There are multiple %ss called `%s`.",
-                    entity_type, entity_name.c_str());
+                *error_out = strprintf("%s `%s` is ambiguous; there are multiple "
+                    "entities with that name.", entity_type, entity_name.c_str());
             } else {
-                *error_out = strprintf("There is already a %s called `%s`.",
+                *error_out = strprintf("%s `%s` already exists.",
                     entity_type, entity_name.c_str());
             }
             return false;
@@ -63,7 +63,7 @@ static bool check_metadata_status(metadata_search_status_t status,
         }
         case METADATA_ERR_NONE: {
             if (expect_present) {
-                *error_out = strprintf("Could not find any %s called `%s`.",
+                *error_out = strprintf("%s `%s` does not exist.",
                     entity_type, entity_name.c_str());
                 return false;
             } else {
@@ -84,7 +84,7 @@ bool cluster_reql_admin_interface_t::db_create(const name_string_t &name,
 
         metadata_search_status_t status;
         db_searcher.find_uniq(name, &status);
-        if (!check_metadata_status(status, "database", name.str(), false, error_out)) {
+        if (!check_metadata_status(status, "Database", name.str(), false, error_out)) {
             return false;
         }
 
@@ -112,7 +112,7 @@ bool cluster_reql_admin_interface_t::db_drop(const name_string_t &name,
 
         metadata_search_status_t status;
         auto it = db_searcher.find_uniq(name, &status);
-        if (!check_metadata_status(status, "database", name.str(), true, error_out)) {
+        if (!check_metadata_status(status, "Database", name.str(), true, error_out)) {
             return false;
         }
 
@@ -172,7 +172,7 @@ bool cluster_reql_admin_interface_t::db_find(const name_string_t &name,
         &db_metadata.databases);
     metadata_search_status_t status;
     auto it = db_searcher.find_uniq(name, &status);
-    if (!check_metadata_status(status, "database", name.str(), true, error_out)) {
+    if (!check_metadata_status(status, "Database", name.str(), true, error_out)) {
         return false;
     }
     *db_out = make_counted<const ql::db_t>(it->first, name.str());
@@ -195,7 +195,7 @@ bool cluster_reql_admin_interface_t::table_create(const name_string_t &name,
                 &metadata.datacenters.datacenters);
             metadata_search_status_t status;
             auto it = dc_searcher.find_uniq(*primary_dc, &status);
-            if (!check_metadata_status(status, "datacenter", primary_dc->str(), true,
+            if (!check_metadata_status(status, "Datacenter", primary_dc->str(), true,
                     error_out)) return false;
             dc_id = it->first;
         } else {
@@ -212,7 +212,7 @@ bool cluster_reql_admin_interface_t::table_create(const name_string_t &name,
             metadata_search_status_t status;
             namespace_predicate_t pred(&name, &db->id);
             ns_searcher.find_uniq(pred, &status);
-            if (!check_metadata_status(status, "table", db->name + "." + name.str(),
+            if (!check_metadata_status(status, "Table", db->name + "." + name.str(),
                 false, error_out)) return false;
         }
 
@@ -265,7 +265,7 @@ bool cluster_reql_admin_interface_t::table_drop(const name_string_t &name,
         namespace_predicate_t pred(&name, &db->id);
         metadata_searcher_t<namespace_semilattice_metadata_t>::iterator
             ns_metadata = ns_searcher.find_uniq(pred, &status);
-        if (!check_metadata_status(status, "table", db->name + "." + name.str(), true,
+        if (!check_metadata_status(status, "Table", db->name + "." + name.str(), true,
                 error_out)) return false;
         guarantee(!ns_metadata->second.is_deleted());
 
@@ -315,7 +315,7 @@ bool cluster_reql_admin_interface_t::table_find(const name_string_t &name,
     namespace_predicate_t pred(&name, &db->id);
     metadata_search_status_t status;
     auto ns_metadata_it = ns_searcher.find_uniq(pred, &status);
-    if (!check_metadata_status(status, "table", db->name + "." + name.str(), true,
+    if (!check_metadata_status(status, "Table", db->name + "." + name.str(), true,
             error_out)) return false;
 
     guarantee(!ns_metadata_it->second.is_deleted());
