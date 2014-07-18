@@ -3,6 +3,7 @@
 #define RDB_PROTOCOL_GEO_TRAVERSAL_HPP_
 
 #include <set>
+#include <utility>
 #include <vector>
 
 #include "errors.hpp"
@@ -11,8 +12,9 @@
 #include "btree/keys.hpp"
 #include "btree/slice.hpp"
 #include "containers/counted.hpp"
+#include "geo/ellipsoid.hpp"
 #include "geo/indexing.hpp"
-#include "rdb_protocol/datum.hpp"
+#include "geo/lat_lon_types.hpp"
 #include "rdb_protocol/protocol.hpp"
 
 namespace ql {
@@ -122,33 +124,70 @@ protected:
 private:
     // Accumulates the data until finish() is called.
     ql::datum_ptr_t result_acc;
-
     boost::optional<ql::exc_t> error;
 
     std::set<store_key_t> distinct_emitted;
 };
 
 
-
-
-
-
-
-
-// TODO!
-/*
-struct nearest_traversal_state_t {
+class nearest_traversal_state_t {
+public:
     nearest_traversal_state_t(
             const lat_lon_point_t &_center,
+            uint64_t _max_results,
+            double _max_radius,
             const ellipsoid_spec_t &_reference_ellipsoid);
 
+    // Modifies the state such that the next batch will be generated the next
+    // time this state is used.
+    void proceed_to_next_batch();
+private:
+    friend class nearest_traversal_cb_t;
+
+    /* State that changes over time */
     std::set<store_key_t> distinct_emitted;
+    // Which radius around `center` has been previously processed?
+    double processed_inradius;
+
+    /* Constant data, initialized by the constructor */
     const lat_lon_point_t center;
-    lat_lon_line_t inner_circle;
-    lat_lon_line_t outer_circle;
-    double next_radius;
+    const uint64_t max_results;
+    const double max_radius;
     const ellipsoid_spec_t reference_ellipsoid;
-    // TODO! Max radius? Max results?
-};*/
+};
+
+// Generates a batch of results, sorted by increasing distance.
+class nearest_traversal_cb_t : public geo_intersecting_cb_t {
+public:
+    nearest_traversal_cb_t(
+            btree_slice_t *_slice,
+            const geo_sindex_data_t &&_sindex,
+            ql::env_t *_env,
+            collect_all_geo_intersecting_cb_t *_state);
+
+    void finish(intersecting_geo_read_response_t *resp_out);
+
+protected:
+    bool post_filter(
+            const counted_t<const ql::datum_t> &sindex_val,
+            const counted_t<const ql::datum_t> &val)
+            THROWS_ONLY(interrupted_exc_t);
+
+    void emit_result(
+            const counted_t<const ql::datum_t> &sindex_val,
+            const counted_t<const ql::datum_t> &val)
+            THROWS_ONLY(interrupted_exc_t);
+
+    void emit_error(
+            const ql::exc_t &error)
+            THROWS_ONLY(interrupted_exc_t);
+
+private:
+    // Accumulate results for the current batch until finish() is called
+    std::vector<std::pair<double, counted_t<const ql::datum_t> > > result_acc;
+    boost::optional<ql::exc_t> error;
+
+    collect_all_geo_intersecting_cb_t *state;
+};
 
 #endif  // RDB_PROTOCOL_GEO_TRAVERSAL_HPP_

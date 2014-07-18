@@ -17,13 +17,13 @@
 // document multiple times (efficiency optimization).
 const size_t MAX_PROCESSED_SET_SIZE = 10000;
 
-#if 0
 // The radius used for the first batch of a get_nearest traversal.
 // As a fraction of the equator's radius.
 // The current value is equivalent to a radius of 10m on earth.
 const double NEAREST_INITIAL_RADIUS_FRACTION = 10.0 / 6378137.0;
-#endif
 
+
+/* ----------- geo_intersecting_cb_t -----------*/
 geo_intersecting_cb_t::geo_intersecting_cb_t(
         btree_slice_t *_slice,
         const geo_sindex_data_t &&_sindex,
@@ -37,7 +37,7 @@ geo_intersecting_cb_t::geo_intersecting_cb_t(
       distinct_emitted(_distinct_emitted_in_out) {
     guarantee(distinct_emitted != NULL);
     disabler.init(new profile::disabler_t(env->trace));
-    sampler.init(new profile::sampler_t("Geospatial intersection traversal doc evaluation.",
+    sampler.init(new profile::sampler_t("Geospatial intersection traversal.",
                                         env->trace));
 }
 
@@ -124,6 +124,7 @@ void geo_intersecting_cb_t::on_candidate(
 }
 
 
+/* ----------- collect_all_geo_intersecting_cb_t -----------*/
 collect_all_geo_intersecting_cb_t::collect_all_geo_intersecting_cb_t(
         btree_slice_t *_slice,
         const geo_sindex_data_t &&_sindex,
@@ -165,21 +166,20 @@ void collect_all_geo_intersecting_cb_t::emit_error(
 }
 
 
-
-
-
-
+/* ----------- nearest traversal -----------*/
+nearest_traversal_state_t::nearest_traversal_state_t(
+        const lat_lon_point_t &_center,
+        uint64_t _max_results,
+        double _max_radius,
+        const ellipsoid_spec_t &_reference_ellipsoid) :
+    processed_inradius(0.0),
+    center(_center),
+    max_results(_max_results),
+    max_radius(_max_radius),
+    reference_ellipsoid(_reference_ellipsoid) { }
 
 // TODO!
 #if 0
-nearest_traversal_state_t::nearest_traversal_state_t(
-        const lat_lon_point_t &_center,
-        const ellipsoid_spec_t &_reference_ellipsoid) :
-    center(_center),
-    reference_ellipsoid(reference_ellipsoid) {
-    next_radius = reference_ellipsoid.equator_radius() * NEAREST_INITIAL_RADIUS_FRACTION;
-}
-
 done_traversing_t compute_next_nearest_batch(
         superblock_t *superblock,
         geo_io_data_t io,
