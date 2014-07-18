@@ -297,7 +297,7 @@ class Connection extends events.EventEmitter
             query.global_optargs['durability'] = r.expr(opts.durability).build()
 
         if opts.batchConf?
-            query.global_optargs['batchConf'] = r.expr(opts.batchConf).build()
+            query.global_optargs['batch_conf'] = r.expr(opts.batchConf).build()
 
         # Save callback
         if (not opts.noreply?) or !opts.noreply
