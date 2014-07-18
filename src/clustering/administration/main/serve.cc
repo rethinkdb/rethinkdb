@@ -106,9 +106,11 @@ bool do_serve(io_backender_t *io_backender,
 
         mailbox_manager_t mailbox_manager(&connectivity_cluster, 'M');
 
-        semilattice_manager_t<cluster_semilattice_metadata_t> semilattice_manager_cluster(&connectivity_cluster, 'S', cluster_metadata);
+        semilattice_manager_t<cluster_semilattice_metadata_t>
+            semilattice_manager_cluster(&connectivity_cluster, 'S', cluster_metadata);
 
-        semilattice_manager_t<auth_semilattice_metadata_t> auth_manager_cluster(&connectivity_cluster, 'A', auth_metadata);
+        semilattice_manager_t<auth_semilattice_metadata_t>
+            auth_manager_cluster(&connectivity_cluster, 'A', auth_metadata);
 
         log_server_t log_server(&mailbox_manager, &log_writer);
 
@@ -133,8 +135,10 @@ bool do_serve(io_backender_t *io_backender,
 
         watchable_variable_t<cluster_directory_metadata_t> our_root_directory_variable(*initial_directory);
 
-        directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(&connectivity_cluster, 'D', our_root_directory_variable.get_watchable());
-        directory_read_manager_t<cluster_directory_metadata_t> directory_read_manager(&connectivity_cluster, 'D');
+        directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(
+            &connectivity_cluster, 'D', our_root_directory_variable.get_watchable());
+        directory_read_manager_t<cluster_directory_metadata_t> directory_read_manager(
+            &connectivity_cluster, 'D');
 
         network_logger_t network_logger(
             connectivity_cluster.get_me(),
@@ -167,7 +171,8 @@ bool do_serve(io_backender_t *io_backender,
         if (serve_info.ports.port != 0) {
             guarantee(serve_info.ports.port == connectivity_cluster_run->get_port());
         }
-        logINF("Listening for intracluster connections on port %d\n", connectivity_cluster_run->get_port());
+        logINF("Listening for intracluster connections on port %d\n",
+            connectivity_cluster_run->get_port());
 
         auto_reconnector_t auto_reconnector(
             &connectivity_cluster,

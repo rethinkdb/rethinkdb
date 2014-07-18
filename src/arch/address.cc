@@ -415,7 +415,8 @@ bool is_similar_ip_address(const ip_and_port_t &left,
     if (left.ip().is_ipv4()) {
         return left.ip().get_ipv4_addr().s_addr == right.ip().get_ipv4_addr().s_addr;
     } else {
-        return IN6_ARE_ADDR_EQUAL(&left.ip().get_ipv6_addr(), &right.ip().get_ipv6_addr());
+        return IN6_ARE_ADDR_EQUAL(&left.ip().get_ipv6_addr(),
+                                  &right.ip().get_ipv6_addr());
     }
 }
 
@@ -536,8 +537,9 @@ bool is_similar_peer_address(const peer_address_t &left,
         }
     }
 
-    // No non-loopback addresses matched, return true if either side was *only* loopback addresses
-    //  because we can't easily prove if they are the same or different addresses
+    // No non-loopback addresses matched, return true if either side was *only* loopback
+    // addresses  because we can't easily prove if they are the same or different
+    // addresses
     return left_loopback_only || right_loopback_only;
 }
 

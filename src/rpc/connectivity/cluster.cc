@@ -48,7 +48,8 @@ static bool version_number_recognized_compatible(const std::string &version_stri
 }
 
 // Returns false if the string is not a valid version string (matching /\d+(\.\d+)*/)
-static bool split_version_string(const std::string &version_string, std::vector<int64_t> *out) {
+static bool split_version_string(const std::string &version_string,
+                                 std::vector<int64_t> *out) {
     const std::vector<std::string> parts = split_string(version_string, '.');
     std::vector<int64_t> ret(parts.size());
     for (size_t i = 0; i < parts.size(); ++i) {
@@ -111,7 +112,8 @@ const std::string connectivity_cluster_t::cluster_build_mode("debug");
 #endif
 
 void connectivity_cluster_t::connection_t::kill_connection() {
-    /* `heartbeat_manager_t` assumes this doesn't block as long as it's called on the home thread. */
+    /* `heartbeat_manager_t` assumes this doesn't block as long as it's called on the
+    home thread. */
     guarantee(!is_loopback(), "Attempted to kill connection to myself.");
     on_thread_t thread_switcher(conn->home_thread());
 
@@ -130,38 +132,39 @@ connectivity_cluster_t::connection_t::connection_t(run_t *p,
     conn(c), peer_address(a),
     pm_collection(),
     pm_bytes_sent(secs_to_ticks(1), true),
-    pm_collection_membership(&p->parent->connectivity_collection, &pm_collection, uuid_to_str(id.get_uuid())),
+    pm_collection_membership(&p->parent->connectivity_collection, &pm_collection,
+        uuid_to_str(id.get_uuid())),
     pm_bytes_sent_membership(&pm_collection, &pm_bytes_sent, "bytes_sent"),
     parent(p), peer_id(id),
     drainers()
 {
     pmap(get_num_threads(), [this](int thread_id) {
-            on_thread_t thread_switcher((threadnum_t(thread_id)));
-            parent->parent->connections.get()->apply_atomic_op(
-                [&](std::map<peer_id_t, std::pair<connection_t *, auto_drainer_t::lock_t>> *value) -> bool {
-                    auto res = value->insert(std::make_pair(
-                        peer_id,
-                        std::make_pair(this, auto_drainer_t::lock_t(drainers.get()))
-                        ));
-                    guarantee(res.second, "Somehow we tried to insert a duplicate entry.");
-                    return true;
-                    });
-        });
+        on_thread_t thread_switcher((threadnum_t(thread_id)));
+        parent->parent->connections.get()->apply_atomic_op(
+            [&](connection_map_t *value) -> bool {
+                auto res = value->insert(std::make_pair(
+                    peer_id,
+                    std::make_pair(this, auto_drainer_t::lock_t(drainers.get()))
+                    ));
+                guarantee(res.second, "Somehow we tried to insert a duplicate entry.");
+                return true;
+            });
+    });
 }
 
 connectivity_cluster_t::connection_t::~connection_t() THROWS_NOTHING {
     // Drain out any users
     pmap(get_num_threads(), [this](int thread_id) {
-            on_thread_t thread_switcher((threadnum_t(thread_id)));
-            parent->parent->connections.get()->apply_atomic_op(
-                [&](std::map<peer_id_t, std::pair<connection_t *, auto_drainer_t::lock_t>> *value) -> bool {
-                    auto it = value->find(peer_id);
-                    guarantee(it != value->end() && it->second.first == this);
-                    value->erase(it);
-                    return true;
-                    });
-            drainers.get()->drain();
-        });
+        on_thread_t thread_switcher((threadnum_t(thread_id)));
+        parent->parent->connections.get()->apply_atomic_op(
+            [&](connection_map_t *value) -> bool {
+                auto it = value->find(peer_id);
+                guarantee(it != value->end() && it->second.first == this);
+                value->erase(it);
+                return true;
+            });
+        drainers.get()->drain();
+    });
 
     /* The drainers have been destroyed, so nothing can be holding the `send_mutex`. */
     guarantee(!send_mutex.is_locked());
@@ -224,11 +227,12 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
     will remove the entry. If the set of local addresses passed in is empty, it
     means that we bind to all local addresses.  That also means we need to get
     a new set of all local addresses from get_local_ips() in that case. */
-    routing_table_entry_for_ourself(&routing_table,
-                                    parent->me,
-                                    our_peer_address(local_addresses,
-                                                     canonical_addresses,
-                                                     port_t(cluster_listener_socket->get_port()))),
+    routing_table_entry_for_ourself(
+        &routing_table,
+        parent->me,
+        our_peer_address(local_addresses,
+                         canonical_addresses,
+                         port_t(cluster_listener_socket->get_port()))),
 
     /* The `connection_entry_t` constructor takes care of putting itself in the
     `connection_map` on each thread and notifying any listeners that we're now
@@ -236,15 +240,17 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
     `connection_map` and again notify any listeners. */
     connection_to_ourself(this, parent->me, NULL, routing_table[parent->me]),
 
-    listener(new tcp_listener_t(cluster_listener_socket.get(),
-                                std::bind(&connectivity_cluster_t::run_t::on_new_connection,
-                                          this, ph::_1, auto_drainer_t::lock_t(&drainer))))
+    listener(new tcp_listener_t(
+        cluster_listener_socket.get(),
+        std::bind(&connectivity_cluster_t::run_t::on_new_connection,
+                 this, ph::_1, auto_drainer_t::lock_t(&drainer))))
 {
     parent->assert_thread();
 }
 
 connectivity_cluster_t::run_t::~run_t() {
-    /* The member destructors take care of cutting off TCP connections, cleaning up, etc. */
+    /* The member destructors take care of cutting off TCP connections, cleaning up, etc.
+    */
 }
 
 std::set<ip_and_port_t> connectivity_cluster_t::run_t::get_ips() const {
@@ -267,7 +273,9 @@ void connectivity_cluster_t::run_t::join(const peer_address_t &address) THROWS_N
         auto_drainer_t::lock_t(&drainer)));
 }
 
-void connectivity_cluster_t::run_t::on_new_connection(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn, auto_drainer_t::lock_t lock) THROWS_NOTHING {
+void connectivity_cluster_t::run_t::on_new_connection(
+        const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,
+        auto_drainer_t::lock_t lock) THROWS_NOTHING {
     parent->assert_thread();
 
     // conn gets owned by the keepalive_tcp_conn_stream_t.
@@ -278,12 +286,13 @@ void connectivity_cluster_t::run_t::on_new_connection(const scoped_ptr_t<tcp_con
     handle(&conn_stream, boost::none, boost::none, lock, NULL);
 }
 
-void connectivity_cluster_t::run_t::connect_to_peer(const peer_address_t *address,
-                                                    int index,
-                                                    boost::optional<peer_id_t> expected_id,
-                                                    auto_drainer_t::lock_t drainer_lock,
-                                                    bool *successful_join,
-                                                    co_semaphore_t *rate_control) THROWS_NOTHING {
+void connectivity_cluster_t::run_t::connect_to_peer(
+        const peer_address_t *address,
+        int index,
+        boost::optional<peer_id_t> expected_id,
+        auto_drainer_t::lock_t drainer_lock,
+        bool *successful_join,
+        co_semaphore_t *rate_control) THROWS_NOTHING {
     // Wait to start the connection attempt, max time is one second per address
     signal_timer_t timeout;
     timeout.start(index * 1000);
@@ -364,7 +373,8 @@ void connectivity_cluster_t::run_t::join_blocking(
 
 class cluster_conn_closing_subscription_t : public signal_t::subscription_t {
 public:
-    explicit cluster_conn_closing_subscription_t(keepalive_tcp_conn_stream_t *conn) : conn_(conn) { }
+    explicit cluster_conn_closing_subscription_t(keepalive_tcp_conn_stream_t *conn) :
+        conn_(conn) { }
 
     virtual void run() {
         if (conn_->is_read_open()) {
@@ -379,8 +389,10 @@ private:
     DISABLE_COPYING(cluster_conn_closing_subscription_t);
 };
 
-/* `heartbeat_manager_t` is responsible for sending heartbeats over a single connection and making sure that heartbeats
-have arrived on time. `connectivity_cluster_t::run_t::handle()` constructs one after constructing the `connection_t`. */
+/* `heartbeat_manager_t` is responsible for sending heartbeats over a single connection
+and making sure that heartbeats have arrived on time.
+`connectivity_cluster_t::run_t::handle()` constructs one after constructing the
+`connection_t`. */
 class connectivity_cluster_t::heartbeat_manager_t :
     public keepalive_tcp_conn_stream_t::keepalive_callback_t,
     private repeating_timer_callback_t,
@@ -420,23 +432,24 @@ public:
         if (intervals_since_last_read_done > HEARTBEAT_TIMEOUT_INTERVALS) {
             logERR("Heartbeat timeout, killing connection to peer %s", peer_str.c_str());
 
-            /* This won't block if we call it from the same thread. This is an implementation detail that outside code
-            shouldn't rely on, but since `heartbeat_manager_t` is part of `connectivity_cluster_t` it's OK. */
+            /* This won't block if we call it from the same thread. This is an
+            implementation detail that outside code shouldn't rely on, but since
+            `heartbeat_manager_t` is part of `connectivity_cluster_t` it's OK. */
             connection->kill_connection();
             return;
         }
         if (write_done) {
             write_done = false;
         } else {
-            /* The purpose of `heartbeat_manager_keepalive` is to ensure that we don't shut down while the heartbeat
-            sending coroutine is still active */
+            /* The purpose of `heartbeat_manager_keepalive` is to ensure that we don't
+            shut down while the heartbeat sending coroutine is still active */
             auto_drainer_t::lock_t this_keepalive(&drainer);
-            coro_t::spawn_later_ordered([this, this_keepalive /* important to capture */] {
+            coro_t::spawn_later_ordered(
+                [this, this_keepalive /* important to capture */] {
                     /* This might block, so we have to run it in a sub-coroutine. */
-                    connection->parent->parent->send_message(connection,
-                                                             connection_keepalive,
-                                                             connectivity_cluster_t::heartbeat_tag,
-                                                             this);
+                    connection->parent->parent->send_message(
+                        connection, connection_keepalive,
+                        connectivity_cluster_t::heartbeat_tag, this);
                 });
         }
         if (read_done) {
@@ -447,8 +460,8 @@ public:
         }
     }
     void write(cluster_version_t, write_stream_t *) {
-        /* Do nothing. The cluster will end up sending just the tag 'H' with no message attached, which will trigger
-        `keepalive_read()` on the remote machine. */
+        /* Do nothing. The cluster will end up sending just the tag 'H' with no message
+        attached, which will trigger `keepalive_read()` on the remote machine. */
     }
     connectivity_cluster_t::connection_t *connection;
     auto_drainer_t::lock_t connection_keepalive;
@@ -456,17 +469,18 @@ public:
     int intervals_since_last_read_done;
     std::string peer_str;
 
-    /* Order is important here. When destroying the `heartbeat_manager_t`, we must first destroy the timer so that new
-    `on_ring()` calls don't get spawned; then destroy the `auto_drainer_t` to drain any ongoing coroutines; and only
-    then is it safe to destroy the other fields. */
+    /* Order is important here. When destroying the `heartbeat_manager_t`, we must first
+    destroy the timer so that new `on_ring()` calls don't get spawned; then destroy the
+    `auto_drainer_t` to drain any ongoing coroutines; and only then is it safe to destroy
+    the other fields. */
     auto_drainer_t drainer;
     repeating_timer_t timer;
 
     DISABLE_COPYING(heartbeat_manager_t);
 };
 
-// Error-handling helper for connectivity_cluster_t::run_t::handle(). Returns true if handle()
-// should return.
+// Error-handling helper for connectivity_cluster_t::run_t::handle(). Returns true if
+// handle() should return.
 template <class T>
 bool deserialize_and_check(cluster_version_t cluster_version,
                            keepalive_tcp_conn_stream_t *c, T *p, const char *peer) {
@@ -515,7 +529,8 @@ bool deserialize_universal_and_check(keepalive_tcp_conn_stream_t *c,
 
 // Reads a chunk of data off of the connection, buffer must have at least 'size' bytes
 //  available to write into
-bool read_header_chunk(keepalive_tcp_conn_stream_t *conn, char *buffer, int64_t size, const char *peer) {
+bool read_header_chunk(keepalive_tcp_conn_stream_t *conn, char *buffer, int64_t size,
+        const char *peer) {
     int64_t r = conn->read(buffer, size);
     if (-1 == r) {
         logWRN("Network error while receiving clustering header from %s, closing connection.", peer);
@@ -607,9 +622,11 @@ void connectivity_cluster_t::run_t::handle(
 {
     parent->assert_thread();
 
-    /* TODO: If the other peer mysteriously stops talking to us, but doesn't close the connection, during the
-    initialization process but before we construct the `heartbeat_manager_t`, then we might get stuck. Maybe we should
-    add a timeout? It could just be a `signal_timer_t` that is wired into `conn_closer_1` but not `conn_closer_2`. */
+    /* TODO: If the other peer mysteriously stops talking to us, but doesn't close the
+    connection, during the initialization process but before we construct the
+    `heartbeat_manager_t`, then we might get stuck. Maybe we should add a timeout? It
+    could just be a `signal_timer_t` that is wired into `conn_closer_1` but not
+    `conn_closer_2`. */
 
     // Get the name of our peer, for error reporting.
     ip_address_t peer_addr;
@@ -911,12 +928,15 @@ void connectivity_cluster_t::run_t::handle(
                 archive_result_t res = deserialize_universal(conn, &tag);
                 if (bad(res)) { throw fake_archive_exc_t(); }
 
-                /* Ignore messages tagged with the heartbeat tag. The `keepalive_tcp_conn_stream_t` will have already
-                notified the `heartbeat_manager_t` as soon as the heartbeat arrived. */
+                /* Ignore messages tagged with the heartbeat tag. The
+                `keepalive_tcp_conn_stream_t` will have already notified the
+                `heartbeat_manager_t` as soon as the heartbeat arrived. */
                 if (tag != heartbeat_tag) {
-                    connectivity_cluster_t::message_handler_t *handler = parent->message_handlers[tag];
-                    guarantee(handler != NULL, "Got a message for an unfamiliar tag. Apparently we aren't compatible "
-                        "with the cluster on the other end.");
+                    connectivity_cluster_t::message_handler_t *handler =
+                        parent->message_handlers[tag];
+                    guarantee(handler != NULL, "Got a message for an unfamiliar tag. "
+                        "Apparently we aren't compatible with the cluster on the other "
+                        "end.");
 
                     handler->on_message(
                         &conn_structure,
@@ -942,16 +962,19 @@ void connectivity_cluster_t::run_t::handle(
             logWRN("Received invalid data on a cluster connection. Disconnecting.");
         }
 
-        /* The `conn_structure` destructor removes us from the connection map. It also blocks until all references to
-        `conn_structure` have been released (using its `auto_drainer_t`s). */
+        /* The `conn_structure` destructor removes us from the connection map. It also
+        blocks until all references to `conn_structure` have been released (using its
+        `auto_drainer_t`s). */
     }
 }
 
-connectivity_cluster_t::message_handler_t::message_handler_t(connectivity_cluster_t *cm, message_tag_t t) :
+connectivity_cluster_t::message_handler_t::message_handler_t(connectivity_cluster_t *cm,
+                                                             message_tag_t t) :
         connectivity_cluster(cm), tag(t)
 {
     guarantee(!connectivity_cluster->current_run);
-    rassert(tag != heartbeat_tag, "Tag %d is reserved for heartbeat messages.", static_cast<int>(heartbeat_tag));
+    rassert(tag != heartbeat_tag, "Tag %d is reserved for heartbeat messages.",
+        static_cast<int>(heartbeat_tag));
     rassert(connectivity_cluster->message_handlers[tag] == NULL);
     connectivity_cluster->message_handlers[tag] = this;
 }
@@ -962,10 +985,9 @@ connectivity_cluster_t::message_handler_t::~message_handler_t() {
     connectivity_cluster->message_handlers[tag] = NULL;
 }
 
-void connectivity_cluster_t::message_handler_t::on_local_message(connection_t *conn,
-                                                            auto_drainer_t::lock_t keepalive,
-                                                            cluster_version_t version,
-                                                            std::vector<char> &&data)
+void connectivity_cluster_t::message_handler_t::on_local_message(
+        connection_t *conn, auto_drainer_t::lock_t keepalive, cluster_version_t version,
+        std::vector<char> &&data)
 {
     // This is only sensible.  We pass the cluster_version all the way from the local
     // serialization code just to play nice.
@@ -995,20 +1017,23 @@ peer_id_t connectivity_cluster_t::get_me() THROWS_NOTHING {
     return me;
 }
 
-clone_ptr_t<watchable_t<connectivity_cluster_t::connection_map_t>> connectivity_cluster_t::get_connections() THROWS_NOTHING {
+clone_ptr_t<watchable_t<connectivity_cluster_t::connection_map_t>>
+connectivity_cluster_t::get_connections() THROWS_NOTHING {
     return connections.get()->get_watchable();
 }
 
-connectivity_cluster_t::connection_t *connectivity_cluster_t::get_connection(peer_id_t peer_id, auto_drainer_t::lock_t *keepalive_out) THROWS_NOTHING {
+connectivity_cluster_t::connection_t *connectivity_cluster_t::get_connection(
+        peer_id_t peer_id, auto_drainer_t::lock_t *keepalive_out) THROWS_NOTHING {
     connectivity_cluster_t::connection_t *conn;
-    connections.get()->apply_read([&](const std::map<peer_id_t, std::pair<connection_t *, auto_drainer_t::lock_t>> *value) {
-        auto it = value->find(peer_id);
-        if (it == value->end()) {
-            conn = NULL;
-        } else {
-            conn = it->second.first;
-            *keepalive_out = it->second.second;
-        }
+    connections.get()->apply_read(
+        [&](const connection_map_t *value) {
+            auto it = value->find(peer_id);
+            if (it == value->end()) {
+                conn = NULL;
+            } else {
+                conn = it->second.first;
+                *keepalive_out = it->second.second;
+            }
         });
     return conn;
 }
@@ -1064,8 +1089,10 @@ void connectivity_cluster_t::send_message(connection_t *connection,
         // We could be on any thread here! Oh no!
         std::vector<char> buffer_data;
         buffer.swap(&buffer_data);
-        rassert(message_handlers[tag], "No message handler for tag %d", static_cast<int>(tag));
-        message_handlers[tag]->on_local_message(connection, connection_keepalive, cluster_version, std::move(buffer_data));
+        rassert(message_handlers[tag], "No message handler for tag %d",
+            static_cast<int>(tag));
+        message_handlers[tag]->on_local_message(connection, connection_keepalive,
+            cluster_version, std::move(buffer_data));
     } else {
         on_thread_t threader(connection->conn->home_thread());
 
@@ -1078,9 +1105,10 @@ void connectivity_cluster_t::send_message(connection_t *connection,
             // All cluster versions use a uint8_t tag here.
             write_message_t wm;
             static_assert(std::is_same<message_tag_t, uint8_t>::value,
-                          "We expect to be serializing a uint8_t -- if this has changed, "
-                          "the cluster communication format has changed and you need to "
-                          "ask yourself whether live cluster upgrades work.");
+                          "We expect to be serializing a uint8_t -- if this has "
+                          "changed, the cluster communication format has changed and "
+                          "you need to ask yourself whether live cluster upgrades work."
+                          );
             serialize_universal(&wm, tag);
             int res = send_write_message(connection->conn, &wm);
             if (res == -1) {
@@ -1093,7 +1121,8 @@ void connectivity_cluster_t::send_message(connection_t *connection,
 
         /* Write the message itself to the network */
         {
-            int64_t res = connection->conn->write(buffer.vector().data(), buffer.vector().size());
+            int64_t res = connection->conn->write(buffer.vector().data(),
+                                                  buffer.vector().size());
             if (res == -1) {
                 /* Close the other half of the connection to make sure that
                    `connectivity_cluster_t::run_t::handle()` notices that something is

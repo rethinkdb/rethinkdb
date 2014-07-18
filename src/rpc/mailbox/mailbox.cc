@@ -54,10 +54,15 @@ raw_mailbox_t::address_t raw_mailbox_t::get_address() const {
     return a;
 }
 
-class raw_mailbox_writer_t : public connectivity_cluster_t::send_message_write_callback_t {
+class raw_mailbox_writer_t :
+    public connectivity_cluster_t::send_message_write_callback_t
+{
 public:
-    raw_mailbox_writer_t(int32_t _dest_thread, raw_mailbox_t::id_t _dest_mailbox_id, mailbox_write_callback_t *_subwriter) :
-        dest_thread(_dest_thread), dest_mailbox_id(_dest_mailbox_id), subwriter(_subwriter) { }
+    raw_mailbox_writer_t(int32_t _dest_thread, raw_mailbox_t::id_t _dest_mailbox_id,
+            mailbox_write_callback_t *_subwriter) :
+        dest_thread(_dest_thread),
+        dest_mailbox_id(_dest_mailbox_id),
+        subwriter(_subwriter) { }
     virtual ~raw_mailbox_writer_t() { }
 
     void write(cluster_version_t cluster_version, write_stream_t *stream) {
@@ -77,7 +82,8 @@ public:
         // TODO: It would be more efficient if we could make this part of `msg`.
         //  e.g. with a `prepend()` method on write_message_t.
         write_message_t length_msg;
-        serialize_universal(&length_msg, static_cast<uint64_t>(wm.size()) - prefix_length);
+        serialize_universal(&length_msg,
+                            static_cast<uint64_t>(wm.size()) - prefix_length);
 
         int res = send_write_message(stream, &length_msg);
         if (res) { throw fake_archive_exc_t(); }
@@ -90,23 +96,27 @@ private:
     mailbox_write_callback_t *subwriter;
 };
 
-void send(mailbox_manager_t *src, raw_mailbox_t::address_t dest, mailbox_write_callback_t *callback) {
+void send(mailbox_manager_t *src, raw_mailbox_t::address_t dest,
+        mailbox_write_callback_t *callback) {
     guarantee(src);
     guarantee(!dest.is_nil());
     new_semaphore_acq_t acq(src->semaphores.get(), 1);
     acq.acquisition_signal()->wait();
     connectivity_cluster_t::connection_t *connection;
     auto_drainer_t::lock_t connection_keepalive;
-    if (!(connection = src->get_connectivity_cluster()->get_connection(dest.peer, &connection_keepalive))) {
+    if (!(connection = src->get_connectivity_cluster()->get_connection(
+            dest.peer, &connection_keepalive))) {
         return;
     }
     raw_mailbox_writer_t writer(dest.thread, dest.mailbox_id, callback);
-    src->get_connectivity_cluster()->send_message(connection, connection_keepalive, src->get_message_tag(), &writer);
+    src->get_connectivity_cluster()->send_message(connection, connection_keepalive,
+        src->get_message_tag(), &writer);
 }
 
 static const int MAX_OUTSTANDING_MAILBOX_WRITES_PER_THREAD = 4;
 
-mailbox_manager_t::mailbox_manager_t(connectivity_cluster_t *connectivity_cluster, connectivity_cluster_t::message_tag_t message_tag) :
+mailbox_manager_t::mailbox_manager_t(connectivity_cluster_t *connectivity_cluster,
+        connectivity_cluster_t::message_tag_t message_tag) :
     connectivity_cluster_t::message_handler_t(connectivity_cluster, message_tag),
     semaphores(MAX_OUTSTANDING_MAILBOX_WRITES_PER_THREAD)
     { }
@@ -153,10 +163,11 @@ void read_mailbox_header(read_stream_t *stream,
     if (bad(res)) { throw fake_archive_exc_t(); }
 }
 
-void mailbox_manager_t::on_local_message(connectivity_cluster_t::connection_t *connection,
-                                         auto_drainer_t::lock_t connection_keepalive,
-                                         cluster_version_t cluster_version,
-                                         std::vector<char> &&data) {
+void mailbox_manager_t::on_local_message(
+        connectivity_cluster_t::connection_t *connection,
+        auto_drainer_t::lock_t connection_keepalive,
+        cluster_version_t cluster_version,
+        std::vector<char> &&data) {
     // This is only sensible:
     rassert(cluster_version == cluster_version_t::CLUSTER);
 
@@ -224,15 +235,16 @@ void mailbox_manager_t::on_message(connectivity_cluster_t::connection_t *connect
         });
 }
 
-void mailbox_manager_t::mailbox_read_coroutine(connectivity_cluster_t::connection_t *connection,
-                                               /* This ensures that the `connection` pointer remains valid */
-                                               UNUSED auto_drainer_t::lock_t connection_keepalive,
-                                               cluster_version_t cluster_version,
-                                               threadnum_t dest_thread,
-                                               raw_mailbox_t::id_t dest_mailbox_id,
-                                               std::vector<char> *stream_data,
-                                               int64_t stream_data_offset,
-                                               force_yield_t force_yield) {
+void mailbox_manager_t::mailbox_read_coroutine(
+        connectivity_cluster_t::connection_t *connection,
+        /* This ensures that the `connection` pointer remains valid */
+        UNUSED auto_drainer_t::lock_t connection_keepalive,
+        cluster_version_t cluster_version,
+        threadnum_t dest_thread,
+        raw_mailbox_t::id_t dest_mailbox_id,
+        std::vector<char> *stream_data,
+        int64_t stream_data_offset,
+        force_yield_t force_yield) {
 
     // Construct a new stream to use
     vector_read_stream_t stream(std::move(*stream_data), stream_data_offset);
@@ -273,7 +285,8 @@ raw_mailbox_t::id_t mailbox_manager_t::generate_mailbox_id() {
 
 raw_mailbox_t::id_t mailbox_manager_t::register_mailbox(raw_mailbox_t *mb) {
     raw_mailbox_t::id_t id = generate_mailbox_id();
-    std::map<raw_mailbox_t::id_t, raw_mailbox_t *> *mailboxes = &mailbox_tables.get()->mailboxes;
+    std::map<raw_mailbox_t::id_t, raw_mailbox_t *> *mailboxes =
+        &mailbox_tables.get()->mailboxes;
     std::pair<std::map<raw_mailbox_t::id_t, raw_mailbox_t *>::iterator, bool> res
         = mailboxes->insert(std::make_pair(id, mb));
     guarantee(res.second);  // Assert a new element was inserted.
@@ -285,8 +298,10 @@ void mailbox_manager_t::unregister_mailbox(raw_mailbox_t::id_t id) {
     guarantee(num_elements_erased == 1);
 }
 
-disconnect_watcher_t::disconnect_watcher_t(mailbox_manager_t *mailbox_manager, peer_id_t peer) {
-    if (mailbox_manager->get_connectivity_cluster()->get_connection(peer, &connection_keepalive) != NULL) {
+disconnect_watcher_t::disconnect_watcher_t(mailbox_manager_t *mailbox_manager,
+                                           peer_id_t peer) {
+    if (mailbox_manager->get_connectivity_cluster()->
+            get_connection(peer, &connection_keepalive) != NULL) {
         /* The peer is currently connected. Start watching for when they disconnect. */
         signal_t::subscription_t::reset(connection_keepalive.get_drain_signal());
     } else {
@@ -297,8 +312,8 @@ disconnect_watcher_t::disconnect_watcher_t(mailbox_manager_t *mailbox_manager, p
 
 /* This is the callback for when `connection_keepalive.get_drain_signal()` is pulsed */
 void disconnect_watcher_t::run() {
-    /* Allow the connection to die so it can be replaced by a new connection even if the `disconnect_watcher_t` remains
-    alive */
+    /* Allow the connection to die so it can be replaced by a new connection even if the
+    `disconnect_watcher_t` remains alive */
     connection_keepalive.reset();
     pulse();
 }

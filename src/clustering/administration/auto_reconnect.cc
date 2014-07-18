@@ -28,7 +28,8 @@ void auto_reconnector_t::on_connect_or_disconnect() {
     for (std::map<peer_id_t, machine_id_t>::iterator it = map.begin(); it != map.end(); it++) {
         if (connected_peers.find(it->first) == connected_peers.end()) {
             auto_drainer_t::lock_t connection_keepalive;
-            connectivity_cluster_t::connection_t *connection = connectivity_cluster->get_connection(it->first, &connection_keepalive);
+            connectivity_cluster_t::connection_t *connection =
+                connectivity_cluster->get_connection(it->first, &connection_keepalive);
             guarantee(connection != NULL);
             connected_peers.insert(std::make_pair(
                 it->first,

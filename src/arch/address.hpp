@@ -128,8 +128,8 @@ private:
 
 RDB_SERIALIZE_OUTSIDE(ip_and_port_t);
 
-// This implementation is used over operator == because we want to ignore different scope ids
-//  in the case of IPv6
+// This implementation is used over operator == because we want to ignore different scope
+// ids in the case of IPv6
 bool is_similar_ip_address(const ip_and_port_t &left,
                            const ip_and_port_t &right);
 
@@ -182,13 +182,13 @@ archive_result_t deserialize_universal(read_stream_t *s,
 bool is_similar_peer_address(const peer_address_t &left,
                              const peer_address_t &right);
 
-/* TODO: This should either be a `std::set<peer_address_t>` with a custom comparator, or a generic container type that
-contains a set of anything equality-comparable. */
+/* TODO: This should either be a `std::set<peer_address_t>` with a custom comparator, or
+a generic container type that contains a set of anything equality-comparable. */
 class peer_address_set_t {
 public:
     size_t erase(const peer_address_t &addr) {
         size_t erased = 0;
-        for (std::vector<peer_address_t>::iterator it = vec.begin(); it != vec.end(); ++it) {
+        for (auto it = vec.begin(); it != vec.end(); ++it) {
             if (*it == addr) {
                 vec.erase(it);
                 ++erased;

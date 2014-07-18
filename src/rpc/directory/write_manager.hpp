@@ -35,20 +35,25 @@ private:
     clone_ptr_t<watchable_t<metadata_t> > value;
 
     fifo_enforcer_source_t metadata_fifo_source;
-    std::map<connectivity_cluster_t::connection_t *, auto_drainer_t::lock_t> last_connections;
-    mutex_assertion_t mutex_assertion;   /* protects `metadata_fifo_source` and `last_connections` */
+    std::map<connectivity_cluster_t::connection_t *, auto_drainer_t::lock_t>
+        last_connections;
+    /* protects `metadata_fifo_source` and `last_connections` */
+    mutex_assertion_t mutex_assertion;
 
     /* Any time we want to write to the network, we acquire this first. */
     new_semaphore_t semaphore;
 
-    /* Destructor order is important here. First we must destroy the subscriptions, so that they don't initiate any new
-    coroutines that would need to lock `drainer`. Then we destroy `drainer`, which blocks until all the coroutines are
-    done. Only after all the coroutines are done is it safe to destroy the other members. */
+    /* Destructor order is important here. First we must destroy the subscriptions, so
+    that they don't initiate any new coroutines that would need to lock `drainer`. Then
+    we destroy `drainer`, which blocks until all the coroutines are done. Only after all
+    the coroutines are done is it safe to destroy the other members. */
 
     auto_drainer_t drainer;
 
-    typename watchable_t<metadata_t>::subscription_t value_change_subscription;
-    typename watchable_t<connectivity_cluster_t::connection_map_t>::subscription_t connections_change_subscription;
+    typename watchable_t<metadata_t>::subscription_t
+        value_change_subscription;
+    typename watchable_t<connectivity_cluster_t::connection_map_t>::subscription_t
+        connections_change_subscription;
 
     DISABLE_COPYING(directory_write_manager_t);
 };

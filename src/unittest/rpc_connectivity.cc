@@ -16,19 +16,26 @@ namespace unittest {
 `message_service_t`. It keeps track of the integers it has received.
 */
 
-class recording_test_application_t : public home_thread_mixin_t, public connectivity_cluster_t::message_handler_t {
+class recording_test_application_t :
+    public home_thread_mixin_t,
+    public connectivity_cluster_t::message_handler_t
+{
 public:
-    explicit recording_test_application_t(connectivity_cluster_t *cm, connectivity_cluster_t::message_tag_t tag) :
+    explicit recording_test_application_t(connectivity_cluster_t *cm,
+                                          connectivity_cluster_t::message_tag_t tag) :
         connectivity_cluster_t::message_handler_t(cm, tag),
         sequence_number(0)
         { }
     void send(int message, peer_id_t peer) {
         auto_drainer_t::lock_t connection_keepalive;
-        if (connectivity_cluster_t::connection_t *connection = get_connectivity_cluster()->get_connection(peer, &connection_keepalive)) {
+        connectivity_cluster_t::connection_t *connection =
+            get_connectivity_cluster()->get_connection(peer, &connection_keepalive);
+        if (connection) {
             send(message, connection, connection_keepalive);
         }
     }
-    void send(int message, connectivity_cluster_t::connection_t *connection, auto_drainer_t::lock_t connection_keepalive) {
+    void send(int message, connectivity_cluster_t::connection_t *connection,
+            auto_drainer_t::lock_t connection_keepalive) {
         class writer_t : public connectivity_cluster_t::send_message_write_callback_t {
         public:
             explicit writer_t(int _data) : data(_data) { }
@@ -41,7 +48,8 @@ public:
             }
             int32_t data;
         } writer(message);
-        get_connectivity_cluster()->send_message(connection, connection_keepalive, get_message_tag(), &writer);
+        get_connectivity_cluster()->send_message(connection, connection_keepalive,
+            get_message_tag(), &writer);
     }
     void expect(int message, peer_id_t peer) {
         expect_delivered(message);
@@ -86,9 +94,12 @@ private:
 
 TPTEST_MULTITHREAD(RPCConnectivityTest, StartStop, 3) {
     connectivity_cluster_t c1, c2, c3;
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
-    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
     cr2.join(get_cluster_local_address(&c1));
     cr3.join(get_cluster_local_address(&c1));
     let_stuff_happen();
@@ -100,9 +111,12 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, StartStop, 3) {
 TPTEST_MULTITHREAD(RPCConnectivityTest, Message, 3) {
     connectivity_cluster_t c1, c2, c3;
     recording_test_application_t a1(&c1, 'T'), a2(&c2, 'T'), a3(&c3, 'T');
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
-    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
     cr2.join(get_cluster_local_address(&c1));
     cr3.join(get_cluster_local_address(&c1));
 
@@ -127,8 +141,10 @@ fail. */
 TPTEST_MULTITHREAD(RPCConnectivityTest, UnreachablePeer, 3) {
     connectivity_cluster_t c1, c2;
     recording_test_application_t a1(&c1, 'T'), a2(&c2, 'T');
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
 
     /* Note that we DON'T join them together. */
 
@@ -136,7 +152,8 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, UnreachablePeer, 3) {
 
     /* We shouldn't see the other peer, and checking this shouldn't crash anything */
     auto_drainer_t::lock_t connection_keepalive;
-    connectivity_cluster_t::connection_t *conn = c1.get_connection(c2.get_me(), &connection_keepalive);
+    connectivity_cluster_t::connection_t *conn =
+        c1.get_connection(c2.get_me(), &connection_keepalive);
     EXPECT_TRUE(conn == NULL);
 
     a1.send(888, c2.get_me());
@@ -164,13 +181,15 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, UnreachablePeer, 3) {
 TPTEST_MULTITHREAD(RPCConnectivityTest, LostPeer, 3) {
     connectivity_cluster_t c1, c2;
     recording_test_application_t a1(&c1, 'T'), a2(&c2, 'T');
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
 
     auto_drainer_t::lock_t connection_keepalive;
     connectivity_cluster_t::connection_t *connection;
 
     {
-        connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+        connectivity_cluster_t::run_t cr2(
+            &c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
         cr2.join(get_cluster_local_address(&c1));
 
         let_stuff_happen();
@@ -202,8 +221,10 @@ TODO: Maybe we should drop this test. See the note about reordering in `cluster.
 TPTEST_MULTITHREAD(RPCConnectivityTest, Ordering, 3) {
     connectivity_cluster_t c1, c2;
     recording_test_application_t a1(&c1, 'T'), a2(&c2, 'T');
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
 
     cr1.join(get_cluster_local_address(&c2));
 
@@ -227,7 +248,8 @@ correct. */
 
 TPTEST_MULTITHREAD(RPCConnectivityTest, GetConnections, 3) {
     connectivity_cluster_t c1;
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
 
     /* Make sure `get_connections()` is initially sane */
     connectivity_cluster_t::connection_map_t list_1 = c1.get_connections()->get();
@@ -236,7 +258,8 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, GetConnections, 3) {
 
     {
         connectivity_cluster_t c2;
-        connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+        connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(),
+            peer_address_t(), ANY_PORT, 0);
         cr2.join(get_cluster_local_address(&c1));
 
         let_stuff_happen();
@@ -244,7 +267,9 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, GetConnections, 3) {
         /* Make sure `get_connections()` correctly notices that a peer connects */
         connectivity_cluster_t::connection_map_t list_2 = c1.get_connections()->get();
         ASSERT_TRUE(list_2.find(c2.get_me()) != list_2.end());
-        EXPECT_EQ(cr2.get_port(), list_2[c2.get_me()].first->get_peer_address().ips().begin()->port().value());
+        EXPECT_EQ(
+            cr2.get_port(),
+            list_2[c2.get_me()].first->get_peer_address().ips().begin()->port().value());
 
         /* `c2`'s destructor is called here */
     }
@@ -267,7 +292,8 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, StopMidJoin, 3) {
     object_buffer_t<connectivity_cluster_t::run_t> runs[num_members];
     for (int i = 0; i < num_members; i++) {
         nodes[i].create();
-        runs[i].create(nodes[i].get(), get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+        runs[i].create(nodes[i].get(), get_unittest_addresses(), peer_address_t(),
+            ANY_PORT, 0);
     }
     for (int i = 1; i < num_members; i++) {
         runs[i]->join(get_cluster_local_address(nodes[0].get()));
@@ -275,7 +301,9 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, StopMidJoin, 3) {
 
     coro_t::yield();
 
-    EXPECT_NE(static_cast<size_t>(num_members), nodes[1]->get_connections()->get().size())
+    EXPECT_NE(
+        static_cast<size_t>(num_members),
+        nodes[1]->get_connections()->get().size())
       << "This test is supposed to test what happens when a cluster is "
          "interrupted as it starts up, but the cluster finished starting up "
          "before we could interrupt it.";
@@ -296,7 +324,8 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, BlobJoin, 3) {
     object_buffer_t<connectivity_cluster_t::run_t> runs[blob_size * 2];
     for (size_t i = 0; i < blob_size * 2; i++) {
         nodes[i].create();
-        runs[i].create(nodes[i].get(), get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+        runs[i].create(nodes[i].get(), get_unittest_addresses(), peer_address_t(),
+            ANY_PORT, 0);
     }
 
     for (size_t i = 1; i < blob_size; i++) {
@@ -336,14 +365,16 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, BlobJoin, 3) {
     }
 }
 
-/* `Multiplexer` uses different `message_tag_t`s and checks that the wires don't get crossed. */
-
+/* `Multiplexer` uses different `message_tag_t`s and checks that the wires don't get
+crossed. */
 TPTEST(RPCConnectivityTest, Multiplexer) {
     connectivity_cluster_t c1, c2;
     recording_test_application_t c1aA(&c1, 'A'), c2aA(&c2, 'A');
     recording_test_application_t c1aB(&c1, 'B'), c2aB(&c2, 'B');
-    connectivity_cluster_t::run_t c1r(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
-    connectivity_cluster_t::run_t c2r(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+    connectivity_cluster_t::run_t c1r(&c1, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
+    connectivity_cluster_t::run_t c2r(&c2, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
 
     c1r.join(get_cluster_local_address(&c2));
     let_stuff_happen();
@@ -370,7 +401,8 @@ public:
         got_spectrum(false)
         { }
     void send_spectrum(peer_id_t peer) {
-        class dump_spectrum_writer_t : public connectivity_cluster_t::send_message_write_callback_t {
+        class dump_spectrum_writer_t :
+            public connectivity_cluster_t::send_message_write_callback_t {
         public:
             virtual ~dump_spectrum_writer_t() { }
             void write(cluster_version_t, write_stream_t *stream) {
@@ -383,9 +415,11 @@ public:
             }
         } writer;
         auto_drainer_t::lock_t connection_keepalive;
-        connectivity_cluster_t::connection_t *connection = get_connectivity_cluster()->get_connection(peer, &connection_keepalive);
+        connectivity_cluster_t::connection_t *connection =
+            get_connectivity_cluster()->get_connection(peer, &connection_keepalive);
         ASSERT_TRUE(connection != NULL);
-        get_connectivity_cluster()->send_message(connection, connection_keepalive, get_message_tag(), &writer);
+        get_connectivity_cluster()->send_message(connection, connection_keepalive,
+                                                 get_message_tag(), &writer);
     }
     void on_message(connectivity_cluster_t::connection_t *,
                     auto_drainer_t::lock_t,
@@ -406,8 +440,10 @@ public:
 TPTEST_MULTITHREAD(RPCConnectivityTest, BinaryData, 3) {
     connectivity_cluster_t c1, c2;
     binary_test_application_t a1(&c1), a2(&c2);
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
     cr1.join(get_cluster_local_address(&c2));
 
     let_stuff_happen();
@@ -501,7 +537,8 @@ void check_tcp_closed(socket_stream_t *stream) {
 TPTEST(RPCConnectivityTest, CheckHeaders) {
     // Set up a cluster node.
     connectivity_cluster_t c1;
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
 
     // Manually connect to the cluster.
     peer_address_t addr = get_cluster_local_address(&c1);
@@ -536,7 +573,8 @@ TPTEST(RPCConnectivityTest, CheckHeaders) {
 TPTEST(RPCConnectivityTest, DifferentVersion) {
     // Set up a cluster node.
     connectivity_cluster_t c1;
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
 
     // Manually connect to the cluster.
     peer_address_t addr = get_cluster_local_address(&c1);
@@ -585,7 +623,8 @@ TPTEST(RPCConnectivityTest, DifferentVersion) {
 TPTEST(RPCConnectivityTest, DifferentArch) {
     // Set up a cluster node.
     connectivity_cluster_t c1;
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
 
     // Manually connect to the cluster.
     peer_address_t addr = get_cluster_local_address(&c1);
@@ -633,7 +672,8 @@ TPTEST(RPCConnectivityTest, DifferentArch) {
 TPTEST(RPCConnectivityTest, DifferentBuildMode) {
     // Set up a cluster node.
     connectivity_cluster_t c1;
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
 
     // Manually connect to the cluster.
     peer_address_t addr = get_cluster_local_address(&c1);
@@ -710,9 +750,12 @@ TPTEST(RPCConnectivityTest, CanonicalAddress) {
     // Note: this won't have full connectivity in the unit test because we aren't actually using
     //  a proxy or anything
     connectivity_cluster_t c1, c2, c3;
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(c2_addresses), ANY_PORT, 0);
-    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), peer_address_t(c3_addresses), ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(),
+        peer_address_t(c2_addresses), ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(),
+        peer_address_t(c3_addresses), ANY_PORT, 0);
 
     int c2_port = 0;
     peer_address_t c2_self_address = get_cluster_local_address(&c2);
@@ -755,14 +798,16 @@ TPTEST(RPCConnectivityTest, CanonicalAddress) {
     peer_address_t c2_addr_from_c1;
     {
         auto_drainer_t::lock_t connection_keepalive;
-        connectivity_cluster_t::connection_t *connection = c1.get_connection(c2.get_me(), &connection_keepalive);
+        connectivity_cluster_t::connection_t *connection =
+            c1.get_connection(c2.get_me(), &connection_keepalive);
         ASSERT_TRUE(connection != NULL);
         c2_addr_from_c1 = connection->get_peer_address();
     }
     peer_address_t c3_addr_from_c1;
     {
         auto_drainer_t::lock_t connection_keepalive;
-        connectivity_cluster_t::connection_t *connection = c1.get_connection(c3.get_me(), &connection_keepalive);
+        connectivity_cluster_t::connection_t *connection =
+            c1.get_connection(c3.get_me(), &connection_keepalive);
         ASSERT_TRUE(connection != NULL);
         c3_addr_from_c1 = connection->get_peer_address();
     }

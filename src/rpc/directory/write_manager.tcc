@@ -25,16 +25,19 @@ directory_write_manager_t<metadata_t>::directory_write_manager_t(
     connections_change_subscription([this]() { on_connections_change(); })
 {
     typename watchable_t<metadata_t>::freeze_t value_freeze(value);
-    typename watchable_t<connectivity_cluster_t::connection_map_t>::freeze_t connections_freeze(connectivity_cluster->get_connections());
+    typename watchable_t<connectivity_cluster_t::connection_map_t>::freeze_t
+        connections_freeze(connectivity_cluster->get_connections());
     guarantee(connectivity_cluster->get_connections()->get().empty());
     value_change_subscription.reset(value, &value_freeze);
-    connections_change_subscription.reset(connectivity_cluster->get_connections(), &connections_freeze);
+    connections_change_subscription.reset(connectivity_cluster->get_connections(),
+                                          &connections_freeze);
 }
 
 template<class metadata_t>
 void directory_write_manager_t<metadata_t>::on_connections_change() THROWS_NOTHING {
     mutex_assertion_t::acq_t mutex_assertion_lock(&mutex_assertion);
-    connectivity_cluster_t::connection_map_t current_connections = connectivity_cluster->get_connections()->get();
+    connectivity_cluster_t::connection_map_t current_connections =
+        connectivity_cluster->get_connections()->get();
     for (auto pair : current_connections) {
         connectivity_cluster_t::connection_t *connection = pair.second.first;
         auto_drainer_t::lock_t connection_keepalive = pair.second.second;
@@ -50,7 +53,8 @@ void directory_write_manager_t<metadata_t>::on_connections_change() THROWS_NOTHI
                     new_semaphore_acq_t acq(&semaphore, 1);
                     acq.acquisition_signal()->wait();
                     initialization_writer_t writer(initial_value, initial_state);
-                    connectivity_cluster->send_message(connection, connection_keepalive, message_tag, &writer);
+                    connectivity_cluster->send_message(connection, connection_keepalive,
+                            message_tag, &writer);
                 });
         }
     }
@@ -75,7 +79,8 @@ void directory_write_manager_t<metadata_t>::on_value_change() THROWS_NOTHING {
                     connection, connection_keepalive /* important to capture */,
                     current_value, token]() {
                 update_writer_t writer(current_value, token);
-                connectivity_cluster->send_message(connection, connection_keepalive, message_tag, &writer);
+                connectivity_cluster->send_message(connection, connection_keepalive,
+                        message_tag, &writer);
             });
     }
 }
@@ -85,7 +90,8 @@ class directory_write_manager_t<metadata_t>::initialization_writer_t :
     public connectivity_cluster_t::send_message_write_callback_t
 {
 public:
-    initialization_writer_t(const metadata_t &_initial_value, fifo_enforcer_state_t _metadata_fifo_state) :
+    initialization_writer_t(const metadata_t &_initial_value,
+                            fifo_enforcer_state_t _metadata_fifo_state) :
         initial_value(_initial_value), metadata_fifo_state(_metadata_fifo_state) { }
     ~initialization_writer_t() { }
 
@@ -111,7 +117,8 @@ class directory_write_manager_t<metadata_t>::update_writer_t :
     public connectivity_cluster_t::send_message_write_callback_t
 {
 public:
-    update_writer_t(const metadata_t &_new_value, fifo_enforcer_write_token_t _metadata_fifo_token) :
+    update_writer_t(const metadata_t &_new_value,
+                    fifo_enforcer_write_token_t _metadata_fifo_token) :
         new_value(_new_value), metadata_fifo_token(_metadata_fifo_token) { }
     ~update_writer_t() { }
 

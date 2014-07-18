@@ -32,7 +32,8 @@ public:
     }
 
 private:
-    void main_coro(connectivity_cluster_t::run_t *cluster_run, auto_drainer_t::lock_t keepalive);
+    void main_coro(connectivity_cluster_t::run_t *cluster_run,
+                   auto_drainer_t::lock_t keepalive);
     void on_connections_change();
 
     connectivity_cluster_t *cluster;

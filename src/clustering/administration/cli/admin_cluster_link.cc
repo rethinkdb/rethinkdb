@@ -253,23 +253,32 @@ admin_cluster_link_t::admin_cluster_link_t(const peer_address_set_t &joins,
     mailbox_manager(&connectivity_cluster, 'M'),
     stat_manager(&mailbox_manager),
     log_server(&mailbox_manager, &log_writer),
-    semilattice_manager_cluster(new semilattice_manager_t<cluster_semilattice_metadata_t>(&connectivity_cluster, 'S', cluster_semilattice_metadata_t())),
+    semilattice_manager_cluster(
+        new semilattice_manager_t<cluster_semilattice_metadata_t>(
+            &connectivity_cluster, 'S', cluster_semilattice_metadata_t())),
     cluster_metadata_view(semilattice_manager_cluster->get_root_view()),
     metadata_change_handler(&mailbox_manager, cluster_metadata_view),
-    auth_manager_cluster(new semilattice_manager_t<auth_semilattice_metadata_t>(&connectivity_cluster, 'A', auth_semilattice_metadata_t())),
+    auth_manager_cluster(
+        new semilattice_manager_t<auth_semilattice_metadata_t>(
+            &connectivity_cluster, 'A', auth_semilattice_metadata_t())),
     auth_metadata_view(auth_manager_cluster->get_root_view()),
     auth_change_handler(&mailbox_manager, auth_metadata_view),
-    our_directory_metadata(cluster_directory_metadata_t(machine_id_t(connectivity_cluster.get_me().get_uuid()),
-                                                        connectivity_cluster.get_me(),
-                                                        0, // No cache = no cache size
-                                                        get_ips(),
-                                                        stat_manager.get_address(),
-                                                        metadata_change_handler.get_request_mailbox_address(),
-                                                        auth_change_handler.get_request_mailbox_address(),
-                                                        log_server.get_business_card(),
-                                                        ADMIN_PEER)),
-    directory_read_manager(new directory_read_manager_t<cluster_directory_metadata_t>(&connectivity_cluster, 'M')),
-    directory_write_manager(new directory_write_manager_t<cluster_directory_metadata_t>(&connectivity_cluster, 'M', our_directory_metadata.get_watchable())),
+    our_directory_metadata(cluster_directory_metadata_t(
+        machine_id_t(connectivity_cluster.get_me().get_uuid()),
+        connectivity_cluster.get_me(),
+        0, // No cache = no cache size
+        get_ips(),
+        stat_manager.get_address(),
+        metadata_change_handler.get_request_mailbox_address(),
+        auth_change_handler.get_request_mailbox_address(),
+        log_server.get_business_card(),
+        ADMIN_PEER)),
+    directory_read_manager(
+        new directory_read_manager_t<cluster_directory_metadata_t>(
+            &connectivity_cluster, 'M')),
+    directory_write_manager(
+        new directory_write_manager_t<cluster_directory_metadata_t>(
+            &connectivity_cluster, 'M', our_directory_metadata.get_watchable())),
     connectivity_cluster_run(&connectivity_cluster,
                              get_local_ips(std::set<ip_address_t>(), false),
                              canonical_addresses,

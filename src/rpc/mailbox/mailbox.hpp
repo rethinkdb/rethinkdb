@@ -116,12 +116,13 @@ void send(mailbox_manager_t *src,
           raw_mailbox_t::address_t dest,
           mailbox_write_callback_t *callback);
 
-/* `mailbox_manager_t` is a `connectivity_cluster_t::message_handler_t` that takes care of actually routing messages to
-mailboxes. */
+/* `mailbox_manager_t` is a `connectivity_cluster_t::message_handler_t` that takes care
+of actually routing messages to mailboxes. */
 
 class mailbox_manager_t : public connectivity_cluster_t::message_handler_t {
 public:
-    mailbox_manager_t(connectivity_cluster_t *connectivity_cluster, connectivity_cluster_t::message_tag_t message_tag);
+    mailbox_manager_t(connectivity_cluster_t *connectivity_cluster,
+                      connectivity_cluster_t::message_tag_t message_tag);
 
 private:
     friend struct raw_mailbox_t;
@@ -137,8 +138,9 @@ private:
     };
     one_per_thread_t<mailbox_table_t> mailbox_tables;
 
-    /* We must acquire one of these semaphores whenever we want to send a message over a mailbox. This prevents mailbox
-    messages from starving directory and semilattice messages. */
+    /* We must acquire one of these semaphores whenever we want to send a message over a
+    mailbox. This prevents mailbox messages from starving directory and semilattice
+    messages. */
     one_per_thread_t<new_semaphore_t> semaphores;
 
     raw_mailbox_t::id_t generate_mailbox_id();

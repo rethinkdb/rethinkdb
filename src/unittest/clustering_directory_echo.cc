@@ -40,7 +40,8 @@ public:
 
 TPTEST(ClusteringDirectoryEcho, DirectoryEcho) {
     directory_echo_cluster_t<std::string> cluster1("hello", ANY_PORT), cluster2("world", ANY_PORT);
-    cluster1.connectivity_cluster_run.join(get_cluster_local_address(&cluster2.connectivity_cluster));
+    cluster1.connectivity_cluster_run.join(
+        get_cluster_local_address(&cluster2.connectivity_cluster));
 
     directory_echo_version_t version;
     {

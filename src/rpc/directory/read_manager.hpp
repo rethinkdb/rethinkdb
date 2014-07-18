@@ -20,10 +20,12 @@ class directory_read_manager_t :
     public home_thread_mixin_t,
     public connectivity_cluster_t::message_handler_t {
 public:
-    explicit directory_read_manager_t(connectivity_cluster_t *cm, connectivity_cluster_t::message_tag_t tag) THROWS_NOTHING;
+    explicit directory_read_manager_t(connectivity_cluster_t *cm,
+            connectivity_cluster_t::message_tag_t tag) THROWS_NOTHING;
     ~directory_read_manager_t() THROWS_NOTHING;
 
-    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, metadata_t> > > get_root_view() THROWS_NOTHING {
+    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, metadata_t> > >
+    get_root_view() THROWS_NOTHING {
         return variable.get_watchable();
     }
 
@@ -41,11 +43,13 @@ private:
             read_stream_t *stream)
             THROWS_ONLY(fake_archive_exc_t);
 
-    /* `on_message()` will spawn `handle_connection()` in a new coroutine in response to the initialization message, and
-    `propagate_update()` in response to all messages after that.
+    /* `on_message()` will spawn `handle_connection()` in a new coroutine in response to
+    the initialization message, and `propagate_update()` in response to all messages
+    after that.
 
-    They assume ownership of `new_value`. Semantically, the argument here is `metadata_t &&new_value` but we cannot
-    easily pass that through to the coroutine call, which is why we use `boost::shared_ptr` instead. */
+    They assume ownership of `new_value`. Semantically, the argument here is `metadata_t
+    &&new_value` but we cannot easily pass that through to the coroutine call, which is
+    why we use `boost::shared_ptr` instead. */
     void handle_connection(
             connectivity_cluster_t::connection_t *connection,
             auto_drainer_t::lock_t connection_keepalive,
@@ -68,16 +72,18 @@ private:
     public:
         fifo_enforcer_sink_t *fifo_sink;
 
-        /* Destruction order is important here; the `auto_drainer_t` must be destroyed before the `fifo_sink` pointer
-        goes out of scope. */
+        /* Destruction order is important here; the `auto_drainer_t` must be destroyed
+        before the `fifo_sink` pointer goes out of scope. */
         auto_drainer_t drainer;
     };    
     std::map<connectivity_cluster_t::connection_t *, connection_info_t *> connection_map;
 
-    /* It's possible that messages can be reordered so that a `propagate_update()` reaches the home thread before the
-    corresponding `handle_connection`. If this happens, the `propagate_update()` will put an entry in
-    `waiting_for_initialization` and wait for `handle_connection()` to signal it. */
-    std::multimap<connectivity_cluster_t::connection_t *, cond_t *> waiting_for_initialization;
+    /* It's possible that messages can be reordered so that a `propagate_update()`
+    reaches the home thread before the corresponding `handle_connection`. If this
+    happens, the `propagate_update()` will put an entry in `waiting_for_initialization`
+    and wait for `handle_connection()` to signal it. */
+    std::multimap<connectivity_cluster_t::connection_t *, cond_t *>
+        waiting_for_initialization;
 
     /* This protects `variable`, `fifo_sinks`, and `waiting_for_initialization` */
     mutex_assertion_t mutex_assertion;

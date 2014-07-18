@@ -69,7 +69,8 @@ initial_joiner_t::initial_joiner_t(
     guarantee(!peers.empty());
 
     auto_drainer_t::lock_t connection_keepalive;
-    connectivity_cluster_t::connection_t *loopback = cluster->get_connection(cluster->get_me(), &connection_keepalive);
+    connectivity_cluster_t::connection_t *loopback =
+        cluster->get_connection(cluster->get_me(), &connection_keepalive);
     guarantee(loopback != NULL);
     peer_address_t self_addr = loopback->get_peer_address();
     for (peer_address_set_t::iterator join_self_it = find_peer_address_in_set(peers_not_heard_from, self_addr);
@@ -85,7 +86,8 @@ initial_joiner_t::initial_joiner_t(
 
     coro_t::spawn_sometime(boost::bind(&initial_joiner_t::main_coro, this, cluster_run, auto_drainer_t::lock_t(&drainer)));
 
-    watchable_t<connectivity_cluster_t::connection_map_t>::freeze_t freeze(cluster->get_connections());
+    watchable_t<connectivity_cluster_t::connection_map_t>::freeze_t freeze(
+            cluster->get_connections());
     subs.reset(cluster->get_connections(), &freeze);
     on_connections_change();
 }
@@ -95,7 +97,8 @@ static const int max_retry_interval_ms = 1000 * 15;
 static const double retry_interval_growth_rate = 1.5;
 static const int grace_period_before_warn_ms = 1000 * 5;
 
-void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run, auto_drainer_t::lock_t keepalive) {
+void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run,
+                                 auto_drainer_t::lock_t keepalive) {
     try {
         int retry_interval_ms = initial_retry_interval_ms;
         logINF("Attempting connection to %zu peer%s...",
@@ -138,8 +141,10 @@ void initial_joiner_t::on_connections_change() {
             successful_connection = true;
             peer_address_t peer_addr = pair.second.first->get_peer_address();
 
-            // We want to remove a peer address, find it in the set (if it's there at all, and remove it)
-            peer_address_set_t::iterator join_addr = find_peer_address_in_set(peers_not_heard_from, peer_addr);
+            // We want to remove a peer address, find it in the set (if it's there at
+            // all, and remove it)
+            peer_address_set_t::iterator join_addr =
+                find_peer_address_in_set(peers_not_heard_from, peer_addr);
             if (join_addr != peers_not_heard_from.end()) {
                 peers_not_heard_from.erase(*join_addr);
             }

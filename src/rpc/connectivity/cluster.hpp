@@ -25,20 +25,23 @@ template <class> class optional;
 
 class co_semaphore_t;
 
-/* `connectivity_cluster_t` is responsible for establishing connections with other machines and communicating with them.
-It's the foundation of the entire clustering system. However, it's very low-level; most code will instead use the
-directory or mailbox mechanisms, which are built on top of `connectivity_cluster_t`.
+/* `connectivity_cluster_t` is responsible for establishing connections with other
+machines and communicating with them. It's the foundation of the entire clustering
+system. However, it's very low-level; most code will instead use the directory or mailbox
+mechanisms, which are built on top of `connectivity_cluster_t`.
 
-Clustering is based around the concept of a "connection", as represented by `connectivity_cluster_t::connection_t`. When the
-`cluster_t::run_t` is constructed, we automatically create a `connection_t` to ourself, the "loopback connection". We
-also accept TCP connections on some port. When we get a TCP connection, we perform a handshake; if this succeeds, then
-we create a `connection_t` to represent the new connection. Once a connection is established, messages can be sent
-across it in both directions. Every message is guaranteed to eventually arrive unless the connection goes down. Messages
-cannot be duplicated.
+Clustering is based around the concept of a "connection", as represented by
+`connectivity_cluster_t::connection_t`. When the `cluster_t::run_t` is constructed, we
+automatically create a `connection_t` to ourself, the "loopback connection". We also
+accept TCP connections on some port. When we get a TCP connection, we perform a
+handshake; if this succeeds, then we create a `connection_t` to represent the new
+connection. Once a connection is established, messages can be sent across it in both
+directions. Every message is guaranteed to eventually arrive unless the connection goes
+down. Messages cannot be duplicated.
 
-Can messages be reordered? I think the current implementation doesn't ever reorder messages, but don't rely on this
-guarantee. However, some old code may rely on this guarantee (I'm not sure) so don't break this property without
-checking first. */
+Can messages be reordered? I think the current implementation doesn't ever reorder
+messages, but don't rely on this guarantee. However, some old code may rely on this
+guarantee (I'm not sure) so don't break this property without checking first. */
 
 class connectivity_cluster_t :
     public home_thread_mixin_debug_only_t
@@ -49,10 +52,11 @@ public:
     static const std::string cluster_arch_bitsize;
     static const std::string cluster_build_mode;
 
-    /* Every clustering message has a "tag", which determines what message handler on the destination machine will deal
-    with it. Tags are a low-level concept, and there are only a few of them; for example, all directory-related messages
-    have one tag, and all mailbox-related messages have another. Higher-level code uses the mailbox system for routing
-    messages. */
+    /* Every clustering message has a "tag", which determines what message handler on the
+    destination machine will deal with it. Tags are a low-level concept, and there are
+    only a few of them; for example, all directory-related messages have one tag, and all
+    mailbox-related messages have another. Higher-level code uses the mailbox system for
+    routing messages. */
     typedef uint8_t message_tag_t;
     static const int max_message_tag = 256;
 
@@ -64,22 +68,25 @@ public:
     class send_message_write_callback_t {
     public:
         virtual ~send_message_write_callback_t() { }
-        virtual void write(cluster_version_t cluster_version, write_stream_t *stream) = 0;
+        virtual void write(cluster_version_t cluster_version,
+                           write_stream_t *stream) = 0;
     };
 
-    /* `connection_t` represents an open connection to another machine. If we lose contact with another machine and then
-    regain it, then a new `connection_t` will be created. Generally, any code that handles a `connection_t *` will also
-    carry around a `auto_drainer_t::lock_t` that ensures the connection object isn't destroyed while in use. This
-    doubles as a mechanism for finding out when the connection has been lost; if the connection dies, the
-    `auto_drainer_t::lock_t` will pulse its `get_drain_signal()`. There will never be two `connection_t` objects that
-    refer to the same peer.
+    /* `connection_t` represents an open connection to another machine. If we lose
+    contact with another machine and then regain it, then a new `connection_t` will be
+    created. Generally, any code that handles a `connection_t *` will also carry around a
+    `auto_drainer_t::lock_t` that ensures the connection object isn't destroyed while in
+    use. This doubles as a mechanism for finding out when the connection has been lost;
+    if the connection dies, the `auto_drainer_t::lock_t` will pulse its
+    `get_drain_signal()`. There will never be two `connection_t` objects that refer to
+    the same peer.
 
-    `connection_t` is completely thread-safe. You can pass connections from thread to thread and call the methods on
-    any thread. */
+    `connection_t` is completely thread-safe. You can pass connections from thread to
+    thread and call the methods on any thread. */
     class connection_t : public home_thread_mixin_debug_only_t {
     public:
-        /* Returns the peer ID of the other machine. Peer IDs change when a node restarts, but not when it loses and
-        then regains contact. */
+        /* Returns the peer ID of the other machine. Peer IDs change when a node
+        restarts, but not when it loses and then regains contact. */
         peer_id_t get_peer_id() {
             return peer_id;
         }
@@ -100,8 +107,10 @@ public:
     private:
         friend class connectivity_cluster_t;
 
-        /* The constructor registers us in every thread's `connections` map, thereby notifying event subscribers. */
-        connection_t(run_t *, peer_id_t, keepalive_tcp_conn_stream_t *, const peer_address_t &peer) THROWS_NOTHING;
+        /* The constructor registers us in every thread's `connections` map, thereby
+        notifying event subscribers. */
+        connection_t(run_t *, peer_id_t, keepalive_tcp_conn_stream_t *,
+                const peer_address_t &peer) THROWS_NOTHING;
         ~connection_t() THROWS_NOTHING;
 
         /* NULL for the loopback connection (i.e. our "connection" to ourself) */
@@ -127,10 +136,11 @@ public:
         one_per_thread_t<auto_drainer_t> drainers;
     };
 
-    /* Construct one `run_t` for each `connectivity_cluster_t` after setting up the message handlers. The `run_t`'s
-    constructor is what actually starts listening for connections from other nodes, and the destructor is what stops
-    listening. This way, we use RAII to ensure that we stop sending messages to the message handlers before we destroy
-    the message handlers. */
+    /* Construct one `run_t` for each `connectivity_cluster_t` after setting up the
+    message handlers. The `run_t`'s constructor is what actually starts listening for
+    connections from other nodes, and the destructor is what stops listening. This way,
+    we use RAII to ensure that we stop sending messages to the message handlers before we
+    destroy the message handlers. */
     class run_t {
     public:
         run_t(connectivity_cluster_t *parent,
@@ -173,10 +183,11 @@ public:
             DISABLE_COPYING(variable_setter_t);
         };
 
-        void on_new_connection(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn, auto_drainer_t::lock_t lock) THROWS_NOTHING;
+        void on_new_connection(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,
+                auto_drainer_t::lock_t lock) THROWS_NOTHING;
 
-        /* `connect_to_peer` is spawned for each known ip address of a peer which we want to connect to, all but one
-        should fail */
+        /* `connect_to_peer` is spawned for each known ip address of a peer which we want
+        to connect to, all but one should fail */
         void connect_to_peer(const peer_address_t *addr,
                              int index,
                              boost::optional<peer_id_t> expected_id,
@@ -184,8 +195,8 @@ public:
                              bool *successful_join,
                              co_semaphore_t *rate_control) THROWS_NOTHING;
 
-        /* `join_blocking()` is spawned in a new coroutine by `join()`. It's also run by `handle()` when we hear about a
-        new peer from a peer we are connected to. */
+        /* `join_blocking()` is spawned in a new coroutine by `join()`. It's also run by
+        `handle()` when we hear about a new peer from a peer we are connected to. */
         void join_blocking(const peer_address_t hosts,
                            boost::optional<peer_id_t>,
                            auto_drainer_t::lock_t) THROWS_NOTHING;
@@ -248,17 +259,21 @@ public:
         scoped_ptr_t<tcp_listener_t> listener;
     };
 
-    /* Subclass `message_handler_t` to handle messages received over the network. The `message_handler_t` constructor
-    will automatically register it to handle messages. You can only register and unregister message handlers when there
-    is no `run_t` in existence. */
+    /* Subclass `message_handler_t` to handle messages received over the network. The
+    `message_handler_t` constructor will automatically register it to handle messages.
+    You can only register and unregister message handlers when there is no `run_t` in
+    existence. */
     class message_handler_t {
     public:
-        connectivity_cluster_t *get_connectivity_cluster() { return connectivity_cluster; }
+        connectivity_cluster_t *get_connectivity_cluster() {
+            return connectivity_cluster;
+        }
         message_tag_t get_message_tag() { return tag; }
 
     protected:
         /* Registers the message handler with the cluster */
-        message_handler_t(connectivity_cluster_t *connectivity_cluster, message_tag_t tag);
+        message_handler_t(connectivity_cluster_t *connectivity_cluster,
+                          message_tag_t tag);
         virtual ~message_handler_t();
 
         /* This can be called on any thread. */
@@ -267,8 +282,8 @@ public:
                                 cluster_version_t version,
                                 read_stream_t *) = 0;
 
-        /* The default implementation constructs a stream reading from `data` and then calls `on_message()`. Override to
-        optimize for the local case. */
+        /* The default implementation constructs a stream reading from `data` and then
+        calls `on_message()`. Override to optimize for the local case. */
         virtual void on_local_message(connection_t *conn,
                                       auto_drainer_t::lock_t keepalive,
                                       cluster_version_t version,
@@ -285,17 +300,20 @@ public:
 
     peer_id_t get_me() THROWS_NOTHING;
 
-    /* This returns a watchable table of every active connection. The returned `watchable_t` will be valid for the
-    thread that `get_connections()` was called on. */
-    typedef std::map<peer_id_t, std::pair<connection_t *, auto_drainer_t::lock_t>> connection_map_t;
+    /* This returns a watchable table of every active connection. The returned
+    `watchable_t` will be valid for the thread that `get_connections()` was called on. */
+    typedef std::map<peer_id_t, std::pair<connection_t *, auto_drainer_t::lock_t>>
+            connection_map_t;
     clone_ptr_t<watchable_t<connection_map_t> > get_connections() THROWS_NOTHING;
 
-    /* Shortcut if you just want to access one connection, which is by far the most common case. Returns `NULL` if there
-    is no active connection to the given peer. */
-    connection_t *get_connection(peer_id_t peer, auto_drainer_t::lock_t *keepalive_out) THROWS_NOTHING;
+    /* Shortcut if you just want to access one connection, which is by far the most
+    common case. Returns `NULL` if there is no active connection to the given peer. */
+    connection_t *get_connection(peer_id_t peer,
+            auto_drainer_t::lock_t *keepalive_out) THROWS_NOTHING;
 
-    /* Sends a message to the other machine. The message is associated with a "tag", which determines which message
-    handler on the other machine will receive the message. */
+    /* Sends a message to the other machine. The message is associated with a "tag",
+    which determines which message handler on the other machine will receive the message.
+    */
     void send_message(connection_t *connection,
                       auto_drainer_t::lock_t connection_keepalive,
                       message_tag_t tag,
@@ -309,10 +327,12 @@ private:
     /* `me` is our `peer_id_t`. */
     const peer_id_t me;
 
-    /* `connections` holds open connections to other peers. It's the same on every thread. It has an entry for every
-    peer we are fully and officially connected to, including us. That means it's a subset of the entries in
-    `run_t::routing_table`. It also holds an `auto_drainer_t::lock_t` for each connection; that way, the connection can
-    make sure nobody acquires a lock on its `auto_drainer_t` after it removes itself from `connections`. */
+    /* `connections` holds open connections to other peers. It's the same on every
+    thread. It has an entry for every peer we are fully and officially connected to,
+    including us. That means it's a subset of the entries in `run_t::routing_table`. It
+    also holds an `auto_drainer_t::lock_t` for each connection; that way, the connection
+    can make sure nobody acquires a lock on its `auto_drainer_t` after it removes itself
+    from `connections`. */
     one_per_thread_t<watchable_variable_t<connection_map_t> > connections;
 
     message_handler_t *message_handlers[max_message_tag];

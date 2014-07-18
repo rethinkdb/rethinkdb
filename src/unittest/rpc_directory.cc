@@ -15,7 +15,8 @@ TPTEST(RPCDirectoryTest, OneNode) {
     directory_read_manager_t<int> read_manager(&c, 'D');
     watchable_variable_t<int> watchable(5);
     directory_write_manager_t<int> write_manager(&c, 'D', watchable.get_watchable());
-    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
     let_stuff_happen();
 }
 
@@ -25,10 +26,15 @@ TPTEST(RPCDirectoryTest, ThreeNodes) {
     connectivity_cluster_t c1, c2, c3;
     directory_read_manager_t<int> rm1(&c1, 'D'), rm2(&c2, 'D'), rm3(&c3, 'D');
     watchable_variable_t<int> w1(101), w2(202), w3(303);
-    directory_write_manager_t<int> wm1(&c1, 'D', w1.get_watchable()), wm2(&c2, 'D', w2.get_watchable()), wm3(&c3, 'D', w3.get_watchable());
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
-    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+    directory_write_manager_t<int> wm1(&c1, 'D', w1.get_watchable()),
+                                   wm2(&c2, 'D', w2.get_watchable()),
+                                   wm3(&c3, 'D', w3.get_watchable());
+    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
     cr2.join(get_cluster_local_address(&c1));
     cr3.join(get_cluster_local_address(&c1));
     let_stuff_happen();
@@ -39,10 +45,15 @@ TPTEST(RPCDirectoryTest, Exchange) {
     connectivity_cluster_t c1, c2, c3;
     directory_read_manager_t<int> rm1(&c1, 'D'), rm2(&c2, 'D'), rm3(&c3, 'D');
     watchable_variable_t<int> w1(101), w2(202), w3(303);
-    directory_write_manager_t<int> wm1(&c1, 'D', w1.get_watchable()), wm2(&c2, 'D', w2.get_watchable()), wm3(&c3, 'D', w3.get_watchable());
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
-    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+    directory_write_manager_t<int> wm1(&c1, 'D', w1.get_watchable()),
+                                   wm2(&c2, 'D', w2.get_watchable()),
+                                   wm3(&c3, 'D', w3.get_watchable());
+    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
     cr2.join(get_cluster_local_address(&c1));
     cr3.join(get_cluster_local_address(&c1));
     let_stuff_happen();
@@ -59,10 +70,15 @@ TPTEST(RPCDirectoryTest, Update) {
     connectivity_cluster_t c1, c2, c3;
     directory_read_manager_t<int> rm1(&c1, 'D'), rm2(&c2, 'D'), rm3(&c3, 'D');
     watchable_variable_t<int> w1(101), w2(202), w3(303);
-    directory_write_manager_t<int> wm1(&c1, 'D', w1.get_watchable()), wm2(&c2, 'D', w2.get_watchable()), wm3(&c3, 'D', w3.get_watchable());
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
-    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+    directory_write_manager_t<int> wm1(&c1, 'D', w1.get_watchable()),
+                                   wm2(&c2, 'D', w2.get_watchable()),
+                                   wm3(&c3, 'D', w3.get_watchable());
+    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
     cr2.join(get_cluster_local_address(&c1));
     cr3.join(get_cluster_local_address(&c1));
     let_stuff_happen();
@@ -82,7 +98,8 @@ TPTEST(RPCDirectoryTest, DestructorRace) {
     directory_read_manager_t<int> rm(&c, 'D');
     watchable_variable_t<int> w(5);
     directory_write_manager_t<int> wm(&c, 'D', w.get_watchable());
-    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
 
     w.set_value(6);
 }

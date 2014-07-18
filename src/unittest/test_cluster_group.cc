@@ -124,7 +124,8 @@ reactor_test_cluster_t::reactor_test_cluster_t(int port) :
     mailbox_manager(&connectivity_cluster, 'M'),
     our_directory_variable(test_cluster_directory_t()),
     directory_read_manager(&connectivity_cluster, 'D'),
-    directory_write_manager(&connectivity_cluster, 'D', our_directory_variable.get_watchable()),
+    directory_write_manager(&connectivity_cluster, 'D',
+        our_directory_variable.get_watchable()),
     connectivity_cluster_run(&connectivity_cluster,
                              get_unittest_addresses(),
                              peer_address_t(),
@@ -186,7 +187,8 @@ test_cluster_group_t::test_cluster_group_t(int n_machines)
 
         test_clusters.push_back(make_scoped<reactor_test_cluster_t>(ANY_PORT));
         if (i > 0) {
-            test_clusters[0]->connectivity_cluster_run.join(get_cluster_local_address(&test_clusters[i]->connectivity_cluster));
+            test_clusters[0]->connectivity_cluster_run.join(
+                get_cluster_local_address(&test_clusters[i]->connectivity_cluster));
         }
     }
 }

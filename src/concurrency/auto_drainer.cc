@@ -10,7 +10,8 @@ auto_drainer_t::~auto_drainer_t() {
     if (!draining.is_pulsed()) {
         drain();
     } else {
-        guarantee(refcount == 0, "if you call drain() then don't destroy the auto_drainer_t until it returns");
+        guarantee(refcount == 0, "if you call drain() then don't destroy the "
+            "auto_drainer_t until it returns");
     }
 }
 
