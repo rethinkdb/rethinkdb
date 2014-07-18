@@ -43,6 +43,27 @@ tests:
   - py: r.distance(r.point(37, -122), r.point(37, -123), geo_system='unit_sphere').coerce_to('STRING')
     rb: r.distance(r.point(37, -122), r.point(37, -123), :geo_system=>'unit_sphere').coerce_to('STRING')
     ot: ("0.01393875509649327056")
+  - cd: r.distance(r.point(0, 0), r.point(0, 0)).coerce_to('STRING')
+    ot: ("0")
+  # These two give the earth's circumference through the poles
+  - cd: r.distance(r.point(0, 0), r.point(0, 180)).mul(2).coerce_to('STRING')
+    ot: ("40007862.91725089401")
+  - cd: r.distance(r.point(-90, 0), r.point(90, 0)).mul(2).coerce_to('STRING')
+    ot: ("40007862.91725089401")
+  - cd: r.distance(r.point(0, 0), r.line([0,0], [0,1])).coerce_to('STRING')
+    ot: ("0")
+  - cd: r.distance(r.line([0,0], [0,1]), r.point(0, 0)).coerce_to('STRING')
+    ot: ("0")
+  - cd: r.distance(r.point(0, 0), r.line([0,0.1], [0,1])).eq(r.distance(r.point(0, 0), r.point(0, 0.1)))
+    ot: true
+  - cd: r.distance(r.point(0, 0), r.line([-1,5], [2,4])).coerce_to('STRING')
+    ot: ("492471.49900552548934")
+  - cd: r.distance(r.point(0, 0), r.polygon([-1,5], [2,4], [10,10])).coerce_to('STRING')
+    ot: ("492471.49900552548934")
+  - cd: r.distance(r.point(0, 0), r.polygon([-1,0], [1,0], [10,10])).coerce_to('STRING')
+    ot: ("0")
+  - cd: r.distance(r.point(0.5, 0.5), r.polygon([-1,0], [1,0], [10,10])).coerce_to('STRING')
+    ot: ("0")
 
   # Fill
   - js: r.rectangle([0,0], [1,1], {fill:false}).eq(r.rectangle([0,0], [1,1], {fill:true}))
