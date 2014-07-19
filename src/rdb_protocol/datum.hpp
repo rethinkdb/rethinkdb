@@ -75,6 +75,7 @@ public:
     static counted_t<const datum_t> empty_object();
     // Constructs a pointer to an R_NULL datum.
     static counted_t<const datum_t> null();
+    static counted_t<const datum_t> boolean(bool value);
 
     // Strongly prefer datum_t::null().
     enum class construct_null_t { };
@@ -88,8 +89,11 @@ public:
     explicit datum_t(int) = delete;
     explicit datum_t(float) = delete;
 
-    // You need to explicitly ask to construct a bool (to avoid perilous conversions).
-    datum_t(type_t _type, bool _bool);
+    // You need to explicitly ask to construct a bool (to avoid perilous
+    // conversions).  You should prefer datum_t::boolean(..).
+    enum class construct_boolean_t { };
+    datum_t(construct_boolean_t, bool _bool);
+
     explicit datum_t(double _num);
     // TODO: Eventually get rid of the std::string constructor (in favor of
     //   scoped_ptr_t<wire_string_t>)

@@ -30,9 +30,7 @@ const char *const datum_t::reql_type_string = "$reql_type$";
 
 datum_t::datum_t(datum_t::construct_null_t) : type(R_NULL) { }
 
-datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
-    r_sanity_check(_type == R_BOOL);
-}
+datum_t::datum_t(construct_boolean_t, bool _bool) : type(R_BOOL), r_bool(_bool) { }
 
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
     rcheck(std::isfinite(r_num), base_exc_t::GENERIC,
@@ -132,13 +130,17 @@ counted_t<const datum_t> datum_t::null() {
     return make_counted<datum_t>(construct_null_t());
 }
 
+counted_t<const datum_t> datum_t::boolean(bool value) {
+    return make_counted<datum_t>(construct_boolean_t(), value);
+}
+
 counted_t<const datum_t> to_datum(cJSON *json) {
     switch (json->type) {
     case cJSON_False: {
-        return make_counted<datum_t>(datum_t::R_BOOL, false);
+        return datum_t::boolean(false);
     } break;
     case cJSON_True: {
-        return make_counted<datum_t>(datum_t::R_BOOL, true);
+        return datum_t::boolean(true);
     } break;
     case cJSON_NULL: {
         return datum_t::null();
@@ -972,7 +974,7 @@ counted_t<const datum_t> to_datum(const Datum *d) {
         return datum_t::null();
     } break;
     case Datum::R_BOOL: {
-        return make_counted<datum_t>(datum_t::R_BOOL, d->r_bool());
+        return datum_t::boolean(d->r_bool());
     } break;
     case Datum::R_NUM: {
         return make_counted<datum_t>(d->r_num());

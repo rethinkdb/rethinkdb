@@ -249,7 +249,7 @@ archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *d
             return res;
         }
         try {
-            datum->reset(new datum_t(datum_t::R_BOOL, value));
+            *datum = datum_t::boolean(value);
         } catch (const base_exc_t &) {
             return archive_result_t::RANGE_ERROR;
         }

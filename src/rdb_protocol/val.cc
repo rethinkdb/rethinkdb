@@ -250,8 +250,7 @@ counted_t<const datum_t> table_t::sindex_status(env_t *env, std::set<std::string
                 make_counted<const datum_t>(
                     safe_to_double(it->second.blocks_total));
         }
-        status["ready"] = make_counted<const datum_t>(datum_t::R_BOOL,
-                                                      it->second.ready);
+        status["ready"] = datum_t::boolean(it->second.ready);
         std::string index_name = it->first;
         status["index"] = make_counted<const datum_t>(std::move(index_name));
         array.push_back(make_counted<const datum_t>(std::move(status)));

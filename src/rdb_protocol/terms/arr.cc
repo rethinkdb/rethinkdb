@@ -139,7 +139,7 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         batchspec_t batchspec = batchspec_t::user(batch_type_t::NORMAL, env->env);
         bool is_empty = !args->arg(env, 0)->as_seq(env->env)->next(env->env, batchspec).has();
-        return new_val(make_counted<const datum_t>(datum_t::type_t::R_BOOL, is_empty));
+        return new_val(datum_t::boolean(is_empty));
     }
     virtual const char *name() const { return "is_empty"; }
 };

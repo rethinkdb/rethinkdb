@@ -40,7 +40,7 @@ reql_t::reql_t(pb::dummy_var_t var) : term(make_scoped<Term>()) {
 }
 
 reql_t boolean(bool b) {
-    return reql_t(datum_t(datum_t::R_BOOL, b));
+    return reql_t(datum_t(datum_t::construct_boolean_t(), b));
 }
 
 void reql_t::copy_optargs_from_term(const Term &from){
