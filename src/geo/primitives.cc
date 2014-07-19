@@ -2,6 +2,7 @@
 #include "geo/primitives.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 #include "geo/ellipsoid.hpp"
 #include "geo/exceptions.hpp"
@@ -68,41 +69,24 @@ lat_lon_line_t build_rectangle(
 lat_lon_line_t build_polygon_with_inradius_at_least(
         const lat_lon_point_t &center,
         double min_inradius,
+        unsigned int num_vertices,
         const ellipsoid_spec_t &e) {
-    // TODO! Check radius range
 
     // Make the radius slightly larger, just to be sure given limited numeric
     // precision and such.
     const double leeway_factor = 1.01;
     double r = min_inradius * leeway_factor;
 
-    // Here's a trick to construct a rectangle with the given inradius:
-    // We first compute points that are in the center of each of the
-    // rectangle's edges. Then we compute the vertices from those.
+    double max_distortion = std::max(e.equator_radius(), e.poles_radius()) /
+        std::min(e.equator_radius(), e.poles_radius());
+    // /cos(M_PI / num_vertices) is the formula for regular polygons in
+    // Euclidean space http://mathworld.wolfram.com/RegularPolygon.html
+    // It appears that it also works on a sphere's surface. We have to apply a
+    // correction factor when being on the surface of an ellipsoid though.
+    // TODO! This is unproven speculation. Check this stuff.
+    double ex_r = r / std::cos(M_PI / num_vertices) * max_distortion;
 
-    // TODO! Use a finer shape than a rectangle.
-    // Assume azimuth 0 is north, 90 is east
-    const lat_lon_point_t north = geodesic_point_at_dist(center, r, 0, e);
-    const lat_lon_point_t south = geodesic_point_at_dist(center, r, 180, e);
-    const lat_lon_point_t west = geodesic_point_at_dist(center, r, -90, e);
-    const lat_lon_point_t east = geodesic_point_at_dist(center, r, 90, e);
-    // TODO!
-    const double max_lat = east.first;
-    const double min_lat = west.first;
-    const double max_lon = south.second;
-    const double min_lon = north.second;
-
-    fprintf(stderr, "r: %f lat: [%f, %f] lon: [%f, %f]\n", r, min_lat, max_lat, min_lon, max_lon);
-
-    lat_lon_line_t result;
-    result.reserve(5);
-    result.push_back(lat_lon_point_t(north.first, east.second));
-    result.push_back(lat_lon_point_t(south.first, min_lon));
-    result.push_back(lat_lon_point_t(min_lat, min_lon));
-    result.push_back(lat_lon_point_t(min_lat, max_lon));
-    result.push_back(lat_lon_point_t(max_lat, max_lon));
-
-    return result;
+    return build_circle(center, ex_r, num_vertices, e);
 }
 
 /* WARNING: This function is used by nearest_traversal_cb_t::init_query_geometry()
@@ -111,22 +95,13 @@ lat_lon_line_t build_polygon_with_inradius_at_least(
 lat_lon_line_t build_polygon_with_exradius_at_most(
         const lat_lon_point_t &center,
         double max_exradius,
+        unsigned int num_vertices,
         const ellipsoid_spec_t &e) {
-    // TODO! Check radius range
 
     // Make the radius slightly smaller, just to be sure given limited numeric
     // precision and such.
     const double leeway_factor = 0.99;
     double r = max_exradius * leeway_factor;
 
-    // TODO! Use a finer shape than a rectangle
-    lat_lon_line_t result;
-    result.reserve(5);
-    result.push_back(geodesic_point_at_dist(center, r, 0, e));
-    result.push_back(geodesic_point_at_dist(center, r, 180, e));
-    result.push_back(geodesic_point_at_dist(center, r, -90, e));
-    result.push_back(geodesic_point_at_dist(center, r, 90, e));
-    result.push_back(result[0]);
-
-    return result;
+    return build_circle(center, r, num_vertices, e);
 }

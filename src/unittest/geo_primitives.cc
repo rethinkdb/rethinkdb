@@ -24,13 +24,11 @@ namespace unittest {
 void test_in_ex_radius(const lat_lon_point_t c, double r, const ellipsoid_spec_t &e) {
     // We first generate the polygons we want to test against.
     const counted_t<const datum_t> outer_polygon =
-        construct_geo_polygon(build_polygon_with_inradius_at_least(c, r, e));
+        construct_geo_polygon(build_polygon_with_inradius_at_least(c, r, 8, e));
     const counted_t<const datum_t> inner_polygon =
-        construct_geo_polygon(build_polygon_with_exradius_at_most(c, r, e));
+        construct_geo_polygon(build_polygon_with_exradius_at_most(c, r, 8, e));
     scoped_ptr_t<S2Polygon> outer_s2polygon = to_s2polygon(outer_polygon);
-    debugf("Got first\n");
     scoped_ptr_t<S2Polygon> inner_s2polygon = to_s2polygon(inner_polygon);
-    debugf("Got second\n");
 
     // We then generate points at 1000 random azimuths exactly at distance r
     // around c, and check that they
@@ -53,8 +51,8 @@ void test_in_ex_radius(double r, const ellipsoid_spec_t &e) {
     test_in_ex_radius(lat_lon_point_t(90.0, 0.0), r, e);
     // On the equator
     test_in_ex_radius(lat_lon_point_t(0.0, 0.0), r, e);
-    // At 5 random positions
-    for (int i = 0; i < 5; ++i) {
+    // At 10 random positions
+    for (int i = 0; i < 10; ++i) {
         double lat = randdouble() * 180.0 - 90.0;
         double lon = randdouble() * 360.0 - 180.0;
         test_in_ex_radius(lat_lon_point_t(lat, lon), r, e);
@@ -65,11 +63,13 @@ void test_in_ex_radius(const ellipsoid_spec_t e) {
     const double minor_radius = std::min(e.equator_radius(), e.poles_radius());
 
     // Test different radii:
-    // A smallish one, 1/100th of the minor radius
+    // A very small one, 1/10,000,000th of the minor radius
+    // TODO! Something currently becomes unstable at a small radius.
+    test_in_ex_radius(minor_radius * 0.0000001, e);
+    // A medium one, 1/100th of the minor radius
     test_in_ex_radius(minor_radius * 0.01, e);
     // A large one
-    // TODO! Make this as large as possible
-    test_in_ex_radius(minor_radius * 0.5, e);
+    test_in_ex_radius(minor_radius * 0.4, e);
 }
 
 // Verifies that the constraints described in nearest_traversal_cb_t::init_query_geometry()
@@ -84,8 +84,6 @@ TPTEST(GeoPrimitives, InExRadiusTest) {
         test_in_ex_radius(ellipsoid_spec_t(1.0, 0.5));
         // ... and stretching (though this wouldn't usually be written that way)
         test_in_ex_radius(ellipsoid_spec_t(1.0, -1));
-        // Ellipsoids with extreme flattening
-        test_in_ex_radius(ellipsoid_spec_t(1.0, 0.95));
     } catch (const geo_exception_t &e) {
         debugf("Caught a geo exception: %s\n", e.what());
         FAIL();

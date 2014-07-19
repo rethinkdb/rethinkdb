@@ -34,6 +34,10 @@ const int QUERYING_GOAL_GRID_CELLS = GEO_INDEX_GOAL_GRID_CELLS * 2;
 // The current value is equivalent to a radius of 10m on earth.
 const double NEAREST_INITIAL_RADIUS_FRACTION = 10.0 / 6378137.0;
 
+// Number of vertices used in get_nearest traversal for approximating the
+// current search range through a polygon.
+const unsigned int NEAREST_NUM_VERTICES = 8;
+
 
 /* ----------- geo_intersecting_cb_t -----------*/
 geo_intersecting_cb_t::geo_intersecting_cb_t(
@@ -249,13 +253,15 @@ void nearest_traversal_cb_t::init_query_geometry() {
         std::vector<lat_lon_line_t> holes;
         if (state->processed_inradius > 0.0) {
             holes.push_back(build_polygon_with_exradius_at_most(
-                state->center, state->processed_inradius, state->reference_ellipsoid));
+                state->center, state->processed_inradius,
+                NEAREST_NUM_VERTICES, state->reference_ellipsoid));
         }
 
         // 2. Construct the outer shell, a shape with an inradius of at least
         //    state->current_inradius.
         lat_lon_line_t shell = build_polygon_with_inradius_at_least(
-            state->center, state->current_inradius, state->reference_ellipsoid);
+            state->center, state->current_inradius,
+            NEAREST_NUM_VERTICES, state->reference_ellipsoid);
 
         counted_t<const ql::datum_t> query_geometry = construct_geo_polygon(shell, holes);
         init_query(query_geometry);
