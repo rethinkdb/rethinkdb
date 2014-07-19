@@ -231,7 +231,7 @@ void directory_read_manager_t<metadata_t>::propagate_update(
         //  3. Reshard the table to 32 shards
         coro_t::yield();
 
-        mutex_assertion_t::acq_t mutex_assertion_lock(&mutex_assertion);
+        DEBUG_VAR mutex_assertion_t::acq_t mutex_assertion_lock(&mutex_assertion);
         variable.apply_atomic_op(
             [&](change_tracking_map_t<peer_id_t, metadata_t> *map) -> bool {
                 map->begin_version();

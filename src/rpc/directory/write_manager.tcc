@@ -35,7 +35,7 @@ directory_write_manager_t<metadata_t>::directory_write_manager_t(
 
 template<class metadata_t>
 void directory_write_manager_t<metadata_t>::on_connections_change() THROWS_NOTHING {
-    mutex_assertion_t::acq_t mutex_assertion_lock(&mutex_assertion);
+    DEBUG_VAR mutex_assertion_t::acq_t mutex_assertion_lock(&mutex_assertion);
     connectivity_cluster_t::connection_map_t current_connections =
         connectivity_cluster->get_connections()->get();
     for (auto pair : current_connections) {
@@ -67,7 +67,7 @@ void directory_write_manager_t<metadata_t>::on_connections_change() THROWS_NOTHI
 
 template<class metadata_t>
 void directory_write_manager_t<metadata_t>::on_value_change() THROWS_NOTHING {
-    mutex_assertion_t::acq_t mutex_assertion_lock(&mutex_assertion);
+    DEBUG_VAR mutex_assertion_t::acq_t mutex_assertion_lock(&mutex_assertion);
     metadata_t current_value = value.get()->get();
     fifo_enforcer_write_token_t token = metadata_fifo_source.enter_write();
     auto_drainer_t::lock_t this_keepalive(&drainer);
