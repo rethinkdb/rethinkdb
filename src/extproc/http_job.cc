@@ -591,7 +591,7 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
         // If this was a HEAD request, we should not be handling data, just return R_NULL
         // so the user knows the request succeeded
         if (opts->method == http_method_t::HEAD) {
-            res_out->body = make_counted<const ql::datum_t>(nullptr);
+            res_out->body = ql::datum_t::null();
             return;
         }
 

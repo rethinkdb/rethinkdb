@@ -248,7 +248,7 @@ public:
     msg_visitor_t(feed_t *_feed, uuid_u _server_uuid, uint64_t _stamp)
         : feed(_feed), server_uuid(_server_uuid), stamp(_stamp) { }
     void operator()(const msg_t::change_t &change) const {
-        auto null = make_counted<const datum_t>(nullptr);
+        counted_t<const datum_t> null = datum_t::null();
         std::map<std::string, counted_t<const datum_t> > obj{
             {"new_val", change.new_val.has() ? change.new_val : null},
             {"old_val", change.old_val.has() ? change.old_val : null}

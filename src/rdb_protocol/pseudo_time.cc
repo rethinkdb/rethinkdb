@@ -104,7 +104,7 @@ const boost::local_time::local_date_time epoch(raw_epoch, utc);
     }                                                                   \
 
 // Produces a datum_exc_t instead
-static const datum_t dummy_datum(nullptr);
+static const datum_t dummy_datum((datum_t::construct_null_t()));
 #define HANDLE_BOOST_ERRORS_NO_TARGET HANDLE_BOOST_ERRORS(&dummy_datum)
 
 enum date_format_t { UNSET, MONTH_DAY, WEEKCOUNT, DAYCOUNT };
@@ -531,7 +531,7 @@ counted_t<const datum_t> time_tz(counted_t<const datum_t> time) {
     if (counted_t<const datum_t> tz = time->get(timezone_key, NOTHROW)) {
         return tz;
     } else {
-        return make_counted<const datum_t>(nullptr);
+        return datum_t::null();
     }
 }
 

@@ -100,7 +100,7 @@ void mock_namespace_interface_t::read_visitor_t::operator()(const point_read_t &
     if (data->find(get.key) != data->end()) {
         res.data = ql::to_datum(data->at(get.key)->get());
     } else {
-        res.data = make_counted<ql::datum_t>(nullptr);
+        res.data = ql::datum_t::null();
     }
 }
 
@@ -143,7 +143,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
         if (data->find(*it) != data->end()) {
             old_val = ql::to_datum(data->at(*it)->get());
         } else {
-            old_val = make_counted<ql::datum_t>(nullptr);
+            old_val = ql::datum_t::null();
         }
 
         counted_t<const ql::datum_t> new_val
@@ -188,7 +188,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
         if (data->find(key) != data->end()) {
             old_val = ql::to_datum(data->at(key)->get());
         } else {
-            old_val = make_counted<ql::datum_t>(nullptr);
+            old_val = ql::datum_t::null();
         }
 
         counted_t<const ql::datum_t> new_val = *it;

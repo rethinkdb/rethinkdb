@@ -73,16 +73,20 @@ public:
 
     static counted_t<const datum_t> empty_array();
     static counted_t<const datum_t> empty_object();
+    // Constructs a pointer to an R_NULL datum.
+    static counted_t<const datum_t> null();
+
+    // Strongly prefer datum_t::null().
+    enum class construct_null_t { };
+    explicit datum_t(construct_null_t);
 
     // These allow you to construct a datum from the type of value it
     // represents.  We have some gotchya-constructors to scare away implicit
     // conversions.
+    explicit datum_t(std::nullptr_t) = delete;
     explicit datum_t(bool) = delete;
     explicit datum_t(int) = delete;
     explicit datum_t(float) = delete;
-
-    // Constructs an R_NULL datum.
-    explicit datum_t(std::nullptr_t);
 
     // You need to explicitly ask to construct a bool (to avoid perilous conversions).
     datum_t(type_t _type, bool _bool);

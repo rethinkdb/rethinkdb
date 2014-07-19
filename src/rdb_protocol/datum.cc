@@ -28,7 +28,7 @@ const std::set<std::string> datum_t::_allowed_pts = std::set<std::string>();
 
 const char *const datum_t::reql_type_string = "$reql_type$";
 
-datum_t::datum_t(std::nullptr_t) : type(R_NULL) { }
+datum_t::datum_t(datum_t::construct_null_t) : type(R_NULL) { }
 
 datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
     r_sanity_check(_type == R_BOOL);
@@ -128,6 +128,10 @@ counted_t<const datum_t> datum_t::empty_object() {
     return make_counted<datum_t>(std::map<std::string, counted_t<const datum_t> >());
 }
 
+counted_t<const datum_t> datum_t::null() {
+    return make_counted<datum_t>(construct_null_t());
+}
+
 counted_t<const datum_t> to_datum(cJSON *json) {
     switch (json->type) {
     case cJSON_False: {
@@ -137,7 +141,7 @@ counted_t<const datum_t> to_datum(cJSON *json) {
         return make_counted<datum_t>(datum_t::R_BOOL, true);
     } break;
     case cJSON_NULL: {
-        return make_counted<datum_t>(nullptr);
+        return datum_t::null();
     } break;
     case cJSON_Number: {
         return make_counted<datum_t>(json->valuedouble);
@@ -965,7 +969,7 @@ void datum_t::runtime_fail(base_exc_t::type_t exc_type,
 counted_t<const datum_t> to_datum(const Datum *d) {
     switch (d->type()) {
     case Datum::R_NULL: {
-        return make_counted<datum_t>(nullptr);
+        return datum_t::null();
     } break;
     case Datum::R_BOOL: {
         return make_counted<datum_t>(datum_t::R_BOOL, d->r_bool());

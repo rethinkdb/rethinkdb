@@ -42,7 +42,7 @@ private:
             for (int i = 1; i < ngroups; ++i) {
                 const re2::StringPiece &group = groups[i];
                 if (group.data() == NULL) {
-                    match_groups.add(make_counted<datum_t>(nullptr));
+                    match_groups.add(datum_t::null());
                 } else {
                     datum_object_builder_t match_group;
                     b |= match_group.add(
@@ -60,7 +60,7 @@ private:
             r_sanity_check(!b);
             return new_val(std::move(match).to_counted());
         } else {
-            return new_val(make_counted<const datum_t>(nullptr));
+            return new_val(datum_t::null());
         }
     }
     virtual const char *name() const { return "match"; }

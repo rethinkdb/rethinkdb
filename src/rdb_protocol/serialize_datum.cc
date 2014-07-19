@@ -255,7 +255,7 @@ archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *d
         }
     } break;
     case datum_serialized_type_t::R_NULL: {
-        datum->reset(new datum_t(nullptr));
+        *datum = datum_t::null();
     } break;
     case datum_serialized_type_t::DOUBLE: {
         double value;

@@ -630,8 +630,7 @@ private:
                         arr.push_back((*f)->call(env, *el)->as_datum());
                     } catch (const base_exc_t &e) {
                         if (e.get_type() == base_exc_t::NON_EXISTENCE) {
-                            arr.push_back(
-                                make_counted<const datum_t>(nullptr));
+                            arr.push_back(datum_t::null());
                         } else {
                             throw;
                         }
@@ -704,7 +703,7 @@ private:
                     instance->pop_back();
                 }
             } else {
-                instance->push_back(make_counted<const datum_t>(nullptr));
+                instance->push_back(datum_t::null());
                 add_perms(groups, instance, arr, index + 1, el);
                 instance->pop_back();
             }

@@ -89,7 +89,7 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice,
                                     &slice->stats, trace);
 
     if (!kv_location.value.has()) {
-        response->data.reset(new ql::datum_t(nullptr));
+        response->data = ql::datum_t::null();
     } else {
         response->data = get_data(static_cast<rdb_value_t *>(kv_location.value.get()),
                                   buf_parent_t(&kv_location.buf));
@@ -223,7 +223,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
         if (!kv_location.value.has()) {
             // If there's no entry with this key, pass NULL to the function.
             started_empty = true;
-            old_val = make_counted<ql::datum_t>(nullptr);
+            old_val = ql::datum_t::null();
         } else {
             // Otherwise pass the entry with this key to the function.
             started_empty = false;
