@@ -215,6 +215,11 @@ ellipsoid_spec_t pick_reference_ellipsoid(scope_env_t *env, args_t *args) {
             // (equator radius and the flattening)
             double a = geo_system_arg->as_datum()->get("a")->as_num();
             double f = geo_system_arg->as_datum()->get("f")->as_num();
+            rcheck_target(geo_system_arg.get(), base_exc_t::GENERIC,
+                          a > 0.0, "The equator radius `a` must be positive.");
+            rcheck_target(geo_system_arg.get(), base_exc_t::GENERIC,
+                          f >= 0.0 && f < 1.0,
+                          "The flattening `f` must be in the range [0, 1).");
             return ellipsoid_spec_t(a, f);
         } else {
             const std::string v = geo_system_arg->as_str().to_std();

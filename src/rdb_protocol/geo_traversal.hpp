@@ -191,8 +191,6 @@ protected:
 
 private:
     void init_query_geometry();
-    lat_lon_line_t construct_hole() const;
-    lat_lon_line_t construct_shell() const;
 
     // Accumulate results for the current batch until finish() is called
     std::vector<std::pair<double, counted_t<const ql::datum_t> > > result_acc;

@@ -9,6 +9,7 @@
 #include "geo/geojson.hpp"
 #include "geo/intersection.hpp"
 #include "geo/lat_lon_types.hpp"
+#include "geo/primitives.hpp"
 #include "geo/s2/s2.h"
 #include "geo/s2/s2latlng.h"
 #include "rdb_protocol/batching.hpp"
@@ -150,8 +151,11 @@ collect_all_geo_intersecting_cb_t::collect_all_geo_intersecting_cb_t(
     geo_intersecting_cb_t(_slice, std::move(_sindex), _env, &distinct_emitted),
     result_acc(ql::datum_t::R_ARRAY) {
     init_query(_query_geometry);
-    // TODO (daniel): Implement lazy geo rgets,
-    //    ...push down transformations and terminals to the traversal
+    // TODO (daniel): Consider making the traversal resumable, so we can
+    //    do it lazily.
+    //    Even if we cannot do that, it would be good if we could push down
+    //    transformations and terminals into the traversal so their work can
+    //    be distributed.
 }
 
 void collect_all_geo_intersecting_cb_t::finish(
@@ -220,88 +224,45 @@ nearest_traversal_cb_t::nearest_traversal_cb_t(
 }
 
 void nearest_traversal_cb_t::init_query_geometry() {
-    // TODO! Ensure that covering semantics assume a closed polygon
+    /*
+    Note that S2 performs intersection tests on a sphere, while our distance
+    metric is defined on an ellipsoid.
 
-    // 1. Construct a shape with an exradius of no more than state->processed_inradius.
-    //    This is what we don't have to process again.
-    std::vector<lat_lon_line_t> holes;
-    if (state->processed_inradius > 0.0) {
-        holes.push_back(construct_hole());
+    The following must hold for this to work:
+
+     A polygon constructed through build_polygon_with_exradius_at_most(center, r),
+     must *not* intersect (using spherical geometry) with any point x that has
+     a distance (on any given oblate ellipsoid) dist(center, x) > r.
+
+     Similarly, a polygon constructed through
+     build_polygon_with_inradius_at_least(center, r) must intersect (using
+     spherical geometry) with *every* point x that has a distance (on any given
+     ellipsoid) dist(center, x) <= r.
+
+    There is a unit test in geo_primitives.cc to verify this numerically.
+    */
+
+    // TODO! Ensure a good range for the radius values in the state
+    try {
+        // 1. Construct a shape with an exradius of no more than state->processed_inradius.
+        //    This is what we don't have to process again.
+        std::vector<lat_lon_line_t> holes;
+        if (state->processed_inradius > 0.0) {
+            holes.push_back(build_polygon_with_exradius_at_most(
+                state->center, state->processed_inradius, state->reference_ellipsoid));
+        }
+
+        // 2. Construct the outer shell, a shape with an inradius of at least
+        //    state->current_inradius.
+        lat_lon_line_t shell = build_polygon_with_inradius_at_least(
+            state->center, state->current_inradius, state->reference_ellipsoid);
+
+        counted_t<const ql::datum_t> query_geometry = construct_geo_polygon(shell, holes);
+        init_query(query_geometry);
+    } catch (const geo_exception_t &e) {
+        crash("Geo exception thrown while initializing nearest query geometry: %s",
+              e.what());
     }
-
-    // 2. Construct the outer shell, a shape with an inradius of at least
-    //    state->current_inradius.
-    lat_lon_line_t shell = construct_shell();
-
-    counted_t<const ql::datum_t> query_geometry = construct_geo_polygon(shell, holes);
-    init_query(query_geometry);
-}
-
-lat_lon_line_t nearest_traversal_cb_t::construct_hole() const {
-    guarantee(state->processed_inradius > 0.0);
-    // TODO! Do we have to use the min of both axes as the spherical exradius?
-    //       I think not. But double-check.
-
-    // Make the hole slightly shorter, just to make sure we don't miss anything
-    // due to limited numeric precision and such.
-    const double leeway_factor = 0.99;
-    double r = state->processed_inradius * leeway_factor;
-
-    // TODO! Use a better shape than a rectangle
-    lat_lon_line_t result;
-    result.reserve(5);
-    result.push_back(geodesic_point_at_dist(
-        state->center, r, 0, state->reference_ellipsoid));
-    result.push_back(geodesic_point_at_dist(
-        state->center, r, 180, state->reference_ellipsoid));
-    result.push_back(geodesic_point_at_dist(
-        state->center, r, -90, state->reference_ellipsoid));
-    result.push_back(geodesic_point_at_dist(
-        state->center, r, 90, state->reference_ellipsoid));
-    result.push_back(result[0]);
-
-    return result;
-}
-
-lat_lon_line_t nearest_traversal_cb_t::construct_shell() const {
-    guarantee(state->current_inradius > 0.0);
-    // TODO! Do we have to use the max of both axes as the spherical inradius?
-
-    // Make the shell slightly larger, just to make sure we don't miss anything
-    // due to limited numeric precision and such.
-    const double leeway_factor = 1.01;
-    double r = state->current_inradius * leeway_factor;
-
-    // Here's a trick to construct a rectangle with the given inradius:
-    // We first compute points that are in the center of each of the
-    // rectangle's edges. Then we compute the vertices from those.
-
-    // TODO! Use a better shape than a rectangle
-    // Assume azimuth 0 is north, 90 is east
-    const lat_lon_point_t north = geodesic_point_at_dist(
-        state->center, r, 0, state->reference_ellipsoid);
-    const lat_lon_point_t south = geodesic_point_at_dist(
-        state->center, r, 180, state->reference_ellipsoid);
-    const lat_lon_point_t west = geodesic_point_at_dist(
-        state->center, r, -90, state->reference_ellipsoid);
-    const lat_lon_point_t east = geodesic_point_at_dist(
-        state->center, r, 90, state->reference_ellipsoid);
-    // Note that min is not necessarily smaller than max here, since we have
-    // modulo arithmetics.
-    const double max_lat = north.first;
-    const double min_lat = south.first;
-    const double max_lon = east.second;
-    const double min_lon = west.second;
-
-    lat_lon_line_t result;
-    result.reserve(5);
-    result.push_back(lat_lon_point_t(max_lat, max_lon));
-    result.push_back(lat_lon_point_t(max_lat, min_lon));
-    result.push_back(lat_lon_point_t(min_lat, min_lon));
-    result.push_back(lat_lon_point_t(min_lat, max_lon));
-    result.push_back(lat_lon_point_t(max_lat, max_lon));
-
-    return result;
 }
 
 bool nearest_traversal_cb_t::post_filter(
@@ -347,6 +308,8 @@ void nearest_traversal_cb_t::finish(
     if (error) {
         resp_out->results_or_error = error.get();
     } else {
+        // TODO (daniel): Should we include the distances in the query results?
+        //   Probably.
         std::sort(result_acc.begin(), result_acc.end(), &nearest_pairs_less);
         std::vector<counted_t<const ql::datum_t> > result_vec;
         result_vec.reserve(result_acc.size());

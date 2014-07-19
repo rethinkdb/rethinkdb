@@ -667,6 +667,8 @@ message Term {
         RECTANGLE = 165;         // PSEUDOTYPE(GEOMETRY), PSEUDOTYPE(GEOMETRY) {fill:BOOL} -> PSEUDOTYPE(GEOMETRY)
         GET_INTERSECTING = 166;  // TABLE, PSEUDOTYPE(GEOMETRY) {index:!STRING} -> ARRAY
         FILL = 167;              // PSEUDOTYPE(GEOMETRY) -> PSEUDOTYPE(GEOMETRY)
+// TODO!
+//        GET_NEAREST = 168;       // TABLE, PSEUDOTYPE(GEOMETRY) {index:!STRING, max_results:NUM, max_radius:NUM, geo_system:STRING, unit:STRING} -> ARRAY
     }
     optional TermType type = 1;
 

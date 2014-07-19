@@ -140,7 +140,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             return;
         }
 
-        // TODO! What happens if we have multiple shards on the same node?
+        // TODO (daniel): What happens if we have multiple shards on the same node?
         //   Will we actually perform multiple sindex traversals just to post-filter
         //   most of the results based on primary key?
         rdb_get_intersecting_slice(
