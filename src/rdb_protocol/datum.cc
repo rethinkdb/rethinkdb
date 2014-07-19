@@ -94,7 +94,7 @@ counted_t<const datum_t> to_datum(grouped_data_t &&gd) {
     // We don't sanitize the ptype because this is a fake ptype that should only
     // be used for serialization.
     // TODO(2014-08): This is a bad thing.
-    return make_counted<datum_t>(std::move(map), datum_t::no_sanitize_ptype_t::NO);
+    return make_counted<datum_t>(std::move(map), datum_t::no_sanitize_ptype_t());
 }
 
 datum_t::~datum_t() {
@@ -162,7 +162,7 @@ counted_t<const datum_t> to_datum(cJSON *json) {
         // query-specific array size limit, and (c?) depend on the query evaluation
         // version, once that exists.
         return make_counted<datum_t>(std::move(array),
-                                     datum_t::no_array_size_limit_check_t::NO);
+                                     datum_t::no_array_size_limit_check_t());
     } break;
     case cJSON_Object: {
         std::map<std::string, counted_t<const datum_t> > map;
@@ -997,7 +997,7 @@ counted_t<const datum_t> to_datum(const Datum *d) {
         // Datum deserialization?  Right now, we don't check the array size limit
         // because we didn't check it in v1.13.
         return make_counted<datum_t>(std::move(array),
-                                     datum_t::no_array_size_limit_check_t::NO);
+                                     datum_t::no_array_size_limit_check_t());
     } break;
     case Datum::R_OBJECT: {
         std::map<std::string, counted_t<const datum_t> > map;
@@ -1248,7 +1248,7 @@ counted_t<const datum_t> datum_array_builder_t::to_counted() RVALUE_THIS {
     // reported in the issue).  This maintains that broken ReQL behavior because of
     // the generic reasons you would do so.
     return make_counted<datum_t>(std::move(vector),
-                                 datum_t::no_array_size_limit_check_t::NO);
+                                 datum_t::no_array_size_limit_check_t());
 }
 
 

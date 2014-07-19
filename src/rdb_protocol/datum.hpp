@@ -102,7 +102,7 @@ public:
     explicit datum_t(const char *cstr);
     explicit datum_t(std::vector<counted_t<const datum_t> > &&_array);
 
-    enum class no_array_size_limit_check_t { NO };
+    enum class no_array_size_limit_check_t { };
     // Constructs a datum_t without checking the array size.  Used by
     // datum_array_builder_t to maintain identical non-checking behavior with insert
     // and splice operations -- see https://github.com/rethinkdb/rethinkdb/issues/2697
@@ -112,7 +112,7 @@ public:
     explicit datum_t(std::map<std::string, counted_t<const datum_t> > &&object,
                      const std::set<std::string> &allowed_pts = _allowed_pts);
 
-    enum class no_sanitize_ptype_t { NO };
+    enum class no_sanitize_ptype_t { };
     // This .. does not call maybe_sanitize_ptype.
     // TODO(2014-08): Remove this constructor, it's a hack.
     datum_t(std::map<std::string, counted_t<const datum_t> > &&object,
