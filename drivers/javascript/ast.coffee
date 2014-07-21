@@ -1055,10 +1055,6 @@ class Circle extends RDBOp
     tt: protoTermType.CIRCLE
     mt: 'circle'
 
-class Rectangle extends RDBOp
-    tt: protoTermType.RECTANGLE
-    mt: 'rectangle'
-
 class GetIntersecting extends RDBOp
     tt: protoTermType.GET_INTERSECTING
     mt: 'getIntersecting'
@@ -1200,7 +1196,6 @@ rethinkdb.polygon = (args...) -> new Polygon {}, args...
 rethinkdb.intersects = (args...) -> new Intersects {}, args...
 rethinkdb.distance = aropt (g1, g2, opts) -> new Distance opts, g1, g2
 rethinkdb.circle = aropt (cen, rad, opts) -> new Circle opts, cen, rad
-rethinkdb.rectangle = aropt (p1, p2, opts) -> new Rectangle opts, p1, p2
 
 # Export all names defined on rethinkdb
 module.exports = rethinkdb

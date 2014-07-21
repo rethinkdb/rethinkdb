@@ -256,7 +256,6 @@ private:
         case Term::INTERSECTS:
         case Term::INCLUDES:
         case Term::CIRCLE:
-        case Term::RECTANGLE:
         case Term::GET_INTERSECTING:
         case Term::FILL:
             return false;
@@ -437,7 +436,6 @@ private:
         case Term::INTERSECTS:
         case Term::INCLUDES:
         case Term::CIRCLE:
-        case Term::RECTANGLE:
         case Term::GET_INTERSECTING:
         case Term::FILL:
             return false;

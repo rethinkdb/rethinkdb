@@ -40,7 +40,6 @@ module RethinkDB
       :distinct => -1,
       :distance => 2,
       :circle => 2,
-      :rectangle => 2,
       :get_intersecting => 1
     }
     @@method_aliases = {

@@ -13,11 +13,6 @@ lat_lon_line_t build_circle(
         unsigned int num_vertices,
         const ellipsoid_spec_t &e);
 
-// Constructs a rectangle-like line
-lat_lon_line_t build_rectangle(
-        const lat_lon_point_t &base,
-        const lat_lon_point_t &opposite);
-
 // The resulting polygon has an incircle of at least min_inradius around center.
 lat_lon_line_t build_polygon_with_inradius_at_least(
         const lat_lon_point_t &center,

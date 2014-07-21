@@ -1341,10 +1341,6 @@ class Circle(RqlMethodQuery):
     tt = pTerm.CIRCLE
     st = 'circle'
 
-class Rectangle(RqlMethodQuery):
-    tt = pTerm.RECTANGLE
-    st = 'rectangle'
-
 class Fill(RqlMethodQuery):
     tt = pTerm.FILL
     st = 'fill'

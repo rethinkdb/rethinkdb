@@ -36,14 +36,3 @@ tests:
     rb: r.circle([0,0], 1.0/1609.344, :num_vertices=>3, :unit=>'mi')
     ot: ({'$reql_type$':'GEOMETRY', 'coordinates':[[[0, -9.04369477050382e-06], [-7.779638566553426e-06, 4.5218473852518965e-06], [7.779638566553426e-06, 4.5218473852518965e-06], [0, -9.04369477050382e-06]]], 'type':'Polygon'})
 
-  # Rectangle
-  - cd: r.rectangle([0,0], [1,1])
-    ot: ({"$reql_type$":"GEOMETRY","coordinates":[[[0,0],[1,0],[1,1],[0,1],[0,0]]],"type":"Polygon"})
-  - cd: r.rectangle([1,1], [0,0])
-    ot: ({"$reql_type$":"GEOMETRY","coordinates":[[[1,1],[0,1],[0,0],[1,0],[1,1]]],"type":"Polygon"})
-  - cd: r.rectangle(r.point(0,0), r.point(1,1))
-    ot: ({"$reql_type$":"GEOMETRY","coordinates":[[[0,0],[1,0],[1,1],[0,1],[0,0]]],"type":"Polygon"})
-  - js: r.rectangle([0,0], [1,1], {fill:false})
-    py: r.rectangle([0,0], [1,1], fill=false)
-    rb: r.rectangle([0,0], [1,1], :fill=>false)
-    ot: ({"$reql_type$":"GEOMETRY","coordinates":[[0,0],[1,0],[1,1],[0,1],[0,0]],"type":"LineString"})

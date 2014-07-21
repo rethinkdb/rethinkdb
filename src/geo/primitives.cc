@@ -44,27 +44,6 @@ lat_lon_line_t build_circle(
     return result;
 }
 
-lat_lon_line_t build_rectangle(
-        const lat_lon_point_t &base,
-        const lat_lon_point_t &opposite) {
-
-    if (base.first == opposite.first) {
-        throw geo_exception_t("Opposite and base points have the same latitude.");
-    }
-    if (base.second == opposite.second) {
-        throw geo_exception_t("Opposite and base points have the same longitude.");
-    }
-
-    lat_lon_line_t result;
-    result.reserve(5);
-    result.push_back(base);
-    result.push_back(lat_lon_point_t(base.first, opposite.second));
-    result.push_back(opposite);
-    result.push_back(lat_lon_point_t(opposite.first, base.second));
-    result.push_back(base);
-    return result;
-}
-
 /* WARNING: This function is used by nearest_traversal_cb_t::init_query_geometry()
  * and must provide some strict guarantees. Read the notes in that function before
  * modifying this. */

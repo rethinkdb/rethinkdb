@@ -341,43 +341,6 @@ private:
     virtual const char *name() const { return "circle"; }
 };
 
-class rectangle_term_t : public op_term_t {
-public:
-    rectangle_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(2),
-          optargspec_t({"fill"})) { }
-private:
-    counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> base_arg = args->arg(env, 0);
-        counted_t<val_t> opposite_arg = args->arg(env, 1);
-
-        counted_t<val_t> fill_arg = args->optarg(env, "fill");
-        bool fill = true;
-        if (fill_arg.has()) {
-            fill = fill_arg->as_bool();
-        }
-
-        try {
-            lat_lon_point_t base = parse_point_argument(base_arg->as_datum());
-            lat_lon_point_t opposite = parse_point_argument(opposite_arg->as_datum());
-
-            const lat_lon_line_t rectangle =
-                build_rectangle(base, opposite);
-
-            const counted_t<const datum_t> result =
-                fill
-                ? construct_geo_polygon(rectangle)
-                : construct_geo_line(rectangle);
-            validate_geojson(result);
-
-            return new_val(result);
-        } catch (const geo_exception_t &e) {
-            rfail(base_exc_t::GENERIC, "%s", e.what());
-        }
-    }
-    virtual const char *name() const { return "rectangle"; }
-};
-
 class get_intersecting_term_t : public op_term_t {
 public:
     get_intersecting_term_t(compile_env_t *env, const protob_t<const Term> &term)
@@ -448,9 +411,6 @@ counted_t<term_t> make_distance_term(compile_env_t *env, const protob_t<const Te
 }
 counted_t<term_t> make_circle_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<circle_term_t>(env, term);
-}
-counted_t<term_t> make_rectangle_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<rectangle_term_t>(env, term);
 }
 counted_t<term_t> make_get_intersecting_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<get_intersecting_term_t>(env, term);

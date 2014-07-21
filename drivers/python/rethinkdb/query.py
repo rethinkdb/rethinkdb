@@ -201,7 +201,3 @@ def circle(*args, **kwargs):
     kwargs.setdefault('unit', ())
     kwargs.setdefault('fill', ())
     return Circle(*args, **kwargs)
-
-def rectangle(*args, **kwargs):
-    kwargs.setdefault('fill', ())
-    return Rectangle(*args, **kwargs)
