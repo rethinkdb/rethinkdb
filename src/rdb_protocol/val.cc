@@ -1,10 +1,10 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/val.hpp"
 
+#include "containers/name_string.hpp"
 #include "rdb_protocol/math_utils.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
-#include "rdb_protocol/meta_utils.hpp"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/term.hpp"
 #include "stl_utils.hpp"
@@ -20,34 +20,17 @@ table_t::table_t(env_t *env,
       use_outdated(_use_outdated),
       bounds(datum_range_t::universe()),
       sorting(sorting_t::UNORDERED) {
-    uuid_u db_id = db->id;
     name_string_t table_name;
     bool b = table_name.assign_value(name);
     rcheck(b, base_exc_t::GENERIC,
            strprintf("Table name `%s` invalid (%s).",
                      name.c_str(), name_string_t::valid_char_msg));
-    cow_ptr_t<namespaces_semilattice_metadata_t> namespaces_metadata
-        = env->get_namespaces_metadata();
-    const_metadata_searcher_t<namespace_semilattice_metadata_t>
-        ns_searcher(&namespaces_metadata.get()->namespaces);
-    // TODO: fold into iteration below
-    namespace_predicate_t pred(&table_name, &db_id);
-    uuid_u id = meta_get_uuid(&ns_searcher, pred,
-                              strprintf("Table `%s` does not exist.",
-                                        display_name().c_str()), this);
-    uuid = id;
-
-    access.init(new rdb_namespace_access_t(id, env));
-
-    metadata_search_status_t status;
-    const_metadata_searcher_t<namespace_semilattice_metadata_t>::iterator
-        ns_metadata_it = ns_searcher.find_uniq(pred, &status);
-    rcheck(status == METADATA_SUCCESS,
-           base_exc_t::GENERIC,
-           strprintf("Table `%s` does not exist.", display_name().c_str()));
-    guarantee(!ns_metadata_it->second.is_deleted());
-    r_sanity_check(!ns_metadata_it->second.get_ref().primary_key.in_conflict());
-    pkey = ns_metadata_it->second.get_ref().primary_key.get();
+    std::string error;
+    if (!env->reql_admin_interface()->table_find(table_name, db, env->interruptor, &uuid,
+            &pkey, &error)) {
+        rfail(base_exc_t::GENERIC, "%s", error.c_str());
+    }
+    access.init(new rdb_namespace_access_t(uuid, env));
 }
 
 counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) {
