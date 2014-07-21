@@ -16,13 +16,15 @@ lat_lon_line_t build_circle(
         const ellipsoid_spec_t &e) {
 
     if (radius <= 0.0) {
-        throw geo_exception_t("Radius must be positive");
+        throw geo_range_exception_t("Radius must be positive");
     }
-    if (radius >= std::min(e.equator_radius(), e.poles_radius())) {
-        throw geo_exception_t(
-            strprintf("Radius must be smaller than the minimal radius of the "
-                      "reference ellipsoid (which is %f).",
-                      std::min(e.equator_radius(), e.poles_radius())));
+    const double max_radius = 0.5 * M_PI * std::min(e.equator_radius(), e.poles_radius());
+    if (radius >= max_radius) {
+        throw geo_range_exception_t(
+            strprintf("Radius must be smaller than a quarter of the circumference "
+                      "along the minor axis of the reference ellipsoid. "
+                      "Got %f, but must be smaller than %f.",
+                      radius, max_radius));
     }
 
     lat_lon_line_t result;
@@ -77,13 +79,24 @@ lat_lon_line_t build_polygon_with_inradius_at_least(
     const double leeway_factor = 1.01;
     double r = min_inradius * leeway_factor;
 
+    // How do we get a lower bound on the inradius?
+    // For radii that are very small compared to the circumference of the sphere,
+    // everything behaves like in Euclidean geometry, and we can use the formula
+    // `exradius = inradius / cos(pi / num_vertices)` for a regular polygon.
+    // On the other extreme, if the radius is a quarter of the circumference of
+    // the reference sphere, the exradius of the polygon will actually be the
+    // same as the inradius. In that case, our formula overestimates the exradius,
+    // which is safe.
+    // When having an ellipsoid, we additionally apply a correction factor to
+    // (over-)compensate for potential distortions of the distances involved.
+    // TODO (daniel): Open question: Would this still be required if we didn't
+    //   assume a sphere when computing polygon intersection (through S2)?
+    //   Not that it matters, since we do, but it would be interesting.
+    // TODO (daniel): While this has been shown to work empirically,
+    //   it would be nice to get a formal proof for those things. Especially
+    //   for the ellipsoid correction
     double max_distortion = std::max(e.equator_radius(), e.poles_radius()) /
         std::min(e.equator_radius(), e.poles_radius());
-    // /cos(M_PI / num_vertices) is the formula for regular polygons in
-    // Euclidean space http://mathworld.wolfram.com/RegularPolygon.html
-    // It appears that it also works on a sphere's surface. We have to apply a
-    // correction factor when being on the surface of an ellipsoid though.
-    // TODO! This is unproven speculation. Check this stuff.
     double ex_r = r / std::cos(M_PI / num_vertices) * max_distortion;
 
     return build_circle(center, ex_r, num_vertices, e);
@@ -102,6 +115,12 @@ lat_lon_line_t build_polygon_with_exradius_at_most(
     // precision and such.
     const double leeway_factor = 0.99;
     double r = max_exradius * leeway_factor;
+
+    // `r` is an upper limit on the exradius of the resulting circle, even in
+    // spherical geometry. In the extreme case, of r being a quarter of the
+    // circumference of the sphere, the resulting polygon will be *exactly* a
+    // circle with radius r. For very small r on the other hand the lines between
+    // the vertices of the polygon will behave like in Euclidean space.
 
     return build_circle(center, r, num_vertices, e);
 }

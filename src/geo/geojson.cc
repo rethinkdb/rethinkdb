@@ -134,9 +134,6 @@ lat_lon_point_t position_to_lat_lon_point(const counted_t<const datum_t> &positi
                       "three coordinates, but got %zu", arr.size()));
     }
     if (arr.size() == 3) {
-        // TODO (daniel): We could just ignore the altitude, but would need
-        //   a way of informing the user about that fact. So for the time being
-        //   we error instead.
         throw geo_exception_t("A third altitude coordinate in GeoJSON positions "
                               "was found, but is not supported.");
     }

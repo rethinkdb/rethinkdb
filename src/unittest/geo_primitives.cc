@@ -68,7 +68,13 @@ void test_in_ex_radius(const ellipsoid_spec_t e) {
     // A medium one, 1/100th of the minor radius
     test_in_ex_radius(minor_radius * 0.01, e);
     // A large one
-    test_in_ex_radius(minor_radius * 0.4, e);
+    test_in_ex_radius(minor_radius * 0.5, e);
+    // A very large one
+    try {
+        test_in_ex_radius(minor_radius, e);
+    } catch (const geo_range_exception_t &e) {
+        // Ignore. This one is too large for the more extreme ellipsoids.
+    }
 }
 
 // Verifies that the constraints described in nearest_traversal_cb_t::init_query_geometry()
@@ -81,7 +87,7 @@ TPTEST(GeoPrimitives, InExRadiusTest) {
         test_in_ex_radius(WGS84_ELLIPSOID);
         // Ellipsoids with very significant flattening
         // TODO (daniel): Something currently becomes unstable at a small distances
-        //   when the flattening is too large (from ~0.5). Why?
+        //   when the flattening is too large (from ~0.5). What and why?
         test_in_ex_radius(ellipsoid_spec_t(1.0, 0.4));
         // ... and stretching (though this wouldn't usually be written that way)
         test_in_ex_radius(ellipsoid_spec_t(1.0, -0.5));

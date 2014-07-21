@@ -207,8 +207,8 @@ nearest_traversal_state_t::nearest_traversal_state_t(
 
 done_traversing_t nearest_traversal_state_t::proceed_to_next_batch() {
     processed_inradius = current_inradius;
-    // TODO! Do something smarter
-    current_inradius *= 1.5;
+    // TODO! Do something smarter.
+    current_inradius = std::min(current_inradius * 1.5, max_radius);
 
     if (processed_inradius >= max_radius || distinct_emitted.size() >= max_results) {
         return done_traversing_t::YES;
@@ -246,7 +246,6 @@ void nearest_traversal_cb_t::init_query_geometry() {
     There is a unit test in geo_primitives.cc to verify this numerically.
     */
 
-    // TODO! Ensure a good range for the radius values in the state
     try {
         // 1. Construct a shape with an exradius of no more than state->processed_inradius.
         //    This is what we don't have to process again.
@@ -265,6 +264,11 @@ void nearest_traversal_cb_t::init_query_geometry() {
 
         counted_t<const ql::datum_t> query_geometry = construct_geo_polygon(shell, holes);
         init_query(query_geometry);
+    } catch (const geo_range_exception_t &e) {
+        // The radius has become too large for constructing the query geometry.
+        // Abort.
+        throw geo_range_exception_t(
+            "The radius is too large to perform an optimized nearest traversal.");
     } catch (const geo_exception_t &e) {
         crash("Geo exception thrown while initializing nearest query geometry: %s",
               e.what());
