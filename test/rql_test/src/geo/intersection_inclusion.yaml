@@ -49,11 +49,11 @@ tests:
     ot: true
   - cd: r.line([1,1], [1,2]).intersects(r.point(1,1))
     ot: true
-  # These ones currently fails due to numeric precision problems.
+  # This one currently fails due to numeric precision problems.
   #- cd: r.line([0,1], [0,2]).intersects(r.point(0,1.5))
   #  ot: true
-  #- cd: r.line([1,1], [1,2]).intersects(r.point(1,1.8))
-  #  ot: true
+  - cd: r.line([1,1], [2,1]).intersects(r.point(1.8,1))
+    ot: true
   - cd: r.line([0,1], [0,2]).intersects(r.point(0,1.8))
     ot: true
   - cd: r.line([1,1], [1,2]).intersects(r.point(1.5,1.5))
