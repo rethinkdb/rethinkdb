@@ -406,9 +406,7 @@ public:
                       stamp,
                       d));
         auto val = change.new_val.has() ? change.new_val : change.old_val;
-        // debugf("%s\n", val->print().c_str());
         r_sanity_check(val.has());
-        // debugf("%s\n", feed->pkey.c_str());
         auto pkey_val = val->get(feed->pkey, NOTHROW);
         r_sanity_check(pkey_val.has());
         feed->on_point_sub(
