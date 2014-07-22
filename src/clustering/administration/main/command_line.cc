@@ -877,7 +877,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
                             NULL, NULL, data_directory_lock,
                             result_out);
     } else {
-        logINF("Creating directory %s\n", base_path.path().c_str());
+        logINF("Initializing directory %s\n", base_path.path().c_str());
 
         machine_id_t our_machine_id = generate_uuid();
 
@@ -890,7 +890,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
 
         if (serve_info->joins.empty()) {
             logINF("Creating a default database for your convenience. (This is because you ran 'rethinkdb' "
-                   "without 'create', 'serve', or '--join', and the directory '%s' did not already exist.)\n",
+                   "without 'create', 'serve', or '--join', and the directory '%s' did not already exist or is empty.)\n",
                    base_path.path().c_str());
 
             /* Create a test database. */
