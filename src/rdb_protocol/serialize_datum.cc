@@ -249,6 +249,9 @@ serialization_result_t datum_serialize(write_message_t *wm,
 archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *datum) {
     // Datums on disk should always be read no matter how stupid big
     // they are; there's no way to fix the problem otherwise.
+    // Similarly we don't want to reject array reads from cluster
+    // nodes that are within the user spec but larger than the default
+    // 100,000 limit.
     ql::configured_limits_t limits = ql::configured_limits_t::unlimited;
     datum_serialized_type_t type;
     archive_result_t res = datum_deserialize(s, &type);
