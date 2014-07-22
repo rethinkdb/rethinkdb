@@ -258,6 +258,7 @@ private:
         case Term::CIRCLE:
         case Term::GET_INTERSECTING:
         case Term::FILL:
+        case Term::GET_NEAREST:
             return false;
         default: unreachable();
         }
@@ -438,6 +439,7 @@ private:
         case Term::CIRCLE:
         case Term::GET_INTERSECTING:
         case Term::FILL:
+        case Term::GET_NEAREST:
             return false;
         default: unreachable();
         }

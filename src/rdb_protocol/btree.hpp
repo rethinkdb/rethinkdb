@@ -225,6 +225,18 @@ void rdb_get_intersecting_slice(
     const sindex_disk_info_t &sindex_info,
     intersecting_geo_read_response_t *response);
 
+void rdb_get_nearest_slice(
+    btree_slice_t *slice,
+    const lat_lon_point_t &center,
+    double max_dist,
+    uint64_t max_results,
+    const ellipsoid_spec_t &geo_system,
+    superblock_t *superblock,
+    ql::env_t *ql_env,
+    const key_range_t &pk_range,
+    const sindex_disk_info_t &sindex_info,
+    nearest_geo_read_response_t *response);
+
 void rdb_distribution_get(int max_depth,
                           const store_key_t &left_key,
                           superblock_t *superblock,

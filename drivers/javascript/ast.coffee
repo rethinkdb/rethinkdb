@@ -326,6 +326,7 @@ class RDBVal extends TermBase
     seconds: (args...) -> new Seconds {}, @, args...
 
     getIntersecting: aropt (g, opts) -> new GetIntersecting opts, @, g
+    getNearest: aropt (g, opts) -> new GetNearest opts, @, g
 
 class DatumTerm extends RDBVal
     args: []
@@ -364,6 +365,8 @@ translateBackOptargs = (optargs) ->
             when 'page_limit' then 'pageLimit'
             when 'num_vertices' then 'numVertices'
             when 'geo_system' then 'geoSystem'
+            when 'max_results' then 'maxResults'
+            when 'max_dist' then 'maxDist'
             else key
 
         result[key] = val
@@ -385,6 +388,8 @@ translateOptargs = (optargs) ->
             when 'pageLimit' then 'page_limit'
             when 'numVertices' then 'num_vertices'
             when 'geoSystem' then 'geo_system'
+            when 'maxResults' then 'max_results'
+            when 'maxDist' then 'max_dist'
             else key
 
         if key is undefined or val is undefined then continue
@@ -1058,6 +1063,10 @@ class Circle extends RDBOp
 class GetIntersecting extends RDBOp
     tt: protoTermType.GET_INTERSECTING
     mt: 'getIntersecting'
+
+class GetNearest extends RDBOp
+    tt: protoTermType.GET_NEAREST
+    mt: 'getNearest'
 
 class Fill extends RDBOp
     tt: protoTermType.FILL

@@ -521,6 +521,10 @@ struct rdb_r_get_region_visitor : public boost::static_visitor<region_t> {
         return gr.region;
     }
 
+    region_t operator()(const nearest_geo_read_t &gr) const {
+        return gr.region;
+    }
+
     region_t operator()(const distribution_read_t &dg) const {
         return dg.region;
     }
@@ -601,6 +605,10 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
         return rangey_read(gr);
     }
 
+    bool operator()(const nearest_geo_read_t &gr) const {
+        return rangey_read(gr);
+    }
+
     bool operator()(const distribution_read_t &dg) const {
         return rangey_read(dg);
     }
@@ -670,6 +678,7 @@ public:
 
     void operator()(const rget_read_t &rg);
     void operator()(const intersecting_geo_read_t &gr);
+    void operator()(const nearest_geo_read_t &gr);
     void operator()(const distribution_read_t &rg);
     void operator()(const sindex_list_t &rg);
     void operator()(const sindex_status_t &rg);
@@ -727,7 +736,7 @@ void rdb_r_unshard_visitor_t::operator()(const intersecting_geo_read_t &) {
     ql::datum_ptr_t combined_results(ql::datum_t::R_ARRAY);
     for (size_t i = 0; i < count; ++i) {
         auto res = boost::get<intersecting_geo_read_response_t>(&responses[i].response);
-        guarantee(res != NULL);;
+        guarantee(res != NULL);
         ql::exc_t *error = boost::get<ql::exc_t>(&res->results_or_error);
         if (error != NULL) {
             response_out->response = intersecting_geo_read_response_t(*error);
@@ -742,6 +751,61 @@ void rdb_r_unshard_visitor_t::operator()(const intersecting_geo_read_t &) {
     }
     response_out->response = intersecting_geo_read_response_t(
         combined_results.to_counted());
+}
+
+void rdb_r_unshard_visitor_t::operator()(const nearest_geo_read_t &) {
+    // Merge the different results together while preserving ordering.
+    struct iter_range_t {
+        iter_range_t(
+                const nearest_geo_read_response_t::result_t::const_iterator &_beg,
+                const nearest_geo_read_response_t::result_t::const_iterator &_end)
+            : it(_beg), end(_end) { }
+        nearest_geo_read_response_t::result_t::const_iterator it;
+        nearest_geo_read_response_t::result_t::const_iterator end;
+    };
+    std::vector<iter_range_t> iters;
+    iters.reserve(count);
+    size_t total_size = 0;
+    for (size_t i = 0; i < count; ++i) {
+        auto res = boost::get<nearest_geo_read_response_t>(&responses[i].response);
+        guarantee(res != NULL);
+        ql::exc_t *error = boost::get<ql::exc_t>(&res->results_or_error);
+        if (error != NULL) {
+            response_out->response = nearest_geo_read_response_t(*error);
+            return;
+        }
+        auto results =
+            boost::get<nearest_geo_read_response_t::result_t>(&res->results_or_error);
+        guarantee(results != NULL);
+
+        if (!results->empty()) {
+            iters.push_back(iter_range_t(results->begin(), results->end()));
+        }
+        total_size += results->size();
+    }
+    nearest_geo_read_response_t::result_t combined_results;
+    combined_results.reserve(total_size);
+    // Collect data until all iterators have been exhausted
+    while (!iters.empty()) {
+        // Find the iter with the nearest result
+        size_t nearest_it_idx = iters.size();
+        double nearest_it_dist = -1.0;
+        for (size_t i = 0; i < iters.size(); ++i) {
+            if (iters[i].it->first < nearest_it_dist) {
+                nearest_it_idx = i;
+                nearest_it_dist = iters[i].it->first;
+            }
+        }
+        guarantee(nearest_it_idx < iters.size());
+        combined_results.push_back(*iters[nearest_it_idx].it);
+        ++iters[nearest_it_idx].it;
+        if (iters[nearest_it_idx].it == iters[nearest_it_idx].end) {
+            iters.erase(iters.begin() + nearest_it_idx);
+        }
+    }
+    rassert(combined_results.size() == total_size);
+    response_out->response = nearest_geo_read_response_t(
+        std::move(combined_results));
 }
 
 void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
@@ -1194,6 +1258,8 @@ RDB_IMPL_SERIALIZABLE_4(rget_read_response_t, result, key_range, truncated, last
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(rget_read_response_t);
 RDB_IMPL_SERIALIZABLE_1(intersecting_geo_read_response_t, results_or_error);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(intersecting_geo_read_response_t);
+RDB_IMPL_SERIALIZABLE_1(nearest_geo_read_response_t, results_or_error);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(nearest_geo_read_response_t);
 RDB_IMPL_SERIALIZABLE_2(distribution_read_response_t, region, key_counts);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(distribution_read_response_t);
 RDB_IMPL_SERIALIZABLE_1(sindex_list_response_t, sindexes);
@@ -1228,6 +1294,10 @@ INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(rget_read_t);
 RDB_MAKE_SERIALIZABLE_4(
         intersecting_geo_read_t, query_geometry, region, table_name, sindex_id);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(intersecting_geo_read_t);
+RDB_MAKE_SERIALIZABLE_7(
+        nearest_geo_read_t, center, max_dist, max_results, geo_system, region,
+        table_name, sindex_id);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(nearest_geo_read_t);
 RDB_IMPL_SERIALIZABLE_3(distribution_read_t, max_depth, result_limit, region);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(distribution_read_t);
 RDB_IMPL_SERIALIZABLE_0(sindex_list_t);

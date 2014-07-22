@@ -51,7 +51,7 @@ bool geo_does_include(const S2Polygon &polygon,
                       const S2Point &g) {
     // polygon.Contains(g) doesn't work for points that are exactly on a corner
     // of the polygon, so we use geo_does_intersect instead.
-    return geo_does_intersect(polygon, g);;
+    return geo_does_intersect(polygon, g);
 }
 
 bool geo_does_include(const S2Polygon &polygon,

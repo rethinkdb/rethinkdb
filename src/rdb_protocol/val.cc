@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/val.hpp"
 
+#include "geo/ellipsoid.hpp"
+#include "geo/distances.hpp"
 #include "rdb_protocol/math_utils.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
@@ -426,13 +428,13 @@ counted_t<datum_stream_t> table_t::get_intersecting(
     return make_counted<array_datum_stream_t>(*result, bt);
 }
 
-// TODO!
-/*counted_t<datum_stream_t> table_t::get_nearest(
+counted_t<datum_stream_t> table_t::get_nearest(
         env_t *env,
         lat_lon_point_t center,
         double max_dist,
-        double max_results,
+        uint64_t max_results,
         const ellipsoid_spec_t &geo_system,
+        dist_unit_t dist_unit,
         const std::string &new_sindex_id,
         const protob_t<const Backtrace> &bt) {
     rcheck_src(bt.get(), base_exc_t::GENERIC, !sindex_id,
@@ -451,8 +453,8 @@ counted_t<datum_stream_t> table_t::get_intersecting(
         rfail(ql::base_exc_t::GENERIC, "Cannot perform read: %s", ex.what());
     }
 
-    intersecting_geo_read_response_t *g_res =
-        boost::get<intersecting_geo_read_response_t>(&res.response);
+    nearest_geo_read_response_t *g_res =
+        boost::get<nearest_geo_read_response_t>(&res.response);
     r_sanity_check(g_res);
 
     ql::exc_t *error = boost::get<ql::exc_t>(&g_res->results_or_error);
@@ -460,10 +462,25 @@ counted_t<datum_stream_t> table_t::get_intersecting(
         throw *error;
     }
 
-    auto *result = boost::get<counted_t<const datum_t> >(&g_res->results_or_error);
+    auto *result =
+        boost::get<nearest_geo_read_response_t::result_t>(&g_res->results_or_error);
     guarantee(result != NULL);
-    return make_counted<array_datum_stream_t>(*result, bt);
-}*/
+
+    // Generate the final output, converting distance units on the way.
+    datum_ptr_t formatted_result(datum_t::R_ARRAY);
+    for (size_t i = 0; i < result->size(); ++i) {
+        datum_ptr_t one_result(datum_t::R_OBJECT);
+        const double converted_dist =
+            convert_dist_unit((*result)[i].first, dist_unit_t::M, dist_unit);
+        bool dup;
+        dup = one_result.add("dist", make_counted<datum_t>(converted_dist));
+        r_sanity_check(!dup);
+        dup = one_result.add("doc", (*result)[i].second);
+        r_sanity_check(!dup);
+        formatted_result.add(one_result.to_counted());
+    }
+    return make_counted<array_datum_stream_t>(formatted_result.to_counted(), bt);
+}
 
 val_t::type_t::type_t(val_t::type_t::raw_type_t _raw_type) : raw_type(_raw_type) { }
 

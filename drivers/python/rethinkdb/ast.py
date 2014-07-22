@@ -977,6 +977,9 @@ class Table(RqlQuery):
     def get_intersecting(self, *args, **kwargs):
         return GetIntersecting(self, *args, **kwargs)
 
+    def get_nearest(self, *args, **kwargs):
+        return GetNearest(self, *args, **kwargs)
+
     def compose(self, args, optargs):
         if isinstance(self.args[0], DB):
             return T(args[0], '.table(', T(*(args[1:]), intsp=', '), ')')
@@ -994,6 +997,10 @@ class GetAll(RqlMethodQuery):
 class GetIntersecting(RqlMethodQuery):
     tt = pTerm.GET_INTERSECTING
     st = 'get_intersecting'
+
+class GetNearest(RqlMethodQuery):
+    tt = pTerm.GET_NEAREST
+    st = 'get_nearest'
 
 class Reduce(RqlMethodQuery):
     tt = pTerm.REDUCE

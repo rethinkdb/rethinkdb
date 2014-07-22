@@ -18,6 +18,8 @@
 #include "btree/erase_range.hpp"
 #include "btree/secondary_operations.hpp"
 #include "concurrency/cond_var.hpp"
+#include "geo/ellipsoid.hpp"
+#include "geo/lat_lon_types.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/changefeed.hpp"
@@ -292,7 +294,23 @@ struct intersecting_geo_read_response_t {
         : results_or_error(_error) { }
 };
 
-RDB_DECLARE_SERIALIZABLE(rget_read_response_t);
+RDB_DECLARE_SERIALIZABLE(intersecting_geo_read_response_t);
+
+struct nearest_geo_read_response_t {
+    typedef std::pair<double, counted_t<const ql::datum_t> > dist_pair_t;
+    typedef std::vector<dist_pair_t> result_t;
+    boost::variant<result_t, ql::exc_t> results_or_error;
+
+    nearest_geo_read_response_t() { }
+    nearest_geo_read_response_t(
+            result_t &&_results)
+        : results_or_error(std::move(_results)) { }
+    nearest_geo_read_response_t(
+            const ql::exc_t &_error)
+        : results_or_error(_error) { }
+};
+
+RDB_DECLARE_SERIALIZABLE(nearest_geo_read_response_t);
 
 void scale_down_distribution(size_t result_limit, std::map<store_key_t, int64_t> *key_counts);
 
@@ -346,6 +364,7 @@ struct read_response_t {
     typedef boost::variant<point_read_response_t,
                            rget_read_response_t,
                            intersecting_geo_read_response_t,
+                           nearest_geo_read_response_t,
                            changefeed_subscribe_response_t,
                            changefeed_stamp_response_t,
                            distribution_read_response_t,
@@ -431,9 +450,9 @@ class intersecting_geo_read_t {
 public:
     intersecting_geo_read_t() { }
 
-    intersecting_geo_read_t(const counted_t<const ql::datum_t> &_query_geometry,
-               const std::string _table_name,
-               std::string &_sindex_id)
+    intersecting_geo_read_t(
+            const counted_t<const ql::datum_t> &_query_geometry,
+            const std::string _table_name, std::string &_sindex_id)
         : query_geometry(_query_geometry),
           region(region_t::universe()),
           table_name(std::move(_table_name)),
@@ -447,6 +466,30 @@ public:
     std::string sindex_id;
 };
 RDB_DECLARE_SERIALIZABLE(intersecting_geo_read_t);
+
+class nearest_geo_read_t {
+public:
+    nearest_geo_read_t() { }
+
+    nearest_geo_read_t(
+            lat_lon_point_t _center, double _max_dist, uint64_t _max_results,
+            const ellipsoid_spec_t &_geo_system, const std::string _table_name,
+            std::string &_sindex_id)
+        : center(_center), max_dist(_max_dist), max_results(_max_results),
+          geo_system(_geo_system), region(region_t::universe()),
+          table_name(std::move(_table_name)), sindex_id(_sindex_id) { }
+
+    lat_lon_point_t center;
+    double max_dist;
+    uint64_t max_results;
+    ellipsoid_spec_t geo_system;
+
+    region_t region; // We need this even for sindex reads due to sharding.
+    std::string table_name;
+
+    std::string sindex_id;
+};
+RDB_DECLARE_SERIALIZABLE(nearest_geo_read_t);
 
 class distribution_read_t {
 public:
@@ -510,6 +553,7 @@ struct read_t {
     typedef boost::variant<point_read_t,
                            rget_read_t,
                            intersecting_geo_read_t,
+                           nearest_geo_read_t,
                            changefeed_subscribe_t,
                            changefeed_stamp_t,
                            distribution_read_t,

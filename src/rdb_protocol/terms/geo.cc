@@ -385,6 +385,54 @@ private:
     virtual const char *name() const { return "fill"; }
 };
 
+class get_nearest_term_t : public op_term_t {
+public:
+    get_nearest_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(2),
+          optargspec_t({ "index", "max_results", "max_dist", "geo_system", "unit" })) { }
+private:
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<table_t> table = args->arg(env, 0)->as_table();
+        counted_t<val_t> center_arg = args->arg(env, 1);
+        counted_t<val_t> index = args->optarg(env, "index");
+        if (!index.has()) {
+            rfail(base_exc_t::GENERIC, "get_nearest requires an index argument.");
+        }
+        std::string index_str = index->as_str().to_std();
+        lat_lon_point_t center;
+        ellipsoid_spec_t reference_ellipsoid = WGS84_ELLIPSOID;
+        dist_unit_t dist_unit = dist_unit_t::M;
+        try {
+            center = parse_point_argument(center_arg->as_datum());
+            reference_ellipsoid = pick_reference_ellipsoid(env, args);
+            dist_unit = pick_dist_unit(env, args);
+        } catch (const geo_exception_t &e) {
+            rfail(base_exc_t::GENERIC, "%s", e.what());
+        }
+        counted_t<val_t> max_dist_arg = args->optarg(env, "max_dist");
+        double max_dist = 1000; // Default: 1 km
+        if (max_dist_arg.has()) {
+            max_dist =
+                convert_dist_unit(max_dist_arg->as_num(), dist_unit, dist_unit_t::M);
+            rcheck_target(max_dist_arg, base_exc_t::GENERIC, max_dist > 0.0,
+                          "max_dist must be positive.");
+        }
+        counted_t<val_t> max_results_arg = args->optarg(env, "max_results");
+        int64_t max_results = 100; // Default: 100 results
+        if (max_results_arg.has()) {
+            max_results = max_dist_arg->as_int();
+            rcheck_target(max_results_arg, base_exc_t::GENERIC, max_results > 0,
+                          "max_results must be positive.");
+        }
+
+        counted_t<datum_stream_t> stream = table->get_nearest(
+                env->env, center, max_dist, max_results, reference_ellipsoid,
+                dist_unit, index_str, backtrace());
+        return new_val(stream, table);
+    }
+    virtual const char *name() const { return "get_nearest"; }
+};
+
 counted_t<term_t> make_geojson_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<geojson_term_t>(env, term);
 }
@@ -417,6 +465,9 @@ counted_t<term_t> make_get_intersecting_term(compile_env_t *env, const protob_t<
 }
 counted_t<term_t> make_fill_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<fill_term_t>(env, term);
+}
+counted_t<term_t> make_get_nearest_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<get_nearest_term_t>(env, term);
 }
 
 } // namespace ql

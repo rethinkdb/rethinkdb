@@ -666,8 +666,7 @@ message Term {
         CIRCLE = 164;            // PSEUDOTYPE(GEOMETRY), NUMBER {num_vertices:NUMBER, geo_system:STRING, unit:STRING, fill:BOOL} -> PSEUDOTYPE(GEOMETRY)
         GET_INTERSECTING = 165;  // TABLE, PSEUDOTYPE(GEOMETRY) {index:!STRING} -> ARRAY
         FILL = 166;              // PSEUDOTYPE(GEOMETRY) -> PSEUDOTYPE(GEOMETRY)
-// TODO!
-//        GET_NEAREST = 167;       // TABLE, PSEUDOTYPE(GEOMETRY) {index:!STRING, max_results:NUM, max_radius:NUM, geo_system:STRING, unit:STRING} -> ARRAY
+        GET_NEAREST = 167;       // TABLE, PSEUDOTYPE(GEOMETRY) {index:!STRING, max_results:NUM, max_dist:NUM, geo_system:STRING, unit:STRING} -> ARRAY
     }
     optional TermType type = 1;
 

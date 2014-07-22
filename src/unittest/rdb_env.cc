@@ -125,6 +125,11 @@ void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
 }
 
 void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        UNUSED const nearest_geo_read_t &gr) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
         UNUSED const distribution_read_t &dg) {
     throw cannot_perform_query_exc_t("unimplemented");
 }

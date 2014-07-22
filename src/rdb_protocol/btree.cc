@@ -978,6 +978,55 @@ void rdb_get_intersecting_slice(
     callback.finish(response);
 }
 
+void rdb_get_nearest_slice(
+    btree_slice_t *slice,
+    const lat_lon_point_t &center,
+    double max_dist,
+    uint64_t max_results,
+    const ellipsoid_spec_t &geo_system,
+    superblock_t *superblock,
+    ql::env_t *ql_env,
+    const key_range_t &pk_range,
+    const sindex_disk_info_t &sindex_info,
+    nearest_geo_read_response_t *response) {
+
+    guarantee(sindex_info.geo == sindex_geo_bool_t::GEO);
+    profile::starter_t starter("Do nearest traversal on geospatial index.", ql_env->trace);
+
+    // TODO (daniel): Instead of calling this multiple times until we are done,
+    //   results should be streamed lazily. Also, even if we don't do that,
+    //   the copying of the result we do here is bad.
+    nearest_traversal_state_t state(center, max_results, max_dist, geo_system);
+    do {
+        nearest_geo_read_response_t partial_response;
+        nearest_traversal_cb_t callback(
+            slice,
+            geo_sindex_data_t(pk_range, sindex_info.mapping, sindex_info.multi),
+            ql_env,
+            &state);
+        btree_parallel_traversal(
+            superblock, &callback,
+            ql_env->interruptor,
+            release_superblock_t::KEEP);
+        callback.finish(&partial_response);
+        if (boost::get<ql::exc_t *>(partial_response.results_or_error)) {
+            response->results_or_error = partial_response.results_or_error;
+            return;
+        } else {
+            auto partial_res = boost::get<nearest_geo_read_response_t::result_t *>(
+                partial_response.results_or_error);
+            guarantee(partial_res != NULL);
+            auto full_res = boost::get<nearest_geo_read_response_t::result_t *>(
+                response->results_or_error);
+            if (full_res == NULL) {
+                response->results_or_error = std::move(*partial_res);
+            } else {
+                full_res->insert(full_res->end(), partial_res->begin(), partial_res->end());
+            }
+        }
+    } while (state.proceed_to_next_batch() == done_traversing_t::NO);
+}
+
 void rdb_distribution_get(int max_depth,
                           const store_key_t &left_key,
                           superblock_t *superblock,

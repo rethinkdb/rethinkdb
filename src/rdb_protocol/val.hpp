@@ -9,9 +9,11 @@
 
 #include "containers/counted.hpp"
 #include "containers/wire_string.hpp"
+#include "geo/distances.hpp"
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/ql2.pb.h"
 
+class ellipsoid_spec_t;
 namespace ql {
 class datum_t;
 class rdb_namespace_access_t;
@@ -53,6 +55,15 @@ public:
     counted_t<datum_stream_t> get_intersecting(
             env_t *env,
             counted_t<const datum_t> query_geometry,
+            const std::string &new_sindex_id,
+            const protob_t<const Backtrace> &bt);
+    counted_t<datum_stream_t> get_nearest(
+            env_t *env,
+            lat_lon_point_t center,
+            double max_dist,
+            uint64_t max_results,
+            const ellipsoid_spec_t &geo_system,
+            dist_unit_t dist_unit,
             const std::string &new_sindex_id,
             const protob_t<const Backtrace> &bt);
 

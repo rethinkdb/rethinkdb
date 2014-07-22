@@ -172,7 +172,7 @@ public:
             ql::env_t *_env,
             nearest_traversal_state_t *_state);
 
-    void finish(intersecting_geo_read_response_t *resp_out);
+    void finish(nearest_geo_read_response_t *resp_out);
 
 protected:
     bool post_filter(

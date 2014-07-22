@@ -2,8 +2,11 @@
 #ifndef GEO_ELLIPSOID_HPP_
 #define GEO_ELLIPSOID_HPP_
 
+#include "rpc/serialize_macros.hpp"
+
 class ellipsoid_spec_t {
 public:
+    ellipsoid_spec_t() { } // For deserialization
     ellipsoid_spec_t(double _a, double _f) : a(_a), f(_f) { }
 
     // In meters
@@ -20,8 +23,14 @@ public:
     }
 
 private:
+    template<cluster_version_t W>
+    friend void serialize(write_message_t *, const ellipsoid_spec_t &);
+    template<cluster_version_t W>
+    friend archive_result_t deserialize(read_stream_t *, ellipsoid_spec_t *);
+
     double a, f;
 };
+RDB_DECLARE_SERIALIZABLE(ellipsoid_spec_t);
 
 static const ellipsoid_spec_t WGS84_ELLIPSOID(6378137.0, 1.0/298.257223563);
 static const ellipsoid_spec_t UNIT_SPHERE(1.0, 0.0);

@@ -133,8 +133,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             res->results_or_error = ql::exc_t(
                 ql::base_exc_t::GENERIC,
                 strprintf(
-                    "Index `%s` is not a geospatial index. This term can only be "
-                    "used with a geospatial index.",
+                    "Index `%s` is not a geospatial index. get_intersecting can only "
+                    "be used with a geospatial index.",
                     geo_read.sindex_id.c_str()),
                 NULL);
             return;
@@ -142,10 +142,45 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
         // TODO (daniel): What happens if we have multiple shards on the same node?
         //   Will we actually perform multiple sindex traversals just to post-filter
-        //   most of the results based on primary key?
+        //   most of the results based on their primary key?
         rdb_get_intersecting_slice(
             store->get_sindex_slice(sindex_uuid),
             geo_read.query_geometry,
+            sindex_sb.get(), &ql_env,
+            geo_read.region.inner, sindex_info, res);
+    }
+
+    void operator()(const nearest_geo_read_t &geo_read) {
+        response->response = nearest_geo_read_response_t();
+        nearest_geo_read_response_t *res =
+            boost::get<nearest_geo_read_response_t>(&response->response);
+
+        sindex_disk_info_t sindex_info;
+        uuid_u sindex_uuid;
+        scoped_ptr_t<real_superblock_t> sindex_sb;
+        try {
+            sindex_sb =
+                acquire_sindex_for_read(geo_read.table_name, geo_read.sindex_id,
+                &sindex_info, &sindex_uuid);
+        } catch (const ql::exc_t &e) {
+            res->results_or_error = e;
+            return;
+        }
+
+        if (sindex_info.geo != sindex_geo_bool_t::GEO) {
+            res->results_or_error = ql::exc_t(
+                ql::base_exc_t::GENERIC,
+                strprintf(
+                    "Index `%s` is not a geospatial index. get_nearest can only be "
+                    "used with a geospatial index.",
+                    geo_read.sindex_id.c_str()),
+                NULL);
+            return;
+        }
+
+        rdb_get_nearest_slice(
+            store->get_sindex_slice(sindex_uuid),
+            geo_read.center, geo_read.max_dist, geo_read.max_results, geo_read.geo_system,
             sindex_sb.get(), &ql_env,
             geo_read.region.inner, sindex_info, res);
     }

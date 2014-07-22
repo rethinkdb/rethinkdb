@@ -313,19 +313,12 @@ bool nearest_pairs_less(
 }
 
 void nearest_traversal_cb_t::finish(
-        intersecting_geo_read_response_t *resp_out) {
+        nearest_geo_read_response_t *resp_out) {
     guarantee(resp_out != NULL);
     if (error) {
         resp_out->results_or_error = error.get();
     } else {
-        // TODO (daniel): Should we include the distances in the query results?
-        //   Probably.
         std::sort(result_acc.begin(), result_acc.end(), &nearest_pairs_less);
-        std::vector<counted_t<const ql::datum_t> > result_vec;
-        result_vec.reserve(result_acc.size());
-        for (size_t i = 0; i < result_acc.size(); ++i) {
-            result_vec.push_back(result_acc[i].second);
-        }
-        resp_out->results_or_error = make_counted<const ql::datum_t>(std::move(result_vec));
+        resp_out->results_or_error = std::move(result_acc);
     }
 }
