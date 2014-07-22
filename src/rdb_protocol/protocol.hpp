@@ -542,10 +542,10 @@ struct batched_insert_t {
     batched_insert_t(
             std::vector<counted_t<const ql::datum_t> > &&_inserts,
             const std::string &_pkey, conflict_behavior_t _conflict_behavior,
-            const std::map<std::string, ql::wire_func_t > &_optargs,
+            const ql::configured_limits_t &_limits,
             bool _return_vals)
         : inserts(std::move(_inserts)), pkey(_pkey),
-          conflict_behavior(_conflict_behavior), optargs(_optargs),
+          conflict_behavior(_conflict_behavior), limits(_limits),
           return_vals(_return_vals) {
         r_sanity_check(inserts.size() != 0);
         r_sanity_check(inserts.size() == 1 || !return_vals);
@@ -569,7 +569,7 @@ struct batched_insert_t {
     std::vector<counted_t<const ql::datum_t> > inserts;
     std::string pkey;
     conflict_behavior_t conflict_behavior;
-    std::map<std::string, ql::wire_func_t > optargs;
+    ql::configured_limits_t limits;
     bool return_vals;
 };
 

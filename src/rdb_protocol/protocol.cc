@@ -492,7 +492,6 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
 
 bool read_t::shard(const hash_region_t<key_range_t> &region,
                    read_t *read_out) const THROWS_NOTHING {
-    read_out->durability_requirement = durability_requirement;
     read_out->profile = profile;
     return boost::apply_visitor(rdb_r_shard_visitor_t(&region, read_out), read);
 }
@@ -892,7 +891,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         }
         if (!shard_inserts.empty()) {
             write_out->write = batched_insert_t(std::move(shard_inserts), bi.pkey,
-                                               bi.conflict_behavior, bi.optargs,
+                                               bi.conflict_behavior, bi.limits,
                                                bi.return_vals);
             return true;
         } else {
@@ -942,6 +941,7 @@ bool write_t::shard(const region_t &region,
                     write_t *write_out) const THROWS_NOTHING {
     write_out->durability_requirement = durability_requirement;
     write_out->profile = profile;
+    write_out->optargs = optargs;
     const rdb_w_shard_visitor_t v(&region, write_out);
     return boost::apply_visitor(v, write);
 }
@@ -1101,7 +1101,7 @@ RDB_IMPL_SERIALIZABLE_5_SINCE_v1_13(
 // Serialization format for this changed in 1.14.  We only support the
 // latest version, since this is a cluster-only type.
 RDB_IMPL_SERIALIZABLE_5(
-        batched_insert_t, inserts, pkey, conflict_behavior, optargs, return_vals);
+        batched_insert_t, inserts, pkey, conflict_behavior, limits, return_vals);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(batched_insert_t);
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(point_write_t, key, data, overwrite);
