@@ -864,8 +864,8 @@ client_t::new_feed(const counted_t<table_t> &tbl, keyspec_t &&keyspec, env_t *en
                 // users may share a feed_t, and this code path will
                 // only be run for the first one.  Rather than mess
                 // about, just use the defaults.
-                auto val = make_scoped<feed_t>(
-                    this, manager, env->ns_repo(), uuid, pkey, &interruptor);
+                auto val = make_scoped<feed_t>(this, manager, env->ns_repo(), uuid,
+                                               pkey, &interruptor);
                 feed_it = feeds.insert(std::make_pair(uuid, std::move(val))).first;
             }
 
