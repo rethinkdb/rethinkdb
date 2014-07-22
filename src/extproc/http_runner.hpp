@@ -119,7 +119,7 @@ RDB_SERIALIZE_OUTSIDE(http_opts_t);
 RDB_DECLARE_SERIALIZABLE(http_opts_t::http_auth_t);
 
 
-// A handle to a running "javascript evaluator" job.
+// A handle to a running "HTTP fetcher" job.
 class http_runner_t : public home_thread_mixin_t {
 public:
     explicit http_runner_t(extproc_pool_t *_pool);
