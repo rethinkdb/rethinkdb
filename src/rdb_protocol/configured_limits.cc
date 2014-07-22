@@ -8,7 +8,7 @@ configured_limits_t
 from_optargs(rdb_context_t *ctx, signal_t *interruptor,
              const std::map<std::string, wire_func_t> &arguments)
 {
-    auto p = arguments.find("arrayLimit");
+    auto p = arguments.find("array_limit");
     if (p != arguments.end()) {
         // Fake an environment with no arguments.  We have to fake it
         // because of a chicken/egg problem; this function gets called
