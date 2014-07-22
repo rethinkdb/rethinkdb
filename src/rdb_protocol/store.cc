@@ -496,7 +496,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         interruptor(_interruptor),
         superblock(_superblock),
         timestamp(_timestamp),
-        profile(_profile) {
+        trace(_trace) {
         sindex_block =
             store->acquire_sindex_block_for_write((*superblock)->expose_buf(),
                                                   (*superblock)->get_sindex_block_id());
