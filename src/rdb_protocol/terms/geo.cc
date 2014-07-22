@@ -410,7 +410,7 @@ private:
             rfail(base_exc_t::GENERIC, "%s", e.what());
         }
         counted_t<val_t> max_dist_arg = args->optarg(env, "max_dist");
-        double max_dist = 1000; // Default: 1 km
+        double max_dist = 100000; // Default: 100 km
         if (max_dist_arg.has()) {
             max_dist =
                 convert_dist_unit(max_dist_arg->as_num(), dist_unit, dist_unit_t::M);
@@ -420,7 +420,7 @@ private:
         counted_t<val_t> max_results_arg = args->optarg(env, "max_results");
         int64_t max_results = 100; // Default: 100 results
         if (max_results_arg.has()) {
-            max_results = max_dist_arg->as_int();
+            max_results = max_results_arg->as_int();
             rcheck_target(max_results_arg, base_exc_t::GENERIC, max_results > 0,
                           "max_results must be positive.");
         }

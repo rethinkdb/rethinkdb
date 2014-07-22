@@ -753,7 +753,7 @@ void rdb_r_unshard_visitor_t::operator()(const intersecting_geo_read_t &) {
         combined_results.to_counted());
 }
 
-void rdb_r_unshard_visitor_t::operator()(const nearest_geo_read_t &) {
+void rdb_r_unshard_visitor_t::operator()(const nearest_geo_read_t &query) {
     // Merge the different results together while preserving ordering.
     struct iter_range_t {
         iter_range_t(
@@ -765,7 +765,7 @@ void rdb_r_unshard_visitor_t::operator()(const nearest_geo_read_t &) {
     };
     std::vector<iter_range_t> iters;
     iters.reserve(count);
-    size_t total_size = 0;
+    uint64_t total_size = 0;
     for (size_t i = 0; i < count; ++i) {
         auto res = boost::get<nearest_geo_read_response_t>(&responses[i].response);
         guarantee(res != NULL);
@@ -783,15 +783,19 @@ void rdb_r_unshard_visitor_t::operator()(const nearest_geo_read_t &) {
         }
         total_size += results->size();
     }
+    total_size = std::min(total_size, query.max_results);
     nearest_geo_read_response_t::result_t combined_results;
     combined_results.reserve(total_size);
-    // Collect data until all iterators have been exhausted
-    while (!iters.empty()) {
+    // Collect data until all iterators have been exhausted or we hit the
+    // max_results limit.
+    while (combined_results.size() < total_size) {
+        rassert(!iters.empty());
         // Find the iter with the nearest result
         size_t nearest_it_idx = iters.size();
         double nearest_it_dist = -1.0;
         for (size_t i = 0; i < iters.size(); ++i) {
-            if (iters[i].it->first < nearest_it_dist) {
+            if (nearest_it_idx == iters.size()
+                || iters[i].it->first < nearest_it_dist) {
                 nearest_it_idx = i;
                 nearest_it_dist = iters[i].it->first;
             }
@@ -803,7 +807,6 @@ void rdb_r_unshard_visitor_t::operator()(const nearest_geo_read_t &) {
             iters.erase(iters.begin() + nearest_it_idx);
         }
     }
-    rassert(combined_results.size() == total_size);
     response_out->response = nearest_geo_read_response_t(
         std::move(combined_results));
 }

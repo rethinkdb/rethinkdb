@@ -200,15 +200,19 @@ nearest_traversal_state_t::nearest_traversal_state_t(
         double _max_radius,
         const ellipsoid_spec_t &_reference_ellipsoid) :
     processed_inradius(0.0),
+    current_inradius(std::min(_max_radius,
+            NEAREST_INITIAL_RADIUS_FRACTION * _reference_ellipsoid.equator_radius())),
     center(_center),
     max_results(_max_results),
     max_radius(_max_radius),
     reference_ellipsoid(_reference_ellipsoid) { }
 
+#include "debug.hpp"
 done_traversing_t nearest_traversal_state_t::proceed_to_next_batch() {
     processed_inradius = current_inradius;
     // TODO! Do something smarter.
     current_inradius = std::min(current_inradius * 1.5, max_radius);
+    debugf("New radius is: %f\n", current_inradius);
 
     if (processed_inradius >= max_radius || distinct_emitted.size() >= max_results) {
         return done_traversing_t::YES;
@@ -268,7 +272,8 @@ void nearest_traversal_cb_t::init_query_geometry() {
         // The radius has become too large for constructing the query geometry.
         // Abort.
         throw geo_range_exception_t(
-            "The radius is too large to perform an optimized nearest traversal.");
+            "The distance has become too large for continuing the indexed nearest "
+            "traversal (consider specifying a smaller `max_dist` parameter).");
     } catch (const geo_exception_t &e) {
         crash("Geo exception thrown while initializing nearest query geometry: %s",
               e.what());

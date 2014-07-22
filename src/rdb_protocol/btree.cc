@@ -998,26 +998,32 @@ void rdb_get_nearest_slice(
     //   the copying of the result we do here is bad.
     nearest_traversal_state_t state(center, max_results, max_dist, geo_system);
     do {
+        debugf("Traversing once\n");
         nearest_geo_read_response_t partial_response;
-        nearest_traversal_cb_t callback(
-            slice,
-            geo_sindex_data_t(pk_range, sindex_info.mapping, sindex_info.multi),
-            ql_env,
-            &state);
-        btree_parallel_traversal(
-            superblock, &callback,
-            ql_env->interruptor,
-            release_superblock_t::KEEP);
-        callback.finish(&partial_response);
-        if (boost::get<ql::exc_t *>(partial_response.results_or_error)) {
+        try {
+            nearest_traversal_cb_t callback(
+                slice,
+                geo_sindex_data_t(pk_range, sindex_info.mapping, sindex_info.multi),
+                ql_env,
+                &state);
+            btree_parallel_traversal(
+                superblock, &callback,
+                ql_env->interruptor,
+                release_superblock_t::KEEP);
+            callback.finish(&partial_response);
+        } catch (const geo_exception_t &e) {
+            partial_response.results_or_error =
+                ql::exc_t(ql::base_exc_t::GENERIC, e.what(), NULL);
+        }
+        if (boost::get<ql::exc_t>(&partial_response.results_or_error)) {
             response->results_or_error = partial_response.results_or_error;
             return;
         } else {
-            auto partial_res = boost::get<nearest_geo_read_response_t::result_t *>(
-                partial_response.results_or_error);
+            auto partial_res = boost::get<nearest_geo_read_response_t::result_t>(
+                &partial_response.results_or_error);
             guarantee(partial_res != NULL);
-            auto full_res = boost::get<nearest_geo_read_response_t::result_t *>(
-                response->results_or_error);
+            auto full_res = boost::get<nearest_geo_read_response_t::result_t>(
+                &response->results_or_error);
             if (full_res == NULL) {
                 response->results_or_error = std::move(*partial_res);
             } else {
