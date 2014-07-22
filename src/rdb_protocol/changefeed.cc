@@ -258,7 +258,6 @@ private:
     cond_t queues_ready;
 
     typedef std::vector<std::set<subscription_t *> > subvec_t;
-    friend class keyspec_visitor_t;
     subvec_t table_subs;
     std::map<counted_t<const datum_t>, subvec_t> point_subs;
     rwlock_t table_subs_lock, point_subs_lock;
@@ -540,69 +539,6 @@ RDB_MAKE_SERIALIZABLE_1(keyspec_t::point_t, key);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::point_t);
 RDB_MAKE_SERIALIZABLE_1(keyspec_t, spec);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(keyspec_t);
-
-enum class action_t { ADD, DEL };
-class keyspec_visitor_t : public boost::static_visitor<void> {
-public:
-    keyspec_visitor_t(feed_t *_feed, action_t _action, subscription_t *_sub)
-        : feed(_feed), action(_action), sub(_sub) { }
-
-    void operator()(const keyspec_t::all_t &) const {
-        auto_drainer_t::lock_t lock(&feed->drainer);
-        rwlock_in_line_t spot(&feed->table_subs_lock, access_t::write);
-        spot.write_signal()->wait_lazily_unordered();
-        switch (action) {
-        case action_t::ADD: {
-            feed->table_subs[sub->home_thread().threadnum].insert(sub);
-        } break;
-        case action_t::DEL: {
-            size_t erased = feed->table_subs[sub->home_thread().threadnum].erase(sub);
-            guarantee(erased == 1);
-        } break;
-        default: unreachable();
-        }
-    }
-    void operator()(const keyspec_t::point_t &point_keyspec) const {
-        auto_drainer_t::lock_t lock(&feed->drainer);
-        rwlock_in_line_t spot(&feed->point_subs_lock, access_t::write);
-        spot.read_signal()->wait_lazily_unordered();
-        auto point_subs = &feed->point_subs;
-        auto subvec_it = point_subs->find(point_keyspec.key);
-        spot.write_signal()->wait_lazily_unordered();
-        switch (action) {
-        case action_t::ADD: {
-            if (subvec_it == point_subs->end()) {
-                subvec_it = point_subs->insert(
-                    std::make_pair(
-                        point_keyspec.key,
-                        decltype(subvec_it->second)(get_num_threads()))).first;
-            }
-            (subvec_it->second)[sub->home_thread().threadnum].insert(sub);
-        } break;
-        case action_t::DEL: {
-            guarantee(subvec_it != point_subs->end());
-            size_t erased = (subvec_it->second)[sub->home_thread().threadnum].erase(sub);
-            guarantee(erased == 1);
-
-            // If there are no more subscribers, remove the key from the map.
-            auto it = subvec_it->second.begin();
-            for (; it != subvec_it->second.end(); ++it) {
-                if (it->size() != 0) {
-                    break;
-                }
-            }
-            if (it == subvec_it->second.end()) {
-                point_subs->erase(subvec_it);
-            }
-        } break;
-        default: unreachable();
-        }
-    }
-private:
-    feed_t *feed;
-    action_t action;
-    subscription_t *sub;
-};
 
 // If this throws we might leak the increment to `num_subs`.
 void feed_t::add_point_sub(subscription_t *sub,
