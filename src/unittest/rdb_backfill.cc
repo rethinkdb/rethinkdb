@@ -46,9 +46,6 @@ void run_with_broadcaster(
     // io backender
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
 
-    /* Create some structures for the rdb_context_t, warning some
-     * boilerplate is about to follow, avert your eyes if you have a weak
-     * stomach for such things. */
     extproc_pool_t extproc_pool(2);
     rdb_context_t ctx(&extproc_pool,
                       NULL,

@@ -65,11 +65,7 @@ void run_with_namespace_interface(
                                                       &get_global_perfmon_collection()));
     }
 
-    /* Create some structures for the rdb_context_t, warning some
-     * boilerplate is about to follow, avert your eyes if you have a weak
-     * stomach for such things. */
     extproc_pool_t extproc_pool(2);
-
     rdb_context_t ctx(&extproc_pool,
                       NULL,
                       NULL);

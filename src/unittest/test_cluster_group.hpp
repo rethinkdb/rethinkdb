@@ -15,7 +15,6 @@
 #include "clustering/reactor/directory_echo.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"
 #include "unittest/branch_history_manager.hpp"
@@ -98,24 +97,10 @@ public:
     peer_id_t get_me();
 
     connectivity_cluster_t connectivity_cluster;
-    message_multiplexer_t message_multiplexer;
-
-    message_multiplexer_t::client_t heartbeat_manager_client;
-    heartbeat_manager_t heartbeat_manager;
-    message_multiplexer_t::client_t::run_t heartbeat_manager_client_run;
-
-    message_multiplexer_t::client_t mailbox_manager_client;
     mailbox_manager_t mailbox_manager;
-    message_multiplexer_t::client_t::run_t mailbox_manager_client_run;
-
     watchable_variable_t<test_cluster_directory_t> our_directory_variable;
-    message_multiplexer_t::client_t directory_manager_client;
     directory_read_manager_t<test_cluster_directory_t> directory_read_manager;
     directory_write_manager_t<test_cluster_directory_t> directory_write_manager;
-    message_multiplexer_t::client_t::run_t directory_manager_client_run;
-
-    message_multiplexer_t::run_t message_multiplexer_run;
-
     connectivity_cluster_t::run_t connectivity_cluster_run;
 
     in_memory_branch_history_manager_t branch_history_manager;

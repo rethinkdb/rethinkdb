@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "concurrency/new_semaphore.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "rpc/connectivity/cluster.hpp"
@@ -115,26 +116,17 @@ void send(mailbox_manager_t *src,
           raw_mailbox_t::address_t dest,
           mailbox_write_callback_t *callback);
 
-/* `mailbox_manager_t` uses a `message_service_t` to provide mailbox capability.
-Usually you will split a `message_service_t` into several sub-services using
-`message_multiplexer_t` and put a `mailbox_manager_t` on only one of them,
-because the `mailbox_manager_t` relies on something else to send the initial
-mailbox addresses back and forth between nodes. */
+/* `mailbox_manager_t` is a `cluster_message_handler_t` that takes care
+of actually routing messages to mailboxes. */
 
-class mailbox_manager_t : public message_handler_t {
+class mailbox_manager_t : public cluster_message_handler_t {
 public:
-    explicit mailbox_manager_t(message_service_t *);
-
-    /* Returns the connectivity service of the underlying message service. */
-    connectivity_service_t *get_connectivity_service() {
-        return message_service->get_connectivity_service();
-    }
+    mailbox_manager_t(connectivity_cluster_t *connectivity_cluster,
+                      connectivity_cluster_t::message_tag_t message_tag);
 
 private:
     friend struct raw_mailbox_t;
     friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, mailbox_write_callback_t *callback);
-
-    message_service_t *message_service;
 
     struct mailbox_table_t {
         mailbox_table_t();
@@ -146,6 +138,11 @@ private:
     };
     one_per_thread_t<mailbox_table_t> mailbox_tables;
 
+    /* We must acquire one of these semaphores whenever we want to send a message over a
+    mailbox. This prevents mailbox messages from starving directory and semilattice
+    messages. */
+    one_per_thread_t<new_semaphore_t> semaphores;
+
     raw_mailbox_t::id_t generate_mailbox_id();
 
     raw_mailbox_t::id_t register_mailbox(raw_mailbox_t *mb);
@@ -156,19 +153,32 @@ private:
                                       raw_mailbox_t::id_t dest_mailbox_id,
                                       mailbox_write_callback_t *callback);
 
-    void on_message(peer_id_t source_peer, cluster_version_t version,
+    void on_message(connectivity_cluster_t::connection_t *connection,
+                    auto_drainer_t::lock_t connection_keeepalive,
+                    cluster_version_t version,
                     read_stream_t *stream);
-    void on_local_message(peer_id_t source_peer, cluster_version_t version,
+    void on_local_message(connectivity_cluster_t::connection_t *connection,
+                          auto_drainer_t::lock_t connection_keepalive,
+                          cluster_version_t version,
                           std::vector<char> &&data);
 
     enum force_yield_t {FORCE_YIELD, MAYBE_YIELD};
-    void mailbox_read_coroutine(peer_id_t source_peer,
+    void mailbox_read_coroutine(connectivity_cluster_t::connection_t *connection,
+                                auto_drainer_t::lock_t connection_keepalive,
                                 cluster_version_t cluster_version,
                                 threadnum_t dest_thread,
                                 raw_mailbox_t::id_t dest_mailbox_id,
                                 std::vector<char> *stream_data,
                                 int64_t stream_data_offset,
                                 force_yield_t force_yield);
+};
+
+class disconnect_watcher_t : public signal_t, private signal_t::subscription_t {
+public:
+    disconnect_watcher_t(mailbox_manager_t *mailbox_manager, peer_id_t peer);
+private:
+    void run();
+    auto_drainer_t::lock_t connection_keepalive;
 };
 
 #endif /* RPC_MAILBOX_MAILBOX_HPP_ */

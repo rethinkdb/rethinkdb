@@ -29,8 +29,6 @@
 #include "rdb_protocol/query_server.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/connectivity/cluster.hpp"
-#include "rpc/connectivity/multiplexer.hpp"
-#include "rpc/connectivity/heartbeat.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
@@ -106,23 +104,14 @@ bool do_serve(io_backender_t *io_backender,
 #endif
 
         connectivity_cluster_t connectivity_cluster;
-        message_multiplexer_t message_multiplexer(&connectivity_cluster);
 
-        message_multiplexer_t::client_t heartbeat_manager_client(&message_multiplexer, 'H', SEMAPHORE_NO_LIMIT);
-        heartbeat_manager_t heartbeat_manager(&heartbeat_manager_client);
-        message_multiplexer_t::client_t::run_t heartbeat_manager_client_run(&heartbeat_manager_client, &heartbeat_manager);
+        mailbox_manager_t mailbox_manager(&connectivity_cluster, 'M');
 
-        message_multiplexer_t::client_t mailbox_manager_client(&message_multiplexer, 'M');
-        mailbox_manager_t mailbox_manager(&mailbox_manager_client);
-        message_multiplexer_t::client_t::run_t mailbox_manager_client_run(&mailbox_manager_client, &mailbox_manager);
+        semilattice_manager_t<cluster_semilattice_metadata_t>
+            semilattice_manager_cluster(&connectivity_cluster, 'S', cluster_metadata);
 
-        message_multiplexer_t::client_t semilattice_manager_client(&message_multiplexer, 'S');
-        semilattice_manager_t<cluster_semilattice_metadata_t> semilattice_manager_cluster(&semilattice_manager_client, cluster_metadata);
-        message_multiplexer_t::client_t::run_t semilattice_manager_client_run(&semilattice_manager_client, &semilattice_manager_cluster);
-
-        message_multiplexer_t::client_t auth_manager_client(&message_multiplexer, 'A');
-        semilattice_manager_t<auth_semilattice_metadata_t> auth_manager_cluster(&auth_manager_client, auth_metadata);
-        message_multiplexer_t::client_t::run_t auth_manager_client_run(&auth_manager_client, &auth_manager_cluster);
+        semilattice_manager_t<auth_semilattice_metadata_t>
+            auth_manager_cluster(&connectivity_cluster, 'A', auth_metadata);
 
         log_server_t log_server(&mailbox_manager, &log_writer);
 
@@ -147,17 +136,16 @@ bool do_serve(io_backender_t *io_backender,
 
         watchable_variable_t<cluster_directory_metadata_t> our_root_directory_variable(*initial_directory);
 
-        message_multiplexer_t::client_t directory_manager_client(&message_multiplexer, 'D');
-        directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(&directory_manager_client, our_root_directory_variable.get_watchable());
-        directory_read_manager_t<cluster_directory_metadata_t> directory_read_manager(connectivity_cluster.get_connectivity_service());
-        message_multiplexer_t::client_t::run_t directory_manager_client_run(&directory_manager_client, &directory_read_manager);
+        directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(
+            &connectivity_cluster, 'D', our_root_directory_variable.get_watchable());
+        directory_read_manager_t<cluster_directory_metadata_t> directory_read_manager(
+            &connectivity_cluster, 'D');
 
         network_logger_t network_logger(
             connectivity_cluster.get_me(),
             directory_read_manager.get_root_view(),
             metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()));
 
-        message_multiplexer_t::run_t message_multiplexer_run(&message_multiplexer);
         scoped_ptr_t<connectivity_cluster_t::run_t> connectivity_cluster_run;
 
         try {
@@ -166,9 +154,7 @@ bool do_serve(io_backender_t *io_backender,
                 serve_info.ports.local_addresses,
                 serve_info.ports.canonical_addresses,
                 serve_info.ports.port,
-                &message_multiplexer_run,
-                serve_info.ports.client_port,
-                &heartbeat_manager));
+                serve_info.ports.client_port));
 
             // Update the directory with the ip addresses that we are passing to peers
             std::set<ip_and_port_t> ips = connectivity_cluster_run->get_ips();
@@ -186,7 +172,8 @@ bool do_serve(io_backender_t *io_backender,
         if (serve_info.ports.port != 0) {
             guarantee(serve_info.ports.port == connectivity_cluster_run->get_port());
         }
-        logINF("Listening for intracluster connections on port %d\n", connectivity_cluster_run->get_port());
+        logINF("Listening for intracluster connections on port %d\n",
+            connectivity_cluster_run->get_port());
 
         auto_reconnector_t auto_reconnector(
             &connectivity_cluster,
