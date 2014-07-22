@@ -1258,8 +1258,6 @@ void deserialize_sindex_info(const std::vector<char> &data,
     guarantee_deserialization(success, "sindex description");
     success = deserialize_for_version(cluster_version, &read_stream, &info_out->multi);
     guarantee_deserialization(success, "sindex description");
-    // TODO! Temporary hack for testing
-    cluster_version = cluster_version_t::v1_14;
     if (cluster_version >= cluster_version_t::v1_14) {
         success = deserialize_for_version(cluster_version, &read_stream, &info_out->geo);
         guarantee_deserialization(success, "sindex description");
