@@ -78,21 +78,16 @@ void semilattice_manager_t<metadata_t>::root_view_t::join(const metadata_t &adde
     handler. */
     auto_drainer_t::lock_t parent_keepalive(parent->drainers.get());
 
-    /* Make a copy of `added_metadata` for benefit of the lambda, because
-    `added_metadata` is a reference. In theory this shouldn't be necessary, because the
-    compiler should make a copy of the referenced object, not of the reference, when
-    capturing `added_metadata` by value. But in practice GCC doesn't handle this case
-    properly. See GCC bug #49598 for more details. */
-    metadata_t added_metadata_copy = added_metadata;
-
-    for (auto pair : parent->last_connections) {
+    for (const std::pair<connectivity_cluster_t::connection_t *,
+                         auto_drainer_t::lock_t> &pair :
+            parent->last_connections) {
         connectivity_cluster_t::connection_t *connection = pair.first;
         auto_drainer_t::lock_t connection_keepalive = pair.second;
         coro_t::spawn_sometime(
             [this, parent_keepalive /* important to capture */,
              connection, connection_keepalive /* important to capture */,
-             new_version, added_metadata_copy]() {
-                metadata_writer_t writer(added_metadata_copy, new_version);
+             new_version, added_metadata]() {
+                metadata_writer_t writer(added_metadata, new_version);
                 new_semaphore_acq_t acq(&parent->semaphore, 1);
                 acq.acquisition_signal()->wait();
                 parent->get_connectivity_cluster()->send_message(connection,
@@ -224,10 +219,11 @@ void semilattice_manager_t<metadata_t>::root_view_t::sync_from(peer_id_t peer, s
     parent->assert_thread();
 
     /* Confirm that we are connected to the target peer */
-    connectivity_cluster_t::connection_t *connection;
     auto_drainer_t::lock_t connection_keepalive;
-    if (!(connection = parent->get_connectivity_cluster()->
-            get_connection(peer, &connection_keepalive))) {
+    connectivity_cluster_t::connection_t *connection =
+        parent->get_connectivity_cluster()->
+            get_connection(peer, &connection_keepalive);
+    if (!connection) {
         throw sync_failed_exc_t();
     }
 
@@ -263,10 +259,11 @@ void semilattice_manager_t<metadata_t>::root_view_t::sync_to(peer_id_t peer, sig
     parent->assert_thread();
 
     /* Confirm that we are connected to the target peer */
-    connectivity_cluster_t::connection_t *connection;
     auto_drainer_t::lock_t connection_keepalive;
-    if (!(connection = parent->get_connectivity_cluster()->
-            get_connection(peer, &connection_keepalive))) {
+    connectivity_cluster_t::connection_t *connection =
+        parent->get_connectivity_cluster()->
+            get_connection(peer, &connection_keepalive);
+    if (!connection) {
         throw sync_failed_exc_t();
     }
 
@@ -481,7 +478,9 @@ template<class metadata_t>
 void semilattice_manager_t<metadata_t>::on_connections_change() {
     connectivity_cluster_t::connection_map_t current_connections =
             get_connectivity_cluster()->get_connections()->get();
-    for (auto pair : current_connections) {
+    for (const std::pair<connectivity_cluster_t::connection_t *,
+                         auto_drainer_t::lock_t> &pair :
+            current_connections) {
         connectivity_cluster_t::connection_t *connection = pair.second.first;
         auto_drainer_t::lock_t connection_keepalive = pair.second.second;
         if (last_connections.count(connection) == 0) {
@@ -497,7 +496,9 @@ void semilattice_manager_t<metadata_t>::on_connections_change() {
             });
         }
     }
-    for (auto pair : last_connections) {
+    for (const std::pair<connectivity_cluster_t::connection_t *,
+                         auto_drainer_t::lock_t> &pair :
+            last_connections) {
         if (current_connections.count(pair.first->get_peer_id()) == 0) {
             last_connections.erase(pair.first);
         }
@@ -521,10 +522,11 @@ void semilattice_manager_t<metadata_t>::wait_for_version_from_peer(peer_id_t pee
         return;
     }
 
-    connectivity_cluster_t::connection_t *connection;
     auto_drainer_t::lock_t connection_keepalive;
-    if (!(connection = get_connectivity_cluster()->
-            get_connection(peer, &connection_keepalive))) {
+    connectivity_cluster_t::connection_t *connection =
+        get_connectivity_cluster()->
+            get_connection(peer, &connection_keepalive);
+    if (connection) {
         throw sync_failed_exc_t();
     }
 

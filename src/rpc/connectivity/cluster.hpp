@@ -302,7 +302,7 @@ public:
 
     /* This returns a watchable table of every active connection. The returned
     `watchable_t` will be valid for the thread that `get_connections()` was called on. */
-    typedef std::map<peer_id_t, std::pair<connection_t *, auto_drainer_t::lock_t>>
+    typedef std::map<peer_id_t, std::pair<connection_t *, auto_drainer_t::lock_t> >
             connection_map_t;
     clone_ptr_t<watchable_t<connection_map_t> > get_connections() THROWS_NOTHING;
 

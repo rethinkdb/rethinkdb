@@ -973,8 +973,8 @@ connectivity_cluster_t::message_handler_t::message_handler_t(connectivity_cluste
         connectivity_cluster(cm), tag(t)
 {
     guarantee(!connectivity_cluster->current_run);
-    rassert(tag != heartbeat_tag, "Tag %d is reserved for heartbeat messages.",
-        static_cast<int>(heartbeat_tag));
+    rassert(tag != heartbeat_tag, "Tag %" PRIu8 " is reserved for heartbeat messages.",
+        heartbeat_tag);
     rassert(connectivity_cluster->message_handlers[tag] == NULL);
     connectivity_cluster->message_handlers[tag] = this;
 }
@@ -1017,7 +1017,7 @@ peer_id_t connectivity_cluster_t::get_me() THROWS_NOTHING {
     return me;
 }
 
-clone_ptr_t<watchable_t<connectivity_cluster_t::connection_map_t>>
+clone_ptr_t<watchable_t<connectivity_cluster_t::connection_map_t> >
 connectivity_cluster_t::get_connections() THROWS_NOTHING {
     return connections.get()->get_watchable();
 }
@@ -1089,8 +1089,7 @@ void connectivity_cluster_t::send_message(connection_t *connection,
         // We could be on any thread here! Oh no!
         std::vector<char> buffer_data;
         buffer.swap(&buffer_data);
-        rassert(message_handlers[tag], "No message handler for tag %d",
-            static_cast<int>(tag));
+        rassert(message_handlers[tag], "No message handler for tag %" PRIu8, tag);
         message_handlers[tag]->on_local_message(connection, connection_keepalive,
             cluster_version, std::move(buffer_data));
     } else {
