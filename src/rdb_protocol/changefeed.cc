@@ -294,16 +294,24 @@ public:
             &read_resp.response);
         guarantee(resp != NULL);
         uint64_t start_stamp = resp->stamp.second;
-        if (start_stamp >= stamp) {
+        // It's OK to check `el.has()` because we never return the subscription
+        // to anything that calls `get_els` unless the subscription has been
+        // started.  We use `>` because a normal stamp that's equal to the start
+        // stamp wins (the semantics are that the start stamp is the first
+        // "legal" stamp).
+        if (!el.has() || start_stamp > stamp) {
             stamp = start_stamp;
             el = std::move(resp->initial_val);
         }
-        guarantee(el.has());
     }
 private:
     virtual void add_el(const uuid_u &, uint64_t d_stamp, counted_t<const datum_t> d) {
         assert_thread();
-        if (d_stamp > stamp) {
+        // We use `>=` because we might have the same stamp as the start stamp
+        // (the start stamp reads the stamp non-destructively on the shards).
+        // We do ordering and duplicate checking in the layer above, so apart
+        // from that we have a strict ordering.
+        if (d_stamp >= stamp) {
             stamp = d_stamp;
             el = d;
             maybe_signal_cond();
@@ -457,7 +465,7 @@ subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
     assert_thread();
     guarantee(cond == NULL); // Can't get while blocking.
     auto_drainer_t::lock_t lock(&drainer);
-    if (has_el() && !exc) {
+    if (!has_el() && !exc) {
         cond_t wait_for_data;
         cond = &wait_for_data;
         signal_timer_t timer;
@@ -532,24 +540,6 @@ void subscription_t::destructor_cleanup(std::function<void()> del_sub) THROWS_NO
         guarantee(exc);
     }
 }
-
-// RSI: remove
-/*
-class keyspec_to_region_visitor_t : public boost::static_visitor<region_t> {
-public:
-    region_t operator()(const keyspec_t::all_t &) const {
-        return region_t::universe();
-    }
-    region_t operator()(const keyspec_t::point_t &point_keyspec) const {
-        store_key_t sk(point_keyspec.key->print_primary());
-        return region_t(key_range_t(key_range_t::closed, sk, key_range_t::closed, sk));
-    }
-};
-
-region_t keyspec_to_region(const keyspec_t &keyspec) {
-    return boost::apply_visitor(keyspec_to_region_visitor_t(), keyspec.spec);
-}
-*/
 
 RDB_MAKE_SERIALIZABLE_0(keyspec_t::all_t);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::all_t);
