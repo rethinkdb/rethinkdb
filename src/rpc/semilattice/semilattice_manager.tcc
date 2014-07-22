@@ -478,8 +478,8 @@ template<class metadata_t>
 void semilattice_manager_t<metadata_t>::on_connections_change() {
     connectivity_cluster_t::connection_map_t current_connections =
             get_connectivity_cluster()->get_connections()->get();
-    for (const std::pair<connectivity_cluster_t::connection_t *,
-                         auto_drainer_t::lock_t> &pair :
+    for (const std::pair<peer_id_t, std::pair<connectivity_cluster_t::connection_t *,
+                                              auto_drainer_t::lock_t> > &pair :
             current_connections) {
         connectivity_cluster_t::connection_t *connection = pair.second.first;
         auto_drainer_t::lock_t connection_keepalive = pair.second.second;
