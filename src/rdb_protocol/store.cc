@@ -391,8 +391,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const batched_insert_t &bi) {
         ql::env_t ql_env(ctx, interruptor, bi.optargs, trace);
         rdb_modification_report_cb_t sindex_cb(
-            store,
-            &sindex_block,
+            store, &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));
         datum_replacer_t replacer(bi);
         std::vector<store_key_t> keys;
