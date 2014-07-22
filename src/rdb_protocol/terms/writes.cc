@@ -19,13 +19,13 @@ counted_t<const datum_t> pure_merge(UNUSED const std::string &key,
 }
 
 counted_t<const datum_t> new_stats_object() {
-    datum_ptr_t stats(datum_t::R_OBJECT);
+    datum_object_builder_t stats;
     const char *const keys[] =
         {"inserted", "deleted", "skipped", "replaced", "unchanged", "errors"};
     for (size_t i = 0; i < sizeof(keys)/sizeof(*keys); ++i) {
         UNUSED bool b = stats.add(keys[i], make_counted<datum_t>(0.0));
     }
-    return stats.to_counted();
+    return std::move(stats).to_counted();
 }
 
 conflict_behavior_t parse_conflict_optarg(counted_t<val_t> arg,
@@ -69,10 +69,12 @@ private:
         if (!(*datum_out)->get(tbl->get_pkey(), NOTHROW).has()) {
             std::string key = uuid_to_str(generate_uuid());
             counted_t<const datum_t> keyd(new datum_t(std::string(key)));
-            datum_ptr_t d(datum_t::R_OBJECT);
-            bool conflict = d.add(tbl->get_pkey(), keyd);
-            r_sanity_check(!conflict);
-            *datum_out = (*datum_out)->merge(d.to_counted(), pure_merge);
+            {
+                datum_object_builder_t d;
+                bool conflict = d.add(tbl->get_pkey(), keyd);
+                r_sanity_check(!conflict);
+                *datum_out = (*datum_out)->merge(std::move(d).to_counted(), pure_merge);
+            }
             if (generated_keys_out->size() < array_size_limit()) {
                 generated_keys_out->push_back(key);
             } else {
@@ -148,10 +150,10 @@ private:
             for (size_t i = 0; i < generated_keys.size(); ++i) {
                 genkeys.push_back(make_counted<datum_t>(std::move(generated_keys[i])));
             }
-            datum_ptr_t d(datum_t::R_OBJECT);
+            datum_object_builder_t d;
             UNUSED bool b = d.add("generated_keys",
                                   make_counted<datum_t>(std::move(genkeys)));
-            stats = stats->merge(d.to_counted(), pure_merge);
+            stats = stats->merge(std::move(d).to_counted(), pure_merge);
         }
 
         if (keys_skipped > 0) {
@@ -161,10 +163,10 @@ private:
                     strprintf("Too many generated keys (%zu), array truncated to %zu.",
                               keys_skipped + generated_keys.size(),
                               generated_keys.size())));
-            datum_ptr_t d(datum_t::R_OBJECT);
+            datum_object_builder_t d;
             UNUSED bool b = d.add("warnings",
                                   make_counted<const datum_t>(std::move(warnings)));
-            stats = stats->merge(d.to_counted(), stats_merge);
+            stats = stats->merge(std::move(d).to_counted(), stats_merge);
         }
 
         return new_val(stats);
@@ -262,7 +264,7 @@ private:
         const char *fail_msg = "FOREACH expects one or more basic write queries.";
 
         counted_t<datum_stream_t> ds = args->arg(env, 0)->as_seq(env->env);
-        counted_t<const datum_t> stats(new datum_t(datum_t::R_OBJECT));
+        counted_t<const datum_t> stats = datum_t::empty_object();
         batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
         {
             profile::sampler_t sampler("Evaluating elements in for each.",

@@ -24,7 +24,7 @@ class MemcacheRdbShim(object):
             'id': key,
             'val': val
             },
-            upsert=True
+            conflict='replace'
             ).run(self.conn)
 
         error = response.get('first_error')

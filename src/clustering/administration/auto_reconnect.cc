@@ -27,11 +27,15 @@ void auto_reconnector_t::on_connect_or_disconnect() {
     std::map<peer_id_t, machine_id_t> map = machine_id_translation_table->get().get_inner();
     for (std::map<peer_id_t, machine_id_t>::iterator it = map.begin(); it != map.end(); it++) {
         if (connected_peers.find(it->first) == connected_peers.end()) {
+            auto_drainer_t::lock_t connection_keepalive;
+            connectivity_cluster_t::connection_t *connection =
+                connectivity_cluster->get_connection(it->first, &connection_keepalive);
+            guarantee(connection != NULL);
             connected_peers.insert(std::make_pair(
                 it->first,
                 std::make_pair(
                     it->second,
-                    connectivity_cluster->get_peer_address(it->first))));
+                    connection->get_peer_address())));
         }
     }
     for (auto it = connected_peers.begin(); it != connected_peers.end();) {

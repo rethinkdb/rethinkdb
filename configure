@@ -1111,7 +1111,6 @@ all_fetch_deps () {
             ret="$ret $pkg"
         fi
     done
-    echo ret: $ret >&2
     echo "$ret"
 }
 

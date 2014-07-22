@@ -3,7 +3,6 @@
 
 #include <map>
 
-#include "clustering/administration/metadata.hpp"
 #include "rdb_protocol/batching.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
@@ -660,8 +659,11 @@ eager_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &bs) {
 }
 
 counted_t<const datum_t> eager_datum_stream_t::as_array(env_t *env) {
-    if (is_grouped() || !is_array()) return counted_t<const datum_t>();
-    datum_ptr_t arr(datum_t::R_ARRAY);
+    if (is_grouped() || !is_array()) {
+        return counted_t<const datum_t>();
+    }
+
+    datum_array_builder_t arr;
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
     {
         profile::sampler_t sampler("Evaluating stream eagerly.", env->trace);
@@ -670,7 +672,7 @@ counted_t<const datum_t> eager_datum_stream_t::as_array(env_t *env) {
             sampler.new_sample();
         }
     }
-    return arr.to_counted();
+    return std::move(arr).to_counted();
 }
 
 // LAZY_DATUM_STREAM_T
@@ -951,7 +953,7 @@ counted_t<const datum_t> union_datum_stream_t::as_array(env_t *env) {
     if (!is_array()) {
         return counted_t<const datum_t>();
     }
-    datum_ptr_t arr(datum_t::R_ARRAY);
+    datum_array_builder_t arr;
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
     {
         profile::sampler_t sampler("Evaluating stream eagerly.", env->trace);
@@ -960,7 +962,7 @@ counted_t<const datum_t> union_datum_stream_t::as_array(env_t *env) {
             sampler.new_sample();
         }
     }
-    return arr.to_counted();
+    return std::move(arr).to_counted();
 }
 
 bool union_datum_stream_t::is_exhausted() const {

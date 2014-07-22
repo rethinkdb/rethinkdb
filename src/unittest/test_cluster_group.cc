@@ -26,7 +26,6 @@
 #include "unittest/branch_history_manager.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "unittest/unittest_utils.hpp"
-#include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "rdb_protocol/protocol.hpp"
 
@@ -122,30 +121,16 @@ private:
  * correct blueprint. */
 reactor_test_cluster_t::reactor_test_cluster_t(int port) :
     connectivity_cluster(),
-    message_multiplexer(&connectivity_cluster),
-
-    heartbeat_manager_client(&message_multiplexer, 'H'),
-    heartbeat_manager(&heartbeat_manager_client),
-    heartbeat_manager_client_run(&heartbeat_manager_client, &heartbeat_manager),
-
-    mailbox_manager_client(&message_multiplexer, 'M'),
-    mailbox_manager(&mailbox_manager_client),
-    mailbox_manager_client_run(&mailbox_manager_client, &mailbox_manager),
-
+    mailbox_manager(&connectivity_cluster, 'M'),
     our_directory_variable(test_cluster_directory_t()),
-    directory_manager_client(&message_multiplexer, 'D'),
-    directory_read_manager(&connectivity_cluster),
-    directory_write_manager(&directory_manager_client, our_directory_variable.get_watchable()),
-    directory_manager_client_run(&directory_manager_client, &directory_read_manager),
-
-    message_multiplexer_run(&message_multiplexer),
+    directory_read_manager(&connectivity_cluster, 'D'),
+    directory_write_manager(&connectivity_cluster, 'D',
+        our_directory_variable.get_watchable()),
     connectivity_cluster_run(&connectivity_cluster,
                              get_unittest_addresses(),
                              peer_address_t(),
                              port,
-                             &message_multiplexer_run,
-                             0,
-                             &heartbeat_manager) { }
+                             0) { }
 
 reactor_test_cluster_t::~reactor_test_cluster_t() { }
 
@@ -202,7 +187,8 @@ test_cluster_group_t::test_cluster_group_t(int n_machines)
 
         test_clusters.push_back(make_scoped<reactor_test_cluster_t>(ANY_PORT));
         if (i > 0) {
-            test_clusters[0]->connectivity_cluster_run.join(test_clusters[i]->connectivity_cluster.get_peer_address(test_clusters[i]->connectivity_cluster.get_me()));
+            test_clusters[0]->connectivity_cluster_run.join(
+                get_cluster_local_address(&test_clusters[i]->connectivity_cluster));
         }
     }
 }

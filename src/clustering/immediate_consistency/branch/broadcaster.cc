@@ -521,7 +521,7 @@ void broadcaster_t::pick_a_readable_dispatchee(
          d != NULL;
          d = readable_dispatchees.next(d)) {
         const bool is_local =
-            d->get_peer() == mailbox_manager->get_connectivity_service()->get_me();
+            d->get_peer() == mailbox_manager->get_connectivity_cluster()->get_me();
         if (is_local) {
             selected_dispatchee = d;
             break;

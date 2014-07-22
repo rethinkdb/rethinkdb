@@ -168,7 +168,6 @@ size_t datum_serialized_size(const counted_t<const datum_t> &datum) {
     case datum_t::R_STR: {
         sz += datum_serialized_size(datum->as_str());
     } break;
-    case datum_t::UNINITIALIZED:  // fall through
     default:
         unreachable();
     }
@@ -219,7 +218,6 @@ void datum_serialize(write_message_t *wm, const counted_t<const datum_t> &datum)
         const wire_string_t &value = datum->as_str();
         datum_serialize(wm, value);
     } break;
-    case datum_t::UNINITIALIZED:  // fall through
     default:
         unreachable();
     }
@@ -251,13 +249,13 @@ archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *d
             return res;
         }
         try {
-            datum->reset(new datum_t(datum_t::R_BOOL, value));
+            *datum = datum_t::boolean(value);
         } catch (const base_exc_t &) {
             return archive_result_t::RANGE_ERROR;
         }
     } break;
     case datum_serialized_type_t::R_NULL: {
-        datum->reset(new datum_t(datum_t::R_NULL));
+        *datum = datum_t::null();
     } break;
     case datum_serialized_type_t::DOUBLE: {
         double value;

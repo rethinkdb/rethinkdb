@@ -5,7 +5,7 @@
 #include <map>
 
 #include "region/region.hpp"
-#include "rpc/connectivity/connectivity.hpp"
+#include "rpc/connectivity/peer_id.hpp"
 #include "rpc/serialize_macros.hpp"
 
 enum blueprint_role_t { blueprint_role_primary, blueprint_role_secondary, blueprint_role_nothing };

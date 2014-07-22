@@ -4,8 +4,6 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "clustering/administration/database_metadata.hpp"
-#include "clustering/administration/metadata.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "extproc/js_runner.hpp"
 #include "rdb_protocol/counted_term.hpp"
@@ -15,20 +13,11 @@
 
 namespace ql {
 
-/* Checks that divisor is indeed a divisor of multiple. */
-template <class T>
-bool is_joined(const T &multiple, const T &divisor) {
-    T cpy = multiple;
-
-    semilattice_join(&cpy, divisor);
-    return cpy == multiple;
-}
-
 counted_t<const datum_t> static_optarg(const std::string &key, protob_t<Query> q) {
     for (int i = 0; i < q->global_optargs_size(); ++i) {
         const Query::AssocPair &ap = q->global_optargs(i);
         if (ap.key() == key && ap.val().type() == Term_TermType_DATUM) {
-            return make_counted<const datum_t>(&ap.val().datum());
+            return to_datum(&ap.val().datum());
         }
     }
 
@@ -112,60 +101,14 @@ profile_bool_t env_t::profile() const {
     return trace.has() ? profile_bool_t::PROFILE : profile_bool_t::DONT_PROFILE;
 }
 
-void env_t::join_and_wait_to_propagate(
-        const cluster_semilattice_metadata_t &metadata_to_join)
-    THROWS_ONLY(interrupted_exc_t) {
-    r_sanity_check(rdb_ctx->cluster_metadata);
-    rdb_ctx->cluster_metadata->assert_thread();
-    rdb_ctx->cluster_metadata->join(metadata_to_join);
-    cluster_semilattice_metadata_t sl_metadata
-        = rdb_ctx->cluster_metadata->get();
-
-    {
-        on_thread_t switcher(home_thread());
-        clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
-            ns_watchable = rdb_ctx->get_namespaces_watchable();
-
-        ns_watchable->run_until_satisfied(
-                boost::bind(&is_joined<cow_ptr_t<namespaces_semilattice_metadata_t > >,
-                      _1,
-                      sl_metadata.rdb_namespaces),
-                interruptor);
-
-        clone_ptr_t< watchable_t<databases_semilattice_metadata_t> >
-            db_watchable = rdb_ctx->get_databases_watchable();
-        db_watchable->run_until_satisfied(
-                boost::bind(&is_joined<databases_semilattice_metadata_t>,
-                            _1,
-                            sl_metadata.databases),
-                interruptor);
-    }
-}
-
 base_namespace_repo_t *env_t::ns_repo() {
     r_sanity_check(rdb_ctx != NULL);
     return rdb_ctx->ns_repo;
 }
 
-const boost::shared_ptr< semilattice_readwrite_view_t<
-                             cluster_semilattice_metadata_t> > &
-env_t::cluster_metadata() {
+reql_admin_interface_t *env_t::reql_admin_interface() {
     r_sanity_check(rdb_ctx != NULL);
-    r_sanity_check(rdb_ctx->cluster_metadata);
-    return rdb_ctx->cluster_metadata;
-}
-
-directory_read_manager_t<cluster_directory_metadata_t> *
-env_t::directory_read_manager() {
-    r_sanity_check(rdb_ctx != NULL);
-    r_sanity_check(rdb_ctx->directory_read_manager != NULL);
-    return rdb_ctx->directory_read_manager;
-}
-
-uuid_u env_t::this_machine() {
-    r_sanity_check(rdb_ctx != NULL);
-    r_sanity_check(!rdb_ctx->machine_id.is_unset());
-    return rdb_ctx->machine_id;
+    return rdb_ctx->reql_admin_interface;
 }
 
 changefeed::client_t *env_t::get_changefeed_client() {
@@ -194,16 +137,6 @@ js_runner_t *env_t::get_js_runner() {
     }
     return &js_runner;
 }
-
-cow_ptr_t<namespaces_semilattice_metadata_t>
-env_t::get_namespaces_metadata() {
-    return rdb_ctx->get_namespaces_metadata();
-}
-
-void env_t::get_databases_metadata(databases_semilattice_metadata_t *out) {
-    rdb_ctx->get_databases_metadata(out);
-}
-
 
 env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
              std::map<std::string, wire_func_t> optargs,

@@ -69,22 +69,8 @@ public:
     // already been called.
     js_runner_t *get_js_runner();
 
-    cow_ptr_t<namespaces_semilattice_metadata_t > get_namespaces_metadata();
-    void get_databases_metadata(databases_semilattice_metadata_t *out);
-
-    // Semilattice modification functions
-    void join_and_wait_to_propagate(
-            const cluster_semilattice_metadata_t &metadata_to_join)
-        THROWS_ONLY(interrupted_exc_t);
-
     base_namespace_repo_t *ns_repo();
-
-    const boost::shared_ptr< semilattice_readwrite_view_t<
-                                 cluster_semilattice_metadata_t> > &cluster_metadata();
-
-    directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager();
-
-    uuid_u this_machine();
+    reql_admin_interface_t *reql_admin_interface();
 
     changefeed::client_t *get_changefeed_client();
 

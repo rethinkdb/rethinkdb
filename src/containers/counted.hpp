@@ -7,6 +7,7 @@
 
 #include <utility>
 
+#include "containers/scoped.hpp"
 #include "errors.hpp"
 #include "threading.hpp"
 
@@ -24,11 +25,15 @@ public:
 
     counted_t() : p_(NULL) { }
     explicit counted_t(T *p) : p_(p) {
-        if (p_) { counted_add_ref(p_); }
+        if (p_ != nullptr) { counted_add_ref(p_); }
+    }
+
+    explicit counted_t(scoped_ptr_t<T> &&p) : p_(p.release()) {
+        if (p_ != nullptr) { counted_add_ref(p_); }
     }
 
     counted_t(const counted_t &copyee) : p_(copyee.p_) {
-        if (p_) { counted_add_ref(p_); }
+        if (p_ != nullptr) { counted_add_ref(p_); }
     }
 
     counted_t(counted_t &&movee) noexcept : p_(movee.p_) {

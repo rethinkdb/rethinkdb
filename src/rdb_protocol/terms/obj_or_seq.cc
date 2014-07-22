@@ -163,7 +163,7 @@ private:
         rcheck(flags & LITERAL_OK, base_exc_t::GENERIC,
                "Stray literal keyword found, literal can only be present inside merge "
                "and cannot nest inside other literals.");
-        datum_ptr_t res(datum_t::R_OBJECT);
+        datum_object_builder_t res;
         bool clobber = res.add(datum_t::reql_type_string,
                                make_counted<const datum_t>(pseudo::literal_string));
         if (args->num_args() == 1) {
@@ -173,7 +173,7 @@ private:
         r_sanity_check(!clobber);
         std::set<std::string> permissible_ptypes;
         permissible_ptypes.insert(pseudo::literal_string);
-        return new_val(res.to_counted(permissible_ptypes));
+        return new_val(std::move(res).to_counted(permissible_ptypes));
     }
     virtual const char *name() const { return "literal"; }
     virtual bool can_be_grouped() const { return false; }
