@@ -116,9 +116,10 @@ public:
     explicit client_t(mailbox_manager_t *_manager);
     ~client_t();
     // Throws QL exceptions.
-    counted_t<datum_stream_t> new_feed(const counted_t<table_t> &tbl,
-                                       keyspec_t &&keyspec,
-                                       env_t *env);
+    counted_t<datum_stream_t> new_feed(
+        const counted_t<table_t> &tbl,
+        keyspec_t &&keyspec,
+        env_t *env);
     void maybe_remove_feed(const uuid_u &uuid);
     scoped_ptr_t<feed_t> detach_feed(const uuid_u &uuid);
 private:

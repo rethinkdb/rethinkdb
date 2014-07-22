@@ -166,11 +166,13 @@ public:
     get_els(batcher_t *batcher, const signal_t *interruptor);
     virtual void add_el(
         const uuid_u &uuid , uint64_t stamp, counted_t<const datum_t> d) = 0;
+    virtual void start(
+        env_t *env, namespace_interface_t *nif, client_t::addr_t *addr) = 0;
     void stop(const std::string &msg, detach_t should_detach);
 protected:
-    // Throws QL exceptions.
     explicit subscription_t(feed_t *_feed);
     void maybe_signal_cond() THROWS_NOTHING;
+    void destructor_cleanup(std::function<void()> del_sub) THROWS_NOTHING;
     // If an error occurs, we're detached and `exc` is set to an exception to rethrow.
     std::exception_ptr exc;
     // If we exceed the array size limit, elements are evicted from `els` and
@@ -178,98 +180,15 @@ protected:
     // an error object to the user with the number of skipped elements before
     // continuing.
     size_t skipped;
+    // The feed we're subscribed to.
+    feed_t *feed;
 private:
     virtual bool has_el() = 0;
     virtual counted_t<const datum_t> pop_el() = 0;
     // Used to block on more changes.  NULL unless we're waiting.
     cond_t *cond;
-    // The feed we're subscribed to.
-    feed_t *feed;
     auto_drainer_t drainer;
     DISABLE_COPYING(subscription_t);
-};
-
-class point_sub_t : public subscription_t {
-public:
-    point_sub_t(feed_t *feed, counted_t<const datum_t> _key)
-        : subscription_t(feed), key(std::move(_key)), stamp(0) {
-        feed->add_point_sub(this, key);
-    }
-    virtual ~point_sub_t() {
-        feed->del_point_sub(this, key);
-    }
-    void start(const uuid_u &, uint64_t start_stamp, counted_t<const datum_t> d) {
-        assert_thread();
-        if (start_stamp >= stamp) {
-            stamp = start_stamp;
-            el = d;
-        }
-        guarantee(el.has());
-    }
-private:
-    virtual void add_el(const uuid_u &, uint64_t d_stamp, counted_t<const datum_t> d) {
-        assert_thread();
-        if (d_stamp > stamp) {
-            stamp = d_stamp;
-            el = d;
-            maybe_signal_cond();
-        }
-    }
-    virtual bool has_el() { return el.has(); }
-    virtual counted_t<const datum_t> pop_el() {
-        guarantee(has_el());
-        counted_t<const datum_t> ret;
-        ret.swap(el);
-        return ret;
-    }
-    counted_t<const datum_t> key;
-    uint64_t stamp;
-    counted_t<const datum_t> el;
-};
-
-class table_sub_t : public subscription_t {
-public:
-    explicit table_sub_t(feed_t *feed) : subscription_t(feed) {
-        feed->add_table_sub(this);
-    }
-    virtual ~table_sub_t() {
-        feed->del_table_sub(this);
-    }
-    void start(std::map<uuid_u, uint64_t> &&_start_stamps) {
-        assert_thread();
-        start_stamps = std::move(_start_samps);
-        guarantee(start_stamps.size() != 0);
-    }
-private:
-    virtual void add_el(const uuid_u &uuid, uint64_t stamp, counted_t<const datum_t> d) {
-        // If we don't have start timestamps, we haven't started, and if we have
-        // exc, we've stopped.
-        if (start_stamps.size() != 0 && !exc) {
-            auto it = start_stamps.find(uuid);
-            guarantee(it != start_stamps.end());
-            if (stamp >= it->second) {
-                els->push_back(std::move(d));
-                if (els.size() > array_size_limit()) {
-                    skipped += els.size();
-                    els.clear();
-                }
-                maybe_signal_cond();
-            }
-        }
-    }
-    virtual bool has_el() { return els.size() != 0; }
-    virtual counted_t<const datum_t> pop_el() {
-        guarantee(has_el());
-        counted_t<const datum_t> ret = std::move(els.front());
-        els.pop_front();
-        return ret;
-    }
-    // The stamp (see `stamped_msg_t`) associated with our `changefeed_stamp_t`
-    // read.  We use these to make sure we don't see changes from writes before
-    // our subscription.
-    std::map<uuid_u, uint64_t> start_stamps;
-    // The queue of changes we've accumulated since the last time we were read from.
-    std::deque<counted_t<const datum_t> > els;
 };
 
 class feed_t : public home_thread_mixin_t, public slow_atomic_countable_t<feed_t> {
@@ -350,6 +269,112 @@ private:
     auto_drainer_t drainer;
 };
 
+class point_sub_t : public subscription_t {
+public:
+    // Throws QL exceptions.
+    point_sub_t(feed_t *feed, counted_t<const datum_t> _key)
+        : subscription_t(feed), key(std::move(_key)), stamp(0) {
+        feed->add_point_sub(this, key);
+    }
+    virtual ~point_sub_t() {
+        destructor_cleanup(std::bind(&feed_t::del_point_sub, feed, this, key));
+    }
+    virtual void start(env_t *env, namespace_interface_t *nif, client_t::addr_t *addr) {
+        assert_thread();
+        read_response_t read_resp;
+        nif->read(
+            read_t(
+                changefeed_point_stamp_t(
+                    *addr, store_key_t(key->print_primary())),
+                profile_bool_t::DONT_PROFILE),
+            &read_resp,
+            order_token_t::ignore,
+            env->interruptor);
+        auto resp = boost::get<changefeed_point_stamp_response_t>(
+            &read_resp.response);
+        guarantee(resp != NULL);
+        uint64_t start_stamp = resp->stamp.second;
+        if (start_stamp >= stamp) {
+            stamp = start_stamp;
+            el = std::move(resp->initial_val);
+        }
+        guarantee(el.has());
+    }
+private:
+    virtual void add_el(const uuid_u &, uint64_t d_stamp, counted_t<const datum_t> d) {
+        assert_thread();
+        if (d_stamp > stamp) {
+            stamp = d_stamp;
+            el = d;
+            maybe_signal_cond();
+        }
+    }
+    virtual bool has_el() { return el.has(); }
+    virtual counted_t<const datum_t> pop_el() {
+        guarantee(has_el());
+        counted_t<const datum_t> ret;
+        ret.swap(el);
+        return ret;
+    }
+    counted_t<const datum_t> key;
+    uint64_t stamp;
+    counted_t<const datum_t> el;
+};
+
+class table_sub_t : public subscription_t {
+public:
+    // Throws QL exceptions.
+    explicit table_sub_t(feed_t *feed) : subscription_t(feed) {
+        feed->add_table_sub(this);
+    }
+    virtual ~table_sub_t() {
+        destructor_cleanup(std::bind(&feed_t::del_table_sub, feed, this));
+    }
+    virtual void start(env_t *env, namespace_interface_t *nif, client_t::addr_t *addr) {
+        assert_thread();
+        read_response_t read_resp;
+        nif->read(
+            read_t(changefeed_stamp_t(*addr), profile_bool_t::DONT_PROFILE),
+            &read_resp,
+            order_token_t::ignore,
+            env->interruptor);
+        auto resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
+        guarantee(resp != NULL);
+        start_stamps = std::move(resp->stamps);
+        guarantee(start_stamps.size() != 0);
+    }
+private:
+    virtual void add_el(const uuid_u &uuid, uint64_t stamp, counted_t<const datum_t> d) {
+        // If we don't have start timestamps, we haven't started, and if we have
+        // exc, we've stopped.
+        if (start_stamps.size() != 0 && !exc) {
+            auto it = start_stamps.find(uuid);
+            guarantee(it != start_stamps.end());
+            if (stamp >= it->second) {
+                els.push_back(std::move(d));
+                if (els.size() > array_size_limit()) {
+                    skipped += els.size();
+                    els.clear();
+                }
+                maybe_signal_cond();
+            }
+        }
+    }
+    virtual bool has_el() { return els.size() != 0; }
+    virtual counted_t<const datum_t> pop_el() {
+        guarantee(has_el());
+        counted_t<const datum_t> ret = std::move(els.front());
+        els.pop_front();
+        return ret;
+    }
+    // The stamp (see `stamped_msg_t`) associated with our `changefeed_stamp_t`
+    // read.  We use these to make sure we don't see changes from writes before
+    // our subscription.
+    std::map<uuid_u, uint64_t> start_stamps;
+    // The queue of changes we've accumulated since the last time we were read from.
+    std::deque<counted_t<const datum_t> > els;
+};
+
 class msg_visitor_t : public boost::static_visitor<void> {
 public:
     msg_visitor_t(feed_t *_feed, uuid_u _server_uuid, uint64_t _stamp)
@@ -421,22 +446,11 @@ private:
     scoped_ptr_t<subscription_t> sub;
 };
 
-subscription_t::subscription_t(feed_t *_feed, keyspec_t _keyspec)
-    : skipped(0), cond(NULL), feed(_feed), keyspec(std::move(_keyspec)) {
+subscription_t::subscription_t(feed_t *_feed) : skipped(0), feed(_feed), cond(NULL) {
     guarantee(feed != NULL);
-    feed->add_sub(this, keyspec);
 }
 
-subscription_t::~subscription_t() {
-    // This error is only sent if we're getting destroyed while blocking.
-    stop("Subscription destroyed (shutting down?).", detach_t::NO);
-    if (feed != NULL) {
-        feed->del_sub(this, keyspec);
-    } else {
-        // We only get here if we were detached.
-        guarantee(exc);
-    }
-}
+subscription_t::~subscription_t() { }
 
 std::vector<counted_t<const datum_t> >
 subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
@@ -488,6 +502,8 @@ subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
     return std::move(v);
 }
 
+
+
 void subscription_t::stop(const std::string &msg, detach_t detach) {
     assert_thread();
     if (detach == detach_t::YES) {
@@ -503,6 +519,17 @@ void subscription_t::maybe_signal_cond() THROWS_NOTHING {
         ASSERT_NO_CORO_WAITING;
         cond->pulse();
         cond = NULL;
+    }
+}
+
+void subscription_t::destructor_cleanup(std::function<void()> del_sub) THROWS_NOTHING {
+    // This error is only sent if we're getting destroyed while blocking.
+    stop("Subscription destroyed (shutting down?).", detach_t::NO);
+    if (feed != NULL) {
+        del_sub();
+    } else {
+        // We only get here if we were detached.
+        guarantee(exc);
     }
 }
 
@@ -662,7 +689,7 @@ void feed_t::del_table_sub(subscription_t *sub) THROWS_NOTHING {
         auto_drainer_t::lock_t lock(&drainer);
         rwlock_in_line_t spot(&table_subs_lock, access_t::write);
         spot.write_signal()->wait_lazily_unordered();
-        size_t erased = feed->table_subs[sub->home_thread().threadnum].erase(sub);
+        size_t erased = table_subs[sub->home_thread().threadnum].erase(sub);
         guarantee(erased == 1);
     }
     num_subs -= 1;
@@ -900,6 +927,7 @@ client_t::new_feed(const counted_t<table_t> &tbl, keyspec_t &&keyspec, env_t *en
         uuid_u uuid = tbl->get_uuid();
         std::string pkey = tbl->get_pkey();
         scoped_ptr_t<subscription_t> sub;
+        boost::variant<scoped_ptr_t<table_sub_t>, scoped_ptr_t<point_sub_t> > presub;
         addr_t addr;
         {
             threadnum_t old_thread = get_thread_id();
@@ -921,51 +949,22 @@ client_t::new_feed(const counted_t<table_t> &tbl, keyspec_t &&keyspec, env_t *en
             on_thread_t th2(old_thread);
             feed_t *feed = feed_it->second.get();
             addr = feed->get_addr();
-            sub.init(new subscription_t(feed, keyspec));
+
+            struct keyspec_visitor_t : public boost::static_visitor<subscription_t *> {
+                explicit keyspec_visitor_t(feed_t *_feed) : feed(_feed) { }
+                subscription_t * operator()(const keyspec_t::all_t &) const {
+                    return new table_sub_t(feed);
+                }
+                subscription_t * operator()(const keyspec_t::point_t &point) const {
+                    return new point_sub_t(feed, point.key);
+                }
+                feed_t *feed;
+            };
+            sub.init(boost::apply_visitor(keyspec_visitor_t(feed), keyspec.spec));
         }
         base_namespace_repo_t::access_t access(env->ns_repo(), uuid, env->interruptor);
         namespace_interface_t *nif = access.get_namespace_if();
-        class keyspec_visitor_t : public boost::static_visitor<void> {
-        public:
-            explicit keyspec_visitor_t(env_t *_env,
-                                       subscription_t *_sub,
-                                       namespace_interface_t *_nif,
-                                       client_t::addr_t *_addr)
-                : env(_env), sub(_sub), nif(_nif), addr(_addr) { }
-            void operator()(keyspec_t::all_t &) const {
-                read_response_t read_resp;
-                nif->read(
-                    read_t(changefeed_stamp_t(*addr), profile_bool_t::DONT_PROFILE),
-                    &read_resp,
-                    order_token_t::ignore,
-                    env->interruptor);
-                auto resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
-                guarantee(resp != NULL);
-                sub->start(std::move(resp->stamps));
-            }
-            void operator()(keyspec_t::point_t &ks) const {
-                read_response_t read_resp;
-                nif->read(
-                    read_t(
-                        changefeed_point_stamp_t(
-                            *addr, store_key_t(ks.key->print_primary())),
-                        profile_bool_t::DONT_PROFILE),
-                    &read_resp,
-                    order_token_t::ignore,
-                    env->interruptor);
-                auto resp = boost::get<changefeed_point_stamp_response_t>(
-                    &read_resp.response);
-                guarantee(resp != NULL);
-                sub->start(std::move(resp->stamp), std::move(resp->initial_val));
-            }
-        private:
-            env_t *env;
-            subscription_t *sub;
-            namespace_interface_t *nif;
-            client_t::addr_t *addr;
-        };
-        boost::apply_visitor(keyspec_visitor_t(env, sub.get(), nif, &addr),
-                             keyspec.spec);
+        sub->start(env, nif, &addr);
         return make_counted<stream_t>(std::move(sub), tbl->backtrace());
     } catch (const cannot_perform_query_exc_t &e) {
         rfail_datum(ql::base_exc_t::GENERIC,
