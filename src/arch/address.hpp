@@ -8,8 +8,10 @@
 #include <netinet/in.h>
 #include <sys/ioctl.h>
 
+#include <algorithm>
 #include <string>
 #include <set>
+#include <vector>
 
 #include "containers/archive/archive.hpp"
 #include "containers/archive/stl_types.hpp"
@@ -127,6 +129,11 @@ private:
 
 RDB_SERIALIZE_OUTSIDE(ip_and_port_t);
 
+// This implementation is used over operator == because we want to ignore different scope
+// ids in the case of IPv6
+bool is_similar_ip_address(const ip_and_port_t &left,
+                           const ip_and_port_t &right);
+
 class host_and_port_t {
 public:
     host_and_port_t();
@@ -173,6 +180,39 @@ void serialize_universal(write_message_t *wm, const std::set<host_and_port_t> &x
 archive_result_t deserialize_universal(read_stream_t *s,
                                        std::set<host_and_port_t> *thing);
 
+bool is_similar_peer_address(const peer_address_t &left,
+                             const peer_address_t &right);
+
+/* TODO: This should either be a `std::set<peer_address_t>` with a custom comparator, or
+a generic container type that contains a set of anything equality-comparable. */
+class peer_address_set_t {
+public:
+    size_t erase(const peer_address_t &addr) {
+        size_t erased = 0;
+        for (auto it = vec.begin(); it != vec.end(); ++it) {
+            if (*it == addr) {
+                vec.erase(it);
+                ++erased;
+                break;
+            }
+        }
+        return erased;
+    }
+    size_t size() const { return vec.size(); }
+    typedef std::vector<peer_address_t>::const_iterator iterator;
+    iterator begin() const { return vec.begin(); }
+    iterator end() const { return vec.end(); }
+    iterator find(const peer_address_t &addr) const {
+        return std::find(vec.begin(), vec.end(), addr);
+    }
+    iterator insert(const peer_address_t &addr) {
+        guarantee(find(addr) == vec.end());
+        return vec.insert(vec.end(), addr);
+    }
+    bool empty() const { return vec.empty(); }
+private:
+    std::vector<peer_address_t> vec;
+};
 
 void debug_print(printf_buffer_t *buf, const ip_address_t &addr);
 void debug_print(printf_buffer_t *buf, const ip_and_port_t &addr);

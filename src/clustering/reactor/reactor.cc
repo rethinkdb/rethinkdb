@@ -125,7 +125,7 @@ reactor_t::current_role_t::current_role_t(blueprint_role_t r, const blueprint_t 
     : role(r), blueprint(b) { }
 
 peer_id_t reactor_t::get_me() THROWS_NOTHING {
-    return mailbox_manager->get_connectivity_service()->get_me();
+    return mailbox_manager->get_connectivity_cluster()->get_me();
 }
 
 reactor_t::directory_entry_t::~directory_entry_t() {

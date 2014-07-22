@@ -591,7 +591,7 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
         // If this was a HEAD request, we should not be handling data, just return R_NULL
         // so the user knows the request succeeded
         if (opts->method == http_method_t::HEAD) {
-            res_out->body = make_counted<const ql::datum_t>(ql::datum_t::R_NULL);
+            res_out->body = ql::datum_t::null();
             return;
         }
 
@@ -809,7 +809,7 @@ void json_to_datum(const std::string &json,
                    http_result_t *res_out) {
     scoped_cJSON_t cjson(cJSON_Parse(json.c_str()));
     if (cjson.get() != NULL) {
-        res_out->body = make_counted<const ql::datum_t>(cjson);
+        res_out->body = ql::to_datum(cjson.get());
     } else {
         res_out->error.assign("failed to parse JSON response");
     }
@@ -821,7 +821,7 @@ void json_to_datum(std::string &&json,
                    http_result_t *res_out) {
     scoped_cJSON_t cjson(cJSON_Parse(json.c_str()));
     if (cjson.get() != NULL) {
-        res_out->body = make_counted<const ql::datum_t>(cjson);
+        res_out->body = ql::to_datum(cjson.get());
     } else {
         res_out->error.assign("failed to parse JSON response");
         res_out->body = make_counted<const ql::datum_t>(std::move(json));

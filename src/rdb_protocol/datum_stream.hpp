@@ -14,7 +14,7 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
-#include "clustering/administration/namespace_interface_repository.hpp"
+#include "rdb_protocol/context.hpp"
 #include "rdb_protocol/protocol.hpp"
 
 namespace ql {

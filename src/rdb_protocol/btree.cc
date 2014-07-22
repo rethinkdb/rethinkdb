@@ -89,7 +89,7 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice,
                                     &slice->stats, trace);
 
     if (!kv_location.value.has()) {
-        response->data.reset(new ql::datum_t(ql::datum_t::R_NULL));
+        response->data = ql::datum_t::null();
     } else {
         response->data = get_data(static_cast<rdb_value_t *>(kv_location.value.get()),
                                   buf_parent_t(&kv_location.buf));
@@ -203,10 +203,10 @@ batched_replace_response_t rdb_replace_and_return_superblock(
     rdb_modification_info_t *mod_info_out,
     profile::trace_t *trace)
 {
-    bool return_vals = replacer->should_return_vals();
+    const bool return_vals = replacer->should_return_vals();
     const std::string &primary_key = *info.btree->primary_key;
     const store_key_t &key = *info.key;
-    ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
+    ql::datum_object_builder_t resp;
     try {
         keyvalue_location_t kv_location;
         rdb_value_sizer_t sizer(info.superblock->cache()->max_block_size());
@@ -223,7 +223,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
         if (!kv_location.value.has()) {
             // If there's no entry with this key, pass NULL to the function.
             started_empty = true;
-            old_val = make_counted<ql::datum_t>(ql::datum_t::R_NULL);
+            old_val = ql::datum_t::null();
         } else {
             // Otherwise pass the entry with this key to the function.
             started_empty = false;
@@ -240,8 +240,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
 
         counted_t<const ql::datum_t> new_val = replacer->replace(old_val);
         if (return_vals == RETURN_VALS) {
-            bool conflict = resp.add("new_val", new_val, ql::CLOBBER);
-            guarantee(conflict); // We set it to `old_val` previously.
+            resp.overwrite("new_val", new_val);
         }
         if (new_val->get_type() == ql::datum_t::R_NULL) {
             ended_empty = true;
@@ -323,7 +322,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
         // function will also be interrupted, but we document where it comes
         // from to aid in future debugging if that invariant becomes violated.
     }
-    return resp.to_counted();
+    return std::move(resp).to_counted();
 }
 
 
@@ -381,7 +380,7 @@ batched_replace_response_t rdb_batched_replace(
     fifo_enforcer_source_t batched_replaces_fifo_source;
     fifo_enforcer_sink_t batched_replaces_fifo_sink;
 
-    counted_t<const ql::datum_t> stats(new ql::datum_t(ql::datum_t::R_OBJECT));
+    counted_t<const ql::datum_t> stats = ql::datum_t::empty_object();
 
     // We have to drain write operations before destructing everything above us,
     // because the coroutines being drained use them.
@@ -476,7 +475,8 @@ public:
         cb_->on_deletion(key, recency, interruptor);
     }
 
-    void on_pairs(buf_parent_t leaf_node, const std::vector<repli_timestamp_t> &recencies,
+    void on_pairs(buf_parent_t leaf_node,
+                  const std::vector<repli_timestamp_t> &recencies,
                   const std::vector<const btree_key_t *> &keys,
                   const std::vector<const void *> &vals,
                   signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {

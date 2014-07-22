@@ -22,13 +22,6 @@ class stream_cache_t;
 class term_t;
 class val_t;
 
-class db_t : public single_threaded_countable_t<db_t> {
-public:
-    db_t(uuid_u _id, const std::string &_name) : id(_id), name(_name) { }
-    const uuid_u id;
-    const std::string name;
-};
-
 class table_t : public single_threaded_countable_t<table_t>, public pb_rcheckable_t {
 public:
     table_t(env_t *env,

@@ -36,19 +36,19 @@ private:
                base_exc_t::GENERIC,
                strprintf("OBJECT expects an even number of arguments (but found %zu).",
                          args->num_args()));
-        datum_ptr_t obj(datum_t::R_OBJECT);
+        datum_object_builder_t obj;
         for (size_t i = 0; i < args->num_args(); i+=2) {
             std::string key = args->arg(env, i)->as_str().to_std();
-            counted_t<const datum_t> keyval = args->arg(env, i+1)->as_datum();
+            counted_t<const datum_t> keyval = args->arg(env, i + 1)->as_datum();
             bool b = obj.add(key, keyval);
             rcheck(!b, base_exc_t::GENERIC,
                    strprintf("Duplicate key `%s` in object.  "
                              "(got `%s` and `%s` as values)",
                              key.c_str(),
-                             obj->get(key)->trunc_print().c_str(),
+                             obj.at(key)->trunc_print().c_str(),
                              keyval->trunc_print().c_str()));
         }
-        return new_val(obj.to_counted());
+        return new_val(std::move(obj).to_counted());
     }
 
     virtual const char *name() const { return "object"; }

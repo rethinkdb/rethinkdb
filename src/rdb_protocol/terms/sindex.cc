@@ -53,9 +53,9 @@ public:
 
         bool success = table->sindex_create(env->env, name, index_func, multi);
         if (success) {
-            datum_ptr_t res(datum_t::R_OBJECT);
+            datum_object_builder_t res;
             UNUSED bool b = res.add("created", make_counted<datum_t>(1.0));
-            return new_val(res.to_counted());
+            return new_val(std::move(res).to_counted());
         } else {
             rfail(base_exc_t::GENERIC, "Index `%s` already exists on table `%s`.",
                   name.c_str(), table->display_name().c_str());
@@ -75,9 +75,9 @@ public:
         std::string name = args->arg(env, 1)->as_datum()->as_str().to_std();
         bool success = table->sindex_drop(env->env, name);
         if (success) {
-            datum_ptr_t res(datum_t::R_OBJECT);
+            datum_object_builder_t res;
             UNUSED bool b = res.add("dropped", make_counted<datum_t>(1.0));
-            return new_val(res.to_counted());
+            return new_val(std::move(res).to_counted());
         } else {
             rfail(base_exc_t::GENERIC, "Index `%s` does not exist on table `%s`.",
                   name.c_str(), table->display_name().c_str());

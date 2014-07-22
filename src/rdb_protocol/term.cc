@@ -3,7 +3,6 @@
 
 #include "containers/cow_ptr.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
-#include "clustering/administration/metadata.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
@@ -235,8 +234,8 @@ void run(protob_t<Query> q,
             } else if (counted_t<grouped_data_t> gd
                        = val->maybe_as_promiscuous_grouped_data(scope_env.env)) {
                 res->set_type(Response::SUCCESS_ATOM);
-                datum_t d(std::move(*gd));
-                d.write_to_protobuf(res->add_response(), use_json);
+                counted_t<const datum_t> d = to_datum(std::move(*gd));
+                d->write_to_protobuf(res->add_response(), use_json);
                 if (env.trace.has()) {
                     env.trace->as_datum()->write_to_protobuf(
                         res->mutable_profile(), use_json);
@@ -416,7 +415,7 @@ counted_t<val_t> term_t::new_val(counted_t<func_t> f) const {
     return make_counted<val_t>(f, backtrace());
 }
 counted_t<val_t> term_t::new_val_bool(bool b) const {
-    return new_val(make_counted<const datum_t>(datum_t::R_BOOL, b));
+    return new_val(datum_t::boolean(b));
 }
 
 } // namespace ql

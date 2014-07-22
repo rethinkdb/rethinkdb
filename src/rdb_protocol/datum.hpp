@@ -53,11 +53,11 @@ static const double min_dbl_int = max_dbl_int * -1;
 
 // NOTHROW: Return NULL
 // THROW: Throw an error
-enum throw_bool_t { NOTHROW = 0, THROW = 1};
+enum throw_bool_t { NOTHROW = 0, THROW = 1 };
 
 // NOCLOBBER: Don't overwrite existing values.
 // CLOBBER: Overwrite existing values.
-enum clobber_bool_t { NOCLOBBER = 0, CLOBBER = 1};
+enum clobber_bool_t { NOCLOBBER = 0, CLOBBER = 1 };
 
 enum class use_json_t { NO = 0, YES = 1 };
 
@@ -68,18 +68,32 @@ class datum_t : public slow_atomic_countable_t<datum_t> {
 public:
     // This ordering is important, because we use it to sort objects of
     // disparate type.  It should be alphabetical.
-    enum type_t { UNINITIALIZED = 0, R_ARRAY = 1, R_BOOL = 2, R_NULL = 3,
+    enum type_t { R_ARRAY = 1, R_BOOL = 2, R_NULL = 3,
                   R_NUM = 4, R_OBJECT = 5, R_STR = 6 };
-    explicit datum_t(type_t _type);
+
+    static counted_t<const datum_t> empty_array();
+    static counted_t<const datum_t> empty_object();
+    // Constructs a pointer to an R_NULL datum.
+    static counted_t<const datum_t> null();
+    static counted_t<const datum_t> boolean(bool value);
+
+    // Strongly prefer datum_t::null().
+    enum class construct_null_t { };
+    explicit datum_t(construct_null_t);
 
     // These allow you to construct a datum from the type of value it
     // represents.  We have some gotchya-constructors to scare away implicit
     // conversions.
+    explicit datum_t(std::nullptr_t) = delete;
     explicit datum_t(bool) = delete;
     explicit datum_t(int) = delete;
     explicit datum_t(float) = delete;
-    // Need to explicitly ask to construct a bool.
-    datum_t(type_t _type, bool _bool);
+
+    // You need to explicitly ask to construct a bool (to avoid perilous
+    // conversions).  You should prefer datum_t::boolean(..).
+    enum class construct_boolean_t { };
+    datum_t(construct_boolean_t, bool _bool);
+
     explicit datum_t(double _num);
     // TODO: Eventually get rid of the std::string constructor (in favor of
     //   scoped_ptr_t<wire_string_t>)
@@ -87,17 +101,22 @@ public:
     explicit datum_t(scoped_ptr_t<wire_string_t> str);
     explicit datum_t(const char *cstr);
     explicit datum_t(std::vector<counted_t<const datum_t> > &&_array);
-    explicit datum_t(std::map<std::string, counted_t<const datum_t> > &&object);
 
-    // This should only be used to send responses to the client.
-    explicit datum_t(grouped_data_t &&gd);
+    enum class no_array_size_limit_check_t { };
+    // Constructs a datum_t without checking the array size.  Used by
+    // datum_array_builder_t to maintain identical non-checking behavior with insert
+    // and splice operations -- see https://github.com/rethinkdb/rethinkdb/issues/2697
+    datum_t(std::vector<counted_t<const datum_t> > &&_array,
+            no_array_size_limit_check_t);
+    // This calls maybe_sanitize_ptype(allowed_pts).
+    explicit datum_t(std::map<std::string, counted_t<const datum_t> > &&object,
+                     const std::set<std::string> &allowed_pts = _allowed_pts);
 
-    // These construct a datum from an equivalent representation.
-    datum_t();
-    explicit datum_t(const Datum *d);
-    void init_from_pb(const Datum *d);
-    explicit datum_t(cJSON *json);
-    explicit datum_t(const scoped_cJSON_t &json);
+    enum class no_sanitize_ptype_t { };
+    // This .. does not call maybe_sanitize_ptype.
+    // TODO(2014-08): Remove this constructor, it's a hack.
+    datum_t(std::map<std::string, counted_t<const datum_t> > &&object,
+            no_sanitize_ptype_t);
 
     ~datum_t();
 
@@ -187,29 +206,13 @@ public:
                               counted_t<const datum_t> orig_key,
                               const std::string &pkey) const;
 
+    static void check_str_validity(const std::string &str);
+    static void check_str_validity(const wire_string_t *str);
+
 private:
-    friend class datum_ptr_t;
     friend void pseudo::sanitize_time(datum_t *time);
-    void add(counted_t<const datum_t> val); // add to an array
-    // change an element of an array
-    void change(size_t index, counted_t<const datum_t> val);
-    void insert(size_t index, counted_t<const datum_t> val); // insert into an array
-    void erase(size_t index); // erase from an array
-    void erase_range(size_t start, size_t end); // erase a range from an array
-    void splice(size_t index, counted_t<const datum_t> values);
     MUST_USE bool add(const std::string &key, counted_t<const datum_t> val,
                       clobber_bool_t clobber_bool = NOCLOBBER); // add to an object
-    // Returns true if key was in object.
-    MUST_USE bool delete_field(const std::string &key);
-
-    void init_empty();
-    void init_str(size_t size, const char *data);
-    void init_array();
-    void init_object();
-    void init_json(cJSON *json);
-
-    void check_str_validity(const wire_string_t *str);
-    void check_str_validity(const std::string &str);
 
     friend void pseudo::time_to_str_key(const datum_t &d, std::string *str_out);
     void pt_to_str_key(std::string *str_out) const;
@@ -243,63 +246,77 @@ private:
     DISABLE_COPYING(datum_t);
 };
 
+counted_t<const datum_t> to_datum(const Datum *d);
+counted_t<const datum_t> to_datum(cJSON *json);
+
+// This should only be used to send responses to the client.
+counted_t<const datum_t> to_datum(grouped_data_t &&gd);
+
 // Converts a double to int, but returns false if it's not an integer or out of range.
 bool number_as_integer(double d, int64_t *i_out);
 
 // Converts a double to int, calling number_as_integer and throwing if it fails.
 int64_t checked_convert_to_int(const rcheckable_t *target, double d);
 
-// If you need to do mutable operations to a `datum_t`, use one of these (it's
-// basically a `scoped_ptr_t` that can access private methods on `datum_t` and
-// checks for pseudotype validity when you turn it into a `counted_t<const
-// datum_t>`).
-class datum_ptr_t {
+// Useful for building an object datum and doing mutation operations -- otherwise,
+// you'll have to do check_str_validity checks yourself.
+class datum_object_builder_t {
 public:
-    template<class... Args>
-    explicit datum_ptr_t(Args... args)
-        : ptr_(make_scoped<datum_t>(std::forward<Args>(args)...)) { }
-    counted_t<const datum_t> to_counted(
-            const std::set<std::string> &allowed_ptypes = std::set<std::string>()) {
-        ptr()->maybe_sanitize_ptype(allowed_ptypes);
-        return counted_t<const datum_t>(ptr_.release());
-    }
-    const datum_t *operator->() const { return const_ptr(); }
-    void add_error(const char *msg) {
-        counted_t<const datum_t> old_ecount = ptr()->get("errors", NOTHROW);
-        double ecount = (old_ecount.has() ? old_ecount->as_num() : 0) + 1;
-        UNUSED bool errors_clobber =
-            ptr()->add("errors", make_counted<const datum_t>(ecount), CLOBBER);
-        UNUSED bool first_error_clobber =
-            ptr()->add("first_error", make_counted<const datum_t>(msg), NOCLOBBER);
-    }
-    void add(counted_t<const datum_t> val) { ptr()->add(val); }
-    void change(size_t i, counted_t<const datum_t> val) { ptr()->change(i, val); }
-    void insert(size_t i, counted_t<const datum_t> val) { ptr()->insert(i, val); }
-    void erase(size_t i) { ptr()->erase(i); }
-    void erase_range(size_t start, size_t end) { ptr()->erase_range(start, end); }
-    void splice(size_t index, counted_t<const datum_t> values) {
-        ptr()->splice(index, values);
-    }
-    MUST_USE bool add(const std::string &key, counted_t<const datum_t> val,
-                      clobber_bool_t clobber_bool = NOCLOBBER) {
-        return ptr()->add(key, val, clobber_bool);
-    }
-    MUST_USE bool delete_field(const std::string &key) {
-        return ptr()->delete_field(key);
-    }
+    datum_object_builder_t() { }
+
+    datum_object_builder_t(const std::map<std::string, counted_t<const datum_t> > &m)
+        : map(m) { }
+
+    // Returns true if the insertion did _not_ happen because the key was already in
+    // the object.
+    MUST_USE bool add(const std::string &key, counted_t<const datum_t> val);
+    // Inserts a new key or overwrites the existing key's value.
+    void overwrite(std::string key, counted_t<const datum_t> val);
+    void add_error(const char *msg);
+
+    MUST_USE bool delete_field(const std::string &key);
+
+    counted_t<const datum_t> at(const std::string &key) const;
+
+    // Returns null if the key doesn't exist.
+    counted_t<const datum_t> try_get(const std::string &key) const;
+
+    MUST_USE counted_t<const datum_t> to_counted() RVALUE_THIS;
+
+    MUST_USE counted_t<const datum_t> to_counted(
+            const std::set<std::string> &permissible_ptypes) RVALUE_THIS;
 
 private:
-    datum_t *ptr() {
-        r_sanity_check(ptr_.has());
-        return ptr_.get();
-    }
-    const datum_t *const_ptr() const {
-        r_sanity_check(ptr_.has());
-        return ptr_.get();
-    }
+    std::map<std::string, counted_t<const datum_t> > map;
+    DISABLE_COPYING(datum_object_builder_t);
+};
 
-    scoped_ptr_t<datum_t> ptr_;
-    DISABLE_COPYING(datum_ptr_t);
+// Useful for building an array datum and doing mutation operations -- while having
+// array-size checks on the fly.
+class datum_array_builder_t {
+public:
+    datum_array_builder_t() { }
+    datum_array_builder_t(std::vector<counted_t<const datum_t> > &&v);
+
+    size_t size() const { return vector.size(); }
+
+    void reserve(size_t n);
+
+    // Note that these methods produce behavior that is actually specific to the
+    // definition of certain ReQL terms.
+    void add(counted_t<const datum_t> val);
+    void change(size_t i, counted_t<const datum_t> val);
+    void insert(size_t index, counted_t<const datum_t> val);
+    void splice(size_t index, counted_t<const datum_t> values);
+    void erase_range(size_t start, size_t end);
+    void erase(size_t index);
+
+    counted_t<const datum_t> to_counted() RVALUE_THIS;
+
+private:
+    std::vector<counted_t<const datum_t> > vector;
+
+    DISABLE_COPYING(datum_array_builder_t);
 };
 
 // This function is used by e.g. foreach to merge statistics from multiple write

@@ -26,16 +26,14 @@ const size_t tag_size = 8;
 
 const std::set<std::string> datum_t::_allowed_pts = std::set<std::string>();
 
-const char* const datum_t::reql_type_string = "$reql_type$";
+const char *const datum_t::reql_type_string = "$reql_type$";
 
-datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
-    r_sanity_check(_type == R_BOOL);
-}
+datum_t::datum_t(datum_t::construct_null_t) : type(R_NULL) { }
+
+datum_t::datum_t(construct_boolean_t, bool _bool) : type(R_BOOL), r_bool(_bool) { }
 
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
-    // so we can use `isfinite` in a GCC 4.4.3-compatible way
-    using namespace std;  // NOLINT(build/namespaces)
-    rcheck(isfinite(r_num), base_exc_t::GENERIC,
+    rcheck(std::isfinite(r_num), base_exc_t::GENERIC,
            strprintf("Non-finite number: %" PR_RECONSTRUCTABLE_DOUBLE, r_num));
 }
 
@@ -58,47 +56,45 @@ datum_t::datum_t(std::vector<counted_t<const datum_t> > &&_array)
     rcheck_array_size(*r_array, base_exc_t::GENERIC);
 }
 
-datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object)
+datum_t::datum_t(std::vector<counted_t<const datum_t> > &&_array,
+                 no_array_size_limit_check_t)
+    : type(R_ARRAY),
+      r_array(new std::vector<counted_t<const datum_t> >(std::move(_array))) {
+}
+
+datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object,
+                 const std::set<std::string> &allowed_pts)
     : type(R_OBJECT),
       r_object(new std::map<std::string, counted_t<const datum_t> >(
                    std::move(_object))) {
-    maybe_sanitize_ptype();
+    maybe_sanitize_ptype(allowed_pts);
 }
 
-datum_t::datum_t(grouped_data_t &&gd)
+datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object,
+                 no_sanitize_ptype_t)
     : type(R_OBJECT),
-      r_object(new std::map<std::string, counted_t<const datum_t> >()) {
-    (*r_object)[reql_type_string] = make_counted<const datum_t>("GROUPED_DATA");
-    std::vector<counted_t<const datum_t> > v;
-    v.reserve(gd.size());
-    for (auto kv = gd.begin(); kv != gd.end(); ++kv) {
-        v.push_back(make_counted<const datum_t>(
-                        std::vector<counted_t<const datum_t> >{
-                            std::move(kv->first), std::move(kv->second)}));
+      r_object(new std::map<std::string, counted_t<const datum_t> >(
+                   std::move(_object))) { }
+
+counted_t<const datum_t> to_datum(grouped_data_t &&gd) {
+    std::map<std::string, counted_t<const datum_t> > map;
+    map[datum_t::reql_type_string] = make_counted<const datum_t>("GROUPED_DATA");
+
+    {
+        datum_array_builder_t arr;
+        arr.reserve(gd.size());
+        for (auto kv = gd.begin(); kv != gd.end(); ++kv) {
+            arr.add(make_counted<const datum_t>(
+                            std::vector<counted_t<const datum_t> >{
+                                std::move(kv->first), std::move(kv->second) }));
+        }
+        map["data"] = std::move(arr).to_counted();
     }
-    (*r_object)["data"] = make_counted<const datum_t>(std::move(v));
+
     // We don't sanitize the ptype because this is a fake ptype that should only
     // be used for serialization.
-}
-
-datum_t::datum_t(datum_t::type_t _type) : type(_type) {
-    r_sanity_check(type == R_ARRAY || type == R_OBJECT || type == R_NULL);
-    switch (type) {
-    case R_NULL: {
-        r_str = NULL; // Zeroing here is probably good for debugging.
-    } break;
-    case R_BOOL: // fallthru
-    case R_NUM: // fallthru
-    case R_STR: unreachable();
-    case R_ARRAY: {
-        r_array = new std::vector<counted_t<const datum_t> >();
-    } break;
-    case R_OBJECT: {
-        r_object = new std::map<std::string, counted_t<const datum_t> >();
-    } break;
-    case UNINITIALIZED: // fallthru
-    default: unreachable();
-    }
+    // TODO(2014-08): This is a bad thing.
+    return make_counted<datum_t>(std::move(map), datum_t::no_sanitize_ptype_t());
 }
 
 datum_t::~datum_t() {
@@ -118,99 +114,87 @@ datum_t::~datum_t() {
         r_sanity_check(r_object != NULL);
         delete r_object;
     } break;
-    case UNINITIALIZED: break;
     default: unreachable();
     }
 }
 
-void datum_t::init_str(size_t size, const char *data) {
-    type = R_STR;
-    r_str = wire_string_t::create_and_init(size, data).release();
+counted_t<const datum_t> datum_t::empty_array() {
+    return make_counted<datum_t>(std::vector<counted_t<const datum_t> >());
 }
 
-void datum_t::init_array() {
-    type = R_ARRAY;
-    r_array = new std::vector<counted_t<const datum_t> >();
+counted_t<const datum_t> datum_t::empty_object() {
+    return make_counted<datum_t>(std::map<std::string, counted_t<const datum_t> >());
 }
 
-void datum_t::init_object() {
-    type = R_OBJECT;
-    r_object = new std::map<std::string, counted_t<const datum_t> >();
+counted_t<const datum_t> datum_t::null() {
+    return make_counted<datum_t>(construct_null_t());
 }
 
-void datum_t::init_json(cJSON *json) {
+counted_t<const datum_t> datum_t::boolean(bool value) {
+    return make_counted<datum_t>(construct_boolean_t(), value);
+}
+
+counted_t<const datum_t> to_datum(cJSON *json) {
     switch (json->type) {
     case cJSON_False: {
-        type = R_BOOL;
-        r_bool = false;
+        return datum_t::boolean(false);
     } break;
     case cJSON_True: {
-        type = R_BOOL;
-        r_bool = true;
+        return datum_t::boolean(true);
     } break;
     case cJSON_NULL: {
-        type = R_NULL;
+        return datum_t::null();
     } break;
     case cJSON_Number: {
-        type = R_NUM;
-        r_num = json->valuedouble;
-        // so we can use `isfinite` in a GCC 4.4.3-compatible way
-        using namespace std;  // NOLINT(build/namespaces)
-        rcheck(isfinite(r_num), base_exc_t::GENERIC,
-               strprintf("Non-finite value `%lf` in JSON.", r_num));
+        return make_counted<datum_t>(json->valuedouble);
     } break;
     case cJSON_String: {
-        init_str(strlen(json->valuestring), json->valuestring);
-        check_str_validity(r_str);
+        return make_counted<datum_t>(json->valuestring);
     } break;
     case cJSON_Array: {
-        init_array();
+        std::vector<counted_t<const datum_t> > array;
         json_array_iterator_t it(json);
         while (cJSON *item = it.next()) {
-            add(make_counted<datum_t>(item));
+            array.push_back(to_datum(item));
         }
+        // TODO(v1.14): This uses no array size limit to be compatible with existing
+        // behavior.  This should (a) use the array size limit, and (b) use the
+        // query-specific array size limit, and (c?) depend on the query evaluation
+        // version, once that exists.
+        return make_counted<datum_t>(std::move(array),
+                                     datum_t::no_array_size_limit_check_t());
     } break;
     case cJSON_Object: {
-        init_object();
+        std::map<std::string, counted_t<const datum_t> > map;
         json_object_iterator_t it(json);
         while (cJSON *item = it.next()) {
-            bool conflict = add(item->string, make_counted<datum_t>(item));
-            rcheck(!conflict, base_exc_t::GENERIC,
-                   strprintf("Duplicate key `%s` in JSON.", item->string));
+            auto res = map.insert(std::make_pair(item->string, to_datum(item)));
+            rcheck_datum(res.second, base_exc_t::GENERIC,
+                         strprintf("Duplicate key `%s` in JSON.", item->string));
         }
-        maybe_sanitize_ptype();
+        return make_counted<datum_t>(std::move(map));
     } break;
     default: unreachable();
     }
+}
+
+
+void check_str_validity(const char *bytes, size_t count) {
+    const char *pos = static_cast<const char *>(memchr(bytes, 0, count));
+    rcheck_datum(pos == NULL,
+                 base_exc_t::GENERIC,
+                 // We truncate because lots of other places can call `c_str` on the
+                 // error message.
+                 strprintf("String `%.20s` (truncated) contains NULL byte at offset %zu.",
+                           bytes, pos - bytes));
 }
 
 void datum_t::check_str_validity(const wire_string_t *str) {
-    for (size_t i = 0; i < str->size(); ++i) {
-        if (str->data()[i] == '\0') {
-            rfail(base_exc_t::GENERIC,
-                  // We truncate because lots of other places can call `c_str` on the
-                  // error message.
-                  "String `%.20s` (truncated) contains NULL byte at offset %zu.",
-                  str->c_str(), i);
-        }
-    }
+    ::ql::check_str_validity(str->data(), str->size());
 }
 
 void datum_t::check_str_validity(const std::string &str) {
-    size_t null_offset = str.find('\0');
-    rcheck(null_offset == std::string::npos,
-           base_exc_t::GENERIC,
-           // We truncate because lots of other places can call `c_str` on the
-           // error message.
-           strprintf("String `%.20s` (truncated) contains NULL byte at offset %zu.",
-                     str.c_str(), null_offset));
-}
-
-datum_t::datum_t(cJSON *json) {
-    init_json(json);
-}
-datum_t::datum_t(const scoped_cJSON_t &json) {
-    init_json(json.get());
+    ::ql::check_str_validity(str.data(), str.size());
 }
 
 datum_t::type_t datum_t::get_type() const { return type; }
@@ -245,7 +229,6 @@ std::string raw_type_name(datum_t::type_t type) {
     case datum_t::R_STR:    return "STRING";
     case datum_t::R_ARRAY:  return "ARRAY";
     case datum_t::R_OBJECT: return "OBJECT";
-    case datum_t::UNINITIALIZED: // fallthru
     default: unreachable();
     }
 }
@@ -354,7 +337,6 @@ void datum_t::array_to_str_key(std::string *str_out) const {
                           "(got %s of type %s).", item->print().c_str(),
                           item->get_type_name().c_str()));
             break;
-        case UNINITIALIZED: // fallthru
         default:
             unreachable();
         }
@@ -419,10 +401,12 @@ counted_t<const datum_t> datum_t::drop_literals(bool *encountered_literal_out) c
     // - this->counted_from_this()
     // - or if `need_to_copy` is true, `copied_result`
     bool need_to_copy = false;
-    scoped_ptr_t<datum_ptr_t> copied_result;
+    counted_t<const datum_t> copied_result;
 
     if (get_type() == R_OBJECT) {
         const std::map<std::string, counted_t<const datum_t> > &obj = as_object();
+        datum_object_builder_t builder;
+
         for (auto it = obj.begin(); it != obj.end(); ++it) {
             bool encountered_literal;
             counted_t<const datum_t> val =
@@ -432,25 +416,29 @@ counted_t<const datum_t> datum_t::drop_literals(bool *encountered_literal_out) c
                 // We have encountered the first field with a literal.
                 // This means we have to create a copy in `result_copy`.
                 need_to_copy = true;
-                // Copy everything up to now into the result
-                copied_result.init(new datum_ptr_t(R_OBJECT));
+                // Copy everything up to now into the builder.
                 for (auto copy_it = obj.begin(); copy_it != it; ++copy_it) {
-                    bool conflict = copied_result->add(copy_it->first, copy_it->second);
+                    bool conflict = builder.add(copy_it->first, copy_it->second);
                     r_sanity_check(!conflict);
                 }
             }
 
             if (need_to_copy) {
-                if (val) {
-                    bool conflict = copied_result->add(it->first, val);
+                if (val.has()) {
+                    bool conflict = builder.add(it->first, val);
                     r_sanity_check(!conflict);
                 } else {
                     // If `it->second` was a literal without a value, ignore it
                 }
             }
         }
+
+        copied_result = std::move(builder).to_counted();
+
     } else if (get_type() == R_ARRAY) {
         const std::vector<counted_t<const datum_t> > &arr = as_array();
+        datum_array_builder_t builder;
+
         for (auto it = arr.begin(); it != arr.end(); ++it) {
             bool encountered_literal;
             counted_t<const datum_t> val = (*it)->drop_literals(&encountered_literal);
@@ -459,16 +447,15 @@ counted_t<const datum_t> datum_t::drop_literals(bool *encountered_literal_out) c
                 // We have encountered the first element with a literal.
                 // This means we have to create a copy in `result_copy`.
                 need_to_copy = true;
-                // Copy everything up to now into the result
-                copied_result.init(new datum_ptr_t(R_ARRAY));
+                // Copy everything up to now into the builder.
                 for (auto copy_it = arr.begin(); copy_it != it; ++copy_it) {
-                    copied_result->add(*copy_it);
+                    builder.add(*copy_it);
                 }
             }
 
             if (need_to_copy) {
-                if (val) {
-                    copied_result->add(val);
+                if (val.has()) {
+                    builder.add(val);
                 } else {
                     // If `*it` was a literal without a value, ignore it
                 }
@@ -479,7 +466,7 @@ counted_t<const datum_t> datum_t::drop_literals(bool *encountered_literal_out) c
     if (need_to_copy) {
         *encountered_literal_out = true;
         rassert(copied_result.has());
-        return copied_result->to_counted();
+        return copied_result;
     } else {
         *encountered_literal_out = false;
         return counted_from_this();
@@ -528,7 +515,6 @@ std::string datum_t::print_primary() const {
             "(got type %s):\n%s",
             get_type_name().c_str(), trunc_print().c_str()));
         break;
-    case UNINITIALIZED: // fallthru
     default:
         unreachable();
     }
@@ -758,60 +744,6 @@ const std::vector<counted_t<const datum_t> > &datum_t::as_array() const {
     return *r_array;
 }
 
-void datum_t::change(size_t index, counted_t<const datum_t> val) {
-    check_type(R_ARRAY);
-    rcheck(index < r_array->size(),
-           base_exc_t::NON_EXISTENCE,
-           strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
-                     index, r_array->size()));
-    (*r_array)[index] = val;
-}
-
-void datum_t::insert(size_t index, counted_t<const datum_t> val) {
-    check_type(R_ARRAY);
-    rcheck(index <= r_array->size(),
-           base_exc_t::NON_EXISTENCE,
-           strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
-                     index, r_array->size()));
-    r_array->insert(r_array->begin() + index, val);
-}
-
-void datum_t::erase(size_t index) {
-    check_type(R_ARRAY);
-    rcheck(index < r_array->size(),
-           base_exc_t::NON_EXISTENCE,
-           strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
-                     index, r_array->size()));
-    r_array->erase(r_array->begin() + index);
-}
-
-void datum_t::erase_range(size_t start, size_t end) {
-    check_type(R_ARRAY);
-    rcheck(start < r_array->size(),
-           base_exc_t::NON_EXISTENCE,
-           strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
-                     start, r_array->size()));
-    rcheck(end <= r_array->size(),
-           base_exc_t::NON_EXISTENCE,
-           strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
-                     end, r_array->size()));
-    rcheck(start <= end,
-           base_exc_t::GENERIC,
-           strprintf("Start index `%zu` is greater than end index `%zu`.",
-                      start, end));
-    r_array->erase(r_array->begin() + start, r_array->begin() + end);
-}
-
-void datum_t::splice(size_t index, counted_t<const datum_t> values) {
-    check_type(R_ARRAY);
-    rcheck(index <= r_array->size(),
-           base_exc_t::NON_EXISTENCE,
-           strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
-                     index, r_array->size()));
-    r_array->insert(r_array->begin() + index,
-                    values->as_array().begin(), values->as_array().end());
-}
-
 size_t datum_t::size() const {
     return as_array().size();
 }
@@ -864,7 +796,6 @@ cJSON *datum_t::as_json_raw() const {
         }
         return obj.release();
     } break;
-    case UNINITIALIZED: // fallthru
     default: unreachable();
     }
     unreachable();
@@ -888,18 +819,10 @@ datum_t::as_datum_stream(const protob_t<const Backtrace> &backtrace) const {
     case R_ARRAY:
         return make_counted<array_datum_stream_t>(this->counted_from_this(),
                                                   backtrace);
-    case UNINITIALIZED: // fallthru
     default: unreachable();
     }
     unreachable();
 };
-
-void datum_t::add(counted_t<const datum_t> val) {
-    check_type(R_ARRAY);
-    r_sanity_check(val.has());
-    r_array->push_back(val);
-    rcheck_array_size(*r_array, base_exc_t::GENERIC);
-}
 
 MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
                            clobber_bool_t clobber_bool) {
@@ -907,25 +830,25 @@ MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
     check_str_validity(key);
     r_sanity_check(val.has());
     bool key_in_obj = r_object->count(key) > 0;
-    if (!key_in_obj || (clobber_bool == CLOBBER)) (*r_object)[key] = val;
+    if (!key_in_obj || (clobber_bool == CLOBBER)) {
+        (*r_object)[key] = val;
+    }
     return key_in_obj;
 }
 
-MUST_USE bool datum_t::delete_field(const std::string &key) {
-    return r_object->erase(key);
-}
-
 counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
-    if (get_type() != R_OBJECT || rhs->get_type() != R_OBJECT) { return rhs; }
+    if (get_type() != R_OBJECT || rhs->get_type() != R_OBJECT) {
+        return rhs;
+    }
 
-    datum_ptr_t d(as_object());
+    datum_object_builder_t d(as_object());
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
-        counted_t<const datum_t> sub_lhs = d->get(it->first, NOTHROW);
+        counted_t<const datum_t> sub_lhs = d.try_get(it->first);
         bool is_literal = it->second->is_ptype(pseudo::literal_string);
 
         if (it->second->get_type() == R_OBJECT && sub_lhs && !is_literal) {
-            UNUSED bool b = d.add(it->first, sub_lhs->merge(it->second), CLOBBER);
+            d.overwrite(it->first, sub_lhs->merge(it->second));
         } else {
             counted_t<const datum_t> val =
                 is_literal
@@ -938,31 +861,30 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
                 val = val->drop_literals(&encountered_literal);
                 r_sanity_check(!encountered_literal || !is_literal);
             }
-            if (val) {
-                UNUSED bool b = d.add(it->first, val, CLOBBER);
+            if (val.has()) {
+                d.overwrite(it->first, val);
             } else {
                 r_sanity_check(is_literal);
                 UNUSED bool b = d.delete_field(it->first);
             }
         }
     }
-    return d.to_counted();
+    return std::move(d).to_counted();
 }
 
 counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs,
                                         merge_resoluter_t f) const {
-    datum_ptr_t d(as_object());
+    datum_object_builder_t d(as_object());
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
         if (counted_t<const datum_t> left = get(it->first, NOTHROW)) {
-            bool b = d.add(it->first, f(it->first, left, it->second), CLOBBER);
-            r_sanity_check(b);
+            d.overwrite(it->first, f(it->first, left, it->second));
         } else {
             bool b = d.add(it->first, it->second);
             r_sanity_check(!b);
         }
     }
-    return d.to_counted();
+    return std::move(d).to_counted();
 }
 
 template<class T>
@@ -1029,7 +951,6 @@ int datum_t::cmp(const datum_t &rhs) const {
             return 0;
         }
     } unreachable();
-    case UNINITIALIZED: // fallthru
     default: unreachable();
     }
 }
@@ -1047,59 +968,50 @@ void datum_t::runtime_fail(base_exc_t::type_t exc_type,
     ql::runtime_fail(exc_type, test, file, line, msg);
 }
 
-datum_t::datum_t() : type(UNINITIALIZED) { }
-
-datum_t::datum_t(const Datum *d) : type(UNINITIALIZED) {
-    init_from_pb(d);
-}
-
-void datum_t::init_from_pb(const Datum *d) {
-    r_sanity_check(type == UNINITIALIZED);
+counted_t<const datum_t> to_datum(const Datum *d) {
     switch (d->type()) {
     case Datum::R_NULL: {
-        type = R_NULL;
+        return datum_t::null();
     } break;
     case Datum::R_BOOL: {
-        type = R_BOOL;
-        r_bool = d->r_bool();
+        return datum_t::boolean(d->r_bool());
     } break;
     case Datum::R_NUM: {
-        type = R_NUM;
-        r_num = d->r_num();
-        // so we can use `isfinite` in a GCC 4.4.3-compatible way
-        using namespace std;  // NOLINT(build/namespaces)
-        rcheck(isfinite(r_num),
-               base_exc_t::GENERIC,
-               strprintf("Illegal non-finite number `%" PR_RECONSTRUCTABLE_DOUBLE "`.",
-                         r_num));
+        return make_counted<datum_t>(d->r_num());
     } break;
     case Datum::R_STR: {
-        init_str(d->r_str().size(), d->r_str().data());
-        check_str_validity(r_str);
+        return make_counted<datum_t>(std::string(d->r_str()));
     } break;
     case Datum::R_JSON: {
         scoped_cJSON_t cjson(cJSON_Parse(d->r_str().c_str()));
-        init_json(cjson.get());
+        return to_datum(cjson.get());
     } break;
     case Datum::R_ARRAY: {
-        init_array();
-        for (int i = 0; i < d->r_array_size(); ++i) {
-            r_array->push_back(make_counted<datum_t>(&d->r_array(i)));
+        std::vector<counted_t<const datum_t> > array;
+        array.reserve(d->r_array_size());
+        for (int i = 0, e = d->r_array_size(); i < e; ++i) {
+            array.push_back(to_datum(&d->r_array(i)));
         }
+        // TODO(v1.14): Check the array size limit here, or check the query-specific
+        // array size limit here, or don't check it.  Could a sindex function have
+        // Datum deserialization?  Right now, we don't check the array size limit
+        // because we didn't check it in v1.13.
+        return make_counted<datum_t>(std::move(array),
+                                     datum_t::no_array_size_limit_check_t());
     } break;
     case Datum::R_OBJECT: {
-        init_object();
-        for (int i = 0; i < d->r_object_size(); ++i) {
+        std::map<std::string, counted_t<const datum_t> > map;
+        const int count = d->r_object_size();
+        for (int i = 0; i < count; ++i) {
             const Datum_AssocPair *ap = &d->r_object(i);
             const std::string &key = ap->key();
-            check_str_validity(key);
-            rcheck(r_object->count(key) == 0,
-                   base_exc_t::GENERIC,
-                   strprintf("Duplicate key %s in object.", key.c_str()));
-            (*r_object)[key] = make_counted<datum_t>(&ap->val());
+            datum_t::check_str_validity(key);
+            auto res = map.insert(std::make_pair(key, to_datum(&ap->val())));
+            rcheck_datum(res.second, base_exc_t::GENERIC,
+                         strprintf("Duplicate key %s in object.", key.c_str()));
         }
-        std::set<std::string> allowed_ptypes = { pseudo::literal_string };
-        maybe_sanitize_ptype(allowed_ptypes);
+        const std::set<std::string> pts = { pseudo::literal_string };
+        return make_counted<datum_t>(std::move(map), pts);
     } break;
     default: unreachable();
     }
@@ -1162,7 +1074,6 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
                 it->second->write_to_protobuf(ap->mutable_val(), use_json);
             }
         } break;
-        case UNINITIALIZED: // fallthru
         default: unreachable();
         }
     } break;
@@ -1184,14 +1095,14 @@ counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
     if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
         return make_counted<datum_t>(l->as_num() + r->as_num());
     } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
-        datum_ptr_t arr(datum_t::R_ARRAY);
+        datum_array_builder_t arr;
         for (size_t i = 0; i < l->size(); ++i) {
             arr.add(l->get(i));
         }
         for (size_t i = 0; i < r->size(); ++i) {
             arr.add(r->get(i));
         }
-        return arr.to_counted();
+        return std::move(arr).to_counted();
     }
 
     // Merging a string is left-preferential, which is just a no-op.
@@ -1203,5 +1114,147 @@ counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
                   r->trunc_print().c_str(), r->get_type_name().c_str()));
     return l;
 }
+
+bool datum_object_builder_t::add(const std::string &key, counted_t<const datum_t> val) {
+    datum_t::check_str_validity(key);
+    r_sanity_check(val.has());
+    auto res = map.insert(std::make_pair(key, std::move(val)));
+    // Return _false_ if the insertion actually happened.  Because we are being
+    // backwards to the C++ convention.
+    return !res.second;
+}
+
+void datum_object_builder_t::overwrite(std::string key,
+                                       counted_t<const datum_t> val) {
+    datum_t::check_str_validity(key);
+    r_sanity_check(val.has());
+    map[std::move(key)] = std::move(val);
+}
+
+void datum_object_builder_t::add_error(const char *msg) {
+    // Insert or update the "errors" entry.
+    {
+        counted_t<const datum_t> *errors_entry = &map["errors"];
+        double ecount = (errors_entry->has() ? (*errors_entry)->as_num() : 0) + 1;
+        *errors_entry = make_counted<datum_t>(ecount);
+    }
+
+    // If first_error already exists, nothing gets inserted.
+    map.insert(std::make_pair("first_error", make_counted<datum_t>(msg)));
+}
+
+MUST_USE bool datum_object_builder_t::delete_field(const std::string &key) {
+    return 0 != map.erase(key);
+}
+
+
+counted_t<const datum_t> datum_object_builder_t::at(const std::string &key) const {
+    return map.at(key);
+}
+
+counted_t<const datum_t> datum_object_builder_t::try_get(const std::string &key) const {
+    auto it = map.find(key);
+    return it == map.end() ? counted_t<const datum_t>() : it->second;
+}
+
+counted_t<const datum_t> datum_object_builder_t::to_counted() RVALUE_THIS {
+    return make_counted<const datum_t>(std::move(map));
+}
+
+counted_t<const datum_t> datum_object_builder_t::to_counted(
+        const std::set<std::string> &permissible_ptypes) RVALUE_THIS {
+    return make_counted<const datum_t>(std::move(map), permissible_ptypes);
+}
+
+datum_array_builder_t::datum_array_builder_t(std::vector<counted_t<const datum_t> > &&v)
+    : vector(std::move(v)) {
+    rcheck_array_size_datum(vector, base_exc_t::GENERIC);
+}
+
+void datum_array_builder_t::reserve(size_t n) { vector.reserve(n); }
+
+void datum_array_builder_t::add(counted_t<const datum_t> val) {
+    vector.push_back(std::move(val));
+    rcheck_array_size_datum(vector, base_exc_t::GENERIC);
+}
+
+void datum_array_builder_t::change(size_t index, counted_t<const datum_t> val) {
+    rcheck_datum(index < vector.size(),
+                 base_exc_t::NON_EXISTENCE,
+                 strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
+                           index, vector.size()));
+    vector[index] = std::move(val);
+}
+
+void datum_array_builder_t::insert(size_t index, counted_t<const datum_t> val) {
+    rcheck_datum(index <= vector.size(),
+                 base_exc_t::NON_EXISTENCE,
+                 strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
+                           index, vector.size()));
+    vector.insert(vector.begin() + index, std::move(val));
+
+    // We don't check the array size limit -- to avoid breaking command behavior.
+    // See https://github.com/rethinkdb/rethinkdb/issues/2697
+
+    // rcheck_array_size_datum(vector, base_exc_t::GENERIC);
+}
+
+void datum_array_builder_t::splice(size_t index, counted_t<const datum_t> values) {
+    rcheck_datum(index <= vector.size(),
+                 base_exc_t::NON_EXISTENCE,
+                 strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
+                           index, vector.size()));
+
+    const std::vector<counted_t<const datum_t> > &arr = values->as_array();
+    vector.insert(vector.begin() + index, arr.begin(), arr.end());
+
+    // We don't check the array size limit -- to avoid breaking command behavior.
+    // See https://github.com/rethinkdb/rethinkdb/issues/2697
+
+    // rcheck_array_size_datum(vector, base_exc_t::GENERIC);
+}
+
+void datum_array_builder_t::erase_range(size_t start, size_t end) {
+    // Don't change this to <=.  See #2696.  Probably you'll want to move the logic
+    // of this (and some other functions here) into particular ReQL term
+    // implementations.
+    rcheck_datum(start < vector.size(),
+                 base_exc_t::NON_EXISTENCE,
+                 strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
+                           start, vector.size()));
+    rcheck_datum(end <= vector.size(),
+                 base_exc_t::NON_EXISTENCE,
+                 strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
+                           end, vector.size()));
+    rcheck_datum(start <= end,
+                 base_exc_t::GENERIC,
+                 strprintf("Start index `%zu` is greater than end index `%zu`.",
+                           start, end));
+    vector.erase(vector.begin() + start, vector.begin() + end);
+}
+
+void datum_array_builder_t::erase(size_t index) {
+    rcheck_datum(index < vector.size(),
+                 base_exc_t::NON_EXISTENCE,
+                 strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
+                           index, vector.size()));
+    vector.erase(vector.begin() + index);
+}
+
+counted_t<const datum_t> datum_array_builder_t::to_counted() RVALUE_THIS {
+    // We call the non-checking constructor.  See
+    // https://github.com/rethinkdb/rethinkdb/issues/2697 for more information --
+    // insert and splice don't check the array size limit, because of a bug (as
+    // reported in the issue).  This maintains that broken ReQL behavior because of
+    // the generic reasons you would do so.
+    return make_counted<datum_t>(std::move(vector),
+                                 datum_t::no_array_size_limit_check_t());
+}
+
+
+
+
+
+
 
 } // namespace ql

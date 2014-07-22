@@ -46,29 +46,10 @@ void run_with_broadcaster(
     // io backender
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
 
-    /* Create some structures for the rdb_context_t, warning some
-     * boilerplate is about to follow, avert your eyes if you have a weak
-     * stomach for such things. */
     extproc_pool_t extproc_pool(2);
-
-    connectivity_cluster_t c;
-    semilattice_manager_t<cluster_semilattice_metadata_t> slm(&c, cluster_semilattice_metadata_t());
-    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, &slm, 0, NULL);
-
-    connectivity_cluster_t c2;
-    directory_read_manager_t<cluster_directory_metadata_t> read_manager(&c2);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, &read_manager, 0, NULL);
-
-    boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > dummy_auth;
     rdb_context_t ctx(&extproc_pool,
-                      cluster.get_mailbox_manager(),
                       NULL,
-                      slm.get_root_view(),
-                      dummy_auth,
-                      &read_manager,
-                      generate_uuid(),
-                      &get_global_perfmon_collection(),
-                      std::string());
+                      NULL);
 
     /* Set up a broadcaster and initial listener */
     test_store_t initial_store(&io_backender, &order_source, &ctx);
@@ -128,9 +109,9 @@ void run_in_thread_pool_with_broadcaster(
 counted_t<const ql::datum_t> generate_document(size_t value_padding_length, const std::string &value) {
     // This is a kind of hacky way to add an object to a map but I'm not sure
     // anyone really cares.
-    return make_counted<ql::datum_t>(scoped_cJSON_t(cJSON_Parse(strprintf("{\"id\" : %s, \"padding\" : \"%s\"}",
-                                                                          value.c_str(),
-                                                                          std::string(value_padding_length, 'a').c_str()).c_str())));
+    return ql::to_datum(scoped_cJSON_t(cJSON_Parse(strprintf("{\"id\" : %s, \"padding\" : \"%s\"}",
+                                                             value.c_str(),
+                                                             std::string(value_padding_length, 'a').c_str()).c_str())).get());
 }
 
 void write_to_broadcaster(size_t value_padding_length,
@@ -350,7 +331,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
         scoped_cJSON_t sindex_key_json(cJSON_Parse(it->second.c_str()));
-        auto sindex_key_literal = make_counted<const ql::datum_t>(sindex_key_json);
+        auto sindex_key_literal = ql::to_datum(sindex_key_json.get());
         read_t read = make_sindex_read(sindex_key_literal, id);
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());

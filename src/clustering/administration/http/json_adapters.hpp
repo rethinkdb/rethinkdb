@@ -5,7 +5,7 @@
 #include <string>
 
 #include "http/json/json_adapter.hpp"
-#include "rpc/connectivity/connectivity.hpp"
+#include "rpc/connectivity/peer_id.hpp"
 #include "rpc/semilattice/joins/deletable.hpp"
 #include "rpc/semilattice/joins/vclock.hpp"
 

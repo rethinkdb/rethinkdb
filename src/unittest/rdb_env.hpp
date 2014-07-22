@@ -18,7 +18,6 @@
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
 #include "rdb_protocol/env.hpp"
-#include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"
 #include "rpc/semilattice/view/field.hpp"
@@ -109,6 +108,13 @@ public:
 
     mock_namespace_interface_t *get_ns_if(const namespace_id_t &ns_id);
 
+    bool check_namespace_exists(UNUSED const namespace_id_t &ns_id,
+                                UNUSED signal_t *interruptor) {
+        /* The `mock_namespace_repo_t` creates namespaces on the fly, so they always
+        exist */
+        return true;
+    }
+
 private:
     namespace_cache_entry_t *get_cache_entry(const namespace_id_t &ns_id);
 
@@ -121,6 +127,40 @@ private:
 
     ql::env_t *env;
     std::map<namespace_id_t, mock_namespace_cache_entry_t *> cache;
+};
+
+/* This is read-only; it will give an error if you call the `db_create()`,
+`table_create()`, etc. methods. The only way to create databases and tables is by
+modifying the `databases` and `tables` fields directly. */
+class mock_reql_admin_interface_t : public reql_admin_interface_t {
+public:
+    bool db_create(const name_string_t &name,
+            signal_t *interruptor, std::string *error_out); 
+    bool db_drop(const name_string_t &name,
+            signal_t *interruptor, std::string *error_out);
+    bool db_list(
+            signal_t *interruptor, std::set<name_string_t> *names_out,
+            std::string *error_out);
+    bool db_find(const name_string_t &name,
+            signal_t *interruptor, counted_t<const ql::db_t> *db_out,
+            std::string *error_out);
+
+    bool table_create(const name_string_t &name, counted_t<const ql::db_t> db,
+            const boost::optional<name_string_t> &primary_dc, bool hard_durability,
+            const std::string &primary_key,
+            signal_t *interruptor, uuid_u *namespace_id_out, std::string *error_out);
+    bool table_drop(const name_string_t &name, counted_t<const ql::db_t> db,
+            signal_t *interruptor, std::string *error_out);
+    bool table_list(counted_t<const ql::db_t> db,
+            signal_t *interruptor, std::set<name_string_t> *names_out,
+            std::string *error_out);
+    bool table_find(const name_string_t &name, counted_t<const ql::db_t> db,
+            signal_t *interruptor, uuid_u *id_out, std::string *primary_key_out,
+            std::string *error_out);
+
+    std::map<name_string_t, database_id_t> databases;
+    std::map<std::pair<database_id_t, name_string_t>,
+        std::pair<namespace_id_t, std::string> > tables;
 };
 
 class invalid_name_exc_t : public std::exception {
@@ -145,7 +185,7 @@ private:
 // create or destroy them using reql in this environment.  As such, you should create
 // any necessary databases and tables BEFORE creating the instance_t by using the
 // add_table and add_database functions.
-class test_rdb_env_t {
+class test_rdb_env_t : private mock_reql_admin_interface_t {
 public:
     test_rdb_env_t();
     ~test_rdb_env_t();
@@ -171,7 +211,6 @@ public:
         std::map<store_key_t, scoped_cJSON_t *> *get_data(const namespace_id_t &ns_id);
 
     private:
-        dummy_semilattice_controller_t<cluster_semilattice_metadata_t> dummy_semilattice_controller;
         extproc_pool_t extproc_pool;
         reactor_test_cluster_t test_cluster;
         mock_namespace_repo_t rdb_ns_repo;
@@ -183,9 +222,9 @@ public:
     scoped_ptr_t<instance_t> make_env();
 
 private:
-    uuid_u machine_id;
-    cluster_semilattice_metadata_t metadata;
     extproc_spawner_t extproc_spawner;
+
+    mock_reql_admin_interface_t reql_admin_interface;
 
     // Initial data for tables are stored here until the instance_t is constructed, at
     //  which point, it is moved into a mock_namespace_interface_t, and this is cleared.

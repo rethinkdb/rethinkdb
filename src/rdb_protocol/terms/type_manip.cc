@@ -107,7 +107,6 @@ private:
         case datum_t::R_STR:
         case datum_t::R_ARRAY:
         case datum_t::R_OBJECT:
-        case datum_t::UNINITIALIZED:
         default: break;
         }
     }
@@ -219,7 +218,7 @@ private:
 
             // SEQUENCE -> OBJECT
             if (start_type == R_ARRAY_TYPE && end_type == R_OBJECT_TYPE) {
-                datum_ptr_t obj(datum_t::R_OBJECT);
+                datum_object_builder_t obj;
                 batchspec_t batchspec
                     = batchspec_t::user(batch_type_t::TERMINAL, env->env);
                 {
@@ -232,12 +231,12 @@ private:
                                strprintf("Duplicate key `%s` in coerced object.  "
                                          "(got `%s` and `%s` as values)",
                                          key.c_str(),
-                                         obj->get(key)->trunc_print().c_str(),
+                                         obj.at(key)->trunc_print().c_str(),
                                          keyval->trunc_print().c_str()));
                         sampler.new_sample();
                     }
                 }
-                return new_val(obj.to_counted());
+                return new_val(std::move(obj).to_counted());
             }
         }
 
@@ -312,7 +311,7 @@ private:
     }
 
     counted_t<const datum_t> val_info(scope_env_t *env, counted_t<val_t> v) const {
-        datum_ptr_t info(datum_t::R_OBJECT);
+        datum_object_builder_t info;
         int type = val_type(v);
         bool b = info.add("type", make_counted<datum_t>(get_name(type)));
 
@@ -367,7 +366,7 @@ private:
         default: r_sanity_check(false);
         }
         r_sanity_check(!b);
-        return info.to_counted();
+        return std::move(info).to_counted();
     }
 
     virtual const char *name() const { return "info"; }

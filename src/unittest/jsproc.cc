@@ -266,8 +266,8 @@ SPAWNER_TEST(JSProc, Passthrough) {
     passthrough_test_internal(&pool, make_counted<const ql::datum_t>(std::string("string str")));
 
     // Boolean
-    passthrough_test_internal(&pool, make_counted<const ql::datum_t>(ql::datum_t::type_t::R_BOOL, true));
-    passthrough_test_internal(&pool, make_counted<const ql::datum_t>(ql::datum_t::type_t::R_BOOL, false));
+    passthrough_test_internal(&pool, ql::datum_t::boolean(true));
+    passthrough_test_internal(&pool, ql::datum_t::boolean(false));
 
     // Array
     counted_t<const ql::datum_t> array_datum;
