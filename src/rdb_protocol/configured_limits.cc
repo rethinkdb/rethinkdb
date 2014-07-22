@@ -26,6 +26,19 @@ from_optargs(rdb_context_t *ctx, signal_t *interruptor,
 RDB_IMPL_ME_SERIALIZABLE_1(configured_limits_t, array_size_limit_);
 INSTANTIATE_SERIALIZABLE_SELF_FOR_CLUSTER(configured_limits_t);
 
+template <>
+archive_result_t
+ql::configured_limits_t::rdb_deserialize<cluster_version_t::v1_13>(read_stream_t *) {
+    // this didn't exist in 1.13, so set it to default.
+    array_size_limit_ = 100000;
+    return archive_result_t::SUCCESS;
+}
+
+template <>
+void ql::configured_limits_t::rdb_serialize<cluster_version_t::v1_13>(write_message_t *) const {
+    // this didn't exist in 1.13, so don't write it.
+}
+
 const configured_limits_t configured_limits_t::unlimited(std::numeric_limits<size_t>::max());
 
 } // namespace ql
