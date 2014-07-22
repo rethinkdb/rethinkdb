@@ -333,8 +333,8 @@ void semilattice_manager_t<metadata_t>::on_message(
                 /* This is the meat of the change */
                 this->join_metadata_locally(added_metadata);
                 /* Also notify anything that was waiting for us to reach this version */
-                DEBUG_VAR mutex_assertion_t::acq_t acq(&peer_version_mutex);
-                auto inserted = last_versions_seen.insert(
+                DEBUG_VAR mutex_assertion_t::acq_t acq(&this->peer_version_mutex);
+                auto inserted = this->last_versions_seen.insert(
                     std::make_pair(sender, change_version));
                 if (!inserted.second) {
                     inserted.first->second =
@@ -370,7 +370,7 @@ void semilattice_manager_t<metadata_t>::on_message(
                 }
                 sync_from_reply_writer_t writer(query_id, local_version);
                 {
-                    new_semaphore_acq_t acq(&semaphore, 1);
+                    new_semaphore_acq_t acq(&this->semaphore, 1);
                     acq.acquisition_signal()->wait();
                     get_connectivity_cluster()->send_message(connection,
                         connection_keepalive, get_message_tag(), &writer);
@@ -434,7 +434,7 @@ void semilattice_manager_t<metadata_t>::on_message(
                 }
                 sync_to_reply_writer_t writer(query_id);
                 {
-                    new_semaphore_acq_t acq(&semaphore, 1);
+                    new_semaphore_acq_t acq(&this->semaphore, 1);
                     acq.acquisition_signal()->wait();
                     get_connectivity_cluster()->send_message(connection,
                         connection_keepalive, get_message_tag(), &writer);
@@ -489,7 +489,7 @@ void semilattice_manager_t<metadata_t>::on_connections_change() {
             coro_t::spawn_sometime([this, this_keepalive /* important to capture */,
                     connection, connection_keepalive /* important to capture */]() {
                 metadata_writer_t writer(metadata, metadata_version);
-                new_semaphore_acq_t acq(&semaphore, 1);
+                new_semaphore_acq_t acq(&this->semaphore, 1);
                 acq.acquisition_signal()->wait();
                 get_connectivity_cluster()->send_message(connection,
                     connection_keepalive, get_message_tag(), &writer);
