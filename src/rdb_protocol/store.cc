@@ -3,8 +3,6 @@
 
 #include "btree/slice.hpp"
 #include "btree/superblock.hpp"
-#include "clustering/administration/database_metadata.hpp"
-#include "clustering/administration/namespace_metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/wait_any.hpp"

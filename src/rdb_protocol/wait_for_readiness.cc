@@ -5,18 +5,14 @@
 #include <boost/shared_ptr.hpp>
 
 #include "arch/timing.hpp"
-#include "clustering/administration/namespace_interface_repository.hpp"
-#include "clustering/administration/metadata.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/batching.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "rpc/semilattice/view.hpp"
 
 void wait_for_rdb_table_readiness(base_namespace_repo_t *ns_repo,
                                   uuid_u namespace_id,
-                                  signal_t *interruptor,
-                                  boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata) THROWS_ONLY(interrupted_exc_t) {
+                                  signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     /* The following is an ugly hack, but it's probably what we want.  It
        takes about a third of a second for the new namespace to get to the
        point where we can do reads/writes on it.  We don't want to return
@@ -47,18 +43,9 @@ void wait_for_rdb_table_readiness(base_namespace_repo_t *ns_repo,
             // copying the semilattice_metadata becomes quite expensive. So
             // we want to avoid that as much as possible.
             if ((num_attempts + 1) % deleted_check_interval == 0) {
-                // TODO: use a cross thread watchable instead?  not exactly
-                // pressed for time here...
-                on_thread_t rethread(semilattice_metadata->home_thread());
-                cluster_semilattice_metadata_t metadata = semilattice_metadata->get();
-                cow_ptr_t<namespaces_semilattice_metadata_t>::change_t
-                    change(&metadata.rdb_namespaces);
-                std::map<namespace_id_t,
-                         deletable_t<namespace_semilattice_metadata_t>
-                         >::iterator
-                    nsi = change.get()->namespaces.find(namespace_id);
-                rassert(nsi != change.get()->namespaces.end());
-                if (nsi->second.is_deleted()) throw interrupted_exc_t();
+                bool exists = ns_repo->check_namespace_exists(namespace_id, interruptor);
+                /* Throwing `interrupted_exc_t()` doesn't quite make sense here. */
+                if (!exists) throw interrupted_exc_t();
             }
 
             base_namespace_repo_t::access_t ns_access(
@@ -73,3 +60,4 @@ void wait_for_rdb_table_readiness(base_namespace_repo_t *ns_repo,
         }
     }
 }
+

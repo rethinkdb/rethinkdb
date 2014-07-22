@@ -62,7 +62,7 @@ bool rdb_query_server_t::run_query(const ql::protob_t<Query> &query,
          noreply->as_bool());
     try {
         scoped_ops_running_stat_t stat(&rdb_ctx->ql_ops_running);
-        guarantee(rdb_ctx->directory_read_manager);
+        guarantee(rdb_ctx->reql_admin_interface);
         // `ql::run` will set the status code
         ql::run(query,
                 rdb_ctx,

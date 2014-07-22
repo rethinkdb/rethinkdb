@@ -13,7 +13,7 @@ DRIVER_COMPILED_COFFEE := $(patsubst $(JS_SRC_DIR)/%.coffee,$(DRIVER_COFFEE_BUIL
 
 JS_PKG_DIR := $(PACKAGES_DIR)/js
 
-$(PROTO_MODULE): $(PROTO_FILE) $(JS_BUILD_DIR)/.
+$(PROTO_MODULE): $(PROTO_FILE) | $(JS_BUILD_DIR)/.
 	$P CONVERT_PROTOFILE
 	$(JS_SRC_DIR)/../convert_protofile --language javascript --input-file $(PROTO_FILE) --output-file $(PROTO_MODULE)
 

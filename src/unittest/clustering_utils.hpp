@@ -24,7 +24,7 @@ namespace unittest {
 
 class fake_ack_checker_t : public ack_checker_t {
 public:
-    fake_ack_checker_t(int e) : expected(e) { }
+    explicit fake_ack_checker_t(int e) : expected(e) { }
     bool is_acceptable_ack_set(const std::set<peer_id_t> &ack_set) const {
         return static_cast<int>(ack_set.size()) >= expected;
     }

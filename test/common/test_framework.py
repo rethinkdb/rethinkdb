@@ -104,6 +104,8 @@ def run(all_tests, all_groups, configure, args):
         testrunner.run()
         if args.html_report:
             test_report.gen_report(testrunner.dir, load_test_results_as_tests(testrunner.dir))
+        if testrunner.failed():
+            return 'FAILED'
 
 # This mode just lists the tests
 def list_tests_mode(tests, verbose, all_groups):
@@ -205,6 +207,7 @@ class TestRunner(object):
         self.failed_set = set()
         self.aborting = False
         self.abort_fast = abort_fast
+        self.all_passed = False
 
         timestamp = time.strftime('%Y-%m-%dT%H:%M:%S.')
 
@@ -295,6 +298,7 @@ class TestRunner(object):
         elif len(self.failed_set):
             print "%d of %d tests failed" % (len(self.failed_set), tests_count)
         else:
+            self.all_passed = True
             print "All tests passed successfully"
         print "Saved test results to %s" % (self.dir,)
 
@@ -336,6 +340,9 @@ class TestRunner(object):
     def count_running(self):
         with self.running as running:
             return len(running)
+
+    def failed(self):
+        return not self.all_passed
 
 # For printing the status of TestRunner to stdout
 class TextView(object):
@@ -547,7 +554,9 @@ class TestProcess(object):
             raise
 
     def run(self, write_pipe):
-        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        def recordSignal(signum, frame):
+            print('Ignored signal SIGINT')
+        signal.signal(signal.SIGINT, recordSignal) # avoiding a problem where signal.SIG_IGN would cause the test to never stop
         sys.stdin.close()
         redirect_fd_to_file(1, join(self.dir, "stdout"), tee=self.runner.verbose)
         redirect_fd_to_file(2, join(self.dir, "stderr"), tee=self.runner.verbose)

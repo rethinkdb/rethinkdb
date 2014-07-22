@@ -36,6 +36,17 @@ namespace_repo_t::namespace_repo_t(mailbox_manager_t *_mailbox_manager,
 
 namespace_repo_t::~namespace_repo_t() { }
 
+bool namespace_repo_t::check_namespace_exists(const uuid_u &ns_id,
+                                              UNUSED signal_t *interruptor) {
+    on_thread_t rethread(namespaces_view->home_thread());
+    cow_ptr_t<namespaces_semilattice_metadata_t> metadata = namespaces_view->get();
+    cow_ptr_t<namespaces_semilattice_metadata_t>::change_t change(&metadata);
+    auto nsi = change.get()->namespaces.find(ns_id);
+    if (nsi == change.get()->namespaces.end()) return false;
+    if (nsi->second.is_deleted()) return false;
+    return true;
+}
+
 std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > get_reactor_business_cards(
         const change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> &ns_directory_metadata, const namespace_id_t &n_id) {
     std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > res;
@@ -52,80 +63,6 @@ std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > get_reactor_business_ca
     }
 
     return res;
-}
-
-base_namespace_repo_t::access_t::access_t() :
-    cache_entry(NULL),
-    thread(INVALID_THREAD)
-    { }
-
-base_namespace_repo_t::access_t::access_t(base_namespace_repo_t *parent, const uuid_u &namespace_id, signal_t *interruptor) :
-    thread(get_thread_id())
-{
-    {
-        ASSERT_FINITE_CORO_WAITING;
-        cache_entry = parent->get_cache_entry(namespace_id);
-        ref_handler.init(cache_entry);
-    }
-    wait_interruptible(cache_entry->namespace_if.get_ready_signal(), interruptor);
-}
-
-base_namespace_repo_t::access_t::access_t(const access_t& access) :
-    cache_entry(access.cache_entry),
-    thread(access.thread)
-{
-    if (cache_entry) {
-        rassert(get_thread_id() == thread);
-        ref_handler.init(cache_entry);
-    }
-}
-
-base_namespace_repo_t::access_t &base_namespace_repo_t::access_t::operator=(const access_t &access) {
-    if (this != &access) {
-        cache_entry = access.cache_entry;
-        ref_handler.reset();
-        if (access.cache_entry) {
-            ref_handler.init(access.cache_entry);
-        }
-        thread = access.thread;
-    }
-    return *this;
-}
-
-namespace_interface_t *base_namespace_repo_t::access_t::get_namespace_if() {
-    rassert(thread == get_thread_id());
-    return cache_entry->namespace_if.wait();
-}
-
-base_namespace_repo_t::access_t::ref_handler_t::ref_handler_t() :
-    ref_target(NULL) { }
-
-base_namespace_repo_t::access_t::ref_handler_t::~ref_handler_t() {
-    reset();
-}
-
-void base_namespace_repo_t::access_t::ref_handler_t::init(namespace_cache_entry_t *_ref_target) {
-    ASSERT_NO_CORO_WAITING;
-    guarantee(ref_target == NULL);
-    ref_target = _ref_target;
-    ref_target->ref_count++;
-    if (ref_target->ref_count == 1) {
-        if (ref_target->pulse_when_ref_count_becomes_nonzero) {
-            ref_target->pulse_when_ref_count_becomes_nonzero->pulse_if_not_already_pulsed();
-        }
-    }
-}
-
-void base_namespace_repo_t::access_t::ref_handler_t::reset() {
-    ASSERT_NO_CORO_WAITING;
-    if (ref_target != NULL) {
-        ref_target->ref_count--;
-        if (ref_target->ref_count == 0) {
-            if (ref_target->pulse_when_ref_count_becomes_zero) {
-                ref_target->pulse_when_ref_count_becomes_zero->pulse_if_not_already_pulsed();
-            }
-        }
-    }
 }
 
 void copy_region_maps_to_thread(
