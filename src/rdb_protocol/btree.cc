@@ -127,7 +127,8 @@ void kv_location_delete(keyvalue_location_t *kv_location,
             deletion_context->balancing_detacher(), &null_cb);
 }
 
-void kv_location_set(keyvalue_location_t *kv_location,
+MUST_USE ql::serialization_result_t
+kv_location_set(keyvalue_location_t *kv_location,
                      const store_key_t &key,
                      counted_t<const ql::datum_t> data,
                      repli_timestamp_t timestamp,
@@ -139,10 +140,10 @@ void kv_location_set(keyvalue_location_t *kv_location,
     const max_block_size_t block_size = kv_location->buf.cache()->max_block_size();
     {
         blob_t blob(block_size, new_value->value_ref(), blob::btree_maxreflen);
-        UNUSED ql::serialization_result_t res
+        ql::serialization_result_t res
             = datum_serialize_onto_blob(buf_parent_t(&kv_location->buf),
                                         &blob, data);
-        // okay, now what.
+        if (bad(res)) return res;
     }
 
     if (mod_info_out) {
@@ -170,13 +171,15 @@ void kv_location_set(keyvalue_location_t *kv_location,
     apply_keyvalue_change(&sizer, kv_location, key.btree_key(),
                           timestamp,
                           deletion_context->balancing_detacher(), &null_cb);
+    return ql::serialization_result_t::SUCCESS;
 }
 
-void kv_location_set(keyvalue_location_t *kv_location,
-                     const store_key_t &key,
-                     const std::vector<char> &value_ref,
-                     repli_timestamp_t timestamp,
-                     const deletion_context_t *deletion_context) {
+MUST_USE ql::serialization_result_t
+kv_location_set(keyvalue_location_t *kv_location,
+                const store_key_t &key,
+                const std::vector<char> &value_ref,
+                repli_timestamp_t timestamp,
+                const deletion_context_t *deletion_context) {
     // Detach/Delete the old value.
     if (kv_location->value.has()) {
         deletion_context->in_tree_deleter()->delete_value(
@@ -193,6 +196,7 @@ void kv_location_set(keyvalue_location_t *kv_location,
     rdb_value_sizer_t sizer(kv_location->buf.cache()->max_block_size());
     apply_keyvalue_change(&sizer, kv_location, key.btree_key(), timestamp,
                           deletion_context->balancing_detacher(), &null_cb);
+    return ql::serialization_result_t::SUCCESS;
 }
 
 batched_replace_response_t rdb_replace_and_return_superblock(
@@ -277,9 +281,20 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             } else {
                 conflict = resp.add("inserted", make_counted<ql::datum_t>(1.0));
                 r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
-                kv_location_set(&kv_location, *info.key, new_val,
-                                info.btree->timestamp, deletion_context,
-                                mod_info_out);
+                ql::serialization_result_t res =
+                    kv_location_set(&kv_location, *info.key, new_val,
+                                    info.btree->timestamp, deletion_context,
+                                    mod_info_out);
+                switch (res) {
+                case ql::serialization_result_t::ARRAY_TOO_BIG:
+                    rfail_typed_target(new_val, "Array too large for disk writes"
+                                       " (limit 100,000 elements)");
+                    unreachable();
+                case ql::serialization_result_t::SUCCESS:
+                    break;
+                default:
+                    unreachable();
+                }
                 guarantee(mod_info_out->deleted.second.empty());
                 guarantee(!mod_info_out->added.second.empty());
                 mod_info_out->added.first = new_val;
@@ -301,9 +316,20 @@ batched_replace_response_t rdb_replace_and_return_superblock(
                 } else {
                     conflict = resp.add("replaced", make_counted<ql::datum_t>(1.0));
                     r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
-                    kv_location_set(&kv_location, *info.key, new_val,
-                                    info.btree->timestamp, deletion_context,
-                                    mod_info_out);
+                    ql::serialization_result_t res =
+                        kv_location_set(&kv_location, *info.key, new_val,
+                                        info.btree->timestamp, deletion_context,
+                                        mod_info_out);
+                    switch (res) {
+                    case ql::serialization_result_t::ARRAY_TOO_BIG:
+                        rfail_typed_target(new_val, "Array too large for disk writes"
+                                           " (limit 100,000 elements)");
+                        unreachable();
+                    case ql::serialization_result_t::SUCCESS:
+                        break;
+                    default:
+                        unreachable();
+                    }
                     guarantee(!mod_info_out->deleted.second.empty());
                     guarantee(!mod_info_out->added.second.empty());
                     mod_info_out->added.first = new_val;
@@ -452,8 +478,19 @@ void rdb_set(const store_key_t &key,
     mod_info->added.first = data;
 
     if (overwrite || !had_value) {
-        kv_location_set(&kv_location, key, data, timestamp, deletion_context,
-                        mod_info);
+        ql::serialization_result_t res =
+            kv_location_set(&kv_location, key, data, timestamp, deletion_context,
+                            mod_info);
+        switch (res) {
+        case ql::serialization_result_t::ARRAY_TOO_BIG:
+            rfail_typed_target(data, "Array too large for disk writes"
+                               " (limit 100,000 elements)");
+            unreachable();
+        case ql::serialization_result_t::SUCCESS:
+            break;
+        default:
+            unreachable();
+        }
         guarantee(mod_info->deleted.second.empty() == !had_value &&
                   !mod_info->added.second.empty());
     }
@@ -1197,10 +1234,13 @@ void rdb_update_single_sindex(
                                                      env.trace,
                                                      &return_superblock_local);
 
-                    kv_location_set(&kv_location, *it,
-                                    modification->info.added.second,
-                                    repli_timestamp_t::distant_past,
-                                    deletion_context);
+                    ql::serialization_result_t res =
+                        kv_location_set(&kv_location, *it,
+                                        modification->info.added.second,
+                                        repli_timestamp_t::distant_past,
+                                        deletion_context);
+                    // this particular context cannot fail AT THE MOMENT.
+                    guarantee(!bad(res));
                     // The keyvalue location gets destroyed here.
                 }
                 super_block = return_superblock_local.wait();
