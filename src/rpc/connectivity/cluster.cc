@@ -27,10 +27,10 @@
 #define MESSAGE_HANDLER_MAX_BATCH_SIZE           8
 
 // The cluster communication protocol version.
-static_assert(cluster_version_t::CLUSTER == cluster_version_t::v1_13_2_is_latest,
+static_assert(cluster_version_t::CLUSTER == cluster_version_t::v1_14_is_latest,
               "We need to update CLUSTER_VERSION_STRING when we add a new cluster "
               "version.");
-#define CLUSTER_VERSION_STRING "1.13.2"
+#define CLUSTER_VERSION_STRING "1.14"
 
 const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
 const std::string connectivity_cluster_t::cluster_version_string(CLUSTER_VERSION_STRING);
@@ -606,6 +606,129 @@ bool connectivity_cluster_t::run_t::get_routing_table_to_send_and_add_peer(
     return true;
 }
 
+// You must update deserialize_universal(read_stream_t *, handshake_result_t *)
+// below when changing this enum.
+enum class handshake_result_code_t {
+    SUCCESS = 0,
+    UNRECOGNIZED_VERSION = 1,
+    INCOMPATIBLE_ARCH = 2,
+    INCOMPATIBLE_BUILD = 3,
+    UNKNOWN_ERROR = 4
+};
+
+class handshake_result_t {
+public:
+    handshake_result_t() { }
+    static handshake_result_t success() {
+        return handshake_result_t(handshake_result_code_t::SUCCESS);
+    }
+    static handshake_result_t error(handshake_result_code_t error_code,
+                                    const std::string &additional_info) {
+        return handshake_result_t(error_code, additional_info);
+    }
+
+    handshake_result_code_t get_code() const {
+        return code;
+    }
+
+    std::string get_error_reason() const {
+        if (code == handshake_result_code_t::UNKNOWN_ERROR) {
+            return error_code_string + " (" + additional_info + ")";
+        } else {
+            return get_code_as_string() + " (" + additional_info + ")";
+        }
+    }
+
+private:
+    std::string get_code_as_string() const {
+        switch (code) {
+            case handshake_result_code_t::SUCCESS:
+                return "success";
+            case handshake_result_code_t::UNRECOGNIZED_VERSION:
+                return "unrecognized or incompatible version";
+            case handshake_result_code_t::INCOMPATIBLE_ARCH:
+                return "incompatible architecture";
+            case handshake_result_code_t::INCOMPATIBLE_BUILD:
+                return "incompatible build mode";
+            case handshake_result_code_t::UNKNOWN_ERROR:
+                unreachable();
+        }
+    }
+
+    handshake_result_t(handshake_result_code_t _error_code,
+                       const std::string &_additional_info)
+        : code(_error_code), additional_info(_additional_info) {
+        guarantee(code != handshake_result_code_t::UNKNOWN_ERROR);
+        guarantee(code != handshake_result_code_t::SUCCESS);
+        error_code_string = get_code_as_string();
+    }
+    explicit handshake_result_t(handshake_result_code_t _success)
+        : code(_success) {
+        guarantee(code == handshake_result_code_t::SUCCESS);
+    }
+
+    friend void serialize_universal(write_message_t *, const handshake_result_t &);
+    friend archive_result_t deserialize_universal(read_stream_t *, handshake_result_t *);
+
+    handshake_result_code_t code;
+    // In case code is UNKNOWN_ERROR, this error message
+    // will contain a human-readable description of the error code.
+    // The idea is that if we are talking to a newer node on the other side,
+    // it might send us some error codes that we don't understand. However the
+    // other node will know how to format that error into an error message.
+    std::string error_code_string;
+    std::string additional_info;
+};
+
+// It is ok to add new result codes to handshake_result_code_t.
+// However the existing code and the structure of handshake_result_t must be
+// kept compatible.
+void serialize_universal(write_message_t *wm, const handshake_result_t &r) {
+    guarantee(r.code != handshake_result_code_t::UNKNOWN_ERROR,
+              "Cannot serialize an unknown handshake result code");
+    serialize_universal(wm, static_cast<uint8_t>(r.code));
+    serialize_universal(wm, r.error_code_string);
+    serialize_universal(wm, r.additional_info);
+}
+archive_result_t deserialize_universal(read_stream_t *s, handshake_result_t *out) {
+    archive_result_t res;
+    uint8_t code_int;
+    res = deserialize_universal(s, &code_int);
+    if (res != archive_result_t::SUCCESS) {
+        return res;
+    }
+    if (code_int >= static_cast<uint8_t>(handshake_result_code_t::UNKNOWN_ERROR)) {
+        // Unrecognized error code. Fall back to UNKNOWN_ERROR.
+        out->code = handshake_result_code_t::UNKNOWN_ERROR;
+    } else {
+        out->code = static_cast<handshake_result_code_t>(code_int);
+    }
+    res = deserialize_universal(s, &out->error_code_string);
+    if (res != archive_result_t::SUCCESS) {
+        return res;
+    }
+    res = deserialize_universal(s, &out->additional_info);
+    return res;
+}
+
+void fail_handshake(keepalive_tcp_conn_stream_t *conn,
+                    const char *peername,
+                    const handshake_result_t &reason,
+                    bool send_error_to_peer = true) {
+    logWRN("Connection attempt from %s failed, reason: %s ",
+           peername, sanitize_for_logger(reason.get_error_reason()).c_str());
+
+    if (send_error_to_peer) {
+        // Send the reason for the failed handshake to the other side, so it can
+        // print a nice message or do something else with it.
+        write_message_t wm;
+        serialize_universal(&wm, reason);
+        if (send_write_message(conn, &wm)) {
+            // network error. Ignore
+        }
+    }
+}
+
 // We log error conditions as follows:
 // - silent: network error; conflict between parallel connections
 // - warning: invalid header
@@ -693,9 +816,21 @@ void connectivity_cluster_t::run_t::handle(
         }
 
         if (!resolve_protocol_version(remote_version_string, &resolved_version)) {
-            logWRN("Connection attempt from %s with unresolvable protocol version %s. "
-                   "The other node is running an incompatible version of RethinkDB.",
-                   peername, sanitize_for_logger(remote_version_string).c_str());
+            auto reason = handshake_result_t::error(
+                handshake_result_code_t::UNRECOGNIZED_VERSION,
+                strprintf("local: %s, remote: %s",
+                          cluster_version_string.c_str(), remote_version_string.c_str()));
+            // Peers before 1.14 don't support receiving a handshake error message.
+            // So we must not send one.
+            bool handshake_error_supported = false;
+            std::vector<int64_t> parts;
+            if (split_version_string(remote_version_string, &parts)) {
+                if ((parts.size() >= 1 && parts[0] > 1)
+                    || (parts.size() >= 2 && parts[0] == 1 && parts[1] >= 14)) {
+                    handshake_error_supported = true;
+                }
+            }
+            fail_handshake(conn, peername, reason, handshake_error_supported);
             return;
         }
 
@@ -712,9 +847,11 @@ void connectivity_cluster_t::run_t::handle(
         }
 
         if (remote_arch_bitsize != cluster_arch_bitsize) {
-            logWRN("Connection attempt with a RethinkDB node of the wrong architecture, "
-                   "peer: %s, local: %s, remote: %s, connection dropped\n",
-                   peername, cluster_arch_bitsize.c_str(), remote_arch_bitsize.c_str());
+            auto reason = handshake_result_t::error(
+                handshake_result_code_t::INCOMPATIBLE_ARCH,
+                strprintf("local: %s, remote: %s",
+                          cluster_arch_bitsize.c_str(), remote_arch_bitsize.c_str()));
+            fail_handshake(conn, peername, reason);
             return;
         }
 
@@ -729,9 +866,11 @@ void connectivity_cluster_t::run_t::handle(
         }
 
         if (remote_build_mode != cluster_build_mode) {
-            logWRN("Connection attempt with a RethinkDB node of the wrong build mode, "
-                   "peer: %s, local: %s, remote: %s, connection dropped\n",
-                   peername, cluster_build_mode.c_str(), remote_build_mode.c_str());
+            auto reason = handshake_result_t::error(
+                handshake_result_code_t::INCOMPATIBLE_BUILD,
+                strprintf("local: %s, remote: %s",
+                          cluster_build_mode.c_str(), remote_build_mode.c_str()));
+            fail_handshake(conn, peername, reason);
             return;
         }
     }
@@ -742,6 +881,27 @@ void connectivity_cluster_t::run_t::handle(
     if (deserialize_universal_and_check(conn, &other_id, peername) ||
         deserialize_universal_and_check(conn, &other_peer_addr_hosts, peername)) {
         return;
+    }
+
+    {
+        // Tell the other node that we are happy to connect with it
+        write_message_t wm;
+        serialize_universal(&wm, handshake_result_t::success());
+        if (send_write_message(conn, &wm)) {
+            return; // network error.
+        }
+
+        // Check if there was an issue with the connection initiation
+        handshake_result_t handshake_result;
+        if (deserialize_universal_and_check(conn, &handshake_result, peername)) {
+            return;
+        }
+        if (handshake_result.get_code() != handshake_result_code_t::SUCCESS) {
+            logWRN("Remote node refused to connect with us, peer: %s, reason: \"%s\"\n",
+                   peername,
+                   sanitize_for_logger(handshake_result.get_error_reason()).c_str());
+            return;
+        }
     }
 
     // Look up the ip addresses for the other host
