@@ -16,13 +16,13 @@ bool check_dir_emptiness(const base_path_t& base_path) {
     DIR *dp;
     struct dirent *ep;
 
-    set_errno(0);
     dp = opendir(base_path.path().c_str());
     if (dp == NULL) {
         return false;
     }
-    guarantee_err(get_errno() == 0, "Error while reading directory");
+    set_errno(0);
     while ((ep = readdir(dp)) != NULL) {
+        guarantee_err(get_errno() == 0, "Error while reading directory");
         if (strcmp(ep->d_name, ".") != 0 && strcmp(ep->d_name, "..") != 0) {
             closedir(dp);
             return false;
