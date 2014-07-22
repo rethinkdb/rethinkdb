@@ -998,7 +998,6 @@ void rdb_get_nearest_slice(
     //   the copying of the result we do here is bad.
     nearest_traversal_state_t state(center, max_results, max_dist, geo_system);
     do {
-        debugf("Traversing once\n");
         nearest_geo_read_response_t partial_response;
         try {
             nearest_traversal_cb_t callback(

@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/geo_traversal.hpp"
 
+#include <cmath>
+
 #include "errors.hpp"
 #include <boost/variant/get.hpp>
 
@@ -33,6 +35,12 @@ const int QUERYING_GOAL_GRID_CELLS = GEO_INDEX_GOAL_GRID_CELLS * 2;
 // As a fraction of the equator's radius.
 // The current value is equivalent to a radius of 10m on earth.
 const double NEAREST_INITIAL_RADIUS_FRACTION = 10.0 / 6378137.0;
+
+// By which factor to increase the radius between nearest batches (at maximum)
+const double NEAREST_MAX_GROWTH_FACTOR = 2.0;
+
+// The desired result size of each nearest batch
+const double NEAREST_GOAL_BATCH_SIZE = 100.0;
 
 // Number of vertices used in get_nearest traversal for approximating the
 // current search range through a polygon.
@@ -199,6 +207,7 @@ nearest_traversal_state_t::nearest_traversal_state_t(
         uint64_t _max_results,
         double _max_radius,
         const ellipsoid_spec_t &_reference_ellipsoid) :
+    previous_size(0),
     processed_inradius(0.0),
     current_inradius(std::min(_max_radius,
             NEAREST_INITIAL_RADIUS_FRACTION * _reference_ellipsoid.equator_radius())),
@@ -207,12 +216,37 @@ nearest_traversal_state_t::nearest_traversal_state_t(
     max_radius(_max_radius),
     reference_ellipsoid(_reference_ellipsoid) { }
 
-#include "debug.hpp"
 done_traversing_t nearest_traversal_state_t::proceed_to_next_batch() {
+    // Estimate the result density based on the previous batch
+    const size_t previous_num_results = distinct_emitted.size() - previous_size;
+    const double previous_area = M_PI *
+        (current_inradius * current_inradius - processed_inradius * processed_inradius);
+    const double previous_density =
+        static_cast<double>(previous_num_results) / previous_area;
+
     processed_inradius = current_inradius;
-    // TODO! Do something smarter.
-    current_inradius = std::min(current_inradius * 1.5, max_radius);
-    debugf("New radius is: %f\n", current_inradius);
+    previous_size = distinct_emitted.size();
+
+    // Adapt the radius based on the density of the previous batch.
+    // Solve for current_inradius: NEAREST_GOAL_BATCH_SIZE =
+    //   M_PI * (current_inradius^2 - processed_inradius^2) * previous_density
+    // <=> current_inradius^2 =
+    //   NEAREST_GOAL_BATCH_SIZE / M_PI / previous_density + processed_inradius^2
+    if (previous_density != 0.0) {
+        current_inradius = sqrt(NEAREST_GOAL_BATCH_SIZE / M_PI / previous_density
+                                + processed_inradius * processed_inradius);
+    } else {
+        current_inradius = processed_inradius * NEAREST_MAX_GROWTH_FACTOR;
+    }
+
+    // In addition, put a limit on how fast the radius can grow, so we don't
+    // increase it to ridiculous sizes just to encounter some cluster of results
+    // later.
+    current_inradius =
+        std::min(current_inradius,
+                 std::min(current_inradius * NEAREST_MAX_GROWTH_FACTOR, max_radius));
+
+    //debugf("New donut: [%f, %f]\n", processed_inradius, current_inradius);
 
     if (processed_inradius >= max_radius || distinct_emitted.size() >= max_results) {
         return done_traversing_t::YES;

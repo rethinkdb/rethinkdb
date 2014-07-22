@@ -152,6 +152,7 @@ private:
 
     /* State that changes over time */
     std::set<store_key_t> distinct_emitted;
+    size_t previous_size;
     // Which radius around `center` has been previously processed?
     double processed_inradius;
     double current_inradius;
