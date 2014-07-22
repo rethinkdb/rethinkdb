@@ -344,9 +344,9 @@ private:
 
 class datum_replacer_t : public btree_batched_replacer_t {
 public:
-    datum_replacer_t(const batched_insert_t &bi, const ql::configured_limits_t &limits)
+    datum_replacer_t(const batched_insert_t &bi)
         : datums(&bi.inserts), conflict_behavior(bi.conflict_behavior),
-          pkey(bi.pkey), return_vals(bi.return_vals), limits(_limits) { }
+          pkey(bi.pkey), return_vals(bi.return_vals) { }
     counted_t<const ql::datum_t> replace(const counted_t<const ql::datum_t> &d,
                                          size_t index) const {
         guarantee(index < datums->size());
@@ -356,7 +356,7 @@ public:
         } else if (conflict_behavior == conflict_behavior_t::REPLACE) {
             return newd;
         } else if (conflict_behavior == conflict_behavior_t::UPDATE) {
-            return d->merge(newd, limits);
+            return d->merge(newd);
         } else {
             rfail_target(d, ql::base_exc_t::GENERIC,
                          "Duplicate primary key `%s`:\n%s\n%s",
@@ -371,7 +371,6 @@ private:
     const conflict_behavior_t conflict_behavior;
     const std::string pkey;
     const bool return_vals;
-    const ql::configured_limits_t limits;
 };
 
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
@@ -395,7 +394,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             store,
             &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));
-        datum_replacer_t replacer(bi, ql_env.limits);
+        datum_replacer_t replacer(bi);
         std::vector<store_key_t> keys;
         keys.reserve(bi.inserts.size());
         for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {

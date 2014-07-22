@@ -176,8 +176,11 @@ public:
     // Access an element of an object.
     counted_t<const datum_t> get(const std::string &key,
                                  throw_bool_t throw_bool = THROW) const;
-    counted_t<const datum_t> merge(counted_t<const datum_t> rhs,
-                                   const configured_limits_t &limits) const;
+    counted_t<const datum_t> merge(counted_t<const datum_t> rhs) const;
+    // "Consumer defined" merge resolutions; these take limits unlike
+    // the other merge because the merge resolution can and does (in
+    // stats) merge two arrays to form one super array, which can
+    // obviously breach limits.
     typedef counted_t<const datum_t> (*merge_resoluter_t)(const std::string &key,
                                                           counted_t<const datum_t> l,
                                                           counted_t<const datum_t> r,
@@ -246,8 +249,7 @@ private:
     // Helper function for `merge()`:
     // Returns a version of this where all `literal` pseudotypes have been omitted.
     // Might return null, if this is a literal without a value.
-    counted_t<const datum_t> drop_literals(const configured_limits_t &limits,
-                                           bool *encountered_literal_out) const;
+    counted_t<const datum_t> drop_literals(bool *encountered_literal_out) const;
 
     type_t type;
     union {

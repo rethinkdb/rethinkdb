@@ -912,7 +912,7 @@ zip_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
         auto right = (*it)->get("right", NOTHROW);
         rcheck(left.has(), base_exc_t::GENERIC,
                "ZIP can only be called on the result of a join.");
-        *it = right.has() ? left->merge(right, env->limits) : left;
+        *it = right.has() ? left->merge(right) : left;
         sampler.new_sample();
     }
     return v;

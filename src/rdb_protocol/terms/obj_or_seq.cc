@@ -194,11 +194,10 @@ private:
             // We branch here because compiling functions is expensive, and
             // `obj_eval` may be called many many times.
             if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
-                d = d->merge(v->as_datum(), env->env->limits);
+                d = d->merge(v->as_datum());
             } else {
                 auto f = v->as_func(CONSTANT_SHORTCUT);
-                d = d->merge(f->call(env->env, d, LITERAL_OK)->as_datum(),
-                            env->env->limits);
+                d = d->merge(f->call(env->env, d, LITERAL_OK)->as_datum());
             }
         }
         return new_val(d);

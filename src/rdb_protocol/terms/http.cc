@@ -156,11 +156,9 @@ private:
     // Helper functions used during `next_raw_batch`
     bool apply_depaginate(env_t *env, const http_result_t &res);
 
-    bool handle_depage_result(counted_t<const datum_t> depage,
-                              const configured_limits_t &limits);
+    bool handle_depage_result(counted_t<const datum_t> depage);
     bool apply_depage_url(counted_t<const datum_t> new_url);
-    void apply_depage_params(counted_t<const datum_t> new_params,
-                             const configured_limits_t &limits);
+    void apply_depage_params(counted_t<const datum_t> new_params);
 
     http_opts_t opts;
     object_buffer_t<http_runner_t> runner;
@@ -295,7 +293,7 @@ bool http_datum_stream_t::apply_depaginate(env_t *env, const http_result_t &res)
 
     try {
         counted_t<const datum_t> depage = depaginate_fn->call(env, args)->as_datum();
-        return handle_depage_result(depage, env->limits);
+        return handle_depage_result(depage);
     } catch (const ql::exc_t &ex) {
         // Tack on some debugging info, as this shit can be tough
         throw ql::exc_t(ex.get_type(),
@@ -323,15 +321,13 @@ bool http_datum_stream_t::apply_depage_url(counted_t<const datum_t> new_url) {
     return true;
 }
 
-void http_datum_stream_t::apply_depage_params(counted_t<const datum_t> new_params,
-                                              const configured_limits_t &limits) {
+void http_datum_stream_t::apply_depage_params(counted_t<const datum_t> new_params) {
     // Verify new params and merge with the old ones, new taking precedence
     check_url_params(new_params, this);
-    opts.url_params->merge(new_params, limits);
+    opts.url_params->merge(new_params);
 }
 
-bool http_datum_stream_t::handle_depage_result(counted_t<const datum_t> depage,
-                                               const configured_limits_t &limits) {
+bool http_datum_stream_t::handle_depage_result(counted_t<const datum_t> depage) {
     if (depage->get_type() == datum_t::R_NULL ||
         depage->get_type() == datum_t::R_STR) {
         return apply_depage_url(depage);
@@ -345,7 +341,7 @@ bool http_datum_stream_t::handle_depage_result(counted_t<const datum_t> depage,
         }
 
         if (new_params.has()) {
-            apply_depage_params(new_params, limits);
+            apply_depage_params(new_params);
         }
 
         if (new_url.has()) {
