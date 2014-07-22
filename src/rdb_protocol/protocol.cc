@@ -1009,9 +1009,9 @@ private:
 
 void write_t::unshard(write_response_t *responses, size_t count,
                       write_response_t *response_out, rdb_context_t *ctx,
-                      signal_t *signal)
+                      signal_t *interruptor)
     const THROWS_NOTHING {
-    const ql::configured_limits_t limits = ql::from_optargs(ctx, signal, optargs);
+    const ql::configured_limits_t limits = ql::from_optargs(ctx, interruptor, optargs);
     const rdb_w_unshard_visitor_t visitor(responses, count, response_out, &limits);
     boost::apply_visitor(visitor, write);
 
