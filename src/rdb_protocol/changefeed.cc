@@ -394,11 +394,6 @@ public:
             {"old_val", change.old_val.has() ? change.old_val : null}
         };
         auto d = make_counted<const datum_t>(std::move(obj));
-        auto f = std::bind(&subscription_t::add_el,
-                           ph::_1,
-                           std::cref(server_uuid),
-                           stamp,
-                           d);
         feed->each_table_sub(
             std::bind(&subscription_t::add_el,
                       ph::_1,
