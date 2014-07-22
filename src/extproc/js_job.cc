@@ -20,7 +20,7 @@
 #include "extproc/extproc_job.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
-#include "rdb_protocol/env.hpp"
+#include "rdb_protocol/configured_limits.hpp"
 
 #include "debug.hpp"
 
