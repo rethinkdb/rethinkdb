@@ -129,7 +129,7 @@ protected:
 
 private:
     // Accumulates the data until finish() is called.
-    ql::datum_ptr_t result_acc;
+    ql::datum_array_builder_t result_acc;
     boost::optional<ql::exc_t> error;
 
     std::set<store_key_t> distinct_emitted;

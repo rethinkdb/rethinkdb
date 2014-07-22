@@ -160,8 +160,7 @@ collect_all_geo_intersecting_cb_t::collect_all_geo_intersecting_cb_t(
         const geo_sindex_data_t &&_sindex,
         ql::env_t *_env,
         const counted_t<const ql::datum_t> &_query_geometry) :
-    geo_intersecting_cb_t(_slice, std::move(_sindex), _env, &distinct_emitted),
-    result_acc(ql::datum_t::R_ARRAY) {
+    geo_intersecting_cb_t(_slice, std::move(_sindex), _env, &distinct_emitted) {
     init_query(_query_geometry);
     // TODO (daniel): Consider making the traversal resumable, so we can
     //    do it lazily.
@@ -176,7 +175,7 @@ void collect_all_geo_intersecting_cb_t::finish(
     if (error) {
         resp_out->results_or_error = error.get();
     } else {
-        resp_out->results_or_error = result_acc.to_counted();
+        resp_out->results_or_error = std::move(result_acc).to_counted();
     }
 }
 

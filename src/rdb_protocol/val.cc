@@ -436,9 +436,9 @@ counted_t<datum_stream_t> table_t::get_nearest(
     guarantee(result != NULL);
 
     // Generate the final output, converting distance units on the way.
-    datum_ptr_t formatted_result(datum_t::R_ARRAY);
+    datum_array_builder_t formatted_result;
     for (size_t i = 0; i < result->size(); ++i) {
-        datum_ptr_t one_result(datum_t::R_OBJECT);
+        datum_object_builder_t one_result;
         const double converted_dist =
             convert_dist_unit((*result)[i].first, dist_unit_t::M, dist_unit);
         bool dup;
@@ -446,9 +446,10 @@ counted_t<datum_stream_t> table_t::get_nearest(
         r_sanity_check(!dup);
         dup = one_result.add("doc", (*result)[i].second);
         r_sanity_check(!dup);
-        formatted_result.add(one_result.to_counted());
+        formatted_result.add(std::move(one_result).to_counted());
     }
-    return make_counted<array_datum_stream_t>(formatted_result.to_counted(), bt);
+    return make_counted<array_datum_stream_t>(
+        std::move(formatted_result).to_counted(), bt);
 }
 
 val_t::type_t::type_t(val_t::type_t::raw_type_t _raw_type) : raw_type(_raw_type) { }

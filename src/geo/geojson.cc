@@ -22,10 +22,10 @@
 #include "rdb_protocol/pseudo_geometry.hpp"
 
 using ql::datum_t;
-using ql::datum_ptr_t;
+using ql::datum_object_builder_t;
 
 counted_t<const ql::datum_t> construct_geo_point(const lat_lon_point_t &point) {
-    datum_ptr_t result(datum_t::R_OBJECT);
+    datum_object_builder_t result;
     bool dup;
     dup = result.add(datum_t::reql_type_string,
                      make_counted<datum_t>(ql::pseudo::geometry_string));
@@ -41,7 +41,7 @@ counted_t<const ql::datum_t> construct_geo_point(const lat_lon_point_t &point) {
     dup = result.add("coordinates", make_counted<datum_t>(std::move(coordinates)));
     r_sanity_check(!dup);
 
-    return result.to_counted();
+    return std::move(result).to_counted();
 }
 
 std::vector<counted_t<const datum_t> > construct_line_coordinates(
@@ -72,7 +72,7 @@ std::vector<counted_t<const datum_t> > construct_loop_coordinates(
 }
 
 counted_t<const ql::datum_t> construct_geo_line(const lat_lon_line_t &line) {
-    datum_ptr_t result(datum_t::R_OBJECT);
+    datum_object_builder_t result;
     bool dup;
     dup = result.add(datum_t::reql_type_string,
                      make_counted<datum_t>(ql::pseudo::geometry_string));
@@ -84,7 +84,7 @@ counted_t<const ql::datum_t> construct_geo_line(const lat_lon_line_t &line) {
                      make_counted<datum_t>(construct_line_coordinates(line)));
     r_sanity_check(!dup);
 
-    return result.to_counted();
+    return std::move(result).to_counted();
 }
 
 counted_t<const ql::datum_t> construct_geo_polygon(const lat_lon_line_t &shell) {
@@ -95,7 +95,7 @@ counted_t<const ql::datum_t> construct_geo_polygon(const lat_lon_line_t &shell) 
 counted_t<const ql::datum_t> construct_geo_polygon(
         const lat_lon_line_t &shell,
         std::vector<lat_lon_line_t> &holes) {
-    datum_ptr_t result(datum_t::R_OBJECT);
+    datum_object_builder_t result;
     bool dup;
     dup = result.add(datum_t::reql_type_string,
                      make_counted<datum_t>(ql::pseudo::geometry_string));
@@ -115,7 +115,7 @@ counted_t<const ql::datum_t> construct_geo_polygon(
     dup = result.add("coordinates", make_counted<datum_t>(std::move(coordinates)));
     r_sanity_check(!dup);
 
-    return result.to_counted();
+    return std::move(result).to_counted();
 }
 
 // Parses a GeoJSON "Position" array

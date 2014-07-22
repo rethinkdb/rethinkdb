@@ -38,14 +38,13 @@ private:
         }
 
         // Store the geo_json object inline, just add a $reql_type$ field
-        datum_ptr_t type_obj((datum_t::R_OBJECT));
-        bool dup = type_obj.add(datum_t::reql_type_string,
-                                datum_ptr_t(pseudo::geometry_string).to_counted());
+        datum_object_builder_t result(geo_json->as_object());
+        bool dup = result.add(datum_t::reql_type_string,
+                              make_counted<datum_t>(pseudo::geometry_string));
         rcheck(!dup, base_exc_t::GENERIC, "GeoJSON object already had a "
                                           "$reql_type$ field");
-        counted_t<const datum_t> result = type_obj->merge(geo_json);
 
-        return new_val(result);
+        return new_val(std::move(result).to_counted());
     }
     virtual const char *name() const { return "geojson"; }
 };
@@ -59,10 +58,10 @@ private:
         counted_t<val_t> v = args->arg(env, 0);
         check_is_geometry(v);
 
-        datum_ptr_t result(v->as_datum()->as_object());
+        datum_object_builder_t result(v->as_datum()->as_object());
         bool success = result.delete_field(datum_t::reql_type_string);
         r_sanity_check(success);
-        return new_val(result.to_counted());
+        return new_val(std::move(result).to_counted());
     }
     virtual const char *name() const { return "to_geojson"; }
 };
@@ -176,7 +175,8 @@ private:
         try {
             bool result = geo_does_intersect(g1->as_datum(), g2->as_datum());
 
-            return new_val(make_counted<const datum_t>(datum_t::R_BOOL, result));
+            return new_val(make_counted<const datum_t>(
+                datum_t::construct_boolean_t(), result));
         } catch (const geo_exception_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
         }
@@ -199,7 +199,8 @@ private:
             scoped_ptr_t<S2Polygon> s2polygon = to_s2polygon(polygon->as_datum());
             bool result = geo_does_include(*s2polygon, g->as_datum());
 
-            return new_val(make_counted<const datum_t>(datum_t::R_BOOL, result));
+            return new_val(
+                make_counted<const datum_t>(datum_t::construct_boolean_t(), result));
         } catch (const geo_exception_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
         }

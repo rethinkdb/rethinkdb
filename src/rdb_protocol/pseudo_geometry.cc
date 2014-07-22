@@ -44,7 +44,7 @@ counted_t<const datum_t> geo_sub(counted_t<const datum_t> lhs,
         }
     }
 
-    datum_ptr_t result(datum_t::R_OBJECT);
+    datum_object_builder_t result;
     bool dup;
     dup = result.add(datum_t::reql_type_string, make_counted<datum_t>(geometry_string));
     r_sanity_check(!dup);
@@ -55,7 +55,7 @@ counted_t<const datum_t> geo_sub(counted_t<const datum_t> lhs,
     coordinates.push_back(rhs->get("coordinates")->get(0));
     dup = result.add("coordinates", make_counted<datum_t>(std::move(coordinates)));
     r_sanity_check(!dup);
-    counted_t<const datum_t> result_counted = result.to_counted();
+    counted_t<const datum_t> result_counted = std::move(result).to_counted();
     validate_geojson(result_counted);
 
     return result_counted;

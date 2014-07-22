@@ -606,7 +606,7 @@ void rdb_r_unshard_visitor_t::operator()(const point_read_t &) {
 }
 
 void rdb_r_unshard_visitor_t::operator()(const intersecting_geo_read_t &) {
-    ql::datum_ptr_t combined_results(ql::datum_t::R_ARRAY);
+    ql::datum_array_builder_t combined_results;
     for (size_t i = 0; i < count; ++i) {
         auto res = boost::get<intersecting_geo_read_response_t>(&responses[i].response);
         guarantee(res != NULL);
@@ -623,7 +623,7 @@ void rdb_r_unshard_visitor_t::operator()(const intersecting_geo_read_t &) {
         }
     }
     response_out->response = intersecting_geo_read_response_t(
-        combined_results.to_counted());
+        std::move(combined_results).to_counted());
 }
 
 void rdb_r_unshard_visitor_t::operator()(const nearest_geo_read_t &query) {
