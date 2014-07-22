@@ -87,7 +87,7 @@ void directory_write_manager_t<metadata_t>::on_value_change() THROWS_NOTHING {
 
 template <class metadata_t>
 class directory_write_manager_t<metadata_t>::initialization_writer_t :
-    public connectivity_cluster_t::send_message_write_callback_t
+    public cluster_send_message_write_callback_t
 {
 public:
     initialization_writer_t(const metadata_t &_initial_value,
@@ -114,7 +114,7 @@ private:
 
 template <class metadata_t>
 class directory_write_manager_t<metadata_t>::update_writer_t :
-    public connectivity_cluster_t::send_message_write_callback_t
+    public cluster_send_message_write_callback_t
 {
 public:
     update_writer_t(const metadata_t &_new_value,

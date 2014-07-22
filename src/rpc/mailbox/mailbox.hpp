@@ -116,10 +116,10 @@ void send(mailbox_manager_t *src,
           raw_mailbox_t::address_t dest,
           mailbox_write_callback_t *callback);
 
-/* `mailbox_manager_t` is a `connectivity_cluster_t::message_handler_t` that takes care
+/* `mailbox_manager_t` is a `cluster_message_handler_t` that takes care
 of actually routing messages to mailboxes. */
 
-class mailbox_manager_t : public connectivity_cluster_t::message_handler_t {
+class mailbox_manager_t : public cluster_message_handler_t {
 public:
     mailbox_manager_t(connectivity_cluster_t *connectivity_cluster,
                       connectivity_cluster_t::message_tag_t message_tag);

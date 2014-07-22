@@ -55,7 +55,7 @@ raw_mailbox_t::address_t raw_mailbox_t::get_address() const {
 }
 
 class raw_mailbox_writer_t :
-    public connectivity_cluster_t::send_message_write_callback_t
+    public cluster_send_message_write_callback_t
 {
 public:
     raw_mailbox_writer_t(int32_t _dest_thread, raw_mailbox_t::id_t _dest_mailbox_id,
@@ -117,7 +117,7 @@ static const int MAX_OUTSTANDING_MAILBOX_WRITES_PER_THREAD = 4;
 
 mailbox_manager_t::mailbox_manager_t(connectivity_cluster_t *connectivity_cluster,
         connectivity_cluster_t::message_tag_t message_tag) :
-    connectivity_cluster_t::message_handler_t(connectivity_cluster, message_tag),
+    cluster_message_handler_t(connectivity_cluster, message_tag),
     semaphores(MAX_OUTSTANDING_MAILBOX_WRITES_PER_THREAD)
     { }
 

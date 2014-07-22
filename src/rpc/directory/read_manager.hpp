@@ -18,7 +18,7 @@
 template<class metadata_t>
 class directory_read_manager_t :
     public home_thread_mixin_t,
-    public connectivity_cluster_t::message_handler_t {
+    public cluster_message_handler_t {
 public:
     explicit directory_read_manager_t(connectivity_cluster_t *cm,
             connectivity_cluster_t::message_tag_t tag) THROWS_NOTHING;

@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <string>
 #include <set>
+#include <vector>
 
 #include "containers/archive/archive.hpp"
 #include "containers/archive/stl_types.hpp"

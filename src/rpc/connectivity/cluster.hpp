@@ -25,6 +25,15 @@ template <class> class optional;
 
 class co_semaphore_t;
 
+class cluster_message_handler_t;
+
+class cluster_send_message_write_callback_t {
+public:
+    virtual ~cluster_send_message_write_callback_t() { }
+    virtual void write(cluster_version_t cluster_version,
+                       write_stream_t *stream) = 0;
+};
+
 /* `connectivity_cluster_t` is responsible for establishing connections with other
 machines and communicating with them. It's the foundation of the entire clustering
 system. However, it's very low-level; most code will instead use the directory or mailbox
@@ -64,13 +73,6 @@ public:
     static const message_tag_t heartbeat_tag = 'H';
 
     class run_t;
-
-    class send_message_write_callback_t {
-    public:
-        virtual ~send_message_write_callback_t() { }
-        virtual void write(cluster_version_t cluster_version,
-                           write_stream_t *stream) = 0;
-    };
 
     /* `connection_t` represents an open connection to another machine. If we lose
     contact with another machine and then regain it, then a new `connection_t` will be
@@ -259,42 +261,6 @@ public:
         scoped_ptr_t<tcp_listener_t> listener;
     };
 
-    /* Subclass `message_handler_t` to handle messages received over the network. The
-    `message_handler_t` constructor will automatically register it to handle messages.
-    You can only register and unregister message handlers when there is no `run_t` in
-    existence. */
-    class message_handler_t {
-    public:
-        connectivity_cluster_t *get_connectivity_cluster() {
-            return connectivity_cluster;
-        }
-        message_tag_t get_message_tag() { return tag; }
-
-    protected:
-        /* Registers the message handler with the cluster */
-        message_handler_t(connectivity_cluster_t *connectivity_cluster,
-                          message_tag_t tag);
-        virtual ~message_handler_t();
-
-        /* This can be called on any thread. */
-        virtual void on_message(connection_t *conn,
-                                auto_drainer_t::lock_t keepalive,
-                                cluster_version_t version,
-                                read_stream_t *) = 0;
-
-        /* The default implementation constructs a stream reading from `data` and then
-        calls `on_message()`. Override to optimize for the local case. */
-        virtual void on_local_message(connection_t *conn,
-                                      auto_drainer_t::lock_t keepalive,
-                                      cluster_version_t version,
-                                      std::vector<char> &&data);
-
-    private:
-        friend class connectivity_cluster_t;
-        connectivity_cluster_t *connectivity_cluster;
-        const message_tag_t tag;
-    };
-
     connectivity_cluster_t() THROWS_NOTHING;
     ~connectivity_cluster_t() THROWS_NOTHING;
 
@@ -317,9 +283,10 @@ public:
     void send_message(connection_t *connection,
                       auto_drainer_t::lock_t connection_keepalive,
                       message_tag_t tag,
-                      send_message_write_callback_t *callback);
+                      cluster_send_message_write_callback_t *callback);
 
 private:
+    friend class cluster_message_handler_t;
     friend class run_t;
 
     class heartbeat_manager_t;
@@ -335,7 +302,7 @@ private:
     from `connections`. */
     one_per_thread_t<watchable_variable_t<connection_map_t> > connections;
 
-    message_handler_t *message_handlers[max_message_tag];
+    cluster_message_handler_t *message_handlers[max_message_tag];
 
 #ifndef NDEBUG
     rng_t debug_rng;
@@ -349,4 +316,41 @@ private:
     DISABLE_COPYING(connectivity_cluster_t);
 };
 
+/* Subclass `cluster_message_handler_t` to handle messages received over the network. The
+`cluster_message_handler_t` constructor will automatically register it to handle
+messages. You can only register and unregister message handlers when there is no `run_t`
+in existence. */
+class cluster_message_handler_t {
+public:
+    connectivity_cluster_t *get_connectivity_cluster() {
+        return connectivity_cluster;
+    }
+    connectivity_cluster_t::message_tag_t get_message_tag() { return tag; }
+
+protected:
+    /* Registers the message handler with the cluster */
+    cluster_message_handler_t(connectivity_cluster_t *connectivity_cluster,
+                              connectivity_cluster_t::message_tag_t tag);
+    virtual ~cluster_message_handler_t();
+
+    /* This can be called on any thread. */
+    virtual void on_message(connectivity_cluster_t::connection_t *conn,
+                            auto_drainer_t::lock_t keepalive,
+                            cluster_version_t version,
+                            read_stream_t *) = 0;
+
+    /* The default implementation constructs a stream reading from `data` and then
+    calls `on_message()`. Override to optimize for the local case. */
+    virtual void on_local_message(connectivity_cluster_t::connection_t *conn,
+                                  auto_drainer_t::lock_t keepalive,
+                                  cluster_version_t version,
+                                  std::vector<char> &&data);
+
+private:
+    friend class connectivity_cluster_t;
+    connectivity_cluster_t *connectivity_cluster;
+    const connectivity_cluster_t::message_tag_t tag;
+};
+
 #endif /* RPC_CONNECTIVITY_CLUSTER_HPP_ */
+

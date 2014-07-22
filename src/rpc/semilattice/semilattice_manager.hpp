@@ -35,7 +35,7 @@ the home thread of the `semilattice_manager_t`. */
 template<class metadata_t>
 class semilattice_manager_t :
     public home_thread_mixin_t,
-    public connectivity_cluster_t::message_handler_t
+    public cluster_message_handler_t
 {
 public:
     semilattice_manager_t(connectivity_cluster_t *connectivity_cluster,

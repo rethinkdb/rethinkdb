@@ -396,7 +396,7 @@ and making sure that heartbeats have arrived on time.
 class connectivity_cluster_t::heartbeat_manager_t :
     public keepalive_tcp_conn_stream_t::keepalive_callback_t,
     private repeating_timer_callback_t,
-    private connectivity_cluster_t::send_message_write_callback_t
+    private cluster_send_message_write_callback_t
 {
 public:
     static const int64_t HEARTBEAT_INTERVAL_MS = 2000;
@@ -932,8 +932,7 @@ void connectivity_cluster_t::run_t::handle(
                 `keepalive_tcp_conn_stream_t` will have already notified the
                 `heartbeat_manager_t` as soon as the heartbeat arrived. */
                 if (tag != heartbeat_tag) {
-                    connectivity_cluster_t::message_handler_t *handler =
-                        parent->message_handlers[tag];
+                    cluster_message_handler_t *handler = parent->message_handlers[tag];
                     guarantee(handler != NULL, "Got a message for an unfamiliar tag. "
                         "Apparently we aren't compatible with the cluster on the other "
                         "end.");
@@ -966,35 +965,6 @@ void connectivity_cluster_t::run_t::handle(
         blocks until all references to `conn_structure` have been released (using its
         `auto_drainer_t`s). */
     }
-}
-
-connectivity_cluster_t::message_handler_t::message_handler_t(connectivity_cluster_t *cm,
-                                                             message_tag_t t) :
-        connectivity_cluster(cm), tag(t)
-{
-    guarantee(!connectivity_cluster->current_run);
-    rassert(tag != heartbeat_tag, "Tag %" PRIu8 " is reserved for heartbeat messages.",
-        heartbeat_tag);
-    rassert(connectivity_cluster->message_handlers[tag] == NULL);
-    connectivity_cluster->message_handlers[tag] = this;
-}
-
-connectivity_cluster_t::message_handler_t::~message_handler_t() {
-    guarantee(!connectivity_cluster->current_run);
-    rassert(connectivity_cluster->message_handlers[tag] == this);
-    connectivity_cluster->message_handlers[tag] = NULL;
-}
-
-void connectivity_cluster_t::message_handler_t::on_local_message(
-        connection_t *conn, auto_drainer_t::lock_t keepalive, cluster_version_t version,
-        std::vector<char> &&data)
-{
-    // This is only sensible.  We pass the cluster_version all the way from the local
-    // serialization code just to play nice.
-    rassert(version == cluster_version_t::CLUSTER);
-
-    vector_read_stream_t read_stream(std::move(data));
-    on_message(conn, keepalive, version, &read_stream);
 }
 
 connectivity_cluster_t::connectivity_cluster_t() THROWS_NOTHING :
@@ -1041,7 +1011,7 @@ connectivity_cluster_t::connection_t *connectivity_cluster_t::get_connection(
 void connectivity_cluster_t::send_message(connection_t *connection,
                                      auto_drainer_t::lock_t connection_keepalive,
                                      message_tag_t tag,
-                                     send_message_write_callback_t *callback) {
+                                     cluster_send_message_write_callback_t *callback) {
     // We could be on _any_ thread.
 
     // At some point we'll have to look up the cluster version based on not a peer
@@ -1137,5 +1107,37 @@ void connectivity_cluster_t::send_message(connection_t *connection,
     }
 
     connection->pm_bytes_sent.record(bytes_sent);
+}
+
+cluster_message_handler_t::cluster_message_handler_t(
+        connectivity_cluster_t *cm,
+        connectivity_cluster_t::message_tag_t t) :
+    connectivity_cluster(cm), tag(t)
+{
+    guarantee(!connectivity_cluster->current_run);
+    rassert(tag != connectivity_cluster_t::heartbeat_tag,
+        "Tag %" PRIu8 " is reserved for heartbeat messages.",
+        connectivity_cluster_t::heartbeat_tag);
+    rassert(connectivity_cluster->message_handlers[tag] == NULL);
+    connectivity_cluster->message_handlers[tag] = this;
+}
+
+cluster_message_handler_t::~cluster_message_handler_t() {
+    guarantee(!connectivity_cluster->current_run);
+    rassert(connectivity_cluster->message_handlers[tag] == this);
+    connectivity_cluster->message_handlers[tag] = NULL;
+}
+
+void cluster_message_handler_t::on_local_message(
+        connectivity_cluster_t::connection_t *conn,
+        auto_drainer_t::lock_t keepalive, cluster_version_t version,
+        std::vector<char> &&data)
+{
+    // This is only sensible.  We pass the cluster_version all the way from the local
+    // serialization code just to play nice.
+    rassert(version == cluster_version_t::CLUSTER);
+
+    vector_read_stream_t read_stream(std::move(data));
+    on_message(conn, keepalive, version, &read_stream);
 }
 

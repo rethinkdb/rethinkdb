@@ -23,7 +23,7 @@ semilattice_manager_t<metadata_t>::semilattice_manager_t(
         connectivity_cluster_t *connectivity_cluster,
         connectivity_cluster_t::message_tag_t message_tag,
         const metadata_t &initial_metadata) :
-    connectivity_cluster_t::message_handler_t(connectivity_cluster, message_tag),
+    cluster_message_handler_t(connectivity_cluster, message_tag),
     root_view(boost::make_shared<root_view_t>(this)),
     metadata_version(0),
     metadata(initial_metadata),
@@ -104,7 +104,7 @@ static const char message_code_sync_to_reply = 't';
 
 template <class metadata_t>
 class semilattice_manager_t<metadata_t>::metadata_writer_t :
-        public connectivity_cluster_t::send_message_write_callback_t
+        public cluster_send_message_write_callback_t
 {
 public:
     metadata_writer_t(const metadata_t &_md, metadata_version_t _mdv) :
@@ -127,7 +127,7 @@ private:
 
 template <class metadata_t>
 class semilattice_manager_t<metadata_t>::sync_from_query_writer_t :
-        public connectivity_cluster_t::send_message_write_callback_t
+        public cluster_send_message_write_callback_t
 {
 public:
     explicit sync_from_query_writer_t(sync_from_query_id_t _query_id) :
@@ -148,7 +148,7 @@ private:
 
 template <class metadata_t>
 class semilattice_manager_t<metadata_t>::sync_from_reply_writer_t :
-        public connectivity_cluster_t::send_message_write_callback_t
+        public cluster_send_message_write_callback_t
 {
 public:
     sync_from_reply_writer_t(sync_from_query_id_t _query_id, metadata_version_t _version) :
@@ -171,7 +171,7 @@ private:
 
 template <class metadata_t>
 class semilattice_manager_t<metadata_t>::sync_to_query_writer_t :
-        public connectivity_cluster_t::send_message_write_callback_t
+        public cluster_send_message_write_callback_t
 {
 public:
     sync_to_query_writer_t(sync_to_query_id_t _query_id, metadata_version_t _version) :
@@ -194,7 +194,7 @@ private:
 
 template <class metadata_t>
 class semilattice_manager_t<metadata_t>::sync_to_reply_writer_t :
-        public connectivity_cluster_t::send_message_write_callback_t
+        public cluster_send_message_write_callback_t
 {
 public:
     explicit sync_to_reply_writer_t(sync_to_query_id_t _query_id) :
@@ -510,7 +510,10 @@ void semilattice_manager_t<metadata_t>::join_metadata_locally(metadata_t added_m
     assert_thread();
     DEBUG_VAR rwi_lock_assertion_t::write_acq_t acq(&metadata_mutex);
     semilattice_join(&metadata, added_metadata);
-    metadata_publisher.publish([](const std::function<void()> &fun) { fun(); });
+    metadata_publisher.publish(
+        [](const std::function<void()> &fun) {
+            fun();
+        });
 }
 
 template<class metadata_t>

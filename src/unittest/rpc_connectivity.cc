@@ -18,12 +18,12 @@ namespace unittest {
 
 class recording_test_application_t :
     public home_thread_mixin_t,
-    public connectivity_cluster_t::message_handler_t
+    public cluster_message_handler_t
 {
 public:
     explicit recording_test_application_t(connectivity_cluster_t *cm,
                                           connectivity_cluster_t::message_tag_t tag) :
-        connectivity_cluster_t::message_handler_t(cm, tag),
+        cluster_message_handler_t(cm, tag),
         sequence_number(0)
         { }
     void send(int message, peer_id_t peer) {
@@ -36,7 +36,7 @@ public:
     }
     void send(int message, connectivity_cluster_t::connection_t *connection,
             auto_drainer_t::lock_t connection_keepalive) {
-        class writer_t : public connectivity_cluster_t::send_message_write_callback_t {
+        class writer_t : public cluster_send_message_write_callback_t {
         public:
             explicit writer_t(int _data) : data(_data) { }
             virtual ~writer_t() { }
@@ -394,15 +394,15 @@ TPTEST(RPCConnectivityTest, Multiplexer) {
 
 /* `BinaryData` makes sure that any octet can be sent over the wire. */
 
-class binary_test_application_t : public connectivity_cluster_t::message_handler_t {
+class binary_test_application_t : public cluster_message_handler_t {
 public:
     explicit binary_test_application_t(connectivity_cluster_t *cm) :
-        connectivity_cluster_t::message_handler_t(cm, 'B'),
+        cluster_message_handler_t(cm, 'B'),
         got_spectrum(false)
         { }
     void send_spectrum(peer_id_t peer) {
         class dump_spectrum_writer_t :
-            public connectivity_cluster_t::send_message_write_callback_t {
+            public cluster_send_message_write_callback_t {
         public:
             virtual ~dump_spectrum_writer_t() { }
             void write(cluster_version_t, write_stream_t *stream) {
