@@ -646,27 +646,35 @@ public:
     }
 
     std::string get_error_reason() const {
-        switch(code) {
-            case handshake_result_code_t::SUCCESS:
-                unreachable();
-            case handshake_result_code_t::UNRECOGNIZED_VERSION:
-                return "unrecognized or incompatible version: " + additional_info;
-            case handshake_result_code_t::INCOMPATIBLE_ARCH:
-                return "incompatible architecture: " + additional_info;
-            case handshake_result_code_t::INCOMPATIBLE_BUILD:
-                return "incompatible build mode: " + additional_info;
-            case handshake_result_code_t::UNKNOWN_ERROR:
-                return fallback_error_msg;
+        if (code == handshake_result_code_t::UNKNOWN_ERROR) {
+            return error_code_string + " (" + additional_info + ")";
+        } else {
+            return get_code_as_string() + " (" + additional_info + ")";
         }
     }
 
 private:
+    std::string get_code_as_string() const {
+        switch (code) {
+            case handshake_result_code_t::SUCCESS:
+                return "success";
+            case handshake_result_code_t::UNRECOGNIZED_VERSION:
+                return "unrecognized or incompatible version";
+            case handshake_result_code_t::INCOMPATIBLE_ARCH:
+                return "incompatible architecture";
+            case handshake_result_code_t::INCOMPATIBLE_BUILD:
+                return "incompatible build mode";
+            case handshake_result_code_t::UNKNOWN_ERROR:
+                unreachable();
+        }
+    }
+
     handshake_result_t(handshake_result_code_t _error_code,
                        const std::string &_additional_info)
         : code(_error_code), additional_info(_additional_info) {
         guarantee(code != handshake_result_code_t::UNKNOWN_ERROR);
         guarantee(code != handshake_result_code_t::SUCCESS);
-        fallback_error_msg = get_error_reason();
+        error_code_string = get_code_as_string();
     }
     explicit handshake_result_t(handshake_result_code_t _success)
         : code(_success) {
@@ -677,13 +685,13 @@ private:
     friend archive_result_t deserialize_universal(read_stream_t *, handshake_result_t *);
 
     handshake_result_code_t code;
-    std::string additional_info;
     // In case code is UNKNOWN_ERROR, this error message
-    // will contain a human-readable description of what went wrong.
+    // will contain a human-readable description of the error code.
     // The idea is that if we are talking to a newer node on the other side,
     // it might send us some error codes that we don't understand. However the
     // other node will know how to format that error into an error message.
-    std::string fallback_error_msg;
+    std::string error_code_string;
+    std::string additional_info;
 };
 
 // It is ok to add new result codes to handshake_result_code_t.
@@ -693,8 +701,8 @@ void serialize_universal(write_message_t *wm, const handshake_result_t &r) {
     guarantee(r.code != handshake_result_code_t::UNKNOWN_ERROR,
               "Cannot serialize an unknown handshake result code");
     serialize_universal(wm, static_cast<uint8_t>(r.code));
+    serialize_universal(wm, r.error_code_string);
     serialize_universal(wm, r.additional_info);
-    serialize_universal(wm, r.fallback_error_msg);
 }
 archive_result_t deserialize_universal(read_stream_t *s, handshake_result_t *out) {
     archive_result_t res;
@@ -709,11 +717,11 @@ archive_result_t deserialize_universal(read_stream_t *s, handshake_result_t *out
     } else {
         out->code = static_cast<handshake_result_code_t>(code_int);
     }
-    res = deserialize_universal(s, &out->additional_info);
+    res = deserialize_universal(s, &out->error_code_string);
     if (res != archive_result_t::SUCCESS) {
         return res;
     }
-    res = deserialize_universal(s, &out->fallback_error_msg);
+    res = deserialize_universal(s, &out->additional_info);
     return res;
 }
 
