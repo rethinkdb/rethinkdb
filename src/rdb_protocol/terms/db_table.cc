@@ -4,12 +4,10 @@
 #include <map>
 #include <string>
 
-#include "clustering/administration/main/ports.hpp"
-#include "clustering/administration/suggester.hpp"
+#include "containers/name_string.hpp"
 #include "containers/wire_string.hpp"
-#include "rdb_protocol/meta_utils.hpp"
 #include "rdb_protocol/op.hpp"
-#include "rpc/directory/read_manager.hpp"
+#include "rdb_protocol/wait_for_readiness.hpp"
 
 namespace ql {
 
@@ -28,9 +26,7 @@ name_string_t get_name(counted_t<val_t> val, const term_t *caller,
     return name;
 }
 
-// Meta operations (BUT NOT TABLE TERMS) should inherit from this.  It will
-// handle a lot of the nasty semilattice initialization stuff for them,
-// including the thread switching.
+// Meta operations (BUT NOT TABLE TERMS) should inherit from this.
 class meta_op_term_t : public op_term_t {
 public:
     meta_op_term_t(compile_env_t *env, protob_t<const Term> term, argspec_t argspec,
@@ -41,47 +37,11 @@ private:
     virtual bool is_deterministic() const { return false; }
 };
 
-// If you don't have to modify any of the data, use
-// `const_rethreading_metadata_accessor_t` instead which is more efficient.
-struct rethreading_metadata_accessor_t : public on_thread_t {
-    explicit rethreading_metadata_accessor_t(scope_env_t *env)
-    : on_thread_t(env->env->cluster_metadata()->home_thread()),
-      metadata(env->env->cluster_metadata()->get()),
-      ns_change(&metadata.rdb_namespaces),
-      ns_searcher(&ns_change.get()->namespaces),
-      db_searcher(&metadata.databases.databases),
-      dc_searcher(&metadata.datacenters.datacenters)
-    { }
-    cluster_semilattice_metadata_t metadata;
-    cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change;
-    metadata_searcher_t<namespace_semilattice_metadata_t> ns_searcher;
-    metadata_searcher_t<database_semilattice_metadata_t> db_searcher;
-    metadata_searcher_t<datacenter_semilattice_metadata_t> dc_searcher;
-};
-
-struct const_rethreading_metadata_accessor_t : public on_thread_t {
-    explicit const_rethreading_metadata_accessor_t(scope_env_t *env)
-    : on_thread_t(env->env->cluster_metadata()->home_thread()),
-      metadata(env->env->cluster_metadata()->get()),
-      dc_searcher(&metadata.datacenters.datacenters)
-    { }
-    cluster_semilattice_metadata_t metadata;
-    const_metadata_searcher_t<datacenter_semilattice_metadata_t> dc_searcher;
-};
-
-
 class meta_write_op_t : public meta_op_term_t {
 public:
     meta_write_op_t(compile_env_t *env, protob_t<const Term> term, argspec_t argspec,
                     optargspec_t optargspec = optargspec_t({}))
         : meta_op_term_t(env, std::move(term), std::move(argspec), std::move(optargspec)) { }
-
-protected:
-    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > >
-    directory_metadata(env_t *env) const {
-        r_sanity_check(env->directory_read_manager()->home_thread() == get_thread_id());
-        return env->directory_read_manager()->get_root_view();
-    }
 
 private:
     virtual std::string write_eval_impl(scope_env_t *env,
@@ -101,18 +61,13 @@ public:
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         name_string_t db_name = get_name(args->arg(env, 0), this, "Database");
-        uuid_u uuid;
-        {
-            databases_semilattice_metadata_t db_metadata;
-            env->env->get_databases_metadata(&db_metadata);
-            const_metadata_searcher_t<database_semilattice_metadata_t>
-                db_searcher(&db_metadata.databases);
-
-            uuid = meta_get_uuid(&db_searcher, db_name,
-                                 strprintf("Database `%s` does not exist.",
-                                           db_name.c_str()), this);
+        counted_t<const db_t> db;
+        std::string error;
+        if (!env->env->reql_admin_interface()->db_find(db_name, env->env->interruptor,
+                &db, &error)) {
+            rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
-        return new_val(make_counted<const db_t>(uuid, db_name.str()));
+        return new_val(db);
     }
     virtual const char *name() const { return "db"; }
 };
@@ -124,31 +79,11 @@ public:
 private:
     virtual std::string write_eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         name_string_t db_name = get_name(args->arg(env, 0), this, "Database");
-
-        rethreading_metadata_accessor_t meta(env);
-
-        // Ensure database doesn't already exist.
-        metadata_search_status_t status;
-        meta.db_searcher.find_uniq(db_name, &status);
-        rcheck(status == METADATA_ERR_NONE,
-               base_exc_t::GENERIC,
-               strprintf("Database `%s` already exists.", db_name.c_str()));
-
-        // Create database, insert into metadata, then join into real metadata.
-        database_semilattice_metadata_t db;
-        db.name = vclock_t<name_string_t>(db_name, env->env->this_machine());
-        meta.metadata.databases.databases.insert(
-            std::make_pair(generate_uuid(), make_deletable(db)));
-        try {
-            fill_in_blueprints(&meta.metadata,
-                               directory_metadata(env->env)->get().get_inner(),
-                               env->env->this_machine(),
-                               boost::optional<namespace_id_t>());
-        } catch (const missing_machine_exc_t &e) {
-            rfail(base_exc_t::GENERIC, "%s", e.what());
+        std::string error;
+        if (!env->env->reql_admin_interface()->db_create(db_name, env->env->interruptor,
+                &error)) {
+            rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
-        env->env->join_and_wait_to_propagate(meta.metadata);
-
         return "created";
     }
     virtual const char *name() const { return "db_create"; }
@@ -173,16 +108,11 @@ public:
                         optargspec_t({"datacenter", "primary_key", "durability"})) { }
 private:
     virtual std::string write_eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        uuid_u dc_id = nil_uuid();
+
+        /* Parse arguments */
+        boost::optional<name_string_t> primary_dc;
         if (counted_t<val_t> v = args->optarg(env, "datacenter")) {
-            name_string_t name = get_name(v, this, "Table");
-            {
-                const_rethreading_metadata_accessor_t meta(env);
-                dc_id = meta_get_uuid(&meta.dc_searcher, name,
-                                      strprintf("Datacenter `%s` does not exist.",
-                                                name.str().c_str()),
-                                      this);
-            }
+            primary_dc.reset(get_name(v, this, "Table"));
         }
 
         const bool hard_durability
@@ -193,70 +123,32 @@ private:
             primary_key = v->as_str().to_std();
         }
 
-        uuid_u db_id;
-        std::string db_name;
+        counted_t<const db_t> db;
         name_string_t tbl_name;
         if (args->num_args() == 1) {
             counted_t<val_t> dbv = args->optarg(env, "db");
             r_sanity_check(dbv);
-            db_name = dbv->as_db()->name;
-            db_id = dbv->as_db()->id;
+            db = dbv->as_db();
             tbl_name = get_name(args->arg(env, 0), this, "Table");
         } else {
-            auto db = args->arg(env, 0)->as_db();
-            db_name = db->name;
-            db_id = db->id;
+            db = args->arg(env, 0)->as_db();
             tbl_name = get_name(args->arg(env, 1), this, "Table");
         }
 
-        // Ensure table doesn't already exist.
-        metadata_search_status_t status;
-        namespace_predicate_t pred(&tbl_name, &db_id);
-
-        const uuid_u namespace_id = generate_uuid();
-
-        {
-            rethreading_metadata_accessor_t meta(env);
-            meta.ns_searcher.find_uniq(pred, &status);
-            rcheck(status == METADATA_ERR_NONE,
-                   base_exc_t::GENERIC,
-                   strprintf("Table `%s` already exists.",
-                             (db_name + "." + tbl_name.c_str()).c_str()));
-
-            // Create namespace (DB + table pair) and insert into metadata.
-            namespace_semilattice_metadata_t ns =
-                new_namespace(
-                        env->env->this_machine(), db_id, dc_id, tbl_name,
-                        primary_key);
-
-            // Set Durability
-            std::map<datacenter_id_t, ack_expectation_t> *ack_map =
-                &ns.ack_expectations.get_mutable();
-            for (auto it = ack_map->begin(); it != ack_map->end(); ++it) {
-                it->second = ack_expectation_t(
-                    it->second.expectation(), hard_durability);
-            }
-            ns.ack_expectations.upgrade_version(env->env->this_machine());
-
-            meta.ns_change.get()->namespaces.insert(
-                                                    std::make_pair(namespace_id, make_deletable(ns)));
-            try {
-                fill_in_blueprints(&meta.metadata,
-                                   directory_metadata(env->env)->get().get_inner(),
-                                   env->env->this_machine(),
-                                   boost::optional<namespace_id_t>());
-            } catch (const missing_machine_exc_t &e) {
-                rfail(base_exc_t::GENERIC, "%s", e.what());
-            }
-            env->env->join_and_wait_to_propagate(meta.metadata);
+        /* Create the table */
+        uuid_u namespace_id;
+        std::string error;
+        if (!env->env->reql_admin_interface()->table_create(tbl_name, db,
+                primary_dc, hard_durability, primary_key,
+                env->env->interruptor, &namespace_id, &error)) {
+            rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
 
         // UGLY HACK BELOW (see wait_for_rdb_table_readiness)
 
         try {
             wait_for_rdb_table_readiness(env->env->ns_repo(), namespace_id,
-                                         env->env->interruptor,
-                                         env->env->cluster_metadata());
+                                         env->env->interruptor);
         } catch (const interrupted_exc_t &e) {
             rfail(base_exc_t::GENERIC, "Query interrupted, probably by user.");
         }
@@ -274,39 +166,11 @@ private:
     virtual std::string write_eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         name_string_t db_name = get_name(args->arg(env, 0), this, "Database");
 
-        rethreading_metadata_accessor_t meta(env);
-
-        // Get database metadata.
-        metadata_search_status_t status;
-        metadata_searcher_t<database_semilattice_metadata_t>::iterator
-            db_metadata = meta.db_searcher.find_uniq(db_name, &status);
-        rcheck(status == METADATA_SUCCESS, base_exc_t::GENERIC,
-               strprintf("Database `%s` does not exist.", db_name.c_str()));
-        guarantee(!db_metadata->second.is_deleted());
-        uuid_u db_id = db_metadata->first;
-
-        // Delete all tables in database.
-        namespace_predicate_t pred(&db_id);
-        for (auto it = meta.ns_searcher.find_next(meta.ns_searcher.begin(), pred);
-             it != meta.ns_searcher.end();
-             it = meta.ns_searcher.find_next(++it, pred)) {
-            guarantee(!it->second.is_deleted());
-            it->second.mark_deleted();
+        std::string error;
+        if (!env->env->reql_admin_interface()->db_drop(db_name,
+                env->env->interruptor, &error)) {
+            rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
-
-        // Delete database
-        db_metadata->second.mark_deleted();
-
-        // Join
-        try {
-            fill_in_blueprints(&meta.metadata,
-                               directory_metadata(env->env)->get().get_inner(),
-                               env->env->this_machine(),
-                               boost::optional<namespace_id_t>());
-        } catch (const missing_machine_exc_t &e) {
-            rfail(base_exc_t::GENERIC, "%s", e.what());
-        }
-        env->env->join_and_wait_to_propagate(meta.metadata);
 
         return "dropped";
     }
@@ -319,45 +183,23 @@ public:
         meta_write_op_t(env, term, argspec_t(1, 2)) { }
 private:
     virtual std::string write_eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        uuid_u db_id;
-        std::string db_name;
+        counted_t<const db_t> db;
         name_string_t tbl_name;
         if (args->num_args() == 1) {
             counted_t<val_t> dbv = args->optarg(env, "db");
             r_sanity_check(dbv);
-            db_name = dbv->as_db()->name;
-            db_id = dbv->as_db()->id;
+            db = dbv->as_db();
             tbl_name = get_name(args->arg(env, 0), this, "Table");
         } else {
-            auto db = args->arg(env, 0)->as_db();
-            db_name = db->name;
-            db_id = db->id;
+            db = args->arg(env, 0)->as_db();
             tbl_name = get_name(args->arg(env, 1), this, "Table");
         }
 
-        rethreading_metadata_accessor_t meta(env);
-
-        // Get table metadata.
-        metadata_search_status_t status;
-        namespace_predicate_t pred(&tbl_name, &db_id);
-        metadata_searcher_t<namespace_semilattice_metadata_t>::iterator
-            ns_metadata = meta.ns_searcher.find_uniq(pred, &status);
-        rcheck(status == METADATA_SUCCESS, base_exc_t::GENERIC,
-               strprintf("Table `%s` does not exist.",
-                         (db_name + "." + tbl_name.c_str()).c_str()));
-        guarantee(!ns_metadata->second.is_deleted());
-
-        // Delete table and join.
-        ns_metadata->second.mark_deleted();
-        try {
-            fill_in_blueprints(&meta.metadata,
-                               directory_metadata(env->env)->get().get_inner(),
-                               env->env->this_machine(),
-                               boost::optional<namespace_id_t>());
-        } catch (const missing_machine_exc_t &e) {
-            rfail(base_exc_t::GENERIC, "%s", e.what());
+        std::string error;
+        if (!env->env->reql_admin_interface()->table_drop(tbl_name, db,
+                env->env->interruptor, &error)) {
+            rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
-        env->env->join_and_wait_to_propagate(meta.metadata);
 
         return "dropped";
     }
@@ -370,28 +212,17 @@ public:
         meta_op_term_t(env, term, argspec_t(0)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *, eval_flags_t) const {
-        std::vector<std::string> dbs;
-        {
-            databases_semilattice_metadata_t db_metadata;
-            env->env->get_databases_metadata(&db_metadata);
-            const_metadata_searcher_t<database_semilattice_metadata_t>
-                db_searcher(&db_metadata.databases);
-
-            for (auto it = db_searcher.find_next(db_searcher.begin());
-                 it != db_searcher.end();
-                 it = db_searcher.find_next(++it)) {
-                guarantee(!it->second.is_deleted());
-                if (it->second.get_ref().name.in_conflict()) {
-                    continue;
-                }
-                dbs.push_back(it->second.get_ref().name.get().c_str());
-            }
+        std::set<name_string_t> dbs;
+        std::string error;
+        if (!env->env->reql_admin_interface()->db_list(
+                env->env->interruptor, &dbs, &error)) {
+            rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
 
         std::vector<counted_t<const datum_t> > arr;
         arr.reserve(dbs.size());
         for (auto it = dbs.begin(); it != dbs.end(); ++it) {
-            arr.push_back(make_counted<datum_t>(std::move(*it)));
+            arr.push_back(make_counted<datum_t>(std::string(it->str())));
         }
 
         return new_val(make_counted<const datum_t>(std::move(arr)));
@@ -405,35 +236,26 @@ public:
         meta_op_term_t(env, term, argspec_t(0, 1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        uuid_u db_id;
+        counted_t<const ql::db_t> db;
         if (args->num_args() == 0) {
             counted_t<val_t> dbv = args->optarg(env, "db");
             r_sanity_check(dbv);
-            db_id = dbv->as_db()->id;
+            db = dbv->as_db();
         } else {
-            db_id = args->arg(env, 0)->as_db()->id;
+            db = args->arg(env, 0)->as_db();
         }
-        std::vector<std::string> tables;
-        namespace_predicate_t pred(&db_id);
-        {
-            cow_ptr_t<namespaces_semilattice_metadata_t> ns_metadata
-                = env->env->get_namespaces_metadata();
-            const_metadata_searcher_t<namespace_semilattice_metadata_t>
-                ns_searcher(&ns_metadata->namespaces);
 
-            for (auto it = ns_searcher.find_next(ns_searcher.begin(), pred);
-                 it != ns_searcher.end();
-                 it = ns_searcher.find_next(++it, pred)) {
-                guarantee(!it->second.is_deleted());
-                if (it->second.get_ref().name.in_conflict()) continue;
-                tables.push_back(it->second.get_ref().name.get().c_str());
-            }
+        std::set<name_string_t> tables;
+        std::string error;
+        if (!env->env->reql_admin_interface()->table_list(db,
+                env->env->interruptor, &tables, &error)) {
+            rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
 
         std::vector<counted_t<const datum_t> > arr;
         arr.reserve(tables.size());
         for (auto it = tables.begin(); it != tables.end(); ++it) {
-            arr.push_back(make_counted<datum_t>(std::move(*it)));
+            arr.push_back(make_counted<datum_t>(std::string(it->str())));
         }
         return new_val(make_counted<const datum_t>(std::move(arr)));
     }

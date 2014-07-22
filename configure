@@ -240,8 +240,8 @@ read_args () {
             --fetch) $has_arg
                 if [[ "$arg" = "all" ]]; then
                     please_fetch_list="$(all_fetch_deps)"
-                elif can_fetch "$arg"; then
-                    please_fetch_list="$please_fetch_list $(pkg_name "$arg")"
+                elif can_fetch $(guess_pkg_name "$arg"); then
+                    please_fetch_list="$please_fetch_list $(guess_pkg_name "$arg")"
                 else
                     die "Don't know how to fetch '$arg'"
                 fi ;;
@@ -401,7 +401,7 @@ die () {
 # Generate a not found error
 not_found () {
     if $required; then
-        if can_fetch "`lc $1`"; then
+        if can_fetch $(guess_pkg_name "`lc $1`"); then
             error "missing $1. Install it, specify the full path with $(uc $1)= or run ./configure with --allow-fetch"
         else
             error "missing $1. Install it or specify the full path with $(uc $1)="
@@ -438,7 +438,7 @@ show_no () {
     local info=""
     show no
     if $req; then
-        if can_fetch "${1:-}"; then
+        if can_fetch $(guess_pkg_name "${1:-}"); then
             info=" Try running ./configure with the --fetch ${1:-} or --allow-fetch flags."
         fi
         error "${err:-${1:-} not found.$info}"
@@ -680,7 +680,7 @@ lookup () {
 check_bin () {
     local force_bin
     lookup "$force_paths" $1 force_bin || force_bin=
-    if test -z "$force_bin" && contains "$please_fetch_list" $(pkg_name "$1"); then
+    if test -z "$force_bin" && contains "$please_fetch_list" $(bin_pkg_name "$1"); then
         fetch_bin $1
         return
     fi
@@ -690,7 +690,7 @@ check_bin () {
     if [[ ! -x "$bin" ]]; then
         if [[ -n "${force_bin:-}" ]]; then
             bin=$force_bin
-        elif fetch_allowed $1; then
+        elif fetch_allowed $(bin_pkg_name $1); then
             fetch_bin $1
             return
         else
@@ -701,7 +701,7 @@ check_bin () {
     local version
     delay_errors=true
     if ! test_bin_version $1 "$bin"; then
-        if fetch_allowed $1; then
+        if fetch_allowed $(bin_pkg_name $1); then
             fetch_bin $1
             return
         else
@@ -718,18 +718,20 @@ pkg () {
     FETCH_LIST="$FETCH_LIST" bash $root/mk/support/pkg/pkg.sh "$@"
 }
 
-# add_fetch <name> ["lib"]
+# add_fetch <name>
 # Instruct make to fetch and build the dependency
-# Sets the pkg and version variables
+# Sets the version variable
 add_fetch () {
-    pkg=$(pkg_name "$1")
+    local pkg
+    pkg="$1"
     if ! version=$(pkg version "$pkg"); then
         error "Internal error: cannot fetch $pkg"
         return 1
     fi
     show external/${pkg}_$version
     if ! contains "$FETCH_LIST" "$pkg"; then
-        local depends=$(pkg depends "$pkg")
+        local depends
+        depends=$(pkg depends "$pkg")
         for dep in $depends; do
             fetch_pkg $dep
         done
@@ -737,23 +739,19 @@ add_fetch () {
         var "${pkg}_VERSION" "$version"
         var "${pkg}_DEPENDS" "$depends"
     fi
-    if [[ "${2:-}" = lib ]]; then
-        var "$pkg"_LIB_NAME "$(uc "$1")"
-    fi
 }
 
 # Wrapper around add_fetch
 fetch_pkg () {
-    local pkg
     local version
     add_fetch "$1"
 }
 
 # Chose to fetch the given binary
 fetch_bin () {
-    local pkg
     local version
-    add_fetch "$1"
+    pkg=$(bin_pkg_name "$1")
+    add_fetch "$pkg"
     macro "$(uc "$1")"         "\$(abspath \$(SUPPORT_BUILD_DIR)/${pkg}_$version/bin/$1)"
     macro "$(uc "$1")_BIN_DEP" "\$(SUPPORT_BUILD_DIR)/${pkg}_$version/bin/$1"
 }
@@ -762,7 +760,9 @@ fetch_bin () {
 fetch_lib () {
     local pkg
     local version
-    add_fetch "$1" lib
+    pkg=$(lib_pkg_name "$1")
+    add_fetch "$pkg"
+    var "$pkg"_LIB_NAME "$(uc "$1")"
     var "HAS_$(uc "$1")" 1
     macro "$(uc "$1")_LIBS_DEP"         "\$(SUPPORT_BUILD_DIR)/${pkg}_$version/lib/lib$1.a"
     macro "$(uc "$1")_INCLUDE" "-isystem \$(SUPPORT_BUILD_DIR)/${pkg}_$version/include"
@@ -840,7 +840,7 @@ build_try_lib_paths () {
 check_lib () {
     local info=$2
     local path
-    if contains "$please_fetch_list $FETCH_LIST" $(pkg_name "$1"); then
+    if contains "$please_fetch_list $FETCH_LIST" $(lib_pkg_name "$1"); then
         ${info}_dep $1
         fetch_lib $1
         return
@@ -873,7 +873,7 @@ check_lib () {
             return
         fi
     done
-    if fetch_allowed $1; then
+    if fetch_allowed $(lib_pkg_name $1); then
         fetch_lib $1
     else
         show_no "lib$1$static_info"
@@ -1000,10 +1000,10 @@ test_protobuf () {
     show ok
 }
 
-# fetch_allowed <dep>
-# Fails if the dependency cannot be fetched
+# fetch_allowed <pkg>
+# Fails if the package cannot be fetched
 fetch_allowed () {
-     { contains "$please_fetch_list" $(pkg_name $1)||
+     { contains "$please_fetch_list" $1 ||
          { can_fetch $1 && $allow_fetch ; } ; } || return 1
 }
 
@@ -1053,38 +1053,64 @@ check_boost () {
     fi
 }
 
-# pkg_name <dep>
-# The support package name that contains dep
-pkg_name () {
+# bin_pkg_name <bin>
+# The support package name that contains the application
+bin_pkg_name () {
     case "$1" in
         protoc) echo protobuf ;;
-        tcmalloc_minimal) echo gperftools ;;
-        tcmalloc) echo gperftools ;;
         lessc) echo less ;;
         coffee) echo coffee-script ;;
         npm) echo node ;;
+        # The curl-bin package doesn't exist. It is placed here to avoid
+        # the circular dependency of curl being used to fetch curl.
+        curl) echo curl-bin ;;
+        *) echo "$1" ;;
+    esac
+}
+
+# lib_pkg_name <lib>
+# The support package name that contains the library
+lib_pkg_name () {
+    case "$1" in
+        tcmalloc_minimal) echo gperftools ;;
+        tcmalloc) echo gperftools ;;
         z) echo zlib ;;
         boost_system) echo boost ;;
         *) echo "$1" ;;
     esac
 }
 
-# can_fetch <dep>
-# Check if we know how to fetch dep
+# guess_pkg_name <name>
+# Find the name of a package associated with the given name
+guess_pkg_name () {
+    local pkg
+    case "$1" in
+        # Assume that curl here means libcurl, not curl itself
+        curl) echo curl ; return ;;
+    esac
+    pkg=$(lib_pkg_name "$1")
+    if [[ "$pkg" != "$1" ]]; then
+        echo "$pkg"
+    fi
+    bin_pkg_name "$1"
+}
+
+# can_fetch <pkg>
+# Check if we know how to fetch pkg
 can_fetch () {
-    local pkg=$(pkg_name $1)
-    test -e $root/mk/support/pkg/"$pkg".sh
+    test -e $root/mk/support/pkg/"$1".sh
 }
 
 # List all the packages that can be fetched
 all_fetch_deps () {
     local ret=
+    local pkg
     for dep in $all_deps; do
-        if can_fetch $dep; then
-            ret="$ret $(pkg_name "$dep")"
+        pkg=$(guess_pkg_name "$dep")
+        if can_fetch $pkg; then
+            ret="$ret $pkg"
         fi
     done
-    echo ret: $ret >&2
     echo "$ret"
 }
 

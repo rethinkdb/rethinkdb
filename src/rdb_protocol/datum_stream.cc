@@ -3,7 +3,6 @@
 
 #include <map>
 
-#include "clustering/administration/metadata.hpp"
 #include "rdb_protocol/batching.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"

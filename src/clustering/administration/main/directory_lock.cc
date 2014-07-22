@@ -1,4 +1,6 @@
+#include <dirent.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/file.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -8,6 +10,28 @@
 
 bool check_existence(const base_path_t& base_path) {
     return 0 == access(base_path.path().c_str(), F_OK);
+}
+
+bool check_dir_emptiness(const base_path_t& base_path) {
+    DIR *dp;
+    struct dirent *ep;
+
+    dp = opendir(base_path.path().c_str());
+    if (dp == NULL) {
+        return false;
+    }
+
+    set_errno(0);
+    while ((ep = readdir(dp)) != NULL) {
+        if (strcmp(ep->d_name, ".") != 0 && strcmp(ep->d_name, "..") != 0) {
+            closedir(dp);
+            return false;
+        }
+    }
+    guarantee_err(get_errno() == 0, "Error while reading directory");
+
+    closedir(dp);
+    return true;
 }
 
 directory_lock_t::directory_lock_t(const base_path_t &path, bool create, bool *created_out) :
@@ -35,6 +59,9 @@ directory_lock_t::directory_lock_t(const base_path_t &path, bool create, bool *c
         // Call fsync() on the parent directory to guarantee that the newly
         // created directory's directory entry is persisted to disk.
         warn_fsync_parent_directory(directory_path.path().c_str());
+    } else if (create && check_dir_emptiness(directory_path)) {
+        created = true;
+        *created_out = true;
     }
 
     directory_fd.reset(::open(directory_path.path().c_str(), O_RDONLY));

@@ -70,24 +70,9 @@ void run_with_namespace_interface(
      * stomach for such things. */
     extproc_pool_t extproc_pool(2);
 
-    connectivity_cluster_t c;
-    semilattice_manager_t<cluster_semilattice_metadata_t> slm(&c, cluster_semilattice_metadata_t());
-    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, &slm, 0, NULL);
-
-    connectivity_cluster_t c2;
-    directory_read_manager_t<cluster_directory_metadata_t> read_manager(&c2);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, &read_manager, 0, NULL);
-
-    boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > dummy_auth;
     rdb_context_t ctx(&extproc_pool,
                       NULL,
-                      NULL,
-                      slm.get_root_view(),
-                      dummy_auth,
-                      &read_manager,
-                      generate_uuid(),
-                      &get_global_perfmon_collection(),
-                      std::string());
+                      NULL);
 
     for (int rep = 0; rep < num_restarts; ++rep) {
         const bool do_create = rep == 0;

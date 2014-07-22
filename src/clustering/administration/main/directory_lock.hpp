@@ -1,9 +1,11 @@
 #ifndef CLUSTERING_ADMINISTRATION_MAIN_DIRECTORY_LOCK_HPP_
 #define CLUSTERING_ADMINISTRATION_MAIN_DIRECTORY_LOCK_HPP_
 
+#include <unistd.h>
+
 #include <exception>
 #include <string>
-#include <unistd.h>
+
 #include "utils.hpp"
 #include "arch/io/io_utils.hpp"
 
@@ -11,6 +13,7 @@
 #define INVALID_UID (static_cast<uid_t>(-1))
 
 bool check_existence(const base_path_t& base_path);
+bool check_dir_emptiness(const base_path_t& base_path);
 
 class directory_lock_t {
 public:

@@ -249,16 +249,84 @@ mock_namespace_interface_t::write_visitor_t::write_visitor_t(std::map<store_key_
     // Do nothing
 }
 
-test_rdb_env_t::test_rdb_env_t() :
-    machine_id(generate_uuid()) // Not like we actually care
-{
-    machine_semilattice_metadata_t machine;
-    name_string_t machine_name;
-    if (!machine_name.assign_value("test_machine")) throw invalid_name_exc_t("test_machine");
-    machine.name = vclock_t<name_string_t>(machine_name, machine_id);
-    machine.datacenter = vclock_t<datacenter_id_t>(nil_uuid());
-    metadata.machines.machines.insert(std::make_pair(generate_uuid(), make_deletable(machine)));
+bool mock_reql_admin_interface_t::db_create(UNUSED const name_string_t &name,
+        UNUSED signal_t *interruptor, std::string *error_out) {
+    *error_out = "mock_reql_admin_interface_t doesn't support mutation";
+    return false;
 }
+
+bool mock_reql_admin_interface_t::db_drop(UNUSED const name_string_t &name,
+        UNUSED signal_t *interruptor, std::string *error_out) {
+    *error_out = "mock_reql_admin_interface_t doesn't support mutation";
+    return false;
+}
+
+bool mock_reql_admin_interface_t::db_list(
+        UNUSED signal_t *interruptor, std::set<name_string_t> *names_out,
+        UNUSED std::string *error_out) {
+    for (auto pair : databases) {
+        names_out->insert(pair.first);
+    }
+    return true;
+}
+
+bool mock_reql_admin_interface_t::db_find(const name_string_t &name,
+        UNUSED signal_t *interruptor, counted_t<const ql::db_t> *db_out,
+        std::string *error_out) {
+    auto it = databases.find(name);
+    if (it == databases.end()) {
+        *error_out = "No database with that name";
+        return false;
+    } else {
+        *db_out = make_counted<const ql::db_t>(it->second, name.str());
+        return true;
+    }
+}
+
+bool mock_reql_admin_interface_t::table_create(UNUSED const name_string_t &name,
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const boost::optional<name_string_t> &primary_dc,
+        UNUSED bool hard_durability, UNUSED const std::string &primary_key,
+        UNUSED signal_t *interruptor, UNUSED uuid_u *namespace_id_out,
+        std::string *error_out) {
+    *error_out = "mock_reql_admin_interface_t doesn't support mutation";
+    return false;
+}
+
+bool mock_reql_admin_interface_t::table_drop(UNUSED const name_string_t &name,
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED signal_t *interruptor, std::string *error_out) {
+    *error_out = "mock_reql_admin_interface_t doesn't support mutation";
+    return false;
+}
+
+bool mock_reql_admin_interface_t::table_list(counted_t<const ql::db_t> db,
+        UNUSED signal_t *interruptor, std::set<name_string_t> *names_out,
+        UNUSED std::string *error_out) {
+    for (auto pair : tables) {
+        if (pair.first.first == db->id) {
+            names_out->insert(pair.first.second);
+        }
+    }
+    return true;
+}
+
+bool mock_reql_admin_interface_t::table_find(const name_string_t &name,
+        counted_t<const ql::db_t> db,
+        UNUSED signal_t *interruptor, uuid_u *id_out, std::string *primary_key_out,
+        std::string *error_out) {
+    auto it = tables.find(std::make_pair(db->id, name));
+    if (it == tables.end()) {
+        *error_out = "No table with that name";
+        return false;
+    } else {
+        *id_out = it->second.first;
+        *primary_key_out = it->second.second;
+        return true;
+    }
+}
+
+test_rdb_env_t::test_rdb_env_t() { }
 
 test_rdb_env_t::~test_rdb_env_t() {
     // Clean up initial datas (if there was no instance constructed, this may happen
@@ -272,15 +340,10 @@ namespace_id_t test_rdb_env_t::add_table(const std::string &table_name,
                                          const std::string &primary_key,
                                          const std::set<std::map<std::string, std::string> > &initial_data) {
     name_string_t table_name_string;
-    cow_ptr_t<namespaces_semilattice_metadata_t>::change_t change(&metadata.rdb_namespaces);
     if (!table_name_string.assign_value(table_name)) throw invalid_name_exc_t(table_name);
     namespace_id_t namespace_id = generate_uuid();
-    *change.get()->namespaces[namespace_id].get_mutable() =
-        new_namespace(machine_id,
-                      db_id,
-                      nil_uuid(),
-                      table_name_string,
-                      primary_key);
+    reql_admin_interface.tables[std::make_pair(db_id,table_name_string)] =
+            std::make_pair(namespace_id, primary_key);
 
     // Set up initial data
     std::map<store_key_t, scoped_cJSON_t*> *data = new std::map<store_key_t, scoped_cJSON_t*>();
@@ -304,13 +367,10 @@ namespace_id_t test_rdb_env_t::add_table(const std::string &table_name,
 
 database_id_t test_rdb_env_t::add_database(const std::string &db_name) {
     name_string_t db_name_string;
-    database_semilattice_metadata_t db;
     if (!db_name_string.assign_value(db_name)) throw invalid_name_exc_t(db_name);
-    db.name = vclock_t<name_string_t>(db_name_string, machine_id);
-    database_id_t database_id = generate_uuid();
-    metadata.databases.databases.insert(std::make_pair(database_id,
-                                                       make_deletable(db)));
-    return database_id;
+    database_id_t id = generate_uuid();
+    reql_admin_interface.databases[db_name_string] = id;
+    return id;
 }
 
 scoped_ptr_t<test_rdb_env_t::instance_t> test_rdb_env_t::make_env() {
@@ -318,12 +378,10 @@ scoped_ptr_t<test_rdb_env_t::instance_t> test_rdb_env_t::make_env() {
 }
 
 test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
-    dummy_semilattice_controller(test_env->metadata),
     extproc_pool(2),
     test_cluster(0),
     rdb_ns_repo(),
-    rdb_ctx(&extproc_pool, &rdb_ns_repo, dummy_semilattice_controller.get_view(),
-            test_env->machine_id) {
+    rdb_ctx(&extproc_pool, &rdb_ns_repo, &test_env->reql_admin_interface) {
     env.init(new ql::env_t(&rdb_ctx,
                            &interruptor,
                            std::map<std::string, ql::wire_func_t>(),

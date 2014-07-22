@@ -3,7 +3,6 @@
 
 #include "containers/cow_ptr.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
-#include "clustering/administration/metadata.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
