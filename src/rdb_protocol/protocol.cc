@@ -492,6 +492,8 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
 
 bool read_t::shard(const hash_region_t<key_range_t> &region,
                    read_t *read_out) const THROWS_NOTHING {
+    read_out->durability_requirement = durability_requirement;
+    read_out->profile = profile;
     return boost::apply_visitor(rdb_r_shard_visitor_t(&region, read_out), read);
 }
 
@@ -938,6 +940,8 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
 
 bool write_t::shard(const region_t &region,
                     write_t *write_out) const THROWS_NOTHING {
+    write_out->durability_requirement = durability_requirement;
+    write_out->profile = profile;
     const rdb_w_shard_visitor_t v(&region, write_out);
     return boost::apply_visitor(v, write);
 }
