@@ -408,9 +408,7 @@ public:
                       ph::_1,
                       std::cref(server_uuid),
                       stamp,
-                      change.new_val.has()
-                      ? change.new_val
-                      : make_counted<const datum_t>(datum_t::R_NULL)));
+                      change.new_val.has() ? change.new_val : datum_t::null()));
     }
     void operator()(const msg_t::stop_t &) const {
         const char *msg = "Changefeed aborted (table unavailable).";
