@@ -33,7 +33,9 @@ datum_t::datum_t(datum_t::construct_null_t) : type(R_NULL) { }
 datum_t::datum_t(construct_boolean_t, bool _bool) : type(R_BOOL), r_bool(_bool) { }
 
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
-    rcheck(std::isfinite(r_num), base_exc_t::GENERIC,
+    // isfinite is a macro on OS X in math.h, so we can't just say std::isfinite.
+    using namespace std;
+    rcheck(isfinite(r_num), base_exc_t::GENERIC,
            strprintf("Non-finite number: %" PR_RECONSTRUCTABLE_DOUBLE, r_num));
 }
 
