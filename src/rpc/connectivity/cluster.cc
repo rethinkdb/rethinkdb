@@ -652,6 +652,8 @@ private:
                 return "incompatible build mode";
             case handshake_result_code_t::UNKNOWN_ERROR:
                 unreachable();
+            default:
+                unreachable();
         }
     }
 
