@@ -9,7 +9,6 @@
 #include <boost/optional.hpp>
 #include <boost/utility/result_of.hpp>
 
-#include "debug.hpp"
 #include "scoped.hpp"
 
 /* `change_tracking_map_t` is like an `std::map`. However it keeps track
@@ -71,8 +70,6 @@ public:
                 parent->get_current_version() != at_version + 1;
             at_version = parent->get_current_version();
             if (missed_version) {
-                debugf("Access to change_tracking_map_t missed a version. "
-                       "This is inefficient.\n");
                 return boost::optional<const std::set<key_type> &>();
             } else {
                 return boost::optional<const std::set<key_type> &>(
