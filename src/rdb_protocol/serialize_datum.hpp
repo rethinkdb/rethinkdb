@@ -10,8 +10,17 @@ namespace ql {
 
 class datum_t;
 
+// Results of serialization.  Serialization, since it is happening to
+// an in-memory data structure, cannot fail outright per se (at least
+// at the moment); but during the process of serialization we may
+// detect things like attempts to write an array that is 'too large'
+// to storage.  The result is okay to go over the network, but not
+// okay to store on disk, by design fiat.
 enum class serialization_result_t {
+    // Unequivocal success.
     SUCCESS,
+
+    // Successful serialization but the result should not be written to disk.
     ARRAY_TOO_BIG,
 };
 
@@ -19,6 +28,7 @@ inline bool bad(serialization_result_t res) {
     return res != serialization_result_t::SUCCESS;
 }
 
+// Really what we need here is a monad :/
 inline const serialization_result_t & operator |(const serialization_result_t &first,
                                                  const serialization_result_t &second) {
     if (bad(first))
