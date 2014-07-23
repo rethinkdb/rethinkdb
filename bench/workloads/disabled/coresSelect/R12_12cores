@@ -1,6 +1,0 @@
-#!/bin/bash
-
-. `dirname "$0"`/common
-
-run_with_cores 12
-

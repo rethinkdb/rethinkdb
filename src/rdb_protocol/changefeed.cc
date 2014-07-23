@@ -58,8 +58,7 @@ void server_t::add_client(const client_t::addr_t &addr) {
 
 void server_t::add_client_cb(signal_t *stopped, client_t::addr_t addr) {
     auto_drainer_t::lock_t coro_lock(&drainer);
-    disconnect_watcher_t disconnect(
-        manager->get_connectivity_service(), addr.get_peer());
+    disconnect_watcher_t disconnect(manager, addr.get_peer());
     {
         wait_any_t wait_any(
             &disconnect, stopped, coro_lock.get_drain_signal());
@@ -387,7 +386,7 @@ public:
     msg_visitor_t(feed_t *_feed, uuid_u _server_uuid, uint64_t _stamp)
         : feed(_feed), server_uuid(_server_uuid), stamp(_stamp) { }
     void operator()(const msg_t::change_t &change) const {
-        auto null = make_counted<const datum_t>(datum_t::R_NULL);
+        counted_t<const datum_t> null = datum_t::null();
         std::map<std::string, counted_t<const datum_t> > obj{
             {"new_val", change.new_val.has() ? change.new_val : null},
             {"old_val", change.old_val.has() ? change.old_val : null}
@@ -780,8 +779,7 @@ feed_t::feed_t(client_t *_client,
     }
     for (auto it = peers.begin(); it != peers.end(); ++it) {
         disconnect_watchers.push_back(
-            make_scoped<disconnect_watcher_t>(
-                manager->get_connectivity_service(), *it));
+            make_scoped<disconnect_watcher_t>(manager, *it));
         any_disconnect.add(&*disconnect_watchers.back());
     }
 

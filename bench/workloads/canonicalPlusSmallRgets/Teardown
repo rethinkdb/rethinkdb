@@ -1,8 +1,0 @@
-#!/bin/bash
-
-mkdir -p "$BENCH_DIR/bench_output/Canonical_plus_small_rgets"
-. `dirname "$0"`/DESCRIPTION_RUN > "$BENCH_DIR/bench_output/Canonical_plus_small_rgets/DESCRIPTION_RUN"
-
-if [ $DATABASE == "rethinkdb" ]; then
-    . `dirname "$0"`/DESCRIPTION > "$BENCH_DIR/bench_output/Canonical_plus_small_rgets/DESCRIPTION"
-fi

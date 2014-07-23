@@ -18,7 +18,6 @@
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
 #include "rdb_protocol/env.hpp"
-#include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"
 #include "rpc/semilattice/view/field.hpp"

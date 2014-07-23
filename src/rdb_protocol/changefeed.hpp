@@ -14,7 +14,7 @@
 #include "protocol_api.hpp"
 #include "region/region.hpp"
 #include "repli_timestamp.hpp"
-#include "rpc/connectivity/connectivity.hpp"
+#include "rpc/connectivity/peer_id.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/serialize_macros.hpp"
 

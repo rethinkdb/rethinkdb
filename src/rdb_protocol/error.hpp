@@ -113,9 +113,15 @@ private:
         : ql::runtime_fail(type, stringify(pred),                     \
                            __FILE__, __LINE__, (msg));                \
     } while (0)
+#define rcheck_array_size_datum(arr, type) do { \
+        rcheck_datum((arr).size() <= array_size_limit(), (type),        \
+                     strprintf("Array over size limit `%zu`.",          \
+                               array_size_limit()).c_str());            \
+    } while (0)
 #define rcheck_array_size(arr, type) do {                               \
-        rcheck((arr).size() <= array_size_limit(), type,                 \
-               strprintf("Array over size limit `%zu`.", array_size_limit()).c_str()); \
+        rcheck((arr).size() <= array_size_limit(), type,                \
+               strprintf("Array over size limit `%zu`.",                \
+                         array_size_limit()).c_str());                  \
     } while (0)
 
 #define rcheck(pred, type, msg) rcheck_target(this, type, pred, msg)

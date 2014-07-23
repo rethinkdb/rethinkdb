@@ -11,7 +11,7 @@
 #include "clustering/reactor/directory_echo.hpp"
 #include "clustering/reactor/metadata.hpp"
 #include "concurrency/watchable.hpp"
-#include "rpc/connectivity/connectivity.hpp"
+#include "rpc/connectivity/peer_id.hpp"
 #include "rpc/semilattice/view.hpp"
 
 class io_backender_t;

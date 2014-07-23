@@ -111,7 +111,6 @@ private:
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         std::vector<std::pair<order_direction_t, counted_t<func_t> > > comparisons;
-        scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         for (size_t i = 1; i < args->num_args(); ++i) {
             if (get_src()->args(i).type() == Term::DESC) {
                 comparisons.push_back(

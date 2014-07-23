@@ -241,8 +241,7 @@ private:
             }
             return make_counted<val_t>(std::move(ret), bt);
         } else if (groups.size() == 0) {
-            return make_counted<val_t>(
-                make_counted<const datum_t>(datum_t::R_ARRAY), bt);
+            return make_counted<val_t>(datum_t::empty_array(), bt);
         } else {
             r_sanity_check(groups.size() == 1 && !groups.begin()->first.has());
             return make_counted<val_t>(
@@ -631,8 +630,7 @@ private:
                         arr.push_back((*f)->call(env, *el)->as_datum());
                     } catch (const base_exc_t &e) {
                         if (e.get_type() == base_exc_t::NON_EXISTENCE) {
-                            arr.push_back(
-                                make_counted<const datum_t>(datum_t::R_NULL));
+                            arr.push_back(datum_t::null());
                         } else {
                             throw;
                         }
@@ -705,7 +703,7 @@ private:
                     instance->pop_back();
                 }
             } else {
-                instance->push_back(make_counted<const datum_t>(datum_t::R_NULL));
+                instance->push_back(datum_t::null());
                 add_perms(groups, instance, arr, index + 1, el);
                 instance->pop_back();
             }

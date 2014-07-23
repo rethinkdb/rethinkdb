@@ -40,7 +40,7 @@ public:
         /* Send a message to register us */
         send(mailbox_manager, registrar.access().create_mailbox,
             registration_id,
-            mailbox_manager->get_connectivity_service()->get_me(),
+            mailbox_manager->get_connectivity_cluster()->get_me(),
             initial_value);
     }
 

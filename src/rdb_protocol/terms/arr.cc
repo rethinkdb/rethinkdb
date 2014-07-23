@@ -19,17 +19,22 @@ protected:
     counted_t<val_t> pend(scope_env_t *env, args_t *args, which_pend_t which_pend) const {
         counted_t<const datum_t> arr = args->arg(env, 0)->as_datum();
         counted_t<const datum_t> new_el = args->arg(env, 1)->as_datum();
-        datum_ptr_t out(datum_t::R_ARRAY);
+        datum_array_builder_t out;
+        out.reserve(arr->size() + 1);
         if (which_pend == PRE) {
             // TODO: this is horrendously inefficient.
             out.add(new_el);
-            for (size_t i = 0; i < arr->size(); ++i) out.add(arr->get(i));
+            for (size_t i = 0; i < arr->size(); ++i) {
+                out.add(arr->get(i));
+            }
         } else {
             // TODO: this is horrendously inefficient.
-            for (size_t i = 0; i < arr->size(); ++i) out.add(arr->get(i));
+            for (size_t i = 0; i < arr->size(); ++i) {
+                out.add(arr->get(i));
+            }
             out.add(new_el);
         }
-        return new_val(out.to_counted());
+        return new_val(std::move(out).to_counted());
     }
 };
 
@@ -134,7 +139,7 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         batchspec_t batchspec = batchspec_t::user(batch_type_t::NORMAL, env->env);
         bool is_empty = !args->arg(env, 0)->as_seq(env->env)->next(env->env, batchspec).has();
-        return new_val(make_counted<const datum_t>(datum_t::type_t::R_BOOL, is_empty));
+        return new_val(datum_t::boolean(is_empty));
     }
     virtual const char *name() const { return "is_empty"; }
 };
@@ -165,19 +170,21 @@ private:
             bool r_oob = false;
             uint64_t real_r = canonicalize(this, fake_r, arr->size(), &r_oob);
             if (r_oob) {
-                return new_val(make_counted<const datum_t>(datum_t::R_ARRAY));
+                return new_val(datum_t::empty_array());
             } else if (!right_open) {
                 real_r += 1; // This is safe because it was an int64_t before.
             }
 
-            datum_ptr_t out(datum_t::R_ARRAY);
+            datum_array_builder_t out;
             if (!r_oob) {
                 for (uint64_t i = real_l; i < real_r; ++i) {
-                    if (i >= arr->size()) break;
+                    if (i >= arr->size()) {
+                        break;
+                    }
                     out.add(arr->get(i));
                 }
             }
-            return new_val(out.to_counted());
+            return new_val(std::move(out).to_counted());
         } else if (v->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
             counted_t<table_t> t;
             counted_t<datum_stream_t> seq;
@@ -247,7 +254,7 @@ private:
         counted_t<const datum_t> arr = args->arg(env, 0)->as_datum();
         counted_t<const datum_t> new_el = args->arg(env, 1)->as_datum();
         std::set<counted_t<const datum_t> > el_set;
-        datum_ptr_t out(datum_t::R_ARRAY);
+        datum_array_builder_t out;
         for (size_t i = 0; i < arr->size(); ++i) {
             if (el_set.insert(arr->get(i)).second) {
                 out.add(arr->get(i));
@@ -257,7 +264,7 @@ private:
             out.add(new_el);
         }
 
-        return new_val(out.to_counted());
+        return new_val(std::move(out).to_counted());
     }
 
     virtual const char *name() const { return "set_insert"; }
@@ -272,7 +279,7 @@ private:
         counted_t<const datum_t> arr1 = args->arg(env, 0)->as_datum();
         counted_t<const datum_t> arr2 = args->arg(env, 1)->as_datum();
         std::set<counted_t<const datum_t> > el_set;
-        datum_ptr_t out(datum_t::R_ARRAY);
+        datum_array_builder_t out;
         for (size_t i = 0; i < arr1->size(); ++i) {
             if (el_set.insert(arr1->get(i)).second) {
                 out.add(arr1->get(i));
@@ -284,7 +291,7 @@ private:
             }
         }
 
-        return new_val(out.to_counted());
+        return new_val(std::move(out).to_counted());
     }
 
     virtual const char *name() const { return "set_union"; }
@@ -299,7 +306,7 @@ private:
         counted_t<const datum_t> arr1 = args->arg(env, 0)->as_datum();
         counted_t<const datum_t> arr2 = args->arg(env, 1)->as_datum();
         std::set<counted_t<const datum_t> > el_set;
-        datum_ptr_t out(datum_t::R_ARRAY);
+        datum_array_builder_t out;
         for (size_t i = 0; i < arr1->size(); ++i) {
             el_set.insert(arr1->get(i));
         }
@@ -310,7 +317,7 @@ private:
             }
         }
 
-        return new_val(out.to_counted());
+        return new_val(std::move(out).to_counted());
     }
 
     virtual const char *name() const { return "set_intersection"; }
@@ -325,7 +332,7 @@ private:
         counted_t<const datum_t> arr1 = args->arg(env, 0)->as_datum();
         counted_t<const datum_t> arr2 = args->arg(env, 1)->as_datum();
         std::set<counted_t<const datum_t> > el_set;
-        datum_ptr_t out(datum_t::R_ARRAY);
+        datum_array_builder_t out;
         for (size_t i = 0; i < arr2->size(); ++i) {
             el_set.insert(arr2->get(i));
         }
@@ -336,7 +343,7 @@ private:
             }
         }
 
-        return new_val(out.to_counted());
+        return new_val(std::move(out).to_counted());
     }
 
     virtual const char *name() const { return "set_difference"; }
@@ -355,21 +362,23 @@ public:
               argspec_t argspec, index_method_t index_method)
         : op_term_t(env, term, argspec), index_method_(index_method) { }
 
-    virtual void modify(scope_env_t *env, args_t *args, size_t index, datum_ptr_t *array) const = 0;
+    virtual void modify(scope_env_t *env, args_t *args, size_t index,
+                        datum_array_builder_t *array) const = 0;
 
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        datum_ptr_t arr(args->arg(env, 0)->as_datum()->as_array());
+        auto arg0_array = args->arg(env, 0)->as_datum()->as_array();
+        datum_array_builder_t arr(std::move(arg0_array));
         size_t index;
         if (index_method_ == ELEMENTS) {
-            index = canonicalize(this, args->arg(env, 1)->as_datum()->as_int(), arr->size());
+            index = canonicalize(this, args->arg(env, 1)->as_datum()->as_int(), arr.size());
         } else if (index_method_ == SPACES) {
-            index = canonicalize(this, args->arg(env, 1)->as_datum()->as_int(), arr->size() + 1);
+            index = canonicalize(this, args->arg(env, 1)->as_datum()->as_int(), arr.size() + 1);
         } else {
             unreachable();
         }
 
         modify(env, args, index, &arr);
-        return new_val(arr.to_counted());
+        return new_val(std::move(arr).to_counted());
     }
 private:
     index_method_t index_method_;
@@ -380,7 +389,8 @@ public:
     insert_at_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : at_term_t(env, term, argspec_t(3), SPACES) { }
 private:
-    void modify(scope_env_t *env, args_t *args, size_t index, datum_ptr_t *array) const {
+    void modify(scope_env_t *env, args_t *args, size_t index,
+                datum_array_builder_t *array) const {
         counted_t<const datum_t> new_el = args->arg(env, 2)->as_datum();
         array->insert(index, new_el);
     }
@@ -393,7 +403,8 @@ public:
     splice_at_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : at_term_t(env, term, argspec_t(3), SPACES) { }
 private:
-    void modify(scope_env_t *env, args_t *args, size_t index, datum_ptr_t *array) const {
+    void modify(scope_env_t *env, args_t *args, size_t index,
+                datum_array_builder_t *array) const {
         counted_t<const datum_t> new_els = args->arg(env, 2)->as_datum();
         array->splice(index, new_els);
     }
@@ -405,12 +416,13 @@ public:
     delete_at_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : at_term_t(env, term, argspec_t(2, 3), ELEMENTS) { }
 private:
-    void modify(scope_env_t *env, args_t *args, size_t index, datum_ptr_t *array) const {
+    void modify(scope_env_t *env, args_t *args, size_t index,
+                datum_array_builder_t *array) const {
         if (args->num_args() == 2) {
             array->erase(index);
         } else {
             int end_index =
-                canonicalize(this, args->arg(env, 2)->as_datum()->as_int(), (*array)->size());
+                canonicalize(this, args->arg(env, 2)->as_datum()->as_int(), array->size());
             array->erase_range(index, end_index);
         }
     }
@@ -422,7 +434,8 @@ public:
     change_at_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : at_term_t(env, term, argspec_t(3), ELEMENTS) { }
 private:
-    void modify(scope_env_t *env, args_t *args, size_t index, datum_ptr_t *array) const {
+    void modify(scope_env_t *env, args_t *args, size_t index,
+                datum_array_builder_t *array) const {
         counted_t<const datum_t> new_el = args->arg(env, 2)->as_datum();
         array->change(index, new_el);
     }

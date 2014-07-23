@@ -967,7 +967,8 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
     // sharded into multiple operations instead of getting sent unsplit in a
     // single direction.
     void merge_stats() const {
-        counted_t<const ql::datum_t> stats(new ql::datum_t(ql::datum_t::R_OBJECT));
+        counted_t<const ql::datum_t> stats = ql::datum_t::empty_object();
+
         for (size_t i = 0; i < count; ++i) {
             const counted_t<const ql::datum_t> *stats_i =
                 boost::get<counted_t<const ql::datum_t> >(&responses[i].response);
