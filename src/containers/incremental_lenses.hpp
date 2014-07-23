@@ -6,7 +6,11 @@
 #include <set>
 
 #include "errors.hpp"
+#include <boost/optional.hpp>
 #include <boost/utility/result_of.hpp>
+
+#include "debug.hpp"
+#include "scoped.hpp"
 
 /* `change_tracking_map_t` is like an `std::map`. However it keeps track
  * of which keys have been modified.
@@ -14,7 +18,10 @@
  * Before changing any of the values, you must call `begin_version()`.
  * This resets the set of changed keys. It is therefore important that whatever
  * processes the changes to the change_tracking_map is called once per call to
- * begin_version, because it could otherwise miss some changes.
+ * begin_version. The subscription_t interface keeps track of the last processed
+ * version and detects cases where a version has been skipped, but
+ * this effectively degrades the change_tracking_map_t to a regular map if it
+ * happens frequently.
  */
 template <class key_type, class inner_type>
 class change_tracking_map_t {
@@ -55,8 +62,36 @@ public:
     }
 
     // Getters
+    class subscription_t {
+    public:
+        boost::optional<const std::set<key_type> &> get_changed_keys() {
+            // Check if we have missed any changes. If we did, retrieve the
+            // full key set as a safe (but less efficient) fallback.
+            const bool missed_version =
+                parent->get_current_version() != at_version + 1;
+            at_version = parent->get_current_version();
+            if (missed_version) {
+                debugf("Access to change_tracking_map_t missed a version. "
+                       "This is inefficient.\n");
+                return boost::optional<const std::set<key_type> &>();
+            } else {
+                return boost::optional<const std::set<key_type> &>(
+                    parent->get_changed_keys());
+            }
+        }
+        const change_tracking_map_t *get_parent() const { return parent; }
+    private:
+        friend class change_tracking_map_t;
+        DISABLE_COPYING(subscription_t);
+        explicit subscription_t(const change_tracking_map_t *_parent)
+            : parent(_parent), at_version(0) { }
+        const change_tracking_map_t *parent;
+        unsigned int at_version;
+    };
+    scoped_ptr_t<subscription_t> subscribe() const {
+        return scoped_ptr_t<subscription_t>(new subscription_t(this));
+    }
     const std::map<key_type, inner_type> &get_inner() const { return inner; }
-    const std::set<key_type> &get_changed_keys() const { return changed_keys; }
     unsigned int get_current_version() const { return current_version; }
 
     // Operators
@@ -70,6 +105,9 @@ public:
     }
 
 private:
+    // Use subscription_t do access this information in a safe way
+    const std::set<key_type> &get_changed_keys() const { return changed_keys; }
+
     std::map<key_type, inner_type> inner;
     std::set<key_type> changed_keys;
     unsigned int current_version;
@@ -94,25 +132,43 @@ public:
         inner_lens(_inner_lens) {
     }
 
+    // Copy operators
+    incremental_map_lens_t(const incremental_map_lens_t &_other) :
+        inner_lens(_other.inner_lens) /* Don't copy subscription */ { }
+    incremental_map_lens_t &operator=(const incremental_map_lens_t &_other) {
+        inner_lens = _other.inner_lens;
+        subscription.reset();
+        return *this;
+    }
+
     bool operator()(const change_tracking_map_t<key_type, inner_type> &input,
                     result_type *current_out) {
         guarantee(current_out != NULL);
 
+        if (!subscription.has() || subscription->get_parent() != &input) {
+            subscription = input.subscribe();
+        }
+        boost::optional<const std::set<key_type> &> changed_keys =
+            subscription->get_changed_keys();
+        const bool do_init =
+            current_out->get_current_version() == 0
+            || !changed_keys.is_initialized();
+
         bool anything_changed = false;
 
-        const bool do_init = current_out->get_current_version() == 0;
         // Begin a new version
         current_out->begin_version();
 
         if (do_init) {
             // Compute all values
+            current_out->clear();
             for (auto it = input.get_inner().begin(); it != input.get_inner().end(); ++it) {
                 current_out->set_value(it->first, inner_lens(it->second));
             }
             anything_changed = true;
         } else {
             // Update changed values only
-            for (auto it = input.get_changed_keys().begin(); it != input.get_changed_keys().end(); ++it) {
+            for (auto it = changed_keys->begin(); it != changed_keys->end(); ++it) {
                 auto input_value_it = input.get_inner().find(*it);
                 auto existing_it = current_out->get_inner().find(*it);
                 if (input_value_it == input.get_inner().end()) {
@@ -151,6 +207,8 @@ public:
     }
 
 private:
+    scoped_ptr_t<typename change_tracking_map_t<key_type, inner_type>::subscription_t>
+        subscription;
     callable_type inner_lens;
 };
 
