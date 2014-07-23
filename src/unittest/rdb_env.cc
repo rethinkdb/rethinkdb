@@ -346,7 +346,7 @@ namespace_id_t test_rdb_env_t::add_table(const std::string &table_name,
     name_string_t table_name_string;
     if (!table_name_string.assign_value(table_name)) throw invalid_name_exc_t(table_name);
     namespace_id_t namespace_id = generate_uuid();
-    reql_admin_interface.tables[std::make_pair(db_id,table_name_string)] =
+    reql_admin_interface.tables[std::make_pair(db_id, table_name_string)] =
             std::make_pair(namespace_id, primary_key);
 
     // Set up initial data
