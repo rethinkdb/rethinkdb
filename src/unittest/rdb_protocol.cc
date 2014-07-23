@@ -1,4 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
+#include "unittest/rdb_protocol.hpp"
+
 #include <vector>
 
 #include "errors.hpp"
@@ -25,7 +27,6 @@
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {
-namespace {
 
 void run_with_namespace_interface(
         boost::function<void(namespace_interface_t *, order_source_t *)> fun,
@@ -116,8 +117,6 @@ void run_in_thread_pool_with_namespace_interface(
                                            oversharded,
                                            num_restarts));
 }
-
-}   /* anonymous namespace */
 
 /* `SetupTeardown` makes sure that it can start and stop without anything going
 horribly wrong */
