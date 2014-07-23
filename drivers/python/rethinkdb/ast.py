@@ -941,7 +941,7 @@ class Table(RqlQuery):
     st = 'table'
 
     def insert(self, *args, **kwargs):
-        kwargs.setdefault('upsert', ())
+        kwargs.setdefault('conflict', ())
         kwargs.setdefault('durability', ())
         kwargs.setdefault('return_vals', ())
         return Insert(self, *[expr(arg) for arg in args], **kwargs)

@@ -120,6 +120,11 @@ void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
 }
 
 void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        const changefeed_point_stamp_t &) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
         UNUSED const intersecting_geo_read_t &gr) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
@@ -359,7 +364,7 @@ namespace_id_t test_rdb_env_t::add_table(const std::string &table_name,
     name_string_t table_name_string;
     if (!table_name_string.assign_value(table_name)) throw invalid_name_exc_t(table_name);
     namespace_id_t namespace_id = generate_uuid();
-    reql_admin_interface.tables[std::make_pair(db_id,table_name_string)] =
+    reql_admin_interface.tables[std::make_pair(db_id, table_name_string)] =
             std::make_pair(namespace_id, primary_key);
 
     // Set up initial data

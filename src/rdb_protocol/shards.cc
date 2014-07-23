@@ -739,7 +739,7 @@ private:
 // `datum_stream.cc` removes any duplicates that survive this `lst_transform`.
 class distinct_trans_t : public ungrouped_op_t {
 public:
-    distinct_trans_t(const distinct_wire_func_t &f) : use_index(f.use_index) { }
+    explicit distinct_trans_t(const distinct_wire_func_t &f) : use_index(f.use_index) { }
 private:
     // sindex_val may be NULL
     virtual void lst_transform(

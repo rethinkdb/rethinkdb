@@ -1,8 +1,0 @@
-echo "[h]Overview[/h]"
-echo "Running in strong durability mode makes sure that whenever a write operation returns a success status to the client, the change has actually been materialized on non-volatile memory."
-echo ""
-echo "[h]Rationale[/h]"
-echo "Certain applications require stringent durability guarantees for its data. As each change has to be written to disk immediately, this has significant impact on a database systems' performance characteristics."
-echo ""
-echo "[h]Notes about the results[/h]"
-echo "Due to limitations in RethinkDB's current implementation and it's transaction log free architecture, RethinkDB is unable to provide performance figures on-par with MySQL for this workload under strong durability requirements. Future improvements to RethinkDB will provide significant improvements in this area."

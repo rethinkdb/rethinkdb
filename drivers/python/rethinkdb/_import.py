@@ -232,11 +232,11 @@ def parse_options():
 # This is called through rdb_call_wrapper so reattempts can be tried as long as progress
 # is being made, but connection errors occur.  We save a failed task in the progress object
 # so it can be resumed later on a new connection.
-def import_from_queue(progress, conn, task_queue, error_queue, use_upsert, durability):
+def import_from_queue(progress, conn, task_queue, error_queue, replace_conflicts, durability):
     if progress[0] is None:
         progress[0] = 0
         progress.append(None)
-    elif not use_upsert:
+    elif not replace_conflicts:
         # We were interrupted and it's not ok to overwrite rows, check that the batch either:
         # a) does not exist on the server
         # b) is exactly the same on the server
@@ -258,7 +258,8 @@ def import_from_queue(progress, conn, task_queue, error_queue, use_upsert, durab
         try:
             # Unpickle objects (TODO: super inefficient, would be nice if we could pass down json)
             objs = [cPickle.loads(obj) for obj in task[2]]
-            res = r.db(task[0]).table(task[1]).insert(objs, durability=durability, upsert=use_upsert).run(conn)
+            conflict_action = 'replace' if replace_conflicts else 'error'
+            res = r.db(task[0]).table(task[1]).insert(objs, durability=durability, conflict=conflict_action).run(conn)
         except:
             progress[1] = task
             raise
@@ -272,10 +273,10 @@ def import_from_queue(progress, conn, task_queue, error_queue, use_upsert, durab
     return progress[0]
 
 # This is run for each client requested, and accepts tasks from the reader processes
-def client_process(host, port, auth_key, task_queue, error_queue, rows_written, use_upsert, durability):
+def client_process(host, port, auth_key, task_queue, error_queue, rows_written, replace_conflicts, durability):
     try:
         conn_fn = lambda: r.connect(host, port, auth_key=auth_key)
-        res = rdb_call_wrapper(conn_fn, "import", import_from_queue, task_queue, error_queue, use_upsert, durability)
+        res = rdb_call_wrapper(conn_fn, "import", import_from_queue, task_queue, error_queue, replace_conflicts, durability)
         with rows_written.get_lock():
             rows_written.value += res
     except:
