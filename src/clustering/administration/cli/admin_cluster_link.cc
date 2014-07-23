@@ -275,10 +275,10 @@ admin_cluster_link_t::admin_cluster_link_t(const peer_address_set_t &joins,
         ADMIN_PEER)),
     directory_read_manager(
         new directory_read_manager_t<cluster_directory_metadata_t>(
-            &connectivity_cluster, 'M')),
+            &connectivity_cluster, 'D')),
     directory_write_manager(
         new directory_write_manager_t<cluster_directory_metadata_t>(
-            &connectivity_cluster, 'M', our_directory_metadata.get_watchable())),
+            &connectivity_cluster, 'D', our_directory_metadata.get_watchable())),
     connectivity_cluster_run(&connectivity_cluster,
                              get_local_ips(std::set<ip_address_t>(), false),
                              canonical_addresses,
