@@ -655,12 +655,14 @@ void feed_t::each_sub_in_vec_cb(const std::function<void(subscription_t *)> &f,
 
 void feed_t::each_table_sub(
     const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
+    assert_thread();
     rwlock_in_line_t spot(&table_subs_lock, access_t::read);
     each_sub_in_vec(table_subs, &spot, f);
 }
 
 void feed_t::each_point_sub(
     const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
+    assert_thread();
     rwlock_in_line_t spot(&point_subs_lock, access_t::read);
     pmap(get_num_threads(),
          std::bind(&feed_t::each_point_sub_cb,
