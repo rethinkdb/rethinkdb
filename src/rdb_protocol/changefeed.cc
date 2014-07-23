@@ -257,9 +257,9 @@ private:
     std::map<uuid_u, scoped_ptr_t<queue_t> > queues;
     cond_t queues_ready;
 
-    typedef std::vector<std::set<subscription_t *> > subvec_t;
-    subvec_t table_subs;
-    std::map<counted_t<const datum_t>, subvec_t> point_subs;
+    std::vector<std::set<subscription_t *> > table_subs;
+    std::map<counted_t<const datum_t>,
+             std::vector<std::set<subscription_t *> > > point_subs;
     rwlock_t table_subs_lock, point_subs_lock;
     int64_t num_subs;
 
