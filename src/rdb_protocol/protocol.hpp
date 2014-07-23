@@ -642,13 +642,14 @@ public:
 RDB_DECLARE_SERIALIZABLE(sync_t);
 
 struct write_t {
-    boost::variant<batched_replace_t,
-                   batched_insert_t,
-                   point_write_t,
-                   point_delete_t,
-                   sindex_create_t,
-                   sindex_drop_t,
-                   sync_t> write;
+    typedef boost::variant<batched_replace_t,
+                           batched_insert_t,
+                           point_write_t,
+                           point_delete_t,
+                           sindex_create_t,
+                           sindex_drop_t,
+                           sync_t> variant_t;
+    variant_t write;
 
     durability_requirement_t durability_requirement;
     profile_bool_t profile;
