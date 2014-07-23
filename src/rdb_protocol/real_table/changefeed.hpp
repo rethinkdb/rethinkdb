@@ -13,12 +13,12 @@
 #include "containers/scoped.hpp"
 #include "protocol_api.hpp"
 #include "repli_timestamp.hpp"
+#include "rdb_protocol/counted_term.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/serialize_macros.hpp"
 
 class auto_drainer_t;
-class base_namespace_repo_t;
 class mailbox_manager_t;
 struct rdb_modification_report_t;
 
@@ -26,21 +26,22 @@ namespace ql {
 
 class base_exc_t;
 class batcher_t;
-class changefeed_t;
 class datum_stream_t;
 class datum_t;
 class env_t;
 class table_t;
+
+}   // namespace ql
 
 namespace changefeed {
 
 struct msg_t {
     struct change_t {
         change_t();
-        explicit change_t(counted_t<const datum_t> _old_val,
-                          counted_t<const datum_t> _new_val);
+        explicit change_t(counted_t<const ql::datum_t> _old_val,
+                          counted_t<const ql::datum_t> _new_val);
         ~change_t();
-        counted_t<const datum_t> old_val, new_val;
+        counted_t<const ql::datum_t> old_val, new_val;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
     struct stop_t {
@@ -87,14 +88,16 @@ public:
     typedef client_addr_t addr_t;
     explicit client_t(mailbox_manager_t *_manager);
     ~client_t();
-    // Throws QL exceptions.
-    counted_t<datum_stream_t> new_feed(const counted_t<table_t> &tbl, env_t *env);
-    void maybe_remove_feed(const uuid_u &uuid);
-    scoped_ptr_t<feed_t> detach_feed(const uuid_u &uuid);
+    // Throws QL exceptions. Doesn't hold onto `ns_if`.
+    counted_t<ql::datum_stream_t> new_feed(ql::env_t *env, const namespace_id_t &table,
+        const ql::protob_t<const Backtrace> &bt, const std::string &table_name,
+        namespace_interface_t *ns_if);
+    void maybe_remove_feed(const namespace_id_t &uuid);
+    scoped_ptr_t<feed_t> detach_feed(const namespace_id_t &uuid);
 private:
     friend class subscription_t;
     mailbox_manager_t *const manager;
-    std::map<uuid_u, scoped_ptr_t<feed_t> > feeds;
+    std::map<namespace_id_t, scoped_ptr_t<feed_t> > feeds;
     // This lock manages access to the `feeds` map.  The `feeds` map needs to be
     // read whenever `new_feed` is called, and needs to be written to whenever
     // `new_feed` is called with a table not already in the `feeds` map, or
@@ -161,6 +164,5 @@ private:
 };
 
 } // namespace changefeed
-} // namespace ql
 
 #endif // RDB_PROTOCOL_CHANGEFEED_HPP_

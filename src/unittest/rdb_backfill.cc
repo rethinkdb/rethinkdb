@@ -11,8 +11,8 @@
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/env.hpp"
-#include "rdb_protocol/protocol.hpp"
-#include "rdb_protocol/store.hpp"
+#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/real_table/store.hpp"
 #include "rdb_protocol/sym.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
@@ -46,13 +46,8 @@ void run_with_broadcaster(
     // io backender
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
 
-    /* Create some structures for the rdb_context_t, warning some
-     * boilerplate is about to follow, avert your eyes if you have a weak
-     * stomach for such things. */
     extproc_pool_t extproc_pool(2);
-    rdb_context_t ctx(&extproc_pool,
-                      NULL,
-                      NULL);
+    rdb_context_t ctx(&extproc_pool, NULL);
 
     /* Set up a broadcaster and initial listener */
     test_store_t initial_store(&io_backender, &order_source, &ctx);

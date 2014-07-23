@@ -22,8 +22,8 @@
 #include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
-#include "rdb_protocol/changefeed.hpp"
-#include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/real_table/changefeed.hpp"
+#include "rdb_protocol/real_table/protocol.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "store_view.hpp"
 #include "utils.hpp"
@@ -397,7 +397,7 @@ public:
     std::map<uuid_u, const parallel_traversal_progress_t *> progress_trackers;
 
     rdb_context_t *ctx;
-    scoped_ptr_t<ql::changefeed::server_t> changefeed_server;
+    scoped_ptr_t<changefeed::server_t> changefeed_server;
 
     // This lock is used to pause backfills while secondary indexes are being
     // post constructed. Secondary index post construction gets in line for a write

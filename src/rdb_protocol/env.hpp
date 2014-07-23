@@ -11,8 +11,8 @@
 #include "concurrency/one_per_thread.hpp"
 #include "containers/counted.hpp"
 #include "extproc/js_runner.hpp"
+#include "rdb_protocol/context.hpp"
 #include "rdb_protocol/error.hpp"
-#include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/val.hpp"
 
@@ -41,10 +41,6 @@ private:
     std::map<std::string, wire_func_t> optargs;
 };
 
-namespace changefeed {
-class client_t;
-} // namespace changefeed
-
 profile_bool_t profile_bool_optarg(const protob_t<Query> &query);
 
 class env_t : public home_thread_mixin_t {
@@ -69,10 +65,7 @@ public:
     // already been called.
     js_runner_t *get_js_runner();
 
-    base_namespace_repo_t *ns_repo();
-    reql_admin_interface_t *reql_admin_interface();
-
-    changefeed::client_t *get_changefeed_client();
+    reql_cluster_interface_t *reql_cluster_interface();
 
     std::string get_reql_http_proxy();
 

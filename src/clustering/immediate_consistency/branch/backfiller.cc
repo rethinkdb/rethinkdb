@@ -7,7 +7,7 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/semaphore.hpp"
-#include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/real_table/protocol.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "stl_utils.hpp"
 #include "store_view.hpp"

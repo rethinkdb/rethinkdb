@@ -7,7 +7,6 @@
 #include "containers/name_string.hpp"
 #include "containers/wire_string.hpp"
 #include "rdb_protocol/op.hpp"
-#include "rdb_protocol/wait_for_readiness.hpp"
 
 namespace ql {
 
@@ -63,7 +62,7 @@ private:
         name_string_t db_name = get_name(args->arg(env, 0), this, "Database");
         counted_t<const db_t> db;
         std::string error;
-        if (!env->env->reql_admin_interface()->db_find(db_name, env->env->interruptor,
+        if (!env->env->reql_cluster_interface()->db_find(db_name, env->env->interruptor,
                 &db, &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
@@ -80,8 +79,8 @@ private:
     virtual std::string write_eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         name_string_t db_name = get_name(args->arg(env, 0), this, "Database");
         std::string error;
-        if (!env->env->reql_admin_interface()->db_create(db_name, env->env->interruptor,
-                &error)) {
+        if (!env->env->reql_cluster_interface()->db_create(db_name,
+                env->env->interruptor, &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
         return "created";
@@ -136,21 +135,11 @@ private:
         }
 
         /* Create the table */
-        uuid_u namespace_id;
         std::string error;
-        if (!env->env->reql_admin_interface()->table_create(tbl_name, db,
+        if (!env->env->reql_cluster_interface()->table_create(tbl_name, db,
                 primary_dc, hard_durability, primary_key,
-                env->env->interruptor, &namespace_id, &error)) {
+                env->env->interruptor, &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
-        }
-
-        // UGLY HACK BELOW (see wait_for_rdb_table_readiness)
-
-        try {
-            wait_for_rdb_table_readiness(env->env->ns_repo(), namespace_id,
-                                         env->env->interruptor);
-        } catch (const interrupted_exc_t &e) {
-            rfail(base_exc_t::GENERIC, "Query interrupted, probably by user.");
         }
 
         return "created";
@@ -167,7 +156,7 @@ private:
         name_string_t db_name = get_name(args->arg(env, 0), this, "Database");
 
         std::string error;
-        if (!env->env->reql_admin_interface()->db_drop(db_name,
+        if (!env->env->reql_cluster_interface()->db_drop(db_name,
                 env->env->interruptor, &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
@@ -196,7 +185,7 @@ private:
         }
 
         std::string error;
-        if (!env->env->reql_admin_interface()->table_drop(tbl_name, db,
+        if (!env->env->reql_cluster_interface()->table_drop(tbl_name, db,
                 env->env->interruptor, &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
@@ -214,7 +203,7 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *, eval_flags_t) const {
         std::set<name_string_t> dbs;
         std::string error;
-        if (!env->env->reql_admin_interface()->db_list(
+        if (!env->env->reql_cluster_interface()->db_list(
                 env->env->interruptor, &dbs, &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
@@ -247,7 +236,7 @@ private:
 
         std::set<name_string_t> tables;
         std::string error;
-        if (!env->env->reql_admin_interface()->table_list(db,
+        if (!env->env->reql_cluster_interface()->table_list(db,
                 env->env->interruptor, &tables, &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
@@ -269,7 +258,7 @@ public:
 
 private:
     virtual std::string write_eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_t> t = args->arg(env, 0)->as_table();
+        counted_t<table_view_t> t = args->arg(env, 0)->as_table();
         bool success = t->sync(env->env, this);
         r_sanity_check(success);
         return "synced";
@@ -286,19 +275,25 @@ private:
         counted_t<val_t> t = args->optarg(env, "use_outdated");
         bool use_outdated = t ? t->as_bool() : false;
         counted_t<const db_t> db;
-        std::string name;
+        name_string_t name;
         if (args->num_args() == 1) {
             counted_t<val_t> dbv = args->optarg(env, "db");
             r_sanity_check(dbv.has());
             db = dbv->as_db();
-            name = args->arg(env, 0)->as_str().to_std();
+            name = get_name(args->arg(env, 0), this, "Table");
         } else {
             r_sanity_check(args->num_args() == 2);
             db = args->arg(env, 0)->as_db();
-            name = args->arg(env, 1)->as_str().to_std();
+            name = get_name(args->arg(env, 1), this, "Table");
         }
-        return new_val(make_counted<table_t>(
-                           env->env, db, name, use_outdated, backtrace()));
+        std::string error;
+        scoped_ptr_t<base_table_t> table;
+        if (!env->env->reql_cluster_interface()->table_find(name, db,
+                env->env->interruptor, &table, &error)) {
+            rfail(base_exc_t::GENERIC, "%s", error.c_str());
+        }
+        return new_val(make_counted<table_view_t>(
+            std::move(table), db, name.str(), use_outdated, backtrace()));
     }
     virtual bool is_deterministic() const { return false; }
     virtual const char *name() const { return "table"; }
@@ -309,7 +304,7 @@ public:
     get_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_t> table = args->arg(env, 0)->as_table();
+        counted_t<table_view_t> table = args->arg(env, 0)->as_table();
         counted_t<const datum_t> pkey = args->arg(env, 1)->as_datum();
         counted_t<const datum_t> row = table->get_row(env->env, pkey);
         return new_val(row, pkey, table);
@@ -323,7 +318,7 @@ public:
         : op_term_t(env, term, argspec_t(2, -1), optargspec_t({ "index" })) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_t> table = args->arg(env, 0)->as_table();
+        counted_t<table_view_t> table = args->arg(env, 0)->as_table();
         counted_t<val_t> index = args->optarg(env, "index");
         std::string index_str = index ? index->as_str().to_std() : "";
         if (index && index_str != table->get_pkey()) {

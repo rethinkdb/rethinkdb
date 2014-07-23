@@ -5,7 +5,6 @@
 #include <utility>
 #include <vector>
 
-#include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"
@@ -133,7 +132,7 @@ private:
         bool append_index = false;
         if (counted_t<val_t> index = args->optarg(env, "index")) {
             std::string index_str = index->as_str().to_std();
-            counted_t<table_t> tbl = args->arg(env, 0)->as_table();
+            counted_t<table_view_t> tbl = args->arg(env, 0)->as_table();
             if (index_str == tbl->get_pkey()) {
                 auto field = make_counted<const datum_t>(std::move(index_str));
                 funcs.push_back(new_get_field_func(field, backtrace()));
@@ -181,7 +180,7 @@ private:
         }
 
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
-            std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts
+            std::pair<counted_t<table_view_t>, counted_t<datum_stream_t> > ts
                 = v0->as_selection(env->env);
             ts.second->add_transformation(
                     filter_wire_func_t(f, defval), backtrace());
@@ -217,9 +216,9 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_t> tbl = args->arg(env, 0)->as_table();
-        changefeed::client_t *client = env->env->get_changefeed_client();
-        return new_val(env->env, client->new_feed(tbl, env->env));
+        counted_t<table_view_t> tbl = args->arg(env, 0)->as_table();
+        return new_val(env->env,
+            tbl->table->read_changes(env->env, backtrace(), tbl->display_name()));
     }
     virtual const char *name() const { return "changes"; }
 };
@@ -231,7 +230,7 @@ public:
         : bounded_op_term_t(env, term, argspec_t(3), optargspec_t({"index"})) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_t> tbl = args->arg(env, 0)->as_table();
+        counted_t<table_view_t> tbl = args->arg(env, 0)->as_table();
         bool left_open = is_left_open(env, args);
         counted_t<const datum_t> lb = args->arg(env, 1)->as_datum();
         if (lb->get_type() == datum_t::R_NULL) {

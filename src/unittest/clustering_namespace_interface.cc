@@ -8,7 +8,7 @@
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/namespace_interface.hpp"
 #include "containers/uuid.hpp"
-#include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/real_table/protocol.hpp"
 #include "unittest/branch_history_manager.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "unittest/unittest_utils.hpp"

@@ -9,7 +9,7 @@
 #include "containers/archive/cow_ptr_type.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/archive/versioned.hpp"
-#include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/real_table/protocol.hpp"
 #include "region/region_map_json_adapter.hpp"
 #include "stl_utils.hpp"
 

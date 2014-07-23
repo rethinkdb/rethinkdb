@@ -11,8 +11,8 @@
 #include "backfill_progress.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "rdb_protocol/datum.hpp"
-#include "rdb_protocol/protocol.hpp"
-#include "rdb_protocol/store.hpp"
+#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/real_table/store.hpp"
 
 class btree_slice_t;
 class deletion_context_t;

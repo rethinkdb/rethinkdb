@@ -2,7 +2,7 @@
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_DIRECT_READER_METADATA_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_DIRECT_READER_METADATA_HPP_
 
-#include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/real_table/protocol.hpp"
 #include "rpc/mailbox/typed.hpp"
 
 /* Each replica exposes a `direct_reader_business_card_t` for each shard that it

@@ -28,7 +28,7 @@
 #include "unittest/unittest_utils.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
-#include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/real_table/protocol.hpp"
 
 #include "rpc/directory/read_manager.tcc"
 #include "rpc/directory/write_manager.tcc"

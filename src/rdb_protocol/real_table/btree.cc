@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/real_table/btree.hpp"
 
 #include <functional>
 #include <string>
@@ -19,10 +19,10 @@
 #include "containers/archive/buffer_group_stream.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/scoped.hpp"
-#include "rdb_protocol/blob_wrapper.hpp"
 #include "rdb_protocol/func.hpp"
-#include "rdb_protocol/lazy_json.hpp"
-#include "rdb_protocol/serialize_datum_onto_blob.hpp"
+#include "rdb_protocol/real_table/blob_wrapper.hpp"
+#include "rdb_protocol/real_table/lazy_json.hpp"
+#include "rdb_protocol/real_table/serialize_datum_onto_blob.hpp"
 #include "rdb_protocol/shards.hpp"
 
 #include "debug.hpp"
@@ -1039,8 +1039,8 @@ void rdb_modification_report_cb_t::on_mod_report(
                       &sindexes_updated_cond));
         if (store_->changefeed_server.has()) {
             store_->changefeed_server->send_all(
-                ql::changefeed::msg_t(
-                    ql::changefeed::msg_t::change_t(
+                changefeed::msg_t(
+                    changefeed::msg_t::change_t(
                         mod_report.info.deleted.first,
                         mod_report.info.added.first)));
         }

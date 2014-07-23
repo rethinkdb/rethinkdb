@@ -7,12 +7,12 @@
 
 #include "concurrency/interruptor.hpp"
 
-class base_namespace_repo_t;
+class namespace_interface_t;
 class signal_t;
-class uuid_u;
 
-void wait_for_rdb_table_readiness(base_namespace_repo_t *ns_repo,
-                                  uuid_u namespace_id,
+/* `test_for_rdb_table_readiness()` returns `true` if the given namespace is ready for
+reading, and `false` otherwise. */
+bool test_for_rdb_table_readiness(namespace_interface_t *namespace_if,
                                   signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 

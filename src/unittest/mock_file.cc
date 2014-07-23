@@ -40,7 +40,7 @@ void mock_file_t::read_async(int64_t offset, size_t length, void *buf,
     memcpy(buf, data_->data() + offset, length);
 
     // TODO: This spawn_sometime call is to silence the serializer
-    // disk_structure.cc reader_t use-after-free bug:
+    // disk_structure.cc lba_reader_t use-after-free bug:
     // https://github.com/rethinkdb/rethinkdb/issues/738
     coro_t::spawn_sometime(std::bind(&linux_iocallback_t::on_io_complete, cb));
 }
@@ -56,7 +56,7 @@ void mock_file_t::write_async(int64_t offset, size_t length, const void *buf,
     memcpy(data_->data() + offset, buf, length);
 
     // TODO: This spawn_sometime call is to silence the serializer
-    // disk_structure.cc reader_t use-after-free bug:
+    // disk_structure.cc lba_reader_t use-after-free bug:
     // https://github.com/rethinkdb/rethinkdb/issues/738
     coro_t::spawn_sometime(std::bind(&linux_iocallback_t::on_io_complete, cb));
 }

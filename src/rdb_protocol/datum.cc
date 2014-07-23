@@ -1205,3 +1205,79 @@ counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
 }
 
 } // namespace ql
+
+datum_range_t::datum_range_t()
+    : left_bound_type(key_range_t::none), right_bound_type(key_range_t::none) { }
+datum_range_t::datum_range_t(
+    counted_t<const ql::datum_t> _left_bound, key_range_t::bound_t _left_bound_type,
+    counted_t<const ql::datum_t> _right_bound, key_range_t::bound_t _right_bound_type)
+    : left_bound(_left_bound), right_bound(_right_bound),
+      left_bound_type(_left_bound_type), right_bound_type(_right_bound_type) { }
+datum_range_t::datum_range_t(counted_t<const ql::datum_t> val)
+    : left_bound(val), right_bound(val),
+      left_bound_type(key_range_t::closed), right_bound_type(key_range_t::closed) { }
+
+datum_range_t datum_range_t::universe()  {
+    return datum_range_t(counted_t<const ql::datum_t>(), key_range_t::open,
+                         counted_t<const ql::datum_t>(), key_range_t::open);
+}
+bool datum_range_t::is_universe() const {
+    return !left_bound.has() && !right_bound.has()
+        && left_bound_type == key_range_t::open && right_bound_type == key_range_t::open;
+}
+
+bool datum_range_t::contains(counted_t<const ql::datum_t> val) const {
+    return (!left_bound.has()
+            || *left_bound < *val
+            || (*left_bound == *val && left_bound_type == key_range_t::closed))
+        && (!right_bound.has()
+            || *right_bound > *val
+            || (*right_bound == *val && right_bound_type == key_range_t::closed));
+}
+
+key_range_t datum_range_t::to_primary_keyrange() const {
+    return key_range_t(
+        left_bound_type,
+        left_bound.has()
+            ? store_key_t(left_bound->print_primary())
+            : store_key_t::min(),
+        right_bound_type,
+        right_bound.has()
+            ? store_key_t(right_bound->print_primary())
+            : store_key_t::max());
+}
+
+namespace rdb_protocol {
+
+key_range_t sindex_key_range(const store_key_t &start,
+                             const store_key_t &end) {
+    store_key_t end_key;
+    std::string end_key_str(key_to_unescaped_str(end));
+
+    // Need to make the next largest store_key_t without making the key longer
+    while (end_key_str.length() > 0 &&
+           end_key_str[end_key_str.length() - 1] == static_cast<char>(255)) {
+        end_key_str.erase(end_key_str.length() - 1);
+    }
+
+    if (end_key_str.length() == 0) {
+        end_key = store_key_t::max();
+    } else {
+        ++end_key_str[end_key_str.length() - 1];
+        end_key = store_key_t(end_key_str);
+    }
+    return key_range_t(key_range_t::closed, start, key_range_t::open, end_key);
+}
+
+}   // namespace rdb_protocol
+
+key_range_t datum_range_t::to_sindex_keyrange() const {
+    return rdb_protocol::sindex_key_range(
+        left_bound.has()
+            ? store_key_t(left_bound->truncated_secondary())
+            : store_key_t::min(),
+        right_bound.has()
+            ? store_key_t(right_bound->truncated_secondary())
+            : store_key_t::max());
+}
+

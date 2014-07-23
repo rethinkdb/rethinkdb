@@ -24,6 +24,8 @@
 #include "rdb_protocol/serialize_datum.hpp"
 #include "version.hpp"
 
+namespace unittest { struct make_sindex_read_t; }
+
 // Enough precision to reconstruct doubles from their decimal representations.
 // Unlike the late DBLPRI, this lacks a percent sign.
 #define PR_RECONSTRUCTABLE_DOUBLE ".20g"
@@ -31,6 +33,17 @@
 class Datum;
 
 RDB_DECLARE_SERIALIZABLE(Datum);
+
+namespace rdb_protocol {
+
+const size_t MAX_PRIMARY_KEY_SIZE = 128;
+
+// Constructs a region which will query an sindex for matches to a specific key
+// TODO consider relocating this
+key_range_t sindex_key_range(const store_key_t &start,
+                             const store_key_t &end);
+
+}   // namespace rdb_protocol
 
 namespace ql {
 
@@ -317,4 +330,41 @@ public:
 } // namespace pseudo
 
 } // namespace ql
+
+/* TODO: Conceptually, datum_range_t probably belongs in the real_table/ directory. Or at
+least some of its logic does. */
+class datum_range_t {
+public:
+    datum_range_t();
+    datum_range_t(
+        counted_t<const ql::datum_t> left_bound,
+        key_range_t::bound_t left_bound_type,
+        counted_t<const ql::datum_t> right_bound,
+        key_range_t::bound_t right_bound_type);
+    // Range that includes just one value.
+    explicit datum_range_t(counted_t<const ql::datum_t> val);
+    static datum_range_t universe();
+
+    bool contains(counted_t<const ql::datum_t> val) const;
+    bool is_universe() const;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+
+private:
+    // Only `readgen_t` and its subclasses should do anything fancy with a range.
+    // (Modulo unit tests.)
+    friend class readgen_t;
+    friend class primary_readgen_t;
+    friend class sindex_readgen_t;
+    friend struct unittest::make_sindex_read_t;
+
+    key_range_t to_primary_keyrange() const;
+    key_range_t to_sindex_keyrange() const;
+
+    counted_t<const ql::datum_t> left_bound, right_bound;
+    key_range_t::bound_t left_bound_type, right_bound_type;
+};
+
+RDB_SERIALIZE_OUTSIDE(datum_range_t);
+
 #endif // RDB_PROTOCOL_DATUM_HPP_
