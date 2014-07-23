@@ -102,7 +102,7 @@ public:
     }
 
 private:
-    // Use subscription_t do access this information in a safe way
+    // Use subscription_t to access this information in a safe way
     const std::set<key_type> &get_changed_keys() const { return changed_keys; }
 
     std::map<key_type, inner_type> inner;
