@@ -5,7 +5,7 @@ tests:
 
   - def: rows = [{'id':0, 'g':r.point(10,10), 'm':[r.point(0,0),r.point(0,1),r.point(0,2)]},
                  {'id':1, 'g':r.polygon([0,0], [0,1], [1,1], [1,0])},
-                 {'id':2, 'g':r.line([-1,0], [1,0])}]
+                 {'id':2, 'g':r.line([-1,0.000002], [1,-0.000001])}]
 
   - cd: tbl.insert(rows)
     ot: ({'deleted':0,'inserted':3,'skipped':0,'errors':0,'replaced':0,'unchanged':0})
@@ -49,7 +49,7 @@ tests:
   - js: tbl.get_intersecting(r.point(0,0), {'index':'g'}).count()
     py: tbl.get_intersecting(r.point(0,0), index='g').count()
     rb: tbl.get_intersecting(r.point(0,0), :index=>'g').count()
-    ot: 2
+    ot: 1
   - js: tbl.get_intersecting(r.point(10,10), {'index':'g'}).count()
     py: tbl.get_intersecting(r.point(10,10), index='g').count()
     rb: tbl.get_intersecting(r.point(10,10), :index=>'g').count()
@@ -72,15 +72,65 @@ tests:
     ot: 3
 
   - js: tbl.get_intersecting(r.point(0,0), {'index':'m'}).count()
+    py: tbl.get_intersecting(r.point(0,0), index='m').count()
+    rb: tbl.get_intersecting(r.point(0,0), :index=>'m').count()
     ot: 1
   - js: tbl.get_intersecting(r.point(0,1), {'index':'m'}).count()
+    py: tbl.get_intersecting(r.point(0,1), index='m').count()
+    rb: tbl.get_intersecting(r.point(0,1), :index=>'m').count()
     ot: 1
   - js: tbl.get_intersecting(r.point(0,2), {'index':'m'}).count()
+    py: tbl.get_intersecting(r.point(0,2), index='m').count()
+    rb: tbl.get_intersecting(r.point(0,2), :index=>'m').count()
     ot: 1
   - js: tbl.get_intersecting(r.point(0,3), {'index':'m'}).count()
+    py: tbl.get_intersecting(r.point(0,3), index='m').count()
+    rb: tbl.get_intersecting(r.point(0,3), :index=>'m').count()
     ot: 0
   # The document is only emitted a single time, despite having multiple matches.
   - js: tbl.get_intersecting(r.polygon([0,0], [0,1], [1,1], [1,0]), {'index':'m'}).count()
+    py: tbl.get_intersecting(r.polygon([0,0], [0,1], [1,1], [1,0]), index='m').count()
+    rb: tbl.get_intersecting(r.polygon([0,0], [0,1], [1,1], [1,0]), :index=>'m').count()
     ot: 1
+
+
+  - js: tbl.get_nearest(r.point(0,0), {'index':'other'})
+    py: tbl.get_nearest(r.point(0,0), index='other')
+    rb: tbl.get_nearest(r.point(0,0), :index=>'other')
+    ot: err('RqlRuntimeError', 'Index `other` is not a geospatial index. get_nearest can only be used with a geospatial index.', [0])
+  - js: tbl.get_nearest(r.point(0,0), {'index':'missing'})
+    py: tbl.get_nearest(r.point(0,0), index='missing')
+    rb: tbl.get_nearest(r.point(0,0), :index=>'missing')
+    ot: err('RqlRuntimeError', 'Index `missing` was not found on table `geoindex`.', [0])
+  - cd: tbl.get_nearest(r.point(0,0))
+    ot: err('RqlRuntimeError', 'get_nearest requires an index argument.', [0])
+
+  - js: tbl.get_nearest(r.point(0,0), {'index':'g'}).pluck('dist', {'doc':'id'})
+    py: tbl.get_nearest(r.point(0,0), index='g').pluck('dist', {'doc':'id'})
+    rb: tbl.get_nearest(r.point(0,0), :index=>'g').pluck('dist', {'doc':'id'})
+    ot: ([{'dist':0,'doc':{'id':1}},{'dist':0.055659745396754216,'doc':{'id':2}}])
+  - js: tbl.get_nearest(r.point(1,-0.000001), {'index':'g'}).pluck('dist', {'doc':'id'})
+    py: tbl.get_nearest(r.point(1,-0.000001), index='g').pluck('dist', {'doc':'id'})
+    rb: tbl.get_nearest(r.point(1,-0.000001), :index=>'g').pluck('dist', {'doc':'id'})
+    ot: ([{'dist':0,'doc':{'id':2}},{'dist':0.11130264976984369,'doc':{'id':1}}])
+  - js: tbl.get_nearest(r.point(0,0), {'index':'g', 'max_dist':1565110}).pluck('dist', {'doc':'id'})
+    py: tbl.get_nearest(r.point(0,0), index='g', max_dist=1565110).pluck('dist', {'doc':'id'})
+    rb: tbl.get_nearest(r.point(0,0), :index=>'g', :max_dist=>1565110).pluck('dist', {'doc':'id'})
+    ot: ([{'dist':0,'doc':{'id':1}},{'dist':0.055659745396754216,'doc':{'id':2}},{'dist':1565109.0992178896,'doc':{'id':0}}])
+  - js: tbl.get_nearest(r.point(0,0), {'index':'g', 'max_dist':1565110, 'max_results':2}).pluck('dist', {'doc':'id'})
+    py: tbl.get_nearest(r.point(0,0), index='g', max_dist=1565110, max_results=2).pluck('dist', {'doc':'id'})
+    rb: tbl.get_nearest(r.point(0,0), :index=>'g', :max_dist=>1565110, :max_results=>2).pluck('dist', {'doc':'id'})
+    ot: ([{'dist':0,'doc':{'id':1}},{'dist':0.055659745396754216,'doc':{'id':2}}])
+  - js: tbl.get_nearest(r.point(0,0), {'index':'g', 'max_dist':10000000}).pluck('dist', {'doc':'id'})
+    py: tbl.get_nearest(r.point(0,0), index='g', max_dist=10000000).pluck('dist', {'doc':'id'})
+    rb: tbl.get_nearest(r.point(0,0), :index=>'g', :max_dist=>10000000).pluck('dist', {'doc':'id'})
+    ot: err('RqlRuntimeError', 'The distance has become too large for continuing the indexed nearest traversal (consider specifying a smaller `max_dist` parameter).', [0])
+  - js: tbl.get_nearest(r.point(0,0), {'index':'g', 'max_dist':1566, 'unit':'km'}).pluck('dist', {'doc':'id'})
+    py: tbl.get_nearest(r.point(0,0), index='g', max_dist=1566, unit='km').pluck('dist', {'doc':'id'})
+    rb: tbl.get_nearest(r.point(0,0), :index=>'g', :max_dist=>1566, :unit=>'km').pluck('dist', {'doc':'id'})
+    ot: ([{'dist':0,'doc':{'id':1}},{'dist':0.00005565974539675422,'doc':{'id':2}},{'dist':1565.1090992178897,'doc':{'id':0}}])
+  - py: tbl.get_nearest(r.point(0,0), index='g', max_dist=1, geo_system='unit_sphere').pluck('dist', {'doc':'id'})
+    rb: tbl.get_nearest(r.point(0,0), :index=>'g', :max_dist=>1, :geo_system=>'unit_sphere').pluck('dist', {'doc':'id'})
+    ot: ([{'dist':0, 'doc':{'id':1}}, {'dist':8.726646259990191e-09, 'doc':{'id':2}}, {'dist':0.24619691677893205, 'doc':{'id':0}}])
 
   - cd: r.db('test').table_drop('geoindex')
