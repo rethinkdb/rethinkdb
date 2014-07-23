@@ -1,7 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include <algorithm>
 
-#include "debug.hpp"
 #include "geo/distances.hpp"
 #include "geo/ellipsoid.hpp"
 #include "geo/exceptions.hpp"
@@ -92,8 +91,7 @@ TPTEST(GeoPrimitives, InExRadiusTest) {
         // ... and stretching (though this wouldn't usually be written that way)
         test_in_ex_radius(ellipsoid_spec_t(1.0, -0.5));
     } catch (const geo_exception_t &e) {
-        debugf("Caught a geo exception: %s\n", e.what());
-        FAIL();
+        ADD_FAILURE() << "Caught a geo exception: " << e.what();
     }
 }
 

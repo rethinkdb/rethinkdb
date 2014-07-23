@@ -1,13 +1,17 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
+#include <algorithm>
+
 #include "btree/keys.hpp"
 #include "clustering/reactor/namespace_interface.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "containers/counted.hpp"
 #include "debug.hpp"
+#include "geo/distances.hpp"
 #include "geo/ellipsoid.hpp"
 #include "geo/exceptions.hpp"
 #include "geo/geojson.hpp"
 #include "geo/lat_lon_types.hpp"
+#include "geo/intersection.hpp"
 #include "geo/primitives.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"
@@ -173,17 +177,205 @@ void prepare_namespace(namespace_interface_t *nsi,
     insert_data(nsi, osource, data);
 }
 
+std::vector<nearest_geo_read_response_t::dist_pair_t> perform_get_nearest(
+        lat_lon_point_t center,
+        uint64_t max_results,
+        double max_distance,
+        namespace_interface_t *nsi,
+        order_source_t *osource) {
+
+    std::string table_name = "test_table"; // This is just used to print error messages
+    std::string idx_name = "geo";
+    read_t read(nearest_geo_read_t(center, max_distance, max_results,
+                                   WGS84_ELLIPSOID, table_name, idx_name),
+                profile_bool_t::PROFILE);
+    read_response_t response;
+
+    cond_t interruptor;
+    nsi->read(read, &response,
+              osource->check_in("unittest::perform_get_nearest(geo_indexes.cc"),
+              &interruptor);
+
+    nearest_geo_read_response_t *geo_response =
+        boost::get<nearest_geo_read_response_t>(&response.response);
+    if (geo_response == NULL) {
+        ADD_FAILURE() << "got wrong type of result back";
+        return std::vector<nearest_geo_read_response_t::dist_pair_t>();
+    }
+    if (boost::get<ql::exc_t>(&geo_response->results_or_error) != NULL) {
+        ADD_FAILURE() << boost::get<ql::exc_t>(&geo_response->results_or_error)->what();
+        return std::vector<nearest_geo_read_response_t::dist_pair_t>();
+    }
+    return boost::get<nearest_geo_read_response_t::result_t>(geo_response->results_or_error);
+}
+
+bool nearest_pairs_less(
+        const std::pair<double, counted_t<const ql::datum_t> > &p1,
+        const std::pair<double, counted_t<const ql::datum_t> > &p2) {
+    // We only care about the distance, don't compare the actual data.
+    return p1.first < p2.first;
+}
+
+std::vector<nearest_geo_read_response_t::dist_pair_t> emulate_get_nearest(
+        lat_lon_point_t center,
+        uint64_t max_results,
+        double max_distance,
+        const std::vector<counted_t<const datum_t> > &data) {
+
+    std::vector<nearest_geo_read_response_t::dist_pair_t> result;
+    result.reserve(data.size());
+    counted_t<const ql::datum_t> point_center = construct_geo_point(center);
+    scoped_ptr_t<S2Point> s2_center = to_s2point(point_center);
+    for (size_t i = 0; i < data.size(); ++i) {
+        nearest_geo_read_response_t::dist_pair_t entry(
+            geodesic_distance(*s2_center, data[i], WGS84_ELLIPSOID), data[i]);
+        result.push_back(entry);
+    }
+    std::sort(result.begin(), result.end(), &nearest_pairs_less);
+
+    // Apply max_results and max_distance
+    size_t cut_off = std::min(max_results, result.size());
+    for (size_t i = 0; i < cut_off; ++i) {
+        if (result[i].first > max_distance) {
+            cut_off = i;
+            break;
+        }
+    }
+    result.resize(cut_off);
+
+    return result;
+}
+
+void test_get_nearest(lat_lon_point_t center,
+                      const std::vector<counted_t<const datum_t> > &data,
+                      namespace_interface_t *nsi,
+                      order_source_t *osource) {
+    const uint64_t max_results = 100;
+    const double max_distance = 5000000.0; // 5000 km
+
+    // 1. Run get_nearest
+    std::vector<nearest_geo_read_response_t::dist_pair_t> nearest_res =
+        perform_get_nearest(center, max_results, max_distance, nsi, osource);
+
+    // 2. Compute an equivalent result directly from data
+    std::vector<nearest_geo_read_response_t::dist_pair_t> reference_res =
+        emulate_get_nearest(center, max_results, max_distance, data);
+
+    // 3. Compare both results
+    ASSERT_EQ(nearest_res.size(), reference_res.size());
+    for (size_t i = 0; i < nearest_res.size() && i < reference_res.size(); ++i) {
+        // We only compare the distances. The odds that a wrong document
+        // happens to have the same distance are negligible.
+        // Also this avoids having to deal with two documents having the same distance,
+        // which could then be re-ordered (though that is extremely unlikely as well).
+        ASSERT_EQ(nearest_res[i].first, reference_res[i].first);
+    }
+}
+
 void run_get_nearest_test(namespace_interface_t *nsi, order_source_t *osource) {
     const size_t num_docs = 500;
-    debugf("Generating test data\n");
     std::vector<counted_t<const datum_t> > data = generate_data(num_docs);
-    debugf("  done\n");
-    debugf("Inserting data\n");
     prepare_namespace(nsi, osource, data);
-    debugf("  done\n");
 
     try {
-        // TODO! Perform the actual test
+        const int num_runs = 20;
+        for (int i = 0; i < num_runs; ++i) {
+            double lat = randdouble() * 180.0 - 90.0;
+            double lon = randdouble() * 360.0 - 180.0;
+            test_get_nearest(lat_lon_point_t(lat, lon), data, nsi, osource);
+        }
+    } catch (const geo_exception_t &e) {
+        debugf("Caught a geo exception: %s\n", e.what());
+        FAIL();
+    }
+}
+
+std::vector<counted_t<const datum_t> > perform_get_intersecting(
+        const counted_t<const datum_t> &query_geometry,
+        namespace_interface_t *nsi,
+        order_source_t *osource) {
+
+    std::string table_name = "test_table"; // This is just used to print error messages
+    std::string idx_name = "geo";
+    read_t read(intersecting_geo_read_t(query_geometry, table_name, idx_name),
+                profile_bool_t::PROFILE);
+    read_response_t response;
+
+    cond_t interruptor;
+    nsi->read(read, &response,
+              osource->check_in("unittest::perform_get_intersecting(geo_indexes.cc"),
+              &interruptor);
+
+    intersecting_geo_read_response_t *geo_response =
+        boost::get<intersecting_geo_read_response_t>(&response.response);
+    if (geo_response == NULL) {
+        ADD_FAILURE() << "got wrong type of result back";
+        return std::vector<counted_t<const datum_t> >();
+    }
+    if (boost::get<ql::exc_t>(&geo_response->results_or_error) != NULL) {
+        ADD_FAILURE() << boost::get<ql::exc_t>(&geo_response->results_or_error)->what();
+        return std::vector<counted_t<const datum_t> >();
+    }
+    counted_t<const ql::datum_t> result =
+        boost::get<counted_t<const ql::datum_t>>(geo_response->results_or_error);
+    return result->as_array();
+}
+
+std::vector<counted_t<const datum_t> > emulate_get_intersecting(
+        const counted_t<const datum_t> &query_geometry,
+        const std::vector<counted_t<const datum_t> > &data) {
+
+    std::vector<counted_t<const datum_t> > result;
+    result.reserve(data.size());
+    for (size_t i = 0; i < data.size(); ++i) {
+        if (geo_does_intersect(query_geometry, data[i])) {
+            result.push_back(data[i]);
+        }
+    }
+
+    return result;
+}
+
+void test_get_intersecting(const counted_t<const datum_t> &query_geometry,
+                           const std::vector<counted_t<const datum_t> > &data,
+                           namespace_interface_t *nsi,
+                           order_source_t *osource) {
+    // 1. Run get_intersecting
+    std::vector<counted_t<const datum_t> > intersecting_res =
+        perform_get_intersecting(query_geometry, nsi, osource);
+
+    // 2. Compute an equivalent result directly from data
+    std::vector<counted_t<const datum_t> > reference_res =
+        emulate_get_intersecting(query_geometry, data);
+
+    // 3. Compare both results
+    ASSERT_EQ(intersecting_res.size(), reference_res.size());
+    for (size_t i = 0; i < intersecting_res.size() && i < reference_res.size(); ++i) {
+        ASSERT_EQ(*intersecting_res[i], *reference_res[i]);
+    }
+}
+
+void run_get_intersecting_test(namespace_interface_t *nsi, order_source_t *osource) {
+    const size_t num_docs = 500;
+    std::vector<counted_t<const datum_t> > data = generate_data(num_docs);
+    prepare_namespace(nsi, osource, data);
+
+    try {
+        const int num_point_runs = 10;
+        const int num_line_runs = 10;
+        const int num_polygon_runs = 20;
+        for (int i = 0; i < num_point_runs; ++i) {
+            counted_t<const datum_t> query_geometry = generate_point();
+            test_get_intersecting(query_geometry, data, nsi, osource);
+        }
+        for (int i = 0; i < num_line_runs; ++i) {
+            counted_t<const datum_t> query_geometry = generate_line();
+            test_get_intersecting(query_geometry, data, nsi, osource);
+        }
+        for (int i = 0; i < num_polygon_runs; ++i) {
+            counted_t<const datum_t> query_geometry = generate_polygon();
+            test_get_intersecting(query_geometry, data, nsi, osource);
+        }
     } catch (const geo_exception_t &e) {
         debugf("Caught a geo exception: %s\n", e.what());
         FAIL();
@@ -197,12 +389,7 @@ TPTEST(GeoIndexes, GetNearest) {
 
 // Test that `get_intersecting` results agree with `intersects`
 TPTEST(GeoIndexes, GetIntersecting) {
-    try {
-        // TODO!
-    } catch (const geo_exception_t &e) {
-        debugf("Caught a geo exception: %s\n", e.what());
-        FAIL();
-    }
+    run_with_namespace_interface(&run_get_intersecting_test);
 }
 
 } /* namespace unittest */
