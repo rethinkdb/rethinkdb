@@ -17,12 +17,6 @@ cscope.out
 /src/valgrind_rethinkdb
 rethinkdb_data
 rethinkdb_metadata
-/bench/stress-client/stress
-/bench/stress-client/libstress.so
-/bench/stress-client/*.o
-/bench/stress-client/protocols/*.o
-/bench/stress-client/protocols/query_language.pb.h
-/bench/stress-client/protocols/query_language.pb.cc
 last_tested_versions
 /src/spin_up_clusters.py
 /src/.clang_complete
