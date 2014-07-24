@@ -496,11 +496,10 @@ void semilattice_manager_t<metadata_t>::on_connections_change() {
             });
         }
     }
-    for (const std::pair<connectivity_cluster_t::connection_t *,
-                         auto_drainer_t::lock_t> &pair :
-            last_connections) {
-        if (current_connections.count(pair.first->get_peer_id()) == 0) {
-            last_connections.erase(pair.first);
+    for (auto next = last_connections.begin(); next != last_connections.end();) {
+        auto pair = next++;
+        if (current_connections.count(pair->first->get_peer_id()) == 0) {
+            last_connections.erase(pair->first);
         }
     }
 }
