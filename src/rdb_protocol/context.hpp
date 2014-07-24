@@ -146,7 +146,6 @@ public:
     boost::shared_ptr< semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
         auth_metadata;
 
-    // RSI: Remove this?
     mailbox_manager_t *manager;
 
     perfmon_collection_t ql_stats_collection;
