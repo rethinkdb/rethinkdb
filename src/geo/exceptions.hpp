@@ -7,11 +7,11 @@
 
 #include "utils.hpp"
 
-class geo_exception_t {
+class geo_exception_t : public std::exception {
 public:
     geo_exception_t(std::string msg) : msg_(msg) { }
     virtual ~geo_exception_t() { }
-    const char *what() const {
+    const char *what() const throw() {
         return msg_.c_str();
     }
 private:
