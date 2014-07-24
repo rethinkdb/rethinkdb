@@ -136,7 +136,9 @@ bool disk_format_version_is_recognized(uint32_t disk_format_version) {
     // cluster_version_t value and such changes have not happened, it is correct to
     // add the new cluster_version_t value to this list of recognized ones.
     return disk_format_version
-        == static_cast<uint32_t>(cluster_version_t::v1_13_is_latest_disk);
+            == static_cast<uint32_t>(cluster_version_t::v1_13)
+        || disk_format_version
+            == static_cast<uint32_t>(cluster_version_t::v1_14_is_latest_disk);
 }
 
 

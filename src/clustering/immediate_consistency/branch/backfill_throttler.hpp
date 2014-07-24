@@ -9,7 +9,7 @@
 #include "concurrency/interruptor.hpp"
 #include "concurrency/new_semaphore.hpp"
 #include "containers/scoped.hpp"
-#include "rpc/connectivity/connectivity.hpp"
+#include "rpc/connectivity/peer_id.hpp"
 #include "threading.hpp"
 
 class backfill_throttler_t : public home_thread_mixin_t {

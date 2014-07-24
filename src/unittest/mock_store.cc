@@ -144,7 +144,7 @@ void mock_store_t::read(
 
         auto it = table_.find(point_read->key);
         if (it == table_.end()) {
-            res->data.reset(new ql::datum_t(ql::datum_t::R_NULL));
+            res->data = ql::datum_t::null();
         } else {
             res->data = it->second.second;
         }

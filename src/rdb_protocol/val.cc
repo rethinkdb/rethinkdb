@@ -34,22 +34,9 @@ table_t::table_t(env_t *env,
 }
 
 counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) {
-    datum_ptr_t d(datum_t::R_OBJECT);
-    std::string err = exception.what();
-
-    // The bool is true if there's a conflict when inserting the
-    // key, but since we just created an empty object above conflicts
-    // are impossible here.  If you want to harden this against future
-    // changes, you could store the bool and `r_sanity_check` that it's
-    // false.
-    DEBUG_VAR bool had_first_error
-        = d.add("first_error", make_counted<datum_t>(std::move(err)));
-    rassert(!had_first_error);
-
-    DEBUG_VAR bool had_errors = d.add("errors", make_counted<datum_t>(1.0));
-    rassert(!had_errors);
-
-    return d.to_counted();
+    datum_object_builder_t d;
+    d.add_error(exception.what());
+    return std::move(d).to_counted();
 }
 
 template<class T> // batched_replace_t and batched_insert_t
@@ -79,14 +66,14 @@ counted_t<const datum_t> table_t::batched_replace(
     r_sanity_check(vals.size() == keys.size());
 
     if (vals.empty()) {
-        return make_counted<const datum_t>(ql::datum_t::R_OBJECT);
+        return ql::datum_t::empty_object();
     } else if (vals.size() != 1) {
         r_sanity_check(!return_vals);
     }
 
     if (!replacement_generator->is_deterministic()) {
         r_sanity_check(nondeterministic_replacements_ok);
-        datum_ptr_t stats(datum_t::R_OBJECT);
+        datum_object_builder_t stats;
         std::vector<counted_t<const datum_t> > replacement_values;
         replacement_values.reserve(vals.size());
         for (size_t i = 0; i < vals.size(); ++i) {
@@ -103,7 +90,7 @@ counted_t<const datum_t> table_t::batched_replace(
         counted_t<const datum_t> insert_stats = batched_insert(
             env, std::move(replacement_values), conflict_behavior_t::REPLACE,
             durability_requirement, return_vals);
-        return stats.to_counted()->merge(insert_stats, stats_merge);
+        return std::move(stats).to_counted()->merge(insert_stats, stats_merge);
     } else {
         std::vector<store_key_t> store_keys;
         store_keys.reserve(keys.size());
@@ -129,7 +116,7 @@ counted_t<const datum_t> table_t::batched_insert(
     durability_requirement_t durability_requirement,
     bool return_vals) {
 
-    datum_ptr_t stats(datum_t::R_OBJECT);
+    datum_object_builder_t stats;
     std::vector<counted_t<const datum_t> > valid_inserts;
     valid_inserts.reserve(insert_datums.size());
     for (auto it = insert_datums.begin(); it != insert_datums.end(); ++it) {
@@ -146,7 +133,7 @@ counted_t<const datum_t> table_t::batched_insert(
     }
 
     if (valid_inserts.empty()) {
-        return stats.to_counted();
+        return std::move(stats).to_counted();
     } else if (insert_datums.size() != 1) {
         r_sanity_check(!return_vals);
     }
@@ -156,7 +143,7 @@ counted_t<const datum_t> table_t::batched_insert(
         batched_insert_t(std::move(valid_inserts), get_pkey(),
                          conflict_behavior, return_vals),
         durability_requirement);
-    return stats.to_counted()->merge(insert_stats, stats_merge);
+    return std::move(stats).to_counted()->merge(insert_stats, stats_merge);
 }
 
 MUST_USE bool table_t::sindex_create(env_t *env,
@@ -246,8 +233,7 @@ counted_t<const datum_t> table_t::sindex_status(env_t *env, std::set<std::string
                 make_counted<const datum_t>(
                     safe_to_double(it->second.blocks_total));
         }
-        status["ready"] = make_counted<const datum_t>(datum_t::R_BOOL,
-                                                      it->second.ready);
+        status["ready"] = datum_t::boolean(it->second.ready);
         std::string index_name = it->first;
         status["index"] = make_counted<const datum_t>(std::move(index_name));
         array.push_back(make_counted<const datum_t>(std::move(status)));

@@ -1,6 +1,0 @@
-#!/bin/bash
-
-if [ $DATABASE == "mysql" ]; then
-#    sudo set-corecount 12
-    sudo set-corecount 24
-fi

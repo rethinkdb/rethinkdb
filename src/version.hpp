@@ -9,22 +9,23 @@ enum class cluster_version_t {
     // that implements serialization.
     v1_13 = 0,
     v1_13_2 = 1,
+    v1_14 = 2,
 
     // This is used in places where _something_ needs to change when a new cluster
     // version is created.  (Template instantiations, switches on version number,
     // etc.)
-    v1_13_2_is_latest = v1_13_2,
+    v1_14_is_latest = v1_14,
 
     // Like the *_is_latest version, but for code that's only concerned with disk
     // serialization. Must be changed whenever LATEST_DISK gets changed.
-    v1_13_is_latest_disk = v1_13,
+    v1_14_is_latest_disk = v1_14,
 
     // The latest version, max of CLUSTER and LATEST_DISK
-    LATEST_OVERALL = v1_13_2,
+    LATEST_OVERALL = v1_14_is_latest,
 
     // The latest version for disk serialization can sometimes be different from
     // the version we use for cluster serialization.
-    LATEST_DISK = v1_13,
+    LATEST_DISK = v1_14,
 
     // This exists as long as the clustering code only supports the use of one
     // version.  It uses cluster_version_t::CLUSTER wherever it uses this.
@@ -34,7 +35,7 @@ enum class cluster_version_t {
 // Uncomment this if cluster_version_t::LATEST_DISK != cluster_version_t::CLUSTER.
 // Comment it otherwise. This macro is used to avoid instantiating the same version
 // twice in the `INSTANTIATE_SERIALIZE_FOR_CLUSTER_AND_DISK` macro.
-//#define CLUSTER_AND_DISK_VERSIONS_ARE_SAME
+#define CLUSTER_AND_DISK_VERSIONS_ARE_SAME
 
 #ifdef CLUSTER_AND_DISK_VERSIONS_ARE_SAME
 static_assert(cluster_version_t::CLUSTER == cluster_version_t::LATEST_DISK,

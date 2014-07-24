@@ -454,7 +454,8 @@ void cluster_namespace_interface_t::relationship_coroutine(peer_id_t peer_id, re
         }
 
         relationship_t relationship_record;
-        relationship_record.is_local = (peer_id == mailbox_manager->get_connectivity_service()->get_me());
+        relationship_record.is_local =
+            (peer_id == mailbox_manager->get_connectivity_cluster()->get_me());
         relationship_record.region = region;
         relationship_record.master_access = master_access.has() ? master_access.get() : NULL;
         relationship_record.direct_reader_access = direct_reader_access.has() ? direct_reader_access.get() : NULL;

@@ -12,8 +12,9 @@
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "protocol_api.hpp"
+#include "region/region.hpp"
 #include "repli_timestamp.hpp"
-#include "rpc/connectivity/connectivity.hpp"
+#include "rpc/connectivity/peer_id.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/serialize_macros.hpp"
 
@@ -74,6 +75,33 @@ struct stamped_msg_t;
 
 typedef mailbox_addr_t<void(stamped_msg_t)> client_addr_t;
 
+struct keyspec_t {
+    struct all_t { };
+    struct point_t {
+        point_t() { }
+        explicit point_t(counted_t<const datum_t> _key) : key(std::move(_key)) { }
+        counted_t<const datum_t> key;
+    };
+
+    keyspec_t(keyspec_t &&keyspec) = default;
+    explicit keyspec_t(all_t &&all) : spec(std::move(all)) { }
+    explicit keyspec_t(point_t &&point) : spec(std::move(point)) { }
+
+    // This needs to be copyable and assignable because it goes inside a
+    // `changefeed_stamp_t`, which goes inside a variant.
+    keyspec_t(const keyspec_t &keyspec) = default;
+    keyspec_t &operator=(const keyspec_t &) = default;
+
+    boost::variant<all_t, point_t> spec;
+private:
+    keyspec_t() { }
+};
+region_t keyspec_to_region(const keyspec_t &keyspec);
+
+RDB_DECLARE_SERIALIZABLE(keyspec_t::all_t);
+RDB_DECLARE_SERIALIZABLE(keyspec_t::point_t);
+RDB_DECLARE_SERIALIZABLE(keyspec_t);
+
 // The `client_t` exists on the machine handling the changefeed query, in the
 // `rdb_context_t`.  When a query subscribes to the changes on a table, it
 // should call `new_feed`.  The `client_t` will give it back a stream of rows.
@@ -88,7 +116,10 @@ public:
     explicit client_t(mailbox_manager_t *_manager);
     ~client_t();
     // Throws QL exceptions.
-    counted_t<datum_stream_t> new_feed(const counted_t<table_t> &tbl, env_t *env);
+    counted_t<datum_stream_t> new_feed(
+        const counted_t<table_t> &tbl,
+        keyspec_t &&keyspec,
+        env_t *env);
     void maybe_remove_feed(const uuid_u &uuid);
     scoped_ptr_t<feed_t> detach_feed(const uuid_u &uuid);
 private:

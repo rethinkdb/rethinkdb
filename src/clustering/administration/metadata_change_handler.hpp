@@ -64,7 +64,8 @@ public:
                                                 this, &done, ph::_1, ph::_2));
 
             send(mailbox_manager, _request_mailbox, ack_mailbox.get_address());
-            disconnect_watcher_t dc_watcher(mailbox_manager->get_connectivity_service(), _request_mailbox.get_peer());
+            disconnect_watcher_t dc_watcher(mailbox_manager,
+                                            _request_mailbox.get_peer());
             wait_any_t waiter(&done, &dc_watcher);
             waiter.wait();
 
@@ -91,7 +92,8 @@ public:
                                                       &result_promise, ph::_1));
 
             send(mailbox_manager, commit_mailbox_address, true, metadata, result_mailbox.get_address());
-            disconnect_watcher_t dc_watcher(mailbox_manager->get_connectivity_service(), commit_mailbox_address.get_peer());
+            disconnect_watcher_t dc_watcher(mailbox_manager,
+                                            commit_mailbox_address.get_peer());
             wait_any_t waiter(result_promise.get_ready_signal(), &dc_watcher);
             waiter.wait();
 
@@ -143,7 +145,7 @@ private:
         coro_invalid_conditions.insert(&invalid_condition);
 
         send(mailbox_manager, ack_mailbox, metadata_view->get(), commit_mailbox.get_address());
-        disconnect_watcher_t dc_watcher(mailbox_manager->get_connectivity_service(), ack_mailbox.get_peer());
+        disconnect_watcher_t dc_watcher(mailbox_manager, ack_mailbox.get_peer());
         wait_any_t waiter(&commit_done, &dc_watcher);
         waiter.wait();
 

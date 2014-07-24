@@ -104,7 +104,7 @@ const boost::local_time::local_date_time epoch(raw_epoch, utc);
     }                                                                   \
 
 // Produces a datum_exc_t instead
-const datum_t dummy_datum;
+static const datum_t dummy_datum((datum_t::construct_null_t()));
 #define HANDLE_BOOST_ERRORS_NO_TARGET HANDLE_BOOST_ERRORS(&dummy_datum)
 
 enum date_format_t { UNSET, MONTH_DAY, WEEKCOUNT, DAYCOUNT };
@@ -531,33 +531,30 @@ counted_t<const datum_t> time_tz(counted_t<const datum_t> time) {
     if (counted_t<const datum_t> tz = time->get(timezone_key, NOTHROW)) {
         return tz;
     } else {
-        return make_counted<const datum_t>(datum_t::R_NULL);
+        return datum_t::null();
     }
 }
 
 counted_t<const datum_t> time_in_tz(counted_t<const datum_t> t,
                                     counted_t<const datum_t> tz) {
     r_sanity_check(t->is_ptype(time_string));
-    datum_ptr_t t2(t->as_object());
+    datum_object_builder_t t2(t->as_object());
     std::string raw_new_tzs = tz->as_str().to_std();
     std::string new_tzs = sanitize::tz(raw_new_tzs);
     if (raw_new_tzs == new_tzs) {
-        UNUSED bool b = t2.add(timezone_key, tz, CLOBBER);
+        t2.overwrite(timezone_key, tz);
     } else {
-        UNUSED bool b =
-            t2.add(timezone_key, make_counted<const datum_t>(std::move(new_tzs)), CLOBBER);
+        t2.overwrite(timezone_key, make_counted<const datum_t>(std::move(new_tzs)));
     }
-    return t2.to_counted();
+    return std::move(t2).to_counted();
 }
 
 counted_t<const datum_t> make_time(double epoch_time, std::string tz) {
-    datum_ptr_t res(datum_t::R_OBJECT);
-    bool clobber = res.add(datum_t::reql_type_string,
-                           make_counted<const datum_t>(time_string));
-    clobber |= res.add(epoch_time_key, make_counted<const datum_t>(epoch_time));
-    clobber |= res.add(timezone_key, make_counted<const datum_t>(std::move(tz)));
-    r_sanity_check(!clobber);
-    return res.to_counted();
+    std::map<std::string, counted_t<const datum_t> > map
+        = { { datum_t::reql_type_string, make_counted<const datum_t>(time_string) },
+            { epoch_time_key, make_counted<const datum_t>(epoch_time) },
+            { timezone_key, make_counted<const datum_t>(std::move(tz)) } };
+    return make_counted<datum_t>(std::move(map));
 }
 
 counted_t<const datum_t> make_time(
@@ -589,15 +586,13 @@ counted_t<const datum_t> time_add(counted_t<const datum_t> x,
         duration = x;
     }
 
-    datum_ptr_t res(time->as_object());
-    bool clobbered = res.add(
+    datum_object_builder_t res(time->as_object());
+    res.overwrite(
         epoch_time_key,
-        make_counted<const datum_t>(res->get(epoch_time_key)->as_num() +
-                                    duration->as_num()),
-        CLOBBER);
-    r_sanity_check(clobbered);
+        make_counted<datum_t>(time->get(epoch_time_key)->as_num() +
+                              duration->as_num()));
 
-    return res.to_counted();
+    return std::move(res).to_counted();
 }
 
 counted_t<const datum_t> time_sub(counted_t<const datum_t> time,
@@ -609,14 +604,12 @@ counted_t<const datum_t> time_sub(counted_t<const datum_t> time,
             time->get(epoch_time_key)->as_num()
             - time_or_duration->get(epoch_time_key)->as_num()));
     } else {
-        datum_ptr_t res(time->as_object());
-        bool clobbered = res.add(
+        datum_object_builder_t res(time->as_object());
+        res.overwrite(
             epoch_time_key,
-            make_counted<const datum_t>(res->get(epoch_time_key)->as_num() -
-                                        time_or_duration->as_num()),
-            CLOBBER);
-        r_sanity_check(clobbered);
-        return res.to_counted();
+            make_counted<const datum_t>(time->get(epoch_time_key)->as_num() -
+                                        time_or_duration->as_num()));
+        return std::move(res).to_counted();
     }
 }
 

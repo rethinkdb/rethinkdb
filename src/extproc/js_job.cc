@@ -583,9 +583,9 @@ counted_t<const ql::datum_t> js_make_datum(const v8::Handle<v8::Value> &value,
             result = make_counted<const ql::datum_t>(num_val);
         }
     } else if (value->IsBoolean()) {
-        result = make_counted<const ql::datum_t>(ql::datum_t::R_BOOL, value->BooleanValue());
+        result = ql::datum_t::boolean(value->BooleanValue());
     } else if (value->IsNull()) {
-        result = make_counted<const ql::datum_t>(ql::datum_t::R_NULL);
+        result = ql::datum_t::null();
     } else {
         errmsg->assign(value->IsUndefined() ?
                        "Cannot convert javascript `undefined` to ql::datum_t." :
@@ -653,7 +653,6 @@ v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum) {
         }
     }
 
-    case ql::datum_t::type_t::UNINITIALIZED:
     default:
         crash("bad datum value in js extproc");
     }

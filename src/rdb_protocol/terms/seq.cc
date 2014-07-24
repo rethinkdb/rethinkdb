@@ -216,10 +216,37 @@ public:
     changes_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_t> tbl = args->arg(env, 0)->as_table();
-        changefeed::client_t *client = env->env->get_changefeed_client();
-        return new_val(env->env, client->new_feed(tbl, env->env));
+    virtual counted_t<val_t> eval_impl(
+        scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<val_t> v = args->arg(env, 0);
+        if (v->get_type().is_convertible(val_t::type_t::TABLE)) {
+            counted_t<table_t> tbl = v->as_table();
+            changefeed::client_t *client = env->env->get_changefeed_client();
+            return new_val(
+                env->env,
+                client->new_feed(
+                    tbl,
+                    changefeed::keyspec_t(changefeed::keyspec_t::all_t()),
+                    env->env));
+        } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
+            auto single_selection = v->as_single_selection();
+            counted_t<table_t> tbl = std::move(single_selection.first);
+            counted_t<const datum_t> val = std::move(single_selection.second);
+
+            counted_t<const datum_t> key = v->get_orig_key();
+            changefeed::client_t *client = env->env->get_changefeed_client();
+            return new_val(
+                env->env,
+                client->new_feed(
+                    tbl,
+                    changefeed::keyspec_t(
+                        changefeed::keyspec_t::point_t(std::move(key))),
+                    env->env));
+        }
+        std::pair<counted_t<table_t>, counted_t<datum_stream_t> > selection
+            = v->as_selection(env->env);
+        rfail(base_exc_t::GENERIC,
+              ".changes() not yet supported on range selections");
     }
     virtual const char *name() const { return "changes"; }
 };
@@ -245,9 +272,9 @@ private:
 
         if (lb.has() && rb.has()) {
             if (*lb > *rb || ((left_open || right_open) && *lb == *rb)) {
-                counted_t<const datum_t> arr = make_counted<datum_t>(datum_t::R_ARRAY);
-                counted_t<datum_stream_t> ds(
-                    new array_datum_stream_t(arr, backtrace()));
+                counted_t<datum_stream_t> ds
+                    =  make_counted<array_datum_stream_t>(datum_t::empty_array(),
+                                                          backtrace());
                 return new_val(ds, tbl);
             }
         }

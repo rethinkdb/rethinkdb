@@ -17,7 +17,6 @@
 #include "clustering/administration/suggester.hpp"
 #include "clustering/administration/metadata_change_handler.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
-#include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
@@ -251,46 +250,40 @@ admin_cluster_link_t::admin_cluster_link_t(const peer_address_set_t &joins,
     local_issue_tracker(),
     log_writer(&local_issue_tracker), // TODO: come up with something else for this file
     connectivity_cluster(),
-    message_multiplexer(&connectivity_cluster),
-    heartbeat_manager_client(&message_multiplexer, 'H'),
-    heartbeat_manager(&heartbeat_manager_client),
-    heartbeat_manager_client_run(&heartbeat_manager_client, &heartbeat_manager),
-    mailbox_manager_client(&message_multiplexer, 'M'),
-    mailbox_manager(&mailbox_manager_client),
-    mailbox_manager_client_run(&mailbox_manager_client, &mailbox_manager),
+    mailbox_manager(&connectivity_cluster, 'M'),
     stat_manager(&mailbox_manager),
     log_server(&mailbox_manager, &log_writer),
-    semilattice_manager_client(&message_multiplexer, 'S'),
-    semilattice_manager_cluster(new semilattice_manager_t<cluster_semilattice_metadata_t>(&semilattice_manager_client, cluster_semilattice_metadata_t())),
-    semilattice_manager_client_run(&semilattice_manager_client, semilattice_manager_cluster.get()),
+    semilattice_manager_cluster(
+        new semilattice_manager_t<cluster_semilattice_metadata_t>(
+            &connectivity_cluster, 'S', cluster_semilattice_metadata_t())),
     cluster_metadata_view(semilattice_manager_cluster->get_root_view()),
     metadata_change_handler(&mailbox_manager, cluster_metadata_view),
-    auth_manager_client(&message_multiplexer, 'A'),
-    auth_manager_cluster(new semilattice_manager_t<auth_semilattice_metadata_t>(&auth_manager_client, auth_semilattice_metadata_t())),
-    auth_manager_client_run(&auth_manager_client, auth_manager_cluster.get()),
+    auth_manager_cluster(
+        new semilattice_manager_t<auth_semilattice_metadata_t>(
+            &connectivity_cluster, 'A', auth_semilattice_metadata_t())),
     auth_metadata_view(auth_manager_cluster->get_root_view()),
     auth_change_handler(&mailbox_manager, auth_metadata_view),
-    directory_manager_client(&message_multiplexer, 'D'),
-    our_directory_metadata(cluster_directory_metadata_t(machine_id_t(connectivity_cluster.get_me().get_uuid()),
-                                                        connectivity_cluster.get_me(),
-                                                        0, // No cache = no cache size
-                                                        get_ips(),
-                                                        stat_manager.get_address(),
-                                                        metadata_change_handler.get_request_mailbox_address(),
-                                                        auth_change_handler.get_request_mailbox_address(),
-                                                        log_server.get_business_card(),
-                                                        ADMIN_PEER)),
-    directory_read_manager(new directory_read_manager_t<cluster_directory_metadata_t>(connectivity_cluster.get_connectivity_service())),
-    directory_write_manager(new directory_write_manager_t<cluster_directory_metadata_t>(&directory_manager_client, our_directory_metadata.get_watchable())),
-    directory_manager_client_run(&directory_manager_client, directory_read_manager.get()),
-    message_multiplexer_run(&message_multiplexer),
+    our_directory_metadata(cluster_directory_metadata_t(
+        machine_id_t(connectivity_cluster.get_me().get_uuid()),
+        connectivity_cluster.get_me(),
+        0, // No cache = no cache size
+        get_ips(),
+        stat_manager.get_address(),
+        metadata_change_handler.get_request_mailbox_address(),
+        auth_change_handler.get_request_mailbox_address(),
+        log_server.get_business_card(),
+        ADMIN_PEER)),
+    directory_read_manager(
+        new directory_read_manager_t<cluster_directory_metadata_t>(
+            &connectivity_cluster, 'D')),
+    directory_write_manager(
+        new directory_write_manager_t<cluster_directory_metadata_t>(
+            &connectivity_cluster, 'D', our_directory_metadata.get_watchable())),
     connectivity_cluster_run(&connectivity_cluster,
                              get_local_ips(std::set<ip_address_t>(), false),
                              canonical_addresses,
                              0,
-                             &message_multiplexer_run,
-                             client_port,
-                             &heartbeat_manager),
+                             client_port),
     admin_tracker(cluster_metadata_view, auth_metadata_view, directory_read_manager->get_root_view()),
     initial_joiner(&connectivity_cluster, &connectivity_cluster_run, joins, 5000)
 {
