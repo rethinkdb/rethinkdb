@@ -238,7 +238,7 @@ void run(protob_t<Query> q,
                 res->set_type(Response::SUCCESS_ATOM);
                 counted_t<const datum_t> d = to_datum(std::move(*gd), env.limits);
                 d->write_to_protobuf(res->add_response(), use_json);
-                if (env.trace.has()) {
+                if (env.trace != nullptr) {
                     env.trace->as_datum()->write_to_protobuf(
                         res->mutable_profile(), use_json);
                 }

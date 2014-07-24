@@ -42,7 +42,7 @@ private:
             for (int i = 1; i < ngroups; ++i) {
                 const re2::StringPiece &group = groups[i];
                 if (group.data() == NULL) {
-                    match_groups.add(datum_t::null(), env->env->limits);
+                    match_groups.add(datum_t::null());
                 } else {
                     datum_object_builder_t match_group;
                     b |= match_group.add(

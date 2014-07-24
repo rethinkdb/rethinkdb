@@ -663,12 +663,12 @@ counted_t<const datum_t> eager_datum_stream_t::as_array(env_t *env) {
         return counted_t<const datum_t>();
     }
 
-    datum_array_builder_t arr;
+    datum_array_builder_t arr(env->limits);
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
     {
         profile::sampler_t sampler("Evaluating stream eagerly.", env->trace);
         while (counted_t<const datum_t> d = next(env, batchspec)) {
-            arr.add(d, env->limits);
+            arr.add(d);
             sampler.new_sample();
         }
     }
@@ -953,12 +953,12 @@ counted_t<const datum_t> union_datum_stream_t::as_array(env_t *env) {
     if (!is_array()) {
         return counted_t<const datum_t>();
     }
-    datum_array_builder_t arr;
+    datum_array_builder_t arr(env->limits);
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
     {
         profile::sampler_t sampler("Evaluating stream eagerly.", env->trace);
         while (counted_t<const datum_t> d = next(env, batchspec)) {
-            arr.add(d, env->limits);
+            arr.add(d);
             sampler.new_sample();
         }
     }

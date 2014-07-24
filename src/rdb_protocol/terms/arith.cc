@@ -48,12 +48,12 @@ private:
             return make_counted<datum_t>(concat(lhs->as_str(), rhs->as_str()));
         } else if (lhs->get_type() == datum_t::R_ARRAY) {
             rhs->check_type(datum_t::R_ARRAY);
-            datum_array_builder_t out;
+            datum_array_builder_t out(limits);
             for (size_t i = 0; i < lhs->size(); ++i) {
-                out.add(lhs->get(i), limits);
+                out.add(lhs->get(i));
             }
             for (size_t i = 0; i < rhs->size(); ++i) {
-                out.add(rhs->get(i), limits);
+                out.add(rhs->get(i));
             }
             return std::move(out).to_counted();
         } else {
@@ -85,14 +85,14 @@ private:
             counted_t<const datum_t> num =
                 (lhs->get_type() == datum_t::R_ARRAY ? rhs : lhs);
 
-            datum_array_builder_t out;
+            datum_array_builder_t out(limits);
             const int64_t num_copies = num->as_int();
             rcheck(num_copies >= 0, base_exc_t::GENERIC,
                    "Cannot multiply an ARRAY by a negative number.");
 
             for (int64_t j = 0; j < num_copies; ++j) {
                 for (size_t i = 0; i < array->size(); ++i) {
-                    out.add(array->get(i), limits);
+                    out.add(array->get(i));
                 }
             }
             return std::move(out).to_counted();

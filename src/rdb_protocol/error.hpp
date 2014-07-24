@@ -124,7 +124,7 @@ private:
         rcheck((arr).size() <= _limit.array_size_limit(), type,          \
                strprintf("Array over size limit `%zu`.",                \
                          _limit.array_size_limit()).c_str());           \
-
+    } while (0)
 #define rcheck(pred, type, msg) rcheck_target(this, type, pred, msg)
 #define rcheck_typed(pred, typed_arg, msg) \
     rcheck_target(this, exc_type(typed_arg), typed_arg, pred, msg)

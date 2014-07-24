@@ -267,11 +267,11 @@ private:
     DISABLE_COPYING(datum_t);
 };
 
-counted_t<const datum_t> to_datum(const Datum *d);
-counted_t<const datum_t> to_datum(cJSON *json);
+counted_t<const datum_t> to_datum(const Datum *d, const configured_limits_t &);
+counted_t<const datum_t> to_datum(cJSON *json, const configured_limits_t &);
 
 // This should only be used to send responses to the client.
-counted_t<const datum_t> to_datum(grouped_data_t &&gd);
+counted_t<const datum_t> to_datum(grouped_data_t &&gd, const configured_limits_t &);
 
 // Converts a double to int, but returns false if it's not an integer or out of range.
 bool number_as_integer(double d, int64_t *i_out);

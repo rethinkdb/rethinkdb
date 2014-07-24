@@ -338,12 +338,12 @@ private:
                 = make_counted<union_datum_stream_t>(std::move(streams), backtrace());
             return new_val(stream, table);
         } else {
-            datum_array_builder_t arr;
+            datum_array_builder_t arr(env->env->limits);
             for (size_t i = 1; i < args->num_args(); ++i) {
                 counted_t<const datum_t> key = args->arg(env, i)->as_datum();
                 counted_t<const datum_t> row = table->get_row(env->env, key);
                 if (row->get_type() != datum_t::R_NULL) {
-                    arr.add(row, env->env->limits);
+                    arr.add(row);
                 }
             }
             counted_t<datum_stream_t> stream

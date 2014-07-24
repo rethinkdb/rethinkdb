@@ -109,7 +109,7 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
         datum_array_builder_t res(limits);
         res.reserve(datum->size());
         for (const counted_t<const datum_t> &value : datum->as_array()) {
-            res.add(project(value, pathspec, DONT_RECURSE));
+            res.add(project(value, pathspec, DONT_RECURSE, limits));
         }
         return std::move(res).to_counted();
     } else {
@@ -181,7 +181,7 @@ counted_t<const datum_t> unproject(counted_t<const datum_t> datum,
         datum_array_builder_t res(limits);
         res.reserve(datum->size());
         for (const counted_t<const datum_t> &value : datum->as_array()) {
-            res.add(unproject(value, pathspec, DONT_RECURSE));
+            res.add(unproject(value, pathspec, DONT_RECURSE, limits));
         }
         return std::move(res).to_counted();
     } else {

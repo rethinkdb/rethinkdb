@@ -113,7 +113,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             store->changefeed_server->get_uuid(),
             store->changefeed_server->get_stamp(s.addr));
         point_read_response_t val;
-        rdb_get(s.key, btree, superblock, &val, ql_env.trace.get_or_null());
+        rdb_get(s.key, btree, superblock, &val, trace);
         res->initial_val = val.data;
     }
 

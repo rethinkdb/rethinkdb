@@ -128,7 +128,8 @@ datum_t::~datum_t() {
 }
 
 counted_t<const datum_t> datum_t::empty_array() {
-    return make_counted<datum_t>(std::vector<counted_t<const datum_t> >());
+    return make_counted<datum_t>(std::vector<counted_t<const datum_t> >(),
+                                 no_array_size_limit_check_t());
 }
 
 counted_t<const datum_t> datum_t::empty_object() {
@@ -920,7 +921,7 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs,
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
         if (counted_t<const datum_t> left = get(it->first, NOTHROW)) {
-            d.overwrite(it->first, f(it->first, left, it->second));
+            d.overwrite(it->first, f(it->first, left, it->second, limits));
         } else {
             bool b = d.add(it->first, it->second);
             r_sanity_check(!b);
@@ -1030,12 +1031,12 @@ counted_t<const datum_t> to_datum(const Datum *d, const configured_limits_t &lim
         return to_datum(cjson.get(), limits);
     } break;
     case Datum::R_ARRAY: {
-        std::vector<counted_t<const datum_t> > array;
-        array.reserve(d->r_array_size());
+        datum_array_builder_t out(limits);
+        out.reserve(d->r_array_size());
         for (int i = 0, e = d->r_array_size(); i < e; ++i) {
-            array.push_back(to_datum(&d->r_array(i)));
+            out.add(to_datum(&d->r_array(i), limits));
         }
-        return make_counted<datum_t>(std::move(array), limits);
+        return std::move(out).to_counted();
     } break;
     case Datum::R_OBJECT: {
         std::map<std::string, counted_t<const datum_t> > map;
@@ -1137,12 +1138,12 @@ counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
     if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
         return make_counted<datum_t>(l->as_num() + r->as_num());
     } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
-        datum_array_builder_t arr;
+        datum_array_builder_t arr(limits);
         for (size_t i = 0; i < l->size(); ++i) {
-            arr.add(l->get(i), limits);
+            arr.add(l->get(i));
         }
         for (size_t i = 0; i < r->size(); ++i) {
-            arr.add(r->get(i), limits);
+            arr.add(r->get(i));
         }
         return std::move(arr).to_counted();
     }
