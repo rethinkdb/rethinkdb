@@ -653,7 +653,7 @@ struct write_t {
 
     durability_requirement_t durability_requirement;
     profile_bool_t profile;
-    std::map<std::string, ql::wire_func_t> optargs;
+    ql::configured_limits_t limits;
 
     region_t get_region() const THROWS_NOTHING;
     // Returns true if the write had any side effects applicable to the
@@ -666,7 +666,7 @@ struct write_t {
 
     durability_requirement_t durability() const { return durability_requirement; }
 
-    write_t() : durability_requirement(DURABILITY_REQUIREMENT_DEFAULT), optargs() {}
+    write_t() : durability_requirement(DURABILITY_REQUIREMENT_DEFAULT), limits() {}
     /*  Note that for durability != DURABILITY_REQUIREMENT_HARD, sync might
      *  not have the desired effect (of writing unsaved data to disk).
      *  However there are cases where we use sync internally (such as when
@@ -677,17 +677,17 @@ struct write_t {
     write_t(T &&t,
             durability_requirement_t durability,
             profile_bool_t _profile,
-            const std::map<std::string, ql::wire_func_t> &_optargs)
+            const ql::configured_limits_t &_limits)
         : write(std::forward<T>(t)),
           durability_requirement(durability), profile(_profile),
-          optargs(_optargs) { }
+          limits(_limits) { }
     template<class T>
     write_t(T &&t, profile_bool_t _profile,
-            const std::map<std::string, ql::wire_func_t> &_optargs)
+            const ql::configured_limits_t &_limits)
         : write(std::forward<T>(t)),
           durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
           profile(_profile),
-          optargs(_optargs) { }
+          limits(_limits) { }
 };
 
 RDB_DECLARE_SERIALIZABLE(write_t);

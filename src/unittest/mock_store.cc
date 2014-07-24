@@ -14,7 +14,7 @@ write_t mock_overwrite(std::string key, std::string value) {
                                      make_counted<ql::datum_t>(std::move(m)),
                                      true);
     return write_t(pw, DURABILITY_REQUIREMENT_SOFT, profile_bool_t::DONT_PROFILE,
-                   std::map<std::string, ql::wire_func_t>());
+                   ql::configured_limits_t());
 }
 
 read_t mock_read(std::string key) {

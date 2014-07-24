@@ -139,7 +139,7 @@ void run_get_set_test(namespace_interface_t *nsi, order_source_t *osource) {
                 point_write_t(store_key_t("a"), ql::datum_t::null()),
                 DURABILITY_REQUIREMENT_DEFAULT,
                 profile_bool_t::PROFILE,
-                std::map<std::string, ql::wire_func_t>());
+                ql::configured_limits_t());
         write_response_t response;
 
         cond_t interruptor;
@@ -187,7 +187,7 @@ std::string create_sindex(namespace_interface_t *nsi,
     ql::map_wire_func_t m(mapping, make_vector(arg), get_backtrace(mapping));
 
     write_t write(sindex_create_t(id, m, sindex_multi_bool_t::SINGLE),
-                  profile_bool_t::PROFILE, std::map<std::string, ql::wire_func_t>());
+                  profile_bool_t::PROFILE, ql::configured_limits_t());
     write_response_t response;
 
     cond_t interruptor;
@@ -234,7 +234,7 @@ bool drop_sindex(namespace_interface_t *nsi,
                  order_source_t *osource,
                  const std::string &id) {
     sindex_drop_t d(id);
-    write_t write(d, profile_bool_t::PROFILE, std::map<std::string, ql::wire_func_t>());
+    write_t write(d, profile_bool_t::PROFILE, ql::configured_limits_t());
     write_response_t response;
 
     cond_t interruptor;
@@ -270,7 +270,7 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
             point_write_t(pk, ql::to_datum(data->get(), limits)),
             DURABILITY_REQUIREMENT_DEFAULT,
             profile_bool_t::PROFILE,
-            std::map<std::string, ql::wire_func_t>());
+            ql::configured_limits_t());
         write_response_t response;
 
         cond_t interruptor;
@@ -314,7 +314,7 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
         /* Delete the data. */
         point_delete_t del(pk);
         write_t write(del, DURABILITY_REQUIREMENT_DEFAULT, profile_bool_t::PROFILE,
-                      std::map<std::string, ql::wire_func_t>());
+                      ql::configured_limits_t());
         write_response_t response;
 
         cond_t interruptor;
@@ -370,9 +370,7 @@ void run_create_drop_sindex_with_data_test(namespace_interface_t *nsi,
         /* Insert a piece of data (it will be indexed using the secondary
          * index). */
         write_t write(point_write_t(pk, ql::to_datum(data->get(), limits)),
-                      DURABILITY_REQUIREMENT_SOFT,
-                      profile_bool_t::PROFILE,
-                      std::map<std::string, ql::wire_func_t>());
+                      DURABILITY_REQUIREMENT_SOFT, profile_bool_t::PROFILE, limits);
         write_response_t response;
 
         cond_t interruptor;
@@ -507,7 +505,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t *nsi, order_source_t *
                 write_t write(point_write_t(pk, ql::to_datum(data->get(), limits)),
                               DURABILITY_REQUIREMENT_DEFAULT,
                               profile_bool_t::PROFILE,
-                              std::map<std::string, ql::wire_func_t>());
+                              limits);
                 write_response_t response;
 
                 cond_t interruptor;
@@ -579,7 +577,7 @@ void run_sindex_missing_attr_test(namespace_interface_t *nsi, order_source_t *os
         write_t write(point_write_t(pk, ql::to_datum(data->get(), limits)),
                       DURABILITY_REQUIREMENT_DEFAULT,
                       profile_bool_t::PROFILE,
-                      std::map<std::string, ql::wire_func_t>());
+                      ql::configured_limits_t());
         write_response_t response;
 
         cond_t interruptor;

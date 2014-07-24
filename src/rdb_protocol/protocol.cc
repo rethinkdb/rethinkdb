@@ -944,7 +944,7 @@ bool write_t::shard(const region_t &region,
     write_t::variant_t payload;
     const rdb_w_shard_visitor_t v(&region, &payload);
     bool result = boost::apply_visitor(v, write);
-    *write_out = write_t(payload, durability_requirement, profile, optargs);
+    *write_out = write_t(payload, durability_requirement, profile, limits);
     return result;
 }
 
@@ -1014,10 +1014,9 @@ private:
 };
 
 void write_t::unshard(write_response_t *responses, size_t count,
-                      write_response_t *response_out, rdb_context_t *ctx,
-                      signal_t *interruptor)
+                      write_response_t *response_out, rdb_context_t *,
+                      signal_t *)
     const THROWS_NOTHING {
-    const ql::configured_limits_t limits = ql::from_optargs(ctx, interruptor, optargs);
     const rdb_w_unshard_visitor_t visitor(responses, count, response_out, &limits);
     boost::apply_visitor(visitor, write);
 
@@ -1115,7 +1114,7 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sync_t, region);
 // Serialization format changed in 1.14.0. We only support the latest version,
 // since this is a cluster-only type.
 RDB_IMPL_SERIALIZABLE_4(
-    write_t, write, durability_requirement, profile, optargs);
+    write_t, write, durability_requirement, profile, limits);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(write_t);
 
 // Serialization format changed in 1.13.2. We only support the latest version,
