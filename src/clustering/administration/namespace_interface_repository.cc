@@ -198,10 +198,10 @@ namespace_interface_access_t namespace_repo_t::get_namespace_interface(
     /* Find or create a cache entry for the table. When we find or create the cache, we
     need to wait until the `namespace_interface_t *` is actually ready before returning,
     but we want to be sure to hold a reference to the cache entry in the meantime. So we
-    construct `temp`, which manages a reference to the `cache_entry`, but has its
-    namespace interface set to `NULL`. Then when the real table is ready, we construct a
-    real `namespace_interface_access_t` with a non-`NULL` table pointer, and then delete
-    `temporary_holder`. */
+    construct `temporary_holder`, which manages a reference to the `cache_entry`, but has
+    its namespace interface set to `NULL`. Then when the real table is ready, we
+    construct a real `namespace_interface_access_t` with a non-`NULL` namespace
+    interface, and then delete `temporary_holder`. */
     namespace_interface_access_t temporary_holder;
     namespace_cache_entry_t *cache_entry;
     {
