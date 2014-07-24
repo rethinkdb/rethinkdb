@@ -14,6 +14,7 @@
 #include "protocol_api.hpp"
 #include "repli_timestamp.hpp"
 #include "rdb_protocol/counted_term.hpp"
+#include "rdb_protocol/real_table/real_table.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -86,17 +87,28 @@ typedef mailbox_addr_t<void(stamped_msg_t)> client_addr_t;
 class client_t : public home_thread_mixin_t {
 public:
     typedef client_addr_t addr_t;
-    explicit client_t(mailbox_manager_t *_manager);
+    client_t(
+        mailbox_manager_t *_manager,
+        const std::function<
+            namespace_interface_access_t(
+                const namespace_id_t &,
+                signal_t *)
+            > &_namespace_source
+        );
     ~client_t();
-    // Throws QL exceptions. Doesn't hold onto `ns_if`.
+    // Throws QL exceptions.
     counted_t<ql::datum_stream_t> new_feed(ql::env_t *env, const namespace_id_t &table,
-        const ql::protob_t<const Backtrace> &bt, const std::string &table_name,
-        namespace_interface_t *ns_if);
+        const ql::protob_t<const Backtrace> &bt, const std::string &table_name);
     void maybe_remove_feed(const namespace_id_t &uuid);
     scoped_ptr_t<feed_t> detach_feed(const namespace_id_t &uuid);
 private:
     friend class subscription_t;
     mailbox_manager_t *const manager;
+    std::function<
+        namespace_interface_access_t(
+            const namespace_id_t &,
+            signal_t *)
+        > const namespace_source;
     std::map<namespace_id_t, scoped_ptr_t<feed_t> > feeds;
     // This lock manages access to the `feeds` map.  The `feeds` map needs to be
     // read whenever `new_feed` is called, and needs to be written to whenever

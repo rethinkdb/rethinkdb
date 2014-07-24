@@ -80,13 +80,8 @@ counted_t<const datum_t> table_view_t::batched_replace(
             durability_requirement, return_vals);
         return stats.to_counted()->merge(insert_stats, stats_merge);
     } else {
-        std::vector<store_key_t> store_keys;
-        store_keys.reserve(keys.size());
-        for (auto it = keys.begin(); it != keys.end(); ++it) {
-            store_keys.push_back(store_key_t((*it)->print_primary()));
-        }
         return table->write_batched_replace(
-            env, std::move(store_keys), replacement_generator,
+            env, keys, replacement_generator,
             env->global_optargs.get_all_optargs(), return_vals,
             durability_requirement);
     }

@@ -593,8 +593,16 @@ feed_t::~feed_t() {
     }
 }
 
-client_t::client_t(mailbox_manager_t *_manager)
-  : manager(_manager) {
+client_t::client_t(
+        mailbox_manager_t *_manager,
+        const std::function<
+            namespace_interface_access_t(
+                const namespace_id_t &,
+                signal_t *)
+            > &_namespace_source) :
+    manager(_manager),
+    namespace_source(_namespace_source)
+{
     guarantee(manager != NULL);
 }
 client_t::~client_t() { }
@@ -602,8 +610,7 @@ client_t::~client_t() { }
 /* This mustn't hold references to the `namespace_interface_t` after it returns. */
 counted_t<ql::datum_stream_t>
 client_t::new_feed(ql::env_t *env, const namespace_id_t &uuid,
-        const ql::protob_t<const Backtrace> &bt, const std::string &table_name,
-        namespace_interface_t *ns_if) {
+        const ql::protob_t<const Backtrace> &bt, const std::string &table_name) {
     try {
         scoped_ptr_t<subscription_t> sub;
         addr_t addr;
@@ -617,8 +624,10 @@ client_t::new_feed(ql::env_t *env, const namespace_id_t &uuid,
             auto feed_it = feeds.find(uuid);
             if (feed_it == feeds.end()) {
                 spot.write_signal()->wait_lazily_unordered();
+                namespace_interface_access_t access =
+                        namespace_source(uuid, &interruptor);
                 auto val = make_scoped<feed_t>(
-                        this, manager, ns_if, uuid, &interruptor);
+                        this, manager, access.get(), uuid, &interruptor);
                 feed_it = feeds.insert(std::make_pair(uuid, std::move(val))).first;
             }
 
@@ -631,7 +640,8 @@ client_t::new_feed(ql::env_t *env, const namespace_id_t &uuid,
         }
         read_t read(changefeed_stamp_t(addr), profile_bool_t::DONT_PROFILE);
         read_response_t read_resp;
-        ns_if->read(read, &read_resp, order_token_t::ignore, env->interruptor);
+        namespace_interface_access_t access = namespace_source(uuid, env->interruptor);
+        access.get()->read(read, &read_resp, order_token_t::ignore, env->interruptor);
         auto resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
         guarantee(resp != NULL);
         sub->start(std::move(resp->stamps));

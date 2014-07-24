@@ -25,7 +25,6 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
     cross_thread_namespace_watchables(get_num_threads()),
     cross_thread_database_watchables(get_num_threads()),
     rdb_context(_rdb_context),
-    changefeed_client(mailbox_manager),
     namespace_repo(
         mailbox_manager,
         metadata_field(
@@ -34,7 +33,11 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
             incremental_field_getter_t<namespaces_directory_metadata_t,
                                        cluster_directory_metadata_t>(
                 &cluster_directory_metadata_t::rdb_namespaces)),
-        rdb_context)
+        rdb_context),
+    changefeed_client(mailbox_manager,
+        [this](const namespace_id_t &id, signal_t *interruptor) {
+            return this->namespace_repo.get_namespace_interface(id, interruptor);
+        })
 {
     for (int thr = 0; thr < get_num_threads(); ++thr) {
         cross_thread_namespace_watchables[thr].init(

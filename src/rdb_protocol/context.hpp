@@ -58,7 +58,8 @@ public:
         const std::string &table_name) = 0;
 
     virtual counted_t<const ql::datum_t> write_batched_replace(ql::env_t *env,
-        std::vector<store_key_t> &&keys, const counted_t<ql::func_t> &func,
+        const std::vector<counted_t<const ql::datum_t> > &keys,
+        const counted_t<ql::func_t> &func,
         const std::map<std::string, ql::wire_func_t> &optargs,
         bool _return_vals, durability_requirement_t durability) = 0;
     virtual counted_t<const ql::datum_t> write_batched_insert(ql::env_t *env,

@@ -102,15 +102,20 @@ counted_t<ql::datum_stream_t> real_table_t::read_all(
 
 counted_t<ql::datum_stream_t> real_table_t::read_changes(ql::env_t *env,
         const ql::protob_t<const Backtrace> &bt, const std::string &table_name) {
-    return changefeed_client->new_feed(env, uuid, bt, table_name,
-        namespace_access.get());
+    return changefeed_client->new_feed(env, uuid, bt, table_name);
 }
 
 counted_t<const ql::datum_t> real_table_t::write_batched_replace(ql::env_t *env,
-        std::vector<store_key_t> &&keys, const counted_t<ql::func_t> &func,
+        const std::vector<counted_t<const ql::datum_t> > &keys,
+        const counted_t<ql::func_t> &func,
         const std::map<std::string, ql::wire_func_t> &optargs,
         bool return_vals, durability_requirement_t durability) {
-    batched_replace_t write(std::move(keys), pkey, func, optargs, return_vals);
+    std::vector<store_key_t> store_keys;
+    store_keys.reserve(keys.size());
+    for (auto it = keys.begin(); it != keys.end(); it++) {
+        store_keys.push_back(store_key_t((*it)->print_primary()));
+    }
+    batched_replace_t write(std::move(store_keys), pkey, func, optargs, return_vals);
     write_t w(std::move(write), durability, env->profile());
     write_response_t response;
     write_with_profile(env, &w, &response);

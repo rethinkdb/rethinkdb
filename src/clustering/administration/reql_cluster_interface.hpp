@@ -72,9 +72,8 @@ private:
         databases_semilattice_metadata_t > > > cross_thread_database_watchables;
     rdb_context_t *rdb_context;
 
-    changefeed::client_t changefeed_client;
-
     namespace_repo_t namespace_repo;
+    changefeed::client_t changefeed_client;
 
     void wait_for_metadata_to_propagate(const cluster_semilattice_metadata_t &metadata,
                                         signal_t *interruptor);
