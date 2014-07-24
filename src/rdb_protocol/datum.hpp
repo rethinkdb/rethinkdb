@@ -113,7 +113,7 @@ public:
     explicit datum_t(scoped_ptr_t<wire_string_t> str);
     explicit datum_t(const char *cstr);
     explicit datum_t(std::vector<counted_t<const datum_t> > &&_array,
-                     const cnofigured_limits_t &limits);
+                     const configured_limits_t &limits);
 
     enum class no_array_size_limit_check_t { };
     // Constructs a datum_t without checking the array size.  Used by
