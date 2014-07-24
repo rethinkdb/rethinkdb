@@ -30,7 +30,7 @@ funcWrap = (val) ->
         if (v for own k,v of node.optargs).map(ivarScan).some((a)->a) then return true
         return false
 
-    if ivarScan(val)
+    if ivarScan(val) and not val instanceof Args
         return new Func {}, (x) -> val
 
     return val
