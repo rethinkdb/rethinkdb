@@ -15,6 +15,14 @@ class datum_t;
 class signal_t;
 
 
+/* Polygons and lines are inserted into an index by computing a coverage of them
+consisting of cells on a pre-defined multi-level grid.
+This constant determines how many grid cells should be used to cover the polygon/line.
+If the number is small, index insertion becomes more efficient, but querying the
+index becomes less efficient. High values make geo indexes larger and inserting
+into them slower, while usually improving query efficiency.
+See the comments in s2regioncoverer.h for further explanation and for statistics
+on the effects of different choices of this parameter.*/
 extern const int GEO_INDEX_GOAL_GRID_CELLS;
 
 std::vector<std::string> compute_index_grid_keys(
