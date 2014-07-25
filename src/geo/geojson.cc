@@ -91,7 +91,7 @@ counted_t<const ql::datum_t> construct_geo_polygon(const lat_lon_line_t &shell) 
 
 counted_t<const ql::datum_t> construct_geo_polygon(
         const lat_lon_line_t &shell,
-        std::vector<lat_lon_line_t> &holes) {
+        const std::vector<lat_lon_line_t> &holes) {
     datum_object_builder_t result;
     bool dup;
     dup = result.add(datum_t::reql_type_string,

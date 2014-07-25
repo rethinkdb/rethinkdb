@@ -27,7 +27,7 @@ counted_t<const ql::datum_t> construct_geo_line(const lat_lon_line_t &line);
 counted_t<const ql::datum_t> construct_geo_polygon(const lat_lon_line_t &shell);
 counted_t<const ql::datum_t> construct_geo_polygon(
         const lat_lon_line_t &shell,
-        std::vector<lat_lon_line_t> &holes);
+        const std::vector<lat_lon_line_t> &holes);
 
 /* These functions extract coordinates from GeoJSON objects */
 lat_lon_point_t extract_lat_lon_point(const counted_t<const ql::datum_t> &geojson);
