@@ -510,6 +510,8 @@ counted_t<const datum_t> datum_t::drop_literals(bool *encountered_literal_out) c
                 }
             }
         }
+
+        copied_result = std::move(builder).to_counted();
     }
 
     if (need_to_copy) {
