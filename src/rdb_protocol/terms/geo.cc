@@ -42,7 +42,7 @@ private:
         bool dup = result.add(datum_t::reql_type_string,
                               make_counted<datum_t>(pseudo::geometry_string));
         rcheck(!dup, base_exc_t::GENERIC, "GeoJSON object already had a "
-                                          "$reql_type$ field");
+                                          "$reql_type$ field.");
 
         return new_val(std::move(result).to_counted());
     }
@@ -99,7 +99,7 @@ lat_lon_point_t parse_point_argument(const counted_t<const datum_t> &point_datum
         const std::vector<counted_t<const datum_t> > &point_arr =
             point_datum->as_array();
         rcheck_target(point_datum.get(), base_exc_t::GENERIC, point_arr.size() == 2,
-            strprintf("Expected point coordinate pair. "
+            strprintf("Expected point coordinate pair.  "
                       "Got %zu element array instead of a 2 element one.",
                       point_arr.size()));
         double lat = point_arr[0]->as_num();
@@ -231,7 +231,7 @@ ellipsoid_spec_t pick_reference_ellipsoid(scope_env_t *env, args_t *args) {
             } else {
                 rfail_target(geo_system_arg.get(), base_exc_t::GENERIC,
                              "Unrecognized geo system \"%s\" (valid options: "
-                             "\"WGS84\", \"unit_sphere\")", v.c_str());
+                             "\"WGS84\", \"unit_sphere\").", v.c_str());
             }
         }
     } else {
@@ -309,10 +309,10 @@ private:
         if (num_vertices_arg.has()) {
             int64_t v = num_vertices_arg->as_int();
             rcheck_target(num_vertices_arg.get(), base_exc_t::GENERIC, v > 0,
-                          "num_vertices must be positive");
+                          "num_vertices must be positive.");
             rcheck_target(num_vertices_arg.get(), base_exc_t::GENERIC,
                           v <= std::numeric_limits<unsigned int>::max(),
-                          strprintf("num_vertices is too large (max: %u)",
+                          strprintf("num_vertices is too large (max: %u).",
                                     std::numeric_limits<unsigned int>::max()));
             num_vertices = static_cast<unsigned int>(v);
         }

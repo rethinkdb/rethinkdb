@@ -18,7 +18,7 @@ tests:
   - cd: r.geojson({'coordinates':[0, 0]})
     ot: err('RqlRuntimeError', 'No attribute `type` in object.', [0])
   - cd: r.geojson({'coordinates':[0, 0], 'type':'foo'})
-    ot: err('RqlRuntimeError', 'Unrecognized GeoJSON type foo', [0])
+    ot: err('RqlRuntimeError', 'Unrecognized GeoJSON type `foo`.', [0])
 
   # Unsupported features
   - cd: r.geojson({'coordinates':[0, 0], 'type':'Point', 'crs':null})
@@ -27,4 +27,4 @@ tests:
 #  - js: r.geojson({'coordinates':[0, 0], 'type':'Point', 'crs':{'type':'name', 'properties':{'name':'test'}}})
 #    ot: err('RqlRuntimeError', 'Non-default coordinate reference systems are not supported in GeoJSON objects. Make sure the 'crs' field of the geometry is null or non-existent.', [0])
   - cd: r.geojson({'coordinates':[0, 0], 'type':'MultiPoint'})
-    ot: err('RqlRuntimeError', 'GeoJSON type MultiPoint not supported', [0])
+    ot: err('RqlRuntimeError', 'GeoJSON type `MultiPoint` is not supported.', [0])

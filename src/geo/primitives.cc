@@ -7,6 +7,7 @@
 #include "geo/ellipsoid.hpp"
 #include "geo/exceptions.hpp"
 #include "geo/distances.hpp"
+#include "rdb_protocol/datum.hpp" // For PR_RECONSTRUCTABLE_DOUBLE
 
 
 lat_lon_line_t build_circle(
@@ -22,8 +23,9 @@ lat_lon_line_t build_circle(
     if (radius >= max_radius) {
         throw geo_range_exception_t(
             strprintf("Radius must be smaller than a quarter of the circumference "
-                      "along the minor axis of the reference ellipsoid. "
-                      "Got %f, but must be smaller than %f.",
+                      "along the minor axis of the reference ellipsoid.  "
+                      "Got %" PR_RECONSTRUCTABLE_DOUBLE ", but must be smaller "
+                      "than %" PR_RECONSTRUCTABLE_DOUBLE ".",
                       radius, max_radius));
     }
 

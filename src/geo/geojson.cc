@@ -123,12 +123,12 @@ lat_lon_point_t position_to_lat_lon_point(const counted_t<const datum_t> &positi
     const std::vector<counted_t<const datum_t> > &arr = position->as_array();
     if (arr.size() < 2) {
         throw geo_exception_t(
-            "Too few coordinates. Need at least longitude and latitude.");
+            "Too few coordinates.  Need at least longitude and latitude.");
     }
     if (arr.size() > 3) {
         throw geo_exception_t(
-            strprintf("Too many coordinates. GeoJSON position should have no more than "
-                      "three coordinates, but got %zu", arr.size()));
+            strprintf("Too many coordinates.  GeoJSON position should have no more than "
+                      "three coordinates, but got %zu.", arr.size()));
     }
     if (arr.size() == 3) {
         throw geo_exception_t("A third altitude coordinate in GeoJSON positions "
@@ -203,14 +203,16 @@ S2Point position_to_s2point(const counted_t<const datum_t> &position) {
     // Range checks (or S2 will terminate the process in debug mode).
     if(p.second < -180.0 || p.second > 180.0) {
         throw geo_range_exception_t(
-            strprintf("Longitude must be between -180 and 180. Got %f.", p.second));
+            strprintf("Longitude must be between -180 and 180.  "
+                      "Got %" PR_RECONSTRUCTABLE_DOUBLE ".", p.second));
     }
     if (p.second == 180.0) {
         p.second = -180.0;
     }
     if(p.first < -90.0 || p.first > 90.0) {
         throw geo_range_exception_t(
-            strprintf("Latitude must be between -90 and 90. Got %f.", p.first));
+            strprintf("Latitude must be between -90 and 90.  "
+                      "Got %" PR_RECONSTRUCTABLE_DOUBLE ".", p.first));
     }
 
     S2LatLng lat_lng(S1Angle::Degrees(p.first), S1Angle::Degrees(p.second));
@@ -242,7 +244,7 @@ scoped_ptr_t<S2Polyline> coordinates_to_s2polyline(const counted_t<const datum_t
     }
     if (!S2Polyline::IsValid(points)) {
         throw geo_exception_t(
-            "Invalid LineString. Are there antipodal or duplicate vertices?");
+            "Invalid LineString.  Are there antipodal or duplicate vertices?");
     }
     return make_scoped<S2Polyline>(points);
 }
@@ -269,7 +271,7 @@ scoped_ptr_t<S2Loop> coordinates_to_s2loop(const counted_t<const datum_t> &coord
     // The second argument to IsValid is ignored...
     if (!S2Loop::IsValid(points, points.size())) {
         throw geo_exception_t(
-            "Invalid LinearRing. Are there antipodal or duplicate vertices? "
+            "Invalid LinearRing.  Are there antipodal or duplicate vertices? "
             "Is it self-intersecting?");
     }
     scoped_ptr_t<S2Loop> result(new S2Loop(points));
@@ -320,7 +322,7 @@ scoped_ptr_t<S2Polygon> coordinates_to_s2polygon(const counted_t<const datum_t> 
     builder.AssemblePolygon(result.get(), &unused_edges);
     if (!unused_edges.empty()) {
         throw geo_exception_t(
-            "Some edges in GeoJSON polygon could not be used. Are they intersecting?");
+            "Some edges in GeoJSON polygon could not be used.  Are they intersecting?");
     }
 
     return result;
@@ -332,7 +334,7 @@ void ensure_no_crs(const counted_t<const ql::datum_t> &geojson) {
     if (crs_field.has()) {
         if (crs_field->get_type() != ql::datum_t::R_NULL) {
             throw geo_exception_t("Non-default coordinate reference systems "
-                                  "are not supported in GeoJSON objects. "
+                                  "are not supported in GeoJSON objects.  "
                                   "Make sure the 'crs' field of the geometry is "
                                   "null or non-existent.");
         }

@@ -104,7 +104,7 @@ dist_unit_t parse_dist_unit(const std::string &s) {
     } else if (s == "ft") {
         return dist_unit_t::FT;
     } else {
-        throw geo_exception_t("Unrecognized distance unit: " + s);
+        throw geo_exception_t("Unrecognized distance unit `" + s + "`.");
     }
 }
 
