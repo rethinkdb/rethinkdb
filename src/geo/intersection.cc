@@ -3,9 +3,6 @@
 
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "geo/geojson.hpp"
 #include "geo/geo_visitor.hpp"
 #include "geo/s2/s2.h"
@@ -16,65 +13,50 @@
 using ql::datum_t;
 
 template<class first_t>
-class inner_intersection_tester_t : public s2_geo_visitor_t {
+class inner_intersection_tester_t : public s2_geo_visitor_t<bool> {
 public:
     explicit inner_intersection_tester_t(const first_t *first) : first_(first) { }
 
-    void on_point(const S2Point &point) {
-        result_ = geo_does_intersect(*first_, point);
+    bool on_point(const S2Point &point) {
+        return geo_does_intersect(*first_, point);
     }
-    void on_line(const S2Polyline &line) {
-        result_ = geo_does_intersect(*first_, line);
+    bool on_line(const S2Polyline &line) {
+        return geo_does_intersect(*first_, line);
     }
-    void on_polygon(const S2Polygon &polygon) {
-        result_ = geo_does_intersect(*first_, polygon);
-    }
-
-    bool get_result() {
-        guarantee(result_);
-        return result_.get();
+    bool on_polygon(const S2Polygon &polygon) {
+        return geo_does_intersect(*first_, polygon);
     }
 
 private:
     const first_t *first_;
-    boost::optional<bool> result_;
 };
 
-class intersection_tester_t : public s2_geo_visitor_t {
+class intersection_tester_t : public s2_geo_visitor_t<bool> {
 public:
-    explicit intersection_tester_t(const counted_t<const ql::datum_t> *other) : other_(other) { }
+    explicit intersection_tester_t(const counted_t<const ql::datum_t> *other)
+        : other_(other) { }
 
-    void on_point(const S2Point &point) {
+    bool on_point(const S2Point &point) {
         inner_intersection_tester_t<S2Point> tester(&point);
-        visit_geojson(&tester, *other_);
-        result_ = tester.get_result();
+        return visit_geojson(&tester, *other_);
     }
-    void on_line(const S2Polyline &line) {
+    bool on_line(const S2Polyline &line) {
         inner_intersection_tester_t<S2Polyline> tester(&line);
-        visit_geojson(&tester, *other_);
-        result_ = tester.get_result();
+        return visit_geojson(&tester, *other_);
     }
-    void on_polygon(const S2Polygon &polygon) {
+    bool on_polygon(const S2Polygon &polygon) {
         inner_intersection_tester_t<S2Polygon> tester(&polygon);
-        visit_geojson(&tester, *other_);
-        result_ = tester.get_result();
-    }
-
-    bool get_result() {
-        guarantee(result_);
-        return result_.get();
+        return visit_geojson(&tester, *other_);
     }
 
 private:
     const counted_t<const ql::datum_t> *other_;
-    boost::optional<bool> result_;
 };
 
 bool geo_does_intersect(const counted_t<const ql::datum_t> &g1,
                         const counted_t<const ql::datum_t> &g2) {
     intersection_tester_t tester(&g2);
-    visit_geojson(&tester, g1);
-    return tester.get_result();
+    return visit_geojson(&tester, g1);
 }
 
 bool geo_does_intersect(const S2Point &point,

@@ -7,6 +7,7 @@
 #include "btree/keys.hpp"
 #include "btree/leaf_node.hpp"
 #include "concurrency/interruptor.hpp"
+#include "containers/scoped.hpp"
 #include "geo/exceptions.hpp"
 #include "geo/geojson.hpp"
 #include "geo/geo_visitor.hpp"
@@ -24,28 +25,30 @@ using ql::datum_t;
 //   (...at index creation?)
 extern const int GEO_INDEX_GOAL_GRID_CELLS = 8;
 
-class compute_covering_t : public s2_geo_visitor_t {
+class compute_covering_t : public s2_geo_visitor_t<scoped_ptr_t<std::vector<S2CellId> > > {
 public:
-    compute_covering_t(int goal_cells, std::vector<S2CellId> *result_out) :
-        result_(result_out) {
-
-        rassert(result_->empty());
+    compute_covering_t(int goal_cells) {
         coverer_.set_max_cells(goal_cells);
     }
 
-    void on_point(const S2Point &point) {
-        result_->push_back(S2CellId::FromPoint(point));
+    scoped_ptr_t<std::vector<S2CellId> > on_point(const S2Point &point) {
+        scoped_ptr_t<std::vector<S2CellId> > result(new std::vector<S2CellId>());
+        result->push_back(S2CellId::FromPoint(point));
+        return result;
     }
-    void on_line(const S2Polyline &line) {
-        coverer_.GetCovering(line, result_);
+    scoped_ptr_t<std::vector<S2CellId> > on_line(const S2Polyline &line) {
+        scoped_ptr_t<std::vector<S2CellId> > result(new std::vector<S2CellId>());
+        coverer_.GetCovering(line, result.get());
+        return result;
     }
-    void on_polygon(const S2Polygon &polygon) {
-        coverer_.GetCovering(polygon, result_);
+    scoped_ptr_t<std::vector<S2CellId> > on_polygon(const S2Polygon &polygon) {
+        scoped_ptr_t<std::vector<S2CellId> > result(new std::vector<S2CellId>());
+        coverer_.GetCovering(polygon, result.get());
+        return result;
     }
 
 private:
     S2RegionCoverer coverer_;
-    std::vector<S2CellId> *result_;
 };
 
 std::string s2cellid_to_key(S2CellId id) {
@@ -72,23 +75,21 @@ std::vector<std::string> compute_index_grid_keys(
     rassert(key.has());
 
     if (!key->is_ptype(ql::pseudo::geometry_string)) {
-        throw geo_exception_t("Expected geometry, got " + key->get_type_name());
+        throw geo_exception_t("Expected geometry but found " + key->get_type_name() + ".");
     }
     if (goal_cells <= 0) {
-        throw geo_exception_t("goal_cells must be positive (and should be >= 4)");
+        throw geo_exception_t("goal_cells must be positive (and should be >= 4).");
     }
 
     // Compute a cover of grid cells
-    std::vector<S2CellId> covering;
-    covering.reserve(goal_cells);
-    compute_covering_t coverer(goal_cells, &covering);
-    visit_geojson(&coverer, key);
+    compute_covering_t coverer(goal_cells);
+    scoped_ptr_t<std::vector<S2CellId> > covering = visit_geojson(&coverer, key);
 
     // Generate keys
     std::vector<std::string> result;
-    result.reserve(covering.size());
-    for (size_t i = 0; i < covering.size(); ++i) {
-        result.push_back(s2cellid_to_key(covering[i]));
+    result.reserve(covering->size());
+    for (size_t i = 0; i < covering->size(); ++i) {
+        result.push_back(s2cellid_to_key((*covering)[i]));
     }
 
     return result;

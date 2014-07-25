@@ -16,35 +16,27 @@
 
 using ql::datum_t;
 
-class inclusion_tester_t : public s2_geo_visitor_t {
+class inclusion_tester_t : public s2_geo_visitor_t<bool> {
 public:
     explicit inclusion_tester_t(const S2Polygon *polygon) : polygon_(polygon) { }
 
-    void on_point(const S2Point &g) {
-        result_ = geo_does_include(*polygon_, g);
+    bool on_point(const S2Point &g) {
+        return geo_does_include(*polygon_, g);
     }
-    void on_line(const S2Polyline &g) {
-        result_ = geo_does_include(*polygon_, g);
+    bool on_line(const S2Polyline &g) {
+        return geo_does_include(*polygon_, g);
     }
-    void on_polygon(const S2Polygon &g) {
-        result_ = geo_does_include(*polygon_, g);
+    bool on_polygon(const S2Polygon &g) {
+        return geo_does_include(*polygon_, g);
     }
-
-    bool get_result() {
-        guarantee(result_);
-        return result_.get();
-    }
-
 private:
     const S2Polygon *polygon_;
-    boost::optional<bool> result_;
 };
 
 bool geo_does_include(const S2Polygon &polygon,
                       const counted_t<const ql::datum_t> &g) {
     inclusion_tester_t tester(&polygon);
-    visit_geojson(&tester, g);
-    return tester.get_result();
+    return visit_geojson(&tester, g);
 }
 
 bool geo_does_include(const S2Polygon &polygon,
