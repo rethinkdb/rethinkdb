@@ -6,7 +6,6 @@
 #include <set>
 
 #include "errors.hpp"
-#include <boost/optional.hpp>
 #include <boost/utility/result_of.hpp>
 
 #include "scoped.hpp"
