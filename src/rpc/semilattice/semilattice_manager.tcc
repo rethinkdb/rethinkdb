@@ -223,7 +223,7 @@ void semilattice_manager_t<metadata_t>::root_view_t::sync_from(peer_id_t peer, s
     connectivity_cluster_t::connection_t *connection =
         parent->get_connectivity_cluster()->
             get_connection(peer, &connection_keepalive);
-    if (!connection) {
+    if (connection == NULL) {
         throw sync_failed_exc_t();
     }
 
@@ -263,7 +263,7 @@ void semilattice_manager_t<metadata_t>::root_view_t::sync_to(peer_id_t peer, sig
     connectivity_cluster_t::connection_t *connection =
         parent->get_connectivity_cluster()->
             get_connection(peer, &connection_keepalive);
-    if (!connection) {
+    if (connection == NULL) {
         throw sync_failed_exc_t();
     }
 
@@ -528,7 +528,7 @@ void semilattice_manager_t<metadata_t>::wait_for_version_from_peer(peer_id_t pee
     connectivity_cluster_t::connection_t *connection =
         get_connectivity_cluster()->
             get_connection(peer, &connection_keepalive);
-    if (connection) {
+    if (connection == NULL) {
         throw sync_failed_exc_t();
     }
 
