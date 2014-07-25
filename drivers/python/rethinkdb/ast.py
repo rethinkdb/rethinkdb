@@ -1341,7 +1341,7 @@ def _ivar_scan(query):
 # Called on arguments that should be functions
 def func_wrap(val):
     val = expr(val)
-    if _ivar_scan(val) and not isinstance(val, Args):
+    if _ivar_scan(val):
         return Func(lambda x: val)
     return val
 
