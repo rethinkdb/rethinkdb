@@ -922,7 +922,7 @@ zip_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
 void union_datum_stream_t::add_transformation(transform_variant_t &&tv,
                                               const protob_t<const Backtrace> &bt) {
     for (auto it = streams.begin(); it != streams.end(); ++it) {
-        (*it)->add_transformation(transform_variant_t(std::move(tv)), bt);
+        (*it)->add_transformation(transform_variant_t(tv), bt);
     }
     update_bt(bt);
 }

@@ -31,6 +31,7 @@ class IterableResult
         @_iterations = 0
         @_endFlag = false
         @_contFlag = false
+        @_closeAsap = false
         @_cont = null
         @_cbQueue = []
 
@@ -47,9 +48,26 @@ class IterableResult
 
 
         @_outstandingRequests -= 1
-        @_endFlag = !(response.t is @_type)
+        if response.t isnt @_type
+            # We got an error or a SUCCESS_SEQUENCE
+            @_endFlag = true
+
+            if @_closeCb?
+                switch response.t
+                    when protoResponseType.COMPILE_ERROR
+                        @_closeCb mkErr(err.RqlRuntimeError, response, @_root)
+                    when protoResponseType.CLIENT_ERROR
+                        @_closeCb mkErr(err.RqlRuntimeError, response, @_root)
+                    when protoResponseType.RUNTIME_ERROR
+                        @_closeCb mkErr(err.RqlRuntimeError, response, @_root)
+                    else
+                        @_closeCb()
+
         @_contFlag = false
-        @_promptNext()
+        if @_closeAsap is false
+            @_promptNext()
+        else
+            @close @_closeCb
         @
 
     _getCallback: ->
@@ -160,10 +178,35 @@ class IterableResult
             throw new err.RqlDriverError "First argument to `next` must be a function or undefined."
 
 
-    close: ar () ->
-        unless @_endFlag
-            @_outstandingRequests += 1
-            @_conn._endQuery(@_token)
+    close: varar 0, 1, (cb) ->
+        if typeof cb is 'function'
+            if @_endFlag is true
+                cb()
+            else
+                @_closeCb = cb
+
+                if @_outstandingRequests > 0
+                    @_closeAsap = true
+                else
+                    @_outstandingRequests += 1
+                    @_conn._endQuery(@_token)
+
+        else
+            new Promise (resolve, reject) =>
+                if @_endFlag is true
+                    resolve()
+                else
+                    @_closeCb = (err) ->
+                        if (err)
+                            reject(err)
+                        else
+                            resolve()
+
+                    if @_outstandingRequests > 0
+                        @_closeAsap = true
+                    else
+                        @_outstandingRequests += 1
+                        @_conn._endQuery(@_token)
 
     _each: varar(1, 2, (cb, onFinished) ->
         unless typeof cb is 'function'

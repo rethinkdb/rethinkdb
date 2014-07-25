@@ -62,13 +62,13 @@ class TermBase
         # connection, options, callback
         # connection, null, callback
         # connection, null # return a Promise
-        # 
+        #
         # Depreciated syntaxes are
         # optionsWithConnection, callback
-        
+
         if net.isConnection(connection) is true
             # Handle run(connection, callback)
-            if typeof options is "function" 
+            if typeof options is "function"
                 if callback is undefined
                     callback = options
                     options = {}
@@ -214,7 +214,7 @@ class RDBVal extends TermBase
 
     info: (args...) -> new Info {}, @, args...
     sample: (args...) -> new Sample {}, @, args...
-    
+
     group: (fieldsAndOpts...) ->
         # Default if no opts dict provided
         opts = {}
@@ -497,6 +497,27 @@ class Http extends RDBOp
 class Json extends RDBOp
     tt: protoTermType.JSON
     st: 'json'
+
+class Binary extends RDBVal
+    args: []
+    optargs: {}
+
+    constructor: (data) ->
+        self = super()
+
+        if data instanceof Buffer
+            self.data = data
+            self.base64_data = data.toString("base64")
+        else
+            throw new TypeError("Parameter to `r.binary` must be a Buffer object.")
+
+        return self
+
+    compose: ->
+        return "r.binary('" + @data.toString() + "')"
+
+    build: ->
+        { '$reql_type$': 'BINARY', 'data': @base64_data }
 
 class Args extends RDBOp
     tt: protoTermType.ARGS
@@ -1092,6 +1113,8 @@ rethinkdb.expr = varar 1, 2, (val, nestingDepth=20) ->
         new Func {}, val
     else if val instanceof Date
         new ISO8601 {}, val.toISOString()
+    else if val instanceof Buffer
+        new Binary val
     else if Array.isArray val
         val = (rethinkdb.expr(v, nestingDepth - 1) for v in val)
         new MakeArray {}, val...
@@ -1123,6 +1146,8 @@ rethinkdb.random = (limitsAndOpts...) ->
             limits = limitsAndOpts[0...(limitsAndOpts.length - 1)]
 
         new Random opts, limits...
+
+rethinkdb.binary = ar (data) -> new Binary data
 
 rethinkdb.row = new ImplicitVar {}
 

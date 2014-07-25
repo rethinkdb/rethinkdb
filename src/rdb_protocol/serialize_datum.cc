@@ -1,3 +1,4 @@
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/serialize_datum.hpp"
 
 #include <cmath>
@@ -21,11 +22,12 @@ enum class datum_serialized_type_t {
     R_STR = 6,
     INT_NEGATIVE = 7,
     INT_POSITIVE = 8,
+    R_BINARY = 9,
 };
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(datum_serialized_type_t, int8_t,
                                       datum_serialized_type_t::R_ARRAY,
-                                      datum_serialized_type_t::INT_POSITIVE);
+                                      datum_serialized_type_t::R_BINARY);
 
 void datum_serialize(write_message_t *wm, datum_serialized_type_t type) {
     serialize<cluster_version_t::LATEST_OVERALL>(wm, type);
@@ -149,6 +151,9 @@ size_t datum_serialized_size(const counted_t<const datum_t> &datum) {
     case datum_t::R_ARRAY: {
         sz += datum_serialized_size(datum->as_array());
     } break;
+    case datum_t::R_BINARY: {
+        sz += datum_serialized_size(datum->as_binary());
+    } break;
     case datum_t::R_BOOL: {
         sz += serialize_universal_size_t<bool>::value;
     } break;
@@ -179,6 +184,11 @@ void datum_serialize(write_message_t *wm, const counted_t<const datum_t> &datum)
     case datum_t::R_ARRAY: {
         datum_serialize(wm, datum_serialized_type_t::R_ARRAY);
         const std::vector<counted_t<const datum_t> > &value = datum->as_array();
+        datum_serialize(wm, value);
+    } break;
+    case datum_t::R_BINARY: {
+        datum_serialize(wm, datum_serialized_type_t::R_BINARY);
+        const wire_string_t &value = datum->as_binary();
         datum_serialize(wm, value);
     } break;
     case datum_t::R_BOOL: {
@@ -238,6 +248,19 @@ archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *d
         }
         try {
             datum->reset(new datum_t(std::move(value)));
+        } catch (const base_exc_t &) {
+            return archive_result_t::RANGE_ERROR;
+        }
+    } break;
+    case datum_serialized_type_t::R_BINARY: {
+        scoped_ptr_t<wire_string_t> value;
+        res = datum_deserialize(s, &value);
+        if (bad(res)) {
+            return res;
+        }
+        rassert(value.has());
+        try {
+            *datum = datum_t::binary(std::move(value));
         } catch (const base_exc_t &) {
             return archive_result_t::RANGE_ERROR;
         }

@@ -66,7 +66,7 @@ class Connection extends events.EventEmitter
         # Buffer data, execute return results if need be
         @buffer = Buffer.concat([@buffer, buf])
 
-        while @buffer.length >= 12 
+        while @buffer.length >= 12
             token = @buffer.readUInt32LE(0) + 0x100000000 * @buffer.readUInt32LE(4)
 
             responseLength = @buffer.readUInt32LE(8)

@@ -298,11 +298,12 @@ tests:
     # Comparisons across types
     #  RQL primtive types compare as if mapped to the following numbers
     #   ARRAY:   0
-    #   BOOLEAN: 1
-    #   NULL:    2
-    #   NUMBER:  3
-    #   OBJECT:  4
-    #   STRING:  5
+    #   BINARY:  1
+    #   BOOLEAN: 2
+    #   NULL:    3
+    #   NUMBER:  4
+    #   OBJECT:  5
+    #   STRING:  6
 
     - py: r.expr([]) < True
       js: r([]).lt(true)
@@ -317,6 +318,30 @@ tests:
     - py: r.expr(False) < []
       js: r(false).lt([])
       rb: r(false) < []
+
+    - py: r.expr([]) < r.binary("\xAE")
+      js: r([]).lt(r.binary(Buffer("\x00")))
+      rb: r([]) < r.binary("")
+      ot: true
+
+    - py: r.expr([1,2]) < r.binary("\xAE")
+      js: r([1,2]).lt(r.binary(Buffer("\x00")))
+      rb: r([1,2]) < r.binary("")
+      ot: true
+
+    - py: r.expr(r.binary("\xAE")) < []
+      js: r(r.binary(Buffer("\x00"))).lt([])
+      rb: r(r.binary("")) < []
+      ot: false
+
+    - py: r.binary("0xAE") < True
+      js: r.binary(Buffer("0x00")).lt(true)
+      rb: r.binary("") < true
+      ot: true
+
+    - py: r.binary("0xAE") > False
+      js: r.binary(Buffer("0x00")).gt(false)
+      rb: r.binary("") > false
       ot: false
 
     - py: True < r.expr(None)

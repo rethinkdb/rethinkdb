@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
 #include <algorithm>
@@ -8,6 +8,7 @@
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"
+#include "rdb_protocol/math_utils.hpp"
 
 namespace ql {
 
@@ -32,6 +33,7 @@ static const int FUNC_TYPE = val_t::type_t::FUNC * MAX_TYPE;
 static const int GROUPED_DATA_TYPE = val_t::type_t::GROUPED_DATA * MAX_TYPE;
 
 static const int R_NULL_TYPE = val_t::type_t::DATUM * MAX_TYPE + datum_t::R_NULL;
+static const int R_BINARY_TYPE = val_t::type_t::DATUM * MAX_TYPE + datum_t::R_BINARY;
 static const int R_BOOL_TYPE = val_t::type_t::DATUM * MAX_TYPE + datum_t::R_BOOL;
 static const int R_NUM_TYPE = val_t::type_t::DATUM * MAX_TYPE + datum_t::R_NUM;
 static const int R_STR_TYPE = val_t::type_t::DATUM * MAX_TYPE + datum_t::R_STR;
@@ -53,6 +55,7 @@ public:
         CT_ASSERT(val_t::type_t::GROUPED_DATA < MAX_TYPE);
 
         map["NULL"] = R_NULL_TYPE;
+        map["BINARY"] = R_BINARY_TYPE;
         map["BOOL"] = R_BOOL_TYPE;
         map["NUMBER"] = R_NUM_TYPE;
         map["STRING"] = R_STR_TYPE;
@@ -102,6 +105,7 @@ private:
         }
         switch (t2) {
         case datum_t::R_NULL:
+        case datum_t::R_BINARY:
         case datum_t::R_BOOL:
         case datum_t::R_NUM:
         case datum_t::R_STR:
@@ -162,6 +166,19 @@ private:
             counted_t<const datum_t> d = val->as_datum();
             // DATUM -> DATUM
             if (supertype(end_type) == val_t::type_t::DATUM) {
+                if (start_type == R_BINARY_TYPE && end_type == R_STR_TYPE) {
+                    scoped_ptr_t<wire_string_t> data =
+                        wire_string_t::create_and_init(d->as_binary().size(),
+                                                       d->as_binary().data());
+                    return new_val(make_counted<const datum_t>(std::move(data)));
+                }
+                if (start_type == R_STR_TYPE && end_type == R_BINARY_TYPE) {
+                    scoped_ptr_t<wire_string_t> data =
+                        wire_string_t::create_and_init(d->as_str().size(),
+                                                       d->as_str().data());
+                    return new_val(datum_t::binary(std::move(data)));
+                }
+
                 // DATUM -> STR
                 if (end_type == R_STR_TYPE) {
                     return new_val(make_counted<const datum_t>(d->print()));
@@ -352,6 +369,11 @@ private:
         } break;
 
         case GROUPED_DATA_TYPE: break; // No more info
+
+        case R_BINARY_TYPE: // fallthru
+            b |= info.add("count",
+                          make_counted<datum_t>(
+                              safe_to_double(v->as_datum()->as_binary().size())));
 
         case R_NULL_TYPE:   // fallthru
         case R_BOOL_TYPE:   // fallthru
