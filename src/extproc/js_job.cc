@@ -607,6 +607,10 @@ counted_t<const ql::datum_t> js_to_datum(const v8::Handle<v8::Value> &value, std
 v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum) {
     guarantee(datum.has());
     switch (datum->get_type()) {
+    case ql::datum_t::type_t::R_BINARY:
+        // TODO: In order to support this, we need to link against a static version of
+        // V8, which provides an ArrayBuffer API.
+        crash("`r.binary` data cannot be used in `r.js`.");
     case ql::datum_t::type_t::R_BOOL:
         if (datum->as_bool()) {
             return v8::True();

@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_DATUM_HPP_
 #define RDB_PROTOCOL_DATUM_HPP_
 
@@ -68,14 +68,22 @@ class datum_t : public slow_atomic_countable_t<datum_t> {
 public:
     // This ordering is important, because we use it to sort objects of
     // disparate type.  It should be alphabetical.
-    enum type_t { R_ARRAY = 1, R_BOOL = 2, R_NULL = 3,
-                  R_NUM = 4, R_OBJECT = 5, R_STR = 6 };
+    enum type_t {
+        R_ARRAY = 1,
+        R_BINARY = 2,
+        R_BOOL = 3,
+        R_NULL = 4,
+        R_NUM = 5,
+        R_OBJECT = 6,
+        R_STR = 7
+    };
 
     static counted_t<const datum_t> empty_array();
     static counted_t<const datum_t> empty_object();
     // Constructs a pointer to an R_NULL datum.
     static counted_t<const datum_t> null();
     static counted_t<const datum_t> boolean(bool value);
+    static counted_t<const datum_t> binary(scoped_ptr_t<wire_string_t> value);
 
     // Strongly prefer datum_t::null().
     enum class construct_null_t { };
@@ -93,6 +101,9 @@ public:
     // conversions).  You should prefer datum_t::boolean(..).
     enum class construct_boolean_t { };
     datum_t(construct_boolean_t, bool _bool);
+
+    enum class construct_binary_t { };
+    explicit datum_t(construct_binary_t, scoped_ptr_t<wire_string_t> data);
 
     explicit datum_t(double _num);
     // TODO: Eventually get rid of the std::string constructor (in favor of
@@ -150,6 +161,7 @@ public:
     double as_num() const;
     int64_t as_int() const;
     const wire_string_t &as_str() const;
+    const wire_string_t &as_binary() const;
 
     // Use of `size` and `get` is preferred to `as_array` when possible.
     const std::vector<counted_t<const datum_t> > &as_array() const;
@@ -220,6 +232,7 @@ private:
     void str_to_str_key(std::string *str_out) const;
     void bool_to_str_key(std::string *str_out) const;
     void array_to_str_key(std::string *str_out) const;
+    void binary_to_str_key(std::string *str_out) const;
 
     int pseudo_cmp(const datum_t &rhs) const;
     static const std::set<std::string> _allowed_pts;
@@ -296,7 +309,7 @@ private:
 class datum_array_builder_t {
 public:
     datum_array_builder_t() { }
-    datum_array_builder_t(std::vector<counted_t<const datum_t> > &&v);
+    explicit datum_array_builder_t(std::vector<counted_t<const datum_t> > &&v);
 
     size_t size() const { return vector.size(); }
 

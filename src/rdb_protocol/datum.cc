@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/datum.hpp"
 
 #include <float.h>
@@ -15,6 +15,7 @@
 #include "containers/scoped.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
+#include "rdb_protocol/pseudo_binary.hpp"
 #include "rdb_protocol/pseudo_literal.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
 #include "rdb_protocol/shards.hpp"
@@ -31,6 +32,10 @@ const char *const datum_t::reql_type_string = "$reql_type$";
 datum_t::datum_t(datum_t::construct_null_t) : type(R_NULL) { }
 
 datum_t::datum_t(construct_boolean_t, bool _bool) : type(R_BOOL), r_bool(_bool) { }
+
+datum_t::datum_t(construct_binary_t, scoped_ptr_t<wire_string_t> data)
+    : type(R_BINARY), r_str(data.release()) {
+}
 
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
     // isfinite is a macro on OS X in math.h, so we can't just say std::isfinite.
@@ -104,6 +109,7 @@ datum_t::~datum_t() {
     case R_NULL: // fallthru
     case R_BOOL: // fallthru
     case R_NUM: break;
+    case R_BINARY: // fallthru
     case R_STR: {
         r_sanity_check(r_str != NULL);
         delete r_str;
@@ -134,6 +140,10 @@ counted_t<const datum_t> datum_t::null() {
 
 counted_t<const datum_t> datum_t::boolean(bool value) {
     return make_counted<datum_t>(construct_boolean_t(), value);
+}
+
+counted_t<const datum_t> datum_t::binary(scoped_ptr_t<wire_string_t> data) {
+    return make_counted<datum_t>(construct_binary_t(), std::move(data));
 }
 
 counted_t<const datum_t> to_datum(cJSON *json) {
@@ -226,6 +236,7 @@ std::string datum_t::get_reql_type() const {
 std::string raw_type_name(datum_t::type_t type) {
     switch (type) {
     case datum_t::R_NULL:   return "NULL";
+    case datum_t::R_BINARY: return "BINARY";
     case datum_t::R_BOOL:   return "BOOL";
     case datum_t::R_NUM:    return "NUMBER";
     case datum_t::R_STR:    return "STRING";
@@ -325,6 +336,7 @@ void datum_t::array_to_str_key(std::string *str_out) const {
         switch (item->get_type()) {
         case R_NUM: item->num_to_str_key(str_out); break;
         case R_STR: item->str_to_str_key(str_out); break;
+        case R_BINARY: item->binary_to_str_key(str_out); break;
         case R_BOOL: item->bool_to_str_key(str_out); break;
         case R_ARRAY: item->array_to_str_key(str_out); break;
         case R_OBJECT:
@@ -346,6 +358,12 @@ void datum_t::array_to_str_key(std::string *str_out) const {
     }
 }
 
+void datum_t::binary_to_str_key(std::string *str_out) const {
+    r_sanity_check(type == R_BINARY);
+    str_out->append("BN"); // This needs to sort between 'array':'A' and 'bool':'Bt','Bf'
+    str_out->append(as_binary().data(), as_binary().size());
+}
+
 int datum_t::pseudo_cmp(const datum_t &rhs) const {
     r_sanity_check(is_ptype());
     if (get_reql_type() == pseudo::time_string) {
@@ -357,16 +375,26 @@ int datum_t::pseudo_cmp(const datum_t &rhs) const {
 
 void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
     if (is_ptype()) {
-        if (get_reql_type() == pseudo::time_string) {
+        std::string s = get_reql_type();
+        if (s == pseudo::time_string) {
             pseudo::sanitize_time(this);
             return;
         }
-        if (get_reql_type() == pseudo::literal_string) {
+        if (s == pseudo::literal_string) {
             rcheck(std_contains(allowed_pts, pseudo::literal_string),
                    base_exc_t::GENERIC,
                    "Stray literal keyword found, literal can only be present inside "
                    "merge and cannot nest inside other literals.");
             pseudo::rcheck_literal_valid(this);
+            return;
+        }
+        if (s == pseudo::binary_string) {
+            // Clear the pseudotype data and convert it to binary data
+            scoped_ptr_t<std::map<std::string, counted_t<const datum_t> > > obj_data(r_object);
+            r_object = NULL;
+
+            r_str = pseudo::decode_base64_ptype(*obj_data.get()).release();
+            type = R_BINARY;
             return;
         }
         rfail(base_exc_t::GENERIC,
@@ -463,6 +491,8 @@ counted_t<const datum_t> datum_t::drop_literals(bool *encountered_literal_out) c
                 }
             }
         }
+
+        copied_result = std::move(builder).to_counted();
     }
 
     if (need_to_copy) {
@@ -503,6 +533,7 @@ std::string datum_t::print_primary() const {
     switch (get_type()) {
     case R_NUM: num_to_str_key(&s); break;
     case R_STR: str_to_str_key(&s); break;
+    case R_BINARY: binary_to_str_key(&s); break;
     case R_BOOL: bool_to_str_key(&s); break;
     case R_ARRAY: array_to_str_key(&s); break;
     case R_OBJECT:
@@ -511,7 +542,7 @@ std::string datum_t::print_primary() const {
             break;
         }
         // fallthru
-    case R_NULL: // fallthru
+    case R_NULL:
         type_error(strprintf(
             "Primary keys must be either a number, bool, pseudotype or string "
             "(got type %s):\n%s",
@@ -560,6 +591,8 @@ std::string datum_t::print_secondary(const store_key_t &primary_key,
         num_to_str_key(&secondary_key_string);
     } else if (type == R_STR) {
         str_to_str_key(&secondary_key_string);
+    } else if (type == R_BINARY) {
+        binary_to_str_key(&secondary_key_string);
     } else if (type == R_BOOL) {
         bool_to_str_key(&secondary_key_string);
     } else if (type == R_ARRAY) {
@@ -736,6 +769,11 @@ int64_t datum_t::as_int() const {
     return checked_convert_to_int(&target, as_num());
 }
 
+const wire_string_t &datum_t::as_binary() const {
+    check_type(R_BINARY);
+    return *r_str;
+}
+
 const wire_string_t &datum_t::as_str() const {
     check_type(R_STR);
     return *r_str;
@@ -780,6 +818,7 @@ const std::map<std::string, counted_t<const datum_t> > &datum_t::as_object() con
 cJSON *datum_t::as_json_raw() const {
     switch (get_type()) {
     case R_NULL: return cJSON_CreateNull();
+    case R_BINARY: return pseudo::encode_base64_ptype(as_binary()).release();
     case R_BOOL: return cJSON_CreateBool(as_bool());
     case R_NUM: return cJSON_CreateNumber(as_num());
     case R_STR: return cJSON_CreateString(as_str().c_str());
@@ -807,14 +846,15 @@ scoped_cJSON_t datum_t::as_json() const {
     return scoped_cJSON_t(as_json_raw());
 }
 
-// TODO: make STR and OBJECT convertible to sequence?
+// TODO: make BINARY, STR, and OBJECT convertible to sequence?
 counted_t<datum_stream_t>
 datum_t::as_datum_stream(const protob_t<const Backtrace> &backtrace) const {
     switch (get_type()) {
-    case R_NULL: // fallthru
-    case R_BOOL: // fallthru
-    case R_NUM:  // fallthru
-    case R_STR:  // fallthru
+    case R_NULL:   // fallthru
+    case R_BINARY: // fallthru
+    case R_BOOL:   // fallthru
+    case R_NUM:    // fallthru
+    case R_STR:    // fallthru
     case R_OBJECT: // fallthru
         type_error(strprintf("Cannot convert %s to SEQUENCE",
                              get_type_name().c_str()));
@@ -910,6 +950,7 @@ int datum_t::cmp(const datum_t &rhs) const {
     case R_NULL: return 0;
     case R_BOOL: return derived_cmp(as_bool(), rhs.as_bool());
     case R_NUM: return derived_cmp(as_num(), rhs.as_num());
+    case R_BINARY: return as_binary().compare(rhs.as_binary());
     case R_STR: return as_str().compare(rhs.as_str());
     case R_ARRAY: {
         const std::vector<counted_t<const datum_t> >
@@ -1045,6 +1086,9 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
         switch (get_type()) {
         case R_NULL: {
             d->set_type(Datum::R_NULL);
+        } break;
+        case R_BINARY: {
+            pseudo::write_binary_to_protobuf(d, *r_str);
         } break;
         case R_BOOL: {
             d->set_type(Datum::R_BOOL);
