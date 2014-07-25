@@ -2,8 +2,8 @@
 #include "clustering/administration/metadata.hpp"
 
 #include "clustering/administration/database_metadata.hpp"
-#include "clustering/administration/datacenter_metadata.hpp"
-#include "clustering/administration/machine_metadata.hpp"
+#include "clustering/administration/servers/datacenter_metadata.hpp"
+#include "clustering/administration/servers/machine_metadata.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/cow_ptr_type.hpp"

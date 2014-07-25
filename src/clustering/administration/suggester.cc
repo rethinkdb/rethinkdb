@@ -3,7 +3,7 @@
 
 #include <deque>
 
-#include "clustering/administration/machine_id_to_peer_id.hpp"
+#include "clustering/administration/servers/machine_id_to_peer_id.hpp"
 
 persistable_blueprint_t suggest_blueprint_for_namespace(
         const namespace_semilattice_metadata_t &ns_goals,

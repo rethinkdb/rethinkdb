@@ -1,12 +1,12 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_MACHINE_METADATA_HPP_
-#define CLUSTERING_ADMINISTRATION_MACHINE_METADATA_HPP_
+#ifndef CLUSTERING_ADMINISTRATION_SERVERS_MACHINE_METADATA_HPP_
+#define CLUSTERING_ADMINISTRATION_SERVERS_MACHINE_METADATA_HPP_
 
 #include <map>
 #include <set>
 #include <string>
 
-#include "clustering/administration/datacenter_metadata.hpp"
+#include "clustering/administration/servers/datacenter_metadata.hpp"
 #include "http/json/json_adapter.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/semilattice/joins/map.hpp"
@@ -46,4 +46,4 @@ cJSON *with_ctx_render_as_json(machines_semilattice_metadata_t *target, const vc
 void with_ctx_apply_json_to(cJSON *change, machines_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
 void with_ctx_on_subfield_change(machines_semilattice_metadata_t *, const vclock_ctx_t &);
 
-#endif /* CLUSTERING_ADMINISTRATION_MACHINE_METADATA_HPP_ */
+#endif /* CLUSTERING_ADMINISTRATION_SERVERS_MACHINE_METADATA_HPP_ */

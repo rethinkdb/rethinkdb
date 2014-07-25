@@ -9,12 +9,12 @@
 #include <utility>
 
 // TODO: Probably some of these headers could be moved to the .cc.
-#include "clustering/administration/datacenter_metadata.hpp"
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/log_transfer.hpp"
-#include "clustering/administration/machine_metadata.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
+#include "clustering/administration/servers/datacenter_metadata.hpp"
+#include "clustering/administration/servers/machine_metadata.hpp"
 #include "clustering/administration/stat_manager.hpp"
 #include "clustering/administration/metadata_change_handler.hpp"
 #include "containers/cow_ptr.hpp"

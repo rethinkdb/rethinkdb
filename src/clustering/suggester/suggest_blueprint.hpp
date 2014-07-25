@@ -6,8 +6,8 @@
 #include <set>
 #include <string>
 
-#include "clustering/administration/datacenter_metadata.hpp"
 #include "clustering/administration/persistable_blueprint.hpp"
+#include "clustering/administration/servers/datacenter_metadata.hpp"
 #include "clustering/reactor/metadata.hpp"
 
 class nonoverlapping_regions_t;

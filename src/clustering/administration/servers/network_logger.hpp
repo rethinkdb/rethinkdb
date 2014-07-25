@@ -1,12 +1,12 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_NETWORK_LOGGER_HPP_
-#define CLUSTERING_ADMINISTRATION_NETWORK_LOGGER_HPP_
+#ifndef CLUSTERING_ADMINISTRATION_SERVERS_NETWORK_LOGGER_HPP_
+#define CLUSTERING_ADMINISTRATION_SERVERS_NETWORK_LOGGER_HPP_
 
 #include <map>
 #include <set>
 #include <string>
 
-#include "clustering/administration/machine_metadata.hpp"
+#include "clustering/administration/servers/machine_metadata.hpp"
 #include "clustering/administration/metadata.hpp"
 
 /* This class is responsible for writing log messages when a peer connects or
@@ -37,4 +37,4 @@ private:
     std::set<peer_id_t> connected_proxies;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_NETWORK_LOGGER_HPP_ */
+#endif /* CLUSTERING_ADMINISTRATION_SERVERS_NETWORK_LOGGER_HPP_ */
