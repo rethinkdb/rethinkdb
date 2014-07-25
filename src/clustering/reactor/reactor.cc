@@ -27,14 +27,12 @@ struct collapse_optionals_in_map_t {
             change_tracking_map_t<key_t, value_t> *current_out) {
         guarantee(current_out != NULL);
 
-        if (!subscription.has() || subscription->get_parent() != &map) {
+        bool do_init = false;
+        if (!subscription.has() || !subscription->is_valid(map)) {
             subscription = map.subscribe();
+            do_init = true;
         }
-        boost::optional<const std::set<key_t> &> changed_keys =
-            subscription->get_changed_keys();
-        const bool do_init =
-            current_out->get_current_version() == 0
-            || !changed_keys.is_initialized();
+        guarantee(current_out->get_current_version() != 0 || do_init);
 
         bool anything_changed = false;
         std::set<key_t> keys_to_update;
@@ -46,7 +44,7 @@ struct collapse_optionals_in_map_t {
             }
             anything_changed = true;
         } else {
-            keys_to_update = *changed_keys;
+            keys_to_update = subscription->get_changed_keys(map);
         }
         for (auto it = keys_to_update.begin(); it != keys_to_update.end(); it++) {
             auto existing_it = current_out->get_inner().find(*it);

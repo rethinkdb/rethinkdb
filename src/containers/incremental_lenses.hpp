@@ -10,6 +10,7 @@
 #include <boost/utility/result_of.hpp>
 
 #include "scoped.hpp"
+#include "uuid.hpp"
 
 /* `change_tracking_map_t` is like an `std::map`. However it keeps track
  * of which keys have been modified.
@@ -25,7 +26,7 @@
 template <class key_type, class inner_type>
 class change_tracking_map_t {
 public:
-    change_tracking_map_t() : current_version(0) { }
+    change_tracking_map_t() : current_version(0), uuid(generate_uuid()) { }
 
     // Write operations
     void begin_version() {
@@ -33,26 +34,26 @@ public:
         ++current_version;
     }
     void set_value(const key_type &key, const inner_type &value) {
-        rassert (current_version > 0, "You must call begin_version() before "
+        rassert(current_version > 0, "You must call begin_version() before "
             "performing any changes.");
         changed_keys.insert(key);
         inner[key] = value;
     }
     // Same as above but with move semantics
     void set_value(const key_type &key, inner_type &&value) {
-        rassert (current_version > 0, "You must call begin_version() before "
+        rassert(current_version > 0, "You must call begin_version() before "
             "performing any changes.");
         changed_keys.insert(key);
         inner[key] = std::move(value);
     }
     void delete_value(const key_type &key) {
-        rassert (current_version > 0, "You must call begin_version() before "
+        rassert(current_version > 0, "You must call begin_version() before "
             "performing any changes.");
         changed_keys.insert(key);
         inner.erase(key);
     }
     void clear() {
-        rassert (current_version > 0, "You must call begin_version() before "
+        rassert(current_version > 0, "You must call begin_version() before "
             "performing any changes.");
         for (auto it = inner.begin(); it != inner.end(); ++it) {
             changed_keys.insert(it->first);
@@ -63,30 +64,32 @@ public:
     // Getters
     class subscription_t {
     public:
-        boost::optional<const std::set<key_type> &> get_changed_keys() {
-            // Check if we have missed any changes. If we did, retrieve the
-            // full key set as a safe (but less efficient) fallback.
-            const bool missed_version =
-                parent->get_current_version() != at_version + 1;
-            at_version = parent->get_current_version();
-            if (missed_version) {
-                return boost::optional<const std::set<key_type> &>();
-            } else {
-                return boost::optional<const std::set<key_type> &>(
-                    parent->get_changed_keys());
+        bool is_valid(const change_tracking_map_t &source) {
+            if (source.get_uuid() != source_id) {
+                return false;
             }
+            // Check if we have missed any changes.
+            const bool missed_version =
+                source.get_current_version() != at_version + 1;
+            return !missed_version;
         }
-        const change_tracking_map_t *get_parent() const { return parent; }
+        const std::set<key_type> &get_changed_keys(
+                const change_tracking_map_t &source) {
+            guarantee(is_valid(source));
+            ++at_version;
+            return source.get_changed_keys();
+        }
     private:
         friend class change_tracking_map_t;
         DISABLE_COPYING(subscription_t);
-        explicit subscription_t(const change_tracking_map_t *_parent)
-            : parent(_parent), at_version(0) { }
-        const change_tracking_map_t *parent;
+        explicit subscription_t(const change_tracking_map_t &_source)
+            : source_id(_source.get_uuid()),
+              at_version(_source.get_current_version()) { }
+        const uuid_u source_id;
         unsigned int at_version;
     };
     scoped_ptr_t<subscription_t> subscribe() const {
-        return scoped_ptr_t<subscription_t>(new subscription_t(this));
+        return scoped_ptr_t<subscription_t>(new subscription_t(*this));
     }
     const std::map<key_type, inner_type> &get_inner() const { return inner; }
     unsigned int get_current_version() const { return current_version; }
@@ -95,7 +98,8 @@ public:
     bool operator==(const change_tracking_map_t &o) const {
         return o.current_version == current_version
             && o.changed_keys == changed_keys
-            && o.inner == inner;
+            && o.inner == inner
+            && o.uuid == uuid;
     }
     bool operator!=(const change_tracking_map_t &o) const {
         return !(o == *this);
@@ -104,10 +108,12 @@ public:
 private:
     // Use subscription_t to access this information in a safe way
     const std::set<key_type> &get_changed_keys() const { return changed_keys; }
+    uuid_u get_uuid() const { return uuid; }
 
     std::map<key_type, inner_type> inner;
     std::set<key_type> changed_keys;
     unsigned int current_version;
+    uuid_u uuid;
 };
 
 
@@ -142,14 +148,12 @@ public:
                     result_type *current_out) {
         guarantee(current_out != NULL);
 
-        if (!subscription.has() || subscription->get_parent() != &input) {
+        bool do_init = false;
+        if (!subscription.has() || !subscription->is_valid(input)) {
             subscription = input.subscribe();
+            do_init = true;
         }
-        boost::optional<const std::set<key_type> &> changed_keys =
-            subscription->get_changed_keys();
-        const bool do_init =
-            current_out->get_current_version() == 0
-            || !changed_keys.is_initialized();
+        guarantee(current_out->get_current_version() != 0 || do_init);
 
         bool anything_changed = false;
 
@@ -165,7 +169,9 @@ public:
             anything_changed = true;
         } else {
             // Update changed values only
-            for (auto it = changed_keys->begin(); it != changed_keys->end(); ++it) {
+            const std::set<key_type> &changed_keys =
+                subscription->get_changed_keys(input);
+            for (auto it = changed_keys.begin(); it != changed_keys.end(); ++it) {
                 auto input_value_it = input.get_inner().find(*it);
                 auto existing_it = current_out->get_inner().find(*it);
                 if (input_value_it == input.get_inner().end()) {
