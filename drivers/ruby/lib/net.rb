@@ -28,6 +28,12 @@ module RethinkDB
           raise ArgumentError, "`group_format` must be 'raw' or 'native' (got `#{gf}`)."
         end
       end
+      if (bf = opts[:binary_format])
+        opts[:binary_format] = (bf = bf.to_s)
+        if bf != 'raw' && bf != 'native'
+          raise ArgumentError, "`binary_format` must be 'raw' or 'native' (got `#{bf}`)."
+        end
+      end
       if !c
         raise ArgumentError, "No connection specified!\n" \
         "Use `query.run(conn)` or `conn.repl(); query.run`."

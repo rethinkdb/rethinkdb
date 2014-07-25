@@ -332,12 +332,27 @@ tests:
     - def:
         py: trows_raw = [{'id':[0]},{'id':a},{'id':c},{'id':d},{'id':f},{'id':False},{'id':True},{'id':-500},{'id':500},{'id':''},{'id':'str'}]
         rb: trows_raw = [{:id => [0]},{:id => a},{:id => c},{:id => d},{:id => f},{:id => false},{:id => true},{:id => -500},{:id => 500},{:id => ''},{:id => 'str'}]
-    - cd: tbl.insert(trows)['inserted']
-      js: tbl.insert(trows)('inserted')
+    - py: tbl.insert(trows)['inserted']
+      rb: tbl.insert(trows)['inserted']
       ot: 11
 
-    - cd: tbl.order_by('id')
+    - py: tbl.order_by('id')
+      rb: tbl.order_by('id')
       ot: trows_raw
+
+    - cd: r.db('test').table_drop('datum_binary')
+      ot: ({'dropped':1})
+
+    # Test binary_format optarg
+    - rb: r.binary(b)
+      py: r.binary(b)
+      runopts:
+        binary_format: '"native"'
+      ot: b
+    - cd: r.binary(b)
+      runopts:
+        binary_format: '"raw"'
+      ot: ({'$reql_type$':'BINARY','data':'AAE='})
 
     # Test errors
     # Missing 'data' field
