@@ -8,6 +8,7 @@
 #include "clustering/administration/issues/global.hpp"
 #include "clustering/administration/issues/json.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "rpc/semilattice/view.hpp"
 
 template <class metadata_t> class semilattice_read_view_t;
 

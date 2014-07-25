@@ -36,9 +36,10 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         const std::set<ip_address_t> &local_addresses,
         int port,
         mailbox_manager_t *mbox_manager,
-        metadata_change_handler_t<cluster_semilattice_metadata_t> *_metadata_change_handler,
-        metadata_change_handler_t<auth_semilattice_metadata_t> *_auth_change_handler,
-        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
+        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
+            _cluster_semilattice_metadata,
+        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
+            _auth_semilattice_metadata,
         clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata,
         namespace_repo_t *_rdb_namespace_repo,
         admin_tracker_t *_admin_tracker,
@@ -225,17 +226,22 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
 
     file_app.init(new file_http_app_t(white_list, path));
 
-    cluster_semilattice_app.init(new cluster_semilattice_http_app_t(_metadata_change_handler, _directory_metadata, _us));
-    auth_semilattice_app.init(new auth_semilattice_http_app_t(_auth_change_handler, _directory_metadata, _us));
+    cluster_semilattice_app.init(new cluster_semilattice_http_app_t(
+        _cluster_semilattice_metadata, _directory_metadata, _us));
+    auth_semilattice_app.init(new auth_semilattice_http_app_t(
+        _auth_semilattice_metadata, _directory_metadata, _us));
     directory_app.init(new directory_http_app_t(_directory_metadata));
     issues_app.init(new issues_http_app_t(&_admin_tracker->issue_aggregator));
-    stat_app.init(new stat_http_app_t(mbox_manager, _directory_metadata, _semilattice_metadata));
+    stat_app.init(new stat_http_app_t(mbox_manager, _directory_metadata, _cluster_semilattice_metadata));
     last_seen_app.init(new last_seen_http_app_t(&_admin_tracker->last_seen_tracker));
     log_app.init(new log_http_app_t(mbox_manager,
         _directory_metadata->subview(&get_log_mailbox),
         _directory_metadata->subview(&get_machine_id)));
     progress_app.init(new progress_app_t(_directory_metadata, mbox_manager));
-    distribution_app.init(new distribution_app_t(metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, _semilattice_metadata), _rdb_namespace_repo));
+    distribution_app.init(new distribution_app_t(
+        metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
+            _cluster_semilattice_metadata),
+        _rdb_namespace_repo));
 
 #ifndef NDEBUG
     cyanide_app.init(new cyanide_http_app_t);

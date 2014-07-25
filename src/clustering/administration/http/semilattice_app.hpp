@@ -10,12 +10,13 @@
 
 #include "clustering/administration/metadata.hpp"
 #include "http/json.hpp"
+#include "rpc/semilattice/view.hpp"
 
 template <class metadata_t>
 class semilattice_http_app_t : public http_json_app_t {
 public:
     semilattice_http_app_t(
-        metadata_change_handler_t<metadata_t> *_metadata_change_handler,
+        boost::shared_ptr<semilattice_readwrite_view_t<metadata_t> > _metadata_view,
         const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
         uuid_u _us);
     virtual ~semilattice_http_app_t();
@@ -45,7 +46,7 @@ private:
     namespace_id_t get_resource_namespace(const http_req_t::resource_t &resource) const
         THROWS_ONLY(collect_namespaces_exc_t);
 
-    metadata_change_handler_t<metadata_t> *metadata_change_handler;
+    boost::shared_ptr<semilattice_readwrite_view_t<metadata_t> > metadata_view;
 
     DISABLE_COPYING(semilattice_http_app_t);
 };
@@ -53,7 +54,8 @@ private:
 class cluster_semilattice_http_app_t : public semilattice_http_app_t<cluster_semilattice_metadata_t> {
 public:
     cluster_semilattice_http_app_t(
-        metadata_change_handler_t<cluster_semilattice_metadata_t> *_metadata_change_handler,
+        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
+            _metadata_view,
         const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
         uuid_u _us);
     ~cluster_semilattice_http_app_t();
@@ -66,7 +68,8 @@ private:
 class auth_semilattice_http_app_t : public semilattice_http_app_t<auth_semilattice_metadata_t> {
 public:
     auth_semilattice_http_app_t(
-        metadata_change_handler_t<auth_semilattice_metadata_t> *_metadata_change_handler,
+        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
+            _metadata_view,
         const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
         uuid_u _us);
     ~auth_semilattice_http_app_t();

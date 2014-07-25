@@ -8,6 +8,7 @@
 
 #include "clustering/administration/machine_metadata.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "rpc/semilattice/view.hpp"
 
 /* This class is responsible for writing log messages when a peer connects or
 disconnects from us */

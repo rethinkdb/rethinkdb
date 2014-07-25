@@ -36,9 +36,6 @@ void network_logger_t::on_change() {
                     continue;
                 }
                 switch (it->second.peer_type) {
-                    case ADMIN_PEER: {
-                        break;
-                    }
                     case SERVER_PEER: {
                         _servers_seen->insert(it->second.machine_id);
                         machines_semilattice_metadata_t::machine_map_t::const_iterator jt
