@@ -11,6 +11,8 @@
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/term_walker.hpp"
 
+#include "debug.hpp"
+
 namespace ql {
 
 counted_t<const datum_t> static_optarg(const std::string &key, protob_t<Query> q) {
@@ -74,13 +76,16 @@ global_optargs_t::global_optargs_t() { }
 global_optargs_t::global_optargs_t(std::map<std::string, wire_func_t> _optargs)
     : optargs(_optargs) { }
 
+bool global_optargs_t::has_optarg(const std::string &key) const {
+    return optargs.count(key) > 0;
+}
 counted_t<val_t> global_optargs_t::get_optarg(env_t *env, const std::string &key){
-    if (!optargs.count(key)) {
+    if (!has_optarg(key)) {
         return counted_t<val_t>();
     }
     return optargs[key].compile_wire_func()->call(env);
 }
-const std::map<std::string, wire_func_t> &global_optargs_t::get_all_optargs() {
+const std::map<std::string, wire_func_t> &global_optargs_t::get_all_optargs() const {
     return optargs;
 }
 
@@ -146,7 +151,7 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
              profile::trace_t *_trace)
     : evals_since_yield(0),
       global_optargs(std::move(optargs)),
-      limits(from_optargs(ctx, _interruptor, optargs)),
+      limits(from_optargs(ctx, _interruptor, global_optargs)),
       interruptor(_interruptor),
       trace(_trace),
       rdb_ctx(ctx),

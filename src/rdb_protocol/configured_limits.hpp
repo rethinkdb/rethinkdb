@@ -11,6 +11,7 @@ class signal_t;
 namespace ql {
 
 class wire_func_t;
+class global_optargs_t;
 
 class configured_limits_t {
 public:
@@ -29,7 +30,7 @@ private:
 RDB_SERIALIZE_OUTSIDE(configured_limits_t);
 
 configured_limits_t from_optargs(rdb_context_t *ctx, signal_t *interruptor,
-                                 const std::map<std::string, wire_func_t> &optargs);
+                                 global_optargs_t &optargs);
 
 } // namespace ql
 
