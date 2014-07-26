@@ -12,7 +12,7 @@ usage = "\
   rethinkdb import -d DIR [-c HOST:PORT] [-a AUTH_KEY] [--force]\n\
       [-i (DB | DB.TABLE)] [--clients NUM]\n\
   rethinkdb import -f FILE --table DB.TABLE [-c HOST:PORT] [-a AUTH_KEY]\n\
-      [--force] [--clients NUM] [--format (csv | json)] [--pkey PRIMARY_KEY]\n\
+      [--force] [--clients NUM] [--format (csv | json)] [--json_doc_per_line] [--pkey PRIMARY_KEY]\n\
       [--delimiter CHARACTER] [--custom-header FIELD,FIELD... [--no-header]]"
 
 def print_import_help():
@@ -40,6 +40,7 @@ def print_import_help():
     print "  -f [ --file ] FILE               the file to import data from"
     print "  --table DB.TABLE                 the table to import the data into"
     print "  --format (csv | json)            the format of the file (defaults to json)"
+    print "  --json_doc_per_line              one document per line"
     print "  --pkey PRIMARY_KEY               the field to use as the primary key in the table"
     print ""
     print "Import CSV format:"
@@ -88,6 +89,7 @@ def parse_options():
     # File import options
     parser.add_option("-f", "--file", dest="import_file", metavar="FILE", default=None, type="string")
     parser.add_option("--format", dest="import_format", metavar="json | csv", default=None, type="string")
+    parser.add_option("--json_doc_per_line", dest="json_doc_per_line", action="store_true",  default=False)
     parser.add_option("--table", dest="import_table", metavar="DB.TABLE", default=None, type="string")
     parser.add_option("--pkey", dest="primary_key", metavar="KEY", default = None, type="string")
     parser.add_option("--delimiter", dest="delimiter", metavar="CHARACTER", default = None, type="string")
@@ -117,6 +119,7 @@ def parse_options():
     res["durability"] = "hard" if options.hard else "soft"
     res["force"] = options.force
     res["debug"] = options.debug
+    res["json_doc_per_line"] = options.json_doc_per_line
 
     # Default behavior for csv files - may be changed by options
     res["delimiter"] = ","
@@ -182,6 +185,10 @@ def parse_options():
             raise RuntimeError("Error: Unknown format '%s', valid options are 'csv' and 'json'" % options.import_format)
         else:
             res["import_format"] = options.import_format
+
+        # Verify options of json format
+        if options.import_format != "json" and options.json_doc_per_line:
+            raise RuntimeError("Error: 'json_doc_per_line' is only applicable to json format")
 
         # Verify valid --table option
         if options.import_table is None:
@@ -335,6 +342,16 @@ def read_json_single_object(json_data, file_in, callback):
                 raise
     return json_data
 
+
+def read_json_doc_per_line(json_data, file_in, callback):
+    decoder = json.JSONDecoder()
+
+    for line in file_in:
+        callback(decoder.decode(line))
+
+    return "" # since there is no unread data left
+
+
 def read_json_array(json_data, file_in, callback, progress_info):
     decoder = json.JSONDecoder()
     file_offset = 0
@@ -373,7 +390,7 @@ def read_json_array(json_data, file_in, callback, progress_info):
     json_data += file_in.read()
     return json_data[offset + 1:]
 
-def json_reader(task_queue, filename, db, table, fields, progress_info, exit_event):
+def json_reader(task_queue, filename, db, table, fields, progress_info, exit_event, options):
     object_buffers = []
     buffer_sizes = []
 
@@ -391,7 +408,12 @@ def json_reader(task_queue, filename, db, table, fields, progress_info, exit_eve
         if json_data[offset] == "[":
             json_data = read_json_array(json_data[offset + 1:], file_in, callback, progress_info)
         elif json_data[offset] == "{":
-            json_data = read_json_single_object(json_data[offset:], file_in, callback)
+            # handling for one document per line format
+            if options["json_doc_per_line"]:
+                file_in.seek(0) # reset file to the begining (since a chunk was already read)
+                json_data = read_json_doc_per_line(json_data, file_in, callback)
+            else:
+                json_data = read_json_single_object(json_data[offset:], file_in, callback)
         else:
             raise RuntimeError("Error: JSON format not recognized - file does not begin with an object or array")
 
@@ -470,7 +492,8 @@ def table_reader(options, file_info, task_queue, error_queue, progress_info, exi
                         db, table,
                         options["fields"],
                         progress_info,
-                        exit_event)
+                        exit_event,
+                        options)
         elif file_info["format"] == "csv":
             csv_reader(task_queue,
                        file_info["file"],
