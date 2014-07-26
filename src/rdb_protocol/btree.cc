@@ -893,7 +893,10 @@ THROWS_ONLY(interrupted_exc_t) {
         // Check whether we're out of sindex range.
         counted_t<const ql::datum_t> sindex_val; // NULL if no sindex.
         if (sindex) {
-            sindex_val = sindex->func->call(job.env, val)->as_datum();
+            // Secondary index functions are deterministic (so no need for an
+            // rdb_context_t) and evaluated in a pristine environment.
+            ql::env_t sindex_eval_env(job.env->interruptor);
+            sindex_val = sindex->func->call(&sindex_eval_env, val)->as_datum();
             if (sindex->multi == sindex_multi_bool_t::MULTI
                 && sindex_val->get_type() == ql::datum_t::R_ARRAY) {
                 boost::optional<uint64_t> tag = *ql::datum_t::extract_tag(key);
@@ -1161,9 +1164,8 @@ void rdb_update_single_sindex(
     sindex_multi_bool_t multi;
     deserialize_sindex_info(sindex->sindex.opaque_definition, &mapping, &multi);
 
-    // TODO we have no rdb context here. We should be evaluating a deterministic
-    // function here so it should be a non-issue.  We also don't have any global
-    // optargs affecting evaluation.
+    // Secondary index functions are deterministic (so no need for an rdb_context_t)
+    // and evaluated in a pristine environment.
     cond_t non_interruptor;
     ql::env_t env(&non_interruptor);
 
