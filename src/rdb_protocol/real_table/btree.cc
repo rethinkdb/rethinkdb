@@ -199,6 +199,19 @@ kv_location_set(keyvalue_location_t *kv_location,
     return ql::serialization_result_t::SUCCESS;
 }
 
+MUST_USE counted_t<const ql::datum_t>
+make_replacement_pair(counted_t<const ql::datum_t> old_val, counted_t<const ql::datum_t> new_val) {
+    // in this context, we know the array will have one element.
+    // stats_merge later can impose user preferences.
+    ql::datum_array_builder_t values(ql::configured_limits_t::unlimited);
+    ql::datum_object_builder_t value_pair;
+    bool conflict = value_pair.add("old_val", old_val)
+        || value_pair.add("new_val", new_val);
+    guarantee(!conflict);
+    values.add(std::move(value_pair).to_counted());
+    return std::move(values).to_counted();
+}
+
 batched_replace_response_t rdb_replace_and_return_superblock(
     const btree_loc_info_t &info,
     const btree_point_replacer_t *replacer,
@@ -237,14 +250,14 @@ batched_replace_response_t rdb_replace_and_return_superblock(
         }
         guarantee(old_val.has());
         if (return_vals == RETURN_VALS) {
-            bool conflict = resp.add("old_val", old_val)
-                         || resp.add("new_val", old_val); // changed below
+            // first, fill with the old value.  Then, if `replacer` succeeds, fill with new value.
+            bool conflict = resp.add("values", std::move(make_replacement_pair(old_val, old_val)));
             guarantee(!conflict);
         }
 
         counted_t<const ql::datum_t> new_val = replacer->replace(old_val);
         if (return_vals == RETURN_VALS) {
-            resp.overwrite("new_val", new_val);
+            resp.overwrite("values", std::move(make_replacement_pair(old_val, new_val)));
         }
         if (new_val->get_type() == ql::datum_t::R_NULL) {
             ended_empty = true;
@@ -348,7 +361,9 @@ batched_replace_response_t rdb_replace_and_return_superblock(
         // function will also be interrupted, but we document where it comes
         // from to aid in future debugging if that invariant becomes violated.
     }
-    return std::move(resp).to_counted();
+    counted_t<const ql::datum_t> r = std::move(resp).to_counted();
+    debugf("Saw response %s from rdb_replace...\n", r->trunc_print().c_str());
+    return r; // std::move(resp).to_counted();
 }
 
 

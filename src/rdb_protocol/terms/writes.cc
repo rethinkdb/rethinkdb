@@ -8,6 +8,8 @@
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/op.hpp"
 
+#include "debug.hpp"
+
 namespace ql {
 
 // Use this merge if it should theoretically never be called.
@@ -115,15 +117,15 @@ private:
                 counted_t<const datum_t> replace_stats = t->batched_insert(
                     env->env, std::move(datums), conflict_behavior,
                     durability_requirement, return_vals);
+                debugf("Merging %s and %s\n", stats->trunc_print().c_str(), replace_stats->trunc_print().c_str());
                 stats = stats->merge(replace_stats, stats_merge, env->env->limits);
+                debugf("Got %s\n", stats->trunc_print().c_str());
                 done = true;
             }
         }
 
         if (!done) {
             counted_t<datum_stream_t> datum_stream = v1->as_seq(env->env);
-            rcheck(!return_vals, base_exc_t::GENERIC,
-                   "Optarg RETURN_VALS is invalid for multi-row inserts.");
 
             batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
             for (;;) {
@@ -233,9 +235,6 @@ private:
                 = v0->as_selection(env->env);
             counted_t<table_view_t> tbl = tblrows.first;
             counted_t<datum_stream_t> ds = tblrows.second;
-
-            rcheck(!return_vals, base_exc_t::GENERIC,
-                   "Optarg RETURN_VALS is invalid for multi-row modifications.");
 
             batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
             for (;;) {
