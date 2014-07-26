@@ -345,7 +345,7 @@ def read_json_array(json_data, file_in, callback, progress_info,
             offset = json.decoder.WHITESPACE.match(json_data, offset).end()
 
             if (
-                    (len(json_data[offset:]) == 0) or
+                    (not json_array and json_data[offset]) != "{") or
                     (json_array and json_data[offset] == "]")): # End of JSON
                 break
 
