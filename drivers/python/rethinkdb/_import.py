@@ -344,10 +344,8 @@ def read_json_array(json_data, file_in, callback, progress_info,
         try:
             offset = json.decoder.WHITESPACE.match(json_data, offset).end()
 
-            if (
-                    (not json_array and json_data[offset]) != "{") or
-                    (json_array and json_data[offset] == "]")): # End of JSON
-                break
+            if json_array and json_data[offset] == "]":
+                break  # End of JSON
 
             (obj, offset) = decoder.raw_decode(json_data, idx=offset)
             callback(obj)
@@ -368,6 +366,8 @@ def read_json_array(json_data, file_in, callback, progress_info,
             json_data += file_in.read(json_read_chunk_size)
             if json_array and json_data[offset] == ",":
                 offset = json.decoder.WHITESPACE.match(json_data, offset + 1).end()
+            elif (not json_array) and before_len == len(json_data):
+                break  # End of JSON
             elif before_len == len(json_data) or len(json_data) > json_max_buffer_size:
                 raise
             progress_info[0].value = file_offset
