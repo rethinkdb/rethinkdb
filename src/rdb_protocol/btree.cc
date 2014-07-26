@@ -894,7 +894,8 @@ THROWS_ONLY(interrupted_exc_t) {
         counted_t<const ql::datum_t> sindex_val; // NULL if no sindex.
         if (sindex) {
             // Secondary index functions are deterministic (so no need for an
-            // rdb_context_t) and evaluated in a pristine environment.
+            // rdb_context_t) and evaluated in a pristine environment (without global
+            // optargs).
             ql::env_t sindex_eval_env(job.env->interruptor);
             sindex_val = sindex->func->call(&sindex_eval_env, val)->as_datum();
             if (sindex->multi == sindex_multi_bool_t::MULTI
@@ -1165,7 +1166,7 @@ void rdb_update_single_sindex(
     deserialize_sindex_info(sindex->sindex.opaque_definition, &mapping, &multi);
 
     // Secondary index functions are deterministic (so no need for an rdb_context_t)
-    // and evaluated in a pristine environment.
+    // and evaluated in a pristine environment (without global optargs).
     cond_t non_interruptor;
     ql::env_t env(&non_interruptor);
 
