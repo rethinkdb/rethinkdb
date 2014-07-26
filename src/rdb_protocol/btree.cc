@@ -896,8 +896,8 @@ THROWS_ONLY(interrupted_exc_t) {
             // Secondary index functions are deterministic (so no need for an
             // rdb_context_t) and evaluated in a pristine environment (without global
             // optargs).
-            ql::env_t sindex_eval_env(job.env->interruptor);
-            sindex_val = sindex->func->call(&sindex_eval_env, val)->as_datum();
+            ql::env_t sindex_env(job.env->interruptor);
+            sindex_val = sindex->func->call(&sindex_env, val)->as_datum();
             if (sindex->multi == sindex_multi_bool_t::MULTI
                 && sindex_val->get_type() == ql::datum_t::R_ARRAY) {
                 boost::optional<uint64_t> tag = *ql::datum_t::extract_tag(key);
@@ -1108,11 +1108,17 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
 }
 
 void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> doc,
-                  ql::map_wire_func_t *mapping, sindex_multi_bool_t multi, ql::env_t *env,
+                  ql::map_wire_func_t *mapping, sindex_multi_bool_t multi,
                   std::vector<store_key_t> *keys_out) {
     guarantee(keys_out->empty());
+
+    // Secondary index functions are deterministic (so no need for an rdb_context_t)
+    // and evaluated in a pristine environment (without global optargs).
+    cond_t non_interruptor;
+    ql::env_t sindex_env(&non_interruptor);
+
     counted_t<const ql::datum_t> index =
-        mapping->compile_wire_func()->call(env, doc)->as_datum();
+        mapping->compile_wire_func()->call(&sindex_env, doc)->as_datum();
 
     if (multi == sindex_multi_bool_t::MULTI && index->get_type() == ql::datum_t::R_ARRAY) {
         for (uint64_t i = 0; i < index->size(); ++i) {
@@ -1165,10 +1171,9 @@ void rdb_update_single_sindex(
     sindex_multi_bool_t multi;
     deserialize_sindex_info(sindex->sindex.opaque_definition, &mapping, &multi);
 
-    // Secondary index functions are deterministic (so no need for an rdb_context_t)
-    // and evaluated in a pristine environment (without global optargs).
-    cond_t non_interruptor;
-    ql::env_t env(&non_interruptor);
+    // TODO(2014-08): Actually get real profiling information for
+    // secondary index updates.
+    profile::trace_t *const trace = nullptr;
 
     superblock_t *super_block = sindex->super_block.get();
 
@@ -1179,20 +1184,22 @@ void rdb_update_single_sindex(
 
             std::vector<store_key_t> keys;
 
-            compute_keys(modification->primary_key, deleted, &mapping, multi, &env, &keys);
+            compute_keys(modification->primary_key, deleted, &mapping, multi, &keys);
 
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
                 {
                     keyvalue_location_t kv_location;
                     rdb_value_sizer_t sizer(super_block->cache()->max_block_size());
+
+
                     find_keyvalue_location_for_write(&sizer,
                                                      super_block,
                                                      it->btree_key(),
                                                      deletion_context->balancing_detacher(),
                                                      &kv_location,
                                                      &sindex->btree->stats,
-                                                     env.trace,
+                                                     trace,
                                                      &return_superblock_local);
 
                     if (kv_location.value.has()) {
@@ -1219,7 +1226,7 @@ void rdb_update_single_sindex(
 
             std::vector<store_key_t> keys;
 
-            compute_keys(modification->primary_key, added, &mapping, multi, &env, &keys);
+            compute_keys(modification->primary_key, added, &mapping, multi, &keys);
 
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
@@ -1233,7 +1240,7 @@ void rdb_update_single_sindex(
                                                      deletion_context->balancing_detacher(),
                                                      &kv_location,
                                                      &sindex->btree->stats,
-                                                     env.trace,
+                                                     trace,
                                                      &return_superblock_local);
 
                     ql::serialization_result_t res =
