@@ -17,12 +17,6 @@
 
 namespace ql {
 
-void check_is_geometry(const counted_t<val_t> &v) {
-    rcheck_target(v.get(), base_exc_t::GENERIC,
-                  v->as_datum()->is_ptype(pseudo::geometry_string),
-                  "Value must be of geometry type.");
-}
-
 class geojson_term_t : public op_term_t {
 public:
     geojson_term_t(compile_env_t *env, const protob_t<const Term> &term)
@@ -56,9 +50,8 @@ public:
 private:
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> v = args->arg(env, 0);
-        check_is_geometry(v);
 
-        datum_object_builder_t result(v->as_datum()->as_object());
+        datum_object_builder_t result(v->as_ptype(pseudo::geometry_string)->as_object());
         bool success = result.delete_field(datum_t::reql_type_string);
         r_sanity_check(success);
         return new_val(std::move(result).to_counted());
@@ -169,11 +162,10 @@ private:
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> g1 = args->arg(env, 0);
         counted_t<val_t> g2 = args->arg(env, 1);
-        check_is_geometry(g1);
-        check_is_geometry(g2);
 
         try {
-            bool result = geo_does_intersect(g1->as_datum(), g2->as_datum());
+            bool result = geo_does_intersect(g1->as_ptype(pseudo::geometry_string),
+                                             g2->as_ptype(pseudo::geometry_string));
 
             return new_val(make_counted<const datum_t>(
                 datum_t::construct_boolean_t(), result));
@@ -192,12 +184,12 @@ private:
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> polygon = args->arg(env, 0);
         counted_t<val_t> g = args->arg(env, 1);
-        check_is_geometry(polygon);
-        check_is_geometry(g);
 
         try {
-            scoped_ptr_t<S2Polygon> s2polygon = to_s2polygon(polygon->as_datum());
-            bool result = geo_does_include(*s2polygon, g->as_datum());
+            scoped_ptr_t<S2Polygon> s2polygon =
+                to_s2polygon(polygon->as_ptype(pseudo::geometry_string));
+            bool result =
+                geo_does_include(*s2polygon, g->as_ptype(pseudo::geometry_string));
 
             return new_val(
                 make_counted<const datum_t>(datum_t::construct_boolean_t(), result));
@@ -256,8 +248,6 @@ private:
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> g1_arg = args->arg(env, 0);
         counted_t<val_t> g2_arg = args->arg(env, 1);
-        check_is_geometry(g1_arg);
-        check_is_geometry(g2_arg);
 
         try {
             ellipsoid_spec_t reference_ellipsoid = pick_reference_ellipsoid(env, args);
@@ -268,14 +258,16 @@ private:
             S2Point p;
             counted_t<const datum_t> g;
             try {
-                scoped_ptr_t<S2Point> ptr = to_s2point(g1_arg->as_datum());
+                scoped_ptr_t<S2Point> ptr =
+                    to_s2point(g1_arg->as_ptype(pseudo::geometry_string));
                 p = *ptr;
-                g = g2_arg->as_datum();
+                g = g2_arg->as_ptype(pseudo::geometry_string);
             } catch (const geo_exception_t &e) {
                 // Try the other argument
-                scoped_ptr_t<S2Point> ptr = to_s2point(g2_arg->as_datum());
+                scoped_ptr_t<S2Point> ptr =
+                    to_s2point(g2_arg->as_ptype(pseudo::geometry_string));
                 p = *ptr;
-                g = g1_arg->as_datum();
+                g = g1_arg->as_ptype(pseudo::geometry_string);
             }
 
             double result = geodesic_distance(p, g, reference_ellipsoid);
@@ -350,15 +342,15 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
         counted_t<val_t> query_arg = args->arg(env, 1);
-        check_is_geometry(query_arg);
         counted_t<val_t> index = args->optarg(env, "index");
         if (!index.has()) {
             rfail(base_exc_t::GENERIC, "get_intersecting requires an index argument.");
         }
         std::string index_str = index->as_str().to_std();
 
-        counted_t<datum_stream_t> stream =
-            table->get_intersecting(env->env, query_arg->as_datum(), index_str, backtrace());
+        counted_t<datum_stream_t> stream = table->get_intersecting(
+            env->env, query_arg->as_ptype(pseudo::geometry_string), index_str,
+            backtrace());
         return new_val(stream, table);
     }
     virtual const char *name() const { return "get_intersecting"; }
@@ -371,9 +363,9 @@ public:
 private:
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> l_arg = args->arg(env, 0);
-        check_is_geometry(l_arg);
         try {
-            const lat_lon_line_t shell = extract_lat_lon_line(l_arg->as_datum());
+            const lat_lon_line_t shell =
+                extract_lat_lon_line(l_arg->as_ptype(pseudo::geometry_string));
 
             const counted_t<const datum_t> result = construct_geo_polygon(shell);
             validate_geojson(result);
