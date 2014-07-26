@@ -1161,10 +1161,9 @@ void rdb_update_single_sindex(
     sindex_multi_bool_t multi;
     deserialize_sindex_info(sindex->sindex.opaque_definition, &mapping, &multi);
 
-    // TODO we have no rdb context here. People should not be able to do anything
-    // that requires an environment like gets from other tables etc. but we don't
-    // have a nice way to disallow those things so for now we pass null and it will
-    // segfault if an illegal sindex mapping is passed.
+    // TODO we have no rdb context here. We should be evaluating a deterministic
+    // function here so it should be a non-issue.  We also don't have any global
+    // optargs affecting evaluation.
     cond_t non_interruptor;
     ql::env_t env(&non_interruptor);
 
