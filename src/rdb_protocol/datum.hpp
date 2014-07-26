@@ -231,7 +231,16 @@ private:
     // happen during construction
     class data_wrapper_t {
     public:
-        data_wrapper_t(type_t _type);
+        // Mirror the same constructors of datum_t
+        explicit data_wrapper_t(type_t _type);
+        data_wrapper_t(type_t _type, bool _bool);
+        data_wrapper_t(type_t _type, scoped_ptr_t<wire_string_t> data);
+        explicit data_wrapper_t(double num);
+        explicit data_wrapper_t(std::string &&str);
+        explicit data_wrapper_t(scoped_ptr_t<wire_string_t> str);
+        explicit data_wrapper_t(const char *cstr);
+        explicit data_wrapper_t(std::vector<counted_t<const datum_t> > &&array);
+        data_wrapper_t(std::map<std::string, counted_t<const datum_t> > &&object);
         ~data_wrapper_t();
 
         type_t type;
@@ -242,6 +251,8 @@ private:
             std::vector<counted_t<const datum_t> > *r_array;
             std::map<std::string, counted_t<const datum_t> > *r_object;
         };
+    private:
+        DISABLE_COPYING(data_wrapper_t);
     } data;
 
 public:

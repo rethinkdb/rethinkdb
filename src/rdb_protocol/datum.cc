@@ -28,8 +28,37 @@ const std::set<std::string> datum_t::_allowed_pts = std::set<std::string>();
 
 const char* const datum_t::reql_type_string = "$reql_type$";
 
-datum_t::data_wrapper_t::data_wrapper_t(datum_t::type_t _type) :
+datum_t::data_wrapper_t::data_wrapper_t(type_t _type) :
     type(_type), r_str(NULL) { }
+
+datum_t::data_wrapper_t::data_wrapper_t(type_t _type, bool _bool) :
+    type(R_BOOL),
+    r_bool(_bool) {
+    r_sanity_check(_type == R_BOOL);
+}
+
+datum_t::data_wrapper_t::data_wrapper_t(double num) :
+    type(R_NUM), r_num(num) { }
+
+datum_t::data_wrapper_t::data_wrapper_t(std::string &&str) :
+    type(R_STR),
+    r_str(wire_string_t::create_and_init(str.size(), str.data()).release()) { }
+
+datum_t::data_wrapper_t::data_wrapper_t(scoped_ptr_t<wire_string_t> str) :
+    type(R_STR), r_str(str.release()) { }
+
+datum_t::data_wrapper_t::data_wrapper_t(const char *cstr) :
+    type(R_STR),
+    r_str(wire_string_t::create_and_init(::strlen(cstr), cstr).release()) { }
+
+datum_t::data_wrapper_t::data_wrapper_t(std::vector<counted_t<const datum_t> > &&array) :
+    type(R_ARRAY),
+    r_array(new std::vector<counted_t<const datum_t> >(std::move(array))) { }
+
+datum_t::data_wrapper_t::data_wrapper_t(std::map<std::string,
+                                                 counted_t<const datum_t> > &&object) :
+    type(R_OBJECT),
+    r_object(new std::map<std::string, counted_t<const datum_t> >(std::move(object))) { }
 
 datum_t::data_wrapper_t::~data_wrapper_t() {
     switch (type) {
@@ -50,46 +79,34 @@ datum_t::data_wrapper_t::~data_wrapper_t() {
     }
 }
 
-datum_t::datum_t(type_t _type, bool _bool) : data(_type) {
-    data.r_bool = _bool;
+datum_t::datum_t(type_t _type, bool _bool) : data(_type, _bool) {
     r_sanity_check(_type == R_BOOL);
 }
 
-datum_t::datum_t(double _num) : data(R_NUM) {
-    data.r_num = _num;
+datum_t::datum_t(double _num) : data(_num) {
     // so we can use `isfinite` in a GCC 4.4.3-compatible way
-    using namespace std; // NOLINT(build/namespaces)
+    using namespace std;
     rcheck(isfinite(data.r_num), base_exc_t::GENERIC,
            strprintf("Non-finite number: %" PR_RECONSTRUCTABLE_DOUBLE, data.r_num));
 }
 
-datum_t::datum_t(std::string &&_str)
-    : data(R_STR) {
-    data.r_str = wire_string_t::create_and_init(_str.size(), _str.data()).release();
+datum_t::datum_t(std::string &&_str) : data(std::move(_str)) {
     check_str_validity(data.r_str);
 }
 
-datum_t::datum_t(scoped_ptr_t<wire_string_t> str)
-    : data(R_STR) {
-    data.r_str = str.release();
+datum_t::datum_t(scoped_ptr_t<wire_string_t> str) : data(std::move(str)) {
     check_str_validity(data.r_str);
 }
 
-datum_t::datum_t(const char *cstr)
-    : data(R_STR) {
-    data.r_str = wire_string_t::create_and_init(::strlen(cstr), cstr).release();
-}
+datum_t::datum_t(const char *cstr) : data(cstr) { }
 
 datum_t::datum_t(std::vector<counted_t<const datum_t> > &&_array)
-    : data(R_ARRAY) {
-    data.r_array = new std::vector<counted_t<const datum_t> >(std::move(_array));
+    : data(std::move(_array)) {
     rcheck_array_size(*data.r_array, base_exc_t::GENERIC);
 }
 
 datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object)
-    : data(R_OBJECT) {
-    data.r_object = new std::map<std::string, counted_t<const datum_t> >(
-        std::move(_object));
+    : data(std::move(_object)) {
     maybe_sanitize_ptype();
 }
 
