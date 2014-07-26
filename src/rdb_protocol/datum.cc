@@ -29,8 +29,38 @@ const std::set<std::string> datum_t::_allowed_pts = std::set<std::string>();
 
 const char *const datum_t::reql_type_string = "$reql_type$";
 
-datum_t::data_wrapper_t::data_wrapper_t(datum_t::type_t _type) :
-    type(_type), r_str(NULL) { }
+datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_null_t) :
+    type(R_NULL), r_str(NULL) { }
+
+datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_boolean_t, bool _bool) :
+    type(R_BOOL), r_bool(_bool) { }
+
+datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_binary_t,
+                                        scoped_ptr_t<wire_string_t> data) :
+    type(R_BINARY), r_str(data.release()) { }
+
+datum_t::data_wrapper_t::data_wrapper_t(double num) :
+    type(R_NUM), r_num(num) { }
+
+datum_t::data_wrapper_t::data_wrapper_t(std::string &&str) :
+    type(R_STR),
+    r_str(wire_string_t::create_and_init(str.size(), str.data()).release()) { }
+
+datum_t::data_wrapper_t::data_wrapper_t(scoped_ptr_t<wire_string_t> str) :
+    type(R_STR), r_str(str.release()) { }
+
+datum_t::data_wrapper_t::data_wrapper_t(const char *cstr) :
+    type(R_STR),
+    r_str(wire_string_t::create_and_init(::strlen(cstr), cstr).release()) { }
+
+datum_t::data_wrapper_t::data_wrapper_t(std::vector<counted_t<const datum_t> > &&array) :
+    type(R_ARRAY),
+    r_array(new std::vector<counted_t<const datum_t> >(std::move(array))) { }
+
+datum_t::data_wrapper_t::data_wrapper_t(std::map<std::string,
+                                                 counted_t<const datum_t> > &&object) :
+    type(R_OBJECT),
+    r_object(new std::map<std::string, counted_t<const datum_t> >(std::move(object))) { }
 
 datum_t::data_wrapper_t::~data_wrapper_t() {
     switch (type) {
@@ -51,69 +81,48 @@ datum_t::data_wrapper_t::~data_wrapper_t() {
     }
 }
 
-datum_t::datum_t(datum_t::construct_null_t) : data(R_NULL) { }
+datum_t::datum_t(datum_t::construct_null_t dummy) : data(dummy) { }
 
-datum_t::datum_t(construct_boolean_t, bool _bool) : data(R_BOOL) {
-    data.r_bool = _bool;
-}
+datum_t::datum_t(construct_boolean_t dummy, bool _bool) : data(dummy, _bool) { }
 
-datum_t::datum_t(construct_binary_t, scoped_ptr_t<wire_string_t> _data)
-    : data(R_BINARY) {
-    data.r_str = _data.release();
-}
+datum_t::datum_t(construct_binary_t dummy, scoped_ptr_t<wire_string_t> _data)
+    : data(dummy, std::move(_data)) { }
 
-datum_t::datum_t(double _num) : data(R_NUM) {
+datum_t::datum_t(double _num) : data(_num) {
     // isfinite is a macro on OS X in math.h, so we can't just say std::isfinite.
-    data.r_num = _num;
     using namespace std;
     rcheck(isfinite(data.r_num), base_exc_t::GENERIC,
            strprintf("Non-finite number: %" PR_RECONSTRUCTABLE_DOUBLE, data.r_num));
 }
 
-datum_t::datum_t(std::string &&_str)
-    : data(R_STR) {
-    data.r_str = wire_string_t::create_and_init(_str.size(), _str.data()).release();
+datum_t::datum_t(std::string &&_str) : data(std::move(_str)) {
     check_str_validity(data.r_str);
 }
 
-datum_t::datum_t(scoped_ptr_t<wire_string_t> str)
-    : data(R_STR) {
-    data.r_str = str.release();
+datum_t::datum_t(scoped_ptr_t<wire_string_t> str) : data(std::move(str)) {
     check_str_validity(data.r_str);
 }
 
-datum_t::datum_t(const char *cstr)
-    : data(R_STR) {
-    data.r_str = wire_string_t::create_and_init(::strlen(cstr), cstr).release();
-}
+datum_t::datum_t(const char *cstr) : data(cstr) { }
 
 datum_t::datum_t(std::vector<counted_t<const datum_t> > &&_array,
                  const configured_limits_t &limits)
-    : data(R_ARRAY) {
-    data.r_array = new std::vector<counted_t<const datum_t> >(std::move(_array));
+    : data(std::move(_array)) {
     rcheck_array_size(*data.r_array, limits, base_exc_t::GENERIC);
 }
 
 datum_t::datum_t(std::vector<counted_t<const datum_t> > &&_array,
-                 no_array_size_limit_check_t)
-    : data(R_ARRAY) {
-    data.r_array = new std::vector<counted_t<const datum_t> >(std::move(_array));
-}
+                 no_array_size_limit_check_t) : data(std::move(_array)) { }
 
 datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object,
                  const std::set<std::string> &allowed_pts)
-    : data(R_OBJECT) {
-    data.r_object = new std::map<std::string, counted_t<const datum_t> >(
-        std::move(_object));
+    : data(std::move(_object)) {
     maybe_sanitize_ptype(allowed_pts);
 }
 
 datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object,
                  no_sanitize_ptype_t)
-    : data(R_OBJECT) {
-    data.r_object = new std::map<std::string, counted_t<const datum_t> >(
-        std::move(_object));
-}
+    : data(std::move(_object)) { }
 
 counted_t<const datum_t> to_datum(grouped_data_t &&gd,
                                   const configured_limits_t &limits) {
