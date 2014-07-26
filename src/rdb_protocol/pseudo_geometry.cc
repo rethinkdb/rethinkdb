@@ -6,6 +6,7 @@
 #include "geo/inclusion.hpp"
 #include "geo/lat_lon_types.hpp"
 #include "geo/s2/s2polygon.h"
+#include "rdb_protocol/configured_limits.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"
 
@@ -15,7 +16,8 @@ namespace pseudo {
 const char *const geometry_string = "GEOMETRY";
 
 counted_t<const datum_t> geo_sub(counted_t<const datum_t> lhs,
-                                 counted_t<const datum_t> rhs) {
+                                 counted_t<const datum_t> rhs,
+                                 const configured_limits_t &limits) {
     rcheck_target(lhs.get(), base_exc_t::GENERIC, lhs->is_ptype(geometry_string),
                   "Value must be of geometry type.");
     rcheck_target(rhs.get(), base_exc_t::GENERIC, rhs->is_ptype(geometry_string),
@@ -53,7 +55,8 @@ counted_t<const datum_t> geo_sub(counted_t<const datum_t> lhs,
     std::vector<counted_t <const datum_t> > coordinates =
         lhs->get("coordinates")->as_array();
     coordinates.push_back(rhs->get("coordinates")->get(0));
-    dup = result.add("coordinates", make_counted<datum_t>(std::move(coordinates)));
+    dup = result.add("coordinates",
+                     make_counted<datum_t>(std::move(coordinates), limits));
     r_sanity_check(!dup);
     counted_t<const datum_t> result_counted = std::move(result).to_counted();
     validate_geojson(result_counted);

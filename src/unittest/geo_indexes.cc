@@ -13,6 +13,7 @@
 #include "geo/lat_lon_types.hpp"
 #include "geo/intersection.hpp"
 #include "geo/primitives.hpp"
+#include "rdb_protocol/configured_limits.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/minidriver.hpp"
@@ -30,7 +31,7 @@ namespace unittest {
 counted_t<const datum_t> generate_point() {
     double lat = randdouble() * 180.0 - 90.0;
     double lon = randdouble() * 360.0 - 180.0;
-    return construct_geo_point(lat_lon_point_t(lat, lon));
+    return construct_geo_point(lat_lon_point_t(lat, lon), ql::configured_limits_t());
 }
 
 counted_t<const datum_t> generate_line() {
@@ -58,7 +59,8 @@ counted_t<const datum_t> generate_line() {
         l.push_back(lat_lon_point_t(lat, lon));
     }
     try {
-        counted_t<const datum_t> res = construct_geo_point(lat_lon_point_t(lat, lon));
+        counted_t<const datum_t> res =
+            construct_geo_point(lat_lon_point_t(lat, lon), ql::configured_limits_t());
         validate_geojson(res);
         return res;
     } catch (const geo_exception_t &e) {
@@ -92,7 +94,8 @@ counted_t<const datum_t> generate_polygon() {
         holes.push_back(hole);
     }
     try {
-        counted_t<const datum_t> res = construct_geo_polygon(shell, holes);
+        counted_t<const datum_t> res =
+            construct_geo_polygon(shell, holes, ql::configured_limits_t());
         validate_geojson(res);
         return res;
     } catch (const geo_exception_t &e) {
@@ -127,7 +130,8 @@ void insert_data(namespace_interface_t *nsi,
         write_t write(
             point_write_t(pk, data[i]),
             DURABILITY_REQUIREMENT_SOFT,
-            profile_bool_t::PROFILE);
+            profile_bool_t::PROFILE,
+            ql::configured_limits_t());
         write_response_t response;
 
         cond_t interruptor;
@@ -158,7 +162,7 @@ void prepare_namespace(namespace_interface_t *nsi,
 
     write_t write(sindex_create_t(index_id, m, sindex_multi_bool_t::SINGLE,
                                   sindex_geo_bool_t::GEO),
-                  profile_bool_t::PROFILE);
+                  profile_bool_t::PROFILE, ql::configured_limits_t());
     write_response_t response;
 
     cond_t interruptor;
@@ -187,7 +191,8 @@ std::vector<nearest_geo_read_response_t::dist_pair_t> perform_get_nearest(
     std::string table_name = "test_table"; // This is just used to print error messages
     std::string idx_name = "geo";
     read_t read(nearest_geo_read_t(center, max_distance, max_results,
-                                   WGS84_ELLIPSOID, table_name, idx_name),
+                                   WGS84_ELLIPSOID, table_name, idx_name,
+                                   std::map<std::string, ql::wire_func_t>()),
                 profile_bool_t::PROFILE);
     read_response_t response;
 
@@ -224,7 +229,8 @@ std::vector<nearest_geo_read_response_t::dist_pair_t> emulate_get_nearest(
 
     std::vector<nearest_geo_read_response_t::dist_pair_t> result;
     result.reserve(data.size());
-    counted_t<const ql::datum_t> point_center = construct_geo_point(center);
+    counted_t<const ql::datum_t> point_center =
+        construct_geo_point(center, ql::configured_limits_t());
     scoped_ptr_t<S2Point> s2_center = to_s2point(point_center);
     for (size_t i = 0; i < data.size(); ++i) {
         nearest_geo_read_response_t::dist_pair_t entry(
@@ -297,7 +303,8 @@ std::vector<counted_t<const datum_t> > perform_get_intersecting(
 
     std::string table_name = "test_table"; // This is just used to print error messages
     std::string idx_name = "geo";
-    read_t read(intersecting_geo_read_t(query_geometry, table_name, idx_name),
+    read_t read(intersecting_geo_read_t(query_geometry, table_name, idx_name,
+                                        std::map<std::string, ql::wire_func_t>()),
                 profile_bool_t::PROFILE);
     read_response_t response;
 

@@ -70,7 +70,8 @@ private:
         lat_lon_point_t point(lat, lon);
 
         try {
-            const counted_t<const datum_t> result = construct_geo_point(point);
+            const counted_t<const datum_t> result =
+                construct_geo_point(point, env->env->limits);
             validate_geojson(result);
 
             return new_val(result);
@@ -123,7 +124,8 @@ private:
         try {
             const lat_lon_line_t line = parse_line_from_args(env, args);
 
-            const counted_t<const datum_t> result = construct_geo_line(line);
+            const counted_t<const datum_t> result =
+                construct_geo_line(line, env->env->limits);
             validate_geojson(result);
 
             return new_val(result);
@@ -143,7 +145,8 @@ private:
         try {
             const lat_lon_line_t shell = parse_line_from_args(env, args);
 
-            const counted_t<const datum_t> result = construct_geo_polygon(shell);
+            const counted_t<const datum_t> result =
+                construct_geo_polygon(shell, env->env->limits);
             validate_geojson(result);
 
             return new_val(result);
@@ -322,8 +325,8 @@ private:
 
             const counted_t<const datum_t> result =
                 fill
-                ? construct_geo_polygon(circle)
-                : construct_geo_line(circle);
+                ? construct_geo_polygon(circle, env->env->limits)
+                : construct_geo_line(circle, env->env->limits);
             validate_geojson(result);
 
             return new_val(result);
@@ -367,7 +370,8 @@ private:
             const lat_lon_line_t shell =
                 extract_lat_lon_line(l_arg->as_ptype(pseudo::geometry_string));
 
-            const counted_t<const datum_t> result = construct_geo_polygon(shell);
+            const counted_t<const datum_t> result =
+                construct_geo_polygon(shell, env->env->limits);
             validate_geojson(result);
 
             return new_val(result);
@@ -420,7 +424,7 @@ private:
 
         counted_t<datum_stream_t> stream = table->get_nearest(
                 env->env, center, max_dist, max_results, reference_ellipsoid,
-                dist_unit, index_str, backtrace());
+                dist_unit, index_str, backtrace(), env->env->limits);
         return new_val(stream, table);
     }
     virtual const char *name() const { return "get_nearest"; }

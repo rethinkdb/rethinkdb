@@ -6,13 +6,15 @@
 
 namespace ql {
 class datum_t;
+class configured_limits_t;
 
 namespace pseudo {
 
 extern const char *const geometry_string;
 
 counted_t<const datum_t> geo_sub(counted_t<const datum_t> lhs,
-                                 counted_t<const datum_t> rhs);
+                                 counted_t<const datum_t> rhs,
+                                 const configured_limits_t &limits);
 
 } // namespace pseudo
 } // namespace ql

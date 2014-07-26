@@ -111,7 +111,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             store->changefeed_server->get_uuid(),
             store->changefeed_server->get_stamp(s.addr));
         point_read_response_t val;
-        rdb_get(s.key, btree, superblock, &val, ql_env.trace.get_or_null());
+        rdb_get(s.key, btree, superblock, &val, trace);
         res->initial_val = val.data;
     }
 
@@ -119,10 +119,12 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         response->response = point_read_response_t();
         point_read_response_t *res =
             boost::get<point_read_response_t>(&response->response);
-        rdb_get(get.key, btree, superblock, res, ql_env.trace.get_or_null());
+        rdb_get(get.key, btree, superblock, res, trace);
     }
 
     void operator()(const intersecting_geo_read_t &geo_read) {
+        ql::env_t ql_env(ctx, interruptor, geo_read.optargs, trace);
+
         response->response = intersecting_geo_read_response_t();
         intersecting_geo_read_response_t *res =
             boost::get<intersecting_geo_read_response_t>(&response->response);
@@ -161,6 +163,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const nearest_geo_read_t &geo_read) {
+        ql::env_t ql_env(ctx, interruptor, geo_read.optargs, trace);
+
         response->response = nearest_geo_read_response_t();
         nearest_geo_read_response_t *res =
             boost::get<nearest_geo_read_response_t>(&response->response);
@@ -202,7 +206,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             // rdb_r_unshard_visitor_t.
             rassert(rget.optargs.size() != 0);
         }
-        ql_env.global_optargs.init_optargs(rget.optargs);
+
+        ql::env_t ql_env(ctx, interruptor, rget.optargs, trace);
+
         response->response = rget_read_response_t();
         rget_read_response_t *res =
             boost::get<rget_read_response_t>(&response->response);
@@ -337,28 +343,18 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     rdb_read_visitor_t(btree_slice_t *_btree,
                        store_t *_store,
                        superblock_t *_superblock,
-                       rdb_context_t *ctx,
+                       rdb_context_t *_ctx,
                        read_response_t *_response,
-                       profile_bool_t profile,
-                       signal_t *interruptor) :
+                       profile::trace_t *_trace,
+                       signal_t *_interruptor) :
         response(_response),
+        ctx(_ctx),
+        interruptor(_interruptor),
         btree(_btree),
         store(_store),
         superblock(_superblock),
-        ql_env(ctx, interruptor, std::map<std::string, ql::wire_func_t>(),
-               profile)
-    { }
-
-    ql::env_t *get_env() {
-        return &ql_env;
-    }
-
-    profile::event_log_t extract_event_log() {
-        if (ql_env.trace.has()) {
-            return std::move(*ql_env.trace).extract_event_log();
-        } else {
-            return profile::event_log_t();
-        }
+        trace(_trace)
+    {
     }
 
 private:
@@ -400,10 +396,12 @@ private:
     }
 
     read_response_t *const response;
+    rdb_context_t *const ctx;
+    signal_t *const interruptor;
     btree_slice_t *const btree;
     store_t *const store;
     superblock_t *const superblock;
-    ql::env_t ql_env;
+    profile::trace_t *const trace;
 
     DISABLE_COPYING(rdb_read_visitor_t);
 };
@@ -412,18 +410,24 @@ void store_t::protocol_read(const read_t &read,
                             read_response_t *response,
                             superblock_t *superblock,
                             signal_t *interruptor) {
-    rdb_read_visitor_t v(btree.get(), this,
-                         superblock,
-                         ctx, response, read.profile, interruptor);
+    scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(read.profile);
+
     {
-        profile::starter_t start_read("Perform read on shard.", v.get_env()->trace);
+        profile::starter_t start_read("Perform read on shard.", trace);
+        rdb_read_visitor_t v(btree.get(), this,
+                             superblock,
+                             ctx, response, trace.get_or_null(), interruptor);
         boost::apply_visitor(v, read.read);
     }
 
     response->n_shards = 1;
-    response->event_log = v.extract_event_log();
+    if (trace.has()) {
+        response->event_log = std::move(*trace).extract_event_log();
+    }
     // This is a tad hacky, this just adds a stop event to signal the end of the
     // parallel task.
+
+    // TODO: Is this is the right thing to do if profiling's not enabled?
     response->event_log.push_back(profile::stop_t());
 }
 
@@ -445,7 +449,7 @@ private:
 
 class datum_replacer_t : public btree_batched_replacer_t {
 public:
-    explicit datum_replacer_t(const batched_insert_t &bi)
+    datum_replacer_t(const batched_insert_t &bi)
         : datums(&bi.inserts), conflict_behavior(bi.conflict_behavior),
           pkey(bi.pkey), return_vals(bi.return_vals) { }
     counted_t<const ql::datum_t> replace(const counted_t<const ql::datum_t> &d,
@@ -476,7 +480,7 @@ private:
 
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const batched_replace_t &br) {
-        ql_env.global_optargs.init_optargs(br.optargs);
+        ql::env_t ql_env(ctx, interruptor, br.optargs, trace);
         rdb_modification_report_cb_t sindex_cb(
             store, &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));
@@ -485,14 +489,13 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             rdb_batched_replace(
                 btree_info_t(btree, timestamp,
                              &br.pkey),
-                superblock, br.keys, &replacer, &sindex_cb,
-                ql_env.trace.get_or_null());
+                superblock, br.keys, ql_env.limits, &replacer, &sindex_cb,
+                trace);
     }
 
     void operator()(const batched_insert_t &bi) {
         rdb_modification_report_cb_t sindex_cb(
-            store,
-            &sindex_block,
+            store, &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));
         datum_replacer_t replacer(bi);
         std::vector<store_key_t> keys;
@@ -504,8 +507,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             rdb_batched_replace(
                 btree_info_t(btree, timestamp,
                              &bi.pkey),
-                superblock, keys, &replacer, &sindex_cb,
-                ql_env.trace.get_or_null());
+                superblock, keys, bi.limits, &replacer, &sindex_cb,
+                trace);
     }
 
     void operator()(const point_write_t &w) {
@@ -516,7 +519,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         rdb_live_deletion_context_t deletion_context;
         rdb_modification_report_t mod_report(w.key);
         rdb_set(w.key, w.data, w.overwrite, btree, timestamp, superblock->get(),
-                &deletion_context, res, &mod_report.info, ql_env.trace.get_or_null());
+                &deletion_context, res, &mod_report.info, trace);
 
         update_sindexes(mod_report);
     }
@@ -529,7 +532,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         rdb_live_deletion_context_t deletion_context;
         rdb_modification_report_t mod_report(d.key);
         rdb_delete(d.key, btree, timestamp, superblock->get(), &deletion_context,
-                res, &mod_report.info, ql_env.trace.get_or_null());
+                res, &mod_report.info, trace);
 
         update_sindexes(mod_report);
     }
@@ -585,33 +588,22 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                         txn_t *_txn,
                         scoped_ptr_t<superblock_t> *_superblock,
                         repli_timestamp_t _timestamp,
-                        rdb_context_t *ctx,
-                        profile_bool_t profile,
+                        rdb_context_t *_ctx,
+                        profile::trace_t *_trace,
                         write_response_t *_response,
-                        signal_t *interruptor) :
+                        signal_t *_interruptor) :
         btree(_btree),
         store(_store),
         txn(_txn),
         response(_response),
+        ctx(_ctx),
+        interruptor(_interruptor),
         superblock(_superblock),
         timestamp(_timestamp),
-        ql_env(ctx, interruptor, std::map<std::string, ql::wire_func_t>(),
-               profile) {
+        trace(_trace) {
         sindex_block =
             store->acquire_sindex_block_for_write((*superblock)->expose_buf(),
                                                   (*superblock)->get_sindex_block_id());
-    }
-
-    ql::env_t *get_env() {
-        return &ql_env;
-    }
-
-    profile::event_log_t extract_event_log() {
-        if (ql_env.trace.has()) {
-            return std::move(*ql_env.trace).extract_event_log();
-        } else {
-            return profile::event_log_t();
-        }
     }
 
 private:
@@ -628,10 +620,13 @@ private:
     store_t *const store;
     txn_t *const txn;
     write_response_t *const response;
+    rdb_context_t *const ctx;
+    signal_t *const interruptor;
     scoped_ptr_t<superblock_t> *const superblock;
     const repli_timestamp_t timestamp;
-    ql::env_t ql_env;
+    profile::trace_t *const trace;
     buf_lock_t sindex_block;
+    profile::event_log_t event_log_out;
 
     DISABLE_COPYING(rdb_write_visitor_t);
 };
@@ -641,24 +636,30 @@ void store_t::protocol_write(const write_t &write,
                              transition_timestamp_t timestamp,
                              scoped_ptr_t<superblock_t> *superblock,
                              signal_t *interruptor) {
-    rdb_write_visitor_t v(btree.get(),
-                          this,
-                          (*superblock)->expose_buf().txn(),
-                          superblock,
-                          timestamp.to_repli_timestamp(),
-                          ctx,
-                          write.profile,
-                          response,
-                          interruptor);
+    scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(write.profile);
+
     {
-        profile::starter_t start_write("Perform write on shard.", v.get_env()->trace);
+        profile::starter_t start_write("Perform write on shard.", trace);
+        rdb_write_visitor_t v(btree.get(),
+                              this,
+                              (*superblock)->expose_buf().txn(),
+                              superblock,
+                              timestamp.to_repli_timestamp(),
+                              ctx,
+                              trace.get_or_null(),
+                              response,
+                              interruptor);
         boost::apply_visitor(v, write.write);
     }
 
     response->n_shards = 1;
-    response->event_log = v.extract_event_log();
+    if (trace.has()) {
+        response->event_log = std::move(*trace).extract_event_log();
+    }
     // This is a tad hacky, this just adds a stop event to signal the end of the
     // parallel task.
+
+    // TODO: Is this the right thing to do if profiling's not enabled?
     response->event_log.push_back(profile::stop_t());
 }
 

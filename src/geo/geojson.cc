@@ -15,17 +15,21 @@
 #include "geo/s2/s2polygon.h"
 #include "geo/s2/s2polygonbuilder.h"
 #include "geo/s2/s2polyline.h"
+#include "rdb_protocol/configured_limits.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/pseudo_geometry.hpp"
 
 using ql::datum_t;
 using ql::datum_object_builder_t;
+using ql::configured_limits_t;
 
-counted_t<const ql::datum_t> construct_geo_point(const lat_lon_point_t &point) {
+counted_t<const ql::datum_t> construct_geo_point(
+        const lat_lon_point_t &point,
+        const configured_limits_t &limits) {
     datum_object_builder_t result;
     bool dup;
     dup = result.add(datum_t::reql_type_string,
-                     make_counted<datum_t>(ql::pseudo::geometry_string));
+        make_counted<datum_t>(ql::pseudo::geometry_string));
     r_sanity_check(!dup);
     dup = result.add("type", make_counted<datum_t>("Point"));
     r_sanity_check(!dup);
@@ -35,14 +39,16 @@ counted_t<const ql::datum_t> construct_geo_point(const lat_lon_point_t &point) {
     // lat, long -> long, lat
     coordinates.push_back(make_counted<datum_t>(point.second));
     coordinates.push_back(make_counted<datum_t>(point.first));
-    dup = result.add("coordinates", make_counted<datum_t>(std::move(coordinates)));
+    dup = result.add("coordinates",
+        make_counted<datum_t>(std::move(coordinates), limits));
     r_sanity_check(!dup);
 
     return std::move(result).to_counted();
 }
 
 std::vector<counted_t<const datum_t> > construct_line_coordinates(
-        const lat_lon_line_t &line) {
+        const lat_lon_line_t &line,
+        const configured_limits_t &limits) {
     std::vector<counted_t<const datum_t> > coordinates;
     coordinates.reserve(line.size());
     for (size_t i = 0; i < line.size(); ++i) {
@@ -51,15 +57,16 @@ std::vector<counted_t<const datum_t> > construct_line_coordinates(
         // lat, long -> long, lat
         point.push_back(make_counted<datum_t>(line[i].second));
         point.push_back(make_counted<datum_t>(line[i].first));
-        coordinates.push_back(make_counted<datum_t>(std::move(point)));
+        coordinates.push_back(make_counted<datum_t>(std::move(point), limits));
     }
     return coordinates;
 }
 
 std::vector<counted_t<const datum_t> > construct_loop_coordinates(
-        const lat_lon_line_t &line) {
+        const lat_lon_line_t &line,
+        const configured_limits_t &limits) {
     std::vector<counted_t<const datum_t> > loop_coordinates =
-        construct_line_coordinates(line);
+        construct_line_coordinates(line, limits);
     // Close the line
     if (line.size() >= 1 && line[0] != line[line.size()-1]) {
         rassert(!loop_coordinates.empty());
@@ -68,48 +75,56 @@ std::vector<counted_t<const datum_t> > construct_loop_coordinates(
     return loop_coordinates;
 }
 
-counted_t<const ql::datum_t> construct_geo_line(const lat_lon_line_t &line) {
+counted_t<const ql::datum_t> construct_geo_line(
+        const lat_lon_line_t &line,
+        const configured_limits_t &limits) {
     datum_object_builder_t result;
     bool dup;
     dup = result.add(datum_t::reql_type_string,
-                     make_counted<datum_t>(ql::pseudo::geometry_string));
+        make_counted<datum_t>(ql::pseudo::geometry_string));
     r_sanity_check(!dup);
     dup = result.add("type", make_counted<datum_t>("LineString"));
     r_sanity_check(!dup);
 
     dup = result.add("coordinates",
-                     make_counted<datum_t>(construct_line_coordinates(line)));
+        make_counted<datum_t>(construct_line_coordinates(line, limits), limits));
     r_sanity_check(!dup);
 
     return std::move(result).to_counted();
 }
 
-counted_t<const ql::datum_t> construct_geo_polygon(const lat_lon_line_t &shell) {
+counted_t<const ql::datum_t> construct_geo_polygon(
+        const lat_lon_line_t &shell,
+        const configured_limits_t &limits) {
     std::vector<lat_lon_line_t> holes;
-    return construct_geo_polygon(shell, holes);
+    return construct_geo_polygon(shell, holes, limits);
 }
 
 counted_t<const ql::datum_t> construct_geo_polygon(
         const lat_lon_line_t &shell,
-        const std::vector<lat_lon_line_t> &holes) {
+        const std::vector<lat_lon_line_t> &holes,
+        const configured_limits_t &limits) {
     datum_object_builder_t result;
     bool dup;
     dup = result.add(datum_t::reql_type_string,
-                     make_counted<datum_t>(ql::pseudo::geometry_string));
+        make_counted<datum_t>(ql::pseudo::geometry_string));
     r_sanity_check(!dup);
     dup = result.add("type", make_counted<datum_t>("Polygon"));
     r_sanity_check(!dup);
 
     std::vector<counted_t<const datum_t> > coordinates;
     std::vector<counted_t<const datum_t> > shell_coordinates =
-        construct_loop_coordinates(shell);
-    coordinates.push_back(make_counted<datum_t>(std::move(shell_coordinates)));
+        construct_loop_coordinates(shell, limits);
+    coordinates.push_back(
+        make_counted<datum_t>(std::move(shell_coordinates), limits));
     for (size_t i = 0; i < holes.size(); ++i) {
         std::vector<counted_t<const datum_t> > hole_coordinates =
-            construct_loop_coordinates(holes[i]);
-        coordinates.push_back(make_counted<datum_t>(std::move(hole_coordinates)));
+            construct_loop_coordinates(holes[i], limits);
+        coordinates.push_back(
+            make_counted<datum_t>(std::move(hole_coordinates), limits));
     }
-    dup = result.add("coordinates", make_counted<datum_t>(std::move(coordinates)));
+    dup = result.add("coordinates",
+        make_counted<datum_t>(std::move(coordinates), limits));
     r_sanity_check(!dup);
 
     return std::move(result).to_counted();

@@ -15,6 +15,7 @@
 #include <boost/variant.hpp>
 #include <boost/optional.hpp>
 
+#include "rdb_protocol/configured_limits.hpp"
 #include "btree/erase_range.hpp"
 #include "btree/secondary_operations.hpp"
 #include "concurrency/cond_var.hpp"
@@ -386,11 +387,15 @@ public:
 
     intersecting_geo_read_t(
             const counted_t<const ql::datum_t> &_query_geometry,
-            const std::string _table_name, std::string &_sindex_id)
-        : query_geometry(_query_geometry),
+            const std::string _table_name, std::string &_sindex_id,
+            const std::map<std::string, ql::wire_func_t> &_optargs)
+        : optargs(_optargs),
+          query_geometry(_query_geometry),
           region(region_t::universe()),
           table_name(std::move(_table_name)),
           sindex_id(_sindex_id) { }
+
+    std::map<std::string, ql::wire_func_t> optargs;
 
     counted_t<const ql::datum_t> query_geometry; // Tested for intersection
 
@@ -408,10 +413,14 @@ public:
     nearest_geo_read_t(
             lat_lon_point_t _center, double _max_dist, uint64_t _max_results,
             const ellipsoid_spec_t &_geo_system, const std::string _table_name,
-            std::string &_sindex_id)
-        : center(_center), max_dist(_max_dist), max_results(_max_results),
-          geo_system(_geo_system), region(region_t::universe()),
-          table_name(std::move(_table_name)), sindex_id(_sindex_id) { }
+            std::string &_sindex_id,
+            const std::map<std::string, ql::wire_func_t> &_optargs)
+        : optargs(_optargs), center(_center), max_dist(_max_dist),
+          max_results(_max_results), geo_system(_geo_system),
+          region(region_t::universe()), table_name(std::move(_table_name)),
+          sindex_id(_sindex_id) { }
+
+    std::map<std::string, ql::wire_func_t> optargs;
 
     lat_lon_point_t center;
     double max_dist;
@@ -523,6 +532,7 @@ struct read_t {
     read_t(T &&_read, profile_bool_t _profile)
         : read(std::forward<T>(_read)), profile(_profile) { }
 
+
     // Only use snapshotting if we're doing a range get.
     bool use_snapshot() const THROWS_NOTHING { return boost::get<rget_read_t>(&read); }
 
@@ -623,9 +633,11 @@ struct batched_insert_t {
     batched_insert_t(
             std::vector<counted_t<const ql::datum_t> > &&_inserts,
             const std::string &_pkey, conflict_behavior_t _conflict_behavior,
+            const ql::configured_limits_t &_limits,
             bool _return_vals)
         : inserts(std::move(_inserts)), pkey(_pkey),
-          conflict_behavior(_conflict_behavior), return_vals(_return_vals) {
+          conflict_behavior(_conflict_behavior), limits(_limits),
+          return_vals(_return_vals) {
         r_sanity_check(inserts.size() != 0);
         r_sanity_check(inserts.size() == 1 || !return_vals);
 #ifndef NDEBUG
@@ -648,6 +660,7 @@ struct batched_insert_t {
     std::vector<counted_t<const ql::datum_t> > inserts;
     std::string pkey;
     conflict_behavior_t conflict_behavior;
+    ql::configured_limits_t limits;
     bool return_vals;
 };
 
@@ -722,16 +735,18 @@ public:
 RDB_DECLARE_SERIALIZABLE(sync_t);
 
 struct write_t {
-    boost::variant<batched_replace_t,
-                   batched_insert_t,
-                   point_write_t,
-                   point_delete_t,
-                   sindex_create_t,
-                   sindex_drop_t,
-                   sync_t> write;
+    typedef boost::variant<batched_replace_t,
+                           batched_insert_t,
+                           point_write_t,
+                           point_delete_t,
+                           sindex_create_t,
+                           sindex_drop_t,
+                           sync_t> variant_t;
+    variant_t write;
 
     durability_requirement_t durability_requirement;
     profile_bool_t profile;
+    ql::configured_limits_t limits;
 
     region_t get_region() const THROWS_NOTHING;
     // Returns true if the write had any side effects applicable to the
@@ -744,7 +759,7 @@ struct write_t {
 
     durability_requirement_t durability() const { return durability_requirement; }
 
-    write_t() : durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
+    write_t() : durability_requirement(DURABILITY_REQUIREMENT_DEFAULT), limits() {}
     /*  Note that for durability != DURABILITY_REQUIREMENT_HARD, sync might
      *  not have the desired effect (of writing unsaved data to disk).
      *  However there are cases where we use sync internally (such as when
@@ -754,14 +769,18 @@ struct write_t {
     template<class T>
     write_t(T &&t,
             durability_requirement_t durability,
-            profile_bool_t _profile)
+            profile_bool_t _profile,
+            const ql::configured_limits_t &_limits)
         : write(std::forward<T>(t)),
-          durability_requirement(durability), profile(_profile) { }
+          durability_requirement(durability), profile(_profile),
+          limits(_limits) { }
     template<class T>
-    write_t(T &&t, profile_bool_t _profile)
+    write_t(T &&t, profile_bool_t _profile,
+            const ql::configured_limits_t &_limits)
         : write(std::forward<T>(t)),
           durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
-          profile(_profile) { }
+          profile(_profile),
+          limits(_limits) { }
 };
 
 RDB_DECLARE_SERIALIZABLE(write_t);

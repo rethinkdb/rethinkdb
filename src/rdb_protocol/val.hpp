@@ -58,7 +58,8 @@ public:
             const ellipsoid_spec_t &geo_system,
             dist_unit_t dist_unit,
             const std::string &new_sindex_id,
-            const protob_t<const Backtrace> &bt);
+            const protob_t<const Backtrace> &bt,
+            const configured_limits_t &limits);
 
     counted_t<const datum_t> make_error_datum(const base_exc_t &exception);
 

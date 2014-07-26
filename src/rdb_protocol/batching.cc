@@ -195,6 +195,4 @@ batcher_t::batcher_t(
       size_left(max_size),
       end_time(_end_time) { }
 
-size_t array_size_limit() { return 100000; }
-
 } // namespace ql

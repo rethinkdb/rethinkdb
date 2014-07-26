@@ -15,6 +15,7 @@
 #include "geo/s2/s2.h"
 #include "geo/s2/s2latlng.h"
 #include "rdb_protocol/batching.hpp"
+#include "rdb_protocol/configured_limits.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
@@ -117,7 +118,7 @@ void geo_intersecting_cb_t::on_candidate(
         //   the query_geometry for each test.
         if (geo_does_intersect(query_geometry, sindex_val)
             && post_filter(sindex_val, val)) {
-            if (distinct_emitted->size() > ql::array_size_limit()) {
+            if (distinct_emitted->size() > env->limits.array_size_limit()) {
                 emit_error(ql::exc_t(ql::base_exc_t::GENERIC,
                         "Result size limit exceeded (array size).", NULL));
                 abort_traversal();
@@ -160,7 +161,8 @@ collect_all_geo_intersecting_cb_t::collect_all_geo_intersecting_cb_t(
         const geo_sindex_data_t &&_sindex,
         ql::env_t *_env,
         const counted_t<const ql::datum_t> &_query_geometry) :
-    geo_intersecting_cb_t(_slice, std::move(_sindex), _env, &distinct_emitted) {
+    geo_intersecting_cb_t(_slice, std::move(_sindex), _env, &distinct_emitted),
+    result_acc(_env->limits) {
     init_query(_query_geometry);
     // TODO (daniel): Consider making the traversal resumable, so we can
     //    do it lazily.
@@ -299,7 +301,8 @@ void nearest_traversal_cb_t::init_query_geometry() {
             state->center, state->current_inradius,
             NEAREST_NUM_VERTICES, state->reference_ellipsoid);
 
-        counted_t<const ql::datum_t> query_geometry = construct_geo_polygon(shell, holes);
+        counted_t<const ql::datum_t> query_geometry =
+            construct_geo_polygon(shell, holes, ql::configured_limits_t::unlimited);
         init_query(query_geometry);
     } catch (const geo_range_exception_t &e) {
         // The radius has become too large for constructing the query geometry.
