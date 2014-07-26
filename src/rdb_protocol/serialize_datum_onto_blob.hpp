@@ -3,16 +3,19 @@
 
 #include "rdb_protocol/serialize_datum.hpp"
 
-inline void datum_serialize_onto_blob(buf_parent_t parent, blob_t *blob,
-                                      const counted_t<const ql::datum_t> &value) {
+inline ql::serialization_result_t
+datum_serialize_onto_blob(buf_parent_t parent, blob_t *blob,
+                          const counted_t<const ql::datum_t> &value) {
     // We still make an unnecessary copy: serializing to a write_message_t instead of
     // directly onto the stream.  (However, don't be so sure it would be more
     // efficient to serialize onto an abstract stream type -- you've got a whole
     // bunch of virtual function calls that way.  But we do _deserialize_ off an
     // abstract stream type already, so what's the big deal?)
     write_message_t wm;
-    datum_serialize(&wm, value);
+    ql::serialization_result_t res = datum_serialize(&wm, value);
+    if (bad(res)) return res;
     write_onto_blob(parent, blob, wm);
+    return res;
 }
 
 inline void datum_deserialize_from_group(const const_buffer_group_t *group,

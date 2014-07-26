@@ -42,7 +42,8 @@ counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) 
 template<class T> // batched_replace_t and batched_insert_t
 counted_t<const datum_t> table_t::do_batched_write(
     env_t *env, T &&t, durability_requirement_t durability_requirement) {
-    write_t write(std::move(t), durability_requirement, env->profile());
+    write_t write(std::move(t), durability_requirement, env->profile(),
+                  env->limits);
     write_response_t response;
     try {
         access->get_namespace_if().write(env, &write, &response,
@@ -90,7 +91,8 @@ counted_t<const datum_t> table_t::batched_replace(
         counted_t<const datum_t> insert_stats = batched_insert(
             env, std::move(replacement_values), conflict_behavior_t::REPLACE,
             durability_requirement, return_vals);
-        return std::move(stats).to_counted()->merge(insert_stats, stats_merge);
+        return std::move(stats).to_counted()->merge(insert_stats, stats_merge,
+                                                   env->limits);
     } else {
         std::vector<store_key_t> store_keys;
         store_keys.reserve(keys.size());
@@ -141,9 +143,10 @@ counted_t<const datum_t> table_t::batched_insert(
     counted_t<const datum_t> insert_stats = do_batched_write(
         env,
         batched_insert_t(std::move(valid_inserts), get_pkey(),
-                         conflict_behavior, return_vals),
+                         conflict_behavior, env->limits,
+                         return_vals),
         durability_requirement);
-    return std::move(stats).to_counted()->merge(insert_stats, stats_merge);
+    return std::move(stats).to_counted()->merge(insert_stats, stats_merge, env->limits);
 }
 
 MUST_USE bool table_t::sindex_create(env_t *env,
@@ -152,7 +155,8 @@ MUST_USE bool table_t::sindex_create(env_t *env,
                                      sindex_multi_bool_t multi) {
     index_func->assert_deterministic("Index functions must be deterministic.");
     map_wire_func_t wire_func(index_func);
-    write_t write(sindex_create_t(id, wire_func, multi), env->profile());
+    write_t write(sindex_create_t(id, wire_func, multi), env->profile(),
+                  env->limits);
 
     write_response_t res;
     try {
@@ -168,7 +172,8 @@ MUST_USE bool table_t::sindex_create(env_t *env,
 }
 
 MUST_USE bool table_t::sindex_drop(env_t *env, const std::string &id) {
-    write_t write(sindex_drop_t(id), env->profile());
+    write_t write(sindex_drop_t(id), env->profile(),
+                  env->limits);
 
     write_response_t res;
     try {
@@ -204,7 +209,7 @@ counted_t<const datum_t> table_t::sindex_list(env_t *env) {
          it != s_res->sindexes.end(); ++it) {
         array.push_back(make_counted<datum_t>(std::string(*it)));
     }
-    return make_counted<datum_t>(std::move(array));
+    return make_counted<datum_t>(std::move(array), env->limits);
 }
 
 counted_t<const datum_t> table_t::sindex_status(env_t *env, std::set<std::string> sindexes) {
@@ -242,7 +247,7 @@ counted_t<const datum_t> table_t::sindex_status(env_t *env, std::set<std::string
            strprintf("Index `%s` was not found on table `%s`.",
                      sindexes.begin()->c_str(),
                      display_name().c_str()));
-    return make_counted<const datum_t>(std::move(array));
+    return make_counted<const datum_t>(std::move(array), env->limits);
 }
 
 MUST_USE bool table_t::sync(env_t *env, const rcheckable_t *parent) {
@@ -256,7 +261,8 @@ MUST_USE bool table_t::sync(env_t *env, const rcheckable_t *parent) {
 
 MUST_USE bool table_t::sync_depending_on_durability(env_t *env,
                 durability_requirement_t durability_requirement) {
-    write_t write(sync_t(), durability_requirement, env->profile());
+    write_t write(sync_t(), durability_requirement, env->profile(),
+                  env->limits);
     write_response_t res;
     try {
         access->get_namespace_if().write(env, &write, &res, order_token_t::ignore);

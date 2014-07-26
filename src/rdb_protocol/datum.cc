@@ -57,10 +57,11 @@ datum_t::datum_t(scoped_ptr_t<wire_string_t> str)
 datum_t::datum_t(const char *cstr)
     : type(R_STR), r_str(wire_string_t::create_and_init(::strlen(cstr), cstr).release()) { }
 
-datum_t::datum_t(std::vector<counted_t<const datum_t> > &&_array)
+datum_t::datum_t(std::vector<counted_t<const datum_t> > &&_array,
+                 const configured_limits_t &limits)
     : type(R_ARRAY),
       r_array(new std::vector<counted_t<const datum_t> >(std::move(_array))) {
-    rcheck_array_size(*r_array, base_exc_t::GENERIC);
+    rcheck_array_size(*r_array, limits, base_exc_t::GENERIC);
 }
 
 datum_t::datum_t(std::vector<counted_t<const datum_t> > &&_array,
@@ -83,17 +84,19 @@ datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object,
       r_object(new std::map<std::string, counted_t<const datum_t> >(
                    std::move(_object))) { }
 
-counted_t<const datum_t> to_datum(grouped_data_t &&gd) {
+counted_t<const datum_t> to_datum(grouped_data_t &&gd,
+                                  const configured_limits_t &limits) {
     std::map<std::string, counted_t<const datum_t> > map;
     map[datum_t::reql_type_string] = make_counted<const datum_t>("GROUPED_DATA");
 
     {
-        datum_array_builder_t arr;
+        datum_array_builder_t arr(limits);
         arr.reserve(gd.size());
         for (auto kv = gd.begin(); kv != gd.end(); ++kv) {
             arr.add(make_counted<const datum_t>(
                             std::vector<counted_t<const datum_t> >{
-                                std::move(kv->first), std::move(kv->second) }));
+                                std::move(kv->first), std::move(kv->second) },
+                            limits));
         }
         map["data"] = std::move(arr).to_counted();
     }
@@ -127,7 +130,8 @@ datum_t::~datum_t() {
 }
 
 counted_t<const datum_t> datum_t::empty_array() {
-    return make_counted<datum_t>(std::vector<counted_t<const datum_t> >());
+    return make_counted<datum_t>(std::vector<counted_t<const datum_t> >(),
+                                 no_array_size_limit_check_t());
 }
 
 counted_t<const datum_t> datum_t::empty_object() {
@@ -146,7 +150,7 @@ counted_t<const datum_t> datum_t::binary(scoped_ptr_t<wire_string_t> data) {
     return make_counted<datum_t>(construct_binary_t(), std::move(data));
 }
 
-counted_t<const datum_t> to_datum(cJSON *json) {
+counted_t<const datum_t> to_datum(cJSON *json, const configured_limits_t &limits) {
     switch (json->type) {
     case cJSON_False: {
         return datum_t::boolean(false);
@@ -167,20 +171,15 @@ counted_t<const datum_t> to_datum(cJSON *json) {
         std::vector<counted_t<const datum_t> > array;
         json_array_iterator_t it(json);
         while (cJSON *item = it.next()) {
-            array.push_back(to_datum(item));
+            array.push_back(to_datum(item, limits));
         }
-        // TODO(v1.14): This uses no array size limit to be compatible with existing
-        // behavior.  This should (a) use the array size limit, and (b) use the
-        // query-specific array size limit, and (c?) depend on the query evaluation
-        // version, once that exists.
-        return make_counted<datum_t>(std::move(array),
-                                     datum_t::no_array_size_limit_check_t());
+        return make_counted<datum_t>(std::move(array), limits);
     } break;
     case cJSON_Object: {
         std::map<std::string, counted_t<const datum_t> > map;
         json_object_iterator_t it(json);
         while (cJSON *item = it.next()) {
-            auto res = map.insert(std::make_pair(item->string, to_datum(item)));
+            auto res = map.insert(std::make_pair(item->string, to_datum(item, limits)));
             rcheck_datum(res.second, base_exc_t::GENERIC,
                          strprintf("Duplicate key `%s` in JSON.", item->string));
         }
@@ -412,6 +411,10 @@ void datum_t::rcheck_is_ptype(const std::string s) const {
 }
 
 counted_t<const datum_t> datum_t::drop_literals(bool *encountered_literal_out) const {
+    // drop_literals will never create arrays larger than those in the
+    // existing datum; so checking (and thus threading the limits
+    // parameter) is unnecessary here.
+    const ql::configured_limits_t & limits = ql::configured_limits_t::unlimited;
     rassert(encountered_literal_out != NULL);
 
     const bool is_literal = is_ptype(pseudo::literal_string);
@@ -467,11 +470,12 @@ counted_t<const datum_t> datum_t::drop_literals(bool *encountered_literal_out) c
 
     } else if (get_type() == R_ARRAY) {
         const std::vector<counted_t<const datum_t> > &arr = as_array();
-        datum_array_builder_t builder;
+        datum_array_builder_t builder(limits);
 
         for (auto it = arr.begin(); it != arr.end(); ++it) {
             bool encountered_literal;
-            counted_t<const datum_t> val = (*it)->drop_literals(&encountered_literal);
+            counted_t<const datum_t> val
+                = (*it)->drop_literals(&encountered_literal);
 
             if (encountered_literal && !need_to_copy) {
                 // We have encountered the first element with a literal.
@@ -915,12 +919,13 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
 }
 
 counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs,
-                                        merge_resoluter_t f) const {
+                                        merge_resoluter_t f,
+                                        const configured_limits_t &limits) const {
     datum_object_builder_t d(as_object());
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
         if (counted_t<const datum_t> left = get(it->first, NOTHROW)) {
-            d.overwrite(it->first, f(it->first, left, it->second));
+            d.overwrite(it->first, f(it->first, left, it->second, limits));
         } else {
             bool b = d.add(it->first, it->second);
             r_sanity_check(!b);
@@ -1011,7 +1016,7 @@ void datum_t::runtime_fail(base_exc_t::type_t exc_type,
     ql::runtime_fail(exc_type, test, file, line, msg);
 }
 
-counted_t<const datum_t> to_datum(const Datum *d) {
+counted_t<const datum_t> to_datum(const Datum *d, const configured_limits_t &limits) {
     switch (d->type()) {
     case Datum::R_NULL: {
         return datum_t::null();
@@ -1027,20 +1032,15 @@ counted_t<const datum_t> to_datum(const Datum *d) {
     } break;
     case Datum::R_JSON: {
         scoped_cJSON_t cjson(cJSON_Parse(d->r_str().c_str()));
-        return to_datum(cjson.get());
+        return to_datum(cjson.get(), limits);
     } break;
     case Datum::R_ARRAY: {
-        std::vector<counted_t<const datum_t> > array;
-        array.reserve(d->r_array_size());
+        datum_array_builder_t out(limits);
+        out.reserve(d->r_array_size());
         for (int i = 0, e = d->r_array_size(); i < e; ++i) {
-            array.push_back(to_datum(&d->r_array(i)));
+            out.add(to_datum(&d->r_array(i), limits));
         }
-        // TODO(v1.14): Check the array size limit here, or check the query-specific
-        // array size limit here, or don't check it.  Could a sindex function have
-        // Datum deserialization?  Right now, we don't check the array size limit
-        // because we didn't check it in v1.13.
-        return make_counted<datum_t>(std::move(array),
-                                     datum_t::no_array_size_limit_check_t());
+        return std::move(out).to_counted();
     } break;
     case Datum::R_OBJECT: {
         std::map<std::string, counted_t<const datum_t> > map;
@@ -1049,7 +1049,7 @@ counted_t<const datum_t> to_datum(const Datum *d) {
             const Datum_AssocPair *ap = &d->r_object(i);
             const std::string &key = ap->key();
             datum_t::check_str_validity(key);
-            auto res = map.insert(std::make_pair(key, to_datum(&ap->val())));
+            auto res = map.insert(std::make_pair(key, to_datum(&ap->val(), limits)));
             rcheck_datum(res.second, base_exc_t::GENERIC,
                          strprintf("Duplicate key %s in object.", key.c_str()));
         }
@@ -1137,11 +1137,12 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
 // error-checking using the key in the future).
 counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
                                      counted_t<const datum_t> l,
-                                     counted_t<const datum_t> r) {
+                                     counted_t<const datum_t> r,
+                                     const configured_limits_t &limits) {
     if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
         return make_counted<datum_t>(l->as_num() + r->as_num());
     } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
-        datum_array_builder_t arr;
+        datum_array_builder_t arr(limits);
         for (size_t i = 0; i < l->size(); ++i) {
             arr.add(l->get(i));
         }
@@ -1212,16 +1213,17 @@ counted_t<const datum_t> datum_object_builder_t::to_counted(
     return make_counted<const datum_t>(std::move(map), permissible_ptypes);
 }
 
-datum_array_builder_t::datum_array_builder_t(std::vector<counted_t<const datum_t> > &&v)
-    : vector(std::move(v)) {
-    rcheck_array_size_datum(vector, base_exc_t::GENERIC);
+datum_array_builder_t::datum_array_builder_t(std::vector<counted_t<const datum_t> > &&v,
+                                             const configured_limits_t &_limits)
+    : vector(std::move(v)), limits(_limits) {
+    rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
 }
 
 void datum_array_builder_t::reserve(size_t n) { vector.reserve(n); }
 
 void datum_array_builder_t::add(counted_t<const datum_t> val) {
     vector.push_back(std::move(val));
-    rcheck_array_size_datum(vector, base_exc_t::GENERIC);
+    rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
 }
 
 void datum_array_builder_t::change(size_t index, counted_t<const datum_t> val) {
@@ -1239,10 +1241,7 @@ void datum_array_builder_t::insert(size_t index, counted_t<const datum_t> val) {
                            index, vector.size()));
     vector.insert(vector.begin() + index, std::move(val));
 
-    // We don't check the array size limit -- to avoid breaking command behavior.
-    // See https://github.com/rethinkdb/rethinkdb/issues/2697
-
-    // rcheck_array_size_datum(vector, base_exc_t::GENERIC);
+    rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
 }
 
 void datum_array_builder_t::splice(size_t index, counted_t<const datum_t> values) {
@@ -1254,10 +1253,7 @@ void datum_array_builder_t::splice(size_t index, counted_t<const datum_t> values
     const std::vector<counted_t<const datum_t> > &arr = values->as_array();
     vector.insert(vector.begin() + index, arr.begin(), arr.end());
 
-    // We don't check the array size limit -- to avoid breaking command behavior.
-    // See https://github.com/rethinkdb/rethinkdb/issues/2697
-
-    // rcheck_array_size_datum(vector, base_exc_t::GENERIC);
+    rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
 }
 
 void datum_array_builder_t::erase_range(size_t start, size_t end) {

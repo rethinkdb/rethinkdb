@@ -299,6 +299,9 @@ class Connection extends events.EventEmitter
         if opts.batchConf?
             query.global_optargs['batch_conf'] = r.expr(opts.batchConf).build()
 
+        if opts.arrayLimit?
+            query.global_optargs['array_limit'] = r.expr(opts.arrayLimit).build()
+
         # Save callback
         if (not opts.noreply?) or !opts.noreply
             @outstandingCallbacks[token] = {cb:cb, root:term, opts:opts}

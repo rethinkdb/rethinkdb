@@ -21,7 +21,7 @@ private:
             arr.push_back(make_counted<const datum_t>(std::string(it->first)));
         }
 
-        return new_val(make_counted<const datum_t>(std::move(arr)));
+        return new_val(make_counted<const datum_t>(std::move(arr), env->env->limits));
     }
     virtual const char *name() const { return "keys"; }
 };

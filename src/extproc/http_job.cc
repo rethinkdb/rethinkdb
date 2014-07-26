@@ -12,6 +12,7 @@
 #include "containers/archive/stl_types.hpp"
 #include "extproc/extproc_job.hpp"
 #include "http/http_parser.hpp"
+#include "rdb_protocol/env.hpp"
 
 #define RETHINKDB_USER_AGENT (SOFTWARE_NAME_STRING "/" RETHINKDB_VERSION)
 
@@ -19,13 +20,17 @@ void parse_header(const std::string &header,
                   http_result_t *res_out);
 
 void json_to_datum(const std::string &json,
+                   const ql::configured_limits_t &limits,
                    http_result_t *res_out);
 void json_to_datum(std::string &&json,
+                   const ql::configured_limits_t &limits,
                    http_result_t *res_out);
 
 void jsonp_to_datum(const std::string &jsonp,
+                    const ql::configured_limits_t &limits,
                     http_result_t *res_out);
 void jsonp_to_datum(std::string &&jsonp,
+                    const ql::configured_limits_t &limits,
                     http_result_t *res_out);
 
 void perform_http(http_opts_t *opts,
@@ -615,16 +620,16 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
                 }
 
                 if (content_type.find("application/json") == 0) {
-                    json_to_datum(std::move(body_data), res_out);
+                    json_to_datum(std::move(body_data), opts->limits, res_out);
                 } else if (content_type.find("text/javascript") == 0 ||
                            content_type.find("application/json-p") == 0 ||
                            content_type.find("text/json-p") == 0) {
                     // Try to parse the result as JSON, then as JSONP, then plaintext
                     // Do not use move semantics here, as we retry on errors
-                    json_to_datum(body_data, res_out);
+                    json_to_datum(body_data, opts->limits, res_out);
                     if (!res_out->error.empty()) {
                         res_out->error.clear();
-                        jsonp_to_datum(body_data, res_out);
+                        jsonp_to_datum(body_data, opts->limits, res_out);
                         if (!res_out->error.empty()) {
                             res_out->error.clear();
                             res_out->body =
@@ -638,10 +643,10 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
             }
             break;
         case http_result_format_t::JSON:
-            json_to_datum(std::move(body_data), res_out);
+            json_to_datum(std::move(body_data), opts->limits, res_out);
             break;
         case http_result_format_t::JSONP:
-            jsonp_to_datum(std::move(body_data), res_out);
+            jsonp_to_datum(std::move(body_data), opts->limits, res_out);
             break;
         case http_result_format_t::TEXT:
             res_out->body = make_counted<const ql::datum_t>(std::move(body_data));
@@ -806,10 +811,11 @@ void parse_header(const std::string &header,
 // This version will not use move semantics for the body data, to be used in
 // result_format="auto", where we may fallback to jsonp
 void json_to_datum(const std::string &json,
+                   const ql::configured_limits_t &limits,
                    http_result_t *res_out) {
     scoped_cJSON_t cjson(cJSON_Parse(json.c_str()));
     if (cjson.get() != NULL) {
-        res_out->body = ql::to_datum(cjson.get());
+        res_out->body = ql::to_datum(cjson.get(), limits);
     } else {
         res_out->error.assign("failed to parse JSON response");
     }
@@ -818,10 +824,11 @@ void json_to_datum(const std::string &json,
 // This version uses move semantics and includes the body as a string when a
 // parsing error occurs.
 void json_to_datum(std::string &&json,
+                   const ql::configured_limits_t &limits,
                    http_result_t *res_out) {
     scoped_cJSON_t cjson(cJSON_Parse(json.c_str()));
     if (cjson.get() != NULL) {
-        res_out->body = ql::to_datum(cjson.get());
+        res_out->body = ql::to_datum(cjson.get(), limits);
     } else {
         res_out->error.assign("failed to parse JSON response");
         res_out->body = make_counted<const ql::datum_t>(std::move(json));
@@ -883,10 +890,11 @@ const char *jsonp_parser_singleton_t::js_ident =
 
 // This version will not use move semantics for the body data, to be used in
 // result_format="auto", where we may fallback to passing back the body as a string
-void jsonp_to_datum(const std::string &jsonp, http_result_t *res_out) {
+void jsonp_to_datum(const std::string &jsonp, const ql::configured_limits_t &limits,
+                    http_result_t *res_out) {
     std::string json_string;
     if (jsonp_parser_singleton_t::parse(jsonp, &json_string)) {
-        json_to_datum(json_string, res_out);
+        json_to_datum(json_string, limits, res_out);
     } else {
         res_out->error.assign("failed to parse JSONP response");
     }
@@ -895,10 +903,11 @@ void jsonp_to_datum(const std::string &jsonp, http_result_t *res_out) {
 
 // This version uses move semantics and includes the body as a string when a
 // parsing error occurs.
-void jsonp_to_datum(std::string &&jsonp, http_result_t *res_out) {
+void jsonp_to_datum(std::string &&jsonp, const ql::configured_limits_t &limits,
+                    http_result_t *res_out) {
     std::string json_string;
     if (jsonp_parser_singleton_t::parse(jsonp, &json_string)) {
-        json_to_datum(std::move(json_string), res_out);
+        json_to_datum(std::move(json_string), limits, res_out);
     } else {
         res_out->error.assign("failed to parse JSONP response");
         res_out->body = make_counted<const ql::datum_t>(std::move(jsonp));
