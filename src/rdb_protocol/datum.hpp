@@ -227,14 +227,22 @@ private:
     // Might return null, if this is a literal without a value.
     counted_t<const datum_t> drop_literals(bool *encountered_literal_out) const;
 
-    type_t type;
-    union {
-        bool r_bool;
-        double r_num;
-        wire_string_t *r_str;
-        std::vector<counted_t<const datum_t> > *r_array;
-        std::map<std::string, counted_t<const datum_t> > *r_object;
-    };
+    // The data_wrapper makes sure we perform proper cleanup when exceptions
+    // happen during construction
+    class data_wrapper_t {
+    public:
+        data_wrapper_t(type_t _type);
+        ~data_wrapper_t();
+
+        type_t type;
+        union {
+            bool r_bool;
+            double r_num;
+            wire_string_t *r_str;
+            std::vector<counted_t<const datum_t> > *r_array;
+            std::map<std::string, counted_t<const datum_t> > *r_object;
+        };
+    } data;
 
 public:
     static const char *const reql_type_string;
