@@ -36,8 +36,8 @@ datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_boolean_t, bool _bool
     type(R_BOOL), r_bool(_bool) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_binary_t,
-                                        scoped_ptr_t<wire_string_t> data) :
-    type(R_BINARY), r_str(data.release()) { }
+                                        scoped_ptr_t<wire_string_t> _data) :
+    type(R_BINARY), r_str(_data.release()) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(double num) :
     type(R_NUM), r_num(num) { }
@@ -167,8 +167,8 @@ counted_t<const datum_t> datum_t::boolean(bool value) {
     return make_counted<datum_t>(construct_boolean_t(), value);
 }
 
-counted_t<const datum_t> datum_t::binary(scoped_ptr_t<wire_string_t> data) {
-    return make_counted<datum_t>(construct_binary_t(), std::move(data));
+counted_t<const datum_t> datum_t::binary(scoped_ptr_t<wire_string_t> _data) {
+    return make_counted<datum_t>(construct_binary_t(), std::move(_data));
 }
 
 counted_t<const datum_t> to_datum(cJSON *json, const configured_limits_t &limits) {
