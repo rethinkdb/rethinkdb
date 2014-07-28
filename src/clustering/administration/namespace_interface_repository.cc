@@ -84,9 +84,8 @@ void namespace_repo_t::on_namespaces_change(auto_drainer_t::lock_t keepalive) {
             continue;
         }
         if (it->second.get_ref().blueprint.in_conflict()) {
-            /* The reactor won't do anything while the blueprint is in conflict, so we
-            keep using the old mapping. This isn't guaranteed to work, but there isn't
-            really anything we can do until the user resolves the conflict. */
+            /* The reactor won't do anything while the blueprint is in conflict, so the
+            old mapping is probably still accurate, although there's no guarantee. */
             auto jt = region_to_primary_maps.get()->find(it->first);
             if (jt != region_to_primary_maps.get()->end()) {
                 new_reg_to_pri_maps[it->first] = jt->second;
