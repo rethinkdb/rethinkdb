@@ -9,8 +9,8 @@ namespace ql {
 
 class datum_term_t : public term_t {
 public:
-    explicit datum_term_t(protob_t<const Term> t)
-        : term_t(t), raw_val(new_val(to_datum(&t->datum()))) { }
+    datum_term_t(protob_t<const Term> t, const configured_limits_t &limits)
+        : term_t(t), raw_val(new_val(to_datum(&t->datum(), limits))) { }
 private:
     virtual void accumulate_captures(var_captures_t *) const { /* do nothing */ }
     virtual bool is_deterministic() const { return true; }
@@ -41,7 +41,7 @@ public:
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        datum_array_builder_t acc;
+        datum_array_builder_t acc(env->env->limits);
         acc.reserve(args->num_args());
         {
             profile::sampler_t sampler("Evaluating elements in make_array.", env->env->trace);
@@ -106,8 +106,9 @@ private:
     DISABLE_COPYING(make_obj_term_t);
 };
 
-counted_t<term_t> make_datum_term(const protob_t<const Term> &term) {
-    return make_counted<datum_term_t>(term);
+counted_t<term_t> make_datum_term(const protob_t<const Term> &term,
+                                  const configured_limits_t &limits) {
+    return make_counted<datum_term_t>(term, limits);
 }
 counted_t<term_t> make_constant_term(compile_env_t *env, const protob_t<const Term> &term,
                                      double constant, const char *name) {

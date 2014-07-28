@@ -103,12 +103,13 @@ void pathspec_t::init_from(const pathspec_t &other) {
 
 /* Limit the datum to only the paths specified by the pathspec. */
 counted_t<const datum_t> project(counted_t<const datum_t> datum,
-        const pathspec_t &pathspec, recurse_flag_t recurse) {
+                                 const pathspec_t &pathspec, recurse_flag_t recurse,
+                                 const configured_limits_t &limits) {
     if (datum->get_type() == datum_t::R_ARRAY && recurse == RECURSE) {
-        datum_array_builder_t res;
+        datum_array_builder_t res(limits);
         res.reserve(datum->size());
         for (const counted_t<const datum_t> &value : datum->as_array()) {
-            res.add(project(value, pathspec, DONT_RECURSE));
+            res.add(project(value, pathspec, DONT_RECURSE, limits));
         }
         return std::move(res).to_counted();
     } else {
@@ -120,7 +121,7 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
             }
         } else if (const std::vector<pathspec_t> *vec = pathspec.as_vec()) {
             for (auto it = vec->begin(); it != vec->end(); ++it) {
-                counted_t<const datum_t> sub_result = project(datum, *it, recurse);
+                counted_t<const datum_t> sub_result = project(datum, *it, recurse, limits);
                 for (auto jt = sub_result->as_object().begin();
                      jt != sub_result->as_object().end(); ++jt) {
                     res.overwrite(jt->first, jt->second);
@@ -131,7 +132,7 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
                 if (counted_t<const datum_t> val = datum->get(it->first, NOTHROW)) {
                     try {
                         counted_t<const datum_t> sub_result =
-                            project(val, it->second, RECURSE);
+                            project(val, it->second, RECURSE, limits);
                         res.overwrite(it->first, sub_result);
                     } catch (const datum_exc_t &e) {
                         // do nothing
@@ -147,19 +148,20 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
 
 void unproject_helper(datum_object_builder_t *datum,
                       const pathspec_t &pathspec,
-                      recurse_flag_t recurse) {
+                      recurse_flag_t recurse,
+                      const configured_limits_t &limits) {
     if (const std::string *str = pathspec.as_str()) {
         UNUSED bool key_was_deleted = datum->delete_field(*str);
     } else if (const std::vector<pathspec_t> *vec = pathspec.as_vec()) {
         for (auto it = vec->begin(); it != vec->end(); ++it) {
-            unproject_helper(datum, *it, recurse);
+            unproject_helper(datum, *it, recurse, limits);
         }
     } else if (const std::map<std::string, pathspec_t> *map = pathspec.as_map()) {
         for (auto it = map->begin(); it != map->end(); ++it) {
             if (counted_t<const datum_t> val = datum->try_get(it->first)) {
                 try {
                     counted_t<const datum_t> sub_result =
-                        unproject(val, it->second, RECURSE);
+                        unproject(val, it->second, RECURSE, limits);
                     datum->overwrite(it->first, sub_result);
                 } catch (const datum_exc_t &e) {
                     // do nothing
@@ -173,17 +175,18 @@ void unproject_helper(datum_object_builder_t *datum,
 
 /* Limit the datum to only the paths not specified by the pathspec. */
 counted_t<const datum_t> unproject(counted_t<const datum_t> datum,
-        const pathspec_t &pathspec, recurse_flag_t recurse) {
+                                   const pathspec_t &pathspec, recurse_flag_t recurse,
+                                   const configured_limits_t &limits) {
     if (datum->get_type() == datum_t::R_ARRAY && recurse == RECURSE) {
-        datum_array_builder_t res;
+        datum_array_builder_t res(limits);
         res.reserve(datum->size());
         for (const counted_t<const datum_t> &value : datum->as_array()) {
-            res.add(unproject(value, pathspec, DONT_RECURSE));
+            res.add(unproject(value, pathspec, DONT_RECURSE, limits));
         }
         return std::move(res).to_counted();
     } else {
         datum_object_builder_t res(datum->as_object());
-        unproject_helper(&res, pathspec, recurse);
+        unproject_helper(&res, pathspec, recurse, limits);
         return std::move(res).to_counted();
     }
 }

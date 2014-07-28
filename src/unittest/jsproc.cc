@@ -6,12 +6,14 @@
 #include "rpc/serialize_macros.hpp"
 #include "unittest/extproc_test.hpp"
 #include "unittest/gtest.hpp"
+#include "rdb_protocol/env.hpp"
 
 SPAWNER_TEST(JSProc, EvalTimeout) {
     extproc_pool_t extproc_pool(1);
     js_runner_t js_runner;
+    ql::configured_limits_t limits;
 
-    js_runner.begin(&extproc_pool, NULL);
+    js_runner.begin(&extproc_pool, NULL, limits);
 
     const std::string loop_source = "for (var x = 0; x < 4e10; x++) {}";
 
@@ -25,8 +27,9 @@ SPAWNER_TEST(JSProc, EvalTimeout) {
 SPAWNER_TEST(JSProc, CallTimeout) {
     extproc_pool_t extproc_pool(1);
     js_runner_t js_runner;
+    ql::configured_limits_t limits;
 
-    js_runner.begin(&extproc_pool, NULL);
+    js_runner.begin(&extproc_pool, NULL, limits);
 
     const std::string loop_source = "(function () { for (var x = 0; x < 4e10; x++) {} })";
 
@@ -49,8 +52,9 @@ SPAWNER_TEST(JSProc, CallTimeout) {
 void run_datum_test(const std::string &source_code, counted_t<const ql::datum_t> *res_out) {
     extproc_pool_t extproc_pool(1);
     js_runner_t js_runner;
+    ql::configured_limits_t limits;
 
-    js_runner.begin(&extproc_pool, NULL);
+    js_runner.begin(&extproc_pool, NULL, limits);
 
     js_runner_t::req_config_t config;
     config.timeout_ms = 10000;
@@ -82,8 +86,9 @@ SPAWNER_TEST(JSProc, LiteralString) {
 SPAWNER_TEST(JSProc, EvalAndCall) {
     extproc_pool_t extproc_pool(1);
     js_runner_t js_runner;
+    ql::configured_limits_t limits;
 
-    js_runner.begin(&extproc_pool, NULL);
+    js_runner.begin(&extproc_pool, NULL, limits);
 
     const std::string source_code = "(function () { return 10337; })";
 
@@ -114,8 +119,9 @@ SPAWNER_TEST(JSProc, EvalAndCall) {
 SPAWNER_TEST(JSProc, BrokenFunction) {
     extproc_pool_t extproc_pool(1);
     js_runner_t js_runner;
+    ql::configured_limits_t limits;
 
-    js_runner.begin(&extproc_pool, NULL);
+    js_runner.begin(&extproc_pool, NULL, limits);
 
     const std::string source_code = "(function () { return 4 / 0; })";
 
@@ -142,8 +148,9 @@ SPAWNER_TEST(JSProc, BrokenFunction) {
 SPAWNER_TEST(JSProc, InvalidFunction) {
     extproc_pool_t extproc_pool(1);
     js_runner_t js_runner;
+    ql::configured_limits_t limits;
 
-    js_runner.begin(&extproc_pool, NULL);
+    js_runner.begin(&extproc_pool, NULL, limits);
 
     const std::string source_code = "(function() {)";
 
@@ -160,8 +167,9 @@ SPAWNER_TEST(JSProc, InvalidFunction) {
 SPAWNER_TEST(JSProc, InfiniteRecursionFunction) {
     extproc_pool_t extproc_pool(1);
     js_runner_t js_runner;
+    ql::configured_limits_t limits;
 
-    js_runner.begin(&extproc_pool, NULL);
+    js_runner.begin(&extproc_pool, NULL, limits);
 
     const std::string source_code = "(function f(x) { x = x + f(x); return x; })";
 
@@ -187,8 +195,9 @@ SPAWNER_TEST(JSProc, InfiniteRecursionFunction) {
 void run_overalloc_function_test() {
     extproc_pool_t extproc_pool(1);
     js_runner_t js_runner;
+    ql::configured_limits_t limits;
 
-    js_runner.begin(&extproc_pool, NULL);
+    js_runner.begin(&extproc_pool, NULL, limits);
 
     const std::string source_code = "(function f() {"
                                      "  var res = \"\";"
@@ -225,8 +234,9 @@ TEST(JSProc, OverallocFunction) {
 void passthrough_test_internal(extproc_pool_t *pool, const counted_t<const ql::datum_t> &arg) {
     guarantee(arg.has());
 
+    ql::configured_limits_t limits;
     js_runner_t js_runner;
-    js_runner.begin(pool, NULL);
+    js_runner.begin(pool, NULL, limits);
 
     const std::string source_code = "(function f(arg) { return arg; })";
 
@@ -254,6 +264,7 @@ void passthrough_test_internal(extproc_pool_t *pool, const counted_t<const ql::d
 // correctly
 SPAWNER_TEST(JSProc, Passthrough) {
     extproc_pool_t pool(1);
+    ql::configured_limits_t limits;
 
     // Number
     passthrough_test_internal(&pool, make_counted<const ql::datum_t>(99.9999));
@@ -273,13 +284,13 @@ SPAWNER_TEST(JSProc, Passthrough) {
     counted_t<const ql::datum_t> array_datum;
     {
         std::vector<counted_t<const ql::datum_t> > array_data;
-        array_datum = make_counted<const ql::datum_t>(std::move(array_data));
+        array_datum = make_counted<const ql::datum_t>(std::move(array_data), limits);
         passthrough_test_internal(&pool, array_datum);
 
         for (size_t i = 0; i < 100; ++i) {
             array_data.push_back(make_counted<const ql::datum_t>(std::string(i, 'a')));
             std::vector<counted_t<const ql::datum_t> > copied_data(array_data);
-            array_datum = make_counted<const ql::datum_t>(std::move(copied_data));
+            array_datum = make_counted<const ql::datum_t>(std::move(copied_data), limits);
             passthrough_test_internal(&pool, array_datum);
         }
     }
@@ -305,17 +316,17 @@ SPAWNER_TEST(JSProc, Passthrough) {
     counted_t<const ql::datum_t> nested_datum;
     {
         std::vector<counted_t<const ql::datum_t> > nested_data;
-        nested_datum = make_counted<const ql::datum_t>(std::move(nested_data));
+        nested_datum = make_counted<const ql::datum_t>(std::move(nested_data), limits);
         passthrough_test_internal(&pool, nested_datum);
 
         nested_data.push_back(array_datum);
         std::vector<counted_t<const ql::datum_t> > copied_data(nested_data);
-        nested_datum = make_counted<const ql::datum_t>(std::move(copied_data));
+        nested_datum = make_counted<const ql::datum_t>(std::move(copied_data), limits);
         passthrough_test_internal(&pool, nested_datum);
 
         nested_data.push_back(object_datum);
         copied_data = nested_data;
-        nested_datum = make_counted<const ql::datum_t>(std::move(copied_data));
+        nested_datum = make_counted<const ql::datum_t>(std::move(copied_data), limits);
         passthrough_test_internal(&pool, nested_datum);
     }
 }

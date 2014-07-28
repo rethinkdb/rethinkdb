@@ -1099,10 +1099,12 @@ void connectivity_cluster_t::run_t::handle(
                         "Apparently we aren't compatible with the cluster on the other "
                         "end.");
 
+                    /* If you really want to support old cluster versions, the
+                    resolved_version should be passed into the on_message() handler. */
+                    guarantee(resolved_version == cluster_version_t::CLUSTER);
                     handler->on_message(
                         &conn_structure,
                         auto_drainer_t::lock_t(conn_structure.drainers.get()),
-                        resolved_version,
                         conn); // might raise fake_archive_exc_t
                 }
 
@@ -1223,7 +1225,7 @@ void connectivity_cluster_t::send_message(connection_t *connection,
         buffer.swap(&buffer_data);
         rassert(message_handlers[tag], "No message handler for tag %" PRIu8, tag);
         message_handlers[tag]->on_local_message(connection, connection_keepalive,
-            cluster_version, std::move(buffer_data));
+            std::move(buffer_data));
     } else {
         on_thread_t threader(connection->conn->home_thread());
 
@@ -1292,14 +1294,9 @@ cluster_message_handler_t::~cluster_message_handler_t() {
 
 void cluster_message_handler_t::on_local_message(
         connectivity_cluster_t::connection_t *conn,
-        auto_drainer_t::lock_t keepalive, cluster_version_t version,
-        std::vector<char> &&data)
-{
-    // This is only sensible.  We pass the cluster_version all the way from the local
-    // serialization code just to play nice.
-    rassert(version == cluster_version_t::CLUSTER);
-
+        auto_drainer_t::lock_t keepalive,
+        std::vector<char> &&data) {
     vector_read_stream_t read_stream(std::move(data));
-    on_message(conn, keepalive, version, &read_stream);
+    on_message(conn, keepalive, &read_stream);
 }
 

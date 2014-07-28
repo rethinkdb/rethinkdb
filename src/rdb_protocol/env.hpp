@@ -11,6 +11,7 @@
 #include "concurrency/one_per_thread.hpp"
 #include "containers/counted.hpp"
 #include "extproc/js_runner.hpp"
+#include "rdb_protocol/configured_limits.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/datum_stream.hpp"
@@ -33,10 +34,10 @@ public:
     global_optargs_t();
     explicit global_optargs_t(std::map<std::string, wire_func_t> optargs);
 
-    void init_optargs(const std::map<std::string, wire_func_t> &_optargs);
+    bool has_optarg(const std::string &key) const;
     // returns NULL if no entry
     counted_t<val_t> get_optarg(env_t *env, const std::string &key);
-    const std::map<std::string, wire_func_t> &get_all_optargs();
+    const std::map<std::string, wire_func_t> &get_all_optargs() const;
 private:
     std::map<std::string, wire_func_t> optargs;
 };
@@ -47,11 +48,13 @@ class client_t;
 
 profile_bool_t profile_bool_optarg(const protob_t<Query> &query);
 
+scoped_ptr_t<profile::trace_t> maybe_make_profile_trace(profile_bool_t profile);
+
 class env_t : public home_thread_mixin_t {
 public:
     env_t(rdb_context_t *ctx, signal_t *interruptor,
           std::map<std::string, wire_func_t> optargs,
-          profile_bool_t is_profile_requested);
+          profile::trace_t *trace);
 
     explicit env_t(signal_t *interruptor);
 
@@ -91,11 +94,14 @@ public:
     // drivers.
     global_optargs_t global_optargs;
 
+    // User specified configuration limits; e.g. array size limits
+    configured_limits_t limits;
+
     // The interruptor signal while a query evaluates.
     signal_t *const interruptor;
 
     // This is non-empty when profiling is enabled.
-    const scoped_ptr_t<profile::trace_t> trace;
+    profile::trace_t *const trace;
 
     profile_bool_t profile() const;
 

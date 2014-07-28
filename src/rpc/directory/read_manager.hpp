@@ -39,7 +39,6 @@ private:
     void on_message(
             connectivity_cluster_t::connection_t *connection,
             auto_drainer_t::lock_t connection_keepalive,
-            cluster_version_t version,
             read_stream_t *stream)
             THROWS_ONLY(fake_archive_exc_t);
 
@@ -75,7 +74,7 @@ private:
         /* Destruction order is important here; the `auto_drainer_t` must be destroyed
         before the `fifo_sink` pointer goes out of scope. */
         auto_drainer_t drainer;
-    };    
+    };
     std::map<connectivity_cluster_t::connection_t *, connection_info_t *> connection_map;
 
     /* It's possible that messages can be reordered so that a `propagate_update()`

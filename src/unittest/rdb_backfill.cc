@@ -107,11 +107,13 @@ void run_in_thread_pool_with_broadcaster(
 /* `PartialBackfill` backfills only in a specific sub-region. */
 
 counted_t<const ql::datum_t> generate_document(size_t value_padding_length, const std::string &value) {
+    ql::configured_limits_t limits;
     // This is a kind of hacky way to add an object to a map but I'm not sure
     // anyone really cares.
     return ql::to_datum(scoped_cJSON_t(cJSON_Parse(strprintf("{\"id\" : %s, \"padding\" : \"%s\"}",
                                                              value.c_str(),
-                                                             std::string(value_padding_length, 'a').c_str()).c_str())).get());
+                                                             std::string(value_padding_length, 'a').c_str()).c_str())).get(),
+                        limits);
 }
 
 void write_to_broadcaster(size_t value_padding_length,
@@ -126,7 +128,8 @@ void write_to_broadcaster(size_t value_padding_length,
                 generate_document(value_padding_length, value),
                 true),
             DURABILITY_REQUIREMENT_DEFAULT,
-            profile_bool_t::PROFILE);
+            profile_bool_t::PROFILE,
+            ql::configured_limits_t());
 
     fake_fifo_enforcement_t enforce;
     fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
@@ -264,7 +267,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
         ql::map_wire_func_t m(mapping, make_vector(one), get_backtrace(mapping));
 
         write_t write(sindex_create_t(id, m, sindex_multi_bool_t::SINGLE),
-                      profile_bool_t::PROFILE);
+                      profile_bool_t::PROFILE, ql::configured_limits_t());
 
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_write_t exiter(
@@ -331,7 +334,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
         scoped_cJSON_t sindex_key_json(cJSON_Parse(it->second.c_str()));
-        auto sindex_key_literal = ql::to_datum(sindex_key_json.get());
+        auto sindex_key_literal = ql::to_datum(sindex_key_json.get(), dummy_env.limits);
         read_t read = make_sindex_read(sindex_key_literal, id);
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
@@ -353,4 +356,3 @@ TEST(RDBProtocolBackfill, SindexBackfill) {
 }
 
 }   /* namespace unittest */
-

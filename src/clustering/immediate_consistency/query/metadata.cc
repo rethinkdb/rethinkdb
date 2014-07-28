@@ -11,8 +11,9 @@ RDB_IMPL_SERIALIZABLE_4(
         read, order_token, fifo_token, cont_addr);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(master_business_card_t::read_request_t);
 
-RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(
+RDB_IMPL_SERIALIZABLE_4(
         master_business_card_t::write_request_t, write, order_token, fifo_token, cont_addr);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(master_business_card_t::write_request_t);
 
 RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(master_business_card_t::inner_client_business_card_t);
 

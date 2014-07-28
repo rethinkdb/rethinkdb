@@ -20,6 +20,7 @@
 #include "containers/scoped.hpp"
 #include "containers/wire_string.hpp"
 #include "http/json.hpp"
+#include "rdb_protocol/configured_limits.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/serialize_datum.hpp"
 #include "version.hpp"
@@ -103,7 +104,7 @@ public:
     datum_t(construct_boolean_t, bool _bool);
 
     enum class construct_binary_t { };
-    explicit datum_t(construct_binary_t, scoped_ptr_t<wire_string_t> data);
+    explicit datum_t(construct_binary_t, scoped_ptr_t<wire_string_t> _data);
 
     explicit datum_t(double _num);
     // TODO: Eventually get rid of the std::string constructor (in favor of
@@ -111,7 +112,8 @@ public:
     explicit datum_t(std::string &&str);
     explicit datum_t(scoped_ptr_t<wire_string_t> str);
     explicit datum_t(const char *cstr);
-    explicit datum_t(std::vector<counted_t<const datum_t> > &&_array);
+    explicit datum_t(std::vector<counted_t<const datum_t> > &&_array,
+                     const configured_limits_t &limits);
 
     enum class no_array_size_limit_check_t { };
     // Constructs a datum_t without checking the array size.  Used by
@@ -175,11 +177,17 @@ public:
     counted_t<const datum_t> get(const std::string &key,
                                  throw_bool_t throw_bool = THROW) const;
     counted_t<const datum_t> merge(counted_t<const datum_t> rhs) const;
+    // "Consumer defined" merge resolutions; these take limits unlike
+    // the other merge because the merge resolution can and does (in
+    // stats) merge two arrays to form one super array, which can
+    // obviously breach limits.
     typedef counted_t<const datum_t> (*merge_resoluter_t)(const std::string &key,
                                                           counted_t<const datum_t> l,
-                                                          counted_t<const datum_t> r);
+                                                          counted_t<const datum_t> r,
+                                                          const configured_limits_t &limits);
     counted_t<const datum_t> merge(counted_t<const datum_t> rhs,
-                                   merge_resoluter_t f) const;
+                                   merge_resoluter_t f,
+                                   const configured_limits_t &limits) const;
 
     cJSON *as_json_raw() const;
     scoped_cJSON_t as_json() const;
@@ -243,14 +251,34 @@ private:
     // Might return null, if this is a literal without a value.
     counted_t<const datum_t> drop_literals(bool *encountered_literal_out) const;
 
-    type_t type;
-    union {
-        bool r_bool;
-        double r_num;
-        wire_string_t *r_str;
-        std::vector<counted_t<const datum_t> > *r_array;
-        std::map<std::string, counted_t<const datum_t> > *r_object;
-    };
+    // The data_wrapper makes sure we perform proper cleanup when exceptions
+    // happen during construction
+    class data_wrapper_t {
+    public:
+        // Mirror the same constructors of datum_t
+        explicit data_wrapper_t(construct_null_t);
+        data_wrapper_t(construct_boolean_t, bool _bool);
+        data_wrapper_t(construct_binary_t, scoped_ptr_t<wire_string_t> data);
+        explicit data_wrapper_t(double num);
+        explicit data_wrapper_t(std::string &&str);
+        explicit data_wrapper_t(scoped_ptr_t<wire_string_t> str);
+        explicit data_wrapper_t(const char *cstr);
+        explicit data_wrapper_t(std::vector<counted_t<const datum_t> > &&array);
+        data_wrapper_t(std::map<std::string, counted_t<const datum_t> > &&object);
+
+        ~data_wrapper_t();
+
+        type_t type;
+        union {
+            bool r_bool;
+            double r_num;
+            wire_string_t *r_str;
+            std::vector<counted_t<const datum_t> > *r_array;
+            std::map<std::string, counted_t<const datum_t> > *r_object;
+        };
+    private:
+        DISABLE_COPYING(data_wrapper_t);
+    } data;
 
 public:
     static const char *const reql_type_string;
@@ -259,11 +287,11 @@ private:
     DISABLE_COPYING(datum_t);
 };
 
-counted_t<const datum_t> to_datum(const Datum *d);
-counted_t<const datum_t> to_datum(cJSON *json);
+counted_t<const datum_t> to_datum(const Datum *d, const configured_limits_t &);
+counted_t<const datum_t> to_datum(cJSON *json, const configured_limits_t &);
 
 // This should only be used to send responses to the client.
-counted_t<const datum_t> to_datum(grouped_data_t &&gd);
+counted_t<const datum_t> to_datum(grouped_data_t &&gd, const configured_limits_t &);
 
 // Converts a double to int, but returns false if it's not an integer or out of range.
 bool number_as_integer(double d, int64_t *i_out);
@@ -308,8 +336,9 @@ private:
 // array-size checks on the fly.
 class datum_array_builder_t {
 public:
-    datum_array_builder_t() { }
-    explicit datum_array_builder_t(std::vector<counted_t<const datum_t> > &&v);
+    datum_array_builder_t(const configured_limits_t &_limits) : limits(_limits) {}
+    datum_array_builder_t(std::vector<counted_t<const datum_t> > &&,
+                          const configured_limits_t &);
 
     size_t size() const { return vector.size(); }
 
@@ -328,6 +357,7 @@ public:
 
 private:
     std::vector<counted_t<const datum_t> > vector;
+    configured_limits_t limits;
 
     DISABLE_COPYING(datum_array_builder_t);
 };
@@ -336,7 +366,8 @@ private:
 // operations.
 counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
                                      counted_t<const datum_t> l,
-                                     counted_t<const datum_t> r);
+                                     counted_t<const datum_t> r,
+                                     const configured_limits_t &limits);
 
 namespace pseudo {
 class datum_cmp_t {
