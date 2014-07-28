@@ -622,7 +622,7 @@ def reql_type_binary_to_bytes(obj):
     if not 'data' in obj:
         raise RqlDriverError('pseudo-type BINARY object %s does not have the ' \
                              'expected field "data".' % py_json.dumps(obj))
-    return RqlBinary(base64.b64decode(obj['data']))
+    return RqlBinary(base64.b64decode(obj['data'].encode('utf-8')))
 
 def convert_pseudotype(obj, format_opts):
     reql_type = obj.get('$reql_type$')
@@ -1252,7 +1252,7 @@ class Binary(RqlTopLevelQuery):
         return T('r.', self.st, '(bytes(', str(self.data), '))')
         
     def build(self):
-        return { '$reql_type$': 'BINARY', 'data': self.base64_data }
+        return { '$reql_type$': 'BINARY', 'data': self.base64_data.decode('utf-8') }
 
 class ToISO8601(RqlMethodQuery):
     tt = pTerm.TO_ISO8601
