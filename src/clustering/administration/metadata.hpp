@@ -15,6 +15,7 @@
 #include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/administration/servers/datacenter_metadata.hpp"
 #include "clustering/administration/servers/machine_metadata.hpp"
+#include "clustering/administration/servers/name_metadata.hpp"
 #include "clustering/administration/stat_manager.hpp"
 #include "clustering/administration/metadata_change_handler.hpp"
 #include "containers/cow_ptr.hpp"
@@ -84,6 +85,7 @@ public:
             const metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t& _semilattice_change_mailbox,
             const metadata_change_handler_t<auth_semilattice_metadata_t>::request_mailbox_t::address_t& _auth_change_mailbox,
             const log_server_business_card_t &lmb,
+            const boost::optional<server_name_business_card_t> &nsbc,
             cluster_directory_peer_type_t _peer_type) :
         machine_id(mid),
         peer_id(pid),
@@ -93,6 +95,7 @@ public:
         semilattice_change_mailbox(_semilattice_change_mailbox),
         auth_change_mailbox(_auth_change_mailbox),
         log_mailbox(lmb),
+        server_name_business_card(nsbc),
         peer_type(_peer_type) { }
     /* Move constructor */
     cluster_directory_metadata_t(cluster_directory_metadata_t &&other) {
@@ -113,6 +116,7 @@ public:
         semilattice_change_mailbox = other.semilattice_change_mailbox;
         auth_change_mailbox = other.auth_change_mailbox;
         log_mailbox = other.log_mailbox;
+        server_name_business_card = other.server_name_business_card;
         local_issues = std::move(other.local_issues);
         peer_type = other.peer_type;
 
@@ -131,6 +135,7 @@ public:
         semilattice_change_mailbox = other.semilattice_change_mailbox;
         auth_change_mailbox = other.auth_change_mailbox;
         log_mailbox = other.log_mailbox;
+        server_name_business_card = other.server_name_business_card;
         local_issues = other.local_issues;
         peer_type = other.peer_type;
 
@@ -153,6 +158,7 @@ public:
     metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t semilattice_change_mailbox;
     metadata_change_handler_t<auth_semilattice_metadata_t>::request_mailbox_t::address_t auth_change_mailbox;
     log_server_business_card_t log_mailbox;
+    boost::optional<server_name_business_card_t> server_name_business_card;
     std::list<local_issue_t> local_issues;
     cluster_directory_peer_type_t peer_type;
 };

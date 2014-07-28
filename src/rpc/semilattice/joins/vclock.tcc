@@ -61,7 +61,7 @@ void vclock_t<T>::throw_if_conflict() const {
 }
 
 template <class T>
-vclock_t<T> vclock_t<T>::make_new_version(const T& t, const uuid_u &us) {
+vclock_t<T> vclock_t<T>::make_new_version(const T& t, const uuid_u &us) const {
     throw_if_conflict();
     stamped_value_t tmp = *values.begin();
     ++tmp.first[us];
@@ -70,12 +70,10 @@ vclock_t<T> vclock_t<T>::make_new_version(const T& t, const uuid_u &us) {
 }
 
 template <class T>
-vclock_t<T> vclock_t<T>::make_resolving_version(const T& t, const uuid_u &us) {
+vclock_t<T> vclock_t<T>::make_resolving_version(const T& t, const uuid_u &us) const {
     vclock_details::version_map_t vmap; //construct a vmap that dominates all the others
 
-    for (typename value_map_t::iterator it  = values.begin();
-                                        it != values.end();
-                                        ++it) {
+    for (auto it = values.begin(); it != values.end(); ++it) {
         vmap = vclock_details::vmap_max(vmap, it->first);
     }
 

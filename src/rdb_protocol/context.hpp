@@ -50,6 +50,7 @@ public:
     virtual bool db_find(const name_string_t &name,
             signal_t *interruptor,
             counted_t<const ql::db_t> *db_out, std::string *error_out) = 0;
+
     virtual bool table_create(const name_string_t &name, counted_t<const ql::db_t> db,
             const boost::optional<name_string_t> &primary_dc, bool hard_durability,
             const std::string &primary_key,
@@ -62,6 +63,10 @@ public:
     virtual bool table_find(const name_string_t &name, counted_t<const ql::db_t> db,
             signal_t *interruptor, uuid_u *namespace_id_out,
             std::string *primary_key_out, std::string *error_out) = 0;
+
+    virtual bool server_rename(const name_string_t &old_name,
+            const name_string_t &new_name, signal_t *interruptor, std::string *error_out
+            ) = 0;
 
 protected:
     virtual ~reql_admin_interface_t() { }   // silence compiler warnings

@@ -73,9 +73,9 @@ public:
 
     void throw_if_conflict() const;
 
-    vclock_t<T> make_new_version(const T& t, const uuid_u &us);
+    vclock_t<T> make_new_version(const T& t, const uuid_u &us) const;
 
-    vclock_t<T> make_resolving_version(const T& t, const uuid_u &us);
+    vclock_t<T> make_resolving_version(const T& t, const uuid_u &us) const;
 
     void upgrade_version(const uuid_u &us);
 

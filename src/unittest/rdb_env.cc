@@ -330,6 +330,13 @@ bool mock_reql_admin_interface_t::table_find(const name_string_t &name,
     }
 }
 
+bool mock_reql_admin_interface_t::server_rename(
+        UNUSED const name_string_t &old_name, UNUSED const name_string_t &new_name,
+        UNUSED signal_t *interruptor, std::string *error_out) {
+    *error_out = "mock_reql_admin_interface_t isn't actually connected to any servers";
+    return false;
+}
+
 test_rdb_env_t::test_rdb_env_t() { }
 
 test_rdb_env_t::~test_rdb_env_t() {

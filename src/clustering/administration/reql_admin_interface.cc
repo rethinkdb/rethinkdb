@@ -1,6 +1,8 @@
 #include "clustering/administration/reql_admin_interface.hpp"
 
+#include "clustering/administration/servers/name_client.hpp"
 #include "clustering/administration/suggester.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
@@ -9,13 +11,15 @@ cluster_reql_admin_interface_t::cluster_reql_admin_interface_t(
         boost::shared_ptr<
             semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > s,
         clone_ptr_t<watchable_t<
-            change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > d
+            change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > d,
+        server_name_client_t *_server_name_client
         ) :
     my_machine_id(mmi),
     semilattices(s),
     directory(d),
     cross_thread_namespace_watchables(get_num_threads()),
-    cross_thread_database_watchables(get_num_threads())
+    cross_thread_database_watchables(get_num_threads()),
+    server_name_client(_server_name_client)
 {
     for (int thr = 0; thr < get_num_threads(); ++thr) {
         cross_thread_namespace_watchables[thr].init(
@@ -324,6 +328,15 @@ bool cluster_reql_admin_interface_t::table_find(const name_string_t &name,
     guarantee(!ns_metadata_it->second.get_ref().primary_key.in_conflict());
     *primary_key_out = ns_metadata_it->second.get_ref().primary_key.get();
     return true;
+}
+
+bool cluster_reql_admin_interface_t::server_rename(
+        const name_string_t &old_name, const name_string_t &new_name,
+        signal_t *interruptor, std::string *error_out) {
+    cross_thread_signal_t interruptor2(interruptor, server_name_client->home_thread());
+    on_thread_t thread_switcher(server_name_client->home_thread());
+    return server_name_client->rename_server(old_name, new_name,
+        &interruptor2, error_out);
 }
 
 /* Checks that divisor is indeed a divisor of multiple. */

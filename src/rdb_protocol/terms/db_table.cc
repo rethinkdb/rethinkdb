@@ -262,6 +262,25 @@ private:
     virtual const char *name() const { return "table_list"; }
 };
 
+class server_rename_term_t : public meta_write_op_t {
+public:
+    server_rename_term_t(compile_env_t *env, const protob_t<const Term> &term) :
+        meta_write_op_t(env, term, argspec_t(2, 0)) { }
+private:
+    virtual std::string write_eval_impl(scope_env_t *env,
+            args_t *args, eval_flags_t) const {
+        name_string_t old_name = get_name(args->arg(env, 0), this, "Server");
+        name_string_t new_name = get_name(args->arg(env, 1), this, "Server");
+        std::string error;
+        if (!env->env->reql_admin_interface()->server_rename(old_name, new_name,
+                env->env->interruptor, &error)) {
+            rfail(base_exc_t::GENERIC, "%s", error.c_str());
+        }
+        return "renamed";
+    }
+    virtual const char *name() const { return "server_rename"; }
+};
+
 class sync_term_t : public meta_write_op_t {
 public:
     sync_term_t(compile_env_t *env, const protob_t<const Term> &term)
@@ -393,6 +412,10 @@ counted_t<term_t> make_table_drop_term(compile_env_t *env, const protob_t<const 
 
 counted_t<term_t> make_table_list_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<table_list_term_t>(env, term);
+}
+
+counted_t<term_t> make_server_rename_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<server_rename_term_t>(env, term);
 }
 
 counted_t<term_t> make_sync_term(compile_env_t *env, const protob_t<const Term> &term) {

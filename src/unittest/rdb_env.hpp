@@ -159,6 +159,9 @@ public:
             signal_t *interruptor, uuid_u *id_out, std::string *primary_key_out,
             std::string *error_out);
 
+    bool server_rename(const name_string_t &old_name, const name_string_t &new_name,
+            signal_t *interruptor, std::string *error_out);
+
     std::map<name_string_t, database_id_t> databases;
     std::map<std::pair<database_id_t, name_string_t>,
         std::pair<namespace_id_t, std::string> > tables;

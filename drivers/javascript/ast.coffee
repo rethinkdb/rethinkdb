@@ -850,6 +850,10 @@ class TableList extends RDBOp
     tt: protoTermType.TABLE_LIST
     mt: 'tableList'
 
+class ServerRename extends RDBOp
+    tt: protoTermType.SERVER_RENAME
+    st: 'serverRename'
+
 class IndexCreate extends RDBOp
     tt: protoTermType.INDEX_CREATE
     mt: 'indexCreate'
@@ -1095,6 +1099,8 @@ rethinkdb.dbList = (args...) -> new DbList {}, args...
 rethinkdb.tableCreate = aropt (tblName, opts) -> new TableCreate opts, tblName
 rethinkdb.tableDrop = (args...) -> new TableDrop {}, args...
 rethinkdb.tableList = (args...) -> new TableList {}, args...
+
+rethinkdb.serverRename = (args...) -> new ServerRename {}, args...
 
 rethinkdb.do = varar 1, null, (args...) ->
     new FunCall {}, funcWrap(args[-1..][0]), args[...-1]...

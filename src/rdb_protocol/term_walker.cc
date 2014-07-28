@@ -108,6 +108,7 @@ private:
         case Term::DB_DROP:
         case Term::TABLE_CREATE:
         case Term::TABLE_DROP:
+        case Term::SERVER_RENAME:
         case Term::SYNC:
         case Term::INDEX_CREATE:
         case Term::INDEX_DROP:
@@ -350,6 +351,7 @@ private:
         case Term::TABLE_CREATE:
         case Term::TABLE_DROP:
         case Term::TABLE_LIST:
+        case Term::SERVER_RENAME:
         case Term::SYNC:
         case Term::INDEX_CREATE:
         case Term::INDEX_DROP:

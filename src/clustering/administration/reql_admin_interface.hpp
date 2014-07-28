@@ -11,6 +11,8 @@
 #include "rdb_protocol/context.hpp"
 #include "rpc/semilattice/view.hpp"
 
+class server_name_client_t;
+
 /* `cluster_reql_admin_interface_t` is a concrete subclass of `reql_admin_interface_t`
 that translates the user's `table_create()`, `table_drop()`, etc. requests into specific
 actions on the semilattices. By performing these actions through the abstract
@@ -24,7 +26,8 @@ public:
             boost::shared_ptr<semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > semilattices,
             clone_ptr_t<watchable_t<change_tracking_map_t<
-                peer_id_t, cluster_directory_metadata_t> > > directory
+                peer_id_t, cluster_directory_metadata_t> > > directory,
+            server_name_client_t *server_name_client
             );
 
     bool db_create(const name_string_t &name,
@@ -51,6 +54,9 @@ public:
             signal_t *interruptor, uuid_u *id_out, std::string *primary_key_out,
             std::string *error_out);
 
+    bool server_rename(const name_string_t &old_name, const name_string_t &new_name,
+            signal_t *interruptor, std::string *error_out);
+
 private:
     uuid_u my_machine_id;
     boost::shared_ptr<semilattice_readwrite_view_t<
@@ -61,6 +67,7 @@ private:
         namespaces_semilattice_metadata_t> > > > cross_thread_namespace_watchables;
     scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t<
         databases_semilattice_metadata_t > > > cross_thread_database_watchables;
+    server_name_client_t *server_name_client;
 
     void wait_for_metadata_to_propagate(const cluster_semilattice_metadata_t &metadata,
                                         signal_t *interruptor);
