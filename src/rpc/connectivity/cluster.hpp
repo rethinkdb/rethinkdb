@@ -132,7 +132,7 @@ public:
 
         /* We only hold this information so we can deregister ourself */
         run_t *parent;
-        
+
         peer_id_t peer_id;
 
         one_per_thread_t<auto_drainer_t> drainers;
@@ -336,14 +336,12 @@ protected:
     /* This can be called on any thread. */
     virtual void on_message(connectivity_cluster_t::connection_t *conn,
                             auto_drainer_t::lock_t keepalive,
-                            cluster_version_t version,
                             read_stream_t *) = 0;
 
     /* The default implementation constructs a stream reading from `data` and then
     calls `on_message()`. Override to optimize for the local case. */
     virtual void on_local_message(connectivity_cluster_t::connection_t *conn,
                                   auto_drainer_t::lock_t keepalive,
-                                  cluster_version_t version,
                                   std::vector<char> &&data);
 
 private:
