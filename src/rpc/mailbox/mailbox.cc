@@ -166,11 +166,7 @@ void read_mailbox_header(read_stream_t *stream,
 void mailbox_manager_t::on_local_message(
         connectivity_cluster_t::connection_t *connection,
         auto_drainer_t::lock_t connection_keepalive,
-        cluster_version_t cluster_version,
         std::vector<char> &&data) {
-    // This is only sensible:
-    rassert(cluster_version == cluster_version_t::CLUSTER);
-
     vector_read_stream_t stream(std::move(data));
 
     mailbox_header_t mbox_header;
@@ -197,8 +193,8 @@ void mailbox_manager_t::on_local_message(
     // and `mailbox_read_coroutine()` moves the data out of it before it yields.
     coro_t::spawn_now_dangerously(
         [this, connection, connection_keepalive /* important to capture */,
-                cluster_version, mbox_header, &stream_data, stream_data_offset]() {
-            mailbox_read_coroutine(connection, connection_keepalive, cluster_version,
+                mbox_header, &stream_data, stream_data_offset]() {
+            mailbox_read_coroutine(connection, connection_keepalive,
                 threadnum_t(mbox_header.dest_thread), mbox_header.dest_mailbox_id,
                 &stream_data, stream_data_offset, FORCE_YIELD);
         });
@@ -206,7 +202,6 @@ void mailbox_manager_t::on_local_message(
 
 void mailbox_manager_t::on_message(connectivity_cluster_t::connection_t *connection,
                                    auto_drainer_t::lock_t connection_keepalive,
-                                   cluster_version_t cluster_version,
                                    read_stream_t *stream) {
     mailbox_header_t mbox_header;
     read_mailbox_header(stream, &mbox_header);
@@ -228,8 +223,8 @@ void mailbox_manager_t::on_message(connectivity_cluster_t::connection_t *connect
     // and `mailbox_read_coroutine()` moves the data out of it before it yields.
     coro_t::spawn_now_dangerously(
         [this, connection, connection_keepalive /* important to capture */,
-                cluster_version, mbox_header, &stream_data]() {
-            mailbox_read_coroutine(connection, connection_keepalive, cluster_version,
+                mbox_header, &stream_data]() {
+            mailbox_read_coroutine(connection, connection_keepalive,
                 threadnum_t(mbox_header.dest_thread), mbox_header.dest_mailbox_id,
                 &stream_data, 0, MAYBE_YIELD);
         });
@@ -239,7 +234,6 @@ void mailbox_manager_t::mailbox_read_coroutine(
         connectivity_cluster_t::connection_t *connection,
         /* This ensures that the `connection` pointer remains valid */
         UNUSED auto_drainer_t::lock_t connection_keepalive,
-        cluster_version_t cluster_version,
         threadnum_t dest_thread,
         raw_mailbox_t::id_t dest_mailbox_id,
         std::vector<char> *stream_data,
@@ -263,7 +257,7 @@ void mailbox_manager_t::mailbox_read_coroutine(
         try {
             raw_mailbox_t *mbox = mailbox_tables.get()->find_mailbox(dest_mailbox_id);
             if (mbox != NULL) {
-                mbox->callback->read(cluster_version, &stream);
+                mbox->callback->read(cluster_version_t::CLUSTER, &stream);
             }
         } catch (const fake_archive_exc_t &e) {
             // Set a flag and handle the exception later.

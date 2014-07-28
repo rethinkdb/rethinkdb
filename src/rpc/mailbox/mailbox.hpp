@@ -155,17 +155,14 @@ private:
 
     void on_message(connectivity_cluster_t::connection_t *connection,
                     auto_drainer_t::lock_t connection_keeepalive,
-                    cluster_version_t version,
                     read_stream_t *stream);
     void on_local_message(connectivity_cluster_t::connection_t *connection,
                           auto_drainer_t::lock_t connection_keepalive,
-                          cluster_version_t version,
                           std::vector<char> &&data);
 
     enum force_yield_t {FORCE_YIELD, MAYBE_YIELD};
     void mailbox_read_coroutine(connectivity_cluster_t::connection_t *connection,
                                 auto_drainer_t::lock_t connection_keepalive,
-                                cluster_version_t cluster_version,
                                 threadnum_t dest_thread,
                                 raw_mailbox_t::id_t dest_mailbox_id,
                                 std::vector<char> *stream_data,

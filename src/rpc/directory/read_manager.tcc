@@ -33,13 +33,10 @@ template<class metadata_t>
 void directory_read_manager_t<metadata_t>::on_message(
         connectivity_cluster_t::connection_t *connection,
         auto_drainer_t::lock_t connection_keepalive,
-        cluster_version_t cluster_version,
         read_stream_t *s)
         THROWS_ONLY(fake_archive_exc_t) {
 
     with_priority_t p(CORO_PRIORITY_DIRECTORY_CHANGES);
-
-    guarantee(cluster_version == cluster_version_t::CLUSTER);
 
     uint8_t code = 0;
     {
@@ -56,11 +53,10 @@ void directory_read_manager_t<metadata_t>::on_message(
             boost::shared_ptr<metadata_t> initial_value(new metadata_t());
             fifo_enforcer_state_t metadata_fifo_state;
             {
-                archive_result_t res = deserialize<cluster_version_t::CLUSTER>(
-                    s, initial_value.get());
+                archive_result_t res =
+                    deserialize<cluster_version_t::CLUSTER>(s, initial_value.get());
                 if (res != archive_result_t::SUCCESS) { throw fake_archive_exc_t(); }
-                res = deserialize<cluster_version_t::CLUSTER>(
-                    s, &metadata_fifo_state);
+                res = deserialize<cluster_version_t::CLUSTER>(s, &metadata_fifo_state);
                 if (res != archive_result_t::SUCCESS) { throw fake_archive_exc_t(); }
             }
 
@@ -80,11 +76,10 @@ void directory_read_manager_t<metadata_t>::on_message(
             boost::shared_ptr<metadata_t> new_value(new metadata_t());
             fifo_enforcer_write_token_t metadata_fifo_token;
             {
-                archive_result_t res = deserialize<cluster_version_t::CLUSTER>(
-                    s, new_value.get());
+                archive_result_t res =
+                    deserialize<cluster_version_t::CLUSTER>(s, new_value.get());
                 if (res != archive_result_t::SUCCESS) { throw fake_archive_exc_t(); }
-                res = deserialize<cluster_version_t::CLUSTER>(
-                    s, &metadata_fifo_token);
+                res = deserialize<cluster_version_t::CLUSTER>(s, &metadata_fifo_token);
                 if (res != archive_result_t::SUCCESS) { throw fake_archive_exc_t(); }
             }
 
