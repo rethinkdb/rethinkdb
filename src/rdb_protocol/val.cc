@@ -81,8 +81,7 @@ counted_t<const datum_t> table_view_t::batched_replace(
         return stats.to_counted()->merge(insert_stats, stats_merge);
     } else {
         return table->write_batched_replace(
-            env, keys, replacement_generator,
-            env->global_optargs.get_all_optargs(), return_vals,
+            env, keys, replacement_generator, return_vals,
             durability_requirement);
     }
 }

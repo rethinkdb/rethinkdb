@@ -74,7 +74,6 @@ public:
     counted_t<const ql::datum_t> write_batched_replace(ql::env_t *env,
         const std::vector<counted_t<const ql::datum_t> > &keys,
         const counted_t<ql::func_t> &func,
-        const std::map<std::string, ql::wire_func_t> &optargs,
         bool _return_vals, durability_requirement_t durability);
     counted_t<const ql::datum_t> write_batched_insert(ql::env_t *env,
         std::vector<counted_t<const ql::datum_t> > &&inserts,
