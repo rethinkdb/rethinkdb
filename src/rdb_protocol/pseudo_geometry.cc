@@ -26,26 +26,26 @@ counted_t<const datum_t> geo_sub(counted_t<const datum_t> lhs,
     rcheck_target(rhs.get(), base_exc_t::GENERIC, rhs->is_ptype(geometry_string),
                   "Value must be of geometry type.");
 
-    const lat_lon_line_t shell = extract_lat_lon_shell(rhs);
     rcheck_target(rhs.get(), base_exc_t::GENERIC,
                   rhs->get("coordinates")->size() <= 1,
-                  "The subtrahend must be a Polygon with only an outer shell. "
-                  "This one has holes.");
+                  "The second argument to `sub` must be a Polygon with only an outer "
+                  "shell.  This one has holes.");
 
     // Construct a polygon from lhs with rhs cut out
     rcheck_target(lhs.get(), base_exc_t::GENERIC,
                   lhs->get("type")->as_str().to_std() == "Polygon",
-                  strprintf("The minuend must be a Polygon. Got %s",
+                  strprintf("The first argument to `sub` must be a Polygon.  Found `%s`.",
                             lhs->get("type")->as_str().c_str()));
     rcheck_target(lhs.get(), base_exc_t::GENERIC,
                   lhs->get("coordinates")->size() >= 1,
-                  "The minuend is an empty polygon. It must at least have "
-                  "an outer shell.");
+                  "The first argument to `sub` is an empty polygon.  It must at least "
+                  "have an outer shell.");
 
     {
         scoped_ptr_t<S2Polygon> lhs_poly = to_s2polygon(lhs);
         if (!geo_does_include(*lhs_poly, rhs)) {
-            throw geo_exception_t("The subtrahend is not contained in the minuend.");
+            throw geo_exception_t("The second argument to `sub` is not contained "
+                                  "in the first one.");
         }
     }
 
