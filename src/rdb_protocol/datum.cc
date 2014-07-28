@@ -29,60 +29,100 @@ const std::set<std::string> datum_t::_allowed_pts = std::set<std::string>();
 
 const char *const datum_t::reql_type_string = "$reql_type$";
 
-datum_t::datum_t(datum_t::construct_null_t) : type(R_NULL) { }
+datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_null_t) :
+    type(R_NULL), r_str(NULL) { }
 
-datum_t::datum_t(construct_boolean_t, bool _bool) : type(R_BOOL), r_bool(_bool) { }
+datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_boolean_t, bool _bool) :
+    type(R_BOOL), r_bool(_bool) { }
 
-datum_t::datum_t(construct_binary_t, scoped_ptr_t<wire_string_t> data)
-    : type(R_BINARY), r_str(data.release()) {
+datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_binary_t,
+                                        scoped_ptr_t<wire_string_t> _data) :
+    type(R_BINARY), r_str(_data.release()) { }
+
+datum_t::data_wrapper_t::data_wrapper_t(double num) :
+    type(R_NUM), r_num(num) { }
+
+datum_t::data_wrapper_t::data_wrapper_t(std::string &&str) :
+    type(R_STR),
+    r_str(wire_string_t::create_and_init(str.size(), str.data()).release()) { }
+
+datum_t::data_wrapper_t::data_wrapper_t(scoped_ptr_t<wire_string_t> str) :
+    type(R_STR), r_str(str.release()) { }
+
+datum_t::data_wrapper_t::data_wrapper_t(const char *cstr) :
+    type(R_STR),
+    r_str(wire_string_t::create_and_init(::strlen(cstr), cstr).release()) { }
+
+datum_t::data_wrapper_t::data_wrapper_t(std::vector<counted_t<const datum_t> > &&array) :
+    type(R_ARRAY),
+    r_array(new std::vector<counted_t<const datum_t> >(std::move(array))) { }
+
+datum_t::data_wrapper_t::data_wrapper_t(std::map<std::string,
+                                                 counted_t<const datum_t> > &&object) :
+    type(R_OBJECT),
+    r_object(new std::map<std::string, counted_t<const datum_t> >(std::move(object))) { }
+
+datum_t::data_wrapper_t::~data_wrapper_t() {
+    switch (type) {
+    case R_NULL: // fallthru
+    case R_BOOL: // fallthru
+    case R_NUM: break;
+    case R_BINARY: // fallthru
+    case R_STR: {
+        delete r_str;
+    } break;
+    case R_ARRAY: {
+        delete r_array;
+    } break;
+    case R_OBJECT: {
+        delete r_object;
+    } break;
+    default: unreachable();
+    }
 }
 
-datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
+datum_t::datum_t(datum_t::construct_null_t dummy) : data(dummy) { }
+
+datum_t::datum_t(construct_boolean_t dummy, bool _bool) : data(dummy, _bool) { }
+
+datum_t::datum_t(construct_binary_t dummy, scoped_ptr_t<wire_string_t> _data)
+    : data(dummy, std::move(_data)) { }
+
+datum_t::datum_t(double _num) : data(_num) {
     // isfinite is a macro on OS X in math.h, so we can't just say std::isfinite.
     using namespace std;
-    rcheck(isfinite(r_num), base_exc_t::GENERIC,
-           strprintf("Non-finite number: %" PR_RECONSTRUCTABLE_DOUBLE, r_num));
+    rcheck(isfinite(data.r_num), base_exc_t::GENERIC,
+           strprintf("Non-finite number: %" PR_RECONSTRUCTABLE_DOUBLE, data.r_num));
 }
 
-datum_t::datum_t(std::string &&_str)
-    : type(R_STR), r_str(wire_string_t::create_and_init(_str.size(), _str.data()).release()) {
-    check_str_validity(r_str);
+datum_t::datum_t(std::string &&_str) : data(std::move(_str)) {
+    check_str_validity(data.r_str);
 }
 
-datum_t::datum_t(scoped_ptr_t<wire_string_t> str)
-    : type(R_STR), r_str(str.release()) {
-    check_str_validity(r_str);
+datum_t::datum_t(scoped_ptr_t<wire_string_t> str) : data(std::move(str)) {
+    check_str_validity(data.r_str);
 }
 
-datum_t::datum_t(const char *cstr)
-    : type(R_STR), r_str(wire_string_t::create_and_init(::strlen(cstr), cstr).release()) { }
+datum_t::datum_t(const char *cstr) : data(cstr) { }
 
 datum_t::datum_t(std::vector<counted_t<const datum_t> > &&_array,
                  const configured_limits_t &limits)
-    : type(R_ARRAY),
-      r_array(new std::vector<counted_t<const datum_t> >(std::move(_array))) {
-    rcheck_array_size(*r_array, limits, base_exc_t::GENERIC);
+    : data(std::move(_array)) {
+    rcheck_array_size(*data.r_array, limits, base_exc_t::GENERIC);
 }
 
 datum_t::datum_t(std::vector<counted_t<const datum_t> > &&_array,
-                 no_array_size_limit_check_t)
-    : type(R_ARRAY),
-      r_array(new std::vector<counted_t<const datum_t> >(std::move(_array))) {
-}
+                 no_array_size_limit_check_t) : data(std::move(_array)) { }
 
 datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object,
                  const std::set<std::string> &allowed_pts)
-    : type(R_OBJECT),
-      r_object(new std::map<std::string, counted_t<const datum_t> >(
-                   std::move(_object))) {
+    : data(std::move(_object)) {
     maybe_sanitize_ptype(allowed_pts);
 }
 
 datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object,
                  no_sanitize_ptype_t)
-    : type(R_OBJECT),
-      r_object(new std::map<std::string, counted_t<const datum_t> >(
-                   std::move(_object))) { }
+    : data(std::move(_object)) { }
 
 counted_t<const datum_t> to_datum(grouped_data_t &&gd,
                                   const configured_limits_t &limits) {
@@ -108,25 +148,6 @@ counted_t<const datum_t> to_datum(grouped_data_t &&gd,
 }
 
 datum_t::~datum_t() {
-    switch (type) {
-    case R_NULL: // fallthru
-    case R_BOOL: // fallthru
-    case R_NUM: break;
-    case R_BINARY: // fallthru
-    case R_STR: {
-        r_sanity_check(r_str != NULL);
-        delete r_str;
-    } break;
-    case R_ARRAY: {
-        r_sanity_check(r_array != NULL);
-        delete r_array;
-    } break;
-    case R_OBJECT: {
-        r_sanity_check(r_object != NULL);
-        delete r_object;
-    } break;
-    default: unreachable();
-    }
 }
 
 counted_t<const datum_t> datum_t::empty_array() {
@@ -146,8 +167,8 @@ counted_t<const datum_t> datum_t::boolean(bool value) {
     return make_counted<datum_t>(construct_boolean_t(), value);
 }
 
-counted_t<const datum_t> datum_t::binary(scoped_ptr_t<wire_string_t> data) {
-    return make_counted<datum_t>(construct_binary_t(), std::move(data));
+counted_t<const datum_t> datum_t::binary(scoped_ptr_t<wire_string_t> _data) {
+    return make_counted<datum_t>(construct_binary_t(), std::move(_data));
 }
 
 counted_t<const datum_t> to_datum(cJSON *json, const configured_limits_t &limits) {
@@ -208,10 +229,10 @@ void datum_t::check_str_validity(const std::string &str) {
     ::ql::check_str_validity(str.data(), str.size());
 }
 
-datum_t::type_t datum_t::get_type() const { return type; }
+datum_t::type_t datum_t::get_type() const { return data.type; }
 
 bool datum_t::is_ptype() const {
-    return type == R_OBJECT && std_contains(*r_object, reql_type_string);
+    return get_type() == R_OBJECT && std_contains(*data.r_object, reql_type_string);
 }
 
 bool datum_t::is_ptype(const std::string &reql_type) const {
@@ -220,8 +241,8 @@ bool datum_t::is_ptype(const std::string &reql_type) const {
 
 std::string datum_t::get_reql_type() const {
     r_sanity_check(get_type() == R_OBJECT);
-    auto maybe_reql_type = r_object->find(reql_type_string);
-    r_sanity_check(maybe_reql_type != r_object->end());
+    auto maybe_reql_type = data.r_object->find(reql_type_string);
+    r_sanity_check(maybe_reql_type != data.r_object->end());
     rcheck(maybe_reql_type->second->get_type() == R_STR,
            base_exc_t::GENERIC,
            strprintf("Error: Field `%s` must be a string (got `%s` of type %s):\n%s",
@@ -249,7 +270,7 @@ std::string datum_t::get_type_name() const {
     if (is_ptype()) {
         return "PTYPE<" + get_reql_type() + ">";
     } else {
-        return raw_type_name(type);
+        return raw_type_name(get_type());
     }
 }
 
@@ -278,7 +299,7 @@ void datum_t::pt_to_str_key(std::string *str_out) const {
 }
 
 void datum_t::num_to_str_key(std::string *str_out) const {
-    r_sanity_check(type == R_NUM);
+    r_sanity_check(get_type() == R_NUM);
     str_out->append("N");
     union {
         double d;
@@ -306,13 +327,13 @@ void datum_t::num_to_str_key(std::string *str_out) const {
 }
 
 void datum_t::str_to_str_key(std::string *str_out) const {
-    r_sanity_check(type == R_STR);
+    r_sanity_check(get_type() == R_STR);
     str_out->append("S");
     str_out->append(as_str().to_std());
 }
 
 void datum_t::bool_to_str_key(std::string *str_out) const {
-    r_sanity_check(type == R_BOOL);
+    r_sanity_check(get_type() == R_BOOL);
     str_out->append("B");
     if (as_bool()) {
         str_out->append("t");
@@ -325,7 +346,7 @@ void datum_t::bool_to_str_key(std::string *str_out) const {
 //  null character, with another null character at the end to signify the end of the
 //  array (this is necessary to prevent ambiguity when nested arrays are involved).
 void datum_t::array_to_str_key(std::string *str_out) const {
-    r_sanity_check(type == R_ARRAY);
+    r_sanity_check(get_type() == R_ARRAY);
     str_out->append("A");
 
     for (size_t i = 0; i < size(); ++i) {
@@ -358,7 +379,7 @@ void datum_t::array_to_str_key(std::string *str_out) const {
 }
 
 void datum_t::binary_to_str_key(std::string *str_out) const {
-    r_sanity_check(type == R_BINARY);
+    r_sanity_check(get_type() == R_BINARY);
     str_out->append("BN"); // This needs to sort between 'array':'A' and 'bool':'Bt','Bf'
     str_out->append(as_binary().data(), as_binary().size());
 }
@@ -389,11 +410,12 @@ void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
         }
         if (s == pseudo::binary_string) {
             // Clear the pseudotype data and convert it to binary data
-            scoped_ptr_t<std::map<std::string, counted_t<const datum_t> > > obj_data(r_object);
-            r_object = NULL;
+            scoped_ptr_t<std::map<std::string, counted_t<const datum_t> > >
+                obj_data(data.r_object);
+            data.r_object = NULL;
 
-            r_str = pseudo::decode_base64_ptype(*obj_data.get()).release();
-            type = R_BINARY;
+            data.r_str = pseudo::decode_base64_ptype(*obj_data.get()).release();
+            data.type = R_BINARY;
             return;
         }
         rfail(base_exc_t::GENERIC,
@@ -591,17 +613,17 @@ std::string datum_t::print_secondary(const store_key_t &primary_key,
               key_to_debug_str(primary_key).c_str());
     }
 
-    if (type == R_NUM) {
+    if (get_type() == R_NUM) {
         num_to_str_key(&secondary_key_string);
-    } else if (type == R_STR) {
+    } else if (get_type() == R_STR) {
         str_to_str_key(&secondary_key_string);
-    } else if (type == R_BINARY) {
+    } else if (get_type() == R_BINARY) {
         binary_to_str_key(&secondary_key_string);
-    } else if (type == R_BOOL) {
+    } else if (get_type() == R_BOOL) {
         bool_to_str_key(&secondary_key_string);
-    } else if (type == R_ARRAY) {
+    } else if (get_type() == R_ARRAY) {
         array_to_str_key(&secondary_key_string);
-    } else if (type == R_OBJECT && is_ptype()) {
+    } else if (get_type() == R_OBJECT && is_ptype()) {
         pt_to_str_key(&secondary_key_string);
     } else {
         type_error(strprintf(
@@ -683,15 +705,15 @@ boost::optional<uint64_t> datum_t::extract_tag(const store_key_t &key) {
 // then return all matches and filter them out later.
 store_key_t datum_t::truncated_secondary() const {
     std::string s;
-    if (type == R_NUM) {
+    if (get_type() == R_NUM) {
         num_to_str_key(&s);
-    } else if (type == R_STR) {
+    } else if (get_type() == R_STR) {
         str_to_str_key(&s);
-    } else if (type == R_BOOL) {
+    } else if (get_type() == R_BOOL) {
         bool_to_str_key(&s);
-    } else if (type == R_ARRAY) {
+    } else if (get_type() == R_ARRAY) {
         array_to_str_key(&s);
-    } else if (type == R_OBJECT && is_ptype()) {
+    } else if (get_type() == R_OBJECT && is_ptype()) {
         pt_to_str_key(&s);
     } else {
         type_error(strprintf(
@@ -722,14 +744,14 @@ void datum_t::type_error(const std::string &msg) const {
 
 bool datum_t::as_bool() const {
     if (get_type() == R_BOOL) {
-        return r_bool;
+        return data.r_bool;
     } else {
         return get_type() != R_NULL;
     }
 }
 double datum_t::as_num() const {
     check_type(R_NUM);
-    return r_num;
+    return data.r_num;
 }
 
 bool number_as_integer(double d, int64_t *i_out) {
@@ -775,17 +797,17 @@ int64_t datum_t::as_int() const {
 
 const wire_string_t &datum_t::as_binary() const {
     check_type(R_BINARY);
-    return *r_str;
+    return *data.r_str;
 }
 
 const wire_string_t &datum_t::as_str() const {
     check_type(R_STR);
-    return *r_str;
+    return *data.r_str;
 }
 
 const std::vector<counted_t<const datum_t> > &datum_t::as_array() const {
     check_type(R_ARRAY);
-    return *r_array;
+    return *data.r_array;
 }
 
 size_t datum_t::size() const {
@@ -816,7 +838,7 @@ counted_t<const datum_t> datum_t::get(const std::string &key,
 
 const std::map<std::string, counted_t<const datum_t> > &datum_t::as_object() const {
     check_type(R_OBJECT);
-    return *r_object;
+    return *data.r_object;
 }
 
 cJSON *datum_t::as_json_raw() const {
@@ -836,7 +858,7 @@ cJSON *datum_t::as_json_raw() const {
     case R_OBJECT: {
         scoped_cJSON_t obj(cJSON_CreateObject());
         for (std::map<std::string, counted_t<const datum_t> >::const_iterator
-                 it = r_object->begin(); it != r_object->end(); ++it) {
+                 it = data.r_object->begin(); it != data.r_object->end(); ++it) {
             obj.AddItemToObject(it->first.c_str(), it->second->as_json_raw());
         }
         return obj.release();
@@ -875,9 +897,9 @@ MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
     check_type(R_OBJECT);
     check_str_validity(key);
     r_sanity_check(val.has());
-    bool key_in_obj = r_object->count(key) > 0;
+    bool key_in_obj = data.r_object->count(key) > 0;
     if (!key_in_obj || (clobber_bool == CLOBBER)) {
-        (*r_object)[key] = val;
+        (*data.r_object)[key] = val;
     }
     return key_in_obj;
 }
@@ -1088,33 +1110,33 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
             d->set_type(Datum::R_NULL);
         } break;
         case R_BINARY: {
-            pseudo::write_binary_to_protobuf(d, *r_str);
+            pseudo::write_binary_to_protobuf(d, *data.r_str);
         } break;
         case R_BOOL: {
             d->set_type(Datum::R_BOOL);
-            d->set_r_bool(r_bool);
+            d->set_r_bool(data.r_bool);
         } break;
         case R_NUM: {
             d->set_type(Datum::R_NUM);
             // so we can use `isfinite` in a GCC 4.4.3-compatible way
             using namespace std;  // NOLINT(build/namespaces)
-            r_sanity_check(isfinite(r_num));
-            d->set_r_num(r_num);
+            r_sanity_check(isfinite(data.r_num));
+            d->set_r_num(data.r_num);
         } break;
         case R_STR: {
             d->set_type(Datum::R_STR);
-            d->set_r_str(r_str->data(), r_str->size());
+            d->set_r_str(data.r_str->data(), data.r_str->size());
         } break;
         case R_ARRAY: {
             d->set_type(Datum::R_ARRAY);
-            for (size_t i = 0; i < r_array->size(); ++i) {
-                (*r_array)[i]->write_to_protobuf(d->add_r_array(), use_json);
+            for (size_t i = 0; i < data.r_array->size(); ++i) {
+                (*data.r_array)[i]->write_to_protobuf(d->add_r_array(), use_json);
             }
         } break;
         case R_OBJECT: {
             d->set_type(Datum::R_OBJECT);
             // We use rbegin and rend so that things print the way we expect.
-            for (auto it = r_object->rbegin(); it != r_object->rend(); ++it) {
+            for (auto it = data.r_object->rbegin(); it != data.r_object->rend(); ++it) {
                 Datum_AssocPair *ap = d->add_r_object();
                 ap->set_key(it->first);
                 it->second->write_to_protobuf(ap->mutable_val(), use_json);
