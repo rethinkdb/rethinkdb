@@ -141,14 +141,6 @@ private:
         db.name = vclock_t<name_string_t>(db_name, env->env->cluster_access.this_machine);
         meta.metadata.databases.databases.insert(
             std::make_pair(generate_uuid(), make_deletable(db)));
-        try {
-            fill_in_blueprints(&meta.metadata,
-                               directory_metadata(env->env)->get().get_inner(),
-                               env->env->cluster_access.this_machine,
-                               boost::optional<namespace_id_t>());
-        } catch (const missing_machine_exc_t &e) {
-            rfail(base_exc_t::GENERIC, "%s", e.what());
-        }
         env->env->cluster_access.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
 
         return "created";
@@ -243,10 +235,11 @@ private:
             meta.ns_change.get()->namespaces.insert(
                                                     std::make_pair(namespace_id, make_deletable(ns)));
             try {
-                fill_in_blueprints(&meta.metadata,
-                                   directory_metadata(env->env)->get().get_inner(),
-                                   env->env->cluster_access.this_machine,
-                                   boost::optional<namespace_id_t>());
+                fill_in_blueprint_for_namespace(
+                    &meta.metadata,
+                    directory_metadata(env->env)->get().get_inner(),
+                    namespace_id,
+                    env->env->cluster_access.this_machine);
             } catch (const missing_machine_exc_t &e) {
                 rfail(base_exc_t::GENERIC, "%s", e.what());
             }
@@ -300,14 +293,6 @@ private:
         db_metadata->second.mark_deleted();
 
         // Join
-        try {
-            fill_in_blueprints(&meta.metadata,
-                               directory_metadata(env->env)->get().get_inner(),
-                               env->env->cluster_access.this_machine,
-                               boost::optional<namespace_id_t>());
-        } catch (const missing_machine_exc_t &e) {
-            rfail(base_exc_t::GENERIC, "%s", e.what());
-        }
         env->env->cluster_access.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
 
         return "dropped";
@@ -351,14 +336,6 @@ private:
 
         // Delete table and join.
         ns_metadata->second.mark_deleted();
-        try {
-            fill_in_blueprints(&meta.metadata,
-                               directory_metadata(env->env)->get().get_inner(),
-                               env->env->cluster_access.this_machine,
-                               boost::optional<namespace_id_t>());
-        } catch (const missing_machine_exc_t &e) {
-            rfail(base_exc_t::GENERIC, "%s", e.what());
-        }
         env->env->cluster_access.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
 
         return "dropped";
