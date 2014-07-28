@@ -350,7 +350,7 @@ void ensure_no_crs(const counted_t<const ql::datum_t> &geojson) {
         if (crs_field->get_type() != ql::datum_t::R_NULL) {
             throw geo_exception_t("Non-default coordinate reference systems "
                                   "are not supported in GeoJSON objects.  "
-                                  "Make sure the 'crs' field of the geometry is "
+                                  "Make sure the `crs` field of the geometry is "
                                   "null or non-existent.");
         }
     }
