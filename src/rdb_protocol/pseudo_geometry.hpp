@@ -16,6 +16,8 @@ counted_t<const datum_t> geo_sub(counted_t<const datum_t> lhs,
                                  counted_t<const datum_t> rhs,
                                  const configured_limits_t &limits);
 
+void sanitize_geometry(datum_t *geo);
+
 } // namespace pseudo
 } // namespace ql
 

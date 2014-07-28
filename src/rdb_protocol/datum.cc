@@ -404,8 +404,10 @@ void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
             return;
         }
         if (s == pseudo::geometry_string) {
-            // Geometry validation is handled separately whenever a geometry
-            // object is created (or used, when necessary).
+            // Semantic geometry validation is handled separately whenever a
+            // geometry object is created (or used, when necessary).
+            // This just performs a basic syntactic check.
+            pseudo::sanitize_geometry(this);
             return;
         }
         if (s == pseudo::binary_string) {

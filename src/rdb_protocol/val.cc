@@ -373,9 +373,12 @@ counted_t<datum_stream_t> table_t::get_intersecting(
         env_t *env,
         counted_t<const datum_t> query_geometry,
         const std::string &new_sindex_id,
-        const protob_t<const Backtrace> &bt) {
-    rcheck_src(bt.get(), base_exc_t::GENERIC, !sindex_id,
-               "Cannot chain get_intersecting with other indexed operations.");
+        const protob_t<const Backtrace> &bt,
+        const rcheckable_t *parent) {
+    rcheck_target(parent, base_exc_t::GENERIC, !sindex_id,
+                  "Cannot chain get_intersecting with other indexed operations.");
+    rcheck_target(parent, base_exc_t::GENERIC, new_sindex_id != get_pkey(),
+                  "get_intersecting cannot use the primary index.");
     sindex_id = new_sindex_id;
     r_sanity_check(sorting == sorting_t::UNORDERED);
     r_sanity_check(bounds.is_universe());
@@ -413,9 +416,12 @@ counted_t<datum_stream_t> table_t::get_nearest(
         dist_unit_t dist_unit,
         const std::string &new_sindex_id,
         const protob_t<const Backtrace> &bt,
+        const rcheckable_t *parent,
         const configured_limits_t &limits) {
-    rcheck_src(bt.get(), base_exc_t::GENERIC, !sindex_id,
-               "Cannot chain get_nearest with other indexed operations.");
+    rcheck_target(parent, base_exc_t::GENERIC, !sindex_id,
+                  "Cannot chain get_nearest with other indexed operations.");
+    rcheck_target(parent, base_exc_t::GENERIC, new_sindex_id != get_pkey(),
+                  "get_nearest cannot use the primary index.");
     sindex_id = new_sindex_id;
     r_sanity_check(sorting == sorting_t::UNORDERED);
     r_sanity_check(bounds.is_universe());

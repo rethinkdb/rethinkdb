@@ -49,7 +49,8 @@ public:
             env_t *env,
             counted_t<const datum_t> query_geometry,
             const std::string &new_sindex_id,
-            const protob_t<const Backtrace> &bt);
+            const protob_t<const Backtrace> &bt,
+            const rcheckable_t *parent);
     counted_t<datum_stream_t> get_nearest(
             env_t *env,
             lat_lon_point_t center,
@@ -59,6 +60,7 @@ public:
             dist_unit_t dist_unit,
             const std::string &new_sindex_id,
             const protob_t<const Backtrace> &bt,
+            const rcheckable_t *parent,
             const configured_limits_t &limits);
 
     counted_t<const datum_t> make_error_datum(const base_exc_t &exception);

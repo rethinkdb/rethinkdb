@@ -37,6 +37,8 @@ private:
                               make_counted<datum_t>(pseudo::geometry_string));
         rcheck(!dup, base_exc_t::GENERIC, "GeoJSON object already had a "
                                           "$reql_type$ field.");
+        // Drop the `bbox` field in case it exists. We don't have any use for it.
+        UNUSED bool had_bbox = result.delete_field("bbox");
 
         return new_val(std::move(result).to_counted());
     }
@@ -353,7 +355,7 @@ private:
 
         counted_t<datum_stream_t> stream = table->get_intersecting(
             env->env, query_arg->as_ptype(pseudo::geometry_string), index_str,
-            backtrace());
+            backtrace(), this);
         return new_val(stream, table);
     }
     virtual const char *name() const { return "get_intersecting"; }
@@ -424,7 +426,7 @@ private:
 
         counted_t<datum_stream_t> stream = table->get_nearest(
                 env->env, center, max_dist, max_results, reference_ellipsoid,
-                dist_unit, index_str, backtrace(), env->env->limits);
+                dist_unit, index_str, backtrace(), this, env->env->limits);
         return new_val(stream, table);
     }
     virtual const char *name() const { return "get_nearest"; }
