@@ -226,9 +226,12 @@ struct nearest_geo_read_response_t {
     boost::variant<result_t, ql::exc_t> results_or_error;
 
     nearest_geo_read_response_t() { }
-    nearest_geo_read_response_t(
-            result_t &&_results)
-        : results_or_error(std::move(_results)) { }
+    nearest_geo_read_response_t(result_t &&_results) {
+        // Implement "move" on _results through std::vector<...>::swap to avoid
+        // problems with boost::variant not supporting move assignment.
+        results_or_error = result_t();
+        boost::get<result_t>(&results_or_error)->swap(_results);
+    }
     nearest_geo_read_response_t(
             const ql::exc_t &_error)
         : results_or_error(_error) { }
@@ -348,7 +351,7 @@ public:
 
     rget_read_t(const region_t &_region,
                 const std::map<std::string, ql::wire_func_t> &_optargs,
-                const std::string _table_name,
+                const std::string &_table_name,
                 const ql::batchspec_t &_batchspec,
                 const std::vector<ql::transform_variant_t> &_transforms,
                 boost::optional<ql::terminal_variant_t> &&_terminal,
@@ -356,7 +359,7 @@ public:
                 sorting_t _sorting)
         : region(_region),
           optargs(_optargs),
-          table_name(std::move(_table_name)),
+          table_name(_table_name),
           batchspec(_batchspec),
           transforms(_transforms),
           terminal(std::move(_terminal)),
@@ -387,12 +390,12 @@ public:
 
     intersecting_geo_read_t(
             const counted_t<const ql::datum_t> &_query_geometry,
-            const std::string _table_name, std::string &_sindex_id,
+            const std::string &_table_name, const std::string &_sindex_id,
             const std::map<std::string, ql::wire_func_t> &_optargs)
         : optargs(_optargs),
           query_geometry(_query_geometry),
           region(region_t::universe()),
-          table_name(std::move(_table_name)),
+          table_name(_table_name),
           sindex_id(_sindex_id) { }
 
     std::map<std::string, ql::wire_func_t> optargs;
@@ -412,12 +415,12 @@ public:
 
     nearest_geo_read_t(
             lat_lon_point_t _center, double _max_dist, uint64_t _max_results,
-            const ellipsoid_spec_t &_geo_system, const std::string _table_name,
-            std::string &_sindex_id,
+            const ellipsoid_spec_t &_geo_system, const std::string &_table_name,
+            const std::string &_sindex_id,
             const std::map<std::string, ql::wire_func_t> &_optargs)
         : optargs(_optargs), center(_center), max_dist(_max_dist),
           max_results(_max_results), geo_system(_geo_system),
-          region(region_t::universe()), table_name(std::move(_table_name)),
+          region(region_t::universe()), table_name(_table_name),
           sindex_id(_sindex_id) { }
 
     std::map<std::string, ql::wire_func_t> optargs;
