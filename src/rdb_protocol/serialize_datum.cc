@@ -8,6 +8,7 @@
 #include "containers/archive/stl_types.hpp"
 #include "containers/archive/versioned.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
 
 namespace ql {
@@ -29,8 +30,10 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(datum_serialized_type_t, int8_t,
                                       datum_serialized_type_t::R_ARRAY,
                                       datum_serialized_type_t::R_BINARY);
 
-void datum_serialize(write_message_t *wm, datum_serialized_type_t type) {
+serialization_result_t datum_serialize(write_message_t *wm,
+                                       datum_serialized_type_t type) {
     serialize<cluster_version_t::LATEST_OVERALL>(wm, type);
+    return serialization_result_t::SUCCESS;
 }
 
 MUST_USE archive_result_t datum_deserialize(read_stream_t *s,
@@ -53,12 +56,14 @@ size_t datum_serialized_size(const std::vector<counted_t<const datum_t> > &v) {
 
 
 // Keep in sync with datum_serialized_size.
-void datum_serialize(write_message_t *wm,
-                     const std::vector<counted_t<const datum_t> > &v) {
+serialization_result_t datum_serialize(write_message_t *wm,
+                                       const std::vector<counted_t<const datum_t> > &v) {
+    serialization_result_t res = serialization_result_t::SUCCESS;
     serialize_varint_uint64(wm, v.size());
     for (auto it = v.begin(), e = v.end(); it != e; ++it) {
-        datum_serialize(wm, *it);
+        res = res | datum_serialize(wm, *it);
     }
+    return res;
 }
 
 MUST_USE archive_result_t
@@ -85,8 +90,9 @@ datum_deserialize(read_stream_t *s, std::vector<counted_t<const datum_t> > *v) {
 size_t datum_serialized_size(const std::string &s) {
     return serialize_universal_size(s);
 }
-void datum_serialize(write_message_t *wm, const std::string &s) {
+serialization_result_t datum_serialize(write_message_t *wm, const std::string &s) {
     serialize_universal(wm, s);
+    return serialization_result_t::SUCCESS;
 }
 MUST_USE archive_result_t datum_deserialize(read_stream_t *s, std::string *out) {
     return deserialize_universal(s, out);
@@ -103,13 +109,16 @@ size_t datum_serialized_size(
     return ret;
 }
 
-void datum_serialize(write_message_t *wm,
-                     const std::map<std::string, counted_t<const datum_t> > &m) {
+serialization_result_t
+datum_serialize(write_message_t *wm,
+                const std::map<std::string, counted_t<const datum_t> > &m) {
+    serialization_result_t res = serialization_result_t::SUCCESS;
     serialize_varint_uint64(wm, m.size());
     for (auto it = m.begin(), e = m.end(); it != e; ++it) {
-        datum_serialize(wm, it->first);
-        datum_serialize(wm, it->second);
+        res = res | datum_serialize(wm, it->first);
+        res = res | datum_serialize(wm, it->second);
     }
+    return res;
 }
 
 MUST_USE archive_result_t datum_deserialize(
@@ -178,13 +187,17 @@ size_t datum_serialized_size(const counted_t<const datum_t> &datum) {
     }
     return sz;
 }
-void datum_serialize(write_message_t *wm, const counted_t<const datum_t> &datum) {
+serialization_result_t datum_serialize(write_message_t *wm,
+                                       const counted_t<const datum_t> &datum) {
+    serialization_result_t res = serialization_result_t::SUCCESS;
     r_sanity_check(datum.has());
     switch (datum->get_type()) {
     case datum_t::R_ARRAY: {
-        datum_serialize(wm, datum_serialized_type_t::R_ARRAY);
+        res = res | datum_serialize(wm, datum_serialized_type_t::R_ARRAY);
         const std::vector<counted_t<const datum_t> > &value = datum->as_array();
-        datum_serialize(wm, value);
+        if (value.size() > 100000)
+            res = res | serialization_result_t::ARRAY_TOO_BIG;
+        res = res | datum_serialize(wm, value);
     } break;
     case datum_t::R_BINARY: {
         datum_serialize(wm, datum_serialized_type_t::R_BINARY);
@@ -192,12 +205,12 @@ void datum_serialize(write_message_t *wm, const counted_t<const datum_t> &datum)
         datum_serialize(wm, value);
     } break;
     case datum_t::R_BOOL: {
-        datum_serialize(wm, datum_serialized_type_t::R_BOOL);
+        res = res | datum_serialize(wm, datum_serialized_type_t::R_BOOL);
         bool value = datum->as_bool();
         serialize_universal(wm, value);
     } break;
     case datum_t::R_NULL: {
-        datum_serialize(wm, datum_serialized_type_t::R_NULL);
+        res = res | datum_serialize(wm, datum_serialized_type_t::R_NULL);
     } break;
     case datum_t::R_NUM: {
         double value = datum->as_num();
@@ -208,31 +221,38 @@ void datum_serialize(write_message_t *wm, const counted_t<const datum_t> &datum)
             // so we can use `signbit` in a GCC 4.4.3-compatible way
             using namespace std;  // NOLINT(build/namespaces)
             if (signbit(value)) {
-                datum_serialize(wm, datum_serialized_type_t::INT_NEGATIVE);
+                res = res | datum_serialize(wm, datum_serialized_type_t::INT_NEGATIVE);
                 serialize_varint_uint64(wm, -i);
             } else {
-                datum_serialize(wm, datum_serialized_type_t::INT_POSITIVE);
+                res = res | datum_serialize(wm, datum_serialized_type_t::INT_POSITIVE);
                 serialize_varint_uint64(wm, i);
             }
         } else {
-            datum_serialize(wm, datum_serialized_type_t::DOUBLE);
+            res = res | datum_serialize(wm, datum_serialized_type_t::DOUBLE);
             serialize_universal(wm, value);
         }
     } break;
     case datum_t::R_OBJECT: {
-        datum_serialize(wm, datum_serialized_type_t::R_OBJECT);
-        datum_serialize(wm, datum->as_object());
+        res = res | datum_serialize(wm, datum_serialized_type_t::R_OBJECT);
+        res = res | datum_serialize(wm, datum->as_object());
     } break;
     case datum_t::R_STR: {
-        datum_serialize(wm, datum_serialized_type_t::R_STR);
+        res = res | datum_serialize(wm, datum_serialized_type_t::R_STR);
         const wire_string_t &value = datum->as_str();
-        datum_serialize(wm, value);
+        res = res | datum_serialize(wm, value);
     } break;
     default:
         unreachable();
     }
+    return res;
 }
 archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *datum) {
+    // Datums on disk should always be read no matter how stupid big
+    // they are; there's no way to fix the problem otherwise.
+    // Similarly we don't want to reject array reads from cluster
+    // nodes that are within the user spec but larger than the default
+    // 100,000 limit.
+    ql::configured_limits_t limits = ql::configured_limits_t::unlimited;
     datum_serialized_type_t type;
     archive_result_t res = datum_deserialize(s, &type);
     if (bad(res)) {
@@ -247,7 +267,7 @@ archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *d
             return res;
         }
         try {
-            datum->reset(new datum_t(std::move(value)));
+            datum->reset(new datum_t(std::move(value), limits));
         } catch (const base_exc_t &) {
             return archive_result_t::RANGE_ERROR;
         }
@@ -344,6 +364,43 @@ archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *d
     default:
         return archive_result_t::RANGE_ERROR;
     }
+
+    return archive_result_t::SUCCESS;
+}
+
+
+size_t datum_serialized_size(const wire_string_t &s) {
+    return varint_uint64_serialized_size(s.size()) + s.size();
+}
+
+serialization_result_t datum_serialize(write_message_t *wm, const wire_string_t &s) {
+    serialize_varint_uint64(wm, static_cast<uint64_t>(s.size()));
+    wm->append(s.data(), s.size());
+    return serialization_result_t::SUCCESS;
+}
+
+MUST_USE archive_result_t datum_deserialize(
+        read_stream_t *s,
+        scoped_ptr_t<wire_string_t> *out) {
+    uint64_t sz;
+    archive_result_t res = deserialize_varint_uint64(s, &sz);
+    if (res != archive_result_t::SUCCESS) { return res; }
+
+    if (sz > std::numeric_limits<size_t>::max()) {
+        return archive_result_t::RANGE_ERROR;
+    }
+
+    scoped_ptr_t<wire_string_t> value(wire_string_t::create(sz));
+
+    int64_t num_read = force_read(s, value->data(), sz);
+    if (num_read == -1) {
+        return archive_result_t::SOCK_ERROR;
+    }
+    if (static_cast<uint64_t>(num_read) < sz) {
+        return archive_result_t::SOCK_EOF;
+    }
+
+    *out = std::move(value);
 
     return archive_result_t::SUCCESS;
 }

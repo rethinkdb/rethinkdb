@@ -163,10 +163,10 @@ public:
     virtual ~subscription_t();
     std::vector<counted_t<const datum_t> >
     get_els(batcher_t *batcher, const signal_t *interruptor);
-    virtual void add_el(
-        const uuid_u &uuid , uint64_t stamp, counted_t<const datum_t> d) = 0;
-    virtual void start(
-        env_t *env, namespace_interface_t *nif, client_t::addr_t *addr) = 0;
+    virtual void add_el(const uuid_u &uuid, uint64_t stamp, counted_t<const datum_t> d,
+                        const configured_limits_t &limits) = 0;
+    virtual void start(env_t *env, namespace_interface_t *nif,
+                       client_t::addr_t *addr) = 0;
     void stop(const std::string &msg, detach_t should_detach);
 protected:
     explicit subscription_t(feed_t *_feed);
@@ -303,7 +303,8 @@ public:
         }
     }
 private:
-    virtual void add_el(const uuid_u &, uint64_t d_stamp, counted_t<const datum_t> d) {
+    virtual void add_el(const uuid_u &, uint64_t d_stamp, counted_t<const datum_t> d,
+                        const configured_limits_t &) {
         assert_thread();
         // We use `>=` because we might have the same stamp as the start stamp
         // (the start stamp reads the stamp non-destructively on the shards).
@@ -350,7 +351,8 @@ public:
         guarantee(start_stamps.size() != 0);
     }
 private:
-    virtual void add_el(const uuid_u &uuid, uint64_t stamp, counted_t<const datum_t> d) {
+    virtual void add_el(const uuid_u &uuid, uint64_t stamp, counted_t<const datum_t> d,
+                        const configured_limits_t &limits) {
         // If we don't have start timestamps, we haven't started, and if we have
         // exc, we've stopped.
         if (start_stamps.size() != 0 && !exc) {
@@ -358,7 +360,7 @@ private:
             guarantee(it != start_stamps.end());
             if (stamp >= it->second) {
                 els.push_back(std::move(d));
-                if (els.size() > array_size_limit()) {
+                if (els.size() > limits.array_size_limit()) {
                     skipped += els.size();
                     els.clear();
                 }
@@ -387,6 +389,7 @@ public:
         : feed(_feed), server_uuid(_server_uuid), stamp(_stamp) { }
     void operator()(const msg_t::change_t &change) const {
         counted_t<const datum_t> null = datum_t::null();
+        configured_limits_t default_limits;
         std::map<std::string, counted_t<const datum_t> > obj{
             {"new_val", change.new_val.has() ? change.new_val : null},
             {"old_val", change.old_val.has() ? change.old_val : null}
@@ -397,7 +400,7 @@ public:
                       ph::_1,
                       std::cref(server_uuid),
                       stamp,
-                      d));
+                      d, default_limits));
         auto val = change.new_val.has() ? change.new_val : change.old_val;
         r_sanity_check(val.has());
         auto pkey_val = val->get(feed->pkey, NOTHROW);
@@ -408,7 +411,8 @@ public:
                       ph::_1,
                       std::cref(server_uuid),
                       stamp,
-                      change.new_val.has() ? change.new_val : datum_t::null()));
+                      change.new_val.has() ? change.new_val : datum_t::null(),
+                      default_limits));
     }
     void operator()(const msg_t::stop_t &) const {
         const char *msg = "Changefeed aborted (table unavailable).";
@@ -856,8 +860,12 @@ client_t::new_feed(const counted_t<table_t> &tbl, keyspec_t &&keyspec, env_t *en
             auto feed_it = feeds.find(uuid);
             if (feed_it == feeds.end()) {
                 spot.write_signal()->wait_lazily_unordered();
-                auto val = make_scoped<feed_t>(
-                    this, manager, env->ns_repo(), uuid, pkey, &interruptor);
+                // Even though we have the user's feed here, multiple
+                // users may share a feed_t, and this code path will
+                // only be run for the first one.  Rather than mess
+                // about, just use the defaults.
+                auto val = make_scoped<feed_t>(this, manager, env->ns_repo(), uuid,
+                                               pkey, &interruptor);
                 feed_it = feeds.insert(std::make_pair(uuid, std::move(val))).first;
             }
 

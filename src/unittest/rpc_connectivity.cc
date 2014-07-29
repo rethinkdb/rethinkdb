@@ -74,7 +74,6 @@ public:
 private:
     void on_message(connectivity_cluster_t::connection_t *connection,
                     auto_drainer_t::lock_t,
-                    cluster_version_t,
                     read_stream_t *stream) {
         int i;
         archive_result_t res
@@ -423,7 +422,6 @@ public:
     }
     void on_message(connectivity_cluster_t::connection_t *,
                     auto_drainer_t::lock_t,
-                    cluster_version_t,
                     read_stream_t *stream) {
         char spectrum[CHAR_MAX - CHAR_MIN + 1];
         int64_t res = force_read(stream, spectrum, CHAR_MAX - CHAR_MIN + 1);

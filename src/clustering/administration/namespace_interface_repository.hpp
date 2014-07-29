@@ -11,6 +11,7 @@
 #include "containers/clone_ptr.hpp"
 #include "containers/incremental_lenses.hpp"
 #include "rdb_protocol/context.hpp"
+#include "rpc/semilattice/view.hpp"
 
 /* `namespace_repo_t` is responsible for providing `namespace_interface_t` objects to the
 ReQL code, by subclassing `base_namespace_interface_t`. Internally, it constructs and

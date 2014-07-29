@@ -8,6 +8,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "containers/clone_ptr.hpp"
 #include "http/http.hpp"
+#include "rpc/semilattice/view.hpp"
 
 template <class> class watchable_t;
 

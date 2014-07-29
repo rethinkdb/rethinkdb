@@ -42,8 +42,9 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
 
     std::exception_ptr exc;
     try {
-        env_t env(rdb_ctx, interruptor, entry->global_optargs,
-                  entry->profile);
+        scoped_ptr_t<profile::trace_t> trace = maybe_make_profile_trace(entry->profile);
+
+        env_t env(rdb_ctx, interruptor, entry->global_optargs, trace.get_or_null());
 
         batch_type_t batch_type = entry->has_sent_batch
                                       ? batch_type_t::NORMAL
@@ -56,8 +57,8 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
         for (auto d = ds.begin(); d != ds.end(); ++d) {
             (*d)->write_to_protobuf(res->add_response(), entry->use_json);
         }
-        if (env.trace.has()) {
-            env.trace->as_datum()->write_to_protobuf(
+        if (trace.has()) {
+            trace->as_datum()->write_to_protobuf(
                 res->mutable_profile(), entry->use_json);
         }
     } catch (const std::exception &e) {

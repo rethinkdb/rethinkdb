@@ -9,7 +9,6 @@
 #include "clustering/administration/admin_tracker.hpp"
 #include "clustering/administration/issue_subscription.hpp"
 #include "clustering/administration/metadata.hpp"
-#include "clustering/administration/metadata_change_handler.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "http/http.hpp"
 #include "rpc/semilattice/view.hpp"
@@ -37,9 +36,10 @@ public:
         const std::set<ip_address_t> &local_addresses,
         int port,
         mailbox_manager_t *mbox_manager,
-        metadata_change_handler_t<cluster_semilattice_metadata_t> *_metadata_change_handler,
-        metadata_change_handler_t<auth_semilattice_metadata_t> *_auth_change_handler,
-        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
+        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
+            _cluster_semilattice_metadata,
+        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
+            _auth_semilattice_metadata,
         clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata,
         namespace_repo_t *_rdb_namespace_repo,
         admin_tracker_t *_admin_tracker,

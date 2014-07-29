@@ -16,8 +16,10 @@
 namespace ql {
 
 counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
+    // HACK: per @srh, use unlimited array size at compile time
+    ql::configured_limits_t limits = ql::configured_limits_t::unlimited;
     switch (t->type()) {
-    case Term::DATUM:              return make_datum_term(t);
+    case Term::DATUM:              return make_datum_term(t, limits);
     case Term::MAKE_ARRAY:         return make_make_array_term(env, t);
     case Term::MAKE_OBJ:           return make_make_obj_term(env, t);
     case Term::VAR:                return make_var_term(env, t);
@@ -193,7 +195,8 @@ void run(protob_t<Query> q,
     switch (q->type()) {
     case Query_QueryType_START: {
         const profile_bool_t profile = profile_bool_optarg(q);
-        env_t env(ctx, interruptor, global_optargs(q), profile);
+        const scoped_ptr_t<profile::trace_t> trace = maybe_make_profile_trace(profile);
+        env_t env(ctx, interruptor, global_optargs(q), trace.get_or_null());
 
         counted_t<const term_t> root_term;
         try {
@@ -227,16 +230,16 @@ void run(protob_t<Query> q,
                 res->set_type(Response::SUCCESS_ATOM);
                 counted_t<const datum_t> d = val->as_datum();
                 d->write_to_protobuf(res->add_response(), use_json);
-                if (env.trace.has()) {
-                    env.trace->as_datum()->write_to_protobuf(
+                if (trace.has()) {
+                    trace->as_datum()->write_to_protobuf(
                         res->mutable_profile(), use_json);
                 }
             } else if (counted_t<grouped_data_t> gd
                        = val->maybe_as_promiscuous_grouped_data(scope_env.env)) {
                 res->set_type(Response::SUCCESS_ATOM);
-                counted_t<const datum_t> d = to_datum(std::move(*gd));
+                counted_t<const datum_t> d = to_datum(std::move(*gd), env.limits);
                 d->write_to_protobuf(res->add_response(), use_json);
-                if (env.trace.has()) {
+                if (env.trace != nullptr) {
                     env.trace->as_datum()->write_to_protobuf(
                         res->mutable_profile(), use_json);
                 }
@@ -245,8 +248,8 @@ void run(protob_t<Query> q,
                 if (counted_t<const datum_t> arr = seq->as_array(&env)) {
                     res->set_type(Response::SUCCESS_ATOM);
                     arr->write_to_protobuf(res->add_response(), use_json);
-                    if (env.trace.has()) {
-                        env.trace->as_datum()->write_to_protobuf(
+                    if (trace.has()) {
+                        trace->as_datum()->write_to_protobuf(
                             res->mutable_profile(), use_json);
                     }
                 } else {

@@ -113,7 +113,7 @@ bool do_serve(io_backender_t *io_backender,
             semilattice_manager_cluster(&connectivity_cluster, 'S', cluster_metadata);
 
         semilattice_manager_t<auth_semilattice_metadata_t>
-            auth_manager_cluster(&connectivity_cluster, 'A', auth_metadata);
+            semilattice_manager_auth(&connectivity_cluster, 'A', auth_metadata);
 
         directory_read_manager_t<cluster_directory_metadata_t> directory_read_manager(
             &connectivity_cluster, 'D');
@@ -144,9 +144,6 @@ bool do_serve(io_backender_t *io_backender,
         // stat_manager mailbox address
         stat_manager_t stat_manager(&mailbox_manager);
 
-        metadata_change_handler_t<cluster_semilattice_metadata_t> metadata_change_handler(&mailbox_manager, semilattice_manager_cluster.get_root_view());
-        metadata_change_handler_t<auth_semilattice_metadata_t> auth_change_handler(&mailbox_manager, auth_manager_cluster.get_root_view());
-
         scoped_ptr_t<cluster_directory_metadata_t> initial_directory(
             new cluster_directory_metadata_t(
                 machine_id,
@@ -154,8 +151,6 @@ bool do_serve(io_backender_t *io_backender,
                 total_cache_size,
                 get_ips(),
                 stat_manager.get_address(),
-                metadata_change_handler.get_request_mailbox_address(),
-                auth_change_handler.get_request_mailbox_address(),
                 log_server.get_business_card(),
                 i_am_a_server
                     ? boost::make_optional(server_name_server->get_business_card())
@@ -214,7 +209,7 @@ bool do_serve(io_backender_t *io_backender,
             &our_root_directory_variable);
 
         admin_tracker_t admin_tracker(semilattice_manager_cluster.get_root_view(),
-                                      auth_manager_cluster.get_root_view(),
+                                      semilattice_manager_auth.get_root_view(),
                                       directory_read_manager.get_root_view());
 
         perfmon_collection_t proc_stats_collection;
@@ -261,7 +256,7 @@ bool do_serve(io_backender_t *io_backender,
                               &mailbox_manager,
                               NULL,
                               &reql_admin_interface,
-                              auth_manager_cluster.get_root_view(),
+                              semilattice_manager_auth.get_root_view(),
                               &get_global_perfmon_collection(),
                               serve_info.reql_http_proxy);
 
@@ -337,7 +332,7 @@ bool do_serve(io_backender_t *io_backender,
                         semilattice_manager_cluster.get_root_view()));
                     auth_metadata_persister.init(new metadata_persistence::semilattice_watching_persister_t<auth_semilattice_metadata_t>(
                         auth_metadata_file,
-                        auth_manager_cluster.get_root_view()));
+                        semilattice_manager_auth.get_root_view()));
                 }
 
                 {
@@ -352,9 +347,8 @@ bool do_serve(io_backender_t *io_backender,
                                 serve_info.ports.local_addresses,
                                 serve_info.ports.http_port,
                                 &mailbox_manager,
-                                &metadata_change_handler,
-                                &auth_change_handler,
                                 semilattice_manager_cluster.get_root_view(),
+                                semilattice_manager_auth.get_root_view(),
                                 directory_read_manager.get_root_view(),
                                 &rdb_namespace_repo,
                                 &admin_tracker,
