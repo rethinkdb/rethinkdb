@@ -145,16 +145,13 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             res->results_or_error = ql::exc_t(
                 ql::base_exc_t::GENERIC,
                 strprintf(
-                    "Index `%s` is not a geospatial index. get_intersecting can only "
+                    "Index `%s` is not a geospatial index.  get_intersecting can only "
                     "be used with a geospatial index.",
                     geo_read.sindex_id.c_str()),
                 NULL);
             return;
         }
 
-        // TODO (daniel): What happens if we have multiple shards on the same node?
-        //   Will we actually perform multiple sindex traversals just to post-filter
-        //   most of the results based on their primary key?
         rdb_get_intersecting_slice(
             store->get_sindex_slice(sindex_uuid),
             geo_read.query_geometry,
@@ -185,7 +182,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             res->results_or_error = ql::exc_t(
                 ql::base_exc_t::GENERIC,
                 strprintf(
-                    "Index `%s` is not a geospatial index. get_nearest can only be "
+                    "Index `%s` is not a geospatial index.  get_nearest can only be "
                     "used with a geospatial index.",
                     geo_read.sindex_id.c_str()),
                 NULL);
@@ -235,8 +232,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 res->result = ql::exc_t(
                     ql::base_exc_t::GENERIC,
                     strprintf(
-                        "Index `%s` is a geospatial index. This term cannot be "
-                        "used with a geospatial index.",
+                        "Index `%s` is a geospatial index.  Only get_nearest and "
+                        "get_intersecting can use a geospatial index.",
                         rget.sindex->id.c_str()),
                     NULL);
                 return;

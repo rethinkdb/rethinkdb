@@ -373,8 +373,7 @@ counted_t<datum_stream_t> table_t::get_intersecting(
         env_t *env,
         counted_t<const datum_t> query_geometry,
         const std::string &new_sindex_id,
-        const protob_t<const Backtrace> &bt,
-        const rcheckable_t *parent) {
+        const pb_rcheckable_t *parent) {
     rcheck_target(parent, base_exc_t::GENERIC, !sindex_id,
                   "Cannot chain get_intersecting with other indexed operations.");
     rcheck_target(parent, base_exc_t::GENERIC, new_sindex_id != get_pkey(),
@@ -404,7 +403,7 @@ counted_t<datum_stream_t> table_t::get_intersecting(
 
     auto *result = boost::get<counted_t<const datum_t> >(&g_res->results_or_error);
     guarantee(result != NULL);
-    return make_counted<array_datum_stream_t>(*result, bt);
+    return make_counted<array_datum_stream_t>(*result, parent->backtrace());
 }
 
 counted_t<datum_stream_t> table_t::get_nearest(
@@ -415,8 +414,7 @@ counted_t<datum_stream_t> table_t::get_nearest(
         const ellipsoid_spec_t &geo_system,
         dist_unit_t dist_unit,
         const std::string &new_sindex_id,
-        const protob_t<const Backtrace> &bt,
-        const rcheckable_t *parent,
+        const pb_rcheckable_t *parent,
         const configured_limits_t &limits) {
     rcheck_target(parent, base_exc_t::GENERIC, !sindex_id,
                   "Cannot chain get_nearest with other indexed operations.");
@@ -464,7 +462,7 @@ counted_t<datum_stream_t> table_t::get_nearest(
         formatted_result.add(std::move(one_result).to_counted());
     }
     return make_counted<array_datum_stream_t>(
-        std::move(formatted_result).to_counted(), bt);
+        std::move(formatted_result).to_counted(), parent->backtrace());
 }
 
 val_t::type_t::type_t(val_t::type_t::raw_type_t _raw_type) : raw_type(_raw_type) { }
