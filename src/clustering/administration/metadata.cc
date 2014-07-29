@@ -71,10 +71,10 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(auth_semilattice_metadata_t, auth_key);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(auth_semilattice_metadata_t, auth_key);
 RDB_IMPL_EQUALITY_COMPARABLE_1(auth_semilattice_metadata_t, auth_key);
 
-RDB_IMPL_SERIALIZABLE_9(cluster_directory_metadata_t,
-                        rdb_namespaces, machine_id, peer_id, cache_size,
-                        ips, get_stats_mailbox_address,
-                        log_mailbox, local_issues, peer_type);
+RDB_IMPL_SERIALIZABLE_10(cluster_directory_metadata_t,
+                         rdb_namespaces, machine_id, peer_id, cache_size, ips,
+                         get_stats_mailbox_address, log_mailbox,
+                         server_name_business_card, local_issues, peer_type);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(cluster_directory_metadata_t);
 
 namespace_semilattice_metadata_t new_namespace(

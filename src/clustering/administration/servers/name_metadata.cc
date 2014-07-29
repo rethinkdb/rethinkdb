@@ -2,4 +2,5 @@
 #include "clustering/administration/servers/name_metadata.hpp"
 
 RDB_IMPL_SERIALIZABLE_2(server_name_business_card_t, rename_addr, startup_time);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(server_name_business_card_t);
 

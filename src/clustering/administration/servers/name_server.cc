@@ -131,6 +131,7 @@ void server_name_server_t::rename_me(const name_string_t &new_name) {
         if (!entry->is_deleted()) {
             entry->get_mutable()->name = entry->get_ref().name.make_new_version(
                 new_name, my_machine_id);
+            semilattice_view->join(metadata);
         }
     }
 }

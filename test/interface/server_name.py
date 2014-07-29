@@ -32,24 +32,25 @@ with driver.Metacluster() as metacluster:
     process1.wait_until_started_up()
     process2.wait_until_started_up()
     cluster.check()
-    http_access1 = http_admin.ClusterAccess([("localhost", process1.http_port)])
+    http_access = http_admin.ClusterAccess([("localhost", process1.http_port)])
+    uuid1 = http_access.find_machine("a").uuid
+    uuid2 = http_access.find_machine("b").uuid
     reql_conn1 = r.connect("localhost", process1.driver_port)
     reql_conn2 = r.connect("localhost", process2.driver_port)
-    http_machine1 = http_access1.find_machine("a")
-    http_machine2 = http_access1.find_machine("b")
-    def check_names(name1, name2):
-        http_access1.update_cluster_data(10)
-        assert http_machine1.name == name1
-        assert http_machine2.name == name2
+    def get_names():
+        # We have to construct a new ClusterAccess every time because ClusterAdmin gets
+        # confused if the cluster metadata changes while it is active
+        ha = http_admin.ClusterAccess([("localhost", process1.http_port)])
+        return ha.machines[uuid1].name, ha.machines[uuid2].name
 
     print "Checking typical scenarios..."
-    check_names("a", "b")
+    assert get_names() == ("a", "b")
     r.server_rename("a", "a2").run(reql_conn1)
-    check_names("a2", "b")
+    assert get_names() == ("a2", "b")
     r.server_rename("b", "b2").run(reql_conn1)
-    check_names("a2", "b2")
+    assert get_names() == ("a2", "b2")
     cluster.check()
-    http_access1.assert_no_issues()
+    http_access.check_no_issues()
 
     print "Checking error scenarios..."
     try:
@@ -65,7 +66,7 @@ with driver.Metacluster() as metacluster:
     else:
         assert False, "creating a name conflict should fail"
     cluster.check()
-    http_access1.assert_no_issues()
+    http_access.check_no_issues()
 
     print "Creating a netsplit, then waiting 20s..."
     side_cluster = driver.Cluster(metacluster)
@@ -74,7 +75,7 @@ with driver.Metacluster() as metacluster:
 
     print "Checking behavior during netsplit..."
     r.server_rename("a2", "x").run(reql_conn1)
-    check_names("x", "b2")
+    assert get_names() == ("x", "b2")
     try:
         r.server_rename("b2", "b3").run(reql_conn1)
     except r.RqlRuntimeError, e:
@@ -89,11 +90,10 @@ with driver.Metacluster() as metacluster:
     metacluster.move_processes(side_cluster, cluster, [process2])
     time.sleep(10)
     cluster.check()
-    http_access1.assert_no_issues()
+    http_access.check_no_issues()
 
-    print "Checking that rename occurred..."
-    http_access1.update_cluster_data(10)
-    assert set([http_machine1.name, http_machine2.name]) == set(["x", "x_renamed"])
+    print "Checking that the name conflict was resolved automatically..."
+    assert set(get_names()) == set(["x", "x_renamed"])
 
     cluster.check_and_stop()
 
