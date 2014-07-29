@@ -219,11 +219,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                            &ql_env, rget.batchspec, rget.transforms, rget.terminal,
                            rget.sorting, res);
         } else {
-            // This chunk of code puts together a filter so we can exclude any items
-            //  that don't fall in the specified range.  Because the secondary index
-            //  keys may have been truncated, we can't go by keys alone.  Therefore,
-            //  we construct a filter function that ensures all returned items lie
-            //  between sindex_start_value and sindex_end_value.
             sindex_disk_info_t sindex_info;
             uuid_u sindex_uuid;
             scoped_ptr_t<real_superblock_t> sindex_sb;

@@ -97,8 +97,7 @@ void geo_intersecting_cb_t::on_candidate(
     }
 
     lazy_json_t row(static_cast<const rdb_value_t *>(value), parent);
-    counted_t<const ql::datum_t> val;
-    val = row.get();
+    counted_t<const ql::datum_t> val = row.get();
     slice->stats.pm_keys_read.record();
     slice->stats.pm_total_keys_read += 1;
 

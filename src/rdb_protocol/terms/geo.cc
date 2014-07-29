@@ -92,14 +92,12 @@ lat_lon_point_t parse_point_argument(const counted_t<const datum_t> &point_datum
         return extract_lat_lon_point(point_datum);
     } else {
         // The argument must be a coordinate pair
-        const std::vector<counted_t<const datum_t> > &point_arr =
-            point_datum->as_array();
-        rcheck_target(point_datum.get(), base_exc_t::GENERIC, point_arr.size() == 2,
+        rcheck_target(point_datum.get(), base_exc_t::GENERIC, point_datum->size() == 2,
             strprintf("Expected point coordinate pair.  "
                       "Got %zu element array instead of a 2 element one.",
-                      point_arr.size()));
-        double lat = point_arr[0]->as_num();
-        double lon = point_arr[1]->as_num();
+                      point_datum->size()));
+        double lat = point_datum->get(0)->as_num();
+        double lon = point_datum->get(1)->as_num();
         return lat_lon_point_t(lat, lon);
     }
 }
@@ -260,22 +258,19 @@ private:
 
             // (At least) one of the arguments must be a point.
             // Find out which one it is.
-            S2Point p;
+            scoped_ptr_t<S2Point> p;
             counted_t<const datum_t> g;
-            try {
-                scoped_ptr_t<S2Point> ptr =
-                    to_s2point(g1_arg->as_ptype(pseudo::geometry_string));
-                p = *ptr;
+            const std::string g1_type =
+                g1_arg->as_ptype(pseudo::geometry_string)->get("type")->as_str().to_std();
+            if (g1_type == "Point") {
+                p = to_s2point(g1_arg->as_ptype(pseudo::geometry_string));
                 g = g2_arg->as_ptype(pseudo::geometry_string);
-            } catch (const geo_exception_t &e) {
-                // Try the other argument
-                scoped_ptr_t<S2Point> ptr =
-                    to_s2point(g2_arg->as_ptype(pseudo::geometry_string));
-                p = *ptr;
+            } else {
+                p = to_s2point(g2_arg->as_ptype(pseudo::geometry_string));
                 g = g1_arg->as_ptype(pseudo::geometry_string);
             }
 
-            double result = geodesic_distance(p, g, reference_ellipsoid);
+            double result = geodesic_distance(*p, g, reference_ellipsoid);
             result = convert_dist_unit(result, dist_unit_t::M, result_unit);
 
             return new_val(make_counted<const datum_t>(result));
@@ -304,14 +299,9 @@ private:
         counted_t<val_t> num_vertices_arg = args->optarg(env, "num_vertices");
         unsigned int num_vertices = 32;
         if (num_vertices_arg.has()) {
-            int64_t v = num_vertices_arg->as_int();
-            rcheck_target(num_vertices_arg.get(), base_exc_t::GENERIC, v > 0,
+            num_vertices = num_vertices_arg->as_int<unsigned int>();
+            rcheck_target(num_vertices_arg.get(), base_exc_t::GENERIC, num_vertices > 0,
                           "num_vertices must be positive.");
-            rcheck_target(num_vertices_arg.get(), base_exc_t::GENERIC,
-                          v <= std::numeric_limits<unsigned int>::max(),
-                          strprintf("num_vertices is too large (max: %u).",
-                                    std::numeric_limits<unsigned int>::max()));
-            num_vertices = static_cast<unsigned int>(v);
         }
 
         try {
