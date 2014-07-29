@@ -17,6 +17,9 @@
 class machine_semilattice_metadata_t {
 public:
     vclock_t<datacenter_id_t> datacenter;
+
+    /* `name` should only be modified by the machine that this metadata is describing.
+    Therefore, it should never be in conflict. */
     vclock_t<name_string_t> name;
 };
 

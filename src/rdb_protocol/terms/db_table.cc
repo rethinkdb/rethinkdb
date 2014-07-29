@@ -265,7 +265,7 @@ private:
 class server_rename_term_t : public meta_write_op_t {
 public:
     server_rename_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        meta_write_op_t(env, term, argspec_t(2, 0)) { }
+        meta_write_op_t(env, term, argspec_t(2)) { }
 private:
     virtual std::string write_eval_impl(scope_env_t *env,
             args_t *args, eval_flags_t) const {

@@ -6,6 +6,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/name_metadata.hpp"
 #include "rpc/mailbox/mailbox.hpp"
+#include "rpc/semilattice/view.hpp"
 
 class server_name_client_t : public home_thread_mixin_t {
 public:

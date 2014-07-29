@@ -154,7 +154,7 @@ void server_name_server_t::on_rename_request(const name_string_t &new_name,
 void server_name_server_t::on_semilattice_change() {
     ASSERT_FINITE_CORO_WAITING;
     machines_semilattice_metadata_t sl_metadata = semilattice_view->get();
-    guarantee(metadata.machines.count(my_machine_id) == 1);
+    guarantee(sl_metadata.machines.count(my_machine_id) == 1);
 
     /* Check if we've been permanently removed */
     if (sl_metadata.machines.at(my_machine_id).is_deleted()) {
@@ -172,10 +172,10 @@ void server_name_server_t::on_semilattice_change() {
     bool must_rename_myself = false;
     std::multiset<name_string_t> names_in_use;
     for (auto it = sl_metadata.machines.begin();
-              it != sl_metadata.machines.end;
+              it != sl_metadata.machines.end();
             ++it) {
         if (it->second.is_deleted()) continue;
-        name_string_t name = it->second.get_ref().get_ref().name;
+        name_string_t name = it->second.get_ref().name.get_ref();
         names_in_use.insert(name);
         if (it->first == my_machine_id) {
             guarantee(name == my_name);

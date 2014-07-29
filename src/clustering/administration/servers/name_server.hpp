@@ -5,6 +5,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/name_metadata.hpp"
 #include "containers/incremental_lenses.hpp"
+#include "rpc/semilattice/view.hpp"
 
 /* A `server_name_server_t` is responsible for managing a server's name. Server names are
 set on the command line when RethinkDB is first started, and they can be changed at

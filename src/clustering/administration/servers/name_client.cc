@@ -24,7 +24,7 @@ server_name_client_t::server_name_client_t(
 bool server_name_client_t::rename_server(const name_string_t &old_name,
         const name_string_t &new_name, signal_t *interruptor, std::string *error_out) {
 
-    assert_thread();
+    this->assert_thread();
 
     /* We can produce this error message for several different reasons, so it's stored in
     a local variable instead of typed out multiple times. */
@@ -39,9 +39,9 @@ bool server_name_client_t::rename_server(const name_string_t &old_name,
               it != sl_metadata.machines.end();
             ++it) {
         if (!it->second.is_deleted()) {
-            it_name = it->second.get_ref().get_ref().name;
-            if (it_name == old_name) old_name_present = true;
-            if (it_name == new_name) new_name_present = true;
+            name_string_t it_name = it->second.get_ref().name.get_ref();
+            if (it_name == old_name) old_name_in_sl = true;
+            if (it_name == new_name) new_name_in_sl = true;
         }
     }
 
@@ -70,7 +70,7 @@ bool server_name_client_t::rename_server(const name_string_t &old_name,
         return false;
     }
 
-    server_name_business_card_t::rename_mailbox_t::addr_t rename_addr;
+    server_name_business_card_t::rename_mailbox_t::address_t rename_addr;
     directory_view->apply_read(
         [&](const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t>
                 *dir_metadata) {
@@ -87,9 +87,12 @@ bool server_name_client_t::rename_server(const name_string_t &old_name,
     }
 
     cond_t got_reply;
-    mailbox_t<void()> ack_mailbox([&]() { got_reply.pulse(); });
+    mailbox_t<void()> ack_mailbox(
+        mailbox_manager,
+        [&]() { got_reply.pulse(); }
+        );
     disconnect_watcher_t disconnect_watcher(mailbox_manager, rename_addr.get_peer());
-    send(mailbox_manager, rename_addr, new_name, ack_mailbox.get_addr());
+    send(mailbox_manager, rename_addr, new_name, ack_mailbox.get_address());
     wait_any_t waiter(&got_reply, &disconnect_watcher);
     wait_interruptible(&waiter, interruptor);
 
@@ -111,7 +114,7 @@ bool server_name_client_t::permanently_remove_server(const name_string_t &name,
               it != sl_metadata.machines.end();
             ++it) {
         if (!it->second.is_deleted()) {
-            if (it->second.get_ref().get_ref().name == name) {
+            if (it->second.get_ref().name.get_ref() == name) {
                 machine_ids.insert(it->first);
             }
         }
@@ -125,7 +128,7 @@ bool server_name_client_t::permanently_remove_server(const name_string_t &name,
     directory_view->apply_read(
         [&](const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t>
                 *dir_metadata) {
-            for (auto it = dir_metadata->get_inner().first();
+            for (auto it = dir_metadata->get_inner().begin();
                       it != dir_metadata->get_inner().end();
                     ++it) {
                 if (machine_ids.count(it->second.machine_id) != 0) {
@@ -141,7 +144,7 @@ bool server_name_client_t::permanently_remove_server(const name_string_t &name,
     }
 
     for (const machine_id_t &machine_id : machine_ids) {
-        sl_metadata.servers.at(machine_id).mark_deleted();
+        sl_metadata.machines.at(machine_id).mark_deleted();
     }
     semilattice_view->join(sl_metadata);
     return true;
@@ -153,11 +156,11 @@ void server_name_client_t::recompute_name_map() {
     machines_semilattice_metadata_t sl_metadata = semilattice_view->get();
     directory_view->apply_read([&](const change_tracking_map_t<peer_id_t,
             cluster_directory_metadata_t> *dir_metadata) {
-        for (auto dir_it = dir_metadata->begin();
-                  dir_it != dir_metadata->end();
+        for (auto dir_it = dir_metadata->get_inner().begin();
+                  dir_it != dir_metadata->get_inner().end();
                 ++dir_it) {
-            auto sl_it = sl_metadata.servers->find(dir_it->second.machine_id);
-            if (sl_it == sl_metadata.servers->end()) {
+            auto sl_it = sl_metadata.machines.find(dir_it->second.machine_id);
+            if (sl_it == sl_metadata.machines.end()) {
                 /* This situation is unlikely, but it could occur briefly during startup
                 */
                 continue;
@@ -165,8 +168,8 @@ void server_name_client_t::recompute_name_map() {
             if (sl_it->second.is_deleted()) {
                 continue;
             }
-            name_string_t name = sl_it->second.get_ref().get_ref().name;
-            auto res = new_name_map.insert(std::make_pair(name, it->first));
+            name_string_t name = sl_it->second.get_ref().name.get_ref();
+            auto res = new_name_map.insert(std::make_pair(name, dir_it->first));
             if (res.second) {
                 name_collision = true;
                 break;
