@@ -43,7 +43,8 @@ counted_t<const ql::datum_t> js_to_datum(const v8::Handle<v8::Value> &value,
                                          std::string *errmsg);
 
 // Should never error.
-v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum);
+v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum,
+                                    std::string *errmsg);
 
 // Worker-side JS evaluation environment.
 class js_env_t {
@@ -344,7 +345,7 @@ static void append_caught_error(std::string *errmsg, const v8::TryCatch &try_cat
 
     v8::String::Utf8Value exception(try_catch.Exception());
     const char *message = *exception;
-    guarantee(message);
+    guarantee(message != NULL);
     errmsg->append(message, strlen(message));
 }
 
@@ -446,8 +447,10 @@ v8::Handle<v8::Value> run_js_func(v8::Handle<v8::Function> fn,
     // Construct arguments.
     scoped_array_t<v8::Handle<v8::Value> > handles(args.size());
     for (size_t i = 0; i < args.size(); ++i) {
-        handles[i] = js_from_datum(args[i]);
-        guarantee(!handles[i].IsEmpty());
+        handles[i] = js_from_datum(args[i], errmsg);
+        if (!errmsg->empty()) {
+            return v8::Handle<v8::Value>();
+        }
     }
 
     // Call function with environment as its receiver.
@@ -471,8 +474,6 @@ js_result_t js_env_t::call(js_id_t id,
     DECLARE_HANDLE_SCOPE(handle_scope);
 
     // Construct local handle from persistent handle
-
-
 #ifdef V8_PRE_3_19
     v8::Local<v8::Value> local_handle = v8::Local<v8::Value>::New(*found_value);
 #else
@@ -630,13 +631,15 @@ counted_t<const ql::datum_t> js_to_datum(const v8::Handle<v8::Value> &value,
     return js_make_datum(value, TO_JSON_RECURSION_LIMIT, limits, errmsg);
 }
 
-v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum) {
+v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum,
+                                    std::string *errmsg) {
     guarantee(datum.has());
     switch (datum->get_type()) {
     case ql::datum_t::type_t::R_BINARY:
         // TODO: In order to support this, we need to link against a static version of
         // V8, which provides an ArrayBuffer API.
-        crash("`r.binary` data cannot be used in `r.js`.");
+        errmsg->assign("`r.binary` data cannot be used in `r.js`.");
+        return v8::Handle<v8::Value>();
     case ql::datum_t::type_t::R_BOOL:
         if (datum->as_bool()) {
             return v8::True();
@@ -655,7 +658,7 @@ v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum) {
 
         for (size_t i = 0; i < source_array.size(); ++i) {
             DECLARE_HANDLE_SCOPE(scope);
-            v8::Handle<v8::Value> val = js_from_datum(source_array[i]);
+            v8::Handle<v8::Value> val = js_from_datum(source_array[i], errmsg);
             guarantee(!val.IsEmpty());
             array->Set(i, val);
         }
@@ -674,7 +677,7 @@ v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum) {
             for (auto it = source_map.begin(); it != source_map.end(); ++it) {
                 DECLARE_HANDLE_SCOPE(scope);
                 v8::Handle<v8::Value> key = v8::String::New(it->first.c_str());
-                v8::Handle<v8::Value> val = js_from_datum(it->second);
+                v8::Handle<v8::Value> val = js_from_datum(it->second, errmsg);
                 guarantee(!key.IsEmpty() && !val.IsEmpty());
                 obj->Set(key, val);
             }
@@ -684,6 +687,7 @@ v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum) {
     }
 
     default:
-        crash("bad datum value in js extproc");
+        errmsg->assign("bad datum value in js extproc");
+        return v8::Handle<v8::Value>();
     }
 }
