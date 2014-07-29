@@ -370,9 +370,9 @@ void datum_t::array_to_str_key(std::string *str_out) const {
             // fallthru
         case R_NULL:
             item->type_error(
-                strprintf("Secondary keys must be a number, string, bool, or array "
-                          "(got %s of type %s).", item->print().c_str(),
-                          item->get_type_name().c_str()));
+                strprintf("Array keys can only contain numbers, strings, bools, "
+                          " pseudotypes, or arrays (got %s of type %s).",
+                          item->print().c_str(), item->get_type_name().c_str()));
             break;
         default:
             unreachable();
@@ -382,9 +382,25 @@ void datum_t::array_to_str_key(std::string *str_out) const {
 }
 
 void datum_t::binary_to_str_key(std::string *str_out) const {
-    r_sanity_check(get_type() == R_BINARY);
-    str_out->append("BN"); // This needs to sort between 'array':'A' and 'bool':'Bt','Bf'
-    str_out->append(as_binary().data(), as_binary().size());
+    // This needs to sort between 'array':'A' and 'bool':'Bt','Bf'
+    const std::string binary_key_prefix("BN");
+    const wire_string_t &key = as_binary();
+
+    // Reserve 10% extra space to reduce reallocations
+    str_out->reserve(str_out->size() + binary_key_prefix.size() + key.size() * 11 / 10);
+    str_out->append(binary_key_prefix);
+
+    // Escape null bytes so we don't cause key ambiguity when used in an array
+    // We do this by replacing \x00 with \x01\x01 and replacing \x01 with \x01\x02
+    for (size_t i = 0; i < key.size(); ++i) {
+        if (key.data()[i] == '\x00') {
+            str_out->append("\x01\x01");
+        } else if (key.data()[i] == '\x01') {
+            str_out->append("\x01\x02");
+        } else {
+            str_out->append(1, key.data()[i]);
+        }
+    }
 }
 
 int datum_t::pseudo_cmp(const datum_t &rhs) const {
@@ -573,8 +589,8 @@ std::string datum_t::print_primary() const {
         // fallthru
     case R_NULL:
         type_error(strprintf(
-            "Primary keys must be either a number, bool, pseudotype or string "
-            "(got type %s):\n%s",
+            "Primary keys must be either a number, string, binary, bool, pseudotype "
+            "or array (got type %s):\n%s",
             get_type_name().c_str(), trunc_print().c_str()));
         break;
     default:
@@ -630,8 +646,8 @@ std::string datum_t::print_secondary(const store_key_t &primary_key,
         pt_to_str_key(&secondary_key_string);
     } else {
         type_error(strprintf(
-            "Secondary keys must be a number, string, bool, pseudotype, or array "
-            "(got type %s):\n%s",
+            "Secondary keys must be a number, string, binary, bool, pseudotype, "
+            "or array (got type %s):\n%s",
             get_type_name().c_str(), trunc_print().c_str()));
     }
 
@@ -712,6 +728,8 @@ store_key_t datum_t::truncated_secondary() const {
         num_to_str_key(&s);
     } else if (get_type() == R_STR) {
         str_to_str_key(&s);
+    } else if (get_type() == R_BINARY) {
+        binary_to_str_key(&s);
     } else if (get_type() == R_BOOL) {
         bool_to_str_key(&s);
     } else if (get_type() == R_ARRAY) {
@@ -720,8 +738,8 @@ store_key_t datum_t::truncated_secondary() const {
         pt_to_str_key(&s);
     } else {
         type_error(strprintf(
-            "Secondary keys must be a number, string, bool, or array "
-            "(got %s of type %s).",
+            "Secondary keys must be a number, string, binary, bool, pseudotype, "
+            "or array (got %s of type %s).",
             print().c_str(), get_type_name().c_str()));
     }
 
