@@ -84,6 +84,7 @@ private:
                 &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
+
         return "created";
     }
     virtual const char *name() const { return "db_create"; }
@@ -225,7 +226,7 @@ private:
             arr.push_back(make_counted<datum_t>(std::string(it->str())));
         }
 
-        return new_val(make_counted<const datum_t>(std::move(arr)));
+        return new_val(make_counted<const datum_t>(std::move(arr), env->env->limits));
     }
     virtual const char *name() const { return "db_list"; }
 };
@@ -257,7 +258,7 @@ private:
         for (auto it = tables.begin(); it != tables.end(); ++it) {
             arr.push_back(make_counted<datum_t>(std::string(it->str())));
         }
-        return new_val(make_counted<const datum_t>(std::move(arr)));
+        return new_val(make_counted<const datum_t>(std::move(arr), env->env->limits));
     }
     virtual const char *name() const { return "table_list"; }
 };
@@ -338,7 +339,7 @@ private:
                 = make_counted<union_datum_stream_t>(std::move(streams), backtrace());
             return new_val(stream, table);
         } else {
-            datum_array_builder_t arr;
+            datum_array_builder_t arr(env->env->limits);
             for (size_t i = 1; i < args->num_args(); ++i) {
                 counted_t<const datum_t> key = args->arg(env, i)->as_datum();
                 counted_t<const datum_t> row = table->get_row(env->env, key);

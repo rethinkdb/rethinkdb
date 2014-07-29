@@ -232,10 +232,10 @@ void cluster_semilattice_http_app_t::metadata_change_callback(cluster_semilattic
         const boost::optional<namespace_id_t> &prioritize_distr_for_ns) {
 
     try {
-        fill_in_blueprints(new_metadata,
-                           directory_metadata->get().get_inner(),
-                           us,
-                           prioritize_distr_for_ns);
+        fill_in_all_blueprints(new_metadata,
+                               directory_metadata->get().get_inner(),
+                               us,
+                               prioritize_distr_for_ns);
     } catch (const missing_machine_exc_t &e) { }
 }
 

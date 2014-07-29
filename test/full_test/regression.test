@@ -17,3 +17,8 @@ generate_test(
     "$RETHINKDB/test/regression/issue_852.py",
     name = '852'
     )
+
+generate_test(
+    "$RETHINKDB/test/regression/issue_2738.py",
+    name = '2738'
+    )

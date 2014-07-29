@@ -652,7 +652,9 @@ message Term {
 
         CHANGES = 152; // TABLE -> STREAM
         ARGS = 154; // ARRAY -> SPECIAL (used to splice arguments)
-        BINARY = 155; // STRING -> PSEUDOTYPE(BINARY)
+
+        // BINARY is client-only at the moment, it is not supported on the server
+        // BINARY = 155; // STRING -> PSEUDOTYPE(BINARY)
     }
     optional TermType type = 1;
 

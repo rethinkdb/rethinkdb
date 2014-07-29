@@ -226,10 +226,10 @@ void admin_cluster_link_t::do_metadata_update(cluster_semilattice_metadata_t *cl
         const boost::optional<namespace_id_t> &prioritize_distr_for_ns) {
     std::string error;
     try {
-        fill_in_blueprints(cluster_metadata,
-                           directory_read_manager->get_root_view()->get().get_inner(),
-                           change_request_id,
-                           prioritize_distr_for_ns);
+        fill_in_all_blueprints(cluster_metadata,
+                               directory_read_manager->get_root_view()->get().get_inner(),
+                               change_request_id,
+                               prioritize_distr_for_ns);
     } catch (const missing_machine_exc_t &ex) {
         error = std::string(ex.what());
     }
@@ -275,10 +275,10 @@ admin_cluster_link_t::admin_cluster_link_t(const peer_address_set_t &joins,
         ADMIN_PEER)),
     directory_read_manager(
         new directory_read_manager_t<cluster_directory_metadata_t>(
-            &connectivity_cluster, 'M')),
+            &connectivity_cluster, 'D')),
     directory_write_manager(
         new directory_write_manager_t<cluster_directory_metadata_t>(
-            &connectivity_cluster, 'M', our_directory_metadata.get_watchable())),
+            &connectivity_cluster, 'D', our_directory_metadata.get_watchable())),
     connectivity_cluster_run(&connectivity_cluster,
                              get_local_ips(std::set<ip_address_t>(), false),
                              canonical_addresses,

@@ -1,6 +1,7 @@
 #include "unittest/dummy_namespace_interface.hpp"
 
 #include "unittest/clustering_utils.hpp"
+#include "rdb_protocol/env.hpp"
 
 namespace unittest {
 

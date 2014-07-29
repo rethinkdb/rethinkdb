@@ -94,11 +94,12 @@ std::set<region_t> mock_namespace_interface_t::get_sharding_scheme()
 }
 
 void mock_namespace_interface_t::read_visitor_t::operator()(const point_read_t &get) {
+    ql::configured_limits_t limits;
     response->response = point_read_response_t();
     point_read_response_t &res = boost::get<point_read_response_t>(response->response);
 
     if (data->find(get.key) != data->end()) {
-        res.data = ql::to_datum(data->at(get.key)->get());
+        res.data = ql::to_datum(data->at(get.key)->get(), limits);
     } else {
         res.data = ql::datum_t::null();
     }
@@ -140,12 +141,13 @@ mock_namespace_interface_t::read_visitor_t::read_visitor_t(std::map<store_key_t,
 
 void mock_namespace_interface_t::write_visitor_t::operator()(
     const batched_replace_t &r) {
+    ql::configured_limits_t limits;
     counted_t<const ql::datum_t> stats = ql::datum_t::empty_object();
     for (auto it = r.keys.begin(); it != r.keys.end(); ++it) {
         ql::datum_object_builder_t resp;
         counted_t<const ql::datum_t> old_val;
         if (data->find(*it) != data->end()) {
-            old_val = ql::to_datum(data->at(*it)->get());
+            old_val = ql::to_datum(data->at(*it)->get(), limits);
         } else {
             old_val = ql::datum_t::null();
         }
@@ -177,20 +179,22 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
                 "value being inserted is neither an object nor an empty value");
         }
         guarantee(!err);
-        stats = stats->merge(std::move(resp).to_counted(), ql::stats_merge);
+        stats = stats->merge(std::move(resp).to_counted(), ql::stats_merge,
+                            limits);
     }
     response->response = stats;
 }
 
 void mock_namespace_interface_t::write_visitor_t::operator()(
     const batched_insert_t &bi) {
+    ql::configured_limits_t limits;
     counted_t<const ql::datum_t> stats = ql::datum_t::empty_object();
     for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
         store_key_t key((*it)->get(bi.pkey)->print_primary());
         ql::datum_object_builder_t resp;
         counted_t<const ql::datum_t> old_val;
         if (data->find(key) != data->end()) {
-            old_val = ql::to_datum(data->at(key)->get());
+            old_val = ql::to_datum(data->at(key)->get(), limits);
         } else {
             old_val = ql::datum_t::null();
         }
@@ -221,7 +225,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
                 "value being inserted is neither an object nor an empty value");
         }
         guarantee(!err);
-        stats = stats->merge(std::move(resp).to_counted(), ql::stats_merge);
+        stats = stats->merge(std::move(resp).to_counted(), ql::stats_merge, limits);
     }
     response->response = stats;
 }
@@ -389,7 +393,7 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
     env.init(new ql::env_t(&rdb_ctx,
                            &interruptor,
                            std::map<std::string, ql::wire_func_t>(),
-                           profile_bool_t::DONT_PROFILE));
+                           nullptr /* no profile trace */));
     rdb_ns_repo.set_env(env.get());
 
     // Set up any initial datas
@@ -416,4 +420,3 @@ void test_rdb_env_t::instance_t::interrupt() {
 }
 
 }
-

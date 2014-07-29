@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
 #include "rdb_protocol/error.hpp"
@@ -19,7 +19,7 @@ protected:
     counted_t<val_t> pend(scope_env_t *env, args_t *args, which_pend_t which_pend) const {
         counted_t<const datum_t> arr = args->arg(env, 0)->as_datum();
         counted_t<const datum_t> new_el = args->arg(env, 1)->as_datum();
-        datum_array_builder_t out;
+        datum_array_builder_t out(env->env->limits);
         out.reserve(arr->size() + 1);
         if (which_pend == PRE) {
             // TODO: this is horrendously inefficient.
@@ -150,6 +150,64 @@ public:
     slice_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : bounded_op_term_t(env, term, argspec_t(2, 3)) { }
 private:
+
+    bool canon_helper(size_t size, bool index_open, int64_t fake_index,
+                      bool is_left, uint64_t *real_index_out) const {
+        bool index_oob = false;
+        *real_index_out = canonicalize(this, fake_index, size, &index_oob);
+        if (index_open == is_left) {
+            *real_index_out += 1; // This is safe because it was an int64_t before.
+        }
+        return index_oob;
+    }
+
+    counted_t<val_t> slice_array(counted_t<const datum_t> arr,
+                                 const configured_limits_t &limits,
+                                 bool left_open, int64_t fake_l,
+                                 bool right_open, int64_t fake_r) const {
+        uint64_t real_l, real_r;
+        if (canon_helper(arr->size(), left_open, fake_l, true, &real_l)) {
+            real_l = 0;
+        }
+        if (canon_helper(arr->size(), right_open, fake_r, false, &real_r)) {
+            return new_val(datum_t::empty_array());
+        }
+
+        datum_array_builder_t out(limits);
+        for (uint64_t i = real_l; i < real_r; ++i) {
+            if (i >= arr->size()) {
+                break;
+            }
+            out.add(arr->get(i));
+        }
+        return new_val(std::move(out).to_counted());
+    }
+
+    counted_t<val_t> slice_binary(counted_t<const datum_t> binary,
+                                  bool left_open, int64_t fake_l,
+                                  bool right_open, int64_t fake_r) const {
+        const wire_string_t &data = binary->as_binary();
+        uint64_t real_l, real_r;
+        if (canon_helper(data.size(), left_open, fake_l, true, &real_l)) {
+            real_l = 0;
+        }
+        if (canon_helper(data.size(), right_open, fake_r, false, &real_r)) {
+            return new_val(datum_t::binary(wire_string_t::create(0)));
+        }
+
+        real_r = clamp<uint64_t>(real_r, 0, data.size());
+
+        scoped_ptr_t<wire_string_t> subdata;
+        if (real_l <= real_r) {
+            subdata = wire_string_t::create_and_init(real_r - real_l,
+                                                     &data.data()[real_l]);
+        } else {
+            subdata = wire_string_t::create(0);
+        }
+
+        return new_val(datum_t::binary(std::move(subdata)));
+    }
+
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> v = args->arg(env, 0);
         bool left_open = is_left_open(env, args);
@@ -158,33 +216,17 @@ private:
         int64_t fake_r = args->num_args() == 3 ? args->arg(env, 2)->as_int<int64_t>() : -1;
 
         if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
-            counted_t<const datum_t> arr = v->as_datum();
-            arr->check_type(datum_t::R_ARRAY);
-            bool l_oob = false;
-            uint64_t real_l = canonicalize(this, fake_l, arr->size(), &l_oob);
-            if (l_oob) {
-                real_l = 0;
-            } else if (left_open) {
-                real_l += 1; // This is safe because it was an int64_t before.
+            counted_t<const datum_t> d = v->as_datum();
+            if (d->get_type() == datum_t::R_ARRAY) {
+                return slice_array(d, env->env->limits, left_open, fake_l,
+                                   right_open, fake_r);
+            } else if (d->get_type() == datum_t::R_BINARY) {
+                return slice_binary(d, left_open, fake_l, right_open, fake_r);
+            } else {
+                rfail_target(v, base_exc_t::GENERIC,
+                             "Expected ARRAY or BINARY, but found %s.",
+                             d->get_type_name().c_str());
             }
-            bool r_oob = false;
-            uint64_t real_r = canonicalize(this, fake_r, arr->size(), &r_oob);
-            if (r_oob) {
-                return new_val(datum_t::empty_array());
-            } else if (!right_open) {
-                real_r += 1; // This is safe because it was an int64_t before.
-            }
-
-            datum_array_builder_t out;
-            if (!r_oob) {
-                for (uint64_t i = real_l; i < real_r; ++i) {
-                    if (i >= arr->size()) {
-                        break;
-                    }
-                    out.add(arr->get(i));
-                }
-            }
-            return new_val(std::move(out).to_counted());
         } else if (v->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
             counted_t<table_t> t;
             counted_t<datum_stream_t> seq;
@@ -254,7 +296,7 @@ private:
         counted_t<const datum_t> arr = args->arg(env, 0)->as_datum();
         counted_t<const datum_t> new_el = args->arg(env, 1)->as_datum();
         std::set<counted_t<const datum_t> > el_set;
-        datum_array_builder_t out;
+        datum_array_builder_t out(env->env->limits);
         for (size_t i = 0; i < arr->size(); ++i) {
             if (el_set.insert(arr->get(i)).second) {
                 out.add(arr->get(i));
@@ -279,7 +321,7 @@ private:
         counted_t<const datum_t> arr1 = args->arg(env, 0)->as_datum();
         counted_t<const datum_t> arr2 = args->arg(env, 1)->as_datum();
         std::set<counted_t<const datum_t> > el_set;
-        datum_array_builder_t out;
+        datum_array_builder_t out(env->env->limits);
         for (size_t i = 0; i < arr1->size(); ++i) {
             if (el_set.insert(arr1->get(i)).second) {
                 out.add(arr1->get(i));
@@ -306,7 +348,7 @@ private:
         counted_t<const datum_t> arr1 = args->arg(env, 0)->as_datum();
         counted_t<const datum_t> arr2 = args->arg(env, 1)->as_datum();
         std::set<counted_t<const datum_t> > el_set;
-        datum_array_builder_t out;
+        datum_array_builder_t out(env->env->limits);
         for (size_t i = 0; i < arr1->size(); ++i) {
             el_set.insert(arr1->get(i));
         }
@@ -332,7 +374,7 @@ private:
         counted_t<const datum_t> arr1 = args->arg(env, 0)->as_datum();
         counted_t<const datum_t> arr2 = args->arg(env, 1)->as_datum();
         std::set<counted_t<const datum_t> > el_set;
-        datum_array_builder_t out;
+        datum_array_builder_t out(env->env->limits);
         for (size_t i = 0; i < arr2->size(); ++i) {
             el_set.insert(arr2->get(i));
         }
@@ -367,7 +409,7 @@ public:
 
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         auto arg0_array = args->arg(env, 0)->as_datum()->as_array();
-        datum_array_builder_t arr(std::move(arg0_array));
+        datum_array_builder_t arr(std::move(arg0_array), env->env->limits);
         size_t index;
         if (index_method_ == ELEMENTS) {
             index = canonicalize(this, args->arg(env, 1)->as_datum()->as_int(), arr.size());

@@ -335,7 +335,8 @@ def read_json_single_object(json_data, file_in, callback):
                 raise
     return json_data
 
-def read_json_array(json_data, file_in, callback, progress_info):
+def read_json_array(json_data, file_in, callback, progress_info,
+                    json_array=True):
     decoder = json.JSONDecoder()
     file_offset = 0
     offset = 0
@@ -343,8 +344,8 @@ def read_json_array(json_data, file_in, callback, progress_info):
         try:
             offset = json.decoder.WHITESPACE.match(json_data, offset).end()
 
-            if json_data[offset] == "]": # End of JSON
-                break
+            if json_array and json_data[offset] == "]":
+                break  # End of JSON
 
             (obj, offset) = decoder.raw_decode(json_data, idx=offset)
             callback(obj)
@@ -354,17 +355,19 @@ def read_json_array(json_data, file_in, callback, progress_info):
             json_data = json_data[offset:]
             offset = json.decoder.WHITESPACE.match(json_data, 0).end()
 
-            if json_data[offset] == ",":
+            if json_array and json_data[offset] == ",":
                 # Read past the comma
                 offset = json.decoder.WHITESPACE.match(json_data, offset + 1).end()
-            elif json_data[offset] != "]":
+            elif json_array and json_data[offset] != "]":
                 raise ValueError("Error: JSON format not recognized - expected ',' or ']' after object")
 
         except (ValueError, IndexError):
             before_len = len(json_data)
             json_data += file_in.read(json_read_chunk_size)
-            if json_data[offset] == ",":
+            if json_array and json_data[offset] == ",":
                 offset = json.decoder.WHITESPACE.match(json_data, offset + 1).end()
+            elif (not json_array) and before_len == len(json_data):
+                break  # End of JSON
             elif before_len == len(json_data) or len(json_data) > json_max_buffer_size:
                 raise
             progress_info[0].value = file_offset
@@ -388,10 +391,11 @@ def json_reader(task_queue, filename, db, table, fields, progress_info, exit_eve
         progress_info[1].value = os.path.getsize(filename)
 
         offset = json.decoder.WHITESPACE.match(json_data, 0).end()
-        if json_data[offset] == "[":
-            json_data = read_json_array(json_data[offset + 1:], file_in, callback, progress_info)
-        elif json_data[offset] == "{":
-            json_data = read_json_single_object(json_data[offset:], file_in, callback)
+        if json_data[offset] in "[{":
+            json_data = read_json_array(
+                json_data[offset + (1 if json_data[offset] == "[" else 0):],
+                file_in, callback, progress_info,
+                json_data[offset] == "[")
         else:
             raise RuntimeError("Error: JSON format not recognized - file does not begin with an object or array")
 

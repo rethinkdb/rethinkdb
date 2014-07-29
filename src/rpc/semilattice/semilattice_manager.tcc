@@ -223,7 +223,7 @@ void semilattice_manager_t<metadata_t>::root_view_t::sync_from(peer_id_t peer, s
     connectivity_cluster_t::connection_t *connection =
         parent->get_connectivity_cluster()->
             get_connection(peer, &connection_keepalive);
-    if (!connection) {
+    if (connection == NULL) {
         throw sync_failed_exc_t();
     }
 
@@ -263,7 +263,7 @@ void semilattice_manager_t<metadata_t>::root_view_t::sync_to(peer_id_t peer, sig
     connectivity_cluster_t::connection_t *connection =
         parent->get_connectivity_cluster()->
             get_connection(peer, &connection_keepalive);
-    if (!connection) {
+    if (connection == NULL) {
         throw sync_failed_exc_t();
     }
 
@@ -302,7 +302,6 @@ template<class metadata_t>
 void semilattice_manager_t<metadata_t>::on_message(
         connectivity_cluster_t::connection_t *connection,
         auto_drainer_t::lock_t connection_keepalive,
-        cluster_version_t cluster_version,
         read_stream_t *stream) {
     uint8_t code;
     {
@@ -321,9 +320,10 @@ void semilattice_manager_t<metadata_t>::on_message(
             metadata_t added_metadata;
             metadata_version_t change_version;
             {
-                archive_result_t res = deserialize_for_version(cluster_version, stream, &added_metadata);
+                archive_result_t res =
+                    deserialize<cluster_version_t::CLUSTER>(stream, &added_metadata);
                 if (bad(res)) { throw fake_archive_exc_t(); }
-                res = deserialize_for_version(cluster_version, stream, &change_version);
+                res = deserialize<cluster_version_t::CLUSTER>(stream, &change_version);
                 if (bad(res)) { throw fake_archive_exc_t(); }
             }
             /* We have to spawn a new coroutine in order to go to the home thread */
@@ -357,7 +357,8 @@ void semilattice_manager_t<metadata_t>::on_message(
         case message_code_sync_from_query: {
             sync_from_query_id_t query_id;
             {
-                archive_result_t res = deserialize_for_version(cluster_version, stream, &query_id);
+                archive_result_t res =
+                    deserialize<cluster_version_t::CLUSTER>(stream, &query_id);
                 if (bad(res)) { throw fake_archive_exc_t(); }
             }
             coro_t::spawn_sometime([this, this_keepalive /* important to capture */,
@@ -384,9 +385,10 @@ void semilattice_manager_t<metadata_t>::on_message(
             sync_from_query_id_t query_id;
             metadata_version_t version;
             {
-                archive_result_t res = deserialize_for_version(cluster_version, stream, &query_id);
+                archive_result_t res =
+                    deserialize<cluster_version_t::CLUSTER>(stream, &query_id);
                 if (bad(res)) { throw fake_archive_exc_t(); }
-                res = deserialize_for_version(cluster_version, stream, &version);
+                res = deserialize<cluster_version_t::CLUSTER>(stream, &version);
                 if (bad(res)) { throw fake_archive_exc_t(); }
             }
             coro_t::spawn_sometime(
@@ -410,9 +412,10 @@ void semilattice_manager_t<metadata_t>::on_message(
             sync_from_query_id_t query_id;
             metadata_version_t version;
             {
-                archive_result_t res = deserialize_for_version(cluster_version, stream, &query_id);
+                archive_result_t res =
+                    deserialize<cluster_version_t::CLUSTER>(stream, &query_id);
                 if (bad(res)) { throw fake_archive_exc_t(); }
-                res = deserialize_for_version(cluster_version, stream, &version);
+                res = deserialize<cluster_version_t::CLUSTER>(stream, &version);
                 if (bad(res)) { throw fake_archive_exc_t(); }
             }
             coro_t::spawn_sometime([this, this_keepalive /* important to capture */,
@@ -447,7 +450,8 @@ void semilattice_manager_t<metadata_t>::on_message(
         case message_code_sync_to_reply: {
             sync_from_query_id_t query_id;
             {
-                archive_result_t res = deserialize_for_version(cluster_version, stream, &query_id);
+                archive_result_t res =
+                    deserialize<cluster_version_t::CLUSTER>(stream, &query_id);
                 if (bad(res)) { throw fake_archive_exc_t(); }
             }
             coro_t::spawn_sometime(
@@ -496,11 +500,10 @@ void semilattice_manager_t<metadata_t>::on_connections_change() {
             });
         }
     }
-    for (const std::pair<connectivity_cluster_t::connection_t *,
-                         auto_drainer_t::lock_t> &pair :
-            last_connections) {
-        if (current_connections.count(pair.first->get_peer_id()) == 0) {
-            last_connections.erase(pair.first);
+    for (auto next = last_connections.begin(); next != last_connections.end();) {
+        auto pair = next++;
+        if (current_connections.count(pair->first->get_peer_id()) == 0) {
+            last_connections.erase(pair->first);
         }
     }
 }
@@ -529,7 +532,7 @@ void semilattice_manager_t<metadata_t>::wait_for_version_from_peer(peer_id_t pee
     connectivity_cluster_t::connection_t *connection =
         get_connectivity_cluster()->
             get_connection(peer, &connection_keepalive);
-    if (connection) {
+    if (connection == NULL) {
         throw sync_failed_exc_t();
     }
 

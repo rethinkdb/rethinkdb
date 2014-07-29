@@ -1,0 +1,373 @@
+desc: Tests of converstion to and from the RQL binary type
+tests:
+
+    # Short binary data from 0 to 12 characters
+    # Not fully implemented for JS as comparing Buffer objects is non-trivial
+    - def: s = ""
+    - def:
+         rb: s.force_encoding('BINARY')
+         js: s = Buffer(s, 'binary')
+         py: s = bytes(s)
+    - py: r.binary(s)
+      rb: r.binary('')
+      ot: s
+    - cd: r.binary(s).count()
+      ot: 0
+
+    - def: s = "\x00"
+    - def:
+         rb: s.force_encoding('BINARY')
+         js: s = Buffer(s, 'binary')
+         py: s = bytes(s)
+    - py: r.binary(s)
+      rb: r.binary(s)
+      ot: s
+    - cd: r.binary(s).count()
+      ot: 1
+
+    - def: s = "\x00\x42"
+    - def:
+         rb: s.force_encoding('BINARY')
+         js: s = Buffer(s, 'binary')
+         py: s = bytes(s)
+    - py: r.binary(s)
+      rb: r.binary(s)
+      ot: s
+    - cd: r.binary(s).count()
+      ot: 2
+
+    - def: s = "\x00\xfe\x7a"
+    - def:
+         rb: s.force_encoding('BINARY')
+         js: s = Buffer(s, 'binary')
+         py: s = bytes(s)
+    - py: r.binary(s)
+      rb: r.binary(s)
+      ot: s
+    - cd: r.binary(s).count()
+      ot: 3
+
+    - def: s = "\xed\xfe\x00\xba"
+    - def:
+         rb: s.force_encoding('BINARY')
+         js: s = Buffer(s, 'binary')
+         py: s = bytes(s)
+    - py: r.binary(s)
+      rb: r.binary(s)
+      ot: s
+    - cd: r.binary(s).count()
+      ot: 4
+
+    - def: s = "\x50\xf9\x00\x77\xf9"
+    - def:
+         rb: s.force_encoding('BINARY')
+         js: s = Buffer(s, 'binary')
+         py: s = bytes(s)
+    - py: r.binary(s)
+      rb: r.binary(s)
+      ot: s
+    - cd: r.binary(s).count()
+      ot: 5
+
+    - def: s = "\x2f\xe3\xb5\x57\x00\x92"
+    - def:
+         rb: s.force_encoding('BINARY')
+         js: s = Buffer(s, 'binary')
+         py: s = bytes(s)
+    - py: r.binary(s)
+      rb: r.binary(s)
+      ot: s
+    - cd: r.binary(s).count()
+      ot: 6
+
+    - def: s = "\xa9\x43\x54\xe9\x00\xf8\xfb"
+    - def:
+         rb: s.force_encoding('BINARY')
+         js: s = Buffer(s, 'binary')
+         py: s = bytes(s)
+    - py: r.binary(s)
+      rb: r.binary(s)
+      ot: s
+    - cd: r.binary(s).count()
+      ot: 7
+
+    - def: s = "\x57\xbb\xe5\x82\x8b\xd3\x00\xf9"
+    - def:
+         rb: s.force_encoding('BINARY')
+         js: s = Buffer(s, 'binary')
+         py: s = bytes(s)
+    - py: r.binary(s)
+      rb: r.binary(s)
+      ot: s
+    - cd: r.binary(s).count()
+      ot: 8
+
+    - def: s = "\x44\x1b\x3e\x00\x13\x19\x29\x2a\xbf"
+    - def:
+         rb: s.force_encoding('BINARY')
+         js: s = Buffer(s, 'binary')
+         py: s = bytes(s)
+    - py: r.binary(s)
+      rb: r.binary(s)
+      ot: s
+    - cd: r.binary(s).count()
+      ot: 9
+
+    - def: s = "\x8a\x1d\x09\x00\x5d\x60\x6b\x2e\x70\xd9"
+    - def:
+         rb: s.force_encoding('BINARY')
+         js: s = Buffer(s, 'binary')
+         py: s = bytes(s)
+    - py: r.binary(s)
+      rb: r.binary(s)
+      ot: s
+    - cd: r.binary(s).count()
+      ot: 10
+
+    - def: s = "\x00\xaf\x47\x4b\x38\x99\x14\x8d\x8f\x10\x51"
+    - def:
+         rb: s.force_encoding('BINARY')
+         js: s = Buffer(s, 'binary')
+         py: s = bytes(s)
+    - py: r.binary(s)
+      rb: r.binary(s)
+      ot: s
+    - cd: r.binary(s).count()
+      ot: 11
+
+    - def: s = "\x45\x39\x00\xf7\xc2\x37\xfd\xe0\x38\x82\x40\xa9"
+    - def:
+         rb: s.force_encoding('BINARY')
+         js: s = Buffer(s, 'binary')
+         py: s = bytes(s)
+    - py: r.binary(s)
+      rb: r.binary(s)
+      ot: s
+    - cd: r.binary(s).count()
+      ot: 12
+
+    # Test comparisons
+    # Binary objects to use, in order of increasing value
+    - def: a = "\x00"
+    - def: b = "\x00\x01"
+    - def: c = "\x01"
+    - def: d = "\x70\x22"
+    - def: e = "\x80"
+    - def: f = "\xFE"
+    - def:
+         rb: a.force_encoding('BINARY')
+         js: a = Buffer(a, 'binary')
+         py: a = bytes(a)
+    - def:
+         rb: b.force_encoding('BINARY')
+         js: b = Buffer(b, 'binary')
+         py: b = bytes(b)
+    - def:
+         rb: c.force_encoding('BINARY')
+         js: c = Buffer(c, 'binary')
+         py: c = bytes(c)
+    - def:
+         rb: d.force_encoding('BINARY')
+         js: d = Buffer(d, 'binary')
+         py: d = bytes(d)
+    - def:
+         rb: e.force_encoding('BINARY')
+         js: e = Buffer(e, 'binary')
+         py: e = bytes(e)
+    - def:
+         rb: f.force_encoding('BINARY')
+         js: f = Buffer(f, 'binary')
+         py: f = bytes(f)
+
+    # a -> a
+    - cd: r.binary(a).eq(r.binary(a))
+      ot: true
+    - cd: r.binary(a).le(r.binary(a))
+      ot: true
+    - cd: r.binary(a).ge(r.binary(a))
+      ot: true
+    - cd: r.binary(a).ne(r.binary(a))
+      ot: false
+    - cd: r.binary(a).lt(r.binary(a))
+      ot: false
+    - cd: r.binary(a).gt(r.binary(a))
+      ot: false
+
+    # a -> b
+    - cd: r.binary(a).ne(r.binary(b))
+      ot: true
+    - cd: r.binary(a).lt(r.binary(b))
+      ot: true
+    - cd: r.binary(a).le(r.binary(b))
+      ot: true
+    - cd: r.binary(a).ge(r.binary(b))
+      ot: false
+    - cd: r.binary(a).gt(r.binary(b))
+      ot: false
+    - cd: r.binary(a).eq(r.binary(b))
+      ot: false
+
+    # b -> c
+    - cd: r.binary(b).ne(r.binary(c))
+      ot: true
+    - cd: r.binary(b).lt(r.binary(c))
+      ot: true
+    - cd: r.binary(b).le(r.binary(c))
+      ot: true
+    - cd: r.binary(b).ge(r.binary(c))
+      ot: false
+    - cd: r.binary(b).gt(r.binary(c))
+      ot: false
+    - cd: r.binary(b).eq(r.binary(c))
+      ot: false
+
+    # c -> d
+    - cd: r.binary(c).ne(r.binary(d))
+      ot: true
+    - cd: r.binary(c).lt(r.binary(d))
+      ot: true
+    - cd: r.binary(c).le(r.binary(d))
+      ot: true
+    - cd: r.binary(c).ge(r.binary(d))
+      ot: false
+    - cd: r.binary(c).gt(r.binary(d))
+      ot: false
+    - cd: r.binary(c).eq(r.binary(d))
+      ot: false
+
+    # d -> e
+    - cd: r.binary(d).ne(r.binary(e))
+      ot: true
+    - cd: r.binary(d).lt(r.binary(e))
+      ot: true
+    - cd: r.binary(d).le(r.binary(e))
+      ot: true
+    - cd: r.binary(d).ge(r.binary(e))
+      ot: false
+    - cd: r.binary(d).gt(r.binary(e))
+      ot: false
+    - cd: r.binary(d).eq(r.binary(e))
+      ot: false
+
+    # e -> f
+    - cd: r.binary(e).ne(r.binary(f))
+      ot: true
+    - cd: r.binary(e).lt(r.binary(f))
+      ot: true
+    - cd: r.binary(e).le(r.binary(f))
+      ot: true
+    - cd: r.binary(e).ge(r.binary(f))
+      ot: false
+    - cd: r.binary(e).gt(r.binary(f))
+      ot: false
+    - cd: r.binary(e).eq(r.binary(f))
+      ot: false
+
+    # f -> f
+    - cd: r.binary(f).eq(r.binary(f))
+      ot: true
+    - cd: r.binary(f).le(r.binary(f))
+      ot: true
+    - cd: r.binary(f).ge(r.binary(f))
+      ot: true
+    - cd: r.binary(f).ne(r.binary(f))
+      ot: false
+    - cd: r.binary(f).lt(r.binary(f))
+      ot: false
+    - cd: r.binary(f).gt(r.binary(f))
+      ot: false
+
+    # Test encodings
+    - py: r.binary(u'イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム'.encode('utf-8'))
+      ot: u'イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム'.encode('utf-8')
+    - py: r.binary(u'ƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏ'.encode('utf-16'))
+      ot: u'ƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏ'.encode('utf-16')
+    - py: r.binary(u'lorem ipsum'.encode('ascii'))
+      ot: u'lorem ipsum'.encode('ascii')
+
+    # Test coercions
+    - py: r.binary(bytes('foo')).coerce_to('string')
+      ot: bytes('foo')
+    - py: r.binary(u'イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム'.encode('utf-8')).coerce_to('string')
+      ot: u'イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム'
+    - py: r.binary(u'lorem ipsum'.encode('ascii')).coerce_to('string')
+      ot: u'lorem ipsum'
+
+    - py: r.expr('foo').coerce_to('binary')
+      ot: bytes('foo')
+
+    - py: r.binary(bytes('foo')).coerce_to('binary')
+      ot: bytes('foo')
+
+    # Test slice
+    - py: r.binary(bytes('abcdefg')).slice(-3,-1)
+      ot: bytes('ef') 
+    - py: r.binary(bytes('abcdefg')).slice(0, 2)
+      ot: bytes('ab')
+    - py: r.binary(bytes('abcdefg')).slice(3, -1)
+      ot: bytes('def')
+    - py: r.binary(bytes('abcdefg')).slice(-5, 5)
+      ot: bytes('cde')
+    - py: r.binary(bytes('abcdefg')).slice(-8, 2)
+      ot: bytes('ab')
+    - py: r.binary(bytes('abcdefg')).slice(5, 7)
+      ot: bytes('fg')
+
+    # Left side out-of-bound should clamp to index 0
+    - py: r.binary(bytes('abcdefg')).slice(-9, 2)
+      ot: bytes('ab')
+
+    # Right side out-of-bound should return the valid subset of the range
+    - py: r.binary(bytes('abcdefg')).slice(5, 9)
+      ot: bytes('fg')
+
+    # Test binary keys
+    # Binary keys should sort between array and bool
+    - cd: r.db('test').table_create('datum_binary')
+      def: tbl = r.table('datum_binary')
+
+    - def:
+        py: trows = [{'id':[0]},{'id':r.binary(a)},{'id':r.binary(c)},{'id':r.binary(d)},{'id':r.binary(f)},{'id':False},{'id':True},{'id':-500},{'id':500},{'id':''},{'id':'str'}]
+        rb: trows = [{:id => [0]},{:id => r.binary(a)},{:id => r.binary(c)},{:id => r.binary(d)},{:id => r.binary(f)},{:id => false},{:id => true},{:id => -500},{:id => 500},{:id => ''},{:id => 'str'}]
+    - def:
+        py: trows_raw = [{'id':[0]},{'id':a},{'id':c},{'id':d},{'id':f},{'id':False},{'id':True},{'id':-500},{'id':500},{'id':''},{'id':'str'}]
+        rb: trows_raw = [{:id => [0]},{:id => a},{:id => c},{:id => d},{:id => f},{:id => false},{:id => true},{:id => -500},{:id => 500},{:id => ''},{:id => 'str'}]
+    - cd: tbl.insert(trows)['inserted']
+      js: tbl.insert(trows)('inserted')
+      ot: 11
+
+    - cd: tbl.order_by('id')
+      ot: trows_raw
+
+    # Test errors
+    # Missing 'data' field
+    - py: r.expr({'$reql_type$':'BINARY'})
+      ot: err('RqlRuntimeError','Invalid binary pseudotype:'+' lacking `data` key.',[])
+    # Invalid base64 format
+    - py: r.expr({'$reql_type$':'BINARY','data':'ABCDEFGH==AA'})
+      ot: err('RqlRuntimeError','Invalid base64 format, data found after padding character \'=\'.',[])
+    - py: r.expr({'$reql_type$':'BINARY','data':'ABCDEF==$'})
+      ot: err('RqlRuntimeError','Invalid base64 format, data found after padding character \'=\'.',[])
+    - py: r.expr({'$reql_type$':'BINARY','data':'A^CDEFGH'})
+      ot: err('RqlRuntimeError','Invalid base64 character found:'+' \'^\'.',[])
+    - py: r.expr({'$reql_type$':'BINARY','data':'ABCDE'})
+      ot: err('RqlRuntimeError','Invalid base64 length:'+' 1 character remaining, cannot decode a full byte.',[])
+    # Invalid arity
+    - rb: r.binary('abc','def')
+      py: r.binary(bytes('abc'),bytes('def'))
+      js: r.binary(Buffer(0), Buffer(0))
+      ot:
+        py: err('TypeError','binary() takes exactly 1 argument (2 given)')
+        rb: err('ArgumentError','wrong number of arguments (2 for 1)',[])
+        js: err('RqlDriverError','Expected 1 argument but found 2.',[])
+    # Invalid coercions
+    - rb: r.binary('a').coerce_to('array')
+      ot: err('RqlRuntimeError','Cannot coerce BINARY to ARRAY.',[])
+    - rb: r.binary('a').coerce_to('object')
+      ot: err('RqlRuntimeError','Cannot coerce BINARY to OBJECT.',[])
+    - rb: r.binary('a').coerce_to('bool')
+      ot: err('RqlRuntimeError','Cannot coerce BINARY to BOOL.',[])
+    - rb: r.binary('a').coerce_to('number')
+      ot: err('RqlRuntimeError','Cannot coerce BINARY to NUMBER.',[])
+    - rb: r.binary('a').coerce_to('nu'+'ll')
+      ot: err('RqlRuntimeError','Cannot coerce BINARY to NULL.',[])

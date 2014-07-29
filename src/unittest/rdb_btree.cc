@@ -10,6 +10,7 @@
 #include "containers/archive/vector_stream.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/env.hpp"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -26,6 +27,8 @@
 namespace unittest {
 
 void insert_rows(int start, int finish, store_t *store) {
+    ql::configured_limits_t limits;
+
     guarantee(start <= finish);
     for (int i = start; i < finish; ++i) {
         cond_t dummy_interruptor;
@@ -46,7 +49,7 @@ void insert_rows(int start, int finish, store_t *store) {
         rdb_modification_report_t mod_report(pk);
         rdb_live_deletion_context_t deletion_context;
         rdb_set(pk,
-                ql::to_datum(scoped_cJSON_t(cJSON_Parse(data.c_str())).get()),
+                ql::to_datum(scoped_cJSON_t(cJSON_Parse(data.c_str())).get(), limits),
                 false, store->btree.get(), repli_timestamp_t::invalid,
                 superblock.get(), &deletion_context, &response, &mod_report.info,
                 static_cast<profile::trace_t *>(NULL));
@@ -190,6 +193,7 @@ void spawn_writes_and_bring_sindexes_up_to_date(store_t *store,
 void _check_keys_are_present(store_t *store,
         sindex_name_t sindex_name) {
     cond_t dummy_interruptor;
+    ql::configured_limits_t limits;
     for (int i = 0; i < TOTAL_KEYS_TO_INSERT; ++i) {
         read_token_pair_t token_pair;
         store->new_read_token_pair(&token_pair);
@@ -241,7 +245,7 @@ void _check_keys_are_present(store_t *store,
 
         std::string expected_data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
         scoped_cJSON_t expected_value(cJSON_Parse(expected_data.c_str()));
-        ASSERT_EQ(*ql::to_datum(expected_value.get()), *stream->front().data);
+        ASSERT_EQ(*ql::to_datum(expected_value.get(), limits), *stream->front().data);
     }
 }
 

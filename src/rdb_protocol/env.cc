@@ -11,13 +11,18 @@
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/term_walker.hpp"
 
+#include "debug.hpp"
+
 namespace ql {
 
 counted_t<const datum_t> static_optarg(const std::string &key, protob_t<Query> q) {
+    // need to parse these to figure out what user wants; resulting
+    // bootstrap problem is a headache.  Just use default.
+    const configured_limits_t limits;
     for (int i = 0; i < q->global_optargs_size(); ++i) {
         const Query::AssocPair &ap = q->global_optargs(i);
         if (ap.key() == key && ap.val().type() == Term_TermType_DATUM) {
-            return to_datum(&ap.val().datum());
+            return to_datum(&ap.val().datum(), limits);
         }
     }
 
@@ -71,19 +76,16 @@ global_optargs_t::global_optargs_t() { }
 global_optargs_t::global_optargs_t(std::map<std::string, wire_func_t> _optargs)
     : optargs(_optargs) { }
 
-void global_optargs_t::init_optargs(
-    const std::map<std::string, wire_func_t> &_optargs) {
-    r_sanity_check(optargs.size() == 0);
-    optargs = _optargs;
+bool global_optargs_t::has_optarg(const std::string &key) const {
+    return optargs.count(key) > 0;
 }
-
 counted_t<val_t> global_optargs_t::get_optarg(env_t *env, const std::string &key){
-    if (!optargs.count(key)) {
+    if (!has_optarg(key)) {
         return counted_t<val_t>();
     }
     return optargs[key].compile_wire_func()->call(env);
 }
-const std::map<std::string, wire_func_t> &global_optargs_t::get_all_optargs() {
+const std::map<std::string, wire_func_t> &global_optargs_t::get_all_optargs() const {
     return optargs;
 }
 
@@ -98,7 +100,7 @@ void env_t::do_eval_callback() {
 }
 
 profile_bool_t env_t::profile() const {
-    return trace.has() ? profile_bool_t::PROFILE : profile_bool_t::DONT_PROFILE;
+    return trace != nullptr ? profile_bool_t::PROFILE : profile_bool_t::DONT_PROFILE;
 }
 
 base_namespace_repo_t *env_t::ns_repo() {
@@ -133,20 +135,25 @@ js_runner_t *env_t::get_js_runner() {
     assert_thread();
     extproc_pool_t *extproc_pool = get_extproc_pool();
     if (!js_runner.connected()) {
-        js_runner.begin(extproc_pool, interruptor);
+        js_runner.begin(extproc_pool, interruptor, limits);
     }
     return &js_runner;
 }
 
+scoped_ptr_t<profile::trace_t> maybe_make_profile_trace(profile_bool_t profile) {
+    return profile == profile_bool_t::PROFILE
+        ? make_scoped<profile::trace_t>()
+        : scoped_ptr_t<profile::trace_t>();
+}
+
 env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
              std::map<std::string, wire_func_t> optargs,
-             profile_bool_t profile)
+             profile::trace_t *_trace)
     : evals_since_yield(0),
       global_optargs(std::move(optargs)),
+      limits(from_optargs(ctx, _interruptor, global_optargs)),
       interruptor(_interruptor),
-      trace(profile == profile_bool_t::PROFILE
-            ? make_scoped<profile::trace_t>()
-            : scoped_ptr_t<profile::trace_t>()),
+      trace(_trace),
       rdb_ctx(ctx),
       eval_callback(NULL) {
     rassert(ctx != NULL);
@@ -159,7 +166,7 @@ env_t::env_t(signal_t *_interruptor)
     : evals_since_yield(0),
       global_optargs(),
       interruptor(_interruptor),
-      trace(),
+      trace(NULL),
       rdb_ctx(NULL),
       eval_callback(NULL) {
     rassert(interruptor != NULL);

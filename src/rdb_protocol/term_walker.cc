@@ -1,3 +1,4 @@
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/term_walker.hpp"
 
 #include "rdb_protocol/error.hpp"
@@ -170,7 +171,6 @@ private:
         case Term::UNION:
         case Term::NTH:
         case Term::ARGS:
-        case Term::BINARY:
         case Term::LIMIT:
         case Term::SKIP:
         case Term::INNER_JOIN:
@@ -327,7 +327,6 @@ private:
         case Term::WITHOUT:
         case Term::MERGE:
         case Term::ARGS:
-        case Term::BINARY:
         case Term::LITERAL:
         case Term::BETWEEN:
         case Term::CHANGES:

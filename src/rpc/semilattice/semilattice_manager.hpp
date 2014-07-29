@@ -69,7 +69,7 @@ private:
 
     /* These are called by the `connectivity_cluster_t`. They shouldn't block. */
     void on_message(connectivity_cluster_t::connection_t *, auto_drainer_t::lock_t,
-            cluster_version_t, read_stream_t *);
+                    read_stream_t *);
     void on_connections_change();
 
     /* These are spawned in new coroutines. */

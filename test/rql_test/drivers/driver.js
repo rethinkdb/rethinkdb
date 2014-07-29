@@ -264,9 +264,21 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                                                           "\n\tEXPECTED ",exp_val]);
                                     }
                                 } else {
+                                    var info;
+                                    if (cpp_err.msg) {
+                                        info = cpp_err.msg;
+                                    } else if (cpp_err.message) {
+                                        info = cpp_err.message;
+                                    } else {
+                                        info = JSON.stringify(cpp_res);
+                                    }
+
+                                    if (cpp_err.stack) {
+                                        info += "\n\nStack:\n" + cpp_err.stack.toString();
+                                    }
                                     printTestFailure(testName, src,
                                                      ["Error running test on CPP server:",
-                                                      "\n\tERROR: ",cpp_err.stack]);
+                                                      "\n\tERROR: ",info]);
                                 }
                             } else if (!exp_fun(cpp_res)) {
                                 printTestFailure(testName, src,
