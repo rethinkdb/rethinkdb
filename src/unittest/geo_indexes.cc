@@ -324,7 +324,7 @@ std::vector<counted_t<const datum_t> > perform_get_intersecting(
         return std::vector<counted_t<const datum_t> >();
     }
     counted_t<const ql::datum_t> result =
-        boost::get<counted_t<const ql::datum_t>>(geo_response->results_or_error);
+        boost::get<counted_t<const ql::datum_t> >(geo_response->results_or_error);
     return result->as_array();
 }
 

@@ -27,7 +27,7 @@ extern const int GEO_INDEX_GOAL_GRID_CELLS = 8;
 
 class compute_covering_t : public s2_geo_visitor_t<scoped_ptr_t<std::vector<S2CellId> > > {
 public:
-    compute_covering_t(int goal_cells) {
+    explicit compute_covering_t(int goal_cells) {
         coverer_.set_max_cells(goal_cells);
     }
 

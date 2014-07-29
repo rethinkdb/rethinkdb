@@ -449,7 +449,7 @@ private:
 
 class datum_replacer_t : public btree_batched_replacer_t {
 public:
-    datum_replacer_t(const batched_insert_t &bi)
+    explicit datum_replacer_t(const batched_insert_t &bi)
         : datums(&bi.inserts), conflict_behavior(bi.conflict_behavior),
           pkey(bi.pkey), return_vals(bi.return_vals) { }
     counted_t<const ql::datum_t> replace(const counted_t<const ql::datum_t> &d,

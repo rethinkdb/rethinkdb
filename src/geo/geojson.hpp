@@ -2,6 +2,7 @@
 #ifndef GEO_GEOJSON_HPP_
 #define GEO_GEOJSON_HPP_
 
+#include <string>
 #include <utility>
 #include <vector>
 

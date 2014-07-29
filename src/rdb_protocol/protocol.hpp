@@ -226,14 +226,13 @@ struct nearest_geo_read_response_t {
     boost::variant<result_t, ql::exc_t> results_or_error;
 
     nearest_geo_read_response_t() { }
-    nearest_geo_read_response_t(result_t &&_results) {
+    explicit nearest_geo_read_response_t(result_t &&_results) {
         // Implement "move" on _results through std::vector<...>::swap to avoid
         // problems with boost::variant not supporting move assignment.
         results_or_error = result_t();
         boost::get<result_t>(&results_or_error)->swap(_results);
     }
-    nearest_geo_read_response_t(
-            const ql::exc_t &_error)
+    explicit nearest_geo_read_response_t(const ql::exc_t &_error)
         : results_or_error(_error) { }
 };
 
