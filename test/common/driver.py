@@ -17,7 +17,10 @@ or so on, you should start a RethinkDB process manually using some other
 module. """
 
 def block_path(source_port, dest_port):
-    if not ("resunder" in subprocess.check_output(["ps", "-A"])):
+    # `-A` means list all processes. `-www` prevents `ps` from truncating the output at
+    # some column width. `-o command` means that the output format should be to print the
+    # command being run.
+    if "resunder" not in subprocess.check_output(["ps", "-A", "-www", "-o", "command"]):
         print >> sys.stderr, '\nPlease start resunder process in test/common/resunder.py (as root)\n'
         assert False
     conn = socket.create_connection(("localhost", 46594))
@@ -26,7 +29,7 @@ def block_path(source_port, dest_port):
     conn.close()
 
 def unblock_path(source_port, dest_port):
-    assert "resunder" in subprocess.check_output(["ps", "-A"])
+    assert "resunder" in subprocess.check_output(["ps", "-A", "-www", "-o", "command"])
     conn = socket.create_connection(("localhost", 46594))
     conn.sendall("unblock %s %s\n" % (str(source_port), str(dest_port)))
     conn.close()
@@ -55,6 +58,15 @@ def cleanupMetaclusterFolder(path):
             shutil.rmtree(path)
         except Exception, e:
             print('Warning: unable to cleanup Metacluster folder: %s - got error: %s' % (str(path), str(e)))
+
+runningServers = []
+def endRunningServers():
+    for server in runningServers[:]:
+        try:
+            server.check_and_stop()
+        except Exception as e:
+            sys.stderr.write('Got error while shutting down server at exit: %s\n' % str(e))
+atexit.register(endRunningServers)
 
 def get_table_host(processes):
     return ("localhost", random.choice(processes).driver_port)
@@ -239,7 +251,11 @@ class _Process(object):
     driver_port = None
     http_port = None
     
+    process_group_id = None
+    
     def __init__(self, cluster, options, log_path = None, executable_path = None, command_prefix=None):
+        global runningServers
+        
         assert isinstance(cluster, Cluster)
         assert cluster.metacluster is not None
         assert all(hasattr(self, x) for x in
@@ -276,8 +292,11 @@ class _Process(object):
 
             print "Launching:"
             print(self.args)
-            self.process = subprocess.Popen(self.args, stdout = self.log_file, stderr = self.log_file)
-
+            self.process = subprocess.Popen(self.args, stdout=self.log_file, stderr=self.log_file, preexec_fn=os.setpgrp)
+            
+            runningServers.append(self)
+            self.process_group_id = self.process.pid
+            
             self.read_ports_from_log()
 
         except Exception, e:
@@ -340,6 +359,9 @@ class _Process(object):
         """Asserts that the process is still running, and then shuts it down by
         sending `SIGINT`. Throws an exception if the exit code is nonzero. Also
         invalidates the `Process` object like `close()`. """
+        
+        global runningServers
+        
         assert self.process is not None
         try:
             self.check()
@@ -354,6 +376,9 @@ class _Process(object):
                 raise RuntimeError("Process failed to stop within %d seconds after SIGINT" % grace_period)
             if self.process.poll() != 0:
                 raise RuntimeError("Process stopped unexpectedly with return code %d after SIGINT" % self.process.poll())
+            
+            if self in runningServers:
+                runningServers.remove(self)
         finally:
             self.close()
 
@@ -362,9 +387,11 @@ class _Process(object):
         `Process` object. """
         if self.process.poll() is None:
             try:
-                self.process.send_signal(signal.SIGKILL)
+                os.killpg(self.process_group_id, signal.SIGKILL)
             except OSError:
                 pass
+        if self in runningServers:
+            runningServers.remove(self)
         self.process = None
 
         if self.log_path is not None:
