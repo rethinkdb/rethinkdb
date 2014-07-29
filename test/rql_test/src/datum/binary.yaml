@@ -9,8 +9,7 @@ tests:
     - def:
          rb: s.force_encoding('BINARY')
          js: s = Buffer(s, 'binary')
-    - py: r.binary(s)
-      rb: r.binary('')
+    - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 0
@@ -21,8 +20,7 @@ tests:
     - def:
          rb: s.force_encoding('BINARY')
          js: s = Buffer(s, 'binary')
-    - py: r.binary(s)
-      rb: r.binary(s)
+    - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 1
@@ -33,8 +31,7 @@ tests:
     - def:
          rb: s.force_encoding('BINARY')
          js: s = Buffer(s, 'binary')
-    - py: r.binary(s)
-      rb: r.binary(s)
+    - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 2
@@ -45,8 +42,7 @@ tests:
     - def:
          rb: s.force_encoding('BINARY')
          js: s = Buffer(s, 'binary')
-    - py: r.binary(s)
-      rb: r.binary(s)
+    - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 3
@@ -57,8 +53,7 @@ tests:
     - def:
          rb: s.force_encoding('BINARY')
          js: s = Buffer(s, 'binary')
-    - py: r.binary(s)
-      rb: r.binary(s)
+    - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 4
@@ -69,8 +64,7 @@ tests:
     - def:
          rb: s.force_encoding('BINARY')
          js: s = Buffer(s, 'binary')
-    - py: r.binary(s)
-      rb: r.binary(s)
+    - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 5
@@ -81,8 +75,7 @@ tests:
     - def:
          rb: s.force_encoding('BINARY')
          js: s = Buffer(s, 'binary')
-    - py: r.binary(s)
-      rb: r.binary(s)
+    - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 6
@@ -93,8 +86,7 @@ tests:
     - def:
          rb: s.force_encoding('BINARY')
          js: s = Buffer(s, 'binary')
-    - py: r.binary(s)
-      rb: r.binary(s)
+    - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 7
@@ -105,8 +97,7 @@ tests:
     - def:
          rb: s.force_encoding('BINARY')
          js: s = Buffer(s, 'binary')
-    - py: r.binary(s)
-      rb: r.binary(s)
+    - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 8
@@ -117,8 +108,7 @@ tests:
     - def:
          rb: s.force_encoding('BINARY')
          js: s = Buffer(s, 'binary')
-    - py: r.binary(s)
-      rb: r.binary(s)
+    - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 9
@@ -129,8 +119,7 @@ tests:
     - def:
          rb: s.force_encoding('BINARY')
          js: s = Buffer(s, 'binary')
-    - py: r.binary(s)
-      rb: r.binary(s)
+    - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 10
@@ -141,8 +130,7 @@ tests:
     - def:
          rb: s.force_encoding('BINARY')
          js: s = Buffer(s, 'binary')
-    - py: r.binary(s)
-      rb: r.binary(s)
+    - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 11
@@ -153,8 +141,7 @@ tests:
     - def:
          rb: s.force_encoding('BINARY')
          js: s = Buffer(s, 'binary')
-    - py: r.binary(s)
-      rb: r.binary(s)
+    - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 12
@@ -366,18 +353,17 @@ tests:
       def: tbl = r.table('datum_binary')
 
     - def:
-        py: trows = [{'id':[0]},{'id':r.binary(a)},{'id':r.binary(c)},{'id':r.binary(d)},{'id':r.binary(f)},{'id':False},{'id':True},{'id':-500},{'id':500},{'id':''},{'id':'str'}]
+        cd: trows = [{'id':[0]},{'id':r.binary(a)},{'id':r.binary(c)},{'id':r.binary(d)},{'id':r.binary(f)},{'id':False},{'id':True},{'id':-500},{'id':500},{'id':''},{'id':'str'}]
         rb: trows = [{:id => [0]},{:id => r.binary(a)},{:id => r.binary(c)},{:id => r.binary(d)},{:id => r.binary(f)},{:id => false},{:id => true},{:id => -500},{:id => 500},{:id => ''},{:id => 'str'}]
     - def:
-        py: trows_raw = [{'id':[0]},{'id':a},{'id':c},{'id':d},{'id':f},{'id':False},{'id':True},{'id':-500},{'id':500},{'id':''},{'id':'str'}]
-        rb: trows_raw = [{:id => [0]},{:id => a},{:id => c},{:id => d},{:id => f},{:id => false},{:id => true},{:id => -500},{:id => 500},{:id => ''},{:id => 'str'}]
-    - py: tbl.insert(trows)['inserted']
-      rb: tbl.insert(trows)['inserted']
+        cd: trowsraw = [{'id':[0]},{'id':a},{'id':c},{'id':d},{'id':f},{'id':False},{'id':True},{'id':-500},{'id':500},{'id':''},{'id':'str'}]
+        rb: trowsraw = [{:id => [0]},{:id => a},{:id => c},{:id => d},{:id => f},{:id => false},{:id => true},{:id => -500},{:id => 500},{:id => ''},{:id => 'str'}]
+    - cd: tbl.insert(trows)['inserted']
+      js: tbl.insert(trows)('inserted')
       ot: 11
 
-    - py: tbl.order_by('id')
-      rb: tbl.order_by('id')
-      ot: trows_raw
+    - cd: tbl.order_by('id')
+      ot: trowsraw
 
     - cd: r.db('test').table_drop('datum_binary')
       ot: ({'dropped':1})
