@@ -26,8 +26,6 @@ server_name_client_t::server_name_client_t(
 bool server_name_client_t::rename_server(const name_string_t &old_name,
         const name_string_t &new_name, signal_t *interruptor, std::string *error_out) {
 
-    debugf("rename_server %s %s\n", old_name.c_str(), new_name.c_str());
-
     this->assert_thread();
 
     /* We can produce this error message for several different reasons, so it's stored in
@@ -48,7 +46,6 @@ bool server_name_client_t::rename_server(const name_string_t &old_name,
             if (it_name == new_name) new_name_in_sl = true;
         }
     }
-    debugf("old_name_in_sl=%d new_name_in_sl=%d\n", int(old_name_in_sl), int(new_name_in_sl));
 
     /* Look up `old_name` and figure out which peer it corresponds to */
     peer_id_t peer;
@@ -59,7 +56,6 @@ bool server_name_client_t::rename_server(const name_string_t &old_name,
         }
     });
     if (peer.is_nil()) {
-        debugf("peer is nil\n");
         *error_out = old_name_in_sl
             ? lost_contact_message
             : strprintf("Server `%s` does not exist.", old_name.c_str());
@@ -67,7 +63,6 @@ bool server_name_client_t::rename_server(const name_string_t &old_name,
     }
 
     if (old_name == new_name) {
-        debugf("noop\n");
         /* This is a no-op */
         return true;
     }
@@ -89,7 +84,6 @@ bool server_name_client_t::rename_server(const name_string_t &old_name,
             }
         });
     if (rename_addr.is_nil()) {
-        debugf("rename_addr is nil\n");
         *error_out = lost_contact_message;
         return false;
     }
@@ -105,12 +99,10 @@ bool server_name_client_t::rename_server(const name_string_t &old_name,
     wait_interruptible(&waiter, interruptor);
 
     if (!got_reply.is_pulsed()) {
-        debugf("disconnect watcher pulsed\n");
         *error_out = lost_contact_message;
         return false;
     }
 
-    debugf("success\n");
     return true; 
 }
 
