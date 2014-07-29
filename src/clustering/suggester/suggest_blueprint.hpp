@@ -39,4 +39,8 @@ persistable_blueprint_t suggest_blueprint(
         std::map<machine_id_t, int> *usage,
         bool prioritize_distribution);
 
+void calculate_usage(
+        const persistable_blueprint_t &blueprint,
+        std::map<machine_id_t, int> *usage);
+
 #endif /* CLUSTERING_SUGGESTER_SUGGEST_BLUEPRINT_HPP_ */

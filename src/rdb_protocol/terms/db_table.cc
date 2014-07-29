@@ -84,6 +84,7 @@ private:
                 &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
+
         return "created";
     }
     virtual const char *name() const { return "db_create"; }
