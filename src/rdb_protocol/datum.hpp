@@ -144,6 +144,8 @@ public:
     static const size_t trunc_len = 300;
     std::string trunc_print() const;
     std::string print_primary() const;
+    static std::string compose_secondary(const std::string &secondary_key,
+            const store_key_t &primary_key, boost::optional<uint64_t> tag_num);
     static std::string mangle_secondary(const std::string &secondary,
             const std::string &primary, const std::string &tag);
     static std::string encode_tag_num(uint64_t tag_num);

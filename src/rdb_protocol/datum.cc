@@ -611,7 +611,7 @@ std::string datum_t::print_primary() const {
 
 std::string datum_t::mangle_secondary(const std::string &secondary,
                                       const std::string &primary,
-        const std::string &tag) {
+                                      const std::string &tag) {
     guarantee(secondary.size() < UINT8_MAX);
     guarantee(secondary.size() + primary.size() < UINT8_MAX);
 
@@ -633,17 +633,33 @@ std::string datum_t::encode_tag_num(uint64_t tag_num) {
     return std::string(reinterpret_cast<const char *>(&tag_num), tag_size);
 }
 
-std::string datum_t::print_secondary(const store_key_t &primary_key,
-                                     boost::optional<uint64_t> tag_num) const {
-    std::string secondary_key_string;
+std::string datum_t::compose_secondary(const std::string &secondary_key,
+        const store_key_t &primary_key, boost::optional<uint64_t> tag_num) {
     std::string primary_key_string = key_to_unescaped_str(primary_key);
 
     if (primary_key_string.length() > rdb_protocol::MAX_PRIMARY_KEY_SIZE) {
-        rfail(base_exc_t::GENERIC,
-              "Primary key too long (max %zu characters): %s",
-              rdb_protocol::MAX_PRIMARY_KEY_SIZE - 1,
-              key_to_debug_str(primary_key).c_str());
+        throw exc_t(base_exc_t::GENERIC,
+            strprintf(
+                "Primary key too long (max %zu characters): %s",
+                rdb_protocol::MAX_PRIMARY_KEY_SIZE - 1,
+                key_to_debug_str(primary_key).c_str()),
+            NULL);
     }
+
+    const std::string truncated_secondary_key =
+        secondary_key.substr(0, trunc_size(primary_key_string.length()));
+
+    std::string tag_string;
+    if (tag_num) {
+        tag_string = encode_tag_num(tag_num.get());
+    }
+
+    return mangle_secondary(truncated_secondary_key, primary_key_string, tag_string);
+}
+
+std::string datum_t::print_secondary(const store_key_t &primary_key,
+                                     boost::optional<uint64_t> tag_num) const {
+    std::string secondary_key_string;
 
     if (get_type() == R_NUM) {
         num_to_str_key(&secondary_key_string);
@@ -664,15 +680,7 @@ std::string datum_t::print_secondary(const store_key_t &primary_key,
             get_type_name().c_str(), trunc_print().c_str()));
     }
 
-    std::string tag_string;
-    if (tag_num) {
-        tag_string = encode_tag_num(tag_num.get());
-    }
-
-    secondary_key_string =
-        secondary_key_string.substr(0, trunc_size(primary_key_string.length()));
-
-    return mangle_secondary(secondary_key_string, primary_key_string, tag_string);
+    return compose_secondary(secondary_key_string, primary_key, tag_num);
 }
 
 struct components_t {

@@ -2,6 +2,7 @@
 #include "rdb_protocol/btree.hpp"
 
 #include <functional>
+#include <iterator>
 #include <set>
 #include <string>
 #include <vector>
@@ -1036,6 +1037,7 @@ void rdb_get_nearest_slice(
     //   results should be streamed lazily. Also, even if we don't do that,
     //   the copying of the result we do here is bad.
     nearest_traversal_state_t state(center, max_results, max_dist, geo_system);
+    response->results_or_error = nearest_geo_read_response_t::result_t();
     do {
         nearest_geo_read_response_t partial_response;
         try {
@@ -1062,11 +1064,8 @@ void rdb_get_nearest_slice(
             guarantee(partial_res != NULL);
             auto full_res = boost::get<nearest_geo_read_response_t::result_t>(
                 &response->results_or_error);
-            if (full_res == NULL) {
-                response->results_or_error = std::move(*partial_res);
-            } else {
-                full_res->insert(full_res->end(), partial_res->begin(), partial_res->end());
-            }
+            std::move(partial_res->begin(), partial_res->end(),
+                      std::back_inserter(*full_res));
         }
     } while (state.proceed_to_next_batch() == done_traversing_t::NO);
 }
@@ -1204,20 +1203,6 @@ std::vector<std::string> expand_geo_key(
         return std::vector<std::string>();
     }
 
-    std::string primary_key_string = key_to_unescaped_str(primary_key);
-
-    if (primary_key_string.length() > rdb_protocol::MAX_PRIMARY_KEY_SIZE) {
-        rfail_target(key.get(), ql::base_exc_t::GENERIC,
-              "Primary key too long (max %zu characters): %s",
-              rdb_protocol::MAX_PRIMARY_KEY_SIZE - 1,
-              key_to_debug_str(primary_key).c_str());
-    }
-
-    std::string tag_string;
-    if (tag_num) {
-        tag_string = ql::datum_t::encode_tag_num(tag_num.get());
-    }
-
     try {
         std::vector<std::string> grid_keys =
             compute_index_grid_keys(key, GEO_INDEX_GOAL_GRID_CELLS);
@@ -1226,13 +1211,13 @@ std::vector<std::string> expand_geo_key(
         result.reserve(grid_keys.size());
         for (size_t i = 0; i < grid_keys.size(); ++i) {
             // TODO (daniel): Something else that needs change for compound index
-            //   support.
-            guarantee(grid_keys[i].length()
-                      <= ql::datum_t::trunc_size(primary_key_string.length()));
+            //   support: We must be able to truncate geo keys and handle such
+            //   truncated keys.
+            rassert(grid_keys[i].length() <= ql::datum_t::trunc_size(
+                key_to_unescaped_str(primary_key).length()));
 
             result.push_back(
-                    ql::datum_t::mangle_secondary(grid_keys[i], primary_key_string,
-                                                  tag_string));
+                    ql::datum_t::compose_secondary(grid_keys[i], primary_key, tag_num));
         }
 
         return result;

@@ -57,11 +57,13 @@ std::string s2cellid_to_key(S2CellId id) {
     // FastHex64ToBuffer() generates a hex representation of id that fulfills this
     // property (it comes padded with leading '0's).
     char buffer[kFastToBufferSize];
-    return std::string(FastHex64ToBuffer(id.id(), buffer));
+    // "GC" = Geospatial Cell
+    return std::string("GC") + FastHex64ToBuffer(id.id(), buffer);
 }
 
 S2CellId key_to_s2cellid(const std::string &sid) {
-    return S2CellId::FromToken(sid);
+    guarantee(sid.length() >= 2 && sid[0] == 'G' && sid[1] == 'C');
+    return S2CellId::FromToken(sid.substr(2));
 }
 
 S2CellId btree_key_to_s2cellid(const btree_key_t *key) {

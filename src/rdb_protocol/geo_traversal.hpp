@@ -52,7 +52,7 @@ class geo_intersecting_cb_t : public geo_index_traversal_helper_t {
 public:
     geo_intersecting_cb_t(
             btree_slice_t *_slice,
-            const geo_sindex_data_t &&_sindex,
+            geo_sindex_data_t &&_sindex,
             ql::env_t *_env,
             std::set<store_key_t> *_distinct_emitted_in_out);
     virtual ~geo_intersecting_cb_t() { }
@@ -106,7 +106,7 @@ class collect_all_geo_intersecting_cb_t : public geo_intersecting_cb_t {
 public:
     collect_all_geo_intersecting_cb_t(
             btree_slice_t *_slice,
-            const geo_sindex_data_t &&_sindex,
+            geo_sindex_data_t &&_sindex,
             ql::env_t *_env,
             const counted_t<const ql::datum_t> &_query_geometry);
 
@@ -169,7 +169,7 @@ class nearest_traversal_cb_t : public geo_intersecting_cb_t {
 public:
     nearest_traversal_cb_t(
             btree_slice_t *_slice,
-            const geo_sindex_data_t &&_sindex,
+            geo_sindex_data_t &&_sindex,
             ql::env_t *_env,
             nearest_traversal_state_t *_state);
 

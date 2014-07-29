@@ -51,7 +51,7 @@ const unsigned int NEAREST_NUM_VERTICES = 8;
 /* ----------- geo_intersecting_cb_t -----------*/
 geo_intersecting_cb_t::geo_intersecting_cb_t(
         btree_slice_t *_slice,
-        const geo_sindex_data_t &&_sindex,
+        geo_sindex_data_t &&_sindex,
         ql::env_t *_env,
         std::set<store_key_t> *_distinct_emitted_in_out)
     : geo_index_traversal_helper_t(),
@@ -158,7 +158,7 @@ void geo_intersecting_cb_t::on_candidate(
 /* ----------- collect_all_geo_intersecting_cb_t -----------*/
 collect_all_geo_intersecting_cb_t::collect_all_geo_intersecting_cb_t(
         btree_slice_t *_slice,
-        const geo_sindex_data_t &&_sindex,
+        geo_sindex_data_t &&_sindex,
         ql::env_t *_env,
         const counted_t<const ql::datum_t> &_query_geometry) :
     geo_intersecting_cb_t(_slice, std::move(_sindex), _env, &distinct_emitted),
@@ -258,7 +258,7 @@ done_traversing_t nearest_traversal_state_t::proceed_to_next_batch() {
 
 nearest_traversal_cb_t::nearest_traversal_cb_t(
         btree_slice_t *_slice,
-        const geo_sindex_data_t &&_sindex,
+        geo_sindex_data_t &&_sindex,
         ql::env_t *_env,
         nearest_traversal_state_t *_state) :
     geo_intersecting_cb_t(_slice, std::move(_sindex), _env, &_state->distinct_emitted),
