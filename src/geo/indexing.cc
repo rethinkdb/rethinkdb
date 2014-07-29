@@ -176,14 +176,36 @@ bool geo_index_traversal_helper_t::any_query_cell_intersects(
     // We ignore the fact that left_excl is exclusive and not inclusive.
     // In rare cases this costs us a little bit of efficiency, but saves us
     // some complexity.
-    S2CellId range_min =
+    S2CellId left_cell =
         left_excl == NULL
-        ? S2CellId::None()
-        : btree_key_to_s2cellid(left_excl).range_min();
-    S2CellId range_max =
+        ? S2CellId::FromFacePosLevel(0, 0, 0) // The smallest valid cell id
+        : btree_key_to_s2cellid(left_excl);
+    S2CellId right_cell =
         right_incl == NULL
-        ? S2CellId::Sentinel()
-        : btree_key_to_s2cellid(right_incl).range_max();
+        ? S2CellId::FromFacePosLevel(5, 0, 0) // The largest valid cell id
+        : btree_key_to_s2cellid(right_incl);
+
+    // Determine a S2CellId range that is a superset of what's intersecting
+    // with anything stored in [left_cell, right_cell].
+    int common_level;
+    if (left_cell.face() != right_cell.face()) {
+        // Case 1: left_cell and right_cell are on different faces of the cube.
+        // In that case [left_cell, right_cell] intersects at most with the full
+        // range of faces in the range [left_cell.face(), right_cell.range()].
+        guarantee(left_cell.face() < right_cell.face());
+        common_level = 0;
+    } else {
+        // Case 2: left_cell and right_cell are on the same face. We locate
+        // their smallest common parent. [left_cell, right_cell] can at most
+        // intersect with anything below their common parent.
+        common_level = std::min(left_cell.level(), right_cell.level());
+        while (left_cell.parent(common_level) != right_cell.parent(common_level)) {
+            guarantee(common_level > 0);
+            --common_level;
+        }
+    }
+    S2CellId range_min = left_cell.parent(common_level).range_min();
+    S2CellId range_max = right_cell.parent(common_level).range_max();
 
     return any_query_cell_intersects(range_min, range_max);
 }
