@@ -2,8 +2,11 @@
 #include "clustering/administration/suggester.hpp"
 
 #include <deque>
+#include <utility>
 
 #include "clustering/administration/machine_id_to_peer_id.hpp"
+#include "clustering/reactor/directory_echo.hpp"
+#include "containers/cow_ptr.hpp"
 
 persistable_blueprint_t suggest_blueprint_for_namespace(
         namespace_id_t namespace_id,
