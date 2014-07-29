@@ -17,7 +17,10 @@ or so on, you should start a RethinkDB process manually using some other
 module. """
 
 def block_path(source_port, dest_port):
-    if not ("resunder" in subprocess.check_output(["ps", "-A"])):
+    # `-A` means list all processes. `-www` prevents `ps` from truncating the output at
+    # some column width. `-o command` means that the output format should be to print the
+    # command being run.
+    if "resunder" not in subprocess.check_output(["ps", "-A", "-www", "-o", "command"]):
         print >> sys.stderr, '\nPlease start resunder process in test/common/resunder.py (as root)\n'
         assert False
     conn = socket.create_connection(("localhost", 46594))
@@ -26,7 +29,7 @@ def block_path(source_port, dest_port):
     conn.close()
 
 def unblock_path(source_port, dest_port):
-    assert "resunder" in subprocess.check_output(["ps", "-A"])
+    assert "resunder" in subprocess.check_output(["ps", "-A", "-www", "-o", "command"])
     conn = socket.create_connection(("localhost", 46594))
     conn.sendall("unblock %s %s\n" % (str(source_port), str(dest_port)))
     conn.close()
