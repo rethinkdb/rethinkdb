@@ -8,7 +8,7 @@ module RethinkDB
   end
 
   module Shim
-    def self.recursive_munge(x, parse_time, parse_group)
+    def self.recursive_munge(x, parse_time, parse_group, parse_binary)
       case x
       when Hash
         if parse_time && x['$reql_type$'] == 'TIME'
@@ -17,17 +17,17 @@ module RethinkDB
           return (tz && tz != "" && tz != "Z") ? t.getlocal(tz) : t.utc
         elsif parse_group && x['$reql_type$'] == 'GROUPED_DATA'
           return Hash[x['data']]
-        elsif x['$reql_type$'] == 'BINARY'
+        elsif parse_binary && x['$reql_type$'] == 'BINARY'
           return Binary.new(Base64.decode64(x['data'])).force_encoding('BINARY')
         else
           x.each {|k, v|
-            v2 = recursive_munge(v, parse_time, parse_group)
+            v2 = recursive_munge(v, parse_time, parse_group, parse_binary)
             x[k] = v2 if v.object_id != v2.object_id
           }
         end
       when Array
         x.each_with_index {|v, i|
-          v2 = recursive_munge(v, parse_time, parse_group)
+          v2 = recursive_munge(v, parse_time, parse_group, parse_binary)
           x[i] = v2 if v.object_id != v2.object_id
         }
       end
@@ -37,7 +37,8 @@ module RethinkDB
     def self.load_json(target, opts=nil)
       recursive_munge(JSON.parse(target, max_nesting: false),
                       opts && opts[:time_format] != 'raw',
-                      opts && opts[:group_format] != 'raw')
+                      opts && opts[:group_format] != 'raw',
+                      opts && opts[:binary_format] != 'raw')
     end
 
     def self.dump_json(x)

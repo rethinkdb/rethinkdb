@@ -77,9 +77,15 @@ convertPseudotype = (obj, opts) ->
                 else
                     throw new err.RqlDriverError "Unknown groupFormat run option #{opts.groupFormat}."
         when 'BINARY'
-            if not obj['data']?
-                throw new err.RqlDriverError "pseudo-type BINARY object missing expected field 'data'."
-            (new Buffer(obj['data'], 'base64'))
+            switch opts.binaryFormat
+                when 'native', undefined
+                    if not obj['data']?
+                        throw new err.RqlDriverError "pseudo-type BINARY object missing expected field 'data'."
+                    (new Buffer(obj['data'], 'base64'))
+                when 'raw'
+                    obj
+                else
+                    throw new err.RqlDriverError "Unknown binaryFormat run option #{opts.binaryFormat}."
         else
             # Regular object or unknown pseudo type
             obj
