@@ -398,7 +398,10 @@ tests:
       js: r.binary(Buffer(0), Buffer(0))
       ot:
         py: err('TypeError','binary() takes exactly 1 argument (2 given)')
-        py3: err('TypeError','binary() takes exactly 1 positional argument (2 given)')
+        py3: err('TypeError','binary() takes 1 positional argument but 2 were given')
+        py3.0: err('TypeError','binary() takes exactly 1 positional argument (2 given)')
+        py3.1: err('TypeError','binary() takes exactly 1 positional argument (2 given)')
+        py3.2: err('TypeError','binary() takes exactly 1 positional argument (2 given)')
         rb: err('ArgumentError','wrong number of arguments (2 for 1)',[])
         js: err('RqlDriverError','Expected 1 argument but found 2.',[])
     # Invalid coercions
