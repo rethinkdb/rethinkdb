@@ -73,7 +73,7 @@ store_t::store_t(serializer_t *serializer,
       ctx(_ctx),
       changefeed_server((ctx == NULL || ctx->manager == NULL)
                         ? NULL
-                        : new changefeed::server_t(ctx->manager))
+                        : new ql::changefeed::server_t(ctx->manager))
 {
     cache.init(new cache_t(serializer, balancer, &perfmon_collection));
     general_cache_conn.init(new cache_conn_t(cache.get()));

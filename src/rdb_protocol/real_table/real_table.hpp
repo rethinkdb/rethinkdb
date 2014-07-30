@@ -9,9 +9,9 @@
 
 #include "rdb_protocol/context.hpp"
 
-namespace changefeed {
+namespace ql { namespace changefeed {
 class client_t;
-}
+} }
 
 /* `real_table_t` is a concrete subclass of `base_table_t` that routes its queries across
 the network via the clustering logic to a B-tree. The administration logic is responsible
@@ -55,7 +55,7 @@ public:
             namespace_id_t _uuid,
             namespace_interface_access_t _namespace_access,
             const std::string &_pkey,
-            changefeed::client_t *_changefeed_client) :
+            ql::changefeed::client_t *_changefeed_client) :
         uuid(_uuid), namespace_access(_namespace_access), pkey(_pkey),
         changefeed_client(_changefeed_client) { }
 
@@ -117,7 +117,7 @@ private:
     namespace_id_t uuid;
     namespace_interface_access_t namespace_access;
     std::string pkey;
-    changefeed::client_t *changefeed_client;
+    ql::changefeed::client_t *changefeed_client;
 };
 
 #endif /* RDB_PROTOCOL_REAL_TABLE_REAL_TABLE_HPP_ */

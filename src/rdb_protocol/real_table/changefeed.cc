@@ -13,7 +13,7 @@
 
 #include "debug.hpp"
 
-namespace changefeed {
+namespace ql { namespace changefeed {
 
 server_t::server_t(mailbox_manager_t *_manager)
     : uuid(generate_uuid()),
@@ -942,4 +942,4 @@ scoped_ptr_t<feed_t> client_t::detach_feed(const uuid_u &uuid) {
 }
 
 } // namespace changefeed
-
+} // namespace ql

@@ -167,7 +167,7 @@ RDB_DECLARE_SERIALIZABLE(sindex_status_response_t);
 struct changefeed_subscribe_response_t {
     changefeed_subscribe_response_t() { }
     std::set<uuid_u> server_uuids;
-    std::set<changefeed::server_t::addr_t> addrs;
+    std::set<ql::changefeed::server_t::addr_t> addrs;
 };
 
 RDB_DECLARE_SERIALIZABLE(changefeed_subscribe_response_t);
@@ -317,9 +317,9 @@ RDB_DECLARE_SERIALIZABLE(sindex_status_t);
 class changefeed_subscribe_t {
 public:
     changefeed_subscribe_t() { }
-    explicit changefeed_subscribe_t(changefeed::client_t::addr_t _addr)
+    explicit changefeed_subscribe_t(ql::changefeed::client_t::addr_t _addr)
         : addr(_addr), region(region_t::universe()) { }
-    changefeed::client_t::addr_t addr;
+    ql::changefeed::client_t::addr_t addr;
     region_t region;
 };
 
@@ -328,9 +328,9 @@ RDB_DECLARE_SERIALIZABLE(changefeed_subscribe_t);
 class changefeed_stamp_t {
 public:
     changefeed_stamp_t() : region(region_t::universe()) { }
-    explicit changefeed_stamp_t(changefeed::client_t::addr_t _addr)
+    explicit changefeed_stamp_t(ql::changefeed::client_t::addr_t _addr)
         : addr(std::move(_addr)), region(region_t::universe()) { }
-    changefeed::client_t::addr_t addr;
+    ql::changefeed::client_t::addr_t addr;
     region_t region;
 };
 RDB_DECLARE_SERIALIZABLE(changefeed_stamp_t);
@@ -339,10 +339,10 @@ RDB_DECLARE_SERIALIZABLE(changefeed_stamp_t);
 class changefeed_point_stamp_t {
 public:
     changefeed_point_stamp_t() { }
-    explicit changefeed_point_stamp_t(changefeed::client_t::addr_t _addr,
+    explicit changefeed_point_stamp_t(ql::changefeed::client_t::addr_t _addr,
                                       store_key_t &&_key)
         : addr(std::move(_addr)), key(std::move(_key)) { }
-    changefeed::client_t::addr_t addr;
+    ql::changefeed::client_t::addr_t addr;
     store_key_t key;
 };
 

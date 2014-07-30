@@ -106,13 +106,13 @@ counted_t<ql::datum_stream_t> real_table_t::read_row_changes(
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name) {
     return changefeed_client->new_feed(env, uuid, bt, table_name, pkey,
-        changefeed::keyspec_t(changefeed::keyspec_t::point_t(std::move(pval))));
+        ql::changefeed::keyspec_t(ql::changefeed::keyspec_t::point_t(std::move(pval))));
 }
 
 counted_t<ql::datum_stream_t> real_table_t::read_all_changes(ql::env_t *env,
         const ql::protob_t<const Backtrace> &bt, const std::string &table_name) {
     return changefeed_client->new_feed(env, uuid, bt, table_name, pkey,
-        changefeed::keyspec_t(changefeed::keyspec_t::all_t()));
+        ql::changefeed::keyspec_t(ql::changefeed::keyspec_t::all_t()));
 }
 
 counted_t<const ql::datum_t> real_table_t::write_batched_replace(ql::env_t *env,
