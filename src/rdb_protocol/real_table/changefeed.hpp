@@ -1,9 +1,11 @@
-#ifndef RDB_PROTOCOL_CHANGEFEED_HPP_
-#define RDB_PROTOCOL_CHANGEFEED_HPP_
+// Copyright 2010-2014 RethinkDB, all rights reserved.
+#ifndef RDB_PROTOCOL_REAL_TABLE_CHANGEFEED_HPP_
+#define RDB_PROTOCOL_REAL_TABLE_CHANGEFEED_HPP_
 
 #include <deque>
 #include <exception>
 #include <map>
+#include <string>
 
 #include "errors.hpp"
 #include <boost/variant.hpp>
@@ -206,4 +208,5 @@ private:
 
 } // namespace changefeed
 
-#endif // RDB_PROTOCOL_CHANGEFEED_HPP_
+#endif // RDB_PROTOCOL_REAL_TABLE_CHANGEFEED_HPP_
+

@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef RDB_PROTOCOL_BTREE_HPP_
-#define RDB_PROTOCOL_BTREE_HPP_
+#ifndef RDB_PROTOCOL_REAL_TABLE_BTREE_HPP_
+#define RDB_PROTOCOL_REAL_TABLE_BTREE_HPP_
 
 #include <map>
 #include <set>
@@ -315,4 +315,4 @@ private:
 typedef rdb_noop_deletion_context_t rdb_post_construction_deletion_context_t;
 
 
-#endif /* RDB_PROTOCOL_BTREE_HPP_ */
+#endif /* RDB_PROTOCOL_REAL_TABLE_BTREE_HPP_ */

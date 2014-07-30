@@ -14,7 +14,7 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
         uuid_u _my_machine_id,
         boost::shared_ptr<
             semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattices,
-        clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
+        clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
             cluster_directory_metadata_t> > > _directory,
         rdb_context_t *_rdb_context
         ) :

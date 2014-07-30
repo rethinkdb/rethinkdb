@@ -1,6 +1,10 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved
-#ifndef RDB_PROTOCOL_REAL_TABLE_LAZY_DATUM_STREAM_HPP_
-#define RDB_PROTOCOL_REAL_TABLE_LAZY_DATUM_STREAM_HPP_
+#ifndef RDB_PROTOCOL_REAL_TABLE_READ_DATUM_STREAM_HPP_
+#define RDB_PROTOCOL_REAL_TABLE_READ_DATUM_STREAM_HPP_
+
+#include <map>
+#include <string>
+#include <vector>
 
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/real_table/convert_key.hpp"
@@ -186,5 +190,5 @@ private:
     table_reader_t reader;
 };
 
-#endif   /* RDB_PROTOCOL_REAL_TABLE_LAZY_DATUM_STREAM_HPP_ */
+#endif /* RDB_PROTOCOL_REAL_TABLE_READ_DATUM_STREAM_HPP_ */
 

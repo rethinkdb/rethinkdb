@@ -2,6 +2,11 @@
 #ifndef RDB_PROTOCOL_REAL_TABLE_REAL_TABLE_HPP_
 #define RDB_PROTOCOL_REAL_TABLE_REAL_TABLE_HPP_
 
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
+
 #include "rdb_protocol/context.hpp"
 
 namespace changefeed {

@@ -2,8 +2,10 @@
 #ifndef RDB_PROTOCOL_CONTEXT_HPP_
 #define RDB_PROTOCOL_CONTEXT_HPP_
 
+#include <map>
 #include <set>
 #include <string>
+#include <vector>
 
 #include "errors.hpp"
 #include <boost/optional.hpp>

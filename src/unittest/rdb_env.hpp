@@ -6,6 +6,7 @@
 #include <set>
 #include <map>
 #include <string>
+#include <utility>
 
 #include "errors.hpp"
 #include <boost/variant.hpp>

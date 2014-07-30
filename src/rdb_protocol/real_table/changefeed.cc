@@ -674,7 +674,7 @@ void feed_t::each_point_sub(
 
 void feed_t::each_point_sub_cb(const std::function<void(subscription_t *)> &f, int i) {
     on_thread_t th((threadnum_t(i)));
-    for (const auto &pair : point_subs) {
+    for (auto const &pair : point_subs) {
         for (subscription_t *sub : pair.second[i]) {
             f(sub);
         }
