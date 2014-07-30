@@ -42,6 +42,8 @@ class Term;
 class Datum;
 class Backtrace;
 
+namespace unittest { struct make_sindex_read_t; }
+
 namespace ql {
 class datum_t;
 } // namespace ql

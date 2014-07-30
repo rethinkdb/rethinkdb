@@ -25,8 +25,6 @@
 #include "rdb_protocol/serialize_datum.hpp"
 #include "version.hpp"
 
-namespace unittest { struct make_sindex_read_t; }
-
 // Enough precision to reconstruct doubles from their decimal representations.
 // Unlike the late DBLPRI, this lacks a percent sign.
 #define PR_RECONSTRUCTABLE_DOUBLE ".20g"
