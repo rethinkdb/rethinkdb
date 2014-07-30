@@ -260,8 +260,7 @@ struct reader_t
     // reading process so that we stay under LBA_READ_BUFFER_SIZE.
     int active_readers;
 
-    reader_t(lba_disk_structure_t *_ds, in_memory_index_t *_index,
-            lba_disk_structure_t::read_callback_t *cb)
+    reader_t(lba_disk_structure_t *_ds, in_memory_index_t *_index, lba_disk_structure_t::read_callback_t *cb)
         : ds(_ds), index(_index), rcb(cb)
     {
         for (lba_disk_extent_t *e = ds->extents_in_superblock.head();
