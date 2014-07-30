@@ -16,8 +16,7 @@ namespace unittest {
 struct make_sindex_read_t {
     static read_t make_sindex_read(
             counted_t<const ql::datum_t> key, const std::string &id) {
-        datum_range_t rng(key, key_range_t::closed,
-                          key, key_range_t::closed);
+        datum_range_t rng(key, key_range_t::closed, key, key_range_t::closed);
         return read_t(
             rget_read_t(
                 region_t::universe(),
@@ -27,8 +26,7 @@ struct make_sindex_read_t {
                                       counted_t<const ql::datum_t>()),
                 std::vector<ql::transform_variant_t>(),
                 boost::optional<ql::terminal_variant_t>(),
-                sindex_rangespec_t(id, region_t(rng.to_sindex_keyrange()),
-                                   rng),
+                sindex_rangespec_t(id, region_t(rng.to_sindex_keyrange()), rng),
                 sorting_t::UNORDERED),
             profile_bool_t::PROFILE);
     }
