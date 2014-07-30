@@ -1,0 +1,22 @@
+desc: 2767 -- Evaulate secondary index function with pristine env.
+tests:
+  - py: r.table_create('2767')
+    ot: ({'created':1})
+  - py: r.table('2767').index_create('foo', lambda x:x['a'].slice(1, 3))
+    runopts:
+      right_bound: '"closed"'
+    ot: ({'created':1})
+  - py: r.table('2767').insert({'id':1,'a':[1,2,3,4,5]})
+    runopts:
+      right_bound: '"closed"'
+    ot: ({'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':1})
+  - py: r.table('2767').coerce_to('array')
+    ot: ([{'id':1,'a':[1,2,3,4,5]}])
+  - py: r.table('2767').get_all([2,3], index='foo').coerce_to('array')
+    ot: ([{'id':1,'a':[1,2,3,4,5]}])
+  - py: r.table('2767').get_all([2,3], index='foo').coerce_to('array')
+    runopts:
+      right_bound: '"closed"'
+    ot: ([{'id':1,'a':[1,2,3,4,5]}])
+  - py: r.table_drop('2767')
+    ot: ({'dropped':1})

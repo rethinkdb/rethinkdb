@@ -56,6 +56,8 @@ public:
           std::map<std::string, wire_func_t> optargs,
           profile::trace_t *trace);
 
+    // Used in unittest and one unfortunate place in rdb_update_single_sindex (for
+    // evaluating a deterministic function).
     explicit env_t(signal_t *interruptor);
 
     ~env_t();
