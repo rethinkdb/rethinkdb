@@ -163,7 +163,7 @@ reader_t::next_batch(env_t *env, const batchspec_t &batchspec) {
         }
     } break;
     case batch_type_t::SINDEX_CONSTANT: {
-        counted_t<const datum_t> sindex = std::move(items[items_index].sindex_key);
+        counted_t<const ql::datum_t> sindex = std::move(items[items_index].sindex_key);
         store_key_t key = std::move(items[items_index].key);
         res.push_back(std::move(items[items_index].data));
         items_index += 1;
