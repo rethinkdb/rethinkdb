@@ -16,6 +16,7 @@
 
 #include "rdb_protocol/context.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/real_table.hpp"
 #include "rdb_protocol/shards.hpp"
 
 namespace ql {

@@ -165,7 +165,8 @@ public:
     get_els(batcher_t *batcher, const signal_t *interruptor);
     virtual void add_el(const uuid_u &uuid, uint64_t stamp, counted_t<const datum_t> d,
                         const configured_limits_t &limits) = 0;
-    virtual void start(env_t *env, namespace_interface_t *nif, client_t::addr_t *addr) = 0;
+    virtual void start(env_t *env, namespace_interface_t *nif,
+                       client_t::addr_t *addr) = 0;
     void stop(const std::string &msg, detach_t should_detach);
 protected:
     explicit subscription_t(feed_t *_feed);
@@ -276,8 +277,7 @@ public:
     virtual ~point_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_point_sub, feed, this, key));
     }
-    virtual void start(env_t *env, namespace_interface_t *nif,
-                       client_t::addr_t *addr) {
+    virtual void start(env_t *env, namespace_interface_t *nif, client_t::addr_t *addr) {
         assert_thread();
         read_response_t read_resp;
         nif->read(

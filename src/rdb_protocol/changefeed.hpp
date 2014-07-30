@@ -17,12 +17,12 @@
 #include "region/region.hpp"
 #include "repli_timestamp.hpp"
 #include "rdb_protocol/counted_term.hpp"
-#include "rdb_protocol/real_table.hpp"
 #include "rpc/connectivity/peer_id.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/serialize_macros.hpp"
 
 class auto_drainer_t;
+class namespace_interface_access_t;
 class mailbox_manager_t;
 struct rdb_modification_report_t;
 

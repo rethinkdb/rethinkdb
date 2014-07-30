@@ -17,7 +17,6 @@
 #include "containers/disk_backed_queue.hpp"
 #include "containers/scoped.hpp"
 #include "logger.hpp"
-#include "rdb_protocol/context.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "serializer/config.hpp"
