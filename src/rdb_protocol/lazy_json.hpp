@@ -70,4 +70,6 @@ private:
     counted_t<lazy_json_pointee_t> pointee;
 };
 
+
+
 #endif  // RDB_PROTOCOL_LAZY_JSON_HPP_
