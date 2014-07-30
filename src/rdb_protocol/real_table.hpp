@@ -108,7 +108,7 @@ public:
       * Construct a splitter_t
       * Call the corresponding method on the `namespace_if`
       * splitter_t::give_splits with the event logs from the shards
-    These are public because some of the stuff in `read_datum_stream.hpp` needs to be
+    These are public because some of the stuff in `datum_stream.hpp` needs to be
     able to access them. */
     void read_with_profile(ql::env_t *env, const read_t &, read_response_t *response,
             bool outdated);

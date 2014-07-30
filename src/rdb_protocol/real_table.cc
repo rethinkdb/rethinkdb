@@ -6,7 +6,6 @@
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/math_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "rdb_protocol/read_datum_stream.hpp"
 
 namespace_interface_access_t::namespace_interface_access_t() :
     nif(NULL), ref_tracker(NULL), thread(INVALID_THREAD)
