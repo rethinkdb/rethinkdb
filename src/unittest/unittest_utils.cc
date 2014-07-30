@@ -17,8 +17,8 @@ namespace unittest {
 struct make_sindex_read_t {
     static read_t make_sindex_read(
             counted_t<const ql::datum_t> key, const std::string &id) {
-        datum_range_t rng(key, datum_range_t::closed,
-                          key, datum_range_t::closed);
+        datum_range_t rng(key, key_range_t::closed,
+                          key, key_range_t::closed);
         return read_t(
             rget_read_t(
                 region_t::universe(),

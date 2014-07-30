@@ -27,22 +27,13 @@ key_range_t sindex_key_range(const store_key_t &start,
 
 }   // namespace rdb_protocol
 
-static key_range_t::bound_t convert_bound_type(datum_range_t::bound_t b) {
-    switch (b) {
-        case datum_range_t::open: return key_range_t::open;
-        case datum_range_t::closed: return key_range_t::closed;
-        case datum_range_t::none: return key_range_t::none;
-        default: unreachable();
-    }
-}
-
 key_range_t datum_range_to_primary_keyrange(const datum_range_t &range) {
     return key_range_t(
-        convert_bound_type(range.left_bound_type),
+        range.left_bound_type,
         range.left_bound.has()
             ? store_key_t(range.left_bound->print_primary())
             : store_key_t::min(),
-        convert_bound_type(range.right_bound_type),
+        range.right_bound_type,
         range.right_bound.has()
             ? store_key_t(range.right_bound->print_primary())
             : store_key_t::max());

@@ -23,39 +23,33 @@ store_key_t key_max(sorting_t sorting) {
 }
 
 datum_range_t::datum_range_t()
-    : left_bound_type(none), right_bound_type(none) { }
+    : left_bound_type(key_range_t::none), right_bound_type(key_range_t::none) { }
 datum_range_t::datum_range_t(
-        counted_t<const ql::datum_t> _left_bound, bound_t _left_bound_type,
-        counted_t<const ql::datum_t> _right_bound, bound_t _right_bound_type)
+        counted_t<const ql::datum_t> _left_bound, key_range_t::bound_t _left_bound_type,
+        counted_t<const ql::datum_t> _right_bound, key_range_t::bound_t _right_bound_type)
     : left_bound(_left_bound), right_bound(_right_bound),
       left_bound_type(_left_bound_type), right_bound_type(_right_bound_type) { }
 datum_range_t::datum_range_t(counted_t<const ql::datum_t> val)
     : left_bound(val), right_bound(val),
-      left_bound_type(closed), right_bound_type(closed) { }
+      left_bound_type(key_range_t::closed), right_bound_type(key_range_t::closed) { }
 
 datum_range_t datum_range_t::universe()  {
-    return datum_range_t(counted_t<const ql::datum_t>(), open,
-                         counted_t<const ql::datum_t>(), open);
+    return datum_range_t(counted_t<const ql::datum_t>(), key_range_t::open,
+                         counted_t<const ql::datum_t>(), key_range_t::open);
 }
 bool datum_range_t::is_universe() const {
     return !left_bound.has() && !right_bound.has()
-        && left_bound_type == open && right_bound_type == open;
+        && left_bound_type == key_range_t::open && right_bound_type == key_range_t::open;
 }
 
 bool datum_range_t::contains(counted_t<const ql::datum_t> val) const {
     return (!left_bound.has()
             || *left_bound < *val
-            || (*left_bound == *val && left_bound_type == closed))
+            || (*left_bound == *val && left_bound_type == key_range_t::closed))
         && (!right_bound.has()
             || *right_bound > *val
-            || (*right_bound == *val && right_bound_type == closed));
+            || (*right_bound == *val && right_bound_type == key_range_t::closed));
 }
-
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(datum_range_t::bound_t, int8_t,
-                                      datum_range_t::open, datum_range_t::none);
-RDB_IMPL_ME_SERIALIZABLE_4_SINCE_v1_13(
-        datum_range_t, empty_ok(left_bound), empty_ok(right_bound),
-        left_bound_type, right_bound_type);
 
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(backfill_atom_t, key, value, recency);
@@ -999,6 +993,11 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_read_t, key);
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
         sindex_rangespec_t, id, region, original_range);
 
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(key_range_t::bound_t, int8_t,
+                                      key_range_t::open, key_range_t::none);
+RDB_IMPL_ME_SERIALIZABLE_4_SINCE_v1_13(
+        datum_range_t, empty_ok(left_bound), empty_ok(right_bound),
+        left_bound_type, right_bound_type);
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);

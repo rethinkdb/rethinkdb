@@ -70,21 +70,32 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         point_delete_result_t, int8_t,
         point_delete_result_t::DELETED, point_delete_result_t::MISSING);
 
+#define RDB_DECLARE_PROTOB_SERIALIZABLE(pb_t) \
+    void serialize_protobuf(write_message_t *wm, const pb_t &p); \
+    MUST_USE archive_result_t deserialize_protobuf(read_stream_t *s, pb_t *p)
+RDB_DECLARE_PROTOB_SERIALIZABLE(Term);
+RDB_DECLARE_PROTOB_SERIALIZABLE(Datum);
+RDB_DECLARE_PROTOB_SERIALIZABLE(Backtrace);
+
+class key_le_t {
+public:
+    explicit key_le_t(sorting_t _sorting) : sorting(_sorting) { }
+    bool operator()(const store_key_t &key1, const store_key_t &key2) const {
+        return (!reversed(sorting) && key1 <= key2)
+            || (reversed(sorting) && key2 <= key1);
+    }
+private:
+    sorting_t sorting;
+};
+
 class datum_range_t {
 public:
-    enum bound_t {
-        open,
-        closed,
-        /* TODO: I don't think we actually use `none` anywhere */
-        none
-    };
-
     datum_range_t();
     datum_range_t(
-            counted_t<const ql::datum_t> left_bound,
-            bound_t left_bound_type,
-            counted_t<const ql::datum_t> right_bound,
-            bound_t right_bound_type);
+        counted_t<const ql::datum_t> left_bound,
+        key_range_t::bound_t left_bound_type,
+        counted_t<const ql::datum_t> right_bound,
+        key_range_t::bound_t right_bound_type);
     // Range that includes just one value.
     explicit datum_range_t(counted_t<const ql::datum_t> val);
     static datum_range_t universe();
@@ -93,7 +104,7 @@ public:
     bool is_universe() const;
 
     counted_t<const ql::datum_t> left_bound, right_bound;
-    bound_t left_bound_type, right_bound_type;
+    key_range_t::bound_t left_bound_type, right_bound_type;
 
     RDB_DECLARE_ME_SERIALIZABLE;
 };
