@@ -52,7 +52,6 @@ public:
              : sindex_multi_bool_t::SINGLE);
 
         bool success = table->sindex_create(env->env, name, index_func, multi);
-
         if (success) {
             datum_object_builder_t res;
             UNUSED bool b = res.add("created", make_counted<datum_t>(1.0));
