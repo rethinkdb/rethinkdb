@@ -1,12 +1,12 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved
-#include "rdb_protocol/real_table/real_table.hpp"
+#include "rdb_protocol/real_table.hpp"
 
 #include "rdb_protocol/context.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/math_utils.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
-#include "rdb_protocol/real_table/read_datum_stream.hpp"
+#include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/read_datum_stream.hpp"
 
 namespace_interface_access_t::namespace_interface_access_t() :
     nif(NULL), ref_tracker(NULL), thread(INVALID_THREAD)

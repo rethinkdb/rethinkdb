@@ -8,7 +8,7 @@
 #include "arch/timing.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/archive/boost_types.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 // TODO: Was this macro supposed to be used?
 // #define THROTTLE_THRESHOLD 200

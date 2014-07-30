@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef RDB_PROTOCOL_REAL_TABLE_CONVERT_KEY_HPP_
-#define RDB_PROTOCOL_REAL_TABLE_CONVERT_KEY_HPP_
+#ifndef RDB_PROTOCOL_CONVERT_KEY_HPP_
+#define RDB_PROTOCOL_CONVERT_KEY_HPP_
 
 #include "btree/keys.hpp"
 #include "rdb_protocol/datum.hpp"
@@ -17,5 +17,5 @@ key_range_t sindex_key_range(const store_key_t &start,
 key_range_t datum_range_to_primary_keyrange(const ql::datum_range_t &range);
 key_range_t datum_range_to_sindex_keyrange(const ql::datum_range_t &range);
 
-#endif /* RDB_PROTOCOL_REAL_TABLE_CONVERT_KEY_HPP_ */
+#endif /* RDB_PROTOCOL_CONVERT_KEY_HPP_ */
 

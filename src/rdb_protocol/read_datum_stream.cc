@@ -1,7 +1,7 @@
-#include "rdb_protocol/real_table/read_datum_stream.hpp"
+#include "rdb_protocol/read_datum_stream.hpp"
 
 #include "rdb_protocol/env.hpp"
-#include "rdb_protocol/real_table/convert_key.hpp"
+#include "rdb_protocol/convert_key.hpp"
 
 namespace ql {
 

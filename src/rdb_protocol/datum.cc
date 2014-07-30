@@ -20,7 +20,7 @@
 #include "rdb_protocol/pseudo_time.hpp"
 /* TODO: We only need to include this for `MAX_PRIMARY_KEY_SIZE`. We should move the
 key-mangling routines into `real_table/convert_key.hpp` so we can get rid of this. */
-#include "rdb_protocol/real_table/convert_key.hpp"
+#include "rdb_protocol/convert_key.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "stl_utils.hpp"
 

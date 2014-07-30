@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -12,9 +12,9 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/ql2.pb.h"
-#include "rdb_protocol/real_table/btree.hpp"
-#include "rdb_protocol/real_table/changefeed.hpp"
-#include "rdb_protocol/real_table/store.hpp"
+#include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/changefeed.hpp"
+#include "rdb_protocol/store.hpp"
 
 #include "debug.hpp"
 

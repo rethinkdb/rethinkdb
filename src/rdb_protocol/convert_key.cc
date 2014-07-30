@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "rdb_protocol/real_table/convert_key.hpp"
+#include "rdb_protocol/convert_key.hpp"
 
 namespace rdb_protocol {
 

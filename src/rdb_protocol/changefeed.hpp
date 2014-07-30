@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef RDB_PROTOCOL_REAL_TABLE_CHANGEFEED_HPP_
-#define RDB_PROTOCOL_REAL_TABLE_CHANGEFEED_HPP_
+#ifndef RDB_PROTOCOL_CHANGEFEED_HPP_
+#define RDB_PROTOCOL_CHANGEFEED_HPP_
 
 #include <deque>
 #include <exception>
@@ -17,7 +17,7 @@
 #include "region/region.hpp"
 #include "repli_timestamp.hpp"
 #include "rdb_protocol/counted_term.hpp"
-#include "rdb_protocol/real_table/real_table.hpp"
+#include "rdb_protocol/real_table.hpp"
 #include "rpc/connectivity/peer_id.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -207,5 +207,5 @@ private:
 } // namespace changefeed
 } // namespace ql
 
-#endif // RDB_PROTOCOL_REAL_TABLE_CHANGEFEED_HPP_
+#endif // RDB_PROTOCOL_CHANGEFEED_HPP_
 

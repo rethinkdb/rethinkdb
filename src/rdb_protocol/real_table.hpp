@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved
-#ifndef RDB_PROTOCOL_REAL_TABLE_REAL_TABLE_HPP_
-#define RDB_PROTOCOL_REAL_TABLE_REAL_TABLE_HPP_
+#ifndef RDB_PROTOCOL_REAL_TABLE_HPP_
+#define RDB_PROTOCOL_REAL_TABLE_HPP_
 
 #include <map>
 #include <set>
@@ -120,5 +120,5 @@ private:
     ql::changefeed::client_t *changefeed_client;
 };
 
-#endif /* RDB_PROTOCOL_REAL_TABLE_REAL_TABLE_HPP_ */
+#endif /* RDB_PROTOCOL_REAL_TABLE_HPP_ */
 

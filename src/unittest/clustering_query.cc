@@ -9,7 +9,7 @@
 #include "unittest/branch_history_manager.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "rdb_protocol/context.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "unittest/mock_store.hpp"
 #include "unittest/unittest_utils.hpp"
 

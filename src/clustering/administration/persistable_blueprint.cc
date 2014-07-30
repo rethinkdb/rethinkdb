@@ -6,7 +6,7 @@
 #include "debug.hpp"
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "region/region_json_adapter.hpp"
 #include "stl_utils.hpp"
 

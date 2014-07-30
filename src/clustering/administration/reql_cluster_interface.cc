@@ -3,7 +3,7 @@
 
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/suggester.hpp"
-#include "rdb_protocol/real_table/wait_for_readiness.hpp"
+#include "rdb_protocol/wait_for_readiness.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "rpc/semilattice/view/field.hpp"
 

@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "rdb_protocol/real_table/store.hpp"  // NOLINT(build/include_order)
+#include "rdb_protocol/store.hpp"  // NOLINT(build/include_order)
 
 #include <functional>  // NOLINT(build/include_order)
 
@@ -18,8 +18,8 @@
 #include "containers/scoped.hpp"
 #include "logger.hpp"
 #include "rdb_protocol/context.hpp"
-#include "rdb_protocol/real_table/btree.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "serializer/config.hpp"
 #include "stl_utils.hpp"
 

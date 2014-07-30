@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef RDB_PROTOCOL_REAL_TABLE_PROTOCOL_HPP_
-#define RDB_PROTOCOL_REAL_TABLE_PROTOCOL_HPP_
+#ifndef RDB_PROTOCOL_PROTOCOL_HPP_
+#define RDB_PROTOCOL_PROTOCOL_HPP_
 
 #include <algorithm>
 #include <list>
@@ -22,7 +22,7 @@
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/profile.hpp"
-#include "rdb_protocol/real_table/changefeed.hpp"
+#include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "region/region.hpp"
 #include "repli_timestamp.hpp"
@@ -709,5 +709,5 @@ struct range_key_tester_t : public key_tester_t {
 };
 } // namespace rdb_protocol
 
-#endif  // RDB_PROTOCOL_REAL_TABLE_PROTOCOL_HPP_
+#endif  // RDB_PROTOCOL_PROTOCOL_HPP_
 

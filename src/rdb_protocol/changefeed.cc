@@ -1,4 +1,4 @@
-#include "rdb_protocol/real_table/changefeed.hpp"
+#include "rdb_protocol/changefeed.hpp"
 
 #include <queue>
 
@@ -6,8 +6,8 @@
 #include "concurrency/interruptor.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "rdb_protocol/env.hpp"
-#include "rdb_protocol/real_table/btree.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/val.hpp"
 #include "rpc/mailbox/typed.hpp"
 

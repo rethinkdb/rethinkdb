@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef RDB_PROTOCOL_REAL_TABLE_BTREE_HPP_
-#define RDB_PROTOCOL_REAL_TABLE_BTREE_HPP_
+#ifndef RDB_PROTOCOL_BTREE_HPP_
+#define RDB_PROTOCOL_BTREE_HPP_
 
 #include <map>
 #include <set>
@@ -11,8 +11,8 @@
 #include "backfill_progress.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "rdb_protocol/datum.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
-#include "rdb_protocol/real_table/store.hpp"
+#include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/store.hpp"
 
 class btree_slice_t;
 class deletion_context_t;
@@ -315,4 +315,4 @@ private:
 typedef rdb_noop_deletion_context_t rdb_post_construction_deletion_context_t;
 
 
-#endif /* RDB_PROTOCOL_REAL_TABLE_BTREE_HPP_ */
+#endif /* RDB_PROTOCOL_BTREE_HPP_ */

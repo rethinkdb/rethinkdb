@@ -15,7 +15,7 @@
 #include "clustering/reactor/directory_echo.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "rdb_protocol/context.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"
 #include "unittest/branch_history_manager.hpp"

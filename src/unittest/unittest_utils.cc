@@ -7,8 +7,8 @@
 
 #include "arch/timing.hpp"
 #include "arch/runtime/starter.hpp"
-#include "rdb_protocol/real_table/convert_key.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/convert_key.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "unittest/gtest.hpp"
 #include "utils.hpp"
 

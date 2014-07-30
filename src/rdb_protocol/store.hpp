@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef RDB_PROTOCOL_REAL_TABLE_STORE_HPP_
-#define RDB_PROTOCOL_REAL_TABLE_STORE_HPP_
+#ifndef RDB_PROTOCOL_STORE_HPP_
+#define RDB_PROTOCOL_STORE_HPP_
 
 #include <map>
 #include <set>
@@ -22,8 +22,8 @@
 #include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
-#include "rdb_protocol/real_table/changefeed.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/changefeed.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "store_view.hpp"
 #include "utils.hpp"
@@ -415,4 +415,4 @@ private:
     DISABLE_COPYING(store_t);
 };
 
-#endif  // RDB_PROTOCOL_REAL_TABLE_STORE_HPP_
+#endif  // RDB_PROTOCOL_STORE_HPP_
