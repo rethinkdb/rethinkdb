@@ -1315,5 +1315,9 @@ counted_t<const datum_t> datum_array_builder_t::to_counted() RVALUE_THIS {
                                  datum_t::no_array_size_limit_check_t());
 }
 
-} // namespace ql
 
+
+
+
+
+} // namespace ql
