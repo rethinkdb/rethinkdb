@@ -23,9 +23,9 @@
 #include "protocol_api.hpp"
 #include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/context.hpp"
-#include "rdb_protocol/shards.hpp"
 #include "region/region.hpp"
 #include "repli_timestamp.hpp"
+#include "rdb_protocol/shards.hpp"
 #include "rpc/mailbox/typed.hpp"
 
 class store_t;
@@ -34,7 +34,6 @@ template <class> class clone_ptr_t;
 template <class> class cow_ptr_t;
 template <class> class cross_thread_watchable_variable_t;
 class cross_thread_signal_t;
-class rdb_context_t;
 struct secondary_index_t;
 class traversal_progress_combiner_t;
 template <class> class watchable_t;
@@ -42,11 +41,8 @@ class Term;
 class Datum;
 class Backtrace;
 
-namespace unittest { struct make_sindex_read_t; }
 
-namespace ql {
-class datum_t;
-} // namespace ql
+namespace unittest { struct make_sindex_read_t; }
 
 enum class profile_bool_t {
     PROFILE,
@@ -75,6 +71,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
 #define RDB_DECLARE_PROTOB_SERIALIZABLE(pb_t) \
     void serialize_protobuf(write_message_t *wm, const pb_t &p); \
     MUST_USE archive_result_t deserialize_protobuf(read_stream_t *s, pb_t *p)
+
 RDB_DECLARE_PROTOB_SERIALIZABLE(Term);
 RDB_DECLARE_PROTOB_SERIALIZABLE(Datum);
 RDB_DECLARE_PROTOB_SERIALIZABLE(Backtrace);
@@ -758,13 +755,13 @@ RDB_DECLARE_SERIALIZABLE(backfill_chunk_t);
 class store_t;
 
 namespace rdb_protocol {
-
 const size_t MAX_PRIMARY_KEY_SIZE = 128;
 
 // Construct a region containing only the specified key
 region_t monokey_region(const store_key_t &k);
 
 // Constructs a region which will query an sindex for matches to a specific key
+// TODO consider relocating this
 key_range_t sindex_key_range(const store_key_t &start,
                              const store_key_t &end);
 
@@ -786,4 +783,3 @@ struct range_key_tester_t : public key_tester_t {
 } // namespace rdb_protocol
 
 #endif  // RDB_PROTOCOL_PROTOCOL_HPP_
-
