@@ -240,16 +240,6 @@ private:
     bool is_cfeed_union;
 };
 
-template<class T>
-T groups_to_batch(std::map<counted_t<const datum_t>, T> *g) {
-    if (g->size() == 0) {
-        return T();
-    } else {
-        r_sanity_check(g->size() == 1 && !g->begin()->first.has());
-        return std::move(g->begin()->second);
-    }
-}
-
 // This class generates the `read_t`s used in range reads.  It's used by
 // `reader_t` below.  Its subclasses are the different types of range reads we
 // need to do.

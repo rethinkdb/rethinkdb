@@ -14,6 +14,16 @@
 
 namespace ql {
 
+template<class T>
+T groups_to_batch(std::map<counted_t<const datum_t>, T> *g) {
+    if (g->size() == 0) {
+        return T();
+    } else {
+        r_sanity_check(g->size() == 1 && !g->begin()->first.has());
+        return std::move(g->begin()->second);
+    }
+}
+
 counted_t<val_t> datum_stream_t::run_terminal(
     env_t *env, const terminal_variant_t &tv) {
     scoped_ptr_t<eager_acc_t> acc(make_eager_terminal(tv));
