@@ -1145,6 +1145,10 @@ class TableListTL(RqlTopLevelQuery):
     tt = pTerm.TABLE_LIST
     st = "table_list"
 
+class ServerRename(RqlTopLevelQuery):
+    tt = pTerm.SERVER_RENAME
+    st = "server_rename"
+
 class IndexCreate(RqlMethodQuery):
     tt = pTerm.INDEX_CREATE
     st = 'index_create'

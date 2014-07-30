@@ -1,5 +1,5 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "clustering/administration/last_seen_tracker.hpp"
+#include "clustering/administration/servers/last_seen_tracker.hpp"
 
 #include "errors.hpp"
 #include <boost/bind.hpp>

@@ -2,7 +2,9 @@
 #include "clustering/administration/reql_cluster_interface.hpp"
 
 #include "clustering/administration/main/watchable_fields.hpp"
+#include "clustering/administration/servers/name_client.hpp"
 #include "clustering/administration/suggester.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 #include "rdb_protocol/real_table/wait_for_readiness.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "rpc/semilattice/view/field.hpp"
@@ -16,7 +18,8 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
             semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattices,
         clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
             cluster_directory_metadata_t> > > _directory,
-        rdb_context_t *_rdb_context
+        rdb_context_t *_rdb_context,
+        server_name_client_t *_server_name_client
         ) :
     mailbox_manager(_mailbox_manager),
     my_machine_id(_my_machine_id),
@@ -37,7 +40,8 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
     changefeed_client(mailbox_manager,
         [this](const namespace_id_t &id, signal_t *interruptor) {
             return this->namespace_repo.get_namespace_interface(id, interruptor);
-        })
+        }),
+    server_name_client(_server_name_client)
 {
     for (int thr = 0; thr < get_num_threads(); ++thr) {
         cross_thread_namespace_watchables[thr].init(
@@ -378,6 +382,15 @@ bool real_reql_cluster_interface_t::table_find(const name_string_t &name,
         &changefeed_client));
 
     return true;
+}
+
+bool real_reql_cluster_interface_t::server_rename(
+        const name_string_t &old_name, const name_string_t &new_name,
+        signal_t *interruptor, std::string *error_out) {
+    cross_thread_signal_t interruptor2(interruptor, server_name_client->home_thread());
+    on_thread_t thread_switcher(server_name_client->home_thread());
+    return server_name_client->rename_server(old_name, new_name,
+        &interruptor2, error_out);
 }
 
 /* Checks that divisor is indeed a divisor of multiple. */

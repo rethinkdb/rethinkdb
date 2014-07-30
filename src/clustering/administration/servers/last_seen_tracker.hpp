@@ -1,13 +1,13 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_LAST_SEEN_TRACKER_HPP_
-#define CLUSTERING_ADMINISTRATION_LAST_SEEN_TRACKER_HPP_
+#ifndef CLUSTERING_ADMINISTRATION_SERVERS_LAST_SEEN_TRACKER_HPP_
+#define CLUSTERING_ADMINISTRATION_SERVERS_LAST_SEEN_TRACKER_HPP_
 
 #include <map>
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
-#include "clustering/administration/machine_metadata.hpp"
+#include "clustering/administration/servers/machine_metadata.hpp"
 #include "concurrency/watchable.hpp"
 #include "containers/incremental_lenses.hpp"
 #include "rpc/connectivity/cluster.hpp"
@@ -40,4 +40,4 @@ private:
     DISABLE_COPYING(last_seen_tracker_t);
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_LAST_SEEN_TRACKER_HPP_ */
+#endif /* CLUSTERING_ADMINISTRATION_SERVERS_LAST_SEEN_TRACKER_HPP_ */

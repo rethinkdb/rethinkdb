@@ -2,8 +2,8 @@
 #include "clustering/administration/metadata.hpp"
 
 #include "clustering/administration/database_metadata.hpp"
-#include "clustering/administration/datacenter_metadata.hpp"
-#include "clustering/administration/machine_metadata.hpp"
+#include "clustering/administration/servers/datacenter_metadata.hpp"
+#include "clustering/administration/servers/machine_metadata.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/cow_ptr_type.hpp"
@@ -71,10 +71,10 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(auth_semilattice_metadata_t, auth_key);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(auth_semilattice_metadata_t, auth_key);
 RDB_IMPL_EQUALITY_COMPARABLE_1(auth_semilattice_metadata_t, auth_key);
 
-RDB_IMPL_SERIALIZABLE_9(cluster_directory_metadata_t,
-                        rdb_namespaces, machine_id, peer_id, cache_size,
-                        ips, get_stats_mailbox_address,
-                        log_mailbox, local_issues, peer_type);
+RDB_IMPL_SERIALIZABLE_10(cluster_directory_metadata_t,
+                         rdb_namespaces, machine_id, peer_id, cache_size, ips,
+                         get_stats_mailbox_address, log_mailbox,
+                         server_name_business_card, local_issues, peer_type);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(cluster_directory_metadata_t);
 
 namespace_semilattice_metadata_t new_namespace(
@@ -136,7 +136,7 @@ void apply_json_to(cJSON *change, ack_expectation_t *target) {
 json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(machine_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
     json_adapter_if_t::json_adapter_map_t res;
     res["datacenter_uuid"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<datacenter_id_t>(&target->datacenter, ctx));
-    res["name"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<name_string_t>(&target->name, ctx));
+    res["name"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_read_only_adapter_t<vclock_t<name_string_t>, vclock_ctx_t>(&target->name, ctx));
 
     return res;
 }

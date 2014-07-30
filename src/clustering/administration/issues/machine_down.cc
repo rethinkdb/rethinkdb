@@ -1,6 +1,6 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/issues/machine_down.hpp"
-#include "clustering/administration/machine_id_to_peer_id.hpp"
+#include "clustering/administration/servers/machine_id_to_peer_id.hpp"
 
 std::string machine_down_issue_t::get_description() const {
     return "Machine " + uuid_to_str(machine_id) + " is inaccessible.";

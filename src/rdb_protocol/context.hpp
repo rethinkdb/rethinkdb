@@ -121,6 +121,10 @@ public:
             signal_t *interruptor, scoped_ptr_t<base_table_t> *table_out,
             std::string *error_out) = 0;
 
+    virtual bool server_rename(const name_string_t &old_name,
+            const name_string_t &new_name, signal_t *interruptor, std::string *error_out
+            ) = 0;
+
 protected:
     virtual ~reql_cluster_interface_t() { }   // silence compiler warnings
 };

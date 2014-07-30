@@ -8,7 +8,7 @@
 
 #include "clustering/administration/issues/global.hpp"
 #include "clustering/administration/issues/local.hpp"
-#include "clustering/administration/machine_metadata.hpp"
+#include "clustering/administration/servers/machine_metadata.hpp"
 #include "containers/clone_ptr.hpp"
 #include "containers/incremental_lenses.hpp"
 #include "http/json/json_adapter.hpp"

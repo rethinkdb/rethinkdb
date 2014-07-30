@@ -4,7 +4,7 @@
 #include <deque>
 #include <utility>
 
-#include "clustering/administration/machine_id_to_peer_id.hpp"
+#include "clustering/administration/servers/machine_id_to_peer_id.hpp"
 #include "clustering/reactor/directory_echo.hpp"
 #include "containers/cow_ptr.hpp"
 

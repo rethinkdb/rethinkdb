@@ -1,6 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_DATACENTER_METADATA_HPP_
-#define CLUSTERING_ADMINISTRATION_DATACENTER_METADATA_HPP_
+#ifndef CLUSTERING_ADMINISTRATION_SERVERS_DATACENTER_METADATA_HPP_
+#define CLUSTERING_ADMINISTRATION_SERVERS_DATACENTER_METADATA_HPP_
 
 #include <map>
 #include <string>
@@ -50,4 +50,4 @@ void with_ctx_apply_json_to(cJSON *change, datacenters_semilattice_metadata_t *t
 void with_ctx_on_subfield_change(datacenters_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
 
 
-#endif /* CLUSTERING_ADMINISTRATION_DATACENTER_METADATA_HPP_ */
+#endif /* CLUSTERING_ADMINISTRATION_SERVERS_DATACENTER_METADATA_HPP_ */
