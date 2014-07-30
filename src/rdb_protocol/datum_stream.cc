@@ -454,25 +454,25 @@ reader_t::reader_t(
       active_range(readgen->original_keyrange()),
       items_index(0) { }
 
-void reader_t::add_transformation(ql::transform_variant_t &&tv) {
+void reader_t::add_transformation(transform_variant_t &&tv) {
     r_sanity_check(!started);
     transforms.push_back(std::move(tv));
 }
 
-void reader_t::accumulate(ql::env_t *env, ql::eager_acc_t *acc,
-        const ql::terminal_variant_t &tv) {
+void reader_t::accumulate(env_t *env, eager_acc_t *acc,
+        const terminal_variant_t &tv) {
     r_sanity_check(!started);
     started = shards_exhausted = true;
-    ql::batchspec_t batchspec = ql::batchspec_t::user(ql::batch_type_t::TERMINAL, env);
+    batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
     read_t read = readgen->terminal_read(transforms, tv, batchspec);
-    ql::result_t res = do_read(env, std::move(read)).result;
+    result_t res = do_read(env, std::move(read)).result;
     acc->add_res(env, &res);
 }
 
-void reader_t::accumulate_all(ql::env_t *env, ql::eager_acc_t *acc) {
+void reader_t::accumulate_all(env_t *env, eager_acc_t *acc) {
     r_sanity_check(!started);
     started = true;
-    ql::batchspec_t batchspec = ql::batchspec_t::all();
+    batchspec_t batchspec = batchspec_t::all();
     read_t read = readgen->next_read(active_range, transforms, batchspec);
     rget_read_response_t resp = do_read(env, std::move(read));
 
@@ -485,18 +485,18 @@ void reader_t::accumulate_all(ql::env_t *env, ql::eager_acc_t *acc) {
     acc->add_res(env, &resp.result);
 }
 
-rget_read_response_t reader_t::do_read(ql::env_t *env, const read_t &read) {
+rget_read_response_t reader_t::do_read(env_t *env, const read_t &read) {
     read_response_t res;
     table.read_with_profile(env, read, &res, use_outdated);
     auto rget_res = boost::get<rget_read_response_t>(&res.response);
     r_sanity_check(rget_res != NULL);
-    if (auto e = boost::get<ql::exc_t>(&rget_res->result)) {
+    if (auto e = boost::get<exc_t>(&rget_res->result)) {
         throw *e;
     }
     return std::move(*rget_res);
 }
 
-std::vector<ql::rget_item_t> reader_t::do_range_read(ql::env_t *env,
+std::vector<rget_item_t> reader_t::do_range_read(env_t *env,
                                                      const read_t &read) {
     rget_read_response_t res = do_read(env, read);
 
@@ -522,12 +522,12 @@ std::vector<ql::rget_item_t> reader_t::do_range_read(ql::env_t *env,
     }
 
     shards_exhausted = readgen->update_range(&active_range, res.last_key);
-    ql::grouped_t<ql::stream_t> *gs =
-        boost::get<ql::grouped_t<ql::stream_t> >(&res.result);
-    return ql::groups_to_batch(gs->get_underlying_map());
+    grouped_t<stream_t> *gs =
+        boost::get<grouped_t<stream_t> >(&res.result);
+    return groups_to_batch(gs->get_underlying_map());
 }
 
-bool reader_t::load_items(ql::env_t *env, const ql::batchspec_t &batchspec) {
+bool reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
     started = true;
     if (items_index >= items.size() && !shards_exhausted) { // read some more
         items_index = 0;
@@ -537,14 +537,14 @@ bool reader_t::load_items(ql::env_t *env, const ql::batchspec_t &batchspec) {
         // good hygiene anyway).
         while (boost::optional<read_t> read = readgen->sindex_sort_read(
                    active_range, items, transforms, batchspec)) {
-            std::vector<ql::rget_item_t> new_items = do_range_read(env, *read);
+            std::vector<rget_item_t> new_items = do_range_read(env, *read);
             if (new_items.size() == 0) {
                 break;
             }
 
             rcheck_datum(
                 (items.size() + new_items.size()) <= env->limits.array_size_limit(),
-                ql::base_exc_t::GENERIC,
+                base_exc_t::GENERIC,
                 strprintf("Too many rows (> %zu) with the same "
                           "truncated key for index `%s`.  "
                           "Example value:\n%s\n"
@@ -565,26 +565,26 @@ bool reader_t::load_items(ql::env_t *env, const ql::batchspec_t &batchspec) {
     return items_index < items.size();
 }
 
-std::vector<counted_t<const ql::datum_t> >
-reader_t::next_batch(ql::env_t *env, const ql::batchspec_t &batchspec) {
+std::vector<counted_t<const datum_t> >
+reader_t::next_batch(env_t *env, const batchspec_t &batchspec) {
     started = true;
     if (!load_items(env, batchspec)) {
-        return std::vector<counted_t<const ql::datum_t> >();
+        return std::vector<counted_t<const datum_t> >();
     }
     r_sanity_check(items_index < items.size());
 
-    std::vector<counted_t<const ql::datum_t> > res;
+    std::vector<counted_t<const datum_t> > res;
     switch (batchspec.get_batch_type()) {
-    case ql::batch_type_t::NORMAL: // fallthru
-    case ql::batch_type_t::NORMAL_FIRST: // fallthru
-    case ql::batch_type_t::TERMINAL: {
+    case batch_type_t::NORMAL: // fallthru
+    case batch_type_t::NORMAL_FIRST: // fallthru
+    case batch_type_t::TERMINAL: {
         res.reserve(items.size() - items_index);
         for (; items_index < items.size(); ++items_index) {
             res.push_back(std::move(items[items_index].data));
         }
     } break;
-    case ql::batch_type_t::SINDEX_CONSTANT: {
-        counted_t<const ql::datum_t> sindex = std::move(items[items_index].sindex_key);
+    case batch_type_t::SINDEX_CONSTANT: {
+        counted_t<const datum_t> sindex = std::move(items[items_index].sindex_key);
         store_key_t key = std::move(items[items_index].key);
         res.push_back(std::move(items[items_index].data));
         items_index += 1;
@@ -607,7 +607,7 @@ reader_t::next_batch(ql::env_t *env, const ql::batchspec_t &batchspec) {
 
                 rcheck_datum(
                     res.size() <= env->limits.array_size_limit(),
-                    ql::base_exc_t::GENERIC,
+                    base_exc_t::GENERIC,
                     strprintf("Too many rows (> %zu) with the same value "
                               "for index `%s`:\n%s",
                               env->limits.array_size_limit(),
@@ -632,7 +632,7 @@ reader_t::next_batch(ql::env_t *env, const ql::batchspec_t &batchspec) {
 
     if (items_index >= items.size()) { // free memory immediately
         items_index = 0;
-        std::vector<ql::rget_item_t> tmp;
+        std::vector<rget_item_t> tmp;
         tmp.swap(items);
     }
 
@@ -645,7 +645,7 @@ bool reader_t::is_finished() const {
 }
 
 readgen_t::readgen_t(
-    const std::map<std::string, ql::wire_func_t> &_global_optargs,
+    const std::map<std::string, wire_func_t> &_global_optargs,
     std::string _table_name,
     const datum_range_t &_original_datum_range,
     profile_bool_t _profile,
@@ -684,23 +684,23 @@ bool readgen_t::update_range(key_range_t *active_range,
 
 read_t readgen_t::next_read(
     const key_range_t &active_range,
-    const std::vector<ql::transform_variant_t> &transforms,
-    const ql::batchspec_t &batchspec) const {
+    const std::vector<transform_variant_t> &transforms,
+    const batchspec_t &batchspec) const {
     return read_t(next_read_impl(active_range, transforms, batchspec), profile);
 }
 
 // TODO: this is how we did it before, but it sucks.
 read_t readgen_t::terminal_read(
-    const std::vector<ql::transform_variant_t> &transforms,
-    const ql::terminal_variant_t &_terminal,
-    const ql::batchspec_t &batchspec) const {
+    const std::vector<transform_variant_t> &transforms,
+    const terminal_variant_t &_terminal,
+    const batchspec_t &batchspec) const {
     rget_read_t read = next_read_impl(original_keyrange(), transforms, batchspec);
     read.terminal = _terminal;
     return read_t(read, profile);
 }
 
 primary_readgen_t::primary_readgen_t(
-    const std::map<std::string, ql::wire_func_t> &global_optargs,
+    const std::map<std::string, wire_func_t> &global_optargs,
     std::string table_name,
     datum_range_t range,
     profile_bool_t profile,
@@ -708,7 +708,7 @@ primary_readgen_t::primary_readgen_t(
     : readgen_t(global_optargs, std::move(table_name), range, profile, sorting) { }
 
 scoped_ptr_t<readgen_t> primary_readgen_t::make(
-    ql::env_t *env,
+    env_t *env,
     std::string table_name,
     datum_range_t range,
     sorting_t sorting) {
@@ -723,15 +723,15 @@ scoped_ptr_t<readgen_t> primary_readgen_t::make(
 
 rget_read_t primary_readgen_t::next_read_impl(
     const key_range_t &active_range,
-    const std::vector<ql::transform_variant_t> &transforms,
-    const ql::batchspec_t &batchspec) const {
+    const std::vector<transform_variant_t> &transforms,
+    const batchspec_t &batchspec) const {
     return rget_read_t(
         region_t(active_range),
         global_optargs,
         table_name,
         batchspec,
         transforms,
-        boost::optional<ql::terminal_variant_t>(),
+        boost::optional<terminal_variant_t>(),
         boost::optional<sindex_rangespec_t>(),
         sorting);
 }
@@ -739,12 +739,12 @@ rget_read_t primary_readgen_t::next_read_impl(
 // We never need to do an sindex sort when indexing by a primary key.
 boost::optional<read_t> primary_readgen_t::sindex_sort_read(
     UNUSED const key_range_t &active_range,
-    UNUSED const std::vector<ql::rget_item_t> &items,
-    UNUSED const std::vector<ql::transform_variant_t> &transforms,
-    UNUSED const ql::batchspec_t &batchspec) const {
+    UNUSED const std::vector<rget_item_t> &items,
+    UNUSED const std::vector<transform_variant_t> &transforms,
+    UNUSED const batchspec_t &batchspec) const {
     return boost::optional<read_t>();
 }
-void primary_readgen_t::sindex_sort(UNUSED std::vector<ql::rget_item_t> *vec) const {
+void primary_readgen_t::sindex_sort(UNUSED std::vector<rget_item_t> *vec) const {
     return;
 }
 
@@ -757,7 +757,7 @@ std::string primary_readgen_t::sindex_name() const {
 }
 
 sindex_readgen_t::sindex_readgen_t(
-    const std::map<std::string, ql::wire_func_t> &global_optargs,
+    const std::map<std::string, wire_func_t> &global_optargs,
     std::string table_name,
     const std::string &_sindex,
     datum_range_t range,
@@ -767,7 +767,7 @@ sindex_readgen_t::sindex_readgen_t(
       sindex(_sindex) { }
 
 scoped_ptr_t<readgen_t> sindex_readgen_t::make(
-    ql::env_t *env,
+    env_t *env,
     std::string table_name,
     const std::string &sindex,
     datum_range_t range,
@@ -785,7 +785,7 @@ scoped_ptr_t<readgen_t> sindex_readgen_t::make(
 class sindex_compare_t {
 public:
     explicit sindex_compare_t(sorting_t _sorting) : sorting(_sorting) { }
-    bool operator()(const ql::rget_item_t &l, const ql::rget_item_t &r) {
+    bool operator()(const rget_item_t &l, const rget_item_t &r) {
         r_sanity_check(l.sindex_key.has() && r.sindex_key.has());
         return reversed(sorting)
             ? (*l.sindex_key > *r.sindex_key)
@@ -795,7 +795,7 @@ private:
     sorting_t sorting;
 };
 
-void sindex_readgen_t::sindex_sort(std::vector<ql::rget_item_t> *vec) const {
+void sindex_readgen_t::sindex_sort(std::vector<rget_item_t> *vec) const {
     if (vec->size() == 0) {
         return;
     }
@@ -806,28 +806,28 @@ void sindex_readgen_t::sindex_sort(std::vector<ql::rget_item_t> *vec) const {
 
 rget_read_t sindex_readgen_t::next_read_impl(
     const key_range_t &active_range,
-    const std::vector<ql::transform_variant_t> &transforms,
-    const ql::batchspec_t &batchspec) const {
+    const std::vector<transform_variant_t> &transforms,
+    const batchspec_t &batchspec) const {
     return rget_read_t(
         region_t::universe(),
         global_optargs,
         table_name,
         batchspec,
         transforms,
-        boost::optional<ql::terminal_variant_t>(),
+        boost::optional<terminal_variant_t>(),
         sindex_rangespec_t(sindex, region_t(active_range), original_datum_range),
         sorting);
 }
 
 boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
     const key_range_t &active_range,
-    const std::vector<ql::rget_item_t> &items,
-    const std::vector<ql::transform_variant_t> &transforms,
-    const ql::batchspec_t &batchspec) const {
+    const std::vector<rget_item_t> &items,
+    const std::vector<transform_variant_t> &transforms,
+    const batchspec_t &batchspec) const {
     if (sorting != sorting_t::UNORDERED && items.size() > 0) {
         const store_key_t &key = items[items.size() - 1].key;
-        if (ql::datum_t::key_is_truncated(key)) {
-            std::string skey = ql::datum_t::extract_secondary(key_to_unescaped_str(key));
+        if (datum_t::key_is_truncated(key)) {
+            std::string skey = datum_t::extract_secondary(key_to_unescaped_str(key));
             key_range_t rng = active_range;
             if (!reversed(sorting)) {
                 // We construct a right bound that's larger than the maximum
@@ -847,9 +847,9 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
                         region_t::universe(),
                         global_optargs,
                         table_name,
-                        batchspec.with_new_batch_type(ql::batch_type_t::SINDEX_CONSTANT),
+                        batchspec.with_new_batch_type(batch_type_t::SINDEX_CONSTANT),
                         transforms,
-                        boost::optional<ql::terminal_variant_t>(),
+                        boost::optional<terminal_variant_t>(),
                         sindex_rangespec_t(
                             sindex,
                             region_t(key_range_t(rng)),
@@ -875,28 +875,28 @@ lazy_datum_stream_t::lazy_datum_stream_t(
     const real_table_t &_table,
     bool use_outdated,
     scoped_ptr_t<readgen_t> &&readgen,
-    const ql::protob_t<const Backtrace> &bt_src)
+    const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(bt_src),
       current_batch_offset(0),
       reader(_table, use_outdated, std::move(readgen)) { }
 
-void lazy_datum_stream_t::add_transformation(ql::transform_variant_t &&tv,
-                                             const ql::protob_t<const Backtrace> &bt) {
+void lazy_datum_stream_t::add_transformation(transform_variant_t &&tv,
+                                             const protob_t<const Backtrace> &bt) {
     reader.add_transformation(std::move(tv));
     update_bt(bt);
 }
 
 void lazy_datum_stream_t::accumulate(
-    ql::env_t *env, ql::eager_acc_t *acc, const ql::terminal_variant_t &tv) {
+    env_t *env, eager_acc_t *acc, const terminal_variant_t &tv) {
     reader.accumulate(env, acc, tv);
 }
 
-void lazy_datum_stream_t::accumulate_all(ql::env_t *env, ql::eager_acc_t *acc) {
+void lazy_datum_stream_t::accumulate_all(env_t *env, eager_acc_t *acc) {
     reader.accumulate_all(env, acc);
 }
 
-std::vector<counted_t<const ql::datum_t> >
-lazy_datum_stream_t::next_batch_impl(ql::env_t *env, const ql::batchspec_t &batchspec) {
+std::vector<counted_t<const datum_t> >
+lazy_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
     // Should never mix `next` with `next_batch`.
     r_sanity_check(current_batch_offset == 0 && current_batch.size() == 0);
     return reader.next_batch(env, batchspec);
