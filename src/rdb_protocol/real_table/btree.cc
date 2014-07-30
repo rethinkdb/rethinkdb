@@ -251,13 +251,13 @@ batched_replace_response_t rdb_replace_and_return_superblock(
         guarantee(old_val.has());
         if (return_vals == RETURN_VALS) {
             // first, fill with the old value.  Then, if `replacer` succeeds, fill with new value.
-            bool conflict = resp.add("values", std::move(make_replacement_pair(old_val, old_val)));
+            bool conflict = resp.add("values", make_replacement_pair(old_val, old_val));
             guarantee(!conflict);
         }
 
         counted_t<const ql::datum_t> new_val = replacer->replace(old_val);
         if (return_vals == RETURN_VALS) {
-            resp.overwrite("values", std::move(make_replacement_pair(old_val, new_val)));
+            resp.overwrite("values", make_replacement_pair(old_val, new_val));
         }
         if (new_val->get_type() == ql::datum_t::R_NULL) {
             ended_empty = true;
@@ -361,9 +361,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
         // function will also be interrupted, but we document where it comes
         // from to aid in future debugging if that invariant becomes violated.
     }
-    counted_t<const ql::datum_t> r = std::move(resp).to_counted();
-    debugf("Saw response %s from rdb_replace...\n", r->trunc_print().c_str());
-    return r; // std::move(resp).to_counted();
+    return std::move(resp).to_counted();
 }
 
 
