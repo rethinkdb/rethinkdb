@@ -229,7 +229,13 @@ class RqlQuery(object):
     def and_(self, *args):
         return All(self, *args)
 
+    def all(self, *args):
+        return All(self, *args)
+
     def or_(self, *args):
+        return Any(self, *args)
+
+    def any(self, *args):
         return Any(self, *args)
 
     def not_(self, *args):
