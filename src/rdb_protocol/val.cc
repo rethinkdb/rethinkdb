@@ -11,7 +11,7 @@
 
 namespace ql {
 
-table_view_t::table_view_t(scoped_ptr_t<base_table_t> &&_table,
+table_t::table_t(scoped_ptr_t<base_table_t> &&_table,
         counted_t<const db_t> _db, const std::string &_name, bool _use_outdated,
         const protob_t<const Backtrace> &backtrace)
     : pb_rcheckable_t(backtrace),
@@ -23,13 +23,13 @@ table_view_t::table_view_t(scoped_ptr_t<base_table_t> &&_table,
       sorting(sorting_t::UNORDERED)
     { }
 
-counted_t<const datum_t> table_view_t::make_error_datum(const base_exc_t &exception) {
+counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) {
     datum_object_builder_t d;
     d.add_error(exception.what());
     return std::move(d).to_counted();
 }
 
-counted_t<const datum_t> table_view_t::batched_replace(
+counted_t<const datum_t> table_t::batched_replace(
     env_t *env,
     const std::vector<counted_t<const datum_t> > &vals,
     const std::vector<counted_t<const datum_t> > &keys,
@@ -73,7 +73,7 @@ counted_t<const datum_t> table_view_t::batched_replace(
     }
 }
 
-counted_t<const datum_t> table_view_t::batched_insert(
+counted_t<const datum_t> table_t::batched_insert(
     env_t *env,
     std::vector<counted_t<const datum_t> > &&insert_datums,
     conflict_behavior_t conflict_behavior,
@@ -109,17 +109,17 @@ counted_t<const datum_t> table_view_t::batched_insert(
     return std::move(stats).to_counted()->merge(insert_stats, stats_merge, env->limits);
 }
 
-MUST_USE bool table_view_t::sindex_create(env_t *env, const std::string &id,
+MUST_USE bool table_t::sindex_create(env_t *env, const std::string &id,
         counted_t<func_t> index_func, bool multi) {
     index_func->assert_deterministic("Index functions must be deterministic.");
     return table->sindex_create(env, id, index_func, multi);
 }
 
-MUST_USE bool table_view_t::sindex_drop(env_t *env, const std::string &id) {
+MUST_USE bool table_t::sindex_drop(env_t *env, const std::string &id) {
     return table->sindex_drop(env, id);
 }
 
-counted_t<const datum_t> table_view_t::sindex_list(env_t *env) {
+counted_t<const datum_t> table_t::sindex_list(env_t *env) {
     std::vector<std::string> sindexes = table->sindex_list(env);
     std::vector<counted_t<const datum_t> > array;
     array.reserve(sindexes.size());
@@ -130,7 +130,7 @@ counted_t<const datum_t> table_view_t::sindex_list(env_t *env) {
     return make_counted<datum_t>(std::move(array), env->limits);
 }
 
-counted_t<const datum_t> table_view_t::sindex_status(env_t *env,
+counted_t<const datum_t> table_t::sindex_status(env_t *env,
         std::set<std::string> sindexes) {
     std::map<std::string, counted_t<const datum_t> > statuses =
         table->sindex_status(env, sindexes);
@@ -151,7 +151,7 @@ counted_t<const datum_t> table_view_t::sindex_status(env_t *env,
     return make_counted<const datum_t>(std::move(array), env->limits);
 }
 
-MUST_USE bool table_view_t::sync(env_t *env, const rcheckable_t *parent) {
+MUST_USE bool table_t::sync(env_t *env, const rcheckable_t *parent) {
     rcheck_target(parent, base_exc_t::GENERIC,
                   bounds.is_universe() && sorting == sorting_t::UNORDERED,
                   "sync can only be applied directly to a table.");
@@ -160,22 +160,22 @@ MUST_USE bool table_view_t::sync(env_t *env, const rcheckable_t *parent) {
     return sync_depending_on_durability(env, DURABILITY_REQUIREMENT_HARD);
 }
 
-MUST_USE bool table_view_t::sync_depending_on_durability(env_t *env,
+MUST_USE bool table_t::sync_depending_on_durability(env_t *env,
                 durability_requirement_t durability_requirement) {
     return table->write_sync_depending_on_durability(
         env, durability_requirement);
 }
 
-const std::string &table_view_t::get_pkey() {
+const std::string &table_t::get_pkey() {
     return table->get_pkey();
 }
 
-counted_t<const datum_t> table_view_t::get_row(env_t *env,
+counted_t<const datum_t> table_t::get_row(env_t *env,
         counted_t<const datum_t> pval) {
     return table->read_row(env, pval, use_outdated);
 }
 
-counted_t<datum_stream_t> table_view_t::get_all(
+counted_t<datum_stream_t> table_t::get_all(
         env_t *env,
         counted_t<const datum_t> value,
         const std::string &get_all_sindex_id,
@@ -194,7 +194,7 @@ counted_t<datum_stream_t> table_view_t::get_all(
         use_outdated);
 }
 
-void table_view_t::add_sorting(const std::string &new_sindex_id,
+void table_t::add_sorting(const std::string &new_sindex_id,
         sorting_t _sorting, const rcheckable_t *parent) {
     r_sanity_check(_sorting != sorting_t::UNORDERED);
 
@@ -209,7 +209,7 @@ void table_view_t::add_sorting(const std::string &new_sindex_id,
     sorting = _sorting;
 }
 
-void table_view_t::add_bounds(datum_range_t &&new_bounds,
+void table_t::add_bounds(datum_range_t &&new_bounds,
         const std::string &new_sindex_id, const rcheckable_t *parent) {
     if (sindex_id) {
         rcheck_target(
@@ -226,7 +226,7 @@ void table_view_t::add_bounds(datum_range_t &&new_bounds,
     bounds = std::move(new_bounds);
 }
 
-counted_t<datum_stream_t> table_view_t::as_datum_stream(env_t *env,
+counted_t<datum_stream_t> table_t::as_datum_stream(env_t *env,
         const protob_t<const Backtrace> &bt) {
     return table->read_all(
         env,
@@ -299,7 +299,7 @@ val_t::val_t(const counted_t<grouped_data_t> &groups,
 }
 
 val_t::val_t(counted_t<const datum_t> _datum,
-             counted_t<table_view_t> _table_view,
+             counted_t<table_t> _table_view,
              protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::SINGLE_SELECTION),
@@ -311,7 +311,7 @@ val_t::val_t(counted_t<const datum_t> _datum,
 
 val_t::val_t(counted_t<const datum_t> _datum,
              counted_t<const datum_t> _orig_key,
-             counted_t<table_view_t> _table_view,
+             counted_t<table_t> _table_view,
              protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::SINGLE_SELECTION),
@@ -336,7 +336,7 @@ val_t::val_t(env_t *env, counted_t<datum_stream_t> _sequence,
     }
 }
 
-val_t::val_t(counted_t<table_view_t> _table_view,
+val_t::val_t(counted_t<table_t> _table_view,
              counted_t<datum_stream_t> _sequence,
              protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
@@ -347,7 +347,7 @@ val_t::val_t(counted_t<table_view_t> _table_view,
     guarantee(sequence().has());
 }
 
-val_t::val_t(counted_t<table_view_t> _table_view,
+val_t::val_t(counted_t<table_t> _table_view,
              protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::TABLE),
@@ -379,7 +379,7 @@ counted_t<const datum_t> val_t::as_datum() const {
     return datum();
 }
 
-counted_t<table_view_t> val_t::as_table() {
+counted_t<table_t> val_t::as_table() {
     rcheck_literal_type(type_t::TABLE);
     return table_view;
 }
@@ -419,7 +419,7 @@ counted_t<grouped_data_t> val_t::maybe_as_promiscuous_grouped_data(env_t *env) {
         : maybe_as_grouped_data();
 }
 
-std::pair<counted_t<table_view_t>, counted_t<datum_stream_t> >
+std::pair<counted_t<table_t>, counted_t<datum_stream_t> >
 val_t::as_selection(env_t *env) {
     if (type.raw_type != type_t::TABLE && type.raw_type != type_t::SELECTION) {
         rcheck_literal_type(type_t::SELECTION);
@@ -427,7 +427,7 @@ val_t::as_selection(env_t *env) {
     return std::make_pair(table_view, as_seq(env));
 }
 
-std::pair<counted_t<table_view_t>, counted_t<const datum_t> >
+std::pair<counted_t<table_t>, counted_t<const datum_t> >
         val_t::as_single_selection() {
     rcheck_literal_type(type_t::SINGLE_SELECTION);
     return std::make_pair(table_view, datum());

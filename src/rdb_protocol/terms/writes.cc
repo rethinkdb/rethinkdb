@@ -63,7 +63,7 @@ public:
                     optargspec_t({"conflict", "durability", "return_vals"})) { }
 
 private:
-    static void maybe_generate_key(counted_t<table_view_t> tbl,
+    static void maybe_generate_key(counted_t<table_t> tbl,
                                    const configured_limits_t &limits,
                                    std::vector<std::string> *generated_keys_out,
                                    size_t *keys_skipped_out,
@@ -87,7 +87,7 @@ private:
     }
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_view_t> t = args->arg(env, 0)->as_table();
+        counted_t<table_t> t = args->arg(env, 0)->as_table();
         counted_t<val_t> return_vals_val = args->optarg(env, "return_vals");
         bool return_vals = return_vals_val.has() ? return_vals_val->as_bool() : false;
 
@@ -211,7 +211,7 @@ private:
         counted_t<val_t> v0 = args->arg(env, 0);
         counted_t<const datum_t> stats = new_stats_object();
         if (v0->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
-            std::pair<counted_t<table_view_t>, counted_t<const datum_t> > tblrow
+            std::pair<counted_t<table_t>, counted_t<const datum_t> > tblrow
                 = v0->as_single_selection();
             counted_t<const datum_t> orig_val = tblrow.second;
             counted_t<const datum_t> orig_key = v0->get_orig_key();
@@ -229,9 +229,9 @@ private:
                 nondet_ok, durability_requirement, return_vals);
             stats = stats->merge(replace_stats, stats_merge, env->env->limits);
         } else {
-            std::pair<counted_t<table_view_t>, counted_t<datum_stream_t> > tblrows
+            std::pair<counted_t<table_t>, counted_t<datum_stream_t> > tblrows
                 = v0->as_selection(env->env);
-            counted_t<table_view_t> tbl = tblrows.first;
+            counted_t<table_t> tbl = tblrows.first;
             counted_t<datum_stream_t> ds = tblrows.second;
 
             rcheck(!return_vals, base_exc_t::GENERIC,

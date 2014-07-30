@@ -21,16 +21,16 @@ class stream_cache_t;
 class term_t;
 class val_t;
 
-/* A `table_view_t` is an `r.table` term, possibly with some other things chained onto
+/* A `table_t` is an `r.table` term, possibly with some other things chained onto
 onto it. */
-class table_view_t :
-    public single_threaded_countable_t<table_view_t>,
+class table_t :
+    public single_threaded_countable_t<table_t>,
     public pb_rcheckable_t
 {
 public:
-    table_view_t(scoped_ptr_t<base_table_t> &&,
-                 counted_t<const db_t> db, const std::string &name,
-                 bool use_outdated, const protob_t<const Backtrace> &src);
+    table_t(scoped_ptr_t<base_table_t> &&,
+            counted_t<const db_t> db, const std::string &name,
+            bool use_outdated, const protob_t<const Backtrace> &src);
     counted_t<datum_stream_t> as_datum_stream(env_t *env,
                                               const protob_t<const Backtrace> &bt);
     const std::string &get_pkey();
@@ -154,27 +154,27 @@ public:
     val_t(counted_t<const datum_t> _datum, protob_t<const Backtrace> backtrace);
     val_t(const counted_t<grouped_data_t> &groups,
           protob_t<const Backtrace> bt);
-    val_t(counted_t<const datum_t> _datum, counted_t<table_view_t> _table,
+    val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,
           protob_t<const Backtrace> backtrace);
     val_t(counted_t<const datum_t> _datum,
           counted_t<const datum_t> _orig_key,
-          counted_t<table_view_t> _table,
+          counted_t<table_t> _table,
           protob_t<const Backtrace> backtrace);
     val_t(env_t *env, counted_t<datum_stream_t> _sequence,
           protob_t<const Backtrace> backtrace);
-    val_t(counted_t<table_view_t> _table, protob_t<const Backtrace> backtrace);
-    val_t(counted_t<table_view_t> _table, counted_t<datum_stream_t> _sequence,
+    val_t(counted_t<table_t> _table, protob_t<const Backtrace> backtrace);
+    val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence,
           protob_t<const Backtrace> backtrace);
     val_t(counted_t<const db_t> _db, protob_t<const Backtrace> backtrace);
     val_t(counted_t<func_t> _func, protob_t<const Backtrace> backtrace);
     ~val_t();
 
     counted_t<const db_t> as_db() const;
-    counted_t<table_view_t> as_table();
-    std::pair<counted_t<table_view_t>, counted_t<datum_stream_t> >
+    counted_t<table_t> as_table();
+    std::pair<counted_t<table_t>, counted_t<datum_stream_t> >
         as_selection(env_t *env);
     counted_t<datum_stream_t> as_seq(env_t *env);
-    std::pair<counted_t<table_view_t>, counted_t<const datum_t> >
+    std::pair<counted_t<table_t>, counted_t<const datum_t> >
         as_single_selection();
     // See func.hpp for an explanation of shortcut functions.
     counted_t<func_t> as_func(function_shortcut_t shortcut = NO_SHORTCUT);
@@ -216,7 +216,7 @@ private:
     void rcheck_literal_type(type_t::raw_type_t expected_raw_type) const;
 
     type_t type;
-    counted_t<table_view_t> table_view;
+    counted_t<table_t> table_view;
     counted_t<const datum_t> orig_key;
 
     // We pretend that this variant is a union -- as if it doesn't have type
