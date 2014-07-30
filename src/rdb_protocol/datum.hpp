@@ -104,7 +104,7 @@ public:
     datum_t(construct_boolean_t, bool _bool);
 
     enum class construct_binary_t { };
-    explicit datum_t(construct_binary_t, scoped_ptr_t<wire_string_t> data);
+    explicit datum_t(construct_binary_t, scoped_ptr_t<wire_string_t> _data);
 
     explicit datum_t(double _num);
     // TODO: Eventually get rid of the std::string constructor (in favor of
@@ -251,14 +251,34 @@ private:
     // Might return null, if this is a literal without a value.
     counted_t<const datum_t> drop_literals(bool *encountered_literal_out) const;
 
-    type_t type;
-    union {
-        bool r_bool;
-        double r_num;
-        wire_string_t *r_str;
-        std::vector<counted_t<const datum_t> > *r_array;
-        std::map<std::string, counted_t<const datum_t> > *r_object;
-    };
+    // The data_wrapper makes sure we perform proper cleanup when exceptions
+    // happen during construction
+    class data_wrapper_t {
+    public:
+        // Mirror the same constructors of datum_t
+        explicit data_wrapper_t(construct_null_t);
+        data_wrapper_t(construct_boolean_t, bool _bool);
+        data_wrapper_t(construct_binary_t, scoped_ptr_t<wire_string_t> data);
+        explicit data_wrapper_t(double num);
+        explicit data_wrapper_t(std::string &&str);
+        explicit data_wrapper_t(scoped_ptr_t<wire_string_t> str);
+        explicit data_wrapper_t(const char *cstr);
+        explicit data_wrapper_t(std::vector<counted_t<const datum_t> > &&array);
+        data_wrapper_t(std::map<std::string, counted_t<const datum_t> > &&object);
+
+        ~data_wrapper_t();
+
+        type_t type;
+        union {
+            bool r_bool;
+            double r_num;
+            wire_string_t *r_str;
+            std::vector<counted_t<const datum_t> > *r_array;
+            std::map<std::string, counted_t<const datum_t> > *r_object;
+        };
+    private:
+        DISABLE_COPYING(data_wrapper_t);
+    } data;
 
 public:
     static const char *const reql_type_string;

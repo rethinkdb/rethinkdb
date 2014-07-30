@@ -226,10 +226,10 @@ void admin_cluster_link_t::do_metadata_update(cluster_semilattice_metadata_t *cl
         const boost::optional<namespace_id_t> &prioritize_distr_for_ns) {
     std::string error;
     try {
-        fill_in_blueprints(cluster_metadata,
-                           directory_read_manager->get_root_view()->get().get_inner(),
-                           change_request_id,
-                           prioritize_distr_for_ns);
+        fill_in_all_blueprints(cluster_metadata,
+                               directory_read_manager->get_root_view()->get().get_inner(),
+                               change_request_id,
+                               prioritize_distr_for_ns);
     } catch (const missing_machine_exc_t &ex) {
         error = std::string(ex.what());
     }
