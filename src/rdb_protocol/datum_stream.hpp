@@ -413,6 +413,7 @@ private:
     // otherwise have to do this caching themselves.
     size_t current_batch_offset;
     std::vector<counted_t<const datum_t> > current_batch;
+
     reader_t reader;
 };
 
