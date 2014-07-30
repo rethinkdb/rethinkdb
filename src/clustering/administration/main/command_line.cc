@@ -34,7 +34,6 @@
 #include "arch/os_signal.hpp"
 #include "arch/runtime/starter.hpp"
 #include "extproc/extproc_spawner.hpp"
-#include "clustering/administration/cli/admin_command_parser.hpp"
 #include "clustering/administration/main/names.hpp"
 #include "clustering/administration/main/options.hpp"
 #include "clustering/administration/main/ports.hpp"
@@ -718,47 +717,6 @@ void run_rethinkdb_create(const base_path_t &base_path,
     }
 }
 
-void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins,
-                         const peer_address_t &canonical_addresses,
-                         int client_port,
-                         const std::vector<std::string>& command_args,
-                         bool exit_on_failure,
-                         bool *const result_out) {
-    os_signal_cond_t sigint_cond;
-    *result_out = true;
-    std::string host_port;
-
-    if (!joins.empty()) {
-        host_port = strprintf("%s:%d", joins[0].host().c_str(), joins[0].port().value());
-    }
-
-    try {
-        if (command_args.empty())
-            admin_command_parser_t(host_port,
-                                   look_up_peers_addresses(joins),
-                                   canonical_addresses,
-                                   client_port, &sigint_cond).run_console(exit_on_failure);
-        else if (command_args[0] == admin_command_parser_t::complete_command)
-            admin_command_parser_t(host_port,
-                                   look_up_peers_addresses(joins),
-                                   canonical_addresses,
-                                   client_port, &sigint_cond).run_completion(command_args);
-        else
-            admin_command_parser_t(host_port,
-                                   look_up_peers_addresses(joins),
-                                   canonical_addresses,
-                                   client_port, &sigint_cond).parse_and_run_command(command_args);
-    } catch (const admin_no_connection_exc_t& ex) {
-        // Don't use logging, because we might want to printout multiple lines and such, which the log system doesn't like
-        fprintf(stderr, "%s\n", ex.what());
-        fprintf(stderr, "valid --join option required to handle command, run 'rethinkdb help admin' for more information\n");
-        *result_out = false;
-    } catch (const std::exception& ex) {
-        fprintf(stderr, "%s\n", ex.what());
-        *result_out = false;
-    }
-}
-
 std::string uname_msr() {
     char buf[1024];
     static const std::string unknown = "unknown operating system\n";
@@ -1182,33 +1140,6 @@ void get_rethinkdb_proxy_options(std::vector<options::help_section_t> *help_out,
     help_out->push_back(get_config_file_options(options_out));
 }
 
-void get_rethinkdb_admin_options(std::vector<options::help_section_t> *help_out,
-                                 std::vector<options::option_t> *options_out) {
-    options::help_section_t help("Allowed options");
-
-    options_out->push_back(options::option_t(options::names_t("--client-port"),
-                                             options::OPTIONAL,
-                                             strprintf("%d", port_defaults::client_port)));
-#ifndef NDEBUG
-    help.add("--client-port port", "port to use when connecting to other nodes (for development)");
-#endif  // NDEBUG
-
-    options_out->push_back(options::option_t(options::names_t("--join", "-j"),
-                                             options::OPTIONAL_REPEAT,
-                                             "localhost"));
-    help.add("-j [ --join ] host:port", "host and cluster port of a rethinkdb node to connect to");
-
-    options_out->push_back(options::option_t(options::names_t("--canonical-address"),
-                                             options::OPTIONAL_REPEAT));
-    help.add("--canonical-address addr", "address that other rethinkdb instances will use to connect to us, can be specified multiple times");
-
-    options_out->push_back(options::option_t(options::names_t("--exit-failure", "-x"),
-                                             options::OPTIONAL_NO_PARAMETER));
-    help.add("-x [ --exit-failure ]", "exit with an error code immediately if a command fails");
-
-    help_out->push_back(help);
-}
-
 void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_out,
                                      std::vector<options::option_t> *options_out) {
     help_out->push_back(get_file_options(options_out));
@@ -1496,46 +1427,6 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
     return EXIT_FAILURE;
 }
 
-int main_rethinkdb_admin(int argc, char *argv[]) {
-    std::vector<options::help_section_t> help;
-    std::vector<options::option_t> options;
-    get_rethinkdb_admin_options(&help, &options);
-
-    try {
-        std::vector<std::string> command_args;
-        std::map<std::string, options::values_t> opts
-            = options::merge(options::parse_command_line_and_collect_unrecognized(argc - 2, argv + 2, options,
-                                                                                  &command_args),
-                             options::default_values_map(options));
-
-        options::verify_option_counts(options, opts);
-
-        std::vector<host_and_port_t> joins = parse_join_options(opts, port_defaults::peer_port);
-
-        peer_address_t canonical_addresses = get_canonical_addresses(opts, 0);
-
-        const int client_port = get_single_int(opts, "--client-port");
-
-        const bool exit_on_failure = exists_option(opts, "--exit-failure");
-
-        const int num_workers = get_cpu_count();
-
-        bool result;
-        run_in_thread_pool(std::bind(&run_rethinkdb_admin, joins, canonical_addresses, client_port, command_args, exit_on_failure, &result),
-                           num_workers);
-        return result ? EXIT_SUCCESS : EXIT_FAILURE;
-    } catch (const options::named_error_t &ex) {
-        output_named_error(ex, help);
-        fprintf(stderr, "Run 'rethinkdb help admin' for help on the command\n");
-    } catch (const options::option_error_t &ex) {
-        output_sourced_error(ex);
-        fprintf(stderr, "Run 'rethinkdb help admin' for help on the command\n");
-    } catch (const std::exception& ex) {
-        fprintf(stderr, "%s\n", ex.what());
-    }
-    return EXIT_FAILURE;
-}
-
 int main_rethinkdb_proxy(int argc, char *argv[]) {
     std::vector<options::option_t> options;
     std::vector<options::help_section_t> help;
@@ -1786,7 +1677,6 @@ void help_rethinkdb_porcelain() {
     printf("    'rethinkdb create': prepare files on disk for a new server instance\n");
     printf("    'rethinkdb serve': use an existing data directory to host data and serve queries\n");
     printf("    'rethinkdb proxy': serve queries from an existing cluster but don't host data\n");
-    printf("    'rethinkdb admin': access and modify an existing cluster's metadata\n");
     printf("    'rethinkdb export': export data from an existing cluster into a file or directory\n");
     printf("    'rethinkdb import': import data from from a file or directory into an existing cluster\n");
     printf("    'rethinkdb dump': export and compress data from an existing cluster\n");

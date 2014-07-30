@@ -14,7 +14,7 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
         uuid_u _my_machine_id,
         boost::shared_ptr<
             semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattices,
-        clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
+        clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
             cluster_directory_metadata_t> > > _directory,
         rdb_context_t *_rdb_context
         ) :
@@ -255,10 +255,11 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
             std::make_pair(namespace_id, make_deletable(table)));
 
         try {
-            fill_in_blueprints(&metadata,
-                               directory_root_view->get().get_inner(),
-                               my_machine_id,
-                               boost::optional<namespace_id_t>());
+            fill_in_blueprint_for_namespace(
+                &metadata,
+                directory_root_view->get().get_inner(),
+                namespace_id,
+                my_machine_id);
         } catch (const missing_machine_exc_t &exc) {
             *error_out = strprintf(
                 "Could not configure table: %s Table was not created.", exc.what());

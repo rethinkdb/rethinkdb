@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef RDB_PROTOCOL_PROTOCOL_HPP_
-#define RDB_PROTOCOL_PROTOCOL_HPP_
+#ifndef RDB_PROTOCOL_REAL_TABLE_PROTOCOL_HPP_
+#define RDB_PROTOCOL_REAL_TABLE_PROTOCOL_HPP_
 
 #include <algorithm>
 #include <list>
@@ -15,6 +15,7 @@
 #include <boost/variant.hpp>
 #include <boost/optional.hpp>
 
+#include "rdb_protocol/configured_limits.hpp"
 #include "btree/erase_range.hpp"
 #include "btree/secondary_operations.hpp"
 #include "concurrency/cond_var.hpp"
@@ -178,14 +179,25 @@ struct changefeed_stamp_response_t {
     // machines and don't synchronize with each other.)
     std::map<uuid_u, uint64_t> stamps;
 };
-
 RDB_DECLARE_SERIALIZABLE(changefeed_stamp_response_t);
+
+struct changefeed_point_stamp_response_t {
+    changefeed_point_stamp_response_t() { }
+    // The `uuid_u` below is the uuid of the changefeed `server_t`.  (We have
+    // different timestamps for each `server_t` because they're on different
+    // machines and don't synchronize with each other.)
+    std::pair<uuid_u, uint64_t> stamp;
+    counted_t<const ql::datum_t> initial_val;
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+RDB_SERIALIZE_OUTSIDE(changefeed_point_stamp_response_t);
 
 struct read_response_t {
     typedef boost::variant<point_read_response_t,
                            rget_read_response_t,
                            changefeed_subscribe_response_t,
                            changefeed_stamp_response_t,
+                           changefeed_point_stamp_response_t,
                            distribution_read_response_t,
                            sindex_list_response_t,
                            sindex_status_response_t> variant_t;
@@ -217,11 +229,11 @@ struct sindex_rangespec_t {
                        // sometimes smaller than the datum range below when
                        // dealing with truncated keys.
                        const region_t &_region,
-                       const datum_range_t _original_range)
+                       const ql::datum_range_t _original_range)
         : id(_id), region(_region), original_range(_original_range) { }
     std::string id; // What sindex we're using.
     region_t region; // What keyspace we're currently operating on.
-    datum_range_t original_range; // For dealing with truncation.
+    ql::datum_range_t original_range; // For dealing with truncation.
 };
 
 RDB_DECLARE_SERIALIZABLE(sindex_rangespec_t);
@@ -321,14 +333,25 @@ public:
     changefeed::client_t::addr_t addr;
     region_t region;
 };
-
 RDB_DECLARE_SERIALIZABLE(changefeed_stamp_t);
+
+// This is a separate class because it needs to shard and unshard differently.
+class changefeed_point_stamp_t {
+public:
+    changefeed_point_stamp_t() { }
+    explicit changefeed_point_stamp_t(changefeed::client_t::addr_t _addr,
+                                      store_key_t &&_key)
+        : addr(std::move(_addr)), key(std::move(_key)) { }
+    changefeed::client_t::addr_t addr;
+    store_key_t key;
+};
 
 struct read_t {
     typedef boost::variant<point_read_t,
                            rget_read_t,
                            changefeed_subscribe_t,
                            changefeed_stamp_t,
+                           changefeed_point_stamp_t,
                            distribution_read_t,
                            sindex_list_t,
                            sindex_status_t> variant_t;
@@ -350,6 +373,7 @@ struct read_t {
     template<class T>
     read_t(T &&_read, profile_bool_t _profile)
         : read(std::forward<T>(_read)), profile(_profile) { }
+
 
     // Only use snapshotting if we're doing a range get.
     bool use_snapshot() const THROWS_NOTHING { return boost::get<rget_read_t>(&read); }
@@ -451,9 +475,11 @@ struct batched_insert_t {
     batched_insert_t(
             std::vector<counted_t<const ql::datum_t> > &&_inserts,
             const std::string &_pkey, conflict_behavior_t _conflict_behavior,
+            const ql::configured_limits_t &_limits,
             bool _return_vals)
         : inserts(std::move(_inserts)), pkey(_pkey),
-          conflict_behavior(_conflict_behavior), return_vals(_return_vals) {
+          conflict_behavior(_conflict_behavior), limits(_limits),
+          return_vals(_return_vals) {
         r_sanity_check(inserts.size() != 0);
         r_sanity_check(inserts.size() == 1 || !return_vals);
 #ifndef NDEBUG
@@ -476,6 +502,7 @@ struct batched_insert_t {
     std::vector<counted_t<const ql::datum_t> > inserts;
     std::string pkey;
     conflict_behavior_t conflict_behavior;
+    ql::configured_limits_t limits;
     bool return_vals;
 };
 
@@ -548,16 +575,18 @@ public:
 RDB_DECLARE_SERIALIZABLE(sync_t);
 
 struct write_t {
-    boost::variant<batched_replace_t,
-                   batched_insert_t,
-                   point_write_t,
-                   point_delete_t,
-                   sindex_create_t,
-                   sindex_drop_t,
-                   sync_t> write;
+    typedef boost::variant<batched_replace_t,
+                           batched_insert_t,
+                           point_write_t,
+                           point_delete_t,
+                           sindex_create_t,
+                           sindex_drop_t,
+                           sync_t> variant_t;
+    variant_t write;
 
     durability_requirement_t durability_requirement;
     profile_bool_t profile;
+    ql::configured_limits_t limits;
 
     region_t get_region() const THROWS_NOTHING;
     // Returns true if the write had any side effects applicable to the
@@ -570,7 +599,7 @@ struct write_t {
 
     durability_requirement_t durability() const { return durability_requirement; }
 
-    write_t() : durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
+    write_t() : durability_requirement(DURABILITY_REQUIREMENT_DEFAULT), limits() {}
     /*  Note that for durability != DURABILITY_REQUIREMENT_HARD, sync might
      *  not have the desired effect (of writing unsaved data to disk).
      *  However there are cases where we use sync internally (such as when
@@ -580,14 +609,18 @@ struct write_t {
     template<class T>
     write_t(T &&t,
             durability_requirement_t durability,
-            profile_bool_t _profile)
+            profile_bool_t _profile,
+            const ql::configured_limits_t &_limits)
         : write(std::forward<T>(t)),
-          durability_requirement(durability), profile(_profile) { }
+          durability_requirement(durability), profile(_profile),
+          limits(_limits) { }
     template<class T>
-    write_t(T &&t, profile_bool_t _profile)
+    write_t(T &&t, profile_bool_t _profile,
+            const ql::configured_limits_t &_limits)
         : write(std::forward<T>(t)),
           durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
-          profile(_profile) { }
+          profile(_profile),
+          limits(_limits) { }
 };
 
 RDB_DECLARE_SERIALIZABLE(write_t);
@@ -676,4 +709,5 @@ struct range_key_tester_t : public key_tester_t {
 };
 } // namespace rdb_protocol
 
-#endif  // RDB_PROTOCOL_PROTOCOL_HPP_
+#endif  // RDB_PROTOCOL_REAL_TABLE_PROTOCOL_HPP_
+

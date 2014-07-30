@@ -11,6 +11,7 @@
 #include "containers/clone_ptr.hpp"
 #include "containers/incremental_lenses.hpp"
 #include "rdb_protocol/real_table/real_table.hpp"
+#include "rpc/semilattice/view.hpp"
 
 /* `namespace_repo_t` is a helper class for `real_reql_cluster_interface_t`. It's
 responsible for constructing and caching `cluster_namespace_interface_t` objects. */

@@ -13,12 +13,12 @@
 
 template <class metadata_t>
 semilattice_http_app_t<metadata_t>::semilattice_http_app_t(
-        metadata_change_handler_t<metadata_t> *_metadata_change_handler,
+        boost::shared_ptr<semilattice_readwrite_view_t<metadata_t> > _metadata_view,
         const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
         uuid_u _us) :
     directory_metadata(_directory_metadata),
     us(_us),
-    metadata_change_handler(_metadata_change_handler) {
+    metadata_view(_metadata_view) {
     // Do nothing
 }
 
@@ -30,7 +30,7 @@ semilattice_http_app_t<metadata_t>::~semilattice_http_app_t() {
 template <class metadata_t>
 void semilattice_http_app_t<metadata_t>::get_root(scoped_cJSON_t *json_out) {
     // keep this in sync with handle's behavior for getting the root
-    metadata_t metadata = metadata_change_handler->get();
+    metadata_t metadata = metadata_view->get();
     vclock_ctx_t json_ctx(us);
     json_ctx_adapter_t<metadata_t, vclock_ctx_t> json_adapter(&metadata, json_ctx);
     json_out->reset(json_adapter.render());
@@ -39,7 +39,7 @@ void semilattice_http_app_t<metadata_t>::get_root(scoped_cJSON_t *json_out) {
 template <class metadata_t>
 void semilattice_http_app_t<metadata_t>::handle(const http_req_t &req, http_res_t *result, signal_t *) {
     try {
-        metadata_t metadata = metadata_change_handler->get();
+        metadata_t metadata = metadata_view->get();
 
         //as we traverse the json sub directories this will keep track of where we are
         vclock_ctx_t json_ctx(us);
@@ -115,7 +115,7 @@ void semilattice_http_app_t<metadata_t>::handle(const http_req_t &req, http_res_
                 }
 
                 metadata_change_callback(&metadata, prioritize_distr_for_ns);
-                metadata_change_handler->update(metadata);
+                metadata_view->join(metadata);
 
                 scoped_cJSON_t json_repr(json_adapter_head->render());
                 http_json_res(json_repr.get(), result);
@@ -129,7 +129,7 @@ void semilattice_http_app_t<metadata_t>::handle(const http_req_t &req, http_res_
 
                 metadata_change_callback(&metadata,
                                          boost::optional<namespace_id_t>());
-                metadata_change_handler->update(metadata);
+                metadata_view->join(metadata);
 
                 scoped_cJSON_t json_repr(json_adapter_head->render());
                 http_json_res(json_repr.get(), result);
@@ -168,7 +168,7 @@ void semilattice_http_app_t<metadata_t>::handle(const http_req_t &req, http_res_
 
                 metadata_change_callback(&metadata,
                                          boost::optional<namespace_id_t>());
-                metadata_change_handler->update(metadata);
+                metadata_view->join(metadata);
 
                 scoped_cJSON_t json_repr(json_adapter_head->render());
                 http_json_res(json_repr.get(), result);
@@ -217,10 +217,12 @@ bool semilattice_http_app_t<metadata_t>::verify_content_type(const http_req_t &r
 }
 
 cluster_semilattice_http_app_t::cluster_semilattice_http_app_t(
-        metadata_change_handler_t<cluster_semilattice_metadata_t> *_metadata_change_handler,
+        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
+            _metadata_view,
         const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
         uuid_u _us) :
-    semilattice_http_app_t<cluster_semilattice_metadata_t>(_metadata_change_handler, _directory_metadata, _us) {
+    semilattice_http_app_t<cluster_semilattice_metadata_t>(
+        _metadata_view, _directory_metadata, _us) {
     // Do nothing
 }
 
@@ -232,18 +234,20 @@ void cluster_semilattice_http_app_t::metadata_change_callback(cluster_semilattic
         const boost::optional<namespace_id_t> &prioritize_distr_for_ns) {
 
     try {
-        fill_in_blueprints(new_metadata,
-                           directory_metadata->get().get_inner(),
-                           us,
-                           prioritize_distr_for_ns);
+        fill_in_all_blueprints(new_metadata,
+                               directory_metadata->get().get_inner(),
+                               us,
+                               prioritize_distr_for_ns);
     } catch (const missing_machine_exc_t &e) { }
 }
 
 auth_semilattice_http_app_t::auth_semilattice_http_app_t(
-        metadata_change_handler_t<auth_semilattice_metadata_t> *_metadata_change_handler,
+        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
+            _metadata_view,
         const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
         uuid_u _us) :
-    semilattice_http_app_t<auth_semilattice_metadata_t>(_metadata_change_handler, _directory_metadata, _us) {
+    semilattice_http_app_t<auth_semilattice_metadata_t>(
+        _metadata_view, _directory_metadata, _us) {
     // Do nothing
 }
 

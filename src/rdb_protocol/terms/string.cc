@@ -27,7 +27,7 @@ private:
         int ngroups = regexp.NumberOfCapturingGroups() + 1;
         scoped_array_t<re2::StringPiece> groups(ngroups);
         if (regexp.Match(str, 0, str.size(), RE2::UNANCHORED, groups.data(), ngroups)) {
-            datum_ptr_t match(datum_t::R_OBJECT);
+            datum_object_builder_t match;
             // We use `b` to store whether or not we got a conflict when writing
             // to an object.  This should never happen here because we aren't
             // using user-generated keys, but the result of `add` is marked
@@ -38,13 +38,13 @@ private:
                                static_cast<double>(groups[0].begin() - str.data())));
             b |= match.add("end", make_counted<const datum_t>(
                                static_cast<double>(groups[0].end() - str.data())));
-            datum_ptr_t match_groups(datum_t::R_ARRAY);
+            datum_array_builder_t match_groups(env->env->limits);
             for (int i = 1; i < ngroups; ++i) {
                 const re2::StringPiece &group = groups[i];
                 if (group.data() == NULL) {
-                    match_groups.add(make_counted<datum_t>(datum_t::R_NULL));
+                    match_groups.add(datum_t::null());
                 } else {
-                    datum_ptr_t match_group(datum_t::R_OBJECT);
+                    datum_object_builder_t match_group;
                     b |= match_group.add(
                         "str", make_counted<const datum_t>(group.as_string()));
                     b |= match_group.add(
@@ -53,14 +53,14 @@ private:
                     b |= match_group.add(
                         "end", make_counted<const datum_t>(
                             static_cast<double>(group.end() - str.data())));
-                    match_groups.add(match_group.to_counted());
+                    match_groups.add(std::move(match_group).to_counted());
                 }
             }
-            b |= match.add("groups", match_groups.to_counted());
+            b |= match.add("groups", std::move(match_groups).to_counted());
             r_sanity_check(!b);
-            return new_val(match.to_counted());
+            return new_val(std::move(match).to_counted());
         } else {
-            return new_val(make_counted<const datum_t>(datum_t::R_NULL));
+            return new_val(datum_t::null());
         }
     }
     virtual const char *name() const { return "match"; }
@@ -87,9 +87,10 @@ private:
         int64_t n = -1; // -1 means unlimited
         if (args->num_args() > 2) {
             n = args->arg(env, 2)->as_int();
-            rcheck(n >= -1 && n <= int64_t(array_size_limit()) - 1, base_exc_t::GENERIC,
+            rcheck(n >= -1 && n <= int64_t(env->env->limits.array_size_limit()) - 1,
+                   base_exc_t::GENERIC,
                    strprintf("Error: `split` size argument must be in range [-1, %zu].",
-                             array_size_limit() - 1));
+                             env->env->limits.array_size_limit() - 1));
         }
         size_t maxnum = (n < 0 ? std::numeric_limits<decltype(maxnum)>::max() : n);
 
@@ -118,7 +119,7 @@ private:
                 : next + (delim ? delim->size() : 1);
         }
 
-        return new_val(make_counted<const datum_t>(std::move(res)));
+        return new_val(make_counted<const datum_t>(std::move(res), env->env->limits));
     }
     virtual const char *name() const { return "split"; }
 };

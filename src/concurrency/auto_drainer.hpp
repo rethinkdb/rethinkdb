@@ -11,7 +11,7 @@ are done before the resource is destroyed.
 Construct an `auto_drainer_t` for the resource. Have each process construct an
 `auto_drainer_t::lock_t` and hold it. When the resource must be destroyed, first
 prevent any new processes from starting and then call the `auto_drainer_t`'s
-destructor. The destructor will block until all the `lock_t` objects have been
+`drain()` method. `drain()` will block until all `auto_drainer_t`s have been
 destroyed.
 
 The signal returned by `lock_t::get_drain_signal()` will be pulsed when the
@@ -21,6 +21,15 @@ running processes if it makes sense for your situation. */
 class auto_drainer_t : public home_thread_mixin_t {
 public:
     auto_drainer_t();
+
+    /* If `drain()` was not called already, then the destructor will call it
+    automatically. However, this behavior is deprecated, for two reasons:
+    1) There are legitimate reasons to access an auto_drainer_t while it's
+        draining, but it's bad form to access an object during its destructor.
+    2) This encourages people to make an `auto_drainer_t` a member of their
+        class and rely on the destruction order of members to make sure it
+        drains before the other members are destroyed, which is fragile.
+    So new code should call `drain()` before running `~auto_drainer_t()`. */
     ~auto_drainer_t();
 
     class lock_t {
@@ -35,7 +44,7 @@ public:
         void reset();
         bool has_lock() const;
         signal_t *get_drain_signal() const;
-        void assert_is_holding(auto_drainer_t *);
+        void assert_is_holding(auto_drainer_t *) const;
         ~lock_t();
     private:
         auto_drainer_t *parent;
@@ -50,6 +59,8 @@ public:
     void assert_draining() {
         guarantee(draining.is_pulsed());
     }
+
+    void drain();
 
     void rethread(threadnum_t new_thread) {
         rassert(refcount == 0);
@@ -72,14 +83,19 @@ private:
 
     public:
         toy_tcp_server_t(int port) :
-            listener(port,
+            listener(new tcp_listener_t(port,
                 std::bind(&toy_tcp_server_t::serve,
                     this,
                     auto_drainer_t::lock_t(&drainer),
                     _1
                     )
-                )
+                ))
             { }
+
+        ~toy_tcp_server_t() {
+            listener.reset();
+            drainer.drain();
+        }
 
     private:
         void serve(auto_drainer_t::lock_t keepalive, scoped_ptr_t<tcp_conn_t> &conn) {
@@ -92,16 +108,16 @@ private:
         }
 
         auto_drainer_t drainer;
-        tcp_listener_t listener;
+        scoped_ptr_t<tcp_listener_t> listener;
     };
 
 When a TCP connection comes in, the functor created by `std::bind()` is
 called, and it makes a copy of the `auto_drainer_t::lock_t` and passes it to
 `serve()`. When the `toy_tcp_server_t` is destroyed, first the `tcp_listener_t`
 destructor is run (so no new connections are accepted) and then the
-`auto_drainer_t` destructor is run. `keepalive.get_drain_signal()` is pulsed,
+`auto_drainer_t::drain()` is run. `keepalive.get_drain_signal()` is pulsed,
 which interrupts `serve_queries_until_interrupted()`, causing `serve()` to
-return and destroy `keepalive`. This way, `drainer`'s destructor blocks until
+return and destroy `keepalive`. This way, `drain()` blocks until
 all the copies of `serve` have returned. */
 
 #endif /* CONCURRENCY_AUTO_DRAINER_HPP_ */

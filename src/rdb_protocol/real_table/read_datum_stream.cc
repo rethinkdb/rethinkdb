@@ -1,6 +1,7 @@
 #include "rdb_protocol/real_table/read_datum_stream.hpp"
 
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/real_table/convert_key.hpp"
 
 // RANGE/READGEN STUFF
 table_reader_t::table_reader_t(
@@ -103,13 +104,13 @@ bool table_reader_t::load_items(ql::env_t *env, const ql::batchspec_t &batchspec
             }
 
             rcheck_datum(
-                (items.size() + new_items.size()) <= ql::array_size_limit(),
+                (items.size() + new_items.size()) <= env->limits.array_size_limit(),
                 ql::base_exc_t::GENERIC,
                 strprintf("Too many rows (> %zu) with the same "
                           "truncated key for index `%s`.  "
                           "Example value:\n%s\n"
                           "Truncated key:\n%s",
-                          ql::array_size_limit(),
+                          env->limits.array_size_limit(),
                           readgen->sindex_name().c_str(),
                           items[items.size() - 1].sindex_key->trunc_print().c_str(),
                           key_to_debug_str(items[items.size() - 1].key).c_str()));
@@ -166,10 +167,11 @@ table_reader_t::next_batch(ql::env_t *env, const ql::batchspec_t &batchspec) {
                 res.push_back(std::move(items[items_index].data));
 
                 rcheck_datum(
-                    res.size() <= ql::array_size_limit(), ql::base_exc_t::GENERIC,
+                    res.size() <= env->limits.array_size_limit(),
+                    ql::base_exc_t::GENERIC,
                     strprintf("Too many rows (> %zu) with the same value "
                               "for index `%s`:\n%s",
-                              ql::array_size_limit(),
+                              env->limits.array_size_limit(),
                               readgen->sindex_name().c_str(),
                               // This is safe because you can't have duplicate
                               // primary keys, so they will never exceed the
@@ -206,7 +208,7 @@ bool table_reader_t::is_finished() const {
 readgen_t::readgen_t(
     const std::map<std::string, ql::wire_func_t> &_global_optargs,
     std::string _table_name,
-    const datum_range_t &_original_datum_range,
+    const ql::datum_range_t &_original_datum_range,
     profile_bool_t _profile,
     sorting_t _sorting)
     : global_optargs(_global_optargs),
@@ -261,7 +263,7 @@ read_t readgen_t::terminal_read(
 primary_readgen_t::primary_readgen_t(
     const std::map<std::string, ql::wire_func_t> &global_optargs,
     std::string table_name,
-    datum_range_t range,
+    ql::datum_range_t range,
     profile_bool_t profile,
     sorting_t sorting)
     : readgen_t(global_optargs, std::move(table_name), range, profile, sorting) { }
@@ -269,7 +271,7 @@ primary_readgen_t::primary_readgen_t(
 scoped_ptr_t<readgen_t> primary_readgen_t::make(
     ql::env_t *env,
     std::string table_name,
-    datum_range_t range,
+    ql::datum_range_t range,
     sorting_t sorting) {
     return scoped_ptr_t<readgen_t>(
         new primary_readgen_t(
@@ -308,7 +310,7 @@ void primary_readgen_t::sindex_sort(UNUSED std::vector<ql::rget_item_t> *vec) co
 }
 
 key_range_t primary_readgen_t::original_keyrange() const {
-    return original_datum_range.to_primary_keyrange();
+    return datum_range_to_primary_keyrange(original_datum_range);
 }
 
 std::string primary_readgen_t::sindex_name() const {
@@ -319,7 +321,7 @@ sindex_readgen_t::sindex_readgen_t(
     const std::map<std::string, ql::wire_func_t> &global_optargs,
     std::string table_name,
     const std::string &_sindex,
-    datum_range_t range,
+    ql::datum_range_t range,
     profile_bool_t profile,
     sorting_t sorting)
     : readgen_t(global_optargs, std::move(table_name), range, profile, sorting),
@@ -329,7 +331,7 @@ scoped_ptr_t<readgen_t> sindex_readgen_t::make(
     ql::env_t *env,
     std::string table_name,
     const std::string &sindex,
-    datum_range_t range,
+    ql::datum_range_t range,
     sorting_t sorting) {
     return scoped_ptr_t<readgen_t>(
         new sindex_readgen_t(
@@ -422,7 +424,7 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
 }
 
 key_range_t sindex_readgen_t::original_keyrange() const {
-    return original_datum_range.to_sindex_keyrange();
+    return datum_range_to_sindex_keyrange(original_datum_range);
 }
 
 std::string sindex_readgen_t::sindex_name() const {

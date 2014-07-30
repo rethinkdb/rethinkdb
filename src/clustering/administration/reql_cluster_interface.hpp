@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_REQL_ADMIN_INTERFACE_HPP_
-#define CLUSTERING_ADMINISTRATION_REQL_ADMIN_INTERFACE_HPP_
+#ifndef CLUSTERING_ADMINISTRATION_REQL_CLUSTER_INTERFACE_HPP_
+#define CLUSTERING_ADMINISTRATION_REQL_CLUSTER_INTERFACE_HPP_
 
 #include <set>
 #include <string>
@@ -23,9 +23,9 @@ public:
     real_reql_cluster_interface_t(
             mailbox_manager_t *mailbox_manager,
             machine_id_t my_machine_id,
-            boost::shared_ptr<semilattice_readwrite_view_t<
+            boost::shared_ptr< semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > semilattices,
-            clone_ptr_t<watchable_t<change_tracking_map_t<
+            clone_ptr_t< watchable_t< change_tracking_map_t<
                 peer_id_t, cluster_directory_metadata_t> > > directory,
             rdb_context_t *rdb_context
             );
@@ -62,9 +62,9 @@ public:
 private:
     mailbox_manager_t *mailbox_manager;
     machine_id_t my_machine_id;
-    boost::shared_ptr<semilattice_readwrite_view_t<
+    boost::shared_ptr< semilattice_readwrite_view_t<
         cluster_semilattice_metadata_t> > semilattice_root_view;
-    clone_ptr_t<watchable_t<change_tracking_map_t<
+    clone_ptr_t< watchable_t< change_tracking_map_t<
         peer_id_t, cluster_directory_metadata_t> > > directory_root_view;
     scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t< cow_ptr_t<
         namespaces_semilattice_metadata_t> > > > cross_thread_namespace_watchables;
@@ -85,5 +85,5 @@ private:
     DISABLE_COPYING(real_reql_cluster_interface_t);
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_REQL_ADMIN_INTERFACE_HPP_ */
+#endif /* CLUSTERING_ADMINISTRATION_REQL_CLUSTER_INTERFACE_HPP_ */
 

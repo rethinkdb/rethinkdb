@@ -307,6 +307,10 @@ struct rdb_r_get_region_visitor : public boost::static_visitor<region_t> {
         return t.region;
     }
 
+    region_t operator()(const changefeed_point_stamp_t &t) const {
+        return rdb_protocol::monokey_region(t.key);
+    }
+
     region_t operator()(const sindex_status_t &ss) const {
         return ss.region;
     }
@@ -318,14 +322,14 @@ region_t read_t::get_region() const THROWS_NOTHING {
 
 struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     explicit rdb_r_shard_visitor_t(const hash_region_t<key_range_t> *_region,
-                                   profile_bool_t _profile, read_t *_read_out)
-        : region(_region), profile(_profile), read_out(_read_out) { }
+                                   read_t::variant_t *_payload_out)
+        : region(_region), payload_out(_payload_out) { }
 
     // The key was somehow already extracted from the arg.
     template <class T>
     bool keyed_read(const T &arg, const store_key_t &key) const {
         if (region_contains_key(*region, key)) {
-            *read_out = read_t(arg, profile);
+            *payload_out = arg;
             return true;
         } else {
             return false;
@@ -343,7 +347,7 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
         if (!region_is_empty(intersection)) {
             T tmp = arg;
             tmp.region = intersection;
-            *read_out = read_t(tmp, profile);
+            *payload_out = tmp;
             return true;
         } else {
             return false;
@@ -358,10 +362,14 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
         return rangey_read(t);
     }
 
+    bool operator()(const changefeed_point_stamp_t &t) const {
+        return keyed_read(t, t.key);
+    }
+
     bool operator()(const rget_read_t &rg) const {
         bool do_read = rangey_read(rg);
         if (do_read) {
-            auto rg_out = boost::get<rget_read_t>(&read_out->read);
+            auto rg_out = boost::get<rget_read_t>(payload_out);
             rg_out->batchspec = rg_out->batchspec.scale_down(CPU_SHARDING_FACTOR);
         }
         return do_read;
@@ -380,13 +388,15 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     }
 
     const hash_region_t<key_range_t> *region;
-    profile_bool_t profile;
-    read_t *read_out;
+    read_t::variant_t *payload_out;
 };
 
 bool read_t::shard(const hash_region_t<key_range_t> &region,
                    read_t *read_out) const THROWS_NOTHING {
-    return boost::apply_visitor(rdb_r_shard_visitor_t(&region, profile, read_out), read);
+    read_t::variant_t payload;
+    bool result = boost::apply_visitor(rdb_r_shard_visitor_t(&region, &payload), read);
+    *read_out = read_t(payload, profile);
+    return result;
 }
 
 /* A visitor to handle this unsharding process for us. */
@@ -440,6 +450,7 @@ public:
     void operator()(const sindex_status_t &rg);
     void operator()(const changefeed_subscribe_t &);
     void operator()(const changefeed_stamp_t &);
+    void operator()(const changefeed_point_stamp_t &);
 
 private:
     const profile_bool_t profile;
@@ -482,6 +493,12 @@ void rdb_r_unshard_visitor_t::operator()(const changefeed_stamp_t &) {
     }
 }
 
+void rdb_r_unshard_visitor_t::operator()(const changefeed_point_stamp_t &) {
+    guarantee(count == 1);
+    guarantee(boost::get<changefeed_point_stamp_response_t>(&responses[0].response));
+    *response_out = responses[0];
+}
+
 void rdb_r_unshard_visitor_t::operator()(const point_read_t &) {
     guarantee(count == 1);
     guarantee(NULL != boost::get<point_read_response_t>(&responses[0].response));
@@ -494,7 +511,8 @@ void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
         // 'db' optarg.)  We have the same assertion in rdb_read_visitor_t.
         rassert(rg.optargs.size() != 0);
     }
-    ql::env_t env(ctx, interruptor, rg.optargs, profile);
+    scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
+    ql::env_t env(ctx, interruptor, rg.optargs, trace.get_or_null());
 
     // Initialize response.
     response_out->response = rget_read_response_t();
@@ -736,17 +754,13 @@ region_t write_t::get_region() const THROWS_NOTHING {
 /* write_t::shard implementation */
 
 struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
-    rdb_w_shard_visitor_t(const region_t *_region,
-                          durability_requirement_t _durability_requirement,
-                          profile_bool_t _profile, write_t *_write_out)
-        : region(_region),
-          durability_requirement(_durability_requirement),
-          profile(_profile), write_out(_write_out) {}
+    rdb_w_shard_visitor_t(const region_t *_region, write_t::variant_t *_payload_out)
+        : region(_region), payload_out(_payload_out) {}
 
     template <class T>
     bool keyed_write(const T &arg) const {
         if (region_contains_key(*region, arg.key)) {
-            *write_out = write_t(arg, durability_requirement, profile);
+            *payload_out = arg;
             return true;
         } else {
             return false;
@@ -761,15 +775,9 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
             }
         }
         if (!shard_keys.empty()) {
-            *write_out = write_t(
-                batched_replace_t(
-                    std::move(shard_keys),
-                    br.pkey,
-                    br.f.compile_wire_func(),
-                    br.optargs,
-                    br.return_vals),
-                durability_requirement,
-                profile);
+            *payload_out = batched_replace_t(std::move(shard_keys), br.pkey,
+                                             br.f.compile_wire_func(), br.optargs,
+                                             br.return_vals);
             return true;
         } else {
             return false;
@@ -785,12 +793,9 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
             }
         }
         if (!shard_inserts.empty()) {
-            *write_out = write_t(
-                batched_insert_t(
-                    std::move(shard_inserts), bi.pkey, bi.conflict_behavior,
-                    bi.return_vals),
-                durability_requirement,
-                profile);
+            *payload_out = batched_insert_t(std::move(shard_inserts), bi.pkey,
+                                            bi.conflict_behavior, bi.limits,
+                                            bi.return_vals);
             return true;
         } else {
             return false;
@@ -812,7 +817,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         if (!region_is_empty(intersection)) {
             T tmp = arg;
             tmp.region = intersection;
-            *write_out = write_t(tmp, durability_requirement, profile);
+            *payload_out = tmp;
             return true;
         } else {
             return false;
@@ -832,15 +837,16 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
     }
 
     const region_t *region;
-    durability_requirement_t durability_requirement;
-    profile_bool_t profile;
-    write_t *write_out;
+    write_t::variant_t *payload_out;
 };
 
 bool write_t::shard(const region_t &region,
                     write_t *write_out) const THROWS_NOTHING {
-    const rdb_w_shard_visitor_t v(&region, durability_requirement, profile, write_out);
-    return boost::apply_visitor(v, write);
+    write_t::variant_t payload;
+    const rdb_w_shard_visitor_t v(&region, &payload);
+    bool result = boost::apply_visitor(v, write);
+    *write_out = write_t(payload, durability_requirement, profile, limits);
+    return result;
 }
 
 template <class T>
@@ -853,12 +859,13 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
     // sharded into multiple operations instead of getting sent unsplit in a
     // single direction.
     void merge_stats() const {
-        counted_t<const ql::datum_t> stats(new ql::datum_t(ql::datum_t::R_OBJECT));
+        counted_t<const ql::datum_t> stats = ql::datum_t::empty_object();
+
         for (size_t i = 0; i < count; ++i) {
             const counted_t<const ql::datum_t> *stats_i =
                 boost::get<counted_t<const ql::datum_t> >(&responses[i].response);
             guarantee(stats_i != NULL);
-            stats = stats->merge(*stats_i, ql::stats_merge);
+            stats = stats->merge(*stats_i, ql::stats_merge, *limits);
         }
         *response_out = write_response_t(stats);
     }
@@ -886,8 +893,10 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
     }
 
     rdb_w_unshard_visitor_t(const write_response_t *_responses, size_t _count,
-                            write_response_t *_response_out)
-        : responses(_responses), count(_count), response_out(_response_out) { }
+                            write_response_t *_response_out,
+                            const ql::configured_limits_t *_limits)
+        : responses(_responses), count(_count), response_out(_response_out),
+          limits(_limits) { }
 
 private:
     void monokey_response() const {
@@ -902,12 +911,14 @@ private:
     const write_response_t *const responses;
     const size_t count;
     write_response_t *const response_out;
+    const ql::configured_limits_t *limits;
 };
 
 void write_t::unshard(write_response_t *responses, size_t count,
-                      write_response_t *response_out, rdb_context_t *, signal_t *)
+                      write_response_t *response_out, rdb_context_t *,
+                      signal_t *)
     const THROWS_NOTHING {
-    const rdb_w_unshard_visitor_t visitor(responses, count, response_out);
+    const rdb_w_unshard_visitor_t visitor(responses, count, response_out, &limits);
     boost::apply_visitor(visitor, write);
 
     /* We've got some profiling to do. */
@@ -939,7 +950,12 @@ RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sindex_list_response_t, sindexes);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sindex_status_response_t, statuses);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(changefeed_subscribe_response_t, server_uuids, addrs);
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(changefeed_stamp_response_t, stamps);
+
+RDB_MAKE_SERIALIZABLE_1(changefeed_stamp_response_t, stamps);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_response_t);
+RDB_IMPL_ME_SERIALIZABLE_2(changefeed_point_stamp_response_t, stamp, initial_val);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_point_stamp_response_t);
+
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
         read_response_t, response, event_log, n_shards);
 
@@ -947,11 +963,6 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_read_t, key);
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
         sindex_rangespec_t, id, region, original_range);
 
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(key_range_t::bound_t, int8_t,
-                                      key_range_t::open, key_range_t::none);
-RDB_IMPL_ME_SERIALIZABLE_4_SINCE_v1_13(
-        datum_range_t, empty_ok(left_bound), empty_ok(right_bound),
-        left_bound_type, right_bound_type);
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
@@ -965,9 +976,13 @@ RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
 RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(sindex_list_t);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(sindex_status_t, sindexes, region);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(changefeed_subscribe_t, addr, region);
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(changefeed_stamp_t, addr, region);
 
-RDB_MAKE_SERIALIZABLE_2(read_t, read, profile);
+RDB_MAKE_SERIALIZABLE_2(changefeed_stamp_t, addr, region);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_t);
+RDB_MAKE_SERIALIZABLE_2(changefeed_point_stamp_t, addr, key);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_point_stamp_t);
+
+RDB_IMPL_SERIALIZABLE_2(read_t, read, profile);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(read_t);
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_write_response_t, result);
@@ -982,8 +997,8 @@ RDB_IMPL_SERIALIZABLE_5_SINCE_v1_13(
         batched_replace_t, keys, pkey, f, optargs, return_vals);
 // Serialization format for this changed in 1.14.  We only support the
 // latest version, since this is a cluster-only type.
-RDB_IMPL_SERIALIZABLE_4(
-        batched_insert_t, inserts, pkey, conflict_behavior, return_vals);
+RDB_IMPL_SERIALIZABLE_5(
+        batched_insert_t, inserts, pkey, conflict_behavior, limits, return_vals);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(batched_insert_t);
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(point_write_t, key, data, overwrite);
@@ -992,8 +1007,11 @@ RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(sindex_create_t, id, mapping, region, multi)
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(sindex_drop_t, id, region);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sync_t, region);
 
-RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
-        write_t, write, durability_requirement, profile);
+// Serialization format changed in 1.14.0. We only support the latest version,
+// since this is a cluster-only type.
+RDB_IMPL_SERIALIZABLE_4(
+    write_t, write, durability_requirement, profile, limits);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(write_t);
 
 // Serialization format changed in 1.13.2. We only support the latest version,
 // since this is a cluster-only type.

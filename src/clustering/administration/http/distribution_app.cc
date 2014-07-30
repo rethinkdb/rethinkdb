@@ -13,7 +13,7 @@
 #define DEFAULT_LIMIT 128
 
 distribution_app_t::distribution_app_t(
-        boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<
+        boost::shared_ptr< semilattice_read_view_t< cow_ptr_t<
             namespaces_semilattice_metadata_t> > > _rdb_namespaces_sl_metadata,
         real_reql_cluster_interface_t *_reql_cluster_interface) :
     rdb_namespaces_sl_metadata(_rdb_namespaces_sl_metadata),

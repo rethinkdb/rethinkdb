@@ -23,24 +23,10 @@ table_view_t::table_view_t(scoped_ptr_t<base_table_t> &&_table,
       sorting(sorting_t::UNORDERED)
     { }
 
-counted_t<const datum_t> table_view_t::make_error_datum(
-        const base_exc_t &exception) {
-    datum_ptr_t d(datum_t::R_OBJECT);
-    std::string err = exception.what();
-
-    // The bool is true if there's a conflict when inserting the
-    // key, but since we just created an empty object above conflicts
-    // are impossible here.  If you want to harden this against future
-    // changes, you could store the bool and `r_sanity_check` that it's
-    // false.
-    DEBUG_VAR bool had_first_error
-        = d.add("first_error", make_counted<datum_t>(std::move(err)));
-    rassert(!had_first_error);
-
-    DEBUG_VAR bool had_errors = d.add("errors", make_counted<datum_t>(1.0));
-    rassert(!had_errors);
-
-    return d.to_counted();
+counted_t<const datum_t> table_view_t::make_error_datum(const base_exc_t &exception) {
+    datum_object_builder_t d;
+    d.add_error(exception.what());
+    return std::move(d).to_counted();
 }
 
 counted_t<const datum_t> table_view_t::batched_replace(
@@ -54,14 +40,14 @@ counted_t<const datum_t> table_view_t::batched_replace(
     r_sanity_check(vals.size() == keys.size());
 
     if (vals.empty()) {
-        return make_counted<const datum_t>(ql::datum_t::R_OBJECT);
+        return ql::datum_t::empty_object();
     } else if (vals.size() != 1) {
         r_sanity_check(!return_vals);
     }
 
     if (!replacement_generator->is_deterministic()) {
         r_sanity_check(nondeterministic_replacements_ok);
-        datum_ptr_t stats(datum_t::R_OBJECT);
+        datum_object_builder_t stats;
         std::vector<counted_t<const datum_t> > replacement_values;
         replacement_values.reserve(vals.size());
         for (size_t i = 0; i < vals.size(); ++i) {
@@ -78,7 +64,8 @@ counted_t<const datum_t> table_view_t::batched_replace(
         counted_t<const datum_t> insert_stats = batched_insert(
             env, std::move(replacement_values), conflict_behavior_t::REPLACE,
             durability_requirement, return_vals);
-        return stats.to_counted()->merge(insert_stats, stats_merge);
+        return std::move(stats).to_counted()->merge(insert_stats, stats_merge,
+                                                   env->limits);
     } else {
         return table->write_batched_replace(
             env, keys, replacement_generator, return_vals,
@@ -93,7 +80,7 @@ counted_t<const datum_t> table_view_t::batched_insert(
     durability_requirement_t durability_requirement,
     bool return_vals) {
 
-    datum_ptr_t stats(datum_t::R_OBJECT);
+    datum_object_builder_t stats;
     std::vector<counted_t<const datum_t> > valid_inserts;
     valid_inserts.reserve(insert_datums.size());
     for (auto it = insert_datums.begin(); it != insert_datums.end(); ++it) {
@@ -110,7 +97,7 @@ counted_t<const datum_t> table_view_t::batched_insert(
     }
 
     if (valid_inserts.empty()) {
-        return stats.to_counted();
+        return std::move(stats).to_counted();
     } else if (insert_datums.size() != 1) {
         r_sanity_check(!return_vals);
     }
@@ -119,7 +106,7 @@ counted_t<const datum_t> table_view_t::batched_insert(
         table->write_batched_insert(
             env, std::move(valid_inserts), conflict_behavior, return_vals,
             durability_requirement);
-    return stats.to_counted()->merge(insert_stats, stats_merge);
+    return std::move(stats).to_counted()->merge(insert_stats, stats_merge, env->limits);
 }
 
 MUST_USE bool table_view_t::sindex_create(env_t *env, const std::string &id,
@@ -140,7 +127,7 @@ counted_t<const datum_t> table_view_t::sindex_list(env_t *env) {
          it != sindexes.end(); ++it) {
         array.push_back(make_counted<datum_t>(std::string(*it)));
     }
-    return make_counted<datum_t>(std::move(array));
+    return make_counted<datum_t>(std::move(array), env->limits);
 }
 
 counted_t<const datum_t> table_view_t::sindex_status(env_t *env,
@@ -161,7 +148,7 @@ counted_t<const datum_t> table_view_t::sindex_status(env_t *env,
            strprintf("Index `%s` was not found on table `%s`.",
                      sindexes.begin()->c_str(),
                      display_name().c_str()));
-    return make_counted<const datum_t>(std::move(array));
+    return make_counted<const datum_t>(std::move(array), env->limits);
 }
 
 MUST_USE bool table_view_t::sync(env_t *env, const rcheckable_t *parent) {

@@ -355,3 +355,19 @@ persistable_blueprint_t suggest_blueprint(
     return blueprint;
 }
 
+void calculate_usage(
+        const persistable_blueprint_t &blueprint,
+        std::map<machine_id_t, int> *usage) {
+    for (auto it = blueprint.machines_roles.begin();
+              it != blueprint.machines_roles.end();
+            ++it) {
+        for (auto jt = it->second.begin(); jt != it->second.end(); ++jt) {
+            if (jt->second == blueprint_role_primary) {
+                (*usage)[it->first] += PRIMARY_USAGE_COST;
+            } else if (jt->second == blueprint_role_secondary) {
+                (*usage)[it->first] += SECONDARY_USAGE_COST;
+            }
+        }
+    }
+}
+

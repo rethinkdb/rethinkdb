@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef RDB_PROTOCOL_BTREE_HPP_
-#define RDB_PROTOCOL_BTREE_HPP_
+#ifndef RDB_PROTOCOL_REAL_TABLE_BTREE_HPP_
+#define RDB_PROTOCOL_REAL_TABLE_BTREE_HPP_
 
 #include <map>
 #include <set>
@@ -112,6 +112,7 @@ batched_replace_response_t rdb_batched_replace(
     const btree_info_t &info,
     scoped_ptr_t<superblock_t> *superblock,
     const std::vector<store_key_t> &keys,
+    const ql::configured_limits_t &limits,
     const btree_batched_replacer_t *replacer,
     rdb_modification_report_cb_t *sindex_cb,
     profile::trace_t *trace);
@@ -188,7 +189,7 @@ void rdb_rget_slice(
 
 void rdb_rget_secondary_slice(
     btree_slice_t *slice,
-    const datum_range_t &datum_range,
+    const ql::datum_range_t &datum_range,
     const region_t &sindex_region,
     superblock_t *superblock,
     ql::env_t *ql_env,
@@ -314,4 +315,4 @@ private:
 typedef rdb_noop_deletion_context_t rdb_post_construction_deletion_context_t;
 
 
-#endif /* RDB_PROTOCOL_BTREE_HPP_ */
+#endif /* RDB_PROTOCOL_REAL_TABLE_BTREE_HPP_ */

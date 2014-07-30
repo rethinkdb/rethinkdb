@@ -232,11 +232,11 @@ def parse_options():
 # This is called through rdb_call_wrapper so reattempts can be tried as long as progress
 # is being made, but connection errors occur.  We save a failed task in the progress object
 # so it can be resumed later on a new connection.
-def import_from_queue(progress, conn, task_queue, error_queue, use_upsert, durability):
+def import_from_queue(progress, conn, task_queue, error_queue, replace_conflicts, durability):
     if progress[0] is None:
         progress[0] = 0
         progress.append(None)
-    elif not use_upsert:
+    elif not replace_conflicts:
         # We were interrupted and it's not ok to overwrite rows, check that the batch either:
         # a) does not exist on the server
         # b) is exactly the same on the server
@@ -258,7 +258,8 @@ def import_from_queue(progress, conn, task_queue, error_queue, use_upsert, durab
         try:
             # Unpickle objects (TODO: super inefficient, would be nice if we could pass down json)
             objs = [cPickle.loads(obj) for obj in task[2]]
-            res = r.db(task[0]).table(task[1]).insert(objs, durability=durability, upsert=use_upsert).run(conn)
+            conflict_action = 'replace' if replace_conflicts else 'error'
+            res = r.db(task[0]).table(task[1]).insert(objs, durability=durability, conflict=conflict_action).run(conn)
         except:
             progress[1] = task
             raise
@@ -272,10 +273,10 @@ def import_from_queue(progress, conn, task_queue, error_queue, use_upsert, durab
     return progress[0]
 
 # This is run for each client requested, and accepts tasks from the reader processes
-def client_process(host, port, auth_key, task_queue, error_queue, rows_written, use_upsert, durability):
+def client_process(host, port, auth_key, task_queue, error_queue, rows_written, replace_conflicts, durability):
     try:
         conn_fn = lambda: r.connect(host, port, auth_key=auth_key)
-        res = rdb_call_wrapper(conn_fn, "import", import_from_queue, task_queue, error_queue, use_upsert, durability)
+        res = rdb_call_wrapper(conn_fn, "import", import_from_queue, task_queue, error_queue, replace_conflicts, durability)
         with rows_written.get_lock():
             rows_written.value += res
     except:
@@ -334,7 +335,8 @@ def read_json_single_object(json_data, file_in, callback):
                 raise
     return json_data
 
-def read_json_array(json_data, file_in, callback, progress_info):
+def read_json_array(json_data, file_in, callback, progress_info,
+                    json_array=True):
     decoder = json.JSONDecoder()
     file_offset = 0
     offset = 0
@@ -342,8 +344,8 @@ def read_json_array(json_data, file_in, callback, progress_info):
         try:
             offset = json.decoder.WHITESPACE.match(json_data, offset).end()
 
-            if json_data[offset] == "]": # End of JSON
-                break
+            if json_array and json_data[offset] == "]":
+                break  # End of JSON
 
             (obj, offset) = decoder.raw_decode(json_data, idx=offset)
             callback(obj)
@@ -353,17 +355,19 @@ def read_json_array(json_data, file_in, callback, progress_info):
             json_data = json_data[offset:]
             offset = json.decoder.WHITESPACE.match(json_data, 0).end()
 
-            if json_data[offset] == ",":
+            if json_array and json_data[offset] == ",":
                 # Read past the comma
                 offset = json.decoder.WHITESPACE.match(json_data, offset + 1).end()
-            elif json_data[offset] != "]":
+            elif json_array and json_data[offset] != "]":
                 raise ValueError("Error: JSON format not recognized - expected ',' or ']' after object")
 
         except (ValueError, IndexError):
             before_len = len(json_data)
             json_data += file_in.read(json_read_chunk_size)
-            if json_data[offset] == ",":
+            if json_array and json_data[offset] == ",":
                 offset = json.decoder.WHITESPACE.match(json_data, offset + 1).end()
+            elif (not json_array) and before_len == len(json_data):
+                break  # End of JSON
             elif before_len == len(json_data) or len(json_data) > json_max_buffer_size:
                 raise
             progress_info[0].value = file_offset
@@ -387,10 +391,11 @@ def json_reader(task_queue, filename, db, table, fields, progress_info, exit_eve
         progress_info[1].value = os.path.getsize(filename)
 
         offset = json.decoder.WHITESPACE.match(json_data, 0).end()
-        if json_data[offset] == "[":
-            json_data = read_json_array(json_data[offset + 1:], file_in, callback, progress_info)
-        elif json_data[offset] == "{":
-            json_data = read_json_single_object(json_data[offset:], file_in, callback)
+        if json_data[offset] in "[{":
+            json_data = read_json_array(
+                json_data[offset + (1 if json_data[offset] == "[" else 0):],
+                file_in, callback, progress_info,
+                json_data[offset] == "[")
         else:
             raise RuntimeError("Error: JSON format not recognized - file does not begin with an object or array")
 

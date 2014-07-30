@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 
-import yaml
-
 import atexit, collections, distutils.spawn, operator, optparse, os, re, shutil, signal, stat, subprocess, sys, types, tempfile, time
+
+try:
+    import yaml
+except ImportError:
+    sys.exit('%s requires that PyYAML be installed' % os.path.basename(__file__))
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, "common"))
 import test_exceptions, utils

@@ -15,13 +15,13 @@
 class distribution_app_t : public http_app_t {
 public:
     distribution_app_t(
-        boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<
+        boost::shared_ptr< semilattice_read_view_t< cow_ptr_t<
             namespaces_semilattice_metadata_t> > >,
         real_reql_cluster_interface_t *);
     void handle(const http_req_t &, http_res_t *result, signal_t *interruptor);
 
 private:
-    boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<
+    boost::shared_ptr< semilattice_read_view_t< cow_ptr_t<
         namespaces_semilattice_metadata_t> > > rdb_namespaces_sl_metadata;
     real_reql_cluster_interface_t *reql_cluster_interface;
 

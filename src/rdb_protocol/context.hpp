@@ -2,8 +2,10 @@
 #ifndef RDB_PROTOCOL_CONTEXT_HPP_
 #define RDB_PROTOCOL_CONTEXT_HPP_
 
+#include <map>
 #include <set>
 #include <string>
+#include <vector>
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
@@ -46,13 +48,18 @@ public:
         counted_t<const ql::datum_t> pval, bool use_outdated) = 0;
     virtual counted_t<ql::datum_stream_t> read_all(
         ql::env_t *env,
-        const std::string &get_all_sindex_id,
+        const std::string &sindex,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name,   /* the table's own name, for display purposes */
-        const datum_range_t &range,
+        const ql::datum_range_t &range,
         sorting_t sorting,
         bool use_outdated) = 0;
-    virtual counted_t<ql::datum_stream_t> read_changes(
+    virtual counted_t<ql::datum_stream_t> read_row_changes(
+        ql::env_t *env,
+        counted_t<const ql::datum_t> pval,
+        const ql::protob_t<const Backtrace> &bt,
+        const std::string &table_name) = 0;
+    virtual counted_t<ql::datum_stream_t> read_all_changes(
         ql::env_t *env,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name) = 0;

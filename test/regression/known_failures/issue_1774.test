@@ -38,7 +38,7 @@ class FillTable(utils.PerformContinuousAction):
 		tableName = os.path.splitext(os.path.basename(__file__))[0]
 		if 'tableName' in self.kwargs:
 			tableName = self.kwargs['tableName']
-		r.table(tableName).insert({'id':self.sucessCount + 1, 'data':self.sucessCount + 1}, durability='hard', upsert=False).run(self.connection)
+		r.table(tableName).insert({'id':self.sucessCount + 1, 'data':self.sucessCount + 1}, durability='hard', conflict='error').run(self.connection)
 
 class WaitForTable(utils.PerformContinuousAction):
     def runAction(self):

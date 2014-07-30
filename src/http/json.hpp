@@ -109,7 +109,7 @@ public:
     }
 
     /* Copy function. */
-    cJSON* DeepCopy() const {
+    cJSON *DeepCopy() const {
         cJSON *retval = cJSON_DeepCopy(val);
         guarantee(retval);
         return retval;

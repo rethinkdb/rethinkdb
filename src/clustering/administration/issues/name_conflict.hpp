@@ -10,6 +10,7 @@
 #include "clustering/administration/issues/json.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "http/json.hpp"
+#include "rpc/semilattice/view.hpp"
 
 template <class> class semilattice_read_view_t;
 

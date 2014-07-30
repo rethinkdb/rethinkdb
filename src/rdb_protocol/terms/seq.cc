@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
 #include <string>
@@ -8,6 +8,7 @@
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"
+#include "rdb_protocol/math_utils.hpp"
 
 namespace ql {
 
@@ -64,6 +65,13 @@ private:
                                        eval_flags_t) const {
         counted_t<val_t> v0 = args->arg(env, 0);
         if (args->num_args() == 1) {
+            if (v0->get_type().is_convertible(val_t::type_t::DATUM)) {
+                counted_t<const datum_t> d = v0->as_datum();
+                if (d->get_type() == datum_t::R_BINARY) {
+                    return new_val(make_counted<const datum_t>(
+                       safe_to_double(d->as_binary().size())));
+                }
+            }
             return v0->as_seq(env->env)
                 ->run_terminal(env->env, count_wire_func_t());
         } else {
@@ -215,10 +223,28 @@ public:
     changes_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_view_t> tbl = args->arg(env, 0)->as_table();
-        return new_val(env->env,
-            tbl->table->read_changes(env->env, backtrace(), tbl->display_name()));
+    virtual counted_t<val_t> eval_impl(
+        scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<val_t> v = args->arg(env, 0);
+        if (v->get_type().is_convertible(val_t::type_t::TABLE)) {
+            counted_t<table_view_t> tbl = v->as_table();
+            return new_val(env->env,
+                tbl->table->read_all_changes(
+                    env->env, backtrace(), tbl->display_name()));
+        } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
+            auto single_selection = v->as_single_selection();
+            counted_t<table_view_t> tbl = std::move(single_selection.first);
+            counted_t<const datum_t> val = std::move(single_selection.second);
+
+            counted_t<const datum_t> key = v->get_orig_key();
+            return new_val(env->env,
+                tbl->table->read_row_changes(
+                    env->env, key, backtrace(), tbl->display_name()));
+        }
+        std::pair<counted_t<table_view_t>, counted_t<datum_stream_t> > selection
+            = v->as_selection(env->env);
+        rfail(base_exc_t::GENERIC,
+              ".changes() not yet supported on range selections");
     }
     virtual const char *name() const { return "changes"; }
 };
@@ -244,9 +270,9 @@ private:
 
         if (lb.has() && rb.has()) {
             if (*lb > *rb || ((left_open || right_open) && *lb == *rb)) {
-                counted_t<const datum_t> arr = make_counted<datum_t>(datum_t::R_ARRAY);
-                counted_t<datum_stream_t> ds(
-                    new array_datum_stream_t(arr, backtrace()));
+                counted_t<datum_stream_t> ds
+                    =  make_counted<array_datum_stream_t>(datum_t::empty_array(),
+                                                          backtrace());
                 return new_val(ds, tbl);
             }
         }
@@ -256,8 +282,8 @@ private:
 
         tbl->add_bounds(
             datum_range_t(
-                lb, left_open ? key_range_t::open : key_range_t::closed,
-                rb, right_open ? key_range_t::open : key_range_t::closed),
+                lb, left_open ? datum_range_t::open : datum_range_t::closed,
+                rb, right_open ? datum_range_t::open : datum_range_t::closed),
             sid, this);
         return new_val(tbl);
     }

@@ -1,8 +1,13 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved
-#ifndef RDB_PROTOCOL_REAL_TABLE_LAZY_DATUM_STREAM_HPP_
-#define RDB_PROTOCOL_REAL_TABLE_LAZY_DATUM_STREAM_HPP_
+#ifndef RDB_PROTOCOL_REAL_TABLE_READ_DATUM_STREAM_HPP_
+#define RDB_PROTOCOL_REAL_TABLE_READ_DATUM_STREAM_HPP_
+
+#include <map>
+#include <string>
+#include <vector>
 
 #include "rdb_protocol/datum_stream.hpp"
+#include "rdb_protocol/real_table/convert_key.hpp"
 #include "rdb_protocol/real_table/protocol.hpp"
 #include "rdb_protocol/real_table/real_table.hpp"
 #include "rdb_protocol/wire_func.hpp"
@@ -15,7 +20,7 @@ public:
     explicit readgen_t(
         const std::map<std::string, ql::wire_func_t> &global_optargs,
         std::string table_name,
-        const datum_range_t &original_datum_range,
+        const ql::datum_range_t &original_datum_range,
         profile_bool_t profile,
         sorting_t sorting);
     virtual ~readgen_t() { }
@@ -50,7 +55,7 @@ public:
 protected:
     const std::map<std::string, ql::wire_func_t> global_optargs;
     const std::string table_name;
-    const datum_range_t original_datum_range;
+    const ql::datum_range_t original_datum_range;
     const profile_bool_t profile;
     const sorting_t sorting;
 
@@ -66,12 +71,12 @@ public:
     static scoped_ptr_t<readgen_t> make(
         ql::env_t *env,
         std::string table_name,
-        datum_range_t range = datum_range_t::universe(),
+        ql::datum_range_t range = ql::datum_range_t::universe(),
         sorting_t sorting = sorting_t::UNORDERED);
 private:
     primary_readgen_t(const std::map<std::string, ql::wire_func_t> &global_optargs,
                       std::string table_name,
-                      datum_range_t range,
+                      ql::datum_range_t range,
                       profile_bool_t profile,
                       sorting_t sorting);
     virtual rget_read_t next_read_impl(
@@ -94,14 +99,14 @@ public:
         ql::env_t *env,
         std::string table_name,
         const std::string &sindex,
-        datum_range_t range = datum_range_t::universe(),
+        ql::datum_range_t range = ql::datum_range_t::universe(),
         sorting_t sorting = sorting_t::UNORDERED);
 private:
     sindex_readgen_t(
         const std::map<std::string, ql::wire_func_t> &global_optargs,
         std::string table_name,
         const std::string &sindex,
-        datum_range_t sindex_range,
+        ql::datum_range_t sindex_range,
         profile_bool_t profile,
         sorting_t sorting);
     virtual rget_read_t next_read_impl(
@@ -185,5 +190,5 @@ private:
     table_reader_t reader;
 };
 
-#endif   /* RDB_PROTOCOL_REAL_TABLE_LAZY_DATUM_STREAM_HPP_ */
+#endif /* RDB_PROTOCOL_REAL_TABLE_READ_DATUM_STREAM_HPP_ */
 

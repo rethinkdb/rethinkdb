@@ -5,7 +5,7 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/generic/resource.hpp"
-#include "rpc/connectivity/connectivity.hpp"
+#include "rpc/connectivity/peer_id.hpp"
 #include "rpc/semilattice/view.hpp"
 
 template <class> class clone_ptr_t;

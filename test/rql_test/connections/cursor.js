@@ -73,92 +73,101 @@ r.connect({port:port}, function(err, c) {
     tbl.run(c, function(err, cur) {
         assertNoError(err);
 
-        // Closing the cursor won't immediately clean up the callback state since
-        // we need to leave a callback behind to deal with the STOP response.
-        cur.close();
-
-        tbl.run(c, function(err, cur) {
+        // Closing the cursor should work. The cursor should wait for the outstanding request
+        // to be completed, then call send a STOP_QUERY
+        cur.close(function(err) {
             assertNoError(err);
+            console.log("First cursor was closed");
 
-            // This is getting unruley but we want to make sure that array results
-            // support the connection api too
-            
-            var ar_to_send = []
-            var limit=10000; // Keep a "big" value to try hitting `maximum call stack exceed`
-            for(var i=0; i<limit; i++) {
-                ar_to_send.push(i);
-            }
-            r(ar_to_send).run(c, function(err, res) {
-                var i = 0;
-                res.each(function(err, res2) {
-                    if (err) throw err;
-                    assert(res2 === ar_to_send[i])
-                    i++;
-                    return true
-                })
-            })
+            tbl.run(c, function(err, cur) {
+                assertNoError(err);
 
-            // Test the toArray
-            limit = 3;
-            var ar_to_send2 = [0, 1, 2]
-            r(ar_to_send2).run(c, function(err, res) {
-                res.toArray(function(err, res2) {
-                    // Make sure we didn't create a copy here
-                    assert(res === res2);
+                // This is getting unruley but we want to make sure that array results
+                // support the connection api too
 
-                    // Test values
-                    for(var i=0; i<ar_to_send2.length; i++) {
-                        assert(ar_to_send2[i] === res2[i]);
-                    }
-                })
-                res.next( function(err, row) {
-                    assert(row === ar_to_send2[0])
-                    res.toArray(function(err, res2) {
-                        // Make sure we didn't create a copy here
-                        assert(res2.length === (ar_to_send2.length-1));
-
-                        // Test values
-                        for(var i=0; i<res2.length; i++) {
-                            assert(ar_to_send2[i+1] === res2[i]);
-                        }
+                var ar_to_send = []
+                var limit=10000; // Keep a "big" value to try hitting `maximum call stack exceed`
+                for(var i=0; i<limit; i++) {
+                    ar_to_send.push(i);
+                }
+                r(ar_to_send).run(c, function(err, res) {
+                    var i = 0;
+                    res.each(function(err, res2) {
+                        if (err) throw err;
+                        assert(res2 === ar_to_send[i])
+                        i++;
+                        return true
                     })
                 })
 
+                // Test the toArray
+                limit = 3;
+                var ar_to_send2 = [0, 1, 2]
+                r(ar_to_send2).run(c, function(err, res) {
+                    res.toArray(function(err, res2) {
+                        // Make sure we didn't create a copy here
+                        assert(res === res2);
 
-            })
+                        // Test values
+                        for(var i=0; i<ar_to_send2.length; i++) {
+                            assert(ar_to_send2[i] === res2[i]);
+                        }
+                    })
+                    res.next( function(err, row) {
+                        assert(row === ar_to_send2[0])
+                        res.toArray(function(err, res2) {
+                            // Make sure we didn't create a copy here
+                            assert(res2.length === (ar_to_send2.length-1));
 
-            // Test that we really have an array and can play with it
-            limit = 3;
-            var ar_to_send3 = [0, 1, 2]
-            r(ar_to_send3).run(c, function(err, res) {
-                assertNoError(err);
+                            // Test values
+                            for(var i=0; i<res2.length; i++) {
+                                assert(ar_to_send2[i+1] === res2[i]);
+                            }
+                        })
+                    })
 
-                // yes, res is an array that supports array ops
-                res.push(limit, limit+1);
-                assert(res[limit] === limit);
-                assert(res[limit+1] === limit+1);
-                assert(res.length == (limit+2));
-            });
 
-            // These simply test that we appropriately check arg numbers for
-            // cursor api methods
-            assertArgError(1, 0, function() { cur.each(); });
-            assertArgError(0, 1, function() { cur.close(1); });
-            assertArgError(0, 1, function() { cur.toString(1); });
+                })
 
-            var i = 0;
-            cur.each(function(err, row) {
-                if (err) throw err;
-                assertNoError(err);
-                i++;
-            }, function() {
-                if (i === num_rows) {
-                    console.log("Test passed!");
-                } else {
-                    console.log("Test failed: expected "+num_rows+" rows but found "+i+".");
-                    process.exit(1)
-                }
-                c.close();
+                // Test that we really have an array and can play with it
+                limit = 3;
+                var ar_to_send3 = [0, 1, 2]
+                r(ar_to_send3).run(c, function(err, res) {
+                    assertNoError(err);
+
+                    // yes, res is an array that supports array ops
+                    res.push(limit, limit+1);
+                    assert(res[limit] === limit);
+                    assert(res[limit+1] === limit+1);
+                    assert(res.length == (limit+2));
+                });
+
+                // These simply test that we appropriately check arg numbers for
+                // cursor api methods
+                assertArgError(1, 0, function() { cur.each(); });
+                assertArgError(0, 1, function() { cur.toString(1); });
+
+                var i = 0;
+                cur.each(function(err, row) {
+                    if (err) throw err;
+                    assertNoError(err);
+                    i++;
+                }, function() {
+                    if (i === num_rows) {
+                        console.log("Test passed!");
+                    } else {
+                        console.log("Test failed: expected "+num_rows+" rows but found "+i+".");
+                        process.exit(1)
+                    }
+
+                    // Test that `cursor.close()` also returns a promise
+                    tbl.run(c, function(err, cur) {
+                        assertNoError(err);
+                        cur.close().then(function() {
+                            c.close();
+                        })
+                    })
+                });
             });
         });
     });
