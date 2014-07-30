@@ -128,16 +128,14 @@ bool do_serve(io_backender_t *io_backender,
                 directory_read_manager.get_root_view(),
                 metadata_field(
                     &cluster_semilattice_metadata_t::machines,
-                    semilattice_manager_cluster.get_root_view())
-                ));
+                    semilattice_manager_cluster.get_root_view())));
         }
 
         server_name_client_t server_name_client(&mailbox_manager,
             directory_read_manager.get_root_view(),
             metadata_field(
                 &cluster_semilattice_metadata_t::machines,
-                semilattice_manager_cluster.get_root_view())
-            );
+                semilattice_manager_cluster.get_root_view()));
 
         // Initialize the stat manager before the directory manager so that we
         // could initialize the cluster directory metadata with the proper

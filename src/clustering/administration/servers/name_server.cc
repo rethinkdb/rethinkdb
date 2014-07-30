@@ -2,8 +2,8 @@
 #include "clustering/administration/servers/name_server.hpp"
 
 /* `server_priority_less()` decides which of two servers should get priority in a name
-collision. It returns `true` if the priority of the first server is less than or equal to
-the priority of the second server. */
+collision. It returns `true` if the priority of the first server is less than the
+priority of the second server. */
 static bool server_priority_less(
         const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> &directory,
         machine_id_t machine1, machine_id_t machine2)
@@ -36,15 +36,17 @@ static name_string_t make_renamed_name(const name_string_t &name) {
 
     /* Parse the previous name. In particular, determine if it already has a suffix and
     what the number associated with that suffix is. */
-    unsigned int num_end_digits = 0;
+    size_t num_end_digits = 0;
     while (num_end_digits < str.length() &&
            str[str.length()-1-num_end_digits] > '0' &&
            str[str.length()-1-num_end_digits] < '9') {
         num_end_digits++;
     }
-    int suffix_start = str.length() - num_end_digits - suffix.length();
-    bool has_suffix = suffix_start >= 0 &&
-        (str.compare(suffix_start, suffix.length(), suffix) == 0);
+    bool has_suffix =
+        (str.length() >= num_end_digits + suffix.length()) &&
+        (str.compare((str.length() - num_end_digits - suffix.length()), 
+                     suffix.length(),
+                     suffix) == 0);
     uint64_t end_digits_value = 0;   /* Note: the initial value will never be used */
     if (has_suffix) {
         if (num_end_digits > 0) {
@@ -52,6 +54,7 @@ static name_string_t make_renamed_name(const name_string_t &name) {
                 10, &end_digits_value);
             guarantee(ok, "A string made of digits should parse as an integer");
         } else {
+            /* Make sure that after `_renamed` the next one is `_renamed2` */
             end_digits_value = 1;
         }
     }
@@ -93,7 +96,7 @@ server_name_server_t::server_name_server_t(
         make changes to the semilattices. */
         auto_drainer_t::lock_t keepalive(&drainer);
         coro_t::spawn_sometime([this, keepalive /* important to capture */]() {
-            on_semilattice_change();
+            this->on_semilattice_change();
             });
         })
 {

@@ -12,7 +12,7 @@ set on the command line when RethinkDB is first started, and they can be changed
 runtime. They are stored in the semilattices and persisted across restarts.
 
 A server's name entry in the semilattices should only be modified by that server itself,
-although other servers may delete the entry if the server is being permanenlty removed;
+although other servers may delete the entry if the server is being permanently removed;
 so all rename requests must be first sent to the `server_name_server_t` for the server
 being renamed.
 

@@ -16,7 +16,7 @@ server_name_client_t::server_name_client_t(
     directory_subs([this]() { this->recompute_name_map(); }),
     semilattice_subs([this]() { this->recompute_name_map(); })
 {
-    watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> >
+    watchable_t< change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> >
         ::freeze_t freeze(directory_view);
     directory_subs.reset(directory_view, &freeze);
     semilattice_subs.reset(semilattice_view);
@@ -41,7 +41,7 @@ bool server_name_client_t::rename_server(const name_string_t &old_name,
               it != sl_metadata.machines.end();
             ++it) {
         if (!it->second.is_deleted()) {
-            name_string_t it_name = it->second.get_ref().name.get_ref();
+            const name_string_t &it_name = it->second.get_ref().name.get_ref();
             if (it_name == old_name) old_name_in_sl = true;
             if (it_name == new_name) new_name_in_sl = true;
         }
@@ -91,8 +91,7 @@ bool server_name_client_t::rename_server(const name_string_t &old_name,
     cond_t got_reply;
     mailbox_t<void()> ack_mailbox(
         mailbox_manager,
-        [&]() { got_reply.pulse(); }
-        );
+        [&]() { got_reply.pulse(); });
     disconnect_watcher_t disconnect_watcher(mailbox_manager, rename_addr.get_peer());
     send(mailbox_manager, rename_addr, new_name, ack_mailbox.get_address());
     wait_any_t waiter(&got_reply, &disconnect_watcher);
