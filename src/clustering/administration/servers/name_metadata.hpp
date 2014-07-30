@@ -8,10 +8,10 @@
 class server_name_business_card_t {
 public:
     /* The address to send name-change orders. */
-    typedef mailbox_t<void(
+    typedef mailbox_t< void(
             name_string_t,
             mailbox_t<void()>::address_t
-        )> rename_mailbox_t;
+        ) > rename_mailbox_t;
     rename_mailbox_t::address_t rename_addr;
 
     /* The time when the server started up. Used for resolving name collisions; the

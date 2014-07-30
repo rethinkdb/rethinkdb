@@ -2,6 +2,9 @@
 #ifndef CLUSTERING_ADMINISTRATION_SERVERS_NAME_CLIENT_HPP_
 #define CLUSTERING_ADMINISTRATION_SERVERS_NAME_CLIENT_HPP_
 
+#include <map>
+#include <string>
+
 #include "containers/incremental_lenses.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/name_metadata.hpp"
@@ -40,15 +43,15 @@ private:
     void recompute_name_map();
 
     mailbox_manager_t *mailbox_manager;
-    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
+    clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
         cluster_directory_metadata_t> > > directory_view;
-    boost::shared_ptr<semilattice_readwrite_view_t<machines_semilattice_metadata_t> >
+    boost::shared_ptr< semilattice_readwrite_view_t<machines_semilattice_metadata_t> >
         semilattice_view;
 
-    watchable_variable_t<std::map<name_string_t, peer_id_t> > name_map;
+    watchable_variable_t< std::map<name_string_t, peer_id_t> > name_map;
 
-    watchable_t<change_tracking_map_t<peer_id_t,
-        cluster_directory_metadata_t>>::subscription_t directory_subs;
+    watchable_t< change_tracking_map_t<peer_id_t,
+        cluster_directory_metadata_t> >::subscription_t directory_subs;
     semilattice_readwrite_view_t<machines_semilattice_metadata_t>::subscription_t
         semilattice_subs;
 };

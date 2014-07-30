@@ -91,7 +91,7 @@ bool server_name_client_t::rename_server(const name_string_t &old_name,
     cond_t got_reply;
     mailbox_t<void()> ack_mailbox(
         mailbox_manager,
-        [&]() { got_reply.pulse(); });
+        [&]() { got_reply.pulse(); }); // NOLINT whitespace/newline
     disconnect_watcher_t disconnect_watcher(mailbox_manager, rename_addr.get_peer());
     send(mailbox_manager, rename_addr, new_name, ack_mailbox.get_address());
     wait_any_t waiter(&got_reply, &disconnect_watcher);
