@@ -109,8 +109,9 @@ counted_t<const datum_t> table_t::batched_insert(
     return std::move(stats).to_counted()->merge(insert_stats, stats_merge, env->limits);
 }
 
-MUST_USE bool table_t::sindex_create(env_t *env, const std::string &id,
-        counted_t<func_t> index_func, bool multi) {
+MUST_USE bool table_t::sindex_create(
+        env_t *env, const std::string &id,
+        counted_t<func_t> index_func, sindex_multi_bool_t multi) {
     index_func->assert_deterministic("Index functions must be deterministic.");
     return table->sindex_create(env, id, index_func, multi);
 }

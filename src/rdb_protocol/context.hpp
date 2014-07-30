@@ -27,6 +27,8 @@ class name_string_t;
 class namespace_interface_t;
 template <class> class semilattice_readwrite_view_t;
 
+enum class sindex_multi_bool_t { SINGLE = 0, MULTI = 1};
+
 namespace ql {
 
 class db_t : public single_threaded_countable_t<db_t> {
@@ -72,11 +74,11 @@ public:
         std::vector<counted_t<const ql::datum_t> > &&inserts,
         conflict_behavior_t conflict_behavior, bool return_vals,
         durability_requirement_t durability) = 0;
-    virtual bool write_sync_depending_on_durability(ql::env_t *env, 
+    virtual bool write_sync_depending_on_durability(ql::env_t *env,
         durability_requirement_t durability) = 0;
 
     virtual bool sindex_create(ql::env_t *env, const std::string &id,
-        counted_t<ql::func_t> index_func, bool multi) = 0;
+        counted_t<ql::func_t> index_func, sindex_multi_bool_t multi) = 0;
     virtual bool sindex_drop(ql::env_t *env, const std::string &id) = 0;
     virtual std::vector<std::string> sindex_list(ql::env_t *env) = 0;
     virtual std::map<std::string, counted_t<const ql::datum_t> > sindex_status(
@@ -91,7 +93,7 @@ public:
     /* All of these methods return `true` on success and `false` on failure; if they
     fail, they will set `*error_out` to a description of the problem. They can all throw
     `interrupted_exc_t`.
-    
+
     These methods are safe to call from any thread, and the calls can overlap
     concurrently in arbitrary ways. By the time a method returns, any changes it makes
     must be visible on every thread. */

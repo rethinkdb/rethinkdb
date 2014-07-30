@@ -93,7 +93,7 @@ public:
         durability_requirement_t durability);
 
     bool sindex_create(ql::env_t *env, const std::string &id,
-        counted_t<ql::func_t> index_func, bool multi);
+        counted_t<ql::func_t> index_func, sindex_multi_bool_t multi);
     bool sindex_drop(ql::env_t *env, const std::string &id);
     std::vector<std::string> sindex_list(ql::env_t *env);
     std::map<std::string, counted_t<const ql::datum_t> > sindex_status(ql::env_t *env,

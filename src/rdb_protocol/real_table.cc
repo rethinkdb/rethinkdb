@@ -159,13 +159,9 @@ bool real_table_t::write_sync_depending_on_durability(ql::env_t *env,
 }
 
 bool real_table_t::sindex_create(ql::env_t *env, const std::string &id,
-        counted_t<ql::func_t> index_func, bool multi) {
+        counted_t<ql::func_t> index_func, sindex_multi_bool_t multi) {
     ql::map_wire_func_t wire_func(index_func);
-    sindex_multi_bool_t multi2 =
-        multi
-        ? sindex_multi_bool_t::MULTI
-        : sindex_multi_bool_t::SINGLE;
-    write_t write(sindex_create_t(id, wire_func, multi2), env->profile(), env->limits);
+    write_t write(sindex_create_t(id, wire_func, multi), env->profile(), env->limits);
     write_response_t res;
     write_with_profile(env, &write, &res);
     sindex_create_response_t *response =

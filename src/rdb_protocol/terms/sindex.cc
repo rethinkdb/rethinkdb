@@ -46,9 +46,13 @@ public:
 
         /* Check if we're doing a multi index or a normal index. */
         counted_t<val_t> multi_val = args->optarg(env, "multi");
-        bool multi = multi_val && multi_val->as_datum()->as_bool();
+        sindex_multi_bool_t multi =
+            (multi_val && multi_val->as_datum()->as_bool()
+             ? sindex_multi_bool_t::MULTI
+             : sindex_multi_bool_t::SINGLE);
 
         bool success = table->sindex_create(env->env, name, index_func, multi);
+
         if (success) {
             datum_object_builder_t res;
             UNUSED bool b = res.add("created", make_counted<datum_t>(1.0));
