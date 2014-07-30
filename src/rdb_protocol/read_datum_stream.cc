@@ -210,7 +210,7 @@ bool reader_t::is_finished() const {
 readgen_t::readgen_t(
     const std::map<std::string, ql::wire_func_t> &_global_optargs,
     std::string _table_name,
-    const ql::datum_range_t &_original_datum_range,
+    const datum_range_t &_original_datum_range,
     profile_bool_t _profile,
     sorting_t _sorting)
     : global_optargs(_global_optargs),
@@ -265,7 +265,7 @@ read_t readgen_t::terminal_read(
 primary_readgen_t::primary_readgen_t(
     const std::map<std::string, ql::wire_func_t> &global_optargs,
     std::string table_name,
-    ql::datum_range_t range,
+    datum_range_t range,
     profile_bool_t profile,
     sorting_t sorting)
     : readgen_t(global_optargs, std::move(table_name), range, profile, sorting) { }
@@ -273,7 +273,7 @@ primary_readgen_t::primary_readgen_t(
 scoped_ptr_t<readgen_t> primary_readgen_t::make(
     ql::env_t *env,
     std::string table_name,
-    ql::datum_range_t range,
+    datum_range_t range,
     sorting_t sorting) {
     return scoped_ptr_t<readgen_t>(
         new primary_readgen_t(
@@ -323,7 +323,7 @@ sindex_readgen_t::sindex_readgen_t(
     const std::map<std::string, ql::wire_func_t> &global_optargs,
     std::string table_name,
     const std::string &_sindex,
-    ql::datum_range_t range,
+    datum_range_t range,
     profile_bool_t profile,
     sorting_t sorting)
     : readgen_t(global_optargs, std::move(table_name), range, profile, sorting),
@@ -333,7 +333,7 @@ scoped_ptr_t<readgen_t> sindex_readgen_t::make(
     ql::env_t *env,
     std::string table_name,
     const std::string &sindex,
-    ql::datum_range_t range,
+    datum_range_t range,
     sorting_t sorting) {
     return scoped_ptr_t<readgen_t>(
         new sindex_readgen_t(

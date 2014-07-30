@@ -189,7 +189,7 @@ void rdb_rget_slice(
 
 void rdb_rget_secondary_slice(
     btree_slice_t *slice,
-    const ql::datum_range_t &datum_range,
+    const datum_range_t &datum_range,
     const region_t &sindex_region,
     superblock_t *superblock,
     ql::env_t *ql_env,

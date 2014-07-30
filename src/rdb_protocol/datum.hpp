@@ -382,36 +382,6 @@ public:
 };
 } // namespace pseudo
 
-class datum_range_t {
-public:
-    enum bound_t {
-        open,
-        closed,
-        /* TODO: I don't think we actually use `none` anywhere */
-        none
-    };
-
-    datum_range_t();
-    datum_range_t(
-        counted_t<const datum_t> left_bound,
-        bound_t left_bound_type,
-        counted_t<const datum_t> right_bound,
-        bound_t right_bound_type);
-    // Range that includes just one value.
-    explicit datum_range_t(counted_t<const ql::datum_t> val);
-    static datum_range_t universe();
-
-    bool contains(counted_t<const ql::datum_t> val) const;
-    bool is_universe() const;
-
-    counted_t<const datum_t> left_bound, right_bound;
-    bound_t left_bound_type, right_bound_type;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
-};
-
-RDB_SERIALIZE_OUTSIDE(datum_range_t);
-
 } // namespace ql
 
 #endif // RDB_PROTOCOL_DATUM_HPP_

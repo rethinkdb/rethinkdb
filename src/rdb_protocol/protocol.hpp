@@ -62,6 +62,36 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         point_delete_result_t, int8_t,
         point_delete_result_t::DELETED, point_delete_result_t::MISSING);
 
+class datum_range_t {
+public:
+    enum bound_t {
+        open,
+        closed,
+        /* TODO: I don't think we actually use `none` anywhere */
+        none
+    };
+
+    datum_range_t();
+    datum_range_t(
+            counted_t<const ql::datum_t> left_bound,
+            bound_t left_bound_type,
+            counted_t<const ql::datum_t> right_bound,
+            bound_t right_bound_type);
+    // Range that includes just one value.
+    explicit datum_range_t(counted_t<const ql::datum_t> val);
+    static datum_range_t universe();
+
+    bool contains(counted_t<const ql::datum_t> val) const;
+    bool is_universe() const;
+
+    counted_t<const ql::datum_t> left_bound, right_bound;
+    bound_t left_bound_type, right_bound_type;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+RDB_SERIALIZE_OUTSIDE(datum_range_t);
+
 struct backfill_atom_t {
     store_key_t key;
     counted_t<const ql::datum_t> value;
@@ -227,11 +257,11 @@ struct sindex_rangespec_t {
                        // sometimes smaller than the datum range below when
                        // dealing with truncated keys.
                        const region_t &_region,
-                       const ql::datum_range_t _original_range)
+                       const datum_range_t _original_range)
         : id(_id), region(_region), original_range(_original_range) { }
     std::string id; // What sindex we're using.
     region_t region; // What keyspace we're currently operating on.
-    ql::datum_range_t original_range; // For dealing with truncation.
+    datum_range_t original_range; // For dealing with truncation.
 };
 
 RDB_DECLARE_SERIALIZABLE(sindex_rangespec_t);

@@ -10,6 +10,7 @@
 #include "containers/counted.hpp"
 #include "containers/wire_string.hpp"
 #include "rdb_protocol/datum_stream.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/ql2.pb.h"
 
 namespace ql {

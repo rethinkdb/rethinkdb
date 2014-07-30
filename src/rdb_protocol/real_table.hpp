@@ -9,6 +9,7 @@
 
 #include "rdb_protocol/context.hpp"
 
+class datum_range_t;
 namespace ql { namespace changefeed {
 class client_t;
 } }
@@ -68,7 +69,7 @@ public:
         const std::string &sindex,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name,   /* the table's own name, for display purposes */
-        const ql::datum_range_t &range,
+        const datum_range_t &range,
         sorting_t sorting,
         bool use_outdated);
     counted_t<ql::datum_stream_t> read_row_changes(

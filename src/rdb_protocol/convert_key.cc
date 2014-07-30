@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/convert_key.hpp"
 
+#include "rdb_protocol/protocol.hpp"
+
 namespace rdb_protocol {
 
 key_range_t sindex_key_range(const store_key_t &start,
@@ -25,16 +27,16 @@ key_range_t sindex_key_range(const store_key_t &start,
 
 }   // namespace rdb_protocol
 
-static key_range_t::bound_t convert_bound_type(ql::datum_range_t::bound_t b) {
+static key_range_t::bound_t convert_bound_type(datum_range_t::bound_t b) {
     switch (b) {
-        case ql::datum_range_t::open: return key_range_t::open;
-        case ql::datum_range_t::closed: return key_range_t::closed;
-        case ql::datum_range_t::none: return key_range_t::none;
+        case datum_range_t::open: return key_range_t::open;
+        case datum_range_t::closed: return key_range_t::closed;
+        case datum_range_t::none: return key_range_t::none;
         default: unreachable();
     }
 }
 
-key_range_t datum_range_to_primary_keyrange(const ql::datum_range_t &range) {
+key_range_t datum_range_to_primary_keyrange(const datum_range_t &range) {
     return key_range_t(
         convert_bound_type(range.left_bound_type),
         range.left_bound.has()
@@ -46,7 +48,7 @@ key_range_t datum_range_to_primary_keyrange(const ql::datum_range_t &range) {
             : store_key_t::max());
 }
 
-key_range_t datum_range_to_sindex_keyrange(const ql::datum_range_t &range) {
+key_range_t datum_range_to_sindex_keyrange(const datum_range_t &range) {
     return rdb_protocol::sindex_key_range(
         range.left_bound.has()
             ? store_key_t(range.left_bound->truncated_secondary())
