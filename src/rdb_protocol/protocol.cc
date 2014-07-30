@@ -9,11 +9,11 @@
 #include "containers/archive/boost_types.hpp"
 #include "containers/cow_ptr.hpp"
 #include "containers/disk_backed_queue.hpp"
+#include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/ql2.pb.h"
-#include "rdb_protocol/btree.hpp"
-#include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/store.hpp"
 
 #include "debug.hpp"
@@ -52,8 +52,8 @@ RDB_IMPL_PROTOB_SERIALIZABLE(Backtrace);
 datum_range_t::datum_range_t()
     : left_bound_type(key_range_t::none), right_bound_type(key_range_t::none) { }
 datum_range_t::datum_range_t(
-        counted_t<const ql::datum_t> _left_bound, key_range_t::bound_t _left_bound_type,
-        counted_t<const ql::datum_t> _right_bound, key_range_t::bound_t _right_bound_type)
+    counted_t<const ql::datum_t> _left_bound, key_range_t::bound_t _left_bound_type,
+    counted_t<const ql::datum_t> _right_bound, key_range_t::bound_t _right_bound_type)
     : left_bound(_left_bound), right_bound(_right_bound),
       left_bound_type(_left_bound_type), right_bound_type(_right_bound_type) { }
 datum_range_t::datum_range_t(counted_t<const ql::datum_t> val)
@@ -313,6 +313,26 @@ namespace rdb_protocol {
 region_t monokey_region(const store_key_t &k) {
     uint64_t h = hash_region_hasher(k.contents(), k.size());
     return region_t(h, h + 1, key_range_t(key_range_t::closed, k, key_range_t::closed, k));
+}
+
+key_range_t sindex_key_range(const store_key_t &start,
+                             const store_key_t &end) {
+    store_key_t end_key;
+    std::string end_key_str(key_to_unescaped_str(end));
+
+    // Need to make the next largest store_key_t without making the key longer
+    while (end_key_str.length() > 0 &&
+           end_key_str[end_key_str.length() - 1] == static_cast<char>(255)) {
+        end_key_str.erase(end_key_str.length() - 1);
+    }
+
+    if (end_key_str.length() == 0) {
+        end_key = store_key_t::max();
+    } else {
+        ++end_key_str[end_key_str.length() - 1];
+        end_key = store_key_t(end_key_str);
+    }
+    return key_range_t(key_range_t::closed, start, key_range_t::open, end_key);
 }
 
 region_t cpu_sharding_subspace(int subregion_number,

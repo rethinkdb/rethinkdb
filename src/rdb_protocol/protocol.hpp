@@ -736,8 +736,14 @@ class store_t;
 
 namespace rdb_protocol {
 
+const size_t MAX_PRIMARY_KEY_SIZE = 128;
+
 // Construct a region containing only the specified key
 region_t monokey_region(const store_key_t &k);
+
+// Constructs a region which will query an sindex for matches to a specific key
+key_range_t sindex_key_range(const store_key_t &start,
+                             const store_key_t &end);
 
 region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
 }  // namespace rdb_protocol
