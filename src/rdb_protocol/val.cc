@@ -300,26 +300,26 @@ val_t::val_t(const counted_t<grouped_data_t> &groups,
 }
 
 val_t::val_t(counted_t<const datum_t> _datum,
-             counted_t<table_t> _table_view,
+             counted_t<table_t> _table,
              protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::SINGLE_SELECTION),
-      table_view(_table_view),
+      table(_table),
       u(_datum) {
-    guarantee(table_view.has());
+    guarantee(table.has());
     guarantee(datum().has());
 }
 
 val_t::val_t(counted_t<const datum_t> _datum,
              counted_t<const datum_t> _orig_key,
-             counted_t<table_t> _table_view,
+             counted_t<table_t> _table,
              protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::SINGLE_SELECTION),
-      table_view(_table_view),
+      table(_table),
       orig_key(_orig_key),
       u(_datum) {
-    guarantee(table_view.has());
+    guarantee(table.has());
     guarantee(datum().has());
 }
 
@@ -337,23 +337,23 @@ val_t::val_t(env_t *env, counted_t<datum_stream_t> _sequence,
     }
 }
 
-val_t::val_t(counted_t<table_t> _table_view,
+val_t::val_t(counted_t<table_t> _table,
              counted_t<datum_stream_t> _sequence,
              protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::SELECTION),
-      table_view(_table_view),
+      table(_table),
       u(_sequence) {
-    guarantee(table_view.has());
+    guarantee(table.has());
     guarantee(sequence().has());
 }
 
-val_t::val_t(counted_t<table_t> _table_view,
+val_t::val_t(counted_t<table_t> _table,
              protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::TABLE),
-      table_view(_table_view) {
-    guarantee(table_view.has());
+      table(_table) {
+    guarantee(table.has());
 }
 val_t::val_t(counted_t<const db_t> _db, protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
@@ -382,14 +382,14 @@ counted_t<const datum_t> val_t::as_datum() const {
 
 counted_t<table_t> val_t::as_table() {
     rcheck_literal_type(type_t::TABLE);
-    return table_view;
+    return table;
 }
 
 counted_t<datum_stream_t> val_t::as_seq(env_t *env) {
     if (type.raw_type == type_t::SEQUENCE || type.raw_type == type_t::SELECTION) {
         return sequence();
     } else if (type.raw_type == type_t::TABLE) {
-        return table_view->as_datum_stream(env, backtrace());
+        return table->as_datum_stream(env, backtrace());
     } else if (type.raw_type == type_t::DATUM) {
         return datum()->as_datum_stream(backtrace());
     }
@@ -425,13 +425,13 @@ val_t::as_selection(env_t *env) {
     if (type.raw_type != type_t::TABLE && type.raw_type != type_t::SELECTION) {
         rcheck_literal_type(type_t::SELECTION);
     }
-    return std::make_pair(table_view, as_seq(env));
+    return std::make_pair(table, as_seq(env));
 }
 
 std::pair<counted_t<table_t>, counted_t<const datum_t> >
         val_t::as_single_selection() {
     rcheck_literal_type(type_t::SINGLE_SELECTION);
-    return std::make_pair(table_view, datum());
+    return std::make_pair(table, datum());
 }
 
 counted_t<func_t> val_t::as_func(function_shortcut_t shortcut) {
@@ -535,10 +535,10 @@ std::string val_t::print() const {
     } else if (get_type().is_convertible(type_t::DB)) {
         return strprintf("db(\"%s\")", as_db()->name.c_str());
     } else if (get_type().is_convertible(type_t::TABLE)) {
-        return strprintf("table(\"%s\")", table_view->name.c_str());
+        return strprintf("table(\"%s\")", table->name.c_str());
     } else if (get_type().is_convertible(type_t::SELECTION)) {
         return strprintf("OPAQUE SELECTION ON table(%s)",
-                         table_view->name.c_str());
+                         table->name.c_str());
     } else {
         // TODO: Do something smarter here?
         return strprintf("OPAQUE VALUE %s", get_type().name());

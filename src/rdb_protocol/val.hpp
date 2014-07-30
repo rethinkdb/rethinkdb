@@ -212,7 +212,7 @@ private:
     void rcheck_literal_type(type_t::raw_type_t expected_raw_type) const;
 
     type_t type;
-    counted_t<table_t> table_view;
+    counted_t<table_t> table;
     counted_t<const datum_t> orig_key;
 
     // We pretend that this variant is a union -- as if it doesn't have type
