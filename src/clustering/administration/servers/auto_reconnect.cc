@@ -1,5 +1,5 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "clustering/administration/auto_reconnect.hpp"
+#include "clustering/administration/servers/auto_reconnect.hpp"
 
 #include "errors.hpp"
 #include <boost/bind.hpp>

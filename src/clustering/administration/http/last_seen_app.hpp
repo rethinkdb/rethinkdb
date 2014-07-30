@@ -2,7 +2,7 @@
 #ifndef CLUSTERING_ADMINISTRATION_HTTP_LAST_SEEN_APP_HPP_
 #define CLUSTERING_ADMINISTRATION_HTTP_LAST_SEEN_APP_HPP_
 
-#include "clustering/administration/last_seen_tracker.hpp"
+#include "clustering/administration/servers/last_seen_tracker.hpp"
 #include "http/http.hpp"
 #include "http/json/cJSON.hpp"
 

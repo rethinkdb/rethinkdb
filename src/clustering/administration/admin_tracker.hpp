@@ -17,7 +17,7 @@
 #include "clustering/administration/issues/name_conflict.hpp"
 #include "clustering/administration/issues/unsatisfiable_goals.hpp"
 #include "clustering/administration/issues/vector_clock_conflict.hpp"
-#include "clustering/administration/last_seen_tracker.hpp"
+#include "clustering/administration/servers/last_seen_tracker.hpp"
 #include "clustering/administration/metadata.hpp"
 
 template <class> class watchable_t;

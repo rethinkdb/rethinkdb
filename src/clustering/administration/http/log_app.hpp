@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "clustering/administration/log_transfer.hpp"
-#include "clustering/administration/machine_metadata.hpp"
+#include "clustering/administration/servers/machine_metadata.hpp"
 #include "http/http.hpp"
 
 class log_http_app_t : public http_app_t {

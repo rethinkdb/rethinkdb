@@ -435,25 +435,27 @@ message Term {
 
         // * Administrative OPs
         // Creates a database with a particular name.
-        DB_CREATE    = 57; // STRING -> OBJECT
+        DB_CREATE     = 57; // STRING -> OBJECT
         // Drops a database with a particular name.
-        DB_DROP      = 58; // STRING -> OBJECT
+        DB_DROP       = 58; // STRING -> OBJECT
         // Lists all the databases by name.  (Takes no arguments)
-        DB_LIST      = 59; // -> ARRAY
+        DB_LIST       = 59; // -> ARRAY
         // Creates a table with a particular name in a particular
         // database.  (You may omit the first argument to use the
         // default database.)
-        TABLE_CREATE = 60; // Database, STRING, {datacenter:STRING, primary_key:STRING, durability:STRING} -> OBJECT
-                           // STRING, {datacenter:STRING, primary_key:STRING, durability:STRING} -> OBJECT
+        TABLE_CREATE  = 60; // Database, STRING, {datacenter:STRING, primary_key:STRING, durability:STRING} -> OBJECT
+                            // STRING, {datacenter:STRING, primary_key:STRING, durability:STRING} -> OBJECT
         // Drops a table with a particular name from a particular
         // database.  (You may omit the first argument to use the
         // default database.)
-        TABLE_DROP   = 61; // Database, STRING -> OBJECT
-                           // STRING -> OBJECT
+        TABLE_DROP    = 61; // Database, STRING -> OBJECT
+                            // STRING -> OBJECT
         // Lists all the tables in a particular database.  (You may
         // omit the first argument to use the default database.)
-        TABLE_LIST   = 62; // Database -> ARRAY
-                           //  -> ARRAY
+        TABLE_LIST    = 62; // Database -> ARRAY
+                            //  -> ARRAY
+        SERVER_RENAME = 63; // STRING, STRING -> OBJECT
+
         // Ensures that previously issued soft-durability writes are complete and
         // written to disk.
         SYNC     = 138; // Table -> OBJECT

@@ -8,7 +8,6 @@
 #include "arch/os_signal.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "clustering/administration/admin_tracker.hpp"
-#include "clustering/administration/auto_reconnect.hpp"
 #include "clustering/administration/http/server.hpp"
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/logger.hpp"
@@ -17,12 +16,15 @@
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/metadata.hpp"
-#include "clustering/administration/network_logger.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/administration/persist.hpp"
 #include "clustering/administration/proc_stats.hpp"
 #include "clustering/administration/reactor_driver.hpp"
 #include "clustering/administration/reql_cluster_interface.hpp"
+#include "clustering/administration/servers/auto_reconnect.hpp"
+#include "clustering/administration/servers/name_server.hpp"
+#include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/servers/network_logger.hpp"
 #include "clustering/administration/sys_stats.hpp"
 #include "containers/incremental_lenses.hpp"
 #include "extproc/extproc_pool.hpp"
@@ -111,7 +113,27 @@ bool do_serve(io_backender_t *io_backender,
         semilattice_manager_t<auth_semilattice_metadata_t>
             semilattice_manager_auth(&connectivity_cluster, 'A', auth_metadata);
 
+        directory_read_manager_t<cluster_directory_metadata_t> directory_read_manager(
+            &connectivity_cluster, 'D');
+
         log_server_t log_server(&mailbox_manager, &log_writer);
+
+        scoped_ptr_t<server_name_server_t> server_name_server;
+        if (i_am_a_server) {
+            server_name_server.init(new server_name_server_t(
+                &mailbox_manager,
+                machine_id,
+                directory_read_manager.get_root_view(),
+                metadata_field(
+                    &cluster_semilattice_metadata_t::machines,
+                    semilattice_manager_cluster.get_root_view())));
+        }
+
+        server_name_client_t server_name_client(&mailbox_manager,
+            directory_read_manager.get_root_view(),
+            metadata_field(
+                &cluster_semilattice_metadata_t::machines,
+                semilattice_manager_cluster.get_root_view()));
 
         // Initialize the stat manager before the directory manager so that we
         // could initialize the cluster directory metadata with the proper
@@ -119,20 +141,22 @@ bool do_serve(io_backender_t *io_backender,
         stat_manager_t stat_manager(&mailbox_manager);
 
         scoped_ptr_t<cluster_directory_metadata_t> initial_directory(
-            new cluster_directory_metadata_t(machine_id,
-                                             connectivity_cluster.get_me(),
-                                             total_cache_size,
-                                             get_ips(),
-                                             stat_manager.get_address(),
-                                             log_server.get_business_card(),
-                                             i_am_a_server ? SERVER_PEER : PROXY_PEER));
+            new cluster_directory_metadata_t(
+                machine_id,
+                connectivity_cluster.get_me(),
+                total_cache_size,
+                get_ips(),
+                stat_manager.get_address(),
+                log_server.get_business_card(),
+                i_am_a_server
+                    ? boost::make_optional(server_name_server->get_business_card())
+                    : boost::optional<server_name_business_card_t>(),
+                i_am_a_server ? SERVER_PEER : PROXY_PEER));
 
         watchable_variable_t<cluster_directory_metadata_t> our_root_directory_variable(*initial_directory);
 
         directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(
             &connectivity_cluster, 'D', our_root_directory_variable.get_watchable());
-        directory_read_manager_t<cluster_directory_metadata_t> directory_read_manager(
-            &connectivity_cluster, 'D');
 
         network_logger_t network_logger(
             connectivity_cluster.get_me(),
@@ -229,8 +253,8 @@ bool do_serve(io_backender_t *io_backender,
                 machine_id,
                 semilattice_manager_cluster.get_root_view(),
                 directory_read_manager.get_root_view(),
-                &rdb_ctx
-                );
+                &rdb_ctx,
+                &server_name_client);
 
         //This is an annoying chicken and egg problem here
         rdb_ctx.cluster_interface = &reql_cluster_interface;

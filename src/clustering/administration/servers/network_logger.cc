@@ -1,5 +1,5 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "clustering/administration/network_logger.hpp"
+#include "clustering/administration/servers/network_logger.hpp"
 
 #include "errors.hpp"
 #include <boost/bind.hpp>

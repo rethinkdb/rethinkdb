@@ -5,7 +5,7 @@
 #include <boost/bind.hpp>
 
 #include "arch/timing.hpp"
-#include "clustering/administration/machine_id_to_peer_id.hpp"
+#include "clustering/administration/servers/machine_id_to_peer_id.hpp"
 #include "utils.hpp"
 
 cJSON *render_as_json(log_message_t *message) {

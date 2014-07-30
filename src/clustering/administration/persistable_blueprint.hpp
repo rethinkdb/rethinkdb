@@ -4,9 +4,8 @@
 
 #include <map>
 
+#include "clustering/administration/servers/machine_metadata.hpp"
 #include "clustering/reactor/blueprint.hpp"
-#include "clustering/administration/machine_metadata.hpp"
-
 
 /* This is like `blueprint_t`, except that it is indexed by `machine_id_t`
 instead of `peer_id_t`. This is important because peer IDs chan change when a
