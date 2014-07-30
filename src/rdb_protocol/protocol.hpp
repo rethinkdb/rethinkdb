@@ -46,6 +46,14 @@ namespace ql {
 class datum_t;
 } // namespace ql
 
+enum class profile_bool_t {
+    PROFILE,
+    DONT_PROFILE
+};
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        profile_bool_t, int8_t,
+        profile_bool_t::PROFILE, profile_bool_t::DONT_PROFILE);
+
 enum class point_write_result_t {
     STORED,
     DUPLICATE
