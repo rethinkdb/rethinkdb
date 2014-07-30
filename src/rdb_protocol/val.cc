@@ -12,8 +12,8 @@
 namespace ql {
 
 table_t::table_t(scoped_ptr_t<base_table_t> &&_table,
-        counted_t<const db_t> _db, const std::string &_name, bool _use_outdated,
-        const protob_t<const Backtrace> &backtrace)
+                 counted_t<const db_t> _db, const std::string &_name,
+                 bool _use_outdated, const protob_t<const Backtrace> &backtrace)
     : pb_rcheckable_t(backtrace),
       db(_db),
       name(_name),
@@ -21,7 +21,7 @@ table_t::table_t(scoped_ptr_t<base_table_t> &&_table,
       use_outdated(_use_outdated),
       bounds(datum_range_t::universe()),
       sorting(sorting_t::UNORDERED)
-    { }
+{ }
 
 counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) {
     datum_object_builder_t d;
@@ -109,9 +109,10 @@ counted_t<const datum_t> table_t::batched_insert(
     return std::move(stats).to_counted()->merge(insert_stats, stats_merge, env->limits);
 }
 
-MUST_USE bool table_t::sindex_create(
-        env_t *env, const std::string &id,
-        counted_t<func_t> index_func, sindex_multi_bool_t multi) {
+MUST_USE bool table_t::sindex_create(env_t *env,
+                                     const std::string &id,
+                                     counted_t<func_t> index_func,
+                                     sindex_multi_bool_t multi) {
     index_func->assert_deterministic("Index functions must be deterministic.");
     return table->sindex_create(env, id, index_func, multi);
 }
@@ -171,8 +172,7 @@ const std::string &table_t::get_pkey() {
     return table->get_pkey();
 }
 
-counted_t<const datum_t> table_t::get_row(env_t *env,
-        counted_t<const datum_t> pval) {
+counted_t<const datum_t> table_t::get_row(env_t *env, counted_t<const datum_t> pval) {
     return table->read_row(env, pval, use_outdated);
 }
 
@@ -195,8 +195,8 @@ counted_t<datum_stream_t> table_t::get_all(
         use_outdated);
 }
 
-void table_t::add_sorting(const std::string &new_sindex_id,
-        sorting_t _sorting, const rcheckable_t *parent) {
+void table_t::add_sorting(const std::string &new_sindex_id, sorting_t _sorting,
+                          const rcheckable_t *parent) {
     r_sanity_check(_sorting != sorting_t::UNORDERED);
 
     rcheck_target(parent, base_exc_t::GENERIC, sorting == sorting_t::UNORDERED,
@@ -210,8 +210,8 @@ void table_t::add_sorting(const std::string &new_sindex_id,
     sorting = _sorting;
 }
 
-void table_t::add_bounds(datum_range_t &&new_bounds,
-        const std::string &new_sindex_id, const rcheckable_t *parent) {
+void table_t::add_bounds(datum_range_t &&new_bounds, const std::string &new_sindex_id,
+                         const rcheckable_t *parent) {
     if (sindex_id) {
         rcheck_target(
             parent, base_exc_t::GENERIC, *sindex_id == new_sindex_id,
@@ -255,14 +255,14 @@ bool raw_type_is_convertible(val_t::type_t::raw_type_t _t1,
         FUNC             = val_t::type_t::FUNC,
         GROUPED_DATA     = val_t::type_t::GROUPED_DATA;
     switch (t1) {
-    case DB:                return t2 == DB;
-    case TABLE:             return t2 == TABLE || t2 == SELECTION || t2 == SEQUENCE;
-    case SELECTION:         return t2 == SELECTION || t2 == SEQUENCE;
-    case SEQUENCE:          return t2 == SEQUENCE;
-    case SINGLE_SELECTION:  return t2 == SINGLE_SELECTION || t2 == DATUM;
-    case DATUM:             return t2 == DATUM || t2 == SEQUENCE;
-    case FUNC:              return t2 == FUNC;
-    case GROUPED_DATA:      return t2 == GROUPED_DATA;
+    case DB:               return t2 == DB;
+    case TABLE:            return t2 == TABLE || t2 == SELECTION || t2 == SEQUENCE;
+    case SELECTION:        return t2 == SELECTION || t2 == SEQUENCE;
+    case SEQUENCE:         return t2 == SEQUENCE;
+    case SINGLE_SELECTION: return t2 == SINGLE_SELECTION || t2 == DATUM;
+    case DATUM:            return t2 == DATUM || t2 == SEQUENCE;
+    case FUNC:             return t2 == FUNC;
+    case GROUPED_DATA:     return t2 == GROUPED_DATA;
     default: unreachable();
     }
 }
@@ -299,8 +299,7 @@ val_t::val_t(const counted_t<grouped_data_t> &groups,
     guarantee(groups.has());
 }
 
-val_t::val_t(counted_t<const datum_t> _datum,
-             counted_t<table_t> _table,
+val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,
              protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::SINGLE_SELECTION),
@@ -348,8 +347,7 @@ val_t::val_t(counted_t<table_t> _table,
     guarantee(sequence().has());
 }
 
-val_t::val_t(counted_t<table_t> _table,
-             protob_t<const Backtrace> backtrace)
+val_t::val_t(counted_t<table_t> _table, protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::TABLE),
       table(_table) {
@@ -428,8 +426,7 @@ val_t::as_selection(env_t *env) {
     return std::make_pair(table, as_seq(env));
 }
 
-std::pair<counted_t<table_t>, counted_t<const datum_t> >
-        val_t::as_single_selection() {
+std::pair<counted_t<table_t>, counted_t<const datum_t> > val_t::as_single_selection() {
     rcheck_literal_type(type_t::SINGLE_SELECTION);
     return std::make_pair(table, datum());
 }
