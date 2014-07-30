@@ -22,6 +22,7 @@
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/changefeed.hpp"
+#include "rdb_protocol/context.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "region/region.hpp"
 #include "repli_timestamp.hpp"
@@ -167,7 +168,7 @@ struct single_sindex_status_t {
     bool ready;
 };
 
-}  // namespace rdb_protocol
+} // namespace rdb_protocol
 
 RDB_DECLARE_SERIALIZABLE(rdb_protocol::single_sindex_status_t);
 
