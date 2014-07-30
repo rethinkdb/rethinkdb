@@ -3,8 +3,10 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/real_table/convert_key.hpp"
 
+namespace ql {
+
 // RANGE/READGEN STUFF
-table_reader_t::table_reader_t(
+reader_t::reader_t(
     const real_table_t &_table,
     bool _use_outdated,
     scoped_ptr_t<readgen_t> &&_readgen)
@@ -15,12 +17,12 @@ table_reader_t::table_reader_t(
       active_range(readgen->original_keyrange()),
       items_index(0) { }
 
-void table_reader_t::add_transformation(ql::transform_variant_t &&tv) {
+void reader_t::add_transformation(ql::transform_variant_t &&tv) {
     r_sanity_check(!started);
     transforms.push_back(std::move(tv));
 }
 
-void table_reader_t::accumulate(ql::env_t *env, ql::eager_acc_t *acc,
+void reader_t::accumulate(ql::env_t *env, ql::eager_acc_t *acc,
         const ql::terminal_variant_t &tv) {
     r_sanity_check(!started);
     started = shards_exhausted = true;
@@ -30,7 +32,7 @@ void table_reader_t::accumulate(ql::env_t *env, ql::eager_acc_t *acc,
     acc->add_res(env, &res);
 }
 
-void table_reader_t::accumulate_all(ql::env_t *env, ql::eager_acc_t *acc) {
+void reader_t::accumulate_all(ql::env_t *env, ql::eager_acc_t *acc) {
     r_sanity_check(!started);
     started = true;
     ql::batchspec_t batchspec = ql::batchspec_t::all();
@@ -46,7 +48,7 @@ void table_reader_t::accumulate_all(ql::env_t *env, ql::eager_acc_t *acc) {
     acc->add_res(env, &resp.result);
 }
 
-rget_read_response_t table_reader_t::do_read(ql::env_t *env, const read_t &read) {
+rget_read_response_t reader_t::do_read(ql::env_t *env, const read_t &read) {
     read_response_t res;
     table.read_with_profile(env, read, &res, use_outdated);
     auto rget_res = boost::get<rget_read_response_t>(&res.response);
@@ -57,8 +59,8 @@ rget_read_response_t table_reader_t::do_read(ql::env_t *env, const read_t &read)
     return std::move(*rget_res);
 }
 
-std::vector<ql::rget_item_t> table_reader_t::do_range_read(ql::env_t *env,
-                                                           const read_t &read) {
+std::vector<ql::rget_item_t> reader_t::do_range_read(ql::env_t *env,
+                                                     const read_t &read) {
     rget_read_response_t res = do_read(env, read);
 
     // It's called `do_range_read`.  If we have more than one type of range
@@ -88,7 +90,7 @@ std::vector<ql::rget_item_t> table_reader_t::do_range_read(ql::env_t *env,
     return ql::groups_to_batch(gs->get_underlying_map());
 }
 
-bool table_reader_t::load_items(ql::env_t *env, const ql::batchspec_t &batchspec) {
+bool reader_t::load_items(ql::env_t *env, const ql::batchspec_t &batchspec) {
     started = true;
     if (items_index >= items.size() && !shards_exhausted) { // read some more
         items_index = 0;
@@ -127,7 +129,7 @@ bool table_reader_t::load_items(ql::env_t *env, const ql::batchspec_t &batchspec
 }
 
 std::vector<counted_t<const ql::datum_t> >
-table_reader_t::next_batch(ql::env_t *env, const ql::batchspec_t &batchspec) {
+reader_t::next_batch(ql::env_t *env, const ql::batchspec_t &batchspec) {
     started = true;
     if (!load_items(env, batchspec)) {
         return std::vector<counted_t<const ql::datum_t> >();
@@ -201,7 +203,7 @@ table_reader_t::next_batch(ql::env_t *env, const ql::batchspec_t &batchspec) {
     return res;
 }
 
-bool table_reader_t::is_finished() const {
+bool reader_t::is_finished() const {
     return shards_exhausted && items_index >= items.size();
 }
 
@@ -431,8 +433,8 @@ std::string sindex_readgen_t::sindex_name() const {
     return sindex;
 }
 
-// READ_DATUM_STREAM_T
-read_datum_stream_t::read_datum_stream_t(
+// LAZY_DATUM_STREAM_T
+lazy_datum_stream_t::lazy_datum_stream_t(
     const real_table_t &_table,
     bool use_outdated,
     scoped_ptr_t<readgen_t> &&readgen,
@@ -441,32 +443,33 @@ read_datum_stream_t::read_datum_stream_t(
       current_batch_offset(0),
       reader(_table, use_outdated, std::move(readgen)) { }
 
-void read_datum_stream_t::add_transformation(ql::transform_variant_t &&tv,
+void lazy_datum_stream_t::add_transformation(ql::transform_variant_t &&tv,
                                              const ql::protob_t<const Backtrace> &bt) {
     reader.add_transformation(std::move(tv));
     update_bt(bt);
 }
 
-void read_datum_stream_t::accumulate(
+void lazy_datum_stream_t::accumulate(
     ql::env_t *env, ql::eager_acc_t *acc, const ql::terminal_variant_t &tv) {
     reader.accumulate(env, acc, tv);
 }
 
-void read_datum_stream_t::accumulate_all(ql::env_t *env, ql::eager_acc_t *acc) {
+void lazy_datum_stream_t::accumulate_all(ql::env_t *env, ql::eager_acc_t *acc) {
     reader.accumulate_all(env, acc);
 }
 
 std::vector<counted_t<const ql::datum_t> >
-read_datum_stream_t::next_batch_impl(ql::env_t *env, const ql::batchspec_t &batchspec) {
+lazy_datum_stream_t::next_batch_impl(ql::env_t *env, const ql::batchspec_t &batchspec) {
     // Should never mix `next` with `next_batch`.
     r_sanity_check(current_batch_offset == 0 && current_batch.size() == 0);
     return reader.next_batch(env, batchspec);
 }
 
-bool read_datum_stream_t::is_exhausted() const {
+bool lazy_datum_stream_t::is_exhausted() const {
     return reader.is_finished() && batch_cache_exhausted();
 }
-bool read_datum_stream_t::is_cfeed() const {
+bool lazy_datum_stream_t::is_cfeed() const {
     return false;
 }
 
+}  // namespace ql

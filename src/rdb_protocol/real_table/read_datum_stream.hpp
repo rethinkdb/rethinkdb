@@ -12,6 +12,8 @@
 #include "rdb_protocol/real_table/real_table.hpp"
 #include "rdb_protocol/wire_func.hpp"
 
+namespace ql {
+
 // This class generates the `read_t`s used in range reads.  It's used by
 // `table_reader_t` below.  Its subclasses are the different types of range reads we
 // need to do.
@@ -125,9 +127,9 @@ private:
     const std::string sindex;
 };
 
-class table_reader_t {
+class reader_t {
 public:
-    explicit table_reader_t(
+    explicit reader_t(
         const real_table_t &_table,
         bool use_outdated,
         scoped_ptr_t<readgen_t> &&readgen);
@@ -157,9 +159,9 @@ private:
     size_t items_index;
 };
 
-class read_datum_stream_t : public ql::datum_stream_t {
+class lazy_datum_stream_t : public ql::datum_stream_t {
 public:
-    read_datum_stream_t(
+    lazy_datum_stream_t(
         const real_table_t &_table,
         bool _use_outdated,
         scoped_ptr_t<readgen_t> &&_readgen,
@@ -187,8 +189,10 @@ private:
     // otherwise have to do this caching themselves.
     size_t current_batch_offset;
     std::vector<counted_t<const ql::datum_t> > current_batch;
-    table_reader_t reader;
+    reader_t reader;
 };
+
+}  // namespace ql
 
 #endif /* RDB_PROTOCOL_REAL_TABLE_READ_DATUM_STREAM_HPP_ */
 

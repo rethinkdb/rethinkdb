@@ -191,7 +191,7 @@ void lba_disk_structure_t::sync(file_account_t *io_account, sync_callback_t *cb)
     }
 }
 
-struct lba_reader_t
+struct reader_t
 {
     lba_disk_structure_t *ds;   // The disk structure we are reading from
     in_memory_index_t *index;   // The in-memory-index we are reading into
@@ -201,7 +201,7 @@ struct lba_reader_t
     struct extent_reader_t :
         public extent_t::read_callback_t
     {
-        lba_reader_t *parent;   // Our lba_reader_t that we were created by
+        reader_t *parent;   // Our reader_t that we were created by
         int index;   // parent->readers[index] = this
         lba_disk_extent_t *extent;   // The extent we are supposed to read
         lba_disk_extent_t::read_info_t read_info;   // Opaque data used by extent_t::read()
@@ -213,7 +213,7 @@ struct lba_reader_t
         and the LBA would be corrupted. */
         bool prev_done;
 
-        extent_reader_t(lba_reader_t *p, lba_disk_extent_t *e)
+        extent_reader_t(reader_t *p, lba_disk_extent_t *e)
             : parent(p), extent(e), have_read(false)
         {
             index = parent->readers.size();
@@ -260,7 +260,7 @@ struct lba_reader_t
     // reading process so that we stay under LBA_READ_BUFFER_SIZE.
     int active_readers;
 
-    lba_reader_t(lba_disk_structure_t *_ds, in_memory_index_t *_index,
+    reader_t(lba_disk_structure_t *_ds, in_memory_index_t *_index,
             lba_disk_structure_t::read_callback_t *cb)
         : ds(_ds), index(_index), rcb(cb)
     {
@@ -297,7 +297,7 @@ struct lba_reader_t
 };
 
 void lba_disk_structure_t::read(in_memory_index_t *index, read_callback_t *cb) {
-    new lba_reader_t(this, index, cb);
+    new reader_t(this, index, cb);
 }
 
 void lba_disk_structure_t::prepare_metablock(lba_shard_metablock_t *mb_out) {

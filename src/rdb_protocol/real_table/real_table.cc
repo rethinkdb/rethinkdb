@@ -85,16 +85,16 @@ counted_t<ql::datum_stream_t> real_table_t::read_all(
         sorting_t sorting,
         bool use_outdated) {
     if (sindex == get_pkey()) {
-        return make_counted<read_datum_stream_t>(
+        return make_counted<ql::lazy_datum_stream_t>(
             *this,
             use_outdated,
-            primary_readgen_t::make(env, table_name, range, sorting),
+            ql::primary_readgen_t::make(env, table_name, range, sorting),
             bt);
     } else {
-        return make_counted<read_datum_stream_t>(
+        return make_counted<ql::lazy_datum_stream_t>(
             *this,
             use_outdated,
-            sindex_readgen_t::make(
+            ql::sindex_readgen_t::make(
                 env, table_name, sindex, range, sorting),
             bt);
     }
