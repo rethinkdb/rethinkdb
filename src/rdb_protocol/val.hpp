@@ -24,10 +24,7 @@ class val_t;
 
 /* A `table_t` is an `r.table` term, possibly with some other things chained onto
 onto it. */
-class table_t :
-    public single_threaded_countable_t<table_t>,
-    public pb_rcheckable_t
-{
+class table_t : public single_threaded_countable_t<table_t>, public pb_rcheckable_t {
 public:
     table_t(scoped_ptr_t<base_table_t> &&,
             counted_t<const db_t> db, const std::string &name,
@@ -129,10 +126,10 @@ public:
     public:
         enum raw_type_t {
             DB               = 1, // db
-            TABLE            = 2, // table_view
-            SELECTION        = 3, // table_view, sequence
+            TABLE            = 2, // table
+            SELECTION        = 3, // table, sequence
             SEQUENCE         = 4, // sequence
-            SINGLE_SELECTION = 5, // table_view, datum (object)
+            SINGLE_SELECTION = 5, // table, datum (object)
             DATUM            = 6, // datum
             FUNC             = 7, // func
             GROUPED_DATA     = 8  // grouped_data
@@ -172,11 +169,9 @@ public:
 
     counted_t<const db_t> as_db() const;
     counted_t<table_t> as_table();
-    std::pair<counted_t<table_t>, counted_t<datum_stream_t> >
-        as_selection(env_t *env);
+    std::pair<counted_t<table_t>, counted_t<datum_stream_t> > as_selection(env_t *env);
     counted_t<datum_stream_t> as_seq(env_t *env);
-    std::pair<counted_t<table_t>, counted_t<const datum_t> >
-        as_single_selection();
+    std::pair<counted_t<table_t>, counted_t<const datum_t> > as_single_selection();
     // See func.hpp for an explanation of shortcut functions.
     counted_t<func_t> as_func(function_shortcut_t shortcut = NO_SHORTCUT);
 

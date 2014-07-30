@@ -8,9 +8,9 @@
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/cow_ptr.hpp"
+#include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
-#include "rdb_protocol/btree.hpp"
 
 #include "debug.hpp"
 

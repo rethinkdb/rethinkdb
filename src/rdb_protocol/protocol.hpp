@@ -21,7 +21,6 @@
 #include "concurrency/cond_var.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
-#include "rdb_protocol/profile.hpp"
 #include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "region/region.hpp"

@@ -39,8 +39,7 @@ public:
                              counted_t<const datum_t> orig_key,
                              counted_t<table_t> t) const;
     counted_t<val_t> new_val(env_t *env, counted_t<datum_stream_t> s) const;
-    counted_t<val_t> new_val(counted_t<datum_stream_t> s,
-                             counted_t<table_t> t) const;
+    counted_t<val_t> new_val(counted_t<datum_stream_t> s, counted_t<table_t> t) const;
     counted_t<val_t> new_val(counted_t<const db_t> db) const;
     counted_t<val_t> new_val(counted_t<table_t> t) const;
     counted_t<val_t> new_val(counted_t<func_t> f) const;
