@@ -48,9 +48,9 @@ private:
                                         eval_flags_t flags) const = 0;
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t flags) const {
         std::string op = write_eval_impl(env, args, flags);
-        datum_ptr_t res(datum_t::R_OBJECT);
+        datum_object_builder_t res;
         UNUSED bool b = res.add(op, make_counted<datum_t>(1.0));
-        return new_val(res.to_counted());
+        return new_val(std::move(res).to_counted());
     }
 };
 
@@ -83,6 +83,7 @@ private:
                 env->env->interruptor, &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
+
         return "created";
     }
     virtual const char *name() const { return "db_create"; }
@@ -214,7 +215,7 @@ private:
             arr.push_back(make_counted<datum_t>(std::string(it->str())));
         }
 
-        return new_val(make_counted<const datum_t>(std::move(arr)));
+        return new_val(make_counted<const datum_t>(std::move(arr), env->env->limits));
     }
     virtual const char *name() const { return "db_list"; }
 };
@@ -246,7 +247,7 @@ private:
         for (auto it = tables.begin(); it != tables.end(); ++it) {
             arr.push_back(make_counted<datum_t>(std::string(it->str())));
         }
-        return new_val(make_counted<const datum_t>(std::move(arr)));
+        return new_val(make_counted<const datum_t>(std::move(arr), env->env->limits));
     }
     virtual const char *name() const { return "table_list"; }
 };
@@ -333,7 +334,7 @@ private:
                 = make_counted<union_datum_stream_t>(std::move(streams), backtrace());
             return new_val(stream, table);
         } else {
-            datum_ptr_t arr(datum_t::R_ARRAY);
+            datum_array_builder_t arr(env->env->limits);
             for (size_t i = 1; i < args->num_args(); ++i) {
                 counted_t<const datum_t> key = args->arg(env, i)->as_datum();
                 counted_t<const datum_t> row = table->get_row(env->env, key);
@@ -342,7 +343,8 @@ private:
                 }
             }
             counted_t<datum_stream_t> stream
-                = make_counted<array_datum_stream_t>(arr.to_counted(), backtrace());
+                = make_counted<array_datum_stream_t>(std::move(arr).to_counted(),
+                                                     backtrace());
             return new_val(stream, table);
         }
     }

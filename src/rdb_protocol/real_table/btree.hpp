@@ -112,6 +112,7 @@ batched_replace_response_t rdb_batched_replace(
     const btree_info_t &info,
     scoped_ptr_t<superblock_t> *superblock,
     const std::vector<store_key_t> &keys,
+    const ql::configured_limits_t &limits,
     const btree_batched_replacer_t *replacer,
     rdb_modification_report_cb_t *sindex_cb,
     profile::trace_t *trace);

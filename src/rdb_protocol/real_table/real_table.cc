@@ -100,9 +100,19 @@ counted_t<ql::datum_stream_t> real_table_t::read_all(
     }
 }
 
-counted_t<ql::datum_stream_t> real_table_t::read_changes(ql::env_t *env,
+counted_t<ql::datum_stream_t> real_table_t::read_row_changes(
+        ql::env_t *env,
+        counted_t<const ql::datum_t> pval,
+        const ql::protob_t<const Backtrace> &bt,
+        const std::string &table_name) {
+    return changefeed_client->new_feed(env, uuid, bt, table_name, pkey,
+        changefeed::keyspec_t(changefeed::keyspec_t::point_t(std::move(pval))));
+}
+
+counted_t<ql::datum_stream_t> real_table_t::read_all_changes(ql::env_t *env,
         const ql::protob_t<const Backtrace> &bt, const std::string &table_name) {
-    return changefeed_client->new_feed(env, uuid, bt, table_name);
+    return changefeed_client->new_feed(env, uuid, bt, table_name, pkey,
+        changefeed::keyspec_t(changefeed::keyspec_t::all_t()));
 }
 
 counted_t<const ql::datum_t> real_table_t::write_batched_replace(ql::env_t *env,
@@ -116,7 +126,7 @@ counted_t<const ql::datum_t> real_table_t::write_batched_replace(ql::env_t *env,
     }
     batched_replace_t write(std::move(store_keys), pkey, func,
             env->global_optargs.get_all_optargs(), return_vals);
-    write_t w(std::move(write), durability, env->profile());
+    write_t w(std::move(write), durability, env->profile(), env->limits);
     write_response_t response;
     write_with_profile(env, &w, &response);
     auto dp = boost::get<counted_t<const ql::datum_t> >(&response.response);
@@ -128,8 +138,9 @@ counted_t<const ql::datum_t> real_table_t::write_batched_insert(ql::env_t *env,
         std::vector<counted_t<const ql::datum_t> > &&inserts,
         conflict_behavior_t conflict_behavior, bool return_vals,
         durability_requirement_t durability) {
-    batched_insert_t write(std::move(inserts), pkey, conflict_behavior, return_vals);
-    write_t w(std::move(write), durability, env->profile());
+    batched_insert_t write(std::move(inserts), pkey, conflict_behavior, env->limits,
+        return_vals);
+    write_t w(std::move(write), durability, env->profile(), env->limits);
     write_response_t response;
     write_with_profile(env, &w, &response);
     auto dp = boost::get<counted_t<const ql::datum_t> >(&response.response);
@@ -139,7 +150,7 @@ counted_t<const ql::datum_t> real_table_t::write_batched_insert(ql::env_t *env,
 
 bool real_table_t::write_sync_depending_on_durability(ql::env_t *env,
         durability_requirement_t durability) {
-    write_t write(sync_t(), durability, env->profile());
+    write_t write(sync_t(), durability, env->profile(), env->limits);
     write_response_t res;
     write_with_profile(env, &write, &res);
     sync_response_t *response = boost::get<sync_response_t>(&res.response);
@@ -154,7 +165,7 @@ bool real_table_t::sindex_create(ql::env_t *env, const std::string &id,
         multi
         ? sindex_multi_bool_t::MULTI
         : sindex_multi_bool_t::SINGLE;
-    write_t write(sindex_create_t(id, wire_func, multi2), env->profile());
+    write_t write(sindex_create_t(id, wire_func, multi2), env->profile(), env->limits);
     write_response_t res;
     write_with_profile(env, &write, &res);
     sindex_create_response_t *response =
@@ -164,7 +175,7 @@ bool real_table_t::sindex_create(ql::env_t *env, const std::string &id,
 }
 
 bool real_table_t::sindex_drop(ql::env_t *env, const std::string &id) {
-    write_t write(sindex_drop_t(id), env->profile());
+    write_t write(sindex_drop_t(id), env->profile(), env->limits);
     write_response_t res;
     write_with_profile(env, &write, &res);
     sindex_drop_response_t *response =
@@ -205,8 +216,7 @@ real_table_t::sindex_status(ql::env_t *env, const std::set<std::string> &sindexe
                 make_counted<const ql::datum_t>(
                     safe_to_double(pair.second.blocks_total));
         }
-        status["ready"] = make_counted<const ql::datum_t>(ql::datum_t::R_BOOL,
-                                                              pair.second.ready);
+        status["ready"] = ql::datum_t::boolean(pair.second.ready);
         statuses.insert(std::make_pair(
             pair.first,
             make_counted<const ql::datum_t>(std::move(status))));

@@ -5,8 +5,8 @@
 #include <map>
 
 #include "concurrency/watchable.hpp"
-#include "rpc/connectivity/connectivity.hpp"
 #include "containers/incremental_lenses.hpp"
+#include "rpc/connectivity/peer_id.hpp"
 
 template<class inner_t, class outer_t>
 class field_copier_t {

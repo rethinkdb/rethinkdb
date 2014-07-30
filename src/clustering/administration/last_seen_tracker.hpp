@@ -10,7 +10,7 @@
 #include "clustering/administration/machine_metadata.hpp"
 #include "concurrency/watchable.hpp"
 #include "containers/incremental_lenses.hpp"
-#include "rpc/connectivity/connectivity.hpp"
+#include "rpc/connectivity/cluster.hpp"
 #include "rpc/semilattice/view.hpp"
 
 class last_seen_tracker_t {

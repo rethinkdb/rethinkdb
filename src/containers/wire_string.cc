@@ -100,38 +100,3 @@ scoped_ptr_t<wire_string_t> concat(const wire_string_t &a, const wire_string_t &
     memcpy(data + a.size(), b.data(), b.size());
     return result;
 }
-
-size_t datum_serialized_size(const wire_string_t &s) {
-    return varint_uint64_serialized_size(s.size()) + s.size();
-}
-
-void datum_serialize(write_message_t *wm, const wire_string_t &s) {
-    serialize_varint_uint64(wm, static_cast<uint64_t>(s.size()));
-    wm->append(s.data(), s.size());
-}
-
-MUST_USE archive_result_t datum_deserialize(
-        read_stream_t *s,
-        scoped_ptr_t<wire_string_t> *out) {
-    uint64_t sz;
-    archive_result_t res = deserialize_varint_uint64(s, &sz);
-    if (res != archive_result_t::SUCCESS) { return res; }
-
-    if (sz > std::numeric_limits<size_t>::max()) {
-        return archive_result_t::RANGE_ERROR;
-    }
-
-    scoped_ptr_t<wire_string_t> value(wire_string_t::create(sz));
-
-    int64_t num_read = force_read(s, value->data(), sz);
-    if (num_read == -1) {
-        return archive_result_t::SOCK_ERROR;
-    }
-    if (static_cast<uint64_t>(num_read) < sz) {
-        return archive_result_t::SOCK_EOF;
-    }
-
-    *out = std::move(value);
-
-    return archive_result_t::SUCCESS;
-}

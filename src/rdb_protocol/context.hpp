@@ -52,7 +52,12 @@ public:
         const datum_range_t &range,
         sorting_t sorting,
         bool use_outdated) = 0;
-    virtual counted_t<ql::datum_stream_t> read_changes(
+    virtual counted_t<ql::datum_stream_t> read_row_changes(
+        ql::env_t *env,
+        counted_t<const ql::datum_t> pval,
+        const ql::protob_t<const Backtrace> &bt,
+        const std::string &table_name) = 0;
+    virtual counted_t<ql::datum_stream_t> read_all_changes(
         ql::env_t *env,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name) = 0;

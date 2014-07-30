@@ -6,6 +6,7 @@
 #include "clustering/immediate_consistency/query/master_access.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/watchable.hpp"
+#include "rdb_protocol/env.hpp"
 
 cluster_namespace_interface_t::cluster_namespace_interface_t(
         mailbox_manager_t *mm,
@@ -99,6 +100,7 @@ void cluster_namespace_interface_t::dispatch_immediate_op(
     order_token_t order_token,
     signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
     std::vector<scoped_ptr_t<immediate_op_info_t<op_type, fifo_enforcer_token_type> > >
@@ -454,7 +456,8 @@ void cluster_namespace_interface_t::relationship_coroutine(peer_id_t peer_id, re
         }
 
         relationship_t relationship_record;
-        relationship_record.is_local = (peer_id == mailbox_manager->get_connectivity_service()->get_me());
+        relationship_record.is_local =
+            (peer_id == mailbox_manager->get_connectivity_cluster()->get_me());
         relationship_record.region = region;
         relationship_record.master_access = master_access.has() ? master_access.get() : NULL;
         relationship_record.direct_reader_access = direct_reader_access.has() ? direct_reader_access.get() : NULL;

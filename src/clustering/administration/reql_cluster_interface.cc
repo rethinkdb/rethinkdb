@@ -255,10 +255,11 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
             std::make_pair(namespace_id, make_deletable(table)));
 
         try {
-            fill_in_blueprints(&metadata,
-                               directory_root_view->get().get_inner(),
-                               my_machine_id,
-                               boost::optional<namespace_id_t>());
+            fill_in_blueprint_for_namespace(
+                &metadata,
+                directory_root_view->get().get_inner(),
+                namespace_id,
+                my_machine_id);
         } catch (const missing_machine_exc_t &exc) {
             *error_out = strprintf(
                 "Could not configure table: %s Table was not created.", exc.what());

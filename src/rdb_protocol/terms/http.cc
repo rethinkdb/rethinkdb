@@ -215,6 +215,7 @@ void dispatch_http(env_t *env,
 counted_t<val_t> http_term_t::eval_impl(scope_env_t *env, args_t *args,
                                         eval_flags_t) const {
     http_opts_t opts;
+    opts.limits = env->env->limits;
     opts.url.assign(args->arg(env, 0)->as_str().to_std());
     opts.proxy.assign(env->env->get_reql_http_proxy());
     get_optargs(env, args, &opts);
@@ -281,7 +282,8 @@ bool http_datum_stream_t::apply_depaginate(env_t *env, const http_result_t &res)
     }
 
     // Provide an empty OBJECT datum instead of any non-existent arguments
-    counted_t<const datum_t> empty = make_counted<const datum_t>(datum_t::R_OBJECT);
+    counted_t<const datum_t> empty
+        = make_counted<const datum_t>(std::map<std::string, counted_t<const datum_t> >());
     std::map<std::string, counted_t<const datum_t> > arg_obj
         = { { "params", opts.url_params.has() ? opts.url_params : empty },
             { "header", res.header.has() ? res.header : empty },

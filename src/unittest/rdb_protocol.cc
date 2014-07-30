@@ -134,10 +134,10 @@ TEST(RDBProtocol, OvershardedSetupTeardown) {
 void run_get_set_test(namespace_interface_t *nsi, order_source_t *osource) {
     {
         write_t write(
-                point_write_t(store_key_t("a"),
-                    make_counted<ql::datum_t>(ql::datum_t::R_NULL)),
+                point_write_t(store_key_t("a"), ql::datum_t::null()),
                 DURABILITY_REQUIREMENT_DEFAULT,
-                profile_bool_t::PROFILE);
+                profile_bool_t::PROFILE,
+                ql::configured_limits_t());
         write_response_t response;
 
         cond_t interruptor;
@@ -159,7 +159,8 @@ void run_get_set_test(namespace_interface_t *nsi, order_source_t *osource) {
 
         if (point_read_response_t *maybe_point_read_response = boost::get<point_read_response_t>(&response.response)) {
             ASSERT_TRUE(maybe_point_read_response->data.has());
-            ASSERT_EQ(ql::datum_t(ql::datum_t::R_NULL), *maybe_point_read_response->data);
+            ASSERT_EQ(ql::datum_t(ql::datum_t::construct_null_t()),
+                      *maybe_point_read_response->data);
         } else {
             ADD_FAILURE() << "got wrong result back";
         }
@@ -183,7 +184,8 @@ std::string create_sindex(namespace_interface_t *nsi,
 
     ql::map_wire_func_t m(mapping, make_vector(arg), get_backtrace(mapping));
 
-    write_t write(sindex_create_t(id, m, sindex_multi_bool_t::SINGLE), profile_bool_t::PROFILE);
+    write_t write(sindex_create_t(id, m, sindex_multi_bool_t::SINGLE),
+                  profile_bool_t::PROFILE, ql::configured_limits_t());
     write_response_t response;
 
     cond_t interruptor;
@@ -230,7 +232,7 @@ bool drop_sindex(namespace_interface_t *nsi,
                  order_source_t *osource,
                  const std::string &id) {
     sindex_drop_t d(id);
-    write_t write(d, profile_bool_t::PROFILE);
+    write_t write(d, profile_bool_t::PROFILE, ql::configured_limits_t());
     write_response_t response;
 
     cond_t interruptor;
@@ -252,8 +254,9 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
 
     std::shared_ptr<const scoped_cJSON_t> data(
         new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0, \"sid\" : 1}")));
-    counted_t<const ql::datum_t> d(
-        new ql::datum_t(cJSON_slow_GetObjectItem(data->get(), "id")));
+    ql::configured_limits_t limits;
+    counted_t<const ql::datum_t> d
+        = ql::to_datum(cJSON_slow_GetObjectItem(data->get(), "id"), limits);
     store_key_t pk = store_key_t(d->print_primary());
     counted_t<const ql::datum_t> sindex_key_literal = make_counted<ql::datum_t>(1.0);
 
@@ -262,9 +265,10 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
         /* Insert a piece of data (it will be indexed using the secondary
          * index). */
         write_t write(
-            point_write_t(pk, make_counted<ql::datum_t>(*data)),
+            point_write_t(pk, ql::to_datum(data->get(), limits)),
             DURABILITY_REQUIREMENT_DEFAULT,
-            profile_bool_t::PROFILE);
+            profile_bool_t::PROFILE,
+            ql::configured_limits_t());
         write_response_t response;
 
         cond_t interruptor;
@@ -298,7 +302,7 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
             auto stream = &streams->begin()->second;
             ASSERT_TRUE(stream != NULL);
             ASSERT_EQ(1u, stream->size());
-            ASSERT_EQ(ql::datum_t(*data), *stream->at(0).data);
+            ASSERT_EQ(*ql::to_datum(data->get(), limits), *stream->at(0).data);
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }
@@ -307,8 +311,8 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
     {
         /* Delete the data. */
         point_delete_t del(pk);
-        write_t write(
-                del, DURABILITY_REQUIREMENT_DEFAULT, profile_bool_t::PROFILE);
+        write_t write(del, DURABILITY_REQUIREMENT_DEFAULT, profile_bool_t::PROFILE,
+                      ql::configured_limits_t());
         write_response_t response;
 
         cond_t interruptor;
@@ -356,16 +360,15 @@ void run_create_drop_sindex_with_data_test(namespace_interface_t *nsi,
         std::string json_doc = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i+1);
         std::shared_ptr<const scoped_cJSON_t> data(
             new scoped_cJSON_t(cJSON_Parse(json_doc.c_str())));
-        counted_t<const ql::datum_t> d(
-            new ql::datum_t(cJSON_slow_GetObjectItem(data->get(), "id")));
+        ql::configured_limits_t limits;
+        counted_t<const ql::datum_t> d
+            = ql::to_datum(cJSON_slow_GetObjectItem(data->get(), "id"), limits);
         store_key_t pk = store_key_t(d->print_primary());
 
         /* Insert a piece of data (it will be indexed using the secondary
          * index). */
-        write_t write(
-            point_write_t(pk, make_counted<ql::datum_t>(*data)),
-            DURABILITY_REQUIREMENT_SOFT,
-            profile_bool_t::PROFILE);
+        write_t write(point_write_t(pk, ql::to_datum(data->get(), limits)),
+                      DURABILITY_REQUIREMENT_SOFT, profile_bool_t::PROFILE, limits);
         write_response_t response;
 
         cond_t interruptor;
@@ -471,6 +474,7 @@ TEST(RDBProtocol, OvershardedSindexList) {
 void run_sindex_oversized_keys_test(namespace_interface_t *nsi, order_source_t *osource) {
     std::string sindex_id = create_sindex(nsi, osource);
     wait_for_sindex(nsi, osource, sindex_id);
+    ql::configured_limits_t limits;
 
     for (size_t i = 0; i < 20; ++i) {
         for (size_t j = 100; j < 200; j += 5) {
@@ -484,8 +488,9 @@ void run_sindex_oversized_keys_test(namespace_interface_t *nsi, order_source_t *
             cJSON_AddItemToObject(data->get(), "sid", cJSON_CreateString(sid.c_str()));
             store_key_t pk;
             try {
-                pk = store_key_t(make_counted<const ql::datum_t>(
-                    cJSON_slow_GetObjectItem(data->get(), "id"))->print_primary());
+                pk = store_key_t(ql::to_datum(
+                                     cJSON_slow_GetObjectItem(data->get(), "id"),
+                                     limits)->print_primary());
             } catch (const ql::base_exc_t &ex) {
                 ASSERT_TRUE(id.length() >= rdb_protocol::MAX_PRIMARY_KEY_SIZE);
                 continue;
@@ -495,10 +500,10 @@ void run_sindex_oversized_keys_test(namespace_interface_t *nsi, order_source_t *
             {
                 /* Insert a piece of data (it will be indexed using the secondary
                  * index). */
-                write_t write(
-                    point_write_t(pk, make_counted<ql::datum_t>(*data)),
-                    DURABILITY_REQUIREMENT_DEFAULT,
-                    profile_bool_t::PROFILE);
+                write_t write(point_write_t(pk, ql::to_datum(data->get(), limits)),
+                              DURABILITY_REQUIREMENT_DEFAULT,
+                              profile_bool_t::PROFILE,
+                              limits);
                 write_response_t response;
 
                 cond_t interruptor;
@@ -557,18 +562,20 @@ TEST(RDBProtocol, OvershardedOverSizedKeys) {
 void run_sindex_missing_attr_test(namespace_interface_t *nsi, order_source_t *osource) {
     create_sindex(nsi, osource);
 
+    ql::configured_limits_t limits;
     std::shared_ptr<const scoped_cJSON_t> data(
         new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0}")));
-    store_key_t pk = store_key_t(make_counted<const ql::datum_t>(
-        cJSON_slow_GetObjectItem(data->get(), "id"))->print_primary());
+    store_key_t pk = store_key_t(ql::to_datum(
+                                     cJSON_slow_GetObjectItem(data->get(), "id"),
+                                     limits)->print_primary());
     ASSERT_TRUE(data->get());
     {
         /* Insert a piece of data (it will be indexed using the secondary
          * index). */
-        write_t write(
-            point_write_t(pk, make_counted<ql::datum_t>(*data)),
-            DURABILITY_REQUIREMENT_DEFAULT,
-            profile_bool_t::PROFILE);
+        write_t write(point_write_t(pk, ql::to_datum(data->get(), limits)),
+                      DURABILITY_REQUIREMENT_DEFAULT,
+                      profile_bool_t::PROFILE,
+                      ql::configured_limits_t());
         write_response_t response;
 
         cond_t interruptor;
@@ -597,4 +604,3 @@ TEST(RDBProtocol, OvershardedMissingAttr) {
 }
 
 }   /* namespace unittest */
-

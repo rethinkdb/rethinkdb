@@ -17,13 +17,13 @@ counted_t<val_t> datum_stream_t::run_terminal(
     env_t *env, const terminal_variant_t &tv) {
     scoped_ptr_t<eager_acc_t> acc(make_eager_terminal(tv));
     accumulate(env, acc.get(), tv);
-    return acc->finish_eager(backtrace(), is_grouped());
+    return acc->finish_eager(backtrace(), is_grouped(), env->limits);
 }
 
 counted_t<val_t> datum_stream_t::to_array(env_t *env) {
     scoped_ptr_t<eager_acc_t> acc = make_to_array();
     accumulate_all(env, acc.get());
-    return acc->finish_eager(backtrace(), is_grouped());
+    return acc->finish_eager(backtrace(), is_grouped(), env->limits);
 }
 
 // DATUM_STREAM_T
@@ -150,8 +150,11 @@ eager_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &bs) {
 }
 
 counted_t<const datum_t> eager_datum_stream_t::as_array(env_t *env) {
-    if (is_grouped() || !is_array()) return counted_t<const datum_t>();
-    datum_ptr_t arr(datum_t::R_ARRAY);
+    if (is_grouped() || !is_array()) {
+        return counted_t<const datum_t>();
+    }
+
+    datum_array_builder_t arr(env->limits);
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
     {
         profile::sampler_t sampler("Evaluating stream eagerly.", env->trace);
@@ -160,7 +163,7 @@ counted_t<const datum_t> eager_datum_stream_t::as_array(env_t *env) {
             sampler.new_sample();
         }
     }
-    return arr.to_counted();
+    return std::move(arr).to_counted();
 }
 
 array_datum_stream_t::array_datum_stream_t(counted_t<const datum_t> _arr,
@@ -371,7 +374,7 @@ zip_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
 void union_datum_stream_t::add_transformation(transform_variant_t &&tv,
                                               const protob_t<const Backtrace> &bt) {
     for (auto it = streams.begin(); it != streams.end(); ++it) {
-        (*it)->add_transformation(transform_variant_t(std::move(tv)), bt);
+        (*it)->add_transformation(transform_variant_t(tv), bt);
     }
     update_bt(bt);
 }
@@ -402,7 +405,7 @@ counted_t<const datum_t> union_datum_stream_t::as_array(env_t *env) {
     if (!is_array()) {
         return counted_t<const datum_t>();
     }
-    datum_ptr_t arr(datum_t::R_ARRAY);
+    datum_array_builder_t arr(env->limits);
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
     {
         profile::sampler_t sampler("Evaluating stream eagerly.", env->trace);
@@ -411,7 +414,7 @@ counted_t<const datum_t> union_datum_stream_t::as_array(env_t *env) {
             sampler.new_sample();
         }
     }
-    return arr.to_counted();
+    return std::move(arr).to_counted();
 }
 
 bool union_datum_stream_t::is_exhausted() const {

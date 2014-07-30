@@ -45,7 +45,8 @@ public:
     };
 
     void begin(extproc_pool_t *pool,
-               signal_t *interruptor);
+               signal_t *interruptor,
+               const ql::configured_limits_t &limits);
 
     void end();
 

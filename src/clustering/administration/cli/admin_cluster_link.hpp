@@ -18,7 +18,6 @@
 #include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/administration/suggester.hpp"
 #include "rpc/connectivity/cluster.hpp"
-#include "rpc/connectivity/multiplexer.hpp"
 
 template <class metadata_t> class directory_read_manager_t;
 template <class metadata_t> class directory_write_manager_t;
@@ -375,35 +374,23 @@ private:
     local_issue_tracker_t local_issue_tracker;
     thread_pool_log_writer_t log_writer;
     connectivity_cluster_t connectivity_cluster;
-    message_multiplexer_t message_multiplexer;
-    message_multiplexer_t::client_t heartbeat_manager_client;
-    heartbeat_manager_t heartbeat_manager;
-    message_multiplexer_t::client_t::run_t heartbeat_manager_client_run;
-    message_multiplexer_t::client_t mailbox_manager_client;
     mailbox_manager_t mailbox_manager;
-    message_multiplexer_t::client_t::run_t mailbox_manager_client_run;
     stat_manager_t stat_manager;
     log_server_t log_server;
 
-    message_multiplexer_t::client_t semilattice_manager_client;
     const scoped_ptr_t<semilattice_manager_t<cluster_semilattice_metadata_t> > semilattice_manager_cluster;
-    message_multiplexer_t::client_t::run_t semilattice_manager_client_run;
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > cluster_metadata_view;
     metadata_change_handler_t<cluster_semilattice_metadata_t> metadata_change_handler;
 
-    message_multiplexer_t::client_t auth_manager_client;
     const scoped_ptr_t<semilattice_manager_t<auth_semilattice_metadata_t> > auth_manager_cluster;
-    message_multiplexer_t::client_t::run_t auth_manager_client_run;
     boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > auth_metadata_view;
     metadata_change_handler_t<auth_semilattice_metadata_t> auth_change_handler;
 
-    message_multiplexer_t::client_t directory_manager_client;
     watchable_variable_t<cluster_directory_metadata_t> our_directory_metadata;
     const scoped_ptr_t<directory_read_manager_t<cluster_directory_metadata_t> > directory_read_manager;
     // TODO: Do we actually need directory_write_manager?
     const scoped_ptr_t<directory_write_manager_t<cluster_directory_metadata_t> > directory_write_manager;
-    message_multiplexer_t::client_t::run_t directory_manager_client_run;
-    message_multiplexer_t::run_t message_multiplexer_run;
+
     connectivity_cluster_t::run_t connectivity_cluster_run;
 
     // Issue tracking etc.
