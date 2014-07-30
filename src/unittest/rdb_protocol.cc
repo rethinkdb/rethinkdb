@@ -12,8 +12,9 @@
 #include "extproc/extproc_spawner.hpp"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pb_utils.hpp"
-#include "rdb_protocol/protocol.hpp"
-#include "rdb_protocol/store.hpp"
+#include "rdb_protocol/real_table/convert_key.hpp"
+#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/real_table/store.hpp"
 #include "region/region_json_adapter.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
@@ -66,9 +67,7 @@ void run_with_namespace_interface(
     }
 
     extproc_pool_t extproc_pool(2);
-    rdb_context_t ctx(&extproc_pool,
-                      NULL,
-                      NULL);
+    rdb_context_t ctx(&extproc_pool, NULL);
 
     for (int rep = 0; rep < num_restarts; ++rep) {
         const bool do_create = rep == 0;

@@ -6,9 +6,35 @@
 #include "containers/archive/archive.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
-#include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/term_walker.hpp"
 #include "stl_utils.hpp"
+
+#define RDB_IMPL_PROTOB_SERIALIZABLE(pb_t)                              \
+    void serialize_protobuf(write_message_t *wm, const pb_t &p) {       \
+        CT_ASSERT(sizeof(int) == sizeof(int32_t));                      \
+        int size = p.ByteSize();                                        \
+        scoped_array_t<char> data(size);                                \
+        p.SerializeToArray(data.data(), size);                          \
+        int32_t size32 = size;                                          \
+        serialize_universal(wm, size32);                                \
+        wm->append(data.data(), data.size());                           \
+    }                                                                   \
+                                                                        \
+    MUST_USE archive_result_t deserialize_protobuf(read_stream_t *s, pb_t *p) { \
+        CT_ASSERT(sizeof(int) == sizeof(int32_t));                      \
+        int32_t size;                                                   \
+        archive_result_t res = deserialize_universal(s, &size);         \
+        if (bad(res)) { return res; }                                   \
+        if (size < 0) { return archive_result_t::RANGE_ERROR; }         \
+        scoped_array_t<char> data(size);                                \
+        int64_t read_res = force_read(s, data.data(), data.size());     \
+        if (read_res != size) { return archive_result_t::SOCK_ERROR; }  \
+        p->ParseFromArray(data.data(), data.size());                    \
+        return archive_result_t::SUCCESS;                               \
+    }
+RDB_IMPL_PROTOB_SERIALIZABLE(Term);
+RDB_IMPL_PROTOB_SERIALIZABLE(Datum);
+RDB_IMPL_PROTOB_SERIALIZABLE(Backtrace);
 
 namespace ql {
 

@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef RDB_PROTOCOL_BLOB_WRAPPER_HPP_
-#define RDB_PROTOCOL_BLOB_WRAPPER_HPP_
+#ifndef RDB_PROTOCOL_REAL_TABLE_BLOB_WRAPPER_HPP_
+#define RDB_PROTOCOL_REAL_TABLE_BLOB_WRAPPER_HPP_
 
 #include <string>
 
@@ -33,4 +33,4 @@ private:
     blob_t internal;
 };
 
-#endif  // RDB_PROTOCOL_BLOB_WRAPPER_HPP_
+#endif  // RDB_PROTOCOL_REAL_TABLE_BLOB_WRAPPER_HPP_

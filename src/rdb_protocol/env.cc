@@ -103,20 +103,9 @@ profile_bool_t env_t::profile() const {
     return trace != nullptr ? profile_bool_t::PROFILE : profile_bool_t::DONT_PROFILE;
 }
 
-base_namespace_repo_t *env_t::ns_repo() {
+reql_cluster_interface_t *env_t::reql_cluster_interface() {
     r_sanity_check(rdb_ctx != NULL);
-    return rdb_ctx->ns_repo;
-}
-
-reql_admin_interface_t *env_t::reql_admin_interface() {
-    r_sanity_check(rdb_ctx != NULL);
-    return rdb_ctx->reql_admin_interface;
-}
-
-changefeed::client_t *env_t::get_changefeed_client() {
-    r_sanity_check(rdb_ctx != NULL);
-    r_sanity_check(rdb_ctx->changefeed_client.has());
-    return rdb_ctx->changefeed_client.get();
+    return rdb_ctx->cluster_interface;
 }
 
 std::string env_t::get_reql_http_proxy() {

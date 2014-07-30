@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "rdb_protocol/store.hpp"
+#include "rdb_protocol/real_table/store.hpp"
 
 #include "btree/slice.hpp"
 #include "btree/superblock.hpp"
@@ -8,9 +8,9 @@
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/cow_ptr.hpp"
-#include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
+#include "rdb_protocol/real_table/btree.hpp"
 
 #include "debug.hpp"
 
@@ -344,7 +344,7 @@ private:
 
 class datum_replacer_t : public btree_batched_replacer_t {
 public:
-    datum_replacer_t(const batched_insert_t &bi)
+    explicit datum_replacer_t(const batched_insert_t &bi)
         : datums(&bi.inserts), conflict_behavior(bi.conflict_behavior),
           pkey(bi.pkey), return_vals(bi.return_vals) { }
     counted_t<const ql::datum_t> replace(const counted_t<const ql::datum_t> &d,

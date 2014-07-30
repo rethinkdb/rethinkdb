@@ -26,6 +26,17 @@ enum class sorting_t {
 // UNORDERED sortings aren't reversed
 bool reversed(sorting_t sorting);
 
+class key_le_t {
+public:
+    explicit key_le_t(sorting_t _sorting) : sorting(_sorting) { }
+    bool operator()(const store_key_t &key1, const store_key_t &key2) const {
+        return (!reversed(sorting) && key1 <= key2)
+            || (reversed(sorting) && key2 <= key1);
+    }
+private:
+    sorting_t sorting;
+};
+
 namespace ql {
 
 // This stuff previously resided in the protocol, but has been broken out since

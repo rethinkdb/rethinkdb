@@ -12,8 +12,8 @@
 #include "containers/counted.hpp"
 #include "extproc/js_runner.hpp"
 #include "rdb_protocol/configured_limits.hpp"
+#include "rdb_protocol/context.hpp"
 #include "rdb_protocol/error.hpp"
-#include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/val.hpp"
 
@@ -42,10 +42,6 @@ private:
     std::map<std::string, wire_func_t> optargs;
 };
 
-namespace changefeed {
-class client_t;
-} // namespace changefeed
-
 profile_bool_t profile_bool_optarg(const protob_t<Query> &query);
 
 scoped_ptr_t<profile::trace_t> maybe_make_profile_trace(profile_bool_t profile);
@@ -56,6 +52,8 @@ public:
           std::map<std::string, wire_func_t> optargs,
           profile::trace_t *trace);
 
+    // Used in unittest and one unfortunate place in rdb_update_single_sindex (for
+    // evaluating a deterministic function).
     explicit env_t(signal_t *interruptor);
 
     ~env_t();
@@ -72,10 +70,7 @@ public:
     // already been called.
     js_runner_t *get_js_runner();
 
-    base_namespace_repo_t *ns_repo();
-    reql_admin_interface_t *reql_admin_interface();
-
-    changefeed::client_t *get_changefeed_client();
+    reql_cluster_interface_t *reql_cluster_interface();
 
     std::string get_reql_http_proxy();
 

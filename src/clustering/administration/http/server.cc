@@ -41,7 +41,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
             _auth_semilattice_metadata,
         clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata,
-        namespace_repo_t *_rdb_namespace_repo,
+        real_reql_cluster_interface_t *_cluster_interface,
         admin_tracker_t *_admin_tracker,
         http_app_t *reql_app,
         uuid_u _us,
@@ -241,7 +241,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     distribution_app.init(new distribution_app_t(
         metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
             _cluster_semilattice_metadata),
-        _rdb_namespace_repo));
+        _cluster_interface));
 
 #ifndef NDEBUG
     cyanide_app.init(new cyanide_http_app_t);

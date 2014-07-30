@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/real_table/btree.hpp"
 
 #include <functional>
 #include <string>
@@ -19,10 +19,10 @@
 #include "containers/archive/buffer_group_stream.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/scoped.hpp"
-#include "rdb_protocol/blob_wrapper.hpp"
 #include "rdb_protocol/func.hpp"
-#include "rdb_protocol/lazy_json.hpp"
-#include "rdb_protocol/serialize_datum_onto_blob.hpp"
+#include "rdb_protocol/real_table/blob_wrapper.hpp"
+#include "rdb_protocol/real_table/lazy_json.hpp"
+#include "rdb_protocol/real_table/serialize_datum_onto_blob.hpp"
 #include "rdb_protocol/shards.hpp"
 
 #include "debug.hpp"
@@ -752,14 +752,14 @@ typedef ql::terminal_variant_t terminal_variant_t;
 
 class sindex_data_t {
 public:
-    sindex_data_t(const key_range_t &_pkey_range, const datum_range_t &_range,
+    sindex_data_t(const key_range_t &_pkey_range, const ql::datum_range_t &_range,
                   ql::map_wire_func_t wire_func, sindex_multi_bool_t _multi)
         : pkey_range(_pkey_range), range(_range),
           func(wire_func.compile_wire_func()), multi(_multi) { }
 private:
     friend class rget_cb_t;
     const key_range_t pkey_range;
-    const datum_range_t range;
+    const ql::datum_range_t range;
     const counted_t<ql::func_t> func;
     const sindex_multi_bool_t multi;
 };
@@ -893,7 +893,11 @@ THROWS_ONLY(interrupted_exc_t) {
         // Check whether we're out of sindex range.
         counted_t<const ql::datum_t> sindex_val; // NULL if no sindex.
         if (sindex) {
-            sindex_val = sindex->func->call(job.env, val)->as_datum();
+            // Secondary index functions are deterministic (so no need for an
+            // rdb_context_t) and evaluated in a pristine environment (without global
+            // optargs).
+            ql::env_t sindex_env(job.env->interruptor);
+            sindex_val = sindex->func->call(&sindex_env, val)->as_datum();
             if (sindex->multi == sindex_multi_bool_t::MULTI
                 && sindex_val->get_type() == ql::datum_t::R_ARRAY) {
                 boost::optional<uint64_t> tag = *ql::datum_t::extract_tag(key);
@@ -956,7 +960,7 @@ void rdb_rget_slice(
 
 void rdb_rget_secondary_slice(
     btree_slice_t *slice,
-    const datum_range_t &sindex_range,
+    const ql::datum_range_t &sindex_range,
     const region_t &sindex_region,
     superblock_t *superblock,
     ql::env_t *ql_env,
@@ -1079,8 +1083,8 @@ void rdb_modification_report_cb_t::on_mod_report(
                       &sindexes_updated_cond));
         if (store_->changefeed_server.has()) {
             store_->changefeed_server->send_all(
-                ql::changefeed::msg_t(
-                    ql::changefeed::msg_t::change_t(
+                changefeed::msg_t(
+                    changefeed::msg_t::change_t(
                         mod_report.info.deleted.first,
                         mod_report.info.added.first)));
         }
@@ -1104,11 +1108,17 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
 }
 
 void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> doc,
-                  ql::map_wire_func_t *mapping, sindex_multi_bool_t multi, ql::env_t *env,
+                  ql::map_wire_func_t *mapping, sindex_multi_bool_t multi,
                   std::vector<store_key_t> *keys_out) {
     guarantee(keys_out->empty());
+
+    // Secondary index functions are deterministic (so no need for an rdb_context_t)
+    // and evaluated in a pristine environment (without global optargs).
+    cond_t non_interruptor;
+    ql::env_t sindex_env(&non_interruptor);
+
     counted_t<const ql::datum_t> index =
-        mapping->compile_wire_func()->call(env, doc)->as_datum();
+        mapping->compile_wire_func()->call(&sindex_env, doc)->as_datum();
 
     if (multi == sindex_multi_bool_t::MULTI && index->get_type() == ql::datum_t::R_ARRAY) {
         for (uint64_t i = 0; i < index->size(); ++i) {
@@ -1161,12 +1171,9 @@ void rdb_update_single_sindex(
     sindex_multi_bool_t multi;
     deserialize_sindex_info(sindex->sindex.opaque_definition, &mapping, &multi);
 
-    // TODO we have no rdb context here. People should not be able to do anything
-    // that requires an environment like gets from other tables etc. but we don't
-    // have a nice way to disallow those things so for now we pass null and it will
-    // segfault if an illegal sindex mapping is passed.
-    cond_t non_interruptor;
-    ql::env_t env(&non_interruptor);
+    // TODO(2014-08): Actually get real profiling information for
+    // secondary index updates.
+    profile::trace_t *const trace = nullptr;
 
     superblock_t *super_block = sindex->super_block.get();
 
@@ -1177,20 +1184,22 @@ void rdb_update_single_sindex(
 
             std::vector<store_key_t> keys;
 
-            compute_keys(modification->primary_key, deleted, &mapping, multi, &env, &keys);
+            compute_keys(modification->primary_key, deleted, &mapping, multi, &keys);
 
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
                 {
                     keyvalue_location_t kv_location;
                     rdb_value_sizer_t sizer(super_block->cache()->max_block_size());
+
+
                     find_keyvalue_location_for_write(&sizer,
                                                      super_block,
                                                      it->btree_key(),
                                                      deletion_context->balancing_detacher(),
                                                      &kv_location,
                                                      &sindex->btree->stats,
-                                                     env.trace,
+                                                     trace,
                                                      &return_superblock_local);
 
                     if (kv_location.value.has()) {
@@ -1217,7 +1226,7 @@ void rdb_update_single_sindex(
 
             std::vector<store_key_t> keys;
 
-            compute_keys(modification->primary_key, added, &mapping, multi, &env, &keys);
+            compute_keys(modification->primary_key, added, &mapping, multi, &keys);
 
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
@@ -1231,7 +1240,7 @@ void rdb_update_single_sindex(
                                                      deletion_context->balancing_detacher(),
                                                      &kv_location,
                                                      &sindex->btree->stats,
-                                                     env.trace,
+                                                     trace,
                                                      &return_superblock_local);
 
                     ql::serialization_result_t res =

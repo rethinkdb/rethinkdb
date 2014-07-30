@@ -25,6 +25,8 @@
 #include "rdb_protocol/serialize_datum.hpp"
 #include "version.hpp"
 
+namespace unittest { struct make_sindex_read_t; }
+
 // Enough precision to reconstruct doubles from their decimal representations.
 // Unlike the late DBLPRI, this lacks a percent sign.
 #define PR_RECONSTRUCTABLE_DOUBLE ".20g"
@@ -144,6 +146,9 @@ public:
     static const size_t trunc_len = 300;
     std::string trunc_print() const;
     std::string print_primary() const;
+
+    /* TODO: All of this key-mangling logic belongs in `real_table/`. Maybe
+    `print_primary()` belongs there as well. */
     static std::string mangle_secondary(const std::string &secondary,
             const std::string &primary, const std::string &tag);
     std::string print_secondary(const store_key_t &key,
@@ -377,5 +382,36 @@ public:
 };
 } // namespace pseudo
 
+class datum_range_t {
+public:
+    enum bound_t {
+        open,
+        closed,
+        /* TODO: I don't think we actually use `none` anywhere */
+        none
+    };
+
+    datum_range_t();
+    datum_range_t(
+        counted_t<const datum_t> left_bound,
+        bound_t left_bound_type,
+        counted_t<const datum_t> right_bound,
+        bound_t right_bound_type);
+    // Range that includes just one value.
+    explicit datum_range_t(counted_t<const ql::datum_t> val);
+    static datum_range_t universe();
+
+    bool contains(counted_t<const ql::datum_t> val) const;
+    bool is_universe() const;
+
+    counted_t<const datum_t> left_bound, right_bound;
+    bound_t left_bound_type, right_bound_type;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+RDB_SERIALIZE_OUTSIDE(datum_range_t);
+
 } // namespace ql
+
 #endif // RDB_PROTOCOL_DATUM_HPP_

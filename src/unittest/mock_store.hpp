@@ -5,7 +5,7 @@
 #include <utility>
 #include <string>
 
-#include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/real_table/protocol.hpp"
 #include "store_view.hpp"
 
 namespace unittest {

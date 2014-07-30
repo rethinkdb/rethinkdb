@@ -15,59 +15,13 @@
 #include <boost/optional.hpp>
 
 #include "rdb_protocol/context.hpp"
-#include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/shards.hpp"
 
 namespace ql {
 
 class env_t;
-
-/* This wraps a namespace_interface_t and makes it automatically handle getting
- * profiling information from them. It acheives this by doing the following in
- * its methods:
- * - Set the explain field in the read_t/write_t object so that the shards know
- whether or not to do profiling
- * - Construct a splitter_t
- * - Call the corresponding method on internal_
- * - splitter_t::give_splits with the event logs from the shards
- */
-class rdb_namespace_interface_t {
-public:
-    explicit rdb_namespace_interface_t(namespace_interface_t *internal);
-
-    void read(env_t *env,
-              const read_t &,
-              read_response_t *response,
-              order_token_t tok)
-        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
-    void read_outdated(env_t *env,
-                       const read_t &,
-                       read_response_t *response)
-        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
-    void write(env_t *env,
-               write_t *,
-               write_response_t *response,
-               order_token_t tok)
-        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
-
-    /* These calls are for the sole purpose of optimizing queries; don't rely
-       on them for correctness. They should not block. */
-    std::set<region_t> get_sharding_scheme()
-        THROWS_ONLY(cannot_perform_query_exc_t);
-    signal_t *get_initial_ready_signal();
-
-private:
-    namespace_interface_t *internal_;
-};
-
-class rdb_namespace_access_t {
-public:
-    rdb_namespace_access_t(uuid_u id, env_t *env);
-    rdb_namespace_interface_t get_namespace_if();
-private:
-    base_namespace_repo_t::access_t internal_;
-};
-
 class scope_env_t;
+
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
                        public pb_rcheckable_t {
 public:
@@ -285,182 +239,15 @@ private:
     bool is_cfeed_union;
 };
 
-// This class generates the `read_t`s used in range reads.  It's used by
-// `reader_t` below.  Its subclasses are the different types of range reads we
-// need to do.
-class readgen_t {
-public:
-    explicit readgen_t(
-        const std::map<std::string, wire_func_t> &global_optargs,
-        std::string table_name,
-        const datum_range_t &original_datum_range,
-        profile_bool_t profile,
-        sorting_t sorting);
-    virtual ~readgen_t() { }
-    read_t terminal_read(
-        const std::vector<transform_variant_t> &transform,
-        const terminal_variant_t &_terminal,
-        const batchspec_t &batchspec) const;
-    // This has to be on `readgen_t` because we sort differently depending on
-    // the kinds of reads we're doing.
-    virtual void sindex_sort(std::vector<rget_item_t> *vec) const = 0;
-
-    virtual read_t next_read(
-        const key_range_t &active_range,
-        const std::vector<transform_variant_t> &transform,
-        const batchspec_t &batchspec) const;
-    // This generates a read that will read as many rows as we need to be able
-    // to do an sindex sort, or nothing if no such read is necessary.  Such a
-    // read should only be necessary when we're ordering by a secondary index
-    // and the last element read has a truncated value for that secondary index.
-    virtual boost::optional<read_t> sindex_sort_read(
-        const key_range_t &active_range,
-        const std::vector<rget_item_t> &items,
-        const std::vector<transform_variant_t> &transform,
-        const batchspec_t &batchspec) const = 0;
-
-    virtual key_range_t original_keyrange() const = 0;
-    virtual std::string sindex_name() const = 0; // Used for error checking.
-
-    // Returns `true` if there is no more to read.
-    bool update_range(key_range_t *active_range,
-                      const store_key_t &last_key) const;
-protected:
-    const std::map<std::string, wire_func_t> global_optargs;
-    const std::string table_name;
-    const datum_range_t original_datum_range;
-    const profile_bool_t profile;
-    const sorting_t sorting;
-
-private:
-    virtual rget_read_t next_read_impl(
-        const key_range_t &active_range,
-        const std::vector<transform_variant_t> &transform,
-        const batchspec_t &batchspec) const = 0;
-};
-
-class primary_readgen_t : public readgen_t {
-public:
-    static scoped_ptr_t<readgen_t> make(
-        env_t *env,
-        std::string table_name,
-        datum_range_t range = datum_range_t::universe(),
-        sorting_t sorting = sorting_t::UNORDERED);
-private:
-    primary_readgen_t(const std::map<std::string, wire_func_t> &global_optargs,
-                      std::string table_name,
-                      datum_range_t range,
-                      profile_bool_t profile,
-                      sorting_t sorting);
-    virtual rget_read_t next_read_impl(
-        const key_range_t &active_range,
-        const std::vector<transform_variant_t> &transform,
-        const batchspec_t &batchspec) const;
-    virtual boost::optional<read_t> sindex_sort_read(
-        const key_range_t &active_range,
-        const std::vector<rget_item_t> &items,
-        const std::vector<transform_variant_t> &transform,
-        const batchspec_t &batchspec) const;
-    virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
-    virtual key_range_t original_keyrange() const;
-    virtual std::string sindex_name() const; // Used for error checking.
-};
-
-class sindex_readgen_t : public readgen_t {
-public:
-    static scoped_ptr_t<readgen_t> make(
-        env_t *env,
-        std::string table_name,
-        const std::string &sindex,
-        datum_range_t range = datum_range_t::universe(),
-        sorting_t sorting = sorting_t::UNORDERED);
-private:
-    sindex_readgen_t(
-        const std::map<std::string, wire_func_t> &global_optargs,
-        std::string table_name,
-        const std::string &sindex,
-        datum_range_t sindex_range,
-        profile_bool_t profile,
-        sorting_t sorting);
-    virtual rget_read_t next_read_impl(
-        const key_range_t &active_range,
-        const std::vector<transform_variant_t> &transform,
-        const batchspec_t &batchspec) const;
-    virtual boost::optional<read_t> sindex_sort_read(
-        const key_range_t &active_range,
-        const std::vector<rget_item_t> &items,
-        const std::vector<transform_variant_t> &transform,
-        const batchspec_t &batchspec) const;
-    virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
-    virtual key_range_t original_keyrange() const;
-    virtual std::string sindex_name() const; // Used for error checking.
-
-    const std::string sindex;
-};
-
-class reader_t {
-public:
-    explicit reader_t(
-        const rdb_namespace_access_t &ns_access,
-        bool use_outdated,
-        scoped_ptr_t<readgen_t> &&readgen);
-    void add_transformation(transform_variant_t &&tv);
-    void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
-    void accumulate_all(env_t *env, eager_acc_t *acc);
-    std::vector<counted_t<const datum_t> >
-    next_batch(env_t *env, const batchspec_t &batchspec);
-    bool is_finished() const;
-private:
-    // Returns `true` if there's data in `items`.
-    bool load_items(env_t *env, const batchspec_t &batchspec);
-    rget_read_response_t do_read(env_t *env, const read_t &read);
-    std::vector<rget_item_t> do_range_read(env_t *env, const read_t &read);
-
-    rdb_namespace_access_t ns_access;
-    const bool use_outdated;
-    std::vector<transform_variant_t> transforms;
-
-    bool started, shards_exhausted;
-    const scoped_ptr_t<const readgen_t> readgen;
-    key_range_t active_range;
-
-    // We need this to handle the SINDEX_CONSTANT case.
-    std::vector<rget_item_t> items;
-    size_t items_index;
-};
-
-class lazy_datum_stream_t : public datum_stream_t {
-public:
-    lazy_datum_stream_t(
-        rdb_namespace_access_t *_ns_access,
-        bool _use_outdated,
-        scoped_ptr_t<readgen_t> &&_readgen,
-        const protob_t<const Backtrace> &bt_src);
-
-    virtual bool is_array() { return false; }
-    virtual counted_t<const datum_t> as_array(UNUSED env_t *env) {
-        return counted_t<const datum_t>();  // Cannot be converted implicitly.
+template<class T>
+T groups_to_batch(std::map<counted_t<const datum_t>, T> *g) {
+    if (g->size() == 0) {
+        return T();
+    } else {
+        r_sanity_check(g->size() == 1 && !g->begin()->first.has());
+        return std::move(g->begin()->second);
     }
-
-    bool is_exhausted() const;
-    virtual bool is_cfeed() const;
-private:
-    std::vector<counted_t<const datum_t> >
-    next_batch_impl(env_t *env, const batchspec_t &batchspec);
-
-    virtual void add_transformation(transform_variant_t &&tv,
-                                    const protob_t<const Backtrace> &bt);
-    virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
-    virtual void accumulate_all(env_t *env, eager_acc_t *acc);
-
-    // We use these to cache a batch so that `next` works.  There are a lot of
-    // things that are most easily written in terms of `next` that would
-    // otherwise have to do this caching themselves.
-    size_t current_batch_offset;
-    std::vector<counted_t<const datum_t> > current_batch;
-
-    reader_t reader;
-};
+}
 
 } // namespace ql
 

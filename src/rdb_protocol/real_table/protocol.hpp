@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef RDB_PROTOCOL_PROTOCOL_HPP_
-#define RDB_PROTOCOL_PROTOCOL_HPP_
+#ifndef RDB_PROTOCOL_REAL_TABLE_PROTOCOL_HPP_
+#define RDB_PROTOCOL_REAL_TABLE_PROTOCOL_HPP_
 
 #include <algorithm>
 #include <list>
@@ -21,11 +21,11 @@
 #include "concurrency/cond_var.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
-#include "rdb_protocol/changefeed.hpp"
-#include "rdb_protocol/context.hpp"
+#include "rdb_protocol/profile.hpp"
+#include "rdb_protocol/real_table/changefeed.hpp"
+#include "rdb_protocol/shards.hpp"
 #include "region/region.hpp"
 #include "repli_timestamp.hpp"
-#include "rdb_protocol/shards.hpp"
 #include "rpc/mailbox/typed.hpp"
 
 class store_t;
@@ -34,6 +34,7 @@ template <class> class clone_ptr_t;
 template <class> class cow_ptr_t;
 template <class> class cross_thread_watchable_variable_t;
 class cross_thread_signal_t;
+class rdb_context_t;
 struct secondary_index_t;
 class traversal_progress_combiner_t;
 template <class> class watchable_t;
@@ -41,16 +42,9 @@ class Term;
 class Datum;
 class Backtrace;
 
-
-namespace unittest { struct make_sindex_read_t; }
-
-enum class profile_bool_t {
-    PROFILE,
-    DONT_PROFILE
-};
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
-        profile_bool_t, int8_t,
-        profile_bool_t::PROFILE, profile_bool_t::DONT_PROFILE);
+namespace ql {
+class datum_t;
+} // namespace ql
 
 enum class point_write_result_t {
     STORED,
@@ -67,67 +61,6 @@ enum class point_delete_result_t {
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         point_delete_result_t, int8_t,
         point_delete_result_t::DELETED, point_delete_result_t::MISSING);
-
-#define RDB_DECLARE_PROTOB_SERIALIZABLE(pb_t) \
-    void serialize_protobuf(write_message_t *wm, const pb_t &p); \
-    MUST_USE archive_result_t deserialize_protobuf(read_stream_t *s, pb_t *p)
-
-RDB_DECLARE_PROTOB_SERIALIZABLE(Term);
-RDB_DECLARE_PROTOB_SERIALIZABLE(Datum);
-RDB_DECLARE_PROTOB_SERIALIZABLE(Backtrace);
-
-class key_le_t {
-public:
-    explicit key_le_t(sorting_t _sorting) : sorting(_sorting) { }
-    bool operator()(const store_key_t &key1, const store_key_t &key2) const {
-        return (!reversed(sorting) && key1 <= key2)
-            || (reversed(sorting) && key2 <= key1);
-    }
-private:
-    sorting_t sorting;
-};
-
-namespace ql {
-class datum_t;
-class env_t;
-class primary_readgen_t;
-class readgen_t;
-class sindex_readgen_t;
-} // namespace ql
-
-class datum_range_t {
-public:
-    datum_range_t();
-    datum_range_t(
-        counted_t<const ql::datum_t> left_bound,
-        key_range_t::bound_t left_bound_type,
-        counted_t<const ql::datum_t> right_bound,
-        key_range_t::bound_t right_bound_type);
-    // Range that includes just one value.
-    explicit datum_range_t(counted_t<const ql::datum_t> val);
-    static datum_range_t universe();
-
-    bool contains(counted_t<const ql::datum_t> val) const;
-    bool is_universe() const;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
-
-private:
-    // Only `readgen_t` and its subclasses should do anything fancy with a range.
-    // (Modulo unit tests.)
-    friend class ql::readgen_t;
-    friend class ql::primary_readgen_t;
-    friend class ql::sindex_readgen_t;
-    friend struct unittest::make_sindex_read_t;
-
-    key_range_t to_primary_keyrange() const;
-    key_range_t to_sindex_keyrange() const;
-
-    counted_t<const ql::datum_t> left_bound, right_bound;
-    key_range_t::bound_t left_bound_type, right_bound_type;
-};
-
-RDB_SERIALIZE_OUTSIDE(datum_range_t);
 
 struct backfill_atom_t {
     store_key_t key;
@@ -167,7 +100,7 @@ struct single_sindex_status_t {
     bool ready;
 };
 
-} // namespace rdb_protocol
+}   /* namespace rdb_protocol */
 
 RDB_DECLARE_SERIALIZABLE(rdb_protocol::single_sindex_status_t);
 
@@ -234,7 +167,7 @@ RDB_DECLARE_SERIALIZABLE(sindex_status_response_t);
 struct changefeed_subscribe_response_t {
     changefeed_subscribe_response_t() { }
     std::set<uuid_u> server_uuids;
-    std::set<ql::changefeed::server_t::addr_t> addrs;
+    std::set<changefeed::server_t::addr_t> addrs;
 };
 
 RDB_DECLARE_SERIALIZABLE(changefeed_subscribe_response_t);
@@ -296,11 +229,11 @@ struct sindex_rangespec_t {
                        // sometimes smaller than the datum range below when
                        // dealing with truncated keys.
                        const region_t &_region,
-                       const datum_range_t _original_range)
+                       const ql::datum_range_t _original_range)
         : id(_id), region(_region), original_range(_original_range) { }
     std::string id; // What sindex we're using.
     region_t region; // What keyspace we're currently operating on.
-    datum_range_t original_range; // For dealing with truncation.
+    ql::datum_range_t original_range; // For dealing with truncation.
 };
 
 RDB_DECLARE_SERIALIZABLE(sindex_rangespec_t);
@@ -384,9 +317,9 @@ RDB_DECLARE_SERIALIZABLE(sindex_status_t);
 class changefeed_subscribe_t {
 public:
     changefeed_subscribe_t() { }
-    explicit changefeed_subscribe_t(ql::changefeed::client_t::addr_t _addr)
+    explicit changefeed_subscribe_t(changefeed::client_t::addr_t _addr)
         : addr(_addr), region(region_t::universe()) { }
-    ql::changefeed::client_t::addr_t addr;
+    changefeed::client_t::addr_t addr;
     region_t region;
 };
 
@@ -395,9 +328,9 @@ RDB_DECLARE_SERIALIZABLE(changefeed_subscribe_t);
 class changefeed_stamp_t {
 public:
     changefeed_stamp_t() : region(region_t::universe()) { }
-    explicit changefeed_stamp_t(ql::changefeed::client_t::addr_t _addr)
+    explicit changefeed_stamp_t(changefeed::client_t::addr_t _addr)
         : addr(std::move(_addr)), region(region_t::universe()) { }
-    ql::changefeed::client_t::addr_t addr;
+    changefeed::client_t::addr_t addr;
     region_t region;
 };
 RDB_DECLARE_SERIALIZABLE(changefeed_stamp_t);
@@ -406,10 +339,10 @@ RDB_DECLARE_SERIALIZABLE(changefeed_stamp_t);
 class changefeed_point_stamp_t {
 public:
     changefeed_point_stamp_t() { }
-    explicit changefeed_point_stamp_t(ql::changefeed::client_t::addr_t _addr,
+    explicit changefeed_point_stamp_t(changefeed::client_t::addr_t _addr,
                                       store_key_t &&_key)
         : addr(std::move(_addr)), key(std::move(_key)) { }
-    ql::changefeed::client_t::addr_t addr;
+    changefeed::client_t::addr_t addr;
     store_key_t key;
 };
 
@@ -755,15 +688,9 @@ RDB_DECLARE_SERIALIZABLE(backfill_chunk_t);
 class store_t;
 
 namespace rdb_protocol {
-const size_t MAX_PRIMARY_KEY_SIZE = 128;
 
 // Construct a region containing only the specified key
 region_t monokey_region(const store_key_t &k);
-
-// Constructs a region which will query an sindex for matches to a specific key
-// TODO consider relocating this
-key_range_t sindex_key_range(const store_key_t &start,
-                             const store_key_t &end);
 
 region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
 }  // namespace rdb_protocol
@@ -782,4 +709,5 @@ struct range_key_tester_t : public key_tester_t {
 };
 } // namespace rdb_protocol
 
-#endif  // RDB_PROTOCOL_PROTOCOL_HPP_
+#endif  // RDB_PROTOCOL_REAL_TABLE_PROTOCOL_HPP_
+

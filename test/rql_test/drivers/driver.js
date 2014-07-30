@@ -56,6 +56,13 @@ function eq_test(one, two) {
 
         return true;
 
+    } else if (one instanceof Buffer) {
+        if (!(two instanceof Buffer)) return false;
+        if (one.length !== two.length) return false;
+        for (var i = 0; i < one.length; i++) {
+            if (one[i] !== two[i]) return false;
+        }
+        return true;
     } else if (one instanceof Object) {
 
         if (!(two instanceof Object)) return false;

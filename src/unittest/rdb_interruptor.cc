@@ -178,21 +178,29 @@ void interrupt_test(test_rdb_env_t *test_env,
 
 class exists_verify_callback_t : public verify_callback_t {
 public:
-    exists_verify_callback_t(const namespace_id_t &_ns_id, bool _should_exist, const std::string& _key) :
+    exists_verify_callback_t(const database_id_t &_db_id, const std::string &_table_name,
+            bool _should_exist, const std::string& _key) :
         key("S" + _key),
-        ns_id(_ns_id),
-        should_exist(_should_exist) { }
+        db_id(_db_id),
+        should_exist(_should_exist)
+    {
+        if (!table_name.assign_value(_table_name)) {
+            throw invalid_name_exc_t(_table_name);
+        }
+    }
     virtual ~exists_verify_callback_t() { }
 
     bool verify(test_rdb_env_t::instance_t *env_instance) {
-        const std::map<store_key_t, scoped_cJSON_t *> *data = env_instance->get_data(ns_id);
+        const std::map<store_key_t, scoped_cJSON_t *> *data =
+            env_instance->get_data(db_id, table_name);
         bool exists = data->find(key) != data->end();
         return should_exist == exists;
     }
 
 private:
     const store_key_t key;
-    const namespace_id_t ns_id;
+    const database_id_t db_id;
+    name_string_t table_name;
     const bool should_exist;
 };
 
@@ -212,8 +220,9 @@ TEST(RDBInterrupt, InsertOp) {
     {
         test_rdb_env_t test_env;
         database_id_t db_id = test_env.add_database("db");
-        namespace_id_t ns_id = test_env.add_table("table", db_id, "id", std::set<std::map<std::string, std::string> >());
-        exists_verify_callback_t verify_callback(ns_id, true, "key");
+        test_env.add_table("table", db_id, "id",
+            std::set<std::map<std::string, std::string> >());
+        exists_verify_callback_t verify_callback(db_id, "table", true, "key");
         unittest::run_in_thread_pool(std::bind(count_evals,
                                                &test_env,
                                                insert_proto,
@@ -223,8 +232,9 @@ TEST(RDBInterrupt, InsertOp) {
     for (uint64_t i = 0; i <= eval_count; ++i) {
         test_rdb_env_t test_env;
         database_id_t db_id = test_env.add_database("db");
-        namespace_id_t ns_id = test_env.add_table("table", db_id, "id", std::set<std::map<std::string, std::string> >());
-        exists_verify_callback_t verify_callback(ns_id, false, "key");
+        test_env.add_table("table", db_id, "id",
+            std::set<std::map<std::string, std::string> >());
+        exists_verify_callback_t verify_callback(db_id, "table", false, "key");
         unittest::run_in_thread_pool(std::bind(interrupt_test,
                                                &test_env,
                                                insert_proto,
@@ -296,8 +306,8 @@ TEST(RDBInterrupt, DeleteOp) {
     {
         test_rdb_env_t test_env;
         database_id_t db_id = test_env.add_database("db");
-        namespace_id_t ns_id = test_env.add_table("table", db_id, "id", initial_data);
-        exists_verify_callback_t verify_callback(ns_id, false, "key");
+        test_env.add_table("table", db_id, "id", initial_data);
+        exists_verify_callback_t verify_callback(db_id, "table", false, "key");
         unittest::run_in_thread_pool(std::bind(count_evals,
                                                &test_env,
                                                delete_proto,
@@ -307,8 +317,8 @@ TEST(RDBInterrupt, DeleteOp) {
     for (uint64_t i = 0; i <= eval_count; ++i) {
         test_rdb_env_t test_env;
         database_id_t db_id = test_env.add_database("db");
-        namespace_id_t ns_id = test_env.add_table("table", db_id, "id", initial_data);
-        exists_verify_callback_t verify_callback(ns_id, true, "key");
+        test_env.add_table("table", db_id, "id", initial_data);
+        exists_verify_callback_t verify_callback(db_id, "table", true, "key");
         unittest::run_in_thread_pool(std::bind(interrupt_test,
                                                &test_env,
                                                delete_proto,

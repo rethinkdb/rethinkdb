@@ -339,7 +339,7 @@ private:
             b |= info.add("name", make_counted<datum_t>(std::string(v->as_db()->name)));
         } break;
         case TABLE_TYPE: {
-            counted_t<table_t> table = v->as_table();
+            counted_t<table_view_t> table = v->as_table();
             b |= info.add("name", make_counted<datum_t>(std::string(table->name)));
             b |= info.add("primary_key",
                           make_counted<datum_t>(std::string(table->get_pkey())));
