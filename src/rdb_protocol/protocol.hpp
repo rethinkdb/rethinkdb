@@ -87,6 +87,14 @@ private:
     sorting_t sorting;
 };
 
+namespace ql {
+class datum_t;
+class env_t;
+class primary_readgen_t;
+class readgen_t;
+class sindex_readgen_t;
+} // namespace ql
+
 class datum_range_t {
 public:
     datum_range_t();
@@ -102,13 +110,21 @@ public:
     bool contains(counted_t<const ql::datum_t> val) const;
     bool is_universe() const;
 
+    RDB_DECLARE_ME_SERIALIZABLE;
+
+private:
+    // Only `readgen_t` and its subclasses should do anything fancy with a range.
+    // (Modulo unit tests.)
+    friend class ql::readgen_t;
+    friend class ql::primary_readgen_t;
+    friend class ql::sindex_readgen_t;
+    friend struct unittest::make_sindex_read_t;
+
     key_range_t to_primary_keyrange() const;
     key_range_t to_sindex_keyrange() const;
 
     counted_t<const ql::datum_t> left_bound, right_bound;
     key_range_t::bound_t left_bound_type, right_bound_type;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
 RDB_SERIALIZE_OUTSIDE(datum_range_t);
