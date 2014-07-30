@@ -41,8 +41,6 @@ counted_t<const datum_t> table_view_t::batched_replace(
 
     if (vals.empty()) {
         return ql::datum_t::empty_object();
-    } else if (vals.size() != 1) {
-        r_sanity_check(!return_vals);
     }
 
     if (!replacement_generator->is_deterministic()) {
@@ -98,8 +96,6 @@ counted_t<const datum_t> table_view_t::batched_insert(
 
     if (valid_inserts.empty()) {
         return std::move(stats).to_counted();
-    } else if (insert_datums.size() != 1) {
-        r_sanity_check(!return_vals);
     }
 
     counted_t<const datum_t> insert_stats =

@@ -117,9 +117,7 @@ private:
                 counted_t<const datum_t> replace_stats = t->batched_insert(
                     env->env, std::move(datums), conflict_behavior,
                     durability_requirement, return_vals);
-                debugf("Merging %s and %s\n", stats->trunc_print().c_str(), replace_stats->trunc_print().c_str());
                 stats = stats->merge(replace_stats, stats_merge, env->env->limits);
-                debugf("Got %s\n", stats->trunc_print().c_str());
                 done = true;
             }
         }
@@ -146,7 +144,7 @@ private:
                 }
 
                 counted_t<const datum_t> replace_stats = t->batched_insert(
-                    env->env, std::move(datums), conflict_behavior, durability_requirement, false);
+                    env->env, std::move(datums), conflict_behavior, durability_requirement, return_vals);
                 stats = stats->merge(replace_stats, stats_merge, env->env->limits);
             }
         }
@@ -250,7 +248,7 @@ private:
                 }
                 counted_t<const datum_t> replace_stats = tbl->batched_replace(
                     env->env, vals, keys,
-                    f, nondet_ok, durability_requirement, false);
+                    f, nondet_ok, durability_requirement, return_vals);
                 stats = stats->merge(replace_stats, stats_merge, env->env->limits);
             }
         }

@@ -459,7 +459,6 @@ struct batched_replace_t {
         : keys(std::move(_keys)), pkey(_pkey), f(func), optargs(_optargs),
           return_vals(_return_vals) {
         r_sanity_check(keys.size() != 0);
-        r_sanity_check(keys.size() == 1 || !return_vals);
     }
     std::vector<store_key_t> keys;
     std::string pkey;
@@ -481,7 +480,6 @@ struct batched_insert_t {
           conflict_behavior(_conflict_behavior), limits(_limits),
           return_vals(_return_vals) {
         r_sanity_check(inserts.size() != 0);
-        r_sanity_check(inserts.size() == 1 || !return_vals);
 #ifndef NDEBUG
         // These checks are done above us, but in debug mode we do them
         // again.  (They're slow.)  We do them above us because the code in
