@@ -28,7 +28,7 @@ class name_string_t;
 class namespace_interface_t;
 template <class> class semilattice_readwrite_view_t;
 
-enum class sindex_multi_bool_t { SINGLE = 0, MULTI = 1};
+enum class sindex_multi_bool_t;
 
 namespace ql {
 

@@ -167,9 +167,11 @@ struct single_sindex_status_t {
     bool ready;
 };
 
-}   /* namespace rdb_protocol */
+}  // namespace rdb_protocol
 
 RDB_DECLARE_SERIALIZABLE(rdb_protocol::single_sindex_status_t);
+
+enum class sindex_multi_bool_t { SINGLE = 0, MULTI = 1};
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_multi_bool_t, int8_t,
         sindex_multi_bool_t::SINGLE, sindex_multi_bool_t::MULTI);
