@@ -12,7 +12,6 @@
 #include "extproc/extproc_spawner.hpp"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pb_utils.hpp"
-#include "rdb_protocol/convert_key.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/store.hpp"
 #include "region/region_json_adapter.hpp"

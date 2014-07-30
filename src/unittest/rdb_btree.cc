@@ -13,7 +13,6 @@
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/btree.hpp"
-#include "rdb_protocol/convert_key.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/store.hpp"
 #include "rdb_protocol/sym.hpp"

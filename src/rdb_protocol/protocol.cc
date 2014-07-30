@@ -45,6 +45,7 @@ store_key_t key_max(sorting_t sorting) {
         p->ParseFromArray(data.data(), data.size());                    \
         return archive_result_t::SUCCESS;                               \
     }
+
 RDB_IMPL_PROTOB_SERIALIZABLE(Term);
 RDB_IMPL_PROTOB_SERIALIZABLE(Datum);
 RDB_IMPL_PROTOB_SERIALIZABLE(Backtrace);
@@ -78,6 +79,27 @@ bool datum_range_t::contains(counted_t<const ql::datum_t> val) const {
             || (*right_bound == *val && right_bound_type == key_range_t::closed));
 }
 
+key_range_t datum_range_t::to_primary_keyrange() const {
+    return key_range_t(
+        left_bound_type,
+        left_bound.has()
+            ? store_key_t(left_bound->print_primary())
+            : store_key_t::min(),
+        right_bound_type,
+        right_bound.has()
+            ? store_key_t(right_bound->print_primary())
+            : store_key_t::max());
+}
+
+key_range_t datum_range_t::to_sindex_keyrange() const {
+    return rdb_protocol::sindex_key_range(
+        left_bound.has()
+            ? store_key_t(left_bound->truncated_secondary())
+            : store_key_t::min(),
+        right_bound.has()
+            ? store_key_t(right_bound->truncated_secondary())
+            : store_key_t::max());
+}
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(backfill_atom_t, key, value, recency);
 

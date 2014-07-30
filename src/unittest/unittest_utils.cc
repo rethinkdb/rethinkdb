@@ -7,7 +7,6 @@
 
 #include "arch/timing.hpp"
 #include "arch/runtime/starter.hpp"
-#include "rdb_protocol/convert_key.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "unittest/gtest.hpp"
 #include "utils.hpp"
@@ -28,9 +27,8 @@ struct make_sindex_read_t {
                                       counted_t<const ql::datum_t>()),
                 std::vector<ql::transform_variant_t>(),
                 boost::optional<ql::terminal_variant_t>(),
-                sindex_rangespec_t(id,
-                    region_t(datum_range_to_sindex_keyrange(rng)),
-                    rng),
+                sindex_rangespec_t(id, region_t(rng.to_sindex_keyrange()),
+                                   rng),
                 sorting_t::UNORDERED),
             profile_bool_t::PROFILE);
     }

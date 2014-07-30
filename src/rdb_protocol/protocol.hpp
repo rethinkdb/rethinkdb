@@ -103,6 +103,9 @@ public:
     bool contains(counted_t<const ql::datum_t> val) const;
     bool is_universe() const;
 
+    key_range_t to_primary_keyrange() const;
+    key_range_t to_sindex_keyrange() const;
+
     counted_t<const ql::datum_t> left_bound, right_bound;
     key_range_t::bound_t left_bound_type, right_bound_type;
 
