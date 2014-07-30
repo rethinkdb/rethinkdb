@@ -360,8 +360,7 @@ public:
         bool use_outdated,
         scoped_ptr_t<readgen_t> &&readgen);
     void add_transformation(transform_variant_t &&tv);
-    void accumulate(env_t *env, eager_acc_t *acc,
-        const terminal_variant_t &tv);
+    void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
     void accumulate_all(env_t *env, eager_acc_t *acc);
     std::vector<counted_t<const datum_t> >
     next_batch(env_t *env, const batchspec_t &batchspec);
@@ -406,8 +405,7 @@ private:
 
     virtual void add_transformation(transform_variant_t &&tv,
                                     const protob_t<const Backtrace> &bt);
-    virtual void accumulate(env_t *env, eager_acc_t *acc,
-        const terminal_variant_t &tv);
+    virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
     virtual void accumulate_all(env_t *env, eager_acc_t *acc);
 
     // We use these to cache a batch so that `next` works.  There are a lot of
