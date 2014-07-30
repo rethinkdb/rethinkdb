@@ -145,7 +145,7 @@ public:
     std::string trunc_print() const;
     std::string print_primary() const;
 
-    /* TODO: All of this key-mangling logic belongs in `real_table/`. Maybe
+    /* TODO: All of this key-mangling logic belongs elsewhere. Maybe
     `print_primary()` belongs there as well. */
     static std::string mangle_secondary(const std::string &secondary,
             const std::string &primary, const std::string &tag);
