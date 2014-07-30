@@ -8,8 +8,6 @@
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/op.hpp"
 
-#include "debug.hpp"
-
 namespace ql {
 
 // Use this merge if it should theoretically never be called.
