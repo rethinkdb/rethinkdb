@@ -282,8 +282,8 @@ private:
 
         tbl->add_bounds(
             datum_range_t(
-                lb, left_open ? key_range_t::open : key_range_t::closed,
-                rb, right_open ? key_range_t::open : key_range_t::closed),
+                lb, left_open ? datum_range_t::open : datum_range_t::closed,
+                rb, right_open ? datum_range_t::open : datum_range_t::closed),
             sid, this);
         return new_val(tbl);
     }

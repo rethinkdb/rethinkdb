@@ -18,6 +18,9 @@
 #include "rdb_protocol/pseudo_binary.hpp"
 #include "rdb_protocol/pseudo_literal.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
+/* TODO: We only need to include this for `MAX_PRIMARY_KEY_SIZE`. We should move the
+key-mangling routines into `real_table/convert_key.hpp` so we can get rid of this. */
+#include "rdb_protocol/real_table/convert_key.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "stl_utils.hpp"
 
@@ -1315,86 +1318,40 @@ counted_t<const datum_t> datum_array_builder_t::to_counted() RVALUE_THIS {
                                  datum_t::no_array_size_limit_check_t());
 }
 
-
-
-
-
-
-
-} // namespace ql
-
 datum_range_t::datum_range_t()
-    : left_bound_type(key_range_t::none), right_bound_type(key_range_t::none) { }
+    : left_bound_type(none), right_bound_type(none) { }
 datum_range_t::datum_range_t(
-    counted_t<const ql::datum_t> _left_bound, key_range_t::bound_t _left_bound_type,
-    counted_t<const ql::datum_t> _right_bound, key_range_t::bound_t _right_bound_type)
+    counted_t<const datum_t> _left_bound, bound_t _left_bound_type,
+    counted_t<const datum_t> _right_bound, bound_t _right_bound_type)
     : left_bound(_left_bound), right_bound(_right_bound),
       left_bound_type(_left_bound_type), right_bound_type(_right_bound_type) { }
 datum_range_t::datum_range_t(counted_t<const ql::datum_t> val)
     : left_bound(val), right_bound(val),
-      left_bound_type(key_range_t::closed), right_bound_type(key_range_t::closed) { }
+      left_bound_type(closed), right_bound_type(closed) { }
 
 datum_range_t datum_range_t::universe()  {
-    return datum_range_t(counted_t<const ql::datum_t>(), key_range_t::open,
-                         counted_t<const ql::datum_t>(), key_range_t::open);
+    return datum_range_t(counted_t<const datum_t>(), open,
+                         counted_t<const datum_t>(), open);
 }
 bool datum_range_t::is_universe() const {
     return !left_bound.has() && !right_bound.has()
-        && left_bound_type == key_range_t::open && right_bound_type == key_range_t::open;
+        && left_bound_type == open && right_bound_type == open;
 }
 
-bool datum_range_t::contains(counted_t<const ql::datum_t> val) const {
+bool datum_range_t::contains(counted_t<const datum_t> val) const {
     return (!left_bound.has()
             || *left_bound < *val
-            || (*left_bound == *val && left_bound_type == key_range_t::closed))
+            || (*left_bound == *val && left_bound_type == closed))
         && (!right_bound.has()
             || *right_bound > *val
-            || (*right_bound == *val && right_bound_type == key_range_t::closed));
+            || (*right_bound == *val && right_bound_type == closed));
 }
 
-key_range_t datum_range_t::to_primary_keyrange() const {
-    return key_range_t(
-        left_bound_type,
-        left_bound.has()
-            ? store_key_t(left_bound->print_primary())
-            : store_key_t::min(),
-        right_bound_type,
-        right_bound.has()
-            ? store_key_t(right_bound->print_primary())
-            : store_key_t::max());
-}
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(datum_range_t::bound_t, int8_t,
+                                      datum_range_t::open, datum_range_t::none);
+RDB_IMPL_ME_SERIALIZABLE_4_SINCE_v1_13(
+        datum_range_t, empty_ok(left_bound), empty_ok(right_bound),
+        left_bound_type, right_bound_type);
 
-namespace rdb_protocol {
-
-key_range_t sindex_key_range(const store_key_t &start,
-                             const store_key_t &end) {
-    store_key_t end_key;
-    std::string end_key_str(key_to_unescaped_str(end));
-
-    // Need to make the next largest store_key_t without making the key longer
-    while (end_key_str.length() > 0 &&
-           end_key_str[end_key_str.length() - 1] == static_cast<char>(255)) {
-        end_key_str.erase(end_key_str.length() - 1);
-    }
-
-    if (end_key_str.length() == 0) {
-        end_key = store_key_t::max();
-    } else {
-        ++end_key_str[end_key_str.length() - 1];
-        end_key = store_key_t(end_key_str);
-    }
-    return key_range_t(key_range_t::closed, start, key_range_t::open, end_key);
-}
-
-}   // namespace rdb_protocol
-
-key_range_t datum_range_t::to_sindex_keyrange() const {
-    return rdb_protocol::sindex_key_range(
-        left_bound.has()
-            ? store_key_t(left_bound->truncated_secondary())
-            : store_key_t::min(),
-        right_bound.has()
-            ? store_key_t(right_bound->truncated_secondary())
-            : store_key_t::max());
-}
+} // namespace ql
 

@@ -12,6 +12,7 @@
 #include "extproc/extproc_spawner.hpp"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/real_table/convert_key.hpp"
 #include "rdb_protocol/real_table/protocol.hpp"
 #include "rdb_protocol/real_table/store.hpp"
 #include "region/region_json_adapter.hpp"

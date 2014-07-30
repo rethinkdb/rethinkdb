@@ -1,6 +1,7 @@
 #include "rdb_protocol/real_table/read_datum_stream.hpp"
 
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/real_table/convert_key.hpp"
 
 // RANGE/READGEN STUFF
 table_reader_t::table_reader_t(
@@ -207,7 +208,7 @@ bool table_reader_t::is_finished() const {
 readgen_t::readgen_t(
     const std::map<std::string, ql::wire_func_t> &_global_optargs,
     std::string _table_name,
-    const datum_range_t &_original_datum_range,
+    const ql::datum_range_t &_original_datum_range,
     profile_bool_t _profile,
     sorting_t _sorting)
     : global_optargs(_global_optargs),
@@ -262,7 +263,7 @@ read_t readgen_t::terminal_read(
 primary_readgen_t::primary_readgen_t(
     const std::map<std::string, ql::wire_func_t> &global_optargs,
     std::string table_name,
-    datum_range_t range,
+    ql::datum_range_t range,
     profile_bool_t profile,
     sorting_t sorting)
     : readgen_t(global_optargs, std::move(table_name), range, profile, sorting) { }
@@ -270,7 +271,7 @@ primary_readgen_t::primary_readgen_t(
 scoped_ptr_t<readgen_t> primary_readgen_t::make(
     ql::env_t *env,
     std::string table_name,
-    datum_range_t range,
+    ql::datum_range_t range,
     sorting_t sorting) {
     return scoped_ptr_t<readgen_t>(
         new primary_readgen_t(
@@ -309,7 +310,7 @@ void primary_readgen_t::sindex_sort(UNUSED std::vector<ql::rget_item_t> *vec) co
 }
 
 key_range_t primary_readgen_t::original_keyrange() const {
-    return original_datum_range.to_primary_keyrange();
+    return datum_range_to_primary_keyrange(original_datum_range);
 }
 
 std::string primary_readgen_t::sindex_name() const {
@@ -320,7 +321,7 @@ sindex_readgen_t::sindex_readgen_t(
     const std::map<std::string, ql::wire_func_t> &global_optargs,
     std::string table_name,
     const std::string &_sindex,
-    datum_range_t range,
+    ql::datum_range_t range,
     profile_bool_t profile,
     sorting_t sorting)
     : readgen_t(global_optargs, std::move(table_name), range, profile, sorting),
@@ -330,7 +331,7 @@ scoped_ptr_t<readgen_t> sindex_readgen_t::make(
     ql::env_t *env,
     std::string table_name,
     const std::string &sindex,
-    datum_range_t range,
+    ql::datum_range_t range,
     sorting_t sorting) {
     return scoped_ptr_t<readgen_t>(
         new sindex_readgen_t(
@@ -423,7 +424,7 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
 }
 
 key_range_t sindex_readgen_t::original_keyrange() const {
-    return original_datum_range.to_sindex_keyrange();
+    return datum_range_to_sindex_keyrange(original_datum_range);
 }
 
 std::string sindex_readgen_t::sindex_name() const {

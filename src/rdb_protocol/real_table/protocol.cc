@@ -963,11 +963,6 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_read_t, key);
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
         sindex_rangespec_t, id, region, original_range);
 
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(key_range_t::bound_t, int8_t,
-                                      key_range_t::open, key_range_t::none);
-RDB_IMPL_ME_SERIALIZABLE_4_SINCE_v1_13(
-        datum_range_t, empty_ok(left_bound), empty_ok(right_bound),
-        left_bound_type, right_bound_type);
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
