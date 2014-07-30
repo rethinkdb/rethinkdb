@@ -12,8 +12,8 @@ class signal_t;
 
 /* `test_for_rdb_table_readiness()` returns `true` if the given namespace is ready for
 reading, and `false` otherwise. */
-bool test_for_rdb_table_readiness(namespace_interface_t *namespace_if,
-                                  signal_t *interruptor)
+MUST_USE bool test_for_rdb_table_readiness(namespace_interface_t *namespace_if,
+                                           signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
 #endif /* RDB_PROTOCOL_WAIT_FOR_READINESS_HPP_ */
