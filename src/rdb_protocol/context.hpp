@@ -48,7 +48,7 @@ public:
         counted_t<const ql::datum_t> pval, bool use_outdated) = 0;
     virtual counted_t<ql::datum_stream_t> read_all(
         ql::env_t *env,
-        const std::string &get_all_sindex_id,
+        const std::string &sindex,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name,   /* the table's own name, for display purposes */
         const ql::datum_range_t &range,

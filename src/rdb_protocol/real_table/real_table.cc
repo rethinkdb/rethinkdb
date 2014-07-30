@@ -78,13 +78,13 @@ counted_t<const ql::datum_t> real_table_t::read_row(ql::env_t *env,
 
 counted_t<ql::datum_stream_t> real_table_t::read_all(
         ql::env_t *env,
-        const std::string &get_all_sindex_id,
+        const std::string &sindex,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name,
         const ql::datum_range_t &range,
         sorting_t sorting,
         bool use_outdated) {
-    if (get_all_sindex_id == get_pkey()) {
+    if (sindex == get_pkey()) {
         return make_counted<read_datum_stream_t>(
             *this,
             use_outdated,
@@ -95,7 +95,7 @@ counted_t<ql::datum_stream_t> real_table_t::read_all(
             *this,
             use_outdated,
             sindex_readgen_t::make(
-                env, table_name, get_all_sindex_id, range, sorting),
+                env, table_name, sindex, range, sorting),
             bt);
     }
 }
