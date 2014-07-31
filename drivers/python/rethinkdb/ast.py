@@ -247,18 +247,18 @@ class RqlQuery(object):
     def update(self, *args, **kwargs):
         kwargs.setdefault('non_atomic', ())
         kwargs.setdefault('durability', ())
-        kwargs.setdefault('return_vals', ())
+        kwargs.setdefault('return_changes', ())
         return Update(self, *[func_wrap(arg) for arg in args], **kwargs)
 
     def replace(self, *args, **kwargs):
         kwargs.setdefault('non_atomic', ())
         kwargs.setdefault('durability', ())
-        kwargs.setdefault('return_vals', ())
+        kwargs.setdefault('return_changes', ())
         return Replace(self, *[func_wrap(arg) for arg in args], **kwargs)
 
     def delete(self, *args, **kwargs):
         kwargs.setdefault('durability', ())
-        kwargs.setdefault('return_vals', ())
+        kwargs.setdefault('return_changes', ())
         return Delete(self, *args, **kwargs)
 
     # Rql type inspection
@@ -941,7 +941,7 @@ class Table(RqlQuery):
     def insert(self, *args, **kwargs):
         kwargs.setdefault('conflict', ())
         kwargs.setdefault('durability', ())
-        kwargs.setdefault('return_vals', ())
+        kwargs.setdefault('return_changes', ())
         return Insert(self, *[expr(arg) for arg in args], **kwargs)
 
     def get(self, *args):

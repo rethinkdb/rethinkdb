@@ -17,6 +17,7 @@
 #include "containers/uuid.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
+#include "rdb_protocol/changes.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "rdb_protocol/wire_func.hpp"
@@ -67,10 +68,10 @@ public:
     virtual counted_t<const ql::datum_t> write_batched_replace(ql::env_t *env,
         const std::vector<counted_t<const ql::datum_t> > &keys,
         const counted_t<ql::func_t> &func,
-        bool _return_vals, durability_requirement_t durability) = 0;
+        return_changes_t _return_changes, durability_requirement_t durability) = 0;
     virtual counted_t<const ql::datum_t> write_batched_insert(ql::env_t *env,
         std::vector<counted_t<const ql::datum_t> > &&inserts,
-        conflict_behavior_t conflict_behavior, bool return_vals,
+        conflict_behavior_t conflict_behavior, return_changes_t return_changes,
         durability_requirement_t durability) = 0;
     virtual bool write_sync_depending_on_durability(ql::env_t *env, 
         durability_requirement_t durability) = 0;

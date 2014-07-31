@@ -36,13 +36,11 @@ counted_t<const datum_t> table_view_t::batched_replace(
     counted_t<func_t> replacement_generator,
     bool nondeterministic_replacements_ok,
     durability_requirement_t durability_requirement,
-    bool return_vals) {
+    return_changes_t return_changes) {
     r_sanity_check(vals.size() == keys.size());
 
     if (vals.empty()) {
         return ql::datum_t::empty_object();
-    } else if (vals.size() != 1) {
-        r_sanity_check(!return_vals);
     }
 
     if (!replacement_generator->is_deterministic()) {
@@ -63,12 +61,12 @@ counted_t<const datum_t> table_view_t::batched_replace(
         }
         counted_t<const datum_t> insert_stats = batched_insert(
             env, std::move(replacement_values), conflict_behavior_t::REPLACE,
-            durability_requirement, return_vals);
+            durability_requirement, return_changes);
         return std::move(stats).to_counted()->merge(insert_stats, stats_merge,
                                                    env->limits);
     } else {
         return table->write_batched_replace(
-            env, keys, replacement_generator, return_vals,
+            env, keys, replacement_generator, return_changes,
             durability_requirement);
     }
 }
@@ -78,7 +76,7 @@ counted_t<const datum_t> table_view_t::batched_insert(
     std::vector<counted_t<const datum_t> > &&insert_datums,
     conflict_behavior_t conflict_behavior,
     durability_requirement_t durability_requirement,
-    bool return_vals) {
+    return_changes_t return_changes) {
 
     datum_object_builder_t stats;
     std::vector<counted_t<const datum_t> > valid_inserts;
@@ -98,13 +96,11 @@ counted_t<const datum_t> table_view_t::batched_insert(
 
     if (valid_inserts.empty()) {
         return std::move(stats).to_counted();
-    } else if (insert_datums.size() != 1) {
-        r_sanity_check(!return_vals);
     }
 
     counted_t<const datum_t> insert_stats =
         table->write_batched_insert(
-            env, std::move(valid_inserts), conflict_behavior, return_vals,
+            env, std::move(valid_inserts), conflict_behavior, return_changes,
             durability_requirement);
     return std::move(stats).to_counted()->merge(insert_stats, stats_merge, env->limits);
 }

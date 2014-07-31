@@ -329,24 +329,24 @@ void store_t::protocol_read(const read_t &read,
 
 class func_replacer_t : public btree_batched_replacer_t {
 public:
-    func_replacer_t(ql::env_t *_env, const ql::wire_func_t &wf, bool _return_vals)
-        : env(_env), f(wf.compile_wire_func()), return_vals(_return_vals) { }
+    func_replacer_t(ql::env_t *_env, const ql::wire_func_t &wf, return_changes_t _return_changes)
+        : env(_env), f(wf.compile_wire_func()), return_changes(_return_changes) { }
     counted_t<const ql::datum_t> replace(
         const counted_t<const ql::datum_t> &d, size_t) const {
         return f->call(env, d, ql::LITERAL_OK)->as_datum();
     }
-    bool should_return_vals() const { return return_vals; }
+    return_changes_t should_return_changes() const { return return_changes; }
 private:
     ql::env_t *const env;
     const counted_t<ql::func_t> f;
-    const bool return_vals;
+    const return_changes_t return_changes;
 };
 
 class datum_replacer_t : public btree_batched_replacer_t {
 public:
     explicit datum_replacer_t(const batched_insert_t &bi)
         : datums(&bi.inserts), conflict_behavior(bi.conflict_behavior),
-          pkey(bi.pkey), return_vals(bi.return_vals) { }
+          pkey(bi.pkey), return_changes(bi.return_changes) { }
     counted_t<const ql::datum_t> replace(const counted_t<const ql::datum_t> &d,
                                          size_t index) const {
         guarantee(index < datums->size());
@@ -365,12 +365,12 @@ public:
         }
         unreachable();
     }
-    bool should_return_vals() const { return return_vals; }
+    return_changes_t should_return_changes() const { return return_changes; }
 private:
     const std::vector<counted_t<const ql::datum_t> > *const datums;
     const conflict_behavior_t conflict_behavior;
     const std::string pkey;
-    const bool return_vals;
+    const return_changes_t return_changes;
 };
 
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
@@ -379,7 +379,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         rdb_modification_report_cb_t sindex_cb(
             store, &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));
-        func_replacer_t replacer(&ql_env, br.f, br.return_vals);
+        func_replacer_t replacer(&ql_env, br.f, br.return_changes);
         response->response =
             rdb_batched_replace(
                 btree_info_t(btree, timestamp,
