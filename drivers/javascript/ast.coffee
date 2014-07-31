@@ -345,7 +345,7 @@ translateBackOptargs = (optargs) ->
     for own key,val of optargs
         key = switch key
             when 'primary_key' then 'primaryKey'
-            when 'return_vals' then 'returnVals'
+            when 'return_changes' then 'returnChanges'
             when 'use_outdated' then 'useOutdated'
             when 'non_atomic' then 'nonAtomic'
             when 'left_bound' then 'leftBound'
@@ -364,7 +364,7 @@ translateOptargs = (optargs) ->
         # We translate known two word opt-args to camel case for your convience
         key = switch key
             when 'primaryKey' then 'primary_key'
-            when 'returnVals' then 'return_vals'
+            when 'returnChanges' then 'return_changes'
             when 'useOutdated' then 'use_outdated'
             when 'nonAtomic' then 'non_atomic'
             when 'leftBound' then 'left_bound'

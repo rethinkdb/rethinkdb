@@ -220,7 +220,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
     rdb_modification_info_t *mod_info_out,
     profile::trace_t *trace)
 {
-    const bool return_vals = replacer->should_return_vals();
+    const return_changes_t return_changes = replacer->should_return_changes();
     const std::string &primary_key = *info.btree->primary_key;
     const store_key_t &key = *info.key;
     ql::datum_object_builder_t resp;
@@ -249,14 +249,14 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             guarantee(old_val->get(primary_key, ql::NOTHROW).has());
         }
         guarantee(old_val.has());
-        if (return_vals == RETURN_VALS) {
+        if (return_changes == return_changes_t::YES) {
             // first, fill with the old value.  Then, if `replacer` succeeds, fill with new value.
             bool conflict = resp.add("values", make_replacement_pair(old_val, old_val));
             guarantee(!conflict);
         }
 
         counted_t<const ql::datum_t> new_val = replacer->replace(old_val);
-        if (return_vals == RETURN_VALS) {
+        if (return_changes == return_changes_t::YES) {
             resp.overwrite("values", make_replacement_pair(old_val, new_val));
         }
         if (new_val->get_type() == ql::datum_t::R_NULL) {
@@ -373,7 +373,7 @@ public:
     counted_t<const ql::datum_t> replace(const counted_t<const ql::datum_t> &d) const {
         return replacer->replace(d, index);
     }
-    bool should_return_vals() const { return replacer->should_return_vals(); }
+    return_changes_t should_return_changes() const { return replacer->should_return_changes(); }
 private:
     const btree_batched_replacer_t *const replacer;
     const size_t index;

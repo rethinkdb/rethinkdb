@@ -118,14 +118,14 @@ counted_t<ql::datum_stream_t> real_table_t::read_all_changes(ql::env_t *env,
 counted_t<const ql::datum_t> real_table_t::write_batched_replace(ql::env_t *env,
         const std::vector<counted_t<const ql::datum_t> > &keys,
         const counted_t<ql::func_t> &func,
-        bool return_vals, durability_requirement_t durability) {
+        return_changes_t return_changes, durability_requirement_t durability) {
     std::vector<store_key_t> store_keys;
     store_keys.reserve(keys.size());
     for (auto it = keys.begin(); it != keys.end(); it++) {
         store_keys.push_back(store_key_t((*it)->print_primary()));
     }
     batched_replace_t write(std::move(store_keys), pkey, func,
-            env->global_optargs.get_all_optargs(), return_vals);
+            env->global_optargs.get_all_optargs(), return_changes);
     write_t w(std::move(write), durability, env->profile(), env->limits);
     write_response_t response;
     write_with_profile(env, &w, &response);
@@ -136,10 +136,10 @@ counted_t<const ql::datum_t> real_table_t::write_batched_replace(ql::env_t *env,
 
 counted_t<const ql::datum_t> real_table_t::write_batched_insert(ql::env_t *env,
         std::vector<counted_t<const ql::datum_t> > &&inserts,
-        conflict_behavior_t conflict_behavior, bool return_vals,
+        conflict_behavior_t conflict_behavior, return_changes_t return_changes,
         durability_requirement_t durability) {
     batched_insert_t write(std::move(inserts), pkey, conflict_behavior, env->limits,
-        return_vals);
+        return_changes);
     write_t w(std::move(write), durability, env->profile(), env->limits);
     write_response_t response;
     write_with_profile(env, &w, &response);
