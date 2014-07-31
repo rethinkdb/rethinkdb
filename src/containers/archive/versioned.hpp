@@ -4,14 +4,15 @@
 #include "containers/archive/archive.hpp"
 #include "version.hpp"
 
-namespace archive_internal {
-
-// This is just used to implement serialize_cluster_version and
+// This is partly used to implement serialize_cluster_version and
 // deserialize_cluster_version.  (cluster_version_t conveniently has a contiguous set
-// of valid representation, from v1_13 to v1_14_is_latest).
+// of valid representation, from v1_13 to v1_14_is_latest).  So don't break the
+// implementation compatibility.
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(cluster_version_t, int8_t,
                                       cluster_version_t::v1_13,
                                       cluster_version_t::v1_14_is_latest);
+
+namespace archive_internal {
 
 class bogus_made_up_type_t;
 
@@ -22,7 +23,7 @@ class bogus_made_up_type_t;
 // range error with the specific removed values.  Or maybe, we would do something
 // differently.
 inline void serialize_cluster_version(write_message_t *wm, cluster_version_t v) {
-    archive_internal::serialize<cluster_version_t::LATEST_OVERALL>(wm, v);
+    serialize<cluster_version_t::LATEST_OVERALL>(wm, v);
 }
 
 inline MUST_USE archive_result_t deserialize_cluster_version(read_stream_t *s,
@@ -32,7 +33,7 @@ inline MUST_USE archive_result_t deserialize_cluster_version(read_stream_t *s,
     // is checked through `guarantee_deserialization()`.
     // See https://github.com/rethinkdb/rethinkdb/issues/2640
     *thing = cluster_version_t::LATEST_OVERALL;
-    return archive_internal::deserialize<cluster_version_t::LATEST_OVERALL>(s, thing);
+    return deserialize<cluster_version_t::LATEST_OVERALL>(s, thing);
 }
 
 

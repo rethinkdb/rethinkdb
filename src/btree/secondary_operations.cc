@@ -6,10 +6,65 @@
 #include "buffer_cache/alt/blob.hpp"
 #include "buffer_cache/alt/serialize_onto_blob.hpp"
 #include "containers/archive/vector_stream.hpp"
+#include "containers/archive/versioned.hpp"
 
-RDB_IMPL_SERIALIZABLE_5_SINCE_v1_13(
-        secondary_index_t, superblock, opaque_definition,
-        post_construction_complete, being_deleted, id);
+template <>
+void
+serialize<cluster_version_t::v1_14_is_latest_disk>(write_message_t *wm,
+                                                   const secondary_index_t &sindex) {
+    const cluster_version_t W = cluster_version_t::v1_14_is_latest_disk;
+    serialize<W>(wm, sindex.superblock);
+    serialize<W>(wm, sindex.opaque_definition);
+    serialize<W>(wm, sindex.post_construction_complete);
+    serialize<W>(wm, sindex.being_deleted);
+    serialize<W>(wm, sindex.id);
+    serialize<W>(wm, sindex.original_reql_version);
+    serialize<W>(wm, sindex.latest_compatible_reql_version);
+    serialize<W>(wm, sindex.latest_checked_reql_version);
+}
+
+
+template <cluster_version_t W>
+typename std::enable_if<W == cluster_version_t::v1_14_is_latest_disk,
+                        archive_result_t>::type
+deserialize(read_stream_t *s, secondary_index_t *out) {
+    archive_result_t res = deserialize<W>(s, &out->superblock);
+    if (bad(res)) { return res; }
+    res = deserialize<W>(s, &out->opaque_definition);
+    if (bad(res)) { return res; }
+    res = deserialize<W>(s, &out->post_construction_complete);
+    if (bad(res)) { return res; }
+    res = deserialize<W>(s, &out->being_deleted);
+    if (bad(res)) { return res; }
+    res = deserialize<W>(s, &out->id);
+    if (bad(res)) { return res; }
+    res = deserialize<W>(s, &out->original_reql_version);
+    if (bad(res)) { return res; }
+    res = deserialize<W>(s, &out->latest_compatible_reql_version);
+    if (bad(res)) { return res; }
+    res = deserialize<W>(s, &out->latest_checked_reql_version);
+    return res;
+}
+
+template <cluster_version_t W>
+typename std::enable_if<W == cluster_version_t::v1_13 || W == cluster_version_t::v1_13_2,
+               archive_result_t>::type
+deserialize(read_stream_t *s, secondary_index_t *out) {
+    archive_result_t res = deserialize<W>(s, &out->superblock);
+    if (bad(res)) { return res; }
+    res = deserialize<W>(s, &out->opaque_definition);
+    if (bad(res)) { return res; }
+    res = deserialize<W>(s, &out->post_construction_complete);
+    if (bad(res)) { return res; }
+    res = deserialize<W>(s, &out->being_deleted);
+    if (bad(res)) { return res; }
+    res = deserialize<W>(s, &out->id);
+    if (bad(res)) { return res; }
+    out->original_reql_version = cluster_version_t::v1_13_2;
+    out->latest_compatible_reql_version = cluster_version_t::v1_13_2;
+    out->latest_checked_reql_version = cluster_version_t::v1_13_2;
+    return archive_result_t::SUCCESS;
+}
 
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(sindex_name_t, name, being_deleted);
 

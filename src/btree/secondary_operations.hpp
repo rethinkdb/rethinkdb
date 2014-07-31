@@ -15,9 +15,11 @@
 class buf_lock_t;
 
 struct secondary_index_t {
+    // RSI: init version fields, also wtf is this calling generate_uuid for?
     secondary_index_t()
         : superblock(NULL_BLOCK_ID), post_construction_complete(false),
-          being_deleted(false), id(generate_uuid())
+          being_deleted(false),
+          id(generate_uuid())
     { }
 
     /* A virtual superblock. */
@@ -40,6 +42,37 @@ struct secondary_index_t {
         return post_construction_complete && !being_deleted;
     }
 
+    /* opaque_definition below describes a ReQL function that uses Terms that might
+       be subject to bug fixes.  We want to maintain the old ReQL behavior for sindex
+       functions that were created with old versions of RethinkDB (so that we don't
+       crash and sindexes maintain their consistency so that the user can manually
+       migrate).  ReQL evaluation is versioned so that we can continue to run old
+       buggy implementations of ReQL functions after bugfix updates have been
+       applied.  ReQL evaluation versions are the same thing as disk format versions,
+       of course. */
+
+    /* Generally speaking, original_reql_version <= latest_compatible_reql_version <=
+       latest_checked_reql_version.  When a new sindex is created, the values are the
+       same.  When a new version of RethinkDB gets run, latest_checked_reql_version
+       will get updated, and latest_compatible_reql_version will get updated if the
+       sindex function is compatible with a later version than the original value of
+       `latest_checked_reql_version`. */
+
+    /* The original ReQL version of the sindex function.  The value here never
+       changes.  This might become useful for tracking down some bugs or fixing them
+       in-place, or performing a desparate reverse migration. */
+    cluster_version_t original_reql_version;
+
+    /* This is the latest version for which evaluation of the sindex function remains
+       compatible. */
+    cluster_version_t latest_compatible_reql_version;
+
+    /* If this is less than the current server version, we'll re-check
+       opaque_definition for compatibility and update this value and
+       `latest_compatible_reql_version` accordingly. */
+    cluster_version_t latest_checked_reql_version;
+
+
     /* An opaque blob that describes the index */
     opaque_definition_t opaque_definition;
 
@@ -56,7 +89,17 @@ struct secondary_index_t {
     }
 };
 
-RDB_DECLARE_SERIALIZABLE(secondary_index_t);
+template <cluster_version_t W>
+void serialize(write_message_t *wm, const secondary_index_t &sindex);
+
+template <cluster_version_t W>
+typename std::enable_if<W == cluster_version_t::v1_13 || W == cluster_version_t::v1_13_2,
+               archive_result_t>::type
+deserialize(read_stream_t *s, secondary_index_t *out);
+template <cluster_version_t W>
+typename std::enable_if<W == cluster_version_t::v1_14_is_latest_disk,
+                        archive_result_t>::type
+deserialize(read_stream_t *s, secondary_index_t *out);
 
 struct sindex_name_t {
     sindex_name_t()
