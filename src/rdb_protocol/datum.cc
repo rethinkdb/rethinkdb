@@ -672,6 +672,7 @@ std::string datum_t::print_secondary(const store_key_t &primary_key,
         tag_string.assign(reinterpret_cast<const char *>(&*tag_num), tag_size);
     }
 
+    secondary_key_string.append(1, '\x00');
     secondary_key_string =
         secondary_key_string.substr(0, trunc_size(primary_key_string.length()));
 
