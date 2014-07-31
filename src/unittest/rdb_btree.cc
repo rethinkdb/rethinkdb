@@ -99,7 +99,10 @@ sindex_name_t create_sindex(store_t *store) {
     sindex_multi_bool_t multi_bool = sindex_multi_bool_t::SINGLE;
 
     write_message_t wm;
-    serialize_sindex_info(&wm, m, multi_bool);
+    serialize_sindex_info(&wm,
+                          m,
+                          sindex_reql_version_info_t::LATEST_DISK(),
+                          multi_bool);
 
     vector_stream_t stream;
     stream.reserve(wm.size());
@@ -209,14 +212,12 @@ void _check_keys_are_present(store_t *store,
         uuid_u sindex_uuid;
 
         {
-            cluster_version_t mapping_func_reql_version;
             std::vector<char> opaque_definition;
             bool sindex_exists = store->acquire_sindex_superblock_for_read(
                     sindex_name,
                     "",
                     super_block.get(),
                     &sindex_sb,
-                    &mapping_func_reql_version,
                     &opaque_definition,
                     &sindex_uuid);
             ASSERT_TRUE(sindex_exists);
@@ -286,14 +287,12 @@ void _check_keys_are_NOT_present(store_t *store,
         uuid_u sindex_uuid;
 
         {
-            cluster_version_t mapping_func_reql_version;
             std::vector<char> opaque_definition;
             bool sindex_exists = store->acquire_sindex_superblock_for_read(
                     sindex_name,
                     "",
                     super_block.get(),
                     &sindex_sb,
-                    &mapping_func_reql_version,
                     &opaque_definition,
                     &sindex_uuid);
             ASSERT_TRUE(sindex_exists);

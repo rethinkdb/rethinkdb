@@ -69,9 +69,6 @@ TPTEST(BTreeSindex, LowLevelOps) {
         s.superblock = randint(1000);
 
         std::string opaque_blob = rand_string(1000);
-        s.original_reql_version = cluster_version_t::LATEST_DISK;
-        s.latest_compatible_reql_version = cluster_version_t::LATEST_DISK;
-        s.latest_checked_reql_version = cluster_version_t::LATEST_DISK;
         s.opaque_definition.assign(opaque_blob.begin(), opaque_blob.end());
 
         mirror[name] = s;
@@ -231,14 +228,12 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             store_key_t key("foo");
 
             {
-                cluster_version_t mapping_func_reql_version;
                 std::vector<char> opaque_definition;
                 bool sindex_exists = store.acquire_sindex_superblock_for_read(
                         name,
                         "",
                         main_sb.get(),
                         &sindex_super_block,
-                        &mapping_func_reql_version,
                         &opaque_definition,
                         &sindex_uuid);
                 ASSERT_TRUE(sindex_exists);

@@ -146,7 +146,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         } else {
             scoped_ptr_t<real_superblock_t> sindex_sb;
             std::vector<char> sindex_mapping_data;
-            cluster_version_t sindex_mapping_reql_version;
 
             uuid_u sindex_uuid;
             try {
@@ -155,7 +154,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                     rget.table_name,
                     superblock,
                     &sindex_sb,
-                    &sindex_mapping_reql_version,
                     &sindex_mapping_data,
                     &sindex_uuid);
                 if (!found) {
@@ -178,15 +176,20 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             //  we construct a filter function that ensures all returned items lie
             //  between sindex_start_value and sindex_end_value.
             ql::map_wire_func_t sindex_mapping;
+            sindex_reql_version_info_t sindex_mapping_version_info;
             sindex_multi_bool_t multi_bool;
-            deserialize_sindex_info(sindex_mapping_data, &sindex_mapping, &multi_bool);
+            deserialize_sindex_info(sindex_mapping_data,
+                                    &sindex_mapping,
+                                    &sindex_mapping_version_info,
+                                    &multi_bool);
 
             rdb_rget_secondary_slice(
                 store->get_sindex_slice(sindex_uuid),
                 rget.sindex->original_range, rget.sindex->region,
                 sindex_sb.get(), &ql_env, rget.batchspec, rget.transforms,
                 rget.terminal, rget.region.inner, rget.sorting,
-                sindex_mapping_reql_version, sindex_mapping, multi_bool, res);
+                sindex_mapping_version_info.latest_compatible_reql_version,
+                sindex_mapping, multi_bool, res);
         }
     }
 
@@ -438,7 +441,10 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         sindex_create_response_t res;
 
         write_message_t wm;
-        serialize_sindex_info(&wm, c.mapping, c.multi);
+        serialize_sindex_info(&wm,
+                              c.mapping,
+                              sindex_reql_version_info_t::LATEST_DISK(),
+                              c.multi);
 
         vector_stream_t stream;
         stream.reserve(wm.size());
