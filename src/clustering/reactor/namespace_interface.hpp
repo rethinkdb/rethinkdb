@@ -21,7 +21,7 @@
 #include "concurrency/promise.hpp"
 #include "concurrency/watchable.hpp"
 #include "protocol_api.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 template <class> class cow_ptr_t;
 class master_access_t;

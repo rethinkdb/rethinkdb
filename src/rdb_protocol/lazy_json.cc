@@ -1,9 +1,9 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "rdb_protocol/real_table/lazy_json.hpp"
+#include "rdb_protocol/lazy_json.hpp"
 
 #include "containers/archive/buffer_group_stream.hpp"
 #include "containers/archive/versioned.hpp"
-#include "rdb_protocol/real_table/blob_wrapper.hpp"
+#include "rdb_protocol/blob_wrapper.hpp"
 
 counted_t<const ql::datum_t> get_data(const rdb_value_t *value, buf_parent_t parent) {
     // TODO: Just use deserialize_from_blob?

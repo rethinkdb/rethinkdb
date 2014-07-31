@@ -3,7 +3,7 @@
 
 #include "clustering/suggester/suggest_blueprint.hpp"
 #include "clustering/generic/nonoverlapping_regions.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 namespace unittest {
 

@@ -60,10 +60,10 @@ class insert_term_t : public op_term_t {
 public:
     insert_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2),
-                    optargspec_t({"conflict", "durability", "return_vals"})) { }
+                    optargspec_t({"conflict", "durability", "return_vals", "return_changes"})) { }
 
 private:
-    static void maybe_generate_key(counted_t<table_view_t> tbl,
+    static void maybe_generate_key(counted_t<table_t> tbl,
                                    const configured_limits_t &limits,
                                    std::vector<std::string> *generated_keys_out,
                                    size_t *keys_skipped_out,
@@ -87,9 +87,14 @@ private:
     }
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_view_t> t = args->arg(env, 0)->as_table();
-        counted_t<val_t> return_vals_val = args->optarg(env, "return_vals");
-        bool return_vals = return_vals_val.has() ? return_vals_val->as_bool() : false;
+        counted_t<table_t> t = args->arg(env, 0)->as_table();
+        return_changes_t return_changes = return_changes_t::NO;
+        if (counted_t<val_t> v = args->optarg(env, "return_changes")) {
+            return_changes = v->as_bool() ? return_changes_t::YES : return_changes_t::NO;
+        }
+        if (counted_t<val_t> v = args->optarg(env, "return_vals")) {
+            rfail(base_exc_t::GENERIC, "return_vals renamed to return_changes");
+        }
 
         const conflict_behavior_t conflict_behavior
             = parse_conflict_optarg(args->optarg(env, "conflict"), this);
@@ -114,7 +119,7 @@ private:
                 }
                 counted_t<const datum_t> replace_stats = t->batched_insert(
                     env->env, std::move(datums), conflict_behavior,
-                    durability_requirement, return_vals);
+                    durability_requirement, return_changes);
                 stats = stats->merge(replace_stats, stats_merge, env->env->limits);
                 done = true;
             }
@@ -122,8 +127,6 @@ private:
 
         if (!done) {
             counted_t<datum_stream_t> datum_stream = v1->as_seq(env->env);
-            rcheck(!return_vals, base_exc_t::GENERIC,
-                   "Optarg RETURN_VALS is invalid for multi-row inserts.");
 
             batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
             for (;;) {
@@ -144,7 +147,7 @@ private:
                 }
 
                 counted_t<const datum_t> replace_stats = t->batched_insert(
-                    env->env, std::move(datums), conflict_behavior, durability_requirement, false);
+                    env->env, std::move(datums), conflict_behavior, durability_requirement, return_changes);
                 stats = stats->merge(replace_stats, stats_merge, env->env->limits);
             }
         }
@@ -187,7 +190,7 @@ class replace_term_t : public op_term_t {
 public:
     replace_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2),
-                    optargspec_t({"non_atomic", "durability", "return_vals"})) { }
+                    optargspec_t({"non_atomic", "durability", "return_vals", "return_changes"})) { }
 
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -195,9 +198,12 @@ private:
         if (counted_t<val_t> v = args->optarg(env, "non_atomic")) {
             nondet_ok = v->as_bool();
         }
-        bool return_vals = false;
+        return_changes_t return_changes = return_changes_t::NO;
+        if (counted_t<val_t> v = args->optarg(env, "return_changes")) {
+            return_changes = v->as_bool() ? return_changes_t::YES : return_changes_t::NO;
+        }
         if (counted_t<val_t> v = args->optarg(env, "return_vals")) {
-            return_vals = v->as_bool();
+            rfail(base_exc_t::GENERIC, "return_vals renamed to return_changes");
         }
 
         const durability_requirement_t durability_requirement
@@ -211,7 +217,7 @@ private:
         counted_t<val_t> v0 = args->arg(env, 0);
         counted_t<const datum_t> stats = new_stats_object();
         if (v0->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
-            std::pair<counted_t<table_view_t>, counted_t<const datum_t> > tblrow
+            std::pair<counted_t<table_t>, counted_t<const datum_t> > tblrow
                 = v0->as_single_selection();
             counted_t<const datum_t> orig_val = tblrow.second;
             counted_t<const datum_t> orig_key = v0->get_orig_key();
@@ -226,16 +232,13 @@ private:
             keys.push_back(orig_key);
             counted_t<const datum_t> replace_stats = tblrow.first->batched_replace(
                 env->env, vals, keys, f,
-                nondet_ok, durability_requirement, return_vals);
+                nondet_ok, durability_requirement, return_changes);
             stats = stats->merge(replace_stats, stats_merge, env->env->limits);
         } else {
-            std::pair<counted_t<table_view_t>, counted_t<datum_stream_t> > tblrows
+            std::pair<counted_t<table_t>, counted_t<datum_stream_t> > tblrows
                 = v0->as_selection(env->env);
-            counted_t<table_view_t> tbl = tblrows.first;
+            counted_t<table_t> tbl = tblrows.first;
             counted_t<datum_stream_t> ds = tblrows.second;
-
-            rcheck(!return_vals, base_exc_t::GENERIC,
-                   "Optarg RETURN_VALS is invalid for multi-row modifications.");
 
             batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
             for (;;) {
@@ -251,7 +254,7 @@ private:
                 }
                 counted_t<const datum_t> replace_stats = tbl->batched_replace(
                     env->env, vals, keys,
-                    f, nondet_ok, durability_requirement, false);
+                    f, nondet_ok, durability_requirement, return_changes);
                 stats = stats->merge(replace_stats, stats_merge, env->env->limits);
             }
         }

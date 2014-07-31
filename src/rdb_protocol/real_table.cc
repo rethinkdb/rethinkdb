@@ -1,12 +1,11 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved
-#include "rdb_protocol/real_table/real_table.hpp"
+#include "rdb_protocol/real_table.hpp"
 
 #include "rdb_protocol/context.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/math_utils.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
-#include "rdb_protocol/real_table/read_datum_stream.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 namespace_interface_access_t::namespace_interface_access_t() :
     nif(NULL), ref_tracker(NULL), thread(INVALID_THREAD)
@@ -81,20 +80,20 @@ counted_t<ql::datum_stream_t> real_table_t::read_all(
         const std::string &sindex,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name,
-        const ql::datum_range_t &range,
+        const datum_range_t &range,
         sorting_t sorting,
         bool use_outdated) {
     if (sindex == get_pkey()) {
-        return make_counted<read_datum_stream_t>(
+        return make_counted<ql::lazy_datum_stream_t>(
             *this,
             use_outdated,
-            primary_readgen_t::make(env, table_name, range, sorting),
+            ql::primary_readgen_t::make(env, table_name, range, sorting),
             bt);
     } else {
-        return make_counted<read_datum_stream_t>(
+        return make_counted<ql::lazy_datum_stream_t>(
             *this,
             use_outdated,
-            sindex_readgen_t::make(
+            ql::sindex_readgen_t::make(
                 env, table_name, sindex, range, sorting),
             bt);
     }
@@ -106,26 +105,26 @@ counted_t<ql::datum_stream_t> real_table_t::read_row_changes(
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name) {
     return changefeed_client->new_feed(env, uuid, bt, table_name, pkey,
-        changefeed::keyspec_t(changefeed::keyspec_t::point_t(std::move(pval))));
+        ql::changefeed::keyspec_t(ql::changefeed::keyspec_t::point_t(std::move(pval))));
 }
 
 counted_t<ql::datum_stream_t> real_table_t::read_all_changes(ql::env_t *env,
         const ql::protob_t<const Backtrace> &bt, const std::string &table_name) {
     return changefeed_client->new_feed(env, uuid, bt, table_name, pkey,
-        changefeed::keyspec_t(changefeed::keyspec_t::all_t()));
+        ql::changefeed::keyspec_t(ql::changefeed::keyspec_t::all_t()));
 }
 
 counted_t<const ql::datum_t> real_table_t::write_batched_replace(ql::env_t *env,
         const std::vector<counted_t<const ql::datum_t> > &keys,
         const counted_t<ql::func_t> &func,
-        bool return_vals, durability_requirement_t durability) {
+        return_changes_t return_changes, durability_requirement_t durability) {
     std::vector<store_key_t> store_keys;
     store_keys.reserve(keys.size());
     for (auto it = keys.begin(); it != keys.end(); it++) {
         store_keys.push_back(store_key_t((*it)->print_primary()));
     }
     batched_replace_t write(std::move(store_keys), pkey, func,
-            env->global_optargs.get_all_optargs(), return_vals);
+            env->global_optargs.get_all_optargs(), return_changes);
     write_t w(std::move(write), durability, env->profile(), env->limits);
     write_response_t response;
     write_with_profile(env, &w, &response);
@@ -136,10 +135,10 @@ counted_t<const ql::datum_t> real_table_t::write_batched_replace(ql::env_t *env,
 
 counted_t<const ql::datum_t> real_table_t::write_batched_insert(ql::env_t *env,
         std::vector<counted_t<const ql::datum_t> > &&inserts,
-        conflict_behavior_t conflict_behavior, bool return_vals,
+        conflict_behavior_t conflict_behavior, return_changes_t return_changes,
         durability_requirement_t durability) {
     batched_insert_t write(std::move(inserts), pkey, conflict_behavior, env->limits,
-        return_vals);
+        return_changes);
     write_t w(std::move(write), durability, env->profile(), env->limits);
     write_response_t response;
     write_with_profile(env, &w, &response);
@@ -159,13 +158,9 @@ bool real_table_t::write_sync_depending_on_durability(ql::env_t *env,
 }
 
 bool real_table_t::sindex_create(ql::env_t *env, const std::string &id,
-        counted_t<ql::func_t> index_func, bool multi) {
+        counted_t<ql::func_t> index_func, sindex_multi_bool_t multi) {
     ql::map_wire_func_t wire_func(index_func);
-    sindex_multi_bool_t multi2 =
-        multi
-        ? sindex_multi_bool_t::MULTI
-        : sindex_multi_bool_t::SINGLE;
-    write_t write(sindex_create_t(id, wire_func, multi2), env->profile(), env->limits);
+    write_t write(sindex_create_t(id, wire_func, multi), env->profile(), env->limits);
     write_response_t res;
     write_with_profile(env, &write, &res);
     sindex_create_response_t *response =

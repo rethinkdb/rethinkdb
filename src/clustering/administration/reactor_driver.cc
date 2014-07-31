@@ -17,7 +17,7 @@
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable.hpp"
 #include "containers/incremental_lenses.hpp"
-#include "rdb_protocol/real_table/store.hpp"
+#include "rdb_protocol/store.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "stl_utils.hpp"

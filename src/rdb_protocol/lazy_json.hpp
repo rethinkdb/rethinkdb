@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef RDB_PROTOCOL_REAL_TABLE_LAZY_JSON_HPP_
-#define RDB_PROTOCOL_REAL_TABLE_LAZY_JSON_HPP_
+#ifndef RDB_PROTOCOL_LAZY_JSON_HPP_
+#define RDB_PROTOCOL_LAZY_JSON_HPP_
 
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/blob.hpp"
@@ -70,4 +70,6 @@ private:
     counted_t<lazy_json_pointee_t> pointee;
 };
 
-#endif  // RDB_PROTOCOL_REAL_TABLE_LAZY_JSON_HPP_
+
+
+#endif  // RDB_PROTOCOL_LAZY_JSON_HPP_

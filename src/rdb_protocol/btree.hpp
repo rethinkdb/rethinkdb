@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef RDB_PROTOCOL_REAL_TABLE_BTREE_HPP_
-#define RDB_PROTOCOL_REAL_TABLE_BTREE_HPP_
+#ifndef RDB_PROTOCOL_BTREE_HPP_
+#define RDB_PROTOCOL_BTREE_HPP_
 
 #include <map>
 #include <set>
@@ -11,8 +11,9 @@
 #include "backfill_progress.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "rdb_protocol/datum.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
-#include "rdb_protocol/real_table/store.hpp"
+#include "rdb_protocol/changes.hpp"
+#include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/store.hpp"
 
 class btree_slice_t;
 class deletion_context_t;
@@ -62,11 +63,6 @@ void rdb_get(
     point_read_response_t *response,
     profile::trace_t *trace);
 
-enum return_vals_t {
-    NO_RETURN_VALS = 0,
-    RETURN_VALS = 1
-};
-
 struct btree_info_t {
     btree_info_t(btree_slice_t *_slice,
                  repli_timestamp_t _timestamp,
@@ -99,13 +95,13 @@ struct btree_batched_replacer_t {
     virtual ~btree_batched_replacer_t() { }
     virtual counted_t<const ql::datum_t> replace(
         const counted_t<const ql::datum_t> &d, size_t index) const = 0;
-    virtual bool should_return_vals() const = 0;
+    virtual return_changes_t should_return_changes() const = 0;
 };
 struct btree_point_replacer_t {
     virtual ~btree_point_replacer_t() { }
     virtual counted_t<const ql::datum_t> replace(
         const counted_t<const ql::datum_t> &d) const = 0;
-    virtual bool should_return_vals() const = 0;
+    virtual return_changes_t should_return_changes() const = 0;
 };
 
 batched_replace_response_t rdb_batched_replace(
@@ -189,7 +185,7 @@ void rdb_rget_slice(
 
 void rdb_rget_secondary_slice(
     btree_slice_t *slice,
-    const ql::datum_range_t &datum_range,
+    const datum_range_t &datum_range,
     const region_t &sindex_region,
     superblock_t *superblock,
     ql::env_t *ql_env,
@@ -315,4 +311,4 @@ private:
 typedef rdb_noop_deletion_context_t rdb_post_construction_deletion_context_t;
 
 
-#endif /* RDB_PROTOCOL_REAL_TABLE_BTREE_HPP_ */
+#endif /* RDB_PROTOCOL_BTREE_HPP_ */
