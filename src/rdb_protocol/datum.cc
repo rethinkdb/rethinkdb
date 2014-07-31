@@ -570,8 +570,6 @@ void datum_t::rcheck_valid_replace(counted_t<const datum_t> old_val,
                                    counted_t<const datum_t> orig_key,
                                    const std::string &pkey) const {
     deserialize_lazy();
-    old_val->deserialize_lazy();
-    orig_key->deserialize_lazy();
     counted_t<const datum_t> pk = get(pkey, NOTHROW);
     rcheck(pk.has(), base_exc_t::GENERIC,
            strprintf("Inserted object must have primary key `%s`:\n%s",
