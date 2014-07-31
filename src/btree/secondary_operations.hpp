@@ -15,10 +15,16 @@
 class buf_lock_t;
 
 struct secondary_index_t {
-    // RSI: init version fields, also wtf is this calling generate_uuid for?
-    secondary_index_t()
+    explicit secondary_index_t()
         : superblock(NULL_BLOCK_ID), post_construction_complete(false),
           being_deleted(false),
+          /* These default values _should_ be overwritten, but we default them to
+             LATEST_DISK because a newly created secondary_index_t would use the
+             latest ReQL version. */
+          original_reql_version(valgrind_undefined(cluster_version_t::LATEST_DISK)),
+          latest_compatible_reql_version(valgrind_undefined(cluster_version_t::LATEST_DISK)),
+          latest_checked_reql_version(valgrind_undefined(cluster_version_t::LATEST_DISK)),
+          /* TODO(2014-08): This generate_uuid() is weird. */
           id(generate_uuid())
     { }
 
