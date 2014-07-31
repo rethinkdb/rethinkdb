@@ -195,7 +195,7 @@ serialization_result_t datum_serialize(write_message_t *wm,
                                        const counted_t<const datum_t> &datum) {
     serialization_result_t res = serialization_result_t::SUCCESS;
 
-    uint64_t serialized_size = datum_serialized_size(datum);
+    uint64_t serialized_size = datum_serialized_size(datum) - sizeof(uint64_t);
     serialize_universal(wm, serialized_size);
     // TODO! There's a versioning issue here.
 
