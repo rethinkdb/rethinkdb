@@ -40,6 +40,7 @@ namespace ql {
 class datum_stream_t;
 class env_t;
 class val_t;
+enum class datum_serialized_type_t;
 
 namespace pseudo {
 class datum_cmp_t;
@@ -142,6 +143,7 @@ public:
     void write_to_protobuf(Datum *out, use_json_t use_json) const;
 
     type_t get_type() const;
+    bool is_lazy() const;
     bool is_ptype() const;
     bool is_ptype(const std::string &reql_type) const;
     std::string get_reql_type() const;
@@ -299,6 +301,8 @@ private:
         DISABLE_COPYING(data_wrapper_t);
     } data;
     friend archive_result_t deserialize_lazy_datum(read_stream_t *, datum_t::data_wrapper_t *);
+    friend archive_result_t deserialize_lazy_datum(datum_serialized_type_t, read_stream_t *, datum_t::data_wrapper_t *);
+    friend archive_result_t datum_deserialize(read_stream_t *, counted_t<const datum_t> *);
 
 public:
     static const char *const reql_type_string;

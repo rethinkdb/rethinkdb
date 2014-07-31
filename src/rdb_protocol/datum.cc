@@ -248,6 +248,10 @@ datum_t::type_t datum_t::get_type() const {
     return data.type;
 }
 
+bool datum_t::is_lazy() const {
+    return data.type == LAZY_SERIALIZED;
+}
+
 bool datum_t::is_ptype() const {
     return get_type() == R_OBJECT && std_contains(*data.r_object, reql_type_string);
 }
@@ -1192,8 +1196,8 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
 }
 
 void datum_t::deserialize_lazy() const {
-    datum_t *mutable_this = const_cast<datum_t *>(this);
     if (data.type == LAZY_SERIALIZED) {
+        datum_t *mutable_this = const_cast<datum_t *>(this);
         // Move the serialized data out and delete it...
         vector_read_stream_t stream(std::move(*mutable_this->data.lazy_serialized));
         delete mutable_this->data.lazy_serialized;
