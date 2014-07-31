@@ -69,6 +69,9 @@ TPTEST(BTreeSindex, LowLevelOps) {
         s.superblock = randint(1000);
 
         std::string opaque_blob = rand_string(1000);
+        s.original_reql_version = cluster_version_t::LATEST_DISK;
+        s.latest_compatible_reql_version = cluster_version_t::LATEST_DISK;
+        s.latest_checked_reql_version = cluster_version_t::LATEST_DISK;
         s.opaque_definition.assign(opaque_blob.begin(), opaque_blob.end());
 
         mirror[name] = s;

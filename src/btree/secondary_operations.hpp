@@ -16,7 +16,8 @@ class buf_lock_t;
 
 struct secondary_index_t {
     explicit secondary_index_t()
-        : superblock(NULL_BLOCK_ID), post_construction_complete(false),
+        : superblock(NULL_BLOCK_ID),
+          post_construction_complete(false),
           being_deleted(false),
           /* These default values _should_ be overwritten, but we default them to
              LATEST_DISK because a newly created secondary_index_t would use the

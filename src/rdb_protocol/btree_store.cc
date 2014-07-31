@@ -511,6 +511,9 @@ bool store_t::add_sindex(
             buf_lock_t sindex_superblock(sindex_block, alt_create_t::create);
             sindex.superblock = sindex_superblock.block_id();
             sindex.opaque_definition = opaque_definition;
+            sindex.original_reql_version = cluster_version_t::LATEST_DISK;
+            sindex.latest_compatible_reql_version = cluster_version_t::LATEST_DISK;
+            sindex.latest_checked_reql_version = cluster_version_t::LATEST_DISK;
 
             /* Notice we're passing in empty strings for metainfo. The metainfo in
              * the sindexes isn't used for anything but this could perhaps be
