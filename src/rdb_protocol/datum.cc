@@ -13,6 +13,7 @@
 
 #include "containers/archive/stl_types.hpp"
 #include "containers/scoped.hpp"
+#include "containers/archive/vector_stream.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/pseudo_binary.hpp"
@@ -24,7 +25,6 @@ key-mangling routines into `real_table/convert_key.hpp` so we can get rid of thi
 #include "rdb_protocol/serialize_datum.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "stl_utils.hpp"
-#include "containers/archive/vector_stream.hpp"
 
 namespace ql {
 
