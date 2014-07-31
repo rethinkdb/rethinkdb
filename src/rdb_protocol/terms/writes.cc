@@ -60,7 +60,7 @@ class insert_term_t : public op_term_t {
 public:
     insert_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2),
-                    optargspec_t({"conflict", "durability", "return_changes"})) { }
+                    optargspec_t({"conflict", "durability", "return_vals", "return_changes"})) { }
 
 private:
     static void maybe_generate_key(counted_t<table_view_t> tbl,
@@ -91,6 +91,9 @@ private:
         return_changes_t return_changes = return_changes_t::NO;
         if (counted_t<val_t> v = args->optarg(env, "return_changes")) {
             return_changes = v->as_bool() ? return_changes_t::YES : return_changes_t::NO;
+        }
+        if (counted_t<val_t> v = args->optarg(env, "return_vals")) {
+            rfail(base_exc_t::GENERIC, "return_vals renamed to return_changes");
         }
 
         const conflict_behavior_t conflict_behavior
@@ -187,7 +190,7 @@ class replace_term_t : public op_term_t {
 public:
     replace_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2),
-                    optargspec_t({"non_atomic", "durability", "return_changes"})) { }
+                    optargspec_t({"non_atomic", "durability", "return_vals", "return_changes"})) { }
 
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -198,6 +201,9 @@ private:
         return_changes_t return_changes = return_changes_t::NO;
         if (counted_t<val_t> v = args->optarg(env, "return_changes")) {
             return_changes = v->as_bool() ? return_changes_t::YES : return_changes_t::NO;
+        }
+        if (counted_t<val_t> v = args->optarg(env, "return_vals")) {
+            rfail(base_exc_t::GENERIC, "return_vals renamed to return_changes");
         }
 
         const durability_requirement_t durability_requirement

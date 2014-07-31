@@ -5,6 +5,12 @@ tests:
     - cd: r.table_create('asg')
       ot: ({'created':1})
 
+    # old version of argument
+    - cd: r.table('asg').insert({'id':0}, :return_vals => true).pluck('changes', 'first_error')
+      py: r.table('asg').insert({'id':0}, return_vals=True).pluck('changes', 'first_error')
+      js: r.table('asg').insert({'id':0}, {'return_vals':true}).pluck('changes', 'first_error')
+      ot: err("RqlRuntimeError", "return_vals renamed to return_changes", [0])
+
     - cd: r.table('asg').insert({'id':0}, :return_changes => true).pluck('changes', 'first_error')
       py: r.table('asg').insert({'id':0}, return_changes=True).pluck('changes', 'first_error')
       js: r.table('asg').insert({'id':0}, {'return_changes':true}).pluck('changes', 'first_error')
