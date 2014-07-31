@@ -251,13 +251,13 @@ batched_replace_response_t rdb_replace_and_return_superblock(
         guarantee(old_val.has());
         if (return_changes == return_changes_t::YES) {
             // first, fill with the old value.  Then, if `replacer` succeeds, fill with new value.
-            bool conflict = resp.add("values", make_replacement_pair(old_val, old_val));
+            bool conflict = resp.add("changes", make_replacement_pair(old_val, old_val));
             guarantee(!conflict);
         }
 
         counted_t<const ql::datum_t> new_val = replacer->replace(old_val);
         if (return_changes == return_changes_t::YES) {
-            resp.overwrite("values", make_replacement_pair(old_val, new_val));
+            resp.overwrite("changes", make_replacement_pair(old_val, new_val));
         }
         if (new_val->get_type() == ql::datum_t::R_NULL) {
             ended_empty = true;
