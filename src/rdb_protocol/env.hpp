@@ -48,13 +48,17 @@ scoped_ptr_t<profile::trace_t> maybe_make_profile_trace(profile_bool_t profile);
 
 class env_t : public home_thread_mixin_t {
 public:
-    env_t(rdb_context_t *ctx, signal_t *interruptor,
+    env_t(rdb_context_t *ctx,
+          signal_t *interruptor,
           std::map<std::string, wire_func_t> optargs,
-          profile::trace_t *trace);
+          profile::trace_t *trace,
+          cluster_version_t reql_version);
+    // RSI: ^ I guess this doesn't make sense, because the sindex env_t is
+    // constructed with the other constructor.
 
-    // Used in unittest and one unfortunate place in rdb_update_single_sindex (for
-    // evaluating a deterministic function).
-    explicit env_t(signal_t *interruptor);
+    // Used in unittest and for some sindex envs (for evaluating a deterministic
+    // function).
+    explicit env_t(signal_t *interruptor, cluster_version_t reql_version);
 
     ~env_t();
 
@@ -90,7 +94,12 @@ public:
     global_optargs_t global_optargs;
 
     // User specified configuration limits; e.g. array size limits
-    configured_limits_t limits;
+    const configured_limits_t limits;
+
+    // The version of ReQL behavior that we should use.  Normally this is
+    // LATEST_DISK, but when evaluating secondary index functions, it could be an
+    // earlier value.
+    const cluster_version_t reql_version;
 
     // The interruptor signal while a query evaluates.
     signal_t *const interruptor;

@@ -909,7 +909,7 @@ THROWS_ONLY(interrupted_exc_t) {
             // Secondary index functions are deterministic (so no need for an
             // rdb_context_t) and evaluated in a pristine environment (without global
             // optargs).
-            ql::env_t sindex_env(job.env->interruptor);
+            ql::env_t sindex_env(job.env->interruptor, cluster_version_t::LATEST_DISK /* RSI we should get the sindex version */);
             sindex_val = sindex->func->call(&sindex_env, val)->as_datum();
             if (sindex->multi == sindex_multi_bool_t::MULTI
                 && sindex_val->get_type() == ql::datum_t::R_ARRAY) {
@@ -1128,7 +1128,7 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
     // Secondary index functions are deterministic (so no need for an rdb_context_t)
     // and evaluated in a pristine environment (without global optargs).
     cond_t non_interruptor;
-    ql::env_t sindex_env(&non_interruptor);
+    ql::env_t sindex_env(&non_interruptor, cluster_version_t::LATEST_DISK /* RSI we should get the version from the sindex */);
 
     counted_t<const ql::datum_t> index =
         mapping->compile_wire_func()->call(&sindex_env, doc)->as_datum();

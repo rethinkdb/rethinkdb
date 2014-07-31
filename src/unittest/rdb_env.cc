@@ -277,7 +277,8 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
     env.init(new ql::env_t(&rdb_ctx,
                            &interruptor,
                            std::map<std::string, ql::wire_func_t>(),
-                           nullptr /* no profile trace */));
+                           nullptr /* no profile trace */,
+                           cluster_version_t::LATEST_DISK));
 
     // Set up any initial datas
     databases = test_env->databases;

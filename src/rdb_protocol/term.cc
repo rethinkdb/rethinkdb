@@ -195,7 +195,8 @@ void run(protob_t<Query> q,
     case Query_QueryType_START: {
         const profile_bool_t profile = profile_bool_optarg(q);
         const scoped_ptr_t<profile::trace_t> trace = maybe_make_profile_trace(profile);
-        env_t env(ctx, interruptor, global_optargs(q), trace.get_or_null());
+        env_t env(ctx, interruptor, global_optargs(q), trace.get_or_null(),
+                  cluster_version_t::LATEST_DISK);
 
         counted_t<const term_t> root_term;
         try {

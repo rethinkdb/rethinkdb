@@ -611,7 +611,8 @@ void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
         rassert(rg.optargs.size() != 0);
     }
     scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
-    ql::env_t env(ctx, interruptor, rg.optargs, trace.get_or_null());
+    ql::env_t env(ctx, interruptor, rg.optargs, trace.get_or_null(),
+                  cluster_version_t::LATEST_DISK);
 
     // Initialize response.
     response_out->response = rget_read_response_t();
