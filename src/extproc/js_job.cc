@@ -685,7 +685,7 @@ v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum,
             return obj;
         }
     }
-
+    case ql::datum_t::type_t::LAZY_SERIALIZED: // Fall thru
     default:
         err_out->assign("bad datum value in js extproc");
         return v8::Handle<v8::Value>();

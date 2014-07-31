@@ -78,7 +78,8 @@ public:
         R_NULL = 4,
         R_NUM = 5,
         R_OBJECT = 6,
-        R_STR = 7
+        R_STR = 7,
+        LAZY_SERIALIZED = 100
     };
 
     static counted_t<const datum_t> empty_array();
@@ -116,6 +117,9 @@ public:
     explicit datum_t(const char *cstr);
     explicit datum_t(std::vector<counted_t<const datum_t> > &&_array,
                      const configured_limits_t &limits);
+
+    // TODO! This should be better protected probably (also as_lazy_serialized())
+    explicit datum_t(std::vector<char> &&_lazy_serialized);
 
     enum class no_array_size_limit_check_t { };
     // Constructs a datum_t without checking the array size.  Used by
@@ -199,6 +203,8 @@ public:
     counted_t<datum_stream_t> as_datum_stream(
             const protob_t<const Backtrace> &backtrace) const;
 
+    const std::vector<char> &as_lazy_serialized() const;
+
     // These behave as expected and defined in RQL.  Theoretically, two data of
     // the same type should compare the same way their printed representations
     // would compare lexicographcally, while dispareate types are compared
@@ -236,6 +242,11 @@ public:
 
 private:
     friend void pseudo::sanitize_time(datum_t *time);
+
+    // Checks if the datum currently is of type LAZY_SERIALIZED.
+    // If yes, deserializes it, changing this datum to its proper type.
+    void deserialize_lazy() const;
+
     MUST_USE bool add(const std::string &key, counted_t<const datum_t> val,
                       clobber_bool_t clobber_bool = NOCLOBBER); // add to an object
 
@@ -269,7 +280,9 @@ private:
         explicit data_wrapper_t(scoped_ptr_t<wire_string_t> str);
         explicit data_wrapper_t(const char *cstr);
         explicit data_wrapper_t(std::vector<counted_t<const datum_t> > &&array);
-        data_wrapper_t(std::map<std::string, counted_t<const datum_t> > &&object);
+        explicit data_wrapper_t(
+                std::map<std::string, counted_t<const datum_t> > &&object);
+        explicit data_wrapper_t(std::vector<char> &&lazy_serialized);
 
         ~data_wrapper_t();
 
@@ -280,10 +293,12 @@ private:
             wire_string_t *r_str;
             std::vector<counted_t<const datum_t> > *r_array;
             std::map<std::string, counted_t<const datum_t> > *r_object;
+            std::vector<char> *lazy_serialized;
         };
     private:
         DISABLE_COPYING(data_wrapper_t);
     } data;
+    friend archive_result_t deserialize_lazy_datum(read_stream_t *, datum_t::data_wrapper_t *);
 
 public:
     static const char *const reql_type_string;
@@ -291,6 +306,9 @@ public:
 private:
     DISABLE_COPYING(datum_t);
 };
+
+// TODO! Move elsewhere etc.
+archive_result_t deserialize_lazy_datum(read_stream_t *s, datum_t::data_wrapper_t *data);
 
 counted_t<const datum_t> to_datum(const Datum *d, const configured_limits_t &);
 counted_t<const datum_t> to_datum(cJSON *json, const configured_limits_t &);

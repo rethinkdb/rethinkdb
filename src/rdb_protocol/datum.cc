@@ -23,6 +23,7 @@ key-mangling routines into `real_table/convert_key.hpp` so we can get rid of thi
 #include "rdb_protocol/real_table/convert_key.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "stl_utils.hpp"
+#include "containers/archive/vector_stream.hpp"
 
 namespace ql {
 
@@ -65,6 +66,10 @@ datum_t::data_wrapper_t::data_wrapper_t(std::map<std::string,
     type(R_OBJECT),
     r_object(new std::map<std::string, counted_t<const datum_t> >(std::move(object))) { }
 
+datum_t::data_wrapper_t::data_wrapper_t(std::vector<char> &&_lazy_serialized) :
+    type(LAZY_SERIALIZED),
+    lazy_serialized(new std::vector<char>(std::move(_lazy_serialized))) { }
+
 datum_t::data_wrapper_t::~data_wrapper_t() {
     switch (type) {
     case R_NULL: // fallthru
@@ -79,6 +84,9 @@ datum_t::data_wrapper_t::~data_wrapper_t() {
     } break;
     case R_OBJECT: {
         delete r_object;
+    } break;
+    case LAZY_SERIALIZED: {
+        delete lazy_serialized;
     } break;
     default: unreachable();
     }
@@ -126,6 +134,9 @@ datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object,
 datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object,
                  no_sanitize_ptype_t)
     : data(std::move(_object)) { }
+
+datum_t::datum_t(std::vector<char> &&_lazy_serialized)
+    : data(std::move(_lazy_serialized)) { }
 
 counted_t<const datum_t> to_datum(grouped_data_t &&gd,
                                   const configured_limits_t &limits) {
@@ -232,17 +243,23 @@ void datum_t::check_str_validity(const std::string &str) {
     ::ql::check_str_validity(str.data(), str.size());
 }
 
-datum_t::type_t datum_t::get_type() const { return data.type; }
+datum_t::type_t datum_t::get_type() const {
+    deserialize_lazy();
+    return data.type;
+}
 
 bool datum_t::is_ptype() const {
+    deserialize_lazy();
     return get_type() == R_OBJECT && std_contains(*data.r_object, reql_type_string);
 }
 
 bool datum_t::is_ptype(const std::string &reql_type) const {
+    deserialize_lazy();
     return (reql_type == "") ? is_ptype() : is_ptype() && get_reql_type() == reql_type;
 }
 
 std::string datum_t::get_reql_type() const {
+    deserialize_lazy();
     r_sanity_check(get_type() == R_OBJECT);
     auto maybe_reql_type = data.r_object->find(reql_type_string);
     r_sanity_check(maybe_reql_type != data.r_object->end());
@@ -265,11 +282,13 @@ std::string raw_type_name(datum_t::type_t type) {
     case datum_t::R_STR:    return "STRING";
     case datum_t::R_ARRAY:  return "ARRAY";
     case datum_t::R_OBJECT: return "OBJECT";
+    case datum_t::LAZY_SERIALIZED: // fallthru
     default: unreachable();
     }
 }
 
 std::string datum_t::get_type_name() const {
+    deserialize_lazy();
     if (is_ptype()) {
         return "PTYPE<" + get_reql_type() + ">";
     } else {
@@ -282,6 +301,7 @@ std::string datum_t::print() const {
 }
 
 std::string datum_t::trunc_print() const {
+    deserialize_lazy();
     std::string s = print();
     if (s.size() > trunc_len) {
         s.erase(s.begin() + (trunc_len - 3), s.end());
@@ -291,6 +311,7 @@ std::string datum_t::trunc_print() const {
 }
 
 void datum_t::pt_to_str_key(std::string *str_out) const {
+    deserialize_lazy();
     r_sanity_check(is_ptype());
     if (get_reql_type() == pseudo::time_string) {
         pseudo::time_to_str_key(*this, str_out);
@@ -302,6 +323,7 @@ void datum_t::pt_to_str_key(std::string *str_out) const {
 }
 
 void datum_t::num_to_str_key(std::string *str_out) const {
+    deserialize_lazy();
     r_sanity_check(get_type() == R_NUM);
     str_out->append("N");
     union {
@@ -330,12 +352,14 @@ void datum_t::num_to_str_key(std::string *str_out) const {
 }
 
 void datum_t::str_to_str_key(std::string *str_out) const {
+    deserialize_lazy();
     r_sanity_check(get_type() == R_STR);
     str_out->append("S");
     str_out->append(as_str().to_std());
 }
 
 void datum_t::bool_to_str_key(std::string *str_out) const {
+    deserialize_lazy();
     r_sanity_check(get_type() == R_BOOL);
     str_out->append("B");
     if (as_bool()) {
@@ -349,6 +373,7 @@ void datum_t::bool_to_str_key(std::string *str_out) const {
 //  null character, with another null character at the end to signify the end of the
 //  array (this is necessary to prevent ambiguity when nested arrays are involved).
 void datum_t::array_to_str_key(std::string *str_out) const {
+    deserialize_lazy();
     r_sanity_check(get_type() == R_ARRAY);
     str_out->append("A");
 
@@ -374,6 +399,7 @@ void datum_t::array_to_str_key(std::string *str_out) const {
                           "(got %s of type %s).", item->print().c_str(),
                           item->get_type_name().c_str()));
             break;
+        case LAZY_SERIALIZED: // fallthru
         default:
             unreachable();
         }
@@ -382,12 +408,15 @@ void datum_t::array_to_str_key(std::string *str_out) const {
 }
 
 void datum_t::binary_to_str_key(std::string *str_out) const {
+    deserialize_lazy();
     r_sanity_check(get_type() == R_BINARY);
     str_out->append("BN"); // This needs to sort between 'array':'A' and 'bool':'Bt','Bf'
     str_out->append(as_binary().data(), as_binary().size());
 }
 
 int datum_t::pseudo_cmp(const datum_t &rhs) const {
+    deserialize_lazy();
+    rhs.deserialize_lazy();
     r_sanity_check(is_ptype());
     if (get_reql_type() == pseudo::time_string) {
         return pseudo::time_cmp(*this, rhs);
@@ -397,6 +426,7 @@ int datum_t::pseudo_cmp(const datum_t &rhs) const {
 }
 
 void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
+    deserialize_lazy();
     if (is_ptype()) {
         std::string s = get_reql_type();
         if (s == pseudo::time_string) {
@@ -427,6 +457,7 @@ void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
 }
 
 void datum_t::rcheck_is_ptype(const std::string s) const {
+    deserialize_lazy();
     rcheck(is_ptype(), base_exc_t::GENERIC,
            (s == ""
             ? strprintf("Not a pseudotype: `%s`.", trunc_print().c_str())
@@ -436,6 +467,7 @@ void datum_t::rcheck_is_ptype(const std::string s) const {
 }
 
 counted_t<const datum_t> datum_t::drop_literals(bool *encountered_literal_out) const {
+    deserialize_lazy();
     // drop_literals will never create arrays larger than those in the
     // existing datum; so checking (and thus threading the limits
     // parameter) is unnecessary here.
@@ -537,6 +569,9 @@ counted_t<const datum_t> datum_t::drop_literals(bool *encountered_literal_out) c
 void datum_t::rcheck_valid_replace(counted_t<const datum_t> old_val,
                                    counted_t<const datum_t> orig_key,
                                    const std::string &pkey) const {
+    deserialize_lazy();
+    old_val->deserialize_lazy();
+    orig_key->deserialize_lazy();
     counted_t<const datum_t> pk = get(pkey, NOTHROW);
     rcheck(pk.has(), base_exc_t::GENERIC,
            strprintf("Inserted object must have primary key `%s`:\n%s",
@@ -558,6 +593,7 @@ void datum_t::rcheck_valid_replace(counted_t<const datum_t> old_val,
 }
 
 std::string datum_t::print_primary() const {
+    deserialize_lazy();
     std::string s;
     switch (get_type()) {
     case R_NUM: num_to_str_key(&s); break;
@@ -577,6 +613,7 @@ std::string datum_t::print_primary() const {
             "(got type %s):\n%s",
             get_type_name().c_str(), trunc_print().c_str()));
         break;
+    case LAZY_SERIALIZED: // fallthru
     default:
         unreachable();
     }
@@ -591,7 +628,7 @@ std::string datum_t::print_primary() const {
 
 std::string datum_t::mangle_secondary(const std::string &secondary,
                                       const std::string &primary,
-        const std::string &tag) {
+                                      const std::string &tag) {
     guarantee(secondary.size() < UINT8_MAX);
     guarantee(secondary.size() + primary.size() < UINT8_MAX);
 
@@ -606,6 +643,7 @@ std::string datum_t::mangle_secondary(const std::string &secondary,
 
 std::string datum_t::print_secondary(const store_key_t &primary_key,
                                      boost::optional<uint64_t> tag_num) const {
+    deserialize_lazy();
     std::string secondary_key_string;
     std::string primary_key_string = key_to_unescaped_str(primary_key);
 
@@ -707,6 +745,7 @@ boost::optional<uint64_t> datum_t::extract_tag(const store_key_t &key) {
 // do not know how much was truncated, we have to truncate the maximum amount,
 // then return all matches and filter them out later.
 store_key_t datum_t::truncated_secondary() const {
+    deserialize_lazy();
     std::string s;
     if (get_type() == R_NUM) {
         num_to_str_key(&s);
@@ -734,6 +773,7 @@ store_key_t datum_t::truncated_secondary() const {
 }
 
 void datum_t::check_type(type_t desired, const char *msg) const {
+    deserialize_lazy();
     rcheck_typed_target(
         this, get_type() == desired,
         (msg != NULL)
@@ -746,6 +786,7 @@ void datum_t::type_error(const std::string &msg) const {
 }
 
 bool datum_t::as_bool() const {
+    deserialize_lazy();
     if (get_type() == R_BOOL) {
         return data.r_bool;
     } else {
@@ -794,21 +835,25 @@ struct datum_rcheckable_t : public rcheckable_t {
 };
 
 int64_t datum_t::as_int() const {
+    deserialize_lazy();
     datum_rcheckable_t target(this);
     return checked_convert_to_int(&target, as_num());
 }
 
 const wire_string_t &datum_t::as_binary() const {
+    deserialize_lazy();
     check_type(R_BINARY);
     return *data.r_str;
 }
 
 const wire_string_t &datum_t::as_str() const {
+    deserialize_lazy();
     check_type(R_STR);
     return *data.r_str;
 }
 
 const std::vector<counted_t<const datum_t> > &datum_t::as_array() const {
+    deserialize_lazy();
     check_type(R_ARRAY);
     return *data.r_array;
 }
@@ -817,7 +862,14 @@ size_t datum_t::size() const {
     return as_array().size();
 }
 
+// TODO! Rename and should not be public
+const std::vector<char> &datum_t::as_lazy_serialized() const {
+    guarantee(data.type == LAZY_SERIALIZED);
+    return *data.lazy_serialized;
+}
+
 counted_t<const datum_t> datum_t::get(size_t index, throw_bool_t throw_bool) const {
+    deserialize_lazy();
     if (index < size()) {
         return as_array()[index];
     } else if (throw_bool == THROW) {
@@ -829,6 +881,7 @@ counted_t<const datum_t> datum_t::get(size_t index, throw_bool_t throw_bool) con
 
 counted_t<const datum_t> datum_t::get(const std::string &key,
                                       throw_bool_t throw_bool) const {
+    deserialize_lazy();
     std::map<std::string, counted_t<const datum_t> >::const_iterator it
         = as_object().find(key);
     if (it != as_object().end()) return it->second;
@@ -840,11 +893,13 @@ counted_t<const datum_t> datum_t::get(const std::string &key,
 }
 
 const std::map<std::string, counted_t<const datum_t> > &datum_t::as_object() const {
+    deserialize_lazy();
     check_type(R_OBJECT);
     return *data.r_object;
 }
 
 cJSON *datum_t::as_json_raw() const {
+    deserialize_lazy();
     switch (get_type()) {
     case R_NULL: return cJSON_CreateNull();
     case R_BINARY: return pseudo::encode_base64_ptype(as_binary()).release();
@@ -866,6 +921,7 @@ cJSON *datum_t::as_json_raw() const {
         }
         return obj.release();
     } break;
+    case LAZY_SERIALIZED: // Fall thru
     default: unreachable();
     }
     unreachable();
@@ -878,6 +934,7 @@ scoped_cJSON_t datum_t::as_json() const {
 // TODO: make BINARY, STR, and OBJECT convertible to sequence?
 counted_t<datum_stream_t>
 datum_t::as_datum_stream(const protob_t<const Backtrace> &backtrace) const {
+    deserialize_lazy();
     switch (get_type()) {
     case R_NULL:   // fallthru
     case R_BINARY: // fallthru
@@ -890,6 +947,7 @@ datum_t::as_datum_stream(const protob_t<const Backtrace> &backtrace) const {
     case R_ARRAY:
         return make_counted<array_datum_stream_t>(this->counted_from_this(),
                                                   backtrace);
+    case LAZY_SERIALIZED: // fallthru
     default: unreachable();
     }
     unreachable();
@@ -897,6 +955,7 @@ datum_t::as_datum_stream(const protob_t<const Backtrace> &backtrace) const {
 
 MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
                            clobber_bool_t clobber_bool) {
+    deserialize_lazy();
     check_type(R_OBJECT);
     check_str_validity(key);
     r_sanity_check(val.has());
@@ -908,6 +967,8 @@ MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
 }
 
 counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
+    deserialize_lazy();
+    rhs->deserialize_lazy();
     if (get_type() != R_OBJECT || rhs->get_type() != R_OBJECT) {
         return rhs;
     }
@@ -946,6 +1007,8 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
 counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs,
                                         merge_resoluter_t f,
                                         const configured_limits_t &limits) const {
+    deserialize_lazy();
+    rhs->deserialize_lazy();
     datum_object_builder_t d(as_object());
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
@@ -967,6 +1030,8 @@ int derived_cmp(T a, T b) {
 
 
 int datum_t::cmp(const datum_t &rhs) const {
+    deserialize_lazy();
+    rhs.deserialize_lazy();
     if (is_ptype() && !rhs.is_ptype()) {
         return 1;
     } else if (!is_ptype() && rhs.is_ptype()) {
@@ -1024,6 +1089,7 @@ int datum_t::cmp(const datum_t &rhs) const {
             return 0;
         }
     } unreachable();
+    case LAZY_SERIALIZED: // fallthru
     default: unreachable();
     }
 }
@@ -1106,6 +1172,7 @@ bool datum_t::key_is_truncated(const store_key_t &key) {
 }
 
 void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
+    deserialize_lazy();
     switch (use_json) {
     case use_json_t::NO: {
         switch (get_type()) {
@@ -1145,6 +1212,7 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
                 it->second->write_to_protobuf(ap->mutable_val(), use_json);
             }
         } break;
+        case LAZY_SERIALIZED: // fallthru
         default: unreachable();
         }
     } break;
@@ -1153,6 +1221,19 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
         d->set_r_str(as_json().PrintUnformatted());
     } break;
     default: unreachable();
+    }
+}
+
+void datum_t::deserialize_lazy() const {
+    datum_t *mutable_this = const_cast<datum_t *>(this);
+    if (data.type == LAZY_SERIALIZED) {
+        // Move the serialized data out and delete it...
+        vector_read_stream_t stream(std::move(*mutable_this->data.lazy_serialized));
+        delete mutable_this->data.lazy_serialized;
+        mutable_this->data.lazy_serialized = NULL;
+        // Deserialize the actual data
+        guarantee_deserialization(deserialize_lazy_datum(&stream, &mutable_this->data),
+                                  "Lazy datum_t");
     }
 }
 
