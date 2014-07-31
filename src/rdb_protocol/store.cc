@@ -132,8 +132,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             rassert(rget.optargs.size() != 0);
         }
 
-        // RSI: This looks like a contendor for uselessly early env construction,
-        // maybe it's used in sindex function eval.
         ql::env_t ql_env(ctx, interruptor, rget.optargs, trace,
                          cluster_version_t::LATEST_DISK);
 
