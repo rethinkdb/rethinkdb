@@ -31,13 +31,10 @@ struct secondary_index_t {
     /* A virtual superblock. */
     block_id_t superblock;
 
-    /* An opaque_definition_t is a serializable description of the secondary
-     * index. Values which are stored in the B-Tree (template parameters to
-     * `find_keyvalue_location_for_[read,write]`) must support the following
-     * method:
-     * store_key_t index(const opaque_definition_t &);
-     * Which returns the value of the secondary index.
-     */
+    /* An opaque_definition_t is just a std::vector<char>.  It contains a serialized
+       map_wire_func_t and a sindex_multi_bool_t (and a cluster_version_t that says
+       how they were serialized -- see (de)serialize_sindex_info).  (This is a
+       holdover from when we had multiple protocols.) */
     typedef std::vector<char> opaque_definition_t;
 
     /* Whether the index is has completed post construction, and/or is being deleted.

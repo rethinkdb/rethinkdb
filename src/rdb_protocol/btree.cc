@@ -1152,6 +1152,9 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
 void serialize_sindex_info(write_message_t *wm,
                            const ql::map_wire_func_t &mapping,
                            const sindex_multi_bool_t &multi) {
+    // _This_ cluster version field only affects the serialization code.  It doesn't
+    // have anything to do with the ReQL evaluation version, which is a different
+    // field in secondary_index_t.
     serialize_cluster_version(wm, cluster_version_t::LATEST_DISK);
     serialize_for_version(cluster_version_t::LATEST_DISK, wm, mapping);
     serialize_for_version(cluster_version_t::LATEST_DISK, wm, multi);
@@ -1161,6 +1164,8 @@ void deserialize_sindex_info(const std::vector<char> &data,
                              ql::map_wire_func_t *mapping,
                              sindex_multi_bool_t *multi) {
     inplace_vector_read_stream_t read_stream(&data);
+    // This cluster version field is _not_ a ReQL evaluation version field, which is
+    // in secondary_index_t -- it only says how the value was serialized.
     cluster_version_t cluster_version;
     archive_result_t success
         = deserialize_cluster_version(&read_stream, &cluster_version);
