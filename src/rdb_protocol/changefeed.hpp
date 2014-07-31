@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef RDB_PROTOCOL_REAL_TABLE_CHANGEFEED_HPP_
-#define RDB_PROTOCOL_REAL_TABLE_CHANGEFEED_HPP_
+#ifndef RDB_PROTOCOL_CHANGEFEED_HPP_
+#define RDB_PROTOCOL_CHANGEFEED_HPP_
 
 #include <deque>
 #include <exception>
@@ -17,12 +17,12 @@
 #include "region/region.hpp"
 #include "repli_timestamp.hpp"
 #include "rdb_protocol/counted_term.hpp"
-#include "rdb_protocol/real_table/real_table.hpp"
 #include "rpc/connectivity/peer_id.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/serialize_macros.hpp"
 
 class auto_drainer_t;
+class namespace_interface_access_t;
 class mailbox_manager_t;
 struct rdb_modification_report_t;
 
@@ -35,17 +35,15 @@ class datum_t;
 class env_t;
 class table_t;
 
-}   // namespace ql
-
 namespace changefeed {
 
 struct msg_t {
     struct change_t {
         change_t();
-        explicit change_t(counted_t<const ql::datum_t> _old_val,
-                          counted_t<const ql::datum_t> _new_val);
+        explicit change_t(counted_t<const datum_t> _old_val,
+                          counted_t<const datum_t> _new_val);
         ~change_t();
-        counted_t<const ql::datum_t> old_val, new_val;
+        counted_t<const datum_t> old_val, new_val;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
     struct stop_t {
@@ -83,8 +81,8 @@ struct keyspec_t {
     struct all_t { };
     struct point_t {
         point_t() { }
-        explicit point_t(counted_t<const ql::datum_t> _key) : key(std::move(_key)) { }
-        counted_t<const ql::datum_t> key;
+        explicit point_t(counted_t<const datum_t> _key) : key(std::move(_key)) { }
+        counted_t<const datum_t> key;
     };
 
     keyspec_t(keyspec_t &&keyspec) = default;
@@ -127,8 +125,8 @@ public:
         );
     ~client_t();
     // Throws QL exceptions.
-    counted_t<ql::datum_stream_t> new_feed(ql::env_t *env, const namespace_id_t &table,
-        const ql::protob_t<const Backtrace> &bt, const std::string &table_name,
+    counted_t<datum_stream_t> new_feed(env_t *env, const namespace_id_t &table,
+        const protob_t<const Backtrace> &bt, const std::string &table_name,
         const std::string &pkey, keyspec_t &&keyspec);
     void maybe_remove_feed(const namespace_id_t &uuid);
     scoped_ptr_t<feed_t> detach_feed(const namespace_id_t &uuid);
@@ -207,6 +205,7 @@ private:
 };
 
 } // namespace changefeed
+} // namespace ql
 
-#endif // RDB_PROTOCOL_REAL_TABLE_CHANGEFEED_HPP_
+#endif // RDB_PROTOCOL_CHANGEFEED_HPP_
 

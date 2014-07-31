@@ -23,12 +23,12 @@ public:
                strprintf("Number of items to sample must be non-negative, got `%"
                          PRId64 "`.", num_int));
         const size_t num = num_int;
-        counted_t<table_view_t> t;
+        counted_t<table_t> t;
         counted_t<datum_stream_t> seq;
         counted_t<val_t> v = args->arg(env, 0);
 
         if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
-            std::pair<counted_t<table_view_t>, counted_t<datum_stream_t> > t_seq
+            std::pair<counted_t<table_t>, counted_t<datum_stream_t> > t_seq
                 = v->as_selection(env->env);
             t = t_seq.first;
             seq = t_seq.second;

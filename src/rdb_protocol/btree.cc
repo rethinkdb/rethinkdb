@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "rdb_protocol/real_table/btree.hpp"
+#include "rdb_protocol/btree.hpp"
 
 #include <functional>
 #include <string>
@@ -19,10 +19,10 @@
 #include "containers/archive/buffer_group_stream.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/scoped.hpp"
+#include "rdb_protocol/blob_wrapper.hpp"
 #include "rdb_protocol/func.hpp"
-#include "rdb_protocol/real_table/blob_wrapper.hpp"
-#include "rdb_protocol/real_table/lazy_json.hpp"
-#include "rdb_protocol/real_table/serialize_datum_onto_blob.hpp"
+#include "rdb_protocol/lazy_json.hpp"
+#include "rdb_protocol/serialize_datum_onto_blob.hpp"
 #include "rdb_protocol/shards.hpp"
 
 #include "debug.hpp"
@@ -765,14 +765,14 @@ typedef ql::terminal_variant_t terminal_variant_t;
 
 class sindex_data_t {
 public:
-    sindex_data_t(const key_range_t &_pkey_range, const ql::datum_range_t &_range,
+    sindex_data_t(const key_range_t &_pkey_range, const datum_range_t &_range,
                   ql::map_wire_func_t wire_func, sindex_multi_bool_t _multi)
         : pkey_range(_pkey_range), range(_range),
           func(wire_func.compile_wire_func()), multi(_multi) { }
 private:
     friend class rget_cb_t;
     const key_range_t pkey_range;
-    const ql::datum_range_t range;
+    const datum_range_t range;
     const counted_t<ql::func_t> func;
     const sindex_multi_bool_t multi;
 };
@@ -973,7 +973,7 @@ void rdb_rget_slice(
 
 void rdb_rget_secondary_slice(
     btree_slice_t *slice,
-    const ql::datum_range_t &sindex_range,
+    const datum_range_t &sindex_range,
     const region_t &sindex_region,
     superblock_t *superblock,
     ql::env_t *ql_env,
@@ -1096,8 +1096,8 @@ void rdb_modification_report_cb_t::on_mod_report(
                       &sindexes_updated_cond));
         if (store_->changefeed_server.has()) {
             store_->changefeed_server->send_all(
-                changefeed::msg_t(
-                    changefeed::msg_t::change_t(
+                ql::changefeed::msg_t(
+                    ql::changefeed::msg_t::change_t(
                         mod_report.info.deleted.first,
                         mod_report.info.added.first)));
         }

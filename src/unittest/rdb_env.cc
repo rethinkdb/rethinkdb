@@ -2,7 +2,7 @@
 #include "unittest/rdb_env.hpp"
 
 #include "rdb_protocol/func.hpp"
-#include "rdb_protocol/real_table/real_table.hpp"
+#include "rdb_protocol/real_table.hpp"
 
 namespace unittest {
 

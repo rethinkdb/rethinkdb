@@ -31,7 +31,7 @@ public:
             );
 
     bool db_create(const name_string_t &name,
-            signal_t *interruptor, std::string *error_out); 
+            signal_t *interruptor, std::string *error_out);
     bool db_drop(const name_string_t &name,
             signal_t *interruptor, std::string *error_out);
     bool db_list(
@@ -73,7 +73,7 @@ private:
     rdb_context_t *rdb_context;
 
     namespace_repo_t namespace_repo;
-    changefeed::client_t changefeed_client;
+    ql::changefeed::client_t changefeed_client;
 
     void wait_for_metadata_to_propagate(const cluster_semilattice_metadata_t &metadata,
                                         signal_t *interruptor);

@@ -9,7 +9,7 @@
 #include "concurrency/promise.hpp"
 #include "concurrency/queue/disk_backed_queue_wrapper.hpp"
 #include "concurrency/semaphore.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "serializer/types.hpp"
 #include "timestamps.hpp"
 #include "utils.hpp"

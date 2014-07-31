@@ -16,7 +16,8 @@
 #include "unittest/gtest.hpp"
 #include "unittest/mock_store.hpp"
 #include "unittest/unittest_utils.hpp"
-#include "rdb_protocol/real_table/store.hpp"
+#include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/store.hpp"
 #include "serializer/config.hpp"
 
 namespace unittest {

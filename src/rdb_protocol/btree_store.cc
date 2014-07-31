@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "rdb_protocol/real_table/store.hpp"  // NOLINT(build/include_order)
+#include "rdb_protocol/store.hpp"  // NOLINT(build/include_order)
 
 #include <functional>  // NOLINT(build/include_order)
 
@@ -17,9 +17,8 @@
 #include "containers/disk_backed_queue.hpp"
 #include "containers/scoped.hpp"
 #include "logger.hpp"
-#include "rdb_protocol/context.hpp"
-#include "rdb_protocol/real_table/btree.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "serializer/config.hpp"
 #include "stl_utils.hpp"
 
@@ -73,7 +72,7 @@ store_t::store_t(serializer_t *serializer,
       ctx(_ctx),
       changefeed_server((ctx == NULL || ctx->manager == NULL)
                         ? NULL
-                        : new changefeed::server_t(ctx->manager))
+                        : new ql::changefeed::server_t(ctx->manager))
 {
     cache.init(new cache_t(serializer, balancer, &perfmon_collection));
     general_cache_conn.init(new cache_conn_t(cache.get()));

@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "rdb_protocol/real_table/wait_for_readiness.hpp"
+#include "rdb_protocol/wait_for_readiness.hpp"
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
@@ -9,7 +9,7 @@
 #include "containers/uuid.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/batching.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 bool test_for_rdb_table_readiness(namespace_interface_t *namespace_if,
                                   signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {

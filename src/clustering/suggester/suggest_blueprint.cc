@@ -4,7 +4,7 @@
 #include "clustering/generic/nonoverlapping_regions.hpp"
 #include "containers/priority_queue.hpp"
 #include "stl_utils.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 // Because being primary for a shard usually comes with a higher cost than
 // being secondary, we want to consider that difference in the replica assignment.
