@@ -53,14 +53,14 @@ public:
         counted_t<func_t> replacement_generator,
         bool nondeterministic_replacements_ok,
         durability_requirement_t durability_requirement,
-        bool return_vals);
+        return_changes_t return_changes);
 
     counted_t<const datum_t> batched_insert(
         env_t *env,
         std::vector<counted_t<const datum_t> > &&insert_datums,
         conflict_behavior_t conflict_behavior,
         durability_requirement_t durability_requirement,
-        bool return_vals);
+        return_changes_t return_changes);
 
     MUST_USE bool sindex_create(
         env_t *env, const std::string &name,

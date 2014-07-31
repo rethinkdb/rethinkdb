@@ -876,7 +876,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         if (!shard_keys.empty()) {
             *payload_out = batched_replace_t(std::move(shard_keys), br.pkey,
                                              br.f.compile_wire_func(), br.optargs,
-                                             br.return_vals);
+                                             br.return_changes);
             return true;
         } else {
             return false;
@@ -894,7 +894,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         if (!shard_inserts.empty()) {
             *payload_out = batched_insert_t(std::move(shard_inserts), bi.pkey,
                                             bi.conflict_behavior, bi.limits,
-                                            bi.return_vals);
+                                            bi.return_changes);
             return true;
         } else {
             return false;
@@ -1097,12 +1097,13 @@ RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(sync_response_t);
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(write_response_t, response, event_log, n_shards);
 
-RDB_IMPL_SERIALIZABLE_5_SINCE_v1_13(
-        batched_replace_t, keys, pkey, f, optargs, return_vals);
-// Serialization format for this changed in 1.14.  We only support the
-// latest version, since this is a cluster-only type.
+// Serialization format for these changed in 1.14.  We only support the
+// latest version, since these are cluster-only types.
 RDB_IMPL_SERIALIZABLE_5(
-        batched_insert_t, inserts, pkey, conflict_behavior, limits, return_vals);
+        batched_replace_t, keys, pkey, f, optargs, return_changes);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(batched_replace_t);
+RDB_IMPL_SERIALIZABLE_5(
+        batched_insert_t, inserts, pkey, conflict_behavior, limits, return_changes);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(batched_insert_t);
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(point_write_t, key, data, overwrite);

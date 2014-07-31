@@ -85,10 +85,10 @@ public:
     counted_t<const ql::datum_t> write_batched_replace(ql::env_t *env,
         const std::vector<counted_t<const ql::datum_t> > &keys,
         const counted_t<ql::func_t> &func,
-        bool _return_vals, durability_requirement_t durability);
+        return_changes_t _return_changes, durability_requirement_t durability);
     counted_t<const ql::datum_t> write_batched_insert(ql::env_t *env,
         std::vector<counted_t<const ql::datum_t> > &&inserts,
-        conflict_behavior_t conflict_behavior, bool return_vals,
+        conflict_behavior_t conflict_behavior, return_changes_t return_changes,
         durability_requirement_t durability);
     bool write_sync_depending_on_durability(ql::env_t *env,
         durability_requirement_t durability);

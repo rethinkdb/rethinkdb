@@ -11,6 +11,7 @@
 #include "backfill_progress.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/changes.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/store.hpp"
 
@@ -62,11 +63,6 @@ void rdb_get(
     point_read_response_t *response,
     profile::trace_t *trace);
 
-enum return_vals_t {
-    NO_RETURN_VALS = 0,
-    RETURN_VALS = 1
-};
-
 struct btree_info_t {
     btree_info_t(btree_slice_t *_slice,
                  repli_timestamp_t _timestamp,
@@ -99,13 +95,13 @@ struct btree_batched_replacer_t {
     virtual ~btree_batched_replacer_t() { }
     virtual counted_t<const ql::datum_t> replace(
         const counted_t<const ql::datum_t> &d, size_t index) const = 0;
-    virtual bool should_return_vals() const = 0;
+    virtual return_changes_t should_return_changes() const = 0;
 };
 struct btree_point_replacer_t {
     virtual ~btree_point_replacer_t() { }
     virtual counted_t<const ql::datum_t> replace(
         const counted_t<const ql::datum_t> &d) const = 0;
-    virtual bool should_return_vals() const = 0;
+    virtual return_changes_t should_return_changes() const = 0;
 };
 
 batched_replace_response_t rdb_batched_replace(

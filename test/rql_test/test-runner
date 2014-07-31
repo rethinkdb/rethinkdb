@@ -742,7 +742,8 @@ def main():
             if testProcessGroupId in runningProcessGroupsIds:
                 runningProcessGroupsIds.remove(testProcessGroupId)
             testProcessGroupId = None
-            
+            sys.stderr.flush()
+            sys.stdout.flush()
     
     if len(failedTests) == 0:
         testNumberMessage = 'the 1 test'
