@@ -1203,8 +1203,8 @@ void rdb_update_single_sindex(
 
             std::vector<store_key_t> keys;
 
-            // RSI: Someplace, we need to update latest_compatible_reql_version and
-            // latest_checked_reql_version.
+            // TODO(2014-08-01): Someplace, we need to update
+            // latest_compatible_reql_version and latest_checked_reql_version.
             compute_keys(modification->primary_key, deleted,
                          sindex->sindex.latest_compatible_reql_version, &mapping,
                          multi, &keys);
