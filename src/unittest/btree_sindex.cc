@@ -227,11 +227,14 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
 
             store_key_t key("foo");
 
+            cluster_version_t mapping_func_reql_version;
+
             bool sindex_exists = store.acquire_sindex_superblock_for_read(
                     name,
                     "",
                     main_sb.get(),
                     &sindex_super_block,
+                    &mapping_func_reql_version,
                     static_cast<std::vector<char>*>(NULL),
                     &sindex_uuid);
             ASSERT_TRUE(sindex_exists);

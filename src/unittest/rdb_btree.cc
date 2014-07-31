@@ -206,6 +206,7 @@ void _check_keys_are_present(store_t *store,
                 &dummy_interruptor, true);
 
         scoped_ptr_t<real_superblock_t> sindex_sb;
+        cluster_version_t mapping_func_reql_version;
         uuid_u sindex_uuid;
 
         bool sindex_exists = store->acquire_sindex_superblock_for_read(
@@ -213,6 +214,7 @@ void _check_keys_are_present(store_t *store,
                 "",
                 super_block.get(),
                 &sindex_sb,
+                &mapping_func_reql_version,
                 static_cast<std::vector<char>*>(NULL),
                 &sindex_uuid);
         ASSERT_TRUE(sindex_exists);
@@ -278,6 +280,7 @@ void _check_keys_are_NOT_present(store_t *store,
                 &dummy_interruptor, true);
 
         scoped_ptr_t<real_superblock_t> sindex_sb;
+        cluster_version_t mapping_func_reql_version;
         uuid_u sindex_uuid;
 
         bool sindex_exists = store->acquire_sindex_superblock_for_read(
@@ -285,6 +288,7 @@ void _check_keys_are_NOT_present(store_t *store,
                 "",
                 super_block.get(),
                 &sindex_sb,
+                &mapping_func_reql_version,
                 static_cast<std::vector<char>*>(NULL),
                 &sindex_uuid);
         ASSERT_TRUE(sindex_exists);

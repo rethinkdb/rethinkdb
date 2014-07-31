@@ -194,6 +194,7 @@ void rdb_rget_secondary_slice(
     const boost::optional<ql::terminal_variant_t> &terminal,
     const key_range_t &pk_range,
     sorting_t sorting,
+    cluster_version_t sindex_func_reql_version,
     const ql::map_wire_func_t &sindex_func,
     sindex_multi_bool_t sindex_multi,
     rget_read_response_t *response);

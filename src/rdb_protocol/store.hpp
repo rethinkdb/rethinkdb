@@ -215,11 +215,13 @@ public:
         buf_lock_t sindex_block)
     THROWS_ONLY(interrupted_exc_t);
 
+    // RSI: opaque_definition_out should not be optional.
     MUST_USE bool acquire_sindex_superblock_for_read(
             const sindex_name_t &name,
             const std::string &table_name,
             superblock_t *superblock,  // releases this.
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
+            cluster_version_t *sindex_mapping_reql_version_out,
             std::vector<char> *opaque_definition_out, // Optional, may be NULL
             uuid_u *sindex_uuid_out)
         THROWS_ONLY(sindex_not_ready_exc_t);

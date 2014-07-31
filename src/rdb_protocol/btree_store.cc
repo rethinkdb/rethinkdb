@@ -861,6 +861,7 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_read(
         const std::string &table_name,
         superblock_t *superblock,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out,
+        cluster_version_t *sindex_mapping_reql_version_out,
         std::vector<char> *opaque_definition_out,
         uuid_u *sindex_uuid_out)
     THROWS_ONLY(sindex_not_ready_exc_t) {
@@ -879,6 +880,7 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_read(
         return false;
     }
 
+    *sindex_mapping_reql_version_out = sindex.latest_compatible_reql_version;
     if (opaque_definition_out != NULL) {
         *opaque_definition_out = sindex.opaque_definition;
     }

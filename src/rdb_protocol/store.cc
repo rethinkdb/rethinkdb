@@ -147,6 +147,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         } else {
             scoped_ptr_t<real_superblock_t> sindex_sb;
             std::vector<char> sindex_mapping_data;
+            cluster_version_t sindex_mapping_reql_version;
 
             uuid_u sindex_uuid;
             try {
@@ -155,6 +156,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                     rget.table_name,
                     superblock,
                     &sindex_sb,
+                    &sindex_mapping_reql_version,
                     &sindex_mapping_data,
                     &sindex_uuid);
                 if (!found) {
@@ -185,7 +187,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 rget.sindex->original_range, rget.sindex->region,
                 sindex_sb.get(), &ql_env, rget.batchspec, rget.transforms,
                 rget.terminal, rget.region.inner, rget.sorting,
-                sindex_mapping, multi_bool, res);
+                sindex_mapping_reql_version, sindex_mapping, multi_bool, res);
         }
     }
 
