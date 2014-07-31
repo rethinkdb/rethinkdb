@@ -866,6 +866,7 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_read(
         uuid_u *sindex_uuid_out)
     THROWS_ONLY(sindex_not_ready_exc_t) {
     assert_thread();
+    rassert(opaque_definition_out != NULL);
     rassert(sindex_uuid_out != NULL);
 
     /* Acquire the sindex block. */
@@ -881,9 +882,7 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_read(
     }
 
     *sindex_mapping_reql_version_out = sindex.latest_compatible_reql_version;
-    if (opaque_definition_out != NULL) {
-        *opaque_definition_out = sindex.opaque_definition;
-    }
+    *opaque_definition_out = sindex.opaque_definition;
     *sindex_uuid_out = sindex.id;
 
     if (!sindex.is_ready()) {
