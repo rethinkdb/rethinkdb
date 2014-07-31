@@ -235,7 +235,8 @@ void datum_t::check_str_validity(const std::string &str) {
 datum_t::type_t datum_t::get_type() const { return data.type; }
 
 bool datum_t::is_ptype() const {
-    return get_type() == R_OBJECT && std_contains(*data.r_object, reql_type_string);
+    return get_type() == R_BINARY ||
+        (get_type() == R_OBJECT && std_contains(*data.r_object, reql_type_string));
 }
 
 bool datum_t::is_ptype(const std::string &reql_type) const {
@@ -243,7 +244,11 @@ bool datum_t::is_ptype(const std::string &reql_type) const {
 }
 
 std::string datum_t::get_reql_type() const {
-    r_sanity_check(get_type() == R_OBJECT);
+    r_sanity_check(is_ptype());
+    if (get_type() == R_BINARY) {
+        return "BINARY";
+    }
+
     auto maybe_reql_type = data.r_object->find(reql_type_string);
     r_sanity_check(maybe_reql_type != data.r_object->end());
     rcheck(maybe_reql_type->second->get_type() == R_STR,
@@ -259,7 +264,7 @@ std::string datum_t::get_reql_type() const {
 std::string raw_type_name(datum_t::type_t type) {
     switch (type) {
     case datum_t::R_NULL:   return "NULL";
-    case datum_t::R_BINARY: return "BINARY";
+    case datum_t::R_BINARY: return std::string("PTYPE<") + pseudo::binary_string + ">";
     case datum_t::R_BOOL:   return "BOOL";
     case datum_t::R_NUM:    return "NUMBER";
     case datum_t::R_STR:    return "STRING";
@@ -332,7 +337,8 @@ void datum_t::num_to_str_key(std::string *str_out) const {
 void datum_t::str_to_str_key(std::string *str_out) const {
     r_sanity_check(get_type() == R_STR);
     str_out->append("S");
-    str_out->append(as_str().to_std());
+    size_t to_append = std::min(MAX_KEY_SIZE - str_out->size(), as_str().size());
+    str_out->append(as_str().data(), to_append);
 }
 
 void datum_t::bool_to_str_key(std::string *str_out) const {
@@ -382,17 +388,17 @@ void datum_t::array_to_str_key(std::string *str_out) const {
 }
 
 void datum_t::binary_to_str_key(std::string *str_out) const {
-    // This needs to sort between 'array':'A' and 'bool':'Bt','Bf'
-    const std::string binary_key_prefix("BN");
+    // We need to prepend "P" and append a character less than [a-zA-Z] so that
+    // different pseudotypes sort correctly.
+    const std::string binary_key_prefix("PBINARY:");
     const wire_string_t &key = as_binary();
 
-    // Reserve 10% extra space to reduce reallocations
-    str_out->reserve(str_out->size() + binary_key_prefix.size() + key.size() * 11 / 10);
     str_out->append(binary_key_prefix);
+    size_t to_append = std::min(MAX_KEY_SIZE - str_out->size(), key.size());
 
     // Escape null bytes so we don't cause key ambiguity when used in an array
     // We do this by replacing \x00 with \x01\x01 and replacing \x01 with \x01\x02
-    for (size_t i = 0; i < key.size(); ++i) {
+    for (size_t i = 0; i < to_append; ++i) {
         if (key.data()[i] == '\x00') {
             str_out->append("\x01\x01");
         } else if (key.data()[i] == '\x01') {
@@ -405,7 +411,9 @@ void datum_t::binary_to_str_key(std::string *str_out) const {
 
 int datum_t::pseudo_cmp(const datum_t &rhs) const {
     r_sanity_check(is_ptype());
-    if (get_reql_type() == pseudo::time_string) {
+    if (get_type() == R_BINARY) {
+        return as_binary().compare(rhs.as_binary());
+    } else if (get_reql_type() == pseudo::time_string) {
         return pseudo::time_cmp(*this, rhs);
     }
 
@@ -607,7 +615,7 @@ std::string datum_t::print_primary() const {
 
 std::string datum_t::mangle_secondary(const std::string &secondary,
                                       const std::string &primary,
-        const std::string &tag) {
+                                      const std::string &tag) {
     guarantee(secondary.size() < UINT8_MAX);
     guarantee(secondary.size() + primary.size() < UINT8_MAX);
 
@@ -624,6 +632,9 @@ std::string datum_t::print_secondary(const store_key_t &primary_key,
                                      boost::optional<uint64_t> tag_num) const {
     std::string secondary_key_string;
     std::string primary_key_string = key_to_unescaped_str(primary_key);
+
+    // Reserve max key size to reduce reallocations
+    secondary_key_string.reserve(MAX_KEY_SIZE);
 
     if (primary_key_string.length() > rdb_protocol::MAX_PRIMARY_KEY_SIZE) {
         rfail(base_exc_t::GENERIC,
@@ -985,10 +996,15 @@ int derived_cmp(T a, T b) {
 
 
 int datum_t::cmp(const datum_t &rhs) const {
-    if (is_ptype() && !rhs.is_ptype()) {
-        return 1;
-    } else if (!is_ptype() && rhs.is_ptype()) {
-        return -1;
+    bool lhs_ptype = is_ptype();
+    bool rhs_ptype = rhs.is_ptype();
+    if (lhs_ptype && rhs_ptype) {
+        if (get_reql_type() != rhs.get_reql_type()) {
+            return derived_cmp(get_reql_type(), rhs.get_reql_type());
+        }
+        return pseudo_cmp(rhs);
+    } else if (lhs_ptype || rhs_ptype) {
+        return derived_cmp(get_type_name(), rhs.get_type_name());
     }
 
     if (get_type() != rhs.get_type()) {
@@ -998,7 +1014,6 @@ int datum_t::cmp(const datum_t &rhs) const {
     case R_NULL: return 0;
     case R_BOOL: return derived_cmp(as_bool(), rhs.as_bool());
     case R_NUM: return derived_cmp(as_num(), rhs.as_num());
-    case R_BINARY: return as_binary().compare(rhs.as_binary());
     case R_STR: return as_str().compare(rhs.as_str());
     case R_ARRAY: {
         const std::vector<counted_t<const datum_t> >
@@ -1014,34 +1029,28 @@ int datum_t::cmp(const datum_t &rhs) const {
         return i == rhs.as_array().size() ? 0 : -1;
     } unreachable();
     case R_OBJECT: {
-        if (is_ptype()) {
-            if (get_reql_type() != rhs.get_reql_type()) {
-                return derived_cmp(get_reql_type(), rhs.get_reql_type());
+        const std::map<std::string, counted_t<const datum_t> > &obj = as_object();
+        const std::map<std::string, counted_t<const datum_t> > &rhs_obj
+            = rhs.as_object();
+        auto it = obj.begin();
+        auto it2 = rhs_obj.begin();
+        while (it != obj.end() && it2 != rhs_obj.end()) {
+            int key_cmpval = it->first.compare(it2->first);
+            if (key_cmpval != 0) {
+                return key_cmpval;
             }
-            return pseudo_cmp(rhs);
-        } else {
-            const std::map<std::string, counted_t<const datum_t> > &obj = as_object();
-            const std::map<std::string, counted_t<const datum_t> > &rhs_obj
-                = rhs.as_object();
-            auto it = obj.begin();
-            auto it2 = rhs_obj.begin();
-            while (it != obj.end() && it2 != rhs_obj.end()) {
-                int key_cmpval = it->first.compare(it2->first);
-                if (key_cmpval != 0) {
-                    return key_cmpval;
-                }
-                int val_cmpval = it->second->cmp(*it2->second);
-                if (val_cmpval != 0) {
-                    return val_cmpval;
-                }
-                ++it;
-                ++it2;
+            int val_cmpval = it->second->cmp(*it2->second);
+            if (val_cmpval != 0) {
+                return val_cmpval;
             }
-            if (it != obj.end()) return 1;
-            if (it2 != rhs_obj.end()) return -1;
-            return 0;
+            ++it;
+            ++it2;
         }
+        if (it != obj.end()) return 1;
+        if (it2 != rhs_obj.end()) return -1;
+        return 0;
     } unreachable();
+    case R_BINARY: // This should be handled by the ptype code above
     default: unreachable();
     }
 }

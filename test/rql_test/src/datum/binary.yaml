@@ -348,22 +348,46 @@ tests:
       ot: b'fg'
 
     # Test binary keys
-    # Binary keys should sort between array and bool
+    # Binary keys (PTYPE<BINARY>) should sort between NUMBER and PTYPE<TIME> in a table
     - cd: r.db('test').table_create('datum_binary')
       def: tbl = r.table('datum_binary')
 
     - def:
-        cd: trows = [{'id':[0]},{'id':r.binary(a)},{'id':r.binary(c)},{'id':r.binary(d)},{'id':r.binary(f)},{'id':False},{'id':True},{'id':-500},{'id':500},{'id':''},{'id':'str'}]
-        rb: trows = [{:id => [0]},{:id => r.binary(a)},{:id => r.binary(c)},{:id => r.binary(d)},{:id => r.binary(f)},{:id => false},{:id => true},{:id => -500},{:id => 500},{:id => ''},{:id => 'str'}]
-    - def:
-        cd: trowsraw = [{'id':[0]},{'id':a},{'id':c},{'id':d},{'id':f},{'id':False},{'id':True},{'id':-500},{'id':500},{'id':''},{'id':'str'}]
-        rb: trowsraw = [{:id => [0]},{:id => a},{:id => c},{:id => d},{:id => f},{:id => false},{:id => true},{:id => -500},{:id => 500},{:id => ''},{:id => 'str'}]
+        cd: trows = [{'id':0,'idx':[0]},
+                     {'id':1,'idx':False},
+                     {'id':2,'idx':True},
+                     {'id':3,'idx':-500},
+                     {'id':4,'idx':500},
+                     {'id':5,'idx':r.binary(a)},
+                     {'id':6,'idx':r.binary(c)},
+                     {'id':7,'idx':r.binary(d)},
+                     {'id':8,'idx':r.binary(f)},
+                     {'id':9,'idx':r.epoch_time(0)},
+                     {'id':10,'idx':''},
+                     {'id':11,'idx':'str'}]
+        rb: trows = [{:id => 0,:idx => [0]},
+                     {:id => 1,:idx => False},
+                     {:id => 2,:idx => True},
+                     {:id => 3,:idx => -500},
+                     {:id => 4,:idx => 500},
+                     {:id => 5,:idx => r.binary(a)},
+                     {:id => 6,:idx => r.binary(c)},
+                     {:id => 7,:idx => r.binary(d)},
+                     {:id => 8,:idx => r.binary(f)},
+                     {:id => 9,:idx => r.epoch_time(0)},
+                     {:id => 10,:idx => ''},
+                     {:id => 11,:idx => 'str'}]
     - cd: tbl.insert(trows)['inserted']
       js: tbl.insert(trows)('inserted')
-      ot: 11
+      ot: 12
 
-    - cd: tbl.order_by('id')
-      ot: trowsraw
+    - cd: tbl.index_create('idx')
+      ot: ({'created':1})
+
+    - rb: tbl.order_by({:index => 'idx'}).map{|row| row['id']}.coerce_to('array')
+      js: tbl.order_by({index:'idx'}).map(r.row('id')).coerce_to('array')
+      py: tbl.order_by(index='idx').map(r.row['id']).coerce_to('array')
+      ot: [0,1,2,3,4,5,6,7,8,9,10,11]
 
     - cd: r.db('test').table_drop('datum_binary')
       ot: ({'dropped':1})
