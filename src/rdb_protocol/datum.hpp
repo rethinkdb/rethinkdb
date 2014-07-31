@@ -39,7 +39,6 @@ namespace ql {
 class datum_stream_t;
 class env_t;
 class val_t;
-enum class datum_serialized_type_t;
 
 namespace pseudo {
 class datum_cmp_t;
