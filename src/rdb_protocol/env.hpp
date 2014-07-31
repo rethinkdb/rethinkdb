@@ -48,16 +48,16 @@ scoped_ptr_t<profile::trace_t> maybe_make_profile_trace(profile_bool_t profile);
 
 class env_t : public home_thread_mixin_t {
 public:
+    // This is _not_ to be used for secondary index function evaluation -- it doesn't
+    // take a reql_version parameter.
     env_t(rdb_context_t *ctx,
           signal_t *interruptor,
           std::map<std::string, wire_func_t> optargs,
-          profile::trace_t *trace,
-          cluster_version_t reql_version);
-    // RSI: ^ I guess this doesn't make sense, because the sindex env_t is
-    // constructed with the other constructor.
+          profile::trace_t *trace);
 
-    // Used in unittest and for some sindex envs (for evaluating a deterministic
-    // function).
+    // Used in unittest and for some secondary index environments (hence the
+    // reql_version parameter).  (For secondary indexes, the interruptor definitely
+    // should be a dummy cond.)
     explicit env_t(signal_t *interruptor, cluster_version_t reql_version);
 
     ~env_t();

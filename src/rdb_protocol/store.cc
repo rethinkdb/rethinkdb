@@ -132,8 +132,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             rassert(rget.optargs.size() != 0);
         }
 
-        ql::env_t ql_env(ctx, interruptor, rget.optargs, trace,
-                         cluster_version_t::LATEST_DISK);
+        ql::env_t ql_env(ctx, interruptor, rget.optargs, trace);
 
         response->response = rget_read_response_t();
         rget_read_response_t *res =
@@ -378,8 +377,7 @@ private:
 
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const batched_replace_t &br) {
-        ql::env_t ql_env(ctx, interruptor, br.optargs, trace,
-                         cluster_version_t::LATEST_DISK);
+        ql::env_t ql_env(ctx, interruptor, br.optargs, trace);
         rdb_modification_report_cb_t sindex_cb(
             store, &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));

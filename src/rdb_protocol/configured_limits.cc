@@ -14,7 +14,7 @@ from_optargs(rdb_context_t *ctx, signal_t *interruptor, global_optargs_t &argume
         // because we use an empty argument list do we prevent an
         // infinite loop.
         env_t env(ctx, interruptor, std::map<std::string, wire_func_t>(),
-                  nullptr, cluster_version_t::LATEST_DISK);
+                  nullptr);
         return configured_limits_t(arguments.get_optarg(&env, "array_limit")->as_int());
     } else {
         return configured_limits_t();
