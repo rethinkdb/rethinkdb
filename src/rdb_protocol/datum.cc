@@ -21,6 +21,7 @@
 /* TODO: We only need to include this for `MAX_PRIMARY_KEY_SIZE`. We should move the
 key-mangling routines into `real_table/convert_key.hpp` so we can get rid of this. */
 #include "rdb_protocol/real_table/convert_key.hpp"
+#include "rdb_protocol/serialize_datum.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "stl_utils.hpp"
 #include "containers/archive/vector_stream.hpp"
@@ -34,62 +35,75 @@ const std::set<std::string> datum_t::_allowed_pts = std::set<std::string>();
 const char *const datum_t::reql_type_string = "$reql_type$";
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_null_t) :
-    type(R_NULL), r_str(NULL) { }
+    r_str(NULL), internal_type(internal_type_t::R_NULL) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_boolean_t, bool _bool) :
-    type(R_BOOL), r_bool(_bool) { }
+    r_bool(_bool), internal_type(internal_type_t::R_BOOL) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_binary_t,
                                         scoped_ptr_t<wire_string_t> _data) :
-    type(R_BINARY), r_str(_data.release()) { }
+    r_str(_data.release()), internal_type(internal_type_t::R_BINARY) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(double num) :
-    type(R_NUM), r_num(num) { }
+    r_num(num), internal_type(internal_type_t::R_NUM) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(std::string &&str) :
-    type(R_STR),
-    r_str(wire_string_t::create_and_init(str.size(), str.data()).release()) { }
+    r_str(wire_string_t::create_and_init(str.size(), str.data()).release()),
+    internal_type(internal_type_t::R_STR) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(scoped_ptr_t<wire_string_t> str) :
-    type(R_STR), r_str(str.release()) { }
+    r_str(str.release()), internal_type(internal_type_t::R_STR) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(const char *cstr) :
-    type(R_STR),
-    r_str(wire_string_t::create_and_init(::strlen(cstr), cstr).release()) { }
+    r_str(wire_string_t::create_and_init(::strlen(cstr), cstr).release()),
+    internal_type(internal_type_t::R_STR) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(std::vector<counted_t<const datum_t> > &&array) :
-    type(R_ARRAY),
-    r_array(new std::vector<counted_t<const datum_t> >(std::move(array))) { }
+    r_array(new std::vector<counted_t<const datum_t> >(std::move(array))),
+    internal_type(internal_type_t::R_ARRAY) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(std::map<std::string,
                                                  counted_t<const datum_t> > &&object) :
-    type(R_OBJECT),
-    r_object(new std::map<std::string, counted_t<const datum_t> >(std::move(object))) { }
+    r_object(new std::map<std::string, counted_t<const datum_t> >(std::move(object))),
+    internal_type(internal_type_t::R_OBJECT) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(std::vector<char> &&_lazy_serialized) :
-    type(LAZY_SERIALIZED),
-    lazy_serialized(new std::vector<char>(std::move(_lazy_serialized))) { }
+    lazy_serialized(new std::vector<char>(std::move(_lazy_serialized))),
+    internal_type(internal_type_t::LAZY_SERIALIZED) { }
 
 datum_t::data_wrapper_t::~data_wrapper_t() {
-    switch (type) {
-    case R_NULL: // fallthru
-    case R_BOOL: // fallthru
-    case R_NUM: break;
-    case R_BINARY: // fallthru
-    case R_STR: {
+    switch (internal_type) {
+    case internal_type_t::R_NULL: // fallthru
+    case internal_type_t::R_BOOL: // fallthru
+    case internal_type_t::R_NUM: break;
+    case internal_type_t::R_BINARY: // fallthru
+    case internal_type_t::R_STR: {
         delete r_str;
     } break;
-    case R_ARRAY: {
+    case internal_type_t::R_ARRAY: {
         delete r_array;
     } break;
-    case R_OBJECT: {
+    case internal_type_t::R_OBJECT: {
         delete r_object;
     } break;
-    case LAZY_SERIALIZED: {
+    case internal_type_t::LAZY_SERIALIZED: {
         delete lazy_serialized;
     } break;
     default: unreachable();
     }
+}
+
+datum_t::type_t datum_t::data_wrapper_t::get_type() const {
+    guarantee(internal_type != internal_type_t::LAZY_SERIALIZED);
+    return static_cast<type_t>(internal_type);
+}
+
+datum_t::internal_type_t datum_t::data_wrapper_t::get_internal_type() const {
+    return internal_type;
+}
+
+void datum_t::data_wrapper_t::set_type(datum_t::type_t t) {
+    internal_type = static_cast<internal_type_t>(t);
 }
 
 datum_t::datum_t(datum_t::construct_null_t dummy) : data(dummy) { }
@@ -244,12 +258,12 @@ void datum_t::check_str_validity(const std::string &str) {
 }
 
 datum_t::type_t datum_t::get_type() const {
-    deserialize_lazy();
-    return data.type;
+    ensure_deserialize_lazy();
+    return data.get_type();
 }
 
 bool datum_t::is_lazy() const {
-    return data.type == LAZY_SERIALIZED;
+    return data.get_internal_type() == internal_type_t::LAZY_SERIALIZED;
 }
 
 bool datum_t::is_ptype() const {
@@ -261,7 +275,7 @@ bool datum_t::is_ptype(const std::string &reql_type) const {
 }
 
 std::string datum_t::get_reql_type() const {
-    deserialize_lazy();
+    ensure_deserialize_lazy();
     r_sanity_check(get_type() == R_OBJECT);
     auto maybe_reql_type = data.r_object->find(reql_type_string);
     r_sanity_check(maybe_reql_type != data.r_object->end());
@@ -284,7 +298,6 @@ std::string raw_type_name(datum_t::type_t type) {
     case datum_t::R_STR:    return "STRING";
     case datum_t::R_ARRAY:  return "ARRAY";
     case datum_t::R_OBJECT: return "OBJECT";
-    case datum_t::LAZY_SERIALIZED: // fallthru
     default: unreachable();
     }
 }
@@ -394,7 +407,6 @@ void datum_t::array_to_str_key(std::string *str_out) const {
                           "(got %s of type %s).", item->print().c_str(),
                           item->get_type_name().c_str()));
             break;
-        case LAZY_SERIALIZED: // fallthru
         default:
             unreachable();
         }
@@ -439,7 +451,7 @@ void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
             data.r_object = NULL;
 
             data.r_str = pseudo::decode_base64_ptype(*obj_data.get()).release();
-            data.type = R_BINARY;
+            data.set_type(type_t::R_BINARY);
             return;
         }
         rfail(base_exc_t::GENERIC,
@@ -598,7 +610,6 @@ std::string datum_t::print_primary() const {
             "(got type %s):\n%s",
             get_type_name().c_str(), trunc_print().c_str()));
         break;
-    case LAZY_SERIALIZED: // fallthru
     default:
         unreachable();
     }
@@ -768,7 +779,6 @@ void datum_t::type_error(const std::string &msg) const {
 }
 
 bool datum_t::as_bool() const {
-    deserialize_lazy();
     if (get_type() == R_BOOL) {
         return data.r_bool;
     } else {
@@ -776,7 +786,6 @@ bool datum_t::as_bool() const {
     }
 }
 double datum_t::as_num() const {
-    deserialize_lazy();
     check_type(R_NUM);
     return data.r_num;
 }
@@ -818,33 +827,36 @@ struct datum_rcheckable_t : public rcheckable_t {
 };
 
 int64_t datum_t::as_int() const {
-    deserialize_lazy();
     datum_rcheckable_t target(this);
     return checked_convert_to_int(&target, as_num());
 }
 
 const wire_string_t &datum_t::as_binary() const {
-    deserialize_lazy();
     check_type(R_BINARY);
     return *data.r_str;
 }
 
 const wire_string_t &datum_t::as_str() const {
-    deserialize_lazy();
     check_type(R_STR);
     return *data.r_str;
 }
 
 const std::vector<counted_t<const datum_t> > &datum_t::as_array() const {
-    deserialize_lazy();
     check_type(R_ARRAY);
     return *data.r_array;
 }
 
-// TODO! Rename and should not be public
 const std::vector<char> &datum_t::as_lazy_serialized() const {
-    guarantee(data.type == LAZY_SERIALIZED);
+    guarantee(is_lazy());
     return *data.lazy_serialized;
+}
+
+archive_result_t datum_t::unserialize_lazy_replace(
+    const std::function<archive_result_t(data_wrapper_t *)> &replacer) {
+    guarantee(is_lazy());
+    archive_result_t res = replacer(&data);
+    guarantee(res != archive_result_t::SUCCESS || !is_lazy());
+    return res;
 }
 
 size_t datum_t::size() const {
@@ -874,7 +886,6 @@ counted_t<const datum_t> datum_t::get(const std::string &key,
 }
 
 const std::map<std::string, counted_t<const datum_t> > &datum_t::as_object() const {
-    deserialize_lazy();
     check_type(R_OBJECT);
     return *data.r_object;
 }
@@ -901,7 +912,6 @@ cJSON *datum_t::as_json_raw() const {
         }
         return obj.release();
     } break;
-    case LAZY_SERIALIZED: // Fall thru
     default: unreachable();
     }
     unreachable();
@@ -926,7 +936,6 @@ datum_t::as_datum_stream(const protob_t<const Backtrace> &backtrace) const {
     case R_ARRAY:
         return make_counted<array_datum_stream_t>(this->counted_from_this(),
                                                   backtrace);
-    case LAZY_SERIALIZED: // fallthru
     default: unreachable();
     }
     unreachable();
@@ -1061,7 +1070,6 @@ int datum_t::cmp(const datum_t &rhs) const {
             return 0;
         }
     } unreachable();
-    case LAZY_SERIALIZED: // fallthru
     default: unreachable();
     }
 }
@@ -1183,7 +1191,6 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
                 it->second->write_to_protobuf(ap->mutable_val(), use_json);
             }
         } break;
-        case LAZY_SERIALIZED: // fallthru
         default: unreachable();
         }
     } break;
@@ -1195,15 +1202,15 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
     }
 }
 
-void datum_t::deserialize_lazy() const {
-    if (data.type == LAZY_SERIALIZED) {
+void datum_t::ensure_deserialize_lazy() const {
+    if (data.get_internal_type() == internal_type_t::LAZY_SERIALIZED) {
         datum_t *mutable_this = const_cast<datum_t *>(this);
         // Move the serialized data out and delete it...
         vector_read_stream_t stream(std::move(*mutable_this->data.lazy_serialized));
         delete mutable_this->data.lazy_serialized;
         mutable_this->data.lazy_serialized = NULL;
         // Deserialize the actual data
-        guarantee_deserialization(deserialize_lazy_datum(&stream, &mutable_this->data),
+        guarantee_deserialization(deserialize_lazy_datum(&stream, mutable_this),
                                   "Lazy datum_t");
     }
 }

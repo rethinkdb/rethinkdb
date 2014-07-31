@@ -2,6 +2,7 @@
 #include "rdb_protocol/serialize_datum.hpp"
 
 #include <cmath>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -26,7 +27,6 @@ enum class datum_serialized_type_t {
     R_BINARY = 9,
     LAZY = 10
 };
-// TODO! Make sure we update block magics
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(datum_serialized_type_t, int8_t,
                                       datum_serialized_type_t::R_ARRAY,
@@ -188,7 +188,6 @@ size_t datum_lazy_serialized_size(const counted_t<const datum_t> &datum) {
     case datum_t::R_STR: {
         sz += datum_serialized_size(datum->as_str());
     } break;
-    case datum_t::LAZY_SERIALIZED: // fallthru
     default:
         unreachable();
     }
@@ -196,8 +195,7 @@ size_t datum_lazy_serialized_size(const counted_t<const datum_t> &datum) {
     return sz;
 }
 
-size_t datum_serialized_size(const counted_t<const datum_t> &datum) {
-    // TODO! De-dup
+bool should_serialize_as_lazy(const counted_t<const datum_t> &datum) {
     bool serialize_as_lazy = datum->is_lazy();
     if (!serialize_as_lazy) {
         // Note that we must only call get_type() once we have determined
@@ -208,6 +206,11 @@ size_t datum_serialized_size(const counted_t<const datum_t> &datum) {
             serialize_as_lazy = true;
         }
     }
+    return serialize_as_lazy;
+}
+
+size_t datum_serialized_size(const counted_t<const datum_t> &datum) {
+    const bool serialize_as_lazy = should_serialize_as_lazy(datum);
 
     size_t sz = 0;
     if (serialize_as_lazy) {
@@ -224,16 +227,7 @@ serialization_result_t datum_serialize(write_message_t *wm,
     r_sanity_check(datum.has());
 
     // Determine whether it makes sense for deserialization of this to be lazy
-    bool serialize_as_lazy = datum->is_lazy();
-    if (!serialize_as_lazy) {
-        // Note that we must only call get_type() once we have determined
-        // that the datum is not currently lazy. Otherwise get_type() will
-        // destroy the datum's current lazyness.
-        datum_t::type_t type = datum->get_type();
-        if (type == datum_t::R_ARRAY || type == datum_t::R_OBJECT) {
-            serialize_as_lazy = true;
-        }
-    }
+    const bool serialize_as_lazy = should_serialize_as_lazy(datum);
 
     if (serialize_as_lazy) {
         res = res | datum_serialize(wm, datum_serialized_type_t::LAZY);
@@ -298,7 +292,6 @@ serialization_result_t datum_serialize(write_message_t *wm,
         const wire_string_t &value = datum->as_str();
         res = res | datum_serialize(wm, value);
     } break;
-    case datum_t::LAZY_SERIALIZED: // fallthru
     default:
         unreachable();
     }
@@ -335,24 +328,134 @@ archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *d
         return archive_result_t::SUCCESS;;
     } else {
         // Deserialize the datum immediately
-        // TODO! Refactor maybe?
-        *datum = datum_t::null();
-        // TODO! Again, the interface for this sucks
-        return deserialize_lazy_datum(type, s, const_cast<datum_t::data_wrapper_t*>(&(*datum)->data));
+
+        // Datums on disk should always be read no matter how stupid big
+        // they are; there's no way to fix the problem otherwise.
+        // Similarly we don't want to reject array reads from cluster
+        // nodes that are within the user spec but larger than the default
+        // 100,000 limit.
+        ql::configured_limits_t limits = ql::configured_limits_t::unlimited;
+
+        switch (type) {
+        case datum_serialized_type_t::R_ARRAY: {
+            std::vector<counted_t<const datum_t> > value;
+            res = datum_deserialize(s, &value);
+            if (bad(res)) {
+                return res;
+            }
+            try {
+                datum->reset(new datum_t(std::move(value), limits));
+            } catch (const base_exc_t &) {
+                return archive_result_t::RANGE_ERROR;
+            }
+        } break;
+        case datum_serialized_type_t::R_BINARY: {
+            scoped_ptr_t<wire_string_t> value;
+            res = datum_deserialize(s, &value);
+            if (bad(res)) {
+                return res;
+            }
+            rassert(value.has());
+            try {
+                *datum = datum_t::binary(std::move(value));
+            } catch (const base_exc_t &) {
+                return archive_result_t::RANGE_ERROR;
+            }
+        } break;
+        case datum_serialized_type_t::R_BOOL: {
+            bool value;
+            res = deserialize_universal(s, &value);
+            if (bad(res)) {
+                return res;
+            }
+            try {
+                *datum = datum_t::boolean(value);
+            } catch (const base_exc_t &) {
+                return archive_result_t::RANGE_ERROR;
+            }
+        } break;
+        case datum_serialized_type_t::R_NULL: {
+            *datum = datum_t::null();
+        } break;
+        case datum_serialized_type_t::DOUBLE: {
+            double value;
+            res = deserialize_universal(s, &value);
+            if (bad(res)) {
+                return res;
+            }
+            try {
+                datum->reset(new datum_t(value));
+            } catch (const base_exc_t &) {
+                return archive_result_t::RANGE_ERROR;
+            }
+        } break;
+        case datum_serialized_type_t::INT_NEGATIVE:  // fall through
+        case datum_serialized_type_t::INT_POSITIVE: {
+            uint64_t unsigned_value;
+            res = deserialize_varint_uint64(s, &unsigned_value);
+            if (bad(res)) {
+                return res;
+            }
+            if (unsigned_value > max_dbl_int) {
+                return archive_result_t::RANGE_ERROR;
+            }
+            const double d = unsigned_value;
+            double value;
+            if (type == datum_serialized_type_t::INT_NEGATIVE) {
+                // This might deserialize the signed-zero double, -0.0.
+                value = -d;
+            } else {
+                value = d;
+            }
+            try {
+                datum->reset(new datum_t(value));
+            } catch (const base_exc_t &) {
+                return archive_result_t::RANGE_ERROR;
+            }
+        } break;
+        case datum_serialized_type_t::R_OBJECT: {
+            std::map<std::string, counted_t<const datum_t> > value;
+            res = datum_deserialize(s, &value);
+            if (bad(res)) {
+                return res;
+            }
+            try {
+                datum->reset(new datum_t(std::move(value)));
+            } catch (const base_exc_t &) {
+                return archive_result_t::RANGE_ERROR;
+            }
+        } break;
+        case datum_serialized_type_t::R_STR: {
+            scoped_ptr_t<wire_string_t> value;
+            res = datum_deserialize(s, &value);
+            if (bad(res)) {
+                return res;
+            }
+            rassert(value.has());
+            try {
+                datum->reset(new datum_t(std::move(value)));
+            } catch (const base_exc_t &) {
+                return archive_result_t::RANGE_ERROR;
+            }
+        } break;
+        case datum_serialized_type_t::LAZY:  // fall thru
+        default:
+            return archive_result_t::RANGE_ERROR;
+        }
+
+        return archive_result_t::SUCCESS;
     }
 }
 
-// TODO! This is a terrible interface
-archive_result_t deserialize_lazy_datum(read_stream_t *s, datum_t::data_wrapper_t *data) {
+archive_result_t deserialize_lazy_data_wrapper(
+        read_stream_t *s, datum_t::data_wrapper_t *data) {
     datum_serialized_type_t type;
     archive_result_t res = datum_deserialize(s, &type);
     if (bad(res)) {
         return res;
     }
-    return deserialize_lazy_datum(type, s, data);
-}
-archive_result_t deserialize_lazy_datum(datum_serialized_type_t type, read_stream_t *s, datum_t::data_wrapper_t *data) {
-    archive_result_t res = archive_result_t::SUCCESS;
+
+    // Replace the datum's data in-place without constructing a new datum_t.
     switch (type) {
     case datum_serialized_type_t::R_ARRAY: {
         std::vector<counted_t<const datum_t> > value;
@@ -360,60 +463,8 @@ archive_result_t deserialize_lazy_datum(datum_serialized_type_t type, read_strea
         if (bad(res)) {
             return res;
         }
-        data->type = datum_t::R_ARRAY;
+        data->set_type(datum_t::R_ARRAY);
         data->r_array = new std::vector<counted_t<const datum_t> >(std::move(value));
-    } break;
-    case datum_serialized_type_t::R_BINARY: {
-        scoped_ptr_t<wire_string_t> value;
-        res = datum_deserialize(s, &value);
-        if (bad(res)) {
-            return res;
-        }
-        rassert(value.has());
-        data->type = datum_t::R_BINARY;
-        data->r_str = value.release();
-    } break;
-    case datum_serialized_type_t::R_BOOL: {
-        bool value;
-        res = deserialize_universal(s, &value);
-        if (bad(res)) {
-            return res;
-        }
-        data->type = datum_t::R_BOOL;
-        data->r_bool = value;
-    } break;
-    case datum_serialized_type_t::R_NULL: {
-        data->type = datum_t::R_NULL;
-    } break;
-    case datum_serialized_type_t::DOUBLE: {
-        double value;
-        res = deserialize_universal(s, &value);
-        if (bad(res)) {
-            return res;
-        }
-        data->type = datum_t::R_NUM;
-        data->r_num = value;
-    } break;
-    case datum_serialized_type_t::INT_NEGATIVE:  // fall through
-    case datum_serialized_type_t::INT_POSITIVE: {
-        uint64_t unsigned_value;
-        res = deserialize_varint_uint64(s, &unsigned_value);
-        if (bad(res)) {
-            return res;
-        }
-        if (unsigned_value > max_dbl_int) {
-            return archive_result_t::RANGE_ERROR;
-        }
-        const double d = unsigned_value;
-        double value;
-        if (type == datum_serialized_type_t::INT_NEGATIVE) {
-            // This might deserialize the signed-zero double, -0.0.
-            value = -d;
-        } else {
-            value = d;
-        }
-        data->type = datum_t::R_NUM;
-        data->r_num = value;
     } break;
     case datum_serialized_type_t::R_OBJECT: {
         std::map<std::string, counted_t<const datum_t> > value;
@@ -421,25 +472,29 @@ archive_result_t deserialize_lazy_datum(datum_serialized_type_t type, read_strea
         if (bad(res)) {
             return res;
         }
-        data->type = datum_t::R_OBJECT;
+        data->set_type(datum_t::R_OBJECT);
         data->r_object = new std::map<std::string, counted_t<const datum_t> >(std::move(value));
     } break;
-    case datum_serialized_type_t::R_STR: {
-        scoped_ptr_t<wire_string_t> value;
-        res = datum_deserialize(s, &value);
-        if (bad(res)) {
-            return res;
-        }
-        rassert(value.has());
-        data->type = datum_t::R_STR;
-        data->r_str = value.release();
-    } break;
-    case datum_serialized_type_t::LAZY: // fallthru
+    case datum_serialized_type_t::R_BOOL:
+    case datum_serialized_type_t::R_NULL:
+    case datum_serialized_type_t::DOUBLE:
+    case datum_serialized_type_t::INT_NEGATIVE:
+    case datum_serialized_type_t::INT_POSITIVE:
+    case datum_serialized_type_t::R_STR:
+    case datum_serialized_type_t::R_BINARY:
+    case datum_serialized_type_t::LAZY:
     default:
         return archive_result_t::RANGE_ERROR;
     }
 
     return res;
+}
+
+archive_result_t deserialize_lazy_datum(read_stream_t *s, datum_t *datum) {
+    // To get access to the datum's datum_wrapper_t, we go through the
+    // `unserialize_lazy_replace` helper function:
+    return datum->unserialize_lazy_replace(
+        std::bind(&deserialize_lazy_data_wrapper, s, ph::_1));
 }
 
 

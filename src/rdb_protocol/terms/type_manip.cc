@@ -111,7 +111,6 @@ private:
         case datum_t::R_STR:
         case datum_t::R_ARRAY:
         case datum_t::R_OBJECT:
-        case datum_t::LAZY_SERIALIZED: // TODO!
         default: break;
         }
     }
