@@ -31,12 +31,6 @@ struct secondary_index_t {
     /* A virtual superblock. */
     block_id_t superblock;
 
-    /* An opaque_definition_t is just a std::vector<char>.  It contains a serialized
-       map_wire_func_t and a sindex_multi_bool_t (and a cluster_version_t that says
-       how they were serialized -- see (de)serialize_sindex_info).  (This is a
-       holdover from when we had multiple protocols.) */
-    typedef std::vector<char> opaque_definition_t;
-
     /* Whether the index is has completed post construction, and/or is being deleted.
      * Note that an index can be in any combination of those states. */
     bool post_construction_complete;
@@ -75,9 +69,11 @@ struct secondary_index_t {
        `latest_compatible_reql_version` accordingly. */
     cluster_version_t latest_checked_reql_version;
 
-
-    /* An opaque blob that describes the index */
-    opaque_definition_t opaque_definition;
+    /* An opaque blob that describes the index.  See serialize_sindex_info and
+     deserialize_sindex_info.  At one point it contained a serialized map_wire_func_t
+     and a sindex_multi_bool_t -- maybe it still does.  (This is a holdover from when
+     we had multiple protocols.) */
+    std::vector<char> opaque_definition;
 
     /* Sindexes contain a uuid_u to prevent a rapid deletion and recreation of
      * a sindex with the same name from tricking a post construction in to

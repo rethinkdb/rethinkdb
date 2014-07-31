@@ -191,7 +191,7 @@ public:
 
     MUST_USE bool add_sindex(
         const sindex_name_t &name,
-        const secondary_index_t::opaque_definition_t &definition,
+        const std::vector<char> &opaque_definition,
         buf_lock_t *sindex_block);
 
     void set_sindexes(

@@ -501,7 +501,7 @@ buf_lock_t store_t::acquire_sindex_block_for_write(
 
 bool store_t::add_sindex(
         const sindex_name_t &name,
-        const secondary_index_t::opaque_definition_t &definition,
+        const std::vector<char> &opaque_definition,
         buf_lock_t *sindex_block) {
     secondary_index_t sindex;
     if (::get_secondary_index(sindex_block, name, &sindex)) {
@@ -510,7 +510,7 @@ bool store_t::add_sindex(
         {
             buf_lock_t sindex_superblock(sindex_block, alt_create_t::create);
             sindex.superblock = sindex_superblock.block_id();
-            sindex.opaque_definition = definition;
+            sindex.opaque_definition = opaque_definition;
 
             /* Notice we're passing in empty strings for metainfo. The metainfo in
              * the sindexes isn't used for anything but this could perhaps be
