@@ -20,15 +20,16 @@ namespace query_language {
 
 int json_cmp(cJSON *l, cJSON *r);
 
-class shared_scoped_less_t {
+} // namespace query_language
+
+
+class counted_datum_less_t {
 public:
-    shared_scoped_less_t() { }
+    counted_datum_less_t() { }
     bool operator()(const counted_t<const ql::datum_t> &a,
                     const counted_t<const ql::datum_t> &b) const {
         return *a < *b;
     }
 };
-
-} // namespace query_language
 
 #endif /* RDB_PROTOCOL_RDB_PROTOCOL_JSON_HPP_ */

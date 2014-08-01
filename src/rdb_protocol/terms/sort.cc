@@ -239,7 +239,7 @@ private:
             rcheck(!idx, base_exc_t::GENERIC,
                    "Can only perform an indexed distinct on a TABLE.");
             counted_t<datum_stream_t> s = v->as_seq(env->env);
-            std::set<counted_t<const datum_t> > results;
+            std::set<counted_t<const datum_t>, counted_datum_less_t> results;
             batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
             {
                 profile::sampler_t sampler("Evaluating elements in distinct.",

@@ -295,7 +295,7 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<const datum_t> arr = args->arg(env, 0)->as_datum();
         counted_t<const datum_t> new_el = args->arg(env, 1)->as_datum();
-        std::set<counted_t<const datum_t> > el_set;
+        std::set<counted_t<const datum_t>, counted_datum_less_t> el_set;
         datum_array_builder_t out(env->env->limits);
         for (size_t i = 0; i < arr->size(); ++i) {
             if (el_set.insert(arr->get(i)).second) {
@@ -320,7 +320,7 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<const datum_t> arr1 = args->arg(env, 0)->as_datum();
         counted_t<const datum_t> arr2 = args->arg(env, 1)->as_datum();
-        std::set<counted_t<const datum_t> > el_set;
+        std::set<counted_t<const datum_t>, counted_datum_less_t> el_set;
         datum_array_builder_t out(env->env->limits);
         for (size_t i = 0; i < arr1->size(); ++i) {
             if (el_set.insert(arr1->get(i)).second) {
@@ -347,7 +347,7 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<const datum_t> arr1 = args->arg(env, 0)->as_datum();
         counted_t<const datum_t> arr2 = args->arg(env, 1)->as_datum();
-        std::set<counted_t<const datum_t> > el_set;
+        std::set<counted_t<const datum_t>, counted_datum_less_t> el_set;
         datum_array_builder_t out(env->env->limits);
         for (size_t i = 0; i < arr1->size(); ++i) {
             el_set.insert(arr1->get(i));
@@ -373,7 +373,7 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<const datum_t> arr1 = args->arg(env, 0)->as_datum();
         counted_t<const datum_t> arr2 = args->arg(env, 1)->as_datum();
-        std::set<counted_t<const datum_t> > el_set;
+        std::set<counted_t<const datum_t>, counted_datum_less_t> el_set;
         datum_array_builder_t out(env->env->limits);
         for (size_t i = 0; i < arr2->size(); ++i) {
             el_set.insert(arr2->get(i));

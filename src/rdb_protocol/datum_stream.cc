@@ -14,7 +14,7 @@
 namespace ql {
 
 template<class T>
-T groups_to_batch(std::map<counted_t<const datum_t>, T> *g) {
+T groups_to_batch(std::map<counted_t<const datum_t>, T, counted_datum_less_t> *g) {
     if (g->size() == 0) {
         return T();
     } else {

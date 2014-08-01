@@ -118,12 +118,6 @@ public:
         return p_ != NULL;
     }
 
-    bool operator <(const counted_t<T> &other) const {
-        return (p_ == NULL)
-            ? (other.p_ != NULL ? true : false)
-            : (other.p_ != NULL ? (*p_ < *other.p_) : false);
-    }
-
 private:
     T *p_;
 };

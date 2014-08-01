@@ -31,7 +31,7 @@ namespace ql {
 // This stuff previously resided in the protocol, but has been broken out since
 // we want to use this logic in multiple places.
 typedef std::vector<counted_t<const ql::datum_t> > datums_t;
-typedef std::map<counted_t<const ql::datum_t>, datums_t> groups_t;
+typedef std::map<counted_t<const ql::datum_t>, datums_t, counted_datum_less_t> groups_t;
 
 struct rget_item_t {
     rget_item_t() { }
@@ -196,17 +196,17 @@ public:
 
     // We pass these through manually rather than using inheritance because
     // `std::map` lacks a virtual destructor.
-    typename std::map<counted_t<const datum_t>, T>::iterator
+    typename std::map<counted_t<const datum_t>, T, counted_datum_less_t>::iterator
     begin() { return m.begin(); }
-    typename std::map<counted_t<const datum_t>, T>::iterator
+    typename std::map<counted_t<const datum_t>, T, counted_datum_less_t>::iterator
     end() { return m.end(); }
 
-    std::pair<typename std::map<counted_t<const datum_t>, T>::iterator, bool>
+    std::pair<typename std::map<counted_t<const datum_t>, T, counted_datum_less_t>::iterator, bool>
     insert(std::pair<counted_t<const datum_t>, T> &&val) {
         return m.insert(std::move(val));
     }
     void
-    erase(typename std::map<counted_t<const datum_t>, T>::iterator pos) {
+    erase(typename std::map<counted_t<const datum_t>, T, counted_datum_less_t>::iterator pos) {
         m.erase(pos);
     }
 
@@ -215,9 +215,9 @@ public:
     T &operator[](const counted_t<const datum_t> &k) { return m[k]; }
 
     void swap(grouped_t<T> &other) { m.swap(other.m); } // NOLINT
-    std::map<counted_t<const datum_t>, T> *get_underlying_map() { return &m; }
+    std::map<counted_t<const datum_t>, T, counted_datum_less_t> *get_underlying_map() { return &m; }
 private:
-    std::map<counted_t<const datum_t>, T> m;
+    std::map<counted_t<const datum_t>, T, counted_datum_less_t> m;
 };
 
 RDB_SERIALIZE_TEMPLATED_OUTSIDE(grouped_t);

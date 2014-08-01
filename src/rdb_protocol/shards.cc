@@ -85,7 +85,7 @@ private:
                          const store_key_t &last_key,
                          const std::vector<result_t *> &results) {
         guarantee(acc.size() == 0);
-        std::map<counted_t<const datum_t>, std::vector<T *> > vecs;
+        std::map<counted_t<const datum_t>, std::vector<T *>, counted_datum_less_t> vecs;
         for (auto res = results.begin(); res != results.end(); ++res) {
             guarantee(*res);
             grouped_t<T> *gres = boost::get<grouped_t<T> >(*res);

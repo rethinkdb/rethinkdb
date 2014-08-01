@@ -271,7 +271,8 @@ private:
 
     std::vector<std::set<subscription_t *> > table_subs;
     std::map<counted_t<const datum_t>,
-             std::vector<std::set<subscription_t *> > > point_subs;
+             std::vector<std::set<subscription_t *> >,
+             counted_datum_less_t> point_subs;
     rwlock_t table_subs_lock, point_subs_lock;
     int64_t num_subs;
 
