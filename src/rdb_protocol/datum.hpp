@@ -72,6 +72,9 @@ public:
     // disparate type.  It should be alphabetical.
     enum type_t {
         R_ARRAY = 1,
+        // RSI: Maybe this isn't even used for comparing binary... but should this
+        // have a different value betwene obj and str because PTYPE<BINARY> is
+        // between them?
         R_BINARY = 2,
         R_BOOL = 3,
         R_NULL = 4,
