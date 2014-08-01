@@ -149,8 +149,9 @@ public:
     `print_primary()` belongs there as well. */
     static std::string mangle_secondary(const std::string &secondary,
             const std::string &primary, const std::string &tag);
+    // tag_num is used for multi-indexes.
     std::string print_secondary(const store_key_t &key,
-            boost::optional<uint64_t> tag_num = boost::optional<uint64_t>()) const;
+                                boost::optional<uint64_t> tag_num) const;
     /* An inverse to print_secondary. Returns the primary key. */
     static std::string extract_primary(const std::string &secondary_and_primary);
     static store_key_t extract_primary(const store_key_t &secondary_key);

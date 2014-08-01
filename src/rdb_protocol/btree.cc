@@ -1146,7 +1146,8 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
                 store_key_t(index->get(i, ql::THROW)->print_secondary(primary_key, i)));
         }
     } else {
-        keys_out->push_back(store_key_t(index->print_secondary(primary_key)));
+        keys_out->push_back(store_key_t(index->print_secondary(primary_key,
+                                                               boost::none)));
     }
 }
 
