@@ -45,6 +45,16 @@ class Backtrace;
 
 namespace unittest { struct make_sindex_read_t; }
 
+enum class reql_version_t {
+    v1_13,
+    v1_14,
+    v1_14_is_latest = v1_14,
+    LATEST = v1_14,
+};
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        reql_version_t, int8_t,
+        reql_version_t::v1_13, reql_version_t::v1_14_is_latest);
+
 enum class profile_bool_t {
     PROFILE,
     DONT_PROFILE

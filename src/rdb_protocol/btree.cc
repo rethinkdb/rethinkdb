@@ -766,7 +766,7 @@ typedef ql::terminal_variant_t terminal_variant_t;
 class sindex_data_t {
 public:
     sindex_data_t(const key_range_t &_pkey_range, const datum_range_t &_range,
-                  cluster_version_t wire_func_reql_version,
+                  reql_version_t wire_func_reql_version,
                   ql::map_wire_func_t wire_func, sindex_multi_bool_t _multi)
         : pkey_range(_pkey_range), range(_range),
           func_reql_version(wire_func_reql_version),
@@ -775,7 +775,7 @@ private:
     friend class rget_cb_t;
     const key_range_t pkey_range;
     const datum_range_t range;
-    const cluster_version_t func_reql_version;
+    const reql_version_t func_reql_version;
     const counted_t<ql::func_t> func;
     const sindex_multi_bool_t multi;
 };
@@ -985,7 +985,7 @@ void rdb_rget_secondary_slice(
     const boost::optional<terminal_variant_t> &terminal,
     const key_range_t &pk_range,
     sorting_t sorting,
-    cluster_version_t sindex_func_reql_version,
+    reql_version_t sindex_func_reql_version,
     const ql::map_wire_func_t &sindex_func,
     sindex_multi_bool_t sindex_multi,
     rget_read_response_t *response) {
@@ -1127,7 +1127,7 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
 }
 
 void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> doc,
-                  cluster_version_t reql_version,
+                  reql_version_t reql_version,
                   ql::map_wire_func_t *mapping, sindex_multi_bool_t multi,
                   std::vector<store_key_t> *keys_out) {
     guarantee(keys_out->empty());
@@ -1160,11 +1160,18 @@ void serialize_sindex_info(write_message_t *wm,
     // field in secondary_index_t.
     serialize_cluster_version(wm, cluster_version_t::LATEST_DISK);
 
-    serialize_for_version(cluster_version_t::LATEST_DISK, wm, mapping);
-    serialize_cluster_version(wm, reql_version.original_reql_version);
-    serialize_cluster_version(wm, reql_version.latest_compatible_reql_version);
-    serialize_cluster_version(wm, reql_version.latest_checked_reql_version);
-    serialize_for_version(cluster_version_t::LATEST_DISK, wm, multi);
+    serialize<cluster_version_t::LATEST_DISK>(
+            wm,
+            reql_version.original_reql_version);
+    serialize<cluster_version_t::LATEST_DISK>(
+            wm,
+            reql_version.latest_compatible_reql_version);
+    serialize<cluster_version_t::LATEST_DISK>(
+            wm,
+            reql_version.latest_checked_reql_version);
+
+    serialize<cluster_version_t::LATEST_DISK>(wm, mapping);
+    serialize<cluster_version_t::LATEST_DISK>(wm, multi);
 }
 
 void deserialize_sindex_info(const std::vector<char> &data,
@@ -1180,28 +1187,36 @@ void deserialize_sindex_info(const std::vector<char> &data,
         = deserialize_cluster_version(&read_stream, &cluster_version);
     guarantee_deserialization(success, "sindex description");
 
-    success = deserialize_for_version(cluster_version, &read_stream, mapping_out);
-    guarantee_deserialization(success, "sindex description");
-
-    if (cluster_version == cluster_version_t::v1_13
-        || cluster_version == cluster_version_t::v1_13_2) {
-        reql_version_out->original_reql_version = cluster_version_t::v1_13;
-        reql_version_out->latest_compatible_reql_version = cluster_version_t::v1_13;
-        reql_version_out->latest_checked_reql_version = cluster_version_t::v1_13;
-    } else {
-        success = deserialize_cluster_version(
+    switch (cluster_version) {
+    case cluster_version_t::v1_13:
+    case cluster_version_t::v1_13_2:
+        reql_version_out->original_reql_version = reql_version_t::v1_13;
+        reql_version_out->latest_compatible_reql_version = reql_version_t::v1_13;
+        reql_version_out->latest_checked_reql_version = reql_version_t::v1_13;
+        break;
+    case cluster_version_t::v1_14_is_latest:
+        success = deserialize_for_version(
+                cluster_version,
                 &read_stream,
                 &reql_version_out->original_reql_version);
         guarantee_deserialization(success, "original_reql_version");
-        success = deserialize_cluster_version(
+        success = deserialize_for_version(
+                cluster_version,
                 &read_stream,
                 &reql_version_out->latest_compatible_reql_version);
         guarantee_deserialization(success, "latest_compatible_reql_version");
-        success = deserialize_cluster_version(
+        success = deserialize_for_version(
+                cluster_version,
                 &read_stream,
                 &reql_version_out->latest_checked_reql_version);
         guarantee_deserialization(success, "latest_checked_reql_version");
+        break;
+    default:
+        unreachable();
     }
+
+    success = deserialize_for_version(cluster_version, &read_stream, mapping_out);
+    guarantee_deserialization(success, "sindex description");
 
     success = deserialize_for_version(cluster_version, &read_stream, multi_out);
     guarantee_deserialization(success, "sindex description");
