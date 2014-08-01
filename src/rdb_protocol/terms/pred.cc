@@ -5,36 +5,60 @@
 
 namespace ql {
 
+bool datum_eq(reql_version_t, const datum_t &lhs, const datum_t &rhs) {
+    return lhs == rhs;
+}
+
+bool datum_ne(reql_version_t, const datum_t &lhs, const datum_t &rhs) {
+    return lhs != rhs;
+}
+
+bool datum_lt(reql_version_t, const datum_t &lhs, const datum_t &rhs) {
+    return lhs < rhs;
+}
+
+bool datum_le(reql_version_t, const datum_t &lhs, const datum_t &rhs) {
+    return lhs <= rhs;
+}
+
+bool datum_gt(reql_version_t, const datum_t &lhs, const datum_t &rhs) {
+    return lhs > rhs;
+}
+
+bool datum_ge(reql_version_t, const datum_t &lhs, const datum_t &rhs) {
+    return lhs >= rhs;
+}
+
 class predicate_term_t : public op_term_t {
 public:
     predicate_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2, -1)), namestr(0), invert(false), pred(0) {
         int predtype = term->type();
-        switch(predtype) {
+        switch (predtype) {
         case Term_TermType_EQ: {
             namestr = "EQ";
-            pred = &datum_t::operator==; // NOLINT
+            pred = &datum_eq;
         } break;
         case Term_TermType_NE: {
             namestr = "NE";
-            pred = &datum_t::operator==; // NOLINT
+            pred = &datum_ne;
             invert = true; // we invert the == operator so (!= 1 2 3) makes sense
         } break;
         case Term_TermType_LT: {
             namestr = "LT";
-            pred = &datum_t::operator<; // NOLINT
+            pred = &datum_lt;
         } break;
         case Term_TermType_LE: {
             namestr = "LE";
-            pred = &datum_t::operator<=; // NOLINT
+            pred = &datum_le;
         } break;
         case Term_TermType_GT: {
             namestr = "GT";
-            pred = &datum_t::operator>; // NOLINT
+            pred = &datum_gt;
         } break;
         case Term_TermType_GE: {
             namestr = "GE";
-            pred = &datum_t::operator>=; // NOLINT
+            pred = &datum_ge;
         } break;
         default: unreachable();
         }
@@ -45,7 +69,7 @@ private:
         counted_t<const datum_t> lhs = args->arg(env, 0)->as_datum();
         for (size_t i = 1; i < args->num_args(); ++i) {
             counted_t<const datum_t> rhs = args->arg(env, i)->as_datum();
-            if (!(lhs.get()->*pred)(*rhs)) {
+            if (!(pred)(env->env->reql_version, *lhs, *rhs)) {
                 return new_val_bool(static_cast<bool>(false ^ invert));
             }
             lhs = rhs;
@@ -55,7 +79,7 @@ private:
     const char *namestr;
     virtual const char *name() const { return namestr; }
     bool invert;
-    bool (datum_t::*pred)(const datum_t &rhs) const;
+    bool (*pred)(reql_version_t, const datum_t &lhs, const datum_t &rhs);
 };
 
 class not_term_t : public op_term_t {
