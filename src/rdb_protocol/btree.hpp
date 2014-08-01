@@ -11,6 +11,7 @@
 #include "backfill_progress.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/changes.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/store.hpp"
 
@@ -20,6 +21,7 @@ class key_tester_t;
 class parallel_traversal_progress_t;
 template <class> class promise_t;
 struct rdb_value_t;
+struct sindex_disk_info_t;
 
 class parallel_traversal_progress_t;
 
@@ -62,11 +64,6 @@ void rdb_get(
     point_read_response_t *response,
     profile::trace_t *trace);
 
-enum return_vals_t {
-    NO_RETURN_VALS = 0,
-    RETURN_VALS = 1
-};
-
 struct btree_info_t {
     btree_info_t(btree_slice_t *_slice,
                  repli_timestamp_t _timestamp,
@@ -99,13 +96,13 @@ struct btree_batched_replacer_t {
     virtual ~btree_batched_replacer_t() { }
     virtual counted_t<const ql::datum_t> replace(
         const counted_t<const ql::datum_t> &d, size_t index) const = 0;
-    virtual bool should_return_vals() const = 0;
+    virtual return_changes_t should_return_changes() const = 0;
 };
 struct btree_point_replacer_t {
     virtual ~btree_point_replacer_t() { }
     virtual counted_t<const ql::datum_t> replace(
         const counted_t<const ql::datum_t> &d) const = 0;
-    virtual bool should_return_vals() const = 0;
+    virtual return_changes_t should_return_changes() const = 0;
 };
 
 batched_replace_response_t rdb_batched_replace(
@@ -175,22 +172,6 @@ void rdb_erase_small_range(key_tester_t *tester,
                            const deletion_context_t *deletion_context,
                            signal_t *interruptor,
                            std::vector<rdb_modification_report_t> *mod_reports_out);
-
-struct sindex_disk_info_t {
-    sindex_disk_info_t() { }
-    sindex_disk_info_t(const ql::map_wire_func_t &_mapping,
-                       sindex_multi_bool_t _multi,
-                       sindex_geo_bool_t _geo) :
-        mapping(_mapping), multi(_multi), geo(_geo) { }
-    ql::map_wire_func_t mapping;
-    sindex_multi_bool_t multi;
-    sindex_geo_bool_t geo;
-};
-
-void serialize_sindex_info(write_message_t *wm,
-                           const sindex_disk_info_t &info);
-void deserialize_sindex_info(const std::vector<char> &data,
-                             sindex_disk_info_t *info_out);
 
 void rdb_rget_slice(
     btree_slice_t *slice,
@@ -264,6 +245,58 @@ struct rdb_modification_report_t {
 };
 
 RDB_DECLARE_SERIALIZABLE(rdb_modification_report_t);
+
+// The query evaluation reql version information that we store with each secondary
+// index function.
+struct sindex_reql_version_info_t {
+    // Generally speaking, original_reql_version <= latest_compatible_reql_version <=
+    // latest_checked_reql_version.  When a new sindex is created, the values are the
+    // same.  When a new version of RethinkDB gets run, latest_checked_reql_version
+    // will get updated, and latest_compatible_reql_version will get updated if the
+    // sindex function is compatible with a later version than the original value of
+    // `latest_checked_reql_version`.
+
+    // The original ReQL version of the sindex function.  The value here never
+    // changes.  This might become useful for tracking down some bugs or fixing them
+    // in-place, or performing a desparate reverse migration.
+    cluster_version_t original_reql_version;
+
+    // This is the latest version for which evaluation of the sindex function remains
+    // compatible.
+    cluster_version_t latest_compatible_reql_version;
+
+    // If this is less than the current server version, we'll re-check
+    // opaque_definition for compatibility and update this value and
+    // `latest_compatible_reql_version` accordingly.
+    cluster_version_t latest_checked_reql_version;
+
+    // To be used for new secondary indexes.
+    static sindex_reql_version_info_t LATEST_DISK() {
+        sindex_reql_version_info_t ret = { cluster_version_t::LATEST_DISK,
+                                           cluster_version_t::LATEST_DISK,
+                                           cluster_version_t::LATEST_DISK };
+        return ret;
+    }
+};
+
+struct sindex_disk_info_t {
+    sindex_disk_info_t() { }
+    sindex_disk_info_t(const ql::map_wire_func_t &_mapping,
+                       const sindex_reql_version_info_t &_mapping_version_info,
+                       sindex_multi_bool_t _multi,
+                       sindex_geo_bool_t _geo) :
+        mapping(_mapping), mapping_version_info(_mapping_version_info),
+        multi(_multi), geo(_geo) { }
+    ql::map_wire_func_t mapping;
+    sindex_reql_version_info_t mapping_version_info;
+    sindex_multi_bool_t multi;
+    sindex_geo_bool_t geo;
+};
+
+void serialize_sindex_info(write_message_t *wm,
+                           const sindex_disk_info_t &info);
+void deserialize_sindex_info(const std::vector<char> &data,
+                             sindex_disk_info_t *info_out);
 
 /* An rdb_modification_cb_t is passed to BTree operations and allows them to
  * modify the secondary while they perform an operation. */

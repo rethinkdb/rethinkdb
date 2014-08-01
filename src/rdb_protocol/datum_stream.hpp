@@ -16,58 +16,14 @@
 
 #include "rdb_protocol/context.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/real_table.hpp"
+#include "rdb_protocol/shards.hpp"
 
 namespace ql {
 
 class env_t;
-
-/* This wraps a namespace_interface_t and makes it automatically handle getting
- * profiling information from them. It acheives this by doing the following in
- * its methods:
- * - Set the explain field in the read_t/write_t object so that the shards know
- whether or not to do profiling
- * - Construct a splitter_t
- * - Call the corresponding method on internal_
- * - splitter_t::give_splits with the event logs from the shards
- */
-class rdb_namespace_interface_t {
-public:
-    explicit rdb_namespace_interface_t(namespace_interface_t *internal);
-
-    void read(env_t *env,
-              const read_t &,
-              read_response_t *response,
-              order_token_t tok)
-        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
-    void read_outdated(env_t *env,
-                       const read_t &,
-                       read_response_t *response)
-        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
-    void write(env_t *env,
-               write_t *,
-               write_response_t *response,
-               order_token_t tok)
-        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
-
-    /* These calls are for the sole purpose of optimizing queries; don't rely
-       on them for correctness. They should not block. */
-    std::set<region_t> get_sharding_scheme()
-        THROWS_ONLY(cannot_perform_query_exc_t);
-    signal_t *get_initial_ready_signal();
-
-private:
-    namespace_interface_t *internal_;
-};
-
-class rdb_namespace_access_t {
-public:
-    rdb_namespace_access_t(uuid_u id, env_t *env);
-    rdb_namespace_interface_t get_namespace_if();
-private:
-    base_namespace_repo_t::access_t internal_;
-};
-
 class scope_env_t;
+
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
                        public pb_rcheckable_t {
 public:
@@ -401,7 +357,7 @@ private:
 class reader_t {
 public:
     explicit reader_t(
-        const rdb_namespace_access_t &ns_access,
+        const real_table_t &_table,
         bool use_outdated,
         scoped_ptr_t<readgen_t> &&readgen);
     void add_transformation(transform_variant_t &&tv);
@@ -416,7 +372,7 @@ private:
     rget_read_response_t do_read(env_t *env, const read_t &read);
     std::vector<rget_item_t> do_range_read(env_t *env, const read_t &read);
 
-    rdb_namespace_access_t ns_access;
+    real_table_t table;
     const bool use_outdated;
     std::vector<transform_variant_t> transforms;
 
@@ -432,7 +388,7 @@ private:
 class lazy_datum_stream_t : public datum_stream_t {
 public:
     lazy_datum_stream_t(
-        rdb_namespace_access_t *_ns_access,
+        const real_table_t &_table,
         bool _use_outdated,
         scoped_ptr_t<readgen_t> &&_readgen,
         const protob_t<const Backtrace> &bt_src);

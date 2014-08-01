@@ -1,34 +1,56 @@
-#include "clustering/administration/reql_admin_interface.hpp"
+// Copyright 2010-2014 RethinkDB, all rights reserved.
+#include "clustering/administration/reql_cluster_interface.hpp"
 
+#include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/suggester.hpp"
+#include "rdb_protocol/wait_for_readiness.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
-cluster_reql_admin_interface_t::cluster_reql_admin_interface_t(
-        uuid_u mmi,
+#define NAMESPACE_INTERFACE_EXPIRATION_MS (60 * 1000)
+
+real_reql_cluster_interface_t::real_reql_cluster_interface_t(
+        mailbox_manager_t *_mailbox_manager,
+        uuid_u _my_machine_id,
         boost::shared_ptr<
-            semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > s,
-        clone_ptr_t<watchable_t<
-            change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > d
+            semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattices,
+        clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
+            cluster_directory_metadata_t> > > _directory,
+        rdb_context_t *_rdb_context
         ) :
-    my_machine_id(mmi),
-    semilattices(s),
-    directory(d),
+    mailbox_manager(_mailbox_manager),
+    my_machine_id(_my_machine_id),
+    semilattice_root_view(_semilattices),
+    directory_root_view(_directory),
     cross_thread_namespace_watchables(get_num_threads()),
-    cross_thread_database_watchables(get_num_threads())
+    cross_thread_database_watchables(get_num_threads()),
+    rdb_context(_rdb_context),
+    namespace_repo(
+        mailbox_manager,
+        metadata_field(
+            &cluster_semilattice_metadata_t::rdb_namespaces, semilattice_root_view),
+        directory_root_view->incremental_subview(
+            incremental_field_getter_t<namespaces_directory_metadata_t,
+                                       cluster_directory_metadata_t>(
+                &cluster_directory_metadata_t::rdb_namespaces)),
+        rdb_context),
+    changefeed_client(mailbox_manager,
+        [this](const namespace_id_t &id, signal_t *interruptor) {
+            return this->namespace_repo.get_namespace_interface(id, interruptor);
+        })
 {
     for (int thr = 0; thr < get_num_threads(); ++thr) {
         cross_thread_namespace_watchables[thr].init(
             new cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t> >(
                 clone_ptr_t<semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
                     (new semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> >(
-                        metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, semilattices))), threadnum_t(thr)));
+                        metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, semilattice_root_view))), threadnum_t(thr)));
 
         cross_thread_database_watchables[thr].init(
             new cross_thread_watchable_variable_t<databases_semilattice_metadata_t>(
                 clone_ptr_t<semilattice_watchable_t<databases_semilattice_metadata_t> >
                     (new semilattice_watchable_t<databases_semilattice_metadata_t>(
-                        metadata_field(&cluster_semilattice_metadata_t::databases, semilattices))), threadnum_t(thr)));
+                        metadata_field(&cluster_semilattice_metadata_t::databases, semilattice_root_view))), threadnum_t(thr)));
     }
 }
 
@@ -74,12 +96,12 @@ static bool check_metadata_status(metadata_search_status_t status,
     }
 }
 
-bool cluster_reql_admin_interface_t::db_create(const name_string_t &name,
+bool real_reql_cluster_interface_t::db_create(const name_string_t &name,
         signal_t *interruptor, std::string *error_out) {
     cluster_semilattice_metadata_t metadata;
     {
-        on_thread_t thread_switcher(semilattices->home_thread());
-        metadata = semilattices->get();
+        on_thread_t thread_switcher(semilattice_root_view->home_thread());
+        metadata = semilattice_root_view->get();
         metadata_searcher_t<database_semilattice_metadata_t> db_searcher(
             &metadata.databases.databases);
 
@@ -94,20 +116,20 @@ bool cluster_reql_admin_interface_t::db_create(const name_string_t &name,
         metadata.databases.databases.insert(
             std::make_pair(generate_uuid(), make_deletable(db)));
 
-        semilattices->join(metadata);
-        metadata = semilattices->get();
+        semilattice_root_view->join(metadata);
+        metadata = semilattice_root_view->get();
     }
     wait_for_metadata_to_propagate(metadata, interruptor);
 
     return true;
 }
 
-bool cluster_reql_admin_interface_t::db_drop(const name_string_t &name,
+bool real_reql_cluster_interface_t::db_drop(const name_string_t &name,
         signal_t *interruptor, std::string *error_out) {
     cluster_semilattice_metadata_t metadata;
     {
-        on_thread_t thread_switcher(semilattices->home_thread());
-        metadata = semilattices->get();
+        on_thread_t thread_switcher(semilattice_root_view->home_thread());
+        metadata = semilattice_root_view->get();
         metadata_searcher_t<database_semilattice_metadata_t> db_searcher(
             &metadata.databases.databases);
 
@@ -135,15 +157,15 @@ bool cluster_reql_admin_interface_t::db_drop(const name_string_t &name,
             it2->second.mark_deleted();
         }
 
-        semilattices->join(metadata);
-        metadata = semilattices->get();
+        semilattice_root_view->join(metadata);
+        metadata = semilattice_root_view->get();
     }
     wait_for_metadata_to_propagate(metadata, interruptor);
 
     return true;
 }
 
-bool cluster_reql_admin_interface_t::db_list(
+bool real_reql_cluster_interface_t::db_list(
         UNUSED signal_t *interruptor, std::set<name_string_t> *names_out,
         UNUSED std::string *error_out) {
     databases_semilattice_metadata_t db_metadata;
@@ -163,7 +185,7 @@ bool cluster_reql_admin_interface_t::db_list(
     return true;
 }
 
-bool cluster_reql_admin_interface_t::db_find(const name_string_t &name,
+bool real_reql_cluster_interface_t::db_find(const name_string_t &name,
         UNUSED signal_t *interruptor, counted_t<const ql::db_t> *db_out,
         std::string *error_out) {
     /* Find the specified database */
@@ -180,14 +202,15 @@ bool cluster_reql_admin_interface_t::db_find(const name_string_t &name,
     return true;
 }
 
-bool cluster_reql_admin_interface_t::table_create(const name_string_t &name,
+bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         counted_t<const ql::db_t> db, const boost::optional<name_string_t> &primary_dc,
         bool hard_durability, const std::string &primary_key, signal_t *interruptor,
-        uuid_u *namespace_id_out, std::string *error_out) {
+        std::string *error_out) {
     cluster_semilattice_metadata_t metadata;
+    namespace_id_t namespace_id;
     {
-        on_thread_t thread_switcher(semilattices->home_thread());
-        metadata = semilattices->get();
+        on_thread_t thread_switcher(semilattice_root_view->home_thread());
+        metadata = semilattice_root_view->get();
 
         /* Find the specified datacenter */
         uuid_u dc_id;
@@ -227,15 +250,15 @@ bool cluster_reql_admin_interface_t::table_create(const name_string_t &name,
         }
         table.ack_expectations.upgrade_version(my_machine_id);
 
-        *namespace_id_out = generate_uuid();
+        namespace_id = generate_uuid();
         ns_change.get()->namespaces.insert(
-            std::make_pair(*namespace_id_out, make_deletable(table)));
+            std::make_pair(namespace_id, make_deletable(table)));
 
         try {
             fill_in_blueprint_for_namespace(
                 &metadata,
-                directory->get().get_inner(),
-                *namespace_id_out,
+                directory_root_view->get().get_inner(),
+                namespace_id,
                 my_machine_id);
         } catch (const missing_machine_exc_t &exc) {
             *error_out = strprintf(
@@ -243,20 +266,48 @@ bool cluster_reql_admin_interface_t::table_create(const name_string_t &name,
             return false;
         }
 
-        semilattices->join(metadata);
-        metadata = semilattices->get();
+        semilattice_root_view->join(metadata);
+        metadata = semilattice_root_view->get();
     }
     wait_for_metadata_to_propagate(metadata, interruptor);
+
+    /* The following is an ugly hack, but it's probably what we want. It takes about a
+    third of a second for the new namespace to get to the point where we can do
+    reads/writes on it. We don't want to return until that has happened, so we try to do
+    a read every `poll_ms` milliseconds until one succeeds, then return. */
+    namespace_interface_access_t access =
+        namespace_repo.get_namespace_interface(namespace_id, interruptor);
+    const int poll_ms = 20;
+    for (;;) {
+        if (test_for_rdb_table_readiness(access.get(), interruptor)) {
+            break;
+        }
+        /* Confirm that the namespace hasn't been deleted. If it's deleted, then
+        `test_for_rdb_table_readiness` will never return `true`. */
+        bool is_deleted;
+        cross_thread_namespace_watchables[get_thread_id().threadnum]->apply_read(
+            [&](const cow_ptr_t<namespaces_semilattice_metadata_t> *ns_md) {
+                guarantee((*ns_md)->namespaces.count(namespace_id) == 1);
+                is_deleted = (*ns_md)->namespaces.at(namespace_id).is_deleted();
+            }
+            );
+        if (is_deleted) {
+            break;
+        }
+        signal_timer_t timer;
+        timer.start(poll_ms);
+        wait_interruptible(&timer, interruptor);
+    }
 
     return true;
 }
 
-bool cluster_reql_admin_interface_t::table_drop(const name_string_t &name,
+bool real_reql_cluster_interface_t::table_drop(const name_string_t &name,
         counted_t<const ql::db_t> db, signal_t *interruptor, std::string *error_out) {
     cluster_semilattice_metadata_t metadata;
     {
-        on_thread_t thread_switcher(semilattices->home_thread());
-        metadata = semilattices->get();
+        on_thread_t thread_switcher(semilattice_root_view->home_thread());
+        metadata = semilattice_root_view->get();
 
         /* Find the specified table */
         cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change(
@@ -274,15 +325,15 @@ bool cluster_reql_admin_interface_t::table_drop(const name_string_t &name,
         /* Delete the table. */
         ns_metadata->second.mark_deleted();
 
-        semilattices->join(metadata);
-        metadata = semilattices->get();
+        semilattice_root_view->join(metadata);
+        metadata = semilattice_root_view->get();
     }
     wait_for_metadata_to_propagate(metadata, interruptor);
 
     return true;
 }
 
-bool cluster_reql_admin_interface_t::table_list(counted_t<const ql::db_t> db,
+bool real_reql_cluster_interface_t::table_list(counted_t<const ql::db_t> db,
         UNUSED signal_t *interruptor, std::set<name_string_t> *names_out,
         UNUSED std::string *error_out) {
 
@@ -305,11 +356,11 @@ bool cluster_reql_admin_interface_t::table_list(counted_t<const ql::db_t> db,
     return true;
 }
 
-bool cluster_reql_admin_interface_t::table_find(const name_string_t &name,
-        counted_t<const ql::db_t> db, UNUSED signal_t *interruptor,
-        uuid_u *namespace_id_out, std::string *primary_key_out, std::string *error_out) {
+bool real_reql_cluster_interface_t::table_find(const name_string_t &name,
+        counted_t<const ql::db_t> db, signal_t *interruptor,
+        scoped_ptr_t<base_table_t> *table_out, std::string *error_out) {
 
-    /* Find the specified table */
+    /* Find the specified table in the semilattice metadata */
     cow_ptr_t<namespaces_semilattice_metadata_t> namespaces_metadata
         = get_namespaces_metadata();
     const_metadata_searcher_t<namespace_semilattice_metadata_t>
@@ -319,11 +370,15 @@ bool cluster_reql_admin_interface_t::table_find(const name_string_t &name,
     auto ns_metadata_it = ns_searcher.find_uniq(pred, &status);
     if (!check_metadata_status(status, "Table", db->name + "." + name.str(), true,
             error_out)) return false;
-
     guarantee(!ns_metadata_it->second.is_deleted());
-    *namespace_id_out = ns_metadata_it->first;
     guarantee(!ns_metadata_it->second.get_ref().primary_key.in_conflict());
-    *primary_key_out = ns_metadata_it->second.get_ref().primary_key.get();
+
+    table_out->init(new real_table_t(
+        ns_metadata_it->first,
+        namespace_repo.get_namespace_interface(ns_metadata_it->first, interruptor),
+        ns_metadata_it->second.get_ref().primary_key.get_ref(),
+        &changefeed_client));
+
     return true;
 }
 
@@ -336,18 +391,18 @@ bool is_joined(const T &multiple, const T &divisor) {
     return cpy == multiple;
 }
 
-void cluster_reql_admin_interface_t::wait_for_metadata_to_propagate(
+void real_reql_cluster_interface_t::wait_for_metadata_to_propagate(
         const cluster_semilattice_metadata_t &metadata, signal_t *interruptor) {
-    clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
-        ns_watchable = get_namespaces_watchable();
-    ns_watchable->run_until_satisfied(
+    int threadnum = get_thread_id().threadnum;
+
+    guarantee(cross_thread_namespace_watchables[threadnum].has());
+    cross_thread_namespace_watchables[threadnum]->get_watchable()->run_until_satisfied(
             [&] (const cow_ptr_t<namespaces_semilattice_metadata_t> &md) -> bool
                 { return is_joined(md, metadata.rdb_namespaces); },
             interruptor);
 
-    clone_ptr_t< watchable_t<databases_semilattice_metadata_t> >
-        db_watchable = get_databases_watchable();
-    db_watchable->run_until_satisfied(
+    guarantee(cross_thread_database_watchables[threadnum].has());
+    cross_thread_database_watchables[threadnum]->get_watchable()->run_until_satisfied(
             [&] (const databases_semilattice_metadata_t &md) -> bool
                 { return is_joined(md, metadata.databases); },
             interruptor);
@@ -358,15 +413,8 @@ void copy_value(const T *in, T *out) {
     *out = *in;
 }
 
-clone_ptr_t< watchable_t< cow_ptr_t<namespaces_semilattice_metadata_t> > >
-cluster_reql_admin_interface_t::get_namespaces_watchable() {
-    int threadnum = get_thread_id().threadnum;
-    r_sanity_check(cross_thread_namespace_watchables[threadnum].has());
-    return cross_thread_namespace_watchables[threadnum]->get_watchable();
-}
-
 cow_ptr_t<namespaces_semilattice_metadata_t>
-cluster_reql_admin_interface_t::get_namespaces_metadata() {
+real_reql_cluster_interface_t::get_namespaces_metadata() {
     int threadnum = get_thread_id().threadnum;
     r_sanity_check(cross_thread_namespace_watchables[threadnum].has());
     cow_ptr_t<namespaces_semilattice_metadata_t> ret;
@@ -376,14 +424,7 @@ cluster_reql_admin_interface_t::get_namespaces_metadata() {
     return ret;
 }
 
-clone_ptr_t< watchable_t<databases_semilattice_metadata_t> >
-cluster_reql_admin_interface_t::get_databases_watchable() {
-    int threadnum = get_thread_id().threadnum;
-    r_sanity_check(cross_thread_database_watchables[threadnum].has());
-    return cross_thread_database_watchables[threadnum]->get_watchable();
-}
-
-void cluster_reql_admin_interface_t::get_databases_metadata(
+void real_reql_cluster_interface_t::get_databases_metadata(
         databases_semilattice_metadata_t *out) {
     int threadnum = get_thread_id().threadnum;
     r_sanity_check(cross_thread_database_watchables[threadnum].has());

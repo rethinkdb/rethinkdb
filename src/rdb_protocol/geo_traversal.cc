@@ -104,7 +104,7 @@ void geo_intersecting_cb_t::on_candidate(
     try {
         // Post-filter the geometry based on an actual intersection test
         // with query_geometry
-        ql::env_t sindex_env(env->interruptor);
+        ql::env_t sindex_env(env->interruptor, sindex.func_reql_version);
         counted_t<const ql::datum_t> sindex_val =
             sindex.func->call(&sindex_env, val)->as_datum();
         if (sindex.multi == sindex_multi_bool_t::MULTI

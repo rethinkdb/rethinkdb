@@ -191,7 +191,7 @@ public:
 
     MUST_USE bool add_sindex(
         const sindex_name_t &name,
-        const secondary_index_t::opaque_definition_t &definition,
+        const std::vector<char> &opaque_definition,
         buf_lock_t *sindex_block);
 
     void set_sindexes(
@@ -220,7 +220,7 @@ public:
             const std::string &table_name,
             superblock_t *superblock,  // releases this.
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
-            std::vector<char> *opaque_definition_out, // Optional, may be NULL
+            std::vector<char> *opaque_definition_out,
             uuid_u *sindex_uuid_out)
         THROWS_ONLY(sindex_not_ready_exc_t);
 

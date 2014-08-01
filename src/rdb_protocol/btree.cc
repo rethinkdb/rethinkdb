@@ -208,6 +208,19 @@ kv_location_set(keyvalue_location_t *kv_location,
     return ql::serialization_result_t::SUCCESS;
 }
 
+MUST_USE counted_t<const ql::datum_t>
+make_replacement_pair(counted_t<const ql::datum_t> old_val, counted_t<const ql::datum_t> new_val) {
+    // in this context, we know the array will have one element.
+    // stats_merge later can impose user preferences.
+    ql::datum_array_builder_t values(ql::configured_limits_t::unlimited);
+    ql::datum_object_builder_t value_pair;
+    bool conflict = value_pair.add("old_val", old_val)
+        || value_pair.add("new_val", new_val);
+    guarantee(!conflict);
+    values.add(std::move(value_pair).to_counted());
+    return std::move(values).to_counted();
+}
+
 batched_replace_response_t rdb_replace_and_return_superblock(
     const btree_loc_info_t &info,
     const btree_point_replacer_t *replacer,
@@ -216,7 +229,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
     rdb_modification_info_t *mod_info_out,
     profile::trace_t *trace)
 {
-    const bool return_vals = replacer->should_return_vals();
+    const return_changes_t return_changes = replacer->should_return_changes();
     const std::string &primary_key = *info.btree->primary_key;
     const store_key_t &key = *info.key;
     ql::datum_object_builder_t resp;
@@ -245,15 +258,15 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             guarantee(old_val->get(primary_key, ql::NOTHROW).has());
         }
         guarantee(old_val.has());
-        if (return_vals == RETURN_VALS) {
-            bool conflict = resp.add("old_val", old_val)
-                         || resp.add("new_val", old_val); // changed below
+        if (return_changes == return_changes_t::YES) {
+            // first, fill with the old value.  Then, if `replacer` succeeds, fill with new value.
+            bool conflict = resp.add("changes", make_replacement_pair(old_val, old_val));
             guarantee(!conflict);
         }
 
         counted_t<const ql::datum_t> new_val = replacer->replace(old_val);
-        if (return_vals == RETURN_VALS) {
-            resp.overwrite("new_val", new_val);
+        if (return_changes == return_changes_t::YES) {
+            resp.overwrite("changes", make_replacement_pair(old_val, new_val));
         }
         if (new_val->get_type() == ql::datum_t::R_NULL) {
             ended_empty = true;
@@ -369,7 +382,7 @@ public:
     counted_t<const ql::datum_t> replace(const counted_t<const ql::datum_t> &d) const {
         return replacer->replace(d, index);
     }
-    bool should_return_vals() const { return replacer->should_return_vals(); }
+    return_changes_t should_return_changes() const { return replacer->should_return_changes(); }
 private:
     const btree_batched_replacer_t *const replacer;
     const size_t index;
@@ -762,13 +775,16 @@ typedef ql::terminal_variant_t terminal_variant_t;
 class rget_sindex_data_t {
 public:
     rget_sindex_data_t(const key_range_t &_pkey_range, const datum_range_t &_range,
+                       cluster_version_t wire_func_reql_version,
                        ql::map_wire_func_t wire_func, sindex_multi_bool_t _multi)
         : pkey_range(_pkey_range), range(_range),
+          func_reql_version(wire_func_reql_version),
           func(wire_func.compile_wire_func()), multi(_multi) { }
 private:
     friend class rget_cb_t;
     const key_range_t pkey_range;
     const datum_range_t range;
+    const cluster_version_t func_reql_version;
     const counted_t<ql::func_t> func;
     const sindex_multi_bool_t multi;
 };
@@ -902,7 +918,11 @@ THROWS_ONLY(interrupted_exc_t) {
         // Check whether we're out of sindex range.
         counted_t<const ql::datum_t> sindex_val; // NULL if no sindex.
         if (sindex) {
-            sindex_val = sindex->func->call(job.env, val)->as_datum();
+            // Secondary index functions are deterministic (so no need for an
+            // rdb_context_t) and evaluated in a pristine environment (without global
+            // optargs).
+            ql::env_t sindex_env(job.env->interruptor, sindex->func_reql_version);
+            sindex_val = sindex->func->call(&sindex_env, val)->as_datum();
             if (sindex->multi == sindex_multi_bool_t::MULTI
                 && sindex_val->get_type() == ql::datum_t::R_ARRAY) {
                 boost::optional<uint64_t> tag = *ql::datum_t::extract_tag(key);
@@ -981,11 +1001,14 @@ void rdb_rget_secondary_slice(
     r_sanity_check(boost::get<ql::exc_t>(&response->result) == NULL);
     guarantee(sindex_info.geo == sindex_geo_bool_t::REGULAR);
     profile::starter_t starter("Do range scan on secondary index.", ql_env->trace);
+
+    const cluster_version_t sindex_func_reql_version =
+        sindex_info.mapping_version_info.latest_compatible_reql_version;
     rget_cb_t callback(
         rget_io_data_t(response, slice),
         job_data_t(ql_env, batchspec, transforms, terminal, sorting),
-        rget_sindex_data_t(pk_range, sindex_range, sindex_info.mapping,
-                           sindex_info.multi),
+        rget_sindex_data_t(pk_range, sindex_range, sindex_func_reql_version,
+                           sindex_info.mapping, sindex_info.multi),
         sindex_region.inner);
     btree_concurrent_traversal(
         superblock, sindex_region.inner, &callback,
@@ -1006,9 +1029,12 @@ void rdb_get_intersecting_slice(
     guarantee(sindex_info.geo == sindex_geo_bool_t::GEO);
     profile::starter_t starter("Do intersection scan on geospatial index.", ql_env->trace);
 
+    const cluster_version_t sindex_func_reql_version =
+        sindex_info.mapping_version_info.latest_compatible_reql_version;
     collect_all_geo_intersecting_cb_t callback(
         slice,
-        geo_sindex_data_t(pk_range, sindex_info.mapping, sindex_info.multi),
+        geo_sindex_data_t(pk_range, sindex_info.mapping, sindex_func_reql_version,
+                          sindex_info.multi),
         ql_env,
         query_geometry);
     btree_parallel_traversal(
@@ -1033,6 +1059,9 @@ void rdb_get_nearest_slice(
     guarantee(sindex_info.geo == sindex_geo_bool_t::GEO);
     profile::starter_t starter("Do nearest traversal on geospatial index.", ql_env->trace);
 
+    const cluster_version_t sindex_func_reql_version =
+        sindex_info.mapping_version_info.latest_compatible_reql_version;
+
     // TODO (daniel): Instead of calling this multiple times until we are done,
     //   results should be streamed lazily. Also, even if we don't do that,
     //   the copying of the result we do here is bad.
@@ -1043,7 +1072,8 @@ void rdb_get_nearest_slice(
         try {
             nearest_traversal_cb_t callback(
                 slice,
-                geo_sindex_data_t(pk_range, sindex_info.mapping, sindex_info.multi),
+                geo_sindex_data_t(pk_range, sindex_info.mapping,
+                                  sindex_func_reql_version, sindex_info.multi),
                 ql_env,
                 &state);
             btree_parallel_traversal(
@@ -1171,7 +1201,8 @@ void rdb_modification_report_cb_t::on_mod_report(
                 ql::changefeed::msg_t(
                     ql::changefeed::msg_t::change_t(
                         mod_report.info.deleted.first,
-                        mod_report.info.added.first)));
+                        mod_report.info.added.first)),
+                &mod_report.primary_key);
         }
 
         sindexes_updated_cond.wait_lazily_unordered();
@@ -1232,11 +1263,20 @@ std::vector<std::string> expand_geo_key(
 }
 
 void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> doc,
-                  const sindex_disk_info_t &index_info, ql::env_t *env,
+                  const sindex_disk_info_t &index_info,
                   std::vector<store_key_t> *keys_out) {
     guarantee(keys_out->empty());
+
+    const cluster_version_t reql_version =
+        index_info.mapping_version_info.latest_compatible_reql_version;
+
+    // Secondary index functions are deterministic (so no need for an rdb_context_t)
+    // and evaluated in a pristine environment (without global optargs).
+    cond_t non_interruptor;
+    ql::env_t sindex_env(&non_interruptor, reql_version);
+
     counted_t<const ql::datum_t> index =
-        index_info.mapping.compile_wire_func()->call(env, doc)->as_datum();
+        index_info.mapping.compile_wire_func()->call(&sindex_env, doc)->as_datum();
 
     if (index_info.multi == sindex_multi_bool_t::MULTI
         && index->get_type() == ql::datum_t::R_ARRAY) {
@@ -1267,6 +1307,9 @@ void serialize_sindex_info(write_message_t *wm,
                            const sindex_disk_info_t &info) {
     serialize_cluster_version(wm, cluster_version_t::LATEST_DISK);
     serialize_for_version(cluster_version_t::LATEST_DISK, wm, info.mapping);
+    serialize_cluster_version(wm, info.mapping_version_info.original_reql_version);
+    serialize_cluster_version(wm, info.mapping_version_info.latest_compatible_reql_version);
+    serialize_cluster_version(wm, info.mapping_version_info.latest_checked_reql_version);
     serialize_for_version(cluster_version_t::LATEST_DISK, wm, info.multi);
     serialize_for_version(cluster_version_t::LATEST_DISK, wm, info.geo);
 }
@@ -1274,19 +1317,47 @@ void serialize_sindex_info(write_message_t *wm,
 void deserialize_sindex_info(const std::vector<char> &data,
                              sindex_disk_info_t *info_out) {
     inplace_vector_read_stream_t read_stream(&data);
+    // This cluster version field is _not_ a ReQL evaluation version field, which is
+    // in secondary_index_t -- it only says how the value was serialized.
     cluster_version_t cluster_version;
     archive_result_t success
         = deserialize_cluster_version(&read_stream, &cluster_version);
     guarantee_deserialization(success, "sindex description");
+
     success = deserialize_for_version(cluster_version, &read_stream, &info_out->mapping);
     guarantee_deserialization(success, "sindex description");
+
+    if (cluster_version == cluster_version_t::v1_13
+        || cluster_version == cluster_version_t::v1_13_2) {
+        info_out->mapping_version_info.original_reql_version =
+            cluster_version_t::v1_13;
+        info_out->mapping_version_info.latest_compatible_reql_version =
+            cluster_version_t::v1_13;
+        info_out->mapping_version_info.latest_checked_reql_version =
+            cluster_version_t::v1_13;
+    } else {
+        success = deserialize_cluster_version(
+                &read_stream,
+                &info_out->mapping_version_info.original_reql_version);
+        guarantee_deserialization(success, "original_reql_version");
+        success = deserialize_cluster_version(
+                &read_stream,
+                &info_out->mapping_version_info.latest_compatible_reql_version);
+        guarantee_deserialization(success, "latest_compatible_reql_version");
+        success = deserialize_cluster_version(
+                &read_stream,
+                &info_out->mapping_version_info.latest_checked_reql_version);
+        guarantee_deserialization(success, "latest_checked_reql_version");
+    }
+
     success = deserialize_for_version(cluster_version, &read_stream, &info_out->multi);
     guarantee_deserialization(success, "sindex description");
-    if (cluster_version >= cluster_version_t::v1_14) {
+    if (cluster_version == cluster_version_t::v1_13
+        || cluster_version == cluster_version_t::v1_13_2) {
+        info_out->geo = sindex_geo_bool_t::REGULAR;
+    } else {
         success = deserialize_for_version(cluster_version, &read_stream, &info_out->geo);
         guarantee_deserialization(success, "sindex description");
-    } else {
-        info_out->geo = sindex_geo_bool_t::REGULAR;
     }
 
     guarantee(static_cast<size_t>(read_stream.tell()) == data.size(),
@@ -1308,12 +1379,9 @@ void rdb_update_single_sindex(
     sindex_disk_info_t sindex_info;
     deserialize_sindex_info(sindex->sindex.opaque_definition, &sindex_info);
 
-    // TODO we have no rdb context here. People should not be able to do anything
-    // that requires an environment like gets from other tables etc. but we don't
-    // have a nice way to disallow those things so for now we pass null and it will
-    // segfault if an illegal sindex mapping is passed.
-    cond_t non_interruptor;
-    ql::env_t env(&non_interruptor);
+    // TODO(2014-08): Actually get real profiling information for
+    // secondary index updates.
+    profile::trace_t *const trace = nullptr;
 
     superblock_t *super_block = sindex->super_block.get();
 
@@ -1324,20 +1392,24 @@ void rdb_update_single_sindex(
 
             std::vector<store_key_t> keys;
 
-            compute_keys(modification->primary_key, deleted, sindex_info, &env, &keys);
+            // TODO(2014-08-01): Someplace, we need to update
+            // latest_compatible_reql_version and latest_checked_reql_version.
+            compute_keys(modification->primary_key, deleted, sindex_info, &keys);
 
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
                 {
                     keyvalue_location_t kv_location;
                     rdb_value_sizer_t sizer(super_block->cache()->max_block_size());
+
+
                     find_keyvalue_location_for_write(&sizer,
                                                      super_block,
                                                      it->btree_key(),
                                                      deletion_context->balancing_detacher(),
                                                      &kv_location,
                                                      &sindex->btree->stats,
-                                                     env.trace,
+                                                     trace,
                                                      &return_superblock_local);
 
                     if (kv_location.value.has()) {
@@ -1364,7 +1436,7 @@ void rdb_update_single_sindex(
 
             std::vector<store_key_t> keys;
 
-            compute_keys(modification->primary_key, added, sindex_info, &env, &keys);
+            compute_keys(modification->primary_key, added, sindex_info, &keys);
 
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
@@ -1378,7 +1450,7 @@ void rdb_update_single_sindex(
                                                      deletion_context->balancing_detacher(),
                                                      &kv_location,
                                                      &sindex->btree->stats,
-                                                     env.trace,
+                                                     trace,
                                                      &return_superblock_local);
 
                     ql::serialization_result_t res =

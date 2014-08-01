@@ -12,10 +12,12 @@
 #define MAX_DEPTH 2
 #define DEFAULT_LIMIT 128
 
-distribution_app_t::distribution_app_t(boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > _rdb_namespaces_sl_metadata,
-                                       namespace_repo_t *_rdb_ns_repo)
-    : rdb_namespaces_sl_metadata(_rdb_namespaces_sl_metadata),
-      rdb_ns_repo(_rdb_ns_repo)
+distribution_app_t::distribution_app_t(
+        boost::shared_ptr< semilattice_read_view_t< cow_ptr_t<
+            namespaces_semilattice_metadata_t> > > _rdb_namespaces_sl_metadata,
+        real_reql_cluster_interface_t *_reql_cluster_interface) :
+    rdb_namespaces_sl_metadata(_rdb_namespaces_sl_metadata),
+    reql_cluster_interface(_reql_cluster_interface)
 { }
 
 void distribution_app_t::handle(const http_req_t &req, http_res_t *result, signal_t *interruptor) {
@@ -54,18 +56,21 @@ void distribution_app_t::handle(const http_req_t &req, http_res_t *result, signa
         }
     }
 
-    if (std_contains(rdb_ns_snapshot->namespaces, n_id)) {
+    auto it = rdb_ns_snapshot->namespaces.find(n_id);
+    if (it != rdb_ns_snapshot->namespaces.end() &&
+            !it->second.is_deleted()) {
         try {
-            namespace_repo_t::access_t rdb_ns_access(rdb_ns_repo, n_id, interruptor);
+            namespace_interface_access_t ns_if_access =
+                reql_cluster_interface->get_namespace_repo()->get_namespace_interface(
+                    n_id, interruptor);
 
             distribution_read_t inner_read(depth, limit);
             read_t read(inner_read, profile_bool_t::DONT_PROFILE);
             read_response_t db_res;
-            rdb_ns_access.get_namespace_if()->read_outdated(read,
-                                                            &db_res,
-                                                            interruptor);
+            ns_if_access.get()->read_outdated(read, &db_res, interruptor);
 
-            scoped_cJSON_t data(render_as_json(&boost::get<distribution_read_response_t>(db_res.response).key_counts));
+            scoped_cJSON_t data(render_as_json(
+                &boost::get<distribution_read_response_t>(db_res.response).key_counts));
             http_json_res(data.get(), result);
         } catch (const cannot_perform_query_exc_t &exc) {
             *result = http_res_t(HTTP_INTERNAL_SERVER_ERROR, "text/plain", exc.what());
@@ -74,3 +79,4 @@ void distribution_app_t::handle(const http_req_t &req, http_res_t *result, signa
         *result = http_res_t(HTTP_NOT_FOUND);
     }
 }
+
