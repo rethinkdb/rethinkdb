@@ -192,17 +192,17 @@ struct point_read_response_t {
 RDB_DECLARE_SERIALIZABLE(point_read_response_t);
 
 struct rget_read_response_t {
+    // If rget_read_t::sindex was non-empty, this tells us what reql version the
+    // sindex has.  At the time of writing this is used for parsing the store_key_t's in
+    // sindex_readgen_t::sindex_sort_read.
+    boost::optional<reql_version_t> sindex_reql_version;
+
     key_range_t key_range;
     ql::result_t result;
     bool truncated;
     store_key_t last_key;
 
     rget_read_response_t() : truncated(false) { }
-    rget_read_response_t(
-            const key_range_t &_key_range, const ql::result_t &_result,
-            bool _truncated, const store_key_t &_last_key)
-        : key_range(_key_range), result(_result),
-          truncated(_truncated), last_key(_last_key) { }
 };
 
 RDB_DECLARE_SERIALIZABLE(rget_read_response_t);

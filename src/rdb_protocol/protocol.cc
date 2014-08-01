@@ -1042,8 +1042,10 @@ RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
         rdb_protocol::single_sindex_status_t, blocks_total, blocks_processed, ready);
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_read_response_t, data);
-RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(
-        rget_read_response_t, result, key_range, truncated, last_key);
+RDB_IMPL_SERIALIZABLE_5(
+        rget_read_response_t,
+        sindex_reql_version, key_range, result, truncated, last_key);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(rget_read_response_t);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(
         distribution_read_response_t, region, key_counts);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sindex_list_response_t, sindexes);
