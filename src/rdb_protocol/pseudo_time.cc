@@ -449,7 +449,7 @@ counted_t<const datum_t> time_now() {
 int time_cmp(const datum_t &x, const datum_t &y) {
     r_sanity_check(x.is_ptype(time_string));
     r_sanity_check(y.is_ptype(time_string));
-    return x.get(epoch_time_key)->cmp(*y.get(epoch_time_key));
+    return x.get(epoch_time_key)->cmp(reql_version_t::RSI, *y.get(epoch_time_key));
 }
 
 double sanitize_epoch_sec(double d) {
