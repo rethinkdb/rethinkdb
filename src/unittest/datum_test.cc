@@ -20,7 +20,7 @@ void test_datum_serialization(const counted_t<const ql::datum_t> datum) {
     archive_result_t res
         = deserialize<cluster_version_t::LATEST_OVERALL>(&read_stream, &deserialized_datum);
     ASSERT_EQ(archive_result_t::SUCCESS, res);
-    ASSERT_EQ(datum, deserialized_datum);
+    ASSERT_EQ(*datum, *deserialized_datum);
 }
 
 
