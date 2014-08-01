@@ -856,6 +856,31 @@ archive_result_t datum_t::unserialize_lazy_replace(
     return res;
 }
 
+void datum_t::force_deserialization() const {
+    ensure_deserialize_lazy();
+    // Recurse into embedded datums
+    switch (get_type()) {
+    case R_NULL: break;
+    case R_BINARY: break;
+    case R_BOOL: break;
+    case R_NUM: break;
+    case R_STR: break;
+    case R_ARRAY: {
+        const std::vector<counted_t<const datum_t> > &arr = as_array();
+        for (size_t i = 0; i < arr.size(); ++i) {
+            arr[i]->force_deserialization();
+        }
+    } break;
+    case R_OBJECT: {
+        const std::map<std::string, counted_t<const datum_t> > &obj = as_object();
+        for (auto it = obj.begin(); it != obj.end(); ++it) {
+            it->second->force_deserialization();
+        }
+    } break;
+    default: unreachable();
+    }
+}
+
 size_t datum_t::size() const {
     return as_array().size();
 }

@@ -218,6 +218,9 @@ public:
     // SERIALIZED_LAZY value to be replaced by its deserialized version.
     archive_result_t unserialize_lazy_replace(
             const std::function<archive_result_t(data_wrapper_t *)> &replacer);
+    // Forces deserialization in case this datum is lazy. Recurses into any
+    // embedded datums.
+    void force_deserialization() const;
 
     // These behave as expected and defined in RQL.  Theoretically, two data of
     // the same type should compare the same way their printed representations
