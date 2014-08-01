@@ -94,11 +94,11 @@ private:
                 if (!rval.has()) {
                     return false != (it->first == DESC);
                 }
-                // TODO: use datum_t::cmp instead to be faster
+                // TODO(2014-08): use datum_t::cmp instead to be faster
                 if (*lval == *rval) {
                     continue;
                 }
-                return lval->compare_lt(reql_version_t::RSI, *rval) !=
+                return lval->compare_lt(env->reql_version, *rval) !=
                     (it->first == DESC);
             }
 
