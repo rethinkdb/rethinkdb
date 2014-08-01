@@ -164,7 +164,7 @@ archive_result_t deserialize_grouped(read_stream_t *s, datums_t *ds) {
 template<class T>
 class grouped_t {
 public:
-    grouped_t() : m(counted_datum_less_t(reql_version_t::RSI)) { }
+    explicit grouped_t() : m(counted_datum_less_t(reql_version_t::RSI)) { }
     virtual ~grouped_t() { } // See grouped_data_t below.
     template <cluster_version_t W>
     void rdb_serialize(write_message_t *wm) const {
@@ -304,7 +304,7 @@ scoped_ptr_t<accumulator_t> make_append(const sorting_t &sorting, batcher_t *bat
 //                                                        NULL if unsharding ^^^^^^^
 scoped_ptr_t<accumulator_t> make_terminal(const terminal_variant_t &t);
 
-scoped_ptr_t<eager_acc_t> make_to_array();
+scoped_ptr_t<eager_acc_t> make_to_array(reql_version_t reql_version);
 scoped_ptr_t<eager_acc_t> make_eager_terminal(const terminal_variant_t &t);
 
 scoped_ptr_t<op_t> make_op(const transform_variant_t &tv);

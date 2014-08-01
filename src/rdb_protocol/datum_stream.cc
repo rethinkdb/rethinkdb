@@ -471,7 +471,7 @@ counted_t<val_t> datum_stream_t::run_terminal(
 }
 
 counted_t<val_t> datum_stream_t::to_array(env_t *env) {
-    scoped_ptr_t<eager_acc_t> acc = make_to_array();
+    scoped_ptr_t<eager_acc_t> acc = make_to_array(env->reql_version);
     accumulate_all(env, acc.get());
     return acc->finish_eager(backtrace(), is_grouped(), env->limits);
 }

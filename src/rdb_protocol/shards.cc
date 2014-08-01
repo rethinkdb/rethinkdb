@@ -196,7 +196,8 @@ scoped_ptr_t<accumulator_t> make_append(const sorting_t &sorting, batcher_t *bat
 // (Also, I'm sorry for this absurd type hierarchy.)
 class to_array_t : public eager_acc_t {
 public:
-    to_array_t() : groups(counted_datum_less_t(reql_version_t::RSI)), size(0) { }
+    explicit to_array_t(reql_version_t reql_version)
+        : groups(counted_datum_less_t(reql_version)), size(0) { }
 private:
     virtual void operator()(env_t *env, groups_t *gs) {
         for (auto kv = gs->begin(); kv != gs->end(); ++kv) {
@@ -257,8 +258,8 @@ private:
     size_t size;
 };
 
-scoped_ptr_t<eager_acc_t> make_to_array() {
-    return make_scoped<to_array_t>();
+scoped_ptr_t<eager_acc_t> make_to_array(reql_version_t reql_version) {
+    return make_scoped<to_array_t>(reql_version);
 }
 
 template<class T>
