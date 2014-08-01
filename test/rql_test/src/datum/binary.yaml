@@ -347,27 +347,6 @@ tests:
     - py: r.binary(b'abcdefg').slice(5, 9)
       ot: b'fg'
 
-    # Test binary keys
-    # Binary keys should sort between array and bool
-    - cd: r.db('test').table_create('datum_binary')
-      def: tbl = r.table('datum_binary')
-
-    - def:
-        cd: trows = [{'id':[0]},{'id':r.binary(a)},{'id':r.binary(c)},{'id':r.binary(d)},{'id':r.binary(f)},{'id':False},{'id':True},{'id':-500},{'id':500},{'id':''},{'id':'str'}]
-        rb: trows = [{:id => [0]},{:id => r.binary(a)},{:id => r.binary(c)},{:id => r.binary(d)},{:id => r.binary(f)},{:id => false},{:id => true},{:id => -500},{:id => 500},{:id => ''},{:id => 'str'}]
-    - def:
-        cd: trowsraw = [{'id':[0]},{'id':a},{'id':c},{'id':d},{'id':f},{'id':False},{'id':True},{'id':-500},{'id':500},{'id':''},{'id':'str'}]
-        rb: trowsraw = [{:id => [0]},{:id => a},{:id => c},{:id => d},{:id => f},{:id => false},{:id => true},{:id => -500},{:id => 500},{:id => ''},{:id => 'str'}]
-    - cd: tbl.insert(trows)['inserted']
-      js: tbl.insert(trows)('inserted')
-      ot: 11
-
-    - cd: tbl.order_by('id')
-      ot: trowsraw
-
-    - cd: r.db('test').table_drop('datum_binary')
-      ot: ({'dropped':1})
-
     # Test binary_format optarg
     - rb: r.binary(b)
       py: r.binary(b)

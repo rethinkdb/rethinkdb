@@ -364,7 +364,6 @@ class RethinkDBRunningServer:
     def __init__(self, driver_port, cluster_port):
         self.driver_port_ = driver_port
         self.cluster_port_ = cluster_port
-        self.rethinkdb_executable_ = rethinkdb_executable
 
     def driver_port(self):
         return self.driver_port_
@@ -537,7 +536,6 @@ def main():
     if (options.cluster_port is not None or options.driver_port is not None) and None in (options.cluster_port, options.driver_port):
         parser.error('If either of the following options are used, both must be specifed: -c/--cluster-port, -d/--driver-port')
     if options.driver_port is not None:
-        build_directory = options.executable_path
         servers = RethinkDBRunningServer(options.driver_port, options.cluster_port)
         # TODO: validate that this is actually a running server
         
