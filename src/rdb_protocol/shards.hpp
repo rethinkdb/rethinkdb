@@ -198,7 +198,8 @@ public:
 
 
     // We pass these through manually rather than using inheritance because
-    // `std::map` lacks a virtual destructor.
+    // `std::map` lacks a virtual destructor.  (Also because inheriting from an STL
+    // type would be batshit insane.)
     typename std::map<counted_t<const datum_t>, T, counted_datum_less_t>::iterator
     begin() { return m.begin(); }
     typename std::map<counted_t<const datum_t>, T, counted_datum_less_t>::iterator
