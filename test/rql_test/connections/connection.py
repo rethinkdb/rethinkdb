@@ -1,36 +1,85 @@
+#!/usr/bin/env python
 ##
 # Tests the driver API for making connections and excercizes the networking code
 ###
 
-import socket
-import threading
-import SocketServer
-import datetime
-import sys
-from time import sleep, time
-import os
-import unittest
+from __future__ import print_function
+
+import datetime, inspect, os, re, socket, sys, threading, unittest
+
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
 import test_util
 
+try:
+    xrange
+except NameError:
+    xrange = range
+try:
+    import SocketServer
+except:
+    import socketserver as SocketServer
+
+# - import the rethinkdb driver
+
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, "common"))
 import utils
-sys.path.insert(0, os.path.join(utils.project_root_dir(), 'drivers', 'python'))
+r = utils.import_pyton_driver()
 
-# We import the module both ways because this used to crash and we need to test for it
+# - import it using the 'from rethinkdb import *' form
+sys.path.insert(0, os.path.dirname(inspect.getfile(r)))
 from rethinkdb import *
-import rethinkdb as r
 
-server_build_dir = sys.argv[1]
+import time # overrides the import of rethinkdb.time
+
+if len(sys.argv) > 1:
+    server_build_dir = sys.argv[1]
+else:
+    server_build_dir = utils.latest_build_dir()
+
 use_default_port = 0
 if len(sys.argv) > 2:
     use_default_port = bool(int(sys.argv[2]))
 
-class TestNoConnection(unittest.TestCase):
+class TestCaseCompatible(unittest.TestCase):
+    '''Compatibility shim for Python 2.6'''
+    
+    def __init__(self, *args, **kwargs):
+        super(TestCaseCompatible, self).__init__(*args, **kwargs)
+        
+        if not hasattr(self, 'assertRaisesRegexp'):
+            self.assertRaisesRegexp = self.replacement_assertRaisesRegexp
+        if not hasattr(self, 'skipTest'):
+            self.skipTest = self.replacement_skipTest
+        if not hasattr(self, 'assertGreaterEqual'):
+            self.assertGreaterEqual = self.replacement_assertGreaterEqual
+        if not hasattr(self, 'assertLess'):
+            self.assertLess = self.replacement_assertLess
+    
+    def replacement_assertGreaterEqual(self, greater, lesser):
+        if not greater >= lesser:
+            raise AssertionError('%s not greater than or equal to %s' % (greater, lesser))
+    
+    def replacement_assertLess(self, lesser, greater):
+        if not greater > lesser:
+            raise AssertionError('%s not less than %s' % (lesser, greater))
+    
+    def replacement_skipTest(self, message):
+        sys.stderr.write("%s " % message)
+    
+    def replacement_assertRaisesRegexp(self, exception, regexp, callable_func, *args, **kwds):
+        try:
+            callable_func(*args, **kwds)
+            self.fail('%s failed to raise a %s' % (repr(callable_func), repr(exception)))
+        except Exception as e:
+            self.assertTrue(isinstance(e, exception), '%s expected to raise %s but instead raised %s: %s' % (repr(callable_func), repr(exception), e.__class__.__name__, str(e)))
+            self.assertTrue(re.search(regexp, str(e)), '%s did not raise the expected message "%s", but rather: %s' % (repr(callable_func), str(regexp), str(e)))
+
+class TestNoConnection(TestCaseCompatible):
     # No servers started yet so this should fail
     def test_connect(self):
         if not use_default_port:
             self.skipTest("Not testing default port")
+            return # in case we fell back on replacement_skip
         self.assertRaisesRegexp(
             RqlDriverError, "Could not connect to localhost:28015.",
             r.connect)
@@ -43,6 +92,7 @@ class TestNoConnection(unittest.TestCase):
     def test_connect_host(self):
         if not use_default_port:
             self.skipTest("Not testing default port")
+            return # in case we fell back on replacement_skip
         self.assertRaisesRegexp(
             RqlDriverError, "Could not connect to 0.0.0.0:28015.",
             r.connect, host="0.0.0.0")
@@ -62,17 +112,19 @@ class TestNoConnection(unittest.TestCase):
         # Test that everything still doesn't work even with an auth key
         if not use_default_port:
             self.skipTest("Not testing default port")
+            return # in case we fell back on replacement_skip
         self.assertRaisesRegexp(
             RqlDriverError, 'Could not connect to 0.0.0.0:28015."',
             r.connect, host="0.0.0.0", port=28015, auth_key="hunter2")
 
-class TestConnectionDefaultPort(unittest.TestCase):
+class TestConnectionDefaultPort(TestCaseCompatible):
     
     servers = None
     
     def setUp(self):
         if not use_default_port:
             self.skipTest("Not testing default port")
+            return # in case we fell back on replacement_skip
         self.servers = test_util.RethinkDBTestServers(4, server_build_dir=server_build_dir, use_default_port=use_default_port)
         self.servers.__enter__()
 
@@ -81,34 +133,44 @@ class TestConnectionDefaultPort(unittest.TestCase):
             self.servers.__exit__(None, None, None)
 
     def test_connect(self):
+        if not use_default_port:
+            return
         conn = r.connect()
         conn.reconnect()
 
     def test_connect_host(self):
+        if not use_default_port:
+            return
         conn = r.connect(host='localhost')
         conn.reconnect()
 
     def test_connect_host_port(self):
+        if not use_default_port:
+            return
         conn = r.connect(host='localhost', port=28015)
         conn.reconnect()
 
     def test_connect_port(self):
+        if not use_default_port:
+            return
         conn = r.connect(port=28015)
         conn.reconnect()
 
     def test_connect_wrong_auth(self):
+        if not use_default_port:
+            return
         self.assertRaisesRegexp(
             RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
             r.connect, auth_key="hunter2")
 
 class BlackHoleRequestHandler(SocketServer.BaseRequestHandler):
     def handle(self):
-        sleep(1)
+        time.sleep(1)
 
 class ThreadedBlackHoleServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     pass
 
-class TestTimeout(unittest.TestCase):
+class TestTimeout(TestCaseCompatible):
     def setUp(self):
         import random # importing here to avoid issue #2343
         self.timeout = 0.5
@@ -124,7 +186,7 @@ class TestTimeout(unittest.TestCase):
     def test_timeout(self):
         self.assertRaises(socket.timeout, r.connect, port=self.port, timeout=self.timeout)
 
-class TestAuthConnection(unittest.TestCase):
+class TestAuthConnection(TestCaseCompatible):
 
     def setUp(self):
         self.servers = test_util.RethinkDBTestServers(4, server_build_dir=server_build_dir)
@@ -175,7 +237,7 @@ class TestAuthConnection(unittest.TestCase):
         conn = r.connect(port=self.port, auth_key="hunter2")
         conn.reconnect()
 
-class TestWithConnection(unittest.TestCase):
+class TestWithConnection(TestCaseCompatible):
 
     def setUp(self):
         self.servers = test_util.RethinkDBTestServers(4, server_build_dir=server_build_dir)
@@ -208,42 +270,42 @@ class TestConnection(TestWithConnection):
 
     def test_noreply_wait_waits(self):
         c = r.connect(port=self.port)
-        t = time()
+        t = time.time()
         r.js('while(true);', timeout=0.5).run(c, noreply=True)
         c.noreply_wait()
-        duration = time() - t
+        duration = time.time() - t
         self.assertGreaterEqual(duration, 0.5)
 
     def test_close_waits_by_default(self):
         c = r.connect(port=self.port)
-        t = time()
+        t = time.time()
         r.js('while(true);', timeout=0.5).run(c, noreply=True)
         c.close()
-        duration = time() - t
+        duration = time.time() - t
         self.assertGreaterEqual(duration, 0.5)
 
     def test_reconnect_waits_by_default(self):
         c = r.connect(port=self.port)
-        t = time()
+        t = time.time()
         r.js('while(true);', timeout=0.5).run(c, noreply=True)
         c.reconnect()
-        duration = time() - t
+        duration = time.time() - t
         self.assertGreaterEqual(duration, 0.5)
 
     def test_close_does_not_wait_if_requested(self):
         c = r.connect(port=self.port)
-        t = time()
+        t = time.time()
         r.js('while(true);', timeout=0.5).run(c, noreply=True)
         c.close(noreply_wait=False)
-        duration = time() - t
+        duration = time.time() - t
         self.assertLess(duration, 0.5)
 
     def test_reconnect_does_not_wait_if_requested(self):
         c = r.connect(port=self.port)
-        t = time()
+        t = time.time()
         r.js('while(true);', timeout=0.5).run(c, noreply=True)
         c.reconnect(noreply_wait=False)
-        duration = time() - t
+        duration = time.time() - t
         self.assertLess(duration, 0.5)
 
     def test_db(self):
@@ -328,7 +390,7 @@ class TestShutdown(TestWithConnection):
         c = r.connect(port=self.port)
         r.expr(1).run(c)
         self.servers.stop()
-        sleep(0.2)
+        time.sleep(0.2)
         self.assertRaisesRegexp(
             r.RqlDriverError, "Connection is closed.",
             r.expr(1).run, c)
@@ -336,10 +398,10 @@ class TestShutdown(TestWithConnection):
 
 # This doesn't really have anything to do with connections but it'll go
 # in here for the time being.
-class TestPrinting(unittest.TestCase):
+class TestPrinting(TestCaseCompatible):
 
     # Just test that RQL queries support __str__ using the pretty printer.
-    # An exhaustive test of the pretty printer would be, well, exhausing.
+    # An exhaustive test of the pretty printer would be, well, exhausting.
     def runTest(self):
         self.assertEqual(str(r.db('db1').table('tbl1').map(lambda x: x)),
                             "r.db('db1').table('tbl1').map(lambda var_1: var_1)")
@@ -348,6 +410,7 @@ class TestBatching(TestWithConnection):
     def runTest(self):
         c = r.connect(port=self.port)
 
+        # Test the cursor API when there is exactly mod batch size elements in the result stream
         r.db('test').table_create('t1').run(c)
         t1 = r.table('t1')
 
@@ -357,15 +420,15 @@ class TestBatching(TestWithConnection):
         ids = set(range(0, count))
 
         t1.insert([{'id':i} for i in ids]).run(c)
-        cursor = t1.run(c, batch_conf={'max_els': batch_size})
+        cursor = t1.run(c, batch_conf={'max_els':batch_size})
 
         itr = iter(cursor)
         for i in xrange(0, count - 1):
-            row = itr.next()
+            row = next(itr)
             ids.remove(row['id'])
 
-        self.assertEqual(itr.next()['id'], ids.pop())
-        self.assertRaises(StopIteration, lambda: itr.next())
+        self.assertEqual(next(itr)['id'], ids.pop())
+        self.assertRaises(StopIteration, lambda: next(itr))
         self.assertTrue(cursor.end_flag)
 
 class TestGroupWithTimeKey(TestWithConnection):
@@ -381,20 +444,20 @@ class TestGroupWithTimeKey(TestWithConnection):
         rt2 = r.epoch_time(time2).in_timezone('+00:00')
         dt2 = datetime.datetime.fromtimestamp(time2, r.ast.RqlTzinfo('+00:00'))
 
-        res = r.table('times').insert({'id':0,'time':rt1}).run(c)
+        res = r.table('times').insert({'id':0, 'time':rt1}).run(c)
         self.assertEqual(res['inserted'], 1)
-        res = r.table('times').insert({'id':1,'time':rt2}).run(c)
+        res = r.table('times').insert({'id':1, 'time':rt2}).run(c)
         self.assertEqual(res['inserted'], 1)
 
-        expected_row1 = {'id':0,'time':dt1}
-        expected_row2 = {'id':1,'time':dt2}
+        expected_row1 = {'id':0, 'time':dt1}
+        expected_row2 = {'id':1, 'time':dt2}
 
         groups = r.table('times').group('time').coerce_to('array').run(c)
-        self.assertEqual(groups, {dt1:[expected_row1],dt2:[expected_row2]})
+        self.assertEqual(groups, {dt1:[expected_row1], dt2:[expected_row2]})
 
 
 if __name__ == '__main__':
-    print "Running py connection tests"
+    print("Running py connection tests")
     suite = unittest.TestSuite()
     loader = unittest.TestLoader()
     suite.addTest(loader.loadTestsFromTestCase(TestNoConnection))

@@ -64,14 +64,18 @@ with driver.Metacluster() as metacluster:
         print "OK, fast workload logic has done its job."
 
     print "Changing the primary..."
-    http.do_query("POST", "/ajax/semilattice/rdb_namespaces/%s/primary_pinnings" % ns.uuid,
-        {"[\"\",null]": http.find_machine(process2.files.machine_name).uuid})
+    http.do_query(
+        "POST", "/ajax/semilattice/rdb_namespaces/%s/primary_pinnings" % ns.uuid,
+        {"[\"\",null]": http.find_machine(process2.files.machine_name).uuid}
+    )
 
     time.sleep(1)
 
     print "Changing it back..."
-    http.do_query("POST", "/ajax/semilattice/rdb_namespaces/%s/primary_pinnings" % ns.uuid,
-        {"[\"\",null]": http.find_machine(process1.files.machine_name).uuid})
+    http.do_query(
+        "POST", "/ajax/semilattice/rdb_namespaces/%s/primary_pinnings" % ns.uuid,
+        {"[\"\",null]": http.find_machine(process1.files.machine_name).uuid}
+    )
 
     print "Waiting for it to take effect..."
     http.wait_until_blueprint_satisfied(ns)

@@ -5,17 +5,17 @@ import _mysql
 from datetime import datetime
 from subprocess import Popen, PIPE
 
-def simple_plotter(name, multiplier = 1):
-    return lambda (old, new): new[name]*multiplier if name in new and new[name] else None
+def simple_plotter(name, multiplier=1):
+    return lambda (old, new): new[name] * multiplier if name in new and new[name] else None
 
 def differential_plotter(name):
-    return lambda (old, new): (new[name]-old[name])/(new['uptime']-old['uptime']) if name in new and name in old and new[name] and old[name] else None
+    return lambda (old, new): (new[name] - old[name]) / (new['uptime'] - old['uptime']) if name in new and name in old and new[name] and old[name] else None
 
 def two_stats_diff_plotter(stat1, stat2):
-    return lambda (old, new): new[stat1]-new[stat2] if stat1 in new and stat2 in new and new[stat1] and new[stat2] else None
+    return lambda (old, new): new[stat1] - new[stat2] if stat1 in new and stat2 in new and new[stat1] and new[stat2] else None
 
 def two_stats_ratio_plotter(dividend, divisor):
-    return lambda (old, new): new[dividend]/new[divisor] if dividend in new and divisor in new and new[dividend] and new[divisor] and new[divisor] != 0 else None
+    return lambda (old, new): new[dividend] / new[divisor] if dividend in new and divisor in new and new[dividend] and new[divisor] and new[divisor] != 0 else None
 
 class Plot(object):
     single_plot_height = 128
@@ -36,13 +36,17 @@ class Plot(object):
         zipped_stats = zip(all_stats, all_stats[1:])
         plot_instructions = ['-k', self.name, self.plot_style]
 
-        tplot = Popen(['tplot',
-            '-if', '-',
-            '-o', '/dev/stdout',
-            '-of', 'png',
-            '-tf', 'num',
-            '-or', '1024x%d' % (Plot.single_plot_height),
-            ] + plot_instructions, stdin=PIPE, stdout=PIPE)
+        tplot = Popen(
+            [
+                'tplot',
+                '-if', '-',
+                '-o', '/dev/stdout',
+                '-of', 'png',
+                '-tf', 'num',
+                '-or', '1024x%d' % (Plot.single_plot_height),
+            ] + plot_instructions,
+            stdin=PIPE, stdout=PIPE
+        )
 
         for stats_pair in zipped_stats:
             val = self.plotter(stats_pair)
@@ -64,7 +68,7 @@ class DBPlot(Plot):
     def load_stats_from_db(self, run, start_timestamp, end_timestamp):
         start_timestamp = self.db_conn.escape_string(start_timestamp)
         end_timestamp = self.db_conn.escape_string(end_timestamp)
-        self.db_conn.query("SELECT `timestamp`,`stat_names`.`name` AS `stat`,`value` FROM `stats` JOIN `stat_names` ON `stats`.`stat` = `stat_names`.`id` WHERE (`timestamp` BETWEEN '%s' AND '%s') AND (`run` = '%s') ORDER BY `timestamp` ASC" % (start_timestamp, end_timestamp, run) )
+        self.db_conn.query("SELECT `timestamp`,`stat_names`.`name` AS `stat`,`value` FROM `stats` JOIN `stat_names` ON `stats`.`stat` = `stat_names`.`id` WHERE (`timestamp` BETWEEN '%s' AND '%s') AND (`run` = '%s') ORDER BY `timestamp` ASC" % (start_timestamp, end_timestamp, run))
         result = self.db_conn.use_result()
         rows = result.fetch_row(maxrows=0) # Fetch all rows
         last_ts = -1
@@ -81,4 +85,3 @@ class DBPlot(Plot):
             stats.append(current_sample) # Store the last sample
 
         return stats
-

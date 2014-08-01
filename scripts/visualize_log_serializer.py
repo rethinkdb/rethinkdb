@@ -108,15 +108,16 @@ def try_parse(db, offset, length, name, cls, *args):
     elif length <= 0:
         return BadChunkRef(offset, length, name, "Negative or zero length")
     elif offset + length > len(db.block):
-        return BadChunkRef(offset, length, name,
-            "Chunk 0x%x - 0x%x is beyond end of file (0x%x)" % \
-            (offset, offset + length - 1, len(db.block)))
+        return BadChunkRef(
+            offset, length, name,
+            "Chunk 0x%x - 0x%x is beyond end of file (0x%x)" % (offset, offset + length - 1, len(db.block))
+        )
     
     try:
         x = cls.from_data(db, offset, *args)
         assert isinstance(x, cls)
     except Exception:
-        chunk = BadChunk(offset, length, name, db.block[offset : offset + length], traceback.format_exc())
+        chunk = BadChunk(offset, length, name, db.block[offset: offset + length], traceback.format_exc())
     else:
         chunk = GoodChunk(offset, length, name, x)
     
@@ -186,7 +187,7 @@ class Database(object):
         
         # Fill in empty extents with placeholders
         
-        for offset in xrange(0, max(self.extents.keys())+1, self.extent_size):
+        for offset in xrange(0, max(self.extents.keys()) + 1, self.extent_size):
             if offset not in self.extents:
                 self.add_extent(GoodChunk(offset, self.extent_size, "Unused Extent", UnusedExtent()))
     
@@ -196,8 +197,7 @@ class Database(object):
         assert extent.name.endswith("Extent")
         
         if extent.offset % self.extent_size != 0:
-            raise ValueError("Misaligned extent: 0x%x is not a multiple of 0x%x." % \
-                (extent.offset, self.extent_size))
+            raise ValueError("Misaligned extent: 0x%x is not a multiple of 0x%x." % (extent.offset, self.extent_size))
         
         if extent.offset in self.extents:
             raise ValueError("Duplicate extent: 0x%x was parsed already." % extent.offset)
@@ -210,9 +210,10 @@ class Database(object):
         lba_index_part = mb.chunk_obj.mb.metablock.lba_index_part
         
         # Read the current LBA extent
-    
+        
         if lba_index_part.last_lba_extent_offset >= 0:
-            first_lba_extent = try_parse(self, lba_index_part.last_lba_extent_offset, self.extent_size, "LBA Extent", LBAExtent,
+            first_lba_extent = try_parse(
+                self, lba_index_part.last_lba_extent_offset, self.extent_size, "LBA Extent", LBAExtent,
                 lba_index_part.last_lba_extent_entries_count)
             first_lba_extent = try_store(first_lba_extent, self.add_extent)
         else:
@@ -322,14 +323,17 @@ class StaticHeader(object):
     @classmethod
     def from_data(cls, db, offset):
         
-        static_header, parse_static_header = make_struct("static_header", [
-            (None, parse_constant("RethinkDB\0")),
-            (None, parse_constant("0.0.0\0")),
-            (None, parse_constant("BTree Blocksize:\0")),
-            ("btree_block_size", parse_uint64_t),
-            (None, parse_constant("Extent Size:\0")),
-            ("extent_size", parse_uint64_t),
-            ])
+        static_header, parse_static_header = make_struct(
+            "static_header",
+            [
+                (None, parse_constant("RethinkDB\0")),
+                (None, parse_constant("0.0.0\0")),
+                (None, parse_constant("BTree Blocksize:\0")),
+                ("btree_block_size", parse_uint64_t),
+                (None, parse_constant("Extent Size:\0")),
+                ("extent_size", parse_uint64_t)
+            ]
+        )
         
         sh = parse_static_header(db.block, offset)[0]
         return StaticHeader(sh)
@@ -356,40 +360,53 @@ class Metablock(object):
                 if markers: return p
                 else: return parse_padding(0)
             
-            extent_manager_mb, parse_extent_manager_mb = make_struct("extent_manager_mb", [
-                ("last_extent", parse_off64_t),
-                ])
+            extent_manager_mb, parse_extent_manager_mb = make_struct(
+                "extent_manager_mb",
+                [("last_extent", parse_off64_t)]
+            )
             
-            lba_index_mb, parse_lba_index_mb = make_struct("lba_index_mb", [
-                ("last_lba_extent_offset", parse_off64_t),
-                ("last_lba_extent_entries_count", parse_int),
-                (None, parse_padding(4)),
-                ("lba_superblock_offset", parse_off64_t),
-                ("lba_superblock_entries_count", parse_int),
-                (None, parse_padding(4)),
-                ])
+            lba_index_mb, parse_lba_index_mb = make_struct(
+                "lba_index_mb",
+                [
+                    ("last_lba_extent_offset", parse_off64_t),
+                    ("last_lba_extent_entries_count", parse_int),
+                    (None, parse_padding(4)),
+                    ("lba_superblock_offset", parse_off64_t),
+                    ("lba_superblock_entries_count", parse_int),
+                    (None, parse_padding(4))
+                ]
+            )
             
-            data_block_mb, parse_data_block_mb = make_struct("data_block_mb", [
-                ("last_data_extent", parse_off64_t),
-                ("blocks_in_last_data_extent", parse_int),
-                (None, parse_padding(4)),
-                ])
+            data_block_mb, parse_data_block_mb = make_struct(
+                "data_block_mb",
+                [
+                    ("last_data_extent", parse_off64_t),
+                    ("blocks_in_last_data_extent", parse_int),
+                    (None, parse_padding(4))
+                ]
+            )
             
-            metablock_t, parse_metablock = make_struct("metablock_t", [
-                ("extent_manager_part", parse_extent_manager_mb),
-                ("lba_index_part", parse_lba_index_mb),
-                ("data_block_manager_part", parse_data_block_mb),
-                ])
+            metablock_t, parse_metablock = make_struct(
+                "metablock_t",
+                [
+                    ("extent_manager_part", parse_extent_manager_mb),
+                    ("lba_index_part", parse_lba_index_mb),
+                    ("data_block_manager_part", parse_data_block_mb),
+                ]
+            )
             
-            crc_metablock_t, parse_crc_metablock = make_struct("crc_metablock_t", [
-                (None, maybe(parse_constant("metablock\xbd"))),
-                (None, maybe(parse_constant("crc:\xbd"))),
-                ("crc", parse_uint32_t),
-                (None, maybe(parse_padding(1))),
-                (None, maybe(parse_constant("version:"))),
-                ("version", parse_int),
-                ("metablock", parse_metablock),
-                ])
+            crc_metablock_t, parse_crc_metablock = make_struct(
+                "crc_metablock_t",
+                [
+                    (None, maybe(parse_constant("metablock\xbd"))),
+                    (None, maybe(parse_constant("crc:\xbd"))),
+                    ("crc", parse_uint32_t),
+                    (None, maybe(parse_padding(1))),
+                    (None, maybe(parse_constant("version:"))),
+                    ("version", parse_int),
+                    ("metablock", parse_metablock)
+                ]
+            )
             
             c.crc_metablock_parser_cache[markers] = parse_crc_metablock
         
@@ -410,9 +427,11 @@ class Metablock(object):
                 assert mb.version > 0
             except Exception, e:
                 error2 = traceback.format_exc()
-                raise ValueError("Invalid metablock.\n\n" + \
-                    "Problem when trying to parse with markers:\n\n" + error1 + "\n" + \
-                    "Problem when trying to parse without markers:\n\n" + error2)
+                raise ValueError(
+                    "Invalid metablock.\n\n"
+                    "Problem when trying to parse with markers:\n\n" error1 "\n"
+                    "Problem when trying to parse without markers:\n\n" error2
+                )
         
         return Metablock(mb)
     
@@ -627,7 +646,7 @@ class DataBlock(object):
     
     @classmethod
     def from_data(cls, db, offset):
-        contents = db.block[offset : offset + db.block_size]
+        contents = db.block[offset: offset + db.block_size]
         return DataBlock(contents)
     
     def __init__(self, contents):

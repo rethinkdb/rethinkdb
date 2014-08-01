@@ -53,6 +53,9 @@ tests:
     # make sure we can insert and query json docs with arbitrary unicode attrs
     - js: tbl3.insert({'id':'Здравствуй','value':'Земля!'})
       py: tbl3.insert({'id':u'Здравствуй','value':u'Земля!'})
+      py3.0: tbl3.insert({'id':'Здравствуй','value':'Земля!'})
+      py3.1: tbl3.insert({'id':'Здравствуй','value':'Земля!'})
+      py3.2: tbl3.insert({'id':'Здравствуй','value':'Земля!'})
       rb: tbl3.insert({:id => "\u0417\u0434\u0440\u0430\u0432\u0441\u0442\u0432\u0443\u0439", :value => "\u0417\u0435\u043C\u043B\u044F!"})
       ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
 
@@ -60,12 +63,21 @@ tests:
     - js:
         cd: tbl3.get('Здравствуй')
         ot: ({'id':'Здравствуй','value':'Земля!'})
-      py:
-        cd: tbl3.get(u'Здравствуй')
-        ot: ({u'id':u'Здравствуй',u'value':u'Земля!'})
       rb:
         cd: tbl3.get('Здравствуй')
         ot: ({:id=>'Здравствуй',:value=>'Земля!'})
+      py:
+        cd: tbl3.get(u'Здравствуй')
+        ot: ({u'id':u'Здравствуй',u'value':u'Земля!'})
+      py3.0:
+        cd: tbl3.get('Здравствуй')
+        ot: ({'id':'Здравствуй','value':'Земля!'})
+      py3.1:
+        cd: tbl3.get('Здравствуй')
+        ot: ({'id':'Здравствуй','value':'Земля!'})
+      py3.2:
+        cd: tbl3.get('Здравствуй')
+        ot: ({'id':'Здравствуй','value':'Земля!'})
 
     - js:
         cd: tbl3.filter({'value':'Земля!'})
@@ -73,6 +85,15 @@ tests:
       py:
         cd: tbl3.filter({'value':u'Земля!'})
         ot: "[{u'id':u'Здравствуй',u'value':u'Земля!'}]"
+      py3.0:
+        cd: tbl3.filter({'value':'Земля!'})
+        ot: "[{'id':'Здравствуй','value':'Земля!'}]"
+      py3.1:
+        cd: tbl3.filter({'value':'Земля!'})
+        ot: "[{'id':'Здравствуй','value':'Земля!'}]"
+      py3.2:
+        cd: tbl3.filter({'value':'Земля!'})
+        ot: "[{'id':'Здравствуй','value':'Земля!'}]"
       rb:
         cd: tbl3.filter({:value=>'Земля!'})
         ot: "[{:id=>'Здравствуй',:value=>'Земля!'}]"

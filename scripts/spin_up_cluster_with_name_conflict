@@ -132,7 +132,7 @@ if n_machines < 1:
     exit(1)
 else:
     kids = []
-    machine_names = random.sample(names, n_machines-1)
+    machine_names = random.sample(names, n_machines - 1)
     machine_names.append(machine_names[0])
     hostname = socket.gethostname()
     for i, machine_name in enumerate(machine_names):
@@ -140,9 +140,9 @@ else:
         directory = "cluster_directory_%d" % i
         os.system("rm -rf " + directory)
         if (i == 0):
-            cl = ["../build/debug/rethinkdb", str(port), "--directory", directory, "--machine-name", machine_name, "--port-offset", str(i+port), "--bind", "all"]
+            cl = ["../build/debug/rethinkdb", str(port), "--directory", directory, "--machine-name", machine_name, "--port-offset", str(i + port), "--bind", "all"]
         else:
-            cl = ["../build/debug/rethinkdb", str(port+i), "--directory", directory, "--machine-name", machine_name, "--join", "%s:%d" % (hostname, 29015 + port), "--port-offset", str(i+port), "--bind", "all"]
+            cl = ["../build/debug/rethinkdb", str(port + i), "--directory", directory, "--machine-name", machine_name, "--join", "%s:%d" % (hostname, 29015 + port), "--port-offset", str(i + port), "--bind", "all"]
         print ' '.join(cl)
         kids += [subprocess.Popen(cl)]
         time.sleep(1)
@@ -150,7 +150,7 @@ else:
     time.sleep(1)
     print "CTRL-C to kill me http requests can be sent to ports:",
     for i in range(n_machines):
-        if i != 0: 
+        if i != 0:
             print ",",
 
         print port + (i * 2) + 1,
