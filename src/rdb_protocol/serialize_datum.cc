@@ -212,13 +212,15 @@ bool should_serialize_as_lazy(const counted_t<const datum_t> &datum) {
 size_t datum_serialized_size(const counted_t<const datum_t> &datum) {
     const bool serialize_as_lazy = should_serialize_as_lazy(datum);
 
+    const uint64_t serialized_size = datum_lazy_serialized_size(datum);
+
     size_t sz = 0;
     if (serialize_as_lazy) {
         sz += 1; // 1 byte for the lazy type
-        sz += sizeof(uint64_t); // 8 bytes for the serialized size
+        sz += varint_uint64_serialized_size(serialized_size);
     }
 
-    sz += datum_lazy_serialized_size(datum);
+    sz += static_cast<size_t>(serialized_size);
     return sz;
 }
 serialization_result_t datum_serialize(write_message_t *wm,
@@ -232,7 +234,7 @@ serialization_result_t datum_serialize(write_message_t *wm,
     if (serialize_as_lazy) {
         res = res | datum_serialize(wm, datum_serialized_type_t::LAZY);
         uint64_t serialized_size = datum_lazy_serialized_size(datum);
-        serialize_universal(wm, serialized_size);
+        serialize_varint_uint64(wm, serialized_size);
     }
 
     if (datum->is_lazy()) {
@@ -308,7 +310,7 @@ archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *d
         // This just loads the datum as a LAZY_SERIALIZED datum. The actual
         // deserialization happens when the datum is first accessed.
         uint64_t serialized_size;
-        res = deserialize_universal(s, &serialized_size);
+        res = deserialize_varint_uint64(s, &serialized_size);
         if (bad(res)) {
             return res;
         }
