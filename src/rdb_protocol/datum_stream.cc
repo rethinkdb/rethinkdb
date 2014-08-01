@@ -404,8 +404,9 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
     const batchspec_t &batchspec) const {
     if (sorting != sorting_t::UNORDERED && items.size() > 0) {
         const store_key_t &key = items[items.size() - 1].key;
-        if (datum_t::key_is_truncated(key)) {
-            std::string skey = datum_t::extract_secondary(key_to_unescaped_str(key));
+        if (datum_t::key_is_truncated(reql_version_t::RSI, key)) {
+            std::string skey = datum_t::extract_secondary(reql_version_t::RSI,
+                                                          key_to_unescaped_str(key));
             key_range_t rng = active_range;
             if (!reversed(sorting)) {
                 // We construct a right bound that's larger than the maximum

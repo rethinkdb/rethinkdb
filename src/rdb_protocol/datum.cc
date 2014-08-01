@@ -601,7 +601,8 @@ std::string datum_t::mangle_secondary(const std::string &secondary,
     return res;
 }
 
-std::string datum_t::print_secondary(const store_key_t &primary_key,
+std::string datum_t::print_secondary(UNUSED reql_version_t reql_version,
+                                     const store_key_t &primary_key,
                                      boost::optional<uint64_t> tag_num) const {
     std::string secondary_key_string;
     std::string primary_key_string = key_to_unescaped_str(primary_key);
@@ -654,7 +655,9 @@ struct components_t {
     boost::optional<uint64_t> tag_num;
 };
 
-void parse_secondary(const std::string &key, components_t *components) {
+void parse_secondary(UNUSED reql_version_t reql_version,
+                     const std::string &key,
+                     components_t *components) {
     uint8_t start_of_tag = key[key.size() - 1],
             start_of_primary = key[key.size() - 2];
 
@@ -672,30 +675,36 @@ void parse_secondary(const std::string &key, components_t *components) {
     }
 }
 
-std::string datum_t::extract_primary(const std::string &secondary) {
+std::string datum_t::extract_primary(reql_version_t reql_version,
+                                     const std::string &secondary) {
     components_t components;
-    parse_secondary(secondary, &components);
+    parse_secondary(reql_version, secondary, &components);
     return components.primary;
 }
 
-store_key_t datum_t::extract_primary(const store_key_t &secondary_key) {
-    return store_key_t(extract_primary(key_to_unescaped_str(secondary_key)));
+store_key_t datum_t::extract_primary(reql_version_t reql_version,
+                                     const store_key_t &secondary_key) {
+    return store_key_t(extract_primary(reql_version,
+                                       key_to_unescaped_str(secondary_key)));
 }
 
-std::string datum_t::extract_secondary(const std::string &secondary) {
+std::string datum_t::extract_secondary(reql_version_t reql_version,
+                                       const std::string &secondary) {
     components_t components;
-    parse_secondary(secondary, &components);
+    parse_secondary(reql_version, secondary, &components);
     return components.secondary;
 }
 
-boost::optional<uint64_t> datum_t::extract_tag(const std::string &secondary) {
+boost::optional<uint64_t> datum_t::extract_tag(reql_version_t reql_version,
+                                               const std::string &secondary) {
     components_t components;
-    parse_secondary(secondary, &components);
+    parse_secondary(reql_version, secondary, &components);
     return components.tag_num;
 }
 
-boost::optional<uint64_t> datum_t::extract_tag(const store_key_t &key) {
-    return extract_tag(key_to_unescaped_str(key));
+boost::optional<uint64_t> datum_t::extract_tag(reql_version_t reql_version,
+                                               const store_key_t &key) {
+    return extract_tag(reql_version, key_to_unescaped_str(key));
 }
 
 // This function returns a store_key_t suitable for searching by a
@@ -1093,9 +1102,9 @@ size_t datum_t::trunc_size(size_t primary_key_size) {
     return MAX_KEY_SIZE - primary_key_size - tag_size - 2;
 }
 
-bool datum_t::key_is_truncated(const store_key_t &key) {
+bool datum_t::key_is_truncated(reql_version_t reql_version, const store_key_t &key) {
     std::string key_str = key_to_unescaped_str(key);
-    if (extract_tag(key_str)) {
+    if (extract_tag(reql_version, key_str)) {
         return key.size() == MAX_KEY_SIZE;
     } else {
         return key.size() == MAX_KEY_SIZE - tag_size;

@@ -48,6 +48,7 @@ void sanitize_time(datum_t *time);
 static const double max_dbl_int = 0x1LL << DBL_MANT_DIG;
 static const double min_dbl_int = max_dbl_int * -1;
 
+
 // These let us write e.g. `foo(NOTHROW) instead of `foo(false/*nothrow*/)`.
 // They should be passed to functions that have multiple behaviors (like `get` or
 // `add` below).
@@ -150,15 +151,21 @@ public:
     static std::string mangle_secondary(const std::string &secondary,
             const std::string &primary, const std::string &tag);
     // tag_num is used for multi-indexes.
-    std::string print_secondary(const store_key_t &key,
+    std::string print_secondary(reql_version_t reql_version,
+                                const store_key_t &key,
                                 boost::optional<uint64_t> tag_num) const;
     /* An inverse to print_secondary. Returns the primary key. */
-    static std::string extract_primary(const std::string &secondary_and_primary);
-    static store_key_t extract_primary(const store_key_t &secondary_key);
-    static std::string extract_secondary(const std::string &secondary_and_primary);
+    static std::string extract_primary(reql_version_t reql_version,
+                                       const std::string &secondary_and_primary);
+    static store_key_t extract_primary(reql_version_t reql_version,
+                                       const store_key_t &secondary_key);
+    static std::string extract_secondary(reql_version_t reql_version,
+                                         const std::string &secondary_and_primary);
     static boost::optional<uint64_t> extract_tag(
+        reql_version_t reql_version,
         const std::string &secondary_and_primary);
-    static boost::optional<uint64_t> extract_tag(const store_key_t &key);
+    static boost::optional<uint64_t> extract_tag(reql_version_t reql_version,
+                                                 const store_key_t &key);
     store_key_t truncated_secondary() const;
     void check_type(type_t desired, const char *msg = NULL) const;
     void type_error(const std::string &msg) const NORETURN;
@@ -223,7 +230,7 @@ public:
      * as truncated by this function. Unfortunately there isn't a general way
      * to tell if keys of max_trunc_size were exactly that size or longer and
      * thus truncated. */
-    static bool key_is_truncated(const store_key_t &key);
+    static bool key_is_truncated(reql_version_t reql_version, const store_key_t &key);
 
     void rcheck_is_ptype(const std::string s = "") const;
     void rcheck_valid_replace(counted_t<const datum_t> old_val,

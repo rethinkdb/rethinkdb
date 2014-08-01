@@ -238,7 +238,7 @@ struct sindex_reql_version_info_t {
 
     // The original ReQL version of the sindex function.  The value here never
     // changes.  This might become useful for tracking down some bugs or fixing them
-    // in-place, or performing a desparate reverse migration.
+    // in-place, or performing a desperate reverse migration.
     reql_version_t original_reql_version;
 
     // This is the latest version for which evaluation of the sindex function remains
