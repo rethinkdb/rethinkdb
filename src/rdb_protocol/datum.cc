@@ -334,6 +334,28 @@ void datum_t::num_to_str_key(std::string *str_out) const {
     str_out->append(strprintf("#%" PR_RECONSTRUCTABLE_DOUBLE, as_num()));
 }
 
+void datum_t::binary_to_str_key(std::string *str_out) const {
+    // We need to prepend "P" and append a character less than [a-zA-Z] so that
+    // different pseudotypes sort correctly.
+    const std::string binary_key_prefix("PBINARY:");
+    const wire_string_t &key = as_binary();
+
+    str_out->append(binary_key_prefix);
+    size_t to_append = std::min(MAX_KEY_SIZE - str_out->size(), key.size());
+
+    // Escape null bytes so we don't cause key ambiguity when used in an array
+    // We do this by replacing \x00 with \x01\x01 and replacing \x01 with \x01\x02
+    for (size_t i = 0; i < to_append; ++i) {
+        if (key.data()[i] == '\x00') {
+            str_out->append("\x01\x01");
+        } else if (key.data()[i] == '\x01') {
+            str_out->append("\x01\x02");
+        } else {
+            str_out->append(1, key.data()[i]);
+        }
+    }
+}
+
 void datum_t::str_to_str_key(std::string *str_out) const {
     r_sanity_check(get_type() == R_STR);
     str_out->append("S");
@@ -358,7 +380,7 @@ void datum_t::array_to_str_key(std::string *str_out) const {
     r_sanity_check(get_type() == R_ARRAY);
     str_out->append("A");
 
-    for (size_t i = 0; i < size(); ++i) {
+    for (size_t i = 0; i < size() && str_out->size() < MAX_KEY_SIZE; ++i) {
         counted_t<const datum_t> item = get(i, NOTHROW);
         r_sanity_check(item.has());
 
@@ -384,28 +406,6 @@ void datum_t::array_to_str_key(std::string *str_out) const {
             unreachable();
         }
         str_out->append(std::string(1, '\0'));
-    }
-}
-
-void datum_t::binary_to_str_key(std::string *str_out) const {
-    // We need to prepend "P" and append a character less than [a-zA-Z] so that
-    // different pseudotypes sort correctly.
-    const std::string binary_key_prefix("PBINARY:");
-    const wire_string_t &key = as_binary();
-
-    str_out->append(binary_key_prefix);
-    size_t to_append = std::min(MAX_KEY_SIZE - str_out->size(), key.size());
-
-    // Escape null bytes so we don't cause key ambiguity when used in an array
-    // We do this by replacing \x00 with \x01\x01 and replacing \x01 with \x01\x02
-    for (size_t i = 0; i < to_append; ++i) {
-        if (key.data()[i] == '\x00') {
-            str_out->append("\x01\x01");
-        } else if (key.data()[i] == '\x01') {
-            str_out->append("\x01\x02");
-        } else {
-            str_out->append(1, key.data()[i]);
-        }
     }
 }
 
@@ -597,7 +597,7 @@ std::string datum_t::print_primary() const {
         // fallthru
     case R_NULL:
         type_error(strprintf(
-            "Primary keys must be either a number, string, binary, bool, pseudotype "
+            "Primary keys must be either a number, string, bool, pseudotype "
             "or array (got type %s):\n%s",
             get_type_name().c_str(), trunc_print().c_str()));
         break;
@@ -657,7 +657,7 @@ std::string datum_t::print_secondary(const store_key_t &primary_key,
         pt_to_str_key(&secondary_key_string);
     } else {
         type_error(strprintf(
-            "Secondary keys must be a number, string, binary, bool, pseudotype, "
+            "Secondary keys must be a number, string, bool, pseudotype, "
             "or array (got type %s):\n%s",
             get_type_name().c_str(), trunc_print().c_str()));
     }
@@ -750,7 +750,7 @@ store_key_t datum_t::truncated_secondary() const {
         pt_to_str_key(&s);
     } else {
         type_error(strprintf(
-            "Secondary keys must be a number, string, binary, bool, pseudotype, "
+            "Secondary keys must be a number, string, bool, pseudotype, "
             "or array (got %s of type %s).",
             print().c_str(), get_type_name().c_str()));
     }
