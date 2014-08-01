@@ -6,10 +6,12 @@
 namespace ql {
 
 bool datum_eq(reql_version_t, const datum_t &lhs, const datum_t &rhs) {
+    // Behavior of cmp with respect to datum equality didn't change between versions.
     return lhs == rhs;
 }
 
 bool datum_ne(reql_version_t, const datum_t &lhs, const datum_t &rhs) {
+    // Behavior of cmp with respect to datum equality didn't change between versions.
     return lhs != rhs;
 }
 
@@ -17,16 +19,16 @@ bool datum_lt(reql_version_t, const datum_t &lhs, const datum_t &rhs) {
     return lhs < rhs;
 }
 
-bool datum_le(reql_version_t, const datum_t &lhs, const datum_t &rhs) {
-    return lhs <= rhs;
+bool datum_le(reql_version_t v, const datum_t &lhs, const datum_t &rhs) {
+    return lhs.cmp(v, rhs) <= 0;
 }
 
 bool datum_gt(reql_version_t, const datum_t &lhs, const datum_t &rhs) {
     return lhs > rhs;
 }
 
-bool datum_ge(reql_version_t, const datum_t &lhs, const datum_t &rhs) {
-    return lhs >= rhs;
+bool datum_ge(reql_version_t v, const datum_t &lhs, const datum_t &rhs) {
+    return lhs.cmp(v, rhs) >= 0;
 }
 
 class predicate_term_t : public op_term_t {

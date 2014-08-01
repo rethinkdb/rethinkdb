@@ -211,23 +211,21 @@ public:
     int cmp(reql_version_t reql_version, const datum_t &rhs) const;
 
     // Modern datum_t::cmp implementation, for reql_version_t::v1_14 and later.
-    // Called by cmp.
+    // Called by cmp, ==, !=.
     int modern_cmp(const datum_t &rhs) const;
 
     // Archaic datum_t::cmp implementation for reql_version_t::v1_13.
     int v1_13_cmp(const datum_t &rhs) const;
 
-    // These don't take a reql_version_t, unlike other comparison functions, because
-    // we know (by inspection) that the behavior of cmp() hasn't changed with respect
-    // to the question of equality vs. inequality.
+    // operator== and operator!= don't take a reql_version_t, unlike other comparison
+    // functions, because we know (by inspection) that the behavior of cmp() hasn't
+    // changed with respect to the question of equality vs. inequality.
+
     bool operator==(const datum_t &rhs) const;
     bool operator!=(const datum_t &rhs) const;
-
     // RSI: These _will_ take a reql_version_t (and be renamed).
     bool operator<(const datum_t &rhs) const;
-    bool operator<=(const datum_t &rhs) const;
     bool operator>(const datum_t &rhs) const;
-    bool operator>=(const datum_t &rhs) const;
 
     void runtime_fail(base_exc_t::type_t exc_type,
                       const char *test, const char *file, int line,

@@ -1147,13 +1147,8 @@ bool datum_t::operator!=(const datum_t &rhs) const { return modern_cmp(rhs) != 0
 bool datum_t::operator<(const datum_t &rhs) const {
     return cmp(reql_version_t::RSI, rhs) < 0;
 }
-bool datum_t::operator<=(const datum_t &rhs) const {
-    return cmp(reql_version_t::RSI, rhs) <= 0; }
 bool datum_t::operator>(const datum_t &rhs) const {
     return cmp(reql_version_t::RSI, rhs) > 0;
-}
-bool datum_t::operator>=(const datum_t &rhs) const {
-    return cmp(reql_version_t::RSI, rhs) >= 0;
 }
 
 void datum_t::runtime_fail(base_exc_t::type_t exc_type,
