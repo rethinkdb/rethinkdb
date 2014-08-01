@@ -615,7 +615,8 @@ void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
 
     // Initialize response.
     response_out->response = rget_read_response_t();
-    auto out = boost::get<rget_read_response_t>(&response_out->response);
+    rget_read_response_t *out
+        = boost::get<rget_read_response_t>(&response_out->response);
     out->truncated = false;
     out->key_range = read_t(rg, profile_bool_t::DONT_PROFILE).get_region().inner;
 
@@ -625,6 +626,7 @@ void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
     key_le_t key_le(rg.sorting);
     for (size_t i = 0; i < count; ++i) {
         auto resp = boost::get<rget_read_response_t>(&responses[i].response);
+        out->sindex_reql_version = resp->sindex_reql_version;
         guarantee(resp);
         if (resp->truncated) {
             out->truncated = true;
@@ -1057,8 +1059,9 @@ INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_response_t);
 RDB_IMPL_ME_SERIALIZABLE_2(changefeed_point_stamp_response_t, stamp, initial_val);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_point_stamp_response_t);
 
-RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
+RDB_IMPL_SERIALIZABLE_3(
         read_response_t, response, event_log, n_shards);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(read_response_t);
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_read_t, key);
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(

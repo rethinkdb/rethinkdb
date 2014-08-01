@@ -190,6 +190,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 rget.terminal, rget.region.inner, rget.sorting,
                 sindex_mapping_version_info.latest_compatible_reql_version,
                 sindex_mapping, multi_bool, res);
+
+            res->sindex_reql_version
+                = sindex_mapping_version_info.latest_compatible_reql_version;
         }
     }
 
