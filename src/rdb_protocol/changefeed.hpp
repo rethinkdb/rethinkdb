@@ -16,7 +16,6 @@
 #include "protocol_api.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "region/region.hpp"
-#include "region/region.hpp"
 #include "repli_timestamp.hpp"
 #include "rpc/connectivity/peer_id.hpp"
 #include "rpc/mailbox/typed.hpp"
