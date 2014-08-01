@@ -65,17 +65,20 @@ class ack_info_t;
 
 class reactor_driver_t {
 public:
-    reactor_driver_t(const base_path_t &base_path,
-                     io_backender_t *io_backender,
-                     mailbox_manager_t *mbox_manager,
-                     const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > > &directory_view,
-                     branch_history_manager_t *branch_history_manager,
-                     boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > namespaces_view,
-                     boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view,
-                     const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &machine_id_translation_table,
-                     svs_by_namespace_t *svs_by_namespace,
-                     perfmon_collection_repo_t *,
-                     rdb_context_t *);
+    reactor_driver_t(
+        const base_path_t &base_path,
+         io_backender_t *io_backender,
+         mailbox_manager_t *mbox_manager,
+         const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
+            namespaces_directory_metadata_t> > > &directory_view,
+         branch_history_manager_t *branch_history_manager,
+         boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<
+            namespaces_semilattice_metadata_t> > > namespaces_view,
+         server_name_client_t *server_name_client,
+         signal_t *we_were_permanently_removed,
+         svs_by_namespace_t *svs_by_namespace,
+         perfmon_collection_repo_t *,
+         rdb_context_t *);
 
     ~reactor_driver_t();
 
@@ -111,14 +114,12 @@ private:
     mailbox_manager_t *const mbox_manager;
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > > directory_view;
     branch_history_manager_t *branch_history_manager;
-    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > machine_id_translation_table;
     boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > namespaces_view;
-    boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view;
+    server_name_client_t *server_name_client;
+    signal_t *we_were_permanently_removed;
     rdb_context_t *ctx;
     svs_by_namespace_t *const svs_by_namespace;
     backfill_throttler_t backfill_throttler;
-
-    scoped_ptr_t<ack_info_t> ack_info;
 
     watchable_variable_t<namespaces_directory_metadata_t> watchable_variable;
     mutex_assertion_t watchable_variable_lock;
@@ -139,7 +140,8 @@ private:
     auto_drainer_t drainer;
 
     semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> >::subscription_t semilattice_subscription;
-    watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> >::subscription_t translation_table_subscription;
+    watchable_t< std::map<name_string_t, peer_id_t> >::subscription_t
+        server_name_client_subscription;
 
     perfmon_collection_repo_t *perfmon_collection_repo;
     //boost::ptr_vector<perfmon_collection_t> namespace_perfmon_collections;

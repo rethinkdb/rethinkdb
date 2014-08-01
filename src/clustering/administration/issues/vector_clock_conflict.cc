@@ -21,15 +21,9 @@ void check_namespaces_for_protocol(
     for (namespaces_semilattice_metadata_t::namespace_map_t::const_iterator it =
             namespaces->namespaces.begin(); it != namespaces->namespaces.end(); it++) {
         if (!it->second.is_deleted()) {
-            check("namespace", it->first, "blueprint", it->second.get_ref().blueprint, out);
-            check("namespace", it->first, "primary_uuid", it->second.get_ref().primary_datacenter, out);
-            check("namespace", it->first, "replica_affinities", it->second.get_ref().replica_affinities, out);
-            check("namespace", it->first, "ack_expectations", it->second.get_ref().ack_expectations, out);
-            check("namespace", it->first, "shards", it->second.get_ref().shards, out);
             check("namespace", it->first, "name", it->second.get_ref().name, out);
-            check("namespace", it->first, "primary_pinnings", it->second.get_ref().primary_pinnings, out);
-            check("namespace", it->first, "secondary_pinnings", it->second.get_ref().secondary_pinnings, out);
             check("namespace", it->first, "database", it->second.get_ref().database, out);
+            check("namespace", it->first, "config", it->second.get_ref().config, out);
         }
     }
 }

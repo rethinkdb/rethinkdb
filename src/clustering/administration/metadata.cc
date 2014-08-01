@@ -39,10 +39,20 @@ RDB_IMPL_EQUALITY_COMPARABLE_1(machines_semilattice_metadata_t, machines);
 
 RDB_IMPL_ME_SERIALIZABLE_2_SINCE_v1_13(ack_expectation_t, expectation_, hard_durability_);
 
-RDB_IMPL_SERIALIZABLE_10_SINCE_v1_13(namespace_semilattice_metadata_t,
-                                     blueprint, primary_datacenter, replica_affinities,
-                                     ack_expectations, shards, name, primary_pinnings,
-                                     secondary_pinnings, primary_key, database);
+RDB_IMPL_SERIALIZABLE_3(table_shard_config_t,
+                        region, replica_names, director_names);
+template archive_result_t serialize<cluster_version_t::v1_14_is_latest>(
+            write_stream_t *, const table_config_t &);
+template archive_result_t deserialize<cluster_version_t::v1_14_is_latest>(
+            read_stream_t *, const table_config_t *);
+
+RDB_IMPL_SERIALIZABLE_5(namespace_semilattice_metadata_t,
+                        name, primary_key, database, shards, chosen_directors);
+template archive_result_t serialize<cluster_version_t::v1_14_is_latest>(
+            write_stream_t *, const namespace_semilattice_metadata_t &);
+template archive_result_t deserialize<cluster_version_t::v1_14_is_latest>(
+            read_stream_t *, namespace_semilattice_metadata_t *);
+
 RDB_IMPL_SEMILATTICE_JOINABLE_10(
         namespace_semilattice_metadata_t,
         blueprint, primary_datacenter, replica_affinities, ack_expectations, shards,
@@ -52,16 +62,24 @@ RDB_IMPL_EQUALITY_COMPARABLE_10(
         blueprint, primary_datacenter, replica_affinities, ack_expectations, shards,
         name, primary_pinnings, secondary_pinnings, primary_key, database);
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(namespaces_semilattice_metadata_t, namespaces);
+RDB_IMPL_SERIALIZABLE_1(namespaces_semilattice_metadata_t, namespaces);
+template archive_result_t serialize<cluster_version_t::v1_14_is_latest>(
+            write_stream_t *, const namespaces_semilattice_metadata_t &);
+template archive_result_t deserialize<cluster_version_t::v1_14_is_latest>(
+            read_stream_t *, namespaces_semilattice_metadata_t *);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(namespaces_semilattice_metadata_t, namespaces);
 RDB_IMPL_EQUALITY_COMPARABLE_1(namespaces_semilattice_metadata_t, namespaces);
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(namespaces_directory_metadata_t, reactor_bcards);
 RDB_IMPL_EQUALITY_COMPARABLE_1(namespaces_directory_metadata_t, reactor_bcards);
 
-RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(
+RDB_IMPL_SERIALIZABLE_4(
         cluster_semilattice_metadata_t, rdb_namespaces, machines, datacenters,
         databases);
+template archive_result_t serialize<cluster_version_t::v1_14_is_latest>(
+            write_stream_t *, const cluster_semilattice_metadata_t &);
+template archive_result_t deserialize<cluster_version_t::v1_14_is_latest>(
+            read_stream_t *, cluster_semilattice_metadata_t *);
 RDB_IMPL_SEMILATTICE_JOINABLE_4(cluster_semilattice_metadata_t,
                                 rdb_namespaces, machines, datacenters, databases);
 RDB_IMPL_EQUALITY_COMPARABLE_4(cluster_semilattice_metadata_t,
@@ -76,36 +94,6 @@ RDB_IMPL_SERIALIZABLE_10(cluster_directory_metadata_t,
                          get_stats_mailbox_address, log_mailbox,
                          server_name_business_card, local_issues, peer_type);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(cluster_directory_metadata_t);
-
-namespace_semilattice_metadata_t new_namespace(
-    uuid_u machine, uuid_u database, uuid_u datacenter,
-    const name_string_t &name, const std::string &key) {
-
-    namespace_semilattice_metadata_t ns;
-    ns.database           = make_vclock(database, machine);
-    ns.primary_datacenter = make_vclock(datacenter, machine);
-    ns.name               = make_vclock(name, machine);
-    ns.primary_key        = make_vclock(key, machine);
-
-    std::map<uuid_u, ack_expectation_t> ack_expectations;
-    ack_expectations[datacenter] = ack_expectation_t(1, true);
-    ns.ack_expectations = make_vclock(ack_expectations, machine);
-
-    nonoverlapping_regions_t shards;
-    bool add_region_success = shards.add_region(region_t::universe());
-    guarantee(add_region_success);
-    ns.shards = make_vclock(shards, machine);
-
-    region_map_t<uuid_u> primary_pinnings(region_t::universe(), nil_uuid());
-    ns.primary_pinnings = make_vclock(primary_pinnings, machine);
-
-    region_map_t<std::set<uuid_u> > secondary_pinnings(
-        region_t::universe(), std::set<machine_id_t>());
-    ns.secondary_pinnings = make_vclock(secondary_pinnings, machine);
-
-    return ns;
-}
-
 
 bool ack_expectation_t::operator==(ack_expectation_t other) const {
     return expectation_ == other.expectation_ && hard_durability_ == other.hard_durability_;

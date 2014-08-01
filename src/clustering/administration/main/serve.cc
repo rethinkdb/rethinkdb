@@ -248,13 +248,22 @@ bool do_serve(io_backender_t *io_backender,
                               &get_global_perfmon_collection(),
                               serve_info.reql_http_proxy);
 
-        real_reql_cluster_interface_t reql_cluster_interface(
+        real_reql_cluster_interface_t real_reql_cluster_interface(
                 &mailbox_manager,
                 machine_id,
                 semilattice_manager_cluster.get_root_view(),
                 directory_read_manager.get_root_view(),
                 &rdb_ctx,
                 &server_name_client);
+
+        std::map<name_string_t, artificial_table_backend_t *> artificial_table_backends;
+        table_config_artificial_table_backend_t table_config_backend(
+                machine_id,
+                metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
+                    semilattice_manager_cluster.get_root_view()))
+        artificial_table_backends[name_string_t::guarantee_valid("table_config")] =
+            &table_config_backend;
+        artificial_table_supplier_t artificial_reql_clsuter
 
         //This is an annoying chicken and egg problem here
         rdb_ctx.cluster_interface = &reql_cluster_interface;

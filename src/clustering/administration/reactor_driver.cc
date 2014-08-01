@@ -45,85 +45,101 @@ stores_lifetimer_t::~stores_lifetimer_t() {
     }
 }
 
-
-/* The reactor driver is also responsible for the translation from
-`persistable_blueprint_t` to `blueprint_t`. */
-blueprint_t translate_blueprint(const persistable_blueprint_t &input, const std::map<peer_id_t, machine_id_t> &translation_table) {
-
-    blueprint_t output;
-    for (persistable_blueprint_t::role_map_t::const_iterator it = input.machines_roles.begin();
-            it != input.machines_roles.end(); it++) {
-        peer_id_t peer = machine_id_to_peer_id(it->first, translation_table);
-        if (peer.is_nil()) {
-            /* We can't determine the peer ID that belongs or belonged to this
-            peer because we can't reach the peer. So we generate a new peer ID
-            for the peer. This works because either way, the `reactor_t` will
-            be unable to reach the peer. */
-            peer = peer_id_t(generate_uuid());
+/* When constructing the blueprint, we want to generate fake peer IDs for unconnected
+machines, and generate fake machine IDs for names that don't resolve to a machine. This
+is a hack, but it ensures that we produce a blueprint that tricks the `reactor_t` into
+doing what we want it to. `blueprint_name_translator_t` takes care of automatically
+generating and keeping track of the fakes. */
+class blueprint_name_translator_t {
+public:
+    explicit blueprint_name_translator_t(server_name_client_t *name_client) :
+        machine_id_to_peer_id_map(
+            name_client->get_machine_id_to_peer_id_map()->get()),
+        name_to_machine_id_map(
+            name_client->get_name_to_machine_id_map()->get())
+        { }
+    machine_id_t name_to_machine_id(const name_string_t &name) {
+        auto it = name_to_machine_id_map.find(name);
+        if (it == name_to_machine_id_map.end()) {
+            it = name_to_machine_id_map.insert(
+                std::make_pair(name, generate_uuid())).first;
         }
-        output.peers_roles[peer] = it->second;
+        return it->second;
     }
-    return output;
+    peer_id_t machine_id_to_peer_id(const machine_id_t &machine_id) {
+        auto it = machine_id_to_peer_id_map.find(machine_id);
+        if (it == machine_id_to_peer_id_map.end()) {
+            it = machine_id_to_peer_id_map.insert(
+                std::make_pair(machine_id, peer_id_t(generate_uuid()))).first;
+        }
+        return it->second;
+    }
+private:
+    std::map<machine_id_t, peer_id_t> machine_id_to_peer_id_map;
+    std::map<name_string_t, machine_id_t> name_to_machine_id_map;
+};
+
+blueprint_t construct_blueprint(const table_config_t &config,
+                                server_name_client_t *name_client) {
+    guarantee(config.regions.size() == config.replica_server_names.size());
+    guarantee(config.regions.size() == config.director_server_names.size());
+    guarantee(config.regions.size() == config.chosen_director_servers.size());
+
+    blueprint_name_translator_t trans(name_client);
+
+    blueprint_t blueprint;
+
+    /* Put the primaries and secondaries in the blueprint */
+    int i;
+    for (auto region_it = config.regions.begin(), i=0;
+              region_it != config.regions.end();
+            ++region_it, ++i) {
+        std::set<machine_id_t> replica_servers;
+        for (auto it = config.replica_server_names[i].begin();
+                  it != config.replica_server_names[i].end();
+                ++it) {
+            replica_servers.insert(trans.name_to_machine_id(*it));
+        }
+        for (const machine_id_t &machine_id : replica_servers) {
+            peer_id_t peer = trans->machine_id_to_peer_id(peer);
+            if (blueprint.peers_roles.count(peer) == 0) {
+                blueprint.add_peer(peer);
+            }
+            if (machine_id == config.chosen_director_servers[i]) {
+                blueprint.add_role(peer, *region_it, blueprint_role_primary);
+            } else {
+                blueprint.add_role(peer, *region_id, blueprint_role_secondary;
+            }
+        }
+    }
+
+    /* Make sure that every known peer appears in the blueprint in some form */
+    std::map<machine_id_t, peer_id_t> machine_id_to_peer_id_map =
+        name_client->get_machine_id_to_peer_id_map()->get();
+    for (auto it = machine_id_to_peer_id_map.begin();
+              it != machine_id_to_peer_id_map.end();
+            ++it) {
+        peer_id_t peer = trans.machine_id_to_peer_id(it->first);
+        if (blueprint.peers_roles.count(peer) == 0) {
+            blueprint.add_peer(peer);
+        }
+    }
+
+    /* If a peer's role isn't primary or secondary, make it nothing */
+    for (auto region_it = config.regions.begin();
+              region_it != config.regions.end();
+            ++region_it) {
+        for (auto it = blueprint.peers_roles.begin();
+                  it != blueprint.peers_roles.end();
+                ++it) {
+            if (it->second.count(*region_it) == 0) {
+                blueprint.add_role(it->first, *region_it, blueprint_role_nothing);
+            }
+        }
+    }
+
+    blueprint.guarantee_valid();
 }
-
-class per_thread_ack_info_t {
-public:
-    per_thread_ack_info_t(const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &machine_id_translation_table,
-                          const semilattice_watchable_t<machines_semilattice_metadata_t> &machines_view,
-                          const semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > &namespaces_view,
-                          threadnum_t dest_thread)
-        : machine_id_translation_table_(machine_id_translation_table, dest_thread),
-          machines_view_(clone_ptr_t<watchable_t<machines_semilattice_metadata_t> >(machines_view.clone()), dest_thread),
-          namespaces_view_(clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >(namespaces_view.clone()), dest_thread) { }
-
-    // TODO: Just get the value directly.
-    // ^^^^^^^^^ What does this mean? (~daniel)
-    std::map<peer_id_t, machine_id_t> get_machine_id_translation_table() {
-        return machine_id_translation_table_.get_watchable()->get().get_inner();
-    }
-
-    machines_semilattice_metadata_t get_machines_view() {
-        return machines_view_.get_watchable()->get();
-    }
-
-    cow_ptr_t<namespaces_semilattice_metadata_t> get_namespaces_view() {
-        return namespaces_view_.get_watchable()->get();
-    }
-
-private:
-    cross_thread_watchable_variable_t<change_tracking_map_t<peer_id_t, machine_id_t> > machine_id_translation_table_;
-    cross_thread_watchable_variable_t<machines_semilattice_metadata_t> machines_view_;
-    cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > namespaces_view_;
-    DISABLE_COPYING(per_thread_ack_info_t);
-};
-
-class ack_info_t : public home_thread_mixin_t {
-public:
-    ack_info_t(const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &machine_id_translation_table,
-               const boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &machines_view,
-               const boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > &namespaces_view)
-        : machine_id_translation_table_(machine_id_translation_table),
-          machines_view_(machines_view),
-          namespaces_view_(namespaces_view),
-          per_thread_info_(get_num_db_threads()) {
-        for (size_t i = 0; i < per_thread_info_.size(); ++i) {
-            per_thread_info_[i].init(new per_thread_ack_info_t(machine_id_translation_table_, machines_view_, namespaces_view_, threadnum_t(i)));
-        }
-    }
-
-    per_thread_ack_info_t *per_thread_ack_info() {
-        return per_thread_info_[get_thread_id().threadnum].get();
-    }
-
-private:
-    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > machine_id_translation_table_;
-    semilattice_watchable_t<machines_semilattice_metadata_t> machines_view_;
-    semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > namespaces_view_;
-
-    scoped_array_t<scoped_ptr_t<per_thread_ack_info_t> > per_thread_info_;
-
-    DISABLE_COPYING(ack_info_t);
-};
 
 /* This is in part because these types aren't copyable so they can't go in
  * a std::pair. This class is used to hold a reactor and a watchable that
@@ -173,122 +189,16 @@ public:
             boost::optional<reactor_driver_t::reactor_directory_entry_t>());
     }
 
-    static bool compute_is_acceptable_ack_set(const std::set<peer_id_t> &acks, const namespace_id_t &namespace_id, per_thread_ack_info_t *ack_info) {
-        /* There are a bunch of weird corner cases: what if the namespace was
-        deleted? What if we got an ack from a machine but then it was declared
-        dead? What if the namespaces `expected_acks` field is in conflict? We
-        handle the weird cases by erring on the side of reporting that there
-        are not enough acks yet. If a machine's `expected_acks` field is in
-        conflict, for example, then all writes will report that there are not
-        enough acks. That's a bit weird, but fortunately it can't lead to data
-        corruption. */
-        std::multiset<datacenter_id_t> acks_by_dc;
-        std::map<peer_id_t, machine_id_t> translation_table_snapshot = ack_info->get_machine_id_translation_table();
-        machines_semilattice_metadata_t mmd = ack_info->get_machines_view();
-        cow_ptr_t<namespaces_semilattice_metadata_t> nmd = ack_info->get_namespaces_view();
-
-        for (std::set<peer_id_t>::const_iterator it = acks.begin(); it != acks.end(); it++) {
-            std::map<peer_id_t, machine_id_t>::iterator tt_it = translation_table_snapshot.find(*it);
-            if (tt_it == translation_table_snapshot.end()) continue;
-            machines_semilattice_metadata_t::machine_map_t::iterator jt = mmd.machines.find(tt_it->second);
-            if (jt == mmd.machines.end()) continue;
-            if (jt->second.is_deleted()) continue;
-            if (jt->second.get_ref().datacenter.in_conflict()) continue;
-            datacenter_id_t dc = jt->second.get_ref().datacenter.get();
-            acks_by_dc.insert(dc);
-        }
-        namespaces_semilattice_metadata_t::namespace_map_t::const_iterator it =
-            nmd->namespaces.find(namespace_id);
-        if (it == nmd->namespaces.end()) return false;
-        if (it->second.is_deleted()) return false;
-        if (it->second.get_ref().ack_expectations.in_conflict()) return false;
-        std::map<datacenter_id_t, ack_expectation_t> expected_acks = it->second.get_ref().ack_expectations.get();
-
-        /* The nil uuid represents acks from anywhere. */
-        uint32_t extra_acks = 0;
-        for (std::map<datacenter_id_t, ack_expectation_t>::const_iterator kt = expected_acks.begin(); kt != expected_acks.end(); ++kt) {
-            if (!kt->first.is_nil()) {
-                if (acks_by_dc.count(kt->first) < kt->second.expectation()) {
-                    return false;
-                }
-                extra_acks += acks_by_dc.count(kt->first) - kt->second.expectation();
-            }
-        }
-
-        /* Add in the acks that came from datacenters we had no expectations
-         * for (or the nil datacenter). */
-        for (std::multiset<datacenter_id_t>::iterator at  = acks_by_dc.begin();
-                                                      at != acks_by_dc.end();
-                                                      ++at) {
-            if (!std_contains(expected_acks, *at) || at->is_nil()) {
-                extra_acks++;
-            }
-        }
-
-        if (extra_acks < expected_acks[nil_uuid()].expectation()) {
-            return false;
-        }
-        return true;
-    }
-
     bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) const {
-        return compute_is_acceptable_ack_set(acks, namespace_id_, parent_->ack_info->per_thread_ack_info());
-    }
-
-    // Computes what write durability we should use when sending a write to the
-    // given peer, on the given table.  Uses the ack_info parameter to figure
-    // out the answer to this question.  Figures out the answer much like how
-    // compute_is_acceptable_ack_set figures out whether it has the right ack
-    // set.  It figures out what datacenter the peer belongs to, and then, using
-    // the ack_expectations_t for the given namespace, figures out whether we
-    // want hard durability or soft durability for that datacenter.
-    static write_durability_t compute_write_durability(const peer_id_t &peer, const namespace_id_t &namespace_id, per_thread_ack_info_t *ack_info) {
-        // FML
-        const std::map<peer_id_t, machine_id_t> translation_table_snapshot = ack_info->get_machine_id_translation_table();
-        auto it = translation_table_snapshot.find(peer);
-        if (it == translation_table_snapshot.end()) {
-            // What should we do?  I have no idea.  Default to HARD, let somebody else handle
-            // the peer not existing.
-            return write_durability_t::HARD;
-        }
-
-        const machine_id_t machine_id = it->second;
-
-        machines_semilattice_metadata_t mmd = ack_info->get_machines_view();
-        std::map<machine_id_t, deletable_t<machine_semilattice_metadata_t> >::const_iterator machine_map_it
-            = mmd.machines.find(machine_id);
-        if (machine_map_it == mmd.machines.end() || machine_map_it->second.is_deleted()
-            || machine_map_it->second.get_ref().datacenter.in_conflict()) {
-            // Is there something smart to do?  Besides deleting this whole class and
-            // refactoring clustering not to do O(n^2) work per request?  Default to HARD, let
-            // somebody else handle the machine not existing.
-            return write_durability_t::HARD;
-        }
-
-        const datacenter_id_t dc = machine_map_it->second.get_ref().datacenter.get();
-
-        cow_ptr_t<namespaces_semilattice_metadata_t> nmd = ack_info->get_namespaces_view();
-
-        std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >::const_iterator ns_it
-            = nmd->namespaces.find(namespace_id);
-
-        if (ns_it == nmd->namespaces.end() || ns_it->second.is_deleted() || ns_it->second.get_ref().ack_expectations.in_conflict()) {
-            // Again, FML, we default to HARD.
-            return write_durability_t::HARD;
-        }
-
-        std::map<datacenter_id_t, ack_expectation_t> ack_expectations = ns_it->second.get_ref().ack_expectations.get();
-        auto ack_it = ack_expectations.find(dc);
-        if (ack_it == ack_expectations.end()) {
-            // Yet again, FML, we default to HARD.
-            return write_durability_t::HARD;
-        }
-
-        return ack_it->second.is_hardly_durable() ? write_durability_t::HARD : write_durability_t::SOFT;
+        /* TODO: This is temporary. When we figure out how to handle ack expectations in
+        the new ReQL admin API, we'll change it. */
+        return !acks.empty();
     }
 
     write_durability_t get_write_durability(const peer_id_t &peer) const {
-        return compute_write_durability(peer, namespace_id_, parent_->ack_info->per_thread_ack_info());
+        /* TODO: This is temporary. When we figure out how to handle write durability in
+        the new ReQL admin API, we'll change it. */
+        return write_durability_t::HARD;
     }
 
 private:
@@ -377,17 +287,20 @@ private:
     DISABLE_COPYING(watchable_and_reactor_t);
 };
 
-reactor_driver_t::reactor_driver_t(const base_path_t &_base_path,
-                                   io_backender_t *_io_backender,
-                                   mailbox_manager_t *_mbox_manager,
-                                   const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > > &_directory_view,
-                                   branch_history_manager_t *_branch_history_manager,
-                                   boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > _namespaces_view,
-                                   boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
-                                   const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
-                                   svs_by_namespace_t *_svs_by_namespace,
-                                   perfmon_collection_repo_t *_perfmon_collection_repo,
-                                   rdb_context_t *_ctx)
+reactor_driver_t::reactor_driver_t(
+    const base_path_t &_base_path,
+    io_backender_t *_io_backender,
+    mailbox_manager_t *_mbox_manager,
+    const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
+        namespaces_directory_metadata_t> > > &_directory_view,
+    branch_history_manager_t *_branch_history_manager,
+    boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<
+        namespaces_semilattice_metadata_t> > > _namespaces_view,
+    server_name_client_t *_server_name_client,
+    signal_t *_we_were_permanently_removed,
+    svs_by_namespace_t *_svs_by_namespace,
+    perfmon_collection_repo_t *_perfmon_collection_repo,
+    rdb_context_t *_ctx)
     : base_path(_base_path),
       io_backender(_io_backender),
       mbox_manager(_mbox_manager),
@@ -395,10 +308,10 @@ reactor_driver_t::reactor_driver_t(const base_path_t &_base_path,
       branch_history_manager(_branch_history_manager),
       machine_id_translation_table(_machine_id_translation_table),
       namespaces_view(_namespaces_view),
-      machines_view(machines_view_),
+      server_name_client(_server_name_client),
+      we_were_permanently_removed(_we_were_permanently_removed),
       ctx(_ctx),
       svs_by_namespace(_svs_by_namespace),
-      ack_info(new ack_info_t(machine_id_translation_table, machines_view, namespaces_view)),
       watchable_variable(namespaces_directory_metadata_t()),
       semilattice_subscription(boost::bind(&reactor_driver_t::on_change, this), namespaces_view),
       translation_table_subscription(boost::bind(&reactor_driver_t::on_change, this)),
@@ -410,7 +323,7 @@ reactor_driver_t::reactor_driver_t(const base_path_t &_base_path,
 }
 
 reactor_driver_t::~reactor_driver_t() {
-    /* This must be defined in the `.tcc` file because the full definition of
+    /* This must be defined in the `.cc` file because the full definition of
     `watchable_and_reactor_t` is not available in the `.hpp` file. */
 }
 
@@ -487,11 +400,11 @@ void reactor_driver_t::delete_reactor_data(
 
 void reactor_driver_t::on_change() {
     cow_ptr_t<namespaces_semilattice_metadata_t> namespaces = namespaces_view->get();
-    std::map<peer_id_t, machine_id_t> machine_id_translation_table_value = machine_id_translation_table->get().get_inner();
 
     for (namespaces_semilattice_metadata_t::namespace_map_t::const_iterator
              it = namespaces->namespaces.begin(); it != namespaces->namespaces.end(); it++) {
-        if (it->second.is_deleted() && std_contains(reactor_data, it->first)) {
+        if ((it->second.is_deleted() || we_were_permanently_removed->is_pulsed()) &&
+                std_contains(reactor_data, it->first)) {
             /* on_change cannot block because it is called as part of
              * semilattice subscription, however the
              * watchable_and_reactor_t destructor can block... therefore
@@ -509,50 +422,44 @@ void reactor_driver_t::on_change() {
                 reactor_datum,
                 it->first));
         } else if (!it->second.is_deleted()) {
-            const persistable_blueprint_t *pbp = NULL;
+            const table_config_t *config = NULL;
 
             try {
-                pbp = &it->second.get_ref().blueprint.get_ref();
+                config = &it->second.get_ref().config.get_ref();
             } catch (const in_conflict_exc_t &) {
-                //Nothing to do for this namespaces, its blueprint is in
-                //conflict.
+                // Since the table's config is in conflict, we ignore it and keep going.
+                // The reactor will keep acting as though it saw the most recent
+                // non-conflicting version. This is OK because we guarantee correctness
+                // even if semilattices are slow to propagate, and this looks the same
+                // from the reactor's point of view.
                 continue;
             }
 
-            blueprint_t bp = translate_blueprint(*pbp, machine_id_translation_table_value);
+            blueprint_t bp = construct_blueprint(*config, server_name_client);
+            guarantee(std_contains(bp.peers_roles,
+                                   mbox_manager->get_connectivity_cluster()->get_me()));
 
-            if (std_contains(bp.peers_roles,
-                             mbox_manager->get_connectivity_cluster()->get_me())) {
-                /* Either construct a new reactor (if this is a namespace we
-                 * haven't seen before). Or send the new blueprint to the
-                 * existing reactor. */
-                if (!std_contains(reactor_data, it->first)) {
-                    namespace_id_t tmp = it->first;
-                    reactor_data.insert(
-                            std::make_pair(tmp,
-                                           make_scoped<watchable_and_reactor_t>(base_path, io_backender, this, it->first, bp, svs_by_namespace, ctx)));
-                } else {
-                    struct op_closure_t {
-                        static bool apply(const blueprint_t &_bp,
-                                          blueprint_t *bp_ref) {
-                            const bool blueprint_changed = (*bp_ref != _bp);
-                            if (blueprint_changed) {
-                                *bp_ref = _bp;
-                            }
-                            return blueprint_changed;
-                        }
-                    };
-
-                    reactor_data.find(it->first)->second->watchable.apply_atomic_op(std::bind(&op_closure_t::apply, std::ref(bp), std::placeholders::_1));
-                }
+            /* Either construct a new reactor (if this is a namespace we
+             * haven't seen before). Or send the new blueprint to the
+             * existing reactor. */
+            if (!std_contains(reactor_data, it->first)) {
+                namespace_id_t tmp = it->first;
+                reactor_data.insert(
+                        std::make_pair(tmp,
+                                       make_scoped<watchable_and_reactor_t>(base_path, io_backender, this, it->first, bp, svs_by_namespace, ctx)));
             } else {
-                /* The blueprint does not mentions us so we destroy the
-                 * reactor. */
-                if (std_contains(reactor_data, it->first)) {
-                    watchable_and_reactor_t *reactor_datum = reactor_data.at(it->first).release();
-                    reactor_data.erase(it->first);
-                    coro_t::spawn_sometime(boost::bind(&reactor_driver_t::delete_reactor_data, this, auto_drainer_t::lock_t(&drainer), reactor_datum, it->first));
-                }
+                struct op_closure_t {
+                    static bool apply(const blueprint_t &_bp,
+                                      blueprint_t *bp_ref) {
+                        const bool blueprint_changed = (*bp_ref != _bp);
+                        if (blueprint_changed) {
+                            *bp_ref = _bp;
+                        }
+                        return blueprint_changed;
+                    }
+                };
+
+                reactor_data.find(it->first)->second->watchable.apply_atomic_op(std::bind(&op_closure_t::apply, std::ref(bp), std::placeholders::_1));
             }
         }
     }

@@ -6,6 +6,7 @@
 #include <set>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/http/json_adapters.hpp"
@@ -58,51 +59,41 @@ RDB_SERIALIZE_OUTSIDE(ack_expectation_t);
 
 void debug_print(printf_buffer_t *buf, const ack_expectation_t &x);
 
+class table_shard_config_t {
+    region_t region;
+    std::set<name_string_t> replica_names;
+    std::set<name_string_t> director_names;
+};
+
+RDB_DDECLARE_SERIALIZABLE(table_shard_config_t);
+
 class namespace_semilattice_metadata_t {
 public:
     namespace_semilattice_metadata_t() { }
 
-    vclock_t<persistable_blueprint_t> blueprint;
-    vclock_t<datacenter_id_t> primary_datacenter;
-    vclock_t<std::map<datacenter_id_t, int32_t> > replica_affinities;
-    vclock_t<std::map<datacenter_id_t, ack_expectation_t> > ack_expectations;
-    vclock_t<nonoverlapping_regions_t> shards;
-    vclock_t<name_string_t> name;
-    vclock_t<region_map_t<machine_id_t> > primary_pinnings;
-    vclock_t<region_map_t<std::set<machine_id_t> > > secondary_pinnings;
-    vclock_t<std::string> primary_key; //TODO this should actually never be changed...
-    vclock_t<database_id_t> database;
+    name_string_t name;
+    std::string primary_key;
+    database_id_t database;
+
+    std::vector<table_shard_config_t> shards;
+
+    /* This contains the machine ID of the currently chosen director for the shard at the
+    corresponding position in the `shards` vector. */
+    std::vector<machine_id_t> chosen_directors;
 };
 
 RDB_DECLARE_SERIALIZABLE(namespace_semilattice_metadata_t);
-
-
-namespace_semilattice_metadata_t new_namespace(
-    uuid_u machine, uuid_u database, uuid_u datacenter,
-    const name_string_t &name, const std::string &key);
-
-RDB_DECLARE_SEMILATTICE_JOINABLE(namespace_semilattice_metadata_t);
-
-RDB_DECLARE_EQUALITY_COMPARABLE(namespace_semilattice_metadata_t);
 
 // ctx-less json adapter concept for ack_expectation_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *target);
 cJSON *render_as_json(ack_expectation_t *target);
 void apply_json_to(cJSON *change, ack_expectation_t *target);
 
-//json adapter concept for namespace_semilattice_metadata_t
-json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(namespace_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-
-cJSON *with_ctx_render_as_json(namespace_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-
-void with_ctx_apply_json_to(cJSON *change, namespace_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-
-void with_ctx_on_subfield_change(namespace_semilattice_metadata_t *, const vclock_ctx_t &);
-
-/* This is the metadata for all of the namespaces of a specific protocol. */
+/* This is the metadata for all of the tables. */
 class namespaces_semilattice_metadata_t {
 public:
-    typedef std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > namespace_map_t;
+    typedef std::map<namespace_id_t,
+        deletable_t<vclock_t<namespace_semilattice_metadata_t> > > namespace_map_t;
     namespace_map_t namespaces;
 };
 

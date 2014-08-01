@@ -20,6 +20,9 @@ public:
     MUST_USE bool assign_value(const std::string &s);
     MUST_USE bool assign_value(const wire_string_t &s);
 
+    // Meant for use with hard-coded names
+    static name_string_t guarantee_valid(const char *name);
+
     const std::string& str() const { return str_; }
 
     // TODO: We should get rid of this, and code that uses this is known to be untrustworthy.
