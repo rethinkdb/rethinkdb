@@ -271,10 +271,14 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        auto groups = args->arg(env, 0)->as_promiscuous_grouped_data(env->env);
+        counted_t<grouped_data_t> groups
+            = args->arg(env, 0)->as_promiscuous_grouped_data(env->env);
         std::vector<counted_t<const datum_t> > v;
         v.reserve(groups->size());
-        for (auto it = groups->begin(); it != groups->end(); ++it) {
+        // RSI: We're lying.  Order matters here.
+        for (auto it = groups->begin(grouped::order_doesnt_matter_t());
+             it != groups->end(grouped::order_doesnt_matter_t());
+             ++it) {
             r_sanity_check(it->first.has() && it->second.has());
             std::map<std::string, counted_t<const datum_t> > m =
                 {{"group", std::move(it->first)}, {"reduction", std::move(it->second)}};

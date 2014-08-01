@@ -160,6 +160,13 @@ archive_result_t deserialize_grouped(read_stream_t *s, datums_t *ds) {
     return deserialize<W>(s, ds);
 }
 
+// Passing this means the caller affirms that they're not iterating a grouped_t in a
+// way such that its map order matters.  (This means that its counted_datum_less_t
+// can use any reql version, and it doesn't need the value as a parameter.)
+namespace grouped {
+enum class order_doesnt_matter_t { };
+}
+
 // This is basically a templated typedef with special serialization.
 template<class T>
 class grouped_t {
@@ -196,14 +203,15 @@ public:
         return archive_result_t::SUCCESS;
     }
 
-
-    // We pass these through manually rather than using inheritance because
-    // `std::map` lacks a virtual destructor.  (Also because inheriting from an STL
-    // type would be batshit insane.)
+    // You're not allowed to use, in any way, the intrinsic ordering of the
+    // grouped_t.  If you're processing its data into a parallel map, you're ok,
+    // since the parallel map provides its own ordering (that you specify).  This
+    // way, we know it's OK for the map ordering to use any reql_version (instead of
+    // taking that as a parameter, which would be completely impracticable).
     typename std::map<counted_t<const datum_t>, T, counted_datum_less_t>::iterator
-    begin() { return m.begin(); }
+    begin(grouped::order_doesnt_matter_t) { return m.begin(); }
     typename std::map<counted_t<const datum_t>, T, counted_datum_less_t>::iterator
-    end() { return m.end(); }
+    end(grouped::order_doesnt_matter_t) { return m.end(); }
 
     std::pair<typename std::map<counted_t<const datum_t>, T, counted_datum_less_t>::iterator, bool>
     insert(std::pair<counted_t<const datum_t>, T> &&val) {
@@ -219,7 +227,10 @@ public:
     T &operator[](const counted_t<const datum_t> &k) { return m[k]; }
 
     void swap(grouped_t<T> &other) { m.swap(other.m); } // NOLINT
-    std::map<counted_t<const datum_t>, T, counted_datum_less_t> *get_underlying_map() { return &m; }
+    std::map<counted_t<const datum_t>, T, counted_datum_less_t> *
+    get_underlying_map(grouped::order_doesnt_matter_t) {
+        return &m;
+    }
 private:
     std::map<counted_t<const datum_t>, T, counted_datum_less_t> m;
 };

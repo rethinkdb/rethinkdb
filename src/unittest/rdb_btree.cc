@@ -245,7 +245,9 @@ void _check_keys_are_present(store_t *store,
         auto groups = boost::get<ql::grouped_t<ql::stream_t> >(&res.result);
         ASSERT_TRUE(groups != NULL);
         ASSERT_EQ(1, groups->size());
-        auto stream = &groups->begin()->second;
+        // The order of `groups` doesn't matter because this is a small unit test.
+        ql::stream_t *stream
+            = &groups->begin(ql::grouped::order_doesnt_matter_t())->second;
         ASSERT_TRUE(stream != NULL);
         ASSERT_EQ(1ul, stream->size());
 

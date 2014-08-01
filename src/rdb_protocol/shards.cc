@@ -91,7 +91,11 @@ private:
             guarantee(*res);
             grouped_t<T> *gres = boost::get<grouped_t<T> >(*res);
             guarantee(gres);
-            for (auto kv = gres->begin(); kv != gres->end(); ++kv) {
+            // `gres`'s ordering doesn't affect things here because we're putting the
+            // values into a parallel map.
+            for (auto kv = gres->begin(grouped::order_doesnt_matter_t());
+                 kv != gres->end(grouped::order_doesnt_matter_t());
+                 ++kv) {
                 vecs[kv->first].push_back(&kv->second);
             }
         }
@@ -216,9 +220,12 @@ private:
     }
 
     virtual void add_res(env_t *env, result_t *res) {
-        auto streams = boost::get<grouped_t<stream_t> >(res);
+        grouped_t<stream_t> *streams = boost::get<grouped_t<stream_t> >(res);
         r_sanity_check(streams);
-        for (auto kv = streams->begin(); kv != streams->end(); ++kv) {
+        // RSI: The order in which we iterate `streams` actually does matter here.
+        for (auto kv = streams->begin(grouped::order_doesnt_matter_t());
+             kv != streams->end(grouped::order_doesnt_matter_t());
+             ++kv) {
             datums_t *lst = &groups[kv->first];
             stream_t *stream = &kv->second;
             size += stream->size();
@@ -293,7 +300,11 @@ private:
         counted_t<val_t> retval;
         if (is_grouped) {
             counted_t<grouped_data_t> ret(new grouped_data_t());
-            for (auto kv = acc->begin(); kv != acc->end(); ++kv) {
+            // The order of `acc` doesn't matter here because we're putting stuff
+            // into the parallel map, `ret`.
+            for (auto kv = acc->begin(grouped::order_doesnt_matter_t());
+                 kv != acc->end(grouped::order_doesnt_matter_t());
+                 ++kv) {
                 ret->insert(std::make_pair(kv->first, unpack(&kv->second)));
             }
             retval = make_counted<val_t>(std::move(ret), bt);
@@ -301,8 +312,10 @@ private:
             T t(*default_val);
             retval = make_counted<val_t>(unpack(&t), bt);
         } else {
-            r_sanity_check(acc->size() == 1 && !acc->begin()->first.has());
-            retval = make_counted<val_t>(unpack(&acc->begin()->second), bt);
+            // Order doesnt' matter here because the size is 1.
+            r_sanity_check(acc->size() == 1 &&
+                           !acc->begin(grouped::order_doesnt_matter_t())->first.has());
+            retval = make_counted<val_t>(unpack(&acc->begin(grouped::order_doesnt_matter_t())->second), bt);
         }
         acc->clear();
         return retval;
@@ -320,7 +333,11 @@ private:
         if (acc->size() == 0) {
             acc->swap(*gres);
         } else {
-            for (auto kv = gres->begin(); kv != gres->end(); ++kv) {
+            // RSI: Order in fact does matter here.  unshard_impl might not be
+            // commutative and associative, even though it's supposed to be.
+            // (Floating point math, user-defined functions, etc.)
+            for (auto kv = gres->begin(grouped::order_doesnt_matter_t());
+                 kv != gres->end(grouped::order_doesnt_matter_t()); ++kv) {
                 auto t_it = acc->insert(std::make_pair(kv->first, *default_val)).first;
                 unshard_impl(env, &t_it->second, &kv->second);
             }

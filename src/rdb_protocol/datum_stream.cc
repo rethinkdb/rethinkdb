@@ -107,7 +107,9 @@ std::vector<rget_item_t> reader_t::do_range_read(
     grouped_t<stream_t> *gs = boost::get<grouped_t<stream_t> >(&res.result);
 
     *sindex_reql_version_out = res.sindex_reql_version;
-    return groups_to_batch(gs->get_underlying_map());
+    // groups_to_batch asserts that underlying_map has 0 or 1 elements, so it is
+    // correct to declare that the order doesn't matter.
+    return groups_to_batch(gs->get_underlying_map(grouped::order_doesnt_matter_t()));
 }
 
 bool reader_t::load_items(env_t *env, const batchspec_t &batchspec) {

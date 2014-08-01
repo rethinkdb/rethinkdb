@@ -130,9 +130,12 @@ counted_t<const datum_t> to_datum(grouped_data_t &&gd,
     map[datum_t::reql_type_string] = make_counted<const datum_t>("GROUPED_DATA");
 
     {
+        // RSI: Order is actually mattering here!?
         datum_array_builder_t arr(limits);
         arr.reserve(gd.size());
-        for (auto kv = gd.begin(); kv != gd.end(); ++kv) {
+        for (auto kv = gd.begin(grouped::order_doesnt_matter_t());
+             kv != gd.end(grouped::order_doesnt_matter_t());
+             ++kv) {
             arr.add(make_counted<const datum_t>(
                             std::vector<counted_t<const datum_t> >{
                                 std::move(kv->first), std::move(kv->second) },

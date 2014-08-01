@@ -299,7 +299,8 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
                 &rget_resp->result);
             ASSERT_TRUE(streams != NULL);
             ASSERT_EQ(1, streams->size());
-            auto stream = &streams->begin()->second;
+            // Order doesn't matter because streams->size() is 1.
+            auto stream = &streams->begin(ql::grouped::order_doesnt_matter_t())->second;
             ASSERT_TRUE(stream != NULL);
             ASSERT_EQ(1u, stream->size());
             ASSERT_EQ(*ql::to_datum(data->get(), limits), *stream->at(0).data);
@@ -537,7 +538,8 @@ void run_sindex_oversized_keys_test(namespace_interface_t *nsi, order_source_t *
                         &rget_resp->result);
                     ASSERT_TRUE(streams != NULL);
                     ASSERT_EQ(1, streams->size());
-                    auto stream = &streams->begin()->second;
+                    // Order doesn't matter because streams->size() is 1.
+                    auto stream = &streams->begin(ql::grouped::order_doesnt_matter_t())->second;
                     ASSERT_TRUE(stream != NULL);
                     // There should be results equal to the number of iterations
                     // performed
