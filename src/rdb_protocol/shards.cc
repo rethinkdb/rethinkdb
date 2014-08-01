@@ -85,7 +85,8 @@ private:
                          const store_key_t &last_key,
                          const std::vector<result_t *> &results) {
         guarantee(acc.size() == 0);
-        std::map<counted_t<const datum_t>, std::vector<T *>, counted_datum_less_t> vecs;
+        std::map<counted_t<const datum_t>, std::vector<T *>, counted_datum_less_t>
+            vecs(counted_datum_less_t(env->reql_version));
         for (auto res = results.begin(); res != results.end(); ++res) {
             guarantee(*res);
             grouped_t<T> *gres = boost::get<grouped_t<T> >(*res);
@@ -195,7 +196,7 @@ scoped_ptr_t<accumulator_t> make_append(const sorting_t &sorting, batcher_t *bat
 // (Also, I'm sorry for this absurd type hierarchy.)
 class to_array_t : public eager_acc_t {
 public:
-    to_array_t() : size(0) { }
+    to_array_t() : groups(counted_datum_less_t(reql_version_t::RSI)), size(0) { }
 private:
     virtual void operator()(env_t *env, groups_t *gs) {
         for (auto kv = gs->begin(); kv != gs->end(); ++kv) {

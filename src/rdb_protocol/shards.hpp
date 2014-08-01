@@ -164,6 +164,7 @@ archive_result_t deserialize_grouped(read_stream_t *s, datums_t *ds) {
 template<class T>
 class grouped_t {
 public:
+    grouped_t() : m(counted_datum_less_t(reql_version_t::RSI)) { }
     virtual ~grouped_t() { } // See grouped_data_t below.
     template <cluster_version_t W>
     void rdb_serialize(write_message_t *wm) const {
