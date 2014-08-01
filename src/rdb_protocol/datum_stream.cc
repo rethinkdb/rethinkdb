@@ -77,7 +77,9 @@ rget_read_response_t reader_t::do_read(env_t *env, const read_t &read) {
     return std::move(*rget_res);
 }
 
-std::vector<rget_item_t> reader_t::do_range_read(env_t *env, const read_t &read) {
+std::vector<rget_item_t> reader_t::do_range_read(
+        env_t *env, const read_t &read,
+        boost::optional<reql_version_t> *sindex_reql_version_out) {
     rget_read_response_t res = do_read(env, read);
 
     // It's called `do_range_read`.  If we have more than one type of range
@@ -103,6 +105,8 @@ std::vector<rget_item_t> reader_t::do_range_read(env_t *env, const read_t &read)
 
     shards_exhausted = readgen->update_range(&active_range, res.last_key);
     grouped_t<stream_t> *gs = boost::get<grouped_t<stream_t> >(&res.result);
+
+    *sindex_reql_version_out = res.sindex_reql_version;
     return groups_to_batch(gs->get_underlying_map());
 }
 
@@ -110,13 +114,19 @@ bool reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
     started = true;
     if (items_index >= items.size() && !shards_exhausted) { // read some more
         items_index = 0;
+        boost::optional<reql_version_t> sindex_reql_version;
         items = do_range_read(
-            env, readgen->next_read(active_range, transforms, batchspec));
+                env, readgen->next_read(active_range, transforms, batchspec),
+                &sindex_reql_version);
         // Everything below this point can handle `items` being empty (this is
         // good hygiene anyway).
         while (boost::optional<read_t> read = readgen->sindex_sort_read(
+                   sindex_reql_version,
                    active_range, items, transforms, batchspec)) {
-            std::vector<rget_item_t> new_items = do_range_read(env, *read);
+            // We overwrite the sindex_reql_version each time.  It's a new query with
+            // a new result!
+            std::vector<rget_item_t> new_items = do_range_read(env, *read,
+                                                               &sindex_reql_version);
             if (new_items.size() == 0) {
                 break;
             }
@@ -316,6 +326,7 @@ rget_read_t primary_readgen_t::next_read_impl(
 
 // We never need to do an sindex sort when indexing by a primary key.
 boost::optional<read_t> primary_readgen_t::sindex_sort_read(
+    UNUSED boost::optional<reql_version_t> sindex_reql_version,
     UNUSED const key_range_t &active_range,
     UNUSED const std::vector<rget_item_t> &items,
     UNUSED const std::vector<transform_variant_t> &transforms,
@@ -398,14 +409,17 @@ rget_read_t sindex_readgen_t::next_read_impl(
 }
 
 boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
+    const boost::optional<reql_version_t> sindex_reql_version,
     const key_range_t &active_range,
     const std::vector<rget_item_t> &items,
     const std::vector<transform_variant_t> &transforms,
     const batchspec_t &batchspec) const {
+    r_sanity_check(sindex_reql_version);
+
     if (sorting != sorting_t::UNORDERED && items.size() > 0) {
         const store_key_t &key = items[items.size() - 1].key;
-        if (datum_t::key_is_truncated(reql_version_t::RSI, key)) {
-            std::string skey = datum_t::extract_secondary(reql_version_t::RSI,
+        if (datum_t::key_is_truncated(*sindex_reql_version, key)) {
+            std::string skey = datum_t::extract_secondary(*sindex_reql_version,
                                                           key_to_unescaped_str(key));
             key_range_t rng = active_range;
             if (!reversed(sorting)) {
