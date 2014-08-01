@@ -38,7 +38,7 @@ tests:
       py: r.table('asg').get(0).update({'x':r.error("a")}, return_changes=True).pluck('changes', 'first_error')
       js: r.table('asg').get(0).update({'x':r.error("a")}, {'return_changes':true}).pluck('changes', 'first_error')
       ot: ({'first_error':'a','changes':[{'old_val':{'id':0,'x':1},'new_val':{'id':0,'x':1}}]})
-    - cd: r.table('asg').update({'x':3}, :return_changes => true).pluck('changes', 'first_error')
+    - rb: r.table('asg').update({'x':3}, :return_changes => true).pluck('changes', 'first_error').do {|d| d.merge({:changes => d['changes'].order_by {|a| a['old_val']['id']}})}
       py: r.table('asg').update({'x':3}, return_changes=True).pluck('changes', 'first_error').do(lambda d:d.merge({'changes':d['changes'].order_by(lambda a:a['old_val']['id'])}))
       js: r.table('asg').update({'x':3}, {'return_changes':true}).pluck('changes', 'first_error').do(function(p){return p.merge({'changes':p('changes').order_by(function(a){return a('old_val')('id')})})})
       ot: ({'changes':[{'old_val':{'id':0, 'x':1},'new_val':{'id':0, 'x':3}}, {'old_val':{'id':1},'new_val':{'id':1, 'x':3}}]})
