@@ -75,7 +75,7 @@ bool datum_range_t::contains(counted_t<const ql::datum_t> val) const {
             || *left_bound < *val
             || (*left_bound == *val && left_bound_type == key_range_t::closed))
         && (!right_bound.has()
-            || *right_bound > *val
+            || right_bound->compare_gt(reql_version_t::RSI, *val)
             || (*right_bound == *val && right_bound_type == key_range_t::closed));
 }
 

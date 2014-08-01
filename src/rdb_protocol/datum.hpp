@@ -225,7 +225,7 @@ public:
     bool operator!=(const datum_t &rhs) const;
     // RSI: These _will_ take a reql_version_t (and be renamed).
     bool operator<(const datum_t &rhs) const;
-    bool operator>(const datum_t &rhs) const;
+    bool compare_gt(reql_version_t reql_version, const datum_t &rhs) const;
 
     void runtime_fail(base_exc_t::type_t exc_type,
                       const char *test, const char *file, int line,

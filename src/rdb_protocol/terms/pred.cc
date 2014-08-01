@@ -15,16 +15,16 @@ bool datum_ne(reql_version_t, const datum_t &lhs, const datum_t &rhs) {
     return lhs != rhs;
 }
 
-bool datum_lt(reql_version_t, const datum_t &lhs, const datum_t &rhs) {
-    return lhs < rhs;
+bool datum_lt(reql_version_t v, const datum_t &lhs, const datum_t &rhs) {
+    return lhs.cmp(v, rhs) < 0;
 }
 
 bool datum_le(reql_version_t v, const datum_t &lhs, const datum_t &rhs) {
     return lhs.cmp(v, rhs) <= 0;
 }
 
-bool datum_gt(reql_version_t, const datum_t &lhs, const datum_t &rhs) {
-    return lhs > rhs;
+bool datum_gt(reql_version_t v, const datum_t &lhs, const datum_t &rhs) {
+    return lhs.cmp(v, rhs) > 0;
 }
 
 bool datum_ge(reql_version_t v, const datum_t &lhs, const datum_t &rhs) {

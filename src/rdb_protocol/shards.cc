@@ -495,7 +495,7 @@ bool datum_lt(const counted_t<const datum_t> &val1,
 bool datum_gt(const counted_t<const datum_t> &val1,
               const counted_t<const datum_t> &val2) {
     r_sanity_check(val1.has() && val2.has());
-    return *val1 > *val2;
+    return val1->compare_gt(reql_version_t::RSI, *val2);
 }
 
 class optimizing_terminal_t : public skip_terminal_t<optimizer_t> {

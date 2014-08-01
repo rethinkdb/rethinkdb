@@ -269,7 +269,7 @@ private:
         }
 
         if (lb.has() && rb.has()) {
-            if (*lb > *rb || ((left_open || right_open) && *lb == *rb)) {
+            if (lb->compare_gt(reql_version_t::RSI, *rb) || ((left_open || right_open) && *lb == *rb)) {
                 counted_t<datum_stream_t> ds
                     =  make_counted<array_datum_stream_t>(datum_t::empty_array(),
                                                           backtrace());
