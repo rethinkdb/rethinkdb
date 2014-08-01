@@ -463,12 +463,14 @@ optimizer_t::optimizer_t(const counted_t<const datum_t> &_row,
     : row(_row), val(_val) { }
 void optimizer_t::swap_if_other_better(
     optimizer_t &other, // NOLINT
-    bool (*beats)(const counted_t<const datum_t> &val1,
+    reql_version_t reql_version,
+    bool (*beats)(reql_version_t reql_version,
+                  const counted_t<const datum_t> &val1,
                   const counted_t<const datum_t> &val2)) {
     r_sanity_check(val.has() == row.has());
     r_sanity_check(other.val.has() == other.row.has());
     if (other.val.has()) {
-        if (!val.has() || beats(other.val, val)) {
+        if (!val.has() || beats(reql_version, other.val, val)) {
             row.swap(other.row);
             val.swap(other.val);
         }
@@ -486,42 +488,47 @@ counted_t<const datum_t> optimizer_t::unpack(const char *name) {
     return row;
 }
 
-bool datum_lt(const counted_t<const datum_t> &val1,
+bool datum_lt(reql_version_t reql_version,
+              const counted_t<const datum_t> &val1,
               const counted_t<const datum_t> &val2) {
     r_sanity_check(val1.has() && val2.has());
-    return val1->compare_lt(reql_version_t::RSI, *val2);
+    return val1->compare_lt(reql_version, *val2);
 }
 
-bool datum_gt(const counted_t<const datum_t> &val1,
+bool datum_gt(reql_version_t reql_version,
+              const counted_t<const datum_t> &val1,
               const counted_t<const datum_t> &val2) {
     r_sanity_check(val1.has() && val2.has());
-    return val1->compare_gt(reql_version_t::RSI, *val2);
+    return val1->compare_gt(reql_version, *val2);
 }
 
 class optimizing_terminal_t : public skip_terminal_t<optimizer_t> {
 public:
     optimizing_terminal_t(const skip_wire_func_t &f,
                           const char *_name,
-                          bool (*_cmp)(const counted_t<const datum_t> &val1,
+                          bool (*_cmp)(reql_version_t,
+                                       const counted_t<const datum_t> &val1,
                                        const counted_t<const datum_t> &val2))
         : skip_terminal_t<optimizer_t>(f, optimizer_t()),
-          name(_name), cmp(_cmp) { }
+          name(_name),
+          cmp(_cmp) { }
 private:
     virtual void maybe_acc(env_t *env,
                            const counted_t<const datum_t> &el,
                            optimizer_t *out,
                            const acc_func_t &f) {
         optimizer_t other(el, f(env, el));
-        out->swap_if_other_better(other, cmp);
+        out->swap_if_other_better(other, env->reql_version, cmp);
     }
     virtual counted_t<const datum_t> unpack(optimizer_t *el) {
         return el->unpack(name);
     }
-    virtual void unshard_impl(env_t *, optimizer_t *out, optimizer_t *el) {
-        out->swap_if_other_better(*el, cmp);
+    virtual void unshard_impl(env_t *env, optimizer_t *out, optimizer_t *el) {
+        out->swap_if_other_better(*el, env->reql_version, cmp);
     }
     const char *name;
-    bool (*cmp)(const counted_t<const datum_t> &val1,
+    bool (*cmp)(reql_version_t,
+                const counted_t<const datum_t> &val1,
                 const counted_t<const datum_t> &val2);
 };
 

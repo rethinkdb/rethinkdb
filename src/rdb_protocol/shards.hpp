@@ -57,7 +57,9 @@ public:
                 const counted_t<const datum_t> &_val);
 
     void swap_if_other_better(optimizer_t &other, // NOLINT
-                              bool (*beats)(const counted_t<const datum_t> &val1,
+                              reql_version_t reql_version,
+                              bool (*beats)(reql_version_t,
+                                            const counted_t<const datum_t> &val1,
                                             const counted_t<const datum_t> &val2));
     counted_t<const datum_t> unpack(const char *name);
     counted_t<const datum_t> row, val;
