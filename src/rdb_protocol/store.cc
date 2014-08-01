@@ -89,7 +89,7 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const changefeed_subscribe_t &s) {
         guarantee(store->changefeed_server.has());
-        store->changefeed_server->add_client(s.addr);
+        store->changefeed_server->add_client(s.addr, s.region);
         response->response = changefeed_subscribe_response_t();
         auto res = boost::get<changefeed_subscribe_response_t>(&response->response);
         guarantee(res != NULL);

@@ -1099,7 +1099,8 @@ void rdb_modification_report_cb_t::on_mod_report(
                 ql::changefeed::msg_t(
                     ql::changefeed::msg_t::change_t(
                         mod_report.info.deleted.first,
-                        mod_report.info.added.first)));
+                        mod_report.info.added.first)),
+                &mod_report.primary_key);
         }
 
         sindexes_updated_cond.wait_lazily_unordered();
