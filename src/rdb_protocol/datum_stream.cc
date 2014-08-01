@@ -377,8 +377,8 @@ public:
     bool operator()(const rget_item_t &l, const rget_item_t &r) {
         r_sanity_check(l.sindex_key.has() && r.sindex_key.has());
         return reversed(sorting)
-            ? (l.sindex_key->compare_gt(reql_version_t::RSI, *r.sindex_key))
-            : (*l.sindex_key < *r.sindex_key);
+            ? l.sindex_key->compare_gt(reql_version_t::RSI, *r.sindex_key)
+            : l.sindex_key->compare_lt(reql_version_t::RSI, *r.sindex_key);
     }
 private:
     sorting_t sorting;

@@ -28,7 +28,7 @@ public:
     counted_datum_less_t() { }
     bool operator()(const counted_t<const ql::datum_t> &a,
                     const counted_t<const ql::datum_t> &b) const {
-        return *a < *b;
+        return a->compare_lt(reql_version_t::RSI, *b);
     }
 };
 

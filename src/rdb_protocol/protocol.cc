@@ -72,7 +72,7 @@ bool datum_range_t::is_universe() const {
 
 bool datum_range_t::contains(counted_t<const ql::datum_t> val) const {
     return (!left_bound.has()
-            || *left_bound < *val
+            || left_bound->compare_lt(reql_version_t::RSI, *val)
             || (*left_bound == *val && left_bound_type == key_range_t::closed))
         && (!right_bound.has()
             || right_bound->compare_gt(reql_version_t::RSI, *val)

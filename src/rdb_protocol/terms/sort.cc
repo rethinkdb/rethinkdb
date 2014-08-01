@@ -98,7 +98,8 @@ private:
                 if (*lval == *rval) {
                     continue;
                 }
-                return (*lval < *rval) != (it->first == DESC);
+                return lval->compare_lt(reql_version_t::RSI, *rval) !=
+                    (it->first == DESC);
             }
 
             return false;

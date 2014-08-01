@@ -489,7 +489,7 @@ counted_t<const datum_t> optimizer_t::unpack(const char *name) {
 bool datum_lt(const counted_t<const datum_t> &val1,
               const counted_t<const datum_t> &val2) {
     r_sanity_check(val1.has() && val2.has());
-    return *val1 < *val2;
+    return val1->compare_lt(reql_version_t::RSI, *val2);
 }
 
 bool datum_gt(const counted_t<const datum_t> &val1,

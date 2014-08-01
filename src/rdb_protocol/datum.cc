@@ -1144,8 +1144,8 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
 
 bool datum_t::operator==(const datum_t &rhs) const { return modern_cmp(rhs) == 0; }
 bool datum_t::operator!=(const datum_t &rhs) const { return modern_cmp(rhs) != 0; }
-bool datum_t::operator<(const datum_t &rhs) const {
-    return cmp(reql_version_t::RSI, rhs) < 0;
+bool datum_t::compare_lt(reql_version_t reql_version, const datum_t &rhs) const {
+    return cmp(reql_version, rhs) < 0;
 }
 bool datum_t::compare_gt(reql_version_t reql_version, const datum_t &rhs) const {
     return cmp(reql_version, rhs) > 0;
