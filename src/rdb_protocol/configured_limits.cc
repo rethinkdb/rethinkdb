@@ -5,7 +5,7 @@
 
 namespace ql {
 configured_limits_t
-from_optargs(rdb_context_t *ctx, signal_t *interruptor, global_optargs_t &arguments)
+from_optargs(rdb_context_t *ctx, signal_t *interruptor, global_optargs_t arguments)
 {
     if (arguments.has_optarg("array_limit")) {
         // Fake an environment with no arguments.  We have to fake it
