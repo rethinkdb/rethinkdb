@@ -40,7 +40,7 @@ RDB_IMPL_EQUALITY_COMPARABLE_1(machines_semilattice_metadata_t, machines);
 RDB_IMPL_ME_SERIALIZABLE_2_SINCE_v1_13(ack_expectation_t, expectation_, hard_durability_);
 
 RDB_IMPL_SERIALIZABLE_3(table_shard_config_t,
-                        region, replica_names, director_names);
+                        split_point, replica_names, director_names);
 template archive_result_t serialize<cluster_version_t::v1_14_is_latest>(
             write_stream_t *, const table_config_t &);
 template archive_result_t deserialize<cluster_version_t::v1_14_is_latest>(
@@ -118,7 +118,6 @@ cJSON *render_as_json(ack_expectation_t *target) {
 void apply_json_to(cJSON *change, ack_expectation_t *target) {
     apply_as_directory(change, target);
 }
-
 
 //json adapter concept for machine_semilattice_metadata_t
 json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(machine_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {

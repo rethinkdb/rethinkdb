@@ -9,6 +9,7 @@
 
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/machine_id_to_peer_id.hpp"
+#include "clustering/administration/servers/name_client.hpp"
 #include "clustering/immediate_consistency/branch/backfill_throttler.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/reactor/blueprint.hpp"

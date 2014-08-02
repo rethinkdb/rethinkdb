@@ -27,7 +27,7 @@ counted_t<const ql::datum_t> artificial_table_t::read_row(ql::env_t *env,
 #endif /* NDEBUG */
         return row;
     } else {
-        return make_counted<ql::datum_t>(ql::datum_t::R_NULL);
+        return ql::datum_t::null();
     }
 }
 
@@ -36,7 +36,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
         UNUSED const std::string &get_all_sindex_id,
         UNUSED const ql::protob_t<const Backtrace> &bt,
         UNUSED const std::string &table_name,
-        UNUSED const datum_range_t &range,
+        UNUSED const ql::datum_range_t &range,
         UNUSED sorting_t sorting,
         UNUSED bool use_outdated) {
     rfail_datum(ql::base_exc_t::GENERIC,
@@ -63,7 +63,7 @@ counted_t<const ql::datum_t> artificial_table_t::write_batched_replace(
             rfail_datum(ql::base_exc_t::GENERIC, "%s", error.c_str());
         }
         if (!old_row.has()) {
-            old_row = make_counted<ql::datum_t>(ql::datum_t::R_NULL);
+            old_row = ql::datum_t::null();
         } else {
 #ifndef NDEBUG
             counted_t<const ql::datum_t> key2 =

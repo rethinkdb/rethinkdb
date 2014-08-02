@@ -32,7 +32,7 @@ public:
     /* All known servers, indexed by machine ID. */
     clone_ptr_t<watchable_t<std::map<machine_id_t, peer_id_t> > >
     get_machine_id_to_peer_id_map() {
-        return machine_id_to_peer_id_map.get_watchable()
+        return machine_id_to_peer_id_map.get_watchable();
     }
 
     /* `rename_server` changes the name of the peer named `old_name` to `new_name`. On

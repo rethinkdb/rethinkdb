@@ -59,41 +59,47 @@ RDB_SERIALIZE_OUTSIDE(ack_expectation_t);
 
 void debug_print(printf_buffer_t *buf, const ack_expectation_t &x);
 
-class table_shard_config_t {
-    region_t region;
-    std::set<name_string_t> replica_names;
-    std::set<name_string_t> director_names;
-};
-
-RDB_DDECLARE_SERIALIZABLE(table_shard_config_t);
-
-class namespace_semilattice_metadata_t {
-public:
-    namespace_semilattice_metadata_t() { }
-
-    name_string_t name;
-    std::string primary_key;
-    database_id_t database;
-
-    std::vector<table_shard_config_t> shards;
-
-    /* This contains the machine ID of the currently chosen director for the shard at the
-    corresponding position in the `shards` vector. */
-    std::vector<machine_id_t> chosen_directors;
-};
-
-RDB_DECLARE_SERIALIZABLE(namespace_semilattice_metadata_t);
-
 // ctx-less json adapter concept for ack_expectation_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *target);
 cJSON *render_as_json(ack_expectation_t *target);
 void apply_json_to(cJSON *change, ack_expectation_t *target);
 
+class table_shard_config_t {
+    boost::optional<store_key_t> split_point;
+    std::set<name_string_t> replica_names;
+    std::vector<name_string_t> director_names;
+};
+
+RDB_DECLARE_SERIALIZABLE(table_shard_config_t);
+
+class table_config_t {
+    std::vector<table_shard_config_t> shards;
+};
+
+RDB_DECLARE_SERIALIZABLE(table_config_t);
+
+class namespace_semilattice_metadata_t {
+public:
+    namespace_semilattice_metadata_t() { }
+
+    vclock_t<name_string_t> name;
+    vclock_t<database_id_t> database;
+    vclock_t<std::string> primary_key;   // TODO: This should never actually change
+
+    vclock_t<table_config_t> config;
+
+    /* This contains the machine ID of the currently chosen director for the shard at the
+    corresponding position in the `config.shards` vector. */
+    vclock_t< std::vector<machine_id_t> > chosen_directors;
+};
+
+RDB_DECLARE_SERIALIZABLE(namespace_semilattice_metadata_t);
+
 /* This is the metadata for all of the tables. */
 class namespaces_semilattice_metadata_t {
 public:
     typedef std::map<namespace_id_t,
-        deletable_t<vclock_t<namespace_semilattice_metadata_t> > > namespace_map_t;
+        deletable_t<namespace_semilattice_metadata_t> > namespace_map_t;
     namespace_map_t namespaces;
 };
 
@@ -101,14 +107,6 @@ RDB_DECLARE_SERIALIZABLE(namespaces_semilattice_metadata_t);
 RDB_DECLARE_SEMILATTICE_JOINABLE(namespaces_semilattice_metadata_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(namespaces_semilattice_metadata_t);
 
-// json adapter concept for namespaces_semilattice_metadata_t
-json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(namespaces_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-
-cJSON *with_ctx_render_as_json(namespaces_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-
-void with_ctx_apply_json_to(cJSON *change, namespaces_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-
-void with_ctx_on_subfield_change(namespaces_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
 
 class namespaces_directory_metadata_t {
 public:

@@ -8,6 +8,7 @@
 #include "arch/os_signal.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "clustering/administration/admin_tracker.hpp"
+#include "clustering/administration/artificial_reql_cluster_interface.hpp"
 #include "clustering/administration/http/server.hpp"
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/logger.hpp"
@@ -263,10 +264,13 @@ bool do_serve(io_backender_t *io_backender,
                     semilattice_manager_cluster.get_root_view()))
         artificial_table_backends[name_string_t::guarantee_valid("table_config")] =
             &table_config_backend;
-        artificial_table_supplier_t artificial_reql_clsuter
+        artificial_reql_cluster_interface_t artificial_reql_cluster_interface(
+            name_string_t::guarantee_valid("rethinkdb"),
+            artificial_table_backends,
+            &real_reql_cluster_interface);
 
         //This is an annoying chicken and egg problem here
-        rdb_ctx.cluster_interface = &reql_cluster_interface;
+        rdb_ctx.cluster_interface = &artificial_reql_cluster_interface;
 
         {
             scoped_ptr_t<cache_balancer_t> cache_balancer;

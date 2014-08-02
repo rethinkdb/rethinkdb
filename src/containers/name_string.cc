@@ -44,7 +44,7 @@ bool name_string_t::assign_value(const wire_string_t &s) {
     return true;
 }
 
-static name_string_t guarantee_valid(const char *name) {
+name_string_t name_string_t::guarantee_valid(const char *name) {
     name_string_t string;
     bool ok = string.assign_value(name);
     guarantee(ok, "The name `%s` is not valid.", name);
