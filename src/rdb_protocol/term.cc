@@ -81,6 +81,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::MAX:                return make_max_term(env, t);
     case Term::UNION:              return make_union_term(env, t);
     case Term::NTH:                return make_nth_term(env, t);
+    case Term::BRACKET:            return make_bracket_term(env, t);
     case Term::LIMIT:              return make_limit_term(env, t);
     case Term::SKIP:               return make_skip_term(env, t);
     case Term::INNER_JOIN:         return make_inner_join_term(env, t);
