@@ -166,14 +166,12 @@ public:
     ~server_t();
     void add_client(const client_t::addr_t &addr, region_t region);
     // `key` should be non-NULL if there is a key associated with the message.
-    void send_all(msg_t msg, const store_key_t *key);
+    void send_all(msg_t msg, const store_key_t &key);
     void stop_all();
     addr_t get_stop_addr();
     uint64_t get_stamp(const client_t::addr_t &addr);
     uuid_u get_uuid();
 private:
-    void send_all_with_lock(const auto_drainer_t::lock_t &lock,
-                            msg_t msg, const store_key_t *key);
     void stop_mailbox_cb(client_t::addr_t addr);
     void add_client_cb(signal_t *stopped, client_t::addr_t addr);
 
@@ -189,6 +187,11 @@ private:
         std::vector<region_t> regions;
     };
     std::map<client_t::addr_t, client_info_t> clients;
+
+    void send_one_with_lock(const auto_drainer_t::lock_t &lock,
+                            std::map<client_t::addr_t, client_info_t>::iterator client,
+                            msg_t msg);
+
     // Controls access to `clients`.  A `server_t` needs to read `clients` when:
     // * `send_all` is called
     // * `get_stamp` is called
