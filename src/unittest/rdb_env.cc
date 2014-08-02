@@ -210,6 +210,10 @@ void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const sind
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
+void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const sindex_rename_t &) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const sync_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }

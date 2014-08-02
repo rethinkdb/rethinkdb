@@ -219,6 +219,8 @@ counted_t<term_t> make_sindex_status_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_sindex_wait_term(
     compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_sindex_rename_term(
+    compile_env_t *env, const protob_t<const Term> &term);
 
 // sort.cc
 counted_t<term_t> make_orderby_term(
