@@ -1,5 +1,10 @@
 desc: 1179 -- BRACKET term
 tests:
-  - py: r.expr([1])[r.expr(0)]
+  - js: r.expr([1])(r.expr(0))
+    py: r.expr([1])[r.expr(0)]
     rb: r.expr([1])[r.expr(0)]
+    ot: 1
+  - js: r.expr({"foo":1})('foo')
+    ot: 1
+  - js: r.expr([1])(0)
     ot: 1
