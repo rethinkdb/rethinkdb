@@ -530,7 +530,7 @@ std::string val_t::print() const {
     } else if (get_type().is_convertible(type_t::TABLE)) {
         return strprintf("table(\"%s\")", table->name.c_str());
     } else if (get_type().is_convertible(type_t::SELECTION)) {
-        return strprintf("OPAQUE SELECTION ON table(%s)",
+        return strprintf("SELECTION ON table(%s)",
                          table->name.c_str());
     } else {
         // TODO: Do something smarter here?
