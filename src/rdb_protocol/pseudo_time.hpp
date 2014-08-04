@@ -1,8 +1,10 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_PSEUDO_TIME_HPP_
 #define RDB_PROTOCOL_PSEUDO_TIME_HPP_
 
 #include <string>
+
+#include "version.hpp"
 
 template <class> class counted_t;
 
@@ -23,7 +25,7 @@ counted_t<const datum_t> time_tz(counted_t<const datum_t> time);
 counted_t<const datum_t> time_in_tz(counted_t<const datum_t> t,
                                     counted_t<const datum_t> tz);
 
-int time_cmp(const datum_t &x, const datum_t &y);
+int time_cmp(reql_version_t reql_version, const datum_t &x, const datum_t &y);
 void sanitize_time(datum_t *time);
 counted_t<const datum_t> make_time(double epoch_time, std::string tz);
 counted_t<const datum_t> make_time(

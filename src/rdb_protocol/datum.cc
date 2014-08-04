@@ -409,12 +409,12 @@ void datum_t::binary_to_str_key(std::string *str_out) const {
     }
 }
 
-int datum_t::pseudo_cmp(const datum_t &rhs) const {
+int datum_t::pseudo_cmp(reql_version_t reql_version, const datum_t &rhs) const {
     r_sanity_check(is_ptype());
     if (get_type() == R_BINARY) {
         return as_binary().compare(rhs.as_binary());
     } else if (get_reql_type() == pseudo::time_string) {
-        return pseudo::time_cmp(*this, rhs);
+        return pseudo::time_cmp(reql_version, *this, rhs);
     }
 
     rfail(base_exc_t::GENERIC, "Incomparable type %s.", get_type_name().c_str());
@@ -1045,7 +1045,7 @@ int datum_t::v1_13_cmp(const datum_t &rhs) const {
             if (get_reql_type() != rhs.get_reql_type()) {
                 return derived_cmp(get_reql_type(), rhs.get_reql_type());
             }
-            return pseudo_cmp(rhs);
+            return pseudo_cmp(reql_version_t::v1_13, rhs);
         } else {
             const std::map<std::string, counted_t<const datum_t> > &obj = as_object();
             const std::map<std::string, counted_t<const datum_t> > &rhs_obj
@@ -1092,7 +1092,7 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
         if (get_reql_type() != rhs.get_reql_type()) {
             return derived_cmp(get_reql_type(), rhs.get_reql_type());
         }
-        return pseudo_cmp(rhs);
+        return pseudo_cmp(reql_version_t::v1_14_is_latest, rhs);
     } else if (lhs_ptype || rhs_ptype) {
         return derived_cmp(get_type_name(), rhs.get_type_name());
     }
