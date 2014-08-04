@@ -9,9 +9,9 @@ void test_mangle(const std::string &pkey, const std::string &skey, boost::option
         tag_string = std::string(reinterpret_cast<const char *>(&*tag), sizeof(uint64_t));
     }
     std::string mangled = ql::datum_t::mangle_secondary(skey, pkey, tag_string);
-    ASSERT_EQ(pkey, ql::datum_t::extract_primary(reql_version_t::LATEST, mangled));
-    ASSERT_EQ(skey, ql::datum_t::extract_secondary(reql_version_t::LATEST, mangled));
-    ASSERT_EQ(tag, ql::datum_t::extract_tag(reql_version_t::LATEST, mangled));
+    ASSERT_EQ(pkey, ql::datum_t::extract_primary(mangled));
+    ASSERT_EQ(skey, ql::datum_t::extract_secondary(mangled));
+    ASSERT_EQ(tag, ql::datum_t::extract_tag(mangled));
 }
 
 TEST(PrintSecondary, Mangle) {

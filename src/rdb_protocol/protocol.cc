@@ -626,7 +626,6 @@ void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
     key_le_t key_le(rg.sorting);
     for (size_t i = 0; i < count; ++i) {
         auto resp = boost::get<rget_read_response_t>(&responses[i].response);
-        out->sindex_reql_version = resp->sindex_reql_version;
         guarantee(resp);
         if (resp->truncated) {
             out->truncated = true;
@@ -1044,9 +1043,7 @@ RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
         rdb_protocol::single_sindex_status_t, blocks_total, blocks_processed, ready);
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_read_response_t, data);
-RDB_IMPL_SERIALIZABLE_5(
-        rget_read_response_t,
-        sindex_reql_version, key_range, result, truncated, last_key);
+RDB_IMPL_SERIALIZABLE_4(rget_read_response_t, key_range, result, truncated, last_key);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(rget_read_response_t);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(
         distribution_read_response_t, region, key_counts);

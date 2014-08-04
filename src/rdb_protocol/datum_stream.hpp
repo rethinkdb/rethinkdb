@@ -270,7 +270,6 @@ public:
     // read should only be necessary when we're ordering by a secondary index
     // and the last element read has a truncated value for that secondary index.
     virtual boost::optional<read_t> sindex_sort_read(
-        boost::optional<reql_version_t> sindex_reql_version,
         const key_range_t &active_range,
         const std::vector<rget_item_t> &items,
         const std::vector<transform_variant_t> &transform,
@@ -314,7 +313,6 @@ private:
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
     virtual boost::optional<read_t> sindex_sort_read(
-        boost::optional<reql_version_t> sindex_reql_version,
         const key_range_t &active_range,
         const std::vector<rget_item_t> &items,
         const std::vector<transform_variant_t> &transform,
@@ -345,7 +343,6 @@ private:
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
     virtual boost::optional<read_t> sindex_sort_read(
-        boost::optional<reql_version_t> sindex_reql_version,
         const key_range_t &active_range,
         const std::vector<rget_item_t> &items,
         const std::vector<transform_variant_t> &transform,
@@ -374,8 +371,7 @@ private:
     bool load_items(env_t *env, const batchspec_t &batchspec);
     rget_read_response_t do_read(env_t *env, const read_t &read);
     std::vector<rget_item_t> do_range_read(
-            env_t *env, const read_t &read,
-            boost::optional<reql_version_t> *sindex_reql_version_out);
+            env_t *env, const read_t &read);
 
     real_table_t table;
     const bool use_outdated;

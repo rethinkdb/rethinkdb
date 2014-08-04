@@ -192,12 +192,6 @@ struct point_read_response_t {
 RDB_DECLARE_SERIALIZABLE(point_read_response_t);
 
 struct rget_read_response_t {
-    // If rget_read_t::sindex was non-empty, this tells us what reql version the
-    // sindex has.  At the time of writing this is used for parsing the store_key_t's in
-    // sindex_readgen_t::sindex_sort_read.
-    // RSI: Get rid of this -- remove the parameter from datum_t::extract_ functions, etc.
-    boost::optional<reql_version_t> sindex_reql_version;
-
     key_range_t key_range;
     ql::result_t result;
     bool truncated;

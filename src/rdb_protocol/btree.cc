@@ -629,32 +629,28 @@ void rdb_value_detacher_t::delete_value(buf_parent_t parent, const void *value) 
 
 class sindex_key_range_tester_t : public key_tester_t {
 public:
-    sindex_key_range_tester_t(reql_version_t reql_version,
-                              const key_range_t &key_range)
-        : reql_version_(reql_version), key_range_(key_range) { }
+    explicit sindex_key_range_tester_t(const key_range_t &key_range)
+        : key_range_(key_range) { }
 
     bool key_should_be_erased(const btree_key_t *key) {
         std::string pk = ql::datum_t::extract_primary(
-            reql_version_,
             key_to_unescaped_str(store_key_t(key)));
 
         return key_range_.contains_key(store_key_t(pk));
     }
 private:
-    reql_version_t reql_version_;
     key_range_t key_range_;
     DISABLE_COPYING(sindex_key_range_tester_t);
 };
 
 void sindex_erase_range(
-        reql_version_t sindex_reql_version, const key_range_t &key_range,
-        superblock_t *superblock, auto_drainer_t::lock_t,
+        const key_range_t &key_range, superblock_t *superblock, auto_drainer_t::lock_t,
         signal_t *interruptor, release_superblock_t release_superblock,
         const value_deleter_t *deleter) THROWS_NOTHING {
 
     rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
 
-    sindex_key_range_tester_t tester(sindex_reql_version, key_range);
+    sindex_key_range_tester_t tester(key_range);
 
     try {
         btree_erase_range_generic(&sizer, &tester,
@@ -676,19 +672,8 @@ void spawn_sindex_erase_ranges(
         signal_t *interruptor,
         const value_deleter_t *deleter) {
     for (auto it = sindex_access->begin(); it != sindex_access->end(); ++it) {
-        sindex_reql_version_info_t version_info;
-        {
-            ql::map_wire_func_t mapping;
-            sindex_multi_bool_t multi;
-            deserialize_sindex_info((*it)->sindex.opaque_definition,
-                                    &mapping,
-                                    &version_info,
-                                    &multi);
-        }
-
         coro_t::spawn_sometime(std::bind(
                     &sindex_erase_range,
-                    version_info.latest_compatible_reql_version,
                     key_range, (*it)->super_block.get(),
                     auto_drainer_t::lock_t(drainer), interruptor,
                     release_superblock, deleter));
@@ -897,9 +882,7 @@ THROWS_ONLY(interrupted_exc_t) {
 
     // Load the key and value.
     store_key_t key(keyvalue.key());
-    if (sindex && !sindex->pkey_range.contains_key(ql::datum_t::extract_primary(
-                                                           sindex->func_reql_version,
-                                                           key))) {
+    if (sindex && !sindex->pkey_range.contains_key(ql::datum_t::extract_primary(key))) {
         return done_traversing_t::NO;
     }
 
@@ -935,8 +918,7 @@ THROWS_ONLY(interrupted_exc_t) {
             sindex_val = sindex->func->call(&sindex_env, val)->as_datum();
             if (sindex->multi == sindex_multi_bool_t::MULTI
                 && sindex_val->get_type() == ql::datum_t::R_ARRAY) {
-                boost::optional<uint64_t> tag
-                    = *ql::datum_t::extract_tag(sindex->func_reql_version, key);
+                boost::optional<uint64_t> tag = *ql::datum_t::extract_tag(key);
                 guarantee(tag);
                 sindex_val = sindex_val->get(*tag, ql::NOTHROW);
                 guarantee(sindex_val);
