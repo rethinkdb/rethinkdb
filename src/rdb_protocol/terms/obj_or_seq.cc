@@ -127,8 +127,9 @@ private:
         for (size_t i = 1; i < n; ++i) {
             paths.push_back(args->arg(env, i)->as_datum());
         }
-        pathspec_t pathspec(make_counted<const datum_t>(std::move(paths)), this);
-        return new_val(project(obj, pathspec, DONT_RECURSE));
+        pathspec_t pathspec(make_counted<const datum_t>(std::move(paths),
+                                                        env->env->limits), this);
+        return new_val(project(obj, pathspec, DONT_RECURSE, env->env->limits));
     }
     virtual const char *name() const { return "pluck"; }
 };
@@ -148,8 +149,9 @@ private:
         for (size_t i = 1; i < n; ++i) {
             paths.push_back(args->arg(env, i)->as_datum());
         }
-        pathspec_t pathspec(make_counted<const datum_t>(std::move(paths)), this);
-        return new_val(unproject(obj, pathspec, DONT_RECURSE));
+        pathspec_t pathspec(make_counted<const datum_t>(std::move(paths),
+                                                        env->env->limits), this);
+        return new_val(unproject(obj, pathspec, DONT_RECURSE, env->env->limits));
     }
     virtual const char *name() const { return "without"; }
 };
@@ -163,7 +165,7 @@ private:
         rcheck(flags & LITERAL_OK, base_exc_t::GENERIC,
                "Stray literal keyword found, literal can only be present inside merge "
                "and cannot nest inside other literals.");
-        datum_ptr_t res(datum_t::R_OBJECT);
+        datum_object_builder_t res;
         bool clobber = res.add(datum_t::reql_type_string,
                                make_counted<const datum_t>(pseudo::literal_string));
         if (args->num_args() == 1) {
@@ -173,7 +175,7 @@ private:
         r_sanity_check(!clobber);
         std::set<std::string> permissible_ptypes;
         permissible_ptypes.insert(pseudo::literal_string);
-        return new_val(res.to_counted(permissible_ptypes));
+        return new_val(std::move(res).to_counted(permissible_ptypes));
     }
     virtual const char *name() const { return "literal"; }
     virtual bool can_be_grouped() const { return false; }
@@ -218,7 +220,8 @@ private:
         for (size_t i = 1; i < n; ++i) {
             paths.push_back(args->arg(env, i)->as_datum());
         }
-        pathspec_t pathspec(make_counted<const datum_t>(std::move(paths)), this);
+        pathspec_t pathspec(make_counted<const datum_t>(std::move(paths),
+                                                        env->env->limits), this);
         return new_val_bool(contains(obj, pathspec));
     }
     virtual const char *name() const { return "has_fields"; }

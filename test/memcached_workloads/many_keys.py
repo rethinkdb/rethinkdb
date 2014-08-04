@@ -39,7 +39,7 @@ with rdb_workload_common.make_table_and_connection(opts) as (table, conn):
         i = 0
         for key in keys:
             if i % 16 == 0:
-                response = table.get_all(*[str(k) for k in keys[i:i+16]]).run(conn)
+                response = table.get_all(*[str(k) for k in keys[i:i + 16]]).run(conn)
                 values = dict((row['id'], row['val']) for row in response)
             value = values[str(key)]
             if value != key:

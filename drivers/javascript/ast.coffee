@@ -62,13 +62,13 @@ class TermBase
         # connection, options, callback
         # connection, null, callback
         # connection, null # return a Promise
-        # 
+        #
         # Depreciated syntaxes are
         # optionsWithConnection, callback
-        
+
         if net.isConnection(connection) is true
             # Handle run(connection, callback)
-            if typeof options is "function" 
+            if typeof options is "function"
                 if callback is undefined
                     callback = options
                     options = {}
@@ -89,8 +89,8 @@ class TermBase
 
         # Check if the arguments are valid types
         for own key of options
-            unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'batchConf']
-                throw new err.RqlDriverError "Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, profile: <bool>, durability: <string>}."
+            unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'binaryFormat', 'batchConf', 'arrayLimit']
+                throw new err.RqlDriverError "Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>}."
         if net.isConnection(connection) is false
             throw new err.RqlDriverError "First argument to `run` must be an open connection."
 
@@ -214,7 +214,7 @@ class RDBVal extends TermBase
 
     info: (args...) -> new Info {}, @, args...
     sample: (args...) -> new Sample {}, @, args...
-    
+
     group: (fieldsAndOpts...) ->
         # Default if no opts dict provided
         opts = {}
@@ -346,6 +346,7 @@ translateBackOptargs = (optargs) ->
         key = switch key
             when 'primary_key' then 'primaryKey'
             when 'return_vals' then 'returnVals'
+            when 'return_changes' then 'returnChanges'
             when 'use_outdated' then 'useOutdated'
             when 'non_atomic' then 'nonAtomic'
             when 'left_bound' then 'leftBound'
@@ -365,6 +366,7 @@ translateOptargs = (optargs) ->
         key = switch key
             when 'primaryKey' then 'primary_key'
             when 'returnVals' then 'return_vals'
+            when 'returnChanges' then 'return_changes'
             when 'useOutdated' then 'use_outdated'
             when 'nonAtomic' then 'non_atomic'
             when 'leftBound' then 'left_bound'
@@ -479,6 +481,27 @@ class Http extends RDBOp
 class Json extends RDBOp
     tt: protoTermType.JSON
     st: 'json'
+
+class Binary extends RDBVal
+    args: []
+    optargs: {}
+
+    constructor: (data) ->
+        self = super()
+
+        if data instanceof Buffer
+            self.data = data
+            self.base64_data = data.toString("base64")
+        else
+            throw new TypeError("Parameter to `r.binary` must be a Buffer object.")
+
+        return self
+
+    compose: ->
+        return "r.binary('" + @data.toString() + "')"
+
+    build: ->
+        { '$reql_type$': 'BINARY', 'data': @base64_data }
 
 class Args extends RDBOp
     tt: protoTermType.ARGS
@@ -1025,6 +1048,8 @@ rethinkdb.expr = varar 1, 2, (val, nestingDepth=20) ->
         new Func {}, val
     else if val instanceof Date
         new ISO8601 {}, val.toISOString()
+    else if val instanceof Buffer
+        new Binary val
     else if Array.isArray val
         val = (rethinkdb.expr(v, nestingDepth - 1) for v in val)
         new MakeArray {}, val...
@@ -1056,6 +1081,8 @@ rethinkdb.random = (limitsAndOpts...) ->
             limits = limitsAndOpts[0...(limitsAndOpts.length - 1)]
 
         new Random opts, limits...
+
+rethinkdb.binary = ar (data) -> new Binary data
 
 rethinkdb.row = new ImplicitVar {}
 

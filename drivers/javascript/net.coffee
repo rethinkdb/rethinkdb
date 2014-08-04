@@ -66,7 +66,7 @@ class Connection extends events.EventEmitter
         # Buffer data, execute return results if need be
         @buffer = Buffer.concat([@buffer, buf])
 
-        while @buffer.length >= 12 
+        while @buffer.length >= 12
             token = @buffer.readUInt32LE(0) + 0x100000000 * @buffer.readUInt32LE(4)
 
             responseLength = @buffer.readUInt32LE(8)
@@ -297,7 +297,10 @@ class Connection extends events.EventEmitter
             query.global_optargs['durability'] = r.expr(opts.durability).build()
 
         if opts.batchConf?
-            query.global_optargs['batchConf'] = r.expr(opts.batchConf).build()
+            query.global_optargs['batch_conf'] = r.expr(opts.batchConf).build()
+
+        if opts.arrayLimit?
+            query.global_optargs['array_limit'] = r.expr(opts.arrayLimit).build()
 
         # Save callback
         if (not opts.noreply?) or !opts.noreply

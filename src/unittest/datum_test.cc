@@ -2,6 +2,7 @@
 
 #include "containers/archive/string_stream.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/env.hpp"
 #include "unittest/gtest.hpp"
 
 
@@ -58,10 +59,11 @@ TEST(DatumTest, NumericSerialization) {
         test_datum_serialization(negative);
     }
 
+    ql::configured_limits_t limits;
     // Make sure things don't get messed up with numbers serialized as part of a
     // larger entity (for example, if serialization wrote extra bytes that the test
     // above didn't detect).
-    test_datum_serialization(make_counted<ql::datum_t>(std::move(vec)));
+    test_datum_serialization(make_counted<ql::datum_t>(std::move(vec), limits));
 }
 
 

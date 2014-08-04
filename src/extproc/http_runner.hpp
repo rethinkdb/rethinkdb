@@ -102,6 +102,9 @@ struct http_opts_t {
     std::string data;
     std::map<std::string, std::string> form_data;
 
+    // Limits on execution size
+    ql::configured_limits_t limits;
+
     uint64_t timeout_ms;
     uint64_t attempts;
     uint32_t max_redirects;
@@ -116,7 +119,7 @@ RDB_SERIALIZE_OUTSIDE(http_opts_t);
 RDB_DECLARE_SERIALIZABLE(http_opts_t::http_auth_t);
 
 
-// A handle to a running "javascript evaluator" job.
+// A handle to a running "HTTP fetcher" job.
 class http_runner_t : public home_thread_mixin_t {
 public:
     explicit http_runner_t(extproc_pool_t *_pool);

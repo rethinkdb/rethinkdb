@@ -4,8 +4,9 @@
 #include <stdio.h>
 
 #include "arch/arch.hpp"
-#include "arch/os_signal.hpp"
 #include "arch/io/network.hpp"
+#include "arch/os_signal.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 #include "clustering/administration/admin_tracker.hpp"
 #include "clustering/administration/auto_reconnect.hpp"
 #include "clustering/administration/http/server.hpp"
@@ -15,26 +16,22 @@
 #include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
-#include "containers/incremental_lenses.hpp"
 #include "clustering/administration/metadata.hpp"
-#include "clustering/administration/namespace_interface_repository.hpp"
 #include "clustering/administration/network_logger.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/administration/persist.hpp"
 #include "clustering/administration/proc_stats.hpp"
 #include "clustering/administration/reactor_driver.hpp"
+#include "clustering/administration/reql_cluster_interface.hpp"
 #include "clustering/administration/sys_stats.hpp"
+#include "containers/incremental_lenses.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "rdb_protocol/query_server.hpp"
-#include "rdb_protocol/protocol.hpp"
 #include "rpc/connectivity/cluster.hpp"
-#include "rpc/connectivity/multiplexer.hpp"
-#include "rpc/connectivity/heartbeat.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "rpc/semilattice/view/field.hpp"
-#include "buffer_cache/alt/cache_balancer.hpp"
 
 peer_address_set_t look_up_peers_addresses(const std::vector<host_and_port_t> &names) {
     peer_address_set_t peers;
@@ -105,23 +102,14 @@ bool do_serve(io_backender_t *io_backender,
 #endif
 
         connectivity_cluster_t connectivity_cluster;
-        message_multiplexer_t message_multiplexer(&connectivity_cluster);
 
-        message_multiplexer_t::client_t heartbeat_manager_client(&message_multiplexer, 'H', SEMAPHORE_NO_LIMIT);
-        heartbeat_manager_t heartbeat_manager(&heartbeat_manager_client);
-        message_multiplexer_t::client_t::run_t heartbeat_manager_client_run(&heartbeat_manager_client, &heartbeat_manager);
+        mailbox_manager_t mailbox_manager(&connectivity_cluster, 'M');
 
-        message_multiplexer_t::client_t mailbox_manager_client(&message_multiplexer, 'M');
-        mailbox_manager_t mailbox_manager(&mailbox_manager_client);
-        message_multiplexer_t::client_t::run_t mailbox_manager_client_run(&mailbox_manager_client, &mailbox_manager);
+        semilattice_manager_t<cluster_semilattice_metadata_t>
+            semilattice_manager_cluster(&connectivity_cluster, 'S', cluster_metadata);
 
-        message_multiplexer_t::client_t semilattice_manager_client(&message_multiplexer, 'S');
-        semilattice_manager_t<cluster_semilattice_metadata_t> semilattice_manager_cluster(&semilattice_manager_client, cluster_metadata);
-        message_multiplexer_t::client_t::run_t semilattice_manager_client_run(&semilattice_manager_client, &semilattice_manager_cluster);
-
-        message_multiplexer_t::client_t auth_manager_client(&message_multiplexer, 'A');
-        semilattice_manager_t<auth_semilattice_metadata_t> auth_manager_cluster(&auth_manager_client, auth_metadata);
-        message_multiplexer_t::client_t::run_t auth_manager_client_run(&auth_manager_client, &auth_manager_cluster);
+        semilattice_manager_t<auth_semilattice_metadata_t>
+            auth_manager_cluster(&connectivity_cluster, 'A', auth_metadata);
 
         log_server_t log_server(&mailbox_manager, &log_writer);
 
@@ -146,17 +134,16 @@ bool do_serve(io_backender_t *io_backender,
 
         watchable_variable_t<cluster_directory_metadata_t> our_root_directory_variable(*initial_directory);
 
-        message_multiplexer_t::client_t directory_manager_client(&message_multiplexer, 'D');
-        directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(&directory_manager_client, our_root_directory_variable.get_watchable());
-        directory_read_manager_t<cluster_directory_metadata_t> directory_read_manager(connectivity_cluster.get_connectivity_service());
-        message_multiplexer_t::client_t::run_t directory_manager_client_run(&directory_manager_client, &directory_read_manager);
+        directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(
+            &connectivity_cluster, 'D', our_root_directory_variable.get_watchable());
+        directory_read_manager_t<cluster_directory_metadata_t> directory_read_manager(
+            &connectivity_cluster, 'D');
 
         network_logger_t network_logger(
             connectivity_cluster.get_me(),
             directory_read_manager.get_root_view(),
             metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()));
 
-        message_multiplexer_t::run_t message_multiplexer_run(&message_multiplexer);
         scoped_ptr_t<connectivity_cluster_t::run_t> connectivity_cluster_run;
 
         try {
@@ -165,9 +152,7 @@ bool do_serve(io_backender_t *io_backender,
                 serve_info.ports.local_addresses,
                 serve_info.ports.canonical_addresses,
                 serve_info.ports.port,
-                &message_multiplexer_run,
-                serve_info.ports.client_port,
-                &heartbeat_manager));
+                serve_info.ports.client_port));
 
             // Update the directory with the ip addresses that we are passing to peers
             std::set<ip_and_port_t> ips = connectivity_cluster_run->get_ips();
@@ -185,7 +170,8 @@ bool do_serve(io_backender_t *io_backender,
         if (serve_info.ports.port != 0) {
             guarantee(serve_info.ports.port == connectivity_cluster_run->get_port());
         }
-        logINF("Listening for intracluster connections on port %d\n", connectivity_cluster_run->get_port());
+        logINF("Listening for intracluster connections on port %d\n",
+            connectivity_cluster_run->get_port());
 
         auto_reconnector_t auto_reconnector(
             &connectivity_cluster,
@@ -235,26 +221,24 @@ bool do_serve(io_backender_t *io_backender,
 
         perfmon_collection_repo_t perfmon_repo(&get_global_perfmon_collection());
 
-        // Namespace repo
+        // ReQL evaluation context and supporting structures
         rdb_context_t rdb_ctx(&extproc_pool,
                               &mailbox_manager,
                               NULL,
-                              semilattice_manager_cluster.get_root_view(),
                               auth_manager_cluster.get_root_view(),
-                              &directory_read_manager,
-                              machine_id,
                               &get_global_perfmon_collection(),
                               serve_info.reql_http_proxy);
 
-        namespace_repo_t rdb_namespace_repo(&mailbox_manager,
-            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
-                           semilattice_manager_cluster.get_root_view()),
-            directory_read_manager.get_root_view()->incremental_subview(
-                incremental_field_getter_t<namespaces_directory_metadata_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
-            &rdb_ctx);
+        real_reql_cluster_interface_t reql_cluster_interface(
+                &mailbox_manager,
+                machine_id,
+                semilattice_manager_cluster.get_root_view(),
+                directory_read_manager.get_root_view(),
+                &rdb_ctx
+                );
 
         //This is an annoying chicken and egg problem here
-        rdb_ctx.ns_repo = &rdb_namespace_repo;
+        rdb_ctx.cluster_interface = &reql_cluster_interface;
 
         {
             scoped_ptr_t<cache_balancer_t> cache_balancer;
@@ -337,7 +321,7 @@ bool do_serve(io_backender_t *io_backender,
                                 &auth_change_handler,
                                 semilattice_manager_cluster.get_root_view(),
                                 directory_read_manager.get_root_view(),
-                                &rdb_namespace_repo,
+                                &reql_cluster_interface,
                                 &admin_tracker,
                                 rdb_query_server.get_http_app(),
                                 machine_id,

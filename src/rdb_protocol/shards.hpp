@@ -12,6 +12,7 @@
 #include "containers/archive/stl_types.hpp"
 #include "containers/archive/varint.hpp"
 #include "rdb_protocol/batching.hpp"
+#include "rdb_protocol/configured_limits.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/profile.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
@@ -292,7 +293,8 @@ public:
     virtual void operator()(env_t *env, groups_t *groups) = 0;
     virtual void add_res(env_t *env, result_t *res) = 0;
     virtual counted_t<val_t> finish_eager(
-        protob_t<const Backtrace> bt, bool is_grouped) = 0;
+        protob_t<const Backtrace> bt, bool is_grouped,
+        const ql::configured_limits_t &limits) = 0;
 };
 
 scoped_ptr_t<accumulator_t> make_append(const sorting_t &sorting, batcher_t *batcher);

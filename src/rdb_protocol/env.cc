@@ -4,8 +4,6 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "clustering/administration/database_metadata.hpp"
-#include "clustering/administration/metadata.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "extproc/js_runner.hpp"
 #include "rdb_protocol/counted_term.hpp"
@@ -13,22 +11,18 @@
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/term_walker.hpp"
 
+#include "debug.hpp"
+
 namespace ql {
 
-/* Checks that divisor is indeed a divisor of multiple. */
-template <class T>
-bool is_joined(const T &multiple, const T &divisor) {
-    T cpy = multiple;
-
-    semilattice_join(&cpy, divisor);
-    return cpy == multiple;
-}
-
 counted_t<const datum_t> static_optarg(const std::string &key, protob_t<Query> q) {
+    // need to parse these to figure out what user wants; resulting
+    // bootstrap problem is a headache.  Just use default.
+    const configured_limits_t limits;
     for (int i = 0; i < q->global_optargs_size(); ++i) {
         const Query::AssocPair &ap = q->global_optargs(i);
         if (ap.key() == key && ap.val().type() == Term_TermType_DATUM) {
-            return make_counted<const datum_t>(&ap.val().datum());
+            return to_datum(&ap.val().datum(), limits);
         }
     }
 
@@ -82,19 +76,16 @@ global_optargs_t::global_optargs_t() { }
 global_optargs_t::global_optargs_t(std::map<std::string, wire_func_t> _optargs)
     : optargs(_optargs) { }
 
-void global_optargs_t::init_optargs(
-    const std::map<std::string, wire_func_t> &_optargs) {
-    r_sanity_check(optargs.size() == 0);
-    optargs = _optargs;
+bool global_optargs_t::has_optarg(const std::string &key) const {
+    return optargs.count(key) > 0;
 }
-
 counted_t<val_t> global_optargs_t::get_optarg(env_t *env, const std::string &key){
-    if (!optargs.count(key)) {
+    if (!has_optarg(key)) {
         return counted_t<val_t>();
     }
     return optargs[key].compile_wire_func()->call(env);
 }
-const std::map<std::string, wire_func_t> &global_optargs_t::get_all_optargs() {
+const std::map<std::string, wire_func_t> &global_optargs_t::get_all_optargs() const {
     return optargs;
 }
 
@@ -109,69 +100,12 @@ void env_t::do_eval_callback() {
 }
 
 profile_bool_t env_t::profile() const {
-    return trace.has() ? profile_bool_t::PROFILE : profile_bool_t::DONT_PROFILE;
+    return trace != nullptr ? profile_bool_t::PROFILE : profile_bool_t::DONT_PROFILE;
 }
 
-void env_t::join_and_wait_to_propagate(
-        const cluster_semilattice_metadata_t &metadata_to_join)
-    THROWS_ONLY(interrupted_exc_t) {
-    r_sanity_check(rdb_ctx->cluster_metadata);
-    rdb_ctx->cluster_metadata->assert_thread();
-    rdb_ctx->cluster_metadata->join(metadata_to_join);
-    cluster_semilattice_metadata_t sl_metadata
-        = rdb_ctx->cluster_metadata->get();
-
-    {
-        on_thread_t switcher(home_thread());
-        clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
-            ns_watchable = rdb_ctx->get_namespaces_watchable();
-
-        ns_watchable->run_until_satisfied(
-                boost::bind(&is_joined<cow_ptr_t<namespaces_semilattice_metadata_t > >,
-                      _1,
-                      sl_metadata.rdb_namespaces),
-                interruptor);
-
-        clone_ptr_t< watchable_t<databases_semilattice_metadata_t> >
-            db_watchable = rdb_ctx->get_databases_watchable();
-        db_watchable->run_until_satisfied(
-                boost::bind(&is_joined<databases_semilattice_metadata_t>,
-                            _1,
-                            sl_metadata.databases),
-                interruptor);
-    }
-}
-
-base_namespace_repo_t *env_t::ns_repo() {
+reql_cluster_interface_t *env_t::reql_cluster_interface() {
     r_sanity_check(rdb_ctx != NULL);
-    return rdb_ctx->ns_repo;
-}
-
-const boost::shared_ptr< semilattice_readwrite_view_t<
-                             cluster_semilattice_metadata_t> > &
-env_t::cluster_metadata() {
-    r_sanity_check(rdb_ctx != NULL);
-    r_sanity_check(rdb_ctx->cluster_metadata);
-    return rdb_ctx->cluster_metadata;
-}
-
-directory_read_manager_t<cluster_directory_metadata_t> *
-env_t::directory_read_manager() {
-    r_sanity_check(rdb_ctx != NULL);
-    r_sanity_check(rdb_ctx->directory_read_manager != NULL);
-    return rdb_ctx->directory_read_manager;
-}
-
-uuid_u env_t::this_machine() {
-    r_sanity_check(rdb_ctx != NULL);
-    r_sanity_check(!rdb_ctx->machine_id.is_unset());
-    return rdb_ctx->machine_id;
-}
-
-changefeed::client_t *env_t::get_changefeed_client() {
-    r_sanity_check(rdb_ctx != NULL);
-    r_sanity_check(rdb_ctx->changefeed_client.has());
-    return rdb_ctx->changefeed_client.get();
+    return rdb_ctx->cluster_interface;
 }
 
 std::string env_t::get_reql_http_proxy() {
@@ -190,30 +124,26 @@ js_runner_t *env_t::get_js_runner() {
     assert_thread();
     extproc_pool_t *extproc_pool = get_extproc_pool();
     if (!js_runner.connected()) {
-        js_runner.begin(extproc_pool, interruptor);
+        js_runner.begin(extproc_pool, interruptor, limits);
     }
     return &js_runner;
 }
 
-cow_ptr_t<namespaces_semilattice_metadata_t>
-env_t::get_namespaces_metadata() {
-    return rdb_ctx->get_namespaces_metadata();
+scoped_ptr_t<profile::trace_t> maybe_make_profile_trace(profile_bool_t profile) {
+    return profile == profile_bool_t::PROFILE
+        ? make_scoped<profile::trace_t>()
+        : scoped_ptr_t<profile::trace_t>();
 }
-
-void env_t::get_databases_metadata(databases_semilattice_metadata_t *out) {
-    rdb_ctx->get_databases_metadata(out);
-}
-
 
 env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
              std::map<std::string, wire_func_t> optargs,
-             profile_bool_t profile)
+             profile::trace_t *_trace)
     : evals_since_yield(0),
       global_optargs(std::move(optargs)),
+      limits(from_optargs(ctx, _interruptor, global_optargs)),
+      reql_version(cluster_version_t::LATEST_DISK),
       interruptor(_interruptor),
-      trace(profile == profile_bool_t::PROFILE
-            ? make_scoped<profile::trace_t>()
-            : scoped_ptr_t<profile::trace_t>()),
+      trace(_trace),
       rdb_ctx(ctx),
       eval_callback(NULL) {
     rassert(ctx != NULL);
@@ -222,11 +152,12 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
 
 
 // Used in constructing the env for rdb_update_single_sindex and many unit tests.
-env_t::env_t(signal_t *_interruptor)
+env_t::env_t(signal_t *_interruptor, cluster_version_t _reql_version)
     : evals_since_yield(0),
       global_optargs(),
+      reql_version(_reql_version),
       interruptor(_interruptor),
-      trace(),
+      trace(NULL),
       rdb_ctx(NULL),
       eval_callback(NULL) {
     rassert(interruptor != NULL);

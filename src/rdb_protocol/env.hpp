@@ -11,8 +11,9 @@
 #include "concurrency/one_per_thread.hpp"
 #include "containers/counted.hpp"
 #include "extproc/js_runner.hpp"
+#include "rdb_protocol/configured_limits.hpp"
+#include "rdb_protocol/context.hpp"
 #include "rdb_protocol/error.hpp"
-#include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/val.hpp"
 
@@ -33,27 +34,31 @@ public:
     global_optargs_t();
     explicit global_optargs_t(std::map<std::string, wire_func_t> optargs);
 
-    void init_optargs(const std::map<std::string, wire_func_t> &_optargs);
+    bool has_optarg(const std::string &key) const;
     // returns NULL if no entry
     counted_t<val_t> get_optarg(env_t *env, const std::string &key);
-    const std::map<std::string, wire_func_t> &get_all_optargs();
+    const std::map<std::string, wire_func_t> &get_all_optargs() const;
 private:
     std::map<std::string, wire_func_t> optargs;
 };
 
-namespace changefeed {
-class client_t;
-} // namespace changefeed
-
 profile_bool_t profile_bool_optarg(const protob_t<Query> &query);
+
+scoped_ptr_t<profile::trace_t> maybe_make_profile_trace(profile_bool_t profile);
 
 class env_t : public home_thread_mixin_t {
 public:
-    env_t(rdb_context_t *ctx, signal_t *interruptor,
+    // This is _not_ to be used for secondary index function evaluation -- it doesn't
+    // take a reql_version parameter.
+    env_t(rdb_context_t *ctx,
+          signal_t *interruptor,
           std::map<std::string, wire_func_t> optargs,
-          profile_bool_t is_profile_requested);
+          profile::trace_t *trace);
 
-    explicit env_t(signal_t *interruptor);
+    // Used in unittest and for some secondary index environments (hence the
+    // reql_version parameter).  (For secondary indexes, the interruptor definitely
+    // should be a dummy cond.)
+    explicit env_t(signal_t *interruptor, cluster_version_t reql_version);
 
     ~env_t();
 
@@ -69,24 +74,7 @@ public:
     // already been called.
     js_runner_t *get_js_runner();
 
-    cow_ptr_t<namespaces_semilattice_metadata_t > get_namespaces_metadata();
-    void get_databases_metadata(databases_semilattice_metadata_t *out);
-
-    // Semilattice modification functions
-    void join_and_wait_to_propagate(
-            const cluster_semilattice_metadata_t &metadata_to_join)
-        THROWS_ONLY(interrupted_exc_t);
-
-    base_namespace_repo_t *ns_repo();
-
-    const boost::shared_ptr< semilattice_readwrite_view_t<
-                                 cluster_semilattice_metadata_t> > &cluster_metadata();
-
-    directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager();
-
-    uuid_u this_machine();
-
-    changefeed::client_t *get_changefeed_client();
+    reql_cluster_interface_t *reql_cluster_interface();
 
     std::string get_reql_http_proxy();
 
@@ -105,11 +93,19 @@ public:
     // drivers.
     global_optargs_t global_optargs;
 
+    // User specified configuration limits; e.g. array size limits
+    const configured_limits_t limits;
+
+    // The version of ReQL behavior that we should use.  Normally this is
+    // LATEST_DISK, but when evaluating secondary index functions, it could be an
+    // earlier value.
+    const cluster_version_t reql_version;
+
     // The interruptor signal while a query evaluates.
     signal_t *const interruptor;
 
     // This is non-empty when profiling is enabled.
-    const scoped_ptr_t<profile::trace_t> trace;
+    profile::trace_t *const trace;
 
     profile_bool_t profile() const;
 

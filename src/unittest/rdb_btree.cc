@@ -10,6 +10,7 @@
 #include "containers/archive/vector_stream.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/env.hpp"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -26,6 +27,8 @@
 namespace unittest {
 
 void insert_rows(int start, int finish, store_t *store) {
+    ql::configured_limits_t limits;
+
     guarantee(start <= finish);
     for (int i = start; i < finish; ++i) {
         cond_t dummy_interruptor;
@@ -46,7 +49,7 @@ void insert_rows(int start, int finish, store_t *store) {
         rdb_modification_report_t mod_report(pk);
         rdb_live_deletion_context_t deletion_context;
         rdb_set(pk,
-                make_counted<ql::datum_t>(scoped_cJSON_t(cJSON_Parse(data.c_str()))),
+                ql::to_datum(scoped_cJSON_t(cJSON_Parse(data.c_str())).get(), limits),
                 false, store->btree.get(), repli_timestamp_t::invalid,
                 superblock.get(), &deletion_context, &response, &mod_report.info,
                 static_cast<profile::trace_t *>(NULL));
@@ -96,7 +99,10 @@ sindex_name_t create_sindex(store_t *store) {
     sindex_multi_bool_t multi_bool = sindex_multi_bool_t::SINGLE;
 
     write_message_t wm;
-    serialize_sindex_info(&wm, m, multi_bool);
+    serialize_sindex_info(&wm,
+                          m,
+                          sindex_reql_version_info_t::LATEST_DISK(),
+                          multi_bool);
 
     vector_stream_t stream;
     stream.reserve(wm.size());
@@ -190,6 +196,7 @@ void spawn_writes_and_bring_sindexes_up_to_date(store_t *store,
 void _check_keys_are_present(store_t *store,
         sindex_name_t sindex_name) {
     cond_t dummy_interruptor;
+    ql::configured_limits_t limits;
     for (int i = 0; i < TOTAL_KEYS_TO_INSERT; ++i) {
         read_token_pair_t token_pair;
         store->new_read_token_pair(&token_pair);
@@ -204,20 +211,23 @@ void _check_keys_are_present(store_t *store,
         scoped_ptr_t<real_superblock_t> sindex_sb;
         uuid_u sindex_uuid;
 
-        bool sindex_exists = store->acquire_sindex_superblock_for_read(
-                sindex_name,
-                "",
-                super_block.get(),
-                &sindex_sb,
-                static_cast<std::vector<char>*>(NULL),
-                &sindex_uuid);
-        ASSERT_TRUE(sindex_exists);
+        {
+            std::vector<char> opaque_definition;
+            bool sindex_exists = store->acquire_sindex_superblock_for_read(
+                    sindex_name,
+                    "",
+                    super_block.get(),
+                    &sindex_sb,
+                    &opaque_definition,
+                    &sindex_uuid);
+            ASSERT_TRUE(sindex_exists);
+        }
 
         rget_read_response_t res;
         double ii = i * i;
-        /* The only thing this does is have a NULL scoped_ptr_t<trace_t> in it
-         * which prevents to profiling code from crashing. */
-        ql::env_t dummy_env(&dummy_interruptor);
+        /* The only thing this does is have a NULL `profile::trace_t *` in it which
+         * prevents to profiling code from crashing. */
+        ql::env_t dummy_env(&dummy_interruptor, cluster_version_t::LATEST_DISK);
         rdb_rget_slice(
             store->get_sindex_slice(sindex_uuid),
             rdb_protocol::sindex_key_range(
@@ -241,7 +251,7 @@ void _check_keys_are_present(store_t *store,
 
         std::string expected_data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
         scoped_cJSON_t expected_value(cJSON_Parse(expected_data.c_str()));
-        ASSERT_EQ(ql::datum_t(expected_value.get()), *stream->front().data);
+        ASSERT_EQ(*ql::to_datum(expected_value.get(), limits), *stream->front().data);
     }
 }
 
@@ -276,20 +286,23 @@ void _check_keys_are_NOT_present(store_t *store,
         scoped_ptr_t<real_superblock_t> sindex_sb;
         uuid_u sindex_uuid;
 
-        bool sindex_exists = store->acquire_sindex_superblock_for_read(
-                sindex_name,
-                "",
-                super_block.get(),
-                &sindex_sb,
-                static_cast<std::vector<char>*>(NULL),
-                &sindex_uuid);
-        ASSERT_TRUE(sindex_exists);
+        {
+            std::vector<char> opaque_definition;
+            bool sindex_exists = store->acquire_sindex_superblock_for_read(
+                    sindex_name,
+                    "",
+                    super_block.get(),
+                    &sindex_sb,
+                    &opaque_definition,
+                    &sindex_uuid);
+            ASSERT_TRUE(sindex_exists);
+        }
 
         rget_read_response_t res;
         double ii = i * i;
-        /* The only thing this does is have a NULL scoped_ptr_t<trace_t> in it
+        /* The only thing this does is have a NULL profile::trace_t in it
            which prevents the profiling code from crashing. */
-        ql::env_t dummy_env(&dummy_interruptor);
+        ql::env_t dummy_env(&dummy_interruptor, cluster_version_t::LATEST_DISK);
         rdb_rget_slice(
             store->get_sindex_slice(sindex_uuid),
             rdb_protocol::sindex_key_range(

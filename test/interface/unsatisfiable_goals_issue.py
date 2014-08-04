@@ -42,4 +42,3 @@ with driver.Metacluster() as metacluster:
     assert issues[0]["primary_datacenter"] == datacenter.uuid
     cluster.check_and_stop()
 print "Done."
-

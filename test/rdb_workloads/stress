@@ -15,7 +15,7 @@ def call_ignore_interrupt(fun):
             if ex.errno != errno.EINTR:
                 raise
 
-def stress_client_proc(options, start_event, exit_event, stat_queue, host_offset, random_seed) :
+def stress_client_proc(options, start_event, exit_event, stat_queue, host_offset, random_seed):
     host_offset = host_offset % len(options["hosts"])
     host = options["hosts"][host_offset][0]
     port = options["hosts"][host_offset][1]
@@ -46,7 +46,7 @@ def stress_client_proc(options, start_event, exit_event, stat_queue, host_offset
 
 def spawn_clients(options, start_event, exit_event, stat_queue):
     num_clients = options["clients"]
-    client_procs = [ ]
+    client_procs = []
     host_offset = 0
 
     random_seed = options["seed"]
@@ -194,15 +194,15 @@ class QueryThrottler:
                 time.sleep(-time_overdue)
 
         start_time = time.time()
-        result = { "timestamp": start_time }
+        result = {"timestamp": start_time}
         try:
             result.update(self.workload.run(conn))
         except (r.RqlError, r.RqlDriverError) as ex:
-            result["errors"] = result.get('errors', []) + [ ex.message ]
+            result["errors"] = result.get('errors', []) + [ex.message]
         except (IOError, OSError) as ex:
             if ex.errno != errno.EINTR:
                 raise
-            result["errors"] = result.get('errors', []) + [ "Interrupted system call" ]
+            result["errors"] = result.get('errors', []) + ["Interrupted system call"]
         result["latency"] = time.time() - start_time
 
         self.stat_queue.put(result)
@@ -212,16 +212,16 @@ def stress_controller(options):
     stat_queue = multiprocessing.queues.SimpleQueue()
     start_event = multiprocessing.Event()
     exit_event = multiprocessing.Event()
-    child_procs = [ ]
+    child_procs = []
     op_count = options["op_count"]
 
     # Register interrupt, now that we're spawning client processes
     parent_pid = os.getpid()
-    signal.signal(signal.SIGINT, lambda a,b: interrupt_handler(a, b, exit_event, parent_pid))
+    signal.signal(signal.SIGINT, lambda a, b: interrupt_handler(a, b, exit_event, parent_pid))
 
     child_procs.extend(spawn_clients(options, start_event, exit_event, stat_queue))
 
-    stats = { "count": 0, "latency": 0.0, "errors": { } }
+    stats = {"count": 0, "latency": 0.0, "errors": {}}
     start_time = time.time()
 
     try:
@@ -239,7 +239,7 @@ def stress_controller(options):
 
                 stats["count"] += 1
                 stats["latency"] += stat["latency"]
-                for error in stat.get("errors", [ ]):
+                for error in stat.get("errors", []):
                     if not options["ignore_errors"]:
                         print "  - %s" % error
                     stats["errors"][error] = stats["errors"].get(error, 0) + 1
@@ -265,7 +265,7 @@ def stress_controller(options):
             stat = call_ignore_interrupt(stat_queue.get)
             stats["count"] += 1
             stats["latency"] += stat["latency"]
-            for error in stat.get("errors", [ ]):
+            for error in stat.get("errors", []):
                 stats["errors"][error] = stats["errors"].get(error, 0) + 1
 
         print_stats(stats, start_time, end_time, options["clients"])
@@ -284,14 +284,16 @@ if __name__ == "__main__":
     parser.add_option("--op-count", dest="op_count", type="int", default=0)
     parser.add_option("--ignore-errors", dest="ignore_errors", action="store_true", default=False)
     (parsed_options, args) = parser.parse_args()
-    options = { "clients": parsed_options.clients,
-                "ops_per_sec": parsed_options.ops_per_sec,
-                "ops_per_conn": parsed_options.ops_per_conn,
-                "quiet": parsed_options.quiet,
-                "hosts": [ ],
-                "duration": parsed_options.duration,
-                "op_count": parsed_options.op_count,
-                "ignore_errors": parsed_options.ignore_errors}
+    options = {
+        "clients": parsed_options.clients,
+        "ops_per_sec": parsed_options.ops_per_sec,
+        "ops_per_conn": parsed_options.ops_per_conn,
+        "quiet": parsed_options.quiet,
+        "hosts": [],
+        "duration": parsed_options.duration,
+        "op_count": parsed_options.op_count,
+        "ignore_errors": parsed_options.ignore_errors
+    }
 
     if len(args) != 0:
         print "no positional arguments supported"

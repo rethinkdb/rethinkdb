@@ -197,23 +197,23 @@ class to_array_t : public eager_acc_t {
 public:
     to_array_t() : size(0) { }
 private:
-    virtual void operator()(env_t *, groups_t *gs) {
+    virtual void operator()(env_t *env, groups_t *gs) {
         for (auto kv = gs->begin(); kv != gs->end(); ++kv) {
             datums_t *lst1 = &groups[kv->first];
             datums_t *lst2 = &kv->second;
             size += lst2->size();
             rcheck_toplevel(
-                size <= array_size_limit(), base_exc_t::GENERIC,
+                size <= env->limits.array_size_limit(), base_exc_t::GENERIC,
                 strprintf("Grouped data over size limit %zu.  "
                           "Try putting a reduction (like `.reduce` or `.count`) "
-                          "on the end.", array_size_limit()).c_str());
+                          "on the end.", env->limits.array_size_limit()).c_str());
             lst1->reserve(lst1->size() + lst2->size());
             std::move(lst2->begin(), lst2->end(), std::back_inserter(*lst1));
         }
         gs->clear();
     }
 
-    virtual void add_res(env_t *, result_t *res) {
+    virtual void add_res(env_t *env, result_t *res) {
         auto streams = boost::get<grouped_t<stream_t> >(res);
         r_sanity_check(streams);
         for (auto kv = streams->begin(); kv != streams->end(); ++kv) {
@@ -221,10 +221,10 @@ private:
             stream_t *stream = &kv->second;
             size += stream->size();
             rcheck_toplevel(
-                size <= array_size_limit(), base_exc_t::GENERIC,
+                size <= env->limits.array_size_limit(), base_exc_t::GENERIC,
                 strprintf("Grouped data over size limit %zu.  "
                           "Try putting a reduction (like `.reduce` or `.count`) "
-                          "on the end.", array_size_limit()).c_str());
+                          "on the end.", env->limits.array_size_limit()).c_str());
             lst->reserve(lst->size() + stream->size());
             for (auto it = stream->begin(); it != stream->end(); ++it) {
                 lst->push_back(std::move(it->data));
@@ -232,21 +232,23 @@ private:
         }
     }
 
-    virtual counted_t<val_t> finish_eager(
-        protob_t<const Backtrace> bt, bool is_grouped) {
+    virtual counted_t<val_t> finish_eager(protob_t<const Backtrace> bt,
+                                          bool is_grouped,
+                                          const configured_limits_t &limits) {
         if (is_grouped) {
             counted_t<grouped_data_t> ret(new grouped_data_t());
             for (auto kv = groups.begin(); kv != groups.end(); ++kv) {
-                (*ret)[kv->first] = make_counted<const datum_t>(std::move(kv->second));
+                (*ret)[kv->first] = make_counted<const datum_t>(std::move(kv->second),
+                                                               limits);
             }
             return make_counted<val_t>(std::move(ret), bt);
         } else if (groups.size() == 0) {
-            return make_counted<val_t>(
-                make_counted<const datum_t>(datum_t::R_ARRAY), bt);
+            return make_counted<val_t>(datum_t::empty_array(), bt);
         } else {
             r_sanity_check(groups.size() == 1 && !groups.begin()->first.has());
             return make_counted<val_t>(
-                make_counted<const datum_t>(std::move(groups.begin()->second)), bt);
+                make_counted<const datum_t>(std::move(groups.begin()->second), limits),
+                bt);
         }
     }
 
@@ -281,7 +283,8 @@ private:
     }
 
     virtual counted_t<val_t> finish_eager(protob_t<const Backtrace> bt,
-                                          bool is_grouped) {
+                                          bool is_grouped,
+                                          UNUSED const configured_limits_t &limits) {
         accumulator_t::mark_finished();
         grouped_t<T> *acc = grouped_acc_t<T>::get_acc();
         const T *default_val = grouped_acc_t<T>::get_default_val();
@@ -631,8 +634,7 @@ private:
                         arr.push_back((*f)->call(env, *el)->as_datum());
                     } catch (const base_exc_t &e) {
                         if (e.get_type() == base_exc_t::NON_EXISTENCE) {
-                            arr.push_back(
-                                make_counted<const datum_t>(datum_t::R_NULL));
+                            arr.push_back(datum_t::null());
                         } else {
                             throw;
                         }
@@ -648,7 +650,7 @@ private:
             r_sanity_check(arr.size() == (funcs.size() + append_index));
 
             if (!multi) {
-                add(groups, std::move(arr), *el);
+                add(groups, std::move(arr), *el, env->limits);
             } else {
                 std::vector<std::vector<counted_t<const datum_t> > > perms(arr.size());
                 for (size_t i = 0; i < arr.size(); ++i) {
@@ -664,14 +666,14 @@ private:
                 }
                 std::vector<counted_t<const datum_t> > instance;
                 instance.reserve(perms.size());
-                add_perms(groups, &instance, &perms, 0, *el);
+                add_perms(groups, &instance, &perms, 0, *el, env->limits);
                 r_sanity_check(instance.size() == 0);
             }
 
             rcheck_src(
                 bt.get(), base_exc_t::GENERIC,
-                groups->size() <= array_size_limit(),
-                strprintf("Too many groups (> %zu).", array_size_limit()));
+                groups->size() <= env->limits.array_size_limit(),
+                strprintf("Too many groups (> %zu).", env->limits.array_size_limit()));
         }
         size_t erased = groups->erase(counted_t<const datum_t>());
         r_sanity_check(erased == 1);
@@ -679,10 +681,11 @@ private:
 
     void add(groups_t *groups,
              std::vector<counted_t<const datum_t> > &&arr,
-             const counted_t<const datum_t> &el) {
+             const counted_t<const datum_t> &el,
+             const configured_limits_t &limits) {
         counted_t<const datum_t> group = arr.size() == 1
             ? std::move(arr[0])
-            : make_counted<const datum_t>(std::move(arr));
+            : make_counted<const datum_t>(std::move(arr), limits);
         r_sanity_check(group.has());
         (*groups)[group].push_back(el);
     }
@@ -691,22 +694,23 @@ private:
                    std::vector<counted_t<const datum_t> > *instance,
                    std::vector<std::vector<counted_t<const datum_t> > > *arr,
                    size_t index,
-                   const counted_t<const datum_t> &el) {
+                   const counted_t<const datum_t> &el,
+                   const configured_limits_t &limits) {
         r_sanity_check(index == instance->size());
         if (index >= arr->size()) {
             r_sanity_check(instance->size() == arr->size());
-            add(groups, std::vector<counted_t<const datum_t> >(*instance), el);
+            add(groups, std::vector<counted_t<const datum_t> >(*instance), el, limits);
         } else {
             auto vec = (*arr)[index];
             if (vec.size() != 0) {
                 for (auto it = vec.begin(); it != vec.end(); ++it) {
                     instance->push_back(std::move(*it));
-                    add_perms(groups, instance, arr, index + 1, el);
+                    add_perms(groups, instance, arr, index + 1, el, limits);
                     instance->pop_back();
                 }
             } else {
-                instance->push_back(make_counted<const datum_t>(datum_t::R_NULL));
-                add_perms(groups, instance, arr, index + 1, el);
+                instance->push_back(datum_t::null());
+                add_perms(groups, instance, arr, index + 1, el, limits);
                 instance->pop_back();
             }
         }
@@ -741,7 +745,7 @@ private:
 // `datum_stream.cc` removes any duplicates that survive this `lst_transform`.
 class distinct_trans_t : public ungrouped_op_t {
 public:
-    distinct_trans_t(const distinct_wire_func_t &f) : use_index(f.use_index) { }
+    explicit distinct_trans_t(const distinct_wire_func_t &f) : use_index(f.use_index) { }
 private:
     // sindex_val may be NULL
     virtual void lst_transform(

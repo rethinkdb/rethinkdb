@@ -24,7 +24,7 @@ namespace unittest {
 
 class fake_ack_checker_t : public ack_checker_t {
 public:
-    fake_ack_checker_t(int e) : expected(e) { }
+    explicit fake_ack_checker_t(int e) : expected(e) { }
     bool is_acceptable_ack_set(const std::set<peer_id_t> &ack_set) const {
         return static_cast<int>(ack_set.size()) >= expected;
     }
@@ -218,16 +218,14 @@ inline std::string mc_key_gen() {
 class simple_mailbox_cluster_t {
 public:
     simple_mailbox_cluster_t() :
-        mailbox_manager(&connectivity_cluster),
+        mailbox_manager(&connectivity_cluster, 'M'),
         connectivity_cluster_run(&connectivity_cluster,
                                  get_unittest_addresses(),
                                  peer_address_t(),
                                  ANY_PORT,
-                                 &mailbox_manager,
-                                 0,
-                                 NULL)
+                                 0)
         { }
-    connectivity_service_t *get_connectivity_service() {
+    connectivity_cluster_t *get_connectivity_cluster() {
         return &connectivity_cluster;
     }
     mailbox_manager_t *get_mailbox_manager() {
@@ -258,6 +256,8 @@ private:
     DISABLE_COPYING(equality_metainfo_checker_callback_t);
 };
 #endif
+
+peer_address_t get_cluster_local_address(connectivity_cluster_t *cm);
 
 }  // namespace unittest
 

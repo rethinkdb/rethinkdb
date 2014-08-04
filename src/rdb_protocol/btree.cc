@@ -89,7 +89,7 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice,
                                     &slice->stats, trace);
 
     if (!kv_location.value.has()) {
-        response->data.reset(new ql::datum_t(ql::datum_t::R_NULL));
+        response->data = ql::datum_t::null();
     } else {
         response->data = get_data(static_cast<rdb_value_t *>(kv_location.value.get()),
                                   buf_parent_t(&kv_location.buf));
@@ -127,7 +127,8 @@ void kv_location_delete(keyvalue_location_t *kv_location,
             deletion_context->balancing_detacher(), &null_cb);
 }
 
-void kv_location_set(keyvalue_location_t *kv_location,
+MUST_USE ql::serialization_result_t
+kv_location_set(keyvalue_location_t *kv_location,
                      const store_key_t &key,
                      counted_t<const ql::datum_t> data,
                      repli_timestamp_t timestamp,
@@ -139,10 +140,10 @@ void kv_location_set(keyvalue_location_t *kv_location,
     const max_block_size_t block_size = kv_location->buf.cache()->max_block_size();
     {
         blob_t blob(block_size, new_value->value_ref(), blob::btree_maxreflen);
-        datum_serialize_onto_blob(
-                buf_parent_t(&kv_location->buf),
-                &blob,
-                data);
+        ql::serialization_result_t res
+            = datum_serialize_onto_blob(buf_parent_t(&kv_location->buf),
+                                        &blob, data);
+        if (bad(res)) return res;
     }
 
     if (mod_info_out) {
@@ -170,13 +171,15 @@ void kv_location_set(keyvalue_location_t *kv_location,
     apply_keyvalue_change(&sizer, kv_location, key.btree_key(),
                           timestamp,
                           deletion_context->balancing_detacher(), &null_cb);
+    return ql::serialization_result_t::SUCCESS;
 }
 
-void kv_location_set(keyvalue_location_t *kv_location,
-                     const store_key_t &key,
-                     const std::vector<char> &value_ref,
-                     repli_timestamp_t timestamp,
-                     const deletion_context_t *deletion_context) {
+MUST_USE ql::serialization_result_t
+kv_location_set(keyvalue_location_t *kv_location,
+                const store_key_t &key,
+                const std::vector<char> &value_ref,
+                repli_timestamp_t timestamp,
+                const deletion_context_t *deletion_context) {
     // Detach/Delete the old value.
     if (kv_location->value.has()) {
         deletion_context->in_tree_deleter()->delete_value(
@@ -193,6 +196,20 @@ void kv_location_set(keyvalue_location_t *kv_location,
     rdb_value_sizer_t sizer(kv_location->buf.cache()->max_block_size());
     apply_keyvalue_change(&sizer, kv_location, key.btree_key(), timestamp,
                           deletion_context->balancing_detacher(), &null_cb);
+    return ql::serialization_result_t::SUCCESS;
+}
+
+MUST_USE counted_t<const ql::datum_t>
+make_replacement_pair(counted_t<const ql::datum_t> old_val, counted_t<const ql::datum_t> new_val) {
+    // in this context, we know the array will have one element.
+    // stats_merge later can impose user preferences.
+    ql::datum_array_builder_t values(ql::configured_limits_t::unlimited);
+    ql::datum_object_builder_t value_pair;
+    bool conflict = value_pair.add("old_val", old_val)
+        || value_pair.add("new_val", new_val);
+    guarantee(!conflict);
+    values.add(std::move(value_pair).to_counted());
+    return std::move(values).to_counted();
 }
 
 batched_replace_response_t rdb_replace_and_return_superblock(
@@ -203,10 +220,10 @@ batched_replace_response_t rdb_replace_and_return_superblock(
     rdb_modification_info_t *mod_info_out,
     profile::trace_t *trace)
 {
-    bool return_vals = replacer->should_return_vals();
+    const return_changes_t return_changes = replacer->should_return_changes();
     const std::string &primary_key = *info.btree->primary_key;
     const store_key_t &key = *info.key;
-    ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
+    ql::datum_object_builder_t resp;
     try {
         keyvalue_location_t kv_location;
         rdb_value_sizer_t sizer(info.superblock->cache()->max_block_size());
@@ -223,7 +240,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
         if (!kv_location.value.has()) {
             // If there's no entry with this key, pass NULL to the function.
             started_empty = true;
-            old_val = make_counted<ql::datum_t>(ql::datum_t::R_NULL);
+            old_val = ql::datum_t::null();
         } else {
             // Otherwise pass the entry with this key to the function.
             started_empty = false;
@@ -232,16 +249,15 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             guarantee(old_val->get(primary_key, ql::NOTHROW).has());
         }
         guarantee(old_val.has());
-        if (return_vals == RETURN_VALS) {
-            bool conflict = resp.add("old_val", old_val)
-                         || resp.add("new_val", old_val); // changed below
+        if (return_changes == return_changes_t::YES) {
+            // first, fill with the old value.  Then, if `replacer` succeeds, fill with new value.
+            bool conflict = resp.add("changes", make_replacement_pair(old_val, old_val));
             guarantee(!conflict);
         }
 
         counted_t<const ql::datum_t> new_val = replacer->replace(old_val);
-        if (return_vals == RETURN_VALS) {
-            bool conflict = resp.add("new_val", new_val, ql::CLOBBER);
-            guarantee(conflict); // We set it to `old_val` previously.
+        if (return_changes == return_changes_t::YES) {
+            resp.overwrite("changes", make_replacement_pair(old_val, new_val));
         }
         if (new_val->get_type() == ql::datum_t::R_NULL) {
             ended_empty = true;
@@ -278,9 +294,20 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             } else {
                 conflict = resp.add("inserted", make_counted<ql::datum_t>(1.0));
                 r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
-                kv_location_set(&kv_location, *info.key, new_val,
-                                info.btree->timestamp, deletion_context,
-                                mod_info_out);
+                ql::serialization_result_t res =
+                    kv_location_set(&kv_location, *info.key, new_val,
+                                    info.btree->timestamp, deletion_context,
+                                    mod_info_out);
+                switch (res) {
+                case ql::serialization_result_t::ARRAY_TOO_BIG:
+                    rfail_typed_target(new_val, "Array too large for disk writes"
+                                       " (limit 100,000 elements)");
+                    unreachable();
+                case ql::serialization_result_t::SUCCESS:
+                    break;
+                default:
+                    unreachable();
+                }
                 guarantee(mod_info_out->deleted.second.empty());
                 guarantee(!mod_info_out->added.second.empty());
                 mod_info_out->added.first = new_val;
@@ -302,9 +329,20 @@ batched_replace_response_t rdb_replace_and_return_superblock(
                 } else {
                     conflict = resp.add("replaced", make_counted<ql::datum_t>(1.0));
                     r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
-                    kv_location_set(&kv_location, *info.key, new_val,
-                                    info.btree->timestamp, deletion_context,
-                                    mod_info_out);
+                    ql::serialization_result_t res =
+                        kv_location_set(&kv_location, *info.key, new_val,
+                                        info.btree->timestamp, deletion_context,
+                                        mod_info_out);
+                    switch (res) {
+                    case ql::serialization_result_t::ARRAY_TOO_BIG:
+                        rfail_typed_target(new_val, "Array too large for disk writes"
+                                           " (limit 100,000 elements)");
+                        unreachable();
+                    case ql::serialization_result_t::SUCCESS:
+                        break;
+                    default:
+                        unreachable();
+                    }
                     guarantee(!mod_info_out->deleted.second.empty());
                     guarantee(!mod_info_out->added.second.empty());
                     mod_info_out->added.first = new_val;
@@ -323,7 +361,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
         // function will also be interrupted, but we document where it comes
         // from to aid in future debugging if that invariant becomes violated.
     }
-    return resp.to_counted();
+    return std::move(resp).to_counted();
 }
 
 
@@ -335,7 +373,7 @@ public:
     counted_t<const ql::datum_t> replace(const counted_t<const ql::datum_t> &d) const {
         return replacer->replace(d, index);
     }
-    bool should_return_vals() const { return replacer->should_return_vals(); }
+    return_changes_t should_return_changes() const { return replacer->should_return_changes(); }
 private:
     const btree_batched_replacer_t *const replacer;
     const size_t index;
@@ -347,6 +385,7 @@ void do_a_replace_from_batched_replace(
     const fifo_enforcer_write_token_t &batched_replaces_fifo_token,
     const btree_loc_info_t &info,
     const one_replace_t one_replace,
+    const ql::configured_limits_t &limits,
     promise_t<superblock_t *> *superblock_promise,
     rdb_modification_report_cb_t *sindex_cb,
     batched_replace_response_t *stats_out,
@@ -360,7 +399,7 @@ void do_a_replace_from_batched_replace(
     counted_t<const ql::datum_t> res = rdb_replace_and_return_superblock(
         info, &one_replace, &deletion_context, superblock_promise, &mod_report.info,
         trace);
-    *stats_out = (*stats_out)->merge(res, ql::stats_merge);
+    *stats_out = (*stats_out)->merge(res, ql::stats_merge, limits);
 
     // KSI: What is this for?  are we waiting to get in line to call on_mod_report?
     // I guess so.
@@ -374,6 +413,7 @@ batched_replace_response_t rdb_batched_replace(
     const btree_info_t &info,
     scoped_ptr_t<superblock_t> *superblock,
     const std::vector<store_key_t> &keys,
+    const ql::configured_limits_t &limits,
     const btree_batched_replacer_t *replacer,
     rdb_modification_report_cb_t *sindex_cb,
     profile::trace_t *trace) {
@@ -381,7 +421,7 @@ batched_replace_response_t rdb_batched_replace(
     fifo_enforcer_source_t batched_replaces_fifo_source;
     fifo_enforcer_sink_t batched_replaces_fifo_sink;
 
-    counted_t<const ql::datum_t> stats(new ql::datum_t(ql::datum_t::R_OBJECT));
+    counted_t<const ql::datum_t> stats = ql::datum_t::empty_object();
 
     // We have to drain write operations before destructing everything above us,
     // because the coroutines being drained use them.
@@ -411,6 +451,7 @@ batched_replace_response_t rdb_batched_replace(
 
                     btree_loc_info_t(&info, current_superblock.release(), &keys[i]),
                     one_replace_t(replacer, i),
+                    limits,
 
                     &superblock_promise,
                     sindex_cb,
@@ -450,8 +491,19 @@ void rdb_set(const store_key_t &key,
     mod_info->added.first = data;
 
     if (overwrite || !had_value) {
-        kv_location_set(&kv_location, key, data, timestamp, deletion_context,
-                        mod_info);
+        ql::serialization_result_t res =
+            kv_location_set(&kv_location, key, data, timestamp, deletion_context,
+                            mod_info);
+        switch (res) {
+        case ql::serialization_result_t::ARRAY_TOO_BIG:
+            rfail_typed_target(data, "Array too large for disk writes"
+                               " (limit 100,000 elements)");
+            unreachable();
+        case ql::serialization_result_t::SUCCESS:
+            break;
+        default:
+            unreachable();
+        }
         guarantee(mod_info->deleted.second.empty() == !had_value &&
                   !mod_info->added.second.empty());
     }
@@ -476,7 +528,8 @@ public:
         cb_->on_deletion(key, recency, interruptor);
     }
 
-    void on_pairs(buf_parent_t leaf_node, const std::vector<repli_timestamp_t> &recencies,
+    void on_pairs(buf_parent_t leaf_node,
+                  const std::vector<repli_timestamp_t> &recencies,
                   const std::vector<const btree_key_t *> &keys,
                   const std::vector<const void *> &vals,
                   signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
@@ -713,13 +766,16 @@ typedef ql::terminal_variant_t terminal_variant_t;
 class sindex_data_t {
 public:
     sindex_data_t(const key_range_t &_pkey_range, const datum_range_t &_range,
+                  cluster_version_t wire_func_reql_version,
                   ql::map_wire_func_t wire_func, sindex_multi_bool_t _multi)
         : pkey_range(_pkey_range), range(_range),
+          func_reql_version(wire_func_reql_version),
           func(wire_func.compile_wire_func()), multi(_multi) { }
 private:
     friend class rget_cb_t;
     const key_range_t pkey_range;
     const datum_range_t range;
+    const cluster_version_t func_reql_version;
     const counted_t<ql::func_t> func;
     const sindex_multi_bool_t multi;
 };
@@ -853,7 +909,11 @@ THROWS_ONLY(interrupted_exc_t) {
         // Check whether we're out of sindex range.
         counted_t<const ql::datum_t> sindex_val; // NULL if no sindex.
         if (sindex) {
-            sindex_val = sindex->func->call(job.env, val)->as_datum();
+            // Secondary index functions are deterministic (so no need for an
+            // rdb_context_t) and evaluated in a pristine environment (without global
+            // optargs).
+            ql::env_t sindex_env(job.env->interruptor, sindex->func_reql_version);
+            sindex_val = sindex->func->call(&sindex_env, val)->as_datum();
             if (sindex->multi == sindex_multi_bool_t::MULTI
                 && sindex_val->get_type() == ql::datum_t::R_ARRAY) {
                 boost::optional<uint64_t> tag = *ql::datum_t::extract_tag(key);
@@ -925,6 +985,7 @@ void rdb_rget_secondary_slice(
     const boost::optional<terminal_variant_t> &terminal,
     const key_range_t &pk_range,
     sorting_t sorting,
+    cluster_version_t sindex_func_reql_version,
     const ql::map_wire_func_t &sindex_func,
     sindex_multi_bool_t sindex_multi,
     rget_read_response_t *response) {
@@ -933,7 +994,8 @@ void rdb_rget_secondary_slice(
     rget_cb_t callback(
         io_data_t(response, slice),
         job_data_t(ql_env, batchspec, transforms, terminal, sorting),
-        sindex_data_t(pk_range, sindex_range, sindex_func, sindex_multi),
+        sindex_data_t(pk_range, sindex_range, sindex_func_reql_version, sindex_func,
+                      sindex_multi),
         sindex_region.inner);
     btree_concurrent_traversal(
         superblock, sindex_region.inner, &callback,
@@ -1042,7 +1104,8 @@ void rdb_modification_report_cb_t::on_mod_report(
                 ql::changefeed::msg_t(
                     ql::changefeed::msg_t::change_t(
                         mod_report.info.deleted.first,
-                        mod_report.info.added.first)));
+                        mod_report.info.added.first)),
+                &mod_report.primary_key);
         }
 
         sindexes_updated_cond.wait_lazily_unordered();
@@ -1064,11 +1127,18 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
 }
 
 void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> doc,
-                  ql::map_wire_func_t *mapping, sindex_multi_bool_t multi, ql::env_t *env,
+                  cluster_version_t reql_version,
+                  ql::map_wire_func_t *mapping, sindex_multi_bool_t multi,
                   std::vector<store_key_t> *keys_out) {
     guarantee(keys_out->empty());
+
+    // Secondary index functions are deterministic (so no need for an rdb_context_t)
+    // and evaluated in a pristine environment (without global optargs).
+    cond_t non_interruptor;
+    ql::env_t sindex_env(&non_interruptor, reql_version);
+
     counted_t<const ql::datum_t> index =
-        mapping->compile_wire_func()->call(env, doc)->as_datum();
+        mapping->compile_wire_func()->call(&sindex_env, doc)->as_datum();
 
     if (multi == sindex_multi_bool_t::MULTI && index->get_type() == ql::datum_t::R_ARRAY) {
         for (uint64_t i = 0; i < index->size(); ++i) {
@@ -1082,23 +1152,57 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
 
 void serialize_sindex_info(write_message_t *wm,
                            const ql::map_wire_func_t &mapping,
+                           const sindex_reql_version_info_t &reql_version,
                            const sindex_multi_bool_t &multi) {
+    // _This_ cluster version field only affects the serialization code.  It doesn't
+    // have anything to do with the ReQL evaluation version, which is a different
+    // field in secondary_index_t.
     serialize_cluster_version(wm, cluster_version_t::LATEST_DISK);
+
     serialize_for_version(cluster_version_t::LATEST_DISK, wm, mapping);
+    serialize_cluster_version(wm, reql_version.original_reql_version);
+    serialize_cluster_version(wm, reql_version.latest_compatible_reql_version);
+    serialize_cluster_version(wm, reql_version.latest_checked_reql_version);
     serialize_for_version(cluster_version_t::LATEST_DISK, wm, multi);
 }
 
 void deserialize_sindex_info(const std::vector<char> &data,
-                             ql::map_wire_func_t *mapping,
-                             sindex_multi_bool_t *multi) {
+
+                             ql::map_wire_func_t *mapping_out,
+                             sindex_reql_version_info_t *reql_version_out,
+                             sindex_multi_bool_t *multi_out) {
     inplace_vector_read_stream_t read_stream(&data);
+    // This cluster version field is _not_ a ReQL evaluation version field, which is
+    // in secondary_index_t -- it only says how the value was serialized.
     cluster_version_t cluster_version;
     archive_result_t success
         = deserialize_cluster_version(&read_stream, &cluster_version);
     guarantee_deserialization(success, "sindex description");
-    success = deserialize_for_version(cluster_version, &read_stream, mapping);
+
+    success = deserialize_for_version(cluster_version, &read_stream, mapping_out);
     guarantee_deserialization(success, "sindex description");
-    success = deserialize_for_version(cluster_version, &read_stream, multi);
+
+    if (cluster_version == cluster_version_t::v1_13
+        || cluster_version == cluster_version_t::v1_13_2) {
+        reql_version_out->original_reql_version = cluster_version_t::v1_13;
+        reql_version_out->latest_compatible_reql_version = cluster_version_t::v1_13;
+        reql_version_out->latest_checked_reql_version = cluster_version_t::v1_13;
+    } else {
+        success = deserialize_cluster_version(
+                &read_stream,
+                &reql_version_out->original_reql_version);
+        guarantee_deserialization(success, "original_reql_version");
+        success = deserialize_cluster_version(
+                &read_stream,
+                &reql_version_out->latest_compatible_reql_version);
+        guarantee_deserialization(success, "latest_compatible_reql_version");
+        success = deserialize_cluster_version(
+                &read_stream,
+                &reql_version_out->latest_checked_reql_version);
+        guarantee_deserialization(success, "latest_checked_reql_version");
+    }
+
+    success = deserialize_for_version(cluster_version, &read_stream, multi_out);
     guarantee_deserialization(success, "sindex description");
 
     guarantee(static_cast<size_t>(read_stream.tell()) == data.size(),
@@ -1118,15 +1222,14 @@ void rdb_update_single_sindex(
     guarantee(modification->primary_key.size() != 0);
 
     ql::map_wire_func_t mapping;
+    sindex_reql_version_info_t mapping_version_info;
     sindex_multi_bool_t multi;
-    deserialize_sindex_info(sindex->sindex.opaque_definition, &mapping, &multi);
+    deserialize_sindex_info(sindex->sindex.opaque_definition,
+                            &mapping, &mapping_version_info, &multi);
 
-    // TODO we have no rdb context here. People should not be able to do anything
-    // that requires an environment like gets from other tables etc. but we don't
-    // have a nice way to disallow those things so for now we pass null and it will
-    // segfault if an illegal sindex mapping is passed.
-    cond_t non_interruptor;
-    ql::env_t env(&non_interruptor);
+    // TODO(2014-08): Actually get real profiling information for
+    // secondary index updates.
+    profile::trace_t *const trace = nullptr;
 
     superblock_t *super_block = sindex->super_block.get();
 
@@ -1137,20 +1240,26 @@ void rdb_update_single_sindex(
 
             std::vector<store_key_t> keys;
 
-            compute_keys(modification->primary_key, deleted, &mapping, multi, &env, &keys);
+            // TODO(2014-08-01): Someplace, we need to update
+            // latest_compatible_reql_version and latest_checked_reql_version.
+            compute_keys(modification->primary_key, deleted,
+                         mapping_version_info.latest_compatible_reql_version, &mapping,
+                         multi, &keys);
 
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
                 {
                     keyvalue_location_t kv_location;
                     rdb_value_sizer_t sizer(super_block->cache()->max_block_size());
+
+
                     find_keyvalue_location_for_write(&sizer,
                                                      super_block,
                                                      it->btree_key(),
                                                      deletion_context->balancing_detacher(),
                                                      &kv_location,
                                                      &sindex->btree->stats,
-                                                     env.trace.get_or_null(),
+                                                     trace,
                                                      &return_superblock_local);
 
                     if (kv_location.value.has()) {
@@ -1177,7 +1286,9 @@ void rdb_update_single_sindex(
 
             std::vector<store_key_t> keys;
 
-            compute_keys(modification->primary_key, added, &mapping, multi, &env, &keys);
+            compute_keys(modification->primary_key, added,
+                         mapping_version_info.latest_compatible_reql_version, &mapping,
+                         multi, &keys);
 
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
@@ -1191,13 +1302,16 @@ void rdb_update_single_sindex(
                                                      deletion_context->balancing_detacher(),
                                                      &kv_location,
                                                      &sindex->btree->stats,
-                                                     env.trace.get_or_null(),
+                                                     trace,
                                                      &return_superblock_local);
 
-                    kv_location_set(&kv_location, *it,
-                                    modification->info.added.second,
-                                    repli_timestamp_t::distant_past,
-                                    deletion_context);
+                    ql::serialization_result_t res =
+                        kv_location_set(&kv_location, *it,
+                                        modification->info.added.second,
+                                        repli_timestamp_t::distant_past,
+                                        deletion_context);
+                    // this particular context cannot fail AT THE MOMENT.
+                    guarantee(!bad(res));
                     // The keyvalue location gets destroyed here.
                 }
                 super_block = return_superblock_local.wait();

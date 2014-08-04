@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_WAIT_FOR_READINESS_HPP_
 #define RDB_PROTOCOL_WAIT_FOR_READINESS_HPP_
 
@@ -7,16 +7,13 @@
 
 #include "concurrency/interruptor.hpp"
 
-class cluster_semilattice_metadata_t;
-class base_namespace_repo_t;
+class namespace_interface_t;
 class signal_t;
-template <class metadata_t> class semilattice_readwrite_view_t;
-class uuid_u;
 
-void wait_for_rdb_table_readiness(base_namespace_repo_t *ns_repo,
-                                  uuid_u namespace_id,
-                                  signal_t *interruptor,
-                                  boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata)
+/* `test_for_rdb_table_readiness()` returns `true` if the given namespace is ready for
+reading, and `false` otherwise. */
+MUST_USE bool test_for_rdb_table_readiness(namespace_interface_t *namespace_if,
+                                           signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
 #endif /* RDB_PROTOCOL_WAIT_FOR_READINESS_HPP_ */

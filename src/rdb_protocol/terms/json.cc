@@ -17,7 +17,7 @@ public:
                  (data.size() > 40
                   ? (data.to_std().substr(0, 37) + "...").c_str()
                   : data.c_str())));
-        return new_val(make_counted<const datum_t>(cjson.get()));
+        return new_val(to_datum(cjson.get(), env->env->limits));
     }
 
     virtual const char *name() const { return "json"; }
@@ -27,4 +27,3 @@ counted_t<term_t> make_json_term(compile_env_t *env, const protob_t<const Term> 
     return make_counted<json_term_t>(env, term);
 }
 } // namespace ql
-

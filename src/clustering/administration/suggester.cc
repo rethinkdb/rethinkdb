@@ -2,17 +2,37 @@
 #include "clustering/administration/suggester.hpp"
 
 #include <deque>
+#include <utility>
 
 #include "clustering/administration/machine_id_to_peer_id.hpp"
+#include "clustering/reactor/directory_echo.hpp"
+#include "containers/cow_ptr.hpp"
 
 persistable_blueprint_t suggest_blueprint_for_namespace(
+        namespace_id_t namespace_id,
         const namespace_semilattice_metadata_t &ns_goals,
-        const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > &reactor_directory_view,
+        const std::map<peer_id_t, namespaces_directory_metadata_t> &namespaces_directory,
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         std::map<machine_id_t, int> *usage,
         bool prioritize_distribution)
         THROWS_ONLY(cannot_satisfy_goals_exc_t, in_conflict_exc_t, missing_machine_exc_t) {
+
+    std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > reactor_directory;
+    for (std::map<peer_id_t, namespaces_directory_metadata_t>::const_iterator jt =
+            namespaces_directory.begin(); jt != namespaces_directory.end(); jt++) {
+        std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >::const_iterator kt =
+            jt->second.reactor_bcards.find(namespace_id);
+        if (kt != jt->second.reactor_bcards.end()) {
+            reactor_directory.insert(std::make_pair(
+                jt->first,
+                boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >(kt->second)));
+        } else {
+            reactor_directory.insert(std::make_pair(
+                jt->first,
+                boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >()));
+        }
+    }
 
     std::map<machine_id_t, reactor_business_card_t> directory;
     for (std::map<machine_id_t, datacenter_id_t>::const_iterator it = machine_data_centers.begin();
@@ -23,8 +43,8 @@ persistable_blueprint_t suggest_blueprint_for_namespace(
             throw missing_machine_exc_t();
         }
         std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > >::const_iterator jt =
-            reactor_directory_view.find(peer);
-        if (jt != reactor_directory_view.end() && jt->second) {
+            reactor_directory.find(peer);
+        if (jt != reactor_directory.end() && jt->second) {
             directory.insert(std::make_pair(machine, *jt->second->internal));
         }
     }
@@ -84,29 +104,15 @@ std::map<namespace_id_t, persistable_blueprint_t> suggest_blueprints_for_protoco
     for (std::deque<namespace_id_t>::iterator it  = order.begin();
                                               it != order.end();
                                               ++it) {
-        std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > reactor_directory;
-        for (std::map<peer_id_t, namespaces_directory_metadata_t>::const_iterator jt =
-                namespaces_directory.begin(); jt != namespaces_directory.end(); jt++) {
-            std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >::const_iterator kt =
-                jt->second.reactor_bcards.find(*it);
-            if (kt != jt->second.reactor_bcards.end()) {
-                reactor_directory.insert(std::make_pair(
-                    jt->first,
-                    boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >(kt->second)));
-            } else {
-                reactor_directory.insert(std::make_pair(
-                    jt->first,
-                    boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >()));
-            }
-        }
         try {
             const bool prioritize_distr = prioritize_distr_for_ns
                 && prioritize_distr_for_ns.get() == *it;
             out.insert(
                 std::make_pair(*it,
                     suggest_blueprint_for_namespace(
+                        *it,
                         ns_goals.namespaces.find(*it)->second.get_copy(),
-                        reactor_directory,
+                        namespaces_directory,
                         machine_id_translation_table,
                         machine_data_centers,
                         &usage,
@@ -145,42 +151,110 @@ void fill_in_blueprints_for_protocol(
     }
 }
 
+static void make_caches(cluster_semilattice_metadata_t *cluster_metadata,
+        const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
+        std::map<machine_id_t, datacenter_id_t> *machine_assignments_out,
+        std::map<peer_id_t, namespaces_directory_metadata_t> *reactor_directory_rdb_out,
+        std::map<peer_id_t, machine_id_t> *machine_id_translation_table_out) {
+    for (auto it = cluster_metadata->machines.machines.begin();
+              it != cluster_metadata->machines.machines.end();
+            ++it) {
+        if (!it->second.is_deleted()) {
+            if (!it->second.get_ref().datacenter.in_conflict()) {
+                (*machine_assignments_out)[it->first] =
+                    it->second.get_ref().datacenter.get();
+            } else {
+                (*machine_assignments_out)[it->first] = nil_uuid();
+            }
+        }
+    }
+    for (auto it = directory.begin(); it != directory.end(); it++) {
+        reactor_directory_rdb_out->insert(
+            std::make_pair(it->first, it->second.rdb_namespaces));
+        if (it->second.peer_type == SERVER_PEER) {
+            machine_id_translation_table_out->insert(
+                std::make_pair(it->first, it->second.machine_id));
+        }
+    }
+}
 
-void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
+void fill_in_all_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
         const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
         const uuid_u &us,
         const boost::optional<namespace_id_t> &prioritize_distr_for_ns) {
     std::map<machine_id_t, datacenter_id_t> machine_assignments;
-
-    for (std::map<machine_id_t, deletable_t<machine_semilattice_metadata_t> >::iterator it = cluster_metadata->machines.machines.begin();
-            it != cluster_metadata->machines.machines.end();
-            it++) {
-        if (!it->second.is_deleted()) {
-            if (!it->second.get_ref().datacenter.in_conflict()) {
-                machine_assignments[it->first] = it->second.get_ref().datacenter.get();
-            } else {
-                machine_assignments[it->first] = nil_uuid();
-            }
-        }
-    }
-
     std::map<peer_id_t, namespaces_directory_metadata_t> reactor_directory_rdb;
     std::map<peer_id_t, machine_id_t> machine_id_translation_table;
-    for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator it = directory.begin(); it != directory.end(); it++) {
-        reactor_directory_rdb.insert(std::make_pair(it->first, it->second.rdb_namespaces));
-        if (it->second.peer_type == SERVER_PEER) {
-            machine_id_translation_table.insert(std::make_pair(it->first, it->second.machine_id));
-        }
-    }
+    make_caches(cluster_metadata, directory,
+        &machine_assignments, &reactor_directory_rdb, &machine_id_translation_table);
 
     {
-        cow_ptr_t<namespaces_semilattice_metadata_t>::change_t change(&cluster_metadata->rdb_namespaces);
+        cow_ptr_t<namespaces_semilattice_metadata_t>::change_t change(
+            &cluster_metadata->rdb_namespaces);
         fill_in_blueprints_for_protocol(change.get(),
                 reactor_directory_rdb,
                 machine_id_translation_table,
                 machine_assignments,
                 us,
                 prioritize_distr_for_ns);
+    }
+}
+
+void fill_in_blueprint_for_namespace(cluster_semilattice_metadata_t *cluster_metadata,
+        const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
+        namespace_id_t namespace_id,
+        const uuid_u &us) {
+    std::map<machine_id_t, datacenter_id_t> machine_assignments;
+    std::map<peer_id_t, namespaces_directory_metadata_t> reactor_directory_rdb;
+    std::map<peer_id_t, machine_id_t> machine_id_translation_table;
+    make_caches(cluster_metadata, directory,
+        &machine_assignments, &reactor_directory_rdb, &machine_id_translation_table);
+
+    {
+        cow_ptr_t<namespaces_semilattice_metadata_t>::change_t change(
+            &cluster_metadata->rdb_namespaces);
+
+        guarantee(change.get()->namespaces.count(namespace_id) == 1);
+        if (change.get()->namespaces.at(namespace_id).is_deleted()) {
+            return;
+        }
+
+        std::map<machine_id_t, int> usage;
+        for (auto it = change.get()->namespaces.begin();
+                  it != change.get()->namespaces.end();
+                ++it) {
+            if (it->first == namespace_id) {
+                continue;
+            }
+            if (it->second.is_deleted()) {
+                continue;
+            }
+            if (it->second.get_ref().blueprint.in_conflict()) {
+                continue;
+            }
+            calculate_usage(it->second.get_ref().blueprint.get_ref(), &usage);
+        }
+
+        try {
+            persistable_blueprint_t new_blueprint =
+                suggest_blueprint_for_namespace(
+                    namespace_id,
+                    change.get()->namespaces.at(namespace_id).get_copy(),
+                    reactor_directory_rdb,
+                    machine_id_translation_table,
+                    machine_assignments,
+                    &usage,
+                    false);
+            change.get()->namespaces.at(namespace_id).get_mutable()->blueprint =
+                change.get()->namespaces.at(namespace_id).get_copy().blueprint.
+                    make_resolving_version(new_blueprint, us);
+        } catch (const cannot_satisfy_goals_exc_t &e) {
+            logERR("Namespace %s has unsatisfiable goals",
+                uuid_to_str(namespace_id).c_str());
+        } catch (const in_conflict_exc_t &e) {
+            logERR("Namespace %s has internal conflicts",
+                uuid_to_str(namespace_id).c_str());
+        }
     }
 }
 

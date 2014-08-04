@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import os
 from sys import argv, path, exit, stdout
 from random import randint
@@ -28,10 +30,10 @@ with RethinkDBTestServers(4, server_build_dir=server_build_dir) as servers:
    
     stdout.flush()
     if not lang or lang == 'js':
-        print "Running JS feeds"
+        print("Running JS feeds")
         stdout.flush()
         res = res | call(["node", os.path.join(basedir, "feeds.js"), str(port)])
-        print ''
+        print('')
 
 
 if res is not 0:

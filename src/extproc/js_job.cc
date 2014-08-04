@@ -20,6 +20,7 @@
 #include "extproc/extproc_job.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
+#include "rdb_protocol/configured_limits.hpp"
 
 #include "debug.hpp"
 
@@ -38,10 +39,12 @@ const js_id_t MAX_ID = std::numeric_limits<js_id_t>::max();
 
 // Returns an empty counted_t on error.
 counted_t<const ql::datum_t> js_to_datum(const v8::Handle<v8::Value> &value,
-                                         std::string *errmsg);
+                                         const ql::configured_limits_t &limits,
+                                         std::string *err_out);
 
 // Should never error.
-v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum);
+v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum,
+                                    std::string *err_out);
 
 // Worker-side JS evaluation environment.
 class js_env_t {
@@ -49,8 +52,9 @@ public:
     js_env_t();
     ~js_env_t();
 
-    js_result_t eval(const std::string &source);
-    js_result_t call(js_id_t id, const std::vector<counted_t<const ql::datum_t> > &args);
+    js_result_t eval(const std::string &source, const ql::configured_limits_t &limits);
+    js_result_t call(js_id_t id, const std::vector<counted_t<const ql::datum_t> > &args,
+                     const ql::configured_limits_t &limits);
     void release(js_id_t id);
 
 private:
@@ -94,14 +98,16 @@ enum js_task_t {
 };
 
 // The job_t runs in the context of the main rethinkdb process
-js_job_t::js_job_t(extproc_pool_t *pool, signal_t *interruptor) :
-    extproc_job(pool, &worker_fn, interruptor) { }
+js_job_t::js_job_t(extproc_pool_t *pool, signal_t *interruptor,
+                   const ql::configured_limits_t &_limits) :
+    extproc_job(pool, &worker_fn, interruptor), limits(_limits) { }
 
 js_result_t js_job_t::eval(const std::string &source) {
     js_task_t task = js_task_t::TASK_EVAL;
     write_message_t wm;
     wm.append(&task, sizeof(task));
     serialize<cluster_version_t::LATEST_OVERALL>(&wm, source);
+    serialize<cluster_version_t::LATEST_OVERALL>(&wm, limits);
     {
         int res = send_write_message(extproc_job.write_stream(), &wm);
         if (res != 0) {
@@ -126,6 +132,7 @@ js_result_t js_job_t::call(js_id_t id, const std::vector<counted_t<const ql::dat
     wm.append(&task, sizeof(task));
     serialize<cluster_version_t::LATEST_OVERALL>(&wm, id);
     serialize<cluster_version_t::LATEST_OVERALL>(&wm, args);
+    serialize<cluster_version_t::LATEST_OVERALL>(&wm, limits);
     {
         int res = send_write_message(extproc_job.write_stream(), &wm);
         if (res != 0) {
@@ -220,13 +227,20 @@ bool run_eval(read_stream_t *stream_in,
               js_env_t *js_env,
               uint64_t task_counter) {
     std::string source;
-    archive_result_t res = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in,
-                                                                          &source);
-    if (bad(res)) { return false; }
+    ql::configured_limits_t limits;
+    {
+        archive_result_t res
+            = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in,
+                                                             &source);
+        if (bad(res)) { return false; }
+        res = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in,
+                                                             &limits);
+        if (bad(res)) { return false; }
+    }
 
     js_result_t js_result;
     try {
-        js_result = js_env->eval(source);
+        js_result = js_env->eval(source, limits);
     } catch (const std::exception &e) {
         js_result = e.what();
     } catch (...) {
@@ -243,15 +257,20 @@ bool run_call(read_stream_t *stream_in,
               uint64_t task_counter) {
     js_id_t id;
     std::vector<counted_t<const ql::datum_t> > args;
-    archive_result_t res = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in,
-                                                                          &id);
-    if (bad(res)) { return false; }
-    res = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in, &args);
-    if (bad(res)) { return false; }
+    ql::configured_limits_t limits;
+    {
+        archive_result_t res
+            = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in, &id);
+        if (bad(res)) { return false; }
+        res = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in, &args);
+        if (bad(res)) { return false; }
+        res = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in, &limits);
+        if (bad(res)) { return false; }
+    }
 
     js_result_t js_result;
     try {
-        js_result = js_env->call(id, args);
+        js_result = js_env->call(id, args, limits);
     } catch (const std::exception &e) {
         js_result = e.what();
     } catch (...) {
@@ -321,13 +340,13 @@ bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
     unreachable();
 }
 
-static void append_caught_error(std::string *errmsg, const v8::TryCatch &try_catch) {
+static void append_caught_error(std::string *err_out, const v8::TryCatch &try_catch) {
     if (!try_catch.HasCaught()) return;
 
     v8::String::Utf8Value exception(try_catch.Exception());
     const char *message = *exception;
-    guarantee(message);
-    errmsg->append(message, strlen(message));
+    guarantee(message != NULL);
+    err_out->append(message, strlen(message));
 }
 
 // The env_t runs in the context of the worker process
@@ -341,10 +360,11 @@ js_env_t::~js_env_t() {
     }
 }
 
-js_result_t js_env_t::eval(const std::string &source) {
+js_result_t js_env_t::eval(const std::string &source,
+                           const ql::configured_limits_t &limits) {
     js_context_t clean_context;
     js_result_t result("");
-    std::string *errmsg = boost::get<std::string>(&result);
+    std::string *err_out = boost::get<std::string>(&result);
 
     DECLARE_HANDLE_SCOPE(handle_scope);
 
@@ -359,14 +379,14 @@ js_result_t js_env_t::eval(const std::string &source) {
     v8::Handle<v8::Script> script = v8::Script::Compile(src);
     if (script.IsEmpty()) {
         // Get the error out of the TryCatch object
-        append_caught_error(errmsg, try_catch);
+        append_caught_error(err_out, try_catch);
     } else {
         // Secondly, evaluation may fail because of an exception generated
         // by the code
         v8::Handle<v8::Value> result_val = script->Run();
         if (result_val.IsEmpty()) {
             // Get the error from the TryCatch object
-            append_caught_error(errmsg, try_catch);
+            append_caught_error(err_out, try_catch);
         } else {
             // Scripts that evaluate to functions become RQL Func terms that
             // can be passed to map, filter, reduce, etc.
@@ -378,7 +398,8 @@ js_result_t js_env_t::eval(const std::string &source) {
                 guarantee(!result_val.IsEmpty());
 
                 // JSONify result.
-                counted_t<const ql::datum_t> datum = js_to_datum(result_val, errmsg);
+                counted_t<const ql::datum_t> datum = js_to_datum(result_val, limits,
+                                                                 err_out);
                 if (datum.has()) {
                     result = datum;
                 }
@@ -415,7 +436,7 @@ const boost::shared_ptr<v8::Persistent<v8::Value> > js_env_t::find_value(js_id_t
 
 v8::Handle<v8::Value> run_js_func(v8::Handle<v8::Function> fn,
                                   const std::vector<counted_t<const ql::datum_t> > &args,
-                                  std::string *errmsg) {
+                                  std::string *err_out) {
     v8::TryCatch try_catch;
     DECLARE_HANDLE_SCOPE(scope);
 
@@ -426,23 +447,26 @@ v8::Handle<v8::Value> run_js_func(v8::Handle<v8::Function> fn,
     // Construct arguments.
     scoped_array_t<v8::Handle<v8::Value> > handles(args.size());
     for (size_t i = 0; i < args.size(); ++i) {
-        handles[i] = js_from_datum(args[i]);
-        guarantee(!handles[i].IsEmpty());
+        handles[i] = js_from_datum(args[i], err_out);
+        if (!err_out->empty()) {
+            return v8::Handle<v8::Value>();
+        }
     }
 
     // Call function with environment as its receiver.
     v8::Handle<v8::Value> result = fn->Call(obj, args.size(), handles.data());
     if (result.IsEmpty()) {
-        append_caught_error(errmsg, try_catch);
+        append_caught_error(err_out, try_catch);
     }
     return scope.Close(result);
 }
 
 js_result_t js_env_t::call(js_id_t id,
-                           const std::vector<counted_t<const ql::datum_t> > &args) {
+                           const std::vector<counted_t<const ql::datum_t> > &args,
+                           const ql::configured_limits_t &limits) {
     js_context_t clean_context;
     js_result_t result("");
-    std::string *errmsg = boost::get<std::string>(&result);
+    std::string *err_out = boost::get<std::string>(&result);
 
     const boost::shared_ptr<v8::Persistent<v8::Value> > found_value = find_value(id);
     guarantee(!found_value->IsEmpty());
@@ -450,15 +474,13 @@ js_result_t js_env_t::call(js_id_t id,
     DECLARE_HANDLE_SCOPE(handle_scope);
 
     // Construct local handle from persistent handle
-
-
 #ifdef V8_PRE_3_19
     v8::Local<v8::Value> local_handle = v8::Local<v8::Value>::New(*found_value);
 #else
     v8::Local<v8::Value> local_handle = v8::Local<v8::Value>::New(v8::Isolate::GetCurrent(), *found_value);
 #endif
     v8::Local<v8::Function> fn = v8::Local<v8::Function>::Cast(local_handle);
-    v8::Handle<v8::Value> value = run_js_func(fn, args, errmsg);
+    v8::Handle<v8::Value> value = run_js_func(fn, args, err_out);
 
     if (!value.IsEmpty()) {
         if (value->IsFunction()) {
@@ -466,7 +488,7 @@ js_result_t js_env_t::call(js_id_t id,
             result = remember_value(sub_func);
         } else {
             // JSONify result.
-            counted_t<const ql::datum_t> datum = js_to_datum(value, errmsg);
+            counted_t<const ql::datum_t> datum = js_to_datum(value, limits, err_out);
             if (datum.has()) {
                 result = datum;
             }
@@ -484,11 +506,12 @@ void js_env_t::release(js_id_t id) {
 // TODO: Is there a better way of detecting circular references than a recursion limit?
 counted_t<const ql::datum_t> js_make_datum(const v8::Handle<v8::Value> &value,
                                            int recursion_limit,
-                                           std::string *errmsg) {
+                                           const ql::configured_limits_t &limits,
+                                           std::string *err_out) {
     counted_t<const ql::datum_t> result;
 
     if (0 == recursion_limit) {
-        errmsg->assign("Recursion limit exceeded in js_to_json (circular reference?).");
+        err_out->assign("Recursion limit exceeded in js_to_json (circular reference?).");
         return result;
     }
     --recursion_limit;
@@ -507,7 +530,7 @@ counted_t<const ql::datum_t> js_make_datum(const v8::Handle<v8::Value> &value,
         try {
             result = make_counted<const ql::datum_t>(std::string(temp_buffer.data(), length));
         } catch (const ql::base_exc_t &ex) {
-            errmsg->assign(ex.what());
+            err_out->assign(ex.what());
         }
     } else if (value->IsObject()) {
         // This case is kinda weird. Objects can have stuff in them that isn't
@@ -522,7 +545,8 @@ counted_t<const ql::datum_t> js_make_datum(const v8::Handle<v8::Value> &value,
                 v8::Handle<v8::Value> elth = arrayh->Get(i);
                 guarantee(!elth.IsEmpty());
 
-                counted_t<const ql::datum_t> item = js_make_datum(elth, recursion_limit, errmsg);
+                counted_t<const ql::datum_t> item = js_make_datum(elth, recursion_limit,
+                                                                  limits, err_out);
                 if (!item.has()) {
                     // Result is still empty, the error message has been set
                     return result;
@@ -530,13 +554,13 @@ counted_t<const ql::datum_t> js_make_datum(const v8::Handle<v8::Value> &value,
                 datum_array.push_back(std::move(item));
             }
 
-            result = make_counted<const ql::datum_t>(std::move(datum_array));
+            result = make_counted<const ql::datum_t>(std::move(datum_array), limits);
         } else if (value->IsFunction()) {
             // We can't represent functions in JSON.
-            errmsg->assign("Cannot convert function to ql::datum_t.");
+            err_out->assign("Cannot convert function to ql::datum_t.");
         } else if (value->IsRegExp()) {
             // We can't represent regular expressions in datums
-            errmsg->assign("Cannot convert RegExp to ql::datum_t.");
+            err_out->assign("Cannot convert RegExp to ql::datum_t.");
         } else if (value->IsDate()) {
             result = ql::pseudo::make_time(value->NumberValue() / 1000,
                                            "+00:00");
@@ -556,7 +580,8 @@ counted_t<const ql::datum_t> js_make_datum(const v8::Handle<v8::Value> &value,
                 v8::Handle<v8::Value> valueh = objh->Get(keyh);
                 guarantee(!valueh.IsEmpty());
 
-                counted_t<const ql::datum_t> item = js_make_datum(valueh, recursion_limit, errmsg);
+                counted_t<const ql::datum_t> item
+                    = js_make_datum(valueh, recursion_limit, limits, err_out);
 
                 if (!item.has()) {
                     // Result is still empty, the error message has been set
@@ -578,35 +603,43 @@ counted_t<const ql::datum_t> js_make_datum(const v8::Handle<v8::Value> &value,
         // so we can use `isfinite` in a GCC 4.4.3-compatible way
         using namespace std; // NOLINT(build/namespaces)
         if (!isfinite(num_val)) {
-            errmsg->assign("Number return value is not finite.");
+            err_out->assign("Number return value is not finite.");
         } else {
             result = make_counted<const ql::datum_t>(num_val);
         }
     } else if (value->IsBoolean()) {
-        result = make_counted<const ql::datum_t>(ql::datum_t::R_BOOL, value->BooleanValue());
+        result = ql::datum_t::boolean(value->BooleanValue());
     } else if (value->IsNull()) {
-        result = make_counted<const ql::datum_t>(ql::datum_t::R_NULL);
+        result = ql::datum_t::null();
     } else {
-        errmsg->assign(value->IsUndefined() ?
+        err_out->assign(value->IsUndefined() ?
                        "Cannot convert javascript `undefined` to ql::datum_t." :
                        "Unrecognized value type when converting to ql::datum_t.");
     }
     return result;
 }
 
-counted_t<const ql::datum_t> js_to_datum(const v8::Handle<v8::Value> &value, std::string *errmsg) {
+counted_t<const ql::datum_t> js_to_datum(const v8::Handle<v8::Value> &value,
+                                         const ql::configured_limits_t &limits,
+                                         std::string *err_out) {
     guarantee(!value.IsEmpty());
-    guarantee(errmsg != NULL);
+    guarantee(err_out != NULL);
 
     DECLARE_HANDLE_SCOPE(handle_scope);
-    errmsg->assign("Unknown error when converting to ql::datum_t.");
+    err_out->assign("Unknown error when converting to ql::datum_t.");
 
-    return js_make_datum(value, TO_JSON_RECURSION_LIMIT, errmsg);
+    return js_make_datum(value, TO_JSON_RECURSION_LIMIT, limits, err_out);
 }
 
-v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum) {
+v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum,
+                                    std::string *err_out) {
     guarantee(datum.has());
     switch (datum->get_type()) {
+    case ql::datum_t::type_t::R_BINARY:
+        // TODO: In order to support this, we need to link against a static version of
+        // V8, which provides an ArrayBuffer API.
+        err_out->assign("`r.binary` data cannot be used in `r.js`.");
+        return v8::Handle<v8::Value>();
     case ql::datum_t::type_t::R_BOOL:
         if (datum->as_bool()) {
             return v8::True();
@@ -625,7 +658,7 @@ v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum) {
 
         for (size_t i = 0; i < source_array.size(); ++i) {
             DECLARE_HANDLE_SCOPE(scope);
-            v8::Handle<v8::Value> val = js_from_datum(source_array[i]);
+            v8::Handle<v8::Value> val = js_from_datum(source_array[i], err_out);
             guarantee(!val.IsEmpty());
             array->Set(i, val);
         }
@@ -644,7 +677,7 @@ v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum) {
             for (auto it = source_map.begin(); it != source_map.end(); ++it) {
                 DECLARE_HANDLE_SCOPE(scope);
                 v8::Handle<v8::Value> key = v8::String::New(it->first.c_str());
-                v8::Handle<v8::Value> val = js_from_datum(it->second);
+                v8::Handle<v8::Value> val = js_from_datum(it->second, err_out);
                 guarantee(!key.IsEmpty() && !val.IsEmpty());
                 obj->Set(key, val);
             }
@@ -653,8 +686,8 @@ v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum) {
         }
     }
 
-    case ql::datum_t::type_t::UNINITIALIZED:
     default:
-        crash("bad datum value in js extproc");
+        err_out->assign("bad datum value in js extproc");
+        return v8::Handle<v8::Value>();
     }
 }

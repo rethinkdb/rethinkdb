@@ -13,7 +13,8 @@ write_t mock_overwrite(std::string key, std::string value) {
     point_write_t pw(store_key_t(key),
                                      make_counted<ql::datum_t>(std::move(m)),
                                      true);
-    return write_t(pw, DURABILITY_REQUIREMENT_SOFT, profile_bool_t::DONT_PROFILE);
+    return write_t(pw, DURABILITY_REQUIREMENT_SOFT, profile_bool_t::DONT_PROFILE,
+                   ql::configured_limits_t());
 }
 
 read_t mock_read(std::string key) {
@@ -144,7 +145,7 @@ void mock_store_t::read(
 
         auto it = table_.find(point_read->key);
         if (it == table_.end()) {
-            res->data.reset(new ql::datum_t(ql::datum_t::R_NULL));
+            res->data = ql::datum_t::null();
         } else {
             res->data = it->second.second;
         }

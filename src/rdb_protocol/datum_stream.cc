@@ -3,7 +3,6 @@
 
 #include <map>
 
-#include "clustering/administration/metadata.hpp"
 #include "rdb_protocol/batching.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
@@ -13,73 +12,6 @@
 #include "debug.hpp"
 
 namespace ql {
-
-rdb_namespace_interface_t::rdb_namespace_interface_t(
-        namespace_interface_t *internal)
-    : internal_(internal) { }
-
-void rdb_namespace_interface_t::read(
-        env_t *env,
-        const read_t &read,
-        read_response_t *response,
-        order_token_t tok)
-    THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    profile::starter_t starter("Perform read.", env->trace);
-    profile::splitter_t splitter(env->trace);
-    r_sanity_check(read.profile == env->profile());
-    /* Do the actual read. */
-    internal_->read(read, response, tok, env->interruptor);
-    /* Append the results of the parallel tasks to the current trace */
-    splitter.give_splits(response->n_shards, response->event_log);
-}
-
-void rdb_namespace_interface_t::read_outdated(
-        env_t *env,
-        const read_t &read,
-        read_response_t *response)
-    THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    profile::starter_t starter("Perform outdated read.", env->trace);
-    profile::splitter_t splitter(env->trace);
-    /* propagate whether or not we're doing profiles */
-    r_sanity_check(read.profile == env->profile());
-    /* Do the actual read. */
-    internal_->read_outdated(read, response, env->interruptor);
-    /* Append the results of the profile to the current task */
-    splitter.give_splits(response->n_shards, response->event_log);
-}
-
-void rdb_namespace_interface_t::write(
-        env_t *env,
-        write_t *write,
-        write_response_t *response,
-        order_token_t tok)
-    THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    profile::starter_t starter("Perform write", env->trace);
-    profile::splitter_t splitter(env->trace);
-    /* propagate whether or not we're doing profiles */
-    write->profile = env->profile();
-    /* Do the actual read. */
-    internal_->write(*write, response, tok, env->interruptor);
-    /* Append the results of the profile to the current task */
-    splitter.give_splits(response->n_shards, response->event_log);
-}
-
-std::set<region_t> rdb_namespace_interface_t::get_sharding_scheme()
-    THROWS_ONLY(cannot_perform_query_exc_t) {
-    return internal_->get_sharding_scheme();
-}
-
-signal_t *rdb_namespace_interface_t::get_initial_ready_signal() {
-    return internal_->get_initial_ready_signal();
-}
-
-rdb_namespace_access_t::rdb_namespace_access_t(uuid_u id, env_t *env)
-    : internal_(env->ns_repo(), id, env->interruptor)
-{ }
-
-rdb_namespace_interface_t rdb_namespace_access_t::get_namespace_if() {
-    return rdb_namespace_interface_t(internal_.get_namespace_if());
-}
 
 template<class T>
 T groups_to_batch(std::map<counted_t<const datum_t>, T> *g) {
@@ -91,12 +23,13 @@ T groups_to_batch(std::map<counted_t<const datum_t>, T> *g) {
     }
 }
 
+
 // RANGE/READGEN STUFF
 reader_t::reader_t(
-    const rdb_namespace_access_t &_ns_access,
+    const real_table_t &_table,
     bool _use_outdated,
     scoped_ptr_t<readgen_t> &&_readgen)
-    : ns_access(_ns_access),
+    : table(_table),
       use_outdated(_use_outdated),
       started(false), shards_exhausted(false),
       readgen(std::move(_readgen)),
@@ -135,18 +68,10 @@ void reader_t::accumulate_all(env_t *env, eager_acc_t *acc) {
 
 rget_read_response_t reader_t::do_read(env_t *env, const read_t &read) {
     read_response_t res;
-    try {
-        if (use_outdated) {
-            ns_access.get_namespace_if().read_outdated(env, read, &res);
-        } else {
-            ns_access.get_namespace_if().read(env, read, &res, order_token_t::ignore);
-        }
-    } catch (const cannot_perform_query_exc_t &e) {
-        rfail_datum(ql::base_exc_t::GENERIC, "cannot perform read: %s", e.what());
-    }
+    table.read_with_profile(env, read, &res, use_outdated);
     auto rget_res = boost::get<rget_read_response_t>(&res.response);
     r_sanity_check(rget_res != NULL);
-    if (auto e = boost::get<ql::exc_t>(&rget_res->result)) {
+    if (auto e = boost::get<exc_t>(&rget_res->result)) {
         throw *e;
     }
     return std::move(*rget_res);
@@ -197,13 +122,13 @@ bool reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
             }
 
             rcheck_datum(
-                (items.size() + new_items.size()) <= array_size_limit(),
+                (items.size() + new_items.size()) <= env->limits.array_size_limit(),
                 base_exc_t::GENERIC,
                 strprintf("Too many rows (> %zu) with the same "
                           "truncated key for index `%s`.  "
                           "Example value:\n%s\n"
                           "Truncated key:\n%s",
-                          array_size_limit(),
+                          env->limits.array_size_limit(),
                           readgen->sindex_name().c_str(),
                           items[items.size() - 1].sindex_key->trunc_print().c_str(),
                           key_to_debug_str(items[items.size() - 1].key).c_str()));
@@ -260,10 +185,10 @@ reader_t::next_batch(env_t *env, const batchspec_t &batchspec) {
                 res.push_back(std::move(items[items_index].data));
 
                 rcheck_datum(
-                    res.size() <= array_size_limit(), base_exc_t::GENERIC,
+                    res.size() <= env->limits.array_size_limit(), base_exc_t::GENERIC,
                     strprintf("Too many rows (> %zu) with the same value "
                               "for index `%s`:\n%s",
-                              array_size_limit(),
+                              env->limits.array_size_limit(),
                               readgen->sindex_name().c_str(),
                               // This is safe because you can't have duplicate
                               // primary keys, so they will never exceed the
@@ -527,13 +452,13 @@ counted_t<val_t> datum_stream_t::run_terminal(
     env_t *env, const terminal_variant_t &tv) {
     scoped_ptr_t<eager_acc_t> acc(make_eager_terminal(tv));
     accumulate(env, acc.get(), tv);
-    return acc->finish_eager(backtrace(), is_grouped());
+    return acc->finish_eager(backtrace(), is_grouped(), env->limits);
 }
 
 counted_t<val_t> datum_stream_t::to_array(env_t *env) {
     scoped_ptr_t<eager_acc_t> acc = make_to_array();
     accumulate_all(env, acc.get());
-    return acc->finish_eager(backtrace(), is_grouped());
+    return acc->finish_eager(backtrace(), is_grouped(), env->limits);
 }
 
 // DATUM_STREAM_T
@@ -660,8 +585,11 @@ eager_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &bs) {
 }
 
 counted_t<const datum_t> eager_datum_stream_t::as_array(env_t *env) {
-    if (is_grouped() || !is_array()) return counted_t<const datum_t>();
-    datum_ptr_t arr(datum_t::R_ARRAY);
+    if (is_grouped() || !is_array()) {
+        return counted_t<const datum_t>();
+    }
+
+    datum_array_builder_t arr(env->limits);
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
     {
         profile::sampler_t sampler("Evaluating stream eagerly.", env->trace);
@@ -670,18 +598,18 @@ counted_t<const datum_t> eager_datum_stream_t::as_array(env_t *env) {
             sampler.new_sample();
         }
     }
-    return arr.to_counted();
+    return std::move(arr).to_counted();
 }
 
 // LAZY_DATUM_STREAM_T
 lazy_datum_stream_t::lazy_datum_stream_t(
-    rdb_namespace_access_t *ns_access,
+    const real_table_t &_table,
     bool use_outdated,
     scoped_ptr_t<readgen_t> &&readgen,
     const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(bt_src),
       current_batch_offset(0),
-      reader(*ns_access, use_outdated, std::move(readgen)) { }
+      reader(_table, use_outdated, std::move(readgen)) { }
 
 void lazy_datum_stream_t::add_transformation(transform_variant_t &&tv,
                                              const protob_t<const Backtrace> &bt) {
@@ -920,7 +848,7 @@ zip_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
 void union_datum_stream_t::add_transformation(transform_variant_t &&tv,
                                               const protob_t<const Backtrace> &bt) {
     for (auto it = streams.begin(); it != streams.end(); ++it) {
-        (*it)->add_transformation(transform_variant_t(std::move(tv)), bt);
+        (*it)->add_transformation(transform_variant_t(tv), bt);
     }
     update_bt(bt);
 }
@@ -951,7 +879,7 @@ counted_t<const datum_t> union_datum_stream_t::as_array(env_t *env) {
     if (!is_array()) {
         return counted_t<const datum_t>();
     }
-    datum_ptr_t arr(datum_t::R_ARRAY);
+    datum_array_builder_t arr(env->limits);
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
     {
         profile::sampler_t sampler("Evaluating stream eagerly.", env->trace);
@@ -960,7 +888,7 @@ counted_t<const datum_t> union_datum_stream_t::as_array(env_t *env) {
             sampler.new_sample();
         }
     }
-    return arr.to_counted();
+    return std::move(arr).to_counted();
 }
 
 bool union_datum_stream_t::is_exhausted() const {

@@ -5,6 +5,7 @@ import numbers
 import collections
 import time
 import re
+import base64
 import json as py_json
 from threading import Lock
 
@@ -14,17 +15,31 @@ from . import ql2_pb2 as p
 
 pTerm = p.Term.TermType
 
+try:
+    unicode
+except NameError:
+    unicode = str
+try:
+    xrange
+except NameError:
+    xrange = range
+try:
+    {}.iteritems
+    dict_items = lambda d: d.iteritems()
+except AttributeError:
+    dict_items = lambda d: d.items()
+
 # This is both an external function and one used extensively
 # internally to convert coerce python values to RQL types
 def expr(val, nesting_depth=20):
     '''
         Convert a Python primitive into a RQL primitive value
     '''
-    if nesting_depth <= 0:
-        raise RqlDriverError("Nesting depth limit exceeded")
-
     if not isinstance(nesting_depth, int):
         raise RqlDriverError("Second argument to `r.expr` must be a number.")
+    
+    if nesting_depth <= 0:
+        raise RqlDriverError("Nesting depth limit exceeded")
 
     if isinstance(val, RqlQuery):
         return val
@@ -35,7 +50,7 @@ def expr(val, nesting_depth=20):
         # MakeObj doesn't take the dict as a keyword args to avoid
         # conflicting with the `self` parameter.
         obj = {}
-        for (k,v) in val.iteritems():
+        for k, v in dict_items(val):
             obj[k] = expr(v, nesting_depth - 1)
         return MakeObj(obj)
     elif isinstance(val, collections.Callable):
@@ -49,6 +64,12 @@ def expr(val, nesting_depth=20):
             use one of ReQL's bultin time constructors, r.now, r.time, or r.iso8601.
             """ % (type(val).__name__))
         return ISO8601(val.isoformat())
+    elif isinstance(val, RqlBinary):
+        return Binary(val)
+    elif isinstance(val, str):
+        return Datum(val)
+    elif isinstance(val, bytes):
+        return Binary(val)
     else:
         return Datum(val)
 
@@ -59,7 +80,7 @@ class RqlQuery(object):
         self.args = [expr(e) for e in args]
 
         self.optargs = {}
-        for (k,v) in optargs.iteritems():
+        for k, v in dict_items(optargs):
             if not isinstance(v, RqlQuery) and v == ():
                 continue
             self.optargs[k] = expr(v)
@@ -85,7 +106,7 @@ class RqlQuery(object):
     def build(self):
         res = [self.tt, [arg.build() for arg in self.args]]
         if len(self.optargs) > 0:
-            res.append(dict((k, v.build()) for (k,v) in self.optargs.iteritems()))
+            res.append(dict((k, v.build()) for k, v in dict_items(self.optargs)))
         return res
 
     # The following are all operators and methods that operate on
@@ -136,6 +157,12 @@ class RqlQuery(object):
         return Div(self, other)
 
     def __rdiv__(self, other):
+        return Div(other, self)
+
+    def __truediv__(self, other):
+        return Div(self, other)
+
+    def __rtruediv__(self, other):
         return Div(other, self)
 
     def __mod__(self, other):
@@ -240,18 +267,18 @@ class RqlQuery(object):
     def update(self, *args, **kwargs):
         kwargs.setdefault('non_atomic', ())
         kwargs.setdefault('durability', ())
-        kwargs.setdefault('return_vals', ())
+        kwargs.setdefault('return_changes', ())
         return Update(self, *[func_wrap(arg) for arg in args], **kwargs)
 
     def replace(self, *args, **kwargs):
         kwargs.setdefault('non_atomic', ())
         kwargs.setdefault('durability', ())
-        kwargs.setdefault('return_vals', ())
+        kwargs.setdefault('return_changes', ())
         return Replace(self, *[func_wrap(arg) for arg in args], **kwargs)
 
     def delete(self, *args, **kwargs):
         kwargs.setdefault('durability', ())
-        kwargs.setdefault('return_vals', ())
+        kwargs.setdefault('return_changes', ())
         return Delete(self, *args, **kwargs)
 
     # Rql type inspection
@@ -298,7 +325,7 @@ class RqlQuery(object):
                 return Slice(self, index.start or 0, -1, right_bound='closed', bracket_operator=True)
         elif isinstance(index, int):
             return Nth(self, index, bracket_operator=True)
-        elif isinstance(index, types.StringTypes):
+        elif isinstance(index, (str, unicode)):
             return GetField(self, index, bracket_operator=True)
         elif isinstance(index, RqlQuery):
             raise RqlDriverError(
@@ -312,9 +339,9 @@ class RqlQuery(object):
 
     def __iter__(*args, **kwargs):
         raise RqlDriverError(
-                "__iter__ called on an RqlQuery object.\n"+
-                "To iterate over the results of a query, call run first.\n"+
-                "To iterate inside a query, use map or for_each.")
+            "__iter__ called on an RqlQuery object.\n"
+            "To iterate over the results of a query, call run first.\n"
+            "To iterate inside a query, use map or for_each.")
 
     def get_field(self, *args):
         return GetField(self, *args)
@@ -433,7 +460,7 @@ class RqlQuery(object):
     def sample(self, *args):
         return Sample(self, *args)
 
-    ## Time support
+    # Time support
 
     def to_iso8601(self, *args):
         return ToISO8601(self, *args)
@@ -515,18 +542,19 @@ class RqlBiCompareOperQuery(RqlBiOperQuery):
         for arg in args:
             try:
                 if arg.infix:
-                    err = "Calling '%s' on result of infix bitwise operator:\n" + \
-                          "%s.\n" + \
-                          "This is almost always a precedence error.\n" + \
-                          "Note that `a < b | b < c` <==> `a < (b | b) < c`.\n" + \
-                          "If you really want this behavior, use `.or_` or `.and_` instead."
+                    err = (
+                        "Calling '%s' on result of infix bitwise operator:\n"
+                        "%s.\n"
+                        "This is almost always a precedence error.\n"
+                        "Note that `a < b | b < c` <==> `a < (b | b) < c`.\n"
+                        "If you really want this behavior, use `.or_` or `.and_` instead.")
                     raise RqlDriverError(err % (self.st, QueryPrinter(self).print_query()))
             except AttributeError:
                 pass # No infix attribute, so not possible to be an infix bool operator
 
 class RqlTopLevelQuery(RqlQuery):
     def compose(self, args, optargs):
-        args.extend([T(k, '=', v) for (k,v) in optargs.iteritems()])
+        args.extend([T(k, '=', v) for k, v in dict_items(optargs)])
         return T('r.', self.st, '(', T(*(args), intsp=', '), ')')
 
 class RqlMethodQuery(RqlQuery):
@@ -538,7 +566,7 @@ class RqlMethodQuery(RqlQuery):
             args[0] = T('r.expr(', args[0], ')')
 
         restargs = args[1:]
-        restargs.extend([T(k, '=', v) for (k,v) in optargs.iteritems()])
+        restargs.extend([T(k, '=', v) for k, v in dict_items(optargs)])
         restargs = T(*restargs, intsp=', ')
 
         return T(args[0], '.', self.st, '(', restargs, ')')
@@ -602,13 +630,19 @@ def recursively_make_hashable(obj):
     if isinstance(obj, list):
         return tuple([recursively_make_hashable(i) for i in obj])
     elif isinstance(obj, dict):
-        return frozenset([(k, recursively_make_hashable(v)) for (k,v) in obj.iteritems()])
+        return frozenset([(k, recursively_make_hashable(v)) for k, v in dict_items(obj)])
     return obj
 
 def reql_type_grouped_data_to_object(obj):
     if not 'data' in obj:
         raise RqlDriverError('pseudo-type GROUPED_DATA object %s does not have the expected field "data".' % py_json.dumps(obj))
-    return dict([(recursively_make_hashable(k),v) for (k,v) in obj['data']])
+    return dict([(recursively_make_hashable(k), v) for k, v in obj['data']])
+
+def reql_type_binary_to_bytes(obj):
+    if not 'data' in obj:
+        raise RqlDriverError('pseudo-type BINARY object %s does not have the ' \
+                             'expected field "data".' % py_json.dumps(obj))
+    return RqlBinary(base64.b64decode(obj['data'].encode('utf-8')))
 
 def convert_pseudotype(obj, format_opts):
     reql_type = obj.get('$reql_type$')
@@ -626,6 +660,12 @@ def convert_pseudotype(obj, format_opts):
                 return reql_type_grouped_data_to_object(obj)
             elif group_format != 'raw':
                 raise RqlDriverError("Unknown group_format run option \"%s\"." % group_format)
+        elif reql_type == 'BINARY':
+            binary_format = format_opts.get('binary_format')
+            if binary_format is None or binary_format == 'native':
+                return reql_type_binary_to_bytes(obj)
+            elif binary_format != 'raw':
+                raise RqlDriverError("Unknown binary_format run option \"%s\"." % binary_format)
         else:
             raise RqlDriverError("Unknown pseudo-type %s" % reql_type)
     # If there was no pseudotype, or the time format is raw, return the original object
@@ -633,7 +673,7 @@ def convert_pseudotype(obj, format_opts):
 
 def recursively_convert_pseudotypes(obj, format_opts):
     if isinstance(obj, dict):
-        for (key, value) in obj.iteritems():
+        for key, value in dict_items(obj):
             obj[key] = recursively_convert_pseudotypes(value, format_opts)
         obj = convert_pseudotype(obj, format_opts)
     elif isinstance(obj, list):
@@ -665,7 +705,7 @@ class MakeArray(RqlQuery):
     tt = pTerm.MAKE_ARRAY
 
     def compose(self, args, optargs):
-        return T('[', T(*args, intsp=', '),']')
+        return T('[', T(*args, intsp=', '), ']')
 
     def do(self, *args):
         return FunCall(self, *args)
@@ -680,26 +720,26 @@ class MakeObj(RqlQuery):
         self.args = []
 
         self.optargs = {}
-        for (k,v) in obj_dict.iteritems():
-            if not isinstance(k, types.StringTypes):
+        for k, v in dict_items(obj_dict):
+            if not isinstance(k, (str, unicode)):
                 raise RqlDriverError("Object keys must be strings.");
             self.optargs[k] = expr(v)
 
     def build(self):
-        res = { }
-        for (k,v) in self.optargs.iteritems():
+        res = {}
+        for k, v in dict_items(self.optargs):
             k = k.build() if isinstance(k, RqlQuery) else k
             res[k] = v.build() if isinstance(v, RqlQuery) else v
         return res
 
     def compose(self, args, optargs):
-        return T('r.expr({', T(*[T(repr(k), ': ', v) for (k,v) in optargs.iteritems()], intsp=', '), '})')
+        return T('r.expr({', T(*[T(repr(k), ': ', v) for k, v in dict_items(optargs)], intsp=', '), '})')
 
 class Var(RqlQuery):
     tt = pTerm.VAR
 
     def compose(self, args, optargs):
-        return 'var_'+args[0]
+        return 'var_' + args[0]
 
 class JavaScript(RqlTopLevelQuery):
     tt = pTerm.JAVASCRIPT
@@ -919,9 +959,9 @@ class Table(RqlQuery):
     st = 'table'
 
     def insert(self, *args, **kwargs):
-        kwargs.setdefault('upsert', ())
+        kwargs.setdefault('conflict', ())
         kwargs.setdefault('durability', ())
-        kwargs.setdefault('return_vals', ())
+        kwargs.setdefault('return_changes', ())
         return Insert(self, *[expr(arg) for arg in args], **kwargs)
 
     def get(self, *args):
@@ -1199,6 +1239,41 @@ class Args(RqlTopLevelQuery):
     tt = pTerm.ARGS
     st = 'args'
 
+# Use this class as a wrapper to 'bytes' so we can tell the difference in Python2
+# (when reusing the result of a previous query)
+class RqlBinary(bytes):
+    def __new__(cls, *args, **kwargs):
+        return bytes.__new__(cls, *args, **kwargs)
+
+class Binary(RqlTopLevelQuery):
+    # Note: this term isn't actually serialized, it should exist only in the client
+    tt = None
+    st = 'binary'
+
+    def __init__(self, data):
+        # We only allow 'bytes' objects to be serialized as binary
+        # Python 2 - `bytes` is equivalent to `str`, either will be accepted
+        # Python 3 - `unicode` is equivalent to `str`, neither will be accepted
+        if isinstance(data, unicode):
+            raise RqlDriverError("Cannot convert a unicode string to binary, " \
+                                 "use `unicode.encode()` to specify the encoding.")
+        elif not isinstance(data, bytes):
+            raise RqlDriverError("Cannot convert %s to binary, convert the object " \
+                                 "to a `bytes` object first." % type(data).__name__)
+
+        self.data = data
+        self.base64_data = base64.b64encode(data)
+
+        # Kind of a hack to get around composing
+        self.args = []
+        self.optargs = {}
+
+    def compose(self, args, optargs):
+        return T('r.', self.st, '(bytes(', str(self.data), '))')
+        
+    def build(self):
+        return { '$reql_type$': 'BINARY', 'data': self.base64_data.decode('utf-8') }
+
 class ToISO8601(RqlMethodQuery):
     tt = pTerm.TO_ISO8601
     st = 'to_iso8601'
@@ -1283,7 +1358,7 @@ def _ivar_scan(query):
         return True
     if any([_ivar_scan(arg) for arg in query.args]):
         return True
-    if any([_ivar_scan(arg) for k,arg in query.optargs.iteritems()]):
+    if any([_ivar_scan(arg) for k, arg in dict_items(query.optargs)]):
         return True
     return False
 
@@ -1302,7 +1377,11 @@ class Func(RqlQuery):
     def __init__(self, lmbd):
         vrs = []
         vrids = []
-        for i in range(lmbd.func_code.co_argcount):
+        try:
+            code = lmbd.func_code
+        except AttributeError:
+            code = lmbd.__code__
+        for i in xrange(code.co_argcount):
             Func.lock.acquire()
             var_id = Func.nextVarId
             Func.nextVarId += 1

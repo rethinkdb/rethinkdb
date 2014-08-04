@@ -62,7 +62,7 @@ private:
             &registrations, rid, &deletion_cond);
 
         /* Begin monitoring the peer so we can disconnect when necessary. */
-        disconnect_watcher_t peer_monitor(mailbox_manager->get_connectivity_service(), peer);
+        disconnect_watcher_t peer_monitor(mailbox_manager, peer);
 
         /* Release the mutex, since we're done with our initial setup phase */
         {
