@@ -278,6 +278,8 @@ void iterate_ordered_by_version(reql_version_t reql_version,
             callable(pair.first, pair.second);
         }
     } else {
+        // The map is sorted with the wrong reql_version.  Copy it into a vector and
+        // sort it first.
         std::vector<std::pair<counted_t<const datum_t>, T> >
             vec(m->begin(), m->end());
         std::sort(vec.begin(), vec.end(),
