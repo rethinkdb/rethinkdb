@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from os.path import abspath, join
 from subprocess import check_call, CalledProcessError
 from os import environ
@@ -21,9 +23,9 @@ class ShellCommandTest(Test):
         return ShellCommandTest(self.command, env)
 
     def run(self):
-        print "Running shell command:", self.command
+        print("Running shell command:", self.command)
         for k in self.env:
-            print k, "=", self.env[k]
+            print(k, "=", self.env[k])
         env = environ.copy()
         env.update(self.env)
         check_call(self.command, shell=True, env=env)

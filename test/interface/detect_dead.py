@@ -42,4 +42,3 @@ with driver.Metacluster() as metacluster:
     assert len(access1.get_directory()) == len(access2.get_directory()) == 2
     cluster1.check_and_stop()
 print "Done."
-

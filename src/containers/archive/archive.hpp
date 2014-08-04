@@ -246,7 +246,7 @@ struct serialize_universal_size_t;
                                                                         \
     template <>                                                         \
     struct serialized_size_t<typ>                                       \
-        : public std::integral_constant<size_t, sizeof(typ)> { };       \
+        : public std::integral_constant<size_t, sizeof(typ)> { }; /* NOLINT(readability/braces) */       \
     template <>                                                         \
     struct serialize_universal_size_t<typ>                              \
         : public std::integral_constant<size_t, sizeof(typ)> { }

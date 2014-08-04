@@ -129,7 +129,7 @@ for i, machine_name in enumerate(machine_names):
     rdb_options = [binary]
     rdb_options.extend(["--directory", directory])
     rdb_options.extend(["--machine-name", machine_name])
-    rdb_options.extend(["--port-offset", str(i+port)])
+    rdb_options.extend(["--port-offset", str(i + port)])
     rdb_options.extend(["--bind", "all"])
     rdb_options.extend(["--cache-size", str(cache_size)])
 

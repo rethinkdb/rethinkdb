@@ -55,6 +55,6 @@ class Workload:
         rql_res = r.db(self.db).table(self.table).get(key).run(conn)
 
         if rql_res is None:
-            return { "errors": [ "key not found: %d" % original_key ] }
+            return {"errors": ["key not found: %d" % original_key]}
 
-        return { }
+        return {}

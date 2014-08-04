@@ -140,7 +140,7 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
              profile::trace_t *_trace)
     : evals_since_yield(0),
       global_optargs(std::move(optargs)),
-      limits(from_optargs(ctx, _interruptor, global_optargs)),
+      limits(from_optargs(ctx, _interruptor, &global_optargs)),
       reql_version(reql_version_t::LATEST),
       interruptor(_interruptor),
       trace(_trace),
