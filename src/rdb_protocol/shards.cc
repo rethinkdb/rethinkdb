@@ -159,7 +159,7 @@ private:
         if (sorting == sorting_t::UNORDERED) {
             for (auto it = streams.begin(); it != streams.end(); ++it) {
                 for (auto item = (*it)->begin(); item != (*it)->end(); ++item) {
-                    if (key_le(item->key, last_key)) {
+                    if (key_le.is_le(item->key, last_key)) {
                         out->push_back(std::move(*item));
                     }
                 }
@@ -175,12 +175,12 @@ private:
                 stream_t::iterator *best = NULL;
                 for (auto it = v.begin(); it != v.end(); ++it) {
                     if (it->first != it->second) {
-                        if (best == NULL || key_le(it->first->key, (*best)->key)) {
+                        if (best == NULL || key_le.is_le(it->first->key, (*best)->key)) {
                             best = &it->first;
                         }
                     }
                 }
-                if (best == NULL || !key_le((*best)->key, last_key)) break;
+                if (best == NULL || !key_le.is_le((*best)->key, last_key)) break;
                 out->push_back(std::move(**best));
                 ++(*best);
             }

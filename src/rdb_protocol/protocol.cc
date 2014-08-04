@@ -630,7 +630,7 @@ void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
         guarantee(resp);
         if (resp->truncated) {
             out->truncated = true;
-            if (best == NULL || key_le(resp->last_key, *best)) {
+            if (best == NULL || key_le.is_le(resp->last_key, *best)) {
                 best = &resp->last_key;
             }
         }
