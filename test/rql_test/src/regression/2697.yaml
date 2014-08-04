@@ -22,5 +22,13 @@ tests:
   - cd: r.table('2697').get(1)['a'].count()
     js: r.table('2697').get(1)('a').count()
     ot: 100000
+  - js: r.expr([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).concatMap(function(l) { return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }).concatMap(function(l) { return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }).concatMap(function(l) { return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }).concatMap(function(l) { return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }).spliceAt(0, [1]).count()
+    py: r.expr(ten_l).concat_map(lambda l:list(range(1,11))).concat_map(lambda l:list(range(1,11))).concat_map(lambda l:list(range(1,11))).concat_map(lambda l:list(range(1,11))).splice_at(0, [1]).count()
+    rb: r.expr(ten_l).concat_map {|l| ten_l}.concat_map {|l| ten_l}.concat_map {|l| ten_l}.concat_map {|l| ten_l}.splice_at(0, [1]).count()
+    ot: err("RqlRuntimeError", "Array over size limit `100000`.")
+  - js: r.expr([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).concatMap(function(l) { return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }).concatMap(function(l) { return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }).concatMap(function(l) { return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }).concatMap(function(l) { return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }).insertAt(0, [1]).count()
+    py: r.expr(ten_l).concat_map(lambda l:list(range(1,11))).concat_map(lambda l:list(range(1,11))).concat_map(lambda l:list(range(1,11))).concat_map(lambda l:list(range(1,11))).insert_at(0, [1]).count()
+    rb: r.expr(ten_l).concat_map {|l| ten_l}.concat_map {|l| ten_l}.concat_map {|l| ten_l}.concat_map {|l| ten_l}.insert_at(0, [1]).count()
+    ot: err("RqlRuntimeError", "Array over size limit `100000`.")
   - cd: r.table_drop('2697')
     ot: ({'dropped':1})
