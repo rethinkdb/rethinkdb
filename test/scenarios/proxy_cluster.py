@@ -37,4 +37,3 @@ with driver.Metacluster() as metacluster:
     workload_runner.run(opts["workload"], workload_ports, opts["timeout"])
 
     cluster.check_and_stop()
-

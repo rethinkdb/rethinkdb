@@ -11,13 +11,33 @@ tests:
       ot: "\"str\""
 
     # Unicode
-    - py: # Python supports unicode strings with the u'' pattern
+    
+    # Python supports unicode strings with the u'' pattern, except 3.0-3.2
+    - py: 
         cd: r.expr(u'str')
         ot: u'str'
+      py3.0:
+        cd: r.expr('str')
+        ot: "'str'"
+      py3.1:
+        cd: r.expr('str')
+        ot: "'str'"
+      py3.2:
+        cd: r.expr('str')
+        ot: "'str'"
       cd: []
     - py:
         cd: "r.expr(u'こんにちは')"
         ot: "u'こんにちは'"
+      py3.0:
+        cd: "r.expr('こんにちは')"
+        ot: "'こんにちは'"
+      py3.1:
+        cd: "r.expr('こんにちは')"
+        ot: "'こんにちは'"
+      py3.2:
+        cd: "r.expr('こんにちは')"
+        ot: "'こんにちは'"
       rb:
         cd: "r 'こんにちは'"
         ot: "'こんにちは'"

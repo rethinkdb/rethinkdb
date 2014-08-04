@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import os
 from sys import argv, path, exit, stdout
 from random import randint
@@ -9,6 +11,11 @@ from test_util import RethinkDBTestServers
 
 path.insert(0, "../../drivers/python")
 import rethinkdb as r
+
+try:
+    xrange
+except NameError:
+    xrange = range
 
 server_build_dir = argv[1]
 if len(argv) >= 3:
@@ -27,29 +34,30 @@ with RethinkDBTestServers(4, server_build_dir=server_build_dir) as servers:
 
     num_rows = randint(1111, 2222)
 
-    print "Inserting %d rows" % num_rows
-    documents = [{'id':i, 'nums':range(0, 500)} for i in xrange(0, num_rows)]
-    chunks = (documents[i : i+100] for i in range(0, len(documents), 100))
+    print("Inserting %d rows" % num_rows)
+    range500 = list(range(0, 500))
+    documents = [{'id':i, 'nums':range500} for i in xrange(0, num_rows)]
+    chunks = (documents[i : i + 100] for i in xrange(0, len(documents), 100))
     for chunk in chunks:
         tbl.insert(chunk).run(c)
-        print '.',
+        print('.', end=' ')
         stdout.flush()
-    print "Done\n"
+    print("Done\n")
     
     basedir = os.path.dirname(__file__)
     
     if not lang or lang == 'py':
-        print "Running Python"
-        res = res | call(["python", os.path.join(basedir, "cursor.py"), str(port), str(num_rows)])
-        print ''
+        print("Running Python")
+        res = res | call([os.environ.get('INTERPRETER_PATH', 'python'), os.path.join(basedir, "cursor.py"), str(port), str(num_rows)])
+        print('')
     if not lang or lang == 'js':
-        print "Running JS"
+        print("Running JS")
         res = res | call(["node", os.path.join(basedir, "cursor.js"), str(port), str(num_rows)])
-        print ''
+        print('')
     if not lang or lang == 'js-promise':
-        print "Running JS Promise"
+        print("Running JS Promise")
         res = res | call(["node", os.path.join(basedir, "promise.js"), str(port), str(num_rows)])
-        print ''
+        print('')
 
 
 if res is not 0:
