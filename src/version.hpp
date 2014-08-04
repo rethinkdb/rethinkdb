@@ -76,8 +76,6 @@ enum class reql_version_t {
     v1_14,
     v1_14_is_latest = v1_14,
     LATEST = v1_14_is_latest,
-    // RSI: Remove RSI here.
-    RSI = LATEST,
 };
 
 // Serialization of reql_version_t is defined in protocol.hpp.
