@@ -171,15 +171,14 @@ enum class order_doesnt_matter_t { };
 template<class T>
 class grouped_t {
 public:
-    explicit grouped_t() : m(counted_datum_less_t(reql_version_t::RSI)) { }
+    // We assume v1_14 ordering.  We could get fancy and allow either v1_13 or v1_14
+    // ordering, but usage of grouped_t inside of secondary index functions is the
+    // only place where we'd want v1_13 ordering, so let's not bother.
+    explicit grouped_t() : m(counted_datum_less_t(reql_version_t::v1_14_is_latest)) { }
     virtual ~grouped_t() { } // See grouped_data_t below.
     template <cluster_version_t W>
     typename std::enable_if<W == cluster_version_t::CLUSTER, void>::type
     rdb_serialize(write_message_t *wm) const {
-        // We SHOULD not have an unusual reql version when serializing for
-        // intracluster communication.
-        rassert(m.key_comp().reql_version() == reql_version_t::v1_14_is_latest);
-
         serialize_varint_uint64(wm, m.size());
         for (auto it = m.begin(); it != m.end(); ++it) {
             serialize_grouped<W>(wm, it->first);
@@ -242,6 +241,53 @@ private:
 };
 
 RDB_SERIALIZE_TEMPLATED_OUTSIDE(grouped_t);
+
+namespace grouped_details {
+
+template <class T>
+class grouped_pair_compare_t {
+public:
+    explicit grouped_pair_compare_t(reql_version_t _reql_version)
+        : reql_version(_reql_version) { }
+
+    bool operator()(const std::pair<counted_t<const datum_t>, T> &a,
+                    const std::pair<counted_t<const datum_t>, T> &b) const {
+        // We know the keys are different, this is only used in
+        // iterate_ordered_by_version.
+        return a.first->compare_lt(reql_version, *b.first);
+    }
+
+private:
+    reql_version_t reql_version;
+};
+
+}  // namespace grouped_details
+
+// For some people that iterate a grouped_t, order matters.  If the grouped_t is
+// sorted by a different ordering than the one which they're expecting (because of
+// reql version compatibility), we have to copy the elements to a vector and sort
+// them before iterating them.
+template <class T, class Callable>
+void iterate_ordered_by_version(reql_version_t reql_version,
+                                grouped_t<T> &&grouped,
+                                Callable &&callable) {
+    std::map<counted_t<const datum_t>, T, counted_datum_less_t> *m
+        = grouped.get_underlying_map(grouped::order_doesnt_matter_t());
+    if (m->key_comp().reql_version() == reql_version) {
+        for (std::pair<const counted_t<const datum_t>, T> &pair : *m) {
+            callable(std::move(pair));
+        }
+    } else {
+        std::vector<std::pair<counted_t<const datum_t>, T> >
+            vec(m->begin(), m->end());
+        std::sort(vec.begin(), vec.end(),
+                  grouped_details::grouped_pair_compare_t<T>(reql_version));
+        for (std::pair<counted_t<const datum_t>, T> &pair : vec) {
+            callable(std::move(pair));
+        }
+    }
+}
+
 
 // We need a separate class for this because inheriting from
 // `slow_atomic_countable_t` deletes our copy constructor, but boost variants

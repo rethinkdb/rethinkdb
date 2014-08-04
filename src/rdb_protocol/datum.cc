@@ -133,14 +133,16 @@ counted_t<const datum_t> to_datum(grouped_data_t &&gd,
         // RSI: Order is actually mattering here!?
         datum_array_builder_t arr(limits);
         arr.reserve(gd.size());
-        for (auto kv = gd.begin(grouped::order_doesnt_matter_t());
-             kv != gd.end(grouped::order_doesnt_matter_t());
-             ++kv) {
-            arr.add(make_counted<const datum_t>(
+        iterate_ordered_by_version(
+                reql_version_t::RSI,
+                std::move(gd),
+                [&arr, &limits](std::pair<counted_t<const datum_t>,
+                                          counted_t<const datum_t> > &&kv) {
+                    arr.add(make_counted<const datum_t>(
                             std::vector<counted_t<const datum_t> >{
-                                std::move(kv->first), std::move(kv->second) },
+                                std::move(kv.first), std::move(kv.second) },
                             limits));
-        }
+                });
         map["data"] = std::move(arr).to_counted();
     }
 
