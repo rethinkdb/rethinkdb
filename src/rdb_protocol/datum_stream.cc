@@ -366,12 +366,20 @@ scoped_ptr_t<readgen_t> sindex_readgen_t::make(
 
 class sindex_compare_t {
 public:
-    explicit sindex_compare_t(sorting_t _sorting) : sorting(_sorting) { }
+    explicit sindex_compare_t(sorting_t _sorting)
+        : sorting(_sorting) { }
     bool operator()(const rget_item_t &l, const rget_item_t &r) {
         r_sanity_check(l.sindex_key.has() && r.sindex_key.has());
+
+        // We don't have to worry about v1.13.x because there's no way this is
+        // running inside of a secondary index function.  Also, in case you're
+        // wondering, it's okay for this ordering to be different from the buggy
+        // secondary index key ordering that existed in v1.13.  It was different in
+        // v1.13 itself.  For that, we use the last_key value in the
+        // rget_read_response_t.
         return reversed(sorting)
-            ? l.sindex_key->compare_gt(reql_version_t::RSI, *r.sindex_key)
-            : l.sindex_key->compare_lt(reql_version_t::RSI, *r.sindex_key);
+            ? l.sindex_key->compare_gt(reql_version_t::LATEST, *r.sindex_key)
+            : l.sindex_key->compare_lt(reql_version_t::LATEST, *r.sindex_key);
     }
 private:
     sorting_t sorting;
