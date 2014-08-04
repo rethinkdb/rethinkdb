@@ -298,6 +298,7 @@ class RDBVal extends TermBase
     indexList: (args...) -> new IndexList {}, @, args...
     indexStatus: (args...) -> new IndexStatus {}, @, args...
     indexWait: (args...) -> new IndexWait {}, @, args...
+    indexRename: aropt (old_name, new_name, opts) -> new IndexRename opts, @, old_name, new_name
 
     sync: (args...) -> new Sync {}, @, args...
 
@@ -859,6 +860,10 @@ class IndexCreate extends RDBOp
 class IndexDrop extends RDBOp
     tt: protoTermType.INDEX_DROP
     mt: 'indexDrop'
+
+class IndexRename extends RDBOp
+    tt: protoTermType.INDEX_RENAME
+    mt: 'indexRename'
 
 class IndexList extends RDBOp
     tt: protoTermType.INDEX_LIST
