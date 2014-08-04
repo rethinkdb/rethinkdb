@@ -136,12 +136,12 @@ to_datum_for_client_serialization(grouped_data_t &&gd,
         arr.reserve(gd.size());
         iterate_ordered_by_version(
                 reql_version,
-                std::move(gd),
-                [&arr, &limits](std::pair<counted_t<const datum_t>,
-                                          counted_t<const datum_t> > &&kv) {
+                gd,
+                [&arr, &limits](const counted_t<const datum_t> &key,
+                                counted_t<const datum_t> &value) {
                     arr.add(make_counted<const datum_t>(
                             std::vector<counted_t<const datum_t> >{
-                                std::move(kv.first), std::move(kv.second) },
+                                key, std::move(value) },
                             limits));
                 });
         map["data"] = std::move(arr).to_counted();

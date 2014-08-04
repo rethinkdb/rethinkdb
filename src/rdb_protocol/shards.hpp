@@ -269,13 +269,13 @@ private:
 // them before iterating them.
 template <class T, class Callable>
 void iterate_ordered_by_version(reql_version_t reql_version,
-                                grouped_t<T> &&grouped,
+                                grouped_t<T> &grouped,
                                 Callable &&callable) {
     std::map<counted_t<const datum_t>, T, counted_datum_less_t> *m
         = grouped.get_underlying_map(grouped::order_doesnt_matter_t());
     if (m->key_comp().reql_version() == reql_version) {
         for (std::pair<const counted_t<const datum_t>, T> &pair : *m) {
-            callable(std::move(pair));
+            callable(pair.first, pair.second);
         }
     } else {
         std::vector<std::pair<counted_t<const datum_t>, T> >
@@ -283,7 +283,7 @@ void iterate_ordered_by_version(reql_version_t reql_version,
         std::sort(vec.begin(), vec.end(),
                   grouped_details::grouped_pair_compare_t<T>(reql_version));
         for (std::pair<counted_t<const datum_t>, T> &pair : vec) {
-            callable(std::move(pair));
+            callable(pair.first, pair.second);
         }
     }
 }

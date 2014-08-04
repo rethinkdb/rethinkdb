@@ -222,6 +222,7 @@ private:
     virtual void add_res(env_t *env, result_t *res) {
         grouped_t<stream_t> *streams = boost::get<grouped_t<stream_t> >(res);
         r_sanity_check(streams);
+
         // RSI: The order in which we iterate `streams` actually does matter here.
         for (auto kv = streams->begin(grouped::order_doesnt_matter_t());
              kv != streams->end(grouped::order_doesnt_matter_t());
