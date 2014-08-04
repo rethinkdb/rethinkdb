@@ -223,7 +223,8 @@ private:
         grouped_t<stream_t> *streams = boost::get<grouped_t<stream_t> >(res);
         r_sanity_check(streams);
 
-        // RSI: The order in which we iterate `streams` actually does matter here.
+        // The order in which we iterate `streams` doesn't matter here because all
+        // the `kv->first` values are unique.
         for (auto kv = streams->begin(grouped::order_doesnt_matter_t());
              kv != streams->end(grouped::order_doesnt_matter_t());
              ++kv) {
@@ -235,7 +236,7 @@ private:
                 strprintf("Grouped data over size limit %zu.  "
                           "Try putting a reduction (like `.reduce` or `.count`) "
                           "on the end.", env->limits.array_size_limit()).c_str());
-            lst->reserve(lst->size() + stream->size());
+
             for (auto it = stream->begin(); it != stream->end(); ++it) {
                 lst->push_back(std::move(it->data));
             }
