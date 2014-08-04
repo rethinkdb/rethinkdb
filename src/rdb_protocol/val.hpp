@@ -14,7 +14,6 @@
 
 namespace ql {
 class datum_t;
-class rdb_namespace_access_t;
 class env_t;
 template <class> class protob_t;
 class scope_env_t;
@@ -22,9 +21,11 @@ class stream_cache_t;
 class term_t;
 class val_t;
 
+/* A `table_t` is an `r.table` term, possibly with some other things chained onto
+onto it. */
 class table_t : public single_threaded_countable_t<table_t>, public pb_rcheckable_t {
 public:
-    table_t(env_t *env,
+    table_t(scoped_ptr_t<base_table_t> &&,
             counted_t<const db_t> db, const std::string &name,
             bool use_outdated, const protob_t<const Backtrace> &src);
     counted_t<datum_stream_t> as_datum_stream(env_t *env,
@@ -52,14 +53,14 @@ public:
         counted_t<func_t> replacement_generator,
         bool nondeterministic_replacements_ok,
         durability_requirement_t durability_requirement,
-        bool return_vals);
+        return_changes_t return_changes);
 
     counted_t<const datum_t> batched_insert(
         env_t *env,
         std::vector<counted_t<const datum_t> > &&insert_datums,
         conflict_behavior_t conflict_behavior,
         durability_requirement_t durability_requirement,
-        bool return_vals);
+        return_changes_t return_changes);
 
     MUST_USE bool sindex_create(
         env_t *env, const std::string &name,
@@ -70,19 +71,17 @@ public:
         std::set<std::string> sindex);
     MUST_USE bool sync(env_t *env, const rcheckable_t *parent);
 
+    /* `db` and `name` are for display purposes only */
     counted_t<const db_t> db;
     const std::string name;
     std::string display_name() {
         return db->name + "." + name;
     }
 
-    uuid_u get_uuid() const { return uuid; }
+    scoped_ptr_t<base_table_t> table;
+
 private:
     friend class distinct_term_t;
-
-    template<class T>
-    counted_t<const datum_t> do_batched_write(
-        env_t *env, T &&t, durability_requirement_t durability_requirement);
 
     counted_t<const datum_t> batched_insert_with_keys(
         env_t *env,
@@ -95,16 +94,11 @@ private:
         env_t *env, durability_requirement_t durability_requirement);
 
     bool use_outdated;
-    std::string pkey;
-    scoped_ptr_t<rdb_namespace_access_t> access;
 
     boost::optional<std::string> sindex_id;
 
     datum_range_t bounds;
     sorting_t sorting;
-
-    // The uuid of the table in the metadata.
-    uuid_u uuid;
 };
 
 

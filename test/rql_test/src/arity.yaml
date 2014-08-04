@@ -61,6 +61,10 @@ tests:
 
     - cd: r.expr()
       ot:
+        py3: err_regex('TypeError', '.* missing 1 required positional argument.*', [])
+        py3.0: err_regex('TypeError', '.*takes at least 1 argument \(0 given\)', [])
+        py3.1: err_regex('TypeError', '.*takes at least 1 argument \(0 given\)', [])
+        py3.2: err_regex('TypeError', '.*takes at least 1 argument \(0 given\)', [])
         py: err_regex('TypeError', ".*takes at least 1 argument \(0 given\)", [])
         js: err("RqlDriverError", "Expected between 1 and 2 arguments but found 0.", [])
         rb: err_regex("ArgumentError", '.*wrong number of arguments \(0 for 1.*\)', [])
@@ -283,6 +287,10 @@ tests:
         js: err("RqlDriverError", "Expected 1 argument (not including options) but found 2.", [])
         rb: err("RqlCompileError", "Expected 1 argument but found 2.", [])
         py: err_regex('TypeError', ".*takes exactly 1 argument \(2 given\)", [])
+        py3.0: err_regex('TypeError', ".*takes exactly 1 positional argument \(2 given\)", [])
+        py3.1: err_regex('TypeError', ".*takes exactly 1 positional argument \(2 given\)", [])
+        py3.2: err_regex('TypeError', ".*takes exactly 1 positional argument \(2 given\)", [])
+        py3: err_regex('TypeError', ".*takes 1 positional argument but 2 were given", [])
 
     # TODO: Math and logic
     # TODO: Upper bound on optional arguments

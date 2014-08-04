@@ -31,17 +31,16 @@ with driver.Metacluster() as metacluster:
     http.move_server_to_datacenter(processes[1].files.machine_name, dc2)
 
     primary_dc, secondary_dc = dc1, dc2
-    ns = scenario_common.prepare_table_for_workload(http, primary = primary_dc, affinities = {primary_dc: 0, secondary_dc: 1})
+    ns = scenario_common.prepare_table_for_workload(http, primary=primary_dc, affinities={primary_dc: 0, secondary_dc: 1})
     http.wait_until_blueprint_satisfied(ns)
 
     for i in xrange(opts["num-changes"]):
         print "Swap %d..." % i
         primary_dc, secondary_dc = secondary_dc, primary_dc
         http.move_table_to_datacenter(ns, primary_dc)
-        http.set_table_affinities(ns, {primary_dc: 0, secondary_dc: 1})
+        http.set_table_affinities(ns, {primary_dc:0, secondary_dc:1})
         http.wait_until_blueprint_satisfied(ns)
         cluster.check()
         http.check_no_issues()
 
     cluster.check_and_stop()
-

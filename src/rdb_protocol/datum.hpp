@@ -144,6 +144,9 @@ public:
     static const size_t trunc_len = 300;
     std::string trunc_print() const;
     std::string print_primary() const;
+
+    /* TODO: All of this key-mangling logic belongs elsewhere. Maybe
+    `print_primary()` belongs there as well. */
     static std::string mangle_secondary(const std::string &secondary,
             const std::string &primary, const std::string &tag);
     std::string print_secondary(const store_key_t &key,
@@ -378,4 +381,5 @@ public:
 } // namespace pseudo
 
 } // namespace ql
+
 #endif // RDB_PROTOCOL_DATUM_HPP_

@@ -1,5 +1,42 @@
-import collections, os, pytz, re, sys, types
-from datetime import datetime
+from __future__ import print_function
+
+import collections, os, re, sys
+from datetime import datetime, tzinfo, timedelta
+
+try:
+    unicode
+except NameError:
+    unicode = str
+try:
+	xrange
+except NameError:
+	xrange = range
+
+# -- timezone objects
+
+class UTCTimeZone(tzinfo):
+    '''UTC'''
+    
+    def utcoffset(self, dt):
+        return timedelta(0)
+    
+    def tzname(self, dt):
+        return "UTC"
+    
+    def dst(self, dt):
+        return timedelta(0)
+
+class PacificTimeZone(tzinfo):
+    '''Pacific timezone emulator for timestamp: 1375147296.68'''
+    
+    def utcoffset(self, dt):
+        return timedelta(-1, 61200)
+    
+    def tzname(self, dt):
+        return 'PDT'
+    
+    def dst(self, dt):
+        return timedelta(0, 3600)
 
 # -- import test resources - NOTE: these are path dependent
 
@@ -35,8 +72,8 @@ def print_test_failure(test_name, test_src, message):
     global failure_count
     failure_count = failure_count + 1
     print('')
-    print("TEST FAILURE: %s", test_name.encode('utf-8'))
-    print("TEST BODY: %s", test_src.encode('utf-8'))
+    print("TEST FAILURE: %s" % test_name)
+    print("TEST BODY: %s" % test_src)
     print(message)
     print('')
 
@@ -74,19 +111,19 @@ class Lst:
 
 class Bag(Lst):
     def __init__(self, lst):
-        self.lst = sorted(lst)
+        self.lst = sorted(lst, key=lambda x: repr(x))
 
     def __eq__(self, other):
         if not hasattr(other, '__iter__'):
             return False
 
-        other = sorted(other)
+        other = sorted(other, key=lambda x: repr(x))
 
         if len(self.lst) != len(other):
             return False
 
-        for i in xrange(len(self.lst)):
-            if not self.lst[i] == other[i]:
+        for a, b in zip(self.lst, other):
+            if a != b:
                 return False
 
         return True
@@ -96,14 +133,14 @@ class Dct:
         self.dct = dct
 
     def __eq__(self, other):
-        if not isinstance(other, types.DictType):
+        if not isinstance(other, dict):
             return False
 
-        for key in self.dct.keys():
-            if not key in other.keys():
+        for key in self.dct:
+            if not key in other:
                 return False
             val = other[key]
-            if isinstance(val, str) or isinstance(val, unicode):
+            if isinstance(val, (str, unicode)):
                 # Remove additional error info that creeps in in debug mode
                 val = re.sub("(?ms)\nFailed assertion:.*", "", val)
             other[key] = val
@@ -118,7 +155,7 @@ class Err:
     def __init__(self, err_type=None, err_msg=None, err_frames=None, regex=False):
         self.etyp = err_type
         self.emsg = err_msg
-        self.frames = None #err_frames # TODO: test frames
+        self.frames = None # err_frames # TODO: test frames
         self.regex = regex
 
     def __eq__(self, other):
@@ -129,18 +166,21 @@ class Err:
             return False
 
         if self.regex:
-            return re.match(self.emsg, other.message)
+            return re.match(self.emsg, str(other))
 
         else:
+            otherMessage = str(other)
+            if isinstance(other, (r.errors.RqlError, r.errors.RqlDriverError)):
+                otherMessage = other.message
+                            
+                # Strip "offending object" from the error message
+                otherMessage = re.sub("(?ms)(\.)?( in)?:\n.*", ".", otherMessage)
+                otherMessage = re.sub("(?ms)\nFailed assertion:.*", "", otherMessage)
 
-            # Strip "offending object" from the error message
-            other.message = re.sub("(?ms):\n.*", ".", other.message)
-            other.message = re.sub("(?ms)\nFailed assertion:.*", "", other.message)
-
-            if self.emsg and self.emsg != other.message:
+            if self.emsg and self.emsg != otherMessage:
                 return False
 
-            if self.frames and self.frames != other.frames:
+            if self.frames and (not hasattr(other, 'frames') or self.frames != other.frames):
                 return False
 
             return True
@@ -171,7 +211,7 @@ class Arr:
 
 class Uuid:
     def __eq__(self, thing):
-        if not isinstance(thing, types.StringTypes):
+        if not isinstance(thing, (str, unicode)):
             return False
         return re.match("[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}", thing) != None
 
@@ -231,25 +271,25 @@ class PyTestDriver:
         if runopts:
             runopts["profile"] = True
         else:
-            runopts = {"profile" : True}
+            runopts = {"profile": True}
 
         # Try to build the expected result
         if expected:
-            exp_val = eval(expected, dict(globals().items() + self.scope.items()))
+            exp_val = eval(expected, dict(list(globals().items()) + list(self.scope.items())))
         else:
             # This test might not have come with an expected result, we'll just ensure it doesn't fail
             exp_val = ()
 
         # Try to build the test
         try:
-            query = eval(src, dict(globals().items() + self.scope.items()))
+            query = eval(src, dict(list(globals().items()) + list(self.scope.items())))
         except Exception as err:
             if not isinstance(exp_val, Err):
                 print_test_failure(name, src, "Error eval'ing test src:\n\t%s" % repr(err))
             elif not eq(exp_val)(err):
-                print_test_failure(name, src,
-                    "Error eval'ing test src not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" %
-                        (repr(err), repr(exp_val))
+                print_test_failure(
+                    name, src,
+                    "Error eval'ing test src not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" % (repr(err), repr(exp_val))
                 )
 
             return # Can't continue with this test if there is no test query
@@ -265,18 +305,18 @@ class PyTestDriver:
 
             # And comparing the expected result
             if not eq(exp_val)(cppres):
-                print_test_failure(name, src,
-                    "CPP result is not equal to expected result:\n\tVALUE: %s\n\tEXPECTED: %s" %
-                        (repr(cppres), repr(exp_val))
+                print_test_failure(
+                    name, src,
+                    "CPP result is not equal to expected result:\n\tVALUE: %s\n\tEXPECTED: %s" % (repr(cppres), repr(exp_val))
                 )
 
         except Exception as err:
             if not isinstance(exp_val, Err):
-                print_test_failure(name, src, "Error running test on CPP server:\n\t%s %s" % (repr(err), err.message))
+                print_test_failure(name, src, "Error running test on CPP server:\n\t%s %s" % (repr(err), str(err)))
             elif not eq(exp_val)(err):
-                print_test_failure(name, src,
-                    "Error running test on CPP server not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" %
-                        (repr(err), repr(exp_val))
+                print_test_failure(
+                    name, src,
+                    "Error running test on CPP server not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" % (repr(err), repr(exp_val))
                 )
 
 driver = PyTestDriver()
@@ -284,7 +324,7 @@ driver.connect()
 
 # Emitted test code will consist of calls to this function
 def test(query, expected, name, runopts={}):
-    for (k,v) in runopts.items():
+    for k, v in runopts.items():
         if isinstance(v, str):
             runopts[k] = eval(v)
     if 'batch_conf' not in runopts:

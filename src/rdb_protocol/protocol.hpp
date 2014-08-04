@@ -22,6 +22,7 @@
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/changefeed.hpp"
+#include "rdb_protocol/changes.hpp"
 #include "rdb_protocol/context.hpp"
 #include "region/region.hpp"
 #include "repli_timestamp.hpp"
@@ -522,17 +523,16 @@ struct batched_replace_t {
             const std::string &_pkey,
             const counted_t<ql::func_t> &func,
             const std::map<std::string, ql::wire_func_t > &_optargs,
-            bool _return_vals)
+            return_changes_t _return_changes)
         : keys(std::move(_keys)), pkey(_pkey), f(func), optargs(_optargs),
-          return_vals(_return_vals) {
+          return_changes(_return_changes) {
         r_sanity_check(keys.size() != 0);
-        r_sanity_check(keys.size() == 1 || !return_vals);
     }
     std::vector<store_key_t> keys;
     std::string pkey;
     ql::wire_func_t f;
     std::map<std::string, ql::wire_func_t > optargs;
-    bool return_vals;
+    return_changes_t return_changes;
 };
 
 RDB_DECLARE_SERIALIZABLE(batched_replace_t);
@@ -543,12 +543,11 @@ struct batched_insert_t {
             std::vector<counted_t<const ql::datum_t> > &&_inserts,
             const std::string &_pkey, conflict_behavior_t _conflict_behavior,
             const ql::configured_limits_t &_limits,
-            bool _return_vals)
+            return_changes_t _return_changes)
         : inserts(std::move(_inserts)), pkey(_pkey),
           conflict_behavior(_conflict_behavior), limits(_limits),
-          return_vals(_return_vals) {
+          return_changes(_return_changes) {
         r_sanity_check(inserts.size() != 0);
-        r_sanity_check(inserts.size() == 1 || !return_vals);
 #ifndef NDEBUG
         // These checks are done above us, but in debug mode we do them
         // again.  (They're slow.)  We do them above us because the code in
@@ -570,7 +569,7 @@ struct batched_insert_t {
     std::string pkey;
     conflict_behavior_t conflict_behavior;
     ql::configured_limits_t limits;
-    bool return_vals;
+    return_changes_t return_changes;
 };
 
 RDB_DECLARE_SERIALIZABLE(batched_insert_t);

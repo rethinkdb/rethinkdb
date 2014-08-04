@@ -98,7 +98,7 @@ class BtreeKey(object):
     def parse(cls, block, offset = 0):
         
         size, offset = parse_uint8_t(block, offset)
-        value, offset = block[offset : offset + size], offset + size
+        value, offset = block[offset: offset + size], offset + size
         
         return cls(value), offset
     
@@ -139,10 +139,10 @@ class BtreeValue(object):
             superblock_id, offset = parse_block_id(block, offset)
             superblock = bgrp.try_parse(superblock_id, BtreeLargeValueSuperblock, large_value_size)
             return BtreeLargeValue(large_value_size, superblock, flags, cas, exptime)
-            
+        
         else:
             # Small value
-            value, offset = block[offset : value_start_offset + size], value_start_offset + size
+            value, offset = block[offset: value_start_offset + size], value_start_offset + size
             return BtreeSmallValue(value, cas, flags, exptime), offset
     
     def __init__(self, flags, cas, exptime):
@@ -186,8 +186,7 @@ class BtreeLargeValueSuperblock(object):
         
         size2, offset = parse_uint32_t(block, offset)
         if size2 != size:
-            raise ValueError("Leaf node said this large block was %d bytes, but the index block " \
-                "says it's %d bytes." % (size, size2))
+            raise ValueError("Leaf node said this large block was %d bytes, but the index block says it's %d bytes." % (size, size2))
         
         num_segments, offset = parse_uint16_t(block, offset)
         first_block_offset, offset = parse_uint16_t(block, offset)
@@ -296,7 +295,7 @@ class BtreeInternalNode(BtreeNode):
     def from_block(cls, bgrp, block):
         
         offset = 0
-            
+        
         type, offset = parse_int(block, offset)
         assert type == 2
         
@@ -344,12 +343,15 @@ class Superblock(object):
     def from_block(cls, bgrp, block):
         
         offset = 0
-    
-        btree_superblock_t, parse_superblock = make_struct("Superblock", [
-            ("database_exists", parse_int),
-            (None, parse_padding(4)),
-            ("root_id", parse_block_id),
-            ])
+        
+        btree_superblock_t, parse_superblock = make_struct(
+            "Superblock",
+            [
+                ("database_exists", parse_int),
+                (None, parse_padding(4)),
+                ("root_id", parse_block_id)
+            ]
+        )
         sb = parse_superblock(block)[0]
         assert sb.database_exists == 1
         
@@ -361,7 +363,6 @@ class Superblock(object):
         self.root = root
     
     def print_html(self):
-        
         print """<p>Root: %s</p>""" % self.root.ref_as_html()
 
 
@@ -396,7 +397,7 @@ td, th {
         </style>
     </head>
     <body>
-            """
+"""
             
             print """<h1>BTree</h1>"""
             

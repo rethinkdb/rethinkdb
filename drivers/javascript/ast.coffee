@@ -89,8 +89,8 @@ class TermBase
 
         # Check if the arguments are valid types
         for own key of options
-            unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'batchConf', 'arrayLimit']
-                throw new err.RqlDriverError "Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>}."
+            unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'binaryFormat', 'batchConf', 'arrayLimit']
+                throw new err.RqlDriverError "Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>}."
         if net.isConnection(connection) is false
             throw new err.RqlDriverError "First argument to `run` must be an open connection."
 
@@ -346,6 +346,7 @@ translateBackOptargs = (optargs) ->
         key = switch key
             when 'primary_key' then 'primaryKey'
             when 'return_vals' then 'returnVals'
+            when 'return_changes' then 'returnChanges'
             when 'use_outdated' then 'useOutdated'
             when 'non_atomic' then 'nonAtomic'
             when 'left_bound' then 'leftBound'
@@ -365,6 +366,7 @@ translateOptargs = (optargs) ->
         key = switch key
             when 'primaryKey' then 'primary_key'
             when 'returnVals' then 'return_vals'
+            when 'returnChanges' then 'return_changes'
             when 'useOutdated' then 'use_outdated'
             when 'nonAtomic' then 'non_atomic'
             when 'leftBound' then 'left_bound'

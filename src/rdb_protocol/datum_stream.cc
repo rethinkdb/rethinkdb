@@ -13,73 +13,6 @@
 
 namespace ql {
 
-rdb_namespace_interface_t::rdb_namespace_interface_t(
-        namespace_interface_t *internal)
-    : internal_(internal) { }
-
-void rdb_namespace_interface_t::read(
-        env_t *env,
-        const read_t &read,
-        read_response_t *response,
-        order_token_t tok)
-    THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    profile::starter_t starter("Perform read.", env->trace);
-    profile::splitter_t splitter(env->trace);
-    r_sanity_check(read.profile == env->profile());
-    /* Do the actual read. */
-    internal_->read(read, response, tok, env->interruptor);
-    /* Append the results of the parallel tasks to the current trace */
-    splitter.give_splits(response->n_shards, response->event_log);
-}
-
-void rdb_namespace_interface_t::read_outdated(
-        env_t *env,
-        const read_t &read,
-        read_response_t *response)
-    THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    profile::starter_t starter("Perform outdated read.", env->trace);
-    profile::splitter_t splitter(env->trace);
-    /* propagate whether or not we're doing profiles */
-    r_sanity_check(read.profile == env->profile());
-    /* Do the actual read. */
-    internal_->read_outdated(read, response, env->interruptor);
-    /* Append the results of the profile to the current task */
-    splitter.give_splits(response->n_shards, response->event_log);
-}
-
-void rdb_namespace_interface_t::write(
-        env_t *env,
-        write_t *write,
-        write_response_t *response,
-        order_token_t tok)
-    THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    profile::starter_t starter("Perform write", env->trace);
-    profile::splitter_t splitter(env->trace);
-    /* propagate whether or not we're doing profiles */
-    write->profile = env->profile();
-    /* Do the actual read. */
-    internal_->write(*write, response, tok, env->interruptor);
-    /* Append the results of the profile to the current task */
-    splitter.give_splits(response->n_shards, response->event_log);
-}
-
-std::set<region_t> rdb_namespace_interface_t::get_sharding_scheme()
-    THROWS_ONLY(cannot_perform_query_exc_t) {
-    return internal_->get_sharding_scheme();
-}
-
-signal_t *rdb_namespace_interface_t::get_initial_ready_signal() {
-    return internal_->get_initial_ready_signal();
-}
-
-rdb_namespace_access_t::rdb_namespace_access_t(uuid_u id, env_t *env)
-    : internal_(env->ns_repo(), id, env->interruptor)
-{ }
-
-rdb_namespace_interface_t rdb_namespace_access_t::get_namespace_if() {
-    return rdb_namespace_interface_t(internal_.get_namespace_if());
-}
-
 template<class T>
 T groups_to_batch(std::map<counted_t<const datum_t>, T> *g) {
     if (g->size() == 0) {
@@ -90,12 +23,13 @@ T groups_to_batch(std::map<counted_t<const datum_t>, T> *g) {
     }
 }
 
+
 // RANGE/READGEN STUFF
 reader_t::reader_t(
-    const rdb_namespace_access_t &_ns_access,
+    const real_table_t &_table,
     bool _use_outdated,
     scoped_ptr_t<readgen_t> &&_readgen)
-    : ns_access(_ns_access),
+    : table(_table),
       use_outdated(_use_outdated),
       started(false), shards_exhausted(false),
       readgen(std::move(_readgen)),
@@ -134,18 +68,10 @@ void reader_t::accumulate_all(env_t *env, eager_acc_t *acc) {
 
 rget_read_response_t reader_t::do_read(env_t *env, const read_t &read) {
     read_response_t res;
-    try {
-        if (use_outdated) {
-            ns_access.get_namespace_if().read_outdated(env, read, &res);
-        } else {
-            ns_access.get_namespace_if().read(env, read, &res, order_token_t::ignore);
-        }
-    } catch (const cannot_perform_query_exc_t &e) {
-        rfail_datum(ql::base_exc_t::GENERIC, "cannot perform read: %s", e.what());
-    }
+    table.read_with_profile(env, read, &res, use_outdated);
     auto rget_res = boost::get<rget_read_response_t>(&res.response);
     r_sanity_check(rget_res != NULL);
-    if (auto e = boost::get<ql::exc_t>(&rget_res->result)) {
+    if (auto e = boost::get<exc_t>(&rget_res->result)) {
         throw *e;
     }
     return std::move(*rget_res);
@@ -677,13 +603,13 @@ counted_t<const datum_t> eager_datum_stream_t::as_array(env_t *env) {
 
 // LAZY_DATUM_STREAM_T
 lazy_datum_stream_t::lazy_datum_stream_t(
-    rdb_namespace_access_t *ns_access,
+    const real_table_t &_table,
     bool use_outdated,
     scoped_ptr_t<readgen_t> &&readgen,
     const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(bt_src),
       current_batch_offset(0),
-      reader(*ns_access, use_outdated, std::move(readgen)) { }
+      reader(_table, use_outdated, std::move(readgen)) { }
 
 void lazy_datum_stream_t::add_transformation(transform_variant_t &&tv,
                                              const protob_t<const Backtrace> &bt) {

@@ -5,7 +5,6 @@
 #include <utility>
 #include <vector>
 
-#include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"
@@ -229,27 +228,18 @@ private:
         counted_t<val_t> v = args->arg(env, 0);
         if (v->get_type().is_convertible(val_t::type_t::TABLE)) {
             counted_t<table_t> tbl = v->as_table();
-            changefeed::client_t *client = env->env->get_changefeed_client();
-            return new_val(
-                env->env,
-                client->new_feed(
-                    tbl,
-                    changefeed::keyspec_t(changefeed::keyspec_t::all_t()),
-                    env->env));
+            return new_val(env->env,
+                tbl->table->read_all_changes(
+                    env->env, backtrace(), tbl->display_name()));
         } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             auto single_selection = v->as_single_selection();
             counted_t<table_t> tbl = std::move(single_selection.first);
             counted_t<const datum_t> val = std::move(single_selection.second);
 
             counted_t<const datum_t> key = v->get_orig_key();
-            changefeed::client_t *client = env->env->get_changefeed_client();
-            return new_val(
-                env->env,
-                client->new_feed(
-                    tbl,
-                    changefeed::keyspec_t(
-                        changefeed::keyspec_t::point_t(std::move(key))),
-                    env->env));
+            return new_val(env->env,
+                tbl->table->read_row_changes(
+                    env->env, key, backtrace(), tbl->display_name()));
         }
         std::pair<counted_t<table_t>, counted_t<datum_stream_t> > selection
             = v->as_selection(env->env);

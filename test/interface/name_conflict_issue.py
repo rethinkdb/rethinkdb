@@ -38,4 +38,3 @@ with driver.Metacluster() as metacluster:
     assert set(issues[0]["contestants"]) == set([namespace1.uuid, namespace2.uuid])
     cluster.check_and_stop()
 print "Done."
-

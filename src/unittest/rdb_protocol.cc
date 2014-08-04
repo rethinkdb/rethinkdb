@@ -66,9 +66,7 @@ void run_with_namespace_interface(
     }
 
     extproc_pool_t extproc_pool(2);
-    rdb_context_t ctx(&extproc_pool,
-                      NULL,
-                      NULL);
+    rdb_context_t ctx(&extproc_pool, NULL);
 
     for (int rep = 0; rep < num_restarts; ++rep) {
         const bool do_create = rep == 0;

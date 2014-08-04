@@ -1,9 +1,11 @@
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_CHANGEFEED_HPP_
 #define RDB_PROTOCOL_CHANGEFEED_HPP_
 
 #include <deque>
 #include <exception>
 #include <map>
+#include <string>
 
 #include "errors.hpp"
 #include <boost/variant.hpp>
@@ -12,6 +14,7 @@
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "protocol_api.hpp"
+#include "rdb_protocol/counted_term.hpp"
 #include "region/region.hpp"
 #include "repli_timestamp.hpp"
 #include "rpc/connectivity/peer_id.hpp"
@@ -19,7 +22,7 @@
 #include "rpc/serialize_macros.hpp"
 
 class auto_drainer_t;
-class base_namespace_repo_t;
+class namespace_interface_access_t;
 class mailbox_manager_t;
 struct rdb_modification_report_t;
 
@@ -27,7 +30,6 @@ namespace ql {
 
 class base_exc_t;
 class batcher_t;
-class changefeed_t;
 class datum_stream_t;
 class datum_t;
 class env_t;
@@ -113,19 +115,30 @@ RDB_DECLARE_SERIALIZABLE(keyspec_t);
 class client_t : public home_thread_mixin_t {
 public:
     typedef client_addr_t addr_t;
-    explicit client_t(mailbox_manager_t *_manager);
+    client_t(
+        mailbox_manager_t *_manager,
+        const std::function<
+            namespace_interface_access_t(
+                const namespace_id_t &,
+                signal_t *)
+            > &_namespace_source
+        );
     ~client_t();
     // Throws QL exceptions.
-    counted_t<datum_stream_t> new_feed(
-        const counted_t<table_t> &tbl,
-        keyspec_t &&keyspec,
-        env_t *env);
-    void maybe_remove_feed(const uuid_u &uuid);
-    scoped_ptr_t<feed_t> detach_feed(const uuid_u &uuid);
+    counted_t<datum_stream_t> new_feed(env_t *env, const namespace_id_t &table,
+        const protob_t<const Backtrace> &bt, const std::string &table_name,
+        const std::string &pkey, keyspec_t &&keyspec);
+    void maybe_remove_feed(const namespace_id_t &uuid);
+    scoped_ptr_t<feed_t> detach_feed(const namespace_id_t &uuid);
 private:
     friend class subscription_t;
     mailbox_manager_t *const manager;
-    std::map<uuid_u, scoped_ptr_t<feed_t> > feeds;
+    std::function<
+        namespace_interface_access_t(
+            const namespace_id_t &,
+            signal_t *)
+        > const namespace_source;
+    std::map<namespace_id_t, scoped_ptr_t<feed_t> > feeds;
     // This lock manages access to the `feeds` map.  The `feeds` map needs to be
     // read whenever `new_feed` is called, and needs to be written to whenever
     // `new_feed` is called with a table not already in the `feeds` map, or
@@ -151,14 +164,16 @@ public:
     typedef server_addr_t addr_t;
     explicit server_t(mailbox_manager_t *_manager);
     ~server_t();
-    void add_client(const client_t::addr_t &addr);
-    void send_all(msg_t msg);
+    void add_client(const client_t::addr_t &addr, region_t region);
+    // `key` should be non-NULL if there is a key associated with the message.
+    void send_all(msg_t msg, const store_key_t *key);
     void stop_all();
     addr_t get_stop_addr();
     uint64_t get_stamp(const client_t::addr_t &addr);
     uuid_u get_uuid();
 private:
-    void send_all_with_lock(const auto_drainer_t::lock_t &lock, msg_t msg);
+    void send_all_with_lock(const auto_drainer_t::lock_t &lock,
+                            msg_t msg, const store_key_t *key);
     void stop_mailbox_cb(client_t::addr_t addr);
     void add_client_cb(signal_t *stopped, client_t::addr_t addr);
 
@@ -171,6 +186,7 @@ private:
     struct client_info_t {
         scoped_ptr_t<cond_t> cond;
         uint64_t stamp;
+        std::vector<region_t> regions;
     };
     std::map<client_t::addr_t, client_info_t> clients;
     // Controls access to `clients`.  A `server_t` needs to read `clients` when:
@@ -195,3 +211,4 @@ private:
 } // namespace ql
 
 #endif // RDB_PROTOCOL_CHANGEFEED_HPP_
+

@@ -19,4 +19,4 @@ class Workload:
 
         cursor = r.db(self.db).table(self.table).between(time_1, time_2, index="datetime").count().run(conn)
 
-        return { }
+        return {}

@@ -24,7 +24,7 @@ if opts["pkg_type"] == "rpm":
     def get_binary(path):
         return "rpm -qpil %s | grep /usr/bin" % path
 
-    def uninstall(cmd_name): 
+    def uninstall(cmd_name):
         return "which %s | xargs readlink -f | xargs rpm -qf | xargs rpm -e" % cmd_name
 elif opts["pkg_type"] == "deb":
     def install(path):
@@ -33,7 +33,7 @@ elif opts["pkg_type"] == "deb":
     def get_binary(path):
         return "dpkg -c %s | grep /usr/bin/rethinkdb-.* | sed 's/^.*\(\/usr.*\)$/\\1/'" % path
 
-    def uninstall(cmd_name): 
+    def uninstall(cmd_name):
         return "which %s | xargs readlink -f | xargs dpkg -S | sed 's/^\(.*\):.*$/\\1/' | xargs dpkg -r" % cmd_name
 else:
     print >>sys.stderr, "Error: Unknown package type."

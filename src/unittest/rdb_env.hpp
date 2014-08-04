@@ -6,6 +6,7 @@
 #include <set>
 #include <map>
 #include <string>
+#include <utility>
 
 #include "errors.hpp"
 #include <boost/variant.hpp>
@@ -30,18 +31,16 @@ namespace unittest {
 
 // These classes are used to provide a mock environment for running reql queries
 
-class mock_namespace_repo_t;
-
 // The mock namespace interface handles all read and write calls, using a simple in-
 //  memory map of store_key_t to scoped_cJSON_t.  The get_data function allows a test to
 //  read or modify the dataset to prepare for a query or to check that changes were made.
 class mock_namespace_interface_t : public namespace_interface_t {
 private:
     std::map<store_key_t, scoped_cJSON_t *> data;
-    mock_namespace_repo_t *parent;
+    ql::env_t *env;
 
 public:
-    explicit mock_namespace_interface_t(mock_namespace_repo_t *_parent);
+    explicit mock_namespace_interface_t(ql::env_t *env);
     virtual ~mock_namespace_interface_t();
 
     void read(const read_t &query,
@@ -98,72 +97,6 @@ private:
     };
 };
 
-// This stuff isn't really designed for concurrency, use for single-threaded tests
-class mock_namespace_repo_t : public base_namespace_repo_t {
-public:
-    mock_namespace_repo_t();
-    virtual ~mock_namespace_repo_t();
-
-    void set_env(ql::env_t *_env);
-    ql::env_t *get_env();
-
-    mock_namespace_interface_t *get_ns_if(const namespace_id_t &ns_id);
-
-    bool check_namespace_exists(UNUSED const namespace_id_t &ns_id,
-                                UNUSED signal_t *interruptor) {
-        /* The `mock_namespace_repo_t` creates namespaces on the fly, so they always
-        exist */
-        return true;
-    }
-
-private:
-    namespace_cache_entry_t *get_cache_entry(const namespace_id_t &ns_id);
-
-    struct mock_namespace_cache_entry_t {
-        explicit mock_namespace_cache_entry_t(mock_namespace_repo_t *ns_repo) :
-            mock_ns_if(ns_repo) { }
-        namespace_cache_entry_t entry;
-        mock_namespace_interface_t mock_ns_if;
-    };
-
-    ql::env_t *env;
-    std::map<namespace_id_t, mock_namespace_cache_entry_t *> cache;
-};
-
-/* This is read-only; it will give an error if you call the `db_create()`,
-`table_create()`, etc. methods. The only way to create databases and tables is by
-modifying the `databases` and `tables` fields directly. */
-class mock_reql_admin_interface_t : public reql_admin_interface_t {
-public:
-    bool db_create(const name_string_t &name,
-            signal_t *interruptor, std::string *error_out); 
-    bool db_drop(const name_string_t &name,
-            signal_t *interruptor, std::string *error_out);
-    bool db_list(
-            signal_t *interruptor, std::set<name_string_t> *names_out,
-            std::string *error_out);
-    bool db_find(const name_string_t &name,
-            signal_t *interruptor, counted_t<const ql::db_t> *db_out,
-            std::string *error_out);
-
-    bool table_create(const name_string_t &name, counted_t<const ql::db_t> db,
-            const boost::optional<name_string_t> &primary_dc, bool hard_durability,
-            const std::string &primary_key,
-            signal_t *interruptor, uuid_u *namespace_id_out, std::string *error_out);
-    bool table_drop(const name_string_t &name, counted_t<const ql::db_t> db,
-            signal_t *interruptor, std::string *error_out);
-    bool table_list(counted_t<const ql::db_t> db,
-            signal_t *interruptor, std::set<name_string_t> *names_out,
-            std::string *error_out);
-    bool table_find(const name_string_t &name, counted_t<const ql::db_t> db,
-            signal_t *interruptor, uuid_u *id_out, std::string *primary_key_out,
-            std::string *error_out);
-
-    std::map<name_string_t, database_id_t> databases;
-    std::map<std::pair<database_id_t, name_string_t>,
-        std::pair<namespace_id_t, std::string> > tables;
-};
-
 class invalid_name_exc_t : public std::exception {
 public:
     explicit invalid_name_exc_t(const std::string& name) :
@@ -176,17 +109,15 @@ private:
     const std::string error_string;
 };
 
-// Because of how internal objects are meant to be instantiated, the proper order of
-// instantiation is to create a test_rdb_env_t at the top-level of the test (before
-// entering the thread pool), then to call make_env() on the object once inside the
-// thread pool.  From there, the instance can provide a pointer to the rdb_env_t.  At
-// the moment, this mocks everything except the directory (which is a huge bitch to
-// do, but you're welcome to try), so metaqueries will not work, but everything else
-// should be good.  That is, you can specify databases and tables, but you can't
-// create or destroy them using reql in this environment.  As such, you should create
-// any necessary databases and tables BEFORE creating the instance_t by using the
-// add_table and add_database functions.
-class test_rdb_env_t : private mock_reql_admin_interface_t {
+/* Because of how internal objects are meant to be instantiated, the proper order of
+instantiation is to create a test_rdb_env_t at the top-level of the test (before entering
+the thread pool), then to call make_env() on the object once inside the thread pool. From
+there, the instance can provide a pointer to the ql::env_t. At the moment, metaqueries
+will not work, but everything else should be good. That is, you can specify databases and
+tables, but you can't create or destroy them using reql in this environment. As such, you
+should create any necessary databases and tables BEFORE creating the instance_t by using
+the add_table and add_database functions. */
+class test_rdb_env_t {
 public:
     test_rdb_env_t();
     ~test_rdb_env_t();
@@ -196,26 +127,52 @@ public:
     // converted into a set of JSON structures.  This means that the JSON values will
     // only be strings, but if a test needs different properties in their objects,
     // this call should be modified.
-    namespace_id_t add_table(const std::string &table_name,
-                             const uuid_u &db_id,
-                             const std::string &primary_key,
-                             const std::set<std::map<std::string, std::string> > &initial_data);
+    void add_table(const std::string &table_name,
+                   const uuid_u &db_id,
+                   const std::string &primary_key,
+                   const std::set<std::map<std::string, std::string> > &initial_data);
     database_id_t add_database(const std::string &db_name);
 
-    class instance_t {
+    class instance_t : private reql_cluster_interface_t {
     public:
         explicit instance_t(test_rdb_env_t *test_env);
 
         ql::env_t *get();
         void interrupt();
 
-        std::map<store_key_t, scoped_cJSON_t *> *get_data(const namespace_id_t &ns_id);
+        std::map<store_key_t, scoped_cJSON_t *> *get_data(database_id_t, name_string_t);
+
+        bool db_create(const name_string_t &name,
+            signal_t *interruptor, std::string *error_out); 
+        bool db_drop(const name_string_t &name,
+                signal_t *interruptor, std::string *error_out);
+        bool db_list(
+                signal_t *interruptor, std::set<name_string_t> *names_out,
+                std::string *error_out);
+        bool db_find(const name_string_t &name,
+                signal_t *interruptor, counted_t<const ql::db_t> *db_out,
+                std::string *error_out);
+
+        bool table_create(const name_string_t &name, counted_t<const ql::db_t> db,
+                const boost::optional<name_string_t> &primary_dc, bool hard_durability,
+                const std::string &primary_key,
+                signal_t *interruptor, std::string *error_out);
+        bool table_drop(const name_string_t &name, counted_t<const ql::db_t> db,
+                signal_t *interruptor, std::string *error_out);
+        bool table_list(counted_t<const ql::db_t> db,
+                signal_t *interruptor, std::set<name_string_t> *names_out,
+                std::string *error_out);
+        bool table_find(const name_string_t &name, counted_t<const ql::db_t> db,
+                signal_t *interruptor, scoped_ptr_t<base_table_t> *table_out,
+                std::string *error_out);
 
     private:
         extproc_pool_t extproc_pool;
-        reactor_test_cluster_t test_cluster;
-        mock_namespace_repo_t rdb_ns_repo;
         rdb_context_t rdb_ctx;
+        std::map<name_string_t, database_id_t> databases;
+        std::map<std::pair<database_id_t, name_string_t>, std::string> primary_keys;
+        std::map<std::pair<database_id_t, name_string_t>,
+                 scoped_ptr_t<mock_namespace_interface_t> > tables;
         scoped_ptr_t<ql::env_t> env;
         cond_t interruptor;
     };
@@ -225,13 +182,16 @@ public:
 private:
     extproc_spawner_t extproc_spawner;
 
-    mock_reql_admin_interface_t reql_admin_interface;
+    std::map<name_string_t, database_id_t> databases;
+    std::map<std::pair<database_id_t, name_string_t>, std::string> primary_keys;
 
     // Initial data for tables are stored here until the instance_t is constructed, at
     //  which point, it is moved into a mock_namespace_interface_t, and this is cleared.
-    std::map<namespace_id_t, std::map<store_key_t, scoped_cJSON_t *> *> initial_datas;
+    std::map<std::pair<database_id_t, name_string_t>,
+             std::map<store_key_t, scoped_cJSON_t *> *> initial_datas;
 };
 
 }
 
 #endif // UNITTEST_RDB_ENV_HPP_
+

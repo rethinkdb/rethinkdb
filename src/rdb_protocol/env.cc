@@ -103,20 +103,9 @@ profile_bool_t env_t::profile() const {
     return trace != nullptr ? profile_bool_t::PROFILE : profile_bool_t::DONT_PROFILE;
 }
 
-base_namespace_repo_t *env_t::ns_repo() {
+reql_cluster_interface_t *env_t::reql_cluster_interface() {
     r_sanity_check(rdb_ctx != NULL);
-    return rdb_ctx->ns_repo;
-}
-
-reql_admin_interface_t *env_t::reql_admin_interface() {
-    r_sanity_check(rdb_ctx != NULL);
-    return rdb_ctx->reql_admin_interface;
-}
-
-changefeed::client_t *env_t::get_changefeed_client() {
-    r_sanity_check(rdb_ctx != NULL);
-    r_sanity_check(rdb_ctx->changefeed_client.has());
-    return rdb_ctx->changefeed_client.get();
+    return rdb_ctx->cluster_interface;
 }
 
 std::string env_t::get_reql_http_proxy() {
@@ -152,6 +141,7 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
     : evals_since_yield(0),
       global_optargs(std::move(optargs)),
       limits(from_optargs(ctx, _interruptor, global_optargs)),
+      reql_version(cluster_version_t::LATEST_DISK),
       interruptor(_interruptor),
       trace(_trace),
       rdb_ctx(ctx),
@@ -162,9 +152,10 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
 
 
 // Used in constructing the env for rdb_update_single_sindex and many unit tests.
-env_t::env_t(signal_t *_interruptor)
+env_t::env_t(signal_t *_interruptor, cluster_version_t _reql_version)
     : evals_since_yield(0),
       global_optargs(),
+      reql_version(_reql_version),
       interruptor(_interruptor),
       trace(NULL),
       rdb_ctx(NULL),

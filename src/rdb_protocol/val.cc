@@ -11,49 +11,22 @@
 
 namespace ql {
 
-table_t::table_t(env_t *env,
+table_t::table_t(scoped_ptr_t<base_table_t> &&_table,
                  counted_t<const db_t> _db, const std::string &_name,
                  bool _use_outdated, const protob_t<const Backtrace> &backtrace)
     : pb_rcheckable_t(backtrace),
       db(_db),
       name(_name),
+      table(std::move(_table)),
       use_outdated(_use_outdated),
       bounds(datum_range_t::universe()),
-      sorting(sorting_t::UNORDERED) {
-    name_string_t table_name;
-    bool b = table_name.assign_value(name);
-    rcheck(b, base_exc_t::GENERIC,
-           strprintf("Table name `%s` invalid (%s).",
-                     name.c_str(), name_string_t::valid_char_msg));
-    std::string error;
-    if (!env->reql_admin_interface()->table_find(table_name, db, env->interruptor, &uuid,
-            &pkey, &error)) {
-        rfail(base_exc_t::GENERIC, "%s", error.c_str());
-    }
-    access.init(new rdb_namespace_access_t(uuid, env));
-}
+      sorting(sorting_t::UNORDERED)
+{ }
 
 counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) {
     datum_object_builder_t d;
     d.add_error(exception.what());
     return std::move(d).to_counted();
-}
-
-template<class T> // batched_replace_t and batched_insert_t
-counted_t<const datum_t> table_t::do_batched_write(
-    env_t *env, T &&t, durability_requirement_t durability_requirement) {
-    write_t write(std::move(t), durability_requirement, env->profile(),
-                  env->limits);
-    write_response_t response;
-    try {
-        access->get_namespace_if().write(env, &write, &response,
-                                         order_token_t::ignore);
-    } catch (const cannot_perform_query_exc_t &e) {
-        rfail(base_exc_t::GENERIC, "Cannot perform write: %s", e.what());
-    }
-    auto dp = boost::get<counted_t<const datum_t> >(&response.response);
-    r_sanity_check(dp != NULL);
-    return *dp;
 }
 
 counted_t<const datum_t> table_t::batched_replace(
@@ -63,13 +36,11 @@ counted_t<const datum_t> table_t::batched_replace(
     counted_t<func_t> replacement_generator,
     bool nondeterministic_replacements_ok,
     durability_requirement_t durability_requirement,
-    bool return_vals) {
+    return_changes_t return_changes) {
     r_sanity_check(vals.size() == keys.size());
 
     if (vals.empty()) {
         return ql::datum_t::empty_object();
-    } else if (vals.size() != 1) {
-        r_sanity_check(!return_vals);
     }
 
     if (!replacement_generator->is_deterministic()) {
@@ -90,23 +61,12 @@ counted_t<const datum_t> table_t::batched_replace(
         }
         counted_t<const datum_t> insert_stats = batched_insert(
             env, std::move(replacement_values), conflict_behavior_t::REPLACE,
-            durability_requirement, return_vals);
+            durability_requirement, return_changes);
         return std::move(stats).to_counted()->merge(insert_stats, stats_merge,
                                                    env->limits);
     } else {
-        std::vector<store_key_t> store_keys;
-        store_keys.reserve(keys.size());
-        for (auto it = keys.begin(); it != keys.end(); ++it) {
-            store_keys.push_back(store_key_t((*it)->print_primary()));
-        }
-        return do_batched_write(
-            env,
-            batched_replace_t(
-                std::move(store_keys),
-                get_pkey(),
-                replacement_generator,
-                env->global_optargs.get_all_optargs(),
-                return_vals),
+        return table->write_batched_replace(
+            env, keys, replacement_generator, return_changes,
             durability_requirement);
     }
 }
@@ -116,7 +76,7 @@ counted_t<const datum_t> table_t::batched_insert(
     std::vector<counted_t<const datum_t> > &&insert_datums,
     conflict_behavior_t conflict_behavior,
     durability_requirement_t durability_requirement,
-    bool return_vals) {
+    return_changes_t return_changes) {
 
     datum_object_builder_t stats;
     std::vector<counted_t<const datum_t> > valid_inserts;
@@ -136,16 +96,12 @@ counted_t<const datum_t> table_t::batched_insert(
 
     if (valid_inserts.empty()) {
         return std::move(stats).to_counted();
-    } else if (insert_datums.size() != 1) {
-        r_sanity_check(!return_vals);
     }
 
-    counted_t<const datum_t> insert_stats = do_batched_write(
-        env,
-        batched_insert_t(std::move(valid_inserts), get_pkey(),
-                         conflict_behavior, env->limits,
-                         return_vals),
-        durability_requirement);
+    counted_t<const datum_t> insert_stats =
+        table->write_batched_insert(
+            env, std::move(valid_inserts), conflict_behavior, return_changes,
+            durability_requirement);
     return std::move(stats).to_counted()->merge(insert_stats, stats_merge, env->limits);
 }
 
@@ -154,91 +110,34 @@ MUST_USE bool table_t::sindex_create(env_t *env,
                                      counted_t<func_t> index_func,
                                      sindex_multi_bool_t multi) {
     index_func->assert_deterministic("Index functions must be deterministic.");
-    map_wire_func_t wire_func(index_func);
-    write_t write(sindex_create_t(id, wire_func, multi), env->profile(),
-                  env->limits);
-
-    write_response_t res;
-    try {
-        access->get_namespace_if().write(env, &write, &res, order_token_t::ignore);
-    } catch (const cannot_perform_query_exc_t &e) {
-        rfail(base_exc_t::GENERIC, "Cannot perform write: %s", e.what());
-    }
-
-    sindex_create_response_t *response =
-        boost::get<sindex_create_response_t>(&res.response);
-    r_sanity_check(response);
-    return response->success;
+    return table->sindex_create(env, id, index_func, multi);
 }
 
 MUST_USE bool table_t::sindex_drop(env_t *env, const std::string &id) {
-    write_t write(sindex_drop_t(id), env->profile(),
-                  env->limits);
-
-    write_response_t res;
-    try {
-        access->get_namespace_if().write(env, &write, &res, order_token_t::ignore);
-    } catch (const cannot_perform_query_exc_t &e) {
-        rfail(base_exc_t::GENERIC, "Cannot perform write: %s", e.what());
-    }
-
-    sindex_drop_response_t *response =
-        boost::get<sindex_drop_response_t>(&res.response);
-    r_sanity_check(response);
-    return response->success;
+    return table->sindex_drop(env, id);
 }
 
 counted_t<const datum_t> table_t::sindex_list(env_t *env) {
-    sindex_list_t sindex_list;
-    read_t read(sindex_list, env->profile());
-    read_response_t res;
-    try {
-        access->get_namespace_if().read(env, read, &res, order_token_t::ignore);
-    } catch (const cannot_perform_query_exc_t &ex) {
-        rfail(ql::base_exc_t::GENERIC, "Cannot perform read: %s", ex.what());
-    }
-
-    sindex_list_response_t *s_res =
-        boost::get<sindex_list_response_t>(&res.response);
-    r_sanity_check(s_res);
-
+    std::vector<std::string> sindexes = table->sindex_list(env);
     std::vector<counted_t<const datum_t> > array;
-    array.reserve(s_res->sindexes.size());
-
-    for (std::vector<std::string>::const_iterator it = s_res->sindexes.begin();
-         it != s_res->sindexes.end(); ++it) {
+    array.reserve(sindexes.size());
+    for (std::vector<std::string>::const_iterator it = sindexes.begin();
+         it != sindexes.end(); ++it) {
         array.push_back(make_counted<datum_t>(std::string(*it)));
     }
     return make_counted<datum_t>(std::move(array), env->limits);
 }
 
-counted_t<const datum_t> table_t::sindex_status(env_t *env, std::set<std::string> sindexes) {
-    sindex_status_t sindex_status(sindexes);
-    read_t read(sindex_status, env->profile());
-    read_response_t res;
-    try {
-        access->get_namespace_if().read(env, read, &res, order_token_t::ignore);
-    } catch (const cannot_perform_query_exc_t &ex) {
-        rfail(ql::base_exc_t::GENERIC, "Cannot perform read: %s", ex.what());
-    }
-
-    auto s_res = boost::get<sindex_status_response_t>(&res.response);
-    r_sanity_check(s_res);
-
+counted_t<const datum_t> table_t::sindex_status(env_t *env,
+        std::set<std::string> sindexes) {
+    std::map<std::string, counted_t<const datum_t> > statuses =
+        table->sindex_status(env, sindexes);
     std::vector<counted_t<const datum_t> > array;
-    for (auto it = s_res->statuses.begin(); it != s_res->statuses.end(); ++it) {
+    for (auto it = statuses.begin(); it != statuses.end(); ++it) {
         r_sanity_check(std_contains(sindexes, it->first) || sindexes.empty());
         sindexes.erase(it->first);
-        std::map<std::string, counted_t<const datum_t> > status;
-        if (it->second.blocks_processed != 0) {
-            status["blocks_processed"] =
-                make_counted<const datum_t>(
-                    safe_to_double(it->second.blocks_processed));
-            status["blocks_total"] =
-                make_counted<const datum_t>(
-                    safe_to_double(it->second.blocks_total));
-        }
-        status["ready"] = datum_t::boolean(it->second.ready);
+        std::map<std::string, counted_t<const datum_t> > status =
+            it->second->as_object();
         std::string index_name = it->first;
         status["index"] = make_counted<const datum_t>(std::move(index_name));
         array.push_back(make_counted<const datum_t>(std::move(status)));
@@ -261,39 +160,16 @@ MUST_USE bool table_t::sync(env_t *env, const rcheckable_t *parent) {
 
 MUST_USE bool table_t::sync_depending_on_durability(env_t *env,
                 durability_requirement_t durability_requirement) {
-    write_t write(sync_t(), durability_requirement, env->profile(),
-                  env->limits);
-    write_response_t res;
-    try {
-        access->get_namespace_if().write(env, &write, &res, order_token_t::ignore);
-    } catch (const cannot_perform_query_exc_t &e) {
-        rfail(base_exc_t::GENERIC, "Cannot perform write: %s", e.what());
-    }
-
-    sync_response_t *response = boost::get<sync_response_t>(&res.response);
-    r_sanity_check(response);
-    return true; // With our current implementation, a sync can never fail.
+    return table->write_sync_depending_on_durability(
+        env, durability_requirement);
 }
 
-const std::string &table_t::get_pkey() { return pkey; }
+const std::string &table_t::get_pkey() {
+    return table->get_pkey();
+}
 
 counted_t<const datum_t> table_t::get_row(env_t *env, counted_t<const datum_t> pval) {
-    std::string pks = pval->print_primary();
-    read_t read(point_read_t(store_key_t(pks)), env->profile());
-    read_response_t res;
-    try {
-        if (use_outdated) {
-            access->get_namespace_if().read_outdated(env, read, &res);
-        } else {
-            access->get_namespace_if().read(env, read, &res, order_token_t::ignore);
-        }
-    } catch (const cannot_perform_query_exc_t &e) {
-        rfail(base_exc_t::GENERIC, "Cannot perform read: %s", e.what());
-    }
-    point_read_response_t *p_res =
-        boost::get<point_read_response_t>(&res.response);
-    r_sanity_check(p_res);
-    return p_res->data;
+    return table->read_row(env, pval, use_outdated);
 }
 
 counted_t<datum_stream_t> table_t::get_all(
@@ -305,21 +181,14 @@ counted_t<datum_stream_t> table_t::get_all(
                "Cannot chain get_all and other indexed operations.");
     r_sanity_check(sorting == sorting_t::UNORDERED);
     r_sanity_check(bounds.is_universe());
-
-    if (get_all_sindex_id == get_pkey()) {
-        return make_counted<lazy_datum_stream_t>(
-            access.get(),
-            use_outdated,
-            primary_readgen_t::make(env, display_name(), datum_range_t(value)),
-            bt);
-    } else {
-        return make_counted<lazy_datum_stream_t>(
-            access.get(),
-            use_outdated,
-            sindex_readgen_t::make(
-                env, display_name(), get_all_sindex_id, datum_range_t(value)),
-            bt);
-    }
+    return table->read_all(
+        env,
+        get_all_sindex_id,
+        bt,
+        display_name(),
+        datum_range_t(value),
+        sorting_t::UNORDERED,
+        use_outdated);
 }
 
 void table_t::add_sorting(const std::string &new_sindex_id, sorting_t _sorting,
@@ -337,8 +206,7 @@ void table_t::add_sorting(const std::string &new_sindex_id, sorting_t _sorting,
     sorting = _sorting;
 }
 
-void table_t::add_bounds(datum_range_t &&new_bounds,
-                         const std::string &new_sindex_id,
+void table_t::add_bounds(datum_range_t &&new_bounds, const std::string &new_sindex_id,
                          const rcheckable_t *parent) {
     if (sindex_id) {
         rcheck_target(
@@ -356,14 +224,15 @@ void table_t::add_bounds(datum_range_t &&new_bounds,
 }
 
 counted_t<datum_stream_t> table_t::as_datum_stream(env_t *env,
-                                                   const protob_t<const Backtrace> &bt) {
-    return make_counted<lazy_datum_stream_t>(
-        access.get(),
-        use_outdated,
-        (!sindex_id || *sindex_id == get_pkey())
-            ? primary_readgen_t::make(env, display_name(), bounds, sorting)
-            : sindex_readgen_t::make(env, display_name(), *sindex_id, bounds, sorting),
-        bt);
+        const protob_t<const Backtrace> &bt) {
+    return table->read_all(
+        env,
+        (sindex_id ? *sindex_id : get_pkey()),
+        bt,
+        display_name(),
+        bounds,
+        sorting,
+        use_outdated);
 }
 
 val_t::type_t::type_t(val_t::type_t::raw_type_t _raw_type) : raw_type(_raw_type) { }

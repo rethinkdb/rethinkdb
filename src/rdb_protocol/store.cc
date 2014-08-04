@@ -89,7 +89,7 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const changefeed_subscribe_t &s) {
         guarantee(store->changefeed_server.has());
-        store->changefeed_server->add_client(s.addr);
+        store->changefeed_server->add_client(s.addr, s.region);
         response->response = changefeed_subscribe_response_t();
         auto res = boost::get<changefeed_subscribe_response_t>(&response->response);
         guarantee(res != NULL);
@@ -176,14 +176,19 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             //  we construct a filter function that ensures all returned items lie
             //  between sindex_start_value and sindex_end_value.
             ql::map_wire_func_t sindex_mapping;
+            sindex_reql_version_info_t sindex_mapping_version_info;
             sindex_multi_bool_t multi_bool;
-            deserialize_sindex_info(sindex_mapping_data, &sindex_mapping, &multi_bool);
+            deserialize_sindex_info(sindex_mapping_data,
+                                    &sindex_mapping,
+                                    &sindex_mapping_version_info,
+                                    &multi_bool);
 
             rdb_rget_secondary_slice(
                 store->get_sindex_slice(sindex_uuid),
                 rget.sindex->original_range, rget.sindex->region,
                 sindex_sb.get(), &ql_env, rget.batchspec, rget.transforms,
                 rget.terminal, rget.region.inner, rget.sorting,
+                sindex_mapping_version_info.latest_compatible_reql_version,
                 sindex_mapping, multi_bool, res);
         }
     }
@@ -329,24 +334,24 @@ void store_t::protocol_read(const read_t &read,
 
 class func_replacer_t : public btree_batched_replacer_t {
 public:
-    func_replacer_t(ql::env_t *_env, const ql::wire_func_t &wf, bool _return_vals)
-        : env(_env), f(wf.compile_wire_func()), return_vals(_return_vals) { }
+    func_replacer_t(ql::env_t *_env, const ql::wire_func_t &wf, return_changes_t _return_changes)
+        : env(_env), f(wf.compile_wire_func()), return_changes(_return_changes) { }
     counted_t<const ql::datum_t> replace(
         const counted_t<const ql::datum_t> &d, size_t) const {
         return f->call(env, d, ql::LITERAL_OK)->as_datum();
     }
-    bool should_return_vals() const { return return_vals; }
+    return_changes_t should_return_changes() const { return return_changes; }
 private:
     ql::env_t *const env;
     const counted_t<ql::func_t> f;
-    const bool return_vals;
+    const return_changes_t return_changes;
 };
 
 class datum_replacer_t : public btree_batched_replacer_t {
 public:
-    datum_replacer_t(const batched_insert_t &bi)
+    explicit datum_replacer_t(const batched_insert_t &bi)
         : datums(&bi.inserts), conflict_behavior(bi.conflict_behavior),
-          pkey(bi.pkey), return_vals(bi.return_vals) { }
+          pkey(bi.pkey), return_changes(bi.return_changes) { }
     counted_t<const ql::datum_t> replace(const counted_t<const ql::datum_t> &d,
                                          size_t index) const {
         guarantee(index < datums->size());
@@ -365,12 +370,12 @@ public:
         }
         unreachable();
     }
-    bool should_return_vals() const { return return_vals; }
+    return_changes_t should_return_changes() const { return return_changes; }
 private:
     const std::vector<counted_t<const ql::datum_t> > *const datums;
     const conflict_behavior_t conflict_behavior;
     const std::string pkey;
-    const bool return_vals;
+    const return_changes_t return_changes;
 };
 
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
@@ -379,7 +384,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         rdb_modification_report_cb_t sindex_cb(
             store, &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));
-        func_replacer_t replacer(&ql_env, br.f, br.return_vals);
+        func_replacer_t replacer(&ql_env, br.f, br.return_changes);
         response->response =
             rdb_batched_replace(
                 btree_info_t(btree, timestamp,
@@ -436,7 +441,10 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         sindex_create_response_t res;
 
         write_message_t wm;
-        serialize_sindex_info(&wm, c.mapping, c.multi);
+        serialize_sindex_info(&wm,
+                              c.mapping,
+                              sindex_reql_version_info_t::LATEST_DISK(),
+                              c.multi);
 
         vector_stream_t stream;
         stream.reserve(wm.size());

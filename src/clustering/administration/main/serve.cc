@@ -4,8 +4,9 @@
 #include <stdio.h>
 
 #include "arch/arch.hpp"
-#include "arch/os_signal.hpp"
 #include "arch/io/network.hpp"
+#include "arch/os_signal.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 #include "clustering/administration/admin_tracker.hpp"
 #include "clustering/administration/auto_reconnect.hpp"
 #include "clustering/administration/http/server.hpp"
@@ -15,25 +16,22 @@
 #include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
-#include "containers/incremental_lenses.hpp"
 #include "clustering/administration/metadata.hpp"
-#include "clustering/administration/namespace_interface_repository.hpp"
 #include "clustering/administration/network_logger.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/administration/persist.hpp"
 #include "clustering/administration/proc_stats.hpp"
 #include "clustering/administration/reactor_driver.hpp"
-#include "clustering/administration/reql_admin_interface.hpp"
+#include "clustering/administration/reql_cluster_interface.hpp"
 #include "clustering/administration/sys_stats.hpp"
+#include "containers/incremental_lenses.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "rdb_protocol/query_server.hpp"
-#include "rdb_protocol/protocol.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "rpc/semilattice/view/field.hpp"
-#include "buffer_cache/alt/cache_balancer.hpp"
 
 peer_address_set_t look_up_peers_addresses(const std::vector<host_and_port_t> &names) {
     peer_address_set_t peers;
@@ -224,29 +222,23 @@ bool do_serve(io_backender_t *io_backender,
         perfmon_collection_repo_t perfmon_repo(&get_global_perfmon_collection());
 
         // ReQL evaluation context and supporting structures
-        cluster_reql_admin_interface_t reql_admin_interface(
-                machine_id,
-                semilattice_manager_cluster.get_root_view(),
-                directory_read_manager.get_root_view()
-                );
-
         rdb_context_t rdb_ctx(&extproc_pool,
                               &mailbox_manager,
                               NULL,
-                              &reql_admin_interface,
                               auth_manager_cluster.get_root_view(),
                               &get_global_perfmon_collection(),
                               serve_info.reql_http_proxy);
 
-        namespace_repo_t rdb_namespace_repo(&mailbox_manager,
-            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
-                           semilattice_manager_cluster.get_root_view()),
-            directory_read_manager.get_root_view()->incremental_subview(
-                incremental_field_getter_t<namespaces_directory_metadata_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
-            &rdb_ctx);
+        real_reql_cluster_interface_t reql_cluster_interface(
+                &mailbox_manager,
+                machine_id,
+                semilattice_manager_cluster.get_root_view(),
+                directory_read_manager.get_root_view(),
+                &rdb_ctx
+                );
 
         //This is an annoying chicken and egg problem here
-        rdb_ctx.ns_repo = &rdb_namespace_repo;
+        rdb_ctx.cluster_interface = &reql_cluster_interface;
 
         {
             scoped_ptr_t<cache_balancer_t> cache_balancer;
@@ -329,7 +321,7 @@ bool do_serve(io_backender_t *io_backender,
                                 &auth_change_handler,
                                 semilattice_manager_cluster.get_root_view(),
                                 directory_read_manager.get_root_view(),
-                                &rdb_namespace_repo,
+                                &reql_cluster_interface,
                                 &admin_tracker,
                                 rdb_query_server.get_http_app(),
                                 machine_id,

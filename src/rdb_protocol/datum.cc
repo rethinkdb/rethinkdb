@@ -1320,5 +1320,4 @@ counted_t<const datum_t> datum_array_builder_t::to_counted() RVALUE_THIS {
 
 
 
-
 } // namespace ql
