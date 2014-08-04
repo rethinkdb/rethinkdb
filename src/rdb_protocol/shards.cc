@@ -335,9 +335,9 @@ private:
         if (acc->size() == 0) {
             acc->swap(*gres);
         } else {
-            // RSI: Order in fact does matter here.  unshard_impl might not be
-            // commutative and associative, even though it's supposed to be.
-            // (Floating point math, user-defined functions, etc.)
+            // Order in fact does NOT matter here.  The reason is, each `kv->first`
+            // value is different, which means each operation works on a different
+            // key/value pair of `acc`.
             for (auto kv = gres->begin(grouped::order_doesnt_matter_t());
                  kv != gres->end(grouped::order_doesnt_matter_t()); ++kv) {
                 auto t_it = acc->insert(std::make_pair(kv->first, *default_val)).first;
