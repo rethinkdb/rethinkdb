@@ -124,17 +124,18 @@ datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object,
                  no_sanitize_ptype_t)
     : data(std::move(_object)) { }
 
-counted_t<const datum_t> to_datum(grouped_data_t &&gd,
+counted_t<const datum_t>
+to_datum_for_client_serialization(grouped_data_t &&gd,
+                                  reql_version_t reql_version,
                                   const configured_limits_t &limits) {
     std::map<std::string, counted_t<const datum_t> > map;
     map[datum_t::reql_type_string] = make_counted<const datum_t>("GROUPED_DATA");
 
     {
-        // RSI: Order is actually mattering here!?
         datum_array_builder_t arr(limits);
         arr.reserve(gd.size());
         iterate_ordered_by_version(
-                reql_version_t::RSI,
+                reql_version,
                 std::move(gd),
                 [&arr, &limits](std::pair<counted_t<const datum_t>,
                                           counted_t<const datum_t> > &&kv) {
