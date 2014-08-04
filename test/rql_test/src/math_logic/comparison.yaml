@@ -319,27 +319,27 @@ tests:
       js: r(false).lt([])
       rb: r(false) < []
 
-    - py: r.expr([]) < r.binary("\xAE")
+    - py: r.expr([]) < r.binary(b"\xAE")
       js: r([]).lt(r.binary(Buffer("\x00")))
       rb: r([]) < r.binary("")
       ot: true
 
-    - py: r.expr([1,2]) < r.binary("\xAE")
+    - py: r.expr([1,2]) < r.binary(b"\xAE")
       js: r([1,2]).lt(r.binary(Buffer("\x00")))
       rb: r([1,2]) < r.binary("")
       ot: true
 
-    - py: r.expr(r.binary("\xAE")) < []
+    - py: r.expr(r.binary(b"\xAE")) < []
       js: r(r.binary(Buffer("\x00"))).lt([])
       rb: r(r.binary("")) < []
       ot: false
 
-    - py: r.binary("0xAE") < True
+    - py: r.binary(b"0xAE") < True
       js: r.binary(Buffer("0x00")).lt(true)
       rb: r.binary("") < true
       ot: true
 
-    - py: r.binary("0xAE") > False
+    - py: r.binary(b"0xAE") > False
       js: r.binary(Buffer("0x00")).gt(false)
       rb: r.binary("") > false
       ot: false
