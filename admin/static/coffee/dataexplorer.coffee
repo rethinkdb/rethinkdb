@@ -446,14 +446,24 @@ module 'DataExplorerView', ->
 
             # Load options from local storage
             if window.localStorage?.options?
-                @state.options = JSON.parse window.localStorage.options
+                try
+                    @state.options = JSON.parse window.localStorage.options
+                catch err
+                    window.localStorage.removeItem 'options'
 
             # Load the query that was written in code mirror (that may not have been executed before)
             if typeof window.localStorage?.current_query is 'string'
-                @state.current_query = JSON.parse window.localStorage.current_query
+                try
+                    @state.current_query = JSON.parse window.localStorage.current_query
+                catch err
+                    window.localStorage.removeItem 'current_query'
+
 
             if window.localStorage?.rethinkdb_history?
-                @state.history = JSON.parse window.localStorage.rethinkdb_history
+                try
+                    @state.history = JSON.parse window.localStorage.rethinkdb_history
+                catch err
+                    window.localStorage.removeItem 'rethinkdb_history'
 
             @show_query_warning = @state.query isnt @state.current_query # Show a warning in case the displayed results are not the one of the query in code mirror
             @current_results = @state.results
