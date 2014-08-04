@@ -412,7 +412,7 @@ void datum_t::array_to_str_key(std::string *str_out) const {
     }
 }
 
-int datum_t::pseudo_cmp(const datum_t &rhs) const {
+int datum_t::pseudo_cmp(reql_version_t reql_version, const datum_t &rhs) const {
     r_sanity_check(is_ptype());
     if (get_type() == R_BINARY) {
         return as_binary().compare(rhs.as_binary());
