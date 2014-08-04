@@ -10,11 +10,6 @@ bool datum_eq(reql_version_t, const datum_t &lhs, const datum_t &rhs) {
     return lhs == rhs;
 }
 
-bool datum_ne(reql_version_t, const datum_t &lhs, const datum_t &rhs) {
-    // Behavior of cmp with respect to datum equality didn't change between versions.
-    return lhs != rhs;
-}
-
 bool datum_lt(reql_version_t v, const datum_t &lhs, const datum_t &rhs) {
     return lhs.cmp(v, rhs) < 0;
 }
@@ -43,7 +38,7 @@ public:
         } break;
         case Term_TermType_NE: {
             namestr = "NE";
-            pred = &datum_ne;
+            pred = &datum_eq;
             invert = true; // we invert the == operator so (!= 1 2 3) makes sense
         } break;
         case Term_TermType_LT: {
