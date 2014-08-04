@@ -176,6 +176,10 @@ public:
     template <cluster_version_t W>
     typename std::enable_if<W == cluster_version_t::CLUSTER, void>::type
     rdb_serialize(write_message_t *wm) const {
+        // We SHOULD not have an unusual reql version when serializing for
+        // intracluster communication.
+        rassert(m.key_comp().reql_version() == reql_version_t::v1_14_is_latest);
+
         serialize_varint_uint64(wm, m.size());
         for (auto it = m.begin(); it != m.end(); ++it) {
             serialize_grouped<W>(wm, it->first);

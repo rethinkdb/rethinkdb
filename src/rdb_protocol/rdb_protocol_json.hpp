@@ -32,6 +32,8 @@ public:
                     const counted_t<const ql::datum_t> &b) const {
         return a->compare_lt(reql_version_, *b);
     }
+
+    reql_version_t reql_version() const { return reql_version_; }
 private:
     reql_version_t reql_version_;
 };
