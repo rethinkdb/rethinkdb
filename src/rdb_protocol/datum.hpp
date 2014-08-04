@@ -339,7 +339,7 @@ private:
 // array-size checks on the fly.
 class datum_array_builder_t {
 public:
-    datum_array_builder_t(const configured_limits_t &_limits) : limits(_limits) {}
+    explicit datum_array_builder_t(const configured_limits_t &_limits) : limits(_limits) {}
     datum_array_builder_t(std::vector<counted_t<const datum_t> > &&,
                           const configured_limits_t &);
 
