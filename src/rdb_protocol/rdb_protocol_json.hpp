@@ -30,7 +30,11 @@ public:
 
     bool operator()(const counted_t<const ql::datum_t> &a,
                     const counted_t<const ql::datum_t> &b) const {
-        return a->compare_lt(reql_version_, *b);
+        if (a.has()) {
+            return b.has() && a->compare_lt(reql_version_, *b);
+        } else {
+            return b.has();
+        }
     }
 
     reql_version_t reql_version() const { return reql_version_; }
