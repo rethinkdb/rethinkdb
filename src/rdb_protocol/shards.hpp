@@ -174,7 +174,8 @@ public:
     explicit grouped_t() : m(counted_datum_less_t(reql_version_t::RSI)) { }
     virtual ~grouped_t() { } // See grouped_data_t below.
     template <cluster_version_t W>
-    void rdb_serialize(write_message_t *wm) const {
+    typename std::enable_if<W == cluster_version_t::CLUSTER, void>::type
+    rdb_serialize(write_message_t *wm) const {
         serialize_varint_uint64(wm, m.size());
         for (auto it = m.begin(); it != m.end(); ++it) {
             serialize_grouped<W>(wm, it->first);
@@ -182,7 +183,8 @@ public:
         }
     }
     template <cluster_version_t W>
-    archive_result_t rdb_deserialize(read_stream_t *s) {
+    typename std::enable_if<W == cluster_version_t::CLUSTER, archive_result_t>::type
+    rdb_deserialize(read_stream_t *s) {
         guarantee(m.empty());
 
         uint64_t sz;
