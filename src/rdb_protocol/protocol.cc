@@ -70,12 +70,13 @@ bool datum_range_t::is_universe() const {
         && left_bound_type == key_range_t::open && right_bound_type == key_range_t::open;
 }
 
-bool datum_range_t::contains(counted_t<const ql::datum_t> val) const {
+bool datum_range_t::contains(reql_version_t reql_version,
+                             counted_t<const ql::datum_t> val) const {
     return (!left_bound.has()
-            || left_bound->compare_lt(reql_version_t::RSI, *val)
+            || left_bound->compare_lt(reql_version, *val)
             || (*left_bound == *val && left_bound_type == key_range_t::closed))
         && (!right_bound.has()
-            || right_bound->compare_gt(reql_version_t::RSI, *val)
+            || right_bound->compare_gt(reql_version, *val)
             || (*right_bound == *val && right_bound_type == key_range_t::closed));
 }
 

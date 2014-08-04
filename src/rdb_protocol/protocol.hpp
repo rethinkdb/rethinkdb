@@ -113,7 +113,7 @@ public:
     explicit datum_range_t(counted_t<const ql::datum_t> val);
     static datum_range_t universe();
 
-    bool contains(counted_t<const ql::datum_t> val) const;
+    bool contains(reql_version_t reql_version, counted_t<const ql::datum_t> val) const;
     bool is_universe() const;
 
     RDB_DECLARE_ME_SERIALIZABLE;

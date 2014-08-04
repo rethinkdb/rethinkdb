@@ -923,7 +923,7 @@ THROWS_ONLY(interrupted_exc_t) {
                 sindex_val = sindex_val->get(*tag, ql::NOTHROW);
                 guarantee(sindex_val);
             }
-            if (!sindex->range.contains(sindex_val)) {
+            if (!sindex->range.contains(sindex->func_reql_version, sindex_val)) {
                 return done_traversing_t::NO;
             }
         }
