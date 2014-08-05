@@ -41,7 +41,7 @@ private:
     typedef typename registrar_business_card_t<business_card_t>::registration_id_t
         registration_id_t;
 
-    class active_registration_t {
+    class active_registration_t : public signal_t::subscription_t {
     public:
         active_registration_t(
                 registrar_t *_registrar,
@@ -49,8 +49,8 @@ private:
                 registration_id_t rid,
                 peer_id_t peer,
                 business_card_t business_card,
-                auto_drainer_t::lock_t _keepalive) :
-            keepalive(_keepalive),
+                auto_drainer_t::lock_t &&_keepalive) :
+            keepalive(std::move(_keepalive)),
             registrar(_registrar),
             mutex_acq(std::move(_mutex_acq)),
             /* Construct a `registrant_t` to tell the controller that something has
@@ -69,31 +69,22 @@ private:
             }
 
             /* Wait till it's time to shut down */
-            waiter_subscription_t *subst = new waiter_subscription_t(this);
-            if (waiter.is_pulsed()) {
-                subst->run();
-            } else {
-                subst->reset(&waiter);
-            }
+            signal_t::subscription_t::reset(&waiter);
+        }
+
+        virtual void run() {
+            /* Perform the destruction in a coroutine. */
+            registrar->registration_destruction_queue.push(
+                [this]() { delete this; } );
         }
 
     private:
-        class waiter_subscription_t : public signal_t::subscription_t {
-        public:
-            explicit waiter_subscription_t(active_registration_t *_parent)
-                : parent(_parent) { }
-            virtual void run() {
-                parent->registrar->registration_destruction_queue.push(
-                    [&]() { this->reset(); delete this->parent; delete this; } );
-            }
-        private:
-            active_registration_t *parent;
-            DISABLE_COPYING(waiter_subscription_t);
-        };
-
         ~active_registration_t() {
             /* The only thing that calls us should be waiter_subscription_t::run(). */
             rassert(waiter.is_pulsed());
+
+            /* Unsubscribe outselves from `waiter`, before we destruct it. */
+            signal_t::subscription_t::reset();
 
             /* Reacquire the mutex, to avoid race conditions when we're
             deregistering from `deleters`. I'm not sure if there re any such race
@@ -150,7 +141,7 @@ private:
         of its own destruction once the keepalive drain signal is pulsed (or one
         of the other signals it waits on). */
         new active_registration_t(this, std::move(mutex_acq), rid, peer,
-                                  business_card, keepalive);
+                                  business_card, std::move(keepalive));
     }
 
     void on_delete(registration_id_t rid, UNUSED auto_drainer_t::lock_t keepalive) {
