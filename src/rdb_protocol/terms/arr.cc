@@ -77,51 +77,50 @@ uint64_t canonicalize(const term_t *t, int64_t index, size_t size, bool *oob_out
     return uint64_t(size) + index;
 }
 
-counted_t<val_t> nth_term_impl(const term_t *term, scope_env_t *env, counted_t<val_t> aggregate, counted_t<val_t> index) {
-        counted_t<val_t> v = aggregate;
-        int32_t n = index->as_int<int32_t>();
-        if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
-            counted_t<const datum_t> arr = aggregate->as_datum();
-            size_t real_n = canonicalize(term, n, arr->size());
-            return term->new_val(arr->get(real_n));
+counted_t<val_t> nth_term_impl(const term_t *term, scope_env_t *env,
+                               counted_t<val_t> aggregate, counted_t<val_t> index) {
+    int32_t n = index->as_int<int32_t>();
+    if (aggregate->get_type().is_convertible(val_t::type_t::DATUM)) {
+        counted_t<const datum_t> arr = aggregate->as_datum();
+        size_t real_n = canonicalize(term, n, arr->size());
+        return term->new_val(arr->get(real_n));
+    } else {
+        counted_t<table_t> tbl;
+        counted_t<datum_stream_t> s;
+        if (aggregate->get_type().is_convertible(val_t::type_t::SELECTION)) {
+            auto pair = aggregate->as_selection(env->env);
+            tbl = pair.first;
+            s = pair.second;
         } else {
-            counted_t<table_t> tbl;
-            counted_t<datum_stream_t> s;
-            if (aggregate->get_type().is_convertible(val_t::type_t::SELECTION)) {
-                auto pair = aggregate->as_selection(env->env);
-                tbl = pair.first;
-                s = pair.second;
-            } else {
-                s = aggregate->as_seq(env->env);
-            }
-            rcheck_target(term, base_exc_t::GENERIC,n >= -1,
-                   strprintf("Cannot use an index < -1 (%d) on a stream.", n));
+            s = aggregate->as_seq(env->env);
+        }
+        rcheck_target(term, base_exc_t::GENERIC,n >= -1,
+               strprintf("Cannot use an index < -1 (%d) on a stream.", n));
 
-            batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
-            if (n != -1) {
-                batchspec = batchspec.with_at_most(int64_t(n)+1);
-            }
+        batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
+        if (n != -1) {
+            batchspec = batchspec.with_at_most(int64_t(n)+1);
+        }
 
-            counted_t<const datum_t> last_d;
-            {
-                profile::sampler_t sampler("Find nth element.", env->env->trace);
-                for (int32_t i = 0; ; ++i) {
-                    sampler.new_sample();
-                    counted_t<const datum_t> d = s->next(env->env, batchspec);
-                    if (!d.has()) {
-                        rcheck_target(term, base_exc_t::NON_EXISTENCE, n == -1 && last_d.has(),
-                               strprintf("Index out of bounds: %d", n));
-                        return tbl.has() ? term->new_val(last_d, tbl) : term->new_val(last_d);
-                    }
-                    if (i == n) {
-                        return tbl.has() ? term->new_val(d, tbl) : term->new_val(d);
-                    }
-                    last_d = d;
-                    r_sanity_check(n == -1 || i < n);
+        counted_t<const datum_t> last_d;
+        {
+            profile::sampler_t sampler("Find nth element.", env->env->trace);
+            for (int32_t i = 0; ; ++i) {
+                sampler.new_sample();
+                counted_t<const datum_t> d = s->next(env->env, batchspec);
+                if (!d.has()) {
+                    rcheck_target(term, base_exc_t::NON_EXISTENCE, n == -1 && last_d.has(),
+                           strprintf("Index out of bounds: %d", n));
+                    return tbl.has() ? term->new_val(last_d, tbl) : term->new_val(last_d);
                 }
+                if (i == n) {
+                    return tbl.has() ? term->new_val(d, tbl) : term->new_val(d);
+                }
+                last_d = d;
+                r_sanity_check(n == -1 || i < n);
             }
         }
-    
+    }
 }
 
 class nth_term_t : public op_term_t {
