@@ -469,7 +469,40 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const sindex_drop_t &d) {
         sindex_drop_response_t res;
-        res.success = store->drop_sindex(sindex_name_t(d.id), std::move(sindex_block));
+        res.success = store->drop_sindex(sindex_name_t(d.id), &sindex_block);
+
+        response->response = res;
+    }
+
+    void operator()(const sindex_rename_t &r) {
+        sindex_rename_response_t res;
+        sindex_name_t old_name(r.old_name);
+        sindex_name_t new_name(r.new_name);
+
+        std::map<sindex_name_t, secondary_index_t> sindexes;
+        get_secondary_indexes(&sindex_block, &sindexes);
+
+        bool old_name_found = false;
+        for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
+            if (it->first == old_name) {
+                guarantee(!it->first.being_deleted);
+                old_name_found = true;
+            } else if (it->first == new_name && !r.overwrite) {
+                guarantee(!it->first.being_deleted);
+                res.result = sindex_rename_result_t::NEW_NAME_EXISTS;
+                response->response = res;
+                return;
+            }
+        }
+
+        if (!old_name_found) {
+            res.result = sindex_rename_result_t::OLD_NAME_DOESNT_EXIST;
+        } else {
+            if (r.old_name != r.new_name) {
+                store->rename_sindex(old_name, new_name, std::move(sindex_block));
+            }
+            res.result = sindex_rename_result_t::SUCCESS;
+        }
 
         response->response = res;
     }

@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 
-import atexit, collections, distutils.spawn, operator, optparse, os, re, shutil, signal, stat, subprocess, sys, types, tempfile, time
+'''Tool to assemble and run the RQL language tests, including the polyglot yaml tests'''
+
+from __future__ import print_function
+
+import yaml
+
+import atexit, collections, distutils.version, distutils.spawn, optparse, os, re, shutil, signal, stat, subprocess, sys, tempfile, time
 
 try:
     import yaml
@@ -12,6 +18,11 @@ import test_exceptions, utils
 sys.path.insert(0, os.path.dirname(__file__))
 import test_util
 
+try:
+    unicode
+except NameError:
+    unicode = str
+
 # -- settings
 
 testGroupSeperator = '/'
@@ -22,13 +33,35 @@ testExtensions = ['test', 'yaml']
 # A test script src language
 # This class attempts to abstract some of the details that
 # separate our source languages.
-class SrcLang:
-    
+class SrcLang(object):
+    test_types = None
+    display_name = None
+
+    interpreter_name_exe_names = None
     interpreter_path = None
-    driver_source_env_name = None
+    interpreter_version = None
+    interpreter_env_name = None
+    
     driver_source_path = None
     driver_build_env_name = None
     driver_build_path = None
+    
+    instance_setup = False
+    
+    # -- class variables
+    
+    _singletons = {}
+    
+    def __new__(cls, version=''):
+        singletonName = cls.__name__
+        if version not in (None, ''):
+            singletonName = "%s-%s" % (cls.__name__, str(version))
+        if singletonName not in cls._singletons:
+            cls._singletons[singletonName] = super(SrcLang, cls).__new__(cls)
+        return cls._singletons[singletonName]
+    
+    def __init__(self):
+        self.instance_setup = True
     
     # Returns the approriate line comment string
     def comment(self):
@@ -55,46 +88,160 @@ class SrcLang:
         return strng
 
     # Translate a generic code string using the rules defined by `self`
-    def translate_query(self, src):
-        return self.dicttranslate(self.nametranslate(self.nulltranslate(src)))
+    def translate_query(self, src, encode=True):
+        encoded = src
+        if encode is True:
+             encoded = self.langrepr(src)
+        return self.dicttranslate(self.nametranslate(self.nulltranslate(encoded)))
 
     # Translate an expected value
     def translate_expected(self, src):
-        return self.dicttranslate(self.nulltranslate(src))
-
+        return self.dicttranslate(self.nulltranslate(self.langrepr(src)))
+    
+    def get_interpreter_path(self):
+        '''return the path to the interpreter on this system, respecting the given env variable'''
+        
+        if self.interpreter_path is not None:
+            if not os.access(self.interpreter_path, os.X_OK):
+                raise test_exceptions.TestingFrameworkException(detail='The interperter %s is not executable' % self.interpreter_path)
+            return self.interpreter_path        
+        
+        if self.interpreter_name_exe_names is None or self.interpreter_name_exe_names == []:
+            raise NotImplementedError('interpreter_name_exe_names is not implemented as required for the SrcLang subclass: %s' % self.__class__.__name__)
+        if self.interpreter_env_name is None:
+            raise NotImplementedError('interpreter_env_name is not implemented as required for the SrcLang subclass: %s' % self.__class__.__name__)
+        
+        executablePath = os.getenv(self.interpreter_env_name)
+        if executablePath is None:
+            for name in self.interpreter_name_exe_names:
+                candidatePath = distutils.spawn.find_executable(name)
+                if candidatePath is not None:
+                    try:
+                        self.interpreter_version = self.version_check(candidatePath)
+                        executablePath = candidatePath
+                        break
+                    except Exception:
+                        pass
+        else:
+            self.interpreter_version = self.version_check(executablePath) # execption on failure
+            
+        if executablePath is None:
+            raise test_exceptions.TestingFrameworkException(detail='Unable to find interperter %s' % self.display_name)
+        
+        self.interpreter_path = executablePath
+        return self.interpreter_path
+    
+    def get_interpreter_version(self, executablePath):
+        '''Return the version string for this interpreter, this must be implimented by subclasses'''
+        raise NotImplementedError('version_check is not implemented as required for the SrcLang subclass: %s' % self.__class__.__name__)
+    
+    def version_check(self, executablePath):
+        '''Check that this is a supported version of this interpreter'''
+        
+        targetVersion = self.get_interpreter_version(executablePath)
+        
+        if self.minVersion is not None and targetVersion < self.minVersion:
+            raise test_exceptions.TestingFrameworkException(detail='Version of %s (%s) was below the minuimum version %s' % (executablePath, targetVersion, self.minVersion))
+        
+        if self.maxVersion is not None and targetVersion > self.maxVersion:
+            raise test_exceptions.TestingFrameworkException(detail='Version of %s (%s) was above the maximum version %s for python2' % (executablePath, targetVersion, self.maxVersion))
+        
+        return targetVersion
 
 class PyLang(SrcLang):
-    interpreter_path = os.getenv('PYTHON') or distutils.spawn.find_executable('python') or 'python'
-    driver_source_env_name = 'PYTHON_DRIVER_SRC_DIR'
+    test_types = None
+    display_name = 'python'
+    
+    interpreter_name_exe_names = None
+    interpreter_env_name = None
+    minVersion = None
+    maxVersion = None
+    
     driver_source_path = os.getenv('PYTHON_DRIVER_SRC_DIR') or os.path.join(utils.project_root_dir(), 'drivers', 'python')
     driver_build_env_name = 'PYTHON_DRIVER_DIR'
-    driver_build_path = os.getenv('PYTHON_DRIVER_DIR') or os.path.join(utils.project_root_dir(), 'drivers', 'python')
+    driver_build_path = os.getenv('PYTHON_DRIVER_DIR') or os.path.join(utils.project_root_dir(), 'build', 'drivers', 'python')
+    
+    polyglot_language_header = os.path.join(os.path.dirname(__file__), 'drivers', 'driver.py')
+    
+    def __init__(self, version, interpreter_env_name='PYTHON'):
+        if self.instance_setup is True:
+            return
+        
+        super(PyLang, self).__init__()
+        
+        self.display_name = 'python ' + version
+        self.test_types = []
+        self.interpreter_name_exe_names = []
+        
+        if interpreter_env_name is not None:
+            self.interpreter_env_name = interpreter_env_name
+        
+        self.minVersion = distutils.version.LooseVersion(version)
+        self.maxVersion = distutils.version.LooseVersion(version + '.999')
+        
+        if version != '':
+            lastVersion = None
+            workingVersion = version
+            while lastVersion != workingVersion:
+                self.test_types.append('py' + workingVersion)
+                self.interpreter_name_exe_names.append('python' + workingVersion)
+                
+                lastVersion = workingVersion
+                workingVersion = os.path.splitext(workingVersion)[0]
+        self.test_types.append('py')
+        self.interpreter_name_exe_names.append('python')
     
     def langrepr(self, val):
-        if not isinstance(val, types.UnicodeType):
-            return repr(str(val))
+        encoded = None
+        if not isinstance(val, unicode):
+            encoded = repr(str(val))
         else:
-            return repr(unicode(val))
+            encoded = repr(unicode(val))
+        if distutils.version.LooseVersion('3.0') <= self.interpreter_version and self.interpreter_version < distutils.version.LooseVersion('3.3'):
+            if len(encoded) > 2 and encoded[:2] in ('u"', "u'"):
+                encoded = encoded[1:]
+        return encoded
     
     def nulltranslate(self, strng):
         return re.sub("(?<!\"|')null(?!\"|')", 'None', strng)
+    
+    def get_interpreter_version(self, executablePath):
+        versionCheckProcess = subprocess.Popen([executablePath, '--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        output, __ = versionCheckProcess.communicate()
+        
+        if versionCheckProcess.returncode != 0:
+            raise test_exceptions.TestingFrameworkException(detail='Unable to determine the version of %s' % executablePath)
+        
+        versionNumbers = re.findall(r'\b([\d\.]+)\b', str(output.decode('utf-8')))
+        if len(versionNumbers) != 1:
+            raise test_exceptions.TestingFrameworkException(detail='Got multiple possible version numbers for %s' % executablePath)
+        
+        return distutils.version.LooseVersion(str(versionNumbers[0]))
 
 class JsLang(SrcLang):
-    interpreter_path = os.getenv('NODE') or distutils.spawn.find_executable('node') or 'node'
-    driver_source_env_name = 'JAVASCRIPT_DRIVER_SRC_DIR'
+    test_types = ['js']
+    display_name = 'javascript'
+    
+    interpreter_name_exe_names = ['node']
+    interpreter_env_name = 'NODE'
+    minVersion = None # no version requirements yet
+    maxVersion = None
+    
     driver_source_path = os.getenv('JAVASCRIPT_DRIVER_SRC_DIR') or os.path.join(utils.project_root_dir(), 'drivers', 'javascript')
     driver_build_env_name = 'JAVASCRIPT_DRIVER_DIR'
     driver_build_path = os.getenv('JAVASCRIPT_DRIVER_DIR') or os.path.join(utils.project_root_dir(), 'build', 'packages', 'js')
+    
+    polyglot_language_header = os.path.join(os.path.dirname(__file__), 'drivers', 'driver.js')
     
     def comment(self):
         return "//"
 
     def langrepr(self, val):
-        if isinstance(val, types.StringType):
+        if isinstance(val, str):
             return repr(val)
-        elif isinstance(val, types.UnicodeType):
+        elif isinstance(val, unicode):
             return repr(val)[1:] # Get rid of the 'u'
-        elif isinstance(val, types.BooleanType):
+        elif isinstance(val, bool):
             return ("true" if val else "false")
         else:
             return repr(str(val))
@@ -105,71 +252,121 @@ class JsLang(SrcLang):
             return re.sub('_[a-z]', lambda m: m.group()[1].upper(), name)
         else:
             return re.sub('__', '_', name)
+    
+    def get_interpreter_version(self, executablePath):
+        versionCheckProcess = subprocess.Popen([executablePath, '--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        output, __ = versionCheckProcess.communicate()
+        
+        if versionCheckProcess.returncode != 0:
+            raise test_exceptions.TestingFrameworkException(detail='Unable to determine the version of %s' % executablePath)
+        
+        versionNumber = str(output.decode('utf-8')).lstrip('v').strip()
+        return distutils.version.LooseVersion(versionNumber)
 
 class RbLang(SrcLang):
-    interpreter_path = os.getenv('RUBY') or distutils.spawn.find_executable('ruby') or 'ruby'
-    driver_source_env_name = 'RUBY_DRIVER_SRC_DIR'
+    test_types = None
+    display_name = 'ruby'
+    
+    interpreter_name_exe_names = None
+    interpreter_env_name = None
+    minVersion = None
+    maxVersion = None
+    
     driver_source_path = os.getenv('RUBY_DRIVER_SRC_DIR') or os.path.join(utils.project_root_dir(), 'drivers', 'ruby')
     driver_build_env_name = 'RUBY_DRIVER_DIR'
     driver_build_path = os.getenv('RUBY_DRIVER_DIR') or os.path.join(utils.project_root_dir(), 'drivers', 'ruby', 'lib')
     
+    polyglot_language_header = os.path.join(os.path.dirname(__file__), 'drivers', 'driver.rb')
+    
+    def __init__(self, version, interpreter_env_name='RUBY'):
+        if self.instance_setup is True:
+            return
+        
+        super(RbLang, self).__init__()
+        
+        self.display_name = 'ruby ' + version
+        self.test_types = []
+        self.interpreter_name_exe_names = []
+        
+        if interpreter_env_name is not None:
+            self.interpreter_env_name = interpreter_env_name
+        
+        self.minVersion = distutils.version.LooseVersion(version)
+        self.maxVersion = distutils.version.LooseVersion(version + '.999')
+        
+        if version != '':
+            lastVersion = None
+            workingVersion = version
+            while lastVersion != workingVersion:
+                self.test_types.append('rb' + workingVersion)
+                self.interpreter_name_exe_names.append('ruby' + workingVersion)
+                
+                lastVersion = workingVersion
+                workingVersion = os.path.splitext(workingVersion)[0]
+        self.test_types.append('rb')
+        self.interpreter_name_exe_names.append('ruby')
+    
     def rb_str_repr(self, string):
-        return ('"'+re.sub("\"", "\\\"", re.sub("\\\\", "\\\\\\\\", string))+'"')
+        return ('"' + re.sub("\"", "\\\"", re.sub("\\\\", "\\\\\\\\", string)) + '"')
 
     def langrepr(self, val):
-        if isinstance(val, types.StringType):
+        if isinstance(val, str):
             return self.rb_str_repr(val)
-        elif isinstance(val, types.UnicodeType):
-            return re.sub("\\$","\\$", repr(val)[1:]) # Get rid of the 'u'
-        elif isinstance(val, types.BooleanType):
+        elif isinstance(val, unicode):
+            return re.sub("\\$", "\\$", repr(val)[1:]) # Get rid of the 'u'
+        elif isinstance(val, bool):
             return ("true" if val else "false")
         else:
             return repr(str(val))
 
     def dicttranslate(self, dic):
-        # print dic
-        dicnew = re.sub("\\\\?'([^']*[^'\\\\])\\\\?':",":\'\\1\'=>", dic)
+        dicnew = re.sub("\\\\?'([^']*[^'\\\\])\\\\?':", ":\'\\1\'=>", dic)
         dicnew = re.sub("\\\\n$", "\n", dicnew)
-        # print dicnew
         return dicnew
 
     def nulltranslate(self, strng):
         return re.sub('null', 'nil', strng)
+    
+    def get_interpreter_version(self, executablePath):
+        '''Return the version string for this interpreter'''
+        versionCheckProcess = subprocess.Popen([executablePath, '--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        output, __ = versionCheckProcess.communicate()
+        
+        if versionCheckProcess.returncode != 0:
+            raise test_exceptions.TestingFrameworkException(detail='Unable to determine the version of %s' % executablePath)
+        
+        versionNumber = str(output.decode('utf-8').split()[1]).strip()
+        return distutils.version.LooseVersion(versionNumber)
 
-# Really just used as a namespace here
-class Langs:
-    langs = {
-        'py':PyLang(),
-        'js':JsLang(),
-        'rb':RbLang()
-    }
-
-    @staticmethod
-    def comment_for(lang):
-        return Langs.langs[lang].comment()
-
-    @staticmethod
-    def repr_query_for(lang, val):
-        return Langs.translate_query_for(lang, Langs.langs[lang].langrepr(val))
-
-    @staticmethod
-    def repr_expected_for(lang, val):
-        return Langs.translate_expected_for(lang, Langs.langs[lang].langrepr(val))
-
-
-    @staticmethod
-    def translate_query_for(lang, src):
-        return Langs.langs[lang].translate_query(src)
-
-    @staticmethod
-    def translate_expected_for(lang, src):
-        return Langs.langs[lang].translate_expected(src)
+interpreters = {
+    'js': [JsLang()],
+    'py': [PyLang('2.6'), PyLang('2.7'), PyLang('3.0'), PyLang('3.1'), PyLang('3.2'), PyLang('3.3'), PyLang('3.4')],
+    'rb': [RbLang('1.9'), RbLang('2.0'), RbLang('2.1')],
+    
+    'py2': [PyLang('2.6'), PyLang('2.7')],
+    'py2.6': [PyLang('2.6')],
+    'py2.7': [PyLang('2.7')],
+    
+    'py3': [PyLang('3.0'), PyLang('3.1'), PyLang('3.2'), PyLang('3.3'), PyLang('3.4')],
+    'py3.0': [PyLang('3.0')],
+    'py3.1': [PyLang('3.1')],
+    'py3.2': [PyLang('3.2')],
+    'py3.3': [PyLang('3.3')],
+    'py3.4': [PyLang('3.4')],
+    
+    'rb1.9': [RbLang('1.9')],
+    'rb1': [RbLang('1.9')],
+    
+    'rb2': [RbLang('2.0'), RbLang('2.1')],
+    'rb2.0': [RbLang('2.0')],
+    'rb2.1': [RbLang('2.1')]
+}
 
 # Abstracts a set of tests given in a single file
-class TestGroup:
+class TestGroup(object):
 
     @classmethod
-    def buildYamlTest(myClass, testName, sourceFile, language, outputPath, interpreter=None, shards=0):
+    def buildYamlTest(cls, testName, sourceFile, language, outputPath, shards=0):
     
         # -- input validation
         
@@ -190,9 +387,8 @@ class TestGroup:
         
         if language is None:
             raise ValueError('buildYamlTest requires a language, got None')
-        language = str(language).lower()
-        if not language in Langs.langs:
-            raise ValueError('buildYamlTest requires a language from %s, got %s' % (str(Langs.langs).keys(), language))
+        if not isinstance(language, SrcLang):
+            raise ValueError('buildYamlTest requires a subclass of SrcLang, got %s' % language)
         
         # outputPath
         
@@ -206,41 +402,48 @@ class TestGroup:
         if os.path.exists(outputPath) and not os.path.isfile(outputPath):
             raise ValueError('buildYamlTest got an outputPath that was already a non-file: %s' % outputPath)
         
-        # interpreter
-        
-        if interpreter is None:
-            interpreter = Langs.langs[language].interpreter_path
-        
         # -- create the file
         
         parsed_data = None
         try:
             parsed_data = yaml.load(open(sourceFile))
-        except Exception, e:
+        except Exception as e:
             raise ValueError('buildYamlTest got a sourceFile (%s) that was unable to be parsed as Yaml: %s' % (sourceFile, str(e)))
         
         with open(outputPath, 'w') as outputFile:
             
             # - write the shebang line
             
-            outputFile.write('#!%s\n\n' % interpreter) # TODO: add a comment block showing the start of the header/driver
+            outputFile.write('#!%s\n' % language.get_interpreter_path())
+            
+            # - write in the encoding (mostly for Python2.6)
+            
+            outputFile.write('%s -*- coding: utf-8 -*-\n\n' % language.comment())
+            
+            # - mark start of the header/driver
+            
+            outputFile.write('%s ========== Start of common test functions ==========\n\n' % language.comment())
             
             # - insert a marker telling what test this is
             
-            outputFile.write('%s Tests %s (%s): %s (%s)\n\n' % (Langs.comment_for(language), testName, language, parsed_data['desc'], sourceFile))
+            outputFile.write('%s Tests %s (%s): %s (%s)\n\n' % (language.comment(), testName, language.display_name, parsed_data['desc'], sourceFile))
             
             # - add the header/driver
             
-            with open(os.path.join(os.path.dirname(__file__), 'drivers', 'driver.%s' % language)) as headerFile:
-                for chunk in iter((lambda:headerFile.read(1024)),''):
+            with open(language.polyglot_language_header) as headerFile:
+                for chunk in iter((lambda: headerFile.read(1024)), ''):
                     outputFile.write(chunk)
             
-            outputFile.write('\n\n')  # TODO: add a comment block showing the end of the header/driver
+            outputFile.write('\n\n')
+            
+            # - mark end of the header/driver
+            
+            outputFile.write('%s ========== End of common test functions ==========\n\n' % language.comment())
             
             # - add the body of the tests
             
             for testNumber, test in enumerate(parsed_data['tests'], start=0):
-                myClass.write_test(testName, outputFile, test, language, str(testNumber), shard=shards)
+                cls.write_test(testName, outputFile, test, language, str(testNumber), shard=shards)
             
             outputFile.write('\n\n')
             
@@ -253,34 +456,34 @@ class TestGroup:
         os.chmod(outputPath, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
     
     @classmethod
-    def write_test(myClass, testName, out, test, lang, index, shard=0):
+    def write_test(cls, testName, out, test, lang, index, shard=0):
         
         testName = os.path.join(testName, str(index))
         
         # Does this test define a variable?
         if 'def' in test:
-            myClass.write_def(out, test['def'], lang, index)
+            cls.write_def(out, test['def'], lang, index)
 
         # See if this test even defines a test for our language
         try:
-            (code, runopts) = myClass.get_code(test, lang, index)
-        except Exception, e:
+            (code, runopts) = cls.get_code(test, lang, index)
+        except Exception as e:
             raise Exception("Error while processing test: %s\n%s" % (testName, str(e)))
         for test_case in code:
             try:
                 out.write("test("+test_case)
-                expected = myClass.get_expected(test, lang)
+                expected = cls.get_expected(test, lang)
                 if not expected:
                     expected = '""'
                 out.write(', '+expected)
                 out.write(', "' + testName + '"')
-    
+                
                 if runopts:
-                    runoptsrepr = Langs.translate_query_for(lang, repr(runopts))
+                    runoptsrepr = lang.translate_query(repr(runopts), encode=False)
                     out.write(', '+runoptsrepr)
-    
+                
                 out.write(')\n')
-    
+                
                 # We want to auto-shard tables that we create. There is stil no
                 # way to do this from rql so we have to hack the admin cli.
                 
@@ -289,43 +492,38 @@ class TestGroup:
                     mo = re.search(pattern, test_case)
                     if mo:
                         table_name = mo.group(1)
-                        out.write('shard("'+table_name+'")\n')
-            except Exception, e:
+                        out.write('shard("%s")\n' % table_name)
+            except Exception as e:
                 raise Exception("Error while processing test: %s\n%s\n%s" % (testName, str(code), str(e)))
     
     @classmethod
-    def write_def(myClass, out, defobj, lang, index):
-        (code, runopts) = myClass.get_code(defobj, lang, index + '-def')
+    def write_def(cls, out, defobj, lang, index):
+        (code, runopts) = cls.get_code(defobj, lang, index + '-def')
         if len(code) > 0:
-            out.write('define('+code[0]+')\n')
+            out.write('define(' + code[0] + ')\n')
 
     # Tests may specify generic test strings valid for all languages or language specific versions
     @classmethod
-    def get_code(myClass, obj, lang, index):
-
+    def get_code(cls, obj, lang, index):
         runopts = None
+        code = None
+        
         if isinstance(obj, dict):
             if 'runopts' in obj:
                 runopts = obj['runopts']
 
-            # Try language specific version first
-            if lang in obj:
-
-                lang_specific = obj[lang]
-
-                # lang_specific may be a dict giving a code attribute
-                if isinstance(lang_specific, dict):
-                    assert 'cd' in lang_specific, "There is no cd for %s" % lang
-                    code = lang_specific['cd']
-                else:
-                    code = lang_specific
-
-            elif 'cd' in obj:
-                code = obj['cd']
-
-            else:
-                code = None
-
+            # Try language specific version first, then default to 'cd'
+            for languageEntry in lang.test_types + ['cd']:
+                if languageEntry in obj:
+                    lang_specific = obj[languageEntry]
+    
+                    # lang_specific may be a dict giving a code attribute
+                    if isinstance(lang_specific, dict):
+                        assert 'cd' in lang_specific, "There is no cd for %s" % lang
+                        code = lang_specific['cd']
+                    else:
+                        code = lang_specific
+                    break
         else:
 
             # obj itself is the code
@@ -333,34 +531,41 @@ class TestGroup:
 
         # Code may be a string or a list of syntactic variants
         if code and not isinstance(code, list):
-            assert isinstance(code, types.StringTypes) or isinstance(code, types.IntType)
+            assert isinstance(code, (str, unicode)), "%s was not a str or int instance (%s)" % (repr(code), type(code))
             code = [code]
         elif code == None:
             code = []
 
         # Construct the appropriate representation for each test in this language
-        return (map(lambda src: Langs.repr_query_for(lang, src), code), runopts)
+        return ([lang.translate_query(src) for src in code], runopts)
 
     # Get the expected result from the test object. Either a generic result or
     # a language specific result.
     @classmethod
-    def get_expected(myClass, obj, lang):
-        if lang in obj and isinstance(obj[lang], dict) and 'ot' in obj[lang]:
-            return Langs.repr_expected_for(lang, obj[lang]['ot'])
-        elif 'ot' in obj:
-            expected = obj['ot']
-            if isinstance(expected, dict):
-                if expected.has_key(lang):
-                    expected = expected[lang]
-                elif 'cd' not in expected:
-                    raise Exception('There was not an expected value for language %s' % lang)
-                else:
-                    expected = expected['cd']
-            return Langs.repr_expected_for(lang, expected)
+    def get_expected(cls, obj, lang):
+        
+        if not isinstance(obj, dict):
+            return None
+        
+        # look for 'ot' entries in top-level language-specific dicts
+        for languageEntry in [obj[x] for x in lang.test_types if x in obj and isinstance(obj[x], dict)]:
+            if 'ot' in languageEntry:
+                return lang.translate_expected(languageEntry['ot'])
+        
+        # look at the top level 'ot' entry
+        if 'ot' in obj:
+            if isinstance(obj['ot'], dict):
+                for languageEntry in lang.test_types:
+                    if languageEntry in obj['ot']:
+                        return lang.translate_expected(obj['ot'][languageEntry])
+                if 'cd' in obj['ot']:
+                    return lang.translate_expected(obj['ot']['cd'])
+            else:
+                return lang.translate_expected(obj['ot'])
 
         return None
 
-class RethinkDBRunningServer:
+class RethinkDBRunningServer(object):
     def __init__(self, driver_port, cluster_port):
         self.driver_port_ = driver_port
         self.cluster_port_ = cluster_port
@@ -378,7 +583,7 @@ class RethinkDBRunningServer:
 
 def check_language(option, opt_str, value, parser):
     if value not in option.choices:
-       raise optparse.OptionValueError('Invalid language: %s' % value) 
+        raise optparse.OptionValueError('Invalid language: %s' % value) 
     
     if not hasattr(parser.values, option.dest):
         setattr(parser.values, option.dest, [])
@@ -386,20 +591,25 @@ def check_language(option, opt_str, value, parser):
     if selectedValues == None:
         selectedValues = []
     
-    if value == 'all':
-        for thisValue in [x for x in option.choices if x != 'all']:
-            if thisValue not in selectedValues:
-                selectedValues.append(thisValue)
-    elif value not in selectedValues:
-        selectedValues.append(value)
+    foundAny = False
+    for language in interpreters[value]:
+        try:
+            language.get_interpreter_path()
+            foundAny = True
+            if language not in selectedValues:
+                selectedValues.append(language)
+                break # default is to only take one language from a group
+        except Exception:
+            continue
+    
+    if foundAny is False:
+        raise optparse.OptionValueError('Unable to find a valid interpreter for language: %s' % value)
     
     setattr(parser.values, option.dest, selectedValues)
 
-TestListing = collections.namedtuple('TestListing', ['name', 'path', 'language', 'type'])
-def getTestList(rootPath, testFilters=None, languages=None):
+TestListing = collections.namedtuple('TestListing', ['name', 'path', 'language', 'type', 'interpreter'])
+def getTestList(rootPath, languages, testFilters=None):
     '''Get a list of TestListing objects for tests found in the given folder'''
-    
-    global testExtensions
     
     # -- input validation
     
@@ -422,16 +632,16 @@ def getTestList(rootPath, testFilters=None, languages=None):
     
     # languages
     
-    if languages is not None:
-        if not hasattr(languages, '__iter__'):
-            languages = [x.strip().lower() for x in str(languages).split(',') if x.strip() != '']
-        newLanguages = []
-        for language in languages[0:]:
-            if language.strip().lower() not in Langs.langs:
-                raise ValueError('getTestList got a language that it does not know how to process: %s' % language)
-            newLanguages.append(language.strip().lower())
-        languages = newLanguages
+    if languages is None:
+        raise ValueError('getTestList requires one or more languages to look for')
     
+    if not hasattr(languages, '__iter__'):
+        languages = [languages]
+    
+    for language in languages:
+        if not isinstance(language, SrcLang):
+            raise ValueError('getTestList got a language that it does not know how to process: %s' % language)
+        
     # -- find items in the directory
     
     foundTests = []
@@ -446,26 +656,29 @@ def getTestList(rootPath, testFilters=None, languages=None):
         
         for fileName in [x for x in files if x.count('.') > 0]:
             
-            testLanguages = Langs.langs.keys()
-            testName, extension = None, None
-            if fileName.count('.') == 1:
-                testName, extension = os.path.splitext(fileName)
-                extension = extension.lstrip('.')
-            else:
-                testName = '.'.join(fileName.split('.')[0:-2])
-                testLanguages, extension = fileName.split('.')[-2:]
-                testLanguages = [testLanguages.lower()]
-            extension = extension.lower()
+            testName, extension = os.path.splitext(fileName)
+            extension = extension.lstrip('.').lower()
+            
+            testName, testLanguages = os.path.splitext(testName)
+            testLanguages = testLanguages.lstrip('.').lower().split(',')
+            
             testName = os.path.join(groupName, testName)
             
             if extension not in testExtensions:
                 continue
             
-            for testLanguage in testLanguages:
-                if testLanguage not in languages:
+            for language in languages:
+                
+                # - check that this test supports this language
+                
+                if extension == 'yaml':
+                    pass # implicitly all languages
+                elif not any([x in language.test_types for x in testLanguages]):
                     continue
                 
-                subTestName = '%s.%s' % (testName, testLanguage)
+                subTestName = '%s.%s' % (testName, language.test_types[0])
+            
+                # - run the filters
 
                 if testFilters is not None and len(testFilters) > 0:
                     foundMatch = False
@@ -476,7 +689,13 @@ def getTestList(rootPath, testFilters=None, languages=None):
                     if foundMatch is False:
                         continue
                 
-                foundTests.append(TestListing(name=subTestName, path=os.path.join(root, fileName), language=testLanguage, type=extension))
+                # - add the test
+                
+                interpreter = None
+                if extension == 'yaml':
+                    interpreter = language.get_interpreter_path()
+                
+                foundTests.append(TestListing(name=subTestName, path=os.path.join(root, fileName), language=language, type=extension, interpreter=interpreter))
     
     # --
     
@@ -486,19 +705,18 @@ def getTestList(rootPath, testFilters=None, languages=None):
 runningProcessGroupsIds = []
 def cleanup(*args):
     '''fired by atexit or a signal handler, this should make sure we don't leave processes running'''
-    global runningProcessGroups
     
     for processGroupId in runningProcessGroupsIds:
         try:
             os.killpg(processGroupId, signal.SIGKILL) # TODO: police this
-        except: pass
+        except Exception:
+            pass
     if len(args) == 2 and args[0] == signal.SIGINT:
         sys.exit(130) # standard signal.SIGINT exit code
 atexit.register(cleanup)
 signal.signal(signal.SIGINT, cleanup) # TODO: cover all relevent signals
 
 def main():
-    global runningProcessGroups
     
     testFilters = []
     testList = []
@@ -512,15 +730,11 @@ def main():
     
     parser.add_option('-l', '--list', dest='list_mode', default=False, action='store_true', help='list the tests and exit')
     
-    parser.add_option('-b', '--build-dir', dest='build_directory', default=None,  help='path to a specific build, usually starting with release_ or debug_')
-    parser.add_option('--clean', dest='clean_run_directory', default=False, action='store_true', help='clean the run directory before running')
+    parser.add_option('-b', '--build-dir', dest='build_directory', default=None, help='path to a specific build, usually starting with release_ or debug_')
+    parser.add_option(      '--clean', dest='clean_run_directory', default=False, action='store_true', help='clean the run directory before running')
     
-    parser.add_option('-i', '--interpreter', dest='languages', action='callback', callback=check_language, choices=Langs.langs.keys() + ['all'], type='choice', default=None, help='the language to test')
+    parser.add_option('-i', '--interpreter', dest='languages', action='callback', callback=check_language, choices=list(interpreters.keys()), type='choice', default=None, help='the language to test')
     parser.add_option('-s', '--shards', dest='shards', type='int', default=1, help='number of shards to run (default 1)')
-    
-    parser.add_option('-j', '--javascript', dest='javascript_executable', default=None, help='use a specific node executbale')
-    parser.add_option('-p', '--python', dest='python_executable', default=None, help='use a specific python executbale')
-    parser.add_option('-r', '--ruby', dest='ruby_executable', default=None, help='use a specific ruby executbale')
     
     parser.add_option('-c', '--cluster-port', dest='cluster_port', default=None, type='int', help='cluster port of an already-running rethinkdb instance')
     parser.add_option('-d', '--driver-port', dest='driver_port', default=None, type='int', help='driver port of an already-running rethinkdb instance')
@@ -547,7 +761,7 @@ def main():
     for newFilter in args:
         try:
             testFilters.append(re.compile(newFilter))
-        except Exception, e:
+        except Exception:
             parser.error('Invalid filter (regex) entry: %s' % newFilter)
     
     # - pull in environmental variables
@@ -556,22 +770,31 @@ def main():
         if os.getenv('RQL_TEST'):
             try:
                 testFilters.append(re.compile(os.getenv('RQL_TEST')))
-            except:
+            except re.error:
                 parser.error("'Invalid filter from ENV: %s" % os.getenv('RQL_TEST'))
         if os.getenv('TEST'):
             try:
                 testFilters.append(re.compile(os.getenv('TEST')))
-            except:
+            except re.error:
                 parser.error("'Invalid filter from ENV: %s" % os.getenv('TEST'))
     
     # - default options
     
     if options.languages is None:
-        options.languages = Langs.langs.keys()
+        options.languages = []
+        for languageGroup in (interpreters['js'], interpreters['py'], interpreters['rb']):
+            for language in languageGroup:
+                try:
+                    language.get_interpreter_path()
+                    options.languages.append(language)
+                    break
+                except Exception: pass
+        if len(options.languages) == 0:
+            parser.error('Unable to find interperters for any of the default languages')
     
     # -- get the list of tests
     
-    testList = getTestList(os.path.realpath(os.path.dirname(__file__)), testFilters=testFilters, languages=options.languages)
+    testList = getTestList(os.path.realpath(os.path.dirname(__file__)), languages=options.languages, testFilters=testFilters)
     
     # -- clean run dir if requested
     
@@ -583,6 +806,21 @@ def main():
             else:
                 os.unlink(runDirPath)
     
+    # -- short-circut if there are no tests
+    
+    if len(testList) == 0:
+        languagesString = 'for the language: '
+        if len(options.languages) > 1:
+            languagesString = 'for the languages: '
+        languagesString += ', '.join([lang.display_name for lang in options.languages])
+        if len(args) == 1:
+            sys.stderr.write('There are no tests that match the filter: %s %s\n' % (args[0], languagesString))
+        elif len(args) > 1:
+            sys.stderr.write('There are no tests that match any of the filters: %s %s\n' % (args, languagesString))
+        else:
+            sys.stderr.write('There are no tests %s\n' % languagesString)
+        sys.exit()
+    
     # -- print list if requested
     
     if options.list_mode is True:
@@ -590,12 +828,24 @@ def main():
             print(test.name)
         sys.exit()
     
+    # -- reduce the langauges to only ones we have tests selected for
+    
+    for language in options.languages[:]:
+        foundLangauge = False
+        for test in testList:
+            if test.language == language:
+                foundLangauge = True
+                break
+        if not foundLangauge:
+            options.languages.remove(language)
+            sys.stderr.write('Warning: did not find any tests for %s\n' % language.display_name)
+    
     # -- check the build_directory
     
     if options.build_directory is None:
         try:
             build_directory = utils.latest_build_dir()
-        except test_exceptions.TestingFrameworkException, e:
+        except test_exceptions.TestingFrameworkException as e:
             sys.exit(str(e))
     else:
         build_directory = options.build_directory
@@ -625,30 +875,20 @@ def main():
     # -- make sure the drivers are built
     
     for language in options.languages:
-        driverDir = None
-        if language == 'rb':
-            driverDir = os.path.join(utils.project_root_dir(), 'drivers', 'ruby')
-        elif language == 'js':
-            driverDir = os.path.join(utils.project_root_dir(), 'drivers', 'javascript')
-        elif language == 'py':
-            driverDir = os.path.join(utils.project_root_dir(), 'drivers', 'python')
-        else:
-            raise NotImplementedError('This tool does not know how to work with: %s' % language)
-        
         outputFile = tempfile.NamedTemporaryFile()
-        notificationDeadline = time.time() + 2
-        makeProcess = subprocess.Popen(['make', '-C', driverDir], stdout=outputFile, stderr=subprocess.STDOUT)
+        notificationDeadline = time.time() + 3
+        makeProcess = subprocess.Popen(['make', '-C', language.driver_source_path], stdout=outputFile, stderr=subprocess.STDOUT)
         while makeProcess.poll() is None and time.time() < notificationDeadline:
             time.sleep(.1)
         if time.time() > notificationDeadline:
-            print('Building the %s drivers. This make take a few moments.' % language)
+            print('Building the %s drivers. This make take a few moments.' % language.display_name)
         if makeProcess.wait() != 0:
             sys.stderr.write('Error making %s driver. Make output follows:\n\n' % os.path.basename(__file__))
             outputFile.seek(0)
-            print(outputFile.read())
+            print(outputFile.read().decode('utf-8'))
             sys.exit(1)
         
-        os.environ[Langs.langs[language].driver_build_env_name] = Langs.langs[language].driver_build_path
+        os.environ[language.driver_build_env_name] = language.driver_build_path
     
     # -- run the testing
     
@@ -656,6 +896,8 @@ def main():
         sys.exit()
     
     print('Using rethinkdb binary from %s' % build_directory)
+    for thisLanguage in options.languages:
+        print('\t%s interpreter: %s, driver: %s' % (thisLanguage.display_name, thisLanguage.get_interpreter_path(), thisLanguage.driver_source_path))
     startTime = time.time()
     
     failedTests = []
@@ -679,9 +921,9 @@ def main():
             executablePath = os.path.join(buildPath, test.name.replace('/', '.'))
             
             try:
-                TestGroup.buildYamlTest(test.name, test.path, test.language, executablePath, interpreter=None, shards=options.shards-1)
-            except Exception, e:
-                failedTests.append(test.name)
+                TestGroup.buildYamlTest(test.name, test.path, test.language, executablePath, shards=options.shards-1)
+            except Exception as e:
+                failedTests.append("%s (%s)" % (test.name, test.language.display_name))
                 sys.stderr.write("Setup Failure: unable to create test executable for Yaml test %s:\n%s\n" % (test.name, str(e)))
                 continue
             
@@ -707,27 +949,40 @@ def main():
             outputChannel = tempfile.NamedTemporaryFile()
         
         testProcessGroupId = None
-        print("\n== Running %s test" % test.name)
+        print("\n== Running %s (%s)" % (test.name, test.language.display_name))
         try:
-            testProcess = subprocess.Popen([executablePath] + additionalArguments, stdout=outputChannel, stderr=outputChannel, preexec_fn=os.setpgrp)
+            
+            if not os.path.isfile(executablePath):
+                failedTests.append("%s (%s)" % (test.name, test.language.display_name))
+                sys.stderr.write("== Failed %s test as it could not be located %s\n" % (test.name, executablePath))
+                continue
+            
+            testExecutable = [executablePath]
+            if test.interpreter is not None:
+                testExecutable = [test.interpreter] + testExecutable
+            testProcess = subprocess.Popen(testExecutable + additionalArguments, stdout=outputChannel, stderr=outputChannel, preexec_fn=os.setpgrp, env=dict(os.environ, **{'INTERPRETER_PATH':test.language.interpreter_path}))
+            
+            # - kill off the process group
+            
             try:
                 testProcessGroupId = os.getpgid(testProcess.pid)
                 runningProcessGroupsIds.append(testProcessGroupId)
-            except: pass
+            except OSError:
+                pass
             
             if testProcess.wait() != 0:
                 if servers is not None:
                     try:
                         servers.stop()
-                    except Exception, e:
+                    except Exception as e:
                         sys.stderr.write('RethinkDB server failed: %s' % str(e))
                     servers = None
                 
-                failedTests.append(test.name)
+                failedTests.append("%s (%s)" % (test.name, test.language.display_name))
                 errorOutput = ''
                 if outputChannel is not None and os.path.getsize(outputChannel.name) > 0:
                     outputChannel.seek(0)
-                    errorOutput = ' Output:\n' + outputChannel.read()
+                    errorOutput = ' Output:\n' + outputChannel.read().decode('utf-8')
                 sys.stderr.write("== Failed %s test with result code %s (%s)%s\n" % (test.name, str(testProcess.returncode), test.path, errorOutput))
             else:
                 print("== Successfully passed %s test" % test.name)
@@ -735,8 +990,9 @@ def main():
             outputChannel = None
             if testProcessGroupId is not None:
                 try:
-                    os.killpg(testProcessGroupId, signal.CTRL_C_EVENT) # TODO: police this
-                except: pass
+                    os.killpg(testProcessGroupId, signal.SIGINT) # TODO: police this
+                except Exception:
+                    pass
             if testProcessGroupId in runningProcessGroupsIds:
                 runningProcessGroupsIds.remove(testProcessGroupId)
             testProcessGroupId = None

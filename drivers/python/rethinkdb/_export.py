@@ -1,14 +1,30 @@
 #!/usr/bin/env python
+from __future__ import print_function
+
 import signal
 
 # When running a subprocess, we may inherit the signal handler - remove it
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 import sys, os, datetime, time, json, traceback, csv
-import multiprocessing, multiprocessing.queues, subprocess, re, ctypes
+import multiprocessing, subprocess, re, ctypes
 from optparse import OptionParser
 from ._backup import *
 import rethinkdb as r
+
+try:
+    unicode
+except NameError:
+    unicode = str
+try:
+    long
+except NameError:
+    long = int
+try:
+    from multiprocessing.queues import SimpleQueue
+except NameError:
+    from multiprocessing import SimpleQueue
+	
 
 info = "'rethinkdb export` exports data from a RethinkDB cluster into a directory"
 usage = "\
@@ -16,38 +32,38 @@ usage = "\
       [--format (csv | json)] [--fields FIELD,FIELD...] [--clients NUM]"
 
 def print_export_help():
-    print info
-    print usage
-    print ""
-    print "  -h [ --help ]                    print this help"
-    print "  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect"
-    print "                                   to (defaults to localhost:28015)"
-    print "  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients"
-    print "  -d [ --directory ] DIR           directory to output to (defaults to"
-    print "                                   rethinkdb_export_DATE_TIME)"
-    print "  --format (csv | json)            format to write (defaults to json)"
-    print "  --fields FIELD,FIELD...          limit the exported fields to those specified"
-    print "                                   (required for CSV format)"
-    print "  -e [ --export ] (DB | DB.TABLE)  limit dump to the given database or table (may"
-    print "                                   be specified multiple times)"
-    print "  --clients NUM                    number of tables to export simultaneously (defaults"
-    print "                                   to 3)"
-    print ""
-    print "EXAMPLES:"
-    print "rethinkdb export -c mnemosyne:39500"
-    print "  Export all data from a cluster running on host 'mnemosyne' with a client port at 39500."
-    print ""
-    print "rethinkdb export -e test -d rdb_export"
-    print "  Export only the 'test' database on a local cluster into a named directory."
-    print ""
-    print "rethinkdb export -c hades -e test.subscribers -a hunter2"
-    print "  Export a specific table from a cluster running on host 'hades' which requires authorization."
-    print ""
-    print "rethinkdb export --format csv -e test.history --fields time,message"
-    print "  Export a specific table from a local cluster in CSV format with the fields 'time' and 'message'."
-    print ""
-    print "rethinkdb export --fields id,value -e test.data"
-    print "  Export a specific table from a local cluster in JSON format with only the fields 'id' and 'value'."
+    print(info)
+    print(usage)
+    print("")
+    print("  -h [ --help ]                    print this help")
+    print("  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect")
+    print("                                   to (defaults to localhost:28015)")
+    print("  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients")
+    print("  -d [ --directory ] DIR           directory to output to (defaults to")
+    print("                                   rethinkdb_export_DATE_TIME)")
+    print("  --format (csv | json)            format to write (defaults to json)")
+    print("  --fields FIELD,FIELD...          limit the exported fields to those specified")
+    print("                                   (required for CSV format)")
+    print("  -e [ --export ] (DB | DB.TABLE)  limit dump to the given database or table (may")
+    print("                                   be specified multiple times)")
+    print("  --clients NUM                    number of tables to export simultaneously (defaults")
+    print("                                   to 3)")
+    print("")
+    print("EXAMPLES:")
+    print("rethinkdb export -c mnemosyne:39500")
+    print("  Export all data from a cluster running on host 'mnemosyne' with a client port at 39500.")
+    print("")
+    print("rethinkdb export -e test -d rdb_export")
+    print("  Export only the 'test' database on a local cluster into a named directory.")
+    print("")
+    print("rethinkdb export -c hades -e test.subscribers -a hunter2")
+    print("  Export a specific table from a cluster running on host 'hades' which requires authorization.")
+    print("")
+    print("rethinkdb export --format csv -e test.history --fields time,message")
+    print("  Export a specific table from a local cluster in CSV format with the fields 'time' and 'message'.")
+    print("")
+    print("rethinkdb export --fields id,value -e test.data")
+    print("  Export a specific table from a local cluster in JSON format with only the fields 'id' and 'value'.")
 
 def parse_options():
     parser = OptionParser(add_help_option=False, usage=usage)
@@ -70,7 +86,7 @@ def parse_options():
         print_export_help()
         exit(0)
 
-    res = { }
+    res = {}
 
     # Verify valid host:port --connect option
     (res["host"], res["port"]) = parse_connect_option(options.host)
@@ -108,7 +124,7 @@ def parse_options():
 
     # Get number of clients
     if options.clients < 1:
-       raise RuntimeError("Error: invalid number of clients (%d), must be greater than zero" % options.clients)
+        raise RuntimeError("Error: invalid number of clients (%d), must be greater than zero" % options.clients)
     res["clients"] = options.clients
 
     res["auth_key"] = options.auth_key
@@ -143,7 +159,7 @@ def get_tables(progress, conn, tables):
 def prepare_directories(base_path, base_path_partial, db_table_set):
     os_call_wrapper(lambda x: os.makedirs(x), base_path_partial, "Failed to create temporary directory (%s): %s")
 
-    db_set = set([db for (db, table) in db_table_set])
+    db_set = set([db for db, table in db_table_set])
     for db in db_set:
         db_dir = base_path_partial + "/%s" % db
         os_call_wrapper(lambda x: os.makedirs(x), db_dir, "Failed to create temporary directory (%s): %s")
@@ -201,7 +217,7 @@ def json_writer(filename, fields, task_queue, error_queue):
                 row = item[0]
 
                 if fields is not None:
-                    for item in list(row.iterkeys()):
+                    for item in list(row.keys()):
                         if item not in fields:
                             del row[item]
                 if first:
@@ -269,7 +285,7 @@ def export_table(host, port, auth_key, db, table, directory, fields, format, err
         table_info = rdb_call_wrapper(conn_fn, "info", write_table_metadata, db, table, directory)
 
         with stream_semaphore:
-            task_queue = multiprocessing.queues.SimpleQueue()
+            task_queue = SimpleQueue()
             writer = launch_writer(format, directory, db, table, fields, task_queue, error_queue)
             writer.start()
 
@@ -299,7 +315,7 @@ def abort_export(signum, frame, exit_event, interrupt_event):
 def update_progress(progress_info):
     rows_done = 0
     total_rows = 1
-    for (current, max_count) in progress_info:
+    for current, max_count in progress_info:
         curr_val = current.value
         max_val = max_count.value
         if curr_val < 0:
@@ -316,16 +332,16 @@ def run_clients(options, db_table_set):
     # Spawn one client for each db.table
     exit_event = multiprocessing.Event()
     processes = []
-    error_queue = multiprocessing.queues.SimpleQueue()
+    error_queue = SimpleQueue()
     interrupt_event = multiprocessing.Event()
     stream_semaphore = multiprocessing.BoundedSemaphore(options["clients"])
 
-    signal.signal(signal.SIGINT, lambda a,b: abort_export(a, b, exit_event, interrupt_event))
+    signal.signal(signal.SIGINT, lambda a, b: abort_export(a, b, exit_event, interrupt_event))
 
     try:
-        progress_info = [ ]
+        progress_info = []
 
-        for (db, table) in db_table_set:
+        for db, table in db_table_set:
             progress_info.append((multiprocessing.Value(ctypes.c_longlong, -1),
                                   multiprocessing.Value(ctypes.c_longlong, 0)))
             processes.append(multiprocessing.Process(target=export_table,
@@ -359,9 +375,9 @@ def run_clients(options, db_table_set):
         def plural(num, text):
             return "%d %s%s" % (num, text, "" if num == 1 else "s")
 
-        print ""
-        print "%s exported from %s" % (plural(sum([info[0].value for info in progress_info]), "row"),
-                                       plural(len(db_table_set), "table"))
+        print("")
+        print("%s exported from %s" % (plural(sum([info[0].value for info in progress_info]), "row"),
+                                       plural(len(db_table_set), "table")))
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
@@ -372,17 +388,17 @@ def run_clients(options, db_table_set):
         # multiprocessing queues don't handling tracebacks, so they've already been stringified in the queue
         while not error_queue.empty():
             error = error_queue.get()
-            print >> sys.stderr, "%s" % (error[1])
+            print("%s" % error[1], file=sys.stderr)
             if options["debug"]:
-                print >> sys.stderr, "%s traceback: %s" % (error[0].__name__, error[2])
+                print("%s traceback: %s" % (error[0].__name__, error[2]), file=sys.stderr)
             raise RuntimeError("Errors occurred during export")
 
 def main():
     try:
         options = parse_options()
     except RuntimeError as ex:
-        print >> sys.stderr, "Usage:\n%s" % usage
-        print >> sys.stderr, ex
+        print("Usage:\n%s" % usage, file=sys.stderr)
+        print(ex, file=sys.stderr)
         return 1
 
     try:
@@ -398,9 +414,9 @@ def main():
         run_clients(options, db_table_set)
         finalize_directory(options["directory"], options["directory_partial"])
     except RuntimeError as ex:
-        print >> sys.stderr, ex
+        print(ex, file=sys.stderr)
         return 1
-    print "  Done (%d seconds)" % (time.time() - start_time)
+    print("  Done (%d seconds)" % (time.time() - start_time))
     return 0
 
 if __name__ == "__main__":

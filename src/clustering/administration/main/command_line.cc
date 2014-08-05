@@ -1006,7 +1006,8 @@ std::string get_reql_http_proxy_option(const std::map<std::string, options::valu
     //   host - ([A-z0-9.-]+) - captures the hostname or ip address, consisting of letters,
     //     numbers, dashes, and dots
     //   port - (?::(\d+))? - captures the numeric port, discarding the preceding ':'
-    RE2 re2_parser("(?:([A-z][A-z0-9+-.]*)(?:://))?([A-z0-9_.-]+)(?::(\\d+))?");
+    RE2 re2_parser("(?:([A-z][A-z0-9+-.]*)(?:://))?([A-z0-9_.-]+)(?::(\\d+))?",
+                   RE2::Quiet);
     std::string protocol, host, port_str;
     if (!RE2::FullMatch(proxy.get(), re2_parser, &protocol, &host, &port_str)) {
         throw std::runtime_error(strprintf("--reql-http-proxy format unrecognized, "

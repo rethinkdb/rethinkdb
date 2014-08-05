@@ -21,7 +21,7 @@ tests:
   - def: ten_l = r.expr([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
   - def:
       js: ten_f = function(l) { return ten_l }
-      py: ten_f = lambda l:range(1,11)
+      py: ten_f = lambda l:list(range(1,11))
   - def:
       js: huge_l = r.expr(ten_l).concatMap(ten_f).concatMap(ten_f).concatMap(ten_f).concatMap(ten_f)
       py: huge_l = r.expr(ten_l).concat_map(ten_f).concat_map(ten_f).concat_map(ten_f).concat_map(ten_f)

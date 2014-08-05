@@ -5,6 +5,6 @@ tests:
   - js: r({a:Infinity})
     ot: builtin_err("TypeError", "Illegal non-finite number `Infinity`.")
   - py: r.expr(float('NaN'))
-    ot: err('ValueError', 'Out of range float values are not JSON compliant')
+    ot: err_regex('ValueError', 'Out of range float values are not JSON compliant.*')
   - py: r.expr(float('Infinity'))
-    ot: err('ValueError', 'Out of range float values are not JSON compliant')
+    ot: err_regex('ValueError', 'Out of range float values are not JSON compliant.*')

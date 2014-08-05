@@ -25,7 +25,7 @@ with driver.Metacluster() as metacluster:
     try:
         access.do_query_plaintext("GET", "/foobar")
         assert(False and "Invalid page raises error code")
-    except Exception, e:
+    except Exception as e:
         assert(e.status == 403)
     time.sleep(2)
     print "Trying to access its log..."
@@ -34,4 +34,3 @@ with driver.Metacluster() as metacluster:
     assert any('nonwhitelisted' in entry['message'] for entry in log)
     cluster.check_and_stop()
 print "Done."
-

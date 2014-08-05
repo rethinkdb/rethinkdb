@@ -39,13 +39,13 @@ with driver.Metacluster() as metacluster:
     
     # -- check that invalid requests are treated as such
     
-    invalid_requests = ["foo=bar","filter=\|","time0ut=1","timeout=","timeout=0"]
+    invalid_requests = ["foo=bar", r"filter=\|", "time0ut=1", "timeout=", "timeout=0"]
     for req in invalid_requests:
-        failed=False
+        failed = False
         try:
             access.get_stat(req)
         except http_admin.BadServerResponse:
-            failed=True
+            failed = True
         assert failed, "Request '%s' should have failed!" % req
     
     # -- check that the filter option works
@@ -63,7 +63,7 @@ with driver.Metacluster() as metacluster:
         filtered_machine_stats = access.get_stat(filtered_machine_query)
         
         other_machines = [x for x in machines if x != machine]
-        other_machines_query="machine_whitelist=" + ",".join(other_machines)
+        other_machines_query = "machine_whitelist=" + ",".join(other_machines)
         other_machine_stats = access.get_stat(other_machines_query)
 
         assert machine_stats.keys().count(machine) == 1
@@ -71,15 +71,15 @@ with driver.Metacluster() as metacluster:
         for other_machine in other_machines:
             assert machine_stats.keys().count(other_machine) == 0
             assert other_machine_stats.keys().count(other_machine) == 1
-        
+
         stats_top = machine_stats
         for i in [x for x in stats_top.keys() if x != "machines"]:
             machine_top = stats_top[i]
-            for (f, namespace_top) in machine_top.items():
+            for f, namespace_top in machine_top.items():
                 if not re.match('[^-]{8}-', f):
                     machine_top.pop(f)
                 else:
-                    for (k, parser_top) in namespace_top.items():
+                    for k, parser_top in namespace_top.items():
                         if k != "serializers":
                             namespace_top.pop(k)
                         else:

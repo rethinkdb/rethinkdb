@@ -212,6 +212,12 @@ public:
 
     bool drop_sindex(
         const sindex_name_t &name,
+        buf_lock_t *sindex_block)
+    THROWS_ONLY(interrupted_exc_t);
+
+    void rename_sindex(
+        const sindex_name_t &old_name,
+        const sindex_name_t &new_name,
         buf_lock_t sindex_block)
     THROWS_ONLY(interrupted_exc_t);
 

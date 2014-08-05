@@ -65,7 +65,7 @@ class PlotSelectHandler(PlotTemplate):
         self.write('</form>')
 
         self.tail()
-        
+
 class PlotConfigureHandler(PlotTemplate):
     stats_for_display = [
         'blocks_dirty[blocks]',
@@ -115,42 +115,42 @@ class PlotConfigureHandler(PlotTemplate):
         if plotter_type == "simple_plotter":
             self.write('<tr><td>Stat:</td><td><select name="simple_plotter_stat">')
             for stat in self.stats_for_display:
-                self.write('<option value="%s">%s</option>' % (stat, stat) )
+                self.write('<option value="%s">%s</option>' % (stat, stat))
             self.write('</select></td></tr>')
             self.write('<tr><td>Multiplier:</td><td><input name="simple_plotter_multiplier" value="1" size="5"></td></tr>')
         elif plotter_type == "differential_plotter":
             self.write('<tr><td>Stat:</td><td><select name="differential_plotter_stat">')
             for stat in self.stats_for_display:
-                self.write('<option value="%s">%s</option>' % (stat, stat) )
+                self.write('<option value="%s">%s</option>' % (stat, stat))
             self.write('</select></td></tr>')
         elif plotter_type == "two_stats_diff_plotter":
             self.write('<tr><td>Stat 1:</td><td><select name="two_stats_diff_plotter_stat1">')
             for stat in self.stats_for_display:
-                self.write('<option value="%s">%s</option>' % (stat, stat) )
+                self.write('<option value="%s">%s</option>' % (stat, stat))
             self.write('</select></td></tr>')
             self.write('<tr><td>Stat 2:</td><td><select name="two_stats_diff_plotter_stat2">')
             for stat in self.stats_for_display:
-                self.write('<option value="%s">%s</option>' % (stat, stat) )
+                self.write('<option value="%s">%s</option>' % (stat, stat))
             self.write('</select></td></tr>')
         elif plotter_type == "two_stats_ratio_plotter":
             self.write('<tr><td>Dividend:</td><td><select name="two_stats_ratio_plotter_dividend">')
             for stat in self.stats_for_display:
-                self.write('<option value="%s">%s</option>' % (stat, stat) )
+                self.write('<option value="%s">%s</option>' % (stat, stat))
             self.write('</select></td></tr>')
             self.write('<tr><td>Divisor:</td><td><select name="two_stats_ratio_plotter_divisor">')
             for stat in self.stats_for_display:
-                self.write('<option value="%s">%s</option>' % (stat, stat) )
+                self.write('<option value="%s">%s</option>' % (stat, stat))
             self.write('</select></td></tr>')
 
         self.write('</table>')
-        for (hidden_name, hidden_value) in [
+        for hidden_name, hidden_value in [
                 ("name", name),
                 ("plotter_type", plotter_type),
                 ("plot_style", plot_style),
                 ("start_timestamp", start_timestamp),
                 ("run", run),
                 ("end_timestamp", end_timestamp)]:
-            self.write('<input type="hidden" name="%s" value="%s">' % (hidden_name, hidden_value) ); # Cross site scripting vulnerability! ;-)
+            self.write('<input type="hidden" name="%s" value="%s">' % (hidden_name, hidden_value)); # Cross site scripting vulnerability! ;-)
         self.write('<br><input type="submit" value="Generate">')
         self.write('</form>')
 
@@ -159,11 +159,13 @@ class PlotConfigureHandler(PlotTemplate):
 class PlotGeneratorHandler(PlotTemplate):
     def get(self):
         name = self.get_argument("name")
-        pass_values = [("name", name),
+        pass_values = [
+            ("name", name),
             ("start_timestamp", self.get_argument("start_timestamp")),
             ("end_timestamp", self.get_argument("end_timestamp")),
             ("run", self.get_argument("run")),
-            ("plotter_type", self.get_argument("plotter_type"))]
+            ("plotter_type", self.get_argument("plotter_type"))
+        ]
 
         plot_style = self.get_argument("plot_style")
         if plot_style == "quantile" or plot_style == "quantilel":
@@ -247,7 +249,5 @@ if __name__ == "__main__":
     port = 8899
     http_server = tornado.httpserver.HTTPServer(application)
     http_server.listen(port)
-    print "Listening on port %d" % port
+    print("Listening on port %d" % port)
     tornado.ioloop.IOLoop.instance().start()
-
-

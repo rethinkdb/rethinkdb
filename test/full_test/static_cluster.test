@@ -5,15 +5,12 @@ workloads = {
     'rget': "$RETHINKDB/test/memcached_workloads/rget.py --address $HOST:$PORT --table $DB_NAME.$TABLE_NAME",
     'rget-huge': "$RETHINKDB/test/memcached_workloads/rget_huge.py --address $HOST:$PORT --table $DB_NAME.$TABLE_NAME",
     'serial-mix': "$RETHINKDB/test/memcached_workloads/serial_mix.py --address $HOST:$PORT --table $DB_NAME.$TABLE_NAME"
-    }
+}
 
 for wname, workload in workloads.items():
-    generate_test(
-        "$RETHINKDB/test/scenarios/static_cluster.py '%s'" % (workload,),
-        name = wname
-        )
+    generate_test("$RETHINKDB/test/scenarios/static_cluster.py '%s'" % workload, name=wname)
 
 generate_test(
     "$RETHINKDB/test/scenarios/proxy_cluster.py '$RETHINKDB/test/memcached_workloads/serial_mix.py --address $HOST:$PORT --table $DB_NAME.$TABLE_NAME'",
-    name = 'proxy-cluster'
-    )
+    name='proxy-cluster'
+)

@@ -66,6 +66,9 @@ public:
         env_t *env, const std::string &name,
         counted_t<func_t> index_func, sindex_multi_bool_t multi);
     MUST_USE bool sindex_drop(env_t *env, const std::string &name);
+    MUST_USE sindex_rename_result_t sindex_rename(
+        env_t *env, const std::string &old_name,
+        const std::string &new_name, bool overwrite);
     counted_t<const datum_t> sindex_list(env_t *env);
     counted_t<const datum_t> sindex_status(env_t *env,
         std::set<std::string> sindex);

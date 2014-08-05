@@ -217,7 +217,7 @@ private:
             std::string idx_str = idx.has() ? idx->as_str().to_std() : tbl->get_pkey();
             if (idx.has() && idx_str == tbl->get_pkey()) {
                 auto row = pb::dummy_var_t::DISTINCT_ROW;
-                std::vector<sym_t> distinct_args{dummy_var_to_sym(row)};
+                std::vector<sym_t> distinct_args{dummy_var_to_sym(row)}; // NOLINT(readability/braces) yes we bloody well do need the ;
                 protob_t<Term> body(make_counted_term());
                 {
                     r::reql_t f = r::var(row)[idx_str];
