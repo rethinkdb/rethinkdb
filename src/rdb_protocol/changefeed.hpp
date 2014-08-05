@@ -6,6 +6,7 @@
 #include <exception>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "errors.hpp"
 #include <boost/variant.hpp>
@@ -14,9 +15,9 @@
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "protocol_api.hpp"
+#include "rdb_protocol/counted_term.hpp"
 #include "region/region.hpp"
 #include "repli_timestamp.hpp"
-#include "rdb_protocol/counted_term.hpp"
 #include "rpc/connectivity/peer_id.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -164,14 +165,16 @@ public:
     typedef server_addr_t addr_t;
     explicit server_t(mailbox_manager_t *_manager);
     ~server_t();
-    void add_client(const client_t::addr_t &addr);
-    void send_all(msg_t msg);
+    void add_client(const client_t::addr_t &addr, region_t region);
+    // `key` should be non-NULL if there is a key associated with the message.
+    void send_all(msg_t msg, const store_key_t *key);
     void stop_all();
     addr_t get_stop_addr();
     uint64_t get_stamp(const client_t::addr_t &addr);
     uuid_u get_uuid();
 private:
-    void send_all_with_lock(const auto_drainer_t::lock_t &lock, msg_t msg);
+    void send_all_with_lock(const auto_drainer_t::lock_t &lock,
+                            msg_t msg, const store_key_t *key);
     void stop_mailbox_cb(client_t::addr_t addr);
     void add_client_cb(signal_t *stopped, client_t::addr_t addr);
 
@@ -184,6 +187,7 @@ private:
     struct client_info_t {
         scoped_ptr_t<cond_t> cond;
         uint64_t stamp;
+        std::vector<region_t> regions;
     };
     std::map<client_t::addr_t, client_info_t> clients;
     // Controls access to `clients`.  A `server_t` needs to read `clients` when:

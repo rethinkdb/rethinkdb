@@ -37,11 +37,18 @@ void server_t::stop_mailbox_cb(client_t::addr_t addr) {
     }
 }
 
-void server_t::add_client(const client_t::addr_t &addr) {
+void server_t::add_client(const client_t::addr_t &addr, region_t region) {
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::write);
     spot.write_signal()->wait_lazily_unordered();
     auto info = &clients[addr];
+
+    // We do this regardless of whether there's already an entry for this
+    // address, because we might be subscribed to multiple regions if we're
+    // oversharded.  This will have to become smarter once you can unsubscribe
+    // at finer granularity (i.e. when we support changefeeds on selections).
+    info->regions.push_back(std::move(region));
+
     // The entry might already exist if we have multiple shards per btree, but
     // that's fine.
     if (!info->cond.has()) {
@@ -64,7 +71,7 @@ void server_t::add_client_cb(signal_t *stopped, client_t::addr_t addr) {
             &disconnect, stopped, coro_lock.get_drain_signal());
         wait_any.wait_lazily_unordered();
     }
-    send_all_with_lock(coro_lock, msg_t(msg_t::stop_t()));
+    send_all_with_lock(coro_lock, msg_t(msg_t::stop_t()), NULL);
     rwlock_in_line_t coro_spot(&clients_lock, access_t::write);
     coro_spot.write_signal()->wait_lazily_unordered();
     size_t erased = clients.erase(addr);
@@ -90,24 +97,30 @@ RDB_MAKE_SERIALIZABLE_3(stamped_msg_t, server_uuid, stamp, submsg);
 // always ackquire a drainer lock before sending because we sometimes send a
 // `stop_t` during destruction, and you can't acquire a drain lock on a draining
 // `auto_drainer_t`.)
-void server_t::send_all_with_lock(const auto_drainer_t::lock_t &, msg_t msg) {
+void server_t::send_all_with_lock(const auto_drainer_t::lock_t &,
+                                  msg_t msg, const store_key_t *key) {
     rwlock_in_line_t spot(&clients_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
-    for (auto it = clients.begin(); it != clients.end(); ++it) {
-        uint64_t stamp;
-        {
-            // We don't need a write lock as long as we make sure the coroutine
-            // doesn't block between reading and updating the stamp.
-            ASSERT_NO_CORO_WAITING;
-            stamp = it->second.stamp++;
+    for (auto &&client : clients) {
+        if (key == NULL
+            || std::any_of(client.second.regions.begin(),
+                           client.second.regions.end(),
+                           std::bind(&region_contains_key, ph::_1, std::cref(*key)))) {
+            uint64_t stamp;
+            {
+                // We don't need a write lock as long as we make sure the coroutine
+                // doesn't block between reading and updating the stamp.
+                ASSERT_NO_CORO_WAITING;
+                stamp = client.second.stamp++;
+            }
+            send(manager, client.first, stamped_msg_t(uuid, stamp, msg));
         }
-        send(manager, it->first, stamped_msg_t(uuid, stamp, msg));
     }
 }
 
-void server_t::send_all(msg_t msg) {
+void server_t::send_all(msg_t msg, const store_key_t *key) {
     auto_drainer_t::lock_t lock(&drainer);
-    send_all_with_lock(lock, std::move(msg));
+    send_all_with_lock(lock, std::move(msg), key);
 }
 
 void server_t::stop_all() {

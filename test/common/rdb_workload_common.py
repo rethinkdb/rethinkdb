@@ -26,7 +26,7 @@ def insert_many(host="localhost", port=28015, database="test", table=None, count
         conn = r.connect(host, port)
 
     def gen(i):
-        return { 'val': "X" * (i % 100) }
+        return {'val': "X" * (i % 100)}
 
     if isinstance(table, str) or isinstance(table, unicode):
         table = r.db(database).table(table)

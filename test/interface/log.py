@@ -35,4 +35,3 @@ with driver.Metacluster() as metacluster:
     assert len(log) >= num_entries
     cluster.check_and_stop()
 print "Done."
-

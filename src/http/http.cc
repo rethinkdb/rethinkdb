@@ -214,7 +214,8 @@ bool maybe_gzip_response(const http_req_t &req, http_res_t *res) {
     //      be the next comma or the end of the string.  We consume the comma so that the
     //      next iteration will start at the beginning of the remaining string.
     {
-        RE2 re2_parser("^\\s*([\\w-]+|\\*)\\s*(?:;\\s*q\\s*=\\s*([0-9]+(?:\\.[0-9]+)?)\\s*)?(?:,|$)");
+        RE2 re2_parser("^\\s*([\\w-]+|\\*)\\s*(?:;\\s*q\\s*=\\s*([0-9]+(?:\\.[0-9]+)?)\\s*)?(?:,|$)",
+                       RE2::Quiet);
         re2::StringPiece encodings_re2(supported_encoding.get());
         std::string name;
         std::string qvalue;

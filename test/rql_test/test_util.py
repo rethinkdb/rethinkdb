@@ -26,13 +26,13 @@ class RethinkDBTestServers(object):
     group_data_dir = None
     servers = None
     
-    def __init__(self, num_servers=4, server_build_dir=None, use_default_port=False, cache_size=1024, group_data_dir ='./run'):
+    def __init__(self, num_servers=4, server_build_dir=None, use_default_port=False, cache_size=1024, group_data_dir='./run'):
         assert num_servers >= 1
         self.num_servers = num_servers
         self.server_build_dir = server_build_dir
         self.use_default_port = use_default_port
         self.cache_size = cache_size
-        self. group_data_dir = os.path.realpath(group_data_dir) 
+        self.group_data_dir = os.path.realpath(group_data_dir)
 
     def __enter__(self):
         self.start()
@@ -43,7 +43,7 @@ class RethinkDBTestServers(object):
 
     def start(self):
         self.servers = [RethinkDBTestServer(self.server_build_dir, self.use_default_port, self.cache_size, self.group_data_dir)
-                            for i in xrange(0, self.num_servers)]
+                            for i in range(0, self.num_servers)]
 
         cluster_port = self.servers[0].start()
         for server in self.servers[1:]:
@@ -108,7 +108,7 @@ class RethinkDBTestServer(object):
     # Find a free port to bind to
     def find_available_port(self):
         max_loop = 10
-        for i in xrange(max_loop):
+        for i in range(max_loop):
             port = random.randint(1025, 65535)
             if self.port_available(port):
                 return port
@@ -118,7 +118,7 @@ class RethinkDBTestServer(object):
     def port_available(self, port):
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.bind(("127.0.0.1",port))
+            s.bind(("127.0.0.1", port))
             s.close()
         except socket.error:
             return False
@@ -166,7 +166,7 @@ class RethinkDBTestServer(object):
         
         if os.path.exists(self.server_data_dir): # we need a clean data directory TODO: evaluate moving this to a tempfile folder
             # TODO: log that we are cleaning off this directory
-            if os.path.isdir(self.server_data_dir) and not os.path.islink(self.server_data_dir):    
+            if os.path.isdir(self.server_data_dir) and not os.path.islink(self.server_data_dir):
                 shutil.rmtree(self.server_data_dir)
             else:
                 os.unlink(self.server_data_dir)
@@ -205,12 +205,9 @@ class RethinkDBTestServer(object):
 
 def shard_table(port, build, table_name):
     rtn_sum = 0
-    rtn_sum += call([build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard', table_name,
-					'Nc040800000000000\2333'], stdout=null, stderr=null)
-    rtn_sum += call([build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard', table_name,
-					'Nc048800000000000\2349'], stdout=null, stderr=null)
-    rtn_sum += call([build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard', table_name,
-					'Nc04f000000000000\2362'], stdout=null, stderr=null)
+    rtn_sum += call([build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard', table_name, 'Nc040800000000000\2333'], stdout=null, stderr=null)
+    rtn_sum += call([build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard', table_name, 'Nc048800000000000\2349'], stdout=null, stderr=null)
+    rtn_sum += call([build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard', table_name, 'Nc04f000000000000\2362'], stdout=null, stderr=null)
     sleep(3.0)
     return rtn_sum
 

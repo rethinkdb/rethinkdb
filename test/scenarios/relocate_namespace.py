@@ -43,9 +43,11 @@ with driver.Metacluster() as metacluster:
         http.check_no_issues()
         http.move_table_to_datacenter(ns, secondary_dc)
         http.wait_until_blueprint_satisfied(ns)
-        rdb_workload_common.wait_for_table(host=workload_ports.host,
-                                           port=workload_ports.rdb_port,
-table=workload_ports.table_name)
+        rdb_workload_common.wait_for_table(
+            host=workload_ports.host,
+            port=workload_ports.rdb_port,
+            table=workload_ports.table_name
+        )
         cluster.check()
         http.check_no_issues()
         workload.run_after()

@@ -50,5 +50,3 @@ def parse_array(parser, count):
             values.append(value)
         return values, offset
     return parse
-
-            

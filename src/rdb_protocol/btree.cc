@@ -772,13 +772,16 @@ typedef ql::terminal_variant_t terminal_variant_t;
 class sindex_data_t {
 public:
     sindex_data_t(const key_range_t &_pkey_range, const datum_range_t &_range,
+                  cluster_version_t wire_func_reql_version,
                   ql::map_wire_func_t wire_func, sindex_multi_bool_t _multi)
         : pkey_range(_pkey_range), range(_range),
+          func_reql_version(wire_func_reql_version),
           func(wire_func.compile_wire_func()), multi(_multi) { }
 private:
     friend class rget_cb_t;
     const key_range_t pkey_range;
     const datum_range_t range;
+    const cluster_version_t func_reql_version;
     const counted_t<ql::func_t> func;
     const sindex_multi_bool_t multi;
 };
@@ -915,7 +918,7 @@ THROWS_ONLY(interrupted_exc_t) {
             // Secondary index functions are deterministic (so no need for an
             // rdb_context_t) and evaluated in a pristine environment (without global
             // optargs).
-            ql::env_t sindex_env(job.env->interruptor);
+            ql::env_t sindex_env(job.env->interruptor, sindex->func_reql_version);
             sindex_val = sindex->func->call(&sindex_env, val)->as_datum();
             if (sindex->multi == sindex_multi_bool_t::MULTI
                 && sindex_val->get_type() == ql::datum_t::R_ARRAY) {
@@ -988,6 +991,7 @@ void rdb_rget_secondary_slice(
     const boost::optional<terminal_variant_t> &terminal,
     const key_range_t &pk_range,
     sorting_t sorting,
+    cluster_version_t sindex_func_reql_version,
     const ql::map_wire_func_t &sindex_func,
     sindex_multi_bool_t sindex_multi,
     rget_read_response_t *response) {
@@ -996,7 +1000,8 @@ void rdb_rget_secondary_slice(
     rget_cb_t callback(
         io_data_t(response, slice),
         job_data_t(ql_env, batchspec, transforms, terminal, sorting),
-        sindex_data_t(pk_range, sindex_range, sindex_func, sindex_multi),
+        sindex_data_t(pk_range, sindex_range, sindex_func_reql_version, sindex_func,
+                      sindex_multi),
         sindex_region.inner);
     btree_concurrent_traversal(
         superblock, sindex_region.inner, &callback,
@@ -1105,7 +1110,8 @@ void rdb_modification_report_cb_t::on_mod_report(
                 ql::changefeed::msg_t(
                     ql::changefeed::msg_t::change_t(
                         mod_report.info.deleted.first,
-                        mod_report.info.added.first)));
+                        mod_report.info.added.first)),
+                &mod_report.primary_key);
         }
 
         sindexes_updated_cond.wait_lazily_unordered();
@@ -1127,6 +1133,7 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
 }
 
 void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> doc,
+                  cluster_version_t reql_version,
                   ql::map_wire_func_t *mapping, sindex_multi_bool_t multi,
                   std::vector<store_key_t> *keys_out) {
     guarantee(keys_out->empty());
@@ -1134,7 +1141,7 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
     // Secondary index functions are deterministic (so no need for an rdb_context_t)
     // and evaluated in a pristine environment (without global optargs).
     cond_t non_interruptor;
-    ql::env_t sindex_env(&non_interruptor);
+    ql::env_t sindex_env(&non_interruptor, reql_version);
 
     counted_t<const ql::datum_t> index =
         mapping->compile_wire_func()->call(&sindex_env, doc)->as_datum();
@@ -1151,23 +1158,57 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
 
 void serialize_sindex_info(write_message_t *wm,
                            const ql::map_wire_func_t &mapping,
+                           const sindex_reql_version_info_t &reql_version,
                            const sindex_multi_bool_t &multi) {
+    // _This_ cluster version field only affects the serialization code.  It doesn't
+    // have anything to do with the ReQL evaluation version, which is a different
+    // field in secondary_index_t.
     serialize_cluster_version(wm, cluster_version_t::LATEST_DISK);
+
     serialize_for_version(cluster_version_t::LATEST_DISK, wm, mapping);
+    serialize_cluster_version(wm, reql_version.original_reql_version);
+    serialize_cluster_version(wm, reql_version.latest_compatible_reql_version);
+    serialize_cluster_version(wm, reql_version.latest_checked_reql_version);
     serialize_for_version(cluster_version_t::LATEST_DISK, wm, multi);
 }
 
 void deserialize_sindex_info(const std::vector<char> &data,
-                             ql::map_wire_func_t *mapping,
-                             sindex_multi_bool_t *multi) {
+
+                             ql::map_wire_func_t *mapping_out,
+                             sindex_reql_version_info_t *reql_version_out,
+                             sindex_multi_bool_t *multi_out) {
     inplace_vector_read_stream_t read_stream(&data);
+    // This cluster version field is _not_ a ReQL evaluation version field, which is
+    // in secondary_index_t -- it only says how the value was serialized.
     cluster_version_t cluster_version;
     archive_result_t success
         = deserialize_cluster_version(&read_stream, &cluster_version);
     guarantee_deserialization(success, "sindex description");
-    success = deserialize_for_version(cluster_version, &read_stream, mapping);
+
+    success = deserialize_for_version(cluster_version, &read_stream, mapping_out);
     guarantee_deserialization(success, "sindex description");
-    success = deserialize_for_version(cluster_version, &read_stream, multi);
+
+    if (cluster_version == cluster_version_t::v1_13
+        || cluster_version == cluster_version_t::v1_13_2) {
+        reql_version_out->original_reql_version = cluster_version_t::v1_13;
+        reql_version_out->latest_compatible_reql_version = cluster_version_t::v1_13;
+        reql_version_out->latest_checked_reql_version = cluster_version_t::v1_13;
+    } else {
+        success = deserialize_cluster_version(
+                &read_stream,
+                &reql_version_out->original_reql_version);
+        guarantee_deserialization(success, "original_reql_version");
+        success = deserialize_cluster_version(
+                &read_stream,
+                &reql_version_out->latest_compatible_reql_version);
+        guarantee_deserialization(success, "latest_compatible_reql_version");
+        success = deserialize_cluster_version(
+                &read_stream,
+                &reql_version_out->latest_checked_reql_version);
+        guarantee_deserialization(success, "latest_checked_reql_version");
+    }
+
+    success = deserialize_for_version(cluster_version, &read_stream, multi_out);
     guarantee_deserialization(success, "sindex description");
 
     guarantee(static_cast<size_t>(read_stream.tell()) == data.size(),
@@ -1187,8 +1228,10 @@ void rdb_update_single_sindex(
     guarantee(modification->primary_key.size() != 0);
 
     ql::map_wire_func_t mapping;
+    sindex_reql_version_info_t mapping_version_info;
     sindex_multi_bool_t multi;
-    deserialize_sindex_info(sindex->sindex.opaque_definition, &mapping, &multi);
+    deserialize_sindex_info(sindex->sindex.opaque_definition,
+                            &mapping, &mapping_version_info, &multi);
 
     // TODO(2014-08): Actually get real profiling information for
     // secondary index updates.
@@ -1203,7 +1246,11 @@ void rdb_update_single_sindex(
 
             std::vector<store_key_t> keys;
 
-            compute_keys(modification->primary_key, deleted, &mapping, multi, &keys);
+            // TODO(2014-08-01): Someplace, we need to update
+            // latest_compatible_reql_version and latest_checked_reql_version.
+            compute_keys(modification->primary_key, deleted,
+                         mapping_version_info.latest_compatible_reql_version, &mapping,
+                         multi, &keys);
 
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
@@ -1245,7 +1292,9 @@ void rdb_update_single_sindex(
 
             std::vector<store_key_t> keys;
 
-            compute_keys(modification->primary_key, added, &mapping, multi, &keys);
+            compute_keys(modification->primary_key, added,
+                         mapping_version_info.latest_compatible_reql_version, &mapping,
+                         multi, &keys);
 
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;

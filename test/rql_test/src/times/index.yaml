@@ -134,7 +134,7 @@ tests:
 
   - def:
       rb: oldtime = Time.at(1375147296.681)
-      py: oldtime = datetime.fromtimestamp(1375147296.681, pytz.timezone('US/Pacific'))
+      py: oldtime = datetime.fromtimestamp(1375147296.681, PacificTimeZone())
       js: oldtime = (new Date(1375147296.681*1000))
   - def:
       rb: curtime = Time.now
