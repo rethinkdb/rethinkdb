@@ -15,6 +15,10 @@
 
 namespace ql {
 
+class obj_or_seq_op_term_t;
+typedef counted_t<val_t> (*obj_or_seq_op_term_helper_t)(const obj_or_seq_op_term_t *t, scope_env_t *env, args_t *args, counted_t<val_t> v0, counted_t<val_t> extra);
+counted_t<val_t> obj_or_seq_op_term_helper(const obj_or_seq_op_term_t *t, scope_env_t *env, args_t *args, counted_t<val_t> v0, counted_t<val_t>);
+
 // This term is used for functions that are polymorphic on objects and
 // sequences, like `pluck`.  It will handle the polymorphism; terms inheriting
 // from it just need to implement evaluation on objects (`obj_eval`).
@@ -56,12 +60,17 @@ public:
         prop_bt(func.get());
     }
 private:
+    friend counted_t<val_t> obj_or_seq_op_term_helper(const obj_or_seq_op_term_t *t, scope_env_t *env, args_t *args, counted_t<val_t> v0, counted_t<val_t>);
+    friend class bracket_term_t;
     virtual counted_t<val_t> obj_eval(scope_env_t *env,
                                       args_t *args,
                                       counted_t<val_t> v0) const = 0;
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> v0 = args->arg(env, 0);
+        return eval_impl_dereferenced(env, args, obj_or_seq_op_term_helper, args->arg(env, 0), counted_t<val_t>());
+    }
+
+    virtual counted_t<val_t> eval_impl_dereferenced(scope_env_t *env, args_t *args, obj_or_seq_op_term_helper_t helper, counted_t<val_t> v0, counted_t<val_t> extra) const {
         counted_t<const datum_t> d;
 
         if (v0->get_type().is_convertible(val_t::type_t::DATUM)) {
@@ -69,7 +78,7 @@ private:
         }
 
         if (d.has() && d->get_type() == datum_t::R_OBJECT) {
-            return obj_eval(env, args, v0);
+            return helper(this, env, args, v0, extra);
         } else if ((d.has() && d->get_type() == datum_t::R_ARRAY) ||
                    (!d.has()
                     && v0->get_type().is_convertible(val_t::type_t::SEQUENCE))) {
@@ -113,6 +122,10 @@ private:
     poly_type_t poly_type;
     protob_t<Term> func;
 };
+
+counted_t<val_t> obj_or_seq_op_term_helper(const obj_or_seq_op_term_t *t, scope_env_t *env, args_t *args, counted_t<val_t> v0, counted_t<val_t>) {
+    return t->obj_eval(env, args, v0);
+}
 
 class pluck_term_t : public obj_or_seq_op_term_t {
 public:
@@ -240,45 +253,54 @@ private:
     virtual const char *name() const { return "get_field"; }
 };
 
+counted_t<val_t> bracket_term_helper(const obj_or_seq_op_term_t *t, scope_env_t *, args_t *, counted_t<val_t> v0, counted_t<val_t> extra);
+
 counted_t<term_t> make_get_field_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<get_field_term_t>(env, term);
 }
 
-counted_t<op_term_t> make_get_field_op_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<get_field_term_t>(env, term);
-}
+counted_t<val_t> nth_term_impl(const term_t *, scope_env_t *, counted_t<val_t>, counted_t<val_t>);
 
-// declare this specialized func here, since it's not in terms.hpp
-counted_t<op_term_t> make_nth_op_term(compile_env_t *env, const protob_t<const Term> &term);
-
-class bracket_term_t : public op_term_t {
+class bracket_term_t : public obj_or_seq_op_term_t {
 public:
     bracket_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(2)), nth_term(make_nth_op_term(env, term)), get_field(make_get_field_op_term(env, term)) {}
+        : obj_or_seq_op_term_t(env, term, SKIP_MAP, argspec_t(2)) {}
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t flags) const {
+    friend counted_t<val_t> bracket_term_helper(const obj_or_seq_op_term_t *, scope_env_t *, args_t *, counted_t<val_t>, counted_t<val_t>);
+    virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
+        return new_val(v0->as_datum()->get(args->arg(env, 1)->as_str().to_std()));
+    }
+    counted_t<val_t> obj_eval_dereferenced(counted_t<val_t> v0, counted_t<val_t> v1) const {
+        return new_val(v0->as_datum()->get(v1->as_str().to_std()));
+    }
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<val_t> v0 = args->arg(env, 0);
         counted_t<val_t> v1 = args->arg(env, 1);
-        counted_t<const datum_t> d;
-
-        if (v1->get_type().is_convertible(val_t::type_t::DATUM)) {
-            d = v1->as_datum();
-        }
+        counted_t<const datum_t> d = v1->as_datum();
+        r_sanity_check(d.has());
         
-        // which one they want is about as clear as mud here.
-        // We arbitrarily declare that if the 2nd argument (the index)
-        // is a number, then it is an NTH-like call, and otherwise it is
-        // a GET_FIELD-like call.
-        if (d.has() && d->get_type() == datum_t::type_t::R_NUM) {
-            return nth_term->eval_impl(env, args, flags);
-        } else {
-            return get_field->eval_impl(env, args, flags);
+        switch (d->get_type()) {
+        case datum_t::R_NUM:
+            return nth_term_impl(this, env, v0, v1);
+        case datum_t::R_STR:
+            return obj_or_seq_op_term_t::eval_impl_dereferenced(env, args, bracket_term_helper, v0, v1);
+        case datum_t::R_ARRAY:
+        case datum_t::R_BINARY:
+        case datum_t::R_BOOL:
+        case datum_t::R_NULL:
+        case datum_t::R_OBJECT:
+        default:
+            d->type_error(strprintf("Argument to %s needs to be either a number or a string; got %s",
+                                 name(), d->get_type_name().c_str()));
+            unreachable();
         }
     }
     virtual const char *name() const { return "bracket"; }
-    
-    counted_t<op_term_t> nth_term;
-    counted_t<op_term_t> get_field;
 };
+
+counted_t<val_t> bracket_term_helper(const obj_or_seq_op_term_t *t, scope_env_t *, args_t *, counted_t<val_t> v0, counted_t<val_t> extra) {
+    return dynamic_cast<const bracket_term_t *>(t)->obj_eval_dereferenced(v0, extra);
+}
 
 counted_t<term_t> make_bracket_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<bracket_term_t>(env, term);

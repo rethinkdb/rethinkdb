@@ -77,31 +77,24 @@ uint64_t canonicalize(const term_t *t, int64_t index, size_t size, bool *oob_out
     return uint64_t(size) + index;
 }
 
-class nth_term_t : public op_term_t {
-public:
-    nth_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(2)) { }
-private:
-    friend class bracket_t;
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> v = args->arg(env, 0);
-        int32_t n = args->arg(env, 1)->as_int<int32_t>();
+counted_t<val_t> nth_term_impl(const term_t *term, scope_env_t *env, counted_t<val_t> aggregate, counted_t<val_t> index) {
+        counted_t<val_t> v = aggregate;
+        int32_t n = index->as_int<int32_t>();
         if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
-            counted_t<const datum_t> arr = v->as_datum();
-            size_t real_n = canonicalize(this, n, arr->size());
-            return new_val(arr->get(real_n));
+            counted_t<const datum_t> arr = aggregate->as_datum();
+            size_t real_n = canonicalize(term, n, arr->size());
+            return term->new_val(arr->get(real_n));
         } else {
             counted_t<table_t> tbl;
             counted_t<datum_stream_t> s;
-            if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
-                auto pair = v->as_selection(env->env);
+            if (aggregate->get_type().is_convertible(val_t::type_t::SELECTION)) {
+                auto pair = aggregate->as_selection(env->env);
                 tbl = pair.first;
                 s = pair.second;
             } else {
-                s = v->as_seq(env->env);
+                s = aggregate->as_seq(env->env);
             }
-            rcheck(n >= -1,
-                   base_exc_t::GENERIC,
+            rcheck_target(term, base_exc_t::GENERIC,n >= -1,
                    strprintf("Cannot use an index < -1 (%d) on a stream.", n));
 
             batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
@@ -116,18 +109,29 @@ private:
                     sampler.new_sample();
                     counted_t<const datum_t> d = s->next(env->env, batchspec);
                     if (!d.has()) {
-                        rcheck(n == -1 && last_d.has(), base_exc_t::NON_EXISTENCE,
+                        rcheck_target(term, base_exc_t::NON_EXISTENCE, n == -1 && last_d.has(),
                                strprintf("Index out of bounds: %d", n));
-                        return tbl.has() ? new_val(last_d, tbl) : new_val(last_d);
+                        return tbl.has() ? term->new_val(last_d, tbl) : term->new_val(last_d);
                     }
                     if (i == n) {
-                        return tbl.has() ? new_val(d, tbl) : new_val(d);
+                        return tbl.has() ? term->new_val(d, tbl) : term->new_val(d);
                     }
                     last_d = d;
                     r_sanity_check(n == -1 || i < n);
                 }
             }
         }
+    
+}
+
+class nth_term_t : public op_term_t {
+public:
+    nth_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(2)) { }
+private:
+    friend class bracket_t;
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        return nth_term_impl(this, env, args->arg(env, 0), args->arg(env, 1));
     }
     virtual const char *name() const { return "nth"; }
 };
@@ -603,11 +607,6 @@ counted_t<term_t> make_prepend_term(
 }
 
 counted_t<term_t> make_nth_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<nth_term_t>(env, term);
-}
-
-counted_t<op_term_t> make_nth_op_term(
     compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<nth_term_t>(env, term);
 }
