@@ -138,7 +138,7 @@ void drop_sindex(store_t *store,
     std::set<std::string> created_sindexes;
     store->drop_sindex(
             sindex_name,
-            std::move(sindex_block));
+            &sindex_block);
 }
 
 void bring_sindexes_up_to_date(

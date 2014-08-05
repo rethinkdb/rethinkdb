@@ -16,6 +16,64 @@ tests:
                     {'id':3, 'a':0, 'b':1, 'c':1, 'm':[10,11,12]}])
     ot: ({'deleted':0,'inserted':4,'skipped':0,'errors':0,'replaced':0,'unchanged':0})
 
+  # Test index renaming
+  - py: tbl.index_create('rename-foo', r.row['b'])
+    js: tbl.index_create('rename-foo', r.row('b'))
+    rb: tbl.index_create('rename-foo') {|x| x[:b]}
+    ot: ({'created':1})
+
+  - py: tbl.index_create('rename-bar', r.row['c'])
+    js: tbl.index_create('rename-bar', r.row('c'))
+    rb: tbl.index_create('rename-bar') {|x| x[:c]}
+    ot: ({'created':1})
+
+  - cd: tbl.index_rename('rename-foo','rename-bar')
+    ot: err('RqlRuntimeError','Index `rename-bar` already exists on table `test.sindexapi`.',[])
+
+  - cd: tbl.index_rename('rename-fake','rename-stuff')
+    ot: err('RqlRuntimeError','Index `rename-fake` does not exist on table `test.sindexapi`.',[])
+
+  - cd: tbl.index_rename('id','rename-stuff')
+    ot: err('RqlRuntimeError','Index name conflict:'+' `id` is the name of the primary key.',[])
+
+  - cd: tbl.index_rename('rename-stuff','id')
+    ot: err('RqlRuntimeError','Index name conflict:'+' `id` is the name of the primary key.',[])
+
+  - cd: tbl.index_rename('rename-foo','rename-foo')
+    ot: ({'renamed':0})
+
+  - cd: tbl.index_rename('rename-foo','rename-foo',overwrite=True)
+    js: tbl.index_rename('rename-foo','rename-foo',{overwrite:true})
+    rb: tbl.index_rename('rename-foo','rename-foo',:overwrite => true)
+    ot: ({'renamed':0})
+
+  - py: tbl.index_rename('rename-foo','rename-bar',overwrite=True)
+    js: tbl.index_rename('rename-foo','rename-bar',{overwrite:true})
+    rb: tbl.index_rename('rename-foo','rename-bar',:overwrite => true)
+    ot: ({'renamed':1})
+
+  - py: tbl.index_rename('rename-bar','rename-stuff',overwrite=True)
+    js: tbl.index_rename('rename-bar','rename-stuff',{overwrite:true})
+    rb: tbl.index_rename('rename-bar','rename-stuff',:overwrite => true)
+    ot: ({'renamed':1})
+
+  - cd: tbl.index_rename('rename-stuff','rename-last')
+    ot: ({'renamed':1})
+
+  - cd: tbl.index_wait('rename-last')
+    ot: [{'index':'rename-last','ready':true}]
+
+  - py: tbl.get_all(0, index='rename-last').count()
+    js: tbl.get_all(0, {index:'rename-last'}).count()
+    rb: tbl.get_all(0, :index => 'rename-last').count()
+    ot: 3
+
+  - cd: tbl.index_list()
+    ot: (['rename-last'])
+
+  - cd: tbl.index_drop('rename-last')
+    ot: ({'dropped':1})
+
   - rb: tbl.index_create('ai') {|row| row[:a]}
     py: tbl.index_create('ai', r.row['a'])
     js: tbl.indexCreate('ai', r.row('a'))
@@ -329,9 +387,9 @@ tests:
     py: tbl.get_all(None, index='nil')
     js: tbl.getAll(null, {index:'nil'})
     ot:
-      py: err("RqlRuntimeError", "Secondary keys must be a number, string, bool, or array (got nu""ll of type NULL).", [])
-      rb: err("RqlRuntimeError", "Secondary keys must be a number, string, bool, or array (got nu""ll of type NULL).", [])
-      js: err("RqlRuntimeError", "Secondary keys must be a number, string, bool, or array (got null of type NULL).", [])
+      py: err("RqlRuntimeError", "Secondary keys must be a number, string, bool, pseudotype, or array (got nu""ll of type NULL).", [])
+      rb: err("RqlRuntimeError", "Secondary keys must be a number, string, bool, pseudotype, or array (got nu""ll of type NULL).", [])
+      js: err("RqlRuntimeError", "Secondary keys must be a number, string, bool, pseudotype, or array (got null of type NULL).", [])
 
   - rb: tbl.insert({:id => 4, :a => 4, :b => 4, :c => 4, :m => [14,15,16]})
     cd: tbl.insert({'id':4, 'a':4, 'b':4, 'c':4, 'm':[14,15,16]})
@@ -1214,6 +1272,5 @@ tests:
     py: tbl.order_by(index='mi').map(lambda x:x['id'])
     js: tbl.orderBy({'index':'mi'}).map(function(x) { return x('id'); })
     ot: ([0,0,0,1,1,1,2,3,3,3,4,4,4])
-
 
   - cd: r.db('test').table_drop('sindexapi')
