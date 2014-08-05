@@ -76,7 +76,7 @@ void server_t::add_client_cb(signal_t *stopped, client_t::addr_t addr) {
     auto it = clients.find(addr);
     if (it != clients.end()) {
         // We can be removed more than once safely (e.g. in the case of oversharding).
-        send_one_with_lock(coro_lock, it, msg_t(msg_t::stop_t()));
+        send_one_with_lock(coro_lock, &*it, msg_t(msg_t::stop_t()));
     }
     coro_spot.write_signal()->wait_lazily_unordered();
     size_t erased = clients.erase(addr);
@@ -104,9 +104,8 @@ RDB_MAKE_SERIALIZABLE_3(stamped_msg_t, server_uuid, stamp, submsg);
 // `auto_drainer_t`.)
 void server_t::send_one_with_lock(
     const auto_drainer_t::lock_t &,
-    std::map<client_t::addr_t, client_info_t>::iterator client,
+    std::pair<const client_t::addr_t, client_info_t> *client,
     msg_t msg) {
-    guarantee(client != clients.end());
     uint64_t stamp;
     {
         // We don't need a write lock as long as we make sure the coroutine
@@ -125,7 +124,7 @@ void server_t::send_all(msg_t msg, const store_key_t &key) {
         if (std::any_of(it->second.regions.begin(),
                         it->second.regions.end(),
                         std::bind(&region_contains_key, ph::_1, std::cref(key)))) {
-            send_one_with_lock(lock, it, msg);
+            send_one_with_lock(lock, &*it, msg);
         }
     }
 }

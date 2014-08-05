@@ -189,7 +189,7 @@ private:
     std::map<client_t::addr_t, client_info_t> clients;
 
     void send_one_with_lock(const auto_drainer_t::lock_t &lock,
-                            std::map<client_t::addr_t, client_info_t>::iterator client,
+                            std::pair<const client_t::addr_t, client_info_t> *client,
                             msg_t msg);
 
     // Controls access to `clients`.  A `server_t` needs to read `clients` when:
