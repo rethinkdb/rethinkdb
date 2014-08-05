@@ -55,7 +55,7 @@ public:
         prop_bt(func.get());
     }
 protected:
-    virtual counted_t<val_t> eval_impl_dereferenced
+    counted_t<val_t> eval_impl_dereferenced
         (scope_env_t *env, args_t *args, counted_t<val_t> v0,
          std::function<counted_t<val_t>()> helper) const {
         counted_t<const datum_t> d;
