@@ -189,9 +189,13 @@ void semilattice_http_app_t<metadata_t>::handle(const http_req_t &req, http_res_
     } catch (const permission_denied_exc_t &e) {
         logINF("HTTP request throw a permission_denied_exc_t with what = %s", e.what());
         *result = http_error_res(e.what());
+/* Eventually `semilattice_http_app_t` will go away completely, but this needed to go
+away now. */
+#if 0
     } catch (const cannot_satisfy_goals_exc_t &e) {
         logINF("The server was given a set of goals for which it couldn't find a valid blueprint. %s", e.what());
         *result = http_error_res(e.what(), HTTP_INTERNAL_SERVER_ERROR);
+#endif
     } catch (const gone_exc_t &e) {
         logINF("HTTP request throw a gone_exc_t with what = %s", e.what());
         *result = http_error_res(e.what(), HTTP_GONE);
@@ -230,15 +234,18 @@ cluster_semilattice_http_app_t::~cluster_semilattice_http_app_t() {
     // Do nothing
 }
 
-void cluster_semilattice_http_app_t::metadata_change_callback(cluster_semilattice_metadata_t *new_metadata,
-        const boost::optional<namespace_id_t> &prioritize_distr_for_ns) {
-
+void cluster_semilattice_http_app_t::metadata_change_callback(
+        UNUSED cluster_semilattice_metadata_t *new_metadata,
+        UNUSED const boost::optional<namespace_id_t> &prioritize_distr_for_ns) {
+#if 0 /* `semilattice_http_app_t` will eventually go away completely, but this needed to
+go away now */
     try {
         fill_in_all_blueprints(new_metadata,
                                directory_metadata->get().get_inner(),
                                us,
                                prioritize_distr_for_ns);
     } catch (const missing_machine_exc_t &e) { }
+#endif /* 0 */
 }
 
 auth_semilattice_http_app_t::auth_semilattice_http_app_t(

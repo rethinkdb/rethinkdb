@@ -7,7 +7,7 @@
 
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
-#include "clustering/administration/reql_cluster_interface.hpp"
+#include "clustering/administration/real_reql_cluster_interface.hpp"
 #include "http/http.hpp"
 #include "rpc/semilattice/view.hpp"
 

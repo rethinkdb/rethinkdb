@@ -32,9 +32,6 @@ admin_tracker_t::admin_tracker_t(
     vector_clock_conflict_issue_tracker(cluster_view, auth_view),
     vector_clock_issue_tracker_feed(&issue_aggregator, &vector_clock_conflict_issue_tracker),
 
-    unsatisfiable_goals_issue_tracker(cluster_view),
-    unsatisfiable_goals_issue_tracker_feed(&issue_aggregator, &unsatisfiable_goals_issue_tracker),
-
     last_seen_tracker(
         metadata_field(&cluster_semilattice_metadata_t::machines, cluster_view),
         directory_view->incremental_subview(

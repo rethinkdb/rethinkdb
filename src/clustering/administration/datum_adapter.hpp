@@ -2,6 +2,11 @@
 #ifndef CLUSTERING_ADMINISTRATION_DATUM_ADAPTER_HPP_
 #define CLUSTERING_ADMINISTRATION_DATUM_ADAPTER_HPP_
 
+#include <vector>
+
+#include "containers/name_string.hpp"
+#include "rdb_protocol/datum.hpp"
+
 counted_t<const ql::datum_t> convert_server_name_to_datum(
         const name_string_t &value);
 bool convert_server_name_from_datum(
@@ -20,7 +25,7 @@ template<class T>
 counted_t<const ql::datum_t> convert_vector_to_datum(
         const std::function<counted_t<const ql::datum_t>(const T&)> &conv,
         const std::vector<T> &vector) {
-    datum_array_builder_t builder(configured_limits_t());
+    ql::datum_array_builder_t builder((ql::configured_limits_t()));
     builder.reserve(vector.size());
     for (const T &elem : vector) {
         builder.add(conv(elem));
@@ -53,7 +58,7 @@ public:
     bool init(counted_t<const ql::datum_t> datum,
               std::string *error_out);
     bool get(const std::string &key,
-             counted_t<const ql::datum_t> &value_out,
+             counted_t<const ql::datum_t> *value_out,
              std::string *error_out);
     void get_optional(const std::string &key,
                       counted_t<const ql::datum_t> *value_out);

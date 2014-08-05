@@ -56,8 +56,8 @@ private:
     boost::shared_ptr< semilattice_readwrite_view_t<machines_semilattice_metadata_t> >
         semilattice_view;
 
-    watchable_variable_t< std::map<name_string_t, machine_id_t> > name_to_machine_id_map;
     watchable_variable_t< std::map<machine_id_t, peer_id_t> > machine_id_to_peer_id_map;
+    watchable_variable_t< std::map<name_string_t, machine_id_t> > name_to_machine_id_map;
 
     watchable_t< change_tracking_map_t<peer_id_t,
         cluster_directory_metadata_t> >::subscription_t directory_subs;

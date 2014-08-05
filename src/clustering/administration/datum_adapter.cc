@@ -1,8 +1,9 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
+#include "clustering/administration/datum_adapter.hpp"
 
 counted_t<const ql::datum_t> convert_server_name_to_datum(
         const name_string_t &value) {
-    return make_counted<const ql::datum_t>(value);
+    return make_counted<const ql::datum_t>(std::string(value.str()));
 }
 
 bool convert_server_name_from_datum(
@@ -49,10 +50,11 @@ bool converter_from_datum_object_t::init(
         return false;
     }
     datum = _datum;
-    const std::map<std::string, counted_t<const ql::datum_t> > &map = datum->as_map();
+    const std::map<std::string, counted_t<const ql::datum_t> > &map = datum->as_object();
     for (auto it = map.begin(); it != map.end(); ++it) {
         extra_keys.insert(it->first);
     }
+    return true;
 }
 
 bool converter_from_datum_object_t::get(
@@ -60,9 +62,9 @@ bool converter_from_datum_object_t::get(
         counted_t<const ql::datum_t> *value_out,
         std::string *error_out) {
     extra_keys.erase(key);
-    *value_out = datum->get(key, NOTHROW);
+    *value_out = datum->get(key, ql::NOTHROW);
     if (!value_out->has()) {
-        *error_out = "Expected a field named `" + key ++ "`.";
+        *error_out = "Expected a field named `" + key + "`.";
         return false;
     }
     return true;
@@ -72,7 +74,7 @@ void converter_from_datum_object_t::get_optional(
         const std::string &key,
         counted_t<const ql::datum_t> *value_out) {
     extra_keys.erase(key);
-    *value_out = datum->get(key, NOTHROW);
+    *value_out = datum->get(key, ql::NOTHROW);
 }
 
 bool converter_from_datum_object_t::check_no_extra_keys(std::string *error_out) {

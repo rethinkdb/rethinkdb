@@ -2,6 +2,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_SUGGESTER_HPP_
 #define CLUSTERING_ADMINISTRATION_SUGGESTER_HPP_
 
+#if 0   /* RSI: Suggester has to be updated */
+
 #include <map>
 
 #include "errors.hpp"
@@ -51,5 +53,7 @@ void fill_in_blueprint_for_namespace(cluster_semilattice_metadata_t *cluster_met
         const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
         namespace_id_t namespace_id,
         const uuid_u &us);
+
+#endif /* 0 */
 
 #endif /* CLUSTERING_ADMINISTRATION_SUGGESTER_HPP_ */

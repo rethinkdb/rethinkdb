@@ -140,9 +140,12 @@ private:
 
     auto_drainer_t drainer;
 
-    semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> >::subscription_t semilattice_subscription;
-    watchable_t< std::map<name_string_t, peer_id_t> >::subscription_t
-        server_name_client_subscription;
+    semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> >
+        ::subscription_t semilattice_subscription;
+    watchable_t< std::map<name_string_t, machine_id_t> >::subscription_t
+        name_to_machine_id_subscription;
+    watchable_t< std::map<machine_id_t, peer_id_t> >::subscription_t
+        machine_id_to_peer_id_subscription;
 
     perfmon_collection_repo_t *perfmon_collection_repo;
     //boost::ptr_vector<perfmon_collection_t> namespace_perfmon_collections;

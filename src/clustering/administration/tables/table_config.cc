@@ -1,9 +1,12 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/tables/table_config.hpp"
 
-counted_t<const ql::datum_t> convert_table_shard_config_to_datum(
-        const table_shard_config_t &shard) {
-    datum_object_builder_t builder;
+#include "clustering/administration/datum_adapter.hpp"
+#include "clustering/administration/tables/elect_director.hpp"
+
+counted_t<const ql::datum_t> convert_table_config_shard_to_datum(
+        const table_config_t::shard_t &shard) {
+    ql::datum_object_builder_t builder;
 
     if (shard.split_point) {
         builder.overwrite("split_point", make_counted<const ql::datum_t>(
@@ -12,27 +15,23 @@ counted_t<const ql::datum_t> convert_table_shard_config_to_datum(
     }
 
     {
-        datum_array_builder_t array;
+        ql::datum_array_builder_t array((ql::configured_limits_t()));
         for (const name_string_t &name : shard.replica_names) {
             array.add(convert_server_name_to_datum(name));
         }
         builder.overwrite("replicas", std::move(array).to_counted());
     }
 
-    {
-        datum_array_builder_t array;
-        for (const name_string_t &name : shard.director_names) {
-            array.add(convert_server_name_to_datum(name));
-        }
-        builder.overwrite("directors", std::move(array).to_counted());
-    }
+    builder.overwrite("directors", convert_vector_to_datum<name_string_t>(
+            &convert_server_name_to_datum,
+            shard.director_names));
 
     return std::move(builder).to_counted();
 }
 
-bool convert_table_shard_config_from_datum(
+bool convert_table_config_shard_from_datum(
         counted_t<const ql::datum_t> datum,
-        table_shard_config_t *shard_out,
+        table_config_t::shard_t *shard_out,
         std::string *error_out) {
     converter_from_datum_object_t converter;
     if (!converter.init(datum, error_out)) {
@@ -42,7 +41,7 @@ bool convert_table_shard_config_from_datum(
     counted_t<const ql::datum_t> split_point_datum;
     converter.get_optional("split_point", &split_point_datum);
     if (split_point_datum.has()) {
-        if (split_point_datum->get_type() != ql::datum_t::R_STRING) {
+        if (split_point_datum->get_type() != ql::datum_t::R_STR) {
             *error_out = "In `split_point`: Expected a string, got " +
                 split_point_datum->print(); 
             return false;
@@ -86,8 +85,9 @@ bool convert_table_shard_config_from_datum(
     if (!converter.get("directors", &director_names_datum, error_out)) {
         return false;
     }
-    if (!convert_vector_from_datum(&convert_server_name_from_datum, director_names_datum,
-            &shard_out->director_names, error_out) {
+    if (!convert_vector_from_datum<name_string_t>(
+            &convert_server_name_from_datum, director_names_datum,
+            &shard_out->director_names, error_out)) {
         *error_out = "In `directors`: " + *error_out;
         return false;
     }
@@ -118,18 +118,18 @@ bool convert_table_shard_config_from_datum(
     return true;
 }
 
-void convert_table_config_to_datum(
+counted_t<const ql::datum_t> convert_table_config_to_datum(
         const table_config_t &config,
         name_string_t name,
-        namespace_id_t uuid,
-        counted_t<const ql::datum_t> *datum_out) {
-    datum_object_builder_t builder;
-
+        namespace_id_t uuid) {
+    ql::datum_object_builder_t builder;
     builder.overwrite("name", convert_server_name_to_datum(name));
     builder.overwrite("uuid", convert_uuid_to_datum(uuid));
-    builder.overwrite("shards", convert_table_shard_config_to_datum(config));
-
-    *datum_out = builder.to_counted();
+    builder.overwrite("shards",
+        convert_vector_to_datum<table_config_t::shard_t>(
+            &convert_table_config_shard_to_datum,
+            config.shards));
+    return std::move(builder).to_counted();
 }
 
 bool convert_table_config_from_datum(
@@ -172,9 +172,10 @@ bool convert_table_config_from_datum(
     if (!converter.get("shards", &shards_datum, error_out)) {
         return false;
     }
-    if (!convert_vector_from_datum(&convert_table_config_from_datum, shards_datum,
+    if (!convert_vector_from_datum<table_config_t::shard_t>(
+            &convert_table_config_shard_from_datum, shards_datum,
             &config_out->shards, error_out)) {
-        *error_out = "In `shards`: " + error_out;
+        *error_out = "In `shards`: " + *error_out;
         return false;
     }
 
@@ -213,9 +214,9 @@ std::string table_config_artificial_table_backend_t::get_primary_key_name() {
 bool table_config_artificial_table_backend_t::read_all_primary_keys(
         UNUSED signal_t *interruptor,
         std::vector<counted_t<const ql::datum_t> > *keys_out,
-        std::string *error_out) {
+        UNUSED std::string *error_out) {
     keys_out->clear();
-    namespace_semilattice_metadata_t md = semilattice_view->get();
+    cow_ptr_t<namespaces_semilattice_metadata_t> md = semilattice_view->get();
     for (auto it = md->namespaces.begin();
               it != md->namespaces.end();
             ++it) {
@@ -224,10 +225,8 @@ bool table_config_artificial_table_backend_t::read_all_primary_keys(
             continue;
         }
         name_string_t name = it->second.get_ref().name.get_ref();
-        counted_t<const ql::datum_t> name_datum;
-        convert_to_datum(name, &name_datum);
         /* TODO: How to handle table name collisions? */
-        keys_out->push_back(name_datum);
+        keys_out->push_back(convert_server_name_to_datum(name));
     }
     return true;
 }
@@ -239,12 +238,14 @@ bool table_config_artificial_table_backend_t::read_row(
         std::string *error_out) {
     name_string_t name;
     std::string dummy_error;
-    if (!convert_from_datum(primary_key, &name, &dummy_error)) {
-        /* There can't exist a table with this name, so we'll fall through to the code
-        for when no such table exists */
+    if (!convert_server_name_from_datum(primary_key, &name, &dummy_error)) {
+        /* If the primary key was not a valid table name, then it must refer to a
+        nonexistent row. By setting `name` to an empty `name_string_t`, we ensure that
+        the loop doesn't find any table, so it will correctly fall through to the case
+        where the row does not exist. */
         name = name_string_t();
     }
-    namespace_semilattice_metadata_t md = semilattice_view->get();
+    cow_ptr_t<namespaces_semilattice_metadata_t> md = semilattice_view->get();
     for (auto it = md->namespaces.begin();
               it != md->namespaces.end();
             ++it) {
@@ -253,12 +254,13 @@ bool table_config_artificial_table_backend_t::read_row(
             continue;
         }
         if (it->second.get_ref().name.get_ref() == name) {
-            if (it->second.get_ref().config.in_conflict()) {
+            if (it->second.get_ref().replication_info.in_conflict()) {
                 *error_out = "Metadata is in conflict.";
                 return false;
             }
-            table_config_t config = it->second.get_ref().config.get_copy();
-            convert_table_config_to_datum(config, name, it->first, row_out);
+            table_config_t config =
+                it->second.get_ref().replication_info.get_ref().config;
+            *row_out = convert_table_config_to_datum(config, name, it->first);
             return true;
         }
     }
@@ -275,27 +277,32 @@ bool table_config_artificial_table_backend_t::write_row(
         std::string *error_out) {
     name_string_t name;
     std::string dummy_error;
-    if (!convert_from_datum(primary_key, &name, &dummy_error)) {
-        /* There can't exist a table with this name, so we'll fall through to the code
-        for when no such table exists */
+    if (!convert_server_name_from_datum(primary_key, &name, &dummy_error)) {
+        /* If the primary key was not a valid table name, then it must refer to a
+        nonexistent row. By setting `name` to an empty `name_string_t`, we ensure that
+        the loop doesn't find any table, so it will correctly fall through to the case
+        where the row does not exist. */
         name = name_string_t();
     }
-    namespace_semilattice_metadata_t md = semilattice_view->get();
-    for (auto it = md->namespaces.begin();
-              it != md->namespaces.end();
+    cow_ptr_t<namespaces_semilattice_metadata_t> md = semilattice_view->get();
+    cow_ptr_t<namespaces_semilattice_metadata_t>::change_t md_change(&md);
+    for (auto it = md_change.get()->namespaces.begin();
+              it != md_change.get()->namespaces.end();
             ++it) {
         if (it->second.is_deleted() || it->second.get_ref().name.in_conflict()) {
             continue;
         }
         if (it->second.get_ref().name.get_ref() == name) {
-            table_config_t config;
-            if (!convert_table_config_from_datum(new_value, &config, name, it->first,
-                    error_out)) {
+            table_replication_info_t replication_info;
+            if (!convert_table_config_from_datum(new_value, name, it->first,
+                    &replication_info.config, error_out)) {
                 return false;
             }
-            it->second.get_mutable()->config =
-                it->second.get_ref()->config.make_resolving_version(
-                    config, my_machine_id);
+            replication_info.chosen_directors =
+                table_elect_directors(replication_info.config, name_client);
+            it->second.get_mutable()->replication_info =
+                it->second.get_ref().replication_info.make_resolving_version(
+                    replication_info, my_machine_id);
             semilattice_view->join(md);
             return true;
         }

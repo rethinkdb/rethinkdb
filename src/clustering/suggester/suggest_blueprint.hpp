@@ -2,6 +2,8 @@
 #ifndef CLUSTERING_SUGGESTER_SUGGEST_BLUEPRINT_HPP_
 #define CLUSTERING_SUGGESTER_SUGGEST_BLUEPRINT_HPP_
 
+#if 0 /* RSI: Suggester has to be updated */
+
 #include <map>
 #include <set>
 #include <string>
@@ -42,5 +44,7 @@ persistable_blueprint_t suggest_blueprint(
 void calculate_usage(
         const persistable_blueprint_t &blueprint,
         std::map<machine_id_t, int> *usage);
+
+#endif /* 0 */
 
 #endif /* CLUSTERING_SUGGESTER_SUGGEST_BLUEPRINT_HPP_ */

@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/suggester/suggest_blueprint.hpp"
 
+#if 0 /* RSI: Suggester must be updated */
+
 #include "clustering/generic/nonoverlapping_regions.hpp"
 #include "containers/priority_queue.hpp"
 #include "stl_utils.hpp"
@@ -370,4 +372,6 @@ void calculate_usage(
         }
     }
 }
+
+#endif /* 0 */
 

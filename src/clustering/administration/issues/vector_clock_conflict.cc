@@ -23,7 +23,8 @@ void check_namespaces_for_protocol(
         if (!it->second.is_deleted()) {
             check("namespace", it->first, "name", it->second.get_ref().name, out);
             check("namespace", it->first, "database", it->second.get_ref().database, out);
-            check("namespace", it->first, "config", it->second.get_ref().config, out);
+            check("namespace", it->first, "replication_info",
+                it->second.get_ref().replication_info, out);
         }
     }
 }

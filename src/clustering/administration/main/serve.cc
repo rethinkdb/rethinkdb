@@ -21,12 +21,13 @@
 #include "clustering/administration/persist.hpp"
 #include "clustering/administration/proc_stats.hpp"
 #include "clustering/administration/reactor_driver.hpp"
-#include "clustering/administration/reql_cluster_interface.hpp"
+#include "clustering/administration/real_reql_cluster_interface.hpp"
 #include "clustering/administration/servers/auto_reconnect.hpp"
 #include "clustering/administration/servers/name_server.hpp"
 #include "clustering/administration/servers/name_client.hpp"
 #include "clustering/administration/servers/network_logger.hpp"
 #include "clustering/administration/sys_stats.hpp"
+#include "clustering/administration/tables/table_config.hpp"
 #include "containers/incremental_lenses.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "rdb_protocol/query_server.hpp"
@@ -261,7 +262,8 @@ bool do_serve(io_backender_t *io_backender,
         table_config_artificial_table_backend_t table_config_backend(
                 machine_id,
                 metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
-                    semilattice_manager_cluster.get_root_view()))
+                    semilattice_manager_cluster.get_root_view()),
+                &server_name_client);
         artificial_table_backends[name_string_t::guarantee_valid("table_config")] =
             &table_config_backend;
         artificial_reql_cluster_interface_t artificial_reql_cluster_interface(
@@ -301,11 +303,8 @@ bool do_serve(io_backender_t *io_backender,
                         cluster_metadata_file->get_rdb_branch_history_manager(),
                         metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
                                        semilattice_manager_cluster.get_root_view()),
-                        metadata_field(&cluster_semilattice_metadata_t::machines,
-                                       semilattice_manager_cluster.get_root_view()),
-                        directory_read_manager.get_root_view()->incremental_subview(
-                            incremental_field_getter_t<machine_id_t,
-                                                       cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
+                        &server_name_client,
+                        server_name_server->get_permanently_removed_signal(),
                         rdb_svs_source.get(),
                         &perfmon_repo,
                         &rdb_ctx));
@@ -352,7 +351,7 @@ bool do_serve(io_backender_t *io_backender,
                                 semilattice_manager_cluster.get_root_view(),
                                 semilattice_manager_auth.get_root_view(),
                                 directory_read_manager.get_root_view(),
-                                &reql_cluster_interface,
+                                &real_reql_cluster_interface,
                                 &admin_tracker,
                                 rdb_query_server.get_http_app(),
                                 machine_id,

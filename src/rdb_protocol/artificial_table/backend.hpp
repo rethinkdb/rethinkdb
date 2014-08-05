@@ -4,6 +4,7 @@
 
 #include <string>
 
+#include "concurrency/pubsub.hpp"
 #include "rdb_protocol/datum.hpp"
 
 class artificial_table_backend_t : public home_thread_mixin_t {

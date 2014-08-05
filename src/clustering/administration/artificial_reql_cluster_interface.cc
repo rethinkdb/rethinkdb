@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/artificial_reql_cluster_interface.hpp"
 
+#include "rdb_protocol/artificial_table/artificial_table.hpp"
+
 bool artificial_reql_cluster_interface_t::db_create(const name_string_t &name,
             signal_t *interruptor, std::string *error_out) {
     if (name == database) {
@@ -13,7 +15,7 @@ bool artificial_reql_cluster_interface_t::db_create(const name_string_t &name,
 bool artificial_reql_cluster_interface_t::db_drop(const name_string_t &name,
         signal_t *interruptor, std::string *error_out) {
     if (name == database) {
-        *error_out = strprintf("Database `%s` is special; you can't delete it."
+        *error_out = strprintf("Database `%s` is special; you can't delete it.",
             database.c_str());
         return false;
     }
@@ -35,7 +37,7 @@ bool artificial_reql_cluster_interface_t::db_find(const name_string_t &name,
         signal_t *interruptor,
         counted_t<const ql::db_t> *db_out, std::string *error_out) {
     if (name == database) {
-        *db_out = make_counted<const ql::db_t>(nil_uuid(), database);
+        *db_out = make_counted<const ql::db_t>(nil_uuid(), database.str());
         return true;
     }
     return next->db_find(name, interruptor, db_out, error_out);
@@ -45,7 +47,7 @@ bool artificial_reql_cluster_interface_t::table_create(const name_string_t &name
         counted_t<const ql::db_t> db, const boost::optional<name_string_t> &primary_dc,
         bool hard_durability, const std::string &primary_key, signal_t *interruptor,
         std::string *error_out) {
-    if (db->name == database) {
+    if (db->name == database.str()) {
         *error_out = strprintf("Database `%s` is special; you can't create new tables "
             "in it.", database.c_str());
         return false;
@@ -56,7 +58,7 @@ bool artificial_reql_cluster_interface_t::table_create(const name_string_t &name
 
 bool artificial_reql_cluster_interface_t::table_drop(const name_string_t &name,
         counted_t<const ql::db_t> db, signal_t *interruptor, std::string *error_out) {
-    if (db->name == database) {
+    if (db->name == database.str()) {
         *error_out = strprintf("Database `%s` is special; you can't drop tables in it.",
             database.c_str());
         return false;
@@ -67,7 +69,7 @@ bool artificial_reql_cluster_interface_t::table_drop(const name_string_t &name,
 bool artificial_reql_cluster_interface_t::table_list(counted_t<const ql::db_t> db,
         signal_t *interruptor,
         std::set<name_string_t> *names_out, std::string *error_out) {
-    if (db->name == database) {
+    if (db->name == database.str()) {
         for (auto it = tables.begin(); it != tables.end(); ++it) {
             names_out->insert(it->first);
         }
@@ -79,7 +81,7 @@ bool artificial_reql_cluster_interface_t::table_list(counted_t<const ql::db_t> d
 bool artificial_reql_cluster_interface_t::table_find(const name_string_t &name,
         counted_t<const ql::db_t> db, signal_t *interruptor,
         scoped_ptr_t<base_table_t> *table_out, std::string *error_out) {
-    if (db->name == database) {
+    if (db->name == database.str()) {
         auto it = tables.find(name);
         if (it != tables.end()) {
             table_out->init(new artificial_table_t(it->second));

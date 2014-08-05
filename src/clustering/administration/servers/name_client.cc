@@ -122,13 +122,13 @@ bool server_name_client_t::permanently_remove_server(const name_string_t &name,
     machine_id_t machine_id = nil_uuid();
     name_to_machine_id_map.apply_read(
         [&](const std::map<name_string_t, machine_id_t> *map) {
-            auto it = map->find(old_name);
+            auto it = map->find(name);
             if (it != map->end()) {
                 machine_id = it->second;
             }
         });
     if (machine_id == nil_uuid()) {
-        *error_out = strprintf("Server `%s` does not exist.", old_name.c_str());
+        *error_out = strprintf("Server `%s` does not exist.", name.c_str());
         return false;
     }
     
@@ -143,6 +143,7 @@ bool server_name_client_t::permanently_remove_server(const name_string_t &name,
         return false;
     }
 
+    machines_semilattice_metadata_t sl_metadata = semilattice_view->get();
     sl_metadata.machines.at(machine_id).mark_deleted();
     semilattice_view->join(sl_metadata);
     return true;
@@ -183,7 +184,9 @@ void server_name_client_t::recompute_machine_id_to_peer_id_map() {
     }
     directory_view->apply_read(
         [&](const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> *dir) {
-            for (auto dir_it = dir->begin(); dir_it != dir->end(); ++dir_it) {
+            for (auto dir_it = dir->get_inner().begin();
+                      dir_it != dir->get_inner().end();
+                    ++dir_it) {
                 auto map_it = new_map.find(dir_it->second.machine_id);
                 if (map_it == new_map.end()) {
                     /* This machine is in the directory but not the semilattices. This

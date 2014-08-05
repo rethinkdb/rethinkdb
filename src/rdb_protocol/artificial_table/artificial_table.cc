@@ -43,7 +43,16 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
         "Artificial tables currently only support point read and replace.");
 }
 
-counted_t<ql::datum_stream_t> artificial_table_t::read_changes(
+counted_t<ql::datum_stream_t> artificial_table_t::read_row_changes(
+        UNUSED ql::env_t *env,
+        UNUSED counted_t<const ql::datum_t> pval,
+        UNUSED const ql::protob_t<const Backtrace> &bt,
+        UNUSED const std::string &table_name) {
+    rfail_datum(ql::base_exc_t::GENERIC,
+        "Artificial tables currently only support point read and replace.");
+}
+
+counted_t<ql::datum_stream_t> artificial_table_t::read_all_changes(
         UNUSED ql::env_t *env,
         UNUSED const ql::protob_t<const Backtrace> &bt,
         UNUSED const std::string &table_name) {

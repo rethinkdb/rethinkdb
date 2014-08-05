@@ -1,6 +1,8 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/suggester.hpp"
 
+#if 0   /* RSI: Suggester has to be updated */
+
 #include <deque>
 #include <utility>
 
@@ -258,3 +260,4 @@ void fill_in_blueprint_for_namespace(cluster_semilattice_metadata_t *cluster_met
     }
 }
 
+#endif /* 0 */

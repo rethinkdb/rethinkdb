@@ -15,7 +15,6 @@
 #include "clustering/administration/issues/local_to_global.hpp"
 #include "clustering/administration/issues/machine_down.hpp"
 #include "clustering/administration/issues/name_conflict.hpp"
-#include "clustering/administration/issues/unsatisfiable_goals.hpp"
 #include "clustering/administration/issues/vector_clock_conflict.hpp"
 #include "clustering/administration/servers/last_seen_tracker.hpp"
 #include "clustering/administration/metadata.hpp"
@@ -39,9 +38,6 @@ struct admin_tracker_t {
     global_issue_aggregator_t::source_t name_conflict_issue_tracker_feed;
     vector_clock_conflict_issue_tracker_t vector_clock_conflict_issue_tracker;
     global_issue_aggregator_t::source_t vector_clock_issue_tracker_feed;
-
-    unsatisfiable_goals_issue_tracker_t unsatisfiable_goals_issue_tracker;
-    global_issue_aggregator_t::source_t unsatisfiable_goals_issue_tracker_feed;
 
     last_seen_tracker_t last_seen_tracker;
 };

@@ -64,19 +64,39 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *targ
 cJSON *render_as_json(ack_expectation_t *target);
 void apply_json_to(cJSON *change, ack_expectation_t *target);
 
-class table_shard_config_t {
-    boost::optional<store_key_t> split_point;
-    std::set<name_string_t> replica_names;
-    std::vector<name_string_t> director_names;
-};
-
-RDB_DECLARE_SERIALIZABLE(table_shard_config_t);
+/* `table_config_t` describes the contents of the `rethinkdb.table_config` artificial
+table. */
 
 class table_config_t {
-    std::vector<table_shard_config_t> shards;
+public:
+    class shard_t {
+    public:
+        boost::optional<store_key_t> split_point;
+        std::set<name_string_t> replica_names;
+        std::vector<name_string_t> director_names;
+    };
+    std::vector<shard_t> shards;
 };
 
+RDB_DECLARE_SERIALIZABLE(table_config_t::shard_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(table_config_t::shard_t);
 RDB_DECLARE_SERIALIZABLE(table_config_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(table_config_t);
+
+/* `table_replication_info_t` exists because the `table_config_t` needs to be under the
+same vector clock as `chosen_directors`. */
+
+class table_replication_info_t {
+public:
+    table_config_t config;
+
+    /* This contains the machine ID of the currently chosen director for the shard at the
+    corresponding position in the `shards` vector. */
+    std::vector<machine_id_t> chosen_directors;
+};
+
+RDB_DECLARE_SERIALIZABLE(table_replication_info_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(table_replication_info_t);
 
 class namespace_semilattice_metadata_t {
 public:
@@ -86,14 +106,12 @@ public:
     vclock_t<database_id_t> database;
     vclock_t<std::string> primary_key;   // TODO: This should never actually change
 
-    vclock_t<table_config_t> config;
-
-    /* This contains the machine ID of the currently chosen director for the shard at the
-    corresponding position in the `config.shards` vector. */
-    vclock_t< std::vector<machine_id_t> > chosen_directors;
+    vclock_t<table_replication_info_t> replication_info;
 };
 
 RDB_DECLARE_SERIALIZABLE(namespace_semilattice_metadata_t);
+RDB_DECLARE_SEMILATTICE_JOINABLE(namespace_semilattice_metadata_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(namespace_semilattice_metadata_t);
 
 /* This is the metadata for all of the tables. */
 class namespaces_semilattice_metadata_t {

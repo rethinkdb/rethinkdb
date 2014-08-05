@@ -1,9 +1,10 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "clustering/administration/reql_cluster_interface.hpp"
+#include "clustering/administration/real_reql_cluster_interface.hpp"
 
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/servers/name_client.hpp"
-#include "clustering/administration/suggester.hpp"
+#include "clustering/administration/tables/elect_director.hpp"
+#include "clustering/administration/tables/reconfigure.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "rdb_protocol/real_table/wait_for_readiness.hpp"
 #include "rpc/semilattice/watchable.hpp"
@@ -207,7 +208,8 @@ bool real_reql_cluster_interface_t::db_find(const name_string_t &name,
 }
 
 bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
-        counted_t<const ql::db_t> db, const boost::optional<name_string_t> &primary_dc,
+        counted_t<const ql::db_t> db,
+        UNUSED const boost::optional<name_string_t> &primary_dc,
         bool hard_durability, const std::string &primary_key, signal_t *interruptor,
         std::string *error_out) {
     cluster_semilattice_metadata_t metadata;
@@ -217,6 +219,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         metadata = semilattice_root_view->get();
 
         /* Find the specified datacenter */
+#if 0 /* RSI: Figure out what to do about datacenters */
         uuid_u dc_id;
         if (primary_dc) {
             metadata_searcher_t<datacenter_semilattice_metadata_t> dc_searcher(
@@ -229,6 +232,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         } else {
             dc_id = nil_uuid();
         }
+#endif /* 0 */
 
         cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change(
             &metadata.rdb_namespaces);
@@ -245,30 +249,24 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         }
 
         /* Construct a description of the new namespace */
-        namespace_semilattice_metadata_t table = new_namespace(
-                my_machine_id, db->id, dc_id, name, primary_key);
-        std::map<datacenter_id_t, ack_expectation_t> *ack_map =
-                &table.ack_expectations.get_mutable();
-        for (auto pair : *ack_map) {
-            pair.second = ack_expectation_t(pair.second.expectation(), hard_durability);
-        }
-        table.ack_expectations.upgrade_version(my_machine_id);
+        table_replication_info_t repli_info;
+        repli_info.config =
+            table_reconfigure(server_name_client);
+        repli_info.chosen_directors =
+            table_elect_directors(repli_info.config, server_name_client);
+        namespace_semilattice_metadata_t table_metadata;
+        table_metadata.name = vclock_t<name_string_t>(name, my_machine_id);
+        table_metadata.database = vclock_t<database_id_t>(db->id, my_machine_id);
+        table_metadata.primary_key = vclock_t<std::string>(primary_key, my_machine_id);
+        table_metadata.replication_info =
+            vclock_t<table_replication_info_t>(repli_info, my_machine_id);
+
+        /* TODO: Figure out what to do with `hard_durability`. */
+        (void)hard_durability;
 
         namespace_id = generate_uuid();
         ns_change.get()->namespaces.insert(
-            std::make_pair(namespace_id, make_deletable(table)));
-
-        try {
-            fill_in_blueprint_for_namespace(
-                &metadata,
-                directory_root_view->get().get_inner(),
-                namespace_id,
-                my_machine_id);
-        } catch (const missing_machine_exc_t &exc) {
-            *error_out = strprintf(
-                "Could not configure table: %s Table was not created.", exc.what());
-            return false;
-        }
+            std::make_pair(namespace_id, make_deletable(table_metadata)));
 
         semilattice_root_view->join(metadata);
         metadata = semilattice_root_view->get();

@@ -99,25 +99,31 @@ void namespace_repo_t::on_namespaces_change(auto_drainer_t::lock_t keepalive) {
         if (it->second.is_deleted()) {
             continue;
         }
-        if (it->second.get_ref().blueprint.in_conflict()) {
-            /* The reactor won't do anything while the blueprint is in conflict, so the
-            old mapping is probably still accurate, although there's no guarantee. */
+        if (it->second.get_ref().replication_info.in_conflict()) {
+            /* The reactor driver won't generate a new blueprint while the config is in
+            conflict, so the old mapping is probably still accurate, although there's no
+            guarantee. */
             auto jt = region_to_primary_maps.get()->find(it->first);
             if (jt != region_to_primary_maps.get()->end()) {
                 new_reg_to_pri_maps[it->first] = jt->second;
             }
             continue;
         }
-        const persistable_blueprint_t &bp = it->second.get_ref().blueprint.get_ref();
-        persistable_blueprint_t::role_map_t::const_iterator it2;
-        for (it2 = bp.machines_roles.begin(); it2 != bp.machines_roles.end(); ++it2) {
-            const persistable_blueprint_t::region_to_role_map_t &roles = it2->second;
-            persistable_blueprint_t::region_to_role_map_t::const_iterator it3;
-            for (it3 = roles.begin(); it3 != roles.end(); ++it3) {
-                if (it3->second == blueprint_role_t::blueprint_role_primary) {
-                    new_reg_to_pri_maps[it->first][it3->first.inner] = it2->first;
-                }
+        table_replication_info_t info = it->second.get_ref().replication_info.get_ref();
+        store_key_t previous_split_point = store_key_t::min();
+        for (size_t i = 0; i < info.config.shards.size(); ++i) {
+            key_range_t region;
+            if (i != info.config.shards.size() - 1) {
+                region = key_range_t(
+                        key_range_t::closed, previous_split_point,
+                        key_range_t::open, *info.config.shards[i].split_point);
+                previous_split_point = *info.config.shards[i].split_point;
+            } else {
+                region = key_range_t(
+                        key_range_t::closed, previous_split_point,
+                        key_range_t::none, store_key_t());
             }
+            new_reg_to_pri_maps[it->first][region] = info.chosen_directors[i];
         }
     }
 

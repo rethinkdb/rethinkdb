@@ -80,40 +80,61 @@ private:
 };
 
 blueprint_t construct_blueprint(const table_config_t &config,
+                                const std::vector<machine_id_t> &chosen_directors,
                                 server_name_client_t *name_client) {
-    guarantee(config.regions.size() == config.replica_server_names.size());
-    guarantee(config.regions.size() == config.director_server_names.size());
-    guarantee(config.regions.size() == config.chosen_director_servers.size());
+    rassert(config.shards.size() == chosen_directors.size());
+
+    std::vector<region_t> regions;
+    store_key_t previous_split_point = store_key_t::min();
+    for (size_t i = 0; i < config.shards.size(); ++i) {
+        const table_config_t::shard_t &shard = config.shards[i];
+        if (i != config.shards.size() - 1) {
+            rassert(shard.split_point);
+            regions.push_back(hash_region_t<key_range_t>(key_range_t(
+                key_range_t::closed, previous_split_point,
+                key_range_t::open, *shard.split_point)));
+            previous_split_point = *shard.split_point;
+        } else {
+            rassert(!shard.split_point);
+            regions.push_back(hash_region_t<key_range_t>(key_range_t(
+                key_range_t::closed, previous_split_point,
+                key_range_t::none, store_key_t())));
+        }
+    }
 
     blueprint_name_translator_t trans(name_client);
 
     blueprint_t blueprint;
 
-    /* Put the primaries and secondaries in the blueprint */
-    int i;
-    for (auto region_it = config.regions.begin(), i=0;
-              region_it != config.regions.end();
-            ++region_it, ++i) {
-        std::set<machine_id_t> replica_servers;
-        for (auto it = config.replica_server_names[i].begin();
-                  it != config.replica_server_names[i].end();
-                ++it) {
-            replica_servers.insert(trans.name_to_machine_id(*it));
+    /* Put the primaries in the blueprint */
+    for (size_t i = 0; i < config.shards.size(); ++i) {
+        if (chosen_directors[i] == nil_uuid()) {
+            continue;
         }
-        for (const machine_id_t &machine_id : replica_servers) {
-            peer_id_t peer = trans->machine_id_to_peer_id(peer);
+        peer_id_t peer = trans.machine_id_to_peer_id(chosen_directors[i]);
+        if (blueprint.peers_roles.count(peer) == 0) {
+            blueprint.add_peer(peer);
+        }
+        blueprint.add_role(peer, regions[i], blueprint_role_primary);
+    }
+
+    /* Put the secondaries in the blueprint */
+    for (size_t i = 0; i < config.shards.size(); ++i) {
+        const table_config_t::shard_t &shard = config.shards[i];
+        for (const name_string_t &name : shard.replica_names) {
+            machine_id_t machine_id = trans.name_to_machine_id(name);
+            peer_id_t peer = trans.machine_id_to_peer_id(machine_id);
             if (blueprint.peers_roles.count(peer) == 0) {
                 blueprint.add_peer(peer);
             }
-            if (machine_id == config.chosen_director_servers[i]) {
-                blueprint.add_role(peer, *region_it, blueprint_role_primary);
-            } else {
-                blueprint.add_role(peer, *region_id, blueprint_role_secondary;
+            if (machine_id != chosen_directors[i]) {
+                blueprint.add_role(peer, regions[i], blueprint_role_secondary);
             }
         }
     }
 
-    /* Make sure that every known peer appears in the blueprint in some form */
+    /* Make sure that every known peer appears in the blueprint in some form, so that the
+    reactor doesn't proceed without approval of every known peer */
     std::map<machine_id_t, peer_id_t> machine_id_to_peer_id_map =
         name_client->get_machine_id_to_peer_id_map()->get();
     for (auto it = machine_id_to_peer_id_map.begin();
@@ -126,19 +147,18 @@ blueprint_t construct_blueprint(const table_config_t &config,
     }
 
     /* If a peer's role isn't primary or secondary, make it nothing */
-    for (auto region_it = config.regions.begin();
-              region_it != config.regions.end();
-            ++region_it) {
+    for (const region_t &region : regions) {
         for (auto it = blueprint.peers_roles.begin();
                   it != blueprint.peers_roles.end();
                 ++it) {
-            if (it->second.count(*region_it) == 0) {
-                blueprint.add_role(it->first, *region_it, blueprint_role_nothing);
+            if (it->second.count(region) == 0) {
+                blueprint.add_role(it->first, region, blueprint_role_nothing);
             }
         }
     }
 
     blueprint.guarantee_valid();
+    return blueprint;
 }
 
 /* This is in part because these types aren't copyable so they can't go in
@@ -195,7 +215,7 @@ public:
         return !acks.empty();
     }
 
-    write_durability_t get_write_durability(const peer_id_t &peer) const {
+    write_durability_t get_write_durability(UNUSED const peer_id_t &peer) const {
         /* TODO: This is temporary. When we figure out how to handle write durability in
         the new ReQL admin API, we'll change it. */
         return write_durability_t::HARD;
@@ -306,19 +326,32 @@ reactor_driver_t::reactor_driver_t(
       mbox_manager(_mbox_manager),
       directory_view(_directory_view),
       branch_history_manager(_branch_history_manager),
-      machine_id_translation_table(_machine_id_translation_table),
       namespaces_view(_namespaces_view),
       server_name_client(_server_name_client),
       we_were_permanently_removed(_we_were_permanently_removed),
       ctx(_ctx),
       svs_by_namespace(_svs_by_namespace),
       watchable_variable(namespaces_directory_metadata_t()),
-      semilattice_subscription(boost::bind(&reactor_driver_t::on_change, this), namespaces_view),
-      translation_table_subscription(boost::bind(&reactor_driver_t::on_change, this)),
+      semilattice_subscription(
+        boost::bind(&reactor_driver_t::on_change, this), namespaces_view),
+      name_to_machine_id_subscription(
+        boost::bind(&reactor_driver_t::on_change, this)),
+      machine_id_to_peer_id_subscription(
+        boost::bind(&reactor_driver_t::on_change, this)),
       perfmon_collection_repo(_perfmon_collection_repo)
 {
-    watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> >::freeze_t freeze(machine_id_translation_table);
-    translation_table_subscription.reset(machine_id_translation_table, &freeze);
+    watchable_t< std::map<name_string_t, machine_id_t> >::freeze_t
+        name_to_machine_id_freeze(
+            server_name_client->get_name_to_machine_id_map());
+    name_to_machine_id_subscription.reset(
+        server_name_client->get_name_to_machine_id_map(),
+        &name_to_machine_id_freeze);
+    watchable_t< std::map<machine_id_t, peer_id_t> >::freeze_t
+        machine_id_to_peer_id_freeze(
+            server_name_client->get_machine_id_to_peer_id_map());
+    machine_id_to_peer_id_subscription.reset(
+        server_name_client->get_machine_id_to_peer_id_map(),
+        &machine_id_to_peer_id_freeze);
     on_change();
 }
 
@@ -422,10 +455,9 @@ void reactor_driver_t::on_change() {
                 reactor_datum,
                 it->first));
         } else if (!it->second.is_deleted()) {
-            const table_config_t *config = NULL;
-
+            const table_replication_info_t *repli_info = NULL;
             try {
-                config = &it->second.get_ref().config.get_ref();
+                repli_info = &it->second.get_ref().replication_info.get_ref();
             } catch (const in_conflict_exc_t &) {
                 // Since the table's config is in conflict, we ignore it and keep going.
                 // The reactor will keep acting as though it saw the most recent
@@ -435,7 +467,9 @@ void reactor_driver_t::on_change() {
                 continue;
             }
 
-            blueprint_t bp = construct_blueprint(*config, server_name_client);
+            blueprint_t bp = construct_blueprint(repli_info->config,
+                                                 repli_info->chosen_directors,
+                                                 server_name_client);
             guarantee(std_contains(bp.peers_roles,
                                    mbox_manager->get_connectivity_cluster()->get_me()));
 
