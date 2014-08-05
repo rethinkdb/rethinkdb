@@ -102,10 +102,9 @@ http_req_t::http_req_t(const http_req_t &from, const resource_t::iterator& resou
 }
 
 boost::optional<std::string> http_req_t::find_query_param(const std::string& key) const {
-    //TODO this is inefficient we should actually load it all into a map
-    for (std::vector<query_parameter_t>::const_iterator it = query_params.begin(); it != query_params.end(); ++it) {
-        if (it->key == key)
-            return boost::optional<std::string>(it->val);
+    std::map<std::string, std::string>::const_iterator it = query_params.find(key);
+    if (it != query_params.end()) {
+        return boost::optional<std::string>(it->second);
     }
     return boost::none;
 }
@@ -556,7 +555,9 @@ bool tcp_http_msg_parser_t::version_parser_t::parse(const std::string &src) {
 }
 
 bool tcp_http_msg_parser_t::resource_string_parser_t::parse(const std::string &src) {
+    std::string key, val;
     std::string::const_iterator iter = src.begin();
+
     while (iter != src.end() && *iter != '?') {
         ++iter;
     }
@@ -572,9 +573,6 @@ bool tcp_http_msg_parser_t::resource_string_parser_t::parse(const std::string &s
 
     while (iter != src.end()) {
 
-        // Parse single query param
-        query_parameter_t param;
-
         // Skip to the end of this param
         std::string::const_iterator query_start = iter;
         while (!(iter == src.end() || *iter == '&')) {
@@ -587,15 +585,15 @@ bool tcp_http_msg_parser_t::resource_string_parser_t::parse(const std::string &s
             ++query_iter;
         }
 
-        param.key = std::string(query_start, query_iter);
+        key = std::string(query_start, query_iter);
         if (query_iter == iter) {
             // There was no '=' and subsequent value, default to ""
-            param.val = "";
+            val = "";
         } else {
-            param.val = std::string(query_iter + 1, iter);
+            val = std::string(query_iter + 1, iter);
         }
 
-        query_params.push_back(param);
+        query_params[key] = val;
 
         // Skip the '&'
         if (iter != src.end()) ++iter;
