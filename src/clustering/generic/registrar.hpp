@@ -3,14 +3,17 @@
 #define CLUSTERING_GENERIC_REGISTRAR_HPP_
 
 #include <algorithm>
+#include <functional>
 #include <map>
 #include <utility>
 
 #include "clustering/generic/registration_metadata.hpp"
 #include "clustering/generic/resource.hpp"
 #include "rpc/mailbox/typed.hpp"
-#include "concurrency/wait_any.hpp"
+#include "concurrency/coro_pool.hpp"
 #include "concurrency/promise.hpp"
+#include "concurrency/queue/unlimited_fifo.hpp"
+#include "concurrency/wait_any.hpp"
 
 template<class business_card_t, class user_data_type, class registrant_type>
 class registrar_t {
@@ -18,9 +21,15 @@ class registrar_t {
 public:
     registrar_t(mailbox_manager_t *mm, user_data_type co) :
         mailbox_manager(mm), controller(co),
-        create_mailbox(mailbox_manager, std::bind(&registrar_t::on_create, this, ph::_1, ph::_2, ph::_3, auto_drainer_t::lock_t(&drainer))),
-        delete_mailbox(mailbox_manager, std::bind(&registrar_t::on_delete, this, ph::_1, auto_drainer_t::lock_t(&drainer)))
-        { }
+        registration_destruction_pool(1, &registration_destruction_queue,
+                              &registration_destruction_callback),
+        create_mailbox(mailbox_manager, std::bind(&registrar_t::on_create,
+                                                  this, ph::_1, ph::_2, ph::_3,
+                                                  auto_drainer_t::lock_t(&drainer))),
+        delete_mailbox(mailbox_manager, std::bind(&registrar_t::on_delete,
+                                                  this, ph::_1,
+                                                  auto_drainer_t::lock_t(&drainer)))
+    { }
 
     registrar_business_card_t<business_card_t> get_business_card() {
         return registrar_business_card_t<business_card_t>(
@@ -29,27 +38,28 @@ public:
     }
 
 private:
-    typedef typename registrar_business_card_t<business_card_t>::registration_id_t registration_id_t;
+    typedef typename registrar_business_card_t<business_card_t>::registration_id_t
+        registration_id_t;
 
-    class active_registration_t : public signal_t::subscription_t {
+    class active_registration_t {
     public:
         active_registration_t(
-                registrar_t *_parent,
+                registrar_t *_registrar,
                 mutex_t::acq_t &&_mutex_acq,
                 registration_id_t rid,
                 peer_id_t peer,
                 business_card_t business_card,
                 auto_drainer_t::lock_t _keepalive) :
             keepalive(_keepalive),
-            parent(_parent),
+            registrar(_registrar),
             mutex_acq(std::move(_mutex_acq)),
             /* Construct a `registrant_t` to tell the controller that something has
             now registered. */
-            registrant(parent->controller, business_card),
+            registrant(registrar->controller, business_card),
             /* Expose `deletion_cond` so that `on_delete()` can find it. */
-            registration_map_sentry(&parent->registrations, rid, &deletion_cond),
+            registration_map_sentry(&registrar->registrations, rid, &deletion_cond),
             /* Begin monitoring the peer so we can disconnect when necessary. */
-            peer_monitor(parent->mailbox_manager, peer),
+            peer_monitor(registrar->mailbox_manager, peer),
             waiter(&deletion_cond, &peer_monitor, keepalive.get_drain_signal()) {
 
             /* Release the mutex, since we're done with our initial setup phase */
@@ -59,32 +69,37 @@ private:
             }
 
             /* Wait till it's time to shut down */
+            waiter_subscription_t *subst = new waiter_subscription_t(this);
             if (waiter.is_pulsed()) {
-                run();
+                subst->run();
             } else {
-                signal_t::subscription_t::reset(&waiter);
+                subst->reset(&waiter);
             }
         }
 
-        virtual void run() {
-            // TODO! This should not spawn. Instead it should run in a coro pool
-            // I guess.
-            /* The `this->reset()` is for unsubscribing before we begin with our
-            destruction (which includes the destruction of `waiter`, the very
-            thing we are subscribed to). */
-            coro_t::spawn_sometime([&]() { this->reset(); delete this; } );
-        }
-
     private:
+        class waiter_subscription_t : public signal_t::subscription_t {
+        public:
+            explicit waiter_subscription_t(active_registration_t *_parent)
+                : parent(_parent) { }
+            virtual void run() {
+                parent->registrar->registration_destruction_queue.push(
+                    [&]() { this->reset(); delete this->parent; delete this; } );
+            }
+        private:
+            active_registration_t *parent;
+            DISABLE_COPYING(waiter_subscription_t);
+        };
+
         ~active_registration_t() {
-            /* The only thing that calls us should be run(). */
+            /* The only thing that calls us should be waiter_subscription_t::run(). */
             rassert(waiter.is_pulsed());
 
             /* Reacquire the mutex, to avoid race conditions when we're
             deregistering from `deleters`. I'm not sure if there re any such race
             conditions, but better safe than sorry. */
             {
-                mutex_t::acq_t reacquisition(&parent->mutex);
+                mutex_t::acq_t reacquisition(&registrar->mutex);
                 swap(mutex_acq, reacquisition);
             }
 
@@ -101,7 +116,7 @@ private:
         }
 
         auto_drainer_t::lock_t keepalive;
-        registrar_t *parent;
+        registrar_t *registrar;
         mutex_t::acq_t mutex_acq;
         registrant_type registrant;
         cond_t deletion_cond;
@@ -165,8 +180,11 @@ private:
     user_data_type controller;
 
     mutex_t mutex;
-    // TODO! Can this just directly contain the active_registrations, somehow?
     std::map<registration_id_t, cond_t *> registrations;
+
+    unlimited_fifo_queue_t<std::function<void()> > registration_destruction_queue;
+    calling_callback_t registration_destruction_callback;
+    coro_pool_t<std::function<void()> > registration_destruction_pool;
 
     auto_drainer_t drainer;
 
