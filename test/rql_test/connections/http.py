@@ -205,6 +205,17 @@ def test_verify():
     test_part('http://dev.rethinkdb.com')
     test_part('https://dev.rethinkdb.com')
 
+def test_binary():
+    res = r.http('www.rethinkdb.com/assets/images/docs/api_illustrations/quickstart.png') \
+           .do(lambda row: [row.type_of(), row.count().gt(0)]) \
+           .run(conn)
+    expect_eq(res, ['PTYPE<BINARY>', True])
+
+    res = r.http('httpbin.org/get',result_format='binary') \
+           .do(lambda row: [row.type_of(), row.slice(0,1).coerce_to("string")]) \
+           .run(conn)
+    expect_eq(res, ['PTYPE<BINARY>', '{'])
+
 def main():
     tests = {
              'verify': test_verify,
@@ -220,7 +231,8 @@ def main():
              'gzip': test_gzip,
              'failed_json_parse': test_failed_json_parse,
              'digest_auth': test_digest_auth,
-             'basic_auth': test_basic_auth
+             'basic_auth': test_basic_auth,
+             'binary': test_binary
              }
 
     # TODO: try/catch, print errors and continue?
