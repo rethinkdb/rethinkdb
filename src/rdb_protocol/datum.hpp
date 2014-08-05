@@ -366,7 +366,7 @@ public:
     void change(size_t i, counted_t<const datum_t> val);
     void insert(size_t index, counted_t<const datum_t> val);
     void splice(size_t index, counted_t<const datum_t> values);
-    void erase_range(size_t start, size_t end);
+    void erase_range(reql_version_t reql_version, size_t start, size_t end);
     void erase(size_t index);
 
     counted_t<const datum_t> to_counted() RVALUE_THIS;
