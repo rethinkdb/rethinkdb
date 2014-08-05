@@ -109,21 +109,31 @@ boost::optional<std::string> http_req_t::find_query_param(const std::string& key
     return boost::none;
 }
 
+void http_req_t::add_header_line(const std::string& key, const std::string& val) {
+    std::string header_key = key;
+    boost::to_lower(header_key);
+    std::map<std::string, std::string>::const_iterator it = header_lines.find(header_key);
+    if (it == header_lines.end()) {
+        header_lines[header_key] = val;
+    }
+}
+
 boost::optional<std::string> http_req_t::find_header_line(const std::string& key) const {
-    //TODO this is inefficient we should actually load it all into a map
-    for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); ++it) {
-        if (boost::iequals(it->key, key))
-            return boost::optional<std::string>(it->val);
+    std::string header_key = key;
+    boost::to_lower(header_key);
+    std::map<std::string, std::string>::const_iterator it = header_lines.find(header_key);
+    if (it != header_lines.end()) {
+        return boost::optional<std::string>(it->second);
     }
     return boost::none;
 }
 
 bool http_req_t::has_header_line(const std::string& key) const {
-    //TODO this is inefficient we should actually load it all into a map
-    for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); ++it) {
-        if (boost::iequals(it->key, key)) {
-            return true;
-        }
+    std::string header_key = key;
+    boost::to_lower(header_key);
+    std::map<std::string, std::string>::const_iterator it = header_lines.find(header_key);
+    if (it != header_lines.end()) {
+        return true;
     }
     return false;
 }
@@ -160,17 +170,21 @@ void http_res_t::add_last_modified(int) {
 }
 
 void http_res_t::add_header_line(const std::string& key, const std::string& val) {
-    header_line_t hdr_ln;
-    hdr_ln.key = key;
-    hdr_ln.val = val;
-    header_lines.push_back(hdr_ln);
+    std::string header_key = key;
+    boost::to_lower(header_key);
+    std::map<std::string, std::string>::const_iterator it = header_lines.find(header_key);
+    if (it != header_lines.end()) {
+        header_lines[header_key] = val;
+    }
 }
 
 void http_res_t::set_body(const std::string& content_type, const std::string& content) {
-    for (std::vector<header_line_t>::iterator it = header_lines.begin(); it != header_lines.end(); ++it) {
-        guarantee(it->key != "Content-Type");
-        guarantee(it->key != "Content-Length");
-    }
+    std::map<std::string, std::string>::const_iterator it;
+    it = header_lines.find("content-type");
+    guarantee(it == header_lines.end());
+    it = header_lines.find("content-length");
+    guarantee(it == header_lines.end());
+
     guarantee(body.size() == 0);
 
     add_header_line("Content-Type", content_type);
@@ -195,7 +209,6 @@ bool maybe_gzip_response(const http_req_t &req, http_res_t *res) {
     if (!supported_encoding || supported_encoding.get().empty()) {
         return false;
     }
-
     std::map<std::string, std::string> encodings;
 
     // Regular expression to match an encoding/qvalue pair
@@ -316,12 +329,7 @@ bool maybe_gzip_response(const http_req_t &req, http_res_t *res) {
     res->body.assign(out_buffer.data(), zstream.total_out);
 
     // Update the body size in the headers
-    for (auto it = res->header_lines.begin(); it != res->header_lines.end(); ++it) {
-        if (it->key == "Content-Length") {
-            it->val = strprintf("%lu", zstream.total_out);
-            break;
-        }
-    }
+    res->header_lines["content-length"] = strprintf("%lu", zstream.total_out);
 
     res->add_header_line("Content-Encoding", "gzip");
     return true;
@@ -438,8 +446,8 @@ std::string human_readable_status(int code) {
 
 void write_http_msg(tcp_conn_t *conn, const http_res_t &res, signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
     conn->writef(closer, "HTTP/%s %d %s\r\n", res.version.c_str(), res.code, human_readable_status(res.code).c_str());
-    for (std::vector<header_line_t>::const_iterator it = res.header_lines.begin(); it != res.header_lines.end(); ++it) {
-        conn->writef(closer, "%s: %s\r\n", it->key.c_str(), it->val.c_str());
+    for (std::map<std::string, std::string>::const_iterator it = res.header_lines.begin(); it != res.header_lines.end(); ++it) {
+        conn->writef(closer, "%s: %s\r\n", it->first.c_str(), it->second.c_str());
     }
     conn->writef(closer, "\r\n");
     conn->write(res.body.c_str(), res.body.size(), closer);
@@ -529,10 +537,7 @@ bool tcp_http_msg_parser_t::parse(tcp_conn_t *conn, http_req_t *req, signal_t *c
             return false;
         }
 
-        header_line_t final_line;
-        final_line.key = header_parser.key;
-        final_line.val = header_parser.val;
-        req->header_lines.push_back(final_line);
+        req->add_header_line(header_parser.key, header_parser.val);
     }
 
     // Parse body
