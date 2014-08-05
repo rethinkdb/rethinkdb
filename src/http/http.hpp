@@ -30,11 +30,6 @@ enum http_method_t {
     PATCH
 };
 
-struct query_parameter_t {
-    std::string key;
-    std::string val;
-};
-
 struct header_line_t {
     std::string key;
     std::string val;
@@ -70,7 +65,7 @@ struct http_req_t {
     } resource;
 
     http_method_t method;
-    std::vector<query_parameter_t> query_params;
+    std::map<std::string, std::string> query_params;
     std::string version;
     std::vector<header_line_t> header_lines;
     std::string body;
@@ -134,7 +129,7 @@ private:
 
     struct resource_string_parser_t {
         std::string resource;
-        std::vector<query_parameter_t> query_params;
+        std::map<std::string, std::string> query_params;
 
         bool parse(const std::string &src);
     };
