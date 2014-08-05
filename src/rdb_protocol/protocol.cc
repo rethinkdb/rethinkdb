@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -9,17 +9,96 @@
 #include "containers/archive/boost_types.hpp"
 #include "containers/cow_ptr.hpp"
 #include "containers/disk_backed_queue.hpp"
+#include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/ql2.pb.h"
-#include "rdb_protocol/real_table/btree.hpp"
-#include "rdb_protocol/real_table/changefeed.hpp"
-#include "rdb_protocol/real_table/store.hpp"
+#include "rdb_protocol/store.hpp"
 
 #include "debug.hpp"
 
 store_key_t key_max(sorting_t sorting) {
     return !reversed(sorting) ? store_key_t::max() : store_key_t::min();
+}
+
+#define RDB_IMPL_PROTOB_SERIALIZABLE(pb_t)                              \
+    void serialize_protobuf(write_message_t *wm, const pb_t &p) {       \
+        CT_ASSERT(sizeof(int) == sizeof(int32_t));                      \
+        int size = p.ByteSize();                                        \
+        scoped_array_t<char> data(size);                                \
+        p.SerializeToArray(data.data(), size);                          \
+        int32_t size32 = size;                                          \
+        serialize_universal(wm, size32);                                \
+        wm->append(data.data(), data.size());                           \
+    }                                                                   \
+                                                                        \
+    MUST_USE archive_result_t deserialize_protobuf(read_stream_t *s, pb_t *p) { \
+        CT_ASSERT(sizeof(int) == sizeof(int32_t));                      \
+        int32_t size;                                                   \
+        archive_result_t res = deserialize_universal(s, &size);         \
+        if (bad(res)) { return res; }                                   \
+        if (size < 0) { return archive_result_t::RANGE_ERROR; }         \
+        scoped_array_t<char> data(size);                                \
+        int64_t read_res = force_read(s, data.data(), data.size());     \
+        if (read_res != size) { return archive_result_t::SOCK_ERROR; }  \
+        p->ParseFromArray(data.data(), data.size());                    \
+        return archive_result_t::SUCCESS;                               \
+    }
+
+RDB_IMPL_PROTOB_SERIALIZABLE(Term);
+RDB_IMPL_PROTOB_SERIALIZABLE(Datum);
+RDB_IMPL_PROTOB_SERIALIZABLE(Backtrace);
+
+datum_range_t::datum_range_t()
+    : left_bound_type(key_range_t::none), right_bound_type(key_range_t::none) { }
+datum_range_t::datum_range_t(
+    counted_t<const ql::datum_t> _left_bound, key_range_t::bound_t _left_bound_type,
+    counted_t<const ql::datum_t> _right_bound, key_range_t::bound_t _right_bound_type)
+    : left_bound(_left_bound), right_bound(_right_bound),
+      left_bound_type(_left_bound_type), right_bound_type(_right_bound_type) { }
+datum_range_t::datum_range_t(counted_t<const ql::datum_t> val)
+    : left_bound(val), right_bound(val),
+      left_bound_type(key_range_t::closed), right_bound_type(key_range_t::closed) { }
+
+datum_range_t datum_range_t::universe()  {
+    return datum_range_t(counted_t<const ql::datum_t>(), key_range_t::open,
+                         counted_t<const ql::datum_t>(), key_range_t::open);
+}
+bool datum_range_t::is_universe() const {
+    return !left_bound.has() && !right_bound.has()
+        && left_bound_type == key_range_t::open && right_bound_type == key_range_t::open;
+}
+
+bool datum_range_t::contains(counted_t<const ql::datum_t> val) const {
+    return (!left_bound.has()
+            || *left_bound < *val
+            || (*left_bound == *val && left_bound_type == key_range_t::closed))
+        && (!right_bound.has()
+            || *right_bound > *val
+            || (*right_bound == *val && right_bound_type == key_range_t::closed));
+}
+
+key_range_t datum_range_t::to_primary_keyrange() const {
+    return key_range_t(
+        left_bound_type,
+        left_bound.has()
+            ? store_key_t(left_bound->print_primary())
+            : store_key_t::min(),
+        right_bound_type,
+        right_bound.has()
+            ? store_key_t(right_bound->print_primary())
+            : store_key_t::max());
+}
+
+key_range_t datum_range_t::to_sindex_keyrange() const {
+    return rdb_protocol::sindex_key_range(
+        left_bound.has()
+            ? store_key_t(left_bound->truncated_secondary())
+            : store_key_t::min(),
+        right_bound.has()
+            ? store_key_t(right_bound->truncated_secondary())
+            : store_key_t::max());
 }
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(backfill_atom_t, key, value, recency);
@@ -256,6 +335,26 @@ namespace rdb_protocol {
 region_t monokey_region(const store_key_t &k) {
     uint64_t h = hash_region_hasher(k.contents(), k.size());
     return region_t(h, h + 1, key_range_t(key_range_t::closed, k, key_range_t::closed, k));
+}
+
+key_range_t sindex_key_range(const store_key_t &start,
+                             const store_key_t &end) {
+    store_key_t end_key;
+    std::string end_key_str(key_to_unescaped_str(end));
+
+    // Need to make the next largest store_key_t without making the key longer
+    while (end_key_str.length() > 0 &&
+           end_key_str[end_key_str.length() - 1] == static_cast<char>(255)) {
+        end_key_str.erase(end_key_str.length() - 1);
+    }
+
+    if (end_key_str.length() == 0) {
+        end_key = store_key_t::max();
+    } else {
+        ++end_key_str[end_key_str.length() - 1];
+        end_key = store_key_t(end_key_str);
+    }
+    return key_range_t(key_range_t::closed, start, key_range_t::open, end_key);
 }
 
 region_t cpu_sharding_subspace(int subregion_number,
@@ -777,7 +876,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         if (!shard_keys.empty()) {
             *payload_out = batched_replace_t(std::move(shard_keys), br.pkey,
                                              br.f.compile_wire_func(), br.optargs,
-                                             br.return_vals);
+                                             br.return_changes);
             return true;
         } else {
             return false;
@@ -795,7 +894,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         if (!shard_inserts.empty()) {
             *payload_out = batched_insert_t(std::move(shard_inserts), bi.pkey,
                                             bi.conflict_behavior, bi.limits,
-                                            bi.return_vals);
+                                            bi.return_changes);
             return true;
         } else {
             return false;
@@ -963,6 +1062,11 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_read_t, key);
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
         sindex_rangespec_t, id, region, original_range);
 
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(key_range_t::bound_t, int8_t,
+                                      key_range_t::open, key_range_t::none);
+RDB_IMPL_ME_SERIALIZABLE_4_SINCE_v1_13(
+        datum_range_t, empty_ok(left_bound), empty_ok(right_bound),
+        left_bound_type, right_bound_type);
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
@@ -993,12 +1097,13 @@ RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(sync_response_t);
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(write_response_t, response, event_log, n_shards);
 
-RDB_IMPL_SERIALIZABLE_5_SINCE_v1_13(
-        batched_replace_t, keys, pkey, f, optargs, return_vals);
-// Serialization format for this changed in 1.14.  We only support the
-// latest version, since this is a cluster-only type.
+// Serialization format for these changed in 1.14.  We only support the
+// latest version, since these are cluster-only types.
 RDB_IMPL_SERIALIZABLE_5(
-        batched_insert_t, inserts, pkey, conflict_behavior, limits, return_vals);
+        batched_replace_t, keys, pkey, f, optargs, return_changes);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(batched_replace_t);
+RDB_IMPL_SERIALIZABLE_5(
+        batched_insert_t, inserts, pkey, conflict_behavior, limits, return_changes);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(batched_insert_t);
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(point_write_t, key, data, overwrite);

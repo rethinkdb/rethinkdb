@@ -9,9 +9,9 @@
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "containers/uuid.hpp"
 #include "unittest/unittest_utils.hpp"
-#include "rdb_protocol/real_table/btree.hpp"
-#include "rdb_protocol/real_table/store.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/store.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "serializer/config.hpp"
 
 namespace unittest {
@@ -227,14 +227,17 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
 
             store_key_t key("foo");
 
-            bool sindex_exists = store.acquire_sindex_superblock_for_read(
-                    name,
-                    "",
-                    main_sb.get(),
-                    &sindex_super_block,
-                    static_cast<std::vector<char>*>(NULL),
-                    &sindex_uuid);
-            ASSERT_TRUE(sindex_exists);
+            {
+                std::vector<char> opaque_definition;
+                bool sindex_exists = store.acquire_sindex_superblock_for_read(
+                        name,
+                        "",
+                        main_sb.get(),
+                        &sindex_super_block,
+                        &opaque_definition,
+                        &sindex_uuid);
+                ASSERT_TRUE(sindex_exists);
+            }
 
             point_read_response_t response;
 

@@ -23,8 +23,9 @@ enum class cluster_version_t {
     // The latest version, max of CLUSTER and LATEST_DISK
     LATEST_OVERALL = v1_14_is_latest,
 
-    // The latest version for disk serialization can sometimes be different from
-    // the version we use for cluster serialization.
+    // The latest version for disk serialization can sometimes be different from the
+    // version we use for cluster serialization.  This is also the latest version of
+    // ReQL deterministic function behavior.
     LATEST_DISK = v1_14,
 
     // This exists as long as the clustering code only supports the use of one

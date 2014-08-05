@@ -17,6 +17,22 @@ from rethinkdb import repl # For the repl connection
 from rethinkdb.errors import *
 from rethinkdb.ast import RqlQuery, DB, recursively_convert_pseudotypes
 
+try:
+    {}.iteritems
+    dict_items = lambda d: d.iteritems()
+except AttributeError:
+    dict_items = lambda d: d.items()
+
+def decodeUFTPipe(inputPipe):
+    # attempt to decode input as utf-8 with fallbacks to get something useful
+    try:
+        return inputPipe.decode('utf-8', errors='ignore')
+    except TypeError:
+        try:
+            return inputPipe.decode('utf-8')
+        except UnicodeError:
+            return repr(inputPipe)
+
 class Query(object):
     def __init__(self, type, token, term, global_optargs):
         self.type = type
@@ -30,7 +46,7 @@ class Query(object):
             res.append(self.term.build())
         if self.global_optargs is not None:
             optargs = { }
-            for (k,v) in self.global_optargs.iteritems():
+            for k, v in dict_items(self.global_optargs):
                 optargs[k] = v.build() if isinstance(v, RqlQuery) else v
             res.append(optargs)
         return json.dumps(res, ensure_ascii=False, allow_nan=False)
@@ -126,10 +142,9 @@ class Connection(object):
         except Exception as err:
             raise RqlDriverError("Could not connect to %s:%s. Error: %s" % (self.host, self.port, err))
 
-        self._sock_sendall(struct.pack("<LL", p.VersionDummy.Version.V0_3, \
-                                              len(self.auth_key)) + \
-                           str.encode(self.auth_key, 'ascii') + \
-                           struct.pack("<L", p.VersionDummy.Protocol.JSON))
+        self._sock_sendall(struct.pack("<L", p.VersionDummy.Version.V0_3))
+        self._sock_sendall(struct.pack("<L", len(self.auth_key)) + str.encode(self.auth_key, 'ascii'))
+        self._sock_sendall(struct.pack("<L", p.VersionDummy.Protocol.JSON))
 
         # Read out the response from the server, which will be a null-terminated string
         response = b""
@@ -141,7 +156,7 @@ class Connection(object):
 
         if response != b"SUCCESS":
             self.close(noreply_wait=False)
-            raise RqlDriverError("Server dropped connection with message: \"%s\"" % response.strip())
+            raise RqlDriverError("Server dropped connection with message: \"%s\"" % decodeUFTPipe(response).strip())
 
         # Connection is now initialized
 
@@ -158,7 +173,7 @@ class Connection(object):
                 pass
             self.socket.close()
             self.socket = None
-        for (token, cursor) in self.cursor_cache.iteritems():
+        for token, cursor in dict_items(self.cursor_cache):
             cursor.end_flag = True
             cursor.connection_closed = True
         self.cursor_cache = { }

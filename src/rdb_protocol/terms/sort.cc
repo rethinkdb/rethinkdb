@@ -122,13 +122,13 @@ private:
         }
         lt_cmp_t lt_cmp(comparisons);
 
-        counted_t<table_view_t> tbl;
+        counted_t<table_t> tbl;
         counted_t<datum_stream_t> seq;
         counted_t<val_t> v0 = args->arg(env, 0);
         if (v0->get_type().is_convertible(val_t::type_t::TABLE)) {
             tbl = v0->as_table();
         } else if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
-            std::pair<counted_t<table_view_t>, counted_t<datum_stream_t> > ts
+            std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts
                 = v0->as_selection(env->env);
             tbl = ts.first;
             seq = ts.second;
@@ -212,11 +212,11 @@ private:
         counted_t<val_t> v = args->arg(env, 0);
         counted_t<val_t> idx = args->optarg(env, "index");
         if (v->get_type().is_convertible(val_t::type_t::TABLE)) {
-            counted_t<table_view_t> tbl = v->as_table();
+            counted_t<table_t> tbl = v->as_table();
             std::string idx_str = idx.has() ? idx->as_str().to_std() : tbl->get_pkey();
             if (idx.has() && idx_str == tbl->get_pkey()) {
                 auto row = pb::dummy_var_t::DISTINCT_ROW;
-                std::vector<sym_t> distinct_args{dummy_var_to_sym(row)};
+                std::vector<sym_t> distinct_args{dummy_var_to_sym(row)}; // NOLINT(readability/braces) yes we bloody well do need the ;
                 protob_t<Term> body(make_counted_term());
                 {
                     r::reql_t f = r::var(row)[idx_str];

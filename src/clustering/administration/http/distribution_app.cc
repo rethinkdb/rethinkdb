@@ -5,7 +5,7 @@
 #include "clustering/administration/http/distribution_app.hpp"
 #include "containers/uuid.hpp"
 #include "region/region_json_adapter.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "stl_utils.hpp"
 
 #define DEFAULT_DEPTH 1

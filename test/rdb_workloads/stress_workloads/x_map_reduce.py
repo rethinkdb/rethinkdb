@@ -30,4 +30,4 @@ class Workload:
                                              .reduce(lambda acc,val: acc + val, 0) \
                                              .run(conn)
 
-        return { }
+        return {}

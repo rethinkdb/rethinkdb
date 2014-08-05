@@ -319,12 +319,12 @@ tests:
       js: r(false).lt([])
       rb: r(false) < []
 
-    - py: r.expr([]) < r.binary("\xAE")
+    - py: r.expr([]) < r.binary(b"\xAE")
       js: r([]).lt(r.binary(Buffer("\x00")))
       rb: r([]) < r.binary("")
       ot: true
 
-    - py: r.expr([1,2]) < r.binary("\xAE")
+    - py: r.expr([1,2]) < r.binary(b"\xAE")
       js: r([1,2]).lt(r.binary(Buffer("\x00")))
       rb: r([1,2]) < r.binary("")
       ot: true
@@ -359,17 +359,17 @@ tests:
       rb: r(100) < { :a => 12 }
       ot: true
 
-    - py: r.expr(r.binary("\xAE")) < 12
+    - py: r.expr(r.binary(b"\xAE")) < 12
       js: r(r.binary(Buffer("\x00"))).lt(12)
       rb: r(r.binary("")) < 12
       ot: false
 
-    - py: r.binary("0xAE") < 'abc'
+    - py: r.binary(b"0xAE") < 'abc'
       js: r.binary(Buffer("0x00")).lt('abc')
       rb: r.binary("") < 'abc'
       ot: true
 
-    - py: r.binary("0xAE") > r.now()
+    - py: r.binary(b"0xAE") > r.now()
       js: r.binary(Buffer("0x00")).gt(r.now())
       rb: r.binary("") > r.now()
       ot: false

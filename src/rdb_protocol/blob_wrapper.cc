@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "rdb_protocol/real_table/blob_wrapper.hpp"
+#include "rdb_protocol/blob_wrapper.hpp"
 
 #include "buffer_cache/alt/alt.hpp"
 

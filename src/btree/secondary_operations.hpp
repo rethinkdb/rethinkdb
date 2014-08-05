@@ -15,22 +15,16 @@
 class buf_lock_t;
 
 struct secondary_index_t {
-    secondary_index_t()
-        : superblock(NULL_BLOCK_ID), post_construction_complete(false),
-          being_deleted(false), id(generate_uuid())
+    explicit secondary_index_t()
+        : superblock(NULL_BLOCK_ID),
+          post_construction_complete(false),
+          being_deleted(false),
+          /* TODO(2014-08): This generate_uuid() is weird. */
+          id(generate_uuid())
     { }
 
     /* A virtual superblock. */
     block_id_t superblock;
-
-    /* An opaque_definition_t is a serializable description of the secondary
-     * index. Values which are stored in the B-Tree (template parameters to
-     * `find_keyvalue_location_for_[read,write]`) must support the following
-     * method:
-     * store_key_t index(const opaque_definition_t &);
-     * Which returns the value of the secondary index.
-     */
-    typedef std::vector<char> opaque_definition_t;
 
     /* Whether the index is has completed post construction, and/or is being deleted.
      * Note that an index can be in any combination of those states. */
@@ -40,8 +34,11 @@ struct secondary_index_t {
         return post_construction_complete && !being_deleted;
     }
 
-    /* An opaque blob that describes the index */
-    opaque_definition_t opaque_definition;
+    /* An opaque blob that describes the index.  See serialize_sindex_info and
+     deserialize_sindex_info.  At one point it contained a serialized map_wire_func_t
+     and a sindex_multi_bool_t.  Now it also contains reql version info.  (This being
+     a std::vector<char> is a holdover from when we had multiple protocols.) */
+    std::vector<char> opaque_definition;
 
     /* Sindexes contain a uuid_u to prevent a rapid deletion and recreation of
      * a sindex with the same name from tricking a post construction in to
@@ -50,6 +47,7 @@ struct secondary_index_t {
     uuid_u id;
 
     /* Used in unit tests. */
+    /* TODO(2014-08): This weird thing should be and can be eliminated. */
     bool operator==(const secondary_index_t &other) const {
         return superblock == other.superblock &&
                opaque_definition == other.opaque_definition;

@@ -1,17 +1,19 @@
-#include "rdb_protocol/real_table/changefeed.hpp"
+#include "rdb_protocol/changefeed.hpp"
 
 #include <queue>
 
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/interruptor.hpp"
 #include "containers/archive/boost_types.hpp"
+#include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
-#include "rdb_protocol/real_table/btree.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/val.hpp"
 #include "rpc/mailbox/typed.hpp"
 
 #include "debug.hpp"
+
+namespace ql {
 
 namespace changefeed {
 
@@ -35,11 +37,18 @@ void server_t::stop_mailbox_cb(client_t::addr_t addr) {
     }
 }
 
-void server_t::add_client(const client_t::addr_t &addr) {
+void server_t::add_client(const client_t::addr_t &addr, region_t region) {
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::write);
     spot.write_signal()->wait_lazily_unordered();
     auto info = &clients[addr];
+
+    // We do this regardless of whether there's already an entry for this
+    // address, because we might be subscribed to multiple regions if we're
+    // oversharded.  This will have to become smarter once you can unsubscribe
+    // at finer granularity (i.e. when we support changefeeds on selections).
+    info->regions.push_back(std::move(region));
+
     // The entry might already exist if we have multiple shards per btree, but
     // that's fine.
     if (!info->cond.has()) {
@@ -62,7 +71,7 @@ void server_t::add_client_cb(signal_t *stopped, client_t::addr_t addr) {
             &disconnect, stopped, coro_lock.get_drain_signal());
         wait_any.wait_lazily_unordered();
     }
-    send_all_with_lock(coro_lock, msg_t(msg_t::stop_t()));
+    send_all_with_lock(coro_lock, msg_t(msg_t::stop_t()), NULL);
     rwlock_in_line_t coro_spot(&clients_lock, access_t::write);
     coro_spot.write_signal()->wait_lazily_unordered();
     size_t erased = clients.erase(addr);
@@ -88,24 +97,30 @@ RDB_MAKE_SERIALIZABLE_3(stamped_msg_t, server_uuid, stamp, submsg);
 // always ackquire a drainer lock before sending because we sometimes send a
 // `stop_t` during destruction, and you can't acquire a drain lock on a draining
 // `auto_drainer_t`.)
-void server_t::send_all_with_lock(const auto_drainer_t::lock_t &, msg_t msg) {
+void server_t::send_all_with_lock(const auto_drainer_t::lock_t &,
+                                  msg_t msg, const store_key_t *key) {
     rwlock_in_line_t spot(&clients_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
-    for (auto it = clients.begin(); it != clients.end(); ++it) {
-        uint64_t stamp;
-        {
-            // We don't need a write lock as long as we make sure the coroutine
-            // doesn't block between reading and updating the stamp.
-            ASSERT_NO_CORO_WAITING;
-            stamp = it->second.stamp++;
+    for (auto &&client : clients) {
+        if (key == NULL
+            || std::any_of(client.second.regions.begin(),
+                           client.second.regions.end(),
+                           std::bind(&region_contains_key, ph::_1, std::cref(*key)))) {
+            uint64_t stamp;
+            {
+                // We don't need a write lock as long as we make sure the coroutine
+                // doesn't block between reading and updating the stamp.
+                ASSERT_NO_CORO_WAITING;
+                stamp = client.second.stamp++;
+            }
+            send(manager, client.first, stamped_msg_t(uuid, stamp, msg));
         }
-        send(manager, it->first, stamped_msg_t(uuid, stamp, msg));
     }
 }
 
-void server_t::send_all(msg_t msg) {
+void server_t::send_all(msg_t msg, const store_key_t *key) {
     auto_drainer_t::lock_t lock(&drainer);
-    send_all_with_lock(lock, std::move(msg));
+    send_all_with_lock(lock, std::move(msg), key);
 }
 
 void server_t::stop_all() {
@@ -143,8 +158,8 @@ msg_t::msg_t(stop_t &&_op) : op(std::move(_op)) { }
 msg_t::msg_t(change_t &&_op) : op(std::move(_op)) { }
 
 msg_t::change_t::change_t() { }
-msg_t::change_t::change_t(counted_t<const ql::datum_t> _old_val,
-                          counted_t<const ql::datum_t> _new_val)
+msg_t::change_t::change_t(counted_t<const datum_t> _old_val,
+                          counted_t<const datum_t> _new_val)
     : old_val(std::move(_old_val)), new_val(std::move(_new_val)) { }
 msg_t::change_t::~change_t() { }
 
@@ -159,12 +174,11 @@ enum class detach_t { NO, YES };
 class subscription_t : public home_thread_mixin_t {
 public:
     virtual ~subscription_t();
-    std::vector<counted_t<const ql::datum_t> >
-    get_els(ql::batcher_t *batcher, const signal_t *interruptor);
-    virtual void add_el(const uuid_u &uuid, uint64_t stamp,
-                        counted_t<const ql::datum_t> d,
-                        const ql::configured_limits_t &limits) = 0;
-    virtual void start(ql::env_t *env, namespace_interface_t *nif,
+    std::vector<counted_t<const datum_t> >
+    get_els(batcher_t *batcher, const signal_t *interruptor);
+    virtual void add_el(const uuid_u &uuid, uint64_t stamp, counted_t<const datum_t> d,
+                        const configured_limits_t &limits) = 0;
+    virtual void start(env_t *env, namespace_interface_t *nif,
                        client_t::addr_t *addr) = 0;
     void stop(const std::string &msg, detach_t should_detach);
 protected:
@@ -182,7 +196,7 @@ protected:
     feed_t *feed;
 private:
     virtual bool has_el() = 0;
-    virtual counted_t<const ql::datum_t> pop_el() = 0;
+    virtual counted_t<const datum_t> pop_el() = 0;
     // Used to block on more changes.  NULL unless we're waiting.
     cond_t *cond;
     auto_drainer_t drainer;
@@ -200,9 +214,9 @@ public:
     ~feed_t();
 
     void add_point_sub(subscription_t *sub,
-                       const counted_t<const ql::datum_t> &key) THROWS_NOTHING;
+                       const counted_t<const datum_t> &key) THROWS_NOTHING;
     void del_point_sub(subscription_t *sub,
-                       const counted_t<const ql::datum_t> &key) THROWS_NOTHING;
+                       const counted_t<const datum_t> &key) THROWS_NOTHING;
 
     void add_table_sub(subscription_t *sub) THROWS_NOTHING;
     void del_table_sub(subscription_t *sub) THROWS_NOTHING;
@@ -210,7 +224,7 @@ public:
     void each_table_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
     void each_point_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
     void each_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
-    void on_point_sub(counted_t<const ql::datum_t> key,
+    void on_point_sub(counted_t<const datum_t> key,
                       const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
 
 
@@ -256,7 +270,7 @@ private:
     cond_t queues_ready;
 
     std::vector<std::set<subscription_t *> > table_subs;
-    std::map<counted_t<const ql::datum_t>,
+    std::map<counted_t<const datum_t>,
              std::vector<std::set<subscription_t *> > > point_subs;
     rwlock_t table_subs_lock, point_subs_lock;
     int64_t num_subs;
@@ -269,15 +283,14 @@ private:
 class point_sub_t : public subscription_t {
 public:
     // Throws QL exceptions.
-    point_sub_t(feed_t *feed, counted_t<const ql::datum_t> _key)
+    point_sub_t(feed_t *feed, counted_t<const datum_t> _key)
         : subscription_t(feed), key(std::move(_key)), stamp(0) {
         feed->add_point_sub(this, key);
     }
     virtual ~point_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_point_sub, feed, this, key));
     }
-    virtual void start(ql::env_t *env, namespace_interface_t *nif,
-                       client_t::addr_t *addr) {
+    virtual void start(env_t *env, namespace_interface_t *nif, client_t::addr_t *addr) {
         assert_thread();
         read_response_t read_resp;
         nif->read(
@@ -303,8 +316,8 @@ public:
         }
     }
 private:
-    virtual void add_el(const uuid_u &, uint64_t d_stamp, counted_t<const ql::datum_t> d,
-                        const ql::configured_limits_t &) {
+    virtual void add_el(const uuid_u &, uint64_t d_stamp, counted_t<const datum_t> d,
+                        const configured_limits_t &) {
         assert_thread();
         // We use `>=` because we might have the same stamp as the start stamp
         // (the start stamp reads the stamp non-destructively on the shards).
@@ -317,15 +330,15 @@ private:
         }
     }
     virtual bool has_el() { return el.has(); }
-    virtual counted_t<const ql::datum_t> pop_el() {
+    virtual counted_t<const datum_t> pop_el() {
         guarantee(has_el());
-        counted_t<const ql::datum_t> ret;
+        counted_t<const datum_t> ret;
         ret.swap(el);
         return ret;
     }
-    counted_t<const ql::datum_t> key;
+    counted_t<const datum_t> key;
     uint64_t stamp;
-    counted_t<const ql::datum_t> el;
+    counted_t<const datum_t> el;
 };
 
 class table_sub_t : public subscription_t {
@@ -337,8 +350,7 @@ public:
     virtual ~table_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_table_sub, feed, this));
     }
-    virtual void start(ql::env_t *env, namespace_interface_t *nif,
-                       client_t::addr_t *addr) {
+    virtual void start(env_t *env, namespace_interface_t *nif, client_t::addr_t *addr) {
         assert_thread();
         read_response_t read_resp;
         nif->read(
@@ -352,9 +364,8 @@ public:
         guarantee(start_stamps.size() != 0);
     }
 private:
-    virtual void add_el(const uuid_u &uuid, uint64_t stamp,
-                        counted_t<const ql::datum_t> d,
-                        const ql::configured_limits_t &limits) {
+    virtual void add_el(const uuid_u &uuid, uint64_t stamp, counted_t<const datum_t> d,
+                        const configured_limits_t &limits) {
         // If we don't have start timestamps, we haven't started, and if we have
         // exc, we've stopped.
         if (start_stamps.size() != 0 && !exc) {
@@ -371,9 +382,9 @@ private:
         }
     }
     virtual bool has_el() { return els.size() != 0; }
-    virtual counted_t<const ql::datum_t> pop_el() {
+    virtual counted_t<const datum_t> pop_el() {
         guarantee(has_el());
-        counted_t<const ql::datum_t> ret = std::move(els.front());
+        counted_t<const datum_t> ret = std::move(els.front());
         els.pop_front();
         return ret;
     }
@@ -382,7 +393,7 @@ private:
     // our subscription.
     std::map<uuid_u, uint64_t> start_stamps;
     // The queue of changes we've accumulated since the last time we were read from.
-    std::deque<counted_t<const ql::datum_t> > els;
+    std::deque<counted_t<const datum_t> > els;
 };
 
 class msg_visitor_t : public boost::static_visitor<void> {
@@ -390,13 +401,13 @@ public:
     msg_visitor_t(feed_t *_feed, uuid_u _server_uuid, uint64_t _stamp)
         : feed(_feed), server_uuid(_server_uuid), stamp(_stamp) { }
     void operator()(const msg_t::change_t &change) const {
-        counted_t<const ql::datum_t> null = ql::datum_t::null();
-        ql::configured_limits_t default_limits;
-        std::map<std::string, counted_t<const ql::datum_t> > obj{
+        counted_t<const datum_t> null = datum_t::null();
+        configured_limits_t default_limits;
+        std::map<std::string, counted_t<const datum_t> > obj{
             {"new_val", change.new_val.has() ? change.new_val : null},
             {"old_val", change.old_val.has() ? change.old_val : null}
         };
-        auto d = make_counted<const ql::datum_t>(std::move(obj));
+        auto d = make_counted<const datum_t>(std::move(obj));
         feed->each_table_sub(
             std::bind(&subscription_t::add_el,
                       ph::_1,
@@ -405,7 +416,7 @@ public:
                       d, default_limits));
         auto val = change.new_val.has() ? change.new_val : change.old_val;
         r_sanity_check(val.has());
-        auto pkey_val = val->get(feed->pkey, ql::NOTHROW);
+        auto pkey_val = val->get(feed->pkey, NOTHROW);
         r_sanity_check(pkey_val.has());
         feed->on_point_sub(
             pkey_val,
@@ -413,7 +424,7 @@ public:
                       ph::_1,
                       std::cref(server_uuid),
                       stamp,
-                      change.new_val.has() ? change.new_val : ql::datum_t::null(),
+                      change.new_val.has() ? change.new_val : datum_t::null(),
                       default_limits));
     }
     void operator()(const msg_t::stop_t &) const {
@@ -426,7 +437,7 @@ private:
     uint64_t stamp;
 };
 
-class stream_t : public ql::eager_datum_stream_t {
+class stream_t : public eager_datum_stream_t {
 public:
     template<class... Args>
     stream_t(scoped_ptr_t<subscription_t> &&_sub, Args... args)
@@ -435,14 +446,14 @@ public:
     virtual bool is_array() { return false; }
     virtual bool is_exhausted() const { return false; }
     virtual bool is_cfeed() const { return true; }
-    virtual std::vector<counted_t<const ql::datum_t> >
-    next_raw_batch(ql::env_t *env, const ql::batchspec_t &bs) {
-        rcheck(bs.get_batch_type() == ql::batch_type_t::NORMAL
-               || bs.get_batch_type() == ql::batch_type_t::NORMAL_FIRST,
-               ql::base_exc_t::GENERIC,
+    virtual std::vector<counted_t<const datum_t> >
+    next_raw_batch(env_t *env, const batchspec_t &bs) {
+        rcheck(bs.get_batch_type() == batch_type_t::NORMAL
+               || bs.get_batch_type() == batch_type_t::NORMAL_FIRST,
+               base_exc_t::GENERIC,
                "Cannot call a terminal (`reduce`, `count`, etc.) on an "
                "infinite stream (such as a changefeed).");
-        ql::batcher_t batcher = bs.to_batcher();
+        batcher_t batcher = bs.to_batcher();
         return sub->get_els(&batcher, env->interruptor);
     }
 private:
@@ -455,8 +466,8 @@ subscription_t::subscription_t(feed_t *_feed) : skipped(0), feed(_feed), cond(NU
 
 subscription_t::~subscription_t() { }
 
-std::vector<counted_t<const ql::datum_t> >
-subscription_t::get_els(ql::batcher_t *batcher, const signal_t *interruptor) {
+std::vector<counted_t<const datum_t> >
+subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
     assert_thread();
     guarantee(cond == NULL); // Can't get while blocking.
     auto_drainer_t::lock_t lock(&drainer);
@@ -464,8 +475,8 @@ subscription_t::get_els(ql::batcher_t *batcher, const signal_t *interruptor) {
         cond_t wait_for_data;
         cond = &wait_for_data;
         signal_timer_t timer;
-        if (batcher->get_batch_type() == ql::batch_type_t::NORMAL
-            || batcher->get_batch_type() == ql::batch_type_t::NORMAL_FIRST) {
+        if (batcher->get_batch_type() == batch_type_t::NORMAL
+            || batcher->get_batch_type() == batch_type_t::NORMAL_FIRST) {
             timer.start(batcher->microtime_left() / 1000);
         }
         try {
@@ -476,27 +487,27 @@ subscription_t::get_els(ql::batcher_t *batcher, const signal_t *interruptor) {
         } catch (const interrupted_exc_t &e) {
             cond = NULL;
             if (timer.is_pulsed()) {
-                return std::vector<counted_t<const ql::datum_t> >();
+                return std::vector<counted_t<const datum_t> >();
             }
             throw e;
         }
         guarantee(cond == NULL);
     }
 
-    std::vector<counted_t<const ql::datum_t> > v;
+    std::vector<counted_t<const datum_t> > v;
     if (exc) {
         std::rethrow_exception(exc);
     } else if (skipped != 0) {
         v.push_back(
-            make_counted<const ql::datum_t>(
-                std::map<std::string, counted_t<const ql::datum_t> >{
-                    {"error", make_counted<const ql::datum_t>(
+            make_counted<const datum_t>(
+                std::map<std::string, counted_t<const datum_t> >{
+                    {"error", make_counted<const datum_t>(
                             strprintf("Changefeed cache over array size limit, "
                                       "skipped %zu elements.", skipped))}}));
         skipped = 0;
     } else {
         while (has_el() && !batcher->should_send_batch()) {
-            counted_t<const ql::datum_t> el = pop_el();
+            counted_t<const datum_t> el = pop_el();
             batcher->note_el(el);
             v.push_back(std::move(el));
         }
@@ -505,12 +516,14 @@ subscription_t::get_els(ql::batcher_t *batcher, const signal_t *interruptor) {
     return std::move(v);
 }
 
+
+
 void subscription_t::stop(const std::string &msg, detach_t detach) {
     assert_thread();
     if (detach == detach_t::YES) {
         feed = NULL;
     }
-    exc = std::make_exception_ptr(ql::datum_exc_t(ql::base_exc_t::GENERIC, msg));
+    exc = std::make_exception_ptr(datum_exc_t(base_exc_t::GENERIC, msg));
     maybe_signal_cond();
 }
 
@@ -543,7 +556,7 @@ INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(keyspec_t);
 
 // If this throws we might leak the increment to `num_subs`.
 void feed_t::add_point_sub(subscription_t *sub,
-                           const counted_t<const ql::datum_t> &key) THROWS_NOTHING {
+                           const counted_t<const datum_t> &key) THROWS_NOTHING {
     on_thread_t th(home_thread());
     guarantee(!detached);
     num_subs += 1;
@@ -561,7 +574,7 @@ void feed_t::add_point_sub(subscription_t *sub,
 
 // Can't throw because it's called in a destructor.
 void feed_t::del_point_sub(subscription_t *sub,
-                           const counted_t<const ql::datum_t> &key) THROWS_NOTHING {
+                           const counted_t<const datum_t> &key) THROWS_NOTHING {
     on_thread_t th(home_thread());
     {
         auto_drainer_t::lock_t lock(&drainer);
@@ -687,7 +700,7 @@ void feed_t::each_sub(const std::function<void(subscription_t *)> &f) THROWS_NOT
 }
 
 void feed_t::on_point_sub(
-    counted_t<const ql::datum_t> key,
+    counted_t<const datum_t> key,
     const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
     assert_thread();
     auto_drainer_t::lock_t lock(&drainer);
@@ -849,9 +862,9 @@ client_t::client_t(
 }
 client_t::~client_t() { }
 
-counted_t<ql::datum_stream_t>
-client_t::new_feed(ql::env_t *env, const namespace_id_t &uuid,
-        const ql::protob_t<const Backtrace> &bt, const std::string &table_name,
+counted_t<datum_stream_t>
+client_t::new_feed(env_t *env, const namespace_id_t &uuid,
+        const protob_t<const Backtrace> &bt, const std::string &table_name,
         const std::string &pkey, keyspec_t &&keyspec) {
     try {
         scoped_ptr_t<subscription_t> sub;
@@ -900,7 +913,7 @@ client_t::new_feed(ql::env_t *env, const namespace_id_t &uuid,
         sub->start(env, access.get(), &addr);
         return make_counted<stream_t>(std::move(sub), bt);
     } catch (const cannot_perform_query_exc_t &e) {
-        rfail_datum(ql::base_exc_t::GENERIC,
+        rfail_datum(base_exc_t::GENERIC,
                     "cannot subscribe to table `%s`: %s",
                     table_name.c_str(), e.what());
     }
@@ -942,4 +955,4 @@ scoped_ptr_t<feed_t> client_t::detach_feed(const uuid_u &uuid) {
 }
 
 } // namespace changefeed
-
+} // namespace ql

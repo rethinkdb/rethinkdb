@@ -3,7 +3,7 @@
 import array
 import random
 
-#p is the probability of flipping a bit
+# p is the probability of flipping a bit
 def corrupt(filename, p):
 
     if p == 0.0:
@@ -32,5 +32,3 @@ def corrupt(filename, p):
 if __name__ == '__main__':
     print "Sorry, you can't do that."
     exit(2)
-
-

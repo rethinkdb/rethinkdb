@@ -708,7 +708,7 @@ header_parser_singleton_t *header_parser_singleton_t::instance = NULL;
 //     a comma or the end of the line.  Like before, the capture group is configured
 //     to only capture the param. Note: this will fail if the param contains a comma.
 header_parser_singleton_t::header_parser_singleton_t() :
-    link_parser("^\\s*<([^>]*)>\\s*(?:;\\s*([^,]+)\\s*(?:,|$))")
+    link_parser("^\\s*<([^>]*)>\\s*(?:;\\s*([^,]+)\\s*(?:,|$))", RE2::Quiet)
 {
     memset(&settings, 0, sizeof(settings));
     settings.on_header_field = &header_parser_singleton_t::on_header_field;
@@ -853,10 +853,10 @@ private:
     // 3. obj["function-name"](JSON);
     // The following regular expressions will parse out the JSON section from each format
     jsonp_parser_singleton_t() :
-        parser1(std::string(js_ident) + fn_call + expr_end),
-        parser2(std::string(js_ident) + "\\." + js_ident + fn_call + expr_end),
+        parser1(std::string(js_ident) + fn_call + expr_end, RE2::Quiet),
+        parser2(std::string(js_ident) + "\\." + js_ident + fn_call + expr_end, RE2::Quiet),
         parser3(std::string(js_ident) + "\\[\\s*['\"].*['\"]\\s*\\]\\s*" +
-                fn_call + expr_end)
+                fn_call + expr_end, RE2::Quiet)
     { }
 
     static void initialize_if_needed() {

@@ -11,7 +11,7 @@
 #include "clustering/generic/registration_metadata.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "rpc/mailbox/typed.hpp"
 
 /* There is one `master_business_card_t` per branch. It's created by the master.

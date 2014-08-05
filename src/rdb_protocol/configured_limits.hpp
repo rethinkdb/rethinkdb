@@ -30,8 +30,8 @@ private:
 RDB_SERIALIZE_OUTSIDE(configured_limits_t);
 
 configured_limits_t from_optargs(rdb_context_t *ctx, signal_t *interruptor,
-                                 global_optargs_t &optargs);
+                                 global_optargs_t *optargs);
 
 } // namespace ql
 
-#endif
+#endif /* RDB_PROTOCOL_CONFIGURED_LIMITS_HPP_ */
