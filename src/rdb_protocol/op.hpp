@@ -127,7 +127,6 @@ protected:
 
 private:
     friend class args_t;
-    friend class bracket_term_t;
     // Tries to get an optional argument, returns `counted_t<val_t>()` if not found.
     counted_t<val_t> optarg(scope_env_t *env, const std::string &key) const;
 
