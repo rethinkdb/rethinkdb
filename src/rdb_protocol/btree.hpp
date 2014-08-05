@@ -251,7 +251,7 @@ struct sindex_reql_version_info_t {
     reql_version_t latest_checked_reql_version;
 
     // To be used for new secondary indexes.
-    static sindex_reql_version_info_t LATEST_DISK() {
+    static sindex_reql_version_info_t LATEST() {
         sindex_reql_version_info_t ret = { reql_version_t::LATEST,
                                            reql_version_t::LATEST,
                                            reql_version_t::LATEST };
