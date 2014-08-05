@@ -82,6 +82,7 @@ public:
     nth_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
+    friend class bracket_t;
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> v = args->arg(env, 0);
         int32_t n = args->arg(env, 1)->as_int<int32_t>();
@@ -602,6 +603,11 @@ counted_t<term_t> make_prepend_term(
 }
 
 counted_t<term_t> make_nth_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<nth_term_t>(env, term);
+}
+
+counted_t<op_term_t> make_nth_op_term(
     compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<nth_term_t>(env, term);
 }

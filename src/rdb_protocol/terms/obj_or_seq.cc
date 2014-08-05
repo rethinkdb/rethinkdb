@@ -3,6 +3,8 @@
 
 #include <string>
 
+#include "containers/scoped.hpp"
+
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"
@@ -242,80 +244,40 @@ counted_t<term_t> make_get_field_term(compile_env_t *env, const protob_t<const T
     return make_counted<get_field_term_t>(env, term);
 }
 
+counted_t<op_term_t> make_get_field_op_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<get_field_term_t>(env, term);
+}
+
+// declare this specialized func here, since it's not in terms.hpp
+counted_t<op_term_t> make_nth_op_term(compile_env_t *env, const protob_t<const Term> &term);
+
 class bracket_term_t : public op_term_t {
 public:
     bracket_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(2)) { }
+        : op_term_t(env, term, argspec_t(2)), nth_term(make_nth_op_term(env, term)), get_field(make_get_field_op_term(env, term)) {}
 private:
-    counted_t<val_t> get_field(scope_env_t *env, args_t *args, counted_t<const datum_t> v0) const {
-        return new_val(v0->get(args->arg(env, 1)->as_str().to_std()));
-    }
-    counted_t<val_t> get_nth(scope_env_t *env, args_t *args, counted_t<const datum_t> arr) const {
-        uint64_t canonicalize(const term_t *t, int64_t index, size_t size, bool *oob_out = 0); // defined in arr.cc
-        int32_t n = args->arg(env, 1)->as_int<int32_t>();
-        return new_val(arr->get(canonicalize(this, n, arr->size())));
-    }
-    counted_t<val_t> read_nth(scope_env_t *env, args_t *args, counted_t<val_t> arr) const {
-        int32_t n = args->arg(env, 1)->as_int<int32_t>();
-        counted_t<table_t> tbl;
-        counted_t<datum_stream_t> s;
-        if (arr->get_type().is_convertible(val_t::type_t::SELECTION)) {
-            auto pair = arr->as_selection(env->env);
-            tbl = pair.first;
-            s = pair.second;
-        } else {
-            s = arr->as_seq(env->env);
-        }
-        rcheck(n >= -1,
-               base_exc_t::GENERIC,
-               strprintf("Cannot use an index < -1 (%d) on a stream.", n));
-
-        batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
-        if (n != -1) {
-            batchspec = batchspec.with_at_most(int64_t(n)+1);
-        }
-
-        counted_t<const datum_t> last_d;
-        {
-            profile::sampler_t sampler("Find nth element.", env->env->trace);
-            for (int32_t i = 0; ; ++i) {
-                sampler.new_sample();
-                counted_t<const datum_t> d = s->next(env->env, batchspec);
-                if (!d.has()) {
-                    rcheck(n == -1 && last_d.has(), base_exc_t::NON_EXISTENCE,
-                           strprintf("Index out of bounds: %d", n));
-                    return tbl.has() ? new_val(last_d, tbl) : new_val(last_d);
-                }
-                if (i == n) {
-                    return tbl.has() ? new_val(d, tbl) : new_val(d);
-                }
-                last_d = d;
-                r_sanity_check(n == -1 || i < n);
-            }
-        }
-    }
-    
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> v0 = args->arg(env, 0);
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t flags) const {
+        counted_t<val_t> v1 = args->arg(env, 1);
         counted_t<const datum_t> d;
 
-        if (v0->get_type().is_convertible(val_t::type_t::DATUM)) {
-            d = v0->as_datum();
+        if (v1->get_type().is_convertible(val_t::type_t::DATUM)) {
+            d = v1->as_datum();
         }
-
-        if (d.has() && d->get_type() == datum_t::R_OBJECT) {
-            return get_field(env, args, d);
-        } else if (d.has() && d->get_type() == datum_t::R_ARRAY) {
-            return get_nth(env, args, d);
-        } else if (!d.has() && v0->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
-            return read_nth(env, args, v0);
+        
+        // which one they want is about as clear as mud here.
+        // We arbitrarily declare that if the 2nd argument (the index)
+        // is a number, then it is an NTH-like call, and otherwise it is
+        // a GET_FIELD-like call.
+        if (d.has() && d->get_type() == datum_t::type_t::R_NUM) {
+            return nth_term->eval_impl(env, args, flags);
         } else {
-            rfail_typed_target(
-                v0, "Cannot perform %s on a non-object non-sequence `%s`.",
-                name(), v0->trunc_print().c_str());
+            return get_field->eval_impl(env, args, flags);
         }
     }
     virtual const char *name() const { return "bracket"; }
+    
+    counted_t<op_term_t> nth_term;
+    counted_t<op_term_t> get_field;
 };
 
 counted_t<term_t> make_bracket_term(compile_env_t *env, const protob_t<const Term> &term) {
