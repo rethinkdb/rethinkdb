@@ -282,7 +282,7 @@ private:
         case datum_t::R_NULL:
         case datum_t::R_OBJECT:
         default:
-            d->type_error(strprintf("Argument to %s needs to be either a number or a string; got %s",
+            d->type_error(strprintf("Expected NUMBER or STRING as second argument to `%s` but found %s.",
                                  name(), d->get_type_name().c_str()));
             unreachable();
         }
