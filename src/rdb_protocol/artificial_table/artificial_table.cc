@@ -93,8 +93,9 @@ counted_t<const ql::datum_t> artificial_table_t::write_batched_replace(
             rfail_datum(ql::base_exc_t::GENERIC, "%s", error.c_str());
         }
     }
-    return make_counted<const ql::datum_t>("Sorry, we don't support returning write "
-        "stats on artificial tables.");
+    ql::datum_object_builder_t obj_builder;
+    obj_builder.overwrite("is_this_a_stub", ql::datum_t::boolean(true));
+    return std::move(obj_builder).to_counted();
 }
 
 counted_t<const ql::datum_t> artificial_table_t::write_batched_insert(

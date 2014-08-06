@@ -44,8 +44,7 @@ bool convert_vector_from_datum(
         *error_out = "Expected an array, got " + datum->print();
         return false;
     }
-    vector_out->clear();
-    vector_out->reserve(datum->size());
+    vector_out->resize(datum->size());
     for (size_t i = 0; i < datum->size(); ++i) {
         if (!conv(datum->get(i), &(*vector_out)[i], error_out)) {
             return false;
