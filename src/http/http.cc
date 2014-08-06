@@ -600,7 +600,9 @@ bool tcp_http_msg_parser_t::resource_string_parser_t::parse(const std::string &s
             val = std::string(query_iter + 1, iter);
         }
 
-        query_params[key] = val;
+        if (query_params.find(key) == query_params.end()) {
+            query_params[key] = val;
+        }
 
         // Skip the '&'
         if (iter != src.end()) ++iter;
