@@ -295,7 +295,11 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<const datum_t> arr = args->arg(env, 0)->as_datum();
         counted_t<const datum_t> new_el = args->arg(env, 1)->as_datum();
-        std::set<counted_t<const datum_t> > el_set;
+        // We only use el_set for equality purposes, so the reql_version doesn't
+        // really matter (with respect to datum ordering behavior).  But we play it
+        // safe.
+        std::set<counted_t<const datum_t>, counted_datum_less_t>
+            el_set(counted_datum_less_t(env->env->reql_version));
         datum_array_builder_t out(env->env->limits);
         for (size_t i = 0; i < arr->size(); ++i) {
             if (el_set.insert(arr->get(i)).second) {
@@ -320,7 +324,9 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<const datum_t> arr1 = args->arg(env, 0)->as_datum();
         counted_t<const datum_t> arr2 = args->arg(env, 1)->as_datum();
-        std::set<counted_t<const datum_t> > el_set;
+        // The reql_version doesn't actually matter here -- we only use the datum
+        // comparisons for equality purposes.
+        std::set<counted_t<const datum_t>, counted_datum_less_t> el_set(counted_datum_less_t(env->env->reql_version));
         datum_array_builder_t out(env->env->limits);
         for (size_t i = 0; i < arr1->size(); ++i) {
             if (el_set.insert(arr1->get(i)).second) {
@@ -347,7 +353,10 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<const datum_t> arr1 = args->arg(env, 0)->as_datum();
         counted_t<const datum_t> arr2 = args->arg(env, 1)->as_datum();
-        std::set<counted_t<const datum_t> > el_set;
+        // The reql_version here doesn't really matter.  We only use el_set
+        // comparison for equality purposes.
+        std::set<counted_t<const datum_t>, counted_datum_less_t>
+            el_set(counted_datum_less_t(env->env->reql_version));
         datum_array_builder_t out(env->env->limits);
         for (size_t i = 0; i < arr1->size(); ++i) {
             el_set.insert(arr1->get(i));
@@ -373,7 +382,10 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<const datum_t> arr1 = args->arg(env, 0)->as_datum();
         counted_t<const datum_t> arr2 = args->arg(env, 1)->as_datum();
-        std::set<counted_t<const datum_t> > el_set;
+        // The reql_version here doesn't really matter.  We only use el_set
+        // comparison for equality purposes.
+        std::set<counted_t<const datum_t>, counted_datum_less_t>
+            el_set(counted_datum_less_t(env->env->reql_version));
         datum_array_builder_t out(env->env->limits);
         for (size_t i = 0; i < arr2->size(); ++i) {
             el_set.insert(arr2->get(i));
@@ -434,7 +446,7 @@ private:
     void modify(scope_env_t *env, args_t *args, size_t index,
                 datum_array_builder_t *array) const {
         counted_t<const datum_t> new_el = args->arg(env, 2)->as_datum();
-        array->insert(index, new_el);
+        array->insert(env->env->reql_version, index, new_el);
     }
     const char *name() const { return "insert_at"; }
 };
@@ -448,7 +460,7 @@ private:
     void modify(scope_env_t *env, args_t *args, size_t index,
                 datum_array_builder_t *array) const {
         counted_t<const datum_t> new_els = args->arg(env, 2)->as_datum();
-        array->splice(index, new_els);
+        array->splice(env->env->reql_version, index, new_els);
     }
     const char *name() const { return "splice_at"; }
 };
@@ -465,7 +477,7 @@ private:
         } else {
             int end_index =
                 canonicalize(this, args->arg(env, 2)->as_datum()->as_int(), array->size());
-            array->erase_range(index, end_index);
+            array->erase_range(env->env->reql_version, index, end_index);
         }
     }
     const char *name() const { return "delete_at"; }

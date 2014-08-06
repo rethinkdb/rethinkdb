@@ -65,14 +65,19 @@ void server_t::add_client(const client_t::addr_t &addr, region_t region) {
 
 void server_t::add_client_cb(signal_t *stopped, client_t::addr_t addr) {
     auto_drainer_t::lock_t coro_lock(&drainer);
-    disconnect_watcher_t disconnect(manager, addr.get_peer());
     {
+        disconnect_watcher_t disconnect(manager, addr.get_peer());
         wait_any_t wait_any(
             &disconnect, stopped, coro_lock.get_drain_signal());
         wait_any.wait_lazily_unordered();
     }
-    send_all_with_lock(coro_lock, msg_t(msg_t::stop_t()), NULL);
     rwlock_in_line_t coro_spot(&clients_lock, access_t::write);
+    coro_spot.read_signal()->wait_lazily_unordered();
+    auto it = clients.find(addr);
+    if (it != clients.end()) {
+        // We can be removed more than once safely (e.g. in the case of oversharding).
+        send_one_with_lock(coro_lock, &*it, msg_t(msg_t::stop_t()));
+    }
     coro_spot.write_signal()->wait_lazily_unordered();
     size_t erased = clients.erase(addr);
     // This is true even if we have multiple shards per btree because
@@ -97,30 +102,31 @@ RDB_MAKE_SERIALIZABLE_3(stamped_msg_t, server_uuid, stamp, submsg);
 // always ackquire a drainer lock before sending because we sometimes send a
 // `stop_t` during destruction, and you can't acquire a drain lock on a draining
 // `auto_drainer_t`.)
-void server_t::send_all_with_lock(const auto_drainer_t::lock_t &,
-                                  msg_t msg, const store_key_t *key) {
-    rwlock_in_line_t spot(&clients_lock, access_t::read);
-    spot.read_signal()->wait_lazily_unordered();
-    for (auto &&client : clients) {
-        if (key == NULL
-            || std::any_of(client.second.regions.begin(),
-                           client.second.regions.end(),
-                           std::bind(&region_contains_key, ph::_1, std::cref(*key)))) {
-            uint64_t stamp;
-            {
-                // We don't need a write lock as long as we make sure the coroutine
-                // doesn't block between reading and updating the stamp.
-                ASSERT_NO_CORO_WAITING;
-                stamp = client.second.stamp++;
-            }
-            send(manager, client.first, stamped_msg_t(uuid, stamp, msg));
-        }
+void server_t::send_one_with_lock(
+    const auto_drainer_t::lock_t &,
+    std::pair<const client_t::addr_t, client_info_t> *client,
+    msg_t msg) {
+    uint64_t stamp;
+    {
+        // We don't need a write lock as long as we make sure the coroutine
+        // doesn't block between reading and updating the stamp.
+        ASSERT_NO_CORO_WAITING;
+        stamp = client->second.stamp++;
     }
+    send(manager, client->first, stamped_msg_t(uuid, stamp, std::move(msg)));
 }
 
-void server_t::send_all(msg_t msg, const store_key_t *key) {
+void server_t::send_all(msg_t msg, const store_key_t &key) {
     auto_drainer_t::lock_t lock(&drainer);
-    send_all_with_lock(lock, std::move(msg), key);
+    rwlock_in_line_t spot(&clients_lock, access_t::read);
+    spot.read_signal()->wait_lazily_unordered();
+    for (auto it = clients.begin(); it != clients.end(); ++it) {
+        if (std::any_of(it->second.regions.begin(),
+                        it->second.regions.end(),
+                        std::bind(&region_contains_key, ph::_1, std::cref(key)))) {
+            send_one_with_lock(lock, &*it, msg);
+        }
+    }
 }
 
 void server_t::stop_all() {
@@ -252,7 +258,6 @@ private:
     std::vector<server_t::addr_t> stop_addrs;
 
     std::vector<scoped_ptr_t<disconnect_watcher_t> > disconnect_watchers;
-    wait_any_t any_disconnect;
 
     struct queue_t {
         rwlock_t lock;
@@ -271,8 +276,10 @@ private:
 
     std::vector<std::set<subscription_t *> > table_subs;
     std::map<counted_t<const datum_t>,
-             std::vector<std::set<subscription_t *> > > point_subs;
-    rwlock_t table_subs_lock, point_subs_lock;
+             std::vector<std::set<subscription_t *> >,
+             counted_datum_less_t> point_subs;
+    rwlock_t table_subs_lock;
+    rwlock_t point_subs_lock;
     int64_t num_subs;
 
     bool detached;
@@ -773,6 +780,10 @@ feed_t::feed_t(client_t *_client,
       manager(_manager),
       mailbox(manager, std::bind(&feed_t::mailbox_cb, this, ph::_1)),
       table_subs(get_num_threads()),
+      /* We only use comparison in the point_subs map for equality purposes, not
+         ordering -- and this isn't in a secondary index function.  Thus
+         reql_version_t::LATEST is appropriate. */
+      point_subs(counted_datum_less_t(reql_version_t::LATEST)),
       num_subs(0),
       detached(false) {
     read_t read(changefeed_subscribe_t(mailbox.get_address()),
@@ -794,7 +805,6 @@ feed_t::feed_t(client_t *_client,
     for (auto it = peers.begin(); it != peers.end(); ++it) {
         disconnect_watchers.push_back(
             make_scoped<disconnect_watcher_t>(manager, *it));
-        any_disconnect.add(&*disconnect_watchers.back());
     }
 
     for (auto it = resp->server_uuids.begin(); it != resp->server_uuids.end(); ++it) {
@@ -824,8 +834,17 @@ feed_t::feed_t(client_t *_client,
 
 void feed_t::constructor_cb() {
     auto_drainer_t::lock_t lock(&drainer);
-    wait_any_t wait_any(&any_disconnect, lock.get_drain_signal());
-    wait_any.wait_lazily_unordered();
+    {
+        wait_any_t any_disconnect;
+        for (size_t i = 0; i < disconnect_watchers.size(); ++i) {
+            any_disconnect.add(disconnect_watchers[i].get());
+        }
+        wait_any_t wait_any(&any_disconnect, lock.get_drain_signal());
+        wait_any.wait_lazily_unordered();
+    }
+    // Clear the disconnect watchers so we don't keep the watched connections open
+    // longer than necessary.
+    disconnect_watchers.clear();
     if (!detached) {
         scoped_ptr_t<feed_t> self = client->detach_feed(uuid);
         detached = true;

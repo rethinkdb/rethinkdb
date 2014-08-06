@@ -296,6 +296,16 @@ tests:
     # TODO: Upper bound on optional arguments
     # TODO: between, merge, slice
 
+    - cd: tbl.index_rename('idx')
+      ot:
+        cd: err('RqlCompileError','Expected 3 arguments but found 2.',[])
+        js: err('RqlDriverError','Expected 2 arguments (not including options) but found 1.',[])
+
+    - cd: tbl.index_rename('idx','idx2','idx3')
+      ot:
+        cd: err('RqlCompileError','Expected 3 arguments but found 4.',[])
+        js: err('RqlDriverError','Expected 2 arguments (not including options) but found 3.',[])
+
     # Clean up
     - cd: db.table_drop('test1')
       ot: ({'dropped':1})

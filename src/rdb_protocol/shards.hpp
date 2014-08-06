@@ -31,7 +31,7 @@ namespace ql {
 // This stuff previously resided in the protocol, but has been broken out since
 // we want to use this logic in multiple places.
 typedef std::vector<counted_t<const ql::datum_t> > datums_t;
-typedef std::map<counted_t<const ql::datum_t>, datums_t> groups_t;
+typedef std::map<counted_t<const ql::datum_t>, datums_t, counted_datum_less_t> groups_t;
 
 struct rget_item_t {
     rget_item_t() { }
@@ -57,7 +57,9 @@ public:
                 const counted_t<const datum_t> &_val);
 
     void swap_if_other_better(optimizer_t &other, // NOLINT
-                              bool (*beats)(const counted_t<const datum_t> &val1,
+                              reql_version_t reql_version,
+                              bool (*beats)(reql_version_t,
+                                            const counted_t<const datum_t> &val1,
                                             const counted_t<const datum_t> &val2));
     counted_t<const datum_t> unpack(const char *name);
     counted_t<const datum_t> row, val;
@@ -158,13 +160,25 @@ archive_result_t deserialize_grouped(read_stream_t *s, datums_t *ds) {
     return deserialize<W>(s, ds);
 }
 
+// Passing this means the caller affirms that they're not iterating a grouped_t in a
+// way such that its map order matters.  (This means that its counted_datum_less_t
+// can use any reql version, and it doesn't need the value as a parameter.)
+namespace grouped {
+enum class order_doesnt_matter_t { };
+}
+
 // This is basically a templated typedef with special serialization.
 template<class T>
 class grouped_t {
 public:
+    // We assume v1_14 ordering.  We could get fancy and allow either v1_13 or v1_14
+    // ordering, but usage of grouped_t inside of secondary index functions is the
+    // only place where we'd want v1_13 ordering, so let's not bother.
+    explicit grouped_t() : m(counted_datum_less_t(reql_version_t::v1_14_is_latest)) { }
     virtual ~grouped_t() { } // See grouped_data_t below.
     template <cluster_version_t W>
-    void rdb_serialize(write_message_t *wm) const {
+    typename std::enable_if<W == cluster_version_t::CLUSTER, void>::type
+    rdb_serialize(write_message_t *wm) const {
         serialize_varint_uint64(wm, m.size());
         for (auto it = m.begin(); it != m.end(); ++it) {
             serialize_grouped<W>(wm, it->first);
@@ -172,7 +186,8 @@ public:
         }
     }
     template <cluster_version_t W>
-    archive_result_t rdb_deserialize(read_stream_t *s) {
+    typename std::enable_if<W == cluster_version_t::CLUSTER, archive_result_t>::type
+    rdb_deserialize(read_stream_t *s) {
         guarantee(m.empty());
 
         uint64_t sz;
@@ -193,20 +208,22 @@ public:
         return archive_result_t::SUCCESS;
     }
 
+    // You're not allowed to use, in any way, the intrinsic ordering of the
+    // grouped_t.  If you're processing its data into a parallel map, you're ok,
+    // since the parallel map provides its own ordering (that you specify).  This
+    // way, we know it's OK for the map ordering to use any reql_version (instead of
+    // taking that as a parameter, which would be completely impracticable).
+    typename std::map<counted_t<const datum_t>, T, counted_datum_less_t>::iterator
+    begin(grouped::order_doesnt_matter_t) { return m.begin(); }
+    typename std::map<counted_t<const datum_t>, T, counted_datum_less_t>::iterator
+    end(grouped::order_doesnt_matter_t) { return m.end(); }
 
-    // We pass these through manually rather than using inheritance because
-    // `std::map` lacks a virtual destructor.
-    typename std::map<counted_t<const datum_t>, T>::iterator
-    begin() { return m.begin(); }
-    typename std::map<counted_t<const datum_t>, T>::iterator
-    end() { return m.end(); }
-
-    std::pair<typename std::map<counted_t<const datum_t>, T>::iterator, bool>
+    std::pair<typename std::map<counted_t<const datum_t>, T, counted_datum_less_t>::iterator, bool>
     insert(std::pair<counted_t<const datum_t>, T> &&val) {
         return m.insert(std::move(val));
     }
     void
-    erase(typename std::map<counted_t<const datum_t>, T>::iterator pos) {
+    erase(typename std::map<counted_t<const datum_t>, T, counted_datum_less_t>::iterator pos) {
         m.erase(pos);
     }
 
@@ -215,12 +232,64 @@ public:
     T &operator[](const counted_t<const datum_t> &k) { return m[k]; }
 
     void swap(grouped_t<T> &other) { m.swap(other.m); } // NOLINT
-    std::map<counted_t<const datum_t>, T> *get_underlying_map() { return &m; }
+    std::map<counted_t<const datum_t>, T, counted_datum_less_t> *
+    get_underlying_map(grouped::order_doesnt_matter_t) {
+        return &m;
+    }
 private:
-    std::map<counted_t<const datum_t>, T> m;
+    std::map<counted_t<const datum_t>, T, counted_datum_less_t> m;
 };
 
 RDB_SERIALIZE_TEMPLATED_OUTSIDE(grouped_t);
+
+namespace grouped_details {
+
+template <class T>
+class grouped_pair_compare_t {
+public:
+    explicit grouped_pair_compare_t(reql_version_t _reql_version)
+        : reql_version(_reql_version) { }
+
+    bool operator()(const std::pair<counted_t<const datum_t>, T> &a,
+                    const std::pair<counted_t<const datum_t>, T> &b) const {
+        // We know the keys are different, this is only used in
+        // iterate_ordered_by_version.
+        return a.first->compare_lt(reql_version, *b.first);
+    }
+
+private:
+    reql_version_t reql_version;
+};
+
+}  // namespace grouped_details
+
+// For some people that iterate a grouped_t, order matters.  If the grouped_t is
+// sorted by a different ordering than the one which they're expecting (because of
+// reql version compatibility), we have to copy the elements to a vector and sort
+// them before iterating them.
+template <class T, class Callable>
+void iterate_ordered_by_version(reql_version_t reql_version,
+                                grouped_t<T> &grouped,
+                                Callable &&callable) {
+    std::map<counted_t<const datum_t>, T, counted_datum_less_t> *m
+        = grouped.get_underlying_map(grouped::order_doesnt_matter_t());
+    if (m->key_comp().reql_version() == reql_version) {
+        for (std::pair<const counted_t<const datum_t>, T> &pair : *m) {
+            callable(pair.first, pair.second);
+        }
+    } else {
+        // The map is sorted with the wrong reql_version.  Copy it into a vector and
+        // sort it first.
+        std::vector<std::pair<counted_t<const datum_t>, T> >
+            vec(m->begin(), m->end());
+        std::sort(vec.begin(), vec.end(),
+                  grouped_details::grouped_pair_compare_t<T>(reql_version));
+        for (std::pair<counted_t<const datum_t>, T> &pair : vec) {
+            callable(pair.first, pair.second);
+        }
+    }
+}
+
 
 // We need a separate class for this because inheriting from
 // `slow_atomic_countable_t` deletes our copy constructor, but boost variants
@@ -301,7 +370,7 @@ scoped_ptr_t<accumulator_t> make_append(const sorting_t &sorting, batcher_t *bat
 //                                                        NULL if unsharding ^^^^^^^
 scoped_ptr_t<accumulator_t> make_terminal(const terminal_variant_t &t);
 
-scoped_ptr_t<eager_acc_t> make_to_array();
+scoped_ptr_t<eager_acc_t> make_to_array(reql_version_t reql_version);
 scoped_ptr_t<eager_acc_t> make_eager_terminal(const terminal_variant_t &t);
 
 scoped_ptr_t<op_t> make_op(const transform_variant_t &tv);

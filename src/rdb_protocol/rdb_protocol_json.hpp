@@ -20,15 +20,26 @@ namespace query_language {
 
 int json_cmp(cJSON *l, cJSON *r);
 
-class shared_scoped_less_t {
+} // namespace query_language
+
+
+class counted_datum_less_t {
 public:
-    shared_scoped_less_t() { }
+    explicit counted_datum_less_t(reql_version_t reql_version)
+        : reql_version_(reql_version) { }
+
     bool operator()(const counted_t<const ql::datum_t> &a,
                     const counted_t<const ql::datum_t> &b) const {
-        return *a < *b;
+        if (a.has()) {
+            return b.has() && a->compare_lt(reql_version_, *b);
+        } else {
+            return b.has();
+        }
     }
-};
 
-} // namespace query_language
+    reql_version_t reql_version() const { return reql_version_; }
+private:
+    reql_version_t reql_version_;
+};
 
 #endif /* RDB_PROTOCOL_RDB_PROTOCOL_JSON_HPP_ */

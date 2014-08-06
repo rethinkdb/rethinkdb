@@ -117,6 +117,13 @@ MUST_USE bool table_t::sindex_drop(env_t *env, const std::string &id) {
     return table->sindex_drop(env, id);
 }
 
+MUST_USE sindex_rename_result_t table_t::sindex_rename(env_t *env,
+                                                       const std::string &old_name,
+                                                       const std::string &new_name,
+                                                       bool overwrite) {
+    return table->sindex_rename(env, old_name, new_name, overwrite);
+}
+
 counted_t<const datum_t> table_t::sindex_list(env_t *env) {
     std::vector<std::string> sindexes = table->sindex_list(env);
     std::vector<counted_t<const datum_t> > array;

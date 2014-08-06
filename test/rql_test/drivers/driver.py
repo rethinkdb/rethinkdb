@@ -51,7 +51,7 @@ import test_util
 
 sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'common')))
 import utils
-r = utils.import_pyton_driver()
+r = utils.import_python_driver()
 
 # -
 

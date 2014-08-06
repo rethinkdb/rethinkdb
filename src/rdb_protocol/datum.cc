@@ -149,7 +149,9 @@ datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object,
 datum_t::datum_t(std::vector<char> &&_lazy_serialized)
     : data(std::move(_lazy_serialized)) { }
 
-counted_t<const datum_t> to_datum(grouped_data_t &&gd,
+counted_t<const datum_t>
+to_datum_for_client_serialization(grouped_data_t &&gd,
+                                  reql_version_t reql_version,
                                   const configured_limits_t &limits) {
     std::map<std::string, counted_t<const datum_t> > map;
     map[datum_t::reql_type_string] = make_counted<const datum_t>("GROUPED_DATA");
@@ -157,12 +159,16 @@ counted_t<const datum_t> to_datum(grouped_data_t &&gd,
     {
         datum_array_builder_t arr(limits);
         arr.reserve(gd.size());
-        for (auto kv = gd.begin(); kv != gd.end(); ++kv) {
-            arr.add(make_counted<const datum_t>(
+        iterate_ordered_by_version(
+                reql_version,
+                gd,
+                [&arr, &limits](const counted_t<const datum_t> &key,
+                                counted_t<const datum_t> &value) {
+                    arr.add(make_counted<const datum_t>(
                             std::vector<counted_t<const datum_t> >{
-                                std::move(kv->first), std::move(kv->second) },
+                                key, std::move(value) },
                             limits));
-        }
+                });
         map["data"] = std::move(arr).to_counted();
     }
 
@@ -264,7 +270,8 @@ bool datum_t::is_lazy() const {
 }
 
 bool datum_t::is_ptype() const {
-    return get_type() == R_OBJECT && std_contains(*data.r_object, reql_type_string);
+    return get_type() == R_BINARY ||
+        (get_type() == R_OBJECT && std_contains(*data.r_object, reql_type_string));
 }
 
 bool datum_t::is_ptype(const std::string &reql_type) const {
@@ -273,7 +280,11 @@ bool datum_t::is_ptype(const std::string &reql_type) const {
 
 std::string datum_t::get_reql_type() const {
     ensure_deserialize_lazy();
-    r_sanity_check(get_type() == R_OBJECT);
+    r_sanity_check(is_ptype());
+    if (get_type() == R_BINARY) {
+        return "BINARY";
+    }
+
     auto maybe_reql_type = data.r_object->find(reql_type_string);
     r_sanity_check(maybe_reql_type != data.r_object->end());
     rcheck(maybe_reql_type->second->get_type() == R_STR,
@@ -289,7 +300,7 @@ std::string datum_t::get_reql_type() const {
 std::string raw_type_name(datum_t::type_t type) {
     switch (type) {
     case datum_t::R_NULL:   return "NULL";
-    case datum_t::R_BINARY: return "BINARY";
+    case datum_t::R_BINARY: return std::string("PTYPE<") + pseudo::binary_string + ">";
     case datum_t::R_BOOL:   return "BOOL";
     case datum_t::R_NUM:    return "NUMBER";
     case datum_t::R_STR:    return "STRING";
@@ -359,10 +370,33 @@ void datum_t::num_to_str_key(std::string *str_out) const {
     str_out->append(strprintf("#%" PR_RECONSTRUCTABLE_DOUBLE, as_num()));
 }
 
+void datum_t::binary_to_str_key(std::string *str_out) const {
+    // We need to prepend "P" and append a character less than [a-zA-Z] so that
+    // different pseudotypes sort correctly.
+    const std::string binary_key_prefix("PBINARY:");
+    const wire_string_t &key = as_binary();
+
+    str_out->append(binary_key_prefix);
+    size_t to_append = std::min(MAX_KEY_SIZE - str_out->size(), key.size());
+
+    // Escape null bytes so we don't cause key ambiguity when used in an array
+    // We do this by replacing \x00 with \x01\x01 and replacing \x01 with \x01\x02
+    for (size_t i = 0; i < to_append; ++i) {
+        if (key.data()[i] == '\x00') {
+            str_out->append("\x01\x01");
+        } else if (key.data()[i] == '\x01') {
+            str_out->append("\x01\x02");
+        } else {
+            str_out->append(1, key.data()[i]);
+        }
+    }
+}
+
 void datum_t::str_to_str_key(std::string *str_out) const {
     r_sanity_check(get_type() == R_STR);
     str_out->append("S");
-    str_out->append(as_str().to_std());
+    size_t to_append = std::min(MAX_KEY_SIZE - str_out->size(), as_str().size());
+    str_out->append(as_str().data(), to_append);
 }
 
 void datum_t::bool_to_str_key(std::string *str_out) const {
@@ -382,7 +416,7 @@ void datum_t::array_to_str_key(std::string *str_out) const {
     r_sanity_check(get_type() == R_ARRAY);
     str_out->append("A");
 
-    for (size_t i = 0; i < size(); ++i) {
+    for (size_t i = 0; i < size() && str_out->size() < MAX_KEY_SIZE; ++i) {
         counted_t<const datum_t> item = get(i, NOTHROW);
         r_sanity_check(item.has());
 
@@ -400,9 +434,9 @@ void datum_t::array_to_str_key(std::string *str_out) const {
             // fallthru
         case R_NULL:
             item->type_error(
-                strprintf("Secondary keys must be a number, string, bool, or array "
-                          "(got %s of type %s).", item->print().c_str(),
-                          item->get_type_name().c_str()));
+                strprintf("Array keys can only contain numbers, strings, bools, "
+                          " pseudotypes, or arrays (got %s of type %s).",
+                          item->print().c_str(), item->get_type_name().c_str()));
             break;
         default:
             unreachable();
@@ -411,16 +445,12 @@ void datum_t::array_to_str_key(std::string *str_out) const {
     }
 }
 
-void datum_t::binary_to_str_key(std::string *str_out) const {
-    r_sanity_check(get_type() == R_BINARY);
-    str_out->append("BN"); // This needs to sort between 'array':'A' and 'bool':'Bt','Bf'
-    str_out->append(as_binary().data(), as_binary().size());
-}
-
-int datum_t::pseudo_cmp(const datum_t &rhs) const {
+int datum_t::pseudo_cmp(reql_version_t reql_version, const datum_t &rhs) const {
     r_sanity_check(is_ptype());
-    if (get_reql_type() == pseudo::time_string) {
-        return pseudo::time_cmp(*this, rhs);
+    if (get_type() == R_BINARY) {
+        return as_binary().compare(rhs.as_binary());
+    } else if (get_reql_type() == pseudo::time_string) {
+        return pseudo::time_cmp(reql_version, *this, rhs);
     }
 
     rfail(base_exc_t::GENERIC, "Incomparable type %s.", get_type_name().c_str());
@@ -603,8 +633,8 @@ std::string datum_t::print_primary() const {
         // fallthru
     case R_NULL:
         type_error(strprintf(
-            "Primary keys must be either a number, bool, pseudotype or string "
-            "(got type %s):\n%s",
+            "Primary keys must be either a number, string, bool, pseudotype "
+            "or array (got type %s):\n%s",
             get_type_name().c_str(), trunc_print().c_str()));
         break;
     default:
@@ -634,10 +664,14 @@ std::string datum_t::mangle_secondary(const std::string &secondary,
     return res;
 }
 
-std::string datum_t::print_secondary(const store_key_t &primary_key,
+std::string datum_t::print_secondary(reql_version_t reql_version,
+                                     const store_key_t &primary_key,
                                      boost::optional<uint64_t> tag_num) const {
     std::string secondary_key_string;
     std::string primary_key_string = key_to_unescaped_str(primary_key);
+
+    // Reserve max key size to reduce reallocations
+    secondary_key_string.reserve(MAX_KEY_SIZE);
 
     if (primary_key_string.length() > rdb_protocol::MAX_PRIMARY_KEY_SIZE) {
         rfail(base_exc_t::GENERIC,
@@ -660,8 +694,8 @@ std::string datum_t::print_secondary(const store_key_t &primary_key,
         pt_to_str_key(&secondary_key_string);
     } else {
         type_error(strprintf(
-            "Secondary keys must be a number, string, bool, pseudotype, or array "
-            "(got type %s):\n%s",
+            "Secondary keys must be a number, string, bool, pseudotype, "
+            "or array (got type %s):\n%s",
             get_type_name().c_str(), trunc_print().c_str()));
     }
 
@@ -675,6 +709,15 @@ std::string datum_t::print_secondary(const store_key_t &primary_key,
         tag_string.assign(reinterpret_cast<const char *>(&*tag_num), tag_size);
     }
 
+    switch (reql_version) {
+    case reql_version_t::v1_13:
+        break;
+    case reql_version_t::v1_14_is_latest:
+        secondary_key_string.append(1, '\x00');
+        break;
+    default:
+        unreachable();
+    }
     secondary_key_string =
         secondary_key_string.substr(0, trunc_size(primary_key_string.length()));
 
@@ -687,7 +730,8 @@ struct components_t {
     boost::optional<uint64_t> tag_num;
 };
 
-void parse_secondary(const std::string &key, components_t *components) {
+void parse_secondary(const std::string &key,
+                     components_t *components) {
     uint8_t start_of_tag = key[key.size() - 1],
             start_of_primary = key[key.size() - 2];
 
@@ -742,6 +786,8 @@ store_key_t datum_t::truncated_secondary() const {
         num_to_str_key(&s);
     } else if (get_type() == R_STR) {
         str_to_str_key(&s);
+    } else if (get_type() == R_BINARY) {
+        binary_to_str_key(&s);
     } else if (get_type() == R_BOOL) {
         bool_to_str_key(&s);
     } else if (get_type() == R_ARRAY) {
@@ -750,8 +796,8 @@ store_key_t datum_t::truncated_secondary() const {
         pt_to_str_key(&s);
     } else {
         type_error(strprintf(
-            "Secondary keys must be a number, string, bool, or array "
-            "(got %s of type %s).",
+            "Secondary keys must be a number, string, bool, pseudotype, "
+            "or array (got %s of type %s).",
             print().c_str(), get_type_name().c_str()));
     }
 
@@ -1025,8 +1071,7 @@ int derived_cmp(T a, T b) {
     return a < b ? -1 : 1;
 }
 
-
-int datum_t::cmp(const datum_t &rhs) const {
+int datum_t::v1_13_cmp(const datum_t &rhs) const {
     if (is_ptype() && !rhs.is_ptype()) {
         return 1;
     } else if (!is_ptype() && rhs.is_ptype()) {
@@ -1040,7 +1085,6 @@ int datum_t::cmp(const datum_t &rhs) const {
     case R_NULL: return 0;
     case R_BOOL: return derived_cmp(as_bool(), rhs.as_bool());
     case R_NUM: return derived_cmp(as_num(), rhs.as_num());
-    case R_BINARY: return as_binary().compare(rhs.as_binary());
     case R_STR: return as_str().compare(rhs.as_str());
     case R_ARRAY: {
         const std::vector<counted_t<const datum_t> >
@@ -1049,7 +1093,7 @@ int datum_t::cmp(const datum_t &rhs) const {
         size_t i;
         for (i = 0; i < arr.size(); ++i) {
             if (i >= rhs_arr.size()) return 1;
-            int cmpval = arr[i]->cmp(*rhs_arr[i]);
+            int cmpval = arr[i]->v1_13_cmp(*rhs_arr[i]);
             if (cmpval != 0) return cmpval;
         }
         guarantee(i <= rhs.as_array().size());
@@ -1060,7 +1104,7 @@ int datum_t::cmp(const datum_t &rhs) const {
             if (get_reql_type() != rhs.get_reql_type()) {
                 return derived_cmp(get_reql_type(), rhs.get_reql_type());
             }
-            return pseudo_cmp(rhs);
+            return pseudo_cmp(reql_version_t::v1_13, rhs);
         } else {
             const std::map<std::string, counted_t<const datum_t> > &obj = as_object();
             const std::map<std::string, counted_t<const datum_t> > &rhs_obj
@@ -1072,7 +1116,7 @@ int datum_t::cmp(const datum_t &rhs) const {
                 if (key_cmpval != 0) {
                     return key_cmpval;
                 }
-                int val_cmpval = it->second->cmp(*it2->second);
+                int val_cmpval = it->second->v1_13_cmp(*it2->second);
                 if (val_cmpval != 0) {
                     return val_cmpval;
                 }
@@ -1084,16 +1128,90 @@ int datum_t::cmp(const datum_t &rhs) const {
             return 0;
         }
     } unreachable();
+    case R_BINARY: // This should be handled by the ptype code above
     default: unreachable();
     }
 }
 
-bool datum_t::operator==(const datum_t &rhs) const { return cmp(rhs) == 0; }
-bool datum_t::operator!=(const datum_t &rhs) const { return cmp(rhs) != 0; }
-bool datum_t::operator<(const datum_t &rhs) const { return cmp(rhs) < 0; }
-bool datum_t::operator<=(const datum_t &rhs) const { return cmp(rhs) <= 0; }
-bool datum_t::operator>(const datum_t &rhs) const { return cmp(rhs) > 0; }
-bool datum_t::operator>=(const datum_t &rhs) const { return cmp(rhs) >= 0; }
+int datum_t::cmp(reql_version_t reql_version, const datum_t &rhs) const {
+    switch (reql_version) {
+    case reql_version_t::v1_13:
+        return v1_13_cmp(rhs);
+    case reql_version_t::v1_14_is_latest:
+        return modern_cmp(rhs);
+    default:
+        unreachable();
+    }
+}
+
+int datum_t::modern_cmp(const datum_t &rhs) const {
+    bool lhs_ptype = is_ptype();
+    bool rhs_ptype = rhs.is_ptype();
+    if (lhs_ptype && rhs_ptype) {
+        if (get_reql_type() != rhs.get_reql_type()) {
+            return derived_cmp(get_reql_type(), rhs.get_reql_type());
+        }
+        return pseudo_cmp(reql_version_t::v1_14_is_latest, rhs);
+    } else if (lhs_ptype || rhs_ptype) {
+        return derived_cmp(get_type_name(), rhs.get_type_name());
+    }
+
+    if (get_type() != rhs.get_type()) {
+        return derived_cmp(get_type(), rhs.get_type());
+    }
+    switch (get_type()) {
+    case R_NULL: return 0;
+    case R_BOOL: return derived_cmp(as_bool(), rhs.as_bool());
+    case R_NUM: return derived_cmp(as_num(), rhs.as_num());
+    case R_STR: return as_str().compare(rhs.as_str());
+    case R_ARRAY: {
+        const std::vector<counted_t<const datum_t> >
+            &arr = as_array(),
+            &rhs_arr = rhs.as_array();
+        size_t i;
+        for (i = 0; i < arr.size(); ++i) {
+            if (i >= rhs_arr.size()) return 1;
+            int cmpval = arr[i]->modern_cmp(*rhs_arr[i]);
+            if (cmpval != 0) return cmpval;
+        }
+        guarantee(i <= rhs.as_array().size());
+        return i == rhs.as_array().size() ? 0 : -1;
+    } unreachable();
+    case R_OBJECT: {
+        const std::map<std::string, counted_t<const datum_t> > &obj = as_object();
+        const std::map<std::string, counted_t<const datum_t> > &rhs_obj
+            = rhs.as_object();
+        auto it = obj.begin();
+        auto it2 = rhs_obj.begin();
+        while (it != obj.end() && it2 != rhs_obj.end()) {
+            int key_cmpval = it->first.compare(it2->first);
+            if (key_cmpval != 0) {
+                return key_cmpval;
+            }
+            int val_cmpval = it->second->modern_cmp(*it2->second);
+            if (val_cmpval != 0) {
+                return val_cmpval;
+            }
+            ++it;
+            ++it2;
+        }
+        if (it != obj.end()) return 1;
+        if (it2 != rhs_obj.end()) return -1;
+        return 0;
+    } unreachable();
+    case R_BINARY: // This should be handled by the ptype code above
+    default: unreachable();
+    }
+}
+
+bool datum_t::operator==(const datum_t &rhs) const { return modern_cmp(rhs) == 0; }
+bool datum_t::operator!=(const datum_t &rhs) const { return modern_cmp(rhs) != 0; }
+bool datum_t::compare_lt(reql_version_t reql_version, const datum_t &rhs) const {
+    return cmp(reql_version, rhs) < 0;
+}
+bool datum_t::compare_gt(reql_version_t reql_version, const datum_t &rhs) const {
+    return cmp(reql_version, rhs) > 0;
+}
 
 void datum_t::runtime_fail(base_exc_t::type_t exc_type,
                            const char *test, const char *file, int line,
@@ -1334,17 +1452,27 @@ void datum_array_builder_t::change(size_t index, counted_t<const datum_t> val) {
     vector[index] = std::move(val);
 }
 
-void datum_array_builder_t::insert(size_t index, counted_t<const datum_t> val) {
+void datum_array_builder_t::insert(reql_version_t reql_version, size_t index,
+                                   counted_t<const datum_t> val) {
     rcheck_datum(index <= vector.size(),
                  base_exc_t::NON_EXISTENCE,
                  strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
                            index, vector.size()));
     vector.insert(vector.begin() + index, std::move(val));
 
-    rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
+    switch (reql_version) {
+    case reql_version_t::v1_13:
+        break;
+    case reql_version_t::v1_14_is_latest:
+        rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
+        break;
+    default:
+        unreachable();
+    }
 }
 
-void datum_array_builder_t::splice(size_t index, counted_t<const datum_t> values) {
+void datum_array_builder_t::splice(reql_version_t reql_version, size_t index,
+                                   counted_t<const datum_t> values) {
     rcheck_datum(index <= vector.size(),
                  base_exc_t::NON_EXISTENCE,
                  strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
@@ -1353,17 +1481,41 @@ void datum_array_builder_t::splice(size_t index, counted_t<const datum_t> values
     const std::vector<counted_t<const datum_t> > &arr = values->as_array();
     vector.insert(vector.begin() + index, arr.begin(), arr.end());
 
-    rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
+    switch (reql_version) {
+    case reql_version_t::v1_13:
+        break;
+    case reql_version_t::v1_14_is_latest:
+        rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
+        break;
+    default:
+        unreachable();
+    }
 }
 
-void datum_array_builder_t::erase_range(size_t start, size_t end) {
-    // Don't change this to <=.  See #2696.  Probably you'll want to move the logic
-    // of this (and some other functions here) into particular ReQL term
-    // implementations.
-    rcheck_datum(start < vector.size(),
-                 base_exc_t::NON_EXISTENCE,
-                 strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
-                           start, vector.size()));
+void datum_array_builder_t::erase_range(reql_version_t reql_version,
+                                        size_t start, size_t end) {
+
+    // See https://github.com/rethinkdb/rethinkdb/issues/2696 about the backwards
+    // compatible implementation for v1_13.
+
+    switch (reql_version) {
+    case reql_version_t::v1_13:
+        rcheck_datum(start < vector.size(),
+                     base_exc_t::NON_EXISTENCE,
+                     strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
+                               start, vector.size()));
+        break;
+    case reql_version_t::v1_14_is_latest:
+        rcheck_datum(start <= vector.size(),
+                     base_exc_t::NON_EXISTENCE,
+                     strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
+                               start, vector.size()));
+        break;
+    default:
+        unreachable();
+    }
+
+
     rcheck_datum(end <= vector.size(),
                  base_exc_t::NON_EXISTENCE,
                  strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
@@ -1388,7 +1540,8 @@ counted_t<const datum_t> datum_array_builder_t::to_counted() RVALUE_THIS {
     // https://github.com/rethinkdb/rethinkdb/issues/2697 for more information --
     // insert and splice don't check the array size limit, because of a bug (as
     // reported in the issue).  This maintains that broken ReQL behavior because of
-    // the generic reasons you would do so.
+    // the generic reasons you would do so: secondary index compatibility after an
+    // upgrade.
     return make_counted<datum_t>(std::move(vector),
                                  datum_t::no_array_size_limit_check_t());
 }

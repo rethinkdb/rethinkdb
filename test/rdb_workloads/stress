@@ -5,7 +5,7 @@ from optparse import OptionParser
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import utils
-r = utils.import_pyton_driver()
+r = utils.import_python_driver()
 
 def call_ignore_interrupt(fun):
     while True:

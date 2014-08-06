@@ -264,7 +264,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             = store.acquire_sindex_block_for_write(super_block->expose_buf(),
                                                    super_block->get_sindex_block_id());
 
-        store.drop_sindex(*it, std::move(sindex_block));
+        store.drop_sindex(*it, &sindex_block);
     }
 }
 

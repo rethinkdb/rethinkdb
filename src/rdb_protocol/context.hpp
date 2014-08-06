@@ -28,6 +28,7 @@ class extproc_pool_t;
 class name_string_t;
 class namespace_interface_t;
 template <class> class semilattice_readwrite_view_t;
+enum class sindex_rename_result_t;
 
 enum class sindex_multi_bool_t;
 
@@ -82,6 +83,8 @@ public:
     virtual bool sindex_create(ql::env_t *env, const std::string &id,
         counted_t<ql::func_t> index_func, sindex_multi_bool_t multi) = 0;
     virtual bool sindex_drop(ql::env_t *env, const std::string &id) = 0;
+    virtual sindex_rename_result_t sindex_rename(ql::env_t *env,
+        const std::string &old_name, const std::string &new_name, bool overwrite) = 0;
     virtual std::vector<std::string> sindex_list(ql::env_t *env) = 0;
     virtual std::map<std::string, counted_t<const ql::datum_t> > sindex_status(
         ql::env_t *env, const std::set<std::string> &sindexes) = 0;

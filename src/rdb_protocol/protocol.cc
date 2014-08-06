@@ -70,12 +70,13 @@ bool datum_range_t::is_universe() const {
         && left_bound_type == key_range_t::open && right_bound_type == key_range_t::open;
 }
 
-bool datum_range_t::contains(counted_t<const ql::datum_t> val) const {
+bool datum_range_t::contains(reql_version_t reql_version,
+                             counted_t<const ql::datum_t> val) const {
     return (!left_bound.has()
-            || *left_bound < *val
+            || left_bound->compare_lt(reql_version, *val)
             || (*left_bound == *val && left_bound_type == key_range_t::closed))
         && (!right_bound.has()
-            || *right_bound > *val
+            || right_bound->compare_gt(reql_version, *val)
             || (*right_bound == *val && right_bound_type == key_range_t::closed));
 }
 
@@ -615,7 +616,8 @@ void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
 
     // Initialize response.
     response_out->response = rget_read_response_t();
-    auto out = boost::get<rget_read_response_t>(&response_out->response);
+    rget_read_response_t *out
+        = boost::get<rget_read_response_t>(&response_out->response);
     out->truncated = false;
     out->key_range = read_t(rg, profile_bool_t::DONT_PROFILE).get_region().inner;
 
@@ -628,7 +630,7 @@ void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
         guarantee(resp);
         if (resp->truncated) {
             out->truncated = true;
-            if (best == NULL || key_le(resp->last_key, *best)) {
+            if (best == NULL || key_le.is_le(resp->last_key, *best)) {
                 best = &resp->last_key;
             }
         }
@@ -838,6 +840,10 @@ struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
         return d.region;
     }
 
+    region_t operator()(const sindex_rename_t &r) const {
+        return r.region;
+    }
+
     region_t operator()(const sync_t &s) const {
         return s.region;
     }
@@ -931,6 +937,10 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         return rangey_write(d);
     }
 
+    bool operator()(const sindex_rename_t &r) const {
+        return rangey_write(r);
+    }
+
     bool operator()(const sync_t &s) const {
         return rangey_write(s);
     }
@@ -984,6 +994,10 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_drop_t &) const {
+        *response_out = responses[0];
+    }
+
+    void operator()(const sindex_rename_t &) const {
         *response_out = responses[0];
     }
 
@@ -1042,8 +1056,8 @@ RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
         rdb_protocol::single_sindex_status_t, blocks_total, blocks_processed, ready);
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_read_response_t, data);
-RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(
-        rget_read_response_t, result, key_range, truncated, last_key);
+RDB_IMPL_SERIALIZABLE_4(rget_read_response_t, key_range, result, truncated, last_key);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(rget_read_response_t);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(
         distribution_read_response_t, region, key_counts);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sindex_list_response_t, sindexes);
@@ -1055,8 +1069,9 @@ INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_response_t);
 RDB_IMPL_ME_SERIALIZABLE_2(changefeed_point_stamp_response_t, stamp, initial_val);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_point_stamp_response_t);
 
-RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
+RDB_IMPL_SERIALIZABLE_3(
         read_response_t, response, event_log, n_shards);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(read_response_t);
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_read_t, key);
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
@@ -1095,6 +1110,9 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sindex_create_response_t, success);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sindex_drop_response_t, success);
 RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(sync_response_t);
 
+RDB_IMPL_SERIALIZABLE_1(sindex_rename_response_t, result);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_rename_response_t);
+
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(write_response_t, response, event_log, n_shards);
 
 // Serialization format for these changed in 1.14.  We only support the
@@ -1111,6 +1129,10 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_delete_t, key);
 RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(sindex_create_t, id, mapping, region, multi);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(sindex_drop_t, id, region);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sync_t, region);
+
+RDB_IMPL_SERIALIZABLE_4(sindex_rename_t, region,
+                        old_name, new_name, overwrite);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_rename_t);
 
 // Serialization format changed in 1.14.0. We only support the latest version,
 // since this is a cluster-only type.

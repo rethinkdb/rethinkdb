@@ -69,6 +69,15 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         point_delete_result_t, int8_t,
         point_delete_result_t::DELETED, point_delete_result_t::MISSING);
 
+enum class sindex_rename_result_t {
+    OLD_NAME_DOESNT_EXIST,
+    NEW_NAME_EXISTS,
+    SUCCESS
+};
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        sindex_rename_result_t, int8_t,
+        sindex_rename_result_t::OLD_NAME_DOESNT_EXIST, sindex_rename_result_t::SUCCESS);
+
 #define RDB_DECLARE_PROTOB_SERIALIZABLE(pb_t) \
     void serialize_protobuf(write_message_t *wm, const pb_t &p); \
     MUST_USE archive_result_t deserialize_protobuf(read_stream_t *s, pb_t *p)
@@ -80,7 +89,7 @@ RDB_DECLARE_PROTOB_SERIALIZABLE(Backtrace);
 class key_le_t {
 public:
     explicit key_le_t(sorting_t _sorting) : sorting(_sorting) { }
-    bool operator()(const store_key_t &key1, const store_key_t &key2) const {
+    bool is_le(const store_key_t &key1, const store_key_t &key2) const {
         return (!reversed(sorting) && key1 <= key2)
             || (reversed(sorting) && key2 <= key1);
     }
@@ -108,7 +117,7 @@ public:
     explicit datum_range_t(counted_t<const ql::datum_t> val);
     static datum_range_t universe();
 
-    bool contains(counted_t<const ql::datum_t> val) const;
+    bool contains(reql_version_t reql_version, counted_t<const ql::datum_t> val) const;
     bool is_universe() const;
 
     RDB_DECLARE_ME_SERIALIZABLE;
@@ -193,11 +202,6 @@ struct rget_read_response_t {
     store_key_t last_key;
 
     rget_read_response_t() : truncated(false) { }
-    rget_read_response_t(
-            const key_range_t &_key_range, const ql::result_t &_result,
-            bool _truncated, const store_key_t &_last_key)
-        : key_range(_key_range), result(_result),
-          truncated(_truncated), last_key(_last_key) { }
 };
 
 RDB_DECLARE_SERIALIZABLE(rget_read_response_t);
@@ -489,6 +493,12 @@ struct sindex_drop_response_t {
 
 RDB_DECLARE_SERIALIZABLE(sindex_drop_response_t);
 
+struct sindex_rename_response_t {
+    sindex_rename_result_t result;
+};
+
+RDB_DECLARE_SERIALIZABLE(sindex_rename_response_t);
+
 struct sync_response_t {
     // sync always succeeds
 };
@@ -504,6 +514,7 @@ struct write_response_t {
                    point_delete_response_t,
                    sindex_create_response_t,
                    sindex_drop_response_t,
+                   sindex_rename_response_t,
                    sync_response_t> response;
 
     profile::event_log_t event_log;
@@ -629,6 +640,25 @@ public:
 
 RDB_DECLARE_SERIALIZABLE(sindex_drop_t);
 
+class sindex_rename_t {
+public:
+    sindex_rename_t() { }
+    sindex_rename_t(const std::string &_old_name,
+                    const std::string &_new_name,
+                    bool _overwrite) :
+        old_name(_old_name),
+        new_name(_new_name),
+        overwrite(_overwrite),
+        region(region_t::universe()) { }
+
+    std::string old_name;
+    std::string new_name;
+    bool overwrite;
+    region_t region;
+};
+
+RDB_DECLARE_SERIALIZABLE(sindex_rename_t);
+
 class sync_t {
 public:
     sync_t()
@@ -647,6 +677,7 @@ struct write_t {
                            point_delete_t,
                            sindex_create_t,
                            sindex_drop_t,
+                           sindex_rename_t,
                            sync_t> variant_t;
     variant_t write;
 

@@ -385,7 +385,9 @@ describe('Javascript HTTP test - ', function() {
     describe('verify', function() {
         function test_part(url, done, conn) {
             r.http(url, {method:'HEAD', verify:true, redirects:5}).run(conn, function(err, res) {
-                expect_error(res, err, 'RqlRuntimeError', err_string('HEAD', url, 'Peer certificate cannot be authenticated with given CA certificates'));
+                expect_error(res, err, 'RqlRuntimeError',
+                             err_string('HEAD', url, 'Peer certificate cannot be ' +
+                                        'authenticated with given CA certificates'));
             });
 
             r.http(url, {method:'HEAD', verify:false, redirects:5}).run(conn, function(err, res) {
@@ -399,6 +401,29 @@ describe('Javascript HTTP test - ', function() {
         }));
         it('HTTPS', withConnection(function(done, conn) {
             test_part('https://dev.rethinkdb.com', done, conn);
+        }));
+    });
+
+    describe('binary', function() {
+        it('resultFormat: auto', withConnection(function(done, conn) {
+            r.http("www.rethinkdb.com/assets/images/docs/api_illustrations/quickstart.png")
+             .do(function(row){return [row.typeOf(), row.count().gt(0)]})
+             .run(conn, function(err, res) {
+                expect_no_error(err);
+                expect_eq(res[0], "PTYPE<BINARY>");
+                expect_eq(res[1], true);
+                done();
+            });
+        }));
+        it('resultFormat: binary', withConnection(function(done, conn) {
+            r.http("httpbin.org/get",{resultFormat:"binary"})
+             .do(function(row){return [row.typeOf(), row.slice(0,1).coerceTo("string")]})
+             .run(conn, function(err, res) {
+                expect_no_error(err);
+                expect_eq(res[0], "PTYPE<BINARY>");
+                expect_eq(res[1], "{");
+                done();
+            });
         }));
     });
 });

@@ -812,18 +812,36 @@ bool store_t::mark_index_up_to_date(uuid_u id,
     return found;
 }
 
+void store_t::rename_sindex(
+        const sindex_name_t &old_name,
+        const sindex_name_t &new_name,
+        buf_lock_t sindex_block)
+        THROWS_ONLY(interrupted_exc_t) {
+    secondary_index_t old_sindex;
+    bool success = get_secondary_index(&sindex_block, old_name, &old_sindex);
+    guarantee(success);
+
+    // Drop the new sindex (if it exists)
+    UNUSED bool b = drop_sindex(new_name, &sindex_block);
+
+    // Delete the current entry
+    success = delete_secondary_index(&sindex_block, old_name);
+    guarantee(success);
+    set_secondary_index(&sindex_block, new_name, old_sindex);
+}
+
 MUST_USE bool store_t::drop_sindex(
         const sindex_name_t &name,
-        buf_lock_t sindex_block)
+        buf_lock_t *sindex_block)
         THROWS_ONLY(interrupted_exc_t) {
     guarantee(!name.being_deleted);
     /* Remove reference in the super block */
     secondary_index_t sindex;
-    if (!::get_secondary_index(&sindex_block, name, &sindex)) {
+    if (!::get_secondary_index(sindex_block, name, &sindex)) {
         return false;
     } else {
         /* Mark the secondary index as deleted */
-        bool success = mark_secondary_index_deleted(&sindex_block, name);
+        bool success = mark_secondary_index_deleted(sindex_block, name);
         guarantee(success);
 
         /* Clear the sindex later. It starts its own transaction and we don't

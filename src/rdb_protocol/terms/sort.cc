@@ -94,11 +94,12 @@ private:
                 if (!rval.has()) {
                     return false != (it->first == DESC);
                 }
-                // TODO: use datum_t::cmp instead to be faster
+                // TODO(2014-08): use datum_t::cmp instead to be faster
                 if (*lval == *rval) {
                     continue;
                 }
-                return (*lval < *rval) != (it->first == DESC);
+                return lval->compare_lt(env->reql_version, *rval) !=
+                    (it->first == DESC);
             }
 
             return false;
@@ -239,7 +240,10 @@ private:
             rcheck(!idx, base_exc_t::GENERIC,
                    "Can only perform an indexed distinct on a TABLE.");
             counted_t<datum_stream_t> s = v->as_seq(env->env);
-            std::set<counted_t<const datum_t> > results;
+            // The reql_version matters here, because we copy `results` into `toret`
+            // in ascending order.
+            std::set<counted_t<const datum_t>, counted_datum_less_t>
+                results(counted_datum_less_t(env->env->reql_version));
             batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
             {
                 profile::sampler_t sampler("Evaluating elements in distinct.",
