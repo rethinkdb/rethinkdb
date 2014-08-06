@@ -20,7 +20,7 @@ from test_util import RethinkDBTestServers
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import utils
 
-r = utils.import_pyton_driver()
+r = utils.import_python_driver()
 
 # We define 4 tables (small/normal cache with small/big documents
 servers_data = [

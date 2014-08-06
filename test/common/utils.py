@@ -85,7 +85,7 @@ def build_in_folder(targetFolder, waitNotification=None, notificationTimeout=2, 
     if makeProcess.wait() != 0:
         raise test_exceptions.NotBuiltException(detail='Failed making: %s' % targetFolder, debugInfo=outputFile)
 
-def import_pyton_driver(targetDir=None):
+def import_python_driver(targetDir=None):
     '''import the latest built version of the python driver into the caller's namespace, ensuring that the drivers are built'''
     import imp # note: depreciated but not gone in 3.4, will have to add importlib at some point
     
@@ -105,7 +105,7 @@ def import_pyton_driver(targetDir=None):
     srcDir = None
     
     if not os.path.isdir(targetDir):
-        raise ValueError('import_pyton_driver got a non-directory path: %s' % str(targetDir))
+        raise ValueError('import_python_driver got a non-directory path: %s' % str(targetDir))
     targetDir = os.path.realpath(targetDir)
     
     validSourceFolder = lambda path: os.path.basename(path) == 'rethinkdb' and all(map(lambda x: os.path.isfile(os.path.join(path, x)), ['__init__.py', 'ast.py', 'docs.py']))
@@ -134,7 +134,7 @@ def import_pyton_driver(targetDir=None):
         srcDir = os.path.dirname(targetDir)
     
     else:
-        raise ValueError('import_pyton_driver was unable to determine the locations from: %s' % targetDir)
+        raise ValueError('import_python_driver was unable to determine the locations from: %s' % targetDir)
     
     # -- build if needed
     
@@ -147,7 +147,7 @@ def import_pyton_driver(targetDir=None):
     # --
     
     if not os.path.isdir(driverDir) or not os.path.basename(driverDir) == 'rethinkdb' or not os.path.isfile(os.path.join(driverDir, '__init__.py')): # ToDo: handle ziped egg case
-        raise ValueError('import_pyton_driver got an invalid driverDir: %s' % driverDir)
+        raise ValueError('import_python_driver got an invalid driverDir: %s' % driverDir)
     
     # - return the imported module
     

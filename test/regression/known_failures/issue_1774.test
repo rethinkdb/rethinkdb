@@ -16,7 +16,7 @@ tableName = os.path.splitext(os.path.basename(__file__))[0]
 
 # -- setup
 
-r = utils.import_pyton_driver()
+r = utils.import_python_driver()
 server = driver.Process()
 connection = r.connect(host=server.host, port=server.driver_port)
 

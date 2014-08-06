@@ -23,7 +23,7 @@ except:
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, "common"))
 import utils
-r = utils.import_pyton_driver()
+r = utils.import_python_driver()
 
 # - import it using the 'from rethinkdb import *' form
 sys.path.insert(0, os.path.dirname(inspect.getfile(r)))
