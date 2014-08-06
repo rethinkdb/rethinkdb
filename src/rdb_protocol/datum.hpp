@@ -213,11 +213,9 @@ public:
     counted_t<datum_stream_t> as_datum_stream(
             const protob_t<const Backtrace> &backtrace) const;
 
-    const std::vector<char> &as_lazy_serialized() const;
-    // Provides access to the private data wrapper `data` member. Allows a
-    // SERIALIZED_LAZY value to be replaced by its deserialized version.
-    archive_result_t unserialize_lazy_replace(
-            const std::function<archive_result_t(data_wrapper_t *)> &replacer);
+    // Warning: In contrast to the as_...() functions, get_lazy_serialized()
+    // crashes if `is_lazy()` is false.
+    const std::vector<char> &get_lazy_serialized() const;
     // Forces deserialization in case this datum is lazy. Recurses into any
     // embedded datums.
     void force_deserialization() const;
@@ -262,6 +260,8 @@ private:
 
     // Checks if the datum currently is of type LAZY_SERIALIZED.
     // If yes, deserializes it, changing this datum to its proper type.
+    // Does not recurse into embedded datums if this is an array or object like
+    // `force_deserialize()` does
     void ensure_deserialize_lazy() const;
 
     MUST_USE bool add(const std::string &key, counted_t<const datum_t> val,
@@ -326,6 +326,12 @@ public:
 private:
     DISABLE_COPYING(datum_t);
 };
+
+// This is actually defined in serialize_datum.cc.
+// The reason we declare it here is to avoid a nasty circular include dependency
+// (we cannot forward declare the nested datum_t::data_wrapper_t type).
+archive_result_t deserialize_lazy_data_wrapper(read_stream_t *s,
+                                               datum_t::data_wrapper_t *data);
 
 counted_t<const datum_t> to_datum(const Datum *d, const configured_limits_t &);
 counted_t<const datum_t> to_datum(cJSON *json, const configured_limits_t &);

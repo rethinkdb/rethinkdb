@@ -157,7 +157,7 @@ size_t datum_lazy_serialized_size(const counted_t<const datum_t> &datum) {
     r_sanity_check(datum.has());
 
     if (datum->is_lazy()) {
-        return datum->as_lazy_serialized().size();
+        return datum->get_lazy_serialized().size();
     }
 
     size_t sz = 1; // 1 byte for the type
@@ -239,8 +239,8 @@ serialization_result_t datum_serialize(write_message_t *wm,
 
     if (datum->is_lazy()) {
         rassert(serialize_as_lazy);
-        wm->append(datum->as_lazy_serialized().data(),
-                   datum->as_lazy_serialized().size());
+        wm->append(datum->get_lazy_serialized().data(),
+                   datum->get_lazy_serialized().size());
         return res;
     }
 
@@ -306,7 +306,116 @@ archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *d
         return res;
     }
 
-    if (type == datum_serialized_type_t::LAZY) {
+    // Datums on disk should always be read no matter how stupid big
+    // they are; there's no way to fix the problem otherwise.
+    // Similarly we don't want to reject array reads from cluster
+    // nodes that are within the user spec but larger than the default
+    // 100,000 limit.
+    ql::configured_limits_t limits = ql::configured_limits_t::unlimited;
+
+    switch (type) {
+    case datum_serialized_type_t::R_ARRAY: {
+        std::vector<counted_t<const datum_t> > value;
+        res = datum_deserialize(s, &value);
+        if (bad(res)) {
+            return res;
+        }
+        try {
+            datum->reset(new datum_t(std::move(value), limits));
+        } catch (const base_exc_t &) {
+            return archive_result_t::RANGE_ERROR;
+        }
+    } break;
+    case datum_serialized_type_t::R_BINARY: {
+        scoped_ptr_t<wire_string_t> value;
+        res = datum_deserialize(s, &value);
+        if (bad(res)) {
+            return res;
+        }
+        rassert(value.has());
+        try {
+            *datum = datum_t::binary(std::move(value));
+        } catch (const base_exc_t &) {
+            return archive_result_t::RANGE_ERROR;
+        }
+    } break;
+    case datum_serialized_type_t::R_BOOL: {
+        bool value;
+        res = deserialize_universal(s, &value);
+        if (bad(res)) {
+            return res;
+        }
+        try {
+            *datum = datum_t::boolean(value);
+        } catch (const base_exc_t &) {
+            return archive_result_t::RANGE_ERROR;
+        }
+    } break;
+    case datum_serialized_type_t::R_NULL: {
+        *datum = datum_t::null();
+    } break;
+    case datum_serialized_type_t::DOUBLE: {
+        double value;
+        res = deserialize_universal(s, &value);
+        if (bad(res)) {
+            return res;
+        }
+        try {
+            datum->reset(new datum_t(value));
+        } catch (const base_exc_t &) {
+            return archive_result_t::RANGE_ERROR;
+        }
+    } break;
+    case datum_serialized_type_t::INT_NEGATIVE:  // fall through
+    case datum_serialized_type_t::INT_POSITIVE: {
+        uint64_t unsigned_value;
+        res = deserialize_varint_uint64(s, &unsigned_value);
+        if (bad(res)) {
+            return res;
+        }
+        if (unsigned_value > max_dbl_int) {
+            return archive_result_t::RANGE_ERROR;
+        }
+        const double d = unsigned_value;
+        double value;
+        if (type == datum_serialized_type_t::INT_NEGATIVE) {
+            // This might deserialize the signed-zero double, -0.0.
+            value = -d;
+        } else {
+            value = d;
+        }
+        try {
+            datum->reset(new datum_t(value));
+        } catch (const base_exc_t &) {
+            return archive_result_t::RANGE_ERROR;
+        }
+    } break;
+    case datum_serialized_type_t::R_OBJECT: {
+        std::map<std::string, counted_t<const datum_t> > value;
+        res = datum_deserialize(s, &value);
+        if (bad(res)) {
+            return res;
+        }
+        try {
+            datum->reset(new datum_t(std::move(value)));
+        } catch (const base_exc_t &) {
+            return archive_result_t::RANGE_ERROR;
+        }
+    } break;
+    case datum_serialized_type_t::R_STR: {
+        scoped_ptr_t<wire_string_t> value;
+        res = datum_deserialize(s, &value);
+        if (bad(res)) {
+            return res;
+        }
+        rassert(value.has());
+        try {
+            datum->reset(new datum_t(std::move(value)));
+        } catch (const base_exc_t &) {
+            return archive_result_t::RANGE_ERROR;
+        }
+    } break;
+    case datum_serialized_type_t::LAZY: {
         // This just loads the datum as a LAZY_SERIALIZED datum. The actual
         // deserialization happens when the datum is first accessed.
         uint64_t serialized_size;
@@ -327,128 +436,15 @@ archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *d
             return archive_result_t::SOCK_EOF;
         }
         datum->reset(new datum_t(std::move(serialized_datum)));
-        return archive_result_t::SUCCESS;;
-    } else {
-        // Deserialize the datum immediately
-
-        // Datums on disk should always be read no matter how stupid big
-        // they are; there's no way to fix the problem otherwise.
-        // Similarly we don't want to reject array reads from cluster
-        // nodes that are within the user spec but larger than the default
-        // 100,000 limit.
-        ql::configured_limits_t limits = ql::configured_limits_t::unlimited;
-
-        switch (type) {
-        case datum_serialized_type_t::R_ARRAY: {
-            std::vector<counted_t<const datum_t> > value;
-            res = datum_deserialize(s, &value);
-            if (bad(res)) {
-                return res;
-            }
-            try {
-                datum->reset(new datum_t(std::move(value), limits));
-            } catch (const base_exc_t &) {
-                return archive_result_t::RANGE_ERROR;
-            }
-        } break;
-        case datum_serialized_type_t::R_BINARY: {
-            scoped_ptr_t<wire_string_t> value;
-            res = datum_deserialize(s, &value);
-            if (bad(res)) {
-                return res;
-            }
-            rassert(value.has());
-            try {
-                *datum = datum_t::binary(std::move(value));
-            } catch (const base_exc_t &) {
-                return archive_result_t::RANGE_ERROR;
-            }
-        } break;
-        case datum_serialized_type_t::R_BOOL: {
-            bool value;
-            res = deserialize_universal(s, &value);
-            if (bad(res)) {
-                return res;
-            }
-            try {
-                *datum = datum_t::boolean(value);
-            } catch (const base_exc_t &) {
-                return archive_result_t::RANGE_ERROR;
-            }
-        } break;
-        case datum_serialized_type_t::R_NULL: {
-            *datum = datum_t::null();
-        } break;
-        case datum_serialized_type_t::DOUBLE: {
-            double value;
-            res = deserialize_universal(s, &value);
-            if (bad(res)) {
-                return res;
-            }
-            try {
-                datum->reset(new datum_t(value));
-            } catch (const base_exc_t &) {
-                return archive_result_t::RANGE_ERROR;
-            }
-        } break;
-        case datum_serialized_type_t::INT_NEGATIVE:  // fall through
-        case datum_serialized_type_t::INT_POSITIVE: {
-            uint64_t unsigned_value;
-            res = deserialize_varint_uint64(s, &unsigned_value);
-            if (bad(res)) {
-                return res;
-            }
-            if (unsigned_value > max_dbl_int) {
-                return archive_result_t::RANGE_ERROR;
-            }
-            const double d = unsigned_value;
-            double value;
-            if (type == datum_serialized_type_t::INT_NEGATIVE) {
-                // This might deserialize the signed-zero double, -0.0.
-                value = -d;
-            } else {
-                value = d;
-            }
-            try {
-                datum->reset(new datum_t(value));
-            } catch (const base_exc_t &) {
-                return archive_result_t::RANGE_ERROR;
-            }
-        } break;
-        case datum_serialized_type_t::R_OBJECT: {
-            std::map<std::string, counted_t<const datum_t> > value;
-            res = datum_deserialize(s, &value);
-            if (bad(res)) {
-                return res;
-            }
-            try {
-                datum->reset(new datum_t(std::move(value)));
-            } catch (const base_exc_t &) {
-                return archive_result_t::RANGE_ERROR;
-            }
-        } break;
-        case datum_serialized_type_t::R_STR: {
-            scoped_ptr_t<wire_string_t> value;
-            res = datum_deserialize(s, &value);
-            if (bad(res)) {
-                return res;
-            }
-            rassert(value.has());
-            try {
-                datum->reset(new datum_t(std::move(value)));
-            } catch (const base_exc_t &) {
-                return archive_result_t::RANGE_ERROR;
-            }
-        } break;
-        case datum_serialized_type_t::LAZY:  // fall thru
-        default:
-            return archive_result_t::RANGE_ERROR;
-        }
-
-        return archive_result_t::SUCCESS;
+    } break;
+    default:
+        return archive_result_t::RANGE_ERROR;
     }
+
+    return archive_result_t::SUCCESS;
 }
 
+// Note: Declared in datum.hpp, not serialize_datum.hpp
 archive_result_t deserialize_lazy_data_wrapper(
         read_stream_t *s, datum_t::data_wrapper_t *data) {
     datum_serialized_type_t type;
@@ -490,13 +486,6 @@ archive_result_t deserialize_lazy_data_wrapper(
     }
 
     return res;
-}
-
-archive_result_t deserialize_lazy_datum(read_stream_t *s, datum_t *datum) {
-    // To get access to the datum's datum_wrapper_t, we go through the
-    // `unserialize_lazy_replace` helper function:
-    return datum->unserialize_lazy_replace(
-        std::bind(&deserialize_lazy_data_wrapper, s, ph::_1));
 }
 
 

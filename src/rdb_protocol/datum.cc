@@ -843,17 +843,9 @@ const std::vector<counted_t<const datum_t> > &datum_t::as_array() const {
     return *data.r_array;
 }
 
-const std::vector<char> &datum_t::as_lazy_serialized() const {
+const std::vector<char> &datum_t::get_lazy_serialized() const {
     guarantee(is_lazy());
     return *data.lazy_serialized;
-}
-
-archive_result_t datum_t::unserialize_lazy_replace(
-    const std::function<archive_result_t(data_wrapper_t *)> &replacer) {
-    guarantee(is_lazy());
-    archive_result_t res = replacer(&data);
-    guarantee(res != archive_result_t::SUCCESS || !is_lazy());
-    return res;
 }
 
 void datum_t::force_deserialization() const {
@@ -1225,15 +1217,17 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
 }
 
 void datum_t::ensure_deserialize_lazy() const {
-    if (data.get_internal_type() == internal_type_t::LAZY_SERIALIZED) {
+    if (is_lazy()) {
         datum_t *mutable_this = const_cast<datum_t *>(this);
         // Move the serialized data out and delete it...
         vector_read_stream_t stream(std::move(*mutable_this->data.lazy_serialized));
         delete mutable_this->data.lazy_serialized;
         mutable_this->data.lazy_serialized = NULL;
         // Deserialize the actual data
-        guarantee_deserialization(deserialize_lazy_datum(&stream, mutable_this),
-                                  "Lazy datum_t");
+        archive_result_t res =
+            deserialize_lazy_data_wrapper(&stream, &mutable_this->data);
+        guarantee_deserialization(res, "Lazy datum_t");
+        guarantee(!is_lazy());
     }
 }
 

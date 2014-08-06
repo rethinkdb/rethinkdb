@@ -44,8 +44,6 @@ size_t datum_serialized_size(const counted_t<const datum_t> &datum);
 serialization_result_t datum_serialize(write_message_t *wm, const counted_t<const datum_t> &datum);
 archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *datum);
 
-archive_result_t deserialize_lazy_datum(read_stream_t *s, datum_t *datum);
-
 size_t datum_serialized_size(const wire_string_t &s);
 serialization_result_t datum_serialize(write_message_t *wm, const wire_string_t &s);
 
