@@ -65,8 +65,8 @@ void server_t::add_client(const client_t::addr_t &addr, region_t region) {
 
 void server_t::add_client_cb(signal_t *stopped, client_t::addr_t addr) {
     auto_drainer_t::lock_t coro_lock(&drainer);
-    disconnect_watcher_t disconnect(manager, addr.get_peer());
     {
+        disconnect_watcher_t disconnect(manager, addr.get_peer());
         wait_any_t wait_any(
             &disconnect, stopped, coro_lock.get_drain_signal());
         wait_any.wait_lazily_unordered();
@@ -258,7 +258,6 @@ private:
     std::vector<server_t::addr_t> stop_addrs;
 
     std::vector<scoped_ptr_t<disconnect_watcher_t> > disconnect_watchers;
-    wait_any_t any_disconnect;
 
     struct queue_t {
         rwlock_t lock;
@@ -806,7 +805,6 @@ feed_t::feed_t(client_t *_client,
     for (auto it = peers.begin(); it != peers.end(); ++it) {
         disconnect_watchers.push_back(
             make_scoped<disconnect_watcher_t>(manager, *it));
-        any_disconnect.add(&*disconnect_watchers.back());
     }
 
     for (auto it = resp->server_uuids.begin(); it != resp->server_uuids.end(); ++it) {
@@ -836,8 +834,17 @@ feed_t::feed_t(client_t *_client,
 
 void feed_t::constructor_cb() {
     auto_drainer_t::lock_t lock(&drainer);
-    wait_any_t wait_any(&any_disconnect, lock.get_drain_signal());
-    wait_any.wait_lazily_unordered();
+    {
+        wait_any_t any_disconnect;
+        for (size_t i = 0; i < disconnect_watchers.size(); ++i) {
+            any_disconnect.add(disconnect_watchers[i].get());
+        }
+        wait_any_t wait_any(&any_disconnect, lock.get_drain_signal());
+        wait_any.wait_lazily_unordered();
+    }
+    // Clear the disconnect watchers so we don't keep the watched connections open
+    // longer than necessary.
+    disconnect_watchers.clear();
     if (!detached) {
         scoped_ptr_t<feed_t> self = client->detach_feed(uuid);
         detached = true;

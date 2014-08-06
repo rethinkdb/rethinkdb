@@ -30,16 +30,6 @@ enum http_method_t {
     PATCH
 };
 
-struct query_parameter_t {
-    std::string key;
-    std::string val;
-};
-
-struct header_line_t {
-    std::string key;
-    std::string val;
-};
-
 struct http_req_t {
     class resource_t {
     public:
@@ -70,9 +60,9 @@ struct http_req_t {
     } resource;
 
     http_method_t method;
-    std::vector<query_parameter_t> query_params;
+    std::map<std::string, std::string> query_params;
     std::string version;
-    std::vector<header_line_t> header_lines;
+    std::map<std::string, std::string> header_lines;
     std::string body;
     std::string get_sanitized_body() const;
 
@@ -82,6 +72,7 @@ struct http_req_t {
 
     boost::optional<std::string> find_query_param(const std::string&) const;
     boost::optional<std::string> find_header_line(const std::string&) const;
+    void add_header_line(const std::string&, const std::string&);
     bool has_header_line(const std::string&) const;
 };
 
@@ -103,7 +94,7 @@ class http_res_t {
 public:
     std::string version;
     int code;
-    std::vector<header_line_t> header_lines;
+    std::map<std::string, std::string> header_lines;
     std::string body;
 
     void add_header_line(const std::string&, const std::string&);
@@ -134,7 +125,7 @@ private:
 
     struct resource_string_parser_t {
         std::string resource;
-        std::vector<query_parameter_t> query_params;
+        std::map<std::string, std::string> query_params;
 
         bool parse(const std::string &src);
     };
