@@ -1191,7 +1191,6 @@ void serialize_sindex_info(write_message_t *wm,
 }
 
 void deserialize_sindex_info(const std::vector<char> &data,
-
                              ql::map_wire_func_t *mapping_out,
                              sindex_reql_version_info_t *reql_version_out,
                              sindex_multi_bool_t *multi_out) {

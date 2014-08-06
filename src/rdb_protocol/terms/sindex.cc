@@ -3,6 +3,7 @@
 
 #include <string>
 
+#include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"
@@ -26,9 +27,38 @@ public:
                base_exc_t::GENERIC,
                strprintf("Index name conflict: `%s` is the name of the primary key.",
                          name.c_str()));
+
+        /* Check if we're doing a multi index or a normal index. */
+        counted_t<val_t> multi_val = args->optarg(env, "multi");
+        sindex_multi_bool_t multi =
+            (multi_val && multi_val->as_datum()->as_bool()
+             ? sindex_multi_bool_t::MULTI
+             : sindex_multi_bool_t::SINGLE);
+
         counted_t<func_t> index_func;
         if (args->num_args() == 3) {
-            index_func = args->arg(env, 2)->as_func();
+            counted_t<val_t> v = args->arg(env, 2);
+            if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
+                counted_t<const datum_t> d = v->as_datum();
+                if (d->get_type() == datum_t::R_BINARY) {
+                    const wire_string_t &s = d->as_binary();
+                    std::vector<char> data;
+                    for (size_t i = 0; i < s.size(); ++i) {
+                        data.push_back(s.data()[i]);
+                    }
+                    map_wire_func_t mapping;
+                    sindex_reql_version_info_t reql_version;
+                    deserialize_sindex_info(data, &mapping, &reql_version, &multi);
+                    index_func = mapping.compile_wire_func();
+                    // We ignore the `reql_version`, but in the future we may
+                    // have to do some conversions for compatibility.
+                }
+            }
+            // We do it this way so that if someone passes a string, we produce
+            // a type error asking for a function rather than BINARY.
+            if (!index_func.has()) {
+                index_func = v->as_func();
+            }
         } else {
 
             pb::dummy_var_t x = pb::dummy_var_t::SINDEXCREATE_X;
@@ -43,13 +73,6 @@ public:
             index_func = func_term_term->eval_to_func(env->scope);
         }
         r_sanity_check(index_func.has());
-
-        /* Check if we're doing a multi index or a normal index. */
-        counted_t<val_t> multi_val = args->optarg(env, "multi");
-        sindex_multi_bool_t multi =
-            (multi_val && multi_val->as_datum()->as_bool()
-             ? sindex_multi_bool_t::MULTI
-             : sindex_multi_bool_t::SINGLE);
 
         bool success = table->sindex_create(env->env, name, index_func, multi);
         if (success) {

@@ -257,12 +257,12 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 continue;
             }
             guarantee(!it->first.being_deleted);
-            if (sindex_status.sindexes.find(it->first.name) != sindex_status.sindexes.end()
+            if (sindex_status.sindexes.find(it->first.name)
+                    != sindex_status.sindexes.end()
                 || sindex_status.sindexes.empty()) {
-                progress_completion_fraction_t frac =
-                    store->get_progress(it->second.id);
-                rdb_protocol::single_sindex_status_t *s =
-                    &res->statuses[it->first.name];
+                rdb_protocol::single_sindex_status_t *s = &res->statuses[it->first.name];
+                s->func = std::move(it->second.opaque_definition);
+                progress_completion_fraction_t frac = store->get_progress(it->second.id);
                 s->ready = it->second.is_ready();
                 if (!s->ready) {
                     if (frac.estimate_of_total_nodes == -1) {
