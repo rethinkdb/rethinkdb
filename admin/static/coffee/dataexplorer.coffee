@@ -2506,7 +2506,7 @@ module 'DataExplorerView', ->
                         if (error)
                             @error_on_connect error
                         else
-                            rdb_query.private_run connection, {timeFormat: "raw", profile: @state.options.profiler}, rdb_global_callback # @rdb_global_callback can be fired more than once
+                            rdb_query.private_run connection, {binaryFormat: "raw", timeFormat: "raw", profile: @state.options.profiler}, rdb_global_callback # @rdb_global_callback can be fired more than once
                     , @id_execution, @error_on_connect
 
                     return true
@@ -2976,10 +2976,15 @@ module 'DataExplorerView', ->
                     sub_values[sub_values.length-1]['no_comma'] = true
                     return @template_json_tree.array
                         values: sub_values
-            else if value_type is 'object' and value.$reql_type$ is 'TIME' and value.epoch_time?
+            else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'TIME'
                 return @template_json_tree.span
                     classname: 'jt_date'
                     value: @date_to_string(value)
+            else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'BINARY'
+                return @template_json_tree.span
+                    classname: 'jt_bin'
+                    value: @binary_to_string(value)
+
             else if value_type is 'object'
                 sub_keys = []
                 for key of value
@@ -3039,7 +3044,9 @@ module 'DataExplorerView', ->
             result = args.result
 
             if jQuery.isPlainObject(result)
-                if result.$reql_type$ is 'TIME' and result.epoch_time?
+                if result.$reql_type$ is 'TIME'
+                    keys_count.primitive_value_count++
+                else if result.$reql_type$ is 'BINARY'
                     keys_count.primitive_value_count++
                 else
                     for key, row of result
@@ -3093,8 +3100,7 @@ module 'DataExplorerView', ->
 
         # Build the table
         # We order by the most frequent keys then by alphabetic order
-        # if indexes is null, it means that we can order all fields
-        json_to_table: (result, primary_key, can_sort, indexes) =>
+        json_to_table: (result) =>
             # While an Array type is never returned by the driver, we still build an Array in the data explorer
             # when a cursor is returned (since we just print @limit results)
             if not result.constructor? or result.constructor isnt Array
@@ -3221,10 +3227,13 @@ module 'DataExplorerView', ->
                 else
                     data['value'] = '[ ... ]'
                     data['data_to_expand'] = JSON.stringify(value)
-            else if value_type is 'object' and value.$reql_type$ is 'TIME' and value.epoch_time?
+            else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'TIME'
                 data['value'] = @date_to_string(value)
                 data['classname'] = 'jta_date'
-            else if value_type is 'object'
+            else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'BINARY'
+                data['value'] = @binary_to_string value
+                data['classname'] = 'jta_bin'
+            else if Object::toString.call(value) is '[object Object]'
                 data['value'] = '{ ... }'
                 data['is_object'] = true
             else if value_type is 'number'
@@ -3362,8 +3371,21 @@ module 'DataExplorerView', ->
             return raw_date_str.slice(0, raw_date_str.indexOf('GMT')+3)+timezone
 
 
+        binary_to_string: (bin) =>
+            size = bin.data.length
 
+            if size >= 1073741824
+                bytes = (size/1073741824).toFixed(1)+'GB'
+            else if size>=1048576
+                size = (size/1048576).toFixed(1)+'MB'
+            else if size>=1024
+                size = (size/1024).toFixed(1)+'KB'
+            else if size > 1
+                size = size+' bytes'
+            else if size <= 1
+                size = size+' byte'
 
+            "<binary, #{size}, \"#{bin.data.slice(0, 10)}...\">"
 
     class @ResultView extends DataExplorerView.SharedResultView
         className: 'result_view'
