@@ -14,7 +14,7 @@
 namespace ql {
 
 template<class T>
-T groups_to_batch(std::map<counted_t<const datum_t>, T> *g) {
+T groups_to_batch(std::map<counted_t<const datum_t>, T, counted_datum_less_t> *g) {
     if (g->size() == 0) {
         return T();
     } else {
@@ -77,7 +77,8 @@ rget_read_response_t reader_t::do_read(env_t *env, const read_t &read) {
     return std::move(*rget_res);
 }
 
-std::vector<rget_item_t> reader_t::do_range_read(env_t *env, const read_t &read) {
+std::vector<rget_item_t> reader_t::do_range_read(
+        env_t *env, const read_t &read) {
     rget_read_response_t res = do_read(env, read);
 
     // It's called `do_range_read`.  If we have more than one type of range
@@ -103,7 +104,10 @@ std::vector<rget_item_t> reader_t::do_range_read(env_t *env, const read_t &read)
 
     shards_exhausted = readgen->update_range(&active_range, res.last_key);
     grouped_t<stream_t> *gs = boost::get<grouped_t<stream_t> >(&res.result);
-    return groups_to_batch(gs->get_underlying_map());
+
+    // groups_to_batch asserts that underlying_map has 0 or 1 elements, so it is
+    // correct to declare that the order doesn't matter.
+    return groups_to_batch(gs->get_underlying_map(grouped::order_doesnt_matter_t()));
 }
 
 bool reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
@@ -111,7 +115,7 @@ bool reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
     if (items_index >= items.size() && !shards_exhausted) { // read some more
         items_index = 0;
         items = do_range_read(
-            env, readgen->next_read(active_range, transforms, batchspec));
+                env, readgen->next_read(active_range, transforms, batchspec));
         // Everything below this point can handle `items` being empty (this is
         // good hygiene anyway).
         while (boost::optional<read_t> read = readgen->sindex_sort_read(
@@ -362,12 +366,20 @@ scoped_ptr_t<readgen_t> sindex_readgen_t::make(
 
 class sindex_compare_t {
 public:
-    explicit sindex_compare_t(sorting_t _sorting) : sorting(_sorting) { }
+    explicit sindex_compare_t(sorting_t _sorting)
+        : sorting(_sorting) { }
     bool operator()(const rget_item_t &l, const rget_item_t &r) {
         r_sanity_check(l.sindex_key.has() && r.sindex_key.has());
+
+        // We don't have to worry about v1.13.x because there's no way this is
+        // running inside of a secondary index function.  Also, in case you're
+        // wondering, it's okay for this ordering to be different from the buggy
+        // secondary index key ordering that existed in v1.13.  It was different in
+        // v1.13 itself.  For that, we use the last_key value in the
+        // rget_read_response_t.
         return reversed(sorting)
-            ? (*l.sindex_key > *r.sindex_key)
-            : (*l.sindex_key < *r.sindex_key);
+            ? l.sindex_key->compare_gt(reql_version_t::LATEST, *r.sindex_key)
+            : l.sindex_key->compare_lt(reql_version_t::LATEST, *r.sindex_key);
     }
 private:
     sorting_t sorting;
@@ -402,6 +414,7 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
     const std::vector<rget_item_t> &items,
     const std::vector<transform_variant_t> &transforms,
     const batchspec_t &batchspec) const {
+
     if (sorting != sorting_t::UNORDERED && items.size() > 0) {
         const store_key_t &key = items[items.size() - 1].key;
         if (datum_t::key_is_truncated(key)) {
@@ -456,7 +469,7 @@ counted_t<val_t> datum_stream_t::run_terminal(
 }
 
 counted_t<val_t> datum_stream_t::to_array(env_t *env) {
-    scoped_ptr_t<eager_acc_t> acc = make_to_array();
+    scoped_ptr_t<eager_acc_t> acc = make_to_array(env->reql_version);
     accumulate_all(env, acc.get());
     return acc->finish_eager(backtrace(), is_grouped(), env->limits);
 }
@@ -560,14 +573,16 @@ eager_datum_stream_t::done_t eager_datum_stream_t::next_grouped_batch(
 void eager_datum_stream_t::accumulate(
     env_t *env, eager_acc_t *acc, const terminal_variant_t &) {
     batchspec_t bs = batchspec_t::user(batch_type_t::TERMINAL, env);
-    groups_t data;
+    // I'm guessing reql_version doesn't matter here, but why think about it?  We use
+    // th env's reql_version.
+    groups_t data(counted_datum_less_t(env->reql_version));
     while (next_grouped_batch(env, bs, &data) == done_t::NO) {
         (*acc)(env, &data);
     }
 }
 
 void eager_datum_stream_t::accumulate_all(env_t *env, eager_acc_t *acc) {
-    groups_t data;
+    groups_t data(counted_datum_less_t(env->reql_version));
     done_t done = next_grouped_batch(env, batchspec_t::all(), &data);
     (*acc)(env, &data);
     if (done == done_t::NO) {
@@ -579,7 +594,7 @@ void eager_datum_stream_t::accumulate_all(env_t *env, eager_acc_t *acc) {
 
 std::vector<counted_t<const datum_t> >
 eager_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &bs) {
-    groups_t data;
+    groups_t data(counted_datum_less_t(env->reql_version));
     next_grouped_batch(env, bs, &data);
     return groups_to_batch(&data);
 }

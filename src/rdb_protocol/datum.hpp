@@ -48,6 +48,7 @@ void sanitize_time(datum_t *time);
 static const double max_dbl_int = 0x1LL << DBL_MANT_DIG;
 static const double min_dbl_int = max_dbl_int * -1;
 
+
 // These let us write e.g. `foo(NOTHROW) instead of `foo(false/*nothrow*/)`.
 // They should be passed to functions that have multiple behaviors (like `get` or
 // `add` below).
@@ -149,14 +150,16 @@ public:
     `print_primary()` belongs there as well. */
     static std::string mangle_secondary(const std::string &secondary,
             const std::string &primary, const std::string &tag);
-    std::string print_secondary(const store_key_t &key,
-            boost::optional<uint64_t> tag_num = boost::optional<uint64_t>()) const;
+    // tag_num is used for multi-indexes.
+    std::string print_secondary(reql_version_t reql_version,
+                                const store_key_t &key,
+                                boost::optional<uint64_t> tag_num) const;
     /* An inverse to print_secondary. Returns the primary key. */
     static std::string extract_primary(const std::string &secondary_and_primary);
     static store_key_t extract_primary(const store_key_t &secondary_key);
     static std::string extract_secondary(const std::string &secondary_and_primary);
     static boost::optional<uint64_t> extract_tag(
-        const std::string &secondary_and_primary);
+            const std::string &secondary_and_primary);
     static boost::optional<uint64_t> extract_tag(const store_key_t &key);
     store_key_t truncated_secondary() const;
     void check_type(type_t desired, const char *msg = NULL) const;
@@ -197,18 +200,26 @@ public:
     counted_t<datum_stream_t> as_datum_stream(
             const protob_t<const Backtrace> &backtrace) const;
 
-    // These behave as expected and defined in RQL.  Theoretically, two data of
-    // the same type should compare the same way their printed representations
-    // would compare lexicographcally, while dispareate types are compared
+    // These behave as expected and defined in RQL.  Theoretically, two data of the
+    // same type should compare appropriately, while disparate types are compared
     // alphabetically by type name.
-    int cmp(const datum_t &rhs) const;
+    int cmp(reql_version_t reql_version, const datum_t &rhs) const;
+
+    // Modern datum_t::cmp implementation, for reql_version_t::v1_14 and later.
+    // Called by cmp, ==, !=.
+    int modern_cmp(const datum_t &rhs) const;
+
+    // Archaic datum_t::cmp implementation for reql_version_t::v1_13.
+    int v1_13_cmp(const datum_t &rhs) const;
+
+    // operator== and operator!= don't take a reql_version_t, unlike other comparison
+    // functions, because we know (by inspection) that the behavior of cmp() hasn't
+    // changed with respect to the question of equality vs. inequality.
+
     bool operator==(const datum_t &rhs) const;
     bool operator!=(const datum_t &rhs) const;
-
-    bool operator<(const datum_t &rhs) const;
-    bool operator<=(const datum_t &rhs) const;
-    bool operator>(const datum_t &rhs) const;
-    bool operator>=(const datum_t &rhs) const;
+    bool compare_lt(reql_version_t reql_version, const datum_t &rhs) const;
+    bool compare_gt(reql_version_t reql_version, const datum_t &rhs) const;
 
     void runtime_fail(base_exc_t::type_t exc_type,
                       const char *test, const char *file, int line,
@@ -245,7 +256,7 @@ private:
     void array_to_str_key(std::string *str_out) const;
     void binary_to_str_key(std::string *str_out) const;
 
-    int pseudo_cmp(const datum_t &rhs) const;
+    int pseudo_cmp(reql_version_t reql_version, const datum_t &rhs) const;
     static const std::set<std::string> _allowed_pts;
     void maybe_sanitize_ptype(const std::set<std::string> &allowed_pts = _allowed_pts);
 
@@ -294,7 +305,9 @@ counted_t<const datum_t> to_datum(const Datum *d, const configured_limits_t &);
 counted_t<const datum_t> to_datum(cJSON *json, const configured_limits_t &);
 
 // This should only be used to send responses to the client.
-counted_t<const datum_t> to_datum(grouped_data_t &&gd, const configured_limits_t &);
+counted_t<const datum_t> to_datum_for_client_serialization(grouped_data_t &&gd,
+                                                           reql_version_t reql_version,
+                                                           const configured_limits_t &);
 
 // Converts a double to int, but returns false if it's not an integer or out of range.
 bool number_as_integer(double d, int64_t *i_out);

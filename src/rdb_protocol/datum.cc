@@ -124,7 +124,9 @@ datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object,
                  no_sanitize_ptype_t)
     : data(std::move(_object)) { }
 
-counted_t<const datum_t> to_datum(grouped_data_t &&gd,
+counted_t<const datum_t>
+to_datum_for_client_serialization(grouped_data_t &&gd,
+                                  reql_version_t reql_version,
                                   const configured_limits_t &limits) {
     std::map<std::string, counted_t<const datum_t> > map;
     map[datum_t::reql_type_string] = make_counted<const datum_t>("GROUPED_DATA");
@@ -132,12 +134,16 @@ counted_t<const datum_t> to_datum(grouped_data_t &&gd,
     {
         datum_array_builder_t arr(limits);
         arr.reserve(gd.size());
-        for (auto kv = gd.begin(); kv != gd.end(); ++kv) {
-            arr.add(make_counted<const datum_t>(
+        iterate_ordered_by_version(
+                reql_version,
+                gd,
+                [&arr, &limits](const counted_t<const datum_t> &key,
+                                counted_t<const datum_t> &value) {
+                    arr.add(make_counted<const datum_t>(
                             std::vector<counted_t<const datum_t> >{
-                                std::move(kv->first), std::move(kv->second) },
+                                key, std::move(value) },
                             limits));
-        }
+                });
         map["data"] = std::move(arr).to_counted();
     }
 
@@ -406,12 +412,12 @@ void datum_t::array_to_str_key(std::string *str_out) const {
     }
 }
 
-int datum_t::pseudo_cmp(const datum_t &rhs) const {
+int datum_t::pseudo_cmp(reql_version_t reql_version, const datum_t &rhs) const {
     r_sanity_check(is_ptype());
     if (get_type() == R_BINARY) {
         return as_binary().compare(rhs.as_binary());
     } else if (get_reql_type() == pseudo::time_string) {
-        return pseudo::time_cmp(*this, rhs);
+        return pseudo::time_cmp(reql_version, *this, rhs);
     }
 
     rfail(base_exc_t::GENERIC, "Incomparable type %s.", get_type_name().c_str());
@@ -625,7 +631,8 @@ std::string datum_t::mangle_secondary(const std::string &secondary,
     return res;
 }
 
-std::string datum_t::print_secondary(const store_key_t &primary_key,
+std::string datum_t::print_secondary(reql_version_t reql_version,
+                                     const store_key_t &primary_key,
                                      boost::optional<uint64_t> tag_num) const {
     std::string secondary_key_string;
     std::string primary_key_string = key_to_unescaped_str(primary_key);
@@ -669,7 +676,15 @@ std::string datum_t::print_secondary(const store_key_t &primary_key,
         tag_string.assign(reinterpret_cast<const char *>(&*tag_num), tag_size);
     }
 
-    secondary_key_string.append(1, '\x00');
+    switch (reql_version) {
+    case reql_version_t::v1_13:
+        break;
+    case reql_version_t::v1_14_is_latest:
+        secondary_key_string.append(1, '\x00');
+        break;
+    default:
+        unreachable();
+    }
     secondary_key_string =
         secondary_key_string.substr(0, trunc_size(primary_key_string.length()));
 
@@ -682,7 +697,8 @@ struct components_t {
     boost::optional<uint64_t> tag_num;
 };
 
-void parse_secondary(const std::string &key, components_t *components) {
+void parse_secondary(const std::string &key,
+                     components_t *components) {
     uint8_t start_of_tag = key[key.size() - 1],
             start_of_primary = key[key.size() - 2];
 
@@ -992,15 +1008,87 @@ int derived_cmp(T a, T b) {
     return a < b ? -1 : 1;
 }
 
+int datum_t::v1_13_cmp(const datum_t &rhs) const {
+    if (is_ptype() && !rhs.is_ptype()) {
+        return 1;
+    } else if (!is_ptype() && rhs.is_ptype()) {
+        return -1;
+    }
 
-int datum_t::cmp(const datum_t &rhs) const {
+    if (get_type() != rhs.get_type()) {
+        return derived_cmp(get_type(), rhs.get_type());
+    }
+    switch (get_type()) {
+    case R_NULL: return 0;
+    case R_BOOL: return derived_cmp(as_bool(), rhs.as_bool());
+    case R_NUM: return derived_cmp(as_num(), rhs.as_num());
+    case R_STR: return as_str().compare(rhs.as_str());
+    case R_ARRAY: {
+        const std::vector<counted_t<const datum_t> >
+            &arr = as_array(),
+            &rhs_arr = rhs.as_array();
+        size_t i;
+        for (i = 0; i < arr.size(); ++i) {
+            if (i >= rhs_arr.size()) return 1;
+            int cmpval = arr[i]->v1_13_cmp(*rhs_arr[i]);
+            if (cmpval != 0) return cmpval;
+        }
+        guarantee(i <= rhs.as_array().size());
+        return i == rhs.as_array().size() ? 0 : -1;
+    } unreachable();
+    case R_OBJECT: {
+        if (is_ptype()) {
+            if (get_reql_type() != rhs.get_reql_type()) {
+                return derived_cmp(get_reql_type(), rhs.get_reql_type());
+            }
+            return pseudo_cmp(reql_version_t::v1_13, rhs);
+        } else {
+            const std::map<std::string, counted_t<const datum_t> > &obj = as_object();
+            const std::map<std::string, counted_t<const datum_t> > &rhs_obj
+                = rhs.as_object();
+            auto it = obj.begin();
+            auto it2 = rhs_obj.begin();
+            while (it != obj.end() && it2 != rhs_obj.end()) {
+                int key_cmpval = it->first.compare(it2->first);
+                if (key_cmpval != 0) {
+                    return key_cmpval;
+                }
+                int val_cmpval = it->second->v1_13_cmp(*it2->second);
+                if (val_cmpval != 0) {
+                    return val_cmpval;
+                }
+                ++it;
+                ++it2;
+            }
+            if (it != obj.end()) return 1;
+            if (it2 != rhs_obj.end()) return -1;
+            return 0;
+        }
+    } unreachable();
+    case R_BINARY: // This should be handled by the ptype code above
+    default: unreachable();
+    }
+}
+
+int datum_t::cmp(reql_version_t reql_version, const datum_t &rhs) const {
+    switch (reql_version) {
+    case reql_version_t::v1_13:
+        return v1_13_cmp(rhs);
+    case reql_version_t::v1_14_is_latest:
+        return modern_cmp(rhs);
+    default:
+        unreachable();
+    }
+}
+
+int datum_t::modern_cmp(const datum_t &rhs) const {
     bool lhs_ptype = is_ptype();
     bool rhs_ptype = rhs.is_ptype();
     if (lhs_ptype && rhs_ptype) {
         if (get_reql_type() != rhs.get_reql_type()) {
             return derived_cmp(get_reql_type(), rhs.get_reql_type());
         }
-        return pseudo_cmp(rhs);
+        return pseudo_cmp(reql_version_t::v1_14_is_latest, rhs);
     } else if (lhs_ptype || rhs_ptype) {
         return derived_cmp(get_type_name(), rhs.get_type_name());
     }
@@ -1020,7 +1108,7 @@ int datum_t::cmp(const datum_t &rhs) const {
         size_t i;
         for (i = 0; i < arr.size(); ++i) {
             if (i >= rhs_arr.size()) return 1;
-            int cmpval = arr[i]->cmp(*rhs_arr[i]);
+            int cmpval = arr[i]->modern_cmp(*rhs_arr[i]);
             if (cmpval != 0) return cmpval;
         }
         guarantee(i <= rhs.as_array().size());
@@ -1037,7 +1125,7 @@ int datum_t::cmp(const datum_t &rhs) const {
             if (key_cmpval != 0) {
                 return key_cmpval;
             }
-            int val_cmpval = it->second->cmp(*it2->second);
+            int val_cmpval = it->second->modern_cmp(*it2->second);
             if (val_cmpval != 0) {
                 return val_cmpval;
             }
@@ -1053,12 +1141,14 @@ int datum_t::cmp(const datum_t &rhs) const {
     }
 }
 
-bool datum_t::operator==(const datum_t &rhs) const { return cmp(rhs) == 0; }
-bool datum_t::operator!=(const datum_t &rhs) const { return cmp(rhs) != 0; }
-bool datum_t::operator<(const datum_t &rhs) const { return cmp(rhs) < 0; }
-bool datum_t::operator<=(const datum_t &rhs) const { return cmp(rhs) <= 0; }
-bool datum_t::operator>(const datum_t &rhs) const { return cmp(rhs) > 0; }
-bool datum_t::operator>=(const datum_t &rhs) const { return cmp(rhs) >= 0; }
+bool datum_t::operator==(const datum_t &rhs) const { return modern_cmp(rhs) == 0; }
+bool datum_t::operator!=(const datum_t &rhs) const { return modern_cmp(rhs) != 0; }
+bool datum_t::compare_lt(reql_version_t reql_version, const datum_t &rhs) const {
+    return cmp(reql_version, rhs) < 0;
+}
+bool datum_t::compare_gt(reql_version_t reql_version, const datum_t &rhs) const {
+    return cmp(reql_version, rhs) > 0;
+}
 
 void datum_t::runtime_fail(base_exc_t::type_t exc_type,
                            const char *test, const char *file, int line,

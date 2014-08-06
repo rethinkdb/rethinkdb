@@ -89,7 +89,7 @@ RDB_DECLARE_PROTOB_SERIALIZABLE(Backtrace);
 class key_le_t {
 public:
     explicit key_le_t(sorting_t _sorting) : sorting(_sorting) { }
-    bool operator()(const store_key_t &key1, const store_key_t &key2) const {
+    bool is_le(const store_key_t &key1, const store_key_t &key2) const {
         return (!reversed(sorting) && key1 <= key2)
             || (reversed(sorting) && key2 <= key1);
     }
@@ -117,7 +117,7 @@ public:
     explicit datum_range_t(counted_t<const ql::datum_t> val);
     static datum_range_t universe();
 
-    bool contains(counted_t<const ql::datum_t> val) const;
+    bool contains(reql_version_t reql_version, counted_t<const ql::datum_t> val) const;
     bool is_universe() const;
 
     RDB_DECLARE_ME_SERIALIZABLE;
@@ -202,11 +202,6 @@ struct rget_read_response_t {
     store_key_t last_key;
 
     rget_read_response_t() : truncated(false) { }
-    rget_read_response_t(
-            const key_range_t &_key_range, const ql::result_t &_result,
-            bool _truncated, const store_key_t &_last_key)
-        : key_range(_key_range), result(_result),
-          truncated(_truncated), last_key(_last_key) { }
 };
 
 RDB_DECLARE_SERIALIZABLE(rget_read_response_t);

@@ -640,10 +640,11 @@ public:
     }
 private:
     key_range_t key_range_;
+    DISABLE_COPYING(sindex_key_range_tester_t);
 };
 
-void sindex_erase_range(const key_range_t &key_range,
-        superblock_t *superblock, auto_drainer_t::lock_t,
+void sindex_erase_range(
+        const key_range_t &key_range, superblock_t *superblock, auto_drainer_t::lock_t,
         signal_t *interruptor, release_superblock_t release_superblock,
         const value_deleter_t *deleter) THROWS_NOTHING {
 
@@ -672,7 +673,8 @@ void spawn_sindex_erase_ranges(
         const value_deleter_t *deleter) {
     for (auto it = sindex_access->begin(); it != sindex_access->end(); ++it) {
         coro_t::spawn_sometime(std::bind(
-                    &sindex_erase_range, key_range, (*it)->super_block.get(),
+                    &sindex_erase_range,
+                    key_range, (*it)->super_block.get(),
                     auto_drainer_t::lock_t(drainer), interruptor,
                     release_superblock, deleter));
     }
@@ -766,7 +768,7 @@ typedef ql::terminal_variant_t terminal_variant_t;
 class sindex_data_t {
 public:
     sindex_data_t(const key_range_t &_pkey_range, const datum_range_t &_range,
-                  cluster_version_t wire_func_reql_version,
+                  reql_version_t wire_func_reql_version,
                   ql::map_wire_func_t wire_func, sindex_multi_bool_t _multi)
         : pkey_range(_pkey_range), range(_range),
           func_reql_version(wire_func_reql_version),
@@ -775,7 +777,7 @@ private:
     friend class rget_cb_t;
     const key_range_t pkey_range;
     const datum_range_t range;
-    const cluster_version_t func_reql_version;
+    const reql_version_t func_reql_version;
     const counted_t<ql::func_t> func;
     const sindex_multi_bool_t multi;
 };
@@ -921,12 +923,13 @@ THROWS_ONLY(interrupted_exc_t) {
                 sindex_val = sindex_val->get(*tag, ql::NOTHROW);
                 guarantee(sindex_val);
             }
-            if (!sindex->range.contains(sindex_val)) {
+            if (!sindex->range.contains(sindex->func_reql_version, sindex_val)) {
                 return done_traversing_t::NO;
             }
         }
 
-        ql::groups_t data = {{counted_t<const ql::datum_t>(), ql::datums_t{val}}};
+        ql::groups_t data(counted_datum_less_t(job.env->reql_version));
+        data = {{counted_t<const ql::datum_t>(), ql::datums_t{val}}};
 
         for (auto it = job.transformers.begin(); it != job.transformers.end(); ++it) {
             (**it)(job.env, &data, sindex_val);
@@ -985,7 +988,7 @@ void rdb_rget_secondary_slice(
     const boost::optional<terminal_variant_t> &terminal,
     const key_range_t &pk_range,
     sorting_t sorting,
-    cluster_version_t sindex_func_reql_version,
+    reql_version_t sindex_func_reql_version,
     const ql::map_wire_func_t &sindex_func,
     sindex_multi_bool_t sindex_multi,
     rget_read_response_t *response) {
@@ -1127,7 +1130,7 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
 }
 
 void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> doc,
-                  cluster_version_t reql_version,
+                  reql_version_t reql_version,
                   ql::map_wire_func_t *mapping, sindex_multi_bool_t multi,
                   std::vector<store_key_t> *keys_out) {
     guarantee(keys_out->empty());
@@ -1143,12 +1146,20 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
     if (multi == sindex_multi_bool_t::MULTI && index->get_type() == ql::datum_t::R_ARRAY) {
         for (uint64_t i = 0; i < index->size(); ++i) {
             keys_out->push_back(
-                store_key_t(index->get(i, ql::THROW)->print_secondary(primary_key, i)));
+                store_key_t(index->get(i, ql::THROW)->print_secondary(reql_version,
+                                                                      primary_key,
+                                                                      i)));
         }
     } else {
-        keys_out->push_back(store_key_t(index->print_secondary(primary_key)));
+        keys_out->push_back(store_key_t(index->print_secondary(reql_version,
+                                                               primary_key,
+                                                               boost::none)));
     }
 }
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        reql_version_t, int8_t,
+        reql_version_t::v1_13, reql_version_t::v1_14_is_latest);
 
 void serialize_sindex_info(write_message_t *wm,
                            const ql::map_wire_func_t &mapping,
@@ -1159,11 +1170,18 @@ void serialize_sindex_info(write_message_t *wm,
     // field in secondary_index_t.
     serialize_cluster_version(wm, cluster_version_t::LATEST_DISK);
 
-    serialize_for_version(cluster_version_t::LATEST_DISK, wm, mapping);
-    serialize_cluster_version(wm, reql_version.original_reql_version);
-    serialize_cluster_version(wm, reql_version.latest_compatible_reql_version);
-    serialize_cluster_version(wm, reql_version.latest_checked_reql_version);
-    serialize_for_version(cluster_version_t::LATEST_DISK, wm, multi);
+    serialize<cluster_version_t::LATEST_DISK>(
+            wm,
+            reql_version.original_reql_version);
+    serialize<cluster_version_t::LATEST_DISK>(
+            wm,
+            reql_version.latest_compatible_reql_version);
+    serialize<cluster_version_t::LATEST_DISK>(
+            wm,
+            reql_version.latest_checked_reql_version);
+
+    serialize<cluster_version_t::LATEST_DISK>(wm, mapping);
+    serialize<cluster_version_t::LATEST_DISK>(wm, multi);
 }
 
 void deserialize_sindex_info(const std::vector<char> &data,
@@ -1179,28 +1197,36 @@ void deserialize_sindex_info(const std::vector<char> &data,
         = deserialize_cluster_version(&read_stream, &cluster_version);
     guarantee_deserialization(success, "sindex description");
 
-    success = deserialize_for_version(cluster_version, &read_stream, mapping_out);
-    guarantee_deserialization(success, "sindex description");
-
-    if (cluster_version == cluster_version_t::v1_13
-        || cluster_version == cluster_version_t::v1_13_2) {
-        reql_version_out->original_reql_version = cluster_version_t::v1_13;
-        reql_version_out->latest_compatible_reql_version = cluster_version_t::v1_13;
-        reql_version_out->latest_checked_reql_version = cluster_version_t::v1_13;
-    } else {
-        success = deserialize_cluster_version(
+    switch (cluster_version) {
+    case cluster_version_t::v1_13:
+    case cluster_version_t::v1_13_2:
+        reql_version_out->original_reql_version = reql_version_t::v1_13;
+        reql_version_out->latest_compatible_reql_version = reql_version_t::v1_13;
+        reql_version_out->latest_checked_reql_version = reql_version_t::v1_13;
+        break;
+    case cluster_version_t::v1_14_is_latest:
+        success = deserialize_for_version(
+                cluster_version,
                 &read_stream,
                 &reql_version_out->original_reql_version);
         guarantee_deserialization(success, "original_reql_version");
-        success = deserialize_cluster_version(
+        success = deserialize_for_version(
+                cluster_version,
                 &read_stream,
                 &reql_version_out->latest_compatible_reql_version);
         guarantee_deserialization(success, "latest_compatible_reql_version");
-        success = deserialize_cluster_version(
+        success = deserialize_for_version(
+                cluster_version,
                 &read_stream,
                 &reql_version_out->latest_checked_reql_version);
         guarantee_deserialization(success, "latest_checked_reql_version");
+        break;
+    default:
+        unreachable();
     }
+
+    success = deserialize_for_version(cluster_version, &read_stream, mapping_out);
+    guarantee_deserialization(success, "sindex description");
 
     success = deserialize_for_version(cluster_version, &read_stream, multi_out);
     guarantee_deserialization(success, "sindex description");

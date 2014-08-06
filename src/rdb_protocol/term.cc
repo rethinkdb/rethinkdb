@@ -237,7 +237,10 @@ void run(protob_t<Query> q,
             } else if (counted_t<grouped_data_t> gd
                        = val->maybe_as_promiscuous_grouped_data(scope_env.env)) {
                 res->set_type(Response::SUCCESS_ATOM);
-                counted_t<const datum_t> d = to_datum(std::move(*gd), env.limits);
+                counted_t<const datum_t> d
+                    = to_datum_for_client_serialization(std::move(*gd),
+                                                        env.reql_version,
+                                                        env.limits);
                 d->write_to_protobuf(res->add_response(), use_json);
                 if (env.trace != nullptr) {
                     env.trace->as_datum()->write_to_protobuf(
