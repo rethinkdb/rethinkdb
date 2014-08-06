@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.
 import driver, http_admin, scenario_common, utils
 from vcoptparse import *
 
-r = utils.import_pyton_driver()
+r = utils.import_python_driver()
 
 op = OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
@@ -38,7 +38,7 @@ with driver.Metacluster() as metacluster:
     with r.connect(host, port) as conn:
         batch = []
         for i in range(10000):
-            batch.append({'id': str(i) * 10, 'val': str(i)*20})
+            batch.append({'id': str(i) * 10, 'val': str(i) * 20})
             if (i + 1) % 100 == 0:
                 r.table(ns.name).insert(batch).run(conn)
                 batch = []
@@ -48,7 +48,7 @@ with driver.Metacluster() as metacluster:
     print "Done with test queries."
 
     print "Adding a replica."
-    http.set_table_affinities(ns, {dc : 1})
+    http.set_table_affinities(ns, {dc: 1})
 
     time.sleep(1)
 

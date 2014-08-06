@@ -114,24 +114,11 @@ public:
         return counted_use_count(p_) == 1;
     }
 
-    class hidden_t {
-        hidden_t() = delete;
-    };
-    typedef void booleanesque_t(hidden_t);
-
-    operator booleanesque_t *() const {
-        return p_ != NULL ? &counted_t<T>::dummy_method : NULL;
-    }
-
-    bool operator <(const counted_t<T> &other) const {
-        return (p_ == NULL)
-            ? (other.p_ != NULL ? true : false)
-            : (other.p_ != NULL ? (*p_ < *other.p_) : false);
+    explicit operator bool() const {
+        return p_ != NULL;
     }
 
 private:
-    static void dummy_method(hidden_t) { }
-
     T *p_;
 };
 

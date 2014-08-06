@@ -5,9 +5,9 @@
 #include <boost/variant.hpp>
 
 #include "debug.hpp"
-#include "rdb_protocol/context.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/profile.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 bool reversed(sorting_t sorting) { return sorting == sorting_t::DESCENDING; }
 
@@ -85,12 +85,17 @@ private:
                          const store_key_t &last_key,
                          const std::vector<result_t *> &results) {
         guarantee(acc.size() == 0);
-        std::map<counted_t<const datum_t>, std::vector<T *> > vecs;
+        std::map<counted_t<const datum_t>, std::vector<T *>, counted_datum_less_t>
+            vecs(counted_datum_less_t(env->reql_version));
         for (auto res = results.begin(); res != results.end(); ++res) {
             guarantee(*res);
             grouped_t<T> *gres = boost::get<grouped_t<T> >(*res);
             guarantee(gres);
-            for (auto kv = gres->begin(); kv != gres->end(); ++kv) {
+            // `gres`'s ordering doesn't affect things here because we're putting the
+            // values into a parallel map.
+            for (auto kv = gres->begin(grouped::order_doesnt_matter_t());
+                 kv != gres->end(grouped::order_doesnt_matter_t());
+                 ++kv) {
                 vecs[kv->first].push_back(&kv->second);
             }
         }
@@ -154,7 +159,7 @@ private:
         if (sorting == sorting_t::UNORDERED) {
             for (auto it = streams.begin(); it != streams.end(); ++it) {
                 for (auto item = (*it)->begin(); item != (*it)->end(); ++item) {
-                    if (key_le(item->key, last_key)) {
+                    if (key_le.is_le(item->key, last_key)) {
                         out->push_back(std::move(*item));
                     }
                 }
@@ -170,12 +175,12 @@ private:
                 stream_t::iterator *best = NULL;
                 for (auto it = v.begin(); it != v.end(); ++it) {
                     if (it->first != it->second) {
-                        if (best == NULL || key_le(it->first->key, (*best)->key)) {
+                        if (best == NULL || key_le.is_le(it->first->key, (*best)->key)) {
                             best = &it->first;
                         }
                     }
                 }
-                if (best == NULL || !key_le((*best)->key, last_key)) break;
+                if (best == NULL || !key_le.is_le((*best)->key, last_key)) break;
                 out->push_back(std::move(**best));
                 ++(*best);
             }
@@ -195,7 +200,8 @@ scoped_ptr_t<accumulator_t> make_append(const sorting_t &sorting, batcher_t *bat
 // (Also, I'm sorry for this absurd type hierarchy.)
 class to_array_t : public eager_acc_t {
 public:
-    to_array_t() : size(0) { }
+    explicit to_array_t(reql_version_t reql_version)
+        : groups(counted_datum_less_t(reql_version)), size(0) { }
 private:
     virtual void operator()(env_t *env, groups_t *gs) {
         for (auto kv = gs->begin(); kv != gs->end(); ++kv) {
@@ -214,9 +220,14 @@ private:
     }
 
     virtual void add_res(env_t *env, result_t *res) {
-        auto streams = boost::get<grouped_t<stream_t> >(res);
+        grouped_t<stream_t> *streams = boost::get<grouped_t<stream_t> >(res);
         r_sanity_check(streams);
-        for (auto kv = streams->begin(); kv != streams->end(); ++kv) {
+
+        // The order in which we iterate `streams` doesn't matter here because all
+        // the `kv->first` values are unique.
+        for (auto kv = streams->begin(grouped::order_doesnt_matter_t());
+             kv != streams->end(grouped::order_doesnt_matter_t());
+             ++kv) {
             datums_t *lst = &groups[kv->first];
             stream_t *stream = &kv->second;
             size += stream->size();
@@ -225,7 +236,7 @@ private:
                 strprintf("Grouped data over size limit %zu.  "
                           "Try putting a reduction (like `.reduce` or `.count`) "
                           "on the end.", env->limits.array_size_limit()).c_str());
-            lst->reserve(lst->size() + stream->size());
+
             for (auto it = stream->begin(); it != stream->end(); ++it) {
                 lst->push_back(std::move(it->data));
             }
@@ -256,8 +267,8 @@ private:
     size_t size;
 };
 
-scoped_ptr_t<eager_acc_t> make_to_array() {
-    return make_scoped<to_array_t>();
+scoped_ptr_t<eager_acc_t> make_to_array(reql_version_t reql_version) {
+    return make_scoped<to_array_t>(reql_version);
 }
 
 template<class T>
@@ -291,7 +302,11 @@ private:
         counted_t<val_t> retval;
         if (is_grouped) {
             counted_t<grouped_data_t> ret(new grouped_data_t());
-            for (auto kv = acc->begin(); kv != acc->end(); ++kv) {
+            // The order of `acc` doesn't matter here because we're putting stuff
+            // into the parallel map, `ret`.
+            for (auto kv = acc->begin(grouped::order_doesnt_matter_t());
+                 kv != acc->end(grouped::order_doesnt_matter_t());
+                 ++kv) {
                 ret->insert(std::make_pair(kv->first, unpack(&kv->second)));
             }
             retval = make_counted<val_t>(std::move(ret), bt);
@@ -299,8 +314,10 @@ private:
             T t(*default_val);
             retval = make_counted<val_t>(unpack(&t), bt);
         } else {
-            r_sanity_check(acc->size() == 1 && !acc->begin()->first.has());
-            retval = make_counted<val_t>(unpack(&acc->begin()->second), bt);
+            // Order doesnt' matter here because the size is 1.
+            r_sanity_check(acc->size() == 1 &&
+                           !acc->begin(grouped::order_doesnt_matter_t())->first.has());
+            retval = make_counted<val_t>(unpack(&acc->begin(grouped::order_doesnt_matter_t())->second), bt);
         }
         acc->clear();
         return retval;
@@ -318,7 +335,11 @@ private:
         if (acc->size() == 0) {
             acc->swap(*gres);
         } else {
-            for (auto kv = gres->begin(); kv != gres->end(); ++kv) {
+            // Order in fact does NOT matter here.  The reason is, each `kv->first`
+            // value is different, which means each operation works on a different
+            // key/value pair of `acc`.
+            for (auto kv = gres->begin(grouped::order_doesnt_matter_t());
+                 kv != gres->end(grouped::order_doesnt_matter_t()); ++kv) {
                 auto t_it = acc->insert(std::make_pair(kv->first, *default_val)).first;
                 unshard_impl(env, &t_it->second, &kv->second);
             }
@@ -463,12 +484,14 @@ optimizer_t::optimizer_t(const counted_t<const datum_t> &_row,
     : row(_row), val(_val) { }
 void optimizer_t::swap_if_other_better(
     optimizer_t &other, // NOLINT
-    bool (*beats)(const counted_t<const datum_t> &val1,
+    reql_version_t reql_version,
+    bool (*beats)(reql_version_t reql_version,
+                  const counted_t<const datum_t> &val1,
                   const counted_t<const datum_t> &val2)) {
     r_sanity_check(val.has() == row.has());
     r_sanity_check(other.val.has() == other.row.has());
     if (other.val.has()) {
-        if (!val.has() || beats(other.val, val)) {
+        if (!val.has() || beats(reql_version, other.val, val)) {
             row.swap(other.row);
             val.swap(other.val);
         }
@@ -486,42 +509,47 @@ counted_t<const datum_t> optimizer_t::unpack(const char *name) {
     return row;
 }
 
-bool datum_lt(const counted_t<const datum_t> &val1,
+bool datum_lt(reql_version_t reql_version,
+              const counted_t<const datum_t> &val1,
               const counted_t<const datum_t> &val2) {
     r_sanity_check(val1.has() && val2.has());
-    return *val1 < *val2;
+    return val1->compare_lt(reql_version, *val2);
 }
 
-bool datum_gt(const counted_t<const datum_t> &val1,
+bool datum_gt(reql_version_t reql_version,
+              const counted_t<const datum_t> &val1,
               const counted_t<const datum_t> &val2) {
     r_sanity_check(val1.has() && val2.has());
-    return *val1 > *val2;
+    return val1->compare_gt(reql_version, *val2);
 }
 
 class optimizing_terminal_t : public skip_terminal_t<optimizer_t> {
 public:
     optimizing_terminal_t(const skip_wire_func_t &f,
                           const char *_name,
-                          bool (*_cmp)(const counted_t<const datum_t> &val1,
+                          bool (*_cmp)(reql_version_t,
+                                       const counted_t<const datum_t> &val1,
                                        const counted_t<const datum_t> &val2))
         : skip_terminal_t<optimizer_t>(f, optimizer_t()),
-          name(_name), cmp(_cmp) { }
+          name(_name),
+          cmp(_cmp) { }
 private:
     virtual void maybe_acc(env_t *env,
                            const counted_t<const datum_t> &el,
                            optimizer_t *out,
                            const acc_func_t &f) {
         optimizer_t other(el, f(env, el));
-        out->swap_if_other_better(other, cmp);
+        out->swap_if_other_better(other, env->reql_version, cmp);
     }
     virtual counted_t<const datum_t> unpack(optimizer_t *el) {
         return el->unpack(name);
     }
-    virtual void unshard_impl(env_t *, optimizer_t *out, optimizer_t *el) {
-        out->swap_if_other_better(*el, cmp);
+    virtual void unshard_impl(env_t *env, optimizer_t *out, optimizer_t *el) {
+        out->swap_if_other_better(*el, env->reql_version, cmp);
     }
     const char *name;
-    bool (*cmp)(const counted_t<const datum_t> &val1,
+    bool (*cmp)(reql_version_t,
+                const counted_t<const datum_t> &val1,
                 const counted_t<const datum_t> &val2);
 };
 

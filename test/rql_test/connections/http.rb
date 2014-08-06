@@ -228,6 +228,18 @@ def test_verify()
     test_part('https://dev.rethinkdb.com')
 end
 
+def test_binary()
+    res = r.http('www.rethinkdb.com/assets/images/docs/api_illustrations/quickstart.png') \
+           .do{|row| [row.type_of(), row.count().gt(0)]} \
+           .run()
+    expect_eq(res, ['PTYPE<BINARY>', true])
+
+    res = r.http('httpbin.org/get',{:result_format => 'binary'}) \
+           .do{|row| [row.type_of(), row.slice(0,1).coerce_to("string")]} \
+           .run()
+    expect_eq(res, ['PTYPE<BINARY>', '{'])
+end
+
 $tests = {
     :test_get => method(:test_get),
     :test_params => method(:test_params),
@@ -242,7 +254,8 @@ $tests = {
     :test_failed_json_parse => method(:test_failed_json_parse),
     :test_basic_auth => method(:test_basic_auth),
     :test_digest_auth => method(:test_digest_auth),
-    :test_verify => method(:test_verify)
+    :test_verify => method(:test_verify),
+    :test_binary => method(:test_binary)
 }
 
 $tests.each do |name, m|

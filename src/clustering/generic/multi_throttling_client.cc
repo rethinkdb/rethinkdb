@@ -173,7 +173,7 @@ void multi_throttling_client_t<request_type, inner_client_business_card_type>::r
 
 #include "clustering/immediate_consistency/query/master_access.hpp"
 
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 template class multi_throttling_client_t<
     master_business_card_t::request_t,
     master_business_card_t::inner_client_business_card_t

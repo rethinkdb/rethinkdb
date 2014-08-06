@@ -4,7 +4,7 @@ import sys, os, time, threading, traceback
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import http_admin, driver, scenario_common, utils
 from vcoptparse import *
-r = utils.import_pyton_driver()
+r = utils.import_python_driver()
 
 op = OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)

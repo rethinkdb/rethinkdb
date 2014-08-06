@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pa
 import driver, http_admin, scenario_common, utils
 from vcoptparse import *
  
-r = utils.import_pyton_driver()
+r = utils.import_python_driver()
 
 op = OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
@@ -40,7 +40,7 @@ with driver.Metacluster() as metacluster:
         r.table_create('distribution').run(conn)
         batch = []
         for i in range(10000):
-            batch.append({'id': str(i) * 10, 'val': str(i)*20})
+            batch.append({'id': str(i) * 10, 'val': str(i) * 20})
             if (i + 1) % 100 == 0:
                 r.table('distribution').insert(batch).run(conn)
                 batch = []

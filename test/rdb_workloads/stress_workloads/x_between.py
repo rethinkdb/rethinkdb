@@ -3,7 +3,7 @@ import sys, os, datetime, x_stress_util
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import utils
-r = utils.import_pyton_driver()
+r = utils.import_python_driver()
 
 class Workload:
     def __init__(self, options):
@@ -19,4 +19,4 @@ class Workload:
 
         cursor = r.db(self.db).table(self.table).between(time_1, time_2, index="datetime").count().run(conn)
 
-        return { }
+        return {}

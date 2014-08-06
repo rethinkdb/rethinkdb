@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.
 import driver, workload_runner, scenario_common, rdb_workload_common, utils
 from vcoptparse import *
 
-r = utils.import_pyton_driver()
+r = utils.import_python_driver()
 
 op = OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)

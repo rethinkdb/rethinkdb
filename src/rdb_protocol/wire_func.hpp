@@ -18,13 +18,6 @@ template <class> class counted_t;
 class Datum;
 class Term;
 
-#define RDB_DECLARE_PROTOB_SERIALIZABLE(pb_t) \
-    void serialize_protobuf(write_message_t *wm, const pb_t &p); \
-    MUST_USE archive_result_t deserialize_protobuf(read_stream_t *s, pb_t *p)
-RDB_DECLARE_PROTOB_SERIALIZABLE(Term);
-RDB_DECLARE_PROTOB_SERIALIZABLE(Datum);
-RDB_DECLARE_PROTOB_SERIALIZABLE(Backtrace);
-
 namespace ql {
 class func_t;
 class env_t;

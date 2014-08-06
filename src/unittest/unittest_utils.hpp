@@ -8,7 +8,7 @@
 
 #include "arch/address.hpp"
 #include "containers/scoped.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "rpc/serialize_macros.hpp"
 
 namespace unittest {

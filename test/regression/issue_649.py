@@ -10,14 +10,11 @@ with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
     print "Starting cluster..."
     num_nodes = 2
-    files = [driver.Files(metacluster, db_path = "db-%d" % i, log_path = "create-output-%d" % i)
-        for i in xrange(num_nodes)]
-    processes = [driver.Process(
-            cluster,
-            files[i],
-            log_path = "serve-output-%d" % i,
-            executable_path = driver.find_rethinkdb_executable())
-        for i in xrange(num_nodes)]
+    files = [driver.Files(metacluster, db_path="db-%d" % i, log_path="create-output-%d" % i) for i in xrange(num_nodes)]
+    processes = [
+        driver.Process(cluster, files[i], log_path="serve-output-%d" % i, executable_path=driver.find_rethinkdb_executable())
+        for i in xrange(num_nodes)
+    ]
     time.sleep(10)
     print "Creating table..."
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in processes])

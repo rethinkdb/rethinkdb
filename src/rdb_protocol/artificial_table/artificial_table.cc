@@ -36,7 +36,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
         UNUSED const std::string &get_all_sindex_id,
         UNUSED const ql::protob_t<const Backtrace> &bt,
         UNUSED const std::string &table_name,
-        UNUSED const ql::datum_range_t &range,
+        UNUSED const datum_range_t &range,
         UNUSED sorting_t sorting,
         UNUSED bool use_outdated) {
     rfail_datum(ql::base_exc_t::GENERIC,
@@ -64,7 +64,8 @@ counted_t<const ql::datum_t> artificial_table_t::write_batched_replace(
         ql::env_t *env,
         const std::vector<counted_t<const ql::datum_t> > &keys,
         const counted_t<ql::func_t> &func,
-        UNUSED bool return_vals, UNUSED durability_requirement_t durability) {
+        UNUSED return_changes_t return_changes,
+        UNUSED durability_requirement_t durability) {
     for (auto key : keys) {
         std::string error;
         counted_t<const ql::datum_t> old_row;
@@ -102,7 +103,7 @@ counted_t<const ql::datum_t> artificial_table_t::write_batched_insert(
         UNUSED ql::env_t *env,
         UNUSED std::vector<counted_t<const ql::datum_t> > &&inserts,
         UNUSED conflict_behavior_t conflict_behavior,
-        UNUSED bool return_vals,
+        UNUSED return_changes_t return_changes,
         UNUSED durability_requirement_t durability) {
     rfail_datum(ql::base_exc_t::GENERIC,
         "Artificial tables currently only support point read and replace.");
@@ -117,7 +118,7 @@ bool artificial_table_t::write_sync_depending_on_durability(
 
 bool artificial_table_t::sindex_create(
         UNUSED ql::env_t *env, UNUSED const std::string &id,
-        UNUSED counted_t<ql::func_t> index_func, UNUSED bool multi) {
+        UNUSED counted_t<ql::func_t> index_func, UNUSED sindex_multi_bool_t multi) {
     rfail_datum(ql::base_exc_t::GENERIC,
         "Can't create a secondary index on an artificial table.");
 }
@@ -126,6 +127,15 @@ bool artificial_table_t::sindex_drop(UNUSED ql::env_t *env,
         UNUSED const std::string &id) {
     rfail_datum(ql::base_exc_t::GENERIC,
         "Can't drop a secondary index on an artificial table.");
+}
+
+sindex_rename_result_t artificial_table_t::sindex_rename(
+        UNUSED ql::env_t *env,
+        UNUSED const std::string &old_name,
+        UNUSED const std::string &new_name,
+        UNUSED bool overwrite) {
+    rfail_datum(ql::base_exc_t::GENERIC,
+        "Can't rename a secondary index on an artificial table.");
 }
 
 std::vector<std::string> artificial_table_t::sindex_list(UNUSED ql::env_t *env) {

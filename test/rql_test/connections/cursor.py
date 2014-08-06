@@ -2,6 +2,8 @@
 # Tests the driver cursor API
 ###
 
+from __future__ import print_function
+
 import unittest
 from os import getenv
 from sys import path, argv, exit
@@ -34,7 +36,7 @@ class TestCursor(unittest.TestCase):
         self.cur.close()
 
 if __name__ == '__main__':
-    print "Testing cursor for %d rows" % num_rows
+    print("Testing cursor for %d rows" % num_rows)
     suite = unittest.TestSuite()
     loader = unittest.TestLoader()
     suite.addTest(loader.loadTestsFromTestCase(TestCursor))

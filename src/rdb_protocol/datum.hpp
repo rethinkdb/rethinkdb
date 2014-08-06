@@ -4,6 +4,7 @@
 
 #include <float.h>
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <set>
@@ -24,8 +25,6 @@
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/serialize_datum.hpp"
 #include "version.hpp"
-
-namespace unittest { struct make_sindex_read_t; }
 
 // Enough precision to reconstruct doubles from their decimal representations.
 // Unlike the late DBLPRI, this lacks a percent sign.
@@ -50,6 +49,7 @@ void sanitize_time(datum_t *time);
 static const double max_dbl_int = 0x1LL << DBL_MANT_DIG;
 static const double min_dbl_int = max_dbl_int * -1;
 
+
 // These let us write e.g. `foo(NOTHROW) instead of `foo(false/*nothrow*/)`.
 // They should be passed to functions that have multiple behaviors (like `get` or
 // `add` below).
@@ -68,6 +68,19 @@ class grouped_data_t;
 
 // A `datum_t` is basically a JSON value, although we may extend it later.
 class datum_t : public slow_atomic_countable_t<datum_t> {
+private:
+    class data_wrapper_t;
+    // Placed here so it's kept in sync with type_t
+    enum class internal_type_t {
+        R_ARRAY = 1,
+        R_BINARY = 2,
+        R_BOOL = 3,
+        R_NULL = 4,
+        R_NUM = 5,
+        R_OBJECT = 6,
+        R_STR = 7,
+        LAZY_SERIALIZED = 100
+    };
 public:
     // This ordering is important, because we use it to sort objects of
     // disparate type.  It should be alphabetical.
@@ -116,6 +129,7 @@ public:
     explicit datum_t(const char *cstr);
     explicit datum_t(std::vector<counted_t<const datum_t> > &&_array,
                      const configured_limits_t &limits);
+    explicit datum_t(std::vector<char> &&_lazy_serialized);
 
     enum class no_array_size_limit_check_t { };
     // Constructs a datum_t without checking the array size.  Used by
@@ -140,6 +154,7 @@ public:
     type_t get_type() const;
     bool is_ptype() const;
     bool is_ptype(const std::string &reql_type) const;
+    bool is_lazy() const;
     std::string get_reql_type() const;
     std::string get_type_name() const;
     std::string print() const;
@@ -147,18 +162,20 @@ public:
     std::string trunc_print() const;
     std::string print_primary() const;
 
-    /* TODO: All of this key-mangling logic belongs in `real_table/`. Maybe
+    /* TODO: All of this key-mangling logic belongs elsewhere. Maybe
     `print_primary()` belongs there as well. */
     static std::string mangle_secondary(const std::string &secondary,
             const std::string &primary, const std::string &tag);
-    std::string print_secondary(const store_key_t &key,
-            boost::optional<uint64_t> tag_num = boost::optional<uint64_t>()) const;
+    // tag_num is used for multi-indexes.
+    std::string print_secondary(reql_version_t reql_version,
+                                const store_key_t &key,
+                                boost::optional<uint64_t> tag_num) const;
     /* An inverse to print_secondary. Returns the primary key. */
     static std::string extract_primary(const std::string &secondary_and_primary);
     static store_key_t extract_primary(const store_key_t &secondary_key);
     static std::string extract_secondary(const std::string &secondary_and_primary);
     static boost::optional<uint64_t> extract_tag(
-        const std::string &secondary_and_primary);
+            const std::string &secondary_and_primary);
     static boost::optional<uint64_t> extract_tag(const store_key_t &key);
     store_key_t truncated_secondary() const;
     void check_type(type_t desired, const char *msg = NULL) const;
@@ -199,18 +216,33 @@ public:
     counted_t<datum_stream_t> as_datum_stream(
             const protob_t<const Backtrace> &backtrace) const;
 
-    // These behave as expected and defined in RQL.  Theoretically, two data of
-    // the same type should compare the same way their printed representations
-    // would compare lexicographcally, while dispareate types are compared
+    // Warning: In contrast to the as_...() functions, get_lazy_serialized()
+    // crashes if `is_lazy()` is false.
+    const std::vector<char> &get_lazy_serialized() const;
+    // Forces deserialization in case this datum is lazy. Recurses into any
+    // embedded datums.
+    void force_deserialization() const;
+
+    // These behave as expected and defined in RQL.  Theoretically, two data of the
+    // same type should compare appropriately, while disparate types are compared
     // alphabetically by type name.
-    int cmp(const datum_t &rhs) const;
+    int cmp(reql_version_t reql_version, const datum_t &rhs) const;
+
+    // Modern datum_t::cmp implementation, for reql_version_t::v1_14 and later.
+    // Called by cmp, ==, !=.
+    int modern_cmp(const datum_t &rhs) const;
+
+    // Archaic datum_t::cmp implementation for reql_version_t::v1_13.
+    int v1_13_cmp(const datum_t &rhs) const;
+
+    // operator== and operator!= don't take a reql_version_t, unlike other comparison
+    // functions, because we know (by inspection) that the behavior of cmp() hasn't
+    // changed with respect to the question of equality vs. inequality.
+
     bool operator==(const datum_t &rhs) const;
     bool operator!=(const datum_t &rhs) const;
-
-    bool operator<(const datum_t &rhs) const;
-    bool operator<=(const datum_t &rhs) const;
-    bool operator>(const datum_t &rhs) const;
-    bool operator>=(const datum_t &rhs) const;
+    bool compare_lt(reql_version_t reql_version, const datum_t &rhs) const;
+    bool compare_gt(reql_version_t reql_version, const datum_t &rhs) const;
 
     void runtime_fail(base_exc_t::type_t exc_type,
                       const char *test, const char *file, int line,
@@ -236,6 +268,13 @@ public:
 
 private:
     friend void pseudo::sanitize_time(datum_t *time);
+
+    // Checks if the datum currently is of type LAZY_SERIALIZED.
+    // If yes, deserializes it, changing this datum to its proper type.
+    // Does not recurse into embedded datums if this is an array or object like
+    // `force_deserialize()` does
+    void ensure_deserialize_lazy() const;
+
     MUST_USE bool add(const std::string &key, counted_t<const datum_t> val,
                       clobber_bool_t clobber_bool = NOCLOBBER); // add to an object
 
@@ -247,7 +286,7 @@ private:
     void array_to_str_key(std::string *str_out) const;
     void binary_to_str_key(std::string *str_out) const;
 
-    int pseudo_cmp(const datum_t &rhs) const;
+    int pseudo_cmp(reql_version_t reql_version, const datum_t &rhs) const;
     static const std::set<std::string> _allowed_pts;
     void maybe_sanitize_ptype(const std::set<std::string> &allowed_pts = _allowed_pts);
 
@@ -269,22 +308,29 @@ private:
         explicit data_wrapper_t(scoped_ptr_t<wire_string_t> str);
         explicit data_wrapper_t(const char *cstr);
         explicit data_wrapper_t(std::vector<counted_t<const datum_t> > &&array);
-        data_wrapper_t(std::map<std::string, counted_t<const datum_t> > &&object);
+        explicit data_wrapper_t(
+                std::map<std::string, counted_t<const datum_t> > &&object);
+        explicit data_wrapper_t(std::vector<char> &&lazy_serialized);
 
         ~data_wrapper_t();
 
-        type_t type;
+        type_t get_type() const;
+        void set_type(type_t t);
+        internal_type_t get_internal_type() const;
         union {
             bool r_bool;
             double r_num;
             wire_string_t *r_str;
             std::vector<counted_t<const datum_t> > *r_array;
             std::map<std::string, counted_t<const datum_t> > *r_object;
+            std::vector<char> *lazy_serialized;
         };
     private:
+        internal_type_t internal_type;
         DISABLE_COPYING(data_wrapper_t);
     } data;
-
+    friend archive_result_t deserialize_lazy_data_wrapper(
+            read_stream_t *, datum_t::data_wrapper_t *);
 public:
     static const char *const reql_type_string;
 
@@ -292,11 +338,19 @@ private:
     DISABLE_COPYING(datum_t);
 };
 
+// This is actually defined in serialize_datum.cc.
+// The reason we declare it here is to avoid a nasty circular include dependency
+// (we cannot forward declare the nested datum_t::data_wrapper_t type).
+archive_result_t deserialize_lazy_data_wrapper(read_stream_t *s,
+                                               datum_t::data_wrapper_t *data);
+
 counted_t<const datum_t> to_datum(const Datum *d, const configured_limits_t &);
 counted_t<const datum_t> to_datum(cJSON *json, const configured_limits_t &);
 
 // This should only be used to send responses to the client.
-counted_t<const datum_t> to_datum(grouped_data_t &&gd, const configured_limits_t &);
+counted_t<const datum_t> to_datum_for_client_serialization(grouped_data_t &&gd,
+                                                           reql_version_t reql_version,
+                                                           const configured_limits_t &);
 
 // Converts a double to int, but returns false if it's not an integer or out of range.
 bool number_as_integer(double d, int64_t *i_out);
@@ -341,7 +395,7 @@ private:
 // array-size checks on the fly.
 class datum_array_builder_t {
 public:
-    datum_array_builder_t(const configured_limits_t &_limits) : limits(_limits) {}
+    explicit datum_array_builder_t(const configured_limits_t &_limits) : limits(_limits) {}
     datum_array_builder_t(std::vector<counted_t<const datum_t> > &&,
                           const configured_limits_t &);
 
@@ -353,9 +407,16 @@ public:
     // definition of certain ReQL terms.
     void add(counted_t<const datum_t> val);
     void change(size_t i, counted_t<const datum_t> val);
-    void insert(size_t index, counted_t<const datum_t> val);
-    void splice(size_t index, counted_t<const datum_t> values);
-    void erase_range(size_t start, size_t end);
+
+    // On v1_13, insert and splice don't enforce the array size limit.
+    void insert(reql_version_t reql_version, size_t index,
+                counted_t<const datum_t> val);
+    void splice(reql_version_t reql_version, size_t index,
+                counted_t<const datum_t> values);
+
+    // On v1_13, erase_range doesn't allow start and end to equal array_size.
+    void erase_range(reql_version_t reql_version, size_t start, size_t end);
+
     void erase(size_t index);
 
     counted_t<const datum_t> to_counted() RVALUE_THIS;
@@ -381,36 +442,6 @@ public:
     virtual ~datum_cmp_t() { }
 };
 } // namespace pseudo
-
-class datum_range_t {
-public:
-    enum bound_t {
-        open,
-        closed,
-        /* TODO: I don't think we actually use `none` anywhere */
-        none
-    };
-
-    datum_range_t();
-    datum_range_t(
-        counted_t<const datum_t> left_bound,
-        bound_t left_bound_type,
-        counted_t<const datum_t> right_bound,
-        bound_t right_bound_type);
-    // Range that includes just one value.
-    explicit datum_range_t(counted_t<const ql::datum_t> val);
-    static datum_range_t universe();
-
-    bool contains(counted_t<const ql::datum_t> val) const;
-    bool is_universe() const;
-
-    counted_t<const datum_t> left_bound, right_bound;
-    bound_t left_bound_type, right_bound_type;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
-};
-
-RDB_SERIALIZE_OUTSIDE(datum_range_t);
 
 } // namespace ql
 

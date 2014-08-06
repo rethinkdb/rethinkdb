@@ -9,13 +9,12 @@
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/uuid.hpp"
+#include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pb_utils.hpp"
-#include "rdb_protocol/real_table/btree.hpp"
-#include "rdb_protocol/real_table/convert_key.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
-#include "rdb_protocol/real_table/store.hpp"
+#include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/store.hpp"
 #include "rdb_protocol/sym.hpp"
 #include "stl_utils.hpp"
 #include "serializer/config.hpp"
@@ -100,7 +99,10 @@ sindex_name_t create_sindex(store_t *store) {
     sindex_multi_bool_t multi_bool = sindex_multi_bool_t::SINGLE;
 
     write_message_t wm;
-    serialize_sindex_info(&wm, m, multi_bool);
+    serialize_sindex_info(&wm,
+                          m,
+                          sindex_reql_version_info_t::LATEST(),
+                          multi_bool);
 
     vector_stream_t stream;
     stream.reserve(wm.size());
@@ -136,7 +138,7 @@ void drop_sindex(store_t *store,
     std::set<std::string> created_sindexes;
     store->drop_sindex(
             sindex_name,
-            std::move(sindex_block));
+            &sindex_block);
 }
 
 void bring_sindexes_up_to_date(
@@ -209,20 +211,23 @@ void _check_keys_are_present(store_t *store,
         scoped_ptr_t<real_superblock_t> sindex_sb;
         uuid_u sindex_uuid;
 
-        bool sindex_exists = store->acquire_sindex_superblock_for_read(
-                sindex_name,
-                "",
-                super_block.get(),
-                &sindex_sb,
-                static_cast<std::vector<char>*>(NULL),
-                &sindex_uuid);
-        ASSERT_TRUE(sindex_exists);
+        {
+            std::vector<char> opaque_definition;
+            bool sindex_exists = store->acquire_sindex_superblock_for_read(
+                    sindex_name,
+                    "",
+                    super_block.get(),
+                    &sindex_sb,
+                    &opaque_definition,
+                    &sindex_uuid);
+            ASSERT_TRUE(sindex_exists);
+        }
 
         rget_read_response_t res;
         double ii = i * i;
-        /* The only thing this does is have a NULL scoped_ptr_t<trace_t> in it
-         * which prevents to profiling code from crashing. */
-        ql::env_t dummy_env(&dummy_interruptor);
+        /* The only thing this does is have a NULL `profile::trace_t *` in it which
+         * prevents to profiling code from crashing. */
+        ql::env_t dummy_env(&dummy_interruptor, reql_version_t::LATEST);
         rdb_rget_slice(
             store->get_sindex_slice(sindex_uuid),
             rdb_protocol::sindex_key_range(
@@ -240,7 +245,9 @@ void _check_keys_are_present(store_t *store,
         auto groups = boost::get<ql::grouped_t<ql::stream_t> >(&res.result);
         ASSERT_TRUE(groups != NULL);
         ASSERT_EQ(1, groups->size());
-        auto stream = &groups->begin()->second;
+        // The order of `groups` doesn't matter because this is a small unit test.
+        ql::stream_t *stream
+            = &groups->begin(ql::grouped::order_doesnt_matter_t())->second;
         ASSERT_TRUE(stream != NULL);
         ASSERT_EQ(1ul, stream->size());
 
@@ -281,20 +288,23 @@ void _check_keys_are_NOT_present(store_t *store,
         scoped_ptr_t<real_superblock_t> sindex_sb;
         uuid_u sindex_uuid;
 
-        bool sindex_exists = store->acquire_sindex_superblock_for_read(
-                sindex_name,
-                "",
-                super_block.get(),
-                &sindex_sb,
-                static_cast<std::vector<char>*>(NULL),
-                &sindex_uuid);
-        ASSERT_TRUE(sindex_exists);
+        {
+            std::vector<char> opaque_definition;
+            bool sindex_exists = store->acquire_sindex_superblock_for_read(
+                    sindex_name,
+                    "",
+                    super_block.get(),
+                    &sindex_sb,
+                    &opaque_definition,
+                    &sindex_uuid);
+            ASSERT_TRUE(sindex_exists);
+        }
 
         rget_read_response_t res;
         double ii = i * i;
-        /* The only thing this does is have a NULL scoped_ptr_t<trace_t> in it
+        /* The only thing this does is have a NULL profile::trace_t in it
            which prevents the profiling code from crashing. */
-        ql::env_t dummy_env(&dummy_interruptor);
+        ql::env_t dummy_env(&dummy_interruptor, reql_version_t::LATEST);
         rdb_rget_slice(
             store->get_sindex_slice(sindex_uuid),
             rdb_protocol::sindex_key_range(

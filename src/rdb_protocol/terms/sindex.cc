@@ -19,7 +19,7 @@ public:
         : op_term_t(env, term, argspec_t(2, 3), optargspec_t({"multi"})) { }
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_view_t> table = args->arg(env, 0)->as_table();
+        counted_t<table_t> table = args->arg(env, 0)->as_table();
         counted_t<const datum_t> name_datum = args->arg(env, 1)->as_datum();
         std::string name = name_datum->as_str().to_std();
         rcheck(name != table->get_pkey(),
@@ -46,7 +46,10 @@ public:
 
         /* Check if we're doing a multi index or a normal index. */
         counted_t<val_t> multi_val = args->optarg(env, "multi");
-        bool multi = multi_val && multi_val->as_datum()->as_bool();
+        sindex_multi_bool_t multi =
+            (multi_val && multi_val->as_datum()->as_bool()
+             ? sindex_multi_bool_t::MULTI
+             : sindex_multi_bool_t::SINGLE);
 
         bool success = table->sindex_create(env->env, name, index_func, multi);
         if (success) {
@@ -68,7 +71,7 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_view_t> table = args->arg(env, 0)->as_table();
+        counted_t<table_t> table = args->arg(env, 0)->as_table();
         std::string name = args->arg(env, 1)->as_datum()->as_str().to_std();
         bool success = table->sindex_drop(env->env, name);
         if (success) {
@@ -90,7 +93,7 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_view_t> table = args->arg(env, 0)->as_table();
+        counted_t<table_t> table = args->arg(env, 0)->as_table();
 
         return new_val(table->sindex_list(env->env));
     }
@@ -104,7 +107,7 @@ public:
         : op_term_t(env, term, argspec_t(1, -1)) { }
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_view_t> table = args->arg(env, 0)->as_table();
+        counted_t<table_t> table = args->arg(env, 0)->as_table();
         std::set<std::string> sindexes;
         for (size_t i = 1; i < args->num_args(); ++i) {
             sindexes.insert(args->arg(env, i)->as_str().to_std());
@@ -134,7 +137,7 @@ public:
         : op_term_t(env, term, argspec_t(1, -1)) { }
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_view_t> table = args->arg(env, 0)->as_table();
+        counted_t<table_t> table = args->arg(env, 0)->as_table();
         std::set<std::string> sindexes;
         for (size_t i = 1; i < args->num_args(); ++i) {
             sindexes.insert(args->arg(env, i)->as_str().to_std());
@@ -157,6 +160,56 @@ public:
     virtual const char *name() const { return "sindex_wait"; }
 };
 
+class sindex_rename_term_t : public op_term_t {
+public:
+    sindex_rename_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(3, 3), optargspec_t({"overwrite"})) { }
+
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<table_t> table = args->arg(env, 0)->as_table();
+        counted_t<val_t> old_name_val = args->arg(env, 1);
+        counted_t<val_t> new_name_val = args->arg(env, 2);
+        std::string old_name = old_name_val->as_str().to_std();
+        std::string new_name = new_name_val->as_str().to_std();
+        rcheck(old_name != table->get_pkey(),
+               base_exc_t::GENERIC,
+               strprintf("Index name conflict: `%s` is the name of the primary key.",
+                         old_name.c_str()));
+        rcheck(new_name != table->get_pkey(),
+               base_exc_t::GENERIC,
+               strprintf("Index name conflict: `%s` is the name of the primary key.",
+                         new_name.c_str()));
+
+        counted_t<val_t> overwrite_val = args->optarg(env, "overwrite");
+        bool overwrite = overwrite_val ? overwrite_val->as_bool() : false;
+
+        sindex_rename_result_t result = table->sindex_rename(env->env, old_name,
+                                                             new_name, overwrite);
+
+        switch (result) {
+        case sindex_rename_result_t::SUCCESS: {
+                datum_object_builder_t retval;
+                UNUSED bool b = retval.add("renamed",
+                                           make_counted<datum_t>(old_name == new_name ?
+                                                                 0.0 : 1.0));
+                return new_val(std::move(retval).to_counted());
+            }
+        case sindex_rename_result_t::OLD_NAME_DOESNT_EXIST:
+            rfail_target(old_name_val, base_exc_t::GENERIC,
+                         "Index `%s` does not exist on table `%s`.",
+                         old_name.c_str(), table->display_name().c_str());
+        case sindex_rename_result_t::NEW_NAME_EXISTS:
+            rfail_target(new_name_val, base_exc_t::GENERIC,
+                         "Index `%s` already exists on table `%s`.",
+                         new_name.c_str(), table->display_name().c_str());
+        default:
+            unreachable();
+        }
+    }
+
+    virtual const char *name() const { return "sindex_rename"; }
+};
+
 counted_t<term_t> make_sindex_create_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<sindex_create_term_t>(env, term);
 }
@@ -171,6 +224,9 @@ counted_t<term_t> make_sindex_status_term(compile_env_t *env, const protob_t<con
 }
 counted_t<term_t> make_sindex_wait_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<sindex_wait_term_t>(env, term);
+}
+counted_t<term_t> make_sindex_rename_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<sindex_rename_term_t>(env, term);
 }
 
 
