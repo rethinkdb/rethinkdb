@@ -1226,7 +1226,7 @@ void datum_t::ensure_deserialize_lazy() const {
         // Deserialize the actual data
         archive_result_t res =
             deserialize_lazy_data_wrapper(&stream, &mutable_this->data);
-        guarantee_deserialization(res, "Lazy datum_t");
+        guarantee_deserialization(res, "lazy datum_t::data_wrapper_t");
         guarantee(!is_lazy());
     }
 }
