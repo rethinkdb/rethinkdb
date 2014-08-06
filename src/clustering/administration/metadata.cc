@@ -246,6 +246,8 @@ void with_ctx_on_subfield_change(databases_semilattice_metadata_t *target, const
 //json adapter concept for cluster_semilattice_metadata_t
 json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(cluster_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
     json_adapter_if_t::json_adapter_map_t res;
+    /* RSI(reql_admin): Eventually JSON adapters will go away completely, but this needed
+    to go away now */
     /* res["rdb_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<cow_ptr_t<namespaces_semilattice_metadata_t>, vclock_ctx_t>(&target->rdb_namespaces, ctx)); */
     res["machines"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<machines_semilattice_metadata_t, vclock_ctx_t>(&target->machines, ctx));
     res["datacenters"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<datacenters_semilattice_metadata_t, vclock_ctx_t>(&target->datacenters, ctx));

@@ -2,7 +2,10 @@
 #ifndef CLUSTERING_ADMINISTRATION_SUGGESTER_HPP_
 #define CLUSTERING_ADMINISTRATION_SUGGESTER_HPP_
 
-#if 0   /* RSI: Suggester has to be updated */
+/* RSI(reql_admin): The suggester will be replaced by the high-level ReQL configuration
+API, which will share some of the same concepts but be significantly different. To avoid
+having to think about that now, I'm commenting this out. */
+#if 0
 
 #include <map>
 

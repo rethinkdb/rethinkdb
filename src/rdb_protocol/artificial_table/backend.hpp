@@ -48,7 +48,7 @@ public:
         signal_t *interruptor,
         std::string *error_out) = 0;
 
-    /* TODO: Support change feeds. */
+    /* RSI(reql_admin): Support change feeds. */
 
 protected:
     virtual ~artificial_table_backend_t() { }

@@ -1,7 +1,10 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/suggester.hpp"
 
-#if 0   /* RSI: Suggester has to be updated */
+/* RSI(reql_admin): The suggester will be replaced by the high-level ReQL configuration
+API, which will share some of the same concepts but be significantly different. To avoid
+having to think about that now, I'm commenting this out. */
+#if 0
 
 #include <deque>
 #include <utility>

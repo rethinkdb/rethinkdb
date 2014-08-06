@@ -43,7 +43,7 @@ bool convert_table_config_shard_from_datum(
     if (split_point_datum.has()) {
         if (split_point_datum->get_type() != ql::datum_t::R_STR) {
             *error_out = "In `split_point`: Expected a string, got " +
-                split_point_datum->print(); 
+                split_point_datum->print();
             return false;
         }
         store_key_t split_point_value(split_point_datum->as_str().to_std());
@@ -305,6 +305,8 @@ bool table_config_artificial_table_backend_t::write_row(
             table_replication_info_t replication_info;
             if (!convert_table_config_from_datum(new_value, name, it->first,
                     &replication_info.config, error_out)) {
+                *error_out = "The change you're trying to make to "
+                    "`rethinkdb.table_config` has the wrong format. " + *error_out;
                 return false;
             }
             replication_info.chosen_directors =

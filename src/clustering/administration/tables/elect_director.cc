@@ -4,7 +4,7 @@
 #include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/administration/servers/name_client.hpp"
 
-/* TODO: This is a barely-usable stub implementation. */
+/* RSI(reql_admin): This is a barely-usable stub implementation. */
 std::vector<machine_id_t> table_elect_directors(
         const table_config_t &config,
         server_name_client_t *name_client) {

@@ -64,7 +64,7 @@ counted_t<const ql::datum_t> convert_director_status_to_datum(
     }
     object_builder.overwrite("state", make_counted<const ql::datum_t>(std::move(state)));
     return std::move(object_builder).to_counted();
-} 
+}
 
 counted_t<const ql::datum_t> convert_replica_status_to_datum(
         const std::vector<reactor_activity_entry_t> *status) {
@@ -230,7 +230,7 @@ counted_t<const ql::datum_t> convert_table_status_to_datum(
     ql::datum_object_builder_t builder;
     builder.overwrite("name", convert_name_to_datum(name));
     builder.overwrite("uuid", convert_uuid_to_datum(uuid));
-    
+
     ql::datum_array_builder_t array_builder((ql::configured_limits_t()));
     for (size_t i = 0; i < repli_info.config.shards.size(); ++i) {
         array_builder.add(

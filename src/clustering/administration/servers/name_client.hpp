@@ -21,11 +21,11 @@ public:
             _semilattice_view);
 
     /* This map contains all known servers, not counting permanently removed ones.
-    
-    Warning: in the event of a name collision, this watchable will not update until the
-    name collision has been resolved. The name collision should be resolved automatically
-    in a fraction of a second, so this shouldn't be a big deal in practice, but be aware
-    of it. */
+
+    TODO: Currently, in the event of a name collision, this watchable will not update
+    until the name collision has been resolved. The name collision should be resolved
+    within a fraction of a second, but this behavior still has the potential to introduce
+    bugs. Consider changing it. */
     clone_ptr_t<watchable_t<std::map<name_string_t, machine_id_t> > >
     get_name_to_machine_id_map() {
         return name_to_machine_id_map.get_watchable();

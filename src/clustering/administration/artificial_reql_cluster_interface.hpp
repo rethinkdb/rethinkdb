@@ -21,7 +21,7 @@ public:
         next(_next) { }
 
     bool db_create(const name_string_t &name,
-            signal_t *interruptor, std::string *error_out); 
+            signal_t *interruptor, std::string *error_out);
     bool db_drop(const name_string_t &name,
             signal_t *interruptor, std::string *error_out);
     bool db_list(

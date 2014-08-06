@@ -5,7 +5,10 @@
 #include "clustering/generic/nonoverlapping_regions.hpp"
 #include "rdb_protocol/protocol.hpp"
 
-#if 0 /* TODO: The suggester needs to be changed */
+/* RSI(reql_admin): The suggester will be replaced by the high-level ReQL configuration
+API, which will share some of the same concepts but be significantly different. To avoid
+having to think about that now, I'm commenting this out. */
+#if 0
 
 namespace unittest {
 
@@ -60,4 +63,3 @@ TEST(ClusteringSuggester, NewNamespace) {
 }  // namespace unittest
 
 #endif /* 0 */
-

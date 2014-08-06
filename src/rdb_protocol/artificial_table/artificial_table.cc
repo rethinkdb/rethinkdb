@@ -39,6 +39,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
         UNUSED const datum_range_t &range,
         UNUSED sorting_t sorting,
         UNUSED bool use_outdated) {
+    /* RSI(reql_admin): Artificial tables will eventually support all operations. */
     rfail_datum(ql::base_exc_t::GENERIC,
         "Artificial tables currently only support point read and replace.");
 }
@@ -48,6 +49,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_row_changes(
         UNUSED counted_t<const ql::datum_t> pval,
         UNUSED const ql::protob_t<const Backtrace> &bt,
         UNUSED const std::string &table_name) {
+    /* RSI(reql_admin): Artificial tables will eventually support all operations. */
     rfail_datum(ql::base_exc_t::GENERIC,
         "Artificial tables currently only support point read and replace.");
 }
@@ -56,6 +58,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all_changes(
         UNUSED ql::env_t *env,
         UNUSED const ql::protob_t<const Backtrace> &bt,
         UNUSED const std::string &table_name) {
+    /* RSI(reql_admin): Artificial tables will eventually support all operations. */
     rfail_datum(ql::base_exc_t::GENERIC,
         "Artificial tables currently only support point read and replace.");
 }
@@ -88,14 +91,18 @@ counted_t<const ql::datum_t> artificial_table_t::write_batched_replace(
         if (new_row->get_type() == ql::datum_t::R_NULL) {
             new_row.reset();
         } else {
-            /* TODO: Check that returned value is valid. */
+            /* RSI(reql_admin): Check that returned value is valid. */
         }
         if (!backend->write_row(key, new_row, env->interruptor, &error)) {
             rfail_datum(ql::base_exc_t::GENERIC, "%s", error.c_str());
         }
     }
+    /* RSI(reql_admin): We should return the same thing that real tables do. */
     ql::datum_object_builder_t obj_builder;
-    obj_builder.overwrite("is_this_a_stub", ql::datum_t::boolean(true));
+    obj_builder.overwrite("message",
+        make_counted<const ql::datum_t>("Your query succeeded. This response is a "
+            "placeholder until we finish implementing the logic for formatting"
+            "results."));
     return std::move(obj_builder).to_counted();
 }
 
@@ -105,6 +112,7 @@ counted_t<const ql::datum_t> artificial_table_t::write_batched_insert(
         UNUSED conflict_behavior_t conflict_behavior,
         UNUSED return_changes_t return_changes,
         UNUSED durability_requirement_t durability) {
+    /* RSI(reql_admin): Artificial tables will eventually support all operations. */
     rfail_datum(ql::base_exc_t::GENERIC,
         "Artificial tables currently only support point read and replace.");
 }
@@ -112,6 +120,7 @@ counted_t<const ql::datum_t> artificial_table_t::write_batched_insert(
 bool artificial_table_t::write_sync_depending_on_durability(
         UNUSED ql::env_t *env,
         UNUSED durability_requirement_t durability) {
+    /* RSI(reql_admin): Artificial tables will eventually support all operations. */
     rfail_datum(ql::base_exc_t::GENERIC,
         "Artificial tables currently only support point read and replace.");
 }

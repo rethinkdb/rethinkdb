@@ -1,7 +1,10 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/suggester/suggest_blueprint.hpp"
 
-#if 0 /* RSI: Suggester must be updated */
+/* RSI(reql_admin): The suggester will be replaced by the high-level ReQL configuration
+API, which will share some of the same concepts but be significantly different. To avoid
+having to think about that now, I'm commenting this out. */
+#if 0
 
 #include "clustering/generic/nonoverlapping_regions.hpp"
 #include "containers/priority_queue.hpp"

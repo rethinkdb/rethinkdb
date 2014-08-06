@@ -49,7 +49,11 @@ stores_lifetimer_t::~stores_lifetimer_t() {
 machines, and generate fake machine IDs for names that don't resolve to a machine. This
 is a hack, but it ensures that we produce a blueprint that tricks the `reactor_t` into
 doing what we want it to. `blueprint_name_translator_t` takes care of automatically
-generating and keeping track of the fakes. */
+generating and keeping track of the fakes.
+
+TODO: This is pretty hacky. Maybe we should modify `blueprint_t` so that it has a flag
+preventing the `reactor_t` from proceeding. Then we could set that flag if a peer is
+missing, instead of inserting a fake entry in the blueprint. */
 class blueprint_name_translator_t {
 public:
     explicit blueprint_name_translator_t(server_name_client_t *name_client) :
@@ -199,14 +203,14 @@ public:
     }
 
     bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) const {
-        /* TODO: This is temporary. When we figure out how to handle ack expectations in
-        the new ReQL admin API, we'll change it. */
+        /* RSI(reql_admin): This is temporary. When we figure out how to handle ack
+        expectations in the new ReQL admin API, we'll change it. */
         return !acks.empty();
     }
 
     write_durability_t get_write_durability(UNUSED const peer_id_t &peer) const {
-        /* TODO: This is temporary. When we figure out how to handle write durability in
-        the new ReQL admin API, we'll change it. */
+        /* RSI(reql_admin): This is temporary. When we figure out how to handle write
+        durability in the new ReQL admin API, we'll change it. */
         return write_durability_t::HARD;
     }
 

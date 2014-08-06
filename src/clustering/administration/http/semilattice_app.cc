@@ -189,8 +189,8 @@ void semilattice_http_app_t<metadata_t>::handle(const http_req_t &req, http_res_
     } catch (const permission_denied_exc_t &e) {
         logINF("HTTP request throw a permission_denied_exc_t with what = %s", e.what());
         *result = http_error_res(e.what());
-/* Eventually `semilattice_http_app_t` will go away completely, but this needed to go
-away now. */
+/* RSI(reql_admin): Eventually `semilattice_http_app_t` will go away completely, but this
+needed to go away now. */
 #if 0
     } catch (const cannot_satisfy_goals_exc_t &e) {
         logINF("The server was given a set of goals for which it couldn't find a valid blueprint. %s", e.what());

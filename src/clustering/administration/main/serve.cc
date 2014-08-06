@@ -272,7 +272,7 @@ bool do_serve(io_backender_t *io_backender,
                     semilattice_manager_cluster.get_root_view()),
                 directory_read_manager.get_root_view()->incremental_subview(
                     incremental_field_getter_t<namespaces_directory_metadata_t,
-                                               cluster_directory_metadata_t>    
+                                               cluster_directory_metadata_t>
                         (&cluster_directory_metadata_t::rdb_namespaces)),
                 &server_name_client);
         artificial_table_backends[name_string_t::guarantee_valid("table_status")] =

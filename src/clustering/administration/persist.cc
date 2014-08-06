@@ -116,6 +116,8 @@ static void read_blob(cluster_version_t cluster_version,
     buffer_group_t group;
     blob.expose_all(parent, access_t::read, &group, &acq_group);
     buffer_group_read_stream_t ss(const_view(&group));
+    /* RSI(reql_admin): When loading a pre-reql-admin metadata file, do some sort of
+    translation procedure. */
     guarantee(cluster_version == cluster_version_t::v1_14_is_latest);
     archive_result_t res =
         deserialize<cluster_version_t::v1_14_is_latest>(&ss, value_out);

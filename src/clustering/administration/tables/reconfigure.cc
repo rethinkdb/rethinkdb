@@ -3,7 +3,7 @@
 
 #include "clustering/administration/servers/name_client.hpp"
 
-/* TODO: This is a barely-usable stub implementation. */
+/* RSI(reql_admin): This is a barely-usable stub implementation. */
 table_config_t table_reconfigure(server_name_client_t *name_client) {
     table_config_t config;
     std::vector<name_string_t> names;
