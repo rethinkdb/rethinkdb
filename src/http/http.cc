@@ -173,7 +173,7 @@ void http_res_t::add_header_line(const std::string& key, const std::string& val)
     std::string header_key = key;
     boost::to_lower(header_key);
     std::map<std::string, std::string>::const_iterator it = header_lines.find(header_key);
-    if (it != header_lines.end()) {
+    if (it == header_lines.end()) {
         header_lines[header_key] = val;
     }
 }
