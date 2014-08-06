@@ -16,10 +16,15 @@ auto_reconnector_t::auto_reconnector_t(
     connectivity_cluster_run(connectivity_cluster_run_),
     machine_id_translation_table(machine_id_translation_table_),
     machine_metadata(machine_metadata_),
-    machine_id_translation_table_subs(boost::bind(&auto_reconnector_t::on_connect_or_disconnect, this))
+    machine_id_translation_table_subs(boost::bind(&auto_reconnector_t::on_connect_or_disconnect, this)),
+    connection_subs(boost::bind(&auto_reconnector_t::on_connect_or_disconnect, this))
 {
-    watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> >::freeze_t freeze(machine_id_translation_table);
-    machine_id_translation_table_subs.reset(machine_id_translation_table, &freeze);
+    watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> >::freeze_t freeze1(
+        machine_id_translation_table);
+    machine_id_translation_table_subs.reset(machine_id_translation_table, &freeze1);
+    watchable_t<connectivity_cluster_t::connection_map_t>::freeze_t freeze2(
+        connectivity_cluster->get_connections());
+    connection_subs.reset(connectivity_cluster->get_connections(), &freeze2);
     on_connect_or_disconnect();
 }
 
@@ -30,7 +35,12 @@ void auto_reconnector_t::on_connect_or_disconnect() {
             auto_drainer_t::lock_t connection_keepalive;
             connectivity_cluster_t::connection_t *connection =
                 connectivity_cluster->get_connection(it->first, &connection_keepalive);
-            guarantee(connection != NULL);
+            if (connection == NULL) {
+                /* This can happen due to a race condition in `watchable_t`. Treat the
+                peer as if it's not actually connected yet, even though it has an entry
+                in the directory. */
+                continue;
+            }
             connected_peers.insert(std::make_pair(
                 it->first,
                 std::make_pair(
