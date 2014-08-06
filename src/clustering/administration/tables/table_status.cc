@@ -4,87 +4,121 @@
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/servers/name_client.hpp"
 
-counted_t<const ql::datum_t> convert_backfill_to_datum(
-        UNUSED const reactor_business_card_details::backfill_location_t &location) {
-    return make_counted<const ql::datum_t>("backfill progress is not implemented");
+/* Names like `reactor_activity_entry_t::secondary_without_primary_t` are too long to
+type without this */
+using namespace reactor_business_card_details;
+
+static bool check_complete_set(const std::vector<reactor_activity_entry_t> &status) {
+    std::vector<hash_region_t<key_range_t> > regions;
+    for (const reactor_activity_entry_t &entry : status) {
+        regions.push_back(entry.region);
+    }
+    hash_region_t<key_range_t> joined;
+    region_join_result_t res = region_join(regions, &joined);
+    return res == REGION_JOIN_OK &&
+        joined.beg == 0 &&
+        joined.end == HASH_REGION_HASH_SIZE;
+}
+
+template<class T>
+static size_t count_in_state(const std::vector<reactor_activity_entry_t> &status) {
+    int count = 0;
+    for (const reactor_activity_entry_t &entry : status) {
+        if (boost::get<T>(&entry.activity) != NULL) {
+            ++count;
+        }
+    }
+    return count;
 }
 
 counted_t<const ql::datum_t> convert_director_status_to_datum(
-        const boost::optional<reactor_activity_entry_t::activity_t> *status) {
+        const std::vector<reactor_activity_entry_t> *status) {
     ql::datum_object_builder_t object_builder;
     object_builder.overwrite("role", make_counted<const ql::datum_t>("director"));
     std::string state;
     if (!status) {
         state = "missing";
-    } else if (!*status) {
+    } else if (!check_complete_set(*status)) {
         state = "transitioning";
-    } else if (const reactor_activity_entry_t::primary_when_safe_t *details =
-            boost::get<reactor_activity_entry_t::primary_when_safe_t>(&**status)) {
-        state = "backfill_data";
-        object_builder.overwrite("backfill_sources",
-            convert_vector_to_datum<reactor_business_card_details::backfill_location_t>(
-                &convert_backfill_to_datum,
-                details->backfills_waited_on));
-    } else if (boost::get<reactor_activity_entry_t::primary_t>(&**status) != NULL) {
-        state = "ready";
     } else {
-        /* The other server looks like it's still trying to be something other than a
-        primary, which means the metadata hasn't propagated yet. */
-        state = "transitioning";
+        size_t tally = count_in_state<primary_t>(*status);
+        if (tally == status->size()) {
+            state = "ready";
+        } else {
+            tally += count_in_state<primary_when_safe_t>(*status);
+            if (tally == status->size()) {
+                state = "backfill_data";
+                object_builder.overwrite("backfill_progress",
+                    make_counted<const ql::datum_t>("not_implemented"));
+            } else {
+                state = "transitioning";
+            }
+        }
     }
     object_builder.overwrite("state", make_counted<const ql::datum_t>(std::move(state)));
     return std::move(object_builder).to_counted();
 } 
 
 counted_t<const ql::datum_t> convert_replica_status_to_datum(
-        const boost::optional<reactor_activity_entry_t::activity_t> *status) {
+        const std::vector<reactor_activity_entry_t> *status) {
     ql::datum_object_builder_t object_builder;
     object_builder.overwrite("role", make_counted<const ql::datum_t>("replica"));
     std::string state;
     if (!status) {
         state = "missing";
-    } else if (!*status) {
+    } else if (!check_complete_set(*status)) {
         state = "transitioning";
-    } else if (boost::get<reactor_activity_entry_t::secondary_without_primary_t>(
-            &**status) != NULL) {
-        state = "need_director";
-    } else if (const reactor_activity_entry_t::secondary_backfilling_t *details =
-            boost::get<reactor_activity_entry_t::secondary_backfilling_t>(&**status)) {
-        state = "backfill_data";
-        std::vector<counted_t<const ql::datum_t> > sources;
-        sources.push_back(convert_backfill_to_datum(details->backfill));
-        object_builder.overwrite("backfill_sources",
-            make_counted<const ql::datum_t>(std::move(sources),
-                                            ql::configured_limits_t()));
-    } else if (boost::get<reactor_activity_entry_t::secondary_up_to_date_t>(
-            &**status) != NULL) {
-        state = "ready";
     } else {
-        state = "transitioning";
+        size_t tally = count_in_state<secondary_up_to_date_t>(*status);
+        if (tally == status->size()) {
+            state = "ready";
+        } else {
+            tally += count_in_state<secondary_without_primary_t>(*status);
+            if (tally == status->size()) {
+                state = "need_director";
+            } else {
+                tally += count_in_state<secondary_backfilling_t>(*status);
+                if (tally == status->size()) {
+                    state = "backfill_data";
+                    object_builder.overwrite("backfill_progress",
+                        make_counted<const ql::datum_t>("not_implemented"));
+                } else {
+                    state = "transitioning";
+                }
+            }
+        }
     }
     object_builder.overwrite("state", make_counted<const ql::datum_t>(std::move(state)));
     return std::move(object_builder).to_counted();
 }
 
 counted_t<const ql::datum_t> convert_nothing_status_to_datum(
-         const boost::optional<reactor_activity_entry_t::activity_t> *status) {
+         const std::vector<reactor_activity_entry_t> *status) {
     ql::datum_object_builder_t object_builder;
     object_builder.overwrite("role", make_counted<const ql::datum_t>("nothing"));
     std::string state;
     if (!status) {
         state = "missing";
-    } else if (!*status) {
+    } else if (!check_complete_set(*status)) {
         state = "transitioning";
-    } else if (boost::get<reactor_activity_entry_t::nothing_when_safe_t>(
-            &**status) != NULL) {
-        state = "offload_data";
-    } else if (boost::get<reactor_activity_entry_t::nothing_when_done_erasing_t>(
-            &**status) != NULL) {
-        state = "erase_data";
-    } else if (boost::get<reactor_activity_entry_t::nothing_t>(&**status) != NULL) {
-        return counted_t<const ql::datum_t>();
     } else {
-        state = "transitioning";
+        size_t tally = count_in_state<nothing_t>(*status);
+        if (tally == status->size()) {
+            /* This machine shouldn't even appear in the map */
+            return counted_t<const ql::datum_t>();
+        } else {
+            tally += count_in_state<nothing_when_done_erasing_t>(*status);
+            if (tally == status->size()) {
+                state = "erase_data";
+            } else {
+                tally += count_in_state<nothing_when_safe_t>(*status);
+                if (tally == status->size()) {
+                    state = "offload_data";
+                } else {
+                    state = "transitioning";
+                }
+            }
+        }
     }
     object_builder.overwrite("state", make_counted<const ql::datum_t>(std::move(state)));
     return std::move(object_builder).to_counted();
@@ -92,18 +126,15 @@ counted_t<const ql::datum_t> convert_nothing_status_to_datum(
 
 counted_t<const ql::datum_t> convert_table_status_shard_to_datum(
         namespace_id_t uuid,
-        region_t region,
+        key_range_t range,
         const table_config_t::shard_t &shard,
         machine_id_t chosen_director,
         const change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> &dir,
         server_name_client_t *name_client) {
-    /* First, determine the state of each server with respect to this shard. If an entry
-    is missing from this map, that means the server is not connected. If an entry is
-    present but the `boost::optional` is empty, that means the server is connected but
-    its state reflects a different sharding scheme; this will be described as
-    `transitioning`. */
-    std::map<name_string_t, boost::optional<reactor_activity_entry_t::activity_t> >
-        server_states;
+    /* `server_states` will contain one entry per connected server. That entry will be a
+    vector with the current state of each hash-shard on the server whose key range
+    matches the expected range. */
+    std::map<name_string_t, std::vector<reactor_activity_entry_t> > server_states;
     for (auto it = dir.get_inner().begin(); it != dir.get_inner().end(); ++it) {
 
         /* Translate peer ID to machine ID */
@@ -126,17 +157,15 @@ counted_t<const ql::datum_t> convert_table_status_shard_to_datum(
         /* Extract activity from reactor business card. `server_state` may be left empty
         if the reactor doesn't have a business card for this table, or if no entry has
         the same region as the target region. */
-        boost::optional<reactor_activity_entry_t::activity_t> server_state;
+        std::vector<reactor_activity_entry_t> server_state;
         auto jt = it->second.reactor_bcards.find(uuid);
         if (jt != it->second.reactor_bcards.end()) {
             cow_ptr_t<reactor_business_card_t> bcard = jt->second.internal;
             for (auto kt = bcard->activities.begin();
                       kt != bcard->activities.end();
                     ++kt) {
-                if (kt->second.region == region) {
-                    server_state = boost::optional<reactor_activity_entry_t::activity_t>(
-                        kt->second.activity);
-                    break;
+                if (kt->second.region.inner == range) {
+                    server_state.push_back(kt->second);
                 }
             }
         }
@@ -200,7 +229,7 @@ counted_t<const ql::datum_t> convert_table_status_to_datum(
         array_builder.add(
             convert_table_status_shard_to_datum(
                 uuid,
-                hash_region_t<key_range_t>(repli_info.config.get_shard_range(i)),
+                repli_info.config.get_shard_range(i),
                 repli_info.config.shards[i],
                 repli_info.chosen_directors[i],
                 dir,

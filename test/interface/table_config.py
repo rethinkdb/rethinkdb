@@ -33,53 +33,34 @@ with driver.Metacluster() as metacluster:
     r.table("foo").insert([{"i": i} for i in xrange(10)]).run(conn)
     assert set(row["i"] for row in r.table("foo").run(conn)) == set(xrange(10))
 
-    print "Reconfiguring table: director 'a'"
-    r.db("rethinkdb").table("table_config").get("foo").update(
-        {"shards": r.literal([{"replicas": ["a"], "directors": ["a"]}])}).run(conn)
-    print "Cluster should now reconfigure."
-    start_time = time.time()
-    while time.time() < start_time + 10:
-        status = r.db("rethinkdb").table("table_status").get("foo").run(conn)
-        assert status["name"] == "foo"
-        shard = status["shards"][0]
-        if shard["a"]["state"] == "ready" and shard["a"]["role"] == "director" and \
-                "b" not in status["shards"][0]:
-            break
-    else:
-        raise RuntimeError("Cluster didn't reconfigure; status=%r" % status)
-    assert set(row["i"] for row in r.table("foo").run(conn)) == set(xrange(10))
+    def test_reconfigure(shard, predicate):
+        print "Reconfiguring:", shard
+        r.db("rethinkdb").table("table_config").get("foo").update(
+            {"shards": r.literal([shard])}).run(conn)
+        start_time = time.time()
+        while time.time() < start_time + 10:
+            status = r.db("rethinkdb").table("table_status").get("foo").run(conn)
+            assert status["name"] == "foo"
+            if predicate(status["shards"][0]):
+                break
+            time.sleep(1)
+        else:
+            raise RuntimeError("Cluster didn't reconfigure; status=%r" % status)
+        assert set(row["i"] for row in r.table("foo").run(conn)) == set(xrange(10))
+        print "OK"
 
-    print "Reconfiguring table: director 'b'"
-    r.db("rethinkdb").table("table_config").get("foo").update(
-        {"shards": [{"replicas": ["b"], "directors": ["b"]}]}).run(conn)
-    print "Cluster should now reconfigure."
-    start_time = time.time()
-    while time.time() < start_time + 10:
-        status = r.db("rethinkdb").table("table_status").get("foo").run(conn)
-        assert status["name"] == "foo"
-        shard = status["shards"][0]
-        if shard["b"]["state"] == "ready" and shard["b"]["role"] == "director" and \
-                "a" not in status["shards"][0]:
-            break
-    else:
-        raise RuntimeError("Cluster didn't reconfigure; status=%r" % status)
-    assert set(row["i"] for row in r.table("foo").run(conn)) == set(xrange(10))
-
-    print "Reconfiguring table: director 'a', replica 'b'"
-    r.db("rethinkdb").table("table_config").get("foo").update(
-        {"shards": [{"replicas": ["a", "b"], "directors": ["a"]}]}).run(conn)
-    print "Cluster should now reconfigure."
-    start_time = time.time()
-    while time.time() < start_time + 10:
-        status = r.db("rethinkdb").table("table_status").get("foo").run(conn)
-        assert status["name"] == "foo"
-        shard = status["shards"][0]
-        if shard["a"]["state"] == "ready" and shard["a"]["role"] == "director" and \
-                shard["b"]["state"] == "ready" and shard["b"]["role"] == "replica":
-            break
-    else:
-        raise RuntimeError("Cluster didn't reconfigure; status=%r" % status)
-    assert set(row["i"] for row in r.table("foo").run(conn)) == set(xrange(10))
+    test_reconfigure(
+        {"replicas": ["a"], "directors": ["a"]},
+        (lambda s: s["a"]["state"] == "ready" and s["a"]["role"] == "director" and \
+                    "b" not in s))
+    test_reconfigure(
+        {"replicas": ["b"], "directors": ["b"]},
+        (lambda s: s["b"]["state"] == "ready" and s["b"]["role"] == "director" and \
+                    "a" not in s))
+    test_reconfigure(
+        {"replicas": ["a", "b"], "directors": ["a"]},
+        (lambda s: s["a"]["state"] == "ready" and s["a"]["role"] == "director" and \
+                    s["b"]["state"] == "ready" and s["b"]["role"] == "replica"))
 
     cluster1.check_and_stop()
 print "Done."
