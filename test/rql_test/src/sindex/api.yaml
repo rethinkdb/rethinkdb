@@ -60,13 +60,27 @@ tests:
   - cd: tbl.index_rename('rename-stuff','rename-last')
     ot: ({'renamed':1})
 
-  - cd: tbl.index_wait('rename-last')
+  - cd: tbl.index_wait('rename-last').pluck('index', 'ready')
     ot: [{'index':'rename-last','ready':true}]
 
   - py: tbl.get_all(0, index='rename-last').count()
     js: tbl.get_all(0, {index:'rename-last'}).count()
     rb: tbl.get_all(0, :index => 'rename-last').count()
     ot: 3
+
+  - cd: tbl.index_create('rename-last-dup', tbl.index_status('rename-last').nth(0).get_field('function'))
+    ot: ({'created':1})
+
+  - cd: tbl.index_wait('rename-last-dup').pluck('index', 'ready')
+    ot: [{'index':'rename-last-dup','ready':true}]
+
+  - py: tbl.get_all(0, index='rename-last-dup').count()
+    js: tbl.get_all(0, {index:'rename-last-dup'}).count()
+    rb: tbl.get_all(0, :index => 'rename-last-dup').count()
+    ot: 3
+
+  - cd: tbl.index_drop('rename-last-dup')
+    ot: ({'dropped':1})
 
   - cd: tbl.index_list()
     ot: (['rename-last'])
