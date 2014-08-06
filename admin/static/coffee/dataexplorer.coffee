@@ -3163,12 +3163,40 @@ module 'DataExplorerView', ->
                             key: key
 
 
+        # Return whether there are too many datums
+        # If there are too many, we will disable syntax highlighting to avoid freezing the page
+        has_too_many_datums: (result) ->
+            if @has_too_many_datums_helper(result) > @max_datum_threshold
+                return true
+            return false
+
+
+        # Return the number of datums if there are less than @max_datum_threshold
+        # Or return a number greater than @max_datum_threshold
+        has_too_many_datums_helper: (result) ->
+            if Object::toString.call(result) is '[object Object]'
+                count = 0
+                for key of result
+                    count += @has_too_many_datums_helper result[key]
+                    if count > @max_datum_threshold
+                        return count
+                return count
+            else if Array.isArray(result)
+                count = 0
+                for element in result
+                    count += @has_too_many_datums_helper element
+                    if count > @max_datum_threshold
+                        return count
+                return count
+
+            return 1
+
+
         json_to_tree: (result) =>
-            result_json = JSON.stringify(result, null, 4)
             # If the results are too large, we just display the raw indented JSON to avoid freezing the interface
-            if result_json.length > @large_response_threshold
+            if @has_too_many_datums(result)
                 return @template_json_tree.large_container
-                    json_data: result_json
+                    json_data: JSON.stringify(result, null, 4)
             else
                 return @template_json_tree.container
                     tree: @json_to_node(result)
@@ -3405,7 +3433,7 @@ module 'DataExplorerView', ->
                 'click .activate_profiler': 'activate_profiler'
 
         current_result: []
-        large_response_threshold: 100000 # ~ 2000 uuids
+        max_datum_threshold: 1000
 
         initialize: (args) =>
             @container = args.container
