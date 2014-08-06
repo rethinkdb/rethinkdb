@@ -1157,6 +1157,10 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
     }
 }
 
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        reql_version_t, int8_t,
+        reql_version_t::v1_13, reql_version_t::v1_14_is_latest);
+
 void serialize_sindex_info(write_message_t *wm,
                            const ql::map_wire_func_t &mapping,
                            const sindex_reql_version_info_t &reql_version,

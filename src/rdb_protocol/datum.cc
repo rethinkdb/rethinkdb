@@ -1374,17 +1374,27 @@ void datum_array_builder_t::change(size_t index, counted_t<const datum_t> val) {
     vector[index] = std::move(val);
 }
 
-void datum_array_builder_t::insert(size_t index, counted_t<const datum_t> val) {
+void datum_array_builder_t::insert(reql_version_t reql_version, size_t index,
+                                   counted_t<const datum_t> val) {
     rcheck_datum(index <= vector.size(),
                  base_exc_t::NON_EXISTENCE,
                  strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
                            index, vector.size()));
     vector.insert(vector.begin() + index, std::move(val));
 
-    rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
+    switch (reql_version) {
+    case reql_version_t::v1_13:
+        break;
+    case reql_version_t::v1_14_is_latest:
+        rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
+        break;
+    default:
+        unreachable();
+    }
 }
 
-void datum_array_builder_t::splice(size_t index, counted_t<const datum_t> values) {
+void datum_array_builder_t::splice(reql_version_t reql_version, size_t index,
+                                   counted_t<const datum_t> values) {
     rcheck_datum(index <= vector.size(),
                  base_exc_t::NON_EXISTENCE,
                  strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
@@ -1393,7 +1403,15 @@ void datum_array_builder_t::splice(size_t index, counted_t<const datum_t> values
     const std::vector<counted_t<const datum_t> > &arr = values->as_array();
     vector.insert(vector.begin() + index, arr.begin(), arr.end());
 
-    rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
+    switch (reql_version) {
+    case reql_version_t::v1_13:
+        break;
+    case reql_version_t::v1_14_is_latest:
+        rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
+        break;
+    default:
+        unreachable();
+    }
 }
 
 void datum_array_builder_t::erase_range(reql_version_t reql_version,
@@ -1444,7 +1462,8 @@ counted_t<const datum_t> datum_array_builder_t::to_counted() RVALUE_THIS {
     // https://github.com/rethinkdb/rethinkdb/issues/2697 for more information --
     // insert and splice don't check the array size limit, because of a bug (as
     // reported in the issue).  This maintains that broken ReQL behavior because of
-    // the generic reasons you would do so.
+    // the generic reasons you would do so: secondary index compatibility after an
+    // upgrade.
     return make_counted<datum_t>(std::move(vector),
                                  datum_t::no_array_size_limit_check_t());
 }

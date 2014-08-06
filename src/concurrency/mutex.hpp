@@ -19,6 +19,9 @@ public:
     class acq_t {
     public:
         acq_t() : lock_(NULL), eager_(false) { }
+        explicit acq_t(acq_t &&other) : lock_(NULL), eager_(false) {
+            swap(*this, other);
+        }
         explicit acq_t(mutex_t *l, bool eager = false);
         ~acq_t();
         void reset();

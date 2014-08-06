@@ -306,9 +306,6 @@ disconnect_watcher_t::disconnect_watcher_t(mailbox_manager_t *mailbox_manager,
 
 /* This is the callback for when `connection_keepalive.get_drain_signal()` is pulsed */
 void disconnect_watcher_t::run() {
-    /* Allow the connection to die so it can be replaced by a new connection even if the
-    `disconnect_watcher_t` remains alive */
-    connection_keepalive.reset();
     pulse();
 }
 

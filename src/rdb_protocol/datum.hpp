@@ -364,9 +364,16 @@ public:
     // definition of certain ReQL terms.
     void add(counted_t<const datum_t> val);
     void change(size_t i, counted_t<const datum_t> val);
-    void insert(size_t index, counted_t<const datum_t> val);
-    void splice(size_t index, counted_t<const datum_t> values);
+
+    // On v1_13, insert and splice don't enforce the array size limit.
+    void insert(reql_version_t reql_version, size_t index,
+                counted_t<const datum_t> val);
+    void splice(reql_version_t reql_version, size_t index,
+                counted_t<const datum_t> values);
+
+    // On v1_13, erase_range doesn't allow start and end to equal array_size.
     void erase_range(reql_version_t reql_version, size_t start, size_t end);
+
     void erase(size_t index);
 
     counted_t<const datum_t> to_counted() RVALUE_THIS;

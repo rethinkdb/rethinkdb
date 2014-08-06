@@ -443,7 +443,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         write_message_t wm;
         serialize_sindex_info(&wm,
                               c.mapping,
-                              sindex_reql_version_info_t::LATEST_DISK(),
+                              sindex_reql_version_info_t::LATEST(),
                               c.multi);
 
         vector_stream_t stream;

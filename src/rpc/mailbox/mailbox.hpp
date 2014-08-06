@@ -170,6 +170,9 @@ private:
                                 force_yield_t force_yield);
 };
 
+/* Note: disconnect_watcher_t keeps the connection alive for as long as it
+exists, blocking reconnects from getting through. Avoid keeping the 
+disconnect_watcher_t around for long after it gets pulsed. */
 class disconnect_watcher_t : public signal_t, private signal_t::subscription_t {
 public:
     disconnect_watcher_t(mailbox_manager_t *mailbox_manager, peer_id_t peer);
