@@ -43,7 +43,10 @@ private:
 
     auto_drainer_t drainer;
 
-    watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> >::subscription_t machine_id_translation_table_subs;
+    watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> >::subscription_t
+        machine_id_translation_table_subs;
+    watchable_t<connectivity_cluster_t::connection_map_t>::subscription_t
+        connection_subs;
 
     DISABLE_COPYING(auto_reconnector_t);
 };
