@@ -329,7 +329,9 @@ bool maybe_gzip_response(const http_req_t &req, http_res_t *res) {
     res->body.assign(out_buffer.data(), zstream.total_out);
 
     // Update the body size in the headers
-    res->header_lines["content-length"] = strprintf("%lu", zstream.total_out);
+    if (res->header_lines.find("content-length") != res->header_lines.end()){
+        res->header_lines["content-length"] = strprintf("%lu", zstream.total_out);
+    }
 
     res->add_header_line("Content-Encoding", "gzip");
     return true;
