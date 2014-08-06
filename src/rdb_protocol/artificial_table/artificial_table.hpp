@@ -2,13 +2,18 @@
 #ifndef RDB_PROTOCOL_ARTIFICIAL_TABLE_ARTIFICIAL_TABLE_HPP_
 #define RDB_PROTOCOL_ARTIFICIAL_TABLE_ARTIFICIAL_TABLE_HPP_
 
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
+
 #include "rdb_protocol/context.hpp"
 
 class artificial_table_backend_t;
 
 class artificial_table_t : public base_table_t {
 public:
-    artificial_table_t(artificial_table_backend_t *_backend);
+    explicit artificial_table_t(artificial_table_backend_t *_backend);
 
     const std::string &get_pkey();
 

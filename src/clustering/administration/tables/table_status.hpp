@@ -2,6 +2,9 @@
 #ifndef CLUSTERING_ADMINISTRATION_TABLES_TABLE_STATUS_HPP_
 #define CLUSTERING_ADMINISTRATION_TABLES_TABLE_STATUS_HPP_
 
+#include <string>
+#include <vector>
+
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 

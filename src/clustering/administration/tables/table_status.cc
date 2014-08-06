@@ -6,7 +6,14 @@
 
 /* Names like `reactor_activity_entry_t::secondary_without_primary_t` are too long to
 type without this */
-using namespace reactor_business_card_details;
+using reactor_business_card_details::primary_when_safe_t;
+using reactor_business_card_details::primary_t;
+using reactor_business_card_details::secondary_up_to_date_t;
+using reactor_business_card_details::secondary_without_primary_t;
+using reactor_business_card_details::secondary_backfilling_t;
+using reactor_business_card_details::nothing_when_safe_t;
+using reactor_business_card_details::nothing_when_done_erasing_t;
+using reactor_business_card_details::nothing_t;
 
 static bool check_complete_set(const std::vector<reactor_activity_entry_t> &status) {
     std::vector<hash_region_t<key_range_t> > regions;

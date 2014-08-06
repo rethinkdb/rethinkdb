@@ -2,6 +2,10 @@
 #ifndef CLUSTERING_ADMINISTRATION_ARTIFICIAL_REQL_CLUSTER_INTERFACE_HPP_
 #define CLUSTERING_ADMINISTRATION_ARTIFICIAL_REQL_CLUSTER_INTERFACE_HPP_
 
+#include <map>
+#include <set>
+#include <string>
+
 #include "containers/name_string.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rdb_protocol/context.hpp"

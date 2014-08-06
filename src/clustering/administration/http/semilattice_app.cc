@@ -237,8 +237,9 @@ cluster_semilattice_http_app_t::~cluster_semilattice_http_app_t() {
 void cluster_semilattice_http_app_t::metadata_change_callback(
         UNUSED cluster_semilattice_metadata_t *new_metadata,
         UNUSED const boost::optional<namespace_id_t> &prioritize_distr_for_ns) {
-#if 0 /* `semilattice_http_app_t` will eventually go away completely, but this needed to
-go away now */
+/* RSI(reql_admin): `semilattice_http_app_t` will eventually go away completely, but this
+needed to go away now */
+#if 0
     try {
         fill_in_all_blueprints(new_metadata,
                                directory_metadata->get().get_inner(),

@@ -2,6 +2,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_DATUM_ADAPTER_HPP_
 #define CLUSTERING_ADMINISTRATION_DATUM_ADAPTER_HPP_
 
+#include <set>
+#include <string>
 #include <vector>
 
 #include "containers/name_string.hpp"

@@ -300,10 +300,10 @@ reactor_driver_t::reactor_driver_t(
     const base_path_t &_base_path,
     io_backender_t *_io_backender,
     mailbox_manager_t *_mbox_manager,
-    const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
+    const clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
         namespaces_directory_metadata_t> > > &_directory_view,
     branch_history_manager_t *_branch_history_manager,
-    boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<
+    boost::shared_ptr< semilattice_readwrite_view_t< cow_ptr_t<
         namespaces_semilattice_metadata_t> > > _namespaces_view,
     server_name_client_t *_server_name_client,
     signal_t *_we_were_permanently_removed,

@@ -3,6 +3,7 @@
 #define RDB_PROTOCOL_ARTIFICIAL_TABLE_BACKEND_HPP_
 
 #include <string>
+#include <vector>
 
 #include "concurrency/pubsub.hpp"
 #include "rdb_protocol/datum.hpp"
