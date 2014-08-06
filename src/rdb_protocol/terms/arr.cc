@@ -446,7 +446,7 @@ private:
     void modify(scope_env_t *env, args_t *args, size_t index,
                 datum_array_builder_t *array) const {
         counted_t<const datum_t> new_el = args->arg(env, 2)->as_datum();
-        array->insert(index, new_el);
+        array->insert(env->env->reql_version, index, new_el);
     }
     const char *name() const { return "insert_at"; }
 };
@@ -460,7 +460,7 @@ private:
     void modify(scope_env_t *env, args_t *args, size_t index,
                 datum_array_builder_t *array) const {
         counted_t<const datum_t> new_els = args->arg(env, 2)->as_datum();
-        array->splice(index, new_els);
+        array->splice(env->env->reql_version, index, new_els);
     }
     const char *name() const { return "splice_at"; }
 };
