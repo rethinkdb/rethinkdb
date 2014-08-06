@@ -17,15 +17,20 @@
 #include "containers/uuid.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
+#include "rdb_protocol/changes.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "rdb_protocol/wire_func.hpp"
 
 class auth_semilattice_metadata_t;
+class datum_range_t;
 class extproc_pool_t;
 class name_string_t;
 class namespace_interface_t;
 template <class> class semilattice_readwrite_view_t;
+enum class sindex_rename_result_t;
+
+enum class sindex_multi_bool_t;
 
 namespace ql {
 
@@ -51,7 +56,7 @@ public:
         const std::string &sindex,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name,   /* the table's own name, for display purposes */
-        const ql::datum_range_t &range,
+        const datum_range_t &range,
         sorting_t sorting,
         bool use_outdated) = 0;
     virtual counted_t<ql::datum_stream_t> read_row_changes(
@@ -67,17 +72,19 @@ public:
     virtual counted_t<const ql::datum_t> write_batched_replace(ql::env_t *env,
         const std::vector<counted_t<const ql::datum_t> > &keys,
         const counted_t<ql::func_t> &func,
-        bool _return_vals, durability_requirement_t durability) = 0;
+        return_changes_t _return_changes, durability_requirement_t durability) = 0;
     virtual counted_t<const ql::datum_t> write_batched_insert(ql::env_t *env,
         std::vector<counted_t<const ql::datum_t> > &&inserts,
-        conflict_behavior_t conflict_behavior, bool return_vals,
+        conflict_behavior_t conflict_behavior, return_changes_t return_changes,
         durability_requirement_t durability) = 0;
-    virtual bool write_sync_depending_on_durability(ql::env_t *env, 
+    virtual bool write_sync_depending_on_durability(ql::env_t *env,
         durability_requirement_t durability) = 0;
 
     virtual bool sindex_create(ql::env_t *env, const std::string &id,
-        counted_t<ql::func_t> index_func, bool multi) = 0;
+        counted_t<ql::func_t> index_func, sindex_multi_bool_t multi) = 0;
     virtual bool sindex_drop(ql::env_t *env, const std::string &id) = 0;
+    virtual sindex_rename_result_t sindex_rename(ql::env_t *env,
+        const std::string &old_name, const std::string &new_name, bool overwrite) = 0;
     virtual std::vector<std::string> sindex_list(ql::env_t *env) = 0;
     virtual std::map<std::string, counted_t<const ql::datum_t> > sindex_status(
         ql::env_t *env, const std::set<std::string> &sindexes) = 0;
@@ -91,7 +98,7 @@ public:
     /* All of these methods return `true` on success and `false` on failure; if they
     fail, they will set `*error_out` to a description of the problem. They can all throw
     `interrupted_exc_t`.
-    
+
     These methods are safe to call from any thread, and the calls can overlap
     concurrently in arbitrary ways. By the time a method returns, any changes it makes
     must be visible on every thread. */

@@ -5,7 +5,7 @@
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "protocol_api.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "rpc/semilattice/joins/vclock.hpp"
 #include "store_view.hpp"
 

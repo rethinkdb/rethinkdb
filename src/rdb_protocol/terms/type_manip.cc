@@ -271,15 +271,21 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        auto groups = args->arg(env, 0)->as_promiscuous_grouped_data(env->env);
+        counted_t<grouped_data_t> groups
+            = args->arg(env, 0)->as_promiscuous_grouped_data(env->env);
         std::vector<counted_t<const datum_t> > v;
         v.reserve(groups->size());
-        for (auto it = groups->begin(); it != groups->end(); ++it) {
-            r_sanity_check(it->first.has() && it->second.has());
-            std::map<std::string, counted_t<const datum_t> > m =
-                {{"group", std::move(it->first)}, {"reduction", std::move(it->second)}};
-            v.push_back(make_counted<const datum_t>(std::move(m)));
-        }
+
+        iterate_ordered_by_version(
+            env->env->reql_version,
+            *groups,
+            [&v](const counted_t<const datum_t> &key, counted_t<const datum_t> &value) {
+                r_sanity_check(key.has() && value.has());
+                std::map<std::string, counted_t<const datum_t> > m =
+                    {{"group", key},
+                     {"reduction", std::move(value)}};
+                v.push_back(make_counted<const datum_t>(std::move(m)));
+            });
         return new_val(make_counted<const datum_t>(std::move(v), env->env->limits));
     }
     virtual const char *name() const { return "ungroup"; }
@@ -339,7 +345,7 @@ private:
             b |= info.add("name", make_counted<datum_t>(std::string(v->as_db()->name)));
         } break;
         case TABLE_TYPE: {
-            counted_t<table_view_t> table = v->as_table();
+            counted_t<table_t> table = v->as_table();
             b |= info.add("name", make_counted<datum_t>(std::string(table->name)));
             b |= info.add("primary_key",
                           make_counted<datum_t>(std::string(table->get_pkey())));

@@ -199,7 +199,11 @@ counted_t<val_t> op_term_t::term_eval(scope_env_t *env,
             // (arg0 is empty, because maybe_grouped_data sets at most one of gd and
             // arg0, so we don't have to worry about re-evaluating it.
             counted_t<grouped_data_t> out(new grouped_data_t());
-            for (auto kv = gd->begin(); kv != gd->end(); ++kv) {
+            // We're processing gd into another grouped_data_t -- so gd's order
+            // doesn't matter.
+            for (auto kv = gd->begin(grouped::order_doesnt_matter_t());
+                 kv != gd->end(grouped::order_doesnt_matter_t());
+                 ++kv) {
                 arg_terms->start_eval(env, eval_flags);
                 args_t args(this, argv, make_counted<val_t>(kv->second, backtrace()));
                 (*out)[kv->first] = eval_impl(env, &args, eval_flags)->as_datum();

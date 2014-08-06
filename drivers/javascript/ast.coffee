@@ -298,6 +298,7 @@ class RDBVal extends TermBase
     indexList: (args...) -> new IndexList {}, @, args...
     indexStatus: (args...) -> new IndexStatus {}, @, args...
     indexWait: (args...) -> new IndexWait {}, @, args...
+    indexRename: aropt (old_name, new_name, opts) -> new IndexRename opts, @, old_name, new_name
 
     sync: (args...) -> new Sync {}, @, args...
 
@@ -346,6 +347,7 @@ translateBackOptargs = (optargs) ->
         key = switch key
             when 'primary_key' then 'primaryKey'
             when 'return_vals' then 'returnVals'
+            when 'return_changes' then 'returnChanges'
             when 'use_outdated' then 'useOutdated'
             when 'non_atomic' then 'nonAtomic'
             when 'left_bound' then 'leftBound'
@@ -365,6 +367,7 @@ translateOptargs = (optargs) ->
         key = switch key
             when 'primaryKey' then 'primary_key'
             when 'returnVals' then 'return_vals'
+            when 'returnChanges' then 'return_changes'
             when 'useOutdated' then 'use_outdated'
             when 'nonAtomic' then 'non_atomic'
             when 'leftBound' then 'left_bound'
@@ -861,6 +864,10 @@ class IndexCreate extends RDBOp
 class IndexDrop extends RDBOp
     tt: protoTermType.INDEX_DROP
     mt: 'indexDrop'
+
+class IndexRename extends RDBOp
+    tt: protoTermType.INDEX_RENAME
+    mt: 'indexRename'
 
 class IndexList extends RDBOp
     tt: protoTermType.INDEX_LIST

@@ -115,31 +115,31 @@ boost::optional<http_res_t> parse_query_params(
     /* We allow users to filter for the stats they want by providing "paths",
        i.e. ERE regular expressions separated by slashes.  We treat these sort
        of like XPath expressions for filtering out what stats get returned. */
-    for (std::vector<query_parameter_t>::const_iterator it = req.query_params.begin();
+    for (std::map<std::string, std::string>::const_iterator it = req.query_params.begin();
          it != req.query_params.end(); ++it) {
-        if (it->key == STAT_REQ_TIMEOUT_PARAM) {
-            if (!strtou64_strict(it->val, 10, timeout)
+        if (it->first == STAT_REQ_TIMEOUT_PARAM) {
+            if (!strtou64_strict(it->second, 10, timeout)
                 || *timeout == 0
                 || *timeout > MAX_STAT_REQ_TIMEOUT_MS) {
                 return boost::optional<http_res_t>(http_error_res(
-                    "Invalid timeout value: "+it->val));
+                    "Invalid timeout value: "+it->second));
             }
-        } else if (it->key == "filter" || it->key == "machine_whitelist") {
+        } else if (it->first == "filter" || it->first == "machine_whitelist") {
             std::set<std::string> *out_set =
-                (it->key == "filter" ? filter_paths : machine_whitelist);
+                (it->first == "filter" ? filter_paths : machine_whitelist);
             try {
-                tokenizer_t t(it->val, commas);
+                tokenizer_t t(it->second, commas);
                 for (tokenizer_t::const_iterator s = t.begin(); s != t.end(); ++s) {
                     out_set->insert(*s);
                 }
             } catch (const boost::escaped_list_error &e) {
                 std::string msg = strprintf("Boost tokenizer error: %s (%s=%s)",
-                                            e.what(), it->key.c_str(), it->val.c_str());
+                                            e.what(), it->first.c_str(), it->second.c_str());
                 return boost::optional<http_res_t>(http_error_res(msg));
             }
         } else {
             return boost::optional<http_res_t>(http_error_res(
-                "Invalid parameter: "+it->key+"="+it->val));
+                "Invalid parameter: "+it->first+"="+it->second));
         }
     }
     if (filter_paths->empty()) filter_paths->insert(".*"); //no filter = match everything

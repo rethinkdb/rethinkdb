@@ -163,10 +163,10 @@ describe('Javascript connection API', function(){
 
         it("correct authorization key", function(done){
             spawn(build_dir + '/rethinkdb',
-                  ['admin', '--join', 'localhost:' + cluster_port, 'set', 'auth', 'hunter2'],
+                  ['admin', '--join', 'localhost:' + cluster_port, 'set', 'auth', 'hunter3'],
                   {stdio: ['ignore', server_out_log, server_err_log]});
             setTimeout(function(){
-                r.connect({port: port, authKey: "hunter2"}, function(e, c){
+                r.connect({port: port, authKey: "hunter3"}, function(e, c){
                     assertNull(e);
                     r.expr(1).run(c, noError(done));
                 });
@@ -176,11 +176,11 @@ describe('Javascript connection API', function(){
 
         it("wrong authorization key", function(done){
             spawn(build_dir + '/rethinkdb',
-                  ['admin', '--join', 'localhost:' + cluster_port, 'set', 'auth', 'hunter2'],
+                  ['admin', '--join', 'localhost:' + cluster_port, 'set', 'auth', 'hunter4'],
                   {stdio: ['ignore', server_out_log, server_err_log]});
 
             setTimeout(function(){
-                r.connect({port: port, authKey: "hunter23"}, givesError("RqlDriverError", "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"", done));
+                r.connect({port: port, authKey: "hunter-wrong"}, givesError("RqlDriverError", "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"", done));
             }, 500);
         });
 

@@ -16,7 +16,7 @@ tableName = os.path.splitext(os.path.basename(__file__))[0]
 
 # -- setup
 
-r = utils.import_pyton_driver()
+r = utils.import_python_driver()
 server = driver.Process()
 connection = r.connect(host=server.host, port=server.driver_port)
 
@@ -56,7 +56,7 @@ class WaitForTable(utils.PerformContinuousAction):
                 break
             except r.RqlRuntimeError:
                 pass
-            except Exception, e:
+            except Exception as e:
                 self.recordError(e)
                 break
         if time.time() >= deadline:
@@ -135,14 +135,14 @@ try:
     else:
         print('Success: correct number of records: %d' % actualRecordCount)
     
-    expectedSum = (fillTableProcess.sucessCount * (fillTableProcess.sucessCount + 1))/2
+    expectedSum = (fillTableProcess.sucessCount * (fillTableProcess.sucessCount + 1)) / 2
     actualSum = r.table(tableName).sum('data').run(connection)
     if expectedSum != actualSum:
         allPassed = False
         sys.stderr.write('Failure: The sum of the data in the table (%d) does not match the number we expected (%d)\n' % (actualSum, expectedSum))
     else:
         print('Success: correct sum of records: %d' % expectedSum)
-except Exception, e:
+except Exception as e:
     allPassed = False
     sys.stderr.write('Failure: unable to connect to the table to review data: %s %s' % (e.__class__.__name__, str(e)))
     time.sleep(600)

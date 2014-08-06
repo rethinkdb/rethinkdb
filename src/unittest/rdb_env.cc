@@ -2,7 +2,7 @@
 #include "unittest/rdb_env.hpp"
 
 #include "rdb_protocol/func.hpp"
-#include "rdb_protocol/real_table/real_table.hpp"
+#include "rdb_protocol/real_table.hpp"
 
 namespace unittest {
 
@@ -207,6 +207,10 @@ void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const sind
 }
 
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const sindex_drop_t &) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
+void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const sindex_rename_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 

@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef RDB_PROTOCOL_REAL_TABLE_STORE_HPP_
-#define RDB_PROTOCOL_REAL_TABLE_STORE_HPP_
+#ifndef RDB_PROTOCOL_STORE_HPP_
+#define RDB_PROTOCOL_STORE_HPP_
 
 #include <map>
 #include <set>
@@ -22,8 +22,8 @@
 #include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
-#include "rdb_protocol/real_table/changefeed.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/changefeed.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "store_view.hpp"
 #include "utils.hpp"
@@ -191,7 +191,7 @@ public:
 
     MUST_USE bool add_sindex(
         const sindex_name_t &name,
-        const secondary_index_t::opaque_definition_t &definition,
+        const std::vector<char> &opaque_definition,
         buf_lock_t *sindex_block);
 
     void set_sindexes(
@@ -212,6 +212,12 @@ public:
 
     bool drop_sindex(
         const sindex_name_t &name,
+        buf_lock_t *sindex_block)
+    THROWS_ONLY(interrupted_exc_t);
+
+    void rename_sindex(
+        const sindex_name_t &old_name,
+        const sindex_name_t &new_name,
         buf_lock_t sindex_block)
     THROWS_ONLY(interrupted_exc_t);
 
@@ -220,7 +226,7 @@ public:
             const std::string &table_name,
             superblock_t *superblock,  // releases this.
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
-            std::vector<char> *opaque_definition_out, // Optional, may be NULL
+            std::vector<char> *opaque_definition_out,
             uuid_u *sindex_uuid_out)
         THROWS_ONLY(sindex_not_ready_exc_t);
 
@@ -397,7 +403,7 @@ public:
     std::map<uuid_u, const parallel_traversal_progress_t *> progress_trackers;
 
     rdb_context_t *ctx;
-    scoped_ptr_t<changefeed::server_t> changefeed_server;
+    scoped_ptr_t<ql::changefeed::server_t> changefeed_server;
 
     // This lock is used to pause backfills while secondary indexes are being
     // post constructed. Secondary index post construction gets in line for a write
@@ -415,4 +421,4 @@ private:
     DISABLE_COPYING(store_t);
 };
 
-#endif  // RDB_PROTOCOL_REAL_TABLE_STORE_HPP_
+#endif  // RDB_PROTOCOL_STORE_HPP_

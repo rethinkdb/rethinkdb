@@ -16,12 +16,12 @@
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/wait_any.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "store_view.hpp"
 
 /* `WRITE_QUEUE_CORO_POOL_SIZE` is the number of coroutines that will be used
 when draining the write queue after completing a backfill. */
-#define WRITE_QUEUE_CORO_POOL_SIZE 1000
+#define WRITE_QUEUE_CORO_POOL_SIZE 64
 
 /* When we have caught up to the master to within
 `WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY` elements, then we consider ourselves

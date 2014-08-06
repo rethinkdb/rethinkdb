@@ -5,7 +5,7 @@
 #include <set>
 
 #include "arch/timing.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 namespace unittest {
 

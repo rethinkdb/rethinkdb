@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "rdb_protocol/real_table/store.hpp"  // NOLINT(build/include_order)
+#include "rdb_protocol/store.hpp"  // NOLINT(build/include_order)
 
 #include <functional>  // NOLINT(build/include_order)
 
@@ -17,9 +17,8 @@
 #include "containers/disk_backed_queue.hpp"
 #include "containers/scoped.hpp"
 #include "logger.hpp"
-#include "rdb_protocol/context.hpp"
-#include "rdb_protocol/real_table/btree.hpp"
-#include "rdb_protocol/real_table/protocol.hpp"
+#include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "serializer/config.hpp"
 #include "stl_utils.hpp"
 
@@ -73,7 +72,7 @@ store_t::store_t(serializer_t *serializer,
       ctx(_ctx),
       changefeed_server((ctx == NULL || ctx->manager == NULL)
                         ? NULL
-                        : new changefeed::server_t(ctx->manager))
+                        : new ql::changefeed::server_t(ctx->manager))
 {
     cache.init(new cache_t(serializer, balancer, &perfmon_collection));
     general_cache_conn.init(new cache_conn_t(cache.get()));
@@ -502,7 +501,7 @@ buf_lock_t store_t::acquire_sindex_block_for_write(
 
 bool store_t::add_sindex(
         const sindex_name_t &name,
-        const secondary_index_t::opaque_definition_t &definition,
+        const std::vector<char> &opaque_definition,
         buf_lock_t *sindex_block) {
     secondary_index_t sindex;
     if (::get_secondary_index(sindex_block, name, &sindex)) {
@@ -511,7 +510,7 @@ bool store_t::add_sindex(
         {
             buf_lock_t sindex_superblock(sindex_block, alt_create_t::create);
             sindex.superblock = sindex_superblock.block_id();
-            sindex.opaque_definition = definition;
+            sindex.opaque_definition = opaque_definition;
 
             /* Notice we're passing in empty strings for metainfo. The metainfo in
              * the sindexes isn't used for anything but this could perhaps be
@@ -813,18 +812,36 @@ bool store_t::mark_index_up_to_date(uuid_u id,
     return found;
 }
 
+void store_t::rename_sindex(
+        const sindex_name_t &old_name,
+        const sindex_name_t &new_name,
+        buf_lock_t sindex_block)
+        THROWS_ONLY(interrupted_exc_t) {
+    secondary_index_t old_sindex;
+    bool success = get_secondary_index(&sindex_block, old_name, &old_sindex);
+    guarantee(success);
+
+    // Drop the new sindex (if it exists)
+    UNUSED bool b = drop_sindex(new_name, &sindex_block);
+
+    // Delete the current entry
+    success = delete_secondary_index(&sindex_block, old_name);
+    guarantee(success);
+    set_secondary_index(&sindex_block, new_name, old_sindex);
+}
+
 MUST_USE bool store_t::drop_sindex(
         const sindex_name_t &name,
-        buf_lock_t sindex_block)
+        buf_lock_t *sindex_block)
         THROWS_ONLY(interrupted_exc_t) {
     guarantee(!name.being_deleted);
     /* Remove reference in the super block */
     secondary_index_t sindex;
-    if (!::get_secondary_index(&sindex_block, name, &sindex)) {
+    if (!::get_secondary_index(sindex_block, name, &sindex)) {
         return false;
     } else {
         /* Mark the secondary index as deleted */
-        bool success = mark_secondary_index_deleted(&sindex_block, name);
+        bool success = mark_secondary_index_deleted(sindex_block, name);
         guarantee(success);
 
         /* Clear the sindex later. It starts its own transaction and we don't
@@ -866,6 +883,7 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_read(
         uuid_u *sindex_uuid_out)
     THROWS_ONLY(sindex_not_ready_exc_t) {
     assert_thread();
+    rassert(opaque_definition_out != NULL);
     rassert(sindex_uuid_out != NULL);
 
     /* Acquire the sindex block. */
@@ -880,9 +898,7 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_read(
         return false;
     }
 
-    if (opaque_definition_out != NULL) {
-        *opaque_definition_out = sindex.opaque_definition;
-    }
+    *opaque_definition_out = sindex.opaque_definition;
     *sindex_uuid_out = sindex.id;
 
     if (!sindex.is_ready()) {

@@ -278,7 +278,7 @@ public:
 
 private:
     virtual std::string write_eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_view_t> t = args->arg(env, 0)->as_table();
+        counted_t<table_t> t = args->arg(env, 0)->as_table();
         bool success = t->sync(env->env, this);
         r_sanity_check(success);
         return "synced";
@@ -312,7 +312,7 @@ private:
                 env->env->interruptor, &table, &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
-        return new_val(make_counted<table_view_t>(
+        return new_val(make_counted<table_t>(
             std::move(table), db, name.str(), use_outdated, backtrace()));
     }
     virtual bool is_deterministic() const { return false; }
@@ -324,7 +324,7 @@ public:
     get_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_view_t> table = args->arg(env, 0)->as_table();
+        counted_t<table_t> table = args->arg(env, 0)->as_table();
         counted_t<const datum_t> pkey = args->arg(env, 1)->as_datum();
         counted_t<const datum_t> row = table->get_row(env->env, pkey);
         return new_val(row, pkey, table);
@@ -338,7 +338,7 @@ public:
         : op_term_t(env, term, argspec_t(2, -1), optargspec_t({ "index" })) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_view_t> table = args->arg(env, 0)->as_table();
+        counted_t<table_t> table = args->arg(env, 0)->as_table();
         counted_t<val_t> index = args->optarg(env, "index");
         std::string index_str = index ? index->as_str().to_std() : "";
         if (index && index_str != table->get_pkey()) {

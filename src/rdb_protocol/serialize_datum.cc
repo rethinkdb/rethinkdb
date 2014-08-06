@@ -2,6 +2,7 @@
 #include "rdb_protocol/serialize_datum.hpp"
 
 #include <cmath>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -24,11 +25,12 @@ enum class datum_serialized_type_t {
     INT_NEGATIVE = 7,
     INT_POSITIVE = 8,
     R_BINARY = 9,
+    LAZY = 10
 };
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(datum_serialized_type_t, int8_t,
                                       datum_serialized_type_t::R_ARRAY,
-                                      datum_serialized_type_t::R_BINARY);
+                                      datum_serialized_type_t::LAZY);
 
 serialization_result_t datum_serialize(write_message_t *wm,
                                        datum_serialized_type_t type) {
@@ -151,11 +153,15 @@ MUST_USE archive_result_t datum_deserialize(
 }
 
 
-
-
-size_t datum_serialized_size(const counted_t<const datum_t> &datum) {
+size_t datum_lazy_serialized_size(const counted_t<const datum_t> &datum) {
     r_sanity_check(datum.has());
+
+    if (datum->is_lazy()) {
+        return datum->get_lazy_serialized().size();
+    }
+
     size_t sz = 1; // 1 byte for the type
+
     switch (datum->get_type()) {
     case datum_t::R_ARRAY: {
         sz += datum_serialized_size(datum->as_array());
@@ -185,12 +191,59 @@ size_t datum_serialized_size(const counted_t<const datum_t> &datum) {
     default:
         unreachable();
     }
+
+    return sz;
+}
+
+bool should_serialize_as_lazy(const counted_t<const datum_t> &datum) {
+    bool serialize_as_lazy = datum->is_lazy();
+    if (!serialize_as_lazy) {
+        // Note that we must only call get_type() once we have determined
+        // that the datum is not currently lazy. Otherwise get_type() will
+        // destroy the datum's current lazyness.
+        datum_t::type_t type = datum->get_type();
+        if (type == datum_t::R_ARRAY || type == datum_t::R_OBJECT) {
+            serialize_as_lazy = true;
+        }
+    }
+    return serialize_as_lazy;
+}
+
+size_t datum_serialized_size(const counted_t<const datum_t> &datum) {
+    const bool serialize_as_lazy = should_serialize_as_lazy(datum);
+
+    const uint64_t serialized_size = datum_lazy_serialized_size(datum);
+
+    size_t sz = 0;
+    if (serialize_as_lazy) {
+        sz += 1; // 1 byte for the lazy type
+        sz += varint_uint64_serialized_size(serialized_size);
+    }
+
+    sz += static_cast<size_t>(serialized_size);
     return sz;
 }
 serialization_result_t datum_serialize(write_message_t *wm,
                                        const counted_t<const datum_t> &datum) {
     serialization_result_t res = serialization_result_t::SUCCESS;
     r_sanity_check(datum.has());
+
+    // Determine whether it makes sense for deserialization of this to be lazy
+    const bool serialize_as_lazy = should_serialize_as_lazy(datum);
+
+    if (serialize_as_lazy) {
+        res = res | datum_serialize(wm, datum_serialized_type_t::LAZY);
+        uint64_t serialized_size = datum_lazy_serialized_size(datum);
+        serialize_varint_uint64(wm, serialized_size);
+    }
+
+    if (datum->is_lazy()) {
+        rassert(serialize_as_lazy);
+        wm->append(datum->get_lazy_serialized().data(),
+                   datum->get_lazy_serialized().size());
+        return res;
+    }
+
     switch (datum->get_type()) {
     case datum_t::R_ARRAY: {
         res = res | datum_serialize(wm, datum_serialized_type_t::R_ARRAY);
@@ -247,17 +300,18 @@ serialization_result_t datum_serialize(write_message_t *wm,
     return res;
 }
 archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *datum) {
+    datum_serialized_type_t type;
+    archive_result_t res = datum_deserialize(s, &type);
+    if (bad(res)) {
+        return res;
+    }
+
     // Datums on disk should always be read no matter how stupid big
     // they are; there's no way to fix the problem otherwise.
     // Similarly we don't want to reject array reads from cluster
     // nodes that are within the user spec but larger than the default
     // 100,000 limit.
     ql::configured_limits_t limits = ql::configured_limits_t::unlimited;
-    datum_serialized_type_t type;
-    archive_result_t res = datum_deserialize(s, &type);
-    if (bad(res)) {
-        return res;
-    }
 
     switch (type) {
     case datum_serialized_type_t::R_ARRAY: {
@@ -361,11 +415,77 @@ archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *d
             return archive_result_t::RANGE_ERROR;
         }
     } break;
+    case datum_serialized_type_t::LAZY: {
+        // This just loads the datum as a LAZY_SERIALIZED datum. The actual
+        // deserialization happens when the datum is first accessed.
+        uint64_t serialized_size;
+        res = deserialize_varint_uint64(s, &serialized_size);
+        if (bad(res)) {
+            return res;
+        }
+        if (serialized_size > std::numeric_limits<size_t>::max()) {
+            return archive_result_t::RANGE_ERROR;
+        }
+
+        std::vector<char> serialized_datum(static_cast<size_t>(serialized_size));
+        int64_t num_read = force_read(s, serialized_datum.data(), serialized_size);
+        if (num_read == -1) {
+            return archive_result_t::SOCK_ERROR;
+        }
+        if (static_cast<uint64_t>(num_read) < serialized_size) {
+            return archive_result_t::SOCK_EOF;
+        }
+        datum->reset(new datum_t(std::move(serialized_datum)));
+    } break;
     default:
         return archive_result_t::RANGE_ERROR;
     }
 
     return archive_result_t::SUCCESS;
+}
+
+// Note: Declared in datum.hpp, not serialize_datum.hpp
+archive_result_t deserialize_lazy_data_wrapper(
+        read_stream_t *s, datum_t::data_wrapper_t *data) {
+    datum_serialized_type_t type;
+    archive_result_t res = datum_deserialize(s, &type);
+    if (bad(res)) {
+        return res;
+    }
+
+    // Replace the datum's data in-place without constructing a new datum_t.
+    switch (type) {
+    case datum_serialized_type_t::R_ARRAY: {
+        std::vector<counted_t<const datum_t> > value;
+        res = datum_deserialize(s, &value);
+        if (bad(res)) {
+            return res;
+        }
+        data->set_type(datum_t::R_ARRAY);
+        data->r_array = new std::vector<counted_t<const datum_t> >(std::move(value));
+    } break;
+    case datum_serialized_type_t::R_OBJECT: {
+        std::map<std::string, counted_t<const datum_t> > value;
+        res = datum_deserialize(s, &value);
+        if (bad(res)) {
+            return res;
+        }
+        data->set_type(datum_t::R_OBJECT);
+        data->r_object = new std::map<std::string, counted_t<const datum_t> >(std::move(value));
+    } break;
+    case datum_serialized_type_t::R_BOOL:
+    case datum_serialized_type_t::R_NULL:
+    case datum_serialized_type_t::DOUBLE:
+    case datum_serialized_type_t::INT_NEGATIVE:
+    case datum_serialized_type_t::INT_POSITIVE:
+    case datum_serialized_type_t::R_STR:
+    case datum_serialized_type_t::R_BINARY:
+    case datum_serialized_type_t::LAZY:
+    default:
+        return archive_result_t::RANGE_ERROR;
+    }
+
+    return res;
 }
 
 

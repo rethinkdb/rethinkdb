@@ -110,6 +110,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::INDEX_LIST:         return make_sindex_list_term(env, t);
     case Term::INDEX_STATUS:       return make_sindex_status_term(env, t);
     case Term::INDEX_WAIT:         return make_sindex_wait_term(env, t);
+    case Term::INDEX_RENAME:       return make_sindex_rename_term(env, t);
     case Term::FUNCALL:            return make_funcall_term(env, t);
     case Term::BRANCH:             return make_branch_term(env, t);
     case Term::ANY:                return make_any_term(env, t);
@@ -237,7 +238,10 @@ void run(protob_t<Query> q,
             } else if (counted_t<grouped_data_t> gd
                        = val->maybe_as_promiscuous_grouped_data(scope_env.env)) {
                 res->set_type(Response::SUCCESS_ATOM);
-                counted_t<const datum_t> d = to_datum(std::move(*gd), env.limits);
+                counted_t<const datum_t> d
+                    = to_datum_for_client_serialization(std::move(*gd),
+                                                        env.reql_version,
+                                                        env.limits);
                 d->write_to_protobuf(res->add_response(), use_json);
                 if (env.trace != nullptr) {
                     env.trace->as_datum()->write_to_protobuf(
@@ -390,13 +394,13 @@ counted_t<val_t> term_t::new_val(counted_t<const datum_t> d) const {
     return make_counted<val_t>(d, backtrace());
 }
 counted_t<val_t> term_t::new_val(counted_t<const datum_t> d,
-                                 counted_t<table_view_t> t) const {
+                                 counted_t<table_t> t) const {
     return make_counted<val_t>(d, t, backtrace());
 }
 
 counted_t<val_t> term_t::new_val(counted_t<const datum_t> d,
                                  counted_t<const datum_t> orig_key,
-                                 counted_t<table_view_t> t) const {
+                                 counted_t<table_t> t) const {
     return make_counted<val_t>(d, orig_key, t, backtrace());
 }
 
@@ -405,13 +409,13 @@ counted_t<val_t> term_t::new_val(env_t *env,
     return make_counted<val_t>(env, s, backtrace());
 }
 counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s,
-                                 counted_t<table_view_t> d) const {
+                                 counted_t<table_t> d) const {
     return make_counted<val_t>(d, s, backtrace());
 }
 counted_t<val_t> term_t::new_val(counted_t<const db_t> db) const {
     return make_counted<val_t>(db, backtrace());
 }
-counted_t<val_t> term_t::new_val(counted_t<table_view_t> t) const {
+counted_t<val_t> term_t::new_val(counted_t<table_t> t) const {
     return make_counted<val_t>(t, backtrace());
 }
 counted_t<val_t> term_t::new_val(counted_t<func_t> f) const {

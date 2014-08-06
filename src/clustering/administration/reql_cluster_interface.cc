@@ -5,7 +5,7 @@
 #include "clustering/administration/servers/name_client.hpp"
 #include "clustering/administration/suggester.hpp"
 #include "concurrency/cross_thread_signal.hpp"
-#include "rdb_protocol/real_table/wait_for_readiness.hpp"
+#include "rdb_protocol/wait_for_readiness.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
@@ -295,7 +295,9 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
                 is_deleted = (*ns_md)->namespaces.at(namespace_id).is_deleted();
             }
             );
-        if (is_deleted) break;
+        if (is_deleted) {
+            break;
+        }
         signal_timer_t timer;
         timer.start(poll_ms);
         wait_interruptible(&timer, interruptor);

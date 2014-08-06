@@ -113,6 +113,7 @@ private:
         case Term::INDEX_CREATE:
         case Term::INDEX_DROP:
         case Term::INDEX_WAIT:
+        case Term::INDEX_RENAME:
             return true;
 
         case Term::DATUM:
@@ -358,6 +359,7 @@ private:
         case Term::INDEX_LIST:
         case Term::INDEX_STATUS:
         case Term::INDEX_WAIT:
+        case Term::INDEX_RENAME:
         case Term::FUNCALL:
         case Term::BRANCH:
         case Term::ANY:
