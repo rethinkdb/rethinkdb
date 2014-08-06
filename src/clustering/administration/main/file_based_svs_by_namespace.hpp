@@ -5,6 +5,7 @@
 #include <string>
 
 #include "clustering/administration/reactor_driver.hpp"
+#include "clustering/administration/issues/outdated_index.hpp"
 
 class cache_balancer_t;
 class rdb_context_t;
@@ -13,9 +14,11 @@ class file_based_svs_by_namespace_t : public svs_by_namespace_t {
 public:
     file_based_svs_by_namespace_t(io_backender_t *io_backender,
                                   cache_balancer_t *balancer,
-                                  const base_path_t& base_path)
+                                  const base_path_t& base_path,
+                                  outdated_index_issue_tracker_t *_issue_tracker)
         : io_backender_(io_backender), balancer_(balancer),
-          base_path_(base_path), thread_counter_(0) { }
+          base_path_(base_path), thread_counter_(0),
+          issue_tracker(_issue_tracker) { }
 
     void get_svs(perfmon_collection_t *serializers_perfmon_collection,
                  namespace_id_t namespace_id,
@@ -34,6 +37,8 @@ private:
 
     threadnum_t next_thread(int num_db_threads);
     int thread_counter_; // should only be used by `next_thread`
+
+    outdated_index_issue_tracker_t *issue_tracker;
 
     DISABLE_COPYING(file_based_svs_by_namespace_t);
 };

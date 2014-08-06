@@ -17,6 +17,7 @@
 #include "clustering/administration/issues/name_conflict.hpp"
 #include "clustering/administration/issues/unsatisfiable_goals.hpp"
 #include "clustering/administration/issues/vector_clock_conflict.hpp"
+#include "clustering/administration/issues/outdated_index.hpp"
 #include "clustering/administration/last_seen_tracker.hpp"
 #include "clustering/administration/metadata.hpp"
 
@@ -42,6 +43,9 @@ struct admin_tracker_t {
 
     unsatisfiable_goals_issue_tracker_t unsatisfiable_goals_issue_tracker;
     global_issue_aggregator_t::source_t unsatisfiable_goals_issue_tracker_feed;
+
+    outdated_index_issue_tracker_t outdated_index_issue_tracker;
+    global_issue_aggregator_t::source_t outdated_index_issue_tracker_feed;
 
     last_seen_tracker_t last_seen_tracker;
 };

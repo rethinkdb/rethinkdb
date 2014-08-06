@@ -64,7 +64,8 @@ store_t::store_t(serializer_t *serializer,
                  perfmon_collection_t *parent_perfmon_collection,
                  rdb_context_t *_ctx,
                  io_backender_t *io_backender,
-                 const base_path_t &base_path)
+                 const base_path_t &base_path,
+                 std::set<std::string> *_outdated_indexes)
     : store_view_t(region_t::universe()),
       perfmon_collection(),
       io_backender_(io_backender), base_path_(base_path),
@@ -72,7 +73,8 @@ store_t::store_t(serializer_t *serializer,
       ctx(_ctx),
       changefeed_server((ctx == NULL || ctx->manager == NULL)
                         ? NULL
-                        : new ql::changefeed::server_t(ctx->manager))
+                        : new ql::changefeed::server_t(ctx->manager)),
+      outdated_indexes(_outdated_indexes)
 {
     cache.init(new cache_t(serializer, balancer, &perfmon_collection));
     general_cache_conn.init(new cache_conn_t(cache.get()));
@@ -132,6 +134,8 @@ store_t::store_t(serializer_t *serializer,
                                                               it->first.name,
                                                               index_type_t::SECONDARY)));
         }
+
+        update_outdated_sindex_list(&sindex_block);
     }
 
     help_construct_bring_sindexes_up_to_date();
@@ -815,19 +819,19 @@ bool store_t::mark_index_up_to_date(uuid_u id,
 void store_t::rename_sindex(
         const sindex_name_t &old_name,
         const sindex_name_t &new_name,
-        buf_lock_t sindex_block)
+        buf_lock_t *sindex_block)
         THROWS_ONLY(interrupted_exc_t) {
     secondary_index_t old_sindex;
-    bool success = get_secondary_index(&sindex_block, old_name, &old_sindex);
+    bool success = get_secondary_index(sindex_block, old_name, &old_sindex);
     guarantee(success);
 
     // Drop the new sindex (if it exists)
-    UNUSED bool b = drop_sindex(new_name, &sindex_block);
+    UNUSED bool b = drop_sindex(new_name, sindex_block);
 
     // Delete the current entry
-    success = delete_secondary_index(&sindex_block, old_name);
+    success = delete_secondary_index(sindex_block, old_name);
     guarantee(success);
-    set_secondary_index(&sindex_block, new_name, old_sindex);
+    set_secondary_index(sindex_block, new_name, old_sindex);
 }
 
 MUST_USE bool store_t::drop_sindex(

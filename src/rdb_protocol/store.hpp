@@ -76,9 +76,10 @@ public:
             const std::string &perfmon_name,
             bool create,
             perfmon_collection_t *parent_perfmon_collection,
-            rdb_context_t *,
+            rdb_context_t *_ctx,
             io_backender_t *io_backender,
-            const base_path_t &base_path);
+            const base_path_t &base_path,
+            std::set<std::string> *_outdated_indexes);
     ~store_t();
 
     void note_reshard();
@@ -218,8 +219,10 @@ public:
     void rename_sindex(
         const sindex_name_t &old_name,
         const sindex_name_t &new_name,
-        buf_lock_t sindex_block)
+        buf_lock_t *sindex_block)
     THROWS_ONLY(interrupted_exc_t);
+
+    void update_outdated_sindex_list(buf_lock_t *sindex_block);
 
     MUST_USE bool acquire_sindex_superblock_for_read(
             const sindex_name_t &name,
@@ -404,6 +407,10 @@ public:
 
     rdb_context_t *ctx;
     scoped_ptr_t<ql::changefeed::server_t> changefeed_server;
+
+    // This set is used by the outdated index issue tracker, and should be updated
+    // any time the set of outdated indexes for this table changes
+    std::set<std::string> *outdated_indexes;
 
     // This lock is used to pause backfills while secondary indexes are being
     // post constructed. Secondary index post construction gets in line for a write

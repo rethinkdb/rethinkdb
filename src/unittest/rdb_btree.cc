@@ -363,7 +363,8 @@ TPTEST(RDBBtree, SindexPostConstruct) {
             &get_global_perfmon_collection(),
             NULL,
             &io_backender,
-            base_path_t("."));
+            base_path_t("."),
+            NULL);
 
     cond_t dummy_interruptor;
 
@@ -404,7 +405,8 @@ TPTEST(RDBBtree, SindexEraseRange) {
             &get_global_perfmon_collection(),
             NULL,
             &io_backender,
-            base_path_t("."));
+            base_path_t("."),
+            NULL);
 
     cond_t dummy_interruptor;
 
@@ -478,7 +480,8 @@ TPTEST(RDBBtree, SindexInterruptionViaDrop) {
             &get_global_perfmon_collection(),
             NULL,
             &io_backender,
-            base_path_t("."));
+            base_path_t("."),
+            NULL);
 
     cond_t dummy_interruptor;
 
@@ -520,7 +523,8 @@ TPTEST(RDBBtree, SindexInterruptionViaStoreDelete) {
             &get_global_perfmon_collection(),
             NULL,
             &io_backender,
-            base_path_t(".")));
+            base_path_t("."),
+            NULL));
 
     insert_rows(0, (TOTAL_KEYS_TO_INSERT * 9) / 10, store.get());
 

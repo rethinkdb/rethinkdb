@@ -258,7 +258,8 @@ bool do_serve(io_backender_t *io_backender,
 
             if (i_am_a_server) {
                 rdb_svs_source.init(new file_based_svs_by_namespace_t(
-                    io_backender, cache_balancer.get(), base_path));
+                    io_backender, cache_balancer.get(), base_path,
+                    &admin_tracker.outdated_index_issue_tracker));
                 rdb_reactor_driver.init(new reactor_driver_t(
                         base_path,
                         io_backender,

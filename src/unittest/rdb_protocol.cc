@@ -76,7 +76,8 @@ void run_with_namespace_interface(
                     make_scoped<store_t>(serializers[i].get(), &balancer,
                         temp_files[i]->name().permanent_path(), do_create,
                         &get_global_perfmon_collection(), &ctx,
-                        &io_backender, base_path_t(".")));
+                        &io_backender, base_path_t("."),
+                        static_cast<std::set<std::string>*>(NULL)));
         }
 
         std::vector<scoped_ptr_t<store_view_t> > stores;

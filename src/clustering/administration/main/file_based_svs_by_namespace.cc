@@ -21,11 +21,13 @@ struct store_args_t {
                  namespace_id_t _namespace_id,
                  cache_balancer_t *_balancer,
                  perfmon_collection_t *_serializers_perfmon_collection,
-                 rdb_context_t *_ctx)
+                 rdb_context_t *_ctx,
+                 outdated_index_issue_tracker_t *_issue_tracker,
+                 namespace_id_t _ns_id)
         : io_backender(_io_backender), base_path(_base_path),
           namespace_id(_namespace_id), balancer(_balancer),
           serializers_perfmon_collection(_serializers_perfmon_collection),
-          ctx(_ctx)
+          ctx(_ctx), issue_tracker(_issue_tracker), ns_id(_ns_id)
     { }
 
     io_backender_t *io_backender;
@@ -34,6 +36,8 @@ struct store_args_t {
     cache_balancer_t *balancer;
     perfmon_collection_t *serializers_perfmon_collection;
     rdb_context_t *ctx;
+    outdated_index_issue_tracker_t *issue_tracker;
+    namespace_id_t ns_id;
 };
 
 std::string hash_shard_perfmon_name(int hash_shard_number) {
@@ -51,12 +55,20 @@ void do_construct_existing_store(
     // TODO: Exceptions?  Can exceptions happen, and then this doesn't
     // catch it, and the caller doesn't handle it.
     on_thread_t th(threads[thread_offset]);
+
+    // Only pass this down to the first store
+    std::set<std::string> *outdated_indexes = NULL;
+    if (thread_offset == 0) {
+        outdated_indexes = store_args.issue_tracker->get_index_set(store_args.ns_id);
+    }
+
     // TODO: Can we pass serializers_perfmon_collection across threads like this?
     store_t *store = new store_t(
         multiplexer->proxies[thread_offset], store_args.balancer,
         hash_shard_perfmon_name(thread_offset),
         false, store_args.serializers_perfmon_collection,
-        store_args.ctx, store_args.io_backender, store_args.base_path);
+        store_args.ctx, store_args.io_backender, store_args.base_path,
+        outdated_indexes);
     (*stores_out_stores)[thread_offset].init(store);
     store_views[thread_offset] = store;
 }
@@ -70,11 +82,19 @@ void do_create_new_store(
     store_view_t **store_views) {
 
     on_thread_t th(threads[thread_offset]);
+
+    // Only pass this down to the first store
+    std::set<std::string> *outdated_indexes = NULL;
+    if (thread_offset == 0) {
+        outdated_indexes = store_args.issue_tracker->get_index_set(store_args.ns_id);
+    }
+
     store_t *store = new store_t(
         multiplexer->proxies[thread_offset], store_args.balancer,
         hash_shard_perfmon_name(thread_offset),
         true, store_args.serializers_perfmon_collection,
-        store_args.ctx, store_args.io_backender, store_args.base_path);
+        store_args.ctx, store_args.io_backender, store_args.base_path,
+        outdated_indexes);
     (*stores_out_stores)[thread_offset].init(store);
     store_views[thread_offset] = store;
 }
@@ -120,7 +140,8 @@ file_based_svs_by_namespace_t::get_svs(
         int res = access(serializer_filepath.permanent_path().c_str(), R_OK | W_OK);
         store_args_t store_args(io_backender_, base_path_,
                                 namespace_id, balancer_,
-                                serializers_perfmon_collection, ctx);
+                                serializers_perfmon_collection, ctx,
+                                issue_tracker, namespace_id);
         filepath_file_opener_t file_opener(serializer_filepath, io_backender_);
         if (res == 0) {
             // TODO: Could we handle failure when loading the serializer?  Right

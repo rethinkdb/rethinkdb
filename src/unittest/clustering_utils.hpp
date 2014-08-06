@@ -54,7 +54,7 @@ public:
             serializer(create_and_construct_serializer(&temp_file, io_backender)),
             balancer(new dummy_cache_balancer_t(GIGABYTE)),
             store(serializer.get(), balancer.get(), temp_file.name().permanent_path(), true,
-                  &get_global_perfmon_collection(), ctx, io_backender, base_path_t(".")) {
+                  &get_global_perfmon_collection(), ctx, io_backender, base_path_t("."), NULL) {
         /* Initialize store metadata */
         cond_t non_interruptor;
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
