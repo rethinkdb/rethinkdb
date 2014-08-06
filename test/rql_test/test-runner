@@ -4,8 +4,6 @@
 
 from __future__ import print_function
 
-import yaml
-
 import atexit, collections, distutils.version, distutils.spawn, optparse, os, re, shutil, signal, stat, subprocess, sys, tempfile, time
 
 try:

@@ -636,6 +636,14 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
                                 make_counted<const ql::datum_t>(std::move(body_data));
                         }
                     }
+                } else if (content_type.find("audio/") == 0 ||
+                           content_type.find("image/") == 0 ||
+                           content_type.find("video/") == 0 ||
+                           content_type.find("application/octet-stream") == 0) {
+                    res_out->body = ql::datum_t::binary(
+                        wire_string_t::create_and_init(body_data.size(),
+                                                       body_data.c_str()));
+
                 } else {
                     res_out->body =
                         make_counted<const ql::datum_t>(std::move(body_data));
@@ -650,6 +658,10 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
             break;
         case http_result_format_t::TEXT:
             res_out->body = make_counted<const ql::datum_t>(std::move(body_data));
+            break;
+        case http_result_format_t::BINARY:
+            res_out->body = ql::datum_t::binary(
+                wire_string_t::create_and_init(body_data.size(), body_data.c_str()));
             break;
         default:
             unreachable();

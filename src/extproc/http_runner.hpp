@@ -50,7 +50,8 @@ enum class http_result_format_t {
     AUTO,
     TEXT,
     JSON,
-    JSONP
+    JSONP,
+    BINARY
 };
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
@@ -63,7 +64,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         http_result_format_t, int8_t,
-        http_result_format_t::AUTO, http_result_format_t::JSONP);
+        http_result_format_t::AUTO, http_result_format_t::BINARY);
 
 std::string http_method_to_str(http_method_t method);
 

@@ -101,7 +101,7 @@ sindex_name_t create_sindex(store_t *store) {
     write_message_t wm;
     serialize_sindex_info(&wm,
                           m,
-                          sindex_reql_version_info_t::LATEST_DISK(),
+                          sindex_reql_version_info_t::LATEST(),
                           multi_bool);
 
     vector_stream_t stream;
