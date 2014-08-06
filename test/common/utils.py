@@ -84,10 +84,10 @@ def build_in_folder(targetFolder, waitNotification=None, notificationTimeout=2, 
     
     if makeProcess.wait() != 0:
         raise test_exceptions.NotBuiltException(detail='Failed making: %s' % targetFolder, debugInfo=outputFile)
-       
+
 def import_pyton_driver(targetDir=None):
     '''import the latest built version of the python driver into the caller's namespace, ensuring that the drivers are built'''
-    import inspect
+    import imp # note: depreciated but not gone in 3.4, will have to add importlib at some point
     
     # TODO: modify this to allow for system-installled drivers
     
@@ -146,16 +146,19 @@ def import_pyton_driver(targetDir=None):
     
     # --
     
-    if not os.path.isdir(driverDir) or not os.path.basename(driverDir) == 'rethinkdb':
+    if not os.path.isdir(driverDir) or not os.path.basename(driverDir) == 'rethinkdb' or not os.path.isfile(os.path.join(driverDir, '__init__.py')): # ToDo: handle ziped egg case
         raise ValueError('import_pyton_driver got an invalid driverDir: %s' % driverDir)
     
     # - return the imported module
     
-    keptPaths = sys.path
+    keptPaths = sys.path[:]
     try:
-        sys.path.insert(0, os.path.dirname(driverDir))
-        import rethinkdb as driverModule
-        assert(os.path.realpath(inspect.getfile(driverModule)).startswith(driverDir)), "The wrong version or the rethinkdb Python driver got imported. It should have been in %s but was %s" % (driverDir, os.path.realpath(inspect.getfile(driverModule)))
+        moduleFile, pathname, desc = imp.find_module('rethinkdb', [os.path.dirname(driverDir)])
+        driverModule = imp.load_module('rethinkdb', moduleFile, pathname, desc)
+        if moduleFile is not None:
+            moduleFile.close()
+        loadedFrom = os.path.dirname(os.path.realpath(driverModule.__file__))
+        assert loadedFrom.startswith(driverDir), "The wrong version or the rethinkdb Python driver got imported. It should have been in %s but was from %s" % (driverDir, loadedFrom)
         return driverModule
     finally:
         sys.path = keptPaths
