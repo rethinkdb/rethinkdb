@@ -448,8 +448,8 @@ std::string human_readable_status(int code) {
 
 void write_http_msg(tcp_conn_t *conn, const http_res_t &res, signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
     conn->writef(closer, "HTTP/%s %d %s\r\n", res.version.c_str(), res.code, human_readable_status(res.code).c_str());
-    for (std::map<std::string, std::string>::const_iterator it = res.header_lines.begin(); it != res.header_lines.end(); ++it) {
-        conn->writef(closer, "%s: %s\r\n", it->first.c_str(), it->second.c_str());
+    for (const auto &line: res.header_lines) {
+        conn->writef(closer, "%s: %s\r\n", line.first.c_str(), line.second.c_str());
     }
     conn->writef(closer, "\r\n");
     conn->write(res.body.c_str(), res.body.size(), closer);
