@@ -477,7 +477,7 @@ private:
         } else {
             int end_index =
                 canonicalize(this, args->arg(env, 2)->as_datum()->as_int(), array->size());
-            array->erase_range(index, end_index);
+            array->erase_range(env->env->reql_version, index, end_index);
         }
     }
     const char *name() const { return "delete_at"; }

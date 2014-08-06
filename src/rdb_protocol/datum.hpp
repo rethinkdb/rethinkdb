@@ -371,7 +371,9 @@ public:
     void splice(reql_version_t reql_version, size_t index,
                 counted_t<const datum_t> values);
 
-    void erase_range(size_t start, size_t end);
+    // On v1_13, erase_range doesn't allow start and end to equal array_size.
+    void erase_range(reql_version_t reql_version, size_t start, size_t end);
+
     void erase(size_t index);
 
     counted_t<const datum_t> to_counted() RVALUE_THIS;

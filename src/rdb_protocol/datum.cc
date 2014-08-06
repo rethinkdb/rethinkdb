@@ -1414,14 +1414,30 @@ void datum_array_builder_t::splice(reql_version_t reql_version, size_t index,
     }
 }
 
-void datum_array_builder_t::erase_range(size_t start, size_t end) {
-    // Don't change this to <=.  See #2696.  Probably you'll want to move the logic
-    // of this (and some other functions here) into particular ReQL term
-    // implementations.
-    rcheck_datum(start < vector.size(),
-                 base_exc_t::NON_EXISTENCE,
-                 strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
-                           start, vector.size()));
+void datum_array_builder_t::erase_range(reql_version_t reql_version,
+                                        size_t start, size_t end) {
+
+    // See https://github.com/rethinkdb/rethinkdb/issues/2696 about the backwards
+    // compatible implementation for v1_13.
+
+    switch (reql_version) {
+    case reql_version_t::v1_13:
+        rcheck_datum(start < vector.size(),
+                     base_exc_t::NON_EXISTENCE,
+                     strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
+                               start, vector.size()));
+        break;
+    case reql_version_t::v1_14_is_latest:
+        rcheck_datum(start <= vector.size(),
+                     base_exc_t::NON_EXISTENCE,
+                     strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
+                               start, vector.size()));
+        break;
+    default:
+        unreachable();
+    }
+
+
     rcheck_datum(end <= vector.size(),
                  base_exc_t::NON_EXISTENCE,
                  strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
