@@ -4,7 +4,7 @@ import sys, os, time
 sys.path.append(os.path.abspath(os.path.join(
     os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, http_admin, scenario_common, utils
-r = utils.import_pyton_driver()
+r = utils.import_python_driver()
 from vcoptparse import *
 
 op = OptParser()
