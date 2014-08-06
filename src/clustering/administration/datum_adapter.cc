@@ -1,21 +1,22 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/datum_adapter.hpp"
 
-counted_t<const ql::datum_t> convert_server_name_to_datum(
+counted_t<const ql::datum_t> convert_name_to_datum(
         const name_string_t &value) {
     return make_counted<const ql::datum_t>(std::string(value.str()));
 }
 
-bool convert_server_name_from_datum(
+bool convert_name_from_datum(
         counted_t<const ql::datum_t> datum,
+        const std::string &what,
         name_string_t *value_out,
         std::string *error_out) {
     if (datum->get_type() != ql::datum_t::R_STR) {
-        *error_out = "Expected a server name; got " + datum->print();
+        *error_out = "Expected a " + what + "; got " + datum->print();
         return false;
     }
     if (!value_out->assign_value(datum->as_str())) {
-        *error_out = datum->print() + " is not a valid server name; " +
+        *error_out = datum->print() + " is not a valid " + what + "; " +
             std::string(name_string_t::valid_char_msg);
         return false;
     }

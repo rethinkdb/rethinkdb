@@ -76,6 +76,19 @@ public:
         std::vector<name_string_t> director_names;
     };
     std::vector<shard_t> shards;
+
+    key_range_t get_shard_range(size_t i) const {
+        store_key_t left = (i == 0) ? store_key_t::min() : *shards[i-1].split_point;
+        if (i != shards.size() - 1) {
+            return key_range_t(
+                key_range_t::closed, left,
+                key_range_t::open, *shards[i].split_point);
+        } else {
+            return key_range_t(
+                key_range_t::closed, left,
+                key_range_t::none, store_key_t());
+        }
+    }
 };
 
 RDB_DECLARE_SERIALIZABLE(table_config_t::shard_t);

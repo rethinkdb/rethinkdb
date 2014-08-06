@@ -28,6 +28,7 @@
 #include "clustering/administration/servers/network_logger.hpp"
 #include "clustering/administration/sys_stats.hpp"
 #include "clustering/administration/tables/table_config.hpp"
+#include "clustering/administration/tables/table_status.hpp"
 #include "containers/incremental_lenses.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "rdb_protocol/query_server.hpp"
@@ -266,6 +267,16 @@ bool do_serve(io_backender_t *io_backender,
                 &server_name_client);
         artificial_table_backends[name_string_t::guarantee_valid("table_config")] =
             &table_config_backend;
+        table_status_artificial_table_backend_t table_status_backend(
+                metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
+                    semilattice_manager_cluster.get_root_view()),
+                directory_read_manager.get_root_view()->incremental_subview(
+                    incremental_field_getter_t<namespaces_directory_metadata_t,
+                                               cluster_directory_metadata_t>    
+                        (&cluster_directory_metadata_t::rdb_namespaces)),
+                &server_name_client);
+        artificial_table_backends[name_string_t::guarantee_valid("table_status")] =
+            &table_status_backend;
         artificial_reql_cluster_interface_t artificial_reql_cluster_interface(
             name_string_t::guarantee_valid("rethinkdb"),
             artificial_table_backends,

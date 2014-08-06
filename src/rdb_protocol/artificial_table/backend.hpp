@@ -47,14 +47,7 @@ public:
         signal_t *interruptor,
         std::string *error_out) = 0;
 
-    /* If a row is inserted, deleted, or modified, the `artificial_table_backend_t` must
-    publish a notification via this publisher. This is true whether the change came from
-    a call to `set_row()` or from an external source. The notification doesn't have to be
-    in real time, and there doesn't need to be one notification per change; the only
-    requirement is that if a change occurs, a notification must be sent out within some
-    reasonable time period afterwards. */
-    virtual publisher_t<std::function<void(counted_t<const ql::datum_t>)> > *
-    get_publisher() = 0;
+    /* TODO: Support change feeds. */
 
 protected:
     virtual ~artificial_table_backend_t() { }

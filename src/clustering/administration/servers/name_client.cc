@@ -13,7 +13,9 @@ server_name_client_t::server_name_client_t(
     directory_view(_directory_view),
     semilattice_view(_semilattice_view),
     machine_id_to_peer_id_map(std::map<machine_id_t, peer_id_t>()),
+    peer_id_to_machine_id_map(std::map<peer_id_t, machine_id_t>()),
     name_to_machine_id_map(std::map<name_string_t, machine_id_t>()),
+    machine_id_to_name_map(std::map<machine_id_t, name_string_t>()),
     directory_subs([this]() {
         this->recompute_machine_id_to_peer_id_map();
         }),
@@ -150,7 +152,8 @@ bool server_name_client_t::permanently_remove_server(const name_string_t &name,
 }
 
 void server_name_client_t::recompute_name_to_machine_id_map() {
-    std::map<name_string_t, machine_id_t> new_map;
+    std::map<name_string_t, machine_id_t> new_map_n2m;
+    std::map<machine_id_t, name_string_t> new_map_m2n;
     bool name_collision = false;
     machines_semilattice_metadata_t sl_metadata = semilattice_view->get();
     for (auto sl_it = sl_metadata.machines.begin();
@@ -160,19 +163,25 @@ void server_name_client_t::recompute_name_to_machine_id_map() {
             continue;
         }
         name_string_t name = sl_it->second.get_ref().name.get_ref();
-        auto res = new_map.insert(std::make_pair(name, sl_it->first));
+        auto res = new_map_n2m.insert(std::make_pair(name, sl_it->first));
         if (!res.second) {
             name_collision = true;
             break;
         }
+        auto res2 = new_map_m2n.insert(std::make_pair(sl_it->first, name));
+        if (!res2.second) {
+            crash("Two servers have the same machine ID.");
+        }
     }
     if (!name_collision) {
-        name_to_machine_id_map.set_value(new_map);
+        name_to_machine_id_map.set_value(new_map_n2m);
+        machine_id_to_name_map.set_value(new_map_m2n);
     }
 }
 
 void server_name_client_t::recompute_machine_id_to_peer_id_map() {
-    std::map<machine_id_t, peer_id_t> new_map;
+    std::map<machine_id_t, peer_id_t> new_map_m2p;
+    std::map<peer_id_t, machine_id_t> new_map_p2m;
     machines_semilattice_metadata_t sl_metadata = semilattice_view->get();
     for (auto sl_it = sl_metadata.machines.begin();
               sl_it != sl_metadata.machines.end();
@@ -180,24 +189,28 @@ void server_name_client_t::recompute_machine_id_to_peer_id_map() {
         if (sl_it->second.is_deleted()) {
             continue;
         }
-        new_map.insert(std::make_pair(sl_it->first, peer_id_t()));
+        new_map_m2p.insert(std::make_pair(sl_it->first, peer_id_t()));
     }
     directory_view->apply_read(
         [&](const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> *dir) {
             for (auto dir_it = dir->get_inner().begin();
                       dir_it != dir->get_inner().end();
                     ++dir_it) {
-                auto map_it = new_map.find(dir_it->second.machine_id);
-                if (map_it == new_map.end()) {
+                auto map_it = new_map_m2p.find(dir_it->second.machine_id);
+                if (map_it == new_map_m2p.end()) {
                     /* This machine is in the directory but not the semilattices. This
-                    can happen temporarily at startup. Ignore it. */
+                    can happen temporarily at startup, or if a permanently removed server
+                    comes back online. Ignore it. */
                     continue;
                 }
                 guarantee(map_it->second.is_nil(),
                     "Two servers have the same machine ID.");
                 map_it->second = dir_it->first;
+                new_map_p2m.insert(std::make_pair(
+                    dir_it->first, dir_it->second.machine_id));
             }
     });
-    machine_id_to_peer_id_map.set_value(new_map);
+    machine_id_to_peer_id_map.set_value(new_map_m2p);
+    peer_id_to_machine_id_map.set_value(new_map_p2m);
 }
 

@@ -110,20 +110,9 @@ void namespace_repo_t::on_namespaces_change(auto_drainer_t::lock_t keepalive) {
             continue;
         }
         table_replication_info_t info = it->second.get_ref().replication_info.get_ref();
-        store_key_t previous_split_point = store_key_t::min();
         for (size_t i = 0; i < info.config.shards.size(); ++i) {
-            key_range_t region;
-            if (i != info.config.shards.size() - 1) {
-                region = key_range_t(
-                        key_range_t::closed, previous_split_point,
-                        key_range_t::open, *info.config.shards[i].split_point);
-                previous_split_point = *info.config.shards[i].split_point;
-            } else {
-                region = key_range_t(
-                        key_range_t::closed, previous_split_point,
-                        key_range_t::none, store_key_t());
-            }
-            new_reg_to_pri_maps[it->first][region] = info.chosen_directors[i];
+            new_reg_to_pri_maps[it->first][info.config.get_shard_range(i)] =
+                info.chosen_directors[i];
         }
     }
 

@@ -7,10 +7,11 @@
 #include "containers/name_string.hpp"
 #include "rdb_protocol/datum.hpp"
 
-counted_t<const ql::datum_t> convert_server_name_to_datum(
+counted_t<const ql::datum_t> convert_name_to_datum(
         const name_string_t &value);
-bool convert_server_name_from_datum(
+bool convert_name_from_datum(
         counted_t<const ql::datum_t> datum,
+        const std::string &what,   /* e.g. "server name" or "table name" */
         name_string_t *value_out,
         std::string *error_out);
 

@@ -84,24 +84,6 @@ blueprint_t construct_blueprint(const table_config_t &config,
                                 server_name_client_t *name_client) {
     rassert(config.shards.size() == chosen_directors.size());
 
-    std::vector<region_t> regions;
-    store_key_t previous_split_point = store_key_t::min();
-    for (size_t i = 0; i < config.shards.size(); ++i) {
-        const table_config_t::shard_t &shard = config.shards[i];
-        if (i != config.shards.size() - 1) {
-            rassert(shard.split_point);
-            regions.push_back(hash_region_t<key_range_t>(key_range_t(
-                key_range_t::closed, previous_split_point,
-                key_range_t::open, *shard.split_point)));
-            previous_split_point = *shard.split_point;
-        } else {
-            rassert(!shard.split_point);
-            regions.push_back(hash_region_t<key_range_t>(key_range_t(
-                key_range_t::closed, previous_split_point,
-                key_range_t::none, store_key_t())));
-        }
-    }
-
     blueprint_name_translator_t trans(name_client);
 
     blueprint_t blueprint;
@@ -115,7 +97,10 @@ blueprint_t construct_blueprint(const table_config_t &config,
         if (blueprint.peers_roles.count(peer) == 0) {
             blueprint.add_peer(peer);
         }
-        blueprint.add_role(peer, regions[i], blueprint_role_primary);
+        blueprint.add_role(
+            peer,
+            hash_region_t<key_range_t>(config.get_shard_range(i)),
+            blueprint_role_primary);
     }
 
     /* Put the secondaries in the blueprint */
@@ -128,7 +113,10 @@ blueprint_t construct_blueprint(const table_config_t &config,
                 blueprint.add_peer(peer);
             }
             if (machine_id != chosen_directors[i]) {
-                blueprint.add_role(peer, regions[i], blueprint_role_secondary);
+                blueprint.add_role(
+                    peer,
+                    hash_region_t<key_range_t>(config.get_shard_range(i)),
+                    blueprint_role_secondary);
             }
         }
     }
@@ -147,10 +135,11 @@ blueprint_t construct_blueprint(const table_config_t &config,
     }
 
     /* If a peer's role isn't primary or secondary, make it nothing */
-    for (const region_t &region : regions) {
+    for (size_t i = 0; i < config.shards.size(); ++i) {
         for (auto it = blueprint.peers_roles.begin();
                   it != blueprint.peers_roles.end();
                 ++it) {
+            region_t region = hash_region_t<key_range_t>(config.get_shard_range(i));
             if (it->second.count(region) == 0) {
                 blueprint.add_role(it->first, region, blueprint_role_nothing);
             }
