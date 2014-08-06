@@ -472,6 +472,8 @@ message Term {
         // Blocks until a set of indexes are ready to be accessed. Returns the
         // same values INDEX_STATUS.
         INDEX_WAIT = 140; // Table, STRING... -> ARRAY
+        // Renames the given index to a new name
+        INDEX_RENAME = 156; // Table, STRING, STRING, {overwrite:BOOL} -> OBJECT
 
         // * Control Operators
         // Calls a function on data

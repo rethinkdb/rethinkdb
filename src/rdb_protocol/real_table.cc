@@ -179,6 +179,21 @@ bool real_table_t::sindex_drop(ql::env_t *env, const std::string &id) {
     return response->success;
 }
 
+sindex_rename_result_t real_table_t::sindex_rename(ql::env_t *env,
+                                                   const std::string &old_name,
+                                                   const std::string &new_name,
+                                                   bool overwrite) {
+    write_t write(sindex_rename_t(old_name, new_name, overwrite),
+                  env->profile(),
+                  env->limits);
+    write_response_t res;
+    write_with_profile(env, &write, &res);
+    sindex_rename_response_t *response =
+        boost::get<sindex_rename_response_t>(&res.response);
+    r_sanity_check(response);
+    return response->result;
+}
+
 std::vector<std::string> real_table_t::sindex_list(ql::env_t *env) {
     sindex_list_t sindex_list;
     read_t read(sindex_list, env->profile());

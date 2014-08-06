@@ -838,6 +838,10 @@ struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
         return d.region;
     }
 
+    region_t operator()(const sindex_rename_t &r) const {
+        return r.region;
+    }
+
     region_t operator()(const sync_t &s) const {
         return s.region;
     }
@@ -931,6 +935,10 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         return rangey_write(d);
     }
 
+    bool operator()(const sindex_rename_t &r) const {
+        return rangey_write(r);
+    }
+
     bool operator()(const sync_t &s) const {
         return rangey_write(s);
     }
@@ -984,6 +992,10 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_drop_t &) const {
+        *response_out = responses[0];
+    }
+
+    void operator()(const sindex_rename_t &) const {
         *response_out = responses[0];
     }
 
@@ -1095,6 +1107,9 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sindex_create_response_t, success);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sindex_drop_response_t, success);
 RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(sync_response_t);
 
+RDB_IMPL_SERIALIZABLE_1(sindex_rename_response_t, result);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_rename_response_t);
+
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(write_response_t, response, event_log, n_shards);
 
 // Serialization format for these changed in 1.14.  We only support the
@@ -1111,6 +1126,10 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_delete_t, key);
 RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(sindex_create_t, id, mapping, region, multi);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(sindex_drop_t, id, region);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sync_t, region);
+
+RDB_IMPL_SERIALIZABLE_4(sindex_rename_t, region,
+                        old_name, new_name, overwrite);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_rename_t);
 
 // Serialization format changed in 1.14.0. We only support the latest version,
 // since this is a cluster-only type.

@@ -979,6 +979,9 @@ class Table(RqlQuery):
     def index_drop(self, *args):
         return IndexDrop(self, *args)
 
+    def index_rename(self, *args, **kwargs):
+        return IndexRename(self, *args, **kwargs)
+
     def index_list(self, *args):
         return IndexList(self, *args)
 
@@ -1172,6 +1175,10 @@ class IndexCreate(RqlMethodQuery):
 class IndexDrop(RqlMethodQuery):
     tt = pTerm.INDEX_DROP
     st = 'index_drop'
+
+class IndexRename(RqlMethodQuery):
+    tt = pTerm.INDEX_RENAME
+    st = 'index_rename'
 
 class IndexList(RqlMethodQuery):
     tt = pTerm.INDEX_LIST

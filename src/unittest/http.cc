@@ -26,10 +26,7 @@ TEST(Http, FormatTime) {
 // Helper functions to create dummy objects
 http_req_t http_req_encoding(const std::string &encoding) {
     http_req_t req;
-    header_line_t accept_encoding;
-    accept_encoding.key = "Accept-Encoding";
-    accept_encoding.val = encoding;
-    req.header_lines.push_back(accept_encoding);
+    req.add_header_line("Accept-Encoding", encoding);
     return req;
 }
 
