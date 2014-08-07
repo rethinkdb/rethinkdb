@@ -288,6 +288,9 @@ private:
         }
     }
     virtual const char *name() const { return "bracket"; }
+    // obj_or_seq_op_term_t already does this, but because nth_term wasn't grouped,
+    // I reimplement it here for clarity.
+    virtual bool is_grouped_seq_op() const { return true; }
 };
 
 counted_t<term_t> make_bracket_term(compile_env_t *env, const protob_t<const Term> &term) {

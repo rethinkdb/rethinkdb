@@ -77,7 +77,9 @@ uint64_t canonicalize(const term_t *t, int64_t index, size_t size, bool *oob_out
     return uint64_t(size) + index;
 }
 
-counted_t<val_t> nth_term_impl(const term_t *term, scope_env_t *env,
+// needed because nth_term_impl may need to recurse over its contents to deal with
+// e.g. grouped data.
+counted_t<val_t> nth_term_direct_impl(const term_t *term, scope_env_t *env,
                                counted_t<val_t> aggregate, counted_t<val_t> index) {
     int32_t n = index->as_int<int32_t>();
     if (aggregate->get_type().is_convertible(val_t::type_t::DATUM)) {
@@ -123,6 +125,31 @@ counted_t<val_t> nth_term_impl(const term_t *term, scope_env_t *env,
     }
 }
 
+counted_t<val_t> nth_term_impl(const term_t *term, scope_env_t *env,
+                               counted_t<val_t> aggregate, counted_t<val_t> index) {
+    if (aggregate->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
+        counted_t<datum_stream_t> seq = aggregate->as_seq(env->env);
+        if (seq->is_grouped()) {
+            counted_t<grouped_data_t> result
+                = seq->to_array(env->env)->as_grouped_data();
+            // (aggregate is empty, because maybe_grouped_data sets at most one of
+            // gd and aggregate, so we don't have to worry about re-evaluating it.
+            counted_t<grouped_data_t> out(new grouped_data_t());
+            for (auto kv = result->begin(); kv != result->end(); ++kv) {
+                counted_t<val_t> value
+                    = make_counted<val_t>(kv->second, aggregate->backtrace());
+                (*out)[kv->first]
+                    = nth_term_direct_impl(term, env, value, index)->as_datum();
+            }
+            return make_counted<val_t>(out, term->backtrace());
+        } else {
+            return nth_term_direct_impl(term, env, aggregate, index);
+        }
+    } else {
+        return nth_term_direct_impl(term, env, aggregate, index);
+    }
+}
+
 class nth_term_t : public op_term_t {
 public:
     nth_term_t(compile_env_t *env, const protob_t<const Term> &term)
@@ -133,6 +160,7 @@ private:
         return nth_term_impl(this, env, args->arg(env, 0), args->arg(env, 1));
     }
     virtual const char *name() const { return "nth"; }
+    virtual bool is_grouped_seq_op() const { return true; }
 };
 
 class is_empty_term_t : public op_term_t {
