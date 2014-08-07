@@ -65,7 +65,7 @@ store_t::store_t(serializer_t *serializer,
                  rdb_context_t *_ctx,
                  io_backender_t *io_backender,
                  const base_path_t &base_path,
-                 std::set<std::string> *_outdated_indexes)
+                 outdated_index_report_t *_index_report)
     : store_view_t(region_t::universe()),
       perfmon_collection(),
       io_backender_(io_backender), base_path_(base_path),
@@ -74,7 +74,7 @@ store_t::store_t(serializer_t *serializer,
       changefeed_server((ctx == NULL || ctx->manager == NULL)
                         ? NULL
                         : new ql::changefeed::server_t(ctx->manager)),
-      outdated_indexes(_outdated_indexes)
+      index_report(_index_report)
 {
     cache.init(new cache_t(serializer, balancer, &perfmon_collection));
     general_cache_conn.init(new cache_conn_t(cache.get()));
@@ -143,8 +143,8 @@ store_t::store_t(serializer_t *serializer,
 
 store_t::~store_t() {
     assert_thread();
-    if (outdated_indexes != NULL) {
-        outdated_indexes->clear();
+    if (index_report != NULL) {
+        index_report->destroy();
     }
 }
 
@@ -835,6 +835,10 @@ void store_t::rename_sindex(
     success = delete_secondary_index(sindex_block, old_name);
     guarantee(success);
     set_secondary_index(sindex_block, new_name, old_sindex);
+
+    if (index_report != NULL) {
+        index_report->index_renamed(old_name.name, new_name.name);
+    }
 }
 
 MUST_USE bool store_t::drop_sindex(
@@ -858,6 +862,11 @@ MUST_USE bool store_t::drop_sindex(
                                          sindex,
                                          drainer.lock()));
     }
+
+    if (index_report != NULL) {
+        index_report->index_dropped(name.name);
+    }
+
     return true;
 }
 

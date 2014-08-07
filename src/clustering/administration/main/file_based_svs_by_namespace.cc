@@ -57,10 +57,9 @@ void do_construct_existing_store(
     on_thread_t th(threads[thread_offset]);
 
     // Only pass this down to the first store
-    std::set<std::string> *outdated_indexes = NULL;
+    outdated_index_report_t *index_report = NULL;
     if (thread_offset == 0) {
-        outdated_indexes =
-            store_args.outdated_index_client->get_index_set(store_args.ns_id);
+        index_report = store_args.outdated_index_client->create_report(store_args.ns_id);
     }
 
     // TODO: Can we pass serializers_perfmon_collection across threads like this?
@@ -69,7 +68,7 @@ void do_construct_existing_store(
         hash_shard_perfmon_name(thread_offset),
         false, store_args.serializers_perfmon_collection,
         store_args.ctx, store_args.io_backender, store_args.base_path,
-        outdated_indexes);
+        index_report);
     (*stores_out_stores)[thread_offset].init(store);
     store_views[thread_offset] = store;
 }
@@ -85,10 +84,9 @@ void do_create_new_store(
     on_thread_t th(threads[thread_offset]);
 
     // Only pass this down to the first store
-    std::set<std::string> *outdated_indexes = NULL;
+    outdated_index_report_t *index_report = NULL;
     if (thread_offset == 0) {
-        outdated_indexes =
-            store_args.outdated_index_client->get_index_set(store_args.ns_id);
+        index_report = store_args.outdated_index_client->create_report(store_args.ns_id);
     }
 
     store_t *store = new store_t(
@@ -96,7 +94,7 @@ void do_create_new_store(
         hash_shard_perfmon_name(thread_offset),
         true, store_args.serializers_perfmon_collection,
         store_args.ctx, store_args.io_backender, store_args.base_path,
-        outdated_indexes);
+        index_report);
     (*stores_out_stores)[thread_offset].init(store);
     store_views[thread_offset] = store;
 }

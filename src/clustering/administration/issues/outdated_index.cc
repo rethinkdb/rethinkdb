@@ -32,7 +32,7 @@ cJSON *outdated_index_issue_t::get_json_description() {
     json.type = "OUTDATED_INDEX_ISSUE";
     json.time = get_secs();
 
-    // Put all of the outdated indexes in a map by their uuid, like so:
+    // Put all of the outdated indexes in a map by their table's uuid, like so:
     // indexes: { '1234-5678': ['sindex_a', 'sindex_b'], '9284-af82': ['sindex_c'] }
     cJSON *res = render_as_json(&json);
     cJSON *obj = cJSON_CreateObject();
@@ -88,6 +88,51 @@ void outdated_index_issue_server_t::handle_request(result_address_t result_addre
     send(mailbox_manager, result_address, std::move(res));
 }
 
+class outdated_index_report_impl_t :
+        public outdated_index_report_t,
+        public home_thread_mixin_t {
+public:
+    outdated_index_report_impl_t(outdated_index_issue_client_t *_parent,
+                                 namespace_id_t _ns_id) :
+        parent(_parent),
+        ns_id(_ns_id) { }
+
+    ~outdated_index_report_impl_t() { }
+
+    void set_outdated_indexes(std::set<std::string> &&indexes) {
+        assert_thread();
+        (*parent->outdated_indexes.get())[ns_id] = std::move(indexes);
+    }
+
+    void index_dropped(const std::string &index_name) {
+        assert_thread();
+        (*parent->outdated_indexes.get())[ns_id].erase(index_name);
+    }
+
+    void index_renamed(const std::string &old_name,
+                       const std::string &new_name) {
+        assert_thread();
+        std::set<std::string> &ns_set = (*parent->outdated_indexes.get())[ns_id];
+
+        if (ns_set.find(old_name) != ns_set.end()) {
+            ns_set.erase(old_name);
+            ns_set.insert(new_name);
+        }
+    }
+
+    void destroy() {
+        assert_thread();
+        parent->outdated_indexes.get()->erase(ns_id);
+        parent->destroy_report(this);
+    }
+
+private:
+    outdated_index_issue_client_t *parent;
+    namespace_id_t ns_id;
+
+    DISABLE_COPYING(outdated_index_report_impl_t);
+};
+
 outdated_index_issue_client_t::outdated_index_issue_client_t(
         mailbox_manager_t *_mailbox_manager,
         const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
@@ -99,17 +144,15 @@ outdated_index_issue_client_t::outdated_index_issue_client_t(
 
 outdated_index_issue_client_t::~outdated_index_issue_client_t() { }
 
-std::set<std::string> *
-outdated_index_issue_client_t::get_index_set(const namespace_id_t &ns_id) {
-    auto thread_map = outdated_indexes.get();
-    auto ns_it = thread_map->find(ns_id);
+outdated_index_report_t *outdated_index_issue_client_t::create_report(
+        const namespace_id_t &ns_id) {
+    outdated_index_report_impl_t *new_report = new outdated_index_report_impl_t(this, ns_id);
+    index_reports.get()->insert(new_report);
+    return new_report;
+}
 
-    if (ns_it == thread_map->end()) {
-        ns_it = thread_map->insert(std::make_pair(ns_id, std::set<std::string>())).first;
-        guarantee(ns_it != thread_map->end());
-    }
-
-    return &ns_it->second;
+void outdated_index_issue_client_t::destroy_report(outdated_index_report_impl_t *report) {
+    guarantee(index_reports.get()->erase(report) == 1);
 }
 
 void copy_thread_map(
@@ -129,13 +172,13 @@ outdated_index_map_t merge_maps(
             }
         }
     }
-    return std::move(res);
+    return res;
 }
 
 void handle_response(cond_t *done_signal,
                      outdated_index_map_t *map_out,
                      outdated_index_map_t &&peer_map) {
-    *map_out = peer_map;
+    *map_out = std::move(peer_map);
     done_signal->pulse();
 }
 

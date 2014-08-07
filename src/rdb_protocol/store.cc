@@ -20,27 +20,42 @@ void store_t::note_reshard() {
     }
 }
 
+reql_version_t update_sindex_last_compatible_version(
+        const std::vector<char> &opaque_definition,
+        UNUSED buf_lock_t *sindex_block) {
+    ql::map_wire_func_t mapping;
+    sindex_reql_version_info_t version_info;
+    sindex_multi_bool_t multi;
+    deserialize_sindex_info(opaque_definition, &mapping, &version_info, &multi);
+
+    // TODO: update the version info in the btree
+
+    switch (version_info.original_reql_version) {
+    case reql_version_t::v1_13:
+        return reql_version_t::v1_13;
+    case reql_version_t::v1_14:
+        return reql_version_t::v1_14;
+    default:
+        unreachable();
+    }
+    unreachable();
+}
+
 void store_t::update_outdated_sindex_list(buf_lock_t *sindex_block) {
-    if (outdated_indexes != NULL) {
+    if (index_report != NULL) {
         std::map<sindex_name_t, secondary_index_t> sindexes;
         get_secondary_indexes(sindex_block, &sindexes);
 
-        outdated_indexes->clear();
+        std::set<std::string> index_set;
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-            if (it->first.being_deleted) {
-                continue;
-            }
-
-            ql::map_wire_func_t mapping;
-            sindex_reql_version_info_t version_info;
-            sindex_multi_bool_t multi;
-            deserialize_sindex_info(it->second.opaque_definition,
-                                    &mapping, &version_info, &multi);
-
-            if (version_info.original_reql_version != reql_version_t::LATEST) {
-                outdated_indexes->insert(it->first.name);
+            if (!it->first.being_deleted &&
+                update_sindex_last_compatible_version(it->second.opaque_definition,
+                                                      sindex_block) != 
+                    reql_version_t::LATEST) {
+                index_set.insert(it->first.name);
             }
         }
+        index_report->set_outdated_indexes(std::move(index_set));
     }
 }
 
@@ -494,9 +509,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const sindex_drop_t &d) {
         sindex_drop_response_t res;
         res.success = store->drop_sindex(sindex_name_t(d.id), &sindex_block);
-
         response->response = res;
-        store->update_outdated_sindex_list(&sindex_block);
     }
 
     void operator()(const sindex_rename_t &r) {
@@ -530,7 +543,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         }
 
         response->response = res;
-        store->update_outdated_sindex_list(&sindex_block);
     }
 
     void operator()(const sync_t &) {

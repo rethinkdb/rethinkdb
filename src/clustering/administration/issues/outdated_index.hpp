@@ -9,6 +9,7 @@
 #include "http/json.hpp"
 #include "containers/incremental_lenses.hpp"
 #include "rpc/mailbox/typed.hpp"
+#include "rdb_protocol/store.hpp"
 #include "clustering/administration/issues/global.hpp"
 #include "clustering/administration/issues/json.hpp"
 
@@ -29,6 +30,7 @@ private:
 };
 
 class outdated_index_issue_client_t;
+class outdated_index_report_impl_t;
 
 class outdated_index_issue_server_t : public home_thread_mixin_t {
 public:
@@ -50,6 +52,8 @@ private:
     mailbox_manager_t *mailbox_manager;
     request_mailbox_t request_mailbox;
     outdated_index_issue_client_t *local_client;
+
+    DISABLE_COPYING(outdated_index_issue_server_t);
 };
 
 class outdated_index_issue_client_t :
@@ -72,11 +76,17 @@ public:
 
     std::list<clone_ptr_t<global_issue_t> > get_issues();
 
+    outdated_index_report_t *create_report(const namespace_id_t &ns_id);
+
 private:
+    friend class outdated_index_report_impl_t;
+    void destroy_report(outdated_index_report_impl_t *report);
+
     outdated_index_map_t collect_all_indexes();
 
     mailbox_manager_t *mailbox_manager;
     one_per_thread_t<outdated_index_map_t> outdated_indexes;
+    one_per_thread_t<std::set<outdated_index_report_impl_t *> > index_reports;
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
             outdated_index_issue_server_t::request_address_t> > >
         outdated_index_mailboxes;

@@ -67,6 +67,23 @@ public:
     virtual const value_deleter_t *post_deleter() const = 0;
 };
 
+class outdated_index_report_t {
+public:
+    outdated_index_report_t() { }
+    virtual ~outdated_index_report_t() { }
+
+    // Called during store_t instantiation
+    virtual void set_outdated_indexes(std::set<std::string> &&indexes) = 0;
+
+    // Called when indexes change during store_t lifetime
+    virtual void index_dropped(const std::string &index_name) = 0;
+    virtual void index_renamed(const std::string &old_name,
+                               const std::string &new_name) = 0;
+
+    // Called when the store_t is destroyed and the reporter is no longer needed
+    virtual void destroy() = 0;
+};
+
 class store_t : public store_view_t {
 public:
     using home_thread_mixin_t::assert_thread;
@@ -79,7 +96,7 @@ public:
             rdb_context_t *_ctx,
             io_backender_t *io_backender,
             const base_path_t &base_path,
-            std::set<std::string> *_outdated_indexes);
+            outdated_index_report_t *_index_report);
     ~store_t();
 
     void note_reshard();
@@ -408,9 +425,9 @@ public:
     rdb_context_t *ctx;
     scoped_ptr_t<ql::changefeed::server_t> changefeed_server;
 
-    // This set is used by the outdated index issue tracker, and should be updated
+    // This report is used by the outdated index issue tracker, and should be updated
     // any time the set of outdated indexes for this table changes
-    std::set<std::string> *outdated_indexes;
+    outdated_index_report_t *index_report;
 
     // This lock is used to pause backfills while secondary indexes are being
     // post constructed. Secondary index post construction gets in line for a write
