@@ -400,7 +400,7 @@ void run_create_drop_sindex_with_data_test(namespace_interface_t *nsi,
 
 void run_repeated_sindex_test(namespace_interface_t *nsi,
                               order_source_t *osource,
-                              void(*fn)(namespace_interface_t*,order_source_t*,int)) {
+                              void (*fn)(namespace_interface_t *, order_source_t *, int)) {
     // Run the test with just a few documents in it
     fn(nsi, osource, 128);
     // ... and just for fun sometimes do it a second time immediately after.

@@ -2,8 +2,9 @@
 #ifndef RDB_PROTOCOL_SHARDS_HPP_
 #define RDB_PROTOCOL_SHARDS_HPP_
 
-#include <map>
+#include <algorithm>
 #include <limits>
+#include <map>
 #include <utility>
 #include <vector>
 
@@ -282,9 +283,11 @@ void iterate_ordered_by_version(reql_version_t reql_version,
         // sort it first.
         std::vector<std::pair<counted_t<const datum_t>, T> >
             vec(m->begin(), m->end());
+        // The keys (pulled straight out of a std::map) are unique, so std::sort
+        // works fine.
         std::sort(vec.begin(), vec.end(),
                   grouped_details::grouped_pair_compare_t<T>(reql_version));
-        for (std::pair<counted_t<const datum_t>, T> &pair : vec) {
+        for (std::pair<counted_t<const datum_t>, T> &pair : vec) {  // NOLINT(runtime/references)
             callable(pair.first, pair.second);
         }
     }
