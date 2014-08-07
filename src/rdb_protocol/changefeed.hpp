@@ -7,6 +7,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <utility>
 
 #include "errors.hpp"
 #include <boost/variant.hpp>
