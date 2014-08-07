@@ -399,7 +399,7 @@ struct region_tree_filler_t {
 
 int64_t distribute_concurrency(int64_t concurrency, int num_children) {
     if (num_children > 0) {
-        return ceil_divide(concurrency, num_children);
+        return std::max(int64_t(1), concurrency / num_children);
     } else {
         return 1;
     }
