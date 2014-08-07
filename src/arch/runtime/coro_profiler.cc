@@ -1,11 +1,12 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "arch/runtime/coro_profiler.hpp"
 
 #ifdef ENABLE_CORO_PROFILER
 
+#include <stdio.h>
+
 #include <string>
 #include <vector>
-#include <sstream>
 #include <cmath>
 
 #include "arch/runtime/coroutines.hpp"
@@ -22,16 +23,22 @@ coro_profiler_t &coro_profiler_t::get_global_profiler() {
     return profiler;
 }
 
-coro_profiler_t::coro_profiler_t() {
+coro_profiler_t::coro_profiler_t() : reql_output_file(nullptr) {
     logINF("Coro profiler activated.");
 
     const std::string reql_output_filename = "coro_profiler_out.py";
-    reql_output_file.open(reql_output_filename);
-    if (reql_output_file.is_open()) {
+    reql_output_file = fopen(reql_output_filename.c_str(), "w");
+    if (reql_output_file != nullptr) {
         logINF("Writing profiler reports to '%s'", reql_output_filename.c_str());
         write_reql_header();
     } else {
         logWRN("Could not open '%s' for writing profiler reports.", reql_output_filename.c_str());
+    }
+}
+
+coro_profiler_t::~coro_profiler_t() {
+    if (reql_output_file != nullptr) {
+        fclose(reql_output_file);
     }
 }
 
@@ -203,7 +210,7 @@ void coro_profiler_t::generate_report() {
         report->second.compute_stats();
     }
 
-    if (reql_output_file.is_open()) {
+    if (reql_output_file != nullptr) {
         print_to_reql(execution_point_reports);
     }
 }
@@ -284,34 +291,34 @@ void coro_profiler_t::per_execution_point_collected_report_t::compute_stats() {
 void coro_profiler_t::print_to_reql(
     const std::map<coro_execution_point_key_t,
     per_execution_point_collected_report_t> &execution_point_reports) {
+    guarantee(reql_output_file != nullptr);
 
     const double time = ticks_to_secs(get_ticks());
 
-    reql_output_file.precision(std::numeric_limits<double>::digits10);
     for (auto report = execution_point_reports.begin(); report != execution_point_reports.end(); ++report) {
-        reql_output_file << "print t.insert({" << std::endl;
-        reql_output_file << "\t\t'time': "
-                         << time
-                         << "," << std::endl;
-        reql_output_file << "\t\t'coro_type': '"
-                         << report->first.first
-                         << "'," << std::endl;
-        reql_output_file << "\t\t'trace': "
-                         << trace_to_array_str(report->first.second)
-                         << "," << std::endl;
-        reql_output_file << "\t\t'num_samples': "
-                         << report->second.num_samples
-                         << "," << std::endl;
-        reql_output_file << "\t\t'since_previous': "
-                         << distribution_to_object_str(report->second.time_since_previous)
-                         << "," << std::endl;
-        reql_output_file << "\t\t'since_resume': "
-                         << distribution_to_object_str(report->second.time_since_resume)
-                         << "," << std::endl;
-        reql_output_file << "\t\t'priority': "
-                         << distribution_to_object_str(report->second.priority)
-                         << "" << std::endl;
-        reql_output_file << "\t}).run(conn, durability='soft')" << std::endl;
+        fprintf(reql_output_file,
+                "print t.insert({\n"
+                "\t\t'time': %.10f,\n", time);
+        fprintf(reql_output_file,
+                "\t\t'coro_type': '%s',\n",
+                report->first.first.c_str());
+        fprintf(reql_output_file,
+                "\t\t'trace': %s,\n",
+                trace_to_array_str(report->first.second).c_str());
+        fprintf(reql_output_file,
+                "\t\t'num_samples': %zu,\n",
+                report->second.num_samples);
+        fprintf(reql_output_file,
+                "\t\t'since_previous': %s,\n",
+                distribution_to_object_str(report->second.time_since_previous).c_str());
+        fprintf(reql_output_file,
+                "\t\t'since_resume': %s,\n",
+                distribution_to_object_str(report->second.time_since_resume).c_str());
+        fprintf(reql_output_file,
+                "\t\t'priority': %s\n",
+                distribution_to_object_str(report->second.priority).c_str());
+        fprintf(reql_output_file,
+                "\t}).run(conn, durability='soft')\n");
     }
 }
 
@@ -332,24 +339,20 @@ std::string coro_profiler_t::trace_to_array_str(const small_trace_t &trace) {
 }
 
 std::string coro_profiler_t::distribution_to_object_str(const data_distribution_t &distribution) {
-    std::stringstream format_stream;
-    format_stream << "{";
-    format_stream << "'min': "  << distribution.min << ", ";
-    format_stream << "'max': "  << distribution.max << ", ";
-    format_stream << "'mean': "  << distribution.mean << ", ";
-    format_stream << "'stddev': "  << distribution.stddev;
-    format_stream << "}";
-
-    return format_stream.str();
+    return strprintf("{'min': %.10f, 'max': %.10f, 'mean': %.10f, 'stddev': %.10f}",
+                     distribution.min, distribution.max,
+                     distribution.mean, distribution.stddev);
 }
 
 void coro_profiler_t::write_reql_header() {
-    reql_output_file << "#!/usr/bin/env python" << std::endl;
-    reql_output_file << std::endl;
-    reql_output_file << "import rethinkdb as r" << std::endl;
-    reql_output_file << "conn = r.connect() # Modify this as needed" << std::endl;
-    reql_output_file << "t = r.table(\"coro_prof\") # Modify this as needed" << std::endl;
-    reql_output_file << std::endl;
+    guarantee(reql_output_file != nullptr);
+    fprintf(reql_output_file,
+            "#!/usr/bin/env python\n"
+            "\n"
+            "import rethinkdb as r\n"
+            "conn = r.connect() # Modify this as needed\n"
+            "t = r.table(\"coro_prof\") # Modify this as needed\n"
+            "\n");
 }
 
 const std::string &coro_profiler_t::get_frame_description(void *addr) {
@@ -360,7 +363,8 @@ const std::string &coro_profiler_t::get_frame_description(void *addr) {
 
     backtrace_frame_t frame(addr);
     frame.initialize_symbols();
-    std::stringstream description_stream;
+
+
 #if CORO_PROFILER_ADDRESS_TO_LINE
     std::string line = address_to_line.address_to_line(frame.get_filename(), frame.get_addr()) + "  |  ";
 #else
@@ -372,10 +376,13 @@ const std::string &coro_profiler_t::get_frame_description(void *addr) {
     } catch (const demangle_failed_exc_t &e) {
         demangled_name = "?";
     }
-    description_stream << frame.get_addr() << "\t" << line << demangled_name;
+    std::string description = strprintf("%p\t%s%s",
+                                        frame.get_addr(),
+                                        line.c_str(),
+                                        demangled_name.c_str());
 
     return frame_description_cache.insert(
-        std::pair<void *, std::string>(addr, description_stream.str())).first->second;
+        std::pair<void *, std::string>(addr, description)).first->second;
 }
 
 #endif /* ENABLE_CORO_PROFILER */

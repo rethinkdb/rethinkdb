@@ -16,11 +16,11 @@ def load_files(file1, file2):
     Loads the results from two tests, and generate an HTML page with the differences.
     """
 
-    f = open("results/"+file1, "r")
+    f = open("results/" + file1, "r")
     results = json.loads(f.read())
     f.close()
 
-    f = open("results/"+file2, "r")
+    f = open("results/" + file2, "r")
     previous_results = json.loads(f.read())
     f.close()
 

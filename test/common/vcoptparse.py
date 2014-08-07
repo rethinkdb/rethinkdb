@@ -28,7 +28,7 @@ class Arg(object):
 
 class OptError(StandardError):
     pass
-    
+
 class OptParser(object):
 
     def __init__(self):
@@ -48,7 +48,7 @@ class OptParser(object):
     def __delitem__(self, key):
         self.parsers_in_order.remove((key, self.parsers_by_key[key]))
         del self.parsers_by_key[key]
-        
+    
     def parse(self, args):
     
         args = args[1:]   # Cut off name of program
@@ -62,13 +62,13 @@ class OptParser(object):
             combiner = getattr(self.parsers_by_key[key], "combiner", enforce_one_combiner)
             try:
                 values[key] = combiner(values[key], new_value)
-            except OptError, e:
+            except OptError as e:
                 raise OptError(str(e) % {"name": name_for_key(key)})
         
         # Build flag table
         
         flags = {}
-        for (key, parser) in self.parsers_in_order:
+        for key, parser in self.parsers_in_order:
             if hasattr(parser, "flags"):
                 for flag in parser.flags:
                     assert flag.startswith("-")
@@ -93,17 +93,16 @@ class OptParser(object):
         
         # Handle positional arguments
         
-        for (key, parser) in self.parsers_in_order:
+        for key, parser in self.parsers_in_order:
             if hasattr(parser, "positional"):
                 set_value(key, parser.positional(positionals))
         
         if positionals:
-            raise OptError("Unexpected extra positional argument(s): %s" % \
-                ", ".join(repr(x) for x in positionals))
+            raise OptError("Unexpected extra positional argument(s): %s" % ", ".join(repr(x) for x in positionals))
         
         # Apply defaults
         
-        for (key, parser) in self.parsers_by_key.iteritems():
+        for key, parser in self.parsers_by_key.iteritems():
             if values[key] is NoValue:
                 if hasattr(parser, "default") and parser.default is not NoValue:
                     values[key] = parser.default
@@ -187,7 +186,7 @@ class ValueFlag(Arg):
         except IndexError:
             raise OptError("Flag %r expects an argument." % flag)
         try: value2 = self.converter(value)
-        except OptError, e:
+        except OptError as e:
             raise OptError("Problem in argument to flag %r: %s" % (flag, e))
         return value2
 
@@ -224,10 +223,9 @@ class MultiValueFlag(Arg):
         for converter in self.converters:
             try: value = args.pop(0)
             except IndexError:
-                raise OptError("Flag %r expects %d argument(s), but only got %d." % \
-                    (flag, len(self.converters), args_gotten))
+                raise OptError("Flag %r expects %d argument(s), but only got %d." % (flag, len(self.converters), args_gotten))
             try: value2 = converter(value)
-            except OptError, e:
+            except OptError as e:
                 raise OptError("Problem in argument %d to flag %r: %s" % (args_gotten + 1, flag, e))
             new_values += (value2, )
             args_gotten += 1
@@ -246,7 +244,7 @@ class AllArgsAfterFlag(Arg):
         args2 = []
         for arg in args:
             try: args2.append(self.converter(arg))
-            except OptError, e: raise OptError("For %r: %s" % (flag, e))
+            except OptError as e: raise OptError("For %r: %s" % (flag, e))
         del args[:]   # We consume all arguments remaining
         return args2
 
@@ -269,7 +267,7 @@ class PositionalArg(Arg):
             else:
                 return NoValue
         try: value2 = self.converter(value)
-        except OptError, e:
+        except OptError as e:
             if self.name is None: raise
             else: raise OptError("For %r: %s" % (self.name, e))
         return value2
@@ -283,9 +281,8 @@ class ManyPositionalArgs(Arg):
         args2 = []
         for arg in args:
             try: args2.append(self.converter(arg))
-            except OptError, e:
+            except OptError as e:
                 if self.name is None: raise
                 else: raise OptError("For %r: %s" % (self.name, e))
         del args[:]   # We consume all arguments remaining
         return args2
-

@@ -472,6 +472,8 @@ message Term {
         // Blocks until a set of indexes are ready to be accessed. Returns the
         // same values INDEX_STATUS.
         INDEX_WAIT = 140; // Table, STRING... -> ARRAY
+        // Renames the given index to a new name
+        INDEX_RENAME = 156; // Table, STRING, STRING, {overwrite:BOOL} -> OBJECT
 
         // * Control Operators
         // Calls a function on data
@@ -656,18 +658,18 @@ message Term {
         // BINARY is client-only at the moment, it is not supported on the server
         // BINARY = 155; // STRING -> PSEUDOTYPE(BINARY)
 
-        GEOJSON = 156;           // OBJECT -> PSEUDOTYPE(GEOMETRY)
-        TO_GEOJSON = 157;        // PSEUDOTYPE(GEOMETRY) -> OBJECT
-        POINT = 158;             // NUMBER, NUMBER -> PSEUDOTYPE(GEOMETRY)
-        LINE = 159;              // ARRAY -> PSEUDOTYPE(GEOMETRY)
-        POLYGON = 160;           // ARRAY -> PSEUDOTYPE(GEOMETRY)
-        DISTANCE = 161;          // PSEUDOTYPE(GEOMETRY), PSEUDOTYPE(GEOMETRY) {geo_system:STRING, unit:STRING} -> NUMBER
-        INTERSECTS = 162;        // PSEUDOTYPE(GEOMETRY), PSEUDOTYPE(GEOMETRY) -> BOOL
-        INCLUDES = 163;          // PSEUDOTYPE(GEOMETRY), PSEUDOTYPE(GEOMETRY) -> BOOL
-        CIRCLE = 164;            // PSEUDOTYPE(GEOMETRY), NUMBER {num_vertices:NUMBER, geo_system:STRING, unit:STRING, fill:BOOL} -> PSEUDOTYPE(GEOMETRY)
-        GET_INTERSECTING = 165;  // TABLE, PSEUDOTYPE(GEOMETRY) {index:!STRING} -> ARRAY
-        FILL = 166;              // PSEUDOTYPE(GEOMETRY) -> PSEUDOTYPE(GEOMETRY)
-        GET_NEAREST = 167;       // TABLE, PSEUDOTYPE(GEOMETRY) {index:!STRING, max_results:NUM, max_dist:NUM, geo_system:STRING, unit:STRING} -> ARRAY
+        GEOJSON = 157;           // OBJECT -> PSEUDOTYPE(GEOMETRY)
+        TO_GEOJSON = 158;        // PSEUDOTYPE(GEOMETRY) -> OBJECT
+        POINT = 159;             // NUMBER, NUMBER -> PSEUDOTYPE(GEOMETRY)
+        LINE = 160;              // ARRAY -> PSEUDOTYPE(GEOMETRY)
+        POLYGON = 161;           // ARRAY -> PSEUDOTYPE(GEOMETRY)
+        DISTANCE = 162;          // PSEUDOTYPE(GEOMETRY), PSEUDOTYPE(GEOMETRY) {geo_system:STRING, unit:STRING} -> NUMBER
+        INTERSECTS = 163;        // PSEUDOTYPE(GEOMETRY), PSEUDOTYPE(GEOMETRY) -> BOOL
+        INCLUDES = 164;          // PSEUDOTYPE(GEOMETRY), PSEUDOTYPE(GEOMETRY) -> BOOL
+        CIRCLE = 165;            // PSEUDOTYPE(GEOMETRY), NUMBER {num_vertices:NUMBER, geo_system:STRING, unit:STRING, fill:BOOL} -> PSEUDOTYPE(GEOMETRY)
+        GET_INTERSECTING = 166;  // TABLE, PSEUDOTYPE(GEOMETRY) {index:!STRING} -> ARRAY
+        FILL = 167;              // PSEUDOTYPE(GEOMETRY) -> PSEUDOTYPE(GEOMETRY)
+        GET_NEAREST = 168;       // TABLE, PSEUDOTYPE(GEOMETRY) {index:!STRING, max_results:NUM, max_dist:NUM, geo_system:STRING, unit:STRING} -> ARRAY
     }
     optional TermType type = 1;
 

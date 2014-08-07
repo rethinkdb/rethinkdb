@@ -258,23 +258,23 @@ struct sindex_reql_version_info_t {
 
     // The original ReQL version of the sindex function.  The value here never
     // changes.  This might become useful for tracking down some bugs or fixing them
-    // in-place, or performing a desparate reverse migration.
-    cluster_version_t original_reql_version;
+    // in-place, or performing a desperate reverse migration.
+    reql_version_t original_reql_version;
 
     // This is the latest version for which evaluation of the sindex function remains
     // compatible.
-    cluster_version_t latest_compatible_reql_version;
+    reql_version_t latest_compatible_reql_version;
 
     // If this is less than the current server version, we'll re-check
     // opaque_definition for compatibility and update this value and
     // `latest_compatible_reql_version` accordingly.
-    cluster_version_t latest_checked_reql_version;
+    reql_version_t latest_checked_reql_version;
 
     // To be used for new secondary indexes.
-    static sindex_reql_version_info_t LATEST_DISK() {
-        sindex_reql_version_info_t ret = { cluster_version_t::LATEST_DISK,
-                                           cluster_version_t::LATEST_DISK,
-                                           cluster_version_t::LATEST_DISK };
+    static sindex_reql_version_info_t LATEST() {
+        sindex_reql_version_info_t ret = { reql_version_t::LATEST,
+                                           reql_version_t::LATEST,
+                                           reql_version_t::LATEST };
         return ret;
     }
 };

@@ -99,7 +99,7 @@ sindex_name_t create_sindex(store_t *store) {
     sindex_multi_bool_t multi_bool = sindex_multi_bool_t::SINGLE;
 
     write_message_t wm;
-    sindex_disk_info_t sindex_info(m, sindex_reql_version_info_t::LATEST_DISK(),
+    sindex_disk_info_t sindex_info(m, sindex_reql_version_info_t::LATEST(),
                                    multi_bool, sindex_geo_bool_t::REGULAR);
     serialize_sindex_info(&wm, sindex_info);
 
@@ -137,7 +137,7 @@ void drop_sindex(store_t *store,
     std::set<std::string> created_sindexes;
     store->drop_sindex(
             sindex_name,
-            std::move(sindex_block));
+            &sindex_block);
 }
 
 void bring_sindexes_up_to_date(
@@ -226,7 +226,7 @@ void _check_keys_are_present(store_t *store,
         double ii = i * i;
         /* The only thing this does is have a NULL `profile::trace_t *` in it which
          * prevents to profiling code from crashing. */
-        ql::env_t dummy_env(&dummy_interruptor, cluster_version_t::LATEST_DISK);
+        ql::env_t dummy_env(&dummy_interruptor, reql_version_t::LATEST);
         rdb_rget_slice(
             store->get_sindex_slice(sindex_uuid),
             rdb_protocol::sindex_key_range(
@@ -244,7 +244,9 @@ void _check_keys_are_present(store_t *store,
         auto groups = boost::get<ql::grouped_t<ql::stream_t> >(&res.result);
         ASSERT_TRUE(groups != NULL);
         ASSERT_EQ(1, groups->size());
-        auto stream = &groups->begin()->second;
+        // The order of `groups` doesn't matter because this is a small unit test.
+        ql::stream_t *stream
+            = &groups->begin(ql::grouped::order_doesnt_matter_t())->second;
         ASSERT_TRUE(stream != NULL);
         ASSERT_EQ(1ul, stream->size());
 
@@ -301,7 +303,7 @@ void _check_keys_are_NOT_present(store_t *store,
         double ii = i * i;
         /* The only thing this does is have a NULL profile::trace_t in it
            which prevents the profiling code from crashing. */
-        ql::env_t dummy_env(&dummy_interruptor, cluster_version_t::LATEST_DISK);
+        ql::env_t dummy_env(&dummy_interruptor, reql_version_t::LATEST);
         rdb_rget_slice(
             store->get_sindex_slice(sindex_uuid),
             rdb_protocol::sindex_key_range(

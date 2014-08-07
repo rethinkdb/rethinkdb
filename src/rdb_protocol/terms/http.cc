@@ -693,10 +693,13 @@ void http_term_t::get_result_format(scope_env_t *env,
             *result_format_out = http_result_format_t::JSONP;
         } else if (result_format_str == "text") {
             *result_format_out = http_result_format_t::TEXT;
+        } else if (result_format_str == "binary") {
+            *result_format_out = http_result_format_t::BINARY;
         } else {
             rfail_target(result_format.get(), base_exc_t::GENERIC,
                          "`result_format` (%s) is not recognized, ('auto', 'json', "
-                         "'jsonp', and 'text' are allowed).", result_format_str.c_str());
+                         "'jsonp', 'text', and 'binary' are allowed).",
+                         result_format_str.c_str());
         }
     }
 }

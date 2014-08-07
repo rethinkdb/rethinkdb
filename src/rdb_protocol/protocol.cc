@@ -70,12 +70,13 @@ bool datum_range_t::is_universe() const {
         && left_bound_type == key_range_t::open && right_bound_type == key_range_t::open;
 }
 
-bool datum_range_t::contains(counted_t<const ql::datum_t> val) const {
+bool datum_range_t::contains(reql_version_t reql_version,
+                             counted_t<const ql::datum_t> val) const {
     return (!left_bound.has()
-            || *left_bound < *val
+            || left_bound->compare_lt(reql_version, *val)
             || (*left_bound == *val && left_bound_type == key_range_t::closed))
         && (!right_bound.has()
-            || *right_bound > *val
+            || right_bound->compare_gt(reql_version, *val)
             || (*right_bound == *val && right_bound_type == key_range_t::closed));
 }
 
@@ -712,7 +713,8 @@ void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
 
     // Initialize response.
     response_out->response = rget_read_response_t();
-    auto out = boost::get<rget_read_response_t>(&response_out->response);
+    rget_read_response_t *out
+        = boost::get<rget_read_response_t>(&response_out->response);
     out->truncated = false;
     out->key_range = read_t(rg, profile_bool_t::DONT_PROFILE).get_region().inner;
 
@@ -725,7 +727,7 @@ void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
         guarantee(resp);
         if (resp->truncated) {
             out->truncated = true;
-            if (best == NULL || key_le(resp->last_key, *best)) {
+            if (best == NULL || key_le.is_le(resp->last_key, *best)) {
                 best = &resp->last_key;
             }
         }
@@ -935,6 +937,10 @@ struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
         return d.region;
     }
 
+    region_t operator()(const sindex_rename_t &r) const {
+        return r.region;
+    }
+
     region_t operator()(const sync_t &s) const {
         return s.region;
     }
@@ -1028,6 +1034,10 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         return rangey_write(d);
     }
 
+    bool operator()(const sindex_rename_t &r) const {
+        return rangey_write(r);
+    }
+
     bool operator()(const sync_t &s) const {
         return rangey_write(s);
     }
@@ -1081,6 +1091,10 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_drop_t &) const {
+        *response_out = responses[0];
+    }
+
+    void operator()(const sindex_rename_t &) const {
         *response_out = responses[0];
     }
 
@@ -1215,6 +1229,9 @@ INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_drop_response_t);
 RDB_IMPL_SERIALIZABLE_0(sync_response_t);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sync_response_t);
 
+RDB_IMPL_SERIALIZABLE_1(sindex_rename_response_t, result);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_rename_response_t);
+
 RDB_IMPL_SERIALIZABLE_3(write_response_t, response, event_log, n_shards);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(write_response_t);
 
@@ -1233,6 +1250,10 @@ RDB_IMPL_SERIALIZABLE_5(sindex_create_t, id, mapping, region, multi, geo);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_create_t);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(sindex_drop_t, id, region);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sync_t, region);
+
+RDB_IMPL_SERIALIZABLE_4(sindex_rename_t, region,
+                        old_name, new_name, overwrite);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_rename_t);
 
 // Serialization format changed in 1.14.0. We only support the latest version,
 // since this is a cluster-only type.

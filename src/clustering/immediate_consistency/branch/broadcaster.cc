@@ -20,6 +20,9 @@
 #include "logger.hpp"
 #include "store_view.hpp"
 
+/* Limits how many writes should be sent to a listener at once. */
+const size_t DISPATCH_WRITES_CORO_POOL_SIZE = 64;
+
 broadcaster_t::broadcaster_t(
         mailbox_manager_t *mm,
         rdb_context_t *_rdb_context,
@@ -199,10 +202,12 @@ public:
         write_mailbox(d.write_mailbox), is_readable(false),
         local_listener(NULL), listener_id(generate_uuid()),
         queue_count(),
-        queue_count_membership(&c->broadcaster_collection, &queue_count, uuid_to_str(d.write_mailbox.get_peer().get_uuid()) + "_broadcast_queue_count"),
+        queue_count_membership(&c->broadcaster_collection, &queue_count,
+                               uuid_to_str(d.write_mailbox.get_peer().get_uuid())
+                                           + "_broadcast_queue_count"),
         background_write_queue(&queue_count),
-        // TODO magic constant
-        background_write_workers(100, &background_write_queue, &background_write_caller),
+        background_write_workers(DISPATCH_WRITES_CORO_POOL_SIZE, &background_write_queue,
+                                 &background_write_caller),
         controller(c),
         upgrade_mailbox(controller->mailbox_manager,
             boost::bind(&dispatchee_t::upgrade, this, _1, _2, auto_drainer_t::lock_t(&drainer))),

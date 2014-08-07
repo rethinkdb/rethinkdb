@@ -1,5 +1,11 @@
 # Copyright 2010-2014 RethinkDB, all rights reserved.
 
+try:
+    {}.iteritems
+    dict_items = lambda d: d.iteritems()
+except AttributeError:
+    dict_items = lambda d: d.items()
+
 class RqlError(Exception):
     def __init__(self, message, term, frames):
         self.message = message
@@ -7,10 +13,10 @@ class RqlError(Exception):
         self.query_printer = QueryPrinter(term, self.frames)
 
     def __str__(self):
-        return self.__class__.__name__+": "+self.message+" in:\n"+self.query_printer.print_query()+'\n'+self.query_printer.print_carrots()
+        return self.__class__.__name__ + ": " + self.message + " in:\n" + self.query_printer.print_query() + '\n' + self.query_printer.print_carrots()
 
     def __repr__(self):
-        return self.__class__.__name__+"("+repr(self.message)+")"
+        return self.__class__.__name__ + "(" + repr(self.message) + ")"
 
 class RqlClientError(RqlError):
     pass
@@ -20,7 +26,7 @@ class RqlCompileError(RqlError):
 
 class RqlRuntimeError(RqlError):
     def __str__(self):
-        return self.message+" in:\n"+self.query_printer.print_query()+'\n'+self.query_printer.print_carrots()
+        return self.message + " in:\n" + self.query_printer.print_query() + '\n' + self.query_printer.print_carrots()
 
 class RqlDriverError(Exception):
     def __init__(self, message):
@@ -43,7 +49,7 @@ class QueryPrinter(object):
     def compose_term(self, term):
         args = [self.compose_term(a) for a in term.args]
         optargs = {}
-        for (k,v) in term.optargs.iteritems():
+        for k, v in dict_items(term.optargs):
             optargs[k] = self.compose_term(v)
         return term.compose(args, optargs)
 
@@ -56,7 +62,7 @@ class QueryPrinter(object):
         args = [self.compose_carrots(arg, frames[1:]) if cur_frame == i else self.compose_term(arg) for i,arg in enumerate(term.args)]
 
         optargs = {}
-        for (k,v) in term.optargs.iteritems():
+        for k, v in dict_items(term.optargs):
             if cur_frame == k:
                 optargs[k] = self.compose_carrots(v, frames[1:])
             else:

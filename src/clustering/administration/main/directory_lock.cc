@@ -22,7 +22,13 @@ bool check_dir_emptiness(const base_path_t& base_path) {
     }
 
     set_errno(0);
-    while ((ep = readdir(dp)) != NULL) {
+
+    // cpplint is wrong about readdir here, because POSIX guarantees we're not
+    // sharing a static buffer with other threads on the system.  Even better, OS X
+    // and Linux glibc both allocate per-directory buffers.  readdir_r is unsafe
+    // because you can't specify the length of the struct dirent buffer you pass in
+    // to it.  See http://elliotth.blogspot.com/2012/10/how-not-to-use-readdirr3.html
+    while ((ep = readdir(dp)) != NULL) {  // NOLINT(runtime/threadsafe_fn)
         if (strcmp(ep->d_name, ".") != 0 && strcmp(ep->d_name, "..") != 0) {
             closedir(dp);
             return false;

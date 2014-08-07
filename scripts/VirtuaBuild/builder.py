@@ -72,7 +72,7 @@ except OptError:
 if opts["help"]:
     help()
     sys.exit(0)
-    
+
 if opts["branch"] and opts["tag"]:
     print >>sys.stderr, "Error cannot use --tag and --branch together."
     help()
@@ -85,8 +85,8 @@ elif opts["tag"]:
 else:
     rspec = vm_build.Branch("master")
 
-#Prepare the build flags
-flags = "" #this will be given to the makefile
+# Prepare the build flags
+flags = "" # this will be given to the makefile
 if opts["debug"]:
     flags += " DEBUG=1 UNIT_TESTS=0"
 else:
@@ -99,10 +99,10 @@ debian = vm_build.target('cc76e2a5-92c0-4208-be08-5c02429c2c50', '192.168.0.176'
 centos5_5 = vm_build.target('25710682-666f-4449-bd28-68b25abd8bea', '192.168.0.153', 'root', 'make rpm LEGACY_GCC=1 LEGACY_LINUX=1 ' + flags, 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary, opts["username"], opts["hostname"])
 centos6 = vm_build.target('d9058650-a45a-44a5-953f-c2402253a614', '192.168.0.178', 'rethinkdb', 'make rpm LEGACY_GCC=1 LEGACY_LINUX=1 ' + flags, 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary, opts["username"], opts["hostname"])
 
-targets = {"suse" : suse, "redhat5_1" : redhat5_1, "ubuntu" : ubuntu, "debian" : debian, "centos5_5" : centos5_5, "centos6" : centos6}
+targets = {"suse": suse, "redhat5_1": redhat5_1, "ubuntu": ubuntu, "debian": debian, "centos5_5": centos5_5, "centos6": centos6}
 
 if (opts["target"]):
-    targets = {opts["target"] : targets[opts["target"]]}
+    targets = {opts["target"]: targets[opts["target"]]}
 
 if opts["clean-up"]:
     map(lambda x: x[1].clean_up(), targets.iteritems())
@@ -130,7 +130,7 @@ else:
 
     print "Build summary:"
     from termcolor import colored
-    for name,val in success.iteritems():
+    for name, val in success.iteritems():
         print name, "." * (20 - len(name)), colored("[Pass]", "green") if val else colored("[Fail]", "red")
         if (not val):
             print "Failed on: ", exception[name]

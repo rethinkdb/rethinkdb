@@ -66,4 +66,19 @@ static_assert(cluster_version_t::CLUSTER != cluster_version_t::LATEST_DISK,
 // Then, v1.18 would still only support v1_17 and v1_18.  However, v1.18.1 might
 // support v1_17, v1_17_1, and v1_18 (and v1_18_1 if that needs to be created).
 
+
+// Reql versions define how secondary index functions should be evaluated.  Older
+// versions have bugs that are fixed in newer versions.  They also define how
+// secondary index keys are generated.  v1_13 has buggy secondary index key
+// generation.
+enum class reql_version_t {
+    v1_13,
+    v1_14,
+    v1_14_is_latest = v1_14,
+    LATEST = v1_14_is_latest,
+};
+
+// Serialization of reql_version_t is defined in protocol.hpp.
+
+
 #endif  // VERSION_HPP_

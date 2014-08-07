@@ -12,4 +12,4 @@ if len(sys.argv) > 1:
     buildDir = sys.argv[1]
 os.environ['BUILD_DIR'] = buildDir
 
-sys.exit(subprocess.call(['python', os.path.join(os.path.dirname(__file__), 'connection.py'), buildDir]))
+sys.exit(subprocess.call([os.environ.get('INTERPRETER_PATH', 'python'), os.path.join(os.path.dirname(__file__), 'connection.py'), buildDir]))

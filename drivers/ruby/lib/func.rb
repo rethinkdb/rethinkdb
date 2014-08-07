@@ -35,6 +35,7 @@ module RethinkDB
       :group => -1,
       :iso8601 => -1,
       :index_create => -1,
+      :index_rename => -1,
       :random => -1,
       :http => 1,
       :distinct => -1,

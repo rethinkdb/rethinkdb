@@ -649,10 +649,11 @@ public:
     }
 private:
     key_range_t key_range_;
+    DISABLE_COPYING(sindex_key_range_tester_t);
 };
 
-void sindex_erase_range(const key_range_t &key_range,
-        superblock_t *superblock, auto_drainer_t::lock_t,
+void sindex_erase_range(
+        const key_range_t &key_range, superblock_t *superblock, auto_drainer_t::lock_t,
         signal_t *interruptor, release_superblock_t release_superblock,
         const value_deleter_t *deleter) THROWS_NOTHING {
 
@@ -681,7 +682,8 @@ void spawn_sindex_erase_ranges(
         const value_deleter_t *deleter) {
     for (auto it = sindex_access->begin(); it != sindex_access->end(); ++it) {
         coro_t::spawn_sometime(std::bind(
-                    &sindex_erase_range, key_range, (*it)->super_block.get(),
+                    &sindex_erase_range,
+                    key_range, (*it)->super_block.get(),
                     auto_drainer_t::lock_t(drainer), interruptor,
                     release_superblock, deleter));
     }
@@ -775,7 +777,7 @@ typedef ql::terminal_variant_t terminal_variant_t;
 class rget_sindex_data_t {
 public:
     rget_sindex_data_t(const key_range_t &_pkey_range, const datum_range_t &_range,
-                       cluster_version_t wire_func_reql_version,
+                       reql_version_t wire_func_reql_version,
                        ql::map_wire_func_t wire_func, sindex_multi_bool_t _multi)
         : pkey_range(_pkey_range), range(_range),
           func_reql_version(wire_func_reql_version),
@@ -784,7 +786,7 @@ private:
     friend class rget_cb_t;
     const key_range_t pkey_range;
     const datum_range_t range;
-    const cluster_version_t func_reql_version;
+    const reql_version_t func_reql_version;
     const counted_t<ql::func_t> func;
     const sindex_multi_bool_t multi;
 };
@@ -930,12 +932,13 @@ THROWS_ONLY(interrupted_exc_t) {
                 sindex_val = sindex_val->get(*tag, ql::NOTHROW);
                 guarantee(sindex_val);
             }
-            if (!sindex->range.contains(sindex_val)) {
+            if (!sindex->range.contains(sindex->func_reql_version, sindex_val)) {
                 return done_traversing_t::NO;
             }
         }
 
-        ql::groups_t data = {{counted_t<const ql::datum_t>(), ql::datums_t{val}}};
+        ql::groups_t data(counted_datum_less_t(job.env->reql_version));
+        data = {{counted_t<const ql::datum_t>(), ql::datums_t{val}}};
 
         for (auto it = job.transformers.begin(); it != job.transformers.end(); ++it) {
             (**it)(job.env, &data, sindex_val);
@@ -1002,7 +1005,7 @@ void rdb_rget_secondary_slice(
     guarantee(sindex_info.geo == sindex_geo_bool_t::REGULAR);
     profile::starter_t starter("Do range scan on secondary index.", ql_env->trace);
 
-    const cluster_version_t sindex_func_reql_version =
+    const reql_version_t sindex_func_reql_version =
         sindex_info.mapping_version_info.latest_compatible_reql_version;
     rget_cb_t callback(
         rget_io_data_t(response, slice),
@@ -1029,7 +1032,7 @@ void rdb_get_intersecting_slice(
     guarantee(sindex_info.geo == sindex_geo_bool_t::GEO);
     profile::starter_t starter("Do intersection scan on geospatial index.", ql_env->trace);
 
-    const cluster_version_t sindex_func_reql_version =
+    const reql_version_t sindex_func_reql_version =
         sindex_info.mapping_version_info.latest_compatible_reql_version;
     collect_all_geo_intersecting_cb_t callback(
         slice,
@@ -1059,7 +1062,7 @@ void rdb_get_nearest_slice(
     guarantee(sindex_info.geo == sindex_geo_bool_t::GEO);
     profile::starter_t starter("Do nearest traversal on geospatial index.", ql_env->trace);
 
-    const cluster_version_t sindex_func_reql_version =
+    const reql_version_t sindex_func_reql_version =
         sindex_info.mapping_version_info.latest_compatible_reql_version;
 
     // TODO (daniel): Instead of calling this multiple times until we are done,
@@ -1202,7 +1205,7 @@ void rdb_modification_report_cb_t::on_mod_report(
                     ql::changefeed::msg_t::change_t(
                         mod_report.info.deleted.first,
                         mod_report.info.added.first)),
-                &mod_report.primary_key);
+                mod_report.primary_key);
         }
 
         sindexes_updated_cond.wait_lazily_unordered();
@@ -1224,9 +1227,10 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
 }
 
 std::vector<std::string> expand_geo_key(
+        reql_version_t reql_version,
         const counted_t<const ql::datum_t> &key,
         const store_key_t &primary_key,
-        boost::optional<uint64_t> tag_num = boost::optional<uint64_t>()) {
+        boost::optional<uint64_t> tag_num) {
     // Ignore non-geometry objects in geo indexes.
     // TODO (daniel): This needs to be changed once compound geo index
     // support gets added.
@@ -1247,8 +1251,8 @@ std::vector<std::string> expand_geo_key(
             rassert(grid_keys[i].length() <= ql::datum_t::trunc_size(
                 key_to_unescaped_str(primary_key).length()));
 
-            result.push_back(
-                    ql::datum_t::compose_secondary(grid_keys[i], primary_key, tag_num));
+            result.push_back(ql::datum_t::compose_secondary(
+                reql_version, grid_keys[i], primary_key, tag_num));
         }
 
         return result;
@@ -1267,7 +1271,7 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
                   std::vector<store_key_t> *keys_out) {
     guarantee(keys_out->empty());
 
-    const cluster_version_t reql_version =
+    const reql_version_t reql_version =
         index_info.mapping_version_info.latest_compatible_reql_version;
 
     // Secondary index functions are deterministic (so no need for an rdb_context_t)
@@ -1283,35 +1287,53 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
         for (uint64_t i = 0; i < index->size(); ++i) {
             const counted_t<const ql::datum_t> &skey = index->get(i, ql::THROW);
             if (index_info.geo == sindex_geo_bool_t::GEO) {
-                std::vector<std::string> geo_keys = expand_geo_key(skey, primary_key, i);
+                std::vector<std::string> geo_keys = expand_geo_key(reql_version,
+                                                                   skey,
+                                                                   primary_key,
+                                                                   i);
                 for (auto it = geo_keys.begin(); it != geo_keys.end(); ++it) {
                     keys_out->push_back(store_key_t(*it));
                 }
             } else {
-                keys_out->push_back(store_key_t(skey->print_secondary(primary_key, i)));
+                keys_out->push_back(store_key_t(skey->print_secondary(reql_version,
+                                                                      primary_key,
+                                                                      i)));
             }
         }
     } else {
         if (index_info.geo == sindex_geo_bool_t::GEO) {
-            std::vector<std::string> geo_keys = expand_geo_key(index, primary_key);
+            std::vector<std::string> geo_keys = expand_geo_key(reql_version,
+                                                               index,
+                                                               primary_key,
+                                                               boost::none);
             for (auto it = geo_keys.begin(); it != geo_keys.end(); ++it) {
                 keys_out->push_back(store_key_t(*it));
             }
         } else {
-            keys_out->push_back(store_key_t(index->print_secondary(primary_key)));
+            keys_out->push_back(store_key_t(index->print_secondary(reql_version,
+                                                                   primary_key,
+                                                                   boost::none)));
         }
     }
 }
 
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        reql_version_t, int8_t,
+        reql_version_t::v1_13, reql_version_t::v1_14_is_latest);
+
 void serialize_sindex_info(write_message_t *wm,
                            const sindex_disk_info_t &info) {
     serialize_cluster_version(wm, cluster_version_t::LATEST_DISK);
-    serialize_for_version(cluster_version_t::LATEST_DISK, wm, info.mapping);
-    serialize_cluster_version(wm, info.mapping_version_info.original_reql_version);
-    serialize_cluster_version(wm, info.mapping_version_info.latest_compatible_reql_version);
-    serialize_cluster_version(wm, info.mapping_version_info.latest_checked_reql_version);
-    serialize_for_version(cluster_version_t::LATEST_DISK, wm, info.multi);
-    serialize_for_version(cluster_version_t::LATEST_DISK, wm, info.geo);
+    serialize<cluster_version_t::LATEST_DISK>(
+        wm, info.mapping_version_info.original_reql_version);
+    serialize<cluster_version_t::LATEST_DISK>(
+        wm, info.mapping_version_info.latest_compatible_reql_version);
+    serialize<cluster_version_t::LATEST_DISK>(
+        wm, info.mapping_version_info.latest_checked_reql_version);
+
+    serialize<cluster_version_t::LATEST_DISK>(wm, info.mapping);
+    serialize<cluster_version_t::LATEST_DISK>(wm, info.multi);
+    serialize<cluster_version_t::LATEST_DISK>(wm, info.geo);
 }
 
 void deserialize_sindex_info(const std::vector<char> &data,
@@ -1324,31 +1346,39 @@ void deserialize_sindex_info(const std::vector<char> &data,
         = deserialize_cluster_version(&read_stream, &cluster_version);
     guarantee_deserialization(success, "sindex description");
 
-    success = deserialize_for_version(cluster_version, &read_stream, &info_out->mapping);
-    guarantee_deserialization(success, "sindex description");
-
-    if (cluster_version == cluster_version_t::v1_13
-        || cluster_version == cluster_version_t::v1_13_2) {
+    switch (cluster_version) {
+    case cluster_version_t::v1_13:
+    case cluster_version_t::v1_13_2:
         info_out->mapping_version_info.original_reql_version =
-            cluster_version_t::v1_13;
+            reql_version_t::v1_13;
         info_out->mapping_version_info.latest_compatible_reql_version =
-            cluster_version_t::v1_13;
+            reql_version_t::v1_13;
         info_out->mapping_version_info.latest_checked_reql_version =
-            cluster_version_t::v1_13;
-    } else {
-        success = deserialize_cluster_version(
+            reql_version_t::v1_13;
+        break;
+    case cluster_version_t::v1_14_is_latest:
+        success = deserialize_for_version(
+                cluster_version,
                 &read_stream,
                 &info_out->mapping_version_info.original_reql_version);
         guarantee_deserialization(success, "original_reql_version");
-        success = deserialize_cluster_version(
+        success = deserialize_for_version(
+                cluster_version,
                 &read_stream,
                 &info_out->mapping_version_info.latest_compatible_reql_version);
         guarantee_deserialization(success, "latest_compatible_reql_version");
-        success = deserialize_cluster_version(
+        success = deserialize_for_version(
+                cluster_version,
                 &read_stream,
                 &info_out->mapping_version_info.latest_checked_reql_version);
         guarantee_deserialization(success, "latest_checked_reql_version");
+        break;
+    default:
+        unreachable();
     }
+
+    success = deserialize_for_version(cluster_version, &read_stream, &info_out->mapping);
+    guarantee_deserialization(success, "sindex description");
 
     success = deserialize_for_version(cluster_version, &read_stream, &info_out->multi);
     guarantee_deserialization(success, "sindex description");

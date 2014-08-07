@@ -12,4 +12,8 @@ if len(sys.argv) > 1:
     buildDir = sys.argv[1]
 os.environ['BUILD_DIR'] = buildDir
 
-sys.exit(subprocess.call(['_mocha', os.path.join(os.path.dirname(__file__), 'connection.js')]))
+mochaReporterOptions = ['-R', 'spec']
+if not all([os.isatty(sys.stderr.fileno()), os.isatty(sys.stdout.fileno())]):
+    mochaReporterOptions += ['--no-colors'] # handle visionmedia/mocha#1304
+
+sys.exit(subprocess.call(['_mocha'] + mochaReporterOptions + [os.path.join(os.path.dirname(__file__), 'connection.js')]))

@@ -89,6 +89,7 @@ private:
         void NORETURN operator()(UNUSED const point_delete_t &d);
         void NORETURN operator()(UNUSED const sindex_create_t &s);
         void NORETURN operator()(UNUSED const sindex_drop_t &s);
+        void NORETURN operator()(UNUSED const sindex_rename_t &s);
         void NORETURN operator()(UNUSED const sync_t &s);
 
         write_visitor_t(std::map<store_key_t, scoped_cJSON_t *> *_data, ql::env_t *_env, write_response_t *_response);

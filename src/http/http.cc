@@ -102,29 +102,38 @@ http_req_t::http_req_t(const http_req_t &from, const resource_t::iterator& resou
 }
 
 boost::optional<std::string> http_req_t::find_query_param(const std::string& key) const {
-    //TODO this is inefficient we should actually load it all into a map
-    for (std::vector<query_parameter_t>::const_iterator it = query_params.begin(); it != query_params.end(); ++it) {
-        if (it->key == key)
-            return boost::optional<std::string>(it->val);
+    std::map<std::string, std::string>::const_iterator it = query_params.find(key);
+    if (it != query_params.end()) {
+        return boost::optional<std::string>(it->second);
     }
     return boost::none;
 }
 
+void http_req_t::add_header_line(const std::string& key, const std::string& val) {
+    std::string header_key = key;
+    boost::to_lower(header_key);
+    std::map<std::string, std::string>::const_iterator it = header_lines.find(header_key);
+    if (it == header_lines.end()) {
+        header_lines[header_key] = val;
+    }
+}
+
 boost::optional<std::string> http_req_t::find_header_line(const std::string& key) const {
-    //TODO this is inefficient we should actually load it all into a map
-    for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); ++it) {
-        if (boost::iequals(it->key, key))
-            return boost::optional<std::string>(it->val);
+    std::string header_key = key;
+    boost::to_lower(header_key);
+    std::map<std::string, std::string>::const_iterator it = header_lines.find(header_key);
+    if (it != header_lines.end()) {
+        return boost::optional<std::string>(it->second);
     }
     return boost::none;
 }
 
 bool http_req_t::has_header_line(const std::string& key) const {
-    //TODO this is inefficient we should actually load it all into a map
-    for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); ++it) {
-        if (boost::iequals(it->key, key)) {
-            return true;
-        }
+    std::string header_key = key;
+    boost::to_lower(header_key);
+    std::map<std::string, std::string>::const_iterator it = header_lines.find(header_key);
+    if (it != header_lines.end()) {
+        return true;
     }
     return false;
 }
@@ -161,17 +170,21 @@ void http_res_t::add_last_modified(int) {
 }
 
 void http_res_t::add_header_line(const std::string& key, const std::string& val) {
-    header_line_t hdr_ln;
-    hdr_ln.key = key;
-    hdr_ln.val = val;
-    header_lines.push_back(hdr_ln);
+    std::string header_key = key;
+    boost::to_lower(header_key);
+    std::map<std::string, std::string>::const_iterator it = header_lines.find(header_key);
+    if (it == header_lines.end()) {
+        header_lines[header_key] = val;
+    }
 }
 
 void http_res_t::set_body(const std::string& content_type, const std::string& content) {
-    for (std::vector<header_line_t>::iterator it = header_lines.begin(); it != header_lines.end(); ++it) {
-        guarantee(it->key != "Content-Type");
-        guarantee(it->key != "Content-Length");
-    }
+    std::map<std::string, std::string>::const_iterator it;
+    it = header_lines.find("content-type");
+    guarantee(it == header_lines.end());
+    it = header_lines.find("content-length");
+    guarantee(it == header_lines.end());
+
     guarantee(body.size() == 0);
 
     add_header_line("Content-Type", content_type);
@@ -196,7 +209,6 @@ bool maybe_gzip_response(const http_req_t &req, http_res_t *res) {
     if (!supported_encoding || supported_encoding.get().empty()) {
         return false;
     }
-
     std::map<std::string, std::string> encodings;
 
     // Regular expression to match an encoding/qvalue pair
@@ -214,7 +226,8 @@ bool maybe_gzip_response(const http_req_t &req, http_res_t *res) {
     //      be the next comma or the end of the string.  We consume the comma so that the
     //      next iteration will start at the beginning of the remaining string.
     {
-        RE2 re2_parser("^\\s*([\\w-]+|\\*)\\s*(?:;\\s*q\\s*=\\s*([0-9]+(?:\\.[0-9]+)?)\\s*)?(?:,|$)");
+        RE2 re2_parser("^\\s*([\\w-]+|\\*)\\s*(?:;\\s*q\\s*=\\s*([0-9]+(?:\\.[0-9]+)?)\\s*)?(?:,|$)",
+                       RE2::Quiet);
         re2::StringPiece encodings_re2(supported_encoding.get());
         std::string name;
         std::string qvalue;
@@ -316,11 +329,8 @@ bool maybe_gzip_response(const http_req_t &req, http_res_t *res) {
     res->body.assign(out_buffer.data(), zstream.total_out);
 
     // Update the body size in the headers
-    for (auto it = res->header_lines.begin(); it != res->header_lines.end(); ++it) {
-        if (it->key == "Content-Length") {
-            it->val = strprintf("%lu", zstream.total_out);
-            break;
-        }
+    if (res->header_lines.find("content-length") != res->header_lines.end()){
+        res->header_lines["content-length"] = strprintf("%lu", zstream.total_out);
     }
 
     res->add_header_line("Content-Encoding", "gzip");
@@ -438,8 +448,8 @@ std::string human_readable_status(int code) {
 
 void write_http_msg(tcp_conn_t *conn, const http_res_t &res, signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
     conn->writef(closer, "HTTP/%s %d %s\r\n", res.version.c_str(), res.code, human_readable_status(res.code).c_str());
-    for (std::vector<header_line_t>::const_iterator it = res.header_lines.begin(); it != res.header_lines.end(); ++it) {
-        conn->writef(closer, "%s: %s\r\n", it->key.c_str(), it->val.c_str());
+    for (auto const &line: res.header_lines) {
+        conn->writef(closer, "%s: %s\r\n", line.first.c_str(), line.second.c_str());
     }
     conn->writef(closer, "\r\n");
     conn->write(res.body.c_str(), res.body.size(), closer);
@@ -529,10 +539,7 @@ bool tcp_http_msg_parser_t::parse(tcp_conn_t *conn, http_req_t *req, signal_t *c
             return false;
         }
 
-        header_line_t final_line;
-        final_line.key = header_parser.key;
-        final_line.val = header_parser.val;
-        req->header_lines.push_back(final_line);
+        req->add_header_line(header_parser.key, header_parser.val);
     }
 
     // Parse body
@@ -555,7 +562,9 @@ bool tcp_http_msg_parser_t::version_parser_t::parse(const std::string &src) {
 }
 
 bool tcp_http_msg_parser_t::resource_string_parser_t::parse(const std::string &src) {
+    std::string key, val;
     std::string::const_iterator iter = src.begin();
+
     while (iter != src.end() && *iter != '?') {
         ++iter;
     }
@@ -571,9 +580,6 @@ bool tcp_http_msg_parser_t::resource_string_parser_t::parse(const std::string &s
 
     while (iter != src.end()) {
 
-        // Parse single query param
-        query_parameter_t param;
-
         // Skip to the end of this param
         std::string::const_iterator query_start = iter;
         while (!(iter == src.end() || *iter == '&')) {
@@ -586,15 +592,17 @@ bool tcp_http_msg_parser_t::resource_string_parser_t::parse(const std::string &s
             ++query_iter;
         }
 
-        param.key = std::string(query_start, query_iter);
+        key = std::string(query_start, query_iter);
         if (query_iter == iter) {
             // There was no '=' and subsequent value, default to ""
-            param.val = "";
+            val = "";
         } else {
-            param.val = std::string(query_iter + 1, iter);
+            val = std::string(query_iter + 1, iter);
         }
 
-        query_params.push_back(param);
+        if (query_params.find(key) == query_params.end()) {
+            query_params[key] = val;
+        }
 
         // Skip the '&'
         if (iter != src.end()) ++iter;

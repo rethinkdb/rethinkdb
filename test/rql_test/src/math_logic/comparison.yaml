@@ -319,30 +319,15 @@ tests:
       js: r(false).lt([])
       rb: r(false) < []
 
-    - py: r.expr([]) < r.binary("\xAE")
+    - py: r.expr([]) < r.binary(b"\xAE")
       js: r([]).lt(r.binary(Buffer("\x00")))
       rb: r([]) < r.binary("")
       ot: true
 
-    - py: r.expr([1,2]) < r.binary("\xAE")
+    - py: r.expr([1,2]) < r.binary(b"\xAE")
       js: r([1,2]).lt(r.binary(Buffer("\x00")))
       rb: r([1,2]) < r.binary("")
       ot: true
-
-    - py: r.expr(r.binary("\xAE")) < []
-      js: r(r.binary(Buffer("\x00"))).lt([])
-      rb: r(r.binary("")) < []
-      ot: false
-
-    - py: r.binary("0xAE") < True
-      js: r.binary(Buffer("0x00")).lt(true)
-      rb: r.binary("") < true
-      ot: true
-
-    - py: r.binary("0xAE") > False
-      js: r.binary(Buffer("0x00")).gt(false)
-      rb: r.binary("") > false
-      ot: false
 
     - py: True < r.expr(None)
       js: r(true).lt(null)
@@ -373,6 +358,29 @@ tests:
       js: r(100).lt({a:-12})
       rb: r(100) < { :a => 12 }
       ot: true
+
+    - py: r.expr(r.binary(b"\xAE")) < 12
+      js: r(r.binary(Buffer("\x00"))).lt(12)
+      rb: r(r.binary("")) < 12
+      ot: false
+
+    - py: r.binary(b"0xAE") < 'abc'
+      js: r.binary(Buffer("0x00")).lt('abc')
+      rb: r.binary("") < 'abc'
+      ot: true
+
+    - py: r.binary(b"0xAE") > r.now()
+      js: r.binary(Buffer("0x00")).gt(r.now())
+      rb: r.binary("") > r.now()
+      ot: false
+
+    - cd: r.now() > 12
+      js: r.now().gt(12)
+      ot: true
+
+    - cd: r.now() > 'abc'
+      js: r.now().gt('abc')
+      ot: false
 
     - py: r.expr("abc") > {'a':-12}
       js: r('abc').gt({a:-12})

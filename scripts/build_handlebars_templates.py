@@ -46,14 +46,14 @@ try:
     # Split all the html files by script tags.
     for root, dirnames, filenames in os.walk(HTML_INPUT_DIR):
         for filename in fnmatch.filter(filenames, "*.html"):
-            path = os.path.join(root,filename)
+            path = os.path.join(root, filename)
             with io.open(path, encoding='utf-8') as f:
                 text = f.read()
                 tmp_parts = split_by_script_tags(text)
                 parts += tmp_parts
 
     # Now build parts corresponding to script tags.
-    named_parts = { }
+    named_parts = {}
     for part in parts:
         # We use the first line of the file to create the filename for
         # non-script-tag-led matches?  You could ask Michel why we do

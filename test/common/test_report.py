@@ -1,5 +1,7 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 
+from __future__ import print_function
+
 import json, os, subprocess, re
 
 import test_framework
@@ -35,7 +37,7 @@ def generate_html(output_file, reportData):
   file_out = open(output_file, 'w')
   mustachePath = os.path.realpath(os.path.join(os.path.dirname(__file__), 'mustache', 'mustache.js'))
   mustacheContent = open(mustachePath).read()
-  pageHTML = test_report_template % { "pagedata":json.dumps(reportData, separators=(',',':')), 'mustacheContents': mustacheContent }
+  pageHTML = test_report_template % {"pagedata": json.dumps(reportData, separators=(',', ':')), 'mustacheContents': mustacheContent}
   file_out.write(pageHTML)
 
 def gen_report(test_root, tests):
@@ -69,7 +71,7 @@ def gen_report(test_root, tests):
   }
   
   generate_html(test_root + "/test_results.html", reportData)
-  print 'Wrote test report to "%s/test_results.html"' % os.path.realpath(test_root)
+  print('Wrote test report to "%s/test_results.html"' % os.path.realpath(test_root))
 
 test_report_template = """
 <html>

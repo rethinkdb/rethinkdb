@@ -47,7 +47,7 @@ private:
 class new_semaphore_acq_t : public intrusive_list_node_t<new_semaphore_acq_t> {
 public:
     // Construction is non-blocking, it gets you in line for the semaphore.  You need
-    // to call acquisition()->wait() in order to wait for your acquisition of the
+    // to call acquisition_signal()->wait() in order to wait for your acquisition of the
     // semaphore.  Acquirers receive the semaphore in the same order that they've
     // acquired it.
     ~new_semaphore_acq_t();

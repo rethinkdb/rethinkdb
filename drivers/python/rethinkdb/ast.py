@@ -15,17 +15,31 @@ from . import ql2_pb2 as p
 
 pTerm = p.Term.TermType
 
+try:
+    unicode
+except NameError:
+    unicode = str
+try:
+    xrange
+except NameError:
+    xrange = range
+try:
+    {}.iteritems
+    dict_items = lambda d: d.iteritems()
+except AttributeError:
+    dict_items = lambda d: d.items()
+
 # This is both an external function and one used extensively
 # internally to convert coerce python values to RQL types
 def expr(val, nesting_depth=20):
     '''
         Convert a Python primitive into a RQL primitive value
     '''
-    if nesting_depth <= 0:
-        raise RqlDriverError("Nesting depth limit exceeded")
-
     if not isinstance(nesting_depth, int):
         raise RqlDriverError("Second argument to `r.expr` must be a number.")
+    
+    if nesting_depth <= 0:
+        raise RqlDriverError("Nesting depth limit exceeded")
 
     if isinstance(val, RqlQuery):
         return val
@@ -36,7 +50,7 @@ def expr(val, nesting_depth=20):
         # MakeObj doesn't take the dict as a keyword args to avoid
         # conflicting with the `self` parameter.
         obj = {}
-        for (k,v) in val.iteritems():
+        for k, v in dict_items(val):
             obj[k] = expr(v, nesting_depth - 1)
         return MakeObj(obj)
     elif isinstance(val, collections.Callable):
@@ -66,7 +80,7 @@ class RqlQuery(object):
         self.args = [expr(e) for e in args]
 
         self.optargs = {}
-        for (k,v) in optargs.iteritems():
+        for k, v in dict_items(optargs):
             if not isinstance(v, RqlQuery) and v == ():
                 continue
             self.optargs[k] = expr(v)
@@ -92,7 +106,7 @@ class RqlQuery(object):
     def build(self):
         res = [self.tt, [arg.build() for arg in self.args]]
         if len(self.optargs) > 0:
-            res.append(dict((k, v.build()) for (k,v) in self.optargs.iteritems()))
+            res.append(dict((k, v.build()) for k, v in dict_items(self.optargs)))
         return res
 
     # The following are all operators and methods that operate on
@@ -143,6 +157,12 @@ class RqlQuery(object):
         return Div(self, other)
 
     def __rdiv__(self, other):
+        return Div(other, self)
+
+    def __truediv__(self, other):
+        return Div(self, other)
+
+    def __rtruediv__(self, other):
         return Div(other, self)
 
     def __mod__(self, other):
@@ -305,7 +325,7 @@ class RqlQuery(object):
                 return Slice(self, index.start or 0, -1, right_bound='closed', bracket_operator=True)
         elif isinstance(index, int):
             return Nth(self, index, bracket_operator=True)
-        elif isinstance(index, types.StringTypes):
+        elif isinstance(index, (str, unicode)):
             return GetField(self, index, bracket_operator=True)
         elif isinstance(index, RqlQuery):
             raise RqlDriverError(
@@ -319,9 +339,9 @@ class RqlQuery(object):
 
     def __iter__(*args, **kwargs):
         raise RqlDriverError(
-                "__iter__ called on an RqlQuery object.\n"+
-                "To iterate over the results of a query, call run first.\n"+
-                "To iterate inside a query, use map or for_each.")
+            "__iter__ called on an RqlQuery object.\n"
+            "To iterate over the results of a query, call run first.\n"
+            "To iterate inside a query, use map or for_each.")
 
     def get_field(self, *args):
         return GetField(self, *args)
@@ -440,7 +460,7 @@ class RqlQuery(object):
     def sample(self, *args):
         return Sample(self, *args)
 
-    ## Time support
+    # Time support
 
     def to_iso8601(self, *args):
         return ToISO8601(self, *args)
@@ -541,18 +561,19 @@ class RqlBiCompareOperQuery(RqlBiOperQuery):
         for arg in args:
             try:
                 if arg.infix:
-                    err = "Calling '%s' on result of infix bitwise operator:\n" + \
-                          "%s.\n" + \
-                          "This is almost always a precedence error.\n" + \
-                          "Note that `a < b | b < c` <==> `a < (b | b) < c`.\n" + \
-                          "If you really want this behavior, use `.or_` or `.and_` instead."
+                    err = (
+                        "Calling '%s' on result of infix bitwise operator:\n"
+                        "%s.\n"
+                        "This is almost always a precedence error.\n"
+                        "Note that `a < b | b < c` <==> `a < (b | b) < c`.\n"
+                        "If you really want this behavior, use `.or_` or `.and_` instead.")
                     raise RqlDriverError(err % (self.st, QueryPrinter(self).print_query()))
             except AttributeError:
                 pass # No infix attribute, so not possible to be an infix bool operator
 
 class RqlTopLevelQuery(RqlQuery):
     def compose(self, args, optargs):
-        args.extend([T(k, '=', v) for (k,v) in optargs.iteritems()])
+        args.extend([T(k, '=', v) for k, v in dict_items(optargs)])
         return T('r.', self.st, '(', T(*(args), intsp=', '), ')')
 
 class RqlMethodQuery(RqlQuery):
@@ -564,7 +585,7 @@ class RqlMethodQuery(RqlQuery):
             args[0] = T('r.expr(', args[0], ')')
 
         restargs = args[1:]
-        restargs.extend([T(k, '=', v) for (k,v) in optargs.iteritems()])
+        restargs.extend([T(k, '=', v) for k, v in dict_items(optargs)])
         restargs = T(*restargs, intsp=', ')
 
         return T(args[0], '.', self.st, '(', restargs, ')')
@@ -628,14 +649,13 @@ def recursively_make_hashable(obj):
     if isinstance(obj, list):
         return tuple([recursively_make_hashable(i) for i in obj])
     elif isinstance(obj, dict):
-        return frozenset([(k, recursively_make_hashable(v)) for (k,v) in obj.iteritems()])
+        return frozenset([(k, recursively_make_hashable(v)) for k, v in dict_items(obj)])
     return obj
 
 def reql_type_grouped_data_to_object(obj):
     if not 'data' in obj:
-        raise RqlDriverError('pseudo-type GROUPED_DATA object %s does not have the ' \
-                             'expected field "data".' % py_json.dumps(obj))
-    return dict([(recursively_make_hashable(k),v) for (k,v) in obj['data']])
+        raise RqlDriverError('pseudo-type GROUPED_DATA object %s does not have the expected field "data".' % py_json.dumps(obj))
+    return dict([(recursively_make_hashable(k), v) for k, v in obj['data']])
 
 def reql_type_binary_to_bytes(obj):
     if not 'data' in obj:
@@ -675,7 +695,7 @@ def convert_pseudotype(obj, format_opts):
 
 def recursively_convert_pseudotypes(obj, format_opts):
     if isinstance(obj, dict):
-        for (key, value) in obj.iteritems():
+        for key, value in dict_items(obj):
             obj[key] = recursively_convert_pseudotypes(value, format_opts)
         obj = convert_pseudotype(obj, format_opts)
     elif isinstance(obj, list):
@@ -707,7 +727,7 @@ class MakeArray(RqlQuery):
     tt = pTerm.MAKE_ARRAY
 
     def compose(self, args, optargs):
-        return T('[', T(*args, intsp=', '),']')
+        return T('[', T(*args, intsp=', '), ']')
 
     def do(self, *args):
         return FunCall(self, *args)
@@ -722,26 +742,26 @@ class MakeObj(RqlQuery):
         self.args = []
 
         self.optargs = {}
-        for (k,v) in obj_dict.iteritems():
-            if not isinstance(k, types.StringTypes):
+        for k, v in dict_items(obj_dict):
+            if not isinstance(k, (str, unicode)):
                 raise RqlDriverError("Object keys must be strings.");
             self.optargs[k] = expr(v)
 
     def build(self):
-        res = { }
-        for (k,v) in self.optargs.iteritems():
+        res = {}
+        for k, v in dict_items(self.optargs):
             k = k.build() if isinstance(k, RqlQuery) else k
             res[k] = v.build() if isinstance(v, RqlQuery) else v
         return res
 
     def compose(self, args, optargs):
-        return T('r.expr({', T(*[T(repr(k), ': ', v) for (k,v) in optargs.iteritems()], intsp=', '), '})')
+        return T('r.expr({', T(*[T(repr(k), ': ', v) for k, v in dict_items(optargs)], intsp=', '), '})')
 
 class Var(RqlQuery):
     tt = pTerm.VAR
 
     def compose(self, args, optargs):
-        return 'var_'+args[0]
+        return 'var_' + args[0]
 
 class JavaScript(RqlTopLevelQuery):
     tt = pTerm.JAVASCRIPT
@@ -982,6 +1002,9 @@ class Table(RqlQuery):
     def index_drop(self, *args):
         return IndexDrop(self, *args)
 
+    def index_rename(self, *args, **kwargs):
+        return IndexRename(self, *args, **kwargs)
+
     def index_list(self, *args):
         return IndexList(self, *args)
 
@@ -1189,6 +1212,10 @@ class IndexCreate(RqlMethodQuery):
 class IndexDrop(RqlMethodQuery):
     tt = pTerm.INDEX_DROP
     st = 'index_drop'
+
+class IndexRename(RqlMethodQuery):
+    tt = pTerm.INDEX_RENAME
+    st = 'index_rename'
 
 class IndexList(RqlMethodQuery):
     tt = pTerm.INDEX_LIST
@@ -1415,7 +1442,7 @@ def _ivar_scan(query):
         return True
     if any([_ivar_scan(arg) for arg in query.args]):
         return True
-    if any([_ivar_scan(arg) for k,arg in query.optargs.iteritems()]):
+    if any([_ivar_scan(arg) for k, arg in dict_items(query.optargs)]):
         return True
     return False
 
@@ -1434,7 +1461,11 @@ class Func(RqlQuery):
     def __init__(self, lmbd):
         vrs = []
         vrids = []
-        for i in range(lmbd.func_code.co_argcount):
+        try:
+            code = lmbd.func_code
+        except AttributeError:
+            code = lmbd.__code__
+        for i in xrange(code.co_argcount):
             Func.lock.acquire()
             var_id = Func.nextVarId
             Func.nextVarId += 1

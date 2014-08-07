@@ -269,7 +269,10 @@ private:
         }
 
         if (lb.has() && rb.has()) {
-            if (*lb > *rb || ((left_open || right_open) && *lb == *rb)) {
+            // This reql_version will always be LATEST, because this function is not
+            // deterministic, but whatever.
+            if (lb->compare_gt(env->env->reql_version, *rb) ||
+                ((left_open || right_open) && *lb == *rb)) {
                 counted_t<datum_stream_t> ds
                     =  make_counted<array_datum_stream_t>(datum_t::empty_array(),
                                                           backtrace());

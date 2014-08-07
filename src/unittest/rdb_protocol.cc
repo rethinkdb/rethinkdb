@@ -299,7 +299,8 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
                 &rget_resp->result);
             ASSERT_TRUE(streams != NULL);
             ASSERT_EQ(1, streams->size());
-            auto stream = &streams->begin()->second;
+            // Order doesn't matter because streams->size() is 1.
+            auto stream = &streams->begin(ql::grouped::order_doesnt_matter_t())->second;
             ASSERT_TRUE(stream != NULL);
             ASSERT_EQ(1u, stream->size());
             ASSERT_EQ(*ql::to_datum(data->get(), limits), *stream->at(0).data);
@@ -349,15 +350,11 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
     }
 }
 
-void run_create_drop_sindex_with_data_test(namespace_interface_t *nsi,
-                                           order_source_t *osource,
-                                           int num_docs) {
-    /* Create a secondary index. */
-    std::string id = create_sindex(nsi, osource);
-    wait_for_sindex(nsi, osource, id);
-
+void populate_sindex(namespace_interface_t *nsi,
+                     order_source_t *osource,
+                     int num_docs) {
     for (int i = 0; i < num_docs; ++i) {
-        std::string json_doc = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i+1);
+        std::string json_doc = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i % 4);
         std::shared_ptr<const scoped_cJSON_t> data(
             new scoped_cJSON_t(cJSON_Parse(json_doc.c_str())));
         ql::configured_limits_t limits;
@@ -384,6 +381,16 @@ void run_create_drop_sindex_with_data_test(namespace_interface_t *nsi,
             ADD_FAILURE() << "got wrong type of result back";
         }
     }
+}
+
+void run_create_drop_sindex_with_data_test(namespace_interface_t *nsi,
+                                           order_source_t *osource,
+                                           int num_docs) {
+    /* Create a secondary index. */
+    std::string id = create_sindex(nsi, osource);
+    wait_for_sindex(nsi, osource, id);
+
+    populate_sindex(nsi, osource, num_docs);
 
     {
         const bool drop_sindex_res = drop_sindex(nsi, osource, id);
@@ -391,13 +398,14 @@ void run_create_drop_sindex_with_data_test(namespace_interface_t *nsi,
     }
 }
 
-void run_repeated_create_drop_sindex_test(namespace_interface_t *nsi,
-                                          order_source_t *osource) {
-    // Create and drop index with a couple of documents in it
-    run_create_drop_sindex_with_data_test(nsi, osource, 128);
+void run_repeated_sindex_test(namespace_interface_t *nsi,
+                              order_source_t *osource,
+                              void (*fn)(namespace_interface_t *, order_source_t *, int)) {
+    // Run the test with just a few documents in it
+    fn(nsi, osource, 128);
     // ... and just for fun sometimes do it a second time immediately after.
     if (randint(4) == 0) {
-        run_create_drop_sindex_with_data_test(nsi, osource, 128);
+        fn(nsi, osource, 128);
     }
 
     // Nap for a random time before we shut down the namespace interface
@@ -413,13 +421,156 @@ TEST(RDBProtocol, SindexCreateDrop) {
 
 TEST(RDBProtocol, SindexRepeatedCreateDrop) {
     // Repeat the test 10 times on the same data files.
-    run_in_thread_pool_with_namespace_interface(&run_repeated_create_drop_sindex_test,
-                                                false,
-                                                10);
+    run_in_thread_pool_with_namespace_interface(
+        std::bind(&run_repeated_sindex_test,
+                  std::placeholders::_1,
+                  std::placeholders::_2,
+                  &run_create_drop_sindex_with_data_test),
+        false,
+        10);
 }
 
 TEST(RDBProtocol, OvershardedSindexCreateDrop) {
     run_in_thread_pool_with_namespace_interface(&run_create_drop_sindex_test, true);
+}
+
+void rename_sindex(namespace_interface_t *nsi,
+                   order_source_t *osource,
+                   std::string old_name,
+                   std::string new_name,
+                   bool overwrite,
+                   sindex_rename_result_t expected_result) {
+    cond_t dummy_interruptor;
+    write_t write(sindex_rename_t(old_name, new_name, overwrite),
+                  profile_bool_t::PROFILE, ql::configured_limits_t());
+    write_response_t response;
+    nsi->write(write, &response,
+               osource->check_in("unittest::rename_sindex(rdb_protocol.cc-A"),
+               &dummy_interruptor);
+
+    sindex_rename_response_t *res = boost::get<sindex_rename_response_t>(&response.response);
+    if (res == NULL) {
+        ADD_FAILURE() << "got wrong type of result back";
+    }
+    ASSERT_EQ(expected_result, res->result);
+}
+
+void read_sindex(namespace_interface_t *nsi,
+                 order_source_t *osource,
+                 double value,
+                 std::string index,
+                 size_t expected_size) {
+    /* Access the data using the secondary index. */
+    counted_t<const ql::datum_t> key_literal = make_counted<ql::datum_t>(value);
+    read_t read = make_sindex_read(key_literal, index);
+    read_response_t response;
+
+    cond_t interruptor;
+    nsi->read(read, &response, osource->check_in("unittest::run_rename_sindex_test(rdb_protocol.cc-A"), &interruptor);
+
+    if (rget_read_response_t *rget_resp = boost::get<rget_read_response_t>(&response.response)) {
+        auto streams = boost::get<ql::grouped_t<ql::stream_t> >(
+            &rget_resp->result);
+        ASSERT_TRUE(streams != NULL);
+        ASSERT_EQ(1, streams->size());
+        // Order doesn't matter because streams->size() is 1.
+        ql::stream_t *stream
+            = &streams->begin(ql::grouped::order_doesnt_matter_t())->second;
+        ASSERT_TRUE(stream != NULL);
+        ASSERT_EQ(expected_size, stream->size());
+    } else {
+        ADD_FAILURE() << "got wrong type of result back";
+    }
+}
+
+void run_rename_sindex_test(namespace_interface_t *nsi,
+                            order_source_t *osource,
+                            int num_rows) {
+    bool sindex_before_data = randint(2) == 0;
+    std::string id1;
+    std::string id2;
+
+    if (sindex_before_data) {
+        id1 = create_sindex(nsi, osource);
+        id2 = create_sindex(nsi, osource);
+    }
+
+    populate_sindex(nsi, osource, num_rows);
+
+    if (!sindex_before_data) {
+        id1 = create_sindex(nsi, osource);
+        id2 = create_sindex(nsi, osource);
+    }
+
+    wait_for_sindex(nsi, osource, id1);
+    wait_for_sindex(nsi, osource, id2);
+
+    // Do a bunch of renaming with and without errors
+    rename_sindex(nsi, osource,
+                  id1, id2, false,
+                  sindex_rename_result_t::NEW_NAME_EXISTS);
+
+    rename_sindex(nsi, osource,
+                  "fake", id2, false,
+                  sindex_rename_result_t::NEW_NAME_EXISTS);
+
+    rename_sindex(nsi, osource,
+                  id1, id2, true,
+                  sindex_rename_result_t::SUCCESS);
+
+    rename_sindex(nsi, osource,
+                  id1, id2, true,
+                  sindex_rename_result_t::OLD_NAME_DOESNT_EXIST);
+
+    rename_sindex(nsi, osource,
+                  id2, "fake", true,
+                  sindex_rename_result_t::SUCCESS);
+
+    rename_sindex(nsi, osource,
+                  "fake", "last", true,
+                  sindex_rename_result_t::SUCCESS);
+
+    rename_sindex(nsi, osource,
+                  "fake", "fake2", false,
+                  sindex_rename_result_t::OLD_NAME_DOESNT_EXIST);
+
+    // At this point the only sindex should be 'last'
+    // Perform a read to make sure it survived all the moves
+    read_sindex(nsi, osource, 3.0, "last", num_rows / 4);
+
+    {
+        const bool drop_sindex_res = drop_sindex(nsi, osource, "last");
+        ASSERT_TRUE(drop_sindex_res);
+    }
+}
+
+TEST(RDBProtocol, SindexRename) {
+    run_in_thread_pool_with_namespace_interface(
+        std::bind(&run_rename_sindex_test,
+                  std::placeholders::_1,
+                  std::placeholders::_2,
+                  64),
+        false);
+}
+
+TEST(RDBProtocol, OvershardedSindexRename) {
+    run_in_thread_pool_with_namespace_interface(
+        std::bind(&run_rename_sindex_test,
+                  std::placeholders::_1,
+                  std::placeholders::_2,
+                  64),
+        true);
+}
+
+TEST(RDBProtocol, SindexRepeatedRename) {
+    // Repeat the test 10 times on the same data files.
+    run_in_thread_pool_with_namespace_interface(
+        std::bind(&run_repeated_sindex_test,
+                  std::placeholders::_1,
+                  std::placeholders::_2,
+                  &run_rename_sindex_test),
+        false,
+        10);
 }
 
 std::set<std::string> list_sindexes(namespace_interface_t *nsi, order_source_t *osource) {
@@ -537,7 +688,8 @@ void run_sindex_oversized_keys_test(namespace_interface_t *nsi, order_source_t *
                         &rget_resp->result);
                     ASSERT_TRUE(streams != NULL);
                     ASSERT_EQ(1, streams->size());
-                    auto stream = &streams->begin()->second;
+                    // Order doesn't matter because streams->size() is 1.
+                    auto stream = &streams->begin(ql::grouped::order_doesnt_matter_t())->second;
                     ASSERT_TRUE(stream != NULL);
                     // There should be results equal to the number of iterations
                     // performed

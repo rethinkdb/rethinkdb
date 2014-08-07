@@ -23,7 +23,7 @@ class StatsDBCollector(object):
         timestamp = self.db_conn.escape_string(str(timestamp))
         stat = self.db_conn.escape_string(stat)
         value = self.db_conn.escape_string(str(value))
-        self.db_conn.query("INSERT INTO `stats` VALUES ('%s', (SELECT `id` FROM `stat_names` WHERE `name` = '%s' LIMIT 1), '%s', '%d')" % (timestamp, stat, value, self.run_timestamp) )
+        self.db_conn.query("INSERT INTO `stats` VALUES ('%s', (SELECT `id` FROM `stat_names` WHERE `name` = '%s' LIMIT 1), '%s', '%d')" % (timestamp, stat, value, self.run_timestamp))
         if self.db_conn.affected_rows() != 1:
             raise Exception("Cannot insert stat %s into database" % stat)
 
@@ -50,5 +50,3 @@ class StatsDBCollector(object):
     def stop(self):
         self.rdbstat.stop()
         self.db_conn.close()
-
-
