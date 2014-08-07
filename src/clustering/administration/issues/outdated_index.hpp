@@ -1,4 +1,4 @@
-// Copyright 2014-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_ISSUES_OUTDATED_INDEX_HPP_
 #define CLUSTERING_ADMINISTRATION_ISSUES_OUTDATED_INDEX_HPP_
 
