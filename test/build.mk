@@ -2,11 +2,7 @@
 include $(TOP)/test/protobuf_test/build.mk
 
 .PHONY: test-deps
-test-deps: $(BUILD_DIR)/rethinkdb $(BUILD_DIR)/rethinkdb-unittest web-assets
-	$P MAKE -C $/drivers/ruby
-	$(EXTERN_MAKE) -C $/drivers/ruby -s
-	$P MAKE -C $/drivers/python
-	$(EXTERN_MAKE) -C $/drivers/python -s
+test-deps: $(BUILD_DIR)/rethinkdb $(BUILD_DIR)/rethinkdb-unittest web-assets rb-driver py-driver
 
 .PHONY: test
 test: test-deps
