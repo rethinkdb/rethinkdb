@@ -20,25 +20,49 @@ void store_t::note_reshard() {
     }
 }
 
-reql_version_t update_sindex_last_compatible_version(
-        const std::vector<char> &opaque_definition,
-        UNUSED buf_lock_t *sindex_block) {
+reql_version_t update_sindex_last_compatible_version(secondary_index_t *sindex,
+                                                     buf_lock_t *sindex_block) {
     ql::map_wire_func_t mapping;
     sindex_reql_version_info_t version_info;
     sindex_multi_bool_t multi;
-    deserialize_sindex_info(opaque_definition, &mapping, &version_info, &multi);
+    deserialize_sindex_info(sindex->opaque_definition, &mapping, &version_info, &multi);
 
-    // TODO: update the version info in the btree
-
+    reql_version_t res;
     switch (version_info.original_reql_version) {
     case reql_version_t::v1_13:
-        return reql_version_t::v1_13;
+        res = reql_version_t::v1_13;
+        break;
     case reql_version_t::v1_14:
-        return reql_version_t::v1_14;
+        res = reql_version_t::v1_14;
+        break;
     default:
         unreachable();
     }
-    unreachable();
+
+    bool do_update = version_info.latest_compatible_reql_version != res ||
+        version_info.latest_checked_reql_version != reql_version_t::LATEST;
+
+    if (do_update) {
+        version_info.latest_compatible_reql_version = res;
+        version_info.latest_checked_reql_version = reql_version_t::LATEST;
+
+        write_message_t wm;
+        serialize_sindex_info(&wm,
+                              mapping,
+                              version_info,
+                              multi);
+
+        vector_stream_t stream;
+        stream.reserve(wm.size());
+        int write_res = send_write_message(&stream, &wm);
+        guarantee(write_res == 0);
+
+        sindex->opaque_definition = stream.vector();
+
+        ::set_secondary_index(sindex_block, sindex->id, *sindex);
+    }
+
+    return res;
 }
 
 void store_t::update_outdated_sindex_list(buf_lock_t *sindex_block) {
@@ -49,8 +73,8 @@ void store_t::update_outdated_sindex_list(buf_lock_t *sindex_block) {
         std::set<std::string> index_set;
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
             if (!it->first.being_deleted &&
-                update_sindex_last_compatible_version(it->second.opaque_definition,
-                                                      sindex_block) != 
+                update_sindex_last_compatible_version(&it->second,
+                                                      sindex_block) !=
                     reql_version_t::LATEST) {
                 index_set.insert(it->first.name);
             }

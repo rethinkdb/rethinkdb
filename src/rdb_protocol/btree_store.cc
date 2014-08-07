@@ -111,17 +111,21 @@ store_t::store_t(serializer_t *serializer,
         // things yet, so this should work fairly quickly and does not need a real
         // interruptor.
         cond_t dummy_interruptor;
-        read_token_pair_t token_pair;
-        store_view_t::new_read_token_pair(&token_pair);
-
+        write_token_pair_t token_pair;
+        store_view_t::new_write_token_pair(&token_pair);
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        acquire_superblock_for_read(&token_pair.main_read_token, &txn,
-                                    &superblock, &dummy_interruptor, false);
+        acquire_superblock_for_write(repli_timestamp_t::distant_past,
+                                     1,
+                                     write_durability_t::SOFT,
+                                     &token_pair,
+                                     &txn,
+                                     &superblock,
+                                     &dummy_interruptor);
 
         buf_lock_t sindex_block
-            = acquire_sindex_block_for_read(superblock->expose_buf(),
-                                            superblock->get_sindex_block_id());
+            = acquire_sindex_block_for_write(superblock->expose_buf(),
+                                             superblock->get_sindex_block_id());
 
         std::map<sindex_name_t, secondary_index_t> sindexes;
         get_secondary_indexes(&sindex_block, &sindexes);
