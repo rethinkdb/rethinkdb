@@ -1,7 +1,9 @@
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/issues/outdated_index.hpp"
+#include "debug.hpp"
 
-typedef outdated_index_issue_tracker_t::request_mailbox_t::address_t request_address_t;
-typedef outdated_index_issue_tracker_t::result_mailbox_t::address_t result_address_t;
+typedef outdated_index_issue_server_t::request_address_t request_address_t;
+typedef outdated_index_issue_server_t::result_address_t result_address_t;
 
 outdated_index_issue_t::outdated_index_issue_t(outdated_index_map_t &&indexes) :
     outdated_indexes(indexes) { }
@@ -50,20 +52,55 @@ outdated_index_issue_t *outdated_index_issue_t::clone() const {
     return new outdated_index_issue_t(outdated_index_map_t(outdated_indexes));
 }
 
-outdated_index_issue_tracker_t::outdated_index_issue_tracker_t(
+outdated_index_issue_server_t::outdated_index_issue_server_t(
+    mailbox_manager_t *_mailbox_manager) :
+        mailbox_manager(_mailbox_manager),
+        request_mailbox(mailbox_manager, std::bind(
+            &outdated_index_issue_server_t::handle_request,
+            this, ph::_1)),
+        local_client(NULL) { }
+
+
+void outdated_index_issue_server_t::attach_local_client(
+        outdated_index_issue_client_t *client) {
+    assert_thread();
+    rassert(local_client == NULL);
+    local_client = client;
+}
+
+void outdated_index_issue_server_t::detach_local_client() {
+    assert_thread();
+    rassert(local_client != NULL);
+    local_client = NULL;
+}
+
+request_address_t outdated_index_issue_server_t::get_request_mailbox_address() const {
+    return request_mailbox.get_address();
+}
+
+void outdated_index_issue_server_t::handle_request(result_address_t result_address) {
+    outdated_index_map_t res;
+
+    if (local_client != NULL) {
+        res = local_client->collect_local_indexes();
+    }
+
+    send(mailbox_manager, result_address, std::move(res));
+}
+
+outdated_index_issue_client_t::outdated_index_issue_client_t(
         mailbox_manager_t *_mailbox_manager,
-        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, request_address_t> > >
+        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
+                                                            request_address_t> > >
             &_outdated_index_mailboxes) :
     mailbox_manager(_mailbox_manager),
-    request_mailbox(mailbox_manager, std::bind(&outdated_index_issue_tracker_t::handle_request,
-                                               this, ph::_1)),
     outdated_index_mailboxes(_outdated_index_mailboxes)
 { }
 
-outdated_index_issue_tracker_t::~outdated_index_issue_tracker_t() { }
+outdated_index_issue_client_t::~outdated_index_issue_client_t() { }
 
 std::set<std::string> *
-outdated_index_issue_tracker_t::get_index_set(const namespace_id_t &ns_id) { 
+outdated_index_issue_client_t::get_index_set(const namespace_id_t &ns_id) {
     auto thread_map = outdated_indexes.get();
     auto ns_it = thread_map->find(ns_id);
 
@@ -109,7 +146,7 @@ void make_peer_request(mailbox_manager_t *mailbox_manager,
                        signal_t *interruptor) {
     try {
         cond_t response_done;
-        outdated_index_issue_tracker_t::result_mailbox_t result_mailbox(
+        outdated_index_issue_server_t::result_mailbox_t result_mailbox(
             mailbox_manager,
             std::bind(&handle_response,
                       &response_done,
@@ -144,8 +181,16 @@ void get_peers_outdated_indexes(cond_t *done_signal,
     done_signal->pulse();
 }
 
-outdated_index_map_t
-outdated_index_issue_tracker_t::collect_and_merge_maps() {
+outdated_index_map_t outdated_index_issue_client_t::collect_local_indexes() {
+    std::vector<outdated_index_map_t> all_maps(get_num_threads());
+    pmap(get_num_threads(), std::bind(&copy_thread_map,
+                                      &outdated_indexes,
+                                      &all_maps,
+                                      ph::_1));
+    return merge_maps(all_maps);
+}
+
+outdated_index_map_t outdated_index_issue_client_t::collect_all_indexes() {
     assert_thread();
     const std::map<peer_id_t, request_address_t> request_mailboxes =
         outdated_index_mailboxes->get().get_inner();
@@ -165,38 +210,17 @@ outdated_index_issue_tracker_t::collect_and_merge_maps() {
                                      &timeout_interruptor));
 
     peer_requests_done.wait();
+
     return merge_maps(all_maps);
 }
 
-void outdated_index_issue_tracker_t::handle_request(result_address_t result_address) {
-    std::vector<outdated_index_map_t> all_maps(get_num_threads());
-    pmap(get_num_threads(), std::bind(&copy_thread_map,
-                                      &outdated_indexes,
-                                      &all_maps,
-                                      ph::_1));
-    send(mailbox_manager, result_address, merge_maps(all_maps));
-}
-
 // We only create one issue (at most) to avoid spamming issues
-std::list<clone_ptr_t<global_issue_t> > outdated_index_issue_tracker_t::get_issues() {
+std::list<clone_ptr_t<global_issue_t> > outdated_index_issue_client_t::get_issues() {
     std::list<clone_ptr_t<global_issue_t> > issues;
-    outdated_index_map_t all_outdated_indexes = collect_and_merge_maps();
+    outdated_index_map_t all_outdated_indexes = collect_all_indexes();
     if (!all_outdated_indexes.empty()) {
         issues.push_back(clone_ptr_t<global_issue_t>(
             new outdated_index_issue_t(std::move(all_outdated_indexes))));
     }
     return std::move(issues);
-}
-
-void dummy_handle_request(UNUSED result_address_t result_address) {
-    // Do nothing - pretend like we aren't here
-}
-
-// This will return the address to a mailbox that will be immediately deleted
-// TODO: will this work?
-request_address_t outdated_index_issue_tracker_t::get_dummy_mailbox(
-    mailbox_manager_t *mailbox_manager) {
-    request_mailbox_t dummy_mailbox(mailbox_manager, std::bind(&dummy_handle_request,
-                                                               ph::_1));
-    return dummy_mailbox.get_address();
 }

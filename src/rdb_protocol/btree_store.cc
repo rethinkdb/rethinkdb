@@ -143,6 +143,9 @@ store_t::store_t(serializer_t *serializer,
 
 store_t::~store_t() {
     assert_thread();
+    if (outdated_indexes != NULL) {
+        outdated_indexes->clear();
+    }
 }
 
 void store_t::read(

@@ -45,7 +45,7 @@ struct admin_tracker_t {
     unsatisfiable_goals_issue_tracker_t unsatisfiable_goals_issue_tracker;
     global_issue_aggregator_t::source_t unsatisfiable_goals_issue_tracker_feed;
 
-    outdated_index_issue_tracker_t outdated_index_issue_tracker;
+    outdated_index_issue_client_t outdated_index_client;
     global_issue_aggregator_t::source_t outdated_index_issue_tracker_feed;
 
     last_seen_tracker_t last_seen_tracker;

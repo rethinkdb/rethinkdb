@@ -28,40 +28,60 @@ private:
     DISABLE_COPYING(outdated_index_issue_t);
 };
 
-class outdated_index_issue_tracker_t : public global_issue_tracker_t, public home_thread_mixin_t {
+class outdated_index_issue_client_t;
+
+class outdated_index_issue_server_t : public home_thread_mixin_t {
 public:
     typedef mailbox_t<void(outdated_index_map_t)> result_mailbox_t;
     typedef mailbox_t<void(result_mailbox_t::address_t)> request_mailbox_t;
     typedef result_mailbox_t::address_t result_address_t;
     typedef request_mailbox_t::address_t request_address_t;
 
-    outdated_index_issue_tracker_t(
-        mailbox_manager_t *_mailbox_manager,
-        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
-                                                            request_address_t> > >
-            &_outdated_index_mailboxes);
-    ~outdated_index_issue_tracker_t();
+    explicit outdated_index_issue_server_t(mailbox_manager_t *_mailbox_manager);
 
-    std::set<std::string> *get_index_set(const namespace_id_t &ns_id);
-    std::list<clone_ptr_t<global_issue_t> > get_issues();
+    void attach_local_client(outdated_index_issue_client_t *client);
+    void detach_local_client();
 
-    static request_address_t get_dummy_mailbox(mailbox_manager_t *mailbox_manager);
-    request_address_t get_request_mailbox() {
-        return request_mailbox.get_address();
-    }
+    request_address_t get_request_mailbox_address() const;
 
 private:
     void handle_request(result_address_t result_address);
 
-    outdated_index_map_t collect_and_merge_maps();
-
     mailbox_manager_t *mailbox_manager;
     request_mailbox_t request_mailbox;
-    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, request_address_t> > >
-        outdated_index_mailboxes;
-    one_per_thread_t<outdated_index_map_t> outdated_indexes;
+    outdated_index_issue_client_t *local_client;
+};
 
-    DISABLE_COPYING(outdated_index_issue_tracker_t);
+class outdated_index_issue_client_t :
+    public global_issue_tracker_t,
+    public home_thread_mixin_t {
+public:
+    outdated_index_issue_client_t(
+        mailbox_manager_t *_mailbox_manager,
+        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
+                outdated_index_issue_server_t::request_address_t> > >
+            &_outdated_index_mailboxes);
+    ~outdated_index_issue_client_t();
+
+    // Returns the set of strings for a given namespace that may be filled
+    // by the store_t when it scans its secondary indexes
+    std::set<std::string> *get_index_set(const namespace_id_t &ns_id);
+
+    // Returns the set of outdated indexes for all tables hosted on this node
+    outdated_index_map_t collect_local_indexes();
+
+    std::list<clone_ptr_t<global_issue_t> > get_issues();
+
+private:
+    outdated_index_map_t collect_all_indexes();
+
+    mailbox_manager_t *mailbox_manager;
+    one_per_thread_t<outdated_index_map_t> outdated_indexes;
+    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
+            outdated_index_issue_server_t::request_address_t> > >
+        outdated_index_mailboxes;
+
+    DISABLE_COPYING(outdated_index_issue_client_t);
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_ISSUES_OUTDATED_INDEX_HPP_ */

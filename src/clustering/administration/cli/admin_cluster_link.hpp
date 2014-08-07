@@ -377,6 +377,7 @@ private:
     mailbox_manager_t mailbox_manager;
     stat_manager_t stat_manager;
     log_server_t log_server;
+    outdated_index_issue_server_t outdated_index_server;
 
     const scoped_ptr_t<semilattice_manager_t<cluster_semilattice_metadata_t> > semilattice_manager_cluster;
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > cluster_metadata_view;

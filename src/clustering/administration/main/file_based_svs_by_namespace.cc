@@ -22,12 +22,12 @@ struct store_args_t {
                  cache_balancer_t *_balancer,
                  perfmon_collection_t *_serializers_perfmon_collection,
                  rdb_context_t *_ctx,
-                 outdated_index_issue_tracker_t *_issue_tracker,
+                 outdated_index_issue_client_t *_outdated_index_client,
                  namespace_id_t _ns_id)
         : io_backender(_io_backender), base_path(_base_path),
           namespace_id(_namespace_id), balancer(_balancer),
           serializers_perfmon_collection(_serializers_perfmon_collection),
-          ctx(_ctx), issue_tracker(_issue_tracker), ns_id(_ns_id)
+          ctx(_ctx), outdated_index_client(_outdated_index_client), ns_id(_ns_id)
     { }
 
     io_backender_t *io_backender;
@@ -36,7 +36,7 @@ struct store_args_t {
     cache_balancer_t *balancer;
     perfmon_collection_t *serializers_perfmon_collection;
     rdb_context_t *ctx;
-    outdated_index_issue_tracker_t *issue_tracker;
+    outdated_index_issue_client_t *outdated_index_client;
     namespace_id_t ns_id;
 };
 
@@ -59,7 +59,8 @@ void do_construct_existing_store(
     // Only pass this down to the first store
     std::set<std::string> *outdated_indexes = NULL;
     if (thread_offset == 0) {
-        outdated_indexes = store_args.issue_tracker->get_index_set(store_args.ns_id);
+        outdated_indexes =
+            store_args.outdated_index_client->get_index_set(store_args.ns_id);
     }
 
     // TODO: Can we pass serializers_perfmon_collection across threads like this?
@@ -86,7 +87,8 @@ void do_create_new_store(
     // Only pass this down to the first store
     std::set<std::string> *outdated_indexes = NULL;
     if (thread_offset == 0) {
-        outdated_indexes = store_args.issue_tracker->get_index_set(store_args.ns_id);
+        outdated_indexes =
+            store_args.outdated_index_client->get_index_set(store_args.ns_id);
     }
 
     store_t *store = new store_t(
@@ -141,7 +143,7 @@ file_based_svs_by_namespace_t::get_svs(
         store_args_t store_args(io_backender_, base_path_,
                                 namespace_id, balancer_,
                                 serializers_perfmon_collection, ctx,
-                                issue_tracker, namespace_id);
+                                outdated_index_client, namespace_id);
         filepath_file_opener_t file_opener(serializer_filepath, io_backender_);
         if (res == 0) {
             // TODO: Could we handle failure when loading the serializer?  Right
