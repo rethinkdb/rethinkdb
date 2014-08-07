@@ -3805,7 +3805,7 @@ module 'DataExplorerView', ->
             # Set + save codemirror
             @container.codemirror.setValue @history[parseInt(id)].query
             @container.state.current_query = @history[parseInt(id)].query
-            @save_current_query()
+            @container.save_current_query()
 
         delete_query: (event) =>
             that = @
