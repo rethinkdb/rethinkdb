@@ -27,7 +27,7 @@ bool check_dir_emptiness(const base_path_t& base_path) {
     // sharing a static buffer with other threads on the system.  Even better, OS X
     // and Linux glibc both allocate per-directory buffers.  readdir_r is unsafe
     // because you can't specify the length of the struct dirent buffer you pass in
-    // to it.
+    // to it.  See http://elliotth.blogspot.com/2012/10/how-not-to-use-readdirr3.html
     while ((ep = readdir(dp)) != NULL) {  // NOLINT(runtime/threadsafe_fn)
         if (strcmp(ep->d_name, ".") != 0 && strcmp(ep->d_name, "..") != 0) {
             closedir(dp);
