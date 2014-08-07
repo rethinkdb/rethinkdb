@@ -140,12 +140,6 @@ kv_location_set(keyvalue_location_t *kv_location,
     const max_block_size_t block_size = kv_location->buf.cache()->max_block_size();
     {
         blob_t blob(block_size, new_value->value_ref(), blob::btree_maxreflen);
-        // Force full deserialization before writing to disk to allow the array
-        // size limit to be checked.
-        // This also ensures that we serialize the datum with the most recent
-        // format. That is probably good because it allows us to incrementally
-        // migrate datums on disk simply be rewriting them.
-        data->force_deserialization();
         ql::serialization_result_t res
             = datum_serialize_onto_blob(buf_parent_t(&kv_location->buf),
                                         &blob, data);

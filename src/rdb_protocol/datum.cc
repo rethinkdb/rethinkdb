@@ -13,13 +13,11 @@
 
 #include "containers/archive/stl_types.hpp"
 #include "containers/scoped.hpp"
-#include "containers/archive/vector_stream.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/pseudo_binary.hpp"
 #include "rdb_protocol/pseudo_literal.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
-#include "rdb_protocol/serialize_datum.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "stl_utils.hpp"
 
@@ -32,75 +30,55 @@ const std::set<std::string> datum_t::_allowed_pts = std::set<std::string>();
 const char *const datum_t::reql_type_string = "$reql_type$";
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_null_t) :
-    r_str(NULL), internal_type(internal_type_t::R_NULL) { }
+    type(R_NULL), r_str(NULL) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_boolean_t, bool _bool) :
-    r_bool(_bool), internal_type(internal_type_t::R_BOOL) { }
+    type(R_BOOL), r_bool(_bool) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_binary_t,
                                         scoped_ptr_t<wire_string_t> _data) :
-    r_str(_data.release()), internal_type(internal_type_t::R_BINARY) { }
+    type(R_BINARY), r_str(_data.release()) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(double num) :
-    r_num(num), internal_type(internal_type_t::R_NUM) { }
+    type(R_NUM), r_num(num) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(std::string &&str) :
-    r_str(wire_string_t::create_and_init(str.size(), str.data()).release()),
-    internal_type(internal_type_t::R_STR) { }
+    type(R_STR),
+    r_str(wire_string_t::create_and_init(str.size(), str.data()).release()) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(scoped_ptr_t<wire_string_t> str) :
-    r_str(str.release()), internal_type(internal_type_t::R_STR) { }
+    type(R_STR), r_str(str.release()) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(const char *cstr) :
-    r_str(wire_string_t::create_and_init(::strlen(cstr), cstr).release()),
-    internal_type(internal_type_t::R_STR) { }
+    type(R_STR),
+    r_str(wire_string_t::create_and_init(::strlen(cstr), cstr).release()) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(std::vector<counted_t<const datum_t> > &&array) :
-    r_array(new std::vector<counted_t<const datum_t> >(std::move(array))),
-    internal_type(internal_type_t::R_ARRAY) { }
+    type(R_ARRAY),
+    r_array(new std::vector<counted_t<const datum_t> >(std::move(array))) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(std::map<std::string,
                                                  counted_t<const datum_t> > &&object) :
-    r_object(new std::map<std::string, counted_t<const datum_t> >(std::move(object))),
-    internal_type(internal_type_t::R_OBJECT) { }
-
-datum_t::data_wrapper_t::data_wrapper_t(std::vector<char> &&_lazy_serialized) :
-    lazy_serialized(new std::vector<char>(std::move(_lazy_serialized))),
-    internal_type(internal_type_t::LAZY_SERIALIZED) { }
+    type(R_OBJECT),
+    r_object(new std::map<std::string, counted_t<const datum_t> >(std::move(object))) { }
 
 datum_t::data_wrapper_t::~data_wrapper_t() {
-    switch (internal_type) {
-    case internal_type_t::R_NULL: // fallthru
-    case internal_type_t::R_BOOL: // fallthru
-    case internal_type_t::R_NUM: break;
-    case internal_type_t::R_BINARY: // fallthru
-    case internal_type_t::R_STR: {
+    switch (type) {
+    case R_NULL: // fallthru
+    case R_BOOL: // fallthru
+    case R_NUM: break;
+    case R_BINARY: // fallthru
+    case R_STR: {
         delete r_str;
     } break;
-    case internal_type_t::R_ARRAY: {
+    case R_ARRAY: {
         delete r_array;
     } break;
-    case internal_type_t::R_OBJECT: {
+    case R_OBJECT: {
         delete r_object;
-    } break;
-    case internal_type_t::LAZY_SERIALIZED: {
-        delete lazy_serialized;
     } break;
     default: unreachable();
     }
-}
-
-datum_t::type_t datum_t::data_wrapper_t::get_type() const {
-    guarantee(internal_type != internal_type_t::LAZY_SERIALIZED);
-    return static_cast<type_t>(internal_type);
-}
-
-datum_t::internal_type_t datum_t::data_wrapper_t::get_internal_type() const {
-    return internal_type;
-}
-
-void datum_t::data_wrapper_t::set_type(datum_t::type_t t) {
-    internal_type = static_cast<internal_type_t>(t);
 }
 
 datum_t::datum_t(datum_t::construct_null_t dummy) : data(dummy) { }
@@ -145,9 +123,6 @@ datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object,
 datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object,
                  no_sanitize_ptype_t)
     : data(std::move(_object)) { }
-
-datum_t::datum_t(std::vector<char> &&_lazy_serialized)
-    : data(std::move(_lazy_serialized)) { }
 
 counted_t<const datum_t>
 to_datum_for_client_serialization(grouped_data_t &&gd,
@@ -260,14 +235,7 @@ void datum_t::check_str_validity(const std::string &str) {
     ::ql::check_str_validity(str.data(), str.size());
 }
 
-datum_t::type_t datum_t::get_type() const {
-    ensure_deserialize_lazy();
-    return data.get_type();
-}
-
-bool datum_t::is_lazy() const {
-    return data.get_internal_type() == internal_type_t::LAZY_SERIALIZED;
-}
+datum_t::type_t datum_t::get_type() const { return data.type; }
 
 bool datum_t::is_ptype() const {
     return get_type() == R_BINARY ||
@@ -279,7 +247,6 @@ bool datum_t::is_ptype(const std::string &reql_type) const {
 }
 
 std::string datum_t::get_reql_type() const {
-    ensure_deserialize_lazy();
     r_sanity_check(is_ptype());
     if (get_type() == R_BINARY) {
         return "BINARY";
@@ -478,7 +445,7 @@ void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
             data.r_object = NULL;
 
             data.r_str = pseudo::decode_base64_ptype(*obj_data.get()).release();
-            data.set_type(type_t::R_BINARY);
+            data.type = R_BINARY;
             return;
         }
         rfail(base_exc_t::GENERIC,
@@ -887,36 +854,6 @@ const wire_string_t &datum_t::as_str() const {
 const std::vector<counted_t<const datum_t> > &datum_t::as_array() const {
     check_type(R_ARRAY);
     return *data.r_array;
-}
-
-const std::vector<char> &datum_t::get_lazy_serialized() const {
-    guarantee(is_lazy());
-    return *data.lazy_serialized;
-}
-
-void datum_t::force_deserialization() const {
-    ensure_deserialize_lazy();
-    // Recurse into embedded datums
-    switch (get_type()) {
-    case R_NULL: break;
-    case R_BINARY: break;
-    case R_BOOL: break;
-    case R_NUM: break;
-    case R_STR: break;
-    case R_ARRAY: {
-        const std::vector<counted_t<const datum_t> > &arr = as_array();
-        for (size_t i = 0; i < arr.size(); ++i) {
-            arr[i]->force_deserialization();
-        }
-    } break;
-    case R_OBJECT: {
-        const std::map<std::string, counted_t<const datum_t> > &obj = as_object();
-        for (auto it = obj.begin(); it != obj.end(); ++it) {
-            it->second->force_deserialization();
-        }
-    } break;
-    default: unreachable();
-    }
 }
 
 size_t datum_t::size() const {
@@ -1331,21 +1268,6 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
         d->set_r_str(as_json().PrintUnformatted());
     } break;
     default: unreachable();
-    }
-}
-
-void datum_t::ensure_deserialize_lazy() const {
-    if (is_lazy()) {
-        datum_t *mutable_this = const_cast<datum_t *>(this);
-        // Move the serialized data out and delete it...
-        vector_read_stream_t stream(std::move(*mutable_this->data.lazy_serialized));
-        delete mutable_this->data.lazy_serialized;
-        mutable_this->data.lazy_serialized = NULL;
-        // Deserialize the actual data
-        archive_result_t res =
-            deserialize_lazy_data_wrapper(&stream, &mutable_this->data);
-        guarantee_deserialization(res, "lazy datum_t::data_wrapper_t");
-        guarantee(!is_lazy());
     }
 }
 
