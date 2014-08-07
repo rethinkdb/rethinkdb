@@ -271,6 +271,7 @@ admin_cluster_link_t::admin_cluster_link_t(const peer_address_set_t &joins,
         stat_manager.get_address(),
         metadata_change_handler.get_request_mailbox_address(),
         auth_change_handler.get_request_mailbox_address(),
+        outdated_index_issue_tracker_t::get_dummy_mailbox(&mailbox_manager),
         log_server.get_business_card(),
         ADMIN_PEER)),
     directory_read_manager(
@@ -284,7 +285,10 @@ admin_cluster_link_t::admin_cluster_link_t(const peer_address_set_t &joins,
                              canonical_addresses,
                              0,
                              client_port),
-    admin_tracker(cluster_metadata_view, auth_metadata_view, directory_read_manager->get_root_view()),
+    admin_tracker(&mailbox_manager,
+                  cluster_metadata_view,
+                  auth_metadata_view,
+                  directory_read_manager->get_root_view()),
     initial_joiner(&connectivity_cluster, &connectivity_cluster_run, joins, 5000)
 {
     wait_interruptible(initial_joiner.get_ready_signal(), interruptor);

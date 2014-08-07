@@ -12,6 +12,7 @@
 #include "clustering/administration/datacenter_metadata.hpp"
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/issues/local.hpp"
+#include "clustering/administration/issues/outdated_index.hpp"
 #include "clustering/administration/log_transfer.hpp"
 #include "clustering/administration/machine_metadata.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
@@ -83,6 +84,7 @@ public:
             const get_stats_mailbox_address_t& _stats_mailbox,
             const metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t& _semilattice_change_mailbox,
             const metadata_change_handler_t<auth_semilattice_metadata_t>::request_mailbox_t::address_t& _auth_change_mailbox,
+            const outdated_index_issue_tracker_t::request_mailbox_t::address_t& _outdated_indexes_mailbox,
             const log_server_business_card_t &lmb,
             cluster_directory_peer_type_t _peer_type) :
         machine_id(mid),
@@ -92,6 +94,7 @@ public:
         get_stats_mailbox_address(_stats_mailbox),
         semilattice_change_mailbox(_semilattice_change_mailbox),
         auth_change_mailbox(_auth_change_mailbox),
+        get_outdated_indexes_mailbox(_outdated_indexes_mailbox),
         log_mailbox(lmb),
         peer_type(_peer_type) { }
     /* Move constructor */
@@ -112,6 +115,7 @@ public:
         get_stats_mailbox_address = other.get_stats_mailbox_address;
         semilattice_change_mailbox = other.semilattice_change_mailbox;
         auth_change_mailbox = other.auth_change_mailbox;
+        get_outdated_indexes_mailbox = other.get_outdated_indexes_mailbox;
         log_mailbox = other.log_mailbox;
         local_issues = std::move(other.local_issues);
         peer_type = other.peer_type;
@@ -130,6 +134,7 @@ public:
         get_stats_mailbox_address = other.get_stats_mailbox_address;
         semilattice_change_mailbox = other.semilattice_change_mailbox;
         auth_change_mailbox = other.auth_change_mailbox;
+        get_outdated_indexes_mailbox = other.get_outdated_indexes_mailbox;
         log_mailbox = other.log_mailbox;
         local_issues = other.local_issues;
         peer_type = other.peer_type;
@@ -152,6 +157,7 @@ public:
     get_stats_mailbox_address_t get_stats_mailbox_address;
     metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t semilattice_change_mailbox;
     metadata_change_handler_t<auth_semilattice_metadata_t>::request_mailbox_t::address_t auth_change_mailbox;
+    outdated_index_issue_tracker_t::request_mailbox_t::address_t get_outdated_indexes_mailbox;
     log_server_business_card_t log_mailbox;
     std::list<local_issue_t> local_issues;
     cluster_directory_peer_type_t peer_type;

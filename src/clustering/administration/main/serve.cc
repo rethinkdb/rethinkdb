@@ -129,6 +129,7 @@ bool do_serve(io_backender_t *io_backender,
                                              stat_manager.get_address(),
                                              metadata_change_handler.get_request_mailbox_address(),
                                              auth_change_handler.get_request_mailbox_address(),
+                                             outdated_index_issue_tracker_t::get_dummy_mailbox(&mailbox_manager),
                                              log_server.get_business_card(),
                                              i_am_a_server ? SERVER_PEER : PROXY_PEER));
 
@@ -143,6 +144,11 @@ bool do_serve(io_backender_t *io_backender,
             connectivity_cluster.get_me(),
             directory_read_manager.get_root_view(),
             metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()));
+
+        admin_tracker_t admin_tracker(&mailbox_manager,
+                                      semilattice_manager_cluster.get_root_view(),
+                                      auth_manager_cluster.get_root_view(),
+                                      directory_read_manager.get_root_view());
 
         scoped_ptr_t<connectivity_cluster_t::run_t> connectivity_cluster_run;
 
@@ -160,6 +166,11 @@ bool do_serve(io_backender_t *io_backender,
             for (auto it = ips.begin(); it != ips.end(); ++it) {
                 initial_directory->ips.push_back(it->ip().to_string());
             }
+
+            // Update the directory with the outdated index mailbox for this node
+            initial_directory->get_outdated_indexes_mailbox =
+                admin_tracker.outdated_index_issue_tracker.get_request_mailbox();
+
             our_root_directory_variable.set_value(*initial_directory);
             initial_directory.reset();
         } catch (const address_in_use_exc_t &ex) {
@@ -184,10 +195,6 @@ bool do_serve(io_backender_t *io_backender,
             &cluster_directory_metadata_t::local_issues,
             local_issue_tracker.get_issues_watchable(),
             &our_root_directory_variable);
-
-        admin_tracker_t admin_tracker(semilattice_manager_cluster.get_root_view(),
-                                      auth_manager_cluster.get_root_view(),
-                                      directory_read_manager.get_root_view());
 
         perfmon_collection_t proc_stats_collection;
         perfmon_membership_t proc_stats_membership(&get_global_perfmon_collection(), &proc_stats_collection, "proc");

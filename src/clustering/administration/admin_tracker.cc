@@ -8,6 +8,7 @@
 #include "rpc/semilattice/view/field.hpp"
 
 admin_tracker_t::admin_tracker_t(
+        mailbox_manager_t *mailbox_manager,
         boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > cluster_view,
         boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t> > auth_view,
         const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > &directory_view) :
@@ -35,7 +36,10 @@ admin_tracker_t::admin_tracker_t(
     unsatisfiable_goals_issue_tracker(cluster_view),
     unsatisfiable_goals_issue_tracker_feed(&issue_aggregator, &unsatisfiable_goals_issue_tracker),
 
-    outdated_index_issue_tracker(),
+    outdated_index_issue_tracker(
+        mailbox_manager,
+        directory_view->incremental_subview(
+            incremental_field_getter_t<outdated_index_issue_tracker_t::request_mailbox_t::address_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::get_outdated_indexes_mailbox))),
     outdated_index_issue_tracker_feed(&issue_aggregator, &outdated_index_issue_tracker),
 
     last_seen_tracker(

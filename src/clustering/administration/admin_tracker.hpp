@@ -25,6 +25,7 @@ template <class> class watchable_t;
 
 struct admin_tracker_t {
     admin_tracker_t(
+        mailbox_manager_t *mailbox_manager,
         boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > cluster_view,
         boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t> > auth_view,
         const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > &directory_view);
