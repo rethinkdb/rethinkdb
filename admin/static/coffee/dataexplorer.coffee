@@ -3400,20 +3400,29 @@ module 'DataExplorerView', ->
 
 
         binary_to_string: (bin) =>
-            size = bin.data.length
+            # We print the size of the binary, not the size of the base 64 string
+            size = bin.data.length*3/4
 
             if size >= 1073741824
-                bytes = (size/1073741824).toFixed(1)+'GB'
+                sizeStr = (size/1073741824).toFixed(1)+'GB'
             else if size>=1048576
-                size = (size/1048576).toFixed(1)+'MB'
+                sizeStr = (size/1048576).toFixed(1)+'MB'
             else if size>=1024
-                size = (size/1024).toFixed(1)+'KB'
+                sizeStr = (size/1024).toFixed(1)+'KB'
             else if size > 1
-                size = size+' bytes'
-            else if size <= 1
-                size = size+' byte'
+                sizeStr = size+' bytes'
+            else if size is 1
+                sizeStr = size+' byte'
+            else if size is 0
+                sizeStr = size+' bytes'
 
-            "<binary, #{size}, \"#{bin.data.slice(0, 10)}...\">"
+            if size is 0
+                return "<binary, #{sizeStr}\">"
+            else
+                if bin.data.length > 10
+                    return "<binary, #{sizeStr}, \"#{bin.data.slice(0, 10)}...\">"
+                else
+                    return "<binary, #{sizeStr}, \"#{bin.data}\">"
 
     class @ResultView extends DataExplorerView.SharedResultView
         className: 'result_view'
