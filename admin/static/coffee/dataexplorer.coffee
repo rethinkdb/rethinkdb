@@ -3417,7 +3417,7 @@ module 'DataExplorerView', ->
                 sizeStr = size+' bytes'
 
             if size is 0
-                return "<binary, #{sizeStr}\">"
+                return "<binary, #{sizeStr}>"
             else
                 if bin.data.length > 10
                     return "<binary, #{sizeStr}, \"#{bin.data.slice(0, 10)}...\">"
