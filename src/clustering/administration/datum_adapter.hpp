@@ -55,6 +55,14 @@ bool convert_vector_from_datum(
     return true;
 }
 
+/* `converter_from_datum_object_t` is a helper for converting a `datum_t` to some other
+type when the type's datum representation is an object with a fixed set of fields.
+Construct a `converter_from_datum_object_t` and call `init()` with your datum. `init()`
+will fail if the input isn't an object. Next, call `get()` or `get_optional()` for each
+field of the object; `get()` will fail if the field isn't present. Finally, call
+`check_no_extra_keys()`, which will fail if the object has any keys that you didn't call
+`get()` or `get_optional()` for. This way, it will produce a nice error message if the
+user passes an object with an invalid key. */
 class converter_from_datum_object_t {
 public:
     bool init(counted_t<const ql::datum_t> datum,

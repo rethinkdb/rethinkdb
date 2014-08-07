@@ -6,6 +6,9 @@ import driver, scenario_common, utils
 from vcoptparse import *
 r = utils.import_python_driver()
 
+"""The `interface.table_config` test checks that the special `rethinkdb.table_config` and
+`rethinkdb.table_status` tables behave as expected."""
+
 op = OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
 opts = op.parse(sys.argv)

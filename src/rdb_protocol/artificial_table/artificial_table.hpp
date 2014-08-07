@@ -9,6 +9,13 @@
 
 #include "rdb_protocol/context.hpp"
 
+/* `artificial_table_t` is the subclass of `base_table_t` that represents a table in the
+special `rethinkdb` database. Each of the tables in the `rethinkdb` database represents
+a different type of underlying object, but it would be inefficient to duplicate the code
+for handling each type of RethinkDB query across all of the different tables. Instead,
+that logic lives in `artificial_table_t`, which translates the queries into a much
+simpler format and then forwards them to an `artificial_table_backend_t`. */
+
 class artificial_table_backend_t;
 
 class artificial_table_t : public base_table_t {

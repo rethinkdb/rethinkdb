@@ -5,8 +5,11 @@
 #include <string>
 #include <vector>
 
-#include "concurrency/pubsub.hpp"
 #include "rdb_protocol/datum.hpp"
+
+/* `artificial_table_backend_t` is the interface that `artificial_table_t` uses to access
+the actual data or configuration. There is one subclass for each table like
+`rethinkdb.table_config`, `rethinkdb.table_status`, and so on. */
 
 class artificial_table_backend_t : public home_thread_mixin_t {
 public:
@@ -14,7 +17,7 @@ public:
      1. If `set_row()` is called concurrently with `get_row()` or
         `get_all_primary_keys()`, it is undefined whether the read will see the write or
         not.
-     2. `get_primary_key_name()`, `readd_all_primary_keys()`, `read_row()` and
+     2. `get_primary_key_name()`, `read_all_primary_keys()`, `read_row()` and
         `write_row()` can be called on any thread. Beware of problems when transferring
         `counted_t<const ql::datum_t>` between threads!
      3. `get_publisher()` can only be called on the home thread. The return value will
