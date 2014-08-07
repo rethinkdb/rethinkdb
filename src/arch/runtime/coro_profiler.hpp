@@ -5,10 +5,11 @@
 
 #ifdef ENABLE_CORO_PROFILER
 
+#include <stdio.h>
+
 #include <algorithm>
 #include <array>
 #include <map>
-#include <fstream>
 #include <string>
 #include <utility>
 #include <vector>
