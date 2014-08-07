@@ -2332,8 +2332,10 @@ def CheckStyle(filename, clean_lines, linenum, file_extension, class_state,
       not ((cleansed_line.find('case ') != -1 or
             cleansed_line.find('default:') != -1) and
            cleansed_line.find('break;') != -1)):
-    error(filename, linenum, 'whitespace/newline', 4,
-          'More than one command on the same line')
+    pass
+    # This is returning bad things in the case of lambdas.
+    # error(filename, linenum, 'whitespace/newline', 4,
+    #       'More than one command on the same line')
 
   # Some more style checks
   CheckBraces(filename, clean_lines, linenum, error)
