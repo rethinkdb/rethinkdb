@@ -12,6 +12,11 @@
 #include "math.hpp"
 #include "serializer/types.hpp"
 
+// The maximal number of blocks to traverse concurrently.
+// Roughly equivalent to the maximal number of coroutines that loading a blob
+// can allocate.
+const static int64_t BLOB_TRAVERSAL_CONCURRENCY = 8;
+
 template <class T>
 void clear_and_delete(std::vector<T *> *vec) {
     while (!vec->empty()) {
@@ -39,7 +44,8 @@ int block_ids_offset(int maxreflen) {
 
 temporary_acq_tree_node_t *
 make_tree_from_block_ids(buf_parent_t parent, access_t mode, int levels,
-                         int64_t offset, int64_t size, const block_id_t *block_ids);
+                         int64_t offset, int64_t size, const block_id_t *block_ids,
+                         int64_t concurrency);
 
 // touches_end_t specifies whether the [offset, offset + size) region given to
 // expose_tree_from_block_ids touches the end of the data in the blob.
@@ -335,7 +341,8 @@ void blob_t::expose_region(buf_parent_t parent, access_t mode,
         temporary_acq_tree_node_t *tree
             = blob::make_tree_from_block_ids(parent, mode, levels,
                                              offset, size,
-                                             blob::block_ids(ref_, maxreflen_));
+                                             blob::block_ids(ref_, maxreflen_),
+                                             BLOB_TRAVERSAL_CONCURRENCY);
 
         // Exposing and writing to the buffer group is done serially.
         blob::expose_tree_from_block_ids(parent, mode, levels,
@@ -367,6 +374,7 @@ struct region_tree_filler_t {
     int64_t offset, size;
     const block_id_t *block_ids;
     int lo, hi;
+    int concurrency;
     temporary_acq_tree_node_t *nodes;
 
     void operator()(int i) const {
@@ -381,16 +389,26 @@ struct region_tree_filler_t {
             nodes[i].child = blob::make_tree_from_block_ids(buf_parent_t(&lock),
                                                             mode, levels - 1,
                                                             suboffset, subsize,
-                                                            sub_ids);
+                                                            sub_ids,
+                                                            concurrency);
         } else {
             nodes[i].buf = new buf_lock_t(parent, block_ids[lo + i], mode);
         }
     }
 };
 
+int64_t distribute_concurrency(int64_t concurrency, int num_children) {
+    if (num_children > 0) {
+        return ceil_divide(concurrency, num_children);
+    } else {
+        return 1;
+    }
+}
+
 temporary_acq_tree_node_t *
 make_tree_from_block_ids(buf_parent_t parent, access_t mode, int levels,
-                         int64_t offset, int64_t size, const block_id_t *block_ids) {
+                         int64_t offset, int64_t size, const block_id_t *block_ids,
+                         int64_t concurrency) {
     rassert(size > 0);
 
     region_tree_filler_t filler(parent);
@@ -401,10 +419,12 @@ make_tree_from_block_ids(buf_parent_t parent, access_t mode, int levels,
     filler.block_ids = block_ids;
     compute_acquisition_offsets(parent.cache()->max_block_size(), levels, offset,
                                 size, &filler.lo, &filler.hi);
+    const int num_children = filler.hi - filler.lo;
+    filler.concurrency = distribute_concurrency(concurrency, num_children);
 
     filler.nodes = new temporary_acq_tree_node_t[filler.hi - filler.lo];
 
-    pmap(filler.hi - filler.lo, filler);
+    throttled_pmap(filler.hi - filler.lo, filler, concurrency);
 
     return filler.nodes;
 }
@@ -554,11 +574,11 @@ struct traverse_helper_t {
 void traverse_recursively(buf_parent_t parent, int levels,
                           block_id_t *block_ids,
                           int64_t smaller_size, int64_t bigger_size,
-                          traverse_helper_t *helper);
+                          traverse_helper_t *helper, int64_t concurrency);
 
 void traverse_index(buf_parent_t parent, int levels, block_id_t *block_ids,
                     int index, int64_t smaller_size, int64_t bigger_size,
-                    traverse_helper_t *helper) {
+                    traverse_helper_t *helper, int64_t concurrency) {
     const max_block_size_t block_size = parent.cache()->max_block_size();
     int64_t sub_smaller_size, sub_bigger_size;
     blob::shrink(block_size, levels, smaller_size, index, &sub_smaller_size);
@@ -573,7 +593,7 @@ void traverse_index(buf_parent_t parent, int levels, block_id_t *block_ids,
             block_id_t *subids = blob::internal_node_block_ids(b);
             traverse_recursively(buf_parent_t(&lock), levels - 1, subids,
                                  sub_smaller_size, sub_bigger_size,
-                                 helper);
+                                 helper, concurrency);
         }
 
     } else {
@@ -585,7 +605,7 @@ void traverse_index(buf_parent_t parent, int levels, block_id_t *block_ids,
             block_id_t *subids = blob::internal_node_block_ids(b);
             traverse_recursively(buf_parent_t(&lock), levels - 1, subids,
                                  sub_smaller_size, sub_bigger_size,
-                                 helper);
+                                 helper, concurrency);
         }
 
         helper->postprocess(&lock);
@@ -594,7 +614,7 @@ void traverse_index(buf_parent_t parent, int levels, block_id_t *block_ids,
 
 void traverse_recursively(buf_parent_t parent, int levels, block_id_t *block_ids,
                           int64_t smaller_size, int64_t bigger_size,
-                          traverse_helper_t *helper) {
+                          traverse_helper_t *helper, int64_t concurrency) {
     const max_block_size_t block_size = parent.cache()->max_block_size();
 
     int old_lo, old_hi, new_lo, new_hi;
@@ -605,10 +625,13 @@ void traverse_recursively(buf_parent_t parent, int levels, block_id_t *block_ids
 
     int64_t leafsize = leaf_size(block_size);
 
+    int num_children = new_hi - std::max(0, old_hi - 1);
     if (ceil_divide(bigger_size, leafsize) > ceil_divide(smaller_size, leafsize)) {
-        pmap(std::max(0, old_hi - 1), new_hi,
-             std::bind(&traverse_index, parent, levels, block_ids, ph::_1,
-                       smaller_size, bigger_size, helper));
+        throttled_pmap(std::max(0, old_hi - 1), new_hi,
+            std::bind(&traverse_index, parent, levels, block_ids, ph::_1,
+                      smaller_size, bigger_size, helper,
+                      distribute_concurrency(concurrency, num_children)),
+            concurrency);
     }
 }
 
@@ -625,7 +648,7 @@ bool blob_t::traverse_to_dimensions(buf_parent_t parent, int levels,
             blob::traverse_recursively(parent, levels,
                                        blob::block_ids(ref_, maxreflen_),
                                        smaller_size, bigger_size,
-                                       helper);
+                                       helper, BLOB_TRAVERSAL_CONCURRENCY);
         }
         return true;
     } else {
