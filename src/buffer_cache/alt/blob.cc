@@ -12,6 +12,11 @@
 #include "math.hpp"
 #include "serializer/types.hpp"
 
+// The maximal number of blocks to traverse concurrently.
+// Roughly equivalent to the maximal number of coroutines that loading a blob
+// can allocate.
+const int64_t BLOB_TRAVERSAL_CONCURRENCY = 8;
+
 template <class T>
 void clear_and_delete(std::vector<T *> *vec) {
     while (!vec->empty()) {
@@ -388,6 +393,19 @@ struct region_tree_filler_t {
     }
 };
 
+int64_t choose_concurrency(int levels) {
+    // Parallelize on the lowest level. That way we get a higher chance
+    // of sequential disk reads, assuming that the blob is laid out on disk
+    // from left to right (which might or might not be true, depending the details
+    // of how it was written and how the cache and serializer operate).
+    if (levels > 1) {
+        return 1;
+    } else {
+        rassert(levels == 1);
+        return BLOB_TRAVERSAL_CONCURRENCY;
+    }
+}
+
 temporary_acq_tree_node_t *
 make_tree_from_block_ids(buf_parent_t parent, access_t mode, int levels,
                          int64_t offset, int64_t size, const block_id_t *block_ids) {
@@ -404,7 +422,7 @@ make_tree_from_block_ids(buf_parent_t parent, access_t mode, int levels,
 
     filler.nodes = new temporary_acq_tree_node_t[filler.hi - filler.lo];
 
-    pmap(filler.hi - filler.lo, filler);
+    throttled_pmap(filler.hi - filler.lo, filler, choose_concurrency(levels));
 
     return filler.nodes;
 }
@@ -606,9 +624,10 @@ void traverse_recursively(buf_parent_t parent, int levels, block_id_t *block_ids
     int64_t leafsize = leaf_size(block_size);
 
     if (ceil_divide(bigger_size, leafsize) > ceil_divide(smaller_size, leafsize)) {
-        pmap(std::max(0, old_hi - 1), new_hi,
-             std::bind(&traverse_index, parent, levels, block_ids, ph::_1,
-                       smaller_size, bigger_size, helper));
+        throttled_pmap(std::max(0, old_hi - 1), new_hi,
+            std::bind(&traverse_index, parent, levels, block_ids, ph::_1,
+                      smaller_size, bigger_size, helper),
+            choose_concurrency(levels));
     }
 }
 
