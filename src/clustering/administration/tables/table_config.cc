@@ -3,6 +3,7 @@
 
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/tables/elect_director.hpp"
+#include "clustering/administration/tables/lookup.hpp"
 
 counted_t<const ql::datum_t> convert_table_config_shard_to_datum(
         const table_config_t::shard_t &shard) {
@@ -126,10 +127,11 @@ bool convert_table_config_shard_from_datum(
 
 counted_t<const ql::datum_t> convert_table_config_to_datum(
         const table_config_t &config,
-        name_string_t name,
+        name_string_t db_name,
+        name_string_t table_name,
         namespace_id_t uuid) {
     ql::datum_object_builder_t builder;
-    builder.overwrite("name", convert_name_to_datum(name));
+    builder.overwrite("name", convert_db_and_table_to_datum(db_name, table_name));
     builder.overwrite("uuid", convert_uuid_to_datum(uuid));
     builder.overwrite("shards",
         convert_vector_to_datum<table_config_t::shard_t>(
@@ -140,7 +142,8 @@ counted_t<const ql::datum_t> convert_table_config_to_datum(
 
 bool convert_table_config_from_datum(
         counted_t<const ql::datum_t> datum,
-        name_string_t expected_name,
+        name_string_t expected_db_name,
+        name_string_t expected_table_name,
         namespace_id_t expected_uuid,
         table_config_t *config_out,
         std::string *error_out) {
@@ -153,11 +156,14 @@ bool convert_table_config_from_datum(
     if (!converter.get("name", &name_datum, error_out)) {
         crash("artificial_table_t should confirm primary key is unchanged");
     }
-    name_string_t name_value;
-    if (!convert_name_from_datum(name_datum, "server name", &name_value, error_out)) {
+    name_string_t db_name_value, table_name_value;
+    if (!convert_db_and_table_from_datum(name_datum, &db_name_value,
+            &table_name_value, error_out)) {
         crash("artificial_table_t should confirm primary key is unchanged");
     }
-    guarantee(name_value == expected_name,
+    guarantee(db_name_value == expected_db_name,
+        "artificial_table_t should confirm primary key is unchanged");
+    guarantee(table_name_value == expected_table_name,
         "artificial_table_t should confirm primary key is unchanged");
 
     counted_t<const ql::datum_t> uuid_datum;
@@ -222,18 +228,32 @@ bool table_config_artificial_table_backend_t::read_all_primary_keys(
         std::vector<counted_t<const ql::datum_t> > *keys_out,
         std::string *error_out) {
     keys_out->clear();
-    cow_ptr_t<namespaces_semilattice_metadata_t> md = semilattice_view->get();
+    cow_ptr_t<namespaces_semilattice_metadata_t> md = table_sl_view->get();
     for (auto it = md->namespaces.begin();
               it != md->namespaces.end();
             ++it) {
-        if (it->second.is_deleted() || it->second.get_ref().name.in_conflict()) {
+        if (it->second.is_deleted()) {
+            continue;
+        }
+        if (it->second.get_ref().database.in_conflict() ||
+                it->second.get_ref().name.in_conflict()) {
             /* TODO: Handle conflict differently */
-            *error_out = "A name is in conflict";
+            *error_out = "Metadata is in conflict";
             return false;
         }
-        name_string_t name = it->second.get_ref().name.get_ref();
+        database_id_t db_id = it->second.get_ref().database.get_ref();
+        auto jt = database_sl_view->get().databases.find(db_id);
+        guarantee(jt != database_sl_view->get().databases.end());
+        /* RSI(reql_admin): This can actually happen. We should handle this case. */
+        guarantee(!jt->second.is_deleted());
+        if (jt->second.get_ref().name.in_conflict()) {
+            *error_out = "Metadata is in conflict";
+            return false;
+        }
+        name_string_t db_name = jt->second.get_ref().name.get_ref();
+        name_string_t table_name = it->second.get_ref().name.get_ref();
         /* TODO: How to handle table name collisions? */
-        keys_out->push_back(convert_name_to_datum(name));
+        keys_out->push_back(convert_db_and_table_to_datum(db_name, table_name));
     }
     return true;
 }
@@ -243,39 +263,33 @@ bool table_config_artificial_table_backend_t::read_row(
         UNUSED signal_t *interruptor,
         counted_t<const ql::datum_t> *row_out,
         std::string *error_out) {
-    name_string_t name;
+    cow_ptr_t<namespaces_semilattice_metadata_t> md = table_sl_view->get();
+    name_string_t db_name, table_name;
     std::string dummy_error;
-    if (!convert_name_from_datum(primary_key, "server name", &name, &dummy_error)) {
+    namespace_id_t table_id;
+    if (!convert_db_and_table_from_datum(primary_key, &db_name, &table_name,
+                                               &dummy_error)) {
         /* If the primary key was not a valid table name, then it must refer to a
-        nonexistent row. By setting `name` to an empty `name_string_t`, we ensure that
-        the loop doesn't find any table, so it will correctly fall through to the case
-        where the row does not exist. */
-        /* TODO: It might be more user-friendly to error instead. */
-        name = name_string_t();
+        nonexistent row. 
+        TODO: Would it be more user-friendly to error instead? */
+        table_id = nil_uuid();
+    } else {
+        table_id = lookup_table_with_database(db_name, table_name,
+            database_sl_view->get(), md);
     }
-    cow_ptr_t<namespaces_semilattice_metadata_t> md = semilattice_view->get();
-    for (auto it = md->namespaces.begin();
-              it != md->namespaces.end();
-            ++it) {
-        if (it->second.is_deleted() || it->second.get_ref().name.in_conflict()) {
-            /* TODO: Handle conflict differently */
-            *error_out = "A name is in conflict.";
-            return false;
-        }
-        if (it->second.get_ref().name.get_ref() == name) {
-            if (it->second.get_ref().replication_info.in_conflict()) {
-                *error_out = "Metadata is in conflict.";
-                return false;
-            }
-            table_config_t config =
-                it->second.get_ref().replication_info.get_ref().config;
-            *row_out = convert_table_config_to_datum(config, name, it->first);
-            return true;
-        }
+    if (table_id == nil_uuid()) {
+        *row_out = counted_t<const ql::datum_t>();
+        return true;
     }
-    /* No table with the given name exists. Signal this by setting `*row_out` to an empty
-    map, and return `true` to indicate that the read was performed. */
-    *row_out = counted_t<const ql::datum_t>();
+
+    auto it = md->namespaces.find(table_id);
+    if (it->second.get_ref().replication_info.in_conflict()) {
+        *error_out = "Metadata is in conflict.";
+        return false;
+    }
+    table_config_t config =
+        it->second.get_ref().replication_info.get_ref().config;
+    *row_out = convert_table_config_to_datum(config, db_name, table_name, it->first);
     return true;
 }
 
@@ -284,43 +298,37 @@ bool table_config_artificial_table_backend_t::write_row(
         counted_t<const ql::datum_t> new_value,
         UNUSED signal_t *interruptor,
         std::string *error_out) {
-    name_string_t name;
+    cow_ptr_t<namespaces_semilattice_metadata_t> md = table_sl_view->get();
+    name_string_t db_name, table_name;
     std::string dummy_error;
-    if (!convert_name_from_datum(primary_key, "server name", &name, &dummy_error)) {
-        /* If the primary key was not a valid table name, then it must refer to a
-        nonexistent row. By setting `name` to an empty `name_string_t`, we ensure that
-        the loop doesn't find any table, so it will correctly fall through to the case
-        where the row does not exist. */
-        name = name_string_t();
+    namespace_id_t table_id;
+    if (!convert_db_and_table_from_datum(primary_key, &db_name, &table_name,
+                                         &dummy_error)) {
+        table_id = nil_uuid();
+    } else {
+        table_id = lookup_table_with_database(db_name, table_name,
+            database_sl_view->get(), md);
     }
-    cow_ptr_t<namespaces_semilattice_metadata_t> md = semilattice_view->get();
+    if (table_id == nil_uuid()) {
+        *error_out = "To create a table, you must use table_create() instead of "
+            "inserting into the `rethinkdb.table_config` table.";
+        return false;
+    }
     cow_ptr_t<namespaces_semilattice_metadata_t>::change_t md_change(&md);
-    for (auto it = md_change.get()->namespaces.begin();
-              it != md_change.get()->namespaces.end();
-            ++it) {
-        if (it->second.is_deleted() || it->second.get_ref().name.in_conflict()) {
-            continue;
-        }
-        if (it->second.get_ref().name.get_ref() == name) {
-            table_replication_info_t replication_info;
-            if (!convert_table_config_from_datum(new_value, name, it->first,
-                    &replication_info.config, error_out)) {
-                *error_out = "The change you're trying to make to "
-                    "`rethinkdb.table_config` has the wrong format. " + *error_out;
-                return false;
-            }
-            replication_info.chosen_directors =
-                table_elect_directors(replication_info.config, name_client);
-            it->second.get_mutable()->replication_info =
-                it->second.get_ref().replication_info.make_resolving_version(
-                    replication_info, my_machine_id);
-            semilattice_view->join(md);
-            return true;
-        }
+    auto it = md_change.get()->namespaces.find(table_id);
+    table_replication_info_t replication_info;
+    if (!convert_table_config_from_datum(new_value, db_name, table_name, it->first,
+            &replication_info.config, error_out)) {
+        *error_out = "The change you're trying to make to "
+            "`rethinkdb.table_config` has the wrong format. " + *error_out;
+        return false;
     }
-    /* No table with the given name exists. */
-    *error_out = "To create a table, you must use table_create() instead of inserting "
-        "into the `rethinkdb.table_config` table.";
+    replication_info.chosen_directors =
+        table_elect_directors(replication_info.config, name_client);
+    it->second.get_mutable()->replication_info =
+        it->second.get_ref().replication_info.make_resolving_version(
+            replication_info, my_machine_id);
+    table_sl_view->join(md);
     return true;
 }
 

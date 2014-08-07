@@ -38,12 +38,12 @@ with driver.Metacluster() as metacluster:
 
     def test_reconfigure(shard, predicate):
         print "Reconfiguring:", shard
-        r.db("rethinkdb").table("table_config").get("foo").update(
+        r.db("rethinkdb").table("table_config").get("test.foo").update(
             {"shards": r.literal([shard])}).run(conn)
         start_time = time.time()
         while time.time() < start_time + 10:
-            status = r.db("rethinkdb").table("table_status").get("foo").run(conn)
-            assert status["name"] == "foo"
+            status = r.db("rethinkdb").table("table_status").get("test.foo").run(conn)
+            assert status["name"] == "test.foo"
             if predicate(status["shards"][0]):
                 break
             time.sleep(1)
