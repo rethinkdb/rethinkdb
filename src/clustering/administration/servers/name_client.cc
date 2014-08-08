@@ -32,26 +32,25 @@ server_name_client_t::server_name_client_t(
     recompute_name_to_machine_id_map();
 }
 
-std::set<name_string_t> get_servers_with_tag(const name_string_t &tag) {
+std::set<name_string_t> server_name_client_t::get_servers_with_tag(
+        const name_string_t &tag) {
     std::set<name_string_t> servers;
-    semilattice_view->apply_read(
-        [&](const machines_semilattice_metadata_t *machines) {
-            for (auto it = machines->machines.begin();
-                      it != machines->machines.end();
-                    ++it) {
-                if (it->second.is_deleted()) {
-                    continue;
-                }
-                if (it->second.get_ref().name.in_conflict() ||
-                        it->second.get_ref().tags.in_conflict()) {
-                    /* RSI(reql_admin): Handle conflicts better maybe */
-                    continue;
-                }
-                if (it->second.get_ref().tags.get_ref().count(tag) == 1) {
-                    servers.insert(it->second.get_ref().name.get_ref());
-                }
-            }
-        });
+    machines_semilattice_metadata_t md = semilattice_view->get();
+    for (auto it = md.machines.begin();
+              it != md.machines.end();
+            ++it) {
+        if (it->second.is_deleted()) {
+            continue;
+        }
+        if (it->second.get_ref().name.in_conflict() ||
+                it->second.get_ref().tags.in_conflict()) {
+            /* RSI(reql_admin): Handle conflicts better maybe */
+            continue;
+        }
+        if (it->second.get_ref().tags.get_ref().count(tag) == 1) {
+            servers.insert(it->second.get_ref().name.get_ref());
+        }
+    }
     return servers;
 }
 
@@ -142,13 +141,15 @@ bool server_name_client_t::rename_server(const name_string_t &old_name,
 
 bool server_name_client_t::retag_server(
         const machine_id_t &machine_id,
+        const name_string_t &server_name,
         const std::set<name_string_t> &new_tags,
         signal_t *interruptor,
         std::string *error_out) {
+
     /* We can produce this error message for several different reasons, so it's stored in
     a local variable instead of typed out multiple times. */
     std::string lost_contact_message = strprintf("Cannot change the tags of server `%s` "
-        "because we lost contact with it.", old_name.c_str());
+        "because we lost contact with it.", server_name.c_str());
 
     peer_id_t peer;
     machine_id_to_peer_id_map.apply_read(
@@ -171,7 +172,7 @@ bool server_name_client_t::retag_server(
             if (it != dir_metadata->get_inner().end()) {
                 guarantee(it->second.server_name_business_card, "We shouldn't be trying "
                     "to retag a proxy.");
-                rename_addr = it->second.server_name_business_card.get().retag_addr;
+                retag_addr = it->second.server_name_business_card.get().retag_addr;
             }
         });
     if (retag_addr.is_nil()) {
@@ -184,7 +185,7 @@ bool server_name_client_t::retag_server(
         mailbox_manager,
         [&]() { got_reply.pulse(); }); // NOLINT whitespace/newline
     disconnect_watcher_t disconnect_watcher(mailbox_manager, retag_addr.get_peer());
-    send(mailbox_manager, retag_addr, new_name, ack_mailbox.get_address());
+    send(mailbox_manager, retag_addr, new_tags, ack_mailbox.get_address());
     wait_any_t waiter(&got_reply, &disconnect_watcher);
     wait_interruptible(&waiter, interruptor);
 

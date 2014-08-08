@@ -117,6 +117,7 @@ public:
     informative message. */
     bool retag_server(
         const machine_id_t &server,
+        const name_string_t &server_name,   /* for error messages */
         const std::set<name_string_t> &new_tags,
         signal_t *interruptor,
         std::string *error_out);

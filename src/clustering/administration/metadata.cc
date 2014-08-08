@@ -2,7 +2,6 @@
 #include "clustering/administration/metadata.hpp"
 
 #include "clustering/administration/database_metadata.hpp"
-#include "clustering/administration/servers/datacenter_metadata.hpp"
 #include "clustering/administration/servers/machine_metadata.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/boost_types.hpp"
@@ -87,17 +86,17 @@ RDB_IMPL_EQUALITY_COMPARABLE_1(namespaces_semilattice_metadata_t, namespaces);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(namespaces_directory_metadata_t, reactor_bcards);
 RDB_IMPL_EQUALITY_COMPARABLE_1(namespaces_directory_metadata_t, reactor_bcards);
 
-RDB_IMPL_SERIALIZABLE_4(
-        cluster_semilattice_metadata_t, rdb_namespaces, machines, datacenters,
-        databases);
+RDB_IMPL_SERIALIZABLE_3(
+        cluster_semilattice_metadata_t,
+        rdb_namespaces, machines, databases);
 template void serialize<cluster_version_t::v1_14_is_latest>(
             write_message_t *, const cluster_semilattice_metadata_t &);
 template archive_result_t deserialize<cluster_version_t::v1_14_is_latest>(
             read_stream_t *, cluster_semilattice_metadata_t *);
-RDB_IMPL_SEMILATTICE_JOINABLE_4(cluster_semilattice_metadata_t,
-                                rdb_namespaces, machines, datacenters, databases);
-RDB_IMPL_EQUALITY_COMPARABLE_4(cluster_semilattice_metadata_t,
-                               rdb_namespaces, machines, datacenters, databases);
+RDB_IMPL_SEMILATTICE_JOINABLE_3(cluster_semilattice_metadata_t,
+                                rdb_namespaces, machines, databases);
+RDB_IMPL_EQUALITY_COMPARABLE_3(cluster_semilattice_metadata_t,
+                               rdb_namespaces, machines, databases);
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(auth_semilattice_metadata_t, auth_key);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(auth_semilattice_metadata_t, auth_key);
@@ -133,78 +132,6 @@ void apply_json_to(cJSON *change, ack_expectation_t *target) {
     apply_as_directory(change, target);
 }
 
-//json adapter concept for machine_semilattice_metadata_t
-json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(machine_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
-    json_adapter_if_t::json_adapter_map_t res;
-    res["datacenter_uuid"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<datacenter_id_t>(&target->datacenter, ctx));
-    res["name"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_read_only_adapter_t<vclock_t<name_string_t>, vclock_ctx_t>(&target->name, ctx));
-
-    return res;
-}
-
-cJSON *with_ctx_render_as_json(machine_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
-    return render_as_directory(target, ctx);
-}
-
-void with_ctx_apply_json_to(cJSON *change, machine_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
-    apply_as_directory(change, target, ctx);
-}
-
-void with_ctx_on_subfield_change(machine_semilattice_metadata_t *, const vclock_ctx_t &) { }
-
-
-
-//json adapter concept for machines_semilattice_metadata_t
-json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(machines_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
-    return with_ctx_get_json_subfields(&target->machines, ctx);
-}
-
-cJSON *with_ctx_render_as_json(machines_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
-    return with_ctx_render_as_json(&target->machines, ctx);
-}
-
-void with_ctx_apply_json_to(cJSON *change, machines_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
-    with_ctx_apply_json_to(change, &target->machines, ctx);
-}
-
-void with_ctx_on_subfield_change(machines_semilattice_metadata_t *, const vclock_ctx_t &) { }
-
-
-//json adapter concept for datacenter_semilattice_metadata_t
-json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(datacenter_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
-    json_adapter_if_t::json_adapter_map_t res;
-    res["name"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<name_string_t>(&target->name, ctx));
-    return res;
-}
-
-cJSON *with_ctx_render_as_json(datacenter_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
-    return render_as_directory(target, ctx);
-}
-
-void with_ctx_apply_json_to(cJSON *change, datacenter_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
-    apply_as_directory(change, target, ctx);
-}
-
-void with_ctx_on_subfield_change(datacenter_semilattice_metadata_t *, const vclock_ctx_t &) { }
-
-
-
-//json adapter concept for datacenters_semilattice_metadata_t
-json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(datacenters_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
-    return json_ctx_adapter_with_inserter_t<datacenters_semilattice_metadata_t::datacenter_map_t, vclock_ctx_t>(&target->datacenters, generate_uuid, ctx).get_subfields();
-}
-
-cJSON *with_ctx_render_as_json(datacenters_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
-    return with_ctx_render_as_json(&target->datacenters, ctx);
-}
-
-void with_ctx_apply_json_to(cJSON *change, datacenters_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
-    apply_as_directory(change, &target->datacenters, ctx);
-}
-
-void with_ctx_on_subfield_change(datacenters_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
-    with_ctx_on_subfield_change(&target->datacenters, ctx);
-}
 
 // json adapter concept for database_semilattice_metadata_t
 json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(database_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
@@ -248,9 +175,9 @@ json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(cluster_semila
     json_adapter_if_t::json_adapter_map_t res;
     /* RSI(reql_admin): Eventually JSON adapters will go away completely, but this needed
     to go away now */
-    /* res["rdb_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<cow_ptr_t<namespaces_semilattice_metadata_t>, vclock_ctx_t>(&target->rdb_namespaces, ctx)); */
-    res["machines"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<machines_semilattice_metadata_t, vclock_ctx_t>(&target->machines, ctx));
+    /* res["rdb_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<cow_ptr_t<namespaces_semilattice_metadata_t>, vclock_ctx_t>(&target->rdb_namespaces, ctx));
     res["datacenters"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<datacenters_semilattice_metadata_t, vclock_ctx_t>(&target->datacenters, ctx));
+    res["machines"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<machines_semilattice_metadata_t, vclock_ctx_t>(&target->machines, ctx)); */
     res["databases"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<databases_semilattice_metadata_t, vclock_ctx_t>(&target->databases, ctx));
     res["me"] = boost::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<uuid_u>(ctx.us));
     return res;

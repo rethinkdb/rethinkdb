@@ -137,10 +137,6 @@ std::list<clone_ptr_t<global_issue_t> > name_conflict_issue_tracker_t::get_issue
     namespaces.file_away(metadata.rdb_namespaces->namespaces);
     namespaces.report("table", &issues);
 
-    name_map_t datacenters;
-    datacenters.file_away(metadata.datacenters.datacenters);
-    datacenters.report("datacenter", &issues);
-
     name_map_t databases;
     databases.file_away(metadata.databases.databases);
     databases.report("database", &issues);

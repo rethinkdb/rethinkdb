@@ -13,7 +13,6 @@
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/log_transfer.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
-#include "clustering/administration/servers/datacenter_metadata.hpp"
 #include "clustering/administration/servers/machine_metadata.hpp"
 #include "clustering/administration/servers/name_metadata.hpp"
 #include "clustering/administration/stat_manager.hpp"
@@ -32,7 +31,6 @@ public:
     cow_ptr_t<namespaces_semilattice_metadata_t> rdb_namespaces;
 
     machines_semilattice_metadata_t machines;
-    datacenters_semilattice_metadata_t datacenters;
     databases_semilattice_metadata_t databases;
 };
 

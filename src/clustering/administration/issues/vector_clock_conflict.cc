@@ -48,28 +48,11 @@ std::list<clone_ptr_t<vector_clock_conflict_issue_t> > vector_clock_conflict_iss
     // Check cluster metadata
     check_namespaces_for_protocol(cluster_metadata.rdb_namespaces, &issues);
 
-    for (datacenters_semilattice_metadata_t::datacenter_map_t::const_iterator it =
-            cluster_metadata.datacenters.datacenters.begin();
-            it != cluster_metadata.datacenters.datacenters.end(); it++) {
-        if (!it->second.is_deleted()) {
-            check("datacenter", it->first, "name", it->second.get_ref().name, &issues);
-        }
-    }
-
     for (databases_semilattice_metadata_t::database_map_t::const_iterator it =
             cluster_metadata.databases.databases.begin();
             it != cluster_metadata.databases.databases.end(); it++) {
         if (!it->second.is_deleted()) {
             check("database", it->first, "name", it->second.get_ref().name, &issues);
-        }
-    }
-
-    for (machines_semilattice_metadata_t::machine_map_t::const_iterator it =
-            cluster_metadata.machines.machines.begin();
-            it != cluster_metadata.machines.machines.end(); it++) {
-        if (!it->second.is_deleted()) {
-            check("machine", it->first, "datacenter_uuid", it->second.get_ref().datacenter, &issues);
-            check("machine", it->first, "name", it->second.get_ref().name, &issues);
         }
     }
 

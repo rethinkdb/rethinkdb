@@ -91,6 +91,11 @@ server_name_server_t::server_name_server_t(
         [this](const name_string_t &name, const mailbox_t<void()>::address_t &addr) {
             this->on_rename_request(name, addr);
         }),
+    retag_mailbox(mailbox_manager,
+        [this](const std::set<name_string_t> &tags,
+               const mailbox_t<void()>::address_t &addr) {
+            this->on_retag_request(tags, addr);
+        }),
     semilattice_subs([this]() {
         /* We have to call `on_semilattice_change()` in a coroutine because it might
         make changes to the semilattices. */
@@ -155,7 +160,7 @@ void server_name_server_t::on_rename_request(const name_string_t &new_name,
     });
 }
 
-void server_name_server_t::retag_me(const std:set<name_string_t> &new_tags) {
+void server_name_server_t::retag_me(const std::set<name_string_t> &new_tags) {
     ASSERT_FINITE_CORO_WAITING;
     if (new_tags != my_tags) {
         my_tags = new_tags;

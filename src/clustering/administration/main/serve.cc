@@ -26,6 +26,7 @@
 #include "clustering/administration/servers/name_server.hpp"
 #include "clustering/administration/servers/name_client.hpp"
 #include "clustering/administration/servers/network_logger.hpp"
+#include "clustering/administration/servers/server_config.hpp"
 #include "clustering/administration/sys_stats.hpp"
 #include "clustering/administration/tables/table_config.hpp"
 #include "clustering/administration/tables/table_status.hpp"
@@ -260,6 +261,14 @@ bool do_serve(io_backender_t *io_backender,
                 &server_name_client);
 
         std::map<name_string_t, artificial_table_backend_t *> artificial_table_backends;
+
+        server_config_artificial_table_backend_t server_config_backend(
+                metadata_field(&cluster_semilattice_metadata_t::machines,
+                    semilattice_manager_cluster.get_root_view()),
+                &server_name_client);
+        artificial_table_backends[name_string_t::guarantee_valid("server_config")] =
+            &server_config_backend;
+
         table_config_artificial_table_backend_t table_config_backend(
                 machine_id,
                 metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
@@ -269,6 +278,7 @@ bool do_serve(io_backender_t *io_backender,
                 &server_name_client);
         artificial_table_backends[name_string_t::guarantee_valid("table_config")] =
             &table_config_backend;
+
         table_status_artificial_table_backend_t table_status_backend(
                 metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
                     semilattice_manager_cluster.get_root_view()),
@@ -281,6 +291,7 @@ bool do_serve(io_backender_t *io_backender,
                 &server_name_client);
         artificial_table_backends[name_string_t::guarantee_valid("table_status")] =
             &table_status_backend;
+
         artificial_reql_cluster_interface_t artificial_reql_cluster_interface(
             name_string_t::guarantee_valid("rethinkdb"),
             artificial_table_backends,

@@ -8,6 +8,10 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
+#include "clustering/administration/servers/machine_metadata.hpp"
+#include "rdb_protocol/artificial_table/backend.hpp"
+#include "rpc/semilattice/view.hpp"
+
 class server_name_client_t;
 
 class server_config_artificial_table_backend_t :

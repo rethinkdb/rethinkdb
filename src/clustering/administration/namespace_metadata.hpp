@@ -11,7 +11,6 @@
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/http/json_adapters.hpp"
 #include "clustering/administration/persistable_blueprint.hpp"
-#include "clustering/administration/servers/datacenter_metadata.hpp"
 #include "clustering/generic/nonoverlapping_regions.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/directory_echo.hpp"

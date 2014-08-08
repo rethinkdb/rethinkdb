@@ -63,6 +63,44 @@ bool convert_vector_from_datum(
     return true;
 }
 
+template<class T>
+counted_t<const ql::datum_t> convert_set_to_datum(
+        const std::function<counted_t<const ql::datum_t>(const T&)> &conv,
+        const std::set<T> &set) {
+    ql::datum_array_builder_t builder((ql::configured_limits_t()));
+    builder.reserve(set.size());
+    for (const T &elem : set) {
+        builder.add(conv(elem));
+    }
+    return std::move(builder).to_counted();
+}
+
+template<class T>
+bool convert_set_from_datum(
+        const std::function<bool(counted_t<const ql::datum_t>, T*, std::string*)> &conv,
+        bool allow_duplicates,
+        counted_t<const ql::datum_t> datum,
+        std::set<T> *set_out,
+        std::string *error_out) {
+    if (datum->get_type() != ql::datum_t::R_ARRAY) {
+        *error_out = "Expected an array, got " + datum->print();
+        return false;
+    }
+    set_out->clear();
+    for (size_t i = 0; i < datum->size(); ++i) {
+        T value;
+        if (!conv(datum->get(i), &value, error_out)) {
+            return false;
+        }
+        if (!allow_duplicates && set_out->count(value) == 1) {
+            *error_out = datum->get(i)->print() + " was specified more than once.";
+            return false;
+        }
+        set_out->insert(value);
+    }
+    return true;
+}
+
 /* `converter_from_datum_object_t` is a helper for converting a `datum_t` to some other
 type when the type's datum representation is an object with a fixed set of fields.
 Construct a `converter_from_datum_object_t` and call `init()` with your datum. `init()`

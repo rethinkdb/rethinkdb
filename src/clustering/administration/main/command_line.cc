@@ -689,7 +689,7 @@ void run_rethinkdb_create(const base_path_t &base_path,
     machine_semilattice_metadata_t machine_semilattice_metadata;
     machine_semilattice_metadata.name = machine_semilattice_metadata.name.make_new_version(machine_name, our_machine_id);
     machine_semilattice_metadata.tags =
-        vclock_t<std::set<machine_id_t> >(machine_tags, our_machine_id);
+        vclock_t<std::set<name_string_t> >(machine_tags, our_machine_id);
     cluster_metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(machine_semilattice_metadata)));
 
     io_backender_t io_backender(direct_io_mode, max_concurrent_io_requests);
@@ -954,12 +954,11 @@ std::vector<host_and_port_t> parse_join_options(const std::map<std::string, opti
 std::set<name_string_t> parse_server_tag_options(
         const std::map<std::string, options::values_t> &opts) {
     std::set<name_string_t> server_tag_names;
-    for (const std::string &tag_str : opts["--server-tag"].values) {
+    for (const std::string &tag_str : opts.at("--server-tag").values) {
         name_string_t tag;
         if (!tag.assign_value(tag_str)) {
-            fprintf(stderr, "ERROR: server tag '%s' is invalid. (%s)\n",
-                tag_str.c_str(), name_string_t::valid_char_msg);
-            return EXIT_FAILURE;
+            throw std::runtime_error(strprintf("--server_tag %s is invalid. (%s)\n",
+                tag_str.c_str(), name_string_t::valid_char_msg));
         }
         /* We silently accept tags that appear multiple times. */
         server_tag_names.insert(tag);

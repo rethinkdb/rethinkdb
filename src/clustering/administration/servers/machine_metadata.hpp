@@ -6,8 +6,9 @@
 #include <set>
 #include <string>
 
-#include "clustering/administration/servers/datacenter_metadata.hpp"
+#include "containers/name_string.hpp"
 #include "http/json/json_adapter.hpp"
+#include "rpc/semilattice/joins/deletable.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/semilattice/joins/map.hpp"
 #include "rpc/semilattice/joins/vclock.hpp"

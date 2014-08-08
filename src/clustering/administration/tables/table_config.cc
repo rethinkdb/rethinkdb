@@ -15,13 +15,9 @@ counted_t<const ql::datum_t> convert_table_config_shard_to_datum(
             ));
     }
 
-    {
-        ql::datum_array_builder_t array((ql::configured_limits_t()));
-        for (const name_string_t &name : shard.replica_names) {
-            array.add(convert_name_to_datum(name));
-        }
-        builder.overwrite("replicas", std::move(array).to_counted());
-    }
+    builder.overwrite("replicas", convert_set_to_datum<name_string_t>(
+            &convert_name_to_datum,
+            shard.replica_names));
 
     builder.overwrite("directors", convert_vector_to_datum<name_string_t>(
             &convert_name_to_datum,
@@ -62,21 +58,16 @@ bool convert_table_config_shard_from_datum(
             replica_names_datum->print();
         return false;
     }
-    shard_out->replica_names.clear();
-    for (size_t i = 0; i < replica_names_datum->size(); ++i) {
-        name_string_t name;
-        if (!convert_name_from_datum(
-                replica_names_datum->get(i),
-                "server name", &name, error_out)) {
-            *error_out = "In `replicas`: " + *error_out;
-            return false;
-        }
-        if (shard_out->replica_names.count(name) != 0) {
-            *error_out = strprintf("In `replicas`: Server `%s` appears multiple times.",
-                name.c_str());
-            return false;
-        }
-        shard_out->replica_names.insert(name);
+    if (!convert_set_from_datum<name_string_t>(
+            [] (counted_t<const ql::datum_t> datum2, name_string_t *val2_out,
+                    std::string *error2_out) {
+                return convert_name_from_datum(datum2, "server name", val2_out,
+                    error2_out);
+            },
+            false,   /* raise an error if a server appears twice */
+            replica_names_datum, &shard_out->replica_names, error_out)) {
+        *error_out = "In `replicas`: " + *error_out;
+        return false;
     }
     if (shard_out->replica_names.empty()) {
         *error_out = "You must specify at least one replica for each shard.";
