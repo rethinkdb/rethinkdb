@@ -491,7 +491,6 @@ class Binary extends RDBVal
         self = super()
 
         if data instanceof Buffer
-            self.data = data
             self.base64_data = data.toString("base64")
         else
             throw new TypeError("Parameter to `r.binary` must be a Buffer object.")
@@ -499,7 +498,7 @@ class Binary extends RDBVal
         return self
 
     compose: ->
-        return "r.binary('" + @data.toString() + "')"
+        return 'r.binary(<data>)'
 
     build: ->
         { '$reql_type$': 'BINARY', 'data': @base64_data }

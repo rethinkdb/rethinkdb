@@ -1268,7 +1268,6 @@ class Binary(RqlTopLevelQuery):
             raise RqlDriverError("Cannot convert %s to binary, convert the object " \
                                  "to a `bytes` object first." % type(data).__name__)
 
-        self.data = data
         self.base64_data = base64.b64encode(data)
 
         # Kind of a hack to get around composing
@@ -1276,7 +1275,7 @@ class Binary(RqlTopLevelQuery):
         self.optargs = {}
 
     def compose(self, args, optargs):
-        return T('r.', self.st, '(bytes(', str(self.data), '))')
+        return T('r.', self.st, '(bytes(<data>))')
         
     def build(self):
         return { '$reql_type$': 'BINARY', 'data': self.base64_data.decode('utf-8') }
