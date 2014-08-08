@@ -14,21 +14,16 @@
 
 namespace ql {
 
-// This term is used for functions that are polymorphic on objects and
-// sequences, like `pluck`.  It will handle the polymorphism; terms inheriting
-// from it just need to implement evaluation on objects (`obj_eval`).
-class obj_or_seq_op_term_t : public grouped_seq_op_term_t {
-public:
-    enum poly_type_t {
-        MAP = 0,
-        FILTER = 1,
-        SKIP_MAP = 2
-    };
-    obj_or_seq_op_term_t(compile_env_t *env, protob_t<const Term> term,
-                         poly_type_t _poly_type, argspec_t argspec)
-        : grouped_seq_op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_"})),
-          poly_type(_poly_type), func(make_counted_term()) {
+enum poly_type_t {
+    MAP = 0,
+    FILTER = 1,
+    SKIP_MAP = 2
+};
 
+class blah_t {
+public:
+    blah_t(const term_t *self, poly_type_t _poly_type, protob_t<const Term> term)
+        : poly_type(_poly_type), func(make_counted_term()) {
         auto varnum = pb::dummy_var_t::OBJORSEQ_VARNUM;
 
         // body is a new reql expression similar to term except that the first argument
@@ -50,11 +45,11 @@ public:
         default: unreachable();
         }
 
-        prop_bt(func.get());
+        self->prop_bt(func.get());
     }
-protected:
+
     counted_t<val_t> eval_impl_dereferenced
-        (scope_env_t *env, args_t *args, counted_t<val_t> v0,
+    (const term_t *target, scope_env_t *env, args_t *args, counted_t<val_t> v0,
          std::function<counted_t<val_t>()> helper) const {
         counted_t<const datum_t> d;
 
@@ -70,9 +65,9 @@ protected:
             // The above if statement is complicated because it produces better
             // error messages on e.g. strings.
             if (counted_t<val_t> no_recurse = args->optarg(env, "_NO_RECURSE_")) {
-                rcheck(no_recurse->as_bool() == false, base_exc_t::GENERIC,
+                rcheck_target(target, base_exc_t::GENERIC, no_recurse->as_bool() == false,
                        strprintf("Cannot perform %s on a sequence of sequences.",
-                                 name()));
+                                 target->name()));
             }
 
             compile_env_t compile_env(env->scope.compute_visibility());
@@ -83,27 +78,45 @@ protected:
             counted_t<datum_stream_t> stream = v0->as_seq(env->env);
             switch (poly_type) {
             case MAP:
-                stream->add_transformation(map_wire_func_t(f), backtrace());
+                stream->add_transformation(map_wire_func_t(f), target->backtrace());
                 break;
             case FILTER:
                 stream->add_transformation(filter_wire_func_t(f, boost::none),
-                                           backtrace());
+                                           target->backtrace());
                 break;
             case SKIP_MAP:
                 stream->add_transformation(concatmap_wire_func_t(f),
-                                           backtrace());
+                                           target->backtrace());
                 break;
             default: unreachable();
             }
 
-            return new_val(env->env, stream);
+            return target->new_val(env->env, stream);
         }
 
         rfail_typed_target(
             v0, "Cannot perform %s on a non-object non-sequence `%s`.",
-            name(), v0->trunc_print().c_str());
+            target->name(), v0->trunc_print().c_str());
     }
- 
+
+private:
+    poly_type_t poly_type;
+    protob_t<Term> func;
+
+    DISABLE_COPYING(blah_t);
+};
+
+// This term is used for functions that are polymorphic on objects and
+// sequences, like `pluck`.  It will handle the polymorphism; terms inheriting
+// from it just need to implement evaluation on objects (`obj_eval`).
+class obj_or_seq_op_term_t : public grouped_seq_op_term_t {
+public:
+    obj_or_seq_op_term_t(compile_env_t *env, protob_t<const Term> term,
+                         poly_type_t _poly_type, argspec_t argspec)
+        : grouped_seq_op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_"})),
+          blah(this, _poly_type, term) {
+    }
+
 private:
     virtual counted_t<val_t> obj_eval(scope_env_t *env,
                                       args_t *args,
@@ -111,12 +124,11 @@ private:
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> v0 = args->arg(env, 0);
-        return eval_impl_dereferenced(env, args, v0,
-                                      [&]{ return this->obj_eval(env, args, v0); });
+        return blah.eval_impl_dereferenced(this, env, args, v0,
+                                           [&]{ return this->obj_eval(env, args, v0); });
     }
 
-    poly_type_t poly_type;
-    protob_t<Term> func;
+    blah_t blah;
 };
 
 class pluck_term_t : public obj_or_seq_op_term_t {
@@ -251,14 +263,12 @@ counted_t<term_t> make_get_field_term(compile_env_t *env, const protob_t<const T
 
 counted_t<val_t> nth_term_impl(const term_t *, scope_env_t *, counted_t<val_t>, counted_t<val_t>);
 
-class bracket_term_t : public obj_or_seq_op_term_t {
+class bracket_term_t : public grouped_seq_op_term_t {
 public:
     bracket_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : obj_or_seq_op_term_t(env, term, SKIP_MAP, argspec_t(2)) {}
+        : grouped_seq_op_term_t(env, term, argspec_t(2), optargspec_t({"_NO_RECURSE_"})),
+          blah(this, SKIP_MAP, term) {}
 private:
-    virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
-        return new_val(v0->as_datum()->get(args->arg(env, 1)->as_str().to_std()));
-    }
     counted_t<val_t> obj_eval_dereferenced(counted_t<val_t> v0, counted_t<val_t> v1) const {
         return new_val(v0->as_datum()->get(v1->as_str().to_std()));
     }
@@ -272,8 +282,8 @@ private:
         case datum_t::R_NUM:
             return nth_term_impl(this, env, v0, v1);
         case datum_t::R_STR:
-            return eval_impl_dereferenced(env, args, v0,
-                                          [&]{ return this->obj_eval_dereferenced(v0, v1); });
+            return blah.eval_impl_dereferenced(this, env, args, v0,
+                                               [&]{ return this->obj_eval_dereferenced(v0, v1); });
         case datum_t::R_ARRAY:
         case datum_t::R_BINARY:
         case datum_t::R_BOOL:
@@ -289,6 +299,8 @@ private:
     // obj_or_seq_op_term_t already does this, but because nth_term wasn't grouped,
     // I reimplement it here for clarity.
     virtual bool is_grouped_seq_op() const { return true; }
+
+    blah_t blah;
 };
 
 counted_t<term_t> make_bracket_term(compile_env_t *env, const protob_t<const Term> &term) {
