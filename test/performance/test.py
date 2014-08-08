@@ -172,7 +172,7 @@ def execute_read_write_queries(suffix):
         if i < num_writes:
             while i + size_batch < num_writes:
                 start_query = time.time()
-                resutl = r.db('test').table(table['name']).insert(docs[i:i + size_batch]).run(connection)
+                result = r.db('test').table(table['name']).insert(docs[i:i + size_batch]).run(connection)
                 durations.append(time.time() - start_query)
                 end = time.time()
                 count_batch_insert += 1
