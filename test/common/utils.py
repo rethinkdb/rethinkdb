@@ -238,3 +238,19 @@ class PerformContinuousAction(threading.Thread):
             self.stop()
         
         return self.recordedErrors
+
+def supportsTerminalColors():
+    '''Return True if both stdout and stderr are tty's and seem to support color, otherwise return False'''
+    import curses
+    
+    if not all([sys.stderr.isatty(), sys.stdout.isatty()]):
+        return False
+    
+    try:
+        curses.setupterm()
+        assert curses.tigetstr('setaf') is not None
+        assert curses.tparm(curses.tigetstr('setaf'), 1) is not None
+    except Exception:
+        return False
+    return True
+

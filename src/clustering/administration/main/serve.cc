@@ -113,13 +113,19 @@ bool do_serve(io_backender_t *io_backender,
 
         log_server_t log_server(&mailbox_manager, &log_writer);
 
+        outdated_index_issue_server_t outdated_index_server(&mailbox_manager);
+
         // Initialize the stat manager before the directory manager so that we
         // could initialize the cluster directory metadata with the proper
         // stat_manager mailbox address
         stat_manager_t stat_manager(&mailbox_manager);
 
-        metadata_change_handler_t<cluster_semilattice_metadata_t> metadata_change_handler(&mailbox_manager, semilattice_manager_cluster.get_root_view());
-        metadata_change_handler_t<auth_semilattice_metadata_t> auth_change_handler(&mailbox_manager, auth_manager_cluster.get_root_view());
+        metadata_change_handler_t<cluster_semilattice_metadata_t>
+            metadata_change_handler(&mailbox_manager,
+                                    semilattice_manager_cluster.get_root_view());
+        metadata_change_handler_t<auth_semilattice_metadata_t>
+            auth_change_handler(&mailbox_manager,
+                                auth_manager_cluster.get_root_view());
 
         scoped_ptr_t<cluster_directory_metadata_t> initial_directory(
             new cluster_directory_metadata_t(machine_id,
@@ -129,10 +135,12 @@ bool do_serve(io_backender_t *io_backender,
                                              stat_manager.get_address(),
                                              metadata_change_handler.get_request_mailbox_address(),
                                              auth_change_handler.get_request_mailbox_address(),
+                                             outdated_index_server.get_request_mailbox_address(),
                                              log_server.get_business_card(),
                                              i_am_a_server ? SERVER_PEER : PROXY_PEER));
 
-        watchable_variable_t<cluster_directory_metadata_t> our_root_directory_variable(*initial_directory);
+        watchable_variable_t<cluster_directory_metadata_t>
+            our_root_directory_variable(*initial_directory);
 
         directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(
             &connectivity_cluster, 'D', our_root_directory_variable.get_watchable());
@@ -142,7 +150,15 @@ bool do_serve(io_backender_t *io_backender,
         network_logger_t network_logger(
             connectivity_cluster.get_me(),
             directory_read_manager.get_root_view(),
-            metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()));
+            metadata_field(&cluster_semilattice_metadata_t::machines,
+                           semilattice_manager_cluster.get_root_view()));
+
+        admin_tracker_t admin_tracker(&mailbox_manager,
+                                      semilattice_manager_cluster.get_root_view(),
+                                      auth_manager_cluster.get_root_view(),
+                                      directory_read_manager.get_root_view());
+
+        outdated_index_server.attach_local_client(&admin_tracker.outdated_index_client);
 
         scoped_ptr_t<connectivity_cluster_t::run_t> connectivity_cluster_run;
 
@@ -160,6 +176,7 @@ bool do_serve(io_backender_t *io_backender,
             for (auto it = ips.begin(); it != ips.end(); ++it) {
                 initial_directory->ips.push_back(it->ip().to_string());
             }
+
             our_root_directory_variable.set_value(*initial_directory);
             initial_directory.reset();
         } catch (const address_in_use_exc_t &ex) {
@@ -184,10 +201,6 @@ bool do_serve(io_backender_t *io_backender,
             &cluster_directory_metadata_t::local_issues,
             local_issue_tracker.get_issues_watchable(),
             &our_root_directory_variable);
-
-        admin_tracker_t admin_tracker(semilattice_manager_cluster.get_root_view(),
-                                      auth_manager_cluster.get_root_view(),
-                                      directory_read_manager.get_root_view());
 
         perfmon_collection_t proc_stats_collection;
         perfmon_membership_t proc_stats_membership(&get_global_perfmon_collection(), &proc_stats_collection, "proc");
@@ -258,7 +271,8 @@ bool do_serve(io_backender_t *io_backender,
 
             if (i_am_a_server) {
                 rdb_svs_source.init(new file_based_svs_by_namespace_t(
-                    io_backender, cache_balancer.get(), base_path));
+                    io_backender, cache_balancer.get(), base_path,
+                    &admin_tracker.outdated_index_client));
                 rdb_reactor_driver.init(new reactor_driver_t(
                         base_path,
                         io_backender,

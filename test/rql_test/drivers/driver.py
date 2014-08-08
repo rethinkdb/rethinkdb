@@ -72,8 +72,8 @@ def print_test_failure(test_name, test_src, message):
     global failure_count
     failure_count = failure_count + 1
     print('')
-    print("TEST FAILURE: %s" % test_name)
-    print("TEST BODY: %s" % test_src)
+    print("TEST FAILURE: %s" % test_name.encode('utf-8'))
+    print("TEST BODY:    %s" % test_src.encode('utf-8'))
     print(message)
     print('')
 
@@ -251,87 +251,105 @@ def eq(exp):
     return sub
 
 class PyTestDriver:
-
-    # Set up connections to each database server
-    def connect(self):
-        #print 'Connecting to JS server on port ' + str(JSPORT)
-        #self.js_conn = r.connect(host='localhost', port=JSPORT)
-
-        print('Connecting to CPP server on port ' + str(CPPPORT))
-        print('')
-        self.cpp_conn = r.connect(host='localhost', port=CPPPORT)
+    
+    cpp_conn = None
+    
+    def __init__(self):
+        print('Creating default connection to CPP server on port %s\n' % str(CPPPORT))
+        self.cpp_conn = self.connect()
+        self.scope = {}
+        
         if 'test' not in r.db_list().run(self.cpp_conn):
             r.db_create('test').run(self.cpp_conn)
-        self.scope = {}
+    
+    def connect(self):
+        return r.connect(host='localhost', port=CPPPORT)
 
     def define(self, expr):
         exec(expr, globals(), self.scope)
 
-    def run(self, src, expected, name, runopts):
+    def run(self, src, expected, name, runopts, testopts):
         if runopts:
             runopts["profile"] = True
         else:
             runopts = {"profile": True}
-
+        
+        conn = None
+        if 'new-connection' in testopts and testopts['new-connection'] is True:
+            conn = self.connect()
+        else:
+            conn = self.cpp_conn
+        
         # Try to build the expected result
         if expected:
             exp_val = eval(expected, dict(list(globals().items()) + list(self.scope.items())))
         else:
             # This test might not have come with an expected result, we'll just ensure it doesn't fail
             exp_val = ()
-
-        # Try to build the test
-        try:
-            query = eval(src, dict(list(globals().items()) + list(self.scope.items())))
-        except Exception as err:
+        
+        # Run the test
+        if 'reql-query' in testopts and str(testopts['reql-query']).lower() == 'false':
+            try:
+                result = eval(src, globals(), self.scope)
+            except Exception as err:
+                result = err
+        else:
+            # Try to build the test
+            try:
+                query = eval(src, dict(list(globals().items()) + list(self.scope.items())))
+            except Exception as err:
+                if not isinstance(exp_val, Err):
+                    print_test_failure(name, src, "Error eval'ing test src:\n\t%s" % repr(err))
+                elif not eq(exp_val)(err):
+                    print_test_failure(name, src, "Error eval'ing test src not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" % (repr(err), repr(exp_val)))
+    
+                return # Can't continue with this test if there is no test query
+    
+            # Check pretty-printing
+            check_pp(src, query)
+    
+            # Run the test
+            result = None
+            try:
+                result = query.run(conn, **runopts)
+                if result and "profile" in runopts and runopts["profile"] and "value" in result:
+                    result = result["value"]
+            except Exception as err:
+                result = err
+        
+        # Save variable if requested
+        
+        if 'variable' in testopts:
+            self.scope[testopts['variable']] = result
+        
+        # Compare to the expected result
+        
+        if isinstance(result, Exception):
             if not isinstance(exp_val, Err):
-                print_test_failure(name, src, "Error eval'ing test src:\n\t%s" % repr(err))
-            elif not eq(exp_val)(err):
-                print_test_failure(
-                    name, src,
-                    "Error eval'ing test src not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" % (repr(err), repr(exp_val))
-                )
-
-            return # Can't continue with this test if there is no test query
-
-        # Check pretty-printing
-        check_pp(src, query)
-
-        # Try actually running the test
-        try:
-            cppres = query.run(self.cpp_conn, **runopts)
-            if cppres and "profile" in runopts and runopts["profile"]:
-                cppres = cppres["value"]
-
-            # And comparing the expected result
-            if not eq(exp_val)(cppres):
-                print_test_failure(
-                    name, src,
-                    "CPP result is not equal to expected result:\n\tVALUE: %s\n\tEXPECTED: %s" % (repr(cppres), repr(exp_val))
-                )
-
-        except Exception as err:
-            if not isinstance(exp_val, Err):
-                print_test_failure(name, src, "Error running test on CPP server:\n\t%s %s" % (repr(err), str(err)))
-            elif not eq(exp_val)(err):
-                print_test_failure(
-                    name, src,
-                    "Error running test on CPP server not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" % (repr(err), repr(exp_val))
-                )
+                print_test_failure(name, src, "Error running test on CPP server:\n\t%s %s" % (repr(result), str(result)))
+            elif not eq(exp_val)(result):
+                print_test_failure(name, src, "Error running test on CPP server not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" % (repr(result), repr(exp_val)))
+        elif not eq(exp_val)(result):
+            print_test_failure(name, src, "CPP result is not equal to expected result:\n\tVALUE: %s\n\tEXPECTED: %s" % (repr(result), repr(exp_val)))
 
 driver = PyTestDriver()
-driver.connect()
 
 # Emitted test code will consist of calls to this function
-def test(query, expected, name, runopts={}):
-    for k, v in runopts.items():
-        if isinstance(v, str):
-            runopts[k] = eval(v)
+def test(query, expected, name, runopts=None, testopts=None):
+    if runopts is None:
+        runopts = {}
+    else:
+        for k, v in runopts.items():
+            if isinstance(v, str):
+                runopts[k] = eval(v)
+    if testopts is None:
+        testopts = {}
+    
     if 'batch_conf' not in runopts:
         runopts['batch_conf'] = {'max_els': 3}
     if expected == '':
         expected = None
-    driver.run(query, expected, name, runopts)
+    driver.run(query, expected, name, runopts, testopts)
 
 # Emitted test code can call this function to define variables
 def define(expr):

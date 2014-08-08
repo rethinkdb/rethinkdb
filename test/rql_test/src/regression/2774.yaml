@@ -75,7 +75,7 @@ tests:
     - cd: tbl.index_create('idx')
       ot: ({'created':1})
 
-    - cd: tbl.index_wait('idx')
+    - cd: tbl.index_wait('idx').pluck('index', 'ready')
       ot: [{'index':'idx','ready':true}]
 
     - rb: tbl.order_by({:index => 'idx'}).map{|row| row['id']}.coerce_to('array')

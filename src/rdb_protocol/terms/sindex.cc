@@ -3,6 +3,8 @@
 
 #include <string>
 
+#include "rdb_protocol/real_table.hpp"
+#include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"
@@ -26,9 +28,49 @@ public:
                base_exc_t::GENERIC,
                strprintf("Index name conflict: `%s` is the name of the primary key.",
                          name.c_str()));
+
+        /* Check if we're doing a multi index or a normal index. */
+        sindex_multi_bool_t multi = sindex_multi_bool_t::SINGLE;
+        sindex_geo_bool_t geo = sindex_geo_bool_t::REGULAR;
         counted_t<func_t> index_func;
         if (args->num_args() == 3) {
-            index_func = args->arg(env, 2)->as_func();
+            counted_t<val_t> v = args->arg(env, 2);
+            if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
+                counted_t<const datum_t> d = v->as_datum();
+                if (d->get_type() == datum_t::R_BINARY) {
+                    const char *data = d->as_binary().data();
+                    size_t sz = d->as_binary().size();
+                    size_t prefix_sz = strlen(sindex_blob_prefix);
+                    bool bad_prefix = (sz < prefix_sz);
+                    for (size_t i = 0; !bad_prefix && i < prefix_sz; ++i) {
+                        bad_prefix |= (data[i] != sindex_blob_prefix[i]);
+                    }
+                    rcheck(!bad_prefix,
+                           base_exc_t::GENERIC,
+                           "Cannot create an sindex except from a reql_index_function "
+                           "returned from `index_status` in the field `function`.");
+                    std::vector<char> vec(data + prefix_sz, data + sz);
+                    sindex_disk_info_t sindex_info;
+                    try {
+                        deserialize_sindex_info(vec, &sindex_info);
+                        multi = sindex_info.multi;
+                        geo = sindex_info.geo;
+                    } catch (const archive_exc_t &e) {
+                        rfail(base_exc_t::GENERIC,
+                              "Binary blob passed to index create could not "
+                              "be interpreted as a reql_index_function (%s).",
+                              e.what());
+                    }
+                    index_func = sindex_info.mapping.compile_wire_func();
+                    // We ignore the `reql_version`, but in the future we may
+                    // have to do some conversions for compatibility.
+                }
+            }
+            // We do it this way so that if someone passes a string, we produce
+            // a type error asking for a function rather than BINARY.
+            if (!index_func.has()) {
+                index_func = v->as_func();
+            }
         } else {
 
             pb::dummy_var_t x = pb::dummy_var_t::SINDEXCREATE_X;
@@ -45,19 +87,20 @@ public:
         r_sanity_check(index_func.has());
 
         /* Check if we're doing a multi index or a normal index. */
-        counted_t<val_t> multi_val = args->optarg(env, "multi");
-        sindex_multi_bool_t multi =
-            (multi_val && multi_val->as_datum()->as_bool()
-             ? sindex_multi_bool_t::MULTI
-             : sindex_multi_bool_t::SINGLE);
+        if (counted_t<val_t> multi_val = args->optarg(env, "multi")) {
+            multi = multi_val->as_bool()
+                ? sindex_multi_bool_t::MULTI
+                : sindex_multi_bool_t::SINGLE;
+        }
         /* Do we want to create a geo index? */
-        counted_t<val_t> geo_val = args->optarg(env, "geo");
-        sindex_geo_bool_t geo =
-            (geo_val && geo_val->as_datum()->as_bool()
-             ? sindex_geo_bool_t::GEO
-             : sindex_geo_bool_t::REGULAR);
+        if (counted_t<val_t> geo_val = args->optarg(env, "geo")) {
+            geo = geo_val->as_bool()
+                ? sindex_geo_bool_t::GEO
+                : sindex_geo_bool_t::REGULAR;
+        }
 
         bool success = table->sindex_create(env->env, name, index_func, multi, geo);
+
         if (success) {
             datum_object_builder_t res;
             UNUSED bool b = res.add("created", make_counted<datum_t>(1.0));

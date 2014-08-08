@@ -5,38 +5,102 @@ tests:
 
     # Python overloads '&' for 'and'
     - py:
-        - r.expr(True) & True
-        - True & r.expr(True)
-        - r.all(True,True)
-        - r.and_(True,True)
-      js: r(true).and(true)
-      rb: [r(true) & true, r(true).and(true)]
+        - r.expr(true) & true
+        - true & r.expr(true)
+        - r.and_(true,true)
+        - r.expr(true).and_(true)
+      rb:
+        - r(true) & true
+        - r(true) & r(true)
+        - r.and(true,true)
+        - r(true).and(true)
+      js:
+        - r.and(true,true)
+        - r(true).and(true)
+      ot: true
+    - cd:
+        - r.expr(true).all(true)
+        - r.all(true,true)
       ot: true
     - py:
-        - r.expr(True) & False
-        - True & r.expr(False)
-        - r.all(True,False)
-        - r.and_(True,False)
-      cd: r(true).and(false)
+        - r.expr(true) & false
+        - r.expr(false) & false
+        - true & r.expr(false)
+        - false & r.expr(false)
+        - r.and_(true,false)
+        - r.and_(false,false)
+        - r.expr(true).and_(false)
+        - r.expr(false).and_(false)
+      rb:
+        - r(true) & false
+        - r(false) & false
+        - r(true) & r(false)
+        - r(false) & r(false)
+        - r.and(true,false)
+        - r.and(false,false)
+        - r(true).and(false)
+        - r(false).and(false)
+      js:
+        - r.and(true,false)
+        - r.and(false,false)
+        - r(true).and(false)
+        - r(false).and(false)
       ot: false
-    - py: [r.expr(False) & False, False & r.expr(False)]
-      cd: r(false).and(false)
+    - cd:
+        - r.expr(false).all(false)
+        - r.expr(true).all(false)
+        - r.all(false,false)
+        - r.all(true,false)
       ot: false
 
     # Python overloads '|' for 'or'
     - py:
-        - r.expr(True) | True
-        - True | r.expr(True)
-        - r.any(True,True)
-        - r.or_(True,True)
-      cd: r(true).or(true)
-      rb: [r(true).or(true), r(true) | true]
+        - r.expr(true) | true
+        - r.expr(true) | false
+        - true | r.expr(true)
+        - true | r.expr(false)
+        - r.or_(true,true)
+        - r.or_(true,false)
+        - r.expr(true).or_(true)
+        - r.expr(true).or_(false)
+      rb:
+        - r(true) | true
+        - r(true) | false
+        - r(true) | r(true)
+        - r(true) | r(false)
+        - r.or(true,true)
+        - r.or(true,false)
+        - r(true).or(true)
+        - r(true).or(false)
+      js:
+        - r.or(true,true)
+        - r.or(true,false)
+        - r(true).or(true)
+        - r(true).or(false)
       ot: true
-    - py: [r.expr(True) | False, True | r.expr(False)]
-      cd: r(true).or(false)
+    - cd:
+        - r.expr(true).any(true)
+        - r.expr(true).any(false)
+        - r.any(true,true)
+        - r.any(true,false)
       ot: true
-    - py: [r.expr(False) | False, False | r.expr(False)]
-      cd: r(false).or(false)
+    - py:
+        - r.expr(false) | false
+        - false | r.expr(false)
+        - r.and_(false,false)
+        - r.expr(false).and_(false)
+      rb:
+        - r(false) | false
+        - r(false) | r(false)
+        - r.and(false,false)
+        - r(false).and(false)
+      js:
+        - r.and(false,false)
+        - r(false).and(false)
+      ot: false
+    - cd:
+        - r.expr(false).any(false)
+        - r.any(false,false)
       ot: false
 
     # Python overloads '~' for 'not'

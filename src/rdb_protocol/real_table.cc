@@ -313,7 +313,6 @@ real_table_t::sindex_status(ql::env_t *env, const std::set<std::string> &sindexe
     read_with_profile(env, read, &res, false);
     auto s_res = boost::get<sindex_status_response_t>(&res.response);
     r_sanity_check(s_res);
-
     std::map<std::string, counted_t<const ql::datum_t> > statuses;
     for (const std::pair<std::string, rdb_protocol::single_sindex_status_t> &pair :
             s_res->statuses) {
@@ -327,6 +326,9 @@ real_table_t::sindex_status(ql::env_t *env, const std::set<std::string> &sindexe
                     safe_to_double(pair.second.blocks_total));
         }
         status["ready"] = ql::datum_t::boolean(pair.second.ready);
+        std::string s = sindex_blob_prefix + pair.second.func;
+        status["function"] = ql::datum_t::binary(
+            wire_string_t::create_and_init(s.size(), s.data()));
         statuses.insert(std::make_pair(
             pair.first,
             make_counted<const ql::datum_t>(std::move(status))));

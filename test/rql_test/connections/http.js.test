@@ -16,7 +16,7 @@ if len(sys.argv) > 1:
     build_dir = sys.argv[1]
 
 mochaReporterOptions = ['-R', 'spec']
-if not all([os.isatty(sys.stderr.fileno()), os.isatty(sys.stdout.fileno())]):
+if not utils.supportsTerminalColors():
     mochaReporterOptions += ['--no-colors'] # handle visionmedia/mocha#1304
 
 with test_util.RethinkDBTestServers(1, server_build_dir=build_dir) as server:

@@ -18,6 +18,64 @@ void store_t::note_reshard() {
     }
 }
 
+reql_version_t update_sindex_last_compatible_version(secondary_index_t *sindex,
+                                                     buf_lock_t *sindex_block) {
+    sindex_disk_info_t sindex_info;
+    deserialize_sindex_info(sindex->opaque_definition, &sindex_info);
+
+    reql_version_t res;
+    switch (sindex_info.mapping_version_info.original_reql_version) {
+    case reql_version_t::v1_13:
+        res = reql_version_t::v1_13;
+        break;
+    case reql_version_t::v1_14:
+        res = reql_version_t::v1_14;
+        break;
+    default:
+        unreachable();
+    }
+
+    if (sindex_info.mapping_version_info.latest_checked_reql_version
+        != reql_version_t::LATEST) {
+
+        sindex_info.mapping_version_info.latest_compatible_reql_version = res;
+        sindex_info.mapping_version_info.latest_checked_reql_version =
+            reql_version_t::LATEST;
+
+        write_message_t wm;
+        serialize_sindex_info(&wm, sindex_info);
+
+        vector_stream_t stream;
+        stream.reserve(wm.size());
+        int write_res = send_write_message(&stream, &wm);
+        guarantee(write_res == 0);
+
+        sindex->opaque_definition = stream.vector();
+
+        ::set_secondary_index(sindex_block, sindex->id, *sindex);
+    }
+
+    return res;
+}
+
+void store_t::update_outdated_sindex_list(buf_lock_t *sindex_block) {
+    if (index_report != NULL) {
+        std::map<sindex_name_t, secondary_index_t> sindexes;
+        get_secondary_indexes(sindex_block, &sindexes);
+
+        std::set<std::string> index_set;
+        for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
+            if (!it->first.being_deleted &&
+                update_sindex_last_compatible_version(&it->second,
+                                                      sindex_block) !=
+                    reql_version_t::LATEST) {
+                index_set.insert(it->first.name);
+            }
+        }
+        index_report->set_outdated_indexes(std::move(index_set));
+    }
+}
+
 void store_t::help_construct_bring_sindexes_up_to_date() {
     // Make sure to continue bringing sindexes up-to-date if it was interrupted earlier
 
@@ -312,12 +370,13 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 continue;
             }
             guarantee(!it->first.being_deleted);
-            if (sindex_status.sindexes.find(it->first.name) != sindex_status.sindexes.end()
+            if (sindex_status.sindexes.find(it->first.name)
+                    != sindex_status.sindexes.end()
                 || sindex_status.sindexes.empty()) {
-                progress_completion_fraction_t frac =
-                    store->get_progress(it->second.id);
-                rdb_protocol::single_sindex_status_t *s =
-                    &res->statuses[it->first.name];
+                rdb_protocol::single_sindex_status_t *s = &res->statuses[it->first.name];
+                const std::vector<char> &vec = it->second.opaque_definition;
+                s->func = std::string(&*vec.begin(), vec.size());
+                progress_completion_fraction_t frac = store->get_progress(it->second.id);
                 s->ready = it->second.is_ready();
                 if (!s->ready) {
                     if (frac.estimate_of_total_nodes == -1) {
@@ -382,7 +441,12 @@ private:
                 ql::base_exc_t::GENERIC, e.what(), NULL);
         }
 
-        deserialize_sindex_info(sindex_mapping_data, sindex_info_out);
+        try {
+            deserialize_sindex_info(sindex_mapping_data, sindex_info_out);
+        } catch (const archive_exc_t &e) {
+            crash("%s", e.what());
+        }
+
         *sindex_uuid_out = sindex_uuid;
         return std::move(sindex_sb);
     }
@@ -561,7 +625,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const sindex_drop_t &d) {
         sindex_drop_response_t res;
         res.success = store->drop_sindex(sindex_name_t(d.id), &sindex_block);
-
         response->response = res;
     }
 
@@ -590,7 +653,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             res.result = sindex_rename_result_t::OLD_NAME_DOESNT_EXIST;
         } else {
             if (r.old_name != r.new_name) {
-                store->rename_sindex(old_name, new_name, std::move(sindex_block));
+                store->rename_sindex(old_name, new_name, &sindex_block);
             }
             res.result = sindex_rename_result_t::SUCCESS;
         }

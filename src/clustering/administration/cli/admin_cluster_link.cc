@@ -253,6 +253,7 @@ admin_cluster_link_t::admin_cluster_link_t(const peer_address_set_t &joins,
     mailbox_manager(&connectivity_cluster, 'M'),
     stat_manager(&mailbox_manager),
     log_server(&mailbox_manager, &log_writer),
+    outdated_index_server(&mailbox_manager),
     semilattice_manager_cluster(
         new semilattice_manager_t<cluster_semilattice_metadata_t>(
             &connectivity_cluster, 'S', cluster_semilattice_metadata_t())),
@@ -271,6 +272,7 @@ admin_cluster_link_t::admin_cluster_link_t(const peer_address_set_t &joins,
         stat_manager.get_address(),
         metadata_change_handler.get_request_mailbox_address(),
         auth_change_handler.get_request_mailbox_address(),
+        outdated_index_server.get_request_mailbox_address(),
         log_server.get_business_card(),
         ADMIN_PEER)),
     directory_read_manager(
@@ -284,7 +286,10 @@ admin_cluster_link_t::admin_cluster_link_t(const peer_address_set_t &joins,
                              canonical_addresses,
                              0,
                              client_port),
-    admin_tracker(cluster_metadata_view, auth_metadata_view, directory_read_manager->get_root_view()),
+    admin_tracker(&mailbox_manager,
+                  cluster_metadata_view,
+                  auth_metadata_view,
+                  directory_read_manager->get_root_view()),
     initial_joiner(&connectivity_cluster, &connectivity_cluster_run, joins, 5000)
 {
     wait_interruptible(initial_joiner.get_ready_signal(), interruptor);
