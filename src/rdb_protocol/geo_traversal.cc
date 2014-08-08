@@ -101,6 +101,14 @@ void geo_intersecting_cb_t::on_candidate(
     slice->stats.pm_keys_read.record();
     slice->stats.pm_total_keys_read += 1;
 
+    // row.get() might have blocked, and another coroutine could have found the
+    // object in the meantime. Re-check distinct_emitted and then disallow
+    // blocking for the rest of this function.
+    if (distinct_emitted->count(primary_key) > 0) {
+        return;
+    }
+    ASSERT_NO_CORO_WAITING;
+
     try {
         // Post-filter the geometry based on an actual intersection test
         // with query_geometry
