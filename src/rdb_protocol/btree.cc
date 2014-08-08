@@ -1356,7 +1356,8 @@ void deserialize_sindex_info(const std::vector<char> &data,
         info_out->mapping_version_info.latest_checked_reql_version =
             reql_version_t::v1_13;
         break;
-    case cluster_version_t::v1_14_is_latest:
+    case cluster_version_t::v1_14:
+    case cluster_version_t::v1_15_is_latest:
         success = deserialize_for_version(
                 cluster_version,
                 &read_stream,
@@ -1383,7 +1384,8 @@ void deserialize_sindex_info(const std::vector<char> &data,
     success = deserialize_for_version(cluster_version, &read_stream, &info_out->multi);
     guarantee_deserialization(success, "sindex description");
     if (cluster_version == cluster_version_t::v1_13
-        || cluster_version == cluster_version_t::v1_13_2) {
+        || cluster_version == cluster_version_t::v1_13_2
+        || cluster_version == cluster_version_t::v1_14) {
         info_out->geo = sindex_geo_bool_t::REGULAR;
     } else {
         success = deserialize_for_version(cluster_version, &read_stream, &info_out->geo);
