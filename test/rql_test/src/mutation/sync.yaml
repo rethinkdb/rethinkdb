@@ -12,7 +12,7 @@ tests:
     - def: tbl_soft = r.db('test').table('test1soft')
     - cd: tbl.index_create('x')
       ot: ({'created':1})
-    - cd: tbl.index_wait('x')
+    - cd: tbl.index_wait('x').pluck('index', 'ready')
       ot: ([{'ready':True, 'index':'x'}])
 
     # This is the only way one can use sync legally at the moment

@@ -175,6 +175,7 @@ struct single_sindex_status_t {
           blocks_total(_blocks_total), ready(_ready) { }
     size_t blocks_processed, blocks_total;
     bool ready;
+    std::string func;
 };
 
 } // namespace rdb_protocol

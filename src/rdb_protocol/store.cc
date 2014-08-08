@@ -238,10 +238,14 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             ql::map_wire_func_t sindex_mapping;
             sindex_reql_version_info_t sindex_mapping_version_info;
             sindex_multi_bool_t multi_bool;
-            deserialize_sindex_info(sindex_mapping_data,
-                                    &sindex_mapping,
-                                    &sindex_mapping_version_info,
-                                    &multi_bool);
+            try {
+                deserialize_sindex_info(sindex_mapping_data,
+                                        &sindex_mapping,
+                                        &sindex_mapping_version_info,
+                                        &multi_bool);
+            } catch (const archive_exc_t &e) {
+                crash("%s", e.what());
+            }
 
             rdb_rget_secondary_slice(
                 store->get_sindex_slice(sindex_uuid),
@@ -317,12 +321,13 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 continue;
             }
             guarantee(!it->first.being_deleted);
-            if (sindex_status.sindexes.find(it->first.name) != sindex_status.sindexes.end()
+            if (sindex_status.sindexes.find(it->first.name)
+                    != sindex_status.sindexes.end()
                 || sindex_status.sindexes.empty()) {
-                progress_completion_fraction_t frac =
-                    store->get_progress(it->second.id);
-                rdb_protocol::single_sindex_status_t *s =
-                    &res->statuses[it->first.name];
+                rdb_protocol::single_sindex_status_t *s = &res->statuses[it->first.name];
+                const std::vector<char> &vec = it->second.opaque_definition;
+                s->func = std::string(&*vec.begin(), vec.size());
+                progress_completion_fraction_t frac = store->get_progress(it->second.id);
                 s->ready = it->second.is_ready();
                 if (!s->ready) {
                     if (frac.estimate_of_total_nodes == -1) {

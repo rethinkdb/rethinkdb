@@ -327,6 +327,7 @@ void add_status(const single_sindex_status_t &new_status,
     status_out->blocks_processed += new_status.blocks_processed;
     status_out->blocks_total += new_status.blocks_total;
     status_out->ready &= new_status.ready;
+    status_out->func = new_status.func; // All shards have the same function.
 }
 
 }  // namespace rdb_protocol
@@ -1052,8 +1053,13 @@ void write_t::unshard(write_response_t *responses, size_t count,
 }
 
 
-RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
-        rdb_protocol::single_sindex_status_t, blocks_total, blocks_processed, ready);
+RDB_IMPL_SERIALIZABLE_4(
+        rdb_protocol::single_sindex_status_t,
+        blocks_total,
+        blocks_processed,
+        ready,
+        func);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(rget_read_response_t);
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_read_response_t, data);
 RDB_IMPL_SERIALIZABLE_4(rget_read_response_t, key_range, result, truncated, last_key);

@@ -416,7 +416,7 @@ tests:
     - cd: tbl.index_create('a')
       ot: ({'created':1})
 
-    - cd: tbl.index_wait('a')
+    - cd: tbl.index_wait('a').pluck('index', 'ready')
       ot: ([{'index':'a','ready':true}])
 
     - cd: tbl.distinct({index:'a'}).type_of()

@@ -1185,17 +1185,17 @@ void serialize_sindex_info(write_message_t *wm,
 }
 
 void deserialize_sindex_info(const std::vector<char> &data,
-
                              ql::map_wire_func_t *mapping_out,
                              sindex_reql_version_info_t *reql_version_out,
-                             sindex_multi_bool_t *multi_out) {
+                             sindex_multi_bool_t *multi_out)
+    THROWS_ONLY(archive_exc_t) {
     inplace_vector_read_stream_t read_stream(&data);
     // This cluster version field is _not_ a ReQL evaluation version field, which is
     // in secondary_index_t -- it only says how the value was serialized.
     cluster_version_t cluster_version;
     archive_result_t success
         = deserialize_cluster_version(&read_stream, &cluster_version);
-    guarantee_deserialization(success, "sindex description");
+    throw_if_bad_deserialization(success, "sindex description");
 
     switch (cluster_version) {
     case cluster_version_t::v1_13:
@@ -1209,27 +1209,27 @@ void deserialize_sindex_info(const std::vector<char> &data,
                 cluster_version,
                 &read_stream,
                 &reql_version_out->original_reql_version);
-        guarantee_deserialization(success, "original_reql_version");
+        throw_if_bad_deserialization(success, "original_reql_version");
         success = deserialize_for_version(
                 cluster_version,
                 &read_stream,
                 &reql_version_out->latest_compatible_reql_version);
-        guarantee_deserialization(success, "latest_compatible_reql_version");
+        throw_if_bad_deserialization(success, "latest_compatible_reql_version");
         success = deserialize_for_version(
                 cluster_version,
                 &read_stream,
                 &reql_version_out->latest_checked_reql_version);
-        guarantee_deserialization(success, "latest_checked_reql_version");
+        throw_if_bad_deserialization(success, "latest_checked_reql_version");
         break;
     default:
         unreachable();
     }
 
     success = deserialize_for_version(cluster_version, &read_stream, mapping_out);
-    guarantee_deserialization(success, "sindex description");
+    throw_if_bad_deserialization(success, "sindex description");
 
     success = deserialize_for_version(cluster_version, &read_stream, multi_out);
-    guarantee_deserialization(success, "sindex description");
+    throw_if_bad_deserialization(success, "sindex description");
 
     guarantee(static_cast<size_t>(read_stream.tell()) == data.size(),
               "An sindex description was incompletely deserialized.");
@@ -1250,9 +1250,12 @@ void rdb_update_single_sindex(
     ql::map_wire_func_t mapping;
     sindex_reql_version_info_t mapping_version_info;
     sindex_multi_bool_t multi;
-    deserialize_sindex_info(sindex->sindex.opaque_definition,
-                            &mapping, &mapping_version_info, &multi);
-
+    try {
+        deserialize_sindex_info(sindex->sindex.opaque_definition,
+                                &mapping, &mapping_version_info, &multi);
+    } catch (const archive_exc_t &e) {
+        crash("%s", e.what());
+    }
     // TODO(2014-08): Actually get real profiling information for
     // secondary index updates.
     profile::trace_t *const trace = nullptr;
