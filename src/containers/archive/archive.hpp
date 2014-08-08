@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 
+#include <string>
 #include <type_traits>
 
 #include "containers/printf_buffer.hpp"
@@ -53,6 +54,25 @@ const char *archive_result_as_str(archive_result_t archive_result);
                   "Deserialization of %s failed with error %s.",        \
                   strprintf(__VA_ARGS__).c_str(),                       \
                   archive_result_as_str(result));                       \
+    } while (0)
+
+class archive_exc_t : public std::exception {
+public:
+    archive_exc_t(std::string _s) : s(std::move(_s)) { }
+    const char *what() const throw() {
+        return s.c_str();
+    }
+private:
+    std::string s;
+};
+
+#define throw_if_bad_deserialization(result, ...) do {                  \
+        if (result != archive_result_t::SUCCESS) {                      \
+            throw archive_exc_t(                                        \
+                strprintf("Deserialization of %s failed with error %s.", \
+                          strprintf(__VA_ARGS__).c_str(),               \
+                          archive_result_as_str(result)));              \
+        }                                                               \
     } while (0)
 
 // Returns the number of bytes written, or -1.  Returns a

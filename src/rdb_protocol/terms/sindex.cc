@@ -3,6 +3,7 @@
 
 #include <string>
 
+#include "rdb_protocol/real_table.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
@@ -41,14 +42,28 @@ public:
             if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
                 counted_t<const datum_t> d = v->as_datum();
                 if (d->get_type() == datum_t::R_BINARY) {
-                    const wire_string_t &s = d->as_binary();
-                    std::vector<char> data;
-                    for (size_t i = 0; i < s.size(); ++i) {
-                        data.push_back(s.data()[i]);
+                    const char *data = d->as_binary().data();
+                    size_t sz = d->as_binary().size();
+                    size_t prefix_sz = strlen(sindex_blob_prefix);
+                    bool bad_prefix = (sz < prefix_sz);
+                    for (size_t i = 0; !bad_prefix && i < prefix_sz; ++i) {
+                        bad_prefix |= (data[i] != sindex_blob_prefix[i]);
                     }
+                    rcheck(!bad_prefix,
+                           base_exc_t::GENERIC,
+                           "Cannot create an sindex except from a reql_index_function "
+                           "returned from `index_status` in the field `function`.");
+                    std::vector<char> vec(data + prefix_sz, data + sz);
                     map_wire_func_t mapping;
                     sindex_reql_version_info_t reql_version;
-                    deserialize_sindex_info(data, &mapping, &reql_version, &multi);
+                    try {
+                        deserialize_sindex_info(vec, &mapping, &reql_version, &multi);
+                    } catch (const archive_exc_t &e) {
+                        rfail(base_exc_t::GENERIC,
+                              "Binary blob passed to index create could not "
+                              "be interpreted as a reql_index_function (%s).",
+                              e.what());
+                    }
                     index_func = mapping.compile_wire_func();
                     // We ignore the `reql_version`, but in the future we may
                     // have to do some conversions for compatibility.

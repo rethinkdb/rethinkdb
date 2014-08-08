@@ -227,9 +227,9 @@ real_table_t::sindex_status(ql::env_t *env, const std::set<std::string> &sindexe
                     safe_to_double(pair.second.blocks_total));
         }
         status["ready"] = ql::datum_t::boolean(pair.second.ready);
+        std::string s = sindex_blob_prefix + pair.second.func;
         status["function"] = ql::datum_t::binary(
-            wire_string_t::create_and_init(
-                pair.second.func.size(), pair.second.func.data()));
+            wire_string_t::create_and_init(s.size(), s.data()));
         statuses.insert(std::make_pair(
             pair.first,
             make_counted<const ql::datum_t>(std::move(status))));
