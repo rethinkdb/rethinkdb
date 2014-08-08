@@ -11,7 +11,7 @@ print_usage () {
 }
 
 main () {
-    parse_opts
+    parse_opts "$@"
 
     root=$(dirname $0)/..
     export GIT_DIR="$root/.git"
