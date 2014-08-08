@@ -390,7 +390,7 @@ message Term {
         // Get the Nth element of a sequence.
         NTH       = 45; // Sequence, NUMBER -> DATUM
         // do NTH or GET_FIELD depending on target object
-        BRACKET            = 156; // Sequence | OBJECT, NUMBER | STRING -> DATUM
+        BRACKET            = 157; // Sequence | OBJECT, NUMBER | STRING -> DATUM
         // OBSOLETE_GROUPED_MAPREDUCE = 46;
         // OBSOLETE_GROUPBY = 47;
 
