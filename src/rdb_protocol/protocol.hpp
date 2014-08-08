@@ -156,6 +156,10 @@ struct backfill_atom_t {
 
 RDB_DECLARE_SERIALIZABLE(backfill_atom_t);
 
+enum class sindex_multi_bool_t { SINGLE = 0, MULTI = 1};
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_multi_bool_t, int8_t,
+        sindex_multi_bool_t::SINGLE, sindex_multi_bool_t::MULTI);
 
 namespace rdb_protocol {
 
@@ -168,24 +172,22 @@ void bring_sindexes_up_to_date(
 struct single_sindex_status_t {
     single_sindex_status_t()
         : blocks_processed(0),
-          blocks_total(0), ready(true)
+          blocks_total(0), ready(true),
+          outdated(false), multi(sindex_multi_bool_t::SINGLE)
     { }
     single_sindex_status_t(size_t _blocks_processed, size_t _blocks_total, bool _ready)
         : blocks_processed(_blocks_processed),
           blocks_total(_blocks_total), ready(_ready) { }
     size_t blocks_processed, blocks_total;
     bool ready;
+    bool outdated;
+    sindex_multi_bool_t multi;
     std::string func;
 };
 
 } // namespace rdb_protocol
 
 RDB_DECLARE_SERIALIZABLE(rdb_protocol::single_sindex_status_t);
-
-enum class sindex_multi_bool_t { SINGLE = 0, MULTI = 1};
-
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_multi_bool_t, int8_t,
-        sindex_multi_bool_t::SINGLE, sindex_multi_bool_t::MULTI);
 
 struct point_read_response_t {
     counted_t<const ql::datum_t> data;
