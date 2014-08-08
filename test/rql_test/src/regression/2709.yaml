@@ -15,5 +15,10 @@ tests:
       batch_conf: "{'min_els':10,'max_els':13}"
     ot: (999)
 
+  - py: tbl.map(lambda thing:'key').count()
+    runopts:
+      batch_conf: "{'min_els':13,'max_els':10}"
+    ot: (999)
+
   - py: r.table_drop('2709')
     ot: ({'dropped':1})
