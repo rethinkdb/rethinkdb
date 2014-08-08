@@ -153,7 +153,6 @@ bool convert_table_config_from_datum(
     consistency. */
     converter_from_datum_object_t converter;
     if (!converter.init(datum, error_out)) {
-        *error_out = "Expected an object, got " + datum->print();
         return false;
     }
 
@@ -164,7 +163,7 @@ bool convert_table_config_from_datum(
     name_string_t db_name_value, table_name_value;
     if (!convert_db_and_table_from_datum(name_datum, db_name_out, table_name_out,
             error_out)) {
-        *error_out = "In field `name`: " + *error_out;
+        *error_out = "In `name`: " + *error_out;
         return false;
     }
 
@@ -173,7 +172,7 @@ bool convert_table_config_from_datum(
         return false;
     }
     if (!convert_uuid_from_datum(uuid_datum, uuid_out, error_out)) {
-        *error_out = "In field `uuid`: " + *error_out;
+        *error_out = "In `uuid`: " + *error_out;
         return false;
     }
 
