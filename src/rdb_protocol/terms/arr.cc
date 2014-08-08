@@ -135,7 +135,9 @@ counted_t<val_t> nth_term_impl(const term_t *term, scope_env_t *env,
             // (aggregate is empty, because maybe_grouped_data sets at most one of
             // gd and aggregate, so we don't have to worry about re-evaluating it.
             counted_t<grouped_data_t> out(new grouped_data_t());
-            for (auto kv = result->begin(); kv != result->end(); ++kv) {
+            for (auto kv = result->begin(grouped::order_doesnt_matter_t());
+                 kv != result->end(grouped::order_doesnt_matter_t());
+                 ++kv) {
                 counted_t<val_t> value
                     = make_counted<val_t>(kv->second, aggregate->backtrace());
                 (*out)[kv->first]
