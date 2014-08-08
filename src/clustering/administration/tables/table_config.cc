@@ -142,41 +142,38 @@ counted_t<const ql::datum_t> convert_table_config_to_datum(
 
 bool convert_table_config_from_datum(
         counted_t<const ql::datum_t> datum,
-        name_string_t expected_db_name,
-        name_string_t expected_table_name,
-        namespace_id_t expected_uuid,
+        name_string_t *db_name_out,
+        name_string_t *table_name_out,
+        namespace_id_t *uuid_out,
         table_config_t *config_out,
         std::string *error_out) {
+    /* In practice, the input will always be an object and the `name` field will always
+    be valid, because `artificial_table_t` will check those thing before passing the
+    row to `table_config_artificial_table_backend_t`. But we check them anyway for
+    consistency. */
     converter_from_datum_object_t converter;
     if (!converter.init(datum, error_out)) {
-        crash("artificial_table_t should confirm row is an object");
+        *error_out = "Expected an object, got " + datum->print();
+        return false;
     }
 
     counted_t<const ql::datum_t> name_datum;
     if (!converter.get("name", &name_datum, error_out)) {
-        crash("artificial_table_t should confirm primary key is unchanged");
+        return false;
     }
     name_string_t db_name_value, table_name_value;
-    if (!convert_db_and_table_from_datum(name_datum, &db_name_value,
-            &table_name_value, error_out)) {
-        crash("artificial_table_t should confirm primary key is unchanged");
+    if (!convert_db_and_table_from_datum(name_datum, db_name_out, table_name_out,
+            error_out)) {
+        *error_out = "In field `name`: " + *error_out;
+        return false;
     }
-    guarantee(db_name_value == expected_db_name,
-        "artificial_table_t should confirm primary key is unchanged");
-    guarantee(table_name_value == expected_table_name,
-        "artificial_table_t should confirm primary key is unchanged");
 
     counted_t<const ql::datum_t> uuid_datum;
     if (!converter.get("uuid", &uuid_datum, error_out)) {
         return false;
     }
-    uuid_u uuid_value;
-    if (!convert_uuid_from_datum(uuid_datum, &uuid_value, error_out)) {
-        *error_out = "It's illegal to modify a table's UUID";
-        return false;
-    }
-    if (uuid_value != expected_uuid) {
-        *error_out = "It's illegal to modify a table's UUID";
+    if (!convert_uuid_from_datum(uuid_datum, uuid_out, error_out)) {
+        *error_out = "In field `uuid`: " + *error_out;
         return false;
     }
 
@@ -326,10 +323,18 @@ bool table_config_artificial_table_backend_t::write_row(
     cow_ptr_t<namespaces_semilattice_metadata_t>::change_t md_change(&md);
     auto it = md_change.get()->namespaces.find(table_id);
     table_replication_info_t replication_info;
-    if (!convert_table_config_from_datum(new_value, db_name, table_name, it->first,
-            &replication_info.config, error_out)) {
+    name_string_t new_db_name, new_table_name;
+    namespace_id_t new_table_id;
+    if (!convert_table_config_from_datum(new_value, &new_db_name, &new_table_name,
+            &new_table_id, &replication_info.config, error_out)) {
         *error_out = "The change you're trying to make to "
             "`rethinkdb.table_config` has the wrong format. " + *error_out;
+        return false;
+    }
+    guarantee(new_db_name == db_name && new_table_name == table_name,
+        "artificial_table_t should ensure that primary key doesn't change");
+    if (new_table_id != table_id) {
+        *error_out = "It's illegal to change a table's `uuid` field.";
         return false;
     }
     replication_info.chosen_directors =
