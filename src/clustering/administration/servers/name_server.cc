@@ -125,6 +125,7 @@ server_name_server_t::server_name_server_t(
 server_name_business_card_t server_name_server_t::get_business_card() {
     server_name_business_card_t bcard;
     bcard.rename_addr = rename_mailbox.get_address();
+    bcard.retag_addr = retag_mailbox.get_address();
     bcard.startup_time = startup_time;
     return bcard;
 }
@@ -178,6 +179,18 @@ void server_name_server_t::retag_me(const std::set<name_string_t> &new_tags) {
 void server_name_server_t::on_retag_request(const std::set<name_string_t> &new_tags,
                                             mailbox_t<void()>::address_t ack_addr) {
     if (!permanently_removed_cond.is_pulsed()) {
+        std::string tag_str;
+        if (new_tags.empty()) {
+            tag_str = "(nothing)";
+        } else {
+            for (const name_string_t &tag : new_tags) {
+                if (!tag_str.empty()) {
+                    tag_str += ", ";
+                }
+                tag_str += tag.str();
+            }
+        }
+        logINF("Changed server's tags to: %s", tag_str.c_str());
         retag_me(new_tags);
     }
 

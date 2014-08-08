@@ -201,11 +201,21 @@ class Files(object):
     db_path = None
     machine_name = None
     
-    def __init__(self, metacluster, machine_name = None, db_path = None, log_path = None, executable_path = None, command_prefix=None):
+    def __init__(self,
+            metacluster,
+            machine_name = None,
+            server_tags = None,
+            db_path = None,
+            log_path = None,
+            executable_path = None,
+            command_prefix=None):
         assert isinstance(metacluster, Metacluster)
         assert not metacluster.closed
         assert machine_name is None or isinstance(machine_name, str)
         assert db_path is None or isinstance(db_path, str)
+
+        if server_tags is None:
+            server_tags = []
 
         if command_prefix is None:
             command_prefix = []
@@ -231,6 +241,8 @@ class Files(object):
             executable_path, "create",
             "--directory", self.db_path,
             "--machine-name", self.machine_name]
+        for tag in server_tags:
+            create_args.extend(["--server-tag", tag])
 
         if log_path is None:
             print "setting log_path to /dev/null."
