@@ -242,8 +242,8 @@ done_traversing_t nearest_traversal_state_t::proceed_to_next_batch() {
     // <=> current_inradius^2 =
     //   NEAREST_GOAL_BATCH_SIZE / M_PI / previous_density + processed_inradius^2
     if (previous_density != 0.0) {
-        current_inradius = sqrt(NEAREST_GOAL_BATCH_SIZE / M_PI / previous_density
-                                + processed_inradius * processed_inradius);
+        current_inradius = sqrt((NEAREST_GOAL_BATCH_SIZE / M_PI / previous_density)
+                                + (processed_inradius * processed_inradius));
     } else {
         current_inradius = processed_inradius * NEAREST_MAX_GROWTH_FACTOR;
     }
@@ -254,8 +254,6 @@ done_traversing_t nearest_traversal_state_t::proceed_to_next_batch() {
     current_inradius =
         std::min(current_inradius,
                  std::min(current_inradius * NEAREST_MAX_GROWTH_FACTOR, max_radius));
-
-    //debugf("New donut: [%f, %f]\n", processed_inradius, current_inradius);
 
     if (processed_inradius >= max_radius || distinct_emitted.size() >= max_results) {
         return done_traversing_t::YES;
@@ -315,9 +313,10 @@ void nearest_traversal_cb_t::init_query_geometry() {
     } catch (const geo_range_exception_t &e) {
         // The radius has become too large for constructing the query geometry.
         // Abort.
-        throw geo_range_exception_t(
+        throw geo_range_exception_t(strprintf(
             "The distance has become too large for continuing the indexed nearest "
-            "traversal (consider specifying a smaller `max_dist` parameter).");
+            "traversal.  Consider specifying a smaller `max_dist` parameter.  "
+            "(%s)", e.what()));
     } catch (const geo_exception_t &e) {
         crash("Geo exception thrown while initializing nearest query geometry: %s",
               e.what());

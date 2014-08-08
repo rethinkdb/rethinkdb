@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef GEO_GEOJSON_HPP_
-#define GEO_GEOJSON_HPP_
+#ifndef RDB_PROTOCOL_GEO_GEOJSON_HPP_
+#define RDB_PROTOCOL_GEO_GEOJSON_HPP_
 
 #include <string>
 #include <utility>
@@ -100,4 +100,4 @@ return_t visit_geojson(
 /* Checks the semantic and syntactic validity of a GeoJSON object. */
 void validate_geojson(const counted_t<const ql::datum_t> &geojson);
 
-#endif  // GEO_GEOJSON_HPP_
+#endif  // RDB_PROTOCOL_GEO_GEOJSON_HPP_

@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef GEO_GEO_VISITOR_HPP_
-#define GEO_GEO_VISITOR_HPP_
+#ifndef RDB_PROTOCOL_GEO_GEO_VISITOR_HPP_
+#define RDB_PROTOCOL_GEO_GEO_VISITOR_HPP_
 
 #include "rdb_protocol/geo/s2/util/math/vector3.h"
 
@@ -18,4 +18,4 @@ public:
     virtual return_t on_polygon(const S2Polygon &) = 0;
 };
 
-#endif  // GEO_GEO_VISITOR_HPP_
+#endif  // RDB_PROTOCOL_GEO_GEO_VISITOR_HPP_

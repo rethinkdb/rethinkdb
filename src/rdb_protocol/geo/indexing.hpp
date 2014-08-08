@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef GEO_INDEXING_HPP_
-#define GEO_INDEXING_HPP_
+#ifndef RDB_PROTOCOL_GEO_INDEXING_HPP_
+#define RDB_PROTOCOL_GEO_INDEXING_HPP_
 
 #include <string>
 #include <vector>
@@ -80,4 +80,4 @@ private:
     bool is_initialized_;
 };
 
-#endif  // GEO_INDEXING_HPP_
+#endif  // RDB_PROTOCOL_GEO_INDEXING_HPP_

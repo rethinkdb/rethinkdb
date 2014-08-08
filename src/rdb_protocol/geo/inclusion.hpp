@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef GEO_INCLUSION_HPP_
-#define GEO_INCLUSION_HPP_
+#ifndef RDB_PROTOCOL_GEO_INCLUSION_HPP_
+#define RDB_PROTOCOL_GEO_INCLUSION_HPP_
 
 #include "containers/counted.hpp"
 #include "rdb_protocol/geo/s2/util/math/vector3.h"
@@ -24,4 +24,4 @@ bool geo_does_include(const S2Polygon &polygon,
 bool geo_does_include(const S2Polygon &polygon,
                       const S2Polygon &g);
 
-#endif  // GEO_INCLUSION_HPP_
+#endif  // RDB_PROTOCOL_GEO_INCLUSION_HPP_

@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef GEO_DISTANCES_HPP_
-#define GEO_DISTANCES_HPP_
+#ifndef RDB_PROTOCOL_GEO_DISTANCES_HPP_
+#define RDB_PROTOCOL_GEO_DISTANCES_HPP_
 
 #include <string>
 #include <utility>
@@ -43,4 +43,4 @@ dist_unit_t parse_dist_unit(const std::string &s);
 
 double convert_dist_unit(double d, dist_unit_t from, dist_unit_t to);
 
-#endif  // GEO_DISTANCES_HPP_
+#endif  // RDB_PROTOCOL_GEO_DISTANCES_HPP_

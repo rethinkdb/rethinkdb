@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef GEO_PRIMITIVES_HPP_
-#define GEO_PRIMITIVES_HPP_
+#ifndef RDB_PROTOCOL_GEO_PRIMITIVES_HPP_
+#define RDB_PROTOCOL_GEO_PRIMITIVES_HPP_
 
 #include "rdb_protocol/geo/lat_lon_types.hpp"
 
@@ -27,4 +27,4 @@ lat_lon_line_t build_polygon_with_exradius_at_most(
         unsigned int num_vertices,
         const ellipsoid_spec_t &e);
 
-#endif  // GEO_PRIMITIVES_HPP_
+#endif  // RDB_PROTOCOL_GEO_PRIMITIVES_HPP_

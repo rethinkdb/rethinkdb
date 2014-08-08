@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef GEO_EXCEPTIONS_HPP_
-#define GEO_EXCEPTIONS_HPP_
+#ifndef RDB_PROTOCOL_GEO_EXCEPTIONS_HPP_
+#define RDB_PROTOCOL_GEO_EXCEPTIONS_HPP_
 
 #include <exception>
 #include <string>
@@ -23,4 +23,4 @@ public:
     explicit geo_range_exception_t(std::string msg) : geo_exception_t(msg) { }
 };
 
-#endif  // GEO_EXCEPTIONS_HPP_
+#endif  // RDB_PROTOCOL_GEO_EXCEPTIONS_HPP_

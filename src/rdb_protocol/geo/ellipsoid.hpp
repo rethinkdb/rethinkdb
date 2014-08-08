@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef GEO_ELLIPSOID_HPP_
-#define GEO_ELLIPSOID_HPP_
+#ifndef RDB_PROTOCOL_GEO_ELLIPSOID_HPP_
+#define RDB_PROTOCOL_GEO_ELLIPSOID_HPP_
 
 #include "rpc/serialize_macros.hpp"
 
@@ -36,4 +36,4 @@ RDB_SERIALIZE_OUTSIDE(ellipsoid_spec_t);
 static const ellipsoid_spec_t WGS84_ELLIPSOID(6378137.0, 1.0/298.257223563);
 static const ellipsoid_spec_t UNIT_SPHERE(1.0, 0.0);
 
-#endif  // GEO_ELLIPSOID_HPP_
+#endif  // RDB_PROTOCOL_GEO_ELLIPSOID_HPP_

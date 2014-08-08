@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef GEO_INTERSECTION_HPP_
-#define GEO_INTERSECTION_HPP_
+#ifndef RDB_PROTOCOL_GEO_INTERSECTION_HPP_
+#define RDB_PROTOCOL_GEO_INTERSECTION_HPP_
 
 #include "containers/counted.hpp"
 #include "rdb_protocol/geo/s2/util/math/vector3.h"
@@ -36,4 +36,4 @@ bool geo_does_intersect(const S2Polyline &line,
 bool geo_does_intersect(const S2Polygon &polygon,
                         const S2Polygon &other_polygon);
 
-#endif  // GEO_INTERSECTION_HPP_
+#endif  // RDB_PROTOCOL_GEO_INTERSECTION_HPP_
