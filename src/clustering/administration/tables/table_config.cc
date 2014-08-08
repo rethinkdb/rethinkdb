@@ -310,8 +310,17 @@ bool table_config_artificial_table_backend_t::write_row(
             database_sl_view->get(), md);
     }
     if (table_id == nil_uuid()) {
-        *error_out = "To create a table, you must use table_create() instead of "
-            "inserting into the `rethinkdb.table_config` table.";
+        if (!new_value.has()) {
+            /* We're replacing a nonexistent row with a nonexistent row. Okay. */
+            return true;
+        } else {
+            *error_out = "It's illegal to insert into the `rethinkdb.table_config` "
+                "table. To create a table, use `r.table_create()`.";
+            return false;
+        }
+    } else if (!new_value.has()) {
+        *error_out = "It's illegal to delete from the `rethinkdb.table_config` table. "
+            "To delete a table, use `r.table_drop()`.";
         return false;
     }
     cow_ptr_t<namespaces_semilattice_metadata_t>::change_t md_change(&md);
