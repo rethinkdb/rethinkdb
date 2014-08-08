@@ -14,6 +14,7 @@
 #include "btree/types.hpp"
 #include "containers/counted.hpp"
 #include "geo/ellipsoid.hpp"
+#include "geo/exceptions.hpp"
 #include "geo/indexing.hpp"
 #include "geo/lat_lon_types.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -73,12 +74,12 @@ protected:
     virtual bool post_filter(
             const counted_t<const ql::datum_t> &sindex_val,
             const counted_t<const ql::datum_t> &val)
-            THROWS_ONLY(interrupted_exc_t) = 0;
+            THROWS_ONLY(interrupted_exc_t, ql::exc_t, geo_exception_t) = 0;
 
     virtual void emit_result(
             const counted_t<const ql::datum_t> &sindex_val,
             const counted_t<const ql::datum_t> &val)
-            THROWS_ONLY(interrupted_exc_t) = 0;
+            THROWS_ONLY(interrupted_exc_t, ql::exc_t, geo_exception_t) = 0;
 
     virtual void emit_error(
             const ql::exc_t &error)
@@ -119,12 +120,12 @@ protected:
     bool post_filter(
             const counted_t<const ql::datum_t> &sindex_val,
             const counted_t<const ql::datum_t> &val)
-            THROWS_ONLY(interrupted_exc_t);
+            THROWS_ONLY(interrupted_exc_t, ql::exc_t, geo_exception_t);
 
     void emit_result(
             const counted_t<const ql::datum_t> &sindex_val,
             const counted_t<const ql::datum_t> &val)
-            THROWS_ONLY(interrupted_exc_t);
+            THROWS_ONLY(interrupted_exc_t, ql::exc_t, geo_exception_t);
 
     void emit_error(
             const ql::exc_t &error)
@@ -182,12 +183,12 @@ protected:
     bool post_filter(
             const counted_t<const ql::datum_t> &sindex_val,
             const counted_t<const ql::datum_t> &val)
-            THROWS_ONLY(interrupted_exc_t);
+            THROWS_ONLY(interrupted_exc_t, ql::exc_t, geo_exception_t);
 
     void emit_result(
             const counted_t<const ql::datum_t> &sindex_val,
             const counted_t<const ql::datum_t> &val)
-            THROWS_ONLY(interrupted_exc_t);
+            THROWS_ONLY(interrupted_exc_t, ql::exc_t, geo_exception_t);
 
     void emit_error(
             const ql::exc_t &error)
