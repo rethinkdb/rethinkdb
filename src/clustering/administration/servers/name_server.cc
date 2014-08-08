@@ -140,12 +140,40 @@ void server_name_server_t::rename_me(const name_string_t &new_name) {
 }
 
 void server_name_server_t::on_rename_request(const name_string_t &new_name,
-                                                 mailbox_t<void()>::address_t ack_addr) {
+                                             mailbox_t<void()>::address_t ack_addr) {
     if (!permanently_removed_cond.is_pulsed()) {
         logINF("Changed server's name from `%s` to `%s`.",
             my_name.c_str(), new_name.c_str());
         rename_me(new_name);
         on_semilattice_change();   /* check if we caused a name collision */
+    }
+
+    /* Send an acknowledgement to the server that initiated the request */
+    auto_drainer_t::lock_t keepalive(&drainer);
+    coro_t::spawn_sometime([this, keepalive /* important to capture */, ack_addr]() {
+        send(this->mailbox_manager, ack_addr);
+    });
+}
+
+void server_name_server_t::retag_me(const std:set<name_string_t> &new_tags) {
+    ASSERT_FINITE_CORO_WAITING;
+    if (new_tags != my_tags) {
+        my_tags = new_tags;
+        machines_semilattice_metadata_t metadata = semilattice_view->get();
+        deletable_t<machine_semilattice_metadata_t> *entry =
+            &metadata.machines.at(my_machine_id);
+        if (!entry->is_deleted()) {
+            entry->get_mutable()->tags = entry->get_ref().tags.make_new_version(
+                new_tags, my_machine_id);
+            semilattice_view->join(metadata);
+        }
+    }
+}
+
+void server_name_server_t::on_retag_request(const std::set<name_string_t> &new_tags,
+                                            mailbox_t<void()>::address_t ack_addr) {
+    if (!permanently_removed_cond.is_pulsed()) {
+        retag_me(new_tags);
     }
 
     /* Send an acknowledgement to the server that initiated the request */
@@ -164,8 +192,8 @@ void server_name_server_t::on_semilattice_change() {
     if (sl_metadata.machines.at(my_machine_id).is_deleted()) {
         if (!permanently_removed_cond.is_pulsed()) {
             logERR("This server has been permanently removed from the cluster. Please "
-                "shut down the server, erase its data files, and start a fresh "
-                "RethinkDB instance.");
+                "stop the process, erase its data files, and start a fresh RethinkDB "
+                "instance.");
             my_name = name_string_t();
             permanently_removed_cond.pulse();
         }

@@ -57,7 +57,5 @@ private:
     server_name_client_t *name_client;
 };
 
-
-
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_TABLE_CONFIG_HPP_ */
 

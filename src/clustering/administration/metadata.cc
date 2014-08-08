@@ -21,19 +21,19 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(databases_semilattice_metadata_t, databases)
 RDB_IMPL_SEMILATTICE_JOINABLE_1(databases_semilattice_metadata_t, databases);
 RDB_IMPL_EQUALITY_COMPARABLE_1(databases_semilattice_metadata_t, databases);
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(datacenter_semilattice_metadata_t, name);
-RDB_IMPL_SEMILATTICE_JOINABLE_1(datacenter_semilattice_metadata_t, name);
-RDB_IMPL_EQUALITY_COMPARABLE_1(datacenter_semilattice_metadata_t, name);
+RDB_IMPL_SERIALIZABLE_2(machine_semilattice_metadata_t, name, tags);
+template void serialize<cluster_version_t::v1_14_is_latest>(
+            write_message_t *, const machine_semilattice_metadata_t &);
+template archive_result_t deserialize<cluster_version_t::v1_14_is_latest>(
+            read_stream_t *, machine_semilattice_metadata_t *);
+RDB_IMPL_SEMILATTICE_JOINABLE_2(machine_semilattice_metadata_t, name, tags);
+RDB_IMPL_EQUALITY_COMPARABLE_2(machine_semilattice_metadata_t, name, tags);
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(datacenters_semilattice_metadata_t, datacenters);
-RDB_IMPL_SEMILATTICE_JOINABLE_1(datacenters_semilattice_metadata_t, datacenters);
-RDB_IMPL_EQUALITY_COMPARABLE_1(datacenters_semilattice_metadata_t, datacenters);
-
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(machine_semilattice_metadata_t, datacenter, name);
-RDB_IMPL_SEMILATTICE_JOINABLE_2(machine_semilattice_metadata_t, datacenter, name);
-RDB_IMPL_EQUALITY_COMPARABLE_2(machine_semilattice_metadata_t, datacenter, name);
-
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(machines_semilattice_metadata_t, machines);
+RDB_IMPL_SERIALIZABLE_1(machines_semilattice_metadata_t, machines);
+template void serialize<cluster_version_t::v1_14_is_latest>(
+            write_message_t *, const machines_semilattice_metadata_t &);
+template archive_result_t deserialize<cluster_version_t::v1_14_is_latest>(
+            read_stream_t *, machines_semilattice_metadata_t *);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(machines_semilattice_metadata_t, machines);
 RDB_IMPL_EQUALITY_COMPARABLE_1(machines_semilattice_metadata_t, machines);
 

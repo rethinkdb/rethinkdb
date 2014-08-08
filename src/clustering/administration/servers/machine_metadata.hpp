@@ -16,22 +16,15 @@
 
 class machine_semilattice_metadata_t {
 public:
-    vclock_t<datacenter_id_t> datacenter;
-
-    /* `name` should only be modified by the machine that this metadata is describing.
-    Therefore, it should never be in conflict. */
+    /* `name` and `tags` should only be modified by the machine that this metadata is
+    describing. Therefore, neither should never be in conflict. */
     vclock_t<name_string_t> name;
+    vclock_t<std::set<name_string_t> > tags;
 };
 
 RDB_DECLARE_SERIALIZABLE(machine_semilattice_metadata_t);
 RDB_DECLARE_SEMILATTICE_JOINABLE(machine_semilattice_metadata_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(machine_semilattice_metadata_t);
-
-//json adapter concept for machine_semilattice_metadata_t
-json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(machine_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-cJSON *with_ctx_render_as_json(machine_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-void with_ctx_apply_json_to(cJSON *change, machine_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-void with_ctx_on_subfield_change(machine_semilattice_metadata_t *, const vclock_ctx_t &);
 
 class machines_semilattice_metadata_t {
 public:
@@ -42,11 +35,5 @@ public:
 RDB_DECLARE_SERIALIZABLE(machines_semilattice_metadata_t);
 RDB_DECLARE_SEMILATTICE_JOINABLE(machines_semilattice_metadata_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(machines_semilattice_metadata_t);
-
-//json adapter concept for machines_semilattice_metadata_t
-json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(machines_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-cJSON *with_ctx_render_as_json(machines_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-void with_ctx_apply_json_to(cJSON *change, machines_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-void with_ctx_on_subfield_change(machines_semilattice_metadata_t *, const vclock_ctx_t &);
 
 #endif /* CLUSTERING_ADMINISTRATION_SERVERS_MACHINE_METADATA_HPP_ */

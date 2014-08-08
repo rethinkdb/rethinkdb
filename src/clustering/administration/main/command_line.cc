@@ -677,6 +677,7 @@ service_address_ports_t get_service_address_ports(const std::map<std::string, op
 
 void run_rethinkdb_create(const base_path_t &base_path,
                           const name_string_t &machine_name,
+                          const std::set<name_string_t> &machine_tags,
                           const file_direct_io_mode_t direct_io_mode,
                           const int max_concurrent_io_requests,
                           bool *const result_out) {
@@ -687,7 +688,8 @@ void run_rethinkdb_create(const base_path_t &base_path,
 
     machine_semilattice_metadata_t machine_semilattice_metadata;
     machine_semilattice_metadata.name = machine_semilattice_metadata.name.make_new_version(machine_name, our_machine_id);
-    machine_semilattice_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
+    machine_semilattice_metadata.tags =
+        vclock_t<std::set<machine_id_t> >(machine_tags, our_machine_id);
     cluster_metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(machine_semilattice_metadata)));
 
     io_backender_t io_backender(direct_io_mode, max_concurrent_io_requests);
@@ -822,6 +824,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
 
 void run_rethinkdb_porcelain(const base_path_t &base_path,
                              const name_string_t &machine_name,
+                             const std::set<name_string_t> &server_tag_names,
                              const file_direct_io_mode_t direct_io_mode,
                              const int max_concurrent_io_requests,
                              const uint64_t total_cache_size,
@@ -843,7 +846,8 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
 
         machine_semilattice_metadata_t our_machine_metadata;
         our_machine_metadata.name = vclock_t<name_string_t>(machine_name, our_machine_id);
-        our_machine_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
+        our_machine_metadata.tags =
+            vclock_t<std::set<name_string_t> >(server_tag_names, our_machine_id);
         cluster_metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(our_machine_metadata)));
 
         if (serve_info->joins.empty()) {
@@ -892,6 +896,10 @@ options::help_section_t get_machine_options(std::vector<options::option_t> *opti
     help.add("-n [ --machine-name ] arg",
              "the name for this machine (as will appear in the metadata).  If not"
              " specified, it will be randomly chosen from a short list of names.");
+    options_out->push_back(options::option_t(options::names_t("--server-tag", "-t"),
+                                             options::OPTIONAL_REPEAT));
+    help.add("-t [ --server-tag ] arg",
+             "a tag for this server. Can be specified multiple times.");
     return help;
 }
 
@@ -941,6 +949,25 @@ std::vector<host_and_port_t> parse_join_options(const std::map<std::string, opti
         joins.push_back(parse_host_and_port(source, "--join", *it, default_port));
     }
     return joins;
+}
+
+std::set<name_string_t> parse_server_tag_options(
+        const std::map<std::string, options::values_t> &opts) {
+    std::set<name_string_t> server_tag_names;
+    for (const std::string &tag_str : opts["--server-tag"].values) {
+        name_string_t tag;
+        if (!tag.assign_value(tag_str)) {
+            fprintf(stderr, "ERROR: server tag '%s' is invalid. (%s)\n",
+                tag_str.c_str(), name_string_t::valid_char_msg);
+            return EXIT_FAILURE;
+        }
+        /* We silently accept tags that appear multiple times. */
+        server_tag_names.insert(tag);
+    }
+    /* RSI(reql_admin): Maybe we should give the user a way to disable the default
+    tag. */
+    server_tag_names.insert(name_string_t::guarantee_valid("default"));
+    return server_tag_names;
 }
 
 std::string get_reql_http_proxy_option(const std::map<std::string, options::values_t> &opts) {
@@ -1250,6 +1277,8 @@ int main_rethinkdb_create(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
+        std::set<name_string_t> server_tag_names = parse_server_tag_options(opts);
+
         int max_concurrent_io_requests;
         if (!parse_io_threads_option(opts, &max_concurrent_io_requests)) {
             return EXIT_FAILURE;
@@ -1276,6 +1305,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
         bool result;
         run_in_thread_pool(std::bind(&run_rethinkdb_create, base_path,
                                      machine_name,
+                                     server_tag_names,
                                      direct_io_mode,
                                      max_concurrent_io_requests,
                                      &result),
@@ -1575,6 +1605,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
+        std::set<name_string_t> server_tag_names = parse_server_tag_options(opts);
+
         std::vector<host_and_port_t> joins = parse_join_options(opts, port_defaults::peer_port);
 
         const service_address_ports_t address_ports = get_service_address_ports(opts);
@@ -1640,6 +1672,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         run_in_thread_pool(std::bind(&run_rethinkdb_porcelain,
                                      base_path,
                                      machine_name,
+                                     server_tag_names,
                                      direct_io_mode,
                                      max_concurrent_io_requests,
                                      total_cache_size,

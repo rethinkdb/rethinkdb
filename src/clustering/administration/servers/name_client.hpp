@@ -102,11 +102,24 @@ public:
         return out;
     }
 
+    /* Returns all servers with the given tag, not counting permanently removed ones.
+    RSI(reql_admin): Decide if this should count disconnected servers or not. */
+    std::set<name_string_t> get_servers_with_tag(const name_string_t &tag);
+
     /* `rename_server` changes the name of the peer named `old_name` to `new_name`. On
     success, returns `true`. On failure, returns `false` and sets `*error_out` to an
     informative message. */
     bool rename_server(const name_string_t &old_name, const name_string_t &new_name,
         signal_t *interruptor, std::string *error_out);
+
+    /* `retag_server` changes the tags of the server with the given machine ID. On
+    success, returns `true`. On failure, returns `false` and sets `*error_out` to an
+    informative message. */
+    bool retag_server(
+        const machine_id_t &server,
+        const std::set<name_string_t> &new_tags,
+        signal_t *interruptor,
+        std::string *error_out);
 
     /* `permanently_remove_server` permanently removes the server with the given name,
     provided that it is not currently visible. On success, returns `true`. On failure,

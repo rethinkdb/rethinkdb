@@ -37,6 +37,11 @@ public:
         return my_name;
     }
 
+    std::set<name_string_t> get_my_tags() {
+        guarantee(!permanently_removed_cond.is_pulsed());
+        return my_tags;
+    }
+
     signal_t *get_permanently_removed_signal() {
         return &permanently_removed_cond;
     }
@@ -52,6 +57,14 @@ private:
     void on_rename_request(const name_string_t &new_name,
                            mailbox_t<void()>::address_t ack_addr);
 
+    /* `retag_me()` changes the server's tags. It does not block. */
+    void retag_me(const std::set<name_string_t> &new_tags);
+
+    /* `on_retag_request()` is called in response to a tag change request over the
+    network */
+    void on_retag_request(const std::set<name_string_t> &new_tags,
+                           mailbox_t<void()>::address_t ack_addr);
+
     /* `on_semilattice_change()` checks if we have been deleted and also checks for name
     conflicts. It does not block, but it may call `on_rename()`. */
     void on_semilattice_change();
@@ -60,6 +73,7 @@ private:
     machine_id_t my_machine_id;
     time_t startup_time;
     name_string_t my_name;
+    std::set<name_string_t> my_tags;
     cond_t permanently_removed_cond;
 
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
@@ -70,6 +84,7 @@ private:
     auto_drainer_t drainer;
 
     server_name_business_card_t::rename_mailbox_t rename_mailbox;
+    server_name_business_card_t::retag_mailbox_t retag_mailbox;
     semilattice_readwrite_view_t<machines_semilattice_metadata_t>::subscription_t
         semilattice_subs;
 };

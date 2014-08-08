@@ -14,6 +14,13 @@ public:
         ) > rename_mailbox_t;
     rename_mailbox_t::address_t rename_addr;
 
+    /* The address to send tag-change orders. */
+    typedef mailbox_t< void(
+            std::set<name_string_t>,
+            mailbox_t<void()>::address_t
+        ) > retag_mailbox_t;
+    retag_mailbox_t::address_t retag_addr;
+
     /* The time when the server started up. Used for resolving name collisions; the
     server that's been alive longer gets to keep the name. */
     time_t startup_time;
