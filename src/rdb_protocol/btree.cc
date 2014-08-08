@@ -1227,7 +1227,7 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
 }
 
 std::vector<std::string> expand_geo_key(
-        reql_version_t reql_version,
+        UNUSED reql_version_t reql_version,
         const counted_t<const ql::datum_t> &key,
         const store_key_t &primary_key,
         boost::optional<uint64_t> tag_num) {
@@ -1251,8 +1251,8 @@ std::vector<std::string> expand_geo_key(
             rassert(grid_keys[i].length() <= ql::datum_t::trunc_size(
                 key_to_unescaped_str(primary_key).length()));
 
-            result.push_back(ql::datum_t::compose_secondary(
-                reql_version, grid_keys[i], primary_key, tag_num));
+            result.push_back(
+                ql::datum_t::compose_secondary(grid_keys[i], primary_key, tag_num));
         }
 
         return result;

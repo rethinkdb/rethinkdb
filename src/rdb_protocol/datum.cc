@@ -663,13 +663,9 @@ std::string datum_t::encode_tag_num(uint64_t tag_num) {
     return std::string(reinterpret_cast<const char *>(&tag_num), tag_size);
 }
 
-std::string datum_t::compose_secondary(reql_version_t reql_version,
-        std::string secondary_key,
+std::string datum_t::compose_secondary(const std::string &secondary_key,
         const store_key_t &primary_key, boost::optional<uint64_t> tag_num) {
     std::string primary_key_string = key_to_unescaped_str(primary_key);
-
-    // Reserve max key size to reduce reallocations
-    secondary_key.reserve(MAX_KEY_SIZE);
 
     if (primary_key_string.length() > rdb_protocol::MAX_PRIMARY_KEY_SIZE) {
         throw exc_t(base_exc_t::GENERIC,
@@ -685,16 +681,6 @@ std::string datum_t::compose_secondary(reql_version_t reql_version,
         tag_string = encode_tag_num(tag_num.get());
     }
 
-    switch (reql_version) {
-    case reql_version_t::v1_13:
-        break;
-    case reql_version_t::v1_14_is_latest:
-        secondary_key.append(1, '\x00');
-        break;
-    default:
-        unreachable();
-    }
-
     const std::string truncated_secondary_key =
         secondary_key.substr(0, trunc_size(primary_key_string.length()));
 
@@ -705,6 +691,9 @@ std::string datum_t::print_secondary(reql_version_t reql_version,
                                      const store_key_t &primary_key,
                                      boost::optional<uint64_t> tag_num) const {
     std::string secondary_key_string;
+
+    // Reserve max key size to reduce reallocations
+    secondary_key_string.reserve(MAX_KEY_SIZE);
 
     if (get_type() == R_NUM) {
         num_to_str_key(&secondary_key_string);
@@ -725,7 +714,17 @@ std::string datum_t::print_secondary(reql_version_t reql_version,
             get_type_name().c_str(), trunc_print().c_str()));
     }
 
-    return compose_secondary(reql_version, secondary_key_string, primary_key, tag_num);
+    switch (reql_version) {
+    case reql_version_t::v1_13:
+        break;
+    case reql_version_t::v1_14_is_latest:
+        secondary_key_string.append(1, '\x00');
+        break;
+    default:
+        unreachable();
+    }
+
+    return compose_secondary(secondary_key_string, primary_key, tag_num);
 }
 
 struct components_t {

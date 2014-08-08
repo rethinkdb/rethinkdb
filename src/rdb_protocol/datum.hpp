@@ -147,8 +147,7 @@ public:
     std::string print_primary() const;
     /* TODO: All of this key-mangling logic belongs elsewhere. Maybe
     `print_primary()` belongs there as well. */
-    static std::string compose_secondary(reql_version_t reql_version,
-                                         std::string secondary_key,
+    static std::string compose_secondary(const std::string &secondary_key,
                                          const store_key_t &primary_key,
                                          boost::optional<uint64_t> tag_num);
     static std::string mangle_secondary(const std::string &secondary,
