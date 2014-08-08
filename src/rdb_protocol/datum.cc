@@ -210,7 +210,8 @@ counted_t<const datum_t> to_datum(cJSON *json, const configured_limits_t &limits
             rcheck_datum(res.second, base_exc_t::GENERIC,
                          strprintf("Duplicate key `%s` in JSON.", item->string));
         }
-        return make_counted<datum_t>(std::move(map));
+        const std::set<std::string> pts = { pseudo::literal_string };
+        return make_counted<datum_t>(std::move(map), pts);
     } break;
     default: unreachable();
     }
