@@ -1011,11 +1011,12 @@ def main():
                     servers = None
                 
                 failedTests.append("%s (%s)" % (test.name, test.language.display_name))
-                errorOutput = ''
+                sys.stderr.write("== Failed %s test with result code %s (%s)" % (test.name, str(testProcess.returncode), test.path))
                 if outputChannel is not None and os.path.getsize(outputChannel.name) > 0:
                     outputChannel.seek(0)
-                    errorOutput = ' Output:\n' + outputChannel.read().decode('utf-8')
-                sys.stderr.write("== Failed %s test with result code %s (%s)%s\n" % (test.name, str(testProcess.returncode), test.path, errorOutput))
+                    sys.stderr.write(' Output:\n')
+                    sys.stderr.write(outputChannel.read())
+                sys.stderr.write('\n')
             else:
                 print("== Successfully passed %s test" % test.name)
         finally:
