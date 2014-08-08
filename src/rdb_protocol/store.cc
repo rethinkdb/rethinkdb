@@ -387,6 +387,15 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                         s->blocks_total = frac.estimate_of_total_nodes;
                     }
                 }
+
+                {
+                    ql::map_wire_func_t mapping;
+                    sindex_reql_version_info_t version_info;
+                    deserialize_sindex_info(it->second.opaque_definition, &mapping,
+                                            &version_info, &s->multi);
+                    s->outdated = (version_info.latest_compatible_reql_version !=
+                                   reql_version_t::LATEST);
+                }
             }
         }
     }

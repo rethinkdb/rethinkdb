@@ -329,6 +329,9 @@ real_table_t::sindex_status(ql::env_t *env, const std::set<std::string> &sindexe
         std::string s = sindex_blob_prefix + pair.second.func;
         status["function"] = ql::datum_t::binary(
             wire_string_t::create_and_init(s.size(), s.data()));
+        status["outdated"] = ql::datum_t::boolean(pair.second.outdated);
+        status["multi"] = ql::datum_t::boolean(pair.second.multi ==
+                                               sindex_multi_bool_t::MULTI);
         statuses.insert(std::make_pair(
             pair.first,
             make_counted<const ql::datum_t>(std::move(status))));
