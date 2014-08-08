@@ -141,9 +141,10 @@ batchspec_t batchspec_t::scale_down(int64_t divisor) const {
             : std::min(max_size, (max_size * DIVISOR_SCALING_FACTOR
                                   / ((DIVISOR_SCALING_FACTOR - 1) * divisor))
                                  + SCALE_CONSTANT);
-    int64_t new_min_els = std::min(min_els, new_max_els);
+    // to avoid problems when the batches get really tiny, we clamp new_max_els to be at least min_els.
+    new_max_els = std::max(min_els, new_max_els);
 
-    return batchspec_t(batch_type, new_min_els, new_max_els, new_max_size,
+    return batchspec_t(batch_type, min_els, new_max_els, new_max_size,
                        first_scaledown_factor, max_dur, start_time);
 }
 
