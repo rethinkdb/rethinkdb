@@ -1118,8 +1118,8 @@ int datum_t::cmp(reql_version_t reql_version, const datum_t &rhs) const {
 }
 
 int datum_t::modern_cmp(const datum_t &rhs) const {
-    bool lhs_ptype = is_ptype();
-    bool rhs_ptype = rhs.is_ptype();
+    bool lhs_ptype = is_ptype() && !pseudo_compares_as_obj();
+    bool rhs_ptype = rhs.is_ptype() && !rhs.pseudo_compares_as_obj();
     if (lhs_ptype && rhs_ptype) {
         if (get_reql_type() != rhs.get_reql_type()) {
             return derived_cmp(get_reql_type(), rhs.get_reql_type());
