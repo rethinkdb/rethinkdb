@@ -101,6 +101,9 @@ public:
 
     void set_outdated_indexes(std::set<std::string> &&indexes) {
         assert_thread();
+        coro_t::spawn_sometime(
+            std::bind(&outdated_index_issue_client_t::log_outdated_indexes,
+                      parent, ns_id, indexes, auto_drainer_t::lock_t(&drainer)));
         (*parent->outdated_indexes.get())[ns_id] = std::move(indexes);
     }
 
@@ -129,6 +132,7 @@ public:
 private:
     outdated_index_issue_client_t *parent;
     namespace_id_t ns_id;
+    auto_drainer_t drainer;
 
     DISABLE_COPYING(outdated_index_report_impl_t);
 };
@@ -266,4 +270,23 @@ std::list<clone_ptr_t<global_issue_t> > outdated_index_issue_client_t::get_issue
             new outdated_index_issue_t(std::move(all_outdated_indexes))));
     }
     return std::move(issues);
+}
+
+void outdated_index_issue_client_t::log_outdated_indexes(namespace_id_t ns_id,
+        std::set<std::string> indexes,
+        UNUSED auto_drainer_t::lock_t keepalive) {
+    on_thread_t rethreader(home_thread());
+    if (indexes.size() > 0 &&
+        logged_namespaces.find(ns_id) == logged_namespaces.end()) {
+
+        std::string index_list;
+        for (const auto &s : indexes) {
+            index_list += index_list.empty() ? "'" : ", '" + s + "'";
+        }
+
+        logWRN("Namespace %s contains these outdated indexes which should be "
+               "recreated: %s", uuid_to_str(ns_id).c_str(), index_list.c_str());
+
+        logged_namespaces.insert(ns_id);
+    }
 }

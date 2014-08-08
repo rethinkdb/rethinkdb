@@ -84,7 +84,12 @@ private:
 
     outdated_index_map_t collect_all_indexes();
 
+    void log_outdated_indexes(namespace_id_t ns_id,
+                              std::set<std::string> indexes,
+                              auto_drainer_t::lock_t keepalive);
+
     mailbox_manager_t *mailbox_manager;
+    std::set<namespace_id_t> logged_namespaces;
     one_per_thread_t<outdated_index_map_t> outdated_indexes;
     one_per_thread_t<std::set<outdated_index_report_impl_t *> > index_reports;
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
