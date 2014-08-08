@@ -39,9 +39,7 @@ public:
         body.add_arg(r::optarg("_NO_RECURSE_", r::boolean(true)));
 
         switch (poly_type) {
-        case MAP: {
-            func->Swap(&r::fun(varnum, std::move(body)).get());
-        } break;
+        case MAP: // fallthru
         case FILTER: {
             func->Swap(&r::fun(varnum, std::move(body)).get());
         } break;
