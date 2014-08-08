@@ -4,7 +4,7 @@
 
 from __future__ import print_function
 
-import atexit, collections, distutils.version, distutils.spawn, optparse, os, re, shutil, signal, stat, subprocess, sys, tempfile, time
+import atexit, collections, distutils.version, distutils.spawn, optparse, os, re, shutil, signal, stat, string, subprocess, sys, tempfile, time
 
 try:
     import yaml
@@ -362,7 +362,10 @@ interpreters = {
 
 # Abstracts a set of tests given in a single file
 class TestGroup(object):
-
+    
+    testLanguageEntry = collections.namedtuple('testLanguageEntry', ['command', 'expected', 'definition', 'runopts', 'testopts'])
+    variableRegex = re.compile('^\s*(?P<quoteString>[\'\"]*)\s*(?P<variableName>[a-zA-Z][\w\[\]\{\}\'\"]*)\s*=\s*(?P<expression>[^=].+)$')
+    
     @classmethod
     def buildYamlTest(cls, testName, sourceFile, language, outputPath, shards=0):
     
@@ -457,111 +460,142 @@ class TestGroup(object):
     def write_test(cls, testName, out, test, lang, index, shard=0):
         
         testName = os.path.join(testName, str(index))
-        
-        # Does this test define a variable?
-        if 'def' in test:
-            cls.write_def(out, test['def'], lang, index)
 
-        # See if this test even defines a test for our language
+        # See if this test defines operations for our language
         try:
-            (code, runopts) = cls.get_code(test, lang, index)
+            testCode = cls.get_lang_entries(test, lang)
         except Exception as e:
             raise Exception("Error while processing test: %s\n%s" % (testName, str(e)))
-        for test_case in code:
-            try:
-                out.write("test("+test_case)
-                expected = cls.get_expected(test, lang)
-                if not expected:
-                    expected = '""'
-                out.write(', '+expected)
-                out.write(', "' + testName + '"')
+        
+        # Does this test define a variable?
+        if testCode.definition:
+            cls.write_def(out, testCode.definition)
+        
+        # Write the commands
+        if testCode.command:
+            for test_case in testCode.command:
                 
-                if runopts:
-                    runoptsrepr = lang.translate_query(repr(runopts), encode=False)
-                    out.write(', '+runoptsrepr)
+                variableMatch = cls.variableRegex.match(test_case)
+                if variableMatch:
+                    testCode.testopts['variable'] = variableMatch.group('variableName')
+                    test_case = variableMatch.group('quoteString') + variableMatch.group('expression')
                 
-                out.write(')\n')
-                
-                # We want to auto-shard tables that we create. There is stil no
-                # way to do this from rql so we have to hack the admin cli.
-                
-                if shard > 0:
-                    pattern = 'table_create\\(\'(\\w+)\'\\)'
-                    mo = re.search(pattern, test_case)
-                    if mo:
-                        table_name = mo.group(1)
-                        out.write('shard("%s")\n' % table_name)
-            except Exception as e:
-                raise Exception("Error while processing test: %s\n%s\n%s" % (testName, str(code), str(e)))
-    
-    @classmethod
-    def write_def(cls, out, defobj, lang, index):
-        (code, runopts) = cls.get_code(defobj, lang, index + '-def')
-        if len(code) > 0:
-            out.write('define(' + code[0] + ')\n')
+                try:
+                    out.write("test(%(code)s, %(expected)s, '%(name)s', %(driveropts)s, %(testopts)s)\n" % {
+                        'code': test_case,
+                        'expected': testCode.expected or '""',
+                        'name': testName,
+                        'driveropts': lang.translate_query(repr(testCode.runopts), encode=False),
+                        'testopts': lang.translate_query(repr(testCode.testopts), encode=False)
+                    })
+                    
+                    # We want to auto-shard tables that we create. There is stil no
+                    # way to do this from rql so we have to hack the admin cli.
+                    
+                    if shard > 0:
+                        pattern = 'table_create\\(\'(\\w+)\'\\)'
+                        mo = re.search(pattern, test_case)
+                        if mo:
+                            table_name = mo.group(1)
+                            out.write('shard("%s")\n' % table_name)
+                except Exception as e:
+                    raise Exception("Error while processing test: %s\n%s\n%s" % (testName, str(testCode.command), str(e)))
 
+    @staticmethod
+    def write_def(out, defs):
+        for definition in defs:
+            out.write('define(%s)\n' % definition)
+    
     # Tests may specify generic test strings valid for all languages or language specific versions
     @classmethod
-    def get_code(cls, obj, lang, index):
-        runopts = None
-        code = None
+    def get_lang_entries(cls, source, lang, default='command'):
+        assert default in ('command', 'expected', 'definition'), 'get_lang_entries requires that default be one of : command, expected, or definition'
         
-        if isinstance(obj, dict):
-            if 'runopts' in obj:
-                runopts = obj['runopts']
-
-            # Try language specific version first, then default to 'cd'
-            for languageEntry in lang.test_types + ['cd']:
-                if languageEntry in obj:
-                    lang_specific = obj[languageEntry]
-    
-                    # lang_specific may be a dict giving a code attribute
-                    if isinstance(lang_specific, dict):
-                        assert 'cd' in lang_specific, "There is no cd for %s" % lang
-                        code = lang_specific['cd']
-                    else:
-                        code = lang_specific
-                    break
-        else:
-
-            # obj itself is the code
-            code = obj
-
-        # Code may be a string or a list of syntactic variants
-        if code and not isinstance(code, list):
-            assert isinstance(code, (str, unicode)), "%s was not a str or int instance (%s)" % (repr(code), type(code))
-            code = [code]
-        elif code == None:
-            code = []
-
-        # Construct the appropriate representation for each test in this language
-        return ([lang.translate_query(src) for src in code], runopts)
-
-    # Get the expected result from the test object. Either a generic result or
-    # a language specific result.
-    @classmethod
-    def get_expected(cls, obj, lang):
+        results = { 'command': None, 'definition': None, 'expected': None, 'runopts': {}, 'testopts':{} }
         
-        if not isinstance(obj, dict):
-            return None
+        if source is None:
+            pass
         
-        # look for 'ot' entries in top-level language-specific dicts
-        for languageEntry in [obj[x] for x in lang.test_types if x in obj and isinstance(obj[x], dict)]:
-            if 'ot' in languageEntry:
-                return lang.translate_expected(languageEntry['ot'])
+        elif default in ('runopts', 'testopts'):
+            results[default] = source
         
-        # look at the top level 'ot' entry
-        if 'ot' in obj:
-            if isinstance(obj['ot'], dict):
-                for languageEntry in lang.test_types:
-                    if languageEntry in obj['ot']:
-                        return lang.translate_expected(obj['ot'][languageEntry])
-                if 'cd' in obj['ot']:
-                    return lang.translate_expected(obj['ot']['cd'])
+        elif not hasattr(source, 'get'):
+            # leaf, replace appropriate item
+            langcode = (lang.test_types[0] if isinstance(lang.test_types, list) else lang.test_types).replace('.', '')
+            
+            if default != 'expected' and hasattr(source, '__iter__') and not hasattr(source, 'capitalize'):
+                results[default] = []
+                for item in source:
+                    results[default].append(string.Template(lang.translate_query(item)).safe_substitute({'langcode': langcode}))
             else:
-                return lang.translate_expected(obj['ot'])
-
-        return None
+                if default == 'expected':
+                    results['expected'] = string.Template(lang.translate_expected(source)).safe_substitute({'langcode': langcode})
+                else:
+                    results[default] = [string.Template(lang.translate_query(source)).safe_substitute({'langcode': langcode})]
+        else:
+            if default == 'command':
+                
+                # runopts and testopts
+                if 'runopts' in source:
+                    results['runopts'].update(source['runopts'])
+                if 'testopts' in source:
+                    results['testopts'].update(source['testopts'])
+                
+                # command
+                
+                for langCode in lang.test_types + ['cd']:
+                    if langCode in source:
+                        results = cls.combineLangEntries(results, cls.get_lang_entries(source[langCode], lang, 'command'))
+                        break
+                
+                # def and ot
+                if 'def' in source:
+                    results = cls.combineLangEntries(results, cls.get_lang_entries(source['def'], lang, 'definition'))
+                if 'ot' in source:
+                    results = cls.combineLangEntries(results, cls.get_lang_entries(source['ot'], lang, 'expected'))
+                    
+            elif default == 'expected':
+                for langCode in lang.test_types + ['cd']:
+                    if langCode in source:
+                        results['expected'] = cls.get_lang_entries(source[langCode], lang, 'expected').expected
+                        break
+            
+            elif default == 'definition':
+                for langCode in lang.test_types + ['cd']:
+                    if langCode in source:
+                        results['definition'] = cls.get_lang_entries(source[langCode], lang, 'definition').definition
+                        break
+            
+            else:
+                sys.stderr.write('Warning! Unknown default type: %s\n' % str(default))
+        
+        return cls.testLanguageEntry(command=results['command'], expected=results['expected'], definition=results['definition'], runopts=results['runopts'], testopts=results['testopts'])
+    
+    @classmethod
+    def combineLangEntries(cls, left, right):
+        
+        # - convert both to dicts
+        
+        if isinstance(left, cls.testLanguageEntry):
+            left = dict(left._asdict())
+        elif not isinstance(left, dict):
+            raise ValueError('combineLangEntries given a left that is not useable: %s' % str(left))
+        
+        if isinstance(right, cls.testLanguageEntry):
+            right = dict(right._asdict())
+        elif not isinstance(right, dict):
+            raise ValueError('combineLangEntries given a right that is not useable: %s' % str(right))
+        
+        # combine them, keeping any non-None entries from right
+        returnDict = {}
+        for key in set(right.keys() + left.keys()): # should be the same, but...
+            if key in ('runopts', 'testopts') and any([left.get(key), right.get(key)]):
+                returnValue = left.get(key) or {}
+                returnValue.update(right.get(key) or {})
+                returnDict[key] = returnValue
+            else:
+                returnDict[key] = right.get(key) or left.get(key)
+        return returnDict
 
 class RethinkDBRunningServer(object):
     def __init__(self, driver_port, cluster_port):
@@ -958,7 +992,7 @@ def main():
             testExecutable = [executablePath]
             if test.interpreter is not None:
                 testExecutable = [test.interpreter] + testExecutable
-            testProcess = subprocess.Popen(testExecutable + additionalArguments, stdout=outputChannel, stderr=outputChannel, preexec_fn=os.setpgrp, env=dict(os.environ, **{'INTERPRETER_PATH':test.language.interpreter_path}))
+            testProcess = subprocess.Popen(testExecutable + additionalArguments, stdout=outputChannel, stderr=outputChannel, preexec_fn=os.setpgrp, env=dict(os.environ.items() +  {'INTERPRETER_PATH':test.language.interpreter_path}.items()))
             
             # - kill off the process group
             
