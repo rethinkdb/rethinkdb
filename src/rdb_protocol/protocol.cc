@@ -1059,7 +1059,7 @@ RDB_IMPL_SERIALIZABLE_4(
         blocks_processed,
         ready,
         func);
-INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(rget_read_response_t);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(rdb_protocol::single_sindex_status_t);
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_read_response_t, data);
 RDB_IMPL_SERIALIZABLE_4(rget_read_response_t, key_range, result, truncated, last_key);
