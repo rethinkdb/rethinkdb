@@ -13,10 +13,10 @@
 #include "btree/slice.hpp"
 #include "btree/types.hpp"
 #include "containers/counted.hpp"
-#include "geo/ellipsoid.hpp"
-#include "geo/exceptions.hpp"
-#include "geo/indexing.hpp"
-#include "geo/lat_lon_types.hpp"
+#include "rdb_protocol/geo/ellipsoid.hpp"
+#include "rdb_protocol/geo/exceptions.hpp"
+#include "rdb_protocol/geo/indexing.hpp"
+#include "rdb_protocol/geo/lat_lon_types.hpp"
 #include "rdb_protocol/protocol.hpp"
 
 namespace ql {

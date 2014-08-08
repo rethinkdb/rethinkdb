@@ -1,8 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved
 #include "rdb_protocol/real_table.hpp"
 
-#include "geo/ellipsoid.hpp"
-#include "geo/distances.hpp"
+#include "rdb_protocol/geo/ellipsoid.hpp"
+#include "rdb_protocol/geo/distances.hpp"
 #include "rdb_protocol/context.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"

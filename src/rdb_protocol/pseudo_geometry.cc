@@ -4,11 +4,11 @@
 #include <map>
 #include <string>
 
-#include "geo/exceptions.hpp"
-#include "geo/geojson.hpp"
-#include "geo/inclusion.hpp"
-#include "geo/lat_lon_types.hpp"
-#include "geo/s2/s2polygon.h"
+#include "rdb_protocol/geo/exceptions.hpp"
+#include "rdb_protocol/geo/geojson.hpp"
+#include "rdb_protocol/geo/inclusion.hpp"
+#include "rdb_protocol/geo/lat_lon_types.hpp"
+#include "rdb_protocol/geo/s2/s2polygon.h"
 #include "rdb_protocol/configured_limits.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"

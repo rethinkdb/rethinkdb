@@ -9,8 +9,8 @@
 
 #include "containers/counted.hpp"
 #include "containers/wire_string.hpp"
-#include "geo/distances.hpp"
-#include "geo/lat_lon_types.hpp"
+#include "rdb_protocol/geo/distances.hpp"
+#include "rdb_protocol/geo/lat_lon_types.hpp"
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/ql2.pb.h"
 

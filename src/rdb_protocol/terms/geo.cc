@@ -2,14 +2,14 @@
 
 #include <limits>
 
-#include "geo/distances.hpp"
-#include "geo/ellipsoid.hpp"
-#include "geo/exceptions.hpp"
-#include "geo/geojson.hpp"
-#include "geo/inclusion.hpp"
-#include "geo/intersection.hpp"
-#include "geo/primitives.hpp"
-#include "geo/s2/s2polygon.h"
+#include "rdb_protocol/geo/distances.hpp"
+#include "rdb_protocol/geo/ellipsoid.hpp"
+#include "rdb_protocol/geo/exceptions.hpp"
+#include "rdb_protocol/geo/geojson.hpp"
+#include "rdb_protocol/geo/inclusion.hpp"
+#include "rdb_protocol/geo/intersection.hpp"
+#include "rdb_protocol/geo/primitives.hpp"
+#include "rdb_protocol/geo/s2/s2polygon.h"
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/pseudo_geometry.hpp"
 #include "rdb_protocol/term.hpp"
