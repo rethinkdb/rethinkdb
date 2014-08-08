@@ -280,8 +280,8 @@ void outdated_index_issue_client_t::log_outdated_indexes(namespace_id_t ns_id,
         logged_namespaces.find(ns_id) == logged_namespaces.end()) {
 
         std::string index_list;
-        for (const auto &s : indexes) {
-            index_list += index_list.empty() ? "'" : ", '" + s + "'";
+        for (auto const &s : indexes) {
+            index_list += (index_list.empty() ? "'" : ", '") + s + "'";
         }
 
         logWRN("Namespace %s contains these outdated indexes which should be "

@@ -39,10 +39,7 @@ reql_version_t update_sindex_last_compatible_version(secondary_index_t *sindex,
         unreachable();
     }
 
-    bool do_update = version_info.latest_compatible_reql_version != res ||
-        version_info.latest_checked_reql_version != reql_version_t::LATEST;
-
-    if (do_update) {
+    if (version_info.latest_checked_reql_version != reql_version_t::LATEST) {
         version_info.latest_compatible_reql_version = res;
         version_info.latest_checked_reql_version = reql_version_t::LATEST;
 
