@@ -30,12 +30,7 @@ public:
                          name.c_str()));
 
         /* Check if we're doing a multi index or a normal index. */
-        counted_t<val_t> multi_val = args->optarg(env, "multi");
-        sindex_multi_bool_t multi =
-            (multi_val && multi_val->as_datum()->as_bool()
-             ? sindex_multi_bool_t::MULTI
-             : sindex_multi_bool_t::SINGLE);
-
+        sindex_multi_bool_t multi = sindex_multi_bool_t::SINGLE;
         counted_t<func_t> index_func;
         if (args->num_args() == 3) {
             counted_t<val_t> v = args->arg(env, 2);
@@ -88,6 +83,12 @@ public:
             index_func = func_term_term->eval_to_func(env->scope);
         }
         r_sanity_check(index_func.has());
+
+        if (counted_t<val_t> multi_val = args->optarg(env, "multi")) {
+            multi = multi_val->as_bool()
+                ? sindex_multi_bool_t::MULTI
+                : sindex_multi_bool_t::SINGLE;
+        }
 
         bool success = table->sindex_create(env->env, name, index_func, multi);
         if (success) {
