@@ -147,6 +147,8 @@ store_t::store_t(serializer_t *serializer,
 
 store_t::~store_t() {
     assert_thread();
+    drainer.drain();
+
     if (index_report != NULL) {
         index_report->destroy();
     }
