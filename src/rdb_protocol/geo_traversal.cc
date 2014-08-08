@@ -151,14 +151,10 @@ void geo_intersecting_cb_t::on_candidate(
         emit_error(ql::exc_t(ql::base_exc_t::GENERIC, e.what(), NULL));
         abort_traversal();
         return;
-    } catch (const ql::datum_exc_t &e) {
-#ifndef NDEBUG
-        unreachable();
-#else
+    } catch (const ql::base_exc_t &e) {
         emit_error(ql::exc_t(e, NULL));
         abort_traversal();
         return;
-#endif // NDEBUG
     }
 }
 
@@ -192,14 +188,14 @@ void collect_all_geo_intersecting_cb_t::finish(
 bool collect_all_geo_intersecting_cb_t::post_filter(
         UNUSED const counted_t<const ql::datum_t> &sindex_val,
         UNUSED const counted_t<const ql::datum_t> &val)
-        THROWS_ONLY(interrupted_exc_t, ql::exc_t, geo_exception_t) {
+        THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t) {
     return true;
 }
 
 void collect_all_geo_intersecting_cb_t::emit_result(
         UNUSED const counted_t<const ql::datum_t> &sindex_val,
         const counted_t<const ql::datum_t> &val)
-        THROWS_ONLY(interrupted_exc_t, ql::exc_t, geo_exception_t) {
+        THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t) {
     result_acc.add(val);
 }
 
@@ -326,7 +322,7 @@ void nearest_traversal_cb_t::init_query_geometry() {
 bool nearest_traversal_cb_t::post_filter(
         const counted_t<const ql::datum_t> &sindex_val,
         UNUSED const counted_t<const ql::datum_t> &val)
-        THROWS_ONLY(interrupted_exc_t, ql::exc_t, geo_exception_t) {
+        THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t) {
 
     // Filter out results that are outside of the current inradius
     const S2Point s2center =
@@ -338,7 +334,7 @@ bool nearest_traversal_cb_t::post_filter(
 void nearest_traversal_cb_t::emit_result(
         const counted_t<const ql::datum_t> &sindex_val,
         const counted_t<const ql::datum_t> &val)
-        THROWS_ONLY(interrupted_exc_t, ql::exc_t, geo_exception_t) {
+        THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t) {
     // TODO (daniel): Could we avoid re-computing the distance? We have already
     //   done it in post_filter().
     const S2Point s2center =

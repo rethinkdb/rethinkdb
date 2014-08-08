@@ -24,6 +24,7 @@ class datum_t;
 class func_t;
 class op_t;
 class exc_t;
+class base_exc_t;
 }
 namespace profile {
 class disabler_t;
@@ -74,12 +75,12 @@ protected:
     virtual bool post_filter(
             const counted_t<const ql::datum_t> &sindex_val,
             const counted_t<const ql::datum_t> &val)
-            THROWS_ONLY(interrupted_exc_t, ql::exc_t, geo_exception_t) = 0;
+            THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t) = 0;
 
     virtual void emit_result(
             const counted_t<const ql::datum_t> &sindex_val,
             const counted_t<const ql::datum_t> &val)
-            THROWS_ONLY(interrupted_exc_t, ql::exc_t, geo_exception_t) = 0;
+            THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t) = 0;
 
     virtual void emit_error(
             const ql::exc_t &error)
@@ -120,12 +121,12 @@ protected:
     bool post_filter(
             const counted_t<const ql::datum_t> &sindex_val,
             const counted_t<const ql::datum_t> &val)
-            THROWS_ONLY(interrupted_exc_t, ql::exc_t, geo_exception_t);
+            THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t);
 
     void emit_result(
             const counted_t<const ql::datum_t> &sindex_val,
             const counted_t<const ql::datum_t> &val)
-            THROWS_ONLY(interrupted_exc_t, ql::exc_t, geo_exception_t);
+            THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t);
 
     void emit_error(
             const ql::exc_t &error)
@@ -183,12 +184,12 @@ protected:
     bool post_filter(
             const counted_t<const ql::datum_t> &sindex_val,
             const counted_t<const ql::datum_t> &val)
-            THROWS_ONLY(interrupted_exc_t, ql::exc_t, geo_exception_t);
+            THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t);
 
     void emit_result(
             const counted_t<const ql::datum_t> &sindex_val,
             const counted_t<const ql::datum_t> &val)
-            THROWS_ONLY(interrupted_exc_t, ql::exc_t, geo_exception_t);
+            THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t);
 
     void emit_error(
             const ql::exc_t &error)
