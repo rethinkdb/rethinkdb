@@ -73,6 +73,9 @@ batchspec_t batchspec_t::user(batch_type_t batch_type,
                        ? first_scaledown_d->as_int()
                        : DEFAULT_FIRST_SCALEDOWN;
     int64_t max_dur = max_dur_d.has() ? max_dur_d->as_int() : DEFAULT_MAX_DURATION;
+    // Protect the user in case they're a dork.  Normally we would do rfail and
+    // trigger exceptions, but due to NOTHROWs above this may not be safe.
+    min_els = std::min<int64_t>(min_els, max_els);
     return batchspec_t(batch_type,
                        min_els,
                        max_els,
