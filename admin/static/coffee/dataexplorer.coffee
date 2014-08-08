@@ -3441,10 +3441,10 @@ module 'DataExplorerView', ->
                     if next.length is 1
                         next = "0" + next
                     snippet += next
-                    if i > 4
+                    if i > 4 and i isnt size-1
                         snippet += "..."
                         break
-                    else
+                    else if i isnt str.length-1
                         snippet += " "
                 return "<binary, #{sizeStr}, \"#{snippet}\">"
 
