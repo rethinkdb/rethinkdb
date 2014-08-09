@@ -46,6 +46,8 @@ int main(int argc, char *argv[]) {
             return main_rethinkdb_dump(argc, argv);
         } else if (subcommand == "restore") {
             return main_rethinkdb_restore(argc, argv);
+        } else if (subcommand == "index-rebuild") {
+            return main_rethinkdb_index_rebuild(argc, argv);
         } else if (subcommand == "--version" || subcommand == "-v") {
             if (argc != 2) {
 		          printf("WARNING: Ignoring extra parameters after '%s'.", subcommand.c_str());
@@ -83,6 +85,8 @@ int main(int argc, char *argv[]) {
                     help_rethinkdb_dump();
                 } else if (subcommand2 == "restore") {
                     help_rethinkdb_restore();
+                } else if (subcommand2 == "index-rebuild") {
+                    help_rethinkdb_index_rebuild();
                 } else {
                     printf("ERROR: No help for '%s'\n", subcommand2.c_str());
                     return 1;
