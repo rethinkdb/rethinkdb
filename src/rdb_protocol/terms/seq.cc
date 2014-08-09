@@ -16,43 +16,104 @@ template<class T>
 class map_acc_term_t : public grouped_seq_op_term_t {
 protected:
     map_acc_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : grouped_seq_op_term_t(env, term, argspec_t(1, 2)) { }
+        : grouped_seq_op_term_t(env, term, argspec_t(1, 2), optargspec_t({"index"})) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args,
                                        eval_flags_t) const {
-        return args->num_args() == 1
-            ? args->arg(env, 0)->as_seq(env->env)->run_terminal(env->env, T(backtrace()))
-            : args->arg(env, 0)->as_seq(env->env)->run_terminal(
-                env->env, T(backtrace(), args->arg(env, 1)->as_func(GET_FIELD_SHORTCUT)));
+        counted_t<val_t> v = args->arg(env, 0);
+        counted_t<val_t> idx = args->optarg(env, "index");
+        counted_t<func_t> func;
+        if (args->num_args() == 2) {
+            func = args->arg(env, 1)->as_func(GET_FIELD_SHORTCUT);
+        }
+        if (!func.has() && !idx.has()) {
+            if (uses_idx()) {
+                return on_idx(env->env, v->as_table(), idx);
+            } else {
+                return v->as_seq(env->env)->run_terminal(env->env, T(backtrace()));
+            }
+        } else if (func.has() && !idx.has()) {
+            return v->as_seq(env->env)->run_terminal(env->env, T(backtrace(), func));
+        } else if (!func.has() && idx.has()) {
+            return on_idx(env->env, v->as_table(), idx);
+        } else {
+            rfail(base_exc_t::GENERIC,
+                  "Cannot provide both a function and an index to %s.",
+                  name());
+        }
     }
+    virtual bool uses_idx() const = 0;
+    virtual counted_t<val_t> on_idx(
+        env_t *env, counted_t<table_t> tbl, counted_t<val_t> idx) const = 0;
 };
 
-class sum_term_t : public map_acc_term_t<sum_wire_func_t> {
+template<class T>
+class unindexable_map_acc_term_t : public map_acc_term_t<T> {
+protected:
+    template<class... Args> unindexable_map_acc_term_t(Args... args)
+        : map_acc_term_t<T>(args...) { }
+private:
+    virtual bool uses_idx() const { return false; }
+    virtual counted_t<val_t> on_idx(
+        env_t *, counted_t<table_t>, counted_t<val_t> ) const {
+        rfail(base_exc_t::GENERIC, "Cannot call %s on an index.", this->name());
+    }
+};
+class sum_term_t : public unindexable_map_acc_term_t<sum_wire_func_t> {
 public:
     template<class... Args> sum_term_t(Args... args)
-        : map_acc_term_t<sum_wire_func_t>(args...) { }
+        : unindexable_map_acc_term_t<sum_wire_func_t>(args...) { }
 private:
     virtual const char *name() const { return "sum"; }
 };
-class avg_term_t : public map_acc_term_t<avg_wire_func_t> {
+class avg_term_t : public unindexable_map_acc_term_t<avg_wire_func_t> {
 public:
     template<class... Args> avg_term_t(Args... args)
-        : map_acc_term_t<avg_wire_func_t>(args...) { }
+        : unindexable_map_acc_term_t<avg_wire_func_t>(args...) { }
 private:
     virtual const char *name() const { return "avg"; }
 };
-class min_term_t : public map_acc_term_t<min_wire_func_t> {
+
+template<class T>
+class indexable_map_acc_term_t : public map_acc_term_t<T> {
+protected:
+    template<class... Args> indexable_map_acc_term_t(Args... args)
+        : map_acc_term_t<T>(args...) { }
+    virtual ~indexable_map_acc_term_t() { }
+private:
+    virtual bool uses_idx() const { return true; }
+    virtual counted_t<val_t> on_idx(
+        env_t *env, counted_t<table_t> tbl, counted_t<val_t> idx) const {
+        std::string idx_str = idx.has() ? idx->as_str().to_std() : tbl->get_pkey();
+        tbl->add_sorting(idx_str, sorting(), this);
+        batchspec_t batchspec = batchspec_t::all().with_at_most(1);
+        counted_t<const datum_t> d =
+            tbl->as_datum_stream(env, term_t::backtrace())->next(env, batchspec);
+        if (d.has()) {
+            return this->new_val(d, tbl);
+        } else {
+            rfail(base_exc_t::GENERIC,
+                  "`%s` found no entries in the specified index.",
+                  this->name());
+        }
+    }
+    virtual sorting_t sorting() const = 0;
+};
+
+class min_term_t : public indexable_map_acc_term_t<min_wire_func_t> {
 public:
     template<class... Args> min_term_t(Args... args)
-        : map_acc_term_t<min_wire_func_t>(args...) { }
+        : indexable_map_acc_term_t<min_wire_func_t>(args...) { }
 private:
+    virtual sorting_t sorting() const { return sorting_t::ASCENDING; }
     virtual const char *name() const { return "min"; }
 };
-class max_term_t : public map_acc_term_t<max_wire_func_t> {
+class max_term_t : public indexable_map_acc_term_t<max_wire_func_t> {
 public:
     template<class... Args> max_term_t(Args... args)
-        : map_acc_term_t<max_wire_func_t>(args...) { }
+        : indexable_map_acc_term_t<max_wire_func_t>(args...) { }
 private:
+    virtual sorting_t sorting() const { return sorting_t::DESCENDING; }
     virtual const char *name() const { return "max"; }
 };
 
