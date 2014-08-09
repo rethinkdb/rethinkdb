@@ -398,7 +398,8 @@ void do_a_replace_from_batched_replace(
     promise_t<superblock_t *> *superblock_promise,
     rdb_modification_report_cb_t *sindex_cb,
     batched_replace_response_t *stats_out,
-    profile::trace_t *trace)
+    profile::trace_t *trace,
+    std::set<std::string> *conditions)
 {
     fifo_enforcer_sink_t::exit_write_t exiter(
         batched_replaces_fifo_sink, batched_replaces_fifo_token);
@@ -408,7 +409,7 @@ void do_a_replace_from_batched_replace(
     counted_t<const ql::datum_t> res = rdb_replace_and_return_superblock(
         info, &one_replace, &deletion_context, superblock_promise, &mod_report.info,
         trace);
-    *stats_out = (*stats_out)->merge(res, ql::stats_merge, limits);
+    *stats_out = (*stats_out)->merge(res, ql::stats_merge, limits, conditions);
 
     // KSI: What is this for?  are we waiting to get in line to call on_mod_report?
     // I guess so.
@@ -431,6 +432,8 @@ batched_replace_response_t rdb_batched_replace(
     fifo_enforcer_sink_t batched_replaces_fifo_sink;
 
     counted_t<const ql::datum_t> stats = ql::datum_t::empty_object();
+    
+    std::set<std::string> conditions {};
 
     // We have to drain write operations before destructing everything above us,
     // because the coroutines being drained use them.
@@ -465,11 +468,15 @@ batched_replace_response_t rdb_batched_replace(
                     &superblock_promise,
                     sindex_cb,
                     &stats,
-                    trace));
+                    trace,
+                    &conditions));
             current_superblock.init(superblock_promise.wait());
         }
     } // Make sure the drainer is destructed before the return statement.
-    return stats;
+    
+    ql::datum_object_builder_t out(stats->as_object());
+    out.add_warnings(conditions, limits);
+    return std::move(out).to_counted();
 }
 
 void rdb_set(const store_key_t &key,
