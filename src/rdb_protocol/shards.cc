@@ -863,7 +863,7 @@ private:
         for (auto it = lst->begin(); it != lst->end(); ++it) {
             auto left = (*it)->get("left", NOTHROW);
             auto right = (*it)->get("right", NOTHROW);
-            rcheck_target((*it), base_exc_t::GENERIC, left.has(),
+            rcheck_datum(left.has(), base_exc_t::GENERIC,
                    "ZIP can only be called on the result of a join.");
             *it = right.has() ? left->merge(right) : left;
         }
