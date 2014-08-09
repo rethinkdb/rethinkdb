@@ -596,7 +596,7 @@ std::string val_t::print() const {
                          table->name.c_str());
     } else {
         // TODO: Do something smarter here?
-        return strprintf("OPAQUE VALUE %s", get_type().name());
+        return strprintf("VALUE %s", get_type().name());
     }
 }
 
