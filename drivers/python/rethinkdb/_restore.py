@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
-import sys, os, datetime, time, shutil, tempfile, subprocess
+import sys, os, datetime, time, shutil, tempfile, subprocess, os.path
 from optparse import OptionParser
 from ._backup import *
 
@@ -21,6 +21,7 @@ def print_restore_help():
     print("                                   be specified multiple times)")
     print("  --clients NUM_CLIENTS            the number of client connections to use (defaults")
     print("                                   to 8)")
+    print("  --temp-dir DIRECTORY             the directory to use for intermediary results")
     print("  --hard-durability                use hard durability writes (slower, but less memory")
     print("                                   consumption on the server)")
     print("  --force                          import data even if a table already exists")
@@ -47,6 +48,8 @@ def parse_options():
     parser.add_option("-c", "--connect", dest="host", metavar="HOST:PORT", default="localhost:28015", type="string")
     parser.add_option("-a", "--auth", dest="auth_key", metavar="KEY", default="", type="string")
     parser.add_option("-i", "--import", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
+
+    parser.add_option("--temp-dir", dest="temp_dir", metavar="directory", default=None, type="string")
     parser.add_option("--clients", dest="clients", metavar="NUM_CLIENTS", default=8, type="int")
     parser.add_option("--hard-durability", dest="hard", action="store_true", default=False)
     parser.add_option("--force", dest="force", action="store_true", default=False)
@@ -77,6 +80,15 @@ def parse_options():
 
     # Verify valid --import options
     res["tables"] = parse_db_table_options(options.tables)
+
+    # Make sure the temporary directory exists and is accessible
+    res["temp_dir"] = options.temp_dir
+
+    if res["temp_dir"] is not None:
+        if not os.path.isdir(res["temp_dir"]):
+            raise RuntimeError("Error: Temporary directory doesn't exist or is not a directory: %s" % res["temp_dir"])
+        if not os.access(res["temp_dir"], os.W_OK):
+            raise RuntimeError("Error: Temporary directory inaccessible: %s" % res["temp_dir"])
 
     res["auth_key"] = options.auth_key
     res["clients"] = options.clients
@@ -134,7 +146,6 @@ def do_import(temp_dir, options):
     if options["debug"]:
         export_args.extend(["--debug"])
 
-    print("importing with args: %s" % str(import_args))
     res = subprocess.call(import_args)
     if res != 0:
         raise RuntimeError("Error: rethinkdb-import failed")
@@ -143,7 +154,7 @@ def do_import(temp_dir, options):
 
 def run_rethinkdb_import(options):
     # Create a temporary directory to store the extracted data
-    temp_dir = tempfile.mkdtemp()
+    temp_dir = tempfile.mkdtemp(dir=options["temp_dir"])
     res = -1
 
     try:
