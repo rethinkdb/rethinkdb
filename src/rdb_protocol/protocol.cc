@@ -973,13 +973,16 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
     void merge_stats() const {
         counted_t<const ql::datum_t> stats = ql::datum_t::empty_object();
 
+        std::set<std::string> conditions;
         for (size_t i = 0; i < count; ++i) {
             const counted_t<const ql::datum_t> *stats_i =
                 boost::get<counted_t<const ql::datum_t> >(&responses[i].response);
             guarantee(stats_i != NULL);
-            stats = stats->merge(*stats_i, ql::stats_merge, *limits);
+            stats = stats->merge(*stats_i, ql::stats_merge, *limits, &conditions);
         }
-        *response_out = write_response_t(stats);
+        ql::datum_object_builder_t result(std::move(stats)->as_object());
+        result.add_warnings(conditions, *limits);
+        *response_out = write_response_t(std::move(result).to_counted());
     }
     void operator()(const batched_replace_t &) const {
         merge_stats();

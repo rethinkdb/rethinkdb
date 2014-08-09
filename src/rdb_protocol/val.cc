@@ -62,8 +62,13 @@ counted_t<const datum_t> table_t::batched_replace(
         counted_t<const datum_t> insert_stats = batched_insert(
             env, std::move(replacement_values), conflict_behavior_t::REPLACE,
             durability_requirement, return_changes);
-        return std::move(stats).to_counted()->merge(insert_stats, stats_merge,
-                                                   env->limits);
+        std::set<std::string> conditions;
+        counted_t<const datum_t> merged
+            = std::move(stats).to_counted()->merge(insert_stats, stats_merge,
+                                                   env->limits, &conditions);
+        datum_object_builder_t result(std::move(merged)->as_object());
+        result.add_warnings(conditions, env->limits);
+        return std::move(result).to_counted();
     } else {
         return table->write_batched_replace(
             env, keys, replacement_generator, return_changes,
@@ -102,7 +107,13 @@ counted_t<const datum_t> table_t::batched_insert(
         table->write_batched_insert(
             env, std::move(valid_inserts), conflict_behavior, return_changes,
             durability_requirement);
-    return std::move(stats).to_counted()->merge(insert_stats, stats_merge, env->limits);
+    std::set<std::string> conditions;
+    counted_t<const datum_t> merged
+        = std::move(stats).to_counted()->merge(insert_stats, stats_merge,
+                                               env->limits, &conditions);
+    datum_object_builder_t result(std::move(merged)->as_object());
+    result.add_warnings(conditions, env->limits);
+    return std::move(result).to_counted();
 }
 
 MUST_USE bool table_t::sindex_create(env_t *env,
