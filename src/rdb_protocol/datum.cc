@@ -1319,14 +1319,26 @@ counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
     if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
         return make_counted<datum_t>(l->as_num() + r->as_num());
     } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
-        datum_array_builder_t arr(limits);
-        for (size_t i = 0; i < l->size(); ++i) {
-            arr.add(l->get(i));
+        if (l->size() + r->size() > limits.array_size_limit()) {
+            datum_array_builder_t arr(limits);
+            size_t so_far = 0;
+            for (size_t i = 0; i < l->size() && so_far < limits.array_size_limit(); ++i, ++so_far) {
+                arr.add(l->get(i));
+            }
+            for (size_t i = 0; i < r->size() && so_far < limits.array_size_limit(); ++i, ++so_far) {
+                arr.add(r->get(i));
+            }
+            return std::move(arr).to_counted();
+        } else {
+            datum_array_builder_t arr(limits);
+            for (size_t i = 0; i < l->size(); ++i) {
+                arr.add(l->get(i));
+            }
+            for (size_t i = 0; i < r->size(); ++i) {
+                arr.add(r->get(i));
+            }
+            return std::move(arr).to_counted();
         }
-        for (size_t i = 0; i < r->size(); ++i) {
-            arr.add(r->get(i));
-        }
-        return std::move(arr).to_counted();
     }
 
     // Merging a string is left-preferential, which is just a no-op.
