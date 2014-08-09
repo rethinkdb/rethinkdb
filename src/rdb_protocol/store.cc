@@ -389,12 +389,14 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 }
 
                 {
-                    ql::map_wire_func_t mapping;
-                    sindex_reql_version_info_t version_info;
-                    deserialize_sindex_info(it->second.opaque_definition, &mapping,
-                                            &version_info, &s->multi);
-                    s->outdated = (version_info.latest_compatible_reql_version !=
-                                   reql_version_t::LATEST);
+                    sindex_disk_info_t sindex_info;
+                    deserialize_sindex_info(it->second.opaque_definition, &sindex_info);
+
+                    s->geo = sindex_info.geo;
+                    s->multi = sindex_info.multi;
+                    s->outdated =
+                        (sindex_info.mapping_version_info.latest_compatible_reql_version
+                            != reql_version_t::LATEST);
                 }
             }
         }

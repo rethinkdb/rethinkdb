@@ -328,6 +328,7 @@ void add_status(const single_sindex_status_t &new_status,
     status_out->blocks_total += new_status.blocks_total;
     status_out->ready &= new_status.ready;
     status_out->func = new_status.func; // All shards have the same function.
+    status_out->geo = new_status.geo; // All shards have the same geoness.
     status_out->multi = new_status.multi; // All shards have the same multiness.
     status_out->outdated = new_status.outdated; // All shards have the same datedness.
 }
@@ -1152,12 +1153,13 @@ void write_t::unshard(write_response_t *responses, size_t count,
 }
 
 
-RDB_IMPL_SERIALIZABLE_6(
+RDB_IMPL_SERIALIZABLE_7(
         rdb_protocol::single_sindex_status_t,
         blocks_total,
         blocks_processed,
         ready,
         func,
+        geo,
         multi,
         outdated);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(rdb_protocol::single_sindex_status_t);

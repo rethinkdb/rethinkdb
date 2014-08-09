@@ -329,6 +329,9 @@ tests:
     js: tbl2.index_wait()('ready')
     ot: ([true, true])
 
+  - py: tbl2.index_wait()['geo']
+    ot: bag([false, false])
+
   - py: tbl2.index_wait()['multi']
     ot: bag([false, true])
 

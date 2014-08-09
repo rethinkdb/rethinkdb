@@ -177,8 +177,8 @@ void bring_sindexes_up_to_date(
 struct single_sindex_status_t {
     single_sindex_status_t()
         : blocks_processed(0),
-          blocks_total(0), ready(true),
-          outdated(false), multi(sindex_multi_bool_t::SINGLE)
+          blocks_total(0), ready(true), outdated(false),
+          geo(sindex_geo_bool_t::REGULAR), multi(sindex_multi_bool_t::SINGLE)
     { }
     single_sindex_status_t(size_t _blocks_processed, size_t _blocks_total, bool _ready)
         : blocks_processed(_blocks_processed),
@@ -186,6 +186,7 @@ struct single_sindex_status_t {
     size_t blocks_processed, blocks_total;
     bool ready;
     bool outdated;
+    sindex_geo_bool_t geo;
     sindex_multi_bool_t multi;
     std::string func;
 };
