@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import sys, os, datetime, time, shutil, tempfile, subprocess
+import sys, os, datetime, time, shutil, tempfile, subprocess, os.path
 from optparse import OptionParser
 from ._backup import *
 
@@ -20,6 +20,7 @@ def print_dump_help():
     print "                                   be specified multiple times)"
     print "  --clients NUM_CLIENTS            number of tables to export simultaneously (defaults"
     print "                                   to 3)"
+    print "  --temp-dir DIRECTORY             the directory to use for intermediary results"
     print ""
     print "EXAMPLES:"
     print "rethinkdb dump -c mnemosyne:39500"
@@ -38,6 +39,7 @@ def parse_options():
     parser.add_option("-f", "--file", dest="out_file", metavar="file", default=None, type="string")
     parser.add_option("-e", "--export", dest="tables", metavar="(db | db.table)", default=[], action="append", type="string")
 
+    parser.add_option("--temp-dir", dest="temp_dir", metavar="directory", default=None, type="string")
     parser.add_option("--clients", dest="clients", metavar="NUM", default=3, type="int")
     parser.add_option("--debug", dest="debug", default=False, action="store_true")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
@@ -70,6 +72,15 @@ def parse_options():
     if options.clients < 1:
        raise RuntimeError("Error: invalid number of clients (%d), must be greater than zero" % options.clients)
     res["clients"] = options.clients
+
+    # Make sure the temporary directory exists and is accessible
+    res["temp_dir"] = options.temp_dir
+
+    if res["temp_dir"] is not None:
+        if not os.path.isdir(res["temp_dir"]):
+            raise RuntimeError("Error: Temporary directory doesn't exist or is not a directory: %s" % res["temp_dir"])
+        if not os.access(res["temp_dir"], os.W_OK):
+            raise RuntimeError("Error: Temporary directory inaccessible: %s" % res["temp_dir"])
 
     res["tables"] = options.tables
     res["auth_key"] = options.auth_key
@@ -114,7 +125,7 @@ def do_zip(temp_dir, options):
 
 def run_rethinkdb_export(options):
     # Create a temporary directory to store the intermediary results
-    temp_dir = tempfile.mkdtemp()
+    temp_dir = tempfile.mkdtemp(dir=options["temp_dir"])
     res = -1
 
     # Print a warning about the capabilities of dump, so no one is confused (hopefully)
