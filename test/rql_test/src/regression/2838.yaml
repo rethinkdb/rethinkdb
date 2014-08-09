@@ -1,0 +1,20 @@
+desc: Test that return_changes fails gracefully.
+tests:
+  - py: r.table_create('2838')
+    ot: ({'created':1})
+
+  - py: r.table('2838').insert([{'result':i} for i in range(1,100)]).pluck('first_error', 'inserted')
+    ot: ({'inserted':99})
+  
+  - py: r.table('2838').update({'foo':'bar'}, return_changes=True)['changes'].count()
+    runopts:
+      array_limit: '40'
+    ot: (40)
+  
+  - py: r.table('2838').update({'foo':'bar'}, return_changes=True).pluck('warnings', 'first_error')
+    runopts:
+      array_limit: '40'
+    ot: ({'warnings':['Too many changes, array truncated to 40.']})
+
+  - py: r.table_drop('2838')
+    ot: ({'dropped':1})
