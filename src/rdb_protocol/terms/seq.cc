@@ -85,10 +85,10 @@ private:
     virtual counted_t<val_t> on_idx(
         env_t *env, counted_t<table_t> tbl, counted_t<val_t> idx) const {
         std::string idx_str = idx.has() ? idx->as_str().to_std() : tbl->get_pkey();
-        tbl->add_sorting(idx_str, sorting(), this);
+        counted_t<table_slice_t> slice(tbl, idx_str, sorting());
         batchspec_t batchspec = batchspec_t::all().with_at_most(1);
         counted_t<const datum_t> d =
-            tbl->as_datum_stream(env, term_t::backtrace())->next(env, batchspec);
+            slice->as_seq(env, term_t::backtrace())->next(env, batchspec);
         if (d.has()) {
             return this->new_val(d, tbl);
         } else {
@@ -202,14 +202,18 @@ private:
         if (counted_t<val_t> index = args->optarg(env, "index")) {
             std::string index_str = index->as_str().to_std();
             counted_t<table_t> tbl = args->arg(env, 0)->as_table();
+            counted_t<table_slice_t> slice;
             if (index_str == tbl->get_pkey()) {
                 auto field = make_counted<const datum_t>(std::move(index_str));
                 funcs.push_back(new_get_field_func(field, backtrace()));
+                slice = make_counted<table_slice_t>(tbl, index_str);
             } else {
-                tbl->add_sorting(index_str, sorting_t::ASCENDING, this);
+                slice = make_counted<table_slice_t>(
+                    tbl, index_str, sorting_t::ASCENDING);
                 append_index = true;
             }
-            seq = tbl->as_datum_stream(env->env, backtrace());
+            r_sanity_check(slice.has());
+            seq = slice->as_seq(env->env, backtrace());
         } else {
             seq = args->arg(env, 0)->as_seq(env->env);
         }
@@ -344,12 +348,13 @@ private:
         counted_t<val_t> sindex = args->optarg(env, "index");
         std::string sid = (sindex.has() ? sindex->as_str().to_std() : tbl->get_pkey());
 
-        tbl->add_bounds(
-            datum_range_t(
-                lb, left_open ? key_range_t::open : key_range_t::closed,
-                rb, right_open ? key_range_t::open : key_range_t::closed),
-            sid, this);
-        return new_val(tbl);
+        return new_val(
+            make_counted<table_slice_t>(
+                tbl,
+                sid,
+                datum_range_t(
+                    lb, left_open ? key_range_t::open : key_range_t::closed,
+                    rb, right_open ? key_range_t::open : key_range_t::closed)));
     }
     virtual const char *name() const { return "between"; }
 

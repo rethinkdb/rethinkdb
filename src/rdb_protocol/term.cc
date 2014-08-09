@@ -429,6 +429,9 @@ counted_t<val_t> term_t::new_val(counted_t<const db_t> db) const {
 counted_t<val_t> term_t::new_val(counted_t<table_t> t) const {
     return make_counted<val_t>(t, backtrace());
 }
+counted_t<val_t> term_t::new_val(counted_t<table_slice_t> t) const {
+    return make_counted<val_t>(t, backtrace());
+}
 counted_t<val_t> term_t::new_val(counted_t<func_t> f) const {
     return make_counted<val_t>(f, backtrace());
 }

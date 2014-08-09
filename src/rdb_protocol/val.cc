@@ -11,6 +11,26 @@
 
 namespace ql {
 
+table_slice_t::table_slice_t(counted_t<table_t> _tbl, std::string _idx,
+                             sorting_t _sorting, datum_range_t _bounds)
+    : pb_rcheckable_t(tbl->backtrace()),
+      tbl(std::move(_tbl)), idx(std::move(_idx)),
+      sorting(_sorting), bounds(std::move(_bounds)) { }
+
+
+counted_t<datum_stream_t> table_slice_t::as_seq(
+    env_t *env, const protob_t<const Backtrace> &bt) {
+    return tbl->as_seq(env, idx, bt, bounds, sorting);
+}
+counted_t<datum_stream_t> table_t::as_seq(
+    env_t *env,
+    const std::string &idx,
+    const protob_t<const Backtrace> &bt,
+    const datum_range_t &bounds,
+    sorting_t sorting) {
+    return table->read_all(env, idx, bt, display_name(), bounds, sorting, use_outdated);
+}
+
 table_t::table_t(scoped_ptr_t<base_table_t> &&_table,
                  counted_t<const db_t> _db, const std::string &_name,
                  bool _use_outdated, const protob_t<const Backtrace> &backtrace)
@@ -18,9 +38,7 @@ table_t::table_t(scoped_ptr_t<base_table_t> &&_table,
       db(_db),
       name(_name),
       table(std::move(_table)),
-      use_outdated(_use_outdated),
-      bounds(datum_range_t::universe()),
-      sorting(sorting_t::UNORDERED)
+      use_outdated(_use_outdated)
 { }
 
 counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) {
@@ -157,10 +175,7 @@ counted_t<const datum_t> table_t::sindex_status(env_t *env,
     return make_counted<const datum_t>(std::move(array), env->limits);
 }
 
-MUST_USE bool table_t::sync(env_t *env, const rcheckable_t *parent) {
-    rcheck_target(parent, base_exc_t::GENERIC,
-                  bounds.is_universe() && sorting == sorting_t::UNORDERED,
-                  "sync can only be applied directly to a table.");
+MUST_USE bool table_t::sync(env_t *env) {
     // In order to get the guarantees that we expect from a user-facing command,
     // we always have to use hard durability in combination with sync.
     return sync_depending_on_durability(env, DURABILITY_REQUIREMENT_HARD);
@@ -185,10 +200,6 @@ counted_t<datum_stream_t> table_t::get_all(
         counted_t<const datum_t> value,
         const std::string &get_all_sindex_id,
         const protob_t<const Backtrace> &bt) {
-    rcheck_src(bt.get(), base_exc_t::GENERIC, !sindex_id,
-               "Cannot chain get_all and other indexed operations.");
-    r_sanity_check(sorting == sorting_t::UNORDERED);
-    r_sanity_check(bounds.is_universe());
     return table->read_all(
         env,
         get_all_sindex_id,
@@ -199,66 +210,14 @@ counted_t<datum_stream_t> table_t::get_all(
         use_outdated);
 }
 
-void table_t::add_sorting(const std::string &new_sindex_id, sorting_t _sorting,
-                          const rcheckable_t *parent) {
-    r_sanity_check(_sorting != sorting_t::UNORDERED);
-
-    rcheck_target(parent, base_exc_t::GENERIC, sorting == sorting_t::UNORDERED,
-            "Cannot apply 2 indexed orderings to the same TABLE.");
-    rcheck_target(parent, base_exc_t::GENERIC, !sindex_id || *sindex_id == new_sindex_id,
-            strprintf(
-                "Cannot use 2 indexes in the same operation. Trying to use %s and %s",
-                sindex_id->c_str(), new_sindex_id.c_str()));
-
-    sindex_id = new_sindex_id;
-    sorting = _sorting;
-}
-
-void table_t::add_bounds(datum_range_t &&new_bounds, const std::string &new_sindex_id,
-                         const rcheckable_t *parent) {
-    if (sindex_id) {
-        rcheck_target(
-            parent, base_exc_t::GENERIC, *sindex_id == new_sindex_id,
-            strprintf(
-                "Cannot use 2 indexes in the same operation.  Trying to use %s and %s.",
-                sindex_id->c_str(), new_sindex_id.c_str()));
-    } else {
-        sindex_id = new_sindex_id;
-    }
-
-    rcheck_target(parent, base_exc_t::GENERIC, bounds.is_universe(),
-                  "Cannot chain multiple betweens to the same table.");
-    bounds = std::move(new_bounds);
-}
-
-counted_t<datum_stream_t> table_t::as_datum_stream(env_t *env,
-        const protob_t<const Backtrace> &bt) {
-    return table->read_all(
-        env,
-        (sindex_id ? *sindex_id : get_pkey()),
-        bt,
-        display_name(),
-        bounds,
-        sorting,
-        use_outdated);
-}
-
 counted_t<datum_stream_t> table_t::get_intersecting(
         env_t *env,
         const counted_t<const datum_t> &query_geometry,
         const std::string &new_sindex_id,
         const pb_rcheckable_t *parent) {
-    rcheck_target(parent, base_exc_t::GENERIC, !sindex_id,
-                  "Cannot chain get_intersecting with other indexed operations.");
-    rcheck_target(parent, base_exc_t::GENERIC, new_sindex_id != get_pkey(),
-                  "get_intersecting cannot use the primary index.");
-    sindex_id = new_sindex_id;
-    r_sanity_check(sorting == sorting_t::UNORDERED);
-    r_sanity_check(bounds.is_universe());
-
     return table->read_intersecting(
         env,
-        *sindex_id,
+        new_sindex_id,
         parent->backtrace(),
         display_name(),
         use_outdated,
@@ -275,17 +234,9 @@ counted_t<datum_stream_t> table_t::get_nearest(
         const std::string &new_sindex_id,
         const pb_rcheckable_t *parent,
         const configured_limits_t &limits) {
-    rcheck_target(parent, base_exc_t::GENERIC, !sindex_id,
-                  "Cannot chain get_nearest with other indexed operations.");
-    rcheck_target(parent, base_exc_t::GENERIC, new_sindex_id != get_pkey(),
-                  "get_nearest cannot use the primary index.");
-    sindex_id = new_sindex_id;
-    r_sanity_check(sorting == sorting_t::UNORDERED);
-    r_sanity_check(bounds.is_universe());
-
     return table->read_nearest(
         env,
-        *sindex_id,
+        new_sindex_id,
         parent->backtrace(),
         display_name(),
         use_outdated,
@@ -306,6 +257,7 @@ bool raw_type_is_convertible(val_t::type_t::raw_type_t _t1,
     const int t1 = _t1, t2 = _t2,
         DB               = val_t::type_t::DB,
         TABLE            = val_t::type_t::TABLE,
+        TABLE_SLICE      = val_t::type_t::TABLE_SLICE,
         SELECTION        = val_t::type_t::SELECTION,
         SEQUENCE         = val_t::type_t::SEQUENCE,
         SINGLE_SELECTION = val_t::type_t::SINGLE_SELECTION,
@@ -314,7 +266,9 @@ bool raw_type_is_convertible(val_t::type_t::raw_type_t _t1,
         GROUPED_DATA     = val_t::type_t::GROUPED_DATA;
     switch (t1) {
     case DB:               return t2 == DB;
-    case TABLE:            return t2 == TABLE || t2 == SELECTION || t2 == SEQUENCE;
+    case TABLE:            return t2 == TABLE || t2 == TABLE_SLICE
+                                  || t2 == SELECTION || t2 == SEQUENCE;
+    case TABLE_SLICE:      return t2 == TABLE_SLICE || t2 == SELECTION || t2 == SEQUENCE;
     case SELECTION:        return t2 == SELECTION || t2 == SEQUENCE;
     case SEQUENCE:         return t2 == SEQUENCE;
     case SINGLE_SELECTION: return t2 == SINGLE_SELECTION || t2 == DATUM;
@@ -408,7 +362,13 @@ val_t::val_t(counted_t<table_t> _table,
 val_t::val_t(counted_t<table_t> _table, protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::TABLE),
-      table(_table) {
+      table_u(_table) {
+    guarantee(table.has());
+}
+val_t::val_t(counted_t<table_slice_t> _t, protob_t<const Backtrace> backtrace)
+    : pb_rcheckable_t(backtrace),
+      type(type_t::TABLE_SLICE),
+      table_u(_t) {
     guarantee(table.has());
 }
 val_t::val_t(counted_t<const db_t> _db, protob_t<const Backtrace> backtrace)
@@ -439,6 +399,15 @@ counted_t<const datum_t> val_t::as_datum() const {
 counted_t<table_t> val_t::as_table() {
     rcheck_literal_type(type_t::TABLE);
     return table;
+}
+counted_t<table_t> val_t::as_table_slice() {
+    if (type.raw_type == type_t::TABLE) {
+        const counted_t<table_t> &tbl = boost::get<counted_t<table_t> >(table_u);
+        return make_counted<table_slice_t>(tbl, tbl->get_pkey());
+    } else {
+        rcheck_literal_type(type_t::TABLE_SLICE);
+        return boost::get<counted_t<table_slice_t> >(table_u);
+    }
 }
 
 counted_t<datum_stream_t> val_t::as_seq(env_t *env) {

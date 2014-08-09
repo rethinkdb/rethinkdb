@@ -71,7 +71,7 @@ public:
     // Propagate the associated backtrace through the rewrite term.
     void propagate(Term *t) const;
 
-    protob_t<const Backtrace> backtrace() const { return bt_src; }
+    const protob_t<const Backtrace> &backtrace() const { return bt_src; }
 
 protected:
     explicit pb_rcheckable_t(const protob_t<const Backtrace> &_bt_src)

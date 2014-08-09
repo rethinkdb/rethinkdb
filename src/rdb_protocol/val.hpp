@@ -31,8 +31,6 @@ public:
     table_t(scoped_ptr_t<base_table_t> &&,
             counted_t<const db_t> db, const std::string &name,
             bool use_outdated, const protob_t<const Backtrace> &src);
-    counted_t<datum_stream_t> as_datum_stream(env_t *env,
-                                              const protob_t<const Backtrace> &bt);
     const std::string &get_pkey();
     counted_t<const datum_t> get_row(env_t *env, counted_t<const datum_t> pval);
     counted_t<datum_stream_t> get_all(
@@ -40,13 +38,6 @@ public:
             counted_t<const datum_t> value,
             const std::string &sindex_id,
             const protob_t<const Backtrace> &bt);
-    void add_sorting(
-            const std::string &sindex_id, sorting_t sorting,
-            const rcheckable_t *parent);
-    void add_bounds(
-            datum_range_t &&new_bounds,
-            const std::string &new_sindex_id,
-            const rcheckable_t *parent);
     counted_t<datum_stream_t> get_intersecting(
             env_t *env,
             const counted_t<const datum_t> &query_geometry,
@@ -92,7 +83,7 @@ public:
     counted_t<const datum_t> sindex_list(env_t *env);
     counted_t<const datum_t> sindex_status(env_t *env,
         std::set<std::string> sindex);
-    MUST_USE bool sync(env_t *env, const rcheckable_t *parent);
+    MUST_USE bool sync(env_t *env);
 
     /* `db` and `name` are for display purposes only */
     counted_t<const db_t> db;
@@ -100,6 +91,13 @@ public:
     std::string display_name() {
         return db->name + "." + name;
     }
+
+    counted_t<datum_stream_t> as_seq(
+        env_t *env,
+        const std::string &idx,
+        const protob_t<const Backtrace> &bt,
+        const datum_range_t &bounds,
+        sorting_t sorting);
 
     scoped_ptr_t<base_table_t> table;
 
@@ -117,13 +115,21 @@ private:
         env_t *env, durability_requirement_t durability_requirement);
 
     bool use_outdated;
-
-    boost::optional<std::string> sindex_id;
-
-    datum_range_t bounds;
-    sorting_t sorting;
 };
 
+class table_slice_t
+    : public single_threaded_countable_t<table_slice_t>, public pb_rcheckable_t {
+public:
+    table_slice_t(counted_t<table_t> _tbl, std::string _idx,
+                  sorting_t _sorting = sorting_t::UNORDERED,
+                  datum_range_t _bounds = datum_range_t::universe());
+    counted_t<datum_stream_t> as_seq(env_t *env, const protob_t<const Backtrace> &bt);
+private:
+    counted_t<table_t> tbl;
+    std::string idx;
+    sorting_t sorting;
+    datum_range_t bounds;
+};
 
 enum function_shortcut_t {
     NO_SHORTCUT = 0,
@@ -149,6 +155,7 @@ public:
         enum raw_type_t {
             DB               = 1, // db
             TABLE            = 2, // table
+            TABLE_SLICE      = 9, // table_slice
             SELECTION        = 3, // table, sequence
             SEQUENCE         = 4, // sequence
             SINGLE_SELECTION = 5, // table, datum (object)
@@ -183,6 +190,7 @@ public:
     val_t(env_t *env, counted_t<datum_stream_t> _sequence,
           protob_t<const Backtrace> backtrace);
     val_t(counted_t<table_t> _table, protob_t<const Backtrace> backtrace);
+    val_t(counted_t<table_slice_t> _table_slice, protob_t<const Backtrace> backtrace);
     val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence,
           protob_t<const Backtrace> backtrace);
     val_t(counted_t<const db_t> _db, protob_t<const Backtrace> backtrace);
@@ -191,6 +199,7 @@ public:
 
     counted_t<const db_t> as_db() const;
     counted_t<table_t> as_table();
+    counted_t<table_slice_t> as_table_slice();
     std::pair<counted_t<table_t>, counted_t<datum_stream_t> > as_selection(env_t *env);
     counted_t<datum_stream_t> as_seq(env_t *env);
     std::pair<counted_t<table_t>, counted_t<const datum_t> > as_single_selection();
@@ -234,7 +243,9 @@ private:
     void rcheck_literal_type(type_t::raw_type_t expected_raw_type) const;
 
     type_t type;
-    counted_t<table_t> table;
+    boost::variant<
+        counted_t<table_t>,
+        counted_t<table_slice_t> > table_u;
     counted_t<const datum_t> orig_key;
 
     // We pretend that this variant is a union -- as if it doesn't have type
