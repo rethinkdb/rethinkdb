@@ -318,7 +318,9 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        return new_val(env->env, args->arg(env, 0)->as_seq(env->env)->zip());
+        counted_t<datum_stream_t> stream = args->arg(env, 0)->as_seq(env->env);
+        stream->add_transformation(zip_wire_func_t(), backtrace());
+        return new_val(env->env, stream);
     }
     virtual const char *name() const { return "zip"; }
 };

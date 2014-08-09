@@ -112,6 +112,10 @@ struct count_wire_func_t {
 };
 RDB_DECLARE_SERIALIZABLE(count_wire_func_t);
 
+class zip_wire_func_t {
+};
+RDB_DECLARE_SERIALIZABLE(zip_wire_func_t);
+
 class bt_wire_func_t {
 public:
     bt_wire_func_t() : bt(make_counted_backtrace()) { }

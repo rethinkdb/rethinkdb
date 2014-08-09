@@ -208,6 +208,9 @@ RDB_IMPL_ME_SERIALIZABLE_4_SINCE_v1_13(group_wire_func_t, funcs, append_index, m
 
 RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(count_wire_func_t);
 
+RDB_IMPL_SERIALIZABLE_0(zip_wire_func_t);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(zip_wire_func_t);
+
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(filter_wire_func_t, filter_func, default_filter_val);
 
 RDB_MAKE_SERIALIZABLE_1(distinct_wire_func_t, use_index);

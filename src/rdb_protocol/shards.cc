@@ -854,6 +854,22 @@ private:
     counted_t<func_t> f;
 };
 
+class zip_trans_t : public ungrouped_op_t {
+public:
+    explicit zip_trans_t(const zip_wire_func_t &) {}
+private:
+    virtual void lst_transform(env_t *, datums_t *lst,
+                               const counted_t<const datum_t> &) {
+        for (auto it = lst->begin(); it != lst->end(); ++it) {
+            auto left = (*it)->get("left", NOTHROW);
+            auto right = (*it)->get("right", NOTHROW);
+            rcheck_target((*it), base_exc_t::GENERIC, left.has(),
+                   "ZIP can only be called on the result of a join.");
+            *it = right.has() ? left->merge(right) : left;
+        }
+    }
+};
+
 class transform_visitor_t : public boost::static_visitor<op_t *> {
 public:
     explicit transform_visitor_t() { }
@@ -871,6 +887,9 @@ public:
     }
     op_t *operator()(const distinct_wire_func_t &f) const {
         return new distinct_trans_t(f);
+    }
+    op_t *operator()(const zip_wire_func_t &f) const {
+        return new zip_trans_t(f);
     }
 };
 

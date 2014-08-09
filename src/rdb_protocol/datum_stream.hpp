@@ -180,14 +180,6 @@ private:
     uint64_t index, left, right;
 };
 
-class zip_datum_stream_t : public wrapper_datum_stream_t {
-public:
-    explicit zip_datum_stream_t(counted_t<datum_stream_t> src);
-private:
-    virtual std::vector<counted_t<const datum_t> >
-    next_raw_batch(env_t *env, const batchspec_t &batchspec);
-};
-
 class indexed_sort_datum_stream_t : public wrapper_datum_stream_t {
 public:
     indexed_sort_datum_stream_t(
