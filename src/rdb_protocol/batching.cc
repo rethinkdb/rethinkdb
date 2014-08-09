@@ -73,6 +73,9 @@ batchspec_t batchspec_t::user(batch_type_t batch_type,
                        ? first_scaledown_d->as_int()
                        : DEFAULT_FIRST_SCALEDOWN;
     int64_t max_dur = max_dur_d.has() ? max_dur_d->as_int() : DEFAULT_MAX_DURATION;
+    // Protect the user in case they're a dork.  Normally we would do rfail and
+    // trigger exceptions, but due to NOTHROWs above this may not be safe.
+    min_els = std::min<int64_t>(min_els, max_els);
     return batchspec_t(batch_type,
                        min_els,
                        max_els,
@@ -141,6 +144,8 @@ batchspec_t batchspec_t::scale_down(int64_t divisor) const {
             : std::min(max_size, (max_size * DIVISOR_SCALING_FACTOR
                                   / ((DIVISOR_SCALING_FACTOR - 1) * divisor))
                                  + SCALE_CONSTANT);
+    // to avoid problems when the batches get really tiny, we clamp new_max_els to be at least min_els.
+    new_max_els = std::max(min_els, new_max_els);
 
     return batchspec_t(batch_type, min_els, new_max_els, new_max_size,
                        first_scaledown_factor, max_dur, start_time);
