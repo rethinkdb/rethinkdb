@@ -312,8 +312,8 @@ module 'DataExplorerView', ->
         suggestions: {} # Suggestions[state] = function for this state
 
         types:
-            value: ['number', 'bool', 'string', 'array', 'object', 'time']
-            any: ['number', 'bool', 'string', 'array', 'object', 'stream', 'selection', 'table', 'db', 'r', 'error' ]
+            value: ['number', 'bool', 'string', 'array', 'object', 'time', 'binary']
+            any: ['number', 'bool', 'string', 'array', 'object', 'stream', 'selection', 'table', 'db', 'r', 'error', 'binary']
             sequence: ['table', 'selection', 'stream', 'array']
             grouped_stream: ['stream', 'array']
 
