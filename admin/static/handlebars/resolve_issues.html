@@ -262,6 +262,22 @@
     </div>
 </script>
 
+<script id="resolve_issues-outdated_index_issue-template" type="text/x-handlebars-template">
+    <div class="issue {{#if critical }}critical{{/if}} name-conflict">
+        <div class="issue-header">
+            <p class="issue-type">Outdated indexes</p>
+            <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>
+        </div>
+        <hr />
+        <div class="issue-details">
+            <p>The cluster contains indexes that were created with a previous version of the query language which contained some bugs.  These should be remade to avoid relying on broken behavior.  See <a href="http://www.rethinkdb.com/docs/migration/">the migration page</a> for details.</p>
+            {{#each namespaces}}
+            <p>The table {{db}}.{{table}} has {{count}} outdated {{pluralize_noun "index" count}}: {{comma_separated_simple indexes}}</p>
+            {{/each}}
+        </div>
+    </div>
+</script>
+
 <script id="resolve_issues-port_conflict-template" type="text/x-handlebars-template">
     <div class="issue {{#if critical }}critical{{/if}} name-conflict">
         <div class="issue-header">
