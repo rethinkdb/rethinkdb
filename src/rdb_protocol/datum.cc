@@ -1342,7 +1342,9 @@ void datum_object_builder_t::add_warning(const char *msg, const configured_limit
         for (auto i = array.begin(); i != array.end(); ++i) {
             if ((*i)->as_str() == msg) return;
         }
-        r_sanity_check(array.size() + 1 <= limits.array_size_limit());
+        rcheck_datum(array.size() + 1 <= limits.array_size_limit(),
+            base_exc_t::GENERIC,
+            strprintf("Warnings would exceed array size limit %zu; increase it to see warnings", limits.array_size_limit()));
         datum_array_builder_t out(std::vector<counted_t<const datum_t> >(array), limits);
         out.add(make_counted<datum_t>(msg));
         *warnings_entry = out.to_counted();
@@ -1359,7 +1361,9 @@ void datum_object_builder_t::add_warnings(const std::set<std::string> &msgs, con
     if (warnings_entry->has()) {
         const std::vector<counted_t<const datum_t> > &array
             = (*warnings_entry)->as_array();
-        r_sanity_check(array.size() + msgs.size() <= limits.array_size_limit());
+        rcheck_datum(array.size() + msgs.size() <= limits.array_size_limit(),
+            base_exc_t::GENERIC,
+            strprintf("Warnings would exceed array size limit %zu; increase it to see warnings", limits.array_size_limit()));
         datum_array_builder_t out(std::vector<counted_t<const datum_t> >(array), limits);
         for (auto msg : msgs) {
             bool seen = false;
