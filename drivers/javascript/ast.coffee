@@ -73,7 +73,8 @@ class TermBase
                     callback = options
                     options = {}
                 else
-                    throw new err.RqlDriverError "Second argument to `run` cannot be a function is a third argument is provided."
+                    options new err.RqlDriverError("Second argument to `run` cannot be a function is a third argument is provided.")
+                    return
             # else we suppose that we have run(connection[, options][, callback])
         else if connection?.constructor is Object
             if @showRunWarning is true
@@ -88,11 +89,18 @@ class TermBase
         options = {} if not options?
 
         # Check if the arguments are valid types
-        for own key of options
-            unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'binaryFormat', 'batchConf', 'arrayLimit']
-                throw new err.RqlDriverError "Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>}."
-        if net.isConnection(connection) is false
-            throw new err.RqlDriverError "First argument to `run` must be an open connection."
+        try
+            for own key of options
+                unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'binaryFormat', 'batchConf', 'arrayLimit']
+                    throw new err.RqlDriverError "Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>}."
+            if net.isConnection(connection) is false
+                throw new err.RqlDriverError "First argument to `run` must be an open connection."
+        catch e
+            if typeof callback is 'function'
+                return callback(e)
+            else
+                return new Promise (resolve, reject) =>
+                    reject(e)
 
         if options.noreply is true or typeof callback is 'function'
             try
