@@ -4,6 +4,7 @@
 
 #include <map>
 #include <set>
+#include <list>
 #include <string>
 
 #include "http/json.hpp"
