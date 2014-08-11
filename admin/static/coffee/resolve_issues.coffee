@@ -222,12 +222,7 @@ module 'ResolveIssuesView', ->
             'PORT_CONFLICT': Handlebars.templates['resolve_issues-port_conflict-template']
             'OUTDATED_INDEX_ISSUE': Handlebars.templates['resolve_issues-outdated_index_issue-template']
 
-
-        events: ->
-            'click .rebuild_link': 'rebuild_index'
-
         unknown_issue_template: Handlebars.templates['resolve_issues-unknown-template']
-
 
         render_machine_down: (_template) =>
             machine = machines.get(@model.get('victim'))
@@ -583,7 +578,6 @@ module 'ResolveIssuesView', ->
                 description: @model.get('description')
                 namespaces: namespaces_concerned
             @.$el.html _template(json)
-            @delegateEvents()
 
         rebuild_index: (ev) ->
             ev.preventDefault()
