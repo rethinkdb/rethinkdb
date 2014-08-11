@@ -11,10 +11,10 @@ tests:
       array_limit: '40'
     ot: (40)
   
-  - py: r.table('2838').update({'foo':'quux'}, return_changes=True)
+  - py: r.table('2838').update({'foo':'quux'}, return_changes=True)['warnings']
     runopts:
       array_limit: '40'
-    ot: ({'warnings':['Too many changes, array truncated to 40.']})
+    ot: (['Too many changes, array truncated to 40.'])
 
   - py: r.table_drop('2838')
     ot: ({'dropped':1})
