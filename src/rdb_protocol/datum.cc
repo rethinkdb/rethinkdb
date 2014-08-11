@@ -1333,10 +1333,6 @@ void datum_object_builder_t::overwrite(std::string key,
     map[std::move(key)] = std::move(val);
 }
 
-void datum_object_builder_t::add_warning(std::string msg, const configured_limits_t &limits) {
-    add_warning(msg.c_str(), limits);
-}
-
 void datum_object_builder_t::add_warning(const char *msg, const configured_limits_t &limits) {
     counted_t<const datum_t> *warnings_entry = &map["warnings"];
     if (warnings_entry->has()) {

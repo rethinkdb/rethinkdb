@@ -177,7 +177,7 @@ private:
         if (keys_skipped > 0) {
             obj.add_warning(strprintf("Too many generated keys (%zu), array truncated to %zu.",
                               keys_skipped + generated_keys.size(),
-                              generated_keys.size()), env->env->limits);
+                              generated_keys.size()).c_str(), env->env->limits);
         }
 
         return new_val(obj.to_counted());
