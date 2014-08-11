@@ -272,7 +272,7 @@
         <div class="issue-details">
             <p>The cluster contains indexes that were created with a previous version of the query language which contained some bugs.  These should be remade to avoid relying on broken behavior.  See <a href="http://www.rethinkdb.com/docs/migration/">the migration page</a> for details.</p>
             {{#each namespaces}}
-            <p>The table {{db}}.{{table}} has {{count}} outdated {{pluralize_noun "index" count}}: {{comma_separated_simple indexes}}</p>
+            <p>The table <a href="#databases/{{db_id}}">{{db}}</a>.<a href="#tables/{{namespace_id}}">{{name}}</a> has {{count}} outdated {{pluralize_noun "index" count}}: {{comma_separated_simple indexes}}</p>
             {{/each}}
         </div>
     </div>

@@ -559,6 +559,8 @@ module 'ResolveIssuesView', ->
                     name: namespaces.get(namespace_id).get('name')
                     indexes: indexes
                     count: indexes.length
+                    namespace_id: namespace_id
+                    db_id: namespaces.get(namespace_id).get 'database'
 
             namespaces_concerned.sort (left, right) ->
                 if left.db < right.db
@@ -578,13 +580,6 @@ module 'ResolveIssuesView', ->
                 description: @model.get('description')
                 namespaces: namespaces_concerned
             @.$el.html _template(json)
-
-        rebuild_index: (ev) ->
-            ev.preventDefault()
-            #TODO
-            console.log $(ev.target).data('db')
-            console.log $(ev.target).data('table')
-            console.log $(ev.target).data('index')
 
         render_port_conflict: (_template) ->
             # render
