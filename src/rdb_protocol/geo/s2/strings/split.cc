@@ -246,7 +246,7 @@ void SplitStringIntoNPiecesAllowEmpty(const std::string& full,
                                       const char* delim,
                                       int pieces,
                                       vector<std::string>* result) {
-  back_insert_iterator<vector<std::string> > it(*result);
+  std::back_insert_iterator<std::vector<std::string> > it(*result);
   SplitStringToIteratorAllowEmpty(full, delim, pieces, it);
 }
 
@@ -261,7 +261,7 @@ void SplitStringIntoNPiecesAllowEmpty(const std::string& full,
 // ----------------------------------------------------------------------
 void SplitStringAllowEmpty(const std::string& full, const char* delim,
                            vector<std::string>* result) {
-  back_insert_iterator<vector<std::string> > it((*result));
+  std::back_insert_iterator<std::vector<std::string> > it((*result));
   SplitStringToIteratorAllowEmpty(full, delim, 0, it);
 }
 
@@ -367,7 +367,7 @@ void SplitStringUsing(const std::string& full,
                       const char* delim,
                       vector<std::string>* result) {
   result->reserve(result->size() + CalculateReserveForVector(full, delim));
-  back_insert_iterator< vector<std::string> > it((*result));
+  std::back_insert_iterator<std::vector<std::string> > it((*result));
   SplitStringToIteratorUsing(full, delim, it);
 }
 

@@ -35,7 +35,7 @@
 /* We use SIGPWR since that seems unlikely to be used for other reasons. */
 #define GOOGLE_OBSCURE_SIGNAL  SIGPWR
 
-#if defined OS_LINUX || defined OS_CYGWIN
+#if defined __linux__ || defined OS_CYGWIN
 
 // _BIG_ENDIAN
 #include <endian.h>
@@ -160,7 +160,7 @@ const char PATH_SEPARATOR = '/';
 
 // Windows has O_BINARY as a flag to open() (like "b" for fopen).
 // Linux doesn't need make this distinction.
-#if defined OS_LINUX && !defined O_BINARY
+#if defined __linux__ && !defined O_BINARY
 #define O_BINARY 0
 #endif
 
@@ -265,8 +265,6 @@ inline size_t strnlen(const char *s, size_t maxlen) {
     return end - s;
   return maxlen;
 }
-
-using namespace std;  // just like VC++, we need a using here
 
 // Doesn't exist on OSX; used in google.cc for send() to mean "no flags".
 #define MSG_NOSIGNAL 0
@@ -475,104 +473,6 @@ inline void* memrchr(const void* bytes, int find_char, size_t len) {
 #define MUST_USE_RESULT
 #endif
 
-
-#if (defined(__GNUC__) || defined(__llvm__))
-// Defined behavior on some of the uarchs:
-// PREFETCH_HINT_T0:
-//   prefetch to all levels of the hierarchy (except on p4: prefetch to L2)
-// PREFETCH_HINT_NTA:
-//   p4: fetch to L2, but limit to 1 way (out of the 8 ways)
-//   core: skip L2, go directly to L1
-//   k8 rev E and later: skip L2, can go to either of the 2-ways in L1
-enum PrefetchHint {
-  PREFETCH_HINT_T0 = 3,  // More temporal locality
-  PREFETCH_HINT_T1 = 2,
-  PREFETCH_HINT_T2 = 1,  // Less temporal locality
-  PREFETCH_HINT_NTA = 0  // No temporal locality
-};
-#else
-// prefetch is a no-op for this target. Feel free to add more sections above.
-#endif
-
-extern inline void prefetch(const char *x, int hint) {
-#if defined(__llvm__)
-  // In the gcc version of prefetch(), hint is only a constant _after_ inlining
-  // (assumed to have been successful).  icc views things differently, and
-  // checks constant-ness _before_ inlining.  This leads to compilation errors
-  // with the gcc version in icc.
-  //
-  // One way round this is to use a switch statement to explicitly match
-  // prefetch hint enumerations, and invoke __builtin_prefetch for each valid
-  // value.  icc's optimization removes the switch and unused case statements
-  // after inlining, so that this boils down in the end to the same as for gcc;
-  // that is, a single inlined prefetchX instruction.  Demonstrate by compiling
-  // with icc options -xK -O2 and viewing assembly language output.
-  //
-  // Note that this version of prefetch() cannot verify constant-ness of hint.
-  // If client code calls prefetch() with a variable value for hint, it will
-  // receive the full expansion of the switch below, perhaps also not inlined.
-  // This should however not be a problem in the general case of well behaved
-  // caller code that uses the supplied prefetch hint enumerations.
-  switch (hint) {
-    case PREFETCH_HINT_T0:
-      __builtin_prefetch(x, 0, PREFETCH_HINT_T0);
-      break;
-    case PREFETCH_HINT_T1:
-      __builtin_prefetch(x, 0, PREFETCH_HINT_T1);
-      break;
-    case PREFETCH_HINT_T2:
-      __builtin_prefetch(x, 0, PREFETCH_HINT_T2);
-      break;
-    case PREFETCH_HINT_NTA:
-      __builtin_prefetch(x, 0, PREFETCH_HINT_NTA);
-      break;
-    default:
-      __builtin_prefetch(x);
-      break;
-  }
-#elif defined(__GNUC__)
- #if !defined(ARCH_PIII) || defined(__SSE__)
-  if (__builtin_constant_p(hint)) {
-    __builtin_prefetch(x, 0, hint);
-  } else {
-    // Defaults to PREFETCH_HINT_T0
-    __builtin_prefetch(x);
-  }
-#else
-  // We want a __builtin_prefetch, but we build with the default -march=i386
-  // where __builtin_prefetch quietly turns into nothing.
-  // Once we crank up to -march=pentium3 or higher the __SSE__
-  // clause above will kick in with the builtin.
-  // -- mec 2006-06-06
-  if (hint == PREFETCH_HINT_NTA)
-    __asm__ __volatile__("prefetchnta (%0)" : : "r"(x));
- #endif
-#else
-  // You get no effect.  Feel free to add more sections above.
-#endif
-}
-
-#ifdef __cplusplus
-// prefetch intrinsic (bring data to L1 without polluting L2 cache)
-extern inline void prefetch(const char *x) {
-  return prefetch(x, 0);
-}
-#endif  // ifdef __cplusplus
-
-//
-// GCC can be told that a certain branch is not likely to be taken (for
-// instance, a CHECK failure), and use that information in static analysis.
-// Giving it this information can help it optimize for the common case in
-// the absence of better information (ie. -fprofile-arcs).
-//
-#if defined(__GNUC__)
-#define PREDICT_FALSE(x) (__builtin_expect(x, 0))
-#define PREDICT_TRUE(x) (__builtin_expect(!!(x), 1))
-#else
-#define PREDICT_FALSE(x) x
-#define PREDICT_TRUE(x) x
-#endif
-
 #define FTELLO ftello
 #define FSEEKO fseeko
 
@@ -626,9 +526,6 @@ inline void aligned_free(void *aligned_memory) {
 #define ATTRIBUTE_STACK_ALIGN_FOR_OLD_LIBC
 #define REQUIRE_STACK_ALIGN_TRAMPOLINE (0)
 #define MUST_USE_RESULT
-extern inline void prefetch(UNUSED const char *x) {}
-#define PREDICT_FALSE(x) x
-#define PREDICT_TRUE(x) x
 
 // These should be redefined appropriately if better alternatives to
 // ftell/fseek exist in the compiler
@@ -693,8 +590,6 @@ extern inline void prefetch(UNUSED const char *x) {}
 #ifndef HUGE_VALF
 #define HUGE_VALF (static_cast<float>(HUGE_VAL))
 #endif
-
-using namespace std;
 
 // VC++ doesn't understand "uint"
 #ifndef HAVE_UINT
