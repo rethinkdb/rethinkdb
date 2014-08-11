@@ -14,7 +14,7 @@
 #include "rdb_protocol/geo/s2/base/int128.h"
 
 inline uint64 gbswap_64(uint64 host_int) {
-#if defined(COMPILER_GCC3) && defined(__x86_64__)
+#if defined(__GNUC__) && defined(__x86_64__)
   // Adapted from /usr/include/byteswap.h.
   if (__builtin_constant_p(host_int)) {
     return __bswap_constant_64(host_int);

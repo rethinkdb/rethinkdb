@@ -320,21 +320,7 @@ inline void* memrchr(const void* bytes, int find_char, size_t len) {
 
 // GCC-specific features
 
-#if (defined(COMPILER_GCC3) || defined(COMPILER_ICC) || defined(__MACH__)) && !defined(SWIG)
-
-//
-// Tell the compiler to do printf format string checking if the
-// compiler supports it; see the 'format' attribute in
-// <http://gcc.gnu.org/onlinedocs/gcc-4.3.0/gcc/Function-Attributes.html>.
-//
-// N.B.: As the GCC manual states, "[s]ince non-static C++ methods
-// have an implicit 'this' argument, the arguments of such methods
-// should be counted from two, not one."
-//
-#define PRINTF_ATTRIBUTE(string_index, first_to_check) \
-    __attribute__((__format__ (__printf__, string_index, first_to_check)))
-#define SCANF_ATTRIBUTE(string_index, first_to_check) \
-    __attribute__((__format__ (__scanf__, string_index, first_to_check)))
+#if (defined(__GNUC__) || defined(__MACH__)) && !defined(SWIG)
 
 //
 // Prevent the compiler from padding a structure to natural alignment
@@ -490,7 +476,7 @@ inline void* memrchr(const void* bytes, int find_char, size_t len) {
 #endif
 
 
-#if (defined(COMPILER_ICC) || defined(COMPILER_GCC3) || defined(__llvm__))
+#if (defined(__GNUC__) || defined(__llvm__))
 // Defined behavior on some of the uarchs:
 // PREFETCH_HINT_T0:
 //   prefetch to all levels of the hierarchy (except on p4: prefetch to L2)
@@ -509,7 +495,7 @@ enum PrefetchHint {
 #endif
 
 extern inline void prefetch(const char *x, int hint) {
-#if defined(COMPILER_ICC) || defined(__llvm__)
+#if defined(__llvm__)
   // In the gcc version of prefetch(), hint is only a constant _after_ inlining
   // (assumed to have been successful).  icc views things differently, and
   // checks constant-ness _before_ inlining.  This leads to compilation errors
@@ -544,7 +530,7 @@ extern inline void prefetch(const char *x, int hint) {
       __builtin_prefetch(x);
       break;
   }
-#elif defined(COMPILER_GCC3)
+#elif defined(__GNUC__)
  #if !defined(ARCH_PIII) || defined(__SSE__)
   if (__builtin_constant_p(hint)) {
     __builtin_prefetch(x, 0, hint);
@@ -579,7 +565,7 @@ extern inline void prefetch(const char *x) {
 // Giving it this information can help it optimize for the common case in
 // the absence of better information (ie. -fprofile-arcs).
 //
-#if defined(COMPILER_GCC3)
+#if defined(__GNUC__)
 #define PREDICT_FALSE(x) (__builtin_expect(x, 0))
 #define PREDICT_TRUE(x) (__builtin_expect(!!(x), 1))
 #else
@@ -625,7 +611,6 @@ inline void aligned_free(void *aligned_memory) {
 
 #else   // not GCC
 
-#define PRINTF_ATTRIBUTE(string_index, first_to_check)
 #define SCANF_ATTRIBUTE(string_index, first_to_check)
 #define PACKED
 #define CACHELINE_ALIGNED
@@ -651,6 +636,9 @@ extern inline void prefetch(UNUSED const char *x) {}
 #define FSEEKO fseek
 
 #endif  // GCC
+
+// Disable printf format checking in general, because it's too strict.
+#define PRINTF_ATTRIBUTE(string_index, first_to_check)
 
 #if !HAVE_ATTRIBUTE_SECTION  // provide dummy definitions
 
@@ -937,11 +925,11 @@ struct PortableHashBase { };
 #endif
 
 // Our STL-like classes use __STD.
-#if defined(COMPILER_GCC3) || defined(COMPILER_ICC) || defined(__MACH__) || defined(COMPILER_MSVC)
+#if defined(__GNUC__) || defined(__MACH__) || defined(COMPILER_MSVC)
 #define __STD std
 #endif
 
-#if defined COMPILER_GCC3 || defined COMPILER_ICC
+#if defined __GNUC__
 #define STREAM_SET(s, bit) (s).setstate(ios_base::bit)
 #define STREAM_SETF(s, flag) (s).setf(ios_base::flag)
 #else
