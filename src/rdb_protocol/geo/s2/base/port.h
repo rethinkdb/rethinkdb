@@ -12,7 +12,7 @@
 #include <string.h>         // for memcpy()
 #include <stdlib.h>         // for free()
 
-#if defined(OS_MACOSX)
+#if defined(__MACH__)
 #include <unistd.h>         // for getpagesize() on mac
 #elif defined(OS_CYGWIN)
 #include <malloc.h>         // for memalign()
@@ -22,14 +22,14 @@
 #include "utils.hpp"
 
 // Must happens before inttypes.h inclusion */
-#if defined(OS_MACOSX)
+#if defined(__MACH__)
 /* From MacOSX's inttypes.h:
  * "C++ implementations should define these macros only when
  *  __STDC_FORMAT_MACROS is defined before <inttypes.h> is included." */
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
 #endif  /* __STDC_FORMAT_MACROS */
-#endif  /* OS_MACOSX */
+#endif  /* __MACH__ */
 
 /* Default for most OSes */
 /* We use SIGPWR since that seems unlikely to be used for other reasons. */
@@ -90,7 +90,7 @@ typedef void (*sig_t)(int);
 #include <sys/int_types.h>
 typedef uint16_t u_int16_t;
 
-#elif defined OS_MACOSX
+#elif defined __MACH__
 
 // BIG_ENDIAN
 #include <machine/endian.h>
@@ -110,7 +110,7 @@ typedef uint16_t u_int16_t;
 #define bswap_32(x) _byteswap_ulong(x)
 #define bswap_64(x) _byteswap_uint64(x)
 
-#elif defined(OS_MACOSX)
+#elif defined(__MACH__)
 // Mac OS X / Darwin features
 #include <libkern/OSByteOrder.h>
 #define bswap_16(x) OSSwapInt16(x)
@@ -184,7 +184,7 @@ typedef int uid_t;
 
 // Mac OS X / Darwin features
 
-#if defined(OS_MACOSX)
+#if defined(__MACH__)
 
 // For mmap, Linux defines both MAP_ANONYMOUS and MAP_ANON and says MAP_ANON is
 // deprecated. In Darwin, MAP_ANON is all there is.
@@ -320,7 +320,7 @@ inline void* memrchr(const void* bytes, int find_char, size_t len) {
 
 // GCC-specific features
 
-#if (defined(COMPILER_GCC3) || defined(COMPILER_ICC) || defined(OS_MACOSX)) && !defined(SWIG)
+#if (defined(COMPILER_GCC3) || defined(COMPILER_ICC) || defined(__MACH__)) && !defined(SWIG)
 
 //
 // Tell the compiler to do printf format string checking if the
@@ -590,14 +590,14 @@ extern inline void prefetch(const char *x) {
 #define FTELLO ftello
 #define FSEEKO fseeko
 
-#if !defined(__cplusplus) && !defined(OS_MACOSX) && !defined(OS_CYGWIN)
+#if !defined(__cplusplus) && !defined(__MACH__) && !defined(OS_CYGWIN)
 // stdlib.h only declares this in C++, not in C, so we declare it here.
 // Also make sure to avoid declaring it on platforms which don't support it.
 extern int posix_memalign(void **memptr, size_t alignment, size_t size);
 #endif
 
 inline void *aligned_malloc(size_t size, int minimum_alignment) {
-#if defined(OS_MACOSX)
+#if defined(__MACH__)
   // mac lacks memalign(), posix_memalign(), however, according to
   // http://stackoverflow.com/questions/196329/osx-lacks-memalign
   // mac allocs are already 16-byte aligned.
@@ -610,7 +610,7 @@ inline void *aligned_malloc(size_t size, int minimum_alignment) {
   return NULL;
 #elif defined(OS_CYGWIN)
   return memalign(minimum_alignment, size);
-#else  // !OS_MACOSX && !OS_CYGWIN
+#else  // !__MACH__ && !OS_CYGWIN
   void *ptr = NULL;
   if (posix_memalign(&ptr, minimum_alignment, size) != 0)
     return NULL;
@@ -906,7 +906,7 @@ struct PortableHashBase { };
 #endif
 
 
-#if defined(OS_WINDOWS) || defined(OS_MACOSX)
+#if defined(OS_WINDOWS) || defined(__MACH__)
 // gethostbyname() *is* thread-safe for Windows native threads. It is also
 // safe on Mac OS X, where it uses thread-local storage, even though the
 // manpages claim otherwise. For details, see
@@ -937,7 +937,7 @@ struct PortableHashBase { };
 #endif
 
 // Our STL-like classes use __STD.
-#if defined(COMPILER_GCC3) || defined(COMPILER_ICC) || defined(OS_MACOSX) || defined(COMPILER_MSVC)
+#if defined(COMPILER_GCC3) || defined(COMPILER_ICC) || defined(__MACH__) || defined(COMPILER_MSVC)
 #define __STD std
 #endif
 

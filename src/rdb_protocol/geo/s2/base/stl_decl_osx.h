@@ -12,7 +12,7 @@
 #ifndef _STL_DECL_OSX_H
 #define _STL_DECL_OSX_H
 
-#if !defined(__APPLE__) || !defined(OS_MACOSX)
+#if !defined(__APPLE__) || !defined(__MACH__)
 #error "This file is only for MacOSX."
 #endif
 
