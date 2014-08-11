@@ -339,7 +339,6 @@ public:
     // Inserts a new key or overwrites the existing key's value.
     void overwrite(std::string key, counted_t<const datum_t> val);
     void add_warning(const char *msg, const configured_limits_t &limits);
-    void add_warning(std::string msg, const configured_limits_t &limits);
     void add_warnings(const std::set<std::string> &msgs, const configured_limits_t &limits);
     void add_error(const char *msg);
 
