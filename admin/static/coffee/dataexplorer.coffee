@@ -3401,6 +3401,8 @@ module 'DataExplorerView', ->
 
         binary_to_string: (bin) =>
             # We print the size of the binary, not the size of the base 64 string
+            # We suppose something stronger than the RFC 2045:
+            # We suppose that there is ONLY one CRLF every 76 characters
             blocks_of_76 = Math.floor(bin.data.length/78) # 78 to count \r\n
             leftover = bin.data.length-blocks_of_76*78
 
@@ -3441,11 +3443,12 @@ module 'DataExplorerView', ->
                     if next.length is 1
                         next = "0" + next
                     snippet += next
-                    if i > 4 and i isnt size-1
-                        snippet += "..."
-                        break
-                    else if i isnt str.length-1
+
+                    if i isnt str.length-1
                         snippet += " "
+                if size > str.length
+                    snippet += "..."
+
                 return "<binary, #{sizeStr}, \"#{snippet}\">"
 
     class @ResultView extends DataExplorerView.SharedResultView
