@@ -490,7 +490,7 @@ inline void* memrchr(const void* bytes, int find_char, size_t len) {
 #endif
 
 
-#if (defined(COMPILER_ICC) || defined(COMPILER_GCC3))
+#if (defined(COMPILER_ICC) || defined(COMPILER_GCC3) || defined(__llvm__))
 // Defined behavior on some of the uarchs:
 // PREFETCH_HINT_T0:
 //   prefetch to all levels of the hierarchy (except on p4: prefetch to L2)
