@@ -3401,28 +3401,55 @@ module 'DataExplorerView', ->
 
         binary_to_string: (bin) =>
             # We print the size of the binary, not the size of the base 64 string
-            size = bin.data.length*3/4
+            # We suppose something stronger than the RFC 2045:
+            # We suppose that there is ONLY one CRLF every 76 characters
+            blocks_of_76 = Math.floor(bin.data.length/78) # 78 to count \r\n
+            leftover = bin.data.length-blocks_of_76*78
+
+            base64_digits = 76*blocks_of_76+leftover
+
+            blocks_of_4 = Math.floor(base64_digits/4)
+
+            end = bin.data.slice(-2)
+            if end is '=='
+                number_of_equals = 2
+            else if end.slice(-1) is '='
+                number_of_equals = 1
+            else
+                number_of_equals = 0
+
+            size = 3*blocks_of_4-number_of_equals
 
             if size >= 1073741824
                 sizeStr = (size/1073741824).toFixed(1)+'GB'
-            else if size>=1048576
+            else if size >= 1048576
                 sizeStr = (size/1048576).toFixed(1)+'MB'
-            else if size>=1024
+            else if size >= 1024
                 sizeStr = (size/1024).toFixed(1)+'KB'
-            else if size > 1
-                sizeStr = size+' bytes'
             else if size is 1
                 sizeStr = size+' byte'
-            else if size is 0
+            else
                 sizeStr = size+' bytes'
 
+
+            # Compute a snippet and return the <binary, size, snippet> result
             if size is 0
                 return "<binary, #{sizeStr}>"
             else
-                if bin.data.length > 10
-                    return "<binary, #{sizeStr}, \"#{bin.data.slice(0, 10)}...\">"
-                else
-                    return "<binary, #{sizeStr}, \"#{bin.data}\">"
+                str = atob bin.data.slice(0, 8)
+                snippet = ''
+                for char, i  in str
+                    next = str.charCodeAt(i).toString(16)
+                    if next.length is 1
+                        next = "0" + next
+                    snippet += next
+
+                    if i isnt str.length-1
+                        snippet += " "
+                if size > str.length
+                    snippet += "..."
+
+                return "<binary, #{sizeStr}, \"#{snippet}\">"
 
     class @ResultView extends DataExplorerView.SharedResultView
         className: 'result_view'
