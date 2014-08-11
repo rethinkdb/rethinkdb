@@ -18,7 +18,9 @@ using std::numeric_limits;
 #include "rdb_protocol/geo/s2/base/integral_types.h"
 #include "rdb_protocol/geo/s2/base/logging.h"
 
+#ifndef __APPLE__
 using std::signbit;
+#endif
 
 // Define storage for constants.
 const int ExactFloat::kMinExp;
