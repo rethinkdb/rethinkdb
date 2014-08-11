@@ -29,7 +29,7 @@ using std::vector;
 
 
 // The max arguments supported by StringPrintfVector
-extern const int kStringPrintfVectorMaxArgs;
+extern const size_t kStringPrintfVectorMaxArgs;
 
 // You can use this version when all your arguments are strings, but
 // you don't know how many arguments you'll have at compile time.
