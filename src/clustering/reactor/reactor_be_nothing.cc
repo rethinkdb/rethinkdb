@@ -146,7 +146,8 @@ void reactor_t::be_nothing(region_t region,
             }
 
             /* This actually erases the data. */
-            svs->reset_data(region, write_durability_t::HARD, &ct_interruptor);
+            svs->reset_data(binary_blob_t(version_range_t(version_t::zero())),
+                            region, write_durability_t::HARD, &ct_interruptor);
         }
 
         /* Tell the other peers that we are officially nothing for this region,

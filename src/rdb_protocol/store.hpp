@@ -159,6 +159,7 @@ public:
         THROWS_ONLY(interrupted_exc_t);
 
     void reset_data(
+            const binary_blob_t &zero_version,
             const region_t &subregion,
             write_durability_t durability,
             signal_t *interruptor)
@@ -357,6 +358,11 @@ public:
             THROWS_ONLY(interrupted_exc_t);
 
 private:
+    // Drops all sindexes if this store is not responsible for any data
+    void maybe_drop_all_sindexes(const binary_blob_t &zero_metainfo,
+                                 const write_durability_t durability,
+                                 signal_t *interruptor);
+
     // Helper function to clear out a secondary index that has been
     // marked as deleted. To be run in a coroutine.
     void delayed_clear_sindex(
