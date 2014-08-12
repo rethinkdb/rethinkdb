@@ -32,7 +32,7 @@ public:
         /* Check if we're doing a multi index or a normal index. */
         sindex_multi_bool_t multi = sindex_multi_bool_t::SINGLE;
         sindex_geo_bool_t geo = sindex_geo_bool_t::REGULAR;
-        counted_t<func_t> index_func;
+        counted_t<const func_t> index_func;
         if (args->num_args() == 3) {
             counted_t<val_t> v = args->arg(env, 2);
             if (v->get_type().is_convertible(val_t::type_t::DATUM)) {

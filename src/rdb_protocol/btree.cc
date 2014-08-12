@@ -138,11 +138,11 @@ void kv_location_delete(keyvalue_location_t *kv_location,
 
 MUST_USE ql::serialization_result_t
 kv_location_set(keyvalue_location_t *kv_location,
-                     const store_key_t &key,
-                     counted_t<const ql::datum_t> data,
-                     repli_timestamp_t timestamp,
-                     const deletion_context_t *deletion_context,
-                     rdb_modification_info_t *mod_info_out) {
+                const store_key_t &key,
+                counted_t<const ql::datum_t> data,
+                repli_timestamp_t timestamp,
+                const deletion_context_t *deletion_context,
+                rdb_modification_info_t *mod_info_out) {
     scoped_malloc_t<rdb_value_t> new_value(blob::btree_maxreflen);
     memset(new_value.get(), 0, blob::btree_maxreflen);
 
@@ -794,7 +794,7 @@ private:
     const key_range_t pkey_range;
     const datum_range_t range;
     const reql_version_t func_reql_version;
-    const counted_t<ql::func_t> func;
+    const counted_t<const ql::func_t> func;
     const sindex_multi_bool_t multi;
 };
 

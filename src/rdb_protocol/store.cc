@@ -510,7 +510,7 @@ public:
     return_changes_t should_return_changes() const { return return_changes; }
 private:
     ql::env_t *const env;
-    const counted_t<ql::func_t> f;
+    const counted_t<const ql::func_t> f;
     const return_changes_t return_changes;
 };
 

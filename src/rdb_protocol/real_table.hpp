@@ -106,7 +106,7 @@ public:
 
     counted_t<const ql::datum_t> write_batched_replace(ql::env_t *env,
         const std::vector<counted_t<const ql::datum_t> > &keys,
-        const counted_t<ql::func_t> &func,
+        const counted_t<const ql::func_t> &func,
         return_changes_t _return_changes, durability_requirement_t durability);
     counted_t<const ql::datum_t> write_batched_insert(ql::env_t *env,
         std::vector<counted_t<const ql::datum_t> > &&inserts,
@@ -117,7 +117,7 @@ public:
 
     bool sindex_create(ql::env_t *env,
         const std::string &id,
-        counted_t<ql::func_t> index_func,
+        counted_t<const ql::func_t> index_func,
         sindex_multi_bool_t multi,
         sindex_geo_bool_t geo);
     bool sindex_drop(ql::env_t *env,

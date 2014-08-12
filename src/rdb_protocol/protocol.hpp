@@ -629,7 +629,7 @@ struct batched_replace_t {
     batched_replace_t(
             std::vector<store_key_t> &&_keys,
             const std::string &_pkey,
-            const counted_t<ql::func_t> &func,
+            const counted_t<const ql::func_t> &func,
             const std::map<std::string, ql::wire_func_t > &_optargs,
             return_changes_t _return_changes)
         : keys(std::move(_keys)), pkey(_pkey), f(func), optargs(_optargs),

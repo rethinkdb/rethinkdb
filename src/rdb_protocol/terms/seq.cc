@@ -83,7 +83,7 @@ private:
                         backtrace());
                 return stream->run_terminal(env->env, count_wire_func_t());
             } else {
-                counted_t<func_t> f =
+                counted_t<const func_t> f =
                     new_eq_comparison_func(v1->as_datum(), backtrace());
                 counted_t<datum_stream_t> stream = v0->as_seq(env->env);
                 stream->add_transformation(
@@ -130,7 +130,7 @@ public:
         : grouped_seq_op_term_t(env, term, argspec_t(1, -1), optargspec_t({"index", "multi"})) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        std::vector<counted_t<func_t> > funcs;
+        std::vector<counted_t<const func_t> > funcs;
         funcs.reserve(args->num_args() - 1);
         for (size_t i = 1; i < args->num_args(); ++i) {
             funcs.push_back(args->arg(env, i)->as_func(GET_FIELD_SHORTCUT));
@@ -181,7 +181,7 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> v0 = args->arg(env, 0);
         counted_t<val_t> v1 = args->arg(env, 1, LITERAL_OK);
-        counted_t<func_t> f = v1->as_func(CONSTANT_SHORTCUT);
+        counted_t<const func_t> f = v1->as_func(CONSTANT_SHORTCUT);
         boost::optional<wire_func_t> defval;
         if (default_filter_term.has()) {
             defval = wire_func_t(default_filter_term->eval_to_func(env->scope));

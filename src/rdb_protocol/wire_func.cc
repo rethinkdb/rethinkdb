@@ -14,7 +14,7 @@ namespace ql {
 
 wire_func_t::wire_func_t() { }
 
-wire_func_t::wire_func_t(const counted_t<func_t> &f) : func(f) {
+wire_func_t::wire_func_t(const counted_t<const func_t> &f) : func(f) {
     r_sanity_check(func.has());
 }
 
@@ -34,7 +34,7 @@ wire_func_t &wire_func_t::operator=(const wire_func_t &assignee) {
 
 wire_func_t::~wire_func_t() { }
 
-counted_t<func_t> wire_func_t::compile_wire_func() const {
+counted_t<const func_t> wire_func_t::compile_wire_func() const {
     r_sanity_check(func.has());
     return func;
 }
@@ -166,15 +166,15 @@ archive_result_t maybe_wire_func_t::rdb_deserialize(read_stream_t *s) {
 
 INSTANTIATE_SERIALIZABLE_SELF_SINCE_v1_13(maybe_wire_func_t);
 
-counted_t<func_t> maybe_wire_func_t::compile_wire_func_or_null() const {
+counted_t<const func_t> maybe_wire_func_t::compile_wire_func_or_null() const {
     if (wrapped.has()) {
         return wrapped.compile_wire_func();
     } else {
-        return counted_t<func_t>();
+        return counted_t<const func_t>();
     }
 }
 
-group_wire_func_t::group_wire_func_t(std::vector<counted_t<func_t> > &&_funcs,
+group_wire_func_t::group_wire_func_t(std::vector<counted_t<const func_t> > &&_funcs,
                                      bool _append_index, bool _multi)
     : append_index(_append_index), multi(_multi) {
     funcs.reserve(_funcs.size());
@@ -183,8 +183,8 @@ group_wire_func_t::group_wire_func_t(std::vector<counted_t<func_t> > &&_funcs,
     }
 }
 
-std::vector<counted_t<func_t> > group_wire_func_t::compile_funcs() const {
-    std::vector<counted_t<func_t> > ret;
+std::vector<counted_t<const func_t> > group_wire_func_t::compile_funcs() const {
+    std::vector<counted_t<const func_t> > ret;
     ret.reserve(funcs.size());
     for (size_t i = 0; i < funcs.size(); ++i) {
         ret.push_back(funcs[i].compile_wire_func());
