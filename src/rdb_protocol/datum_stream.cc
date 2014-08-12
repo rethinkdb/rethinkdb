@@ -478,7 +478,7 @@ counted_t<val_t> datum_stream_t::to_array(env_t *env) {
 counted_t<datum_stream_t> datum_stream_t::slice(size_t l, size_t r) {
     return make_counted<slice_datum_stream_t>(l, r, this->counted_from_this());
 }
-counted_t<datum_stream_t> datum_stream_t::indexes_of(counted_t<func_t> f) {
+counted_t<datum_stream_t> datum_stream_t::indexes_of(counted_t<const func_t> f) {
     return make_counted<indexes_of_datum_stream_t>(f, counted_from_this());
 }
 counted_t<datum_stream_t> datum_stream_t::ordered_distinct() {
@@ -754,7 +754,7 @@ ordered_distinct_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &b
 }
 
 // INDEXES_OF_DATUM_STREAM_T
-indexes_of_datum_stream_t::indexes_of_datum_stream_t(counted_t<func_t> _f,
+indexes_of_datum_stream_t::indexes_of_datum_stream_t(counted_t<const func_t> _f,
                                                      counted_t<datum_stream_t> _source)
     : wrapper_datum_stream_t(_source), f(_f), index(0) {
     guarantee(f.has() && source.has());
@@ -770,7 +770,7 @@ indexes_of_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &bs) {
             break;
         }
         for (auto it = v.begin(); it != v.end(); ++it, ++index) {
-            if (f->filter_call(env, *it, counted_t<func_t>())) {
+            if (f->filter_call(env, *it, counted_t<const func_t>())) {
                 ret.push_back(make_counted<datum_t>(static_cast<double>(index)));
             }
             sampler.new_sample();

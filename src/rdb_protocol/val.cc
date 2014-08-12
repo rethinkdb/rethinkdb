@@ -33,7 +33,7 @@ counted_t<const datum_t> table_t::batched_replace(
     env_t *env,
     const std::vector<counted_t<const datum_t> > &vals,
     const std::vector<counted_t<const datum_t> > &keys,
-    counted_t<func_t> replacement_generator,
+    counted_t<const func_t> replacement_generator,
     bool nondeterministic_replacements_ok,
     durability_requirement_t durability_requirement,
     return_changes_t return_changes) {
@@ -118,7 +118,7 @@ counted_t<const datum_t> table_t::batched_insert(
 
 MUST_USE bool table_t::sindex_create(env_t *env,
                                      const std::string &id,
-                                     counted_t<func_t> index_func,
+                                     counted_t<const func_t> index_func,
                                      sindex_multi_bool_t multi,
                                      sindex_geo_bool_t geo) {
     index_func->assert_deterministic("Index functions must be deterministic.");
@@ -428,7 +428,7 @@ val_t::val_t(counted_t<const db_t> _db, protob_t<const Backtrace> backtrace)
       u(_db) {
     guarantee(db().has());
 }
-val_t::val_t(counted_t<func_t> _func, protob_t<const Backtrace> backtrace)
+val_t::val_t(counted_t<const func_t> _func, protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::FUNC),
       u(_func) {
@@ -500,7 +500,7 @@ std::pair<counted_t<table_t>, counted_t<const datum_t> > val_t::as_single_select
     return std::make_pair(table, datum());
 }
 
-counted_t<func_t> val_t::as_func(function_shortcut_t shortcut) {
+counted_t<const func_t> val_t::as_func(function_shortcut_t shortcut) {
     if (get_type().is_convertible(type_t::FUNC)) {
         r_sanity_check(func().has());
         return func();

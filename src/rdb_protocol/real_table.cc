@@ -214,7 +214,7 @@ counted_t<ql::datum_stream_t> real_table_t::read_nearest(
 
 counted_t<const ql::datum_t> real_table_t::write_batched_replace(ql::env_t *env,
         const std::vector<counted_t<const ql::datum_t> > &keys,
-        const counted_t<ql::func_t> &func,
+        const counted_t<const ql::func_t> &func,
         return_changes_t return_changes, durability_requirement_t durability) {
     std::vector<store_key_t> store_keys;
     store_keys.reserve(keys.size());
@@ -256,7 +256,7 @@ bool real_table_t::write_sync_depending_on_durability(ql::env_t *env,
 }
 
 bool real_table_t::sindex_create(ql::env_t *env, const std::string &id,
-        counted_t<ql::func_t> index_func, sindex_multi_bool_t multi,
+        counted_t<const ql::func_t> index_func, sindex_multi_bool_t multi,
         sindex_geo_bool_t geo) {
     ql::map_wire_func_t wire_func(index_func);
     write_t write(sindex_create_t(id, wire_func, multi, geo), env->profile(),

@@ -25,7 +25,7 @@ class env_t;
 class wire_func_t {
 public:
     wire_func_t();
-    explicit wire_func_t(const counted_t<func_t> &f);
+    explicit wire_func_t(const counted_t<const func_t> &f);
     ~wire_func_t();
     wire_func_t(const wire_func_t &copyee);
     wire_func_t &operator=(const wire_func_t &assignee);
@@ -35,7 +35,7 @@ public:
     wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names,
                 protob_t<const Backtrace> backtrace);
 
-    counted_t<func_t> compile_wire_func() const;
+    counted_t<const func_t> compile_wire_func() const;
     protob_t<const Backtrace> get_bt() const;
 
     template <cluster_version_t W>
@@ -47,7 +47,7 @@ private:
     friend class maybe_wire_func_t;  // for has().
     bool has() const { return func.has(); }
 
-    counted_t<func_t> func;
+    counted_t<const func_t> func;
 };
 
 RDB_SERIALIZE_OUTSIDE(wire_func_t);
@@ -63,7 +63,7 @@ public:
     template <cluster_version_t W>
     archive_result_t rdb_deserialize(read_stream_t *s);
 
-    counted_t<func_t> compile_wire_func_or_null() const;
+    counted_t<const func_t> compile_wire_func_or_null() const;
 
 private:
     wire_func_t wrapped;
@@ -84,7 +84,7 @@ public:
                        const boost::optional<ql::wire_func_t> &_default_filter_val)
         : filter_func(_filter_func),
           default_filter_val(_default_filter_val) { }
-    filter_wire_func_t(const counted_t<func_t> &_filter_func,
+    filter_wire_func_t(const counted_t<const func_t> &_filter_func,
                        const boost::optional<ql::wire_func_t> &_default_filter_val)
         : filter_func(_filter_func),
           default_filter_val(_default_filter_val) { }
@@ -136,9 +136,9 @@ RDB_SERIALIZE_OUTSIDE(bt_wire_func_t);
 class group_wire_func_t {
 public:
     group_wire_func_t() : bt(make_counted_backtrace()) { }
-    group_wire_func_t(std::vector<counted_t<func_t> > &&_funcs,
+    group_wire_func_t(std::vector<counted_t<const func_t> > &&_funcs,
                       bool _append_index, bool _multi);
-    std::vector<counted_t<func_t> > compile_funcs() const;
+    std::vector<counted_t<const func_t> > compile_funcs() const;
     bool should_append_index() const;
     bool is_multi() const;
     protob_t<const Backtrace> get_bt() const;

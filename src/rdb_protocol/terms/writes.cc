@@ -208,7 +208,7 @@ private:
         const durability_requirement_t durability_requirement
             = parse_durability_optarg(args->optarg(env, "durability"), this);
 
-        counted_t<func_t> f = args->arg(env, 1)->as_func(CONSTANT_SHORTCUT);
+        counted_t<const func_t> f = args->arg(env, 1)->as_func(CONSTANT_SHORTCUT);
         if (!nondet_ok) {
             f->assert_deterministic("Maybe you want to use the non_atomic flag?");
         }
@@ -285,7 +285,7 @@ private:
         {
             profile::sampler_t sampler("Evaluating elements in for each.",
                                        env->env->trace);
-            counted_t<func_t> f = args->arg(env, 1)->as_func(CONSTANT_SHORTCUT);
+            counted_t<const func_t> f = args->arg(env, 1)->as_func(CONSTANT_SHORTCUT);
             while (counted_t<const datum_t> row = ds->next(env->env, batchspec)) {
                 counted_t<val_t> v = f->call(env->env, row);
                 try {
