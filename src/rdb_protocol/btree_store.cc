@@ -790,6 +790,44 @@ void store_t::clear_sindex(
     }
 }
 
+bool secondary_indexes_are_equivalent(const std::vector<char> &left,
+                                      const std::vector<char> &right) {
+    ql::map_wire_func_t mapping_left;
+    sindex_reql_version_info_t version_info_left;
+    sindex_multi_bool_t multi_left;
+    deserialize_sindex_info(left, &mapping_left, &version_info_left, &multi_left);
+
+    ql::map_wire_func_t mapping_right;
+    sindex_reql_version_info_t version_info_right;
+    sindex_multi_bool_t multi_right;
+    deserialize_sindex_info(right, &mapping_right, &version_info_right, &multi_right);
+
+    if (multi_left == multi_right &&
+        version_info_left.original_reql_version ==
+            version_info_right.original_reql_version) {
+        // Need to determine if the mapping function is the same, re-serialize them
+        // and compare the vectors
+        bool res;
+        write_message_t wm_left;
+        vector_stream_t stream_left;
+        serialize_for_version(cluster_version_t::CLUSTER, &wm_left,
+                              mapping_left);
+        res = send_write_message(&stream_left, &wm_left);
+        guarantee(res == 0);
+
+        write_message_t wm_right;
+        vector_stream_t stream_right;
+        serialize_for_version(cluster_version_t::CLUSTER, &wm_right,
+                              mapping_right);
+        res = send_write_message(&stream_right, &wm_right);
+        guarantee(res == 0);
+
+        return stream_left.vector() == stream_right.vector();
+    }
+
+    return false;
+}
+
 void store_t::set_sindexes(
         const std::map<sindex_name_t, secondary_index_t> &sindexes,
         buf_lock_t *sindex_block,
@@ -800,45 +838,27 @@ void store_t::set_sindexes(
     ::get_secondary_indexes(sindex_block, &existing_sindexes);
 
     for (auto it = existing_sindexes.begin(); it != existing_sindexes.end(); ++it) {
-        if (!std_contains(sindexes, it->first)) {
-            /* Mark the secondary index for deletion to get it out of the way
-            (note that a new sindex with the same name can be created
-            from now on, which is what we want). */
-            bool success = mark_secondary_index_deleted(sindex_block, it->first);
+        if (!std_contains(sindexes, it->first) && !it->first.being_deleted) {
+            bool success = drop_sindex(it->first, sindex_block);
             guarantee(success);
-
-            /* Delay actually clearing the secondary index, so we can
-            release the sindex_block now, rather than having to wait for
-            clear_sindex() to finish. */
-            coro_t::spawn_sometime(std::bind(&store_t::delayed_clear_sindex,
-                                             this,
-                                             it->second,
-                                             drainer.lock()));
         }
     }
 
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-        if (!std_contains(existing_sindexes, it->first)) {
-            secondary_index_t sindex(it->second);
-            {
-                buf_lock_t sindex_superblock(sindex_block, alt_create_t::create);
-                sindex.superblock = sindex_superblock.block_id();
-                btree_slice_t::init_superblock(&sindex_superblock,
-                                               std::vector<char>(),
-                                               binary_blob_t());
-            }
+        auto extant_index = existing_sindexes.find(it->first);
+        if (extant_index != existing_sindexes.end() &&
+            !secondary_indexes_are_equivalent(it->second.opaque_definition,
+                                              extant_index->second.opaque_definition)) {
+            bool success = drop_sindex(extant_index->first, sindex_block);
+            guarantee(success);
+            extant_index = existing_sindexes.end();
+        }
 
-            secondary_index_slices.insert(
-                    std::make_pair(it->second.id,
-                                   make_scoped<btree_slice_t>(cache.get(),
-                                                              &perfmon_collection,
-                                                              it->first.name,
-                                                              index_type_t::SECONDARY)));
-
-            sindex.post_construction_complete = false;
-
-            ::set_secondary_index(sindex_block, it->first, sindex);
-
+        if (extant_index == existing_sindexes.end()) {
+            bool success = add_sindex(it->first,
+                                      it->second.opaque_definition,
+                                      sindex_block);
+            guarantee(success);
             created_sindexes_out->insert(it->first);
         }
     }
