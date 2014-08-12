@@ -167,7 +167,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
     }
     ql::datum_object_builder_t result(std::move(stats)->as_object());
     result.add_warnings(conditions, limits);
-    response->response = result.to_counted();
+    response->response = std::move(result).to_counted();
 }
 
 void mock_namespace_interface_t::write_visitor_t::operator()(
@@ -215,7 +215,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
     }
     ql::datum_object_builder_t result(std::move(stats)->as_object());
     result.add_warnings(conditions, limits);
-    response->response = result.to_counted();
+    response->response = std::move(result).to_counted();
 }
 
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const point_write_t &) {
