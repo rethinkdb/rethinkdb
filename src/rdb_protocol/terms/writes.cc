@@ -180,7 +180,7 @@ private:
                               generated_keys.size()).c_str(), env->env->limits);
         }
 
-        return new_val(obj.to_counted());
+        return new_val(std::move(obj).to_counted());
     }
     virtual const char *name() const { return "insert"; }
 };
@@ -261,7 +261,7 @@ private:
 
         datum_object_builder_t obj(stats->as_object());
         obj.add_warnings(conditions, env->env->limits);
-        return new_val(obj.to_counted());
+        return new_val(std::move(obj).to_counted());
     }
 
     virtual const char *name() const { return "replace"; }
@@ -307,7 +307,7 @@ private:
         }
         datum_object_builder_t obj(stats->as_object());
         obj.add_warnings(conditions, env->env->limits);
-        return new_val(obj.to_counted());
+        return new_val(std::move(obj).to_counted());
     }
 
     virtual const char *name() const { return "foreach"; }
