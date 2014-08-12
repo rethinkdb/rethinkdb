@@ -76,7 +76,7 @@ private:
                 datum_object_builder_t d;
                 bool conflict = d.add(tbl->get_pkey(), keyd);
                 r_sanity_check(!conflict);
-                std::set<std::string> conditions {};
+                std::set<std::string> conditions;
                 *datum_out = (*datum_out)->merge(std::move(d).to_counted(), pure_merge,
                                                 limits, &conditions);
                 // we happen to know that pure_merge cannot ever generate warning
@@ -109,7 +109,7 @@ private:
         bool done = false;
         counted_t<const datum_t> stats = new_stats_object();
         std::vector<std::string> generated_keys;
-        std::set<std::string> conditions {};
+        std::set<std::string> conditions;
         size_t keys_skipped = 0;
         counted_t<val_t> v1 = args->arg(env, 1);
         if (v1->get_type().is_convertible(val_t::type_t::DATUM)) {
@@ -215,7 +215,7 @@ private:
 
         counted_t<val_t> v0 = args->arg(env, 0);
         counted_t<const datum_t> stats = new_stats_object();
-        std::set<std::string> conditions {};
+        std::set<std::string> conditions;
         if (v0->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<const datum_t> > tblrow
                 = v0->as_single_selection();
@@ -280,7 +280,7 @@ private:
 
         counted_t<datum_stream_t> ds = args->arg(env, 0)->as_seq(env->env);
         counted_t<const datum_t> stats = datum_t::empty_object();
-        std::set<std::string> conditions {};
+        std::set<std::string> conditions;
         batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
         {
             profile::sampler_t sampler("Evaluating elements in for each.",
