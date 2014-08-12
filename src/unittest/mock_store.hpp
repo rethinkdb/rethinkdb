@@ -77,6 +77,7 @@ public:
         THROWS_ONLY(interrupted_exc_t);
 
     void reset_data(
+            const binary_blob_t &zero_version,
             const region_t &subregion,
             write_durability_t durability,
             signal_t *interruptor)

@@ -277,13 +277,62 @@ void store_t::receive_backfill(
                               chunk);
 }
 
+void store_t::maybe_drop_all_sindexes(const binary_blob_t &zero_metainfo,
+                                      const write_durability_t durability,
+                                      signal_t *interruptor) {
+    scoped_ptr_t<txn_t> txn;
+    scoped_ptr_t<real_superblock_t> superblock;
+
+    const int expected_change_count = 1;
+    write_token_pair_t token_pair;
+    new_write_token_pair(&token_pair);
+
+    acquire_superblock_for_write(repli_timestamp_t::invalid,
+                                 expected_change_count,
+                                 durability,
+                                 &token_pair,
+                                 &txn,
+                                 &superblock,
+                                 interruptor);
+
+    region_map_t<binary_blob_t> regions;
+    get_metainfo_internal(superblock->get(), &regions);
+
+    bool empty_region = true;
+    for (auto it = regions.begin(); it != regions.end(); ++it) {
+        if (it->second.size() != 0 && it->second != zero_metainfo) {
+            empty_region = false;
+        }
+    }
+
+    // If we are hosting no regions, we can blow away secondary indexes
+    if (empty_region) {
+        buf_lock_t sindex_block
+            = acquire_sindex_block_for_write(superblock->expose_buf(),
+                                             superblock->get_sindex_block_id());
+
+        std::map<sindex_name_t, secondary_index_t> sindexes;
+        ::get_secondary_indexes(&sindex_block, &sindexes);
+
+        for (auto const &sindex : sindexes) {
+            bool success = drop_sindex(sindex.first, &sindex_block);
+            guarantee(success);
+        }
+    }
+}
+
 void store_t::reset_data(
+        const binary_blob_t &zero_metainfo,
         const region_t &subregion,
         const write_durability_t durability,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
     with_priority_t p(CORO_PRIORITY_RESET_DATA);
+
+    // Check if secondary indexes should be dropped - if the store is not hosting data
+    // for any ranges.
+    maybe_drop_all_sindexes(zero_metainfo, durability, interruptor);
 
     // Erase the data in small chunks
     rdb_value_sizer_t sizer(cache->max_block_size());
