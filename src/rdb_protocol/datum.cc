@@ -1025,12 +1025,13 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
 
 counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs,
                                         merge_resoluter_t f,
-                                        const configured_limits_t &limits) const {
+                                        const configured_limits_t &limits,
+                                        std::set<std::string> *conditions_out) const {
     datum_object_builder_t d(as_object());
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
         if (counted_t<const datum_t> left = get(it->first, NOTHROW)) {
-            d.overwrite(it->first, f(it->first, left, it->second, limits));
+            d.overwrite(it->first, f(it->first, left, it->second, limits, conditions_out));
         } else {
             bool b = d.add(it->first, it->second);
             r_sanity_check(!b);
@@ -1315,18 +1316,32 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
 counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
                                      counted_t<const datum_t> l,
                                      counted_t<const datum_t> r,
-                                     const configured_limits_t &limits) {
+                                     const configured_limits_t &limits,
+                                     std::set<std::string> *conditions) {
     if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
         return make_counted<datum_t>(l->as_num() + r->as_num());
     } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
-        datum_array_builder_t arr(limits);
-        for (size_t i = 0; i < l->size(); ++i) {
-            arr.add(l->get(i));
+        if (l->size() + r->size() > limits.array_size_limit()) {
+            conditions->insert(strprintf("Too many changes, array truncated to %ld.", limits.array_size_limit()));
+            datum_array_builder_t arr(limits);
+            size_t so_far = 0;
+            for (size_t i = 0; i < l->size() && so_far < limits.array_size_limit(); ++i, ++so_far) {
+                arr.add(l->get(i));
+            }
+            for (size_t i = 0; i < r->size() && so_far < limits.array_size_limit(); ++i, ++so_far) {
+                arr.add(r->get(i));
+            }
+            return std::move(arr).to_counted();
+        } else {
+            datum_array_builder_t arr(limits);
+            for (size_t i = 0; i < l->size(); ++i) {
+                arr.add(l->get(i));
+            }
+            for (size_t i = 0; i < r->size(); ++i) {
+                arr.add(r->get(i));
+            }
+            return std::move(arr).to_counted();
         }
-        for (size_t i = 0; i < r->size(); ++i) {
-            arr.add(r->get(i));
-        }
-        return std::move(arr).to_counted();
     }
 
     // Merging a string is left-preferential, which is just a no-op.
@@ -1353,6 +1368,59 @@ void datum_object_builder_t::overwrite(std::string key,
     datum_t::check_str_validity(key);
     r_sanity_check(val.has());
     map[std::move(key)] = std::move(val);
+}
+
+void datum_object_builder_t::add_warning(const char *msg, const configured_limits_t &limits) {
+    counted_t<const datum_t> *warnings_entry = &map["warnings"];
+    if (warnings_entry->has()) {
+        const std::vector<counted_t<const datum_t> > &array
+            = (*warnings_entry)->as_array();
+        // assume here that the warnings array will "always" be small.
+        for (auto i = array.begin(); i != array.end(); ++i) {
+            if ((*i)->as_str() == msg) return;
+        }
+        rcheck_datum(array.size() + 1 <= limits.array_size_limit(),
+            base_exc_t::GENERIC,
+            strprintf("Warnings would exceed array size limit %zu; increase it to see warnings", limits.array_size_limit()));
+        datum_array_builder_t out(std::vector<counted_t<const datum_t> >(array), limits);
+        out.add(make_counted<datum_t>(msg));
+        *warnings_entry = out.to_counted();
+    } else {
+        datum_array_builder_t out(limits);
+        out.add(make_counted<datum_t>(msg));
+        *warnings_entry = out.to_counted();
+    }
+}
+
+void datum_object_builder_t::add_warnings(const std::set<std::string> &msgs, const configured_limits_t &limits) {
+    if (msgs.empty()) return;
+    counted_t<const datum_t> *warnings_entry = &map["warnings"];
+    if (warnings_entry->has()) {
+        const std::vector<counted_t<const datum_t> > &array
+            = (*warnings_entry)->as_array();
+        rcheck_datum(array.size() + msgs.size() <= limits.array_size_limit(),
+            base_exc_t::GENERIC,
+            strprintf("Warnings would exceed array size limit %zu; increase it to see warnings", limits.array_size_limit()));
+        datum_array_builder_t out(std::vector<counted_t<const datum_t> >(array), limits);
+        for (const auto & msg : msgs) {
+            bool seen = false;
+            // assume here that the warnings array will "always" be small.
+            for (const auto & candidate : array) {
+                if (candidate->as_str() == msg.c_str()) {
+                    seen = true;
+                    break;
+                }
+            }
+            if (!seen) out.add(make_counted<datum_t>(msg.c_str()));
+        }
+        *warnings_entry = out.to_counted();
+    } else {
+        datum_array_builder_t out(limits);
+        for (const auto & msg : msgs) {
+            out.add(make_counted<datum_t>(msg.c_str()));
+        }
+        *warnings_entry = out.to_counted();
+    }
 }
 
 void datum_object_builder_t::add_error(const char *msg) {
@@ -1504,8 +1572,6 @@ counted_t<const datum_t> datum_array_builder_t::to_counted() RVALUE_THIS {
     return make_counted<datum_t>(std::move(vector),
                                  datum_t::no_array_size_limit_check_t());
 }
-
-
 
 
 

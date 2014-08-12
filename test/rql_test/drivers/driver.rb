@@ -1,5 +1,12 @@
 require 'pp'
 
+$test_count = 0
+$failure_count = 0
+$success_count = 0
+
+JSPORT = ARGV[0]
+CPPPORT = ARGV[1]
+
 # -- import the called-for rethinkdb module
 if ENV['RUBY_DRIVER_DIR']
   $LOAD_PATH.unshift ENV['RUBY_DRIVER_DIR']
@@ -11,7 +18,7 @@ else
   while targetPath != File::Separator
     sourceDir = File.join(targetPath, 'drivers', 'ruby')
     if File.directory?(sourceDir)
-      if !system("make -C " + sourceDir)
+      unless system("make -C " + sourceDir)
         abort "Unable to build the ruby driver at: " + sourceDir
       end
       $LOAD_PATH.unshift(File.join(sourceDir, 'lib'))
@@ -23,9 +30,6 @@ else
   end
 end
 extend RethinkDB::Shortcuts
-
-JSPORT = ARGV[0]
-CPPPORT = ARGV[1]
 
 def show x
   if x.class == Err
@@ -54,7 +58,7 @@ def uuid
   AnyUUID
 end
 
-def err(type, message, backtrace)
+def err(type, message, backtrace=[])
   Err.new(type, message, backtrace, false)
 end
 
@@ -161,9 +165,6 @@ begin
 rescue
 end
 
-$test_count = 0
-$success_count = 0
-
 def test src, expected, name, opthash=nil, testopts=nil
   if opthash
     $opthash = Hash[opthash.map{|k,v| [k, eval(v, $defines)]}]
@@ -218,38 +219,52 @@ at_exit do
 end
 
 def check_result name, src, res, expected
+  sucessfulTest = true
   begin
     if expected && expected != ''
       expected = eval expected.to_s, $defines
     else
       expected = NoError
     end
-    if ! eq_test(res, expected)
-      fail_test name, src, res, expected
-      return false
-    else
-      $success_count += 1
-      return true
-    end
   rescue Exception => e
-    puts "#{name}: Error: #{e} when comparing #{show res} and #{show expected}"
+    $stderr.puts "SETUP ERROR: #{name}"
+    $stderr.puts "\tBODY: #{src}"
+    $stderr.puts "\tEXPECTED: #{show expected}"
+    $stderr.puts "\tFAILURE: #{e}"
+    puts; puts;
+    sucessfulTest = false
+  end
+  if sucessfulTest
+    begin
+      if ! eq_test(res, expected)
+        fail_test name, src, res, expected
+        sucessfulTest = false
+      end
+    rescue Exception => e
+      sucessfulTest = false
+      puts "#{name}: Error: #{e} when comparing #{show res} and #{show expected}"
+    end
+  end
+  if sucessfulTest
+    $success_count += 1
+    return true
+  else
+    $failure_count += 1
     return false
   end
 end
 
-@failure_count = 0
 def fail_test name, src, res, expected
-  @failure_count = @failure_count + 1
-  puts "TEST FAILURE: #{name}"
-  puts "TEST BODY: #{src}"
-  puts "\tVALUE: #{show res}"
-  puts "\tEXPECTED: #{show expected}"
+  $stderr.puts "TEST FAILURE: #{name}"
+  $stderr.puts "\tBODY: #{src}"
+  $stderr.puts "\tVALUE: #{show res}"
+  $stderr.puts "\tEXPECTED: #{show expected}"
   puts; puts;
 end
 
 def the_end
-  if @failure_count != 0 then
-    abort "Failed #{@failure_count} tests"
+  if $failure_count != 0 then
+    abort "Failed #{$failure_count} tests"
   end
 end
 

@@ -15,12 +15,24 @@ with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
     executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Starting cluster..."
-    serve_files = driver.Files(metacluster, db_path = "db", log_path = "create-output",
-                               executable_path = executable_path, command_prefix = command_prefix)
-    serve_process = driver.Process(cluster, serve_files, log_path = "serve-output",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    proxy_process = driver.ProxyProcess(cluster, 'proxy-logfile', log_path = 'proxy-output',
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
+    serve_files = driver.Files(metacluster, db_path="db", log_path="create-output",
+        executable_path=executable_path, command_prefix=command_prefix)
+    serve_process = driver.Process(cluster, serve_files, log_path="serve-output",
+        executable_path=executable_path, command_prefix=command_prefix, extra_options=serve_options)
+    
+    # remove --cache-size
+    for option in serve_options[:]:
+        if option == '--cache-size':
+            position = serve_options.index(option)
+            serve_options.pop(position)
+            if len(serve_options) > position: # we have at least one more option... the cache size
+                serve_options.pop(position)
+            break # we can only handle one
+        elif option.startswith('--cache-size='):
+            serve_options.remove(option)
+    
+    proxy_process = driver.ProxyProcess(cluster, 'proxy-logfile', log_path='proxy-output',
+        executable_path=executable_path, command_prefix=command_prefix, extra_options=serve_options)
     processes = [serve_process, proxy_process]
     for process in processes:
         process.wait_until_started_up()
@@ -30,7 +42,7 @@ with driver.Metacluster() as metacluster:
     dc = http.add_datacenter()
     for machine_id in http.machines:
         http.move_server_to_datacenter(machine_id, dc)
-    ns = scenario_common.prepare_table_for_workload(http, primary = dc)
+    ns = scenario_common.prepare_table_for_workload(http, primary=dc)
     http.wait_until_blueprint_satisfied(ns)
 
     workload_ports = scenario_common.get_workload_ports(ns, [proxy_process])

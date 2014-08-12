@@ -40,7 +40,7 @@ tests:
       ot: ({'first_error':'a','changes':[{'old_val':{'id':0,'x':1},'new_val':{'id':0,'x':1}}]})
     - rb: r.table('asg').update({'x':3}, :return_changes => true).pluck('changes', 'first_error').do {|d| d.merge({:changes => d['changes'].order_by {|a| a['old_val']['id']}})}
       py: r.table('asg').update({'x':3}, return_changes=True).pluck('changes', 'first_error').do(lambda d:d.merge({'changes':d['changes'].order_by(lambda a:a['old_val']['id'])}))
-      js: r.table('asg').update({'x':3}, {'return_changes':true}).pluck('changes', 'first_error').do(function(p){return p.merge({'changes':p('changes').order_by(function(a){return a('old_val')('id')})})})
+      js: r.table('asg').update({'x':3}, {'return_changes':true}).pluck('changes', 'first_error').do(function(p){return p.merge({'changes':p('changes').order_by(function(a){return a('old_' + 'val')('id')})})})
       ot: ({'changes':[{'old_val':{'id':0, 'x':1},'new_val':{'id':0, 'x':3}}, {'old_val':{'id':1},'new_val':{'id':1, 'x':3}}]})
 
     - cd: r.table('asg').get(0).replace({'id':0,'x':2}, :return_changes => true).pluck('changes', 'first_error')
@@ -54,11 +54,11 @@ tests:
       ot: ({'first_error':'a','changes':[{'old_val':{'id':0,'x':2},'new_val':{'id':0,'x':2}}]})
     - rb: r.table('asg').replace( :return_changes => true) { |d| d.without('x')}.pluck('changes', 'first_error').do {|d| d.merge({:changes => d['changes'].order_by {|a| a['old_val']['id']}})}
       py: r.table('asg').replace(lambda y:y.without('x'), return_changes=True).pluck('changes', 'first_error').do(lambda d:d.merge({'changes':d['changes'].order_by(lambda a:a['old_val']['id'])}))
-      js: r.table('asg').replace(function(p){return p.without('x')}, {'return_changes':true}).pluck('changes', 'first_error').do(function(p){return p.merge({'changes':p('changes').order_by(function(a){return a('old_val')('id')})})})
+      js: r.table('asg').replace(function(p){return p.without('x')}, {'return_changes':true}).pluck('changes', 'first_error').do(function(p){return p.merge({'changes':p('changes').order_by(function(a){return a('old_' + 'val')('id')})})})
       ot: ({'changes':[{'new_val':{'id':0},'old_val':{'id':0, 'x':2}}, {'new_val':{'id':1},'old_val':{'id':1,'x':3}}]})
     - rb: r.table('asg').replace({'x':1}, :return_changes => true).pluck('changes', 'first_error').do {|d| d.merge({:changes => d['changes'].order_by {|a| a['old_val']['id']}})}
       py: r.table('asg').replace({'x':1}, return_changes=True).pluck('changes', 'first_error').do(lambda d:d.merge({'changes':d['changes'].order_by(lambda a:a['old_val']['id'])}))
-      js: r.table('asg').replace({'x':1}, {'return_changes':true}).pluck('changes', 'first_error').do(function(p){return p.merge({'changes':p('changes').order_by(function(a){return a('old_val')('id')})})})
+      js: r.table('asg').replace({'x':1}, {'return_changes':true}).pluck('changes', 'first_error').do(function(p){return p.merge({'changes':p('changes').order_by(function(a){return a('old_' + 'val')('id')})})})
       ot: ({'first_error':"Inserted object must have primary key `id`:\n{\n\t\"x\":\t1\n}", 'changes':[{'new_val':{'x':1},'old_val':{'id':0}}, {'new_val':{'x':1},'old_val':{'id':1}}]})
 
     - rb: r.table('asg').foreach{|row| [r.table('asg').get(0).update(nil, :return_changes => true), r.table('asg').get(0).update(nil, :return_changes => true)]}.pluck('changes', 'first_error').do {|d| d.merge({:changes => d['changes'].order_by {|a| a['old_val']['id']}})}
