@@ -240,7 +240,7 @@ std::vector<nearest_geo_read_response_t::dist_pair_t> emulate_get_nearest(
     std::sort(result.begin(), result.end(), &nearest_pairs_less);
 
     // Apply max_results and max_distance
-    size_t cut_off = std::min(max_results, result.size());
+    size_t cut_off = std::min(static_cast<size_t>(max_results), result.size());
     for (size_t i = 0; i < cut_off; ++i) {
         if (result[i].first > max_distance) {
             cut_off = i;

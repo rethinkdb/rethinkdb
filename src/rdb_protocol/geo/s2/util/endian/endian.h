@@ -14,16 +14,7 @@
 #include "rdb_protocol/geo/s2/base/int128.h"
 
 inline uint64 gbswap_64(uint64 host_int) {
-#if defined(COMPILER_GCC3) && defined(__x86_64__)
-  // Adapted from /usr/include/byteswap.h.
-  if (__builtin_constant_p(host_int)) {
-    return __bswap_constant_64(host_int);
-  } else {
-    register uint64 result;
-    __asm__ ("bswap %0" : "=r" (result) : "0" (host_int));
-    return result;
-  }
-#elif defined(bswap_64)
+#if defined(bswap_64)
   return bswap_64(host_int);
 #else
   return static_cast<uint64>(bswap_32(static_cast<uint32>(host_int >> 32))) |

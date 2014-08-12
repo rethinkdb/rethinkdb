@@ -33,12 +33,6 @@ using std::make_pair;
 
 static const unsigned char kCurrentEncodingVersionNumber = 1;
 
-#ifdef NDEBUG
-const bool FLAGS_s2debug = false;
-#else
-const bool FLAGS_s2debug = true;
-#endif
-
 S2Point const* S2LoopIndex::edge_from(int index) const {
   return &loop_->vertex(index);
 }
@@ -112,7 +106,7 @@ bool S2Loop::IsValid() const {
     }
   }
   // Loops are not allowed to have any duplicate vertices.
-  unordered_map<S2Point, int> vmap;
+  unordered_map<S2Point, int, std::hash<S2Point> > vmap;
   for (int i = 0; i < num_vertices(); ++i) {
     if (!vmap.insert(make_pair(vertex(i), i)).second) {
       VLOG(2) << "Duplicate vertices: " << vmap[vertex(i)] << " and " << i;

@@ -123,7 +123,7 @@ describe('Javascript connection API', function(){
                 server_err_log = fs.openSync('run/server-error-log.txt', 'a');
                 cpp_server = spawn(
                     build_dir + '/rethinkdb',
-                    ['--driver-port', port, '--http-port', '0', '--cluster-port', cluster_port],
+                    ['--driver-port', port, '--http-port', '0', '--cluster-port', cluster_port, '--cache-size', '512'],
                     {stdio: ['ignore', 'pipe', 'pipe']});
 
                 cpp_server.stderr.on('data', function(data) {

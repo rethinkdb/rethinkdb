@@ -1,6 +1,9 @@
 // Copyright 2008 and onwards Google Inc.  All rights reserved.
 
+#include <unordered_map>
+#include <unordered_set>
 #include <limits>
+#include <string>
 using std::numeric_limits;
 
 
@@ -12,149 +15,6 @@ using std::numeric_limits;
 #include "rdb_protocol/geo/s2/strings/strutil.h"
 #include "rdb_protocol/geo/s2/util/hash/hash_jenkins_lookup2.h"
 #include "utils.hpp"
-
-static const uint32 MIX32 = 0x12b9b0a1UL;           // pi; an arbitrary number
-static const uint64 MIX64 = GG_ULONGLONG(0x2b992ddfa23249d6);  // more of pi
-
-// ----------------------------------------------------------------------
-// Hash32StringWithSeed()
-// Hash64StringWithSeed()
-// Hash32NumWithSeed()
-// Hash64NumWithSeed()
-//   These are Bob Jenkins' hash functions, one for 32 bit numbers
-//   and one for 64 bit numbers.  Each takes a string as input and
-//   a start seed.  Hashing the same string with two different seeds
-//   should give two independent hash values.
-//      The *Num*() functions just do a single mix, in order to
-//   convert the given number into something *random*.
-//
-// Note that these methods may return any value for the given size, while
-// the corresponding HashToXX() methods avoids certain reserved values.
-// ----------------------------------------------------------------------
-
-// These slow down a lot if inlined, so do not inline them  --Sanjay
-extern uint32 Hash32StringWithSeed(const char *s, uint32 len, uint32 c);
-extern uint64 Hash64StringWithSeed(const char *s, uint32 len, uint64 c);
-extern uint32 Hash32StringWithSeedReferenceImplementation(const char *s,
-                                                          uint32 len, uint32 c);
-// ----------------------------------------------------------------------
-// HashTo32()
-// HashTo16()
-// HashTo8()
-//    These functions take various types of input (through operator
-//    overloading) and return 32, 16, and 8 bit quantities, respectively.
-//    The basic rule of our hashing is: always mix().  Thus, even for
-//    char outputs we cast to a uint32 and mix with two arbitrary numbers.
-//       As indicated in basictypes.h, there are a few illegal hash
-//    values to watch out for.
-//
-// Note that these methods avoid returning certain reserved values, while
-// the corresponding HashXXStringWithSeed() methdos may return any value.
-// ----------------------------------------------------------------------
-
-// This macro defines the HashTo32, To16, and To8 versions all in one go.
-// It takes the argument list and a command that hashes your number.
-// (For 16 and 8, we just mod retval before returning it.)  Example:
-//    HASH_TO((char c), Hash32NumWithSeed(c, MIX32_1))
-// evaluates to
-//    uint32 retval;
-//    retval = Hash32NumWithSeed(c, MIX32_1);
-//    return retval == kIllegalHash32 ? retval-1 : retval;
-//
-
-inline uint32 Hash32NumWithSeed(uint32 num, uint32 c) {
-  uint32 b = 0x9e3779b9UL;            // the golden ratio; an arbitrary value
-  mix(num, b, c);
-  return c;
-}
-
-inline uint64 Hash64NumWithSeed(uint64 num, uint64 c) {
-  uint64 b = GG_ULONGLONG(0xe08c1d668b756f82);   // more of the golden ratio
-  mix(num, b, c);
-  return c;
-}
-
-#define HASH_TO(arglist, command)                              \
-inline uint32 HashTo32 arglist {                               \
-  uint32 retval = command;                                     \
-  return retval == kIllegalHash32 ? retval-1 : retval;         \
-}                                                              \
-inline uint16 HashTo16 arglist {                               \
-  uint16 retval16 = command >> 16;    /* take upper 16 bits */ \
-  return retval16 == kIllegalHash16 ? retval16-1 : retval16;   \
-}                                                              \
-inline unsigned char HashTo8 arglist {                         \
-  unsigned char retval8 = command >> 24;       /* take upper 8 bits */ \
-  return retval8 == kIllegalHash8 ? retval8-1 : retval8;       \
-}
-
-// This defines:
-// HashToXX(char *s, int slen);
-// HashToXX(char c);
-// etc
-
-HASH_TO((const char *s, uint32 slen), Hash32StringWithSeed(s, slen, MIX32))
-HASH_TO((const wchar_t *s, uint32 slen),
-        Hash32StringWithSeed(reinterpret_cast<const char*>(s),
-                             sizeof(wchar_t) * slen,
-                             MIX32))
-HASH_TO((char c),  Hash32NumWithSeed(static_cast<uint32>(c), MIX32))
-HASH_TO((schar c),  Hash32NumWithSeed(static_cast<uint32>(c), MIX32))
-HASH_TO((uint16 c), Hash32NumWithSeed(static_cast<uint32>(c), MIX32))
-HASH_TO((int16 c),  Hash32NumWithSeed(static_cast<uint32>(c), MIX32))
-HASH_TO((uint32 c), Hash32NumWithSeed(static_cast<uint32>(c), MIX32))
-HASH_TO((int32 c),  Hash32NumWithSeed(static_cast<uint32>(c), MIX32))
-HASH_TO((uint64 c), static_cast<uint32>(Hash64NumWithSeed(c, MIX64) >> 32))
-HASH_TO((int64 c),  static_cast<uint32>(Hash64NumWithSeed(c, MIX64) >> 32))
-#ifdef _LP64
-HASH_TO((intptr_t c),  static_cast<uint32>(Hash64NumWithSeed(c, MIX64) >> 32))
-#endif
-
-#undef HASH_TO        // clean up the macro space
-
-namespace std {
-#if defined(__GNUC__)
-// Use our nice hash function for strings
-template<class _CharT, class _Traits, class _Alloc>
-struct hash<basic_string<_CharT, _Traits, _Alloc> > {
-  size_t operator()(const basic_string<_CharT, _Traits, _Alloc>& k) const {
-    return HashTo32(k.data(), static_cast<uint32>(k.length()));
-  }
-};
-
-// they don't define a hash for const string at all
-template<> struct hash<const std::string> {
-  size_t operator()(const std::string& k) const {
-    return HashTo32(k.data(), static_cast<uint32>(k.length()));
-  }
-};
-#endif  // __GNUC__
-
-// MSVC's STL requires an ever-so slightly different decl
-#if defined STL_MSVC
-template<> struct hash<char const*> : PortableHashBase {
-  size_t operator()(char const* const k) const {
-    return HashTo32(k, strlen(k));
-  }
-  // Less than operator:
-  bool operator()(char const* const a, char const* const b) const {
-    return strcmp(a, b) < 0;
-  }
-};
-
-template<> struct hash<std::string> : PortableHashBase {
-  size_t operator()(const std::string& k) const {
-    return HashTo32(k.data(), k.length());
-  }
-  // Less than operator:
-  bool operator()(const std::string& a, const std::string& b) const {
-    return a < b;
-  }
-};
-
-#endif
-} // namespace std
-
 
 namespace {
 // NOTE(user): we have to implement our own interator because
@@ -246,7 +106,7 @@ void SplitStringIntoNPiecesAllowEmpty(const std::string& full,
                                       const char* delim,
                                       int pieces,
                                       vector<std::string>* result) {
-  back_insert_iterator<vector<std::string> > it(*result);
+  std::back_insert_iterator<std::vector<std::string> > it(*result);
   SplitStringToIteratorAllowEmpty(full, delim, pieces, it);
 }
 
@@ -261,7 +121,7 @@ void SplitStringIntoNPiecesAllowEmpty(const std::string& full,
 // ----------------------------------------------------------------------
 void SplitStringAllowEmpty(const std::string& full, const char* delim,
                            vector<std::string>* result) {
-  back_insert_iterator<vector<std::string> > it((*result));
+  std::back_insert_iterator<std::vector<std::string> > it((*result));
   SplitStringToIteratorAllowEmpty(full, delim, 0, it);
 }
 
@@ -367,7 +227,7 @@ void SplitStringUsing(const std::string& full,
                       const char* delim,
                       vector<std::string>* result) {
   result->reserve(result->size() + CalculateReserveForVector(full, delim));
-  back_insert_iterator< vector<std::string> > it((*result));
+  std::back_insert_iterator<std::vector<std::string> > it((*result));
   SplitStringToIteratorUsing(full, delim, it);
 }
 

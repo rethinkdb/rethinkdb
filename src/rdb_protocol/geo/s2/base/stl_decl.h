@@ -22,10 +22,7 @@
 #if defined(STL_MSVC)  /* If VC++'s STL */
 #include "rdb_protocol/geo/s2/base/stl_decl_msvc.h"
 
-#elif defined(__APPLE__) && defined(OS_MACOSX) /* gcc with a twist */
-#include "rdb_protocol/geo/s2/base/stl_decl_osx.h"
-
-#elif !defined(__GNUC__)
+#elif (!defined(__GNUC__) && !defined(__APPLE__))
 #error "Unknown C++ compiler"
 #endif
 

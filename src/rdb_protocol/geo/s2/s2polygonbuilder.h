@@ -261,7 +261,7 @@ class S2PolygonBuilder {
   // current position to a new position, and also returns a spatial index
   // containing all of the vertices that do not need to be moved.
   class PointIndex;
-  typedef unordered_map<S2Point, S2Point> MergeMap;
+  typedef unordered_map<S2Point, S2Point, std::hash<S2Point> > MergeMap;
   void BuildMergeMap(PointIndex* index, MergeMap* merge_map);
 
   // Moves a set of vertices from old to new positions.
@@ -281,7 +281,7 @@ class S2PolygonBuilder {
   // once.  We could have also used a multiset<pair<S2Point, S2Point> >,
   // but this representation is a bit more convenient.
   typedef multiset<S2Point> VertexSet;
-  typedef unordered_map<S2Point, VertexSet> EdgeSet;
+  typedef unordered_map<S2Point, VertexSet, std::hash<S2Point> > EdgeSet;
   scoped_ptr<EdgeSet> edges_;
 
   // Unique collection of the starting (first) vertex of all edges,
