@@ -1402,10 +1402,10 @@ void datum_object_builder_t::add_warnings(const std::set<std::string> &msgs, con
             base_exc_t::GENERIC,
             strprintf("Warnings would exceed array size limit %zu; increase it to see warnings", limits.array_size_limit()));
         datum_array_builder_t out(std::vector<counted_t<const datum_t> >(array), limits);
-        for (const auto & msg : msgs) {
+        for (auto const & msg : msgs) {
             bool seen = false;
             // assume here that the warnings array will "always" be small.
-            for (const auto & candidate : array) {
+            for (auto const & candidate : array) {
                 if (candidate->as_str() == msg.c_str()) {
                     seen = true;
                     break;
@@ -1416,7 +1416,7 @@ void datum_object_builder_t::add_warnings(const std::set<std::string> &msgs, con
         *warnings_entry = out.to_counted();
     } else {
         datum_array_builder_t out(limits);
-        for (const auto & msg : msgs) {
+        for (auto const & msg : msgs) {
             out.add(make_counted<datum_t>(msg.c_str()));
         }
         *warnings_entry = out.to_counted();
