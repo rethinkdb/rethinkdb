@@ -10,6 +10,7 @@ pathspec_t::pathspec_t(const pathspec_t &other) {
 }
 
 pathspec_t& pathspec_t::operator=(const pathspec_t &other) {
+    free_memory();
     init_from(other);
     return *this;
 }
@@ -61,11 +62,17 @@ pathspec_t::pathspec_t(counted_t<const datum_t> datum, term_t *_creator)
     }
 
     if (type == VEC && vec->size() == 1) {
-        *this = (*vec)[0];
+        pathspec_t inner = (*vec)[0];
+        delete vec;
+        init_from(inner);
     }
 }
 
 pathspec_t::~pathspec_t() {
+    free_memory();
+}
+
+void pathspec_t::free_memory() {
     switch (type) {
     case STR:
         delete str;

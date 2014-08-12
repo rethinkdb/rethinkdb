@@ -60,6 +60,7 @@ public:
 
 private:
     void init_from(const pathspec_t &other);
+    void free_memory();
 
     enum type_t {
         STR,
