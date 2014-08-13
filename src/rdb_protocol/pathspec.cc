@@ -10,7 +10,44 @@ pathspec_t::pathspec_t(const pathspec_t &other) {
 }
 
 pathspec_t& pathspec_t::operator=(const pathspec_t &other) {
+    // Delay freeing the memory we allocated in case &other == this or other
+    // is a field inside of *this.
+    type_t type_old = type;
+    union {
+        std::string *str_old;
+        std::vector<pathspec_t> *vec_old;
+        std::map<std::string, pathspec_t> *map_old;
+    };
+    switch (type) {
+    case STR:
+        str_old = str;
+        break;
+    case VEC:
+        vec_old = vec;
+        break;
+    case MAP:
+        map_old = map;
+        break;
+    default:
+        unreachable();
+    }
+
     init_from(other);
+
+    switch (type_old) {
+    case STR:
+        delete str_old;
+        break;
+    case VEC:
+        delete vec_old;
+        break;
+    case MAP:
+        delete map_old;
+        break;
+    default:
+        unreachable();
+    }
+
     return *this;
 }
 
