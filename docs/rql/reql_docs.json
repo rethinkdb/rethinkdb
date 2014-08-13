@@ -29,9 +29,9 @@
     "url": "add"
   }, 
   "api/javascript/and/": {
-    "body": "bool.and(bool) &rarr; bool", 
-    "description": "<p>Compute the logical and of two values.</p>", 
-    "example": "<p><strong>Example:</strong> True and false anded is false?</p>\n<p><code>r.expr(true).and(false).run(conn, callback)</code></p>", 
+    "body": "bool.and(bool[, bool, ...]) &rarr; boolr.and(bool[, bool, ...]) &rarr; bool", 
+    "description": "<p>Compute the logical \"and\" of two or more values.</p>", 
+    "example": "<p><strong>Example:</strong> Return whether both <code>a</code> and <code>b</code> evaluate to true.</p>\n<p><code>var a = true, b = false;\nr.expr(a).and(b).run(conn, callback);\n// result passed to callback\nfalse</code></p>", 
     "io": [
       [
         "bool", 
@@ -91,6 +91,19 @@
     "name": "between", 
     "url": "between"
   }, 
+  "api/javascript/binary/": {
+    "body": "r.binary(data) &rarr; binary", 
+    "description": "<p>Encapsulate binary data within a query.</p>", 
+    "example": "<p><strong>Example:</strong> Save an avatar image to a existing user record.</p>\n<p><code>var fs = require('fs');\nfs.readFile('./defaultAvatar.png', function (err, avatarImage) {\n    if (err) {\n        // Handle error\n    }\n    else {\n        r.table('users').get(100).update({\n            avatar: avatarImage\n        })\n    }\n});</code></p>", 
+    "io": [
+      [
+        "r", 
+        "binary"
+      ]
+    ], 
+    "name": "binary", 
+    "url": "binary"
+  }, 
   "api/javascript/branch/": {
     "body": "r.branch(test, true_branch, false_branch) &rarr; any", 
     "description": "<p>If the <code>test</code> expression returns <code>false</code> or <code>null</code>, the <code>false_branch</code> will be evaluated.\nOtherwise, the <code>true_branch</code> will be evaluated.</p>\n<p>The <code>branch</code> command is effectively an <code>if</code> renamed due to language constraints.\nThe type of the result is determined by the type of the branch that gets executed.</p>", 
@@ -119,7 +132,7 @@
   }, 
   "api/javascript/changes/": {
     "body": "table.changes() &rarr; stream", 
-    "description": "<p>Takes a table and returns an infinite stream of objects representing\nchanges to that table.  Whenever an <code>insert</code>, <code>delete</code>, <code>update</code> or\n<code>replace</code> is performed on the table, an object of the form\n<code>{old_val:..., new_val:...}</code> will be added to the stream.  For an\n<code>insert</code>, <code>old_val</code> will be <code>null</code>, and for a <code>delete</code>, <code>new_val</code> will\nbe <code>null</code>.</p>", 
+    "description": "<p>Return an infinite stream of objects representing changes to a table. Whenever an <code>insert</code>, <code>delete</code>, <code>update</code> or <code>replace</code> is performed on the table, an object of the form <code>{'old_val': ..., 'new_val': ...}</code> will be appended to the stream. For an <code>insert</code>, <code>old_val</code> will be <code>null</code>, and for a <code>delete</code>, <code>new_val</code> will be <code>null</code>.</p>", 
     "example": "<p><strong>Example:</strong> Subscribe to the changes on a table.</p>\n<p><code>r.table('games').changes().run(conn, function(err, cursor) {\n  cursor.each(console.log)\n})</code></p>", 
     "io": [
       [
@@ -157,7 +170,7 @@
     "url": "close"
   }, 
   "api/javascript/coerce_to/": {
-    "body": "sequence.coerceTo('array') &rarr; arrayvalue.coerceTo('string') &rarr; stringstring.coerceTo('number') &rarr; numberarray.coerceTo('object') &rarr; objectobject.coerceTo('array') &rarr; array", 
+    "body": "sequence.coerceTo('array') &rarr; arrayvalue.coerceTo('string') &rarr; stringstring.coerceTo('number') &rarr; numberarray.coerceTo('object') &rarr; objectobject.coerceTo('array') &rarr; arraybinary.coerceTo('string') &rarr; string", 
     "description": "<p>Convert a value of one type into another.</p>", 
     "example": "<p><strong>Example:</strong> Coerce a stream to an array.</p>\n<p><code>r.table('posts').map(function (post) {\n    post.merge({ comments: r.table('comments').getAll(post('id'), {index: 'postId'}).coerceTo('array')});\n}).run(conn, callback)</code></p>", 
     "io": [
@@ -176,6 +189,14 @@
       [
         "object", 
         "array"
+      ], 
+      [
+        "binary", 
+        "string"
+      ], 
+      [
+        "string", 
+        "binary"
       ]
     ], 
     "name": "coerceTo", 
@@ -225,12 +246,16 @@
     "url": "contains"
   }, 
   "api/javascript/count/": {
-    "body": "sequence.count([filter]) &rarr; number", 
+    "body": "sequence.count([filter]) &rarr; numberbinary.count() &rarr; number", 
     "description": "<p>Count the number of elements in the sequence. With a single argument, count the number\nof elements equal to it. If the argument is a function, it is equivalent to calling\nfilter before count.</p>", 
     "example": "<p><strong>Example:</strong> Just how many super heroes are there?</p>\n<p><code>r.table('marvel').count().add(r.table('dc').count()).run(conn, callback)</code></p>", 
     "io": [
       [
         "sequence", 
+        "number"
+      ], 
+      [
+        "binary", 
         "number"
       ]
     ], 
@@ -359,7 +384,7 @@
     "url": "default"
   }, 
   "api/javascript/delete/": {
-    "body": "table.delete([{durability: \"hard\", returnVals: false}])&rarr; objectselection.delete([{durability: \"hard\", returnVals: false}])&rarr; objectsingleSelection.delete([{durability: \"hard\", returnVals: false}])&rarr; object", 
+    "body": "table.delete([{durability: \"hard\", returnChanges: false}])&rarr; objectselection.delete([{durability: \"hard\", returnChanges: false}])&rarr; objectsingleSelection.delete([{durability: \"hard\", returnChanges: false}])&rarr; object", 
     "description": "<p>Delete one or more documents from a table.</p>", 
     "example": "<p><strong>Example:</strong> Delete a single document from the table <code>comments</code>.</p>\n<p><code>r.table(\"comments\").get(\"7eab9e63-73f1-4f33-8ce4-95cbea626f59\").delete().run(conn, callback)</code></p>", 
     "io": [
@@ -541,7 +566,7 @@
   }, 
   "api/javascript/event_emitter-cursor/": {
     "body": "cursor.addListener(event, listener)cursor.on(event, listener)cursor.once(event, listener)cursor.removeListener(event, listener)cursor.removeAllListeners([event])cursor.setMaxListeners(n)cursor.listeners(event)cursor.emit(event, [arg1], [arg2], [...])", 
-    "description": "<p>Cursors and feeds implement the same interface as <a href=\"http://nodejs.org/api/events.html#events_class_events_eventemitter\">EventEmitter</a>.</p>\n<p>There are a few things to know about this interface:</p>\n<ul>\n<li>Two events can be emited, <code>data</code> and <code>error</code>.</li>\n<li>Once you start using the EventEmitter interface, the other commands like <code>next</code>,\n<code>toArray</code>, <code>each</code> will not be available anymore.</li>\n<li>The first time you call one of the EventEmitter's methods, the cursor or feed will\nemit data just after the I/O events callbacks and before <code>setTimeout</code> and <code>setInterval</code>\ncallbacks.</li>\n</ul>", 
+    "description": "<p>Cursors and feeds implement the same interface as <a href=\"http://nodejs.org/api/events.html#events_class_events_eventemitter\">EventEmitter</a>.</p>\n<p>There are a few things to know about this interface:</p>\n<ul>\n<li>Two events can be emitted, <code>data</code> and <code>error</code>.</li>\n<li>Once you start using the EventEmitter interface, the other commands like <code>next</code>,\n<code>toArray</code>, <code>each</code> will not be available anymore.</li>\n<li>The first time you call one of the EventEmitter's methods, the cursor or feed will\nemit data just after the I/O events callbacks and before <code>setTimeout</code> and <code>setInterval</code>\ncallbacks.</li>\n</ul>", 
     "example": "<p><strong>Example:</strong> Broadcast all messages with <a href=\"http://socket.io\">socket.io</a>.</p>\n<p>```\nr.table(\"messages\").orderBy({index: \"date\"}).run(conn, function(err, cursor) {\n    if (err) {\n        // Handle error\n        return\n    }</p>\n<pre><code>cursor.on(\"error\", function(error) {\n    // Handle error\n})\ncursor.on(\"data\", function(message) {\n    socket.broadcast.emit(\"message\", message)\n})\n</code></pre>\n<p>});\n```</p>", 
     "io": [
       [
@@ -767,9 +792,9 @@
     "url": "in_timezone"
   }, 
   "api/javascript/index_create/": {
-    "body": "table.indexCreate(indexName[, indexFunction]) &rarr; object", 
-    "description": "<p>Create a new secondary index on this table.</p>", 
-    "example": "<p><strong>Example:</strong> To efficiently query our heros by code name we have to create a secondary\nindex.</p>\n<p><code>r.table('dc').indexCreate('code_name').run(conn, callback)</code></p>", 
+    "body": "table.indexCreate(indexName[, indexFunction][, {multi: false}]) &rarr; object", 
+    "description": "<p>Create a new secondary index on a table.</p>", 
+    "example": "<p><strong>Example:</strong> Create a simple index based on the field <code>postId</code>.</p>\n<p><code>r.table('comments').indexCreate('postId').run(conn, callback)</code></p>", 
     "io": [
       [
         "table", 
@@ -804,6 +829,19 @@
     ], 
     "name": "indexList", 
     "url": "index_list"
+  }, 
+  "api/javascript/index_rename/": {
+    "body": "table.indexRename(oldIndexName, newIndexName[, {overwrite: false}]) &rarr; object", 
+    "description": "<p>Rename an existing secondary index on a table. If the optional argument <code>overwrite</code> is specified as <code>true</code>, a previously existing index with the new name will be deleted and the index will be renamed. If <code>overwrite</code> is <code>false</code> (the default) an error will be raised if the new index name already exists.</p>", 
+    "example": "<p><strong>Example:</strong> Rename an index on the comments table.</p>\n<p><code>r.table('comments').indexRename('postId', 'messageId').run(conn, callback)</code></p>", 
+    "io": [
+      [
+        "table", 
+        "object"
+      ]
+    ], 
+    "name": "indexRename", 
+    "url": "index_rename"
   }, 
   "api/javascript/index_status/": {
     "body": "table.indexStatus([, index...]) &rarr; array", 
@@ -875,7 +913,7 @@
     "url": "inner_join"
   }, 
   "api/javascript/insert/": {
-    "body": "table.insert(json | [json][, {durability: \"hard\", returnVals: false, upsert: false}])&rarr; object", 
+    "body": "table.insert(json | [json][, {durability: \"hard\", returnChanges: false, conflict: \"error\"}]) &rarr; object", 
     "description": "<p>Insert JSON documents into a table. Accepts a single JSON document or an array of\ndocuments.</p>", 
     "example": "<p><strong>Example:</strong> Insert a document into the table <code>posts</code>.</p>\n<p><code>r.table(\"posts\").insert({\n    id: 1,\n    title: \"Lorem ipsum\",\n    content: \"Dolor sit amet\"\n}).run(conn, callback)</code></p>", 
     "io": [
@@ -922,8 +960,8 @@
     "url": "is_empty"
   }, 
   "api/javascript/iso8601/": {
-    "body": "r.ISO8601(iso8601Date[, {default_timezone:''}]) &rarr; time", 
-    "description": "<p>Create a time object based on an iso8601 date-time string (e.g.\n'2013-01-01T01:01:01+00:00'). We support all valid ISO 8601 formats except for week\ndates. If you pass an ISO 8601 date-time without a time zone, you must specify the time\nzone with the optarg <code>default_timezone</code>. Read more about the ISO 8601 format on the\nWikipedia page.</p>", 
+    "body": "r.ISO8601(iso8601Date[, {defaultTimezone:''}]) &rarr; time", 
+    "description": "<p>Create a time object based on an ISO 8601 date-time string (e.g. '2013-01-01T01:01:01+00:00'). We support all valid ISO 8601 formats except for week dates. If you pass an ISO 8601 date-time without a time zone, you must specify the time zone with the <code>defaultTimezone</code> argument. Read more about the ISO 8601 format at <a href=\"http://en.wikipedia.org/wiki/ISO_8601\">Wikipedia</a>.</p>", 
     "example": "<p><strong>Example:</strong> Update the time of John's birth.</p>\n<p><code>r.table(\"user\").get(\"John\").update({birth: r.ISO8601('1986-11-03T08:30:00-07:00')}).run(conn, callback)</code></p>", 
     "io": [
       [
@@ -1013,7 +1051,7 @@
     "example": "", 
     "io": [
       [
-        "object", 
+        "r", 
         "special"
       ]
     ], 
@@ -1262,9 +1300,9 @@
     "url": "object"
   }, 
   "api/javascript/or/": {
-    "body": "bool.or(bool) &rarr; bool", 
-    "description": "<p>Compute the logical or of two values.</p>", 
-    "example": "<p><strong>Example:</strong> True or false ored is true?</p>\n<p><code>r.expr(true).or(false).run(conn, callback)</code></p>", 
+    "body": "bool.or(bool[, bool, ...]) &rarr; boolr.or(bool[, bool, ...]) &rarr; bool", 
+    "description": "<p>Compute the logical \"or\" of two or more values.</p>", 
+    "example": "<p><strong>Example:</strong> Return whether either <code>a</code> or <code>b</code> evaluate to true.</p>\n<p><code>var a = true, b = false;\nr.expr(a).or(b).run(conn, callback);\n// result passed to callback\ntrue</code></p>", 
     "io": [
       [
         "bool", 
@@ -1276,7 +1314,7 @@
   }, 
   "api/javascript/order_by/": {
     "body": "table.orderBy([key1...], {index: index_name}) &rarr; selection<stream>selection.orderBy(key1, [key2...]) &rarr; selection<array>sequence.orderBy(key1, [key2...]) &rarr; array", 
-    "description": "<p>Sort the sequence by document values of the given key(s). To specify\nthe ordering, wrap the attribute with either <code>r.asc</code> or <code>r.desc</code>\n(defaults to ascending).</p>\n<p>Sorting without an index requires the server to hold the sequence in\nmemory, and is limited to 100,000 documents. Sorting with an index can\nbe done on arbitrarily large tables, or after a <code>between</code> command\nusing the same index.</p>", 
+    "description": "<p>Sort the sequence by document values of the given key(s). To specify\nthe ordering, wrap the attribute with either <code>r.asc</code> or <code>r.desc</code>\n(defaults to ascending).</p>\n<p>Sorting without an index requires the server to hold the sequence in\nmemory, and is limited to 100,000 documents (or the setting of the <code>arrayLimit</code> option for <a href=\"/api/javascript/run\">run</a>). Sorting with an index can\nbe done on arbitrarily large tables, or after a <code>between</code> command\nusing the same index.</p>", 
     "example": "<p><strong>Example:</strong> Order all the posts using the index <code>date</code>.   </p>\n<p><code>r.table('posts').orderBy({index: 'date'}).run(conn, callback)</code></p>\n<p>The index must have been previously created with <a href=\"/api/javascript/index_create/\">indexCreate</a>.</p>\n<p><code>r.table('posts').indexCreate('date').run(conn, callback)</code></p>\n<p>You can also select a descending ordering:</p>\n<p><code>r.table('posts').orderBy({index: r.desc('date')}).run(conn, callback)</code></p>", 
     "io": [
       [
@@ -1360,9 +1398,9 @@
     "url": "r"
   }, 
   "api/javascript/random/": {
-    "body": "r.random() &rarr numberr.random(integer) &rarr integerr.random(integer, integer) &rarr integerr.random(number, number, {float: true}) &rarr number", 
-    "description": "<p>Generate a random number between the given bounds. If no arguments are given, the result\nwill be a floating-point number in the range <code>[0,1)</code>.</p>\n<p>When passing a single argument, <code>r.random(x)</code>, the result will be in the range <code>[0,x)</code>,\nand when passing two arguments, <code>r.random(x,y)</code>, the range is <code>[x,y)</code>. If <code>x</code> and <code>y</code> are\nequal, an error will occur, unless generating a floating-point number, for which <code>x</code> will\nbe returned.</p>\n<p>Note: The last argument given will always be the 'open' side of the range, but when\ngenerating a floating-point number, the 'open' side may be less than the 'closed' side.</p>", 
-    "example": "<p><strong>Example:</strong> Generate a random integer in the range <code>[0,100)</code></p>\n<p><code>r.random(100).run(conn, callback)\nr.random(0, 100).run(conn, callback)</code></p>", 
+    "body": "r.random() &rarr; numberr.random(number[, number], {float: true}) &rarr; numberr.random(integer[, integer]) &rarr; integer", 
+    "description": "<p>Generate a random number between given (or implied) bounds. <code>random</code> takes zero, one or two arguments.</p>", 
+    "example": "<p><strong>Example:</strong> Generate a random number in the range <code>[0,1)</code></p>\n<p><code>r.random().run(conn, callback)</code></p>", 
     "io": [
       "r", 
       "number"
@@ -1397,7 +1435,7 @@
     "url": "reduce"
   }, 
   "api/javascript/replace/": {
-    "body": "table.replace(json | expr[, {durability: \"hard\", returnVals: false, nonAtomic: false}])&rarr; objectselection.replace(json | expr[, {durability: \"hard\", returnVals: false, nonAtomic: false}])&rarr; objectsingleSelection.replace(json | expr[, {durability: \"hard\", returnVals: false, nonAtomic: false}])&rarr; object", 
+    "body": "table.replace(json | expr[, {durability: \"hard\", returnChanges: false, nonAtomic: false}])&rarr; objectselection.replace(json | expr[, {durability: \"hard\", returnChanges: false, nonAtomic: false}])&rarr; objectsingleSelection.replace(json | expr[, {durability: \"hard\", returnChanges: false, nonAtomic: false}])&rarr; object", 
     "description": "<p>Replace documents in a table. Accepts a JSON document or a ReQL expression, and replaces\nthe original document with the new one. The new document must have the same primary key\nas the original document.</p>", 
     "example": "<p><strong>Example:</strong> Replace the document with the primary key <code>1</code>.</p>\n<p><code>r.table(\"posts\").get(1).replace({\n    id: 1,\n    title: \"Lorem ipsum\",\n    content: \"Aleas jacta est\",\n    status: \"draft\"\n}).run(conn, callback)</code></p>", 
     "io": [
@@ -1547,7 +1585,7 @@
     "url": "skip"
   }, 
   "api/javascript/slice/": {
-    "body": "selection.slice(startIndex[, endIndex, {leftBound:'closed', rightBound:'open'}]) &rarr; selectionstream.slice(startIndex[, endIndex, {leftBound:'closed', rightBound:'open'}]) &rarr; streamarray.slice(startIndex[, endIndex, {leftBound:'closed', rightBound:'open'}]) &rarr; array", 
+    "body": "selection.slice(startIndex[, endIndex, {leftBound:'closed', rightBound:'open'}]) &rarr; selectionstream.slice(startIndex[, endIndex, {leftBound:'closed', rightBound:'open'}]) &rarr; streamarray.slice(startIndex[, endIndex, {leftBound:'closed', rightBound:'open'}]) &rarr; arraybinary.slice(startIndex[, endIndex, {leftBound:'closed', rightBound:'open'}]) &rarr; binary", 
     "description": "<p>Return the elements of a sequence within the specified range.</p>\n<p><strong>Example:</strong> Return the fourth, fifth and sixth youngest players. (The youngest player is at index 0, so those are elements 3&ndash;5.)</p>\n<p><code>js\nr.table('players').orderBy({index: 'age'}).slice(3,6).run(conn, callback)</code></p>", 
     "example": "", 
     "io": [
@@ -1558,6 +1596,10 @@
       [
         "array", 
         "array"
+      ], 
+      [
+        "binary", 
+        "binary"
       ]
     ], 
     "name": "slice", 
@@ -1664,7 +1706,7 @@
   }, 
   "api/javascript/table_drop/": {
     "body": "db.tableDrop(tableName) &rarr; object", 
-    "description": "<p>Drop a table. The table and all its data will be deleted.</p>\n<p>If succesful, the operation returns an object: {dropped: 1}. If the specified table\ndoesn't exist a <code>RqlRuntimeError</code> is thrown.</p>", 
+    "description": "<p>Drop a table. The table and all its data will be deleted.</p>\n<p>If successful, the operation returns an object: {dropped: 1}. If the specified table\ndoesn't exist a <code>RqlRuntimeError</code> is thrown.</p>", 
     "example": "<p><strong>Example:</strong> Drop a table named 'dc_universe'.</p>\n<p><code>r.db('test').tableDrop('dc_universe').run(conn, callback)</code></p>", 
     "io": [
       [
@@ -1819,8 +1861,8 @@
     "url": "upcase"
   }, 
   "api/javascript/update/": {
-    "body": "table.update(json | expr[, {durability: \"hard\", returnVals: false, nonAtomic: false}])&rarr; objectselection.update(json | expr[, {durability: \"hard\", returnVals: false, nonAtomic: false}])&rarr; objectsingleSelection.update(json | expr[, {durability: \"hard\", returnVals: false, nonAtomic: false}])&rarr; object", 
-    "description": "<p>Update JSON documents in a table. Accepts a JSON document, a ReQL expression, or a\ncombination of the two. You can pass options like <code>returnVals</code> that will return the old\nand new values of the row you have modified.</p>", 
+    "body": "table.update(json | expr[, {durability: \"hard\", returnChanges: false, nonAtomic: false}])&rarr; objectselection.update(json | expr[, {durability: \"hard\", returnChanges: false, nonAtomic: false}])&rarr; objectsingleSelection.update(json | expr[, {durability: \"hard\", returnChanges: false, nonAtomic: false}])&rarr; object", 
+    "description": "<p>Update JSON documents in a table. Accepts a JSON document, a ReQL expression, or a\ncombination of the two. You can pass options like <code>returnChanges</code> that will return the old\nand new values of the row you have modified.</p>", 
     "example": "<p><strong>Example:</strong> Update the status of the post with <code>id</code> of <code>1</code> to <code>published</code>.</p>\n<p><code>r.table(\"posts\").get(1).update({status: \"published\"}).run(conn, callback)</code></p>", 
     "io": [
       [
@@ -1854,8 +1896,8 @@
   }, 
   "api/javascript/with_fields/": {
     "body": "sequence.withFields([selector1, selector2...]) &rarr; streamarray.withFields([selector1, selector2...]) &rarr; array", 
-    "description": "<p>Takes a sequence of objects and a list of fields. If any objects in the sequence don't\nhave all of the specified fields, they're dropped from the sequence. The remaining\nobjects have the specified fields plucked out. (This is identical to <code>has_fields</code>\nfollowed by <code>pluck</code> on a sequence.)</p>", 
-    "example": "<p><strong>Example:</strong> Get a list of heroes and their nemeses, excluding any heroes that lack one.</p>\n<p><code>r.table('marvel').withFields('id', 'nemesis')</code></p>", 
+    "description": "<p>Plucks one or more attributes from a sequence of objects, filtering out any objects in the sequence that do not have the specified fields. Functionally, this is identical to <code>hasFields</code> followed by <code>pluck</code> on a sequence.</p>", 
+    "example": "<p><strong>Example:</strong> Get a list of users and their posts, excluding any users who have not made any posts.</p>\n<p><code>r.table('users').withFields('id', 'username', 'posts').run(conn, callback)</code></p>", 
     "io": [
       [
         "sequence", 
