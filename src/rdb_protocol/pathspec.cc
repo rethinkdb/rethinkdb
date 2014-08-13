@@ -98,9 +98,7 @@ pathspec_t::pathspec_t(counted_t<const datum_t> datum, term_t *_creator)
     }
 
     if (type == VEC && vec->size() == 1) {
-        pathspec_t inner = (*vec)[0];
-        delete vec;
-        init_from(inner);
+        *this = (*vec)[0];
     }
 }
 
