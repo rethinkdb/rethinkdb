@@ -11,6 +11,7 @@ namespace profile { class trace_t; }
 
 class buf_parent_t;
 class counted_buf_lock_t;
+class counted_buf_read_t;
 class superblock_t;
 
 // A btree leaf key/value pair that also owns a reference to the buf_lock_t that
@@ -19,7 +20,8 @@ class scoped_key_value_t {
 public:
     scoped_key_value_t(const btree_key_t *key,
                        const void *value,
-                       movable_t<counted_buf_lock_t> &&buf);
+                       movable_t<counted_buf_lock_t> &&buf,
+                       movable_t<counted_buf_read_t> &&read);
     scoped_key_value_t(scoped_key_value_t &&movee);
     ~scoped_key_value_t();
     void operator=(scoped_key_value_t &&) = delete;
@@ -42,6 +44,7 @@ private:
     const btree_key_t *key_;
     const void *value_;
     movable_t<counted_buf_lock_t> buf_;
+    movable_t<counted_buf_read_t> read_;
 
     DISABLE_COPYING(scoped_key_value_t);
 };
