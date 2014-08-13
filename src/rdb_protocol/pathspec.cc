@@ -18,11 +18,11 @@ pathspec_t::pathspec_t(pathspec_t &&other) {
         break;
     case VEC:
         vec = other.vec;
-        other.vec = NULL;
+        other.str = NULL;
         break;
     case MAP:
         map = other.map;
-        other.map = NULL;
+        other.str = NULL;
         break;
     default:
         unreachable();
