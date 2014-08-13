@@ -130,12 +130,16 @@ class Bag(Lst):
 
 class Dct:
     def __init__(self, dct):
+        assert isinstance(dct, dict)
         self.dct = dct
 
     def __eq__(self, other):
         if not isinstance(other, dict):
             return False
-
+        
+        if not set(self.keys()) == set(other.keys()):
+            return False
+        
         for key in self.dct:
             if not key in other:
                 return False
@@ -147,7 +151,10 @@ class Dct:
             if not self.dct[key] == other[key]:
                 return False
         return True
-
+    
+    def keys(self):
+        return self.dct.keys()
+    
     def __repr__(self):
         return repr(self.dct)
 
