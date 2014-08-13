@@ -9,32 +9,10 @@ pathspec_t::pathspec_t(const pathspec_t &other) {
     init_from(other);
 }
 
-pathspec_t::pathspec_t(pathspec_t &&other) {
-    type = other.type;
-    switch (type) {
-    case STR:
-        str = other.str;
-        other.str = NULL;
-        break;
-    case VEC:
-        vec = other.vec;
-        other.str = NULL;
-        break;
-    case MAP:
-        map = other.map;
-        other.str = NULL;
-        break;
-    default:
-        unreachable();
-    }
-    creator = other.creator;
-}
-
 pathspec_t& pathspec_t::operator=(const pathspec_t &other) {
-    UNUSED pathspec_t old_us(std::move(*this));
+    free_memory();
     init_from(other);
     return *this;
-    // old_us destructed here.
 }
 
 pathspec_t::pathspec_t(const std::string &_str, term_t *_creator)
@@ -84,11 +62,17 @@ pathspec_t::pathspec_t(counted_t<const datum_t> datum, term_t *_creator)
     }
 
     if (type == VEC && vec->size() == 1) {
-        *this = (*vec)[0];
+        pathspec_t inner = (*vec)[0];
+        delete vec;
+        init_from(inner);
     }
 }
 
 pathspec_t::~pathspec_t() {
+    free_memory();
+}
+
+void pathspec_t::free_memory() {
     switch (type) {
     case STR:
         delete str;
