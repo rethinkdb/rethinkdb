@@ -206,10 +206,11 @@ private:
     // change under it.
     rwlock_t clients_lock;
 
-    // Clients send a message to this mailbox with their address when they want
-    // to unsubscribe.
-    mailbox_t<void(client_t::addr_t)> stop_mailbox;
     auto_drainer_t drainer;
+    // Clients send a message to this mailbox with their address when they want
+    // to unsubscribe.  The callback of this mailbox acquires the drainer, so it
+    // has to be destroyed first.
+    mailbox_t<void(client_t::addr_t)> stop_mailbox;
 };
 
 } // namespace changefeed
