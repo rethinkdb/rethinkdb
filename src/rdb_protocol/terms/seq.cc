@@ -84,8 +84,8 @@ private:
     virtual bool uses_idx() const { return true; }
     virtual counted_t<val_t> on_idx(
         env_t *env, counted_t<table_t> tbl, counted_t<val_t> idx) const {
-        std::string idx_str = idx.has() ? idx->as_str().to_std() : tbl->get_pkey();
-        counted_t<table_slice_t> slice(tbl, idx_str, sorting());
+        std::string idx_str = idx.has() ? idx->as_str().to_std() : "";
+        counted_t<table_slice_t> slice(new table_slice_t(tbl, idx_str, sorting()));
         batchspec_t batchspec = batchspec_t::all().with_at_most(1);
         counted_t<const datum_t> d =
             slice->as_seq(env, term_t::backtrace())->next(env, batchspec);
@@ -352,6 +352,7 @@ private:
             make_counted<table_slice_t>(
                 tbl,
                 sid,
+                sorting_t::UNORDERED,
                 datum_range_t(
                     lb, left_open ? key_range_t::open : key_range_t::closed,
                     rb, right_open ? key_range_t::open : key_range_t::closed)));

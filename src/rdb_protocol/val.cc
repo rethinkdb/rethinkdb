@@ -20,8 +20,32 @@ table_slice_t::table_slice_t(counted_t<table_t> _tbl, std::string _idx,
 
 counted_t<datum_stream_t> table_slice_t::as_seq(
     env_t *env, const protob_t<const Backtrace> &bt) {
-    return tbl->as_seq(env, idx, bt, bounds, sorting);
+    return tbl->as_seq(env, idx != "" ? idx : tbl->get_pkey(), bt, bounds, sorting);
 }
+
+counted_t<table_slice_t>
+table_slice_t::with_sorting(std::string _idx, sorting_t _sorting) {
+    rcheck(sorting == sorting_t::UNORDERED, base_exc_t::GENERIC,
+           "Cannot perform multiple indexed ORDER_BYs on the same table.");
+    bool idx_legal = idx == "" || idx == _idx;
+    r_sanity_check(idx_legal || !bounds.is_universe());
+    rcheck(idx == _idx, base_exc_t::GENERIC,
+           strprintf("Cannot order by index `%s` after calling BETWEEN on index `%s`.",
+                     _idx.c_str(), idx.c_str()));
+    return make_counted<table_slice_t>(tbl, std::move(_idx), _sorting, bounds);
+}
+counted_t<table_slice_t>
+table_slice_t::with_bounds(std::string _idx, datum_range_t _bounds) {
+    rcheck(bounds.is_universe(), base_exc_t::GENERIC,
+           "Cannot perform multiple BETWEENs on the same table.");
+    bool idx_legal = idx == "" || idx == _idx;
+    r_sanity_check(idx_legal || sorting != sorting_t::UNORDERED);
+    rcheck(idx == _idx, base_exc_t::GENERIC,
+           strprintf("Cannot call BETWEEN on index `%s` after ordering on index `%s`.",
+                     _idx.c_str(), idx.c_str()));
+    return make_counted<table_slice_t>(tbl, std::move(_idx), sorting, std::move(_bounds));
+}
+
 counted_t<datum_stream_t> table_t::as_seq(
     env_t *env,
     const std::string &idx,
@@ -286,6 +310,7 @@ const char *val_t::type_t::name() const {
     switch (raw_type) {
     case DB: return "DATABASE";
     case TABLE: return "TABLE";
+    case TABLE_SLICE: return "TABLE_SLICE";
     case SELECTION: return "SELECTION";
     case SEQUENCE: return "SEQUENCE";
     case SINGLE_SELECTION: return "SINGLE_SELECTION";
@@ -315,9 +340,9 @@ val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,
              protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::SINGLE_SELECTION),
-      table(_table),
+      table_u(_table),
       u(_datum) {
-    guarantee(table.has());
+    guarantee(_table.has());
     guarantee(datum().has());
 }
 
@@ -327,10 +352,10 @@ val_t::val_t(counted_t<const datum_t> _datum,
              protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::SINGLE_SELECTION),
-      table(_table),
+      table_u(_table),
       orig_key(_orig_key),
       u(_datum) {
-    guarantee(table.has());
+    guarantee(_table.has());
     guarantee(datum().has());
 }
 
@@ -353,9 +378,9 @@ val_t::val_t(counted_t<table_t> _table,
              protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::SELECTION),
-      table(_table),
+      table_u(_table),
       u(_sequence) {
-    guarantee(table.has());
+    guarantee(_table.has());
     guarantee(sequence().has());
 }
 
@@ -363,13 +388,13 @@ val_t::val_t(counted_t<table_t> _table, protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::TABLE),
       table_u(_table) {
-    guarantee(table.has());
+    guarantee(_table.has());
 }
 val_t::val_t(counted_t<table_slice_t> _t, protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::TABLE_SLICE),
       table_u(_t) {
-    guarantee(table.has());
+    guarantee(_t.has());
 }
 val_t::val_t(counted_t<const db_t> _db, protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
@@ -398,9 +423,9 @@ counted_t<const datum_t> val_t::as_datum() const {
 
 counted_t<table_t> val_t::as_table() {
     rcheck_literal_type(type_t::TABLE);
-    return table;
+    return boost::get<counted_t<table_t> >(table_u);
 }
-counted_t<table_t> val_t::as_table_slice() {
+counted_t<table_slice_t> val_t::as_table_slice() {
     if (type.raw_type == type_t::TABLE) {
         const counted_t<table_t> &tbl = boost::get<counted_t<table_t> >(table_u);
         return make_counted<table_slice_t>(tbl, tbl->get_pkey());
@@ -413,8 +438,8 @@ counted_t<table_t> val_t::as_table_slice() {
 counted_t<datum_stream_t> val_t::as_seq(env_t *env) {
     if (type.raw_type == type_t::SEQUENCE || type.raw_type == type_t::SELECTION) {
         return sequence();
-    } else if (type.raw_type == type_t::TABLE) {
-        return table->as_datum_stream(env, backtrace());
+    } else if (type.raw_type == type_t::TABLE_SLICE || type.raw_type == type_t::TABLE) {
+        return as_table_slice()->as_seq(env, backtrace());
     } else if (type.raw_type == type_t::DATUM) {
         return datum()->as_datum_stream(backtrace());
     }

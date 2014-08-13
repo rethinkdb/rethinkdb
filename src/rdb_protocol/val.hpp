@@ -120,15 +120,19 @@ private:
 class table_slice_t
     : public single_threaded_countable_t<table_slice_t>, public pb_rcheckable_t {
 public:
-    table_slice_t(counted_t<table_t> _tbl, std::string _idx,
+    table_slice_t(counted_t<table_t> _tbl,
+                  std::string _idx = "",
                   sorting_t _sorting = sorting_t::UNORDERED,
                   datum_range_t _bounds = datum_range_t::universe());
     counted_t<datum_stream_t> as_seq(env_t *env, const protob_t<const Backtrace> &bt);
+    counted_t<table_slice_t> with_sorting(std::string idx, sorting_t sorting);
+    counted_t<table_slice_t> with_bounds(std::string idx, datum_range_t bounds);
+    const counted_t<table_t> &get_tbl() { return tbl; }
 private:
-    counted_t<table_t> tbl;
-    std::string idx;
-    sorting_t sorting;
-    datum_range_t bounds;
+    const counted_t<table_t> tbl;
+    const std::string idx;
+    const sorting_t sorting;
+    const datum_range_t bounds;
 };
 
 enum function_shortcut_t {

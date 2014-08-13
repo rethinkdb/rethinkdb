@@ -24,6 +24,7 @@ static const int MAX_TYPE = 10;
 
 static const int DB_TYPE = val_t::type_t::DB * MAX_TYPE;
 static const int TABLE_TYPE = val_t::type_t::TABLE * MAX_TYPE;
+static const int TABLE_SLICE_TYPE = val_t::type_t::TABLE_SLICE * MAX_TYPE;
 static const int SELECTION_TYPE = val_t::type_t::SELECTION * MAX_TYPE;
 static const int ARRAY_SELECTION_TYPE = SELECTION_TYPE + datum_t::R_ARRAY;
 static const int SEQUENCE_TYPE = val_t::type_t::SEQUENCE * MAX_TYPE;
@@ -45,6 +46,7 @@ public:
     coerce_map_t() {
         map["DB"] = DB_TYPE;
         map["TABLE"] = TABLE_TYPE;
+        map["TABLE_SLICE"] = TABLE_SLICE_TYPE;
         map["SELECTION<STREAM>"] = SELECTION_TYPE;
         map["SELECTION<ARRAY>"] = ARRAY_SELECTION_TYPE;
         map["STREAM"] = SEQUENCE_TYPE;
@@ -95,6 +97,7 @@ private:
         switch (t) {
         case val_t::type_t::DB:
         case val_t::type_t::TABLE:
+        case val_t::type_t::TABLE_SLICE:
         case val_t::type_t::SELECTION:
         case val_t::type_t::SEQUENCE:
         case val_t::type_t::SINGLE_SELECTION:
