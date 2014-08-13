@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
-import sys, os, datetime, time, shutil, tempfile, subprocess, curses, random
+import sys, os, datetime, time, shutil, tempfile, subprocess, random
 from optparse import OptionParser
 from ._backup import *
-
-curses.setupterm()
 
 info = "'rethinkdb index-rebuild' recreates outdated secondary indexes in a cluster.\n" + \
        "  This should be used after upgrading to a newer version of rethinkdb.  There\n" + \
@@ -69,22 +67,13 @@ def parse_options():
     res["debug"] = options.debug
     return res
 
-def print_progress(ratio, indexes):
+def print_progress(ratio):
     total_width = 40
     done_width = int(ratio * total_width)
     equals = "=" * done_width
     spaces = " " * (total_width - done_width)
     percent = int(100 * ratio)
-    clear_line = curses.tigetstr('el')
-
-    # Only print the currently building indexes if we have the capability to clear the line
-    # Otherwise we will end up with trash data at the end of the line in some cases
-    if clear_line is None:
-        print("\r[%s%s] %3d%%" % (equals, spaces, percent), end='')
-    else:
-        index_list = (" - %s" % ", ".join(indexes)) if len(indexes) > 0 else ""
-        print("\r%s[%s%s] %3d%%%s" % (clear_line, equals, spaces, percent, index_list), end='')
-
+    print("\r[%s%s] %3d%%" % (equals, spaces, percent), end='')
     sys.stdout.flush()
 
 def new_connection(conn_store, options):
@@ -127,23 +116,28 @@ def create_temp_index(progress, conn, index):
     extant_indexes = r.db(index['db']).table(index['table']).index_status().map(lambda i: i['index']).run(conn)
     if index['temp_name'] not in extant_indexes:
         index_fn = r.db(index['db']).table(index['table']).index_status(index['name']).nth(0)['function']
-        res = r.db(index['db']).table(index['table']).index_create(index['temp_name'], index_fn).run(conn)
-
-        if res['created'] != 1:
-            raise RuntimeError("Error: failed to create `%s.%s` index `%s`." % \
-                               (index['db'], index['table'], index['name']))
+        r.db(index['db']).table(index['table']).index_create(index['temp_name'], index_fn).run(conn)
 
 def get_index_progress(progress, conn, index):
     status = r.db(index['db']).table(index['table']).index_status(index['temp_name']).nth(0).run(conn)
+    index['function'] = status['function']
     if status['ready']:
         return None
     else:
-        return float(status['blocks_processed']) / status['blocks_total']
+        processed = float(status.get('blocks_processed', 0))
+        total = float(status.get('blocks_total', 1))
+        if total != 0:
+            return processed / total
+        else:
+            return 0.0
 
 def rename_index(progress, conn, index):
-    res = r.db(index['db']).table(index['table']).index_rename(index['temp_name'], index['name'], overwrite=True).run(conn)
-    if res['renamed'] != 1:
-        raise RuntimeError("Error: failed to overwrite `%s.%s` index `%s`." % \
+    r.db(index['db']).table(index['table']).index_rename(index['temp_name'], index['name'], overwrite=True).run(conn)
+
+def check_index_renamed(progress, conn, index):
+    status = r.db(index['db']).table(index['table']).index_status(index['name']).nth(0).run(conn)
+    if status['outdated'] or status['ready'] != True or status['function'] != index['function']:
+        raise RuntimeError("Error: failed to rename `%s.%s` temporary index for `%s`" % \
                            (index['db'], index['table'], index['name']))
 
 def rebuild_indexes(options):
@@ -162,23 +156,31 @@ def rebuild_indexes(options):
     progress_ratio = 0.0
     highest_progress = 0.0
 
-    print("Rebuilding %d indexes." % total_indexes)
+    print("Rebuilding %d indexes: %s" % (total_indexes,
+                                         ", ".join(map(lambda i: "`%s.%s:%s`" % (i['db'], i['table'], i['name']),
+                                                       indexes_to_build))))
+
     while len(indexes_to_build) > 0 or len(indexes_in_progress) > 0:
         # Make sure we're running the right number of concurrent index rebuilds
         while len(indexes_to_build) > 0 and len(indexes_in_progress) < options["concurrent"]:
             index = indexes_to_build.pop()
+            indexes_in_progress.append(index)
             index['temp_name'] = temp_index_prefix + index['name']
             index['progress'] = 0
             index['ready'] = False
 
-            rdb_call_wrapper(conn_fn, "create `%s.%s` index `%s`" % (index['db'], index['table'], index['name']),
-                             create_temp_index, index)
-            indexes_in_progress.append(index)
+            try:
+                rdb_call_wrapper(conn_fn, "create `%s.%s` index `%s`" % (index['db'], index['table'], index['name']),
+                                 create_temp_index, index)
+            except RuntimeError as ex:
+                # This may be caused by a suprious failure (see github issue #2904), ignore if so
+                if ex.message != "ReQL error during 'create `%s.%s` index `%s`': Index `%s` already exists on table `%s.%s`." % \
+                                 (index['db'], index['table'], index['name'], index['temp_name'], index['db'], index['table']):
+                    raise
 
         # Report progress
         highest_progress = max(highest_progress, progress_ratio)
-        print_progress(highest_progress,
-                       map(lambda i: '`%s.%s:%s`' % (i['db'], i['table'], i['name']), indexes_in_progress))
+        print_progress(highest_progress)
 
         # Check the status of indexes in progress
         progress_ratio = 0.0
@@ -186,9 +188,17 @@ def rebuild_indexes(options):
             index_progress = rdb_call_wrapper(conn_fn, "progress `%s.%s` index `%s`" % (index['db'], index['table'], index['name']),
                                               get_index_progress, index)
             if index_progress is None:
-                rdb_call_wrapper(conn_fn, "rename `%s.%s` index `%s`" % (index['db'], index['table'], index['name']),
-                                 rename_index, index)
                 index['ready'] = True
+                try:
+                    rdb_call_wrapper(conn_fn, "rename `%s.%s` index `%s`" % (index['db'], index['table'], index['name']),
+                                     rename_index, index)
+                except r.RqlRuntimeError as ex:
+                    # This may be caused by a spurious failure (see github issue #2904), check if it actually succeeded
+                    if ex.message != "ReQL error during 'rename `%s.%s` index `%s`': Index `%s` does not exist on table `%s.%s`." % \
+                                     (index['db'], index['table'], index['name'], index['temp_name'], index['db'], index['table']):
+                        raise
+                    rdb_call_wrapper(conn_fn, "check rename `%s.%s` index `%s`" % (index['db'], index['table'], index['name']),
+                                     check_index_renamed, index)
             else:
                 progress_ratio += index_progress / total_indexes
 
@@ -201,8 +211,8 @@ def rebuild_indexes(options):
             # Short sleep to keep from killing the CPU
             time.sleep(0.1)
 
-    # Get past the progress bar line
-    print_progress(1.0, [])
+    # Make sure the progress bar says we're done and get past the progress bar line
+    print_progress(1.0)
     print("")
 
 def main():
