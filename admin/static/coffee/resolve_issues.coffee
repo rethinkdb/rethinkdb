@@ -587,6 +587,7 @@ module 'ResolveIssuesView', ->
                 datetime: iso_date_from_unix_time @model.get('time')
                 critical: @model.get('critical')
                 machine_id: @model.get('location')
+                machine_name: machines.get(@model.get('location')).get('name')
                 description: @model.get('description')
             @.$el.html _template(json)
 
