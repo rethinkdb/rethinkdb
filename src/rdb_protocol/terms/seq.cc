@@ -27,7 +27,8 @@ private:
             func = args->arg(env, 1)->as_func(GET_FIELD_SHORTCUT);
         }
         if (!func.has() && !idx.has()) {
-            if (uses_idx()) {
+            // RSI: make this use a table slice.
+            if (uses_idx() && v->get_type().is_convertible(val_t::type_t::TABLE)) {
                 return on_idx(env->env, v->as_table(), idx);
             } else {
                 return v->as_seq(env->env)->run_terminal(env->env, T(backtrace()));

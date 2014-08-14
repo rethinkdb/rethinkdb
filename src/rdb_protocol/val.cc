@@ -13,7 +13,7 @@ namespace ql {
 
 table_slice_t::table_slice_t(counted_t<table_t> _tbl, std::string _idx,
                              sorting_t _sorting, datum_range_t _bounds)
-    : pb_rcheckable_t(tbl->backtrace()),
+    : pb_rcheckable_t(_tbl->backtrace()),
       tbl(std::move(_tbl)), idx(std::move(_idx)),
       sorting(_sorting), bounds(std::move(_bounds)) { }
 
@@ -29,7 +29,7 @@ table_slice_t::with_sorting(std::string _idx, sorting_t _sorting) {
            "Cannot perform multiple indexed ORDER_BYs on the same table.");
     bool idx_legal = idx == "" || idx == _idx;
     r_sanity_check(idx_legal || !bounds.is_universe());
-    rcheck(idx == _idx, base_exc_t::GENERIC,
+    rcheck(idx_legal, base_exc_t::GENERIC,
            strprintf("Cannot order by index `%s` after calling BETWEEN on index `%s`.",
                      _idx.c_str(), idx.c_str()));
     return make_counted<table_slice_t>(tbl, std::move(_idx), _sorting, bounds);
@@ -40,7 +40,7 @@ table_slice_t::with_bounds(std::string _idx, datum_range_t _bounds) {
            "Cannot perform multiple BETWEENs on the same table.");
     bool idx_legal = idx == "" || idx == _idx;
     r_sanity_check(idx_legal || sorting != sorting_t::UNORDERED);
-    rcheck(idx == _idx, base_exc_t::GENERIC,
+    rcheck(idx_legal, base_exc_t::GENERIC,
            strprintf("Cannot call BETWEEN on index `%s` after ordering on index `%s`.",
                      _idx.c_str(), idx.c_str()));
     return make_counted<table_slice_t>(tbl, std::move(_idx), sorting, std::move(_bounds));
@@ -428,7 +428,7 @@ counted_t<table_t> val_t::as_table() {
 counted_t<table_slice_t> val_t::as_table_slice() {
     if (type.raw_type == type_t::TABLE) {
         const counted_t<table_t> &tbl = boost::get<counted_t<table_t> >(table_u);
-        return make_counted<table_slice_t>(tbl, tbl->get_pkey());
+        return make_counted<table_slice_t>(tbl);
     } else {
         rcheck_literal_type(type_t::TABLE_SLICE);
         return boost::get<counted_t<table_slice_t> >(table_u);
@@ -471,7 +471,9 @@ counted_t<grouped_data_t> val_t::maybe_as_promiscuous_grouped_data(env_t *env) {
 }
 
 counted_t<table_t> val_t::get_underlying_table() const {
-    if (type.raw_type == type_t::TABLE) {
+    if (type.raw_type == type_t::TABLE
+        || type.raw_type == type_t::SELECTION
+        || type.raw_type == type_t::SINGLE_SELECTION) {
         return boost::get<counted_t<table_t> >(table_u);
     } else if (type.raw_type == type_t::TABLE_SLICE) {
         return boost::get<counted_t<table_slice_t> >(table_u)->get_tbl();
