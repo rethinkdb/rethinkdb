@@ -226,25 +226,25 @@ private:
     virtual counted_t<val_t> eval_impl(
         scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> v = args->arg(env, 0);
-        if (v->get_type().is_convertible(val_t::type_t::TABLE)) {
+        // if (v->get_type().is_convertible(val_t::type_t::TABLE)) {
             counted_t<table_t> tbl = v->as_table();
             return new_val(env->env,
                 tbl->table->read_all_changes(
                     env->env, backtrace(), tbl->display_name()));
-        } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
-            auto single_selection = v->as_single_selection();
-            counted_t<table_t> tbl = std::move(single_selection.first);
-            counted_t<const datum_t> val = std::move(single_selection.second);
+        // } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
+        //     auto single_selection = v->as_single_selection();
+        //     counted_t<table_t> tbl = std::move(single_selection.first);
+        //     counted_t<const datum_t> val = std::move(single_selection.second);
 
-            counted_t<const datum_t> key = v->get_orig_key();
-            return new_val(env->env,
-                tbl->table->read_row_changes(
-                    env->env, key, backtrace(), tbl->display_name()));
-        }
-        std::pair<counted_t<table_t>, counted_t<datum_stream_t> > selection
-            = v->as_selection(env->env);
-        rfail(base_exc_t::GENERIC,
-              ".changes() not yet supported on range selections");
+        //     counted_t<const datum_t> key = v->get_orig_key();
+        //     return new_val(env->env,
+        //         tbl->table->read_row_changes(
+        //             env->env, key, backtrace(), tbl->display_name()));
+        // }
+        // std::pair<counted_t<table_t>, counted_t<datum_stream_t> > selection
+        //     = v->as_selection(env->env);
+        // rfail(base_exc_t::GENERIC,
+        //       ".changes() not yet supported on range selections");
     }
     virtual const char *name() const { return "changes"; }
 };
