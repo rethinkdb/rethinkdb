@@ -85,7 +85,7 @@ public:
     // Constructs a pointer to an R_NULL datum.
     static counted_t<const datum_t> null();
     static counted_t<const datum_t> boolean(bool value);
-    static counted_t<const datum_t> binary(scoped_ptr_t<wire_string_t> value);
+    static counted_t<const datum_t> binary(wire_string_t &&value);
 
     // Strongly prefer datum_t::null().
     enum class construct_null_t { };
@@ -105,13 +105,10 @@ public:
     datum_t(construct_boolean_t, bool _bool);
 
     enum class construct_binary_t { };
-    explicit datum_t(construct_binary_t, scoped_ptr_t<wire_string_t> _data);
+    explicit datum_t(construct_binary_t, wire_string_t _data);
 
     explicit datum_t(double _num);
-    // TODO: Eventually get rid of the std::string constructor (in favor of
-    //   scoped_ptr_t<wire_string_t>)
-    explicit datum_t(std::string &&str);
-    explicit datum_t(scoped_ptr_t<wire_string_t> str);
+    explicit datum_t(wire_string_t &&str);
     explicit datum_t(const char *cstr);
     explicit datum_t(std::vector<counted_t<const datum_t> > &&_array,
                      const configured_limits_t &limits);
@@ -123,13 +120,13 @@ public:
     datum_t(std::vector<counted_t<const datum_t> > &&_array,
             no_array_size_limit_check_t);
     // This calls maybe_sanitize_ptype(allowed_pts).
-    explicit datum_t(std::map<std::string, counted_t<const datum_t> > &&object,
+    explicit datum_t(std::map<wire_string_t, counted_t<const datum_t> > &&object,
                      const std::set<std::string> &allowed_pts = _allowed_pts);
 
     enum class no_sanitize_ptype_t { };
     // This .. does not call maybe_sanitize_ptype.
     // TODO(2014-08): Remove this constructor, it's a hack.
-    datum_t(std::map<std::string, counted_t<const datum_t> > &&object,
+    datum_t(std::map<wire_string_t, counted_t<const datum_t> > &&object,
             no_sanitize_ptype_t);
 
     ~datum_t();
@@ -181,10 +178,10 @@ public:
     // Access an element of an array.
     counted_t<const datum_t> get(size_t index, throw_bool_t throw_bool = THROW) const;
     // Use of `get` is preferred to `as_object` when possible.
-    const std::map<std::string, counted_t<const datum_t> > &as_object() const;
+    const std::map<wire_string_t, counted_t<const datum_t> > &as_object() const;
 
     // Access an element of an object.
-    counted_t<const datum_t> get(const std::string &key,
+    counted_t<const datum_t> get(const wire_string_t &key,
                                  throw_bool_t throw_bool = THROW) const;
     counted_t<const datum_t> merge(counted_t<const datum_t> rhs) const;
     // "Consumer defined" merge resolutions; these take limits unlike
@@ -193,6 +190,7 @@ public:
     // obviously breach limits.
     // This takes std::set<std::string> instead of std::set<const std::string> not
     // because it plans on modifying the strings, but because the latter doesn't work.
+    // TODO! Change to wire_string_t?
     typedef counted_t<const datum_t> (*merge_resoluter_t)(const std::string &key,
                                                           counted_t<const datum_t> l,
                                                           counted_t<const datum_t> r,
@@ -253,7 +251,7 @@ public:
 
 private:
     friend void pseudo::sanitize_time(datum_t *time);
-    MUST_USE bool add(const std::string &key, counted_t<const datum_t> val,
+    MUST_USE bool add(const wire_string_t &key, counted_t<const datum_t> val,
                       clobber_bool_t clobber_bool = NOCLOBBER); // add to an object
 
     friend void pseudo::time_to_str_key(const datum_t &d, std::string *str_out);
@@ -281,13 +279,12 @@ private:
         // Mirror the same constructors of datum_t
         explicit data_wrapper_t(construct_null_t);
         data_wrapper_t(construct_boolean_t, bool _bool);
-        data_wrapper_t(construct_binary_t, scoped_ptr_t<wire_string_t> data);
+        data_wrapper_t(construct_binary_t, wire_string_t data);
         explicit data_wrapper_t(double num);
-        explicit data_wrapper_t(std::string &&str);
-        explicit data_wrapper_t(scoped_ptr_t<wire_string_t> str);
+        explicit data_wrapper_t(wire_string_t &&str);
         explicit data_wrapper_t(const char *cstr);
         explicit data_wrapper_t(std::vector<counted_t<const datum_t> > &&array);
-        data_wrapper_t(std::map<std::string, counted_t<const datum_t> > &&object);
+        data_wrapper_t(std::map<wire_string_t, counted_t<const datum_t> > &&object);
 
         ~data_wrapper_t();
 
@@ -297,7 +294,7 @@ private:
             double r_num;
             wire_string_t *r_str;
             std::vector<counted_t<const datum_t> > *r_array;
-            std::map<std::string, counted_t<const datum_t> > *r_object;
+            std::map<wire_string_t, counted_t<const datum_t> > *r_object;
         };
     private:
         DISABLE_COPYING(data_wrapper_t);
@@ -330,24 +327,24 @@ class datum_object_builder_t {
 public:
     datum_object_builder_t() { }
 
-    datum_object_builder_t(const std::map<std::string, counted_t<const datum_t> > &m)
+    datum_object_builder_t(const std::map<wire_string_t, counted_t<const datum_t> > &m)
         : map(m) { }
 
     // Returns true if the insertion did _not_ happen because the key was already in
     // the object.
-    MUST_USE bool add(const std::string &key, counted_t<const datum_t> val);
+    MUST_USE bool add(const wire_string_t &key, counted_t<const datum_t> val);
     // Inserts a new key or overwrites the existing key's value.
-    void overwrite(std::string key, counted_t<const datum_t> val);
+    void overwrite(const wire_string_t &key, counted_t<const datum_t> val);
     void add_warning(const char *msg, const configured_limits_t &limits);
     void add_warnings(const std::set<std::string> &msgs, const configured_limits_t &limits);
     void add_error(const char *msg);
 
-    MUST_USE bool delete_field(const std::string &key);
+    MUST_USE bool delete_field(const wire_string_t &key);
 
-    counted_t<const datum_t> at(const std::string &key) const;
+    counted_t<const datum_t> at(const wire_string_t &key) const;
 
     // Returns null if the key doesn't exist.
-    counted_t<const datum_t> try_get(const std::string &key) const;
+    counted_t<const datum_t> try_get(const wire_string_t &key) const;
 
     MUST_USE counted_t<const datum_t> to_counted() RVALUE_THIS;
 
@@ -355,7 +352,7 @@ public:
             const std::set<std::string> &permissible_ptypes) RVALUE_THIS;
 
 private:
-    std::map<std::string, counted_t<const datum_t> > map;
+    std::map<wire_string_t, counted_t<const datum_t> > map;
     DISABLE_COPYING(datum_object_builder_t);
 };
 
@@ -398,7 +395,7 @@ private:
 
 // This function is used by e.g. foreach to merge statistics from multiple write
 // operations.
-counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
+counted_t<const datum_t> stats_merge(UNUSED const wire_string_t &key,
                                      counted_t<const datum_t> l,
                                      counted_t<const datum_t> r,
                                      const configured_limits_t &limits,
