@@ -130,11 +130,18 @@ module RethinkDB
       @@last = self
       @default_opts = @default_db ? {:db => RQL.new.db(@default_db)} : {}
       @conn_id = 0
+
+      @token_cnt = 0
+      @token_cnt_mutex = Mutex.new
+
       reconnect(:noreply_wait => false)
     end
     attr_reader :host, :port, :default_db, :conn_id
 
-    @@token_cnt = 0
+    def new_token
+      @token_cnt_mutex.synchronize{@token_cnt += 1}
+    end
+
     def set_opts(token, opts)
       @mutex.synchronize{@opts[token] = opts}
     end
@@ -155,7 +162,7 @@ module RethinkDB
         all_opts[:noreply] = !!all_opts[:noreply]
       end
 
-      token = (@@token_cnt += 1)
+      token = new_token
       q = [Query::QueryType::START,
            msg,
            Hash[all_opts.map {|k,v|
@@ -286,7 +293,7 @@ module RethinkDB
     def noreply_wait
       raise RqlRuntimeError, "Error: Connection Closed." if !@socket || !@listener
       q = [Query::QueryType::NOREPLY_WAIT]
-      res = run_internal(q, {noreply: false}, @@token_cnt += 1)
+      res = run_internal(q, {noreply: false}, new_token)
       if res['t'] != Response::ResponseType::WAIT_COMPLETE
         raise RqlRuntimeError, "Unexpected response to noreply_wait: " + PP.pp(res, "")
       end
