@@ -376,6 +376,11 @@ describe('Javascript connection API', function(){
             }).error(givesError("RqlDriverError", "Found nonValidOption which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>}.", done));
         }));
 
+        it("Extra argument", withConnection(function(done, c){
+            r.expr(1).run(c, givesError("RqlDriverError", "Second argument to `run` cannot be a function if a third argument is provided.", done), 1)
+        }));
+
+
     });
 });
 

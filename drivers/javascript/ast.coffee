@@ -73,7 +73,7 @@ class TermBase
                     callback = options
                     options = {}
                 else
-                    options new err.RqlDriverError("Second argument to `run` cannot be a function is a third argument is provided.")
+                    options new err.RqlDriverError("Second argument to `run` cannot be a function if a third argument is provided.")
                     return
             # else we suppose that we have run(connection[, options][, callback])
         else if connection?.constructor is Object
