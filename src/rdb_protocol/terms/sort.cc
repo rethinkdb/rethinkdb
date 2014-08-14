@@ -172,7 +172,7 @@ private:
                 seq = make_counted<indexed_sort_datum_stream_t>(
                     tbl_slice->as_seq(env->env, backtrace()), lt_cmp);
             } else {
-                seq = tbl_slice->as_seq(env->env, backtrace());
+                return new_val(tbl_slice);
             }
         } else {
             if (!seq.has()) {

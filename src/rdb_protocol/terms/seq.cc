@@ -322,7 +322,7 @@ public:
         : bounded_op_term_t(env, term, argspec_t(3), optargspec_t({"index"})) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_t> tbl = args->arg(env, 0)->as_table();
+        counted_t<table_slice_t> tbl_slice = args->arg(env, 0)->as_table_slice();
         bool left_open = is_left_open(env, args);
         counted_t<const datum_t> lb = args->arg(env, 1)->as_datum();
         if (lb->get_type() == datum_t::R_NULL) {
@@ -342,18 +342,21 @@ private:
                 counted_t<datum_stream_t> ds
                     =  make_counted<array_datum_stream_t>(datum_t::empty_array(),
                                                           backtrace());
-                return new_val(ds, tbl);
+                return new_val(ds, tbl_slice->get_tbl());
             }
         }
 
         counted_t<val_t> sindex = args->optarg(env, "index");
-        std::string sid = (sindex.has() ? sindex->as_str().to_std() : tbl->get_pkey());
-
+        std::string idx;
+        if (sindex.has()) {
+            idx = sindex->as_str().to_std();
+        } else {
+            std::string old_idx = tbl_slice->get_idx();
+            idx = (old_idx != "") ? old_idx : tbl_slice->get_tbl()->get_pkey();
+        }
         return new_val(
-            make_counted<table_slice_t>(
-                tbl,
-                sid,
-                sorting_t::UNORDERED,
+            tbl_slice->with_bounds(
+                idx,
                 datum_range_t(
                     lb, left_open ? key_range_t::open : key_range_t::closed,
                     rb, right_open ? key_range_t::open : key_range_t::closed)));

@@ -128,6 +128,7 @@ public:
     counted_t<table_slice_t> with_sorting(std::string idx, sorting_t sorting);
     counted_t<table_slice_t> with_bounds(std::string idx, datum_range_t bounds);
     const counted_t<table_t> &get_tbl() const { return tbl; }
+    const std::string &get_idx() const { return idx; }
 private:
     const counted_t<table_t> tbl;
     const std::string idx;
