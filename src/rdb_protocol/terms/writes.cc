@@ -14,7 +14,8 @@ namespace ql {
 counted_t<const datum_t> pure_merge(UNUSED const std::string &key,
                                     UNUSED counted_t<const datum_t> l,
                                     UNUSED counted_t<const datum_t> r,
-                                    UNUSED const configured_limits_t &limits) {
+                                    UNUSED const configured_limits_t &limits,
+                                    UNUSED std::set<std::string> *conditions) {
     r_sanity_check(false);
     return counted_t<const datum_t>();
 }
@@ -75,8 +76,12 @@ private:
                 datum_object_builder_t d;
                 bool conflict = d.add(tbl->get_pkey(), keyd);
                 r_sanity_check(!conflict);
+                std::set<std::string> conditions;
                 *datum_out = (*datum_out)->merge(std::move(d).to_counted(), pure_merge,
-                                                limits);
+                                                limits, &conditions);
+                // we happen to know that pure_merge cannot ever generate warning
+                // conditions, because it shouldn't ever be run.
+                r_sanity_check(conditions.size() == 0);
             }
             if (generated_keys_out->size() < limits.array_size_limit()) {
                 generated_keys_out->push_back(key);
@@ -104,6 +109,7 @@ private:
         bool done = false;
         counted_t<const datum_t> stats = new_stats_object();
         std::vector<std::string> generated_keys;
+        std::set<std::string> conditions;
         size_t keys_skipped = 0;
         counted_t<val_t> v1 = args->arg(env, 1);
         if (v1->get_type().is_convertible(val_t::type_t::DATUM)) {
@@ -120,7 +126,7 @@ private:
                 counted_t<const datum_t> replace_stats = t->batched_insert(
                     env->env, std::move(datums), conflict_behavior,
                     durability_requirement, return_changes);
-                stats = stats->merge(replace_stats, stats_merge, env->env->limits);
+                stats = stats->merge(replace_stats, stats_merge, env->env->limits, &conditions);
                 done = true;
             }
         }
@@ -148,7 +154,7 @@ private:
 
                 counted_t<const datum_t> replace_stats = t->batched_insert(
                     env->env, std::move(datums), conflict_behavior, durability_requirement, return_changes);
-                stats = stats->merge(replace_stats, stats_merge, env->env->limits);
+                stats = stats->merge(replace_stats, stats_merge, env->env->limits, &conditions);
             }
         }
 
@@ -163,25 +169,18 @@ private:
                                   make_counted<datum_t>(std::move(genkeys),
                                                         env->env->limits));
             stats = stats->merge(std::move(d).to_counted(), pure_merge,
-                                env->env->limits);
+                                env->env->limits, &conditions);
         }
 
+        datum_object_builder_t obj(stats->as_object());
+        obj.add_warnings(conditions, env->env->limits);
         if (keys_skipped > 0) {
-            std::vector<counted_t<const datum_t> > warnings;
-            warnings.push_back(
-                make_counted<const datum_t>(
-                    strprintf("Too many generated keys (%zu), array truncated to %zu.",
+            obj.add_warning(strprintf("Too many generated keys (%zu), array truncated to %zu.",
                               keys_skipped + generated_keys.size(),
-                              generated_keys.size())));
-            datum_object_builder_t d;
-            UNUSED bool b = d.add("warnings",
-                                  make_counted<const datum_t>(std::move(warnings),
-                                                              env->env->limits));
-            stats = stats->merge(std::move(d).to_counted(), stats_merge,
-                                env->env->limits);
+                              generated_keys.size()).c_str(), env->env->limits);
         }
 
-        return new_val(stats);
+        return new_val(std::move(obj).to_counted());
     }
     virtual const char *name() const { return "insert"; }
 };
@@ -209,13 +208,14 @@ private:
         const durability_requirement_t durability_requirement
             = parse_durability_optarg(args->optarg(env, "durability"), this);
 
-        counted_t<func_t> f = args->arg(env, 1)->as_func(CONSTANT_SHORTCUT);
+        counted_t<const func_t> f = args->arg(env, 1)->as_func(CONSTANT_SHORTCUT);
         if (!nondet_ok) {
             f->assert_deterministic("Maybe you want to use the non_atomic flag?");
         }
 
         counted_t<val_t> v0 = args->arg(env, 0);
         counted_t<const datum_t> stats = new_stats_object();
+        std::set<std::string> conditions;
         if (v0->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<const datum_t> > tblrow
                 = v0->as_single_selection();
@@ -233,7 +233,7 @@ private:
             counted_t<const datum_t> replace_stats = tblrow.first->batched_replace(
                 env->env, vals, keys, f,
                 nondet_ok, durability_requirement, return_changes);
-            stats = stats->merge(replace_stats, stats_merge, env->env->limits);
+            stats = stats->merge(replace_stats, stats_merge, env->env->limits, &conditions);
         } else {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > tblrows
                 = v0->as_selection(env->env);
@@ -255,10 +255,13 @@ private:
                 counted_t<const datum_t> replace_stats = tbl->batched_replace(
                     env->env, vals, keys,
                     f, nondet_ok, durability_requirement, return_changes);
-                stats = stats->merge(replace_stats, stats_merge, env->env->limits);
+                stats = stats->merge(replace_stats, stats_merge, env->env->limits, &conditions);
             }
         }
-        return new_val(stats);
+
+        datum_object_builder_t obj(stats->as_object());
+        obj.add_warnings(conditions, env->env->limits);
+        return new_val(std::move(obj).to_counted());
     }
 
     virtual const char *name() const { return "replace"; }
@@ -277,20 +280,21 @@ private:
 
         counted_t<datum_stream_t> ds = args->arg(env, 0)->as_seq(env->env);
         counted_t<const datum_t> stats = datum_t::empty_object();
+        std::set<std::string> conditions;
         batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
         {
             profile::sampler_t sampler("Evaluating elements in for each.",
                                        env->env->trace);
-            counted_t<func_t> f = args->arg(env, 1)->as_func(CONSTANT_SHORTCUT);
+            counted_t<const func_t> f = args->arg(env, 1)->as_func(CONSTANT_SHORTCUT);
             while (counted_t<const datum_t> row = ds->next(env->env, batchspec)) {
                 counted_t<val_t> v = f->call(env->env, row);
                 try {
                     counted_t<const datum_t> d = v->as_datum();
                     if (d->get_type() == datum_t::R_OBJECT) {
-                        stats = stats->merge(d, stats_merge, env->env->limits);
+                        stats = stats->merge(d, stats_merge, env->env->limits, &conditions);
                     } else {
                         for (size_t i = 0; i < d->size(); ++i) {
-                            stats = stats->merge(d->get(i), stats_merge, env->env->limits);
+                            stats = stats->merge(d->get(i), stats_merge, env->env->limits, &conditions);
                         }
                     }
                 } catch (const exc_t &e) {
@@ -301,7 +305,9 @@ private:
                 sampler.new_sample();
             }
         }
-        return new_val(stats);
+        datum_object_builder_t obj(stats->as_object());
+        obj.add_warnings(conditions, env->env->limits);
+        return new_val(std::move(obj).to_counted());
     }
 
     virtual const char *name() const { return "foreach"; }

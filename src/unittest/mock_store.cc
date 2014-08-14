@@ -306,6 +306,7 @@ void mock_store_t::throttle_backfill_chunk(UNUSED signal_t *signal)
         THROWS_ONLY(interrupted_exc_t) { }
 
 void mock_store_t::reset_data(
+        UNUSED const binary_blob_t &zero_version,
         const region_t &subregion,
         UNUSED write_durability_t durability,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {

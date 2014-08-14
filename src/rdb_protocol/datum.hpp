@@ -191,13 +191,17 @@ public:
     // the other merge because the merge resolution can and does (in
     // stats) merge two arrays to form one super array, which can
     // obviously breach limits.
+    // This takes std::set<std::string> instead of std::set<const std::string> not
+    // because it plans on modifying the strings, but because the latter doesn't work.
     typedef counted_t<const datum_t> (*merge_resoluter_t)(const std::string &key,
                                                           counted_t<const datum_t> l,
                                                           counted_t<const datum_t> r,
-                                                          const configured_limits_t &limits);
+                                                          const configured_limits_t &limits,
+                                                          std::set<std::string> *conditions);
     counted_t<const datum_t> merge(counted_t<const datum_t> rhs,
                                    merge_resoluter_t f,
-                                   const configured_limits_t &limits) const;
+                                   const configured_limits_t &limits,
+                                   std::set<std::string> *conditions) const;
 
     cJSON *as_json_raw() const;
     scoped_cJSON_t as_json() const;
@@ -334,6 +338,8 @@ public:
     MUST_USE bool add(const std::string &key, counted_t<const datum_t> val);
     // Inserts a new key or overwrites the existing key's value.
     void overwrite(std::string key, counted_t<const datum_t> val);
+    void add_warning(const char *msg, const configured_limits_t &limits);
+    void add_warnings(const std::set<std::string> &msgs, const configured_limits_t &limits);
     void add_error(const char *msg);
 
     MUST_USE bool delete_field(const std::string &key);
@@ -395,7 +401,8 @@ private:
 counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
                                      counted_t<const datum_t> l,
                                      counted_t<const datum_t> r,
-                                     const configured_limits_t &limits);
+                                     const configured_limits_t &limits,
+                                     std::set<std::string> *conditions);
 
 namespace pseudo {
 class datum_cmp_t {

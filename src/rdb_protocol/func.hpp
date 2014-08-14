@@ -44,7 +44,7 @@ public:
 
     bool filter_call(env_t *env,
                      counted_t<const datum_t> arg,
-                     counted_t<func_t> default_filter_val) const;
+                     counted_t<const func_t> default_filter_val) const;
 
     // These are simple, they call the vector version of call.
     counted_t<val_t> call(env_t *env, eval_flags_t eval_flags = NO_FLAGS) const;
@@ -141,20 +141,20 @@ protected:
 // Some queries, like filter, can take a shortcut object instead of a
 // function as their argument.
 
-counted_t<func_t> new_constant_func(counted_t<const datum_t> obj,
-                                    const protob_t<const Backtrace> &root);
+counted_t<const func_t> new_constant_func(counted_t<const datum_t> obj,
+                                          const protob_t<const Backtrace> &root);
 
-counted_t<func_t> new_pluck_func(counted_t<const datum_t> obj,
-                                 const protob_t<const Backtrace> &bt_src);
+counted_t<const func_t> new_pluck_func(counted_t<const datum_t> obj,
+                                       const protob_t<const Backtrace> &bt_src);
 
-counted_t<func_t> new_get_field_func(counted_t<const datum_t> obj,
-                                     const protob_t<const Backtrace> &bt_src);
+counted_t<const func_t> new_get_field_func(counted_t<const datum_t> obj,
+                                           const protob_t<const Backtrace> &bt_src);
 
-counted_t<func_t> new_eq_comparison_func(counted_t<const datum_t> obj,
-                                         const protob_t<const Backtrace> &bt_src);
+counted_t<const func_t> new_eq_comparison_func(counted_t<const datum_t> obj,
+                                               const protob_t<const Backtrace> &bt_src);
 
-counted_t<func_t> new_page_func(counted_t<const datum_t> method,
-                                const protob_t<const Backtrace> &bt_src);
+counted_t<const func_t> new_page_func(counted_t<const datum_t> method,
+                                      const protob_t<const Backtrace> &bt_src);
 
 class js_result_visitor_t : public boost::static_visitor<counted_t<val_t> > {
 public:
@@ -184,7 +184,7 @@ public:
 
     // eval(scope_env_t *env) is a dumb wrapper for this.  Evaluates the func_t without
     // going by way of val_t, and without requiring a full-blown env.
-    counted_t<func_t> eval_to_func(const var_scope_t &env_scope) const;
+    counted_t<const func_t> eval_to_func(const var_scope_t &env_scope) const;
 
 private:
     virtual void accumulate_captures(var_captures_t *captures) const;

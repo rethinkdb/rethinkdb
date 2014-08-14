@@ -13,18 +13,29 @@ public:
         : buf_lock_t(std::forward<Args>(args)...) { }
 };
 
+class counted_buf_read_t : public buf_read_t,
+                           public single_threaded_countable_t<counted_buf_read_t> {
+public:
+    template <class... Args>
+    explicit counted_buf_read_t(Args &&... args)
+        : buf_read_t(std::forward<Args>(args)...) { }
+};
+
 
 scoped_key_value_t::scoped_key_value_t(const btree_key_t *key,
                                        const void *value,
-                                       movable_t<counted_buf_lock_t> &&buf)
-    : key_(key), value_(value), buf_(std::move(buf)) {
+                                       movable_t<counted_buf_lock_t> &&buf,
+                                       movable_t<counted_buf_read_t> &&read)
+    : key_(key), value_(value), buf_(std::move(buf)), read_(std::move(read)) {
     guarantee(buf_.has());
+    guarantee(read_.has());
 }
 
 scoped_key_value_t::scoped_key_value_t(scoped_key_value_t &&movee)
     : key_(movee.key_),
       value_(movee.value_),
-      buf_(std::move(movee.buf_)) {
+      buf_(std::move(movee.buf_)),
+      read_(std::move(movee.read_)) {
     movee.key_ = NULL;
     movee.value_ = NULL;
 }
@@ -39,7 +50,10 @@ buf_parent_t scoped_key_value_t::expose_buf() {
 
 // Releases the hold on the buf_lock_t, after which key(), value(), and expose_buf()
 // may not be used.
-void scoped_key_value_t::reset() { buf_.reset(); }
+void scoped_key_value_t::reset() {
+    read_.reset();
+    buf_.reset();
+}
 
 
 /* Returns `true` if we reached the end of the subtree or range, and `false` if
@@ -87,8 +101,8 @@ bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
                                  const key_range_t &range,
                                  depth_first_traversal_callback_t *cb,
                                  direction_t direction) {
-    buf_read_t read(block.get());
-    const node_t *node = static_cast<const node_t *>(read.get_data_read());
+    auto read = make_counted<counted_buf_read_t>(block.get());
+    const node_t *node = static_cast<const node_t *>(read->get_data_read());
     if (node::is_internal(node)) {
         const internal_node_t *inode = reinterpret_cast<const internal_node_t *>(node);
         int start_index = internal_node::get_offset_index(inode, range.left.btree_key());
@@ -129,7 +143,8 @@ bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
                 }
                 if (done_traversing_t::YES
                     == cb->handle_pair(scoped_key_value_t(key, (*it).second,
-                                                          movable_t<counted_buf_lock_t>(block)))) {
+                                                          movable_t<counted_buf_lock_t>(block),
+                                                          movable_t<counted_buf_read_t>(read)))) {
                     return false;
                 }
             }
@@ -149,7 +164,8 @@ bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
 
                 if (done_traversing_t::YES
                     == cb->handle_pair(scoped_key_value_t(key, (*it).second,
-                                                          movable_t<counted_buf_lock_t>(block)))) {
+                                                          movable_t<counted_buf_lock_t>(block),
+                                                          movable_t<counted_buf_read_t>(read)))) {
                     return false;
                 }
             }

@@ -101,10 +101,14 @@ describe('Javascript connection API', function(){
         });
 
         it("empty run", function(done) {
-          assert.throws(function(){ r.expr(1).run(); },
-                        checkError("RqlDriverError",
-                                   "First argument to `run` must be an open connection."));
-          done();
+            r.expr(1).run().then(function() {
+                done(new Error("Was expecting an error"))
+            }).error(givesError("RqlDriverError", "First argument to `run` must be an open connection.", done));
+        });
+        it("run with an object", function(done) {
+            r.expr(1).run({}).then(function() {
+                done(new Error("Was expecting an error"))
+            }).error(givesError("RqlDriverError", "First argument to `run` must be an open connection.", done));
         });
     });
 
@@ -123,7 +127,7 @@ describe('Javascript connection API', function(){
                 server_err_log = fs.openSync('run/server-error-log.txt', 'a');
                 cpp_server = spawn(
                     build_dir + '/rethinkdb',
-                    ['--driver-port', port, '--http-port', '0', '--cluster-port', cluster_port],
+                    ['--driver-port', port, '--http-port', '0', '--cluster-port', cluster_port, '--cache-size', '512'],
                     {stdio: ['ignore', 'pipe', 'pipe']});
 
                 cpp_server.stderr.on('data', function(data) {
@@ -365,6 +369,18 @@ describe('Javascript connection API', function(){
 
             c.close();
         }));
+
+        it("Non valid optarg", withConnection(function(done, c){
+            r.expr(1).run(c, {nonValidOption: true}).then(function() {
+                done(new Error("Was expecting an error"))
+            }).error(givesError("RqlDriverError", "Found nonValidOption which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>}.", done));
+        }));
+
+        it("Extra argument", withConnection(function(done, c){
+            r.expr(1).run(c, givesError("RqlDriverError", "Second argument to `run` cannot be a function if a third argument is provided.", done), 1)
+        }));
+
+
     });
 });
 

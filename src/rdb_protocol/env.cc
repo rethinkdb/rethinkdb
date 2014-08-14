@@ -36,7 +36,7 @@ wire_func_t construct_optarg_wire_func(const Term &val) {
     compile_env_t empty_compile_env((var_visibility_t()));
     counted_t<func_term_t> func_term
         = make_counted<func_term_t>(&empty_compile_env, arg);
-    counted_t<func_t> func = func_term->eval_to_func(var_scope_t());
+    counted_t<const func_t> func = func_term->eval_to_func(var_scope_t());
     return wire_func_t(func);
 }
 

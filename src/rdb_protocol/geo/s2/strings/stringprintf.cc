@@ -8,8 +8,9 @@ using std::vector;
 #include <string>
 #include "rdb_protocol/geo/s2/strings/stringprintf.h"
 #include "rdb_protocol/geo/s2/base/logging.h"
+
 // Max arguments supported by StringPrintVector
-const int kStringPrintfVectorMaxArgs = 32;
+const size_t kStringPrintfVectorMaxArgs = 32;
 
 // An empty block of zero for filler arguments.  This is const so that if
 // printf tries to write to it (via %n) then the program gets a SIGSEGV

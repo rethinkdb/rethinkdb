@@ -314,7 +314,8 @@ typedef boost::variant<map_wire_func_t,
                        group_wire_func_t,
                        filter_wire_func_t,
                        concatmap_wire_func_t,
-                       distinct_wire_func_t
+                       distinct_wire_func_t,
+                       zip_wire_func_t
                        > transform_variant_t;
 
 typedef boost::variant<count_wire_func_t,

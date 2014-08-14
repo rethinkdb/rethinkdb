@@ -18,6 +18,10 @@ using std::numeric_limits;
 #include "rdb_protocol/geo/s2/base/integral_types.h"
 #include "rdb_protocol/geo/s2/base/logging.h"
 
+#ifndef __APPLE__
+using std::signbit;
+#endif
+
 // Define storage for constants.
 const int ExactFloat::kMinExp;
 const int ExactFloat::kMaxExp;
@@ -39,6 +43,16 @@ COMPILE_ASSERT(
 // We define a few simple extensions to the BIGNUM interface.  In some cases
 // these depend on BIGNUM internal fields, so they might require tweaking if
 // the BIGNUM implementation changes significantly.
+
+// Functions wrapping BN_is_zero and BN_is_negative to avoid compilation
+// errors due to CLANG's `-Wparentheses-equality` when used like this
+// `if (BN_is_zero(...))`.
+bool bn_is_zero_func(const BIGNUM* bn) {
+    return BN_is_zero(bn) || false;
+}
+bool bn_is_negative_func(const BIGNUM* bn) {
+    return BN_is_negative(bn) || false;
+}
 
 // Set a BIGNUM to the given unsigned 64-bit value.
 inline static void BN_ext_set_uint64(BIGNUM* bn, uint64 v) {
@@ -87,7 +101,7 @@ static int BN_ext_count_low_zero_bits(const BIGNUM* bn) {
 
 ExactFloat::ExactFloat(double v) {
   BN_init(&bn_);
-  sign_ = std::signbit(v) ? -1 : 1;
+  sign_ = signbit(v) ? -1 : 1;
   if (isnan(v)) {
     set_nan();
   } else if (isinf(v)) {
@@ -493,9 +507,9 @@ ExactFloat ExactFloat::SignedSum(int a_sign, const ExactFloat* a,
     // allow the result to be the same as any input argument, so it is okay if
     // (a == &r) due to the shift above.
     CHECK(BN_sub(&r.bn_, &a->bn_, &b->bn_));
-    if (BN_is_zero(&r.bn_)) {
+    if (bn_is_zero_func(&r.bn_)) {
       r.sign_ = +1;
-    } else if (BN_is_negative(&r.bn_)) {
+    } else if (bn_is_negative_func(&r.bn_)) {
       // The magnitude of "b" was larger.
       r.sign_ = b_sign;
       BN_set_negative(&r.bn_, false);

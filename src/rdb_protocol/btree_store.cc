@@ -277,13 +277,62 @@ void store_t::receive_backfill(
                               chunk);
 }
 
+void store_t::maybe_drop_all_sindexes(const binary_blob_t &zero_metainfo,
+                                      const write_durability_t durability,
+                                      signal_t *interruptor) {
+    scoped_ptr_t<txn_t> txn;
+    scoped_ptr_t<real_superblock_t> superblock;
+
+    const int expected_change_count = 1;
+    write_token_pair_t token_pair;
+    new_write_token_pair(&token_pair);
+
+    acquire_superblock_for_write(repli_timestamp_t::invalid,
+                                 expected_change_count,
+                                 durability,
+                                 &token_pair,
+                                 &txn,
+                                 &superblock,
+                                 interruptor);
+
+    region_map_t<binary_blob_t> regions;
+    get_metainfo_internal(superblock->get(), &regions);
+
+    bool empty_region = true;
+    for (auto it = regions.begin(); it != regions.end(); ++it) {
+        if (it->second.size() != 0 && it->second != zero_metainfo) {
+            empty_region = false;
+        }
+    }
+
+    // If we are hosting no regions, we can blow away secondary indexes
+    if (empty_region) {
+        buf_lock_t sindex_block
+            = acquire_sindex_block_for_write(superblock->expose_buf(),
+                                             superblock->get_sindex_block_id());
+
+        std::map<sindex_name_t, secondary_index_t> sindexes;
+        ::get_secondary_indexes(&sindex_block, &sindexes);
+
+        for (auto const &sindex : sindexes) {
+            bool success = drop_sindex(sindex.first, &sindex_block);
+            guarantee(success);
+        }
+    }
+}
+
 void store_t::reset_data(
+        const binary_blob_t &zero_metainfo,
         const region_t &subregion,
         const write_durability_t durability,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
     with_priority_t p(CORO_PRIORITY_RESET_DATA);
+
+    // Check if secondary indexes should be dropped - if the store is not hosting data
+    // for any ranges.
+    maybe_drop_all_sindexes(zero_metainfo, durability, interruptor);
 
     // Erase the data in small chunks
     rdb_value_sizer_t sizer(cache->max_block_size());
@@ -741,6 +790,40 @@ void store_t::clear_sindex(
     }
 }
 
+bool secondary_indexes_are_equivalent(const std::vector<char> &left,
+                                      const std::vector<char> &right) {
+    sindex_disk_info_t sindex_info_left;
+    sindex_disk_info_t sindex_info_right;
+    deserialize_sindex_info(left, &sindex_info_left);
+    deserialize_sindex_info(right, &sindex_info_right);
+
+    if (sindex_info_left.multi == sindex_info_right.multi &&
+        sindex_info_left.geo == sindex_info_right.geo &&
+        sindex_info_left.mapping_version_info.original_reql_version ==
+            sindex_info_right.mapping_version_info.original_reql_version) {
+        // Need to determine if the mapping function is the same, re-serialize them
+        // and compare the vectors
+        bool res;
+        write_message_t wm_left;
+        vector_stream_t stream_left;
+        serialize_for_version(cluster_version_t::CLUSTER, &wm_left,
+                              sindex_info_left.mapping);
+        res = send_write_message(&stream_left, &wm_left);
+        guarantee(res == 0);
+
+        write_message_t wm_right;
+        vector_stream_t stream_right;
+        serialize_for_version(cluster_version_t::CLUSTER, &wm_right,
+                              sindex_info_right.mapping);
+        res = send_write_message(&stream_right, &wm_right);
+        guarantee(res == 0);
+
+        return stream_left.vector() == stream_right.vector();
+    }
+
+    return false;
+}
+
 void store_t::set_sindexes(
         const std::map<sindex_name_t, secondary_index_t> &sindexes,
         buf_lock_t *sindex_block,
@@ -751,45 +834,27 @@ void store_t::set_sindexes(
     ::get_secondary_indexes(sindex_block, &existing_sindexes);
 
     for (auto it = existing_sindexes.begin(); it != existing_sindexes.end(); ++it) {
-        if (!std_contains(sindexes, it->first)) {
-            /* Mark the secondary index for deletion to get it out of the way
-            (note that a new sindex with the same name can be created
-            from now on, which is what we want). */
-            bool success = mark_secondary_index_deleted(sindex_block, it->first);
+        if (!std_contains(sindexes, it->first) && !it->first.being_deleted) {
+            bool success = drop_sindex(it->first, sindex_block);
             guarantee(success);
-
-            /* Delay actually clearing the secondary index, so we can
-            release the sindex_block now, rather than having to wait for
-            clear_sindex() to finish. */
-            coro_t::spawn_sometime(std::bind(&store_t::delayed_clear_sindex,
-                                             this,
-                                             it->second,
-                                             drainer.lock()));
         }
     }
 
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-        if (!std_contains(existing_sindexes, it->first)) {
-            secondary_index_t sindex(it->second);
-            {
-                buf_lock_t sindex_superblock(sindex_block, alt_create_t::create);
-                sindex.superblock = sindex_superblock.block_id();
-                btree_slice_t::init_superblock(&sindex_superblock,
-                                               std::vector<char>(),
-                                               binary_blob_t());
-            }
+        auto extant_index = existing_sindexes.find(it->first);
+        if (extant_index != existing_sindexes.end() &&
+            !secondary_indexes_are_equivalent(it->second.opaque_definition,
+                                              extant_index->second.opaque_definition)) {
+            bool success = drop_sindex(extant_index->first, sindex_block);
+            guarantee(success);
+            extant_index = existing_sindexes.end();
+        }
 
-            secondary_index_slices.insert(
-                    std::make_pair(it->second.id,
-                                   make_scoped<btree_slice_t>(cache.get(),
-                                                              &perfmon_collection,
-                                                              it->first.name,
-                                                              index_type_t::SECONDARY)));
-
-            sindex.post_construction_complete = false;
-
-            ::set_secondary_index(sindex_block, it->first, sindex);
-
+        if (extant_index == existing_sindexes.end()) {
+            bool success = add_sindex(it->first,
+                                      it->second.opaque_definition,
+                                      sindex_block);
+            guarantee(success);
             created_sindexes_out->insert(it->first);
         }
     }

@@ -47,16 +47,24 @@ function clone(source) {
 }
 
 function eq_test(one, two) {
-    TRACE("eq_test");
+    TRACE("eq_test: " + JSON.stringify(one) + " | == | " + JSON.stringify(two));
     if (one instanceof Function) {
         return one(two);
     } else if (two instanceof Function) {
         return two(one);
+    
+    } else if (typeof one !== typeof two) {
+        return false;
+    
+    } else if (typeof one === 'string') {
+        one = one.replace(/\nFailed assertion([\r\n]|.)*/m, "");
+        two = two.replace(/\nFailed assertion([\r\n]|.)*/m, "");
+        return one == two;
+        
     } else if (Array.isArray(one)) {
-
-        if (!Array.isArray(two)) return false;
-
-        if (one.length != two.length) return false;
+        
+        // short circut on length
+        if (one.length !== two.length) return false;
 
         // Recurse on each element of array
         for (var i = 0; i < one.length; i++) {
@@ -66,7 +74,6 @@ function eq_test(one, two) {
         return true;
 
     } else if (one instanceof Buffer) {
-        if (!(two instanceof Buffer)) return false;
         if (one.length !== two.length) return false;
         for (var i = 0; i < one.length; i++) {
             if (one[i] !== two[i]) return false;
@@ -74,14 +81,11 @@ function eq_test(one, two) {
         return true;
     } else if (one instanceof Object) {
 
-        if (!(two instanceof Object)) return false;
-
-        // TODO: eq_test({},{foo:4}) will return true
+        // short circut on keys
+        if (!eq_test(Object.keys(one).sort(), Object.keys(two).sort())) return false;
+        
         // Recurse on each property of object
         for (var key in one) {
-            if(typeof one[key] === 'string'){
-                one[key] = one[key].replace(/\nFailed assertion([\r\n]|.)*/m, "");
-            }
             if (one.hasOwnProperty(key)) {
                 if (!eq_test(one[key], two[key])) return false;
             }
@@ -89,9 +93,8 @@ function eq_test(one, two) {
         return true;
 
     } else {
-
         // Primitive comparison
-        return (typeof one === typeof two) && (one === two)
+        return ((typeof one === typeof two) && (one === two)) || (isNaN(one) && isNaN(two))
     }
 }
 
@@ -138,8 +141,18 @@ function eq(exp) {
         }
     };
     fun.toString = function() {
-        return exp.toString();
+        return JSON.stringify(exp);
     };
+    return fun;
+}
+
+function returnTrue() {
+    var fun = function(val) {
+        return True;
+    }
+    fun.toString = function() {
+        return 'Always true';
+    }
     return fun;
 }
 
@@ -157,12 +170,11 @@ function TRACE(){
 
 // Connect first to cpp server
 r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
-
-       if(cpp_conn_err){
-           console.log("Failed to connect to server:", cpp_conn_err);
-           process.exit(1);
-
-       }
+        
+        if(cpp_conn_err){
+            console.log("Failed to connect to server:", cpp_conn_err);
+            process.exit(1);
+        }
 
         // Pull a test off the queue and run it
         function runTest() { try {
@@ -206,12 +218,11 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                         console.log(exp_val);
                         throw err;
                     }
-                    if (!exp_fun)
-                        exp_fun = function() { return true; };
-
-                    if (!(exp_fun instanceof Function))
-                        exp_fun = eq(exp_fun);
-
+                    if (!exp_fun) exp_fun = returnTrue();
+                    if (!(exp_fun instanceof Function)) exp_fun = eq(exp_fun);
+                    
+                    TRACE('expected value: ' + exp_fun.toString() + ' from ' + exp_val)
+                    
                     // - build the test
                     var test = null;
                     try {
@@ -270,7 +281,7 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                     }
                     
                     function afterArray(cpp_err, cpp_res) { try {
-                        TRACE("afterArray - src:" + src + ", err:" + cpp_err + ", result:" + cpp_res + " exected funciton: " + exp_fun);
+                        TRACE("afterArray - src:" + src + ", err:" + cpp_err + ", result:" + JSON.stringify(cpp_res) + " exected function: " + exp_fun.toString());
                         if (cpp_err) {
                             if (exp_fun.isErr) {
                                 if (!exp_fun(cpp_err)) {

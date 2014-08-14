@@ -388,12 +388,12 @@ private:
 
 class acc_func_t {
 public:
-    explicit acc_func_t(const counted_t<func_t> &_f) : f(_f) { }
+    explicit acc_func_t(const counted_t<const func_t> &_f) : f(_f) { }
     counted_t<const datum_t> operator()(env_t *env, const counted_t<const datum_t> &el) const {
         return f.has() ? f->call(env, el)->as_datum() : el;
     }
 private:
-    counted_t<func_t> f;
+    counted_t<const func_t> f;
 };
 
 template<class T>
@@ -582,7 +582,7 @@ private:
         if (el->has()) accumulate(env, *el, out);
     }
 
-    counted_t<func_t> f;
+    counted_t<const func_t> f;
 };
 
 template<class T>
@@ -744,7 +744,7 @@ private:
         }
     }
 
-    std::vector<counted_t<func_t> > funcs;
+    std::vector<counted_t<const func_t> > funcs;
     bool append_index, multi;
     protob_t<const Backtrace> bt;
 };
@@ -764,7 +764,7 @@ private:
             throw exc_t(e, f->backtrace().get(), 1);
         }
     }
-    counted_t<func_t> f;
+    counted_t<const func_t> f;
 };
 
 // Note: this removes duplicates ONLY TO SAVE NETWORK TRAFFIC.  It's possible
@@ -804,7 +804,7 @@ public:
         : f(_f.filter_func.compile_wire_func()),
           default_val(_f.default_filter_val
                       ? _f.default_filter_val->compile_wire_func()
-                      : counted_t<func_t>()) { }
+                      : counted_t<const func_t>()) { }
 private:
     virtual void lst_transform(
         env_t *env, datums_t *lst, const counted_t<const datum_t> &) {
@@ -822,7 +822,7 @@ private:
         }
         lst->erase(loc, lst->end());
     }
-    counted_t<func_t> f, default_val;
+    counted_t<const func_t> f, default_val;
 };
 
 class concatmap_trans_t : public ungrouped_op_t {
@@ -851,7 +851,23 @@ private:
         }
         lst->swap(new_lst);
     }
-    counted_t<func_t> f;
+    counted_t<const func_t> f;
+};
+
+class zip_trans_t : public ungrouped_op_t {
+public:
+    explicit zip_trans_t(const zip_wire_func_t &) {}
+private:
+    virtual void lst_transform(env_t *, datums_t *lst,
+                               const counted_t<const datum_t> &) {
+        for (auto it = lst->begin(); it != lst->end(); ++it) {
+            auto left = (*it)->get("left", NOTHROW);
+            auto right = (*it)->get("right", NOTHROW);
+            rcheck_datum(left.has(), base_exc_t::GENERIC,
+                   "ZIP can only be called on the result of a join.");
+            *it = right.has() ? left->merge(right) : left;
+        }
+    }
 };
 
 class transform_visitor_t : public boost::static_visitor<op_t *> {
@@ -871,6 +887,9 @@ public:
     }
     op_t *operator()(const distinct_wire_func_t &f) const {
         return new distinct_trans_t(f);
+    }
+    op_t *operator()(const zip_wire_func_t &f) const {
+        return new zip_trans_t(f);
     }
 };
 

@@ -124,15 +124,15 @@ module RethinkDB
       opts = {:host => opts} if opts.class == String
       @host = opts[:host] || "localhost"
       @port = opts[:port] || 28015
-      default_db = opts[:db]
+      @default_db = opts[:db]
       @auth_key = opts[:auth_key] || ""
 
       @@last = self
-      @default_opts = default_db ? {:db => RQL.new.db(default_db)} : {}
+      @default_opts = @default_db ? {:db => RQL.new.db(@default_db)} : {}
       @conn_id = 0
       reconnect(:noreply_wait => false)
     end
-    attr_reader :default_db, :conn_id
+    attr_reader :host, :port, :default_db, :conn_id
 
     @@token_cnt = 0
     def set_opts(token, opts)
@@ -225,6 +225,7 @@ module RethinkDB
 
     # Change the default database of a connection.
     def use(new_default_db)
+      @default_db = new_default_db
       @default_opts[:db] = RQL.new.db(new_default_db)
     end
 

@@ -58,7 +58,7 @@ private:
     public:
         typedef bool result_type;
         explicit lt_cmp_t(
-            std::vector<std::pair<order_direction_t, counted_t<func_t> > > _comparisons)
+            std::vector<std::pair<order_direction_t, counted_t<const func_t> > > _comparisons)
             : comparisons(std::move(_comparisons)) { }
 
         bool operator()(env_t *env,
@@ -106,12 +106,12 @@ private:
         }
 
     private:
-        const std::vector<std::pair<order_direction_t, counted_t<func_t> > >
+        const std::vector<std::pair<order_direction_t, counted_t<const func_t> > >
             comparisons;
     };
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        std::vector<std::pair<order_direction_t, counted_t<func_t> > > comparisons;
+        std::vector<std::pair<order_direction_t, counted_t<const func_t> > > comparisons;
         for (size_t i = 1; i < args->num_args(); ++i) {
             if (get_src()->args(i).type() == Term::DESC) {
                 comparisons.push_back(

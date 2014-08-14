@@ -49,7 +49,7 @@ describe('Javascript date pseudotype conversion', function(){
         server_err_log = fs.openSync('run/server-error-log.txt', 'a');
         cpp_server = spawn(
             build_dir + '/rethinkdb',
-            ['--driver-port', port, '--http-port', '0', '--cluster-port', cluster_port],
+            ['--driver-port', port, '--http-port', '0', '--cluster-port', cluster_port, '--cache-size', '512'],
             {stdio: ['ignore', server_out_log, server_err_log]});
         setTimeout(done, 1000);
     });

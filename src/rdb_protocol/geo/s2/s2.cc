@@ -17,7 +17,6 @@ double const S2::kMaxDetError = 0.8e-15;  // 14 * (2**-54)
 COMPILE_ASSERT(S2::kSwapMask == 0x01 && S2::kInvertMask == 0x02,
                masks_changed);
 
-static const uint32 MIX32 = 0x12b9b0a1UL;
 #include<unordered_set>
 
 // The hash function due to Bob Jenkins (see

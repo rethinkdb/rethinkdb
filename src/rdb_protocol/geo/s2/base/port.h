@@ -12,7 +12,7 @@
 #include <string.h>         // for memcpy()
 #include <stdlib.h>         // for free()
 
-#if defined(OS_MACOSX)
+#if defined(__MACH__)
 #include <unistd.h>         // for getpagesize() on mac
 #elif defined(OS_CYGWIN)
 #include <malloc.h>         // for memalign()
@@ -22,20 +22,20 @@
 #include "utils.hpp"
 
 // Must happens before inttypes.h inclusion */
-#if defined(OS_MACOSX)
+#if defined(__MACH__)
 /* From MacOSX's inttypes.h:
  * "C++ implementations should define these macros only when
  *  __STDC_FORMAT_MACROS is defined before <inttypes.h> is included." */
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
 #endif  /* __STDC_FORMAT_MACROS */
-#endif  /* OS_MACOSX */
+#endif  /* __MACH__ */
 
 /* Default for most OSes */
 /* We use SIGPWR since that seems unlikely to be used for other reasons. */
 #define GOOGLE_OBSCURE_SIGNAL  SIGPWR
 
-#if defined OS_LINUX || defined OS_CYGWIN
+#if defined __linux__ || defined OS_CYGWIN
 
 // _BIG_ENDIAN
 #include <endian.h>
@@ -90,7 +90,7 @@ typedef void (*sig_t)(int);
 #include <sys/int_types.h>
 typedef uint16_t u_int16_t;
 
-#elif defined OS_MACOSX
+#elif defined __MACH__
 
 // BIG_ENDIAN
 #include <machine/endian.h>
@@ -110,7 +110,7 @@ typedef uint16_t u_int16_t;
 #define bswap_32(x) _byteswap_ulong(x)
 #define bswap_64(x) _byteswap_uint64(x)
 
-#elif defined(OS_MACOSX)
+#elif defined(__MACH__)
 // Mac OS X / Darwin features
 #include <libkern/OSByteOrder.h>
 #define bswap_16(x) OSSwapInt16(x)
@@ -160,7 +160,7 @@ const char PATH_SEPARATOR = '/';
 
 // Windows has O_BINARY as a flag to open() (like "b" for fopen).
 // Linux doesn't need make this distinction.
-#if defined OS_LINUX && !defined O_BINARY
+#if defined __linux__ && !defined O_BINARY
 #define O_BINARY 0
 #endif
 
@@ -184,7 +184,7 @@ typedef int uid_t;
 
 // Mac OS X / Darwin features
 
-#if defined(OS_MACOSX)
+#if defined(__MACH__)
 
 // For mmap, Linux defines both MAP_ANONYMOUS and MAP_ANON and says MAP_ANON is
 // deprecated. In Darwin, MAP_ANON is all there is.
@@ -266,8 +266,6 @@ inline size_t strnlen(const char *s, size_t maxlen) {
   return maxlen;
 }
 
-using namespace std;  // just like VC++, we need a using here
-
 // Doesn't exist on OSX; used in google.cc for send() to mean "no flags".
 #define MSG_NOSIGNAL 0
 
@@ -320,21 +318,7 @@ inline void* memrchr(const void* bytes, int find_char, size_t len) {
 
 // GCC-specific features
 
-#if (defined(COMPILER_GCC3) || defined(COMPILER_ICC) || defined(OS_MACOSX)) && !defined(SWIG)
-
-//
-// Tell the compiler to do printf format string checking if the
-// compiler supports it; see the 'format' attribute in
-// <http://gcc.gnu.org/onlinedocs/gcc-4.3.0/gcc/Function-Attributes.html>.
-//
-// N.B.: As the GCC manual states, "[s]ince non-static C++ methods
-// have an implicit 'this' argument, the arguments of such methods
-// should be counted from two, not one."
-//
-#define PRINTF_ATTRIBUTE(string_index, first_to_check) \
-    __attribute__((__format__ (__printf__, string_index, first_to_check)))
-#define SCANF_ATTRIBUTE(string_index, first_to_check) \
-    __attribute__((__format__ (__scanf__, string_index, first_to_check)))
+#if (defined(__GNUC__) || defined(__MACH__)) && !defined(SWIG)
 
 //
 // Prevent the compiler from padding a structure to natural alignment
@@ -489,115 +473,17 @@ inline void* memrchr(const void* bytes, int find_char, size_t len) {
 #define MUST_USE_RESULT
 #endif
 
-
-#if (defined(COMPILER_ICC) || defined(COMPILER_GCC3))
-// Defined behavior on some of the uarchs:
-// PREFETCH_HINT_T0:
-//   prefetch to all levels of the hierarchy (except on p4: prefetch to L2)
-// PREFETCH_HINT_NTA:
-//   p4: fetch to L2, but limit to 1 way (out of the 8 ways)
-//   core: skip L2, go directly to L1
-//   k8 rev E and later: skip L2, can go to either of the 2-ways in L1
-enum PrefetchHint {
-  PREFETCH_HINT_T0 = 3,  // More temporal locality
-  PREFETCH_HINT_T1 = 2,
-  PREFETCH_HINT_T2 = 1,  // Less temporal locality
-  PREFETCH_HINT_NTA = 0  // No temporal locality
-};
-#else
-// prefetch is a no-op for this target. Feel free to add more sections above.
-#endif
-
-extern inline void prefetch(const char *x, int hint) {
-#if defined(COMPILER_ICC) || defined(__llvm__)
-  // In the gcc version of prefetch(), hint is only a constant _after_ inlining
-  // (assumed to have been successful).  icc views things differently, and
-  // checks constant-ness _before_ inlining.  This leads to compilation errors
-  // with the gcc version in icc.
-  //
-  // One way round this is to use a switch statement to explicitly match
-  // prefetch hint enumerations, and invoke __builtin_prefetch for each valid
-  // value.  icc's optimization removes the switch and unused case statements
-  // after inlining, so that this boils down in the end to the same as for gcc;
-  // that is, a single inlined prefetchX instruction.  Demonstrate by compiling
-  // with icc options -xK -O2 and viewing assembly language output.
-  //
-  // Note that this version of prefetch() cannot verify constant-ness of hint.
-  // If client code calls prefetch() with a variable value for hint, it will
-  // receive the full expansion of the switch below, perhaps also not inlined.
-  // This should however not be a problem in the general case of well behaved
-  // caller code that uses the supplied prefetch hint enumerations.
-  switch (hint) {
-    case PREFETCH_HINT_T0:
-      __builtin_prefetch(x, 0, PREFETCH_HINT_T0);
-      break;
-    case PREFETCH_HINT_T1:
-      __builtin_prefetch(x, 0, PREFETCH_HINT_T1);
-      break;
-    case PREFETCH_HINT_T2:
-      __builtin_prefetch(x, 0, PREFETCH_HINT_T2);
-      break;
-    case PREFETCH_HINT_NTA:
-      __builtin_prefetch(x, 0, PREFETCH_HINT_NTA);
-      break;
-    default:
-      __builtin_prefetch(x);
-      break;
-  }
-#elif defined(COMPILER_GCC3)
- #if !defined(ARCH_PIII) || defined(__SSE__)
-  if (__builtin_constant_p(hint)) {
-    __builtin_prefetch(x, 0, hint);
-  } else {
-    // Defaults to PREFETCH_HINT_T0
-    __builtin_prefetch(x);
-  }
-#else
-  // We want a __builtin_prefetch, but we build with the default -march=i386
-  // where __builtin_prefetch quietly turns into nothing.
-  // Once we crank up to -march=pentium3 or higher the __SSE__
-  // clause above will kick in with the builtin.
-  // -- mec 2006-06-06
-  if (hint == PREFETCH_HINT_NTA)
-    __asm__ __volatile__("prefetchnta (%0)" : : "r"(x));
- #endif
-#else
-  // You get no effect.  Feel free to add more sections above.
-#endif
-}
-
-#ifdef __cplusplus
-// prefetch intrinsic (bring data to L1 without polluting L2 cache)
-extern inline void prefetch(const char *x) {
-  return prefetch(x, 0);
-}
-#endif  // ifdef __cplusplus
-
-//
-// GCC can be told that a certain branch is not likely to be taken (for
-// instance, a CHECK failure), and use that information in static analysis.
-// Giving it this information can help it optimize for the common case in
-// the absence of better information (ie. -fprofile-arcs).
-//
-#if defined(COMPILER_GCC3)
-#define PREDICT_FALSE(x) (__builtin_expect(x, 0))
-#define PREDICT_TRUE(x) (__builtin_expect(!!(x), 1))
-#else
-#define PREDICT_FALSE(x) x
-#define PREDICT_TRUE(x) x
-#endif
-
 #define FTELLO ftello
 #define FSEEKO fseeko
 
-#if !defined(__cplusplus) && !defined(OS_MACOSX) && !defined(OS_CYGWIN)
+#if !defined(__cplusplus) && !defined(__MACH__) && !defined(OS_CYGWIN)
 // stdlib.h only declares this in C++, not in C, so we declare it here.
 // Also make sure to avoid declaring it on platforms which don't support it.
 extern int posix_memalign(void **memptr, size_t alignment, size_t size);
 #endif
 
 inline void *aligned_malloc(size_t size, int minimum_alignment) {
-#if defined(OS_MACOSX)
+#if defined(__MACH__)
   // mac lacks memalign(), posix_memalign(), however, according to
   // http://stackoverflow.com/questions/196329/osx-lacks-memalign
   // mac allocs are already 16-byte aligned.
@@ -610,7 +496,7 @@ inline void *aligned_malloc(size_t size, int minimum_alignment) {
   return NULL;
 #elif defined(OS_CYGWIN)
   return memalign(minimum_alignment, size);
-#else  // !OS_MACOSX && !OS_CYGWIN
+#else  // !__MACH__ && !OS_CYGWIN
   void *ptr = NULL;
   if (posix_memalign(&ptr, minimum_alignment, size) != 0)
     return NULL;
@@ -625,7 +511,6 @@ inline void aligned_free(void *aligned_memory) {
 
 #else   // not GCC
 
-#define PRINTF_ATTRIBUTE(string_index, first_to_check)
 #define SCANF_ATTRIBUTE(string_index, first_to_check)
 #define PACKED
 #define CACHELINE_ALIGNED
@@ -641,9 +526,6 @@ inline void aligned_free(void *aligned_memory) {
 #define ATTRIBUTE_STACK_ALIGN_FOR_OLD_LIBC
 #define REQUIRE_STACK_ALIGN_TRAMPOLINE (0)
 #define MUST_USE_RESULT
-extern inline void prefetch(UNUSED const char *x) {}
-#define PREDICT_FALSE(x) x
-#define PREDICT_TRUE(x) x
 
 // These should be redefined appropriately if better alternatives to
 // ftell/fseek exist in the compiler
@@ -651,6 +533,9 @@ extern inline void prefetch(UNUSED const char *x) {}
 #define FSEEKO fseek
 
 #endif  // GCC
+
+// Disable printf format checking in general, because it's too strict.
+#define PRINTF_ATTRIBUTE(string_index, first_to_check)
 
 #if !HAVE_ATTRIBUTE_SECTION  // provide dummy definitions
 
@@ -705,8 +590,6 @@ extern inline void prefetch(UNUSED const char *x) {}
 #ifndef HUGE_VALF
 #define HUGE_VALF (static_cast<float>(HUGE_VAL))
 #endif
-
-using namespace std;
 
 // VC++ doesn't understand "uint"
 #ifndef HAVE_UINT
@@ -906,7 +789,7 @@ struct PortableHashBase { };
 #endif
 
 
-#if defined(OS_WINDOWS) || defined(OS_MACOSX)
+#if defined(OS_WINDOWS) || defined(__MACH__)
 // gethostbyname() *is* thread-safe for Windows native threads. It is also
 // safe on Mac OS X, where it uses thread-local storage, even though the
 // manpages claim otherwise. For details, see
@@ -937,11 +820,11 @@ struct PortableHashBase { };
 #endif
 
 // Our STL-like classes use __STD.
-#if defined(COMPILER_GCC3) || defined(COMPILER_ICC) || defined(OS_MACOSX) || defined(COMPILER_MSVC)
+#if defined(__GNUC__) || defined(__MACH__) || defined(COMPILER_MSVC)
 #define __STD std
 #endif
 
-#if defined COMPILER_GCC3 || defined COMPILER_ICC
+#if defined __GNUC__
 #define STREAM_SET(s, bit) (s).setstate(ios_base::bit)
 #define STREAM_SETF(s, flag) (s).setf(ios_base::flag)
 #else

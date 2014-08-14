@@ -58,7 +58,7 @@ const char *archive_result_as_str(archive_result_t archive_result);
 
 class archive_exc_t : public std::exception {
 public:
-    archive_exc_t(std::string _s) : s(std::move(_s)) { }
+    explicit archive_exc_t(std::string _s) : s(std::move(_s)) { }
     ~archive_exc_t() throw () { }
     const char *what() const throw() {
         return s.c_str();

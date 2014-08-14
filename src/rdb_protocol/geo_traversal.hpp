@@ -46,7 +46,7 @@ public:
 private:
     friend class geo_intersecting_cb_t;
     const key_range_t pkey_range;
-    const counted_t<ql::func_t> func;
+    const counted_t<const ql::func_t> func;
     const reql_version_t func_reql_version;
     const sindex_multi_bool_t multi;
 };
