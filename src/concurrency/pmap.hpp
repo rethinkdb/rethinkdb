@@ -12,9 +12,9 @@ struct pmap_runner_one_arg_t {
     const callable_t *c;
     int *outstanding;
     cond_t *to_signal;
-    co_semaphore_t *semaphore;
+    static_semaphore_t *semaphore;
     pmap_runner_one_arg_t(value_t _i, const callable_t *_c, int *_outstanding,
-                          cond_t *_to_signal, co_semaphore_t *_semaphore = NULL)
+                          cond_t *_to_signal, static_semaphore_t *_semaphore = NULL)
         : i(_i), c(_c), outstanding(_outstanding), to_signal(_to_signal),
           semaphore(_semaphore) { }
 
