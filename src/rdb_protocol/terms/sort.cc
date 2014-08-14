@@ -198,7 +198,9 @@ private:
                 make_counted<const datum_t>(std::move(to_sort), env->env->limits),
                 backtrace());
         }
-        return tbl.has() ? new_val(seq, tbl) : new_val(env->env, seq);
+        return tbl_slice.has()
+            ? new_val(seq, tbl_slice->get_tbl())
+            : new_val(env->env, seq);
     }
 
     virtual const char *name() const { return "orderby"; }
@@ -216,10 +218,11 @@ private:
                                        eval_flags_t) const {
         counted_t<val_t> v = args->arg(env, 0);
         counted_t<val_t> idx = args->optarg(env, "index");
-        if (v->get_type().is_convertible(val_t::type_t::TABLE)) {
-            counted_t<table_t> tbl = v->as_table();
-            std::string idx_str = idx.has() ? idx->as_str().to_std() : tbl->get_pkey();
-            if (idx.has() && idx_str == tbl->get_pkey()) {
+        if (v->get_type().is_convertible(val_t::type_t::TABLE_SLICE)) {
+            counted_t<table_slice_t> tbl_slice = v->as_table_slice();
+            std::string tbl_pkey = tbl_slice->get_tbl()->get_pkey();
+            std::string idx_str = idx.has() ? idx->as_str().to_std() : tbl_pkey;
+            if (idx.has() && idx_str == tbl_pkey) {
                 auto row = pb::dummy_var_t::DISTINCT_ROW;
                 std::vector<sym_t> distinct_args{dummy_var_to_sym(row)}; // NOLINT(readability/braces) yes we bloody well do need the ;
                 protob_t<Term> body(make_counted_term());
@@ -228,15 +231,13 @@ private:
                     body->Swap(&f.get());
                 }
                 propagate(body.get());
-                counted_t<datum_stream_t> s =
-                    tbl->as_datum_stream(env->env, backtrace());
+                counted_t<datum_stream_t> s = tbl_slice->as_seq(env->env, backtrace());
                 map_wire_func_t mwf(body, std::move(distinct_args), backtrace());
                 s->add_transformation(std::move(mwf), backtrace());
                 return new_val(env->env, s);
             } else {
-                tbl->add_sorting(idx_str, sorting_t::ASCENDING, this);
-                counted_t<datum_stream_t> s =
-                    tbl->as_datum_stream(env->env, backtrace());
+                tbl_slice = tbl_slice->with_sorting(idx_str, sorting_t::ASCENDING);
+                counted_t<datum_stream_t> s = tbl_slice->as_seq(env->env, backtrace());
                 s->add_transformation(distinct_wire_func_t(idx.has()), backtrace());
                 return new_val(env->env, s->ordered_distinct());
             }

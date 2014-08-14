@@ -127,7 +127,7 @@ public:
     counted_t<datum_stream_t> as_seq(env_t *env, const protob_t<const Backtrace> &bt);
     counted_t<table_slice_t> with_sorting(std::string idx, sorting_t sorting);
     counted_t<table_slice_t> with_bounds(std::string idx, datum_range_t bounds);
-    const counted_t<table_t> &get_tbl() { return tbl; }
+    const counted_t<table_t> &get_tbl() const { return tbl; }
 private:
     const counted_t<table_t> tbl;
     const std::string idx;
@@ -203,6 +203,7 @@ public:
 
     counted_t<const db_t> as_db() const;
     counted_t<table_t> as_table();
+    counted_t<table_t> get_underlying_table() const;
     counted_t<table_slice_t> as_table_slice();
     std::pair<counted_t<table_t>, counted_t<datum_stream_t> > as_selection(env_t *env);
     counted_t<datum_stream_t> as_seq(env_t *env);

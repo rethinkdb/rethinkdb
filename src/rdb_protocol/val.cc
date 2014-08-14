@@ -470,17 +470,30 @@ counted_t<grouped_data_t> val_t::maybe_as_promiscuous_grouped_data(env_t *env) {
         : maybe_as_grouped_data();
 }
 
+counted_t<table_t> val_t::get_underlying_table() const {
+    if (type.raw_type == type_t::TABLE) {
+        return boost::get<counted_t<table_t> >(table_u);
+    } else if (type.raw_type == type_t::TABLE_SLICE) {
+        return boost::get<counted_t<table_slice_t> >(table_u)->get_tbl();
+    } else {
+        r_sanity_check(false);
+        unreachable();
+    }
+}
+
 std::pair<counted_t<table_t>, counted_t<datum_stream_t> >
 val_t::as_selection(env_t *env) {
-    if (type.raw_type != type_t::TABLE && type.raw_type != type_t::SELECTION) {
+    if (type.raw_type != type_t::TABLE
+        && type.raw_type != type_t::TABLE_SLICE
+        && type.raw_type != type_t::SELECTION) {
         rcheck_literal_type(type_t::SELECTION);
     }
-    return std::make_pair(table, as_seq(env));
+    return std::make_pair(get_underlying_table(), as_seq(env));
 }
 
 std::pair<counted_t<table_t>, counted_t<const datum_t> > val_t::as_single_selection() {
     rcheck_literal_type(type_t::SINGLE_SELECTION);
-    return std::make_pair(table, datum());
+    return std::make_pair(get_underlying_table(), datum());
 }
 
 counted_t<func_t> val_t::as_func(function_shortcut_t shortcut) {
@@ -584,10 +597,10 @@ std::string val_t::print() const {
     } else if (get_type().is_convertible(type_t::DB)) {
         return strprintf("db(\"%s\")", as_db()->name.c_str());
     } else if (get_type().is_convertible(type_t::TABLE)) {
-        return strprintf("table(\"%s\")", table->name.c_str());
+        return strprintf("table(\"%s\")", get_underlying_table()->name.c_str());
     } else if (get_type().is_convertible(type_t::SELECTION)) {
         return strprintf("SELECTION ON table(%s)",
-                         table->name.c_str());
+                         get_underlying_table()->name.c_str());
     } else {
         // TODO: Do something smarter here?
         return strprintf("VALUE %s", get_type().name());
