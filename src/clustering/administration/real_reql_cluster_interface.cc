@@ -248,12 +248,36 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
                 false, error_out)) return false;
         }
 
-        /* Construct a description of the new namespace */
         table_replication_info_t repli_info;
-        repli_info.config =
-            table_reconfigure(server_name_client);
+
+        /* Construct a configuration for the new namespace */
+        std::map<name_string_t, int> server_usage;
+        for (auto it = ns_change.get()->namespaces.begin();
+                  it != ns_change.get()->namespaces.end();
+                ++it) {
+            if (it->second.is_deleted()) {
+                continue;
+            }
+            /* RSI(reql_admin): This doesn't handle vector clock conflicts. */
+            calculate_server_usage(
+                it->second.get_ref().replication_info.get_ref().config, &server_usage);
+        }
+        clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
+            cow_ptr_t<namespaces_directory_metadata_t> > > > dummy_directory;
+        /* RSI(reql_admin): These should be passed by the user. */
+        table_reconfigure_params_t config_params;
+        config_params.num_shards = 1;
+        config_params.num_replicas[name_string_t::guarantee_valid("default")] = 1;
+        config_params.director_tag = name_string_t::guarantee_valid("default");
+        if (!table_reconfigure(
+                server_name_client, nil_uuid(), NULL, dummy_directory, server_usage,
+                config_params, interruptor, &repli_info.config, error_out)) {
+            return false;
+        }
+
         repli_info.chosen_directors =
             table_elect_directors(repli_info.config, server_name_client);
+
         namespace_semilattice_metadata_t table_metadata;
         table_metadata.name = vclock_t<name_string_t>(name, my_machine_id);
         table_metadata.database = vclock_t<database_id_t>(db->id, my_machine_id);

@@ -2,6 +2,14 @@
 #ifndef CLUSTERING_ADMINISTRATION_TABLES_SPLIT_POINTS_HPP_
 #define CLUSTERING_ADMINISTRATION_TABLES_SPLIT_POINTS_HPP_
 
+#include <vector>
+
+#include "btree/keys.hpp"
+#include "containers/uuid.hpp"
+
+class real_reql_cluster_interface_t;
+class signal_t;
+
 /* `calculate_split_points_with_distribution` generates a set of split points that are
 guaranteed to divide the data approximately evenly. It does this by running a
 distribution query against the database. However, it may fail. */

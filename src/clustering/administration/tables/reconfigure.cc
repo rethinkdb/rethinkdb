@@ -2,6 +2,7 @@
 #include "clustering/administration/tables/reconfigure.hpp"
 
 #include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/tables/split_points.hpp"
 
 // Because being primary for a shard usually comes with a higher cost than
 // being secondary, we want to consider that difference in the replica assignment.
@@ -12,7 +13,7 @@
 // otherwise equal).
 #define PRIMARY_USAGE_COST  10
 #define SECONDARY_USAGE_COST  8
-void calculate_usage(
+void calculate_server_usage(
         const table_config_t &config,
         std::map<name_string_t, int> *usage) {
     for (const table_config_t::shard_t &shard : config.shards) {
@@ -37,14 +38,15 @@ static bool validate_params(
         *error_out = strprintf("Maximum number of shards is %d.", max_shards);
         return false;
     }
-    if (num_replicas.count(director_tag) == 0 || num_replicas.at(director_tag) == 0) {
+    if (params.num_replicas.count(params.director_tag) == 0 ||
+            params.num_replicas.at(params.director_tag) == 0) {
         *error_out = strprintf("Can't use server tag `%s` for directors because you "
-            "specified no replicas in server tag `%s`.", director_tag.c_str(),
-            director_tag.c_str());
+            "specified no replicas in server tag `%s`.", params.director_tag.c_str(),
+            params.director_tag.c_str());
         return false;
     }
     std::map<name_string_t, name_string_t> servers_claimed;
-    for (auto it = num_replicas.begin(); it != num_replicas.end(); ++it) {
+    for (auto it = params.num_replicas.begin(); it != params.num_replicas.end(); ++it) {
         if (it->second < 0) {
             *error_out = "Can't have a negative number of replicas";
             return false;
@@ -70,7 +72,8 @@ static bool validate_params(
 /* `estimate_cost_to_get_up_to_date()` returns a number that describes how much trouble
 we expect it to be to get the given machine into an up-to-date state.
 
-This takes O(shards) time. */
+This takes O(shards) time, since `business_card` probably contains O(shards) activities.
+*/
 static double estimate_cost_to_get_up_to_date(
         const reactor_business_card_t &business_card,
         region_t shard) {
@@ -117,74 +120,41 @@ static double estimate_cost_to_get_up_to_date(
     return sum / count;
 }
 
-static void filter_pairings(
-        std::multimap< double, std::pair<int, name_string_t> > *priorities,
-        int filter_out_shard,
-        name_string_t filter_out_server) {
-    for (auto it = priorities->begin(); it != priorities->end(); ) {
-        auto jt = it;
-        ++jt;
-        if (it->second.first == filter_out_shard ||
-                it->second.second == filter_out_server) {
-            priorities->erase(it);
-        }
-        it = jt;
-    }
-}
-
 /* `pick_best_pairings()` chooses which server will host each shard. No server can host
-more than one shard.
-
-This takes O(shards^2*servers*log(shards*servers)) time. */
+more than one shard. */
 static void pick_best_pairings(
         int num_shards,
-        /* The map's values are pairs of (shard, server). The keys indicate how desirable
-        it is for that shard to be hosted on that server. If a pairing is not present in
-        the map, then it will be impossible. */
-        const std::multimap< double, std::pair<int, name_string_t> > &priorities,
-        /* This keeps track of which servers have already been claimed. */
+        /* The map's values are pairs of (shard, server). The keys indicate how expensive
+        it is for that shard to be hosted on that server; lower numbers are better. If a
+        pairing is not present in the map, then it will be impossible. */
+        const std::multimap< double, std::pair<int, name_string_t> > &costs,
         /* This vector will be filled with the chosen server for each shard */
         std::vector<name_string_t> *picks_out) {
-    
-
-
-
+    std::set<name_string_t> servers_used;
+    std::set<int> shards_satisfied;
     picks_out->resize(num_shards);
-    int shards_to_go = num_shards;
-    while (shards_to_go > 0) {
-        /* If `priorities` is empty, this means that we're stuck; it's impossible to
-        place any more shards on servers. The caller is responsible for preventing this.
-        */
-        guarantee(!priorities.empty());
-        /* Select the most desirable single pairing */
-        double best_priority = priorities.back().first;
-        /* If there are multiple equally desirable pairings, pick one randomly */
-        int which_of_the_best = randint(priorities.count(best_priority));
-        auto it = priorities.lower_bound(best_priority);
-        while (which_of_the_best-- > 0) {
-            ++it;
+    for (auto it = costs.begin(); it != costs.end(); ++it) {
+        if (shards_satisfied.count(it->second.first) == 1 ||
+                servers_used.count(it->second.second) == 1) {
+            continue;
         }
-        /* Record our choice */
-        int pick_shard = it->second.first;
-        name_string_t pick_name = it->second.second;
-        (*picks_out)[pick_shard] = pick_name;
-        /* Remove any pairings with the same shard or server as we just chose */
-        filter_pairings(&priorities, pick_shard, pick_name);
-        shards_to_go--;
+        (*picks_out)[it->second.first] = it->second.second;
+        shards_satisfied.insert(it->second.first);
+        servers_used.insert(it->second.second);
+        if (shards_satisfied.size() == static_cast<size_t>(num_shards)) {
+            break;
+        }
     }
+    guarantee(shards_satisfied.size() == static_cast<size_t>(num_shards));
 }
 
-/* This takes O(replicas*shards^2*servers*log(shards*servers)) time. Assuming 100 servers
-and 30 shards, that could mean multiple seconds of CPU time. We deal with this by calling
-`coro_t::yield()` periodically in the computation. We call it approximately
-O(replicas*shards) times. */
 bool table_reconfigure(
         server_name_client_t *name_client,
         namespace_id_t table_id,
         real_reql_cluster_interface_t *reql_cluster_interface,
         clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
             cow_ptr_t<namespaces_directory_metadata_t> > > > directory_view,
-        const std::map<name_string_t, int> &usage,
+        const std::map<name_string_t, int> &server_usage,
 
         const table_reconfigure_params_t &params,
 
@@ -204,73 +174,115 @@ bool table_reconfigure(
     }
     if (servers_with_tags.count(params.director_tag) == 0) {
         servers_with_tags.insert(std::make_pair(
-            it->first,
-            name_client->get_servers_with_tag(it->first)));
+            params.director_tag,
+            name_client->get_servers_with_tag(params.director_tag)));
     }
 
-    if (!validate_params(params, servers_with_tags)) {
+    if (!validate_params(params, servers_with_tags, error_out)) {
         return false;
     }
 
     /* Fetch reactor information for all of the servers */
-    std::map<name_string_t, reactor_business_card_t> directory_metadata;
-    std::set<name_string_t> missing;
-    directory_view->apply_read(
-        [&](const change_tracking_map_t<peer_id_t,
-                namespaces_directory_metadata_t> *map) {
-            for (auto it = servers_with_tags.begin();
-                      it != servers_with_tags.end();
-                    ++it) {
-                for (auto jt = it->second.begin(); jt != it->second.end(); ++jt) {
-                    boost::optional<machine_id_t> machine_id =
-                        name_server->get_machine_id_for_name(*jt);
-                    if (!machine_id) {
-                        missing.insert(*jt);
-                        continue;
+    std::map<name_string_t, cow_ptr_t<reactor_business_card_t> > directory_metadata;
+    if (table_id != nil_uuid()) {
+        std::set<name_string_t> missing;
+        directory_view->apply_read(
+            [&](const change_tracking_map_t<peer_id_t,
+                    cow_ptr_t<namespaces_directory_metadata_t> > *map) {
+                for (auto it = servers_with_tags.begin();
+                          it != servers_with_tags.end();
+                        ++it) {
+                    for (auto jt = it->second.begin(); jt != it->second.end(); ++jt) {
+                        boost::optional<machine_id_t> machine_id =
+                            name_client->get_machine_id_for_name(*jt);
+                        if (!machine_id) {
+                            missing.insert(*jt);
+                            continue;
+                        }
+                        boost::optional<peer_id_t> peer_id =
+                            name_client->get_peer_id_for_machine_id(*machine_id);
+                        if (!peer_id) {
+                            missing.insert(*jt);
+                            continue;
+                        }
+                        auto kt = map->get_inner().find(*peer_id);
+                        if (kt == map->get_inner().end()) {
+                            missing.insert(*jt);
+                            continue;
+                        }
+                        cow_ptr_t<namespaces_directory_metadata_t> peer_dir = kt->second;
+                        auto lt = peer_dir->reactor_bcards.find(table_id);
+                        if (lt == peer_dir->reactor_bcards.end()) {
+                            /* don't raise an error in this case */
+                            continue;
+                        }
+                        directory_metadata.insert(std::make_pair(
+                            *jt, lt->second.internal));
                     }
-                    boost::optional<peer_id_t> peer_id =
-                        name_server->get_peer_id_for_name(*machine_id);
-                    if (!peer_id) {
-                        missing.insert(*jt);
-                        continue;
-                    }
-                    auto kt = map->get_inner().find(peer_id);
-                    if (kt == map->get_inner().end()) {
-                        missing.insert(*jt);
-                        continue;
-                    }
-                    directory_metadata.insert(std::make_pair(*jt, kt->second->internal));
                 }
-            }
-        });
-    if (!missing.empty()) {
-        *error_out = strprintf("Can't configure table because server `%s` is missing",
-            *missing.begin());
-        return false;
+            });
+        if (!missing.empty()) {
+            *error_out = strprintf("Can't configure table because server `%s` is "
+                "missing", missing.begin()->c_str());
+            return false;
+        }
     }
 
+    config_out->shards.resize(params.num_shards);
+
     /* Decide on the split points for the new config */
-    std::vector<store_key_t> split_points = ...;
+    std::vector<store_key_t> split_points;
+    if (table_id != nil_uuid()) {
+        if (!calculate_split_points_with_distribution(table_id, reql_cluster_interface,
+                params.num_shards, interruptor, &split_points)) {
+            /* RSI(reql_admin): Use previous split points to refine estimate */
+            calculate_split_points_by_estimation(params.num_shards,
+                std::vector<store_key_t>(), &split_points);
+        }
+    } else {
+        calculate_split_points_by_estimation(params.num_shards,
+            std::vector<store_key_t>(), &split_points);
+    }
+    for (int i = 0; i < params.num_shards-1; ++i) {
+        config_out->shards[i].split_point =
+            boost::optional<store_key_t>(split_points[i]);
+    }
 
     /* Finally, fill in the servers */
-    table_config_t config;
-    config.shards.resize(params.num_shards);
     for (auto it = params.num_replicas.begin(); it != params.num_replicas.end(); ++it) {
-        /* Calculate how much each shard "wants" each machine */
-        std::multimap<double, std::pair<int, name_string_t> > priorities;
+
+        /* Calculate how desirable each shard-server pairing is */
+        std::multimap<double, std::pair<int, name_string_t> > costs;
         for (int shard = 0; shard < params.num_shards; ++shard) {
-            region_t region = hash_region_t<key_range_t>(config.get_shard_range(shard));
+            region_t region = hash_region_t<key_range_t>(
+                config_out->get_shard_range(shard));
             for (const name_string_t &server : servers_with_tags.at(it->first)) {
-                auto usage_it = usage.find(server);
-                int usage = (usage_it == usage.end()) ? 0 : usage_it->second;
+                auto usage_it = server_usage.find(server);
+                int usage = (usage_it == server_usage.end()) ? 0 : usage_it->second;
                 double usage_cost = usage / static_cast<double>(PRIMARY_USAGE_COST);
-                double backfill_cost = estimate_cost_to_get_up_to_date(
-                    directory_metadata.at(server), region);
-                double priority = - (backfill_cost*100 + usage_cost);
-                priorities.insert(std::make_pair(
-                    priority, std::make_pair(shard, server)));
+                double backfill_cost;
+                if (table_id == nil_uuid()) {
+                    auto dir_it = directory_metadata.find(server);
+                    if (dir_it == directory_metadata.end()) {
+                        backfill_cost = 3.0;
+                    } else {
+                        backfill_cost = estimate_cost_to_get_up_to_date(
+                            *dir_it->second, region);
+                    }
+                } else {
+                    /* We're creating a new table, so we won't have to backfill no matter
+                    where we put the servers */
+                    backfill_cost = 0;
+                }
+                /* We always prioritize keeping the data close to where it was before
+                over distributing the data evenly. The `1000` is arbitrary. */
+                double cost = backfill_cost*1000 + usage_cost;
+                costs.insert(std::make_pair(cost, std::make_pair(shard, server)));
             }
-            /* This can be a slow computation, so don't lock up the server */
+            /* The above computation takes O(shards*servers*log(...)) time, because
+            `estimate_cost_to_get_up_to_date` takes O(shards) time. To avoid locking up
+            the server if there are very many shards or servers, yield the CPU
+            periodically. */
             coro_t::yield();
             if (interruptor->is_pulsed()) {
                 throw interrupted_exc_t();
@@ -279,23 +291,16 @@ bool table_reconfigure(
 
         for (int replica = 0; replica < it->second; ++replica) {
             std::vector<name_string_t> picks;
-            pick_best_pairings(params.num_shards, priorities, &picks);
+            pick_best_pairings(params.num_shards, costs, &picks);
             for (int shard = 0; shard < params.num_shards; ++shard) {
-                config.shards[shard].replicas.insert(picks[shard]);
+                config_out->shards[shard].replica_names.insert(picks[shard]);
                 if (it->first == params.director_tag) {
-                    config.shards[shard].directors.push_back(picks[shard]);
-                }
-                /* Remove any pairings that use the server we just claimed */
-                filter_priorities(&priorities, -1, picks[shard]);
-                /* This can be a slow computation, so don't lock up the server */
-                coro_t::yield();
-                if (interruptor->is_pulsed()) {
-                    throw interrupted_exc_t();
+                    config_out->shards[shard].director_names.push_back(picks[shard]);
                 }
             }
         }
     }
 
-    return config;
+    return true;
 }
 
