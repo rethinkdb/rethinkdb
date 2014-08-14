@@ -325,11 +325,11 @@ private:
         counted_t<table_t> table = args->arg(env, 0)->as_table();
         counted_t<val_t> query_arg = args->arg(env, 1);
         counted_t<val_t> index = args->optarg(env, "index");
-        if (!index.has()) {
-            rfail(base_exc_t::GENERIC, "get_intersecting requires an index argument.");
-        }
+        rcheck(index.has(), base_exc_t::GENERIC,
+               "get_intersecting requires an index argument.");
         std::string index_str = index->as_str().to_std();
-
+        rcheck(index_str != table->get_pkey(), base_exc_t::GENERIC,
+               "get_intersecting cannot use the primary index.");
         counted_t<datum_stream_t> stream = table->get_intersecting(
             env->env, query_arg->as_ptype(pseudo::geometry_string), index_str,
             this);
@@ -367,10 +367,11 @@ private:
         counted_t<table_t> table = args->arg(env, 0)->as_table();
         counted_t<val_t> center_arg = args->arg(env, 1);
         counted_t<val_t> index = args->optarg(env, "index");
-        if (!index.has()) {
-            rfail(base_exc_t::GENERIC, "get_nearest requires an index argument.");
-        }
+        rcheck(index.has(), base_exc_t::GENERIC,
+               "get_nearest requires an index argument.");
         std::string index_str = index->as_str().to_std();
+        rcheck(index_str != table->get_pkey(), base_exc_t::GENERIC,
+               "get_nearest cannot use the primary index.");
         lat_lon_point_t center = parse_point_argument(center_arg->as_datum());
         ellipsoid_spec_t reference_ellipsoid = pick_reference_ellipsoid(env, args);
         dist_unit_t dist_unit = pick_dist_unit(env, args);
