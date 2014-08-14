@@ -152,6 +152,8 @@ Handlebars.registerHelper 'pluralize_noun', (noun, num, capitalize) ->
             result = noun.slice(0, noun.length - 1) + "ies"
         else if noun.substr(-1) is 's'
             result = noun + "es"
+        else if noun.substr(-1) is 'x'
+            result = noun + "es"
         else
             result = noun + "s"
     if capitalize is true
