@@ -1285,7 +1285,7 @@ counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
         return make_counted<datum_t>(l->as_num() + r->as_num());
     } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
         if (l->size() + r->size() > limits.array_size_limit()) {
-            conditions->insert(strprintf("Too many changes, array truncated to %ld.", limits.array_size_limit()));
+            conditions->insert(strprintf("Too many changes, array truncated to %zu.", limits.array_size_limit()));
             datum_array_builder_t arr(limits);
             size_t so_far = 0;
             for (size_t i = 0; i < l->size() && so_far < limits.array_size_limit(); ++i, ++so_far) {
