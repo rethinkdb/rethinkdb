@@ -167,8 +167,7 @@ private:
             r_sanity_check(sorting != sorting_t::UNORDERED);
             std::string index_str = index->as_str().to_std();
             tbl_slice = tbl_slice->with_sorting(index_str, sorting);
-            if (index_str != tbl_slice->get_tbl()->get_pkey()
-                && !comparisons.empty()) {
+            if (!comparisons.empty()) {
                 seq = make_counted<indexed_sort_datum_stream_t>(
                     tbl_slice->as_seq(env->env, backtrace()), lt_cmp);
             } else {
