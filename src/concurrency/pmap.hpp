@@ -12,18 +12,13 @@ struct pmap_runner_one_arg_t {
     const callable_t *c;
     int *outstanding;
     cond_t *to_signal;
-    static_semaphore_t *semaphore;
     pmap_runner_one_arg_t(value_t _i, const callable_t *_c, int *_outstanding,
-                          cond_t *_to_signal, static_semaphore_t *_semaphore = NULL)
-        : i(_i), c(_c), outstanding(_outstanding), to_signal(_to_signal),
-          semaphore(_semaphore) { }
+                          cond_t *_to_signal)
+        : i(_i), c(_c), outstanding(_outstanding), to_signal(_to_signal) { }
 
     void operator()() {
         (*c)(i);
         (*outstanding)--;
-        if (semaphore != NULL) {
-            semaphore->unlock();
-        }
         if (*outstanding == 0) {
             to_signal->pulse();
         }
@@ -73,6 +68,28 @@ void pmap(iterator_t start, iterator_t end, const callable_t &c) {
     }
 }
 
+template <class callable_t, class value_t>
+struct throttled_pmap_runner_t {
+    value_t i;
+    const callable_t *c;
+    int *outstanding;
+    cond_t *to_signal;
+    static_semaphore_t *semaphore;
+    throttled_pmap_runner_t(value_t _i, const callable_t *_c, int *_outstanding,
+                            cond_t *_to_signal, static_semaphore_t *_semaphore)
+        : i(_i), c(_c), outstanding(_outstanding), to_signal(_to_signal),
+          semaphore(_semaphore) { }
+
+    void operator()() {
+        (*c)(i);
+        (*outstanding)--;
+        semaphore->unlock();
+        if (*outstanding == 0) {
+            to_signal->pulse();
+        }
+    }
+};
+
 template <class callable_t>
 void throttled_pmap(int begin, int end, const callable_t &c, int64_t capacity) {
     guarantee(capacity > 0);
@@ -88,12 +105,12 @@ void throttled_pmap(int begin, int end, const callable_t &c, int64_t capacity) {
     for (int i = begin; i < end - 1; ++i) {
         semaphore.co_lock();
         coro_t::spawn_now_dangerously(
-            pmap_runner_one_arg_t<callable_t, int>(i, &c, &outstanding, &cond,
-                                                   &semaphore));
+            throttled_pmap_runner_t<callable_t, int>(i, &c, &outstanding, &cond,
+                                                     &semaphore));
     }
     semaphore.co_lock();
-    pmap_runner_one_arg_t<callable_t, int> runner(end - 1, &c, &outstanding, &cond,
-                                                  &semaphore);
+    throttled_pmap_runner_t<callable_t, int> runner(end - 1, &c, &outstanding, &cond,
+                                                    &semaphore);
     runner();
     cond.wait();
 }
