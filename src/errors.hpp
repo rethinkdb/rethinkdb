@@ -200,6 +200,10 @@ release mode. */
 #undef BOOST_HAS_RVALUE_REFS
 #endif
 
+#ifdef __GNUC__
+#define GNUC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
+#endif
+
 
 /** RVALUE_THIS
  *
