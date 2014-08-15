@@ -226,4 +226,20 @@ release mode. */
 #endif
 
 
+#if defined(__clang__)
+    #if __has_extension(cxx_override_control)
+        #define OVERRIDE override
+        #define FINAL final
+    #else
+        #define OVERRIDE
+        #define FINAL
+    #endif
+#elif GNUC_VERSION >= 40700
+    #define OVERRIDE override
+    #define FINAL final
+#else
+    #define OVERRIDE
+    #define FINAL
+#endif
+
 #endif /* ERRORS_HPP_ */
