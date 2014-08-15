@@ -86,8 +86,6 @@ public:
     void do_eval_callback();
 
 
-    global_optargs_t &global_optargs() { return global_optargs_; }
-
     const std::map<std::string, wire_func_t> &get_all_optargs() const {
         return global_optargs_.get_all_optargs();
     }
