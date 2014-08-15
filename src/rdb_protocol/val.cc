@@ -11,6 +11,62 @@
 
 namespace ql {
 
+counted_t<single_selection_t> single_selection_t::from_key(
+    counted_t<table_t> table, counted_t<const datum_t> key) {
+    return make_counted<get_selection_t>(std::move(table), std::move(key));
+}
+counted_t<single_selection_t> single_selection_t::from_row(
+    counted_t<table_t> table, counted_t<const datum_t> row) {
+    counted_t<const datum_t> d = row->get(table->get_pkey(), NOTHROW);
+    r_sanity_check(d.has());
+    return make_counted<get_selection_t>(std::move(table), std::move(d), std::move(row));
+}
+counted_t<single_selection_t> single_selection_t::from_slice(
+    counted_t<table_slice_t> table, protob_t<const Backtrace> bt, std::string err) {
+    return make_counted<extreme_selection_t>(
+        std::move(table), std::move(bt), std::move(err));
+}
+
+class get_selection_t : public single_selection_t {
+public:
+    get_selection_t(counted_t<table_t> _table,
+                    counted_t<const datum_t> _key,
+                    counted_t<const datum_t> _row = counted_t<const datum_t>())
+        : table(std::move(_table)),
+          key(std::move(_key)),
+          row(std::move(_row)) { }
+    virtual counted_t<const datum_t> get(env_t *env) {
+        if (!row.has()) {
+            row = table->get_row(env->env, key);
+        }
+        return row;
+    }
+private:
+    counted_t<table_t> table;
+    counted_t<const datum_t> key;
+};
+
+class extreme_selection_t : public single_selection_t {
+public:
+    extreme_selection_t(counted_t<table_slice_t> _slice,
+                        protob_t<const Backtrace> _bt,
+                        std::string _err)
+        : slice(std::move(_slice)), bt(std::move(_bt)), err(std::move(_err)) { }
+    virtual counted_t<const datum_t> get(env_t *env) {
+        batchspec_t batchspec = batchspec_t::all().with_at_most(1);
+        counted_t<const datum_t> d = slice->as_seq(env, bt)->next(env, batchspec);
+        if (d.has()) {
+            return d;
+        } else {
+            rfail_src(base_exc_t::GENERIC, "%s", err.c_str());
+        }
+    }
+private:
+    counted_t<table_slice_t> slice;
+    protob_t<const Backtrace> bt;
+}
+
+
 table_slice_t::table_slice_t(counted_t<table_t> _tbl, std::string _idx,
                              sorting_t _sorting, datum_range_t _bounds)
     : pb_rcheckable_t(_tbl->backtrace()),

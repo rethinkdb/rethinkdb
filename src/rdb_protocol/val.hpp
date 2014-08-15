@@ -144,6 +144,28 @@ enum function_shortcut_t {
     PAGE_SHORTCUT = 4
 };
 
+class single_selection_t : public single_threaded_countable_t<single_selection_t> {
+public:
+    static counted_t<single_selection_t> from_key(
+        counted_t<table_t> table, counted_t<const datum_t> key);
+    static counted_t<single_selection_t> from_row(
+        counted_t<table_t> table, counted_t<const datum_t> key);
+    static counted_t<single_selection_t> from_slice(
+        counted_t<table_slice_t> table, protob_t<const Backtrace> bt, std::string err);
+
+    virtual counted_t<const datum_t> get(env_t *) = 0;
+protected:
+    single_selection_t() = default;
+};
+
+class selection_t : public single_threaded_countable_t<selection_t> {
+public:
+    selection_t(counted_t<table_t> _table, counted_t<datum_stream_t> _seq)
+        : table(std::move(_table)), seq(std::move(_seq)) { }
+    counted_t<table_t> table;
+    counted_t<datum_stream_t> seq;
+}
+
 // A value is anything RQL can pass around -- a datum, a sequence, a function, a
 // selection, whatever.
 class val_t : public single_threaded_countable_t<val_t>, public pb_rcheckable_t {
@@ -242,18 +264,11 @@ public:
     std::string print() const;
     std::string trunc_print() const;
 
-    counted_t<const datum_t> get_orig_key() const;
-
 private:
     friend int val_type(counted_t<val_t> v); // type_manip version
     void rcheck_literal_type(type_t::raw_type_t expected_raw_type) const;
 
     type_t type;
-    boost::variant<
-        counted_t<table_t>,
-        counted_t<table_slice_t> > table_u;
-    counted_t<const datum_t> orig_key;
-
     // We pretend that this variant is a union -- as if it doesn't have type
     // information.  The sequence, datum, func, and db_ptr functions get the
     // fields of the variant.
@@ -261,7 +276,9 @@ private:
                    counted_t<datum_stream_t>,
                    counted_t<const datum_t>,
                    counted_t<func_t>,
-                   counted_t<grouped_data_t> > u;
+                   counted_t<grouped_data_t>,
+                   counted_t<single_selection_t>,
+                   counted_t<selection_t> > u;
 
     const counted_t<const db_t> &db() const {
         return boost::get<counted_t<const db_t> >(u);

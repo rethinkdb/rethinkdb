@@ -143,6 +143,10 @@ private:
         rcheck_typed_target(target, false, strprintf(args));      \
         unreachable();                                            \
     } while (0)
+#define rfail_src(src, type, args...) do {                       \
+        rcheck_src(src, type, false, strprintf(args));           \
+        unreachable();                                           \
+    } while (0)
 #define rfail(type, args...) do {                                       \
         rcheck(false, type, strprintf(args));                           \
         unreachable();                                                  \
