@@ -1047,7 +1047,7 @@ class Time extends RDBOp
 
 class UUID extends RDBOp
     tt: protoTermType.UUID
-    mt: 'uuid'
+    st: 'uuid'
 
 # All top level exported functions
 
