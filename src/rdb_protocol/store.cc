@@ -556,7 +556,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             rdb_batched_replace(
                 btree_info_t(btree, timestamp,
                              &br.pkey),
-                superblock, br.keys, ql_env.limits, &replacer, &sindex_cb,
+                superblock, br.keys, ql_env.limits(), &replacer, &sindex_cb,
                 trace);
     }
 

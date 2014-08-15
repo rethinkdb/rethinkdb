@@ -252,8 +252,8 @@ void run(protob_t<Query> q,
                 res->set_type(Response::SUCCESS_ATOM);
                 counted_t<const datum_t> d
                     = to_datum_for_client_serialization(std::move(*gd),
-                                                        env.reql_version,
-                                                        env.limits);
+                                                        env.reql_version(),
+                                                        env.limits());
                 d->write_to_protobuf(res->add_response(), use_json);
                 if (env.trace != nullptr) {
                     env.trace->as_datum()->write_to_protobuf(
@@ -271,7 +271,7 @@ void run(protob_t<Query> q,
                 } else {
                     stream_cache->insert(token,
                                          use_json,
-                                         env.global_optargs.get_all_optargs(),
+                                         env.get_all_optargs(),
                                          profile,
                                          seq);
                     bool b = stream_cache->serve(token, res, interruptor);

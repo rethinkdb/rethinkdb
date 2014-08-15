@@ -126,13 +126,13 @@ bool reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
             }
 
             rcheck_datum(
-                (items.size() + new_items.size()) <= env->limits.array_size_limit(),
+                (items.size() + new_items.size()) <= env->limits().array_size_limit(),
                 base_exc_t::GENERIC,
                 strprintf("Too many rows (> %zu) with the same "
                           "truncated key for index `%s`.  "
                           "Example value:\n%s\n"
                           "Truncated key:\n%s",
-                          env->limits.array_size_limit(),
+                          env->limits().array_size_limit(),
                           readgen->sindex_name().c_str(),
                           items[items.size() - 1].sindex_key->trunc_print().c_str(),
                           key_to_debug_str(items[items.size() - 1].key).c_str()));
@@ -189,10 +189,10 @@ reader_t::next_batch(env_t *env, const batchspec_t &batchspec) {
                 res.push_back(std::move(items[items_index].data));
 
                 rcheck_datum(
-                    res.size() <= env->limits.array_size_limit(), base_exc_t::GENERIC,
+                    res.size() <= env->limits().array_size_limit(), base_exc_t::GENERIC,
                     strprintf("Too many rows (> %zu) with the same value "
                               "for index `%s`:\n%s",
-                              env->limits.array_size_limit(),
+                              env->limits().array_size_limit(),
                               readgen->sindex_name().c_str(),
                               // This is safe because you can't have duplicate
                               // primary keys, so they will never exceed the
@@ -296,7 +296,7 @@ scoped_ptr_t<readgen_t> primary_readgen_t::make(
     sorting_t sorting) {
     return scoped_ptr_t<readgen_t>(
         new primary_readgen_t(
-            env->global_optargs.get_all_optargs(),
+            env->get_all_optargs(),
             std::move(table_name),
             range,
             env->profile(),
@@ -356,7 +356,7 @@ scoped_ptr_t<readgen_t> sindex_readgen_t::make(
     sorting_t sorting) {
     return scoped_ptr_t<readgen_t>(
         new sindex_readgen_t(
-            env->global_optargs.get_all_optargs(),
+            env->get_all_optargs(),
             std::move(table_name),
             sindex,
             range,
@@ -465,13 +465,13 @@ counted_t<val_t> datum_stream_t::run_terminal(
     env_t *env, const terminal_variant_t &tv) {
     scoped_ptr_t<eager_acc_t> acc(make_eager_terminal(tv));
     accumulate(env, acc.get(), tv);
-    return acc->finish_eager(backtrace(), is_grouped(), env->limits);
+    return acc->finish_eager(backtrace(), is_grouped(), env->limits());
 }
 
 counted_t<val_t> datum_stream_t::to_array(env_t *env) {
-    scoped_ptr_t<eager_acc_t> acc = make_to_array(env->reql_version);
+    scoped_ptr_t<eager_acc_t> acc = make_to_array(env->reql_version());
     accumulate_all(env, acc.get());
-    return acc->finish_eager(backtrace(), is_grouped(), env->limits);
+    return acc->finish_eager(backtrace(), is_grouped(), env->limits());
 }
 
 // DATUM_STREAM_T
@@ -572,14 +572,14 @@ void eager_datum_stream_t::accumulate(
     batchspec_t bs = batchspec_t::user(batch_type_t::TERMINAL, env);
     // I'm guessing reql_version doesn't matter here, but why think about it?  We use
     // th env's reql_version.
-    groups_t data(counted_datum_less_t(env->reql_version));
+    groups_t data(counted_datum_less_t(env->reql_version()));
     while (next_grouped_batch(env, bs, &data) == done_t::NO) {
         (*acc)(env, &data);
     }
 }
 
 void eager_datum_stream_t::accumulate_all(env_t *env, eager_acc_t *acc) {
-    groups_t data(counted_datum_less_t(env->reql_version));
+    groups_t data(counted_datum_less_t(env->reql_version()));
     done_t done = next_grouped_batch(env, batchspec_t::all(), &data);
     (*acc)(env, &data);
     if (done == done_t::NO) {
@@ -591,7 +591,7 @@ void eager_datum_stream_t::accumulate_all(env_t *env, eager_acc_t *acc) {
 
 std::vector<counted_t<const datum_t> >
 eager_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &bs) {
-    groups_t data(counted_datum_less_t(env->reql_version));
+    groups_t data(counted_datum_less_t(env->reql_version()));
     next_grouped_batch(env, bs, &data);
     return groups_to_batch(&data);
 }
@@ -601,7 +601,7 @@ counted_t<const datum_t> eager_datum_stream_t::as_array(env_t *env) {
         return counted_t<const datum_t>();
     }
 
-    datum_array_builder_t arr(env->limits);
+    datum_array_builder_t arr(env->limits());
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
     {
         profile::sampler_t sampler("Evaluating stream eagerly.", env->trace);
@@ -871,7 +871,7 @@ counted_t<const datum_t> union_datum_stream_t::as_array(env_t *env) {
     if (!is_array()) {
         return counted_t<const datum_t>();
     }
-    datum_array_builder_t arr(env->limits);
+    datum_array_builder_t arr(env->limits());
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
     {
         profile::sampler_t sampler("Evaluating stream eagerly.", env->trace);

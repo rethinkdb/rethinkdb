@@ -98,7 +98,7 @@ private:
                 if (*lval == *rval) {
                     continue;
                 }
-                return lval->compare_lt(env->reql_version, *rval) !=
+                return lval->compare_lt(env->reql_version(), *rval) !=
                     (it->first == DESC);
             }
 
@@ -185,13 +185,13 @@ private:
                     break;
                 }
                 std::move(data.begin(), data.end(), std::back_inserter(to_sort));
-                rcheck_array_size(to_sort, env->env->limits, base_exc_t::GENERIC);
+                rcheck_array_size(to_sort, env->env->limits(), base_exc_t::GENERIC);
             }
             profile::sampler_t sampler("Sorting in-memory.", env->env->trace);
             auto fn = boost::bind(lt_cmp, env->env, &sampler, _1, _2);
             std::stable_sort(to_sort.begin(), to_sort.end(), fn);
             seq = make_counted<array_datum_stream_t>(
-                make_counted<const datum_t>(std::move(to_sort), env->env->limits),
+                make_counted<const datum_t>(std::move(to_sort), env->env->limits()),
                 backtrace());
         }
         return tbl.has() ? new_val(seq, tbl) : new_val(env->env, seq);
@@ -243,21 +243,21 @@ private:
             // The reql_version matters here, because we copy `results` into `toret`
             // in ascending order.
             std::set<counted_t<const datum_t>, counted_datum_less_t>
-                results(counted_datum_less_t(env->env->reql_version));
+                results(counted_datum_less_t(env->env->reql_version()));
             batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
             {
                 profile::sampler_t sampler("Evaluating elements in distinct.",
                                            env->env->trace);
                 while (counted_t<const datum_t> d = s->next(env->env, batchspec)) {
                     results.insert(std::move(d));
-                    rcheck_array_size(results, env->env->limits, base_exc_t::GENERIC);
+                    rcheck_array_size(results, env->env->limits(), base_exc_t::GENERIC);
                     sampler.new_sample();
                 }
             }
             std::vector<counted_t<const datum_t> > toret;
             std::move(results.begin(), results.end(), std::back_inserter(toret));
             return new_val(make_counted<const datum_t>(std::move(toret),
-                                                       env->env->limits));
+                                                       env->env->limits()));
         }
     }
     virtual const char *name() const { return "distinct"; }

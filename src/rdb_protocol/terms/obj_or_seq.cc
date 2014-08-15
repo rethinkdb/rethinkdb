@@ -128,8 +128,8 @@ private:
             paths.push_back(args->arg(env, i)->as_datum());
         }
         pathspec_t pathspec(make_counted<const datum_t>(std::move(paths),
-                                                        env->env->limits), this);
-        return new_val(project(obj, pathspec, DONT_RECURSE, env->env->limits));
+                                                        env->env->limits()), this);
+        return new_val(project(obj, pathspec, DONT_RECURSE, env->env->limits()));
     }
     virtual const char *name() const { return "pluck"; }
 };
@@ -150,8 +150,8 @@ private:
             paths.push_back(args->arg(env, i)->as_datum());
         }
         pathspec_t pathspec(make_counted<const datum_t>(std::move(paths),
-                                                        env->env->limits), this);
-        return new_val(unproject(obj, pathspec, DONT_RECURSE, env->env->limits));
+                                                        env->env->limits()), this);
+        return new_val(unproject(obj, pathspec, DONT_RECURSE, env->env->limits()));
     }
     virtual const char *name() const { return "without"; }
 };
@@ -221,7 +221,7 @@ private:
             paths.push_back(args->arg(env, i)->as_datum());
         }
         pathspec_t pathspec(make_counted<const datum_t>(std::move(paths),
-                                                        env->env->limits), this);
+                                                        env->env->limits()), this);
         return new_val_bool(contains(obj, pathspec));
     }
     virtual const char *name() const { return "has_fields"; }

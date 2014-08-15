@@ -86,7 +86,7 @@ private:
                          const std::vector<result_t *> &results) {
         guarantee(acc.size() == 0);
         std::map<counted_t<const datum_t>, std::vector<T *>, counted_datum_less_t>
-            vecs(counted_datum_less_t(env->reql_version));
+            vecs(counted_datum_less_t(env->reql_version()));
         for (auto res = results.begin(); res != results.end(); ++res) {
             guarantee(*res);
             grouped_t<T> *gres = boost::get<grouped_t<T> >(*res);
@@ -209,10 +209,10 @@ private:
             datums_t *lst2 = &kv->second;
             size += lst2->size();
             rcheck_toplevel(
-                size <= env->limits.array_size_limit(), base_exc_t::GENERIC,
+                size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
                 strprintf("Grouped data over size limit %zu.  "
                           "Try putting a reduction (like `.reduce` or `.count`) "
-                          "on the end.", env->limits.array_size_limit()).c_str());
+                          "on the end.", env->limits().array_size_limit()).c_str());
             lst1->reserve(lst1->size() + lst2->size());
             std::move(lst2->begin(), lst2->end(), std::back_inserter(*lst1));
         }
@@ -232,10 +232,10 @@ private:
             stream_t *stream = &kv->second;
             size += stream->size();
             rcheck_toplevel(
-                size <= env->limits.array_size_limit(), base_exc_t::GENERIC,
+                size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
                 strprintf("Grouped data over size limit %zu.  "
                           "Try putting a reduction (like `.reduce` or `.count`) "
-                          "on the end.", env->limits.array_size_limit()).c_str());
+                          "on the end.", env->limits().array_size_limit()).c_str());
 
             for (auto it = stream->begin(); it != stream->end(); ++it) {
                 lst->push_back(std::move(it->data));
@@ -539,13 +539,13 @@ private:
                            optimizer_t *out,
                            const acc_func_t &f) {
         optimizer_t other(el, f(env, el));
-        out->swap_if_other_better(other, env->reql_version, cmp);
+        out->swap_if_other_better(other, env->reql_version(), cmp);
     }
     virtual counted_t<const datum_t> unpack(optimizer_t *el) {
         return el->unpack(name);
     }
     virtual void unshard_impl(env_t *env, optimizer_t *out, optimizer_t *el) {
-        out->swap_if_other_better(*el, env->reql_version, cmp);
+        out->swap_if_other_better(*el, env->reql_version(), cmp);
     }
     const char *name;
     bool (*cmp)(reql_version_t,
@@ -678,7 +678,7 @@ private:
             r_sanity_check(arr.size() == (funcs.size() + append_index));
 
             if (!multi) {
-                add(groups, std::move(arr), *el, env->limits);
+                add(groups, std::move(arr), *el, env->limits());
             } else {
                 std::vector<std::vector<counted_t<const datum_t> > > perms(arr.size());
                 for (size_t i = 0; i < arr.size(); ++i) {
@@ -694,14 +694,14 @@ private:
                 }
                 std::vector<counted_t<const datum_t> > instance;
                 instance.reserve(perms.size());
-                add_perms(groups, &instance, &perms, 0, *el, env->limits);
+                add_perms(groups, &instance, &perms, 0, *el, env->limits());
                 r_sanity_check(instance.size() == 0);
             }
 
             rcheck_src(
                 bt.get(), base_exc_t::GENERIC,
-                groups->size() <= env->limits.array_size_limit(),
-                strprintf("Too many groups (> %zu).", env->limits.array_size_limit()));
+                groups->size() <= env->limits().array_size_limit(),
+                strprintf("Too many groups (> %zu).", env->limits().array_size_limit()));
         }
         size_t erased = groups->erase(counted_t<const datum_t>());
         r_sanity_check(erased == 1);
