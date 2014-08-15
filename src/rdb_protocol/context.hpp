@@ -145,7 +145,8 @@ public:
     because its implementation fits much better with the implementations of the other
     methods of `reql_cluster_interface_t` than `base_table_t`. */
     virtual bool table_reconfigure(
-            counted_t<const ql::db_t> db, const name_string_t &name,
+            counted_t<const ql::db_t> db,
+            const name_string_t &name,
             const table_generate_config_params_t &params,
             bool dry_run,
             signal_t *interruptor,
