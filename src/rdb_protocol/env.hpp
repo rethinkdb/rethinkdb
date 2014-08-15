@@ -62,9 +62,6 @@ public:
 
     ~env_t();
 
-    static const uint32_t EVALS_BEFORE_YIELD = 256;
-    uint32_t evals_since_yield;
-
     // Will yield after EVALS_BEFORE_YIELD calls
     void maybe_yield();
 
@@ -110,6 +107,9 @@ public:
     profile_bool_t profile() const;
 
 private:
+    static const uint32_t EVALS_BEFORE_YIELD = 256;
+    uint32_t evals_since_yield;
+
     rdb_context_t *const rdb_ctx;
 
     js_runner_t js_runner;

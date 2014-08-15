@@ -138,12 +138,12 @@ scoped_ptr_t<profile::trace_t> maybe_make_profile_trace(profile_bool_t profile) 
 env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
              std::map<std::string, wire_func_t> optargs,
              profile::trace_t *_trace)
-    : evals_since_yield(0),
-      global_optargs(std::move(optargs)),
+    : global_optargs(std::move(optargs)),
       limits(from_optargs(ctx, _interruptor, &global_optargs)),
       reql_version(reql_version_t::LATEST),
       interruptor(_interruptor),
       trace(_trace),
+      evals_since_yield(0),
       rdb_ctx(ctx),
       eval_callback(NULL) {
     rassert(ctx != NULL);
@@ -153,11 +153,11 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
 
 // Used in constructing the env for rdb_update_single_sindex and many unit tests.
 env_t::env_t(signal_t *_interruptor, reql_version_t _reql_version)
-    : evals_since_yield(0),
-      global_optargs(),
+    : global_optargs(),
       reql_version(_reql_version),
       interruptor(_interruptor),
       trace(NULL),
+      evals_since_yield(0),
       rdb_ctx(NULL),
       eval_callback(NULL) {
     rassert(interruptor != NULL);
