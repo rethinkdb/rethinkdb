@@ -125,7 +125,7 @@ counted_t<ql::datum_stream_t> real_table_t::read_intersecting(
         const counted_t<const ql::datum_t> &query_geometry) {
 
     intersecting_geo_read_t geo_read(
-        query_geometry, table_name, sindex, env->global_optargs.get_all_optargs());
+        query_geometry, table_name, sindex, env->get_all_optargs());
     read_t read(geo_read, env->profile());
     read_response_t res;
     try {
@@ -168,7 +168,7 @@ counted_t<ql::datum_stream_t> real_table_t::read_nearest(
 
     nearest_geo_read_t geo_read(
         center, max_dist, max_results, geo_system, table_name, sindex,
-        env->global_optargs.get_all_optargs());
+        env->get_all_optargs());
     read_t read(geo_read, env->profile());
     read_response_t res;
     try {
@@ -222,7 +222,7 @@ counted_t<const ql::datum_t> real_table_t::write_batched_replace(ql::env_t *env,
         store_keys.push_back(store_key_t((*it)->print_primary()));
     }
     batched_replace_t write(std::move(store_keys), pkey, func,
-            env->global_optargs.get_all_optargs(), return_changes);
+            env->get_all_optargs(), return_changes);
     write_t w(std::move(write), durability, env->profile(), env->limits);
     write_response_t response;
     write_with_profile(env, &w, &response);

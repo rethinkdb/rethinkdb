@@ -270,7 +270,7 @@ void run(protob_t<Query> q,
                 } else {
                     stream_cache->insert(token,
                                          use_json,
-                                         env.global_optargs.get_all_optargs(),
+                                         env.get_all_optargs(),
                                          profile,
                                          seq);
                     bool b = stream_cache->serve(token, res, interruptor);

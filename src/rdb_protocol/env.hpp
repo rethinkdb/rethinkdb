@@ -86,10 +86,22 @@ public:
     void do_eval_callback();
 
 
+    global_optargs_t &global_optargs() { return global_optargs_; }
+
+    const std::map<std::string, wire_func_t> &get_all_optargs() const {
+        return global_optargs_.get_all_optargs();
+    }
+
+    counted_t<val_t> get_optarg(env_t *env, const std::string &key) {
+        return global_optargs_.get_optarg(env, key);
+    }
+
+private:
     // The global optargs values passed to .run(...) in the Python, Ruby, and JS
     // drivers.
-    global_optargs_t global_optargs;
+    global_optargs_t global_optargs_;
 
+public:
     // User specified configuration limits; e.g. array size limits
     const configured_limits_t limits;
 

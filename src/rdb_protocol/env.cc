@@ -79,11 +79,12 @@ global_optargs_t::global_optargs_t(std::map<std::string, wire_func_t> _optargs)
 bool global_optargs_t::has_optarg(const std::string &key) const {
     return optargs.count(key) > 0;
 }
-counted_t<val_t> global_optargs_t::get_optarg(env_t *env, const std::string &key){
-    if (!has_optarg(key)) {
+counted_t<val_t> global_optargs_t::get_optarg(env_t *env, const std::string &key) {
+    auto it = optargs.find(key);
+    if (it == optargs.end()) {
         return counted_t<val_t>();
     }
-    return optargs[key].compile_wire_func()->call(env);
+    return it->second.compile_wire_func()->call(env);
 }
 const std::map<std::string, wire_func_t> &global_optargs_t::get_all_optargs() const {
     return optargs;
@@ -138,8 +139,8 @@ scoped_ptr_t<profile::trace_t> maybe_make_profile_trace(profile_bool_t profile) 
 env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
              std::map<std::string, wire_func_t> optargs,
              profile::trace_t *_trace)
-    : global_optargs(std::move(optargs)),
-      limits(from_optargs(ctx, _interruptor, &global_optargs)),
+    : global_optargs_(std::move(optargs)),
+      limits(from_optargs(ctx, _interruptor, &global_optargs_)),
       reql_version(reql_version_t::LATEST),
       interruptor(_interruptor),
       trace(_trace),
@@ -153,7 +154,7 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
 
 // Used in constructing the env for rdb_update_single_sindex and many unit tests.
 env_t::env_t(signal_t *_interruptor, reql_version_t _reql_version)
-    : global_optargs(),
+    : global_optargs_(),
       reql_version(_reql_version),
       interruptor(_interruptor),
       trace(NULL),

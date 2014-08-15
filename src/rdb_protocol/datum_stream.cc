@@ -296,7 +296,7 @@ scoped_ptr_t<readgen_t> primary_readgen_t::make(
     sorting_t sorting) {
     return scoped_ptr_t<readgen_t>(
         new primary_readgen_t(
-            env->global_optargs.get_all_optargs(),
+            env->get_all_optargs(),
             std::move(table_name),
             range,
             env->profile(),
@@ -356,7 +356,7 @@ scoped_ptr_t<readgen_t> sindex_readgen_t::make(
     sorting_t sorting) {
     return scoped_ptr_t<readgen_t>(
         new sindex_readgen_t(
-            env->global_optargs.get_all_optargs(),
+            env->get_all_optargs(),
             std::move(table_name),
             sindex,
             range,
