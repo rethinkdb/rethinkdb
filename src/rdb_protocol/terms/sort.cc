@@ -98,7 +98,7 @@ private:
                 if (*lval == *rval) {
                     continue;
                 }
-                return lval->compare_lt(env->reql_version, *rval) !=
+                return lval->compare_lt(env->reql_version(), *rval) !=
                     (it->first == DESC);
             }
 
@@ -243,7 +243,7 @@ private:
             // The reql_version matters here, because we copy `results` into `toret`
             // in ascending order.
             std::set<counted_t<const datum_t>, counted_datum_less_t>
-                results(counted_datum_less_t(env->env->reql_version));
+                results(counted_datum_less_t(env->env->reql_version()));
             batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
             {
                 profile::sampler_t sampler("Evaluating elements in distinct.",

@@ -96,6 +96,8 @@ public:
 
     configured_limits_t limits() const { return limits_; }
 
+    reql_version_t reql_version() const { return reql_version_; }
+
 private:
     // The global optargs values passed to .run(...) in the Python, Ruby, and JS
     // drivers.
@@ -104,12 +106,12 @@ private:
     // User specified configuration limits; e.g. array size limits
     const configured_limits_t limits_;
 
-public:
     // The version of ReQL behavior that we should use.  Normally this is
     // LATEST_DISK, but when evaluating secondary index functions, it could be an
     // earlier value.
-    const reql_version_t reql_version;
+    const reql_version_t reql_version_;
 
+public:
     // The interruptor signal while a query evaluates.
     signal_t *const interruptor;
 

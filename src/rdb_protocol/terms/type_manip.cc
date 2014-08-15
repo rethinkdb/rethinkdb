@@ -277,7 +277,7 @@ private:
         v.reserve(groups->size());
 
         iterate_ordered_by_version(
-            env->env->reql_version,
+            env->env->reql_version(),
             *groups,
             [&v](const counted_t<const datum_t> &key, counted_t<const datum_t> &value) {
                 r_sanity_check(key.has() && value.has());

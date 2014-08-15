@@ -251,7 +251,7 @@ void run(protob_t<Query> q,
                 res->set_type(Response::SUCCESS_ATOM);
                 counted_t<const datum_t> d
                     = to_datum_for_client_serialization(std::move(*gd),
-                                                        env.reql_version,
+                                                        env.reql_version(),
                                                         env.limits());
                 d->write_to_protobuf(res->add_response(), use_json);
                 if (env.trace != nullptr) {

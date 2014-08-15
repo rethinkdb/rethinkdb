@@ -141,7 +141,7 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
              profile::trace_t *_trace)
     : global_optargs_(std::move(optargs)),
       limits_(from_optargs(ctx, _interruptor, &global_optargs_)),
-      reql_version(reql_version_t::LATEST),
+      reql_version_(reql_version_t::LATEST),
       interruptor(_interruptor),
       trace(_trace),
       evals_since_yield_(0),
@@ -153,9 +153,9 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
 
 
 // Used in constructing the env for rdb_update_single_sindex and many unit tests.
-env_t::env_t(signal_t *_interruptor, reql_version_t _reql_version)
+env_t::env_t(signal_t *_interruptor, reql_version_t reql_version)
     : global_optargs_(),
-      reql_version(_reql_version),
+      reql_version_(reql_version),
       interruptor(_interruptor),
       trace(NULL),
       evals_since_yield_(0),

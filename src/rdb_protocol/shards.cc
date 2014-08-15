@@ -86,7 +86,7 @@ private:
                          const std::vector<result_t *> &results) {
         guarantee(acc.size() == 0);
         std::map<counted_t<const datum_t>, std::vector<T *>, counted_datum_less_t>
-            vecs(counted_datum_less_t(env->reql_version));
+            vecs(counted_datum_less_t(env->reql_version()));
         for (auto res = results.begin(); res != results.end(); ++res) {
             guarantee(*res);
             grouped_t<T> *gres = boost::get<grouped_t<T> >(*res);
@@ -539,13 +539,13 @@ private:
                            optimizer_t *out,
                            const acc_func_t &f) {
         optimizer_t other(el, f(env, el));
-        out->swap_if_other_better(other, env->reql_version, cmp);
+        out->swap_if_other_better(other, env->reql_version(), cmp);
     }
     virtual counted_t<const datum_t> unpack(optimizer_t *el) {
         return el->unpack(name);
     }
     virtual void unshard_impl(env_t *env, optimizer_t *out, optimizer_t *el) {
-        out->swap_if_other_better(*el, env->reql_version, cmp);
+        out->swap_if_other_better(*el, env->reql_version(), cmp);
     }
     const char *name;
     bool (*cmp)(reql_version_t,
