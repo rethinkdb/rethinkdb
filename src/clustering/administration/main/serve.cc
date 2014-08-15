@@ -259,35 +259,15 @@ bool do_serve(io_backender_t *io_backender,
                 &rdb_ctx,
                 &server_name_client);
 
-        std::map<name_string_t, artificial_table_backend_t *> artificial_table_backends;
-        table_config_artificial_table_backend_t table_config_backend(
+        admin_artificial_tables_t admin_tables(
+                &real_reql_cluster_interface,
                 machine_id,
-                metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
-                    semilattice_manager_cluster.get_root_view()),
-                metadata_field(&cluster_semilattice_metadata_t::databases,
-                    semilattice_manager_cluster.get_root_view()),
+                semilattice_manager_cluster.get_root_view(),
+                directory_read_manager.get_root_view(),
                 &server_name_client);
-        artificial_table_backends[name_string_t::guarantee_valid("table_config")] =
-            &table_config_backend;
-        table_status_artificial_table_backend_t table_status_backend(
-                metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
-                    semilattice_manager_cluster.get_root_view()),
-                metadata_field(&cluster_semilattice_metadata_t::databases,
-                    semilattice_manager_cluster.get_root_view()),
-                directory_read_manager.get_root_view()->incremental_subview(
-                    incremental_field_getter_t<namespaces_directory_metadata_t,
-                                               cluster_directory_metadata_t>
-                        (&cluster_directory_metadata_t::rdb_namespaces)),
-                &server_name_client);
-        artificial_table_backends[name_string_t::guarantee_valid("table_status")] =
-            &table_status_backend;
-        artificial_reql_cluster_interface_t artificial_reql_cluster_interface(
-            name_string_t::guarantee_valid("rethinkdb"),
-            artificial_table_backends,
-            &real_reql_cluster_interface);
 
         //This is an annoying chicken and egg problem here
-        rdb_ctx.cluster_interface = &artificial_reql_cluster_interface;
+        rdb_ctx.cluster_interface = admin_tables.get_reql_cluster_interface();
 
         {
             scoped_ptr_t<cache_balancer_t> cache_balancer;
