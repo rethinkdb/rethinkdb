@@ -258,6 +258,7 @@ message Term {
         // Takes some javascript code and executes it.
         JAVASCRIPT   = 11; // STRING {timeout: !NUMBER} -> DATUM |
                            // STRING {timeout: !NUMBER} -> Function(*)
+        UUID = 169; // () -> DATUM
 
         // Takes an HTTP URL and gets it.  If the get succeeds and
         //  returns valid JSON, it is converted into a DATUM
