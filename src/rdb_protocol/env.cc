@@ -90,12 +90,12 @@ const std::map<std::string, wire_func_t> &global_optargs_t::get_all_optargs() co
 }
 
 void env_t::set_eval_callback(eval_callback_t *callback) {
-    eval_callback = callback;
+    eval_callback_ = callback;
 }
 
 void env_t::do_eval_callback() {
-    if (eval_callback != NULL) {
-        eval_callback->eval_callback();
+    if (eval_callback_ != NULL) {
+        eval_callback_->eval_callback();
     }
 }
 
@@ -104,29 +104,29 @@ profile_bool_t env_t::profile() const {
 }
 
 reql_cluster_interface_t *env_t::reql_cluster_interface() {
-    r_sanity_check(rdb_ctx != NULL);
-    return rdb_ctx->cluster_interface;
+    r_sanity_check(rdb_ctx_ != NULL);
+    return rdb_ctx_->cluster_interface;
 }
 
 std::string env_t::get_reql_http_proxy() {
-    r_sanity_check(rdb_ctx != NULL);
-    return rdb_ctx->reql_http_proxy;
+    r_sanity_check(rdb_ctx_ != NULL);
+    return rdb_ctx_->reql_http_proxy;
 }
 
 extproc_pool_t *env_t::get_extproc_pool() {
     assert_thread();
-    r_sanity_check(rdb_ctx != NULL);
-    r_sanity_check(rdb_ctx->extproc_pool != NULL);
-    return rdb_ctx->extproc_pool;
+    r_sanity_check(rdb_ctx_ != NULL);
+    r_sanity_check(rdb_ctx_->extproc_pool != NULL);
+    return rdb_ctx_->extproc_pool;
 }
 
 js_runner_t *env_t::get_js_runner() {
     assert_thread();
     extproc_pool_t *extproc_pool = get_extproc_pool();
-    if (!js_runner.connected()) {
-        js_runner.begin(extproc_pool, interruptor, limits);
+    if (!js_runner_.connected()) {
+        js_runner_.begin(extproc_pool, interruptor, limits);
     }
-    return &js_runner;
+    return &js_runner_;
 }
 
 scoped_ptr_t<profile::trace_t> maybe_make_profile_trace(profile_bool_t profile) {
@@ -143,9 +143,9 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
       reql_version(reql_version_t::LATEST),
       interruptor(_interruptor),
       trace(_trace),
-      evals_since_yield(0),
-      rdb_ctx(ctx),
-      eval_callback(NULL) {
+      evals_since_yield_(0),
+      rdb_ctx_(ctx),
+      eval_callback_(NULL) {
     rassert(ctx != NULL);
     rassert(interruptor != NULL);
 }
@@ -157,9 +157,9 @@ env_t::env_t(signal_t *_interruptor, reql_version_t _reql_version)
       reql_version(_reql_version),
       interruptor(_interruptor),
       trace(NULL),
-      evals_since_yield(0),
-      rdb_ctx(NULL),
-      eval_callback(NULL) {
+      evals_since_yield_(0),
+      rdb_ctx_(NULL),
+      eval_callback_(NULL) {
     rassert(interruptor != NULL);
 }
 
@@ -177,8 +177,8 @@ profile_bool_t profile_bool_optarg(const protob_t<Query> &query) {
 env_t::~env_t() { }
 
 void env_t::maybe_yield() {
-    if (++evals_since_yield > EVALS_BEFORE_YIELD) {
-        evals_since_yield = 0;
+    if (++evals_since_yield_ > EVALS_BEFORE_YIELD) {
+        evals_since_yield_ = 0;
         coro_t::yield();
     }
 }

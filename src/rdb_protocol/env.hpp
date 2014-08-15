@@ -108,13 +108,13 @@ public:
 
 private:
     static const uint32_t EVALS_BEFORE_YIELD = 256;
-    uint32_t evals_since_yield;
+    uint32_t evals_since_yield_;
 
-    rdb_context_t *const rdb_ctx;
+    rdb_context_t *const rdb_ctx_;
 
-    js_runner_t js_runner;
+    js_runner_t js_runner_;
 
-    eval_callback_t *eval_callback;
+    eval_callback_t *eval_callback_;
 
     DISABLE_COPYING(env_t);
 };
