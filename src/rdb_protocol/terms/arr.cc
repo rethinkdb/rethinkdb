@@ -93,9 +93,9 @@ private:
             counted_t<table_t> tbl;
             counted_t<datum_stream_t> s;
             if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
-                auto pair = v->as_selection(env->env);
-                tbl = pair.first;
-                s = pair.second;
+                auto selection = v->as_selection(env->env);
+                tbl = selection->table;
+                s = selection->seq;
             } else {
                 s = v->as_seq(env->env);
             }
@@ -117,10 +117,14 @@ private:
                     if (!d.has()) {
                         rcheck(n == -1 && last_d.has(), base_exc_t::NON_EXISTENCE,
                                strprintf("Index out of bounds: %d", n));
-                        return tbl.has() ? new_val(last_d, tbl) : new_val(last_d);
+                        return tbl.has()
+                            ? new_val(single_selection_t::from_row(tbl, last_d))
+                            : new_val(last_d);
                     }
                     if (i == n) {
-                        return tbl.has() ? new_val(d, tbl) : new_val(d);
+                        return tbl.has()
+                            ? new_val(single_selection_t::from_row(tbl, d))
+                            : new_val(d);
                     }
                     last_d = d;
                     r_sanity_check(n == -1 || i < n);
@@ -231,10 +235,9 @@ private:
             counted_t<table_t> t;
             counted_t<datum_stream_t> seq;
             if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
-                std::pair<counted_t<table_t>, counted_t<datum_stream_t> > t_seq
-                    = v->as_selection(env->env);
-                t = t_seq.first;
-                seq = t_seq.second;
+                auto selection = v->as_selection(env->env);
+                t = selection->table;
+                seq = selection->seq;
             } else {
                 seq = v->as_seq(env->env);
             }
@@ -257,7 +260,9 @@ private:
                 real_r += 1;  // This is safe because it was an int32_t before.
             }
             counted_t<datum_stream_t> new_ds = seq->slice(real_l, real_r);
-            return t.has() ? new_val(new_ds, t) : new_val(env->env, new_ds);
+            return t.has()
+                ? new_val(make_counted<selection_t>(t, new_ds))
+                : new_val(env->env, new_ds);
         } else {
             rcheck_typed_target(v, false, "Cannot slice non-sequences.");
         }
@@ -274,15 +279,21 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> v = args->arg(env, 0);
         counted_t<table_t> t;
+        counted_t<datum_stream_t> ds;
         if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
-            t = v->as_selection(env->env).first;
+            auto selection = v->as_selection(env->env);
+            t = selection->table;
+            ds = selection->seq;
+        } else {
+            ds = v->as_seq(env->env);
         }
-        counted_t<datum_stream_t> ds = v->as_seq(env->env);
         int32_t r = args->arg(env, 1)->as_int<int32_t>();
         rcheck(r >= 0, base_exc_t::GENERIC,
                strprintf("LIMIT takes a non-negative argument (got %d)", r));
         counted_t<datum_stream_t> new_ds = ds->slice(0, r);
-        return t.has() ? new_val(new_ds, t) : new_val(env->env, new_ds);
+        return t.has()
+            ? new_val(make_counted<selection_t>(t, new_ds))
+            : new_val(env->env, new_ds);
     }
     virtual const char *name() const { return "limit"; }
 };

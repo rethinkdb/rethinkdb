@@ -357,15 +357,15 @@ private:
         } break;
         case SELECTION_TYPE: {
             b |= info.add("table",
-                          val_info(env, new_val(v->as_selection(env->env).first)));
+                          val_info(env, new_val(v->as_selection(env->env)->table)));
         } break;
         case ARRAY_SELECTION_TYPE: {
             b |= info.add("table",
-                          val_info(env, new_val(v->as_selection(env->env).first)));
+                          val_info(env, new_val(v->as_selection(env->env)->table)));
         } break;
         case SINGLE_SELECTION_TYPE: {
             b |= info.add("table",
-                          val_info(env, new_val(v->as_single_selection().first)));
+                          val_info(env, new_val(v->as_single_selection()->get_tbl())));
         } break;
         case SEQUENCE_TYPE: {
             if (v->as_seq(env->env)->is_grouped()) {

@@ -217,28 +217,14 @@ private:
         counted_t<val_t> v0 = args->arg(env, 0);
         counted_t<const datum_t> stats = new_stats_object();
         if (v0->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
-            std::pair<counted_t<table_t>, counted_t<const datum_t> > tblrow
-                = v0->as_single_selection();
-            counted_t<const datum_t> orig_val = tblrow.second;
-            counted_t<const datum_t> orig_key = v0->get_orig_key();
-            if (!orig_key.has()) {
-                orig_key = orig_val->get(tblrow.first->get_pkey(), NOTHROW);
-                r_sanity_check(orig_key.has());
-            }
-
-            std::vector<counted_t<const datum_t> > vals;
-            std::vector<counted_t<const datum_t> > keys;
-            vals.push_back(orig_val);
-            keys.push_back(orig_key);
-            counted_t<const datum_t> replace_stats = tblrow.first->batched_replace(
-                env->env, vals, keys, f,
-                nondet_ok, durability_requirement, return_changes);
+            counted_t<single_selection_t> sel = v0->as_single_selection();
+            counted_t<const datum_t> replace_stats = sel->replace(
+                env->env, f, nondet_ok, durability_requirement, return_changes);
             stats = stats->merge(replace_stats, stats_merge, env->env->limits);
         } else {
-            std::pair<counted_t<table_t>, counted_t<datum_stream_t> > tblrows
-                = v0->as_selection(env->env);
-            counted_t<table_t> tbl = tblrows.first;
-            counted_t<datum_stream_t> ds = tblrows.second;
+            counted_t<selection_t> tblrows = v0->as_selection(env->env);
+            counted_t<table_t> tbl = tblrows->table;
+            counted_t<datum_stream_t> ds = tblrows->seq;
 
             batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
             for (;;) {

@@ -11,6 +11,66 @@
 
 namespace ql {
 
+class get_selection_t : public single_selection_t {
+public:
+    get_selection_t(counted_t<table_t> _table,
+                    counted_t<const datum_t> _key,
+                    counted_t<const datum_t> _row = counted_t<const datum_t>())
+        : table(std::move(_table)),
+          key(std::move(_key)),
+          row(std::move(_row)) { }
+    // RSI: prevent double reads?
+    virtual counted_t<const datum_t> get(env_t *env) {
+        return row.has() ? row : table->get_row(env, key);
+    }
+    virtual counted_t<const datum_t> replace(
+        env_t *env, counted_t<func_t> f, bool nondet_ok,
+        durability_requirement_t dur_req, return_changes_t return_changes) {
+        std::vector<counted_t<const datum_t> > keys{key};
+        // We don't need to fetch the value for deterministic replacements.
+        std::vector<counted_t<const datum_t> > vals{
+            f->is_deterministic() ? counted_t<const datum_t>() : get(env)};
+        return table->batched_replace(
+            env, vals, keys, f, nondet_ok, dur_req, return_changes);
+    }
+    virtual const counted_t<table_t> &get_tbl() { return table; }
+private:
+    counted_t<table_t> table;
+    counted_t<const datum_t> key, row;
+};
+
+class extreme_selection_t : public single_selection_t {
+public:
+    extreme_selection_t(counted_t<table_slice_t> _slice,
+                        protob_t<const Backtrace> _bt,
+                        std::string _err)
+        : slice(std::move(_slice)), bt(std::move(_bt)), err(std::move(_err)) { }
+    virtual counted_t<const datum_t> get(env_t *env) {
+        batchspec_t batchspec = batchspec_t::all().with_at_most(1);
+        counted_t<const datum_t> d = slice->as_seq(env, bt)->next(env, batchspec);
+        if (d.has()) {
+            return d;
+        } else {
+            rfail_src(bt.get(), base_exc_t::GENERIC, "%s", err.c_str());
+        }
+    }
+    virtual counted_t<const datum_t> replace(
+        env_t *env, counted_t<func_t> f, bool nondet_ok,
+        durability_requirement_t dur_req, return_changes_t return_changes) {
+        std::vector<counted_t<const datum_t> > vals{get(env)};
+        std::vector<counted_t<const datum_t> > keys{
+            vals[0]->get(get_tbl()->get_pkey(), NOTHROW)};
+        r_sanity_check(keys[0].has());
+        return slice->get_tbl()->batched_replace(
+            env, vals, keys, f, nondet_ok, dur_req, return_changes);
+    }
+    virtual const counted_t<table_t> &get_tbl() { return slice->get_tbl(); }
+private:
+    counted_t<table_slice_t> slice;
+    protob_t<const Backtrace> bt;
+    std::string err;
+};
+
 counted_t<single_selection_t> single_selection_t::from_key(
     counted_t<table_t> table, counted_t<const datum_t> key) {
     return make_counted<get_selection_t>(std::move(table), std::move(key));
@@ -26,46 +86,6 @@ counted_t<single_selection_t> single_selection_t::from_slice(
     return make_counted<extreme_selection_t>(
         std::move(table), std::move(bt), std::move(err));
 }
-
-class get_selection_t : public single_selection_t {
-public:
-    get_selection_t(counted_t<table_t> _table,
-                    counted_t<const datum_t> _key,
-                    counted_t<const datum_t> _row = counted_t<const datum_t>())
-        : table(std::move(_table)),
-          key(std::move(_key)),
-          row(std::move(_row)) { }
-    virtual counted_t<const datum_t> get(env_t *env) {
-        if (!row.has()) {
-            row = table->get_row(env->env, key);
-        }
-        return row;
-    }
-private:
-    counted_t<table_t> table;
-    counted_t<const datum_t> key;
-};
-
-class extreme_selection_t : public single_selection_t {
-public:
-    extreme_selection_t(counted_t<table_slice_t> _slice,
-                        protob_t<const Backtrace> _bt,
-                        std::string _err)
-        : slice(std::move(_slice)), bt(std::move(_bt)), err(std::move(_err)) { }
-    virtual counted_t<const datum_t> get(env_t *env) {
-        batchspec_t batchspec = batchspec_t::all().with_at_most(1);
-        counted_t<const datum_t> d = slice->as_seq(env, bt)->next(env, batchspec);
-        if (d.has()) {
-            return d;
-        } else {
-            rfail_src(base_exc_t::GENERIC, "%s", err.c_str());
-        }
-    }
-private:
-    counted_t<table_slice_t> slice;
-    protob_t<const Backtrace> bt;
-}
-
 
 table_slice_t::table_slice_t(counted_t<table_t> _tbl, std::string _idx,
                              sorting_t _sorting, datum_range_t _bounds)
@@ -147,6 +167,7 @@ counted_t<const datum_t> table_t::batched_replace(
         std::vector<counted_t<const datum_t> > replacement_values;
         replacement_values.reserve(vals.size());
         for (size_t i = 0; i < vals.size(); ++i) {
+            r_sanity_check(vals[i].has());
             counted_t<const datum_t> new_val;
             try {
                 new_val = replacement_generator->call(env, vals[i])->as_datum();
@@ -392,27 +413,11 @@ val_t::val_t(const counted_t<grouped_data_t> &groups,
     guarantee(groups.has());
 }
 
-val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,
-             protob_t<const Backtrace> backtrace)
-    : pb_rcheckable_t(backtrace),
+val_t::val_t(counted_t<single_selection_t> _selection, protob_t<const Backtrace> bt)
+    : pb_rcheckable_t(bt),
       type(type_t::SINGLE_SELECTION),
-      table_u(_table),
-      u(_datum) {
-    guarantee(_table.has());
-    guarantee(datum().has());
-}
-
-val_t::val_t(counted_t<const datum_t> _datum,
-             counted_t<const datum_t> _orig_key,
-             counted_t<table_t> _table,
-             protob_t<const Backtrace> backtrace)
-    : pb_rcheckable_t(backtrace),
-      type(type_t::SINGLE_SELECTION),
-      table_u(_table),
-      orig_key(_orig_key),
-      u(_datum) {
-    guarantee(_table.has());
-    guarantee(datum().has());
+      u(_selection) {
+    guarantee(single_selection().has());
 }
 
 val_t::val_t(env_t *env, counted_t<datum_stream_t> _sequence,
@@ -429,28 +434,24 @@ val_t::val_t(env_t *env, counted_t<datum_stream_t> _sequence,
     }
 }
 
-val_t::val_t(counted_t<table_t> _table,
-             counted_t<datum_stream_t> _sequence,
-             protob_t<const Backtrace> backtrace)
-    : pb_rcheckable_t(backtrace),
+val_t::val_t(counted_t<selection_t> _selection, protob_t<const Backtrace> bt)
+    : pb_rcheckable_t(bt),
       type(type_t::SELECTION),
-      table_u(_table),
-      u(_sequence) {
-    guarantee(_table.has());
-    guarantee(sequence().has());
+      u(_selection) {
+    guarantee(selection().has());
 }
 
 val_t::val_t(counted_t<table_t> _table, protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::TABLE),
-      table_u(_table) {
-    guarantee(_table.has());
+      u(_table) {
+    guarantee(table().has());
 }
-val_t::val_t(counted_t<table_slice_t> _t, protob_t<const Backtrace> backtrace)
+val_t::val_t(counted_t<table_slice_t> _slice, protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::TABLE_SLICE),
-      table_u(_t) {
-    guarantee(_t.has());
+      u(_slice) {
+    guarantee(table_slice().has());
 }
 val_t::val_t(counted_t<const db_t> _db, protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
@@ -479,15 +480,14 @@ counted_t<const datum_t> val_t::as_datum() const {
 
 counted_t<table_t> val_t::as_table() {
     rcheck_literal_type(type_t::TABLE);
-    return boost::get<counted_t<table_t> >(table_u);
+    return table();
 }
 counted_t<table_slice_t> val_t::as_table_slice() {
     if (type.raw_type == type_t::TABLE) {
-        const counted_t<table_t> &tbl = boost::get<counted_t<table_t> >(table_u);
-        return make_counted<table_slice_t>(tbl);
+        return make_counted<table_slice_t>(table());
     } else {
         rcheck_literal_type(type_t::TABLE_SLICE);
-        return boost::get<counted_t<table_slice_t> >(table_u);
+        return table_slice();
     }
 }
 
@@ -527,31 +527,36 @@ counted_t<grouped_data_t> val_t::maybe_as_promiscuous_grouped_data(env_t *env) {
 }
 
 counted_t<table_t> val_t::get_underlying_table() const {
-    if (type.raw_type == type_t::TABLE
-        || type.raw_type == type_t::SELECTION
-        || type.raw_type == type_t::SINGLE_SELECTION) {
-        return boost::get<counted_t<table_t> >(table_u);
+    if (type.raw_type == type_t::TABLE) {
+        return table();
+    } else if (type.raw_type == type_t::SELECTION) {
+        return selection()->table;
+    } else if(type.raw_type == type_t::SINGLE_SELECTION) {
+        return single_selection()->get_tbl();
     } else if (type.raw_type == type_t::TABLE_SLICE) {
-        return boost::get<counted_t<table_slice_t> >(table_u)->get_tbl();
+        return table_slice()->get_tbl();
     } else {
         r_sanity_check(false);
         unreachable();
     }
 }
 
-std::pair<counted_t<table_t>, counted_t<datum_stream_t> >
-val_t::as_selection(env_t *env) {
-    if (type.raw_type != type_t::TABLE
-        && type.raw_type != type_t::TABLE_SLICE
-        && type.raw_type != type_t::SELECTION) {
-        rcheck_literal_type(type_t::SELECTION);
+counted_t<selection_t> val_t::as_selection(env_t *env) {
+    if (type.raw_type == type_t::SELECTION) {
+        return selection();
+    } else if (type.is_convertible(type_t::TABLE_SLICE)) {
+        counted_t<table_slice_t> slice = as_table_slice();
+        return make_counted<selection_t>(
+            slice->get_tbl(),
+            slice->as_seq(env, backtrace()));
     }
-    return std::make_pair(get_underlying_table(), as_seq(env));
+    rcheck_literal_type(type_t::SELECTION);
+    unreachable();
 }
 
-std::pair<counted_t<table_t>, counted_t<const datum_t> > val_t::as_single_selection() {
+counted_t<single_selection_t> val_t::as_single_selection() {
     rcheck_literal_type(type_t::SINGLE_SELECTION);
-    return std::make_pair(get_underlying_table(), datum());
+    return single_selection();
 }
 
 counted_t<func_t> val_t::as_func(function_shortcut_t shortcut) {
@@ -676,10 +681,6 @@ std::string val_t::trunc_print() const {
         }
         return s;
     }
-}
-
-counted_t<const datum_t> val_t::get_orig_key() const {
-    return orig_key;
 }
 
 } // namespace ql

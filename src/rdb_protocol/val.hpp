@@ -152,8 +152,13 @@ public:
         counted_t<table_t> table, counted_t<const datum_t> key);
     static counted_t<single_selection_t> from_slice(
         counted_t<table_slice_t> table, protob_t<const Backtrace> bt, std::string err);
+    virtual ~single_selection_t() = default;
 
     virtual counted_t<const datum_t> get(env_t *) = 0;
+    virtual counted_t<const datum_t> replace(
+        env_t *env, counted_t<func_t> f, bool nondet_ok,
+        durability_requirement_t dur_req, return_changes_t return_changes) = 0;
+    virtual const counted_t<table_t> &get_tbl() = 0;
 protected:
     single_selection_t() = default;
 };
@@ -164,7 +169,7 @@ public:
         : table(std::move(_table)), seq(std::move(_seq)) { }
     counted_t<table_t> table;
     counted_t<datum_stream_t> seq;
-}
+};
 
 // A value is anything RQL can pass around -- a datum, a sequence, a function, a
 // selection, whatever.
@@ -205,32 +210,25 @@ public:
     type_t get_type() const;
     const char *get_type_name() const;
 
-    val_t(counted_t<const datum_t> _datum, protob_t<const Backtrace> backtrace);
+    val_t(counted_t<const datum_t> _datum, protob_t<const Backtrace> bt);
     val_t(const counted_t<grouped_data_t> &groups,
           protob_t<const Backtrace> bt);
-    val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,
-          protob_t<const Backtrace> backtrace);
-    val_t(counted_t<const datum_t> _datum,
-          counted_t<const datum_t> _orig_key,
-          counted_t<table_t> _table,
-          protob_t<const Backtrace> backtrace);
-    val_t(env_t *env, counted_t<datum_stream_t> _sequence,
-          protob_t<const Backtrace> backtrace);
-    val_t(counted_t<table_t> _table, protob_t<const Backtrace> backtrace);
-    val_t(counted_t<table_slice_t> _table_slice, protob_t<const Backtrace> backtrace);
-    val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence,
-          protob_t<const Backtrace> backtrace);
-    val_t(counted_t<const db_t> _db, protob_t<const Backtrace> backtrace);
-    val_t(counted_t<func_t> _func, protob_t<const Backtrace> backtrace);
+    val_t(counted_t<single_selection_t> _selection, protob_t<const Backtrace> bt);
+    val_t(env_t *env, counted_t<datum_stream_t> _seq, protob_t<const Backtrace> bt);
+    val_t(counted_t<table_t> _table, protob_t<const Backtrace> bt);
+    val_t(counted_t<table_slice_t> _table_slice, protob_t<const Backtrace> bt);
+    val_t(counted_t<selection_t> _selection, protob_t<const Backtrace> bt);
+    val_t(counted_t<const db_t> _db, protob_t<const Backtrace> bt);
+    val_t(counted_t<func_t> _func, protob_t<const Backtrace> bt);
     ~val_t();
 
     counted_t<const db_t> as_db() const;
     counted_t<table_t> as_table();
     counted_t<table_t> get_underlying_table() const;
     counted_t<table_slice_t> as_table_slice();
-    std::pair<counted_t<table_t>, counted_t<datum_stream_t> > as_selection(env_t *env);
+    counted_t<selection_t> as_selection(env_t *env);
     counted_t<datum_stream_t> as_seq(env_t *env);
-    std::pair<counted_t<table_t>, counted_t<const datum_t> > as_single_selection();
+    counted_t<single_selection_t> as_single_selection();
     // See func.hpp for an explanation of shortcut functions.
     counted_t<func_t> as_func(function_shortcut_t shortcut = NO_SHORTCUT);
 
@@ -277,6 +275,8 @@ private:
                    counted_t<const datum_t>,
                    counted_t<func_t>,
                    counted_t<grouped_data_t>,
+                   counted_t<table_t>,
+                   counted_t<table_slice_t>,
                    counted_t<single_selection_t>,
                    counted_t<selection_t> > u;
 
@@ -291,6 +291,18 @@ private:
     }
     const counted_t<const datum_t> &datum() const {
         return boost::get<counted_t<const datum_t> >(u);
+    }
+    const counted_t<single_selection_t> &single_selection() const {
+        return boost::get<counted_t<single_selection_t> >(u);
+    }
+    const counted_t<selection_t> &selection() const {
+        return boost::get<counted_t<selection_t> >(u);
+    }
+    const counted_t<table_t> &table() const {
+        return boost::get<counted_t<table_t> >(u);
+    }
+    const counted_t<table_slice_t> &table_slice() const {
+        return boost::get<counted_t<table_slice_t> >(u);
     }
     counted_t<func_t> &func() { return boost::get<counted_t<func_t> >(u); }
 

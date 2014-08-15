@@ -401,42 +401,4 @@ counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) const {
     }
 }
 
-counted_t<val_t> term_t::new_val(counted_t<const datum_t> d) const {
-    return make_counted<val_t>(d, backtrace());
-}
-counted_t<val_t> term_t::new_val(counted_t<const datum_t> d,
-                                 counted_t<table_t> t) const {
-    return make_counted<val_t>(d, t, backtrace());
-}
-
-counted_t<val_t> term_t::new_val(counted_t<const datum_t> d,
-                                 counted_t<const datum_t> orig_key,
-                                 counted_t<table_t> t) const {
-    return make_counted<val_t>(d, orig_key, t, backtrace());
-}
-
-counted_t<val_t> term_t::new_val(env_t *env,
-                                 counted_t<datum_stream_t> s) const {
-    return make_counted<val_t>(env, s, backtrace());
-}
-counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s,
-                                 counted_t<table_t> d) const {
-    return make_counted<val_t>(d, s, backtrace());
-}
-counted_t<val_t> term_t::new_val(counted_t<const db_t> db) const {
-    return make_counted<val_t>(db, backtrace());
-}
-counted_t<val_t> term_t::new_val(counted_t<table_t> t) const {
-    return make_counted<val_t>(t, backtrace());
-}
-counted_t<val_t> term_t::new_val(counted_t<table_slice_t> t) const {
-    return make_counted<val_t>(t, backtrace());
-}
-counted_t<val_t> term_t::new_val(counted_t<func_t> f) const {
-    return make_counted<val_t>(f, backtrace());
-}
-counted_t<val_t> term_t::new_val_bool(bool b) const {
-    return new_val(datum_t::boolean(b));
-}
-
 } // namespace ql

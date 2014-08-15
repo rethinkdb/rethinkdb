@@ -305,10 +305,9 @@ public:
     get_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_t> table = args->arg(env, 0)->as_table();
-        counted_t<const datum_t> pkey = args->arg(env, 1)->as_datum();
-        counted_t<const datum_t> row = table->get_row(env->env, pkey);
-        return new_val(row, pkey, table);
+        return new_val(single_selection_t::from_key(
+                           args->arg(env, 0)->as_table(),
+                           args->arg(env, 1)->as_datum()));
     }
     virtual const char *name() const { return "get"; }
 };
@@ -332,7 +331,7 @@ private:
             }
             counted_t<datum_stream_t> stream
                 = make_counted<union_datum_stream_t>(std::move(streams), backtrace());
-            return new_val(stream, table);
+            return new_val(make_counted<selection_t>(table, stream));
         } else {
             datum_array_builder_t arr(env->env->limits);
             for (size_t i = 1; i < args->num_args(); ++i) {
@@ -345,7 +344,7 @@ private:
             counted_t<datum_stream_t> stream
                 = make_counted<array_datum_stream_t>(std::move(arr).to_counted(),
                                                      backtrace());
-            return new_val(stream, table);
+            return new_val(make_counted<selection_t>(table, stream));
         }
     }
     virtual const char *name() const { return "get_all"; }

@@ -29,14 +29,14 @@ private:
         if (!func.has() && !idx.has()) {
             // RSI: make this use a table slice.
             if (uses_idx() && v->get_type().is_convertible(val_t::type_t::TABLE)) {
-                return on_idx(env->env, v->as_table(), idx);
+                return on_idx(v->as_table(), idx);
             } else {
                 return v->as_seq(env->env)->run_terminal(env->env, T(backtrace()));
             }
         } else if (func.has() && !idx.has()) {
             return v->as_seq(env->env)->run_terminal(env->env, T(backtrace(), func));
         } else if (!func.has() && idx.has()) {
-            return on_idx(env->env, v->as_table(), idx);
+            return on_idx(v->as_table(), idx);
         } else {
             rfail(base_exc_t::GENERIC,
                   "Cannot provide both a function and an index to %s.",
@@ -45,7 +45,7 @@ private:
     }
     virtual bool uses_idx() const = 0;
     virtual counted_t<val_t> on_idx(
-        env_t *env, counted_t<table_t> tbl, counted_t<val_t> idx) const = 0;
+        counted_t<table_t> tbl, counted_t<val_t> idx) const = 0;
 };
 
 template<class T>
@@ -55,8 +55,7 @@ protected:
         : map_acc_term_t<T>(args...) { }
 private:
     virtual bool uses_idx() const { return false; }
-    virtual counted_t<val_t> on_idx(
-        env_t *, counted_t<table_t>, counted_t<val_t> ) const {
+    virtual counted_t<val_t> on_idx(counted_t<table_t>, counted_t<val_t>) const {
         rfail(base_exc_t::GENERIC, "Cannot call %s on an index.", this->name());
     }
 };
@@ -83,20 +82,14 @@ protected:
     virtual ~indexable_map_acc_term_t() { }
 private:
     virtual bool uses_idx() const { return true; }
-    virtual counted_t<val_t> on_idx(
-        env_t *env, counted_t<table_t> tbl, counted_t<val_t> idx) const {
+    virtual counted_t<val_t> on_idx(counted_t<table_t> tbl, counted_t<val_t> idx) const {
         std::string idx_str = idx.has() ? idx->as_str().to_std() : "";
         counted_t<table_slice_t> slice(new table_slice_t(tbl, idx_str, sorting()));
-        batchspec_t batchspec = batchspec_t::all().with_at_most(1);
-        counted_t<const datum_t> d =
-            slice->as_seq(env, term_t::backtrace())->next(env, batchspec);
-        if (d.has()) {
-            return this->new_val(d, tbl);
-        } else {
-            rfail(base_exc_t::GENERIC,
-                  "`%s` found no entries in the specified index.",
-                  this->name());
-        }
+        return term_t::new_val(single_selection_t::from_slice(
+            slice,
+            term_t::backtrace(),
+            strprintf("`%s` found no entries in the specified index.",
+                      this->name())));
     }
     virtual sorting_t sorting() const = 0;
 };
@@ -244,7 +237,8 @@ public:
           default_filter_term(lazy_literal_optarg(env, "default")) { }
 
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual counted_t<val_t> eval_impl(
+        scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> v0 = args->arg(env, 0);
         counted_t<val_t> v1 = args->arg(env, 1, LITERAL_OK);
         counted_t<func_t> f = v1->as_func(CONSTANT_SHORTCUT);
@@ -254,11 +248,9 @@ private:
         }
 
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
-            std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts
-                = v0->as_selection(env->env);
-            ts.second->add_transformation(
-                    filter_wire_func_t(f, defval), backtrace());
-            return new_val(ts.second, ts.first);
+            counted_t<selection_t> ts = v0->as_selection(env->env);
+            ts->seq->add_transformation(filter_wire_func_t(f, defval), backtrace());
+            return new_val(ts);
         } else {
             counted_t<datum_stream_t> stream = v0->as_seq(env->env);
             stream->add_transformation(
@@ -298,17 +290,19 @@ private:
                 tbl->table->read_all_changes(
                     env->env, backtrace(), tbl->display_name()));
         } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
+            // RIS: fix this!
+            /*
             auto single_selection = v->as_single_selection();
-            counted_t<table_t> tbl = std::move(single_selection.first);
-            counted_t<const datum_t> val = std::move(single_selection.second);
+            counted_t<table_t> tbl = single_selection->get_tbl();
+            counted_t<const datum_t> val = single_selection->seq;
 
-            counted_t<const datum_t> key = v->get_orig_key();
+            counted_t<const datum_t> key; // = v->get_orig_key();
             return new_val(env->env,
                 tbl->table->read_row_changes(
                     env->env, key, backtrace(), tbl->display_name()));
+            */
         }
-        std::pair<counted_t<table_t>, counted_t<datum_stream_t> > selection
-            = v->as_selection(env->env);
+        auto selection = v->as_selection(env->env);
         rfail(base_exc_t::GENERIC,
               ".changes() not yet supported on range selections");
     }
@@ -342,7 +336,7 @@ private:
                 counted_t<datum_stream_t> ds
                     =  make_counted<array_datum_stream_t>(datum_t::empty_array(),
                                                           backtrace());
-                return new_val(ds, tbl_slice->get_tbl());
+                return new_val(make_counted<selection_t>(tbl_slice->get_tbl(), ds));
             }
         }
 

@@ -133,10 +133,9 @@ private:
             tbl_slice = v0->as_table_slice();
         } else if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
             // RSI: should selections use table slices?
-            std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts
-                = v0->as_selection(env->env);
-            tbl_slice = make_counted<table_slice_t>(ts.first);
-            seq = ts.second;
+            auto selection = v0->as_selection(env->env);
+            tbl_slice = make_counted<table_slice_t>(selection->table);
+            seq = selection->seq;
         } else {
             seq = v0->as_seq(env->env);
         }
@@ -198,7 +197,7 @@ private:
                 backtrace());
         }
         return tbl_slice.has()
-            ? new_val(seq, tbl_slice->get_tbl())
+            ? new_val(make_counted<selection_t>(tbl_slice->get_tbl(), seq))
             : new_val(env->env, seq);
     }
 

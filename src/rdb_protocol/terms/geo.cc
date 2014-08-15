@@ -333,7 +333,7 @@ private:
         counted_t<datum_stream_t> stream = table->get_intersecting(
             env->env, query_arg->as_ptype(pseudo::geometry_string), index_str,
             this);
-        return new_val(stream, table);
+        return new_val(make_counted<selection_t>(table, stream));
     }
     virtual const char *name() const { return "get_intersecting"; }
 };
@@ -394,7 +394,7 @@ private:
         counted_t<datum_stream_t> stream = table->get_nearest(
                 env->env, center, max_dist, max_results, reference_ellipsoid,
                 dist_unit, index_str, this, env->env->limits);
-        return new_val(stream, table);
+        return new_val(make_counted<selection_t>(table, stream));
     }
     virtual const char *name() const { return "get_nearest"; }
 };
