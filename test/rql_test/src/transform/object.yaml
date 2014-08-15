@@ -94,16 +94,18 @@ tests:
     # overwrite
     - cd: "obj.merge({'a':-1})"
       ot: ({'a':-1, 'b':2, 'c':'str', 'd':null, 'e':{'f':'buzz'}})
+    
+    - def: errmsg = 'Stray literal keyword found:'+' literal is only legal inside of the object passed to merge or update and cannot nest inside other literals.'
 
     # errors
     - cd: "r.literal('foo')"
-      ot: err("RqlRuntimeError", "Stray literal keyword found, literal can only be present inside merge and cannot nest inside other literals.", [])
+      ot: err("RqlRuntimeError", errmsg, [])
 
     - cd: "obj.merge(r.literal('foo'))"
-      ot: err("RqlRuntimeError", "Stray literal keyword found, literal can only be present inside merge and cannot nest inside other literals.", [])
+      ot: err("RqlRuntimeError", errmsg, [])
 
     - cd: "obj.merge({'foo':r.literal(r.literal('foo'))})"
-      ot: err("RqlRuntimeError", "Stray literal keyword found, literal can only be present inside merge and cannot nest inside other literals.", [])
+      ot: err("RqlRuntimeError", errmsg, [])
 
     - def: o = r.expr({'a':{'b':1, 'c':2}, 'd':3})
 

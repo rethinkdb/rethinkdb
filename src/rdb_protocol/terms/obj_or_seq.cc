@@ -182,8 +182,9 @@ public:
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t flags) const {
         rcheck(flags & LITERAL_OK, base_exc_t::GENERIC,
-               "Stray literal keyword found, literal can only be present inside merge "
-               "and cannot nest inside other literals.");
+               "Stray literal keyword found: literal is only legal inside of "
+               "the object passed to merge or update and cannot nest inside "
+               "other literals.");
         datum_object_builder_t res;
         bool clobber = res.add(datum_t::reql_type_string,
                                make_counted<const datum_t>(pseudo::literal_string));

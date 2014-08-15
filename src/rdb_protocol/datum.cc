@@ -450,8 +450,9 @@ void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
         if (s == pseudo::literal_string) {
             rcheck(std_contains(allowed_pts, pseudo::literal_string),
                    base_exc_t::GENERIC,
-                   "Stray literal keyword found, literal can only be present inside "
-                   "merge and cannot nest inside other literals.");
+                   "Stray literal keyword found: literal is only legal inside of "
+                   "the object passed to merge or update and cannot nest inside "
+                   "other literals.");
             pseudo::rcheck_literal_valid(this);
             return;
         }
