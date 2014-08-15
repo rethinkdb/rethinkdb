@@ -260,6 +260,7 @@ private:
         case Term::GET_INTERSECTING:
         case Term::FILL:
         case Term::GET_NEAREST:
+        case Term::UUID:
             return false;
         default: unreachable();
         }
@@ -441,6 +442,7 @@ private:
         case Term::GET_INTERSECTING:
         case Term::FILL:
         case Term::GET_NEAREST:
+        case Term::UUID:
             return false;
         default: unreachable();
         }

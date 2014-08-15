@@ -336,6 +336,8 @@ class RDBVal extends TermBase
     minutes: (args...) -> new Minutes {}, @, args...
     seconds: (args...) -> new Seconds {}, @, args...
 
+    uuid: (args...) -> new UUID {}, @, args...
+
     getIntersecting: aropt (g, opts) -> new GetIntersecting opts, @, g
     getNearest: aropt (g, opts) -> new GetNearest opts, @, g
 
@@ -1109,6 +1111,10 @@ class Fill extends RDBOp
     tt: protoTermType.FILL
     mt: 'fill'
 
+class UUID extends RDBOp
+    tt: protoTermType.UUID
+    mt: 'uuid'
+
 
 # All top level exported functions
 
@@ -1248,6 +1254,8 @@ rethinkdb.polygon = (args...) -> new Polygon {}, args...
 rethinkdb.intersects = (args...) -> new Intersects {}, args...
 rethinkdb.distance = aropt (g1, g2, opts) -> new Distance opts, g1, g2
 rethinkdb.circle = aropt (cen, rad, opts) -> new Circle opts, cen, rad
+
+rethinkdb.uuid = (args...) -> new UUID {}, args...
 
 # Export all names defined on rethinkdb
 module.exports = rethinkdb

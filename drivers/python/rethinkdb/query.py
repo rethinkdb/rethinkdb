@@ -178,6 +178,9 @@ def literal(*args):
 def object(*args):
     return Object(*args)
 
+def uuid(*args):
+    return UUID(*args)
+
 # Global geospatial operations
 def geojson(*args):
     return GeoJson(*args)
