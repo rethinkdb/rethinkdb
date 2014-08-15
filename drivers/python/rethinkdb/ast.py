@@ -1029,6 +1029,9 @@ class Table(RqlQuery):
     def get_nearest(self, *args, **kwargs):
         return GetNearest(self, *args, **kwargs)
 
+    def uuid(self, *args, **kwargs):
+        return UUID(self, *args, **kwargs)
+
     def compose(self, args, optargs):
         if isinstance(self.args[0], DB):
             return T(args[0], '.table(', T(*(args[1:]), intsp=', '), ')')
@@ -1050,6 +1053,10 @@ class GetIntersecting(RqlMethodQuery):
 class GetNearest(RqlMethodQuery):
     tt = pTerm.GET_NEAREST
     st = 'get_nearest'
+
+class UUID(RqlMethodQuery):
+    tt = pTerm.UUID
+    st = 'uuid'
 
 class Reduce(RqlMethodQuery):
     tt = pTerm.REDUCE
