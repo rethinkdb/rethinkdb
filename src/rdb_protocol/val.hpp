@@ -147,16 +147,17 @@ enum function_shortcut_t {
 class single_selection_t : public single_threaded_countable_t<single_selection_t> {
 public:
     static counted_t<single_selection_t> from_key(
-        counted_t<table_t> table, counted_t<const datum_t> key);
+        env_t *env, counted_t<table_t> table, counted_t<const datum_t> key);
     static counted_t<single_selection_t> from_row(
         counted_t<table_t> table, counted_t<const datum_t> key);
     static counted_t<single_selection_t> from_slice(
-        counted_t<table_slice_t> table, protob_t<const Backtrace> bt, std::string err);
+        env_t *env, counted_t<table_slice_t> table,
+        protob_t<const Backtrace> bt, std::string err);
     virtual ~single_selection_t() = default;
 
-    virtual counted_t<const datum_t> get(env_t *) = 0;
+    virtual counted_t<const datum_t> get() = 0;
     virtual counted_t<const datum_t> replace(
-        env_t *env, counted_t<func_t> f, bool nondet_ok,
+        counted_t<func_t> f, bool nondet_ok,
         durability_requirement_t dur_req, return_changes_t return_changes) = 0;
     virtual const counted_t<table_t> &get_tbl() = 0;
 protected:

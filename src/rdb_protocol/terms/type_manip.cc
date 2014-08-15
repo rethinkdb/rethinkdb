@@ -300,7 +300,7 @@ int val_type(counted_t<val_t> v) {
     if (t == DATUM_TYPE) {
         t += v->as_datum()->get_type();
     } else if (t == SELECTION_TYPE) {
-        if (v->sequence()->is_array()) {
+        if (v->selection()->seq->is_array()) {
             t += datum_t::R_ARRAY;
         }
     }

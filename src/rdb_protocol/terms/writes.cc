@@ -219,7 +219,7 @@ private:
         if (v0->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             counted_t<single_selection_t> sel = v0->as_single_selection();
             counted_t<const datum_t> replace_stats = sel->replace(
-                env->env, f, nondet_ok, durability_requirement, return_changes);
+                f, nondet_ok, durability_requirement, return_changes);
             stats = stats->merge(replace_stats, stats_merge, env->env->limits);
         } else {
             counted_t<selection_t> tblrows = v0->as_selection(env->env);

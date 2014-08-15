@@ -383,7 +383,9 @@ counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) const {
     env->env->maybe_yield();
     INC_DEPTH;
 
+#ifdef INSTRUMENT
     try {
+#endif // INSTRUMENT
         try {
             counted_t<val_t> ret = term_eval(env, eval_flags);
             DEC_DEPTH;
@@ -394,11 +396,13 @@ counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) const {
             DBG("%s THREW\n", name());
             rfail(e.get_type(), "%s", e.what());
         }
+#ifdef INSTRUMENT
     } catch (...) {
         DEC_DEPTH;
         DBG("%s THREW OUTER\n", name());
         throw;
     }
+#endif // INSTRUMENT
 }
 
 } // namespace ql

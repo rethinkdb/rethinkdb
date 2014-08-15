@@ -306,6 +306,7 @@ public:
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         return new_val(single_selection_t::from_key(
+                           env->env,
                            args->arg(env, 0)->as_table(),
                            args->arg(env, 1)->as_datum()));
     }

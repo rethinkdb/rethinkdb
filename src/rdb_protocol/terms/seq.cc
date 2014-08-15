@@ -29,14 +29,14 @@ private:
         if (!func.has() && !idx.has()) {
             // RSI: make this use a table slice.
             if (uses_idx() && v->get_type().is_convertible(val_t::type_t::TABLE)) {
-                return on_idx(v->as_table(), idx);
+                return on_idx(env->env, v->as_table(), idx);
             } else {
                 return v->as_seq(env->env)->run_terminal(env->env, T(backtrace()));
             }
         } else if (func.has() && !idx.has()) {
             return v->as_seq(env->env)->run_terminal(env->env, T(backtrace(), func));
         } else if (!func.has() && idx.has()) {
-            return on_idx(v->as_table(), idx);
+            return on_idx(env->env, v->as_table(), idx);
         } else {
             rfail(base_exc_t::GENERIC,
                   "Cannot provide both a function and an index to %s.",
@@ -45,7 +45,7 @@ private:
     }
     virtual bool uses_idx() const = 0;
     virtual counted_t<val_t> on_idx(
-        counted_t<table_t> tbl, counted_t<val_t> idx) const = 0;
+        env_t *env, counted_t<table_t> tbl, counted_t<val_t> idx) const = 0;
 };
 
 template<class T>
@@ -55,7 +55,8 @@ protected:
         : map_acc_term_t<T>(args...) { }
 private:
     virtual bool uses_idx() const { return false; }
-    virtual counted_t<val_t> on_idx(counted_t<table_t>, counted_t<val_t>) const {
+    virtual counted_t<val_t> on_idx(
+        env_t *, counted_t<table_t>, counted_t<val_t>) const {
         rfail(base_exc_t::GENERIC, "Cannot call %s on an index.", this->name());
     }
 };
@@ -82,10 +83,12 @@ protected:
     virtual ~indexable_map_acc_term_t() { }
 private:
     virtual bool uses_idx() const { return true; }
-    virtual counted_t<val_t> on_idx(counted_t<table_t> tbl, counted_t<val_t> idx) const {
+    virtual counted_t<val_t> on_idx(
+        env_t *env, counted_t<table_t> tbl, counted_t<val_t> idx) const {
         std::string idx_str = idx.has() ? idx->as_str().to_std() : "";
         counted_t<table_slice_t> slice(new table_slice_t(tbl, idx_str, sorting()));
         return term_t::new_val(single_selection_t::from_slice(
+            env,
             slice,
             term_t::backtrace(),
             strprintf("`%s` found no entries in the specified index.",
