@@ -1000,9 +1000,6 @@ class Table(RqlQuery):
     def sync(self, *args):
         return Sync(self, *args)
 
-    def uuid(self, *args, **kwargs):
-        return UUID(self, *args, **kwargs)
-
     def compose(self, args, optargs):
         if isinstance(self.args[0], DB):
             return T(args[0], '.table(', T(*(args[1:]), intsp=', '), ')')
@@ -1016,10 +1013,6 @@ class Get(RqlMethodQuery):
 class GetAll(RqlMethodQuery):
     tt = pTerm.GET_ALL
     st = 'get_all'
-
-class UUID(RqlMethodQuery):
-    tt = pTerm.UUID
-    st = 'uuid'
 
 class Reduce(RqlMethodQuery):
     tt = pTerm.REDUCE

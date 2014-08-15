@@ -329,8 +329,6 @@ class RDBVal extends TermBase
     minutes: (args...) -> new Minutes {}, @, args...
     seconds: (args...) -> new Seconds {}, @, args...
 
-    uuid: (args...) -> new UUID {}, @, args...
-
 class DatumTerm extends RDBVal
     args: []
     optargs: {}
@@ -1045,10 +1043,6 @@ class Time extends RDBOp
     tt: protoTermType.TIME
     st: 'time'
 
-class UUID extends RDBOp
-    tt: protoTermType.UUID
-    st: 'uuid'
-
 # All top level exported functions
 
 # Wrap a native JS value in an ReQL datum
@@ -1179,8 +1173,6 @@ rethinkdb.december = new (class extends RDBOp then tt: protoTermType.DECEMBER)()
 rethinkdb.object = (args...) -> new Object_ {}, args...
 
 rethinkdb.args = (args...) -> new Args {}, args...
-
-rethinkdb.uuid = (args...) -> new UUID {}, args...
 
 # Export all names defined on rethinkdb
 module.exports = rethinkdb

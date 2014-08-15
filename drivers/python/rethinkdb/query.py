@@ -177,6 +177,3 @@ def literal(*args):
 
 def object(*args):
     return Object(*args)
-
-def uuid(*args):
-    return UUID(*args)

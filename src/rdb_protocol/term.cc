@@ -169,7 +169,6 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::OCTOBER:            return make_constant_term(env, t, 10, "october");
     case Term::NOVEMBER:           return make_constant_term(env, t, 11, "november");
     case Term::DECEMBER:           return make_constant_term(env, t, 12, "december");
-    case Term::UUID:               return make_uuid_term(env, t);
     default: unreachable();
     }
     unreachable();
