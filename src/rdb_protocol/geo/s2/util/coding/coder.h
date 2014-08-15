@@ -371,14 +371,14 @@ inline void Encoder::put_docid(DocId d) {
 
 inline void Encoder::putfloat(float f) {
   uint32 v;
-  typedef char VerifySizesAreEqual[sizeof(f) == sizeof(v) ? 1 : -1];
+  static_assert(sizeof(f) == sizeof(v), "Sizes not equal.");
   memcpy(&v, &f, sizeof(f));
   put32(v);
 }
 
 inline void Encoder::putdouble(double d) {
   uint64 v;
-  typedef char VerifySizesAreEqual[sizeof(d) == sizeof(v) ? 1 : -1];
+  static_assert(sizeof(d) == sizeof(v), "Sizes not equal.");
   memcpy(&v, &d, sizeof(d));
   put64(v);
 }
@@ -428,7 +428,7 @@ inline DocId32Bit Decoder::get_docid_32bit() {
 inline float Decoder::getfloat() {
   uint32 v = get32();
   float f;
-  typedef char VerifySizesAreEqual[sizeof(f) == sizeof(v) ? 1 : -1];
+  static_assert(sizeof(f) == sizeof(v), "Sizes not equal.");
   memcpy(&f, &v, sizeof(f));
   return f;
 }
@@ -436,7 +436,7 @@ inline float Decoder::getfloat() {
 inline double Decoder::getdouble() {
   uint64 v = get64();
   double d;
-  typedef char VerifySizesAreEqual[sizeof(d) == sizeof(v) ? 1 : -1];
+  static_assert(sizeof(d) == sizeof(v), "Sizes not equal.");
   memcpy(&d, &v, sizeof(d));
   return d;
 }
