@@ -185,13 +185,13 @@ private:
                     break;
                 }
                 std::move(data.begin(), data.end(), std::back_inserter(to_sort));
-                rcheck_array_size(to_sort, env->env->limits, base_exc_t::GENERIC);
+                rcheck_array_size(to_sort, env->env->limits(), base_exc_t::GENERIC);
             }
             profile::sampler_t sampler("Sorting in-memory.", env->env->trace);
             auto fn = boost::bind(lt_cmp, env->env, &sampler, _1, _2);
             std::stable_sort(to_sort.begin(), to_sort.end(), fn);
             seq = make_counted<array_datum_stream_t>(
-                make_counted<const datum_t>(std::move(to_sort), env->env->limits),
+                make_counted<const datum_t>(std::move(to_sort), env->env->limits()),
                 backtrace());
         }
         return tbl.has() ? new_val(seq, tbl) : new_val(env->env, seq);
@@ -250,14 +250,14 @@ private:
                                            env->env->trace);
                 while (counted_t<const datum_t> d = s->next(env->env, batchspec)) {
                     results.insert(std::move(d));
-                    rcheck_array_size(results, env->env->limits, base_exc_t::GENERIC);
+                    rcheck_array_size(results, env->env->limits(), base_exc_t::GENERIC);
                     sampler.new_sample();
                 }
             }
             std::vector<counted_t<const datum_t> > toret;
             std::move(results.begin(), results.end(), std::back_inserter(toret));
             return new_val(make_counted<const datum_t>(std::move(toret),
-                                                       env->env->limits));
+                                                       env->env->limits()));
         }
     }
     virtual const char *name() const { return "distinct"; }

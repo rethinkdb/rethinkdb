@@ -125,7 +125,7 @@ js_runner_t *env_t::get_js_runner() {
     assert_thread();
     extproc_pool_t *extproc_pool = get_extproc_pool();
     if (!js_runner_.connected()) {
-        js_runner_.begin(extproc_pool, interruptor, limits);
+        js_runner_.begin(extproc_pool, interruptor, limits());
     }
     return &js_runner_;
 }
@@ -140,7 +140,7 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
              std::map<std::string, wire_func_t> optargs,
              profile::trace_t *_trace)
     : global_optargs_(std::move(optargs)),
-      limits(from_optargs(ctx, _interruptor, &global_optargs_)),
+      limits_(from_optargs(ctx, _interruptor, &global_optargs_)),
       reql_version(reql_version_t::LATEST),
       interruptor(_interruptor),
       trace(_trace),

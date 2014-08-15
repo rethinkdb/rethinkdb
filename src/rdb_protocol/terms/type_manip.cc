@@ -196,10 +196,10 @@ private:
                         pair.push_back(make_counted<datum_t>(std::string(it->first)));
                         pair.push_back(it->second);
                         arr.push_back(make_counted<datum_t>(std::move(pair),
-                                                            env->env->limits));
+                                                            env->env->limits()));
                     }
                     return new_val(make_counted<const datum_t>(std::move(arr),
-                                                               env->env->limits));
+                                                               env->env->limits()));
                 }
 
                 // STR -> NUM
@@ -286,7 +286,7 @@ private:
                      {"reduction", std::move(value)}};
                 v.push_back(make_counted<const datum_t>(std::move(m)));
             });
-        return new_val(make_counted<const datum_t>(std::move(v), env->env->limits));
+        return new_val(make_counted<const datum_t>(std::move(v), env->env->limits()));
     }
     virtual const char *name() const { return "ungroup"; }
     virtual bool can_be_grouped() const { return false; }

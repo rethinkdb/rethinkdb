@@ -94,15 +94,17 @@ public:
         return global_optargs_.get_optarg(env, key);
     }
 
+    configured_limits_t limits() const { return limits_; }
+
 private:
     // The global optargs values passed to .run(...) in the Python, Ruby, and JS
     // drivers.
     global_optargs_t global_optargs_;
 
-public:
     // User specified configuration limits; e.g. array size limits
-    const configured_limits_t limits;
+    const configured_limits_t limits_;
 
+public:
     // The version of ReQL behavior that we should use.  Normally this is
     // LATEST_DISK, but when evaluating secondary index functions, it could be an
     // earlier value.
