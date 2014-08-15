@@ -4,7 +4,7 @@ Released on 2014-08-14
 
 Bug fix update.
 
-* Plugged some memory leaks (#2899, #2840, #2744)
+* Resolved several memory leaks (#2899, #2840, #2744)
 * Added a `--temp-dir` option to `rethinkdb dump` and `rethinkdb restore` (#2783)
 * The `batchConf` argument to `run` now works in the JavaScript driver (#2707)
 * Fixed the `Accept-Encoding` header sent by `r.http` (#2695)
