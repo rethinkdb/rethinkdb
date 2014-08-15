@@ -444,21 +444,24 @@ message Term {
         // database.  (You may omit the first argument to use the
         // default database.)
         TABLE_CREATE  = 60; // Database, STRING, {datacenter:STRING, primary_key:STRING, durability:STRING} -> OBJECT
-                            // STRING, {datacenter:STRING, primary_key:STRING, durability:STRING} -> OBJECT
+                                // STRING, {datacenter:STRING, primary_key:STRING, durability:STRING} -> OBJECT
         // Drops a table with a particular name from a particular
         // database.  (You may omit the first argument to use the
         // default database.)
         TABLE_DROP    = 61; // Database, STRING -> OBJECT
-                            // STRING -> OBJECT
+                                // STRING -> OBJECT
         // Lists all the tables in a particular database.  (You may
         // omit the first argument to use the default database.)
         TABLE_LIST    = 62; // Database -> ARRAY
                             //  -> ARRAY
+        // Renames the server with the given name.
         SERVER_RENAME = 63; // STRING, STRING -> OBJECT
+        // Generates a new config for the given table.
+        RECONFIGURE   = 157; // Table, NUMBER, OBJECT, {director_tag:STRING, dry_run:BOOLEAN} -> OBJECT
 
         // Ensures that previously issued soft-durability writes are complete and
         // written to disk.
-        SYNC     = 138; // Table -> OBJECT
+        SYNC          = 138; // Table -> OBJECT
 
         // * Secondary indexes OPs
         // Creates a new secondary index with a particular name and definition.

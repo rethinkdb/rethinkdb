@@ -100,3 +100,19 @@ bool artificial_reql_cluster_interface_t::server_rename(const name_string_t &old
     return next->server_rename(old_name, new_name, interruptor, error_out);
 }
 
+bool artificial_reql_cluster_interface_t::table_reconfigure(
+        counted_t<const ql::db_t> db, const name_string_t &name,
+        const table_generate_config_params_t &params,
+        bool dry_run,
+        signal_t *interruptor,
+        counted_t<const ql::datum_t> *new_config_out,
+        std::string *error_out) {
+    if (db->name == database.str()) {
+        *error_out = strprintf("Database `%s` is special; you can't configure the "
+            "tables in it.", database.c_str());
+        return false;
+    }
+    return next->table_reconfigure(db, name, params, dry_run, interruptor,
+        new_config_out, error_out);
+}
+

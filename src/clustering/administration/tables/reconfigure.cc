@@ -26,7 +26,7 @@ void calculate_server_usage(
 
 /* `validate_params()` checks if `params` are legal. */
 static bool validate_params(
-        const table_reconfigure_params_t &params,
+        const table_generate_config_params_t &params,
         const std::map<name_string_t, std::set<name_string_t> > &servers_with_tags,
         std::string *error_out) {
     if (params.num_shards <= 0) {
@@ -148,15 +148,15 @@ static void pick_best_pairings(
     guarantee(shards_satisfied.size() == static_cast<size_t>(num_shards));
 }
 
-bool table_reconfigure(
+bool table_generate_config(
         server_name_client_t *name_client,
         namespace_id_t table_id,
         real_reql_cluster_interface_t *reql_cluster_interface,
         clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
-            cow_ptr_t<namespaces_directory_metadata_t> > > > directory_view,
+            namespaces_directory_metadata_t> > > directory_view,
         const std::map<name_string_t, int> &server_usage,
 
-        const table_reconfigure_params_t &params,
+        const table_generate_config_params_t &params,
 
         signal_t *interruptor,
         table_config_t *config_out,
@@ -188,7 +188,7 @@ bool table_reconfigure(
         std::set<name_string_t> missing;
         directory_view->apply_read(
             [&](const change_tracking_map_t<peer_id_t,
-                    cow_ptr_t<namespaces_directory_metadata_t> > *map) {
+                    namespaces_directory_metadata_t> *map) {
                 for (auto it = servers_with_tags.begin();
                           it != servers_with_tags.end();
                         ++it) {
@@ -210,9 +210,9 @@ bool table_reconfigure(
                             missing.insert(*jt);
                             continue;
                         }
-                        cow_ptr_t<namespaces_directory_metadata_t> peer_dir = kt->second;
-                        auto lt = peer_dir->reactor_bcards.find(table_id);
-                        if (lt == peer_dir->reactor_bcards.end()) {
+                        const namespaces_directory_metadata_t &peer_dir = kt->second;
+                        auto lt = peer_dir.reactor_bcards.find(table_id);
+                        if (lt == peer_dir.reactor_bcards.end()) {
                             /* don't raise an error in this case */
                             continue;
                         }

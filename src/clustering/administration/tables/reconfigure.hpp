@@ -3,19 +3,13 @@
 #define CLUSTERING_ADMINISTRATION_TABLES_RECONFIGURE_HPP_
 
 #include "clustering/administration/namespace_metadata.hpp"
+#include "rdb_protocol/context.hpp"
 
 class real_reql_cluster_interface_t;
 class server_name_client_t;
 
-class table_reconfigure_params_t {
-public:
-    int num_shards;
-    std::map<name_string_t, int> num_replicas;
-    name_string_t director_tag;
-};
-
 /* Suggests a `table_config_t` for the table. */
-bool table_reconfigure(
+bool table_generate_config(
         server_name_client_t *name_client,
         /* The UUID of the table being reconfigured. This can be `nil_uuid()`. */
         namespace_id_t table_id,
@@ -25,13 +19,14 @@ bool table_reconfigure(
         /* This is used to determine where the table's data is currently stored and
         prioritize keeping it there. If `table_id` is `nil_uuid()`, this can be NULL. */
         clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
-            cow_ptr_t<namespaces_directory_metadata_t> > > > directory_view,
+            namespaces_directory_metadata_t> > > directory_view,
         /* Compute this by calling `calculate_server_usage()` on the table configs for
         all of the other tables */
         const std::map<name_string_t, int> &server_usage,
 
-        /* `table_reconfigure()` will validate `params` */
-        const table_reconfigure_params_t &params,
+        /* `table_generate_config()` will validate `params`, so there's no need for the
+        caller to do so. */
+        const table_generate_config_params_t &params,
 
         signal_t *interruptor,
         table_config_t *config_out,

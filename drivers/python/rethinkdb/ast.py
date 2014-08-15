@@ -991,6 +991,11 @@ class Table(RqlQuery):
     def index_wait(self, *args):
         return IndexWait(self, *args)
 
+    def reconfigure(self, *args, **kwargs):
+        kwargs.setdefault('director_tag', ())
+        kwargs.setdefault('dry_run', ())
+        return Reconfigure(self, *args, **kwargs)
+
     def sync(self, *args):
         return Sync(self, *args)
 
@@ -1195,6 +1200,10 @@ class IndexStatus(RqlMethodQuery):
 class IndexWait(RqlMethodQuery):
     tt = pTerm.INDEX_WAIT
     st = 'index_wait'
+
+class Reconfigure(RqlMethodQuery):
+    tt = pTerm.RECONFIGURE
+    st = 'reconfigure'
 
 class Sync(RqlMethodQuery):
     tt = pTerm.SYNC

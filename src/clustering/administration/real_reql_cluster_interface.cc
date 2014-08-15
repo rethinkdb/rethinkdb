@@ -263,13 +263,13 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
                 it->second.get_ref().replication_info.get_ref().config, &server_usage);
         }
         clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
-            cow_ptr_t<namespaces_directory_metadata_t> > > > dummy_directory;
+            namespaces_directory_metadata_t> > > dummy_directory;
         /* RSI(reql_admin): These should be passed by the user. */
-        table_reconfigure_params_t config_params;
+        table_generate_config_params_t config_params;
         config_params.num_shards = 1;
         config_params.num_replicas[name_string_t::guarantee_valid("default")] = 1;
         config_params.director_tag = name_string_t::guarantee_valid("default");
-        if (!table_reconfigure(
+        if (!table_generate_config(
                 server_name_client, nil_uuid(), NULL, dummy_directory, server_usage,
                 config_params, interruptor, &repli_info.config, error_out)) {
             return false;
@@ -415,6 +415,77 @@ bool real_reql_cluster_interface_t::server_rename(
     on_thread_t thread_switcher(server_name_client->home_thread());
     return server_name_client->rename_server(old_name, new_name,
         &interruptor2, error_out);
+}
+
+bool real_reql_cluster_interface_t::table_reconfigure(
+        counted_t<const ql::db_t> db, const name_string_t &name,
+        const table_generate_config_params_t &params,
+        bool dry_run,
+        signal_t *interruptor,
+        counted_t<const ql::datum_t> *new_config_out,
+        std::string *error_out) {
+    on_thread_t thread_switcher(server_name_client->home_thread());
+
+    /* Find the specified table in the semilattice metadata */
+    cluster_semilattice_metadata_t metadata = semilattice_root_view->get();
+    cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change(
+            &metadata.rdb_namespaces);
+    metadata_searcher_t<namespace_semilattice_metadata_t> ns_searcher(
+            &ns_change.get()->namespaces);
+    namespace_predicate_t pred(&name, &db->id);
+    metadata_search_status_t status;
+    auto ns_metadata_it = ns_searcher.find_uniq(pred, &status);
+    if (!check_metadata_status(status, "Table", db->name + "." + name.str(), true,
+            error_out)) return false;
+
+    std::map<name_string_t, int> server_usage;
+    for (auto it = ns_searcher.begin();
+              it != ns_searcher.end();
+              it = ns_searcher.find_next(++it)) {
+        if (it == ns_metadata_it) {
+            /* We don't want to take into account the table's current configuration,
+            since we're about to change that anyway */
+            continue;
+        }
+        /* RSI(reql_admin): This doesn't handle vector clock conflicts. */
+        calculate_server_usage(it->second.get_ref().replication_info.get_ref().config,
+                               &server_usage);
+    }
+
+    table_replication_info_t new_repli_info;
+
+    /* This just generates a new configuration; it doesn't put it in the
+    semilattices. */
+    if (!table_generate_config(
+            server_name_client,
+            ns_metadata_it->first,
+            this,
+            directory_root_view->incremental_subview(
+                incremental_field_getter_t<namespaces_directory_metadata_t,
+                                           cluster_directory_metadata_t>
+                    (&cluster_directory_metadata_t::rdb_namespaces)),
+            server_usage,
+            params,
+            interruptor,
+            &new_repli_info.config,
+            error_out)) {
+        return false;
+    }
+
+    if (!dry_run) {
+        new_repli_info.chosen_directors =
+            table_elect_directors(new_repli_info.config, server_name_client);
+        /* Commit the change */
+        ns_metadata_it->second.get_mutable()->replication_info =
+            ns_metadata_it->second.get_ref().replication_info.make_resolving_version(
+                new_repli_info, my_machine_id);
+        semilattice_root_view->join(metadata);
+    }
+
+    // RSI: Return a datum representation of `new_repli_info.config`
+    *new_config_out = ql::datum_t::null();   
+
+    return true;
 }
 
 /* Checks that divisor is indeed a divisor of multiple. */

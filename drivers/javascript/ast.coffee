@@ -300,6 +300,8 @@ class RDBVal extends TermBase
     indexWait: (args...) -> new IndexWait {}, @, args...
     indexRename: aropt (old_name, new_name, opts) -> new IndexRename opts, @, old_name, new_name
 
+    reconfigure: (args...) -> new Reconfigure {}, @, args...
+
     sync: (args...) -> new Sync {}, @, args...
 
     toISO8601: (args...) -> new ToISO8601 {}, @, args...
@@ -880,6 +882,10 @@ class IndexStatus extends RDBOp
 class IndexWait extends RDBOp
     tt: protoTermType.INDEX_WAIT
     mt: 'indexWait'
+
+class Reconfigure extends RDBOp
+    tt: protoTermType.RECONFIGURE
+    mt: 'reconfigure'
 
 class Sync extends RDBOp
     tt: protoTermType.SYNC
