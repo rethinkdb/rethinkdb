@@ -55,7 +55,8 @@ counted_t<const ql::datum_t> convert_director_status_to_datum(
         } else {
             tally += count_in_state<primary_when_safe_t>(*status);
             if (tally == status->size()) {
-                state = "backfill_data";
+                state = "backfilling_data";
+                /* RSI(reql_admin): Implement backfill progress */
                 object_builder.overwrite("backfill_progress",
                     make_counted<const ql::datum_t>("not_implemented"));
             } else {
@@ -83,11 +84,12 @@ counted_t<const ql::datum_t> convert_replica_status_to_datum(
         } else {
             tally += count_in_state<secondary_without_primary_t>(*status);
             if (tally == status->size()) {
-                state = "need_director";
+                state = "looking_for_director";
             } else {
                 tally += count_in_state<secondary_backfilling_t>(*status);
                 if (tally == status->size()) {
-                    state = "backfill_data";
+                    state = "backfilling_data";
+                    /* RSI(reql_admin): Implement backfill progress */
                     object_builder.overwrite("backfill_progress",
                         make_counted<const ql::datum_t>("not_implemented"));
                 } else {
@@ -117,11 +119,11 @@ counted_t<const ql::datum_t> convert_nothing_status_to_datum(
         } else {
             tally += count_in_state<nothing_when_done_erasing_t>(*status);
             if (tally == status->size()) {
-                state = "erase_data";
+                state = "erasing_data";
             } else {
                 tally += count_in_state<nothing_when_safe_t>(*status);
                 if (tally == status->size()) {
-                    state = "offload_data";
+                    state = "offloading_data";
                 } else {
                     state = "transitioning";
                 }
