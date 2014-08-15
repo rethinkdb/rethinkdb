@@ -139,6 +139,8 @@ static void pick_best_pairings(
             continue;
         }
         (*picks_out)[it->second.first] = it->second.second;
+        /* RSI: Remove the selected entry from `costs` to make sure that a given server
+        never hosts multiple replicas of a given shard */
         shards_satisfied.insert(it->second.first);
         servers_used.insert(it->second.second);
         if (shards_satisfied.size() == static_cast<size_t>(num_shards)) {
@@ -247,6 +249,8 @@ bool table_generate_config(
         config_out->shards[i].split_point =
             boost::optional<store_key_t>(split_points[i]);
     }
+
+    /* RSI: Make sure that there are enough servers available */
 
     /* Finally, fill in the servers */
     for (auto it = params.num_replicas.begin(); it != params.num_replicas.end(); ++it) {

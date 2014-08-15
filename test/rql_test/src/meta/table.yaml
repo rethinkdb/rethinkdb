@@ -54,6 +54,19 @@ tests:
       rb: db.table_create('ab', {:primary_key => 'bar', :durability => 'wrong'})
       ot: err('RqlRuntimeError', 'Durability option `wrong` unrecognized (options are "hard" and "soft").', [0])
 
+    # Table reconfigure
+    - cd: db.table_create('a')
+      ot: ({'created':1})
+
+    - cd: db.table('a').reconfigure(1, 1)
+
+    - cd: db.table('a').reconfigure(1, {"default": 1})
+
+    - py: db.table('a').reconfigure(1, 1, director_tag='default')
+      js: db.table('a').reconfigure(1, 1, {director_tag:'default'})
+      rb: db.table('a').reconfigure(1, 1, {:director_tag => 'default'})
+
+    - cd: db.table('a').reconfigure(1, 1, dry_run=True)
 
     # Table errors
     - cd: db.table_create('foo')
@@ -83,3 +96,6 @@ tests:
       py: db.table_create('nonsense1', datacenter='bar')
       rb: db.table_create('nonsense1', :datacenter => 'bar')
       ot: err('RqlRuntimeError', 'Datacenter `bar` does not exist.', [0])
+
+    # RSI: Test how reconfigure() responds to invalid input
+
