@@ -28,18 +28,29 @@ name_string_t get_name(counted_t<val_t> val, const term_t *caller,
 std::map<name_string_t, int> get_replica_counts(counted_t<val_t> arg) {
     r_sanity_check(arg.has());
     std::map<name_string_t, int> replica_counts;
-    const std::map<std::string, counted_t<const datum_t> > &obj = arg->as_object();
-    for (auto it = obj.begin(); it != obj.end(); ++it) {
-        name_string_t name;
-        bool assignment_successful = name.assign_value(it->first);
-        rcheck_target(arg.get(), base_exc_t::GENERIC, assignment_successful,
-            strprintf("Server tag name `%s` invalid (%s).",
-                      it->first.c_str(), name_string_t::valid_char_msg));
-        int64_t replicas = checked_convert_to_int(arg.get(), it->second->as_num());
-        rcheck_target(arg.get(), base_exc_t::GENERIC,
-            (replicas >= 0 && replicas < std::numeric_limits<int>::max()),
-            strprintf("Integer too large: %" PRIi64, replicas));
-        replica_counts.insert(std::make_pair(name, replicas));
+    counted_t<const datum_t> datum = arg->as_datum();
+    if (datum->get_type() == datum_t::R_OBJECT) {
+        const std::map<std::string, counted_t<const datum_t> > &obj = datum->as_object();
+        for (auto it = obj.begin(); it != obj.end(); ++it) {
+            name_string_t name;
+            bool assignment_successful = name.assign_value(it->first);
+            rcheck_target(arg.get(), base_exc_t::GENERIC, assignment_successful,
+                strprintf("Server tag name `%s` invalid (%s).",
+                          it->first.c_str(), name_string_t::valid_char_msg));
+            int64_t replicas = checked_convert_to_int(arg.get(), it->second->as_num());
+            rcheck_target(arg.get(), base_exc_t::GENERIC,
+                (abs(replicas) < std::numeric_limits<int>::max()),
+                strprintf("Integer too large: %" PRIi64, replicas));
+            replica_counts.insert(std::make_pair(name, replicas));
+        }
+    } else if (datum->get_type() == datum_t::R_NUM) {
+        int replicas = arg->as_int<int>();
+        replica_counts.insert(std::make_pair(
+            name_string_t::guarantee_valid("default"), replicas));
+    } else {
+        rfail_target(arg.get(), base_exc_t::GENERIC,
+            "Expected type OBJECT or NUMBER but found %s:\n%s",
+            datum->get_type_name().c_str(), datum->print().c_str());
     }
     return replica_counts;
 }

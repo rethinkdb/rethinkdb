@@ -300,7 +300,8 @@ class RDBVal extends TermBase
     indexWait: (args...) -> new IndexWait {}, @, args...
     indexRename: aropt (old_name, new_name, opts) -> new IndexRename opts, @, old_name, new_name
 
-    reconfigure: (args...) -> new Reconfigure {}, @, args...
+    reconfigure: aropt (num_shards, num_replicas, opts) ->
+        new Reconfigure opts, @, num_shards, num_replicas
 
     sync: (args...) -> new Sync {}, @, args...
 
@@ -357,6 +358,8 @@ translateBackOptargs = (optargs) ->
             when 'default_timezone' then 'defaultTimezone'
             when 'result_format' then 'resultFormat'
             when 'page_limit' then 'pageLimit'
+            when 'director_tag' then 'directorTag'
+            when 'dry_run' then 'dryRun'
             else key
 
         result[key] = val
@@ -377,6 +380,8 @@ translateOptargs = (optargs) ->
             when 'defaultTimezone' then 'default_timezone'
             when 'resultFormat' then 'result_format'
             when 'pageLimit' then 'page_limit'
+            when 'directorTag' then 'director_tag'
+            when 'dryRun' then 'dry_run'
             else key
 
         if key is undefined or val is undefined then continue

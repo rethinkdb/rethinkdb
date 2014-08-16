@@ -444,7 +444,7 @@ bool real_reql_cluster_interface_t::table_reconfigure(
             error_out)) return false;
 
     std::map<name_string_t, int> server_usage;
-    for (auto it = ns_searcher.begin();
+    for (auto it = ns_searcher.find_next(ns_searcher.begin());
               it != ns_searcher.end();
               it = ns_searcher.find_next(++it)) {
         if (it == ns_metadata_it) {
