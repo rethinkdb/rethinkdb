@@ -118,12 +118,13 @@ private:
                         rcheck(n == -1 && last_d.has(), base_exc_t::NON_EXISTENCE,
                                strprintf("Index out of bounds: %d", n));
                         return tbl.has()
-                            ? new_val(single_selection_t::from_row(tbl, last_d))
+                            ? new_val(single_selection_t::from_row(
+                                          env->env, tbl, last_d))
                             : new_val(last_d);
                     }
                     if (i == n) {
                         return tbl.has()
-                            ? new_val(single_selection_t::from_row(tbl, d))
+                            ? new_val(single_selection_t::from_row(env->env, tbl, d))
                             : new_val(d);
                     }
                     last_d = d;

@@ -149,7 +149,7 @@ public:
     static counted_t<single_selection_t> from_key(
         env_t *env, counted_t<table_t> table, counted_t<const datum_t> key);
     static counted_t<single_selection_t> from_row(
-        counted_t<table_t> table, counted_t<const datum_t> key);
+        env_t *env, counted_t<table_t> table, counted_t<const datum_t> key);
     static counted_t<single_selection_t> from_slice(
         env_t *env, counted_t<table_slice_t> table,
         protob_t<const Backtrace> bt, std::string err);

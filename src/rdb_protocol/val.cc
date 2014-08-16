@@ -84,11 +84,11 @@ counted_t<single_selection_t> single_selection_t::from_key(
     return make_counted<get_selection_t>(env, std::move(table), std::move(key));
 }
 counted_t<single_selection_t> single_selection_t::from_row(
-    counted_t<table_t> table, counted_t<const datum_t> row) {
+    env_t *env, counted_t<table_t> table, counted_t<const datum_t> row) {
     counted_t<const datum_t> d = row->get(table->get_pkey(), NOTHROW);
     r_sanity_check(d.has());
     return make_counted<get_selection_t>(
-        nullptr, std::move(table), std::move(d), std::move(row));
+        env, std::move(table), std::move(d), std::move(row));
 }
 counted_t<single_selection_t> single_selection_t::from_slice(
     env_t *env, counted_t<table_slice_t> table,
