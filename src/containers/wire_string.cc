@@ -1,7 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "containers/wire_string.hpp"
 
-// TODO! Clean up includes
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>

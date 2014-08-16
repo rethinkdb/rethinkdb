@@ -19,18 +19,15 @@
 void parse_header(const std::string &header,
                   http_result_t *res_out);
 
+enum class attach_json_to_error_t { YES, NO };
 void json_to_datum(const std::string &json,
                    const ql::configured_limits_t &limits,
-                   http_result_t *res_out);
-void json_to_datum(std::string &&json,
-                   const ql::configured_limits_t &limits,
+                   attach_json_to_error_t attach_json,
                    http_result_t *res_out);
 
 void jsonp_to_datum(const std::string &jsonp,
                     const ql::configured_limits_t &limits,
-                    http_result_t *res_out);
-void jsonp_to_datum(std::string &&jsonp,
-                    const ql::configured_limits_t &limits,
+                    attach_json_to_error_t attach_json,
                     http_result_t *res_out);
 
 void perform_http(http_opts_t *opts,
@@ -567,8 +564,7 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
         }
     }
 
-    // TODO! Can we make steal_body_data() give us a wire_string_t directly?
-    wire_string_t body_data(curl_data.steal_body_data());
+    std::string body_data(curl_data.steal_body_data());
     std::string header_data(curl_data.steal_header_data());
     truncate_header_data(&header_data);
 
@@ -588,7 +584,7 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
             parse_header(header_data, res_out);
         }
         if (!body_data.empty()) {
-            res_out->body = make_counted<const ql::datum_t>(std::move(body_data));
+            res_out->body = make_counted<const ql::datum_t>(wire_string_t(body_data));
         }
         res_out->error = strprintf("status code %ld", response_code);
     } else {
@@ -621,50 +617,48 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
                 }
 
                 if (content_type.find("application/json") == 0) {
-                    // TODO!
-                    json_to_datum(std::move(body_data.to_std()), opts->limits, res_out);
+                    json_to_datum(body_data, opts->limits,
+                                  attach_json_to_error_t::YES, res_out);
                 } else if (content_type.find("text/javascript") == 0 ||
                            content_type.find("application/json-p") == 0 ||
                            content_type.find("text/json-p") == 0) {
                     // Try to parse the result as JSON, then as JSONP, then plaintext
                     // Do not use move semantics here, as we retry on errors
-                    // TODO! to_std()...
-                    json_to_datum(body_data.to_std(), opts->limits, res_out);
+                    json_to_datum(body_data, opts->limits,
+                                  attach_json_to_error_t::NO, res_out);
                     if (!res_out->error.empty()) {
                         res_out->error.clear();
-                        // TODO!
-                        jsonp_to_datum(body_data.to_std(), opts->limits, res_out);
+                        jsonp_to_datum(body_data, opts->limits,
+                                       attach_json_to_error_t::NO, res_out);
                         if (!res_out->error.empty()) {
                             res_out->error.clear();
                             res_out->body =
-                                make_counted<const ql::datum_t>(std::move(body_data));
+                                make_counted<const ql::datum_t>(wire_string_t(body_data));
                         }
                     }
                 } else if (content_type.find("audio/") == 0 ||
                            content_type.find("image/") == 0 ||
                            content_type.find("video/") == 0 ||
                            content_type.find("application/octet-stream") == 0) {
-                    res_out->body = ql::datum_t::binary(std::move(body_data));
+                    res_out->body = ql::datum_t::binary(wire_string_t(body_data));
 
                 } else {
                     res_out->body =
-                        make_counted<const ql::datum_t>(std::move(body_data));
+                        make_counted<const ql::datum_t>(wire_string_t(body_data));
                 }
             }
             break;
         case http_result_format_t::JSON:
-            // TODO!
-            json_to_datum(body_data.to_std(), opts->limits, res_out);
+            json_to_datum(body_data, opts->limits, attach_json_to_error_t::YES, res_out);
             break;
         case http_result_format_t::JSONP:
-            // TODO!
-            jsonp_to_datum(body_data.to_std(), opts->limits, res_out);
+            jsonp_to_datum(body_data, opts->limits, attach_json_to_error_t::YES, res_out);
             break;
         case http_result_format_t::TEXT:
-            res_out->body = make_counted<const ql::datum_t>(std::move(body_data));
+            res_out->body = make_counted<const ql::datum_t>(wire_string_t(body_data));
             break;
         case http_result_format_t::BINARY:
-            res_out->body = ql::datum_t::binary(std::move(body_data));
+            res_out->body = ql::datum_t::binary(wire_string_t(body_data));
             break;
         default:
             unreachable();
@@ -824,31 +818,18 @@ void parse_header(const std::string &header,
     res_out->header = header_parser_singleton_t::parse(header);
 }
 
-// This version will not use move semantics for the body data, to be used in
-// result_format="auto", where we may fallback to jsonp
 void json_to_datum(const std::string &json,
                    const ql::configured_limits_t &limits,
+                   attach_json_to_error_t attach_json,
                    http_result_t *res_out) {
     scoped_cJSON_t cjson(cJSON_Parse(json.c_str()));
     if (cjson.get() != NULL) {
         res_out->body = ql::to_datum(cjson.get(), limits);
     } else {
         res_out->error.assign("failed to parse JSON response");
-    }
-}
-
-// TODO! The move semantics makes no sense here anymore.
-// This version uses move semantics and includes the body as a string when a
-// parsing error occurs.
-void json_to_datum(std::string &&json,
-                   const ql::configured_limits_t &limits,
-                   http_result_t *res_out) {
-    scoped_cJSON_t cjson(cJSON_Parse(json.c_str()));
-    if (cjson.get() != NULL) {
-        res_out->body = ql::to_datum(cjson.get(), limits);
-    } else {
-        res_out->error.assign("failed to parse JSON response");
-        res_out->body = make_counted<const ql::datum_t>(wire_string_t(json));
+        if (attach_json == attach_json_to_error_t::YES) {
+            res_out->body = make_counted<const ql::datum_t>(wire_string_t(json));
+        }
     }
 }
 
@@ -905,29 +886,16 @@ const char *jsonp_parser_singleton_t::js_ident =
     "[$_\\p{Ll}\\p{Lt}\\p{Lu}\\p{Lm}\\p{Lo}\\p{Nl}\\p{Mn}\\p{Mc}\\p{Nd}\\p{Pc}]*"
     "\\s*";
 
-// This version will not use move semantics for the body data, to be used in
-// result_format="auto", where we may fallback to passing back the body as a string
 void jsonp_to_datum(const std::string &jsonp, const ql::configured_limits_t &limits,
+                    attach_json_to_error_t attach_json,
                     http_result_t *res_out) {
     std::string json_string;
     if (jsonp_parser_singleton_t::parse(jsonp, &json_string)) {
-        json_to_datum(json_string, limits, res_out);
+        json_to_datum(json_string, limits, attach_json, res_out);
     } else {
         res_out->error.assign("failed to parse JSONP response");
-    }
-}
-
-
-// TODO! Same re move semantics
-// This version uses move semantics and includes the body as a string when a
-// parsing error occurs.
-void jsonp_to_datum(std::string &&jsonp, const ql::configured_limits_t &limits,
-                    http_result_t *res_out) {
-    std::string json_string;
-    if (jsonp_parser_singleton_t::parse(jsonp, &json_string)) {
-        json_to_datum(std::move(json_string), limits, res_out);
-    } else {
-        res_out->error.assign("failed to parse JSONP response");
-        res_out->body = make_counted<const ql::datum_t>(wire_string_t(jsonp));
+        if (attach_json == attach_json_to_error_t::YES) {
+            res_out->body = make_counted<const ql::datum_t>(wire_string_t(jsonp));
+        }
     }
 }

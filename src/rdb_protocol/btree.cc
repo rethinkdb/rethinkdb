@@ -230,6 +230,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
     profile::trace_t *trace)
 {
     const return_changes_t return_changes = replacer->should_return_changes();
+    // TODO! Can we get rid of the std::string variant completely?
     const std::string &primary_key = *info.btree->primary_key;
     const wire_string_t primary_key_w(primary_key);
     const store_key_t &key = *info.key;
@@ -274,7 +275,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
         } else if (new_val->get_type() == ql::datum_t::R_OBJECT) {
             ended_empty = false;
             new_val->rcheck_valid_replace(
-                old_val, counted_t<const ql::datum_t>(), primary_key);
+                old_val, counted_t<const ql::datum_t>(), primary_key_w);
             counted_t<const ql::datum_t> pk = new_val->get_field(primary_key_w, ql::NOTHROW);
             rcheck_target(
                 new_val, ql::base_exc_t::GENERIC,

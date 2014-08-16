@@ -52,7 +52,8 @@ counted_t<const datum_t> table_t::batched_replace(
             counted_t<const datum_t> new_val;
             try {
                 new_val = replacement_generator->call(env, vals[i])->as_datum();
-                new_val->rcheck_valid_replace(vals[i], keys[i], get_pkey());
+                new_val->rcheck_valid_replace(vals[i], keys[i],
+                                              wire_string_t(get_pkey()));
                 r_sanity_check(new_val.has());
                 replacement_values.push_back(new_val);
             } catch (const base_exc_t &e) {
@@ -88,11 +89,11 @@ counted_t<const datum_t> table_t::batched_insert(
     valid_inserts.reserve(insert_datums.size());
     for (auto it = insert_datums.begin(); it != insert_datums.end(); ++it) {
         try {
+            wire_string_t pkey_w(get_pkey());
             (*it)->rcheck_valid_replace(counted_t<const datum_t>(),
                                         counted_t<const datum_t>(),
-                                        get_pkey());
-            const counted_t<const ql::datum_t> &keyval =
-                (*it)->get_field(wire_string_t(get_pkey()));
+                                        pkey_w);
+            const counted_t<const ql::datum_t> &keyval = (*it)->get_field(pkey_w);
             keyval->print_primary(); // does error checking
             valid_inserts.push_back(std::move(*it));
         } catch (const base_exc_t &e) {

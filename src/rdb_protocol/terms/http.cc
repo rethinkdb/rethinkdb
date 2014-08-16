@@ -518,7 +518,6 @@ void http_term_t::get_method(scope_env_t *env,
 std::string http_term_t::get_auth_item(const counted_t<const datum_t> &datum,
                                        const std::string &name,
                                        const pb_rcheckable_t *auth) {
-    // TODO! to_std() all around...
     counted_t<const datum_t> item = datum->get_field(wire_string_t(name), NOTHROW);
     if (!item.has()) {
         rfail_target(auth, base_exc_t::GENERIC,

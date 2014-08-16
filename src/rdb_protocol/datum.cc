@@ -595,22 +595,22 @@ counted_t<const datum_t> datum_t::drop_literals(bool *encountered_literal_out) c
 
 void datum_t::rcheck_valid_replace(counted_t<const datum_t> old_val,
                                    counted_t<const datum_t> orig_key,
-                                   const std::string &pkey) const {
-    // TODO! Can I avoid this conversion to wire_string_t?
-    counted_t<const datum_t> pk = get_field(wire_string_t(pkey), NOTHROW);
+                                   const wire_string_t &pkey) const {
+    counted_t<const datum_t> pk = get_field(pkey, NOTHROW);
     rcheck(pk.has(), base_exc_t::GENERIC,
            strprintf("Inserted object must have primary key `%s`:\n%s",
-                     pkey.c_str(), print().c_str()));
+                     pkey.to_std().c_str(), print().c_str()));
     if (old_val.has()) {
         counted_t<const datum_t> old_pk = orig_key;
         if (old_val->get_type() != R_NULL) {
-            old_pk = old_val->get_field(wire_string_t(pkey), NOTHROW);
+            old_pk = old_val->get_field(pkey, NOTHROW);
             r_sanity_check(old_pk.has());
         }
         if (old_pk.has()) {
             rcheck(*old_pk == *pk, base_exc_t::GENERIC,
                    strprintf("Primary key `%s` cannot be changed (`%s` -> `%s`).",
-                             pkey.c_str(), old_val->print().c_str(), print().c_str()));
+                             pkey.to_std().c_str(), old_val->print().c_str(),
+                             print().c_str()));
         }
     } else {
         r_sanity_check(!orig_key.has());
@@ -944,7 +944,7 @@ cJSON *datum_t::as_json_raw() const {
     case R_BINARY: return pseudo::encode_base64_ptype(as_binary()).release();
     case R_BOOL: return cJSON_CreateBool(as_bool());
     case R_NUM: return cJSON_CreateNumber(as_num());
-    case R_STR: return cJSON_CreateString(as_str().to_std().c_str()); // TODO! Copying...
+    case R_STR: return cJSON_CreateStringN(as_str().data(), as_str().size());
     case R_ARRAY: {
         scoped_cJSON_t arr(cJSON_CreateArray());
         for (size_t i = 0; i < as_array().size(); ++i) {

@@ -305,7 +305,7 @@ SPAWNER_TEST(JSProc, Passthrough) {
         passthrough_test_internal(&pool, array_datum);
 
         for (size_t i = 0; i < 100; ++i) {
-            object_data.insert(std::make_pair(wire_string_t(std::string(i, 'a')), // TODO!
+            object_data.insert(std::make_pair(wire_string_t(std::string(i, 'a')),
                                               make_counted<const ql::datum_t>(static_cast<double>(i))));
             std::map<wire_string_t, counted_t<const ql::datum_t> > copied_data(object_data);
             object_datum = make_counted<const ql::datum_t>(std::move(copied_data));
