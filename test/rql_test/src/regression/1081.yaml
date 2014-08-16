@@ -23,7 +23,7 @@ tests:
 
     - rb: r.table('1081').index_create('password')
       ot: ({'created':1})
-    - rb: r.table('1081').index_wait('password')
+    - rb: r.table('1081').index_wait('password').pluck('index', 'ready')
       ot: ([{'ready':True, 'index':'password'}])
 
     - rb: r.table('1081').get_all(0, :index => 'password').typeof

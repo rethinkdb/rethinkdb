@@ -25,7 +25,7 @@ init () {
     must_fetch_list='bluebird'
     please_fetch_list="handlebars gtest re2 $must_fetch_list"
 
-    required_libs="protobuf v8 re2 z curl"
+    required_libs="protobuf v8 re2 z curl crypto"
     optional_libs="gtest termcap boost_system"
     other_libs="unwind tcmalloc_minimal"
     all_libs="$required_libs $optional_libs $other_libs"
@@ -438,7 +438,7 @@ show_no () {
     local info=""
     show no
     if $req; then
-        if can_fetch $(guess_pkg_name "${1:-}"); then
+        if can_fetch "$(guess_pkg_name "${1:-}")"; then
             info=" Try running ./configure with the --fetch ${1:-} or --allow-fetch flags."
         fi
         error "${err:-${1:-} not found.$info}"
@@ -589,16 +589,24 @@ write_version () {
 
 # test_version_ge <name> <version> <min version>
 test_version_ge () {
+    local fetch_message=
     if ! [[ $2 -ge $3 ]]; then
-        error "$1 $(write_version $2) is too old. At least $1 $(write_version $3) is required"
+        if can_fetch "$(bin_pkg_name "$1")"; then
+            fetch_message=" Try running ./configure with --allow-fetch"
+        fi
+        error "$1 $(write_version $2) is too old. At least $1 $(write_version $3) is required.$fetch_message"
         return 1
     fi
 }
 
 # test_version_le <name> <version> <max version>
 test_version_le () {
-    if ! [[ $2 -le $3 ]]; then 
-       error "$1 $(write_version $2) is too recent. At most $1 $(write_version $3) is required"
+    local fetch_message=
+    if ! [[ $2 -le $3 ]]; then
+        if can_fetch "$(bin_pkg_name "$1")"; then
+            fetch_message=" Try running ./configure with --allow-fetch"
+        fi
+        error "$1 $(write_version $2) is too recent. At most $1 $(write_version $3) is required.$fetch_message"
         return 1
     fi
 }
@@ -762,7 +770,7 @@ fetch_lib () {
     local version
     pkg=$(lib_pkg_name "$1")
     add_fetch "$pkg"
-    var "$pkg"_LIB_NAME "$(uc "$1")"
+    var_append "$pkg"_LIB_NAME "$(uc "$1")"
     var "HAS_$(uc "$1")" 1
     macro "$(uc "$1")_LIBS_DEP"         "\$(SUPPORT_BUILD_DIR)/${pkg}_$version/lib/lib$1.a"
     macro "$(uc "$1")_INCLUDE" "-isystem \$(SUPPORT_BUILD_DIR)/${pkg}_$version/include"
@@ -1091,8 +1099,9 @@ guess_pkg_name () {
     pkg=$(lib_pkg_name "$1")
     if [[ "$pkg" != "$1" ]]; then
         echo "$pkg"
+    else
+        bin_pkg_name "$1"
     fi
-    bin_pkg_name "$1"
 }
 
 # can_fetch <pkg>

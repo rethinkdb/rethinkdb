@@ -1,12 +1,45 @@
 #!/usr/local/bin/ruby
-$LOAD_PATH.unshift '../../drivers/ruby/lib'
-$LOAD_PATH.unshift '../../build/drivers/ruby/rdb_protocol'
+
+require 'test/unit'
 require 'pp'
-require 'rethinkdb'
+
+importFilePath = ''
+if ENV['RUBY_DRIVER_DIR']
+  if File.file?(File.join(ENV['RUBY_DRIVER_DIR'], 'rethinkdb.rb'))
+    importFilePath = File.join(ENV['RUBY_DRIVER_DIR'], 'rethinkdb.rb')
+  elsif File.file?(File.join(ENV['RUBY_DRIVER_DIR'], 'lib', 'rethinkdb.rb'))
+    importFilePath = File.join(ENV['RUBY_DRIVER_DIR'], 'lib', 'rethinkdb.rb')
+  else 
+    abort('The Ruby driver was not where it was expected based on RUBY_DRIVER_DIR: ' + ENV['RUBY_DRIVER_DIR'])
+  end
+  $LOAD_PATH.unshift File.dirname(importFilePath)
+  require File.join(importFilePath)
+  $LOAD_PATH.shift
+else
+  projectDir = File.dirname(File.dirname(File.dirname(File.expand_path(__FILE__))))
+  
+  ['build', ''].each do |pathPrefix|
+    dirPath = File.join(projectDir, pathPrefix, 'drivers', 'ruby', 'lib')
+    if File.file?(File.join(dirPath, 'rethinkdb.rb')) && File.file?(File.join(dirPath, 'ql2.pb.rb'))
+      importFilePath = File.join(dirPath, 'rethinkdb.rb')
+      break
+    end
+  end
+  
+  # import or fail
+  if importFilePath == ''
+    abort('Could not find a built ruby driver. Please build it.')
+  end
+  
+  $LOAD_PATH.unshift File.dirname(importFilePath)
+  require File.join(importFilePath)
+  $LOAD_PATH.shift
+end
+puts('RethinkDB driver loaded from: ' + File.dirname(importFilePath))
 include RethinkDB::Shortcuts
 
 $port ||= ARGV[0].to_i
-ARGV = []
+ARGV.clear
 $c = r.connect(port: $port).repl
 
 $run_exc = RethinkDB::RqlRuntimeError
@@ -48,7 +81,6 @@ $slow = nil
 $gmrdata = [{"a"=>0, "arr"=>[0, 0], "id"=>0}, {"a"=>1, "arr"=>[1, 1], "b"=>1, "id"=>1}, {"a"=>2, "arr"=>[0, 2], "b"=>2, "id"=>2}, {"a"=>0, "arr"=>[1, 3], "id"=>3}, {"a"=>1, "arr"=>[0, 4], "id"=>4}, {"a"=>2, "arr"=>[1, 0], "b"=>2, "id"=>5}, {"a"=>0, "arr"=>[0, 1], "id"=>6}, {"a"=>1, "arr"=>[1, 2], "b"=>1, "id"=>7}, {"a"=>2, "arr"=>[0, 3], "b"=>2, "id"=>8}, {"a"=>0, "arr"=>[1, 4], "id"=>9}]
 $tbl = r.table('gmrdata')
 
-require 'test/unit'
 class ClientTest < Test::Unit::TestCase
   def setup
     r.db_create('test').run rescue nil

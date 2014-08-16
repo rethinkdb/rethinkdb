@@ -1,4 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
+#include "unittest/rdb_protocol.hpp"
+
 #include <vector>
 
 #include "errors.hpp"
@@ -25,7 +27,6 @@
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {
-namespace {
 
 void run_with_namespace_interface(
         boost::function<void(namespace_interface_t *, order_source_t *)> fun,
@@ -76,7 +77,8 @@ void run_with_namespace_interface(
                     make_scoped<store_t>(serializers[i].get(), &balancer,
                         temp_files[i]->name().permanent_path(), do_create,
                         &get_global_perfmon_collection(), &ctx,
-                        &io_backender, base_path_t(".")));
+                        &io_backender, base_path_t("."),
+                        static_cast<outdated_index_report_t *>(NULL)));
         }
 
         std::vector<scoped_ptr_t<store_view_t> > stores;
@@ -114,8 +116,6 @@ void run_in_thread_pool_with_namespace_interface(
                                            oversharded,
                                            num_restarts));
 }
-
-}   /* anonymous namespace */
 
 /* `SetupTeardown` makes sure that it can start and stop without anything going
 horribly wrong */
@@ -184,7 +184,8 @@ std::string create_sindex(namespace_interface_t *nsi,
 
     ql::map_wire_func_t m(mapping, make_vector(arg), get_backtrace(mapping));
 
-    write_t write(sindex_create_t(id, m, sindex_multi_bool_t::SINGLE),
+    write_t write(sindex_create_t(id, m, sindex_multi_bool_t::SINGLE,
+                                  sindex_geo_bool_t::REGULAR),
                   profile_bool_t::PROFILE, ql::configured_limits_t());
     write_response_t response;
 
@@ -400,7 +401,7 @@ void run_create_drop_sindex_with_data_test(namespace_interface_t *nsi,
 
 void run_repeated_sindex_test(namespace_interface_t *nsi,
                               order_source_t *osource,
-                              void(*fn)(namespace_interface_t*,order_source_t*,int)) {
+                              void (*fn)(namespace_interface_t *, order_source_t *, int)) {
     // Run the test with just a few documents in it
     fn(nsi, osource, 128);
     // ... and just for fun sometimes do it a second time immediately after.

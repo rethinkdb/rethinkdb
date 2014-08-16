@@ -16,7 +16,8 @@ setup(
             'rethinkdb-import = rethinkdb._import:main',
             'rethinkdb-dump = rethinkdb._dump:main',
             'rethinkdb-export = rethinkdb._export:main',
-            'rethinkdb-restore = rethinkdb._restore:main'
+            'rethinkdb-restore = rethinkdb._restore:main',
+            'rethinkdb-index-rebuild = rethinkdb._index_rebuild:main'
         ]
     }
 )

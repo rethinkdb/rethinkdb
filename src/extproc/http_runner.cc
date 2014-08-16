@@ -11,7 +11,7 @@ RDB_IMPL_ME_SERIALIZABLE_14(http_opts_t, auth, method, result_format, url,
                             proxy, empty_ok(url_params), header, data,
                             form_data, limits, timeout_ms, attempts,
                             max_redirects, verify);
-INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(http_opts_t);
+INSTANTIATE_SERIALIZABLE_SELF_FOR_CLUSTER(http_opts_t);
 
 std::string http_method_to_str(http_method_t method) {
     switch(method) {

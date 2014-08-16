@@ -5,10 +5,11 @@
 
 #ifdef ENABLE_CORO_PROFILER
 
+#include <stdio.h>
+
 #include <algorithm>
 #include <array>
 #include <map>
-#include <fstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -68,6 +69,7 @@ public:
     // Should you ever want to make this a true singleton, just make the
     // constructor private.
     coro_profiler_t();
+    ~coro_profiler_t();
 
     static coro_profiler_t &get_global_profiler();
 
@@ -160,7 +162,8 @@ private:
     std::map<void *, std::string> frame_description_cache;
     address_to_line_t address_to_line;
 
-    std::ofstream reql_output_file;
+    // This is NULL if opening the file failed.
+    FILE *reql_output_file;
 
     DISABLE_COPYING(coro_profiler_t);
 };

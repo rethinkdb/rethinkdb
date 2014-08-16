@@ -63,10 +63,39 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all_changes(
         "Artificial tables currently only support point read and replace.");
 }
 
+counted_t<ql::datum_stream_t> artificial_table_t::read_intersecting(
+        UNUSED ql::env_t *env,
+        UNUSED const std::string &sindex,
+        UNUSED const ql::protob_t<const Backtrace> &bt,
+        UNUSED const std::string &table_name,
+        UNUSED bool use_outdated,
+        UNUSED const counted_t<const ql::datum_t> &query_geometry) {
+    /* RSI(reql_admin): Artificial tables will eventually support all operations. */
+    rfail_datum(ql::base_exc_t::GENERIC,
+        "Artificial tables currently only support point read and replace.");
+}
+
+counted_t<ql::datum_stream_t> artificial_table_t::read_nearest(
+        UNUSED ql::env_t *env,
+        UNUSED const std::string &sindex,
+        UNUSED const ql::protob_t<const Backtrace> &bt,
+        UNUSED const std::string &table_name,
+        UNUSED bool use_outdated,
+        UNUSED lat_lon_point_t center,
+        UNUSED double max_dist,
+        UNUSED uint64_t max_results,
+        UNUSED const ellipsoid_spec_t &geo_system,
+        UNUSED dist_unit_t dist_unit,
+        UNUSED const ql::configured_limits_t &limits) {
+    /* RSI(reql_admin): Artificial tables will eventually support all operations. */
+    rfail_datum(ql::base_exc_t::GENERIC,
+        "Artificial tables currently only support point read and replace.");
+}
+
 counted_t<const ql::datum_t> artificial_table_t::write_batched_replace(
         ql::env_t *env,
         const std::vector<counted_t<const ql::datum_t> > &keys,
-        const counted_t<ql::func_t> &func,
+        const counted_t<const ql::func_t> &func,
         UNUSED return_changes_t return_changes,
         UNUSED durability_requirement_t durability) {
     for (auto key : keys) {
@@ -127,7 +156,8 @@ bool artificial_table_t::write_sync_depending_on_durability(
 
 bool artificial_table_t::sindex_create(
         UNUSED ql::env_t *env, UNUSED const std::string &id,
-        UNUSED counted_t<ql::func_t> index_func, UNUSED sindex_multi_bool_t multi) {
+        UNUSED counted_t<const ql::func_t> index_func, UNUSED sindex_multi_bool_t multi,
+        UNUSED sindex_geo_bool_t geo) {
     rfail_datum(ql::base_exc_t::GENERIC,
         "Can't create a secondary index on an artificial table.");
 }

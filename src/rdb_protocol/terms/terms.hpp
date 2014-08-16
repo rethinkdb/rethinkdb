@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_TERMS_TERMS_HPP_
 #define RDB_PROTOCOL_TERMS_TERMS_HPP_
 
@@ -112,8 +112,38 @@ counted_t<term_t> make_error_term(
 counted_t<term_t> make_default_term(
     compile_env_t *env, const protob_t<const Term> &term);
 
+// geo.cc
+counted_t<term_t> make_geojson_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_to_geojson_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_point_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_line_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_polygon_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_intersects_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_includes_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_distance_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_circle_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_get_intersecting_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_fill_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_get_nearest_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+
 // js.cc
 counted_t<term_t> make_javascript_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+
+// uuid.cc
+counted_t<term_t> make_uuid_term(
     compile_env_t *env, const protob_t<const Term> &term);
 
 // http.cc

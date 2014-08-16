@@ -12,11 +12,67 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 
-#include "debug.hpp"
-
 void store_t::note_reshard() {
     if (changefeed_server.has()) {
         changefeed_server->stop_all();
+    }
+}
+
+reql_version_t update_sindex_last_compatible_version(secondary_index_t *sindex,
+                                                     buf_lock_t *sindex_block) {
+    sindex_disk_info_t sindex_info;
+    deserialize_sindex_info(sindex->opaque_definition, &sindex_info);
+
+    reql_version_t res;
+    switch (sindex_info.mapping_version_info.original_reql_version) {
+    case reql_version_t::v1_13:
+        res = reql_version_t::v1_13;
+        break;
+    case reql_version_t::v1_14:
+        res = reql_version_t::v1_14;
+        break;
+    default:
+        unreachable();
+    }
+
+    if (sindex_info.mapping_version_info.latest_checked_reql_version
+        != reql_version_t::LATEST) {
+
+        sindex_info.mapping_version_info.latest_compatible_reql_version = res;
+        sindex_info.mapping_version_info.latest_checked_reql_version =
+            reql_version_t::LATEST;
+
+        write_message_t wm;
+        serialize_sindex_info(&wm, sindex_info);
+
+        vector_stream_t stream;
+        stream.reserve(wm.size());
+        int write_res = send_write_message(&stream, &wm);
+        guarantee(write_res == 0);
+
+        sindex->opaque_definition = stream.vector();
+
+        ::set_secondary_index(sindex_block, sindex->id, *sindex);
+    }
+
+    return res;
+}
+
+void store_t::update_outdated_sindex_list(buf_lock_t *sindex_block) {
+    if (index_report != NULL) {
+        std::map<sindex_name_t, secondary_index_t> sindexes;
+        get_secondary_indexes(sindex_block, &sindexes);
+
+        std::set<std::string> index_set;
+        for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
+            if (!it->first.being_deleted &&
+                update_sindex_last_compatible_version(&it->second,
+                                                      sindex_block) !=
+                    reql_version_t::LATEST) {
+                index_set.insert(it->first.name);
+            }
+        }
+        index_report->set_outdated_indexes(std::move(index_set));
     }
 }
 
@@ -124,6 +180,80 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         rdb_get(get.key, btree, superblock, res, trace);
     }
 
+    void operator()(const intersecting_geo_read_t &geo_read) {
+        ql::env_t ql_env(ctx, interruptor, geo_read.optargs, trace);
+
+        response->response = intersecting_geo_read_response_t();
+        intersecting_geo_read_response_t *res =
+            boost::get<intersecting_geo_read_response_t>(&response->response);
+
+        sindex_disk_info_t sindex_info;
+        uuid_u sindex_uuid;
+        scoped_ptr_t<real_superblock_t> sindex_sb;
+        try {
+            sindex_sb =
+                acquire_sindex_for_read(geo_read.table_name, geo_read.sindex_id,
+                &sindex_info, &sindex_uuid);
+        } catch (const ql::exc_t &e) {
+            res->results_or_error = e;
+            return;
+        }
+
+        if (sindex_info.geo != sindex_geo_bool_t::GEO) {
+            res->results_or_error = ql::exc_t(
+                ql::base_exc_t::GENERIC,
+                strprintf(
+                    "Index `%s` is not a geospatial index.  get_intersecting can only "
+                    "be used with a geospatial index.",
+                    geo_read.sindex_id.c_str()),
+                NULL);
+            return;
+        }
+
+        rdb_get_intersecting_slice(
+            store->get_sindex_slice(sindex_uuid),
+            geo_read.query_geometry,
+            sindex_sb.get(), &ql_env,
+            geo_read.region.inner, sindex_info, res);
+    }
+
+    void operator()(const nearest_geo_read_t &geo_read) {
+        ql::env_t ql_env(ctx, interruptor, geo_read.optargs, trace);
+
+        response->response = nearest_geo_read_response_t();
+        nearest_geo_read_response_t *res =
+            boost::get<nearest_geo_read_response_t>(&response->response);
+
+        sindex_disk_info_t sindex_info;
+        uuid_u sindex_uuid;
+        scoped_ptr_t<real_superblock_t> sindex_sb;
+        try {
+            sindex_sb =
+                acquire_sindex_for_read(geo_read.table_name, geo_read.sindex_id,
+                &sindex_info, &sindex_uuid);
+        } catch (const ql::exc_t &e) {
+            res->results_or_error = e;
+            return;
+        }
+
+        if (sindex_info.geo != sindex_geo_bool_t::GEO) {
+            res->results_or_error = ql::exc_t(
+                ql::base_exc_t::GENERIC,
+                strprintf(
+                    "Index `%s` is not a geospatial index.  get_nearest can only be "
+                    "used with a geospatial index.",
+                    geo_read.sindex_id.c_str()),
+                NULL);
+            return;
+        }
+
+        rdb_get_nearest_slice(
+            store->get_sindex_slice(sindex_uuid),
+            geo_read.center, geo_read.max_dist, geo_read.max_results, geo_read.geo_system,
+            sindex_sb.get(), &ql_env,
+            geo_read.region.inner, sindex_info, res);
+    }
+
     void operator()(const rget_read_t &rget) {
         if (rget.transforms.size() != 0 || rget.terminal) {
             // This asserts that the optargs have been initialized.  (There is always
@@ -144,52 +274,35 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                            &ql_env, rget.batchspec, rget.transforms, rget.terminal,
                            rget.sorting, res);
         } else {
-            scoped_ptr_t<real_superblock_t> sindex_sb;
-            std::vector<char> sindex_mapping_data;
-
+            sindex_disk_info_t sindex_info;
             uuid_u sindex_uuid;
+            scoped_ptr_t<real_superblock_t> sindex_sb;
             try {
-                bool found = store->acquire_sindex_superblock_for_read(
-                    sindex_name_t(rget.sindex->id),
-                    rget.table_name,
-                    superblock,
-                    &sindex_sb,
-                    &sindex_mapping_data,
-                    &sindex_uuid);
-                if (!found) {
-                    res->result = ql::exc_t(
-                        ql::base_exc_t::GENERIC,
-                        strprintf("Index `%s` was not found on table `%s`.",
-                                  rget.sindex->id.c_str(), rget.table_name.c_str()),
-                        NULL);
-                    return;
-                }
-            } catch (const sindex_not_ready_exc_t &e) {
-                res->result = ql::exc_t(
-                    ql::base_exc_t::GENERIC, e.what(), NULL);
+                sindex_sb =
+                    acquire_sindex_for_read(rget.table_name, rget.sindex->id,
+                    &sindex_info, &sindex_uuid);
+            } catch (const ql::exc_t &e) {
+                res->result = e;
                 return;
             }
 
-            // This chunk of code puts together a filter so we can exclude any items
-            //  that don't fall in the specified range.  Because the secondary index
-            //  keys may have been truncated, we can't go by keys alone.  Therefore,
-            //  we construct a filter function that ensures all returned items lie
-            //  between sindex_start_value and sindex_end_value.
-            ql::map_wire_func_t sindex_mapping;
-            sindex_reql_version_info_t sindex_mapping_version_info;
-            sindex_multi_bool_t multi_bool;
-            deserialize_sindex_info(sindex_mapping_data,
-                                    &sindex_mapping,
-                                    &sindex_mapping_version_info,
-                                    &multi_bool);
+            if (sindex_info.geo == sindex_geo_bool_t::GEO) {
+                res->result = ql::exc_t(
+                    ql::base_exc_t::GENERIC,
+                    strprintf(
+                        "Index `%s` is a geospatial index.  Only get_nearest and "
+                        "get_intersecting can use a geospatial index.",
+                        rget.sindex->id.c_str()),
+                    NULL);
+                return;
+            }
 
             rdb_rget_secondary_slice(
                 store->get_sindex_slice(sindex_uuid),
                 rget.sindex->original_range, rget.sindex->region,
                 sindex_sb.get(), &ql_env, rget.batchspec, rget.transforms,
                 rget.terminal, rget.region.inner, rget.sorting,
-                sindex_mapping_version_info.latest_compatible_reql_version,
-                sindex_mapping, multi_bool, res);
+                sindex_info, res);
         }
     }
 
@@ -257,12 +370,13 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 continue;
             }
             guarantee(!it->first.being_deleted);
-            if (sindex_status.sindexes.find(it->first.name) != sindex_status.sindexes.end()
+            if (sindex_status.sindexes.find(it->first.name)
+                    != sindex_status.sindexes.end()
                 || sindex_status.sindexes.empty()) {
-                progress_completion_fraction_t frac =
-                    store->get_progress(it->second.id);
-                rdb_protocol::single_sindex_status_t *s =
-                    &res->statuses[it->first.name];
+                rdb_protocol::single_sindex_status_t *s = &res->statuses[it->first.name];
+                const std::vector<char> &vec = it->second.opaque_definition;
+                s->func = std::string(&*vec.begin(), vec.size());
+                progress_completion_fraction_t frac = store->get_progress(it->second.id);
                 s->ready = it->second.is_ready();
                 if (!s->ready) {
                     if (frac.estimate_of_total_nodes == -1) {
@@ -272,6 +386,17 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                         s->blocks_processed = frac.estimate_of_released_nodes;
                         s->blocks_total = frac.estimate_of_total_nodes;
                     }
+                }
+
+                {
+                    sindex_disk_info_t sindex_info;
+                    deserialize_sindex_info(it->second.opaque_definition, &sindex_info);
+
+                    s->geo = sindex_info.geo;
+                    s->multi = sindex_info.multi;
+                    s->outdated =
+                        (sindex_info.mapping_version_info.latest_compatible_reql_version
+                            != reql_version_t::LATEST);
                 }
             }
         }
@@ -295,6 +420,48 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
 private:
+    scoped_ptr_t<real_superblock_t> acquire_sindex_for_read(
+            const std::string &table_name,
+            const std::string &sindex_id,
+            sindex_disk_info_t *sindex_info_out,
+            uuid_u *sindex_uuid_out) {
+        rassert(sindex_info_out != NULL);
+        rassert(sindex_uuid_out != NULL);
+
+        scoped_ptr_t<real_superblock_t> sindex_sb;
+        std::vector<char> sindex_mapping_data;
+
+        uuid_u sindex_uuid;
+        try {
+            bool found = store->acquire_sindex_superblock_for_read(
+                sindex_name_t(sindex_id),
+                table_name,
+                superblock,
+                &sindex_sb,
+                &sindex_mapping_data,
+                &sindex_uuid);
+            if (!found) {
+                throw ql::exc_t(
+                    ql::base_exc_t::GENERIC,
+                    strprintf("Index `%s` was not found on table `%s`.",
+                              sindex_id.c_str(), table_name.c_str()),
+                    NULL);
+            }
+        } catch (const sindex_not_ready_exc_t &e) {
+            throw ql::exc_t(
+                ql::base_exc_t::GENERIC, e.what(), NULL);
+        }
+
+        try {
+            deserialize_sindex_info(sindex_mapping_data, sindex_info_out);
+        } catch (const archive_exc_t &e) {
+            crash("%s", e.what());
+        }
+
+        *sindex_uuid_out = sindex_uuid;
+        return std::move(sindex_sb);
+    }
+
     read_response_t *const response;
     rdb_context_t *const ctx;
     signal_t *const interruptor;
@@ -343,7 +510,7 @@ public:
     return_changes_t should_return_changes() const { return return_changes; }
 private:
     ql::env_t *const env;
-    const counted_t<ql::func_t> f;
+    const counted_t<const ql::func_t> f;
     const return_changes_t return_changes;
 };
 
@@ -389,7 +556,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             rdb_batched_replace(
                 btree_info_t(btree, timestamp,
                              &br.pkey),
-                superblock, br.keys, ql_env.limits, &replacer, &sindex_cb,
+                superblock, br.keys, ql_env.limits(), &replacer, &sindex_cb,
                 trace);
     }
 
@@ -441,10 +608,9 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         sindex_create_response_t res;
 
         write_message_t wm;
-        serialize_sindex_info(&wm,
-                              c.mapping,
-                              sindex_reql_version_info_t::LATEST(),
-                              c.multi);
+        sindex_disk_info_t info(c.mapping, sindex_reql_version_info_t::LATEST(),
+                                c.multi, c.geo);
+        serialize_sindex_info(&wm, info);
 
         vector_stream_t stream;
         stream.reserve(wm.size());
@@ -470,7 +636,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const sindex_drop_t &d) {
         sindex_drop_response_t res;
         res.success = store->drop_sindex(sindex_name_t(d.id), &sindex_block);
-
         response->response = res;
     }
 
@@ -499,7 +664,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             res.result = sindex_rename_result_t::OLD_NAME_DOESNT_EXIST;
         } else {
             if (r.old_name != r.new_name) {
-                store->rename_sindex(old_name, new_name, std::move(sindex_block));
+                store->rename_sindex(old_name, new_name, &sindex_block);
             }
             res.result = sindex_rename_result_t::SUCCESS;
         }

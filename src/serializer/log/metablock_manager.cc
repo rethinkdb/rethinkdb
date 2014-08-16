@@ -138,7 +138,9 @@ bool disk_format_version_is_recognized(uint32_t disk_format_version) {
     return disk_format_version
             == static_cast<uint32_t>(cluster_version_t::v1_13)
         || disk_format_version
-            == static_cast<uint32_t>(cluster_version_t::v1_14_is_latest_disk);
+            == static_cast<uint32_t>(cluster_version_t::v1_14)
+        || disk_format_version
+            == static_cast<uint32_t>(cluster_version_t::v1_15_is_latest_disk);
 }
 
 

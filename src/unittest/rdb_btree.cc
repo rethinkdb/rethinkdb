@@ -99,10 +99,9 @@ sindex_name_t create_sindex(store_t *store) {
     sindex_multi_bool_t multi_bool = sindex_multi_bool_t::SINGLE;
 
     write_message_t wm;
-    serialize_sindex_info(&wm,
-                          m,
-                          sindex_reql_version_info_t::LATEST(),
-                          multi_bool);
+    sindex_disk_info_t sindex_info(m, sindex_reql_version_info_t::LATEST(),
+                                   multi_bool, sindex_geo_bool_t::REGULAR);
+    serialize_sindex_info(&wm, sindex_info);
 
     vector_stream_t stream;
     stream.reserve(wm.size());
@@ -363,7 +362,8 @@ TPTEST(RDBBtree, SindexPostConstruct) {
             &get_global_perfmon_collection(),
             NULL,
             &io_backender,
-            base_path_t("."));
+            base_path_t("."),
+            NULL);
 
     cond_t dummy_interruptor;
 
@@ -404,7 +404,8 @@ TPTEST(RDBBtree, SindexEraseRange) {
             &get_global_perfmon_collection(),
             NULL,
             &io_backender,
-            base_path_t("."));
+            base_path_t("."),
+            NULL);
 
     cond_t dummy_interruptor;
 
@@ -478,7 +479,8 @@ TPTEST(RDBBtree, SindexInterruptionViaDrop) {
             &get_global_perfmon_collection(),
             NULL,
             &io_backender,
-            base_path_t("."));
+            base_path_t("."),
+            NULL);
 
     cond_t dummy_interruptor;
 
@@ -520,7 +522,8 @@ TPTEST(RDBBtree, SindexInterruptionViaStoreDelete) {
             &get_global_perfmon_collection(),
             NULL,
             &io_backender,
-            base_path_t(".")));
+            base_path_t("."),
+            NULL));
 
     insert_rows(0, (TOTAL_KEYS_TO_INSERT * 9) / 10, store.get());
 

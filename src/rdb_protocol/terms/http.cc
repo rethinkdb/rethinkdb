@@ -89,7 +89,7 @@ private:
 
     static void get_page_and_limit(scope_env_t *env,
                                    args_t *args,
-                                   counted_t<func_t> *depaginate_fn_out,
+                                   counted_t<const func_t> *depaginate_fn_out,
                                    int64_t *depaginate_limit_out);
 
     // Helper functions, used in optarg parsing
@@ -136,7 +136,7 @@ void check_url_params(const counted_t<const datum_t> &params,
 class http_datum_stream_t : public eager_datum_stream_t {
 public:
     http_datum_stream_t(http_opts_t &&_opts,
-                        counted_t<func_t> &&_depaginate_fn,
+                        counted_t<const func_t> &&_depaginate_fn,
                         int64_t _depaginate_limit,
                         const protob_t<const Backtrace> &bt) :
         eager_datum_stream_t(bt),
@@ -162,7 +162,7 @@ private:
 
     http_opts_t opts;
     object_buffer_t<http_runner_t> runner;
-    counted_t<func_t> depaginate_fn;
+    counted_t<const func_t> depaginate_fn;
     int64_t depaginate_limit;
     bool more;
 };
@@ -215,12 +215,12 @@ void dispatch_http(env_t *env,
 counted_t<val_t> http_term_t::eval_impl(scope_env_t *env, args_t *args,
                                         eval_flags_t) const {
     http_opts_t opts;
-    opts.limits = env->env->limits;
+    opts.limits = env->env->limits();
     opts.url.assign(args->arg(env, 0)->as_str().to_std());
     opts.proxy.assign(env->env->get_reql_http_proxy());
     get_optargs(env, args, &opts);
 
-    counted_t<func_t> depaginate_fn;
+    counted_t<const func_t> depaginate_fn;
     int64_t depaginate_limit(0);
     get_page_and_limit(env, args, &depaginate_fn, &depaginate_limit);
 
@@ -366,7 +366,7 @@ bool http_datum_stream_t::handle_depage_result(counted_t<const datum_t> depage) 
 // Parameter 4: last data received
 void http_term_t::get_page_and_limit(scope_env_t *env,
                                      args_t *args,
-                                     counted_t<func_t> *depaginate_fn_out,
+                                     counted_t<const func_t> *depaginate_fn_out,
                                      int64_t *depaginate_limit_out) {
     counted_t<val_t> page = args->optarg(env, "page");
     counted_t<val_t> page_limit = args->optarg(env, "page_limit");

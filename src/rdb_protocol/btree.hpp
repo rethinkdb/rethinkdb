@@ -21,6 +21,7 @@ class key_tester_t;
 class parallel_traversal_progress_t;
 template <class> class promise_t;
 struct rdb_value_t;
+struct sindex_disk_info_t;
 
 class parallel_traversal_progress_t;
 
@@ -194,10 +195,29 @@ void rdb_rget_secondary_slice(
     const boost::optional<ql::terminal_variant_t> &terminal,
     const key_range_t &pk_range,
     sorting_t sorting,
-    reql_version_t sindex_func_reql_version,
-    const ql::map_wire_func_t &sindex_func,
-    sindex_multi_bool_t sindex_multi,
+    const sindex_disk_info_t &sindex_info,
     rget_read_response_t *response);
+
+void rdb_get_intersecting_slice(
+    btree_slice_t *slice,
+    const counted_t<const ql::datum_t> &query_geometry,
+    superblock_t *superblock,
+    ql::env_t *ql_env,
+    const key_range_t &pk_range,
+    const sindex_disk_info_t &sindex_info,
+    intersecting_geo_read_response_t *response);
+
+void rdb_get_nearest_slice(
+    btree_slice_t *slice,
+    const lat_lon_point_t &center,
+    double max_dist,
+    uint64_t max_results,
+    const ellipsoid_spec_t &geo_system,
+    superblock_t *superblock,
+    ql::env_t *ql_env,
+    const key_range_t &pk_range,
+    const sindex_disk_info_t &sindex_info,
+    nearest_geo_read_response_t *response);
 
 void rdb_distribution_get(int max_depth,
                           const store_key_t &left_key,
@@ -259,14 +279,27 @@ struct sindex_reql_version_info_t {
     }
 };
 
+struct sindex_disk_info_t {
+    sindex_disk_info_t() { }
+    sindex_disk_info_t(const ql::map_wire_func_t &_mapping,
+                       const sindex_reql_version_info_t &_mapping_version_info,
+                       sindex_multi_bool_t _multi,
+                       sindex_geo_bool_t _geo) :
+        mapping(_mapping), mapping_version_info(_mapping_version_info),
+        multi(_multi), geo(_geo) { }
+    ql::map_wire_func_t mapping;
+    sindex_reql_version_info_t mapping_version_info;
+    sindex_multi_bool_t multi;
+    sindex_geo_bool_t geo;
+};
+
 void serialize_sindex_info(write_message_t *wm,
-                           const ql::map_wire_func_t &mapping,
-                           const sindex_reql_version_info_t &reql_version,
-                           const sindex_multi_bool_t &multi);
+                           const sindex_disk_info_t &info);
+// Note that this will throw an exception if there's an error rather than just
+// crashing.
 void deserialize_sindex_info(const std::vector<char> &data,
-                             ql::map_wire_func_t *mapping,
-                             sindex_reql_version_info_t *reql_version_out,
-                             sindex_multi_bool_t *multi);
+                             sindex_disk_info_t *info_out)
+    THROWS_ONLY(archive_exc_t);
 
 /* An rdb_modification_cb_t is passed to BTree operations and allows them to
  * modify the secondary while they perform an operation. */

@@ -312,8 +312,8 @@ module 'DataExplorerView', ->
         suggestions: {} # Suggestions[state] = function for this state
 
         types:
-            value: ['number', 'bool', 'string', 'array', 'object', 'time']
-            any: ['number', 'bool', 'string', 'array', 'object', 'stream', 'selection', 'table', 'db', 'r', 'error' ]
+            value: ['number', 'bool', 'string', 'array', 'object', 'time', 'binary']
+            any: ['number', 'bool', 'string', 'array', 'object', 'stream', 'selection', 'table', 'db', 'r', 'error', 'binary']
             sequence: ['table', 'selection', 'stream', 'array']
             grouped_stream: ['stream', 'array']
 
@@ -2506,7 +2506,7 @@ module 'DataExplorerView', ->
                         if (error)
                             @error_on_connect error
                         else
-                            rdb_query.private_run connection, {timeFormat: "raw", profile: @state.options.profiler}, rdb_global_callback # @rdb_global_callback can be fired more than once
+                            rdb_query.private_run connection, {binaryFormat: "raw", timeFormat: "raw", profile: @state.options.profiler}, rdb_global_callback # @rdb_global_callback can be fired more than once
                     , @id_execution, @error_on_connect
 
                     return true
@@ -2976,10 +2976,15 @@ module 'DataExplorerView', ->
                     sub_values[sub_values.length-1]['no_comma'] = true
                     return @template_json_tree.array
                         values: sub_values
-            else if value_type is 'object' and value.$reql_type$ is 'TIME' and value.epoch_time?
+            else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'TIME'
                 return @template_json_tree.span
                     classname: 'jt_date'
                     value: @date_to_string(value)
+            else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'BINARY'
+                return @template_json_tree.span
+                    classname: 'jt_bin'
+                    value: @binary_to_string(value)
+
             else if value_type is 'object'
                 sub_keys = []
                 for key of value
@@ -3039,7 +3044,9 @@ module 'DataExplorerView', ->
             result = args.result
 
             if jQuery.isPlainObject(result)
-                if result.$reql_type$ is 'TIME' and result.epoch_time?
+                if result.$reql_type$ is 'TIME'
+                    keys_count.primitive_value_count++
+                else if result.$reql_type$ is 'BINARY'
                     keys_count.primitive_value_count++
                 else
                     for key, row of result
@@ -3093,8 +3100,7 @@ module 'DataExplorerView', ->
 
         # Build the table
         # We order by the most frequent keys then by alphabetic order
-        # if indexes is null, it means that we can order all fields
-        json_to_table: (result, primary_key, can_sort, indexes) =>
+        json_to_table: (result) =>
             # While an Array type is never returned by the driver, we still build an Array in the data explorer
             # when a cursor is returned (since we just print @limit results)
             if not result.constructor? or result.constructor isnt Array
@@ -3157,12 +3163,40 @@ module 'DataExplorerView', ->
                             key: key
 
 
+        # Return whether there are too many datums
+        # If there are too many, we will disable syntax highlighting to avoid freezing the page
+        has_too_many_datums: (result) ->
+            if @has_too_many_datums_helper(result) > @max_datum_threshold
+                return true
+            return false
+
+
+        # Return the number of datums if there are less than @max_datum_threshold
+        # Or return a number greater than @max_datum_threshold
+        has_too_many_datums_helper: (result) ->
+            if Object::toString.call(result) is '[object Object]'
+                count = 0
+                for key of result
+                    count += @has_too_many_datums_helper result[key]
+                    if count > @max_datum_threshold
+                        return count
+                return count
+            else if Array.isArray(result)
+                count = 0
+                for element in result
+                    count += @has_too_many_datums_helper element
+                    if count > @max_datum_threshold
+                        return count
+                return count
+
+            return 1
+
+
         json_to_tree: (result) =>
-            result_json = JSON.stringify(result, null, 4)
             # If the results are too large, we just display the raw indented JSON to avoid freezing the interface
-            if result_json.length > @large_response_threshold
+            if @has_too_many_datums(result)
                 return @template_json_tree.large_container
-                    json_data: result_json
+                    json_data: JSON.stringify(result, null, 4)
             else
                 return @template_json_tree.container
                     tree: @json_to_node(result)
@@ -3221,10 +3255,13 @@ module 'DataExplorerView', ->
                 else
                     data['value'] = '[ ... ]'
                     data['data_to_expand'] = JSON.stringify(value)
-            else if value_type is 'object' and value.$reql_type$ is 'TIME' and value.epoch_time?
+            else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'TIME'
                 data['value'] = @date_to_string(value)
                 data['classname'] = 'jta_date'
-            else if value_type is 'object'
+            else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'BINARY'
+                data['value'] = @binary_to_string value
+                data['classname'] = 'jta_bin'
+            else if Object::toString.call(value) is '[object Object]'
                 data['value'] = '{ ... }'
                 data['is_object'] = true
             else if value_type is 'number'
@@ -3362,8 +3399,57 @@ module 'DataExplorerView', ->
             return raw_date_str.slice(0, raw_date_str.indexOf('GMT')+3)+timezone
 
 
+        binary_to_string: (bin) =>
+            # We print the size of the binary, not the size of the base 64 string
+            # We suppose something stronger than the RFC 2045:
+            # We suppose that there is ONLY one CRLF every 76 characters
+            blocks_of_76 = Math.floor(bin.data.length/78) # 78 to count \r\n
+            leftover = bin.data.length-blocks_of_76*78
+
+            base64_digits = 76*blocks_of_76+leftover
+
+            blocks_of_4 = Math.floor(base64_digits/4)
+
+            end = bin.data.slice(-2)
+            if end is '=='
+                number_of_equals = 2
+            else if end.slice(-1) is '='
+                number_of_equals = 1
+            else
+                number_of_equals = 0
+
+            size = 3*blocks_of_4-number_of_equals
+
+            if size >= 1073741824
+                sizeStr = (size/1073741824).toFixed(1)+'GB'
+            else if size >= 1048576
+                sizeStr = (size/1048576).toFixed(1)+'MB'
+            else if size >= 1024
+                sizeStr = (size/1024).toFixed(1)+'KB'
+            else if size is 1
+                sizeStr = size+' byte'
+            else
+                sizeStr = size+' bytes'
 
 
+            # Compute a snippet and return the <binary, size, snippet> result
+            if size is 0
+                return "<binary, #{sizeStr}>"
+            else
+                str = atob bin.data.slice(0, 8)
+                snippet = ''
+                for char, i  in str
+                    next = str.charCodeAt(i).toString(16)
+                    if next.length is 1
+                        next = "0" + next
+                    snippet += next
+
+                    if i isnt str.length-1
+                        snippet += " "
+                if size > str.length
+                    snippet += "..."
+
+                return "<binary, #{sizeStr}, \"#{snippet}\">"
 
     class @ResultView extends DataExplorerView.SharedResultView
         className: 'result_view'
@@ -3383,7 +3469,7 @@ module 'DataExplorerView', ->
                 'click .activate_profiler': 'activate_profiler'
 
         current_result: []
-        large_response_threshold: 100000 # ~ 2000 uuids
+        max_datum_threshold: 1000
 
         initialize: (args) =>
             @container = args.container
@@ -3746,7 +3832,7 @@ module 'DataExplorerView', ->
             # Set + save codemirror
             @container.codemirror.setValue @history[parseInt(id)].query
             @container.state.current_query = @history[parseInt(id)].query
-            @save_current_query()
+            @container.save_current_query()
 
         delete_query: (event) =>
             that = @

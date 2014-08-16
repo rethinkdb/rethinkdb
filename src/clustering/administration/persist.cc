@@ -51,8 +51,12 @@ const block_magic_t
     = { { 'R', 'D', 'm', 'd' } };
 template <>
 const block_magic_t
-    cluster_metadata_magic_t<cluster_version_t::v1_14_is_latest_disk>::value
+    cluster_metadata_magic_t<cluster_version_t::v1_14>::value
     = { { 'R', 'D', 'm', 'e' } };
+template <>
+const block_magic_t
+    cluster_metadata_magic_t<cluster_version_t::v1_15_is_latest_disk>::value
+    = { { 'R', 'D', 'm', 'f' } };
 
 template <cluster_version_t>
 struct auth_metadata_magic_t {
@@ -63,16 +67,22 @@ template <>
 const block_magic_t auth_metadata_magic_t<cluster_version_t::v1_13>::value
     = { { 'R', 'D', 'm', 'd' } };
 template <>
-const block_magic_t auth_metadata_magic_t<cluster_version_t::v1_14_is_latest_disk>::value
+const block_magic_t auth_metadata_magic_t<cluster_version_t::v1_14>::value
     = { { 'R', 'D', 'm', 'e' } };
+template <>
+const block_magic_t auth_metadata_magic_t<cluster_version_t::v1_15_is_latest_disk>::value
+    = { { 'R', 'D', 'm', 'f' } };
 
 cluster_version_t auth_superblock_version(const auth_metadata_superblock_t *sb) {
     if (sb->magic
         == auth_metadata_magic_t<cluster_version_t::v1_13>::value) {
         return cluster_version_t::v1_13;
     } else if (sb->magic
-               == auth_metadata_magic_t<cluster_version_t::v1_14_is_latest_disk>::value) {
-        return cluster_version_t::v1_14_is_latest_disk;
+               == auth_metadata_magic_t<cluster_version_t::v1_14>::value) {
+        return cluster_version_t::v1_14;
+    } else if (sb->magic
+               == auth_metadata_magic_t<cluster_version_t::v1_15_is_latest_disk>::value) {
+        return cluster_version_t::v1_15_is_latest_disk;
     } else {
         crash("auth_metadata_superblock_t has invalid magic.");
     }
@@ -118,9 +128,9 @@ static void read_blob(cluster_version_t cluster_version,
     buffer_group_read_stream_t ss(const_view(&group));
     /* RSI(reql_admin): When loading a pre-reql-admin metadata file, do some sort of
     translation procedure. */
-    guarantee(cluster_version == cluster_version_t::v1_14_is_latest);
+    guarantee(cluster_version == cluster_version_t::v1_15_is_latest);
     archive_result_t res =
-        deserialize<cluster_version_t::v1_14_is_latest>(&ss, value_out);
+        deserialize<cluster_version_t::v1_15_is_latest>(&ss, value_out);
     guarantee_deserialization(res, "T (template code)");
 }
 
@@ -130,8 +140,11 @@ cluster_version_t cluster_superblock_version(const cluster_metadata_superblock_t
         == cluster_metadata_magic_t<cluster_version_t::v1_13>::value) {
         return cluster_version_t::v1_13;
     } else if (sb->magic
-               == cluster_metadata_magic_t<cluster_version_t::v1_14_is_latest_disk>::value) {
-        return cluster_version_t::v1_14_is_latest_disk;
+               == cluster_metadata_magic_t<cluster_version_t::v1_14>::value) {
+        return cluster_version_t::v1_14;
+    } else if (sb->magic
+               == cluster_metadata_magic_t<cluster_version_t::v1_15_is_latest_disk>::value) {
+        return cluster_version_t::v1_15_is_latest_disk;
     } else {
         crash("cluster_metadata_superblock_t has invalid magic.");
     }

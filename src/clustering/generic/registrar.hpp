@@ -74,8 +74,7 @@ private:
 
         virtual void run() {
             /* Perform the destruction in a coroutine. */
-            registrar->registration_destruction_queue.push(
-                [this]() { delete this; } );
+            registrar->registration_destruction_queue.push([this]() { delete this; } );
         }
 
     private:

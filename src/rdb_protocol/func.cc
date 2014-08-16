@@ -209,7 +209,7 @@ counted_t<val_t> func_term_t::term_eval(scope_env_t *env,
     return new_val(eval_to_func(env->scope));
 }
 
-counted_t<func_t> func_term_t::eval_to_func(const var_scope_t &env_scope) const {
+counted_t<const func_t> func_term_t::eval_to_func(const var_scope_t &env_scope) const {
     return make_counted<reql_func_t>(get_backtrace(get_src()),
                                      env_scope.filtered_by_captures(external_captures),
                                      arg_names, body);
@@ -280,7 +280,7 @@ bool js_func_t::filter_helper(env_t *env, counted_t<const datum_t> arg) const {
     return d->as_bool();
 }
 
-bool func_t::filter_call(env_t *env, counted_t<const datum_t> arg, counted_t<func_t> default_filter_val) const {
+bool func_t::filter_call(env_t *env, counted_t<const datum_t> arg, counted_t<const func_t> default_filter_val) const {
     // We have to catch every exception type and save it so we can rethrow it later
     // So we don't trigger a coroutine wait in a catch statement
     std::exception_ptr saved_exception;
@@ -324,8 +324,8 @@ bool func_t::filter_call(env_t *env, counted_t<const datum_t> arg, counted_t<fun
     std::rethrow_exception(saved_exception);
 }
 
-counted_t<func_t> new_constant_func(counted_t<const datum_t> obj,
-                                    const protob_t<const Backtrace> &bt_src) {
+counted_t<const func_t> new_constant_func(counted_t<const datum_t> obj,
+                                          const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = r::fun(r::expr(obj)).release_counted();
     propagate_backtrace(twrap.get(), bt_src.get());
 
@@ -335,8 +335,8 @@ counted_t<func_t> new_constant_func(counted_t<const datum_t> obj,
     return func_term->eval_to_func(var_scope_t());
 }
 
-counted_t<func_t> new_get_field_func(counted_t<const datum_t> key,
-                                     const protob_t<const Backtrace> &bt_src) {
+counted_t<const func_t> new_get_field_func(counted_t<const datum_t> key,
+                                           const protob_t<const Backtrace> &bt_src) {
     pb::dummy_var_t obj = pb::dummy_var_t::FUNC_GETFIELD;
     protob_t<Term> twrap = r::fun(obj, r::var(obj)[key]).release_counted();
 
@@ -348,8 +348,8 @@ counted_t<func_t> new_get_field_func(counted_t<const datum_t> key,
     return func_term->eval_to_func(var_scope_t());
 }
 
-counted_t<func_t> new_pluck_func(counted_t<const datum_t> obj,
-                                 const protob_t<const Backtrace> &bt_src) {
+counted_t<const func_t> new_pluck_func(counted_t<const datum_t> obj,
+                                       const protob_t<const Backtrace> &bt_src) {
     pb::dummy_var_t var = pb::dummy_var_t::FUNC_PLUCK;
     protob_t<Term> twrap = r::fun(var, r::var(var).pluck(obj)).release_counted();
     propagate_backtrace(twrap.get(), bt_src.get());
@@ -360,8 +360,8 @@ counted_t<func_t> new_pluck_func(counted_t<const datum_t> obj,
     return func_term->eval_to_func(var_scope_t());
 }
 
-counted_t<func_t> new_eq_comparison_func(counted_t<const datum_t> obj,
-                                         const protob_t<const Backtrace> &bt_src) {
+counted_t<const func_t> new_eq_comparison_func(counted_t<const datum_t> obj,
+                                               const protob_t<const Backtrace> &bt_src) {
     pb::dummy_var_t var = pb::dummy_var_t::FUNC_EQCOMPARISON;
     protob_t<Term> twrap = r::fun(var, r::var(var) == obj).release_counted();
     propagate_backtrace(twrap.get(), bt_src.get());
@@ -372,8 +372,8 @@ counted_t<func_t> new_eq_comparison_func(counted_t<const datum_t> obj,
     return func_term->eval_to_func(var_scope_t());
 }
 
-counted_t<func_t> new_page_func(counted_t<const datum_t> method,
-                                const protob_t<const Backtrace> &bt_src) {
+counted_t<const func_t> new_page_func(counted_t<const datum_t> method,
+                                      const protob_t<const Backtrace> &bt_src) {
     if (method->get_type() != datum_t::R_NULL) {
         std::string name = method->as_str().to_std();
         if (name == "link-next") {
@@ -396,7 +396,7 @@ counted_t<func_t> new_page_func(counted_t<const datum_t> method,
             rcheck_src(bt_src.get(), base_exc_t::GENERIC, false, msg);
         }
     }
-    return counted_t<func_t>();
+    return counted_t<const func_t>();
 }
 
 
@@ -410,9 +410,9 @@ counted_t<val_t> js_result_visitor_t::operator()(
 }
 // This JS evaluation resulted in an id for a js function
 counted_t<val_t> js_result_visitor_t::operator()(UNUSED const id_t id_val) const {
-    counted_t<func_t> func = make_counted<js_func_t>(code,
-                                                     timeout_ms,
-                                                     parent->backtrace());
+    counted_t<const func_t> func = make_counted<js_func_t>(code,
+                                                           timeout_ms,
+                                                           parent->backtrace());
     return make_counted<val_t>(func, parent->backtrace());
 }
 

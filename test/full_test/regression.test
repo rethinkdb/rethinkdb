@@ -22,3 +22,8 @@ generate_test(
     "$RETHINKDB/test/regression/issue_2738.py",
     name = '2738'
     )
+
+generate_test(
+    "$RETHINKDB/test/regression/issue_2790.test",
+    name = '2790'
+    )
