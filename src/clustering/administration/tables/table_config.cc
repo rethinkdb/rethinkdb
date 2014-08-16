@@ -116,14 +116,12 @@ bool convert_table_config_shard_from_datum(
     return true;
 }
 
+/* This is separate from `convert_table_config_and_name_to_datum` because it needs to be
+publicly exposed so it can be used to create the return value of `table.reconfigure()`.
+*/
 counted_t<const ql::datum_t> convert_table_config_to_datum(
-        const table_config_t &config,
-        name_string_t db_name,
-        name_string_t table_name,
-        namespace_id_t uuid) {
+        const table_config_t &config) {
     ql::datum_object_builder_t builder;
-    builder.overwrite("name", convert_db_and_table_to_datum(db_name, table_name));
-    builder.overwrite("uuid", convert_uuid_to_datum(uuid));
     builder.overwrite("shards",
         convert_vector_to_datum<table_config_t::shard_t>(
             &convert_table_config_shard_to_datum,
@@ -131,7 +129,19 @@ counted_t<const ql::datum_t> convert_table_config_to_datum(
     return std::move(builder).to_counted();
 }
 
-bool convert_table_config_from_datum(
+counted_t<const ql::datum_t> convert_table_config_and_name_to_datum(
+        const table_config_t &config,
+        name_string_t db_name,
+        name_string_t table_name,
+        namespace_id_t uuid) {
+    counted_t<const ql::datum_t> start = convert_table_config_to_datum(config);
+    ql::datum_object_builder_t builder(start->as_object());
+    builder.overwrite("name", convert_db_and_table_to_datum(db_name, table_name));
+    builder.overwrite("uuid", convert_uuid_to_datum(uuid));
+    return std::move(builder).to_counted();
+}
+
+bool convert_table_config_and_name_from_datum(
         counted_t<const ql::datum_t> datum,
         name_string_t expected_db_name,
         name_string_t expected_table_name,
@@ -280,7 +290,8 @@ bool table_config_artificial_table_backend_t::read_row(
     }
     table_config_t config =
         it->second.get_ref().replication_info.get_ref().config;
-    *row_out = convert_table_config_to_datum(config, db_name, table_name, it->first);
+    *row_out = convert_table_config_and_name_to_datum(
+        config, db_name, table_name, it->first);
     return true;
 }
 
@@ -308,7 +319,8 @@ bool table_config_artificial_table_backend_t::write_row(
     cow_ptr_t<namespaces_semilattice_metadata_t>::change_t md_change(&md);
     auto it = md_change.get()->namespaces.find(table_id);
     table_replication_info_t replication_info;
-    if (!convert_table_config_from_datum(new_value, db_name, table_name, it->first,
+    if (!convert_table_config_and_name_from_datum(
+            new_value, db_name, table_name, it->first,
             &replication_info.config, error_out)) {
         *error_out = "The change you're trying to make to "
             "`rethinkdb.table_config` has the wrong format. " + *error_out;

@@ -5,6 +5,7 @@
 #include "clustering/administration/servers/name_client.hpp"
 #include "clustering/administration/tables/elect_director.hpp"
 #include "clustering/administration/tables/reconfigure.hpp"
+#include "clustering/administration/tables/table_config.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "rdb_protocol/wait_for_readiness.hpp"
 #include "rpc/semilattice/watchable.hpp"
@@ -483,8 +484,7 @@ bool real_reql_cluster_interface_t::table_reconfigure(
         semilattice_root_view->join(metadata);
     }
 
-    // RSI: Return a datum representation of `new_repli_info.config`
-    *new_config_out = ql::datum_t::null();   
+    *new_config_out = convert_table_config_to_datum(new_repli_info.config);
 
     return true;
 }

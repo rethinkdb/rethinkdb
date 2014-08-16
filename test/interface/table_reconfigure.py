@@ -50,12 +50,13 @@ with driver.Metacluster() as metacluster:
             director_tag = director_tag,
             dry_run = True).run(conn)
         print new_config
-        assert len(new_config["shards"] == num_shards)
+        assert len(new_config["shards"]) == num_shards
         for shard in new_config["shards"]:
             for server in shard["directors"]:
                 assert server in tag_table[director_tag]
             for tag, count in num_replicas.iteritems():
-                assert len(s for s in shard["replicas"] if s in tag_table[tag]) == count
+                servers_in_tag = [s for s in shard["replicas"] if s in tag_table[tag]]
+                assert len(servers_in_tag) == count
             assert len(shard["replicas"]) == sum(num_replicas.values())
     test_reconfigure(1, {"default": 1}, "default")
     test_reconfigure(2, {"default": 1}, "default")

@@ -16,6 +16,11 @@
 
 class server_name_client_t;
 
+/* This is publicly exposed so that it can be used to create the return value of
+`table.reconfigure()`. */
+counted_t<const ql::datum_t> convert_table_config_to_datum(
+        const table_config_t &config);
+
 class table_config_artificial_table_backend_t :
     public artificial_table_backend_t
 {
