@@ -216,6 +216,8 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
     cluster_semilattice_metadata_t metadata;
     namespace_id_t namespace_id;
     {
+        cross_thread_signal_t interruptor2(interruptor,
+            semilattice_root_view->home_thread());
         on_thread_t thread_switcher(semilattice_root_view->home_thread());
         metadata = semilattice_root_view->get();
 
@@ -272,7 +274,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         config_params.director_tag = name_string_t::guarantee_valid("default");
         if (!table_generate_config(
                 server_name_client, nil_uuid(), NULL, dummy_directory, server_usage,
-                config_params, interruptor, &repli_info.config, error_out)) {
+                config_params, &interruptor2, &repli_info.config, error_out)) {
             return false;
         }
 
@@ -426,6 +428,7 @@ bool real_reql_cluster_interface_t::table_reconfigure(
         signal_t *interruptor,
         counted_t<const ql::datum_t> *new_config_out,
         std::string *error_out) {
+    cross_thread_signal_t interruptor2(interruptor, server_name_client->home_thread());
     on_thread_t thread_switcher(server_name_client->home_thread());
 
     /* Find the specified table in the semilattice metadata */
@@ -468,7 +471,7 @@ bool real_reql_cluster_interface_t::table_reconfigure(
                     (&cluster_directory_metadata_t::rdb_namespaces)),
             server_usage,
             params,
-            interruptor,
+            &interruptor2,
             &new_repli_info.config,
             error_out)) {
         return false;
