@@ -97,5 +97,32 @@ tests:
       rb: db.table_create('nonsense1', :datacenter => 'bar')
       ot: err('RqlRuntimeError', 'Datacenter `bar` does not exist.', [0])
 
-    # RSI: Test how reconfigure() responds to invalid input
+    - cd: db.table('a').reconfigure(0, 1)
+      ot: err('RqlRuntimeError', 'Every table must have at least one shard.')
+
+    - cd: db.table('a').reconfigure(1000, 1)
+      ot: err('RqlRuntimeError', 'Maximum number of shards is 32.')
+
+    - cd: db.table('a').reconfigure(1, {"default": 0})
+      ot: >
+          err('RqlRuntimeError', 'Can't use server tag `default` for directors because '
+          'you specified no replicas in server tag `default`.")
+
+    - cd: db.table('a').reconfigure(1, {"default": -3})
+      ot: err('RqlRuntimeError', 'Can\'t have a negative number of replicas")
+
+    - cd: db.table('a').reconfigure(2, 1)
+      ot: >
+          err('RqlRuntimeError', 'You requested 2 shards, but there are only 1 servers '
+          'with the tag `default`. reconfigure() requires at least as many servers with '
+          'each tag as there are shards, so that it can distribute the shards across '
+          'servers instead of utting multiple shards on a single server. You can work '
+          'around this limitation by generating a configuration manually instead of '
+          'using reconfigure().')
+
+    - cd: db.table('a').reconfigure(1, 2)
+      ot: >
+          err('RqlRuntimeError', 'You requested 2 replicas on servers with the tag '
+          '`default`, but there are only 1 servers with the tag `default`. It\'s '
+          'impossible to have more replicas of the data than there are servers.')
 

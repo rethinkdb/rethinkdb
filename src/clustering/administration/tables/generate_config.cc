@@ -126,23 +126,30 @@ static void pick_best_pairings(
         int num_shards,
         /* The map's values are pairs of (shard, server). The keys indicate how expensive
         it is for that shard to be hosted on that server; lower numbers are better. If a
-        pairing is not present in the map, then it will be impossible. */
-        const std::multimap< double, std::pair<int, name_string_t> > &costs,
+        pairing is not present in the map, then it will be impossible.
+        `pick_best_pairings()` will remove pairings from the map as it chooses them. */
+        std::multimap< double, std::pair<int, name_string_t> > *costs,
         /* This vector will be filled with the chosen server for each shard */
         std::vector<name_string_t> *picks_out) {
     std::set<name_string_t> servers_used;
     std::set<int> shards_satisfied;
     picks_out->resize(num_shards);
-    for (auto it = costs.begin(); it != costs.end(); ++it) {
+    for (auto it = costs->begin(); it != costs->end();) {
         if (shards_satisfied.count(it->second.first) == 1 ||
                 servers_used.count(it->second.second) == 1) {
+            ++it;
             continue;
         }
         (*picks_out)[it->second.first] = it->second.second;
-        /* RSI: Remove the selected entry from `costs` to make sure that a given server
-        never hosts multiple replicas of a given shard */
         shards_satisfied.insert(it->second.first);
         servers_used.insert(it->second.second);
+        {
+            /* Remove the selected pairing from the map, so that we won't try to put
+            another replica for the same shard on the same server */
+            auto jt = it;
+            ++jt;
+            costs->erase(it);
+        }
         if (shards_satisfied.size() == static_cast<size_t>(num_shards)) {
             break;
         }
@@ -254,13 +261,37 @@ bool table_generate_config(
 
     /* Finally, fill in the servers */
     for (auto it = params.num_replicas.begin(); it != params.num_replicas.end(); ++it) {
+        if (it->second == 0) {
+            /* Avoid unnecessary computation and possibly spurious error messages */
+            continue;
+        }
+
+        name_string_t server_tag = it->first;
+        int num_in_tag = servers_with_tags.at(server_tag).size();
+        if (num_in_tag < params.num_shards) {
+            *error_out = strprintf("You requested %d shards, but there are only %d "
+                "servers with the tag `%s`. reconfigure() requires at least as many "
+                "servers with each tag as there are shards, so that it can distribute "
+                "the shards across servers instead of putting multiple shards on a "
+                "single server. You can work around this limitation by generating a "
+                "configuration manually instead of using reconfigure().",
+                params.num_shards, num_in_tag, server_tag.c_str());
+            return false;
+        }
+        if (num_in_tag < it->second) {
+            *error_out = strprintf("You requested %d replicas on servers with the tag "
+                "`%s`, but there are only %d servers with the tag `%s`. It's impossible "
+                "to have more replicas of the data than there are servers.",
+                it->second, server_tag.c_str(), num_in_tag, server_tag.c_str());
+            return false;
+        }
 
         /* Calculate how desirable each shard-server pairing is */
         std::multimap<double, std::pair<int, name_string_t> > costs;
         for (int shard = 0; shard < params.num_shards; ++shard) {
             region_t region = hash_region_t<key_range_t>(
                 config_out->get_shard_range(shard));
-            for (const name_string_t &server : servers_with_tags.at(it->first)) {
+            for (const name_string_t &server : servers_with_tags.at(server_tag)) {
                 auto usage_it = server_usage.find(server);
                 int usage = (usage_it == server_usage.end()) ? 0 : usage_it->second;
                 double usage_cost = usage / static_cast<double>(PRIMARY_USAGE_COST);
@@ -295,10 +326,10 @@ bool table_generate_config(
 
         for (int replica = 0; replica < it->second; ++replica) {
             std::vector<name_string_t> picks;
-            pick_best_pairings(params.num_shards, costs, &picks);
+            pick_best_pairings(params.num_shards, &costs, &picks);
             for (int shard = 0; shard < params.num_shards; ++shard) {
                 config_out->shards[shard].replica_names.insert(picks[shard]);
-                if (it->first == params.director_tag) {
+                if (server_tag == params.director_tag) {
                     config_out->shards[shard].director_names.push_back(picks[shard]);
                 }
             }
@@ -307,4 +338,10 @@ bool table_generate_config(
 
     return true;
 }
+
+/* TODO: This algorithm currently doesn't update the usage map as it assigns servers,
+which leads to suboptimal behavior in some cases. For example, suppose the user has four
+servers and asks for two shards with two replicas each. The obvious solution is to put
+one replica on each server. But this algorithm will sometimes put a director for one
+shard on the same machine as the non-director replica for the other shard. */
 
