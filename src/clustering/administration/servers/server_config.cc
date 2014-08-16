@@ -4,7 +4,7 @@
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/servers/name_client.hpp"
 
-counted_t<const ql::datum_t> convert_server_config_to_datum(
+counted_t<const ql::datum_t> convert_server_config_and_name_to_datum(
         const name_string_t &name,
         const machine_id_t &machine_id,
         std::set<name_string_t> tags) {
@@ -16,7 +16,7 @@ counted_t<const ql::datum_t> convert_server_config_to_datum(
     return std::move(builder).to_counted();
 }
 
-bool convert_server_config_from_datum(
+bool convert_server_config_and_name_from_datum(
         counted_t<const ql::datum_t> datum,
         name_string_t *name_out,
         machine_id_t *machine_id_out,
@@ -99,7 +99,7 @@ bool server_config_artificial_table_backend_t::read_row(
         *row_out = counted_t<const ql::datum_t>();
         return true;
     }
-    *row_out = convert_server_config_to_datum(
+    *row_out = convert_server_config_and_name_to_datum(
         server_name, machine_id, server_sl->tags.get_ref());
     return true;
 }
@@ -131,8 +131,8 @@ bool server_config_artificial_table_backend_t::write_row(
     name_string_t new_server_name;
     machine_id_t new_machine_id;
     std::set<name_string_t> new_tags;
-    if (!convert_server_config_from_datum(new_value, &new_server_name, &new_machine_id,
-            &new_tags, error_out)) {
+    if (!convert_server_config_and_name_from_datum(new_value,
+            &new_server_name, &new_machine_id, &new_tags, error_out)) {
         *error_out = "The row you're trying to put into `rethinkdb.server_config` "
             "has the wrong format. " + *error_out;
         return false;
