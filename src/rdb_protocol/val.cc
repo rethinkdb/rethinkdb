@@ -91,8 +91,9 @@ counted_t<const datum_t> table_t::batched_insert(
             (*it)->rcheck_valid_replace(counted_t<const datum_t>(),
                                         counted_t<const datum_t>(),
                                         get_pkey());
-            counted_t<const ql::datum_t> keyval = (*it)->get(get_pkey(), ql::NOTHROW);
-            (*it)->get(get_pkey())->print_primary(); // does error checking
+            const counted_t<const ql::datum_t> &keyval =
+                (*it)->get_field(wire_string_t(get_pkey()));
+            keyval->print_primary(); // does error checking
             valid_inserts.push_back(std::move(*it));
         } catch (const base_exc_t &e) {
             stats.add_error(e.what());
@@ -142,7 +143,7 @@ counted_t<const datum_t> table_t::sindex_list(env_t *env) {
     array.reserve(sindexes.size());
     for (std::vector<std::string>::const_iterator it = sindexes.begin();
          it != sindexes.end(); ++it) {
-        array.push_back(make_counted<datum_t>(std::string(*it)));
+        array.push_back(make_counted<datum_t>(wire_string_t(*it)));
     }
     return make_counted<datum_t>(std::move(array), env->limits);
 }
@@ -155,10 +156,11 @@ counted_t<const datum_t> table_t::sindex_status(env_t *env,
     for (auto it = statuses.begin(); it != statuses.end(); ++it) {
         r_sanity_check(std_contains(sindexes, it->first) || sindexes.empty());
         sindexes.erase(it->first);
-        std::map<std::string, counted_t<const datum_t> > status =
+        std::map<wire_string_t, counted_t<const datum_t> > status =
             it->second->as_object();
-        std::string index_name = it->first;
-        status["index"] = make_counted<const datum_t>(std::move(index_name));
+        wire_string_t index_name(it->first);
+        status[wire_string_t("index")] =
+            make_counted<const datum_t>(std::move(index_name));
         array.push_back(make_counted<const datum_t>(std::move(status)));
     }
     rcheck(sindexes.empty(), base_exc_t::GENERIC,

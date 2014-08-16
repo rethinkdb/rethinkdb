@@ -47,28 +47,31 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(stop_t, when_);
 counted_t<const ql::datum_t> construct_start(
         ticks_t duration, std::string description,
         counted_t<const ql::datum_t> sub_tasks) {
-    std::map<std::string, counted_t<const ql::datum_t> > res;
-    res["duration(ms)"] = make_counted<const ql::datum_t>(safe_to_double(duration) / MILLION);
-    res["description"] = make_counted<const ql::datum_t>(std::move(description));
-    res["sub_tasks"] = sub_tasks;
+    std::map<wire_string_t, counted_t<const ql::datum_t> > res;
+    res[wire_string_t("duration(ms)")] =
+        make_counted<const ql::datum_t>(safe_to_double(duration) / MILLION);
+    res[wire_string_t("description")] =
+        make_counted<const ql::datum_t>(wire_string_t(description));
+    res[wire_string_t("sub_tasks")] = sub_tasks;
     return make_counted<const ql::datum_t>(std::move(res));
 }
 
 counted_t<const ql::datum_t> construct_split(
         counted_t<const ql::datum_t> par_tasks) {
-    std::map<std::string, counted_t<const ql::datum_t> > res;
-    res["parallel_tasks"] = par_tasks;
+    std::map<wire_string_t, counted_t<const ql::datum_t> > res;
+    res[wire_string_t("parallel_tasks")] = par_tasks;
     return make_counted<const ql::datum_t>(std::move(res));
 }
 
 counted_t<const ql::datum_t> construct_sample(
         const sample_t *sample) {
-    std::map<std::string, counted_t<const ql::datum_t> > res;
+    std::map<wire_string_t, counted_t<const ql::datum_t> > res;
     double mean_duration = safe_to_double(sample->mean_duration_) / MILLION;
     double n_samples = safe_to_double(sample->n_samples_);
-    res["mean_duration(ms)"] = make_counted<const ql::datum_t>(mean_duration);
-    res["n_samples"] = make_counted<const ql::datum_t>(n_samples);
-    res["description"] = make_counted<const ql::datum_t>(std::string(sample->description_));
+    res[wire_string_t("mean_duration(ms)")] = make_counted<const ql::datum_t>(mean_duration);
+    res[wire_string_t("n_samples")] = make_counted<const ql::datum_t>(n_samples);
+    res[wire_string_t("description")] =
+        make_counted<const ql::datum_t>(wire_string_t(sample->description_));
     return make_counted<const ql::datum_t>(std::move(res));
 }
 

@@ -273,8 +273,8 @@ SPAWNER_TEST(JSProc, Passthrough) {
     // String
     passthrough_test_internal(&pool, make_counted<const ql::datum_t>(""));
     passthrough_test_internal(&pool, make_counted<const ql::datum_t>("string str"));
-    passthrough_test_internal(&pool, make_counted<const ql::datum_t>(std::string()));
-    passthrough_test_internal(&pool, make_counted<const ql::datum_t>(std::string("string str")));
+    passthrough_test_internal(&pool, make_counted<const ql::datum_t>(wire_string_t()));
+    passthrough_test_internal(&pool, make_counted<const ql::datum_t>(wire_string_t("string str")));
 
     // Boolean
     passthrough_test_internal(&pool, ql::datum_t::boolean(true));
@@ -288,7 +288,8 @@ SPAWNER_TEST(JSProc, Passthrough) {
         passthrough_test_internal(&pool, array_datum);
 
         for (size_t i = 0; i < 100; ++i) {
-            array_data.push_back(make_counted<const ql::datum_t>(std::string(i, 'a')));
+            array_data.push_back(
+                make_counted<const ql::datum_t>(wire_string_t(std::string(i, 'a'))));
             std::vector<counted_t<const ql::datum_t> > copied_data(array_data);
             array_datum = make_counted<const ql::datum_t>(std::move(copied_data), limits);
             passthrough_test_internal(&pool, array_datum);
@@ -299,14 +300,14 @@ SPAWNER_TEST(JSProc, Passthrough) {
     // Object
     counted_t<const ql::datum_t> object_datum;
     {
-        std::map<std::string, counted_t<const ql::datum_t> > object_data;
+        std::map<wire_string_t, counted_t<const ql::datum_t> > object_data;
         object_datum = make_counted<const ql::datum_t>(std::move(object_data));
         passthrough_test_internal(&pool, array_datum);
 
         for (size_t i = 0; i < 100; ++i) {
-            object_data.insert(std::make_pair(std::string(i, 'a'),
+            object_data.insert(std::make_pair(wire_string_t(std::string(i, 'a')), // TODO!
                                               make_counted<const ql::datum_t>(static_cast<double>(i))));
-            std::map<std::string, counted_t<const ql::datum_t> > copied_data(object_data);
+            std::map<wire_string_t, counted_t<const ql::datum_t> > copied_data(object_data);
             object_datum = make_counted<const ql::datum_t>(std::move(copied_data));
             passthrough_test_internal(&pool, array_datum);
         }

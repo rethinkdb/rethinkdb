@@ -32,8 +32,8 @@ public:
 private:
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         return new_val(
-            make_counted<const datum_t>(
-                pseudo::time_to_iso8601(args->arg(env, 0)->as_ptype(pseudo::time_string))));
+            make_counted<const datum_t>(wire_string_t(
+                pseudo::time_to_iso8601(args->arg(env, 0)->as_ptype(pseudo::time_string)))));
     }
     virtual const char *name() const { return "to_iso8601"; }
 };

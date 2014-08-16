@@ -27,17 +27,17 @@ counted_t<const datum_t> geo_sub(counted_t<const datum_t> lhs,
                   "Value must be of geometry type.");
 
     rcheck_target(rhs.get(), base_exc_t::GENERIC,
-                  rhs->get("coordinates")->size() <= 1,
+                  rhs->get_field("coordinates")->size() <= 1,
                   "The second argument to `sub` must be a Polygon with only an outer "
                   "shell.  This one has holes.");
 
     // Construct a polygon from lhs with rhs cut out
     rcheck_target(lhs.get(), base_exc_t::GENERIC,
-                  lhs->get("type")->as_str().to_std() == "Polygon",
+                  lhs->get_field("type")->as_str() == "Polygon",
                   strprintf("The first argument to `sub` must be a Polygon.  Found `%s`.",
-                            lhs->get("type")->as_str().c_str()));
+                            lhs->get_field("type")->as_str().to_std().c_str()));
     rcheck_target(lhs.get(), base_exc_t::GENERIC,
-                  lhs->get("coordinates")->size() >= 1,
+                  lhs->get_field("coordinates")->size() >= 1,
                   "The first argument to `sub` is an empty polygon.  It must at least "
                   "have an outer shell.");
 
@@ -56,8 +56,8 @@ counted_t<const datum_t> geo_sub(counted_t<const datum_t> lhs,
     dup = result.add("type", make_counted<datum_t>("Polygon"));
     r_sanity_check(!dup);
     std::vector<counted_t <const datum_t> > coordinates =
-        lhs->get("coordinates")->as_array();
-    coordinates.push_back(rhs->get("coordinates")->get(0));
+        lhs->get_field("coordinates")->as_array();
+    coordinates.push_back(rhs->get_field("coordinates")->get(0));
     dup = result.add("coordinates",
                      make_counted<datum_t>(std::move(coordinates), limits));
     r_sanity_check(!dup);
@@ -70,7 +70,7 @@ counted_t<const datum_t> geo_sub(counted_t<const datum_t> lhs,
 void sanitize_geometry(datum_t *geo) {
     bool has_type = false;
     bool has_coordinates = false;
-    const std::map<std::string, counted_t<const datum_t> > &obj_map =
+    const std::map<wire_string_t, counted_t<const datum_t> > &obj_map =
         geo->as_object();
     for (auto it = obj_map.begin(); it != obj_map.end(); ++it) {
         if (it->first == "coordinates") {
@@ -84,7 +84,7 @@ void sanitize_geometry(datum_t *geo) {
         } else {
             rfail_target(it->second.get(), base_exc_t::GENERIC,
                          "Unrecognized field `%s` found in geometry object.",
-                         it->first.c_str());
+                         it->first.to_std().c_str());
         }
     }
     rcheck_target(geo, base_exc_t::NON_EXISTENCE, has_type,

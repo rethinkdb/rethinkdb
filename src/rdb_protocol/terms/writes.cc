@@ -11,7 +11,7 @@
 namespace ql {
 
 // Use this merge if it should theoretically never be called.
-counted_t<const datum_t> pure_merge(UNUSED const std::string &key,
+counted_t<const datum_t> pure_merge(UNUSED const wire_string_t &key,
                                     UNUSED counted_t<const datum_t> l,
                                     UNUSED counted_t<const datum_t> r,
                                     UNUSED const configured_limits_t &limits,
@@ -41,7 +41,7 @@ conflict_behavior_t parse_conflict_optarg(counted_t<val_t> arg,
                  base_exc_t::GENERIC,
                  "Conflict option `%s` unrecognized "
                  "(options are \"error\", \"replace\" and \"update\").",
-                 str.c_str());
+                 str.to_std().c_str());
 }
 
 durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
@@ -54,7 +54,7 @@ durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
                  base_exc_t::GENERIC,
                  "Durability option `%s` unrecognized "
                  "(options are \"hard\" and \"soft\").",
-                 str.c_str());
+                 str.to_std().c_str());
 }
 
 class insert_term_t : public op_term_t {
@@ -69,12 +69,12 @@ private:
                                    std::vector<std::string> *generated_keys_out,
                                    size_t *keys_skipped_out,
                                    counted_t<const datum_t> *datum_out) {
-        if (!(*datum_out)->get(tbl->get_pkey(), NOTHROW).has()) {
+        if (!(*datum_out)->get_field(wire_string_t(tbl->get_pkey()), NOTHROW).has()) {
             std::string key = uuid_to_str(generate_uuid());
-            counted_t<const datum_t> keyd(new datum_t(std::string(key)));
+            counted_t<const datum_t> keyd(new datum_t(wire_string_t(key)));
             {
                 datum_object_builder_t d;
-                bool conflict = d.add(tbl->get_pkey(), keyd);
+                bool conflict = d.add(wire_string_t(tbl->get_pkey()), keyd);
                 r_sanity_check(!conflict);
                 std::set<std::string> conditions;
                 *datum_out = (*datum_out)->merge(std::move(d).to_counted(), pure_merge,
@@ -162,7 +162,7 @@ private:
             std::vector<counted_t<const datum_t> > genkeys;
             genkeys.reserve(generated_keys.size());
             for (size_t i = 0; i < generated_keys.size(); ++i) {
-                genkeys.push_back(make_counted<datum_t>(std::move(generated_keys[i])));
+                genkeys.push_back(make_counted<datum_t>(wire_string_t(generated_keys[i])));
             }
             datum_object_builder_t d;
             UNUSED bool b = d.add("generated_keys",
@@ -222,7 +222,8 @@ private:
             counted_t<const datum_t> orig_val = tblrow.second;
             counted_t<const datum_t> orig_key = v0->get_orig_key();
             if (!orig_key.has()) {
-                orig_key = orig_val->get(tblrow.first->get_pkey(), NOTHROW);
+                orig_key =
+                    orig_val->get_field(wire_string_t(tblrow.first->get_pkey()), NOTHROW);
                 r_sanity_check(orig_key.has());
             }
 
@@ -250,7 +251,7 @@ private:
                 std::vector<counted_t<const datum_t> > keys;
                 keys.reserve(vals.size());
                 for (auto it = vals.begin(); it != vals.end(); ++it) {
-                    keys.push_back((*it)->get(tbl->get_pkey()));
+                    keys.push_back((*it)->get_field(wire_string_t(tbl->get_pkey())));
                 }
                 counted_t<const datum_t> replace_stats = tbl->batched_replace(
                     env->env, vals, keys,

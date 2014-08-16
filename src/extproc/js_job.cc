@@ -528,7 +528,7 @@ counted_t<const ql::datum_t> js_make_datum(const v8::Handle<v8::Value> &value,
         string->WriteUtf8(temp_buffer.data(), length);
 
         try {
-            result = make_counted<const ql::datum_t>(std::string(temp_buffer.data(), length));
+            result = make_counted<const ql::datum_t>(wire_string_t(length, temp_buffer.data()));
         } catch (const ql::base_exc_t &ex) {
             err_out->assign(ex.what());
         }
@@ -571,7 +571,7 @@ counted_t<const ql::datum_t> js_make_datum(const v8::Handle<v8::Value> &value,
             v8::Handle<v8::Array> properties = objh->GetPropertyNames();
             guarantee(!properties.IsEmpty());
 
-            std::map<std::string, counted_t<const ql::datum_t> > datum_map;
+            std::map<wire_string_t, counted_t<const ql::datum_t> > datum_map;
 
             uint32_t len = properties->Length();
             for (uint32_t i = 0; i < len; ++i) {
@@ -591,7 +591,7 @@ counted_t<const ql::datum_t> js_make_datum(const v8::Handle<v8::Value> &value,
                 size_t length = keyh->Utf8Length();
                 scoped_array_t<char> temp_buffer(length);
                 keyh->WriteUtf8(temp_buffer.data(), length);
-                std::string key_string(temp_buffer.data(), length);
+                wire_string_t key_string(length, temp_buffer.data());
 
                 datum_map.insert(std::make_pair(key_string, item));
             }
@@ -651,7 +651,7 @@ v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum,
     case ql::datum_t::type_t::R_NUM:
         return v8::Number::New(datum->as_num());
     case ql::datum_t::type_t::R_STR:
-        return v8::String::New(datum->as_str().c_str());
+        return v8::String::New(datum->as_str().to_std().c_str());
     case ql::datum_t::type_t::R_ARRAY: {
         v8::Handle<v8::Array> array = v8::Array::New();
         const std::vector<counted_t<const ql::datum_t> > &source_array = datum->as_array();
@@ -672,11 +672,12 @@ v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum,
             return date;
         } else {
             v8::Handle<v8::Object> obj = v8::Object::New();
-            const std::map<std::string, counted_t<const ql::datum_t> > &source_map = datum->as_object();
+            const std::map<wire_string_t, counted_t<const ql::datum_t> > &source_map
+                = datum->as_object();
 
             for (auto it = source_map.begin(); it != source_map.end(); ++it) {
                 DECLARE_HANDLE_SCOPE(scope);
-                v8::Handle<v8::Value> key = v8::String::New(it->first.c_str());
+                v8::Handle<v8::Value> key = v8::String::New(it->first.to_std().c_str());
                 v8::Handle<v8::Value> val = js_from_datum(it->second, err_out);
                 guarantee(!key.IsEmpty() && !val.IsEmpty());
                 obj->Set(key, val);

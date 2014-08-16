@@ -912,7 +912,7 @@ struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
         std::vector<store_key_t> keys;
         keys.reserve(bi.inserts.size());
         for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
-            keys.emplace_back((*it)->get(bi.pkey)->print_primary());
+            keys.emplace_back((*it)->get_field(wire_string_t(bi.pkey))->print_primary());
         }
         return region_from_keys(keys);
     }
@@ -993,7 +993,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
     bool operator()(const batched_insert_t &bi) const {
         std::vector<counted_t<const ql::datum_t> > shard_inserts;
         for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
-            store_key_t key((*it)->get(bi.pkey)->print_primary());
+            store_key_t key((*it)->get_field(wire_string_t(bi.pkey))->print_primary());
             if (region_contains_key(*region, key)) {
                 shard_inserts.push_back(*it);
             }

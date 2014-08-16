@@ -82,7 +82,8 @@ public:
         {
             profile::sampler_t sampler("Evaluating elements in make_obj.", env->env->trace);
             for (auto it = optargs.begin(); it != optargs.end(); ++it) {
-                bool dup = acc.add(it->first, it->second->eval(env, new_flags)->as_datum());
+                bool dup = acc.add(wire_string_t(it->first),
+                                   it->second->eval(env, new_flags)->as_datum());
                 rcheck(!dup, base_exc_t::GENERIC,
                        strprintf("Duplicate object key: %s.", it->first.c_str()));
                 sampler.new_sample();

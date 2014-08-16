@@ -139,7 +139,7 @@ void geo_intersecting_cb_t::on_candidate(
             // This is relevant only for polygons and lines, since those can be
             // encountered multiple times in the index.
             if (already_processed.size() < MAX_PROCESSED_SET_SIZE
-                && sindex_val->get("type")->as_str().to_std() != "Point") {
+                && sindex_val->get_field("type")->as_str() != "Point") {
                 already_processed.insert(primary_key);
             }
         }

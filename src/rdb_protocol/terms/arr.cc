@@ -192,17 +192,16 @@ private:
             real_l = 0;
         }
         if (canon_helper(data.size(), right_open, fake_r, false, &real_r)) {
-            return new_val(datum_t::binary(wire_string_t::create(0)));
+            return new_val(datum_t::binary(wire_string_t()));
         }
 
         real_r = clamp<uint64_t>(real_r, 0, data.size());
 
-        scoped_ptr_t<wire_string_t> subdata;
+        wire_string_t subdata;
         if (real_l <= real_r) {
-            subdata = wire_string_t::create_and_init(real_r - real_l,
-                                                     &data.data()[real_l]);
+            subdata = wire_string_t(real_r - real_l, &data.data()[real_l]);
         } else {
-            subdata = wire_string_t::create(0);
+            subdata = wire_string_t();
         }
 
         return new_val(datum_t::binary(std::move(subdata)));

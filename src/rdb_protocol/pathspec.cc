@@ -77,9 +77,10 @@ pathspec_t::pathspec_t(counted_t<const datum_t> datum, const term_t *_creator)
              it != datum->as_object().end(); ++it) {
             if (it->second->get_type() == datum_t::R_BOOL &&
                 it->second->as_bool() == true) {
-                local_vec->push_back(pathspec_t(it->first, creator));
+                local_vec->push_back(pathspec_t(it->first.to_std(), creator));
             } else {
-                local_map->insert(std::make_pair(it->first, pathspec_t(it->second, creator)));
+                local_map->insert(std::make_pair(it->first.to_std(),
+                                                 pathspec_t(it->second, creator)));
             }
         }
 
@@ -152,8 +153,8 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
     } else {
         datum_object_builder_t res;
         if (pathspec.as_str() != NULL) {
-            std::string str = static_cast<std::string>(*pathspec.as_str());
-            if (counted_t<const datum_t> val = datum->get(str, NOTHROW)) {
+            wire_string_t str(*pathspec.as_str());
+            if (counted_t<const datum_t> val = datum->get_field(str, NOTHROW)) {
                 res.overwrite(std::move(str), val);
             }
         } else if (const std::vector<pathspec_t> *vec = pathspec.as_vec()) {
@@ -161,16 +162,17 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
                 counted_t<const datum_t> sub_result = project(datum, *it, recurse, limits);
                 for (auto jt = sub_result->as_object().begin();
                      jt != sub_result->as_object().end(); ++jt) {
-                    res.overwrite(jt->first, jt->second);
+                    res.overwrite(wire_string_t(jt->first), jt->second);
                 }
             }
         } else if (const std::map<std::string, pathspec_t> *map = pathspec.as_map()) {
             for (auto it = map->begin(); it != map->end(); ++it) {
-                if (counted_t<const datum_t> val = datum->get(it->first, NOTHROW)) {
+                if (counted_t<const datum_t> val =
+                        datum->get_field(wire_string_t(it->first), NOTHROW)) {
                     try {
                         counted_t<const datum_t> sub_result =
                             project(val, it->second, RECURSE, limits);
-                        res.overwrite(it->first, sub_result);
+                        res.overwrite(wire_string_t(it->first), sub_result);
                     } catch (const datum_exc_t &e) {
                         // do nothing
                     }
@@ -183,23 +185,24 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
     }
 }
 
+// TODO! Consider making pathspec_t use wire_strings for its map and as_str().
 void unproject_helper(datum_object_builder_t *datum,
                       const pathspec_t &pathspec,
                       recurse_flag_t recurse,
                       const configured_limits_t &limits) {
     if (const std::string *str = pathspec.as_str()) {
-        UNUSED bool key_was_deleted = datum->delete_field(*str);
+        UNUSED bool key_was_deleted = datum->delete_field(wire_string_t(*str));
     } else if (const std::vector<pathspec_t> *vec = pathspec.as_vec()) {
         for (auto it = vec->begin(); it != vec->end(); ++it) {
             unproject_helper(datum, *it, recurse, limits);
         }
     } else if (const std::map<std::string, pathspec_t> *map = pathspec.as_map()) {
         for (auto it = map->begin(); it != map->end(); ++it) {
-            if (counted_t<const datum_t> val = datum->try_get(it->first)) {
+            if (counted_t<const datum_t> val = datum->try_get(wire_string_t(it->first))) {
                 try {
                     counted_t<const datum_t> sub_result =
                         unproject(val, it->second, RECURSE, limits);
-                    datum->overwrite(it->first, sub_result);
+                    datum->overwrite(wire_string_t(it->first), sub_result);
                 } catch (const datum_exc_t &e) {
                     // do nothing
                 }
@@ -234,8 +237,9 @@ bool contains(counted_t<const datum_t> datum,
     try {
         bool res = true;
         if (const std::string *str = pathspec.as_str()) {
-            if (!(res &= (datum->get(*str, NOTHROW).has() &&
-                          datum->get(*str)->get_type() != datum_t::R_NULL))) {
+            if (!(res &= (datum->get_field(wire_string_t(*str), NOTHROW).has() &&
+                          datum->get_field(wire_string_t(*str))->get_type() !=
+                              datum_t::R_NULL))) {
                 return res;
             }
         } else if (const std::vector<pathspec_t> *vec = pathspec.as_vec()) {
@@ -246,7 +250,8 @@ bool contains(counted_t<const datum_t> datum,
             }
         } else if (const std::map<std::string, pathspec_t> *map = pathspec.as_map()) {
             for (auto it = map->begin(); it != map->end(); ++it) {
-                if (counted_t<const datum_t> val = datum->get(it->first, NOTHROW)) {
+                if (counted_t<const datum_t> val =
+                        datum->get_field(wire_string_t(it->first), NOTHROW)) {
                     if (!(res &= contains(val, it->second))) {
                         return res;
                     }

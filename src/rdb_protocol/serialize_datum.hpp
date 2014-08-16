@@ -47,11 +47,7 @@ archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *d
 size_t datum_serialized_size(const wire_string_t &s);
 serialization_result_t datum_serialize(write_message_t *wm, const wire_string_t &s);
 
-// The deserialized value cannot be an empty scoped_ptr_t.  As with all deserialize
-// functions, the value of `*out` is left in an unspecified state, should
-// deserialization fail.
-MUST_USE archive_result_t datum_deserialize(read_stream_t *s,
-                                            scoped_ptr_t<wire_string_t> *out);
+MUST_USE archive_result_t datum_deserialize(read_stream_t *s, wire_string_t *out);
 
 // The versioned serialization functions.
 template <cluster_version_t W>

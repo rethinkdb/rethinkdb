@@ -112,7 +112,7 @@ private:
 void check_url_params(const counted_t<const datum_t> &params,
                       pb_rcheckable_t *val) {
     if (params->get_type() == datum_t::R_OBJECT) {
-        const std::map<std::string, counted_t<const datum_t> > &params_map =
+        const std::map<wire_string_t, counted_t<const datum_t> > &params_map =
             params->as_object();
         for (auto it = params_map.begin(); it != params_map.end(); ++it) {
             if (it->second->get_type() != datum_t::R_NUM &&
@@ -121,7 +121,8 @@ void check_url_params(const counted_t<const datum_t> &params,
                 rfail_target(val, base_exc_t::GENERIC,
                              "Expected `params.%s` to be a NUMBER, STRING or NULL, "
                              "but found %s:\n%s",
-                             it->first.c_str(), it->second->get_type_name().c_str(),
+                             it->first.to_std().c_str(),
+                             it->second->get_type_name().c_str(),
                              it->second->print().c_str());
             }
         }
@@ -283,11 +284,11 @@ bool http_datum_stream_t::apply_depaginate(env_t *env, const http_result_t &res)
 
     // Provide an empty OBJECT datum instead of any non-existent arguments
     counted_t<const datum_t> empty
-        = make_counted<const datum_t>(std::map<std::string, counted_t<const datum_t> >());
-    std::map<std::string, counted_t<const datum_t> > arg_obj
-        = { { "params", opts.url_params.has() ? opts.url_params : empty },
-            { "header", res.header.has() ? res.header : empty },
-            { "body", res.body.has() ? res.body : empty } };
+        = make_counted<const datum_t>(std::map<wire_string_t, counted_t<const datum_t> >());
+    std::map<wire_string_t, counted_t<const datum_t> > arg_obj
+        = { { wire_string_t("params"), opts.url_params.has() ? opts.url_params : empty },
+            { wire_string_t("header"), res.header.has() ? res.header : empty },
+            { wire_string_t("body"), res.body.has() ? res.body : empty } };
     std::vector<counted_t<const datum_t> > args
         = { make_counted<const datum_t>(std::move(arg_obj)) };
 
@@ -332,8 +333,8 @@ bool http_datum_stream_t::handle_depage_result(counted_t<const datum_t> depage) 
         depage->get_type() == datum_t::R_STR) {
         return apply_depage_url(depage);
     } else if (depage->get_type() == datum_t::R_OBJECT) {
-        counted_t<const datum_t> new_url = depage->get("url", NOTHROW);
-        counted_t<const datum_t> new_params = depage->get("params", NOTHROW);
+        counted_t<const datum_t> new_url = depage->get_field("url", NOTHROW);
+        counted_t<const datum_t> new_params = depage->get_field("params", NOTHROW);
         if (!new_url.has() && !new_params.has()) {
             rfail(base_exc_t::GENERIC,
                   "OBJECT returned by `page` must contain "
@@ -451,17 +452,17 @@ void http_term_t::get_header(scope_env_t *env,
     if (header.has()) {
         counted_t<const datum_t> datum_header = header->as_datum();
         if (datum_header->get_type() == datum_t::R_OBJECT) {
-            const std::map<std::string, counted_t<const datum_t> > &header_map =
+            const std::map<wire_string_t, counted_t<const datum_t> > &header_map =
                 datum_header->as_object();
             for (auto it = header_map.begin(); it != header_map.end(); ++it) {
                 std::string str;
                 if (it->second->get_type() == datum_t::R_STR) {
-                    str = strprintf("%s: %s", it->first.c_str(),
-                                    it->second->as_str().c_str());
+                    str = strprintf("%s: %s", it->first.to_std().c_str(),
+                                    it->second->as_str().to_std().c_str());
                 } else if (it->second->get_type() != datum_t::R_NULL) {
                     rfail_target(header.get(), base_exc_t::GENERIC,
                         "Expected `header.%s` to be a STRING or NULL, but found %s.",
-                        it->first.c_str(), it->second->get_type_name().c_str());
+                        it->first.to_std().c_str(), it->second->get_type_name().c_str());
                 }
                 verify_header_string(str, header.get());
                 header_out->push_back(str);
@@ -517,7 +518,8 @@ void http_term_t::get_method(scope_env_t *env,
 std::string http_term_t::get_auth_item(const counted_t<const datum_t> &datum,
                                        const std::string &name,
                                        const pb_rcheckable_t *auth) {
-    counted_t<const datum_t> item = datum->get(name, NOTHROW);
+    // TODO! to_std() all around...
+    counted_t<const datum_t> item = datum->get_field(wire_string_t(name), NOTHROW);
     if (!item.has()) {
         rfail_target(auth, base_exc_t::GENERIC,
                      "`auth.%s` not found in the auth object.", name.c_str());
@@ -549,7 +551,7 @@ void http_term_t::get_auth(scope_env_t *env,
         // Default to 'basic' if no type is specified
         std::string type;
         {
-            counted_t<const datum_t> type_datum = datum_auth->get("type", NOTHROW);
+            counted_t<const datum_t> type_datum = datum_auth->get_field("type", NOTHROW);
 
             if (type_datum.has()) {
                 if (type_datum->get_type() != datum_t::R_STR) {
@@ -633,14 +635,14 @@ void http_term_t::get_data(
                 // encoding they need when they pass a string
                 data_out->assign(datum_data->as_str().to_std());
             } else if (datum_data->get_type() == datum_t::R_OBJECT) {
-                const std::map<std::string, counted_t<const datum_t> > &form_map =
+                const std::map<wire_string_t, counted_t<const datum_t> > &form_map =
                     datum_data->as_object();
                 for (auto it = form_map.begin(); it != form_map.end(); ++it) {
                     std::string val_str = print_http_param(it->second,
                                                            "data",
-                                                           it->first.c_str(),
+                                                           it->first.to_std().c_str(),
                                                            data.get());
-                    (*form_data_out)[it->first] = val_str;
+                    (*form_data_out)[it->first.to_std()] = val_str;
                 }
             } else {
                 rfail_target(data.get(), base_exc_t::GENERIC,

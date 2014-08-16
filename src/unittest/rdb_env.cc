@@ -176,7 +176,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
     counted_t<const ql::datum_t> stats = ql::datum_t::empty_object();
     std::set<std::string> conditions;
     for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
-        store_key_t key((*it)->get(bi.pkey)->print_primary());
+        store_key_t key((*it)->get_field(wire_string_t(bi.pkey))->print_primary());
         ql::datum_object_builder_t resp;
         counted_t<const ql::datum_t> old_val;
         if (data->find(key) != data->end()) {

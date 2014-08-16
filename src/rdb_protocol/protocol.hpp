@@ -662,7 +662,8 @@ struct batched_insert_t {
         // val.cc knows enough to report the write errors correctly while
         // still doing the other writes.
         for (auto it = inserts.begin(); it != inserts.end(); ++it) {
-            counted_t<const ql::datum_t> keyval = (*it)->get(pkey, ql::NOTHROW);
+            counted_t<const ql::datum_t> keyval =
+                (*it)->get_field(wire_string_t(pkey), ql::NOTHROW);
             r_sanity_check(keyval.has());
             try {
                 keyval->print_primary(); // ERROR CHECKING

@@ -231,6 +231,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
 {
     const return_changes_t return_changes = replacer->should_return_changes();
     const std::string &primary_key = *info.btree->primary_key;
+    const wire_string_t primary_key_w(primary_key);
     const store_key_t &key = *info.key;
     ql::datum_object_builder_t resp;
     try {
@@ -255,7 +256,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             started_empty = false;
             old_val = get_data(kv_location.value_as<rdb_value_t>(),
                                buf_parent_t(&kv_location.buf));
-            guarantee(old_val->get(primary_key, ql::NOTHROW).has());
+            guarantee(old_val->get_field(primary_key_w, ql::NOTHROW).has());
         }
         guarantee(old_val.has());
         if (return_changes == return_changes_t::YES) {
@@ -274,7 +275,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             ended_empty = false;
             new_val->rcheck_valid_replace(
                 old_val, counted_t<const ql::datum_t>(), primary_key);
-            counted_t<const ql::datum_t> pk = new_val->get(primary_key, ql::NOTHROW);
+            counted_t<const ql::datum_t> pk = new_val->get_field(primary_key_w, ql::NOTHROW);
             rcheck_target(
                 new_val, ql::base_exc_t::GENERIC,
                 key.compare(store_key_t(pk->print_primary())) == 0,
@@ -302,7 +303,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
                 conflict = resp.add("skipped", make_counted<ql::datum_t>(1.0));
             } else {
                 conflict = resp.add("inserted", make_counted<ql::datum_t>(1.0));
-                r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
+                r_sanity_check(new_val->get_field(primary_key_w, ql::NOTHROW).has());
                 ql::serialization_result_t res =
                     kv_location_set(&kv_location, *info.key, new_val,
                                     info.btree->timestamp, deletion_context,
@@ -331,13 +332,13 @@ batched_replace_response_t rdb_replace_and_return_superblock(
                 mod_info_out->deleted.first = old_val;
             } else {
                 r_sanity_check(
-                    *old_val->get(primary_key) == *new_val->get(primary_key));
+                    *old_val->get_field(primary_key_w) == *new_val->get_field(primary_key_w));
                 if (*old_val == *new_val) {
                     conflict = resp.add("unchanged",
                                          make_counted<ql::datum_t>(1.0));
                 } else {
                     conflict = resp.add("replaced", make_counted<ql::datum_t>(1.0));
-                    r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
+                    r_sanity_check(new_val->get_field(primary_key_w, ql::NOTHROW).has());
                     ql::serialization_result_t res =
                         kv_location_set(&kv_location, *info.key, new_val,
                                         info.btree->timestamp, deletion_context,
@@ -432,7 +433,7 @@ batched_replace_response_t rdb_batched_replace(
     fifo_enforcer_sink_t batched_replaces_fifo_sink;
 
     counted_t<const ql::datum_t> stats = ql::datum_t::empty_object();
-    
+
     std::set<std::string> conditions;
 
     // We have to drain write operations before destructing everything above us,
@@ -473,7 +474,7 @@ batched_replace_response_t rdb_batched_replace(
             current_superblock.init(superblock_promise.wait());
         }
     } // Make sure the drainer is destructed before the return statement.
-    
+
     ql::datum_object_builder_t out(stats->as_object());
     out.add_warnings(conditions, limits);
     return std::move(out).to_counted();

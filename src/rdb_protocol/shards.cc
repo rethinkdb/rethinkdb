@@ -861,8 +861,8 @@ private:
     virtual void lst_transform(env_t *, datums_t *lst,
                                const counted_t<const datum_t> &) {
         for (auto it = lst->begin(); it != lst->end(); ++it) {
-            auto left = (*it)->get("left", NOTHROW);
-            auto right = (*it)->get("right", NOTHROW);
+            auto left = (*it)->get_field("left", NOTHROW);
+            auto right = (*it)->get_field("right", NOTHROW);
             rcheck_datum(left.has(), base_exc_t::GENERIC,
                    "ZIP can only be called on the result of a join.");
             *it = right.has() ? left->merge(right) : left;

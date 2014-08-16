@@ -204,8 +204,8 @@ ellipsoid_spec_t pick_reference_ellipsoid(scope_env_t *env, args_t *args) {
         if (geo_system_arg->as_datum()->get_type() == datum_t::R_OBJECT) {
             // We expect a reference ellipsoid with parameters 'a' and 'f'.
             // (equator radius and the flattening)
-            double a = geo_system_arg->as_datum()->get("a")->as_num();
-            double f = geo_system_arg->as_datum()->get("f")->as_num();
+            double a = geo_system_arg->as_datum()->get_field("a")->as_num();
+            double f = geo_system_arg->as_datum()->get_field("f")->as_num();
             rcheck_target(geo_system_arg.get(), base_exc_t::GENERIC,
                           a > 0.0, "The equator radius `a` must be positive.");
             rcheck_target(geo_system_arg.get(), base_exc_t::GENERIC,
@@ -255,7 +255,7 @@ private:
         scoped_ptr_t<S2Point> p;
         counted_t<const datum_t> g;
         const std::string g1_type =
-            g1_arg->as_ptype(pseudo::geometry_string)->get("type")->as_str().to_std();
+            g1_arg->as_ptype(pseudo::geometry_string)->get_field("type")->as_str().to_std();
         if (g1_type == "Point") {
             p = to_s2point(g1_arg->as_ptype(pseudo::geometry_string));
             g = g2_arg->as_ptype(pseudo::geometry_string);

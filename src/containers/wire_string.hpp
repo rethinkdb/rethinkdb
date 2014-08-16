@@ -34,17 +34,22 @@ public:
     wire_string_t(size_t _size, shared_buf_ref_t &&_ref);
 
     wire_string_t(wire_string_t &&movee) noexcept;
+    wire_string_t(const wire_string_t &copyee) noexcept;
+
+    wire_string_t &operator=(const wire_string_t &copyee) noexcept;
+    wire_string_t &operator=(wire_string_t &&movee) noexcept;
 
     // The result of data() is not automatically null terminated. Do not use
     // as a C string.
-    char *data();
     const char *data() const;
     size_t size() const;
+    bool empty() const;
 
     int compare(const wire_string_t &other) const;
 
-    // Short cut for comparing to C-strings
+    // Short cut for comparing to C-strings and STD strings
     bool operator==(const char *other) const;
+    bool operator!=(const char *other) const;
     bool operator==(const wire_string_t &other) const;
     bool operator!=(const wire_string_t &other) const;
     bool operator<(const wire_string_t &other) const;

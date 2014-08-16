@@ -6,9 +6,9 @@
 namespace unittest {
 
 write_t mock_overwrite(std::string key, std::string value) {
-    std::map<std::string, counted_t<const ql::datum_t> > m;
-    m["id"] = make_counted<ql::datum_t>(std::string(key));
-    m["value"] = make_counted<ql::datum_t>(std::move(value));
+    std::map<wire_string_t, counted_t<const ql::datum_t> > m;
+    m[wire_string_t("id")] = make_counted<ql::datum_t>(wire_string_t(key));
+    m[wire_string_t("value")] = make_counted<ql::datum_t>(wire_string_t(value));
 
     point_write_t pw(store_key_t(key),
                                      make_counted<ql::datum_t>(std::move(m)),
@@ -31,7 +31,7 @@ std::string mock_parse_read_response(const read_response_t &rr) {
         // Behave like the old dummy_protocol_t.
         return "";
     }
-    return prr->data->get("value")->as_str().to_std();
+    return prr->data->get_field("value")->as_str().to_std();
 }
 
 std::string mock_lookup(store_view_t *store, std::string key) {
@@ -338,7 +338,7 @@ std::string mock_store_t::values(std::string key) {
         // Behave like the old dummy_protocol_t.
         return "";
     }
-    return it->second.second->get("value")->as_str().to_std();
+    return it->second.second->get_field("value")->as_str().to_std();
 }
 
 repli_timestamp_t mock_store_t::timestamps(std::string key) {

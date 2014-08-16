@@ -233,7 +233,7 @@ public:
         : obj_or_seq_op_term_t(env, term, SKIP_MAP, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
-        return new_val(v0->as_datum()->get(args->arg(env, 1)->as_str().to_std()));
+        return new_val(v0->as_datum()->get_field(args->arg(env, 1)->as_str()));
     }
     virtual const char *name() const { return "get_field"; }
 };

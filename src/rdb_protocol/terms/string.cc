@@ -15,7 +15,8 @@ public:
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         std::string str = args->arg(env, 0)->as_str().to_std();
-        RE2 regexp(args->arg(env, 1)->as_str().c_str(), RE2::Quiet);
+        // TODO! Is there a function that we can use without copying?
+        RE2 regexp(args->arg(env, 1)->as_str().to_std().c_str(), RE2::Quiet);
         if (!regexp.ok()) {
             rfail(base_exc_t::GENERIC,
                   "Error in regexp `%s` (portion `%s`): %s",
@@ -33,7 +34,8 @@ private:
             // using user-generated keys, but the result of `add` is marked
             // MUST_USE.
             bool b = false;
-            b |= match.add("str", make_counted<const datum_t>(groups[0].as_string()));
+            b |= match.add("str", make_counted<const datum_t>(
+                               wire_string_t(groups[0].as_string())));
             b |= match.add("start", make_counted<const datum_t>(
                                static_cast<double>(groups[0].begin() - str.data())));
             b |= match.add("end", make_counted<const datum_t>(
@@ -46,7 +48,8 @@ private:
                 } else {
                     datum_object_builder_t match_group;
                     b |= match_group.add(
-                        "str", make_counted<const datum_t>(group.as_string()));
+                        "str", make_counted<const datum_t>(
+                            wire_string_t(group.as_string())));
                     b |= match_group.add(
                         "start", make_counted<const datum_t>(
                             static_cast<double>(group.begin() - str.data())));
@@ -112,7 +115,7 @@ private:
                 tmp = s.substr(last, next - last);
             }
             if ((delim && delim->size() != 0) || tmp.size() != 0) {
-                res.push_back(make_counted<const datum_t>(std::move(tmp)));
+                res.push_back(make_counted<const datum_t>(wire_string_t(tmp)));
             }
             last = (next == std::string::npos || next >= s.size())
                 ? std::string::npos

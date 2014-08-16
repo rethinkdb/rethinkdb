@@ -56,11 +56,11 @@ batchspec_t batchspec_t::user(batch_type_t batch_type,
     counted_t<const datum_t> max_els_d, min_els_d, max_size_d, max_dur_d;
     counted_t<const datum_t> first_scaledown_d;
     if (conf.has()) {
-        min_els_d = conf->get("min_els", NOTHROW);
-        max_els_d = conf->get("max_els", NOTHROW);
-        max_size_d = conf->get("max_size", NOTHROW);
-        first_scaledown_d = conf->get("first_scaledown", NOTHROW);
-        max_dur_d = conf->get("max_dur", NOTHROW);
+        min_els_d = conf->get_field("min_els", NOTHROW);
+        max_els_d = conf->get_field("max_els", NOTHROW);
+        max_size_d = conf->get_field("max_size", NOTHROW);
+        first_scaledown_d = conf->get_field("first_scaledown", NOTHROW);
+        max_dur_d = conf->get_field("max_dur", NOTHROW);
     }
     int64_t max_els = max_els_d.has()
                       ? max_els_d->as_int()

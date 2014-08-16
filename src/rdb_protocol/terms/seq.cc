@@ -142,7 +142,8 @@ private:
             std::string index_str = index->as_str().to_std();
             counted_t<table_t> tbl = args->arg(env, 0)->as_table();
             if (index_str == tbl->get_pkey()) {
-                auto field = make_counted<const datum_t>(std::move(index_str));
+                // TODO! Make sure this is fine
+                auto field = index->as_datum();
                 funcs.push_back(new_get_field_func(field, backtrace()));
             } else {
                 tbl->add_sorting(index_str, sorting_t::ASCENDING, this);

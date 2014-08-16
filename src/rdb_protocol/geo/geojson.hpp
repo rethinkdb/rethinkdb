@@ -64,8 +64,8 @@ template <class return_t>
 return_t visit_geojson(
         s2_geo_visitor_t<return_t> *visitor,
         const counted_t<const ql::datum_t> &geojson) {
-    const std::string type = geojson->get("type")->as_str().to_std();
-    counted_t<const ql::datum_t> coordinates = geojson->get("coordinates");
+    const wire_string_t &type = geojson->get_field("type")->as_str();
+    counted_t<const ql::datum_t> coordinates = geojson->get_field("coordinates");
 
     if (type == "Point") {
         scoped_ptr_t<S2Point> pt = coordinates_to_s2point(coordinates);
@@ -89,10 +89,10 @@ return_t visit_geojson(
             || type == "FeatureCollection";
         if (valid_geojson) {
             throw geo_exception_t(
-                strprintf("GeoJSON type `%s` is not supported.", type.c_str()));
+                strprintf("GeoJSON type `%s` is not supported.", type.to_std().c_str()));
         } else {
             throw geo_exception_t(
-                strprintf("Unrecognized GeoJSON type `%s`.", type.c_str()));
+                strprintf("Unrecognized GeoJSON type `%s`.", type.to_std().c_str()));
         }
     }
 }

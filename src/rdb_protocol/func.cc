@@ -224,16 +224,16 @@ bool func_term_t::is_deterministic() const {
 bool filter_match(counted_t<const datum_t> predicate, counted_t<const datum_t> value,
                   const rcheckable_t *parent) {
     if (predicate->is_ptype(pseudo::literal_string)) {
-        return *predicate->get(pseudo::value_key) == *value;
+        return *predicate->get_field(pseudo::value_key) == *value;
     } else {
-        const std::map<std::string, counted_t<const datum_t> > &obj
+        const std::map<wire_string_t, counted_t<const datum_t> > &obj
             = predicate->as_object();
         for (auto it = obj.begin(); it != obj.end(); ++it) {
             r_sanity_check(it->second.has());
-            counted_t<const datum_t> elt = value->get(it->first, NOTHROW);
+            counted_t<const datum_t> elt = value->get_field(it->first, NOTHROW);
             if (!elt.has()) {
                 rfail_target(parent, base_exc_t::NON_EXISTENCE,
-                        "No attribute `%s` in object.", it->first.c_str());
+                        "No attribute `%s` in object.", it->first.to_std().c_str());
             } else if (it->second->get_type() == datum_t::R_OBJECT &&
                        elt->get_type() == datum_t::R_OBJECT) {
                 if (!filter_match(it->second, elt, parent)) { return false; }

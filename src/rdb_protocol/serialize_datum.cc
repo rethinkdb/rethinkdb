@@ -7,6 +7,8 @@
 
 #include "containers/archive/stl_types.hpp"
 #include "containers/archive/versioned.hpp"
+#include "containers/scoped.hpp"
+#include "containers/shared_buffer.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
@@ -87,20 +89,9 @@ datum_deserialize(read_stream_t *s, std::vector<counted_t<const datum_t> > *v) {
     return archive_result_t::SUCCESS;
 }
 
-size_t datum_serialized_size(const std::string &s) {
-    return serialize_universal_size(s);
-}
-serialization_result_t datum_serialize(write_message_t *wm, const std::string &s) {
-    serialize_universal(wm, s);
-    return serialization_result_t::SUCCESS;
-}
-MUST_USE archive_result_t datum_deserialize(read_stream_t *s, std::string *out) {
-    return deserialize_universal(s, out);
-}
-
 
 size_t datum_serialized_size(
-        const std::map<std::string, counted_t<const datum_t> > &m) {
+        const std::map<wire_string_t, counted_t<const datum_t> > &m) {
     size_t ret = varint_uint64_serialized_size(m.size());
     for (auto it = m.begin(), e = m.end(); it != e; ++it) {
         ret += datum_serialized_size(it->first);
@@ -111,7 +102,7 @@ size_t datum_serialized_size(
 
 serialization_result_t
 datum_serialize(write_message_t *wm,
-                const std::map<std::string, counted_t<const datum_t> > &m) {
+                const std::map<wire_string_t, counted_t<const datum_t> > &m) {
     serialization_result_t res = serialization_result_t::SUCCESS;
     serialize_varint_uint64(wm, m.size());
     for (auto it = m.begin(), e = m.end(); it != e; ++it) {
@@ -123,7 +114,7 @@ datum_serialize(write_message_t *wm,
 
 MUST_USE archive_result_t datum_deserialize(
         read_stream_t *s,
-        std::map<std::string, counted_t<const datum_t> > *m) {
+        std::map<wire_string_t, counted_t<const datum_t> > *m) {
     m->clear();
 
     uint64_t sz;
@@ -139,7 +130,7 @@ MUST_USE archive_result_t datum_deserialize(
     auto position = m->begin();
 
     for (uint64_t i = 0; i < sz; ++i) {
-        std::pair<std::string, counted_t<const datum_t> > p;
+        std::pair<wire_string_t, counted_t<const datum_t> > p;
         res = datum_deserialize(s, &p.first);
         if (bad(res)) { return res; }
         res = datum_deserialize(s, &p.second);
@@ -273,12 +264,11 @@ archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *d
         }
     } break;
     case datum_serialized_type_t::R_BINARY: {
-        scoped_ptr_t<wire_string_t> value;
+        wire_string_t value;
         res = datum_deserialize(s, &value);
         if (bad(res)) {
             return res;
         }
-        rassert(value.has());
         try {
             *datum = datum_t::binary(std::move(value));
         } catch (const base_exc_t &) {
@@ -337,7 +327,7 @@ archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *d
         }
     } break;
     case datum_serialized_type_t::R_OBJECT: {
-        std::map<std::string, counted_t<const datum_t> > value;
+        std::map<wire_string_t, counted_t<const datum_t> > value;
         res = datum_deserialize(s, &value);
         if (bad(res)) {
             return res;
@@ -349,12 +339,11 @@ archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *d
         }
     } break;
     case datum_serialized_type_t::R_STR: {
-        scoped_ptr_t<wire_string_t> value;
+        wire_string_t value;
         res = datum_deserialize(s, &value);
         if (bad(res)) {
             return res;
         }
-        rassert(value.has());
         try {
             datum->reset(new datum_t(std::move(value)));
         } catch (const base_exc_t &) {
@@ -381,7 +370,7 @@ serialization_result_t datum_serialize(write_message_t *wm, const wire_string_t 
 
 MUST_USE archive_result_t datum_deserialize(
         read_stream_t *s,
-        scoped_ptr_t<wire_string_t> *out) {
+        wire_string_t *out) {
     uint64_t sz;
     archive_result_t res = deserialize_varint_uint64(s, &sz);
     if (res != archive_result_t::SUCCESS) { return res; }
@@ -390,9 +379,8 @@ MUST_USE archive_result_t datum_deserialize(
         return archive_result_t::RANGE_ERROR;
     }
 
-    scoped_ptr_t<wire_string_t> value(wire_string_t::create(sz));
-
-    int64_t num_read = force_read(s, value->data(), sz);
+    scoped_ptr_t<shared_buf_t> buf(new shared_buf_t(sz));
+    int64_t num_read = force_read(s, buf->data(), sz);
     if (num_read == -1) {
         return archive_result_t::SOCK_ERROR;
     }
@@ -400,7 +388,8 @@ MUST_USE archive_result_t datum_deserialize(
         return archive_result_t::SOCK_EOF;
     }
 
-    *out = std::move(value);
+    *out = wire_string_t(sz,
+        shared_buf_ref_t(counted_t<const shared_buf_t>(buf.release()), 0));
 
     return archive_result_t::SUCCESS;
 }

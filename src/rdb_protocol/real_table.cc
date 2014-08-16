@@ -316,24 +316,24 @@ real_table_t::sindex_status(ql::env_t *env, const std::set<std::string> &sindexe
     std::map<std::string, counted_t<const ql::datum_t> > statuses;
     for (const std::pair<std::string, rdb_protocol::single_sindex_status_t> &pair :
             s_res->statuses) {
-        std::map<std::string, counted_t<const ql::datum_t> > status;
+        std::map<wire_string_t, counted_t<const ql::datum_t> > status;
         if (pair.second.blocks_processed != 0) {
-            status["blocks_processed"] =
+            status[wire_string_t("blocks_processed")] =
                 make_counted<const ql::datum_t>(
                     safe_to_double(pair.second.blocks_processed));
-            status["blocks_total"] =
+            status[wire_string_t("blocks_total")] =
                 make_counted<const ql::datum_t>(
                     safe_to_double(pair.second.blocks_total));
         }
-        status["ready"] = ql::datum_t::boolean(pair.second.ready);
+        status[wire_string_t("ready")] = ql::datum_t::boolean(pair.second.ready);
         std::string s = sindex_blob_prefix + pair.second.func;
-        status["function"] = ql::datum_t::binary(
-            wire_string_t::create_and_init(s.size(), s.data()));
-        status["outdated"] = ql::datum_t::boolean(pair.second.outdated);
-        status["multi"] = ql::datum_t::boolean(pair.second.multi ==
-                                               sindex_multi_bool_t::MULTI);
-        status["geo"] = ql::datum_t::boolean(pair.second.geo ==
-                                             sindex_geo_bool_t::GEO);
+        status[wire_string_t("function")] = ql::datum_t::binary(
+            wire_string_t(s.size(), s.data()));
+        status[wire_string_t("outdated")] = ql::datum_t::boolean(pair.second.outdated);
+        status[wire_string_t("multi")] =
+            ql::datum_t::boolean(pair.second.multi == sindex_multi_bool_t::MULTI);
+        status[wire_string_t("geo")] =
+            ql::datum_t::boolean(pair.second.geo == sindex_geo_bool_t::GEO);
         statuses.insert(std::make_pair(
             pair.first,
             make_counted<const ql::datum_t>(std::move(status))));

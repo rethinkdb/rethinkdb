@@ -568,7 +568,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         std::vector<store_key_t> keys;
         keys.reserve(bi.inserts.size());
         for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
-            keys.emplace_back((*it)->get(bi.pkey)->print_primary());
+            keys.emplace_back((*it)->get_field(wire_string_t(bi.pkey))->print_primary());
         }
         response->response =
             rdb_batched_replace(

@@ -394,11 +394,11 @@ void add_seconds_to_ptime(ptime_t *t, double raw_sec) {
 }
 
 time_t time_to_boost(counted_t<const datum_t> d) {
-    double raw_sec = d->get(epoch_time_key)->as_num();
+    double raw_sec = d->get_field(epoch_time_key)->as_num();
     ptime_t t(date_t(1970, 1, 1));
     add_seconds_to_ptime(&t, raw_sec);
 
-    if (counted_t<const datum_t> tz = d->get(timezone_key, NOTHROW)) {
+    if (counted_t<const datum_t> tz = d->get_field(timezone_key, NOTHROW)) {
         boost::local_time::time_zone_ptr zone(
             new boost::local_time::posix_time_zone(sanitize::tz(tz->as_str().to_std())));
         return time_t(t, zone);
@@ -422,7 +422,7 @@ std::string time_to_iso8601(counted_t<const datum_t> d) {
                                year));
         std::ostringstream ss;
         ss.exceptions(std::ios_base::failbit);
-        if (counted_t<const datum_t> tz = d->get(timezone_key, NOTHROW)) {
+        if (counted_t<const datum_t> tz = d->get_field(timezone_key, NOTHROW)) {
             ss.imbue(tz_format);
         } else {
             ss.imbue(no_tz_format);
@@ -436,7 +436,7 @@ std::string time_to_iso8601(counted_t<const datum_t> d) {
 }
 
 double time_to_epoch_time(counted_t<const datum_t> d) {
-    return d->get(epoch_time_key)->as_num();
+    return d->get_field(epoch_time_key)->as_num();
 }
 
 counted_t<const datum_t> time_now() {
@@ -452,7 +452,7 @@ int time_cmp(reql_version_t reql_version, const datum_t &x, const datum_t &y) {
     // We know that these are both nums, so the reql_version doesn't actually affect
     // anything (between v1_13 and v1_14_is_latest).  But it's safer not to have to
     // prove that, so we take it and pass it anyway.
-    return x.get(epoch_time_key)->cmp(reql_version, *y.get(epoch_time_key));
+    return x.get_field(epoch_time_key)->cmp(reql_version, *y.get_field(epoch_time_key));
 }
 
 double sanitize_epoch_sec(double d) {
@@ -472,7 +472,7 @@ void sanitize_time(datum_t *time) {
                 double d = it->second->as_num();
                 double d2 = sanitize_epoch_sec(d);
                 if (d2 != d) {
-                    bool b = time->add(epoch_time_key,
+                    bool b = time->add(wire_string_t(epoch_time_key),
                                        make_counted<const datum_t>(d2),
                                        CLOBBER);
                     r_sanity_check(b);
@@ -491,8 +491,8 @@ void sanitize_time(datum_t *time) {
                     has_timezone = true;
                     tz = (tz == "Z") ? "+00:00" : tz;
                     if (tz != raw_tz) {
-                        bool b = time->add(timezone_key,
-                                           make_counted<const datum_t>(std::move(tz)),
+                        bool b = time->add(wire_string_t(timezone_key),
+                                           make_counted<const datum_t>(wire_string_t(tz)),
                                            CLOBBER);
                         r_sanity_check(b);
                     }
@@ -511,7 +511,7 @@ void sanitize_time(datum_t *time) {
         } else if (it->first == datum_t::reql_type_string) {
             continue;
         } else {
-            msg = strprintf("unrecognized field `%s`", it->first.c_str());
+            msg = strprintf("unrecognized field `%s`", it->first.to_std().c_str());
             break;
         }
     }
@@ -531,7 +531,7 @@ void sanitize_time(datum_t *time) {
 
 counted_t<const datum_t> time_tz(counted_t<const datum_t> time) {
     r_sanity_check(time->is_ptype(time_string));
-    if (counted_t<const datum_t> tz = time->get(timezone_key, NOTHROW)) {
+    if (counted_t<const datum_t> tz = time->get_field(timezone_key, NOTHROW)) {
         return tz;
     } else {
         return datum_t::null();
@@ -547,16 +547,16 @@ counted_t<const datum_t> time_in_tz(counted_t<const datum_t> t,
     if (raw_new_tzs == new_tzs) {
         t2.overwrite(timezone_key, tz);
     } else {
-        t2.overwrite(timezone_key, make_counted<const datum_t>(std::move(new_tzs)));
+        t2.overwrite(timezone_key, make_counted<const datum_t>(wire_string_t(new_tzs)));
     }
     return std::move(t2).to_counted();
 }
 
 counted_t<const datum_t> make_time(double epoch_time, std::string tz) {
-    std::map<std::string, counted_t<const datum_t> > map
-        = { { datum_t::reql_type_string, make_counted<const datum_t>(time_string) },
-            { epoch_time_key, make_counted<const datum_t>(epoch_time) },
-            { timezone_key, make_counted<const datum_t>(std::move(tz)) } };
+    std::map<wire_string_t, counted_t<const datum_t> > map
+        = { { wire_string_t(datum_t::reql_type_string), make_counted<const datum_t>(time_string) },
+            { wire_string_t(epoch_time_key), make_counted<const datum_t>(epoch_time) },
+            { wire_string_t(timezone_key), make_counted<const datum_t>(wire_string_t(tz)) } };
     return make_counted<datum_t>(std::move(map));
 }
 
@@ -578,7 +578,7 @@ counted_t<const datum_t> make_time(
 }
 
 counted_t<const datum_t> time_add(counted_t<const datum_t> x,
-                                  counted_t<const datum_t> y) {
+                                 counted_t<const datum_t> y) {
     counted_t<const datum_t> time, duration;
     if (x->is_ptype(time_string)) {
         time = x;
@@ -592,7 +592,7 @@ counted_t<const datum_t> time_add(counted_t<const datum_t> x,
     datum_object_builder_t res(time->as_object());
     res.overwrite(
         epoch_time_key,
-        make_counted<datum_t>(time->get(epoch_time_key)->as_num() +
+        make_counted<datum_t>(time->get_field(epoch_time_key)->as_num() +
                               duration->as_num()));
 
     return std::move(res).to_counted();
@@ -604,13 +604,13 @@ counted_t<const datum_t> time_sub(counted_t<const datum_t> time,
 
     if (time_or_duration->is_ptype(time_string)) {
         return make_counted<const datum_t>(sanitize_epoch_sec(
-            time->get(epoch_time_key)->as_num()
-            - time_or_duration->get(epoch_time_key)->as_num()));
+            time->get_field(epoch_time_key)->as_num()
+            - time_or_duration->get_field(epoch_time_key)->as_num()));
     } else {
         datum_object_builder_t res(time->as_object());
         res.overwrite(
             epoch_time_key,
-            make_counted<const datum_t>(time->get(epoch_time_key)->as_num() -
+            make_counted<const datum_t>(time->get_field(epoch_time_key)->as_num() -
                                         time_or_duration->as_num()));
         return std::move(res).to_counted();
     }
@@ -632,7 +632,7 @@ double time_portion(counted_t<const datum_t> time, time_component_t c) {
         case HOURS: return ptime.time_of_day().hours();
         case MINUTES: return ptime.time_of_day().minutes();
         case SECONDS: {
-            double frac = modf(time->get(epoch_time_key)->as_num(), &frac);
+            double frac = modf(time->get_field(epoch_time_key)->as_num(), &frac);
             frac = round(frac * 1000) / 1000;
             return ptime.time_of_day().seconds() + frac;
         } break;
@@ -668,7 +668,7 @@ void time_to_str_key(const datum_t &d, std::string *str_out) {
     // We need to prepend "P" and append a character less than [a-zA-Z] so that
     // different pseudotypes sort correctly.
     str_out->append(std::string("P") + time_string + ":");
-    d.get(epoch_time_key)->num_to_str_key(str_out);
+    d.get_field(epoch_time_key)->num_to_str_key(str_out);
 }
 
 } // namespace pseudo

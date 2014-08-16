@@ -21,7 +21,8 @@ name_string_t get_name(counted_t<val_t> val, const term_t *caller,
     bool assignment_successful = name.assign_value(raw_name);
     rcheck_target(caller, base_exc_t::GENERIC, assignment_successful,
                   strprintf("%s name `%s` invalid (%s).",
-                            type_str, raw_name.c_str(), name_string_t::valid_char_msg));
+                            type_str, raw_name.to_std().c_str(),
+                            name_string_t::valid_char_msg));
     return name;
 }
 
@@ -49,7 +50,7 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t flags) const {
         std::string op = write_eval_impl(env, args, flags);
         datum_object_builder_t res;
-        UNUSED bool b = res.add(op, make_counted<datum_t>(1.0));
+        UNUSED bool b = res.add(wire_string_t(op), make_counted<datum_t>(1.0));
         return new_val(std::move(res).to_counted());
     }
 };
@@ -212,7 +213,7 @@ private:
         std::vector<counted_t<const datum_t> > arr;
         arr.reserve(dbs.size());
         for (auto it = dbs.begin(); it != dbs.end(); ++it) {
-            arr.push_back(make_counted<datum_t>(std::string(it->str())));
+            arr.push_back(make_counted<datum_t>(wire_string_t(it->str())));
         }
 
         return new_val(make_counted<const datum_t>(std::move(arr), env->env->limits));
@@ -245,7 +246,7 @@ private:
         std::vector<counted_t<const datum_t> > arr;
         arr.reserve(tables.size());
         for (auto it = tables.begin(); it != tables.end(); ++it) {
-            arr.push_back(make_counted<datum_t>(std::string(it->str())));
+            arr.push_back(make_counted<datum_t>(wire_string_t(it->str())));
         }
         return new_val(make_counted<const datum_t>(std::move(arr), env->env->limits));
     }

@@ -10,11 +10,12 @@
 
 wire_string_t::wire_string_t()
     : size_(0),
-      data_(make_counted<const shared_buf_t>(std::vector<char>())) { }
+      data_(make_counted<const shared_buf_t>(std::vector<char>()), 0) { }
 
 wire_string_t::wire_string_t(size_t _size, const char *_data)
     : size_(_size),
-      data_(make_counted<const shared_buf_t>(std::vector<char>(_size, _data))) { }
+      data_(make_counted<const shared_buf_t>(
+          std::vector<char>(_data, _data + _size)), 0) { }
 
 wire_string_t::wire_string_t(size_t _size, const shared_buf_ref_t &_ref)
     : size_(_size),
@@ -24,18 +25,44 @@ wire_string_t::wire_string_t(size_t _size, shared_buf_ref_t &&_ref)
     : size_(_size),
       data_(std::move(_ref)) { }
 
+wire_string_t::wire_string_t(const char *c_str)
+    : size_(strlen(c_str)),
+      data_(make_counted<const shared_buf_t>(
+          std::vector<char>(c_str, c_str + size_)), 0) { }
+
+wire_string_t::wire_string_t(const std::string &str)
+    : size_(str.size()),
+      data_(make_counted<const shared_buf_t>(
+          std::vector<char>(str.data(), str.data() + size_)), 0) { }
+
 wire_string_t::wire_string_t(wire_string_t &&movee) noexcept
-    : size_(movee.size),
+    : size_(movee.size_),
       data_(std::move(movee.data_)) { }
 
-char *wire_string_t::data() {
-    return data_.get();
+wire_string_t::wire_string_t(const wire_string_t &copyee) noexcept
+    : size_(copyee.size_),
+      data_(copyee.data_) { }
+
+wire_string_t &wire_string_t::operator=(wire_string_t &&movee) noexcept {
+    size_ = movee.size_;
+    data_ = std::move(movee.data_);
+    return *this;
 }
+
+wire_string_t &wire_string_t::operator=(const wire_string_t &copyee) noexcept {
+    size_ = copyee.size_;
+    data_ = copyee.data_;
+    return *this;
+}
+
 const char *wire_string_t::data() const {
     return data_.get();
 }
 size_t wire_string_t::size() const {
     return size_;
+}
+bool wire_string_t::empty() const {
+    return size_ == 0;
 }
 
 int wire_string_t::compare(const wire_string_t &other) const {
@@ -59,6 +86,10 @@ int wire_string_t::compare(const wire_string_t &other) const {
 bool wire_string_t::operator==(const char *other) const {
     return strncmp(data_.get(), other, size_) == 0;
 }
+bool wire_string_t::operator!=(const char *other) const {
+    return !(*this == other);
+}
+
 bool wire_string_t::operator==(const wire_string_t &other) const {
     if (size_ != other.size_) {
         return false;
@@ -90,6 +121,6 @@ wire_string_t concat(const wire_string_t &a, const wire_string_t &b) {
     std::vector<char> result_data(a.size() + b.size());
     memcpy(result_data.data(), a.data(), a.size());
     memcpy(result_data.data() + a.size(), b.data(), b.size());
-    return wire_string_t(a.data(), a.size(), shared_buf_ref_t(
-        make_counted<const shared_buf_t>(std::move(result_data))));
+    return wire_string_t(a.size() + b.size(), shared_buf_ref_t(
+        make_counted<const shared_buf_t>(std::move(result_data)), 0));
 }

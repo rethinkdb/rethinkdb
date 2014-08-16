@@ -17,7 +17,6 @@
 #include "btree/keys.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/counted.hpp"
-#include "containers/scoped.hpp"
 #include "containers/wire_string.hpp"
 #include "http/json.hpp"
 #include "rdb_protocol/configured_limits.hpp"
@@ -86,6 +85,7 @@ public:
     static counted_t<const datum_t> null();
     static counted_t<const datum_t> boolean(bool value);
     static counted_t<const datum_t> binary(wire_string_t &&value);
+    static counted_t<const datum_t> binary(const wire_string_t &value);
 
     // Strongly prefer datum_t::null().
     enum class construct_null_t { };
@@ -105,10 +105,12 @@ public:
     datum_t(construct_boolean_t, bool _bool);
 
     enum class construct_binary_t { };
-    explicit datum_t(construct_binary_t, wire_string_t _data);
+    explicit datum_t(construct_binary_t, const wire_string_t &_data);
+    explicit datum_t(construct_binary_t, wire_string_t &&_data);
 
     explicit datum_t(double _num);
-    explicit datum_t(wire_string_t &&str);
+    explicit datum_t(wire_string_t &&_str);
+    explicit datum_t(const wire_string_t &_str);
     explicit datum_t(const char *cstr);
     explicit datum_t(std::vector<counted_t<const datum_t> > &&_array,
                      const configured_limits_t &limits);
@@ -181,8 +183,10 @@ public:
     const std::map<wire_string_t, counted_t<const datum_t> > &as_object() const;
 
     // Access an element of an object.
-    counted_t<const datum_t> get(const wire_string_t &key,
-                                 throw_bool_t throw_bool = THROW) const;
+    counted_t<const datum_t> get_field(const wire_string_t &key,
+                                       throw_bool_t throw_bool = THROW) const;
+    counted_t<const datum_t> get_field(const char *key,
+                                       throw_bool_t throw_bool = THROW) const;
     counted_t<const datum_t> merge(counted_t<const datum_t> rhs) const;
     // "Consumer defined" merge resolutions; these take limits unlike
     // the other merge because the merge resolution can and does (in
@@ -190,8 +194,7 @@ public:
     // obviously breach limits.
     // This takes std::set<std::string> instead of std::set<const std::string> not
     // because it plans on modifying the strings, but because the latter doesn't work.
-    // TODO! Change to wire_string_t?
-    typedef counted_t<const datum_t> (*merge_resoluter_t)(const std::string &key,
+    typedef counted_t<const datum_t> (*merge_resoluter_t)(const wire_string_t &key,
                                                           counted_t<const datum_t> l,
                                                           counted_t<const datum_t> r,
                                                           const configured_limits_t &limits,
@@ -246,8 +249,7 @@ public:
                               counted_t<const datum_t> orig_key,
                               const std::string &pkey) const;
 
-    static void check_str_validity(const std::string &str);
-    static void check_str_validity(const wire_string_t *str);
+    static void check_str_validity(const wire_string_t &str);
 
 private:
     friend void pseudo::sanitize_time(datum_t *time);
@@ -279,9 +281,11 @@ private:
         // Mirror the same constructors of datum_t
         explicit data_wrapper_t(construct_null_t);
         data_wrapper_t(construct_boolean_t, bool _bool);
-        data_wrapper_t(construct_binary_t, wire_string_t data);
+        data_wrapper_t(construct_binary_t, wire_string_t &&data);
+        data_wrapper_t(construct_binary_t, const wire_string_t &data);
         explicit data_wrapper_t(double num);
         explicit data_wrapper_t(wire_string_t &&str);
+        explicit data_wrapper_t(const wire_string_t &str);
         explicit data_wrapper_t(const char *cstr);
         explicit data_wrapper_t(std::vector<counted_t<const datum_t> > &&array);
         data_wrapper_t(std::map<wire_string_t, counted_t<const datum_t> > &&object);
@@ -301,7 +305,7 @@ private:
     } data;
 
 public:
-    static const char *const reql_type_string;
+    static const wire_string_t reql_type_string;
 
 private:
     DISABLE_COPYING(datum_t);
@@ -333,13 +337,16 @@ public:
     // Returns true if the insertion did _not_ happen because the key was already in
     // the object.
     MUST_USE bool add(const wire_string_t &key, counted_t<const datum_t> val);
+    MUST_USE bool add(const char *key, counted_t<const datum_t> val);
     // Inserts a new key or overwrites the existing key's value.
     void overwrite(const wire_string_t &key, counted_t<const datum_t> val);
+    void overwrite(const char *key, counted_t<const datum_t> val);
     void add_warning(const char *msg, const configured_limits_t &limits);
     void add_warnings(const std::set<std::string> &msgs, const configured_limits_t &limits);
     void add_error(const char *msg);
 
     MUST_USE bool delete_field(const wire_string_t &key);
+    MUST_USE bool delete_field(const char *key);
 
     counted_t<const datum_t> at(const wire_string_t &key) const;
 

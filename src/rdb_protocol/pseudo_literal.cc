@@ -17,7 +17,7 @@ void rcheck_literal_valid(const datum_t *lit) {
         } else {
             rfail_target(lit, base_exc_t::GENERIC,
                          "Invalid literal term with illegal key `%s`.",
-                         it->first.c_str());
+                         it->first.to_std().c_str());
         }
     }
 }

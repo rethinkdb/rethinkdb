@@ -28,7 +28,7 @@ const size_t tag_size = 8;
 
 const std::set<std::string> datum_t::_allowed_pts = std::set<std::string>();
 
-const char *const datum_t::reql_type_string = "$reql_type$";
+const wire_string_t datum_t::reql_type_string("$reql_type$");
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_null_t) :
     type(R_NULL), r_str(NULL) { }
@@ -37,31 +37,34 @@ datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_boolean_t, bool _bool
     type(R_BOOL), r_bool(_bool) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_binary_t,
-                                        scoped_ptr_t<wire_string_t> _data) :
-    type(R_BINARY), r_str(_data.release()) { }
+                                        wire_string_t &&_data) :
+    type(R_BINARY), r_str(new wire_string_t(std::move(_data))) { }
+
+datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_binary_t,
+                                        const wire_string_t &_data) :
+    type(R_BINARY), r_str(new wire_string_t(_data)) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(double num) :
     type(R_NUM), r_num(num) { }
 
-datum_t::data_wrapper_t::data_wrapper_t(std::string &&str) :
-    type(R_STR),
-    r_str(wire_string_t::create_and_init(str.size(), str.data()).release()) { }
+datum_t::data_wrapper_t::data_wrapper_t(wire_string_t &&str) :
+    type(R_STR), r_str(new wire_string_t(std::move(str))) { }
 
-datum_t::data_wrapper_t::data_wrapper_t(scoped_ptr_t<wire_string_t> str) :
-    type(R_STR), r_str(str.release()) { }
+datum_t::data_wrapper_t::data_wrapper_t(const wire_string_t &str) :
+    type(R_STR), r_str(new wire_string_t(str)) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(const char *cstr) :
     type(R_STR),
-    r_str(wire_string_t::create_and_init(::strlen(cstr), cstr).release()) { }
+    r_str(new wire_string_t(cstr)) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(std::vector<counted_t<const datum_t> > &&array) :
     type(R_ARRAY),
     r_array(new std::vector<counted_t<const datum_t> >(std::move(array))) { }
 
-datum_t::data_wrapper_t::data_wrapper_t(std::map<std::string,
+datum_t::data_wrapper_t::data_wrapper_t(std::map<wire_string_t,
                                                  counted_t<const datum_t> > &&object) :
     type(R_OBJECT),
-    r_object(new std::map<std::string, counted_t<const datum_t> >(std::move(object))) { }
+    r_object(new std::map<wire_string_t, counted_t<const datum_t> >(std::move(object))) { }
 
 datum_t::data_wrapper_t::~data_wrapper_t() {
     switch (type) {
@@ -86,8 +89,11 @@ datum_t::datum_t(datum_t::construct_null_t dummy) : data(dummy) { }
 
 datum_t::datum_t(construct_boolean_t dummy, bool _bool) : data(dummy, _bool) { }
 
-datum_t::datum_t(construct_binary_t dummy, scoped_ptr_t<wire_string_t> _data)
+datum_t::datum_t(construct_binary_t dummy, wire_string_t &&_data)
     : data(dummy, std::move(_data)) { }
+
+datum_t::datum_t(construct_binary_t dummy, const wire_string_t &_data)
+    : data(dummy, _data) { }
 
 datum_t::datum_t(double _num) : data(_num) {
     // isfinite is a macro on OS X in math.h, so we can't just say std::isfinite.
@@ -96,12 +102,12 @@ datum_t::datum_t(double _num) : data(_num) {
            strprintf("Non-finite number: %" PR_RECONSTRUCTABLE_DOUBLE, data.r_num));
 }
 
-datum_t::datum_t(std::string &&_str) : data(std::move(_str)) {
-    check_str_validity(data.r_str);
+datum_t::datum_t(const wire_string_t &_str) : data(_str) {
+    check_str_validity(*data.r_str);
 }
 
-datum_t::datum_t(scoped_ptr_t<wire_string_t> str) : data(std::move(str)) {
-    check_str_validity(data.r_str);
+datum_t::datum_t(wire_string_t &&_str) : data(std::move(_str)) {
+    check_str_validity(*data.r_str);
 }
 
 datum_t::datum_t(const char *cstr) : data(cstr) { }
@@ -115,13 +121,13 @@ datum_t::datum_t(std::vector<counted_t<const datum_t> > &&_array,
 datum_t::datum_t(std::vector<counted_t<const datum_t> > &&_array,
                  no_array_size_limit_check_t) : data(std::move(_array)) { }
 
-datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object,
+datum_t::datum_t(std::map<wire_string_t, counted_t<const datum_t> > &&_object,
                  const std::set<std::string> &allowed_pts)
     : data(std::move(_object)) {
     maybe_sanitize_ptype(allowed_pts);
 }
 
-datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object,
+datum_t::datum_t(std::map<wire_string_t, counted_t<const datum_t> > &&_object,
                  no_sanitize_ptype_t)
     : data(std::move(_object)) { }
 
@@ -129,8 +135,9 @@ counted_t<const datum_t>
 to_datum_for_client_serialization(grouped_data_t &&gd,
                                   reql_version_t reql_version,
                                   const configured_limits_t &limits) {
-    std::map<std::string, counted_t<const datum_t> > map;
-    map[datum_t::reql_type_string] = make_counted<const datum_t>("GROUPED_DATA");
+    std::map<wire_string_t, counted_t<const datum_t> > map;
+    map[datum_t::reql_type_string] =
+        make_counted<const datum_t>("GROUPED_DATA");
 
     {
         datum_array_builder_t arr(limits);
@@ -145,7 +152,7 @@ to_datum_for_client_serialization(grouped_data_t &&gd,
                                 key, std::move(value) },
                             limits));
                 });
-        map["data"] = std::move(arr).to_counted();
+        map[wire_string_t("data")] = std::move(arr).to_counted();
     }
 
     // We don't sanitize the ptype because this is a fake ptype that should only
@@ -163,7 +170,7 @@ counted_t<const datum_t> datum_t::empty_array() {
 }
 
 counted_t<const datum_t> datum_t::empty_object() {
-    return make_counted<datum_t>(std::map<std::string, counted_t<const datum_t> >());
+    return make_counted<datum_t>(std::map<wire_string_t, counted_t<const datum_t> >());
 }
 
 counted_t<const datum_t> datum_t::null() {
@@ -174,7 +181,11 @@ counted_t<const datum_t> datum_t::boolean(bool value) {
     return make_counted<datum_t>(construct_boolean_t(), value);
 }
 
-counted_t<const datum_t> datum_t::binary(scoped_ptr_t<wire_string_t> _data) {
+counted_t<const datum_t> datum_t::binary(const wire_string_t &_data) {
+    return make_counted<datum_t>(construct_binary_t(), _data);
+}
+
+counted_t<const datum_t> datum_t::binary(wire_string_t &&_data) {
     return make_counted<datum_t>(construct_binary_t(), std::move(_data));
 }
 
@@ -204,10 +215,11 @@ counted_t<const datum_t> to_datum(cJSON *json, const configured_limits_t &limits
         return make_counted<datum_t>(std::move(array), limits);
     } break;
     case cJSON_Object: {
-        std::map<std::string, counted_t<const datum_t> > map;
+        std::map<wire_string_t, counted_t<const datum_t> > map;
         json_object_iterator_t it(json);
         while (cJSON *item = it.next()) {
-            auto res = map.insert(std::make_pair(item->string, to_datum(item, limits)));
+            auto res = map.insert(
+                std::make_pair(wire_string_t(item->string), to_datum(item, limits)));
             rcheck_datum(res.second, base_exc_t::GENERIC,
                          strprintf("Duplicate key `%s` in JSON.", item->string));
         }
@@ -229,11 +241,7 @@ void check_str_validity(const char *bytes, size_t count) {
                            bytes, pos - bytes));
 }
 
-void datum_t::check_str_validity(const wire_string_t *str) {
-    ::ql::check_str_validity(str->data(), str->size());
-}
-
-void datum_t::check_str_validity(const std::string &str) {
+void datum_t::check_str_validity(const wire_string_t &str) {
     ::ql::check_str_validity(str.data(), str.size());
 }
 
@@ -259,7 +267,7 @@ std::string datum_t::get_reql_type() const {
     rcheck(maybe_reql_type->second->get_type() == R_STR,
            base_exc_t::GENERIC,
            strprintf("Error: Field `%s` must be a string (got `%s` of type %s):\n%s",
-                     reql_type_string,
+                     reql_type_string.to_std().c_str(),
                      maybe_reql_type->second->trunc_print().c_str(),
                      maybe_reql_type->second->get_type_name().c_str(),
                      trunc_print().c_str()));
@@ -464,11 +472,11 @@ void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
         }
         if (s == pseudo::binary_string) {
             // Clear the pseudotype data and convert it to binary data
-            scoped_ptr_t<std::map<std::string, counted_t<const datum_t> > >
+            scoped_ptr_t<std::map<wire_string_t, counted_t<const datum_t> > >
                 obj_data(data.r_object);
             data.r_object = NULL;
 
-            data.r_str = pseudo::decode_base64_ptype(*obj_data.get()).release();
+            data.r_str = new wire_string_t(pseudo::decode_base64_ptype(*obj_data.get()));
             data.type = R_BINARY;
             return;
         }
@@ -495,7 +503,7 @@ counted_t<const datum_t> datum_t::drop_literals(bool *encountered_literal_out) c
 
     const bool is_literal = is_ptype(pseudo::literal_string);
     if (is_literal) {
-        counted_t<const datum_t> val = get(pseudo::value_key, NOTHROW);
+        counted_t<const datum_t> val = get_field(pseudo::value_key, NOTHROW);
         if (val) {
             bool encountered_literal;
             val = val->drop_literals(&encountered_literal);
@@ -513,7 +521,7 @@ counted_t<const datum_t> datum_t::drop_literals(bool *encountered_literal_out) c
     counted_t<const datum_t> copied_result;
 
     if (get_type() == R_OBJECT) {
-        const std::map<std::string, counted_t<const datum_t> > &obj = as_object();
+        const std::map<wire_string_t, counted_t<const datum_t> > &obj = as_object();
         datum_object_builder_t builder;
 
         for (auto it = obj.begin(); it != obj.end(); ++it) {
@@ -588,14 +596,15 @@ counted_t<const datum_t> datum_t::drop_literals(bool *encountered_literal_out) c
 void datum_t::rcheck_valid_replace(counted_t<const datum_t> old_val,
                                    counted_t<const datum_t> orig_key,
                                    const std::string &pkey) const {
-    counted_t<const datum_t> pk = get(pkey, NOTHROW);
+    // TODO! Can I avoid this conversion to wire_string_t?
+    counted_t<const datum_t> pk = get_field(wire_string_t(pkey), NOTHROW);
     rcheck(pk.has(), base_exc_t::GENERIC,
            strprintf("Inserted object must have primary key `%s`:\n%s",
                      pkey.c_str(), print().c_str()));
     if (old_val.has()) {
         counted_t<const datum_t> old_pk = orig_key;
         if (old_val->get_type() != R_NULL) {
-            old_pk = old_val->get(pkey, NOTHROW);
+            old_pk = old_val->get_field(wire_string_t(pkey), NOTHROW);
             r_sanity_check(old_pk.has());
         }
         if (old_pk.has()) {
@@ -907,19 +916,24 @@ counted_t<const datum_t> datum_t::get(size_t index, throw_bool_t throw_bool) con
     }
 }
 
-counted_t<const datum_t> datum_t::get(const std::string &key,
-                                      throw_bool_t throw_bool) const {
-    std::map<std::string, counted_t<const datum_t> >::const_iterator it
+counted_t<const datum_t> datum_t::get_field(const wire_string_t &key,
+                                            throw_bool_t throw_bool) const {
+    std::map<wire_string_t, counted_t<const datum_t> >::const_iterator it
         = as_object().find(key);
     if (it != as_object().end()) return it->second;
     if (throw_bool == THROW) {
         rfail(base_exc_t::NON_EXISTENCE,
-              "No attribute `%s` in object:\n%s", key.c_str(), print().c_str());
+              "No attribute `%s` in object:\n%s", key.to_std().c_str(), print().c_str());
     }
     return counted_t<const datum_t>();
 }
 
-const std::map<std::string, counted_t<const datum_t> > &datum_t::as_object() const {
+counted_t<const datum_t> datum_t::get_field(const char *key,
+                                            throw_bool_t throw_bool) const {
+    return get_field(wire_string_t(key), throw_bool);
+}
+
+const std::map<wire_string_t, counted_t<const datum_t> > &datum_t::as_object() const {
     check_type(R_OBJECT);
     return *data.r_object;
 }
@@ -930,7 +944,7 @@ cJSON *datum_t::as_json_raw() const {
     case R_BINARY: return pseudo::encode_base64_ptype(as_binary()).release();
     case R_BOOL: return cJSON_CreateBool(as_bool());
     case R_NUM: return cJSON_CreateNumber(as_num());
-    case R_STR: return cJSON_CreateString(as_str().c_str());
+    case R_STR: return cJSON_CreateString(as_str().to_std().c_str()); // TODO! Copying...
     case R_ARRAY: {
         scoped_cJSON_t arr(cJSON_CreateArray());
         for (size_t i = 0; i < as_array().size(); ++i) {
@@ -940,9 +954,9 @@ cJSON *datum_t::as_json_raw() const {
     } break;
     case R_OBJECT: {
         scoped_cJSON_t obj(cJSON_CreateObject());
-        for (std::map<std::string, counted_t<const datum_t> >::const_iterator
+        for (std::map<wire_string_t, counted_t<const datum_t> >::const_iterator
                  it = data.r_object->begin(); it != data.r_object->end(); ++it) {
-            obj.AddItemToObject(it->first.c_str(), it->second->as_json_raw());
+            obj.AddItemToObject(it->first.to_std().c_str(), it->second->as_json_raw());
         }
         return obj.release();
     } break;
@@ -975,7 +989,7 @@ datum_t::as_datum_stream(const protob_t<const Backtrace> &backtrace) const {
     unreachable();
 };
 
-MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
+MUST_USE bool datum_t::add(const wire_string_t &key, counted_t<const datum_t> val,
                            clobber_bool_t clobber_bool) {
     check_type(R_OBJECT);
     check_str_validity(key);
@@ -993,7 +1007,7 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
     }
 
     datum_object_builder_t d(as_object());
-    const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
+    const std::map<wire_string_t, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
         counted_t<const datum_t> sub_lhs = d.try_get(it->first);
         bool is_literal = it->second->is_ptype(pseudo::literal_string);
@@ -1003,7 +1017,7 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
         } else {
             counted_t<const datum_t> val =
                 is_literal
-                ? it->second->get(pseudo::value_key, NOTHROW)
+                ? it->second->get_field(pseudo::value_key, NOTHROW)
                 : it->second;
             if (val) {
                 // Since nested literal keywords are forbidden, this should be a no-op
@@ -1028,9 +1042,9 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs,
                                         const configured_limits_t &limits,
                                         std::set<std::string> *conditions_out) const {
     datum_object_builder_t d(as_object());
-    const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
+    const std::map<wire_string_t, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
-        if (counted_t<const datum_t> left = get(it->first, NOTHROW)) {
+        if (counted_t<const datum_t> left = get_field(it->first, NOTHROW)) {
             d.overwrite(it->first, f(it->first, left, it->second, limits, conditions_out));
         } else {
             bool b = d.add(it->first, it->second);
@@ -1081,8 +1095,8 @@ int datum_t::v1_13_cmp(const datum_t &rhs) const {
             }
             return pseudo_cmp(reql_version_t::v1_13, rhs);
         } else {
-            const std::map<std::string, counted_t<const datum_t> > &obj = as_object();
-            const std::map<std::string, counted_t<const datum_t> > &rhs_obj
+            const std::map<wire_string_t, counted_t<const datum_t> > &obj = as_object();
+            const std::map<wire_string_t, counted_t<const datum_t> > &rhs_obj
                 = rhs.as_object();
             auto it = obj.begin();
             auto it2 = rhs_obj.begin();
@@ -1153,8 +1167,8 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
         return i == rhs.as_array().size() ? 0 : -1;
     } unreachable();
     case R_OBJECT: {
-        const std::map<std::string, counted_t<const datum_t> > &obj = as_object();
-        const std::map<std::string, counted_t<const datum_t> > &rhs_obj
+        const std::map<wire_string_t, counted_t<const datum_t> > &obj = as_object();
+        const std::map<wire_string_t, counted_t<const datum_t> > &rhs_obj
             = rhs.as_object();
         auto it = obj.begin();
         auto it2 = rhs_obj.begin();
@@ -1206,7 +1220,7 @@ counted_t<const datum_t> to_datum(const Datum *d, const configured_limits_t &lim
         return make_counted<datum_t>(d->r_num());
     } break;
     case Datum::R_STR: {
-        return make_counted<datum_t>(std::string(d->r_str()));
+        return make_counted<datum_t>(wire_string_t(d->r_str()));
     } break;
     case Datum::R_JSON: {
         scoped_cJSON_t cjson(cJSON_Parse(d->r_str().c_str()));
@@ -1221,15 +1235,16 @@ counted_t<const datum_t> to_datum(const Datum *d, const configured_limits_t &lim
         return std::move(out).to_counted();
     } break;
     case Datum::R_OBJECT: {
-        std::map<std::string, counted_t<const datum_t> > map;
+        std::map<wire_string_t, counted_t<const datum_t> > map;
         const int count = d->r_object_size();
         for (int i = 0; i < count; ++i) {
             const Datum_AssocPair *ap = &d->r_object(i);
-            const std::string &key = ap->key();
+            wire_string_t key(ap->key());
             datum_t::check_str_validity(key);
-            auto res = map.insert(std::make_pair(key, to_datum(&ap->val(), limits)));
+            auto res = map.insert(std::make_pair(key,
+                                                 to_datum(&ap->val(), limits)));
             rcheck_datum(res.second, base_exc_t::GENERIC,
-                         strprintf("Duplicate key %s in object.", key.c_str()));
+                         strprintf("Duplicate key %s in object.", key.to_std().c_str()));
         }
         const std::set<std::string> pts = { pseudo::literal_string };
         return make_counted<datum_t>(std::move(map), pts);
@@ -1294,7 +1309,7 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
             // We use rbegin and rend so that things print the way we expect.
             for (auto it = data.r_object->rbegin(); it != data.r_object->rend(); ++it) {
                 Datum_AssocPair *ap = d->add_r_object();
-                ap->set_key(it->first);
+                ap->set_key(it->first.to_std());
                 it->second->write_to_protobuf(ap->mutable_val(), use_json);
             }
         } break;
@@ -1313,7 +1328,7 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
 // generic conflict resolution function, but this particular conflict resolution
 // function doesn't care about they key (although we could add some
 // error-checking using the key in the future).
-counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
+counted_t<const datum_t> stats_merge(UNUSED const wire_string_t &key,
                                      counted_t<const datum_t> l,
                                      counted_t<const datum_t> r,
                                      const configured_limits_t &limits,
@@ -1354,7 +1369,7 @@ counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
     return l;
 }
 
-bool datum_object_builder_t::add(const std::string &key, counted_t<const datum_t> val) {
+bool datum_object_builder_t::add(const wire_string_t &key, counted_t<const datum_t> val) {
     datum_t::check_str_validity(key);
     r_sanity_check(val.has());
     auto res = map.insert(std::make_pair(key, std::move(val)));
@@ -1363,15 +1378,24 @@ bool datum_object_builder_t::add(const std::string &key, counted_t<const datum_t
     return !res.second;
 }
 
-void datum_object_builder_t::overwrite(std::string key,
+bool datum_object_builder_t::add(const char *key, counted_t<const datum_t> val) {
+    return add(wire_string_t(key), val);
+}
+
+void datum_object_builder_t::overwrite(const wire_string_t &key,
                                        counted_t<const datum_t> val) {
     datum_t::check_str_validity(key);
     r_sanity_check(val.has());
-    map[std::move(key)] = std::move(val);
+    map[key] = std::move(val);
+}
+
+void datum_object_builder_t::overwrite(const char *key,
+                                       counted_t<const datum_t> val) {
+    return overwrite(wire_string_t(key), val);
 }
 
 void datum_object_builder_t::add_warning(const char *msg, const configured_limits_t &limits) {
-    counted_t<const datum_t> *warnings_entry = &map["warnings"];
+    counted_t<const datum_t> *warnings_entry = &map[wire_string_t("warnings")];
     if (warnings_entry->has()) {
         const std::vector<counted_t<const datum_t> > &array
             = (*warnings_entry)->as_array();
@@ -1394,7 +1418,7 @@ void datum_object_builder_t::add_warning(const char *msg, const configured_limit
 
 void datum_object_builder_t::add_warnings(const std::set<std::string> &msgs, const configured_limits_t &limits) {
     if (msgs.empty()) return;
-    counted_t<const datum_t> *warnings_entry = &map["warnings"];
+    counted_t<const datum_t> *warnings_entry = &map[wire_string_t("warnings")];
     if (warnings_entry->has()) {
         const std::vector<counted_t<const datum_t> > &array
             = (*warnings_entry)->as_array();
@@ -1426,25 +1450,30 @@ void datum_object_builder_t::add_warnings(const std::set<std::string> &msgs, con
 void datum_object_builder_t::add_error(const char *msg) {
     // Insert or update the "errors" entry.
     {
-        counted_t<const datum_t> *errors_entry = &map["errors"];
+        // TODO! Make these field names (errors, warning, etc) constants
+        counted_t<const datum_t> *errors_entry = &map[wire_string_t("errors")];
         double ecount = (errors_entry->has() ? (*errors_entry)->as_num() : 0) + 1;
         *errors_entry = make_counted<datum_t>(ecount);
     }
 
     // If first_error already exists, nothing gets inserted.
-    map.insert(std::make_pair("first_error", make_counted<datum_t>(msg)));
+    map.insert(std::make_pair(wire_string_t("first_error"), make_counted<datum_t>(msg)));
 }
 
-MUST_USE bool datum_object_builder_t::delete_field(const std::string &key) {
+MUST_USE bool datum_object_builder_t::delete_field(const wire_string_t &key) {
     return 0 != map.erase(key);
 }
 
+MUST_USE bool datum_object_builder_t::delete_field(const char *key) {
+    return delete_field(wire_string_t(key));
+}
 
-counted_t<const datum_t> datum_object_builder_t::at(const std::string &key) const {
+
+counted_t<const datum_t> datum_object_builder_t::at(const wire_string_t &key) const {
     return map.at(key);
 }
 
-counted_t<const datum_t> datum_object_builder_t::try_get(const std::string &key) const {
+counted_t<const datum_t> datum_object_builder_t::try_get(const wire_string_t &key) const {
     auto it = map.find(key);
     return it == map.end() ? counted_t<const datum_t>() : it->second;
 }
