@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_TABLES_RECONFIGURE_HPP_
-#define CLUSTERING_ADMINISTRATION_TABLES_RECONFIGURE_HPP_
+#ifndef CLUSTERING_ADMINISTRATION_TABLES_GENERATE_CONFIG_HPP_
+#define CLUSTERING_ADMINISTRATION_TABLES_GENERATE_CONFIG_HPP_
 
 #include "clustering/administration/namespace_metadata.hpp"
 #include "rdb_protocol/context.hpp"
@@ -8,7 +8,8 @@
 class real_reql_cluster_interface_t;
 class server_name_client_t;
 
-/* Suggests a `table_config_t` for the table. */
+/* Suggests a `table_config_t` for the table. This is the brains behind
+`table.reconfigure()`. */
 bool table_generate_config(
         server_name_client_t *name_client,
         /* The UUID of the table being reconfigured. This can be `nil_uuid()`. */
@@ -38,5 +39,5 @@ void calculate_server_usage(
         const table_config_t &config,
         std::map<name_string_t, int> *server_usage_inout);
 
-#endif /* CLUSTERING_ADMINISTRATION_TABLES_RECONFIGURE_HPP_ */
+#endif /* CLUSTERING_ADMINISTRATION_TABLES_GENERATE_CONFIG_HPP_ */
 

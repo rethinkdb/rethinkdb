@@ -4,7 +4,7 @@
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/servers/name_client.hpp"
 #include "clustering/administration/tables/elect_director.hpp"
-#include "clustering/administration/tables/reconfigure.hpp"
+#include "clustering/administration/tables/generate_config.hpp"
 #include "clustering/administration/tables/table_config.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "rdb_protocol/wait_for_readiness.hpp"

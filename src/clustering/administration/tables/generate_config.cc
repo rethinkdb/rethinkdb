@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "clustering/administration/tables/reconfigure.hpp"
+#include "clustering/administration/tables/generate_config.hpp"
 
 #include "clustering/administration/servers/name_client.hpp"
 #include "clustering/administration/tables/split_points.hpp"
