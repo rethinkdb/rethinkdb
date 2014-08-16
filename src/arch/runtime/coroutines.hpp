@@ -48,14 +48,14 @@ public:
     friend bool is_coroutine_stack_overflow(void *);
 
     template<class Callable>
-    static void spawn_now_dangerously(const Callable &action) {
-        coro_t *coro = get_and_init_coro(action);
+    static void spawn_now_dangerously(Callable &&action) {
+        coro_t *coro = get_and_init_coro(std::forward<Callable>(action));
         coro->notify_now_deprecated();
     }
 
     template<class Callable>
-    static coro_t *spawn_sometime(const Callable &action) {
-        coro_t *coro = get_and_init_coro(action);
+    static coro_t *spawn_sometime(Callable &&action) {
+        coro_t *coro = get_and_init_coro(std::forward<Callable>(action));
         coro->notify_sometime();
         return coro;
     }
@@ -64,15 +64,15 @@ public:
     `spawn_later_ordered()` (or `spawn_ordered()`). `spawn_later_ordered()` does not
     honor scheduler priorities. */
     template<class Callable>
-    static coro_t *spawn_later_ordered(const Callable &action) {
-        coro_t *coro = get_and_init_coro(action);
+    static coro_t *spawn_later_ordered(Callable &&action) {
+        coro_t *coro = get_and_init_coro(std::forward<Callable>(action));
         coro->notify_later_ordered();
         return coro;
     }
 
     template<class Callable>
-    static void spawn_ordered(const Callable &action) {
-        spawn_later_ordered(action);
+    static void spawn_ordered(Callable &&action) {
+        spawn_later_ordered(std::forward<Callable>(action));
     }
 
     // Use coro_t::spawn_*(std::bind(...)) for spawning with parameters.
@@ -165,13 +165,13 @@ private:
 
     // If this function footprint ever changes, you may need to update the parse_coroutine_info function
     template<class Callable>
-    static coro_t * get_and_init_coro(const Callable &action) {
+    static coro_t *get_and_init_coro(Callable &&action) {
         coro_t *coro = get_coro();
 #ifndef NDEBUG
         coro->parse_coroutine_type(__PRETTY_FUNCTION__);
 #endif
         coro->grab_spawn_backtrace();
-        coro->action_wrapper.reset(action);
+        coro->action_wrapper.reset(std::forward<Callable>(action));
 
         // If we were called from a coroutine, the new coroutine inherits our
         // caller's priority.
@@ -185,7 +185,7 @@ private:
         return coro;
     }
 
-    static coro_t * get_coro();
+    static coro_t *get_coro();
 
     static void return_coro_to_free_list(coro_t *coro);
     static void maybe_evict_from_free_list();
