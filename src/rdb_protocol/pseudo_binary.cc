@@ -84,11 +84,12 @@ inline void base64_chunk_to_binary(const char *in, char *out) {
     out[2] = ((in[2] & 0x3) << 6) + in[3];
 }
 
-const char* fill_chunk_values(const char *in, char *out, bool *done, size_t *chars_filled) {
+const char* fill_chunk_values(const char *in, const char *in_end, char *out,
+                              bool *done, size_t *chars_filled) {
     *done = false;
     *chars_filled = 0;
     while (*chars_filled < 4 && !*done) {
-        if (*in == '=' || *in == '\0') {
+        if (in == in_end || *in == '=') {
             *done = true;
             return in;
         } else if (*in != '\r' && *in != '\n' && *in != ' ' && *in != '\t') {
@@ -110,9 +111,11 @@ wire_string_t decode_base64(const wire_string_t &data) {
     char chunk_values[4];
     char decoded_chunk[3];
     const char *current_data = data.data();
+    const char *data_end = data.data() + data.size();
 
     while (!done) {
-        current_data = fill_chunk_values(current_data, chunk_values, &done, &chars_filled);
+        current_data = fill_chunk_values(current_data, data_end, chunk_values,
+                                         &done, &chars_filled);
         base64_chunk_to_binary(chunk_values, decoded_chunk);
 
         if (chars_filled == 1) {
@@ -125,7 +128,7 @@ wire_string_t decode_base64(const wire_string_t &data) {
     }
 
     // Check if we stopped early (due to a stray padding character)
-    for (const char *i = current_data; *i != '\0'; ++i) {
+    for (const char *i = current_data; i != data_end; ++i) {
         if (*i != '=' && *i != '\r' && *i != '\n' && *i != ' ' && *i != '\t') {
             rfail_datum(base_exc_t::GENERIC,
                         "Invalid base64 format, data found after "

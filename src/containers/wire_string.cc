@@ -10,12 +10,12 @@
 
 wire_string_t::wire_string_t()
     : size_(0),
-      data_(make_counted<const shared_buf_t>(std::vector<char>()), 0) { }
+      data_(counted_t<const shared_buf_t>(shared_buf_t::create(0).release()), 0) { }
 
 wire_string_t::wire_string_t(size_t _size, const char *_data)
     : size_(_size),
-      data_(make_counted<const shared_buf_t>(
-          std::vector<char>(_data, _data + _size)), 0) { }
+      data_(counted_t<const shared_buf_t>(
+          shared_buf_t::create_and_init(_size, _data).release()), 0) { }
 
 wire_string_t::wire_string_t(size_t _size, const shared_buf_ref_t &_ref)
     : size_(_size),
@@ -27,13 +27,13 @@ wire_string_t::wire_string_t(size_t _size, shared_buf_ref_t &&_ref)
 
 wire_string_t::wire_string_t(const char *c_str)
     : size_(strlen(c_str)),
-      data_(make_counted<const shared_buf_t>(
-          std::vector<char>(c_str, c_str + size_)), 0) { }
+      data_(counted_t<const shared_buf_t>(
+          shared_buf_t::create_and_init(size_, c_str).release()), 0) { }
 
 wire_string_t::wire_string_t(const std::string &str)
     : size_(str.size()),
-      data_(make_counted<const shared_buf_t>(
-          std::vector<char>(str.data(), str.data() + size_)), 0) { }
+      data_(counted_t<const shared_buf_t>(
+          shared_buf_t::create_and_init(str.size(), str.data()).release()), 0) { }
 
 wire_string_t::wire_string_t(wire_string_t &&movee) noexcept
     : size_(movee.size_),
@@ -118,9 +118,10 @@ std::string wire_string_t::to_std() const {
 }
 
 wire_string_t concat(const wire_string_t &a, const wire_string_t &b) {
-    std::vector<char> result_data(a.size() + b.size());
-    memcpy(result_data.data(), a.data(), a.size());
-    memcpy(result_data.data() + a.size(), b.data(), b.size());
-    return wire_string_t(a.size() + b.size(), shared_buf_ref_t(
-        make_counted<const shared_buf_t>(std::move(result_data)), 0));
+    scoped_ptr_t<shared_buf_t> buf = shared_buf_t::create(a.size() + b.size());
+    memcpy(buf->data(0), a.data(), a.size());
+    memcpy(buf->data(a.size()), b.data(), b.size());
+    return wire_string_t(
+        a.size() + b.size(),
+        shared_buf_ref_t(counted_t<const shared_buf_t>(buf.release()), 0));
 }

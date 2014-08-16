@@ -379,7 +379,7 @@ MUST_USE archive_result_t datum_deserialize(
         return archive_result_t::RANGE_ERROR;
     }
 
-    scoped_ptr_t<shared_buf_t> buf(new shared_buf_t(sz));
+    scoped_ptr_t<shared_buf_t> buf = shared_buf_t::create(sz);
     int64_t num_read = force_read(s, buf->data(), sz);
     if (num_read == -1) {
         return archive_result_t::SOCK_ERROR;
@@ -388,8 +388,8 @@ MUST_USE archive_result_t datum_deserialize(
         return archive_result_t::SOCK_EOF;
     }
 
-    *out = wire_string_t(sz,
-        shared_buf_ref_t(counted_t<const shared_buf_t>(buf.release()), 0));
+    *out = wire_string_t(sz, shared_buf_ref_t(
+        counted_t<const shared_buf_t>(buf.release()), 0));
 
     return archive_result_t::SUCCESS;
 }
