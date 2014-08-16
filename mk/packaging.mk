@@ -50,7 +50,7 @@ endif
 MISSING_DIST_SUPPORT_PACKAGES := $(filter-out $(FETCH_LIST), $(DIST_SUPPORT_PACKAGES))
 DIST_SUPPORT_PACKAGES := $(filter $(FETCH_LIST), $(DIST_SUPPORT_PACKAGES))
 DSC_CONFIGURE_DEFAULT = --prefix=/usr --sysconfdir=/etc --localstatedir=/var
-DIST_CONFIGURE_DEFAULT = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), --fetch $(pkg))
+DIST_CONFIGURE_DEFAULT_FETCH = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), --fetch $(pkg))
 DIST_SUPPORT = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), $(SUPPORT_SRC_DIR)/$(pkg)_$($(pkg)_VERSION))
 
 DEB_BUILD_DEPENDS := g++, libboost-dev, libssl-dev, curl, m4, debhelper
@@ -158,6 +158,7 @@ $(DIST_DIR)/custom.mk: FORCE | reset-dist-dir
 $(DIST_DIR)/configure.default: FORCE | reset-dist-dir
 	$P ECHO "> $@"
 	echo $(DIST_CONFIGURE_DEFAULT) >> $(DIST_DIR)/configure.default
+	echo $(DIST_CONFIGURE_DEFAULT_FETCH) >> $(DIST_DIR)/configure.default
 
 $(DIST_DIR)/precompiled/web: web-assets | reset-dist-dir
 	$P CP $(WEB_ASSETS_BUILD_DIR) $@

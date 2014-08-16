@@ -70,6 +70,8 @@ private:
         void NORETURN operator()(const changefeed_stamp_t &);
         void NORETURN operator()(const changefeed_point_stamp_t &);
         void NORETURN operator()(UNUSED const rget_read_t &rget);
+        void NORETURN operator()(UNUSED const intersecting_geo_read_t &gr);
+        void NORETURN operator()(UNUSED const nearest_geo_read_t &gr);
         void NORETURN operator()(UNUSED const distribution_read_t &dg);
         void NORETURN operator()(UNUSED const sindex_list_t &sl);
         void NORETURN operator()(UNUSED const sindex_status_t &ss);

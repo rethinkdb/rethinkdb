@@ -229,7 +229,13 @@ class RqlQuery(object):
     def and_(self, *args):
         return All(self, *args)
 
+    def all(self, *args):
+        return All(self, *args)
+
     def or_(self, *args):
+        return Any(self, *args)
+
+    def any(self, *args):
         return Any(self, *args)
 
     def not_(self, *args):
@@ -509,6 +515,25 @@ class RqlQuery(object):
     def in_timezone(self, *args):
         return InTimezone(self, *args)
 
+    ## Geospatial support
+
+    def to_geojson(self, *args):
+        return ToGeoJson(self, *args)
+
+    def distance(self, *args, **kwargs):
+        kwargs.setdefault('geo_system', ())
+        kwargs.setdefault('unit', ())
+        return Distance(self, *args, **kwargs)
+
+    def intersects(self, *args):
+        return Intersects(self, *args)
+
+    def includes(self, *args):
+        return Includes(self, *args)
+
+    def fill(self, *args):
+        return Fill(self, *args)
+
 # These classes define how nodes are printed by overloading `compose`
 
 def needs_wrap(arg):
@@ -660,6 +685,9 @@ def convert_pseudotype(obj, format_opts):
                 return reql_type_grouped_data_to_object(obj)
             elif group_format != 'raw':
                 raise RqlDriverError("Unknown group_format run option \"%s\"." % group_format)
+        elif reql_type == 'GEOMETRY':
+            # No special support for this. Just return the raw object
+            return obj
         elif reql_type == 'BINARY':
             binary_format = format_opts.get('binary_format')
             if binary_format is None or binary_format == 'native':
@@ -972,6 +1000,7 @@ class Table(RqlQuery):
 
     def index_create(self, *args, **kwargs):
         kwargs.setdefault('multi', ())
+        kwargs.setdefault('geo', ())
         if len(args) > 1:
             args = [args[0]] + [func_wrap(arg) for arg in args[1:]]
         return IndexCreate(self, *args, **kwargs)
@@ -994,6 +1023,15 @@ class Table(RqlQuery):
     def sync(self, *args):
         return Sync(self, *args)
 
+    def get_intersecting(self, *args, **kwargs):
+        return GetIntersecting(self, *args, **kwargs)
+
+    def get_nearest(self, *args, **kwargs):
+        return GetNearest(self, *args, **kwargs)
+
+    def uuid(self, *args, **kwargs):
+        return UUID(self, *args, **kwargs)
+
     def compose(self, args, optargs):
         if isinstance(self.args[0], DB):
             return T(args[0], '.table(', T(*(args[1:]), intsp=', '), ')')
@@ -1007,6 +1045,18 @@ class Get(RqlMethodQuery):
 class GetAll(RqlMethodQuery):
     tt = pTerm.GET_ALL
     st = 'get_all'
+
+class GetIntersecting(RqlMethodQuery):
+    tt = pTerm.GET_INTERSECTING
+    st = 'get_intersecting'
+
+class GetNearest(RqlMethodQuery):
+    tt = pTerm.GET_NEAREST
+    st = 'get_nearest'
+
+class UUID(RqlMethodQuery):
+    tt = pTerm.UUID
+    st = 'uuid'
 
 class Reduce(RqlMethodQuery):
     tt = pTerm.REDUCE
@@ -1272,7 +1322,6 @@ class Binary(RqlTopLevelQuery):
             raise RqlDriverError("Cannot convert %s to binary, convert the object " \
                                  "to a `bytes` object first." % type(data).__name__)
 
-        self.data = data
         self.base64_data = base64.b64encode(data)
 
         # Kind of a hack to get around composing
@@ -1280,7 +1329,7 @@ class Binary(RqlTopLevelQuery):
         self.optargs = {}
 
     def compose(self, args, optargs):
-        return T('r.', self.st, '(bytes(', str(self.data), '))')
+        return T('r.', self.st, '(bytes(<data>))')
         
     def build(self):
         return { '$reql_type$': 'BINARY', 'data': self.base64_data.decode('utf-8') }
@@ -1360,6 +1409,46 @@ class InTimezone(RqlMethodQuery):
 class ToEpochTime(RqlMethodQuery):
     tt = pTerm.TO_EPOCH_TIME
     st = 'to_epoch_time'
+
+class GeoJson(RqlMethodQuery):
+    tt = pTerm.GEOJSON
+    st = 'geojson'
+
+class ToGeoJson(RqlMethodQuery):
+    tt = pTerm.TO_GEOJSON
+    st = 'to_geojson'
+
+class Point(RqlMethodQuery):
+    tt = pTerm.POINT
+    st = 'point'
+
+class Line(RqlMethodQuery):
+    tt = pTerm.LINE
+    st = 'line'
+
+class Polygon(RqlMethodQuery):
+    tt = pTerm.POLYGON
+    st = 'polygon'
+
+class Distance(RqlMethodQuery):
+    tt = pTerm.DISTANCE
+    st = 'distance'
+
+class Intersects(RqlMethodQuery):
+    tt = pTerm.INTERSECTS
+    st = 'intersects'
+
+class Includes(RqlMethodQuery):
+    tt = pTerm.INCLUDES
+    st = 'includes'
+
+class Circle(RqlMethodQuery):
+    tt = pTerm.CIRCLE
+    st = 'circle'
+
+class Fill(RqlMethodQuery):
+    tt = pTerm.FILL
+    st = 'fill'
 
 # Returns True if IMPLICIT_VAR is found in the subquery
 def _ivar_scan(query):

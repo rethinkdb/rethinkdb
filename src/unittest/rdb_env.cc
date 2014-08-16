@@ -69,36 +69,54 @@ void mock_namespace_interface_t::read_visitor_t::operator()(const point_read_t &
     }
 }
 
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(const changefeed_subscribe_t &) {
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        const changefeed_subscribe_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(const changefeed_stamp_t &) {
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        const changefeed_stamp_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(const changefeed_point_stamp_t &) {
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        UNUSED const rget_read_t &rget) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const rget_read_t &rget) {
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        const changefeed_point_stamp_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const distribution_read_t &dg) {
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        UNUSED const intersecting_geo_read_t &gr) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const sindex_list_t &sinner) {
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        UNUSED const nearest_geo_read_t &gr) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const sindex_status_t &ss) {
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        UNUSED const distribution_read_t &dg) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-mock_namespace_interface_t::read_visitor_t::read_visitor_t(std::map<store_key_t, scoped_cJSON_t *> *_data,
-                                                           read_response_t *_response) :
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        UNUSED const sindex_list_t &sinner) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        UNUSED const sindex_status_t &ss) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
+mock_namespace_interface_t::read_visitor_t::read_visitor_t(
+        std::map<store_key_t, scoped_cJSON_t *> *_data,
+        read_response_t *_response) :
     data(_data), response(_response) {
     // Do nothing
 }
@@ -107,6 +125,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
     const batched_replace_t &r) {
     ql::configured_limits_t limits;
     counted_t<const ql::datum_t> stats = ql::datum_t::empty_object();
+    std::set<std::string> conditions;
     for (auto it = r.keys.begin(); it != r.keys.end(); ++it) {
         ql::datum_object_builder_t resp;
         counted_t<const ql::datum_t> old_val;
@@ -144,15 +163,18 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
         }
         guarantee(!err);
         stats = stats->merge(std::move(resp).to_counted(), ql::stats_merge,
-                            limits);
+                            limits, &conditions);
     }
-    response->response = stats;
+    ql::datum_object_builder_t result(std::move(stats)->as_object());
+    result.add_warnings(conditions, limits);
+    response->response = std::move(result).to_counted();
 }
 
 void mock_namespace_interface_t::write_visitor_t::operator()(
     const batched_insert_t &bi) {
     ql::configured_limits_t limits;
     counted_t<const ql::datum_t> stats = ql::datum_t::empty_object();
+    std::set<std::string> conditions;
     for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
         store_key_t key((*it)->get(bi.pkey)->print_primary());
         ql::datum_object_builder_t resp;
@@ -189,9 +211,11 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
                 "value being inserted is neither an object nor an empty value");
         }
         guarantee(!err);
-        stats = stats->merge(std::move(resp).to_counted(), ql::stats_merge, limits);
+        stats = stats->merge(std::move(resp).to_counted(), ql::stats_merge, limits, &conditions);
     }
-    response->response = stats;
+    ql::datum_object_builder_t result(std::move(stats)->as_object());
+    result.add_warnings(conditions, limits);
+    response->response = std::move(result).to_counted();
 }
 
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const point_write_t &) {

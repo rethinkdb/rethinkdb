@@ -21,7 +21,7 @@
 #include "store_view.hpp"
 
 /* Limits how many writes should be sent to a listener at once. */
-const static size_t DISPATCH_WRITES_CORO_POOL_SIZE = 64;
+const size_t DISPATCH_WRITES_CORO_POOL_SIZE = 64;
 
 broadcaster_t::broadcaster_t(
         mailbox_manager_t *mm,

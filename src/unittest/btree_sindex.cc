@@ -128,7 +128,8 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             &get_global_perfmon_collection(),
             NULL,
             &io_backender,
-            base_path_t("."));
+            base_path_t("."),
+            NULL);
 
     cond_t dummy_interruptor;
 

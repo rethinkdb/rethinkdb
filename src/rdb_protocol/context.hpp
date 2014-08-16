@@ -15,6 +15,8 @@
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "containers/uuid.hpp"
+#include "rdb_protocol/geo/distances.hpp"
+#include "rdb_protocol/geo/lat_lon_types.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/changes.hpp"
@@ -24,6 +26,7 @@
 
 class auth_semilattice_metadata_t;
 class datum_range_t;
+class ellipsoid_spec_t;
 class extproc_pool_t;
 class name_string_t;
 class namespace_interface_t;
@@ -31,8 +34,10 @@ template <class> class semilattice_readwrite_view_t;
 enum class sindex_rename_result_t;
 
 enum class sindex_multi_bool_t;
+enum class sindex_geo_bool_t;
 
 namespace ql {
+class configured_limits_t;
 
 class db_t : public single_threaded_countable_t<db_t> {
 public:
@@ -68,10 +73,29 @@ public:
         ql::env_t *env,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name) = 0;
+    virtual counted_t<ql::datum_stream_t> read_intersecting(
+        ql::env_t *env,
+        const std::string &sindex,
+        const ql::protob_t<const Backtrace> &bt,
+        const std::string &table_name,
+        bool use_outdated,
+        const counted_t<const ql::datum_t> &query_geometry) = 0;
+    virtual counted_t<ql::datum_stream_t> read_nearest(
+        ql::env_t *env,
+        const std::string &sindex,
+        const ql::protob_t<const Backtrace> &bt,
+        const std::string &table_name,
+        bool use_outdated,
+        lat_lon_point_t center,
+        double max_dist,
+        uint64_t max_results,
+        const ellipsoid_spec_t &geo_system,
+        dist_unit_t dist_unit,
+        const ql::configured_limits_t &limits) = 0;
 
     virtual counted_t<const ql::datum_t> write_batched_replace(ql::env_t *env,
         const std::vector<counted_t<const ql::datum_t> > &keys,
-        const counted_t<ql::func_t> &func,
+        const counted_t<const ql::func_t> &func,
         return_changes_t _return_changes, durability_requirement_t durability) = 0;
     virtual counted_t<const ql::datum_t> write_batched_insert(ql::env_t *env,
         std::vector<counted_t<const ql::datum_t> > &&inserts,
@@ -81,7 +105,8 @@ public:
         durability_requirement_t durability) = 0;
 
     virtual bool sindex_create(ql::env_t *env, const std::string &id,
-        counted_t<ql::func_t> index_func, sindex_multi_bool_t multi) = 0;
+        counted_t<const ql::func_t> index_func, sindex_multi_bool_t multi,
+        sindex_geo_bool_t geo) = 0;
     virtual bool sindex_drop(ql::env_t *env, const std::string &id) = 0;
     virtual sindex_rename_result_t sindex_rename(ql::env_t *env,
         const std::string &old_name, const std::string &new_name, bool overwrite) = 0;
@@ -104,7 +129,7 @@ public:
     must be visible on every thread. */
 
     virtual bool db_create(const name_string_t &name,
-            signal_t *interruptor, std::string *error_out) = 0; 
+            signal_t *interruptor, std::string *error_out) = 0;
     virtual bool db_drop(const name_string_t &name,
             signal_t *interruptor, std::string *error_out) = 0;
     virtual bool db_list(

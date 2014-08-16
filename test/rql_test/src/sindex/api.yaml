@@ -60,13 +60,27 @@ tests:
   - cd: tbl.index_rename('rename-stuff','rename-last')
     ot: ({'renamed':1})
 
-  - cd: tbl.index_wait('rename-last')
+  - cd: tbl.index_wait('rename-last').pluck('index', 'ready')
     ot: [{'index':'rename-last','ready':true}]
 
   - py: tbl.get_all(0, index='rename-last').count()
     js: tbl.get_all(0, {index:'rename-last'}).count()
     rb: tbl.get_all(0, :index => 'rename-last').count()
     ot: 3
+
+  - cd: tbl.index_create('rename-last-dup', tbl.index_status('rename-last').nth(0).get_field('function'))
+    ot: ({'created':1})
+
+  - cd: tbl.index_wait('rename-last-dup').pluck('index', 'ready')
+    ot: [{'index':'rename-last-dup','ready':true}]
+
+  - py: tbl.get_all(0, index='rename-last-dup').count()
+    js: tbl.get_all(0, {index:'rename-last-dup'}).count()
+    rb: tbl.get_all(0, :index => 'rename-last-dup').count()
+    ot: 3
+
+  - cd: tbl.index_drop('rename-last-dup')
+    ot: ({'dropped':1})
 
   - cd: tbl.index_list()
     ot: (['rename-last'])
@@ -107,7 +121,7 @@ tests:
     js: tbl.indexCreate('brokeni', r.row('broken'))
     ot: ({'created':1})
 
-  - cd: tbl.index_wait()
+  - cd: tbl.index_wait().pluck('index', 'ready')
 
   - cd: tbl.get(true)
     py: tbl.get(True)
@@ -381,7 +395,7 @@ tests:
     py: tbl.index_create('nil', lambda x:None)
     js: tbl.indexCreate('nil', function(x) { return null; })
     ot: ({'created':1})
-  - cd: tbl.index_wait()
+  - cd: tbl.index_wait().pluck('index', 'ready')
 
   - rb: tbl.get_all(nil, :index => :nil)
     py: tbl.get_all(None, index='nil')
@@ -846,7 +860,7 @@ tests:
     py: tbl.index_create('cb', lambda row:[row['c'], row['b']])
     js: tbl.indexCreate('cb', function(row) { return [row('c'), row('b')]; })
     ot: ({'created':1})
-  - cd: tbl.index_wait()
+  - cd: tbl.index_wait().pluck('index', 'ready')
 
   - rb: tbl.between(nil, [0, 0], :index => :bc).orderby(:id).map{|x| x[:id]}
     py: tbl.between(None, [0, 0], index='bc').order_by('id').map(lambda x:x['id'])

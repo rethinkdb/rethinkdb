@@ -117,6 +117,7 @@ public:
     [May block]
      */
     virtual void reset_data(
+            const binary_blob_t &zero_version,
             const region_t &subregion,
             write_durability_t durability,
             signal_t *interruptor)
@@ -278,6 +279,7 @@ public:
     }
 
     void reset_data(
+            const binary_blob_t &zero_version,
             const region_t &subregion,
             write_durability_t durability,
             signal_t *interruptor)
@@ -285,7 +287,7 @@ public:
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), subregion));
 
-        store_view->reset_data(subregion, durability, interruptor);
+        store_view->reset_data(zero_version, subregion, durability, interruptor);
     }
 
 private:

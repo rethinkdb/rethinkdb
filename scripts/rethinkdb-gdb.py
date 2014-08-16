@@ -619,6 +619,45 @@ class Tr1UnorderedMapPrinter:
     def display_hint(self):
         return 'map'
 
+def lookup_function (val):
+    "Look-up and return a pretty-printer that can print val."
+    global pretty_printers_dict
+
+    # Get the type.
+    type = val.type
+
+    # If it points to a reference, get the reference.
+    if type.code == gdb.TYPE_CODE_REF:
+        type = type.target ()
+
+    # Get the unqualified type, stripped of typedefs.
+    type = type.unqualified ().strip_typedefs ()
+
+    # Get the type name.    
+    typename = type.tag
+
+    if typename == None:
+        return None
+
+    # Iterate over local dictionary of types to determine
+    # if a printer is registered for that type.  Return an
+    # instantiation of the printer if found.
+    for function in pretty_printers_dict:
+        if function.match (typename):
+            return pretty_printers_dict[function] (val)
+        
+    # Cannot find a pretty printer.  Return None.
+
+    return None
+
+def disable_lookup_function ():
+    lookup_function.enabled = False
+
+def enable_lookup_function ():
+    lookup_function.enabled = True
+
+pretty_printers_dict = {}
+
 def register_libstdcxx_printers(obj):
     "Register libstdc++ pretty-printers with objfile Obj."
 
@@ -708,3 +747,5 @@ if True:
     pretty_printers_dict[re.compile('^std::__norm::_List_const_iterator<.*>$')] = lambda val: StdListIteratorPrinter("std::__norm::_List_const_iterator", val)
     pretty_printers_dict[re.compile('^std::__norm::_Deque_const_iterator<.*>$')] = lambda val: StdDequeIteratorPrinter(val)
     pretty_printers_dict[re.compile('^std::__norm::_Deque_iterator<.*>$')] = lambda val: StdDequeIteratorPrinter(val)
+
+gdb.pretty_printers.append(lookup_function)

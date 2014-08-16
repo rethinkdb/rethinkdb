@@ -323,10 +323,14 @@ bool range_key_tester_t::key_should_be_erased(const btree_key_t *key) {
 }
 
 void add_status(const single_sindex_status_t &new_status,
-    single_sindex_status_t *status_out) {
+                single_sindex_status_t *status_out) {
     status_out->blocks_processed += new_status.blocks_processed;
     status_out->blocks_total += new_status.blocks_total;
     status_out->ready &= new_status.ready;
+    status_out->func = new_status.func; // All shards have the same function.
+    status_out->geo = new_status.geo; // All shards have the same geoness.
+    status_out->multi = new_status.multi; // All shards have the same multiness.
+    status_out->outdated = new_status.outdated; // All shards have the same datedness.
 }
 
 }  // namespace rdb_protocol
@@ -389,6 +393,14 @@ struct rdb_r_get_region_visitor : public boost::static_visitor<region_t> {
 
     region_t operator()(const rget_read_t &rg) const {
         return rg.region;
+    }
+
+    region_t operator()(const intersecting_geo_read_t &gr) const {
+        return gr.region;
+    }
+
+    region_t operator()(const nearest_geo_read_t &gr) const {
+        return gr.region;
     }
 
     region_t operator()(const distribution_read_t &dg) const {
@@ -475,6 +487,14 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
         return do_read;
     }
 
+    bool operator()(const intersecting_geo_read_t &gr) const {
+        return rangey_read(gr);
+    }
+
+    bool operator()(const nearest_geo_read_t &gr) const {
+        return rangey_read(gr);
+    }
+
     bool operator()(const distribution_read_t &dg) const {
         return rangey_read(dg);
     }
@@ -545,6 +565,8 @@ public:
     void operator()(const point_read_t &);
 
     void operator()(const rget_read_t &rg);
+    void operator()(const intersecting_geo_read_t &gr);
+    void operator()(const nearest_geo_read_t &gr);
     void operator()(const distribution_read_t &rg);
     void operator()(const sindex_list_t &rg);
     void operator()(const sindex_status_t &rg);
@@ -603,6 +625,85 @@ void rdb_r_unshard_visitor_t::operator()(const point_read_t &) {
     guarantee(count == 1);
     guarantee(NULL != boost::get<point_read_response_t>(&responses[0].response));
     *response_out = responses[0];
+}
+
+void rdb_r_unshard_visitor_t::operator()(const intersecting_geo_read_t &) {
+    ql::datum_array_builder_t combined_results(ql::configured_limits_t::unlimited);
+    for (size_t i = 0; i < count; ++i) {
+        auto res = boost::get<intersecting_geo_read_response_t>(&responses[i].response);
+        guarantee(res != NULL);
+        ql::exc_t *error = boost::get<ql::exc_t>(&res->results_or_error);
+        if (error != NULL) {
+            response_out->response = intersecting_geo_read_response_t(*error);
+            return;
+        }
+        auto results = boost::get<counted_t<const ql::datum_t> >(&res->results_or_error);
+        guarantee(results != NULL);
+        const std::vector<counted_t<const ql::datum_t> > &arr = (*results)->as_array();
+        for (size_t j = 0; j < arr.size(); ++j) {
+            combined_results.add(arr[j]);
+        }
+    }
+    response_out->response = intersecting_geo_read_response_t(
+        std::move(combined_results).to_counted());
+}
+
+void rdb_r_unshard_visitor_t::operator()(const nearest_geo_read_t &query) {
+    // Merge the different results together while preserving ordering.
+    struct iter_range_t {
+        iter_range_t(
+                const nearest_geo_read_response_t::result_t::const_iterator &_beg,
+                const nearest_geo_read_response_t::result_t::const_iterator &_end)
+            : it(_beg), end(_end) { }
+        nearest_geo_read_response_t::result_t::const_iterator it;
+        nearest_geo_read_response_t::result_t::const_iterator end;
+    };
+    std::vector<iter_range_t> iters;
+    iters.reserve(count);
+    uint64_t total_size = 0;
+    for (size_t i = 0; i < count; ++i) {
+        auto res = boost::get<nearest_geo_read_response_t>(&responses[i].response);
+        guarantee(res != NULL);
+        ql::exc_t *error = boost::get<ql::exc_t>(&res->results_or_error);
+        if (error != NULL) {
+            response_out->response = nearest_geo_read_response_t(*error);
+            return;
+        }
+        auto results =
+            boost::get<nearest_geo_read_response_t::result_t>(&res->results_or_error);
+        guarantee(results != NULL);
+
+        if (!results->empty()) {
+            iters.push_back(iter_range_t(results->begin(), results->end()));
+        }
+        total_size += results->size();
+    }
+    total_size = std::min(total_size, query.max_results);
+    nearest_geo_read_response_t::result_t combined_results;
+    combined_results.reserve(total_size);
+    // Collect data until all iterators have been exhausted or we hit the
+    // max_results limit.
+    while (combined_results.size() < total_size) {
+        rassert(!iters.empty());
+        // Find the iter with the nearest result
+        size_t nearest_it_idx = iters.size();
+        double nearest_it_dist = -1.0;
+        for (size_t i = 0; i < iters.size(); ++i) {
+            if (nearest_it_idx == iters.size()
+                || iters[i].it->first < nearest_it_dist) {
+                nearest_it_idx = i;
+                nearest_it_dist = iters[i].it->first;
+            }
+        }
+        guarantee(nearest_it_idx < iters.size());
+        combined_results.push_back(*iters[nearest_it_idx].it);
+        ++iters[nearest_it_idx].it;
+        if (iters[nearest_it_idx].it == iters[nearest_it_idx].end) {
+            iters.erase(iters.begin() + nearest_it_idx);
+        }
+    }
+    response_out->response = nearest_geo_read_response_t(
+        std::move(combined_results));
 }
 
 void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
@@ -970,13 +1071,16 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
     void merge_stats() const {
         counted_t<const ql::datum_t> stats = ql::datum_t::empty_object();
 
+        std::set<std::string> conditions;
         for (size_t i = 0; i < count; ++i) {
             const counted_t<const ql::datum_t> *stats_i =
                 boost::get<counted_t<const ql::datum_t> >(&responses[i].response);
             guarantee(stats_i != NULL);
-            stats = stats->merge(*stats_i, ql::stats_merge, *limits);
+            stats = stats->merge(*stats_i, ql::stats_merge, *limits, &conditions);
         }
-        *response_out = write_response_t(stats);
+        ql::datum_object_builder_t result(std::move(stats)->as_object());
+        result.add_warnings(conditions, *limits);
+        *response_out = write_response_t(std::move(result).to_counted());
     }
     void operator()(const batched_replace_t &) const {
         merge_stats();
@@ -1052,68 +1156,98 @@ void write_t::unshard(write_response_t *responses, size_t count,
 }
 
 
-RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
-        rdb_protocol::single_sindex_status_t, blocks_total, blocks_processed, ready);
+RDB_IMPL_SERIALIZABLE_7(
+        rdb_protocol::single_sindex_status_t,
+        blocks_total,
+        blocks_processed,
+        ready,
+        func,
+        geo,
+        multi,
+        outdated);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(rdb_protocol::single_sindex_status_t);
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_read_response_t, data);
-RDB_IMPL_SERIALIZABLE_4(rget_read_response_t, key_range, result, truncated, last_key);
+RDB_IMPL_SERIALIZABLE_1(point_read_response_t, data);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(point_read_response_t);
+RDB_IMPL_SERIALIZABLE_4(rget_read_response_t, result, key_range, truncated, last_key);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(rget_read_response_t);
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(
-        distribution_read_response_t, region, key_counts);
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sindex_list_response_t, sindexes);
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sindex_status_response_t, statuses);
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(changefeed_subscribe_response_t, server_uuids, addrs);
-
-RDB_MAKE_SERIALIZABLE_1(changefeed_stamp_response_t, stamps);
+RDB_IMPL_SERIALIZABLE_1(intersecting_geo_read_response_t, results_or_error);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(intersecting_geo_read_response_t);
+RDB_IMPL_SERIALIZABLE_1(nearest_geo_read_response_t, results_or_error);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(nearest_geo_read_response_t);
+RDB_IMPL_SERIALIZABLE_2(distribution_read_response_t, region, key_counts);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(distribution_read_response_t);
+RDB_IMPL_SERIALIZABLE_1(sindex_list_response_t, sindexes);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_list_response_t);
+RDB_IMPL_SERIALIZABLE_1(sindex_status_response_t, statuses);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_status_response_t);
+RDB_IMPL_SERIALIZABLE_2(changefeed_subscribe_response_t, server_uuids, addrs);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_subscribe_response_t);
+RDB_IMPL_SERIALIZABLE_1(changefeed_stamp_response_t, stamps);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_response_t);
 RDB_IMPL_ME_SERIALIZABLE_2(changefeed_point_stamp_response_t, stamp, initial_val);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_point_stamp_response_t);
-
-RDB_IMPL_SERIALIZABLE_3(
-        read_response_t, response, event_log, n_shards);
+RDB_IMPL_SERIALIZABLE_3(read_response_t, response, event_log, n_shards);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(read_response_t);
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_read_t, key);
-RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
-        sindex_rangespec_t, id, region, original_range);
+RDB_IMPL_SERIALIZABLE_1(point_read_t, key);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(point_read_t);
+RDB_IMPL_SERIALIZABLE_3(sindex_rangespec_t, id, region, original_range);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_rangespec_t);
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(key_range_t::bound_t, int8_t,
                                       key_range_t::open, key_range_t::none);
-RDB_IMPL_ME_SERIALIZABLE_4_SINCE_v1_13(
+RDB_IMPL_ME_SERIALIZABLE_4(
         datum_range_t, empty_ok(left_bound), empty_ok(right_bound),
         left_bound_type, right_bound_type);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(datum_range_t);
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
-RDB_MAKE_SERIALIZABLE_8(
-    rget_read_t,
-    region, optargs, table_name, batchspec, transforms, terminal, sindex, sorting);
+RDB_IMPL_SERIALIZABLE_8(
+        rget_read_t,
+        region, optargs, table_name, batchspec, transforms, terminal, sindex, sorting);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(rget_read_t);
+RDB_MAKE_SERIALIZABLE_5(
+        intersecting_geo_read_t, optargs, query_geometry, region, table_name, sindex_id);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(intersecting_geo_read_t);
+RDB_IMPL_SERIALIZABLE_8(
+        nearest_geo_read_t, optargs, center, max_dist, max_results, geo_system,
+        region, table_name, sindex_id);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(nearest_geo_read_t);
+RDB_IMPL_SERIALIZABLE_3(distribution_read_t, max_depth, result_limit, region);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(distribution_read_t);
+RDB_IMPL_SERIALIZABLE_0(sindex_list_t);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_list_t);
+RDB_IMPL_SERIALIZABLE_2(sindex_status_t, sindexes, region);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_status_t);
+RDB_IMPL_SERIALIZABLE_2(changefeed_subscribe_t, addr, region);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_subscribe_t);
 
-RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(
-        distribution_read_t, max_depth, result_limit, region);
-RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(sindex_list_t);
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(sindex_status_t, sindexes, region);
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(changefeed_subscribe_t, addr, region);
-
-RDB_MAKE_SERIALIZABLE_2(changefeed_stamp_t, addr, region);
+RDB_IMPL_SERIALIZABLE_2(changefeed_stamp_t, addr, region);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_t);
-RDB_MAKE_SERIALIZABLE_2(changefeed_point_stamp_t, addr, key);
+RDB_IMPL_SERIALIZABLE_2(changefeed_point_stamp_t, addr, key);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_point_stamp_t);
 
 RDB_IMPL_SERIALIZABLE_2(read_t, read, profile);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(read_t);
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_write_response_t, result);
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_delete_response_t, result);
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sindex_create_response_t, success);
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sindex_drop_response_t, success);
-RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(sync_response_t);
+RDB_IMPL_SERIALIZABLE_1(point_write_response_t, result);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(point_write_response_t);
+RDB_IMPL_SERIALIZABLE_1(point_delete_response_t, result);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(point_delete_response_t);
+RDB_IMPL_SERIALIZABLE_1(sindex_create_response_t, success);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_create_response_t);
+RDB_IMPL_SERIALIZABLE_1(sindex_drop_response_t, success);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_drop_response_t);
+RDB_IMPL_SERIALIZABLE_0(sync_response_t);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sync_response_t);
 
 RDB_IMPL_SERIALIZABLE_1(sindex_rename_response_t, result);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_rename_response_t);
 
-RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(write_response_t, response, event_log, n_shards);
+RDB_IMPL_SERIALIZABLE_3(write_response_t, response, event_log, n_shards);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(write_response_t);
 
 // Serialization format for these changed in 1.14.  We only support the
 // latest version, since these are cluster-only types.
@@ -1126,7 +1260,8 @@ INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(batched_insert_t);
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(point_write_t, key, data, overwrite);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_delete_t, key);
-RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(sindex_create_t, id, mapping, region, multi);
+RDB_IMPL_SERIALIZABLE_5(sindex_create_t, id, mapping, region, multi, geo);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_create_t);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(sindex_drop_t, id, region);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sync_t, region);
 
@@ -1140,16 +1275,17 @@ RDB_IMPL_SERIALIZABLE_4(
     write_t, write, durability_requirement, profile, limits);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(write_t);
 
-// Serialization format changed in 1.13.2. We only support the latest version,
-// since this is a cluster-only type.
 RDB_IMPL_SERIALIZABLE_2(backfill_chunk_t::delete_key_t, key, recency);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t::delete_key_t);
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(backfill_chunk_t::delete_range_t, range);
+RDB_IMPL_SERIALIZABLE_1(backfill_chunk_t::delete_range_t, range);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t::delete_range_t);
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(
-        backfill_chunk_t::key_value_pairs_t, backfill_atoms);
+RDB_IMPL_SERIALIZABLE_1(backfill_chunk_t::key_value_pairs_t, backfill_atoms);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t::key_value_pairs_t);
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(backfill_chunk_t::sindexes_t, sindexes);
+RDB_IMPL_SERIALIZABLE_1(backfill_chunk_t::sindexes_t, sindexes);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t::sindexes_t);
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(backfill_chunk_t, val);
+RDB_IMPL_SERIALIZABLE_1(backfill_chunk_t, val);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t);

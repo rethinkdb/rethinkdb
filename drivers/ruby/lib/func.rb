@@ -38,7 +38,11 @@ module RethinkDB
       :index_rename => -1,
       :random => -1,
       :http => 1,
-      :distinct => -1
+      :distinct => -1,
+      :distance => -1,
+      :circle => -1,
+      :get_intersecting => -1,
+      :get_nearest => -1
     }
     @@method_aliases = {
       :lt => :<,

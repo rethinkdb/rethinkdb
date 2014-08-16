@@ -11,6 +11,7 @@
 // TODO: Probably some of these headers could be moved to the .cc.
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/issues/local.hpp"
+#include "clustering/administration/issues/outdated_index.hpp"
 #include "clustering/administration/log_transfer.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/administration/servers/machine_metadata.hpp"
@@ -78,6 +79,7 @@ public:
             uint64_t _cache_size,
             const std::vector<std::string> &_ips,
             const get_stats_mailbox_address_t& _stats_mailbox,
+            const outdated_index_issue_server_t::request_address_t& _outdated_indexes_mailbox,
             const log_server_business_card_t &lmb,
             const boost::optional<server_name_business_card_t> &nsbc,
             cluster_directory_peer_type_t _peer_type) :
@@ -86,6 +88,7 @@ public:
         cache_size(_cache_size),
         ips(_ips),
         get_stats_mailbox_address(_stats_mailbox),
+        get_outdated_indexes_mailbox(_outdated_indexes_mailbox),
         log_mailbox(lmb),
         server_name_business_card(nsbc),
         peer_type(_peer_type) { }
@@ -105,6 +108,7 @@ public:
         cache_size = other.cache_size;
         ips = std::move(other.ips);
         get_stats_mailbox_address = other.get_stats_mailbox_address;
+        get_outdated_indexes_mailbox = other.get_outdated_indexes_mailbox;
         log_mailbox = other.log_mailbox;
         server_name_business_card = other.server_name_business_card;
         local_issues = std::move(other.local_issues);
@@ -122,6 +126,7 @@ public:
         cache_size = other.cache_size;
         ips = other.ips;
         get_stats_mailbox_address = other.get_stats_mailbox_address;
+        get_outdated_indexes_mailbox = other.get_outdated_indexes_mailbox;
         log_mailbox = other.log_mailbox;
         server_name_business_card = other.server_name_business_card;
         local_issues = other.local_issues;
@@ -143,6 +148,7 @@ public:
     std::vector<std::string> ips;
 
     get_stats_mailbox_address_t get_stats_mailbox_address;
+    outdated_index_issue_server_t::request_address_t get_outdated_indexes_mailbox;
     log_server_business_card_t log_mailbox;
     boost::optional<server_name_business_card_t> server_name_business_card;
     std::list<local_issue_t> local_issues;

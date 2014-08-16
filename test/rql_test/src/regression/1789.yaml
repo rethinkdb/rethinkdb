@@ -13,12 +13,12 @@ tests:
   - rb: r.db('test').table('1789').index_create('foo')
     ot: ({'created':1})
 
-  - rb: r.db('test').table('1789').index_wait('foo')
+  - rb: r.db('test').table('1789').index_wait('foo').pluck('index', 'ready')
     ot: ([{'index':'foo', 'ready':true}])
 
   - rb: r.db('test').table('1789').index_drop('foo')
     ot: ({'dropped':1})
- 
+
   - rb: r.db('test').table('1789').coerce_to('ARRAY').count()
     ot: (1)
 

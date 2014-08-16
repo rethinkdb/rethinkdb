@@ -1,7 +1,13 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/artificial_reql_cluster_interface.hpp"
 
+#include "clustering/administration/main/watchable_fields.hpp"
+#include "clustering/administration/metadata.hpp"
+#include "clustering/administration/servers/server_config.hpp"
+#include "clustering/administration/tables/table_config.hpp"
+#include "clustering/administration/tables/table_status.hpp"
 #include "rdb_protocol/artificial_table/artificial_table.hpp"
+#include "rpc/semilattice/view/field.hpp"
 
 bool artificial_reql_cluster_interface_t::db_create(const name_string_t &name,
             signal_t *interruptor, std::string *error_out) {
@@ -98,5 +104,47 @@ bool artificial_reql_cluster_interface_t::table_find(const name_string_t &name,
 bool artificial_reql_cluster_interface_t::server_rename(const name_string_t &old_name,
         const name_string_t &new_name, signal_t *interruptor, std::string *error_out) {
     return next->server_rename(old_name, new_name, interruptor, error_out);
+}
+
+admin_artificial_tables_t::admin_artificial_tables_t(
+        reql_cluster_interface_t *_next_reql_cluster_interface,
+        const machine_id_t &_my_machine_id,
+        boost::shared_ptr< semilattice_readwrite_view_t<
+            cluster_semilattice_metadata_t> > _semilattice_view,
+        clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
+            cluster_directory_metadata_t> > > _directory_view,
+        server_name_client_t *_name_client) {
+    std::map<name_string_t, artificial_table_backend_t*> backends;
+    server_config_backend.init(new server_config_artificial_table_backend_t(
+        metadata_field(&cluster_semilattice_metadata_t::machines,
+            _semilattice_view),
+        _name_client));
+    backends[name_string_t::guarantee_valid("server_config")] =
+        server_config_backend.get();
+    table_config_backend.init(new table_config_artificial_table_backend_t(
+        _my_machine_id,
+        metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
+            _semilattice_view),
+        metadata_field(&cluster_semilattice_metadata_t::databases,
+            _semilattice_view),
+        _name_client));
+    backends[name_string_t::guarantee_valid("table_config")] =
+        table_config_backend.get();
+    table_status_backend.init(new table_status_artificial_table_backend_t(
+        metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
+            _semilattice_view),
+        metadata_field(&cluster_semilattice_metadata_t::databases,
+            _semilattice_view),
+        _directory_view->incremental_subview(
+            incremental_field_getter_t<namespaces_directory_metadata_t,
+                                       cluster_directory_metadata_t>
+                (&cluster_directory_metadata_t::rdb_namespaces)),
+        _name_client));
+    backends[name_string_t::guarantee_valid("table_status")] =
+        table_status_backend.get();
+    reql_cluster_interface.init(new artificial_reql_cluster_interface_t(
+        name_string_t::guarantee_valid("rethinkdb"),
+        backends,
+        _next_reql_cluster_interface));
 }
 

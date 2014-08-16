@@ -1,0 +1,108 @@
+desc: Test intersects and includes semantics
+tests:
+  # Intersects
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).intersects(r.point(1.5,1.5))
+    ot: true
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).intersects(r.point(2.5,2.5))
+    ot: false
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).sub(r.polygon([1.1,1.1], [1.1,1.9], [1.9,1.9], [1.9,1.1])).intersects(r.point(1.5,1.5))
+    ot: false
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).sub(r.polygon([1.1,1.1], [1.1,1.9], [1.9,1.9], [1.9,1.1])).intersects(r.point(1.05,1.05))
+    ot: true
+  # Our current semantics: we define polygons as closed, so points that are exactly *on* the outline of a polygon do intersect
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).intersects(r.point(2,2))
+    ot: true
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).intersects(r.point(1.5,2))
+    ot: true
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).intersects(r.line([1.5,1.5], [2,2]))
+    ot: true
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).intersects(r.line([1.5,1.5], [1.5,2]))
+    ot: true
+  # (...with holes in the polygon being closed with respect to the polygon, i.e. the set cut out is open)
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).sub(r.polygon([1.1,1.1], [1.1,1.9], [1.9,1.9], [1.9,1.1])).intersects(r.point(1.1,1.1))
+    ot: true
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).sub(r.polygon([1.1,1.1], [1.1,1.9], [1.9,1.9], [1.9,1.1])).intersects(r.point(1.1,1.5))
+    ot: true
+  # ... lines are interpreted as closed sets as well, so even if they meet only at their end points, we consider them as intersecting.
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).intersects(r.line([2,2], [3,3]))
+    ot: false
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).intersects(r.line([1.5,2], [3,3]))
+    ot: false
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).intersects(r.line([1.5,1.5], [3,3]))
+    ot: true
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).intersects(r.polygon([1.2,1.2], [1.2,1.8], [1.8,1.8], [1.8,1.2]))
+    ot: true
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).intersects(r.polygon([1.5,1.5], [1.5,2.5], [2.5,2.5], [2.5,1.5]))
+    ot: true
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).sub(r.polygon([1.1,1.1], [1.1,1.9], [1.9,1.9], [1.9,1.1])).intersects(r.polygon([1.2,1.2], [1.2,1.8], [1.8,1.8], [1.8,1.2]))
+    ot: false
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).sub(r.polygon([1.1,1.1], [1.1,1.9], [1.9,1.9], [1.9,1.1])).intersects(r.polygon([1.1,1.1], [1.1,1.9], [1.9,1.9], [1.9,1.1]))
+    ot: false
+  # Polygons behave like lines in that respect
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).intersects(r.polygon([1.1,2], [1.1,3], [1.9,3], [1.9,2]))
+    ot: true
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).intersects(r.polygon([2,2], [2,3], [3,3], [3,2]))
+    ot: false
+  - cd: r.point(1,1).intersects(r.point(1.5,1.5))
+    ot: false
+  - cd: r.point(1,1).intersects(r.point(1,1))
+    ot: true
+  - cd: r.line([1,1], [1,2]).intersects(r.point(1,1))
+    ot: true
+  # This one currently fails due to numeric precision problems.
+  #- cd: r.line([0,1], [0,2]).intersects(r.point(0,1.5))
+  #  ot: true
+  - cd: r.line([1,1], [2,1]).intersects(r.point(1.8,1))
+    ot: true
+  - cd: r.line([0,1], [0,2]).intersects(r.point(0,1.8))
+    ot: true
+  - cd: r.line([1,1], [1,2]).intersects(r.point(1.5,1.5))
+    ot: false
+  - cd: r.line([1,1], [1,2]).intersects(r.line([1,2], [1,3]))
+    ot: true
+  
+  # Includes
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).includes(r.point(1.5,1.5))
+    ot: true
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).includes(r.point(2.5,2.5))
+    ot: false
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).sub(r.polygon([1.1,1.1], [1.1,1.9], [1.9,1.9], [1.9,1.1])).includes(r.point(1.5,1.5))
+    ot: false
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).sub(r.polygon([1.1,1.1], [1.1,1.9], [1.9,1.9], [1.9,1.1])).includes(r.point(1.05,1.05))
+    ot: true
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).includes(r.point(2,2))
+    ot: true
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).includes(r.point(1.5,2))
+    ot: true
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).includes(r.line([1.5,1.5], [2,2]))
+    ot: true
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).includes(r.line([1.5,1.5], [1.5,2]))
+    ot: true
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).sub(r.polygon([1.1,1.1], [1.1,1.9], [1.9,1.9], [1.9,1.1])).includes(r.point(1.1,1.1))
+    ot: true
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).sub(r.polygon([1.1,1.1], [1.1,1.9], [1.9,1.9], [1.9,1.1])).includes(r.point(1.1,1.5))
+    ot: true
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).includes(r.line([2,2], [3,3]))
+    ot: false
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).includes(r.line([1.5,2], [2,2]))
+    ot: true
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).includes(r.line([1,2], [2,2]))
+    ot: true
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).includes(r.line([1.5,1.5], [3,3]))
+    ot: false
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).includes(r.polygon([1,1], [1,2], [2,2], [2,1]))
+    ot: true
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).includes(r.polygon([1.2,1.2], [1.2,1.8], [1.8,1.8], [1.8,1.2]))
+    ot: true
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).includes(r.polygon([1.5,1.5], [1.5,2], [2,2], [2,1.5]))
+    ot: true
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).includes(r.polygon([1.5,1.5], [1.5,2.5], [2.5,2.5], [2.5,1.5]))
+    ot: false
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).sub(r.polygon([1.1,1.1], [1.1,1.9], [1.9,1.9], [1.9,1.1])).includes(r.polygon([1.2,1.2], [1.2,1.8], [1.8,1.8], [1.8,1.2]))
+    ot: false
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).sub(r.polygon([1.1,1.1], [1.1,1.9], [1.9,1.9], [1.9,1.1])).includes(r.polygon([1.1,1.1], [1.1,2], [2,2], [2,1.1]))
+    ot: false
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).includes(r.polygon([1.1,2], [1.1,3], [1.9,3], [1.9,2]))
+    ot: false
+  - cd: r.polygon([1,1], [1,2], [2,2], [2,1]).includes(r.polygon([2,2], [2,3], [3,3], [3,2]))
+    ot: false

@@ -28,8 +28,7 @@ try:
 except ImportError:
     import queue as Queue
 
-from utils import guess_is_text_file
-import test_report
+import test_report, utils
 
 default_test_results_dir = join(dirname(__file__), pardir, 'results')
 
@@ -352,7 +351,7 @@ class TestRunner(object):
 # For printing the status of TestRunner to stdout
 class TextView(object):
     def __init__(self):
-        self.use_color = sys.stdout.isatty()
+        self.use_color = utils.supportsTerminalColors()
         if self.use_color:
             curses.setupterm()
             setf = curses.tigetstr('setaf')
@@ -952,7 +951,7 @@ class OldTest(Test):
             for file in files:
                 name = relpath(join(root, file), self.dir)
                 if not glob or fnmatch.fnmatch(name, glob):
-                    if not text_only or name == glob or guess_is_text_file(join(root, file)):
+                    if not text_only or name == glob or utils.guess_is_text_file(join(root, file)):
                         yield name
 
 def group_from_file(path):

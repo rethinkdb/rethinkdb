@@ -311,7 +311,9 @@ tests:
   - cd: tbl2.index_create("foo")
     ot: ({'created':1})
 
-  - cd: tbl2.index_create("bar")
+  - py: tbl2.index_create("bar", multi=True)
+    js: tbl2.index_create("bar", {multi:true})
+    rb: tbl2.index_create("bar", :multi => true)
     ot: ({'created':1})
 
 # notice this test is timing based, if it's failing then there's a good chance
@@ -327,6 +329,15 @@ tests:
     js: tbl2.index_wait()('ready')
     ot: ([true, true])
 
+  - py: tbl2.index_wait()['geo']
+    ot: bag([false, false])
+
+  - py: tbl2.index_wait()['multi']
+    ot: bag([false, true])
+
+  - py: tbl2.index_wait()['outdated']
+    ot: ([false, false])
+
   - cd: tbl2.index_create("quux")
     ot: ({'created':1})
 
@@ -335,7 +346,10 @@ tests:
     js: tbl2.index_status("quux").do(function (x) { return x.nth(0)("index").eq("quux").and(x.nth(0)("blocks_"+"processed").lt(x.nth(0)("blocks_"+"total"))); })
     ot: true
 
-  - cd: tbl2.index_wait("quux")
+  - cd: tbl2.index_wait("quux").pluck('index', 'ready')
     ot: ([{'index':'quux', 'ready':true}])
+
+  - cd: tbl2.index_wait("quux").nth(0).get_field('function').type_of()
+    ot: ("PTYPE<BINARY>")
 
   - cd: r.db('test').table_drop('sindex_status')
