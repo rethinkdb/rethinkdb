@@ -210,7 +210,7 @@ private:
             size += lst2->size();
             rcheck_toplevel(
                 size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
-                strprintf("Grouped data over size limit %zu.  "
+                strprintf("Cannot convert streamed data to an array, as it is over the size limit of %zu.  "
                           "Try putting a reduction (like `.reduce` or `.count`) "
                           "on the end.", env->limits().array_size_limit()).c_str());
             lst1->reserve(lst1->size() + lst2->size());
@@ -233,7 +233,7 @@ private:
             size += stream->size();
             rcheck_toplevel(
                 size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
-                strprintf("Grouped data over size limit %zu.  "
+                strprintf("Cannot convert streamed data to an array, as it is over the size limit of %zu.  "
                           "Try putting a reduction (like `.reduce` or `.count`) "
                           "on the end.", env->limits().array_size_limit()).c_str());
 
