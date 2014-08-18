@@ -4,6 +4,7 @@
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/tables/elect_director.hpp"
 #include "clustering/administration/tables/lookup.hpp"
+#include "http/http.hpp"   /* for percent_escaped_string() [RSI(reql_admin) remove] */
 
 counted_t<const ql::datum_t> convert_table_config_shard_to_datum(
         const table_config_t::shard_t &shard) {
@@ -11,7 +12,7 @@ counted_t<const ql::datum_t> convert_table_config_shard_to_datum(
 
     if (shard.split_point) {
         builder.overwrite("split_point", make_counted<const ql::datum_t>(
-            key_to_unescaped_str(*shard.split_point)
+            percent_escaped_string(key_to_unescaped_str(*shard.split_point))
             ));
     }
 
@@ -43,7 +44,12 @@ bool convert_table_config_shard_from_datum(
                 split_point_datum->print();
             return false;
         }
-        store_key_t split_point_value(split_point_datum->as_str().to_std());
+        std::string str;
+        if (!percent_unescape_string(split_point_datum->as_str().to_std(), &str)) {
+            *error_out = "Split point should be a percent-encoded string.";
+            return false;
+        }
+        store_key_t split_point_value(str);
         shard_out->split_point = boost::optional<store_key_t>(split_point_value);
     } else {
         shard_out->split_point = boost::optional<store_key_t>();

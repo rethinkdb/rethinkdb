@@ -2,6 +2,7 @@ desc: Tests meta queries for databases
 tests:
 
     # We should always start out with a 'test' database and the special 'rethinkdb'
+    # database
     - cd: r.db_list()
       ot: ['rethinkdb', 'test']
     

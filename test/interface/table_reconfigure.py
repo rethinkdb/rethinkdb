@@ -62,22 +62,28 @@ with driver.Metacluster() as metacluster:
     test_reconfigure(2, {"default": 1}, "default")
     test_reconfigure(1, {"default": 2}, "default")
     test_reconfigure(2, {"default": 2}, "default")
-    test_reconfigure(1, {"a": 1, "b": 1}, "a")
-    test_reconfigure(2, {"a": 1, "b": 1}, "b")
-    test_reconfigure(1, {"a": 1}, "a")
+    test_reconfigure(1, {"a_tag": 1, "b_tag": 1}, "a_tag")
+    test_reconfigure(1, {"a_tag": 1, "b_tag": 1}, "b_tag")
+    test_reconfigure(1, {"a_tag": 1}, "a_tag")
 
     # Test to make sure that `dry_run` is respected; the config should only be stored in
     # the semilattices if `dry_run` is `False`.
     def get_config():
-        return r.db("rethinkdb").table("table_config").get("test.foo").run(conn)
+        row = r.db("rethinkdb").table("table_config").get("test.foo").run(conn)
+        del row["name"]
+        del row["uuid"]
+        return row
     prev_config = get_config()
-    new_config = r.table("foo").reconfigure(1, {"b": 1}, director_tag="b",
+    new_config = r.table("foo").reconfigure(1, {"b_tag": 1}, director_tag="b_tag",
         dry_run=True).run(conn)
     assert prev_config != new_config
     assert get_config() == prev_config
-    new_config_2 = r.table("foo").reconfigure(1, {"b": 1}, director_tag="b",
+    new_config_2 = r.table("foo").reconfigure(1, {"b_tag": 1}, director_tag="b_tag",
         dry_run=False).run(conn)
     assert prev_config != new_config_2
+    print "get_config()", get_config()
+    print "new_config_2", new_config_2
+    print "prev_config", prev_config
     assert get_config() == new_config_2
 
     cluster1.check_and_stop()

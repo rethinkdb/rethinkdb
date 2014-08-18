@@ -160,7 +160,7 @@ void calculate_split_points_by_estimation(
                 ? store_key_t::min()
                 : old_split_points[left_old_index-1];
         store_key_t right_key =
-            (static_cast<size_t>(left_old_index+1) == old_split_points.size())
+            (static_cast<size_t>(left_old_index) == old_split_points.size())
                 ? store_key_t::max()
                 : old_split_points[left_old_index];
         store_key_t split_key = interpolate_key(left_key, right_key,
