@@ -12,6 +12,12 @@
 #include "region/region_map_json_adapter.hpp"
 #include "stl_utils.hpp"
 
+/* RSI(reql_admin): The ReQL admin API changes involve big changes to the semilattice
+metadata. Because many of the underlying concepts have changed, it's not clear if/how to
+migrate serialized metadata from pre-ReQL-admin versions into the new format. GitHub
+issue #2869 is tracking this discussion. As a temporary measure so that development can
+proceed, deserialization of old versions has been disabled. */
+
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(database_semilattice_metadata_t, name);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(database_semilattice_metadata_t, name);
 RDB_IMPL_EQUALITY_COMPARABLE_1(database_semilattice_metadata_t, name);
