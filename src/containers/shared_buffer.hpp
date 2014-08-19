@@ -78,7 +78,7 @@ public:
 private:
     counted_t<const shared_buf_t> buf;
     uint64_t offset;
-} __attribute__((__packed__));
+};
 
 
 inline void counted_add_ref(const shared_buf_t *p) {
