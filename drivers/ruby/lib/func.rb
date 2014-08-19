@@ -64,6 +64,11 @@ module RethinkDB
     }
 
     termtypes = Term::TermType.constants.map{ |c| c.to_sym }
+
+    # r.binary has different behavior when operating on client-side strings vs
+    # terms on the server
+    termtypes.delete(:BINARY)
+
     termtypes.each {|termtype|
 
       method_body = proc { |*a, &b|
