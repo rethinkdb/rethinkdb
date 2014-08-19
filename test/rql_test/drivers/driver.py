@@ -266,7 +266,10 @@ class PyTestDriver:
         return r.connect(host='localhost', port=CPPPORT)
 
     def define(self, expr):
-        exec(expr, globals(), self.scope)
+        try:
+            exec(expr, globals(), self.scope)
+        except Exception as e:
+            print_test_failure('Exception while processing define', expr, str(e))
 
     def run(self, src, expected, name, runopts, testopts):
         if runopts:
