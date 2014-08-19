@@ -19,7 +19,7 @@ protected:
     counted_t<val_t> pend(scope_env_t *env, args_t *args, which_pend_t which_pend) const {
         datum_t arr = args->arg(env, 0)->as_datum();
         datum_t new_el = args->arg(env, 1)->as_datum();
-        datum_array_builder_t out(env->env->limits);
+        datum_array_builder_t out(env->env->limits());
         out.reserve(arr->size() + 1);
         if (which_pend == PRE) {
             // TODO: this is horrendously inefficient.
@@ -217,7 +217,7 @@ private:
         if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
             datum_t d = v->as_datum();
             if (d->get_type() == datum_t::R_ARRAY) {
-                return slice_array(d, env->env->limits, left_open, fake_l,
+                return slice_array(d, env->env->limits(), left_open, fake_l,
                                    right_open, fake_r);
             } else if (d->get_type() == datum_t::R_BINARY) {
                 return slice_binary(d, left_open, fake_l, right_open, fake_r);
@@ -299,7 +299,7 @@ private:
         // safe.
         std::set<datum_t, counted_datum_less_t>
             el_set(counted_datum_less_t(env->env->reql_version));
-        datum_array_builder_t out(env->env->limits);
+        datum_array_builder_t out(env->env->limits());
         for (size_t i = 0; i < arr->size(); ++i) {
             if (el_set.insert(arr->get(i)).second) {
                 out.add(arr->get(i));
@@ -326,7 +326,7 @@ private:
         // The reql_version doesn't actually matter here -- we only use the datum
         // comparisons for equality purposes.
         std::set<datum_t, counted_datum_less_t> el_set(counted_datum_less_t(env->env->reql_version));
-        datum_array_builder_t out(env->env->limits);
+        datum_array_builder_t out(env->env->limits());
         for (size_t i = 0; i < arr1->size(); ++i) {
             if (el_set.insert(arr1->get(i)).second) {
                 out.add(arr1->get(i));
@@ -356,7 +356,7 @@ private:
         // comparison for equality purposes.
         std::set<datum_t, counted_datum_less_t>
             el_set(counted_datum_less_t(env->env->reql_version));
-        datum_array_builder_t out(env->env->limits);
+        datum_array_builder_t out(env->env->limits());
         for (size_t i = 0; i < arr1->size(); ++i) {
             el_set.insert(arr1->get(i));
         }
@@ -385,7 +385,7 @@ private:
         // comparison for equality purposes.
         std::set<datum_t, counted_datum_less_t>
             el_set(counted_datum_less_t(env->env->reql_version));
-        datum_array_builder_t out(env->env->limits);
+        datum_array_builder_t out(env->env->limits());
         for (size_t i = 0; i < arr2->size(); ++i) {
             el_set.insert(arr2->get(i));
         }
@@ -420,7 +420,7 @@ public:
 
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         auto arg0_array = args->arg(env, 0)->as_datum()->as_array();
-        datum_array_builder_t arr(std::move(arg0_array), env->env->limits);
+        datum_array_builder_t arr(std::move(arg0_array), env->env->limits());
         size_t index;
         if (index_method_ == ELEMENTS) {
             index = canonicalize(this, args->arg(env, 1)->as_datum()->as_int(), arr.size());

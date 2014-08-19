@@ -66,9 +66,9 @@ datum_t table_t::batched_replace(
         std::set<std::string> conditions;
         datum_t merged
             = std::move(stats).to_datum()->merge(insert_stats, stats_merge,
-                                                 env->limits, &conditions);
+                                                 env->limits(), &conditions);
         datum_object_builder_t result(std::move(merged)->as_object());
-        result.add_warnings(conditions, env->limits);
+        result.add_warnings(conditions, env->limits());
         return std::move(result).to_datum();
     } else {
         return table->write_batched_replace(
@@ -112,9 +112,9 @@ datum_t table_t::batched_insert(
     std::set<std::string> conditions;
     datum_t merged
         = std::move(stats).to_datum()->merge(insert_stats, stats_merge,
-                                               env->limits, &conditions);
+                                               env->limits(), &conditions);
     datum_object_builder_t result(std::move(merged)->as_object());
-    result.add_warnings(conditions, env->limits);
+    result.add_warnings(conditions, env->limits());
     return std::move(result).to_datum();
 }
 
@@ -146,7 +146,7 @@ datum_t table_t::sindex_list(env_t *env) {
          it != sindexes.end(); ++it) {
         array.push_back(datum_t(wire_string_t(*it)));
     }
-    return datum_t(std::move(array), env->limits);
+    return datum_t(std::move(array), env->limits());
 }
 
 datum_t table_t::sindex_status(env_t *env,
@@ -168,7 +168,7 @@ datum_t table_t::sindex_status(env_t *env,
            strprintf("Index `%s` was not found on table `%s`.",
                      sindexes.begin()->c_str(),
                      display_name().c_str()));
-    return datum_t(std::move(array), env->limits);
+    return datum_t(std::move(array), env->limits());
 }
 
 MUST_USE bool table_t::sync(env_t *env, const rcheckable_t *parent) {

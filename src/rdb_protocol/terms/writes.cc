@@ -117,7 +117,7 @@ private:
             datums.push_back(v1->as_datum());
             if (datums[0]->get_type() == datum_t::R_OBJECT) {
                 try {
-                    maybe_generate_key(t, env->env->limits, &generated_keys,
+                    maybe_generate_key(t, env->env->limits(), &generated_keys,
                                        &keys_skipped, &datums[0]);
                 } catch (const base_exc_t &) {
                     // We just ignore it, the same error will be handled in `replace`.
@@ -126,7 +126,7 @@ private:
                 datum_t replace_stats = t->batched_insert(
                     env->env, std::move(datums), conflict_behavior,
                     durability_requirement, return_changes);
-                stats = stats->merge(replace_stats, stats_merge, env->env->limits, &conditions);
+                stats = stats->merge(replace_stats, stats_merge, env->env->limits(), &conditions);
                 done = true;
             }
         }
@@ -144,7 +144,7 @@ private:
 
                 for (auto it = datums.begin(); it != datums.end(); ++it) {
                     try {
-                        maybe_generate_key(t, env->env->limits,
+                        maybe_generate_key(t, env->env->limits(),
                                            &generated_keys, &keys_skipped, &*it);
                     } catch (const base_exc_t &) {
                         // We just ignore it, the same error will be handled in
@@ -154,7 +154,7 @@ private:
 
                 datum_t replace_stats = t->batched_insert(
                     env->env, std::move(datums), conflict_behavior, durability_requirement, return_changes);
-                stats = stats->merge(replace_stats, stats_merge, env->env->limits, &conditions);
+                stats = stats->merge(replace_stats, stats_merge, env->env->limits(), &conditions);
             }
         }
 
@@ -167,17 +167,17 @@ private:
             datum_object_builder_t d;
             UNUSED bool b = d.add("generated_keys",
                                   datum_t(std::move(genkeys),
-                                                        env->env->limits));
+                                                        env->env->limits()));
             stats = stats->merge(std::move(d).to_datum(), pure_merge,
-                                env->env->limits, &conditions);
+                                env->env->limits(), &conditions);
         }
 
         datum_object_builder_t obj(stats->as_object());
-        obj.add_warnings(conditions, env->env->limits);
+        obj.add_warnings(conditions, env->env->limits());
         if (keys_skipped > 0) {
             obj.add_warning(strprintf("Too many generated keys (%zu), array truncated to %zu.",
                               keys_skipped + generated_keys.size(),
-                              generated_keys.size()).c_str(), env->env->limits);
+                              generated_keys.size()).c_str(), env->env->limits());
         }
 
         return new_val(std::move(obj).to_datum());
@@ -234,7 +234,7 @@ private:
             datum_t replace_stats = tblrow.first->batched_replace(
                 env->env, vals, keys, f,
                 nondet_ok, durability_requirement, return_changes);
-            stats = stats->merge(replace_stats, stats_merge, env->env->limits, &conditions);
+            stats = stats->merge(replace_stats, stats_merge, env->env->limits(), &conditions);
         } else {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > tblrows
                 = v0->as_selection(env->env);
@@ -256,12 +256,12 @@ private:
                 datum_t replace_stats = tbl->batched_replace(
                     env->env, vals, keys,
                     f, nondet_ok, durability_requirement, return_changes);
-                stats = stats->merge(replace_stats, stats_merge, env->env->limits, &conditions);
+                stats = stats->merge(replace_stats, stats_merge, env->env->limits(), &conditions);
             }
         }
 
         datum_object_builder_t obj(stats->as_object());
-        obj.add_warnings(conditions, env->env->limits);
+        obj.add_warnings(conditions, env->env->limits());
         return new_val(std::move(obj).to_datum());
     }
 
@@ -292,10 +292,10 @@ private:
                 try {
                     datum_t d = v->as_datum();
                     if (d->get_type() == datum_t::R_OBJECT) {
-                        stats = stats->merge(d, stats_merge, env->env->limits, &conditions);
+                        stats = stats->merge(d, stats_merge, env->env->limits(), &conditions);
                     } else {
                         for (size_t i = 0; i < d->size(); ++i) {
-                            stats = stats->merge(d->get(i), stats_merge, env->env->limits, &conditions);
+                            stats = stats->merge(d->get(i), stats_merge, env->env->limits(), &conditions);
                         }
                     }
                 } catch (const exc_t &e) {
@@ -307,7 +307,7 @@ private:
             }
         }
         datum_object_builder_t obj(stats->as_object());
-        obj.add_warnings(conditions, env->env->limits);
+        obj.add_warnings(conditions, env->env->limits());
         return new_val(std::move(obj).to_datum());
     }
 

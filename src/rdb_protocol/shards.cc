@@ -211,10 +211,10 @@ private:
             datums_t *lst2 = &kv->second;
             size += lst2->size();
             rcheck_toplevel(
-                size <= env->limits.array_size_limit(), base_exc_t::GENERIC,
+                size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
                 strprintf("Grouped data over size limit %zu.  "
                           "Try putting a reduction (like `.reduce` or `.count`) "
-                          "on the end.", env->limits.array_size_limit()).c_str());
+                          "on the end.", env->limits().array_size_limit()).c_str());
             lst1->reserve(lst1->size() + lst2->size());
             std::move(lst2->begin(), lst2->end(), std::back_inserter(*lst1));
         }
@@ -234,10 +234,10 @@ private:
             stream_t *stream = &kv->second;
             size += stream->size();
             rcheck_toplevel(
-                size <= env->limits.array_size_limit(), base_exc_t::GENERIC,
+                size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
                 strprintf("Grouped data over size limit %zu.  "
                           "Try putting a reduction (like `.reduce` or `.count`) "
-                          "on the end.", env->limits.array_size_limit()).c_str());
+                          "on the end.", env->limits().array_size_limit()).c_str());
 
             for (auto it = stream->begin(); it != stream->end(); ++it) {
                 lst->push_back(std::move(it->data));
@@ -680,7 +680,7 @@ private:
             r_sanity_check(arr.size() == (funcs.size() + append_index));
 
             if (!multi) {
-                add(groups, std::move(arr), *el, env->limits);
+                add(groups, std::move(arr), *el, env->limits());
             } else {
                 std::vector<std::vector<datum_t> > perms(arr.size());
                 for (size_t i = 0; i < arr.size(); ++i) {
@@ -696,14 +696,14 @@ private:
                 }
                 std::vector<datum_t> instance;
                 instance.reserve(perms.size());
-                add_perms(groups, &instance, &perms, 0, *el, env->limits);
+                add_perms(groups, &instance, &perms, 0, *el, env->limits());
                 r_sanity_check(instance.size() == 0);
             }
 
             rcheck_src(
                 bt.get(), base_exc_t::GENERIC,
-                groups->size() <= env->limits.array_size_limit(),
-                strprintf("Too many groups (> %zu).", env->limits.array_size_limit()));
+                groups->size() <= env->limits().array_size_limit(),
+                strprintf("Too many groups (> %zu).", env->limits().array_size_limit()));
         }
         size_t erased = groups->erase(datum_t());
         r_sanity_check(erased == 1);

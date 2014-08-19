@@ -88,7 +88,7 @@ private:
         lat_lon_point_t point(lat, lon);
 
         const datum_t result =
-            construct_geo_point(point, env->env->limits);
+            construct_geo_point(point, env->env->limits());
         validate_geojson(result);
 
         return new_val(result);
@@ -136,7 +136,7 @@ private:
         const lat_lon_line_t line = parse_line_from_args(env, args);
 
         const datum_t result =
-            construct_geo_line(line, env->env->limits);
+            construct_geo_line(line, env->env->limits());
         validate_geojson(result);
 
         return new_val(result);
@@ -153,7 +153,7 @@ private:
         const lat_lon_line_t shell = parse_line_from_args(env, args);
 
         const datum_t result =
-            construct_geo_polygon(shell, env->env->limits);
+            construct_geo_polygon(shell, env->env->limits());
         validate_geojson(result);
 
         return new_val(result);
@@ -307,8 +307,8 @@ private:
 
         const datum_t result =
             fill
-            ? construct_geo_polygon(circle, env->env->limits)
-            : construct_geo_line(circle, env->env->limits);
+            ? construct_geo_polygon(circle, env->env->limits())
+            : construct_geo_line(circle, env->env->limits());
         validate_geojson(result);
 
         return new_val(result);
@@ -349,7 +349,7 @@ private:
             extract_lat_lon_line(l_arg->as_ptype(pseudo::geometry_string));
 
         const datum_t result =
-            construct_geo_polygon(shell, env->env->limits);
+            construct_geo_polygon(shell, env->env->limits());
         validate_geojson(result);
 
         return new_val(result);
@@ -392,7 +392,7 @@ private:
 
         counted_t<datum_stream_t> stream = table->get_nearest(
                 env->env, center, max_dist, max_results, reference_ellipsoid,
-                dist_unit, index_str, this, env->env->limits);
+                dist_unit, index_str, this, env->env->limits());
         return new_val(stream, table);
     }
     virtual const char *name() const { return "get_nearest"; }

@@ -191,10 +191,10 @@ private:
                         pair.push_back(datum_t(it->first));
                         pair.push_back(it->second);
                         arr.push_back(datum_t(std::move(pair),
-                                                            env->env->limits));
+                                                            env->env->limits()));
                     }
                     return new_val(datum_t(std::move(arr),
-                                                               env->env->limits));
+                                                               env->env->limits()));
                 }
 
                 // STR -> NUM
@@ -281,7 +281,7 @@ private:
                      {wire_string_t("reduction"), std::move(value)}};
                 v.push_back(datum_t(std::move(m)));
             });
-        return new_val(datum_t(std::move(v), env->env->limits));
+        return new_val(datum_t(std::move(v), env->env->limits()));
     }
     virtual const char *name() const { return "ungroup"; }
     virtual bool can_be_grouped() const { return false; }
