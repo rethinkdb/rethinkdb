@@ -297,8 +297,8 @@ private:
         // We only use el_set for equality purposes, so the reql_version doesn't
         // really matter (with respect to datum ordering behavior).  But we play it
         // safe.
-        std::set<datum_t, counted_datum_less_t>
-            el_set(counted_datum_less_t(env->env->reql_version()));
+        std::set<datum_t, optional_datum_less_t>
+            el_set(optional_datum_less_t(env->env->reql_version()));
         datum_array_builder_t out(env->env->limits());
         for (size_t i = 0; i < arr->size(); ++i) {
             if (el_set.insert(arr->get(i)).second) {
@@ -325,8 +325,8 @@ private:
         datum_t arr2 = args->arg(env, 1)->as_datum();
         // The reql_version doesn't actually matter here -- we only use the datum
         // comparisons for equality purposes.
-        std::set<datum_t, counted_datum_less_t> el_set(
-            counted_datum_less_t(env->env->reql_version()));
+        std::set<datum_t, optional_datum_less_t> el_set(
+            optional_datum_less_t(env->env->reql_version()));
         datum_array_builder_t out(env->env->limits());
         for (size_t i = 0; i < arr1->size(); ++i) {
             if (el_set.insert(arr1->get(i)).second) {
@@ -355,8 +355,8 @@ private:
         datum_t arr2 = args->arg(env, 1)->as_datum();
         // The reql_version here doesn't really matter.  We only use el_set
         // comparison for equality purposes.
-        std::set<datum_t, counted_datum_less_t>
-            el_set(counted_datum_less_t(env->env->reql_version()));
+        std::set<datum_t, optional_datum_less_t>
+            el_set(optional_datum_less_t(env->env->reql_version()));
         datum_array_builder_t out(env->env->limits());
         for (size_t i = 0; i < arr1->size(); ++i) {
             el_set.insert(arr1->get(i));
@@ -384,8 +384,8 @@ private:
         datum_t arr2 = args->arg(env, 1)->as_datum();
         // The reql_version here doesn't really matter.  We only use el_set
         // comparison for equality purposes.
-        std::set<datum_t, counted_datum_less_t>
-            el_set(counted_datum_less_t(env->env->reql_version()));
+        std::set<datum_t, optional_datum_less_t>
+            el_set(optional_datum_less_t(env->env->reql_version()));
         datum_array_builder_t out(env->env->limits());
         for (size_t i = 0; i < arr2->size(); ++i) {
             el_set.insert(arr2->get(i));

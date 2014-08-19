@@ -946,7 +946,7 @@ THROWS_ONLY(interrupted_exc_t) {
             }
         }
 
-        ql::groups_t data(counted_datum_less_t(job.env->reql_version()));
+        ql::groups_t data(optional_datum_less_t(job.env->reql_version()));
         data = {{ql::datum_t(), ql::datums_t{val}}};
 
         for (auto it = job.transformers.begin(); it != job.transformers.end(); ++it) {

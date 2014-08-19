@@ -87,9 +87,8 @@ private:
                          const store_key_t &last_key,
                          const std::vector<result_t *> &results) {
         guarantee(acc.size() == 0);
-        // TODO! Rename counted_datum_less_t
-        std::map<datum_t, std::vector<T *>, counted_datum_less_t>
-            vecs(counted_datum_less_t(env->reql_version()));
+        std::map<datum_t, std::vector<T *>, optional_datum_less_t>
+            vecs(optional_datum_less_t(env->reql_version()));
         for (auto res = results.begin(); res != results.end(); ++res) {
             guarantee(*res);
             grouped_t<T> *gres = boost::get<grouped_t<T> >(*res);
@@ -212,7 +211,7 @@ bool is_grouped_data(grouped_t<stream_t> *streams, const ql::datum_t &q) {
 class to_array_t : public eager_acc_t {
 public:
     explicit to_array_t(reql_version_t reql_version)
-        : groups(counted_datum_less_t(reql_version)), size(0) { }
+        : groups(optional_datum_less_t(reql_version)), size(0) { }
 private:
     virtual void operator()(env_t *env, groups_t *gs) {
         for (auto kv = gs->begin(); kv != gs->end(); ++kv) {

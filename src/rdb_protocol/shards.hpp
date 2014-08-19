@@ -32,7 +32,7 @@ namespace ql {
 // This stuff previously resided in the protocol, but has been broken out since
 // we want to use this logic in multiple places.
 typedef std::vector<ql::datum_t> datums_t;
-typedef std::map<ql::datum_t, datums_t, counted_datum_less_t> groups_t;
+typedef std::map<ql::datum_t, datums_t, optional_datum_less_t> groups_t;
 
 struct rget_item_t {
     rget_item_t() { }
@@ -162,7 +162,7 @@ archive_result_t deserialize_grouped(read_stream_t *s, datums_t *ds) {
 }
 
 // Passing this means the caller affirms that they're not iterating a grouped_t in a
-// way such that its map order matters.  (This means that its counted_datum_less_t
+// way such that its map order matters.  (This means that its optional_datum_less_t
 // can use any reql version, and it doesn't need the value as a parameter.)
 namespace grouped {
 enum class order_doesnt_matter_t { };
@@ -175,7 +175,7 @@ public:
     // We assume v1_14 ordering.  We could get fancy and allow either v1_13 or v1_14
     // ordering, but usage of grouped_t inside of secondary index functions is the
     // only place where we'd want v1_13 ordering, so let's not bother.
-    explicit grouped_t() : m(counted_datum_less_t(reql_version_t::v1_14_is_latest)) { }
+    explicit grouped_t() : m(optional_datum_less_t(reql_version_t::v1_14_is_latest)) { }
     virtual ~grouped_t() { } // See grouped_data_t below.
     template <cluster_version_t W>
     typename std::enable_if<W == cluster_version_t::CLUSTER, void>::type
@@ -214,17 +214,17 @@ public:
     // since the parallel map provides its own ordering (that you specify).  This
     // way, we know it's OK for the map ordering to use any reql_version (instead of
     // taking that as a parameter, which would be completely impracticable).
-    typename std::map<datum_t, T, counted_datum_less_t>::iterator
+    typename std::map<datum_t, T, optional_datum_less_t>::iterator
     begin(grouped::order_doesnt_matter_t) { return m.begin(); }
-    typename std::map<datum_t, T, counted_datum_less_t>::iterator
+    typename std::map<datum_t, T, optional_datum_less_t>::iterator
     end(grouped::order_doesnt_matter_t) { return m.end(); }
 
-    std::pair<typename std::map<datum_t, T, counted_datum_less_t>::iterator, bool>
+    std::pair<typename std::map<datum_t, T, optional_datum_less_t>::iterator, bool>
     insert(std::pair<datum_t, T> &&val) {
         return m.insert(std::move(val));
     }
     void
-    erase(typename std::map<datum_t, T, counted_datum_less_t>::iterator pos) {
+    erase(typename std::map<datum_t, T, optional_datum_less_t>::iterator pos) {
         m.erase(pos);
     }
 
@@ -233,12 +233,12 @@ public:
     T &operator[](const datum_t &k) { return m[k]; }
 
     void swap(grouped_t<T> &other) { m.swap(other.m); } // NOLINT
-    std::map<datum_t, T, counted_datum_less_t> *
+    std::map<datum_t, T, optional_datum_less_t> *
     get_underlying_map(grouped::order_doesnt_matter_t) {
         return &m;
     }
 private:
-    std::map<datum_t, T, counted_datum_less_t> m;
+    std::map<datum_t, T, optional_datum_less_t> m;
 };
 
 RDB_SERIALIZE_TEMPLATED_OUTSIDE(grouped_t);
@@ -272,7 +272,7 @@ template <class T, class Callable>
 void iterate_ordered_by_version(reql_version_t reql_version,
                                 grouped_t<T> &grouped,
                                 Callable &&callable) {
-    std::map<datum_t, T, counted_datum_less_t> *m
+    std::map<datum_t, T, optional_datum_less_t> *m
         = grouped.get_underlying_map(grouped::order_doesnt_matter_t());
     if (m->key_comp().reql_version() == reql_version) {
         for (std::pair<const datum_t, T> &pair : *m) {

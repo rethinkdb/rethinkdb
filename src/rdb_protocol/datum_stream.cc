@@ -14,7 +14,7 @@
 namespace ql {
 
 template<class T>
-T groups_to_batch(std::map<datum_t, T, counted_datum_less_t> *g) {
+T groups_to_batch(std::map<datum_t, T, optional_datum_less_t> *g) {
     if (g->size() == 0) {
         return T();
     } else {
@@ -572,14 +572,14 @@ void eager_datum_stream_t::accumulate(
     batchspec_t bs = batchspec_t::user(batch_type_t::TERMINAL, env);
     // I'm guessing reql_version doesn't matter here, but why think about it?  We use
     // th env's reql_version.
-    groups_t data(counted_datum_less_t(env->reql_version()));
+    groups_t data(optional_datum_less_t(env->reql_version()));
     while (next_grouped_batch(env, bs, &data) == done_t::NO) {
         (*acc)(env, &data);
     }
 }
 
 void eager_datum_stream_t::accumulate_all(env_t *env, eager_acc_t *acc) {
-    groups_t data(counted_datum_less_t(env->reql_version()));
+    groups_t data(optional_datum_less_t(env->reql_version()));
     done_t done = next_grouped_batch(env, batchspec_t::all(), &data);
     (*acc)(env, &data);
     if (done == done_t::NO) {
@@ -591,7 +591,7 @@ void eager_datum_stream_t::accumulate_all(env_t *env, eager_acc_t *acc) {
 
 std::vector<datum_t>
 eager_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &bs) {
-    groups_t data(counted_datum_less_t(env->reql_version()));
+    groups_t data(optional_datum_less_t(env->reql_version()));
     next_grouped_batch(env, bs, &data);
     return groups_to_batch(&data);
 }

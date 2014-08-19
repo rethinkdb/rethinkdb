@@ -277,7 +277,7 @@ private:
     std::vector<std::set<subscription_t *> > table_subs;
     std::map<datum_t,
              std::vector<std::set<subscription_t *> >,
-             counted_datum_less_t> point_subs;
+             optional_datum_less_t> point_subs;
     rwlock_t table_subs_lock;
     rwlock_t point_subs_lock;
     int64_t num_subs;
@@ -783,7 +783,7 @@ feed_t::feed_t(client_t *_client,
       /* We only use comparison in the point_subs map for equality purposes, not
          ordering -- and this isn't in a secondary index function.  Thus
          reql_version_t::LATEST is appropriate. */
-      point_subs(counted_datum_less_t(reql_version_t::LATEST)),
+      point_subs(optional_datum_less_t(reql_version_t::LATEST)),
       num_subs(0),
       detached(false) {
     read_t read(changefeed_subscribe_t(mailbox.get_address()),
