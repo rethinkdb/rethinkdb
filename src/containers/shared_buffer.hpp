@@ -47,6 +47,7 @@ size. */
 // save some memory when having buffers of a limited maximum size.
 class shared_buf_ref_t {
 public:
+    shared_buf_ref_t() : offset(0) { }
     shared_buf_ref_t(const counted_t<const shared_buf_t> &_buf, uint64_t _offset)
         : buf(_buf), offset(_offset) {
         rassert(buf.has());

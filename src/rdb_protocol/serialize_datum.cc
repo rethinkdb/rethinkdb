@@ -361,12 +361,14 @@ archive_result_t datum_deserialize(read_stream_t *s, datum_t *datum) {
 
 
 size_t datum_serialized_size(const wire_string_t &s) {
-    return varint_uint64_serialized_size(s.size()) + s.size();
+    const size_t s_size = s.size();
+    return varint_uint64_serialized_size(s_size) + s_size;
 }
 
 serialization_result_t datum_serialize(write_message_t *wm, const wire_string_t &s) {
-    serialize_varint_uint64(wm, static_cast<uint64_t>(s.size()));
-    wm->append(s.data(), s.size());
+    const size_t s_size = s.size();
+    serialize_varint_uint64(wm, static_cast<uint64_t>(s_size));
+    wm->append(s.data(), s_size);
     return serialization_result_t::SUCCESS;
 }
 
@@ -381,8 +383,10 @@ MUST_USE archive_result_t datum_deserialize(
         return archive_result_t::RANGE_ERROR;
     }
 
-    scoped_ptr_t<shared_buf_t> buf = shared_buf_t::create(sz);
-    int64_t num_read = force_read(s, buf->data(), sz);
+    const size_t str_offset = varint_uint64_serialized_size(sz);
+    scoped_ptr_t<shared_buf_t> buf = shared_buf_t::create(str_offset + sz);
+    serialize_varint_uint64_into_buf(sz, reinterpret_cast<uint8_t *>(buf->data()));
+    int64_t num_read = force_read(s, buf->data() + str_offset, sz);
     if (num_read == -1) {
         return archive_result_t::SOCK_ERROR;
     }
@@ -390,7 +394,7 @@ MUST_USE archive_result_t datum_deserialize(
         return archive_result_t::SOCK_EOF;
     }
 
-    *out = wire_string_t(sz, shared_buf_ref_t(
+    *out = wire_string_t(shared_buf_ref_t(
         counted_t<const shared_buf_t>(buf.release()), 0));
 
     return archive_result_t::SUCCESS;

@@ -29,9 +29,11 @@ public:
     // Construct from an STD string
     explicit wire_string_t(const std::string &str);
 
-    // Create a wire_string_t from an existing shared_buf_ref_t
-    wire_string_t(size_t _size, const shared_buf_ref_t &_ref);
-    wire_string_t(size_t _size, shared_buf_ref_t &&_ref);
+    // Create a wire_string_t from an existing shared_buf_ref_t.
+    // It must have the length in varint encoding at the beginning, followed
+    // by the string data.
+    wire_string_t(const shared_buf_ref_t &_ref);
+    wire_string_t(shared_buf_ref_t &&_ref);
 
     wire_string_t(wire_string_t &&movee) noexcept;
     wire_string_t(const wire_string_t &copyee) noexcept;
@@ -60,9 +62,8 @@ public:
     std::string to_std() const;
 
 private:
-    // TODO! This size_ makes wire_string_t overly big. Move it into data_ in
-    // the form of a varint, that's decoded on the fly.
-    size_t size_;
+    // Contains the length of the string in varint encoding, followed by the actual
+    // string content.
     shared_buf_ref_t data_;
 };
 

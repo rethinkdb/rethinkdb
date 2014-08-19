@@ -298,6 +298,7 @@ private:
         data_wrapper_t(const data_wrapper_t &copyee);
         data_wrapper_t &operator=(const data_wrapper_t &copyee);
         data_wrapper_t(data_wrapper_t &&movee) noexcept;
+        // TODO: Add move assignment operator
 
         // Mirror the same constructors of datum_t
         data_wrapper_t();
