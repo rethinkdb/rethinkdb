@@ -18,7 +18,7 @@ public:
     pathspec_t &operator=(const pathspec_t &other);
     pathspec_t(const std::string &str, const term_t *creator);
     pathspec_t(const std::map<std::string, pathspec_t> &map, const term_t *creator);
-    pathspec_t(counted_t<const datum_t> datum, const term_t *creator);
+    pathspec_t(datum_t datum, const term_t *creator);
     ~pathspec_t();
     const std::string *as_str() const {
         return (type == STR ? str : NULL);
@@ -82,15 +82,15 @@ enum recurse_flag_t {
 };
 
 /* Limit the datum to only the paths specified by the pathspec. */
-counted_t<const datum_t> project(counted_t<const datum_t> datum,
+datum_t project(datum_t datum,
                                  const pathspec_t &pathspec, recurse_flag_t recurse,
                                  const configured_limits_t &limits);
 /* Limit the datum to only the paths not specified by the pathspec. */
-counted_t<const datum_t> unproject(counted_t<const datum_t> datum,
+datum_t unproject(datum_t datum,
                                    const pathspec_t &pathspec, recurse_flag_t recurse,
                                    const configured_limits_t &limits);
 /* Return whether or not ALL of the paths in the pathspec exist in the datum. */
-bool contains(counted_t<const datum_t> datum,
+bool contains(datum_t datum,
         const pathspec_t &pathspec);
 
 } // namespace ql

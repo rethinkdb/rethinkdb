@@ -12,16 +12,16 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<const datum_t> d = args->arg(env, 0)->as_datum();
-        const std::map<wire_string_t, counted_t<const datum_t> > &obj = d->as_object();
+        datum_t d = args->arg(env, 0)->as_datum();
+        const std::map<wire_string_t, datum_t> &obj = d->as_object();
 
-        std::vector<counted_t<const datum_t> > arr;
+        std::vector<datum_t> arr;
         arr.reserve(obj.size());
         for (auto it = obj.begin(); it != obj.end(); ++it) {
-            arr.push_back(make_counted<const datum_t>(it->first));
+            arr.push_back(datum_t(it->first));
         }
 
-        return new_val(make_counted<const datum_t>(std::move(arr), env->env->limits));
+        return new_val(datum_t(std::move(arr), env->env->limits));
     }
     virtual const char *name() const { return "keys"; }
 };
@@ -39,7 +39,7 @@ private:
         datum_object_builder_t obj;
         for (size_t i = 0; i < args->num_args(); i+=2) {
             const wire_string_t &key = args->arg(env, i)->as_str();
-            counted_t<const datum_t> keyval = args->arg(env, i + 1)->as_datum();
+            datum_t keyval = args->arg(env, i + 1)->as_datum();
             bool b = obj.add(key, keyval);
             rcheck(!b, base_exc_t::GENERIC,
                    strprintf("Duplicate key `%s` in object.  "
@@ -48,7 +48,7 @@ private:
                              obj.at(key)->trunc_print().c_str(),
                              keyval->trunc_print().c_str()));
         }
-        return new_val(std::move(obj).to_counted());
+        return new_val(std::move(obj).to_datum());
     }
 
     virtual const char *name() const { return "object"; }

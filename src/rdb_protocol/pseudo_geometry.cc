@@ -18,25 +18,25 @@ namespace pseudo {
 
 const char *const geometry_string = "GEOMETRY";
 
-counted_t<const datum_t> geo_sub(counted_t<const datum_t> lhs,
-                                 counted_t<const datum_t> rhs,
-                                 const configured_limits_t &limits) {
-    rcheck_target(lhs.get(), base_exc_t::GENERIC, lhs->is_ptype(geometry_string),
+datum_t geo_sub(datum_t lhs,
+                datum_t rhs,
+                const configured_limits_t &limits) {
+    rcheck_target(&lhs, base_exc_t::GENERIC, lhs->is_ptype(geometry_string),
                   "Value must be of geometry type.");
-    rcheck_target(rhs.get(), base_exc_t::GENERIC, rhs->is_ptype(geometry_string),
+    rcheck_target(&rhs, base_exc_t::GENERIC, rhs->is_ptype(geometry_string),
                   "Value must be of geometry type.");
 
-    rcheck_target(rhs.get(), base_exc_t::GENERIC,
+    rcheck_target(&rhs, base_exc_t::GENERIC,
                   rhs->get_field("coordinates")->size() <= 1,
                   "The second argument to `sub` must be a Polygon with only an outer "
                   "shell.  This one has holes.");
 
     // Construct a polygon from lhs with rhs cut out
-    rcheck_target(lhs.get(), base_exc_t::GENERIC,
+    rcheck_target(&lhs, base_exc_t::GENERIC,
                   lhs->get_field("type")->as_str() == "Polygon",
                   strprintf("The first argument to `sub` must be a Polygon.  Found `%s`.",
                             lhs->get_field("type")->as_str().to_std().c_str()));
-    rcheck_target(lhs.get(), base_exc_t::GENERIC,
+    rcheck_target(&lhs, base_exc_t::GENERIC,
                   lhs->get_field("coordinates")->size() >= 1,
                   "The first argument to `sub` is an empty polygon.  It must at least "
                   "have an outer shell.");
@@ -51,17 +51,15 @@ counted_t<const datum_t> geo_sub(counted_t<const datum_t> lhs,
 
     datum_object_builder_t result;
     bool dup;
-    dup = result.add(datum_t::reql_type_string, make_counted<datum_t>(geometry_string));
+    dup = result.add(datum_t::reql_type_string, datum_t(geometry_string));
     r_sanity_check(!dup);
-    dup = result.add("type", make_counted<datum_t>("Polygon"));
+    dup = result.add("type", datum_t("Polygon"));
     r_sanity_check(!dup);
-    std::vector<counted_t <const datum_t> > coordinates =
-        lhs->get_field("coordinates")->as_array();
+    std::vector<datum_t> coordinates = lhs->get_field("coordinates")->as_array();
     coordinates.push_back(rhs->get_field("coordinates")->get(0));
-    dup = result.add("coordinates",
-                     make_counted<datum_t>(std::move(coordinates), limits));
+    dup = result.add("coordinates", datum_t(std::move(coordinates), limits));
     r_sanity_check(!dup);
-    counted_t<const datum_t> result_counted = std::move(result).to_counted();
+    datum_t result_counted = std::move(result).to_datum();
     validate_geojson(result_counted);
 
     return result_counted;
@@ -70,7 +68,7 @@ counted_t<const datum_t> geo_sub(counted_t<const datum_t> lhs,
 void sanitize_geometry(datum_t *geo) {
     bool has_type = false;
     bool has_coordinates = false;
-    const std::map<wire_string_t, counted_t<const datum_t> > &obj_map =
+    const std::map<wire_string_t, datum_t> &obj_map =
         geo->as_object();
     for (auto it = obj_map.begin(); it != obj_map.end(); ++it) {
         if (it->first == "coordinates") {
@@ -82,7 +80,7 @@ void sanitize_geometry(datum_t *geo) {
         } else if (it->first == "crs") {
         } else if (it->first == datum_t::reql_type_string) {
         } else {
-            rfail_target(it->second.get(), base_exc_t::GENERIC,
+            rfail_target(&it->second, base_exc_t::GENERIC,
                          "Unrecognized field `%s` found in geometry object.",
                          it->first.to_std().c_str());
         }

@@ -30,7 +30,7 @@ public:
 
     virtual counted_t<val_t> call(
         env_t *env,
-        const std::vector<counted_t<const datum_t> > &args,
+        const std::vector<datum_t> &args,
         eval_flags_t eval_flags = NO_FLAGS) const = 0;
 
     virtual bool is_deterministic() const = 0;
@@ -43,24 +43,24 @@ public:
     void assert_deterministic(const char *extra_msg) const;
 
     bool filter_call(env_t *env,
-                     counted_t<const datum_t> arg,
+                     datum_t arg,
                      counted_t<const func_t> default_filter_val) const;
 
     // These are simple, they call the vector version of call.
     counted_t<val_t> call(env_t *env, eval_flags_t eval_flags = NO_FLAGS) const;
     counted_t<val_t> call(env_t *env,
-                          counted_t<const datum_t> arg,
+                          datum_t arg,
                           eval_flags_t eval_flags = NO_FLAGS) const;
     counted_t<val_t> call(env_t *env,
-                          counted_t<const datum_t> arg1,
-                          counted_t<const datum_t> arg2,
+                          datum_t arg1,
+                          datum_t arg2,
                           eval_flags_t eval_flags = NO_FLAGS) const;
 
 protected:
     explicit func_t(const protob_t<const Backtrace> &bt_source);
 
 private:
-    virtual bool filter_helper(env_t *env, counted_t<const datum_t> arg) const = 0;
+    virtual bool filter_helper(env_t *env, datum_t arg) const = 0;
 
     DISABLE_COPYING(func_t);
 };
@@ -75,7 +75,7 @@ public:
 
     counted_t<val_t> call(
         env_t *env,
-        const std::vector<counted_t<const datum_t> > &args,
+        const std::vector<datum_t> &args,
         eval_flags_t eval_flags) const;
     bool is_deterministic() const;
 
@@ -85,7 +85,7 @@ public:
 
 private:
     template <cluster_version_t> friend class wire_func_serialization_visitor_t;
-    bool filter_helper(env_t *env, counted_t<const datum_t> arg) const;
+    bool filter_helper(env_t *env, datum_t arg) const;
 
     // Only contains the parts of the scope that `body` uses.
     var_scope_t captured_scope;
@@ -109,7 +109,7 @@ public:
     // Some queries, like filter, can take a shortcut object instead of a
     // function as their argument.
     counted_t<val_t> call(env_t *env,
-                          const std::vector<counted_t<const datum_t> > &args,
+                          const std::vector<datum_t> &args,
                           eval_flags_t eval_flags) const;
 
     bool is_deterministic() const;
@@ -120,7 +120,7 @@ public:
 
 private:
     template <cluster_version_t> friend class wire_func_serialization_visitor_t;
-    bool filter_helper(env_t *env, counted_t<const datum_t> arg) const;
+    bool filter_helper(env_t *env, datum_t arg) const;
 
     std::string js_source;
     uint64_t js_timeout_ms;
@@ -141,19 +141,19 @@ protected:
 // Some queries, like filter, can take a shortcut object instead of a
 // function as their argument.
 
-counted_t<const func_t> new_constant_func(counted_t<const datum_t> obj,
+counted_t<const func_t> new_constant_func(datum_t obj,
                                           const protob_t<const Backtrace> &root);
 
-counted_t<const func_t> new_pluck_func(counted_t<const datum_t> obj,
+counted_t<const func_t> new_pluck_func(datum_t obj,
                                        const protob_t<const Backtrace> &bt_src);
 
-counted_t<const func_t> new_get_field_func(counted_t<const datum_t> obj,
+counted_t<const func_t> new_get_field_func(datum_t obj,
                                            const protob_t<const Backtrace> &bt_src);
 
-counted_t<const func_t> new_eq_comparison_func(counted_t<const datum_t> obj,
+counted_t<const func_t> new_eq_comparison_func(datum_t obj,
                                                const protob_t<const Backtrace> &bt_src);
 
-counted_t<const func_t> new_page_func(counted_t<const datum_t> method,
+counted_t<const func_t> new_page_func(datum_t method,
                                       const protob_t<const Backtrace> &bt_src);
 
 class js_result_visitor_t : public boost::static_visitor<counted_t<val_t> > {
@@ -167,7 +167,7 @@ public:
     // This JS evaluation resulted in an error
     counted_t<val_t> operator()(const std::string &err_val) const;
     // This JS call resulted in a JSON value
-    counted_t<val_t> operator()(const counted_t<const datum_t> &json_val) const;
+    counted_t<val_t> operator()(const datum_t &json_val) const;
     // This JS evaluation resulted in an id for a js function
     counted_t<val_t> operator()(const id_t id_val) const;
 

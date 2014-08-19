@@ -28,7 +28,7 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<const datum_t> func_arg;
+        datum_t func_arg;
         scoped_ptr_t<exc_t> err;
         counted_t<val_t> v;
         try {
@@ -44,14 +44,14 @@ private:
         } catch (const exc_t &e) {
             if (e.get_type() == base_exc_t::NON_EXISTENCE) {
                 err.init(new exc_t(e));
-                func_arg = make_counted<const datum_t>(e.what());
+                func_arg = datum_t(e.what());
             } else {
                 throw;
             }
         } catch (const datum_exc_t &e) {
             if (e.get_type() == base_exc_t::NON_EXISTENCE) {
                 err.init(new exc_t(e.get_type(), e.what(), backtrace().get()));
-                func_arg = make_counted<const datum_t>(e.what());
+                func_arg = datum_t(e.what());
             } else {
                 throw;
             }

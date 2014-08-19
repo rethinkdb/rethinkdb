@@ -60,6 +60,8 @@ public:
     std::string to_std() const;
 
 private:
+    // TODO! This size_ makes wire_string_t overly big. Move it into data_ in
+    // the form of a varint, that's decoded on the fly.
     size_t size_;
     shared_buf_ref_t data_;
 };

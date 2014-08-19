@@ -329,13 +329,13 @@ std::string url_encode_fields(CURL *curl_handle,
 }
 
 std::string url_encode_fields(CURL *curl_handle,
-                              const counted_t<const ql::datum_t> &fields) {
+                              const ql::datum_t &fields) {
     // Convert to a common format
     if (!fields.has()) {
         return std::string();
     }
 
-    const std::map<wire_string_t, counted_t<const ql::datum_t> > &fields_map =
+    const std::map<wire_string_t, ql::datum_t> &fields_map =
         fields->as_object();
     std::map<std::string, std::string> translated_fields;
 
@@ -407,7 +407,7 @@ void transfer_method_opt(http_opts_t *opts,
 }
 
 void transfer_url_opt(const std::string &url,
-        const counted_t<const ql::datum_t> &url_params,
+        const ql::datum_t &url_params,
         CURL *curl_handle) {
     std::string full_url = url;
     std::string params = url_encode_fields(curl_handle, url_params);
@@ -584,7 +584,7 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
             parse_header(header_data, res_out);
         }
         if (!body_data.empty()) {
-            res_out->body = make_counted<const ql::datum_t>(wire_string_t(body_data));
+            res_out->body = ql::datum_t(wire_string_t(body_data));
         }
         res_out->error = strprintf("status code %ld", response_code);
     } else {
@@ -633,7 +633,7 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
                         if (!res_out->error.empty()) {
                             res_out->error.clear();
                             res_out->body =
-                                make_counted<const ql::datum_t>(wire_string_t(body_data));
+                                ql::datum_t(wire_string_t(body_data));
                         }
                     }
                 } else if (content_type.find("audio/") == 0 ||
@@ -644,7 +644,7 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
 
                 } else {
                     res_out->body =
-                        make_counted<const ql::datum_t>(wire_string_t(body_data));
+                        ql::datum_t(wire_string_t(body_data));
                 }
             }
             break;
@@ -655,7 +655,7 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
             jsonp_to_datum(body_data, opts->limits, attach_json_to_error_t::YES, res_out);
             break;
         case http_result_format_t::TEXT:
-            res_out->body = make_counted<const ql::datum_t>(wire_string_t(body_data));
+            res_out->body = ql::datum_t(wire_string_t(body_data));
             break;
         case http_result_format_t::BINARY:
             res_out->body = ql::datum_t::binary(wire_string_t(body_data));
@@ -668,7 +668,7 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
 
 class header_parser_singleton_t {
 public:
-    static counted_t<const ql::datum_t> parse(const std::string &header);
+    static ql::datum_t parse(const std::string &header);
 
 private:
     static void initialize();
@@ -688,8 +688,8 @@ private:
     http_parser parser;
 
     RE2 link_parser;
-    std::map<wire_string_t, counted_t<const ql::datum_t> > header_fields;
-    std::map<wire_string_t, counted_t<const ql::datum_t> > link_headers;
+    std::map<wire_string_t, ql::datum_t> header_fields;
+    std::map<wire_string_t, ql::datum_t> link_headers;
     std::string current_field;
 };
 header_parser_singleton_t *header_parser_singleton_t::instance = NULL;
@@ -735,7 +735,7 @@ void header_parser_singleton_t::initialize() {
     instance->parser.data = instance;
 }
 
-counted_t<const ql::datum_t>
+ql::datum_t
 header_parser_singleton_t::parse(const std::string &header) {
     initialize();
     size_t res = http_parser_execute(&instance->parser,
@@ -754,14 +754,14 @@ header_parser_singleton_t::parse(const std::string &header) {
     // Return an empty object if we didn't receive any headers
     if (instance->header_fields.size() == 0 &&
         instance->link_headers.size() == 0) {
-        return counted_t<const ql::datum_t>();
+        return ql::datum_t();
     } else if (instance->link_headers.size() > 0) {
         // Include the specially-parsed link header field
         instance->header_fields[wire_string_t("link")] =
-            make_counted<const ql::datum_t>(std::move(instance->link_headers));
+            ql::datum_t(std::move(instance->link_headers));
     }
 
-    return make_counted<const ql::datum_t>(std::move(instance->header_fields));
+    return ql::datum_t(std::move(instance->header_fields));
 }
 
 int header_parser_singleton_t::on_headers_complete(UNUSED http_parser *parser) {
@@ -791,7 +791,7 @@ int header_parser_singleton_t::on_header_value(http_parser *parser,
         instance->add_link_header(std::string(value, length));
     } else {
         instance->header_fields[wire_string_t(instance->current_field)] =
-            make_counted<const ql::datum_t>(wire_string_t(length, value));
+            ql::datum_t(wire_string_t(length, value));
     }
     return 0;
 }
@@ -803,7 +803,7 @@ void header_parser_singleton_t::add_link_header(const std::string &line) {
     std::string param;
     while (RE2::FindAndConsume(&line_re2, link_parser, &value, &param)) {
         link_headers[wire_string_t(param)] =
-            make_counted<const ql::datum_t>(wire_string_t(value));
+            ql::datum_t(wire_string_t(value));
     }
 
     if (line_re2.length() != 0) {
@@ -828,7 +828,7 @@ void json_to_datum(const std::string &json,
     } else {
         res_out->error.assign("failed to parse JSON response");
         if (attach_json == attach_json_to_error_t::YES) {
-            res_out->body = make_counted<const ql::datum_t>(wire_string_t(json));
+            res_out->body = ql::datum_t(wire_string_t(json));
         }
     }
 }
@@ -895,7 +895,7 @@ void jsonp_to_datum(const std::string &jsonp, const ql::configured_limits_t &lim
     } else {
         res_out->error.assign("failed to parse JSONP response");
         if (attach_json == attach_json_to_error_t::YES) {
-            res_out->body = make_counted<const ql::datum_t>(wire_string_t(jsonp));
+            res_out->body = ql::datum_t(wire_string_t(jsonp));
         }
     }
 }

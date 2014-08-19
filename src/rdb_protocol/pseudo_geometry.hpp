@@ -12,8 +12,8 @@ namespace pseudo {
 
 extern const char *const geometry_string;
 
-counted_t<const datum_t> geo_sub(counted_t<const datum_t> lhs,
-                                 counted_t<const datum_t> rhs,
+datum_t geo_sub(datum_t lhs,
+                                 datum_t rhs,
                                  const configured_limits_t &limits);
 
 void sanitize_geometry(datum_t *geo);

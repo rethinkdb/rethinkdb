@@ -72,7 +72,6 @@ public:
     explicit reql_t(const double val);
     explicit reql_t(const std::string &val);
     explicit reql_t(const datum_t &d);
-    explicit reql_t(const counted_t<const datum_t> &d);
     explicit reql_t(const Datum &d);
     explicit reql_t(const Term &t);
     explicit reql_t(std::vector<reql_t> &&val);

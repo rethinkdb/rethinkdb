@@ -58,7 +58,7 @@ pathspec_t::pathspec_t(const std::map<std::string, pathspec_t> &_map,
                        const term_t *_creator)
     : type(MAP), map(new std::map<std::string, pathspec_t>(_map)), creator(_creator) { }
 
-pathspec_t::pathspec_t(counted_t<const datum_t> datum, const term_t *_creator)
+pathspec_t::pathspec_t(datum_t datum, const term_t *_creator)
     : creator(_creator)
 {
     if (datum->get_type() == datum_t::R_STR) {
@@ -140,26 +140,26 @@ void pathspec_t::init_from(const pathspec_t &other) {
 
 
 /* Limit the datum to only the paths specified by the pathspec. */
-counted_t<const datum_t> project(counted_t<const datum_t> datum,
+datum_t project(datum_t datum,
                                  const pathspec_t &pathspec, recurse_flag_t recurse,
                                  const configured_limits_t &limits) {
     if (datum->get_type() == datum_t::R_ARRAY && recurse == RECURSE) {
         datum_array_builder_t res(limits);
         res.reserve(datum->size());
-        for (const counted_t<const datum_t> &value : datum->as_array()) {
+        for (const datum_t &value : datum->as_array()) {
             res.add(project(value, pathspec, DONT_RECURSE, limits));
         }
-        return std::move(res).to_counted();
+        return std::move(res).to_datum();
     } else {
         datum_object_builder_t res;
         if (pathspec.as_str() != NULL) {
             wire_string_t str(*pathspec.as_str());
-            if (counted_t<const datum_t> val = datum->get_field(str, NOTHROW)) {
+            if (datum_t val = datum->get_field(str, NOTHROW)) {
                 res.overwrite(std::move(str), val);
             }
         } else if (const std::vector<pathspec_t> *vec = pathspec.as_vec()) {
             for (auto it = vec->begin(); it != vec->end(); ++it) {
-                counted_t<const datum_t> sub_result = project(datum, *it, recurse, limits);
+                datum_t sub_result = project(datum, *it, recurse, limits);
                 for (auto jt = sub_result->as_object().begin();
                      jt != sub_result->as_object().end(); ++jt) {
                     res.overwrite(wire_string_t(jt->first), jt->second);
@@ -167,10 +167,9 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
             }
         } else if (const std::map<std::string, pathspec_t> *map = pathspec.as_map()) {
             for (auto it = map->begin(); it != map->end(); ++it) {
-                if (counted_t<const datum_t> val =
-                        datum->get_field(wire_string_t(it->first), NOTHROW)) {
+                if (datum_t val = datum->get_field(wire_string_t(it->first), NOTHROW)) {
                     try {
-                        counted_t<const datum_t> sub_result =
+                        datum_t sub_result =
                             project(val, it->second, RECURSE, limits);
                         res.overwrite(wire_string_t(it->first), sub_result);
                     } catch (const datum_exc_t &e) {
@@ -181,7 +180,7 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
         } else {
             unreachable();
         }
-        return std::move(res).to_counted();
+        return std::move(res).to_datum();
     }
 }
 
@@ -198,9 +197,9 @@ void unproject_helper(datum_object_builder_t *datum,
         }
     } else if (const std::map<std::string, pathspec_t> *map = pathspec.as_map()) {
         for (auto it = map->begin(); it != map->end(); ++it) {
-            if (counted_t<const datum_t> val = datum->try_get(wire_string_t(it->first))) {
+            if (datum_t val = datum->try_get(wire_string_t(it->first))) {
                 try {
-                    counted_t<const datum_t> sub_result =
+                    datum_t sub_result =
                         unproject(val, it->second, RECURSE, limits);
                     datum->overwrite(wire_string_t(it->first), sub_result);
                 } catch (const datum_exc_t &e) {
@@ -214,25 +213,25 @@ void unproject_helper(datum_object_builder_t *datum,
 }
 
 /* Limit the datum to only the paths not specified by the pathspec. */
-counted_t<const datum_t> unproject(counted_t<const datum_t> datum,
+datum_t unproject(datum_t datum,
                                    const pathspec_t &pathspec, recurse_flag_t recurse,
                                    const configured_limits_t &limits) {
     if (datum->get_type() == datum_t::R_ARRAY && recurse == RECURSE) {
         datum_array_builder_t res(limits);
         res.reserve(datum->size());
-        for (const counted_t<const datum_t> &value : datum->as_array()) {
+        for (const datum_t &value : datum->as_array()) {
             res.add(unproject(value, pathspec, DONT_RECURSE, limits));
         }
-        return std::move(res).to_counted();
+        return std::move(res).to_datum();
     } else {
         datum_object_builder_t res(datum->as_object());
         unproject_helper(&res, pathspec, recurse, limits);
-        return std::move(res).to_counted();
+        return std::move(res).to_datum();
     }
 }
 
 /* Return whether or not ALL of the paths in the pathspec exist in the datum. */
-bool contains(counted_t<const datum_t> datum,
+bool contains(datum_t datum,
         const pathspec_t &pathspec) {
     try {
         bool res = true;
@@ -250,8 +249,7 @@ bool contains(counted_t<const datum_t> datum,
             }
         } else if (const std::map<std::string, pathspec_t> *map = pathspec.as_map()) {
             for (auto it = map->begin(); it != map->end(); ++it) {
-                if (counted_t<const datum_t> val =
-                        datum->get_field(wire_string_t(it->first), NOTHROW)) {
+                if (datum_t val = datum->get_field(wire_string_t(it->first), NOTHROW)) {
                     if (!(res &= contains(val, it->second))) {
                         return res;
                     }

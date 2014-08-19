@@ -48,7 +48,7 @@ optargspec_t optargspec_t::with(std::initializer_list<const char *> args) const 
 
 class faux_term_t : public term_t {
 public:
-    faux_term_t(protob_t<const Term> src, counted_t<const datum_t> _d)
+    faux_term_t(protob_t<const Term> src, datum_t _d)
         : term_t(std::move(src)), d(std::move(_d)) { }
     virtual const char *name() const { return "<EXPANDED FROM r.args>"; }
     virtual bool is_deterministic() const { return true; }
@@ -57,7 +57,7 @@ private:
     virtual counted_t<val_t> term_eval(scope_env_t *, eval_flags_t) const {
         return new_val(d);
     }
-    counted_t<const datum_t> d;
+    datum_t d;
 };
 
 
@@ -107,7 +107,7 @@ argvec_t arg_terms_t::start_eval(scope_env_t *env, eval_flags_t flags) const {
     for (auto it = original_args.begin(); it != original_args.end(); ++it) {
         if ((*it)->get_src()->type() == Term::ARGS) {
             counted_t<val_t> v = (*it)->eval(env, new_flags);
-            counted_t<const datum_t> d = v->as_datum();
+            datum_t d = v->as_datum();
             for (size_t i = 0; i < d->size(); ++i) {
                 args.push_back(make_counted<faux_term_t>(src, d->get(i)));
             }

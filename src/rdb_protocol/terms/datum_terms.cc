@@ -28,7 +28,7 @@ public:
         : op_term_t(env, t, argspec_t(0)), _constant(constant), _name(name) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *, args_t *, eval_flags_t) const {
-        return new_val(make_counted<const datum_t>(_constant));
+        return new_val(datum_t(_constant));
     }
     virtual const char *name() const { return _name; }
     const double _constant;
@@ -50,7 +50,7 @@ private:
                 sampler.new_sample();
             }
         }
-        return new_val(std::move(acc).to_counted());
+        return new_val(std::move(acc).to_datum());
     }
     virtual const char *name() const { return "make_array"; }
 };
@@ -89,7 +89,7 @@ public:
                 sampler.new_sample();
             }
         }
-        return new_val(std::move(acc).to_counted());
+        return new_val(std::move(acc).to_datum());
     }
 
     bool is_deterministic() const {

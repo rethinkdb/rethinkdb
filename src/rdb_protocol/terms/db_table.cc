@@ -50,8 +50,8 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t flags) const {
         std::string op = write_eval_impl(env, args, flags);
         datum_object_builder_t res;
-        UNUSED bool b = res.add(wire_string_t(op), make_counted<datum_t>(1.0));
-        return new_val(std::move(res).to_counted());
+        UNUSED bool b = res.add(wire_string_t(op), datum_t(1.0));
+        return new_val(std::move(res).to_datum());
     }
 };
 
@@ -210,13 +210,13 @@ private:
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
 
-        std::vector<counted_t<const datum_t> > arr;
+        std::vector<datum_t> arr;
         arr.reserve(dbs.size());
         for (auto it = dbs.begin(); it != dbs.end(); ++it) {
-            arr.push_back(make_counted<datum_t>(wire_string_t(it->str())));
+            arr.push_back(datum_t(wire_string_t(it->str())));
         }
 
-        return new_val(make_counted<const datum_t>(std::move(arr), env->env->limits));
+        return new_val(datum_t(std::move(arr), env->env->limits));
     }
     virtual const char *name() const { return "db_list"; }
 };
@@ -243,12 +243,12 @@ private:
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
 
-        std::vector<counted_t<const datum_t> > arr;
+        std::vector<datum_t> arr;
         arr.reserve(tables.size());
         for (auto it = tables.begin(); it != tables.end(); ++it) {
-            arr.push_back(make_counted<datum_t>(wire_string_t(it->str())));
+            arr.push_back(datum_t(wire_string_t(it->str())));
         }
-        return new_val(make_counted<const datum_t>(std::move(arr), env->env->limits));
+        return new_val(datum_t(std::move(arr), env->env->limits));
     }
     virtual const char *name() const { return "table_list"; }
 };
@@ -307,8 +307,8 @@ public:
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
-        counted_t<const datum_t> pkey = args->arg(env, 1)->as_datum();
-        counted_t<const datum_t> row = table->get_row(env->env, pkey);
+        datum_t pkey = args->arg(env, 1)->as_datum();
+        datum_t row = table->get_row(env->env, pkey);
         return new_val(row, pkey, table);
     }
     virtual const char *name() const { return "get"; }
@@ -326,7 +326,7 @@ private:
         if (index && index_str != table->get_pkey()) {
             std::vector<counted_t<datum_stream_t> > streams;
             for (size_t i = 1; i < args->num_args(); ++i) {
-                counted_t<const datum_t> key = args->arg(env, i)->as_datum();
+                datum_t key = args->arg(env, i)->as_datum();
                 counted_t<datum_stream_t> seq =
                     table->get_all(env->env, key, index_str, backtrace());
                 streams.push_back(seq);
@@ -337,14 +337,14 @@ private:
         } else {
             datum_array_builder_t arr(env->env->limits);
             for (size_t i = 1; i < args->num_args(); ++i) {
-                counted_t<const datum_t> key = args->arg(env, i)->as_datum();
-                counted_t<const datum_t> row = table->get_row(env->env, key);
+                datum_t key = args->arg(env, i)->as_datum();
+                datum_t row = table->get_row(env->env, key);
                 if (row->get_type() != datum_t::R_NULL) {
                     arr.add(row);
                 }
             }
             counted_t<datum_stream_t> stream
-                = make_counted<array_datum_stream_t>(std::move(arr).to_counted(),
+                = make_counted<array_datum_stream_t>(std::move(arr).to_datum(),
                                                      backtrace());
             return new_val(stream, table);
         }

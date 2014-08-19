@@ -42,7 +42,7 @@ public:
             if (!curtime.has()) {
                 curtime = pseudo::time_now();
             }
-            *t = r::expr(*curtime.get()).get();
+            *t = r::expr(curtime).get();
         }
 
         if (t->type() == Term::ASC || t->type() == Term::DESC) {
@@ -466,7 +466,7 @@ private:
     int depth;
     bool writes_legal;
     const Backtrace *const bt;
-    counted_t<const datum_t> curtime;
+    datum_t curtime;
 };
 
 void preprocess_term(Term *root) {

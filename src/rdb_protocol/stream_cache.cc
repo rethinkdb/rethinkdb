@@ -49,7 +49,7 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
         batch_type_t batch_type = entry->has_sent_batch
                                       ? batch_type_t::NORMAL
                                       : batch_type_t::NORMAL_FIRST;
-        std::vector<counted_t<const datum_t> > ds
+        std::vector<datum_t> ds
             = entry->stream->next_batch(
                 &env,
                 batchspec_t::user(batch_type, &env));

@@ -104,6 +104,7 @@ private:
         default: break;
         }
         switch (t2) {
+        case datum_t::UNINITIALIZED:
         case datum_t::R_NULL:
         case datum_t::R_BINARY:
         case datum_t::R_BOOL:
@@ -163,11 +164,11 @@ private:
 
         // DATUM -> *
         if (opaque_start_type.is_convertible(val_t::type_t::DATUM)) {
-            counted_t<const datum_t> d = val->as_datum();
+            datum_t d = val->as_datum();
             // DATUM -> DATUM
             if (supertype(end_type) == val_t::type_t::DATUM) {
                 if (start_type == R_BINARY_TYPE && end_type == R_STR_TYPE) {
-                    return new_val(make_counted<const datum_t>(d->as_binary()));
+                    return new_val(datum_t(d->as_binary()));
                 }
                 if (start_type == R_STR_TYPE && end_type == R_BINARY_TYPE) {
                     return new_val(datum_t::binary(d->as_str()));
@@ -175,24 +176,24 @@ private:
 
                 // DATUM -> STR
                 if (end_type == R_STR_TYPE) {
-                    return new_val(make_counted<const datum_t>(wire_string_t(d->print())));
+                    return new_val(datum_t(wire_string_t(d->print())));
                 }
 
                 // OBJECT -> ARRAY
                 if (start_type == R_OBJECT_TYPE && end_type == R_ARRAY_TYPE) {
-                    const std::map<wire_string_t, counted_t<const datum_t> > &obj
+                    const std::map<wire_string_t, datum_t> &obj
                         = d->as_object();
-                    std::vector<counted_t<const datum_t> > arr;
+                    std::vector<datum_t> arr;
                     arr.reserve(obj.size());
                     for (auto it = obj.begin(); it != obj.end(); ++it) {
-                        std::vector<counted_t<const datum_t> > pair;
+                        std::vector<datum_t> pair;
                         pair.reserve(2);
-                        pair.push_back(make_counted<datum_t>(it->first));
+                        pair.push_back(datum_t(it->first));
                         pair.push_back(it->second);
-                        arr.push_back(make_counted<datum_t>(std::move(pair),
+                        arr.push_back(datum_t(std::move(pair),
                                                             env->env->limits));
                     }
-                    return new_val(make_counted<const datum_t>(std::move(arr),
+                    return new_val(datum_t(std::move(arr),
                                                                env->env->limits));
                 }
 
@@ -202,7 +203,7 @@ private:
                     double dbl;
                     char end; // Used to ensure that there's no trailing garbage.
                     if (sscanf(s.to_std().c_str(), "%lf%c", &dbl, &end) == 1) {
-                        return new_val(make_counted<const datum_t>(dbl));
+                        return new_val(datum_t(dbl));
                     } else {
                         rfail(base_exc_t::GENERIC, "Could not coerce `%s` to NUMBER.",
                               s.to_std().c_str());
@@ -238,7 +239,7 @@ private:
                     profile::sampler_t sampler("Coercing to object.", env->env->trace);
                     while (auto pair = ds->next(env->env, batchspec)) {
                         const wire_string_t &key = pair->get(0)->as_str();
-                        counted_t<const datum_t> keyval = pair->get(1);
+                        datum_t keyval = pair->get(1);
                         bool b = obj.add(key, keyval);
                         rcheck(!b, base_exc_t::GENERIC,
                                strprintf("Duplicate key `%s` in coerced object.  "
@@ -249,7 +250,7 @@ private:
                         sampler.new_sample();
                     }
                 }
-                return new_val(std::move(obj).to_counted());
+                return new_val(std::move(obj).to_datum());
             }
         }
 
@@ -267,20 +268,20 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<grouped_data_t> groups
             = args->arg(env, 0)->as_promiscuous_grouped_data(env->env);
-        std::vector<counted_t<const datum_t> > v;
+        std::vector<datum_t> v;
         v.reserve(groups->size());
 
         iterate_ordered_by_version(
             env->env->reql_version,
             *groups,
-            [&v](const counted_t<const datum_t> &key, counted_t<const datum_t> &value) {
+            [&v](const datum_t &key, datum_t &value) {
                 r_sanity_check(key.has() && value.has());
-                std::map<wire_string_t, counted_t<const datum_t> > m =
+                std::map<wire_string_t, datum_t> m =
                     {{wire_string_t("group"), key},
                      {wire_string_t("reduction"), std::move(value)}};
-                v.push_back(make_counted<const datum_t>(std::move(m)));
+                v.push_back(datum_t(std::move(m)));
             });
-        return new_val(make_counted<const datum_t>(std::move(v), env->env->limits));
+        return new_val(datum_t(std::move(v), env->env->limits));
     }
     virtual const char *name() const { return "ungroup"; }
     virtual bool can_be_grouped() const { return false; }
@@ -306,14 +307,14 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> v = args->arg(env, 0);
         if (v->get_type().raw_type == val_t::type_t::DATUM) {
-            counted_t<const datum_t> d = v->as_datum();
-            return new_val(make_counted<const datum_t>(wire_string_t(d->get_type_name())));
+            datum_t d = v->as_datum();
+            return new_val(datum_t(wire_string_t(d->get_type_name())));
         } else if (v->get_type().raw_type == val_t::type_t::SEQUENCE
                    && v->as_seq(env->env)->is_grouped()) {
-            return new_val(make_counted<const datum_t>("GROUPED_STREAM"));
+            return new_val(datum_t("GROUPED_STREAM"));
         } else {
             return new_val(
-                make_counted<const datum_t>(wire_string_t(get_name(val_type(v)))));
+                datum_t(wire_string_t(get_name(val_type(v)))));
         }
     }
     virtual const char *name() const { return "typeof"; }
@@ -329,20 +330,20 @@ private:
         return new_val(val_info(env, args->arg(env, 0)));
     }
 
-    counted_t<const datum_t> val_info(scope_env_t *env, counted_t<val_t> v) const {
+    datum_t val_info(scope_env_t *env, counted_t<val_t> v) const {
         datum_object_builder_t info;
         int type = val_type(v);
-        bool b = info.add("type", make_counted<datum_t>(wire_string_t(get_name(type))));
+        bool b = info.add("type", datum_t(wire_string_t(get_name(type))));
 
         switch (type) {
         case DB_TYPE: {
-            b |= info.add("name", make_counted<datum_t>(wire_string_t(v->as_db()->name)));
+            b |= info.add("name", datum_t(wire_string_t(v->as_db()->name)));
         } break;
         case TABLE_TYPE: {
             counted_t<table_t> table = v->as_table();
-            b |= info.add("name", make_counted<datum_t>(wire_string_t(table->name)));
+            b |= info.add("name", datum_t(wire_string_t(table->name)));
             b |= info.add("primary_key",
-                          make_counted<datum_t>(wire_string_t(table->get_pkey())));
+                          datum_t(wire_string_t(table->get_pkey())));
             b |= info.add("indexes", table->sindex_list(env->env));
             b |= info.add("db", val_info(env, new_val(table->db)));
         } break;
@@ -360,21 +361,21 @@ private:
         } break;
         case SEQUENCE_TYPE: {
             if (v->as_seq(env->env)->is_grouped()) {
-                bool res = info.add("type", make_counted<datum_t>("GROUPED_STREAM"));
+                bool res = info.add("type", datum_t("GROUPED_STREAM"));
                 r_sanity_check(res);
             }
         } break;
 
         case FUNC_TYPE: {
             b |= info.add("source_code",
-                make_counted<datum_t>(wire_string_t(v->as_func()->print_source())));
+                datum_t(wire_string_t(v->as_func()->print_source())));
         } break;
 
         case GROUPED_DATA_TYPE: break; // No more info
 
         case R_BINARY_TYPE: // fallthru
             b |= info.add("count",
-                          make_counted<datum_t>(
+                          datum_t(
                               safe_to_double(v->as_datum()->as_binary().size())));
 
         case R_NULL_TYPE:   // fallthru
@@ -385,13 +386,13 @@ private:
         case R_OBJECT_TYPE: // fallthru
         case DATUM_TYPE: {
             b |= info.add("value",
-                          make_counted<datum_t>(wire_string_t(v->as_datum()->print())));
+                          datum_t(wire_string_t(v->as_datum()->print())));
         } break;
 
         default: r_sanity_check(false);
         }
         r_sanity_check(!b);
-        return std::move(info).to_counted();
+        return std::move(info).to_datum();
     }
 
     virtual const char *name() const { return "info"; }

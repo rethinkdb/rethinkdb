@@ -24,7 +24,7 @@ const js_id_t INVALID_ID = 0;
 
 // JS calls result either in a DATUM return value, a function id (which we can
 // use to call the function later), or an error string
-typedef boost::variant<counted_t<const ql::datum_t>, js_id_t, std::string> js_result_t;
+typedef boost::variant<ql::datum_t, js_id_t, std::string> js_result_t;
 
 class extproc_pool_t;
 class js_runner_t;
@@ -56,7 +56,7 @@ public:
 
     // Calls a previously compiled function.
     js_result_t call(const std::string &source,
-                     const std::vector<counted_t<const ql::datum_t> > &args,
+                     const std::vector<ql::datum_t> &args,
                      const req_config_t &config);
 
 private:

@@ -99,7 +99,7 @@ private:
             return f->call(env->env, flags);
         } else {
             counted_t<val_t> arg1 = args->arg(env, 1, flags);
-            std::vector<counted_t<const datum_t> > arg_datums(1);
+            std::vector<datum_t> arg_datums(1);
             arg_datums.reserve(args->num_args() - 1);
             for (size_t i = 2; i < args->num_args(); ++i) {
                 arg_datums.push_back(args->arg(env, i, flags)->as_datum());

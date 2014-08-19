@@ -25,7 +25,7 @@ double geodesic_distance(const lat_lon_point_t &p1,
 }
 
 double geodesic_distance(const S2Point &p,
-                         const counted_t<const ql::datum_t> &g,
+                         const ql::datum_t &g,
                          const ellipsoid_spec_t &e) {
     class distance_estimator_t : public s2_geo_visitor_t<double> {
     public:

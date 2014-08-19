@@ -60,7 +60,7 @@ private:
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> v0 = args->arg(env, 0);
-        counted_t<const datum_t> d;
+        datum_t d;
 
         if (v0->get_type().is_convertible(val_t::type_t::DATUM)) {
             d = v0->as_datum();
@@ -118,16 +118,16 @@ public:
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
-        counted_t<const datum_t> obj = v0->as_datum();
+        datum_t obj = v0->as_datum();
         r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
 
         const size_t n = args->num_args();
-        std::vector<counted_t<const datum_t> > paths;
+        std::vector<datum_t> paths;
         paths.reserve(n - 1);
         for (size_t i = 1; i < n; ++i) {
             paths.push_back(args->arg(env, i)->as_datum());
         }
-        pathspec_t pathspec(make_counted<const datum_t>(std::move(paths),
+        pathspec_t pathspec(datum_t(std::move(paths),
                                                         env->env->limits), this);
         return new_val(project(obj, pathspec, DONT_RECURSE, env->env->limits));
     }
@@ -140,16 +140,16 @@ public:
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
-        counted_t<const datum_t> obj = v0->as_datum();
+        datum_t obj = v0->as_datum();
         r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
 
-        std::vector<counted_t<const datum_t> > paths;
+        std::vector<datum_t> paths;
         const size_t n = args->num_args();
         paths.reserve(n - 1);
         for (size_t i = 1; i < n; ++i) {
             paths.push_back(args->arg(env, i)->as_datum());
         }
-        pathspec_t pathspec(make_counted<const datum_t>(std::move(paths),
+        pathspec_t pathspec(datum_t(std::move(paths),
                                                         env->env->limits), this);
         return new_val(unproject(obj, pathspec, DONT_RECURSE, env->env->limits));
     }
@@ -167,7 +167,7 @@ private:
                "and cannot nest inside other literals.");
         datum_object_builder_t res;
         bool clobber = res.add(datum_t::reql_type_string,
-                               make_counted<const datum_t>(pseudo::literal_string));
+                               datum_t(pseudo::literal_string));
         if (args->num_args() == 1) {
             clobber |= res.add(pseudo::value_key, args->arg(env, 0)->as_datum());
         }
@@ -175,7 +175,7 @@ private:
         r_sanity_check(!clobber);
         std::set<std::string> permissible_ptypes;
         permissible_ptypes.insert(pseudo::literal_string);
-        return new_val(std::move(res).to_counted(permissible_ptypes));
+        return new_val(std::move(res).to_datum(permissible_ptypes));
     }
     virtual const char *name() const { return "literal"; }
     virtual bool can_be_grouped() const { return false; }
@@ -187,7 +187,7 @@ public:
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1, LITERAL_OK)) { }
 private:
     virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
-        counted_t<const datum_t> d = v0->as_datum();
+        datum_t d = v0->as_datum();
         for (size_t i = 1; i < args->num_args(); ++i) {
             counted_t<val_t> v = args->arg(env, i, LITERAL_OK);
 
@@ -211,16 +211,16 @@ public:
         : obj_or_seq_op_term_t(env, term, FILTER, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
-        counted_t<const datum_t> obj = v0->as_datum();
+        datum_t obj = v0->as_datum();
         r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
 
-        std::vector<counted_t<const datum_t> > paths;
+        std::vector<datum_t> paths;
         const size_t n = args->num_args();
         paths.reserve(n - 1);
         for (size_t i = 1; i < n; ++i) {
             paths.push_back(args->arg(env, i)->as_datum());
         }
-        pathspec_t pathspec(make_counted<const datum_t>(std::move(paths),
+        pathspec_t pathspec(datum_t(std::move(paths),
                                                         env->env->limits), this);
         return new_val_bool(contains(obj, pathspec));
     }

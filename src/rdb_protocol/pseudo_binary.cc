@@ -150,7 +150,7 @@ scoped_cJSON_t encode_base64_ptype(const wire_string_t &data) {
 
 // Given a `r.binary` pseudotype with base64 encoding, decodes it into a raw data string
 wire_string_t decode_base64_ptype(
-        const std::map<wire_string_t, counted_t<const datum_t> > &ptype) {
+        const std::map<wire_string_t, datum_t> &ptype) {
     bool has_data = false;
     wire_string_t res;
     for (auto it = ptype.begin(); it != ptype.end(); ++it) {

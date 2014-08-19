@@ -17,6 +17,7 @@
 #include "btree/keys.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/counted.hpp"
+#include "containers/counted_stl.hpp"
 #include "containers/wire_string.hpp"
 #include "http/json.hpp"
 #include "rdb_protocol/configured_limits.hpp"
@@ -64,12 +65,14 @@ enum class use_json_t { NO = 0, YES = 1 };
 
 class grouped_data_t;
 
-// A `datum_t` is basically a JSON value, although we may extend it later.
-class datum_t : public slow_atomic_countable_t<datum_t> {
+// A `datum_t` is basically a JSON value, with some special handling for
+// ReQL pseudo-types.
+class datum_t {
 public:
     // This ordering is important, because we use it to sort objects of
     // disparate type.  It should be alphabetical.
     enum type_t {
+        UNINITIALIZED = 0,
         R_ARRAY = 1,
         R_BINARY = 2,
         R_BOOL = 3,
@@ -79,13 +82,17 @@ public:
         R_STR = 7
     };
 
-    static counted_t<const datum_t> empty_array();
-    static counted_t<const datum_t> empty_object();
+    static datum_t empty_array();
+    static datum_t empty_object();
     // Constructs a pointer to an R_NULL datum.
-    static counted_t<const datum_t> null();
-    static counted_t<const datum_t> boolean(bool value);
-    static counted_t<const datum_t> binary(wire_string_t &&value);
-    static counted_t<const datum_t> binary(const wire_string_t &value);
+    static datum_t null();
+    static datum_t boolean(bool value);
+    static datum_t binary(wire_string_t &&value);
+    static datum_t binary(const wire_string_t &value);
+
+    // Construct an uninitialized datum_t. This is to easy the transition from
+    // counted_t<const datum_t>
+    datum_t();
 
     // Strongly prefer datum_t::null().
     enum class construct_null_t { };
@@ -112,26 +119,36 @@ public:
     explicit datum_t(wire_string_t &&_str);
     explicit datum_t(const wire_string_t &_str);
     explicit datum_t(const char *cstr);
-    explicit datum_t(std::vector<counted_t<const datum_t> > &&_array,
+    explicit datum_t(std::vector<datum_t> &&_array,
                      const configured_limits_t &limits);
 
     enum class no_array_size_limit_check_t { };
     // Constructs a datum_t without checking the array size.  Used by
     // datum_array_builder_t to maintain identical non-checking behavior with insert
     // and splice operations -- see https://github.com/rethinkdb/rethinkdb/issues/2697
-    datum_t(std::vector<counted_t<const datum_t> > &&_array,
+    datum_t(std::vector<datum_t> &&_array,
             no_array_size_limit_check_t);
     // This calls maybe_sanitize_ptype(allowed_pts).
-    explicit datum_t(std::map<wire_string_t, counted_t<const datum_t> > &&object,
+    explicit datum_t(std::map<wire_string_t, datum_t> &&object,
                      const std::set<std::string> &allowed_pts = _allowed_pts);
 
     enum class no_sanitize_ptype_t { };
     // This .. does not call maybe_sanitize_ptype.
     // TODO(2014-08): Remove this constructor, it's a hack.
-    datum_t(std::map<wire_string_t, counted_t<const datum_t> > &&object,
+    datum_t(std::map<wire_string_t, datum_t> &&object,
             no_sanitize_ptype_t);
 
     ~datum_t();
+
+    // Interface to mimic counted_t, to ease transition from counted_t<const datum_t>
+    // TODO: Phase these out.
+    bool has() const;
+    void reset();
+    datum_t *operator->() { return this; }
+    const datum_t *operator->() const { return this; }
+    datum_t &operator*() { return *this; }
+    const datum_t &operator*() const { return *this; }
+    operator bool() const { return has(); }
 
     void write_to_protobuf(Datum *out, use_json_t use_json) const;
 
@@ -175,31 +192,31 @@ public:
     const wire_string_t &as_binary() const;
 
     // Use of `size` and `get` is preferred to `as_array` when possible.
-    const std::vector<counted_t<const datum_t> > &as_array() const;
+    const std::vector<datum_t> &as_array() const;
     size_t size() const;
     // Access an element of an array.
-    counted_t<const datum_t> get(size_t index, throw_bool_t throw_bool = THROW) const;
+    datum_t get(size_t index, throw_bool_t throw_bool = THROW) const;
     // Use of `get` is preferred to `as_object` when possible.
-    const std::map<wire_string_t, counted_t<const datum_t> > &as_object() const;
+    const std::map<wire_string_t, datum_t> &as_object() const;
 
     // Access an element of an object.
-    counted_t<const datum_t> get_field(const wire_string_t &key,
+    datum_t get_field(const wire_string_t &key,
                                        throw_bool_t throw_bool = THROW) const;
-    counted_t<const datum_t> get_field(const char *key,
+    datum_t get_field(const char *key,
                                        throw_bool_t throw_bool = THROW) const;
-    counted_t<const datum_t> merge(counted_t<const datum_t> rhs) const;
+    datum_t merge(datum_t rhs) const;
     // "Consumer defined" merge resolutions; these take limits unlike
     // the other merge because the merge resolution can and does (in
     // stats) merge two arrays to form one super array, which can
     // obviously breach limits.
     // This takes std::set<std::string> instead of std::set<const std::string> not
     // because it plans on modifying the strings, but because the latter doesn't work.
-    typedef counted_t<const datum_t> (*merge_resoluter_t)(const wire_string_t &key,
-                                                          counted_t<const datum_t> l,
-                                                          counted_t<const datum_t> r,
+    typedef datum_t (*merge_resoluter_t)(const wire_string_t &key,
+                                                          datum_t l,
+                                                          datum_t r,
                                                           const configured_limits_t &limits,
                                                           std::set<std::string> *conditions);
-    counted_t<const datum_t> merge(counted_t<const datum_t> rhs,
+    datum_t merge(datum_t rhs,
                                    merge_resoluter_t f,
                                    const configured_limits_t &limits,
                                    std::set<std::string> *conditions) const;
@@ -245,15 +262,15 @@ public:
     static bool key_is_truncated(const store_key_t &key);
 
     void rcheck_is_ptype(const std::string s = "") const;
-    void rcheck_valid_replace(counted_t<const datum_t> old_val,
-                              counted_t<const datum_t> orig_key,
+    void rcheck_valid_replace(datum_t old_val,
+                              datum_t orig_key,
                               const wire_string_t &pkey) const;
 
     static void check_str_validity(const wire_string_t &str);
 
 private:
     friend void pseudo::sanitize_time(datum_t *time);
-    MUST_USE bool add(const wire_string_t &key, counted_t<const datum_t> val,
+    MUST_USE bool add(const wire_string_t &key, datum_t val,
                       clobber_bool_t clobber_bool = NOCLOBBER); // add to an object
 
     friend void pseudo::time_to_str_key(const datum_t &d, std::string *str_out);
@@ -272,13 +289,18 @@ private:
     // Helper function for `merge()`:
     // Returns a version of this where all `literal` pseudotypes have been omitted.
     // Might return null, if this is a literal without a value.
-    counted_t<const datum_t> drop_literals(bool *encountered_literal_out) const;
+    datum_t drop_literals(bool *encountered_literal_out) const;
 
     // The data_wrapper makes sure we perform proper cleanup when exceptions
     // happen during construction
     class data_wrapper_t {
     public:
+        data_wrapper_t(const data_wrapper_t &copyee);
+        data_wrapper_t &operator=(const data_wrapper_t &copyee);
+        // TODO: Add move constructor and assignment to this and datum_t
+
         // Mirror the same constructors of datum_t
+        data_wrapper_t();
         explicit data_wrapper_t(construct_null_t);
         data_wrapper_t(construct_boolean_t, bool _bool);
         data_wrapper_t(construct_binary_t, wire_string_t &&data);
@@ -287,8 +309,8 @@ private:
         explicit data_wrapper_t(wire_string_t &&str);
         explicit data_wrapper_t(const wire_string_t &str);
         explicit data_wrapper_t(const char *cstr);
-        explicit data_wrapper_t(std::vector<counted_t<const datum_t> > &&array);
-        data_wrapper_t(std::map<wire_string_t, counted_t<const datum_t> > &&object);
+        explicit data_wrapper_t(std::vector<datum_t> &&array);
+        data_wrapper_t(std::map<wire_string_t, datum_t> &&object);
 
         ~data_wrapper_t();
 
@@ -296,26 +318,24 @@ private:
         union {
             bool r_bool;
             double r_num;
-            wire_string_t *r_str;
-            std::vector<counted_t<const datum_t> > *r_array;
-            std::map<wire_string_t, counted_t<const datum_t> > *r_object;
+            wire_string_t r_str;
+            counted_t<counted_std_vector_t<datum_t> > r_array;
+            counted_t<counted_std_map_t<wire_string_t, datum_t> > r_object;
         };
     private:
-        DISABLE_COPYING(data_wrapper_t);
+        void assign_copy(const data_wrapper_t &copyee);
+        void destruct();
     } data;
 
 public:
     static const wire_string_t reql_type_string;
-
-private:
-    DISABLE_COPYING(datum_t);
 };
 
-counted_t<const datum_t> to_datum(const Datum *d, const configured_limits_t &);
-counted_t<const datum_t> to_datum(cJSON *json, const configured_limits_t &);
+datum_t to_datum(const Datum *d, const configured_limits_t &);
+datum_t to_datum(cJSON *json, const configured_limits_t &);
 
 // This should only be used to send responses to the client.
-counted_t<const datum_t> to_datum_for_client_serialization(grouped_data_t &&gd,
+datum_t to_datum_for_client_serialization(grouped_data_t &&gd,
                                                            reql_version_t reql_version,
                                                            const configured_limits_t &);
 
@@ -331,16 +351,16 @@ class datum_object_builder_t {
 public:
     datum_object_builder_t() { }
 
-    datum_object_builder_t(const std::map<wire_string_t, counted_t<const datum_t> > &m)
+    datum_object_builder_t(const std::map<wire_string_t, datum_t> &m)
         : map(m) { }
 
     // Returns true if the insertion did _not_ happen because the key was already in
     // the object.
-    MUST_USE bool add(const wire_string_t &key, counted_t<const datum_t> val);
-    MUST_USE bool add(const char *key, counted_t<const datum_t> val);
+    MUST_USE bool add(const wire_string_t &key, datum_t val);
+    MUST_USE bool add(const char *key, datum_t val);
     // Inserts a new key or overwrites the existing key's value.
-    void overwrite(const wire_string_t &key, counted_t<const datum_t> val);
-    void overwrite(const char *key, counted_t<const datum_t> val);
+    void overwrite(const wire_string_t &key, datum_t val);
+    void overwrite(const char *key, datum_t val);
     void add_warning(const char *msg, const configured_limits_t &limits);
     void add_warnings(const std::set<std::string> &msgs, const configured_limits_t &limits);
     void add_error(const char *msg);
@@ -348,18 +368,18 @@ public:
     MUST_USE bool delete_field(const wire_string_t &key);
     MUST_USE bool delete_field(const char *key);
 
-    counted_t<const datum_t> at(const wire_string_t &key) const;
+    datum_t at(const wire_string_t &key) const;
 
     // Returns null if the key doesn't exist.
-    counted_t<const datum_t> try_get(const wire_string_t &key) const;
+    datum_t try_get(const wire_string_t &key) const;
 
-    MUST_USE counted_t<const datum_t> to_counted() RVALUE_THIS;
+    MUST_USE datum_t to_datum() RVALUE_THIS;
 
-    MUST_USE counted_t<const datum_t> to_counted(
+    MUST_USE datum_t to_datum(
             const std::set<std::string> &permissible_ptypes) RVALUE_THIS;
 
 private:
-    std::map<wire_string_t, counted_t<const datum_t> > map;
+    std::map<wire_string_t, datum_t> map;
     DISABLE_COPYING(datum_object_builder_t);
 };
 
@@ -368,7 +388,7 @@ private:
 class datum_array_builder_t {
 public:
     explicit datum_array_builder_t(const configured_limits_t &_limits) : limits(_limits) {}
-    datum_array_builder_t(std::vector<counted_t<const datum_t> > &&,
+    datum_array_builder_t(std::vector<datum_t> &&,
                           const configured_limits_t &);
 
     size_t size() const { return vector.size(); }
@@ -377,24 +397,24 @@ public:
 
     // Note that these methods produce behavior that is actually specific to the
     // definition of certain ReQL terms.
-    void add(counted_t<const datum_t> val);
-    void change(size_t i, counted_t<const datum_t> val);
+    void add(datum_t val);
+    void change(size_t i, datum_t val);
 
     // On v1_13, insert and splice don't enforce the array size limit.
     void insert(reql_version_t reql_version, size_t index,
-                counted_t<const datum_t> val);
+                datum_t val);
     void splice(reql_version_t reql_version, size_t index,
-                counted_t<const datum_t> values);
+                datum_t values);
 
     // On v1_13, erase_range doesn't allow start and end to equal array_size.
     void erase_range(reql_version_t reql_version, size_t start, size_t end);
 
     void erase(size_t index);
 
-    counted_t<const datum_t> to_counted() RVALUE_THIS;
+    datum_t to_datum() RVALUE_THIS;
 
 private:
-    std::vector<counted_t<const datum_t> > vector;
+    std::vector<datum_t> vector;
     configured_limits_t limits;
 
     DISABLE_COPYING(datum_array_builder_t);
@@ -402,9 +422,9 @@ private:
 
 // This function is used by e.g. foreach to merge statistics from multiple write
 // operations.
-counted_t<const datum_t> stats_merge(UNUSED const wire_string_t &key,
-                                     counted_t<const datum_t> l,
-                                     counted_t<const datum_t> r,
+datum_t stats_merge(UNUSED const wire_string_t &key,
+                                     datum_t l,
+                                     datum_t r,
                                      const configured_limits_t &limits,
                                      std::set<std::string> *conditions);
 

@@ -62,7 +62,7 @@ private:
 
     static void get_params(scope_env_t *env,
                            args_t *args,
-                           counted_t<const datum_t> *params_out);
+                           datum_t *params_out);
 
     void get_data(scope_env_t *env,
                   args_t *args,
@@ -96,12 +96,12 @@ private:
     static void verify_header_string(const std::string &str,
                                      const pb_rcheckable_t *header);
 
-    static std::string print_http_param(const counted_t<const datum_t> &datum,
+    static std::string print_http_param(const datum_t &datum,
                                         const char *val_name,
                                         const char *key_name,
                                         const pb_rcheckable_t *val);
 
-    static std::string get_auth_item(const counted_t<const datum_t> &datum,
+    static std::string get_auth_item(const datum_t &datum,
                                      const std::string &name,
                                      const pb_rcheckable_t *auth);
 
@@ -109,10 +109,10 @@ private:
     static const uint64_t MAX_TIMEOUT_MS = 2592000000ull;
 };
 
-void check_url_params(const counted_t<const datum_t> &params,
+void check_url_params(const datum_t &params,
                       pb_rcheckable_t *val) {
     if (params->get_type() == datum_t::R_OBJECT) {
-        const std::map<wire_string_t, counted_t<const datum_t> > &params_map =
+        const std::map<wire_string_t, datum_t> &params_map =
             params->as_object();
         for (auto it = params_map.begin(); it != params_map.end(); ++it) {
             if (it->second->get_type() != datum_t::R_NUM &&
@@ -151,15 +151,15 @@ public:
     bool is_cfeed() const { return false; }
 
 private:
-    std::vector<counted_t<const datum_t> >
+    std::vector<datum_t>
     next_raw_batch(env_t *env, UNUSED const batchspec_t &batchspec);
 
     // Helper functions used during `next_raw_batch`
     bool apply_depaginate(env_t *env, const http_result_t &res);
 
-    bool handle_depage_result(counted_t<const datum_t> depage);
-    bool apply_depage_url(counted_t<const datum_t> new_url);
-    void apply_depage_params(counted_t<const datum_t> new_params);
+    bool handle_depage_result(datum_t depage);
+    bool apply_depage_url(datum_t new_url);
+    void apply_depage_params(datum_t new_params);
 
     http_opts_t opts;
     object_buffer_t<http_runner_t> runner;
@@ -243,10 +243,10 @@ counted_t<val_t> http_term_t::eval_impl(scope_env_t *env, args_t *args,
     return new_val(res.body);
 }
 
-std::vector<counted_t<const datum_t> >
+std::vector<datum_t>
 http_datum_stream_t::next_raw_batch(env_t *env, UNUSED const batchspec_t &batchspec) {
     if (!more) {
-        return std::vector<counted_t<const datum_t> >();
+        return std::vector<datum_t>();
     }
 
     if (!runner.has()) {
@@ -270,7 +270,7 @@ http_datum_stream_t::next_raw_batch(env_t *env, UNUSED const batchspec_t &batchs
         return res.body->as_array();
     }
 
-    return std::vector<counted_t<const datum_t> >({ res.body });
+    return std::vector<datum_t>({ res.body });
 }
 
 // Returns true if another request should be made, false otherwise
@@ -283,17 +283,17 @@ bool http_datum_stream_t::apply_depaginate(env_t *env, const http_result_t &res)
     }
 
     // Provide an empty OBJECT datum instead of any non-existent arguments
-    counted_t<const datum_t> empty
-        = make_counted<const datum_t>(std::map<wire_string_t, counted_t<const datum_t> >());
-    std::map<wire_string_t, counted_t<const datum_t> > arg_obj
+    datum_t empty
+        = datum_t(std::map<wire_string_t, datum_t>());
+    std::map<wire_string_t, datum_t> arg_obj
         = { { wire_string_t("params"), opts.url_params.has() ? opts.url_params : empty },
             { wire_string_t("header"), res.header.has() ? res.header : empty },
             { wire_string_t("body"), res.body.has() ? res.body : empty } };
-    std::vector<counted_t<const datum_t> > args
-        = { make_counted<const datum_t>(std::move(arg_obj)) };
+    std::vector<datum_t> args
+        = { datum_t(std::move(arg_obj)) };
 
     try {
-        counted_t<const datum_t> depage = depaginate_fn->call(env, args)->as_datum();
+        datum_t depage = depaginate_fn->call(env, args)->as_datum();
         return handle_depage_result(depage);
     } catch (const ql::exc_t &ex) {
         // Tack on some debugging info, as this shit can be tough
@@ -308,7 +308,7 @@ bool http_datum_stream_t::apply_depaginate(env_t *env, const http_result_t &res)
     }
 }
 
-bool http_datum_stream_t::apply_depage_url(counted_t<const datum_t> new_url) {
+bool http_datum_stream_t::apply_depage_url(datum_t new_url) {
     // NULL url indicates no further depagination
     if (new_url->get_type() == datum_t::R_NULL) {
         return false;
@@ -322,19 +322,19 @@ bool http_datum_stream_t::apply_depage_url(counted_t<const datum_t> new_url) {
     return true;
 }
 
-void http_datum_stream_t::apply_depage_params(counted_t<const datum_t> new_params) {
+void http_datum_stream_t::apply_depage_params(datum_t new_params) {
     // Verify new params and merge with the old ones, new taking precedence
     check_url_params(new_params, this);
     opts.url_params->merge(new_params);
 }
 
-bool http_datum_stream_t::handle_depage_result(counted_t<const datum_t> depage) {
+bool http_datum_stream_t::handle_depage_result(datum_t depage) {
     if (depage->get_type() == datum_t::R_NULL ||
         depage->get_type() == datum_t::R_STR) {
         return apply_depage_url(depage);
     } else if (depage->get_type() == datum_t::R_OBJECT) {
-        counted_t<const datum_t> new_url = depage->get_field("url", NOTHROW);
-        counted_t<const datum_t> new_params = depage->get_field("params", NOTHROW);
+        datum_t new_url = depage->get_field("url", NOTHROW);
+        datum_t new_params = depage->get_field("params", NOTHROW);
         if (!new_url.has() && !new_params.has()) {
             rfail(base_exc_t::GENERIC,
                   "OBJECT returned by `page` must contain "
@@ -450,9 +450,9 @@ void http_term_t::get_header(scope_env_t *env,
                              std::vector<std::string> *header_out) {
     counted_t<val_t> header = args->optarg(env, "header");
     if (header.has()) {
-        counted_t<const datum_t> datum_header = header->as_datum();
+        datum_t datum_header = header->as_datum();
         if (datum_header->get_type() == datum_t::R_OBJECT) {
-            const std::map<wire_string_t, counted_t<const datum_t> > &header_map =
+            const std::map<wire_string_t, datum_t> &header_map =
                 datum_header->as_object();
             for (auto it = header_map.begin(); it != header_map.end(); ++it) {
                 std::string str;
@@ -469,7 +469,7 @@ void http_term_t::get_header(scope_env_t *env,
             }
         } else if (datum_header->get_type() == datum_t::R_ARRAY) {
             for (size_t i = 0; i < datum_header->size(); ++i) {
-                counted_t<const datum_t> line = datum_header->get(i);
+                datum_t line = datum_header->get(i);
                 if (line->get_type() != datum_t::R_STR) {
                     rfail_target(header.get(), base_exc_t::GENERIC,
                         "Expected `header[%zu]` to be a STRING, but found %s.",
@@ -515,10 +515,10 @@ void http_term_t::get_method(scope_env_t *env,
     }
 }
 
-std::string http_term_t::get_auth_item(const counted_t<const datum_t> &datum,
+std::string http_term_t::get_auth_item(const datum_t &datum,
                                        const std::string &name,
                                        const pb_rcheckable_t *auth) {
-    counted_t<const datum_t> item = datum->get_field(wire_string_t(name), NOTHROW);
+    datum_t item = datum->get_field(wire_string_t(name), NOTHROW);
     if (!item.has()) {
         rfail_target(auth, base_exc_t::GENERIC,
                      "`auth.%s` not found in the auth object.", name.c_str());
@@ -540,7 +540,7 @@ void http_term_t::get_auth(scope_env_t *env,
                            http_opts_t::http_auth_t *auth_out) {
     counted_t<val_t> auth = args->optarg(env, "auth");
     if (auth.has()) {
-        counted_t<const datum_t> datum_auth = auth->as_datum();
+        datum_t datum_auth = auth->as_datum();
         if (datum_auth->get_type() != datum_t::R_OBJECT) {
             rfail_target(auth.get(), base_exc_t::GENERIC,
                          "Expected `auth` to be an OBJECT, but found %s.",
@@ -550,7 +550,7 @@ void http_term_t::get_auth(scope_env_t *env,
         // Default to 'basic' if no type is specified
         std::string type;
         {
-            counted_t<const datum_t> type_datum = datum_auth->get_field("type", NOTHROW);
+            datum_t type_datum = datum_auth->get_field("type", NOTHROW);
 
             if (type_datum.has()) {
                 if (type_datum->get_type() != datum_t::R_STR) {
@@ -578,7 +578,7 @@ void http_term_t::get_auth(scope_env_t *env,
     }
 }
 
-std::string http_term_t::print_http_param(const counted_t<const datum_t> &datum,
+std::string http_term_t::print_http_param(const datum_t &datum,
                                           const char *val_name,
                                           const char *key_name,
                                           const pb_rcheckable_t *val) {
@@ -616,7 +616,7 @@ void http_term_t::get_data(
         http_method_t method) const {
     counted_t<val_t> data = args->optarg(env, "data");
     if (data.has()) {
-        counted_t<const datum_t> datum_data = data->as_datum();
+        datum_t datum_data = data->as_datum();
         if (method == http_method_t::PUT ||
             method == http_method_t::PATCH ||
             method == http_method_t::DELETE) {
@@ -634,7 +634,7 @@ void http_term_t::get_data(
                 // encoding they need when they pass a string
                 data_out->assign(datum_data->as_str().to_std());
             } else if (datum_data->get_type() == datum_t::R_OBJECT) {
-                const std::map<wire_string_t, counted_t<const datum_t> > &form_map =
+                const std::map<wire_string_t, datum_t> &form_map =
                     datum_data->as_object();
                 for (auto it = form_map.begin(); it != form_map.end(); ++it) {
                     std::string val_str = print_http_param(it->second,
@@ -663,7 +663,7 @@ void http_term_t::get_data(
 // Values are sanitized here, but converted in the extproc.
 void http_term_t::get_params(scope_env_t *env,
                              args_t *args,
-                             counted_t<const datum_t> *params_out) {
+                             datum_t *params_out) {
     counted_t<val_t> params = args->optarg(env, "params");
     if (params.has()) {
         *params_out = params->as_datum();

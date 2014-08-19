@@ -6,12 +6,12 @@
 namespace unittest {
 
 write_t mock_overwrite(std::string key, std::string value) {
-    std::map<wire_string_t, counted_t<const ql::datum_t> > m;
-    m[wire_string_t("id")] = make_counted<ql::datum_t>(wire_string_t(key));
-    m[wire_string_t("value")] = make_counted<ql::datum_t>(wire_string_t(value));
+    std::map<wire_string_t, ql::datum_t> m;
+    m[wire_string_t("id")] = ql::datum_t(wire_string_t(key));
+    m[wire_string_t("value")] = ql::datum_t(wire_string_t(value));
 
     point_write_t pw(store_key_t(key),
-                                     make_counted<ql::datum_t>(std::move(m)),
+                                     ql::datum_t(std::move(m)),
                                      true);
     return write_t(pw, DURABILITY_REQUIREMENT_SOFT, profile_bool_t::DONT_PROFILE,
                    ql::configured_limits_t());
@@ -233,7 +233,7 @@ bool mock_store_t::send_backfill(
         = metainfo_.mask(start_point.get_domain());
     if (send_backfill_cb->should_backfill(masked_metainfo)) {
         /* Make a copy so we can sleep and still have the correct semantics */
-        std::map<store_key_t, std::pair<repli_timestamp_t, counted_t<const ql::datum_t> > > snapshot = table_;
+        std::map<store_key_t, std::pair<repli_timestamp_t, ql::datum_t> > snapshot = table_;
 
         if (rng_.randint(2) == 0) {
             nap(rng_.randint(10), interruptor);

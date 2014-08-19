@@ -28,8 +28,8 @@ public:
     explicit counted_datum_less_t(reql_version_t reql_version)
         : reql_version_(reql_version) { }
 
-    bool operator()(const counted_t<const ql::datum_t> &a,
-                    const counted_t<const ql::datum_t> &b) const {
+    bool operator()(const ql::datum_t &a,
+                    const ql::datum_t &b) const {
         if (a.has()) {
             return b.has() && a->compare_lt(reql_version_, *b);
         } else {

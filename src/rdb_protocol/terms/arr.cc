@@ -17,8 +17,8 @@ protected:
     enum which_pend_t { PRE, AP };
 
     counted_t<val_t> pend(scope_env_t *env, args_t *args, which_pend_t which_pend) const {
-        counted_t<const datum_t> arr = args->arg(env, 0)->as_datum();
-        counted_t<const datum_t> new_el = args->arg(env, 1)->as_datum();
+        datum_t arr = args->arg(env, 0)->as_datum();
+        datum_t new_el = args->arg(env, 1)->as_datum();
         datum_array_builder_t out(env->env->limits);
         out.reserve(arr->size() + 1);
         if (which_pend == PRE) {
@@ -34,7 +34,7 @@ protected:
             }
             out.add(new_el);
         }
-        return new_val(std::move(out).to_counted());
+        return new_val(std::move(out).to_datum());
     }
 };
 
@@ -86,7 +86,7 @@ private:
         counted_t<val_t> v = args->arg(env, 0);
         int32_t n = args->arg(env, 1)->as_int<int32_t>();
         if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
-            counted_t<const datum_t> arr = v->as_datum();
+            datum_t arr = v->as_datum();
             size_t real_n = canonicalize(this, n, arr->size());
             return new_val(arr->get(real_n));
         } else {
@@ -108,12 +108,12 @@ private:
                 batchspec = batchspec.with_at_most(int64_t(n)+1);
             }
 
-            counted_t<const datum_t> last_d;
+            datum_t last_d;
             {
                 profile::sampler_t sampler("Find nth element.", env->env->trace);
                 for (int32_t i = 0; ; ++i) {
                     sampler.new_sample();
-                    counted_t<const datum_t> d = s->next(env->env, batchspec);
+                    datum_t d = s->next(env->env, batchspec);
                     if (!d.has()) {
                         rcheck(n == -1 && last_d.has(), base_exc_t::NON_EXISTENCE,
                                strprintf("Index out of bounds: %d", n));
@@ -161,7 +161,7 @@ private:
         return index_oob;
     }
 
-    counted_t<val_t> slice_array(counted_t<const datum_t> arr,
+    counted_t<val_t> slice_array(datum_t arr,
                                  const configured_limits_t &limits,
                                  bool left_open, int64_t fake_l,
                                  bool right_open, int64_t fake_r) const {
@@ -180,10 +180,10 @@ private:
             }
             out.add(arr->get(i));
         }
-        return new_val(std::move(out).to_counted());
+        return new_val(std::move(out).to_datum());
     }
 
-    counted_t<val_t> slice_binary(counted_t<const datum_t> binary,
+    counted_t<val_t> slice_binary(datum_t binary,
                                   bool left_open, int64_t fake_l,
                                   bool right_open, int64_t fake_r) const {
         const wire_string_t &data = binary->as_binary();
@@ -215,7 +215,7 @@ private:
         int64_t fake_r = args->num_args() == 3 ? args->arg(env, 2)->as_int<int64_t>() : -1;
 
         if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
-            counted_t<const datum_t> d = v->as_datum();
+            datum_t d = v->as_datum();
             if (d->get_type() == datum_t::R_ARRAY) {
                 return slice_array(d, env->env->limits, left_open, fake_l,
                                    right_open, fake_r);
@@ -292,12 +292,12 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<const datum_t> arr = args->arg(env, 0)->as_datum();
-        counted_t<const datum_t> new_el = args->arg(env, 1)->as_datum();
+        datum_t arr = args->arg(env, 0)->as_datum();
+        datum_t new_el = args->arg(env, 1)->as_datum();
         // We only use el_set for equality purposes, so the reql_version doesn't
         // really matter (with respect to datum ordering behavior).  But we play it
         // safe.
-        std::set<counted_t<const datum_t>, counted_datum_less_t>
+        std::set<datum_t, counted_datum_less_t>
             el_set(counted_datum_less_t(env->env->reql_version));
         datum_array_builder_t out(env->env->limits);
         for (size_t i = 0; i < arr->size(); ++i) {
@@ -309,7 +309,7 @@ private:
             out.add(new_el);
         }
 
-        return new_val(std::move(out).to_counted());
+        return new_val(std::move(out).to_datum());
     }
 
     virtual const char *name() const { return "set_insert"; }
@@ -321,11 +321,11 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<const datum_t> arr1 = args->arg(env, 0)->as_datum();
-        counted_t<const datum_t> arr2 = args->arg(env, 1)->as_datum();
+        datum_t arr1 = args->arg(env, 0)->as_datum();
+        datum_t arr2 = args->arg(env, 1)->as_datum();
         // The reql_version doesn't actually matter here -- we only use the datum
         // comparisons for equality purposes.
-        std::set<counted_t<const datum_t>, counted_datum_less_t> el_set(counted_datum_less_t(env->env->reql_version));
+        std::set<datum_t, counted_datum_less_t> el_set(counted_datum_less_t(env->env->reql_version));
         datum_array_builder_t out(env->env->limits);
         for (size_t i = 0; i < arr1->size(); ++i) {
             if (el_set.insert(arr1->get(i)).second) {
@@ -338,7 +338,7 @@ private:
             }
         }
 
-        return new_val(std::move(out).to_counted());
+        return new_val(std::move(out).to_datum());
     }
 
     virtual const char *name() const { return "set_union"; }
@@ -350,11 +350,11 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<const datum_t> arr1 = args->arg(env, 0)->as_datum();
-        counted_t<const datum_t> arr2 = args->arg(env, 1)->as_datum();
+        datum_t arr1 = args->arg(env, 0)->as_datum();
+        datum_t arr2 = args->arg(env, 1)->as_datum();
         // The reql_version here doesn't really matter.  We only use el_set
         // comparison for equality purposes.
-        std::set<counted_t<const datum_t>, counted_datum_less_t>
+        std::set<datum_t, counted_datum_less_t>
             el_set(counted_datum_less_t(env->env->reql_version));
         datum_array_builder_t out(env->env->limits);
         for (size_t i = 0; i < arr1->size(); ++i) {
@@ -367,7 +367,7 @@ private:
             }
         }
 
-        return new_val(std::move(out).to_counted());
+        return new_val(std::move(out).to_datum());
     }
 
     virtual const char *name() const { return "set_intersection"; }
@@ -379,11 +379,11 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<const datum_t> arr1 = args->arg(env, 0)->as_datum();
-        counted_t<const datum_t> arr2 = args->arg(env, 1)->as_datum();
+        datum_t arr1 = args->arg(env, 0)->as_datum();
+        datum_t arr2 = args->arg(env, 1)->as_datum();
         // The reql_version here doesn't really matter.  We only use el_set
         // comparison for equality purposes.
-        std::set<counted_t<const datum_t>, counted_datum_less_t>
+        std::set<datum_t, counted_datum_less_t>
             el_set(counted_datum_less_t(env->env->reql_version));
         datum_array_builder_t out(env->env->limits);
         for (size_t i = 0; i < arr2->size(); ++i) {
@@ -396,7 +396,7 @@ private:
             }
         }
 
-        return new_val(std::move(out).to_counted());
+        return new_val(std::move(out).to_datum());
     }
 
     virtual const char *name() const { return "set_difference"; }
@@ -431,7 +431,7 @@ public:
         }
 
         modify(env, args, index, &arr);
-        return new_val(std::move(arr).to_counted());
+        return new_val(std::move(arr).to_datum());
     }
 private:
     index_method_t index_method_;
@@ -444,7 +444,7 @@ public:
 private:
     void modify(scope_env_t *env, args_t *args, size_t index,
                 datum_array_builder_t *array) const {
-        counted_t<const datum_t> new_el = args->arg(env, 2)->as_datum();
+        datum_t new_el = args->arg(env, 2)->as_datum();
         array->insert(env->env->reql_version, index, new_el);
     }
     const char *name() const { return "insert_at"; }
@@ -458,7 +458,7 @@ public:
 private:
     void modify(scope_env_t *env, args_t *args, size_t index,
                 datum_array_builder_t *array) const {
-        counted_t<const datum_t> new_els = args->arg(env, 2)->as_datum();
+        datum_t new_els = args->arg(env, 2)->as_datum();
         array->splice(env->env->reql_version, index, new_els);
     }
     const char *name() const { return "splice_at"; }
@@ -489,7 +489,7 @@ public:
 private:
     void modify(scope_env_t *env, args_t *args, size_t index,
                 datum_array_builder_t *array) const {
-        counted_t<const datum_t> new_el = args->arg(env, 2)->as_datum();
+        datum_t new_el = args->arg(env, 2)->as_datum();
         array->change(index, new_el);
     }
     const char *name() const { return "change_at"; }
@@ -519,7 +519,7 @@ public:
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<datum_stream_t> seq = args->arg(env, 0)->as_seq(env->env);
-        std::vector<counted_t<const datum_t> > required_els;
+        std::vector<datum_t> required_els;
         std::vector<counted_t<const func_t> > required_funcs;
         for (size_t i = 1; i < args->num_args(); ++i) {
             counted_t<val_t> v = args->arg(env, i);
@@ -535,7 +535,7 @@ private:
         {
             profile::sampler_t sampler("Evaluating elements in contains.",
                                        env->env->trace);
-            while (counted_t<const datum_t> el = seq->next(env->env, batchspec)) {
+            while (datum_t el = seq->next(env->env, batchspec)) {
                 for (auto it = required_els.begin(); it != required_els.end(); ++it) {
                     if (**it == *el) {
                         std::swap(*it, required_els.back());

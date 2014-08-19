@@ -62,7 +62,7 @@ public:
             std::set<store_key_t> *_distinct_emitted_in_out);
     virtual ~geo_intersecting_cb_t() { }
 
-    void init_query(const counted_t<const ql::datum_t> &_query_geometry);
+    void init_query(const ql::datum_t &_query_geometry);
 
     void on_candidate(
             const btree_key_t *key,
@@ -73,13 +73,13 @@ public:
 
 protected:
     virtual bool post_filter(
-            const counted_t<const ql::datum_t> &sindex_val,
-            const counted_t<const ql::datum_t> &val)
+            const ql::datum_t &sindex_val,
+            const ql::datum_t &val)
             THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t) = 0;
 
     virtual void emit_result(
-            const counted_t<const ql::datum_t> &sindex_val,
-            const counted_t<const ql::datum_t> &val)
+            const ql::datum_t &sindex_val,
+            const ql::datum_t &val)
             THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t) = 0;
 
     virtual void emit_error(
@@ -89,7 +89,7 @@ protected:
 private:
     btree_slice_t *slice;
     geo_sindex_data_t sindex;
-    counted_t<const ql::datum_t> query_geometry;
+    ql::datum_t query_geometry;
 
     ql::env_t *env;
 
@@ -113,19 +113,19 @@ public:
             btree_slice_t *_slice,
             geo_sindex_data_t &&_sindex,
             ql::env_t *_env,
-            const counted_t<const ql::datum_t> &_query_geometry);
+            const ql::datum_t &_query_geometry);
 
     void finish(intersecting_geo_read_response_t *resp_out);
 
 protected:
     bool post_filter(
-            const counted_t<const ql::datum_t> &sindex_val,
-            const counted_t<const ql::datum_t> &val)
+            const ql::datum_t &sindex_val,
+            const ql::datum_t &val)
             THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t);
 
     void emit_result(
-            const counted_t<const ql::datum_t> &sindex_val,
-            const counted_t<const ql::datum_t> &val)
+            const ql::datum_t &sindex_val,
+            const ql::datum_t &val)
             THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t);
 
     void emit_error(
@@ -182,13 +182,13 @@ public:
 
 protected:
     bool post_filter(
-            const counted_t<const ql::datum_t> &sindex_val,
-            const counted_t<const ql::datum_t> &val)
+            const ql::datum_t &sindex_val,
+            const ql::datum_t &val)
             THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t);
 
     void emit_result(
-            const counted_t<const ql::datum_t> &sindex_val,
-            const counted_t<const ql::datum_t> &val)
+            const ql::datum_t &sindex_val,
+            const ql::datum_t &val)
             THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t);
 
     void emit_error(
@@ -199,7 +199,7 @@ private:
     void init_query_geometry();
 
     // Accumulate results for the current batch until finish() is called
-    std::vector<std::pair<double, counted_t<const ql::datum_t> > > result_acc;
+    std::vector<std::pair<double, ql::datum_t> > result_acc;
     boost::optional<ql::exc_t> error;
 
     nearest_traversal_state_t *state;

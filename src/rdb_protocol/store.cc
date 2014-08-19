@@ -503,8 +503,8 @@ class func_replacer_t : public btree_batched_replacer_t {
 public:
     func_replacer_t(ql::env_t *_env, const ql::wire_func_t &wf, return_changes_t _return_changes)
         : env(_env), f(wf.compile_wire_func()), return_changes(_return_changes) { }
-    counted_t<const ql::datum_t> replace(
-        const counted_t<const ql::datum_t> &d, size_t) const {
+    ql::datum_t replace(
+        const ql::datum_t &d, size_t) const {
         return f->call(env, d, ql::LITERAL_OK)->as_datum();
     }
     return_changes_t should_return_changes() const { return return_changes; }
@@ -519,10 +519,10 @@ public:
     explicit datum_replacer_t(const batched_insert_t &bi)
         : datums(&bi.inserts), conflict_behavior(bi.conflict_behavior),
           pkey(bi.pkey), return_changes(bi.return_changes) { }
-    counted_t<const ql::datum_t> replace(const counted_t<const ql::datum_t> &d,
+    ql::datum_t replace(const ql::datum_t &d,
                                          size_t index) const {
         guarantee(index < datums->size());
-        counted_t<const ql::datum_t> newd = (*datums)[index];
+        ql::datum_t newd = (*datums)[index];
         if (d->get_type() == ql::datum_t::R_NULL) {
             return newd;
         } else if (conflict_behavior == conflict_behavior_t::REPLACE) {
@@ -539,7 +539,7 @@ public:
     }
     return_changes_t should_return_changes() const { return return_changes; }
 private:
-    const std::vector<counted_t<const ql::datum_t> > *const datums;
+    const std::vector<ql::datum_t> *const datums;
     const conflict_behavior_t conflict_behavior;
     const std::string pkey;
     const return_changes_t return_changes;

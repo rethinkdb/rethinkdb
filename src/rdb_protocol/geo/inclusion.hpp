@@ -14,7 +14,7 @@ class datum_t;
 
 /* A variant that works on a GeoJSON object */
 bool geo_does_include(const S2Polygon &polygon,
-                      const counted_t<const ql::datum_t> &g);
+                      const ql::datum_t &g);
 
 /* Variants for S2 geometry */
 bool geo_does_include(const S2Polygon &polygon,
