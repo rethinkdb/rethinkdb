@@ -20,9 +20,9 @@ enum poly_type_t {
     SKIP_MAP = 2
 };
 
-class blah_t {
+class obj_or_seq_op_impl_t {
 public:
-    blah_t(const term_t *self, poly_type_t _poly_type, protob_t<const Term> term)
+    obj_or_seq_op_impl_t(const term_t *self, poly_type_t _poly_type, protob_t<const Term> term)
         : poly_type(_poly_type), func(make_counted_term()) {
         auto varnum = pb::dummy_var_t::OBJORSEQ_VARNUM;
 
@@ -103,7 +103,7 @@ private:
     poly_type_t poly_type;
     protob_t<Term> func;
 
-    DISABLE_COPYING(blah_t);
+    DISABLE_COPYING(obj_or_seq_op_impl_t);
 };
 
 // This term is used for functions that are polymorphic on objects and
@@ -114,7 +114,7 @@ public:
     obj_or_seq_op_term_t(compile_env_t *env, protob_t<const Term> term,
                          poly_type_t _poly_type, argspec_t argspec)
         : grouped_seq_op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_"})),
-          blah(this, _poly_type, term) {
+          impl(this, _poly_type, term) {
     }
 
 private:
@@ -124,11 +124,11 @@ private:
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> v0 = args->arg(env, 0);
-        return blah.eval_impl_dereferenced(this, env, args, v0,
+        return impl.eval_impl_dereferenced(this, env, args, v0,
                                            [&]{ return this->obj_eval(env, args, v0); });
     }
 
-    blah_t blah;
+    obj_or_seq_op_impl_t impl;
 };
 
 class pluck_term_t : public obj_or_seq_op_term_t {
@@ -267,7 +267,7 @@ class bracket_term_t : public grouped_seq_op_term_t {
 public:
     bracket_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : grouped_seq_op_term_t(env, term, argspec_t(2), optargspec_t({"_NO_RECURSE_"})),
-          blah(this, SKIP_MAP, term) {}
+          impl(this, SKIP_MAP, term) {}
 private:
     counted_t<val_t> obj_eval_dereferenced(counted_t<val_t> v0, counted_t<val_t> v1) const {
         return new_val(v0->as_datum()->get(v1->as_str().to_std()));
@@ -282,7 +282,7 @@ private:
         case datum_t::R_NUM:
             return nth_term_impl(this, env, v0, v1);
         case datum_t::R_STR:
-            return blah.eval_impl_dereferenced(this, env, args, v0,
+            return impl.eval_impl_dereferenced(this, env, args, v0,
                                                [&]{ return this->obj_eval_dereferenced(v0, v1); });
         case datum_t::R_ARRAY:
         case datum_t::R_BINARY:
@@ -300,7 +300,7 @@ private:
     // I reimplement it here for clarity.
     virtual bool is_grouped_seq_op() const { return true; }
 
-    blah_t blah;
+    obj_or_seq_op_impl_t impl;
 };
 
 counted_t<term_t> make_bracket_term(compile_env_t *env, const protob_t<const Term> &term) {
