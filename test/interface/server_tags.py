@@ -38,11 +38,17 @@ with driver.Metacluster() as metacluster:
     reql_conn2 = r.connect("localhost", process2.driver_port)
 
     def check_tags(server_name, expect_tags):
-        tags = [r.db("rethinkdb").table("server_config") \
-                 .get(server_name)["tags"] \
-                 .run(c) for c in [reql_conn1, reql_conn2]]
-        assert set(tags[0]) == set(expect_tags)
-        assert set(tags[1]) == set(expect_tags)
+        timeout = 10
+        for i in xrange(timeout):
+            tags = [r.db("rethinkdb").table("server_config") \
+                     .get(server_name)["tags"] \
+                     .run(c) for c in [reql_conn1, reql_conn2]]
+            if set(tags[0]) == set(tags[1]) == set(expect_tags):
+                break
+            else:
+                time.sleep(1)
+        else:
+            raise RuntimeError("Tags aren't as expected even after %d seconds" % timeout)
 
     print "Checking initial tags..."
     check_tags("a", ["default", "foo"])
