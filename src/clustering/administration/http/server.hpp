@@ -25,7 +25,6 @@ class last_seen_http_app_t;
 class log_http_app_t;
 class progress_app_t;
 class stat_manager_t;
-class distribution_app_t;
 class cyanide_http_app_t;
 class combining_http_app_t;
 
@@ -43,7 +42,6 @@ public:
         boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
             _auth_semilattice_metadata,
         clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata,
-        real_reql_cluster_interface_t *_cluster_interface,
         admin_tracker_t *_admin_tracker,
         http_app_t *reql_app,
         uuid_u _us,
@@ -62,7 +60,6 @@ private:
     scoped_ptr_t<last_seen_http_app_t> last_seen_app;
     scoped_ptr_t<log_http_app_t> log_app;
     scoped_ptr_t<progress_app_t> progress_app;
-    scoped_ptr_t<distribution_app_t> distribution_app;
     scoped_ptr_t<combining_http_app_t> combining_app;
 #ifndef NDEBUG
     scoped_ptr_t<cyanide_http_app_t> cyanide_app;

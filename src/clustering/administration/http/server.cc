@@ -3,7 +3,6 @@
 
 #include "clustering/administration/http/cyanide.hpp"
 #include "clustering/administration/http/directory_app.hpp"
-#include "clustering/administration/http/distribution_app.hpp"
 #include "clustering/administration/http/issues_app.hpp"
 #include "clustering/administration/http/last_seen_app.hpp"
 #include "clustering/administration/http/log_app.hpp"
@@ -41,7 +40,6 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
             _auth_semilattice_metadata,
         clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata,
-        real_reql_cluster_interface_t *_cluster_interface,
         admin_tracker_t *_admin_tracker,
         http_app_t *reql_app,
         uuid_u _us,
@@ -238,10 +236,6 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         _directory_metadata->subview(&get_log_mailbox),
         _directory_metadata->subview(&get_machine_id)));
     progress_app.init(new progress_app_t(_directory_metadata, mbox_manager));
-    distribution_app.init(new distribution_app_t(
-        metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
-            _cluster_semilattice_metadata),
-        _cluster_interface));
 
 #ifndef NDEBUG
     cyanide_app.init(new cyanide_http_app_t);
@@ -254,7 +248,6 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     ajax_routes["last_seen"] = last_seen_app.get();
     ajax_routes["log"] = log_app.get();
     ajax_routes["progress"] = progress_app.get();
-    ajax_routes["distribution"] = distribution_app.get();
     ajax_routes["semilattice"] = cluster_semilattice_app.get();
     ajax_routes["auth"] = auth_semilattice_app.get();
     ajax_routes["reql"] = reql_app;
