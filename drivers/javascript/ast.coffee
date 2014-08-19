@@ -73,7 +73,8 @@ class TermBase
                     callback = options
                     options = {}
                 else
-                    throw new err.RqlDriverError "Second argument to `run` cannot be a function is a third argument is provided."
+                    options new err.RqlDriverError("Second argument to `run` cannot be a function if a third argument is provided.")
+                    return
             # else we suppose that we have run(connection[, options][, callback])
         else if connection?.constructor is Object
             if @showRunWarning is true
@@ -88,11 +89,18 @@ class TermBase
         options = {} if not options?
 
         # Check if the arguments are valid types
-        for own key of options
-            unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'binaryFormat', 'batchConf', 'arrayLimit']
-                throw new err.RqlDriverError "Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>}."
-        if net.isConnection(connection) is false
-            throw new err.RqlDriverError "First argument to `run` must be an open connection."
+        try
+            for own key of options
+                unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'binaryFormat', 'batchConf', 'arrayLimit']
+                    throw new err.RqlDriverError "Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>}."
+            if net.isConnection(connection) is false
+                throw new err.RqlDriverError "First argument to `run` must be an open connection."
+        catch e
+            if typeof callback is 'function'
+                return callback(e)
+            else
+                return new Promise (resolve, reject) =>
+                    reject(e)
 
         if options.noreply is true or typeof callback is 'function'
             try
@@ -203,7 +211,9 @@ class RDBVal extends TermBase
     default: (args...) -> new Default {}, @, args...
 
     or: (args...) -> new Any {}, @, args...
+    any: (args...) -> new Any {}, @, args...
     and: (args...) -> new All {}, @, args...
+    all: (args...) -> new All {}, @, args...
 
     forEach: (args...) -> new ForEach {}, @, args.map(funcWrap)...
 
@@ -252,6 +262,13 @@ class RDBVal extends TermBase
         )
 
         new OrderBy opts, @, attrs...
+
+    # Geo operations
+    toGeojson: (args...) -> new ToGeojson {}, @, args...
+    distance: aropt (g, opts) -> new Distance opts, @, g
+    intersects: (args...) -> new Intersects {}, @, args...
+    includes: (args...) -> new Includes {}, @, args...
+    fill: (args...) -> new Fill {}, @, args...
 
     # Database operations
 
@@ -322,6 +339,11 @@ class RDBVal extends TermBase
     minutes: (args...) -> new Minutes {}, @, args...
     seconds: (args...) -> new Seconds {}, @, args...
 
+    uuid: (args...) -> new UUID {}, @, args...
+
+    getIntersecting: aropt (g, opts) -> new GetIntersecting opts, @, g
+    getNearest: aropt (g, opts) -> new GetNearest opts, @, g
+
 class DatumTerm extends RDBVal
     args: []
     optargs: {}
@@ -360,6 +382,10 @@ translateBackOptargs = (optargs) ->
             when 'page_limit' then 'pageLimit'
             when 'director_tag' then 'directorTag'
             when 'dry_run' then 'dryRun'
+            when 'num_vertices' then 'numVertices'
+            when 'geo_system' then 'geoSystem'
+            when 'max_results' then 'maxResults'
+            when 'max_dist' then 'maxDist'
             else key
 
         result[key] = val
@@ -382,6 +408,10 @@ translateOptargs = (optargs) ->
             when 'pageLimit' then 'page_limit'
             when 'directorTag' then 'director_tag'
             when 'dryRun' then 'dry_run'
+            when 'numVertices' then 'num_vertices'
+            when 'geoSystem' then 'geo_system'
+            when 'maxResults' then 'max_results'
+            when 'maxDist' then 'max_dist'
             else key
 
         if key is undefined or val is undefined then continue
@@ -490,26 +520,32 @@ class Json extends RDBOp
     tt: protoTermType.JSON
     st: 'json'
 
-class Binary extends RDBVal
-    args: []
-    optargs: {}
+class Binary extends RDBOp
+    tt: protoTermType.BINARY
+    st: 'binary'
 
     constructor: (data) ->
-        self = super()
-
-        if data instanceof Buffer
-            self.data = data
+        if data instanceof TermBase
+            self = super({}, data)
+        else if data instanceof Buffer
+            self = super()
             self.base64_data = data.toString("base64")
         else
-            throw new TypeError("Parameter to `r.binary` must be a Buffer object.")
+            throw new TypeError("Parameter to `r.binary` must be a Buffer object or RQL query.")
 
         return self
 
     compose: ->
-        return "r.binary('" + @data.toString() + "')"
+        if @args.length == 0
+            'r.binary(<data>)'
+        else
+            super
 
     build: ->
-        { '$reql_type$': 'BINARY', 'data': @base64_data }
+        if @args.length == 0
+            { '$reql_type$': 'BINARY', 'data': @base64_data }
+        else
+            super
 
 class Args extends RDBOp
     tt: protoTermType.ARGS
@@ -1049,6 +1085,59 @@ class Time extends RDBOp
     tt: protoTermType.TIME
     st: 'time'
 
+class Geojson extends RDBOp
+    tt: protoTermType.GEOJSON
+    mt: 'geojson'
+
+class ToGeojson extends RDBOp
+    tt: protoTermType.TO_GEOJSON
+    mt: 'toGeojson'
+
+class Point extends RDBOp
+    tt: protoTermType.POINT
+    mt: 'point'
+
+class Line extends RDBOp
+    tt: protoTermType.LINE
+    mt: 'line'
+
+class Polygon extends RDBOp
+    tt: protoTermType.POLYGON
+    mt: 'polygon'
+
+class Distance extends RDBOp
+    tt: protoTermType.DISTANCE
+    mt: 'distance'
+
+class Intersects extends RDBOp
+    tt: protoTermType.INTERSECTS
+    mt: 'intersects'
+
+class Includes extends RDBOp
+    tt: protoTermType.INCLUDES
+    mt: 'includes'
+
+class Circle extends RDBOp
+    tt: protoTermType.CIRCLE
+    mt: 'circle'
+
+class GetIntersecting extends RDBOp
+    tt: protoTermType.GET_INTERSECTING
+    mt: 'getIntersecting'
+
+class GetNearest extends RDBOp
+    tt: protoTermType.GET_NEAREST
+    mt: 'getNearest'
+
+class Fill extends RDBOp
+    tt: protoTermType.FILL
+    mt: 'fill'
+
+class UUID extends RDBOp
+    tt: protoTermType.UUID
+    st: 'uuid'
+
+
 # All top level exported functions
 
 # Wrap a native JS value in an ReQL datum
@@ -1135,7 +1224,9 @@ rethinkdb.le = (args...) -> new Le {}, args...
 rethinkdb.gt = (args...) -> new Gt {}, args...
 rethinkdb.ge = (args...) -> new Ge {}, args...
 rethinkdb.or = (args...) -> new Any {}, args...
+rethinkdb.any = (args...) -> new Any {}, args...
 rethinkdb.and = (args...) -> new All {}, args...
+rethinkdb.all = (args...) -> new All {}, args...
 
 rethinkdb.not = (args...) -> new Not {}, args...
 
@@ -1179,6 +1270,16 @@ rethinkdb.december = new (class extends RDBOp then tt: protoTermType.DECEMBER)()
 rethinkdb.object = (args...) -> new Object_ {}, args...
 
 rethinkdb.args = (args...) -> new Args {}, args...
+
+rethinkdb.geojson = (args...) -> new Geojson {}, args...
+rethinkdb.point = (args...) -> new Point {}, args...
+rethinkdb.line = (args...) -> new Line {}, args...
+rethinkdb.polygon = (args...) -> new Polygon {}, args...
+rethinkdb.intersects = (args...) -> new Intersects {}, args...
+rethinkdb.distance = aropt (g1, g2, opts) -> new Distance opts, g1, g2
+rethinkdb.circle = aropt (cen, rad, opts) -> new Circle opts, cen, rad
+
+rethinkdb.uuid = (args...) -> new UUID {}, args...
 
 # Export all names defined on rethinkdb
 module.exports = rethinkdb

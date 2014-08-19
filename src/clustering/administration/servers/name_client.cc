@@ -136,7 +136,7 @@ bool server_name_client_t::rename_server(const name_string_t &old_name,
         return false;
     }
 
-    return true; 
+    return true;
 }
 
 bool server_name_client_t::retag_server(

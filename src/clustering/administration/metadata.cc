@@ -12,6 +12,12 @@
 #include "region/region_map_json_adapter.hpp"
 #include "stl_utils.hpp"
 
+/* RSI(reql_admin): The ReQL admin API changes involve big changes to the semilattice
+metadata. Because many of the underlying concepts have changed, it's not clear if/how to
+migrate serialized metadata from pre-ReQL-admin versions into the new format. GitHub
+issue #2869 is tracking this discussion. As a temporary measure so that development can
+proceed, deserialization of old versions has been disabled. */
+
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(database_semilattice_metadata_t, name);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(database_semilattice_metadata_t, name);
 RDB_IMPL_EQUALITY_COMPARABLE_1(database_semilattice_metadata_t, name);
@@ -21,17 +27,17 @@ RDB_IMPL_SEMILATTICE_JOINABLE_1(databases_semilattice_metadata_t, databases);
 RDB_IMPL_EQUALITY_COMPARABLE_1(databases_semilattice_metadata_t, databases);
 
 RDB_IMPL_SERIALIZABLE_2(machine_semilattice_metadata_t, name, tags);
-template void serialize<cluster_version_t::v1_14_is_latest>(
+template void serialize<cluster_version_t::v1_15_is_latest>(
             write_message_t *, const machine_semilattice_metadata_t &);
-template archive_result_t deserialize<cluster_version_t::v1_14_is_latest>(
+template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
             read_stream_t *, machine_semilattice_metadata_t *);
 RDB_IMPL_SEMILATTICE_JOINABLE_2(machine_semilattice_metadata_t, name, tags);
 RDB_IMPL_EQUALITY_COMPARABLE_2(machine_semilattice_metadata_t, name, tags);
 
 RDB_IMPL_SERIALIZABLE_1(machines_semilattice_metadata_t, machines);
-template void serialize<cluster_version_t::v1_14_is_latest>(
+template void serialize<cluster_version_t::v1_15_is_latest>(
             write_message_t *, const machines_semilattice_metadata_t &);
-template archive_result_t deserialize<cluster_version_t::v1_14_is_latest>(
+template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
             read_stream_t *, machines_semilattice_metadata_t *);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(machines_semilattice_metadata_t, machines);
 RDB_IMPL_EQUALITY_COMPARABLE_1(machines_semilattice_metadata_t, machines);
@@ -40,32 +46,32 @@ RDB_IMPL_ME_SERIALIZABLE_2_SINCE_v1_13(ack_expectation_t, expectation_, hard_dur
 
 RDB_IMPL_SERIALIZABLE_3(table_config_t::shard_t,
                         split_point, replica_names, director_names);
-template void serialize<cluster_version_t::v1_14_is_latest>(
+template void serialize<cluster_version_t::v1_15_is_latest>(
             write_message_t *, const table_config_t::shard_t &);
-template archive_result_t deserialize<cluster_version_t::v1_14_is_latest>(
+template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
             read_stream_t *, table_config_t::shard_t *);
 RDB_IMPL_EQUALITY_COMPARABLE_3(table_config_t::shard_t,
                                split_point, replica_names, director_names);
 
 RDB_IMPL_SERIALIZABLE_1(table_config_t, shards);
-template void serialize<cluster_version_t::v1_14_is_latest>(
+template void serialize<cluster_version_t::v1_15_is_latest>(
             write_message_t *, const table_config_t &);
-template archive_result_t deserialize<cluster_version_t::v1_14_is_latest>(
+template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
             read_stream_t *, table_config_t *);
 RDB_IMPL_EQUALITY_COMPARABLE_1(table_config_t, shards);
 
 RDB_IMPL_SERIALIZABLE_2(table_replication_info_t, config, chosen_directors);
-template void serialize<cluster_version_t::v1_14_is_latest>(
+template void serialize<cluster_version_t::v1_15_is_latest>(
             write_message_t *, const table_replication_info_t &);
-template archive_result_t deserialize<cluster_version_t::v1_14_is_latest>(
+template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
             read_stream_t *, table_replication_info_t *);
 RDB_IMPL_EQUALITY_COMPARABLE_2(table_replication_info_t, config, chosen_directors);
 
 RDB_IMPL_SERIALIZABLE_4(namespace_semilattice_metadata_t,
                         name, database, primary_key, replication_info);
-template void serialize<cluster_version_t::v1_14_is_latest>(
+template void serialize<cluster_version_t::v1_15_is_latest>(
             write_message_t *, const namespace_semilattice_metadata_t &);
-template archive_result_t deserialize<cluster_version_t::v1_14_is_latest>(
+template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
             read_stream_t *, namespace_semilattice_metadata_t *);
 
 RDB_IMPL_SEMILATTICE_JOINABLE_4(
@@ -76,9 +82,9 @@ RDB_IMPL_EQUALITY_COMPARABLE_4(
         name, database, primary_key, replication_info);
 
 RDB_IMPL_SERIALIZABLE_1(namespaces_semilattice_metadata_t, namespaces);
-template void serialize<cluster_version_t::v1_14_is_latest>(
+template void serialize<cluster_version_t::v1_15_is_latest>(
             write_message_t *, const namespaces_semilattice_metadata_t &);
-template archive_result_t deserialize<cluster_version_t::v1_14_is_latest>(
+template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
             read_stream_t *, namespaces_semilattice_metadata_t *);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(namespaces_semilattice_metadata_t, namespaces);
 RDB_IMPL_EQUALITY_COMPARABLE_1(namespaces_semilattice_metadata_t, namespaces);
@@ -89,9 +95,9 @@ RDB_IMPL_EQUALITY_COMPARABLE_1(namespaces_directory_metadata_t, reactor_bcards);
 RDB_IMPL_SERIALIZABLE_3(
         cluster_semilattice_metadata_t,
         rdb_namespaces, machines, databases);
-template void serialize<cluster_version_t::v1_14_is_latest>(
+template void serialize<cluster_version_t::v1_15_is_latest>(
             write_message_t *, const cluster_semilattice_metadata_t &);
-template archive_result_t deserialize<cluster_version_t::v1_14_is_latest>(
+template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
             read_stream_t *, cluster_semilattice_metadata_t *);
 RDB_IMPL_SEMILATTICE_JOINABLE_3(cluster_semilattice_metadata_t,
                                 rdb_namespaces, machines, databases);
@@ -102,10 +108,11 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(auth_semilattice_metadata_t, auth_key);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(auth_semilattice_metadata_t, auth_key);
 RDB_IMPL_EQUALITY_COMPARABLE_1(auth_semilattice_metadata_t, auth_key);
 
-RDB_IMPL_SERIALIZABLE_10(cluster_directory_metadata_t,
+RDB_IMPL_SERIALIZABLE_11(cluster_directory_metadata_t,
                          rdb_namespaces, machine_id, peer_id, cache_size, ips,
-                         get_stats_mailbox_address, log_mailbox,
-                         server_name_business_card, local_issues, peer_type);
+                         get_stats_mailbox_address, get_outdated_indexes_mailbox,
+                         log_mailbox, server_name_business_card, local_issues,
+                         peer_type);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(cluster_directory_metadata_t);
 
 bool ack_expectation_t::operator==(ack_expectation_t other) const {

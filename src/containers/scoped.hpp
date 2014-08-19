@@ -127,8 +127,8 @@ public:
         init(n);
     }
 
-    scoped_array_t(T *ptr, size_t size) : ptr_(NULL), size_(0) {
-        init(ptr, size);
+    scoped_array_t(T *ptr, size_t _size) : ptr_(NULL), size_(0) {
+        init(ptr, _size);
     }
 
     // (These noexcepts don't actually do anything w.r.t. STL containers, since the
@@ -157,12 +157,12 @@ public:
     }
 
     // The opposite of release.
-    void init(T *ptr, size_t size) {
+    void init(T *ptr, size_t _size) {
         rassert(ptr != NULL);
         rassert(ptr_ == NULL);
 
         ptr_ = ptr;
-        size_ = size;
+        size_ = _size;
     }
 
     void reset() {

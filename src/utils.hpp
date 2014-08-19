@@ -195,8 +195,8 @@ public:
 private:
     friend serializer_filepath_t unittest::manual_serializer_filepath(const std::string& permanent_path,
                                                                       const std::string& temporary_path);
-    serializer_filepath_t(const std::string& permanent_path, const std::string& temporary_path)
-        : permanent_path_(permanent_path), temporary_path_(temporary_path) { }
+    serializer_filepath_t(const std::string& _permanent_path, const std::string& _temporary_path)
+        : permanent_path_(_permanent_path), temporary_path_(_temporary_path) { }
 
     const std::string permanent_path_;
     const std::string temporary_path_;

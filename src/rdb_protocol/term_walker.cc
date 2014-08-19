@@ -120,6 +120,7 @@ private:
         case Term::DATUM:
         case Term::MAKE_ARRAY:
         case Term::MAKE_OBJ:
+        case Term::BINARY:
         case Term::VAR:
         case Term::JAVASCRIPT:
         case Term::HTTP:
@@ -250,6 +251,19 @@ private:
         case Term::TABLE_LIST:
         case Term::INDEX_LIST:
         case Term::INDEX_STATUS:
+        case Term::GEOJSON:
+        case Term::TO_GEOJSON:
+        case Term::POINT:
+        case Term::LINE:
+        case Term::POLYGON:
+        case Term::DISTANCE:
+        case Term::INTERSECTS:
+        case Term::INCLUDES:
+        case Term::CIRCLE:
+        case Term::GET_INTERSECTING:
+        case Term::FILL:
+        case Term::GET_NEAREST:
+        case Term::UUID:
             return false;
         default: unreachable();
         }
@@ -293,6 +307,7 @@ private:
         case Term::DATUM:
         case Term::MAKE_ARRAY:
         case Term::MAKE_OBJ:
+        case Term::BINARY:
         case Term::VAR:
         case Term::JAVASCRIPT:
         case Term::HTTP:
@@ -421,6 +436,19 @@ private:
         case Term::OCTOBER:
         case Term::NOVEMBER:
         case Term::DECEMBER:
+        case Term::GEOJSON:
+        case Term::TO_GEOJSON:
+        case Term::POINT:
+        case Term::LINE:
+        case Term::POLYGON:
+        case Term::DISTANCE:
+        case Term::INTERSECTS:
+        case Term::INCLUDES:
+        case Term::CIRCLE:
+        case Term::GET_INTERSECTING:
+        case Term::FILL:
+        case Term::GET_NEAREST:
+        case Term::UUID:
             return false;
         default: unreachable();
         }

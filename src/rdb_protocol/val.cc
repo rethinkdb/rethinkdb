@@ -33,7 +33,7 @@ counted_t<const datum_t> table_t::batched_replace(
     env_t *env,
     const std::vector<counted_t<const datum_t> > &vals,
     const std::vector<counted_t<const datum_t> > &keys,
-    counted_t<func_t> replacement_generator,
+    counted_t<const func_t> replacement_generator,
     bool nondeterministic_replacements_ok,
     durability_requirement_t durability_requirement,
     return_changes_t return_changes) {
@@ -62,8 +62,13 @@ counted_t<const datum_t> table_t::batched_replace(
         counted_t<const datum_t> insert_stats = batched_insert(
             env, std::move(replacement_values), conflict_behavior_t::REPLACE,
             durability_requirement, return_changes);
-        return std::move(stats).to_counted()->merge(insert_stats, stats_merge,
-                                                   env->limits);
+        std::set<std::string> conditions;
+        counted_t<const datum_t> merged
+            = std::move(stats).to_counted()->merge(insert_stats, stats_merge,
+                                                   env->limits(), &conditions);
+        datum_object_builder_t result(std::move(merged)->as_object());
+        result.add_warnings(conditions, env->limits());
+        return std::move(result).to_counted();
     } else {
         return table->write_batched_replace(
             env, keys, replacement_generator, return_changes,
@@ -102,15 +107,22 @@ counted_t<const datum_t> table_t::batched_insert(
         table->write_batched_insert(
             env, std::move(valid_inserts), conflict_behavior, return_changes,
             durability_requirement);
-    return std::move(stats).to_counted()->merge(insert_stats, stats_merge, env->limits);
+    std::set<std::string> conditions;
+    counted_t<const datum_t> merged
+        = std::move(stats).to_counted()->merge(insert_stats, stats_merge,
+                                               env->limits(), &conditions);
+    datum_object_builder_t result(std::move(merged)->as_object());
+    result.add_warnings(conditions, env->limits());
+    return std::move(result).to_counted();
 }
 
 MUST_USE bool table_t::sindex_create(env_t *env,
                                      const std::string &id,
-                                     counted_t<func_t> index_func,
-                                     sindex_multi_bool_t multi) {
+                                     counted_t<const func_t> index_func,
+                                     sindex_multi_bool_t multi,
+                                     sindex_geo_bool_t geo) {
     index_func->assert_deterministic("Index functions must be deterministic.");
-    return table->sindex_create(env, id, index_func, multi);
+    return table->sindex_create(env, id, index_func, multi, geo);
 }
 
 MUST_USE bool table_t::sindex_drop(env_t *env, const std::string &id) {
@@ -132,7 +144,7 @@ counted_t<const datum_t> table_t::sindex_list(env_t *env) {
          it != sindexes.end(); ++it) {
         array.push_back(make_counted<datum_t>(std::string(*it)));
     }
-    return make_counted<datum_t>(std::move(array), env->limits);
+    return make_counted<datum_t>(std::move(array), env->limits());
 }
 
 counted_t<const datum_t> table_t::sindex_status(env_t *env,
@@ -153,7 +165,7 @@ counted_t<const datum_t> table_t::sindex_status(env_t *env,
            strprintf("Index `%s` was not found on table `%s`.",
                      sindexes.begin()->c_str(),
                      display_name().c_str()));
-    return make_counted<const datum_t>(std::move(array), env->limits);
+    return make_counted<const datum_t>(std::move(array), env->limits());
 }
 
 MUST_USE bool table_t::sync(env_t *env, const rcheckable_t *parent) {
@@ -240,6 +252,60 @@ counted_t<datum_stream_t> table_t::as_datum_stream(env_t *env,
         bounds,
         sorting,
         use_outdated);
+}
+
+counted_t<datum_stream_t> table_t::get_intersecting(
+        env_t *env,
+        const counted_t<const datum_t> &query_geometry,
+        const std::string &new_sindex_id,
+        const pb_rcheckable_t *parent) {
+    rcheck_target(parent, base_exc_t::GENERIC, !sindex_id,
+                  "Cannot chain get_intersecting with other indexed operations.");
+    rcheck_target(parent, base_exc_t::GENERIC, new_sindex_id != get_pkey(),
+                  "get_intersecting cannot use the primary index.");
+    sindex_id = new_sindex_id;
+    r_sanity_check(sorting == sorting_t::UNORDERED);
+    r_sanity_check(bounds.is_universe());
+
+    return table->read_intersecting(
+        env,
+        *sindex_id,
+        parent->backtrace(),
+        display_name(),
+        use_outdated,
+        query_geometry);
+}
+
+counted_t<datum_stream_t> table_t::get_nearest(
+        env_t *env,
+        lat_lon_point_t center,
+        double max_dist,
+        uint64_t max_results,
+        const ellipsoid_spec_t &geo_system,
+        dist_unit_t dist_unit,
+        const std::string &new_sindex_id,
+        const pb_rcheckable_t *parent,
+        const configured_limits_t &limits) {
+    rcheck_target(parent, base_exc_t::GENERIC, !sindex_id,
+                  "Cannot chain get_nearest with other indexed operations.");
+    rcheck_target(parent, base_exc_t::GENERIC, new_sindex_id != get_pkey(),
+                  "get_nearest cannot use the primary index.");
+    sindex_id = new_sindex_id;
+    r_sanity_check(sorting == sorting_t::UNORDERED);
+    r_sanity_check(bounds.is_universe());
+
+    return table->read_nearest(
+        env,
+        *sindex_id,
+        parent->backtrace(),
+        display_name(),
+        use_outdated,
+        center,
+        max_dist,
+        max_results,
+        geo_system,
+        dist_unit,
+        limits);
 }
 
 val_t::type_t::type_t(val_t::type_t::raw_type_t _raw_type) : raw_type(_raw_type) { }
@@ -362,7 +428,7 @@ val_t::val_t(counted_t<const db_t> _db, protob_t<const Backtrace> backtrace)
       u(_db) {
     guarantee(db().has());
 }
-val_t::val_t(counted_t<func_t> _func, protob_t<const Backtrace> backtrace)
+val_t::val_t(counted_t<const func_t> _func, protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::FUNC),
       u(_func) {
@@ -434,7 +500,7 @@ std::pair<counted_t<table_t>, counted_t<const datum_t> > val_t::as_single_select
     return std::make_pair(table, datum());
 }
 
-counted_t<func_t> val_t::as_func(function_shortcut_t shortcut) {
+counted_t<const func_t> val_t::as_func(function_shortcut_t shortcut) {
     if (get_type().is_convertible(type_t::FUNC)) {
         r_sanity_check(func().has());
         return func();
@@ -551,7 +617,7 @@ std::string val_t::print() const {
                          table->name.c_str());
     } else {
         // TODO: Do something smarter here?
-        return strprintf("OPAQUE VALUE %s", get_type().name());
+        return strprintf("VALUE %s", get_type().name());
     }
 }
 

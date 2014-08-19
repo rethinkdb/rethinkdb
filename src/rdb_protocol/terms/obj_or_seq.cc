@@ -82,7 +82,7 @@ private:
             compile_env_t compile_env(env->scope.compute_visibility());
             counted_t<func_term_t> func_term
                 = make_counted<func_term_t>(&compile_env, func);
-            counted_t<func_t> f = func_term->eval_to_func(env->scope);
+            counted_t<const func_t> f = func_term->eval_to_func(env->scope);
 
             counted_t<datum_stream_t> stream = v0->as_seq(env->env);
             switch (poly_type) {
@@ -128,8 +128,8 @@ private:
             paths.push_back(args->arg(env, i)->as_datum());
         }
         pathspec_t pathspec(make_counted<const datum_t>(std::move(paths),
-                                                        env->env->limits), this);
-        return new_val(project(obj, pathspec, DONT_RECURSE, env->env->limits));
+                                                        env->env->limits()), this);
+        return new_val(project(obj, pathspec, DONT_RECURSE, env->env->limits()));
     }
     virtual const char *name() const { return "pluck"; }
 };
@@ -150,8 +150,8 @@ private:
             paths.push_back(args->arg(env, i)->as_datum());
         }
         pathspec_t pathspec(make_counted<const datum_t>(std::move(paths),
-                                                        env->env->limits), this);
-        return new_val(unproject(obj, pathspec, DONT_RECURSE, env->env->limits));
+                                                        env->env->limits()), this);
+        return new_val(unproject(obj, pathspec, DONT_RECURSE, env->env->limits()));
     }
     virtual const char *name() const { return "without"; }
 };
@@ -221,7 +221,7 @@ private:
             paths.push_back(args->arg(env, i)->as_datum());
         }
         pathspec_t pathspec(make_counted<const datum_t>(std::move(paths),
-                                                        env->env->limits), this);
+                                                        env->env->limits()), this);
         return new_val_bool(contains(obj, pathspec));
     }
     virtual const char *name() const { return "has_fields"; }

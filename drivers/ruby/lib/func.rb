@@ -39,7 +39,11 @@ module RethinkDB
       :index_rename => -1,
       :random => -1,
       :http => 1,
-      :distinct => -1
+      :distinct => -1,
+      :distance => -1,
+      :circle => -1,
+      :get_intersecting => -1,
+      :get_nearest => -1
     }
     @@method_aliases = {
       :lt => :<,
@@ -61,6 +65,11 @@ module RethinkDB
     }
 
     termtypes = Term::TermType.constants.map{ |c| c.to_sym }
+
+    # r.binary has different behavior when operating on client-side strings vs
+    # terms on the server
+    termtypes.delete(:BINARY)
+
     termtypes.each {|termtype|
 
       method_body = proc { |*a, &b|

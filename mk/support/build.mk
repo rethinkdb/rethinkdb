@@ -103,7 +103,8 @@ endif
 # Fetched packages need to be linked with flags that can only be
 # guessed after the package has been installed.
 ifneq (undefined,$$(origin $2_LIB_NAME))
-  $$($2_LIB_NAME)_LIBS = $$(shell $(PKG_SCRIPT) link-flags $2 $$($2_LIB_NAME))
+  $$(foreach lib,$$($2_LIB_NAME),\
+    $$(eval $$(lib)_LIBS = $$$$(shell $(PKG_SCRIPT) link-flags $2 $$($2_LIB_NAME))))
 endif
 
 endef

@@ -22,6 +22,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::DATUM:              return make_datum_term(t, limits);
     case Term::MAKE_ARRAY:         return make_make_array_term(env, t);
     case Term::MAKE_OBJ:           return make_make_obj_term(env, t);
+    case Term::BINARY:             return make_binary_term(env, t);
     case Term::VAR:                return make_var_term(env, t);
     case Term::JAVASCRIPT:         return make_javascript_term(env, t);
     case Term::HTTP:               return make_http_term(env, t);
@@ -171,6 +172,19 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::OCTOBER:            return make_constant_term(env, t, 10, "october");
     case Term::NOVEMBER:           return make_constant_term(env, t, 11, "november");
     case Term::DECEMBER:           return make_constant_term(env, t, 12, "december");
+    case Term::GEOJSON:            return make_geojson_term(env, t);
+    case Term::TO_GEOJSON:         return make_to_geojson_term(env, t);
+    case Term::POINT:              return make_point_term(env, t);
+    case Term::LINE:               return make_line_term(env, t);
+    case Term::POLYGON:            return make_polygon_term(env, t);
+    case Term::DISTANCE:           return make_distance_term(env, t);
+    case Term::INTERSECTS:         return make_intersects_term(env, t);
+    case Term::INCLUDES:           return make_includes_term(env, t);
+    case Term::CIRCLE:             return make_circle_term(env, t);
+    case Term::GET_INTERSECTING:   return make_get_intersecting_term(env, t);
+    case Term::FILL:               return make_fill_term(env, t);
+    case Term::GET_NEAREST:        return make_get_nearest_term(env, t);
+    case Term::UUID:               return make_uuid_term(env, t);
     default: unreachable();
     }
     unreachable();
@@ -241,8 +255,8 @@ void run(protob_t<Query> q,
                 res->set_type(Response::SUCCESS_ATOM);
                 counted_t<const datum_t> d
                     = to_datum_for_client_serialization(std::move(*gd),
-                                                        env.reql_version,
-                                                        env.limits);
+                                                        env.reql_version(),
+                                                        env.limits());
                 d->write_to_protobuf(res->add_response(), use_json);
                 if (env.trace != nullptr) {
                     env.trace->as_datum()->write_to_protobuf(
@@ -260,7 +274,7 @@ void run(protob_t<Query> q,
                 } else {
                     stream_cache->insert(token,
                                          use_json,
-                                         env.global_optargs.get_all_optargs(),
+                                         env.get_all_optargs(),
                                          profile,
                                          seq);
                     bool b = stream_cache->serve(token, res, interruptor);
@@ -419,7 +433,7 @@ counted_t<val_t> term_t::new_val(counted_t<const db_t> db) const {
 counted_t<val_t> term_t::new_val(counted_t<table_t> t) const {
     return make_counted<val_t>(t, backtrace());
 }
-counted_t<val_t> term_t::new_val(counted_t<func_t> f) const {
+counted_t<val_t> term_t::new_val(counted_t<const func_t> f) const {
     return make_counted<val_t>(f, backtrace());
 }
 counted_t<val_t> term_t::new_val_bool(bool b) const {

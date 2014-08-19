@@ -13,13 +13,12 @@
 
 #include "containers/archive/stl_types.hpp"
 #include "containers/scoped.hpp"
-#include "containers/archive/vector_stream.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/pseudo_binary.hpp"
+#include "rdb_protocol/pseudo_geometry.hpp"
 #include "rdb_protocol/pseudo_literal.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
-#include "rdb_protocol/serialize_datum.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "stl_utils.hpp"
 
@@ -32,75 +31,55 @@ const std::set<std::string> datum_t::_allowed_pts = std::set<std::string>();
 const char *const datum_t::reql_type_string = "$reql_type$";
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_null_t) :
-    r_str(NULL), internal_type(internal_type_t::R_NULL) { }
+    type(R_NULL), r_str(NULL) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_boolean_t, bool _bool) :
-    r_bool(_bool), internal_type(internal_type_t::R_BOOL) { }
+    type(R_BOOL), r_bool(_bool) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_binary_t,
                                         scoped_ptr_t<wire_string_t> _data) :
-    r_str(_data.release()), internal_type(internal_type_t::R_BINARY) { }
+    type(R_BINARY), r_str(_data.release()) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(double num) :
-    r_num(num), internal_type(internal_type_t::R_NUM) { }
+    type(R_NUM), r_num(num) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(std::string &&str) :
-    r_str(wire_string_t::create_and_init(str.size(), str.data()).release()),
-    internal_type(internal_type_t::R_STR) { }
+    type(R_STR),
+    r_str(wire_string_t::create_and_init(str.size(), str.data()).release()) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(scoped_ptr_t<wire_string_t> str) :
-    r_str(str.release()), internal_type(internal_type_t::R_STR) { }
+    type(R_STR), r_str(str.release()) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(const char *cstr) :
-    r_str(wire_string_t::create_and_init(::strlen(cstr), cstr).release()),
-    internal_type(internal_type_t::R_STR) { }
+    type(R_STR),
+    r_str(wire_string_t::create_and_init(::strlen(cstr), cstr).release()) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(std::vector<counted_t<const datum_t> > &&array) :
-    r_array(new std::vector<counted_t<const datum_t> >(std::move(array))),
-    internal_type(internal_type_t::R_ARRAY) { }
+    type(R_ARRAY),
+    r_array(new std::vector<counted_t<const datum_t> >(std::move(array))) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(std::map<std::string,
                                                  counted_t<const datum_t> > &&object) :
-    r_object(new std::map<std::string, counted_t<const datum_t> >(std::move(object))),
-    internal_type(internal_type_t::R_OBJECT) { }
-
-datum_t::data_wrapper_t::data_wrapper_t(std::vector<char> &&_lazy_serialized) :
-    lazy_serialized(new std::vector<char>(std::move(_lazy_serialized))),
-    internal_type(internal_type_t::LAZY_SERIALIZED) { }
+    type(R_OBJECT),
+    r_object(new std::map<std::string, counted_t<const datum_t> >(std::move(object))) { }
 
 datum_t::data_wrapper_t::~data_wrapper_t() {
-    switch (internal_type) {
-    case internal_type_t::R_NULL: // fallthru
-    case internal_type_t::R_BOOL: // fallthru
-    case internal_type_t::R_NUM: break;
-    case internal_type_t::R_BINARY: // fallthru
-    case internal_type_t::R_STR: {
+    switch (type) {
+    case R_NULL: // fallthru
+    case R_BOOL: // fallthru
+    case R_NUM: break;
+    case R_BINARY: // fallthru
+    case R_STR: {
         delete r_str;
     } break;
-    case internal_type_t::R_ARRAY: {
+    case R_ARRAY: {
         delete r_array;
     } break;
-    case internal_type_t::R_OBJECT: {
+    case R_OBJECT: {
         delete r_object;
-    } break;
-    case internal_type_t::LAZY_SERIALIZED: {
-        delete lazy_serialized;
     } break;
     default: unreachable();
     }
-}
-
-datum_t::type_t datum_t::data_wrapper_t::get_type() const {
-    guarantee(internal_type != internal_type_t::LAZY_SERIALIZED);
-    return static_cast<type_t>(internal_type);
-}
-
-datum_t::internal_type_t datum_t::data_wrapper_t::get_internal_type() const {
-    return internal_type;
-}
-
-void datum_t::data_wrapper_t::set_type(datum_t::type_t t) {
-    internal_type = static_cast<internal_type_t>(t);
 }
 
 datum_t::datum_t(datum_t::construct_null_t dummy) : data(dummy) { }
@@ -145,9 +124,6 @@ datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object,
 datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object,
                  no_sanitize_ptype_t)
     : data(std::move(_object)) { }
-
-datum_t::datum_t(std::vector<char> &&_lazy_serialized)
-    : data(std::move(_lazy_serialized)) { }
 
 counted_t<const datum_t>
 to_datum_for_client_serialization(grouped_data_t &&gd,
@@ -235,7 +211,8 @@ counted_t<const datum_t> to_datum(cJSON *json, const configured_limits_t &limits
             rcheck_datum(res.second, base_exc_t::GENERIC,
                          strprintf("Duplicate key `%s` in JSON.", item->string));
         }
-        return make_counted<datum_t>(std::move(map));
+        const std::set<std::string> pts = { pseudo::literal_string };
+        return make_counted<datum_t>(std::move(map), pts);
     } break;
     default: unreachable();
     }
@@ -260,14 +237,7 @@ void datum_t::check_str_validity(const std::string &str) {
     ::ql::check_str_validity(str.data(), str.size());
 }
 
-datum_t::type_t datum_t::get_type() const {
-    ensure_deserialize_lazy();
-    return data.get_type();
-}
-
-bool datum_t::is_lazy() const {
-    return data.get_internal_type() == internal_type_t::LAZY_SERIALIZED;
-}
+datum_t::type_t datum_t::get_type() const { return data.type; }
 
 bool datum_t::is_ptype() const {
     return get_type() == R_BINARY ||
@@ -279,7 +249,6 @@ bool datum_t::is_ptype(const std::string &reql_type) const {
 }
 
 std::string datum_t::get_reql_type() const {
-    ensure_deserialize_lazy();
     r_sanity_check(is_ptype());
     if (get_type() == R_BINARY) {
         return "BINARY";
@@ -335,9 +304,13 @@ void datum_t::pt_to_str_key(std::string *str_out) const {
     r_sanity_check(is_ptype());
     if (get_reql_type() == pseudo::time_string) {
         pseudo::time_to_str_key(*this, str_out);
+    } else if (get_reql_type() == pseudo::geometry_string) {
+        rfail(base_exc_t::GENERIC,
+              "Cannot use a geometry value as a key value in a primary or "
+              " non-geospatial secondary index.");
     } else {
         rfail(base_exc_t::GENERIC,
-              "Cannot use psuedotype %s as a primary or secondary key value .",
+              "Cannot use pseudotype %s as a primary or secondary key value .",
               get_type_name().c_str());
     }
 }
@@ -456,6 +429,17 @@ int datum_t::pseudo_cmp(reql_version_t reql_version, const datum_t &rhs) const {
     rfail(base_exc_t::GENERIC, "Incomparable type %s.", get_type_name().c_str());
 }
 
+bool datum_t::pseudo_compares_as_obj() const {
+    r_sanity_check(is_ptype());
+    if (get_reql_type() == pseudo::geometry_string) {
+        // We compare geometry by its object representation.
+        // That's not especially meaningful, but works for indexing etc.
+        return true;
+    } else {
+        return false;
+    }
+}
+
 void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
     if (is_ptype()) {
         std::string s = get_reql_type();
@@ -471,6 +455,13 @@ void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
             pseudo::rcheck_literal_valid(this);
             return;
         }
+        if (s == pseudo::geometry_string) {
+            // Semantic geometry validation is handled separately whenever a
+            // geometry object is created (or used, when necessary).
+            // This just performs a basic syntactic check.
+            pseudo::sanitize_geometry(this);
+            return;
+        }
         if (s == pseudo::binary_string) {
             // Clear the pseudotype data and convert it to binary data
             scoped_ptr_t<std::map<std::string, counted_t<const datum_t> > >
@@ -478,7 +469,7 @@ void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
             data.r_object = NULL;
 
             data.r_str = pseudo::decode_base64_ptype(*obj_data.get()).release();
-            data.set_type(type_t::R_BINARY);
+            data.type = R_BINARY;
             return;
         }
         rfail(base_exc_t::GENERIC,
@@ -664,21 +655,46 @@ std::string datum_t::mangle_secondary(const std::string &secondary,
     return res;
 }
 
+std::string datum_t::encode_tag_num(uint64_t tag_num) {
+    static_assert(sizeof(tag_num) == tag_size,
+            "tag_size constant is assumed to be the size of a uint64_t.");
+#ifndef BOOST_LITTLE_ENDIAN
+    static_assert(false, "This piece of code will break on big-endian systems.");
+#endif
+    return std::string(reinterpret_cast<const char *>(&tag_num), tag_size);
+}
+
+std::string datum_t::compose_secondary(const std::string &secondary_key,
+        const store_key_t &primary_key, boost::optional<uint64_t> tag_num) {
+    std::string primary_key_string = key_to_unescaped_str(primary_key);
+
+    if (primary_key_string.length() > rdb_protocol::MAX_PRIMARY_KEY_SIZE) {
+        throw exc_t(base_exc_t::GENERIC,
+            strprintf(
+                "Primary key too long (max %zu characters): %s",
+                rdb_protocol::MAX_PRIMARY_KEY_SIZE - 1,
+                key_to_debug_str(primary_key).c_str()),
+            NULL);
+    }
+
+    std::string tag_string;
+    if (tag_num) {
+        tag_string = encode_tag_num(tag_num.get());
+    }
+
+    const std::string truncated_secondary_key =
+        secondary_key.substr(0, trunc_size(primary_key_string.length()));
+
+    return mangle_secondary(truncated_secondary_key, primary_key_string, tag_string);
+}
+
 std::string datum_t::print_secondary(reql_version_t reql_version,
                                      const store_key_t &primary_key,
                                      boost::optional<uint64_t> tag_num) const {
     std::string secondary_key_string;
-    std::string primary_key_string = key_to_unescaped_str(primary_key);
 
     // Reserve max key size to reduce reallocations
     secondary_key_string.reserve(MAX_KEY_SIZE);
-
-    if (primary_key_string.length() > rdb_protocol::MAX_PRIMARY_KEY_SIZE) {
-        rfail(base_exc_t::GENERIC,
-              "Primary key too long (max %zu characters): %s",
-              rdb_protocol::MAX_PRIMARY_KEY_SIZE - 1,
-              key_to_debug_str(primary_key).c_str());
-    }
 
     if (get_type() == R_NUM) {
         num_to_str_key(&secondary_key_string);
@@ -699,16 +715,6 @@ std::string datum_t::print_secondary(reql_version_t reql_version,
             get_type_name().c_str(), trunc_print().c_str()));
     }
 
-    std::string tag_string;
-    if (tag_num) {
-        static_assert(sizeof(*tag_num) == tag_size,
-                "tag_size constant is assumed to be the size of a uint64_t.");
-#ifndef BOOST_LITTLE_ENDIAN
-        static_assert(false, "This piece of code will break on big-endian systems.");
-#endif
-        tag_string.assign(reinterpret_cast<const char *>(&*tag_num), tag_size);
-    }
-
     switch (reql_version) {
     case reql_version_t::v1_13:
         break;
@@ -718,10 +724,8 @@ std::string datum_t::print_secondary(reql_version_t reql_version,
     default:
         unreachable();
     }
-    secondary_key_string =
-        secondary_key_string.substr(0, trunc_size(primary_key_string.length()));
 
-    return mangle_secondary(secondary_key_string, primary_key_string, tag_string);
+    return compose_secondary(secondary_key_string, primary_key, tag_num);
 }
 
 struct components_t {
@@ -889,36 +893,6 @@ const std::vector<counted_t<const datum_t> > &datum_t::as_array() const {
     return *data.r_array;
 }
 
-const std::vector<char> &datum_t::get_lazy_serialized() const {
-    guarantee(is_lazy());
-    return *data.lazy_serialized;
-}
-
-void datum_t::force_deserialization() const {
-    ensure_deserialize_lazy();
-    // Recurse into embedded datums
-    switch (get_type()) {
-    case R_NULL: break;
-    case R_BINARY: break;
-    case R_BOOL: break;
-    case R_NUM: break;
-    case R_STR: break;
-    case R_ARRAY: {
-        const std::vector<counted_t<const datum_t> > &arr = as_array();
-        for (size_t i = 0; i < arr.size(); ++i) {
-            arr[i]->force_deserialization();
-        }
-    } break;
-    case R_OBJECT: {
-        const std::map<std::string, counted_t<const datum_t> > &obj = as_object();
-        for (auto it = obj.begin(); it != obj.end(); ++it) {
-            it->second->force_deserialization();
-        }
-    } break;
-    default: unreachable();
-    }
-}
-
 size_t datum_t::size() const {
     return as_array().size();
 }
@@ -1051,12 +1025,13 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
 
 counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs,
                                         merge_resoluter_t f,
-                                        const configured_limits_t &limits) const {
+                                        const configured_limits_t &limits,
+                                        std::set<std::string> *conditions_out) const {
     datum_object_builder_t d(as_object());
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
         if (counted_t<const datum_t> left = get(it->first, NOTHROW)) {
-            d.overwrite(it->first, f(it->first, left, it->second, limits));
+            d.overwrite(it->first, f(it->first, left, it->second, limits, conditions_out));
         } else {
             bool b = d.add(it->first, it->second);
             r_sanity_check(!b);
@@ -1100,7 +1075,7 @@ int datum_t::v1_13_cmp(const datum_t &rhs) const {
         return i == rhs.as_array().size() ? 0 : -1;
     } unreachable();
     case R_OBJECT: {
-        if (is_ptype()) {
+        if (is_ptype() && !pseudo_compares_as_obj()) {
             if (get_reql_type() != rhs.get_reql_type()) {
                 return derived_cmp(get_reql_type(), rhs.get_reql_type());
             }
@@ -1145,8 +1120,8 @@ int datum_t::cmp(reql_version_t reql_version, const datum_t &rhs) const {
 }
 
 int datum_t::modern_cmp(const datum_t &rhs) const {
-    bool lhs_ptype = is_ptype();
-    bool rhs_ptype = rhs.is_ptype();
+    bool lhs_ptype = is_ptype() && !pseudo_compares_as_obj();
+    bool rhs_ptype = rhs.is_ptype() && !rhs.pseudo_compares_as_obj();
     if (lhs_ptype && rhs_ptype) {
         if (get_reql_type() != rhs.get_reql_type()) {
             return derived_cmp(get_reql_type(), rhs.get_reql_type());
@@ -1334,21 +1309,6 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
     }
 }
 
-void datum_t::ensure_deserialize_lazy() const {
-    if (is_lazy()) {
-        datum_t *mutable_this = const_cast<datum_t *>(this);
-        // Move the serialized data out and delete it...
-        vector_read_stream_t stream(std::move(*mutable_this->data.lazy_serialized));
-        delete mutable_this->data.lazy_serialized;
-        mutable_this->data.lazy_serialized = NULL;
-        // Deserialize the actual data
-        archive_result_t res =
-            deserialize_lazy_data_wrapper(&stream, &mutable_this->data);
-        guarantee_deserialization(res, "lazy datum_t::data_wrapper_t");
-        guarantee(!is_lazy());
-    }
-}
-
 // `key` is unused because this is passed to `datum_t::merge`, which takes a
 // generic conflict resolution function, but this particular conflict resolution
 // function doesn't care about they key (although we could add some
@@ -1356,18 +1316,32 @@ void datum_t::ensure_deserialize_lazy() const {
 counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
                                      counted_t<const datum_t> l,
                                      counted_t<const datum_t> r,
-                                     const configured_limits_t &limits) {
+                                     const configured_limits_t &limits,
+                                     std::set<std::string> *conditions) {
     if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
         return make_counted<datum_t>(l->as_num() + r->as_num());
     } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
-        datum_array_builder_t arr(limits);
-        for (size_t i = 0; i < l->size(); ++i) {
-            arr.add(l->get(i));
+        if (l->size() + r->size() > limits.array_size_limit()) {
+            conditions->insert(strprintf("Too many changes, array truncated to %ld.", limits.array_size_limit()));
+            datum_array_builder_t arr(limits);
+            size_t so_far = 0;
+            for (size_t i = 0; i < l->size() && so_far < limits.array_size_limit(); ++i, ++so_far) {
+                arr.add(l->get(i));
+            }
+            for (size_t i = 0; i < r->size() && so_far < limits.array_size_limit(); ++i, ++so_far) {
+                arr.add(r->get(i));
+            }
+            return std::move(arr).to_counted();
+        } else {
+            datum_array_builder_t arr(limits);
+            for (size_t i = 0; i < l->size(); ++i) {
+                arr.add(l->get(i));
+            }
+            for (size_t i = 0; i < r->size(); ++i) {
+                arr.add(r->get(i));
+            }
+            return std::move(arr).to_counted();
         }
-        for (size_t i = 0; i < r->size(); ++i) {
-            arr.add(r->get(i));
-        }
-        return std::move(arr).to_counted();
     }
 
     // Merging a string is left-preferential, which is just a no-op.
@@ -1394,6 +1368,59 @@ void datum_object_builder_t::overwrite(std::string key,
     datum_t::check_str_validity(key);
     r_sanity_check(val.has());
     map[std::move(key)] = std::move(val);
+}
+
+void datum_object_builder_t::add_warning(const char *msg, const configured_limits_t &limits) {
+    counted_t<const datum_t> *warnings_entry = &map["warnings"];
+    if (warnings_entry->has()) {
+        const std::vector<counted_t<const datum_t> > &array
+            = (*warnings_entry)->as_array();
+        // assume here that the warnings array will "always" be small.
+        for (auto i = array.begin(); i != array.end(); ++i) {
+            if ((*i)->as_str() == msg) return;
+        }
+        rcheck_datum(array.size() + 1 <= limits.array_size_limit(),
+            base_exc_t::GENERIC,
+            strprintf("Warnings would exceed array size limit %zu; increase it to see warnings", limits.array_size_limit()));
+        datum_array_builder_t out(std::vector<counted_t<const datum_t> >(array), limits);
+        out.add(make_counted<datum_t>(msg));
+        *warnings_entry = std::move(out).to_counted();
+    } else {
+        datum_array_builder_t out(limits);
+        out.add(make_counted<datum_t>(msg));
+        *warnings_entry = std::move(out).to_counted();
+    }
+}
+
+void datum_object_builder_t::add_warnings(const std::set<std::string> &msgs, const configured_limits_t &limits) {
+    if (msgs.empty()) return;
+    counted_t<const datum_t> *warnings_entry = &map["warnings"];
+    if (warnings_entry->has()) {
+        const std::vector<counted_t<const datum_t> > &array
+            = (*warnings_entry)->as_array();
+        rcheck_datum(array.size() + msgs.size() <= limits.array_size_limit(),
+            base_exc_t::GENERIC,
+            strprintf("Warnings would exceed array size limit %zu; increase it to see warnings", limits.array_size_limit()));
+        datum_array_builder_t out(std::vector<counted_t<const datum_t> >(array), limits);
+        for (auto const & msg : msgs) {
+            bool seen = false;
+            // assume here that the warnings array will "always" be small.
+            for (auto const & candidate : array) {
+                if (candidate->as_str() == msg.c_str()) {
+                    seen = true;
+                    break;
+                }
+            }
+            if (!seen) out.add(make_counted<datum_t>(msg.c_str()));
+        }
+        *warnings_entry = std::move(out).to_counted();
+    } else {
+        datum_array_builder_t out(limits);
+        for (auto const & msg : msgs) {
+            out.add(make_counted<datum_t>(msg.c_str()));
+        }
+        *warnings_entry = std::move(out).to_counted();
+    }
 }
 
 void datum_object_builder_t::add_error(const char *msg) {
@@ -1545,8 +1572,6 @@ counted_t<const datum_t> datum_array_builder_t::to_counted() RVALUE_THIS {
     return make_counted<datum_t>(std::move(vector),
                                  datum_t::no_array_size_limit_check_t());
 }
-
-
 
 
 

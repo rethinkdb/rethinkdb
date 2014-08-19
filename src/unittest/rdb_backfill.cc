@@ -264,7 +264,8 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
         ql::protob_t<const Term> mapping = ql::r::var(one)["id"].release_counted();
         ql::map_wire_func_t m(mapping, make_vector(one), get_backtrace(mapping));
 
-        write_t write(sindex_create_t(id, m, sindex_multi_bool_t::SINGLE),
+        write_t write(sindex_create_t(id, m, sindex_multi_bool_t::SINGLE,
+                                      sindex_geo_bool_t::REGULAR),
                       profile_bool_t::PROFILE, ql::configured_limits_t());
 
         fake_fifo_enforcement_t enforce;

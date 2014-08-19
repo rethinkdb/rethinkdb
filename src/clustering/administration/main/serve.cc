@@ -139,6 +139,8 @@ bool do_serve(io_backender_t *io_backender,
                 &cluster_semilattice_metadata_t::machines,
                 semilattice_manager_cluster.get_root_view()));
 
+        outdated_index_issue_server_t outdated_index_server(&mailbox_manager);
+
         // Initialize the stat manager before the directory manager so that we
         // could initialize the cluster directory metadata with the proper
         // stat_manager mailbox address
@@ -151,13 +153,15 @@ bool do_serve(io_backender_t *io_backender,
                 total_cache_size,
                 get_ips(),
                 stat_manager.get_address(),
+                outdated_index_server.get_request_mailbox_address(),
                 log_server.get_business_card(),
                 i_am_a_server
                     ? boost::make_optional(server_name_server->get_business_card())
                     : boost::optional<server_name_business_card_t>(),
                 i_am_a_server ? SERVER_PEER : PROXY_PEER));
 
-        watchable_variable_t<cluster_directory_metadata_t> our_root_directory_variable(*initial_directory);
+        watchable_variable_t<cluster_directory_metadata_t>
+            our_root_directory_variable(*initial_directory);
 
         directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(
             &connectivity_cluster, 'D', our_root_directory_variable.get_watchable());
@@ -165,7 +169,15 @@ bool do_serve(io_backender_t *io_backender,
         network_logger_t network_logger(
             connectivity_cluster.get_me(),
             directory_read_manager.get_root_view(),
-            metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()));
+            metadata_field(&cluster_semilattice_metadata_t::machines,
+                           semilattice_manager_cluster.get_root_view()));
+
+        admin_tracker_t admin_tracker(&mailbox_manager,
+                                      semilattice_manager_cluster.get_root_view(),
+                                      semilattice_manager_auth.get_root_view(),
+                                      directory_read_manager.get_root_view());
+
+        outdated_index_server.attach_local_client(&admin_tracker.outdated_index_client);
 
         scoped_ptr_t<connectivity_cluster_t::run_t> connectivity_cluster_run;
 
@@ -183,6 +195,7 @@ bool do_serve(io_backender_t *io_backender,
             for (auto it = ips.begin(); it != ips.end(); ++it) {
                 initial_directory->ips.push_back(it->ip().to_string());
             }
+
             our_root_directory_variable.set_value(*initial_directory);
             initial_directory.reset();
         } catch (const address_in_use_exc_t &ex) {
@@ -207,10 +220,6 @@ bool do_serve(io_backender_t *io_backender,
             &cluster_directory_metadata_t::local_issues,
             local_issue_tracker.get_issues_watchable(),
             &our_root_directory_variable);
-
-        admin_tracker_t admin_tracker(semilattice_manager_cluster.get_root_view(),
-                                      semilattice_manager_auth.get_root_view(),
-                                      directory_read_manager.get_root_view());
 
         perfmon_collection_t proc_stats_collection;
         perfmon_membership_t proc_stats_membership(&get_global_perfmon_collection(), &proc_stats_collection, "proc");
@@ -260,45 +269,15 @@ bool do_serve(io_backender_t *io_backender,
                 &rdb_ctx,
                 &server_name_client);
 
-        std::map<name_string_t, artificial_table_backend_t *> artificial_table_backends;
-
-        server_config_artificial_table_backend_t server_config_backend(
-                metadata_field(&cluster_semilattice_metadata_t::machines,
-                    semilattice_manager_cluster.get_root_view()),
-                &server_name_client);
-        artificial_table_backends[name_string_t::guarantee_valid("server_config")] =
-            &server_config_backend;
-
-        table_config_artificial_table_backend_t table_config_backend(
+        admin_artificial_tables_t admin_tables(
+                &real_reql_cluster_interface,
                 machine_id,
-                metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
-                    semilattice_manager_cluster.get_root_view()),
-                metadata_field(&cluster_semilattice_metadata_t::databases,
-                    semilattice_manager_cluster.get_root_view()),
+                semilattice_manager_cluster.get_root_view(),
+                directory_read_manager.get_root_view(),
                 &server_name_client);
-        artificial_table_backends[name_string_t::guarantee_valid("table_config")] =
-            &table_config_backend;
-
-        table_status_artificial_table_backend_t table_status_backend(
-                metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
-                    semilattice_manager_cluster.get_root_view()),
-                metadata_field(&cluster_semilattice_metadata_t::databases,
-                    semilattice_manager_cluster.get_root_view()),
-                directory_read_manager.get_root_view()->incremental_subview(
-                    incremental_field_getter_t<namespaces_directory_metadata_t,
-                                               cluster_directory_metadata_t>
-                        (&cluster_directory_metadata_t::rdb_namespaces)),
-                &server_name_client);
-        artificial_table_backends[name_string_t::guarantee_valid("table_status")] =
-            &table_status_backend;
-
-        artificial_reql_cluster_interface_t artificial_reql_cluster_interface(
-            name_string_t::guarantee_valid("rethinkdb"),
-            artificial_table_backends,
-            &real_reql_cluster_interface);
 
         //This is an annoying chicken and egg problem here
-        rdb_ctx.cluster_interface = &artificial_reql_cluster_interface;
+        rdb_ctx.cluster_interface = admin_tables.get_reql_cluster_interface();
 
         {
             scoped_ptr_t<cache_balancer_t> cache_balancer;
@@ -318,7 +297,8 @@ bool do_serve(io_backender_t *io_backender,
 
             if (i_am_a_server) {
                 rdb_svs_source.init(new file_based_svs_by_namespace_t(
-                    io_backender, cache_balancer.get(), base_path));
+                    io_backender, cache_balancer.get(), base_path,
+                    &admin_tracker.outdated_index_client));
                 rdb_reactor_driver.init(new reactor_driver_t(
                         base_path,
                         io_backender,

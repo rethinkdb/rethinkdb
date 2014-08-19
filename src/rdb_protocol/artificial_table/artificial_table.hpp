@@ -43,10 +43,29 @@ public:
         ql::env_t *env,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name);
+    counted_t<ql::datum_stream_t> read_intersecting(
+        ql::env_t *env,
+        const std::string &sindex,
+        const ql::protob_t<const Backtrace> &bt,
+        const std::string &table_name,
+        bool use_outdated,
+        const counted_t<const ql::datum_t> &query_geometry);
+    counted_t<ql::datum_stream_t> read_nearest(
+        ql::env_t *env,
+        const std::string &sindex,
+        const ql::protob_t<const Backtrace> &bt,
+        const std::string &table_name,
+        bool use_outdated,
+        lat_lon_point_t center,
+        double max_dist,
+        uint64_t max_results,
+        const ellipsoid_spec_t &geo_system,
+        dist_unit_t dist_unit,
+        const ql::configured_limits_t &limits);
 
     counted_t<const ql::datum_t> write_batched_replace(ql::env_t *env,
         const std::vector<counted_t<const ql::datum_t> > &keys,
-        const counted_t<ql::func_t> &func,
+        const counted_t<const ql::func_t> &func,
         return_changes_t _return_changes, durability_requirement_t durability);
     counted_t<const ql::datum_t> write_batched_insert(ql::env_t *env,
         std::vector<counted_t<const ql::datum_t> > &&inserts,
@@ -56,7 +75,8 @@ public:
         durability_requirement_t durability);
 
     bool sindex_create(ql::env_t *env, const std::string &id,
-        counted_t<ql::func_t> index_func, sindex_multi_bool_t multi);
+        counted_t<const ql::func_t> index_func, sindex_multi_bool_t multi,
+        sindex_geo_bool_t geo);
     bool sindex_drop(ql::env_t *env, const std::string &id);
     sindex_rename_result_t sindex_rename(ql::env_t *env,
         const std::string &old_name, const std::string &new_name, bool overwrite);

@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_INCREMENTAL_LENSES_HPP_
 #define CONTAINERS_INCREMENTAL_LENSES_HPP_
 
@@ -8,8 +8,8 @@
 #include "errors.hpp"
 #include <boost/utility/result_of.hpp>
 
-#include "scoped.hpp"
-#include "uuid.hpp"
+#include "containers/scoped.hpp"
+#include "containers/uuid.hpp"
 
 /* `change_tracking_map_t` is like an `std::map`. However it keeps track
  * of which keys have been modified.

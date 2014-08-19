@@ -1,7 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef HTTP_HTTP_HPP_
 #define HTTP_HTTP_HPP_
 
+#include <map>
 #include <string>
 #include <stdexcept>
 #include <vector>

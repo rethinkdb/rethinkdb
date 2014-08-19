@@ -55,7 +55,8 @@ counted_t<const ql::datum_t> convert_director_status_to_datum(
         } else {
             tally += count_in_state<primary_when_safe_t>(*status);
             if (tally == status->size()) {
-                state = "backfill_data";
+                state = "backfilling_data";
+                /* RSI(reql_admin): Implement backfill progress */
                 object_builder.overwrite("backfill_progress",
                     make_counted<const ql::datum_t>("not_implemented"));
             } else {
@@ -83,11 +84,12 @@ counted_t<const ql::datum_t> convert_replica_status_to_datum(
         } else {
             tally += count_in_state<secondary_without_primary_t>(*status);
             if (tally == status->size()) {
-                state = "need_director";
+                state = "looking_for_director";
             } else {
                 tally += count_in_state<secondary_backfilling_t>(*status);
                 if (tally == status->size()) {
-                    state = "backfill_data";
+                    state = "backfilling_data";
+                    /* RSI(reql_admin): Implement backfill progress */
                     object_builder.overwrite("backfill_progress",
                         make_counted<const ql::datum_t>("not_implemented"));
                 } else {
@@ -117,11 +119,11 @@ counted_t<const ql::datum_t> convert_nothing_status_to_datum(
         } else {
             tally += count_in_state<nothing_when_done_erasing_t>(*status);
             if (tally == status->size()) {
-                state = "erase_data";
+                state = "erasing_data";
             } else {
                 tally += count_in_state<nothing_when_safe_t>(*status);
                 if (tally == status->size()) {
-                    state = "offload_data";
+                    state = "offloading_data";
                 } else {
                     state = "transitioning";
                 }
@@ -257,6 +259,7 @@ bool table_status_artificial_table_backend_t::read_all_primary_keys(
         UNUSED signal_t *interruptor,
         std::vector<counted_t<const ql::datum_t> > *keys_out,
         std::string *error_out) {
+    on_thread_t thread_switcher(home_thread());
     keys_out->clear();
     cow_ptr_t<namespaces_semilattice_metadata_t> md = table_sl_view->get();
     for (auto it = md->namespaces.begin();
@@ -293,6 +296,7 @@ bool table_status_artificial_table_backend_t::read_row(
         UNUSED signal_t *interruptor,
         counted_t<const ql::datum_t> *row_out,
         std::string *error_out) {
+    on_thread_t thread_switcher(home_thread());
     cow_ptr_t<namespaces_semilattice_metadata_t> md = table_sl_view->get();
     name_string_t db_name, table_name;
     std::string dummy_error;
@@ -332,7 +336,7 @@ bool table_status_artificial_table_backend_t::write_row(
         UNUSED counted_t<const ql::datum_t> new_value,
         UNUSED signal_t *interruptor,
         std::string *error_out) {
-    *error_out = "The `rethinkdb.table_status` table is read-only.";
+    *error_out = "It's illegal to write to the `rethinkdb.table_status` table.";
     return false;
 }
 

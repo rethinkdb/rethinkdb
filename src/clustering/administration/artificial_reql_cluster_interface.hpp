@@ -6,9 +6,15 @@
 #include <set>
 #include <string>
 
+#include "clustering/administration/metadata.hpp"
 #include "containers/name_string.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rdb_protocol/context.hpp"
+
+class server_name_client_t;
+class server_config_artificial_table_backend_t;
+class table_config_artificial_table_backend_t;
+class table_status_artificial_table_backend_t;
 
 /* The `artificial_reql_cluster_interface_t` is responsible for handling queries to the
 `rethinkdb` database. It's implemented as a proxy over the
@@ -68,6 +74,29 @@ private:
     name_string_t database;
     std::map<name_string_t, artificial_table_backend_t *> tables;
     reql_cluster_interface_t *next;
+};
+
+/* `admin_artificial_tables_t` constructs the `artificial_reql_cluster_interface_t` along
+with all of the tables that will go in it. */
+
+class admin_artificial_tables_t {
+public:
+    admin_artificial_tables_t(
+            reql_cluster_interface_t *_next_reql_cluster_interface,
+            const machine_id_t &_my_machine_id,
+            boost::shared_ptr< semilattice_readwrite_view_t<
+                cluster_semilattice_metadata_t> > _semilattice_view,
+            clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
+                cluster_directory_metadata_t> > > _directory_view,
+            server_name_client_t *_name_client);
+    reql_cluster_interface_t *get_reql_cluster_interface() {
+        return reql_cluster_interface.get();
+    }
+private:
+    scoped_ptr_t<server_config_artificial_table_backend_t> server_config_backend;
+    scoped_ptr_t<table_config_artificial_table_backend_t> table_config_backend;
+    scoped_ptr_t<table_status_artificial_table_backend_t> table_status_backend;
+    scoped_ptr_t<artificial_reql_cluster_interface_t> reql_cluster_interface;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_ARTIFICIAL_REQL_CLUSTER_INTERFACE_HPP_ */

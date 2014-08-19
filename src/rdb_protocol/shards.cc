@@ -86,7 +86,7 @@ private:
                          const std::vector<result_t *> &results) {
         guarantee(acc.size() == 0);
         std::map<counted_t<const datum_t>, std::vector<T *>, counted_datum_less_t>
-            vecs(counted_datum_less_t(env->reql_version));
+            vecs(counted_datum_less_t(env->reql_version()));
         for (auto res = results.begin(); res != results.end(); ++res) {
             guarantee(*res);
             grouped_t<T> *gres = boost::get<grouped_t<T> >(*res);
@@ -196,6 +196,14 @@ scoped_ptr_t<accumulator_t> make_append(const sorting_t &sorting, batcher_t *bat
     return make_scoped<append_t>(sorting, batcher);
 }
 
+bool is_grouped_data(const groups_t *gs, const counted_t<const ql::datum_t> &q) {
+    return gs->size() > 1 || q.has();
+}
+
+bool is_grouped_data(grouped_t<stream_t> *streams, const counted_t<const ql::datum_t> &q) {
+    return streams->size() > 1 || q.has();
+}
+
 // This can't be a normal terminal because it wouldn't preserve ordering.
 // (Also, I'm sorry for this absurd type hierarchy.)
 class to_array_t : public eager_acc_t {
@@ -208,11 +216,17 @@ private:
             datums_t *lst1 = &groups[kv->first];
             datums_t *lst2 = &kv->second;
             size += lst2->size();
-            rcheck_toplevel(
-                size <= env->limits.array_size_limit(), base_exc_t::GENERIC,
-                strprintf("Grouped data over size limit %zu.  "
-                          "Try putting a reduction (like `.reduce` or `.count`) "
-                          "on the end.", env->limits.array_size_limit()).c_str());
+            if (is_grouped_data(gs, kv->first)) {
+                rcheck_toplevel(
+                    size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
+                    strprintf("Grouped data over size limit `%zu`.  "
+                              "Try putting a reduction (like `.reduce` or `.count`) "
+                              "on the end.", env->limits().array_size_limit()).c_str());
+            } else {
+                rcheck_toplevel(
+                    size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
+                    strprintf("Array over size limit `%zu`.", env->limits().array_size_limit()).c_str());
+            }
             lst1->reserve(lst1->size() + lst2->size());
             std::move(lst2->begin(), lst2->end(), std::back_inserter(*lst1));
         }
@@ -231,11 +245,17 @@ private:
             datums_t *lst = &groups[kv->first];
             stream_t *stream = &kv->second;
             size += stream->size();
-            rcheck_toplevel(
-                size <= env->limits.array_size_limit(), base_exc_t::GENERIC,
-                strprintf("Grouped data over size limit %zu.  "
-                          "Try putting a reduction (like `.reduce` or `.count`) "
-                          "on the end.", env->limits.array_size_limit()).c_str());
+            if (is_grouped_data(streams, kv->first)) {
+                rcheck_toplevel(
+                    size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
+                    strprintf("Grouped data over size limit `%zu`.  "
+                              "Try putting a reduction (like `.reduce` or `.count`) "
+                              "on the end.", env->limits().array_size_limit()).c_str());
+            } else {
+                rcheck_toplevel(
+                    size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
+                    strprintf("Array over size limit `%zu`.", env->limits().array_size_limit()).c_str());
+            }
 
             for (auto it = stream->begin(); it != stream->end(); ++it) {
                 lst->push_back(std::move(it->data));
@@ -388,12 +408,12 @@ private:
 
 class acc_func_t {
 public:
-    explicit acc_func_t(const counted_t<func_t> &_f) : f(_f) { }
+    explicit acc_func_t(const counted_t<const func_t> &_f) : f(_f) { }
     counted_t<const datum_t> operator()(env_t *env, const counted_t<const datum_t> &el) const {
         return f.has() ? f->call(env, el)->as_datum() : el;
     }
 private:
-    counted_t<func_t> f;
+    counted_t<const func_t> f;
 };
 
 template<class T>
@@ -539,13 +559,13 @@ private:
                            optimizer_t *out,
                            const acc_func_t &f) {
         optimizer_t other(el, f(env, el));
-        out->swap_if_other_better(other, env->reql_version, cmp);
+        out->swap_if_other_better(other, env->reql_version(), cmp);
     }
     virtual counted_t<const datum_t> unpack(optimizer_t *el) {
         return el->unpack(name);
     }
     virtual void unshard_impl(env_t *env, optimizer_t *out, optimizer_t *el) {
-        out->swap_if_other_better(*el, env->reql_version, cmp);
+        out->swap_if_other_better(*el, env->reql_version(), cmp);
     }
     const char *name;
     bool (*cmp)(reql_version_t,
@@ -582,7 +602,7 @@ private:
         if (el->has()) accumulate(env, *el, out);
     }
 
-    counted_t<func_t> f;
+    counted_t<const func_t> f;
 };
 
 template<class T>
@@ -678,7 +698,7 @@ private:
             r_sanity_check(arr.size() == (funcs.size() + append_index));
 
             if (!multi) {
-                add(groups, std::move(arr), *el, env->limits);
+                add(groups, std::move(arr), *el, env->limits());
             } else {
                 std::vector<std::vector<counted_t<const datum_t> > > perms(arr.size());
                 for (size_t i = 0; i < arr.size(); ++i) {
@@ -694,14 +714,14 @@ private:
                 }
                 std::vector<counted_t<const datum_t> > instance;
                 instance.reserve(perms.size());
-                add_perms(groups, &instance, &perms, 0, *el, env->limits);
+                add_perms(groups, &instance, &perms, 0, *el, env->limits());
                 r_sanity_check(instance.size() == 0);
             }
 
             rcheck_src(
                 bt.get(), base_exc_t::GENERIC,
-                groups->size() <= env->limits.array_size_limit(),
-                strprintf("Too many groups (> %zu).", env->limits.array_size_limit()));
+                groups->size() <= env->limits().array_size_limit(),
+                strprintf("Too many groups (> %zu).", env->limits().array_size_limit()));
         }
         size_t erased = groups->erase(counted_t<const datum_t>());
         r_sanity_check(erased == 1);
@@ -744,7 +764,7 @@ private:
         }
     }
 
-    std::vector<counted_t<func_t> > funcs;
+    std::vector<counted_t<const func_t> > funcs;
     bool append_index, multi;
     protob_t<const Backtrace> bt;
 };
@@ -764,7 +784,7 @@ private:
             throw exc_t(e, f->backtrace().get(), 1);
         }
     }
-    counted_t<func_t> f;
+    counted_t<const func_t> f;
 };
 
 // Note: this removes duplicates ONLY TO SAVE NETWORK TRAFFIC.  It's possible
@@ -804,7 +824,7 @@ public:
         : f(_f.filter_func.compile_wire_func()),
           default_val(_f.default_filter_val
                       ? _f.default_filter_val->compile_wire_func()
-                      : counted_t<func_t>()) { }
+                      : counted_t<const func_t>()) { }
 private:
     virtual void lst_transform(
         env_t *env, datums_t *lst, const counted_t<const datum_t> &) {
@@ -822,7 +842,7 @@ private:
         }
         lst->erase(loc, lst->end());
     }
-    counted_t<func_t> f, default_val;
+    counted_t<const func_t> f, default_val;
 };
 
 class concatmap_trans_t : public ungrouped_op_t {
@@ -851,7 +871,23 @@ private:
         }
         lst->swap(new_lst);
     }
-    counted_t<func_t> f;
+    counted_t<const func_t> f;
+};
+
+class zip_trans_t : public ungrouped_op_t {
+public:
+    explicit zip_trans_t(const zip_wire_func_t &) {}
+private:
+    virtual void lst_transform(env_t *, datums_t *lst,
+                               const counted_t<const datum_t> &) {
+        for (auto it = lst->begin(); it != lst->end(); ++it) {
+            auto left = (*it)->get("left", NOTHROW);
+            auto right = (*it)->get("right", NOTHROW);
+            rcheck_datum(left.has(), base_exc_t::GENERIC,
+                   "ZIP can only be called on the result of a join.");
+            *it = right.has() ? left->merge(right) : left;
+        }
+    }
 };
 
 class transform_visitor_t : public boost::static_visitor<op_t *> {
@@ -871,6 +907,9 @@ public:
     }
     op_t *operator()(const distinct_wire_func_t &f) const {
         return new distinct_trans_t(f);
+    }
+    op_t *operator()(const zip_wire_func_t &f) const {
+        return new zip_trans_t(f);
     }
 };
 

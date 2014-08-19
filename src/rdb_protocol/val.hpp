@@ -9,9 +9,12 @@
 
 #include "containers/counted.hpp"
 #include "containers/wire_string.hpp"
+#include "rdb_protocol/geo/distances.hpp"
+#include "rdb_protocol/geo/lat_lon_types.hpp"
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/ql2.pb.h"
 
+class ellipsoid_spec_t;
 namespace ql {
 class datum_t;
 class env_t;
@@ -38,11 +41,27 @@ public:
             const std::string &sindex_id,
             const protob_t<const Backtrace> &bt);
     void add_sorting(
-        const std::string &sindex_id, sorting_t sorting,
-        const rcheckable_t *parent);
-    void add_bounds(datum_range_t &&new_bounds,
-                    const std::string &new_sindex_id,
-                    const rcheckable_t *parent);
+            const std::string &sindex_id, sorting_t sorting,
+            const rcheckable_t *parent);
+    void add_bounds(
+            datum_range_t &&new_bounds,
+            const std::string &new_sindex_id,
+            const rcheckable_t *parent);
+    counted_t<datum_stream_t> get_intersecting(
+            env_t *env,
+            const counted_t<const datum_t> &query_geometry,
+            const std::string &new_sindex_id,
+            const pb_rcheckable_t *parent);
+    counted_t<datum_stream_t> get_nearest(
+            env_t *env,
+            lat_lon_point_t center,
+            double max_dist,
+            uint64_t max_results,
+            const ellipsoid_spec_t &geo_system,
+            dist_unit_t dist_unit,
+            const std::string &new_sindex_id,
+            const pb_rcheckable_t *parent,
+            const configured_limits_t &limits);
 
     counted_t<const datum_t> make_error_datum(const base_exc_t &exception);
 
@@ -50,7 +69,7 @@ public:
         env_t *env,
         const std::vector<counted_t<const datum_t> > &vals,
         const std::vector<counted_t<const datum_t> > &keys,
-        counted_t<func_t> replacement_generator,
+        counted_t<const func_t> replacement_generator,
         bool nondeterministic_replacements_ok,
         durability_requirement_t durability_requirement,
         return_changes_t return_changes);
@@ -64,7 +83,8 @@ public:
 
     MUST_USE bool sindex_create(
         env_t *env, const std::string &name,
-        counted_t<func_t> index_func, sindex_multi_bool_t multi);
+        counted_t<const func_t> index_func, sindex_multi_bool_t multi,
+        sindex_geo_bool_t geo);
     MUST_USE bool sindex_drop(env_t *env, const std::string &name);
     MUST_USE sindex_rename_result_t sindex_rename(
         env_t *env, const std::string &old_name,
@@ -167,7 +187,7 @@ public:
     val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence,
           protob_t<const Backtrace> backtrace);
     val_t(counted_t<const db_t> _db, protob_t<const Backtrace> backtrace);
-    val_t(counted_t<func_t> _func, protob_t<const Backtrace> backtrace);
+    val_t(counted_t<const func_t> _func, protob_t<const Backtrace> backtrace);
     ~val_t();
 
     counted_t<const db_t> as_db() const;
@@ -176,7 +196,7 @@ public:
     counted_t<datum_stream_t> as_seq(env_t *env);
     std::pair<counted_t<table_t>, counted_t<const datum_t> > as_single_selection();
     // See func.hpp for an explanation of shortcut functions.
-    counted_t<func_t> as_func(function_shortcut_t shortcut = NO_SHORTCUT);
+    counted_t<const func_t> as_func(function_shortcut_t shortcut = NO_SHORTCUT);
 
     // This set of interfaces is atrocious.  Basically there are some places
     // where we want grouped_data, some places where we maybe want grouped_data,
@@ -225,7 +245,7 @@ private:
     boost::variant<counted_t<const db_t>,
                    counted_t<datum_stream_t>,
                    counted_t<const datum_t>,
-                   counted_t<func_t>,
+                   counted_t<const func_t>,
                    counted_t<grouped_data_t> > u;
 
     const counted_t<const db_t> &db() const {
@@ -240,7 +260,7 @@ private:
     const counted_t<const datum_t> &datum() const {
         return boost::get<counted_t<const datum_t> >(u);
     }
-    counted_t<func_t> &func() { return boost::get<counted_t<func_t> >(u); }
+    counted_t<const func_t> &func() { return boost::get<counted_t<const func_t> >(u); }
 
     DISABLE_COPYING(val_t);
 };

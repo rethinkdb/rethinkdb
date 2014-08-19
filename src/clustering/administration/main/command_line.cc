@@ -49,6 +49,7 @@
 #define RETHINKDB_IMPORT_SCRIPT "rethinkdb-import"
 #define RETHINKDB_DUMP_SCRIPT "rethinkdb-dump"
 #define RETHINKDB_RESTORE_SCRIPT "rethinkdb-restore"
+#define RETHINKDB_INDEX_REBUILD_SCRIPT "rethinkdb-index-rebuild"
 
 MUST_USE bool numwrite(const char *path, int number) {
     // Try to figure out what this function does.
@@ -1581,6 +1582,11 @@ int main_rethinkdb_restore(int, char *argv[]) {
     return EXIT_FAILURE;
 }
 
+int main_rethinkdb_index_rebuild(int, char *argv[]) {
+    run_backup_script(RETHINKDB_INDEX_REBUILD_SCRIPT, argv + 1);
+    return EXIT_FAILURE;
+}
+
 int main_rethinkdb_porcelain(int argc, char *argv[]) {
     std::vector<options::option_t> options;
     std::vector<options::help_section_t> help;
@@ -1714,6 +1720,7 @@ void help_rethinkdb_porcelain() {
     printf("    'rethinkdb import': import data from from a file or directory into an existing cluster\n");
     printf("    'rethinkdb dump': export and compress data from an existing cluster\n");
     printf("    'rethinkdb restore': import compressed data into an existing cluster\n");
+    printf("    'rethinkdb index-rebuild': rebuild outdated secondary indexes\n");
     printf("\n");
     printf("For more information, run 'rethinkdb help [subcommand]'.\n");
 }
@@ -1778,4 +1785,11 @@ void help_rethinkdb_restore() {
     char dummy_arg[] = RETHINKDB_RESTORE_SCRIPT;
     char* args[3] = { dummy_arg, help_arg, NULL };
     run_backup_script(RETHINKDB_RESTORE_SCRIPT, args);
+}
+
+void help_rethinkdb_index_rebuild() {
+    char help_arg[] = "--help";
+    char dummy_arg[] = RETHINKDB_INDEX_REBUILD_SCRIPT;
+    char* args[3] = { dummy_arg, help_arg, NULL };
+    run_backup_script(RETHINKDB_INDEX_REBUILD_SCRIPT, args);
 }

@@ -180,3 +180,33 @@ def literal(*args):
 
 def object(*args):
     return Object(*args)
+
+def uuid(*args):
+    return UUID(*args)
+
+# Global geospatial operations
+def geojson(*args):
+    return GeoJson(*args)
+
+def point(*args):
+    return Point(*args)
+
+def line(*args):
+    return Line(*args)
+
+def polygon(*args):
+    return Polygon(*args)
+
+def distance(*args, **kwargs):
+    kwargs.setdefault('geo_system', ())
+    kwargs.setdefault('unit', ())
+    return Distance(*args, **kwargs)
+
+def intersects(*args):
+    return Intersects(*args)
+
+def circle(*args, **kwargs):
+    kwargs.setdefault('geo_system', ())
+    kwargs.setdefault('unit', ())
+    kwargs.setdefault('fill', ())
+    return Circle(*args, **kwargs)
