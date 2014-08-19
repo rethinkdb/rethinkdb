@@ -5,6 +5,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include <list>
 
 #include "http/json.hpp"
 #include "containers/incremental_lenses.hpp"

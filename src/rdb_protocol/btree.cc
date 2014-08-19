@@ -424,7 +424,7 @@ batched_replace_response_t rdb_batched_replace(
 
     counted_t<const ql::datum_t> stats = ql::datum_t::empty_object();
     
-    std::set<std::string> conditions {};
+    std::set<std::string> conditions;
 
     // We have to drain write operations before destructing everything above us,
     // because the coroutines being drained use them.
