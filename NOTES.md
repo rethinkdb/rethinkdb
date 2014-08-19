@@ -1,3 +1,100 @@
+# Release 1.14.0 (Brazil)
+
+Released on 2014-08-20
+
+The highlights of this release are:
+
+* Support for storing binary data
+* Automatic database migration
+* Support for Python 3
+
+## Compatibility ##
+
+Data files from RethinkDB versions 1.13.0 onward will be automatically migrated to version 1.14.x. As with any major release, back up your data files before performing the upgrade. If you are upgrading from a release earlier than 1.13.0, follow the migration instructions before upgrading:
+
+http://rethinkdb.com/docs/migration/
+
+Secondary indexes use a new format, and may need to be migrated manually. Consult the troubleshooting document for more information.
+
+The `return_vals` optional argument for `insert`, `delete` and `update` has been changed to `return_changes`, and the returned object is in a new format that is backwards-incompatible with previous versions. Consult the API documentation for more information.
+
+The `upsert` optional argument to `insert` has been replaced with `conflict` and new allowed values of `error`, `replace` or `update`. This is a backwards-incompatible change. Consult the API documentation for more information.
+
+## New features ##
+
+* Server
+  * Return keys for multi-row insert/updates (#1382)
+  * `upsert` replaced with `conflict` argument (#1838)
+  * binary data type support (#2612)
+  * `binary_format="raw"` added (#2762)
+  * secondary indexes can be renamed (#2794)
+  * secondary indexes can be duplicated (#2797)
+  * Old secondary indexes logged on startup (#2798)
+  * `r.http` can return binary format (#2806)
+  * `r.binary` term on server (#2931)
+* Python driver
+  * Python 3 support (#2502)
+
+## Improvements ##
+
+* Server
+  * Server names default to hostname, not random name (#236)
+  * distinct is faster and now works on indexes (#1864)
+  * Improve secondary index queue handling (#1947)
+  * The array limit is now configurable (#2059)
+  * allow initializing an empty directory (#2359)
+  * max number of extprocs raised (#2391)
+  * Argument count errors are prettier (#2568)
+  * index_status provides more info (#2791)
+* Web UI
+  * table names in the CLI are disambiguated (#2360)
+* Python driver
+  * Cleanup unneeded files (#2610)
+
+## Fixed bugs ##
+
+* Server
+  * --runuser/rungroup work as expected with create (#1722)
+  * Write acks improved (#2039)
+  * fix getaddrinfo error handling (#2110)
+  * Fix a bug with machine name generation (#2552, #2569)
+  * Fix memory corruption error (#2589)
+  * Fix stream cache error (#2607)
+  * Fix linking issue with RE2 (#2685)
+  * insert/splice now check array size limit (#2697)
+  * Fix error in undocumented `batch_conf` option (#2709)
+  * Fix rare conflict bug in cluster config (#2738)
+  * Fix variable initialization error (#2741)
+  * Fix bug in RPCSemilatticeTest.MetadataExchange (#2758)
+  * Changefeeds work on multiple joined servers (#2761)
+  * Secondary index functions ignore global optargs (#2767)
+  * Fix dependency includes in Makefile (#2779)
+  * secondary indexes sort correctly (#2789)
+  * Improve robustness with big documents (#2832)
+* Web UI
+  * Make interval notation for infinity pedantically correct (#2081)
+  * Data Explorer handles disconnections gracefully (#2460)
+  * Fix to text typehead (#2593)
+* Testing
+  * Chain callbacks in JS http tests (#2396)
+  * Do not create zombies (#2583)
+  * Fix hard-coding of directory paths in Ruby test script (#2787)
+  * Update testing scripts for drivers (#2815)
+* Python driver
+  * Fix documentation bug (#2626)
+  * Make `all` and `any` behave like `and_` and `or_` (#2659)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 1.14. In no particular order:
+
+* James Costian (@jamescostian)
+* Ed Rooth (@sym3tri)
+* Cole Gleason (@colegleason)
+
+--
+
 # Release 1.13.4 (My Name is Nobody)
 
 Released on 2014-08-14
