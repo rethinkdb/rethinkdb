@@ -10,28 +10,42 @@ The highlights of this release are:
 
 ## Compatibility ##
 
-Data files from RethinkDB versions 1.13.0 onward will be automatically migrated to version 1.14.x. As with any major release, back up your data files before performing the upgrade. If you are upgrading from a release earlier than 1.13.0, follow the migration instructions before upgrading:
+Data files from RethinkDB versions 1.13.0 onward will be automatically
+migrated to version 1.14.x. As with any major release, back up your data files
+before performing the upgrade. If you are upgrading from a release earlier
+than 1.13.0, follow the migration instructions before upgrading:
 
 http://rethinkdb.com/docs/migration/
 
-Secondary indexes use a new format, and may need to be migrated manually. Consult the troubleshooting document for more information.
+Secondary indexes now use a new format. Old indexes will continue to work, but
+you should rebuild your index before updating to the next version of
+RethinkDB. A warning about outdated indexes will be issued on startup. Indexes
+can be migrated to the new format with the `rethinkdb index-rebuild` utility.
+Consult the troubleshooting document for more information.
 
-The `return_vals` optional argument for `insert`, `delete` and `update` has been changed to `return_changes`, and the returned object is in a new format that is backwards-incompatible with previous versions. Consult the API documentation for more information.
+http://rethinkdb.com/docs/troubleshooting#my-secondary-index-is-outdated
 
-The `upsert` optional argument to `insert` has been replaced with `conflict` and new allowed values of `error`, `replace` or `update`. This is a backwards-incompatible change. Consult the API documentation for more information.
+The `return_vals` optional argument for `insert`, `delete` and `update` has
+been changed to `return_changes`, and the returned object is in a new format
+that is backwards-incompatible with previous versions. Consult the API
+documentation for more information.
+
+The `upsert` optional argument to `insert` has been replaced with `conflict`
+and new allowed values of `error`, `replace` or `update`. This is a
+backwards-incompatible change. Consult the API documentation for more
+information.
 
 ## New features ##
 
 * Server
   * Return keys for multi-row insert/updates (#1382)
   * `upsert` replaced with `conflict` argument (#1838)
-  * binary data type support (#2612)
+  * binary data type support (#2612, #2931)
   * `binary_format="raw"` added (#2762)
   * secondary indexes can be renamed (#2794)
   * secondary indexes can be duplicated (#2797)
   * Old secondary indexes logged on startup (#2798)
   * `r.http` can return binary format (#2806)
-  * `r.binary` term on server (#2931)
 * Python driver
   * Python 3 support (#2502)
 
@@ -74,7 +88,7 @@ The `upsert` optional argument to `insert` has been replaced with `conflict` and
 * Web UI
   * Make interval notation for infinity pedantically correct (#2081)
   * Data Explorer handles disconnections gracefully (#2460)
-  * Fix to text typehead (#2593)
+  * Fix to text typeahead (#2593)
 * Testing
   * Chain callbacks in JS http tests (#2396)
   * Do not create zombies (#2583)
