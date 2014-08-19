@@ -79,6 +79,8 @@ counted_t<term_t> make_make_array_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_make_obj_term(
     compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_binary_term(
+    compile_env_t *env, const protob_t<const Term> &term);
 
 // db_table.cc
 counted_t<term_t> make_db_term(
@@ -138,6 +140,10 @@ counted_t<term_t> make_get_nearest_term(
 
 // js.cc
 counted_t<term_t> make_javascript_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+
+// uuid.cc
+counted_t<term_t> make_uuid_term(
     compile_env_t *env, const protob_t<const Term> &term);
 
 // http.cc

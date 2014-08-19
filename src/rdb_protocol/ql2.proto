@@ -258,6 +258,7 @@ message Term {
         // Takes some javascript code and executes it.
         JAVASCRIPT   = 11; // STRING {timeout: !NUMBER} -> DATUM |
                            // STRING {timeout: !NUMBER} -> Function(*)
+        UUID = 169; // () -> DATUM
 
         // Takes an HTTP URL and gets it.  If the get succeeds and
         //  returns valid JSON, it is converted into a DATUM
@@ -656,7 +657,7 @@ message Term {
         ARGS = 154; // ARRAY -> SPECIAL (used to splice arguments)
 
         // BINARY is client-only at the moment, it is not supported on the server
-        // BINARY = 155; // STRING -> PSEUDOTYPE(BINARY)
+        BINARY = 155; // STRING -> PSEUDOTYPE(BINARY)
 
         GEOJSON = 157;           // OBJECT -> PSEUDOTYPE(GEOMETRY)
         TO_GEOJSON = 158;        // PSEUDOTYPE(GEOMETRY) -> OBJECT

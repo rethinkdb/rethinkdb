@@ -87,8 +87,7 @@ private:
         double lon = args->arg(env, 1)->as_num();
         lat_lon_point_t point(lat, lon);
 
-        const datum_t result =
-            construct_geo_point(point, env->env->limits());
+        const datum_t result = construct_geo_point(point, env->env->limits());
         validate_geojson(result);
 
         return new_val(result);
@@ -135,8 +134,7 @@ private:
     counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
         const lat_lon_line_t line = parse_line_from_args(env, args);
 
-        const datum_t result =
-            construct_geo_line(line, env->env->limits());
+        const datum_t result = construct_geo_line(line, env->env->limits());
         validate_geojson(result);
 
         return new_val(result);
@@ -152,8 +150,7 @@ private:
     counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
         const lat_lon_line_t shell = parse_line_from_args(env, args);
 
-        const datum_t result =
-            construct_geo_polygon(shell, env->env->limits());
+        const datum_t result = construct_geo_polygon(shell, env->env->limits());
         validate_geojson(result);
 
         return new_val(result);
@@ -348,8 +345,7 @@ private:
         const lat_lon_line_t shell =
             extract_lat_lon_line(l_arg->as_ptype(pseudo::geometry_string));
 
-        const datum_t result =
-            construct_geo_polygon(shell, env->env->limits());
+        const datum_t result = construct_geo_polygon(shell, env->env->limits());
         validate_geojson(result);
 
         return new_val(result);

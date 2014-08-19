@@ -190,11 +190,9 @@ private:
                         pair.reserve(2);
                         pair.push_back(datum_t(it->first));
                         pair.push_back(it->second);
-                        arr.push_back(datum_t(std::move(pair),
-                                                            env->env->limits()));
+                        arr.push_back(datum_t(std::move(pair), env->env->limits()));
                     }
-                    return new_val(datum_t(std::move(arr),
-                                                               env->env->limits()));
+                    return new_val(datum_t(std::move(arr), env->env->limits()));
                 }
 
                 // STR -> NUM
@@ -272,7 +270,7 @@ private:
         v.reserve(groups->size());
 
         iterate_ordered_by_version(
-            env->env->reql_version,
+            env->env->reql_version(),
             *groups,
             [&v](const datum_t &key, datum_t &value) {
                 r_sanity_check(key.has() && value.has());

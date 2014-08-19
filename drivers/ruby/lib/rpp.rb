@@ -29,7 +29,7 @@ module RethinkDB
         if not (pt.has_key?('data'))
           return false
         end
-        q.text("r.binary(<data>)")
+        q.text("<data>")
       else return false
       end
 
@@ -98,7 +98,7 @@ module RethinkDB
     end
 
     def self.can_prefix (name, args)
-      return !["db", "table", "funcall", "args", "branch"].include?(name)
+      return !["db", "table", "funcall", "args", "branch", "http", "binary"].include?(name)
     end
     def self.pp_int(q, term, bt, pre_dot=false)
       q.text("\x7", 0) if bt == []

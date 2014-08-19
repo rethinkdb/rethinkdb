@@ -50,9 +50,7 @@ private:
     threadnum_t thread;
 };
 
-class real_table_t :
-    public base_table_t
-{
+class real_table_t FINAL : public base_table_t {
 public:
     /* This doesn't automatically wait for readiness. */
     real_table_t(

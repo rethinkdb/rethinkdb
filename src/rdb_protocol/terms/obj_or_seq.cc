@@ -127,8 +127,7 @@ private:
         for (size_t i = 1; i < n; ++i) {
             paths.push_back(args->arg(env, i)->as_datum());
         }
-        pathspec_t pathspec(datum_t(std::move(paths),
-                                                        env->env->limits()), this);
+        pathspec_t pathspec(datum_t(std::move(paths), env->env->limits()), this);
         return new_val(project(obj, pathspec, DONT_RECURSE, env->env->limits()));
     }
     virtual const char *name() const { return "pluck"; }
@@ -149,8 +148,7 @@ private:
         for (size_t i = 1; i < n; ++i) {
             paths.push_back(args->arg(env, i)->as_datum());
         }
-        pathspec_t pathspec(datum_t(std::move(paths),
-                                                        env->env->limits()), this);
+        pathspec_t pathspec(datum_t(std::move(paths), env->env->limits()), this);
         return new_val(unproject(obj, pathspec, DONT_RECURSE, env->env->limits()));
     }
     virtual const char *name() const { return "without"; }
@@ -220,8 +218,7 @@ private:
         for (size_t i = 1; i < n; ++i) {
             paths.push_back(args->arg(env, i)->as_datum());
         }
-        pathspec_t pathspec(datum_t(std::move(paths),
-                                                        env->env->limits()), this);
+        pathspec_t pathspec(datum_t(std::move(paths), env->env->limits()), this);
         return new_val_bool(contains(obj, pathspec));
     }
     virtual const char *name() const { return "has_fields"; }

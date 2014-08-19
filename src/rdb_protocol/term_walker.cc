@@ -118,6 +118,7 @@ private:
         case Term::DATUM:
         case Term::MAKE_ARRAY:
         case Term::MAKE_OBJ:
+        case Term::BINARY:
         case Term::VAR:
         case Term::JAVASCRIPT:
         case Term::HTTP:
@@ -260,6 +261,7 @@ private:
         case Term::GET_INTERSECTING:
         case Term::FILL:
         case Term::GET_NEAREST:
+        case Term::UUID:
             return false;
         default: unreachable();
         }
@@ -303,6 +305,7 @@ private:
         case Term::DATUM:
         case Term::MAKE_ARRAY:
         case Term::MAKE_OBJ:
+        case Term::BINARY:
         case Term::VAR:
         case Term::JAVASCRIPT:
         case Term::HTTP:
@@ -441,6 +444,7 @@ private:
         case Term::GET_INTERSECTING:
         case Term::FILL:
         case Term::GET_NEAREST:
+        case Term::UUID:
             return false;
         default: unreachable();
         }

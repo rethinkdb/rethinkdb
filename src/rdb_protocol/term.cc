@@ -22,6 +22,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::DATUM:              return make_datum_term(t, limits);
     case Term::MAKE_ARRAY:         return make_make_array_term(env, t);
     case Term::MAKE_OBJ:           return make_make_obj_term(env, t);
+    case Term::BINARY:             return make_binary_term(env, t);
     case Term::VAR:                return make_var_term(env, t);
     case Term::JAVASCRIPT:         return make_javascript_term(env, t);
     case Term::HTTP:               return make_http_term(env, t);
@@ -181,6 +182,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::GET_INTERSECTING:   return make_get_intersecting_term(env, t);
     case Term::FILL:               return make_fill_term(env, t);
     case Term::GET_NEAREST:        return make_get_nearest_term(env, t);
+    case Term::UUID:               return make_uuid_term(env, t);
     default: unreachable();
     }
     unreachable();
@@ -251,8 +253,8 @@ void run(protob_t<Query> q,
                 res->set_type(Response::SUCCESS_ATOM);
                 datum_t d
                     = to_datum_for_client_serialization(std::move(*gd),
-                                                        env.reql_version,
-                                                        env.limits);
+                                                        env.reql_version(),
+                                                        env.limits());
                 d->write_to_protobuf(res->add_response(), use_json);
                 if (env.trace != nullptr) {
                     env.trace->as_datum()->write_to_protobuf(
@@ -270,7 +272,7 @@ void run(protob_t<Query> q,
                 } else {
                     stream_cache->insert(token,
                                          use_json,
-                                         env.global_optargs.get_all_optargs(),
+                                         env.get_all_optargs(),
                                          profile,
                                          seq);
                     bool b = stream_cache->serve(token, res, interruptor);

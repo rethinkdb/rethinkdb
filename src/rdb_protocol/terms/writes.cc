@@ -176,8 +176,8 @@ private:
         obj.add_warnings(conditions, env->env->limits());
         if (keys_skipped > 0) {
             obj.add_warning(strprintf("Too many generated keys (%zu), array truncated to %zu.",
-                              keys_skipped + generated_keys.size(),
-                              generated_keys.size()).c_str(), env->env->limits());
+                                      keys_skipped + generated_keys.size(),
+                                      generated_keys.size()).c_str(), env->env->limits());
         }
 
         return new_val(std::move(obj).to_datum());
@@ -234,7 +234,8 @@ private:
             datum_t replace_stats = tblrow.first->batched_replace(
                 env->env, vals, keys, f,
                 nondet_ok, durability_requirement, return_changes);
-            stats = stats->merge(replace_stats, stats_merge, env->env->limits(), &conditions);
+            stats = stats->merge(replace_stats, stats_merge, env->env->limits(),
+                                 &conditions);
         } else {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > tblrows
                 = v0->as_selection(env->env);
@@ -292,10 +293,12 @@ private:
                 try {
                     datum_t d = v->as_datum();
                     if (d->get_type() == datum_t::R_OBJECT) {
-                        stats = stats->merge(d, stats_merge, env->env->limits(), &conditions);
+                        stats = stats->merge(d, stats_merge, env->env->limits(),
+                                             &conditions);
                     } else {
                         for (size_t i = 0; i < d->size(); ++i) {
-                            stats = stats->merge(d->get(i), stats_merge, env->env->limits(), &conditions);
+                            stats = stats->merge(d->get(i), stats_merge, env->env->limits(),
+                                                 &conditions);
                         }
                     }
                 } catch (const exc_t &e) {

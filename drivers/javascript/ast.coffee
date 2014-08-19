@@ -336,6 +336,8 @@ class RDBVal extends TermBase
     minutes: (args...) -> new Minutes {}, @, args...
     seconds: (args...) -> new Seconds {}, @, args...
 
+    uuid: (args...) -> new UUID {}, @, args...
+
     getIntersecting: aropt (g, opts) -> new GetIntersecting opts, @, g
     getNearest: aropt (g, opts) -> new GetNearest opts, @, g
 
@@ -511,25 +513,32 @@ class Json extends RDBOp
     tt: protoTermType.JSON
     st: 'json'
 
-class Binary extends RDBVal
-    args: []
-    optargs: {}
+class Binary extends RDBOp
+    tt: protoTermType.BINARY
+    st: 'binary'
 
     constructor: (data) ->
-        self = super()
-
-        if data instanceof Buffer
+        if data instanceof TermBase
+            self = super({}, data)
+        else if data instanceof Buffer
+            self = super()
             self.base64_data = data.toString("base64")
         else
-            throw new TypeError("Parameter to `r.binary` must be a Buffer object.")
+            throw new TypeError("Parameter to `r.binary` must be a Buffer object or RQL query.")
 
         return self
 
     compose: ->
-        return 'r.binary(<data>)'
+        if @args.length == 0
+            'r.binary(<data>)'
+        else
+            super
 
     build: ->
-        { '$reql_type$': 'BINARY', 'data': @base64_data }
+        if @args.length == 0
+            { '$reql_type$': 'BINARY', 'data': @base64_data }
+        else
+            super
 
 class Args extends RDBOp
     tt: protoTermType.ARGS
@@ -1109,6 +1118,10 @@ class Fill extends RDBOp
     tt: protoTermType.FILL
     mt: 'fill'
 
+class UUID extends RDBOp
+    tt: protoTermType.UUID
+    st: 'uuid'
+
 
 # All top level exported functions
 
@@ -1248,6 +1261,8 @@ rethinkdb.polygon = (args...) -> new Polygon {}, args...
 rethinkdb.intersects = (args...) -> new Intersects {}, args...
 rethinkdb.distance = aropt (g1, g2, opts) -> new Distance opts, g1, g2
 rethinkdb.circle = aropt (cen, rad, opts) -> new Circle opts, cen, rad
+
+rethinkdb.uuid = (args...) -> new UUID {}, args...
 
 # Export all names defined on rethinkdb
 module.exports = rethinkdb

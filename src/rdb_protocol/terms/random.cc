@@ -61,8 +61,7 @@ public:
         std::random_shuffle(result.begin(), result.end());
 
         counted_t<datum_stream_t> new_ds(
-            new array_datum_stream_t(datum_t(std::move(result),
-                                                                 env->env->limits()),
+            new array_datum_stream_t(datum_t(std::move(result), env->env->limits()),
                                      backtrace()));
 
         return t.has() ? new_val(new_ds, t) : new_val(env->env, new_ds);
