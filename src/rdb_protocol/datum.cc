@@ -30,6 +30,10 @@ const std::set<std::string> datum_t::_allowed_pts = std::set<std::string>();
 
 const wire_string_t datum_t::reql_type_string("$reql_type$");
 
+const wire_string_t errors_field("errors");
+const wire_string_t first_error_field("first_error");
+const wire_string_t warnings_field("warnings");
+
 datum_t::data_wrapper_t::data_wrapper_t(const datum_t::data_wrapper_t &copyee) {
     assign_copy(copyee);
 }
@@ -1488,7 +1492,7 @@ void datum_object_builder_t::overwrite(const char *key,
 }
 
 void datum_object_builder_t::add_warning(const char *msg, const configured_limits_t &limits) {
-    datum_t *warnings_entry = &map[wire_string_t("warnings")];
+    datum_t *warnings_entry = &map[warnings_field];
     if (warnings_entry->has()) {
         const std::vector<datum_t> &array
             = (*warnings_entry)->as_array();
@@ -1511,7 +1515,7 @@ void datum_object_builder_t::add_warning(const char *msg, const configured_limit
 
 void datum_object_builder_t::add_warnings(const std::set<std::string> &msgs, const configured_limits_t &limits) {
     if (msgs.empty()) return;
-    datum_t *warnings_entry = &map[wire_string_t("warnings")];
+    datum_t *warnings_entry = &map[warnings_field];
     if (warnings_entry->has()) {
         const std::vector<datum_t> &array
             = (*warnings_entry)->as_array();
@@ -1543,14 +1547,13 @@ void datum_object_builder_t::add_warnings(const std::set<std::string> &msgs, con
 void datum_object_builder_t::add_error(const char *msg) {
     // Insert or update the "errors" entry.
     {
-        // TODO! Make these field names (errors, warning, etc) constants
-        datum_t *errors_entry = &map[wire_string_t("errors")];
+        datum_t *errors_entry = &map[errors_field];
         double ecount = (errors_entry->has() ? (*errors_entry)->as_num() : 0) + 1;
         *errors_entry = datum_t(ecount);
     }
 
     // If first_error already exists, nothing gets inserted.
-    map.insert(std::make_pair(wire_string_t("first_error"), datum_t(msg)));
+    map.insert(std::make_pair(first_error_field, datum_t(msg)));
 }
 
 MUST_USE bool datum_object_builder_t::delete_field(const wire_string_t &key) {
