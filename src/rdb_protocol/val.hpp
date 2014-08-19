@@ -222,7 +222,7 @@ public:
         return t;
     }
     int64_t as_int();
-    const wire_string_t &as_str();
+    wire_string_t as_str();
 
     std::string print() const;
     std::string trunc_print() const;

@@ -52,20 +52,27 @@ public:
         rassert(buf.has());
     }
     shared_buf_ref_t(shared_buf_ref_t &&movee) noexcept
-        : buf(std::move(movee.buf)), offset(movee.offset) { }
+        : buf(std::move(movee.buf)), offset(movee.offset) {
+        rassert(buf.has());
+    }
     shared_buf_ref_t(const shared_buf_ref_t &copyee) noexcept
-        : buf(copyee.buf), offset(copyee.offset) { }
+        : buf(copyee.buf), offset(copyee.offset) {
+        rassert(buf.has());
+    }
     shared_buf_ref_t &operator=(shared_buf_ref_t &&movee) noexcept {
         buf = std::move(movee.buf);
         offset = movee.offset;
+        rassert(buf.has());
         return *this;
     }
     shared_buf_ref_t &operator=(const shared_buf_ref_t &copyee) noexcept {
         buf = copyee.buf;
         offset = copyee.offset;
+        rassert(buf.has());
         return *this;
     }
     const char *get() const {
+        rassert(buf.has());
         return buf->data(offset);
     }
 private:

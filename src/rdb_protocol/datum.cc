@@ -82,8 +82,7 @@ datum_t::data_wrapper_t::data_wrapper_t(std::vector<datum_t> &&array) :
     type(R_ARRAY),
     r_array(new counted_std_vector_t<datum_t>(std::move(array))) { }
 
-datum_t::data_wrapper_t::data_wrapper_t(std::map<wire_string_t,
-                                                 datum_t> &&object) :
+datum_t::data_wrapper_t::data_wrapper_t(std::map<wire_string_t, datum_t> &&object) :
     type(R_OBJECT),
     r_object(new counted_std_map_t<wire_string_t, datum_t>(std::move(object))) { }
 
@@ -102,10 +101,10 @@ void datum_t::data_wrapper_t::destruct() {
         r_str.~wire_string_t();
     } break;
     case R_ARRAY: {
-        r_array.~counted_t();
+        r_array.~counted_t<counted_std_vector_t<datum_t> >();
     } break;
     case R_OBJECT: {
-        r_object.~counted_t();
+        r_object.~counted_t<counted_std_map_t<wire_string_t, datum_t> >();
     } break;
     default: unreachable();
     }
@@ -218,7 +217,7 @@ datum_t::~datum_t() {
 }
 
 bool datum_t::has() const {
-    return data.type == UNINITIALIZED;
+    return data.type != UNINITIALIZED;
 }
 
 void datum_t::reset() {
@@ -976,8 +975,7 @@ datum_t datum_t::get(size_t index, throw_bool_t throw_bool) const {
     }
 }
 
-datum_t datum_t::get_field(const wire_string_t &key,
-                                            throw_bool_t throw_bool) const {
+datum_t datum_t::get_field(const wire_string_t &key, throw_bool_t throw_bool) const {
     std::map<wire_string_t, datum_t>::const_iterator it
         = as_object().find(key);
     if (it != as_object().end()) return it->second;
@@ -988,8 +986,7 @@ datum_t datum_t::get_field(const wire_string_t &key,
     return datum_t();
 }
 
-datum_t datum_t::get_field(const char *key,
-                                            throw_bool_t throw_bool) const {
+datum_t datum_t::get_field(const char *key, throw_bool_t throw_bool) const {
     return get_field(wire_string_t(key), throw_bool);
 }
 

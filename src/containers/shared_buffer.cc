@@ -10,6 +10,7 @@ scoped_ptr_t<shared_buf_t> shared_buf_t::create(size_t size) {
     size_t memory_size = sizeof(shared_buf_t) + size - 1;
     void *raw_result = ::rmalloc(memory_size);
     shared_buf_t *result = static_cast<shared_buf_t *>(raw_result);
+    result->refcount_ = 0;
     return scoped_ptr_t<shared_buf_t>(result);
 }
 scoped_ptr_t<shared_buf_t> shared_buf_t::create_and_init(size_t size, const char *data) {
