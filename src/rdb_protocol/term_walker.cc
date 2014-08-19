@@ -118,6 +118,7 @@ private:
         case Term::DATUM:
         case Term::MAKE_ARRAY:
         case Term::MAKE_OBJ:
+        case Term::BINARY:
         case Term::VAR:
         case Term::JAVASCRIPT:
         case Term::HTTP:
@@ -291,6 +292,7 @@ private:
         case Term::DATUM:
         case Term::MAKE_ARRAY:
         case Term::MAKE_OBJ:
+        case Term::BINARY:
         case Term::VAR:
         case Term::JAVASCRIPT:
         case Term::HTTP:
