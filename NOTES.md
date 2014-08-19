@@ -1,4 +1,23 @@
-# Release 1.13.2 (My Name is Nobody)
+# Release 1.13.4 (My Name is Nobody)
+
+Released on 2014-08-14
+
+Bug fix update.
+
+* Resolved several memory leaks (#2899, #2840, #2744)
+* Added a `--temp-dir` option to `rethinkdb dump` and `rethinkdb restore` (#2783)
+* The `batchConf` argument to `run` now works in the JavaScript driver (#2707)
+* Fixed the `Accept-Encoding` header sent by `r.http` (#2695)
+* Improved the performance of inserting large objects from the JavaScript driver (#2641)
+* `cursor.close` now takes a callback in the JavaScript driver (#2591)
+* Fixed a bug that caused `illegal to destroy fifo_enforcer_sink_t` errors (#2264)
+* Fixed a bug that caused `Assertion failed: [!parent->draining.is_pulsed()]` errors (#2811)
+* Improved the error message when running into version incompatibilities (#2657)
+* Improved the garbage collection for `r.js` (#2642)
+
+--
+
+# Release 1.13.3 (My Name is Nobody)
 
 Released on 2014-07-07
 

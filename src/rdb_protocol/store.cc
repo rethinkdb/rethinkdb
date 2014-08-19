@@ -83,22 +83,24 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
     //  the moment (since we are still in the constructor), so things should complete
     //  rather quickly.
     cond_t dummy_interruptor;
-    read_token_pair_t token_pair;
-    new_read_token_pair(&token_pair);
+    write_token_pair_t token_pair;
+    store_view_t::new_write_token_pair(&token_pair);
 
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
-    acquire_superblock_for_read(&token_pair.main_read_token, &txn,
-                                &superblock, &dummy_interruptor, false);
+    acquire_superblock_for_write(repli_timestamp_t::distant_past,
+                                 1,
+                                 write_durability_t::SOFT,
+                                 &token_pair,
+                                 &txn,
+                                 &superblock,
+                                 &dummy_interruptor);
 
     buf_lock_t sindex_block
-        = acquire_sindex_block_for_read(superblock->expose_buf(),
+        = acquire_sindex_block_for_write(superblock->expose_buf(),
                                         superblock->get_sindex_block_id());
 
     superblock.reset();
-
-    std::map<sindex_name_t, secondary_index_t> sindexes;
-    get_secondary_indexes(&sindex_block, &sindexes);
 
     struct sindex_clearer_t {
         static void clear(store_t *store,
@@ -123,15 +125,34 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
         }
     };
 
+    // Get the map of indexes and check if any were postconstructing
+    // Drop these and recreate them (see github issue #2925)
     std::set<sindex_name_t> sindexes_to_update;
-    for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-        if (it->second.being_deleted) {
-            // Finish deleting the index
-            coro_t::spawn_sometime(std::bind(&sindex_clearer_t::clear,
-                                             this, it->second, drainer.lock()));
-        } else if (!it->second.post_construction_complete) {
-            // Complete post constructing the index
-            sindexes_to_update.insert(it->first);
+    {
+        std::map<sindex_name_t, secondary_index_t> sindexes;
+        get_secondary_indexes(&sindex_block, &sindexes);
+        for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
+            if (!it->second.being_deleted && !it->second.post_construction_complete) {
+                bool success = mark_secondary_index_deleted(&sindex_block, it->first);
+                guarantee(success);
+
+                success = add_sindex(it->first, it->second.opaque_definition, &sindex_block);
+                guarantee(success);
+                sindexes_to_update.insert(it->first);
+            }
+        }
+    }
+
+    // Get the new map of indexes, now that we're deleting the old postconstructing ones
+    // Kick off coroutines to finish deleting all indexes that are being deleted
+    {
+        std::map<sindex_name_t, secondary_index_t> sindexes;
+        get_secondary_indexes(&sindex_block, &sindexes);
+        for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
+            if (it->second.being_deleted) {
+                coro_t::spawn_sometime(std::bind(&sindex_clearer_t::clear,
+                                                 this, it->second, drainer.lock()));
+            }
         }
     }
 
