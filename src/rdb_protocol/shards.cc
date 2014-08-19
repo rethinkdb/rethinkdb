@@ -221,11 +221,11 @@ private:
                     size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
                     strprintf("Grouped data over size limit `%zu`.  "
                               "Try putting a reduction (like `.reduce` or `.count`) "
-                              "on the end.", env->limits.array_size_limit()).c_str());
+                              "on the end.", env->limits().array_size_limit()).c_str());
             } else {
                 rcheck_toplevel(
                     size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
-                    strprintf("Array over size limit `%zu`.", env->limits.array_size_limit()).c_str());
+                    strprintf("Array over size limit `%zu`.", env->limits().array_size_limit()).c_str());
             }
             lst1->reserve(lst1->size() + lst2->size());
             std::move(lst2->begin(), lst2->end(), std::back_inserter(*lst1));
@@ -250,11 +250,11 @@ private:
                     size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
                     strprintf("Grouped data over size limit `%zu`.  "
                               "Try putting a reduction (like `.reduce` or `.count`) "
-                              "on the end.", env->limits.array_size_limit()).c_str());
+                              "on the end.", env->limits().array_size_limit()).c_str());
             } else {
                 rcheck_toplevel(
                     size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
-                    strprintf("Array over size limit `%zu`.", env->limits.array_size_limit()).c_str());
+                    strprintf("Array over size limit `%zu`.", env->limits().array_size_limit()).c_str());
             }
 
             for (auto it = stream->begin(); it != stream->end(); ++it) {
