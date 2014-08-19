@@ -196,12 +196,12 @@ scoped_ptr_t<accumulator_t> make_append(const sorting_t &sorting, batcher_t *bat
     return make_scoped<append_t>(sorting, batcher);
 }
 
-bool is_grouped_data(const groups_t *gs) {
-    return gs->size() >1;
+bool is_grouped_data(const groups_t *gs, const counted_t<const ql::datum_t> &q) {
+    return gs->size() > 1 || q.has();
 }
 
-bool is_grouped_data(grouped_t<stream_t> *streams) {
-    return streams->size() > 1;
+bool is_grouped_data(grouped_t<stream_t> *streams, const counted_t<const ql::datum_t> &q) {
+    return streams->size() > 1 || q.has();
 }
 
 // This can't be a normal terminal because it wouldn't preserve ordering.
@@ -216,7 +216,7 @@ private:
             datums_t *lst1 = &groups[kv->first];
             datums_t *lst2 = &kv->second;
             size += lst2->size();
-            if (is_grouped_data(gs)) {
+            if (is_grouped_data(gs, kv->first)) {
                 rcheck_toplevel(
                     size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
                     strprintf("Grouped data over size limit `%zu`.  "
@@ -245,7 +245,7 @@ private:
             datums_t *lst = &groups[kv->first];
             stream_t *stream = &kv->second;
             size += stream->size();
-            if (is_grouped_data(streams)) {
+            if (is_grouped_data(streams, kv->first)) {
                 rcheck_toplevel(
                     size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
                     strprintf("Grouped data over size limit `%zu`.  "
