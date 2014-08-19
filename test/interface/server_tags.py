@@ -51,7 +51,7 @@ with driver.Metacluster() as metacluster:
 
     print "Checking changing tags locally..."
     r.db("rethinkdb").table("server_config") \
-     .get("a").update({"tags": r.literal(["baz"])}) \
+     .get("a").update({"tags": ["baz"]}) \
      .run(reql_conn1)
     check_tags("a", ["baz"])
     check_tags("b", ["default", "foo", "bar"])
@@ -59,7 +59,7 @@ with driver.Metacluster() as metacluster:
 
     print "Checking changing tags remotely..."
     r.db("rethinkdb").table("server_config") \
-     .get("b").update({"tags": r.literal(["quz"])}) \
+     .get("b").update({"tags": ["quz"]}) \
      .run(reql_conn1)
     check_tags("a", ["baz"])
     check_tags("b", ["quz"])
@@ -68,7 +68,7 @@ with driver.Metacluster() as metacluster:
     print "Checking that invalid tags are rejected..."
     try:
         r.db("rethinkdb").table("server_config") \
-         .get("a").update({"tags": r.literal([":)"])}) \
+         .get("a").update({"tags": [":)"]}) \
          .run(reql_conn1)
     except r.RqlRuntimeError:
         pass
