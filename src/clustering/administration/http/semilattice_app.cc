@@ -8,7 +8,6 @@
 #include "http/http.hpp"
 #include "clustering/administration/http/json_adapters.hpp"
 #include "clustering/administration/http/semilattice_app.hpp"
-#include "clustering/administration/suggester.hpp"
 #include "stl_utils.hpp"
 
 template <class metadata_t>
