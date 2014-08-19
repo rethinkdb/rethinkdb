@@ -358,6 +358,19 @@ tests:
         binary_format: '"raw"'
       ot: ({'$reql_type$':'BINARY','data':'AAE='})
 
+    # Test r.binary of nested terms
+    - cd: r.binary(r.expr("data"))
+      ot:
+        js: Buffer("data", "binary")
+        rb: ("data")
+        py: (b"data")
+
+    - cd: r.binary(r.expr({}))
+      ot: err('RqlRuntimeError', 'Expected type STRING but found OBJECT.', [])
+
+    - cd: r.binary(r.expr([]))
+      ot: err('RqlRuntimeError', 'Expected type STRING but found ARRAY.', [])
+
     # Test errors
     # Missing 'data' field
     - py: r.expr({'$reql_type$':'BINARY'})
@@ -371,18 +384,6 @@ tests:
       ot: err('RqlRuntimeError','Invalid base64 character found:'+' \'^\'.',[])
     - py: r.expr({'$reql_type$':'BINARY','data':'ABCDE'})
       ot: err('RqlRuntimeError','Invalid base64 length:'+' 1 character remaining, cannot decode a full byte.',[])
-    # Invalid arity
-    - rb: r.binary('abc','def')
-      py: r.binary(b'abc',b'def')
-      js: r.binary(Buffer(0), Buffer(0))
-      ot:
-        py: err('TypeError','binary() takes exactly 1 argument (2 given)')
-        py3: err('TypeError','binary() takes 1 positional argument but 2 were given')
-        py3.0: err('TypeError','binary() takes exactly 1 positional argument (2 given)')
-        py3.1: err('TypeError','binary() takes exactly 1 positional argument (2 given)')
-        py3.2: err('TypeError','binary() takes exactly 1 positional argument (2 given)')
-        rb: err('ArgumentError','wrong number of arguments (2 for 1)',[])
-        js: err('RqlDriverError','Expected 1 argument but found 2.',[])
     # Invalid coercions
     - rb: r.binary('a').coerce_to('array')
       ot: err('RqlRuntimeError','Cannot coerce BINARY to ARRAY.',[])
