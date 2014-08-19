@@ -113,19 +113,17 @@ bool server_config_artificial_table_backend_t::write_row(
     name_string_t server_name;
     machine_id_t machine_id;
     machine_semilattice_metadata_t *server_sl;
-    if (!lookup(primary_key, &servers_sl, &server_name, &machine_id, &server_sl)) {
-        if (!new_value.has()) {
-            /* We're deleting a row that already didn't exist. Okay. */
-            return true;
-        } else {
-            *error_out = "It's illegal to insert new rows into the "
-                "`rethinkdb.server_config` artificial table.";
-            return false;
-        }
-    } else if (!new_value.has()) {
+    if (!new_value.has()) {
+        /* We give this error even if the row didn't already exist. This is a little
+        strange but unlikely to happen in practice. */
         *error_out = "It's illegal to delete rows from the `rethinkdb.server_config` "
             "artificial table. If you want to permanently remove a server, use "
             "r.server_permanently_remove().";
+        return false;
+    }
+    if (!lookup(primary_key, &servers_sl, &server_name, &machine_id, &server_sl)) {
+        *error_out = "It's illegal to insert new rows into the "
+            "`rethinkdb.server_config` artificial table.";
         return false;
     }
     name_string_t new_server_name;
