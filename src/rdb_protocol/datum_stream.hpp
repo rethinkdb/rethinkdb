@@ -354,6 +354,13 @@ private:
     const std::string sindex;
 };
 
+struct readspec_t {
+    std::string index;
+    bool is_primary() { return index == ""; }
+    key_range_t range;
+    std::vector<transform_variant_t> transforms;
+};
+
 class reader_t {
 public:
     explicit reader_t(

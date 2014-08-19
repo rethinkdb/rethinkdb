@@ -132,7 +132,6 @@ private:
         if (v0->get_type().is_convertible(val_t::type_t::TABLE_SLICE)) {
             tbl_slice = v0->as_table_slice();
         } else if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
-            // RSI: should selections use table slices?
             auto selection = v0->as_selection(env->env);
             tbl_slice = make_counted<table_slice_t>(selection->table);
             seq = selection->seq;

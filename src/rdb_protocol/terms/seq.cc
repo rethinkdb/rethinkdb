@@ -292,18 +292,26 @@ private:
             return new_val(env->env,
                 tbl->table->read_all_changes(
                     env->env, backtrace(), tbl->display_name()));
+        } else if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
+            counted_t<selection_t> selection = v->as_selection(env->env);
+            counted_t<table_t> tbl = selection->table;
+            counted_t<datum_stream_t> seq = selection->seq;
+            return new_val(
+                env->env,
+                tbl->table->read_changes(
+                    env->env, seq->get_spec(), backtrace(), tbl->display_name()));
         } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
-            // RIS: fix this!
-            /*
+            // RSI: This needs to support extreme selections
             auto single_selection = v->as_single_selection();
             counted_t<table_t> tbl = single_selection->get_tbl();
-            counted_t<const datum_t> val = single_selection->seq;
+            counted_t<const datum_t> val = single_selection->get();
+            counted_t<const datum_t> key = val->get(tbl->get_pkey(), NOTHROW);
+            r_sanity_check(key.has());
 
-            counted_t<const datum_t> key; // = v->get_orig_key();
-            return new_val(env->env,
+            return new_val(
+                env->env,
                 tbl->table->read_row_changes(
                     env->env, key, backtrace(), tbl->display_name()));
-            */
         }
         auto selection = v->as_selection(env->env);
         rfail(base_exc_t::GENERIC,
@@ -312,13 +320,13 @@ private:
     virtual const char *name() const { return "changes"; }
 };
 
-// TODO: this sucks.  Change to use the same macros as rewrites.hpp?
 class between_term_t : public bounded_op_term_t {
 public:
     between_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : bounded_op_term_t(env, term, argspec_t(3), optargspec_t({"index"})) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual counted_t<val_t>
+    eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_slice_t> tbl_slice = args->arg(env, 0)->as_table_slice();
         bool left_open = is_left_open(env, args);
         counted_t<const datum_t> lb = args->arg(env, 1)->as_datum();
