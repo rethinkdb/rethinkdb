@@ -34,6 +34,10 @@ datum_t::data_wrapper_t::data_wrapper_t(const datum_t::data_wrapper_t &copyee) {
     assign_copy(copyee);
 }
 
+datum_t::data_wrapper_t::data_wrapper_t(datum_t::data_wrapper_t &&movee) noexcept {
+    assign_move(std::move(movee));
+}
+
 datum_t::data_wrapper_t &datum_t::data_wrapper_t::operator=(
         const datum_t::data_wrapper_t &copyee) {
     // Create a temporary copy to keep counted values alive, in case
@@ -131,6 +135,33 @@ void datum_t::data_wrapper_t::assign_copy(const datum_t::data_wrapper_t &copyee)
     case R_OBJECT: {
         new(&r_object) counted_t<counted_std_map_t<wire_string_t, datum_t> >(
             copyee.r_object);
+    } break;
+    default: unreachable();
+    }
+}
+
+void datum_t::data_wrapper_t::assign_move(datum_t::data_wrapper_t &&movee) noexcept {
+    type = movee.type;
+    switch (type) {
+    case UNINITIALIZED: // fallthru
+    case R_NULL: break;
+    case R_BOOL: {
+        r_bool = movee.r_bool;
+    } break;
+    case R_NUM: {
+        r_num = movee.r_num;
+    } break;
+    case R_BINARY: // fallthru
+    case R_STR: {
+        new(&r_str) wire_string_t(std::move(movee.r_str));
+    } break;
+    case R_ARRAY: {
+        new(&r_array) counted_t<counted_std_vector_t<datum_t> >(
+            std::move(movee.r_array));
+    } break;
+    case R_OBJECT: {
+        new(&r_object) counted_t<counted_std_map_t<wire_string_t, datum_t> >(
+            std::move(movee.r_object));
     } break;
     default: unreachable();
     }

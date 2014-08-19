@@ -84,7 +84,7 @@ public:
 
     static datum_t empty_array();
     static datum_t empty_object();
-    // Constructs a pointer to an R_NULL datum.
+    // Constructs an an R_NULL datum.
     static datum_t null();
     static datum_t boolean(bool value);
     static datum_t binary(wire_string_t &&value);
@@ -297,7 +297,7 @@ private:
     public:
         data_wrapper_t(const data_wrapper_t &copyee);
         data_wrapper_t &operator=(const data_wrapper_t &copyee);
-        // TODO: Add move constructor and assignment to this and datum_t
+        data_wrapper_t(data_wrapper_t &&movee) noexcept;
 
         // Mirror the same constructors of datum_t
         data_wrapper_t();
@@ -324,6 +324,7 @@ private:
         };
     private:
         void assign_copy(const data_wrapper_t &copyee);
+        void assign_move(data_wrapper_t &&movee) noexcept;
         void destruct();
     } data;
 
