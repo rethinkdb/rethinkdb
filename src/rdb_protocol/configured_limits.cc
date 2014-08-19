@@ -15,7 +15,10 @@ from_optargs(rdb_context_t *ctx, signal_t *interruptor, global_optargs_t *argume
         // infinite loop.
         env_t env(ctx, interruptor, std::map<std::string, wire_func_t>(),
                   nullptr);
-        return configured_limits_t(arguments->get_optarg(&env, "array_limit")->as_int());
+        int64_t limit = arguments->get_optarg(&env, "array_limit")->as_int();
+        rcheck_datum(limit > 1, base_exc_t::GENERIC,
+                     strprintf("Illegal array size limit `%ld`.", limit));
+        return configured_limits_t(limit);
     } else {
         return configured_limits_t();
     }
