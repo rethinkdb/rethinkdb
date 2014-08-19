@@ -92,11 +92,11 @@ bool convert_set_from_datum(
         if (!conv(datum->get(i), &value, error_out)) {
             return false;
         }
-        if (!allow_duplicates && set_out->count(value) == 1) {
+        auto res = set_out->insert(value);
+        if (!allow_duplicates && !res.second) {
             *error_out = datum->get(i)->print() + " was specified more than once.";
             return false;
         }
-        set_out->insert(value);
     }
     return true;
 }
