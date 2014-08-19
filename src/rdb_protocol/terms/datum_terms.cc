@@ -106,6 +106,26 @@ private:
     DISABLE_COPYING(make_obj_term_t);
 };
 
+class binary_term_t : public op_term_t {
+public:
+    binary_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(1, 1)) { }
+private:
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<val_t> arg = args->arg(env, 0);
+        counted_t<const datum_t> datum_arg = arg->as_datum();
+
+        if (datum_arg->get_type() == datum_t::type_t::R_BINARY) {
+            return arg;
+        }
+
+        const wire_string_t &datum_str = datum_arg->as_str();
+        return new_val(datum_t::binary(wire_string_t::create_and_init(datum_str.size(),
+                                                                      datum_str.data())));
+    }
+    virtual const char *name() const { return "binary"; }
+};
+
 counted_t<term_t> make_datum_term(const protob_t<const Term> &term,
                                   const configured_limits_t &limits) {
     return make_counted<datum_term_t>(term, limits);
@@ -119,6 +139,9 @@ counted_t<term_t> make_make_array_term(compile_env_t *env, const protob_t<const 
 }
 counted_t<term_t> make_make_obj_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<make_obj_term_t>(env, term);
+}
+counted_t<term_t> make_binary_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<binary_term_t>(env, term);
 }
 
 } // namespace ql

@@ -657,7 +657,7 @@ message Term {
         ARGS = 154; // ARRAY -> SPECIAL (used to splice arguments)
 
         // BINARY is client-only at the moment, it is not supported on the server
-        // BINARY = 155; // STRING -> PSEUDOTYPE(BINARY)
+        BINARY = 155; // STRING -> PSEUDOTYPE(BINARY)
 
         GEOJSON = 157;           // OBJECT -> PSEUDOTYPE(GEOMETRY)
         TO_GEOJSON = 158;        // PSEUDOTYPE(GEOMETRY) -> OBJECT
