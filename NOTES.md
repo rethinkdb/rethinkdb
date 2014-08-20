@@ -5,7 +5,7 @@ Released on 2014-08-20
 The highlights of this release are:
 
 * Support for storing binary data
-* Automatic database migration
+* Seamless database migration
 * Support for Python 3
 
 ## Compatibility ##
@@ -18,16 +18,17 @@ than 1.13.0, follow the migration instructions before upgrading:
 http://rethinkdb.com/docs/migration/
 
 Secondary indexes now use a new format. Old indexes will continue to work, but
-you should rebuild your index before updating to the next version of
-RethinkDB. A warning about outdated indexes will be issued on startup. Indexes
-can be migrated to the new format with the `rethinkdb index-rebuild` utility.
-Consult the troubleshooting document for more information.
+you should rebuild indexes after upgrading to 1.14.x. A warning about outdated
+indexes will be issued on startup. Indexes can be migrated to the new format
+with the `rethinkdb index-rebuild` utility. Consult the troubleshooting
+document for more information.
 
 http://rethinkdb.com/docs/troubleshooting#my-secondary-index-is-outdated
 
 The `return_vals` optional argument for `insert`, `delete` and `update` has
-been changed to `return_changes`, and the returned object is in a new format
-that is backwards-incompatible with previous versions. Consult the API
+been changed to `return_changes`, and works with all write operations (not
+just single-document writes as previously). The returned object is in a new
+format that is backwards-incompatible with previous versions. Consult the API
 documentation for more information.
 
 The `upsert` optional argument to `insert` has been replaced with `conflict`
@@ -38,9 +39,9 @@ information.
 ## New features ##
 
 * Server
-  * Return all old/new values for multi-row insert/updates (#1382)
+  * Return old/new values for multi-row write operations (#1382)
   * `upsert` replaced with `conflict` argument (#1838)
-  * Binary data type support (#2612, #2931)
+  * Binary data type support (#137, #2612, #2931)
   * `binary_format="raw"` added (#2762)
   * Secondary indexes can be renamed (#2794)
   * Secondary indexes can be duplicated (#2797)
@@ -48,22 +49,29 @@ information.
   * `r.http` can return binary format (#2806)
 * Python driver
   * Python 3 support (#2502)
+* Data explorer
+  * Support for printing binary types (#2804, #2865)
 
 ## Improvements ##
 
 * Server
-  * Server names default to hostname, not random name (#236)
+  * Server names default to hostname, not random name (#236, #2548)
   * `distinct` is faster and now works on indexes (#1864)
   * Improve secondary index queue handling (#1947)
   * The array limit is now configurable (#2059)
   * Allow initializing an empty directory (#2359)
-  * Max number of extprocs raised (#2391)
+  * Max number of extprocs raised (#2391, #2584)
   * Argument count errors are prettier (#2568)
+  * Better error reporting in `r.js` (#2748)
   * `index_status` provides more info (#2791)
 * Command line
-  * Table names in the CLI are disambiguated (#2360)
+  * Table names in the CLI are disambiguated (#2360, #2550)
 * Python driver
   * Cleanup unneeded files (#2610)
+  * Examples made PEP8 compliant (#2534, #2548)
+* Testing
+  * Polyglot targets for Ruby 1.8, 1.9, 2.0, 2.1 (#773)
+  * Can test multiple Python versions simultaneously
 
 ## Fixed bugs ##
 
@@ -72,31 +80,42 @@ information.
   * Write acks improved (#2039)
   * fix getaddrinfo error handling (#2110)
   * Fix a bug with machine name generation (#2552, #2569)
+  * Fix a bug compiling on gcc 4.7.2 (#2572)
   * Fix memory corruption error (#2589)
   * Fix stream cache error (#2607)
   * Fix linking issue with RE2 (#2685)
-  * insert/splice now check array size limit (#2697)
-  * Fix error in undocumented `batch_conf` option (#2709)
+  * Miscellaneous build fixes (#2666, #2827)
   * Fix rare conflict bug in cluster config (#2738)
   * Fix variable initialization error (#2741)
   * Fix bug in RPCSemilatticeTest.MetadataExchange (#2758)
   * Changefeeds work on multiple joined servers (#2761)
   * Secondary index functions ignore global optargs (#2767)
+  * Secondary indexes sort correctly (#2774, #2789)
+  * Fix crashing bug with undefined ordering (#2777)
   * Fix dependency includes in Makefile (#2779)
-  * Secondary indexes sort correctly (#2789)
+  * Convert query_params to a map (#2812)
+  * Convert header_lines into a map (#2818)
   * Improve robustness with big documents (#2832)
+  * Wipe out old secondary index tree when post-constructing (#2925)
+* ReQL
+  * Fix a bug in `delete_at` (#2696)
+  * insert/splice now check array size limit (#2697)
+  * Fix error in undocumented `batch_conf` option (#2709)
 * Web UI
-  * Make interval notation for infinity pedantically correct (#2081)
+  * Make interval notation for infinity pedantically correct (#2081, #2635)
   * Data Explorer keeps current query on disconnects (#2460)
   * Fix to text typeahead (#2593)
 * Testing
   * Chain callbacks in JS http tests (#2396)
-  * Do not create zombies (#2583)
+  * Create fewer zombies (#2583)
+  * Misc. testing improvements (#2760, #2788, #2795, #2837)
   * Fix hard-coding of directory paths in Ruby test script (#2787)
   * Update testing scripts for drivers (#2815)
 * Python driver
-  * Fix documentation bug (#2626)
   * Make `all` and `any` behave like `and_` and `or_` (#2659)
+  * Use `os.path.splitext` to check file extensions (#2681)
+* Javascript driver
+  * Return errors rather than throw them (#2852, #2883)
 
 ## Contributors ##
 
@@ -106,6 +125,10 @@ us ship RethinkDB 1.14. In no particular order:
 * James Costian (@jamescostian)
 * Ed Rooth (@sym3tri)
 * Cole Gleason (@colegleason)
+* Mikhail Goncharov (@metaflow)
+* Elian Gidoni (@eliangidoni)
+* Ivan Fraixedes (@ifraixedes)
+* @grandquista
 
 --
 
