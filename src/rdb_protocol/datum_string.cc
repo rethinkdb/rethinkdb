@@ -44,9 +44,7 @@ void datum_string_t::init(size_t _size, const char *_data) {
     const size_t str_offset = varint_uint64_serialized_size(_size);
     scoped_ptr_t<shared_buf_t> data = shared_buf_t::create(str_offset + _size);
     serialize_varint_uint64_into_buf(_size, reinterpret_cast<uint8_t *>(data->data()));
-    if (_size > 0) {
-        memcpy(data->data() + str_offset, _data, _size);
-    }
+    memcpy(data->data() + str_offset, _data, _size);
     data_ = shared_buf_ref_t<char>(counted_t<shared_buf_t>(data.release()), 0);
 }
 
