@@ -18,12 +18,15 @@ bool calculate_split_points_with_distribution(
         real_reql_cluster_interface_t *reql_cluster_interface,
         int num_shards,
         signal_t *interruptor,
-        std::vector<store_key_t> *split_points_out);
+        std::vector<store_key_t> *split_points_out,
+        std::string *error_out);
 
 /* `calculate_split_points_by_estimation` generates a set of split points on the
 assumption that the given previous set of split points is evenly distributed. If the new
 requested number of shards is different from the previous number of shards, it will use
 interpolation. */
+/* RSI(reql_admin): This isn't currently used anywhere, but it will be used once #2895 is
+fixed. See comments in `generate_config.cc`. */
 void calculate_split_points_by_estimation(
         int num_shards,
         const std::vector<store_key_t> &old_split_points,

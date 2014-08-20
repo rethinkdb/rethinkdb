@@ -240,24 +240,44 @@ bool table_generate_config(
     config_out->shards.resize(params.num_shards);
 
     /* Decide on the split points for the new config */
+    /* RSI(reql_admin): When #2895 is fixed, this logic won't go in
+    `table_generate_config()` anymore, because the split points won't be stored in the
+    config. */
     std::vector<store_key_t> split_points;
     if (table_id != nil_uuid()) {
-        if (!calculate_split_points_with_distribution(table_id, reql_cluster_interface,
-                params.num_shards, interruptor, &split_points)) {
-            /* RSI(reql_admin): Use previous split points to refine estimate */
-            calculate_split_points_by_estimation(params.num_shards,
-                std::vector<store_key_t>(), &split_points);
+        /* RSI(reql_admin): If `num_shards` is the same as the number of shards that the
+        table had before, we should just use the old split points. If `num_shards` is
+        fewer, we should use `calculate_split_points_by_estimation()` to pick new split
+        points on the assumption that the old distribution is reasonable. Only in the
+        case where the user is increasing the number of shards do we need to run a
+        distribution query. This RSI should be fixed as part of #2895 because it will be
+        easier to access the old split points when #2895 is fixed. As a stop-gap measure,
+        we special-case the situation of having exactly one shard. */
+        if (params.num_shards != 1) {
+            if (!calculate_split_points_with_distribution(
+                    table_id,
+                    reql_cluster_interface,
+                    params.num_shards,
+                    interruptor,
+                    &split_points,
+                    error_out)) {
+                *error_out += " Try creating fewer shards; if you don't increase the "
+                    "number of shards, it won't be necessary to calculate new balanced "
+                    "shards.";
+                return false;
+            }
         }
     } else {
-        calculate_split_points_by_estimation(params.num_shards,
-            std::vector<store_key_t>(), &split_points);
+        if (params.num_shards != 1) {
+            *error_out = "Can't choose meaningful split points for a table that doesn't "
+                "exist yet.";
+            return false;
+        }
     }
     for (int i = 0; i < params.num_shards-1; ++i) {
         config_out->shards[i].split_point =
             boost::optional<store_key_t>(split_points[i]);
     }
-
-    /* RSI: Make sure that there are enough servers available */
 
     /* Finally, fill in the servers */
     for (auto it = params.num_replicas.begin(); it != params.num_replicas.end(); ++it) {

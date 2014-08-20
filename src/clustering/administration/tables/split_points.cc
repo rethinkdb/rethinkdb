@@ -91,7 +91,8 @@ bool calculate_split_points_with_distribution(
         real_reql_cluster_interface_t *reql_cluster_interface,
         int num_shards,
         signal_t *interruptor,
-        std::vector<store_key_t> *split_points_out) {
+        std::vector<store_key_t> *split_points_out,
+        std::string *error_out) {
     namespace_interface_access_t ns_if_access =
         reql_cluster_interface->get_namespace_repo()->get_namespace_interface(
             table_id, interruptor);
@@ -100,7 +101,13 @@ bool calculate_split_points_with_distribution(
     distribution_read_t inner_read(depth, limit);
     read_t read(inner_read, profile_bool_t::DONT_PROFILE);
     read_response_t resp;
-    ns_if_access.get()->read_outdated(read, &resp, interruptor);
+    try {
+        ns_if_access.get()->read_outdated(read, &resp, interruptor);
+    } catch (cannot_perform_query_exc_t) {
+        *error_out = "Cannot calculate balanced shards because the table isn't "
+            "currently available for reading.";
+        return false;
+    }
 
     const std::map<store_key_t, int64_t> &counts =
         boost::get<distribution_read_response_t>(resp.response).key_counts;
@@ -112,7 +119,9 @@ bool calculate_split_points_with_distribution(
         }
         total_count += pair.second;
     }
-    if (pairs.empty()) {
+    if (pairs.size() < static_cast<size_t>(num_shards)) {
+        *error_out = strprintf("There isn't enough data in the table to create %d "
+            "balanced shards.", num_shards);
         return false;
     }
 

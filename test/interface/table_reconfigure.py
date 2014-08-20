@@ -37,6 +37,9 @@ with driver.Metacluster() as metacluster:
     r.db_create("test").run(conn)
     r.table_create("foo").run(conn)
 
+    # Insert some data so distribution queries can work
+    r.table("foo").insert([{"x":x} for x in xrange(100)]).run(conn)
+
     # Generate many configurations using `dry_run=True` and check to make sure they
     # satisfy the constraints
     def test_reconfigure(num_shards, num_replicas, director_tag):

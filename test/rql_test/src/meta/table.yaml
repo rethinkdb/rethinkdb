@@ -125,6 +125,15 @@ tests:
 
     - cd: db.table('a').reconfigure(2, 1)
       ot: >
+          err('RqlRuntimeError', 'There isn\'t enough data in the table to create 2
+          balanced shards. Try creating fewer shards; if you don\'t increase the number
+          of shards, it won\'t be necessary to calculate new balanced shards.', [])
+
+    # Insert some data so that `reconfigure()` can pick shard points
+    - cd: db.table('a').insert([{"id":1},{"id":2},{"id":3},{"id":4}])
+
+    - cd: db.table('a').reconfigure(2, 1)
+      ot: >
           err('RqlRuntimeError', 'You requested 2 shards, but there are only 1 servers
           with the tag `default`. reconfigure() requires at least as many servers with
           each tag as there are shards, so that it can distribute the shards across
