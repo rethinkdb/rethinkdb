@@ -1304,31 +1304,39 @@ class RqlBinary(bytes):
 
 class Binary(RqlTopLevelQuery):
     # Note: this term isn't actually serialized, it should exist only in the client
-    tt = None
+    tt = pTerm.BINARY
     st = 'binary'
 
     def __init__(self, data):
         # We only allow 'bytes' objects to be serialized as binary
         # Python 2 - `bytes` is equivalent to `str`, either will be accepted
         # Python 3 - `unicode` is equivalent to `str`, neither will be accepted
-        if isinstance(data, unicode):
+        if isinstance(data, RqlQuery):
+            RqlTopLevelQuery.__init__(self, data)
+        elif isinstance(data, unicode):
             raise RqlDriverError("Cannot convert a unicode string to binary, " \
                                  "use `unicode.encode()` to specify the encoding.")
         elif not isinstance(data, bytes):
             raise RqlDriverError("Cannot convert %s to binary, convert the object " \
                                  "to a `bytes` object first." % type(data).__name__)
+        else:
+            self.base64_data = base64.b64encode(data)
 
-        self.base64_data = base64.b64encode(data)
-
-        # Kind of a hack to get around composing
-        self.args = []
-        self.optargs = {}
+            # Kind of a hack to get around composing
+            self.args = []
+            self.optargs = {}
 
     def compose(self, args, optargs):
-        return T('r.', self.st, '(bytes(<data>))')
+        if len(self.args) == 0:
+            return T('r.', self.st, '(bytes(<data>))')
+        else:
+            return RqlTopLevelQuery.compose(self, args, optargs)
         
     def build(self):
-        return { '$reql_type$': 'BINARY', 'data': self.base64_data.decode('utf-8') }
+        if len(self.args) == 0:
+            return { '$reql_type$': 'BINARY', 'data': self.base64_data.decode('utf-8') }
+        else:
+            return RqlTopLevelQuery.build(self)
 
 class ToISO8601(RqlMethodQuery):
     tt = pTerm.TO_ISO8601

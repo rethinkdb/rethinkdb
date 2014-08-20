@@ -96,7 +96,7 @@ batchspec_t batchspec_t::all() {
 }
 
 batchspec_t batchspec_t::user(batch_type_t batch_type, env_t *env) {
-    counted_t<val_t> v = env->global_optargs.get_optarg(env, "batch_conf");
+    counted_t<val_t> v = env->get_optarg(env, "batch_conf");
     return user(batch_type, v.has() ? v->as_datum() : counted_t<const datum_t>());
 }
 

@@ -513,25 +513,32 @@ class Json extends RDBOp
     tt: protoTermType.JSON
     st: 'json'
 
-class Binary extends RDBVal
-    args: []
-    optargs: {}
+class Binary extends RDBOp
+    tt: protoTermType.BINARY
+    st: 'binary'
 
     constructor: (data) ->
-        self = super()
-
-        if data instanceof Buffer
+        if data instanceof TermBase
+            self = super({}, data)
+        else if data instanceof Buffer
+            self = super()
             self.base64_data = data.toString("base64")
         else
-            throw new TypeError("Parameter to `r.binary` must be a Buffer object.")
+            throw new TypeError("Parameter to `r.binary` must be a Buffer object or RQL query.")
 
         return self
 
     compose: ->
-        return 'r.binary(<data>)'
+        if @args.length == 0
+            'r.binary(<data>)'
+        else
+            super
 
     build: ->
-        { '$reql_type$': 'BINARY', 'data': @base64_data }
+        if @args.length == 0
+            { '$reql_type$': 'BINARY', 'data': @base64_data }
+        else
+            super
 
 class Args extends RDBOp
     tt: protoTermType.ARGS

@@ -292,6 +292,25 @@ tests:
         py3.2: err_regex('TypeError', ".*takes exactly 1 positional argument \(2 given\)", [])
         py3: err_regex('TypeError', ".*takes 1 positional argument but 2 were given", [])
 
+    - cd: r.binary("1", "2")
+      ot:
+        py: err_regex('TypeError', ".*takes exactly 1 argument \(2 given\)", [])
+        js: err("RqlDriverError", "Expected 1 argument but found 2.", [])
+        rb: err("RqlCompileError", "Expected 1 argument but found 2.", [])
+        py3.0: err_regex('TypeError', ".*takes exactly 1 positional argument \(2 given\)", [])
+        py3.1: err_regex('TypeError', ".*takes exactly 1 positional argument \(2 given\)", [])
+        py3.2: err_regex('TypeError', ".*takes exactly 1 positional argument \(2 given\)", [])
+        py3: err_regex('TypeError', ".*takes 1 positional argument but 2 were given", [])
+    - cd: r.binary()
+      ot:
+        py: err_regex('TypeError', ".*takes exactly 1 argument \(0 given\)", [])
+        js: err("RqlDriverError", "Expected 1 argument but found 0.", [])
+        rb: err("RqlCompileError", "Expected 1 argument but found 0.", [])
+        py3.0: err_regex('TypeError', ".*takes exactly 1 positional argument \(0 given\)", [])
+        py3.1: err_regex('TypeError', ".*takes exactly 1 positional argument \(0 given\)", [])
+        py3.2: err_regex('TypeError', ".*takes exactly 1 argument \(0 given\)", [])
+        py3: err_regex('TypeError', ".*takes 1 positional argument but 0 were given", [])
+
     # TODO: Math and logic
     # TODO: Upper bound on optional arguments
     # TODO: between, merge, slice

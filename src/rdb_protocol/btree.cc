@@ -944,7 +944,7 @@ THROWS_ONLY(interrupted_exc_t) {
             }
         }
 
-        ql::groups_t data(counted_datum_less_t(job.env->reql_version));
+        ql::groups_t data(counted_datum_less_t(job.env->reql_version()));
         data = {{counted_t<const ql::datum_t>(), ql::datums_t{val}}};
 
         for (auto it = job.transformers.begin(); it != job.transformers.end(); ++it) {
@@ -1435,8 +1435,6 @@ void rdb_update_single_sindex(
 
             std::vector<store_key_t> keys;
 
-            // TODO(2014-08-01): Someplace, we need to update
-            // latest_compatible_reql_version and latest_checked_reql_version.
             compute_keys(modification->primary_key, deleted, sindex_info, &keys);
 
             for (auto it = keys.begin(); it != keys.end(); ++it) {

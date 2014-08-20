@@ -65,9 +65,9 @@ counted_t<const datum_t> table_t::batched_replace(
         std::set<std::string> conditions;
         counted_t<const datum_t> merged
             = std::move(stats).to_counted()->merge(insert_stats, stats_merge,
-                                                   env->limits, &conditions);
+                                                   env->limits(), &conditions);
         datum_object_builder_t result(std::move(merged)->as_object());
-        result.add_warnings(conditions, env->limits);
+        result.add_warnings(conditions, env->limits());
         return std::move(result).to_counted();
     } else {
         return table->write_batched_replace(
@@ -110,9 +110,9 @@ counted_t<const datum_t> table_t::batched_insert(
     std::set<std::string> conditions;
     counted_t<const datum_t> merged
         = std::move(stats).to_counted()->merge(insert_stats, stats_merge,
-                                               env->limits, &conditions);
+                                               env->limits(), &conditions);
     datum_object_builder_t result(std::move(merged)->as_object());
-    result.add_warnings(conditions, env->limits);
+    result.add_warnings(conditions, env->limits());
     return std::move(result).to_counted();
 }
 
@@ -144,7 +144,7 @@ counted_t<const datum_t> table_t::sindex_list(env_t *env) {
          it != sindexes.end(); ++it) {
         array.push_back(make_counted<datum_t>(std::string(*it)));
     }
-    return make_counted<datum_t>(std::move(array), env->limits);
+    return make_counted<datum_t>(std::move(array), env->limits());
 }
 
 counted_t<const datum_t> table_t::sindex_status(env_t *env,
@@ -165,7 +165,7 @@ counted_t<const datum_t> table_t::sindex_status(env_t *env,
            strprintf("Index `%s` was not found on table `%s`.",
                      sindexes.begin()->c_str(),
                      display_name().c_str()));
-    return make_counted<const datum_t>(std::move(array), env->limits);
+    return make_counted<const datum_t>(std::move(array), env->limits());
 }
 
 MUST_USE bool table_t::sync(env_t *env, const rcheckable_t *parent) {

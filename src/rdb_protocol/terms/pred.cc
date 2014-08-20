@@ -66,7 +66,7 @@ private:
         counted_t<const datum_t> lhs = args->arg(env, 0)->as_datum();
         for (size_t i = 1; i < args->num_args(); ++i) {
             counted_t<const datum_t> rhs = args->arg(env, i)->as_datum();
-            if (!(pred)(env->env->reql_version, *lhs, *rhs)) {
+            if (!(pred)(env->env->reql_version(), *lhs, *rhs)) {
                 return new_val_bool(static_cast<bool>(false ^ invert));
             }
             lhs = rhs;
