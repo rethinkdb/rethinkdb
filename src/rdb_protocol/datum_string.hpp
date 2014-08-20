@@ -35,12 +35,6 @@ public:
     datum_string_t(const shared_buf_ref_t<char> &_ref);
     datum_string_t(shared_buf_ref_t<char> &&_ref);
 
-    datum_string_t(datum_string_t &&movee) noexcept;
-    datum_string_t(const datum_string_t &copyee) noexcept;
-
-    datum_string_t &operator=(const datum_string_t &copyee) noexcept;
-    datum_string_t &operator=(datum_string_t &&movee) noexcept;
-
     // The result of data() is not automatically null terminated. Do not use
     // as a C string.
     const char *data() const;

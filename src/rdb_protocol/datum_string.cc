@@ -34,28 +34,12 @@ datum_string_t::datum_string_t(const std::string &str) {
     init(str.size(), str.data());
 }
 
-datum_string_t::datum_string_t(datum_string_t &&movee) noexcept
-    : data_(std::move(movee.data_)) { }
-
-datum_string_t::datum_string_t(const datum_string_t &copyee) noexcept
-    : data_(copyee.data_) { }
-
 void datum_string_t::init(size_t _size, const char *_data) {
     const size_t str_offset = varint_uint64_serialized_size(_size);
     counted_t<shared_buf_t> data = shared_buf_t::create(str_offset + _size);
     serialize_varint_uint64_into_buf(_size, reinterpret_cast<uint8_t *>(data->data()));
     memcpy(data->data() + str_offset, _data, _size);
     data_ = shared_buf_ref_t<char>(std::move(data), 0);
-}
-
-datum_string_t &datum_string_t::operator=(datum_string_t &&movee) noexcept {
-    data_ = std::move(movee.data_);
-    return *this;
-}
-
-datum_string_t &datum_string_t::operator=(const datum_string_t &copyee) noexcept {
-    data_ = copyee.data_;
-    return *this;
 }
 
 const char *datum_string_t::data() const {
