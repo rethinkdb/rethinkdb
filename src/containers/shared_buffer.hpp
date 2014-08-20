@@ -55,26 +55,7 @@ public:
         : buf(_buf), offset(_offset) {
         rassert(buf.has());
     }
-    shared_buf_ref_t(shared_buf_ref_t &&movee) noexcept
-        : buf(std::move(movee.buf)), offset(movee.offset) {
-        rassert(buf.has());
-    }
-    shared_buf_ref_t(const shared_buf_ref_t &copyee) noexcept
-        : buf(copyee.buf), offset(copyee.offset) {
-        rassert(buf.has());
-    }
-    shared_buf_ref_t &operator=(shared_buf_ref_t &&movee) noexcept {
-        buf = std::move(movee.buf);
-        offset = movee.offset;
-        rassert(buf.has());
-        return *this;
-    }
-    shared_buf_ref_t &operator=(const shared_buf_ref_t &copyee) noexcept {
-        buf = copyee.buf;
-        offset = copyee.offset;
-        rassert(buf.has());
-        return *this;
-    }
+
     const T *get() const {
         rassert(buf.has());
         return reinterpret_cast<const T *>(buf->data(offset));
