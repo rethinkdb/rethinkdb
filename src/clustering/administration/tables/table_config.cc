@@ -4,7 +4,8 @@
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/tables/elect_director.hpp"
 #include "clustering/administration/tables/lookup.hpp"
-#include "http/http.hpp"   /* for percent_escaped_string() [RSI(reql_admin) remove] */
+/* RSI(reql_admin): After #2895 is fixed, don't include "http/http.hpp" */
+#include "http/http.hpp"   /* for percent_escaped_string() */
 
 counted_t<const ql::datum_t> convert_table_config_shard_to_datum(
         const table_config_t::shard_t &shard) {
