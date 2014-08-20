@@ -211,10 +211,10 @@ public:
     // This takes std::set<std::string> instead of std::set<const std::string> not
     // because it plans on modifying the strings, but because the latter doesn't work.
     typedef datum_t (*merge_resoluter_t)(const datum_string_t &key,
-                                        datum_t l,
-                                        datum_t r,
-                                        const configured_limits_t &limits,
-                                        std::set<std::string> *conditions);
+                                         datum_t l,
+                                         datum_t r,
+                                         const configured_limits_t &limits,
+                                         std::set<std::string> *conditions);
     datum_t merge(datum_t rhs,
                   merge_resoluter_t f,
                   const configured_limits_t &limits,
