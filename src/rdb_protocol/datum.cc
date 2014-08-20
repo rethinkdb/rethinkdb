@@ -89,11 +89,12 @@ datum_t::data_wrapper_t::data_wrapper_t(const char *cstr) :
 
 datum_t::data_wrapper_t::data_wrapper_t(std::vector<datum_t> &&array) :
     type(R_ARRAY),
-    r_array(new counted_std_vector_t<datum_t>(std::move(array))) { }
+    r_array(new countable_wrapper_t<std::vector<datum_t> >(std::move(array))) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(std::map<wire_string_t, datum_t> &&object) :
     type(R_OBJECT),
-    r_object(new counted_std_map_t<wire_string_t, datum_t>(std::move(object))) { }
+    r_object(new countable_wrapper_t<std::map<wire_string_t, datum_t> >(
+        std::move(object))) { }
 
 datum_t::data_wrapper_t::~data_wrapper_t() {
     destruct();
@@ -110,10 +111,10 @@ void datum_t::data_wrapper_t::destruct() {
         r_str.~wire_string_t();
     } break;
     case R_ARRAY: {
-        r_array.~counted_t<counted_std_vector_t<datum_t> >();
+        r_array.~counted_t<countable_wrapper_t<std::vector<datum_t> > >();
     } break;
     case R_OBJECT: {
-        r_object.~counted_t<counted_std_map_t<wire_string_t, datum_t> >();
+        r_object.~counted_t<countable_wrapper_t<std::map<wire_string_t, datum_t> > >();
     } break;
     default: unreachable();
     }
@@ -135,10 +136,10 @@ void datum_t::data_wrapper_t::assign_copy(const datum_t::data_wrapper_t &copyee)
         new(&r_str) wire_string_t(copyee.r_str);
     } break;
     case R_ARRAY: {
-        new(&r_array) counted_t<counted_std_vector_t<datum_t> >(copyee.r_array);
+        new(&r_array) counted_t<countable_wrapper_t<std::vector<datum_t> > >(copyee.r_array);
     } break;
     case R_OBJECT: {
-        new(&r_object) counted_t<counted_std_map_t<wire_string_t, datum_t> >(
+        new(&r_object) counted_t<countable_wrapper_t<std::map<wire_string_t, datum_t> > >(
             copyee.r_object);
     } break;
     default: unreachable();
@@ -161,11 +162,11 @@ void datum_t::data_wrapper_t::assign_move(datum_t::data_wrapper_t &&movee) noexc
         new(&r_str) wire_string_t(std::move(movee.r_str));
     } break;
     case R_ARRAY: {
-        new(&r_array) counted_t<counted_std_vector_t<datum_t> >(
+        new(&r_array) counted_t<countable_wrapper_t<std::vector<datum_t> > >(
             std::move(movee.r_array));
     } break;
     case R_OBJECT: {
-        new(&r_object) counted_t<counted_std_map_t<wire_string_t, datum_t> >(
+        new(&r_object) counted_t<countable_wrapper_t<std::map<wire_string_t, datum_t> > >(
             std::move(movee.r_object));
     } break;
     default: unreachable();

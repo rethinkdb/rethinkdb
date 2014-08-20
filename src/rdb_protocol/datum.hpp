@@ -17,7 +17,6 @@
 #include "btree/keys.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/counted.hpp"
-#include "containers/counted_stl.hpp"
 #include "containers/wire_string.hpp"
 #include "http/json.hpp"
 #include "rdb_protocol/configured_limits.hpp"
@@ -320,8 +319,8 @@ private:
             bool r_bool;
             double r_num;
             wire_string_t r_str;
-            counted_t<counted_std_vector_t<datum_t> > r_array;
-            counted_t<counted_std_map_t<wire_string_t, datum_t> > r_object;
+            counted_t<countable_wrapper_t<std::vector<datum_t> > > r_array;
+            counted_t<countable_wrapper_t<std::map<wire_string_t, datum_t> > > r_object;
         };
     private:
         void assign_copy(const data_wrapper_t &copyee);
