@@ -82,10 +82,13 @@ bool datum_string_t::empty() const {
 }
 
 int datum_string_t::compare(const datum_string_t &other) const {
+    return compare(other.size(), other.data());
+}
+
+int datum_string_t::compare(size_t other_size, const char *other_data) const {
     const size_t this_size = size();
-    const size_t other_size = other.size();
     size_t common_size = std::min(this_size, other_size);
-    int content_compare = memcmp(data(), other.data(), common_size);
+    int content_compare = memcmp(data(), other_data, common_size);
     if (content_compare == 0) {
         // Both strings have the same first `content_compare` characters.
         // Compare their lengths.
@@ -102,7 +105,7 @@ int datum_string_t::compare(const datum_string_t &other) const {
 }
 
 bool datum_string_t::operator==(const char *other) const {
-    return strncmp(data(), other, size()) == 0;
+    return compare(strlen(other), other) == 0;
 }
 bool datum_string_t::operator!=(const char *other) const {
     return !(*this == other);

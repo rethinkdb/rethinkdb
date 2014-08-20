@@ -62,6 +62,8 @@ public:
     std::string to_std() const;
 
 private:
+    int compare(size_t other_size, const char *other_data) const;
+
     // Contains the length of the string in varint encoding, followed by the actual
     // string content.
     shared_buf_ref_t<char> data_;
