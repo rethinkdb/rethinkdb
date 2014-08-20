@@ -73,11 +73,16 @@ archive_result_t deserialize_varint_uint64(read_stream_t *s, uint64_t *value_out
 }
 
 archive_result_t deserialize_varint_uint64_from_buf(const uint8_t *buf,
+                                                    size_t buf_size,
                                                     uint64_t *value_out) {
     uint64_t value = 0;
+    const uint8_t *buf_end = buf + buf_size;
 
     int offset = 0;
     for (;;++buf) {
+        if (buf >= buf_end) {
+            return archive_result_t::SOCK_EOF;
+        }
         uint64_t x = (buf[0] & ((1 << 7) - 1));
         value |= (x << offset);
         if ((buf[0] & (1 << 7)) == 0) {

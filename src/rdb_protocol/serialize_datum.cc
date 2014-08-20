@@ -384,7 +384,8 @@ MUST_USE archive_result_t datum_deserialize(
     }
 
     const size_t str_offset = varint_uint64_serialized_size(sz);
-    counted_t<shared_buf_t> buf = shared_buf_t::create(str_offset + sz);
+    counted_t<shared_buf_t> buf =
+        shared_buf_t::create(str_offset + static_cast<size_t>(sz));
     serialize_varint_uint64_into_buf(sz, reinterpret_cast<uint8_t *>(buf->data()));
     int64_t num_read = force_read(s, buf->data() + str_offset, sz);
     if (num_read == -1) {

@@ -18,6 +18,8 @@ public:
     char *data(size_t offset = 0);
     const char *data(size_t offset = 0) const;
 
+    size_t size() const;
+
 private:
     // We duplicate the implementation of slow_atomic_countable_t here for the
     // sole purpose of having full control over the layout of fields. This
@@ -28,11 +30,11 @@ private:
     friend void counted_release(const shared_buf_t *p);
     friend intptr_t counted_use_count(const shared_buf_t *p);
 
-#ifndef NDEBUG
-    size_t debug_size_;
-#endif
-
     mutable intptr_t refcount_;
+
+    // The size of data_, for boundary checking.
+    size_t size_;
+
     // We actually allocate more memory than this.
     // It's crucial that this field is the last one in this class.
     char data_[1];
@@ -51,18 +53,35 @@ template <class T>
 class shared_buf_ref_t {
 public:
     shared_buf_ref_t() : offset(0) { }
-    shared_buf_ref_t(const counted_t<const shared_buf_t> &_buf, uint64_t _offset)
+    shared_buf_ref_t(const counted_t<const shared_buf_t> &_buf, size_t _offset)
         : buf(_buf), offset(_offset) {
         rassert(buf.has());
     }
 
     const T *get() const {
         rassert(buf.has());
+        rassert(buf->size() >= offset);
         return reinterpret_cast<const T *>(buf->data(offset));
     }
+
+    // Makes sure that the underlying shared buffer has space for at least
+    // num_elements elements of type T.
+    // This protects against reading into memory that doesn't belong to the
+    // buffer, but doesn't protect from reading into another object in case the
+    // buffer contains other objects in addition to what this buf ref is pointing
+    // to.
+    void guarantee_in_boundary(size_t num_elements) const {
+        guarantee(get_safety_boundary() <= num_elements);
+    }
+    // An upper bound on the number of elements that can be read from this buf ref
+    size_t get_safety_boundary() const {
+        rassert(buf->size() >= offset);
+        return (buf->size() - offset) / sizeof(T);
+    }
+
 private:
     counted_t<const shared_buf_t> buf;
-    uint64_t offset;
+    size_t offset;
 };
 
 

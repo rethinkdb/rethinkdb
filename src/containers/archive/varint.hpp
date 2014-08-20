@@ -30,6 +30,7 @@ size_t serialize_varint_uint64_into_buf(const uint64_t value, uint8_t *buf_out);
 
 archive_result_t deserialize_varint_uint64(read_stream_t *s, uint64_t *value_out);
 archive_result_t deserialize_varint_uint64_from_buf(const uint8_t *buf,
+                                                    size_t buf_size,
                                                     uint64_t *value_out);
 
 #endif  // CONTAINERS_ARCHIVE_VARINT_HPP_

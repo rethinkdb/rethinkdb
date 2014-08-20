@@ -11,9 +11,7 @@ counted_t<shared_buf_t> shared_buf_t::create(size_t size) {
     void *raw_result = ::rmalloc(memory_size);
     shared_buf_t *result = static_cast<shared_buf_t *>(raw_result);
     result->refcount_ = 0;
-#ifndef NDEBUG
-    result->debug_size_ = size;
-#endif
+    result->size_ = size;
     return counted_t<shared_buf_t>(result);
 }
 
@@ -22,16 +20,13 @@ void shared_buf_t::operator delete(void *p) {
 }
 
 char *shared_buf_t::data(size_t offset) {
-    // This check is <= instead of < so you can write things like
-    //  auto shared_buf = shared_buf_t::create(n);
-    //  memcpy(shared_buf->data(0), src, n)
-    // and have that still work if n == 0
-    rassert(offset <= debug_size_);
     return data_ + offset;
 }
 
 const char *shared_buf_t::data(size_t offset) const {
-    // See comment above for why this is <= and not <
-    rassert(offset <= debug_size_);
     return data_ + offset;
+}
+
+size_t shared_buf_t::size() const {
+    return size_;
 }
