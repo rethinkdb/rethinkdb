@@ -72,6 +72,8 @@ information.
 * Testing
   * Polyglot targets for Ruby 1.8, 1.9, 2.0, 2.1 (#773)
   * Can test multiple Python versions simultaneously
+* Web UI
+  * Add button to rebuild secondary indexes (#2799)
 
 ## Fixed bugs ##
 
@@ -108,7 +110,7 @@ information.
 * Testing
   * Chain callbacks in JS http tests (#2396)
   * Create fewer zombies (#2583)
-  * Misc. testing improvements (#2760, #2788, #2795, #2837)
+  * Misc. testing improvements (#2760, #2788, #2795)
   * Fix hard-coding of directory paths in Ruby test script (#2787)
   * Update testing scripts for drivers (#2815)
 * Python driver
