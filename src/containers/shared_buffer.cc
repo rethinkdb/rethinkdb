@@ -26,10 +26,15 @@ void shared_buf_t::operator delete(void *p) {
 }
 
 char *shared_buf_t::data(size_t offset) {
-    rassert(offset < debug_size_);
+    // This check is <= instead of < so you can write things like
+    //  auto shared_buf = shared_buf_t::create(n);
+    //  memcpy(shared_buf->data(0), src, n)
+    // and have that still work if n == 0
+    rassert(offset <= debug_size_);
     return data_ + offset;
 }
 const char *shared_buf_t::data(size_t offset) const {
-    rassert(offset < debug_size_);
+    // See comment above for why this is <= and not <
+    rassert(offset <= debug_size_);
     return data_ + offset;
 }
