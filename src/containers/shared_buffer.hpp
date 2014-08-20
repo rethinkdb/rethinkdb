@@ -3,7 +3,6 @@
 #define CONTAINERS_SHARED_BUFFER_HPP_
 
 #include "containers/counted.hpp"
-#include "containers/scoped.hpp"
 #include "errors.hpp"
 
 /* A `shared_buffer_t` is a reference counted binary buffer.
@@ -13,8 +12,7 @@ class shared_buf_t {
 public:
     shared_buf_t() = delete;
 
-    static scoped_ptr_t<shared_buf_t> create(size_t _size);
-    static scoped_ptr_t<shared_buf_t> create_and_init(size_t _size, const char *_data);
+    static counted_t<shared_buf_t> create(size_t _size);
     static void operator delete(void *p);
 
     char *data(size_t offset = 0);

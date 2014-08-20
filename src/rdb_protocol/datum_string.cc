@@ -42,10 +42,10 @@ datum_string_t::datum_string_t(const datum_string_t &copyee) noexcept
 
 void datum_string_t::init(size_t _size, const char *_data) {
     const size_t str_offset = varint_uint64_serialized_size(_size);
-    scoped_ptr_t<shared_buf_t> data = shared_buf_t::create(str_offset + _size);
+    counted_t<shared_buf_t> data = shared_buf_t::create(str_offset + _size);
     serialize_varint_uint64_into_buf(_size, reinterpret_cast<uint8_t *>(data->data()));
     memcpy(data->data() + str_offset, _data, _size);
-    data_ = shared_buf_ref_t<char>(counted_t<shared_buf_t>(data.release()), 0);
+    data_ = shared_buf_ref_t<char>(std::move(data), 0);
 }
 
 datum_string_t &datum_string_t::operator=(datum_string_t &&movee) noexcept {
@@ -62,6 +62,7 @@ const char *datum_string_t::data() const {
     size_t data_offset = varint_uint64_serialized_size(size());
     return data_.get() + data_offset;
 }
+
 size_t datum_string_t::size() const {
     uint64_t res;
     guarantee_deserialization(deserialize_varint_uint64_from_buf(
@@ -69,6 +70,7 @@ size_t datum_string_t::size() const {
     guarantee(res <= static_cast<uint64_t>(std::numeric_limits<size_t>::max()));
     return static_cast<size_t>(res);
 }
+
 bool datum_string_t::empty() const {
     return size() == 0;
 }
@@ -134,11 +136,10 @@ datum_string_t concat(const datum_string_t &a, const datum_string_t &b) {
     const size_t a_size = a.size();
     const size_t b_size = b.size();
     const size_t str_offset = varint_uint64_serialized_size(a_size + b_size);
-    scoped_ptr_t<shared_buf_t> buf = shared_buf_t::create(str_offset + a_size + b_size);
+    counted_t<shared_buf_t> buf = shared_buf_t::create(str_offset + a_size + b_size);
     serialize_varint_uint64_into_buf(a_size + b_size,
                                      reinterpret_cast<uint8_t *>(buf->data(0)));
     memcpy(buf->data(str_offset), a.data(), a.size());
     memcpy(buf->data(str_offset + a.size()), b.data(), b.size());
-    return datum_string_t(
-        shared_buf_ref_t<char>(counted_t<const shared_buf_t>(buf.release()), 0));
+    return datum_string_t(shared_buf_ref_t<char>(std::move(buf), 0));
 }

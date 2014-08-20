@@ -7,7 +7,7 @@
 
 #include "containers/archive/stl_types.hpp"
 #include "containers/archive/versioned.hpp"
-#include "containers/scoped.hpp"
+#include "containers/counted.hpp"
 #include "containers/shared_buffer.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/env.hpp"
@@ -384,7 +384,7 @@ MUST_USE archive_result_t datum_deserialize(
     }
 
     const size_t str_offset = varint_uint64_serialized_size(sz);
-    scoped_ptr_t<shared_buf_t> buf = shared_buf_t::create(str_offset + sz);
+    counted_t<shared_buf_t> buf = shared_buf_t::create(str_offset + sz);
     serialize_varint_uint64_into_buf(sz, reinterpret_cast<uint8_t *>(buf->data()));
     int64_t num_read = force_read(s, buf->data() + str_offset, sz);
     if (num_read == -1) {
@@ -394,8 +394,7 @@ MUST_USE archive_result_t datum_deserialize(
         return archive_result_t::SOCK_EOF;
     }
 
-    *out = datum_string_t(shared_buf_ref_t<char>(
-        counted_t<const shared_buf_t>(buf.release()), 0));
+    *out = datum_string_t(shared_buf_ref_t<char>(std::move(buf), 0));
 
     return archive_result_t::SUCCESS;
 }
