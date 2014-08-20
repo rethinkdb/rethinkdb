@@ -68,7 +68,7 @@ datum_t geo_sub(datum_t lhs,
 void sanitize_geometry(datum_t *geo) {
     bool has_type = false;
     bool has_coordinates = false;
-    const std::map<wire_string_t, datum_t> &obj_map =
+    const std::map<datum_string_t, datum_t> &obj_map =
         geo->as_object();
     for (auto it = obj_map.begin(); it != obj_map.end(); ++it) {
         if (it->first == "coordinates") {

@@ -47,31 +47,31 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(stop_t, when_);
 ql::datum_t construct_start(
         ticks_t duration, std::string description,
         ql::datum_t sub_tasks) {
-    std::map<wire_string_t, ql::datum_t> res;
-    res[wire_string_t("duration(ms)")] =
+    std::map<datum_string_t, ql::datum_t> res;
+    res[datum_string_t("duration(ms)")] =
         ql::datum_t(safe_to_double(duration) / MILLION);
-    res[wire_string_t("description")] =
-        ql::datum_t(wire_string_t(description));
-    res[wire_string_t("sub_tasks")] = sub_tasks;
+    res[datum_string_t("description")] =
+        ql::datum_t(datum_string_t(description));
+    res[datum_string_t("sub_tasks")] = sub_tasks;
     return ql::datum_t(std::move(res));
 }
 
 ql::datum_t construct_split(
         ql::datum_t par_tasks) {
-    std::map<wire_string_t, ql::datum_t> res;
-    res[wire_string_t("parallel_tasks")] = par_tasks;
+    std::map<datum_string_t, ql::datum_t> res;
+    res[datum_string_t("parallel_tasks")] = par_tasks;
     return ql::datum_t(std::move(res));
 }
 
 ql::datum_t construct_sample(
         const sample_t *sample) {
-    std::map<wire_string_t, ql::datum_t> res;
+    std::map<datum_string_t, ql::datum_t> res;
     double mean_duration = safe_to_double(sample->mean_duration_) / MILLION;
     double n_samples = safe_to_double(sample->n_samples_);
-    res[wire_string_t("mean_duration(ms)")] = ql::datum_t(mean_duration);
-    res[wire_string_t("n_samples")] = ql::datum_t(n_samples);
-    res[wire_string_t("description")] =
-        ql::datum_t(wire_string_t(sample->description_));
+    res[datum_string_t("mean_duration(ms)")] = ql::datum_t(mean_duration);
+    res[datum_string_t("n_samples")] = ql::datum_t(n_samples);
+    res[datum_string_t("description")] =
+        ql::datum_t(datum_string_t(sample->description_));
     return ql::datum_t(std::move(res));
 }
 

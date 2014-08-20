@@ -663,7 +663,7 @@ struct batched_insert_t {
         // still doing the other writes.
         for (auto it = inserts.begin(); it != inserts.end(); ++it) {
             ql::datum_t keyval =
-                it->get_field(wire_string_t(pkey), ql::NOTHROW);
+                it->get_field(datum_string_t(pkey), ql::NOTHROW);
             r_sanity_check(keyval.has());
             try {
                 keyval.print_primary(); // ERROR CHECKING

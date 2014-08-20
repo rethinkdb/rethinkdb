@@ -11,7 +11,7 @@
 namespace ql {
 
 // Use this merge if it should theoretically never be called.
-datum_t pure_merge(UNUSED const wire_string_t &key,
+datum_t pure_merge(UNUSED const datum_string_t &key,
                                     UNUSED datum_t l,
                                     UNUSED datum_t r,
                                     UNUSED const configured_limits_t &limits,
@@ -33,7 +33,7 @@ datum_t new_stats_object() {
 conflict_behavior_t parse_conflict_optarg(counted_t<val_t> arg,
                                           const pb_rcheckable_t *target) {
     if (!arg.has()) { return conflict_behavior_t::ERROR; }
-    const wire_string_t &str = arg->as_str();
+    const datum_string_t &str = arg->as_str();
     if (str == "error") { return conflict_behavior_t::ERROR; }
     if (str == "replace") { return conflict_behavior_t::REPLACE; }
     if (str == "update") { return conflict_behavior_t::UPDATE; }
@@ -47,7 +47,7 @@ conflict_behavior_t parse_conflict_optarg(counted_t<val_t> arg,
 durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
                                                  const pb_rcheckable_t *target) {
     if (!arg.has()) { return DURABILITY_REQUIREMENT_DEFAULT; }
-    const wire_string_t &str = arg->as_str();
+    const datum_string_t &str = arg->as_str();
     if (str == "hard") { return DURABILITY_REQUIREMENT_HARD; }
     if (str == "soft") { return DURABILITY_REQUIREMENT_SOFT; }
     rfail_target(target,
@@ -69,12 +69,12 @@ private:
                                    std::vector<std::string> *generated_keys_out,
                                    size_t *keys_skipped_out,
                                    datum_t *datum_out) {
-        if (!(*datum_out)->get_field(wire_string_t(tbl->get_pkey()), NOTHROW).has()) {
+        if (!(*datum_out)->get_field(datum_string_t(tbl->get_pkey()), NOTHROW).has()) {
             std::string key = uuid_to_str(generate_uuid());
-            datum_t keyd((wire_string_t(key)));
+            datum_t keyd((datum_string_t(key)));
             {
                 datum_object_builder_t d;
-                bool conflict = d.add(wire_string_t(tbl->get_pkey()), keyd);
+                bool conflict = d.add(datum_string_t(tbl->get_pkey()), keyd);
                 r_sanity_check(!conflict);
                 std::set<std::string> conditions;
                 *datum_out = (*datum_out)->merge(std::move(d).to_datum(), pure_merge,
@@ -162,7 +162,7 @@ private:
             std::vector<datum_t> genkeys;
             genkeys.reserve(generated_keys.size());
             for (size_t i = 0; i < generated_keys.size(); ++i) {
-                genkeys.push_back(datum_t(wire_string_t(generated_keys[i])));
+                genkeys.push_back(datum_t(datum_string_t(generated_keys[i])));
             }
             datum_object_builder_t d;
             UNUSED bool b = d.add("generated_keys",
@@ -223,7 +223,7 @@ private:
             datum_t orig_key = v0->get_orig_key();
             if (!orig_key.has()) {
                 orig_key =
-                    orig_val->get_field(wire_string_t(tblrow.first->get_pkey()), NOTHROW);
+                    orig_val->get_field(datum_string_t(tblrow.first->get_pkey()), NOTHROW);
                 r_sanity_check(orig_key.has());
             }
 
@@ -252,7 +252,7 @@ private:
                 std::vector<datum_t> keys;
                 keys.reserve(vals.size());
                 for (auto it = vals.begin(); it != vals.end(); ++it) {
-                    keys.push_back((*it)->get_field(wire_string_t(tbl->get_pkey())));
+                    keys.push_back((*it)->get_field(datum_string_t(tbl->get_pkey())));
                 }
                 datum_t replace_stats = tbl->batched_replace(
                     env->env, vals, keys,

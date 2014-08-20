@@ -472,7 +472,7 @@ void sanitize_time(datum_t *time) {
                 double d = it->second->as_num();
                 double d2 = sanitize_epoch_sec(d);
                 if (d2 != d) {
-                    bool b = time->add(wire_string_t(epoch_time_key),
+                    bool b = time->add(datum_string_t(epoch_time_key),
                                        datum_t(d2),
                                        CLOBBER);
                     r_sanity_check(b);
@@ -491,8 +491,8 @@ void sanitize_time(datum_t *time) {
                     has_timezone = true;
                     tz = (tz == "Z") ? "+00:00" : tz;
                     if (tz != raw_tz) {
-                        bool b = time->add(wire_string_t(timezone_key),
-                                           datum_t(wire_string_t(tz)),
+                        bool b = time->add(datum_string_t(timezone_key),
+                                           datum_t(datum_string_t(tz)),
                                            CLOBBER);
                         r_sanity_check(b);
                     }
@@ -547,16 +547,16 @@ datum_t time_in_tz(datum_t t,
     if (raw_new_tzs == new_tzs) {
         t2.overwrite(timezone_key, tz);
     } else {
-        t2.overwrite(timezone_key, datum_t(wire_string_t(new_tzs)));
+        t2.overwrite(timezone_key, datum_t(datum_string_t(new_tzs)));
     }
     return std::move(t2).to_datum();
 }
 
 datum_t make_time(double epoch_time, std::string tz) {
-    std::map<wire_string_t, datum_t> map
-        = { { wire_string_t(datum_t::reql_type_string), datum_t(time_string) },
-            { wire_string_t(epoch_time_key), datum_t(epoch_time) },
-            { wire_string_t(timezone_key), datum_t(wire_string_t(tz)) } };
+    std::map<datum_string_t, datum_t> map
+        = { { datum_string_t(datum_t::reql_type_string), datum_t(time_string) },
+            { datum_string_t(epoch_time_key), datum_t(epoch_time) },
+            { datum_string_t(timezone_key), datum_t(datum_string_t(tz)) } };
     return datum_t(std::move(map));
 }
 

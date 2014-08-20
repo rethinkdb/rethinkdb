@@ -53,7 +53,7 @@ datum_t table_t::batched_replace(
             try {
                 new_val = replacement_generator->call(env, vals[i])->as_datum();
                 new_val->rcheck_valid_replace(vals[i], keys[i],
-                                              wire_string_t(get_pkey()));
+                                              datum_string_t(get_pkey()));
                 r_sanity_check(new_val.has());
                 replacement_values.push_back(new_val);
             } catch (const base_exc_t &e) {
@@ -89,7 +89,7 @@ datum_t table_t::batched_insert(
     valid_inserts.reserve(insert_datums.size());
     for (auto it = insert_datums.begin(); it != insert_datums.end(); ++it) {
         try {
-            wire_string_t pkey_w(get_pkey());
+            datum_string_t pkey_w(get_pkey());
             (*it)->rcheck_valid_replace(datum_t(),
                                         datum_t(),
                                         pkey_w);
@@ -144,7 +144,7 @@ datum_t table_t::sindex_list(env_t *env) {
     array.reserve(sindexes.size());
     for (std::vector<std::string>::const_iterator it = sindexes.begin();
          it != sindexes.end(); ++it) {
-        array.push_back(datum_t(wire_string_t(*it)));
+        array.push_back(datum_t(datum_string_t(*it)));
     }
     return datum_t(std::move(array), env->limits());
 }
@@ -157,10 +157,10 @@ datum_t table_t::sindex_status(env_t *env,
     for (auto it = statuses.begin(); it != statuses.end(); ++it) {
         r_sanity_check(std_contains(sindexes, it->first) || sindexes.empty());
         sindexes.erase(it->first);
-        std::map<wire_string_t, datum_t> status =
+        std::map<datum_string_t, datum_t> status =
             it->second->as_object();
-        wire_string_t index_name(it->first);
-        status[wire_string_t("index")] =
+        datum_string_t index_name(it->first);
+        status[datum_string_t("index")] =
             datum_t(std::move(index_name));
         array.push_back(datum_t(std::move(status)));
     }
@@ -581,7 +581,7 @@ int64_t val_t::as_int() {
         rfail(e.get_type(), "%s", e.what());
     }
 }
-wire_string_t val_t::as_str() {
+datum_string_t val_t::as_str() {
     try {
         datum_t d = as_datum();
         r_sanity_check(d.has());

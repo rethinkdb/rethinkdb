@@ -273,8 +273,8 @@ SPAWNER_TEST(JSProc, Passthrough) {
     // String
     passthrough_test_internal(&pool, ql::datum_t(""));
     passthrough_test_internal(&pool, ql::datum_t("string str"));
-    passthrough_test_internal(&pool, ql::datum_t(wire_string_t()));
-    passthrough_test_internal(&pool, ql::datum_t(wire_string_t("string str")));
+    passthrough_test_internal(&pool, ql::datum_t(datum_string_t()));
+    passthrough_test_internal(&pool, ql::datum_t(datum_string_t("string str")));
 
     // Boolean
     passthrough_test_internal(&pool, ql::datum_t::boolean(true));
@@ -289,7 +289,7 @@ SPAWNER_TEST(JSProc, Passthrough) {
 
         for (size_t i = 0; i < 100; ++i) {
             array_data.push_back(
-                ql::datum_t(wire_string_t(std::string(i, 'a'))));
+                ql::datum_t(datum_string_t(std::string(i, 'a'))));
             std::vector<ql::datum_t> copied_data(array_data);
             array_datum = ql::datum_t(std::move(copied_data), limits);
             passthrough_test_internal(&pool, array_datum);
@@ -300,14 +300,14 @@ SPAWNER_TEST(JSProc, Passthrough) {
     // Object
     ql::datum_t object_datum;
     {
-        std::map<wire_string_t, ql::datum_t> object_data;
+        std::map<datum_string_t, ql::datum_t> object_data;
         object_datum = ql::datum_t(std::move(object_data));
         passthrough_test_internal(&pool, array_datum);
 
         for (size_t i = 0; i < 100; ++i) {
-            object_data.insert(std::make_pair(wire_string_t(std::string(i, 'a')),
+            object_data.insert(std::make_pair(datum_string_t(std::string(i, 'a')),
                                               ql::datum_t(static_cast<double>(i))));
-            std::map<wire_string_t, ql::datum_t> copied_data(object_data);
+            std::map<datum_string_t, ql::datum_t> copied_data(object_data);
             object_datum = ql::datum_t(std::move(copied_data));
             passthrough_test_internal(&pool, array_datum);
         }

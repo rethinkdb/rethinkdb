@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "containers/scoped.hpp"
-#include "containers/wire_string.hpp"
+#include "rdb_protocol/datum_string.hpp"
 #include "rdb_protocol/geo/exceptions.hpp"
 #include "rdb_protocol/geo/geo_visitor.hpp"
 #include "rdb_protocol/geo/s2/s1angle.h"
@@ -357,7 +357,7 @@ void ensure_no_crs(const ql::datum_t &geojson) {
 }
 
 scoped_ptr_t<S2Point> to_s2point(const ql::datum_t &geojson) {
-    const wire_string_t &type = geojson->get_field("type")->as_str();
+    const datum_string_t &type = geojson->get_field("type")->as_str();
     datum_t coordinates = geojson->get_field("coordinates");
     if (type != "Point") {
         throw geo_exception_t("Encountered wrong type in to_s2point.");
@@ -366,7 +366,7 @@ scoped_ptr_t<S2Point> to_s2point(const ql::datum_t &geojson) {
 }
 
 scoped_ptr_t<S2Polyline> to_s2polyline(const ql::datum_t &geojson) {
-    const wire_string_t &type = geojson->get_field("type")->as_str();
+    const datum_string_t &type = geojson->get_field("type")->as_str();
     datum_t coordinates = geojson->get_field("coordinates");
     if (type != "LineString") {
         throw geo_exception_t("Encountered wrong type in to_s2polyline.");
@@ -375,7 +375,7 @@ scoped_ptr_t<S2Polyline> to_s2polyline(const ql::datum_t &geojson) {
 }
 
 scoped_ptr_t<S2Polygon> to_s2polygon(const ql::datum_t &geojson) {
-    const wire_string_t &type = geojson->get_field("type")->as_str();
+    const datum_string_t &type = geojson->get_field("type")->as_str();
     datum_t coordinates = geojson->get_field("coordinates");
     if (type != "Polygon") {
         throw geo_exception_t("Encountered wrong type in to_s2polygon.");

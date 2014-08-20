@@ -25,7 +25,7 @@ void binary_to_base64_chunk(const char *in, char *out) {
     out[3] = base64_map[in[2] & 0x3F];
 }
 
-std::string encode_base64(const wire_string_t &data) {
+std::string encode_base64(const datum_string_t &data) {
     size_t remaining_bytes = data.size();
 
     if (remaining_bytes == 0) {
@@ -101,7 +101,7 @@ const char* fill_chunk_values(const char *in, const char *in_end, char *out,
     return in;
 }
 
-wire_string_t decode_base64(const wire_string_t &data) {
+datum_string_t decode_base64(const datum_string_t &data) {
     // This assumes no whitespace in the input, so we may be overallocating a bit
     std::string res;
     res.reserve((data.size() / 4) * 3);
@@ -136,11 +136,11 @@ wire_string_t decode_base64(const wire_string_t &data) {
         }
     }
 
-    return wire_string_t(res.size(), res.data());
+    return datum_string_t(res.size(), res.data());
 }
 
 // Given a raw data string, encodes it into a `r.binary` pseudotype with base64 encoding
-scoped_cJSON_t encode_base64_ptype(const wire_string_t &data) {
+scoped_cJSON_t encode_base64_ptype(const datum_string_t &data) {
     scoped_cJSON_t res(cJSON_CreateObject());
     res.AddItemToObject(datum_t::reql_type_string.to_std().c_str(),
                         cJSON_CreateString(binary_string));
@@ -149,10 +149,10 @@ scoped_cJSON_t encode_base64_ptype(const wire_string_t &data) {
 }
 
 // Given a `r.binary` pseudotype with base64 encoding, decodes it into a raw data string
-wire_string_t decode_base64_ptype(
-        const std::map<wire_string_t, datum_t> &ptype) {
+datum_string_t decode_base64_ptype(
+        const std::map<datum_string_t, datum_t> &ptype) {
     bool has_data = false;
-    wire_string_t res;
+    datum_string_t res;
     for (auto it = ptype.begin(); it != ptype.end(); ++it) {
         if (it->first == datum_t::reql_type_string) {
             r_sanity_check(it->second->as_str() == binary_string);
@@ -171,7 +171,7 @@ wire_string_t decode_base64_ptype(
     return res;
 }
 
-void write_binary_to_protobuf(Datum *d, const wire_string_t &data) {
+void write_binary_to_protobuf(Datum *d, const datum_string_t &data) {
     d->set_type(Datum::R_OBJECT);
 
     // Add pseudotype field with binary type

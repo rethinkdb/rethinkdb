@@ -230,7 +230,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
     profile::trace_t *trace)
 {
     const return_changes_t return_changes = replacer->should_return_changes();
-    const wire_string_t &primary_key = info.btree->primary_key;
+    const datum_string_t &primary_key = info.btree->primary_key;
     const store_key_t &key = *info.key;
     ql::datum_object_builder_t resp;
     try {

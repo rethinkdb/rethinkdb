@@ -4,7 +4,7 @@
 #include "containers/archive/archive.hpp"
 #include "containers/archive/buffer_group_stream.hpp"
 #include "containers/counted.hpp"
-#include "containers/wire_string.hpp"
+#include "rdb_protocol/datum_string.hpp"
 
 namespace ql {
 
@@ -44,10 +44,10 @@ size_t datum_serialized_size(const datum_t &datum);
 serialization_result_t datum_serialize(write_message_t *wm, const datum_t &datum);
 archive_result_t datum_deserialize(read_stream_t *s, datum_t *datum);
 
-size_t datum_serialized_size(const wire_string_t &s);
-serialization_result_t datum_serialize(write_message_t *wm, const wire_string_t &s);
+size_t datum_serialized_size(const datum_string_t &s);
+serialization_result_t datum_serialize(write_message_t *wm, const datum_string_t &s);
 
-MUST_USE archive_result_t datum_deserialize(read_stream_t *s, wire_string_t *out);
+MUST_USE archive_result_t datum_deserialize(read_stream_t *s, datum_string_t *out);
 
 // The versioned serialization functions.
 template <cluster_version_t W>

@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "containers/wire_string.hpp"
+#include "rdb_protocol/datum_string.hpp"
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -12,14 +12,14 @@
 #include "containers/scoped.hpp"
 #include "utils.hpp"
 
-wire_string_t::wire_string_t() {
+datum_string_t::datum_string_t() {
     const size_t str_offset = varint_uint64_serialized_size(0);
     scoped_ptr_t<shared_buf_t> data = shared_buf_t::create(str_offset);
     serialize_varint_uint64_into_buf(0, reinterpret_cast<uint8_t *>(data->data()));
     data_ = shared_buf_ref_t<char>(counted_t<shared_buf_t>(data.release()), 0);
 }
 
-wire_string_t::wire_string_t(size_t _size, const char *_data) {
+datum_string_t::datum_string_t(size_t _size, const char *_data) {
     const size_t str_offset = varint_uint64_serialized_size(_size);
     scoped_ptr_t<shared_buf_t> data = shared_buf_t::create(str_offset + _size);
     serialize_varint_uint64_into_buf(_size, reinterpret_cast<uint8_t *>(data->data()));
@@ -27,13 +27,13 @@ wire_string_t::wire_string_t(size_t _size, const char *_data) {
     data_ = shared_buf_ref_t<char>(counted_t<shared_buf_t>(data.release()), 0);
 }
 
-wire_string_t::wire_string_t(const shared_buf_ref_t<char> &_ref)
+datum_string_t::datum_string_t(const shared_buf_ref_t<char> &_ref)
     : data_(_ref) { }
 
-wire_string_t::wire_string_t(shared_buf_ref_t<char> &&_ref)
+datum_string_t::datum_string_t(shared_buf_ref_t<char> &&_ref)
     : data_(std::move(_ref)) { }
 
-wire_string_t::wire_string_t(const char *c_str) {
+datum_string_t::datum_string_t(const char *c_str) {
     const size_t str_size = strlen(c_str);
     const size_t str_offset = varint_uint64_serialized_size(str_size);
     scoped_ptr_t<shared_buf_t> data = shared_buf_t::create(str_offset + str_size);
@@ -42,7 +42,7 @@ wire_string_t::wire_string_t(const char *c_str) {
     data_ = shared_buf_ref_t<char>(counted_t<shared_buf_t>(data.release()), 0);
 }
 
-wire_string_t::wire_string_t(const std::string &str) {
+datum_string_t::datum_string_t(const std::string &str) {
     const size_t str_offset = varint_uint64_serialized_size(str.size());
     scoped_ptr_t<shared_buf_t> data = shared_buf_t::create(str_offset + str.size());
     serialize_varint_uint64_into_buf(str.size(), reinterpret_cast<uint8_t *>(data->data()));
@@ -50,38 +50,38 @@ wire_string_t::wire_string_t(const std::string &str) {
     data_ = shared_buf_ref_t<char>(counted_t<shared_buf_t>(data.release()), 0);
 }
 
-wire_string_t::wire_string_t(wire_string_t &&movee) noexcept
+datum_string_t::datum_string_t(datum_string_t &&movee) noexcept
     : data_(std::move(movee.data_)) { }
 
-wire_string_t::wire_string_t(const wire_string_t &copyee) noexcept
+datum_string_t::datum_string_t(const datum_string_t &copyee) noexcept
     : data_(copyee.data_) { }
 
-wire_string_t &wire_string_t::operator=(wire_string_t &&movee) noexcept {
+datum_string_t &datum_string_t::operator=(datum_string_t &&movee) noexcept {
     data_ = std::move(movee.data_);
     return *this;
 }
 
-wire_string_t &wire_string_t::operator=(const wire_string_t &copyee) noexcept {
+datum_string_t &datum_string_t::operator=(const datum_string_t &copyee) noexcept {
     data_ = copyee.data_;
     return *this;
 }
 
-const char *wire_string_t::data() const {
+const char *datum_string_t::data() const {
     size_t data_offset = varint_uint64_serialized_size(size());
     return data_.get() + data_offset;
 }
-size_t wire_string_t::size() const {
+size_t datum_string_t::size() const {
     uint64_t res;
     guarantee_deserialization(deserialize_varint_uint64_from_buf(
             reinterpret_cast<const uint8_t *>(data_.get()), &res), "wire_string size");
     guarantee(res <= static_cast<uint64_t>(std::numeric_limits<size_t>::max()));
     return static_cast<size_t>(res);
 }
-bool wire_string_t::empty() const {
+bool datum_string_t::empty() const {
     return size() == 0;
 }
 
-int wire_string_t::compare(const wire_string_t &other) const {
+int datum_string_t::compare(const datum_string_t &other) const {
     const size_t this_size = size();
     const size_t other_size = other.size();
     size_t common_size = std::min(this_size, other_size);
@@ -101,41 +101,41 @@ int wire_string_t::compare(const wire_string_t &other) const {
     }
 }
 
-bool wire_string_t::operator==(const char *other) const {
+bool datum_string_t::operator==(const char *other) const {
     return strncmp(data(), other, size()) == 0;
 }
-bool wire_string_t::operator!=(const char *other) const {
+bool datum_string_t::operator!=(const char *other) const {
     return !(*this == other);
 }
 
-bool wire_string_t::operator==(const wire_string_t &other) const {
+bool datum_string_t::operator==(const datum_string_t &other) const {
     if (size() != other.size()) {
         return false;
     }
 
     return compare(other) == 0;
 }
-bool wire_string_t::operator!=(const wire_string_t &other) const {
+bool datum_string_t::operator!=(const datum_string_t &other) const {
     return !operator==(other);
 }
-bool wire_string_t::operator<(const wire_string_t &other) const {
+bool datum_string_t::operator<(const datum_string_t &other) const {
     return compare(other) < 0;
 }
-bool wire_string_t::operator>(const wire_string_t &other) const {
+bool datum_string_t::operator>(const datum_string_t &other) const {
     return compare(other) > 0;
 }
-bool wire_string_t::operator<=(const wire_string_t &other) const {
+bool datum_string_t::operator<=(const datum_string_t &other) const {
     return compare(other) <= 0;
 }
-bool wire_string_t::operator>=(const wire_string_t &other) const {
+bool datum_string_t::operator>=(const datum_string_t &other) const {
     return compare(other) >= 0;
 }
 
-std::string wire_string_t::to_std() const {
+std::string datum_string_t::to_std() const {
     return std::string(data(), size());
 }
 
-wire_string_t concat(const wire_string_t &a, const wire_string_t &b) {
+datum_string_t concat(const datum_string_t &a, const datum_string_t &b) {
     const size_t a_size = a.size();
     const size_t b_size = b.size();
     const size_t str_offset = varint_uint64_serialized_size(a_size + b_size);
@@ -144,6 +144,6 @@ wire_string_t concat(const wire_string_t &a, const wire_string_t &b) {
                                      reinterpret_cast<uint8_t *>(buf->data(0)));
     memcpy(buf->data(str_offset), a.data(), a.size());
     memcpy(buf->data(str_offset + a.size()), b.data(), b.size());
-    return wire_string_t(
+    return datum_string_t(
         shared_buf_ref_t<char>(counted_t<const shared_buf_t>(buf.release()), 0));
 }

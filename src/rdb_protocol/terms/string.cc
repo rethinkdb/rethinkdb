@@ -34,7 +34,7 @@ private:
             // MUST_USE.
             bool b = false;
             b |= match.add("str", datum_t(
-                               wire_string_t(groups[0].as_string())));
+                               datum_string_t(groups[0].as_string())));
             b |= match.add("start", datum_t(
                                static_cast<double>(groups[0].begin() - str.data())));
             b |= match.add("end", datum_t(
@@ -48,7 +48,7 @@ private:
                     datum_object_builder_t match_group;
                     b |= match_group.add(
                         "str", datum_t(
-                            wire_string_t(group.as_string())));
+                            datum_string_t(group.as_string())));
                     b |= match_group.add(
                         "start", datum_t(
                             static_cast<double>(group.begin() - str.data())));
@@ -114,7 +114,7 @@ private:
                 tmp = s.substr(last, next - last);
             }
             if ((delim && delim->size() != 0) || tmp.size() != 0) {
-                res.push_back(datum_t(wire_string_t(tmp)));
+                res.push_back(datum_t(datum_string_t(tmp)));
             }
             last = (next == std::string::npos || next >= s.size())
                 ? std::string::npos

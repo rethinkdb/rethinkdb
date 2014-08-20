@@ -316,23 +316,23 @@ real_table_t::sindex_status(ql::env_t *env, const std::set<std::string> &sindexe
     std::map<std::string, ql::datum_t> statuses;
     for (const std::pair<std::string, rdb_protocol::single_sindex_status_t> &pair :
             s_res->statuses) {
-        std::map<wire_string_t, ql::datum_t> status;
+        std::map<datum_string_t, ql::datum_t> status;
         if (pair.second.blocks_processed != 0) {
-            status[wire_string_t("blocks_processed")] =
+            status[datum_string_t("blocks_processed")] =
                 ql::datum_t(
                     safe_to_double(pair.second.blocks_processed));
-            status[wire_string_t("blocks_total")] =
+            status[datum_string_t("blocks_total")] =
                 ql::datum_t(
                     safe_to_double(pair.second.blocks_total));
         }
-        status[wire_string_t("ready")] = ql::datum_t::boolean(pair.second.ready);
+        status[datum_string_t("ready")] = ql::datum_t::boolean(pair.second.ready);
         std::string s = sindex_blob_prefix + pair.second.func;
-        status[wire_string_t("function")] = ql::datum_t::binary(
-            wire_string_t(s.size(), s.data()));
-        status[wire_string_t("outdated")] = ql::datum_t::boolean(pair.second.outdated);
-        status[wire_string_t("multi")] =
+        status[datum_string_t("function")] = ql::datum_t::binary(
+            datum_string_t(s.size(), s.data()));
+        status[datum_string_t("outdated")] = ql::datum_t::boolean(pair.second.outdated);
+        status[datum_string_t("multi")] =
             ql::datum_t::boolean(pair.second.multi == sindex_multi_bool_t::MULTI);
-        status[wire_string_t("geo")] =
+        status[datum_string_t("geo")] =
             ql::datum_t::boolean(pair.second.geo == sindex_geo_bool_t::GEO);
         statuses.insert(std::make_pair(
             pair.first,

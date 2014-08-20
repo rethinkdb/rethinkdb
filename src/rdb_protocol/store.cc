@@ -576,7 +576,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         response->response =
             rdb_batched_replace(
                 btree_info_t(btree, timestamp,
-                             wire_string_t(br.pkey)),
+                             datum_string_t(br.pkey)),
                 superblock, br.keys, ql_env.limits(), &replacer, &sindex_cb,
                 trace);
     }
@@ -589,12 +589,12 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         std::vector<store_key_t> keys;
         keys.reserve(bi.inserts.size());
         for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
-            keys.emplace_back((*it)->get_field(wire_string_t(bi.pkey))->print_primary());
+            keys.emplace_back((*it)->get_field(datum_string_t(bi.pkey))->print_primary());
         }
         response->response =
             rdb_batched_replace(
                 btree_info_t(btree, timestamp,
-                             wire_string_t(bi.pkey)),
+                             datum_string_t(bi.pkey)),
                 superblock, keys, bi.limits, &replacer, &sindex_cb,
                 trace);
     }

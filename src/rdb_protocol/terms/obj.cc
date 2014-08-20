@@ -13,7 +13,7 @@ public:
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         datum_t d = args->arg(env, 0)->as_datum();
-        const std::map<wire_string_t, datum_t> &obj = d->as_object();
+        const std::map<datum_string_t, datum_t> &obj = d->as_object();
 
         std::vector<datum_t> arr;
         arr.reserve(obj.size());
@@ -38,7 +38,7 @@ private:
                          args->num_args()));
         datum_object_builder_t obj;
         for (size_t i = 0; i < args->num_args(); i+=2) {
-            const wire_string_t &key = args->arg(env, i)->as_str();
+            const datum_string_t &key = args->arg(env, i)->as_str();
             datum_t keyval = args->arg(env, i + 1)->as_datum();
             bool b = obj.add(key, keyval);
             rcheck(!b, base_exc_t::GENERIC,

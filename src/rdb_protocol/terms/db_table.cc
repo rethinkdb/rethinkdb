@@ -5,7 +5,7 @@
 #include <string>
 
 #include "containers/name_string.hpp"
-#include "containers/wire_string.hpp"
+#include "rdb_protocol/datum_string.hpp"
 #include "rdb_protocol/op.hpp"
 
 namespace ql {
@@ -16,7 +16,7 @@ durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
 name_string_t get_name(counted_t<val_t> val, const term_t *caller,
         const char *type_str) {
     r_sanity_check(val.has());
-    const wire_string_t &raw_name = val->as_str();
+    const datum_string_t &raw_name = val->as_str();
     name_string_t name;
     bool assignment_successful = name.assign_value(raw_name);
     rcheck_target(caller, base_exc_t::GENERIC, assignment_successful,
@@ -50,7 +50,7 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t flags) const {
         std::string op = write_eval_impl(env, args, flags);
         datum_object_builder_t res;
-        UNUSED bool b = res.add(wire_string_t(op), datum_t(1.0));
+        UNUSED bool b = res.add(datum_string_t(op), datum_t(1.0));
         return new_val(std::move(res).to_datum());
     }
 };
@@ -213,7 +213,7 @@ private:
         std::vector<datum_t> arr;
         arr.reserve(dbs.size());
         for (auto it = dbs.begin(); it != dbs.end(); ++it) {
-            arr.push_back(datum_t(wire_string_t(it->str())));
+            arr.push_back(datum_t(datum_string_t(it->str())));
         }
 
         return new_val(datum_t(std::move(arr), env->env->limits()));
@@ -246,7 +246,7 @@ private:
         std::vector<datum_t> arr;
         arr.reserve(tables.size());
         for (auto it = tables.begin(); it != tables.end(); ++it) {
-            arr.push_back(datum_t(wire_string_t(it->str())));
+            arr.push_back(datum_t(datum_string_t(it->str())));
         }
         return new_val(datum_t(std::move(arr), env->env->limits()));
     }

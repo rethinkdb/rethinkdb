@@ -10,10 +10,10 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        const wire_string_t &data = args->arg(env, 0)->as_str();
+        const datum_string_t &data = args->arg(env, 0)->as_str();
         // TODO (daniel): This causes copying, which might reduce performance and
         // wastes memory. Change the cJSON interface to take a length.
-        // Or maybe store wire_string_ts with a null byte appended, though that
+        // Or maybe store datum_string_ts with a null byte appended, though that
         // would suck.
         const std::string std_data = data.to_std();
         scoped_cJSON_t cjson(cJSON_Parse(std_data.c_str()));

@@ -6,9 +6,9 @@
 namespace unittest {
 
 write_t mock_overwrite(std::string key, std::string value) {
-    std::map<wire_string_t, ql::datum_t> m;
-    m[wire_string_t("id")] = ql::datum_t(wire_string_t(key));
-    m[wire_string_t("value")] = ql::datum_t(wire_string_t(value));
+    std::map<datum_string_t, ql::datum_t> m;
+    m[datum_string_t("id")] = ql::datum_t(datum_string_t(key));
+    m[datum_string_t("value")] = ql::datum_t(datum_string_t(value));
 
     point_write_t pw(store_key_t(key),
                                      ql::datum_t(std::move(m)),

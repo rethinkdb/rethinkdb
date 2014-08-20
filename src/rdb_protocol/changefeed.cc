@@ -410,9 +410,9 @@ public:
     void operator()(const msg_t::change_t &change) const {
         datum_t null = datum_t::null();
         configured_limits_t default_limits;
-        std::map<wire_string_t, datum_t> obj{
-            {wire_string_t("new_val"), change.new_val.has() ? change.new_val : null},
-            {wire_string_t("old_val"), change.old_val.has() ? change.old_val : null}
+        std::map<datum_string_t, datum_t> obj{
+            {datum_string_t("new_val"), change.new_val.has() ? change.new_val : null},
+            {datum_string_t("old_val"), change.old_val.has() ? change.old_val : null}
         };
         auto d = datum_t(std::move(obj));
         feed->each_table_sub(
@@ -423,7 +423,7 @@ public:
                       d, default_limits));
         auto val = change.new_val.has() ? change.new_val : change.old_val;
         r_sanity_check(val.has());
-        auto pkey_val = val->get_field(wire_string_t(feed->pkey), NOTHROW);
+        auto pkey_val = val->get_field(datum_string_t(feed->pkey), NOTHROW);
         r_sanity_check(pkey_val.has());
         feed->on_point_sub(
             pkey_val,
@@ -507,9 +507,9 @@ subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
     } else if (skipped != 0) {
         v.push_back(
             datum_t(
-                std::map<wire_string_t, datum_t>{
-                    {wire_string_t("error"), datum_t(
-                        wire_string_t(strprintf("Changefeed cache over array size limit, "
+                std::map<datum_string_t, datum_t>{
+                    {datum_string_t("error"), datum_t(
+                        datum_string_t(strprintf("Changefeed cache over array size limit, "
                                                 "skipped %zu elements.", skipped)))}}));
         skipped = 0;
     } else {

@@ -14,9 +14,9 @@ pathspec_t& pathspec_t::operator=(const pathspec_t &other) {
     // is a field inside of *this.
     type_t type_old = type;
     union {
-        wire_string_t *str_old;
+        datum_string_t *str_old;
         std::vector<pathspec_t> *vec_old;
-        std::map<wire_string_t, pathspec_t> *map_old;
+        std::map<datum_string_t, pathspec_t> *map_old;
     };
     switch (type) {
     case STR:
@@ -51,19 +51,19 @@ pathspec_t& pathspec_t::operator=(const pathspec_t &other) {
     return *this;
 }
 
-pathspec_t::pathspec_t(const wire_string_t &_str, const term_t *_creator)
-    : type(STR), str(new wire_string_t(_str)), creator(_creator) { }
+pathspec_t::pathspec_t(const datum_string_t &_str, const term_t *_creator)
+    : type(STR), str(new datum_string_t(_str)), creator(_creator) { }
 
-pathspec_t::pathspec_t(const std::map<wire_string_t, pathspec_t> &_map,
+pathspec_t::pathspec_t(const std::map<datum_string_t, pathspec_t> &_map,
                        const term_t *_creator)
-    : type(MAP), map(new std::map<wire_string_t, pathspec_t>(_map)), creator(_creator) { }
+    : type(MAP), map(new std::map<datum_string_t, pathspec_t>(_map)), creator(_creator) { }
 
 pathspec_t::pathspec_t(datum_t datum, const term_t *_creator)
     : creator(_creator)
 {
     if (datum->get_type() == datum_t::R_STR) {
         type = STR;
-        str = new wire_string_t(datum->as_str());
+        str = new datum_string_t(datum->as_str());
     } else if (datum->get_type() == datum_t::R_ARRAY) {
         type = VEC;
         vec = new std::vector<pathspec_t>;
@@ -72,8 +72,8 @@ pathspec_t::pathspec_t(datum_t datum, const term_t *_creator)
         }
     } else if (datum->get_type() == datum_t::R_OBJECT) {
         scoped_ptr_t<std::vector<pathspec_t> > local_vec(new std::vector<pathspec_t>);
-        scoped_ptr_t<std::map<wire_string_t, pathspec_t> >
-            local_map(new std::map<wire_string_t, pathspec_t>);
+        scoped_ptr_t<std::map<datum_string_t, pathspec_t> >
+            local_map(new std::map<datum_string_t, pathspec_t>);
         for (auto it = datum->as_object().begin();
              it != datum->as_object().end(); ++it) {
             if (it->second->get_type() == datum_t::R_BOOL &&
@@ -125,13 +125,13 @@ void pathspec_t::init_from(const pathspec_t &other) {
     type = other.type;
     switch (type) {
     case STR:
-        str = new wire_string_t(*other.str);
+        str = new datum_string_t(*other.str);
         break;
     case VEC:
         vec = new std::vector<pathspec_t>(*other.vec);
         break;
     case MAP:
-        map = new std::map<wire_string_t, pathspec_t>(*other.map);
+        map = new std::map<datum_string_t, pathspec_t>(*other.map);
         break;
     default:
         unreachable();
@@ -154,7 +154,7 @@ datum_t project(datum_t datum,
     } else {
         datum_object_builder_t res;
         if (pathspec.as_str() != NULL) {
-            wire_string_t str(*pathspec.as_str());
+            datum_string_t str(*pathspec.as_str());
             if (datum_t val = datum->get_field(str, NOTHROW)) {
                 res.overwrite(std::move(str), val);
             }
@@ -166,7 +166,7 @@ datum_t project(datum_t datum,
                     res.overwrite(jt->first, jt->second);
                 }
             }
-        } else if (const std::map<wire_string_t, pathspec_t> *map = pathspec.as_map()) {
+        } else if (const std::map<datum_string_t, pathspec_t> *map = pathspec.as_map()) {
             for (auto it = map->begin(); it != map->end(); ++it) {
                 if (datum_t val = datum->get_field(it->first, NOTHROW)) {
                     try {
@@ -189,13 +189,13 @@ void unproject_helper(datum_object_builder_t *datum,
                       const pathspec_t &pathspec,
                       recurse_flag_t recurse,
                       const configured_limits_t &limits) {
-    if (const wire_string_t *str = pathspec.as_str()) {
+    if (const datum_string_t *str = pathspec.as_str()) {
         UNUSED bool key_was_deleted = datum->delete_field(*str);
     } else if (const std::vector<pathspec_t> *vec = pathspec.as_vec()) {
         for (auto it = vec->begin(); it != vec->end(); ++it) {
             unproject_helper(datum, *it, recurse, limits);
         }
-    } else if (const std::map<wire_string_t, pathspec_t> *map = pathspec.as_map()) {
+    } else if (const std::map<datum_string_t, pathspec_t> *map = pathspec.as_map()) {
         for (auto it = map->begin(); it != map->end(); ++it) {
             if (datum_t val = datum->try_get(it->first)) {
                 try {
@@ -235,7 +235,7 @@ bool contains(datum_t datum,
         const pathspec_t &pathspec) {
     try {
         bool res = true;
-        if (const wire_string_t *str = pathspec.as_str()) {
+        if (const datum_string_t *str = pathspec.as_str()) {
             if (!(res &= (datum->get_field(*str, NOTHROW).has() &&
                           datum->get_field(*str)->get_type() != datum_t::R_NULL))) {
                 return res;
@@ -246,7 +246,7 @@ bool contains(datum_t datum,
                     return res;
                 }
             }
-        } else if (const std::map<wire_string_t, pathspec_t> *map = pathspec.as_map()) {
+        } else if (const std::map<datum_string_t, pathspec_t> *map = pathspec.as_map()) {
             for (auto it = map->begin(); it != map->end(); ++it) {
                 if (datum_t val = datum->get_field(it->first, NOTHROW)) {
                     if (!(res &= contains(val, it->second))) {

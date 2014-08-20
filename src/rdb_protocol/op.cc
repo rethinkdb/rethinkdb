@@ -322,7 +322,7 @@ bool bounded_op_term_t::open_bool(
         scope_env_t *env, args_t *args, const std::string &key, bool def/*ault*/) const {
     counted_t<val_t> v = args->optarg(env, key);
     if (!v.has()) return def;
-    const wire_string_t &s = v->as_str();
+    const datum_string_t &s = v->as_str();
     if (s == "open") {
         return true;
     } else if (s == "closed") {

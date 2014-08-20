@@ -226,7 +226,7 @@ bool filter_match(datum_t predicate, datum_t value,
     if (predicate->is_ptype(pseudo::literal_string)) {
         return *predicate->get_field(pseudo::value_key) == *value;
     } else {
-        const std::map<wire_string_t, datum_t> &obj
+        const std::map<datum_string_t, datum_t> &obj
             = predicate->as_object();
         for (auto it = obj.begin(); it != obj.end(); ++it) {
             r_sanity_check(it->second.has());

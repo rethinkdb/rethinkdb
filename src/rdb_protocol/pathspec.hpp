@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include "containers/wire_string.hpp"
+#include "rdb_protocol/datum_string.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "utils.hpp"
 
@@ -17,11 +17,11 @@ class pathspec_t {
 public:
     pathspec_t(const pathspec_t &other);
     pathspec_t &operator=(const pathspec_t &other);
-    pathspec_t(const wire_string_t &str, const term_t *creator);
-    pathspec_t(const std::map<wire_string_t, pathspec_t> &map, const term_t *creator);
+    pathspec_t(const datum_string_t &str, const term_t *creator);
+    pathspec_t(const std::map<datum_string_t, pathspec_t> &map, const term_t *creator);
     pathspec_t(datum_t datum, const term_t *creator);
     ~pathspec_t();
-    const wire_string_t *as_str() const {
+    const datum_string_t *as_str() const {
         return (type == STR ? str : NULL);
     }
 
@@ -29,7 +29,7 @@ public:
         return (type == VEC ? vec: NULL);
     }
 
-    const std::map<wire_string_t, pathspec_t> *as_map() const {
+    const std::map<datum_string_t, pathspec_t> *as_map() const {
         return (type == MAP ? map : NULL);
     }
 
@@ -71,9 +71,9 @@ private:
     } type;
 
     union {
-        wire_string_t *str;
+        datum_string_t *str;
         std::vector<pathspec_t> *vec;
-        std::map<wire_string_t, pathspec_t> *map;
+        std::map<datum_string_t, pathspec_t> *map;
     };
 
     const term_t *creator;

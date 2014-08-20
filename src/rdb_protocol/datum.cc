@@ -28,12 +28,12 @@ const size_t tag_size = 8;
 
 const std::set<std::string> datum_t::_allowed_pts = std::set<std::string>();
 
-const wire_string_t datum_t::reql_type_string("$reql_type$");
+const datum_string_t datum_t::reql_type_string("$reql_type$");
 
-const wire_string_t errors_field("errors");
-const wire_string_t first_error_field("first_error");
-const wire_string_t warnings_field("warnings");
-const wire_string_t data_field("data");
+const datum_string_t errors_field("errors");
+const datum_string_t first_error_field("first_error");
+const datum_string_t warnings_field("warnings");
+const datum_string_t data_field("data");
 
 datum_t::data_wrapper_t::data_wrapper_t(const datum_t::data_wrapper_t &copyee) {
     assign_copy(copyee);
@@ -68,20 +68,20 @@ datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_boolean_t, bool _bool
     type(R_BOOL), r_bool(_bool) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_binary_t,
-                                        wire_string_t &&_data) :
+                                        datum_string_t &&_data) :
     type(R_BINARY), r_str(std::move(_data)) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_binary_t,
-                                        const wire_string_t &_data) :
+                                        const datum_string_t &_data) :
     type(R_BINARY), r_str(_data) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(double num) :
     type(R_NUM), r_num(num) { }
 
-datum_t::data_wrapper_t::data_wrapper_t(wire_string_t &&str) :
+datum_t::data_wrapper_t::data_wrapper_t(datum_string_t &&str) :
     type(R_STR), r_str(std::move(str)) { }
 
-datum_t::data_wrapper_t::data_wrapper_t(const wire_string_t &str) :
+datum_t::data_wrapper_t::data_wrapper_t(const datum_string_t &str) :
     type(R_STR), r_str(str) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(const char *cstr) :
@@ -91,9 +91,9 @@ datum_t::data_wrapper_t::data_wrapper_t(std::vector<datum_t> &&array) :
     type(R_ARRAY),
     r_array(new countable_wrapper_t<std::vector<datum_t> >(std::move(array))) { }
 
-datum_t::data_wrapper_t::data_wrapper_t(std::map<wire_string_t, datum_t> &&object) :
+datum_t::data_wrapper_t::data_wrapper_t(std::map<datum_string_t, datum_t> &&object) :
     type(R_OBJECT),
-    r_object(new countable_wrapper_t<std::map<wire_string_t, datum_t> >(
+    r_object(new countable_wrapper_t<std::map<datum_string_t, datum_t> >(
         std::move(object))) { }
 
 datum_t::data_wrapper_t::~data_wrapper_t() {
@@ -108,13 +108,13 @@ void datum_t::data_wrapper_t::destruct() {
     case R_NUM: break;
     case R_BINARY: // fallthru
     case R_STR: {
-        r_str.~wire_string_t();
+        r_str.~datum_string_t();
     } break;
     case R_ARRAY: {
         r_array.~counted_t<countable_wrapper_t<std::vector<datum_t> > >();
     } break;
     case R_OBJECT: {
-        r_object.~counted_t<countable_wrapper_t<std::map<wire_string_t, datum_t> > >();
+        r_object.~counted_t<countable_wrapper_t<std::map<datum_string_t, datum_t> > >();
     } break;
     default: unreachable();
     }
@@ -133,13 +133,13 @@ void datum_t::data_wrapper_t::assign_copy(const datum_t::data_wrapper_t &copyee)
     } break;
     case R_BINARY: // fallthru
     case R_STR: {
-        new(&r_str) wire_string_t(copyee.r_str);
+        new(&r_str) datum_string_t(copyee.r_str);
     } break;
     case R_ARRAY: {
         new(&r_array) counted_t<countable_wrapper_t<std::vector<datum_t> > >(copyee.r_array);
     } break;
     case R_OBJECT: {
-        new(&r_object) counted_t<countable_wrapper_t<std::map<wire_string_t, datum_t> > >(
+        new(&r_object) counted_t<countable_wrapper_t<std::map<datum_string_t, datum_t> > >(
             copyee.r_object);
     } break;
     default: unreachable();
@@ -159,14 +159,14 @@ void datum_t::data_wrapper_t::assign_move(datum_t::data_wrapper_t &&movee) noexc
     } break;
     case R_BINARY: // fallthru
     case R_STR: {
-        new(&r_str) wire_string_t(std::move(movee.r_str));
+        new(&r_str) datum_string_t(std::move(movee.r_str));
     } break;
     case R_ARRAY: {
         new(&r_array) counted_t<countable_wrapper_t<std::vector<datum_t> > >(
             std::move(movee.r_array));
     } break;
     case R_OBJECT: {
-        new(&r_object) counted_t<countable_wrapper_t<std::map<wire_string_t, datum_t> > >(
+        new(&r_object) counted_t<countable_wrapper_t<std::map<datum_string_t, datum_t> > >(
             std::move(movee.r_object));
     } break;
     default: unreachable();
@@ -179,10 +179,10 @@ datum_t::datum_t(datum_t::construct_null_t dummy) : data(dummy) { }
 
 datum_t::datum_t(construct_boolean_t dummy, bool _bool) : data(dummy, _bool) { }
 
-datum_t::datum_t(construct_binary_t dummy, wire_string_t &&_data)
+datum_t::datum_t(construct_binary_t dummy, datum_string_t &&_data)
     : data(dummy, std::move(_data)) { }
 
-datum_t::datum_t(construct_binary_t dummy, const wire_string_t &_data)
+datum_t::datum_t(construct_binary_t dummy, const datum_string_t &_data)
     : data(dummy, _data) { }
 
 datum_t::datum_t(double _num) : data(_num) {
@@ -192,11 +192,11 @@ datum_t::datum_t(double _num) : data(_num) {
            strprintf("Non-finite number: %" PR_RECONSTRUCTABLE_DOUBLE, data.r_num));
 }
 
-datum_t::datum_t(const wire_string_t &_str) : data(_str) {
+datum_t::datum_t(const datum_string_t &_str) : data(_str) {
     check_str_validity(data.r_str);
 }
 
-datum_t::datum_t(wire_string_t &&_str) : data(std::move(_str)) {
+datum_t::datum_t(datum_string_t &&_str) : data(std::move(_str)) {
     check_str_validity(data.r_str);
 }
 
@@ -211,20 +211,20 @@ datum_t::datum_t(std::vector<datum_t> &&_array,
 datum_t::datum_t(std::vector<datum_t> &&_array,
                  no_array_size_limit_check_t) : data(std::move(_array)) { }
 
-datum_t::datum_t(std::map<wire_string_t, datum_t> &&_object,
+datum_t::datum_t(std::map<datum_string_t, datum_t> &&_object,
                  const std::set<std::string> &allowed_pts)
     : data(std::move(_object)) {
     maybe_sanitize_ptype(allowed_pts);
 }
 
-datum_t::datum_t(std::map<wire_string_t, datum_t> &&_object,
+datum_t::datum_t(std::map<datum_string_t, datum_t> &&_object,
                  no_sanitize_ptype_t)
     : data(std::move(_object)) { }
 
 datum_t to_datum_for_client_serialization(grouped_data_t &&gd,
                                           reql_version_t reql_version,
                                           const configured_limits_t &limits) {
-    std::map<wire_string_t, datum_t> map;
+    std::map<datum_string_t, datum_t> map;
     map[datum_t::reql_type_string] =
         datum_t("GROUPED_DATA");
 
@@ -267,7 +267,7 @@ datum_t datum_t::empty_array() {
 }
 
 datum_t datum_t::empty_object() {
-    return datum_t(std::map<wire_string_t, datum_t>());
+    return datum_t(std::map<datum_string_t, datum_t>());
 }
 
 datum_t datum_t::null() {
@@ -278,11 +278,11 @@ datum_t datum_t::boolean(bool value) {
     return datum_t(construct_boolean_t(), value);
 }
 
-datum_t datum_t::binary(const wire_string_t &_data) {
+datum_t datum_t::binary(const datum_string_t &_data) {
     return datum_t(construct_binary_t(), _data);
 }
 
-datum_t datum_t::binary(wire_string_t &&_data) {
+datum_t datum_t::binary(datum_string_t &&_data) {
     return datum_t(construct_binary_t(), std::move(_data));
 }
 
@@ -312,11 +312,11 @@ datum_t to_datum(cJSON *json, const configured_limits_t &limits) {
         return datum_t(std::move(array), limits);
     } break;
     case cJSON_Object: {
-        std::map<wire_string_t, datum_t> map;
+        std::map<datum_string_t, datum_t> map;
         json_object_iterator_t it(json);
         while (cJSON *item = it.next()) {
             auto res = map.insert(
-                std::make_pair(wire_string_t(item->string), to_datum(item, limits)));
+                std::make_pair(datum_string_t(item->string), to_datum(item, limits)));
             rcheck_datum(res.second, base_exc_t::GENERIC,
                          strprintf("Duplicate key `%s` in JSON.", item->string));
         }
@@ -338,7 +338,7 @@ void check_str_validity(const char *bytes, size_t count) {
                            bytes, pos - bytes));
 }
 
-void datum_t::check_str_validity(const wire_string_t &str) {
+void datum_t::check_str_validity(const datum_string_t &str) {
     ::ql::check_str_validity(str.data(), str.size());
 }
 
@@ -453,7 +453,7 @@ void datum_t::binary_to_str_key(std::string *str_out) const {
     // We need to prepend "P" and append a character less than [a-zA-Z] so that
     // different pseudotypes sort correctly.
     const std::string binary_key_prefix("PBINARY:");
-    const wire_string_t &key = as_binary();
+    const datum_string_t &key = as_binary();
 
     str_out->append(binary_key_prefix);
     size_t to_append = std::min(MAX_KEY_SIZE - str_out->size(), key.size());
@@ -616,7 +616,7 @@ datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
     datum_t copied_result;
 
     if (get_type() == R_OBJECT) {
-        const std::map<wire_string_t, datum_t> &obj = as_object();
+        const std::map<datum_string_t, datum_t> &obj = as_object();
         datum_object_builder_t builder;
 
         for (auto it = obj.begin(); it != obj.end(); ++it) {
@@ -690,7 +690,7 @@ datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
 
 void datum_t::rcheck_valid_replace(datum_t old_val,
                                    datum_t orig_key,
-                                   const wire_string_t &pkey) const {
+                                   const datum_string_t &pkey) const {
     datum_t pk = get_field(pkey, NOTHROW);
     rcheck(pk.has(), base_exc_t::GENERIC,
            strprintf("Inserted object must have primary key `%s`:\n%s",
@@ -983,12 +983,12 @@ int64_t datum_t::as_int() const {
     return checked_convert_to_int(&target, as_num());
 }
 
-const wire_string_t &datum_t::as_binary() const {
+const datum_string_t &datum_t::as_binary() const {
     check_type(R_BINARY);
     return data.r_str;
 }
 
-const wire_string_t &datum_t::as_str() const {
+const datum_string_t &datum_t::as_str() const {
     check_type(R_STR);
     return data.r_str;
 }
@@ -1012,8 +1012,8 @@ datum_t datum_t::get(size_t index, throw_bool_t throw_bool) const {
     }
 }
 
-datum_t datum_t::get_field(const wire_string_t &key, throw_bool_t throw_bool) const {
-    std::map<wire_string_t, datum_t>::const_iterator it
+datum_t datum_t::get_field(const datum_string_t &key, throw_bool_t throw_bool) const {
+    std::map<datum_string_t, datum_t>::const_iterator it
         = as_object().find(key);
     if (it != as_object().end()) return it->second;
     if (throw_bool == THROW) {
@@ -1024,10 +1024,10 @@ datum_t datum_t::get_field(const wire_string_t &key, throw_bool_t throw_bool) co
 }
 
 datum_t datum_t::get_field(const char *key, throw_bool_t throw_bool) const {
-    return get_field(wire_string_t(key), throw_bool);
+    return get_field(datum_string_t(key), throw_bool);
 }
 
-const std::map<wire_string_t, datum_t> &datum_t::as_object() const {
+const std::map<datum_string_t, datum_t> &datum_t::as_object() const {
     check_type(R_OBJECT);
     return *data.r_object;
 }
@@ -1048,7 +1048,7 @@ cJSON *datum_t::as_json_raw() const {
     } break;
     case R_OBJECT: {
         scoped_cJSON_t obj(cJSON_CreateObject());
-        for (std::map<wire_string_t, datum_t>::const_iterator
+        for (std::map<datum_string_t, datum_t>::const_iterator
                  it = data.r_object->begin(); it != data.r_object->end(); ++it) {
             obj.AddItemToObject(it->first.to_std().c_str(), it->second->as_json_raw());
         }
@@ -1084,7 +1084,7 @@ datum_t::as_datum_stream(const protob_t<const Backtrace> &backtrace) const {
     unreachable();
 };
 
-MUST_USE bool datum_t::add(const wire_string_t &key, datum_t val,
+MUST_USE bool datum_t::add(const datum_string_t &key, datum_t val,
                            clobber_bool_t clobber_bool) {
     check_type(R_OBJECT);
     check_str_validity(key);
@@ -1102,7 +1102,7 @@ datum_t datum_t::merge(datum_t rhs) const {
     }
 
     datum_object_builder_t d(as_object());
-    const std::map<wire_string_t, datum_t> &rhs_obj = rhs->as_object();
+    const std::map<datum_string_t, datum_t> &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
         datum_t sub_lhs = d.try_get(it->first);
         bool is_literal = it->second->is_ptype(pseudo::literal_string);
@@ -1137,7 +1137,7 @@ datum_t datum_t::merge(datum_t rhs,
                                         const configured_limits_t &limits,
                                         std::set<std::string> *conditions_out) const {
     datum_object_builder_t d(as_object());
-    const std::map<wire_string_t, datum_t> &rhs_obj = rhs->as_object();
+    const std::map<datum_string_t, datum_t> &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
         datum_t left = get_field(it->first, NOTHROW);
         if (left.has()) {
@@ -1191,8 +1191,8 @@ int datum_t::v1_13_cmp(const datum_t &rhs) const {
             }
             return pseudo_cmp(reql_version_t::v1_13, rhs);
         } else {
-            const std::map<wire_string_t, datum_t> &obj = as_object();
-            const std::map<wire_string_t, datum_t> &rhs_obj
+            const std::map<datum_string_t, datum_t> &obj = as_object();
+            const std::map<datum_string_t, datum_t> &rhs_obj
                 = rhs.as_object();
             auto it = obj.begin();
             auto it2 = rhs_obj.begin();
@@ -1264,8 +1264,8 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
         return i == rhs.as_array().size() ? 0 : -1;
     } unreachable();
     case R_OBJECT: {
-        const std::map<wire_string_t, datum_t> &obj = as_object();
-        const std::map<wire_string_t, datum_t> &rhs_obj
+        const std::map<datum_string_t, datum_t> &obj = as_object();
+        const std::map<datum_string_t, datum_t> &rhs_obj
             = rhs.as_object();
         auto it = obj.begin();
         auto it2 = rhs_obj.begin();
@@ -1318,7 +1318,7 @@ datum_t to_datum(const Datum *d, const configured_limits_t &limits) {
         return datum_t(d->r_num());
     } break;
     case Datum::R_STR: {
-        return datum_t(wire_string_t(d->r_str()));
+        return datum_t(datum_string_t(d->r_str()));
     } break;
     case Datum::R_JSON: {
         scoped_cJSON_t cjson(cJSON_Parse(d->r_str().c_str()));
@@ -1333,11 +1333,11 @@ datum_t to_datum(const Datum *d, const configured_limits_t &limits) {
         return std::move(out).to_datum();
     } break;
     case Datum::R_OBJECT: {
-        std::map<wire_string_t, datum_t> map;
+        std::map<datum_string_t, datum_t> map;
         const int count = d->r_object_size();
         for (int i = 0; i < count; ++i) {
             const Datum_AssocPair *ap = &d->r_object(i);
-            wire_string_t key(ap->key());
+            datum_string_t key(ap->key());
             datum_t::check_str_validity(key);
             auto res = map.insert(std::make_pair(key,
                                                  to_datum(&ap->val(), limits)));
@@ -1427,7 +1427,7 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
 // generic conflict resolution function, but this particular conflict resolution
 // function doesn't care about they key (although we could add some
 // error-checking using the key in the future).
-datum_t stats_merge(UNUSED const wire_string_t &key,
+datum_t stats_merge(UNUSED const datum_string_t &key,
                                      datum_t l,
                                      datum_t r,
                                      const configured_limits_t &limits,
@@ -1468,7 +1468,7 @@ datum_t stats_merge(UNUSED const wire_string_t &key,
     return l;
 }
 
-bool datum_object_builder_t::add(const wire_string_t &key, datum_t val) {
+bool datum_object_builder_t::add(const datum_string_t &key, datum_t val) {
     datum_t::check_str_validity(key);
     r_sanity_check(val.has());
     auto res = map.insert(std::make_pair(key, std::move(val)));
@@ -1478,10 +1478,10 @@ bool datum_object_builder_t::add(const wire_string_t &key, datum_t val) {
 }
 
 bool datum_object_builder_t::add(const char *key, datum_t val) {
-    return add(wire_string_t(key), val);
+    return add(datum_string_t(key), val);
 }
 
-void datum_object_builder_t::overwrite(const wire_string_t &key,
+void datum_object_builder_t::overwrite(const datum_string_t &key,
                                        datum_t val) {
     datum_t::check_str_validity(key);
     r_sanity_check(val.has());
@@ -1490,7 +1490,7 @@ void datum_object_builder_t::overwrite(const wire_string_t &key,
 
 void datum_object_builder_t::overwrite(const char *key,
                                        datum_t val) {
-    return overwrite(wire_string_t(key), val);
+    return overwrite(datum_string_t(key), val);
 }
 
 void datum_object_builder_t::add_warning(const char *msg, const configured_limits_t &limits) {
@@ -1558,20 +1558,20 @@ void datum_object_builder_t::add_error(const char *msg) {
     map.insert(std::make_pair(first_error_field, datum_t(msg)));
 }
 
-MUST_USE bool datum_object_builder_t::delete_field(const wire_string_t &key) {
+MUST_USE bool datum_object_builder_t::delete_field(const datum_string_t &key) {
     return 0 != map.erase(key);
 }
 
 MUST_USE bool datum_object_builder_t::delete_field(const char *key) {
-    return delete_field(wire_string_t(key));
+    return delete_field(datum_string_t(key));
 }
 
 
-datum_t datum_object_builder_t::at(const wire_string_t &key) const {
+datum_t datum_object_builder_t::at(const datum_string_t &key) const {
     return map.at(key);
 }
 
-datum_t datum_object_builder_t::try_get(const wire_string_t &key) const {
+datum_t datum_object_builder_t::try_get(const datum_string_t &key) const {
     auto it = map.find(key);
     return it == map.end() ? datum_t() : it->second;
 }

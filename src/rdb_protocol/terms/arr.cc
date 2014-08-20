@@ -186,22 +186,22 @@ private:
     counted_t<val_t> slice_binary(datum_t binary,
                                   bool left_open, int64_t fake_l,
                                   bool right_open, int64_t fake_r) const {
-        const wire_string_t &data = binary->as_binary();
+        const datum_string_t &data = binary->as_binary();
         uint64_t real_l, real_r;
         if (canon_helper(data.size(), left_open, fake_l, true, &real_l)) {
             real_l = 0;
         }
         if (canon_helper(data.size(), right_open, fake_r, false, &real_r)) {
-            return new_val(datum_t::binary(wire_string_t()));
+            return new_val(datum_t::binary(datum_string_t()));
         }
 
         real_r = clamp<uint64_t>(real_r, 0, data.size());
 
-        wire_string_t subdata;
+        datum_string_t subdata;
         if (real_l <= real_r) {
-            subdata = wire_string_t(real_r - real_l, &data.data()[real_l]);
+            subdata = datum_string_t(real_r - real_l, &data.data()[real_l]);
         } else {
-            subdata = wire_string_t();
+            subdata = datum_string_t();
         }
 
         return new_val(datum_t::binary(std::move(subdata)));

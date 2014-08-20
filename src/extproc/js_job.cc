@@ -528,7 +528,7 @@ ql::datum_t js_make_datum(const v8::Handle<v8::Value> &value,
         string->WriteUtf8(temp_buffer.data(), length);
 
         try {
-            result = ql::datum_t(wire_string_t(length, temp_buffer.data()));
+            result = ql::datum_t(datum_string_t(length, temp_buffer.data()));
         } catch (const ql::base_exc_t &ex) {
             err_out->assign(ex.what());
         }
@@ -571,7 +571,7 @@ ql::datum_t js_make_datum(const v8::Handle<v8::Value> &value,
             v8::Handle<v8::Array> properties = objh->GetPropertyNames();
             guarantee(!properties.IsEmpty());
 
-            std::map<wire_string_t, ql::datum_t> datum_map;
+            std::map<datum_string_t, ql::datum_t> datum_map;
 
             uint32_t len = properties->Length();
             for (uint32_t i = 0; i < len; ++i) {
@@ -591,7 +591,7 @@ ql::datum_t js_make_datum(const v8::Handle<v8::Value> &value,
                 size_t length = keyh->Utf8Length();
                 scoped_array_t<char> temp_buffer(length);
                 keyh->WriteUtf8(temp_buffer.data(), length);
-                wire_string_t key_string(length, temp_buffer.data());
+                datum_string_t key_string(length, temp_buffer.data());
 
                 datum_map.insert(std::make_pair(key_string, item));
             }
@@ -672,7 +672,7 @@ v8::Handle<v8::Value> js_from_datum(const ql::datum_t &datum,
             return date;
         } else {
             v8::Handle<v8::Object> obj = v8::Object::New();
-            const std::map<wire_string_t, ql::datum_t> &source_map
+            const std::map<datum_string_t, ql::datum_t> &source_map
                 = datum->as_object();
 
             for (auto it = source_map.begin(); it != source_map.end(); ++it) {

@@ -335,7 +335,7 @@ std::string url_encode_fields(CURL *curl_handle,
         return std::string();
     }
 
-    const std::map<wire_string_t, ql::datum_t> &fields_map =
+    const std::map<datum_string_t, ql::datum_t> &fields_map =
         fields->as_object();
     std::map<std::string, std::string> translated_fields;
 
@@ -584,7 +584,7 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
             parse_header(header_data, res_out);
         }
         if (!body_data.empty()) {
-            res_out->body = ql::datum_t(wire_string_t(body_data));
+            res_out->body = ql::datum_t(datum_string_t(body_data));
         }
         res_out->error = strprintf("status code %ld", response_code);
     } else {
@@ -633,18 +633,18 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
                         if (!res_out->error.empty()) {
                             res_out->error.clear();
                             res_out->body =
-                                ql::datum_t(wire_string_t(body_data));
+                                ql::datum_t(datum_string_t(body_data));
                         }
                     }
                 } else if (content_type.find("audio/") == 0 ||
                            content_type.find("image/") == 0 ||
                            content_type.find("video/") == 0 ||
                            content_type.find("application/octet-stream") == 0) {
-                    res_out->body = ql::datum_t::binary(wire_string_t(body_data));
+                    res_out->body = ql::datum_t::binary(datum_string_t(body_data));
 
                 } else {
                     res_out->body =
-                        ql::datum_t(wire_string_t(body_data));
+                        ql::datum_t(datum_string_t(body_data));
                 }
             }
             break;
@@ -655,10 +655,10 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
             jsonp_to_datum(body_data, opts->limits, attach_json_to_error_t::YES, res_out);
             break;
         case http_result_format_t::TEXT:
-            res_out->body = ql::datum_t(wire_string_t(body_data));
+            res_out->body = ql::datum_t(datum_string_t(body_data));
             break;
         case http_result_format_t::BINARY:
-            res_out->body = ql::datum_t::binary(wire_string_t(body_data));
+            res_out->body = ql::datum_t::binary(datum_string_t(body_data));
             break;
         default:
             unreachable();
@@ -688,8 +688,8 @@ private:
     http_parser parser;
 
     RE2 link_parser;
-    std::map<wire_string_t, ql::datum_t> header_fields;
-    std::map<wire_string_t, ql::datum_t> link_headers;
+    std::map<datum_string_t, ql::datum_t> header_fields;
+    std::map<datum_string_t, ql::datum_t> link_headers;
     std::string current_field;
 };
 header_parser_singleton_t *header_parser_singleton_t::instance = NULL;
@@ -757,7 +757,7 @@ header_parser_singleton_t::parse(const std::string &header) {
         return ql::datum_t();
     } else if (instance->link_headers.size() > 0) {
         // Include the specially-parsed link header field
-        instance->header_fields[wire_string_t("link")] =
+        instance->header_fields[datum_string_t("link")] =
             ql::datum_t(std::move(instance->link_headers));
     }
 
@@ -790,8 +790,8 @@ int header_parser_singleton_t::on_header_value(http_parser *parser,
     if (instance->current_field == "link") {
         instance->add_link_header(std::string(value, length));
     } else {
-        instance->header_fields[wire_string_t(instance->current_field)] =
-            ql::datum_t(wire_string_t(length, value));
+        instance->header_fields[datum_string_t(instance->current_field)] =
+            ql::datum_t(datum_string_t(length, value));
     }
     return 0;
 }
@@ -802,8 +802,8 @@ void header_parser_singleton_t::add_link_header(const std::string &line) {
     std::string value;
     std::string param;
     while (RE2::FindAndConsume(&line_re2, link_parser, &value, &param)) {
-        link_headers[wire_string_t(param)] =
-            ql::datum_t(wire_string_t(value));
+        link_headers[datum_string_t(param)] =
+            ql::datum_t(datum_string_t(value));
     }
 
     if (line_re2.length() != 0) {
@@ -828,7 +828,7 @@ void json_to_datum(const std::string &json,
     } else {
         res_out->error.assign("failed to parse JSON response");
         if (attach_json == attach_json_to_error_t::YES) {
-            res_out->body = ql::datum_t(wire_string_t(json));
+            res_out->body = ql::datum_t(datum_string_t(json));
         }
     }
 }
@@ -895,7 +895,7 @@ void jsonp_to_datum(const std::string &jsonp, const ql::configured_limits_t &lim
     } else {
         res_out->error.assign("failed to parse JSONP response");
         if (attach_json == attach_json_to_error_t::YES) {
-            res_out->body = ql::datum_t(wire_string_t(jsonp));
+            res_out->body = ql::datum_t(datum_string_t(jsonp));
         }
     }
 }

@@ -91,7 +91,7 @@ datum_deserialize(read_stream_t *s, std::vector<datum_t> *v) {
 
 
 size_t datum_serialized_size(
-        const std::map<wire_string_t, datum_t> &m) {
+        const std::map<datum_string_t, datum_t> &m) {
     size_t ret = varint_uint64_serialized_size(m.size());
     for (auto it = m.begin(), e = m.end(); it != e; ++it) {
         ret += datum_serialized_size(it->first);
@@ -102,7 +102,7 @@ size_t datum_serialized_size(
 
 serialization_result_t
 datum_serialize(write_message_t *wm,
-                const std::map<wire_string_t, datum_t> &m) {
+                const std::map<datum_string_t, datum_t> &m) {
     serialization_result_t res = serialization_result_t::SUCCESS;
     serialize_varint_uint64(wm, m.size());
     for (auto it = m.begin(), e = m.end(); it != e; ++it) {
@@ -114,7 +114,7 @@ datum_serialize(write_message_t *wm,
 
 MUST_USE archive_result_t datum_deserialize(
         read_stream_t *s,
-        std::map<wire_string_t, datum_t> *m) {
+        std::map<datum_string_t, datum_t> *m) {
     m->clear();
 
     uint64_t sz;
@@ -130,7 +130,7 @@ MUST_USE archive_result_t datum_deserialize(
     auto position = m->begin();
 
     for (uint64_t i = 0; i < sz; ++i) {
-        std::pair<wire_string_t, datum_t> p;
+        std::pair<datum_string_t, datum_t> p;
         res = datum_deserialize(s, &p.first);
         if (bad(res)) { return res; }
         res = datum_deserialize(s, &p.second);
@@ -193,7 +193,7 @@ serialization_result_t datum_serialize(write_message_t *wm,
     } break;
     case datum_t::R_BINARY: {
         datum_serialize(wm, datum_serialized_type_t::R_BINARY);
-        const wire_string_t &value = datum->as_binary();
+        const datum_string_t &value = datum->as_binary();
         datum_serialize(wm, value);
     } break;
     case datum_t::R_BOOL: {
@@ -230,7 +230,7 @@ serialization_result_t datum_serialize(write_message_t *wm,
     } break;
     case datum_t::R_STR: {
         res = res | datum_serialize(wm, datum_serialized_type_t::R_STR);
-        const wire_string_t &value = datum->as_str();
+        const datum_string_t &value = datum->as_str();
         res = res | datum_serialize(wm, value);
     } break;
     case datum_t::UNINITIALIZED: // fallthru
@@ -266,7 +266,7 @@ archive_result_t datum_deserialize(read_stream_t *s, datum_t *datum) {
         }
     } break;
     case datum_serialized_type_t::R_BINARY: {
-        wire_string_t value;
+        datum_string_t value;
         res = datum_deserialize(s, &value);
         if (bad(res)) {
             return res;
@@ -329,7 +329,7 @@ archive_result_t datum_deserialize(read_stream_t *s, datum_t *datum) {
         }
     } break;
     case datum_serialized_type_t::R_OBJECT: {
-        std::map<wire_string_t, datum_t> value;
+        std::map<datum_string_t, datum_t> value;
         res = datum_deserialize(s, &value);
         if (bad(res)) {
             return res;
@@ -341,7 +341,7 @@ archive_result_t datum_deserialize(read_stream_t *s, datum_t *datum) {
         }
     } break;
     case datum_serialized_type_t::R_STR: {
-        wire_string_t value;
+        datum_string_t value;
         res = datum_deserialize(s, &value);
         if (bad(res)) {
             return res;
@@ -360,12 +360,12 @@ archive_result_t datum_deserialize(read_stream_t *s, datum_t *datum) {
 }
 
 
-size_t datum_serialized_size(const wire_string_t &s) {
+size_t datum_serialized_size(const datum_string_t &s) {
     const size_t s_size = s.size();
     return varint_uint64_serialized_size(s_size) + s_size;
 }
 
-serialization_result_t datum_serialize(write_message_t *wm, const wire_string_t &s) {
+serialization_result_t datum_serialize(write_message_t *wm, const datum_string_t &s) {
     const size_t s_size = s.size();
     serialize_varint_uint64(wm, static_cast<uint64_t>(s_size));
     wm->append(s.data(), s_size);
@@ -374,7 +374,7 @@ serialization_result_t datum_serialize(write_message_t *wm, const wire_string_t 
 
 MUST_USE archive_result_t datum_deserialize(
         read_stream_t *s,
-        wire_string_t *out) {
+        datum_string_t *out) {
     uint64_t sz;
     archive_result_t res = deserialize_varint_uint64(s, &sz);
     if (res != archive_result_t::SUCCESS) { return res; }
@@ -394,7 +394,7 @@ MUST_USE archive_result_t datum_deserialize(
         return archive_result_t::SOCK_EOF;
     }
 
-    *out = wire_string_t(shared_buf_ref_t<char>(
+    *out = datum_string_t(shared_buf_ref_t<char>(
         counted_t<const shared_buf_t>(buf.release()), 0));
 
     return archive_result_t::SUCCESS;

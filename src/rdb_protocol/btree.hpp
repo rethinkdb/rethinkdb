@@ -67,14 +67,14 @@ void rdb_get(
 struct btree_info_t {
     btree_info_t(btree_slice_t *_slice,
                  repli_timestamp_t _timestamp,
-                 const wire_string_t &_primary_key)
+                 const datum_string_t &_primary_key)
         : slice(_slice), timestamp(_timestamp),
           primary_key(_primary_key) {
         guarantee(slice != NULL);
     }
     btree_slice_t *const slice;
     const repli_timestamp_t timestamp;
-    const wire_string_t primary_key;
+    const datum_string_t primary_key;
 };
 
 struct btree_loc_info_t {

@@ -82,7 +82,7 @@ public:
         {
             profile::sampler_t sampler("Evaluating elements in make_obj.", env->env->trace);
             for (auto it = optargs.begin(); it != optargs.end(); ++it) {
-                bool dup = acc.add(wire_string_t(it->first),
+                bool dup = acc.add(datum_string_t(it->first),
                                    it->second->eval(env, new_flags)->as_datum());
                 rcheck(!dup, base_exc_t::GENERIC,
                        strprintf("Duplicate object key: %s.", it->first.c_str()));
@@ -120,8 +120,8 @@ private:
             return arg;
         }
 
-        const wire_string_t &datum_str = datum_arg->as_str();
-        return new_val(datum_t::binary(wire_string_t(datum_str)));
+        const datum_string_t &datum_str = datum_arg->as_str();
+        return new_val(datum_t::binary(datum_string_t(datum_str)));
     }
     virtual const char *name() const { return "binary"; }
 };
