@@ -59,8 +59,10 @@
     "description": "<p><code>r.args</code> is a special term that's used to splice an array of arguments\ninto another term.  This is useful when you want to call a variadic\nterm such as <code>getAll</code> with a set of arguments produced at runtime.</p>\n<p>This is analagous to using <strong>apply</strong> in Javascript.</p>", 
     "example": "<p><strong>Example:</strong> Get Alice and Bob from the table <code>people</code>.</p>\n<p><code>r.table('people').getAll('Alice', 'Bob').run(conn, callback)\n// or\nr.table('people').getAll(r.args(['Alice', 'Bob'])).run(conn, callback)</code></p>", 
     "io": [
-      "r", 
-      "special"
+      [
+        "r", 
+        "special"
+      ]
     ], 
     "name": "args", 
     "url": "args"
@@ -431,13 +433,17 @@
     "url": "difference"
   }, 
   "api/javascript/distinct/": {
-    "body": "sequence.distinct() &rarr; array", 
+    "body": "sequence.distinct() &rarr; arraytable.distinct() &rarr; streamtable.distinct({index: <indexname>}) &rarr; stream", 
     "description": "<p>Remove duplicate elements from the sequence.</p>", 
-    "example": "<p><strong>Example:</strong> Which unique villains have been vanquished by marvel heroes?</p>\n<p><code>r.table('marvel').concatMap(function(hero) {return hero('villainList')}).distinct()\n    .run(conn, callback)</code></p>", 
+    "example": "<p><strong>Example:</strong> Which unique villains have been vanquished by marvel heroes?</p>\n<p><code>r.table('marvel').concatMap(function(hero) {\n    return hero('villainList')\n}).distinct().run(conn, callback)</code></p>", 
     "io": [
       [
         "sequence", 
-        "value"
+        "array"
+      ], 
+      [
+        "table", 
+        "stream"
       ]
     ], 
     "name": "distinct", 
