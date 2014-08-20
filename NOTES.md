@@ -130,6 +130,11 @@ us ship RethinkDB 1.14. In no particular order:
 * Mikhail Goncharov (@metaflow)
 * Elian Gidoni (@eliangidoni)
 * Ivan Fraixedes (@ifraixedes)
+* Brett Griffin (@brettgriffin)
+* Ed Costello (@epc)
+* Juuso Haavisto (@9uuso)
+* Nick Verlinde (@npiv)
+* Ayman Mackouly (@1N50MN14)
 * @grandquista
 
 --
