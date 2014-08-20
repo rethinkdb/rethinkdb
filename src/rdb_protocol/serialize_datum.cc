@@ -394,7 +394,7 @@ MUST_USE archive_result_t datum_deserialize(
         return archive_result_t::SOCK_EOF;
     }
 
-    *out = wire_string_t(shared_buf_ref_t(
+    *out = wire_string_t(shared_buf_ref_t<char>(
         counted_t<const shared_buf_t>(buf.release()), 0));
 
     return archive_result_t::SUCCESS;

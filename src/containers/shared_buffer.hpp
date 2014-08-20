@@ -45,6 +45,7 @@ a smaller offset_t type if you don't need to access buffers of more than a certa
 size. */
 // TODO (daniel): This should be templated on the offset type, so we can
 // save some memory when having buffers of a limited maximum size.
+template <class T>
 class shared_buf_ref_t {
 public:
     shared_buf_ref_t() : offset(0) { }
@@ -72,9 +73,9 @@ public:
         rassert(buf.has());
         return *this;
     }
-    const char *get() const {
+    const T *get() const {
         rassert(buf.has());
-        return buf->data(offset);
+        return reinterpret_cast<const T *>(buf->data(offset));
     }
 private:
     counted_t<const shared_buf_t> buf;

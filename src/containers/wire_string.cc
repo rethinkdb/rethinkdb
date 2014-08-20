@@ -16,7 +16,7 @@ wire_string_t::wire_string_t() {
     const size_t str_offset = varint_uint64_serialized_size(0);
     scoped_ptr_t<shared_buf_t> data = shared_buf_t::create(str_offset);
     serialize_varint_uint64_into_buf(0, reinterpret_cast<uint8_t *>(data->data()));
-    data_ = shared_buf_ref_t(counted_t<shared_buf_t>(data.release()), 0);
+    data_ = shared_buf_ref_t<char>(counted_t<shared_buf_t>(data.release()), 0);
 }
 
 wire_string_t::wire_string_t(size_t _size, const char *_data) {
@@ -24,13 +24,13 @@ wire_string_t::wire_string_t(size_t _size, const char *_data) {
     scoped_ptr_t<shared_buf_t> data = shared_buf_t::create(str_offset + _size);
     serialize_varint_uint64_into_buf(_size, reinterpret_cast<uint8_t *>(data->data()));
     memcpy(data->data() + str_offset, _data, _size);
-    data_ = shared_buf_ref_t(counted_t<shared_buf_t>(data.release()), 0);
+    data_ = shared_buf_ref_t<char>(counted_t<shared_buf_t>(data.release()), 0);
 }
 
-wire_string_t::wire_string_t(const shared_buf_ref_t &_ref)
+wire_string_t::wire_string_t(const shared_buf_ref_t<char> &_ref)
     : data_(_ref) { }
 
-wire_string_t::wire_string_t(shared_buf_ref_t &&_ref)
+wire_string_t::wire_string_t(shared_buf_ref_t<char> &&_ref)
     : data_(std::move(_ref)) { }
 
 wire_string_t::wire_string_t(const char *c_str) {
@@ -39,7 +39,7 @@ wire_string_t::wire_string_t(const char *c_str) {
     scoped_ptr_t<shared_buf_t> data = shared_buf_t::create(str_offset + str_size);
     serialize_varint_uint64_into_buf(str_size, reinterpret_cast<uint8_t *>(data->data()));
     memcpy(data->data() + str_offset, c_str, str_size);
-    data_ = shared_buf_ref_t(counted_t<shared_buf_t>(data.release()), 0);
+    data_ = shared_buf_ref_t<char>(counted_t<shared_buf_t>(data.release()), 0);
 }
 
 wire_string_t::wire_string_t(const std::string &str) {
@@ -47,7 +47,7 @@ wire_string_t::wire_string_t(const std::string &str) {
     scoped_ptr_t<shared_buf_t> data = shared_buf_t::create(str_offset + str.size());
     serialize_varint_uint64_into_buf(str.size(), reinterpret_cast<uint8_t *>(data->data()));
     memcpy(data->data() + str_offset, str.data(), str.size());
-    data_ = shared_buf_ref_t(counted_t<shared_buf_t>(data.release()), 0);
+    data_ = shared_buf_ref_t<char>(counted_t<shared_buf_t>(data.release()), 0);
 }
 
 wire_string_t::wire_string_t(wire_string_t &&movee) noexcept
@@ -145,5 +145,5 @@ wire_string_t concat(const wire_string_t &a, const wire_string_t &b) {
     memcpy(buf->data(str_offset), a.data(), a.size());
     memcpy(buf->data(str_offset + a.size()), b.data(), b.size());
     return wire_string_t(
-        shared_buf_ref_t(counted_t<const shared_buf_t>(buf.release()), 0));
+        shared_buf_ref_t<char>(counted_t<const shared_buf_t>(buf.release()), 0));
 }
