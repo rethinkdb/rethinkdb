@@ -30,6 +30,10 @@ private:
     friend void counted_release(const shared_buf_t *p);
     friend intptr_t counted_use_count(const shared_buf_t *p);
 
+#ifndef NDEBUG
+    size_t debug_size_;
+#endif
+
     mutable intptr_t refcount_;
     // We actually allocate more memory than this.
     // It's crucial that this field is the last one in this class.

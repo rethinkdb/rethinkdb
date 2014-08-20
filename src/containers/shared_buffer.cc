@@ -11,6 +11,9 @@ scoped_ptr_t<shared_buf_t> shared_buf_t::create(size_t size) {
     void *raw_result = ::rmalloc(memory_size);
     shared_buf_t *result = static_cast<shared_buf_t *>(raw_result);
     result->refcount_ = 0;
+#ifndef NDEBUG
+    result->debug_size_ = size;
+#endif
     return scoped_ptr_t<shared_buf_t>(result);
 }
 scoped_ptr_t<shared_buf_t> shared_buf_t::create_and_init(size_t size, const char *data) {
@@ -23,8 +26,10 @@ void shared_buf_t::operator delete(void *p) {
 }
 
 char *shared_buf_t::data(size_t offset) {
+    rassert(offset < debug_size_);
     return data_ + offset;
 }
 const char *shared_buf_t::data(size_t offset) const {
+    rassert(offset < debug_size_);
     return data_ + offset;
 }
