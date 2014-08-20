@@ -71,7 +71,6 @@ struct btree_info_t {
         : slice(_slice), timestamp(_timestamp),
           primary_key(_primary_key) {
         guarantee(slice != NULL);
-        guarantee(primary_key != NULL);
     }
     btree_slice_t *const slice;
     const repli_timestamp_t timestamp;
