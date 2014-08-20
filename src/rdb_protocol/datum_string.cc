@@ -13,18 +13,11 @@
 #include "utils.hpp"
 
 datum_string_t::datum_string_t() {
-    const size_t str_offset = varint_uint64_serialized_size(0);
-    scoped_ptr_t<shared_buf_t> data = shared_buf_t::create(str_offset);
-    serialize_varint_uint64_into_buf(0, reinterpret_cast<uint8_t *>(data->data()));
-    data_ = shared_buf_ref_t<char>(counted_t<shared_buf_t>(data.release()), 0);
+    init(0, NULL);
 }
 
 datum_string_t::datum_string_t(size_t _size, const char *_data) {
-    const size_t str_offset = varint_uint64_serialized_size(_size);
-    scoped_ptr_t<shared_buf_t> data = shared_buf_t::create(str_offset + _size);
-    serialize_varint_uint64_into_buf(_size, reinterpret_cast<uint8_t *>(data->data()));
-    memcpy(data->data() + str_offset, _data, _size);
-    data_ = shared_buf_ref_t<char>(counted_t<shared_buf_t>(data.release()), 0);
+    init(_size, _data);
 }
 
 datum_string_t::datum_string_t(const shared_buf_ref_t<char> &_ref)
@@ -34,20 +27,11 @@ datum_string_t::datum_string_t(shared_buf_ref_t<char> &&_ref)
     : data_(std::move(_ref)) { }
 
 datum_string_t::datum_string_t(const char *c_str) {
-    const size_t str_size = strlen(c_str);
-    const size_t str_offset = varint_uint64_serialized_size(str_size);
-    scoped_ptr_t<shared_buf_t> data = shared_buf_t::create(str_offset + str_size);
-    serialize_varint_uint64_into_buf(str_size, reinterpret_cast<uint8_t *>(data->data()));
-    memcpy(data->data() + str_offset, c_str, str_size);
-    data_ = shared_buf_ref_t<char>(counted_t<shared_buf_t>(data.release()), 0);
+    init(strlen(c_str), c_str);
 }
 
 datum_string_t::datum_string_t(const std::string &str) {
-    const size_t str_offset = varint_uint64_serialized_size(str.size());
-    scoped_ptr_t<shared_buf_t> data = shared_buf_t::create(str_offset + str.size());
-    serialize_varint_uint64_into_buf(str.size(), reinterpret_cast<uint8_t *>(data->data()));
-    memcpy(data->data() + str_offset, str.data(), str.size());
-    data_ = shared_buf_ref_t<char>(counted_t<shared_buf_t>(data.release()), 0);
+    init(str.size(), str.data());
 }
 
 datum_string_t::datum_string_t(datum_string_t &&movee) noexcept
@@ -55,6 +39,16 @@ datum_string_t::datum_string_t(datum_string_t &&movee) noexcept
 
 datum_string_t::datum_string_t(const datum_string_t &copyee) noexcept
     : data_(copyee.data_) { }
+
+void datum_string_t::init(size_t _size, const char *_data) {
+    const size_t str_offset = varint_uint64_serialized_size(_size);
+    scoped_ptr_t<shared_buf_t> data = shared_buf_t::create(str_offset + _size);
+    serialize_varint_uint64_into_buf(_size, reinterpret_cast<uint8_t *>(data->data()));
+    if (_size > 0) {
+        memcpy(data->data() + str_offset, _data, _size);
+    }
+    data_ = shared_buf_ref_t<char>(counted_t<shared_buf_t>(data.release()), 0);
+}
 
 datum_string_t &datum_string_t::operator=(datum_string_t &&movee) noexcept {
     data_ = std::move(movee.data_);

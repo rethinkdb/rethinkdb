@@ -62,6 +62,7 @@ public:
     std::string to_std() const;
 
 private:
+    void init(size_t _size, const char *_data);
     int compare(size_t other_size, const char *other_data) const;
 
     // Contains the length of the string in varint encoding, followed by the actual
