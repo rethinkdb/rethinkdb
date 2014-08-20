@@ -33,6 +33,7 @@ const wire_string_t datum_t::reql_type_string("$reql_type$");
 const wire_string_t errors_field("errors");
 const wire_string_t first_error_field("first_error");
 const wire_string_t warnings_field("warnings");
+const wire_string_t data_field("data");
 
 datum_t::data_wrapper_t::data_wrapper_t(const datum_t::data_wrapper_t &copyee) {
     assign_copy(copyee);
@@ -239,7 +240,7 @@ datum_t to_datum_for_client_serialization(grouped_data_t &&gd,
                                 key, std::move(value) },
                             limits));
                 });
-        map[wire_string_t("data")] = std::move(arr).to_datum();
+        map[data_field] = std::move(arr).to_datum();
     }
 
     // We don't sanitize the ptype because this is a fake ptype that should only
