@@ -147,7 +147,7 @@ size_t datum_serialized_size(const datum_t &datum) {
     size_t sz = 1; // 1 byte for the type
     switch (datum.get_type()) {
     case datum_t::R_ARRAY: {
-        sz += datum_serialized_size(datum.as_array());
+        sz += datum_serialized_size(datum.get_arr_vec());
     } break;
     case datum_t::R_BINARY: {
         sz += datum_serialized_size(datum.as_binary());
@@ -184,7 +184,7 @@ serialization_result_t datum_serialize(write_message_t *wm,
     switch (datum->get_type()) {
     case datum_t::R_ARRAY: {
         res = res | datum_serialize(wm, datum_serialized_type_t::R_ARRAY);
-        const std::vector<datum_t> &value = datum->as_array();
+        const std::vector<datum_t> &value = datum->get_arr_vec();
         if (value.size() > 100000)
             res = res | serialization_result_t::ARRAY_TOO_BIG;
         res = res | datum_serialize(wm, value);

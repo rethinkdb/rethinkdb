@@ -252,6 +252,11 @@ const std::vector<std::pair<datum_string_t, datum_t> > &datum_t::get_obj_vec() c
     return *data.r_object;
 }
 
+const std::vector<datum_t> &datum_t::get_arr_vec() const {
+    check_type(R_ARRAY);
+    return *data.r_array;
+}
+
 datum_t to_datum_for_client_serialization(grouped_data_t &&gd,
                                           reql_version_t reql_version,
                                           const configured_limits_t &limits) {
@@ -677,21 +682,19 @@ datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
         copied_result = std::move(builder).to_datum();
 
     } else if (get_type() == R_ARRAY) {
-        const std::vector<datum_t> &arr = as_array();
         datum_array_builder_t builder(limits);
 
-        for (auto it = arr.begin(); it != arr.end(); ++it) {
+        for (size_t i = 0; i < size(); ++i) {
             bool encountered_literal;
-            datum_t val
-                = (*it)->drop_literals(&encountered_literal);
+            datum_t val = get(i).drop_literals(&encountered_literal);
 
             if (encountered_literal && !need_to_copy) {
                 // We have encountered the first element with a literal.
                 // This means we have to create a copy in `result_copy`.
                 need_to_copy = true;
                 // Copy everything up to now into the builder.
-                for (auto copy_it = arr.begin(); copy_it != it; ++copy_it) {
-                    builder.add(*copy_it);
+                for (size_t copy_i = 0; copy_i < i; ++copy_i) {
+                    builder.add(get(copy_i));
                 }
             }
 
@@ -699,7 +702,7 @@ datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
                 if (val.has()) {
                     builder.add(val);
                 } else {
-                    // If `*it` was a literal without a value, ignore it
+                    // If the element` was a literal without a value, ignore it
                 }
             }
         }
@@ -1022,18 +1025,14 @@ const datum_string_t &datum_t::as_str() const {
     return data.r_str;
 }
 
-const std::vector<datum_t> &datum_t::as_array() const {
-    check_type(R_ARRAY);
-    return *data.r_array;
-}
-
 size_t datum_t::size() const {
-    return as_array().size();
+    check_type(R_ARRAY);
+    return data.r_array->size();
 }
 
 datum_t datum_t::get(size_t index, throw_bool_t throw_bool) const {
     if (index < size()) {
-        return as_array()[index];
+        return (*data.r_array)[index];
     } else if (throw_bool == THROW) {
         rfail(base_exc_t::NON_EXISTENCE, "Index out of bounds: %zu", index);
     } else {
@@ -1092,8 +1091,8 @@ cJSON *datum_t::as_json_raw() const {
     case R_STR: return cJSON_CreateStringN(as_str().data(), as_str().size());
     case R_ARRAY: {
         scoped_cJSON_t arr(cJSON_CreateArray());
-        for (size_t i = 0; i < as_array().size(); ++i) {
-            arr.AddItemToArray(as_array()[i]->as_json_raw());
+        for (size_t i = 0; i < size(); ++i) {
+            arr.AddItemToArray(get(i)->as_json_raw());
         }
         return arr.release();
     } break;
@@ -1235,17 +1234,14 @@ int datum_t::v1_13_cmp(const datum_t &rhs) const {
     case R_NUM: return derived_cmp(as_num(), rhs.as_num());
     case R_STR: return as_str().compare(rhs.as_str());
     case R_ARRAY: {
-        const std::vector<datum_t>
-            &arr = as_array(),
-            &rhs_arr = rhs.as_array();
         size_t i;
-        for (i = 0; i < arr.size(); ++i) {
-            if (i >= rhs_arr.size()) return 1;
-            int cmpval = arr[i]->v1_13_cmp(*rhs_arr[i]);
+        for (i = 0; i < size(); ++i) {
+            if (i >= rhs.size()) return 1;
+            int cmpval = get(i).v1_13_cmp(rhs.get(i));
             if (cmpval != 0) return cmpval;
         }
-        guarantee(i <= rhs.as_array().size());
-        return i == rhs.as_array().size() ? 0 : -1;
+        guarantee(i <= rhs.size());
+        return i == rhs.size() ? 0 : -1;
     } unreachable();
     case R_OBJECT: {
         if (is_ptype() && !pseudo_compares_as_obj()) {
@@ -1313,17 +1309,14 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
     case R_NUM: return derived_cmp(as_num(), rhs.as_num());
     case R_STR: return as_str().compare(rhs.as_str());
     case R_ARRAY: {
-        const std::vector<datum_t>
-            &arr = as_array(),
-            &rhs_arr = rhs.as_array();
         size_t i;
-        for (i = 0; i < arr.size(); ++i) {
-            if (i >= rhs_arr.size()) return 1;
-            int cmpval = arr[i]->modern_cmp(*rhs_arr[i]);
+        for (i = 0; i < size(); ++i) {
+            if (i >= rhs.size()) return 1;
+            int cmpval = get(i).modern_cmp(rhs.get(i));
             if (cmpval != 0) return cmpval;
         }
-        guarantee(i <= rhs.as_array().size());
-        return i == rhs.as_array().size() ? 0 : -1;
+        guarantee(i <= rhs.size());
+        return i == rhs.size() ? 0 : -1;
     } unreachable();
     case R_OBJECT: {
         size_t i = 0;
@@ -1563,16 +1556,14 @@ void datum_object_builder_t::overwrite(const char *key,
 void datum_object_builder_t::add_warning(const char *msg, const configured_limits_t &limits) {
     datum_t *warnings_entry = &map[warnings_field];
     if (warnings_entry->has()) {
-        const std::vector<datum_t> &array
-            = (*warnings_entry)->as_array();
         // assume here that the warnings array will "always" be small.
-        for (auto i = array.begin(); i != array.end(); ++i) {
-            if ((*i)->as_str() == msg) return;
+        for (size_t i = 0; i < warnings_entry->size(); ++i) {
+            if (warnings_entry->get(i).as_str() == msg) return;
         }
-        rcheck_datum(array.size() + 1 <= limits.array_size_limit(),
+        rcheck_datum(warnings_entry->size() + 1 <= limits.array_size_limit(),
             base_exc_t::GENERIC,
             strprintf("Warnings would exceed array size limit %zu; increase it to see warnings", limits.array_size_limit()));
-        datum_array_builder_t out(std::vector<datum_t>(array), limits);
+        datum_array_builder_t out(*warnings_entry, limits);
         out.add(datum_t(msg));
         *warnings_entry = std::move(out).to_datum();
     } else {
@@ -1586,17 +1577,15 @@ void datum_object_builder_t::add_warnings(const std::set<std::string> &msgs, con
     if (msgs.empty()) return;
     datum_t *warnings_entry = &map[warnings_field];
     if (warnings_entry->has()) {
-        const std::vector<datum_t> &array
-            = (*warnings_entry)->as_array();
-        rcheck_datum(array.size() + msgs.size() <= limits.array_size_limit(),
+        rcheck_datum(warnings_entry->size() + msgs.size() <= limits.array_size_limit(),
             base_exc_t::GENERIC,
             strprintf("Warnings would exceed array size limit %zu; increase it to see warnings", limits.array_size_limit()));
-        datum_array_builder_t out(std::vector<datum_t>(array), limits);
+        datum_array_builder_t out(*warnings_entry, limits);
         for (auto const & msg : msgs) {
             bool seen = false;
             // assume here that the warnings array will "always" be small.
-            for (auto const & candidate : array) {
-                if (candidate->as_str() == msg.c_str()) {
+            for (size_t i = 0; i < warnings_entry->size(); ++i) {
+                if (warnings_entry->get(i).as_str() == msg.c_str()) {
                     seen = true;
                     break;
                 }
@@ -1658,6 +1647,16 @@ datum_array_builder_t::datum_array_builder_t(std::vector<datum_t> &&v,
     rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
 }
 
+datum_array_builder_t::datum_array_builder_t(const datum_t &copy_from,
+                                             const configured_limits_t &_limits)
+    : limits(_limits) {
+    vector.reserve(copy_from.size());
+    for (size_t i = 0; i < copy_from.size(); ++i) {
+        vector.push_back(copy_from.get(i));
+    }
+    rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
+}
+
 void datum_array_builder_t::reserve(size_t n) { vector.reserve(n); }
 
 void datum_array_builder_t::add(datum_t val) {
@@ -1699,7 +1698,13 @@ void datum_array_builder_t::splice(reql_version_t reql_version, size_t index,
                  strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
                            index, vector.size()));
 
-    const std::vector<datum_t> &arr = values->as_array();
+    // First copy the values into a vector so vector.insert() can know the number
+    // of elements being inserted.
+    std::vector<datum_t> arr;
+    arr.reserve(values.size());
+    for (size_t i = 0; i < values.size(); ++i) {
+        arr.push_back(values.get(i));
+    }
     vector.insert(vector.begin() + index, arr.begin(), arr.end());
 
     switch (reql_version) {

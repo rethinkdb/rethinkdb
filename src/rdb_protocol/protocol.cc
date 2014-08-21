@@ -639,9 +639,8 @@ void rdb_r_unshard_visitor_t::operator()(const intersecting_geo_read_t &) {
         }
         auto results = boost::get<ql::datum_t>(&res->results_or_error);
         guarantee(results != NULL);
-        const std::vector<ql::datum_t> &arr = (*results)->as_array();
-        for (size_t j = 0; j < arr.size(); ++j) {
-            combined_results.add(arr[j]);
+        for (size_t j = 0; j < results->size(); ++j) {
+            combined_results.add(results->get(j));
         }
     }
     response_out->response = intersecting_geo_read_response_t(

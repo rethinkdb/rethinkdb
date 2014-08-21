@@ -135,25 +135,25 @@ lat_lon_point_t position_to_lat_lon_point(const datum_t &position) {
     // This assumes the default spherical GeoJSON coordinate reference system,
     // with latitude and longitude given in degrees.
 
-    const std::vector<datum_t> &arr = position->as_array();
-    if (arr.size() < 2) {
+    const size_t arr_size = position.size();
+    if (arr_size < 2) {
         throw geo_exception_t(
             "Too few coordinates.  Need at least longitude and latitude.");
     }
-    if (arr.size() > 3) {
+    if (arr_size > 3) {
         throw geo_exception_t(
             strprintf("Too many coordinates.  GeoJSON position should have no more than "
-                      "three coordinates, but got %zu.", arr.size()));
+                      "three coordinates, but got %zu.", arr_size));
     }
-    if (arr.size() == 3) {
+    if (arr_size == 3) {
         throw geo_exception_t("A third altitude coordinate in GeoJSON positions "
                               "was found, but is not supported.");
     }
 
     // GeoJSON positions are in order longitude, latitude, altitude
     double longitude, latitude;
-    longitude = arr[0]->as_num();
-    latitude = arr[1]->as_num();
+    longitude = position.get(0)->as_num();
+    latitude = position.get(1)->as_num();
 
     return lat_lon_point_t(latitude, longitude);
 }
@@ -178,11 +178,10 @@ lat_lon_line_t extract_lat_lon_line(const ql::datum_t &geojson) {
     }
 
     const datum_t &coordinates = geojson->get_field("coordinates");
-    const std::vector<datum_t> &arr = coordinates->as_array();
     lat_lon_line_t result;
-    result.reserve(arr.size());
-    for (size_t i = 0; i < arr.size(); ++i) {
-        result.push_back(position_to_lat_lon_point(arr[i]));
+    result.reserve(coordinates.size());
+    for (size_t i = 0; i < coordinates.size(); ++i) {
+        result.push_back(position_to_lat_lon_point(coordinates.get(i)));
     }
 
     return result;
@@ -196,16 +195,15 @@ lat_lon_line_t extract_lat_lon_shell(const ql::datum_t &geojson) {
     }
 
     const datum_t &coordinates = geojson->get_field("coordinates");
-    const std::vector<datum_t> &ring_arr = coordinates->as_array();
-    if (ring_arr.size() < 1) {
+    if (coordinates.size() < 1) {
         throw geo_exception_t("The polygon is empty. It must have at least "
                               "an outer shell.");
     }
-    const std::vector<datum_t> &arr = ring_arr[0]->as_array();
+    const datum_t ring_coordinates = coordinates.get(0);
     lat_lon_line_t result;
-    result.reserve(arr.size());
-    for (size_t i = 0; i < arr.size(); ++i) {
-        result.push_back(position_to_lat_lon_point(arr[i]));
+    result.reserve(ring_coordinates.size());
+    for (size_t i = 0; i < ring_coordinates.size(); ++i) {
+        result.push_back(position_to_lat_lon_point(ring_coordinates.get(i)));
     }
 
     return result;
@@ -247,15 +245,14 @@ scoped_ptr_t<S2Polyline> coordinates_to_s2polyline(const datum_t &coords) {
         "For type "LineString", the "coordinates" member must be an array of two
          or more positions."
     */
-    const std::vector<datum_t> &arr = coords->as_array();
-    if (arr.size() < 2) {
+    if (coords.size() < 2) {
         throw geo_exception_t(
             "GeoJSON LineString must have at least two positions.");
     }
     std::vector<S2Point> points;
-    points.reserve(arr.size());
-    for (size_t i = 0; i < arr.size(); ++i) {
-        points.push_back(position_to_s2point(arr[i]));
+    points.reserve(coords.size());
+    for (size_t i = 0; i < coords.size(); ++i) {
+        points.push_back(position_to_s2point(coords.get(i)));
     }
     if (!S2Polyline::IsValid(points)) {
         throw geo_exception_t(
@@ -266,15 +263,14 @@ scoped_ptr_t<S2Polyline> coordinates_to_s2polyline(const datum_t &coords) {
 
 scoped_ptr_t<S2Loop> coordinates_to_s2loop(const datum_t &coords) {
     // Like a LineString, but must be connected
-    const std::vector<datum_t> &arr = coords->as_array();
-    if (arr.size() < 4) {
+    if (coords.size() < 4) {
         throw geo_exception_t(
             "GeoJSON LinearRing must have at least four positions.");
     }
     std::vector<S2Point> points;
-    points.reserve(arr.size());
-    for (size_t i = 0; i < arr.size(); ++i) {
-        points.push_back(position_to_s2point(arr[i]));
+    points.reserve(coords.size());
+    for (size_t i = 0; i < coords.size(); ++i) {
+        points.push_back(position_to_s2point(coords.get(i)));
     }
     if (points[0] != points[points.size()-1]) {
         throw geo_exception_t(
@@ -301,11 +297,10 @@ scoped_ptr_t<S2Polygon> coordinates_to_s2polygon(const datum_t &coords) {
          coordinate arrays. For Polygons with multiple rings, the first must be the
          exterior ring and any others must be interior rings or holes."
     */
-    const std::vector<datum_t> &loops_arr = coords->as_array();
     std::vector<scoped_ptr_t<S2Loop> > loops;
-    loops.reserve(loops_arr.size());
-    for (size_t i = 0; i < loops_arr.size(); ++i) {
-        scoped_ptr_t<S2Loop> loop = coordinates_to_s2loop(loops_arr[i]);
+    loops.reserve(coords.size());
+    for (size_t i = 0; i < coords.size(); ++i) {
+        scoped_ptr_t<S2Loop> loop = coordinates_to_s2loop(coords.get(i));
         // Put the loop into the ptr_vector to avoid its destruction while
         // we are still building the polygon
         loops.push_back(std::move(loop));

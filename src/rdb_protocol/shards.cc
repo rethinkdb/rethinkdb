@@ -707,10 +707,9 @@ private:
                     if (arr[i]->get_type() != datum_t::R_ARRAY) {
                         perms[i].push_back(arr[i]);
                     } else {
-                        auto subarr = arr[i]->as_array();
-                        perms[i].reserve(subarr.size());
-                        for (auto it = subarr.begin(); it != subarr.end(); ++it) {
-                            perms[i].push_back(*it);
+                        perms[i].reserve(arr[i].size());
+                        for (size_t j = 0; j < arr[i].size(); ++j) {
+                            perms[i].push_back(arr[i].get(j));
                         }
                     }
                 }

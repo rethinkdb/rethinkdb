@@ -55,14 +55,15 @@ datum_t geo_sub(datum_t lhs,
     r_sanity_check(!dup);
     dup = result.add("type", datum_t("Polygon"));
     r_sanity_check(!dup);
-    std::vector<datum_t> coordinates = lhs->get_field("coordinates")->as_array();
-    coordinates.push_back(rhs->get_field("coordinates")->get(0));
-    dup = result.add("coordinates", datum_t(std::move(coordinates), limits));
-    r_sanity_check(!dup);
-    datum_t result_counted = std::move(result).to_datum();
-    validate_geojson(result_counted);
 
-    return result_counted;
+    datum_array_builder_t coordinates_builder(lhs.get_field("coordinates"), limits);
+    coordinates_builder.add(rhs.get_field("coordinates").get(0));
+    dup = result.add("coordinates", std::move(coordinates_builder).to_datum());
+    r_sanity_check(!dup);
+    datum_t result_datum = std::move(result).to_datum();
+    validate_geojson(result_datum);
+
+    return result_datum;
 }
 
 void sanitize_geometry(datum_t *geo) {

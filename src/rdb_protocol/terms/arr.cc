@@ -420,8 +420,7 @@ public:
                         datum_array_builder_t *array) const = 0;
 
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        auto arg0_array = args->arg(env, 0)->as_datum()->as_array();
-        datum_array_builder_t arr(std::move(arg0_array), env->env->limits());
+        datum_array_builder_t arr(args->arg(env, 0)->as_datum(), env->env->limits());
         size_t index;
         if (index_method_ == ELEMENTS) {
             index = canonicalize(this, args->arg(env, 1)->as_datum()->as_int(), arr.size());
@@ -574,7 +573,8 @@ public:
                                        args_t *args,
                                        eval_flags_t eval_flags) const {
         counted_t<val_t> v0 = args->arg(env, 0, eval_flags);
-        v0->as_datum()->as_array(); // If v0 is not an array, force a type error.
+        // If v0 is not an array, force a type error.
+        v0->as_datum()->check_type(datum_t::R_ARRAY);
         return v0;
     }
 private:

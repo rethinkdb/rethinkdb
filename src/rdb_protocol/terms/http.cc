@@ -266,7 +266,12 @@ http_datum_stream_t::next_raw_batch(env_t *env, UNUSED const batchspec_t &batchs
     more = apply_depaginate(env, res);
 
     if (res.body->get_type() == datum_t::R_ARRAY) {
-        return res.body->as_array();
+        std::vector<datum_t> res_arr;
+        res_arr.reserve(res.body.size());
+        for (size_t i = 0; i < res.body.size(); ++i) {
+            res_arr.push_back(res.body.get(i));
+        }
+        return res_arr;
     }
 
     return std::vector<datum_t>({ res.body });

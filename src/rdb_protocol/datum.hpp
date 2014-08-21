@@ -191,9 +191,7 @@ public:
     const datum_string_t &as_str() const;
     const datum_string_t &as_binary() const;
 
-    // Use of `size` and `get` is preferred to `as_array` when possible.
-    // TODO! Remove
-    const std::vector<datum_t> &as_array() const;
+    // Array interface
     size_t size() const;
     // Access an element of an array.
     datum_t get(size_t index, throw_bool_t throw_bool = THROW) const;
@@ -201,6 +199,8 @@ public:
     // Object interface
     size_t num_pairs() const;
     // Access an element of an object.
+    // get_pair does not perform boundary checking. Its primary use is for
+    // iterating over the object in combination with num_pairs().
     std::pair<datum_string_t, datum_t> get_pair(size_t index) const;
     datum_t get_field(const datum_string_t &key,
                       throw_bool_t throw_bool = THROW) const;
@@ -279,6 +279,7 @@ private:
     friend size_t datum_serialized_size(const datum_t &);
     friend serialization_result_t datum_serialize(write_message_t *, const datum_t &);
     const std::vector<std::pair<datum_string_t, datum_t> > &get_obj_vec() const;
+    const std::vector<datum_t> &get_arr_vec() const;
 
     static std::vector<std::pair<datum_string_t, datum_t> > to_sorted_vec(
             std::map<datum_string_t, datum_t> &&map);
@@ -403,8 +404,8 @@ private:
 class datum_array_builder_t {
 public:
     explicit datum_array_builder_t(const configured_limits_t &_limits) : limits(_limits) {}
-    datum_array_builder_t(std::vector<datum_t> &&,
-                          const configured_limits_t &);
+    datum_array_builder_t(std::vector<datum_t> &&, const configured_limits_t &);
+    datum_array_builder_t(const datum_t &copy_from, const configured_limits_t &);
 
     size_t size() const { return vector.size(); }
 

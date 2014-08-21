@@ -654,11 +654,10 @@ v8::Handle<v8::Value> js_from_datum(const ql::datum_t &datum,
         return v8::String::New(datum->as_str().to_std().c_str());
     case ql::datum_t::type_t::R_ARRAY: {
         v8::Handle<v8::Array> array = v8::Array::New();
-        const std::vector<ql::datum_t> &source_array = datum->as_array();
 
-        for (size_t i = 0; i < source_array.size(); ++i) {
+        for (size_t i = 0; i < datum.size(); ++i) {
             DECLARE_HANDLE_SCOPE(scope);
-            v8::Handle<v8::Value> val = js_from_datum(source_array[i], err_out);
+            v8::Handle<v8::Value> val = js_from_datum(datum.get(i), err_out);
             guarantee(!val.IsEmpty());
             array->Set(i, val);
         }

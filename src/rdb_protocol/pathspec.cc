@@ -146,9 +146,9 @@ datum_t project(datum_t datum,
                 const configured_limits_t &limits) {
     if (datum->get_type() == datum_t::R_ARRAY && recurse == RECURSE) {
         datum_array_builder_t res(limits);
-        res.reserve(datum->size());
-        for (const datum_t &value : datum->as_array()) {
-            res.add(project(value, pathspec, DONT_RECURSE, limits));
+        res.reserve(datum.size());
+        for (size_t i = 0; i < datum.size(); ++i) {
+            res.add(project(datum.get(i), pathspec, DONT_RECURSE, limits));
         }
         return std::move(res).to_datum();
     } else {
@@ -218,9 +218,9 @@ datum_t unproject(datum_t datum,
                   const configured_limits_t &limits) {
     if (datum->get_type() == datum_t::R_ARRAY && recurse == RECURSE) {
         datum_array_builder_t res(limits);
-        res.reserve(datum->size());
-        for (const datum_t &value : datum->as_array()) {
-            res.add(unproject(value, pathspec, DONT_RECURSE, limits));
+        res.reserve(datum.size());
+        for (size_t i = 0; i < datum.size(); ++i) {
+            res.add(unproject(datum.get(i), pathspec, DONT_RECURSE, limits));
         }
         return std::move(res).to_datum();
     } else {
