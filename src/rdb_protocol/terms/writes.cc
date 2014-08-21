@@ -172,7 +172,7 @@ private:
                                 env->env->limits(), &conditions);
         }
 
-        datum_object_builder_t obj(stats->as_object());
+        datum_object_builder_t obj(stats);
         obj.add_warnings(conditions, env->env->limits());
         if (keys_skipped > 0) {
             obj.add_warning(strprintf("Too many generated keys (%zu), array truncated to %zu.",
@@ -261,7 +261,7 @@ private:
             }
         }
 
-        datum_object_builder_t obj(stats->as_object());
+        datum_object_builder_t obj(stats);
         obj.add_warnings(conditions, env->env->limits());
         return new_val(std::move(obj).to_datum());
     }
@@ -309,7 +309,7 @@ private:
                 sampler.new_sample();
             }
         }
-        datum_object_builder_t obj(stats->as_object());
+        datum_object_builder_t obj(stats);
         obj.add_warnings(conditions, env->env->limits());
         return new_val(std::move(obj).to_datum());
     }

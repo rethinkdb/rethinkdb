@@ -181,16 +181,15 @@ private:
 
                 // OBJECT -> ARRAY
                 if (start_type == R_OBJECT_TYPE && end_type == R_ARRAY_TYPE) {
-                    const std::map<datum_string_t, datum_t> &obj
-                        = d->as_object();
                     std::vector<datum_t> arr;
-                    arr.reserve(obj.size());
-                    for (auto it = obj.begin(); it != obj.end(); ++it) {
-                        std::vector<datum_t> pair;
-                        pair.reserve(2);
-                        pair.push_back(datum_t(it->first));
-                        pair.push_back(it->second);
-                        arr.push_back(datum_t(std::move(pair), env->env->limits()));
+                    arr.reserve(d.num_pairs());
+                    for (size_t i = 0; i < d.num_pairs(); ++i) {
+                        std::pair<datum_string_t, datum_t> pair_in = d.get_pair(i);
+                        std::vector<datum_t> pair_out;
+                        pair_out.reserve(2);
+                        pair_out.push_back(datum_t(pair_in.first));
+                        pair_out.push_back(pair_in.second);
+                        arr.push_back(datum_t(std::move(pair_out), env->env->limits()));
                     }
                     return new_val(datum_t(std::move(arr), env->env->limits()));
                 }

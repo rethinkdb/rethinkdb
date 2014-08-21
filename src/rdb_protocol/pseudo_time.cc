@@ -465,13 +465,15 @@ void sanitize_time(datum_t *time) {
     std::string msg;
     bool has_epoch_time = false;
     bool has_timezone = false;
-    for (auto it = time->as_object().begin(); it != time->as_object().end(); ++it) {
-        if (it->first == epoch_time_key) {
-            if (it->second->get_type() == datum_t::R_NUM) {
+    for (size_t i = 0; i < time->num_pairs(); ++i) {
+        const auto pair = time->get_pair(i);
+        if (pair.first == epoch_time_key) {
+            if (pair.second.get_type() == datum_t::R_NUM) {
                 has_epoch_time = true;
-                double d = it->second->as_num();
+                double d = pair.second.as_num();
                 double d2 = sanitize_epoch_sec(d);
                 if (d2 != d) {
+                    // TODO! What to do here? Construct a new time datum?
                     bool b = time->add(datum_string_t(epoch_time_key),
                                        datum_t(d2),
                                        CLOBBER);
@@ -479,13 +481,13 @@ void sanitize_time(datum_t *time) {
                 }
             } else {
                 msg = strprintf("field `%s` must be a number (got `%s` of type %s)",
-                                epoch_time_key, it->second->trunc_print().c_str(),
-                                it->second->get_type_name().c_str());
+                                epoch_time_key, pair.second.trunc_print().c_str(),
+                                pair.second.get_type_name().c_str());
                 break;
             }
-        } else if (it->first == timezone_key) {
-            if (it->second->get_type() == datum_t::R_STR) {
-                const std::string raw_tz = it->second->as_str().to_std();
+        } else if (pair.first == timezone_key) {
+            if (pair.second.get_type() == datum_t::R_STR) {
+                const std::string raw_tz = pair.second.as_str().to_std();
                 std::string tz;
                 if (tz_valid(raw_tz, &tz)) {
                     has_timezone = true;
@@ -499,19 +501,19 @@ void sanitize_time(datum_t *time) {
                     continue;
                 } else {
                     msg = strprintf("invalid timezone string `%s`",
-                                    it->second->trunc_print().c_str());
+                                    pair.second.trunc_print().c_str());
                     break;
                 }
             } else {
                 msg = strprintf("field `%s` must be a string (got `%s` of type %s)",
-                                timezone_key, it->second->trunc_print().c_str(),
-                                it->second->get_type_name().c_str());
+                                timezone_key, pair.second.trunc_print().c_str(),
+                                pair.second.get_type_name().c_str());
                 break;
             }
-        } else if (it->first == datum_t::reql_type_string) {
+        } else if (pair.first == datum_t::reql_type_string) {
             continue;
         } else {
-            msg = strprintf("unrecognized field `%s`", it->first.to_std().c_str());
+            msg = strprintf("unrecognized field `%s`", pair.first.to_std().c_str());
             break;
         }
     }
@@ -538,10 +540,9 @@ datum_t time_tz(datum_t time) {
     }
 }
 
-datum_t time_in_tz(datum_t t,
-                                    datum_t tz) {
+datum_t time_in_tz(datum_t t, datum_t tz) {
     r_sanity_check(t->is_ptype(time_string));
-    datum_object_builder_t t2(t->as_object());
+    datum_object_builder_t t2(t);
     std::string raw_new_tzs = tz->as_str().to_std();
     std::string new_tzs = sanitize::tz(raw_new_tzs);
     if (raw_new_tzs == new_tzs) {
@@ -577,8 +578,7 @@ datum_t make_time(
     } HANDLE_BOOST_ERRORS(target);
 }
 
-datum_t time_add(datum_t x,
-                                 datum_t y) {
+datum_t time_add(datum_t x, datum_t y) {
     datum_t time, duration;
     if (x->is_ptype(time_string)) {
         time = x;
@@ -589,7 +589,7 @@ datum_t time_add(datum_t x,
         duration = x;
     }
 
-    datum_object_builder_t res(time->as_object());
+    datum_object_builder_t res(time);
     res.overwrite(
         epoch_time_key,
         datum_t(time->get_field(epoch_time_key)->as_num() +
@@ -598,8 +598,7 @@ datum_t time_add(datum_t x,
     return std::move(res).to_datum();
 }
 
-datum_t time_sub(datum_t time,
-                                  datum_t time_or_duration) {
+datum_t time_sub(datum_t time, datum_t time_or_duration) {
     r_sanity_check(time->is_ptype(time_string));
 
     if (time_or_duration->is_ptype(time_string)) {
@@ -607,7 +606,7 @@ datum_t time_sub(datum_t time,
             time->get_field(epoch_time_key)->as_num()
             - time_or_duration->get_field(epoch_time_key)->as_num()));
     } else {
-        datum_object_builder_t res(time->as_object());
+        datum_object_builder_t res(time);
         res.overwrite(
             epoch_time_key,
             datum_t(time->get_field(epoch_time_key)->as_num() -

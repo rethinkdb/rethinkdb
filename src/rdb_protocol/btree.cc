@@ -474,7 +474,7 @@ batched_replace_response_t rdb_batched_replace(
         }
     } // Make sure the drainer is destructed before the return statement.
 
-    ql::datum_object_builder_t out(stats->as_object());
+    ql::datum_object_builder_t out(stats);
     out.add_warnings(conditions, limits);
     return std::move(out).to_datum();
 }

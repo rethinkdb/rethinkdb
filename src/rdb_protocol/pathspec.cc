@@ -74,14 +74,14 @@ pathspec_t::pathspec_t(datum_t datum, const term_t *_creator)
         scoped_ptr_t<std::vector<pathspec_t> > local_vec(new std::vector<pathspec_t>);
         scoped_ptr_t<std::map<datum_string_t, pathspec_t> >
             local_map(new std::map<datum_string_t, pathspec_t>);
-        for (auto it = datum->as_object().begin();
-             it != datum->as_object().end(); ++it) {
-            if (it->second->get_type() == datum_t::R_BOOL &&
-                it->second->as_bool() == true) {
-                local_vec->push_back(pathspec_t(it->first, creator));
+        for (size_t i = 0; i < datum.num_pairs(); ++i) {
+            const auto pair = datum.get_pair(i);
+            if (pair.second.get_type() == datum_t::R_BOOL &&
+                pair.second.as_bool() == true) {
+                local_vec->push_back(pathspec_t(pair.first, creator));
             } else {
-                local_map->insert(std::make_pair(it->first,
-                                                 pathspec_t(it->second, creator)));
+                local_map->insert(std::make_pair(pair.first,
+                                                 pathspec_t(pair.second, creator)));
             }
         }
 
@@ -161,9 +161,9 @@ datum_t project(datum_t datum,
         } else if (const std::vector<pathspec_t> *vec = pathspec.as_vec()) {
             for (auto it = vec->begin(); it != vec->end(); ++it) {
                 datum_t sub_result = project(datum, *it, recurse, limits);
-                for (auto jt = sub_result->as_object().begin();
-                     jt != sub_result->as_object().end(); ++jt) {
-                    res.overwrite(jt->first, jt->second);
+                for (size_t i = 0; i < sub_result.num_pairs(); ++i) {
+                    const auto pair = sub_result.get_pair(i);
+                    res.overwrite(pair.first, pair.second);
                 }
             }
         } else if (const std::map<datum_string_t, pathspec_t> *map = pathspec.as_map()) {
@@ -224,7 +224,7 @@ datum_t unproject(datum_t datum,
         }
         return std::move(res).to_datum();
     } else {
-        datum_object_builder_t res(datum->as_object());
+        datum_object_builder_t res(datum);
         unproject_helper(&res, pathspec, recurse, limits);
         return std::move(res).to_datum();
     }

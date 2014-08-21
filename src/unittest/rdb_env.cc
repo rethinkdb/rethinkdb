@@ -165,7 +165,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
         stats = stats->merge(std::move(resp).to_datum(), ql::stats_merge,
                             limits, &conditions);
     }
-    ql::datum_object_builder_t result(std::move(stats)->as_object());
+    ql::datum_object_builder_t result(std::move(stats));
     result.add_warnings(conditions, limits);
     response->response = std::move(result).to_datum();
 }
@@ -213,7 +213,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
         guarantee(!err);
         stats = stats->merge(std::move(resp).to_datum(), ql::stats_merge, limits, &conditions);
     }
-    ql::datum_object_builder_t result(std::move(stats)->as_object());
+    ql::datum_object_builder_t result(stats);
     result.add_warnings(conditions, limits);
     response->response = std::move(result).to_datum();
 }

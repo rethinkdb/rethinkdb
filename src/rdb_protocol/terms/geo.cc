@@ -48,7 +48,7 @@ private:
         validate_geojson(geo_json);
 
         // Store the geo_json object inline, just add a $reql_type$ field
-        datum_object_builder_t result(geo_json->as_object());
+        datum_object_builder_t result(geo_json);
         bool dup = result.add(datum_t::reql_type_string,
                               datum_t(pseudo::geometry_string));
         rcheck(!dup, base_exc_t::GENERIC, "GeoJSON object already had a "
@@ -69,7 +69,7 @@ private:
     counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> v = args->arg(env, 0);
 
-        datum_object_builder_t result(v->as_ptype(pseudo::geometry_string)->as_object());
+        datum_object_builder_t result(v->as_ptype(pseudo::geometry_string));
         bool success = result.delete_field(datum_t::reql_type_string);
         r_sanity_check(success);
         return new_val(std::move(result).to_datum());

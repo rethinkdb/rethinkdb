@@ -68,21 +68,20 @@ datum_t geo_sub(datum_t lhs,
 void sanitize_geometry(datum_t *geo) {
     bool has_type = false;
     bool has_coordinates = false;
-    const std::map<datum_string_t, datum_t> &obj_map =
-        geo->as_object();
-    for (auto it = obj_map.begin(); it != obj_map.end(); ++it) {
-        if (it->first == "coordinates") {
-            it->second->check_type(datum_t::R_ARRAY);
+    for (size_t i = 0; i < geo->num_pairs(); ++i) {
+        const auto pair = geo->get_pair(i);
+        if (pair.first == "coordinates") {
+            pair.second.check_type(datum_t::R_ARRAY);
             has_coordinates = true;
-        } else if (it->first == "type") {
-            it->second->check_type(datum_t::R_STR);
+        } else if (pair.first == "type") {
+            pair.second.check_type(datum_t::R_STR);
             has_type = true;
-        } else if (it->first == "crs") {
-        } else if (it->first == datum_t::reql_type_string) {
+        } else if (pair.first == "crs") {
+        } else if (pair.first == datum_t::reql_type_string) {
         } else {
-            rfail_target(&it->second, base_exc_t::GENERIC,
+            rfail_target(&pair.second, base_exc_t::GENERIC,
                          "Unrecognized field `%s` found in geometry object.",
-                         it->first.to_std().c_str());
+                         pair.first.to_std().c_str());
         }
     }
     rcheck_target(geo, base_exc_t::NON_EXISTENCE, has_type,

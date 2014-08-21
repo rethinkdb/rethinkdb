@@ -226,18 +226,17 @@ bool filter_match(datum_t predicate, datum_t value,
     if (predicate->is_ptype(pseudo::literal_string)) {
         return *predicate->get_field(pseudo::value_key) == *value;
     } else {
-        const std::map<datum_string_t, datum_t> &obj
-            = predicate->as_object();
-        for (auto it = obj.begin(); it != obj.end(); ++it) {
-            r_sanity_check(it->second.has());
-            datum_t elt = value->get_field(it->first, NOTHROW);
+        for (size_t i = 0; i < predicate.num_pairs(); ++i) {
+            const auto pair = predicate.get_pair(i);
+            r_sanity_check(pair.second.has());
+            datum_t elt = value->get_field(pair.first, NOTHROW);
             if (!elt.has()) {
                 rfail_target(parent, base_exc_t::NON_EXISTENCE,
-                        "No attribute `%s` in object.", it->first.to_std().c_str());
-            } else if (it->second->get_type() == datum_t::R_OBJECT &&
+                        "No attribute `%s` in object.", pair.first.to_std().c_str());
+            } else if (pair.second.get_type() == datum_t::R_OBJECT &&
                        elt->get_type() == datum_t::R_OBJECT) {
-                if (!filter_match(it->second, elt, parent)) { return false; }
-            } else if (*elt != *it->second) {
+                if (!filter_match(pair.second, elt, parent)) { return false; }
+            } else if (elt != pair.second) {
                 return false;
             }
         }

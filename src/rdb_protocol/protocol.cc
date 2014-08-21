@@ -1078,7 +1078,7 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
             guarantee(stats_i != NULL);
             stats = stats->merge(*stats_i, ql::stats_merge, *limits, &conditions);
         }
-        ql::datum_object_builder_t result(std::move(stats)->as_object());
+        ql::datum_object_builder_t result(stats);
         result.add_warnings(conditions, *limits);
         *response_out = write_response_t(std::move(result).to_datum());
     }

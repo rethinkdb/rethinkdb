@@ -335,25 +335,24 @@ std::string url_encode_fields(CURL *curl_handle,
         return std::string();
     }
 
-    const std::map<datum_string_t, ql::datum_t> &fields_map =
-        fields->as_object();
     std::map<std::string, std::string> translated_fields;
 
-    for (auto it = fields_map.begin(); it != fields_map.end(); ++it) {
+    for (size_t field_idx = 0; field_idx < fields->num_pairs(); ++field_idx) {
+        const auto pair = fields->get_pair(field_idx);
         std::string val;
-        if (it->second->get_type() == ql::datum_t::R_NUM) {
+        if (pair.second->get_type() == ql::datum_t::R_NUM) {
             val = strprintf("%" PR_RECONSTRUCTABLE_DOUBLE,
-                            it->second->as_num());
-        } else if (it->second->get_type() == ql::datum_t::R_STR) {
-            val = it->second->as_str().to_std();
-        } else if (it->second->get_type() != ql::datum_t::R_NULL) {
+                            pair.second->as_num());
+        } else if (pair.second->get_type() == ql::datum_t::R_STR) {
+            val = pair.second->as_str().to_std();
+        } else if (pair.second->get_type() != ql::datum_t::R_NULL) {
             // This shouldn't happen because we check this in the main process anyway
             throw curl_exc_t(strprintf("expected `params.%s` to be a NUMBER, STRING, "
                                        "or NULL, but found %s",
-                                       it->first.to_std().c_str(),
-                                       it->second->get_type_name().c_str()));
+                                       pair.first.to_std().c_str(),
+                                       pair.second->get_type_name().c_str()));
         }
-        translated_fields[it->first.to_std()] = val;
+        translated_fields[pair.first.to_std()] = val;
     }
 
     return url_encode_fields(curl_handle, translated_fields);

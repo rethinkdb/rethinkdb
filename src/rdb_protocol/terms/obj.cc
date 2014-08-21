@@ -13,12 +13,11 @@ public:
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         datum_t d = args->arg(env, 0)->as_datum();
-        const std::map<datum_string_t, datum_t> &obj = d->as_object();
 
         std::vector<datum_t> arr;
-        arr.reserve(obj.size());
-        for (auto it = obj.begin(); it != obj.end(); ++it) {
-            arr.push_back(datum_t(it->first));
+        arr.reserve(d.num_pairs());
+        for (size_t i = 0; i < d.num_pairs(); ++i) {
+            arr.push_back(datum_t(d.get_pair(i).first));
         }
 
         return new_val(datum_t(std::move(arr), env->env->limits()));

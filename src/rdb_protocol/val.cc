@@ -67,7 +67,7 @@ datum_t table_t::batched_replace(
         datum_t merged
             = std::move(stats).to_datum()->merge(insert_stats, stats_merge,
                                                  env->limits(), &conditions);
-        datum_object_builder_t result(std::move(merged)->as_object());
+        datum_object_builder_t result(merged);
         result.add_warnings(conditions, env->limits());
         return std::move(result).to_datum();
     } else {
@@ -112,8 +112,8 @@ datum_t table_t::batched_insert(
     std::set<std::string> conditions;
     datum_t merged
         = std::move(stats).to_datum()->merge(insert_stats, stats_merge,
-                                               env->limits(), &conditions);
-    datum_object_builder_t result(std::move(merged)->as_object());
+                                             env->limits(), &conditions);
+    datum_object_builder_t result(merged);
     result.add_warnings(conditions, env->limits());
     return std::move(result).to_datum();
 }
@@ -157,8 +157,8 @@ datum_t table_t::sindex_status(env_t *env,
     for (auto it = statuses.begin(); it != statuses.end(); ++it) {
         r_sanity_check(std_contains(sindexes, it->first) || sindexes.empty());
         sindexes.erase(it->first);
-        std::map<datum_string_t, datum_t> status =
-            it->second->as_object();
+        // TODO! Replace use of as_object()
+        std::map<datum_string_t, datum_t> status = it->second->as_object();
         datum_string_t index_name(it->first);
         status[datum_string_t("index")] =
             datum_t(std::move(index_name));

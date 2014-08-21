@@ -191,14 +191,18 @@ public:
     const datum_string_t &as_binary() const;
 
     // Use of `size` and `get` is preferred to `as_array` when possible.
+    // TODO! Remove
     const std::vector<datum_t> &as_array() const;
     size_t size() const;
     // Access an element of an array.
     datum_t get(size_t index, throw_bool_t throw_bool = THROW) const;
-    // Use of `get` is preferred to `as_object` when possible.
-    const std::map<datum_string_t, datum_t> &as_object() const;
 
+    // Use of `get` is preferred to `as_object` when possible.
+    // TODO! Remove
+    const std::map<datum_string_t, datum_t> &as_object() const;
+    size_t num_pairs() const;
     // Access an element of an object.
+    std::pair<datum_string_t, datum_t> get_pair(size_t index) const;
     datum_t get_field(const datum_string_t &key,
                       throw_bool_t throw_bool = THROW) const;
     datum_t get_field(const char *key,
@@ -354,6 +358,8 @@ public:
 
     datum_object_builder_t(const std::map<datum_string_t, datum_t> &m)
         : map(m) { }
+
+    datum_object_builder_t(const datum_t &copy_from);
 
     // Returns true if the insertion did _not_ happen because the key was already in
     // the object.

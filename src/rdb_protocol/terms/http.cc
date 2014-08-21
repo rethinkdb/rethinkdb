@@ -112,18 +112,17 @@ private:
 void check_url_params(const datum_t &params,
                       pb_rcheckable_t *val) {
     if (params->get_type() == datum_t::R_OBJECT) {
-        const std::map<datum_string_t, datum_t> &params_map =
-            params->as_object();
-        for (auto it = params_map.begin(); it != params_map.end(); ++it) {
-            if (it->second->get_type() != datum_t::R_NUM &&
-                it->second->get_type() != datum_t::R_STR &&
-                it->second->get_type() != datum_t::R_NULL) {
+        for (size_t i = 0; i < params.num_pairs(); ++i) {
+            const auto pair = params.get_pair(i);
+            if (pair.second.get_type() != datum_t::R_NUM &&
+                pair.second.get_type() != datum_t::R_STR &&
+                pair.second.get_type() != datum_t::R_NULL) {
                 rfail_target(val, base_exc_t::GENERIC,
                              "Expected `params.%s` to be a NUMBER, STRING or NULL, "
                              "but found %s:\n%s",
-                             it->first.to_std().c_str(),
-                             it->second->get_type_name().c_str(),
-                             it->second->print().c_str());
+                             pair.first.to_std().c_str(),
+                             pair.second.get_type_name().c_str(),
+                             pair.second.print().c_str());
             }
         }
     } else {
@@ -452,17 +451,16 @@ void http_term_t::get_header(scope_env_t *env,
     if (header.has()) {
         datum_t datum_header = header->as_datum();
         if (datum_header->get_type() == datum_t::R_OBJECT) {
-            const std::map<datum_string_t, datum_t> &header_map =
-                datum_header->as_object();
-            for (auto it = header_map.begin(); it != header_map.end(); ++it) {
+            for (size_t i = 0; i < datum_header.num_pairs(); ++i) {
+                const auto pair = datum_header.get_pair(i);
                 std::string str;
-                if (it->second->get_type() == datum_t::R_STR) {
-                    str = strprintf("%s: %s", it->first.to_std().c_str(),
-                                    it->second->as_str().to_std().c_str());
-                } else if (it->second->get_type() != datum_t::R_NULL) {
+                if (pair.second->get_type() == datum_t::R_STR) {
+                    str = strprintf("%s: %s", pair.first.to_std().c_str(),
+                                    pair.second.as_str().to_std().c_str());
+                } else if (pair.second.get_type() != datum_t::R_NULL) {
                     rfail_target(header.get(), base_exc_t::GENERIC,
                         "Expected `header.%s` to be a STRING or NULL, but found %s.",
-                        it->first.to_std().c_str(), it->second->get_type_name().c_str());
+                        pair.first.to_std().c_str(), pair.second.get_type_name().c_str());
                 }
                 verify_header_string(str, header.get());
                 header_out->push_back(str);
@@ -634,14 +632,13 @@ void http_term_t::get_data(
                 // encoding they need when they pass a string
                 data_out->assign(datum_data->as_str().to_std());
             } else if (datum_data->get_type() == datum_t::R_OBJECT) {
-                const std::map<datum_string_t, datum_t> &form_map =
-                    datum_data->as_object();
-                for (auto it = form_map.begin(); it != form_map.end(); ++it) {
-                    std::string val_str = print_http_param(it->second,
+                for (size_t i = 0; i < datum_data.num_pairs(); ++i) {
+                    const auto pair = datum_data.get_pair(i);
+                    std::string val_str = print_http_param(pair.second,
                                                            "data",
-                                                           it->first.to_std().c_str(),
+                                                           pair.first.to_std().c_str(),
                                                            data.get());
-                    (*form_data_out)[it->first.to_std()] = val_str;
+                    (*form_data_out)[pair.first.to_std()] = val_str;
                 }
             } else {
                 rfail_target(data.get(), base_exc_t::GENERIC,

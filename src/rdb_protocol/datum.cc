@@ -1012,7 +1012,27 @@ datum_t datum_t::get(size_t index, throw_bool_t throw_bool) const {
     }
 }
 
+size_t datum_t::num_pairs() const {
+    // TODO! Represent maps as a sorted std::vector
+    return as_object().size();
+}
+
+std::pair<datum_string_t, datum_t> datum_t::get_pair(size_t index) const {
+    guarantee(index < num_pairs());
+    // TODO! Will be easier/faster with std::vector...
+    size_t i = 0;
+    for (auto it = as_object().begin(); it != as_object().end(); ++it) {
+        if (i == index) {
+            return *it;
+        }
+        ++i;
+    }
+    unreachable();
+}
+
 datum_t datum_t::get_field(const datum_string_t &key, throw_bool_t throw_bool) const {
+    // TODO! Implement on top of get_pair using binary search
+
     std::map<datum_string_t, datum_t>::const_iterator it
         = as_object().find(key);
     if (it != as_object().end()) return it->second;
@@ -1466,6 +1486,12 @@ datum_t stats_merge(UNUSED const datum_string_t &key,
                   l->trunc_print().c_str(), l->get_type_name().c_str(),
                   r->trunc_print().c_str(), r->get_type_name().c_str()));
     return l;
+}
+
+datum_object_builder_t::datum_object_builder_t(const datum_t &copy_from) {
+    for (size_t i = 0; i < copy_from.num_pairs(); ++i) {
+        map.insert(copy_from.get_pair(i));
+    }
 }
 
 bool datum_object_builder_t::add(const datum_string_t &key, datum_t val) {
