@@ -6,6 +6,7 @@ import collections
 import time
 import re
 import base64
+import binascii
 import json as py_json
 from threading import Lock
 
@@ -37,7 +38,7 @@ def expr(val, nesting_depth=20):
     '''
     if not isinstance(nesting_depth, int):
         raise RqlDriverError("Second argument to `r.expr` must be a number.")
-    
+
     if nesting_depth <= 0:
         raise RqlDriverError("Nesting depth limit exceeded")
 
@@ -1258,6 +1259,12 @@ class RqlBinary(bytes):
     def __new__(cls, *args, **kwargs):
         return bytes.__new__(cls, *args, **kwargs)
 
+    def __repr__(self):
+        excerpt = binascii.hexlify(self[0:6]).decode('utf-8')
+        excerpt = ' '.join([excerpt[i:i+2] for i in xrange(0, len(excerpt), 2)])
+        excerpt = ', \'%s%s\'' % (excerpt, '...' if len(self) > 6 else '') if len(self) > 0 else ''
+        return "<binary, %d byte%s%s>" % (len(self), 's' if len(self) != 1 else '', excerpt)
+
 class Binary(RqlTopLevelQuery):
     # Note: this term isn't actually serialized, it should exist only in the client
     tt = pTerm.BINARY
@@ -1287,7 +1294,7 @@ class Binary(RqlTopLevelQuery):
             return T('r.', self.st, '(bytes(<data>))')
         else:
             return RqlTopLevelQuery.compose(self, args, optargs)
-        
+
     def build(self):
         if len(self.args) == 0:
             return { '$reql_type$': 'BINARY', 'data': self.base64_data.decode('utf-8') }
