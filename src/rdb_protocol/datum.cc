@@ -298,7 +298,8 @@ void datum_t::reset() {
 }
 
 datum_t datum_t::empty_array() {
-    return datum_t(std::vector<datum_t>(), no_array_size_limit_check_t());
+    return datum_t(std::vector<datum_t>(),
+                   no_array_size_limit_check_t());
 }
 
 datum_t datum_t::empty_object() {
@@ -1482,10 +1483,10 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
 // function doesn't care about they key (although we could add some
 // error-checking using the key in the future).
 datum_t stats_merge(UNUSED const datum_string_t &key,
-                                     datum_t l,
-                                     datum_t r,
-                                     const configured_limits_t &limits,
-                                     std::set<std::string> *conditions) {
+                    datum_t l,
+                    datum_t r,
+                    const configured_limits_t &limits,
+                    std::set<std::string> *conditions) {
     if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
         return datum_t(l->as_num() + r->as_num());
     } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
