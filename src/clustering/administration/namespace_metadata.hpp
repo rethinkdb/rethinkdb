@@ -23,14 +23,11 @@
 #include "rpc/semilattice/joins/deletable.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/semilattice/joins/map.hpp"
-#include "rpc/semilattice/joins/vclock.hpp"
+#include "rpc/semilattice/joins/versioned.hpp"
 #include "rpc/serialize_macros.hpp"
 
 
 /* This is the metadata for a single namespace of a specific protocol. */
-
-/* If you change this data structure, you must also update
-`clustering/administration/issues/vector_clock_conflict.hpp`. */
 
 class ack_expectation_t {
 public:
@@ -114,11 +111,11 @@ class namespace_semilattice_metadata_t {
 public:
     namespace_semilattice_metadata_t() { }
 
-    vclock_t<name_string_t> name;
-    vclock_t<database_id_t> database;
-    vclock_t<std::string> primary_key;   // TODO: This should never actually change
+    versioned_t<name_string_t> name;
+    versioned_t<database_id_t> database;
+    versioned_t<std::string> primary_key;   // TODO: This should never actually change
 
-    vclock_t<table_replication_info_t> replication_info;
+    versioned_t<table_replication_info_t> replication_info;
 };
 
 RDB_DECLARE_SERIALIZABLE(namespace_semilattice_metadata_t);

@@ -11,16 +11,16 @@
 #include "rpc/semilattice/joins/deletable.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/semilattice/joins/map.hpp"
-#include "rpc/semilattice/joins/vclock.hpp"
+#include "rpc/semilattice/joins/versioned.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "utils.hpp"
 
 class machine_semilattice_metadata_t {
 public:
     /* `name` and `tags` should only be modified by the machine that this metadata is
-    describing. Therefore, neither should never be in conflict. */
-    vclock_t<name_string_t> name;
-    vclock_t<std::set<name_string_t> > tags;
+    describing. */
+    versioned_t<name_string_t> name;
+    versioned_t<std::set<name_string_t> > tags;
 };
 
 RDB_DECLARE_SERIALIZABLE(machine_semilattice_metadata_t);

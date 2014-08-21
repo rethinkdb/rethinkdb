@@ -213,7 +213,7 @@ std::string table_config_artificial_table_backend_t::get_primary_key_name() {
 bool table_config_artificial_table_backend_t::read_all_primary_keys(
         UNUSED signal_t *interruptor,
         std::vector<counted_t<const ql::datum_t> > *keys_out,
-        std::string *error_out) {
+        UNUSED std::string *error_out) {
     on_thread_t thread_switcher(home_thread());
     keys_out->clear();
     cow_ptr_t<namespaces_semilattice_metadata_t> md = table_sl_view->get();
@@ -223,21 +223,11 @@ bool table_config_artificial_table_backend_t::read_all_primary_keys(
         if (it->second.is_deleted()) {
             continue;
         }
-        if (it->second.get_ref().database.in_conflict() ||
-                it->second.get_ref().name.in_conflict()) {
-            /* TODO: Handle conflict differently */
-            *error_out = "Metadata is in conflict";
-            return false;
-        }
         database_id_t db_id = it->second.get_ref().database.get_ref();
         auto jt = database_sl_view->get().databases.find(db_id);
         guarantee(jt != database_sl_view->get().databases.end());
         /* RSI(reql_admin): This can actually happen. We should handle this case. */
         guarantee(!jt->second.is_deleted());
-        if (jt->second.get_ref().name.in_conflict()) {
-            *error_out = "Metadata is in conflict";
-            return false;
-        }
         name_string_t db_name = jt->second.get_ref().name.get_ref();
         name_string_t table_name = it->second.get_ref().name.get_ref();
         /* TODO: How to handle table name collisions? */
@@ -250,7 +240,7 @@ bool table_config_artificial_table_backend_t::read_row(
         counted_t<const ql::datum_t> primary_key,
         UNUSED signal_t *interruptor,
         counted_t<const ql::datum_t> *row_out,
-        std::string *error_out) {
+        UNUSED std::string *error_out) {
     on_thread_t thread_switcher(home_thread());
     cow_ptr_t<namespaces_semilattice_metadata_t> md = table_sl_view->get();
     name_string_t db_name, table_name;
@@ -272,10 +262,6 @@ bool table_config_artificial_table_backend_t::read_row(
     }
 
     auto it = md->namespaces.find(table_id);
-    if (it->second.get_ref().replication_info.in_conflict()) {
-        *error_out = "Metadata is in conflict.";
-        return false;
-    }
     table_config_t config =
         it->second.get_ref().replication_info.get_ref().config;
     *row_out = convert_table_config_to_datum(config, db_name, table_name, it->first);
@@ -328,9 +314,7 @@ bool table_config_artificial_table_backend_t::write_row(
     }
     replication_info.chosen_directors =
         table_elect_directors(replication_info.config, name_client);
-    it->second.get_mutable()->replication_info =
-        it->second.get_ref().replication_info.make_resolving_version(
-            replication_info, my_machine_id);
+    it->second.get_mutable()->replication_info.set(replication_info);
     table_sl_view->join(md);
     return true;
 }
