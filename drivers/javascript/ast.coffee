@@ -51,7 +51,7 @@ hasImplicit = (args) ->
 class TermBase
     showRunWarning: true
     constructor: ->
-        self = (ar (field) -> self.getField(field))
+        self = (ar (field) -> self.bracket(field))
         self.__proto__ = @.__proto__
         return self
 
@@ -190,6 +190,7 @@ class RDBVal extends TermBase
     count: (args...) -> new Count {}, @, args.map(funcWrap)...
     union: (args...) -> new Union {}, @, args...
     nth: (args...) -> new Nth {}, @, args...
+    bracket: (args...) -> new Bracket {}, @, args...
     match: (args...) -> new Match {}, @, args...
     split: (args...) -> new Split {}, @, args.map(funcWrap)...
     upcase: (args...) -> new Upcase {}, @, args...
@@ -668,6 +669,10 @@ class Limit extends RDBOp
 
 class GetField extends RDBOp
     tt: protoTermType.GET_FIELD
+    mt: 'getField'
+
+class Bracket extends RDBOp
+    tt: protoTermType.BRACKET
     st: '(...)' # This is only used by the `undefined` argument checker
 
     compose: (args) -> [args[0], '(', args[1], ')']

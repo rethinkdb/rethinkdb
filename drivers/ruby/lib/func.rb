@@ -125,15 +125,12 @@ module RethinkDB
     def -@; RQL.new.sub(0, self); end
 
     def [](ind)
-      if ind.class == Fixnum
-        return nth(ind)
-      elsif ind.class == Symbol || ind.class == String
-        return get_field(ind)
-      elsif ind.class == Range
+      if ind.class == Range
         return slice(ind.begin, ind.end, :right_bound =>
                      (ind.exclude_end? ? 'open' : 'closed'))
+      else
+        return bracket(ind)
       end
-      raise ArgumentError, "[] cannot handle #{ind.inspect} of type #{ind.class}."
     end
 
     def ==(rhs)

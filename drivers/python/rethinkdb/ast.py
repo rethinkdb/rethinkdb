@@ -329,19 +329,8 @@ class RqlQuery(object):
                 return Slice(self, index.start or 0, index.stop, bracket_operator=True)
             else:
                 return Slice(self, index.start or 0, -1, right_bound='closed', bracket_operator=True)
-        elif isinstance(index, int):
-            return Nth(self, index, bracket_operator=True)
-        elif isinstance(index, (str, unicode)):
-            return GetField(self, index, bracket_operator=True)
-        elif isinstance(index, RqlQuery):
-            raise RqlDriverError(
-                "Bracket operator called with a ReQL expression parameter.\n"+
-                "Dynamic typing is not supported in this syntax,\n"+
-                "use `.nth`, `.slice`, or `.get_field` instead.")
         else:
-            raise RqlDriverError(
-                "bracket operator called with an unsupported parameter type: %s.%s" %
-                (index.__class__.__module__, index.__class__.__name__))
+            return Bracket(self, index, bracket_operator=True)
 
     def __iter__(*args, **kwargs):
         raise RqlDriverError(
@@ -903,6 +892,10 @@ class Limit(RqlMethodQuery):
 class GetField(RqlBracketQuery):
     tt = pTerm.GET_FIELD
     st = 'get_field'
+
+class Bracket(RqlBracketQuery):
+    tt = pTerm.BRACKET
+    st = 'bracket'
 
 class Contains(RqlMethodQuery):
     tt = pTerm.CONTAINS
