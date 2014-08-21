@@ -22,7 +22,7 @@
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/buffer_group_stream.hpp"
-#include "containers/archive/vector_stream.hpp"
+#include "containers/archive/buffer_stream.hpp"
 #include "containers/scoped.hpp"
 #include "rdb_protocol/geo/exceptions.hpp"
 #include "rdb_protocol/geo/indexing.hpp"
@@ -1346,7 +1346,7 @@ void serialize_sindex_info(write_message_t *wm,
 void deserialize_sindex_info(const std::vector<char> &data,
                              sindex_disk_info_t *info_out)
     THROWS_ONLY(archive_exc_t) {
-    inplace_vector_read_stream_t read_stream(&data);
+    buffer_read_stream_t read_stream(data.data(), data.size());
     // This cluster version field is _not_ a ReQL evaluation version field, which is
     // in secondary_index_t -- it only says how the value was serialized.
     cluster_version_t cluster_version;

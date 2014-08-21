@@ -12,6 +12,7 @@
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "concurrency/wait_any.hpp"
+#include "containers/archive/buffer_stream.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/archive/versioned.hpp"
 #include "containers/disk_backed_queue.hpp"
@@ -1239,7 +1240,7 @@ get_metainfo_internal(buf_lock_t *sb_buf,
 
         region_t region;
         {
-            inplace_vector_read_stream_t key(&i->first);
+            buffer_read_stream_t key(i->first.data(), i->first.size());
             archive_result_t res = deserialize_for_metainfo(&key, &region);
             guarantee_deserialization(res, "region");
         }

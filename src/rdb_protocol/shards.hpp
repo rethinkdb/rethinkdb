@@ -281,8 +281,7 @@ void iterate_ordered_by_version(reql_version_t reql_version,
     } else {
         // The map is sorted with the wrong reql_version.  Copy it into a vector and
         // sort it first.
-        std::vector<std::pair<datum_t, T> >
-            vec(m->begin(), m->end());
+        std::vector<std::pair<datum_t, T> > vec(m->begin(), m->end());
         // The keys (pulled straight out of a std::map) are unique, so std::sort
         // works fine.
         std::sort(vec.begin(), vec.end(),

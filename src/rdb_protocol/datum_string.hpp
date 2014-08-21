@@ -32,8 +32,8 @@ public:
     // Create a datum_string_t from an existing shared_buf_ref_t.
     // It must have the length in varint encoding at the beginning, followed
     // by the string data.
-    datum_string_t(const shared_buf_ref_t<char> &_ref);
-    datum_string_t(shared_buf_ref_t<char> &&_ref);
+    explicit datum_string_t(const shared_buf_ref_t<char> &_ref);
+    explicit datum_string_t(shared_buf_ref_t<char> &&_ref);
 
     // The result of data() is not automatically null terminated. Do not use
     // as a C string.
