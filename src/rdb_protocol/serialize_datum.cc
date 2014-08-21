@@ -91,7 +91,7 @@ datum_deserialize(read_stream_t *s, std::vector<datum_t> *v) {
 
 
 size_t datum_serialized_size(
-        const std::map<datum_string_t, datum_t> &m) {
+        const std::vector<std::pair<datum_string_t, datum_t> > &m) {
     size_t ret = varint_uint64_serialized_size(m.size());
     for (auto it = m.begin(), e = m.end(); it != e; ++it) {
         ret += datum_serialized_size(it->first);
@@ -102,7 +102,7 @@ size_t datum_serialized_size(
 
 serialization_result_t
 datum_serialize(write_message_t *wm,
-                const std::map<datum_string_t, datum_t> &m) {
+                const std::vector<std::pair<datum_string_t, datum_t> > &m) {
     serialization_result_t res = serialization_result_t::SUCCESS;
     serialize_varint_uint64(wm, m.size());
     for (auto it = m.begin(), e = m.end(); it != e; ++it) {
@@ -114,7 +114,7 @@ datum_serialize(write_message_t *wm,
 
 MUST_USE archive_result_t datum_deserialize(
         read_stream_t *s,
-        std::map<datum_string_t, datum_t> *m) {
+        std::vector<std::pair<datum_string_t, datum_t> > *m) {
     m->clear();
 
     uint64_t sz;
@@ -125,9 +125,7 @@ MUST_USE archive_result_t datum_deserialize(
         return archive_result_t::RANGE_ERROR;
     }
 
-    // Using position should make this function take linear time, not
-    // sz*log(sz) time.
-    auto position = m->begin();
+    m->reserve(static_cast<size_t>(sz));
 
     for (uint64_t i = 0; i < sz; ++i) {
         std::pair<datum_string_t, datum_t> p;
@@ -135,7 +133,7 @@ MUST_USE archive_result_t datum_deserialize(
         if (bad(res)) { return res; }
         res = datum_deserialize(s, &p.second);
         if (bad(res)) { return res; }
-        position = m->insert(position, std::move(p));
+        m->push_back(std::move(p));
     }
 
     return archive_result_t::SUCCESS;
@@ -147,19 +145,19 @@ MUST_USE archive_result_t datum_deserialize(
 size_t datum_serialized_size(const datum_t &datum) {
     r_sanity_check(datum.has());
     size_t sz = 1; // 1 byte for the type
-    switch (datum->get_type()) {
+    switch (datum.get_type()) {
     case datum_t::R_ARRAY: {
-        sz += datum_serialized_size(datum->as_array());
+        sz += datum_serialized_size(datum.as_array());
     } break;
     case datum_t::R_BINARY: {
-        sz += datum_serialized_size(datum->as_binary());
+        sz += datum_serialized_size(datum.as_binary());
     } break;
     case datum_t::R_BOOL: {
         sz += serialize_universal_size_t<bool>::value;
     } break;
     case datum_t::R_NULL: break;
     case datum_t::R_NUM: {
-        double d = datum->as_num();
+        double d = datum.as_num();
         int64_t i;
         if (number_as_integer(d, &i)) {
             sz += varint_uint64_serialized_size(i < 0 ? -i : i);
@@ -168,10 +166,10 @@ size_t datum_serialized_size(const datum_t &datum) {
         }
     } break;
     case datum_t::R_OBJECT: {
-        sz += datum_serialized_size(datum->as_object());
+        sz += datum_serialized_size(datum.get_obj_vec());
     } break;
     case datum_t::R_STR: {
-        sz += datum_serialized_size(datum->as_str());
+        sz += datum_serialized_size(datum.as_str());
     } break;
     case datum_t::UNINITIALIZED: // fallthru
     default:
@@ -226,7 +224,7 @@ serialization_result_t datum_serialize(write_message_t *wm,
     } break;
     case datum_t::R_OBJECT: {
         res = res | datum_serialize(wm, datum_serialized_type_t::R_OBJECT);
-        res = res | datum_serialize(wm, datum->as_object());
+        res = res | datum_serialize(wm, datum->get_obj_vec());
     } break;
     case datum_t::R_STR: {
         res = res | datum_serialize(wm, datum_serialized_type_t::R_STR);
@@ -329,7 +327,7 @@ archive_result_t datum_deserialize(read_stream_t *s, datum_t *datum) {
         }
     } break;
     case datum_serialized_type_t::R_OBJECT: {
-        std::map<datum_string_t, datum_t> value;
+        std::vector<std::pair<datum_string_t, datum_t> > value;
         res = datum_deserialize(s, &value);
         if (bad(res)) {
             return res;

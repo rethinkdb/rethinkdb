@@ -2,8 +2,7 @@
 #ifndef RDB_PROTOCOL_PSEUDO_BINARY_HPP_
 #define RDB_PROTOCOL_PSEUDO_BINARY_HPP_
 
-#include <map>
-#include <string>
+#include <vector>
 
 #include "rdb_protocol/datum_string.hpp"
 #include "rdb_protocol/datum.hpp"
@@ -20,7 +19,7 @@ void write_binary_to_protobuf(Datum *d, const datum_string_t &data);
 
 // Given a `r.binary` pseudotype with base64 encoding, decodes it into a raw data string
 datum_string_t decode_base64_ptype(
-    const std::map<datum_string_t, datum_t> &ptype);
+    const std::vector<std::pair<datum_string_t, datum_t> > &ptype);
 
 } // namespace pseudo
 } // namespace ql

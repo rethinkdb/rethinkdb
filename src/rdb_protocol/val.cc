@@ -151,18 +151,15 @@ datum_t table_t::sindex_list(env_t *env) {
 
 datum_t table_t::sindex_status(env_t *env,
         std::set<std::string> sindexes) {
-    std::map<std::string, datum_t> statuses =
-        table->sindex_status(env, sindexes);
+    std::map<std::string, datum_t> statuses = table->sindex_status(env, sindexes);
     std::vector<datum_t> array;
     for (auto it = statuses.begin(); it != statuses.end(); ++it) {
         r_sanity_check(std_contains(sindexes, it->first) || sindexes.empty());
         sindexes.erase(it->first);
-        // TODO! Replace use of as_object()
-        std::map<datum_string_t, datum_t> status = it->second->as_object();
+        datum_object_builder_t status(it->second);
         datum_string_t index_name(it->first);
-        status[datum_string_t("index")] =
-            datum_t(std::move(index_name));
-        array.push_back(datum_t(std::move(status)));
+        status.overwrite("index", datum_t(std::move(index_name)));
+        array.push_back(std::move(status).to_datum());
     }
     rcheck(sindexes.empty(), base_exc_t::GENERIC,
            strprintf("Index `%s` was not found on table `%s`.",

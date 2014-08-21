@@ -473,7 +473,6 @@ void sanitize_time(datum_t *time) {
                 double d = pair.second.as_num();
                 double d2 = sanitize_epoch_sec(d);
                 if (d2 != d) {
-                    // TODO! What to do here? Construct a new time datum?
                     bool b = time->add(datum_string_t(epoch_time_key),
                                        datum_t(d2),
                                        CLOBBER);

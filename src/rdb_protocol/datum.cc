@@ -91,10 +91,20 @@ datum_t::data_wrapper_t::data_wrapper_t(std::vector<datum_t> &&array) :
     type(R_ARRAY),
     r_array(new countable_wrapper_t<std::vector<datum_t> >(std::move(array))) { }
 
-datum_t::data_wrapper_t::data_wrapper_t(std::map<datum_string_t, datum_t> &&object) :
+datum_t::data_wrapper_t::data_wrapper_t(
+        std::vector<std::pair<datum_string_t, datum_t> > &&object) :
     type(R_OBJECT),
-    r_object(new countable_wrapper_t<std::map<datum_string_t, datum_t> >(
-        std::move(object))) { }
+    r_object(new countable_wrapper_t<std::vector<std::pair<datum_string_t, datum_t> > >(
+        std::move(object))) {
+
+#ifndef NDEBUG
+    auto key_cmp = [](const std::pair<datum_string_t, datum_t> &p1,
+                      const std::pair<datum_string_t, datum_t> &p2) -> bool {
+        return p1.first < p2.first;
+    };
+    rassert(std::is_sorted(r_object->begin(), r_object->end(), key_cmp));
+#endif
+}
 
 datum_t::data_wrapper_t::~data_wrapper_t() {
     destruct();
@@ -114,7 +124,7 @@ void datum_t::data_wrapper_t::destruct() {
         r_array.~counted_t<countable_wrapper_t<std::vector<datum_t> > >();
     } break;
     case R_OBJECT: {
-        r_object.~counted_t<countable_wrapper_t<std::map<datum_string_t, datum_t> > >();
+        r_object.~counted_t<countable_wrapper_t<std::vector<std::pair<datum_string_t, datum_t> > > >();
     } break;
     default: unreachable();
     }
@@ -139,7 +149,7 @@ void datum_t::data_wrapper_t::assign_copy(const datum_t::data_wrapper_t &copyee)
         new(&r_array) counted_t<countable_wrapper_t<std::vector<datum_t> > >(copyee.r_array);
     } break;
     case R_OBJECT: {
-        new(&r_object) counted_t<countable_wrapper_t<std::map<datum_string_t, datum_t> > >(
+        new(&r_object) counted_t<countable_wrapper_t<std::vector<std::pair<datum_string_t, datum_t> > > >(
             copyee.r_object);
     } break;
     default: unreachable();
@@ -166,7 +176,7 @@ void datum_t::data_wrapper_t::assign_move(datum_t::data_wrapper_t &&movee) noexc
             std::move(movee.r_array));
     } break;
     case R_OBJECT: {
-        new(&r_object) counted_t<countable_wrapper_t<std::map<datum_string_t, datum_t> > >(
+        new(&r_object) counted_t<countable_wrapper_t<std::vector<std::pair<datum_string_t, datum_t> > > >(
             std::move(movee.r_object));
     } break;
     default: unreachable();
@@ -213,13 +223,34 @@ datum_t::datum_t(std::vector<datum_t> &&_array,
 
 datum_t::datum_t(std::map<datum_string_t, datum_t> &&_object,
                  const std::set<std::string> &allowed_pts)
+    : data(to_sorted_vec(std::move(_object))) {
+    maybe_sanitize_ptype(allowed_pts);
+}
+
+datum_t::datum_t(std::vector<std::pair<datum_string_t, datum_t> > &&_object,
+                 const std::set<std::string> &allowed_pts)
     : data(std::move(_object)) {
     maybe_sanitize_ptype(allowed_pts);
 }
 
 datum_t::datum_t(std::map<datum_string_t, datum_t> &&_object,
                  no_sanitize_ptype_t)
-    : data(std::move(_object)) { }
+    : data(to_sorted_vec(std::move(_object))) { }
+
+std::vector<std::pair<datum_string_t, datum_t> > datum_t::to_sorted_vec(
+        std::map<datum_string_t, datum_t> &&map) {
+    std::vector<std::pair<datum_string_t, datum_t> > sorted_vec;
+    sorted_vec.reserve(map.size());
+    for (auto it = map.begin(); it != map.end(); ++it) {
+        sorted_vec.push_back(std::make_pair(std::move(it->first), std::move(it->second)));
+    }
+    return sorted_vec;
+}
+
+const std::vector<std::pair<datum_string_t, datum_t> > &datum_t::get_obj_vec() const {
+    check_type(R_OBJECT);
+    return *data.r_object;
+}
 
 datum_t to_datum_for_client_serialization(grouped_data_t &&gd,
                                           reql_version_t reql_version,
@@ -262,8 +293,7 @@ void datum_t::reset() {
 }
 
 datum_t datum_t::empty_array() {
-    return datum_t(std::vector<datum_t>(),
-                                 no_array_size_limit_check_t());
+    return datum_t(std::vector<datum_t>(), no_array_size_limit_check_t());
 }
 
 datum_t datum_t::empty_object() {
@@ -312,16 +342,15 @@ datum_t to_datum(cJSON *json, const configured_limits_t &limits) {
         return datum_t(std::move(array), limits);
     } break;
     case cJSON_Object: {
-        std::map<datum_string_t, datum_t> map;
+        datum_object_builder_t builder;
         json_object_iterator_t it(json);
         while (cJSON *item = it.next()) {
-            auto res = map.insert(
-                std::make_pair(datum_string_t(item->string), to_datum(item, limits)));
-            rcheck_datum(res.second, base_exc_t::GENERIC,
+            bool dup = builder.add(item->string, to_datum(item, limits));
+            rcheck_datum(!dup, base_exc_t::GENERIC,
                          strprintf("Duplicate key `%s` in JSON.", item->string));
         }
         const std::set<std::string> pts = { pseudo::literal_string };
-        return datum_t(std::move(map), pts);
+        return std::move(builder).to_datum(pts);
     } break;
     default: unreachable();
     }
@@ -346,7 +375,7 @@ datum_t::type_t datum_t::get_type() const { return data.type; }
 
 bool datum_t::is_ptype() const {
     return get_type() == R_BINARY ||
-        (get_type() == R_OBJECT && std_contains(*data.r_object, reql_type_string));
+        (get_type() == R_OBJECT && get_field(reql_type_string, NOTHROW).has());
 }
 
 bool datum_t::is_ptype(const std::string &reql_type) const {
@@ -359,16 +388,16 @@ std::string datum_t::get_reql_type() const {
         return "BINARY";
     }
 
-    auto maybe_reql_type = data.r_object->find(reql_type_string);
-    r_sanity_check(maybe_reql_type != data.r_object->end());
-    rcheck(maybe_reql_type->second->get_type() == R_STR,
+    datum_t maybe_reql_type = get_field(reql_type_string, NOTHROW);
+    r_sanity_check(maybe_reql_type.has());
+    rcheck(maybe_reql_type.get_type() == R_STR,
            base_exc_t::GENERIC,
            strprintf("Error: Field `%s` must be a string (got `%s` of type %s):\n%s",
                      reql_type_string.to_std().c_str(),
-                     maybe_reql_type->second->trunc_print().c_str(),
-                     maybe_reql_type->second->get_type_name().c_str(),
+                     maybe_reql_type.trunc_print().c_str(),
+                     maybe_reql_type.get_type_name().c_str(),
                      trunc_print().c_str()));
-    return maybe_reql_type->second->as_str().to_std();
+    return maybe_reql_type.as_str().to_std();
 }
 
 std::string raw_type_name(datum_t::type_t type) {
@@ -616,31 +645,31 @@ datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
     datum_t copied_result;
 
     if (get_type() == R_OBJECT) {
-        const std::map<datum_string_t, datum_t> &obj = as_object();
         datum_object_builder_t builder;
 
-        for (auto it = obj.begin(); it != obj.end(); ++it) {
+        for (size_t i = 0; i < num_pairs(); ++i) {
+            const auto pair = get_pair(i);
             bool encountered_literal;
-            datum_t val =
-                it->second->drop_literals(&encountered_literal);
+            datum_t val = pair.second.drop_literals(&encountered_literal);
 
             if (encountered_literal && !need_to_copy) {
                 // We have encountered the first field with a literal.
                 // This means we have to create a copy in `result_copy`.
                 need_to_copy = true;
                 // Copy everything up to now into the builder.
-                for (auto copy_it = obj.begin(); copy_it != it; ++copy_it) {
-                    bool conflict = builder.add(copy_it->first, copy_it->second);
+                for (size_t copy_i = 0; copy_i < i; ++copy_i) {
+                    const auto copy_pair = get_pair(copy_i);
+                    bool conflict = builder.add(copy_pair.first, copy_pair.second);
                     r_sanity_check(!conflict);
                 }
             }
 
             if (need_to_copy) {
                 if (val.has()) {
-                    bool conflict = builder.add(it->first, val);
+                    bool conflict = builder.add(pair.first, val);
                     r_sanity_check(!conflict);
                 } else {
-                    // If `it->second` was a literal without a value, ignore it
+                    // If `pair.second` was a literal without a value, ignore it
                 }
             }
         }
@@ -1013,29 +1042,36 @@ datum_t datum_t::get(size_t index, throw_bool_t throw_bool) const {
 }
 
 size_t datum_t::num_pairs() const {
-    // TODO! Represent maps as a sorted std::vector
-    return as_object().size();
+    check_type(R_OBJECT);
+    return data.r_object->size();
 }
 
 std::pair<datum_string_t, datum_t> datum_t::get_pair(size_t index) const {
+    check_type(R_OBJECT);
     guarantee(index < num_pairs());
-    // TODO! Will be easier/faster with std::vector...
-    size_t i = 0;
-    for (auto it = as_object().begin(); it != as_object().end(); ++it) {
-        if (i == index) {
-            return *it;
-        }
-        ++i;
-    }
-    unreachable();
+    return (*data.r_object)[index];
 }
 
 datum_t datum_t::get_field(const datum_string_t &key, throw_bool_t throw_bool) const {
-    // TODO! Implement on top of get_pair using binary search
+    // Use binary search on top of get_pair()
+    size_t range_beg = 0;
+    size_t range_end = num_pairs();
+    while (range_beg < range_end) {
+        const size_t center = range_beg + ((range_end - range_beg) / 2);
+        const auto center_pair = get_pair(center);
+        const int cmp = center_pair.first.compare(key);
+        if (cmp == 0) {
+            // Found it
+            return center_pair.second;
+        } else if (cmp < 0) {
+            range_end = center;
+        } else {
+            range_beg = center + 1;
+        }
+        rassert(range_beg <= range_end);
+    }
 
-    std::map<datum_string_t, datum_t>::const_iterator it
-        = as_object().find(key);
-    if (it != as_object().end()) return it->second;
+    // Didn't find it
     if (throw_bool == THROW) {
         rfail(base_exc_t::NON_EXISTENCE,
               "No attribute `%s` in object:\n%s", key.to_std().c_str(), print().c_str());
@@ -1045,11 +1081,6 @@ datum_t datum_t::get_field(const datum_string_t &key, throw_bool_t throw_bool) c
 
 datum_t datum_t::get_field(const char *key, throw_bool_t throw_bool) const {
     return get_field(datum_string_t(key), throw_bool);
-}
-
-const std::map<datum_string_t, datum_t> &datum_t::as_object() const {
-    check_type(R_OBJECT);
-    return *data.r_object;
 }
 
 cJSON *datum_t::as_json_raw() const {
@@ -1068,8 +1099,7 @@ cJSON *datum_t::as_json_raw() const {
     } break;
     case R_OBJECT: {
         scoped_cJSON_t obj(cJSON_CreateObject());
-        for (std::map<datum_string_t, datum_t>::const_iterator
-                 it = data.r_object->begin(); it != data.r_object->end(); ++it) {
+        for (auto it = data.r_object->begin(); it != data.r_object->end(); ++it) {
             obj.AddItemToObject(it->first.to_std().c_str(), it->second->as_json_raw());
         }
         return obj.release();
@@ -1106,34 +1136,47 @@ datum_t::as_datum_stream(const protob_t<const Backtrace> &backtrace) const {
 
 MUST_USE bool datum_t::add(const datum_string_t &key, datum_t val,
                            clobber_bool_t clobber_bool) {
+    // TODO! Implement for shared_buf backed datum (will have to copy)
     check_type(R_OBJECT);
     check_str_validity(key);
     r_sanity_check(val.has());
-    bool key_in_obj = data.r_object->count(key) > 0;
-    if (!key_in_obj || (clobber_bool == CLOBBER)) {
-        (*data.r_object)[key] = val;
+
+    auto key_cmp = [](const std::pair<datum_string_t, datum_t> &p1,
+                      const datum_string_t &k2) -> bool {
+        return p1.first < k2;
+    };
+    auto it = std::lower_bound(data.r_object->begin(), data.r_object->end(),
+                               key, key_cmp);
+
+    if (it != data.r_object->end() && it->first == key) {
+        if (clobber_bool == CLOBBER) {
+            it->second = val;
+        }
+        return true;
+    } else {
+        data.r_object->insert(it, std::make_pair(key, val));
+        return false;
     }
-    return key_in_obj;
 }
 
-datum_t datum_t::merge(datum_t rhs) const {
-    if (get_type() != R_OBJECT || rhs->get_type() != R_OBJECT) {
+datum_t datum_t::merge(const datum_t &rhs) const {
+    if (get_type() != R_OBJECT || rhs.get_type() != R_OBJECT) {
         return rhs;
     }
 
-    datum_object_builder_t d(as_object());
-    const std::map<datum_string_t, datum_t> &rhs_obj = rhs->as_object();
-    for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
-        datum_t sub_lhs = d.try_get(it->first);
-        bool is_literal = it->second->is_ptype(pseudo::literal_string);
+    datum_object_builder_t d(*this);
+    for (size_t i = 0; i < rhs.num_pairs(); ++i) {
+        const auto pair = rhs.get_pair(i);
+        datum_t sub_lhs = d.try_get(pair.first);
+        bool is_literal = pair.second.is_ptype(pseudo::literal_string);
 
-        if (it->second->get_type() == R_OBJECT && sub_lhs.has() && !is_literal) {
-            d.overwrite(it->first, sub_lhs->merge(it->second));
+        if (pair.second.get_type() == R_OBJECT && sub_lhs.has() && !is_literal) {
+            d.overwrite(pair.first, sub_lhs.merge(pair.second));
         } else {
             datum_t val =
                 is_literal
-                ? it->second->get_field(pseudo::value_key, NOTHROW)
-                : it->second;
+                ? pair.second.get_field(pseudo::value_key, NOTHROW)
+                : pair.second;
             if (val.has()) {
                 // Since nested literal keywords are forbidden, this should be a no-op
                 // if `is_literal == true`.
@@ -1142,28 +1185,28 @@ datum_t datum_t::merge(datum_t rhs) const {
                 r_sanity_check(!encountered_literal || !is_literal);
             }
             if (val.has()) {
-                d.overwrite(it->first, val);
+                d.overwrite(pair.first, val);
             } else {
                 r_sanity_check(is_literal);
-                UNUSED bool b = d.delete_field(it->first);
+                UNUSED bool b = d.delete_field(pair.first);
             }
         }
     }
     return std::move(d).to_datum();
 }
 
-datum_t datum_t::merge(datum_t rhs,
-                                        merge_resoluter_t f,
-                                        const configured_limits_t &limits,
-                                        std::set<std::string> *conditions_out) const {
-    datum_object_builder_t d(as_object());
-    const std::map<datum_string_t, datum_t> &rhs_obj = rhs->as_object();
-    for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
-        datum_t left = get_field(it->first, NOTHROW);
+datum_t datum_t::merge(const datum_t &rhs,
+                       merge_resoluter_t f,
+                       const configured_limits_t &limits,
+                       std::set<std::string> *conditions_out) const {
+    datum_object_builder_t d(*this);
+    for (size_t i = 0; i < rhs.num_pairs(); ++i) {
+        const auto pair = rhs.get_pair(i);
+        datum_t left = get_field(pair.first, NOTHROW);
         if (left.has()) {
-            d.overwrite(it->first, f(it->first, left, it->second, limits, conditions_out));
+            d.overwrite(pair.first, f(pair.first, left, pair.second, limits, conditions_out));
         } else {
-            bool b = d.add(it->first, it->second);
+            bool b = d.add(pair.first, pair.second);
             r_sanity_check(!b);
         }
     }
@@ -1211,25 +1254,24 @@ int datum_t::v1_13_cmp(const datum_t &rhs) const {
             }
             return pseudo_cmp(reql_version_t::v1_13, rhs);
         } else {
-            const std::map<datum_string_t, datum_t> &obj = as_object();
-            const std::map<datum_string_t, datum_t> &rhs_obj
-                = rhs.as_object();
-            auto it = obj.begin();
-            auto it2 = rhs_obj.begin();
-            while (it != obj.end() && it2 != rhs_obj.end()) {
-                int key_cmpval = it->first.compare(it2->first);
+            size_t i = 0;
+            size_t i2 = 0;
+            while (i < num_pairs() && i2 < rhs.num_pairs()) {
+                const auto pair = get_pair(i);
+                const auto pair2 = rhs.get_pair(i2);
+                int key_cmpval = pair.first.compare(pair2.first);
                 if (key_cmpval != 0) {
                     return key_cmpval;
                 }
-                int val_cmpval = it->second->v1_13_cmp(*it2->second);
+                int val_cmpval = pair.second.v1_13_cmp(pair2.second);
                 if (val_cmpval != 0) {
                     return val_cmpval;
                 }
-                ++it;
-                ++it2;
+                ++i;
+                ++i2;
             }
-            if (it != obj.end()) return 1;
-            if (it2 != rhs_obj.end()) return -1;
+            if (i != num_pairs()) return 1;
+            if (i2 != rhs.num_pairs()) return -1;
             return 0;
         }
     } unreachable();
@@ -1284,25 +1326,24 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
         return i == rhs.as_array().size() ? 0 : -1;
     } unreachable();
     case R_OBJECT: {
-        const std::map<datum_string_t, datum_t> &obj = as_object();
-        const std::map<datum_string_t, datum_t> &rhs_obj
-            = rhs.as_object();
-        auto it = obj.begin();
-        auto it2 = rhs_obj.begin();
-        while (it != obj.end() && it2 != rhs_obj.end()) {
-            int key_cmpval = it->first.compare(it2->first);
+        size_t i = 0;
+        size_t i2 = 0;
+        while (i < num_pairs() && i2 < rhs.num_pairs()) {
+            const auto pair = get_pair(i);
+            const auto pair2 = rhs.get_pair(i2);
+            int key_cmpval = pair.first.compare(pair2.first);
             if (key_cmpval != 0) {
                 return key_cmpval;
             }
-            int val_cmpval = it->second->modern_cmp(*it2->second);
+            int val_cmpval = pair.second.modern_cmp(pair2.second);
             if (val_cmpval != 0) {
                 return val_cmpval;
             }
-            ++it;
-            ++it2;
+            ++i;
+            ++i2;
         }
-        if (it != obj.end()) return 1;
-        if (it2 != rhs_obj.end()) return -1;
+        if (i != num_pairs()) return 1;
+        if (i2 != rhs.num_pairs()) return -1;
         return 0;
     } unreachable();
     case R_BINARY: // This should be handled by the ptype code above

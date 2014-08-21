@@ -571,7 +571,7 @@ ql::datum_t js_make_datum(const v8::Handle<v8::Value> &value,
             v8::Handle<v8::Array> properties = objh->GetPropertyNames();
             guarantee(!properties.IsEmpty());
 
-            std::map<datum_string_t, ql::datum_t> datum_map;
+            ql::datum_object_builder_t builder;
 
             uint32_t len = properties->Length();
             for (uint32_t i = 0; i < len; ++i) {
@@ -593,9 +593,9 @@ ql::datum_t js_make_datum(const v8::Handle<v8::Value> &value,
                 keyh->WriteUtf8(temp_buffer.data(), length);
                 datum_string_t key_string(length, temp_buffer.data());
 
-                datum_map.insert(std::make_pair(key_string, item));
+                builder.overwrite(key_string, item);
             }
-            result = ql::datum_t(std::move(datum_map));
+            result = std::move(builder).to_datum();
         }
     } else if (value->IsNumber()) {
         double num_val = value->NumberValue();

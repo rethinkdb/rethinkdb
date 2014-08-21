@@ -130,12 +130,13 @@ public:
     // This calls maybe_sanitize_ptype(allowed_pts).
     explicit datum_t(std::map<datum_string_t, datum_t> &&object,
                      const std::set<std::string> &allowed_pts = _allowed_pts);
+    explicit datum_t(std::vector<std::pair<datum_string_t, datum_t> > &&object,
+                     const std::set<std::string> &allowed_pts = _allowed_pts);
 
     enum class no_sanitize_ptype_t { };
     // This .. does not call maybe_sanitize_ptype.
     // TODO(2014-08): Remove this constructor, it's a hack.
-    datum_t(std::map<datum_string_t, datum_t> &&object,
-            no_sanitize_ptype_t);
+    datum_t(std::map<datum_string_t, datum_t> &&object, no_sanitize_ptype_t);
 
     ~datum_t();
 
@@ -197,9 +198,7 @@ public:
     // Access an element of an array.
     datum_t get(size_t index, throw_bool_t throw_bool = THROW) const;
 
-    // Use of `get` is preferred to `as_object` when possible.
-    // TODO! Remove
-    const std::map<datum_string_t, datum_t> &as_object() const;
+    // Object interface
     size_t num_pairs() const;
     // Access an element of an object.
     std::pair<datum_string_t, datum_t> get_pair(size_t index) const;
@@ -207,7 +206,7 @@ public:
                       throw_bool_t throw_bool = THROW) const;
     datum_t get_field(const char *key,
                       throw_bool_t throw_bool = THROW) const;
-    datum_t merge(datum_t rhs) const;
+    datum_t merge(const datum_t &rhs) const;
     // "Consumer defined" merge resolutions; these take limits unlike
     // the other merge because the merge resolution can and does (in
     // stats) merge two arrays to form one super array, which can
@@ -219,7 +218,7 @@ public:
                                          datum_t r,
                                          const configured_limits_t &limits,
                                          std::set<std::string> *conditions);
-    datum_t merge(datum_t rhs,
+    datum_t merge(const datum_t &rhs,
                   merge_resoluter_t f,
                   const configured_limits_t &limits,
                   std::set<std::string> *conditions) const;
@@ -273,8 +272,16 @@ public:
 
 private:
     friend void pseudo::sanitize_time(datum_t *time);
+    // Use sparsely, this is an O(n) operation
     MUST_USE bool add(const datum_string_t &key, datum_t val,
                       clobber_bool_t clobber_bool = NOCLOBBER); // add to an object
+
+    friend size_t datum_serialized_size(const datum_t &);
+    friend serialization_result_t datum_serialize(write_message_t *, const datum_t &);
+    const std::vector<std::pair<datum_string_t, datum_t> > &get_obj_vec() const;
+
+    static std::vector<std::pair<datum_string_t, datum_t> > to_sorted_vec(
+            std::map<datum_string_t, datum_t> &&map);
 
     friend void pseudo::time_to_str_key(const datum_t &d, std::string *str_out);
     void pt_to_str_key(std::string *str_out) const;
@@ -314,7 +321,7 @@ private:
         explicit data_wrapper_t(const datum_string_t &str);
         explicit data_wrapper_t(const char *cstr);
         explicit data_wrapper_t(std::vector<datum_t> &&array);
-        data_wrapper_t(std::map<datum_string_t, datum_t> &&object);
+        data_wrapper_t(std::vector<std::pair<datum_string_t, datum_t> > &&object);
 
         ~data_wrapper_t();
 
@@ -324,7 +331,8 @@ private:
             double r_num;
             datum_string_t r_str;
             counted_t<countable_wrapper_t<std::vector<datum_t> > > r_array;
-            counted_t<countable_wrapper_t<std::map<datum_string_t, datum_t> > > r_object;
+            counted_t<countable_wrapper_t<std::vector<
+                std::pair<datum_string_t, datum_t> > > > r_object;
         };
     private:
         void assign_copy(const data_wrapper_t &copyee);
