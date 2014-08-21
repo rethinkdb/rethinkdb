@@ -2,6 +2,9 @@
 #ifndef RPC_SEMILATTICE_JOINS_VERSIONED_HPP_
 #define RPC_SEMILATTICE_JOINS_VERSIONED_HPP_
 
+#include <algorithm>
+#include <limits>
+
 #include "arch/runtime/runtime_utils.hpp"
 #include "containers/uuid.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -14,7 +17,9 @@ semilattice join will pick the one that came later as measured by the machines' 
 template<class T>
 class versioned_t {
 public:
-    versioned_t() : timestamp(versioned_t::invalid_timestamp) { }
+    versioned_t() :
+        timestamp(std::numeric_limits<time_t>::min()),
+        tiebreaker(nil_uuid()) { }
 
     static versioned_t make_initial(const T &value) {
         versioned_t<T> v;
@@ -25,7 +30,6 @@ public:
     }
 
     const T &get_ref() const {
-        guarantee(timestamp != invalid_timestamp);
         return value;
     }
 
@@ -50,10 +54,7 @@ private:
     template<class TT>
     friend void semilattice_join(versioned_t<TT> *a, const versioned_t<TT> &b);
 
-    static const time_t invalid_timestamp = std::numeric_limits<time_t>::max();
-
     void on_change() {
-        guarantee(timestamp != invalid_timestamp);
         timestamp = std::max(timestamp+1, time(NULL));
         tiebreaker = generate_uuid();
     }
@@ -67,8 +68,6 @@ RDB_SERIALIZE_TEMPLATED_OUTSIDE(versioned_t);
 
 template <class T>
 bool operator==(const versioned_t<T> &a, const versioned_t<T> &b) {
-    guarantee(a.timestamp != versioned_t<T>::invalid_timestamp);
-    guarantee(b.timestamp != versioned_t<T>::invalid_timestamp);
     return (a.value == b.value) && \
         (a.timestamp == b.timestamp) && \
         (a.tiebreaker == b.tiebreaker);
@@ -76,8 +75,6 @@ bool operator==(const versioned_t<T> &a, const versioned_t<T> &b) {
 
 template <class T>
 void semilattice_join(versioned_t<T> *a, const versioned_t<T> &b) {
-    guarantee(a->timestamp != versioned_t<T>::invalid_timestamp);
-    guarantee(b.timestamp != versioned_t<T>::invalid_timestamp);
     if (a->timestamp < b.timestamp ||
             (a->timestamp == b.timestamp && a->tiebreaker < b.tiebreaker)) {
         *a = b;

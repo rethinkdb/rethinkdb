@@ -2,6 +2,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_SERVERS_NAME_SERVER_HPP_
 #define CLUSTERING_ADMINISTRATION_SERVERS_NAME_SERVER_HPP_
 
+#include <set>
+
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/name_metadata.hpp"
 #include "containers/incremental_lenses.hpp"
