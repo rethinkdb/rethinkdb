@@ -148,6 +148,9 @@ bool calculate_split_points_with_distribution(
     return true;
 }
 
+/* In practice this will only ever be used to decrease the number of shards, but it still
+works correctly whether the number of shards is increased, decreased, or stays the same.
+*/
 void calculate_split_points_by_estimation(
         int num_shards,
         const std::vector<store_key_t> &old_split_points,

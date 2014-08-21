@@ -140,6 +140,8 @@ static void pick_best_pairings(
             ++it;
             continue;
         }
+        /* TODO: If there are multiple viable options with the same cost, maybe we should
+        pick one randomly instead of always picking the first one. */
         (*picks_out)[it->second.first] = it->second.second;
         shards_satisfied.insert(it->second.first);
         servers_used.insert(it->second.second);
