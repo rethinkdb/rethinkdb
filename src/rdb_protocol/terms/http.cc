@@ -113,7 +113,7 @@ void check_url_params(const datum_t &params,
                       pb_rcheckable_t *val) {
     if (params->get_type() == datum_t::R_OBJECT) {
         for (size_t i = 0; i < params.num_pairs(); ++i) {
-            const auto pair = params.get_pair(i);
+            auto pair = params.get_pair(i);
             if (pair.second.get_type() != datum_t::R_NUM &&
                 pair.second.get_type() != datum_t::R_STR &&
                 pair.second.get_type() != datum_t::R_NULL) {
@@ -457,7 +457,7 @@ void http_term_t::get_header(scope_env_t *env,
         datum_t datum_header = header->as_datum();
         if (datum_header->get_type() == datum_t::R_OBJECT) {
             for (size_t i = 0; i < datum_header.num_pairs(); ++i) {
-                const auto pair = datum_header.get_pair(i);
+                auto pair = datum_header.get_pair(i);
                 std::string str;
                 if (pair.second->get_type() == datum_t::R_STR) {
                     str = strprintf("%s: %s", pair.first.to_std().c_str(),
@@ -638,7 +638,7 @@ void http_term_t::get_data(
                 data_out->assign(datum_data->as_str().to_std());
             } else if (datum_data->get_type() == datum_t::R_OBJECT) {
                 for (size_t i = 0; i < datum_data.num_pairs(); ++i) {
-                    const auto pair = datum_data.get_pair(i);
+                    auto pair = datum_data.get_pair(i);
                     std::string val_str = print_http_param(pair.second,
                                                            "data",
                                                            pair.first.to_std().c_str(),

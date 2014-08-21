@@ -2,6 +2,7 @@
 #ifndef RDB_PROTOCOL_PSEUDO_BINARY_HPP_
 #define RDB_PROTOCOL_PSEUDO_BINARY_HPP_
 
+#include <utility>
 #include <vector>
 
 #include "rdb_protocol/datum_string.hpp"

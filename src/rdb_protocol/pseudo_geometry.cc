@@ -70,7 +70,7 @@ void sanitize_geometry(datum_t *geo) {
     bool has_type = false;
     bool has_coordinates = false;
     for (size_t i = 0; i < geo->num_pairs(); ++i) {
-        const auto pair = geo->get_pair(i);
+        auto pair = geo->get_pair(i);
         if (pair.first == "coordinates") {
             pair.second.check_type(datum_t::R_ARRAY);
             has_coordinates = true;

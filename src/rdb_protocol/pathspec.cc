@@ -75,7 +75,7 @@ pathspec_t::pathspec_t(datum_t datum, const term_t *_creator)
         scoped_ptr_t<std::map<datum_string_t, pathspec_t> >
             local_map(new std::map<datum_string_t, pathspec_t>);
         for (size_t i = 0; i < datum.num_pairs(); ++i) {
-            const auto pair = datum.get_pair(i);
+            auto pair = datum.get_pair(i);
             if (pair.second.get_type() == datum_t::R_BOOL &&
                 pair.second.as_bool() == true) {
                 local_vec->push_back(pathspec_t(pair.first, creator));
@@ -162,7 +162,7 @@ datum_t project(datum_t datum,
             for (auto it = vec->begin(); it != vec->end(); ++it) {
                 datum_t sub_result = project(datum, *it, recurse, limits);
                 for (size_t i = 0; i < sub_result.num_pairs(); ++i) {
-                    const auto pair = sub_result.get_pair(i);
+                    auto pair = sub_result.get_pair(i);
                     res.overwrite(pair.first, pair.second);
                 }
             }

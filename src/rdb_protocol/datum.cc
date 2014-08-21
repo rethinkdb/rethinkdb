@@ -654,7 +654,7 @@ datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
         datum_object_builder_t builder;
 
         for (size_t i = 0; i < num_pairs(); ++i) {
-            const auto pair = get_pair(i);
+            auto pair = get_pair(i);
             bool encountered_literal;
             datum_t val = pair.second.drop_literals(&encountered_literal);
 
@@ -664,7 +664,7 @@ datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
                 need_to_copy = true;
                 // Copy everything up to now into the builder.
                 for (size_t copy_i = 0; copy_i < i; ++copy_i) {
-                    const auto copy_pair = get_pair(copy_i);
+                    auto copy_pair = get_pair(copy_i);
                     bool conflict = builder.add(copy_pair.first, copy_pair.second);
                     r_sanity_check(!conflict);
                 }
@@ -1058,7 +1058,7 @@ datum_t datum_t::get_field(const datum_string_t &key, throw_bool_t throw_bool) c
     size_t range_end = num_pairs();
     while (range_beg < range_end) {
         const size_t center = range_beg + ((range_end - range_beg) / 2);
-        const auto center_pair = get_pair(center);
+        auto center_pair = get_pair(center);
         const int cmp = key.compare(center_pair.first);
         if (cmp == 0) {
             // Found it
@@ -1136,7 +1136,6 @@ datum_t::as_datum_stream(const protob_t<const Backtrace> &backtrace) const {
 
 MUST_USE bool datum_t::add(const datum_string_t &key, datum_t val,
                            clobber_bool_t clobber_bool) {
-    // TODO! Implement for shared_buf backed datum (will have to copy)
     check_type(R_OBJECT);
     check_str_validity(key);
     r_sanity_check(val.has());
@@ -1166,7 +1165,7 @@ datum_t datum_t::merge(const datum_t &rhs) const {
 
     datum_object_builder_t d(*this);
     for (size_t i = 0; i < rhs.num_pairs(); ++i) {
-        const auto pair = rhs.get_pair(i);
+        auto pair = rhs.get_pair(i);
         datum_t sub_lhs = d.try_get(pair.first);
         bool is_literal = pair.second.is_ptype(pseudo::literal_string);
 
@@ -1201,7 +1200,7 @@ datum_t datum_t::merge(const datum_t &rhs,
                        std::set<std::string> *conditions_out) const {
     datum_object_builder_t d(*this);
     for (size_t i = 0; i < rhs.num_pairs(); ++i) {
-        const auto pair = rhs.get_pair(i);
+        auto pair = rhs.get_pair(i);
         datum_t left = get_field(pair.first, NOTHROW);
         if (left.has()) {
             d.overwrite(pair.first, f(pair.first, left, pair.second, limits, conditions_out));
@@ -1254,8 +1253,8 @@ int datum_t::v1_13_cmp(const datum_t &rhs) const {
             size_t i = 0;
             size_t i2 = 0;
             while (i < num_pairs() && i2 < rhs.num_pairs()) {
-                const auto pair = get_pair(i);
-                const auto pair2 = rhs.get_pair(i2);
+                auto pair = get_pair(i);
+                auto pair2 = rhs.get_pair(i2);
                 int key_cmpval = pair.first.compare(pair2.first);
                 if (key_cmpval != 0) {
                     return key_cmpval;
@@ -1323,8 +1322,8 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
         size_t i = 0;
         size_t i2 = 0;
         while (i < num_pairs() && i2 < rhs.num_pairs()) {
-            const auto pair = get_pair(i);
-            const auto pair2 = rhs.get_pair(i2);
+            auto pair = get_pair(i);
+            auto pair2 = rhs.get_pair(i2);
             int key_cmpval = pair.first.compare(pair2.first);
             if (key_cmpval != 0) {
                 return key_cmpval;

@@ -227,7 +227,7 @@ bool filter_match(datum_t predicate, datum_t value,
         return *predicate->get_field(pseudo::value_key) == *value;
     } else {
         for (size_t i = 0; i < predicate.num_pairs(); ++i) {
-            const auto pair = predicate.get_pair(i);
+            auto pair = predicate.get_pair(i);
             r_sanity_check(pair.second.has());
             datum_t elt = value->get_field(pair.first, NOTHROW);
             if (!elt.has()) {

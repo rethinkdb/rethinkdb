@@ -322,7 +322,8 @@ private:
         explicit data_wrapper_t(const datum_string_t &str);
         explicit data_wrapper_t(const char *cstr);
         explicit data_wrapper_t(std::vector<datum_t> &&array);
-        data_wrapper_t(std::vector<std::pair<datum_string_t, datum_t> > &&object);
+        explicit data_wrapper_t(
+                std::vector<std::pair<datum_string_t, datum_t> > &&object);
 
         ~data_wrapper_t();
 
@@ -332,7 +333,7 @@ private:
             double r_num;
             datum_string_t r_str;
             counted_t<countable_wrapper_t<std::vector<datum_t> > > r_array;
-            counted_t<countable_wrapper_t<std::vector<
+            counted_t<countable_wrapper_t<std::vector< //NOLINT(whitespace/operators)
                 std::pair<datum_string_t, datum_t> > > > r_object;
         };
     private:
@@ -364,11 +365,9 @@ int64_t checked_convert_to_int(const rcheckable_t *target, double d);
 class datum_object_builder_t {
 public:
     datum_object_builder_t() { }
-
-    datum_object_builder_t(const std::map<datum_string_t, datum_t> &m)
+    explicit datum_object_builder_t(const std::map<datum_string_t, datum_t> &m)
         : map(m) { }
-
-    datum_object_builder_t(const datum_t &copy_from);
+    explicit datum_object_builder_t(const datum_t &copy_from);
 
     // Returns true if the insertion did _not_ happen because the key was already in
     // the object.
@@ -404,8 +403,8 @@ private:
 class datum_array_builder_t {
 public:
     explicit datum_array_builder_t(const configured_limits_t &_limits) : limits(_limits) {}
-    datum_array_builder_t(std::vector<datum_t> &&, const configured_limits_t &);
-    datum_array_builder_t(const datum_t &copy_from, const configured_limits_t &);
+    explicit datum_array_builder_t(std::vector<datum_t> &&, const configured_limits_t &);
+    explicit datum_array_builder_t(const datum_t &copy_from, const configured_limits_t &);
 
     size_t size() const { return vector.size(); }
 

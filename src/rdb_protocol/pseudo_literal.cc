@@ -11,7 +11,7 @@ const char *const value_key = "value";
 
 void rcheck_literal_valid(const datum_t *lit) {
     for (size_t i = 0; i < lit->num_pairs(); ++i) {
-        const auto pair = lit->get_pair(i);
+        auto pair = lit->get_pair(i);
         if (pair.first == datum_t::reql_type_string) {
             r_sanity_check(pair.second.as_str() == literal_string);
         } else if (pair.first == value_key) {

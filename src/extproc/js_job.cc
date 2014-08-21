@@ -673,7 +673,7 @@ v8::Handle<v8::Value> js_from_datum(const ql::datum_t &datum,
             v8::Handle<v8::Object> obj = v8::Object::New();
 
             for (size_t i = 0; i < datum.num_pairs(); ++i) {
-                const auto pair = datum.get_pair(i);
+                auto pair = datum.get_pair(i);
                 DECLARE_HANDLE_SCOPE(scope);
                 v8::Handle<v8::Value> key = v8::String::New(pair.first.to_std().c_str());
                 v8::Handle<v8::Value> val = js_from_datum(pair.second, err_out);
