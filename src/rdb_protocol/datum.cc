@@ -1058,7 +1058,7 @@ datum_t datum_t::get_field(const datum_string_t &key, throw_bool_t throw_bool) c
     while (range_beg < range_end) {
         const size_t center = range_beg + ((range_end - range_beg) / 2);
         const auto center_pair = get_pair(center);
-        const int cmp = center_pair.first.compare(key);
+        const int cmp = key.compare(center_pair.first);
         if (cmp == 0) {
             // Found it
             return center_pair.second;
