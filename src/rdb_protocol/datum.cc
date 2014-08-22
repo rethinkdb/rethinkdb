@@ -1543,17 +1543,18 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
         } break;
         case R_ARRAY: {
             d->set_type(Datum::R_ARRAY);
-            for (size_t i = 0; i < data.r_array->size(); ++i) {
-                (*data.r_array)[i]->write_to_protobuf(d->add_r_array(), use_json);
+            for (size_t i = 0; i < size(); ++i) {
+                get(i).write_to_protobuf(d->add_r_array(), use_json);
             }
         } break;
         case R_OBJECT: {
             d->set_type(Datum::R_OBJECT);
-            // We use rbegin and rend so that things print the way we expect.
-            for (auto it = data.r_object->rbegin(); it != data.r_object->rend(); ++it) {
+            // We use the opposite order so that things print the way we expect.
+            for (size_t i = num_pairs(); i > 0; --i) {
                 Datum_AssocPair *ap = d->add_r_object();
-                ap->set_key(it->first.to_std());
-                it->second->write_to_protobuf(ap->mutable_val(), use_json);
+                auto pair = get_pair(i-1);
+                ap->set_key(pair.first.to_std());
+                pair.second.write_to_protobuf(ap->mutable_val(), use_json);
             }
         } break;
         case UNINITIALIZED: // fallthru
