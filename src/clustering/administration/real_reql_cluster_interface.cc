@@ -111,7 +111,7 @@ bool real_reql_cluster_interface_t::db_create(const name_string_t &name,
         }
 
         database_semilattice_metadata_t db;
-        db.name = versioned_t<name_string_t>::make_initial(name);
+        db.name = versioned_t<name_string_t>(name);
         metadata.databases.databases.insert(
             std::make_pair(generate_uuid(), make_deletable(db)));
 
@@ -246,11 +246,11 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         repli_info.chosen_directors =
             table_elect_directors(repli_info.config, server_name_client);
         namespace_semilattice_metadata_t table_metadata;
-        table_metadata.name = versioned_t<name_string_t>::make_initial(name);
-        table_metadata.database = versioned_t<database_id_t>::make_initial(db->id);
-        table_metadata.primary_key = versioned_t<std::string>::make_initial(primary_key);
+        table_metadata.name = versioned_t<name_string_t>(name);
+        table_metadata.database = versioned_t<database_id_t>(db->id);
+        table_metadata.primary_key = versioned_t<std::string>(primary_key);
         table_metadata.replication_info =
-            versioned_t<table_replication_info_t>::make_initial(repli_info);
+            versioned_t<table_replication_info_t>(repli_info);
 
         /* RSI(reql_admin): Figure out what to do with `hard_durability`. */
         (void)hard_durability;

@@ -689,9 +689,9 @@ void run_rethinkdb_create(const base_path_t &base_path,
 
     machine_semilattice_metadata_t machine_semilattice_metadata;
     machine_semilattice_metadata.name =
-        versioned_t<name_string_t>::make_initial(machine_name);
+        versioned_t<name_string_t>(machine_name);
     machine_semilattice_metadata.tags =
-        versioned_t<std::set<name_string_t> >::make_initial(machine_tags);
+        versioned_t<std::set<name_string_t> >(machine_tags);
     cluster_metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(machine_semilattice_metadata)));
 
     io_backender_t io_backender(direct_io_mode, max_concurrent_io_requests);
@@ -848,9 +848,9 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
 
         machine_semilattice_metadata_t our_machine_metadata;
         our_machine_metadata.name =
-            versioned_t<name_string_t>::make_initial(machine_name);
+            versioned_t<name_string_t>(machine_name);
         our_machine_metadata.tags =
-            versioned_t<std::set<name_string_t> >::make_initial(server_tag_names);
+            versioned_t<std::set<name_string_t> >(server_tag_names);
         cluster_metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(our_machine_metadata)));
 
         if (serve_info->joins.empty()) {
@@ -865,7 +865,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
             bool db_name_success = db_name.assign_value("test");
             guarantee(db_name_success);
             database_metadata.name =
-                versioned_t<name_string_t>::make_initial(db_name);
+                versioned_t<name_string_t>(db_name);
             cluster_metadata.databases.databases.insert(std::make_pair(
                 database_id,
                 deletable_t<database_semilattice_metadata_t>(database_metadata)));
