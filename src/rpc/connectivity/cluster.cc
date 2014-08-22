@@ -899,7 +899,7 @@ void connectivity_cluster_t::run_t::handle(
             return;
         }
         if (handshake_result.get_code() != handshake_result_code_t::SUCCESS) {
-            logWRN("Remote node refused to connect with us, peer: %s, reason: \"%s\"\n",
+            logWRN("Remote node refused to connect with us, peer: %s, reason: \"%s\"",
                    peername,
                    sanitize_for_logger(handshake_result.get_error_reason()).c_str());
             return;
@@ -907,7 +907,22 @@ void connectivity_cluster_t::run_t::handle(
     }
 
     // Look up the ip addresses for the other host
-    peer_address_t other_peer_addr(other_peer_addr_hosts);
+    object_buffer_t<peer_address_t> other_peer_addr;
+
+    try {
+        other_peer_addr.create(other_peer_addr_hosts);
+    } catch (host_lookup_exc_t) {
+        printf_buffer_t hostnames;
+        for (auto it = other_peer_addr_hosts.begin();
+             it != other_peer_addr_hosts.end(); ++it) {
+            hostnames.appendf("%s%s", it != other_peer_addr_hosts.begin() ? ", " : "",
+                              it->host().c_str());
+        }
+        logERR("Connected to peer with unresolvable hostname%s: %s, closing "
+               "connection.  Consider using the '--canonical-address' launch option.",
+               other_peer_addr_hosts.size() > 1 ? "s" : "", hostnames.c_str());
+        return;
+    }
 
     /* Sanity checks */
     if (other_id == parent->me) {
@@ -915,25 +930,28 @@ void connectivity_cluster_t::run_t::handle(
         return;
     }
     if (other_id.is_nil()) {
-        logERR("received nil peer id from %s, closing connection", peername);
+        logERR("Received nil peer id from %s, closing connection.", peername);
         return;
     }
     if (expected_id && other_id != *expected_id) {
         // This is only a problem if we're not using a loopback address
         if (!peer_addr.is_loopback()) {
-            logERR("received inconsistent routing information (wrong ID) from %s, closing connection", peername);
+            logERR("Received inconsistent routing information (wrong ID) from %s, "
+                   "closing connection.", peername);
         }
         return;
     }
-    if (expected_address && !is_similar_peer_address(other_peer_addr,
+    if (expected_address && !is_similar_peer_address(*other_peer_addr.get(),
                                                      *expected_address)) {
         printf_buffer_t buf;
         buf.appendf("expected_address = ");
         debug_print(&buf, *expected_address);
         buf.appendf(", other_peer_addr = ");
-        debug_print(&buf, other_peer_addr);
+        debug_print(&buf, *other_peer_addr.get());
 
-        logERR("received inconsistent routing information (wrong address) from %s (%s), closing connection", peername, buf.c_str());
+        logERR("Received inconsistent routing information (wrong address) from %s (%s), "
+               "closing connection.  Consider using the '--canonical-address' launch "
+               "option.", peername, buf.c_str());
         return;
     }
 
@@ -967,7 +985,7 @@ void connectivity_cluster_t::run_t::handle(
     if (we_are_leader) {
         std::map<peer_id_t, std::set<host_and_port_t> > routing_table_to_send;
         if (!get_routing_table_to_send_and_add_peer(other_id,
-                                                    other_peer_addr,
+                                                    *other_peer_addr.get(),
                                                     &routing_table_entry_sentry,
                                                     &routing_table_to_send)) {
             return;
@@ -1000,7 +1018,7 @@ void connectivity_cluster_t::run_t::handle(
 
         std::map<peer_id_t, std::set<host_and_port_t> > routing_table_to_send;
         if (!get_routing_table_to_send_and_add_peer(other_id,
-                                                    other_peer_addr,
+                                                    *other_peer_addr.get(),
                                                     &routing_table_entry_sentry,
                                                     &routing_table_to_send)) {
             return;
@@ -1070,7 +1088,7 @@ void connectivity_cluster_t::run_t::handle(
         /* `connection_t` is the public interface of this coroutine. Its
         constructor registers it in the `connectivity_cluster_t`'s connection
         map. */
-        connection_t conn_structure(this, other_id, conn, other_peer_addr);
+        connection_t conn_structure(this, other_id, conn, *other_peer_addr.get());
 
         /* `heartbeat_manager` will periodically send a heartbeat message to
         other machines, and it will also close the connection if we don't
