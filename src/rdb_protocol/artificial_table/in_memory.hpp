@@ -58,7 +58,11 @@ public:
             UNUSED std::string *error_out) {
         block(interruptor);
         on_thread_t thread_switcher(home_thread());
-        data.insert(std::make_pair(primary_key->print_primary(), new_value));
+        if (new_value.has()) {
+            data[primary_key->print_primary()] = new_value;
+        } else {
+            data.erase(primary_key->print_primary());
+        }
         return true;
     }
 
