@@ -71,7 +71,7 @@ public:
     // buffer contains other objects in addition to what this buf ref is pointing
     // to.
     void guarantee_in_boundary(size_t num_elements) const {
-        guarantee(get_safety_boundary() <= num_elements);
+        guarantee(get_safety_boundary() >= num_elements);
     }
     // An upper bound on the number of elements that can be read from this buf ref
     size_t get_safety_boundary() const {
