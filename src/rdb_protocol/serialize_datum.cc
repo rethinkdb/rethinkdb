@@ -506,7 +506,7 @@ datum_t datum_deserialize_from_buf(const shared_buf_ref_t<char> &buf, size_t at_
     buf.guarantee_in_boundary(at_offset);
     buffer_read_stream_t read_stream(buf.get() + at_offset,
                                      buf.get_safety_boundary() - at_offset);
-    datum_serialized_type_t type = datum_serializes_type_t::R_NULL;
+    datum_serialized_type_t type = datum_serialized_type_t::R_NULL;
     guarantee_deserialization(datum_deserialize(&read_stream, &type), "datum type from buf");
 
     switch (type) {
