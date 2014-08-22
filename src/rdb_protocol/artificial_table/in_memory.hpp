@@ -1,9 +1,10 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_DEBUG_DEBUG_SCRATCH_HPP_
-#define CLUSTERING_ADMINISTRATION_DEBUG_DEBUG_SCRATCH_HPP_
+#ifndef RDB_PROTOCOL_ARTIFICIAL_TABLE_IN_MEMORY_HPP_
+#define RDB_PROTOCOL_ARTIFICIAL_TABLE_IN_MEMORY_HPP_
 
 #include <map>
 #include <string>
+#include <vector>
 
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rdb_protocol/datum.hpp"
@@ -76,5 +77,5 @@ private:
     std::map<std::string, counted_t<const ql::datum_t> > data;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_DEBUG_DEBUG_SCRATCH_HPP_ */
+#endif /* RDB_PROTOCOL_ARTIFICIAL_TABLE_IN_MEMORY_HPP_ */
 

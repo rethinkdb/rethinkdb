@@ -4,7 +4,7 @@
 
 #include <string>
 
-#include <rdb_protocol/protocol.hpp>
+#include "rdb_protocol/protocol.hpp"
 
 /* This file is for logic that is shared between `real_table_t` and `artificial_table_t`.
 */
