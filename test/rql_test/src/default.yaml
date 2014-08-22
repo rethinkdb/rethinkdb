@@ -13,7 +13,7 @@ tests:
       ot: 2
     - cd: r.expr(r.expr('a')['b']).default(2)
       js: r.expr(r.expr('a')('b')).default(2)
-      ot: err("RqlRuntimeError", "Cannot perform get_field on a non-object non-sequence `\"a\"`.", [])
+      ot: err("RqlRuntimeError", "Cannot perform bracket on a non-object non-sequence `\"a\"`.", [])
     - rb: r.expr([]).reduce{|a,b| a+b}.default(2)
       py: r.expr([]).reduce(lambda a,b:a+b).default(2)
       js: r.expr([]).reduce(function(a,b){return a+b}).default(2)

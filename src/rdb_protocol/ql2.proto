@@ -389,6 +389,10 @@ message Term {
         UNION     = 44; // Sequence... -> Sequence
         // Get the Nth element of a sequence.
         NTH       = 45; // Sequence, NUMBER -> DATUM
+        // do NTH or GET_FIELD depending on target object
+        BRACKET            = 170; // Sequence | OBJECT, NUMBER | STRING -> DATUM
+        // OBSOLETE_GROUPED_MAPREDUCE = 46;
+        // OBSOLETE_GROUPBY = 47;
 
         INNER_JOIN         = 48; // Sequence, Sequence, Function(2) -> Sequence
         OUTER_JOIN         = 49; // Sequence, Sequence, Function(2) -> Sequence
