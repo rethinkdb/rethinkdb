@@ -25,7 +25,7 @@ public:
             signal_t *interruptor,
             std::vector<counted_t<const ql::datum_t> > *keys_out,
             UNUSED std::string *error_out) {
-        block(interruptor);
+        random_delay(interruptor);
         on_thread_t thread_switcher(home_thread());
         keys_out->clear();
         for (auto it = data.begin(); it != data.end(); ++it) {
@@ -41,7 +41,7 @@ public:
             signal_t *interruptor,
             counted_t<const ql::datum_t> *row_out,
             UNUSED std::string *error_out) {
-        block(interruptor);
+        random_delay(interruptor);
         on_thread_t thread_switcher(home_thread());
         auto it = data.find(primary_key->print_primary());
         if (it != data.end()) {
@@ -57,7 +57,7 @@ public:
             counted_t<const ql::datum_t> new_value,
             signal_t *interruptor,
             UNUSED std::string *error_out) {
-        block(interruptor);
+        random_delay(interruptor);
         on_thread_t thread_switcher(home_thread());
         if (new_value.has()) {
             data[primary_key->print_primary()] = new_value;
@@ -68,10 +68,14 @@ public:
     }
 
 private:
-    void block(signal_t *interruptor) {
-        signal_timer_t timer;
-        timer.start(randint(100));
-        wait_interruptible(&timer, interruptor);
+    /* The purpose of `random_delay()` is to mix things up a bit to increase the
+    likelihood of exposing a bug in `artificial_table_t`. */
+    void random_delay(signal_t *interruptor) {
+        if (randint(2) == 0) {
+            signal_timer_t timer;
+            timer.start(randint(100));
+            wait_interruptible(&timer, interruptor);
+        }
     }
 
     std::map<std::string, counted_t<const ql::datum_t> > data;
