@@ -126,6 +126,7 @@ public:
     REQL_METHOD(concat_map, CONCATMAP)
     REQL_METHOD(operator [], GET_FIELD)
     REQL_METHOD(nth, NTH)
+    REQL_METHOD(bracket, BRACKET)
     REQL_METHOD(pluck, PLUCK)
     REQL_METHOD(has_fields, HAS_FIELDS)
     REQL_METHOD(coerce_to, COERCE_TO)
