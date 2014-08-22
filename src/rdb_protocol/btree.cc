@@ -282,13 +282,17 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             }
 
             /* Report the changes for sindex and change-feed purposes */
-            guarantee(mod_info_out->deleted.second.empty());
-            guarantee(!mod_info_out->added.second.empty());
             if (old_val->get_type() != ql::datum_t::R_NULL) {
+                guarantee(!mod_info_out->deleted.second.empty());
                 mod_info_out->deleted.first = old_val;
+            } else {
+                guarantee(mod_info_out->deleted.second.empty());
             }
             if (new_val->get_type() != ql::datum_t::R_NULL) {
+                guarantee(!mod_info_out->added.second.empty());
                 mod_info_out->added.first = new_val;
+            } else {
+                guarantee(mod_info_out->added.second.empty());
             }
 
             return resp;
