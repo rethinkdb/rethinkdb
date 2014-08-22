@@ -466,7 +466,7 @@ archive_result_t datum_deserialize(read_stream_t *s, datum_t *datum) {
             return res;
         }
         if (ser_size > std::numeric_limits<size_t>::max()
-            || ser_size > std::numeric_limits<int64_t>::max()) {
+            || ser_size > static_cast<size_t>(std::numeric_limits<int64_t>::max())) {
             return archive_result_t::RANGE_ERROR;
         }
 

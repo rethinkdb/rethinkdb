@@ -668,6 +668,8 @@ void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
             return;
         }
         if (s == pseudo::binary_string) {
+            // Sanitization cannot be performed when loading from a shared buffer.
+            r_sanity_check(data.get_internal_type() == internal_type_t::R_OBJECT);
             // Clear the pseudotype data and convert it to binary data
             data = data_wrapper_t(construct_binary_t(),
                                   pseudo::decode_base64_ptype(*data.r_object));
@@ -1184,8 +1186,9 @@ cJSON *datum_t::as_json_raw() const {
     } break;
     case R_OBJECT: {
         scoped_cJSON_t obj(cJSON_CreateObject());
-        for (auto it = data.r_object->begin(); it != data.r_object->end(); ++it) {
-            obj.AddItemToObject(it->first.to_std().c_str(), it->second->as_json_raw());
+        for (size_t i = 0; i < num_pairs(); ++i) {
+            auto pair = get_pair(i);
+            obj.AddItemToObject(pair.first.to_std().c_str(), pair.second.as_json_raw());
         }
         return obj.release();
     } break;
@@ -1224,6 +1227,9 @@ MUST_USE bool datum_t::add(const datum_string_t &key, datum_t val,
     check_type(R_OBJECT);
     check_str_validity(key);
     r_sanity_check(val.has());
+    // This function must only be used during sanitization, which is only performed
+    // when not loading from a shared buffer.
+    r_sanity_check(data.get_internal_type() == internal_type_t::R_OBJECT);
 
     auto key_cmp = [](const std::pair<datum_string_t, datum_t> &p1,
                       const datum_string_t &k2) -> bool {
