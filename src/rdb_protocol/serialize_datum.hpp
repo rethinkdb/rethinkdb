@@ -40,11 +40,19 @@ inline const serialization_result_t & operator |(const serialization_result_t &f
         return second;
 }
 
+// Error checking during serialization comes at an additional cost, because
+// arrays and objects need to be recursed into to check whether their members adhere
+// to the size limit.
+// That's why we have a flag to turn it on only when necessary:
+enum class check_datum_serialization_errors_t { YES, NO };
+
 // More stable versions of datum serialization, kept separate from the versioned
 // serialization functions.  Don't change these in a backwards-uncompatible way!  See
 // the FAQ at the end of this file.
-size_t datum_serialized_size(const datum_t &datum);
-serialization_result_t datum_serialize(write_message_t *wm, const datum_t &datum);
+size_t datum_serialized_size(const datum_t &datum,
+                             check_datum_serialization_errors_t check_errors);
+serialization_result_t datum_serialize(write_message_t *wm, const datum_t &datum,
+                                       check_datum_serialization_errors_t check_errors);
 archive_result_t datum_deserialize(read_stream_t *s, datum_t *datum);
 
 datum_t datum_deserialize_from_buf(const shared_buf_ref_t<char> &buf, size_t at_offset);
@@ -64,12 +72,12 @@ MUST_USE archive_result_t datum_deserialize(read_stream_t *s, datum_string_t *ou
 // The versioned serialization functions.
 template <cluster_version_t W>
 size_t serialized_size(const datum_t &datum) {
-    return datum_serialized_size(datum);
+    return datum_serialized_size(datum, check_datum_serialization_errors_t::NO);
 }
 template <cluster_version_t W>
 void serialize(write_message_t *wm, const datum_t &datum) {
     // ignore the datum_serialize result for in memory writes
-    datum_serialize(wm, datum);
+    datum_serialize(wm, datum, check_datum_serialization_errors_t::NO);
 }
 template <cluster_version_t W>
 archive_result_t deserialize(read_stream_t *s, datum_t *datum) {

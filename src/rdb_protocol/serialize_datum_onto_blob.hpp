@@ -12,7 +12,11 @@ datum_serialize_onto_blob(buf_parent_t parent, blob_t *blob,
     // bunch of virtual function calls that way.  But we do _deserialize_ off an
     // abstract stream type already, so what's the big deal?)
     write_message_t wm;
-    ql::serialization_result_t res = datum_serialize(&wm, value);
+    // Check for errors to enforce the static array size limit when writing
+    // to disk
+    ql::serialization_result_t res =
+        datum_serialize(&wm, value,
+                        ql::check_datum_serialization_errors_t::YES);
     if (bad(res)) return res;
     write_onto_blob(parent, blob, wm);
     return res;

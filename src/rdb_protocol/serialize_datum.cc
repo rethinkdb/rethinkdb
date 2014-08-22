@@ -51,10 +51,16 @@ MUST_USE archive_result_t datum_deserialize(read_stream_t *s,
 // serialization has changed from cluster version to cluster version.
 
 // Keep in sync with datum_array_serialize.
-size_t datum_array_inner_serialized_size(const datum_t &datum,
-                                         std::vector<size_t> *element_sizes_out) {
+size_t datum_array_inner_serialized_size(
+        const datum_t &datum,
+        std::vector<size_t> *element_sizes_out,
+        check_datum_serialization_errors_t check_errors) {
+
+    // Can we use an existing serialization?
     const shared_buf_ref_t<char> *existing_buf_ref = datum.get_buf_ref();
-    if (existing_buf_ref != NULL) {
+    if (existing_buf_ref != NULL
+        && check_errors == check_datum_serialization_errors_t::NO) {
+
         rassert(element_sizes_out == NULL);
         buffer_read_stream_t s(existing_buf_ref->get(), existing_buf_ref->get_safety_boundary());
         uint64_t sz;
@@ -80,7 +86,7 @@ size_t datum_array_inner_serialized_size(const datum_t &datum,
     // The size of all elements
     for (size_t i = 0; i < datum.size(); ++i) {
         auto elem = datum.get(i);
-        const size_t elem_size = datum_serialized_size(elem);
+        const size_t elem_size = datum_serialized_size(elem, check_errors);
         if (element_sizes_out != NULL) {
             element_sizes_out->push_back(elem_size);
         }
@@ -89,8 +95,9 @@ size_t datum_array_inner_serialized_size(const datum_t &datum,
 
     return sz;
 }
-size_t datum_array_serialized_size(const datum_t &datum) {
-    size_t sz = datum_array_inner_serialized_size(datum, NULL);
+size_t datum_array_serialized_size(const datum_t &datum,
+                                   check_datum_serialization_errors_t check_errors) {
+    size_t sz = datum_array_inner_serialized_size(datum, NULL, check_errors);
 
     // The inner serialized size
     sz += varint_uint64_serialized_size(sz);
@@ -102,12 +109,17 @@ size_t datum_array_serialized_size(const datum_t &datum) {
 // Keep in sync with datum_array_serialized_size.
 // Keep in sync with datum_get_element_offset.
 // Keep in sync with datum_get_array_size.
-serialization_result_t datum_array_serialize(write_message_t *wm,
-                                             const datum_t &datum) {
-    // TODO! Don't take this shortcut when error-checking is required
+serialization_result_t datum_array_serialize(
+        write_message_t *wm,
+        const datum_t &datum,
+        check_datum_serialization_errors_t check_errors) {
+
+    // Can we use an existing serialization?
     const shared_buf_ref_t<char> *existing_buf_ref = datum.get_buf_ref();
-    if (existing_buf_ref != NULL) {
-        size_t sz = datum_array_serialized_size(datum);
+    if (existing_buf_ref != NULL
+        && check_errors == check_datum_serialization_errors_t::NO) {
+
+        size_t sz = datum_array_serialized_size(datum, check_errors);
         wm->append(existing_buf_ref->get(), sz);
         return serialization_result_t::SUCCESS;
     }
@@ -116,7 +128,8 @@ serialization_result_t datum_array_serialize(write_message_t *wm,
 
     // The inner serialized size
     std::vector<size_t> element_sizes;
-    serialize_varint_uint64(wm, datum_array_inner_serialized_size(datum, &element_sizes));
+    serialize_varint_uint64(
+        wm, datum_array_inner_serialized_size(datum, &element_sizes, check_errors));
 
     // num_elements
     serialize_varint_uint64(wm, datum.size());
@@ -133,7 +146,7 @@ serialization_result_t datum_array_serialize(write_message_t *wm,
     // The elements
     for (size_t i = 0; i < datum.size(); ++i) {
         auto elem = datum.get(i);
-        res = res | datum_serialize(wm, elem);
+        res = res | datum_serialize(wm, elem, check_errors);
     }
 
     return res;
@@ -162,10 +175,16 @@ datum_deserialize(read_stream_t *s, std::vector<datum_t> *v) {
 }
 
 // Keep in sync with datum_object_serialize
-size_t datum_object_inner_serialized_size(const datum_t &datum,
-                                          std::vector<size_t> *pair_sizes_out) {
+size_t datum_object_inner_serialized_size(
+        const datum_t &datum,
+        std::vector<size_t> *pair_sizes_out,
+        check_datum_serialization_errors_t check_errors) {
+
+    // Can we use an existing serialization?
     const shared_buf_ref_t<char> *existing_buf_ref = datum.get_buf_ref();
-    if (existing_buf_ref != NULL) {
+    if (existing_buf_ref != NULL
+        && check_errors == check_datum_serialization_errors_t::NO) {
+
         rassert(pair_sizes_out == NULL);
         buffer_read_stream_t s(existing_buf_ref->get(), existing_buf_ref->get_safety_boundary());
         uint64_t sz;
@@ -192,7 +211,7 @@ size_t datum_object_inner_serialized_size(const datum_t &datum,
     for (size_t i = 0; i < datum.num_pairs(); ++i) {
         auto pair = datum.get_pair(i);
         const size_t pair_size = datum_serialized_size(pair.first)
-                                 + datum_serialized_size(pair.second);
+                                 + datum_serialized_size(pair.second, check_errors);
         if (pair_sizes_out != NULL) {
             pair_sizes_out->push_back(pair_size);
         }
@@ -201,8 +220,9 @@ size_t datum_object_inner_serialized_size(const datum_t &datum,
 
     return sz;
 }
-size_t datum_object_serialized_size(const datum_t &datum) {
-    size_t sz = datum_object_inner_serialized_size(datum, NULL);
+size_t datum_object_serialized_size(const datum_t &datum,
+                                    check_datum_serialization_errors_t check_errors) {
+    size_t sz = datum_object_inner_serialized_size(datum, NULL, check_errors);
 
     // The inner serialized size
     sz += varint_uint64_serialized_size(sz);
@@ -214,12 +234,17 @@ size_t datum_object_serialized_size(const datum_t &datum) {
 // Keep in sync with datum_get_element_offset.
 // Keep in sync with datum_get_array_size.
 // Keep in sync with datum_deserialize_pair_from_buf.
-serialization_result_t datum_object_serialize(write_message_t *wm,
-                                              const datum_t &datum) {
-    // TODO! Don't take this shortcut when error-checking is required
+serialization_result_t datum_object_serialize(
+        write_message_t *wm,
+        const datum_t &datum,
+        check_datum_serialization_errors_t check_errors) {
+
+    // Can we use an existing serialization?
     const shared_buf_ref_t<char> *existing_buf_ref = datum.get_buf_ref();
-    if (existing_buf_ref != NULL) {
-        size_t sz = datum_object_serialized_size(datum);
+    if (existing_buf_ref != NULL
+        && check_errors == check_datum_serialization_errors_t::NO) {
+
+        size_t sz = datum_object_serialized_size(datum, check_errors);
         wm->append(existing_buf_ref->get(), sz);
         return serialization_result_t::SUCCESS;
     }
@@ -228,7 +253,8 @@ serialization_result_t datum_object_serialize(write_message_t *wm,
 
     // The inner serialized size
     std::vector<size_t> pair_sizes;
-    serialize_varint_uint64(wm, datum_object_inner_serialized_size(datum, &pair_sizes));
+    serialize_varint_uint64(wm,
+        datum_object_inner_serialized_size(datum, &pair_sizes, check_errors));
 
     // num_elements
     serialize_varint_uint64(wm, datum.num_pairs());
@@ -246,7 +272,7 @@ serialization_result_t datum_object_serialize(write_message_t *wm,
     for (size_t i = 0; i < datum.num_pairs(); ++i) {
         auto pair = datum.get_pair(i);
         res = res | datum_serialize(wm, pair.first);
-        res = res | datum_serialize(wm, pair.second);
+        res = res | datum_serialize(wm, pair.second, check_errors);
     }
 
     return res;
@@ -283,12 +309,13 @@ MUST_USE archive_result_t datum_deserialize(
 
 
 
-size_t datum_serialized_size(const datum_t &datum) {
+size_t datum_serialized_size(const datum_t &datum,
+                             check_datum_serialization_errors_t check_errors) {
     r_sanity_check(datum.has());
     size_t sz = 1; // 1 byte for the type
     switch (datum.get_type()) {
     case datum_t::R_ARRAY: {
-        sz += datum_array_serialized_size(datum);
+        sz += datum_array_serialized_size(datum, check_errors);
     } break;
     case datum_t::R_BINARY: {
         sz += datum_serialized_size(datum.as_binary());
@@ -307,7 +334,7 @@ size_t datum_serialized_size(const datum_t &datum) {
         }
     } break;
     case datum_t::R_OBJECT: {
-        sz += datum_object_serialized_size(datum);
+        sz += datum_object_serialized_size(datum, check_errors);
     } break;
     case datum_t::R_STR: {
         sz += datum_serialized_size(datum.as_str());
@@ -318,8 +345,10 @@ size_t datum_serialized_size(const datum_t &datum) {
     }
     return sz;
 }
-serialization_result_t datum_serialize(write_message_t *wm,
-                                       const datum_t &datum) {
+serialization_result_t datum_serialize(
+        write_message_t *wm,
+        const datum_t &datum,
+        check_datum_serialization_errors_t check_errors) {
     serialization_result_t res = serialization_result_t::SUCCESS;
     r_sanity_check(datum.has());
     switch (datum->get_type()) {
@@ -327,7 +356,7 @@ serialization_result_t datum_serialize(write_message_t *wm,
         res = res | datum_serialize(wm, datum_serialized_type_t::BUF_R_ARRAY);
         if (datum.size() > 100000)
             res = res | serialization_result_t::ARRAY_TOO_BIG;
-        res = res | datum_array_serialize(wm, datum);
+        res = res | datum_array_serialize(wm, datum, check_errors);
     } break;
     case datum_t::R_BINARY: {
         datum_serialize(wm, datum_serialized_type_t::R_BINARY);
@@ -364,7 +393,7 @@ serialization_result_t datum_serialize(write_message_t *wm,
     } break;
     case datum_t::R_OBJECT: {
         res = res | datum_serialize(wm, datum_serialized_type_t::BUF_R_OBJECT);
-        res = res | datum_object_serialize(wm, datum);
+        res = res | datum_object_serialize(wm, datum, check_errors);
     } break;
     case datum_t::R_STR: {
         res = res | datum_serialize(wm, datum_serialized_type_t::R_STR);
