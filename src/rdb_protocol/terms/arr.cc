@@ -96,8 +96,8 @@ counted_t<val_t> nth_term_direct_impl(const term_t *term, scope_env_t *env,
         } else {
             s = aggregate->as_seq(env->env);
         }
-        rcheck_target(term, base_exc_t::GENERIC,n >= -1,
-               strprintf("Cannot use an index < -1 (%d) on a stream.", n));
+        rcheck_target(term, base_exc_t::GENERIC, n >= -1,
+                      strprintf("Cannot use an index < -1 (%d) on a stream.", n));
 
         batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
         if (n != -1) {
