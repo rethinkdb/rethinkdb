@@ -40,15 +40,10 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         mailbox_manager_t *mbox_manager,
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
             _cluster_semilattice_metadata,
-        /* RSI(reql_admin): This parameter should go away. */
-        UNUSED boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
-            _auth_semilattice_metadata,
         clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata,
         real_reql_cluster_interface_t *_cluster_interface,
         admin_tracker_t *_admin_tracker,
         http_app_t *reql_app,
-        /* RSI(reql_admin): This parameter should go away. */
-        UNUSED uuid_u _us,
         std::string path)
 {
     std::set<std::string> white_list;

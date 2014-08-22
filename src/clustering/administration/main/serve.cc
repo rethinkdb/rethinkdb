@@ -352,12 +352,10 @@ bool do_serve(io_backender_t *io_backender,
                                 serve_info.ports.http_port,
                                 &mailbox_manager,
                                 semilattice_manager_cluster.get_root_view(),
-                                semilattice_manager_auth.get_root_view(),
                                 directory_read_manager.get_root_view(),
                                 &real_reql_cluster_interface,
                                 &admin_tracker,
                                 rdb_query_server.get_http_app(),
-                                machine_id,
                                 serve_info.web_assets));
                         logINF("Listening for administrative HTTP connections on port %d\n",
                                admin_server_ptr->get_port());
