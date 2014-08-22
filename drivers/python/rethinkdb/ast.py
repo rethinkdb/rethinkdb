@@ -6,6 +6,7 @@ import collections
 import time
 import re
 import base64
+import binascii
 import json as py_json
 from threading import Lock
 
@@ -37,7 +38,7 @@ def expr(val, nesting_depth=20):
     '''
     if not isinstance(nesting_depth, int):
         raise RqlDriverError("Second argument to `r.expr` must be a number.")
-    
+
     if nesting_depth <= 0:
         raise RqlDriverError("Nesting depth limit exceeded")
 
@@ -329,19 +330,8 @@ class RqlQuery(object):
                 return Slice(self, index.start or 0, index.stop, bracket_operator=True)
             else:
                 return Slice(self, index.start or 0, -1, right_bound='closed', bracket_operator=True)
-        elif isinstance(index, int):
-            return Nth(self, index, bracket_operator=True)
-        elif isinstance(index, (str, unicode)):
-            return GetField(self, index, bracket_operator=True)
-        elif isinstance(index, RqlQuery):
-            raise RqlDriverError(
-                "Bracket operator called with a ReQL expression parameter.\n"+
-                "Dynamic typing is not supported in this syntax,\n"+
-                "use `.nth`, `.slice`, or `.get_field` instead.")
         else:
-            raise RqlDriverError(
-                "bracket operator called with an unsupported parameter type: %s.%s" %
-                (index.__class__.__module__, index.__class__.__name__))
+            return Bracket(self, index, bracket_operator=True)
 
     def __iter__(*args, **kwargs):
         raise RqlDriverError(
@@ -904,6 +894,10 @@ class GetField(RqlBracketQuery):
     tt = pTerm.GET_FIELD
     st = 'get_field'
 
+class Bracket(RqlBracketQuery):
+    tt = pTerm.BRACKET
+    st = 'bracket'
+
 class Contains(RqlMethodQuery):
     tt = pTerm.CONTAINS
     st = 'contains'
@@ -1306,6 +1300,12 @@ class RqlBinary(bytes):
     def __new__(cls, *args, **kwargs):
         return bytes.__new__(cls, *args, **kwargs)
 
+    def __repr__(self):
+        excerpt = binascii.hexlify(self[0:6]).decode('utf-8')
+        excerpt = ' '.join([excerpt[i:i+2] for i in xrange(0, len(excerpt), 2)])
+        excerpt = ', \'%s%s\'' % (excerpt, '...' if len(self) > 6 else '') if len(self) > 0 else ''
+        return "<binary, %d byte%s%s>" % (len(self), 's' if len(self) != 1 else '', excerpt)
+
 class Binary(RqlTopLevelQuery):
     # Note: this term isn't actually serialized, it should exist only in the client
     tt = pTerm.BINARY
@@ -1335,7 +1335,7 @@ class Binary(RqlTopLevelQuery):
             return T('r.', self.st, '(bytes(<data>))')
         else:
             return RqlTopLevelQuery.compose(self, args, optargs)
-        
+
     def build(self):
         if len(self.args) == 0:
             return { '$reql_type$': 'BINARY', 'data': self.base64_data.decode('utf-8') }
