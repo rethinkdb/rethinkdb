@@ -45,9 +45,14 @@ datum_t::data_wrapper_t::data_wrapper_t(datum_t::data_wrapper_t &&movee) noexcep
 
 datum_t::data_wrapper_t &datum_t::data_wrapper_t::operator=(
         const datum_t::data_wrapper_t &copyee) {
-    // Create a temporary copy to keep counted values alive, in case
+    // Ignore self-assignment
+    if (&copyee == this) {
+        return *this;
+    }
+
+    // Move our data out of the way to keep counted values alive, in case
     // copyee is actually pointing to a nested element of ourselves.
-    UNUSED data_wrapper_t this_copy(*this);
+    UNUSED data_wrapper_t this_copy(std::move(*this));
 
     // Destruct our own references
     destruct();
@@ -68,21 +73,14 @@ datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_boolean_t, bool _bool
     type(R_BOOL), r_bool(_bool) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_binary_t,
-                                        datum_string_t &&_data) :
+                                        datum_string_t _data) :
     type(R_BINARY), r_str(std::move(_data)) { }
-
-datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_binary_t,
-                                        const datum_string_t &_data) :
-    type(R_BINARY), r_str(_data) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(double num) :
     type(R_NUM), r_num(num) { }
 
-datum_t::data_wrapper_t::data_wrapper_t(datum_string_t &&str) :
+datum_t::data_wrapper_t::data_wrapper_t(datum_string_t str) :
     type(R_STR), r_str(std::move(str)) { }
-
-datum_t::data_wrapper_t::data_wrapper_t(const datum_string_t &str) :
-    type(R_STR), r_str(str) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(const char *cstr) :
     type(R_STR), r_str(cstr) { }
@@ -179,11 +177,8 @@ datum_t::datum_t(datum_t::construct_null_t dummy) : data(dummy) { }
 
 datum_t::datum_t(construct_boolean_t dummy, bool _bool) : data(dummy, _bool) { }
 
-datum_t::datum_t(construct_binary_t dummy, datum_string_t &&_data)
+datum_t::datum_t(construct_binary_t dummy, datum_string_t _data)
     : data(dummy, std::move(_data)) { }
-
-datum_t::datum_t(construct_binary_t dummy, const datum_string_t &_data)
-    : data(dummy, _data) { }
 
 datum_t::datum_t(double _num) : data(_num) {
     // isfinite is a macro on OS X in math.h, so we can't just say std::isfinite.
@@ -192,11 +187,7 @@ datum_t::datum_t(double _num) : data(_num) {
            strprintf("Non-finite number: %" PR_RECONSTRUCTABLE_DOUBLE, data.r_num));
 }
 
-datum_t::datum_t(const datum_string_t &_str) : data(_str) {
-    check_str_validity(data.r_str);
-}
-
-datum_t::datum_t(datum_string_t &&_str) : data(std::move(_str)) {
+datum_t::datum_t(datum_string_t _str) : data(std::move(_str)) {
     check_str_validity(data.r_str);
 }
 
