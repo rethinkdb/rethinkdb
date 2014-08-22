@@ -53,6 +53,15 @@ MUST_USE archive_result_t datum_deserialize(read_stream_t *s,
 // Keep in sync with datum_array_serialize.
 size_t datum_array_inner_serialized_size(const datum_t &datum,
                                          std::vector<size_t> *element_sizes_out) {
+    const shared_buf_ref_t<char> *existing_buf_ref = datum.get_buf_ref();
+    if (existing_buf_ref != NULL) {
+        rassert(element_sizes_out == NULL);
+        buffer_read_stream_t s(existing_buf_ref->get(), existing_buf_ref->get_safety_boundary());
+        uint64_t sz;
+        guarantee_deserialization(deserialize_varint_uint64(&s, &sz), "datum buffer size");
+        return sz;
+    }
+
     if (element_sizes_out != NULL) {
         rassert(element_sizes_out->empty());
         element_sizes_out->reserve(datum.size());
@@ -95,6 +104,14 @@ size_t datum_array_serialized_size(const datum_t &datum) {
 // Keep in sync with datum_get_array_size.
 serialization_result_t datum_array_serialize(write_message_t *wm,
                                              const datum_t &datum) {
+    // TODO! Don't take this shortcut when error-checking is required
+    const shared_buf_ref_t<char> *existing_buf_ref = datum.get_buf_ref();
+    if (existing_buf_ref != NULL) {
+        size_t sz = datum_array_serialized_size(datum);
+        wm->append(existing_buf_ref->get(), sz);
+        return serialization_result_t::SUCCESS;
+    }
+
     serialization_result_t res = serialization_result_t::SUCCESS;
 
     // The inner serialized size
@@ -147,6 +164,15 @@ datum_deserialize(read_stream_t *s, std::vector<datum_t> *v) {
 // Keep in sync with datum_object_serialize
 size_t datum_object_inner_serialized_size(const datum_t &datum,
                                           std::vector<size_t> *pair_sizes_out) {
+    const shared_buf_ref_t<char> *existing_buf_ref = datum.get_buf_ref();
+    if (existing_buf_ref != NULL) {
+        rassert(pair_sizes_out == NULL);
+        buffer_read_stream_t s(existing_buf_ref->get(), existing_buf_ref->get_safety_boundary());
+        uint64_t sz;
+        guarantee_deserialization(deserialize_varint_uint64(&s, &sz), "datum buffer size");
+        return sz;
+    }
+
     if (pair_sizes_out != NULL) {
         rassert(pair_sizes_out->empty());
         pair_sizes_out->reserve(datum.num_pairs());
@@ -190,6 +216,14 @@ size_t datum_object_serialized_size(const datum_t &datum) {
 // Keep in sync with datum_deserialize_pair_from_buf.
 serialization_result_t datum_object_serialize(write_message_t *wm,
                                               const datum_t &datum) {
+    // TODO! Don't take this shortcut when error-checking is required
+    const shared_buf_ref_t<char> *existing_buf_ref = datum.get_buf_ref();
+    if (existing_buf_ref != NULL) {
+        size_t sz = datum_object_serialized_size(datum);
+        wm->append(existing_buf_ref->get(), sz);
+        return serialization_result_t::SUCCESS;
+    }
+
     serialization_result_t res = serialization_result_t::SUCCESS;
 
     // The inner serialized size
@@ -471,8 +505,10 @@ archive_result_t datum_deserialize(read_stream_t *s, datum_t *datum) {
         }
 
         // Then read the data into a shared_buf_t
-        counted_t<shared_buf_t> buf = shared_buf_t::create(static_cast<size_t>(ser_size));
-        int64_t num_read = force_read(s, buf->data(), ser_size);
+        size_t ser_size_sz = varint_uint64_serialized_size(ser_size);
+        counted_t<shared_buf_t> buf = shared_buf_t::create(static_cast<size_t>(ser_size) + ser_size_sz);
+        serialize_varint_uint64_into_buf(ser_size, reinterpret_cast<uint8_t *>(buf->data()));
+        int64_t num_read = force_read(s, buf->data() + ser_size_sz, ser_size);
         if (num_read == -1) {
             return archive_result_t::SOCK_ERROR;
         }
@@ -515,18 +551,10 @@ datum_t datum_deserialize_from_buf(const shared_buf_ref_t<char> &buf, size_t at_
         return datum_t(datum_string_t(buf.make_child(data_offset)));
     }
     case datum_serialized_type_t::BUF_R_ARRAY: {
-        // Skip the serialized size that's stored at the front of the array
-        uint64_t ser_size;
-        guarantee_deserialization(deserialize_varint_uint64(&read_stream, &ser_size),
-                                  "datum serialized size from buf");
         const size_t data_offset = at_offset + static_cast<size_t>(read_stream.tell());
         return datum_t(datum_t::R_ARRAY, buf.make_child(data_offset));
     }
     case datum_serialized_type_t::BUF_R_OBJECT: {
-        // Skip the serialized size that's stored at the front of the object
-        uint64_t ser_size;
-        guarantee_deserialization(deserialize_varint_uint64(&read_stream, &ser_size),
-                                  "datum serialized size from buf");
         const size_t data_offset = at_offset + static_cast<size_t>(read_stream.tell());
         return datum_t(datum_t::R_OBJECT, buf.make_child(data_offset));
     }
@@ -572,6 +600,9 @@ std::pair<datum_string_t, datum_t> datum_deserialize_pair_from_buf(
      ... */
 size_t datum_get_array_size(const shared_buf_ref_t<char> &array) {
     buffer_read_stream_t sz_read_stream(array.get(), array.get_safety_boundary());
+    uint64_t ser_size;
+    guarantee_deserialization(deserialize_varint_uint64(&sz_read_stream, &ser_size),
+                              "datum decode array");
     uint64_t num_elements;
     guarantee_deserialization(deserialize_varint_uint64(&sz_read_stream, &num_elements),
                               "datum decode array");
@@ -585,6 +616,9 @@ size_t datum_get_array_size(const shared_buf_ref_t<char> &array) {
      T data[num_elements] */
 size_t datum_get_element_offset(const shared_buf_ref_t<char> &array, size_t index) {
     buffer_read_stream_t sz_read_stream(array.get(), array.get_safety_boundary());
+    uint64_t ser_size;
+    guarantee_deserialization(deserialize_varint_uint64(&sz_read_stream, &ser_size),
+                              "datum decode array");
     uint64_t num_elements;
     guarantee_deserialization(deserialize_varint_uint64(&sz_read_stream, &num_elements),
                               "datum decode array");

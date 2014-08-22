@@ -110,8 +110,8 @@ public:
 
     // Construct a datum_t from a shared buffer.
     // type can be one of R_BINARY, R_STR, R_OBJECT or R_ARRAY. _buf_ref must point
-    // to the data buffer *without* the serialized type tag and without any
-    // prefixed serialization sizes.
+    // to the data buffer *without* the serialized type tag, but *with* the
+    // prefixed serialized size.
     datum_t(type_t type, shared_buf_ref_t<char> &&buf_ref);
 
     // Strongly prefer datum_t::null().
@@ -290,6 +290,10 @@ public:
                               const datum_string_t &pkey) const;
 
     static void check_str_validity(const datum_string_t &str);
+
+    // Used by serialization code. Returns a pointer to the buf_ref, if
+    // the datum is currently backed by one, or NULL otherwise.
+    const shared_buf_ref_t<char> *get_buf_ref() const;
 
 private:
     friend void pseudo::sanitize_time(datum_t *time);

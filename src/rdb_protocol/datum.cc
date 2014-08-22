@@ -440,6 +440,15 @@ void datum_t::check_str_validity(const datum_string_t &str) {
     ::ql::check_str_validity(str.data(), str.size());
 }
 
+const shared_buf_ref_t<char> *datum_t::get_buf_ref() const {
+    if (data.get_internal_type() == internal_type_t::BUF_R_ARRAY
+        || data.get_internal_type() == internal_type_t::BUF_R_OBJECT) {
+        return &data.buf_ref;
+    } else {
+        return NULL;
+    }
+}
+
 datum_t::type_t datum_t::get_type() const { return data.get_type(); }
 
 bool datum_t::is_ptype() const {
