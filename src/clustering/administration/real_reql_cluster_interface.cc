@@ -5,6 +5,7 @@
 #include "clustering/administration/servers/name_client.hpp"
 #include "clustering/administration/tables/elect_director.hpp"
 #include "clustering/administration/tables/generate_config.hpp"
+#include "clustering/administration/tables/split_points.hpp"
 #include "clustering/administration/tables/table_config.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "rdb_protocol/wait_for_readiness.hpp"
@@ -253,6 +254,9 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
 
         table_replication_info_t repli_info;
 
+        /* We can't meaningfully pick shard points, so create only one shard */
+        repli_info.shard_scheme = table_shard_scheme_t::one_shard();
+
         /* Construct a configuration for the new namespace */
         std::map<name_string_t, int> server_usage;
         for (auto it = ns_change.get()->namespaces.begin();
@@ -273,8 +277,9 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         config_params.num_replicas[name_string_t::guarantee_valid("default")] = 1;
         config_params.director_tag = name_string_t::guarantee_valid("default");
         if (!table_generate_config(
-                server_name_client, nil_uuid(), NULL, dummy_directory, server_usage,
-                config_params, &interruptor2, &repli_info.config, error_out)) {
+                server_name_client, nil_uuid(), dummy_directory, server_usage,
+                config_params, repli_info.shard_scheme, &interruptor2,
+                &repli_info.config, error_out)) {
             return false;
         }
 
@@ -459,18 +464,29 @@ bool real_reql_cluster_interface_t::table_reconfigure(
 
     table_replication_info_t new_repli_info;
 
+    if (!calculate_split_points_intelligently(
+            ns_metadata_it->first,
+            this,
+            params.num_shards,
+            ns_metadata_it->second.get_ref().replication_info.get_ref().shard_scheme,
+            interruptor,
+            &new_repli_info.shard_scheme,
+            error_out)) {
+        return false;
+    }
+
     /* This just generates a new configuration; it doesn't put it in the
     semilattices. */
     if (!table_generate_config(
             server_name_client,
             ns_metadata_it->first,
-            this,
             directory_root_view->incremental_subview(
                 incremental_field_getter_t<namespaces_directory_metadata_t,
                                            cluster_directory_metadata_t>
                     (&cluster_directory_metadata_t::rdb_namespaces)),
             server_usage,
             params,
+            new_repli_info.shard_scheme,
             &interruptor2,
             &new_repli_info.config,
             error_out)) {

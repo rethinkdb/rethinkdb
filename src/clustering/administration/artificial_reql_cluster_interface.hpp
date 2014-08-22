@@ -11,6 +11,7 @@
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rdb_protocol/context.hpp"
 
+class real_reql_cluster_interface_t;
 class server_name_client_t;
 class server_config_artificial_table_backend_t;
 class table_config_artificial_table_backend_t;
@@ -82,7 +83,7 @@ with all of the tables that will go in it. */
 class admin_artificial_tables_t {
 public:
     admin_artificial_tables_t(
-            reql_cluster_interface_t *_next_reql_cluster_interface,
+            real_reql_cluster_interface_t *_next_reql_cluster_interface,
             const machine_id_t &_my_machine_id,
             boost::shared_ptr< semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > _semilattice_view,

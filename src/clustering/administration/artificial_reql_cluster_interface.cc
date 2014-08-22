@@ -3,6 +3,7 @@
 
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "clustering/administration/real_reql_cluster_interface.hpp"
 #include "clustering/administration/servers/server_config.hpp"
 #include "clustering/administration/tables/table_config.hpp"
 #include "clustering/administration/tables/table_status.hpp"
@@ -124,7 +125,7 @@ bool artificial_reql_cluster_interface_t::table_reconfigure(
 }
 
 admin_artificial_tables_t::admin_artificial_tables_t(
-        reql_cluster_interface_t *_next_reql_cluster_interface,
+        real_reql_cluster_interface_t *_next_reql_cluster_interface,
         const machine_id_t &_my_machine_id,
         boost::shared_ptr< semilattice_readwrite_view_t<
             cluster_semilattice_metadata_t> > _semilattice_view,
@@ -144,6 +145,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
             _semilattice_view),
         metadata_field(&cluster_semilattice_metadata_t::databases,
             _semilattice_view),
+        _next_reql_cluster_interface,
         _name_client));
     backends[name_string_t::guarantee_valid("table_config")] =
         table_config_backend.get();

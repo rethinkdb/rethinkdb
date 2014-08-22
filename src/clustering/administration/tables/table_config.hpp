@@ -14,6 +14,7 @@
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rpc/semilattice/view.hpp"
 
+class real_reql_cluster_interface_t;
 class server_name_client_t;
 
 /* This is publicly exposed so that it can be used to create the return value of
@@ -31,10 +32,12 @@ public:
                 cow_ptr_t<namespaces_semilattice_metadata_t> > > _table_sl_view,
             boost::shared_ptr< semilattice_readwrite_view_t<
                 databases_semilattice_metadata_t> > _database_sl_view,
+            real_reql_cluster_interface_t *_reql_cluster_interface,
             server_name_client_t *_name_client) :
         my_machine_id(_my_machine_id),
         table_sl_view(_table_sl_view),
         database_sl_view(_database_sl_view),
+        reql_cluster_interface(_reql_cluster_interface),
         name_client(_name_client) { }
 
     std::string get_primary_key_name();
@@ -59,6 +62,7 @@ private:
         cow_ptr_t<namespaces_semilattice_metadata_t> > > table_sl_view;
     boost::shared_ptr< semilattice_readwrite_view_t<
         databases_semilattice_metadata_t> > database_sl_view;
+    real_reql_cluster_interface_t *reql_cluster_interface;
     server_name_client_t *name_client;
 };
 

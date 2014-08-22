@@ -2,7 +2,6 @@
 #include "clustering/administration/tables/generate_config.hpp"
 
 #include "clustering/administration/servers/name_client.hpp"
-#include "clustering/administration/tables/split_points.hpp"
 
 // Because being primary for a shard usually comes with a higher cost than
 // being secondary, we want to consider that difference in the replica assignment.
@@ -162,12 +161,12 @@ static void pick_best_pairings(
 bool table_generate_config(
         server_name_client_t *name_client,
         namespace_id_t table_id,
-        real_reql_cluster_interface_t *reql_cluster_interface,
         clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
             namespaces_directory_metadata_t> > > directory_view,
         const std::map<name_string_t, int> &server_usage,
 
         const table_generate_config_params_t &params,
+        const table_shard_scheme_t &shard_scheme,
 
         signal_t *interruptor,
         table_config_t *config_out,
@@ -241,46 +240,6 @@ bool table_generate_config(
 
     config_out->shards.resize(params.num_shards);
 
-    /* Decide on the split points for the new config */
-    /* RSI(reql_admin): When #2895 is fixed, this logic won't go in
-    `table_generate_config()` anymore, because the split points won't be stored in the
-    config. */
-    std::vector<store_key_t> split_points;
-    if (table_id != nil_uuid()) {
-        /* RSI(reql_admin): If `num_shards` is the same as the number of shards that the
-        table had before, we should just use the old split points. If `num_shards` is
-        fewer, we should use `calculate_split_points_by_estimation()` to pick new split
-        points on the assumption that the old distribution is reasonable. Only in the
-        case where the user is increasing the number of shards do we need to run a
-        distribution query. This RSI should be fixed as part of #2895 because it will be
-        easier to access the old split points when #2895 is fixed. As a stop-gap measure,
-        we special-case the situation of having exactly one shard. */
-        if (params.num_shards != 1) {
-            if (!calculate_split_points_with_distribution(
-                    table_id,
-                    reql_cluster_interface,
-                    params.num_shards,
-                    interruptor,
-                    &split_points,
-                    error_out)) {
-                *error_out += " Try creating fewer shards; if you don't increase the "
-                    "number of shards, it won't be necessary to calculate new balanced "
-                    "shards.";
-                return false;
-            }
-        }
-    } else {
-        if (params.num_shards != 1) {
-            *error_out = "Can't choose meaningful split points for a table that doesn't "
-                "exist yet.";
-            return false;
-        }
-    }
-    for (int i = 0; i < params.num_shards-1; ++i) {
-        config_out->shards[i].split_point =
-            boost::optional<store_key_t>(split_points[i]);
-    }
-
     /* Finally, fill in the servers */
     for (auto it = params.num_replicas.begin(); it != params.num_replicas.end(); ++it) {
         if (it->second == 0) {
@@ -312,7 +271,7 @@ bool table_generate_config(
         std::multimap<double, std::pair<int, name_string_t> > costs;
         for (int shard = 0; shard < params.num_shards; ++shard) {
             region_t region = hash_region_t<key_range_t>(
-                config_out->get_shard_range(shard));
+                shard_scheme.get_shard_range(shard));
             for (const name_string_t &server : servers_with_tags.at(server_tag)) {
                 auto usage_it = server_usage.find(server);
                 int usage = (usage_it == server_usage.end()) ? 0 : usage_it->second;

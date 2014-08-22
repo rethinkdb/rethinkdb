@@ -44,14 +44,14 @@ RDB_IMPL_EQUALITY_COMPARABLE_1(machines_semilattice_metadata_t, machines);
 
 RDB_IMPL_ME_SERIALIZABLE_2_SINCE_v1_13(ack_expectation_t, expectation_, hard_durability_);
 
-RDB_IMPL_SERIALIZABLE_3(table_config_t::shard_t,
-                        split_point, replica_names, director_names);
+RDB_IMPL_SERIALIZABLE_2(table_config_t::shard_t,
+                        replica_names, director_names);
 template void serialize<cluster_version_t::v1_15_is_latest>(
             write_message_t *, const table_config_t::shard_t &);
 template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
             read_stream_t *, table_config_t::shard_t *);
-RDB_IMPL_EQUALITY_COMPARABLE_3(table_config_t::shard_t,
-                               split_point, replica_names, director_names);
+RDB_IMPL_EQUALITY_COMPARABLE_2(table_config_t::shard_t,
+                               replica_names, director_names);
 
 RDB_IMPL_SERIALIZABLE_1(table_config_t, shards);
 template void serialize<cluster_version_t::v1_15_is_latest>(
@@ -60,12 +60,21 @@ template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
             read_stream_t *, table_config_t *);
 RDB_IMPL_EQUALITY_COMPARABLE_1(table_config_t, shards);
 
-RDB_IMPL_SERIALIZABLE_2(table_replication_info_t, config, chosen_directors);
+RDB_IMPL_SERIALIZABLE_1(table_shard_scheme_t, split_points);
+template void serialize<cluster_version_t::v1_15_is_latest>(
+            write_message_t *, const table_shard_scheme_t &);
+template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
+            read_stream_t *, table_shard_scheme_t *);
+RDB_IMPL_EQUALITY_COMPARABLE_1(table_shard_scheme_t, split_points);
+
+RDB_IMPL_SERIALIZABLE_3(table_replication_info_t,
+                        config, chosen_directors, shard_scheme);
 template void serialize<cluster_version_t::v1_15_is_latest>(
             write_message_t *, const table_replication_info_t &);
 template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
             read_stream_t *, table_replication_info_t *);
-RDB_IMPL_EQUALITY_COMPARABLE_2(table_replication_info_t, config, chosen_directors);
+RDB_IMPL_EQUALITY_COMPARABLE_3(table_replication_info_t,
+                               config, chosen_directors, shard_scheme);
 
 RDB_IMPL_SERIALIZABLE_4(namespace_semilattice_metadata_t,
                         name, database, primary_key, replication_info);

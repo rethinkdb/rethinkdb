@@ -2,6 +2,9 @@
 #ifndef CLUSTERING_ADMINISTRATION_TABLES_GENERATE_CONFIG_HPP_
 #define CLUSTERING_ADMINISTRATION_TABLES_GENERATE_CONFIG_HPP_
 
+#include <map>
+#include <string>
+
 #include "clustering/administration/namespace_metadata.hpp"
 #include "rdb_protocol/context.hpp"
 
@@ -14,9 +17,6 @@ bool table_generate_config(
         server_name_client_t *name_client,
         /* The UUID of the table being reconfigured. This can be `nil_uuid()`. */
         namespace_id_t table_id,
-        /* This is used to run distribution queries. If `table_id` is `nil_uuid()`, this
-        can be NULL. */
-        real_reql_cluster_interface_t *reql_cluster_interface,
         /* This is used to determine where the table's data is currently stored and
         prioritize keeping it there. If `table_id` is `nil_uuid()`, this can be NULL. */
         clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
@@ -28,6 +28,8 @@ bool table_generate_config(
         /* `table_generate_config()` will validate `params`, so there's no need for the
         caller to do so. */
         const table_generate_config_params_t &params,
+        /* What the new sharding scheme for the table will be */
+        const table_shard_scheme_t &shard_scheme,
 
         signal_t *interruptor,
         table_config_t *config_out,

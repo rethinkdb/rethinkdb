@@ -91,7 +91,7 @@ bool calculate_split_points_with_distribution(
         real_reql_cluster_interface_t *reql_cluster_interface,
         int num_shards,
         signal_t *interruptor,
-        std::vector<store_key_t> *split_points_out,
+        table_shard_scheme_t *split_points_out,
         std::string *error_out) {
     namespace_interface_access_t ns_if_access =
         reql_cluster_interface->get_namespace_repo()->get_namespace_interface(
@@ -125,7 +125,7 @@ bool calculate_split_points_with_distribution(
         return false;
     }
 
-    split_points_out->clear();
+    split_points_out->split_points.clear();
     size_t left_pair = 0;
     for (int split_index = 1; split_index < num_shards; ++split_index) {
         int64_t split_count = (split_index * total_count) / num_shards;
@@ -141,9 +141,9 @@ bool calculate_split_points_with_distribution(
                 : pairs[left_pair+1];
         store_key_t split_key = interpolate_key(left.second, right.second,
             (split_count - left.first) / static_cast<double>(right.first - left.first));
-        split_points_out->push_back(split_key);
+        split_points_out->split_points.push_back(split_key);
     }
-    ensure_distinct(split_points_out);
+    ensure_distinct(&split_points_out->split_points);
 
     return true;
 }
@@ -151,34 +151,60 @@ bool calculate_split_points_with_distribution(
 /* In practice this will only ever be used to decrease the number of shards, but it still
 works correctly whether the number of shards is increased, decreased, or stays the same.
 */
-void calculate_split_points_by_estimation(
+void calculate_split_points_by_interpolation(
         int num_shards,
-        const std::vector<store_key_t> &old_split_points,
-        std::vector<store_key_t> *split_points_out) {
+        const table_shard_scheme_t &old_split_points,
+        table_shard_scheme_t *split_points_out) {
     /* Short circuit this case because it's both trivial and common */
-    if (static_cast<size_t>(num_shards) == old_split_points.size() + 1) {
+    if (num_shards == old_split_points.num_shards()) {
         *split_points_out = old_split_points;
         return;
     }
-    split_points_out->clear();
+    split_points_out->split_points.clear();
     for (int split_index = 1; split_index < num_shards; ++split_index) {
         double split_old_index = split_index *
-            (old_split_points.size() / static_cast<double>(num_shards));
+            (old_split_points.num_shards() / static_cast<double>(num_shards));
         int left_old_index = floor(split_old_index);
         guarantee(left_old_index >= 0);
-        guarantee(static_cast<size_t>(left_old_index) <= old_split_points.size());
+        guarantee(left_old_index <= old_split_points.num_shards() - 1);
         store_key_t left_key =
             (left_old_index == 0)
                 ? store_key_t::min()
-                : old_split_points[left_old_index-1];
+                : old_split_points.split_points[left_old_index-1];
         store_key_t right_key =
-            (static_cast<size_t>(left_old_index) == old_split_points.size())
+            (left_old_index == old_split_points.num_shards() - 1)
                 ? store_key_t::max()
-                : old_split_points[left_old_index];
+                : old_split_points.split_points[left_old_index];
         store_key_t split_key = interpolate_key(left_key, right_key,
             split_old_index-left_old_index);
-        split_points_out->push_back(split_key);
+        split_points_out->split_points.push_back(split_key);
     }
-    ensure_distinct(split_points_out);
+    ensure_distinct(&split_points_out->split_points);
+}
+
+bool calculate_split_points_intelligently(
+        namespace_id_t table_id,
+        real_reql_cluster_interface_t *reql_cluster_interface,
+        int num_shards,
+        const table_shard_scheme_t &old_split_points,
+        signal_t *interruptor,
+        table_shard_scheme_t *split_points_out,
+        std::string *error_out) {
+    if (num_shards > old_split_points.num_shards()) {
+        if (!calculate_split_points_with_distribution(
+                table_id, reql_cluster_interface, num_shards, interruptor,
+                split_points_out, error_out)) {
+            *error_out += " Try creating fewer shards; if you don't increase the "
+                "number of shards, it won't be necessary to calculate new balanced "
+                "shards.";
+            return false;
+        }
+    } else if (num_shards == old_split_points.num_shards()) {
+        *split_points_out = old_split_points;
+    } else {
+        calculate_split_points_by_interpolation(
+            num_shards, old_split_points, split_points_out);
+    }
+    return true;
 }
 
