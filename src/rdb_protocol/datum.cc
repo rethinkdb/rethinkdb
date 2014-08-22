@@ -1188,7 +1188,8 @@ cJSON *datum_t::as_json_raw() const {
         scoped_cJSON_t obj(cJSON_CreateObject());
         for (size_t i = 0; i < num_pairs(); ++i) {
             auto pair = get_pair(i);
-            obj.AddItemToObject(pair.first.to_std().c_str(), pair.second.as_json_raw());
+            obj.AddItemToObject(pair.first.data(), pair.first.size(),
+                                pair.second.as_json_raw());
         }
         return obj.release();
     } break;
@@ -1553,7 +1554,7 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
             for (size_t i = num_pairs(); i > 0; --i) {
                 Datum_AssocPair *ap = d->add_r_object();
                 auto pair = get_pair(i-1);
-                ap->set_key(pair.first.to_std());
+                ap->set_key(pair.first.data(), pair.first.size());
                 pair.second.write_to_protobuf(ap->mutable_val(), use_json);
             }
         } break;
