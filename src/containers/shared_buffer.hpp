@@ -64,7 +64,8 @@ public:
         return reinterpret_cast<const T *>(buf->data(offset));
     }
 
-    shared_buf_ref_t make_child(size_t relative_offset) {
+    shared_buf_ref_t make_child(size_t relative_offset) const {
+        guarantee_in_boundary(relative_offset);
         return shared_buf_ref_t(buf, offset + relative_offset);
     }
 
@@ -75,7 +76,7 @@ public:
     // buffer contains other objects in addition to what this buf ref is pointing
     // to.
     void guarantee_in_boundary(size_t num_elements) const {
-        guarantee(get_safety_boundary() <= num_elements);
+        guarantee(get_safety_boundary() >= num_elements);
     }
     // An upper bound on the number of elements that can be read from this buf ref
     size_t get_safety_boundary() const {

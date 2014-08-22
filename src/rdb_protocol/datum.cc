@@ -19,6 +19,7 @@
 #include "rdb_protocol/pseudo_geometry.hpp"
 #include "rdb_protocol/pseudo_literal.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
+#include "rdb_protocol/serialize_datum.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "stl_utils.hpp"
 
@@ -59,43 +60,43 @@ datum_t::data_wrapper_t &datum_t::data_wrapper_t::operator=(
 }
 
 datum_t::data_wrapper_t::data_wrapper_t() :
-    type(UNINITIALIZED) { }
+    internal_type(internal_type_t::UNINITIALIZED) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_null_t) :
-    type(R_NULL) { }
+    internal_type(internal_type_t::R_NULL) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_boolean_t, bool _bool) :
-    type(R_BOOL), r_bool(_bool) { }
+    r_bool(_bool), internal_type(internal_type_t::R_BOOL) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_binary_t,
                                         datum_string_t &&_data) :
-    type(R_BINARY), r_str(std::move(_data)) { }
+    r_str(std::move(_data)), internal_type(internal_type_t::R_BINARY) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_binary_t,
                                         const datum_string_t &_data) :
-    type(R_BINARY), r_str(_data) { }
+    r_str(_data), internal_type(internal_type_t::R_BINARY) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(double num) :
-    type(R_NUM), r_num(num) { }
+    r_num(num), internal_type(internal_type_t::R_NUM) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_string_t &&str) :
-    type(R_STR), r_str(std::move(str)) { }
+    r_str(std::move(str)), internal_type(internal_type_t::R_STR) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(const datum_string_t &str) :
-    type(R_STR), r_str(str) { }
+    r_str(str), internal_type(internal_type_t::R_STR) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(const char *cstr) :
-    type(R_STR), r_str(cstr) { }
+    r_str(cstr), internal_type(internal_type_t::R_STR) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(std::vector<datum_t> &&array) :
-    type(R_ARRAY),
-    r_array(new countable_wrapper_t<std::vector<datum_t> >(std::move(array))) { }
+    r_array(new countable_wrapper_t<std::vector<datum_t> >(std::move(array))),
+    internal_type(internal_type_t::R_ARRAY) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(
         std::vector<std::pair<datum_string_t, datum_t> > &&object) :
-    type(R_OBJECT),
     r_object(new countable_wrapper_t<std::vector<std::pair<datum_string_t, datum_t> > >(
-        std::move(object))) {
+        std::move(object))),
+    internal_type(internal_type_t::R_OBJECT) {
 
 #ifndef NDEBUG
     auto key_cmp = [](const std::pair<datum_string_t, datum_t> &p1,
@@ -106,84 +107,156 @@ datum_t::data_wrapper_t::data_wrapper_t(
 #endif
 }
 
+datum_t::data_wrapper_t::data_wrapper_t(type_t type, shared_buf_ref_t<char> &&_buf_ref) {
+    switch (type) {
+    case R_BINARY: {
+        internal_type = internal_type_t::R_BINARY;
+        new(&r_str) datum_string_t(std::move(_buf_ref));
+    } break;
+    case R_ARRAY: {
+        internal_type = internal_type_t::BUF_R_ARRAY;
+        new(&buf_ref) shared_buf_ref_t<char>(std::move(_buf_ref));
+    } break;
+    case R_OBJECT: {
+        internal_type = internal_type_t::BUF_R_OBJECT;
+        new(&buf_ref) shared_buf_ref_t<char>(std::move(_buf_ref));
+    } break;
+    case R_STR: {
+        internal_type = internal_type_t::R_STR;
+        new(&r_str) datum_string_t(std::move(_buf_ref));
+    } break;
+    case UNINITIALIZED: // fallthru
+    case R_BOOL: // fallthru
+    case R_NULL: // fallthru
+    case R_NUM: // fallthru
+    default:
+        unreachable();
+    }
+}
+
 datum_t::data_wrapper_t::~data_wrapper_t() {
     destruct();
 }
 
+datum_t::type_t datum_t::data_wrapper_t::get_type() const {
+    switch (internal_type) {
+    case internal_type_t::UNINITIALIZED:
+        return type_t::UNINITIALIZED;
+    case internal_type_t::R_ARRAY:
+        return type_t::R_ARRAY;
+    case internal_type_t::R_BINARY:
+        return type_t::R_BINARY;
+    case internal_type_t::R_BOOL:
+        return type_t::R_BOOL;
+    case internal_type_t::R_NULL:
+        return type_t::R_NULL;
+    case internal_type_t::R_NUM:
+        return type_t::R_NUM;
+    case internal_type_t::R_OBJECT:
+        return type_t::R_OBJECT;
+    case internal_type_t::R_STR:
+        return type_t::R_STR;
+    case internal_type_t::BUF_R_ARRAY:
+        return type_t::R_ARRAY;
+    case internal_type_t::BUF_R_OBJECT:
+        return type_t::R_OBJECT;
+    default:
+        unreachable();
+    }
+}
+datum_t::internal_type_t datum_t::data_wrapper_t::get_internal_type() const {
+    return internal_type;
+}
+
 void datum_t::data_wrapper_t::destruct() {
-    switch (type) {
-    case UNINITIALIZED: // fallthru
-    case R_NULL: // fallthru
-    case R_BOOL: // fallthru
-    case R_NUM: break;
-    case R_BINARY: // fallthru
-    case R_STR: {
+    switch (internal_type) {
+    case internal_type_t::UNINITIALIZED: // fallthru
+    case internal_type_t::R_NULL: // fallthru
+    case internal_type_t::R_BOOL: // fallthru
+    case internal_type_t::R_NUM: break;
+    case internal_type_t::R_BINARY: // fallthru
+    case internal_type_t::R_STR: {
         r_str.~datum_string_t();
     } break;
-    case R_ARRAY: {
+    case internal_type_t::R_ARRAY: {
         r_array.~counted_t<countable_wrapper_t<std::vector<datum_t> > >();
     } break;
-    case R_OBJECT: {
+    case internal_type_t::R_OBJECT: {
         r_object.~counted_t<countable_wrapper_t<std::vector<std::pair<datum_string_t, datum_t> > > >();
+    } break;
+    case internal_type_t::BUF_R_ARRAY: // fallthru
+    case internal_type_t::BUF_R_OBJECT: {
+        buf_ref.~shared_buf_ref_t<char>();
     } break;
     default: unreachable();
     }
 }
 
 void datum_t::data_wrapper_t::assign_copy(const datum_t::data_wrapper_t &copyee) {
-    type = copyee.type;
-    switch (type) {
-    case UNINITIALIZED: // fallthru
-    case R_NULL: break;
-    case R_BOOL: {
+    internal_type = copyee.internal_type;
+    switch (internal_type) {
+    case internal_type_t::UNINITIALIZED: // fallthru
+    case internal_type_t::R_NULL: break;
+    case internal_type_t::R_BOOL: {
         r_bool = copyee.r_bool;
     } break;
-    case R_NUM: {
+    case internal_type_t::R_NUM: {
         r_num = copyee.r_num;
     } break;
-    case R_BINARY: // fallthru
-    case R_STR: {
+    case internal_type_t::R_BINARY: // fallthru
+    case internal_type_t::R_STR: {
         new(&r_str) datum_string_t(copyee.r_str);
     } break;
-    case R_ARRAY: {
+    case internal_type_t::R_ARRAY: {
         new(&r_array) counted_t<countable_wrapper_t<std::vector<datum_t> > >(copyee.r_array);
     } break;
-    case R_OBJECT: {
+    case internal_type_t::R_OBJECT: {
         new(&r_object) counted_t<countable_wrapper_t<std::vector<std::pair<datum_string_t, datum_t> > > >(
             copyee.r_object);
+    } break;
+    case internal_type_t::BUF_R_ARRAY: // fallthru
+    case internal_type_t::BUF_R_OBJECT: {
+        new(&buf_ref) shared_buf_ref_t<char>(copyee.buf_ref);
     } break;
     default: unreachable();
     }
 }
 
 void datum_t::data_wrapper_t::assign_move(datum_t::data_wrapper_t &&movee) noexcept {
-    type = movee.type;
-    switch (type) {
-    case UNINITIALIZED: // fallthru
-    case R_NULL: break;
-    case R_BOOL: {
+    internal_type = movee.internal_type;
+    switch (internal_type) {
+    case internal_type_t::UNINITIALIZED: // fallthru
+    case internal_type_t::R_NULL: break;
+    case internal_type_t::R_BOOL: {
         r_bool = movee.r_bool;
     } break;
-    case R_NUM: {
+    case internal_type_t::R_NUM: {
         r_num = movee.r_num;
     } break;
-    case R_BINARY: // fallthru
-    case R_STR: {
+    case internal_type_t::R_BINARY: // fallthru
+    case internal_type_t::R_STR: {
         new(&r_str) datum_string_t(std::move(movee.r_str));
     } break;
-    case R_ARRAY: {
+    case internal_type_t::R_ARRAY: {
         new(&r_array) counted_t<countable_wrapper_t<std::vector<datum_t> > >(
             std::move(movee.r_array));
     } break;
-    case R_OBJECT: {
+    case internal_type_t::R_OBJECT: {
         new(&r_object) counted_t<countable_wrapper_t<std::vector<std::pair<datum_string_t, datum_t> > > >(
             std::move(movee.r_object));
+    } break;
+    case internal_type_t::BUF_R_ARRAY: // fallthru
+    case internal_type_t::BUF_R_OBJECT: {
+        new(&buf_ref) shared_buf_ref_t<char>(std::move(movee.buf_ref));
     } break;
     default: unreachable();
     }
 }
 
 datum_t::datum_t() : data() { }
+
+datum_t::datum_t(type_t type, shared_buf_ref_t<char> &&buf_ref)
+    : data(type, std::move(buf_ref)) { }
 
 datum_t::datum_t(datum_t::construct_null_t dummy) : data(dummy) { }
 
@@ -247,16 +320,6 @@ std::vector<std::pair<datum_string_t, datum_t> > datum_t::to_sorted_vec(
     return sorted_vec;
 }
 
-const std::vector<std::pair<datum_string_t, datum_t> > &datum_t::get_obj_vec() const {
-    check_type(R_OBJECT);
-    return *data.r_object;
-}
-
-const std::vector<datum_t> &datum_t::get_arr_vec() const {
-    check_type(R_ARRAY);
-    return *data.r_array;
-}
-
 datum_t to_datum_for_client_serialization(grouped_data_t &&gd,
                                           reql_version_t reql_version,
                                           const configured_limits_t &limits) {
@@ -290,7 +353,7 @@ datum_t::~datum_t() {
 }
 
 bool datum_t::has() const {
-    return data.type != UNINITIALIZED;
+    return data.get_type() != UNINITIALIZED;
 }
 
 void datum_t::reset() {
@@ -377,7 +440,7 @@ void datum_t::check_str_validity(const datum_string_t &str) {
     ::ql::check_str_validity(str.data(), str.size());
 }
 
-datum_t::type_t datum_t::get_type() const { return data.type; }
+datum_t::type_t datum_t::get_type() const { return data.get_type(); }
 
 bool datum_t::is_ptype() const {
     return get_type() == R_BINARY ||
@@ -1028,12 +1091,23 @@ const datum_string_t &datum_t::as_str() const {
 
 size_t datum_t::size() const {
     check_type(R_ARRAY);
-    return data.r_array->size();
+    if (data.get_internal_type() == internal_type_t::BUF_R_ARRAY) {
+        return datum_get_array_size(data.buf_ref);
+    } else {
+        rassert(data.get_internal_type() == internal_type_t::R_ARRAY);
+        return data.r_array->size();
+    }
 }
 
 datum_t datum_t::get(size_t index, throw_bool_t throw_bool) const {
     if (index < size()) {
-        return (*data.r_array)[index];
+        if (data.get_internal_type() == internal_type_t::BUF_R_ARRAY) {
+            const size_t offset = datum_get_element_offset(data.buf_ref, index);
+            return datum_deserialize_from_buf(data.buf_ref, offset);
+        } else {
+            rassert(data.get_internal_type() == internal_type_t::R_ARRAY);
+            return (*data.r_array)[index];
+        }
     } else if (throw_bool == THROW) {
         rfail(base_exc_t::NON_EXISTENCE, "Index out of bounds: %zu", index);
     } else {
@@ -1043,13 +1117,24 @@ datum_t datum_t::get(size_t index, throw_bool_t throw_bool) const {
 
 size_t datum_t::num_pairs() const {
     check_type(R_OBJECT);
-    return data.r_object->size();
+    if (data.get_internal_type() == internal_type_t::BUF_R_OBJECT) {
+        return datum_get_array_size(data.buf_ref);
+    } else {
+        rassert(data.get_internal_type() == internal_type_t::R_OBJECT);
+        return data.r_object->size();
+    }
 }
 
 std::pair<datum_string_t, datum_t> datum_t::get_pair(size_t index) const {
     check_type(R_OBJECT);
     guarantee(index < num_pairs());
-    return (*data.r_object)[index];
+    if (data.get_internal_type() == internal_type_t::BUF_R_OBJECT) {
+        const size_t offset = datum_get_element_offset(data.buf_ref, index);
+        return datum_deserialize_pair_from_buf(data.buf_ref, offset);
+    } else {
+        rassert(data.get_internal_type() == internal_type_t::R_OBJECT);
+        return (*data.r_object)[index];
+    }
 }
 
 datum_t datum_t::get_field(const datum_string_t &key, throw_bool_t throw_bool) const {
