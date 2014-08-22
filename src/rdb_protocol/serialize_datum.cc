@@ -625,6 +625,7 @@ std::pair<datum_string_t, datum_t> datum_deserialize_pair_from_buf(
 }
 
 /* The format of `array` is:
+     varint ser_size
      varint num_elements
      ... */
 size_t datum_get_array_size(const shared_buf_ref_t<char> &array) {
@@ -640,6 +641,7 @@ size_t datum_get_array_size(const shared_buf_ref_t<char> &array) {
 }
 
 /* The format of `array` is:
+     varint ser_size
      varint num_elements
      uint32_t offsets[num_elements - 1] // counted from `data`, first element omitted
      T data[num_elements] */
