@@ -85,6 +85,8 @@ void backtrace_t::fill_error(Response *res, Response_ResponseType type,
     error_msg.set_type(Datum::R_STR);
     error_msg.set_r_str(msg);
     res->set_type(type);
+    res->clear_response();
+    res->clear_profile();
     *res->add_response() = error_msg;
     fill_bt(res->mutable_backtrace());
 }

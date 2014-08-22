@@ -5,6 +5,16 @@ module RethinkDB
 
   # Use a dummy object for binary data so we don't lose track of the data type
   class Binary < String
+    def inspect
+      out = ''
+      if length > 0
+        arr = [ ]
+        byteslice(0, 6).each_byte{|c| arr << sprintf('%02x', c.ord)}
+        out = sprintf(', \'%s%s\'', arr.join(' '), length > 6 ? '...' : '')
+      end
+      return sprintf('<binary, %d byte%s%s>',
+                     length, length == 1 ? '' : 's', out)
+    end
   end
 
   module Shim

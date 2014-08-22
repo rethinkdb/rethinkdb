@@ -34,6 +34,8 @@ counted_t<term_t> make_prepend_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_nth_term(
     compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_bracket_term(
+    compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_is_empty_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_slice_term(
