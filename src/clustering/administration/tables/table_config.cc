@@ -2,6 +2,7 @@
 #include "clustering/administration/tables/table_config.hpp"
 
 #include "clustering/administration/datum_adapter.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "clustering/administration/tables/elect_director.hpp"
 
 counted_t<const ql::datum_t> convert_table_config_shard_to_datum(
@@ -254,6 +255,10 @@ bool table_config_artificial_table_backend_t::write_row(
         return false;
     }
 
+    name_string_t table_name = it->second.get_ref().name.get_ref();
+    database_id_t db_id = it->second.get_ref().database.get_ref();
+    name_string_t db_name = get_db_name(db_id);
+
     table_replication_info_t replication_info;
     name_string_t new_table_name;
     name_string_t new_db_name;
@@ -267,13 +272,29 @@ bool table_config_artificial_table_backend_t::write_row(
     }
     guarantee(new_table_id == table_id, "artificial_table_t should ensure that the "
         "primary key doesn't change.");
-    if (new_db_name != get_db_name(it->second.get_ref().database.get_ref())) {
+    if (new_db_name != db_name) {
         *error_out = "It's illegal to change a table's `database` field.";
         return false;
     }
 
     replication_info.chosen_directors =
         table_elect_directors(replication_info.config, name_client);
+
+    if (new_table_name != table_name) {
+        /* Prevent name collisions if possible */
+        metadata_searcher_t<namespace_semilattice_metadata_t> ns_searcher(
+            &md_change.get()->namespaces);
+        metadata_search_status_t status;
+        namespace_predicate_t pred(&new_table_name, &db_id);
+        ns_searcher.find_uniq(pred, &status);
+        if (status != METADATA_ERR_NONE) {
+            *error_out = strprintf("Cannot rename table `%s.%s` to `%s.%s` because "
+                "table `%s.%s` already exists.", db_name.c_str(), table_name.c_str(),
+                db_name.c_str(), new_table_name.c_str(), db_name.c_str(),
+                new_table_name.c_str());
+            return false;
+        }
+    }
 
     it->second.get_mutable()->name =
         it->second.get_ref().name.make_resolving_version(new_table_name, my_machine_id);
