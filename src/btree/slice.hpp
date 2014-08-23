@@ -29,10 +29,11 @@ public:
                            const std::string &identifier,
                            index_type_t index_type)
         : btree_collection(),
-          btree_collection_membership(parent,
-                                      &btree_collection,
-                                      (index_type == index_type_t::PRIMARY ?
-                                       "btree-" : "btree-index-") + identifier),
+          btree_collection_membership(new perfmon_membership_t(
+              parent,
+              &btree_collection,
+              (index_type == index_type_t::PRIMARY ?
+              "btree-" : "btree-index-") + identifier)),
           pm_keys_read(secs_to_ticks(1)),
           pm_keys_set(secs_to_ticks(1)),
           pm_keys_membership(&btree_collection,
@@ -42,8 +43,12 @@ public:
               &pm_total_keys_set, "total_keys_set")
     { }
 
+    void hide() {
+        btree_collection_membership.reset();
+    }
+
     perfmon_collection_t btree_collection;
-    perfmon_membership_t btree_collection_membership;
+    scoped_ptr_t<perfmon_membership_t> btree_collection_membership;
     perfmon_rate_monitor_t
         pm_keys_read,
         pm_keys_set;
