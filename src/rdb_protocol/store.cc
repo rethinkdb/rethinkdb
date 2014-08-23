@@ -11,6 +11,7 @@
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
+#include "rdb_protocol/table_common.hpp"
 
 void store_t::note_reshard() {
     if (changefeed_server.has()) {
@@ -544,19 +545,7 @@ public:
                                          size_t index) const {
         guarantee(index < datums->size());
         counted_t<const ql::datum_t> newd = (*datums)[index];
-        if (d->get_type() == ql::datum_t::R_NULL) {
-            return newd;
-        } else if (conflict_behavior == conflict_behavior_t::REPLACE) {
-            return newd;
-        } else if (conflict_behavior == conflict_behavior_t::UPDATE) {
-            return d->merge(newd);
-        } else {
-            rfail_target(d, ql::base_exc_t::GENERIC,
-                         "Duplicate primary key `%s`:\n%s\n%s",
-                         pkey.c_str(), d->print().c_str(),
-                         newd->print().c_str());
-        }
-        unreachable();
+        return resolve_insert_conflict(pkey, d, newd, conflict_behavior);
     }
     return_changes_t should_return_changes() const { return return_changes; }
 private:

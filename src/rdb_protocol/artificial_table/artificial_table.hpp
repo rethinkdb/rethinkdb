@@ -85,6 +85,22 @@ public:
         const std::set<std::string> &sindexes);
 
 private:
+    /* Calls `backend->read_row()` and then sanity-checks the result */
+    bool checked_read_row(
+        counted_t<const ql::datum_t> pval,
+        signal_t *interruptor,
+        counted_t<const ql::datum_t> *row_out,
+        std::string *error_out);
+
+    void do_single_update(
+        counted_t<const ql::datum_t> pval,
+        const std::function<counted_t<const ql::datum_t>(counted_t<const ql::datum_t>)>
+            &function,
+        return_changes_t return_changes,
+        signal_t *interruptor,
+        counted_t<const ql::datum_t> *stats_inout,
+        std::set<std::string> *conditions_inout);
+
     artificial_table_backend_t *backend;
     std::string primary_key;
 };
