@@ -419,12 +419,5 @@ bool test_rdb_env_t::instance_t::table_find(const name_string_t &name,
     }
 }
 
-bool test_rdb_env_t::instance_t::server_rename(
-        UNUSED const name_string_t &old_name, UNUSED const name_string_t &new_name,
-        UNUSED signal_t *local_interruptor, std::string *error_out) {
-    *error_out = "test_rdb_env_t::instance_t doesn't support renaming servers";
-    return false;
-}
-
 }
 

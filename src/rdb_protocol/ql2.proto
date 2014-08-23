@@ -459,7 +459,6 @@ message Term {
         // omit the first argument to use the default database.)
         TABLE_LIST    = 62; // Database -> ARRAY
                             //  -> ARRAY
-        SERVER_RENAME = 63; // STRING, STRING -> OBJECT
 
         // Ensures that previously issued soft-durability writes are complete and
         // written to disk.

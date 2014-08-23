@@ -109,8 +109,12 @@ public:
     /* `rename_server` changes the name of the peer named `old_name` to `new_name`. On
     success, returns `true`. On failure, returns `false` and sets `*error_out` to an
     informative message. */
-    bool rename_server(const name_string_t &old_name, const name_string_t &new_name,
-        signal_t *interruptor, std::string *error_out);
+    bool rename_server(
+        const machine_id_t &server_id,
+        const name_string_t &server_name,   /* for error messages */
+        const name_string_t &new_name,
+        signal_t *interruptor,
+        std::string *error_out);
 
     /* `retag_server` changes the tags of the server with the given machine ID. On
     success, returns `true`. On failure, returns `false` and sets `*error_out` to an

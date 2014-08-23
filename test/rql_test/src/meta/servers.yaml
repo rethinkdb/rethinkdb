@@ -1,9 +1,0 @@
-desc: Tests meta queries for servers
-tests:
-
-    # We should test this in a scenario that actually works. The problem is that we don't
-    # know the machine name. Once we have meta-queries that let us find out the machine
-    # name, then we can write better tests.
-    - cd: r.server_rename("a", "b")
-      ot: err('RqlRuntimeError', 'Server `a` does not exist.', [0])
-

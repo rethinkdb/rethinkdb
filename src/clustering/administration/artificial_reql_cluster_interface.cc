@@ -103,11 +103,6 @@ bool artificial_reql_cluster_interface_t::table_find(const name_string_t &name,
     return next->table_find(name, db, interruptor, table_out, error_out);
 }
 
-bool artificial_reql_cluster_interface_t::server_rename(const name_string_t &old_name,
-        const name_string_t &new_name, signal_t *interruptor, std::string *error_out) {
-    return next->server_rename(old_name, new_name, interruptor, error_out);
-}
-
 admin_artificial_tables_t::admin_artificial_tables_t(
         reql_cluster_interface_t *_next_reql_cluster_interface,
         const machine_id_t &_my_machine_id,

@@ -384,15 +384,6 @@ bool real_reql_cluster_interface_t::table_find(const name_string_t &name,
     return true;
 }
 
-bool real_reql_cluster_interface_t::server_rename(
-        const name_string_t &old_name, const name_string_t &new_name,
-        signal_t *interruptor, std::string *error_out) {
-    cross_thread_signal_t interruptor2(interruptor, server_name_client->home_thread());
-    on_thread_t thread_switcher(server_name_client->home_thread());
-    return server_name_client->rename_server(old_name, new_name,
-        &interruptor2, error_out);
-}
-
 /* Checks that divisor is indeed a divisor of multiple. */
 template <class T>
 bool is_joined(const T &multiple, const T &divisor) {

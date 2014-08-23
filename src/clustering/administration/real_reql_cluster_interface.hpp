@@ -57,9 +57,6 @@ public:
             signal_t *interruptor, scoped_ptr_t<base_table_t> *table_out,
             std::string *error_out);
 
-    bool server_rename(const name_string_t &old_name, const name_string_t &new_name,
-            signal_t *interruptor, std::string *error_out);
-
     /* `distribution_app_t` needs access to the underlying `namespace_interface_t` */
     namespace_repo_t *get_namespace_repo() {
         return &namespace_repo;
