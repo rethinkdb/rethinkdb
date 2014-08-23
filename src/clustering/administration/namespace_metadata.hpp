@@ -114,8 +114,8 @@ class namespace_semilattice_metadata_t {
 public:
     namespace_semilattice_metadata_t() { }
 
-    vclock_t<name_string_t> name;
-    vclock_t<database_id_t> database;
+    vclock_t<name_string_t> name;   // TODO maybe this belongs on table_config_t
+    vclock_t<database_id_t> database;   // TODO: This should never actually change
     vclock_t<std::string> primary_key;   // TODO: This should never actually change
 
     vclock_t<table_replication_info_t> replication_info;

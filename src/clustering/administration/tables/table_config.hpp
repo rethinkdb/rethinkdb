@@ -10,6 +10,7 @@
 
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
+#include "clustering/administration/tables/backend_common.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rpc/semilattice/view.hpp"
@@ -17,7 +18,7 @@
 class server_name_client_t;
 
 class table_config_artificial_table_backend_t :
-    public artificial_table_backend_t
+    public common_table_artificial_table_backend_t
 {
 public:
     table_config_artificial_table_backend_t(
@@ -27,18 +28,15 @@ public:
             boost::shared_ptr< semilattice_readwrite_view_t<
                 databases_semilattice_metadata_t> > _database_sl_view,
             server_name_client_t *_name_client) :
+        common_table_artificial_table_backend_t(_table_sl_view, _database_sl_view),
         my_machine_id(_my_machine_id),
-        table_sl_view(_table_sl_view),
-        database_sl_view(_database_sl_view),
         name_client(_name_client) { }
 
-    std::string get_primary_key_name();
-    bool read_all_primary_keys(
-            signal_t *interruptor,
-            std::vector<counted_t<const ql::datum_t> > *keys_out,
-            std::string *error_out);
-    bool read_row(
-            counted_t<const ql::datum_t> primary_key,
+    bool read_row_impl(
+            namespace_id_t table_id,
+            name_string_t table_name,
+            name_string_t db_name,
+            const namespace_semilattice_metadata_t &metadata,
             signal_t *interruptor,
             counted_t<const ql::datum_t> *row_out,
             std::string *error_out);
@@ -50,10 +48,6 @@ public:
 
 private:
     machine_id_t my_machine_id;
-    boost::shared_ptr< semilattice_readwrite_view_t<
-        cow_ptr_t<namespaces_semilattice_metadata_t> > > table_sl_view;
-    boost::shared_ptr< semilattice_readwrite_view_t<
-        databases_semilattice_metadata_t> > database_sl_view;
     server_name_client_t *name_client;
 };
 

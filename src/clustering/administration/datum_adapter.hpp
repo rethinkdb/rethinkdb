@@ -17,14 +17,6 @@ bool convert_name_from_datum(
         name_string_t *value_out,
         std::string *error_out);
 
-counted_t<const ql::datum_t> convert_db_and_table_to_datum(
-        const name_string_t &database, const name_string_t &table);
-bool convert_db_and_table_from_datum(
-        counted_t<const ql::datum_t> datum,
-        name_string_t *database_out,
-        name_string_t *table_out,
-        std::string *error_out);
-
 counted_t<const ql::datum_t> convert_uuid_to_datum(
         const uuid_u &value);
 bool convert_uuid_from_datum(
