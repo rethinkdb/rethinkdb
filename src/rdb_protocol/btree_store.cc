@@ -962,6 +962,14 @@ MUST_USE bool store_t::mark_secondary_index_deleted(
     const sindex_name_t sindex_del_name = compute_sindex_deletion_name(sindex.id);
     sindex.being_deleted = true;
     set_secondary_index(sindex_block, sindex_del_name, sindex);
+
+    // Hide the index from the perfmon collection
+    auto slice_it = secondary_index_slices.find(sindex.id);
+    guarantee(slice_it != secondary_index_slices.end());
+    guarantee(slice_it->second.has());
+    slice_it->second->assert_thread();
+    slice_it->second->stats.hide();
+
     return true;
 }
 
