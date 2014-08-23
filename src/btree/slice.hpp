@@ -29,19 +29,21 @@ public:
                            const std::string &identifier,
                            index_type_t index_type)
         : btree_collection(),
-          btree_collection_membership(new perfmon_membership_t(
-              parent,
-              &btree_collection,
-              (index_type == index_type_t::PRIMARY ?
-              "btree-" : "btree-index-") + identifier)),
           pm_keys_read(secs_to_ticks(1)),
           pm_keys_set(secs_to_ticks(1)),
           pm_keys_membership(&btree_collection,
               &pm_keys_read, "keys_read",
               &pm_total_keys_read, "total_keys_read",
               &pm_keys_set, "keys_set",
-              &pm_total_keys_set, "total_keys_set")
-    { }
+              &pm_total_keys_set, "total_keys_set") {
+        if (parent != NULL) {
+            btree_collection_membership.init(new perfmon_membership_t(
+                parent,
+                &btree_collection,
+                (index_type == index_type_t::PRIMARY ?
+                "btree-" : "btree-index-") + identifier));
+        }
+    }
 
     void hide() {
         btree_collection_membership.reset();

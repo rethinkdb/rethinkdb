@@ -131,12 +131,17 @@ store_t::store_t(serializer_t *serializer,
         get_secondary_indexes(&sindex_block, &sindexes);
 
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-            secondary_index_slices.insert(
-                    std::make_pair(it->second.id,
-                                   make_scoped<btree_slice_t>(cache.get(),
-                                                              &perfmon_collection,
-                                                              it->first.name,
-                                                              index_type_t::SECONDARY)));
+            // Deleted secondary indexes should not be added to the perfmons
+            perfmon_collection_t *pc =
+                it->first.being_deleted
+                ? NULL
+                : &perfmon_collection;
+            auto slice = make_scoped<btree_slice_t>(cache.get(),
+                                                    pc,
+                                                    it->first.name,
+                                                    index_type_t::SECONDARY);
+            secondary_index_slices.insert(std::make_pair(it->second.id,
+                                                         std::move(slice)));
         }
 
         update_outdated_sindex_list(&sindex_block);
