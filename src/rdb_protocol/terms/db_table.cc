@@ -25,9 +25,9 @@ name_string_t get_name(counted_t<val_t> val, const term_t *caller,
     return name;
 }
 
-std::map<name_string_t, int> get_replica_counts(counted_t<val_t> arg) {
+std::map<name_string_t, size_t> get_replica_counts(counted_t<val_t> arg) {
     r_sanity_check(arg.has());
-    std::map<name_string_t, int> replica_counts;
+    std::map<name_string_t, size_t> replica_counts;
     counted_t<const datum_t> datum = arg->as_datum();
     if (datum->get_type() == datum_t::R_OBJECT) {
         const std::map<std::string, counted_t<const datum_t> > &obj = datum->as_object();
@@ -39,12 +39,15 @@ std::map<name_string_t, int> get_replica_counts(counted_t<val_t> arg) {
                           it->first.c_str(), name_string_t::valid_char_msg));
             int64_t replicas = checked_convert_to_int(arg.get(), it->second->as_num());
             rcheck_target(arg.get(), base_exc_t::GENERIC,
-                (abs(replicas) < std::numeric_limits<int>::max()),
+                replicas >= 0, "Can't have a negative number of replicas");
+            size_t replicas2 = static_cast<size_t>(replicas);
+            rcheck_target(arg.get(), base_exc_t::GENERIC,
+                static_cast<int64_t>(replicas2) == replicas,
                 strprintf("Integer too large: %" PRIi64, replicas));
-            replica_counts.insert(std::make_pair(name, replicas));
+            replica_counts.insert(std::make_pair(name, replicas2));
         }
     } else if (datum->get_type() == datum_t::R_NUM) {
-        int replicas = arg->as_int<int>();
+        size_t replicas = arg->as_int<size_t>();
         replica_counts.insert(std::make_pair(
             name_string_t::guarantee_valid("default"), replicas));
     } else {

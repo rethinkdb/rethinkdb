@@ -53,8 +53,8 @@ class env_t;
 
 class table_generate_config_params_t {
 public:
-    int num_shards;
-    std::map<name_string_t, int> num_replicas;
+    size_t num_shards;
+    std::map<name_string_t, size_t> num_replicas;
     name_string_t director_tag;
 };
 

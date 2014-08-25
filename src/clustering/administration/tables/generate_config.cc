@@ -46,10 +46,6 @@ static bool validate_params(
     }
     std::map<name_string_t, name_string_t> servers_claimed;
     for (auto it = params.num_replicas.begin(); it != params.num_replicas.end(); ++it) {
-        if (it->second < 0) {
-            *error_out = "Can't have a negative number of replicas";
-            return false;
-        }
         if (it->second == 0) {
             continue;
         }
@@ -248,9 +244,9 @@ bool table_generate_config(
         }
 
         name_string_t server_tag = it->first;
-        int num_in_tag = servers_with_tags.at(server_tag).size();
+        size_t num_in_tag = servers_with_tags.at(server_tag).size();
         if (num_in_tag < params.num_shards) {
-            *error_out = strprintf("You requested %d shards, but there are only %d "
+            *error_out = strprintf("You requested %zu shards, but there are only %zu "
                 "servers with the tag `%s`. reconfigure() requires at least as many "
                 "servers with each tag as there are shards, so that it can distribute "
                 "the shards across servers instead of putting multiple shards on a "
@@ -260,8 +256,8 @@ bool table_generate_config(
             return false;
         }
         if (num_in_tag < it->second) {
-            *error_out = strprintf("You requested %d replicas on servers with the tag "
-                "`%s`, but there are only %d servers with the tag `%s`. It's impossible "
+            *error_out = strprintf("You requested %zu replicas on servers with the tag "
+                "`%s`, but there are only %zu servers with the tag `%s`. It's impossible "
                 "to have more replicas of the data than there are servers.",
                 it->second, server_tag.c_str(), num_in_tag, server_tag.c_str());
             return false;
@@ -269,7 +265,7 @@ bool table_generate_config(
 
         /* Calculate how desirable each shard-server pairing is */
         std::multimap<double, std::pair<int, name_string_t> > costs;
-        for (int shard = 0; shard < params.num_shards; ++shard) {
+        for (size_t shard = 0; shard < params.num_shards; ++shard) {
             region_t region = hash_region_t<key_range_t>(
                 shard_scheme.get_shard_range(shard));
             for (const name_string_t &server : servers_with_tags.at(server_tag)) {
@@ -305,10 +301,10 @@ bool table_generate_config(
             }
         }
 
-        for (int replica = 0; replica < it->second; ++replica) {
+        for (size_t replica = 0; replica < it->second; ++replica) {
             std::vector<name_string_t> picks;
             pick_best_pairings(params.num_shards, &costs, &picks);
-            for (int shard = 0; shard < params.num_shards; ++shard) {
+            for (size_t shard = 0; shard < params.num_shards; ++shard) {
                 config_out->shards[shard].replica_names.insert(picks[shard]);
                 if (server_tag == params.director_tag) {
                     config_out->shards[shard].director_names.push_back(picks[shard]);
