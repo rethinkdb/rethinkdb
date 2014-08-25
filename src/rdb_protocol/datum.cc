@@ -1112,8 +1112,9 @@ size_t datum_t::size() const {
 }
 
 datum_t datum_t::get(size_t index, throw_bool_t throw_bool) const {
-    check_type(R_ARRAY);
-    if (index < size()) {
+    // Calling `size()` here also makes sure this this is actually an R_ARRAY.
+    const size_t array_size = size();
+    if (index < array_size) {
         if (data.get_internal_type() == internal_type_t::BUF_R_ARRAY) {
             const size_t offset = datum_get_element_offset(data.buf_ref, index);
             return datum_deserialize_from_buf(data.buf_ref, offset);
