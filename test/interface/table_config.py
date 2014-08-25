@@ -84,6 +84,29 @@ with driver.Metacluster() as metacluster:
     test(
         [{"replicas": ["a"], "directors": ["a"]}])
 
+    def test_invalid(shards):
+        print "Reconfiguring:", shards
+        try:
+            r.db("rethinkdb").table("table_config").get("test.foo").update(
+                {"shards": shards}).run(conn)
+        except r.RqlRuntimeError:
+            pass
+        else:
+            raise RuntimeError("Cluster accepted config that should be invalid")
+        print "Error, as expected"
+
+    test_invalid([])
+    test_invalid("this is a string")
+    test_invalid(
+        [{"replicas": ["a"], "directors": ["b"], "extra_key": "extra_value"}])
+    test_invalid(
+        [{"replicas": [], "directors": []}])
+    test_invalid(
+        [{"replicas": ["a"], "directors": []}])
+    test_invalid(
+        [{"replicas": ["a"], "directors": ["b"]},
+         {"replicas": ["b"], "directors": ["a"]}])
+
     cluster1.check_and_stop()
 print "Done."
 
