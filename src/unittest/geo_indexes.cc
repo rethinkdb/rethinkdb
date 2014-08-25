@@ -331,8 +331,8 @@ std::vector<datum_t> perform_get_intersecting(
 
     ql::datum_t result = boost::get<ql::datum_t>(geo_response->results_or_error);
     std::vector<datum_t> result_datum;
-    result_datum.reserve(result.size());
-    for (size_t i = 0; i < result.size(); ++i) {
+    result_datum.reserve(result.arr_size());
+    for (size_t i = 0; i < result.arr_size(); ++i) {
         result_datum.push_back(result.get(i));
     }
     return result_datum;

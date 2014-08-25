@@ -660,11 +660,11 @@ datum_t array_datum_stream_t::next(env_t *env, const batchspec_t &bs) {
     return ops_to_do() ? datum_stream_t::next(env, bs) : next_arr_el();
 }
 datum_t array_datum_stream_t::next_arr_el() {
-    return index < arr->size() ? arr->get(index++) : datum_t();
+    return index < arr->arr_size() ? arr->get(index++) : datum_t();
 }
 
 bool array_datum_stream_t::is_exhausted() const {
-    return index >= arr->size();
+    return index >= arr->arr_size();
 }
 bool array_datum_stream_t::is_cfeed() const {
     return false;

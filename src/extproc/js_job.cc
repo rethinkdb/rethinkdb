@@ -655,7 +655,7 @@ v8::Handle<v8::Value> js_from_datum(const ql::datum_t &datum,
     case ql::datum_t::type_t::R_ARRAY: {
         v8::Handle<v8::Array> array = v8::Array::New();
 
-        for (size_t i = 0; i < datum.size(); ++i) {
+        for (size_t i = 0; i < datum.arr_size(); ++i) {
             DECLARE_HANDLE_SCOPE(scope);
             v8::Handle<v8::Value> val = js_from_datum(datum.get(i), err_out);
             guarantee(!val.IsEmpty());

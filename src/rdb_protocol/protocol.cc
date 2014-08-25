@@ -639,7 +639,7 @@ void rdb_r_unshard_visitor_t::operator()(const intersecting_geo_read_t &) {
         }
         auto results = boost::get<ql::datum_t>(&res->results_or_error);
         guarantee(results != NULL);
-        for (size_t j = 0; j < results->size(); ++j) {
+        for (size_t j = 0; j < results->arr_size(); ++j) {
             combined_results.add(results->get(j));
         }
     }

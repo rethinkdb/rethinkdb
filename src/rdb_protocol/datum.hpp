@@ -194,7 +194,7 @@ public:
     const datum_string_t &as_binary() const;
 
     // Array interface
-    size_t size() const;
+    size_t arr_size() const;
     // Access an element of an array.
     datum_t get(size_t index, throw_bool_t throw_bool = THROW) const;
 

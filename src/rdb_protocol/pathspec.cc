@@ -67,7 +67,7 @@ pathspec_t::pathspec_t(datum_t datum, const term_t *_creator)
     } else if (datum->get_type() == datum_t::R_ARRAY) {
         type = VEC;
         vec = new std::vector<pathspec_t>;
-        for (size_t i = 0; i < datum->size(); ++i) {
+        for (size_t i = 0; i < datum->arr_size(); ++i) {
             vec->push_back(pathspec_t(datum->get(i), creator));
         }
     } else if (datum->get_type() == datum_t::R_OBJECT) {
@@ -146,8 +146,8 @@ datum_t project(datum_t datum,
                 const configured_limits_t &limits) {
     if (datum->get_type() == datum_t::R_ARRAY && recurse == RECURSE) {
         datum_array_builder_t res(limits);
-        res.reserve(datum.size());
-        for (size_t i = 0; i < datum.size(); ++i) {
+        res.reserve(datum.arr_size());
+        for (size_t i = 0; i < datum.arr_size(); ++i) {
             res.add(project(datum.get(i), pathspec, DONT_RECURSE, limits));
         }
         return std::move(res).to_datum();
@@ -218,8 +218,8 @@ datum_t unproject(datum_t datum,
                   const configured_limits_t &limits) {
     if (datum->get_type() == datum_t::R_ARRAY && recurse == RECURSE) {
         datum_array_builder_t res(limits);
-        res.reserve(datum.size());
-        for (size_t i = 0; i < datum.size(); ++i) {
+        res.reserve(datum.arr_size());
+        for (size_t i = 0; i < datum.arr_size(); ++i) {
             res.add(unproject(datum.get(i), pathspec, DONT_RECURSE, limits));
         }
         return std::move(res).to_datum();

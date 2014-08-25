@@ -267,8 +267,8 @@ http_datum_stream_t::next_raw_batch(env_t *env, UNUSED const batchspec_t &batchs
 
     if (res.body->get_type() == datum_t::R_ARRAY) {
         std::vector<datum_t> res_arr;
-        res_arr.reserve(res.body.size());
-        for (size_t i = 0; i < res.body.size(); ++i) {
+        res_arr.reserve(res.body.arr_size());
+        for (size_t i = 0; i < res.body.arr_size(); ++i) {
             res_arr.push_back(res.body.get(i));
         }
         return res_arr;
@@ -471,7 +471,7 @@ void http_term_t::get_header(scope_env_t *env,
                 header_out->push_back(str);
             }
         } else if (datum_header->get_type() == datum_t::R_ARRAY) {
-            for (size_t i = 0; i < datum_header->size(); ++i) {
+            for (size_t i = 0; i < datum_header->arr_size(); ++i) {
                 datum_t line = datum_header->get(i);
                 if (line->get_type() != datum_t::R_STR) {
                     rfail_target(header.get(), base_exc_t::GENERIC,

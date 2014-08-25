@@ -531,7 +531,7 @@ void datum_t::array_to_str_key(std::string *str_out) const {
     r_sanity_check(get_type() == R_ARRAY);
     str_out->append("A");
 
-    for (size_t i = 0; i < size() && str_out->size() < MAX_KEY_SIZE; ++i) {
+    for (size_t i = 0; i < arr_size() && str_out->size() < MAX_KEY_SIZE; ++i) {
         datum_t item = get(i, NOTHROW);
         r_sanity_check(item.has());
 
@@ -686,7 +686,7 @@ datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
     } else if (get_type() == R_ARRAY) {
         datum_array_builder_t builder(limits);
 
-        for (size_t i = 0; i < size(); ++i) {
+        for (size_t i = 0; i < arr_size(); ++i) {
             bool encountered_literal;
             datum_t val = get(i).drop_literals(&encountered_literal);
 
@@ -1027,14 +1027,14 @@ const datum_string_t &datum_t::as_str() const {
     return data.r_str;
 }
 
-size_t datum_t::size() const {
+size_t datum_t::arr_size() const {
     check_type(R_ARRAY);
     return data.r_array->size();
 }
 
 datum_t datum_t::get(size_t index, throw_bool_t throw_bool) const {
     // Calling `size()` here also makes sure this this is actually an R_ARRAY.
-    const size_t array_size = size();
+    const size_t array_size = arr_size();
     if (index < array_size) {
         return (*data.r_array)[index];
     } else if (throw_bool == THROW) {
@@ -1095,7 +1095,7 @@ cJSON *datum_t::as_json_raw() const {
     case R_STR: return cJSON_CreateStringN(as_str().data(), as_str().size());
     case R_ARRAY: {
         scoped_cJSON_t arr(cJSON_CreateArray());
-        for (size_t i = 0; i < size(); ++i) {
+        for (size_t i = 0; i < arr_size(); ++i) {
             arr.AddItemToArray(get(i)->as_json_raw());
         }
         return arr.release();
@@ -1231,13 +1231,13 @@ int datum_t::v1_13_cmp(const datum_t &rhs) const {
     case R_STR: return as_str().compare(rhs.as_str());
     case R_ARRAY: {
         size_t i;
-        for (i = 0; i < size(); ++i) {
-            if (i >= rhs.size()) return 1;
+        for (i = 0; i < arr_size(); ++i) {
+            if (i >= rhs.arr_size()) return 1;
             int cmpval = get(i).v1_13_cmp(rhs.get(i));
             if (cmpval != 0) return cmpval;
         }
-        guarantee(i <= rhs.size());
-        return i == rhs.size() ? 0 : -1;
+        guarantee(i <= rhs.arr_size());
+        return i == rhs.arr_size() ? 0 : -1;
     } unreachable();
     case R_OBJECT: {
         if (is_ptype() && !pseudo_compares_as_obj()) {
@@ -1306,13 +1306,13 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
     case R_STR: return as_str().compare(rhs.as_str());
     case R_ARRAY: {
         size_t i;
-        for (i = 0; i < size(); ++i) {
-            if (i >= rhs.size()) return 1;
+        for (i = 0; i < arr_size(); ++i) {
+            if (i >= rhs.arr_size()) return 1;
             int cmpval = get(i).modern_cmp(rhs.get(i));
             if (cmpval != 0) return cmpval;
         }
-        guarantee(i <= rhs.size());
-        return i == rhs.size() ? 0 : -1;
+        guarantee(i <= rhs.arr_size());
+        return i == rhs.arr_size() ? 0 : -1;
     } unreachable();
     case R_OBJECT: {
         size_t i = 0;
@@ -1485,23 +1485,23 @@ datum_t stats_merge(UNUSED const datum_string_t &key,
     if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
         return datum_t(l->as_num() + r->as_num());
     } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
-        if (l->size() + r->size() > limits.array_size_limit()) {
+        if (l->arr_size() + r->arr_size() > limits.array_size_limit()) {
             conditions->insert(strprintf("Too many changes, array truncated to %ld.", limits.array_size_limit()));
             datum_array_builder_t arr(limits);
             size_t so_far = 0;
-            for (size_t i = 0; i < l->size() && so_far < limits.array_size_limit(); ++i, ++so_far) {
+            for (size_t i = 0; i < l->arr_size() && so_far < limits.array_size_limit(); ++i, ++so_far) {
                 arr.add(l->get(i));
             }
-            for (size_t i = 0; i < r->size() && so_far < limits.array_size_limit(); ++i, ++so_far) {
+            for (size_t i = 0; i < r->arr_size() && so_far < limits.array_size_limit(); ++i, ++so_far) {
                 arr.add(r->get(i));
             }
             return std::move(arr).to_datum();
         } else {
             datum_array_builder_t arr(limits);
-            for (size_t i = 0; i < l->size(); ++i) {
+            for (size_t i = 0; i < l->arr_size(); ++i) {
                 arr.add(l->get(i));
             }
-            for (size_t i = 0; i < r->size(); ++i) {
+            for (size_t i = 0; i < r->arr_size(); ++i) {
                 arr.add(r->get(i));
             }
             return std::move(arr).to_datum();
@@ -1553,10 +1553,10 @@ void datum_object_builder_t::add_warning(const char *msg, const configured_limit
     datum_t *warnings_entry = &map[warnings_field];
     if (warnings_entry->has()) {
         // assume here that the warnings array will "always" be small.
-        for (size_t i = 0; i < warnings_entry->size(); ++i) {
+        for (size_t i = 0; i < warnings_entry->arr_size(); ++i) {
             if (warnings_entry->get(i).as_str() == msg) return;
         }
-        rcheck_datum(warnings_entry->size() + 1 <= limits.array_size_limit(),
+        rcheck_datum(warnings_entry->arr_size() + 1 <= limits.array_size_limit(),
             base_exc_t::GENERIC,
             strprintf("Warnings would exceed array size limit %zu; increase it to see warnings", limits.array_size_limit()));
         datum_array_builder_t out(*warnings_entry, limits);
@@ -1573,14 +1573,14 @@ void datum_object_builder_t::add_warnings(const std::set<std::string> &msgs, con
     if (msgs.empty()) return;
     datum_t *warnings_entry = &map[warnings_field];
     if (warnings_entry->has()) {
-        rcheck_datum(warnings_entry->size() + msgs.size() <= limits.array_size_limit(),
+        rcheck_datum(warnings_entry->arr_size() + msgs.size() <= limits.array_size_limit(),
             base_exc_t::GENERIC,
             strprintf("Warnings would exceed array size limit %zu; increase it to see warnings", limits.array_size_limit()));
         datum_array_builder_t out(*warnings_entry, limits);
         for (auto const & msg : msgs) {
             bool seen = false;
             // assume here that the warnings array will "always" be small.
-            for (size_t i = 0; i < warnings_entry->size(); ++i) {
+            for (size_t i = 0; i < warnings_entry->arr_size(); ++i) {
                 if (warnings_entry->get(i).as_str() == msg.c_str()) {
                     seen = true;
                     break;
@@ -1640,8 +1640,8 @@ datum_t datum_object_builder_t::to_datum(
 datum_array_builder_t::datum_array_builder_t(const datum_t &copy_from,
                                              const configured_limits_t &_limits)
     : limits(_limits) {
-    vector.reserve(copy_from.size());
-    for (size_t i = 0; i < copy_from.size(); ++i) {
+    vector.reserve(copy_from.arr_size());
+    for (size_t i = 0; i < copy_from.arr_size(); ++i) {
         vector.push_back(copy_from.get(i));
     }
     rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
@@ -1691,8 +1691,8 @@ void datum_array_builder_t::splice(reql_version_t reql_version, size_t index,
     // First copy the values into a vector so vector.insert() can know the number
     // of elements being inserted.
     std::vector<datum_t> arr;
-    arr.reserve(values.size());
-    for (size_t i = 0; i < values.size(); ++i) {
+    arr.reserve(values.arr_size());
+    for (size_t i = 0; i < values.arr_size(); ++i) {
         arr.push_back(values.get(i));
     }
     vector.insert(vector.begin() + index,

@@ -20,16 +20,16 @@ protected:
         datum_t arr = args->arg(env, 0)->as_datum();
         datum_t new_el = args->arg(env, 1)->as_datum();
         datum_array_builder_t out(env->env->limits());
-        out.reserve(arr->size() + 1);
+        out.reserve(arr->arr_size() + 1);
         if (which_pend == PRE) {
             // TODO: this is horrendously inefficient.
             out.add(new_el);
-            for (size_t i = 0; i < arr->size(); ++i) {
+            for (size_t i = 0; i < arr->arr_size(); ++i) {
                 out.add(arr->get(i));
             }
         } else {
             // TODO: this is horrendously inefficient.
-            for (size_t i = 0; i < arr->size(); ++i) {
+            for (size_t i = 0; i < arr->arr_size(); ++i) {
                 out.add(arr->get(i));
             }
             out.add(new_el);
@@ -87,7 +87,7 @@ private:
         int32_t n = args->arg(env, 1)->as_int<int32_t>();
         if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
             datum_t arr = v->as_datum();
-            size_t real_n = canonicalize(this, n, arr->size());
+            size_t real_n = canonicalize(this, n, arr->arr_size());
             return new_val(arr->get(real_n));
         } else {
             counted_t<table_t> tbl;
@@ -166,16 +166,16 @@ private:
                                  bool left_open, int64_t fake_l,
                                  bool right_open, int64_t fake_r) const {
         uint64_t real_l, real_r;
-        if (canon_helper(arr->size(), left_open, fake_l, true, &real_l)) {
+        if (canon_helper(arr->arr_size(), left_open, fake_l, true, &real_l)) {
             real_l = 0;
         }
-        if (canon_helper(arr->size(), right_open, fake_r, false, &real_r)) {
+        if (canon_helper(arr->arr_size(), right_open, fake_r, false, &real_r)) {
             return new_val(datum_t::empty_array());
         }
 
         datum_array_builder_t out(limits);
         for (uint64_t i = real_l; i < real_r; ++i) {
-            if (i >= arr->size()) {
+            if (i >= arr->arr_size()) {
                 break;
             }
             out.add(arr->get(i));
@@ -300,7 +300,7 @@ private:
         std::set<datum_t, optional_datum_less_t>
             el_set(optional_datum_less_t(env->env->reql_version()));
         datum_array_builder_t out(env->env->limits());
-        for (size_t i = 0; i < arr->size(); ++i) {
+        for (size_t i = 0; i < arr->arr_size(); ++i) {
             if (el_set.insert(arr->get(i)).second) {
                 out.add(arr->get(i));
             }
@@ -328,12 +328,12 @@ private:
         std::set<datum_t, optional_datum_less_t> el_set(
             optional_datum_less_t(env->env->reql_version()));
         datum_array_builder_t out(env->env->limits());
-        for (size_t i = 0; i < arr1->size(); ++i) {
+        for (size_t i = 0; i < arr1->arr_size(); ++i) {
             if (el_set.insert(arr1->get(i)).second) {
                 out.add(arr1->get(i));
             }
         }
-        for (size_t i = 0; i < arr2->size(); ++i) {
+        for (size_t i = 0; i < arr2->arr_size(); ++i) {
             if (el_set.insert(arr2->get(i)).second) {
                 out.add(arr2->get(i));
             }
@@ -358,10 +358,10 @@ private:
         std::set<datum_t, optional_datum_less_t>
             el_set(optional_datum_less_t(env->env->reql_version()));
         datum_array_builder_t out(env->env->limits());
-        for (size_t i = 0; i < arr1->size(); ++i) {
+        for (size_t i = 0; i < arr1->arr_size(); ++i) {
             el_set.insert(arr1->get(i));
         }
-        for (size_t i = 0; i < arr2->size(); ++i) {
+        for (size_t i = 0; i < arr2->arr_size(); ++i) {
             if (std_contains(el_set, arr2->get(i))) {
                 out.add(arr2->get(i));
                 el_set.erase(arr2->get(i));
@@ -387,10 +387,10 @@ private:
         std::set<datum_t, optional_datum_less_t>
             el_set(optional_datum_less_t(env->env->reql_version()));
         datum_array_builder_t out(env->env->limits());
-        for (size_t i = 0; i < arr2->size(); ++i) {
+        for (size_t i = 0; i < arr2->arr_size(); ++i) {
             el_set.insert(arr2->get(i));
         }
-        for (size_t i = 0; i < arr1->size(); ++i) {
+        for (size_t i = 0; i < arr1->arr_size(); ++i) {
             if (!std_contains(el_set, arr1->get(i))) {
                 out.add(arr1->get(i));
                 el_set.insert(arr1->get(i));

@@ -103,10 +103,10 @@ lat_lon_point_t parse_point_argument(const datum_t &point_datum) {
         return extract_lat_lon_point(point_datum);
     } else {
         // The argument must be a coordinate pair
-        rcheck_target(&point_datum, base_exc_t::GENERIC, point_datum->size() == 2,
+        rcheck_target(&point_datum, base_exc_t::GENERIC, point_datum->arr_size() == 2,
             strprintf("Expected point coordinate pair.  "
                       "Got %zu element array instead of a 2 element one.",
-                      point_datum->size()));
+                      point_datum->arr_size()));
         double lat = point_datum->get(0)->as_num();
         double lon = point_datum->get(1)->as_num();
         return lat_lon_point_t(lat, lon);
