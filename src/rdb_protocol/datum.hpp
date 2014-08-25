@@ -149,8 +149,10 @@ public:
     datum_t(std::vector<datum_t> &&_array,
             no_array_size_limit_check_t);
     // This calls maybe_sanitize_ptype(allowed_pts).
+    // The complexity of this constructor is O(object.size()).
     explicit datum_t(std::map<datum_string_t, datum_t> &&object,
                      const std::set<std::string> &allowed_pts = _allowed_pts);
+    // This calls maybe_sanitize_ptype(allowed_pts).
     explicit datum_t(std::vector<std::pair<datum_string_t, datum_t> > &&object,
                      const std::set<std::string> &allowed_pts = _allowed_pts);
 
@@ -297,9 +299,9 @@ public:
 
 private:
     friend void pseudo::sanitize_time(datum_t *time);
-    // Use sparsely, this is an O(n) operation
-    MUST_USE bool add(const datum_string_t &key, datum_t val,
-                      clobber_bool_t clobber_bool = NOCLOBBER); // add to an object
+    // Must only be used during pseudo type sanitization.
+    // The key must already exist.
+    void replace_field(const datum_string_t &key, datum_t val);
 
     static std::vector<std::pair<datum_string_t, datum_t> > to_sorted_vec(
             std::map<datum_string_t, datum_t> &&map);
@@ -391,8 +393,6 @@ int64_t checked_convert_to_int(const rcheckable_t *target, double d);
 class datum_object_builder_t {
 public:
     datum_object_builder_t() { }
-    explicit datum_object_builder_t(const std::map<datum_string_t, datum_t> &m)
-        : map(m) { }
     explicit datum_object_builder_t(const datum_t &copy_from);
 
     // Returns true if the insertion did _not_ happen because the key was already in
@@ -429,7 +429,6 @@ private:
 class datum_array_builder_t {
 public:
     explicit datum_array_builder_t(const configured_limits_t &_limits) : limits(_limits) {}
-    explicit datum_array_builder_t(std::vector<datum_t> &&, const configured_limits_t &);
     explicit datum_array_builder_t(const datum_t &copy_from, const configured_limits_t &);
 
     size_t size() const { return vector.size(); }

@@ -7,6 +7,7 @@
 #include <stdlib.h>
 
 #include <algorithm>
+#include <iterator>
 
 #include "errors.hpp"
 #include <boost/detail/endian.hpp>
@@ -1111,6 +1112,7 @@ size_t datum_t::size() const {
 }
 
 datum_t datum_t::get(size_t index, throw_bool_t throw_bool) const {
+    check_type(R_ARRAY);
     if (index < size()) {
         if (data.get_internal_type() == internal_type_t::BUF_R_ARRAY) {
             const size_t offset = datum_get_element_offset(data.buf_ref, index);
@@ -1232,10 +1234,8 @@ datum_t::as_datum_stream(const protob_t<const Backtrace> &backtrace) const {
     unreachable();
 };
 
-MUST_USE bool datum_t::add(const datum_string_t &key, datum_t val,
-                           clobber_bool_t clobber_bool) {
+void datum_t::replace_field(const datum_string_t &key, datum_t val) {
     check_type(R_OBJECT);
-    check_str_validity(key);
     r_sanity_check(val.has());
     // This function must only be used during sanitization, which is only performed
     // when not loading from a shared buffer.
@@ -1248,15 +1248,10 @@ MUST_USE bool datum_t::add(const datum_string_t &key, datum_t val,
     auto it = std::lower_bound(data.r_object->begin(), data.r_object->end(),
                                key, key_cmp);
 
-    if (it != data.r_object->end() && it->first == key) {
-        if (clobber_bool == CLOBBER) {
-            it->second = val;
-        }
-        return true;
-    } else {
-        data.r_object->insert(it, std::make_pair(key, val));
-        return false;
-    }
+    // The key must already exist
+    r_sanity_check(it != data.r_object->end() && it->first == key);
+
+    it->second = val;
 }
 
 datum_t datum_t::merge(const datum_t &rhs) const {
@@ -1743,12 +1738,6 @@ datum_t datum_object_builder_t::to_datum(
     return datum_t(std::move(map), permissible_ptypes);
 }
 
-datum_array_builder_t::datum_array_builder_t(std::vector<datum_t> &&v,
-                                             const configured_limits_t &_limits)
-    : vector(std::move(v)), limits(_limits) {
-    rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
-}
-
 datum_array_builder_t::datum_array_builder_t(const datum_t &copy_from,
                                              const configured_limits_t &_limits)
     : limits(_limits) {
@@ -1807,7 +1796,9 @@ void datum_array_builder_t::splice(reql_version_t reql_version, size_t index,
     for (size_t i = 0; i < values.size(); ++i) {
         arr.push_back(values.get(i));
     }
-    vector.insert(vector.begin() + index, arr.begin(), arr.end());
+    vector.insert(vector.begin() + index,
+                  std::make_move_iterator(arr.begin()),
+                  std::make_move_iterator(arr.end()));
 
     switch (reql_version) {
     case reql_version_t::v1_13:
