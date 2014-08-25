@@ -4,7 +4,7 @@ tests:
     # We should always start out with a 'test' database and the special 'rethinkdb'
     # database
     - cd: r.db_list()
-      ot: ['rethinkdb', 'test']
+      ot: bag(['rethinkdb', 'test'])
     
     ## DB create
 
