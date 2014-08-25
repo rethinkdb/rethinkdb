@@ -52,7 +52,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
     /* Apply range filter */
     if (!range.is_universe()) {
         std::vector<counted_t<const ql::datum_t> > temp;
-        for (auto key : keys) {
+        for (const counted_t<const ql::datum_t> &key : keys) {
             if (range.contains(reql_version_t::LATEST, key)) {
                 temp.push_back(key);
             }
@@ -66,13 +66,15 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
             break;
         case sorting_t::ASCENDING:
             std::sort(keys.begin(), keys.end(),
-                [](counted_t<const ql::datum_t> a, counted_t<const ql::datum_t> b) {
+                [](const counted_t<const ql::datum_t> &a,
+                   const counted_t<const ql::datum_t> &b) {
                     return a->compare_lt(reql_version_t::LATEST, *b);
                 });
             break;
         case sorting_t::DESCENDING:
             std::sort(keys.begin(), keys.end(),
-                [](counted_t<const ql::datum_t> a, counted_t<const ql::datum_t> b) {
+                [](const counted_t<const ql::datum_t> &a,
+                   const counted_t<const ql::datum_t> &b) {
                     return a->compare_gt(reql_version_t::LATEST, *b);
                 });
             break;
