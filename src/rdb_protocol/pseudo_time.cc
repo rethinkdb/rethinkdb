@@ -473,10 +473,8 @@ void sanitize_time(datum_t *time) {
                 double d = pair.second.as_num();
                 double d2 = sanitize_epoch_sec(d);
                 if (d2 != d) {
-                    bool b = time->add(datum_string_t(epoch_time_key),
-                                       datum_t(d2),
-                                       CLOBBER);
-                    r_sanity_check(b);
+                    time->replace_field(datum_string_t(epoch_time_key),
+                                        datum_t(d2));
                 }
             } else {
                 msg = strprintf("field `%s` must be a number (got `%s` of type %s)",
@@ -492,10 +490,8 @@ void sanitize_time(datum_t *time) {
                     has_timezone = true;
                     tz = (tz == "Z") ? "+00:00" : tz;
                     if (tz != raw_tz) {
-                        bool b = time->add(datum_string_t(timezone_key),
-                                           datum_t(datum_string_t(tz)),
-                                           CLOBBER);
-                        r_sanity_check(b);
+                        time->replace_field(datum_string_t(timezone_key),
+                                            datum_t(datum_string_t(tz)));
                     }
                     continue;
                 } else {

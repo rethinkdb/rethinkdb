@@ -272,9 +272,9 @@ public:
 
 private:
     friend void pseudo::sanitize_time(datum_t *time);
-    // Use sparsely, this is an O(n) operation
-    MUST_USE bool add(const datum_string_t &key, datum_t val,
-                      clobber_bool_t clobber_bool = NOCLOBBER); // add to an object
+    // Must only be used during pseudo type sanitization.
+    // The key must already exist.
+    void replace_field(const datum_string_t &key, datum_t val);
 
     friend size_t datum_serialized_size(const datum_t &);
     friend serialization_result_t datum_serialize(write_message_t *, const datum_t &);

@@ -1136,10 +1136,8 @@ datum_t::as_datum_stream(const protob_t<const Backtrace> &backtrace) const {
     unreachable();
 };
 
-MUST_USE bool datum_t::add(const datum_string_t &key, datum_t val,
-                           clobber_bool_t clobber_bool) {
+void datum_t::replace_field(const datum_string_t &key, datum_t val) {
     check_type(R_OBJECT);
-    check_str_validity(key);
     r_sanity_check(val.has());
 
     auto key_cmp = [](const std::pair<datum_string_t, datum_t> &p1,
@@ -1149,15 +1147,10 @@ MUST_USE bool datum_t::add(const datum_string_t &key, datum_t val,
     auto it = std::lower_bound(data.r_object->begin(), data.r_object->end(),
                                key, key_cmp);
 
-    if (it != data.r_object->end() && it->first == key) {
-        if (clobber_bool == CLOBBER) {
-            it->second = val;
-        }
-        return true;
-    } else {
-        data.r_object->insert(it, std::make_pair(key, val));
-        return false;
-    }
+    // The key must already exist
+    r_sanity_check(it != data.r_object->end() && it->first == key);
+
+    it->second = val;
 }
 
 datum_t datum_t::merge(const datum_t &rhs) const {
