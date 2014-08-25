@@ -7,6 +7,7 @@
 #include <stdlib.h>
 
 #include <algorithm>
+#include <iterator>
 
 #include "errors.hpp"
 #include <boost/detail/endian.hpp>
@@ -1706,7 +1707,9 @@ void datum_array_builder_t::splice(reql_version_t reql_version, size_t index,
     for (size_t i = 0; i < values.size(); ++i) {
         arr.push_back(values.get(i));
     }
-    vector.insert(vector.begin() + index, arr.begin(), arr.end());
+    vector.insert(vector.begin() + index,
+                  std::make_move_iterator(arr.begin()),
+                  std::make_move_iterator(arr.end()));
 
     switch (reql_version) {
     case reql_version_t::v1_13:
