@@ -128,8 +128,10 @@ public:
     datum_t(std::vector<datum_t> &&_array,
             no_array_size_limit_check_t);
     // This calls maybe_sanitize_ptype(allowed_pts).
+    // The complexity of this constructor is O(object.size()).
     explicit datum_t(std::map<datum_string_t, datum_t> &&object,
                      const std::set<std::string> &allowed_pts = _allowed_pts);
+    // This calls maybe_sanitize_ptype(allowed_pts).
     explicit datum_t(std::vector<std::pair<datum_string_t, datum_t> > &&object,
                      const std::set<std::string> &allowed_pts = _allowed_pts);
 
