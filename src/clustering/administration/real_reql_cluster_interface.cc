@@ -469,7 +469,7 @@ bool real_reql_cluster_interface_t::table_reconfigure(
             this,
             params.num_shards,
             ns_metadata_it->second.get_ref().replication_info.get_ref().shard_scheme,
-            interruptor,
+            &interruptor2,
             &new_repli_info.shard_scheme,
             error_out)) {
         return false;

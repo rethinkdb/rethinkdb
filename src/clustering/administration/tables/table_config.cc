@@ -5,6 +5,7 @@
 #include "clustering/administration/tables/elect_director.hpp"
 #include "clustering/administration/tables/lookup.hpp"
 #include "clustering/administration/tables/split_points.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 
 counted_t<const ql::datum_t> convert_table_config_shard_to_datum(
         const table_config_t::shard_t &shard) {
@@ -267,6 +268,7 @@ bool table_config_artificial_table_backend_t::write_row(
             "To delete a table, use `r.table_drop()`.";
         return false;
     }
+    cross_thread_signal_t interruptor2(interruptor, home_thread());
     on_thread_t thread_switcher(home_thread());
     cow_ptr_t<namespaces_semilattice_metadata_t> md = table_sl_view->get();
     name_string_t db_name, table_name;
@@ -313,7 +315,8 @@ bool table_config_artificial_table_backend_t::write_row(
         it->second.get_mutable()->replication_info.get_ref();
     if (!calculate_split_points_intelligently(
             table_id, reql_cluster_interface, replication_info.config.shards.size(),
-            prev.shard_scheme, interruptor, &replication_info.shard_scheme, error_out)) {
+            prev.shard_scheme, &interruptor2, &replication_info.shard_scheme,
+            error_out)) {
         return false;
     }
 
