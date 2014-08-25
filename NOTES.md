@@ -110,6 +110,7 @@ information.
   * Convert `header_lines` into a `map` (#2818)
   * Improve robustness with big documents (#2832)
   * Wipe out old secondary index tree when post-constructing (#2925)
+  * Preliminary fix for web permission issues on CentOS (#2927)
 * ReQL
   * Fix a bug in `delete_at` (#2696)
   * `insert` and `splice` now check array size limit (#2697)
