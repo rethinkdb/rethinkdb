@@ -1033,8 +1033,9 @@ size_t datum_t::size() const {
 }
 
 datum_t datum_t::get(size_t index, throw_bool_t throw_bool) const {
-    check_type(R_ARRAY);
-    if (index < size()) {
+    // Calling `size()` here also makes sure this this is actually an R_ARRAY.
+    const size_t array_size = size();
+    if (index < array_size) {
         return (*data.r_array)[index];
     } else if (throw_bool == THROW) {
         rfail(base_exc_t::NON_EXISTENCE, "Index out of bounds: %zu", index);
