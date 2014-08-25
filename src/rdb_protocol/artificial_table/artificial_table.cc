@@ -65,6 +65,11 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
         case sorting_t::UNORDERED:
             break;
         case sorting_t::ASCENDING:
+            /* It's OK to use `std::sort()` instead of `std::stable_sort()` here because
+            primary keys need to be unique. If we were to support secondary indexes on
+            artificial tables, we would need to ensure that `read_all_primary_keys()`
+            returns the keys in a deterministic order and then we would need to use a
+            `std::stable_sort()` here. */
             std::sort(keys.begin(), keys.end(),
                 [](const counted_t<const ql::datum_t> &a,
                    const counted_t<const ql::datum_t> &b) {
