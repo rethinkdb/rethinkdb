@@ -150,8 +150,8 @@ public:
     bool is_cfeed() const { return false; }
 
 private:
-    std::vector<datum_t>
-    next_raw_batch(env_t *env, UNUSED const batchspec_t &batchspec);
+    std::vector<datum_t> next_page(env_t *env);
+    std::vector<datum_t> next_raw_batch(env_t *env, const batchspec_t &batchspec);
 
     // Helper functions used during `next_raw_batch`
     bool apply_depaginate(env_t *env, const http_result_t &res);
@@ -243,15 +243,7 @@ counted_t<val_t> http_term_t::eval_impl(scope_env_t *env, args_t *args,
 }
 
 std::vector<datum_t>
-http_datum_stream_t::next_raw_batch(env_t *env, UNUSED const batchspec_t &batchspec) {
-    if (!more) {
-        return std::vector<datum_t>();
-    }
-
-    if (!runner.has()) {
-        runner.create(env->get_extproc_pool());
-    }
-
+http_datum_stream_t::next_page(env_t *env) {
     profile::sampler_t sampler(strprintf("Performing HTTP %s of `%s`",
                                          http_method_to_str(opts.method).c_str(),
                                          opts.url.c_str()),
@@ -275,6 +267,29 @@ http_datum_stream_t::next_raw_batch(env_t *env, UNUSED const batchspec_t &batchs
     }
 
     return std::vector<datum_t>({ res.body });
+}
+
+std::vector<datum_t>
+http_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
+    if (!more) {
+        return std::vector<datum_t>();
+    }
+
+    if (!runner.has()) {
+        runner.create(env->get_extproc_pool());
+    }
+
+    std::vector<datum_t> res;
+    if (batchspec.get_batch_type() == batch_type_t::TERMINAL) {
+        while (more) {
+            std::vector<datum_t> delta = next_page(env);
+            std::move(delta.begin(), delta.end(), std::back_inserter(res));
+        }
+    } else {
+        res = next_page(env);
+    }
+
+    return res;
 }
 
 // Returns true if another request should be made, false otherwise

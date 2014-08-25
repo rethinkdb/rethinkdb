@@ -290,7 +290,7 @@ tests:
       ot: [1, 3]
     - cd: r.expr([{'a':1},'a',{'b':2},{'a':3,'c':4}])['a']
       js: r.expr([{'a':1},'a',{'b':2},{'a':3,'c':4}])('a')
-      ot: err("RqlRuntimeError", "Cannot perform get_field on a non-object non-sequence `\"a\"`.", [])
+      ot: err("RqlRuntimeError", "Cannot perform bracket on a non-object non-sequence `\"a\"`.", [])
 
     ## Grouped Map Reduce
 
