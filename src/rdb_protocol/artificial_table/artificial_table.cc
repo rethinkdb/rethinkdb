@@ -115,7 +115,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_row_changes(
         UNUSED const std::string &table_name) {
     /* RSI(reql_admin): Artificial tables will eventually support change feeds. */
     rfail_datum(ql::base_exc_t::GENERIC,
-        "Artificial tables don't support change-feeds.");
+        "Artificial tables don't support changefeeds.");
 }
 
 counted_t<ql::datum_stream_t> artificial_table_t::read_all_changes(
@@ -124,7 +124,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all_changes(
         UNUSED const std::string &table_name) {
     /* RSI(reql_admin): Artificial tables will eventually support change feeds. */
     rfail_datum(ql::base_exc_t::GENERIC,
-        "Artificial tables don't support change-feeds.");
+        "Artificial tables don't support changefeeds.");
 }
 
 counted_t<ql::datum_stream_t> artificial_table_t::read_intersecting(
