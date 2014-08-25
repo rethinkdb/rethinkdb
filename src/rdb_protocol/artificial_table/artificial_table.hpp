@@ -93,6 +93,7 @@ private:
         std::string *error_out);
 
     void do_single_update(
+        ql::env_t *env,
         counted_t<const ql::datum_t> pval,
         const std::function<counted_t<const ql::datum_t>(counted_t<const ql::datum_t>)>
             &function,
