@@ -69,7 +69,8 @@ public:
             counted_t<const ql::datum_t> *new_config_out,
             std::string *error_out);
 
-    /* `distribution_app_t` needs access to the underlying `namespace_interface_t` */
+    /* `calculate_split_points_with_distribution` needs access to the underlying
+    `namespace_interface_t` */
     namespace_repo_t *get_namespace_repo() {
         return &namespace_repo;
     }
