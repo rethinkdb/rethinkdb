@@ -1032,6 +1032,7 @@ size_t datum_t::size() const {
 }
 
 datum_t datum_t::get(size_t index, throw_bool_t throw_bool) const {
+    check_type(R_ARRAY);
     if (index < size()) {
         return (*data.r_array)[index];
     } else if (throw_bool == THROW) {
