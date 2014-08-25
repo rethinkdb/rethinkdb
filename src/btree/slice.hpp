@@ -37,16 +37,23 @@ public:
               &pm_keys_set, "keys_set",
               &pm_total_keys_set, "total_keys_set") {
         if (parent != NULL) {
-            btree_collection_membership.init(new perfmon_membership_t(
-                parent,
-                &btree_collection,
-                (index_type == index_type_t::PRIMARY ?
-                "btree-" : "btree-index-") + identifier));
+            rename(parent, identifier, index_type);
         }
     }
 
     void hide() {
         btree_collection_membership.reset();
+    }
+
+    void rename(perfmon_collection_t *parent,
+                const std::string &identifier,
+                index_type_t index_type) {
+        btree_collection_membership.reset();
+        btree_collection_membership.init(new perfmon_membership_t(
+            parent,
+            &btree_collection,
+            (index_type == index_type_t::PRIMARY ?
+            "btree-" : "btree-index-") + identifier));
     }
 
     perfmon_collection_t btree_collection;
