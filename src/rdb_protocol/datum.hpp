@@ -199,7 +199,7 @@ public:
     datum_t get(size_t index, throw_bool_t throw_bool = THROW) const;
 
     // Object interface
-    size_t num_pairs() const;
+    size_t obj_size() const;
     // Access an element of an object.
     // get_pair does not perform boundary checking. Its primary use is for
     // iterating over the object in combination with num_pairs().

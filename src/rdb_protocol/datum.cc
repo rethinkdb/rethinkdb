@@ -654,7 +654,7 @@ datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
     if (get_type() == R_OBJECT) {
         datum_object_builder_t builder;
 
-        for (size_t i = 0; i < num_pairs(); ++i) {
+        for (size_t i = 0; i < obj_size(); ++i) {
             auto pair = get_pair(i);
             bool encountered_literal;
             datum_t val = pair.second.drop_literals(&encountered_literal);
@@ -1044,21 +1044,21 @@ datum_t datum_t::get(size_t index, throw_bool_t throw_bool) const {
     }
 }
 
-size_t datum_t::num_pairs() const {
+size_t datum_t::obj_size() const {
     check_type(R_OBJECT);
     return data.r_object->size();
 }
 
 std::pair<datum_string_t, datum_t> datum_t::get_pair(size_t index) const {
     check_type(R_OBJECT);
-    guarantee(index < num_pairs());
+    guarantee(index < obj_size());
     return (*data.r_object)[index];
 }
 
 datum_t datum_t::get_field(const datum_string_t &key, throw_bool_t throw_bool) const {
     // Use binary search on top of get_pair()
     size_t range_beg = 0;
-    size_t range_end = num_pairs();
+    size_t range_end = obj_size();
     while (range_beg < range_end) {
         const size_t center = range_beg + ((range_end - range_beg) / 2);
         auto center_pair = get_pair(center);
@@ -1160,7 +1160,7 @@ datum_t datum_t::merge(const datum_t &rhs) const {
     }
 
     datum_object_builder_t d(*this);
-    for (size_t i = 0; i < rhs.num_pairs(); ++i) {
+    for (size_t i = 0; i < rhs.obj_size(); ++i) {
         auto pair = rhs.get_pair(i);
         datum_t sub_lhs = d.try_get(pair.first);
         bool is_literal = pair.second.is_ptype(pseudo::literal_string);
@@ -1195,7 +1195,7 @@ datum_t datum_t::merge(const datum_t &rhs,
                        const configured_limits_t &limits,
                        std::set<std::string> *conditions_out) const {
     datum_object_builder_t d(*this);
-    for (size_t i = 0; i < rhs.num_pairs(); ++i) {
+    for (size_t i = 0; i < rhs.obj_size(); ++i) {
         auto pair = rhs.get_pair(i);
         datum_t left = get_field(pair.first, NOTHROW);
         if (left.has()) {
@@ -1248,7 +1248,7 @@ int datum_t::v1_13_cmp(const datum_t &rhs) const {
         } else {
             size_t i = 0;
             size_t i2 = 0;
-            while (i < num_pairs() && i2 < rhs.num_pairs()) {
+            while (i < obj_size() && i2 < rhs.obj_size()) {
                 auto pair = get_pair(i);
                 auto pair2 = rhs.get_pair(i2);
                 int key_cmpval = pair.first.compare(pair2.first);
@@ -1262,8 +1262,8 @@ int datum_t::v1_13_cmp(const datum_t &rhs) const {
                 ++i;
                 ++i2;
             }
-            if (i != num_pairs()) return 1;
-            if (i2 != rhs.num_pairs()) return -1;
+            if (i != obj_size()) return 1;
+            if (i2 != rhs.obj_size()) return -1;
             return 0;
         }
     } unreachable();
@@ -1317,7 +1317,7 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
     case R_OBJECT: {
         size_t i = 0;
         size_t i2 = 0;
-        while (i < num_pairs() && i2 < rhs.num_pairs()) {
+        while (i < obj_size() && i2 < rhs.obj_size()) {
             auto pair = get_pair(i);
             auto pair2 = rhs.get_pair(i2);
             int key_cmpval = pair.first.compare(pair2.first);
@@ -1331,8 +1331,8 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
             ++i;
             ++i2;
         }
-        if (i != num_pairs()) return 1;
-        if (i2 != rhs.num_pairs()) return -1;
+        if (i != obj_size()) return 1;
+        if (i2 != rhs.obj_size()) return -1;
         return 0;
     } unreachable();
     case R_BINARY: // This should be handled by the ptype code above
@@ -1519,7 +1519,7 @@ datum_t stats_merge(UNUSED const datum_string_t &key,
 }
 
 datum_object_builder_t::datum_object_builder_t(const datum_t &copy_from) {
-    for (size_t i = 0; i < copy_from.num_pairs(); ++i) {
+    for (size_t i = 0; i < copy_from.obj_size(); ++i) {
         map.insert(copy_from.get_pair(i));
     }
 }

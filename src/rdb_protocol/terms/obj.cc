@@ -15,8 +15,8 @@ private:
         datum_t d = args->arg(env, 0)->as_datum();
 
         std::vector<datum_t> arr;
-        arr.reserve(d.num_pairs());
-        for (size_t i = 0; i < d.num_pairs(); ++i) {
+        arr.reserve(d.obj_size());
+        for (size_t i = 0; i < d.obj_size(); ++i) {
             arr.push_back(datum_t(d.get_pair(i).first));
         }
 

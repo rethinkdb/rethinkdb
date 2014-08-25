@@ -69,7 +69,7 @@ datum_t geo_sub(datum_t lhs,
 void sanitize_geometry(datum_t *geo) {
     bool has_type = false;
     bool has_coordinates = false;
-    for (size_t i = 0; i < geo->num_pairs(); ++i) {
+    for (size_t i = 0; i < geo->obj_size(); ++i) {
         auto pair = geo->get_pair(i);
         if (pair.first == "coordinates") {
             pair.second.check_type(datum_t::R_ARRAY);
