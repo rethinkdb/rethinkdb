@@ -50,6 +50,48 @@ MUST_USE archive_result_t datum_deserialize(read_stream_t *s,
 // Keeping this separate means that we don't have to worry about whether datum
 // serialization has changed from cluster version to cluster version.
 
+
+/* Helper functions shared by datum_array_* and datum_object_* */
+size_t read_inner_serialized_size_from_buf(const shared_buf_ref_t<char> &buf) {
+    buffer_read_stream_t s(buf.get(), buf.get_safety_boundary());
+    uint64_t sz;
+    guarantee_deserialization(deserialize_varint_uint64(&s, &sz), "datum buffer size");
+    guarantee(sz <= std::numeric_limits<size_t>::max());
+    return static_cast<size_t>(sz);
+}
+
+// Keep in sync with offset_table_serialized_size
+void serialize_offset_table(write_message_t *wm,
+                            const std::vector<size_t> &elem_sizes) {
+    // num_elements
+    serialize_varint_uint64(wm, elem_sizes.size());
+
+    // the offset table
+    size_t next_offset = 0;
+    for (size_t i = 1; i < elem_sizes.size(); ++i) {
+        next_offset += elem_sizes[i-1];
+        guarantee(next_offset <= std::numeric_limits<uint32_t>::max(),
+                  "Datum is too large for serialization (> 4 GB)");
+        serialize_universal(wm, static_cast<uint32_t>(next_offset));
+    }
+}
+
+// Keep in sync with serialize_offset_table
+size_t offset_table_serialized_size(size_t num_elements) {
+    size_t sz = 0;
+
+    // The size of num_elements
+    sz += varint_uint64_serialized_size(num_elements);
+
+    // The size of the offset table
+    if (num_elements > 1) {
+        sz += (num_elements - 1) * serialize_universal_size_t<uint32_t>::value;
+    }
+
+    return sz;
+}
+
+
 // Keep in sync with datum_array_serialize.
 size_t datum_array_inner_serialized_size(
         const datum_t &datum,
@@ -62,28 +104,17 @@ size_t datum_array_inner_serialized_size(
         && check_errors == check_datum_serialization_errors_t::NO) {
 
         rassert(element_sizes_out == NULL);
-        buffer_read_stream_t s(existing_buf_ref->get(), existing_buf_ref->get_safety_boundary());
-        uint64_t sz;
-        guarantee_deserialization(deserialize_varint_uint64(&s, &sz), "datum buffer size");
-        return sz;
+        return read_inner_serialized_size_from_buf(*existing_buf_ref);
     }
 
+    size_t sz = 0;
+    sz += offset_table_serialized_size(datum.arr_size());
+
+    // The size of all elements
     if (element_sizes_out != NULL) {
         rassert(element_sizes_out->empty());
         element_sizes_out->reserve(datum.arr_size());
     }
-
-    size_t sz = 0;
-
-    // The size of num_elements
-    sz += varint_uint64_serialized_size(datum.arr_size());
-
-    // The size of the offset table
-    if (datum.arr_size() > 1) {
-        sz += (datum.arr_size() - 1) * serialize_universal_size_t<uint32_t>::value;
-    }
-
-    // The size of all elements
     for (size_t i = 0; i < datum.arr_size(); ++i) {
         auto elem = datum.get(i);
         const size_t elem_size = datum_serialized_size(elem, check_errors);
@@ -124,26 +155,15 @@ serialization_result_t datum_array_serialize(
         return serialization_result_t::SUCCESS;
     }
 
-    serialization_result_t res = serialization_result_t::SUCCESS;
-
     // The inner serialized size
     std::vector<size_t> element_sizes;
     serialize_varint_uint64(
         wm, datum_array_inner_serialized_size(datum, &element_sizes, check_errors));
 
-    // num_elements
-    serialize_varint_uint64(wm, datum.arr_size());
-
-    // The offset table
-    size_t next_element_offset = 0;
-    for (size_t i = 1; i < element_sizes.size(); ++i) {
-        next_element_offset += element_sizes[i-1];
-        guarantee(next_element_offset <= std::numeric_limits<uint32_t>::max(),
-                  "Array is too large for serialization (> 4 GB)");
-        serialize_universal(wm, static_cast<uint32_t>(next_element_offset));
-    }
+    serialize_offset_table(wm, element_sizes);
 
     // The elements
+    serialization_result_t res = serialization_result_t::SUCCESS;
     for (size_t i = 0; i < datum.arr_size(); ++i) {
         auto elem = datum.get(i);
         res = res | datum_serialize(wm, elem, check_errors);
@@ -186,28 +206,17 @@ size_t datum_object_inner_serialized_size(
         && check_errors == check_datum_serialization_errors_t::NO) {
 
         rassert(pair_sizes_out == NULL);
-        buffer_read_stream_t s(existing_buf_ref->get(), existing_buf_ref->get_safety_boundary());
-        uint64_t sz;
-        guarantee_deserialization(deserialize_varint_uint64(&s, &sz), "datum buffer size");
-        return sz;
+        return read_inner_serialized_size_from_buf(*existing_buf_ref);
     }
 
+    size_t sz = 0;
+    sz += offset_table_serialized_size(datum.obj_size());
+
+    // The size of all pairs
     if (pair_sizes_out != NULL) {
         rassert(pair_sizes_out->empty());
         pair_sizes_out->reserve(datum.obj_size());
     }
-
-    size_t sz = 0;
-
-    // The size of num_elements
-    sz += varint_uint64_serialized_size(datum.obj_size());
-
-    // The size of the offset table
-    if (datum.obj_size() > 1) {
-        sz += (datum.obj_size() - 1) * serialize_universal_size_t<uint32_t>::value;
-    }
-
-    // The size of all pairs
     for (size_t i = 0; i < datum.obj_size(); ++i) {
         auto pair = datum.get_pair(i);
         const size_t pair_size = datum_serialized_size(pair.first)
@@ -249,26 +258,15 @@ serialization_result_t datum_object_serialize(
         return serialization_result_t::SUCCESS;
     }
 
-    serialization_result_t res = serialization_result_t::SUCCESS;
-
     // The inner serialized size
     std::vector<size_t> pair_sizes;
     serialize_varint_uint64(wm,
         datum_object_inner_serialized_size(datum, &pair_sizes, check_errors));
 
-    // num_elements
-    serialize_varint_uint64(wm, datum.obj_size());
-
-    // The offset table
-    size_t next_pair_offset = 0;
-    for (size_t i = 1; i < pair_sizes.size(); ++i) {
-        next_pair_offset += pair_sizes[i-1];
-        guarantee(next_pair_offset <= std::numeric_limits<uint32_t>::max(),
-                  "Object is too large for serialization (> 4 GB)");
-        serialize_universal(wm, static_cast<uint32_t>(next_pair_offset));
-    }
+    serialize_offset_table(wm, pair_sizes);
 
     // The pairs
+    serialization_result_t res = serialization_result_t::SUCCESS;
     for (size_t i = 0; i < datum.obj_size(); ++i) {
         auto pair = datum.get_pair(i);
         res = res | datum_serialize(wm, pair.first);
