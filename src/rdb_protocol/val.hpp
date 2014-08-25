@@ -2,6 +2,7 @@
 #ifndef RDB_PROTOCOL_VAL_HPP_
 #define RDB_PROTOCOL_VAL_HPP_
 
+#include <map>
 #include <set>
 #include <string>
 #include <utility>
