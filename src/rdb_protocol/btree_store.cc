@@ -913,6 +913,16 @@ void store_t::rename_sindex(
     guarantee(success);
     set_secondary_index(sindex_block, new_name, old_sindex);
 
+    // Rename the perfmons
+    guarantee(!old_name.being_deleted);
+    guarantee(!new_name.being_deleted);
+    auto slice_it = secondary_index_slices.find(old_sindex.id);
+    guarantee(slice_it != secondary_index_slices.end());
+    guarantee(slice_it->second.has());
+    slice_it->second->assert_thread();
+    slice_it->second->stats.rename(&perfmon_collection, new_name.name,
+                                   index_type_t::SECONDARY);
+
     if (index_report != NULL) {
         index_report->index_renamed(old_name.name, new_name.name);
     }
