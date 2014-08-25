@@ -1636,12 +1636,6 @@ datum_t datum_object_builder_t::to_datum(
     return datum_t(std::move(map), permissible_ptypes);
 }
 
-datum_array_builder_t::datum_array_builder_t(std::vector<datum_t> &&v,
-                                             const configured_limits_t &_limits)
-    : vector(std::move(v)), limits(_limits) {
-    rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
-}
-
 datum_array_builder_t::datum_array_builder_t(const datum_t &copy_from,
                                              const configured_limits_t &_limits)
     : limits(_limits) {

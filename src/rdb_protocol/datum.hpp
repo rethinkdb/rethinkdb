@@ -365,8 +365,6 @@ int64_t checked_convert_to_int(const rcheckable_t *target, double d);
 class datum_object_builder_t {
 public:
     datum_object_builder_t() { }
-    explicit datum_object_builder_t(const std::map<datum_string_t, datum_t> &m)
-        : map(m) { }
     explicit datum_object_builder_t(const datum_t &copy_from);
 
     // Returns true if the insertion did _not_ happen because the key was already in
@@ -403,7 +401,6 @@ private:
 class datum_array_builder_t {
 public:
     explicit datum_array_builder_t(const configured_limits_t &_limits) : limits(_limits) {}
-    explicit datum_array_builder_t(std::vector<datum_t> &&, const configured_limits_t &);
     explicit datum_array_builder_t(const datum_t &copy_from, const configured_limits_t &);
 
     size_t size() const { return vector.size(); }
