@@ -108,9 +108,6 @@ tests:
     - cd: db.table('a').reconfigure(0, 1)
       ot: err('RqlRuntimeError', 'Every table must have at least one shard.', [])
 
-    - cd: db.table('a').reconfigure(1000, 1)
-      ot: err('RqlRuntimeError', 'Maximum number of shards is 32.', [])
-
     - py: db.table('a').reconfigure(1, {"default":0})
       js: db.table('a').reconfigure(1, {default:0})
       rb: db.table('a').reconfigure(1, {:default => 0})
@@ -130,7 +127,10 @@ tests:
           of shards, it won\'t be necessary to calculate new balanced shards.', [])
 
     # Insert some data so that `reconfigure()` can pick shard points
-    - cd: db.table('a').insert([{"id":1},{"id":2},{"id":3},{"id":4}])
+    - py: db.table('a').insert([{"id":1}, {"id":2}, {"id":3}, {"id":4}])
+      js: db.table('a').insert([{id:1}, {id:2}, {id:3}, {id:4}])
+      rb: db.table('a').insert([{"id" => 1}, {"id" => 2}, {"id" => 3}, {"id" => 4}])
+      ot: {"inserted": 4}
 
     - cd: db.table('a').reconfigure(2, 1)
       ot: >
