@@ -8,13 +8,15 @@
 #include "clustering/administration/http/last_seen_app.hpp"
 #include "clustering/administration/http/log_app.hpp"
 #include "clustering/administration/http/progress_app.hpp"
-#include "clustering/administration/http/semilattice_app.hpp"
 #include "clustering/administration/http/stat_app.hpp"
 #include "clustering/administration/http/combining_app.hpp"
 #include "http/file_app.hpp"
 #include "http/http.hpp"
 #include "http/routing_app.hpp"
 #include "rpc/semilattice/view/field.hpp"
+
+/* RSI(reql_admin): Most of `/ajax` will go away when the ReQL admin API is mature enough
+to replace it. */
 
 std::map<peer_id_t, log_server_business_card_t> get_log_mailbox(const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> &md) {
     std::map<peer_id_t, log_server_business_card_t> out;
@@ -38,13 +40,10 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         mailbox_manager_t *mbox_manager,
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
             _cluster_semilattice_metadata,
-        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
-            _auth_semilattice_metadata,
         clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata,
         real_reql_cluster_interface_t *_cluster_interface,
         admin_tracker_t *_admin_tracker,
         http_app_t *reql_app,
-        uuid_u _us,
         std::string path)
 {
     std::set<std::string> white_list;
@@ -226,10 +225,6 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
 
     file_app.init(new file_http_app_t(white_list, path));
 
-    cluster_semilattice_app.init(new cluster_semilattice_http_app_t(
-        _cluster_semilattice_metadata, _directory_metadata, _us));
-    auth_semilattice_app.init(new auth_semilattice_http_app_t(
-        _auth_semilattice_metadata, _directory_metadata, _us));
     directory_app.init(new directory_http_app_t(_directory_metadata));
     issues_app.init(new issues_http_app_t(&_admin_tracker->issue_aggregator));
     stat_app.init(new stat_http_app_t(mbox_manager, _directory_metadata, _cluster_semilattice_metadata));
@@ -255,14 +250,10 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     ajax_routes["log"] = log_app.get();
     ajax_routes["progress"] = progress_app.get();
     ajax_routes["distribution"] = distribution_app.get();
-    ajax_routes["semilattice"] = cluster_semilattice_app.get();
-    ajax_routes["auth"] = auth_semilattice_app.get();
     ajax_routes["reql"] = reql_app;
     DEBUG_ONLY_CODE(ajax_routes["cyanide"] = cyanide_app.get());
 
     std::map<std::string, http_json_app_t *> default_views;
-    default_views["semilattice"] = cluster_semilattice_app.get();
-    default_views["auth"] = auth_semilattice_app.get();
     default_views["directory"] = directory_app.get();
     default_views["issues"] = issues_app.get();
     default_views["last_seen"] = last_seen_app.get();

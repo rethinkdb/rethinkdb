@@ -39,28 +39,16 @@ RDB_DECLARE_SERIALIZABLE(cluster_semilattice_metadata_t);
 RDB_DECLARE_SEMILATTICE_JOINABLE(cluster_semilattice_metadata_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(cluster_semilattice_metadata_t);
 
-//json adapter concept for cluster_semilattice_metadata_t
-json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(cluster_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-cJSON *with_ctx_render_as_json(cluster_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-void with_ctx_apply_json_to(cJSON *change, cluster_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-void with_ctx_on_subfield_change(cluster_semilattice_metadata_t *, const vclock_ctx_t &);
-
 class auth_semilattice_metadata_t {
 public:
     auth_semilattice_metadata_t() { }
 
-    vclock_t<auth_key_t> auth_key;
+    versioned_t<auth_key_t> auth_key;
 };
 
 RDB_DECLARE_SERIALIZABLE(auth_semilattice_metadata_t);
 RDB_DECLARE_SEMILATTICE_JOINABLE(auth_semilattice_metadata_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(auth_semilattice_metadata_t);
-
-// json adapter concept for auth_semilattice_metadata_t
-json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(auth_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-cJSON *with_ctx_render_as_json(auth_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-void with_ctx_apply_json_to(cJSON *change, auth_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-void with_ctx_on_subfield_change(auth_semilattice_metadata_t *, const vclock_ctx_t &);
 
 enum cluster_directory_peer_type_t {
     SERVER_PEER,
@@ -185,7 +173,7 @@ cJSON *render_as_json(cluster_directory_peer_type_t *peer_type);
 void apply_json_to(cJSON *, cluster_directory_peer_type_t *);
 
 enum metadata_search_status_t {
-    METADATA_SUCCESS, METADATA_ERR_NONE, METADATA_ERR_MULTIPLE, METADATA_CONFLICT
+    METADATA_SUCCESS, METADATA_ERR_NONE, METADATA_ERR_MULTIPLE
 };
 
 /* A helper class to search through metadata in various ways.  Can be
@@ -244,7 +232,7 @@ public:
 
     struct name_predicate_t {
         bool operator()(T metadata) const {
-            return !metadata.name.in_conflict() && metadata.name.get() == *name;
+            return metadata.name.get_ref() == *name;
         }
         explicit name_predicate_t(const name_string_t *_name): name(_name) { }
     private:
@@ -279,9 +267,9 @@ public:
 class namespace_predicate_t {
 public:
     bool operator()(const namespace_semilattice_metadata_t &ns) const {
-        if (name && (ns.name.in_conflict() || ns.name.get() != *name)) {
+        if (name && ns.name.get_ref() != *name) {
             return false;
-        } else if (db_id && (ns.database.in_conflict() || ns.database.get() != *db_id)) {
+        } else if (db_id && ns.database.get_ref() != *db_id) {
             return false;
         }
         return true;

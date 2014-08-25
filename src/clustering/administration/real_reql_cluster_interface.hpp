@@ -24,7 +24,6 @@ class real_reql_cluster_interface_t : public reql_cluster_interface_t {
 public:
     real_reql_cluster_interface_t(
             mailbox_manager_t *mailbox_manager,
-            machine_id_t my_machine_id,
             boost::shared_ptr< semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > semilattices,
             clone_ptr_t< watchable_t< change_tracking_map_t<
@@ -66,7 +65,6 @@ public:
     }
 private:
     mailbox_manager_t *mailbox_manager;
-    machine_id_t my_machine_id;
     boost::shared_ptr< semilattice_readwrite_view_t<
         cluster_semilattice_metadata_t> > semilattice_root_view;
     clone_ptr_t< watchable_t< change_tracking_map_t<

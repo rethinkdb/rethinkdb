@@ -174,7 +174,6 @@ bool do_serve(io_backender_t *io_backender,
 
         admin_tracker_t admin_tracker(&mailbox_manager,
                                       semilattice_manager_cluster.get_root_view(),
-                                      semilattice_manager_auth.get_root_view(),
                                       directory_read_manager.get_root_view());
 
         outdated_index_server.attach_local_client(&admin_tracker.outdated_index_client);
@@ -263,7 +262,6 @@ bool do_serve(io_backender_t *io_backender,
 
         real_reql_cluster_interface_t real_reql_cluster_interface(
                 &mailbox_manager,
-                machine_id,
                 semilattice_manager_cluster.get_root_view(),
                 directory_read_manager.get_root_view(),
                 &rdb_ctx,
@@ -271,7 +269,6 @@ bool do_serve(io_backender_t *io_backender,
 
         admin_artificial_tables_t admin_tables(
                 &real_reql_cluster_interface,
-                machine_id,
                 semilattice_manager_cluster.get_root_view(),
                 directory_read_manager.get_root_view(),
                 &server_name_client);
@@ -355,12 +352,10 @@ bool do_serve(io_backender_t *io_backender,
                                 serve_info.ports.http_port,
                                 &mailbox_manager,
                                 semilattice_manager_cluster.get_root_view(),
-                                semilattice_manager_auth.get_root_view(),
                                 directory_read_manager.get_root_view(),
                                 &real_reql_cluster_interface,
                                 &admin_tracker,
                                 rdb_query_server.get_http_app(),
-                                machine_id,
                                 serve_info.web_assets));
                         logINF("Listening for administrative HTTP connections on port %d\n",
                                admin_server_ptr->get_port());

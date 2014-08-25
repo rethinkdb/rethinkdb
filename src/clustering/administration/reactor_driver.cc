@@ -448,17 +448,8 @@ void reactor_driver_t::on_change() {
                 reactor_datum,
                 it->first));
         } else if (!it->second.is_deleted()) {
-            const table_replication_info_t *repli_info = NULL;
-            try {
-                repli_info = &it->second.get_ref().replication_info.get_ref();
-            } catch (const in_conflict_exc_t &) {
-                // Since the table's config is in conflict, we ignore it and keep going.
-                // The reactor will keep acting as though it saw the most recent
-                // non-conflicting version. This is OK because we guarantee correctness
-                // even if semilattices are slow to propagate, and this looks the same
-                // from the reactor's point of view.
-                continue;
-            }
+            const table_replication_info_t *repli_info =
+                &it->second.get_ref().replication_info.get_ref();
 
             blueprint_t bp = construct_blueprint(repli_info->config,
                                                  repli_info->chosen_directors,

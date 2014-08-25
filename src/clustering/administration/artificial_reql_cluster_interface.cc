@@ -108,7 +108,6 @@ bool artificial_reql_cluster_interface_t::server_rename(const name_string_t &old
 
 admin_artificial_tables_t::admin_artificial_tables_t(
         reql_cluster_interface_t *_next_reql_cluster_interface,
-        const machine_id_t &_my_machine_id,
         boost::shared_ptr< semilattice_readwrite_view_t<
             cluster_semilattice_metadata_t> > _semilattice_view,
         clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
@@ -122,7 +121,6 @@ admin_artificial_tables_t::admin_artificial_tables_t(
     backends[name_string_t::guarantee_valid("server_config")] =
         server_config_backend.get();
     table_config_backend.init(new table_config_artificial_table_backend_t(
-        _my_machine_id,
         metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
             _semilattice_view),
         metadata_field(&cluster_semilattice_metadata_t::databases,

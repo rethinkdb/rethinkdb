@@ -14,7 +14,6 @@
 
 real_reql_cluster_interface_t::real_reql_cluster_interface_t(
         mailbox_manager_t *_mailbox_manager,
-        uuid_u _my_machine_id,
         boost::shared_ptr<
             semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattices,
         clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
@@ -23,7 +22,6 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
         server_name_client_t *_server_name_client
         ) :
     mailbox_manager(_mailbox_manager),
-    my_machine_id(_my_machine_id),
     semilattice_root_view(_semilattices),
     directory_root_view(_directory),
     cross_thread_namespace_watchables(get_num_threads()),
@@ -84,10 +82,6 @@ static bool check_metadata_status(metadata_search_status_t status,
             }
             return false;
         }
-        case METADATA_CONFLICT: {
-            *error_out = "There is a metadata conflict; please resolve it.";
-            return false;
-        }
         case METADATA_ERR_NONE: {
             if (expect_present) {
                 *error_out = strprintf("%s `%s` does not exist.",
@@ -117,7 +111,7 @@ bool real_reql_cluster_interface_t::db_create(const name_string_t &name,
         }
 
         database_semilattice_metadata_t db;
-        db.name = vclock_t<name_string_t>(name, my_machine_id);
+        db.name = versioned_t<name_string_t>(name);
         metadata.databases.databases.insert(
             std::make_pair(generate_uuid(), make_deletable(db)));
 
@@ -181,10 +175,7 @@ bool real_reql_cluster_interface_t::db_list(
               it != db_searcher.end();
               it = db_searcher.find_next(++it)) {
         guarantee(!it->second.is_deleted());
-        if (it->second.get_ref().name.in_conflict()) {
-            continue;
-        }
-        names_out->insert(it->second.get_ref().name.get());
+        names_out->insert(it->second.get_ref().name.get_ref());
     }
 
     return true;
@@ -255,13 +246,13 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         repli_info.chosen_directors =
             table_elect_directors(repli_info.config, server_name_client);
         namespace_semilattice_metadata_t table_metadata;
-        table_metadata.name = vclock_t<name_string_t>(name, my_machine_id);
-        table_metadata.database = vclock_t<database_id_t>(db->id, my_machine_id);
-        table_metadata.primary_key = vclock_t<std::string>(primary_key, my_machine_id);
+        table_metadata.name = versioned_t<name_string_t>(name);
+        table_metadata.database = versioned_t<database_id_t>(db->id);
+        table_metadata.primary_key = versioned_t<std::string>(primary_key);
         table_metadata.replication_info =
-            vclock_t<table_replication_info_t>(repli_info, my_machine_id);
+            versioned_t<table_replication_info_t>(repli_info);
 
-        /* TODO: Figure out what to do with `hard_durability`. */
+        /* RSI(reql_admin): Figure out what to do with `hard_durability`. */
         (void)hard_durability;
 
         namespace_id = generate_uuid();
@@ -347,12 +338,7 @@ bool real_reql_cluster_interface_t::table_list(counted_t<const ql::db_t> db,
               it != ns_searcher.end();
               it = ns_searcher.find_next(++it, pred)) {
         guarantee(!it->second.is_deleted());
-        if (it->second.get_ref().name.in_conflict()) {
-            /* Maybe we should raise an error instead of silently ignoring the table with
-            the conflicted name */
-            continue;
-        }
-        names_out->insert(it->second.get_ref().name.get());
+        names_out->insert(it->second.get_ref().name.get_ref());
     }
 
     return true;
@@ -373,7 +359,6 @@ bool real_reql_cluster_interface_t::table_find(const name_string_t &name,
     if (!check_metadata_status(status, "Table", db->name + "." + name.str(), true,
             error_out)) return false;
     guarantee(!ns_metadata_it->second.is_deleted());
-    guarantee(!ns_metadata_it->second.get_ref().primary_key.in_conflict());
 
     table_out->init(new real_table_t(
         ns_metadata_it->first,

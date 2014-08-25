@@ -42,11 +42,6 @@ std::set<name_string_t> server_name_client_t::get_servers_with_tag(
         if (it->second.is_deleted()) {
             continue;
         }
-        if (it->second.get_ref().name.in_conflict() ||
-                it->second.get_ref().tags.in_conflict()) {
-            /* RSI(reql_admin): Handle conflicts better maybe */
-            continue;
-        }
         if (it->second.get_ref().tags.get_ref().count(tag) == 1) {
             servers.insert(it->second.get_ref().name.get_ref());
         }

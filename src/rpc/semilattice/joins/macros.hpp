@@ -14,7 +14,7 @@ of the type; the remaining parameters are the fields. You will also need an
 
 Example:
     struct point_t {
-        vclock_t<int> x, y;
+        versioned_t<int> x, y;
     };
     RDB_MAKE_SEMILATTICE_JOINABLE_2(point_t, x, y)
 

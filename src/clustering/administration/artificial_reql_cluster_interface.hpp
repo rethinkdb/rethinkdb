@@ -74,7 +74,6 @@ class admin_artificial_tables_t {
 public:
     admin_artificial_tables_t(
             reql_cluster_interface_t *_next_reql_cluster_interface,
-            const machine_id_t &_my_machine_id,
             boost::shared_ptr< semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > _semilattice_view,
             clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,

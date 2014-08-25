@@ -138,8 +138,7 @@ void server_name_server_t::rename_me(const name_string_t &new_name) {
         deletable_t<machine_semilattice_metadata_t> *entry =
             &metadata.machines.at(my_machine_id);
         if (!entry->is_deleted()) {
-            entry->get_mutable()->name = entry->get_ref().name.make_new_version(
-                new_name, my_machine_id);
+            entry->get_mutable()->name.set(new_name);
             semilattice_view->join(metadata);
         }
     }
@@ -169,8 +168,7 @@ void server_name_server_t::retag_me(const std::set<name_string_t> &new_tags) {
         deletable_t<machine_semilattice_metadata_t> *entry =
             &metadata.machines.at(my_machine_id);
         if (!entry->is_deleted()) {
-            entry->get_mutable()->tags = entry->get_ref().tags.make_new_version(
-                new_tags, my_machine_id);
+            entry->get_mutable()->tags.set(new_tags);
             semilattice_view->join(metadata);
         }
     }

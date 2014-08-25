@@ -16,8 +16,6 @@
 class http_server_t;
 class routing_http_app_t;
 class file_http_app_t;
-class cluster_semilattice_http_app_t;
-class auth_semilattice_http_app_t;
 class directory_http_app_t;
 class issues_http_app_t;
 class stat_http_app_t;
@@ -40,13 +38,10 @@ public:
         mailbox_manager_t *mbox_manager,
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
             _cluster_semilattice_metadata,
-        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
-            _auth_semilattice_metadata,
         clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata,
         real_reql_cluster_interface_t *_cluster_interface,
         admin_tracker_t *_admin_tracker,
         http_app_t *reql_app,
-        uuid_u _us,
         std::string _path);
     ~administrative_http_server_manager_t();
 
@@ -54,8 +49,6 @@ public:
 private:
 
     scoped_ptr_t<file_http_app_t> file_app;
-    scoped_ptr_t<cluster_semilattice_http_app_t> cluster_semilattice_app;
-    scoped_ptr_t<auth_semilattice_http_app_t> auth_semilattice_app;
     scoped_ptr_t<directory_http_app_t> directory_app;
     scoped_ptr_t<issues_http_app_t> issues_app;
     scoped_ptr_t<stat_http_app_t> stat_app;

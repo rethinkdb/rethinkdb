@@ -18,13 +18,10 @@ namespace_id_t lookup_table_with_database(
         case METADATA_ERR_NONE:
             return nil_uuid();
         case METADATA_ERR_MULTIPLE:
-        case METADATA_CONFLICT:
             /* RSI(reql_admin): The reason why we don't handle this case yet is that this
-            situation will probably become impossible. Vector clocks will likely go away
-            (see #2784) and we'll probably implement some sort of automated resolution
-            for database name collisions. */
-            crash("There's a name collision or vector clock conflict and we don't "
-                "handle this case yet."); 
+            situation will become irrelevant when we switch to indexing by UUID instead
+            of by name. */
+            crash("There's a name collision");
         default: unreachable();
     }
     database_id_t db_id = it->first;
@@ -39,13 +36,10 @@ namespace_id_t lookup_table_with_database(
         case METADATA_ERR_NONE:
             return nil_uuid();
         case METADATA_ERR_MULTIPLE:
-        case METADATA_CONFLICT:
             /* RSI(reql_admin): The reason why we don't handle this case yet is that this
-            situation will probably become impossible. Vector clocks will likely go away
-            and we'll probably implement some sort of automated resoution for table name
-            collisions. */
-            crash("There's a name collision or vector clock conflict and we don't "
-                "handle this case yet.");
+            situation will become irrelevant when we switch to indexing by UUID instead
+            of by name. */
+            crash("There's a name collision");
         default: unreachable();
     }
     return it2->first;
