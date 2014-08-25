@@ -51,10 +51,10 @@ private:
         } else if (lhs->get_type() == datum_t::R_ARRAY) {
             rhs->check_type(datum_t::R_ARRAY);
             datum_array_builder_t out(limits);
-            for (size_t i = 0; i < lhs->size(); ++i) {
+            for (size_t i = 0; i < lhs->arr_size(); ++i) {
                 out.add(lhs->get(i));
             }
-            for (size_t i = 0; i < rhs->size(); ++i) {
+            for (size_t i = 0; i < rhs->arr_size(); ++i) {
                 out.add(rhs->get(i));
             }
             return std::move(out).to_datum();
@@ -99,7 +99,7 @@ private:
                    "Cannot multiply an ARRAY by a negative number.");
 
             for (int64_t j = 0; j < num_copies; ++j) {
-                for (size_t i = 0; i < array->size(); ++i) {
+                for (size_t i = 0; i < array->arr_size(); ++i) {
                     out.add(array->get(i));
                 }
             }

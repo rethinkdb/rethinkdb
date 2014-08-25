@@ -1291,7 +1291,7 @@ void compute_keys(const store_key_t &primary_key, ql::datum_t doc,
 
     if (index_info.multi == sindex_multi_bool_t::MULTI
         && index->get_type() == ql::datum_t::R_ARRAY) {
-        for (uint64_t i = 0; i < index->size(); ++i) {
+        for (uint64_t i = 0; i < index->arr_size(); ++i) {
             const ql::datum_t &skey = index->get(i, ql::THROW);
             if (index_info.geo == sindex_geo_bool_t::GEO) {
                 std::vector<std::string> geo_keys = expand_geo_key(reql_version,

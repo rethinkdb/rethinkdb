@@ -707,8 +707,8 @@ private:
                     if (arr[i]->get_type() != datum_t::R_ARRAY) {
                         perms[i].push_back(arr[i]);
                     } else {
-                        perms[i].reserve(arr[i].size());
-                        for (size_t j = 0; j < arr[i].size(); ++j) {
+                        perms[i].reserve(arr[i].arr_size());
+                        for (size_t j = 0; j < arr[i].arr_size(); ++j) {
                             perms[i].push_back(arr[i].get(j));
                         }
                     }

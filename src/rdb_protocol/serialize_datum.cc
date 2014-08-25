@@ -70,21 +70,21 @@ size_t datum_array_inner_serialized_size(
 
     if (element_sizes_out != NULL) {
         rassert(element_sizes_out->empty());
-        element_sizes_out->reserve(datum.size());
+        element_sizes_out->reserve(datum.arr_size());
     }
 
     size_t sz = 0;
 
     // The size of num_elements
-    sz += varint_uint64_serialized_size(datum.size());
+    sz += varint_uint64_serialized_size(datum.arr_size());
 
     // The size of the offset table
-    if (datum.size() > 1) {
-        sz += (datum.size() - 1) * serialize_universal_size_t<uint32_t>::value;
+    if (datum.arr_size() > 1) {
+        sz += (datum.arr_size() - 1) * serialize_universal_size_t<uint32_t>::value;
     }
 
     // The size of all elements
-    for (size_t i = 0; i < datum.size(); ++i) {
+    for (size_t i = 0; i < datum.arr_size(); ++i) {
         auto elem = datum.get(i);
         const size_t elem_size = datum_serialized_size(elem, check_errors);
         if (element_sizes_out != NULL) {
@@ -132,7 +132,7 @@ serialization_result_t datum_array_serialize(
         wm, datum_array_inner_serialized_size(datum, &element_sizes, check_errors));
 
     // num_elements
-    serialize_varint_uint64(wm, datum.size());
+    serialize_varint_uint64(wm, datum.arr_size());
 
     // The offset table
     size_t next_element_offset = 0;
@@ -144,7 +144,7 @@ serialization_result_t datum_array_serialize(
     }
 
     // The elements
-    for (size_t i = 0; i < datum.size(); ++i) {
+    for (size_t i = 0; i < datum.arr_size(); ++i) {
         auto elem = datum.get(i);
         res = res | datum_serialize(wm, elem, check_errors);
     }
@@ -194,21 +194,21 @@ size_t datum_object_inner_serialized_size(
 
     if (pair_sizes_out != NULL) {
         rassert(pair_sizes_out->empty());
-        pair_sizes_out->reserve(datum.num_pairs());
+        pair_sizes_out->reserve(datum.obj_size());
     }
 
     size_t sz = 0;
 
     // The size of num_elements
-    sz += varint_uint64_serialized_size(datum.num_pairs());
+    sz += varint_uint64_serialized_size(datum.obj_size());
 
     // The size of the offset table
-    if (datum.num_pairs() > 1) {
-        sz += (datum.num_pairs() - 1) * serialize_universal_size_t<uint32_t>::value;
+    if (datum.obj_size() > 1) {
+        sz += (datum.obj_size() - 1) * serialize_universal_size_t<uint32_t>::value;
     }
 
     // The size of all pairs
-    for (size_t i = 0; i < datum.num_pairs(); ++i) {
+    for (size_t i = 0; i < datum.obj_size(); ++i) {
         auto pair = datum.get_pair(i);
         const size_t pair_size = datum_serialized_size(pair.first)
                                  + datum_serialized_size(pair.second, check_errors);
@@ -257,7 +257,7 @@ serialization_result_t datum_object_serialize(
         datum_object_inner_serialized_size(datum, &pair_sizes, check_errors));
 
     // num_elements
-    serialize_varint_uint64(wm, datum.num_pairs());
+    serialize_varint_uint64(wm, datum.obj_size());
 
     // The offset table
     size_t next_pair_offset = 0;
@@ -269,7 +269,7 @@ serialization_result_t datum_object_serialize(
     }
 
     // The pairs
-    for (size_t i = 0; i < datum.num_pairs(); ++i) {
+    for (size_t i = 0; i < datum.obj_size(); ++i) {
         auto pair = datum.get_pair(i);
         res = res | datum_serialize(wm, pair.first);
         res = res | datum_serialize(wm, pair.second, check_errors);
@@ -354,7 +354,7 @@ serialization_result_t datum_serialize(
     switch (datum->get_type()) {
     case datum_t::R_ARRAY: {
         res = res | datum_serialize(wm, datum_serialized_type_t::BUF_R_ARRAY);
-        if (datum.size() > 100000)
+        if (datum.arr_size() > 100000)
             res = res | serialization_result_t::ARRAY_TOO_BIG;
         res = res | datum_array_serialize(wm, datum, check_errors);
     } break;

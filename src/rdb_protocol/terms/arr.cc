@@ -20,16 +20,16 @@ protected:
         datum_t arr = args->arg(env, 0)->as_datum();
         datum_t new_el = args->arg(env, 1)->as_datum();
         datum_array_builder_t out(env->env->limits());
-        out.reserve(arr->size() + 1);
+        out.reserve(arr->arr_size() + 1);
         if (which_pend == PRE) {
             // TODO: this is horrendously inefficient.
             out.add(new_el);
-            for (size_t i = 0; i < arr->size(); ++i) {
+            for (size_t i = 0; i < arr->arr_size(); ++i) {
                 out.add(arr->get(i));
             }
         } else {
             // TODO: this is horrendously inefficient.
-            for (size_t i = 0; i < arr->size(); ++i) {
+            for (size_t i = 0; i < arr->arr_size(); ++i) {
                 out.add(arr->get(i));
             }
             out.add(new_el);
@@ -77,58 +77,92 @@ uint64_t canonicalize(const term_t *t, int64_t index, size_t size, bool *oob_out
     return uint64_t(size) + index;
 }
 
+// needed because nth_term_impl may need to recurse over its contents to deal with
+// e.g. grouped data.
+counted_t<val_t> nth_term_direct_impl(const term_t *term, scope_env_t *env,
+                               counted_t<val_t> aggregate, counted_t<val_t> index) {
+    int32_t n = index->as_int<int32_t>();
+    if (aggregate->get_type().is_convertible(val_t::type_t::DATUM)) {
+        datum_t arr = aggregate->as_datum();
+        size_t real_n = canonicalize(term, n, arr.arr_size());
+        return term->new_val(arr.get(real_n));
+    } else {
+        counted_t<table_t> tbl;
+        counted_t<datum_stream_t> s;
+        if (aggregate->get_type().is_convertible(val_t::type_t::SELECTION)) {
+            auto pair = aggregate->as_selection(env->env);
+            tbl = pair.first;
+            s = pair.second;
+        } else {
+            s = aggregate->as_seq(env->env);
+        }
+        rcheck_target(term, base_exc_t::GENERIC, n >= -1,
+                      strprintf("Cannot use an index < -1 (%d) on a stream.", n));
+
+        batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
+        if (n != -1) {
+            batchspec = batchspec.with_at_most(int64_t(n)+1);
+        }
+
+        datum_t last_d;
+        {
+            profile::sampler_t sampler("Find nth element.", env->env->trace);
+            for (int32_t i = 0; ; ++i) {
+                sampler.new_sample();
+                datum_t d = s->next(env->env, batchspec);
+                if (!d.has()) {
+                    rcheck_target(term, base_exc_t::NON_EXISTENCE, n == -1 && last_d.has(),
+                           strprintf("Index out of bounds: %d", n));
+                    return tbl.has() ? term->new_val(last_d, tbl) : term->new_val(last_d);
+                }
+                if (i == n) {
+                    return tbl.has() ? term->new_val(d, tbl) : term->new_val(d);
+                }
+                last_d = d;
+                r_sanity_check(n == -1 || i < n);
+            }
+        }
+    }
+}
+
+counted_t<val_t> nth_term_impl(const term_t *term, scope_env_t *env,
+                               counted_t<val_t> aggregate, counted_t<val_t> index) {
+    if (aggregate->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
+        counted_t<datum_stream_t> seq = aggregate->as_seq(env->env);
+        if (seq->is_grouped()) {
+            counted_t<grouped_data_t> result
+                = seq->to_array(env->env)->as_grouped_data();
+            // (aggregate is empty, because maybe_grouped_data sets at most one of
+            // gd and aggregate, so we don't have to worry about re-evaluating it.
+            counted_t<grouped_data_t> out(new grouped_data_t());
+            for (auto kv = result->begin(grouped::order_doesnt_matter_t());
+                 kv != result->end(grouped::order_doesnt_matter_t());
+                 ++kv) {
+                counted_t<val_t> value
+                    = make_counted<val_t>(kv->second, aggregate->backtrace());
+                (*out)[kv->first]
+                    = nth_term_direct_impl(term, env, value, index)->as_datum();
+            }
+            return make_counted<val_t>(out, term->backtrace());
+        } else {
+            return nth_term_direct_impl(term, env, aggregate, index);
+        }
+    } else {
+        return nth_term_direct_impl(term, env, aggregate, index);
+    }
+}
+
 class nth_term_t : public op_term_t {
 public:
     nth_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
+    friend class bracket_t;
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> v = args->arg(env, 0);
-        int32_t n = args->arg(env, 1)->as_int<int32_t>();
-        if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
-            datum_t arr = v->as_datum();
-            size_t real_n = canonicalize(this, n, arr->size());
-            return new_val(arr->get(real_n));
-        } else {
-            counted_t<table_t> tbl;
-            counted_t<datum_stream_t> s;
-            if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
-                auto pair = v->as_selection(env->env);
-                tbl = pair.first;
-                s = pair.second;
-            } else {
-                s = v->as_seq(env->env);
-            }
-            rcheck(n >= -1,
-                   base_exc_t::GENERIC,
-                   strprintf("Cannot use an index < -1 (%d) on a stream.", n));
-
-            batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
-            if (n != -1) {
-                batchspec = batchspec.with_at_most(int64_t(n)+1);
-            }
-
-            datum_t last_d;
-            {
-                profile::sampler_t sampler("Find nth element.", env->env->trace);
-                for (int32_t i = 0; ; ++i) {
-                    sampler.new_sample();
-                    datum_t d = s->next(env->env, batchspec);
-                    if (!d.has()) {
-                        rcheck(n == -1 && last_d.has(), base_exc_t::NON_EXISTENCE,
-                               strprintf("Index out of bounds: %d", n));
-                        return tbl.has() ? new_val(last_d, tbl) : new_val(last_d);
-                    }
-                    if (i == n) {
-                        return tbl.has() ? new_val(d, tbl) : new_val(d);
-                    }
-                    last_d = d;
-                    r_sanity_check(n == -1 || i < n);
-                }
-            }
-        }
+        return nth_term_impl(this, env, args->arg(env, 0), args->arg(env, 1));
     }
     virtual const char *name() const { return "nth"; }
+    virtual bool is_grouped_seq_op() const { return true; }
 };
 
 class is_empty_term_t : public op_term_t {
@@ -166,16 +200,16 @@ private:
                                  bool left_open, int64_t fake_l,
                                  bool right_open, int64_t fake_r) const {
         uint64_t real_l, real_r;
-        if (canon_helper(arr->size(), left_open, fake_l, true, &real_l)) {
+        if (canon_helper(arr->arr_size(), left_open, fake_l, true, &real_l)) {
             real_l = 0;
         }
-        if (canon_helper(arr->size(), right_open, fake_r, false, &real_r)) {
+        if (canon_helper(arr->arr_size(), right_open, fake_r, false, &real_r)) {
             return new_val(datum_t::empty_array());
         }
 
         datum_array_builder_t out(limits);
         for (uint64_t i = real_l; i < real_r; ++i) {
-            if (i >= arr->size()) {
+            if (i >= arr->arr_size()) {
                 break;
             }
             out.add(arr->get(i));
@@ -300,7 +334,7 @@ private:
         std::set<datum_t, optional_datum_less_t>
             el_set(optional_datum_less_t(env->env->reql_version()));
         datum_array_builder_t out(env->env->limits());
-        for (size_t i = 0; i < arr->size(); ++i) {
+        for (size_t i = 0; i < arr->arr_size(); ++i) {
             if (el_set.insert(arr->get(i)).second) {
                 out.add(arr->get(i));
             }
@@ -328,12 +362,12 @@ private:
         std::set<datum_t, optional_datum_less_t> el_set(
             optional_datum_less_t(env->env->reql_version()));
         datum_array_builder_t out(env->env->limits());
-        for (size_t i = 0; i < arr1->size(); ++i) {
+        for (size_t i = 0; i < arr1->arr_size(); ++i) {
             if (el_set.insert(arr1->get(i)).second) {
                 out.add(arr1->get(i));
             }
         }
-        for (size_t i = 0; i < arr2->size(); ++i) {
+        for (size_t i = 0; i < arr2->arr_size(); ++i) {
             if (el_set.insert(arr2->get(i)).second) {
                 out.add(arr2->get(i));
             }
@@ -358,10 +392,10 @@ private:
         std::set<datum_t, optional_datum_less_t>
             el_set(optional_datum_less_t(env->env->reql_version()));
         datum_array_builder_t out(env->env->limits());
-        for (size_t i = 0; i < arr1->size(); ++i) {
+        for (size_t i = 0; i < arr1->arr_size(); ++i) {
             el_set.insert(arr1->get(i));
         }
-        for (size_t i = 0; i < arr2->size(); ++i) {
+        for (size_t i = 0; i < arr2->arr_size(); ++i) {
             if (std_contains(el_set, arr2->get(i))) {
                 out.add(arr2->get(i));
                 el_set.erase(arr2->get(i));
@@ -387,10 +421,10 @@ private:
         std::set<datum_t, optional_datum_less_t>
             el_set(optional_datum_less_t(env->env->reql_version()));
         datum_array_builder_t out(env->env->limits());
-        for (size_t i = 0; i < arr2->size(); ++i) {
+        for (size_t i = 0; i < arr2->arr_size(); ++i) {
             el_set.insert(arr2->get(i));
         }
-        for (size_t i = 0; i < arr1->size(); ++i) {
+        for (size_t i = 0; i < arr1->arr_size(); ++i) {
             if (!std_contains(el_set, arr1->get(i))) {
                 out.add(arr1->get(i));
                 el_set.insert(arr1->get(i));

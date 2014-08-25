@@ -182,8 +182,8 @@ private:
                 // OBJECT -> ARRAY
                 if (start_type == R_OBJECT_TYPE && end_type == R_ARRAY_TYPE) {
                     std::vector<datum_t> arr;
-                    arr.reserve(d.num_pairs());
-                    for (size_t i = 0; i < d.num_pairs(); ++i) {
+                    arr.reserve(d.obj_size());
+                    for (size_t i = 0; i < d.obj_size(); ++i) {
                         std::pair<datum_string_t, datum_t> pair_in = d.get_pair(i);
                         std::vector<datum_t> pair_out;
                         pair_out.reserve(2);

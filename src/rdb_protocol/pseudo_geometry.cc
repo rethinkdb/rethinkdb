@@ -27,7 +27,7 @@ datum_t geo_sub(datum_t lhs,
                   "Value must be of geometry type.");
 
     rcheck_target(&rhs, base_exc_t::GENERIC,
-                  rhs->get_field("coordinates")->size() <= 1,
+                  rhs->get_field("coordinates")->arr_size() <= 1,
                   "The second argument to `sub` must be a Polygon with only an outer "
                   "shell.  This one has holes.");
 
@@ -37,7 +37,7 @@ datum_t geo_sub(datum_t lhs,
                   strprintf("The first argument to `sub` must be a Polygon.  Found `%s`.",
                             lhs->get_field("type")->as_str().to_std().c_str()));
     rcheck_target(&lhs, base_exc_t::GENERIC,
-                  lhs->get_field("coordinates")->size() >= 1,
+                  lhs->get_field("coordinates")->arr_size() >= 1,
                   "The first argument to `sub` is an empty polygon.  It must at least "
                   "have an outer shell.");
 
@@ -69,7 +69,7 @@ datum_t geo_sub(datum_t lhs,
 void sanitize_geometry(datum_t *geo) {
     bool has_type = false;
     bool has_coordinates = false;
-    for (size_t i = 0; i < geo->num_pairs(); ++i) {
+    for (size_t i = 0; i < geo->obj_size(); ++i) {
         auto pair = geo->get_pair(i);
         if (pair.first == "coordinates") {
             pair.second.check_type(datum_t::R_ARRAY);

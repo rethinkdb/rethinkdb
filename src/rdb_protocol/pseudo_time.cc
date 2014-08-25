@@ -465,7 +465,7 @@ void sanitize_time(datum_t *time) {
     std::string msg;
     bool has_epoch_time = false;
     bool has_timezone = false;
-    for (size_t i = 0; i < time->num_pairs(); ++i) {
+    for (size_t i = 0; i < time->obj_size(); ++i) {
         auto pair = time->get_pair(i);
         if (pair.first == epoch_time_key) {
             if (pair.second.get_type() == datum_t::R_NUM) {

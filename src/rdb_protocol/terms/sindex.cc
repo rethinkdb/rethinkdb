@@ -172,7 +172,7 @@ int64_t initial_poll_ms = 50;
 int64_t max_poll_ms = 10000;
 
 bool all_ready(datum_t statuses) {
-    for (size_t i = 0; i < statuses->size(); ++i) {
+    for (size_t i = 0; i < statuses->arr_size(); ++i) {
         if (!statuses->get(i)->get_field("ready", NOTHROW)->as_bool()) {
             return false;
         }

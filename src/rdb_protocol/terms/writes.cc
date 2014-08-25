@@ -296,7 +296,7 @@ private:
                         stats = stats->merge(d, stats_merge, env->env->limits(),
                                              &conditions);
                     } else {
-                        for (size_t i = 0; i < d->size(); ++i) {
+                        for (size_t i = 0; i < d->arr_size(); ++i) {
                             stats = stats->merge(d->get(i), stats_merge, env->env->limits(),
                                                  &conditions);
                         }

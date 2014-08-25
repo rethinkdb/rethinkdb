@@ -337,7 +337,7 @@ std::string url_encode_fields(CURL *curl_handle,
 
     std::map<std::string, std::string> translated_fields;
 
-    for (size_t field_idx = 0; field_idx < fields->num_pairs(); ++field_idx) {
+    for (size_t field_idx = 0; field_idx < fields->obj_size(); ++field_idx) {
         auto pair = fields->get_pair(field_idx);
         std::string val;
         if (pair.second->get_type() == ql::datum_t::R_NUM) {

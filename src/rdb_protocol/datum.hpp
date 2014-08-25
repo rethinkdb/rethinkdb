@@ -104,7 +104,7 @@ public:
     static datum_t binary(datum_string_t &&value);
     static datum_t binary(const datum_string_t &value);
 
-    // Construct an uninitialized datum_t. This is to easy the transition from
+    // Construct an uninitialized datum_t. This is to ease the transition from
     // counted_t<const datum_t>
     datum_t();
 
@@ -132,12 +132,10 @@ public:
     datum_t(construct_boolean_t, bool _bool);
 
     enum class construct_binary_t { };
-    explicit datum_t(construct_binary_t, const datum_string_t &_data);
-    explicit datum_t(construct_binary_t, datum_string_t &&_data);
+    explicit datum_t(construct_binary_t, datum_string_t _data);
 
     explicit datum_t(double _num);
-    explicit datum_t(datum_string_t &&_str);
-    explicit datum_t(const datum_string_t &_str);
+    explicit datum_t(datum_string_t _str);
     explicit datum_t(const char *cstr);
     explicit datum_t(std::vector<datum_t> &&_array,
                      const configured_limits_t &limits);
@@ -215,12 +213,12 @@ public:
     const datum_string_t &as_binary() const;
 
     // Array interface
-    size_t size() const;
+    size_t arr_size() const;
     // Access an element of an array.
     datum_t get(size_t index, throw_bool_t throw_bool = THROW) const;
 
     // Object interface
-    size_t num_pairs() const;
+    size_t obj_size() const;
     // Access an element of an object.
     // get_pair does not perform boundary checking. Its primary use is for
     // iterating over the object in combination with num_pairs().
@@ -331,17 +329,14 @@ private:
         data_wrapper_t(const data_wrapper_t &copyee);
         data_wrapper_t &operator=(const data_wrapper_t &copyee);
         data_wrapper_t(data_wrapper_t &&movee) noexcept;
-        // TODO: Add move assignment operator
 
         // Mirror the same constructors of datum_t
         data_wrapper_t();
         explicit data_wrapper_t(construct_null_t);
         data_wrapper_t(construct_boolean_t, bool _bool);
-        data_wrapper_t(construct_binary_t, datum_string_t &&data);
-        data_wrapper_t(construct_binary_t, const datum_string_t &data);
+        data_wrapper_t(construct_binary_t, datum_string_t data);
         explicit data_wrapper_t(double num);
-        explicit data_wrapper_t(datum_string_t &&str);
-        explicit data_wrapper_t(const datum_string_t &str);
+        explicit data_wrapper_t(datum_string_t str);
         explicit data_wrapper_t(const char *cstr);
         explicit data_wrapper_t(std::vector<datum_t> &&array);
         explicit data_wrapper_t(

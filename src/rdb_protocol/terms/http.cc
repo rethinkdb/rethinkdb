@@ -112,7 +112,7 @@ private:
 void check_url_params(const datum_t &params,
                       pb_rcheckable_t *val) {
     if (params->get_type() == datum_t::R_OBJECT) {
-        for (size_t i = 0; i < params.num_pairs(); ++i) {
+        for (size_t i = 0; i < params.obj_size(); ++i) {
             auto pair = params.get_pair(i);
             if (pair.second.get_type() != datum_t::R_NUM &&
                 pair.second.get_type() != datum_t::R_STR &&
@@ -150,8 +150,8 @@ public:
     bool is_cfeed() const { return false; }
 
 private:
-    std::vector<datum_t>
-    next_raw_batch(env_t *env, UNUSED const batchspec_t &batchspec);
+    std::vector<datum_t> next_page(env_t *env);
+    std::vector<datum_t> next_raw_batch(env_t *env, const batchspec_t &batchspec);
 
     // Helper functions used during `next_raw_batch`
     bool apply_depaginate(env_t *env, const http_result_t &res);
@@ -243,15 +243,7 @@ counted_t<val_t> http_term_t::eval_impl(scope_env_t *env, args_t *args,
 }
 
 std::vector<datum_t>
-http_datum_stream_t::next_raw_batch(env_t *env, UNUSED const batchspec_t &batchspec) {
-    if (!more) {
-        return std::vector<datum_t>();
-    }
-
-    if (!runner.has()) {
-        runner.create(env->get_extproc_pool());
-    }
-
+http_datum_stream_t::next_page(env_t *env) {
     profile::sampler_t sampler(strprintf("Performing HTTP %s of `%s`",
                                          http_method_to_str(opts.method).c_str(),
                                          opts.url.c_str()),
@@ -267,14 +259,37 @@ http_datum_stream_t::next_raw_batch(env_t *env, UNUSED const batchspec_t &batchs
 
     if (res.body->get_type() == datum_t::R_ARRAY) {
         std::vector<datum_t> res_arr;
-        res_arr.reserve(res.body.size());
-        for (size_t i = 0; i < res.body.size(); ++i) {
+        res_arr.reserve(res.body.arr_size());
+        for (size_t i = 0; i < res.body.arr_size(); ++i) {
             res_arr.push_back(res.body.get(i));
         }
         return res_arr;
     }
 
     return std::vector<datum_t>({ res.body });
+}
+
+std::vector<datum_t>
+http_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
+    if (!more) {
+        return std::vector<datum_t>();
+    }
+
+    if (!runner.has()) {
+        runner.create(env->get_extproc_pool());
+    }
+
+    std::vector<datum_t> res;
+    if (batchspec.get_batch_type() == batch_type_t::TERMINAL) {
+        while (more) {
+            std::vector<datum_t> delta = next_page(env);
+            std::move(delta.begin(), delta.end(), std::back_inserter(res));
+        }
+    } else {
+        res = next_page(env);
+    }
+
+    return res;
 }
 
 // Returns true if another request should be made, false otherwise
@@ -456,7 +471,7 @@ void http_term_t::get_header(scope_env_t *env,
     if (header.has()) {
         datum_t datum_header = header->as_datum();
         if (datum_header->get_type() == datum_t::R_OBJECT) {
-            for (size_t i = 0; i < datum_header.num_pairs(); ++i) {
+            for (size_t i = 0; i < datum_header.obj_size(); ++i) {
                 auto pair = datum_header.get_pair(i);
                 std::string str;
                 if (pair.second->get_type() == datum_t::R_STR) {
@@ -471,7 +486,7 @@ void http_term_t::get_header(scope_env_t *env,
                 header_out->push_back(str);
             }
         } else if (datum_header->get_type() == datum_t::R_ARRAY) {
-            for (size_t i = 0; i < datum_header->size(); ++i) {
+            for (size_t i = 0; i < datum_header->arr_size(); ++i) {
                 datum_t line = datum_header->get(i);
                 if (line->get_type() != datum_t::R_STR) {
                     rfail_target(header.get(), base_exc_t::GENERIC,
@@ -637,7 +652,7 @@ void http_term_t::get_data(
                 // encoding they need when they pass a string
                 data_out->assign(datum_data->as_str().to_std());
             } else if (datum_data->get_type() == datum_t::R_OBJECT) {
-                for (size_t i = 0; i < datum_data.num_pairs(); ++i) {
+                for (size_t i = 0; i < datum_data.obj_size(); ++i) {
                     auto pair = datum_data.get_pair(i);
                     std::string val_str = print_http_param(pair.second,
                                                            "data",

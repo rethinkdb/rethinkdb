@@ -47,9 +47,14 @@ datum_t::data_wrapper_t::data_wrapper_t(datum_t::data_wrapper_t &&movee) noexcep
 
 datum_t::data_wrapper_t &datum_t::data_wrapper_t::operator=(
         const datum_t::data_wrapper_t &copyee) {
-    // Create a temporary copy to keep counted values alive, in case
+    // Ignore self-assignment
+    if (&copyee == this) {
+        return *this;
+    }
+
+    // Move our data out of the way to keep counted values alive, in case
     // copyee is actually pointing to a nested element of ourselves.
-    UNUSED data_wrapper_t this_copy(*this);
+    UNUSED data_wrapper_t this_copy(std::move(*this));
 
     // Destruct our own references
     destruct();
@@ -70,21 +75,14 @@ datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_boolean_t, bool _bool
     r_bool(_bool), internal_type(internal_type_t::R_BOOL) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_binary_t,
-                                        datum_string_t &&_data) :
+                                        datum_string_t _data) :
     r_str(std::move(_data)), internal_type(internal_type_t::R_BINARY) { }
-
-datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_binary_t,
-                                        const datum_string_t &_data) :
-    r_str(_data), internal_type(internal_type_t::R_BINARY) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(double num) :
     r_num(num), internal_type(internal_type_t::R_NUM) { }
 
-datum_t::data_wrapper_t::data_wrapper_t(datum_string_t &&str) :
+datum_t::data_wrapper_t::data_wrapper_t(datum_string_t str) :
     r_str(std::move(str)), internal_type(internal_type_t::R_STR) { }
-
-datum_t::data_wrapper_t::data_wrapper_t(const datum_string_t &str) :
-    r_str(str), internal_type(internal_type_t::R_STR) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(const char *cstr) :
     r_str(cstr), internal_type(internal_type_t::R_STR) { }
@@ -263,11 +261,8 @@ datum_t::datum_t(datum_t::construct_null_t dummy) : data(dummy) { }
 
 datum_t::datum_t(construct_boolean_t dummy, bool _bool) : data(dummy, _bool) { }
 
-datum_t::datum_t(construct_binary_t dummy, datum_string_t &&_data)
+datum_t::datum_t(construct_binary_t dummy, datum_string_t _data)
     : data(dummy, std::move(_data)) { }
-
-datum_t::datum_t(construct_binary_t dummy, const datum_string_t &_data)
-    : data(dummy, _data) { }
 
 datum_t::datum_t(double _num) : data(_num) {
     // isfinite is a macro on OS X in math.h, so we can't just say std::isfinite.
@@ -276,11 +271,7 @@ datum_t::datum_t(double _num) : data(_num) {
            strprintf("Non-finite number: %" PR_RECONSTRUCTABLE_DOUBLE, data.r_num));
 }
 
-datum_t::datum_t(const datum_string_t &_str) : data(_str) {
-    check_str_validity(data.r_str);
-}
-
-datum_t::datum_t(datum_string_t &&_str) : data(std::move(_str)) {
+datum_t::datum_t(datum_string_t _str) : data(std::move(_str)) {
     check_str_validity(data.r_str);
 }
 
@@ -603,7 +594,7 @@ void datum_t::array_to_str_key(std::string *str_out) const {
     r_sanity_check(get_type() == R_ARRAY);
     str_out->append("A");
 
-    for (size_t i = 0; i < size() && str_out->size() < MAX_KEY_SIZE; ++i) {
+    for (size_t i = 0; i < arr_size() && str_out->size() < MAX_KEY_SIZE; ++i) {
         datum_t item = get(i, NOTHROW);
         r_sanity_check(item.has());
 
@@ -728,7 +719,7 @@ datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
     if (get_type() == R_OBJECT) {
         datum_object_builder_t builder;
 
-        for (size_t i = 0; i < num_pairs(); ++i) {
+        for (size_t i = 0; i < obj_size(); ++i) {
             auto pair = get_pair(i);
             bool encountered_literal;
             datum_t val = pair.second.drop_literals(&encountered_literal);
@@ -760,7 +751,7 @@ datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
     } else if (get_type() == R_ARRAY) {
         datum_array_builder_t builder(limits);
 
-        for (size_t i = 0; i < size(); ++i) {
+        for (size_t i = 0; i < arr_size(); ++i) {
             bool encountered_literal;
             datum_t val = get(i).drop_literals(&encountered_literal);
 
@@ -1101,7 +1092,7 @@ const datum_string_t &datum_t::as_str() const {
     return data.r_str;
 }
 
-size_t datum_t::size() const {
+size_t datum_t::arr_size() const {
     check_type(R_ARRAY);
     if (data.get_internal_type() == internal_type_t::BUF_R_ARRAY) {
         return datum_get_array_size(data.buf_ref);
@@ -1112,8 +1103,8 @@ size_t datum_t::size() const {
 }
 
 datum_t datum_t::get(size_t index, throw_bool_t throw_bool) const {
-    // Calling `size()` here also makes sure this this is actually an R_ARRAY.
-    const size_t array_size = size();
+    // Calling `arr_size()` here also makes sure this this is actually an R_ARRAY.
+    const size_t array_size = arr_size();
     if (index < array_size) {
         if (data.get_internal_type() == internal_type_t::BUF_R_ARRAY) {
             const size_t offset = datum_get_element_offset(data.buf_ref, index);
@@ -1129,7 +1120,7 @@ datum_t datum_t::get(size_t index, throw_bool_t throw_bool) const {
     }
 }
 
-size_t datum_t::num_pairs() const {
+size_t datum_t::obj_size() const {
     check_type(R_OBJECT);
     if (data.get_internal_type() == internal_type_t::BUF_R_OBJECT) {
         return datum_get_array_size(data.buf_ref);
@@ -1140,8 +1131,8 @@ size_t datum_t::num_pairs() const {
 }
 
 std::pair<datum_string_t, datum_t> datum_t::get_pair(size_t index) const {
-    check_type(R_OBJECT);
-    guarantee(index < num_pairs());
+    // Calling `obj_size()` here also makes sure this this is actually an R_OBJECT.
+    guarantee(index < obj_size());
     if (data.get_internal_type() == internal_type_t::BUF_R_OBJECT) {
         const size_t offset = datum_get_element_offset(data.buf_ref, index);
         return datum_deserialize_pair_from_buf(data.buf_ref, offset);
@@ -1154,7 +1145,7 @@ std::pair<datum_string_t, datum_t> datum_t::get_pair(size_t index) const {
 datum_t datum_t::get_field(const datum_string_t &key, throw_bool_t throw_bool) const {
     // Use binary search on top of get_pair()
     size_t range_beg = 0;
-    size_t range_end = num_pairs();
+    size_t range_end = obj_size();
     while (range_beg < range_end) {
         const size_t center = range_beg + ((range_end - range_beg) / 2);
         auto center_pair = get_pair(center);
@@ -1191,14 +1182,14 @@ cJSON *datum_t::as_json_raw() const {
     case R_STR: return cJSON_CreateStringN(as_str().data(), as_str().size());
     case R_ARRAY: {
         scoped_cJSON_t arr(cJSON_CreateArray());
-        for (size_t i = 0; i < size(); ++i) {
+        for (size_t i = 0; i < arr_size(); ++i) {
             arr.AddItemToArray(get(i)->as_json_raw());
         }
         return arr.release();
     } break;
     case R_OBJECT: {
         scoped_cJSON_t obj(cJSON_CreateObject());
-        for (size_t i = 0; i < num_pairs(); ++i) {
+        for (size_t i = 0; i < obj_size(); ++i) {
             auto pair = get_pair(i);
             obj.AddItemToObject(pair.first.data(), pair.first.size(),
                                 pair.second.as_json_raw());
@@ -1261,7 +1252,7 @@ datum_t datum_t::merge(const datum_t &rhs) const {
     }
 
     datum_object_builder_t d(*this);
-    for (size_t i = 0; i < rhs.num_pairs(); ++i) {
+    for (size_t i = 0; i < rhs.obj_size(); ++i) {
         auto pair = rhs.get_pair(i);
         datum_t sub_lhs = d.try_get(pair.first);
         bool is_literal = pair.second.is_ptype(pseudo::literal_string);
@@ -1296,7 +1287,7 @@ datum_t datum_t::merge(const datum_t &rhs,
                        const configured_limits_t &limits,
                        std::set<std::string> *conditions_out) const {
     datum_object_builder_t d(*this);
-    for (size_t i = 0; i < rhs.num_pairs(); ++i) {
+    for (size_t i = 0; i < rhs.obj_size(); ++i) {
         auto pair = rhs.get_pair(i);
         datum_t left = get_field(pair.first, NOTHROW);
         if (left.has()) {
@@ -1332,13 +1323,13 @@ int datum_t::v1_13_cmp(const datum_t &rhs) const {
     case R_STR: return as_str().compare(rhs.as_str());
     case R_ARRAY: {
         size_t i;
-        for (i = 0; i < size(); ++i) {
-            if (i >= rhs.size()) return 1;
+        for (i = 0; i < arr_size(); ++i) {
+            if (i >= rhs.arr_size()) return 1;
             int cmpval = get(i).v1_13_cmp(rhs.get(i));
             if (cmpval != 0) return cmpval;
         }
-        guarantee(i <= rhs.size());
-        return i == rhs.size() ? 0 : -1;
+        guarantee(i <= rhs.arr_size());
+        return i == rhs.arr_size() ? 0 : -1;
     } unreachable();
     case R_OBJECT: {
         if (is_ptype() && !pseudo_compares_as_obj()) {
@@ -1349,7 +1340,7 @@ int datum_t::v1_13_cmp(const datum_t &rhs) const {
         } else {
             size_t i = 0;
             size_t i2 = 0;
-            while (i < num_pairs() && i2 < rhs.num_pairs()) {
+            while (i < obj_size() && i2 < rhs.obj_size()) {
                 auto pair = get_pair(i);
                 auto pair2 = rhs.get_pair(i2);
                 int key_cmpval = pair.first.compare(pair2.first);
@@ -1363,8 +1354,8 @@ int datum_t::v1_13_cmp(const datum_t &rhs) const {
                 ++i;
                 ++i2;
             }
-            if (i != num_pairs()) return 1;
-            if (i2 != rhs.num_pairs()) return -1;
+            if (i != obj_size()) return 1;
+            if (i2 != rhs.obj_size()) return -1;
             return 0;
         }
     } unreachable();
@@ -1407,18 +1398,18 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
     case R_STR: return as_str().compare(rhs.as_str());
     case R_ARRAY: {
         size_t i;
-        for (i = 0; i < size(); ++i) {
-            if (i >= rhs.size()) return 1;
+        for (i = 0; i < arr_size(); ++i) {
+            if (i >= rhs.arr_size()) return 1;
             int cmpval = get(i).modern_cmp(rhs.get(i));
             if (cmpval != 0) return cmpval;
         }
-        guarantee(i <= rhs.size());
-        return i == rhs.size() ? 0 : -1;
+        guarantee(i <= rhs.arr_size());
+        return i == rhs.arr_size() ? 0 : -1;
     } unreachable();
     case R_OBJECT: {
         size_t i = 0;
         size_t i2 = 0;
-        while (i < num_pairs() && i2 < rhs.num_pairs()) {
+        while (i < obj_size() && i2 < rhs.obj_size()) {
             auto pair = get_pair(i);
             auto pair2 = rhs.get_pair(i2);
             int key_cmpval = pair.first.compare(pair2.first);
@@ -1432,8 +1423,8 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
             ++i;
             ++i2;
         }
-        if (i != num_pairs()) return 1;
-        if (i2 != rhs.num_pairs()) return -1;
+        if (i != obj_size()) return 1;
+        if (i2 != rhs.obj_size()) return -1;
         return 0;
     } unreachable();
     case R_BINARY: // This should be handled by the ptype code above
@@ -1549,14 +1540,14 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
         } break;
         case R_ARRAY: {
             d->set_type(Datum::R_ARRAY);
-            for (size_t i = 0; i < size(); ++i) {
+            for (size_t i = 0; i < arr_size(); ++i) {
                 get(i).write_to_protobuf(d->add_r_array(), use_json);
             }
         } break;
         case R_OBJECT: {
             d->set_type(Datum::R_OBJECT);
             // We use the opposite order so that things print the way we expect.
-            for (size_t i = num_pairs(); i > 0; --i) {
+            for (size_t i = obj_size(); i > 0; --i) {
                 Datum_AssocPair *ap = d->add_r_object();
                 auto pair = get_pair(i-1);
                 ap->set_key(pair.first.data(), pair.first.size());
@@ -1587,23 +1578,23 @@ datum_t stats_merge(UNUSED const datum_string_t &key,
     if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
         return datum_t(l->as_num() + r->as_num());
     } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
-        if (l->size() + r->size() > limits.array_size_limit()) {
+        if (l->arr_size() + r->arr_size() > limits.array_size_limit()) {
             conditions->insert(strprintf("Too many changes, array truncated to %ld.", limits.array_size_limit()));
             datum_array_builder_t arr(limits);
             size_t so_far = 0;
-            for (size_t i = 0; i < l->size() && so_far < limits.array_size_limit(); ++i, ++so_far) {
+            for (size_t i = 0; i < l->arr_size() && so_far < limits.array_size_limit(); ++i, ++so_far) {
                 arr.add(l->get(i));
             }
-            for (size_t i = 0; i < r->size() && so_far < limits.array_size_limit(); ++i, ++so_far) {
+            for (size_t i = 0; i < r->arr_size() && so_far < limits.array_size_limit(); ++i, ++so_far) {
                 arr.add(r->get(i));
             }
             return std::move(arr).to_datum();
         } else {
             datum_array_builder_t arr(limits);
-            for (size_t i = 0; i < l->size(); ++i) {
+            for (size_t i = 0; i < l->arr_size(); ++i) {
                 arr.add(l->get(i));
             }
-            for (size_t i = 0; i < r->size(); ++i) {
+            for (size_t i = 0; i < r->arr_size(); ++i) {
                 arr.add(r->get(i));
             }
             return std::move(arr).to_datum();
@@ -1621,7 +1612,7 @@ datum_t stats_merge(UNUSED const datum_string_t &key,
 }
 
 datum_object_builder_t::datum_object_builder_t(const datum_t &copy_from) {
-    for (size_t i = 0; i < copy_from.num_pairs(); ++i) {
+    for (size_t i = 0; i < copy_from.obj_size(); ++i) {
         map.insert(copy_from.get_pair(i));
     }
 }
@@ -1655,10 +1646,10 @@ void datum_object_builder_t::add_warning(const char *msg, const configured_limit
     datum_t *warnings_entry = &map[warnings_field];
     if (warnings_entry->has()) {
         // assume here that the warnings array will "always" be small.
-        for (size_t i = 0; i < warnings_entry->size(); ++i) {
+        for (size_t i = 0; i < warnings_entry->arr_size(); ++i) {
             if (warnings_entry->get(i).as_str() == msg) return;
         }
-        rcheck_datum(warnings_entry->size() + 1 <= limits.array_size_limit(),
+        rcheck_datum(warnings_entry->arr_size() + 1 <= limits.array_size_limit(),
             base_exc_t::GENERIC,
             strprintf("Warnings would exceed array size limit %zu; increase it to see warnings", limits.array_size_limit()));
         datum_array_builder_t out(*warnings_entry, limits);
@@ -1675,14 +1666,14 @@ void datum_object_builder_t::add_warnings(const std::set<std::string> &msgs, con
     if (msgs.empty()) return;
     datum_t *warnings_entry = &map[warnings_field];
     if (warnings_entry->has()) {
-        rcheck_datum(warnings_entry->size() + msgs.size() <= limits.array_size_limit(),
+        rcheck_datum(warnings_entry->arr_size() + msgs.size() <= limits.array_size_limit(),
             base_exc_t::GENERIC,
             strprintf("Warnings would exceed array size limit %zu; increase it to see warnings", limits.array_size_limit()));
         datum_array_builder_t out(*warnings_entry, limits);
         for (auto const & msg : msgs) {
             bool seen = false;
             // assume here that the warnings array will "always" be small.
-            for (size_t i = 0; i < warnings_entry->size(); ++i) {
+            for (size_t i = 0; i < warnings_entry->arr_size(); ++i) {
                 if (warnings_entry->get(i).as_str() == msg.c_str()) {
                     seen = true;
                     break;
@@ -1742,8 +1733,8 @@ datum_t datum_object_builder_t::to_datum(
 datum_array_builder_t::datum_array_builder_t(const datum_t &copy_from,
                                              const configured_limits_t &_limits)
     : limits(_limits) {
-    vector.reserve(copy_from.size());
-    for (size_t i = 0; i < copy_from.size(); ++i) {
+    vector.reserve(copy_from.arr_size());
+    for (size_t i = 0; i < copy_from.arr_size(); ++i) {
         vector.push_back(copy_from.get(i));
     }
     rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
@@ -1793,8 +1784,8 @@ void datum_array_builder_t::splice(reql_version_t reql_version, size_t index,
     // First copy the values into a vector so vector.insert() can know the number
     // of elements being inserted.
     std::vector<datum_t> arr;
-    arr.reserve(values.size());
-    for (size_t i = 0; i < values.size(); ++i) {
+    arr.reserve(values.arr_size());
+    for (size_t i = 0; i < values.arr_size(); ++i) {
         arr.push_back(values.get(i));
     }
     vector.insert(vector.begin() + index,
