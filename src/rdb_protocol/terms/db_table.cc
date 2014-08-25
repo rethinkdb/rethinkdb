@@ -339,7 +339,7 @@ private:
                 &new_config, &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
-        return make_counted<val_t>(new_config, backtrace());
+        return new_val(new_config);
     }
     virtual const char *name() const { return "reconfigure"; }
 };
