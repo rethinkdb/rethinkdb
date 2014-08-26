@@ -2,6 +2,6 @@ for interface_test_name in [
         'detect_dead', 'log', 'progress', 'dead_machine_issues',
         'unsatisfiable_goals_issue', 'name_conflict_issue', 'net_corruption',
         'resources', 'large_branch_history', 'metadata_persistence', 'stat',
-        'server_tags', 'table_config', 'table_reconfigure']:
+        'server_config', 'table_config', 'table_reconfigure']:
     generate_test("$RETHINKDB/test/interface/%s.py" % interface_test_name, name=interface_test_name)
 
