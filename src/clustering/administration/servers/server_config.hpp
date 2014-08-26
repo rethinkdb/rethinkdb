@@ -42,11 +42,14 @@ public:
             std::string *error_out);
 
 private:
-    bool lookup(counted_t<const ql::datum_t> primary_key,
-                machines_semilattice_metadata_t *machines,
-                name_string_t *name_out,
-                machine_id_t *machine_id_out,
-                machine_semilattice_metadata_t **machine_out);
+    /* `lookup()` returns `true` if it finds a row corresponding to the given
+    `primary_key` and `false` if it does not find a row. It never produces an error. */
+    bool lookup(
+            counted_t<const ql::datum_t> primary_key,
+            machines_semilattice_metadata_t *machines,
+            name_string_t *name_out,
+            machine_id_t *machine_id_out,
+            machine_semilattice_metadata_t **machine_out);
 
     boost::shared_ptr< semilattice_read_view_t<
         machines_semilattice_metadata_t> > servers_sl_view;

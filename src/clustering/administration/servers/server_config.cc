@@ -69,7 +69,7 @@ bool convert_server_config_and_name_from_datum(
 }
 
 std::string server_config_artificial_table_backend_t::get_primary_key_name() {
-    return "name";
+    return "uuid";
 }
 
 bool server_config_artificial_table_backend_t::read_all_primary_keys(
@@ -164,7 +164,6 @@ bool server_config_artificial_table_backend_t::lookup(
     }
     auto it = machines->machines.find(*server_id_out);
     if (it == machines->machines.end()) {
-        
         return false;
     }
     if (it->second.is_deleted()) {
