@@ -44,35 +44,38 @@ stop_t::stop_t()
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(stop_t, when_);
 
-counted_t<const ql::datum_t> construct_start(
+ql::datum_t construct_start(
         ticks_t duration, std::string description,
-        counted_t<const ql::datum_t> sub_tasks) {
-    std::map<std::string, counted_t<const ql::datum_t> > res;
-    res["duration(ms)"] = make_counted<const ql::datum_t>(safe_to_double(duration) / MILLION);
-    res["description"] = make_counted<const ql::datum_t>(std::move(description));
-    res["sub_tasks"] = sub_tasks;
-    return make_counted<const ql::datum_t>(std::move(res));
+        ql::datum_t sub_tasks) {
+    std::map<datum_string_t, ql::datum_t> res;
+    res[datum_string_t("duration(ms)")] =
+        ql::datum_t(safe_to_double(duration) / MILLION);
+    res[datum_string_t("description")] =
+        ql::datum_t(datum_string_t(description));
+    res[datum_string_t("sub_tasks")] = sub_tasks;
+    return ql::datum_t(std::move(res));
 }
 
-counted_t<const ql::datum_t> construct_split(
-        counted_t<const ql::datum_t> par_tasks) {
-    std::map<std::string, counted_t<const ql::datum_t> > res;
-    res["parallel_tasks"] = par_tasks;
-    return make_counted<const ql::datum_t>(std::move(res));
+ql::datum_t construct_split(
+        ql::datum_t par_tasks) {
+    std::map<datum_string_t, ql::datum_t> res;
+    res[datum_string_t("parallel_tasks")] = par_tasks;
+    return ql::datum_t(std::move(res));
 }
 
-counted_t<const ql::datum_t> construct_sample(
+ql::datum_t construct_sample(
         const sample_t *sample) {
-    std::map<std::string, counted_t<const ql::datum_t> > res;
+    std::map<datum_string_t, ql::datum_t> res;
     double mean_duration = safe_to_double(sample->mean_duration_) / MILLION;
     double n_samples = safe_to_double(sample->n_samples_);
-    res["mean_duration(ms)"] = make_counted<const ql::datum_t>(mean_duration);
-    res["n_samples"] = make_counted<const ql::datum_t>(n_samples);
-    res["description"] = make_counted<const ql::datum_t>(std::string(sample->description_));
-    return make_counted<const ql::datum_t>(std::move(res));
+    res[datum_string_t("mean_duration(ms)")] = ql::datum_t(mean_duration);
+    res[datum_string_t("n_samples")] = ql::datum_t(n_samples);
+    res[datum_string_t("description")] =
+        ql::datum_t(datum_string_t(sample->description_));
+    return ql::datum_t(std::move(res));
 }
 
-counted_t<const ql::datum_t> construct_datum(
+ql::datum_t construct_datum(
         event_log_t::const_iterator *begin,
         event_log_t::const_iterator end,
         const ql::configured_limits_t &limits);
@@ -88,12 +91,12 @@ public:
     construct_datum_visitor_t(
         event_log_t::const_iterator *begin, event_log_t::const_iterator end,
         const ql::configured_limits_t *limits,
-        std::vector<counted_t<const ql::datum_t> > *res)
+        std::vector<ql::datum_t> *res)
         : begin_(begin), end_(end), limits_(limits), res_(res) { }
 
     void operator()(const start_t &start) const {
         (*begin_)++;
-        counted_t<const ql::datum_t> sub_tasks = construct_datum(begin_, end_, *limits_);
+        ql::datum_t sub_tasks = construct_datum(begin_, end_, *limits_);
         auto stop = boost::get<stop_t>(&**begin_);
         guarantee(stop);
         res_->push_back(construct_start(
@@ -102,14 +105,14 @@ public:
     }
     void operator()(const split_t &split) const {
         (*begin_)++;
-        std::vector<counted_t<const ql::datum_t> > parallel_tasks;
+        std::vector<ql::datum_t> parallel_tasks;
         for (size_t i = 0; i < split.n_parallel_jobs_; ++i) {
             parallel_tasks.push_back(construct_datum(begin_, end_, *limits_));
             guarantee(boost::get<stop_t>(&**begin_));
             (*begin_)++;
         }
         res_->push_back(construct_split(
-            make_counted<const ql::datum_t>(std::move(parallel_tasks), *limits_)));
+            ql::datum_t(std::move(parallel_tasks), *limits_)));
     }
     void operator()(const sample_t &sample) const {
         (*begin_)++;
@@ -123,21 +126,21 @@ private:
     event_log_t::const_iterator *begin_;
     event_log_t::const_iterator end_;
     const ql::configured_limits_t *limits_;
-    std::vector<counted_t<const ql::datum_t> > *res_;
+    std::vector<ql::datum_t> *res_;
 };
 
-counted_t<const ql::datum_t> construct_datum(
+ql::datum_t construct_datum(
         event_log_t::const_iterator *begin,
         event_log_t::const_iterator end,
         const ql::configured_limits_t &limits) {
-    std::vector<counted_t<const ql::datum_t> > res;
+    std::vector<ql::datum_t> res;
 
     construct_datum_visitor_t visitor(begin, end, &limits, &res);
     while (*begin != end && !boost::get<stop_t>(&**begin)) {
         boost::apply_visitor(visitor, **begin);
     }
 
-    return make_counted<const ql::datum_t>(std::move(res), limits);
+    return ql::datum_t(std::move(res), limits);
 }
 
 class print_event_log_visitor_t : public boost::static_visitor<void> {
@@ -288,7 +291,7 @@ void disabler_t::init(trace_t *parent) {
 trace_t::trace_t()
     : redirected_event_log_(NULL), disabled_ref_count_(0) { }
 
-counted_t<const ql::datum_t> trace_t::as_datum() const {
+ql::datum_t trace_t::as_datum() const {
     guarantee(!redirected_event_log_);
     event_log_t::const_iterator begin = event_log_.begin();
     // Again, use defaults, as there's no predicting where this could

@@ -174,9 +174,9 @@ empty_ok_ref_t<T> deserialize_deref(const empty_ok_t<T> &val) {
 }
 
 // A convenient wrapper for marking fields (of smart pointer types, typically) as being
-// allowed to be serialized empty.  For example, counted_t<const datum_t> typically
+// allowed to be serialized empty.  For example, datum_t typically
 // must be non-empty when serialized, but a special implementation for type
-// empty_ok_t<counted_t<const datum_t> > is made that lets you serialize empty datum's.
+// empty_ok_t<datum_t> is made that lets you serialize empty datum's.
 // Simply wrap the name with empty_ok(...) in the serialization macro.
 template <class T>
 empty_ok_t<T> empty_ok(T &field) {  // NOLINT(runtime/references)

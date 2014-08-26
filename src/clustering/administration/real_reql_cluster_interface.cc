@@ -415,7 +415,7 @@ bool real_reql_cluster_interface_t::table_reconfigure(
         const table_generate_config_params_t &params,
         bool dry_run,
         signal_t *interruptor,
-        counted_t<const ql::datum_t> *new_config_out,
+        ql::datum_t *new_config_out,
         std::string *error_out) {
     cross_thread_signal_t interruptor2(interruptor, server_name_client->home_thread());
     on_thread_t thread_switcher(server_name_client->home_thread());

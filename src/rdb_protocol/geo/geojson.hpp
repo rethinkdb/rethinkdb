@@ -25,47 +25,47 @@ namespace ql {
 /* These functions construct a GeoJSON object of the respective type.
 They also insert the correct $reql_type$ field into the output.
 They do not perform any validation. */
-counted_t<const ql::datum_t> construct_geo_point(
+ql::datum_t construct_geo_point(
         const lat_lon_point_t &point,
         const ql::configured_limits_t &limits);
-counted_t<const ql::datum_t> construct_geo_line(
+ql::datum_t construct_geo_line(
         const lat_lon_line_t &line,
         const ql::configured_limits_t &limits);
 // Closes the shell implicitly (i.e. connects the first point to the last point).
-counted_t<const ql::datum_t> construct_geo_polygon(
+ql::datum_t construct_geo_polygon(
         const lat_lon_line_t &shell,
         const ql::configured_limits_t &limits);
-counted_t<const ql::datum_t> construct_geo_polygon(
+ql::datum_t construct_geo_polygon(
         const lat_lon_line_t &shell,
         const std::vector<lat_lon_line_t> &holes,
         const ql::configured_limits_t &limits);
 
 /* These functions extract coordinates from GeoJSON objects */
-lat_lon_point_t extract_lat_lon_point(const counted_t<const ql::datum_t> &geojson);
-lat_lon_line_t extract_lat_lon_line(const counted_t<const ql::datum_t> &geojson);
-lat_lon_line_t extract_lat_lon_shell(const counted_t<const ql::datum_t> &geojson);
+lat_lon_point_t extract_lat_lon_point(const ql::datum_t &geojson);
+lat_lon_line_t extract_lat_lon_line(const ql::datum_t &geojson);
+lat_lon_line_t extract_lat_lon_shell(const ql::datum_t &geojson);
 
 /* These functions convert from a GeoJSON object to S2 types */
-scoped_ptr_t<S2Point> to_s2point(const counted_t<const ql::datum_t> &geojson);
-scoped_ptr_t<S2Polyline> to_s2polyline(const counted_t<const ql::datum_t> &geojson);
-scoped_ptr_t<S2Polygon> to_s2polygon(const counted_t<const ql::datum_t> &geojson);
+scoped_ptr_t<S2Point> to_s2point(const ql::datum_t &geojson);
+scoped_ptr_t<S2Polyline> to_s2polyline(const ql::datum_t &geojson);
+scoped_ptr_t<S2Polygon> to_s2polygon(const ql::datum_t &geojson);
 
 /* Helpers for visit_geojson() */
 scoped_ptr_t<S2Point> coordinates_to_s2point(
-        const counted_t<const ql::datum_t> &coords);
+        const ql::datum_t &coords);
 scoped_ptr_t<S2Polyline> coordinates_to_s2polyline(
-        const counted_t<const ql::datum_t> &coords);
+        const ql::datum_t &coords);
 scoped_ptr_t<S2Polygon> coordinates_to_s2polygon(
-        const counted_t<const ql::datum_t> &coords);
+        const ql::datum_t &coords);
 
 /* Performs conversion to an S2 type and calls the visitor, depending on the geometry
 type in the GeoJSON object. */
 template <class return_t>
 return_t visit_geojson(
         s2_geo_visitor_t<return_t> *visitor,
-        const counted_t<const ql::datum_t> &geojson) {
-    const std::string type = geojson->get("type")->as_str().to_std();
-    counted_t<const ql::datum_t> coordinates = geojson->get("coordinates");
+        const ql::datum_t &geojson) {
+    const datum_string_t &type = geojson->get_field("type")->as_str();
+    ql::datum_t coordinates = geojson->get_field("coordinates");
 
     if (type == "Point") {
         scoped_ptr_t<S2Point> pt = coordinates_to_s2point(coordinates);
@@ -89,15 +89,15 @@ return_t visit_geojson(
             || type == "FeatureCollection";
         if (valid_geojson) {
             throw geo_exception_t(
-                strprintf("GeoJSON type `%s` is not supported.", type.c_str()));
+                strprintf("GeoJSON type `%s` is not supported.", type.to_std().c_str()));
         } else {
             throw geo_exception_t(
-                strprintf("Unrecognized GeoJSON type `%s`.", type.c_str()));
+                strprintf("Unrecognized GeoJSON type `%s`.", type.to_std().c_str()));
         }
     }
 }
 
 /* Checks the semantic and syntactic validity of a GeoJSON object. */
-void validate_geojson(const counted_t<const ql::datum_t> &geojson);
+void validate_geojson(const ql::datum_t &geojson);
 
 #endif  // RDB_PROTOCOL_GEO_GEOJSON_HPP_

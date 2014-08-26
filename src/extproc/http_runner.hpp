@@ -18,8 +18,8 @@
 
 // http calls result either in a DATUM return value or an error string
 struct http_result_t {
-    counted_t<const ql::datum_t> header;
-    counted_t<const ql::datum_t> body;
+    ql::datum_t header;
+    ql::datum_t body;
     std::string error;
 
     RDB_DECLARE_ME_SERIALIZABLE;
@@ -96,7 +96,7 @@ struct http_opts_t {
 
     std::string proxy;
     std::string url;
-    counted_t<const ql::datum_t> url_params;
+    ql::datum_t url_params;
     std::vector<std::string> header;
 
     // These will be used based on the method specified

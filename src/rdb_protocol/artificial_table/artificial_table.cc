@@ -16,9 +16,9 @@ const std::string &artificial_table_t::get_pkey() {
     return primary_key;
 }
 
-counted_t<const ql::datum_t> artificial_table_t::read_row(ql::env_t *env,
-        counted_t<const ql::datum_t> pval, UNUSED bool use_outdated) {
-    counted_t<const ql::datum_t> row;
+ql::datum_t artificial_table_t::read_row(ql::env_t *env,
+        ql::datum_t pval, UNUSED bool use_outdated) {
+    ql::datum_t row;
     std::string error;
     if (!checked_read_row(pval, env->interruptor, &row, &error)) {
         throw ql::datum_exc_t(ql::base_exc_t::GENERIC, error);
@@ -44,15 +44,15 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
     std::string error;
 
     /* Fetch the keys from the backend */
-    std::vector<counted_t<const ql::datum_t> > keys;
+    std::vector<ql::datum_t> keys;
     if (!backend->read_all_primary_keys(env->interruptor, &keys, &error)) {
         throw ql::datum_exc_t(ql::base_exc_t::GENERIC, error);    
     }
 
     /* Apply range filter */
     if (!range.is_universe()) {
-        std::vector<counted_t<const ql::datum_t> > temp;
-        for (const counted_t<const ql::datum_t> &key : keys) {
+        std::vector<ql::datum_t> temp;
+        for (const ql::datum_t &key : keys) {
             if (range.contains(reql_version_t::LATEST, key)) {
                 temp.push_back(key);
             }
@@ -71,15 +71,15 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
             returns the keys in a deterministic order and then we would need to use a
             `std::stable_sort()` here. */
             std::sort(keys.begin(), keys.end(),
-                [](const counted_t<const ql::datum_t> &a,
-                   const counted_t<const ql::datum_t> &b) {
+                [](const ql::datum_t &a,
+                   const ql::datum_t &b) {
                     return a->compare_lt(reql_version_t::LATEST, *b);
                 });
             break;
         case sorting_t::DESCENDING:
             std::sort(keys.begin(), keys.end(),
-                [](const counted_t<const ql::datum_t> &a,
-                   const counted_t<const ql::datum_t> &b) {
+                [](const ql::datum_t &a,
+                   const ql::datum_t &b) {
                     return a->compare_gt(reql_version_t::LATEST, *b);
                 });
             break;
@@ -90,7 +90,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
     /* Fetch the actual rows from the backend */
     ql::datum_array_builder_t array_builder((ql::configured_limits_t()));
     for (auto key : keys) {
-        counted_t<const ql::datum_t> row;
+        ql::datum_t row;
         if (!checked_read_row(key, env->interruptor, &row, &error)) {
             throw ql::datum_exc_t(ql::base_exc_t::GENERIC, error);
         }
@@ -104,13 +104,13 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
 
     /* Build a `datum_stream_t` with the results */
     return make_counted<ql::array_datum_stream_t>(
-        std::move(array_builder).to_counted(),
+        std::move(array_builder).to_datum(),
         bt);
 }
 
 counted_t<ql::datum_stream_t> artificial_table_t::read_row_changes(
         UNUSED ql::env_t *env,
-        UNUSED counted_t<const ql::datum_t> pval,
+        UNUSED ql::datum_t pval,
         UNUSED const ql::protob_t<const Backtrace> &bt,
         UNUSED const std::string &table_name) {
     /* RSI(reql_admin): Artificial tables will eventually support change feeds. */
@@ -133,7 +133,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_intersecting(
         UNUSED const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name,
         UNUSED bool use_outdated,
-        UNUSED const counted_t<const ql::datum_t> &query_geometry) {
+        UNUSED const ql::datum_t &query_geometry) {
     guarantee(sindex != primary_key, "read_intersecting() should never be called with "
         "the primary index");
     rfail_datum(ql::base_exc_t::GENERIC, "%s",
@@ -158,20 +158,20 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_nearest(
         error_message_index_not_found(sindex, table_name).c_str());
 }
 
-counted_t<const ql::datum_t> artificial_table_t::write_batched_replace(
+ql::datum_t artificial_table_t::write_batched_replace(
         ql::env_t *env,
-        const std::vector<counted_t<const ql::datum_t> > &keys,
+        const std::vector<ql::datum_t> &keys,
         const counted_t<const ql::func_t> &func,
         return_changes_t return_changes,
         UNUSED durability_requirement_t durability) {
     /* RSI(reql_admin): Should we require that durability is soft? */
-    counted_t<const ql::datum_t> stats = ql::datum_t::empty_object();
+    ql::datum_t stats = ql::datum_t::empty_object();
     std::set<std::string> conditions;
 
     throttled_pmap(keys.size(), [&] (int i) {
         try {
             do_single_update(env, keys[i],
-                [&] (counted_t<const ql::datum_t> old_row) {
+                [&] (ql::datum_t old_row) {
                     return func->call(env, old_row, ql::LITERAL_OK)->as_datum();
                 },
                 return_changes, env->interruptor, &stats, &conditions);
@@ -183,28 +183,29 @@ counted_t<const ql::datum_t> artificial_table_t::write_batched_replace(
         throw interrupted_exc_t();
     }
 
-    ql::datum_object_builder_t obj_builder(stats->as_object());
+    ql::datum_object_builder_t obj_builder(stats);
     obj_builder.add_warnings(conditions, env->limits());
-    return std::move(obj_builder).to_counted();
+    return std::move(obj_builder).to_datum();
 }
 
-counted_t<const ql::datum_t> artificial_table_t::write_batched_insert(
+ql::datum_t artificial_table_t::write_batched_insert(
         ql::env_t *env,
-        std::vector<counted_t<const ql::datum_t> > &&inserts,
+        std::vector<ql::datum_t> &&inserts,
         conflict_behavior_t conflict_behavior,
         return_changes_t return_changes,
         UNUSED durability_requirement_t durability) {
-    counted_t<const ql::datum_t> stats = ql::datum_t::empty_object();
+    ql::datum_t stats = ql::datum_t::empty_object();
     std::set<std::string> conditions;
     throttled_pmap(inserts.size(), [&] (int i) {
         try {
-            counted_t<const ql::datum_t> insert_row = inserts[i];
-            counted_t<const ql::datum_t> key = insert_row->get(primary_key, ql::NOTHROW);
+            ql::datum_t insert_row = inserts[i];
+            ql::datum_t key = insert_row->get_field(
+                datum_string_t(primary_key), ql::NOTHROW);
             guarantee(key.has(), "write_batched_insert() shouldn't ever be called with "
                 "documents that lack a primary key.");
 
             do_single_update(env, key,
-                [&](counted_t<const ql::datum_t> old_row) {
+                [&](ql::datum_t old_row) {
                     return resolve_insert_conflict(
                         primary_key, old_row, insert_row, conflict_behavior);
                 },
@@ -218,9 +219,9 @@ counted_t<const ql::datum_t> artificial_table_t::write_batched_insert(
         throw interrupted_exc_t();
     }
 
-    ql::datum_object_builder_t obj_builder(stats->as_object());
+    ql::datum_object_builder_t obj_builder(stats);
     obj_builder.add_warnings(conditions, env->limits());
-    return std::move(obj_builder).to_counted();
+    return std::move(obj_builder).to_datum();
 }
 
 bool artificial_table_t::write_sync_depending_on_durability(
@@ -260,24 +261,25 @@ std::vector<std::string> artificial_table_t::sindex_list(UNUSED ql::env_t *env) 
     return std::vector<std::string>();
 }
 
-std::map<std::string, counted_t<const ql::datum_t> > artificial_table_t::sindex_status(
+std::map<std::string, ql::datum_t> artificial_table_t::sindex_status(
         UNUSED ql::env_t *env, UNUSED const std::set<std::string> &sindexes) {
-    return std::map<std::string, counted_t<const ql::datum_t> >();
+    return std::map<std::string, ql::datum_t>();
 }
 
 bool artificial_table_t::checked_read_row(
-        counted_t<const ql::datum_t> pval,
+        ql::datum_t pval,
         signal_t *interruptor,
-        counted_t<const ql::datum_t> *row_out,
+        ql::datum_t *row_out,
         std::string *error_out) {
     if (!backend->read_row(pval, interruptor, row_out, error_out)) {
         return false;
     }
 #ifndef NDEBUG
     if (row_out->has()) {
-        counted_t<const ql::datum_t> pval2 = (*row_out)->get(get_pkey(), ql::NOTHROW);
+        ql::datum_t pval2 = (*row_out)->get_field(
+            datum_string_t(get_pkey()), ql::NOTHROW);
         rassert(pval2.has());
-        rassert(*pval2 == *pval);
+        rassert(pval2 == pval);
     }
 #endif
     return true;
@@ -285,20 +287,20 @@ bool artificial_table_t::checked_read_row(
 
 void artificial_table_t::do_single_update(
         ql::env_t *env,
-        counted_t<const ql::datum_t> pval,
-        const std::function<counted_t<const ql::datum_t>(counted_t<const ql::datum_t>)>
+        ql::datum_t pval,
+        const std::function<ql::datum_t(ql::datum_t)>
             &function,
         return_changes_t return_changes,
         signal_t *interruptor,
-        counted_t<const ql::datum_t> *stats_inout,
+        ql::datum_t *stats_inout,
         std::set<std::string> *conditions_inout) {
     std::string error;
-    counted_t<const ql::datum_t> old_row;
+    ql::datum_t old_row;
     if (!checked_read_row(pval, interruptor, &old_row, &error)) {
         ql::datum_object_builder_t builder;
         builder.add_error(error.c_str());
         *stats_inout = (*stats_inout)->merge(
-            std::move(builder).to_counted(), ql::stats_merge, env->limits(),
+            std::move(builder).to_datum(), ql::stats_merge, env->limits(),
             conditions_inout);
         return;
     }
@@ -306,12 +308,12 @@ void artificial_table_t::do_single_update(
         old_row = ql::datum_t::null();
     }
 
-    counted_t<const ql::datum_t> resp;
+    ql::datum_t resp;
     try {
-        counted_t<const ql::datum_t> new_row = function(old_row);
+        ql::datum_t new_row = function(old_row);
         bool was_changed;
         resp = make_row_replacement_stats(
-            primary_key, store_key_t(pval->print_primary()),
+            datum_string_t(primary_key), store_key_t(pval->print_primary()),
             old_row, new_row, return_changes, &was_changed);
         if (was_changed) {
             if (new_row->get_type() == ql::datum_t::R_NULL) {

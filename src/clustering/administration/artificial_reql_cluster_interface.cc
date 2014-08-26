@@ -115,7 +115,7 @@ bool artificial_reql_cluster_interface_t::table_reconfigure(
         const table_generate_config_params_t &params,
         bool dry_run,
         signal_t *interruptor,
-        counted_t<const ql::datum_t> *new_config_out,
+        ql::datum_t *new_config_out,
         std::string *error_out) {
     if (db->name == database.str()) {
         *error_out = strprintf("Database `%s` is special; you can't configure the "

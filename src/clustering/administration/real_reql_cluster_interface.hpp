@@ -65,7 +65,7 @@ public:
             const table_generate_config_params_t &params,
             bool dry_run,
             signal_t *interruptor,
-            counted_t<const ql::datum_t> *new_config_out,
+            ql::datum_t *new_config_out,
             std::string *error_out);
 
     /* `calculate_split_points_with_distribution` needs access to the underlying

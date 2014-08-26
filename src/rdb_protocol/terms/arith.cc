@@ -26,7 +26,7 @@ public:
     }
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<const datum_t> acc = args->arg(env, 0)->as_datum();
+        datum_t acc = args->arg(env, 0)->as_datum();
         for (size_t i = 1; i < args->num_args(); ++i) {
             acc = (this->*op)(acc, args->arg(env, i)->as_datum(), env->env->limits());
         }
@@ -36,28 +36,28 @@ public:
     virtual const char *name() const { return namestr; }
 
 private:
-    counted_t<const datum_t> add(counted_t<const datum_t> lhs,
-                                 counted_t<const datum_t> rhs,
+    datum_t add(datum_t lhs,
+                                 datum_t rhs,
                                  const configured_limits_t &limits) const {
         if (lhs->is_ptype(pseudo::time_string) ||
             rhs->is_ptype(pseudo::time_string)) {
             return pseudo::time_add(lhs, rhs);
         } else if (lhs->get_type() == datum_t::R_NUM) {
             rhs->check_type(datum_t::R_NUM);
-            return make_counted<datum_t>(lhs->as_num() + rhs->as_num());
+            return datum_t(lhs->as_num() + rhs->as_num());
         } else if (lhs->get_type() == datum_t::R_STR) {
             rhs->check_type(datum_t::R_STR);
-            return make_counted<datum_t>(concat(lhs->as_str(), rhs->as_str()));
+            return datum_t(concat(lhs->as_str(), rhs->as_str()));
         } else if (lhs->get_type() == datum_t::R_ARRAY) {
             rhs->check_type(datum_t::R_ARRAY);
             datum_array_builder_t out(limits);
-            for (size_t i = 0; i < lhs->size(); ++i) {
+            for (size_t i = 0; i < lhs->arr_size(); ++i) {
                 out.add(lhs->get(i));
             }
-            for (size_t i = 0; i < rhs->size(); ++i) {
+            for (size_t i = 0; i < rhs->arr_size(); ++i) {
                 out.add(rhs->get(i));
             }
-            return std::move(out).to_counted();
+            return std::move(out).to_datum();
         } else {
             // If we get here lhs is neither number nor string
             // so we'll just error saying we expect a number
@@ -66,8 +66,8 @@ private:
         unreachable();
     }
 
-    counted_t<const datum_t> sub(counted_t<const datum_t> lhs,
-                                 counted_t<const datum_t> rhs,
+    datum_t sub(datum_t lhs,
+                                 datum_t rhs,
                                  const configured_limits_t &limits) const {
         if (lhs->is_ptype(pseudo::time_string)) {
             return pseudo::time_sub(lhs, rhs);
@@ -80,17 +80,17 @@ private:
         } else {
             lhs->check_type(datum_t::R_NUM);
             rhs->check_type(datum_t::R_NUM);
-            return make_counted<datum_t>(lhs->as_num() - rhs->as_num());
+            return datum_t(lhs->as_num() - rhs->as_num());
         }
     }
-    counted_t<const datum_t> mul(counted_t<const datum_t> lhs,
-                                 counted_t<const datum_t> rhs,
+    datum_t mul(datum_t lhs,
+                                 datum_t rhs,
                                  const configured_limits_t &limits) const {
         if (lhs->get_type() == datum_t::R_ARRAY ||
             rhs->get_type() == datum_t::R_ARRAY) {
-            counted_t<const datum_t> array =
+            datum_t array =
                 (lhs->get_type() == datum_t::R_ARRAY ? lhs : rhs);
-            counted_t<const datum_t> num =
+            datum_t num =
                 (lhs->get_type() == datum_t::R_ARRAY ? rhs : lhs);
 
             datum_array_builder_t out(limits);
@@ -99,30 +99,30 @@ private:
                    "Cannot multiply an ARRAY by a negative number.");
 
             for (int64_t j = 0; j < num_copies; ++j) {
-                for (size_t i = 0; i < array->size(); ++i) {
+                for (size_t i = 0; i < array->arr_size(); ++i) {
                     out.add(array->get(i));
                 }
             }
-            return std::move(out).to_counted();
+            return std::move(out).to_datum();
         } else {
             lhs->check_type(datum_t::R_NUM);
             rhs->check_type(datum_t::R_NUM);
-            return make_counted<datum_t>(lhs->as_num() * rhs->as_num());
+            return datum_t(lhs->as_num() * rhs->as_num());
         }
     }
-    counted_t<const datum_t> div(counted_t<const datum_t> lhs,
-                                 counted_t<const datum_t> rhs,
+    datum_t div(datum_t lhs,
+                                 datum_t rhs,
                                  UNUSED const configured_limits_t &limits) const {
         lhs->check_type(datum_t::R_NUM);
         rhs->check_type(datum_t::R_NUM);
         rcheck(rhs->as_num() != 0, base_exc_t::GENERIC, "Cannot divide by zero.");
         // throws on non-finite values
-        return make_counted<datum_t>(lhs->as_num() / rhs->as_num());
+        return datum_t(lhs->as_num() / rhs->as_num());
     }
 
     const char *namestr;
-    counted_t<const datum_t> (arith_term_t::*op)(counted_t<const datum_t> lhs,
-                                                 counted_t<const datum_t> rhs,
+    datum_t (arith_term_t::*op)(datum_t lhs,
+                                                 datum_t rhs,
                                                  const configured_limits_t &limits) const;
 };
 
@@ -137,7 +137,7 @@ private:
         rcheck(!(i0 == std::numeric_limits<int64_t>::min() && i1 == -1),
                base_exc_t::GENERIC,
                strprintf("Cannot take %" PRIi64 " mod %" PRIi64, i0, i1));
-        return new_val(make_counted<const datum_t>(static_cast<double>(i0 % i1)));
+        return new_val(datum_t(static_cast<double>(i0 % i1)));
     }
     virtual const char *name() const { return "mod"; }
 };

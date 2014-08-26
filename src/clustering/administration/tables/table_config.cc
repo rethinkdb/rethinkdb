@@ -7,7 +7,7 @@
 #include "clustering/administration/tables/split_points.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 
-counted_t<const ql::datum_t> convert_table_config_shard_to_datum(
+ql::datum_t convert_table_config_shard_to_datum(
         const table_config_t::shard_t &shard) {
     ql::datum_object_builder_t builder;
 
@@ -19,11 +19,11 @@ counted_t<const ql::datum_t> convert_table_config_shard_to_datum(
             &convert_name_to_datum,
             shard.director_names));
 
-    return std::move(builder).to_counted();
+    return std::move(builder).to_datum();
 }
 
 bool convert_table_config_shard_from_datum(
-        counted_t<const ql::datum_t> datum,
+        ql::datum_t datum,
         table_config_t::shard_t *shard_out,
         std::string *error_out) {
     converter_from_datum_object_t converter;
@@ -31,7 +31,7 @@ bool convert_table_config_shard_from_datum(
         return false;
     }
 
-    counted_t<const ql::datum_t> replica_names_datum;
+    ql::datum_t replica_names_datum;
     if (!converter.get("replicas", &replica_names_datum, error_out)) {
         return false;
     }
@@ -41,7 +41,7 @@ bool convert_table_config_shard_from_datum(
         return false;
     }
     if (!convert_set_from_datum<name_string_t>(
-            [] (counted_t<const ql::datum_t> datum2, name_string_t *val2_out,
+            [] (ql::datum_t datum2, name_string_t *val2_out,
                     std::string *error2_out) {
                 return convert_name_from_datum(datum2, "server name", val2_out,
                     error2_out);
@@ -56,12 +56,12 @@ bool convert_table_config_shard_from_datum(
         return false;
     }
 
-    counted_t<const ql::datum_t> director_names_datum;
+    ql::datum_t director_names_datum;
     if (!converter.get("directors", &director_names_datum, error_out)) {
         return false;
     }
     if (!convert_vector_from_datum<name_string_t>(
-            [] (counted_t<const ql::datum_t> datum2, name_string_t *val2_out,
+            [] (ql::datum_t datum2, name_string_t *val2_out,
                     std::string *error2_out) {
                 return convert_name_from_datum(datum2, "server name", val2_out,
                     error2_out);
@@ -101,30 +101,30 @@ bool convert_table_config_shard_from_datum(
 /* This is separate from `convert_table_config_and_name_to_datum` because it needs to be
 publicly exposed so it can be used to create the return value of `table.reconfigure()`.
 */
-counted_t<const ql::datum_t> convert_table_config_to_datum(
+ql::datum_t convert_table_config_to_datum(
         const table_config_t &config) {
     ql::datum_object_builder_t builder;
     builder.overwrite("shards",
         convert_vector_to_datum<table_config_t::shard_t>(
             &convert_table_config_shard_to_datum,
             config.shards));
-    return std::move(builder).to_counted();
+    return std::move(builder).to_datum();
 }
 
-counted_t<const ql::datum_t> convert_table_config_and_name_to_datum(
+ql::datum_t convert_table_config_and_name_to_datum(
         const table_config_t &config,
         name_string_t db_name,
         name_string_t table_name,
         namespace_id_t uuid) {
-    counted_t<const ql::datum_t> start = convert_table_config_to_datum(config);
-    ql::datum_object_builder_t builder(start->as_object());
+    ql::datum_t start = convert_table_config_to_datum(config);
+    ql::datum_object_builder_t builder(start);
     builder.overwrite("name", convert_db_and_table_to_datum(db_name, table_name));
     builder.overwrite("uuid", convert_uuid_to_datum(uuid));
-    return std::move(builder).to_counted();
+    return std::move(builder).to_datum();
 }
 
 bool convert_table_config_and_name_from_datum(
-        counted_t<const ql::datum_t> datum,
+        ql::datum_t datum,
         name_string_t *db_name_out,
         name_string_t *table_name_out,
         namespace_id_t *uuid_out,
@@ -139,7 +139,7 @@ bool convert_table_config_and_name_from_datum(
         return false;
     }
 
-    counted_t<const ql::datum_t> name_datum;
+    ql::datum_t name_datum;
     if (!converter.get("name", &name_datum, error_out)) {
         return false;
     }
@@ -150,7 +150,7 @@ bool convert_table_config_and_name_from_datum(
         return false;
     }
 
-    counted_t<const ql::datum_t> uuid_datum;
+    ql::datum_t uuid_datum;
     if (!converter.get("uuid", &uuid_datum, error_out)) {
         return false;
     }
@@ -159,7 +159,7 @@ bool convert_table_config_and_name_from_datum(
         return false;
     }
 
-    counted_t<const ql::datum_t> shards_datum;
+    ql::datum_t shards_datum;
     if (!converter.get("shards", &shards_datum, error_out)) {
         return false;
     }
@@ -187,7 +187,7 @@ std::string table_config_artificial_table_backend_t::get_primary_key_name() {
 
 bool table_config_artificial_table_backend_t::read_all_primary_keys(
         UNUSED signal_t *interruptor,
-        std::vector<counted_t<const ql::datum_t> > *keys_out,
+        std::vector<ql::datum_t> *keys_out,
         UNUSED std::string *error_out) {
     on_thread_t thread_switcher(home_thread());
     keys_out->clear();
@@ -213,9 +213,9 @@ bool table_config_artificial_table_backend_t::read_all_primary_keys(
 }
 
 bool table_config_artificial_table_backend_t::read_row(
-        counted_t<const ql::datum_t> primary_key,
+        ql::datum_t primary_key,
         UNUSED signal_t *interruptor,
-        counted_t<const ql::datum_t> *row_out,
+        ql::datum_t *row_out,
         UNUSED std::string *error_out) {
     on_thread_t thread_switcher(home_thread());
     cow_ptr_t<namespaces_semilattice_metadata_t> md = table_sl_view->get();
@@ -233,7 +233,7 @@ bool table_config_artificial_table_backend_t::read_row(
             database_sl_view->get(), md);
     }
     if (table_id == nil_uuid()) {
-        *row_out = counted_t<const ql::datum_t>();
+        *row_out = ql::datum_t();
         return true;
     }
 
@@ -246,8 +246,8 @@ bool table_config_artificial_table_backend_t::read_row(
 }
 
 bool table_config_artificial_table_backend_t::write_row(
-        counted_t<const ql::datum_t> primary_key,
-        counted_t<const ql::datum_t> new_value,
+        ql::datum_t primary_key,
+        ql::datum_t new_value,
         signal_t *interruptor,
         std::string *error_out) {
     if (!new_value.has()) {

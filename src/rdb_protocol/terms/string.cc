@@ -15,7 +15,7 @@ public:
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         std::string str = args->arg(env, 0)->as_str().to_std();
-        RE2 regexp(args->arg(env, 1)->as_str().c_str(), RE2::Quiet);
+        RE2 regexp(args->arg(env, 1)->as_str().to_std(), RE2::Quiet);
         if (!regexp.ok()) {
             rfail(base_exc_t::GENERIC,
                   "Error in regexp `%s` (portion `%s`): %s",
@@ -33,10 +33,11 @@ private:
             // using user-generated keys, but the result of `add` is marked
             // MUST_USE.
             bool b = false;
-            b |= match.add("str", make_counted<const datum_t>(groups[0].as_string()));
-            b |= match.add("start", make_counted<const datum_t>(
+            b |= match.add("str", datum_t(
+                               datum_string_t(groups[0].as_string())));
+            b |= match.add("start", datum_t(
                                static_cast<double>(groups[0].begin() - str.data())));
-            b |= match.add("end", make_counted<const datum_t>(
+            b |= match.add("end", datum_t(
                                static_cast<double>(groups[0].end() - str.data())));
             datum_array_builder_t match_groups(env->env->limits());
             for (int i = 1; i < ngroups; ++i) {
@@ -46,19 +47,20 @@ private:
                 } else {
                     datum_object_builder_t match_group;
                     b |= match_group.add(
-                        "str", make_counted<const datum_t>(group.as_string()));
+                        "str", datum_t(
+                            datum_string_t(group.as_string())));
                     b |= match_group.add(
-                        "start", make_counted<const datum_t>(
+                        "start", datum_t(
                             static_cast<double>(group.begin() - str.data())));
                     b |= match_group.add(
-                        "end", make_counted<const datum_t>(
+                        "end", datum_t(
                             static_cast<double>(group.end() - str.data())));
-                    match_groups.add(std::move(match_group).to_counted());
+                    match_groups.add(std::move(match_group).to_datum());
                 }
             }
-            b |= match.add("groups", std::move(match_groups).to_counted());
+            b |= match.add("groups", std::move(match_groups).to_datum());
             r_sanity_check(!b);
-            return new_val(std::move(match).to_counted());
+            return new_val(std::move(match).to_datum());
         } else {
             return new_val(datum_t::null());
         }
@@ -78,7 +80,7 @@ private:
 
         boost::optional<std::string> delim;
         if (args->num_args() > 1) {
-            counted_t<const datum_t> d = args->arg(env, 1)->as_datum();
+            datum_t d = args->arg(env, 1)->as_datum();
             if (d->get_type() != datum_t::R_NULL) {
                 delim = d->as_str().to_std();
             }
@@ -96,7 +98,7 @@ private:
 
         // This logic is extremely finicky so as to mimick the behavior of
         // Python's `split` in edge cases.
-        std::vector<counted_t<const datum_t> > res;
+        std::vector<datum_t> res;
         size_t last = 0;
         while (last != std::string::npos) {
             size_t next = res.size() == maxnum
@@ -112,14 +114,14 @@ private:
                 tmp = s.substr(last, next - last);
             }
             if ((delim && delim->size() != 0) || tmp.size() != 0) {
-                res.push_back(make_counted<const datum_t>(std::move(tmp)));
+                res.push_back(datum_t(datum_string_t(tmp)));
             }
             last = (next == std::string::npos || next >= s.size())
                 ? std::string::npos
                 : next + (delim ? delim->size() : 1);
         }
 
-        return new_val(make_counted<const datum_t>(std::move(res), env->env->limits()));
+        return new_val(datum_t(std::move(res), env->env->limits()));
     }
     virtual const char *name() const { return "split"; }
 };

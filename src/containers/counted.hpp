@@ -277,4 +277,14 @@ private:
     DISABLE_COPYING(movable_t);
 };
 
+// Extends an arbitrary object with a slow_atomic_countable_t
+template<class T>
+class countable_wrapper_t : public T,
+                            public slow_atomic_countable_t<countable_wrapper_t<T> > {
+public:
+    template <class... Args>
+    explicit countable_wrapper_t(Args &&... args)
+        : T(std::forward<Args>(args)...) { }
+};
+
 #endif  // CONTAINERS_COUNTED_HPP_

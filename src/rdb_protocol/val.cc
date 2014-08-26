@@ -23,16 +23,16 @@ table_t::table_t(scoped_ptr_t<base_table_t> &&_table,
       sorting(sorting_t::UNORDERED)
 { }
 
-counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) {
+datum_t table_t::make_error_datum(const base_exc_t &exception) {
     datum_object_builder_t d;
     d.add_error(exception.what());
-    return std::move(d).to_counted();
+    return std::move(d).to_datum();
 }
 
-counted_t<const datum_t> table_t::batched_replace(
+datum_t table_t::batched_replace(
     env_t *env,
-    const std::vector<counted_t<const datum_t> > &vals,
-    const std::vector<counted_t<const datum_t> > &keys,
+    const std::vector<datum_t> &vals,
+    const std::vector<datum_t> &keys,
     counted_t<const func_t> replacement_generator,
     bool nondeterministic_replacements_ok,
     durability_requirement_t durability_requirement,
@@ -46,29 +46,30 @@ counted_t<const datum_t> table_t::batched_replace(
     if (!replacement_generator->is_deterministic()) {
         r_sanity_check(nondeterministic_replacements_ok);
         datum_object_builder_t stats;
-        std::vector<counted_t<const datum_t> > replacement_values;
+        std::vector<datum_t> replacement_values;
         replacement_values.reserve(vals.size());
         for (size_t i = 0; i < vals.size(); ++i) {
-            counted_t<const datum_t> new_val;
+            datum_t new_val;
             try {
                 new_val = replacement_generator->call(env, vals[i])->as_datum();
-                new_val->rcheck_valid_replace(vals[i], keys[i], get_pkey());
+                new_val->rcheck_valid_replace(vals[i], keys[i],
+                                              datum_string_t(get_pkey()));
                 r_sanity_check(new_val.has());
                 replacement_values.push_back(new_val);
             } catch (const base_exc_t &e) {
                 stats.add_error(e.what());
             }
         }
-        counted_t<const datum_t> insert_stats = batched_insert(
+        datum_t insert_stats = batched_insert(
             env, std::move(replacement_values), conflict_behavior_t::REPLACE,
             durability_requirement, return_changes);
         std::set<std::string> conditions;
-        counted_t<const datum_t> merged
-            = std::move(stats).to_counted()->merge(insert_stats, stats_merge,
-                                                   env->limits(), &conditions);
-        datum_object_builder_t result(std::move(merged)->as_object());
+        datum_t merged
+            = std::move(stats).to_datum()->merge(insert_stats, stats_merge,
+                                                 env->limits(), &conditions);
+        datum_object_builder_t result(merged);
         result.add_warnings(conditions, env->limits());
-        return std::move(result).to_counted();
+        return std::move(result).to_datum();
     } else {
         return table->write_batched_replace(
             env, keys, replacement_generator, return_changes,
@@ -76,23 +77,24 @@ counted_t<const datum_t> table_t::batched_replace(
     }
 }
 
-counted_t<const datum_t> table_t::batched_insert(
+datum_t table_t::batched_insert(
     env_t *env,
-    std::vector<counted_t<const datum_t> > &&insert_datums,
+    std::vector<datum_t> &&insert_datums,
     conflict_behavior_t conflict_behavior,
     durability_requirement_t durability_requirement,
     return_changes_t return_changes) {
 
     datum_object_builder_t stats;
-    std::vector<counted_t<const datum_t> > valid_inserts;
+    std::vector<datum_t> valid_inserts;
     valid_inserts.reserve(insert_datums.size());
     for (auto it = insert_datums.begin(); it != insert_datums.end(); ++it) {
         try {
-            (*it)->rcheck_valid_replace(counted_t<const datum_t>(),
-                                        counted_t<const datum_t>(),
-                                        get_pkey());
-            counted_t<const ql::datum_t> keyval = (*it)->get(get_pkey(), ql::NOTHROW);
-            (*it)->get(get_pkey())->print_primary(); // does error checking
+            datum_string_t pkey_w(get_pkey());
+            (*it)->rcheck_valid_replace(datum_t(),
+                                        datum_t(),
+                                        pkey_w);
+            const ql::datum_t &keyval = (*it)->get_field(pkey_w);
+            keyval->print_primary(); // does error checking
             valid_inserts.push_back(std::move(*it));
         } catch (const base_exc_t &e) {
             stats.add_error(e.what());
@@ -100,20 +102,20 @@ counted_t<const datum_t> table_t::batched_insert(
     }
 
     if (valid_inserts.empty()) {
-        return std::move(stats).to_counted();
+        return std::move(stats).to_datum();
     }
 
-    counted_t<const datum_t> insert_stats =
+    datum_t insert_stats =
         table->write_batched_insert(
             env, std::move(valid_inserts), conflict_behavior, return_changes,
             durability_requirement);
     std::set<std::string> conditions;
-    counted_t<const datum_t> merged
-        = std::move(stats).to_counted()->merge(insert_stats, stats_merge,
-                                               env->limits(), &conditions);
-    datum_object_builder_t result(std::move(merged)->as_object());
+    datum_t merged
+        = std::move(stats).to_datum()->merge(insert_stats, stats_merge,
+                                             env->limits(), &conditions);
+    datum_object_builder_t result(merged);
     result.add_warnings(conditions, env->limits());
-    return std::move(result).to_counted();
+    return std::move(result).to_datum();
 }
 
 MUST_USE bool table_t::sindex_create(env_t *env,
@@ -136,36 +138,34 @@ MUST_USE sindex_rename_result_t table_t::sindex_rename(env_t *env,
     return table->sindex_rename(env, old_name, new_name, overwrite);
 }
 
-counted_t<const datum_t> table_t::sindex_list(env_t *env) {
+datum_t table_t::sindex_list(env_t *env) {
     std::vector<std::string> sindexes = table->sindex_list(env);
-    std::vector<counted_t<const datum_t> > array;
+    std::vector<datum_t> array;
     array.reserve(sindexes.size());
     for (std::vector<std::string>::const_iterator it = sindexes.begin();
          it != sindexes.end(); ++it) {
-        array.push_back(make_counted<datum_t>(std::string(*it)));
+        array.push_back(datum_t(datum_string_t(*it)));
     }
-    return make_counted<datum_t>(std::move(array), env->limits());
+    return datum_t(std::move(array), env->limits());
 }
 
-counted_t<const datum_t> table_t::sindex_status(env_t *env,
+datum_t table_t::sindex_status(env_t *env,
         std::set<std::string> sindexes) {
-    std::map<std::string, counted_t<const datum_t> > statuses =
-        table->sindex_status(env, sindexes);
-    std::vector<counted_t<const datum_t> > array;
+    std::map<std::string, datum_t> statuses = table->sindex_status(env, sindexes);
+    std::vector<datum_t> array;
     for (auto it = statuses.begin(); it != statuses.end(); ++it) {
         r_sanity_check(std_contains(sindexes, it->first) || sindexes.empty());
         sindexes.erase(it->first);
-        std::map<std::string, counted_t<const datum_t> > status =
-            it->second->as_object();
-        std::string index_name = it->first;
-        status["index"] = make_counted<const datum_t>(std::move(index_name));
-        array.push_back(make_counted<const datum_t>(std::move(status)));
+        datum_object_builder_t status(it->second);
+        datum_string_t index_name(it->first);
+        status.overwrite("index", datum_t(std::move(index_name)));
+        array.push_back(std::move(status).to_datum());
     }
     rcheck(sindexes.empty(), base_exc_t::GENERIC,
            strprintf("Index `%s` was not found on table `%s`.",
                      sindexes.begin()->c_str(),
                      display_name().c_str()));
-    return make_counted<const datum_t>(std::move(array), env->limits());
+    return datum_t(std::move(array), env->limits());
 }
 
 MUST_USE bool table_t::sync(env_t *env, const rcheckable_t *parent) {
@@ -187,13 +187,13 @@ const std::string &table_t::get_pkey() {
     return table->get_pkey();
 }
 
-counted_t<const datum_t> table_t::get_row(env_t *env, counted_t<const datum_t> pval) {
+datum_t table_t::get_row(env_t *env, datum_t pval) {
     return table->read_row(env, pval, use_outdated);
 }
 
 counted_t<datum_stream_t> table_t::get_all(
         env_t *env,
-        counted_t<const datum_t> value,
+        datum_t value,
         const std::string &get_all_sindex_id,
         const protob_t<const Backtrace> &bt) {
     rcheck_src(bt.get(), base_exc_t::GENERIC, !sindex_id,
@@ -256,7 +256,7 @@ counted_t<datum_stream_t> table_t::as_datum_stream(env_t *env,
 
 counted_t<datum_stream_t> table_t::get_intersecting(
         env_t *env,
-        const counted_t<const datum_t> &query_geometry,
+        const datum_t &query_geometry,
         const std::string &new_sindex_id,
         const pb_rcheckable_t *parent) {
     rcheck_target(parent, base_exc_t::GENERIC, !sindex_id,
@@ -353,7 +353,7 @@ const char *val_t::type_t::name() const {
     }
 }
 
-val_t::val_t(counted_t<const datum_t> _datum, protob_t<const Backtrace> backtrace)
+val_t::val_t(datum_t _datum, protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::DATUM),
       u(_datum) {
@@ -368,7 +368,7 @@ val_t::val_t(const counted_t<grouped_data_t> &groups,
     guarantee(groups.has());
 }
 
-val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,
+val_t::val_t(datum_t _datum, counted_t<table_t> _table,
              protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::SINGLE_SELECTION),
@@ -378,8 +378,8 @@ val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,
     guarantee(datum().has());
 }
 
-val_t::val_t(counted_t<const datum_t> _datum,
-             counted_t<const datum_t> _orig_key,
+val_t::val_t(datum_t _datum,
+             datum_t _orig_key,
              counted_t<table_t> _table,
              protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
@@ -398,7 +398,7 @@ val_t::val_t(env_t *env, counted_t<datum_stream_t> _sequence,
       u(_sequence) {
     guarantee(sequence().has());
     // Some streams are really arrays in disguise.
-    counted_t<const datum_t> arr = sequence()->as_array(env);
+    datum_t arr = sequence()->as_array(env);
     if (arr.has()) {
         type = type_t::DATUM;
         u = arr;
@@ -440,7 +440,7 @@ val_t::~val_t() { }
 val_t::type_t val_t::get_type() const { return type; }
 const char * val_t::get_type_name() const { return get_type().name(); }
 
-counted_t<const datum_t> val_t::as_datum() const {
+datum_t val_t::as_datum() const {
     if (type.raw_type != type_t::DATUM && type.raw_type != type_t::SINGLE_SELECTION) {
         rcheck_literal_type(type_t::DATUM);
     }
@@ -495,7 +495,7 @@ val_t::as_selection(env_t *env) {
     return std::make_pair(table, as_seq(env));
 }
 
-std::pair<counted_t<table_t>, counted_t<const datum_t> > val_t::as_single_selection() {
+std::pair<counted_t<table_t>, datum_t> val_t::as_single_selection() {
     rcheck_literal_type(type_t::SINGLE_SELECTION);
     return std::make_pair(table, datum());
 }
@@ -540,9 +540,9 @@ counted_t<const db_t> val_t::as_db() const {
     return db();
 }
 
-counted_t<const datum_t> val_t::as_ptype(const std::string s) {
+datum_t val_t::as_ptype(const std::string s) {
     try {
-        counted_t<const datum_t> d = as_datum();
+        datum_t d = as_datum();
         r_sanity_check(d.has());
         d->rcheck_is_ptype(s);
         return d;
@@ -553,7 +553,7 @@ counted_t<const datum_t> val_t::as_ptype(const std::string s) {
 
 bool val_t::as_bool() {
     try {
-        counted_t<const datum_t> d = as_datum();
+        datum_t d = as_datum();
         r_sanity_check(d.has());
         return d->as_bool();
     } catch (const datum_exc_t &e) {
@@ -562,7 +562,7 @@ bool val_t::as_bool() {
 }
 double val_t::as_num() {
     try {
-        counted_t<const datum_t> d = as_datum();
+        datum_t d = as_datum();
         r_sanity_check(d.has());
         return d->as_num();
     } catch (const datum_exc_t &e) {
@@ -571,28 +571,18 @@ double val_t::as_num() {
 }
 int64_t val_t::as_int() {
     try {
-        counted_t<const datum_t> d = as_datum();
+        datum_t d = as_datum();
         r_sanity_check(d.has());
         return d->as_int();
     } catch (const datum_exc_t &e) {
         rfail(e.get_type(), "%s", e.what());
     }
 }
-const wire_string_t &val_t::as_str() {
+datum_string_t val_t::as_str() {
     try {
-        counted_t<const datum_t> d = as_datum();
+        datum_t d = as_datum();
         r_sanity_check(d.has());
         return d->as_str();
-    } catch (const datum_exc_t &e) {
-        rfail(e.get_type(), "%s", e.what());
-    }
-}
-
-const std::map<std::string, counted_t<const datum_t> > &val_t::as_object() const {
-    try {
-        counted_t<const datum_t> d = as_datum();
-        r_sanity_check(d.has());
-        return d->as_object();
     } catch (const datum_exc_t &e) {
         rfail(e.get_type(), "%s", e.what());
     }
@@ -634,7 +624,7 @@ std::string val_t::trunc_print() const {
     }
 }
 
-counted_t<const datum_t> val_t::get_orig_key() const {
+datum_t val_t::get_orig_key() const {
     return orig_key;
 }
 

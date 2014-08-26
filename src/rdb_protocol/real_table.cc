@@ -67,8 +67,8 @@ const std::string &real_table_t::get_pkey() {
     return pkey;
 }
 
-counted_t<const ql::datum_t> real_table_t::read_row(ql::env_t *env,
-        counted_t<const ql::datum_t> pval, bool use_outdated) {
+ql::datum_t real_table_t::read_row(ql::env_t *env,
+        ql::datum_t pval, bool use_outdated) {
     read_t read(point_read_t(store_key_t(pval->print_primary())), env->profile());
     read_response_t res;
     read_with_profile(env, read, &res, use_outdated);
@@ -103,7 +103,7 @@ counted_t<ql::datum_stream_t> real_table_t::read_all(
 
 counted_t<ql::datum_stream_t> real_table_t::read_row_changes(
         ql::env_t *env,
-        counted_t<const ql::datum_t> pval,
+        ql::datum_t pval,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name) {
     return changefeed_client->new_feed(env, uuid, bt, table_name, pkey,
@@ -122,7 +122,7 @@ counted_t<ql::datum_stream_t> real_table_t::read_intersecting(
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name,
         bool use_outdated,
-        const counted_t<const ql::datum_t> &query_geometry) {
+        const ql::datum_t &query_geometry) {
 
     intersecting_geo_read_t geo_read(
         query_geometry, table_name, sindex, env->get_all_optargs());
@@ -148,7 +148,7 @@ counted_t<ql::datum_stream_t> real_table_t::read_intersecting(
         throw *error;
     }
 
-    auto *result = boost::get<counted_t<const ql::datum_t> >(&g_res->results_or_error);
+    auto *result = boost::get<ql::datum_t>(&g_res->results_or_error);
     guarantee(result != NULL);
     return make_counted<ql::array_datum_stream_t>(*result, bt);
 }
@@ -202,18 +202,18 @@ counted_t<ql::datum_stream_t> real_table_t::read_nearest(
         const double converted_dist =
             convert_dist_unit((*result)[i].first, dist_unit_t::M, dist_unit);
         bool dup;
-        dup = one_result.add("dist", make_counted<ql::datum_t>(converted_dist));
+        dup = one_result.add("dist", ql::datum_t(converted_dist));
         r_sanity_check(!dup);
         dup = one_result.add("doc", (*result)[i].second);
         r_sanity_check(!dup);
-        formatted_result.add(std::move(one_result).to_counted());
+        formatted_result.add(std::move(one_result).to_datum());
     }
     return make_counted<ql::array_datum_stream_t>(
-        std::move(formatted_result).to_counted(), bt);
+        std::move(formatted_result).to_datum(), bt);
 }
 
-counted_t<const ql::datum_t> real_table_t::write_batched_replace(ql::env_t *env,
-        const std::vector<counted_t<const ql::datum_t> > &keys,
+ql::datum_t real_table_t::write_batched_replace(ql::env_t *env,
+        const std::vector<ql::datum_t> &keys,
         const counted_t<const ql::func_t> &func,
         return_changes_t return_changes, durability_requirement_t durability) {
     std::vector<store_key_t> store_keys;
@@ -226,13 +226,13 @@ counted_t<const ql::datum_t> real_table_t::write_batched_replace(ql::env_t *env,
     write_t w(std::move(write), durability, env->profile(), env->limits());
     write_response_t response;
     write_with_profile(env, &w, &response);
-    auto dp = boost::get<counted_t<const ql::datum_t> >(&response.response);
+    auto dp = boost::get<ql::datum_t>(&response.response);
     r_sanity_check(dp != NULL);
     return *dp;
 }
 
-counted_t<const ql::datum_t> real_table_t::write_batched_insert(ql::env_t *env,
-        std::vector<counted_t<const ql::datum_t> > &&inserts,
+ql::datum_t real_table_t::write_batched_insert(ql::env_t *env,
+        std::vector<ql::datum_t> &&inserts,
         conflict_behavior_t conflict_behavior, return_changes_t return_changes,
         durability_requirement_t durability) {
     batched_insert_t write(std::move(inserts), pkey, conflict_behavior, env->limits(),
@@ -240,7 +240,7 @@ counted_t<const ql::datum_t> real_table_t::write_batched_insert(ql::env_t *env,
     write_t w(std::move(write), durability, env->profile(), env->limits());
     write_response_t response;
     write_with_profile(env, &w, &response);
-    auto dp = boost::get<counted_t<const ql::datum_t> >(&response.response);
+    auto dp = boost::get<ql::datum_t>(&response.response);
     r_sanity_check(dp != NULL);
     return *dp;
 }
@@ -305,7 +305,7 @@ std::vector<std::string> real_table_t::sindex_list(ql::env_t *env) {
     return s_res->sindexes;
 }
 
-std::map<std::string, counted_t<const ql::datum_t> >
+std::map<std::string, ql::datum_t>
 real_table_t::sindex_status(ql::env_t *env, const std::set<std::string> &sindexes) {
     sindex_status_t sindex_status(sindexes);
     read_t read(sindex_status, env->profile());
@@ -313,30 +313,30 @@ real_table_t::sindex_status(ql::env_t *env, const std::set<std::string> &sindexe
     read_with_profile(env, read, &res, false);
     auto s_res = boost::get<sindex_status_response_t>(&res.response);
     r_sanity_check(s_res);
-    std::map<std::string, counted_t<const ql::datum_t> > statuses;
+    std::map<std::string, ql::datum_t> statuses;
     for (const std::pair<std::string, rdb_protocol::single_sindex_status_t> &pair :
             s_res->statuses) {
-        std::map<std::string, counted_t<const ql::datum_t> > status;
+        std::map<datum_string_t, ql::datum_t> status;
         if (pair.second.blocks_processed != 0) {
-            status["blocks_processed"] =
-                make_counted<const ql::datum_t>(
+            status[datum_string_t("blocks_processed")] =
+                ql::datum_t(
                     safe_to_double(pair.second.blocks_processed));
-            status["blocks_total"] =
-                make_counted<const ql::datum_t>(
+            status[datum_string_t("blocks_total")] =
+                ql::datum_t(
                     safe_to_double(pair.second.blocks_total));
         }
-        status["ready"] = ql::datum_t::boolean(pair.second.ready);
+        status[datum_string_t("ready")] = ql::datum_t::boolean(pair.second.ready);
         std::string s = sindex_blob_prefix + pair.second.func;
-        status["function"] = ql::datum_t::binary(
-            wire_string_t::create_and_init(s.size(), s.data()));
-        status["outdated"] = ql::datum_t::boolean(pair.second.outdated);
-        status["multi"] = ql::datum_t::boolean(pair.second.multi ==
-                                               sindex_multi_bool_t::MULTI);
-        status["geo"] = ql::datum_t::boolean(pair.second.geo ==
-                                             sindex_geo_bool_t::GEO);
+        status[datum_string_t("function")] = ql::datum_t::binary(
+            datum_string_t(s.size(), s.data()));
+        status[datum_string_t("outdated")] = ql::datum_t::boolean(pair.second.outdated);
+        status[datum_string_t("multi")] =
+            ql::datum_t::boolean(pair.second.multi == sindex_multi_bool_t::MULTI);
+        status[datum_string_t("geo")] =
+            ql::datum_t::boolean(pair.second.geo == sindex_geo_bool_t::GEO);
         statuses.insert(std::make_pair(
             pair.first,
-            make_counted<const ql::datum_t>(std::move(status))));
+            ql::datum_t(std::move(status))));
     }
 
     return statuses;

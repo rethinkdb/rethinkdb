@@ -36,13 +36,13 @@ public:
             seq = v->as_seq(env->env);
         }
 
-        std::vector<counted_t<const datum_t> > result;
+        std::vector<datum_t> result;
         result.reserve(num);
         size_t element_number = 0;
         batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
         {
             profile::sampler_t sampler("Sampling elements.", env->env->trace);
-            while (counted_t<const datum_t> row = seq->next(env->env, batchspec)) {
+            while (datum_t row = seq->next(env->env, batchspec)) {
                 element_number++;
                 if (result.size() < num) {
                     result.push_back(row);
@@ -61,8 +61,7 @@ public:
         std::random_shuffle(result.begin(), result.end());
 
         counted_t<datum_stream_t> new_ds(
-            new array_datum_stream_t(make_counted<const datum_t>(std::move(result),
-                                                                 env->env->limits()),
+            new array_datum_stream_t(datum_t(std::move(result), env->env->limits()),
                                      backtrace()));
 
         return t.has() ? new_val(new_ds, t) : new_val(env->env, new_ds);
@@ -142,7 +141,7 @@ private:
                 result = result * 4.0;
             }
 
-            return new_val(make_counted<const datum_t>(result));
+            return new_val(datum_t(result));
         } else {
             rcheck(args->num_args() > 0, base_exc_t::GENERIC,
                    "Generating a random integer requires one or two bounds.");
@@ -177,7 +176,7 @@ private:
             int64_t signed_result = lower;
             signed_result += result;
 
-            return new_val(make_counted<const datum_t>(safe_to_double(signed_result)));
+            return new_val(datum_t(safe_to_double(signed_result)));
         }
     }
 

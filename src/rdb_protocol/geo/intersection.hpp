@@ -13,8 +13,8 @@ class datum_t;
 }
 
 /* A variant that works on two GeoJSON objects */
-bool geo_does_intersect(const counted_t<const ql::datum_t> &g1,
-                        const counted_t<const ql::datum_t> &g2);
+bool geo_does_intersect(const ql::datum_t &g1,
+                        const ql::datum_t &g2);
 
 /* Variants for each pair of S2 geometry */
 bool geo_does_intersect(const S2Point &point,

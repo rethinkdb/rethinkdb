@@ -64,6 +64,18 @@ static char* cJSON_strdup(const char* str)
       return copy;
 }
 
+static char* cJSON_strdup(const char* str, size_t size)
+{
+      size_t len;
+      char* copy;
+
+      len = size + 1;
+      if (!(copy = (char*)cJSON_malloc(len))) return 0;
+      memcpy(copy,str,size);
+      copy[size] = '\0';
+      return copy;
+}
+
 /* Internal constructor. */
 static cJSON *cJSON_New_Item()
 {
@@ -695,6 +707,7 @@ cJSON *cJSON_CreateFalse()                                                {cJSON
 cJSON *cJSON_CreateBool(int b)                                        {cJSON *item=cJSON_New_Item();if(item)item->type=b?cJSON_True:cJSON_False;return item;}
 cJSON *cJSON_CreateNumber(double num)                        {cJSON *item=cJSON_New_Item();if(item){item->type=cJSON_Number;item->valuedouble=num;item->valueint=(int)num;}return item;}
 cJSON *cJSON_CreateString(const char *string)        {cJSON *item=cJSON_New_Item();if(item){item->type=cJSON_String;item->valuestring=cJSON_strdup(string);}return item;}
+cJSON *cJSON_CreateStringN(const char *string, size_t size)        {cJSON *item=cJSON_New_Item();if(item){item->type=cJSON_String;item->valuestring=cJSON_strdup(string, size);}return item;}
 cJSON *cJSON_CreateArray()                                                {cJSON *item=cJSON_New_Item();if(item)item->type=cJSON_Array;return item;}
 cJSON *cJSON_CreateObject()                                                {cJSON *item=cJSON_New_Item();if(item)item->type=cJSON_Object;return item;}
 

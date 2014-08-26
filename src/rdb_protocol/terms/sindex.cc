@@ -22,7 +22,7 @@ public:
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
-        counted_t<const datum_t> name_datum = args->arg(env, 1)->as_datum();
+        datum_t name_datum = args->arg(env, 1)->as_datum();
         std::string name = name_datum->as_str().to_std();
         rcheck(name != table->get_pkey(),
                base_exc_t::GENERIC,
@@ -36,7 +36,7 @@ public:
         if (args->num_args() == 3) {
             counted_t<val_t> v = args->arg(env, 2);
             if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
-                counted_t<const datum_t> d = v->as_datum();
+                datum_t d = v->as_datum();
                 if (d->get_type() == datum_t::R_BINARY) {
                     const char *data = d->as_binary().data();
                     size_t sz = d->as_binary().size();
@@ -103,8 +103,8 @@ public:
 
         if (success) {
             datum_object_builder_t res;
-            UNUSED bool b = res.add("created", make_counted<datum_t>(1.0));
-            return new_val(std::move(res).to_counted());
+            UNUSED bool b = res.add("created", datum_t(1.0));
+            return new_val(std::move(res).to_datum());
         } else {
             rfail(base_exc_t::GENERIC, "Index `%s` already exists on table `%s`.",
                   name.c_str(), table->display_name().c_str());
@@ -125,8 +125,8 @@ public:
         bool success = table->sindex_drop(env->env, name);
         if (success) {
             datum_object_builder_t res;
-            UNUSED bool b = res.add("dropped", make_counted<datum_t>(1.0));
-            return new_val(std::move(res).to_counted());
+            UNUSED bool b = res.add("dropped", datum_t(1.0));
+            return new_val(std::move(res).to_datum());
         } else {
             rfail(base_exc_t::GENERIC, "Index `%s` does not exist on table `%s`.",
                   name.c_str(), table->display_name().c_str());
@@ -171,9 +171,9 @@ public:
 int64_t initial_poll_ms = 50;
 int64_t max_poll_ms = 10000;
 
-bool all_ready(counted_t<const datum_t> statuses) {
-    for (size_t i = 0; i < statuses->size(); ++i) {
-        if (!statuses->get(i)->get("ready", NOTHROW)->as_bool()) {
+bool all_ready(datum_t statuses) {
+    for (size_t i = 0; i < statuses->arr_size(); ++i) {
+        if (!statuses->get(i)->get_field("ready", NOTHROW)->as_bool()) {
             return false;
         }
     }
@@ -195,7 +195,7 @@ public:
         // attempt up to a maximum of max_poll_ms.
         int64_t current_poll_ms = initial_poll_ms;
         for (;;) {
-            counted_t<const datum_t> statuses =
+            datum_t statuses =
                 table->sindex_status(env->env, sindexes);
             if (all_ready(statuses)) {
                 return new_val(statuses);
@@ -239,9 +239,9 @@ public:
         case sindex_rename_result_t::SUCCESS: {
                 datum_object_builder_t retval;
                 UNUSED bool b = retval.add("renamed",
-                                           make_counted<datum_t>(old_name == new_name ?
+                                           datum_t(old_name == new_name ?
                                                                  0.0 : 1.0));
-                return new_val(std::move(retval).to_counted());
+                return new_val(std::move(retval).to_datum());
             }
         case sindex_rename_result_t::OLD_NAME_DOESNT_EXIST:
             rfail_target(old_name_val, base_exc_t::GENERIC,

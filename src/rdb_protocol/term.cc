@@ -245,7 +245,7 @@ void run(protob_t<Query> q,
             counted_t<val_t> val = root_term->eval(&scope_env);
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
                 res->set_type(Response::SUCCESS_ATOM);
-                counted_t<const datum_t> d = val->as_datum();
+                datum_t d = val->as_datum();
                 d->write_to_protobuf(res->add_response(), use_json);
                 if (trace.has()) {
                     trace->as_datum()->write_to_protobuf(
@@ -254,10 +254,9 @@ void run(protob_t<Query> q,
             } else if (counted_t<grouped_data_t> gd
                        = val->maybe_as_promiscuous_grouped_data(scope_env.env)) {
                 res->set_type(Response::SUCCESS_ATOM);
-                counted_t<const datum_t> d
-                    = to_datum_for_client_serialization(std::move(*gd),
-                                                        env.reql_version(),
-                                                        env.limits());
+                datum_t d = to_datum_for_client_serialization(std::move(*gd),
+                                                              env.reql_version(),
+                                                              env.limits());
                 d->write_to_protobuf(res->add_response(), use_json);
                 if (env.trace != nullptr) {
                     env.trace->as_datum()->write_to_protobuf(
@@ -265,7 +264,7 @@ void run(protob_t<Query> q,
                 }
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
                 counted_t<datum_stream_t> seq = val->as_seq(&env);
-                if (counted_t<const datum_t> arr = seq->as_array(&env)) {
+                if (datum_t arr = seq->as_array(&env)) {
                     res->set_type(Response::SUCCESS_ATOM);
                     arr->write_to_protobuf(res->add_response(), use_json);
                     if (trace.has()) {
@@ -406,16 +405,16 @@ counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) const {
     }
 }
 
-counted_t<val_t> term_t::new_val(counted_t<const datum_t> d) const {
+counted_t<val_t> term_t::new_val(datum_t d) const {
     return make_counted<val_t>(d, backtrace());
 }
-counted_t<val_t> term_t::new_val(counted_t<const datum_t> d,
+counted_t<val_t> term_t::new_val(datum_t d,
                                  counted_t<table_t> t) const {
     return make_counted<val_t>(d, t, backtrace());
 }
 
-counted_t<val_t> term_t::new_val(counted_t<const datum_t> d,
-                                 counted_t<const datum_t> orig_key,
+counted_t<val_t> term_t::new_val(datum_t d,
+                                 datum_t orig_key,
                                  counted_t<table_t> t) const {
     return make_counted<val_t>(d, orig_key, t, backtrace());
 }

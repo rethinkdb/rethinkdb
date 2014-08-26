@@ -48,7 +48,7 @@ optargspec_t optargspec_t::with(std::initializer_list<const char *> args) const 
 
 class faux_term_t : public term_t {
 public:
-    faux_term_t(protob_t<const Term> src, counted_t<const datum_t> _d)
+    faux_term_t(protob_t<const Term> src, datum_t _d)
         : term_t(std::move(src)), d(std::move(_d)) { }
     virtual const char *name() const { return "<EXPANDED FROM r.args>"; }
     virtual bool is_deterministic() const { return true; }
@@ -57,7 +57,7 @@ private:
     virtual counted_t<val_t> term_eval(scope_env_t *, eval_flags_t) const {
         return new_val(d);
     }
-    counted_t<const datum_t> d;
+    datum_t d;
 };
 
 
@@ -107,8 +107,8 @@ argvec_t arg_terms_t::start_eval(scope_env_t *env, eval_flags_t flags) const {
     for (auto it = original_args.begin(); it != original_args.end(); ++it) {
         if ((*it)->get_src()->type() == Term::ARGS) {
             counted_t<val_t> v = (*it)->eval(env, new_flags);
-            counted_t<const datum_t> d = v->as_datum();
-            for (size_t i = 0; i < d->size(); ++i) {
+            datum_t d = v->as_datum();
+            for (size_t i = 0; i < d->arr_size(); ++i) {
                 args.push_back(make_counted<faux_term_t>(src, d->get(i)));
             }
         } else {
@@ -322,7 +322,7 @@ bool bounded_op_term_t::open_bool(
         scope_env_t *env, args_t *args, const std::string &key, bool def/*ault*/) const {
     counted_t<val_t> v = args->optarg(env, key);
     if (!v.has()) return def;
-    const wire_string_t &s = v->as_str();
+    const datum_string_t &s = v->as_str();
     if (s == "open") {
         return true;
     } else if (s == "closed") {

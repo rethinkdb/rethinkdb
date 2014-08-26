@@ -12,8 +12,6 @@ reql_t::reql_t(const std::string &val) { set_datum(datum_t(val.c_str())); }
 
 reql_t::reql_t(const datum_t &d) { set_datum(d); }
 
-reql_t::reql_t(const counted_t<const datum_t> &d) { set_datum(*d.get()); }
-
 reql_t::reql_t(const Datum &d) : term(make_scoped<Term>()) {
     term->set_type(Term::DATUM);
     *term->mutable_datum() = d;

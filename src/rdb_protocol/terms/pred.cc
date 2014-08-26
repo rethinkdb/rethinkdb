@@ -5,6 +5,8 @@
 
 namespace ql {
 
+// Anonymous namespace to avoid linker conflicts with datum_lt / datum_gt from shards.cc
+namespace {
 bool datum_eq(reql_version_t, const datum_t &lhs, const datum_t &rhs) {
     // Behavior of cmp with respect to datum equality didn't change between versions.
     return lhs == rhs;
@@ -63,9 +65,9 @@ public:
     }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<const datum_t> lhs = args->arg(env, 0)->as_datum();
+        datum_t lhs = args->arg(env, 0)->as_datum();
         for (size_t i = 1; i < args->num_args(); ++i) {
-            counted_t<const datum_t> rhs = args->arg(env, i)->as_datum();
+            datum_t rhs = args->arg(env, i)->as_datum();
             if (!(pred)(env->env->reql_version(), *lhs, *rhs)) {
                 return new_val_bool(static_cast<bool>(false ^ invert));
             }
@@ -88,6 +90,8 @@ private:
     }
     virtual const char *name() const { return "not"; }
 };
+
+} // Anonymous namespace
 
 counted_t<term_t> make_predicate_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<predicate_term_t>(env, term);

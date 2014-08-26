@@ -28,21 +28,21 @@ public:
     std::string get_primary_key_name();
     bool read_all_primary_keys(
             signal_t *interruptor,
-            std::vector<counted_t<const ql::datum_t> > *keys_out,
+            std::vector<ql::datum_t> *keys_out,
             std::string *error_out);
     bool read_row(
-            counted_t<const ql::datum_t> primary_key,
+            ql::datum_t primary_key,
             signal_t *interruptor,
-            counted_t<const ql::datum_t> *row_out,
+            ql::datum_t *row_out,
             std::string *error_out);
     bool write_row(
-            counted_t<const ql::datum_t> primary_key,
-            counted_t<const ql::datum_t> new_value,
+            ql::datum_t primary_key,
+            ql::datum_t new_value,
             signal_t *interruptor,
             std::string *error_out);
 
 private:
-    bool lookup(counted_t<const ql::datum_t> primary_key,
+    bool lookup(ql::datum_t primary_key,
                 machines_semilattice_metadata_t *machines,
                 name_string_t *name_out,
                 machine_id_t *machine_id_out,

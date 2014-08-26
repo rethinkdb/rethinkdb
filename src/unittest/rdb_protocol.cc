@@ -256,10 +256,10 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
     std::shared_ptr<const scoped_cJSON_t> data(
         new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0, \"sid\" : 1}")));
     ql::configured_limits_t limits;
-    counted_t<const ql::datum_t> d
+    ql::datum_t d
         = ql::to_datum(cJSON_slow_GetObjectItem(data->get(), "id"), limits);
     store_key_t pk = store_key_t(d->print_primary());
-    counted_t<const ql::datum_t> sindex_key_literal = make_counted<ql::datum_t>(1.0);
+    ql::datum_t sindex_key_literal = ql::datum_t(1.0);
 
     ASSERT_TRUE(data->get());
     {
@@ -359,7 +359,7 @@ void populate_sindex(namespace_interface_t *nsi,
         std::shared_ptr<const scoped_cJSON_t> data(
             new scoped_cJSON_t(cJSON_Parse(json_doc.c_str())));
         ql::configured_limits_t limits;
-        counted_t<const ql::datum_t> d
+        ql::datum_t d
             = ql::to_datum(cJSON_slow_GetObjectItem(data->get(), "id"), limits);
         store_key_t pk = store_key_t(d->print_primary());
 
@@ -462,7 +462,7 @@ void read_sindex(namespace_interface_t *nsi,
                  std::string index,
                  size_t expected_size) {
     /* Access the data using the secondary index. */
-    counted_t<const ql::datum_t> key_literal = make_counted<ql::datum_t>(value);
+    ql::datum_t key_literal = ql::datum_t(value);
     read_t read = make_sindex_read(key_literal, index);
     read_response_t response;
 
@@ -633,7 +633,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t *nsi, order_source_t *
             std::string id(i + rdb_protocol::MAX_PRIMARY_KEY_SIZE - 10,
                            static_cast<char>(j));
             std::string sid(j, 'a');
-            auto sindex_key_literal = make_counted<const ql::datum_t>(std::string(sid));
+            auto sindex_key_literal = ql::datum_t(datum_string_t(sid));
             std::shared_ptr<const scoped_cJSON_t> data(
                 new scoped_cJSON_t(cJSON_CreateObject()));
             cJSON_AddItemToObject(data->get(), "id", cJSON_CreateString(id.c_str()));

@@ -39,11 +39,11 @@ static size_t count_in_state(const std::vector<reactor_activity_entry_t> &status
     return count;
 }
 
-counted_t<const ql::datum_t> convert_director_status_to_datum(
+ql::datum_t convert_director_status_to_datum(
         const std::vector<reactor_activity_entry_t> *status) {
     ql::datum_object_builder_t object_builder;
-    object_builder.overwrite("role", make_counted<const ql::datum_t>("director"));
-    std::string state;
+    object_builder.overwrite("role", ql::datum_t("director"));
+    const char *state;
     if (!status) {
         state = "missing";
     } else if (!check_complete_set(*status)) {
@@ -58,21 +58,21 @@ counted_t<const ql::datum_t> convert_director_status_to_datum(
                 state = "backfilling_data";
                 /* RSI(reql_admin): Implement backfill progress */
                 object_builder.overwrite("backfill_progress",
-                    make_counted<const ql::datum_t>("not_implemented"));
+                    ql::datum_t("not_implemented"));
             } else {
                 state = "transitioning";
             }
         }
     }
-    object_builder.overwrite("state", make_counted<const ql::datum_t>(std::move(state)));
-    return std::move(object_builder).to_counted();
+    object_builder.overwrite("state", ql::datum_t(state));
+    return std::move(object_builder).to_datum();
 }
 
-counted_t<const ql::datum_t> convert_replica_status_to_datum(
+ql::datum_t convert_replica_status_to_datum(
         const std::vector<reactor_activity_entry_t> *status) {
     ql::datum_object_builder_t object_builder;
-    object_builder.overwrite("role", make_counted<const ql::datum_t>("replica"));
-    std::string state;
+    object_builder.overwrite("role", ql::datum_t("replica"));
+    const char *state;
     if (!status) {
         state = "missing";
     } else if (!check_complete_set(*status)) {
@@ -91,22 +91,22 @@ counted_t<const ql::datum_t> convert_replica_status_to_datum(
                     state = "backfilling_data";
                     /* RSI(reql_admin): Implement backfill progress */
                     object_builder.overwrite("backfill_progress",
-                        make_counted<const ql::datum_t>("not_implemented"));
+                        ql::datum_t("not_implemented"));
                 } else {
                     state = "transitioning";
                 }
             }
         }
     }
-    object_builder.overwrite("state", make_counted<const ql::datum_t>(std::move(state)));
-    return std::move(object_builder).to_counted();
+    object_builder.overwrite("state", ql::datum_t(std::move(state)));
+    return std::move(object_builder).to_datum();
 }
 
-counted_t<const ql::datum_t> convert_nothing_status_to_datum(
+ql::datum_t convert_nothing_status_to_datum(
          const std::vector<reactor_activity_entry_t> *status) {
     ql::datum_object_builder_t object_builder;
-    object_builder.overwrite("role", make_counted<const ql::datum_t>("nothing"));
-    std::string state;
+    object_builder.overwrite("role", ql::datum_t("nothing"));
+    const char *state;
     if (!status) {
         state = "missing";
     } else if (!check_complete_set(*status)) {
@@ -115,7 +115,7 @@ counted_t<const ql::datum_t> convert_nothing_status_to_datum(
         size_t tally = count_in_state<nothing_t>(*status);
         if (tally == status->size()) {
             /* This machine shouldn't even appear in the map */
-            return counted_t<const ql::datum_t>();
+            return ql::datum_t();
         } else {
             tally += count_in_state<nothing_when_done_erasing_t>(*status);
             if (tally == status->size()) {
@@ -130,11 +130,11 @@ counted_t<const ql::datum_t> convert_nothing_status_to_datum(
             }
         }
     }
-    object_builder.overwrite("state", make_counted<const ql::datum_t>(std::move(state)));
-    return std::move(object_builder).to_counted();
+    object_builder.overwrite("state", ql::datum_t(std::move(state)));
+    return std::move(object_builder).to_datum();
 }
 
-counted_t<const ql::datum_t> convert_table_status_shard_to_datum(
+ql::datum_t convert_table_status_shard_to_datum(
         namespace_id_t uuid,
         key_range_t range,
         const table_config_t::shard_t &shard,
@@ -188,18 +188,18 @@ counted_t<const ql::datum_t> convert_table_status_shard_to_datum(
     boost::optional<name_string_t> director_name =
         name_client->get_name_for_machine_id(chosen_director);
     if (director_name) {
-        object_builder.overwrite(director_name->str(),
+        object_builder.overwrite(director_name->c_str(),
             convert_director_status_to_datum(
                 server_states.count(*director_name) == 1 ?
                     &server_states[*director_name] : NULL));
     }
 
     for (const name_string_t &replica : shard.replica_names) {
-        if (object_builder.try_get(replica.str()).has()) {
+        if (object_builder.try_get(datum_string_t(replica.c_str())).has()) {
             /* Don't overwrite the director's entry */
             continue;
         }
-        object_builder.overwrite(replica.str(),
+        object_builder.overwrite(replica.c_str(),
             convert_replica_status_to_datum(
                 server_states.count(replica) == 1 ?
                     &server_states[replica] : NULL));
@@ -208,23 +208,23 @@ counted_t<const ql::datum_t> convert_table_status_shard_to_datum(
     std::map<name_string_t, machine_id_t> other_names =
         name_client->get_name_to_machine_id_map()->get();
     for (auto it = other_names.begin(); it != other_names.end(); ++it) {
-        if (object_builder.try_get(it->first.str()).has()) {
+        if (object_builder.try_get(datum_string_t(it->first.c_str())).has()) {
             /* Don't overwrite a director or replica entry */
             continue;
         }
-        counted_t<const ql::datum_t> entry =
+        ql::datum_t entry =
             convert_nothing_status_to_datum(
                 server_states.count(it->first) == 1 ?
                     &server_states[it->first] : NULL);
         if (entry.has()) {
-            object_builder.overwrite(it->first.str(), entry);
+            object_builder.overwrite(it->first.c_str(), entry);
         }
     }
 
-    return std::move(object_builder).to_counted();
+    return std::move(object_builder).to_datum();
 }
 
-counted_t<const ql::datum_t> convert_table_status_to_datum(
+ql::datum_t convert_table_status_to_datum(
         name_string_t db_name,
         name_string_t table_name,
         namespace_id_t uuid,
@@ -246,9 +246,9 @@ counted_t<const ql::datum_t> convert_table_status_to_datum(
                 dir,
                 name_client));
     }
-    builder.overwrite("shards", std::move(array_builder).to_counted());
+    builder.overwrite("shards", std::move(array_builder).to_datum());
 
-    return std::move(builder).to_counted();
+    return std::move(builder).to_datum();
 }
 
 std::string table_status_artificial_table_backend_t::get_primary_key_name() {
@@ -257,7 +257,7 @@ std::string table_status_artificial_table_backend_t::get_primary_key_name() {
 
 bool table_status_artificial_table_backend_t::read_all_primary_keys(
         UNUSED signal_t *interruptor,
-        std::vector<counted_t<const ql::datum_t> > *keys_out,
+        std::vector<ql::datum_t> *keys_out,
         UNUSED std::string *error_out) {
     on_thread_t thread_switcher(home_thread());
     keys_out->clear();
@@ -283,9 +283,9 @@ bool table_status_artificial_table_backend_t::read_all_primary_keys(
 }
 
 bool table_status_artificial_table_backend_t::read_row(
-        counted_t<const ql::datum_t> primary_key,
+        ql::datum_t primary_key,
         UNUSED signal_t *interruptor,
-        counted_t<const ql::datum_t> *row_out,
+        ql::datum_t *row_out,
         UNUSED std::string *error_out) {
     on_thread_t thread_switcher(home_thread());
     cow_ptr_t<namespaces_semilattice_metadata_t> md = table_sl_view->get();
@@ -303,7 +303,7 @@ bool table_status_artificial_table_backend_t::read_row(
             database_sl_view->get(), md);
     }
     if (table_id == nil_uuid()) {
-        *row_out = counted_t<const ql::datum_t>();
+        *row_out = ql::datum_t();
         return true;
     }
 
@@ -319,8 +319,8 @@ bool table_status_artificial_table_backend_t::read_row(
 }
 
 bool table_status_artificial_table_backend_t::write_row(
-        UNUSED counted_t<const ql::datum_t> primary_key,
-        UNUSED counted_t<const ql::datum_t> new_value,
+        UNUSED ql::datum_t primary_key,
+        UNUSED ql::datum_t new_value,
         UNUSED signal_t *interruptor,
         std::string *error_out) {
     *error_out = "It's illegal to write to the `rethinkdb.table_status` table.";

@@ -73,7 +73,7 @@ S2CellId btree_key_to_s2cellid(const btree_key_t *key) {
 }
 
 std::vector<std::string> compute_index_grid_keys(
-        const counted_t<const ql::datum_t> &key, int goal_cells) {
+        const ql::datum_t &key, int goal_cells) {
     rassert(key.has());
 
     if (!key->is_ptype(ql::pseudo::geometry_string)) {

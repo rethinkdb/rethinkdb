@@ -23,7 +23,7 @@ public:
              const ql::configured_limits_t &limits);
 
     js_result_t eval(const std::string &source);
-    js_result_t call(js_id_t id, const std::vector<counted_t<const ql::datum_t> > &args);
+    js_result_t call(js_id_t id, const std::vector<ql::datum_t> &args);
     void release(js_id_t id);
     void exit();
 

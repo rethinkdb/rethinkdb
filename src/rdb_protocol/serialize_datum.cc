@@ -7,6 +7,8 @@
 
 #include "containers/archive/stl_types.hpp"
 #include "containers/archive/versioned.hpp"
+#include "containers/counted.hpp"
+#include "containers/shared_buffer.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
@@ -46,7 +48,7 @@ MUST_USE archive_result_t datum_deserialize(read_stream_t *s,
 // serialization has changed from cluster version to cluster version.
 
 // Keep in sync with datum_serialize.
-size_t datum_serialized_size(const std::vector<counted_t<const datum_t> > &v) {
+size_t datum_serialized_size(const std::vector<datum_t> &v) {
     size_t ret = varint_uint64_serialized_size(v.size());
     for (auto it = v.begin(), e = v.end(); it != e; ++it) {
         ret += datum_serialized_size(*it);
@@ -57,7 +59,7 @@ size_t datum_serialized_size(const std::vector<counted_t<const datum_t> > &v) {
 
 // Keep in sync with datum_serialized_size.
 serialization_result_t datum_serialize(write_message_t *wm,
-                                       const std::vector<counted_t<const datum_t> > &v) {
+                                       const std::vector<datum_t> &v) {
     serialization_result_t res = serialization_result_t::SUCCESS;
     serialize_varint_uint64(wm, v.size());
     for (auto it = v.begin(), e = v.end(); it != e; ++it) {
@@ -67,7 +69,7 @@ serialization_result_t datum_serialize(write_message_t *wm,
 }
 
 MUST_USE archive_result_t
-datum_deserialize(read_stream_t *s, std::vector<counted_t<const datum_t> > *v) {
+datum_deserialize(read_stream_t *s, std::vector<datum_t> *v) {
     v->clear();
 
     uint64_t sz;
@@ -87,20 +89,9 @@ datum_deserialize(read_stream_t *s, std::vector<counted_t<const datum_t> > *v) {
     return archive_result_t::SUCCESS;
 }
 
-size_t datum_serialized_size(const std::string &s) {
-    return serialize_universal_size(s);
-}
-serialization_result_t datum_serialize(write_message_t *wm, const std::string &s) {
-    serialize_universal(wm, s);
-    return serialization_result_t::SUCCESS;
-}
-MUST_USE archive_result_t datum_deserialize(read_stream_t *s, std::string *out) {
-    return deserialize_universal(s, out);
-}
-
 
 size_t datum_serialized_size(
-        const std::map<std::string, counted_t<const datum_t> > &m) {
+        const std::vector<std::pair<datum_string_t, datum_t> > &m) {
     size_t ret = varint_uint64_serialized_size(m.size());
     for (auto it = m.begin(), e = m.end(); it != e; ++it) {
         ret += datum_serialized_size(it->first);
@@ -111,7 +102,7 @@ size_t datum_serialized_size(
 
 serialization_result_t
 datum_serialize(write_message_t *wm,
-                const std::map<std::string, counted_t<const datum_t> > &m) {
+                const std::vector<std::pair<datum_string_t, datum_t> > &m) {
     serialization_result_t res = serialization_result_t::SUCCESS;
     serialize_varint_uint64(wm, m.size());
     for (auto it = m.begin(), e = m.end(); it != e; ++it) {
@@ -123,7 +114,7 @@ datum_serialize(write_message_t *wm,
 
 MUST_USE archive_result_t datum_deserialize(
         read_stream_t *s,
-        std::map<std::string, counted_t<const datum_t> > *m) {
+        std::vector<std::pair<datum_string_t, datum_t> > *m) {
     m->clear();
 
     uint64_t sz;
@@ -134,17 +125,15 @@ MUST_USE archive_result_t datum_deserialize(
         return archive_result_t::RANGE_ERROR;
     }
 
-    // Using position should make this function take linear time, not
-    // sz*log(sz) time.
-    auto position = m->begin();
+    m->reserve(static_cast<size_t>(sz));
 
     for (uint64_t i = 0; i < sz; ++i) {
-        std::pair<std::string, counted_t<const datum_t> > p;
+        std::pair<datum_string_t, datum_t> p;
         res = datum_deserialize(s, &p.first);
         if (bad(res)) { return res; }
         res = datum_deserialize(s, &p.second);
         if (bad(res)) { return res; }
-        position = m->insert(position, std::move(p));
+        m->push_back(std::move(p));
     }
 
     return archive_result_t::SUCCESS;
@@ -153,22 +142,22 @@ MUST_USE archive_result_t datum_deserialize(
 
 
 
-size_t datum_serialized_size(const counted_t<const datum_t> &datum) {
+size_t datum_serialized_size(const datum_t &datum) {
     r_sanity_check(datum.has());
     size_t sz = 1; // 1 byte for the type
-    switch (datum->get_type()) {
+    switch (datum.get_type()) {
     case datum_t::R_ARRAY: {
-        sz += datum_serialized_size(datum->as_array());
+        sz += datum_serialized_size(datum.get_arr_vec());
     } break;
     case datum_t::R_BINARY: {
-        sz += datum_serialized_size(datum->as_binary());
+        sz += datum_serialized_size(datum.as_binary());
     } break;
     case datum_t::R_BOOL: {
         sz += serialize_universal_size_t<bool>::value;
     } break;
     case datum_t::R_NULL: break;
     case datum_t::R_NUM: {
-        double d = datum->as_num();
+        double d = datum.as_num();
         int64_t i;
         if (number_as_integer(d, &i)) {
             sz += varint_uint64_serialized_size(i < 0 ? -i : i);
@@ -177,31 +166,32 @@ size_t datum_serialized_size(const counted_t<const datum_t> &datum) {
         }
     } break;
     case datum_t::R_OBJECT: {
-        sz += datum_serialized_size(datum->as_object());
+        sz += datum_serialized_size(datum.get_obj_vec());
     } break;
     case datum_t::R_STR: {
-        sz += datum_serialized_size(datum->as_str());
+        sz += datum_serialized_size(datum.as_str());
     } break;
+    case datum_t::UNINITIALIZED: // fallthru
     default:
         unreachable();
     }
     return sz;
 }
 serialization_result_t datum_serialize(write_message_t *wm,
-                                       const counted_t<const datum_t> &datum) {
+                                       const datum_t &datum) {
     serialization_result_t res = serialization_result_t::SUCCESS;
     r_sanity_check(datum.has());
     switch (datum->get_type()) {
     case datum_t::R_ARRAY: {
         res = res | datum_serialize(wm, datum_serialized_type_t::R_ARRAY);
-        const std::vector<counted_t<const datum_t> > &value = datum->as_array();
+        const std::vector<datum_t> &value = datum->get_arr_vec();
         if (value.size() > 100000)
             res = res | serialization_result_t::ARRAY_TOO_BIG;
         res = res | datum_serialize(wm, value);
     } break;
     case datum_t::R_BINARY: {
         datum_serialize(wm, datum_serialized_type_t::R_BINARY);
-        const wire_string_t &value = datum->as_binary();
+        const datum_string_t &value = datum->as_binary();
         datum_serialize(wm, value);
     } break;
     case datum_t::R_BOOL: {
@@ -234,19 +224,20 @@ serialization_result_t datum_serialize(write_message_t *wm,
     } break;
     case datum_t::R_OBJECT: {
         res = res | datum_serialize(wm, datum_serialized_type_t::R_OBJECT);
-        res = res | datum_serialize(wm, datum->as_object());
+        res = res | datum_serialize(wm, datum->get_obj_vec());
     } break;
     case datum_t::R_STR: {
         res = res | datum_serialize(wm, datum_serialized_type_t::R_STR);
-        const wire_string_t &value = datum->as_str();
+        const datum_string_t &value = datum->as_str();
         res = res | datum_serialize(wm, value);
     } break;
+    case datum_t::UNINITIALIZED: // fallthru
     default:
         unreachable();
     }
     return res;
 }
-archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *datum) {
+archive_result_t datum_deserialize(read_stream_t *s, datum_t *datum) {
     // Datums on disk should always be read no matter how stupid big
     // they are; there's no way to fix the problem otherwise.
     // Similarly we don't want to reject array reads from cluster
@@ -261,24 +252,23 @@ archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *d
 
     switch (type) {
     case datum_serialized_type_t::R_ARRAY: {
-        std::vector<counted_t<const datum_t> > value;
+        std::vector<datum_t> value;
         res = datum_deserialize(s, &value);
         if (bad(res)) {
             return res;
         }
         try {
-            datum->reset(new datum_t(std::move(value), limits));
+            *datum = datum_t(std::move(value), limits);
         } catch (const base_exc_t &) {
             return archive_result_t::RANGE_ERROR;
         }
     } break;
     case datum_serialized_type_t::R_BINARY: {
-        scoped_ptr_t<wire_string_t> value;
+        datum_string_t value;
         res = datum_deserialize(s, &value);
         if (bad(res)) {
             return res;
         }
-        rassert(value.has());
         try {
             *datum = datum_t::binary(std::move(value));
         } catch (const base_exc_t &) {
@@ -307,7 +297,7 @@ archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *d
             return res;
         }
         try {
-            datum->reset(new datum_t(value));
+            *datum = datum_t(value);
         } catch (const base_exc_t &) {
             return archive_result_t::RANGE_ERROR;
         }
@@ -331,32 +321,31 @@ archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *d
             value = d;
         }
         try {
-            datum->reset(new datum_t(value));
+            *datum = datum_t(value);
         } catch (const base_exc_t &) {
             return archive_result_t::RANGE_ERROR;
         }
     } break;
     case datum_serialized_type_t::R_OBJECT: {
-        std::map<std::string, counted_t<const datum_t> > value;
+        std::vector<std::pair<datum_string_t, datum_t> > value;
         res = datum_deserialize(s, &value);
         if (bad(res)) {
             return res;
         }
         try {
-            datum->reset(new datum_t(std::move(value)));
+            *datum = datum_t(std::move(value));
         } catch (const base_exc_t &) {
             return archive_result_t::RANGE_ERROR;
         }
     } break;
     case datum_serialized_type_t::R_STR: {
-        scoped_ptr_t<wire_string_t> value;
+        datum_string_t value;
         res = datum_deserialize(s, &value);
         if (bad(res)) {
             return res;
         }
-        rassert(value.has());
         try {
-            datum->reset(new datum_t(std::move(value)));
+            *datum = datum_t(std::move(value));
         } catch (const base_exc_t &) {
             return archive_result_t::RANGE_ERROR;
         }
@@ -369,19 +358,21 @@ archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *d
 }
 
 
-size_t datum_serialized_size(const wire_string_t &s) {
-    return varint_uint64_serialized_size(s.size()) + s.size();
+size_t datum_serialized_size(const datum_string_t &s) {
+    const size_t s_size = s.size();
+    return varint_uint64_serialized_size(s_size) + s_size;
 }
 
-serialization_result_t datum_serialize(write_message_t *wm, const wire_string_t &s) {
-    serialize_varint_uint64(wm, static_cast<uint64_t>(s.size()));
-    wm->append(s.data(), s.size());
+serialization_result_t datum_serialize(write_message_t *wm, const datum_string_t &s) {
+    const size_t s_size = s.size();
+    serialize_varint_uint64(wm, static_cast<uint64_t>(s_size));
+    wm->append(s.data(), s_size);
     return serialization_result_t::SUCCESS;
 }
 
 MUST_USE archive_result_t datum_deserialize(
         read_stream_t *s,
-        scoped_ptr_t<wire_string_t> *out) {
+        datum_string_t *out) {
     uint64_t sz;
     archive_result_t res = deserialize_varint_uint64(s, &sz);
     if (res != archive_result_t::SUCCESS) { return res; }
@@ -390,9 +381,11 @@ MUST_USE archive_result_t datum_deserialize(
         return archive_result_t::RANGE_ERROR;
     }
 
-    scoped_ptr_t<wire_string_t> value(wire_string_t::create(sz));
-
-    int64_t num_read = force_read(s, value->data(), sz);
+    const size_t str_offset = varint_uint64_serialized_size(sz);
+    counted_t<shared_buf_t> buf =
+        shared_buf_t::create(str_offset + static_cast<size_t>(sz));
+    serialize_varint_uint64_into_buf(sz, reinterpret_cast<uint8_t *>(buf->data()));
+    int64_t num_read = force_read(s, buf->data() + str_offset, sz);
     if (num_read == -1) {
         return archive_result_t::SOCK_ERROR;
     }
@@ -400,7 +393,7 @@ MUST_USE archive_result_t datum_deserialize(
         return archive_result_t::SOCK_EOF;
     }
 
-    *out = std::move(value);
+    *out = datum_string_t(shared_buf_ref_t<char>(std::move(buf), 0));
 
     return archive_result_t::SUCCESS;
 }
@@ -408,8 +401,8 @@ MUST_USE archive_result_t datum_deserialize(
 
 template <cluster_version_t W>
 void serialize(write_message_t *wm,
-               const empty_ok_t<const counted_t<const datum_t> > &datum) {
-    const counted_t<const datum_t> *pointer = datum.get();
+               const empty_ok_t<const datum_t> &datum) {
+    const datum_t *pointer = datum.get();
     const bool has = pointer->has();
     serialize<W>(wm, has);
     if (has) {
@@ -417,18 +410,18 @@ void serialize(write_message_t *wm,
     }
 }
 
-INSTANTIATE_SERIALIZE_FOR_CLUSTER_AND_DISK(empty_ok_t<const counted_t<const datum_t> >);
+INSTANTIATE_SERIALIZE_FOR_CLUSTER_AND_DISK(empty_ok_t<const datum_t>);
 
 template <cluster_version_t W>
 archive_result_t deserialize(read_stream_t *s,
-                             empty_ok_ref_t<counted_t<const datum_t> > datum) {
+                             empty_ok_ref_t<datum_t> datum) {
     bool has;
     archive_result_t res = deserialize<W>(s, &has);
     if (bad(res)) {
         return res;
     }
 
-    counted_t<const datum_t> *pointer = datum.get();
+    datum_t *pointer = datum.get();
 
     if (!has) {
         pointer->reset();
@@ -440,16 +433,16 @@ archive_result_t deserialize(read_stream_t *s,
 
 template archive_result_t deserialize<cluster_version_t::v1_13>(
         read_stream_t *s,
-        empty_ok_ref_t<counted_t<const datum_t> > datum);
+        empty_ok_ref_t<datum_t> datum);
 template archive_result_t deserialize<cluster_version_t::v1_13_2>(
         read_stream_t *s,
-        empty_ok_ref_t<counted_t<const datum_t> > datum);
+        empty_ok_ref_t<datum_t> datum);
 template archive_result_t deserialize<cluster_version_t::v1_14>(
         read_stream_t *s,
-        empty_ok_ref_t<counted_t<const datum_t> > datum);
+        empty_ok_ref_t<datum_t> datum);
 template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
         read_stream_t *s,
-        empty_ok_ref_t<counted_t<const datum_t> > datum);
+        empty_ok_ref_t<datum_t> datum);
 
 
 }  // namespace ql

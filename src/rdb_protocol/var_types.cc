@@ -53,7 +53,7 @@ var_scope_t::var_scope_t() : implicit_depth(0) { }
 
 var_scope_t var_scope_t::with_func_arg_list(
     const std::vector<sym_t> &arg_names,
-    const std::vector<counted_t<const datum_t> > &arg_values) const {
+    const std::vector<datum_t> &arg_values) const {
     r_sanity_check(arg_names.size() == arg_values.size());
     var_scope_t ret = *this;
     if (function_emits_implicit_variable(arg_names)) {
@@ -87,7 +87,7 @@ var_scope_t var_scope_t::filtered_by_captures(const var_captures_t &captures) co
     return ret;
 }
 
-counted_t<const datum_t> var_scope_t::lookup_var(sym_t varname) const {
+datum_t var_scope_t::lookup_var(sym_t varname) const {
     auto it = vars.find(varname);
     // This is a sanity check because we should never have constructed an expression
     // with an invalid variable name.
@@ -95,7 +95,7 @@ counted_t<const datum_t> var_scope_t::lookup_var(sym_t varname) const {
     return it->second;
 }
 
-counted_t<const datum_t> var_scope_t::lookup_implicit() const {
+datum_t var_scope_t::lookup_implicit() const {
     r_sanity_check(implicit_depth == 1 && maybe_implicit.has());
     return maybe_implicit;
 }
@@ -148,7 +148,7 @@ void var_scope_t::rdb_serialize(write_message_t *wm) const {
 
 template <cluster_version_t W>
 archive_result_t var_scope_t::rdb_deserialize(read_stream_t *s) {
-    std::map<sym_t, counted_t<const datum_t> > local_vars;
+    std::map<sym_t, datum_t> local_vars;
     archive_result_t res = deserialize<W>(s, &local_vars);
     if (bad(res)) { return res; }
 
@@ -156,7 +156,7 @@ archive_result_t var_scope_t::rdb_deserialize(read_stream_t *s) {
     res = deserialize<W>(s, &local_implicit_depth);
     if (bad(res)) { return res; }
 
-    counted_t<const datum_t> local_maybe_implicit;
+    datum_t local_maybe_implicit;
     if (local_implicit_depth == 1) {
         bool has;
         res = deserialize<W>(s, &has);
