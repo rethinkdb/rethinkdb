@@ -32,9 +32,9 @@ static bool validate_params(
         *error_out = "Every table must have at least one shard.";
         return false;
     }
-    static const int max_shards = 32;
+    static const size_t max_shards = 32;
     if (params.num_shards > max_shards) {
-        *error_out = strprintf("Maximum number of shards is %d.", max_shards);
+        *error_out = strprintf("Maximum number of shards is %zu.", max_shards);
         return false;
     }
     if (params.num_replicas.count(params.director_tag) == 0 ||
