@@ -54,7 +54,7 @@ MUST_USE archive_result_t datum_deserialize(read_stream_t *s,
 /* Helper functions shared by datum_array_* and datum_object_* */
 size_t read_inner_serialized_size_from_buf(const shared_buf_ref_t<char> &buf) {
     buffer_read_stream_t s(buf.get(), buf.get_safety_boundary());
-    uint64_t sz;
+    uint64_t sz = 0;
     guarantee_deserialization(deserialize_varint_uint64(&s, &sz), "datum buffer size");
     guarantee(sz <= std::numeric_limits<size_t>::max());
     return static_cast<size_t>(sz);
@@ -631,7 +631,7 @@ size_t datum_get_array_size(const shared_buf_ref_t<char> &array) {
     uint64_t ser_size;
     guarantee_deserialization(deserialize_varint_uint64(&sz_read_stream, &ser_size),
                               "datum decode array");
-    uint64_t num_elements;
+    uint64_t num_elements = 0;
     guarantee_deserialization(deserialize_varint_uint64(&sz_read_stream, &num_elements),
                               "datum decode array");
     guarantee(num_elements <= std::numeric_limits<size_t>::max());
@@ -648,7 +648,7 @@ size_t datum_get_element_offset(const shared_buf_ref_t<char> &array, size_t inde
     uint64_t ser_size;
     guarantee_deserialization(deserialize_varint_uint64(&sz_read_stream, &ser_size),
                               "datum decode array");
-    uint64_t num_elements;
+    uint64_t num_elements = 0;
     guarantee_deserialization(deserialize_varint_uint64(&sz_read_stream, &num_elements),
                               "datum decode array");
     guarantee(num_elements <= std::numeric_limits<size_t>::max());
