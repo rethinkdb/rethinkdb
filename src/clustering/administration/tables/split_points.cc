@@ -16,8 +16,10 @@ static store_key_t interpolate_key(store_key_t in1, store_key_t in2, double frac
     uint8_t out_buf[MAX_KEY_SIZE];
 
     /* Calculate the shared prefix of `in1` and `in2` */
-    int i = 0;
-    while (i < in1.size() && i < in2.size() && in1_buf[i] == in2_buf[i]) {
+    size_t i = 0;
+    while (i < static_cast<size_t>(in1.size()) &&
+           i < static_cast<size_t>(in2.size()) &&
+           in1_buf[i] == in2_buf[i]) {
         out_buf[i] = in1_buf[i];
         ++i;
     }
@@ -26,11 +28,11 @@ static store_key_t interpolate_key(store_key_t in1, store_key_t in2, double frac
     arithmetic on them. If `in1` or `in2` terminates early, pad it with zeroes. This
     isn't perfect but the error doesn't matter for our purposes. */
     uint32_t in1_tail = 0, in2_tail = 0;
-    static const int num_interp = 4;
+    static const size_t num_interp = 4;
     rassert(sizeof(in1_tail) >= num_interp);
-    for (int j = i; j < i + num_interp; ++j) {
-        uint8_t c1 = j < in1.size() ? in1_buf[j] : 0;
-        uint8_t c2 = j < in2.size() ? in2_buf[j] : 0;
+    for (size_t j = i; j < i + num_interp; ++j) {
+        uint8_t c1 = j < static_cast<size_t>(in1.size()) ? in1_buf[j] : 0;
+        uint8_t c2 = j < static_cast<size_t>(in2.size()) ? in2_buf[j] : 0;
         in1_tail = (in1_tail << 8) + c1;
         in2_tail = (in2_tail << 8) + c2;
     }
@@ -49,7 +51,7 @@ static store_key_t interpolate_key(store_key_t in1, store_key_t in2, double frac
 
     /* Construct the final result */
     store_key_t out(
-        std::min(i + num_interp, MAX_KEY_SIZE),
+        std::min(i + num_interp, static_cast<size_t>(MAX_KEY_SIZE)),
         out_buf);
 
     /* For various reasons (rounding errors, corner cases involving keys very close
@@ -79,7 +81,7 @@ static void ensure_distinct(std::vector<store_key_t> *split_points) {
                 size_t j = i;
                 while (j > 1 && split_points->at(j) == split_points->at(j-1)) {
                     bool ok2 = split_points->at(j-1).decrement();
-                    rassert(ok2);
+                    guarantee(ok2);
                     --j;
                 }
             }
