@@ -60,7 +60,7 @@ def table_list(*args):
     return TableListTL(*args)
 
 def table_config(*args):
-    return TableListTL(*args)
+    return TableConfigTL(*args)
 
 def table_status(*args):
     return TableStatusTL(*args)

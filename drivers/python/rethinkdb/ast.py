@@ -941,6 +941,12 @@ class DB(RqlTopLevelQuery):
     def table_list(self, *args):
         return TableList(self, *args)
 
+    def table_config(self, *args):
+        return TableConfig(self, *args)
+
+    def table_status(self, *args):
+        return TableStatus(self, *args)
+
     def table_create(self, *args, **kwargs):
         kwargs.setdefault('primary_key', ())
         kwargs.setdefault('datacenter', ())
