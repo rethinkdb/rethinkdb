@@ -3,6 +3,7 @@
 #define CLUSTERING_ADMINISTRATION_SERVERS_NAME_CLIENT_HPP_
 
 #include <map>
+#include <set>
 #include <string>
 
 #include "containers/incremental_lenses.hpp"

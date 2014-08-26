@@ -54,6 +54,26 @@ tests:
       rb: db.table_create('ab', {:primary_key => 'bar', :durability => 'wrong'})
       ot: err('RqlRuntimeError', 'Durability option `wrong` unrecognized (options are "hard" and "soft").', [0])
 
+    # Table reconfigure
+    - cd: db.table_create('a')
+      ot: ({'created':1})
+
+    - cd: db.table('a').reconfigure(1, 1)
+
+    - py: db.table('a').reconfigure(1, {"default":1})
+      js: db.table('a').reconfigure(1, {default:1})
+      rb: db.table('a').reconfigure(1, {:default => 1})
+
+    - py: db.table('a').reconfigure(1, 1, director_tag='default')
+      js: db.table('a').reconfigure(1, 1, {director_tag:'default'})
+      rb: db.table('a').reconfigure(1, 1, {:director_tag => 'default'})
+
+    - py: db.table('a').reconfigure(1, 1, dry_run=True)
+      js: db.table('a').reconfigure(1, 1, {dry_run:true})
+      rb: db.table('a').reconfigure(1, 1, {:dry_run => true})
+
+    - cd: db.table_drop('a')
+      ot: ({'dropped':1})
 
     # Table errors
     - cd: db.table_create('foo')
@@ -79,7 +99,53 @@ tests:
       rb: db.table_create('nonsense', :foo => 'bar')
       ot: err('RqlCompileError', "Unrecognized optional argument `foo`.", [])
 
-    - js: db.table_create('nonsense1', {'datacenter':'bar'})
-      py: db.table_create('nonsense1', datacenter='bar')
-      rb: db.table_create('nonsense1', :datacenter => 'bar')
-      ot: err('RqlRuntimeError', 'Datacenter `bar` does not exist.', [0])
+    # RSI(reql_admin): Add tests for table_create() with configuration parameters
+
+    # Table reconfigure errors
+    - cd: db.table_create('a')
+      ot: ({'created':1})
+
+    - cd: db.table('a').reconfigure(0, 1)
+      ot: err('RqlRuntimeError', 'Every table must have at least one shard.', [])
+
+    - py: db.table('a').reconfigure(1, {"default":0})
+      js: db.table('a').reconfigure(1, {default:0})
+      rb: db.table('a').reconfigure(1, {:default => 0})
+      ot: >
+          err('RqlRuntimeError', 'Can\'t use server tag `default` for directors because
+          you specified no replicas in server tag `default`.', [])
+
+    - py: db.table('a').reconfigure(1, {"default":-3})
+      js: db.table('a').reconfigure(1, {default:-3})
+      rb: db.table('a').reconfigure(1, {:default => -3})
+      ot: err('RqlRuntimeError', 'Can\'t have a negative number of replicas', [])
+
+    - cd: db.table('a').reconfigure(2, 1)
+      ot: >
+          err('RqlRuntimeError', 'There isn\'t enough data in the table to create 2
+          balanced shards. Try creating fewer shards; if you don\'t increase the number
+          of shards, it won\'t be necessary to calculate new balanced shards.', [])
+
+    # Insert some data so that `reconfigure()` can pick shard points
+    - py: db.table('a').insert([{"id":1}, {"id":2}, {"id":3}, {"id":4}])
+      js: db.table('a').insert([{id:1}, {id:2}, {id:3}, {id:4}])
+      rb: db.table('a').insert([{"id" => 1}, {"id" => 2}, {"id" => 3}, {"id" => 4}])
+      ot: {"inserted": 4}
+
+    - cd: db.table('a').reconfigure(2, 1)
+      ot: >
+          err('RqlRuntimeError', 'You requested 2 shards, but there are only 1 servers
+          with the tag `default`. reconfigure() requires at least as many servers with
+          each tag as there are shards, so that it can distribute the shards across
+          servers instead of putting multiple shards on a single server. You can work
+          around this limitation by generating a configuration manually instead of using
+          reconfigure().', [])
+
+    - cd: db.table('a').reconfigure(1, 2)
+      ot: >
+          err('RqlRuntimeError', 'You requested 2 replicas on servers with the tag
+          `default`, but there are only 1 servers with the tag `default`. It\'s
+          impossible to have more replicas of the data than there are servers.', [])
+
+    - cd: db.table_drop('a')
+      ot: ({'dropped':1})

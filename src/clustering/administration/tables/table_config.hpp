@@ -15,21 +15,27 @@
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rpc/semilattice/view.hpp"
 
+class real_reql_cluster_interface_t;
 class server_name_client_t;
+
+/* This is publicly exposed so that it can be used to create the return value of
+`table.reconfigure()`. */
+counted_t<const ql::datum_t> convert_table_config_to_datum(
+        const table_config_t &config);
 
 class table_config_artificial_table_backend_t :
     public common_table_artificial_table_backend_t
 {
 public:
     table_config_artificial_table_backend_t(
-            machine_id_t _my_machine_id,
             boost::shared_ptr< semilattice_readwrite_view_t<
                 cow_ptr_t<namespaces_semilattice_metadata_t> > > _table_sl_view,
             boost::shared_ptr< semilattice_readwrite_view_t<
                 databases_semilattice_metadata_t> > _database_sl_view,
+            real_reql_cluster_interface_t *_reql_cluster_interface,
             server_name_client_t *_name_client) :
         common_table_artificial_table_backend_t(_table_sl_view, _database_sl_view),
-        my_machine_id(_my_machine_id),
+        reql_cluster_interface(_reql_cluster_interface),
         name_client(_name_client) { }
 
     bool read_row_impl(
@@ -47,7 +53,7 @@ public:
             std::string *error_out);
 
 private:
-    machine_id_t my_machine_id;
+    real_reql_cluster_interface_t *reql_cluster_interface;
     server_name_client_t *name_client;
 };
 

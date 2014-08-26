@@ -52,7 +52,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
     /* Apply range filter */
     if (!range.is_universe()) {
         std::vector<counted_t<const ql::datum_t> > temp;
-        for (auto key : keys) {
+        for (const counted_t<const ql::datum_t> &key : keys) {
             if (range.contains(reql_version_t::LATEST, key)) {
                 temp.push_back(key);
             }
@@ -65,14 +65,21 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
         case sorting_t::UNORDERED:
             break;
         case sorting_t::ASCENDING:
+            /* It's OK to use `std::sort()` instead of `std::stable_sort()` here because
+            primary keys need to be unique. If we were to support secondary indexes on
+            artificial tables, we would need to ensure that `read_all_primary_keys()`
+            returns the keys in a deterministic order and then we would need to use a
+            `std::stable_sort()` here. */
             std::sort(keys.begin(), keys.end(),
-                [](counted_t<const ql::datum_t> a, counted_t<const ql::datum_t> b) {
+                [](const counted_t<const ql::datum_t> &a,
+                   const counted_t<const ql::datum_t> &b) {
                     return a->compare_lt(reql_version_t::LATEST, *b);
                 });
             break;
         case sorting_t::DESCENDING:
             std::sort(keys.begin(), keys.end(),
-                [](counted_t<const ql::datum_t> a, counted_t<const ql::datum_t> b) {
+                [](const counted_t<const ql::datum_t> &a,
+                   const counted_t<const ql::datum_t> &b) {
                     return a->compare_gt(reql_version_t::LATEST, *b);
                 });
             break;
@@ -108,7 +115,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_row_changes(
         UNUSED const std::string &table_name) {
     /* RSI(reql_admin): Artificial tables will eventually support change feeds. */
     rfail_datum(ql::base_exc_t::GENERIC,
-        "Artificial tables don't support change-feeds.");
+        "Artificial tables don't support changefeeds.");
 }
 
 counted_t<ql::datum_stream_t> artificial_table_t::read_all_changes(
@@ -117,7 +124,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all_changes(
         UNUSED const std::string &table_name) {
     /* RSI(reql_admin): Artificial tables will eventually support change feeds. */
     rfail_datum(ql::base_exc_t::GENERIC,
-        "Artificial tables don't support change-feeds.");
+        "Artificial tables don't support changefeeds.");
 }
 
 counted_t<ql::datum_stream_t> artificial_table_t::read_intersecting(
@@ -163,7 +170,7 @@ counted_t<const ql::datum_t> artificial_table_t::write_batched_replace(
 
     throttled_pmap(keys.size(), [&] (int i) {
         try {
-            do_single_update(keys[i],
+            do_single_update(env, keys[i],
                 [&] (counted_t<const ql::datum_t> old_row) {
                     return func->call(env, old_row, ql::LITERAL_OK)->as_datum();
                 },
@@ -177,7 +184,7 @@ counted_t<const ql::datum_t> artificial_table_t::write_batched_replace(
     }
 
     ql::datum_object_builder_t obj_builder(stats->as_object());
-    obj_builder.add_warnings(conditions, ql::configured_limits_t());
+    obj_builder.add_warnings(conditions, env->limits());
     return std::move(obj_builder).to_counted();
 }
 
@@ -196,7 +203,7 @@ counted_t<const ql::datum_t> artificial_table_t::write_batched_insert(
             guarantee(key.has(), "write_batched_insert() shouldn't ever be called with "
                 "documents that lack a primary key.");
 
-            do_single_update(key,
+            do_single_update(env, key,
                 [&](counted_t<const ql::datum_t> old_row) {
                     return resolve_insert_conflict(
                         primary_key, old_row, insert_row, conflict_behavior);
@@ -212,7 +219,7 @@ counted_t<const ql::datum_t> artificial_table_t::write_batched_insert(
     }
 
     ql::datum_object_builder_t obj_builder(stats->as_object());
-    obj_builder.add_warnings(conditions, ql::configured_limits_t());
+    obj_builder.add_warnings(conditions, env->limits());
     return std::move(obj_builder).to_counted();
 }
 
@@ -277,6 +284,7 @@ bool artificial_table_t::checked_read_row(
 }
 
 void artificial_table_t::do_single_update(
+        ql::env_t *env,
         counted_t<const ql::datum_t> pval,
         const std::function<counted_t<const ql::datum_t>(counted_t<const ql::datum_t>)>
             &function,
@@ -290,7 +298,7 @@ void artificial_table_t::do_single_update(
         ql::datum_object_builder_t builder;
         builder.add_error(error.c_str());
         *stats_inout = (*stats_inout)->merge(
-            std::move(builder).to_counted(), ql::stats_merge, ql::configured_limits_t(),
+            std::move(builder).to_counted(), ql::stats_merge, env->limits(),
             conditions_inout);
         return;
     }
@@ -318,6 +326,6 @@ void artificial_table_t::do_single_update(
             old_row, return_changes, e.what());
     }
     *stats_inout = (*stats_inout)->merge(
-        resp, ql::stats_merge, ql::configured_limits_t(), conditions_inout);
+        resp, ql::stats_merge, env->limits(), conditions_inout);
 }
 

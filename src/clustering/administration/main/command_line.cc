@@ -688,9 +688,10 @@ void run_rethinkdb_create(const base_path_t &base_path,
     auth_semilattice_metadata_t auth_metadata;
 
     machine_semilattice_metadata_t machine_semilattice_metadata;
-    machine_semilattice_metadata.name = machine_semilattice_metadata.name.make_new_version(machine_name, our_machine_id);
+    machine_semilattice_metadata.name =
+        versioned_t<name_string_t>(machine_name);
     machine_semilattice_metadata.tags =
-        vclock_t<std::set<name_string_t> >(machine_tags, our_machine_id);
+        versioned_t<std::set<name_string_t> >(machine_tags);
     cluster_metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(machine_semilattice_metadata)));
 
     io_backender_t io_backender(direct_io_mode, max_concurrent_io_requests);
@@ -846,9 +847,10 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
         cluster_semilattice_metadata_t cluster_metadata;
 
         machine_semilattice_metadata_t our_machine_metadata;
-        our_machine_metadata.name = vclock_t<name_string_t>(machine_name, our_machine_id);
+        our_machine_metadata.name =
+            versioned_t<name_string_t>(machine_name);
         our_machine_metadata.tags =
-            vclock_t<std::set<name_string_t> >(server_tag_names, our_machine_id);
+            versioned_t<std::set<name_string_t> >(server_tag_names);
         cluster_metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(our_machine_metadata)));
 
         if (serve_info->joins.empty()) {
@@ -862,7 +864,8 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
             name_string_t db_name;
             bool db_name_success = db_name.assign_value("test");
             guarantee(db_name_success);
-            database_metadata.name = vclock_t<name_string_t>(db_name, our_machine_id);
+            database_metadata.name =
+                versioned_t<name_string_t>(db_name);
             cluster_metadata.databases.databases.insert(std::make_pair(
                 database_id,
                 deletable_t<database_semilattice_metadata_t>(database_metadata)));

@@ -320,6 +320,9 @@ class RDBVal extends TermBase
     indexWait: (args...) -> new IndexWait {}, @, args...
     indexRename: aropt (old_name, new_name, opts) -> new IndexRename opts, @, old_name, new_name
 
+    reconfigure: aropt (num_shards, num_replicas, opts) ->
+        new Reconfigure opts, @, num_shards, num_replicas
+
     sync: (args...) -> new Sync {}, @, args...
 
     toISO8601: (args...) -> new ToISO8601 {}, @, args...
@@ -380,6 +383,8 @@ translateBackOptargs = (optargs) ->
             when 'default_timezone' then 'defaultTimezone'
             when 'result_format' then 'resultFormat'
             when 'page_limit' then 'pageLimit'
+            when 'director_tag' then 'directorTag'
+            when 'dry_run' then 'dryRun'
             when 'num_vertices' then 'numVertices'
             when 'geo_system' then 'geoSystem'
             when 'max_results' then 'maxResults'
@@ -404,6 +409,8 @@ translateOptargs = (optargs) ->
             when 'defaultTimezone' then 'default_timezone'
             when 'resultFormat' then 'result_format'
             when 'pageLimit' then 'page_limit'
+            when 'directorTag' then 'director_tag'
+            when 'dryRun' then 'dry_run'
             when 'numVertices' then 'num_vertices'
             when 'geoSystem' then 'geo_system'
             when 'maxResults' then 'max_results'
@@ -927,6 +934,10 @@ class IndexStatus extends RDBOp
 class IndexWait extends RDBOp
     tt: protoTermType.INDEX_WAIT
     mt: 'indexWait'
+
+class Reconfigure extends RDBOp
+    tt: protoTermType.RECONFIGURE
+    mt: 'reconfigure'
 
 class Sync extends RDBOp
     tt: protoTermType.SYNC

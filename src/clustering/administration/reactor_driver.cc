@@ -83,43 +83,44 @@ private:
     std::map<name_string_t, machine_id_t> name_to_machine_id_map;
 };
 
-blueprint_t construct_blueprint(const table_config_t &config,
-                                const std::vector<machine_id_t> &chosen_directors,
+blueprint_t construct_blueprint(const table_replication_info_t &info,
                                 server_name_client_t *name_client) {
-    rassert(config.shards.size() == chosen_directors.size());
+    rassert(info.config.shards.size() == info.chosen_directors.size());
+    rassert(info.config.shards.size() ==
+        static_cast<size_t>(info.shard_scheme.num_shards()));
 
     blueprint_name_translator_t trans(name_client);
 
     blueprint_t blueprint;
 
     /* Put the primaries in the blueprint */
-    for (size_t i = 0; i < config.shards.size(); ++i) {
-        if (chosen_directors[i] == nil_uuid()) {
+    for (size_t i = 0; i < info.config.shards.size(); ++i) {
+        if (info.chosen_directors[i] == nil_uuid()) {
             continue;
         }
-        peer_id_t peer = trans.machine_id_to_peer_id(chosen_directors[i]);
+        peer_id_t peer = trans.machine_id_to_peer_id(info.chosen_directors[i]);
         if (blueprint.peers_roles.count(peer) == 0) {
             blueprint.add_peer(peer);
         }
         blueprint.add_role(
             peer,
-            hash_region_t<key_range_t>(config.get_shard_range(i)),
+            hash_region_t<key_range_t>(info.shard_scheme.get_shard_range(i)),
             blueprint_role_primary);
     }
 
     /* Put the secondaries in the blueprint */
-    for (size_t i = 0; i < config.shards.size(); ++i) {
-        const table_config_t::shard_t &shard = config.shards[i];
+    for (size_t i = 0; i < info.config.shards.size(); ++i) {
+        const table_config_t::shard_t &shard = info.config.shards[i];
         for (const name_string_t &name : shard.replica_names) {
             machine_id_t machine_id = trans.name_to_machine_id(name);
             peer_id_t peer = trans.machine_id_to_peer_id(machine_id);
             if (blueprint.peers_roles.count(peer) == 0) {
                 blueprint.add_peer(peer);
             }
-            if (machine_id != chosen_directors[i]) {
+            if (machine_id != info.chosen_directors[i]) {
                 blueprint.add_role(
                     peer,
-                    hash_region_t<key_range_t>(config.get_shard_range(i)),
+                    hash_region_t<key_range_t>(info.shard_scheme.get_shard_range(i)),
                     blueprint_role_secondary);
             }
         }
@@ -139,11 +140,12 @@ blueprint_t construct_blueprint(const table_config_t &config,
     }
 
     /* If a peer's role isn't primary or secondary, make it nothing */
-    for (size_t i = 0; i < config.shards.size(); ++i) {
+    for (size_t i = 0; i < info.config.shards.size(); ++i) {
         for (auto it = blueprint.peers_roles.begin();
                   it != blueprint.peers_roles.end();
                 ++it) {
-            region_t region = hash_region_t<key_range_t>(config.get_shard_range(i));
+            region_t region = hash_region_t<key_range_t>(
+                info.shard_scheme.get_shard_range(i));
             if (it->second.count(region) == 0) {
                 blueprint.add_role(it->first, region, blueprint_role_nothing);
             }
@@ -448,21 +450,10 @@ void reactor_driver_t::on_change() {
                 reactor_datum,
                 it->first));
         } else if (!it->second.is_deleted()) {
-            const table_replication_info_t *repli_info = NULL;
-            try {
-                repli_info = &it->second.get_ref().replication_info.get_ref();
-            } catch (const in_conflict_exc_t &) {
-                // Since the table's config is in conflict, we ignore it and keep going.
-                // The reactor will keep acting as though it saw the most recent
-                // non-conflicting version. This is OK because we guarantee correctness
-                // even if semilattices are slow to propagate, and this looks the same
-                // from the reactor's point of view.
-                continue;
-            }
+            const table_replication_info_t *repli_info =
+                &it->second.get_ref().replication_info.get_ref();
 
-            blueprint_t bp = construct_blueprint(repli_info->config,
-                                                 repli_info->chosen_directors,
-                                                 server_name_client);
+            blueprint_t bp = construct_blueprint(*repli_info, server_name_client);
             guarantee(std_contains(bp.peers_roles,
                                    mbox_manager->get_connectivity_cluster()->get_me()));
 

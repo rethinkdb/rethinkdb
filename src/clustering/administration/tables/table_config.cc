@@ -4,16 +4,12 @@
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/tables/elect_director.hpp"
+#include "clustering/administration/tables/split_points.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 
 counted_t<const ql::datum_t> convert_table_config_shard_to_datum(
         const table_config_t::shard_t &shard) {
     ql::datum_object_builder_t builder;
-
-    if (shard.split_point) {
-        builder.overwrite("split_point", make_counted<const ql::datum_t>(
-            key_to_unescaped_str(*shard.split_point)
-            ));
-    }
 
     builder.overwrite("replicas", convert_set_to_datum<name_string_t>(
             &convert_name_to_datum,
@@ -33,20 +29,6 @@ bool convert_table_config_shard_from_datum(
     converter_from_datum_object_t converter;
     if (!converter.init(datum, error_out)) {
         return false;
-    }
-
-    counted_t<const ql::datum_t> split_point_datum;
-    converter.get_optional("split_point", &split_point_datum);
-    if (split_point_datum.has()) {
-        if (split_point_datum->get_type() != ql::datum_t::R_STR) {
-            *error_out = "In `split_point`: Expected a string, got " +
-                split_point_datum->print();
-            return false;
-        }
-        store_key_t split_point_value(split_point_datum->as_str().to_std());
-        shard_out->split_point = boost::optional<store_key_t>(split_point_value);
-    } else {
-        shard_out->split_point = boost::optional<store_key_t>();
     }
 
     counted_t<const ql::datum_t> replica_names_datum;
@@ -116,15 +98,12 @@ bool convert_table_config_shard_from_datum(
     return true;
 }
 
+/* This is separate from `convert_table_config_and_name_to_datum` because it needs to be
+publicly exposed so it can be used to create the return value of `table.reconfigure()`.
+*/
 counted_t<const ql::datum_t> convert_table_config_to_datum(
-        const table_config_t &config,
-        name_string_t table_name,
-        name_string_t db_name,
-        namespace_id_t uuid) {
+        const table_config_t &config) {
     ql::datum_object_builder_t builder;
-    builder.overwrite("name", convert_name_to_datum(table_name));
-    builder.overwrite("db", convert_name_to_datum(db_name));
-    builder.overwrite("uuid", convert_uuid_to_datum(uuid));
     builder.overwrite("shards",
         convert_vector_to_datum<table_config_t::shard_t>(
             &convert_table_config_shard_to_datum,
@@ -132,7 +111,20 @@ counted_t<const ql::datum_t> convert_table_config_to_datum(
     return std::move(builder).to_counted();
 }
 
-bool convert_table_config_from_datum(
+counted_t<const ql::datum_t> convert_table_config_and_name_to_datum(
+        const table_config_t &config,
+        name_string_t table_name,
+        name_string_t db_name,
+        namespace_id_t uuid) {
+    counted_t<const ql::datum_t> start = convert_table_config_to_datum(config);
+    ql::datum_object_builder_t builder(start->as_object());
+    builder.overwrite("name", convert_name_to_datum(table_name));
+    builder.overwrite("db", convert_name_to_datum(db_name));
+    builder.overwrite("uuid", convert_uuid_to_datum(uuid));
+    return std::move(builder).to_counted();
+}
+
+bool convert_table_config_and_name_from_datum(
         counted_t<const ql::datum_t> datum,
         name_string_t *table_name_out,
         name_string_t *db_name_out,
@@ -185,29 +177,12 @@ bool convert_table_config_from_datum(
         *error_out = "In `shards`: " + *error_out;
         return false;
     }
-
-    if (!converter.check_no_extra_keys(error_out)) {
+    if (config_out->shards.size() == 0) {
+        *error_out = "In `shards`: You must specify at least one shard.";
         return false;
     }
 
-    store_key_t prev_split_point = store_key_t::min();
-    for (size_t i = 0; i < config_out->shards.size() - 1; i++) {
-        if (!config_out->shards[i].split_point) {
-            *error_out = "Every shard except the last must have a split point.";
-            return false;
-        }
-        store_key_t split_point = *config_out->shards[i].split_point;
-        if (split_point < prev_split_point) {
-            *error_out = "Shard split points must be monotonically increasing.";
-            return false;
-        }
-        if (split_point == prev_split_point) {
-            *error_out = "Shards must not be empty; i.e. split points must be distinct.";
-            return false;
-        }
-    }
-    if (config_out->shards.back().split_point) {
-        *error_out = "The last shard must not have a split point.";
+    if (!converter.check_no_extra_keys(error_out)) {
         return false;
     }
 
@@ -222,7 +197,7 @@ bool table_config_artificial_table_backend_t::read_row_impl(
         UNUSED signal_t *interruptor,
         counted_t<const ql::datum_t> *row_out,
         UNUSED std::string *error_out) {
-    *row_out = convert_table_config_to_datum(
+    *row_out = convert_table_config_and_name_to_datum(
         metadata.replication_info.get_ref().config,
         table_name, db_name, table_id);
     return true;
@@ -231,13 +206,14 @@ bool table_config_artificial_table_backend_t::read_row_impl(
 bool table_config_artificial_table_backend_t::write_row(
         counted_t<const ql::datum_t> primary_key,
         counted_t<const ql::datum_t> new_value,
-        UNUSED signal_t *interruptor,
+        signal_t *interruptor,
         std::string *error_out) {
     if (!new_value.has()) {
         *error_out = "It's illegal to delete from the `rethinkdb.table_config` table. "
             "To delete a table, use `r.table_drop()`.";
         return false;
     }
+    cross_thread_signal_t interruptor2(interruptor, home_thread());
     on_thread_t thread_switcher(home_thread());
     cow_ptr_t<namespaces_semilattice_metadata_t> md = table_sl_view->get();
     namespace_id_t table_id;
@@ -263,7 +239,7 @@ bool table_config_artificial_table_backend_t::write_row(
     name_string_t new_table_name;
     name_string_t new_db_name;
     namespace_id_t new_table_id;
-    if (!convert_table_config_from_datum(new_value,
+    if (!convert_table_config_and_name_from_datum(new_value,
             &new_table_name, &new_db_name, &new_table_id, &replication_info.config,
             error_out)) {
         *error_out = "The change you're trying to make to "
@@ -296,11 +272,18 @@ bool table_config_artificial_table_backend_t::write_row(
         }
     }
 
-    it->second.get_mutable()->name =
-        it->second.get_ref().name.make_resolving_version(new_table_name, my_machine_id);
-    it->second.get_mutable()->replication_info =
-        it->second.get_ref().replication_info.make_resolving_version(
-            replication_info, my_machine_id);
+    it->second.get_mutable()->name.set(new_table_name);
+
+    table_replication_info_t prev =
+        it->second.get_mutable()->replication_info.get_ref();
+    if (!calculate_split_points_intelligently(
+            table_id, reql_cluster_interface, replication_info.config.shards.size(),
+            prev.shard_scheme, &interruptor2, &replication_info.shard_scheme,
+            error_out)) {
+        return false;
+    }
+    it->second.get_mutable()->replication_info.set(replication_info);
+
     table_sl_view->join(md);
 
     return true;

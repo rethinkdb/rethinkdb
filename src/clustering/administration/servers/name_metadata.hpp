@@ -2,6 +2,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_SERVERS_NAME_METADATA_HPP_
 #define CLUSTERING_ADMINISTRATION_SERVERS_NAME_METADATA_HPP_
 
+#include <set>
+
 #include "containers/name_string.hpp"
 #include "rpc/mailbox/typed.hpp"
 

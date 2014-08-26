@@ -588,6 +588,16 @@ const wire_string_t &val_t::as_str() {
     }
 }
 
+const std::map<std::string, counted_t<const datum_t> > &val_t::as_object() const {
+    try {
+        counted_t<const datum_t> d = as_datum();
+        r_sanity_check(d.has());
+        return d->as_object();
+    } catch (const datum_exc_t &e) {
+        rfail(e.get_type(), "%s", e.what());
+    }
+}
+
 void val_t::rcheck_literal_type(type_t::raw_type_t expected_raw_type) const {
     rcheck_typed_target(
         this, type.raw_type == expected_raw_type,

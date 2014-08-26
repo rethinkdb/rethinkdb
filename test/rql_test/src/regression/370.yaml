@@ -8,7 +8,7 @@ tests:
     # Map after db_list
     - cd: r.db_list().map(r.row)
       rb: r.db_list.map{|row| row}
-      ot: (['test'])
+      ot: (['rethinkdb', 'test'])
 
     # Map after table_list
     - cd: d.table_list().map(r.row)

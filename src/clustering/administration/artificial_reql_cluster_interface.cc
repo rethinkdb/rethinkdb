@@ -3,6 +3,7 @@
 
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "clustering/administration/real_reql_cluster_interface.hpp"
 #include "rdb_protocol/artificial_table/artificial_table.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
@@ -127,9 +128,25 @@ bool artificial_reql_cluster_interface_t::table_status(
     return next->table_config(name, db, bt, interruptor, resp_out, error_out);
 }
 
+bool artificial_reql_cluster_interface_t::table_reconfigure(
+        counted_t<const ql::db_t> db,
+        const name_string_t &name,
+        const table_generate_config_params_t &params,
+        bool dry_run,
+        signal_t *interruptor,
+        counted_t<const ql::datum_t> *new_config_out,
+        std::string *error_out) {
+    if (db->name == database.str()) {
+        *error_out = strprintf("Database `%s` is special; you can't configure the "
+            "tables in it.", database.c_str());
+        return false;
+    }
+    return next->table_reconfigure(db, name, params, dry_run, interruptor,
+        new_config_out, error_out);
+}
+
 admin_artificial_tables_t::admin_artificial_tables_t(
-        reql_cluster_interface_t *_next_reql_cluster_interface,
-        const machine_id_t &_my_machine_id,
+        real_reql_cluster_interface_t *_next_reql_cluster_interface,
         boost::shared_ptr< semilattice_readwrite_view_t<
             cluster_semilattice_metadata_t> > _semilattice_view,
         clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
@@ -149,11 +166,11 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         server_config_backend.get();
 
     table_config_backend.init(new table_config_artificial_table_backend_t(
-        _my_machine_id,
         metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
             _semilattice_view),
         metadata_field(&cluster_semilattice_metadata_t::databases,
             _semilattice_view),
+        _next_reql_cluster_interface,
         _name_client));
     backends[name_string_t::guarantee_valid("table_config")] =
         table_config_backend.get();

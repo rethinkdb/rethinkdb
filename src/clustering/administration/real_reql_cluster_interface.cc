@@ -6,7 +6,9 @@
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/servers/name_client.hpp"
 #include "clustering/administration/tables/elect_director.hpp"
-#include "clustering/administration/tables/reconfigure.hpp"
+#include "clustering/administration/tables/generate_config.hpp"
+#include "clustering/administration/tables/split_points.hpp"
+#include "clustering/administration/tables/table_config.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "rdb_protocol/artificial_table/artificial_table.hpp"
 #include "rdb_protocol/val.hpp"
@@ -18,7 +20,6 @@
 
 real_reql_cluster_interface_t::real_reql_cluster_interface_t(
         mailbox_manager_t *_mailbox_manager,
-        uuid_u _my_machine_id,
         boost::shared_ptr<
             semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattices,
         clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
@@ -27,7 +28,6 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
         server_name_client_t *_server_name_client
         ) :
     mailbox_manager(_mailbox_manager),
-    my_machine_id(_my_machine_id),
     semilattice_root_view(_semilattices),
     directory_root_view(_directory),
     cross_thread_namespace_watchables(get_num_threads()),
@@ -88,10 +88,6 @@ static bool check_metadata_status(metadata_search_status_t status,
             }
             return false;
         }
-        case METADATA_CONFLICT: {
-            *error_out = "There is a metadata conflict; please resolve it.";
-            return false;
-        }
         case METADATA_ERR_NONE: {
             if (expect_present) {
                 *error_out = strprintf("%s `%s` does not exist.",
@@ -121,7 +117,7 @@ bool real_reql_cluster_interface_t::db_create(const name_string_t &name,
         }
 
         database_semilattice_metadata_t db;
-        db.name = vclock_t<name_string_t>(name, my_machine_id);
+        db.name = versioned_t<name_string_t>(name);
         metadata.databases.databases.insert(
             std::make_pair(generate_uuid(), make_deletable(db)));
 
@@ -185,10 +181,7 @@ bool real_reql_cluster_interface_t::db_list(
               it != db_searcher.end();
               it = db_searcher.find_next(++it)) {
         guarantee(!it->second.is_deleted());
-        if (it->second.get_ref().name.in_conflict()) {
-            continue;
-        }
-        names_out->insert(it->second.get_ref().name.get());
+        names_out->insert(it->second.get_ref().name.get_ref());
     }
 
     return true;
@@ -219,6 +212,8 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
     cluster_semilattice_metadata_t metadata;
     namespace_id_t namespace_id;
     {
+        cross_thread_signal_t interruptor2(interruptor,
+            semilattice_root_view->home_thread());
         on_thread_t thread_switcher(semilattice_root_view->home_thread());
         metadata = semilattice_root_view->get();
 
@@ -252,20 +247,47 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
                 false, error_out)) return false;
         }
 
-        /* Construct a description of the new namespace */
         table_replication_info_t repli_info;
-        repli_info.config =
-            table_reconfigure(server_name_client);
+
+        /* We can't meaningfully pick shard points, so create only one shard */
+        repli_info.shard_scheme = table_shard_scheme_t::one_shard();
+
+        /* Construct a configuration for the new namespace */
+        std::map<name_string_t, int> server_usage;
+        for (auto it = ns_change.get()->namespaces.begin();
+                  it != ns_change.get()->namespaces.end();
+                ++it) {
+            if (it->second.is_deleted()) {
+                continue;
+            }
+            calculate_server_usage(
+                it->second.get_ref().replication_info.get_ref().config, &server_usage);
+        }
+        clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
+            namespaces_directory_metadata_t> > > dummy_directory;
+        /* RSI(reql_admin): These should be passed by the user. */
+        table_generate_config_params_t config_params;
+        config_params.num_shards = 1;
+        config_params.num_replicas[name_string_t::guarantee_valid("default")] = 1;
+        config_params.director_tag = name_string_t::guarantee_valid("default");
+        if (!table_generate_config(
+                server_name_client, nil_uuid(), dummy_directory, server_usage,
+                config_params, repli_info.shard_scheme, &interruptor2,
+                &repli_info.config, error_out)) {
+            return false;
+        }
+
         repli_info.chosen_directors =
             table_elect_directors(repli_info.config, server_name_client);
-        namespace_semilattice_metadata_t table_metadata;
-        table_metadata.name = vclock_t<name_string_t>(name, my_machine_id);
-        table_metadata.database = vclock_t<database_id_t>(db->id, my_machine_id);
-        table_metadata.primary_key = vclock_t<std::string>(primary_key, my_machine_id);
-        table_metadata.replication_info =
-            vclock_t<table_replication_info_t>(repli_info, my_machine_id);
 
-        /* TODO: Figure out what to do with `hard_durability`. */
+        namespace_semilattice_metadata_t table_metadata;
+        table_metadata.name = versioned_t<name_string_t>(name);
+        table_metadata.database = versioned_t<database_id_t>(db->id);
+        table_metadata.primary_key = versioned_t<std::string>(primary_key);
+        table_metadata.replication_info =
+            versioned_t<table_replication_info_t>(repli_info);
+
+        /* RSI(reql_admin): Figure out what to do with `hard_durability`. */
         (void)hard_durability;
 
         namespace_id = generate_uuid();
@@ -351,12 +373,7 @@ bool real_reql_cluster_interface_t::table_list(counted_t<const ql::db_t> db,
               it != ns_searcher.end();
               it = ns_searcher.find_next(++it, pred)) {
         guarantee(!it->second.is_deleted());
-        if (it->second.get_ref().name.in_conflict()) {
-            /* Maybe we should raise an error instead of silently ignoring the table with
-            the conflicted name */
-            continue;
-        }
-        names_out->insert(it->second.get_ref().name.get());
+        names_out->insert(it->second.get_ref().name.get_ref());
     }
 
     return true;
@@ -377,7 +394,6 @@ bool real_reql_cluster_interface_t::table_find(const name_string_t &name,
     if (!check_metadata_status(status, "Table", db->name + "." + name.str(), true,
             error_out)) return false;
     guarantee(!ns_metadata_it->second.is_deleted());
-    guarantee(!ns_metadata_it->second.get_ref().primary_key.in_conflict());
 
     table_out->init(new real_table_t(
         ns_metadata_it->first,
@@ -404,6 +420,86 @@ bool real_reql_cluster_interface_t::table_status(
     return table_config_or_status(
         admin_tables->table_status_backend.get(), "table_config",
         name, db, bt, interruptor, resp_out, error_out);
+}
+
+bool real_reql_cluster_interface_t::table_reconfigure(
+        counted_t<const ql::db_t> db,
+        const name_string_t &name,
+        const table_generate_config_params_t &params,
+        bool dry_run,
+        signal_t *interruptor,
+        counted_t<const ql::datum_t> *new_config_out,
+        std::string *error_out) {
+    cross_thread_signal_t interruptor2(interruptor, server_name_client->home_thread());
+    on_thread_t thread_switcher(server_name_client->home_thread());
+
+    /* Find the specified table in the semilattice metadata */
+    cluster_semilattice_metadata_t metadata = semilattice_root_view->get();
+    cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change(
+            &metadata.rdb_namespaces);
+    metadata_searcher_t<namespace_semilattice_metadata_t> ns_searcher(
+            &ns_change.get()->namespaces);
+    namespace_predicate_t pred(&name, &db->id);
+    metadata_search_status_t status;
+    auto ns_metadata_it = ns_searcher.find_uniq(pred, &status);
+    if (!check_metadata_status(status, "Table", db->name + "." + name.str(), true,
+            error_out)) return false;
+
+    std::map<name_string_t, int> server_usage;
+    for (auto it = ns_searcher.find_next(ns_searcher.begin());
+              it != ns_searcher.end();
+              it = ns_searcher.find_next(++it)) {
+        if (it == ns_metadata_it) {
+            /* We don't want to take into account the table's current configuration,
+            since we're about to change that anyway */
+            continue;
+        }
+        calculate_server_usage(it->second.get_ref().replication_info.get_ref().config,
+                               &server_usage);
+    }
+
+    table_replication_info_t new_repli_info;
+
+    if (!calculate_split_points_intelligently(
+            ns_metadata_it->first,
+            this,
+            params.num_shards,
+            ns_metadata_it->second.get_ref().replication_info.get_ref().shard_scheme,
+            &interruptor2,
+            &new_repli_info.shard_scheme,
+            error_out)) {
+        return false;
+    }
+
+    /* This just generates a new configuration; it doesn't put it in the
+    semilattices. */
+    if (!table_generate_config(
+            server_name_client,
+            ns_metadata_it->first,
+            directory_root_view->incremental_subview(
+                incremental_field_getter_t<namespaces_directory_metadata_t,
+                                           cluster_directory_metadata_t>
+                    (&cluster_directory_metadata_t::rdb_namespaces)),
+            server_usage,
+            params,
+            new_repli_info.shard_scheme,
+            &interruptor2,
+            &new_repli_info.config,
+            error_out)) {
+        return false;
+    }
+
+    if (!dry_run) {
+        new_repli_info.chosen_directors =
+            table_elect_directors(new_repli_info.config, server_name_client);
+        /* Commit the change */
+        ns_metadata_it->second.get_mutable()->replication_info.set(new_repli_info);
+        semilattice_root_view->join(metadata);
+    }
+
+    *new_config_out = convert_table_config_to_datum(new_repli_info.config);
+
+    return true;
 }
 
 /* Checks that divisor is indeed a divisor of multiple. */

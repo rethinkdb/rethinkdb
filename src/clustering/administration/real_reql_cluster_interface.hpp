@@ -26,7 +26,6 @@ class real_reql_cluster_interface_t : public reql_cluster_interface_t {
 public:
     real_reql_cluster_interface_t(
             mailbox_manager_t *mailbox_manager,
-            machine_id_t my_machine_id,
             boost::shared_ptr< semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > semilattices,
             clone_ptr_t< watchable_t< change_tracking_map_t<
@@ -67,7 +66,17 @@ public:
             signal_t *interruptor, counted_t<ql::val_t> *resp_out,
             std::string *error_out);
 
-    /* `distribution_app_t` needs access to the underlying `namespace_interface_t` */
+    bool table_reconfigure(
+            counted_t<const ql::db_t> db,
+            const name_string_t &name,
+            const table_generate_config_params_t &params,
+            bool dry_run,
+            signal_t *interruptor,
+            counted_t<const ql::datum_t> *new_config_out,
+            std::string *error_out);
+
+    /* `calculate_split_points_with_distribution` needs access to the underlying
+    `namespace_interface_t` */
     namespace_repo_t *get_namespace_repo() {
         return &namespace_repo;
     }
@@ -78,7 +87,6 @@ public:
 
 private:
     mailbox_manager_t *mailbox_manager;
-    machine_id_t my_machine_id;
     boost::shared_ptr< semilattice_readwrite_view_t<
         cluster_semilattice_metadata_t> > semilattice_root_view;
     clone_ptr_t< watchable_t< change_tracking_map_t<

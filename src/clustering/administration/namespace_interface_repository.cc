@@ -99,19 +99,9 @@ void namespace_repo_t::on_namespaces_change(auto_drainer_t::lock_t keepalive) {
         if (it->second.is_deleted()) {
             continue;
         }
-        if (it->second.get_ref().replication_info.in_conflict()) {
-            /* The reactor driver won't generate a new blueprint while the config is in
-            conflict, so the old mapping is probably still accurate, although there's no
-            guarantee. */
-            auto jt = region_to_primary_maps.get()->find(it->first);
-            if (jt != region_to_primary_maps.get()->end()) {
-                new_reg_to_pri_maps[it->first] = jt->second;
-            }
-            continue;
-        }
         table_replication_info_t info = it->second.get_ref().replication_info.get_ref();
         for (size_t i = 0; i < info.config.shards.size(); ++i) {
-            new_reg_to_pri_maps[it->first][info.config.get_shard_range(i)] =
+            new_reg_to_pri_maps[it->first][info.shard_scheme.get_shard_range(i)] =
                 info.chosen_directors[i];
         }
     }

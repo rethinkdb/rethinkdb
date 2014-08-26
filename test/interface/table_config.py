@@ -36,15 +36,32 @@ with driver.Metacluster() as metacluster:
     r.table("foo").insert([{"i": i} for i in xrange(10)]).run(conn)
     assert set(row["i"] for row in r.table("foo").run(conn)) == set(xrange(10))
 
-    def test_reconfigure(shard, predicate):
-        print "Reconfiguring:", shard
+    def status_matches_config(s_shards, c_shards):
+        if len(s_shards) != len(c_shards):
+            return False
+        for (s_shard, c_shard) in zip(s_shards, c_shards):
+            if set(s_shard.keys()) != set(c_shard["replicas"]):
+                return False
+            s_directors = [server for (server, server_status) in s_shard.iteritems()
+                           if server_status["role"] == "director"]
+            if len(s_directors) != 1:
+                return False
+            if s_directors[0] not in c_shard["directors"]:
+                return False
+            if any(server_status["state"] != "ready"
+                   for server_status in s_shard.values()):
+                return False
+        return True
+
+    def test(shards):
+        print "Reconfiguring:", shards
         r.db("rethinkdb").table("table_config").get("test.foo").update(
-            {"shards": r.literal([shard])}).run(conn)
+            {"shards": shards}).run(conn)
         start_time = time.time()
         while time.time() < start_time + 10:
             status = r.db("rethinkdb").table("table_status").get("test.foo").run(conn)
             assert status["name"] == "test.foo"
-            if predicate(status["shards"][0]):
+            if status_matches_config(status["shards"], shards):
                 break
             time.sleep(1)
         else:
@@ -52,18 +69,43 @@ with driver.Metacluster() as metacluster:
         assert set(row["i"] for row in r.table("foo").run(conn)) == set(xrange(10))
         print "OK"
 
-    test_reconfigure(
-        {"replicas": ["a"], "directors": ["a"]},
-        (lambda s: s["a"]["state"] == "ready" and s["a"]["role"] == "director" and \
-                    "b" not in s))
-    test_reconfigure(
-        {"replicas": ["b"], "directors": ["b"]},
-        (lambda s: s["b"]["state"] == "ready" and s["b"]["role"] == "director" and \
-                    "a" not in s))
-    test_reconfigure(
-        {"replicas": ["a", "b"], "directors": ["a"]},
-        (lambda s: s["a"]["state"] == "ready" and s["a"]["role"] == "director" and \
-                    s["b"]["state"] == "ready" and s["b"]["role"] == "replica"))
+    test(
+        [{"replicas": ["a"], "directors": ["a"]}])
+    test(
+        [{"replicas": ["b"], "directors": ["b"]}])
+    test(
+        [{"replicas": ["a", "b"], "directors": ["a"]}])
+    test(
+        [{"replicas": ["a"], "directors": ["a"]},
+         {"replicas": ["b"], "directors": ["b"]}])
+    test(
+        [{"replicas": ["a", "b"], "directors": ["a"]},
+         {"replicas": ["a", "b"], "directors": ["b"]}])
+    test(
+        [{"replicas": ["a"], "directors": ["a"]}])
+
+    def test_invalid(shards):
+        print "Reconfiguring:", shards
+        try:
+            r.db("rethinkdb").table("table_config").get("test.foo").update(
+                {"shards": shards}).run(conn)
+        except r.RqlRuntimeError:
+            pass
+        else:
+            raise RuntimeError("Cluster accepted config that should be invalid")
+        print "Error, as expected"
+
+    test_invalid([])
+    test_invalid("this is a string")
+    test_invalid(
+        [{"replicas": ["a"], "directors": ["b"], "extra_key": "extra_value"}])
+    test_invalid(
+        [{"replicas": [], "directors": []}])
+    test_invalid(
+        [{"replicas": ["a"], "directors": []}])
+    test_invalid(
+        [{"replicas": ["a"], "directors": ["b"]},
+         {"replicas": ["b"], "directors": ["a"]}])
 
     cluster1.check_and_stop()
 print "Done."

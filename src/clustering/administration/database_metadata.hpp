@@ -13,13 +13,13 @@
 #include "rpc/semilattice/joins/deletable.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/semilattice/joins/map.hpp"
-#include "rpc/semilattice/joins/vclock.hpp"
+#include "rpc/semilattice/joins/versioned.hpp"
 #include "rpc/serialize_macros.hpp"
 
 
 class database_semilattice_metadata_t {
 public:
-    vclock_t<name_string_t> name;
+    versioned_t<name_string_t> name;
 };
 
 RDB_DECLARE_SERIALIZABLE(database_semilattice_metadata_t);
@@ -28,12 +28,6 @@ RDB_DECLARE_EQUALITY_COMPARABLE(database_semilattice_metadata_t);
 
 void debug_print(printf_buffer_t *buf, const database_semilattice_metadata_t &x);
 
-
-
-json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(database_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-cJSON *with_ctx_render_as_json(database_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-void with_ctx_apply_json_to(cJSON *change, database_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-void with_ctx_on_subfield_change(database_semilattice_metadata_t *, const vclock_ctx_t &);
 
 class databases_semilattice_metadata_t {
 public:
@@ -45,11 +39,6 @@ RDB_DECLARE_SERIALIZABLE(databases_semilattice_metadata_t);
 RDB_DECLARE_SEMILATTICE_JOINABLE(databases_semilattice_metadata_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(databases_semilattice_metadata_t);
 
-//json adapter concept for databases_semilattice_metadata_t
-json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(databases_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-cJSON *with_ctx_render_as_json(databases_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-void with_ctx_apply_json_to(cJSON *change, databases_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
-void with_ctx_on_subfield_change(databases_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
 
 #endif /* CLUSTERING_ADMINISTRATION_DATABASE_METADATA_HPP_ */
 
