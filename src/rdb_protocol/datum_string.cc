@@ -51,7 +51,7 @@ const char *datum_string_t::data() const {
 }
 
 size_t datum_string_t::size() const {
-    uint64_t res;
+    uint64_t res = 0;
     static_assert(sizeof(uint8_t) == sizeof(char), "sizeof(uint8_t) != sizeof(char)");
     buffer_read_stream_t data_stream(data_.get(), data_.get_safety_boundary());
     guarantee_deserialization(deserialize_varint_uint64(&data_stream, &res),
