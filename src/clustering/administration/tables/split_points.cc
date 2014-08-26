@@ -1,6 +1,7 @@
 #include "clustering/administration/tables/split_points.hpp"
 
 #include "clustering/administration/real_reql_cluster_interface.hpp"
+#include "math.hpp"   /* for `clamp()` */
 #include "rdb_protocol/real_table.hpp"
 
 /* `interpolate_key()` produces a `store_key_t` that is interpolated between `in1` and
@@ -55,7 +56,7 @@ static store_key_t interpolate_key(store_key_t in1, store_key_t in2, double frac
     together, etc.), it's possible that the above procedure will produce an `out` that is
     not between `in1` and `in2`. Rather than trying to interpolate properly in these
     complicated cases, we just clamp the result. */
-    out = std::min(std::max(out, in1), in2);
+    out = clamp(out, in1, in2);
 
     return out;
 }
