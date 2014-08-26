@@ -4,7 +4,9 @@
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/servers/name_client.hpp"
 #include "clustering/administration/tables/elect_director.hpp"
-#include "clustering/administration/tables/reconfigure.hpp"
+#include "clustering/administration/tables/generate_config.hpp"
+#include "clustering/administration/tables/split_points.hpp"
+#include "clustering/administration/tables/table_config.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "rdb_protocol/wait_for_readiness.hpp"
 #include "rpc/semilattice/watchable.hpp"
@@ -206,6 +208,8 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
     cluster_semilattice_metadata_t metadata;
     namespace_id_t namespace_id;
     {
+        cross_thread_signal_t interruptor2(interruptor,
+            semilattice_root_view->home_thread());
         on_thread_t thread_switcher(semilattice_root_view->home_thread());
         metadata = semilattice_root_view->get();
 
@@ -239,12 +243,39 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
                 false, error_out)) return false;
         }
 
-        /* Construct a description of the new namespace */
         table_replication_info_t repli_info;
-        repli_info.config =
-            table_reconfigure(server_name_client);
+
+        /* We can't meaningfully pick shard points, so create only one shard */
+        repli_info.shard_scheme = table_shard_scheme_t::one_shard();
+
+        /* Construct a configuration for the new namespace */
+        std::map<name_string_t, int> server_usage;
+        for (auto it = ns_change.get()->namespaces.begin();
+                  it != ns_change.get()->namespaces.end();
+                ++it) {
+            if (it->second.is_deleted()) {
+                continue;
+            }
+            calculate_server_usage(
+                it->second.get_ref().replication_info.get_ref().config, &server_usage);
+        }
+        clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
+            namespaces_directory_metadata_t> > > dummy_directory;
+        /* RSI(reql_admin): These should be passed by the user. */
+        table_generate_config_params_t config_params;
+        config_params.num_shards = 1;
+        config_params.num_replicas[name_string_t::guarantee_valid("default")] = 1;
+        config_params.director_tag = name_string_t::guarantee_valid("default");
+        if (!table_generate_config(
+                server_name_client, nil_uuid(), dummy_directory, server_usage,
+                config_params, repli_info.shard_scheme, &interruptor2,
+                &repli_info.config, error_out)) {
+            return false;
+        }
+
         repli_info.chosen_directors =
             table_elect_directors(repli_info.config, server_name_client);
+
         namespace_semilattice_metadata_t table_metadata;
         table_metadata.name = versioned_t<name_string_t>(name);
         table_metadata.database = versioned_t<database_id_t>(db->id);
@@ -376,6 +407,86 @@ bool real_reql_cluster_interface_t::server_rename(
     on_thread_t thread_switcher(server_name_client->home_thread());
     return server_name_client->rename_server(old_name, new_name,
         &interruptor2, error_out);
+}
+
+bool real_reql_cluster_interface_t::table_reconfigure(
+        counted_t<const ql::db_t> db,
+        const name_string_t &name,
+        const table_generate_config_params_t &params,
+        bool dry_run,
+        signal_t *interruptor,
+        counted_t<const ql::datum_t> *new_config_out,
+        std::string *error_out) {
+    cross_thread_signal_t interruptor2(interruptor, server_name_client->home_thread());
+    on_thread_t thread_switcher(server_name_client->home_thread());
+
+    /* Find the specified table in the semilattice metadata */
+    cluster_semilattice_metadata_t metadata = semilattice_root_view->get();
+    cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change(
+            &metadata.rdb_namespaces);
+    metadata_searcher_t<namespace_semilattice_metadata_t> ns_searcher(
+            &ns_change.get()->namespaces);
+    namespace_predicate_t pred(&name, &db->id);
+    metadata_search_status_t status;
+    auto ns_metadata_it = ns_searcher.find_uniq(pred, &status);
+    if (!check_metadata_status(status, "Table", db->name + "." + name.str(), true,
+            error_out)) return false;
+
+    std::map<name_string_t, int> server_usage;
+    for (auto it = ns_searcher.find_next(ns_searcher.begin());
+              it != ns_searcher.end();
+              it = ns_searcher.find_next(++it)) {
+        if (it == ns_metadata_it) {
+            /* We don't want to take into account the table's current configuration,
+            since we're about to change that anyway */
+            continue;
+        }
+        calculate_server_usage(it->second.get_ref().replication_info.get_ref().config,
+                               &server_usage);
+    }
+
+    table_replication_info_t new_repli_info;
+
+    if (!calculate_split_points_intelligently(
+            ns_metadata_it->first,
+            this,
+            params.num_shards,
+            ns_metadata_it->second.get_ref().replication_info.get_ref().shard_scheme,
+            &interruptor2,
+            &new_repli_info.shard_scheme,
+            error_out)) {
+        return false;
+    }
+
+    /* This just generates a new configuration; it doesn't put it in the
+    semilattices. */
+    if (!table_generate_config(
+            server_name_client,
+            ns_metadata_it->first,
+            directory_root_view->incremental_subview(
+                incremental_field_getter_t<namespaces_directory_metadata_t,
+                                           cluster_directory_metadata_t>
+                    (&cluster_directory_metadata_t::rdb_namespaces)),
+            server_usage,
+            params,
+            new_repli_info.shard_scheme,
+            &interruptor2,
+            &new_repli_info.config,
+            error_out)) {
+        return false;
+    }
+
+    if (!dry_run) {
+        new_repli_info.chosen_directors =
+            table_elect_directors(new_repli_info.config, server_name_client);
+        /* Commit the change */
+        ns_metadata_it->second.get_mutable()->replication_info.set(new_repli_info);
+        semilattice_root_view->join(metadata);
+    }
+
+    *new_config_out = convert_table_config_to_datum(new_repli_info.config);
+
+    return true;
 }
 
 /* Checks that divisor is indeed a divisor of multiple. */

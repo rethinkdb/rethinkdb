@@ -67,18 +67,36 @@ class table_config_t {
 public:
     class shard_t {
     public:
-        boost::optional<store_key_t> split_point;
         std::set<name_string_t> replica_names;
         std::vector<name_string_t> director_names;
     };
     std::vector<shard_t> shards;
+};
+
+RDB_DECLARE_SERIALIZABLE(table_config_t::shard_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(table_config_t::shard_t);
+RDB_DECLARE_SERIALIZABLE(table_config_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(table_config_t);
+
+class table_shard_scheme_t {
+public:
+    std::vector<store_key_t> split_points;
+
+    static table_shard_scheme_t one_shard() {
+        return table_shard_scheme_t();
+    }
+
+    size_t num_shards() const {
+        return split_points.size() + 1;
+    }
 
     key_range_t get_shard_range(size_t i) const {
-        store_key_t left = (i == 0) ? store_key_t::min() : *shards[i-1].split_point;
-        if (i != shards.size() - 1) {
+        guarantee(i < num_shards());
+        store_key_t left = (i == 0) ? store_key_t::min() : split_points[i-1];
+        if (i != num_shards() - 1) {
             return key_range_t(
                 key_range_t::closed, left,
-                key_range_t::open, *shards[i].split_point);
+                key_range_t::open, split_points[i]);
         } else {
             return key_range_t(
                 key_range_t::closed, left,
@@ -87,10 +105,8 @@ public:
     }
 };
 
-RDB_DECLARE_SERIALIZABLE(table_config_t::shard_t);
-RDB_DECLARE_EQUALITY_COMPARABLE(table_config_t::shard_t);
-RDB_DECLARE_SERIALIZABLE(table_config_t);
-RDB_DECLARE_EQUALITY_COMPARABLE(table_config_t);
+RDB_DECLARE_SERIALIZABLE(table_shard_scheme_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(table_shard_scheme_t);
 
 /* `table_replication_info_t` exists because the `table_config_t` needs to be under the
 same vector clock as `chosen_directors`. */
@@ -102,6 +118,8 @@ public:
     /* This contains the machine ID of the currently chosen director for the shard at the
     corresponding position in the `shards` vector. */
     std::vector<machine_id_t> chosen_directors;
+
+    table_shard_scheme_t shard_scheme;
 };
 
 RDB_DECLARE_SERIALIZABLE(table_replication_info_t);

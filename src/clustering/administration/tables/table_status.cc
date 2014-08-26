@@ -240,7 +240,7 @@ counted_t<const ql::datum_t> convert_table_status_to_datum(
         array_builder.add(
             convert_table_status_shard_to_datum(
                 uuid,
-                repli_info.config.get_shard_range(i),
+                repli_info.shard_scheme.get_shard_range(i),
                 repli_info.config.shards[i],
                 repli_info.chosen_directors[i],
                 dir,

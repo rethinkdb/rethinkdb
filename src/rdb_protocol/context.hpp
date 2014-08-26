@@ -13,6 +13,7 @@
 
 #include "concurrency/promise.hpp"
 #include "containers/counted.hpp"
+#include "containers/name_string.hpp"
 #include "containers/scoped.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/geo/distances.hpp"
@@ -49,6 +50,13 @@ public:
 class env_t;
 
 }   // namespace ql
+
+class table_generate_config_params_t {
+public:
+    size_t num_shards;
+    std::map<name_string_t, size_t> num_replicas;
+    name_string_t director_tag;
+};
 
 class base_table_t {
 public:
@@ -156,6 +164,19 @@ public:
     virtual bool server_rename(const name_string_t &old_name,
             const name_string_t &new_name, signal_t *interruptor, std::string *error_out
             ) = 0;
+
+    /* From the user's point of view, this is a method on the table object. The reason
+    it's internally defined on `reql_cluster_interface_t` rather than `base_table_t` is
+    because its implementation fits much better with the implementations of the other
+    methods of `reql_cluster_interface_t` than `base_table_t`. */
+    virtual bool table_reconfigure(
+            counted_t<const ql::db_t> db,
+            const name_string_t &name,
+            const table_generate_config_params_t &params,
+            bool dry_run,
+            signal_t *interruptor,
+            counted_t<const ql::datum_t> *new_config_out,
+            std::string *error_out) = 0;
 
 protected:
     virtual ~reql_cluster_interface_t() { }   // silence compiler warnings

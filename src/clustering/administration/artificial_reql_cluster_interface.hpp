@@ -15,6 +15,7 @@
 #include "rdb_protocol/artificial_table/in_memory.hpp"
 #include "rdb_protocol/context.hpp"
 
+class real_reql_cluster_interface_t;
 class server_name_client_t;
 
 /* The `artificial_reql_cluster_interface_t` is responsible for handling queries to the
@@ -62,6 +63,15 @@ public:
     bool server_rename(const name_string_t &old_name, const name_string_t &new_name,
             signal_t *interruptor, std::string *error_out);
 
+    bool table_reconfigure(
+            counted_t<const ql::db_t> db,
+            const name_string_t &name,
+            const table_generate_config_params_t &params,
+            bool dry_run,
+            signal_t *interruptor,
+            counted_t<const ql::datum_t> *new_config_out,
+            std::string *error_out);
+
 private:
     name_string_t database;
     std::map<name_string_t, artificial_table_backend_t *> tables;
@@ -74,7 +84,7 @@ with all of the tables that will go in it. */
 class admin_artificial_tables_t {
 public:
     admin_artificial_tables_t(
-            reql_cluster_interface_t *_next_reql_cluster_interface,
+            real_reql_cluster_interface_t *_next_reql_cluster_interface,
             boost::shared_ptr< semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > _semilattice_view,
             clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,

@@ -25,6 +25,39 @@ name_string_t get_name(counted_t<val_t> val, const term_t *caller,
     return name;
 }
 
+std::map<name_string_t, size_t> get_replica_counts(counted_t<val_t> arg) {
+    r_sanity_check(arg.has());
+    std::map<name_string_t, size_t> replica_counts;
+    counted_t<const datum_t> datum = arg->as_datum();
+    if (datum->get_type() == datum_t::R_OBJECT) {
+        const std::map<std::string, counted_t<const datum_t> > &obj = datum->as_object();
+        for (auto it = obj.begin(); it != obj.end(); ++it) {
+            name_string_t name;
+            bool assignment_successful = name.assign_value(it->first);
+            rcheck_target(arg.get(), base_exc_t::GENERIC, assignment_successful,
+                strprintf("Server tag name `%s` invalid (%s).",
+                          it->first.c_str(), name_string_t::valid_char_msg));
+            int64_t replicas = checked_convert_to_int(arg.get(), it->second->as_num());
+            rcheck_target(arg.get(), base_exc_t::GENERIC,
+                replicas >= 0, "Can't have a negative number of replicas");
+            size_t replicas2 = static_cast<size_t>(replicas);
+            rcheck_target(arg.get(), base_exc_t::GENERIC,
+                static_cast<int64_t>(replicas2) == replicas,
+                strprintf("Integer too large: %" PRIi64, replicas));
+            replica_counts.insert(std::make_pair(name, replicas2));
+        }
+    } else if (datum->get_type() == datum_t::R_NUM) {
+        size_t replicas = arg->as_int<size_t>();
+        replica_counts.insert(std::make_pair(
+            name_string_t::guarantee_valid("default"), replicas));
+    } else {
+        rfail_target(arg.get(), base_exc_t::GENERIC,
+            "Expected type OBJECT or NUMBER but found %s:\n%s",
+            datum->get_type_name().c_str(), datum->print().c_str());
+    }
+    return replica_counts;
+}
+
 // Meta operations (BUT NOT TABLE TERMS) should inherit from this.
 class meta_op_term_t : public op_term_t {
 public:
@@ -271,6 +304,46 @@ private:
     virtual const char *name() const { return "server_rename"; }
 };
 
+class reconfigure_term_t : public meta_op_term_t {
+public:
+    reconfigure_term_t(compile_env_t *env, const protob_t<const Term> &term) :
+        meta_op_term_t(env, term, argspec_t(3),
+            optargspec_t({"director_tag", "dry_run"})) { }
+private:
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t)
+            const {
+        /* Parse parameters */
+        /* RSI(reql_admin): Make sure the user didn't call `.between()` or `.order_by()`
+        on this table */
+        counted_t<table_t> table = args->arg(env, 0)->as_table();
+        table_generate_config_params_t config_params;
+        config_params.num_shards = args->arg(env, 1)->as_int<int>();
+        config_params.num_replicas = get_replica_counts(args->arg(env, 2));
+        if (counted_t<val_t> v = args->optarg(env, "director_tag")) {
+            config_params.director_tag = get_name(v, this, "Server tag");
+        } else {
+            config_params.director_tag = name_string_t::guarantee_valid("default");
+        }
+        bool dry_run = false;
+        if (counted_t<val_t> v = args->optarg(env, "dry_run")) {
+            dry_run = v->as_bool();
+        }
+        /* Perform the operation */
+        name_string_t name;
+        bool ok = name.assign_value(table->name);
+        guarantee(ok, "table->name should have been a valid name");
+        counted_t<const datum_t> new_config;
+        std::string error;
+        if (!env->env->reql_cluster_interface()->table_reconfigure(
+                table->db, name, config_params, dry_run, env->env->interruptor,
+                &new_config, &error)) {
+            rfail(base_exc_t::GENERIC, "%s", error.c_str());
+        }
+        return new_val(new_config);
+    }
+    virtual const char *name() const { return "reconfigure"; }
+};
+
 class sync_term_t : public meta_write_op_t {
 public:
     sync_term_t(compile_env_t *env, const protob_t<const Term> &term)
@@ -412,6 +485,10 @@ counted_t<term_t> make_table_list_term(compile_env_t *env, const protob_t<const 
 
 counted_t<term_t> make_server_rename_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<server_rename_term_t>(env, term);
+}
+
+counted_t<term_t> make_reconfigure_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<reconfigure_term_t>(env, term);
 }
 
 counted_t<term_t> make_sync_term(compile_env_t *env, const protob_t<const Term> &term) {

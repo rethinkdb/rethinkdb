@@ -59,7 +59,17 @@ public:
     bool server_rename(const name_string_t &old_name, const name_string_t &new_name,
             signal_t *interruptor, std::string *error_out);
 
-    /* `distribution_app_t` needs access to the underlying `namespace_interface_t` */
+    bool table_reconfigure(
+            counted_t<const ql::db_t> db,
+            const name_string_t &name,
+            const table_generate_config_params_t &params,
+            bool dry_run,
+            signal_t *interruptor,
+            counted_t<const ql::datum_t> *new_config_out,
+            std::string *error_out);
+
+    /* `calculate_split_points_with_distribution` needs access to the underlying
+    `namespace_interface_t` */
     namespace_repo_t *get_namespace_repo() {
         return &namespace_repo;
     }

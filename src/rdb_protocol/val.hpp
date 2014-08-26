@@ -2,6 +2,7 @@
 #ifndef RDB_PROTOCOL_VAL_HPP_
 #define RDB_PROTOCOL_VAL_HPP_
 
+#include <map>
 #include <set>
 #include <string>
 #include <utility>
@@ -94,9 +95,10 @@ public:
         std::set<std::string> sindex);
     MUST_USE bool sync(env_t *env, const rcheckable_t *parent);
 
-    /* `db` and `name` are for display purposes only */
+    /* `db` and `name` are mostly for display purposes, but some things like the
+    `reconfigure()` logic use them. */
     counted_t<const db_t> db;
-    const std::string name;
+    const std::string name;   /* TODO: Make this a `name_string_t` */
     std::string display_name() {
         return db->name + "." + name;
     }
@@ -208,7 +210,7 @@ public:
     counted_t<grouped_data_t> maybe_as_grouped_data();
     counted_t<grouped_data_t> maybe_as_promiscuous_grouped_data(env_t *env);
 
-    counted_t<const datum_t> as_datum() const; // prefer the 4 below
+    counted_t<const datum_t> as_datum() const; // prefer the forms below
     counted_t<const datum_t> as_ptype(const std::string s = "");
     bool as_bool();
     double as_num();
@@ -223,6 +225,7 @@ public:
     }
     int64_t as_int();
     const wire_string_t &as_str();
+    const std::map<std::string, counted_t<const datum_t> > &as_object() const;
 
     std::string print() const;
     std::string trunc_print() const;

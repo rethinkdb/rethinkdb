@@ -50,7 +50,7 @@ Memory page/block eviction, replacement and flush policies, txn and snapshots, e
 Rethink cluster logic, node roles, blueprint implementation, command-line / web backends, etc..
 
 #### clustering/administration
-Implementation of suggester for blueprints, reactor driver/manager, loggers and metadata definitions for namespace,
+Implementation of reactor driver/manager, loggers and metadata definitions for namespace,
 database, machine, etc..
 
 ##### clustering/administration/cli
@@ -93,9 +93,6 @@ A primary machine of a shard has a master_t receiving queries from other nodes.
 
 #### clustering/reactor
 Cluster node functions to match the blueprint. A node role can be primary, secondary or nothing/sleep.
-
-#### clustering/suggester
-Blueprint and shard suggester algorithms.
 
 
 

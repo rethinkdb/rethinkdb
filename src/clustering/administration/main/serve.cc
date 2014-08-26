@@ -350,7 +350,6 @@ bool do_serve(io_backender_t *io_backender,
                                 &mailbox_manager,
                                 semilattice_manager_cluster.get_root_view(),
                                 directory_read_manager.get_root_view(),
-                                &real_reql_cluster_interface,
                                 &admin_tracker,
                                 rdb_query_server.get_http_app(),
                                 serve_info.web_assets));
