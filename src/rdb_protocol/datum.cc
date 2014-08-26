@@ -656,8 +656,9 @@ void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
         if (s == pseudo::literal_string) {
             rcheck(std_contains(allowed_pts, pseudo::literal_string),
                    base_exc_t::GENERIC,
-                   "Stray literal keyword found, literal can only be present inside "
-                   "merge and cannot nest inside other literals.");
+                   "Stray literal keyword found: literal is only legal inside of "
+                   "the object passed to merge or update and cannot nest inside "
+                   "other literals.");
             pseudo::rcheck_literal_valid(this);
             return;
         }
@@ -720,7 +721,7 @@ datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
         datum_object_builder_t builder;
 
         for (size_t i = 0; i < obj_size(); ++i) {
-            auto pair = get_pair(i);
+            auto pair = unchecked_get_pair(i);
             bool encountered_literal;
             datum_t val = pair.second.drop_literals(&encountered_literal);
 
@@ -730,7 +731,7 @@ datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
                 need_to_copy = true;
                 // Copy everything up to now into the builder.
                 for (size_t copy_i = 0; copy_i < i; ++copy_i) {
-                    auto copy_pair = get_pair(copy_i);
+                    auto copy_pair = unchecked_get_pair(copy_i);
                     bool conflict = builder.add(copy_pair.first, copy_pair.second);
                     r_sanity_check(!conflict);
                 }
@@ -1106,17 +1107,21 @@ datum_t datum_t::get(size_t index, throw_bool_t throw_bool) const {
     // Calling `arr_size()` here also makes sure this this is actually an R_ARRAY.
     const size_t array_size = arr_size();
     if (index < array_size) {
-        if (data.get_internal_type() == internal_type_t::BUF_R_ARRAY) {
-            const size_t offset = datum_get_element_offset(data.buf_ref, index);
-            return datum_deserialize_from_buf(data.buf_ref, offset);
-        } else {
-            rassert(data.get_internal_type() == internal_type_t::R_ARRAY);
-            return (*data.r_array)[index];
-        }
+        return unchecked_get(index);
     } else if (throw_bool == THROW) {
         rfail(base_exc_t::NON_EXISTENCE, "Index out of bounds: %zu", index);
     } else {
         return datum_t();
+    }
+}
+
+datum_t datum_t::unchecked_get(size_t index) const {
+    if (data.get_internal_type() == internal_type_t::BUF_R_ARRAY) {
+        const size_t offset = datum_get_element_offset(data.buf_ref, index);
+        return datum_deserialize_from_buf(data.buf_ref, offset);
+    } else {
+        rassert(data.get_internal_type() == internal_type_t::R_ARRAY);
+        return (*data.r_array)[index];
     }
 }
 
@@ -1133,6 +1138,10 @@ size_t datum_t::obj_size() const {
 std::pair<datum_string_t, datum_t> datum_t::get_pair(size_t index) const {
     // Calling `obj_size()` here also makes sure this this is actually an R_OBJECT.
     guarantee(index < obj_size());
+    return unchecked_get_pair(index);
+}
+
+std::pair<datum_string_t, datum_t> datum_t::unchecked_get_pair(size_t index) const {
     if (data.get_internal_type() == internal_type_t::BUF_R_OBJECT) {
         const size_t offset = datum_get_element_offset(data.buf_ref, index);
         return datum_deserialize_pair_from_buf(data.buf_ref, offset);
@@ -1143,12 +1152,13 @@ std::pair<datum_string_t, datum_t> datum_t::get_pair(size_t index) const {
 }
 
 datum_t datum_t::get_field(const datum_string_t &key, throw_bool_t throw_bool) const {
-    // Use binary search on top of get_pair()
+    // Use binary search on top of unchecked_get_pair()
     size_t range_beg = 0;
+    // The obj_size() also makes sure that this has the right type (R_OBJECT)
     size_t range_end = obj_size();
     while (range_beg < range_end) {
         const size_t center = range_beg + ((range_end - range_beg) / 2);
-        auto center_pair = get_pair(center);
+        auto center_pair = unchecked_get_pair(center);
         const int cmp = key.compare(center_pair.first);
         if (cmp == 0) {
             // Found it
@@ -1183,7 +1193,7 @@ cJSON *datum_t::as_json_raw() const {
     case R_ARRAY: {
         scoped_cJSON_t arr(cJSON_CreateArray());
         for (size_t i = 0; i < arr_size(); ++i) {
-            arr.AddItemToArray(get(i)->as_json_raw());
+            arr.AddItemToArray(unchecked_get(i)->as_json_raw());
         }
         return arr.release();
     } break;
@@ -1253,7 +1263,7 @@ datum_t datum_t::merge(const datum_t &rhs) const {
 
     datum_object_builder_t d(*this);
     for (size_t i = 0; i < rhs.obj_size(); ++i) {
-        auto pair = rhs.get_pair(i);
+        auto pair = rhs.unchecked_get_pair(i);
         datum_t sub_lhs = d.try_get(pair.first);
         bool is_literal = pair.second.is_ptype(pseudo::literal_string);
 
@@ -1288,7 +1298,7 @@ datum_t datum_t::merge(const datum_t &rhs,
                        std::set<std::string> *conditions_out) const {
     datum_object_builder_t d(*this);
     for (size_t i = 0; i < rhs.obj_size(); ++i) {
-        auto pair = rhs.get_pair(i);
+        auto pair = rhs.unchecked_get_pair(i);
         datum_t left = get_field(pair.first, NOTHROW);
         if (left.has()) {
             d.overwrite(pair.first, f(pair.first, left, pair.second, limits, conditions_out));
@@ -1325,7 +1335,7 @@ int datum_t::v1_13_cmp(const datum_t &rhs) const {
         size_t i;
         for (i = 0; i < arr_size(); ++i) {
             if (i >= rhs.arr_size()) return 1;
-            int cmpval = get(i).v1_13_cmp(rhs.get(i));
+            int cmpval = unchecked_get(i).v1_13_cmp(rhs.unchecked_get(i));
             if (cmpval != 0) return cmpval;
         }
         guarantee(i <= rhs.arr_size());
@@ -1341,8 +1351,8 @@ int datum_t::v1_13_cmp(const datum_t &rhs) const {
             size_t i = 0;
             size_t i2 = 0;
             while (i < obj_size() && i2 < rhs.obj_size()) {
-                auto pair = get_pair(i);
-                auto pair2 = rhs.get_pair(i2);
+                auto pair = unchecked_get_pair(i);
+                auto pair2 = rhs.unchecked_get_pair(i2);
                 int key_cmpval = pair.first.compare(pair2.first);
                 if (key_cmpval != 0) {
                     return key_cmpval;
@@ -1400,7 +1410,7 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
         size_t i;
         for (i = 0; i < arr_size(); ++i) {
             if (i >= rhs.arr_size()) return 1;
-            int cmpval = get(i).modern_cmp(rhs.get(i));
+            int cmpval = unchecked_get(i).modern_cmp(rhs.unchecked_get(i));
             if (cmpval != 0) return cmpval;
         }
         guarantee(i <= rhs.arr_size());
@@ -1410,8 +1420,8 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
         size_t i = 0;
         size_t i2 = 0;
         while (i < obj_size() && i2 < rhs.obj_size()) {
-            auto pair = get_pair(i);
-            auto pair2 = rhs.get_pair(i2);
+            auto pair = unchecked_get_pair(i);
+            auto pair2 = rhs.unchecked_get_pair(i2);
             int key_cmpval = pair.first.compare(pair2.first);
             if (key_cmpval != 0) {
                 return key_cmpval;
