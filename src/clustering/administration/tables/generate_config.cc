@@ -115,8 +115,8 @@ static double estimate_cost_to_get_up_to_date(
     return sum / count;
 }
 
-/* `pick_best_pairings()` chooses which server will host each shard. No server can host
-more than one shard. */
+/* `pick_best_pairings()` chooses which server will host each shard. It will never pick
+the same server for more than one shard. */
 static void pick_best_pairings(
         int num_shards,
         /* The map's values are pairs of (shard, server). The keys indicate how expensive
