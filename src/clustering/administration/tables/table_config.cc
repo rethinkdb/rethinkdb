@@ -177,7 +177,7 @@ bool convert_table_config_and_name_from_datum(
         *error_out = "In `shards`: " + *error_out;
         return false;
     }
-    if (config_out->shards.size() == 0) {
+    if (config_out->shards.empty()) {
         *error_out = "In `shards`: You must specify at least one shard.";
         return false;
     }

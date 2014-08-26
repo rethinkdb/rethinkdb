@@ -232,7 +232,7 @@ counted_t<const ql::datum_t> convert_table_status_to_datum(
         server_name_client_t *name_client) {
     ql::datum_object_builder_t builder;
     builder.overwrite("name", convert_name_to_datum(table_name));
-    builder.overwrite("database", convert_name_to_datum(db_name));
+    builder.overwrite("db", convert_name_to_datum(db_name));
     builder.overwrite("uuid", convert_uuid_to_datum(uuid));
 
     ql::datum_array_builder_t array_builder((ql::configured_limits_t()));
