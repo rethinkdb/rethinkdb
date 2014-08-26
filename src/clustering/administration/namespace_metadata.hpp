@@ -89,12 +89,12 @@ public:
         return table_shard_scheme_t();
     }
 
-    int num_shards() const {
+    size_t num_shards() const {
         return split_points.size() + 1;
     }
 
-    key_range_t get_shard_range(int i) const {
-        guarantee(i >= 0 && i < num_shards());
+    key_range_t get_shard_range(size_t i) const {
+        guarantee(i < num_shards());
         store_key_t left = (i == 0) ? store_key_t::min() : split_points[i-1];
         if (i != num_shards() - 1) {
             return key_range_t(

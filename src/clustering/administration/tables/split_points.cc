@@ -90,7 +90,7 @@ static void ensure_distinct(std::vector<store_key_t> *split_points) {
 bool calculate_split_points_with_distribution(
         namespace_id_t table_id,
         real_reql_cluster_interface_t *reql_cluster_interface,
-        int num_shards,
+        size_t num_shards,
         signal_t *interruptor,
         table_shard_scheme_t *split_points_out,
         std::string *error_out) {
@@ -121,14 +121,14 @@ bool calculate_split_points_with_distribution(
         total_count += pair.second;
     }
     if (pairs.size() < static_cast<size_t>(num_shards)) {
-        *error_out = strprintf("There isn't enough data in the table to create %d "
+        *error_out = strprintf("There isn't enough data in the table to create %zu "
             "balanced shards.", num_shards);
         return false;
     }
 
     split_points_out->split_points.clear();
     size_t left_pair = 0;
-    for (int split_index = 1; split_index < num_shards; ++split_index) {
+    for (size_t split_index = 1; split_index < num_shards; ++split_index) {
         int64_t split_count = (split_index * total_count) / num_shards;
         rassert(pairs[left_pair].first <= split_count);
         while (left_pair+1 < pairs.size() &&
@@ -153,7 +153,7 @@ bool calculate_split_points_with_distribution(
 works correctly whether the number of shards is increased, decreased, or stays the same.
 */
 void calculate_split_points_by_interpolation(
-        int num_shards,
+        size_t num_shards,
         const table_shard_scheme_t &old_split_points,
         table_shard_scheme_t *split_points_out) {
     /* Short circuit this case because it's both trivial and common */
@@ -162,11 +162,12 @@ void calculate_split_points_by_interpolation(
         return;
     }
     split_points_out->split_points.clear();
-    for (int split_index = 1; split_index < num_shards; ++split_index) {
+    for (size_t split_index = 1; split_index < num_shards; ++split_index) {
         double split_old_index = split_index *
             (old_split_points.num_shards() / static_cast<double>(num_shards));
-        int left_old_index = floor(split_old_index);
-        guarantee(left_old_index >= 0);
+        guarantee(split_old_index >= 0);
+        guarantee(split_old_index <= old_split_points.num_shards());
+        size_t left_old_index = floor(split_old_index);
         guarantee(left_old_index <= old_split_points.num_shards() - 1);
         store_key_t left_key =
             (left_old_index == 0)
@@ -186,7 +187,7 @@ void calculate_split_points_by_interpolation(
 bool calculate_split_points_intelligently(
         namespace_id_t table_id,
         real_reql_cluster_interface_t *reql_cluster_interface,
-        int num_shards,
+        size_t num_shards,
         const table_shard_scheme_t &old_split_points,
         signal_t *interruptor,
         table_shard_scheme_t *split_points_out,

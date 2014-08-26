@@ -18,7 +18,7 @@ distribution query against the database. However, it may fail. */
 bool calculate_split_points_with_distribution(
         namespace_id_t table_id,
         real_reql_cluster_interface_t *reql_cluster_interface,
-        int num_shards,
+        size_t num_shards,
         signal_t *interruptor,
         table_shard_scheme_t *split_points_out,
         std::string *error_out);
@@ -28,7 +28,7 @@ assumption that the given previous set of split points is evenly distributed. If
 requested number of shards is different from the previous number of shards, it will use
 interpolation. */
 void calculate_split_points_by_interpolation(
-        int num_shards,
+        size_t num_shards,
         const table_shard_scheme_t &old_split_points,
         table_shard_scheme_t *split_points_out);
 
@@ -39,7 +39,7 @@ split points. */
 bool calculate_split_points_intelligently(
         namespace_id_t table_id,
         real_reql_cluster_interface_t *reql_cluster_interface,
-        int num_shards,
+        size_t num_shards,
         const table_shard_scheme_t &old_split_points,
         signal_t *interruptor,
         table_shard_scheme_t *split_points_out,
