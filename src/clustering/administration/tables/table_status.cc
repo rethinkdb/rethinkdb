@@ -261,6 +261,7 @@ bool table_status_artificial_table_backend_t::read_all_primary_keys(
         UNUSED std::string *error_out) {
     on_thread_t thread_switcher(home_thread());
     keys_out->clear();
+    databases_semilattice_metadata_t databases = database_sl_view->get();
     cow_ptr_t<namespaces_semilattice_metadata_t> md = table_sl_view->get();
     for (auto it = md->namespaces.begin();
               it != md->namespaces.end();
@@ -269,8 +270,8 @@ bool table_status_artificial_table_backend_t::read_all_primary_keys(
             continue;
         }
         database_id_t db_id = it->second.get_ref().database.get_ref();
-        auto jt = database_sl_view->get().databases.find(db_id);
-        guarantee(jt != database_sl_view->get().databases.end());
+        auto jt = databases.databases.find(db_id);
+        guarantee(jt != databases.databases.end());
         /* RSI(reql_admin): This can actually happen. We should handle this case. */
         guarantee(!jt->second.is_deleted());
         name_string_t db_name = jt->second.get_ref().name.get_ref();

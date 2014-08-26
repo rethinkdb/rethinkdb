@@ -7,14 +7,15 @@
 #include <string>
 
 #include "clustering/administration/metadata.hpp"
+#include "clustering/administration/servers/server_config.hpp"
+#include "clustering/administration/tables/table_config.hpp"
+#include "clustering/administration/tables/table_status.hpp"
 #include "containers/name_string.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
+#include "rdb_protocol/artificial_table/in_memory.hpp"
 #include "rdb_protocol/context.hpp"
 
 class server_name_client_t;
-class server_config_artificial_table_backend_t;
-class table_config_artificial_table_backend_t;
-class table_status_artificial_table_backend_t;
 
 /* The `artificial_reql_cluster_interface_t` is responsible for handling queries to the
 `rethinkdb` database. It's implemented as a proxy over the
@@ -83,6 +84,7 @@ public:
         return reql_cluster_interface.get();
     }
 private:
+    scoped_ptr_t<in_memory_artificial_table_backend_t> debug_scratch_backend;
     scoped_ptr_t<server_config_artificial_table_backend_t> server_config_backend;
     scoped_ptr_t<table_config_artificial_table_backend_t> table_config_backend;
     scoped_ptr_t<table_status_artificial_table_backend_t> table_status_backend;

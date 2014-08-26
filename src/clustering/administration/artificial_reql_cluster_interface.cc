@@ -3,9 +3,6 @@
 
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/metadata.hpp"
-#include "clustering/administration/servers/server_config.hpp"
-#include "clustering/administration/tables/table_config.hpp"
-#include "clustering/administration/tables/table_status.hpp"
 #include "rdb_protocol/artificial_table/artificial_table.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
@@ -77,6 +74,11 @@ bool artificial_reql_cluster_interface_t::table_list(counted_t<const ql::db_t> d
         std::set<name_string_t> *names_out, std::string *error_out) {
     if (db->name == database.str()) {
         for (auto it = tables.begin(); it != tables.end(); ++it) {
+            if (it->first.str()[0] == '_') {
+                /* If a table's name starts with `_`, don't show it to the user unless
+                they explicitly request it. */
+                continue;
+            }
             names_out->insert(it->first);
         }
         return true;
@@ -114,12 +116,18 @@ admin_artificial_tables_t::admin_artificial_tables_t(
             cluster_directory_metadata_t> > > _directory_view,
         server_name_client_t *_name_client) {
     std::map<name_string_t, artificial_table_backend_t*> backends;
+
+    debug_scratch_backend.init(new in_memory_artificial_table_backend_t);
+    backends[name_string_t::guarantee_valid("_debug_scratch")] =
+        debug_scratch_backend.get();
+
     server_config_backend.init(new server_config_artificial_table_backend_t(
         metadata_field(&cluster_semilattice_metadata_t::machines,
             _semilattice_view),
         _name_client));
     backends[name_string_t::guarantee_valid("server_config")] =
         server_config_backend.get();
+
     table_config_backend.init(new table_config_artificial_table_backend_t(
         metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
             _semilattice_view),
@@ -128,6 +136,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         _name_client));
     backends[name_string_t::guarantee_valid("table_config")] =
         table_config_backend.get();
+
     table_status_backend.init(new table_status_artificial_table_backend_t(
         metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
             _semilattice_view),
@@ -140,6 +149,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         _name_client));
     backends[name_string_t::guarantee_valid("table_status")] =
         table_status_backend.get();
+
     reql_cluster_interface.init(new artificial_reql_cluster_interface_t(
         name_string_t::guarantee_valid("rethinkdb"),
         backends,

@@ -85,6 +85,26 @@ public:
         const std::set<std::string> &sindexes);
 
 private:
+    /* Calls `backend->read_row()` and then sanity-checks the result */
+    bool checked_read_row(
+        counted_t<const ql::datum_t> pval,
+        signal_t *interruptor,
+        counted_t<const ql::datum_t> *row_out,
+        std::string *error_out);
+
+    /* `do_single_update()` can throw `interrupted_exc_t`, but it shouldn't throw query
+    language exceptions; if `function()` throws a query language exception, then it will
+    catch the exception and store it in `stats_inout`. */
+    void do_single_update(
+        ql::env_t *env,
+        counted_t<const ql::datum_t> pval,
+        const std::function<counted_t<const ql::datum_t>(counted_t<const ql::datum_t>)>
+            &function,
+        return_changes_t return_changes,
+        signal_t *interruptor,
+        counted_t<const ql::datum_t> *stats_inout,
+        std::set<std::string> *conditions_inout);
+
     artificial_table_backend_t *backend;
     std::string primary_key;
 };

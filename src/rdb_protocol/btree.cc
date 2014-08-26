@@ -33,6 +33,7 @@
 #include "rdb_protocol/pseudo_geometry.hpp"
 #include "rdb_protocol/serialize_datum_onto_blob.hpp"
 #include "rdb_protocol/shards.hpp"
+#include "rdb_protocol/table_common.hpp"
 
 #include "debug.hpp"
 
@@ -208,19 +209,6 @@ kv_location_set(keyvalue_location_t *kv_location,
     return ql::serialization_result_t::SUCCESS;
 }
 
-MUST_USE counted_t<const ql::datum_t>
-make_replacement_pair(counted_t<const ql::datum_t> old_val, counted_t<const ql::datum_t> new_val) {
-    // in this context, we know the array will have one element.
-    // stats_merge later can impose user preferences.
-    ql::datum_array_builder_t values(ql::configured_limits_t::unlimited);
-    ql::datum_object_builder_t value_pair;
-    bool conflict = value_pair.add("old_val", old_val)
-        || value_pair.add("new_val", new_val);
-    guarantee(!conflict);
-    values.add(std::move(value_pair).to_counted());
-    return std::move(values).to_counted();
-}
-
 batched_replace_response_t rdb_replace_and_return_superblock(
     const btree_loc_info_t &info,
     const btree_point_replacer_t *replacer,
@@ -232,7 +220,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
     const return_changes_t return_changes = replacer->should_return_changes();
     const std::string &primary_key = *info.btree->primary_key;
     const store_key_t &key = *info.key;
-    ql::datum_object_builder_t resp;
+
     try {
         keyvalue_location_t kv_location;
         rdb_value_sizer_t sizer(info.superblock->cache()->max_block_size());
@@ -244,105 +232,44 @@ batched_replace_response_t rdb_replace_and_return_superblock(
                                          trace,
                                          superblock_promise);
 
-        bool started_empty, ended_empty;
         counted_t<const ql::datum_t> old_val;
         if (!kv_location.value.has()) {
             // If there's no entry with this key, pass NULL to the function.
-            started_empty = true;
             old_val = ql::datum_t::null();
         } else {
             // Otherwise pass the entry with this key to the function.
-            started_empty = false;
             old_val = get_data(kv_location.value_as<rdb_value_t>(),
                                buf_parent_t(&kv_location.buf));
             guarantee(old_val->get(primary_key, ql::NOTHROW).has());
         }
         guarantee(old_val.has());
-        if (return_changes == return_changes_t::YES) {
-            // first, fill with the old value.  Then, if `replacer` succeeds, fill with new value.
-            bool conflict = resp.add("changes", make_replacement_pair(old_val, old_val));
-            guarantee(!conflict);
-        }
 
-        counted_t<const ql::datum_t> new_val = replacer->replace(old_val);
-        if (return_changes == return_changes_t::YES) {
-            resp.overwrite("changes", make_replacement_pair(old_val, new_val));
-        }
-        if (new_val->get_type() == ql::datum_t::R_NULL) {
-            ended_empty = true;
-        } else if (new_val->get_type() == ql::datum_t::R_OBJECT) {
-            ended_empty = false;
-            new_val->rcheck_valid_replace(
-                old_val, counted_t<const ql::datum_t>(), primary_key);
-            counted_t<const ql::datum_t> pk = new_val->get(primary_key, ql::NOTHROW);
-            rcheck_target(
-                new_val, ql::base_exc_t::GENERIC,
-                key.compare(store_key_t(pk->print_primary())) == 0,
-                (started_empty
-                 ? strprintf("Primary key `%s` cannot be changed (null -> %s)",
-                             primary_key.c_str(), new_val->print().c_str())
-                 : strprintf("Primary key `%s` cannot be changed (%s -> %s)",
-                             primary_key.c_str(),
-                             old_val->print().c_str(), new_val->print().c_str())));
-        } else {
-            rfail_typed_target(
-                new_val, "Inserted value must be an OBJECT (got %s):\n%s",
-                new_val->get_type_name().c_str(), new_val->print().c_str());
-        }
+        try {
+            /* Compute the replacement value for the row */
+            counted_t<const ql::datum_t> new_val = replacer->replace(old_val);
 
-        // We use `conflict` below to store whether or not there was a key
-        // conflict when constructing the stats object.  It defaults to `true`
-        // so that we fail an assertion if we never update the stats object.
-        bool conflict = true;
+            /* Validate the replacement value and generate a stats object to return to
+            the user, but don't return it yet if we need to make changes. The reason for
+            this odd order is that we need to validate the change before we write the
+            change. */
+            bool was_changed;
+            counted_t<const ql::datum_t> resp = make_row_replacement_stats(
+                primary_key, key, old_val, new_val, return_changes, &was_changed);
+            if (!was_changed) {
+                return resp;
+            }
 
-        // Figure out what operation we're doing (based on started_empty,
-        // ended_empty, and the result of the function call) and then do it.
-        if (started_empty) {
-            if (ended_empty) {
-                conflict = resp.add("skipped", make_counted<ql::datum_t>(1.0));
+            /* Now that the change has passed validation, write it to disk */
+            if (new_val->get_type() == ql::datum_t::R_NULL) {
+                kv_location_delete(&kv_location, *info.key, info.btree->timestamp,
+                                   deletion_context, mod_info_out);
             } else {
-                conflict = resp.add("inserted", make_counted<ql::datum_t>(1.0));
                 r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
                 ql::serialization_result_t res =
                     kv_location_set(&kv_location, *info.key, new_val,
                                     info.btree->timestamp, deletion_context,
                                     mod_info_out);
                 switch (res) {
-                case ql::serialization_result_t::ARRAY_TOO_BIG:
-                    rfail_typed_target(new_val, "Array too large for disk writes"
-                                       " (limit 100,000 elements)");
-                    unreachable();
-                case ql::serialization_result_t::SUCCESS:
-                    break;
-                default:
-                    unreachable();
-                }
-                guarantee(mod_info_out->deleted.second.empty());
-                guarantee(!mod_info_out->added.second.empty());
-                mod_info_out->added.first = new_val;
-            }
-        } else {
-            if (ended_empty) {
-                conflict = resp.add("deleted", make_counted<ql::datum_t>(1.0));
-                kv_location_delete(&kv_location, *info.key, info.btree->timestamp,
-                                   deletion_context, mod_info_out);
-                guarantee(!mod_info_out->deleted.second.empty());
-                guarantee(mod_info_out->added.second.empty());
-                mod_info_out->deleted.first = old_val;
-            } else {
-                r_sanity_check(
-                    *old_val->get(primary_key) == *new_val->get(primary_key));
-                if (*old_val == *new_val) {
-                    conflict = resp.add("unchanged",
-                                         make_counted<ql::datum_t>(1.0));
-                } else {
-                    conflict = resp.add("replaced", make_counted<ql::datum_t>(1.0));
-                    r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
-                    ql::serialization_result_t res =
-                        kv_location_set(&kv_location, *info.key, new_val,
-                                        info.btree->timestamp, deletion_context,
-                                        mod_info_out);
-                    switch (res) {
                     case ql::serialization_result_t::ARRAY_TOO_BIG:
                         rfail_typed_target(new_val, "Array too large for disk writes"
                                            " (limit 100,000 elements)");
@@ -351,26 +278,38 @@ batched_replace_response_t rdb_replace_and_return_superblock(
                         break;
                     default:
                         unreachable();
-                    }
-                    guarantee(!mod_info_out->deleted.second.empty());
-                    guarantee(!mod_info_out->added.second.empty());
-                    mod_info_out->added.first = new_val;
-                    mod_info_out->deleted.first = old_val;
                 }
             }
+
+            /* Report the changes for sindex and change-feed purposes */
+            if (old_val->get_type() != ql::datum_t::R_NULL) {
+                guarantee(!mod_info_out->deleted.second.empty());
+                mod_info_out->deleted.first = old_val;
+            } else {
+                guarantee(mod_info_out->deleted.second.empty());
+            }
+            if (new_val->get_type() != ql::datum_t::R_NULL) {
+                guarantee(!mod_info_out->added.second.empty());
+                mod_info_out->added.first = new_val;
+            } else {
+                guarantee(mod_info_out->added.second.empty());
+            }
+
+            return resp;
+
+        } catch (const ql::base_exc_t &e) {
+            return make_row_replacement_error_stats(old_val, return_changes, e.what());
         }
-        guarantee(!conflict); // message never added twice
-    } catch (const ql::base_exc_t &e) {
-        resp.add_error(e.what());
     } catch (const interrupted_exc_t &e) {
+        ql::datum_object_builder_t object_builder;
         std::string msg = strprintf("interrupted (%s:%d)", __FILE__, __LINE__);
-        resp.add_error(msg.c_str());
+        object_builder.add_error(msg.c_str());
         // We don't rethrow because we're in a coroutine.  Theoretically the
         // above message should never make it back to a user because the calling
         // function will also be interrupted, but we document where it comes
         // from to aid in future debugging if that invariant becomes violated.
+        return std::move(object_builder).to_counted();
     }
-    return std::move(resp).to_counted();
 }
 
 
