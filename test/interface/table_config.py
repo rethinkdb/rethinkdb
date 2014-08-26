@@ -31,11 +31,9 @@ with driver.Metacluster() as metacluster:
     conn = r.connect("localhost", proc1.driver_port)
 
     def check_foo_config_matches(expected):
-        config = r.db("rethinkdb").table("table_config").filter({"name": "foo"}) \
-                  .run(conn)
-        assert len(config) == 1
-        assert config[0]["name"] == "foo"
-        found = config[0]["shards"]
+        config = r.table_config("foo").run(conn)
+        assert config["name"] == "foo" and config["db"] == "test"
+        found = config["shards"]
         if len(expected) != len(found):
             return False
         for (e_shard, f_shard) in zip(expected, found):
@@ -79,10 +77,11 @@ with driver.Metacluster() as metacluster:
 
     def check_tables_named(names):
         config = r.db("rethinkdb").table("table_config").run(conn)
-        if not all(row["db"] == "test" for row in config):
+        if len(config) != len(names):
             return False
-        if set(row["name"] for row in config) != set(names):
-            return False
+        for row in config:
+            if (row["db"], row["name"]) not in names:
+                return False
         return True
 
     def wait_until(condition):
@@ -104,19 +103,20 @@ with driver.Metacluster() as metacluster:
     r.db_create("test").run(conn)
     r.table_create("foo").run(conn)
     r.table_create("bar").run(conn)
+    r.db_create("test2").run(conn)
+    r.db("test2").table_create("bar2").run(conn)
     r.table("foo").insert([{"i": i} for i in xrange(10)]).run(conn)
     assert set(row["i"] for row in r.table("foo").run(conn)) == set(xrange(10))
 
     print "Testing that table_config and table_status are sane..."
-    wait_until(lambda: check_tables_named(["foo", "bar"]))
+    wait_until(lambda: check_tables_named(
+        [("test", "foo"), ("test", "bar"), ("test2", "bar2")]))
     wait_until(check_status_matches_config)
 
     print "Testing that we can write to table_config..."
     def test(shards):
         print "Reconfiguring:", shards
-        # RSI(reql_admin): Use porcelain here
-        res = r.db("rethinkdb").table("table_config").filter({"name": "foo"}) \
-               .update({"shards": shards}).run(conn)
+        res = r.table_config("foo").update({"shards": shards}).run(conn)
         assert res["errors"] == 0
         wait_until(lambda: check_foo_config_matches(shards))
         wait_until(check_status_matches_config)
@@ -157,14 +157,13 @@ with driver.Metacluster() as metacluster:
          {"replicas": ["b"], "directors": ["a"]}])
 
     print "Testing that we can rename tables through table_config..."
-    res = r.db("rethinkdb").table("table_config").filter({"name": "bar"}) \
-           .update({"name": "bar2"}).run(conn)
+    res = r.table_config("bar").update({"name": "bar2"}).run(conn)
     assert res["errors"] == 0
-    wait_until(lambda: check_tables_named(["foo", "bar2"]))
+    wait_until(lambda: check_tables_named(
+        [("test", "foo"), ("test", "bar2"), ("test2", "bar2")]))
 
     print "Testing that we can't rename a table so as to cause a name collision..."
-    res = r.db("rethinkdb").table("table_config").filter({"name": "bar2"}) \
-           .update({"name": "foo"}).run(conn)
+    res = r.table_config("bar2").update({"name": "foo"}).run(conn)
     assert res["errors"] == 1
 
     cluster1.check_and_stop()
