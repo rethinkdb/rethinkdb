@@ -284,6 +284,10 @@ private:
     static std::vector<std::pair<datum_string_t, datum_t> > to_sorted_vec(
             std::map<datum_string_t, datum_t> &&map);
 
+    // Same as get_pair(), but doesn't perform boundary or type checks. For internal
+    // use to improve performance.
+    std::pair<datum_string_t, datum_t> unchecked_get_pair(size_t index) const;
+
     friend void pseudo::time_to_str_key(const datum_t &d, std::string *str_out);
     void pt_to_str_key(std::string *str_out) const;
     void num_to_str_key(std::string *str_out) const;
