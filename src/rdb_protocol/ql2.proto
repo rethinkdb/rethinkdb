@@ -459,10 +459,17 @@ message Term {
         // omit the first argument to use the default database.)
         TABLE_LIST    = 62; // Database -> ARRAY
                             //  -> ARRAY
+        // With a string argument, returns the row in the
+        // `rethinkdb.table_config` system table for the given table in
+        // the given database; with no argument, returns the config for
+        // all tables in the database. (You may omit the first argument
+        // to use the default database.)
         TABLE_CONFIG  = 172; // Database -> StreamSelection |
                              // Database, String -> SingleSelection |
                              // -> StreamSelection |
                              // String -> SingleSelection
+        // Like TABLE_CONFIG, except it returns the row in
+        // `table_status` instead of `table_config`.
         TABLE_STATUS  = 173; // Database -> StreamSelection |
                              // Database, String -> SingleSelection |
                              // -> StreamSelection |
