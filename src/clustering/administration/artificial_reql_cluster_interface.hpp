@@ -58,6 +58,14 @@ public:
     bool table_find(const name_string_t &name, counted_t<const ql::db_t> db,
             signal_t *interruptor, scoped_ptr_t<base_table_t> *table_out,
             std::string *error_out);
+    bool table_config(const boost::optional<name_string_t> &name,
+            counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
+            signal_t *interruptor, counted_t<ql::val_t> *resp_out,
+            std::string *error_out);
+    bool table_status(const boost::optional<name_string_t> &name,
+            counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
+            signal_t *interruptor, counted_t<ql::val_t> *resp_out,
+            std::string *error_out);
 
 private:
     name_string_t database;
@@ -81,7 +89,7 @@ public:
     reql_cluster_interface_t *get_reql_cluster_interface() {
         return reql_cluster_interface.get();
     }
-private:
+
     scoped_ptr_t<in_memory_artificial_table_backend_t> debug_scratch_backend;
     scoped_ptr_t<server_config_artificial_table_backend_t> server_config_backend;
     scoped_ptr_t<table_config_artificial_table_backend_t> table_config_backend;

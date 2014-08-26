@@ -248,6 +248,8 @@ private:
         case Term::DECEMBER:
         case Term::DB_LIST:
         case Term::TABLE_LIST:
+        case Term::TABLE_CONFIG:
+        case Term::TABLE_STATUS:
         case Term::INDEX_LIST:
         case Term::INDEX_STATUS:
         case Term::GEOJSON:
@@ -368,6 +370,8 @@ private:
         case Term::TABLE_CREATE:
         case Term::TABLE_DROP:
         case Term::TABLE_LIST:
+        case Term::TABLE_CONFIG:
+        case Term::TABLE_STATUS:
         case Term::SYNC:
         case Term::INDEX_CREATE:
         case Term::INDEX_DROP:

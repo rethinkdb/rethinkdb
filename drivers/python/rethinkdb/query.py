@@ -59,6 +59,12 @@ def table_drop(*args):
 def table_list(*args):
     return TableListTL(*args)
 
+def table_config(*args):
+    return TableListTL(*args)
+
+def table_status(*args):
+    return TableStatusTL(*args)
+
 def branch(*args):
     return Branch(*args)
 

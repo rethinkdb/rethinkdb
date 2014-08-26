@@ -1212,6 +1212,22 @@ class TableListTL(RqlTopLevelQuery):
     tt = pTerm.TABLE_LIST
     st = "table_list"
 
+class TableConfig(RqlMethodQuery):
+    tt = pTerm.TABLE_CONFIG
+    st = "table_config"
+
+class TableConfigTL(RqlTopLevelQuery):
+    tt = pTerm.TABLE_CONFIG
+    st = "table_config"
+
+class TableStatus(RqlMethodQuery):
+    tt = pTerm.TABLE_STATUS
+    st = "table_status"
+
+class TableStatusTL(RqlTopLevelQuery):
+    tt = pTerm.TABLE_STATUS
+    st = "table_status"
+
 class IndexCreate(RqlMethodQuery):
     tt = pTerm.INDEX_CREATE
     st = 'index_create'

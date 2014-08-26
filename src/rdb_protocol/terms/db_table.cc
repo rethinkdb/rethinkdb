@@ -252,6 +252,62 @@ private:
     virtual const char *name() const { return "table_list"; }
 };
 
+class table_config_or_status_term_t : public meta_op_term_t {
+public:
+    table_config_or_status_term_t(compile_env_t *env, const protob_t<const Term> &term,
+            /* `_which` should be either "table_config" or "table_status" */
+            std::string _which) :
+        meta_op_term_t(env, term, argspec_t(0, 2)), which(_which) { }
+private:
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<val_t> v0, v1;
+        if (args->num_args() > 0) {
+            v0 = args->arg(env, 0);
+        }
+        if (args->num_args() > 1) {
+            v1 = args->arg(env, 1);
+        }
+
+        counted_t<const db_t> db;
+        bool db_arg_present = args->num_args() == 2 ||
+            (args->num_args() == 1 && v0->get_type().is_convertible(val_t::type_t::DB));
+        if (db_arg_present) {
+            db = v0->as_db();
+        } else {
+            counted_t<val_t> dbv = args->optarg(env, "db");
+            r_sanity_check(dbv);
+            db = dbv->as_db();
+        }
+
+        boost::optional<name_string_t> name;
+        if (args->num_args() > (db_arg_present ? 1 : 0)) {
+            name = boost::optional<name_string_t>(
+                get_name((db_arg_present ? v1 : v0), this, "Table"));
+        }
+
+        bool ok;
+        std::string error;
+        counted_t<val_t> resp;
+        if (which == "table_config") {
+            ok = env->env->reql_cluster_interface()->table_config(name, db, backtrace(),
+                env->env->interruptor, &resp, &error);
+        } else if (which == "table_status") {
+            ok = env->env->reql_cluster_interface()->table_status(name, db, backtrace(),
+                env->env->interruptor, &resp, &error);
+        } else {
+            unreachable();
+        }
+        if (!ok) {
+            rfail(base_exc_t::GENERIC, "%s", error.c_str());
+        }
+        return resp;
+    }
+    virtual const char *name() const { return which.c_str(); }
+
+    /* Should be "table_config" or "table_status" */
+    std::string which;
+};
+
 class sync_term_t : public meta_write_op_t {
 public:
     sync_term_t(compile_env_t *env, const protob_t<const Term> &term)
@@ -389,6 +445,14 @@ counted_t<term_t> make_table_drop_term(compile_env_t *env, const protob_t<const 
 
 counted_t<term_t> make_table_list_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<table_list_term_t>(env, term);
+}
+
+counted_t<term_t> make_table_config_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<table_config_or_status_term_t>(env, term, "table_config");
+}
+
+counted_t<term_t> make_table_status_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<table_config_or_status_term_t>(env, term, "table_status");
 }
 
 counted_t<term_t> make_sync_term(compile_env_t *env, const protob_t<const Term> &term) {

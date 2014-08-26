@@ -419,5 +419,27 @@ bool test_rdb_env_t::instance_t::table_find(const name_string_t &name,
     }
 }
 
+bool test_rdb_env_t::instance_t::table_config(
+        UNUSED const boost::optional<name_string_t> &name,
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const ql::protob_t<const Backtrace> &bt,
+        UNUSED signal_t *local_interruptor,
+        UNUSED counted_t<ql::val_t> *resp_out,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support table_config()";
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::table_status(
+        UNUSED const boost::optional<name_string_t> &name,
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const ql::protob_t<const Backtrace> &bt,
+        UNUSED signal_t *local_interruptor,
+        UNUSED counted_t<ql::val_t> *resp_out,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support table_status()";
+    return false;
+}
+
 }
 

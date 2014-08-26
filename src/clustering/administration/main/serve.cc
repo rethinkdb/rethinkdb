@@ -273,7 +273,9 @@ bool do_serve(io_backender_t *io_backender,
                 directory_read_manager.get_root_view(),
                 &server_name_client);
 
-        //This is an annoying chicken and egg problem here
+        /* The above structures have some circular dependencies; we close the circles
+        here */
+        real_reql_cluster_interface.admin_tables = &admin_tables;
         rdb_ctx.cluster_interface = admin_tables.get_reql_cluster_interface();
 
         {

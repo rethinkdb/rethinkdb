@@ -1,11 +1,15 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/real_reql_cluster_interface.hpp"
 
+#include "clustering/administration/artificial_reql_cluster_interface.hpp"
+#include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/servers/name_client.hpp"
 #include "clustering/administration/tables/elect_director.hpp"
 #include "clustering/administration/tables/reconfigure.hpp"
 #include "concurrency/cross_thread_signal.hpp"
+#include "rdb_protocol/artificial_table/artificial_table.hpp"
+#include "rdb_protocol/val.hpp"
 #include "rdb_protocol/wait_for_readiness.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "rpc/semilattice/view/field.hpp"
@@ -384,6 +388,24 @@ bool real_reql_cluster_interface_t::table_find(const name_string_t &name,
     return true;
 }
 
+bool real_reql_cluster_interface_t::table_config(
+        const boost::optional<name_string_t> &name,
+        counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
+        signal_t *interruptor, counted_t<ql::val_t> *resp_out, std::string *error_out) {
+    return table_config_or_status(
+        admin_tables->table_config_backend.get(), "table_config",
+        name, db, bt, interruptor, resp_out, error_out);
+}
+
+bool real_reql_cluster_interface_t::table_status(
+        const boost::optional<name_string_t> &name,
+        counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
+        signal_t *interruptor, counted_t<ql::val_t> *resp_out, std::string *error_out) {
+    return table_config_or_status(
+        admin_tables->table_status_backend.get(), "table_config",
+        name, db, bt, interruptor, resp_out, error_out);
+}
+
 /* Checks that divisor is indeed a divisor of multiple. */
 template <class T>
 bool is_joined(const T &multiple, const T &divisor) {
@@ -433,5 +455,51 @@ void real_reql_cluster_interface_t::get_databases_metadata(
     cross_thread_database_watchables[threadnum]->apply_read(
             std::bind(&copy_value<databases_semilattice_metadata_t>,
                       ph::_1, out));
+}
+
+bool real_reql_cluster_interface_t::table_config_or_status(
+        artificial_table_backend_t *backend, const char *backend_name,
+        const boost::optional<name_string_t> &name, counted_t<const ql::db_t> db,
+        const ql::protob_t<const Backtrace> &bt,
+        signal_t *interruptor, counted_t<ql::val_t> *resp_out, std::string *error_out) {
+    counted_t<ql::table_t> table = make_counted<ql::table_t>(
+        scoped_ptr_t<base_table_t>(new artificial_table_t(backend)),
+        make_counted<const ql::db_t>(nil_uuid(), "rethinkdb"), backend_name, false, bt);
+    cow_ptr_t<namespaces_semilattice_metadata_t> namespaces_metadata
+        = get_namespaces_metadata();
+    const_metadata_searcher_t<namespace_semilattice_metadata_t>
+        ns_searcher(&namespaces_metadata.get()->namespaces);
+    if (name) {
+        namespace_predicate_t pred(&*name, &db->id);
+        metadata_search_status_t status;
+        auto ns_metadata_it = ns_searcher.find_uniq(pred, &status);
+        if (!check_metadata_status(status, "Table", db->name + "." + name->str(), true,
+                error_out)) return false;
+        guarantee(!ns_metadata_it->second.is_deleted());
+        counted_t<const ql::datum_t> pkey = convert_uuid_to_datum(ns_metadata_it->first);
+        counted_t<const ql::datum_t> row;
+        if (!backend->read_row(pkey, interruptor, &row, error_out)) {
+            return false;
+        }
+        *resp_out = make_counted<ql::val_t>(row, pkey, table, bt);
+        return true;
+    } else {
+        ql::datum_array_builder_t array_builder(ql::configured_limits_t::unlimited);
+        namespace_predicate_t pred(&db->id);
+        for (auto it = ns_searcher.find_next(ns_searcher.begin(), pred);
+                  it != ns_searcher.end();
+                  it = ns_searcher.find_next(++it, pred)) {
+            counted_t<const ql::datum_t> row;
+            if (!backend->read_row(convert_uuid_to_datum(it->first), interruptor,
+                    &row, error_out)) {
+                return false;
+            }
+            array_builder.add(row);
+        }
+        counted_t<ql::datum_stream_t> stream = make_counted<ql::array_datum_stream_t>(
+            std::move(array_builder).to_counted(), bt);
+        *resp_out = make_counted<ql::val_t>(table, stream, bt);
+        return true;
+    }
 }
 

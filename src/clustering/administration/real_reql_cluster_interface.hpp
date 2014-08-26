@@ -12,6 +12,8 @@
 #include "rdb_protocol/context.hpp"
 #include "rpc/semilattice/view.hpp"
 
+class admin_artificial_tables_t;
+class artificial_table_backend_t;
 class server_name_client_t;
 
 /* `real_reql_cluster_interface_t` is a concrete subclass of `reql_cluster_interface_t`
@@ -56,11 +58,24 @@ public:
     bool table_find(const name_string_t &name, counted_t<const ql::db_t> db,
             signal_t *interruptor, scoped_ptr_t<base_table_t> *table_out,
             std::string *error_out);
+    bool table_config(const boost::optional<name_string_t> &name,
+            counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
+            signal_t *interruptor, counted_t<ql::val_t> *resp_out,
+            std::string *error_out);
+    bool table_status(const boost::optional<name_string_t> &name,
+            counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
+            signal_t *interruptor, counted_t<ql::val_t> *resp_out,
+            std::string *error_out);
 
     /* `distribution_app_t` needs access to the underlying `namespace_interface_t` */
     namespace_repo_t *get_namespace_repo() {
         return &namespace_repo;
     }
+
+    /* This is public because it needs to be set after we're created to solve a certain
+    chicken-and-egg problem */
+    admin_artificial_tables_t *admin_tables;
+
 private:
     mailbox_manager_t *mailbox_manager;
     machine_id_t my_machine_id;
@@ -84,6 +99,12 @@ private:
     cow_ptr_t<namespaces_semilattice_metadata_t> get_namespaces_metadata();
     // This could soooo be optimized if you don't want to copy the whole thing.
     void get_databases_metadata(databases_semilattice_metadata_t *out);
+
+    bool table_config_or_status(artificial_table_backend_t *backend,
+            const char *backend_name, const boost::optional<name_string_t> &name,
+            counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
+            signal_t *interruptor, counted_t<ql::val_t> *resp_out,
+            std::string *error_out);
 
     DISABLE_COPYING(real_reql_cluster_interface_t);
 };
