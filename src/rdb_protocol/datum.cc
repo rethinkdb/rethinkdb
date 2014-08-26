@@ -1027,12 +1027,16 @@ datum_t datum_t::get(size_t index, throw_bool_t throw_bool) const {
     // Calling `size()` here also makes sure this this is actually an R_ARRAY.
     const size_t array_size = arr_size();
     if (index < array_size) {
-        return (*data.r_array)[index];
+        return unchecked_get(index);
     } else if (throw_bool == THROW) {
         rfail(base_exc_t::NON_EXISTENCE, "Index out of bounds: %zu", index);
     } else {
         return datum_t();
     }
+}
+
+datum_t datum_t::unchecked_get(size_t index) const {
+    return (*data.r_array)[index];
 }
 
 size_t datum_t::obj_size() const {
@@ -1092,7 +1096,7 @@ cJSON *datum_t::as_json_raw() const {
     case R_ARRAY: {
         scoped_cJSON_t arr(cJSON_CreateArray());
         for (size_t i = 0; i < arr_size(); ++i) {
-            arr.AddItemToArray(get(i)->as_json_raw());
+            arr.AddItemToArray(unchecked_get(i)->as_json_raw());
         }
         return arr.release();
     } break;
@@ -1229,7 +1233,7 @@ int datum_t::v1_13_cmp(const datum_t &rhs) const {
         size_t i;
         for (i = 0; i < arr_size(); ++i) {
             if (i >= rhs.arr_size()) return 1;
-            int cmpval = get(i).v1_13_cmp(rhs.get(i));
+            int cmpval = unchecked_get(i).v1_13_cmp(rhs.unchecked_get(i));
             if (cmpval != 0) return cmpval;
         }
         guarantee(i <= rhs.arr_size());
@@ -1304,7 +1308,7 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
         size_t i;
         for (i = 0; i < arr_size(); ++i) {
             if (i >= rhs.arr_size()) return 1;
-            int cmpval = get(i).modern_cmp(rhs.get(i));
+            int cmpval = unchecked_get(i).modern_cmp(rhs.unchecked_get(i));
             if (cmpval != 0) return cmpval;
         }
         guarantee(i <= rhs.arr_size());
