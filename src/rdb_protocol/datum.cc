@@ -1043,7 +1043,7 @@ size_t datum_t::obj_size() const {
 std::pair<datum_string_t, datum_t> datum_t::get_pair(size_t index) const {
     check_type(R_OBJECT);
     guarantee(index < obj_size());
-    return (*data.r_object)[index];
+    return unchecked_get_pair(index);
 }
 
 std::pair<datum_string_t, datum_t> datum_t::unchecked_get_pair(size_t index) const {
