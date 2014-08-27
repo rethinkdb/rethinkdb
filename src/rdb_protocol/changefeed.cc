@@ -881,6 +881,7 @@ client_t::client_t(
 }
 client_t::~client_t() { }
 
+// RSI: make `all_t` work.
 counted_t<datum_stream_t>
 client_t::new_feed(env_t *env, const namespace_id_t &uuid,
         const protob_t<const Backtrace> &bt, const std::string &table_name,
