@@ -139,13 +139,18 @@ done_traversing_t geo_index_traversal_helper_t::handle_pair(
 
 bool geo_index_traversal_helper_t::is_range_interesting(const key_range_t &range) {
     guarantee(is_initialized_);
-    // TODO! Clarify names. The excl/incl here is wrong
-    const btree_key_t *left_excl = range.left.btree_key();
-    const btree_key_t *right_incl =
+    const btree_key_t *left_incl_or_null =
+        range.left.size() == 0
+        ? NULL
+        : range.left.btree_key();
+    const btree_key_t *right_excl_or_null =
         range.right.unbounded
         ? NULL
         : range.right.key.btree_key();
-    return any_query_cell_intersects(left_excl, right_incl);
+    // We ignore the fact that range.right is exclusive and not inclusive.
+    // In rare cases this costs us a little bit of efficiency because we consider
+    // one extra key, but it saves us some complexity.
+    return any_query_cell_intersects(left_incl_or_null, right_excl_or_null);
 }
 
 void geo_index_traversal_helper_t::abort_traversal() {
@@ -153,18 +158,15 @@ void geo_index_traversal_helper_t::abort_traversal() {
 }
 
 bool geo_index_traversal_helper_t::any_query_cell_intersects(
-        const btree_key_t *left_excl, const btree_key_t *right_incl) {
-    // We ignore the fact that left_excl is exclusive and not inclusive.
-    // In rare cases this costs us a little bit of efficiency, but saves us
-    // some complexity.
+        const btree_key_t *left_incl_or_null, const btree_key_t *right_incl_or_null) {
     S2CellId left_cell =
-        left_excl == NULL
+        left_incl_or_null == NULL
         ? S2CellId::FromFacePosLevel(0, 0, 0) // The smallest valid cell id
-        : btree_key_to_s2cellid(left_excl);
+        : btree_key_to_s2cellid(left_incl_or_null);
     S2CellId right_cell =
-        right_incl == NULL
+        right_incl_or_null == NULL
         ? S2CellId::FromFacePosLevel(5, 0, 0) // The largest valid cell id
-        : btree_key_to_s2cellid(right_incl);
+        : btree_key_to_s2cellid(right_incl_or_null);
 
     // Determine a S2CellId range that is a superset of what's intersecting
     // with anything stored in [left_cell, right_cell].
