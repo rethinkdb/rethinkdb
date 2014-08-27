@@ -29,7 +29,7 @@ bool name_string_t::assign_value(const std::string &s) {
     return true;
 }
 
-bool name_string_t::assign_value(const wire_string_t &s) {
+bool name_string_t::assign_value(const datum_string_t &s) {
     if (s.size() == 0) {
         return false;
     }

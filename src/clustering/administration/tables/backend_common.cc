@@ -9,7 +9,7 @@ std::string common_table_artificial_table_backend_t::get_primary_key_name() {
 
 bool common_table_artificial_table_backend_t::read_all_primary_keys(
         UNUSED signal_t *interruptor,
-        std::vector<counted_t<const ql::datum_t> > *keys_out,
+        std::vector<ql::datum_t> *keys_out,
         UNUSED std::string *error_out) {
     on_thread_t thread_switcher(home_thread());
     keys_out->clear();
@@ -26,9 +26,9 @@ bool common_table_artificial_table_backend_t::read_all_primary_keys(
 }
 
 bool common_table_artificial_table_backend_t::read_row(
-        counted_t<const ql::datum_t> primary_key,
+        ql::datum_t primary_key,
         signal_t *interruptor,
-        counted_t<const ql::datum_t> *row_out,
+        ql::datum_t *row_out,
         std::string *error_out) {
     on_thread_t thread_switcher(home_thread());
     cow_ptr_t<namespaces_semilattice_metadata_t> md = table_sl_view->get();
@@ -41,7 +41,7 @@ bool common_table_artificial_table_backend_t::read_row(
     }
     auto it = md->namespaces.find(table_id);
     if (it == md->namespaces.end()) {
-        *row_out = counted_t<const ql::datum_t>();
+        *row_out = ql::datum_t();
         return true;
     }
     name_string_t table_name = it->second.get_ref().name.get_ref();

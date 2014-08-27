@@ -95,7 +95,7 @@ private:
 
     rng_t rng_;
     region_map_t<binary_blob_t> metainfo_;
-    std::map<store_key_t, std::pair<repli_timestamp_t, counted_t<const ql::datum_t> > > table_;
+    std::map<store_key_t, std::pair<repli_timestamp_t, ql::datum_t> > table_;
 
     DISABLE_COPYING(mock_store_t);
 };

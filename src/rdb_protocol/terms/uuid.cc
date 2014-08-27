@@ -18,7 +18,7 @@ public:
 
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *, args_t *, eval_flags_t) const {
-        return new_val(make_counted<const datum_t>(uuid_to_str(generate_uuid())));
+        return new_val(datum_t(datum_string_t(uuid_to_str(generate_uuid()))));
     }
     virtual const char *name() const { return "uuid"; }
 

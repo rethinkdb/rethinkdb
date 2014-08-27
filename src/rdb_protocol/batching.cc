@@ -52,15 +52,15 @@ batchspec_t::batchspec_t(
 }
 
 batchspec_t batchspec_t::user(batch_type_t batch_type,
-                              const counted_t<const datum_t> &conf) {
-    counted_t<const datum_t> max_els_d, min_els_d, max_size_d, max_dur_d;
-    counted_t<const datum_t> first_scaledown_d;
+                              const datum_t &conf) {
+    datum_t max_els_d, min_els_d, max_size_d, max_dur_d;
+    datum_t first_scaledown_d;
     if (conf.has()) {
-        min_els_d = conf->get("min_els", NOTHROW);
-        max_els_d = conf->get("max_els", NOTHROW);
-        max_size_d = conf->get("max_size", NOTHROW);
-        first_scaledown_d = conf->get("first_scaledown", NOTHROW);
-        max_dur_d = conf->get("max_dur", NOTHROW);
+        min_els_d = conf->get_field("min_els", NOTHROW);
+        max_els_d = conf->get_field("max_els", NOTHROW);
+        max_size_d = conf->get_field("max_size", NOTHROW);
+        first_scaledown_d = conf->get_field("first_scaledown", NOTHROW);
+        max_dur_d = conf->get_field("max_dur", NOTHROW);
     }
     int64_t max_els = max_els_d.has()
                       ? max_els_d->as_int()
@@ -97,7 +97,7 @@ batchspec_t batchspec_t::all() {
 
 batchspec_t batchspec_t::user(batch_type_t batch_type, env_t *env) {
     counted_t<val_t> v = env->get_optarg(env, "batch_conf");
-    return user(batch_type, v.has() ? v->as_datum() : counted_t<const datum_t>());
+    return user(batch_type, v.has() ? v->as_datum() : datum_t());
 }
 
 batchspec_t batchspec_t::with_new_batch_type(batch_type_t new_batch_type) const {

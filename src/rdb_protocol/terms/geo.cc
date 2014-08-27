@@ -44,19 +44,19 @@ public:
 private:
     counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> v = args->arg(env, 0);
-        counted_t<const datum_t> geo_json = v->as_datum();
+        datum_t geo_json = v->as_datum();
         validate_geojson(geo_json);
 
         // Store the geo_json object inline, just add a $reql_type$ field
-        datum_object_builder_t result(geo_json->as_object());
+        datum_object_builder_t result(geo_json);
         bool dup = result.add(datum_t::reql_type_string,
-                              make_counted<datum_t>(pseudo::geometry_string));
+                              datum_t(pseudo::geometry_string));
         rcheck(!dup, base_exc_t::GENERIC, "GeoJSON object already had a "
                                           "$reql_type$ field.");
         // Drop the `bbox` field in case it exists. We don't have any use for it.
         UNUSED bool had_bbox = result.delete_field("bbox");
 
-        return new_val(std::move(result).to_counted());
+        return new_val(std::move(result).to_datum());
     }
     virtual const char *name() const { return "geojson"; }
 };
@@ -69,10 +69,10 @@ private:
     counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> v = args->arg(env, 0);
 
-        datum_object_builder_t result(v->as_ptype(pseudo::geometry_string)->as_object());
+        datum_object_builder_t result(v->as_ptype(pseudo::geometry_string));
         bool success = result.delete_field(datum_t::reql_type_string);
         r_sanity_check(success);
-        return new_val(std::move(result).to_counted());
+        return new_val(std::move(result).to_datum());
     }
     virtual const char *name() const { return "to_geojson"; }
 };
@@ -87,8 +87,7 @@ private:
         double lon = args->arg(env, 1)->as_num();
         lat_lon_point_t point(lat, lon);
 
-        const counted_t<const datum_t> result =
-            construct_geo_point(point, env->env->limits());
+        const datum_t result = construct_geo_point(point, env->env->limits());
         validate_geojson(result);
 
         return new_val(result);
@@ -98,16 +97,16 @@ private:
 
 // Accepts either a geometry object of type Point, or an array with two coordinates.
 // We often want to support both.
-lat_lon_point_t parse_point_argument(const counted_t<const datum_t> &point_datum) {
+lat_lon_point_t parse_point_argument(const datum_t &point_datum) {
     if (point_datum->is_ptype(pseudo::geometry_string)) {
         // The argument is a point (should be at least, if not this will throw)
         return extract_lat_lon_point(point_datum);
     } else {
         // The argument must be a coordinate pair
-        rcheck_target(point_datum.get(), base_exc_t::GENERIC, point_datum->size() == 2,
+        rcheck_target(&point_datum, base_exc_t::GENERIC, point_datum->arr_size() == 2,
             strprintf("Expected point coordinate pair.  "
                       "Got %zu element array instead of a 2 element one.",
-                      point_datum->size()));
+                      point_datum->arr_size()));
         double lat = point_datum->get(0)->as_num();
         double lon = point_datum->get(1)->as_num();
         return lat_lon_point_t(lat, lon);
@@ -120,7 +119,7 @@ lat_lon_line_t parse_line_from_args(scope_env_t *env, args_t *args) {
     line.reserve(args->num_args());
     for (size_t i = 0; i < args->num_args(); ++i) {
         counted_t<const val_t> point_arg = args->arg(env, i);
-        const counted_t<const datum_t> &point_datum = point_arg->as_datum();
+        const datum_t &point_datum = point_arg->as_datum();
         line.push_back(parse_point_argument(point_datum));
     }
 
@@ -135,8 +134,7 @@ private:
     counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
         const lat_lon_line_t line = parse_line_from_args(env, args);
 
-        const counted_t<const datum_t> result =
-            construct_geo_line(line, env->env->limits());
+        const datum_t result = construct_geo_line(line, env->env->limits());
         validate_geojson(result);
 
         return new_val(result);
@@ -152,8 +150,7 @@ private:
     counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
         const lat_lon_line_t shell = parse_line_from_args(env, args);
 
-        const counted_t<const datum_t> result =
-            construct_geo_polygon(shell, env->env->limits());
+        const datum_t result = construct_geo_polygon(shell, env->env->limits());
         validate_geojson(result);
 
         return new_val(result);
@@ -174,7 +171,7 @@ private:
                                          g2->as_ptype(pseudo::geometry_string));
 
         return new_val(
-            make_counted<const datum_t>(datum_t::construct_boolean_t(), result));
+            datum_t(datum_t::construct_boolean_t(), result));
     }
     virtual const char *name() const { return "intersects"; }
 };
@@ -193,7 +190,7 @@ private:
         bool result = geo_does_include(*s2polygon, g->as_ptype(pseudo::geometry_string));
 
         return new_val(
-            make_counted<const datum_t>(datum_t::construct_boolean_t(), result));
+            datum_t(datum_t::construct_boolean_t(), result));
     }
     virtual const char *name() const { return "includes"; }
 };
@@ -204,8 +201,8 @@ ellipsoid_spec_t pick_reference_ellipsoid(scope_env_t *env, args_t *args) {
         if (geo_system_arg->as_datum()->get_type() == datum_t::R_OBJECT) {
             // We expect a reference ellipsoid with parameters 'a' and 'f'.
             // (equator radius and the flattening)
-            double a = geo_system_arg->as_datum()->get("a")->as_num();
-            double f = geo_system_arg->as_datum()->get("f")->as_num();
+            double a = geo_system_arg->as_datum()->get_field("a")->as_num();
+            double f = geo_system_arg->as_datum()->get_field("f")->as_num();
             rcheck_target(geo_system_arg.get(), base_exc_t::GENERIC,
                           a > 0.0, "The equator radius `a` must be positive.");
             rcheck_target(geo_system_arg.get(), base_exc_t::GENERIC,
@@ -253,9 +250,9 @@ private:
         // (At least) one of the arguments must be a point.
         // Find out which one it is.
         scoped_ptr_t<S2Point> p;
-        counted_t<const datum_t> g;
+        datum_t g;
         const std::string g1_type =
-            g1_arg->as_ptype(pseudo::geometry_string)->get("type")->as_str().to_std();
+            g1_arg->as_ptype(pseudo::geometry_string)->get_field("type")->as_str().to_std();
         if (g1_type == "Point") {
             p = to_s2point(g1_arg->as_ptype(pseudo::geometry_string));
             g = g2_arg->as_ptype(pseudo::geometry_string);
@@ -267,7 +264,7 @@ private:
         double result = geodesic_distance(*p, g, reference_ellipsoid);
         result = convert_dist_unit(result, dist_unit_t::M, result_unit);
 
-        return new_val(make_counted<const datum_t>(result));
+        return new_val(datum_t(result));
     }
     virtual const char *name() const { return "distance"; }
 };
@@ -305,7 +302,7 @@ private:
         const lat_lon_line_t circle =
             build_circle(center, radius, num_vertices, reference_ellipsoid);
 
-        const counted_t<const datum_t> result =
+        const datum_t result =
             fill
             ? construct_geo_polygon(circle, env->env->limits())
             : construct_geo_line(circle, env->env->limits());
@@ -348,8 +345,7 @@ private:
         const lat_lon_line_t shell =
             extract_lat_lon_line(l_arg->as_ptype(pseudo::geometry_string));
 
-        const counted_t<const datum_t> result =
-            construct_geo_polygon(shell, env->env->limits());
+        const datum_t result = construct_geo_polygon(shell, env->env->limits());
         validate_geojson(result);
 
         return new_val(result);

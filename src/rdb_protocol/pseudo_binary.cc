@@ -25,7 +25,7 @@ void binary_to_base64_chunk(const char *in, char *out) {
     out[3] = base64_map[in[2] & 0x3F];
 }
 
-std::string encode_base64(const wire_string_t &data) {
+std::string encode_base64(const datum_string_t &data) {
     size_t remaining_bytes = data.size();
 
     if (remaining_bytes == 0) {
@@ -42,7 +42,7 @@ std::string encode_base64(const wire_string_t &data) {
     for (; remaining_bytes > 3;
          remaining_bytes -= 3) {
         binary_to_base64_chunk(chunk, encoded_chunk);
-        res.append(encoded_chunk, 4); 
+        res.append(encoded_chunk, 4);
         if (res.size() % 78 == 76) {
             res.append("\r\n");
         }
@@ -51,7 +51,7 @@ std::string encode_base64(const wire_string_t &data) {
 
     char partial_chunk[4] = { 0, 0, 0, 0 };
     for (size_t i = 0; i < remaining_bytes; ++i) {
-        partial_chunk[i] = chunk[i];       
+        partial_chunk[i] = chunk[i];
     }
     binary_to_base64_chunk(partial_chunk, encoded_chunk);
 
@@ -84,11 +84,12 @@ inline void base64_chunk_to_binary(const char *in, char *out) {
     out[2] = ((in[2] & 0x3) << 6) + in[3];
 }
 
-const char* fill_chunk_values(const char *in, char *out, bool *done, size_t *chars_filled) {
+const char* fill_chunk_values(const char *in, const char *in_end, char *out,
+                              bool *done, size_t *chars_filled) {
     *done = false;
     *chars_filled = 0;
     while (*chars_filled < 4 && !*done) {
-        if (*in == '=' || *in == '\0') {
+        if (in == in_end || *in == '=') {
             *done = true;
             return in;
         } else if (*in != '\r' && *in != '\n' && *in != ' ' && *in != '\t') {
@@ -100,7 +101,7 @@ const char* fill_chunk_values(const char *in, char *out, bool *done, size_t *cha
     return in;
 }
 
-scoped_ptr_t<wire_string_t> decode_base64(const wire_string_t &data) {
+datum_string_t decode_base64(const datum_string_t &data) {
     // This assumes no whitespace in the input, so we may be overallocating a bit
     std::string res;
     res.reserve((data.size() / 4) * 3);
@@ -110,9 +111,11 @@ scoped_ptr_t<wire_string_t> decode_base64(const wire_string_t &data) {
     char chunk_values[4];
     char decoded_chunk[3];
     const char *current_data = data.data();
+    const char *data_end = data.data() + data.size();
 
     while (!done) {
-        current_data = fill_chunk_values(current_data, chunk_values, &done, &chars_filled);
+        current_data = fill_chunk_values(current_data, data_end, chunk_values,
+                                         &done, &chars_filled);
         base64_chunk_to_binary(chunk_values, decoded_chunk);
 
         if (chars_filled == 1) {
@@ -125,7 +128,7 @@ scoped_ptr_t<wire_string_t> decode_base64(const wire_string_t &data) {
     }
 
     // Check if we stopped early (due to a stray padding character)
-    for (const char *i = current_data; *i != '\0'; ++i) {
+    for (const char *i = current_data; i != data_end; ++i) {
         if (*i != '=' && *i != '\r' && *i != '\n' && *i != ' ' && *i != '\t') {
             rfail_datum(base_exc_t::GENERIC,
                         "Invalid base64 format, data found after "
@@ -133,22 +136,23 @@ scoped_ptr_t<wire_string_t> decode_base64(const wire_string_t &data) {
         }
     }
 
-    return std::move(wire_string_t::create_and_init(res.size(), res.data()));
+    return datum_string_t(res.size(), res.data());
 }
 
 // Given a raw data string, encodes it into a `r.binary` pseudotype with base64 encoding
-scoped_cJSON_t encode_base64_ptype(const wire_string_t &data) {
+scoped_cJSON_t encode_base64_ptype(const datum_string_t &data) {
     scoped_cJSON_t res(cJSON_CreateObject());
-    res.AddItemToObject(datum_t::reql_type_string, cJSON_CreateString(binary_string));
+    res.AddItemToObject(datum_t::reql_type_string.to_std().c_str(),
+                        cJSON_CreateString(binary_string));
     res.AddItemToObject(data_key, cJSON_CreateString(encode_base64(data).c_str()));
     return res;
 }
 
 // Given a `r.binary` pseudotype with base64 encoding, decodes it into a raw data string
-scoped_ptr_t<wire_string_t> decode_base64_ptype(
-        const std::map<std::string, counted_t<const datum_t> > &ptype) {
+datum_string_t decode_base64_ptype(
+        const std::vector<std::pair<datum_string_t, datum_t> > &ptype) {
     bool has_data = false;
-    scoped_ptr_t<wire_string_t> res;
+    datum_string_t res;
     for (auto it = ptype.begin(); it != ptype.end(); ++it) {
         if (it->first == datum_t::reql_type_string) {
             r_sanity_check(it->second->as_str() == binary_string);
@@ -158,21 +162,21 @@ scoped_ptr_t<wire_string_t> decode_base64_ptype(
         } else {
             rfail_datum(base_exc_t::GENERIC,
                         "Invalid binary pseudotype: illegal `%s` key.",
-                        it->first.c_str());
+                        it->first.to_std().c_str());
         }
     }
     rcheck_datum(has_data, base_exc_t::GENERIC,
                  strprintf("Invalid binary pseudotype: lacking `%s` key.",
                            data_key).c_str());
-    return std::move(res);
+    return res;
 }
 
-void write_binary_to_protobuf(Datum *d, const wire_string_t &data) {
+void write_binary_to_protobuf(Datum *d, const datum_string_t &data) {
     d->set_type(Datum::R_OBJECT);
 
     // Add pseudotype field with binary type
     Datum_AssocPair *ap = d->add_r_object();
-    ap->set_key(datum_t::reql_type_string);
+    ap->set_key(datum_t::reql_type_string.to_std().c_str());
     ap->mutable_val()->set_type(Datum::R_STR);
     ap->mutable_val()->set_r_str(binary_string);
 

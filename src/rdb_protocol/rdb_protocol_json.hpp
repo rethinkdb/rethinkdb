@@ -23,13 +23,13 @@ int json_cmp(cJSON *l, cJSON *r);
 } // namespace query_language
 
 
-class counted_datum_less_t {
+class optional_datum_less_t {
 public:
-    explicit counted_datum_less_t(reql_version_t reql_version)
+    explicit optional_datum_less_t(reql_version_t reql_version)
         : reql_version_(reql_version) { }
 
-    bool operator()(const counted_t<const ql::datum_t> &a,
-                    const counted_t<const ql::datum_t> &b) const {
+    bool operator()(const ql::datum_t &a,
+                    const ql::datum_t &b) const {
         if (a.has()) {
             return b.has() && a->compare_lt(reql_version_, *b);
         } else {

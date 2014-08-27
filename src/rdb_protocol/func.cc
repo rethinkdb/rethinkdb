@@ -15,19 +15,19 @@ func_t::func_t(const protob_t<const Backtrace> &bt_source)
 func_t::~func_t() { }
 
 counted_t<val_t> func_t::call(env_t *env, eval_flags_t eval_flags) const {
-    std::vector<counted_t<const datum_t> > args;
+    std::vector<datum_t> args;
     return call(env, args, eval_flags);
 }
 
 counted_t<val_t> func_t::call(env_t *env,
-                              counted_t<const datum_t> arg,
+                              datum_t arg,
                               eval_flags_t eval_flags) const {
     return call(env, make_vector(arg), eval_flags);
 }
 
 counted_t<val_t> func_t::call(env_t *env,
-                              counted_t<const datum_t> arg1,
-                              counted_t<const datum_t> arg2,
+                              datum_t arg1,
+                              datum_t arg2,
                               eval_flags_t eval_flags) const {
     return call(env, make_vector(arg1, arg2), eval_flags);
 }
@@ -49,7 +49,7 @@ reql_func_t::~reql_func_t() { }
 
 counted_t<val_t> reql_func_t::call(
     env_t *env,
-    const std::vector<counted_t<const datum_t> > &args,
+    const std::vector<datum_t> &args,
     eval_flags_t eval_flags) const {
     try {
         // We allow arg_names.size() == 0 to specifically permit users (Ruby users
@@ -90,7 +90,7 @@ js_func_t::~js_func_t() { }
 
 counted_t<val_t> js_func_t::call(
     env_t *env,
-    const std::vector<counted_t<const datum_t> > &args,
+    const std::vector<datum_t> &args,
     UNUSED eval_flags_t eval_flags) const {
     try {
         js_runner_t::req_config_t config;
@@ -221,23 +221,22 @@ bool func_term_t::is_deterministic() const {
 
 /* The predicate here is the datum which defines the predicate and the value is
  * the object which we check to make sure matches the predicate. */
-bool filter_match(counted_t<const datum_t> predicate, counted_t<const datum_t> value,
+bool filter_match(datum_t predicate, datum_t value,
                   const rcheckable_t *parent) {
     if (predicate->is_ptype(pseudo::literal_string)) {
-        return *predicate->get(pseudo::value_key) == *value;
+        return *predicate->get_field(pseudo::value_key) == *value;
     } else {
-        const std::map<std::string, counted_t<const datum_t> > &obj
-            = predicate->as_object();
-        for (auto it = obj.begin(); it != obj.end(); ++it) {
-            r_sanity_check(it->second.has());
-            counted_t<const datum_t> elt = value->get(it->first, NOTHROW);
+        for (size_t i = 0; i < predicate.obj_size(); ++i) {
+            auto pair = predicate.get_pair(i);
+            r_sanity_check(pair.second.has());
+            datum_t elt = value->get_field(pair.first, NOTHROW);
             if (!elt.has()) {
                 rfail_target(parent, base_exc_t::NON_EXISTENCE,
-                        "No attribute `%s` in object.", it->first.c_str());
-            } else if (it->second->get_type() == datum_t::R_OBJECT &&
+                        "No attribute `%s` in object.", pair.first.to_std().c_str());
+            } else if (pair.second.get_type() == datum_t::R_OBJECT &&
                        elt->get_type() == datum_t::R_OBJECT) {
-                if (!filter_match(it->second, elt, parent)) { return false; }
-            } else if (*elt != *it->second) {
+                if (!filter_match(pair.second, elt, parent)) { return false; }
+            } else if (elt != pair.second) {
                 return false;
             }
         }
@@ -245,8 +244,8 @@ bool filter_match(counted_t<const datum_t> predicate, counted_t<const datum_t> v
     }
 }
 
-bool reql_func_t::filter_helper(env_t *env, counted_t<const datum_t> arg) const {
-    counted_t<const datum_t> d = call(env, make_vector(arg), NO_FLAGS)->as_datum();
+bool reql_func_t::filter_helper(env_t *env, datum_t arg) const {
+    datum_t d = call(env, make_vector(arg), NO_FLAGS)->as_datum();
     if (d->get_type() == datum_t::R_OBJECT &&
         (body->get_src()->type() == Term::MAKE_OBJ ||
          body->get_src()->type() == Term::DATUM)) {
@@ -275,12 +274,12 @@ std::string js_func_t::print_source() const {
     return ret;
 }
 
-bool js_func_t::filter_helper(env_t *env, counted_t<const datum_t> arg) const {
-    counted_t<const datum_t> d = call(env, make_vector(arg), NO_FLAGS)->as_datum();
+bool js_func_t::filter_helper(env_t *env, datum_t arg) const {
+    datum_t d = call(env, make_vector(arg), NO_FLAGS)->as_datum();
     return d->as_bool();
 }
 
-bool func_t::filter_call(env_t *env, counted_t<const datum_t> arg, counted_t<const func_t> default_filter_val) const {
+bool func_t::filter_call(env_t *env, datum_t arg, counted_t<const func_t> default_filter_val) const {
     // We have to catch every exception type and save it so we can rethrow it later
     // So we don't trigger a coroutine wait in a catch statement
     std::exception_ptr saved_exception;
@@ -324,7 +323,7 @@ bool func_t::filter_call(env_t *env, counted_t<const datum_t> arg, counted_t<con
     std::rethrow_exception(saved_exception);
 }
 
-counted_t<const func_t> new_constant_func(counted_t<const datum_t> obj,
+counted_t<const func_t> new_constant_func(datum_t obj,
                                           const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = r::fun(r::expr(obj)).release_counted();
     propagate_backtrace(twrap.get(), bt_src.get());
@@ -335,7 +334,7 @@ counted_t<const func_t> new_constant_func(counted_t<const datum_t> obj,
     return func_term->eval_to_func(var_scope_t());
 }
 
-counted_t<const func_t> new_get_field_func(counted_t<const datum_t> key,
+counted_t<const func_t> new_get_field_func(datum_t key,
                                            const protob_t<const Backtrace> &bt_src) {
     pb::dummy_var_t obj = pb::dummy_var_t::FUNC_GETFIELD;
     protob_t<Term> twrap = r::fun(obj, r::var(obj)[key]).release_counted();
@@ -348,7 +347,7 @@ counted_t<const func_t> new_get_field_func(counted_t<const datum_t> key,
     return func_term->eval_to_func(var_scope_t());
 }
 
-counted_t<const func_t> new_pluck_func(counted_t<const datum_t> obj,
+counted_t<const func_t> new_pluck_func(datum_t obj,
                                        const protob_t<const Backtrace> &bt_src) {
     pb::dummy_var_t var = pb::dummy_var_t::FUNC_PLUCK;
     protob_t<Term> twrap = r::fun(var, r::var(var).pluck(obj)).release_counted();
@@ -360,7 +359,7 @@ counted_t<const func_t> new_pluck_func(counted_t<const datum_t> obj,
     return func_term->eval_to_func(var_scope_t());
 }
 
-counted_t<const func_t> new_eq_comparison_func(counted_t<const datum_t> obj,
+counted_t<const func_t> new_eq_comparison_func(datum_t obj,
                                                const protob_t<const Backtrace> &bt_src) {
     pb::dummy_var_t var = pb::dummy_var_t::FUNC_EQCOMPARISON;
     protob_t<Term> twrap = r::fun(var, r::var(var) == obj).release_counted();
@@ -372,7 +371,7 @@ counted_t<const func_t> new_eq_comparison_func(counted_t<const datum_t> obj,
     return func_term->eval_to_func(var_scope_t());
 }
 
-counted_t<const func_t> new_page_func(counted_t<const datum_t> method,
+counted_t<const func_t> new_page_func(datum_t method,
                                       const protob_t<const Backtrace> &bt_src) {
     if (method->get_type() != datum_t::R_NULL) {
         std::string name = method->as_str().to_std();
@@ -405,7 +404,7 @@ counted_t<val_t> js_result_visitor_t::operator()(const std::string &err_val) con
     unreachable();
 }
 counted_t<val_t> js_result_visitor_t::operator()(
-    const counted_t<const ql::datum_t> &datum) const {
+    const ql::datum_t &datum) const {
     return make_counted<val_t>(datum, parent->backtrace());
 }
 // This JS evaluation resulted in an id for a js function

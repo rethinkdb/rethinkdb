@@ -63,8 +63,8 @@ public:
 
     const std::string &get_pkey();
 
-    counted_t<const ql::datum_t> read_row(ql::env_t *env,
-        counted_t<const ql::datum_t> pval, bool use_outdated);
+    ql::datum_t read_row(ql::env_t *env,
+        ql::datum_t pval, bool use_outdated);
     counted_t<ql::datum_stream_t> read_all(
         ql::env_t *env,
         const std::string &sindex,
@@ -75,7 +75,7 @@ public:
         bool use_outdated);
     counted_t<ql::datum_stream_t> read_row_changes(
         ql::env_t *env,
-        counted_t<const ql::datum_t> pval,
+        ql::datum_t pval,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name);
     counted_t<ql::datum_stream_t> read_all_changes(
@@ -88,7 +88,7 @@ public:
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name,
         bool use_outdated,
-        const counted_t<const ql::datum_t> &query_geometry);
+        const ql::datum_t &query_geometry);
     counted_t<ql::datum_stream_t> read_nearest(
         ql::env_t *env,
         const std::string &sindex,
@@ -102,12 +102,12 @@ public:
         dist_unit_t dist_unit,
         const ql::configured_limits_t &limits);
 
-    counted_t<const ql::datum_t> write_batched_replace(ql::env_t *env,
-        const std::vector<counted_t<const ql::datum_t> > &keys,
+    ql::datum_t write_batched_replace(ql::env_t *env,
+        const std::vector<ql::datum_t> &keys,
         const counted_t<const ql::func_t> &func,
         return_changes_t _return_changes, durability_requirement_t durability);
-    counted_t<const ql::datum_t> write_batched_insert(ql::env_t *env,
-        std::vector<counted_t<const ql::datum_t> > &&inserts,
+    ql::datum_t write_batched_insert(ql::env_t *env,
+        std::vector<ql::datum_t> &&inserts,
         conflict_behavior_t conflict_behavior, return_changes_t return_changes,
         durability_requirement_t durability);
     bool write_sync_depending_on_durability(ql::env_t *env,
@@ -125,7 +125,7 @@ public:
         const std::string &new_name,
         bool overwrite);
     std::vector<std::string> sindex_list(ql::env_t *env);
-    std::map<std::string, counted_t<const ql::datum_t> > sindex_status(ql::env_t *env,
+    std::map<std::string, ql::datum_t> sindex_status(ql::env_t *env,
         const std::set<std::string> &sindexes);
 
     /* These are not part of the `base_table_t` interface. They wrap the `read()`,

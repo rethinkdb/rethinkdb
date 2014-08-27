@@ -146,7 +146,7 @@ js_result_t js_runner_t::eval(const std::string &source,
 }
 
 js_result_t js_runner_t::call(const std::string &source,
-                              const std::vector<counted_t<const ql::datum_t> > &args,
+                              const std::vector<ql::datum_t> &args,
                               const req_config_t &config) {
     assert_thread();
     guarantee(job_data.has());

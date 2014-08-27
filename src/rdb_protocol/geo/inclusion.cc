@@ -34,7 +34,7 @@ private:
 };
 
 bool geo_does_include(const S2Polygon &polygon,
-                      const counted_t<const ql::datum_t> &g) {
+                      const ql::datum_t &g) {
     inclusion_tester_t tester(&polygon);
     return visit_geojson(&tester, g);
 }

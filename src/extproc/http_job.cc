@@ -19,18 +19,15 @@
 void parse_header(const std::string &header,
                   http_result_t *res_out);
 
+enum class attach_json_to_error_t { YES, NO };
 void json_to_datum(const std::string &json,
                    const ql::configured_limits_t &limits,
-                   http_result_t *res_out);
-void json_to_datum(std::string &&json,
-                   const ql::configured_limits_t &limits,
+                   attach_json_to_error_t attach_json,
                    http_result_t *res_out);
 
 void jsonp_to_datum(const std::string &jsonp,
                     const ql::configured_limits_t &limits,
-                    http_result_t *res_out);
-void jsonp_to_datum(std::string &&jsonp,
-                    const ql::configured_limits_t &limits,
+                    attach_json_to_error_t attach_json,
                     http_result_t *res_out);
 
 void perform_http(http_opts_t *opts,
@@ -332,31 +329,30 @@ std::string url_encode_fields(CURL *curl_handle,
 }
 
 std::string url_encode_fields(CURL *curl_handle,
-                              const counted_t<const ql::datum_t> &fields) {
+                              const ql::datum_t &fields) {
     // Convert to a common format
     if (!fields.has()) {
         return std::string();
     }
 
-    const std::map<std::string, counted_t<const ql::datum_t> > &fields_map =
-        fields->as_object();
     std::map<std::string, std::string> translated_fields;
 
-    for (auto it = fields_map.begin(); it != fields_map.end(); ++it) {
+    for (size_t field_idx = 0; field_idx < fields->obj_size(); ++field_idx) {
+        auto pair = fields->get_pair(field_idx);
         std::string val;
-        if (it->second->get_type() == ql::datum_t::R_NUM) {
+        if (pair.second->get_type() == ql::datum_t::R_NUM) {
             val = strprintf("%" PR_RECONSTRUCTABLE_DOUBLE,
-                            it->second->as_num());
-        } else if (it->second->get_type() == ql::datum_t::R_STR) {
-            val = it->second->as_str().to_std();
-        } else if (it->second->get_type() != ql::datum_t::R_NULL) {
+                            pair.second->as_num());
+        } else if (pair.second->get_type() == ql::datum_t::R_STR) {
+            val = pair.second->as_str().to_std();
+        } else if (pair.second->get_type() != ql::datum_t::R_NULL) {
             // This shouldn't happen because we check this in the main process anyway
             throw curl_exc_t(strprintf("expected `params.%s` to be a NUMBER, STRING, "
                                        "or NULL, but found %s",
-                                       it->first.c_str(),
-                                       it->second->get_type_name().c_str()));
+                                       pair.first.to_std().c_str(),
+                                       pair.second->get_type_name().c_str()));
         }
-        translated_fields[it->first] = val;
+        translated_fields[pair.first.to_std()] = val;
     }
 
     return url_encode_fields(curl_handle, translated_fields);
@@ -410,7 +406,7 @@ void transfer_method_opt(http_opts_t *opts,
 }
 
 void transfer_url_opt(const std::string &url,
-        const counted_t<const ql::datum_t> &url_params,
+        const ql::datum_t &url_params,
         CURL *curl_handle) {
     std::string full_url = url;
     std::string params = url_encode_fields(curl_handle, url_params);
@@ -587,7 +583,7 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
             parse_header(header_data, res_out);
         }
         if (!body_data.empty()) {
-            res_out->body = make_counted<const ql::datum_t>(std::move(body_data));
+            res_out->body = ql::datum_t(datum_string_t(body_data));
         }
         res_out->error = strprintf("status code %ld", response_code);
     } else {
@@ -620,48 +616,48 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
                 }
 
                 if (content_type.find("application/json") == 0) {
-                    json_to_datum(std::move(body_data), opts->limits, res_out);
+                    json_to_datum(body_data, opts->limits,
+                                  attach_json_to_error_t::YES, res_out);
                 } else if (content_type.find("text/javascript") == 0 ||
                            content_type.find("application/json-p") == 0 ||
                            content_type.find("text/json-p") == 0) {
                     // Try to parse the result as JSON, then as JSONP, then plaintext
                     // Do not use move semantics here, as we retry on errors
-                    json_to_datum(body_data, opts->limits, res_out);
+                    json_to_datum(body_data, opts->limits,
+                                  attach_json_to_error_t::NO, res_out);
                     if (!res_out->error.empty()) {
                         res_out->error.clear();
-                        jsonp_to_datum(body_data, opts->limits, res_out);
+                        jsonp_to_datum(body_data, opts->limits,
+                                       attach_json_to_error_t::NO, res_out);
                         if (!res_out->error.empty()) {
                             res_out->error.clear();
                             res_out->body =
-                                make_counted<const ql::datum_t>(std::move(body_data));
+                                ql::datum_t(datum_string_t(body_data));
                         }
                     }
                 } else if (content_type.find("audio/") == 0 ||
                            content_type.find("image/") == 0 ||
                            content_type.find("video/") == 0 ||
                            content_type.find("application/octet-stream") == 0) {
-                    res_out->body = ql::datum_t::binary(
-                        wire_string_t::create_and_init(body_data.size(),
-                                                       body_data.c_str()));
+                    res_out->body = ql::datum_t::binary(datum_string_t(body_data));
 
                 } else {
                     res_out->body =
-                        make_counted<const ql::datum_t>(std::move(body_data));
+                        ql::datum_t(datum_string_t(body_data));
                 }
             }
             break;
         case http_result_format_t::JSON:
-            json_to_datum(std::move(body_data), opts->limits, res_out);
+            json_to_datum(body_data, opts->limits, attach_json_to_error_t::YES, res_out);
             break;
         case http_result_format_t::JSONP:
-            jsonp_to_datum(std::move(body_data), opts->limits, res_out);
+            jsonp_to_datum(body_data, opts->limits, attach_json_to_error_t::YES, res_out);
             break;
         case http_result_format_t::TEXT:
-            res_out->body = make_counted<const ql::datum_t>(std::move(body_data));
+            res_out->body = ql::datum_t(datum_string_t(body_data));
             break;
         case http_result_format_t::BINARY:
-            res_out->body = ql::datum_t::binary(
-                wire_string_t::create_and_init(body_data.size(), body_data.c_str()));
+            res_out->body = ql::datum_t::binary(datum_string_t(body_data));
             break;
         default:
             unreachable();
@@ -671,7 +667,7 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
 
 class header_parser_singleton_t {
 public:
-    static counted_t<const ql::datum_t> parse(const std::string &header);
+    static ql::datum_t parse(const std::string &header);
 
 private:
     static void initialize();
@@ -691,8 +687,8 @@ private:
     http_parser parser;
 
     RE2 link_parser;
-    std::map<std::string, counted_t<const ql::datum_t> > header_fields;
-    std::map<std::string, counted_t<const ql::datum_t> > link_headers;
+    std::map<datum_string_t, ql::datum_t> header_fields;
+    std::map<datum_string_t, ql::datum_t> link_headers;
     std::string current_field;
 };
 header_parser_singleton_t *header_parser_singleton_t::instance = NULL;
@@ -738,7 +734,7 @@ void header_parser_singleton_t::initialize() {
     instance->parser.data = instance;
 }
 
-counted_t<const ql::datum_t>
+ql::datum_t
 header_parser_singleton_t::parse(const std::string &header) {
     initialize();
     size_t res = http_parser_execute(&instance->parser,
@@ -757,14 +753,14 @@ header_parser_singleton_t::parse(const std::string &header) {
     // Return an empty object if we didn't receive any headers
     if (instance->header_fields.size() == 0 &&
         instance->link_headers.size() == 0) {
-        return counted_t<const ql::datum_t>();
+        return ql::datum_t();
     } else if (instance->link_headers.size() > 0) {
         // Include the specially-parsed link header field
-        instance->header_fields["link"] =
-            make_counted<const ql::datum_t>(std::move(instance->link_headers));
+        instance->header_fields[datum_string_t("link")] =
+            ql::datum_t(std::move(instance->link_headers));
     }
 
-    return make_counted<const ql::datum_t>(std::move(instance->header_fields));
+    return ql::datum_t(std::move(instance->header_fields));
 }
 
 int header_parser_singleton_t::on_headers_complete(UNUSED http_parser *parser) {
@@ -793,8 +789,8 @@ int header_parser_singleton_t::on_header_value(http_parser *parser,
     if (instance->current_field == "link") {
         instance->add_link_header(std::string(value, length));
     } else {
-        instance->header_fields[instance->current_field] =
-            make_counted<const ql::datum_t>(std::string(value, length));
+        instance->header_fields[datum_string_t(instance->current_field)] =
+            ql::datum_t(datum_string_t(length, value));
     }
     return 0;
 }
@@ -805,7 +801,8 @@ void header_parser_singleton_t::add_link_header(const std::string &line) {
     std::string value;
     std::string param;
     while (RE2::FindAndConsume(&line_re2, link_parser, &value, &param)) {
-        link_headers[param] = make_counted<const ql::datum_t>(std::move(value));
+        link_headers[datum_string_t(param)] =
+            ql::datum_t(datum_string_t(value));
     }
 
     if (line_re2.length() != 0) {
@@ -820,30 +817,18 @@ void parse_header(const std::string &header,
     res_out->header = header_parser_singleton_t::parse(header);
 }
 
-// This version will not use move semantics for the body data, to be used in
-// result_format="auto", where we may fallback to jsonp
 void json_to_datum(const std::string &json,
                    const ql::configured_limits_t &limits,
+                   attach_json_to_error_t attach_json,
                    http_result_t *res_out) {
     scoped_cJSON_t cjson(cJSON_Parse(json.c_str()));
     if (cjson.get() != NULL) {
         res_out->body = ql::to_datum(cjson.get(), limits);
     } else {
         res_out->error.assign("failed to parse JSON response");
-    }
-}
-
-// This version uses move semantics and includes the body as a string when a
-// parsing error occurs.
-void json_to_datum(std::string &&json,
-                   const ql::configured_limits_t &limits,
-                   http_result_t *res_out) {
-    scoped_cJSON_t cjson(cJSON_Parse(json.c_str()));
-    if (cjson.get() != NULL) {
-        res_out->body = ql::to_datum(cjson.get(), limits);
-    } else {
-        res_out->error.assign("failed to parse JSON response");
-        res_out->body = make_counted<const ql::datum_t>(std::move(json));
+        if (attach_json == attach_json_to_error_t::YES) {
+            res_out->body = ql::datum_t(datum_string_t(json));
+        }
     }
 }
 
@@ -900,28 +885,16 @@ const char *jsonp_parser_singleton_t::js_ident =
     "[$_\\p{Ll}\\p{Lt}\\p{Lu}\\p{Lm}\\p{Lo}\\p{Nl}\\p{Mn}\\p{Mc}\\p{Nd}\\p{Pc}]*"
     "\\s*";
 
-// This version will not use move semantics for the body data, to be used in
-// result_format="auto", where we may fallback to passing back the body as a string
 void jsonp_to_datum(const std::string &jsonp, const ql::configured_limits_t &limits,
+                    attach_json_to_error_t attach_json,
                     http_result_t *res_out) {
     std::string json_string;
     if (jsonp_parser_singleton_t::parse(jsonp, &json_string)) {
-        json_to_datum(json_string, limits, res_out);
+        json_to_datum(json_string, limits, attach_json, res_out);
     } else {
         res_out->error.assign("failed to parse JSONP response");
-    }
-}
-
-
-// This version uses move semantics and includes the body as a string when a
-// parsing error occurs.
-void jsonp_to_datum(std::string &&jsonp, const ql::configured_limits_t &limits,
-                    http_result_t *res_out) {
-    std::string json_string;
-    if (jsonp_parser_singleton_t::parse(jsonp, &json_string)) {
-        json_to_datum(std::move(json_string), limits, res_out);
-    } else {
-        res_out->error.assign("failed to parse JSONP response");
-        res_out->body = make_counted<const ql::datum_t>(std::move(jsonp));
+        if (attach_json == attach_json_to_error_t::YES) {
+            res_out->body = ql::datum_t(datum_string_t(jsonp));
+        }
     }
 }

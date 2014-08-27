@@ -20,7 +20,7 @@ class server_name_client_t;
 
 /* This is publicly exposed so that it can be used to create the return value of
 `table.reconfigure()`. */
-counted_t<const ql::datum_t> convert_table_config_to_datum(
+ql::datum_t convert_table_config_to_datum(
         const table_config_t &config);
 
 class table_config_artificial_table_backend_t :
@@ -44,11 +44,11 @@ public:
             name_string_t db_name,
             const namespace_semilattice_metadata_t &metadata,
             signal_t *interruptor,
-            counted_t<const ql::datum_t> *row_out,
+            ql::datum_t *row_out,
             std::string *error_out);
     bool write_row(
-            counted_t<const ql::datum_t> primary_key,
-            counted_t<const ql::datum_t> new_value,
+            ql::datum_t primary_key,
+            ql::datum_t new_value,
             signal_t *interruptor,
             std::string *error_out);
 

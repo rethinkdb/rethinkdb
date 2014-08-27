@@ -15,7 +15,7 @@
 
 namespace ql {
 
-counted_t<const datum_t> static_optarg(const std::string &key, protob_t<Query> q) {
+datum_t static_optarg(const std::string &key, protob_t<Query> q) {
     // need to parse these to figure out what user wants; resulting
     // bootstrap problem is a headache.  Just use default.
     const configured_limits_t limits;
@@ -26,7 +26,7 @@ counted_t<const datum_t> static_optarg(const std::string &key, protob_t<Query> q
         }
     }
 
-    return counted_t<const datum_t>();
+    return datum_t();
 }
 
 wire_func_t construct_optarg_wire_func(const Term &val) {
@@ -166,7 +166,7 @@ env_t::env_t(signal_t *_interruptor, reql_version_t reql_version)
 
 profile_bool_t profile_bool_optarg(const protob_t<Query> &query) {
     rassert(query.has());
-    counted_t<const datum_t> profile_arg = static_optarg("profile", query);
+    datum_t profile_arg = static_optarg("profile", query);
     if (profile_arg.has() && profile_arg->get_type() == datum_t::type_t::R_BOOL &&
         profile_arg->as_bool()) {
         return profile_bool_t::PROFILE;

@@ -428,7 +428,7 @@ bool real_reql_cluster_interface_t::table_reconfigure(
         const table_generate_config_params_t &params,
         bool dry_run,
         signal_t *interruptor,
-        counted_t<const ql::datum_t> *new_config_out,
+        ql::datum_t *new_config_out,
         std::string *error_out) {
     cross_thread_signal_t interruptor2(interruptor, server_name_client->home_thread());
     on_thread_t thread_switcher(server_name_client->home_thread());
@@ -572,8 +572,8 @@ bool real_reql_cluster_interface_t::table_config_or_status(
         if (!check_metadata_status(status, "Table", db->name + "." + name->str(), true,
                 error_out)) return false;
         guarantee(!ns_metadata_it->second.is_deleted());
-        counted_t<const ql::datum_t> pkey = convert_uuid_to_datum(ns_metadata_it->first);
-        counted_t<const ql::datum_t> row;
+        ql::datum_t pkey = convert_uuid_to_datum(ns_metadata_it->first);
+        ql::datum_t row;
         if (!backend->read_row(pkey, interruptor, &row, error_out)) {
             return false;
         }
@@ -585,7 +585,7 @@ bool real_reql_cluster_interface_t::table_config_or_status(
         for (auto it = ns_searcher.find_next(ns_searcher.begin(), pred);
                   it != ns_searcher.end();
                   it = ns_searcher.find_next(++it, pred)) {
-            counted_t<const ql::datum_t> row;
+            ql::datum_t row;
             if (!backend->read_row(convert_uuid_to_datum(it->first), interruptor,
                     &row, error_out)) {
                 return false;
@@ -593,7 +593,7 @@ bool real_reql_cluster_interface_t::table_config_or_status(
             array_builder.add(row);
         }
         counted_t<ql::datum_stream_t> stream = make_counted<ql::array_datum_stream_t>(
-            std::move(array_builder).to_counted(), bt);
+            std::move(array_builder).to_datum(), bt);
         *resp_out = make_counted<ql::val_t>(table, stream, bt);
         return true;
     }

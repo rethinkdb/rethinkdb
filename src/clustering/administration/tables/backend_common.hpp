@@ -31,12 +31,12 @@ public:
     std::string get_primary_key_name();
     bool read_all_primary_keys(
             signal_t *interruptor,
-            std::vector<counted_t<const ql::datum_t> > *keys_out,
+            std::vector<ql::datum_t> *keys_out,
             std::string *error_out);
     bool read_row(
-            counted_t<const ql::datum_t> primary_key,
+            ql::datum_t primary_key,
             signal_t *interruptor,
-            counted_t<const ql::datum_t> *row_out,
+            ql::datum_t *row_out,
             std::string *error_out);
 
 protected:
@@ -46,7 +46,7 @@ protected:
             name_string_t db_name,
             const namespace_semilattice_metadata_t &metadata,
             signal_t *interruptor,
-            counted_t<const ql::datum_t> *row_out,
+            ql::datum_t *row_out,
             std::string *error_out) = 0;
     name_string_t get_db_name(database_id_t db_id);
 

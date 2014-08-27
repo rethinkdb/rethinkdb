@@ -67,15 +67,14 @@ void rdb_get(
 struct btree_info_t {
     btree_info_t(btree_slice_t *_slice,
                  repli_timestamp_t _timestamp,
-                 const std::string *_primary_key)
+                 const datum_string_t &_primary_key)
         : slice(_slice), timestamp(_timestamp),
           primary_key(_primary_key) {
         guarantee(slice != NULL);
-        guarantee(primary_key != NULL);
     }
     btree_slice_t *const slice;
     const repli_timestamp_t timestamp;
-    const std::string *primary_key;
+    const datum_string_t primary_key;
 };
 
 struct btree_loc_info_t {
@@ -94,14 +93,14 @@ struct btree_loc_info_t {
 
 struct btree_batched_replacer_t {
     virtual ~btree_batched_replacer_t() { }
-    virtual counted_t<const ql::datum_t> replace(
-        const counted_t<const ql::datum_t> &d, size_t index) const = 0;
+    virtual ql::datum_t replace(
+        const ql::datum_t &d, size_t index) const = 0;
     virtual return_changes_t should_return_changes() const = 0;
 };
 struct btree_point_replacer_t {
     virtual ~btree_point_replacer_t() { }
-    virtual counted_t<const ql::datum_t> replace(
-        const counted_t<const ql::datum_t> &d) const = 0;
+    virtual ql::datum_t replace(
+        const ql::datum_t &d) const = 0;
     virtual return_changes_t should_return_changes() const = 0;
 };
 
@@ -114,7 +113,7 @@ batched_replace_response_t rdb_batched_replace(
     rdb_modification_report_cb_t *sindex_cb,
     profile::trace_t *trace);
 
-void rdb_set(const store_key_t &key, counted_t<const ql::datum_t> data,
+void rdb_set(const store_key_t &key, ql::datum_t data,
              bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
              superblock_t *superblock,
@@ -200,7 +199,7 @@ void rdb_rget_secondary_slice(
 
 void rdb_get_intersecting_slice(
     btree_slice_t *slice,
-    const counted_t<const ql::datum_t> &query_geometry,
+    const ql::datum_t &query_geometry,
     superblock_t *superblock,
     ql::env_t *ql_env,
     const key_range_t &pk_range,
@@ -227,7 +226,7 @@ void rdb_distribution_get(int max_depth,
 /* Secondary Indexes */
 
 struct rdb_modification_info_t {
-    typedef std::pair<counted_t<const ql::datum_t>,
+    typedef std::pair<ql::datum_t,
                       std::vector<char> > data_pair_t;
     data_pair_t deleted;
     data_pair_t added;

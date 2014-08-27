@@ -28,13 +28,13 @@ using ql::datum_t;
 
 namespace unittest {
 
-counted_t<const datum_t> generate_point(rng_t *rng) {
+datum_t generate_point(rng_t *rng) {
     double lat = rng->randdouble() * 180.0 - 90.0;
     double lon = rng->randdouble() * 360.0 - 180.0;
     return construct_geo_point(lat_lon_point_t(lat, lon), ql::configured_limits_t());
 }
 
-counted_t<const datum_t> generate_line(rng_t *rng) {
+datum_t generate_line(rng_t *rng) {
     lat_lon_line_t l;
     size_t num_vertices = rng->randint(63) + 2;
     double granularity = rng->randdouble() * 0.1;
@@ -59,7 +59,7 @@ counted_t<const datum_t> generate_line(rng_t *rng) {
         l.push_back(lat_lon_point_t(lat, lon));
     }
     try {
-        counted_t<const datum_t> res =
+        datum_t res =
             construct_geo_point(lat_lon_point_t(lat, lon), ql::configured_limits_t());
         validate_geojson(res);
         return res;
@@ -70,7 +70,7 @@ counted_t<const datum_t> generate_line(rng_t *rng) {
     }
 }
 
-counted_t<const datum_t> generate_polygon(rng_t *rng) {
+datum_t generate_polygon(rng_t *rng) {
     // We just construct polygons out of circles for now. One outer circle:
     size_t num_vertices = rng->randint(62) + 3;
     double lat = rng->randdouble() * 180.0 - 90.0;
@@ -94,7 +94,7 @@ counted_t<const datum_t> generate_polygon(rng_t *rng) {
         holes.push_back(hole);
     }
     try {
-        counted_t<const datum_t> res =
+        datum_t res =
             construct_geo_polygon(shell, holes, ql::configured_limits_t());
         validate_geojson(res);
         return res;
@@ -105,8 +105,8 @@ counted_t<const datum_t> generate_polygon(rng_t *rng) {
     }
 }
 
-std::vector<counted_t<const datum_t> > generate_data(size_t num_docs, rng_t *rng) {
-    std::vector<counted_t<const datum_t> > result;
+std::vector<datum_t> generate_data(size_t num_docs, rng_t *rng) {
+    std::vector<datum_t> result;
     result.reserve(num_docs);
 
     for (size_t i = 0; i < num_docs; ++i) {
@@ -124,7 +124,7 @@ std::vector<counted_t<const datum_t> > generate_data(size_t num_docs, rng_t *rng
 
 void insert_data(namespace_interface_t *nsi,
                  order_source_t *osource,
-                 const std::vector<counted_t<const datum_t> > &data) {
+                 const std::vector<datum_t> &data) {
     for (size_t i = 0; i < data.size(); ++i) {
         store_key_t pk(strprintf("%zu", i));
         write_t write(
@@ -152,7 +152,7 @@ void insert_data(namespace_interface_t *nsi,
 
 void prepare_namespace(namespace_interface_t *nsi,
                        order_source_t *osource,
-                       const std::vector<counted_t<const datum_t> > &data) {
+                       const std::vector<datum_t> &data) {
     // Create an index
     std::string index_id = "geo";
 
@@ -215,8 +215,8 @@ std::vector<nearest_geo_read_response_t::dist_pair_t> perform_get_nearest(
 }
 
 bool nearest_pairs_less(
-        const std::pair<double, counted_t<const ql::datum_t> > &p1,
-        const std::pair<double, counted_t<const ql::datum_t> > &p2) {
+        const std::pair<double, ql::datum_t> &p1,
+        const std::pair<double, ql::datum_t> &p2) {
     // We only care about the distance, don't compare the actual data.
     return p1.first < p2.first;
 }
@@ -225,11 +225,11 @@ std::vector<nearest_geo_read_response_t::dist_pair_t> emulate_get_nearest(
         lat_lon_point_t center,
         uint64_t max_results,
         double max_distance,
-        const std::vector<counted_t<const datum_t> > &data) {
+        const std::vector<datum_t> &data) {
 
     std::vector<nearest_geo_read_response_t::dist_pair_t> result;
     result.reserve(data.size());
-    counted_t<const ql::datum_t> point_center =
+    ql::datum_t point_center =
         construct_geo_point(center, ql::configured_limits_t());
     scoped_ptr_t<S2Point> s2_center = to_s2point(point_center);
     for (size_t i = 0; i < data.size(); ++i) {
@@ -253,7 +253,7 @@ std::vector<nearest_geo_read_response_t::dist_pair_t> emulate_get_nearest(
 }
 
 void test_get_nearest(lat_lon_point_t center,
-                      const std::vector<counted_t<const datum_t> > &data,
+                      const std::vector<datum_t> &data,
                       namespace_interface_t *nsi,
                       order_source_t *osource) {
     const uint64_t max_results = 100;
@@ -285,7 +285,7 @@ void run_get_nearest_test(namespace_interface_t *nsi, order_source_t *osource) {
     rng_t rng(rng_seed);
 
     const size_t num_docs = 500;
-    std::vector<counted_t<const datum_t> > data = generate_data(num_docs, &rng);
+    std::vector<datum_t> data = generate_data(num_docs, &rng);
     prepare_namespace(nsi, osource, data);
 
     try {
@@ -301,8 +301,8 @@ void run_get_nearest_test(namespace_interface_t *nsi, order_source_t *osource) {
     }
 }
 
-std::vector<counted_t<const datum_t> > perform_get_intersecting(
-        const counted_t<const datum_t> &query_geometry,
+std::vector<datum_t> perform_get_intersecting(
+        const datum_t &query_geometry,
         namespace_interface_t *nsi,
         order_source_t *osource) {
 
@@ -322,22 +322,27 @@ std::vector<counted_t<const datum_t> > perform_get_intersecting(
         boost::get<intersecting_geo_read_response_t>(&response.response);
     if (geo_response == NULL) {
         ADD_FAILURE() << "got wrong type of result back";
-        return std::vector<counted_t<const datum_t> >();
+        return std::vector<datum_t>();
     }
     if (boost::get<ql::exc_t>(&geo_response->results_or_error) != NULL) {
         ADD_FAILURE() << boost::get<ql::exc_t>(&geo_response->results_or_error)->what();
-        return std::vector<counted_t<const datum_t> >();
+        return std::vector<datum_t>();
     }
-    counted_t<const ql::datum_t> result =
-        boost::get<counted_t<const ql::datum_t> >(geo_response->results_or_error);
-    return result->as_array();
+
+    ql::datum_t result = boost::get<ql::datum_t>(geo_response->results_or_error);
+    std::vector<datum_t> result_datum;
+    result_datum.reserve(result.arr_size());
+    for (size_t i = 0; i < result.arr_size(); ++i) {
+        result_datum.push_back(result.get(i));
+    }
+    return result_datum;
 }
 
-std::vector<counted_t<const datum_t> > emulate_get_intersecting(
-        const counted_t<const datum_t> &query_geometry,
-        const std::vector<counted_t<const datum_t> > &data) {
+std::vector<datum_t> emulate_get_intersecting(
+        const datum_t &query_geometry,
+        const std::vector<datum_t> &data) {
 
-    std::vector<counted_t<const datum_t> > result;
+    std::vector<datum_t> result;
     result.reserve(data.size());
     for (size_t i = 0; i < data.size(); ++i) {
         if (geo_does_intersect(query_geometry, data[i])) {
@@ -348,16 +353,16 @@ std::vector<counted_t<const datum_t> > emulate_get_intersecting(
     return result;
 }
 
-void test_get_intersecting(const counted_t<const datum_t> &query_geometry,
-                           const std::vector<counted_t<const datum_t> > &data,
+void test_get_intersecting(const datum_t &query_geometry,
+                           const std::vector<datum_t> &data,
                            namespace_interface_t *nsi,
                            order_source_t *osource) {
     // 1. Run get_intersecting
-    std::vector<counted_t<const datum_t> > intersecting_res =
+    std::vector<datum_t> intersecting_res =
         perform_get_intersecting(query_geometry, nsi, osource);
 
     // 2. Compute an equivalent result directly from data
-    std::vector<counted_t<const datum_t> > reference_res =
+    std::vector<datum_t> reference_res =
         emulate_get_intersecting(query_geometry, data);
 
     // 3. Compare both results
@@ -374,7 +379,7 @@ void run_get_intersecting_test(namespace_interface_t *nsi, order_source_t *osour
     rng_t rng(rng_seed);
 
     const size_t num_docs = 500;
-    std::vector<counted_t<const datum_t> > data = generate_data(num_docs, &rng);
+    std::vector<datum_t> data = generate_data(num_docs, &rng);
     prepare_namespace(nsi, osource, data);
 
     try {
@@ -382,15 +387,15 @@ void run_get_intersecting_test(namespace_interface_t *nsi, order_source_t *osour
         const int num_line_runs = 10;
         const int num_polygon_runs = 20;
         for (int i = 0; i < num_point_runs; ++i) {
-            counted_t<const datum_t> query_geometry = generate_point(&rng);
+            datum_t query_geometry = generate_point(&rng);
             test_get_intersecting(query_geometry, data, nsi, osource);
         }
         for (int i = 0; i < num_line_runs; ++i) {
-            counted_t<const datum_t> query_geometry = generate_line(&rng);
+            datum_t query_geometry = generate_line(&rng);
             test_get_intersecting(query_geometry, data, nsi, osource);
         }
         for (int i = 0; i < num_polygon_runs; ++i) {
-            counted_t<const datum_t> query_geometry = generate_polygon(&rng);
+            datum_t query_geometry = generate_polygon(&rng);
             test_get_intersecting(query_geometry, data, nsi, osource);
         }
     } catch (const geo_exception_t &e) {

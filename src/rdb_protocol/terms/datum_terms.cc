@@ -28,7 +28,7 @@ public:
         : op_term_t(env, t, argspec_t(0)), _constant(constant), _name(name) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *, args_t *, eval_flags_t) const {
-        return new_val(make_counted<const datum_t>(_constant));
+        return new_val(datum_t(_constant));
     }
     virtual const char *name() const { return _name; }
     const double _constant;
@@ -50,7 +50,7 @@ private:
                 sampler.new_sample();
             }
         }
-        return new_val(std::move(acc).to_counted());
+        return new_val(std::move(acc).to_datum());
     }
     virtual const char *name() const { return "make_array"; }
 };
@@ -82,13 +82,14 @@ public:
         {
             profile::sampler_t sampler("Evaluating elements in make_obj.", env->env->trace);
             for (auto it = optargs.begin(); it != optargs.end(); ++it) {
-                bool dup = acc.add(it->first, it->second->eval(env, new_flags)->as_datum());
+                bool dup = acc.add(datum_string_t(it->first),
+                                   it->second->eval(env, new_flags)->as_datum());
                 rcheck(!dup, base_exc_t::GENERIC,
                        strprintf("Duplicate object key: %s.", it->first.c_str()));
                 sampler.new_sample();
             }
         }
-        return new_val(std::move(acc).to_counted());
+        return new_val(std::move(acc).to_datum());
     }
 
     bool is_deterministic() const {
@@ -113,15 +114,14 @@ public:
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> arg = args->arg(env, 0);
-        counted_t<const datum_t> datum_arg = arg->as_datum();
+        datum_t datum_arg = arg->as_datum();
 
         if (datum_arg->get_type() == datum_t::type_t::R_BINARY) {
             return arg;
         }
 
-        const wire_string_t &datum_str = datum_arg->as_str();
-        return new_val(datum_t::binary(wire_string_t::create_and_init(datum_str.size(),
-                                                                      datum_str.data())));
+        const datum_string_t &datum_str = datum_arg->as_str();
+        return new_val(datum_t::binary(datum_string_t(datum_str)));
     }
     virtual const char *name() const { return "binary"; }
 };

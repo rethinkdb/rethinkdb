@@ -53,17 +53,17 @@ RDB_IMPL_PROTOB_SERIALIZABLE(Backtrace);
 datum_range_t::datum_range_t()
     : left_bound_type(key_range_t::none), right_bound_type(key_range_t::none) { }
 datum_range_t::datum_range_t(
-    counted_t<const ql::datum_t> _left_bound, key_range_t::bound_t _left_bound_type,
-    counted_t<const ql::datum_t> _right_bound, key_range_t::bound_t _right_bound_type)
+    ql::datum_t _left_bound, key_range_t::bound_t _left_bound_type,
+    ql::datum_t _right_bound, key_range_t::bound_t _right_bound_type)
     : left_bound(_left_bound), right_bound(_right_bound),
       left_bound_type(_left_bound_type), right_bound_type(_right_bound_type) { }
-datum_range_t::datum_range_t(counted_t<const ql::datum_t> val)
+datum_range_t::datum_range_t(ql::datum_t val)
     : left_bound(val), right_bound(val),
       left_bound_type(key_range_t::closed), right_bound_type(key_range_t::closed) { }
 
 datum_range_t datum_range_t::universe()  {
-    return datum_range_t(counted_t<const ql::datum_t>(), key_range_t::open,
-                         counted_t<const ql::datum_t>(), key_range_t::open);
+    return datum_range_t(ql::datum_t(), key_range_t::open,
+                         ql::datum_t(), key_range_t::open);
 }
 bool datum_range_t::is_universe() const {
     return !left_bound.has() && !right_bound.has()
@@ -71,7 +71,7 @@ bool datum_range_t::is_universe() const {
 }
 
 bool datum_range_t::contains(reql_version_t reql_version,
-                             counted_t<const ql::datum_t> val) const {
+                             ql::datum_t val) const {
     return (!left_bound.has()
             || left_bound->compare_lt(reql_version, *val)
             || (*left_bound == *val && left_bound_type == key_range_t::closed))
@@ -637,15 +637,14 @@ void rdb_r_unshard_visitor_t::operator()(const intersecting_geo_read_t &) {
             response_out->response = intersecting_geo_read_response_t(*error);
             return;
         }
-        auto results = boost::get<counted_t<const ql::datum_t> >(&res->results_or_error);
+        auto results = boost::get<ql::datum_t>(&res->results_or_error);
         guarantee(results != NULL);
-        const std::vector<counted_t<const ql::datum_t> > &arr = (*results)->as_array();
-        for (size_t j = 0; j < arr.size(); ++j) {
-            combined_results.add(arr[j]);
+        for (size_t j = 0; j < results->arr_size(); ++j) {
+            combined_results.add(results->get(j));
         }
     }
     response_out->response = intersecting_geo_read_response_t(
-        std::move(combined_results).to_counted());
+        std::move(combined_results).to_datum());
 }
 
 void rdb_r_unshard_visitor_t::operator()(const nearest_geo_read_t &query) {
@@ -912,7 +911,7 @@ struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
         std::vector<store_key_t> keys;
         keys.reserve(bi.inserts.size());
         for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
-            keys.emplace_back((*it)->get(bi.pkey)->print_primary());
+            keys.emplace_back((*it)->get_field(datum_string_t(bi.pkey))->print_primary());
         }
         return region_from_keys(keys);
     }
@@ -991,9 +990,9 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
     }
 
     bool operator()(const batched_insert_t &bi) const {
-        std::vector<counted_t<const ql::datum_t> > shard_inserts;
+        std::vector<ql::datum_t> shard_inserts;
         for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
-            store_key_t key((*it)->get(bi.pkey)->print_primary());
+            store_key_t key((*it)->get_field(datum_string_t(bi.pkey))->print_primary());
             if (region_contains_key(*region, key)) {
                 shard_inserts.push_back(*it);
             }
@@ -1069,18 +1068,18 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
     // sharded into multiple operations instead of getting sent unsplit in a
     // single direction.
     void merge_stats() const {
-        counted_t<const ql::datum_t> stats = ql::datum_t::empty_object();
+        ql::datum_t stats = ql::datum_t::empty_object();
 
         std::set<std::string> conditions;
         for (size_t i = 0; i < count; ++i) {
-            const counted_t<const ql::datum_t> *stats_i =
-                boost::get<counted_t<const ql::datum_t> >(&responses[i].response);
+            const ql::datum_t *stats_i =
+                boost::get<ql::datum_t>(&responses[i].response);
             guarantee(stats_i != NULL);
             stats = stats->merge(*stats_i, ql::stats_merge, *limits, &conditions);
         }
-        ql::datum_object_builder_t result(std::move(stats)->as_object());
+        ql::datum_object_builder_t result(stats);
         result.add_warnings(conditions, *limits);
-        *response_out = write_response_t(std::move(result).to_counted());
+        *response_out = write_response_t(std::move(result).to_datum());
     }
     void operator()(const batched_replace_t &) const {
         merge_stats();

@@ -37,11 +37,11 @@ public:
             name_string_t db_name,
             const namespace_semilattice_metadata_t &metadata,
             signal_t *interruptor,
-            counted_t<const ql::datum_t> *row_out,
+            ql::datum_t *row_out,
             std::string *error_out);
     bool write_row(
-            counted_t<const ql::datum_t> primary_key,
-            counted_t<const ql::datum_t> new_value,
+            ql::datum_t primary_key,
+            ql::datum_t new_value,
             signal_t *interruptor,
             std::string *error_out);
 

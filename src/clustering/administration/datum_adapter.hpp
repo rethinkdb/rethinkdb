@@ -9,45 +9,45 @@
 #include "containers/name_string.hpp"
 #include "rdb_protocol/datum.hpp"
 
-counted_t<const ql::datum_t> convert_name_to_datum(
+ql::datum_t convert_name_to_datum(
         const name_string_t &value);
 bool convert_name_from_datum(
-        counted_t<const ql::datum_t> datum,
+        ql::datum_t datum,
         const std::string &what,   /* e.g. "server name" or "table name" */
         name_string_t *value_out,
         std::string *error_out);
 
-counted_t<const ql::datum_t> convert_uuid_to_datum(
+ql::datum_t convert_uuid_to_datum(
         const uuid_u &value);
 bool convert_uuid_from_datum(
-        counted_t<const ql::datum_t> datum,
+        ql::datum_t datum,
         uuid_u *value_out,
         std::string *error_out);
 
 template<class T>
-counted_t<const ql::datum_t> convert_vector_to_datum(
-        const std::function<counted_t<const ql::datum_t>(const T&)> &conv,
+ql::datum_t convert_vector_to_datum(
+        const std::function<ql::datum_t(const T&)> &conv,
         const std::vector<T> &vector) {
     ql::datum_array_builder_t builder((ql::configured_limits_t()));
     builder.reserve(vector.size());
     for (const T &elem : vector) {
         builder.add(conv(elem));
     }
-    return std::move(builder).to_counted();
+    return std::move(builder).to_datum();
 }
 
 template<class T>
 bool convert_vector_from_datum(
-        const std::function<bool(counted_t<const ql::datum_t>, T*, std::string*)> &conv,
-        counted_t<const ql::datum_t> datum,
+        const std::function<bool(ql::datum_t, T*, std::string*)> &conv,
+        ql::datum_t datum,
         std::vector<T> *vector_out,
         std::string *error_out) {
     if (datum->get_type() != ql::datum_t::R_ARRAY) {
         *error_out = "Expected an array, got " + datum->print();
         return false;
     }
-    vector_out->resize(datum->size());
-    for (size_t i = 0; i < datum->size(); ++i) {
+    vector_out->resize(datum->arr_size());
+    for (size_t i = 0; i < datum->arr_size(); ++i) {
         if (!conv(datum->get(i), &(*vector_out)[i], error_out)) {
             return false;
         }
@@ -56,22 +56,22 @@ bool convert_vector_from_datum(
 }
 
 template<class T>
-counted_t<const ql::datum_t> convert_set_to_datum(
-        const std::function<counted_t<const ql::datum_t>(const T&)> &conv,
+ql::datum_t convert_set_to_datum(
+        const std::function<ql::datum_t(const T&)> &conv,
         const std::set<T> &set) {
     ql::datum_array_builder_t builder((ql::configured_limits_t()));
     builder.reserve(set.size());
     for (const T &elem : set) {
         builder.add(conv(elem));
     }
-    return std::move(builder).to_counted();
+    return std::move(builder).to_datum();
 }
 
 template<class T>
 bool convert_set_from_datum(
-        const std::function<bool(counted_t<const ql::datum_t>, T*, std::string*)> &conv,
+        const std::function<bool(ql::datum_t, T*, std::string*)> &conv,
         bool allow_duplicates,
-        counted_t<const ql::datum_t> datum,
+        ql::datum_t datum,
         std::set<T> *set_out,
         std::string *error_out) {
     if (datum->get_type() != ql::datum_t::R_ARRAY) {
@@ -79,7 +79,7 @@ bool convert_set_from_datum(
         return false;
     }
     set_out->clear();
-    for (size_t i = 0; i < datum->size(); ++i) {
+    for (size_t i = 0; i < datum->arr_size(); ++i) {
         T value;
         if (!conv(datum->get(i), &value, error_out)) {
             return false;
@@ -103,17 +103,17 @@ field of the object; `get()` will fail if the field isn't present. Finally, call
 user passes an object with an invalid key. */
 class converter_from_datum_object_t {
 public:
-    bool init(counted_t<const ql::datum_t> datum,
+    bool init(ql::datum_t datum,
               std::string *error_out);
-    bool get(const std::string &key,
-             counted_t<const ql::datum_t> *value_out,
+    bool get(const char *key,
+             ql::datum_t *value_out,
              std::string *error_out);
-    void get_optional(const std::string &key,
-                      counted_t<const ql::datum_t> *value_out);
+    void get_optional(const char *key,
+                      ql::datum_t *value_out);
     bool check_no_extra_keys(std::string *error_out);
 private:
-    counted_t<const ql::datum_t> datum;
-    std::set<std::string> extra_keys;
+    ql::datum_t datum;
+    std::set<datum_string_t> extra_keys;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_DATUM_ADAPTER_HPP_ */

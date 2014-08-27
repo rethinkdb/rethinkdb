@@ -66,9 +66,9 @@ private:
         counted_t<val_t> v0 = args->arg(env, 0);
         if (args->num_args() == 1) {
             if (v0->get_type().is_convertible(val_t::type_t::DATUM)) {
-                counted_t<const datum_t> d = v0->as_datum();
+                datum_t d = v0->as_datum();
                 if (d->get_type() == datum_t::R_BINARY) {
-                    return new_val(make_counted<const datum_t>(
+                    return new_val(datum_t(
                        safe_to_double(d->as_binary().size())));
                 }
             }
@@ -142,7 +142,7 @@ private:
             std::string index_str = index->as_str().to_std();
             counted_t<table_t> tbl = args->arg(env, 0)->as_table();
             if (index_str == tbl->get_pkey()) {
-                auto field = make_counted<const datum_t>(std::move(index_str));
+                auto field = index->as_datum();
                 funcs.push_back(new_get_field_func(field, backtrace()));
             } else {
                 tbl->add_sorting(index_str, sorting_t::ASCENDING, this);
@@ -234,9 +234,9 @@ private:
         } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             auto single_selection = v->as_single_selection();
             counted_t<table_t> tbl = std::move(single_selection.first);
-            counted_t<const datum_t> val = std::move(single_selection.second);
+            datum_t val = std::move(single_selection.second);
 
-            counted_t<const datum_t> key = v->get_orig_key();
+            datum_t key = v->get_orig_key();
             return new_val(env->env,
                 tbl->table->read_row_changes(
                     env->env, key, backtrace(), tbl->display_name()));
@@ -258,12 +258,12 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> tbl = args->arg(env, 0)->as_table();
         bool left_open = is_left_open(env, args);
-        counted_t<const datum_t> lb = args->arg(env, 1)->as_datum();
+        datum_t lb = args->arg(env, 1)->as_datum();
         if (lb->get_type() == datum_t::R_NULL) {
             lb.reset();
         }
         bool right_open = is_right_open(env, args);
-        counted_t<const datum_t> rb = args->arg(env, 2)->as_datum();
+        datum_t rb = args->arg(env, 2)->as_datum();
         if (rb->get_type() == datum_t::R_NULL) {
             rb.reset();
         }

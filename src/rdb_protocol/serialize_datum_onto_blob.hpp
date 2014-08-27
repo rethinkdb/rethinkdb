@@ -5,7 +5,7 @@
 
 inline ql::serialization_result_t
 datum_serialize_onto_blob(buf_parent_t parent, blob_t *blob,
-                          const counted_t<const ql::datum_t> &value) {
+                          const ql::datum_t &value) {
     // We still make an unnecessary copy: serializing to a write_message_t instead of
     // directly onto the stream.  (However, don't be so sure it would be more
     // efficient to serialize onto an abstract stream type -- you've got a whole
@@ -19,7 +19,7 @@ datum_serialize_onto_blob(buf_parent_t parent, blob_t *blob,
 }
 
 inline void datum_deserialize_from_group(const const_buffer_group_t *group,
-                                         counted_t<const ql::datum_t> *value_out) {
+                                         ql::datum_t *value_out) {
     buffer_group_read_stream_t stream(group);
     archive_result_t res = datum_deserialize(&stream, value_out);
     guarantee_deserialization(res, "datum_t (from a buffer group)");
@@ -29,7 +29,7 @@ inline void datum_deserialize_from_group(const const_buffer_group_t *group,
 
 
 inline void datum_deserialize_from_blob(buf_parent_t parent, blob_t *blob,
-                                        counted_t<const ql::datum_t> *value_out) {
+                                        ql::datum_t *value_out) {
     buffer_group_t group;
     blob_acq_t acq;
     blob->expose_all(parent, access_t::read, &group, &acq);

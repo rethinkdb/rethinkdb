@@ -4,7 +4,7 @@
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/servers/name_client.hpp"
 
-counted_t<const ql::datum_t> convert_server_config_and_name_to_datum(
+ql::datum_t convert_server_config_and_name_to_datum(
         const name_string_t &name,
         const machine_id_t &machine_id,
         std::set<name_string_t> tags) {
@@ -13,11 +13,11 @@ counted_t<const ql::datum_t> convert_server_config_and_name_to_datum(
     builder.overwrite("uuid", convert_uuid_to_datum(machine_id));
     builder.overwrite("tags", convert_set_to_datum<name_string_t>(
             &convert_name_to_datum, tags));
-    return std::move(builder).to_counted();
+    return std::move(builder).to_datum();
 }
 
 bool convert_server_config_and_name_from_datum(
-        counted_t<const ql::datum_t> datum,
+        ql::datum_t datum,
         name_string_t *name_out,
         machine_id_t *machine_id_out,
         std::set<name_string_t> *tags_out,
@@ -27,7 +27,7 @@ bool convert_server_config_and_name_from_datum(
         return false;
     }
 
-    counted_t<const ql::datum_t> name_datum;
+    ql::datum_t name_datum;
     if (!converter.get("name", &name_datum, error_out)) {
         return false;
     }
@@ -36,7 +36,7 @@ bool convert_server_config_and_name_from_datum(
         return false;
     }
 
-    counted_t<const ql::datum_t> uuid_datum;
+    ql::datum_t uuid_datum;
     if (!converter.get("uuid", &uuid_datum, error_out)) {
         return false;
     }
@@ -45,12 +45,12 @@ bool convert_server_config_and_name_from_datum(
         return false;
     }
 
-    counted_t<const ql::datum_t> tags_datum;
+    ql::datum_t tags_datum;
     if (!converter.get("tags", &tags_datum, error_out)) {
         return false;
     }
     if (!convert_set_from_datum<name_string_t>(
-            [] (counted_t<const ql::datum_t> datum2, name_string_t *val2_out,
+            [] (ql::datum_t datum2, name_string_t *val2_out,
                     std::string *error2_out) {
                 return convert_name_from_datum(datum2, "server tag", val2_out,
                     error2_out);
@@ -74,7 +74,7 @@ std::string server_config_artificial_table_backend_t::get_primary_key_name() {
 
 bool server_config_artificial_table_backend_t::read_all_primary_keys(
         UNUSED signal_t *interruptor,
-        std::vector<counted_t<const ql::datum_t> > *keys_out,
+        std::vector<ql::datum_t> *keys_out,
         UNUSED std::string *error_out) {
     keys_out->clear();
     name_client->get_machine_id_to_name_map()->apply_read(
@@ -87,16 +87,16 @@ bool server_config_artificial_table_backend_t::read_all_primary_keys(
 }
 
 bool server_config_artificial_table_backend_t::read_row(
-        counted_t<const ql::datum_t> primary_key,
+        ql::datum_t primary_key,
         UNUSED signal_t *interruptor,
-        counted_t<const ql::datum_t> *row_out,
+        ql::datum_t *row_out,
         UNUSED std::string *error_out) {
     machines_semilattice_metadata_t servers_sl = servers_sl_view->get();
     name_string_t server_name;
     machine_id_t server_id;
     machine_semilattice_metadata_t *server_sl;
     if (!lookup(primary_key, &servers_sl, &server_name, &server_id, &server_sl)) {
-        *row_out = counted_t<const ql::datum_t>();
+        *row_out = ql::datum_t();
         return true;
     }
     *row_out = convert_server_config_and_name_to_datum(
@@ -105,8 +105,8 @@ bool server_config_artificial_table_backend_t::read_row(
 }
 
 bool server_config_artificial_table_backend_t::write_row(
-        counted_t<const ql::datum_t> primary_key,
-        counted_t<const ql::datum_t> new_value,
+        ql::datum_t primary_key,
+        ql::datum_t new_value,
         signal_t *interruptor,
         std::string *error_out) {
     machines_semilattice_metadata_t servers_sl = servers_sl_view->get();
@@ -153,7 +153,7 @@ bool server_config_artificial_table_backend_t::write_row(
 }
 
 bool server_config_artificial_table_backend_t::lookup(
-        counted_t<const ql::datum_t> primary_key,
+        ql::datum_t primary_key,
         machines_semilattice_metadata_t *machines,
         name_string_t *name_out,
         machine_id_t *server_id_out,
