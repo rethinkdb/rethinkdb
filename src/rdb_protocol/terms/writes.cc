@@ -12,10 +12,10 @@ namespace ql {
 
 // Use this merge if it should theoretically never be called.
 datum_t pure_merge(UNUSED const datum_string_t &key,
-                                    UNUSED datum_t l,
-                                    UNUSED datum_t r,
-                                    UNUSED const configured_limits_t &limits,
-                                    UNUSED std::set<std::string> *conditions) {
+                   UNUSED datum_t l,
+                   UNUSED datum_t r,
+                   UNUSED const configured_limits_t &limits,
+                   UNUSED std::set<std::string> *conditions) {
     r_sanity_check(false);
     return datum_t();
 }
@@ -78,7 +78,7 @@ private:
                 r_sanity_check(!conflict);
                 std::set<std::string> conditions;
                 *datum_out = (*datum_out)->merge(std::move(d).to_datum(), pure_merge,
-                                                limits, &conditions);
+                                                 limits, &conditions);
                 // we happen to know that pure_merge cannot ever generate warning
                 // conditions, because it shouldn't ever be run.
                 r_sanity_check(conditions.size() == 0);
