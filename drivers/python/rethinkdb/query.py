@@ -11,7 +11,6 @@ def json(*args):
     return Json(*args)
 
 def js(*args, **kwargs):
-    kwargs.setdefault('timeout', ())
     return JavaScript(*args, **kwargs)
 
 def args(*args):
@@ -32,7 +31,6 @@ def do(*args):
 row = ImplicitVar()
 
 def table(*args, **kwargs):
-    kwargs.setdefault('use_outdated', ())
     return Table(*args, **kwargs)
 
 def db(*args):
@@ -48,9 +46,6 @@ def db_list(*args):
     return DbList(*args)
 
 def table_create(*args, **kwargs):
-    kwargs.setdefault('primary_key', ())
-    kwargs.setdefault('datacenter', ())
-    kwargs.setdefault('durability', ())
     return TableCreateTL(*args, **kwargs)
 
 def table_drop(*args):
@@ -133,7 +128,6 @@ def time(*args):
     return Time(*args)
 
 def iso8601(*args, **kwargs):
-    kwargs.setdefault('default_timezone', ())
     return ISO8601(*args, **kwargs)
 
 def epoch_time(*args):
@@ -195,15 +189,10 @@ def polygon(*args):
     return Polygon(*args)
 
 def distance(*args, **kwargs):
-    kwargs.setdefault('geo_system', ())
-    kwargs.setdefault('unit', ())
     return Distance(*args, **kwargs)
 
 def intersects(*args):
     return Intersects(*args)
 
 def circle(*args, **kwargs):
-    kwargs.setdefault('geo_system', ())
-    kwargs.setdefault('unit', ())
-    kwargs.setdefault('fill', ())
     return Circle(*args, **kwargs)

@@ -80,11 +80,7 @@ class RqlQuery(object):
     def __init__(self, *args, **optargs):
         self.args = [expr(e) for e in args]
 
-        self.optargs = {}
-        for k, v in dict_items(optargs):
-            if not isinstance(v, RqlQuery) and v == ():
-                continue
-            self.optargs[k] = expr(v)
+        self.optargs = {k: expr(v) for k, v in dict_items(optargs)}
 
     # Send this query to the server to be executed
     def run(self, c=None, **global_optargs):
@@ -272,20 +268,12 @@ class RqlQuery(object):
         return Default(self, *args)
 
     def update(self, *args, **kwargs):
-        kwargs.setdefault('non_atomic', ())
-        kwargs.setdefault('durability', ())
-        kwargs.setdefault('return_changes', ())
         return Update(self, *[func_wrap(arg) for arg in args], **kwargs)
 
     def replace(self, *args, **kwargs):
-        kwargs.setdefault('non_atomic', ())
-        kwargs.setdefault('durability', ())
-        kwargs.setdefault('return_changes', ())
         return Replace(self, *[func_wrap(arg) for arg in args], **kwargs)
 
     def delete(self, *args, **kwargs):
-        kwargs.setdefault('durability', ())
-        kwargs.setdefault('return_changes', ())
         return Delete(self, *args, **kwargs)
 
     # Rql type inspection
@@ -391,7 +379,6 @@ class RqlQuery(object):
         return Map(self, *[func_wrap(arg) for arg in args])
 
     def filter(self, *args, **kwargs):
-        kwargs.setdefault('default', ())
         return Filter(self, *[func_wrap(arg) for arg in args], **kwargs)
 
     def concat_map(self, *args):
@@ -402,9 +389,6 @@ class RqlQuery(object):
         return OrderBy(self, *args, **kwargs)
 
     def between(self, *args, **kwargs):
-        kwargs.setdefault('left_bound', ())
-        kwargs.setdefault('right_bound', ())
-        kwargs.setdefault('index', ())
         return Between(self, *args, **kwargs)
 
     def distinct(self, *args, **kwargs):
@@ -425,7 +409,6 @@ class RqlQuery(object):
         return OuterJoin(self, *args)
 
     def eq_join(self, *args, **kwargs):
-        kwargs.setdefault('index', ())
         return EqJoin(self, *[func_wrap(arg) for arg in args], **kwargs)
 
     def zip(self, *args):
@@ -465,8 +448,6 @@ class RqlQuery(object):
         return ToEpochTime(self, *args)
 
     def during(self, *args, **kwargs):
-        kwargs.setdefault('left_bound', ())
-        kwargs.setdefault('right_bound', ())
         return During(self, *args, **kwargs)
 
     def date(self, *args):
@@ -511,8 +492,6 @@ class RqlQuery(object):
         return ToGeoJson(self, *args)
 
     def distance(self, *args, **kwargs):
-        kwargs.setdefault('geo_system', ())
-        kwargs.setdefault('unit', ())
         return Distance(self, *args, **kwargs)
 
     def intersects(self, *args):
@@ -942,16 +921,12 @@ class DB(RqlTopLevelQuery):
         return TableList(self, *args)
 
     def table_create(self, *args, **kwargs):
-        kwargs.setdefault('primary_key', ())
-        kwargs.setdefault('datacenter', ())
-        kwargs.setdefault('durability', ())
         return TableCreate(self, *args, **kwargs)
 
     def table_drop(self, *args):
         return TableDrop(self, *args)
 
     def table(self, *args, **kwargs):
-        kwargs.setdefault('use_outdated', ())
         return Table(self, *args, **kwargs)
 
 class FunCall(RqlQuery):
@@ -981,9 +956,6 @@ class Table(RqlQuery):
     st = 'table'
 
     def insert(self, *args, **kwargs):
-        kwargs.setdefault('conflict', ())
-        kwargs.setdefault('durability', ())
-        kwargs.setdefault('return_changes', ())
         return Insert(self, *[expr(arg) for arg in args], **kwargs)
 
     def get(self, *args):
@@ -993,8 +965,6 @@ class Table(RqlQuery):
         return GetAll(self, *args, **kwargs)
 
     def index_create(self, *args, **kwargs):
-        kwargs.setdefault('multi', ())
-        kwargs.setdefault('geo', ())
         if len(args) > 1:
             args = [args[0]] + [func_wrap(arg) for arg in args[1:]]
         return IndexCreate(self, *args, **kwargs)
