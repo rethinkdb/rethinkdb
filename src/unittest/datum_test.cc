@@ -2,6 +2,7 @@
 
 #include "containers/archive/string_stream.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/datum_string.hpp"
 #include "rdb_protocol/env.hpp"
 #include "unittest/gtest.hpp"
 
@@ -20,7 +21,7 @@ void test_datum_serialization(const ql::datum_t datum) {
     archive_result_t res
         = deserialize<cluster_version_t::LATEST_OVERALL>(&read_stream, &deserialized_datum);
     ASSERT_EQ(archive_result_t::SUCCESS, res);
-    ASSERT_EQ(*datum, *deserialized_datum);
+    ASSERT_EQ(datum, deserialized_datum);
 }
 
 
@@ -66,6 +67,87 @@ TEST(DatumTest, NumericSerialization) {
     test_datum_serialization(ql::datum_t(std::move(vec), limits));
 }
 
+// Tests our ability to read old arrays and objects that were not serialized
+// in the new buffer-backable format yet.
+TEST(DatumTest, LegacyDeserialization) {
+    // An array of two nulls
+    std::vector<char> legacy_array = {0x01, 0x02, 0x03, 0x03};
+    ql::datum_t reference_array(
+        std::vector<ql::datum_t>
+            {ql::datum_t::null(),
+             ql::datum_t::null()},
+            ql::configured_limits_t::unlimited);
+    // An object {a: null, b: null}
+    std::vector<char> legacy_object =
+        {0x05, 0x02, 0x01, 'a', 0x03, 0x01, 'b', 0x03};
+    ql::datum_t reference_object(std::map<datum_string_t, ql::datum_t>
+        {std::make_pair(datum_string_t("a"), ql::datum_t::null()),
+         std::make_pair(datum_string_t("b"), ql::datum_t::null())});
+    {
+        ql::datum_t deserialized_array;
+        vector_read_stream_t s(std::move(legacy_array));
+        archive_result_t res = datum_deserialize(&s, &deserialized_array);
+        ASSERT_EQ(archive_result_t::SUCCESS, res);
+        ASSERT_EQ(deserialized_array, reference_array);
+    }
+    {
+        ql::datum_t deserialized_object;
+        vector_read_stream_t s(std::move(legacy_object));
+        archive_result_t res = datum_deserialize(&s, &deserialized_object);
+        ASSERT_EQ(archive_result_t::SUCCESS, res);
+        ASSERT_EQ(deserialized_object, reference_object);
+    }
+}
 
+TEST(DatumTest, ObjectSerialization) {
+    {
+        ql::datum_t test_object((std::map<datum_string_t, ql::datum_t>()));
+        test_datum_serialization(test_object);
+    }
+    {
+        ql::datum_t test_object(std::map<datum_string_t, ql::datum_t>
+                {std::make_pair(datum_string_t("a"), ql::datum_t::null()),
+                 std::make_pair(datum_string_t("b"), ql::datum_t::null())});
+        test_datum_serialization(test_object);
+    }
+    {
+        ql::datum_t test_object(std::map<datum_string_t, ql::datum_t>
+                {std::make_pair(datum_string_t("a"), ql::datum_t::null()),
+                 std::make_pair(datum_string_t("b"), ql::datum_t::null()),
+                 std::make_pair(datum_string_t("nested"), ql::datum_t(
+                     std::map<datum_string_t, ql::datum_t>
+                     {std::make_pair(datum_string_t("a"), ql::datum_t::null()),
+                      std::make_pair(datum_string_t("b"), ql::datum_t::null())}))});
+        test_datum_serialization(test_object);
+    }
+}
+
+TEST(DatumTest, ArraySerialization) {
+    {
+        ql::datum_t test_array(
+            std::vector<ql::datum_t>(), ql::configured_limits_t::unlimited);
+        test_datum_serialization(test_array);
+    }
+    {
+        ql::datum_t test_array(
+            std::vector<ql::datum_t>
+                {ql::datum_t::null(),
+                 ql::datum_t::null()},
+                ql::configured_limits_t::unlimited);
+        test_datum_serialization(test_array);
+    }
+    {
+        ql::datum_t test_array(
+            std::vector<ql::datum_t>
+                {ql::datum_t::null(),
+                 ql::datum_t::null(),
+                 ql::datum_t(std::vector<ql::datum_t>
+                     {ql::datum_t::null(),
+                      ql::datum_t::null()},
+                     ql::configured_limits_t::unlimited)},
+                ql::configured_limits_t::unlimited);
+        test_datum_serialization(test_array);
+    }
+}
 
 }  // namespace unittest
