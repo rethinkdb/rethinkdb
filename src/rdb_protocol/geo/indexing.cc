@@ -117,56 +117,35 @@ void geo_index_traversal_helper_t::init_query(
     is_initialized_ = true;
 }
 
-void geo_index_traversal_helper_t::process_a_leaf(buf_lock_t *leaf_node_buf,
-        const btree_key_t *left_exclusive_or_null,
-        const btree_key_t *right_inclusive_or_null,
-        signal_t *interruptor,
-        int *population_change_out) THROWS_ONLY(interrupted_exc_t) {
+done_traversing_t geo_index_traversal_helper_t::handle_pair(
+        scoped_key_value_t &&keyvalue,
+        UNUSED concurrent_traversal_fifo_enforcer_signal_t waiter)
+        THROWS_ONLY(interrupted_exc_t) {
     guarantee(is_initialized_);
 
-    *population_change_out = 0;
-
-    if (interruptor->is_pulsed()) {
-        throw interrupted_exc_t();
+    const S2CellId key_cell = btree_key_to_s2cellid(keyvalue.key());
+    if (any_query_cell_intersects(key_cell.range_min(), key_cell.range_max())) {
+        on_candidate(keyvalue.key(), keyvalue.value(), keyvalue.expose_buf());
     }
 
-    if (!any_query_cell_intersects(left_exclusive_or_null, right_inclusive_or_null)) {
-        return;
-    }
+    // TODO! Later we will have to wait for waiter, I guess
 
-    buf_read_t read(leaf_node_buf);
-    const leaf_node_t *node = static_cast<const leaf_node_t *>(read.get_data_read());
-
-    for (auto it = leaf::begin(*node); it != leaf::end(*node); ++it) {
-        const btree_key_t *key = (*it).first;
-        if (abort_ || !key) {
-            break;
-        }
-
-        const S2CellId key_cell = btree_key_to_s2cellid(key);
-        if (any_query_cell_intersects(key_cell.range_min(), key_cell.range_max())) {
-            on_candidate(key, (*it).second, buf_parent_t(leaf_node_buf), interruptor);
-        }
+    if (abort_) {
+        return done_traversing_t::YES;
+    } else {
+        return done_traversing_t::NO;
     }
 }
 
-void geo_index_traversal_helper_t::filter_interesting_children(
-        UNUSED buf_parent_t parent,
-        ranged_block_ids_t *ids_source,
-        interesting_children_callback_t *cb) {
+bool geo_index_traversal_helper_t::is_range_interesting(const key_range_t &range) {
     guarantee(is_initialized_);
-
-    for (int i = 0, e = ids_source->num_block_ids(); i < e && !abort_; ++i) {
-        block_id_t block_id;
-        const btree_key_t *left, *right;
-        ids_source->get_block_id_and_bounding_interval(i, &block_id, &left, &right);
-
-        if (any_query_cell_intersects(left, right)) {
-            cb->receive_interesting_child(i);
-        }
-    }
-
-    cb->no_more_interesting_children();
+    // TODO! Clarify names. The excl/incl here is wrong
+    const btree_key_t *left_excl = range.left.btree_key();
+    const btree_key_t *right_incl =
+        range.right.unbounded
+        ? NULL
+        : range.right.key.btree_key();
+    return any_query_cell_intersects(left_excl, right_incl);
 }
 
 void geo_index_traversal_helper_t::abort_traversal() {

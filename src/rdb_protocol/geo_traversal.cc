@@ -74,8 +74,7 @@ void geo_intersecting_cb_t::init_query(const ql::datum_t &_query_geometry) {
 void geo_intersecting_cb_t::on_candidate(
         const btree_key_t *key,
         const void *value,
-        buf_parent_t parent,
-        UNUSED signal_t *interruptor)
+        buf_parent_t parent)
         THROWS_ONLY(interrupted_exc_t) {
     guarantee(query_geometry.has());
     sampler->new_sample();

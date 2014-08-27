@@ -1047,10 +1047,13 @@ void rdb_get_intersecting_slice(
                           sindex_info.multi),
         ql_env,
         query_geometry);
-    btree_parallel_traversal(
-        superblock, &callback,
-        ql_env->interruptor,
+    // TODO! Pass in the ql_env->interruptor. It should abort the geo traversal
+    // when triggered.
+    bool done = btree_concurrent_traversal(
+        superblock, key_range_t::universe(), &callback,
+        direction_t::FORWARD,
         release_superblock_t::RELEASE);
+    guarantee(done); // TODO! <---
     callback.finish(response);
 }
 
@@ -1086,10 +1089,13 @@ void rdb_get_nearest_slice(
                                   sindex_func_reql_version, sindex_info.multi),
                 ql_env,
                 &state);
-            btree_parallel_traversal(
-                superblock, &callback,
-                ql_env->interruptor,
+            // TODO! Pass in the ql_env->interruptor. It should abort the geo traversal
+            // when triggered.
+            bool done = btree_concurrent_traversal(
+                superblock, key_range_t::universe(), &callback,
+                direction_t::FORWARD,
                 release_superblock_t::KEEP);
+            guarantee(done); // TODO! <---
             callback.finish(&partial_response);
         } catch (const geo_exception_t &e) {
             partial_response.results_or_error =

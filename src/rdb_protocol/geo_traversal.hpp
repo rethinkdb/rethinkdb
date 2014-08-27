@@ -67,8 +67,7 @@ public:
     void on_candidate(
             const btree_key_t *key,
             const void *value,
-            buf_parent_t parent,
-            signal_t *interruptor)
+            buf_parent_t parent)
             THROWS_ONLY(interrupted_exc_t);
 
 protected:

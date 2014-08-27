@@ -52,7 +52,9 @@ private:
 
 bool btree_concurrent_traversal(superblock_t *superblock, const key_range_t &range,
                                 concurrent_traversal_callback_t *cb,
-                                direction_t direction);
+                                direction_t direction,
+                                release_superblock_t release_superblock
+                                    = release_superblock_t::RELEASE);
 
 
 

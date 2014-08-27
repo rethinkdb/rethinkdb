@@ -102,6 +102,8 @@ bool btree_depth_first_traversal(superblock_t *superblock,
 // range restriction when starting the DFT).
 // That's ok, we just return the intersection here, so the resulting range will
 // always be a subrange of parent_range.
+// TODO! Lot's of key copying here. Wonder if that has a bad impact on performance.
+// Maybe we should pass around pointers instead.
 key_range_t get_child_key_range(const internal_node_t *inode,
                                 int child_index,
                                 const key_range_t &parent_range) {
