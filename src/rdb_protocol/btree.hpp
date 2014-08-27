@@ -11,7 +11,6 @@
 #include "backfill_progress.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "rdb_protocol/datum.hpp"
-#include "rdb_protocol/changes.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/store.hpp"
 
@@ -186,7 +185,7 @@ void rdb_rget_slice(
 
 void rdb_rget_secondary_slice(
     btree_slice_t *slice,
-    const datum_range_t &datum_range,
+    const ql::datum_range_t &datum_range,
     const region_t &sindex_region,
     superblock_t *superblock,
     ql::env_t *ql_env,

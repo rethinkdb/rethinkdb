@@ -72,7 +72,7 @@ public:
         const std::string &sindex,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name,   /* the table's own name, for display purposes */
-        const datum_range_t &range,
+        const ql::datum_range_t &range,
         sorting_t sorting,
         bool use_outdated);
     counted_t<ql::datum_stream_t> read_row_changes(
@@ -80,8 +80,9 @@ public:
         counted_t<const ql::datum_t> pval,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name);
-    counted_t<ql::datum_stream_t> read_all_changes(
+    counted_t<ql::datum_stream_t> read_changes(
         ql::env_t *env,
+        ql::changefeed::keyspec_t::all_t &&spec,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name);
     counted_t<ql::datum_stream_t> read_intersecting(

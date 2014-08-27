@@ -15,17 +15,24 @@
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "containers/uuid.hpp"
-#include "rdb_protocol/geo/distances.hpp"
-#include "rdb_protocol/geo/lat_lon_types.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
-#include "rdb_protocol/changes.hpp"
+#include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/geo/distances.hpp"
+#include "rdb_protocol/geo/lat_lon_types.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "rdb_protocol/wire_func.hpp"
 
+enum class return_changes_t {
+    NO = 0,
+    YES = 1
+};
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        return_changes_t, int8_t,
+        return_changes_t::NO, return_changes_t::YES);
+
 class auth_semilattice_metadata_t;
-class datum_range_t;
 class ellipsoid_spec_t;
 class extproc_pool_t;
 class name_string_t;
@@ -47,7 +54,6 @@ public:
 };
 
 class env_t;
-
 }   // namespace ql
 
 class base_table_t {
@@ -61,7 +67,7 @@ public:
         const std::string &sindex,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name,   /* the table's own name, for display purposes */
-        const datum_range_t &range,
+        const ql::datum_range_t &range,
         sorting_t sorting,
         bool use_outdated) = 0;
     virtual counted_t<ql::datum_stream_t> read_row_changes(
@@ -69,8 +75,9 @@ public:
         counted_t<const ql::datum_t> pval,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name) = 0;
-    virtual counted_t<ql::datum_stream_t> read_all_changes(
+    virtual counted_t<ql::datum_stream_t> read_changes(
         ql::env_t *env,
+        ql::changefeed::keyspec_t::all_t &&spec,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name) = 0;
     virtual counted_t<ql::datum_stream_t> read_intersecting(

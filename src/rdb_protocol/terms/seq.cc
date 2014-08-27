@@ -287,12 +287,7 @@ private:
     virtual counted_t<val_t> eval_impl(
         scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> v = args->arg(env, 0);
-        if (v->get_type().is_convertible(val_t::type_t::TABLE)) {
-            counted_t<table_t> tbl = v->as_table();
-            return new_val(env->env,
-                tbl->table->read_all_changes(
-                    env->env, backtrace(), tbl->display_name()));
-        } else if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
+        if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
             counted_t<selection_t> selection = v->as_selection(env->env);
             counted_t<table_t> tbl = selection->table;
             counted_t<datum_stream_t> seq = selection->seq;

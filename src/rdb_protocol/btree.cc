@@ -776,7 +776,7 @@ typedef ql::terminal_variant_t terminal_variant_t;
 
 class rget_sindex_data_t {
 public:
-    rget_sindex_data_t(const key_range_t &_pkey_range, const datum_range_t &_range,
+    rget_sindex_data_t(const key_range_t &_pkey_range, const ql::datum_range_t &_range,
                        reql_version_t wire_func_reql_version,
                        ql::map_wire_func_t wire_func, sindex_multi_bool_t _multi)
         : pkey_range(_pkey_range), range(_range),
@@ -785,7 +785,7 @@ public:
 private:
     friend class rget_cb_t;
     const key_range_t pkey_range;
-    const datum_range_t range;
+    const ql::datum_range_t range;
     const reql_version_t func_reql_version;
     const counted_t<ql::func_t> func;
     const sindex_multi_bool_t multi;
@@ -989,7 +989,7 @@ void rdb_rget_slice(
 
 void rdb_rget_secondary_slice(
         btree_slice_t *slice,
-        const datum_range_t &sindex_range,
+        const ql::datum_range_t &sindex_range,
         const region_t &sindex_region,
         superblock_t *superblock,
         ql::env_t *ql_env,

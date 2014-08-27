@@ -24,8 +24,8 @@
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/changefeed.hpp"
-#include "rdb_protocol/changes.hpp"
 #include "rdb_protocol/context.hpp"
+#include "rdb_protocol/datum.hpp"
 #include "region/region.hpp"
 #include "repli_timestamp.hpp"
 #include "rdb_protocol/shards.hpp"
@@ -106,40 +106,6 @@ class primary_readgen_t;
 class readgen_t;
 class sindex_readgen_t;
 } // namespace ql
-
-class datum_range_t {
-public:
-    datum_range_t();
-    datum_range_t(
-        counted_t<const ql::datum_t> left_bound,
-        key_range_t::bound_t left_bound_type,
-        counted_t<const ql::datum_t> right_bound,
-        key_range_t::bound_t right_bound_type);
-    // Range that includes just one value.
-    explicit datum_range_t(counted_t<const ql::datum_t> val);
-    static datum_range_t universe();
-
-    bool contains(reql_version_t reql_version, counted_t<const ql::datum_t> val) const;
-    bool is_universe() const;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
-
-private:
-    // Only `readgen_t` and its subclasses should do anything fancy with a range.
-    // (Modulo unit tests.)
-    friend class ql::readgen_t;
-    friend class ql::primary_readgen_t;
-    friend class ql::sindex_readgen_t;
-    friend struct unittest::make_sindex_read_t;
-
-    key_range_t to_primary_keyrange() const;
-    key_range_t to_sindex_keyrange() const;
-
-    counted_t<const ql::datum_t> left_bound, right_bound;
-    key_range_t::bound_t left_bound_type, right_bound_type;
-};
-
-RDB_SERIALIZE_OUTSIDE(datum_range_t);
 
 struct backfill_atom_t {
     store_key_t key;
@@ -344,11 +310,11 @@ struct sindex_rangespec_t {
                        // sometimes smaller than the datum range below when
                        // dealing with truncated keys.
                        const region_t &_region,
-                       const datum_range_t _original_range)
+                       const ql::datum_range_t _original_range)
         : id(_id), region(_region), original_range(_original_range) { }
     std::string id; // What sindex we're using.
     region_t region; // What keyspace we're currently operating on.
-    datum_range_t original_range; // For dealing with truncation.
+    ql::datum_range_t original_range; // For dealing with truncation.
 };
 
 RDB_DECLARE_SERIALIZABLE(sindex_rangespec_t);

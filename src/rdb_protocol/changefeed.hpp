@@ -17,6 +17,7 @@
 #include "containers/scoped.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/counted_term.hpp"
+#include "rdb_protocol/datum.hpp"
 #include "region/region.hpp"
 #include "repli_timestamp.hpp"
 #include "rpc/connectivity/peer_id.hpp"
@@ -80,7 +81,13 @@ struct stamped_msg_t;
 typedef mailbox_addr_t<void(stamped_msg_t)> client_addr_t;
 
 struct keyspec_t {
-    struct all_t { };
+    struct all_t {
+        all_t() { }
+        all_t(datum_range_t _range, size_t _limit = std::numeric_limits<size_t>::max())
+            : range(std::move(_range)), limit(_limit) { }
+        datum_range_t range;
+        size_t limit;
+    };
     struct point_t {
         point_t() { }
         explicit point_t(counted_t<const datum_t> _key) : key(std::move(_key)) { }
