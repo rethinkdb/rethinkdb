@@ -150,6 +150,10 @@ public:
     bool is_cfeed() const { return false; }
 
 private:
+    virtual changefeed::keyspec_t::all_t get_spec() {
+        rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on an HTTP stream.");
+    }
+
     std::vector<counted_t<const datum_t> >
     next_raw_batch(env_t *env, UNUSED const batchspec_t &batchspec);
 

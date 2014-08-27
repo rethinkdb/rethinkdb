@@ -29,6 +29,7 @@ class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
 public:
     virtual ~datum_stream_t() { }
 
+    virtual changefeed::keyspec_t::all_t get_spec() = 0;
     virtual void add_transformation(transform_variant_t &&tv,
                                     const protob_t<const Backtrace> &bt) = 0;
     void add_grouping(transform_variant_t &&tv,
@@ -85,6 +86,10 @@ protected:
     bool ops_to_do() { return ops.size() != 0; }
 
 private:
+    virtual changefeed::keyspec_t::all_t get_spec() {
+        rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on an eager stream.");
+    }
+
     enum class done_t { YES, NO };
 
     virtual bool is_array() = 0;
@@ -233,6 +238,9 @@ public:
     virtual bool is_cfeed() const;
 
 private:
+    virtual changefeed::keyspec_t::all_t get_spec() {
+        rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on a union stream.");
+    }
     std::vector<counted_t<const datum_t> >
     next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
@@ -281,6 +289,11 @@ public:
     // Returns `true` if there is no more to read.
     bool update_range(key_range_t *active_range,
                       const store_key_t &last_key) const;
+
+    changefeed::keyspec_t::all_t get_spec() const {
+        // RSI: transforms?
+        return changefeed::keyspec_t::all_t(original_datum_range);
+    }
 protected:
     const std::map<std::string, wire_func_t> global_optargs;
     const std::string table_name;
@@ -373,6 +386,10 @@ public:
     std::vector<counted_t<const datum_t> >
     next_batch(env_t *env, const batchspec_t &batchspec);
     bool is_finished() const;
+
+    changefeed::keyspec_t::all_t get_spec() {
+        return readgen->get_spec();
+    }
 private:
     // Returns `true` if there's data in `items`.
     bool load_items(env_t *env, const batchspec_t &batchspec);
@@ -409,6 +426,10 @@ public:
     bool is_exhausted() const;
     virtual bool is_cfeed() const;
 private:
+    virtual changefeed::keyspec_t::all_t get_spec() {
+        return reader.get_spec();
+    }
+
     std::vector<counted_t<const datum_t> >
     next_batch_impl(env_t *env, const batchspec_t &batchspec);
 

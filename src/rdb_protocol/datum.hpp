@@ -33,6 +33,10 @@ class Datum;
 
 RDB_DECLARE_SERIALIZABLE(Datum);
 
+namespace unittest {
+struct make_sindex_read_t;
+}
+
 namespace ql {
 
 class datum_stream_t;
@@ -329,7 +333,7 @@ private:
     friend class readgen_t;
     friend class primary_readgen_t;
     friend class sindex_readgen_t;
-    friend struct make_sindex_read_t;
+    friend struct ::unittest::make_sindex_read_t;
 
     key_range_t to_primary_keyrange() const;
     key_range_t to_sindex_keyrange() const;
