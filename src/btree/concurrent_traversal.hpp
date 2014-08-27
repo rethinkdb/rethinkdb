@@ -36,6 +36,10 @@ public:
                                concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t) = 0;
 
+    // Can be overloaded if you don't want to query a contiguous range of keys,
+    // but only parts of it. Will be called before traversing into any child node.
+    virtual bool is_range_interesting(UNUSED const key_range_t &range) { return true; };
+
     virtual profile::trace_t *get_trace() THROWS_NOTHING { return NULL; }
 
 protected:

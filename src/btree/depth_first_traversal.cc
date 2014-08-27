@@ -97,6 +97,40 @@ bool btree_depth_first_traversal(superblock_t *superblock,
     }
 }
 
+// Note that the way this is currently used, parent_range can sometimes be smaller
+// than the actual range of the child in the btree (e.g. if we already had a
+// range restriction when starting the DFT).
+// That's ok, we just return the intersection here, so the resulting range will
+// always be a subrange of parent_range.
+key_range_t get_child_key_range(const internal_node_t *inode,
+                                int child_index,
+                                const key_range_t &parent_range) {
+    key_range_t child_range = key_range_t::universe();
+
+    const btree_internal_pair *pair = internal_node::get_pair_by_index(inode, child_index);
+    if (child_index != inode->npairs - 1) {
+        rassert(child_index < inode->npairs - 1);
+        // The key from the pair is inclusive. For key_range_t we have to make it
+        // exclusive.
+        store_key_t r(&pair->key);
+        if (r.increment()) {
+            child_range.right = key_range_t::right_bound_t(r);
+        }
+    }
+    if (child_index > 0) {
+        const btree_internal_pair *left_neighbor =
+            internal_node::get_pair_by_index(inode, child_index - 1);
+        // The key from the left neighbor provides an exclusive left bound.
+        // For key_range_t we have to make it inclusive.
+        store_key_t l(&left_neighbor->key);
+        if (l.increment()) {
+            child_range.left = l;
+        }
+    }
+
+    return parent_range.intersection(child_range);
+}
+
 bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
                                  const key_range_t &range,
                                  depth_first_traversal_callback_t *cb,
@@ -117,15 +151,22 @@ bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
         for (int i = 0; i < end_index - start_index; ++i) {
             int true_index = (direction == FORWARD ? start_index + i : (end_index - 1) - i);
             const btree_internal_pair *pair = internal_node::get_pair_by_index(inode, true_index);
-            counted_t<counted_buf_lock_t> lock;
-            {
-                profile::starter_t starter("Acquire block for read.", cb->get_trace());
-                lock = make_counted<counted_buf_lock_t>(block.get(), pair->lnode,
-                                                        access_t::read);
-            }
-            if (!btree_depth_first_traversal(std::move(lock),
-                                             range, cb, direction)) {
-                return false;
+
+            // Get the child key range
+            const key_range_t child_range =
+                get_child_key_range(inode, true_index, range);
+
+            if (cb->is_range_interesting(child_range)) {
+                counted_t<counted_buf_lock_t> lock;
+                {
+                    profile::starter_t starter("Acquire block for read.", cb->get_trace());
+                    lock = make_counted<counted_buf_lock_t>(block.get(), pair->lnode,
+                                                            access_t::read);
+                }
+                if (!btree_depth_first_traversal(std::move(lock),
+                                                 child_range, cb, direction)) {
+                    return false;
+                }
             }
         }
         return true;
