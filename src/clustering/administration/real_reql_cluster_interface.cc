@@ -430,7 +430,7 @@ bool real_reql_cluster_interface_t::table_status(
         counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
         signal_t *interruptor, counted_t<ql::val_t> *resp_out, std::string *error_out) {
     return table_config_or_status(
-        admin_tables->table_status_backend.get(), "table_config",
+        admin_tables->table_status_backend.get(), "table_status",
         name, db, bt, interruptor, resp_out, error_out);
 }
 
