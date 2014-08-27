@@ -55,7 +55,9 @@ public:
     traversing the tree. */
     virtual done_traversing_t handle_pair(scoped_key_value_t &&keyvalue) = 0;
     /* Can be overloaded if you don't want to query a contiguous range of keys,
-    but only parts of it. Will be called before traversing into any child node. */
+    but only parts of it. Will be called before traversing into any child node.
+    Note: returning false here does not guarantee that a given range is never
+    encountered by handle_pair(). is_range_interesting() is just a pre-filter. */
     virtual bool is_range_interesting(UNUSED const key_range_t &range) { return true; }
     virtual profile::trace_t *get_trace() THROWS_NOTHING { return NULL; }
 protected:
