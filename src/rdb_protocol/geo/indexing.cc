@@ -97,12 +97,13 @@ std::vector<std::string> compute_index_grid_keys(
     return result;
 }
 
-geo_index_traversal_helper_t::geo_index_traversal_helper_t()
-    : abort_(false), is_initialized_(false) { }
+geo_index_traversal_helper_t::geo_index_traversal_helper_t(const signal_t *interruptor)
+    : abort_(false), is_initialized_(false), interruptor_(interruptor) { }
 
 geo_index_traversal_helper_t::geo_index_traversal_helper_t(
-        const std::vector<std::string> &query_grid_keys)
-    : abort_(false), is_initialized_(false) {
+        const std::vector<std::string> &query_grid_keys,
+        const signal_t *interruptor)
+    : abort_(false), is_initialized_(false), interruptor_(interruptor) {
     init_query(query_grid_keys);
 }
 
@@ -122,6 +123,10 @@ done_traversing_t geo_index_traversal_helper_t::handle_pair(
         UNUSED concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t) {
     guarantee(is_initialized_);
+
+    if (interruptor_->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
 
     const S2CellId key_cell = btree_key_to_s2cellid(keyvalue.key());
     if (any_query_cell_intersects(key_cell.range_min(), key_cell.range_max())) {

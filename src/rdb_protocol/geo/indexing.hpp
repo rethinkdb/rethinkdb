@@ -32,8 +32,10 @@ std::vector<std::string> compute_index_grid_keys(
 // TODO (daniel): Support compound indexes somehow.
 class geo_index_traversal_helper_t : public concurrent_traversal_callback_t {
 public:
-    geo_index_traversal_helper_t();
-    explicit geo_index_traversal_helper_t(const std::vector<std::string> &query_grid_keys);
+    explicit geo_index_traversal_helper_t(const signal_t *interruptor);
+    explicit geo_index_traversal_helper_t(
+            const std::vector<std::string> &query_grid_keys,
+            const signal_t *interruptor);
 
     void init_query(const std::vector<std::string> &query_grid_keys);
 
@@ -68,6 +70,7 @@ private:
     std::vector<S2CellId> query_cells_;
     bool abort_;
     bool is_initialized_;
+    const signal_t *interruptor_;
 };
 
 #endif  // RDB_PROTOCOL_GEO_INDEXING_HPP_

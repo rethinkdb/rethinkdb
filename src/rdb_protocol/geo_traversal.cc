@@ -54,7 +54,7 @@ geo_intersecting_cb_t::geo_intersecting_cb_t(
         geo_sindex_data_t &&_sindex,
         ql::env_t *_env,
         std::set<store_key_t> *_distinct_emitted_in_out)
-    : geo_index_traversal_helper_t(),
+    : geo_index_traversal_helper_t(_env->interruptor),
       slice(_slice),
       sindex(std::move(_sindex)),
       env(_env),

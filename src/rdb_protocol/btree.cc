@@ -1047,8 +1047,6 @@ void rdb_get_intersecting_slice(
                           sindex_info.multi),
         ql_env,
         query_geometry);
-    // TODO! Pass in the ql_env->interruptor. It should abort the geo traversal
-    // when triggered.
     bool done = btree_concurrent_traversal(
         superblock, key_range_t::universe(), &callback,
         direction_t::FORWARD,
@@ -1089,8 +1087,6 @@ void rdb_get_nearest_slice(
                                   sindex_func_reql_version, sindex_info.multi),
                 ql_env,
                 &state);
-            // TODO! Pass in the ql_env->interruptor. It should abort the geo traversal
-            // when triggered.
             bool done = btree_concurrent_traversal(
                 superblock, key_range_t::universe(), &callback,
                 direction_t::FORWARD,
