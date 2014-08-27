@@ -47,7 +47,8 @@ reset_collections = () ->
 # Used by our version of Backbone.sync and POST / PUT responses for form actions
 apply_diffs = (updates) ->
     if (not connection_status.get('contact_machine_id'))
-        connection_status.set('contact_machine_id', updates["me"])
+        # TODO
+        connection_status.set('contact_machine_id', "TODO")
     else
         if (updates["me"] != connection_status.get('contact_machine_id'))
             reset_collections()
