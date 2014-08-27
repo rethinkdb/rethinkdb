@@ -39,7 +39,7 @@ public:
     // Can be overloaded if you don't want to query a contiguous range of keys,
     // but only parts of it. Will be called before traversing into any child node.
     // Note: returning false here does not guarantee that a given range is never
-    // encountered by handle_pair(). is_range_interesting is just a pre-filter.
+    // encountered by handle_pair(). is_range_interesting() is just a pre-filter.
     virtual bool is_range_interesting(UNUSED const key_range_t &range) { return true; };
 
     virtual profile::trace_t *get_trace() THROWS_NOTHING { return NULL; }
