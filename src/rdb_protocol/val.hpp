@@ -156,7 +156,7 @@ public:
             FUNC             = 7, // func
             GROUPED_DATA     = 8  // grouped_data
         };
-        type_t(raw_type_t _raw_type); // NOLINT
+        type_t(raw_type_t _raw_type);  // NOLINT(runtime/explicit)
         bool is_convertible(type_t rhs) const;
 
         raw_type_t get_raw_type() const { return raw_type; }

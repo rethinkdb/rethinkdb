@@ -455,7 +455,7 @@ class Matrix3x3 {
   // Finds the eigen values of the matrix. Return the number of real eigenvalues
   // found
   int EigenValues(MVector *eig_val) {
-    long double r1, r2, r3;  // NOLINT
+    long double r1, r2, r3;
     // characteristic polynomial is
     // x^3 + (a11*a22+a22*a33+a33*a11)*x^2 - trace(A)*x - det(A)
     VType a = -Trace();

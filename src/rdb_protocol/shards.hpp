@@ -57,7 +57,7 @@ public:
     optimizer_t(const datum_t &_row,
                 const datum_t &_val);
 
-    void swap_if_other_better(optimizer_t &other, // NOLINT
+    void swap_if_other_better(optimizer_t *other,
                               reql_version_t reql_version,
                               bool (*beats)(reql_version_t,
                                             const datum_t &val1,
@@ -232,7 +232,7 @@ public:
     void clear() { return m.clear(); }
     T &operator[](const datum_t &k) { return m[k]; }
 
-    void swap(grouped_t<T> &other) { m.swap(other.m); } // NOLINT
+    void swap(grouped_t<T> &other) { m.swap(other.m); }
     std::map<datum_t, T, optional_datum_less_t> *
     get_underlying_map(grouped::order_doesnt_matter_t) {
         return &m;
@@ -297,7 +297,7 @@ void iterate_ordered_by_version(reql_version_t reql_version,
 // `slow_atomic_countable_t` deletes our copy constructor, but boost variants
 // want us to have a copy constructor.
 class grouped_data_t : public grouped_t<datum_t>,
-                       public slow_atomic_countable_t<grouped_data_t> { }; // NOLINT
+                       public slow_atomic_countable_t<grouped_data_t> { };
 
 typedef boost::variant<
     grouped_t<uint64_t>, // Count.

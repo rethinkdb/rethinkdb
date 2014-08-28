@@ -13,7 +13,7 @@
 using std::ostream;
 using std::cout;
 using std::endl;
-  // NOLINT(readability/streams)
+
 #include "rdb_protocol/geo/s2/base/basictypes.h"
 
 template <typename VType> class Vector2;
@@ -46,7 +46,7 @@ class Vector2 {
   // Create a new vector (x,y)
   Vector2(const VType x, const VType y);
   // Create a new copy of the vector vb
-  Vector2(const Self &vb);  // NOLINT(runtime/explicit)
+  Vector2(const Self &vb);
   // Keep only the two first coordinates of the vector vb
   explicit Vector2(const Vector3<VType> &vb);
   // Keep only the two first coordinates of the vector vb
@@ -177,7 +177,7 @@ template <typename VType2>
 Vector2<VType2> Min(const Vector2<VType2> &v1, const Vector2<VType2> &v2);
 // debug printing
 template <typename VType2>
-std::ostream &operator <<(std::ostream &out, // NOLINT
+std::ostream &operator <<(std::ostream &out,
                           const Vector2<VType2> &va);
 
 // TODO(user): Declare extern templates for these types.

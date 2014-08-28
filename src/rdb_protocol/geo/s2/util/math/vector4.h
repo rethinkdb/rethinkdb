@@ -13,7 +13,7 @@
 using std::ostream;
 using std::cout;
 using std::endl;
-  // NOLINT(readability/streams)
+
 #include "rdb_protocol/geo/s2/base/basictypes.h"
 
 template <typename VType> class Vector4;
@@ -167,7 +167,7 @@ template <typename VType>
 Vector4<VType> Min(const Vector4<VType> &v1, const Vector4<VType> &v2);
 // debug printing
 template <typename VType>
-std::ostream &operator <<(std::ostream &out,  // NOLINT
+std::ostream &operator <<(std::ostream &out,
                           const Vector4<VType> &va);
 
 typedef Vector4<uint8>  Vector4_b;
