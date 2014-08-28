@@ -49,22 +49,22 @@ public:
 private:
     // Class used to queue up requests for items
     class request_node_t : public intrusive_list_node_t<request_node_t> {
-        public:
-            explicit request_node_t(promise_t<value_t *> *_promise_out) :
-                thread_id(get_thread_id()),
-                promise_out(_promise_out) {
-                guarantee(promise_out != NULL);
-            }
+    public:
+        explicit request_node_t(promise_t<value_t *> *_promise_out) :
+            thread_id(get_thread_id()),
+            promise_out(_promise_out) {
+            guarantee(promise_out != NULL);
+        }
 
-            bool is_abandoned() const { return promise_out == NULL; }
-            threadnum_t get_thread() const { return thread_id; }
-            void abandon() { promise_out = NULL; }
+        bool is_abandoned() const { return promise_out == NULL; }
+        threadnum_t get_thread() const { return thread_id; }
+        void abandon() { promise_out = NULL; }
 
-            void fulfill_promise(value_t *value) {
-                guarantee(!is_abandoned());
-                guarantee(get_thread_id() == thread_id);
-                promise_out->pulse(value);
-            }
+        void fulfill_promise(value_t *value) {
+            guarantee(!is_abandoned());
+            guarantee(get_thread_id() == thread_id);
+            promise_out->pulse(value);
+        }
 
     private:
         threadnum_t thread_id;
