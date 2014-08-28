@@ -184,6 +184,16 @@ tests:
     - cd: db2.table_status().pluck('db','name')
       ot: [{'db':'test2','name':'test2B'}]
 
+    - cd: >
+          r.db('rethinkdb').table('table_'+'config').filter({'name':'testA'}).nth(0)
+          .eq(r.table_config('testA'))
+      ot: True
+
+    - cd: >
+          r.db('rethinkdb').table('table_'+'status').filter({'name':'testA'}).nth(0)
+          .eq(r.table_status('testA'))
+      ot: True
+
     - cd: db.table_drop('testA')
       ot: ({'dropped':1})
     - cd: db.table_drop('testB')

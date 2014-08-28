@@ -125,7 +125,7 @@ bool artificial_reql_cluster_interface_t::table_status(
             "have meaningful status information.", database.c_str());
         return false;
     }
-    return next->table_config(name, db, bt, interruptor, resp_out, error_out);
+    return next->table_status(name, db, bt, interruptor, resp_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::table_reconfigure(
