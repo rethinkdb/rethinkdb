@@ -29,7 +29,7 @@ class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
 public:
     virtual ~datum_stream_t() { }
 
-    virtual changefeed::keyspec_t::all_t get_spec() = 0;
+    virtual changefeed::keyspec_t get_spec() = 0;
     virtual void add_transformation(transform_variant_t &&tv,
                                     const protob_t<const Backtrace> &bt) = 0;
     void add_grouping(transform_variant_t &&tv,
@@ -86,7 +86,7 @@ protected:
     bool ops_to_do() { return ops.size() != 0; }
 
 private:
-    virtual changefeed::keyspec_t::all_t get_spec() {
+    virtual changefeed::keyspec_t get_spec() {
         rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on an eager stream.");
     }
 
@@ -238,7 +238,7 @@ public:
     virtual bool is_cfeed() const;
 
 private:
-    virtual changefeed::keyspec_t::all_t get_spec() {
+    virtual changefeed::keyspec_t get_spec() {
         rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on a union stream.");
     }
     std::vector<counted_t<const datum_t> >
@@ -290,9 +290,9 @@ public:
     bool update_range(key_range_t *active_range,
                       const store_key_t &last_key) const;
 
-    changefeed::keyspec_t::all_t get_spec() const {
+    changefeed::keyspec_t::range_t get_spec() const {
         // RSI: transforms?
-        return changefeed::keyspec_t::all_t(original_datum_range);
+        return changefeed::keyspec_t::range_t(original_datum_range);
     }
 protected:
     const std::map<std::string, wire_func_t> global_optargs;
@@ -387,7 +387,7 @@ public:
     next_batch(env_t *env, const batchspec_t &batchspec);
     bool is_finished() const;
 
-    changefeed::keyspec_t::all_t get_spec() {
+    changefeed::keyspec_t::range_t get_spec() {
         return readgen->get_spec();
     }
 private:
@@ -426,8 +426,8 @@ public:
     bool is_exhausted() const;
     virtual bool is_cfeed() const;
 private:
-    virtual changefeed::keyspec_t::all_t get_spec() {
-        return reader.get_spec();
+    virtual changefeed::keyspec_t get_spec() {
+        return changefeed::keyspec_t(reader.get_spec());
     }
 
     std::vector<counted_t<const datum_t> >

@@ -81,12 +81,10 @@ struct stamped_msg_t;
 typedef mailbox_addr_t<void(stamped_msg_t)> client_addr_t;
 
 struct keyspec_t {
-    struct all_t {
-        all_t() { }
-        all_t(datum_range_t _range, size_t _limit = std::numeric_limits<size_t>::max())
-            : range(std::move(_range)), limit(_limit) { }
+    struct range_t {
+        range_t() { }
+        range_t(datum_range_t _range) : range(std::move(_range)) { }
         datum_range_t range;
-        size_t limit;
     };
     struct point_t {
         point_t() { }
@@ -95,7 +93,7 @@ struct keyspec_t {
     };
 
     keyspec_t(keyspec_t &&keyspec) = default;
-    explicit keyspec_t(all_t &&all) : spec(std::move(all)) { }
+    explicit keyspec_t(range_t &&range) : spec(std::move(range)) { }
     explicit keyspec_t(point_t &&point) : spec(std::move(point)) { }
 
     // This needs to be copyable and assignable because it goes inside a
@@ -103,13 +101,13 @@ struct keyspec_t {
     keyspec_t(const keyspec_t &keyspec) = default;
     keyspec_t &operator=(const keyspec_t &) = default;
 
-    boost::variant<all_t, point_t> spec;
+    boost::variant<range_t, point_t> spec;
 private:
     keyspec_t() { }
 };
 region_t keyspec_to_region(const keyspec_t &keyspec);
 
-RDB_DECLARE_SERIALIZABLE(keyspec_t::all_t);
+RDB_DECLARE_SERIALIZABLE(keyspec_t::range_t);
 RDB_DECLARE_SERIALIZABLE(keyspec_t::point_t);
 RDB_DECLARE_SERIALIZABLE(keyspec_t);
 

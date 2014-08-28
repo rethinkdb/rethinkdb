@@ -224,10 +224,10 @@ public:
     void del_point_sub(subscription_t *sub,
                        const counted_t<const datum_t> &key) THROWS_NOTHING;
 
-    void add_table_sub(subscription_t *sub) THROWS_NOTHING;
-    void del_table_sub(subscription_t *sub) THROWS_NOTHING;
+    void add_range_sub(subscription_t *sub) THROWS_NOTHING;
+    void del_range_sub(subscription_t *sub) THROWS_NOTHING;
 
-    void each_table_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
+    void each_range_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
     void each_point_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
     void each_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
     void on_point_sub(counted_t<const datum_t> key,
@@ -274,11 +274,11 @@ private:
     std::map<uuid_u, scoped_ptr_t<queue_t> > queues;
     cond_t queues_ready;
 
-    std::vector<std::set<subscription_t *> > table_subs;
+    std::vector<std::set<subscription_t *> > range_subs;
     std::map<counted_t<const datum_t>,
              std::vector<std::set<subscription_t *> >,
              counted_datum_less_t> point_subs;
-    rwlock_t table_subs_lock;
+    rwlock_t range_subs_lock;
     rwlock_t point_subs_lock;
     int64_t num_subs;
 
@@ -348,14 +348,15 @@ private:
     counted_t<const datum_t> el;
 };
 
-class table_sub_t : public subscription_t {
+class range_sub_t : public subscription_t {
 public:
     // Throws QL exceptions.
-    explicit table_sub_t(feed_t *feed) : subscription_t(feed) {
-        feed->add_table_sub(this);
+    explicit range_sub_t(feed_t *feed, keyspec_t::range_t _spec)
+        : subscription_t(feed), spec(std::move(_spec)) {
+        feed->add_range_sub(this);
     }
-    virtual ~table_sub_t() {
-        destructor_cleanup(std::bind(&feed_t::del_table_sub, feed, this));
+    virtual ~range_sub_t() {
+        destructor_cleanup(std::bind(&feed_t::del_range_sub, feed, this));
     }
     virtual void start(env_t *env, namespace_interface_t *nif, client_t::addr_t *addr) {
         assert_thread();
@@ -373,6 +374,7 @@ public:
 private:
     virtual void add_el(const uuid_u &uuid, uint64_t stamp, counted_t<const datum_t> d,
                         const configured_limits_t &limits) {
+        // RSI: check whether in range.
         // If we don't have start timestamps, we haven't started, and if we have
         // exc, we've stopped.
         if (start_stamps.size() != 0 && !exc) {
@@ -401,6 +403,7 @@ private:
     std::map<uuid_u, uint64_t> start_stamps;
     // The queue of changes we've accumulated since the last time we were read from.
     std::deque<counted_t<const datum_t> > els;
+    keyspec_t::range_t spec;
 };
 
 class msg_visitor_t : public boost::static_visitor<void> {
@@ -415,7 +418,7 @@ public:
             {"old_val", change.old_val.has() ? change.old_val : null}
         };
         auto d = make_counted<const datum_t>(std::move(obj));
-        feed->each_table_sub(
+        feed->each_range_sub(
             std::bind(&subscription_t::add_el,
                       ph::_1,
                       std::cref(server_uuid),
@@ -554,8 +557,8 @@ void subscription_t::destructor_cleanup(std::function<void()> del_sub) THROWS_NO
     }
 }
 
-RDB_MAKE_SERIALIZABLE_0(keyspec_t::all_t);
-INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::all_t);
+RDB_MAKE_SERIALIZABLE_0(keyspec_t::range_t);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::range_t);
 RDB_MAKE_SERIALIZABLE_1(keyspec_t::point_t, key);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::point_t);
 RDB_MAKE_SERIALIZABLE_1(keyspec_t, spec);
@@ -612,24 +615,24 @@ void feed_t::del_point_sub(subscription_t *sub,
 }
 
 // If this throws we might leak the increment to `num_subs`.
-void feed_t::add_table_sub(subscription_t *sub) THROWS_NOTHING {
+void feed_t::add_range_sub(subscription_t *sub) THROWS_NOTHING {
     on_thread_t th(home_thread());
     guarantee(!detached);
     num_subs += 1;
     auto_drainer_t::lock_t lock(&drainer);
-    rwlock_in_line_t spot(&table_subs_lock, access_t::write);
+    rwlock_in_line_t spot(&range_subs_lock, access_t::write);
     spot.write_signal()->wait_lazily_unordered();
-    table_subs[sub->home_thread().threadnum].insert(sub);
+    range_subs[sub->home_thread().threadnum].insert(sub);
 }
 
 // Can't throw because it's called in a destructor.
-void feed_t::del_table_sub(subscription_t *sub) THROWS_NOTHING {
+void feed_t::del_range_sub(subscription_t *sub) THROWS_NOTHING {
     on_thread_t th(home_thread());
     {
         auto_drainer_t::lock_t lock(&drainer);
-        rwlock_in_line_t spot(&table_subs_lock, access_t::write);
+        rwlock_in_line_t spot(&range_subs_lock, access_t::write);
         spot.write_signal()->wait_lazily_unordered();
-        size_t erased = table_subs[sub->home_thread().threadnum].erase(sub);
+        size_t erased = range_subs[sub->home_thread().threadnum].erase(sub);
         guarantee(erased == 1);
     }
     num_subs -= 1;
@@ -674,11 +677,11 @@ void feed_t::each_sub_in_vec_cb(const std::function<void(subscription_t *)> &f,
     }
 }
 
-void feed_t::each_table_sub(
+void feed_t::each_range_sub(
     const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
     assert_thread();
-    rwlock_in_line_t spot(&table_subs_lock, access_t::read);
-    each_sub_in_vec(table_subs, &spot, f);
+    rwlock_in_line_t spot(&range_subs_lock, access_t::read);
+    each_sub_in_vec(range_subs, &spot, f);
 }
 
 void feed_t::each_point_sub(
@@ -702,7 +705,7 @@ void feed_t::each_point_sub_cb(const std::function<void(subscription_t *)> &f, i
 }
 
 void feed_t::each_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
-    each_table_sub(f);
+    each_range_sub(f);
     each_point_sub(f);
 }
 
@@ -779,7 +782,7 @@ feed_t::feed_t(client_t *_client,
       uuid(_uuid),
       manager(_manager),
       mailbox(manager, std::bind(&feed_t::mailbox_cb, this, ph::_1)),
-      table_subs(get_num_threads()),
+      range_subs(get_num_threads()),
       /* We only use comparison in the point_subs map for equality purposes, not
          ordering -- and this isn't in a secondary index function.  Thus
          reql_version_t::LATEST is appropriate. */
@@ -881,14 +884,14 @@ client_t::client_t(
 }
 client_t::~client_t() { }
 
-// RSI: make `all_t` work.
+// RSI: make `range_t` work.
 counted_t<datum_stream_t>
 client_t::new_feed(env_t *env, const namespace_id_t &uuid,
         const protob_t<const Backtrace> &bt, const std::string &table_name,
         const std::string &pkey, keyspec_t &&keyspec) {
     try {
         scoped_ptr_t<subscription_t> sub;
-        boost::variant<scoped_ptr_t<table_sub_t>, scoped_ptr_t<point_sub_t> > presub;
+        boost::variant<scoped_ptr_t<range_sub_t>, scoped_ptr_t<point_sub_t> > presub;
         addr_t addr;
         {
             threadnum_t old_thread = get_thread_id();
@@ -919,8 +922,8 @@ client_t::new_feed(env_t *env, const namespace_id_t &uuid,
 
             struct keyspec_visitor_t : public boost::static_visitor<subscription_t *> {
                 explicit keyspec_visitor_t(feed_t *_feed) : feed(_feed) { }
-                subscription_t * operator()(const keyspec_t::all_t &) const {
-                    return new table_sub_t(feed);
+                subscription_t * operator()(const keyspec_t::range_t &all) const {
+                    return new range_sub_t(feed, all);
                 }
                 subscription_t * operator()(const keyspec_t::point_t &point) const {
                     return new point_sub_t(feed, point.key);

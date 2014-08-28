@@ -82,7 +82,7 @@ public:
         const std::string &table_name);
     counted_t<ql::datum_stream_t> read_changes(
         ql::env_t *env,
-        ql::changefeed::keyspec_t::all_t &&spec,
+        ql::changefeed::keyspec_t &&spec,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name);
     counted_t<ql::datum_stream_t> read_intersecting(

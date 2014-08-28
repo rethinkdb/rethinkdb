@@ -112,7 +112,7 @@ counted_t<ql::datum_stream_t> real_table_t::read_row_changes(
 
 counted_t<ql::datum_stream_t> real_table_t::read_changes(
     ql::env_t *env,
-    ql::changefeed::keyspec_t::all_t &&spec,
+    ql::changefeed::keyspec_t &&spec,
     const ql::protob_t<const Backtrace> &bt,
     const std::string &table_name) {
     return changefeed_client->new_feed(
@@ -121,7 +121,7 @@ counted_t<ql::datum_stream_t> real_table_t::read_changes(
         bt,
         table_name,
         pkey,
-        ql::changefeed::keyspec_t(std::move(spec)));
+        std::move(spec));
 }
 
 counted_t<ql::datum_stream_t> real_table_t::read_intersecting(
