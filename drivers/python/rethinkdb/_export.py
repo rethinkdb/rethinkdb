@@ -185,9 +185,9 @@ def write_table_metadata(progress, conn, db, table, base_path):
 def read_table_into_queue(progress, conn, db, table, pkey, task_queue, progress_info, exit_event):
     read_rows = 0
     if progress[0] is None:
-        cursor = r.db(db).table(table).order_by(index=pkey).run(conn, time_format="raw")
+        cursor = r.db(db).table(table).order_by(index=pkey).run(conn, time_format="raw", binary_format='raw')
     else:
-        cursor = r.db(db).table(table).between(progress[0], None, left_bound="open").order_by(index=pkey).run(conn, time_format="raw")
+        cursor = r.db(db).table(table).between(progress[0], None, left_bound="open").order_by(index=pkey).run(conn, time_format="raw", binary_format='raw')
 
     try:
         for row in cursor:

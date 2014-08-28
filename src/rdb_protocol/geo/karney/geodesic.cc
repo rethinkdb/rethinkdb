@@ -768,8 +768,8 @@ real geod_geninverse(const struct geod_geodesic* g,
       for (tripn = FALSE, tripb = FALSE; numit < maxit2; ++numit) {
         /* the WGS84 test set: mean = 1.47, sd = 1.25, max = 16
          * WGS84 and random input: mean = 2.85, sd = 0.60 */
-        real dv,
-          v = (Lambda12(g, sbet1, cbet1, dn1, sbet2, cbet2, dn2, salp1, calp1,
+        real dv = 0;
+        real v = (Lambda12(g, sbet1, cbet1, dn1, sbet2, cbet2, dn2, salp1, calp1,
                         &salp2, &calp2, &sig12, &ssig1, &csig1, &ssig2, &csig2,
                         &eps, &omg12, numit < maxit1, &dv, C1a, C2a, C3a)
                - lam12);
