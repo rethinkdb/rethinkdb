@@ -6,6 +6,7 @@ $success_count = 0
 
 JSPORT = ARGV[0]
 CPPPORT = ARGV[1]
+DB_AND_TABLE_NAME = ARGV[2]
 
 # -- import the called-for rethinkdb module
 if ENV['RUBY_DRIVER_DIR']
@@ -212,6 +213,30 @@ def test src, expected, name, opthash=nil, testopts=nil
   end
   return check_result name, src, result, expected
   
+end
+
+def setup_table name
+    if DB_AND_TABLE_NAME == "no_table_specified"
+        r.db("test").table_create("test").run($cpp_conn)
+        $defines.eval("#{name} = r.db('test').table('test')")
+    else
+        parts = DB_AND_TABLE_NAME.split('.')
+        # clear any pre-existing data from previous runs
+        r.db(parts.first).table(parts.last).delete().run($cpp_conn)
+        $defines.eval("#{name} = r.db(\"#{parts.first}\").table(\"#{parts.last}\")")
+    end
+end
+
+def check_no_table_specified
+    if DB_AND_TABLE_NAME != "no_table_specified"
+        abort "This test isn't meant to be run against a specific table"
+    end
+end
+
+def teardown_table
+    if DB_AND_TABLE_NAME == "no_table_specified"
+        r.db("test").table_drop("test").run($cpp_conn)
+    end
 end
 
 at_exit do

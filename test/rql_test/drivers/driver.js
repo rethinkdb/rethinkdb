@@ -26,6 +26,7 @@ console.log('Using RethinkDB client from: ' + rethinkdbLocation)
 
 var JSPORT = process.argv[2]
 var CPPPORT = process.argv[3]
+var DB_AND_TABLE_NAME = process.argv[4]
 
 var TRACE_ENABLED = false;
 
@@ -182,8 +183,7 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
             if (testPair) {
                 if (testPair instanceof Function) {
                     TRACE("==== runTest == function");
-                    testPair();
-                    runTest();
+                    testPair(runTest, cpp_conn);
                     return;
                 } else {
                     var src = testPair[0]
@@ -412,13 +412,78 @@ function test(testSrc, resSrc, name, runopts, testopts) {
     tests.push([testSrc, resSrc, name, runopts, testopts])
 }
 
+function setup_table(name) {
+    tests.push(function(next, cpp_conn) {
+        try {
+            if (DB_AND_TABLE_NAME === "no_table_specified") {
+                r.db("test").tableCreate("test").run(cpp_conn, {}, function (err, res) {
+                    if (err) {
+                        unexpectedException("setup_table", err);
+                    }
+                    if (res.created != 1) {
+                        unexpectedException("setup_table", "table not created", res);
+                    }
+                    defines[name] = r.db("test").table("test");
+                    next();
+                });
+            } else {
+                var parts = DB_AND_TABLE_NAME.split(".");
+                // erase any data left in the table from earlier tests
+                r.db(parts[0]).table(parts[1]).delete().run(cpp_conn, {}, function(err, res) {
+                    if (err) {
+                        unexpectedException("setup_table", err);
+                    }
+                    if (res.errors !== 0) {
+                        unexpectedException("setup_table", "error when deleting", res);
+                    }
+                    defines[name] = r.db(parts[0]).table(parts[1]);
+                    next();
+                });
+            }
+        } catch (err) {
+            console.log("stack: " + String(err.stack));
+            unexpectedException("setup_table");
+        }
+    });
+}
+
+function check_no_table_specified() {
+    if (DB_AND_TABLE_NAME !== "no_table_specified") {
+        unexpectedException("This test isn't meant to be run against a specific table")
+    }
+}
+
+function teardown_table() {
+    tests.push(function(next, cpp_conn) {
+        if (DB_AND_TABLE_NAME === "no_table_specified") {
+            try {
+                r.db("test").tableDrop("test").run(cpp_conn, {}, function (err, res) {
+                    if (err) {
+                        unexpectedException("teardown_table", err);
+                    }
+                    if (res.dropped != 1) {
+                        unexpectedException("teardown_table", "table not dropped", res);
+                    }
+                    next();
+                });
+            } catch (err) {
+                console.log("stack: " + String(err.stack));
+                unexpectedException("teardown_table");
+            }
+        } else {
+            next();
+        }
+    });
+}
+
 // Invoked by generated code to define variables to used within
 // subsequent tests
 function define(expr) {
-    tests.push(function() {
+    tests.push(function(next, cpp_conn) {
         with (defines) {
             eval("defines."+expr);
         }
+        next();
     });
 }
 
