@@ -893,7 +893,7 @@ private:
 
 class transform_visitor_t : public boost::static_visitor<op_t *> {
 public:
-    explicit transform_visitor_t() { }
+    transform_visitor_t() { }
     op_t *operator()(const map_wire_func_t &f) const {
         return new map_trans_t(f);
     }

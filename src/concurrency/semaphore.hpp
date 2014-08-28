@@ -138,7 +138,7 @@ private:
 
 class semaphore_acq_t {
 public:
-    semaphore_acq_t(co_semaphore_t *_acquiree, int64_t _count = 1, bool _force = false) :
+    explicit semaphore_acq_t(co_semaphore_t *_acquiree, int64_t _count = 1, bool _force = false) :
         acquiree(_acquiree),
         count(_count) {
 
