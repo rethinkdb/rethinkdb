@@ -65,7 +65,11 @@ def expr(val, nesting_depth=20):
             use one of ReQL's bultin time constructors, r.now, r.time, or r.iso8601.
             """ % (type(val).__name__))
         return ISO8601(val.isoformat())
-    elif not isinstance(val, str) and isinstance(val, (RqlBinary, bytes)):
+    elif isinstance(val, RqlBinary):
+        return Binary(val)
+    elif isinstance(val, str):
+        return Datum(val)
+    elif isinstance(val, bytes):
         return Binary(val)
     else:
         return Datum(val)
