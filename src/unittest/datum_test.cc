@@ -157,24 +157,29 @@ TEST(DatumTest, OffsetScaling) {
         // 8 bit
         ql::datum_t test_string(datum_string_t(std::string(1, 'A')));
         ql::datum_t test_array(
-            std::vector<ql::datum_t>{test_string}, ql::configured_limits_t::unlimited);
+            std::vector<ql::datum_t>{test_string, test_string},
+            ql::configured_limits_t::unlimited);
         test_datum_serialization(test_array);
     }
     {
         // Test values around the point where we switch to 16 bit offsets.
         for (size_t sz = 200; sz < 300; ++sz) {
-            ql::datum_t test_string(datum_string_t(std::string(sz, 'A')));
+            ql::datum_t test_string(datum_string_t(std::string(sz/2, 'A')));
             ql::datum_t test_array(
-                std::vector<ql::datum_t>{test_string}, ql::configured_limits_t::unlimited);
+                std::vector<ql::datum_t>{test_string, test_string},
+                ql::configured_limits_t::unlimited);
             test_datum_serialization(test_array);
         }
     }
     {
-        // 32 bit
-        ql::datum_t test_string(datum_string_t(std::string(100000, 'A')));
-        ql::datum_t test_array(
-            std::vector<ql::datum_t>{test_string}, ql::configured_limits_t::unlimited);
-        test_datum_serialization(test_array);
+        // Test values around the point where we switch to 32 bit offsets.
+        for (size_t sz = 65500; sz < 65540; ++sz) {
+            ql::datum_t test_string(datum_string_t(std::string(sz/2, 'A')));
+            ql::datum_t test_array(
+                std::vector<ql::datum_t>{test_string, test_string},
+                ql::configured_limits_t::unlimited);
+            test_datum_serialization(test_array);
+        }
     }
 }
 
