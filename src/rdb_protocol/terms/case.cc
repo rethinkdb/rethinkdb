@@ -32,4 +32,4 @@ counted_t<term_t> make_downcase_term(compile_env_t *env,
     return make_counted<case_term_t>(env, term, "downcase", ::tolower);
 }
 
-}
+}  // namespace ql

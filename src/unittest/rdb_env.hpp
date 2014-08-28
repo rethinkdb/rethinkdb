@@ -194,7 +194,7 @@ private:
              std::map<store_key_t, scoped_cJSON_t *> *> initial_datas;
 };
 
-}
+}  // namespace unittest
 
 #endif // UNITTEST_RDB_ENV_HPP_
 
