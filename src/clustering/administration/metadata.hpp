@@ -226,7 +226,11 @@ public:
     /* Find the next iterator >= [start] (as above, but predicate always true). */
     iterator find_next(iterator start) {
         iterator it;
-        for (it = start; it != end(); ++it) if (!it->second.is_deleted()) break;
+        for (it = start; it != end(); ++it) {
+            if (!it->second.is_deleted()) {
+                break;
+            }
+        }
         return it;
     }
 
