@@ -732,7 +732,7 @@ size_t datum_get_array_size(const shared_buf_ref_t<char> &array) {
      T data[num_elements] */
 size_t datum_get_element_offset(const shared_buf_ref_t<char> &array, size_t index) {
     buffer_read_stream_t sz_read_stream(array.get(), array.get_safety_boundary());
-    uint64_t ser_size;
+    uint64_t ser_size = 0;
     guarantee_deserialization(deserialize_varint_uint64(&sz_read_stream, &ser_size),
                               "datum decode array");
     const datum_offset_size_t offset_size = get_offset_size_from_inner_size(ser_size);
