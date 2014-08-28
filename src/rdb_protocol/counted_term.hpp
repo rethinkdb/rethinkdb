@@ -74,7 +74,7 @@ public:
         return get();
     }
 
-    void swap(protob_t &other) {  // NOLINT(build/include_what_you_use)
+    void swap(protob_t &other) {
         T *tmp = pointee_;
         pointee_ = other.pointee_;
         other.pointee_ = tmp;

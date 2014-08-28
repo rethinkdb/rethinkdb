@@ -28,7 +28,7 @@ public:
 
     virtual MUST_USE int64_t read(void *p, int64_t n);
 
-    void swap(std::string *other_source, int64_t *other_offset);  // NOLINT(build/include_what_you_use)
+    void swap(std::string *other_source, int64_t *other_offset);
 
 private:
     std::string source;
