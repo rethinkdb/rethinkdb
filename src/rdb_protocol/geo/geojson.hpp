@@ -18,7 +18,7 @@ typedef Vector3_d S2Point;
 class S2Polyline;
 class S2Polygon;
 namespace ql {
-    class configured_limits_t;
+class configured_limits_t;
 }
 
 
