@@ -61,7 +61,9 @@ void scoped_key_value_t::reset() {
 bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
                                  const key_range_t &range,
                                  depth_first_traversal_callback_t *cb,
-                                 direction_t direction);
+                                 direction_t direction,
+                                 const btree_key_t *left_excl_or_null,
+                                 const btree_key_t *right_incl_or_null);
 
 bool btree_depth_first_traversal(superblock_t *superblock,
                                  const key_range_t &range,
@@ -93,50 +95,41 @@ bool btree_depth_first_traversal(superblock_t *superblock,
             root_block->read_acq_signal()->wait();
         }
         return btree_depth_first_traversal(std::move(root_block), range, cb,
-                                           direction);
+                                           direction, NULL, NULL);
     }
 }
 
-// Note that the way this is currently used, parent_range can sometimes be smaller
-// than the actual range of the child in the btree (e.g. if we already had a
-// range restriction when starting the DFT).
-// That's ok, we just return the intersection here, so the resulting range will
-// always be a subrange of parent_range.
-// TODO! Lot's of key copying here. Wonder if that has a bad impact on performance.
-// Maybe we should pass around pointers instead.
-key_range_t get_child_key_range(const internal_node_t *inode,
-                                int child_index,
-                                const key_range_t &parent_range) {
-    key_range_t child_range = key_range_t::universe();
-
+void get_child_key_range(const internal_node_t *inode,
+                         int child_index,
+                         const btree_key_t *parent_left_excl_or_null,
+                         const btree_key_t *parent_right_incl_or_null,
+                         const btree_key_t **left_excl_or_null_out,
+                         const btree_key_t **right_incl_or_null_out) {
     const btree_internal_pair *pair = internal_node::get_pair_by_index(inode, child_index);
     if (child_index != inode->npairs - 1) {
         rassert(child_index < inode->npairs - 1);
-        // The key from the pair is inclusive. For key_range_t we have to make it
-        // exclusive.
-        store_key_t r(&pair->key);
-        if (r.increment()) {
-            child_range.right = key_range_t::right_bound_t(r);
-        }
+        *right_incl_or_null_out = &pair->key;
+    } else {
+        *right_incl_or_null_out = parent_right_incl_or_null;
     }
+
     if (child_index > 0) {
         const btree_internal_pair *left_neighbor =
             internal_node::get_pair_by_index(inode, child_index - 1);
         // The key from the left neighbor provides an exclusive left bound.
         // For key_range_t we have to make it inclusive.
-        store_key_t l(&left_neighbor->key);
-        if (l.increment()) {
-            child_range.left = l;
-        }
+        *left_excl_or_null_out = &left_neighbor->key;
+    } else {
+        *left_excl_or_null_out = parent_left_excl_or_null;
     }
-
-    return parent_range.intersection(child_range);
 }
 
 bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
                                  const key_range_t &range,
                                  depth_first_traversal_callback_t *cb,
-                                 direction_t direction) {
+                                 direction_t direction,
+                                 const btree_key_t *left_excl_or_null,
+                                 const btree_key_t *right_incl_or_null) {
     auto read = make_counted<counted_buf_read_t>(block.get());
     const node_t *node = static_cast<const node_t *>(read->get_data_read());
     if (node::is_internal(node)) {
@@ -155,10 +148,13 @@ bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
             const btree_internal_pair *pair = internal_node::get_pair_by_index(inode, true_index);
 
             // Get the child key range
-            const key_range_t child_range =
-                get_child_key_range(inode, true_index, range);
+            const btree_key_t *child_left_excl_or_null;
+            const btree_key_t *child_right_incl_or_null;
+            get_child_key_range(inode, true_index,
+                                left_excl_or_null, right_incl_or_null,
+                                &child_left_excl_or_null, &child_right_incl_or_null);
 
-            if (cb->is_range_interesting(child_range)) {
+            if (cb->is_range_interesting(child_left_excl_or_null, child_right_incl_or_null)) {
                 counted_t<counted_buf_lock_t> lock;
                 {
                     profile::starter_t starter("Acquire block for read.", cb->get_trace());
@@ -166,7 +162,9 @@ bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
                                                             access_t::read);
                 }
                 if (!btree_depth_first_traversal(std::move(lock),
-                                                 child_range, cb, direction)) {
+                                                 range, cb, direction,
+                                                 child_left_excl_or_null,
+                                                 child_right_incl_or_null)) {
                     return false;
                 }
             }

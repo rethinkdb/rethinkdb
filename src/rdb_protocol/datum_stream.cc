@@ -70,6 +70,18 @@ rget_read_response_t reader_t::do_read(env_t *env, const read_t &read) {
     read_response_t res;
     table.read_with_profile(env, read, &res, use_outdated);
     auto rget_res = boost::get<rget_read_response_t>(&res.response);
+    // TODO! Temporary hack. It's also insufficient, because we still
+    // have to do the distinct filtering. I should probably have a special reader_t for get_intersecting
+    rget_read_response_t geo_rget_res;
+    if (rget_res == NULL) {
+        auto geo_res = boost::get<intersecting_geo_read_response_t>(&res.response);
+        r_sanity_check(geo_res != NULL);
+        geo_rget_res.result = geo_res->result;
+        geo_rget_res.truncated = geo_res->truncated;
+        geo_rget_res.last_key = geo_res->last_key;
+        rget_res = &geo_rget_res;
+    }
+    // TODO! Also add a unit test that tests intersection batching btw!
     r_sanity_check(rget_res != NULL);
     if (auto e = boost::get<exc_t>(&rget_res->result)) {
         throw *e;
@@ -229,12 +241,10 @@ bool reader_t::is_finished() const {
 readgen_t::readgen_t(
     const std::map<std::string, wire_func_t> &_global_optargs,
     std::string _table_name,
-    const datum_range_t &_original_datum_range,
     profile_bool_t _profile,
     sorting_t _sorting)
     : global_optargs(_global_optargs),
       table_name(std::move(_table_name)),
-      original_datum_range(_original_datum_range),
       profile(_profile),
       sorting(_sorting) { }
 
@@ -264,7 +274,16 @@ bool readgen_t::update_range(key_range_t *active_range,
     return active_range->is_empty();
 }
 
-read_t readgen_t::next_read(
+rget_readgen_t::rget_readgen_t(
+    const std::map<std::string, wire_func_t> &_global_optargs,
+    std::string _table_name,
+    const datum_range_t &_original_datum_range,
+    profile_bool_t _profile,
+    sorting_t _sorting)
+    : readgen_t(_global_optargs, std::move(_table_name), _profile, _sorting),
+      original_datum_range(_original_datum_range) { }
+
+read_t rget_readgen_t::next_read(
     const key_range_t &active_range,
     const std::vector<transform_variant_t> &transforms,
     const batchspec_t &batchspec) const {
@@ -272,7 +291,7 @@ read_t readgen_t::next_read(
 }
 
 // TODO: this is how we did it before, but it sucks.
-read_t readgen_t::terminal_read(
+read_t rget_readgen_t::terminal_read(
     const std::vector<transform_variant_t> &transforms,
     const terminal_variant_t &_terminal,
     const batchspec_t &batchspec) const {
@@ -287,7 +306,7 @@ primary_readgen_t::primary_readgen_t(
     datum_range_t range,
     profile_bool_t profile,
     sorting_t sorting)
-    : readgen_t(global_optargs, std::move(table_name), range, profile, sorting) { }
+    : rget_readgen_t(global_optargs, std::move(table_name), range, profile, sorting) { }
 
 scoped_ptr_t<readgen_t> primary_readgen_t::make(
     env_t *env,
@@ -345,7 +364,7 @@ sindex_readgen_t::sindex_readgen_t(
     datum_range_t range,
     profile_bool_t profile,
     sorting_t sorting)
-    : readgen_t(global_optargs, std::move(table_name), range, profile, sorting),
+    : rget_readgen_t(global_optargs, std::move(table_name), range, profile, sorting),
       sindex(_sindex) { }
 
 scoped_ptr_t<readgen_t> sindex_readgen_t::make(
@@ -458,6 +477,85 @@ key_range_t sindex_readgen_t::original_keyrange() const {
 }
 
 std::string sindex_readgen_t::sindex_name() const {
+    return sindex;
+}
+
+intersecting_readgen_t::intersecting_readgen_t(
+    const std::map<std::string, wire_func_t> &global_optargs,
+    std::string table_name,
+    const std::string &_sindex,
+    const datum_t &_query_geometry,
+    profile_bool_t profile)
+    : readgen_t(global_optargs, std::move(table_name), profile, sorting_t::UNORDERED),
+      sindex(_sindex),
+      query_geometry(_query_geometry) { }
+
+scoped_ptr_t<readgen_t> intersecting_readgen_t::make(
+    env_t *env,
+    std::string table_name,
+    const std::string &sindex,
+    const datum_t &query_geometry) {
+    return scoped_ptr_t<readgen_t>(
+        new intersecting_readgen_t(
+            env->get_all_optargs(),
+            std::move(table_name),
+            sindex,
+            query_geometry,
+            env->profile()));
+}
+
+read_t intersecting_readgen_t::next_read(
+    const key_range_t &active_range,
+    const std::vector<transform_variant_t> &transforms,
+    const batchspec_t &batchspec) const {
+    return read_t(next_read_impl(active_range, transforms, batchspec), profile);
+}
+
+read_t intersecting_readgen_t::terminal_read(
+    const std::vector<transform_variant_t> &transforms,
+    const terminal_variant_t &_terminal,
+    const batchspec_t &batchspec) const {
+    intersecting_geo_read_t read =
+        next_read_impl(original_keyrange(), transforms, batchspec);
+    read.terminal = _terminal;
+    return read_t(read, profile);
+}
+
+intersecting_geo_read_t intersecting_readgen_t::next_read_impl(
+    const key_range_t &active_range,
+    const std::vector<transform_variant_t> &transforms,
+    const batchspec_t &batchspec) const {
+    return intersecting_geo_read_t(
+        region_t::universe(),
+        global_optargs,
+        table_name,
+        batchspec,
+        transforms,
+        boost::optional<terminal_variant_t>(),
+        sindex_rangespec_t(sindex, region_t(active_range), datum_range_t::universe()),
+        query_geometry);
+}
+
+boost::optional<read_t> intersecting_readgen_t::sindex_sort_read(
+    UNUSED const key_range_t &active_range,
+    UNUSED const std::vector<rget_item_t> &items,
+    UNUSED const std::vector<transform_variant_t> &transforms,
+    UNUSED const batchspec_t &batchspec) const {
+    // Intersection queries don't support sorting
+    return boost::optional<read_t>();
+}
+
+void intersecting_readgen_t::sindex_sort(UNUSED std::vector<rget_item_t> *vec) const {
+    // Not supported on intersection queries
+}
+
+key_range_t intersecting_readgen_t::original_keyrange() const {
+    // This is always universe for intersection reads.
+    // The real query is in the query geometry.
+    return datum_range_t::universe().to_sindex_keyrange();
+}
+
+std::string intersecting_readgen_t::sindex_name() const {
     return sindex;
 }
 

@@ -1029,8 +1029,12 @@ void rdb_rget_secondary_slice(
 void rdb_get_intersecting_slice(
         btree_slice_t *slice,
         const ql::datum_t &query_geometry,
+        const region_t &sindex_region,
         superblock_t *superblock,
         ql::env_t *ql_env,
+        const ql::batchspec_t &batchspec,
+        const std::vector<ql::transform_variant_t> &transforms,
+        const boost::optional<ql::terminal_variant_t> &terminal,
         const key_range_t &pk_range,
         const sindex_disk_info_t &sindex_info,
         intersecting_geo_read_response_t *response) {
@@ -1043,16 +1047,17 @@ void rdb_get_intersecting_slice(
         sindex_info.mapping_version_info.latest_compatible_reql_version;
     collect_all_geo_intersecting_cb_t callback(
         slice,
+        geo_job_data_t(ql_env, batchspec, transforms, terminal),
         geo_sindex_data_t(pk_range, sindex_info.mapping, sindex_func_reql_version,
                           sindex_info.multi),
-        ql_env,
-        query_geometry);
-    bool done = btree_concurrent_traversal(
-        superblock, key_range_t::universe(), &callback,
+        query_geometry,
+        sindex_region.inner, // TODO! <---
+        response);
+    btree_concurrent_traversal(
+        superblock, sindex_region.inner, &callback,
         direction_t::FORWARD,
         release_superblock_t::RELEASE);
-    guarantee(done); // TODO! <---
-    callback.finish(response);
+    callback.finish();
 }
 
 void rdb_get_nearest_slice(

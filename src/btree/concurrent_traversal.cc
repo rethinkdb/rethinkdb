@@ -85,8 +85,9 @@ public:
         return failure_cond_->is_pulsed() ? done_traversing_t::YES : done_traversing_t::NO;
     }
 
-    virtual bool is_range_interesting(const key_range_t &range) {
-        return cb_->is_range_interesting(range);
+    virtual bool is_range_interesting(const btree_key_t *left_excl_or_null,
+                                      const btree_key_t *right_incl_or_null) {
+        return cb_->is_range_interesting(left_excl_or_null, right_incl_or_null);
     }
 
     virtual profile::trace_t *get_trace() THROWS_NOTHING {

@@ -40,11 +40,15 @@ public:
     void init_query(const std::vector<std::string> &query_grid_keys);
 
     /* Called for every pair that could potentially intersect with query_grid_keys.
-    Note that this might be called multiple times for the same value. */
-    virtual void on_candidate(
+    Note that this might be called multiple times for the same value.
+    Correct ordering of the call is not guaranteed. Implementations are expected
+    to call waiter.wait_interruptible() before performing ordering-sensitive
+    operations. */
+    virtual done_traversing_t on_candidate(
             const btree_key_t *key,
             const void *value,
-            buf_parent_t parent)
+            buf_parent_t parent,
+            concurrent_traversal_fifo_enforcer_signal_t waiter)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
     /* concurrent_traversal_callback_t interface */
@@ -52,12 +56,9 @@ public:
             scoped_key_value_t &&keyvalue,
             concurrent_traversal_fifo_enforcer_signal_t waiter)
             THROWS_ONLY(interrupted_exc_t);
-    bool is_range_interesting(const key_range_t &range);
-
-protected:
-    // Once called, no further calls to on_candidate() will be made and
-    // the traversal will be aborted as quickly as possible.
-    void abort_traversal();
+    bool is_range_interesting(
+            const btree_key_t *left_excl_or_null,
+            const btree_key_t *right_incl_or_null);
 
 private:
     static bool cell_intersects_with_range(
@@ -68,7 +69,6 @@ private:
                                    const S2CellId right_max);
 
     std::vector<S2CellId> query_cells_;
-    bool abort_;
     bool is_initialized_;
     const signal_t *interruptor_;
 };

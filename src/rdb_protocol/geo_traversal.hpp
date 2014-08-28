@@ -9,15 +9,19 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
+#include "btree/concurrent_traversal.hpp"
 #include "btree/keys.hpp"
 #include "btree/slice.hpp"
 #include "btree/types.hpp"
 #include "containers/counted.hpp"
+#include "containers/scoped.hpp"
+#include "rdb_protocol/batching.hpp"
 #include "rdb_protocol/geo/ellipsoid.hpp"
 #include "rdb_protocol/geo/exceptions.hpp"
 #include "rdb_protocol/geo/indexing.hpp"
 #include "rdb_protocol/geo/lat_lon_types.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/shards.hpp"
 
 namespace ql {
 class datum_t;
@@ -31,6 +35,24 @@ class disabler_t;
 class sampler_t;
 }
 
+class geo_job_data_t {
+public:
+    geo_job_data_t(ql::env_t *_env, const ql::batchspec_t &batchspec,
+                   const std::vector<ql::transform_variant_t> &_transforms,
+                   const boost::optional<ql::terminal_variant_t> &_terminal);
+    geo_job_data_t(geo_job_data_t &&jd)
+        : env(jd.env),
+          batcher(std::move(jd.batcher)),
+          transformers(std::move(jd.transformers)),
+          accumulator(jd.accumulator.release()) {
+    }
+private:
+    friend class collect_all_geo_intersecting_cb_t;
+    ql::env_t *const env;
+    ql::batcher_t batcher;
+    std::vector<scoped_ptr_t<ql::op_t> > transformers;
+    scoped_ptr_t<ql::accumulator_t> accumulator;
+};
 
 class geo_sindex_data_t {
 public:
@@ -64,10 +86,11 @@ public:
 
     void init_query(const ql::datum_t &_query_geometry);
 
-    void on_candidate(
+    done_traversing_t on_candidate(
             const btree_key_t *key,
             const void *value,
-            buf_parent_t parent)
+            buf_parent_t parent,
+            concurrent_traversal_fifo_enforcer_signal_t waiter)
             THROWS_ONLY(interrupted_exc_t);
 
 protected:
@@ -76,9 +99,10 @@ protected:
             const ql::datum_t &val)
             THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t) = 0;
 
-    virtual void emit_result(
-            const ql::datum_t &sindex_val,
-            const ql::datum_t &val)
+    virtual done_traversing_t emit_result(
+            ql::datum_t &&sindex_val,
+            store_key_t &&key,
+            ql::datum_t &&val)
             THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t) = 0;
 
     virtual void emit_error(
@@ -104,17 +128,20 @@ private:
     scoped_ptr_t<profile::sampler_t> sampler;
 };
 
+// TODO! Update description
 // Simply accumulates all intersecting results in an array without any
 // post-filtering.
 class collect_all_geo_intersecting_cb_t : public geo_intersecting_cb_t {
 public:
     collect_all_geo_intersecting_cb_t(
             btree_slice_t *_slice,
+            geo_job_data_t &&_job,
             geo_sindex_data_t &&_sindex,
-            ql::env_t *_env,
-            const ql::datum_t &_query_geometry);
+            const ql::datum_t &_query_geometry,
+            const key_range_t &_sindex_range,
+            intersecting_geo_read_response_t *_resp_out);
 
-    void finish(intersecting_geo_read_response_t *resp_out);
+    void finish() THROWS_ONLY(interrupted_exc_t);
 
 protected:
     bool post_filter(
@@ -122,9 +149,10 @@ protected:
             const ql::datum_t &val)
             THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t);
 
-    void emit_result(
-            const ql::datum_t &sindex_val,
-            const ql::datum_t &val)
+    done_traversing_t emit_result(
+            ql::datum_t &&sindex_val,
+            store_key_t &&key,
+            ql::datum_t &&val)
             THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t);
 
     void emit_error(
@@ -132,9 +160,8 @@ protected:
             THROWS_ONLY(interrupted_exc_t);
 
 private:
-    // Accumulates the data until finish() is called.
-    ql::datum_array_builder_t result_acc;
-    boost::optional<ql::exc_t> error;
+    geo_job_data_t job;
+    intersecting_geo_read_response_t *response;
 
     std::set<store_key_t> distinct_emitted;
 };
@@ -185,9 +212,10 @@ protected:
             const ql::datum_t &val)
             THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t);
 
-    void emit_result(
-            const ql::datum_t &sindex_val,
-            const ql::datum_t &val)
+    done_traversing_t emit_result(
+            ql::datum_t &&sindex_val,
+            store_key_t &&key,
+            ql::datum_t &&val)
             THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t);
 
     void emit_error(

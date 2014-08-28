@@ -98,12 +98,12 @@ std::vector<std::string> compute_index_grid_keys(
 }
 
 geo_index_traversal_helper_t::geo_index_traversal_helper_t(const signal_t *interruptor)
-    : abort_(false), is_initialized_(false), interruptor_(interruptor) { }
+    : is_initialized_(false), interruptor_(interruptor) { }
 
 geo_index_traversal_helper_t::geo_index_traversal_helper_t(
         const std::vector<std::string> &query_grid_keys,
         const signal_t *interruptor)
-    : abort_(false), is_initialized_(false), interruptor_(interruptor) {
+    : is_initialized_(false), interruptor_(interruptor) {
     init_query(query_grid_keys);
 }
 
@@ -120,7 +120,7 @@ void geo_index_traversal_helper_t::init_query(
 
 done_traversing_t geo_index_traversal_helper_t::handle_pair(
         scoped_key_value_t &&keyvalue,
-        UNUSED concurrent_traversal_fifo_enforcer_signal_t waiter)
+        concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t) {
     guarantee(is_initialized_);
 
@@ -130,36 +130,21 @@ done_traversing_t geo_index_traversal_helper_t::handle_pair(
 
     const S2CellId key_cell = btree_key_to_s2cellid(keyvalue.key());
     if (any_query_cell_intersects(key_cell.range_min(), key_cell.range_max())) {
-        on_candidate(keyvalue.key(), keyvalue.value(), keyvalue.expose_buf());
-    }
-
-    // TODO! Later we will have to wait for waiter, I guess
-
-    if (abort_) {
-        return done_traversing_t::YES;
+        return on_candidate(keyvalue.key(), keyvalue.value(), keyvalue.expose_buf(),
+                            waiter);
     } else {
         return done_traversing_t::NO;
     }
 }
 
-bool geo_index_traversal_helper_t::is_range_interesting(const key_range_t &range) {
+bool geo_index_traversal_helper_t::is_range_interesting(
+        const btree_key_t *left_excl_or_null,
+        const btree_key_t *right_incl_or_null) {
     guarantee(is_initialized_);
-    const btree_key_t *left_incl_or_null =
-        range.left.size() == 0
-        ? NULL
-        : range.left.btree_key();
-    const btree_key_t *right_excl_or_null =
-        range.right.unbounded
-        ? NULL
-        : range.right.key.btree_key();
-    // We ignore the fact that range.right is exclusive and not inclusive.
+    // We ignore the fact that the left key is exclusive and not inclusive.
     // In rare cases this costs us a little bit of efficiency because we consider
     // one extra key, but it saves us some complexity.
-    return any_query_cell_intersects(left_incl_or_null, right_excl_or_null);
-}
-
-void geo_index_traversal_helper_t::abort_traversal() {
-    abort_ = true;
+    return any_query_cell_intersects(left_excl_or_null, right_incl_or_null);
 }
 
 bool geo_index_traversal_helper_t::any_query_cell_intersects(

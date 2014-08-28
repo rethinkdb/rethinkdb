@@ -240,14 +240,14 @@ public:
     explicit readgen_t(
         const std::map<std::string, wire_func_t> &global_optargs,
         std::string table_name,
-        const datum_range_t &original_datum_range,
         profile_bool_t profile,
         sorting_t sorting);
     virtual ~readgen_t() { }
-    read_t terminal_read(
+
+    virtual read_t terminal_read(
         const std::vector<transform_variant_t> &transform,
         const terminal_variant_t &_terminal,
-        const batchspec_t &batchspec) const;
+        const batchspec_t &batchspec) const = 0;
     // This has to be on `readgen_t` because we sort differently depending on
     // the kinds of reads we're doing.
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const = 0;
@@ -255,7 +255,7 @@ public:
     virtual read_t next_read(
         const key_range_t &active_range,
         const std::vector<transform_variant_t> &transform,
-        const batchspec_t &batchspec) const;
+        const batchspec_t &batchspec) const = 0;
     // This generates a read that will read as many rows as we need to be able
     // to do an sindex sort, or nothing if no such read is necessary.  Such a
     // read should only be necessary when we're ordering by a secondary index
@@ -275,24 +275,55 @@ public:
 protected:
     const std::map<std::string, wire_func_t> global_optargs;
     const std::string table_name;
-    const datum_range_t original_datum_range;
     const profile_bool_t profile;
     const sorting_t sorting;
+};
+
+class rget_readgen_t : public readgen_t {
+public:
+    explicit rget_readgen_t(
+        const std::map<std::string, wire_func_t> &global_optargs,
+        std::string table_name,
+        const datum_range_t &original_datum_range,
+        profile_bool_t profile,
+        sorting_t sorting);
+
+    virtual read_t terminal_read(
+        const std::vector<transform_variant_t> &transform,
+        const terminal_variant_t &_terminal,
+        const batchspec_t &batchspec) const;
+
+    virtual read_t next_read(
+        const key_range_t &active_range,
+        const std::vector<transform_variant_t> &transform,
+        const batchspec_t &batchspec) const;
 
 private:
     virtual rget_read_t next_read_impl(
         const key_range_t &active_range,
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const = 0;
+
+protected:
+    const datum_range_t original_datum_range;
 };
 
-class primary_readgen_t : public readgen_t {
+class primary_readgen_t : public rget_readgen_t {
 public:
     static scoped_ptr_t<readgen_t> make(
         env_t *env,
         std::string table_name,
         datum_range_t range = datum_range_t::universe(),
         sorting_t sorting = sorting_t::UNORDERED);
+
+    virtual boost::optional<read_t> sindex_sort_read(
+        const key_range_t &active_range,
+        const std::vector<rget_item_t> &items,
+        const std::vector<transform_variant_t> &transform,
+        const batchspec_t &batchspec) const;
+    virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
+    virtual key_range_t original_keyrange() const;
+    virtual std::string sindex_name() const; // Used for error checking.
 private:
     primary_readgen_t(const std::map<std::string, wire_func_t> &global_optargs,
                       std::string table_name,
@@ -303,6 +334,17 @@ private:
         const key_range_t &active_range,
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
+};
+
+class sindex_readgen_t : public rget_readgen_t {
+public:
+    static scoped_ptr_t<readgen_t> make(
+        env_t *env,
+        std::string table_name,
+        const std::string &sindex,
+        datum_range_t range = datum_range_t::universe(),
+        sorting_t sorting = sorting_t::UNORDERED);
+
     virtual boost::optional<read_t> sindex_sort_read(
         const key_range_t &active_range,
         const std::vector<rget_item_t> &items,
@@ -311,16 +353,6 @@ private:
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual key_range_t original_keyrange() const;
     virtual std::string sindex_name() const; // Used for error checking.
-};
-
-class sindex_readgen_t : public readgen_t {
-public:
-    static scoped_ptr_t<readgen_t> make(
-        env_t *env,
-        std::string table_name,
-        const std::string &sindex,
-        datum_range_t range = datum_range_t::universe(),
-        sorting_t sorting = sorting_t::UNORDERED);
 private:
     sindex_readgen_t(
         const std::map<std::string, wire_func_t> &global_optargs,
@@ -333,6 +365,29 @@ private:
         const key_range_t &active_range,
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
+
+    const std::string sindex;
+};
+
+// For geospatial intersection queries
+class intersecting_readgen_t : public readgen_t {
+public:
+    static scoped_ptr_t<readgen_t> make(
+        env_t *env,
+        std::string table_name,
+        const std::string &sindex,
+        const datum_t &query_geometry);
+
+    virtual read_t terminal_read(
+        const std::vector<transform_variant_t> &transform,
+        const terminal_variant_t &_terminal,
+        const batchspec_t &batchspec) const;
+
+    virtual read_t next_read(
+        const key_range_t &active_range,
+        const std::vector<transform_variant_t> &transform,
+        const batchspec_t &batchspec) const;
+
     virtual boost::optional<read_t> sindex_sort_read(
         const key_range_t &active_range,
         const std::vector<rget_item_t> &items,
@@ -341,8 +396,23 @@ private:
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual key_range_t original_keyrange() const;
     virtual std::string sindex_name() const; // Used for error checking.
+private:
+    intersecting_readgen_t(
+        const std::map<std::string, wire_func_t> &global_optargs,
+        std::string table_name,
+        const std::string &sindex,
+        const datum_t &query_geometry,
+        profile_bool_t profile);
+
+    // Analogue to rget_readgen_t::next_read_impl(), but generates an intersecting
+    // geo read.
+    intersecting_geo_read_t next_read_impl(
+        const key_range_t &active_range,
+        const std::vector<transform_variant_t> &transforms,
+        const batchspec_t &batchspec) const;
 
     const std::string sindex;
+    const datum_t query_geometry;
 };
 
 class reader_t {
