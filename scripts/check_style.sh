@@ -11,10 +11,6 @@ find "$SRC_DIR" -name \*.cc -o -name \*.hpp -o -name \*.tcc | grep -Ev $IGNORE |
 # whitespace/indent - disabled temporarily until we can silence
 # complaints about needing a space before "private:" or "public:".
 
-# whitespace/forcolon - disabled because it wants whitespace around a
-# range-based for loop -- maybe we could silence the category more
-# specifically.
-
 # whitespace/parens - what is this?  Maybe it's something to enable
 # now.
 
