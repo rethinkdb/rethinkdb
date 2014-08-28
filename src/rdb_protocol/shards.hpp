@@ -270,7 +270,7 @@ private:
 // them before iterating them.
 template <class T, class Callable>
 void iterate_ordered_by_version(reql_version_t reql_version,
-                                grouped_t<T> &grouped,
+                                grouped_t<T> &grouped,  // NOLINT(runtime/references)
                                 Callable &&callable) {
     std::map<datum_t, T, optional_datum_less_t> *m
         = grouped.get_underlying_map(grouped::order_doesnt_matter_t());
@@ -286,7 +286,7 @@ void iterate_ordered_by_version(reql_version_t reql_version,
         // works fine.
         std::sort(vec.begin(), vec.end(),
                   grouped_details::grouped_pair_compare_t<T>(reql_version));
-        for (std::pair<datum_t, T> &pair : vec) {  // NOLINT(runtime/references)
+        for (std::pair<datum_t, T> &pair : vec) {
             callable(pair.first, pair.second);
         }
     }
