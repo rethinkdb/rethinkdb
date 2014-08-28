@@ -80,7 +80,9 @@ class RqlQuery(object):
     def __init__(self, *args, **optargs):
         self.args = [expr(e) for e in args]
 
-        self.optargs = {k: expr(v) for k, v in dict_items(optargs)}
+        self.optargs = {}
+        for k, v in dict_items(optargs):
+            self.optargs[k] = expr(v)
 
     # Send this query to the server to be executed
     def run(self, c=None, **global_optargs):
