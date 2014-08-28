@@ -2,11 +2,10 @@
 #ifndef CLUSTERING_ADMINISTRATION_ISSUES_OUTDATED_INDEX_HPP_
 #define CLUSTERING_ADMINISTRATION_ISSUES_OUTDATED_INDEX_HPP_
 
+#include <list>
 #include <map>
 #include <set>
-#include <list>
 #include <string>
-#include <list>
 
 #include "http/json.hpp"
 #include "containers/incremental_lenses.hpp"
