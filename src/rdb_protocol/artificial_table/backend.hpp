@@ -18,8 +18,7 @@ public:
         `get_all_primary_keys()`, it is undefined whether the read will see the write or
         not.
      2. `get_primary_key_name()`, `read_all_primary_keys()`, `read_row()` and
-        `write_row()` can be called on any thread. Beware of problems when transferring
-        `counted_t<const ql::datum_t>` between threads!
+        `write_row()` can be called on any thread.
      3. `get_publisher()` can only be called on the home thread. The return value will
         always deliver notifications on that same thread.
     */
@@ -31,23 +30,23 @@ public:
     /* Returns the primary keys of all of the rows that exist. */
     virtual bool read_all_primary_keys(
         signal_t *interruptor,
-        std::vector<counted_t<const ql::datum_t> > *keys_out,
+        std::vector<ql::datum_t> *keys_out,
         std::string *error_out) = 0;
 
     /* Returns the current value of the row, or an empty `counted_t` if no such row
     exists. */
     virtual bool read_row(
-        counted_t<const ql::datum_t> primary_key,
+        ql::datum_t primary_key,
         signal_t *interruptor,
-        counted_t<const ql::datum_t> *row_out,
+        ql::datum_t *row_out,
         std::string *error_out) = 0;
 
     /* Called when the user issues a write command on the row. Calling `set_row()` on a
     row that doesn't exist means an insertion; calling `set_row` with `new_value` an
     empty `counted_t` means a deletion. */
     virtual bool write_row(
-        counted_t<const ql::datum_t> primary_key,
-        counted_t<const ql::datum_t> new_value,
+        ql::datum_t primary_key,
+        ql::datum_t new_value,
         signal_t *interruptor,
         std::string *error_out) = 0;
 

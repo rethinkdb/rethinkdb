@@ -38,7 +38,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
 
 class batcher_t {
 public:
-    bool note_el(const counted_t<const datum_t> &t) {
+    bool note_el(const datum_t &t) {
         seen_one_el = true;
         els_left -= 1;
         min_els_left -= 1;
@@ -73,7 +73,7 @@ private:
 class batchspec_t {
 public:
     static batchspec_t user(batch_type_t batch_type,
-                            const counted_t<const datum_t> &conf);
+                            const datum_t &conf);
     static batchspec_t user(batch_type_t batch_type, env_t *env);
     static batchspec_t all(); // Gimme everything.
     static batchspec_t empty() { return batchspec_t(); }

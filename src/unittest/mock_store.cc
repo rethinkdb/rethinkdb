@@ -6,12 +6,12 @@
 namespace unittest {
 
 write_t mock_overwrite(std::string key, std::string value) {
-    std::map<std::string, counted_t<const ql::datum_t> > m;
-    m["id"] = make_counted<ql::datum_t>(std::string(key));
-    m["value"] = make_counted<ql::datum_t>(std::move(value));
+    std::map<datum_string_t, ql::datum_t> m;
+    m[datum_string_t("id")] = ql::datum_t(datum_string_t(key));
+    m[datum_string_t("value")] = ql::datum_t(datum_string_t(value));
 
     point_write_t pw(store_key_t(key),
-                                     make_counted<ql::datum_t>(std::move(m)),
+                                     ql::datum_t(std::move(m)),
                                      true);
     return write_t(pw, DURABILITY_REQUIREMENT_SOFT, profile_bool_t::DONT_PROFILE,
                    ql::configured_limits_t());
@@ -31,7 +31,7 @@ std::string mock_parse_read_response(const read_response_t &rr) {
         // Behave like the old dummy_protocol_t.
         return "";
     }
-    return prr->data->get("value")->as_str().to_std();
+    return prr->data->get_field("value")->as_str().to_std();
 }
 
 std::string mock_lookup(store_view_t *store, std::string key) {
@@ -233,7 +233,7 @@ bool mock_store_t::send_backfill(
         = metainfo_.mask(start_point.get_domain());
     if (send_backfill_cb->should_backfill(masked_metainfo)) {
         /* Make a copy so we can sleep and still have the correct semantics */
-        std::map<store_key_t, std::pair<repli_timestamp_t, counted_t<const ql::datum_t> > > snapshot = table_;
+        std::map<store_key_t, std::pair<repli_timestamp_t, ql::datum_t> > snapshot = table_;
 
         if (rng_.randint(2) == 0) {
             nap(rng_.randint(10), interruptor);
@@ -338,7 +338,7 @@ std::string mock_store_t::values(std::string key) {
         // Behave like the old dummy_protocol_t.
         return "";
     }
-    return it->second.second->get("value")->as_str().to_std();
+    return it->second.second->get_field("value")->as_str().to_std();
 }
 
 repli_timestamp_t mock_store_t::timestamps(std::string key) {

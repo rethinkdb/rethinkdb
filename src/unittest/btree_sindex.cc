@@ -199,7 +199,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
                     &sindex_uuid);
             ASSERT_TRUE(sindex_exists);
 
-            counted_t<const ql::datum_t> data = make_counted<ql::datum_t>(1.0);
+            ql::datum_t data = ql::datum_t(1.0);
 
             point_write_response_t response;
             rdb_modification_info_t mod_info;

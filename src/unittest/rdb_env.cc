@@ -124,18 +124,18 @@ mock_namespace_interface_t::read_visitor_t::read_visitor_t(
 void mock_namespace_interface_t::write_visitor_t::operator()(
     const batched_replace_t &r) {
     ql::configured_limits_t limits;
-    counted_t<const ql::datum_t> stats = ql::datum_t::empty_object();
+    ql::datum_t stats = ql::datum_t::empty_object();
     std::set<std::string> conditions;
     for (auto it = r.keys.begin(); it != r.keys.end(); ++it) {
         ql::datum_object_builder_t resp;
-        counted_t<const ql::datum_t> old_val;
+        ql::datum_t old_val;
         if (data->find(*it) != data->end()) {
             old_val = ql::to_datum(data->at(*it)->get(), limits);
         } else {
             old_val = ql::datum_t::null();
         }
 
-        counted_t<const ql::datum_t> new_val
+        ql::datum_t new_val
             = r.f.compile_wire_func()->call(env, old_val)->as_datum();
         data->erase(*it);
 
@@ -143,79 +143,79 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
         if (new_val->get_type() == ql::datum_t::R_OBJECT) {
             data->insert(std::make_pair(*it, new scoped_cJSON_t(new_val->as_json())));
             if (old_val->get_type() == ql::datum_t::R_NULL) {
-                err = resp.add("inserted", make_counted<const ql::datum_t>(1.0));
+                err = resp.add("inserted", ql::datum_t(1.0));
             } else {
                 if (*old_val == *new_val) {
-                    err = resp.add("unchanged", make_counted<const ql::datum_t>(1.0));
+                    err = resp.add("unchanged", ql::datum_t(1.0));
                 } else {
-                    err = resp.add("replaced", make_counted<const ql::datum_t>(1.0));
+                    err = resp.add("replaced", ql::datum_t(1.0));
                 }
             }
         } else if (new_val->get_type() == ql::datum_t::R_NULL) {
             if (old_val->get_type() == ql::datum_t::R_NULL) {
-                err = resp.add("skipped", make_counted<const ql::datum_t>(1.0));
+                err = resp.add("skipped", ql::datum_t(1.0));
             } else {
-                err = resp.add("deleted", make_counted<const ql::datum_t>(1.0));
+                err = resp.add("deleted", ql::datum_t(1.0));
             }
         } else {
             throw cannot_perform_query_exc_t(
                 "value being inserted is neither an object nor an empty value");
         }
         guarantee(!err);
-        stats = stats->merge(std::move(resp).to_counted(), ql::stats_merge,
+        stats = stats->merge(std::move(resp).to_datum(), ql::stats_merge,
                             limits, &conditions);
     }
-    ql::datum_object_builder_t result(std::move(stats)->as_object());
+    ql::datum_object_builder_t result(std::move(stats));
     result.add_warnings(conditions, limits);
-    response->response = std::move(result).to_counted();
+    response->response = std::move(result).to_datum();
 }
 
 void mock_namespace_interface_t::write_visitor_t::operator()(
     const batched_insert_t &bi) {
     ql::configured_limits_t limits;
-    counted_t<const ql::datum_t> stats = ql::datum_t::empty_object();
+    ql::datum_t stats = ql::datum_t::empty_object();
     std::set<std::string> conditions;
     for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
-        store_key_t key((*it)->get(bi.pkey)->print_primary());
+        store_key_t key((*it)->get_field(datum_string_t(bi.pkey))->print_primary());
         ql::datum_object_builder_t resp;
-        counted_t<const ql::datum_t> old_val;
+        ql::datum_t old_val;
         if (data->find(key) != data->end()) {
             old_val = ql::to_datum(data->at(key)->get(), limits);
         } else {
             old_val = ql::datum_t::null();
         }
 
-        counted_t<const ql::datum_t> new_val = *it;
+        ql::datum_t new_val = *it;
         data->erase(key);
 
         bool err;
         if (new_val->get_type() == ql::datum_t::R_OBJECT) {
             data->insert(std::make_pair(key, new scoped_cJSON_t(new_val->as_json())));
             if (old_val->get_type() == ql::datum_t::R_NULL) {
-                err = resp.add("inserted", make_counted<const ql::datum_t>(1.0));
+                err = resp.add("inserted", ql::datum_t(1.0));
             } else {
                 if (*old_val == *new_val) {
-                    err = resp.add("unchanged", make_counted<const ql::datum_t>(1.0));
+                    err = resp.add("unchanged", ql::datum_t(1.0));
                 } else {
-                    err = resp.add("replaced", make_counted<const ql::datum_t>(1.0));
+                    err = resp.add("replaced", ql::datum_t(1.0));
                 }
             }
         } else if (new_val->get_type() == ql::datum_t::R_NULL) {
             if (old_val->get_type() == ql::datum_t::R_NULL) {
-                err = resp.add("skipped", make_counted<const ql::datum_t>(1.0));
+                err = resp.add("skipped", ql::datum_t(1.0));
             } else {
-                err = resp.add("deleted", make_counted<const ql::datum_t>(1.0));
+                err = resp.add("deleted", ql::datum_t(1.0));
             }
         } else {
             throw cannot_perform_query_exc_t(
                 "value being inserted is neither an object nor an empty value");
         }
         guarantee(!err);
-        stats = stats->merge(std::move(resp).to_counted(), ql::stats_merge, limits, &conditions);
+        stats = stats->merge(std::move(resp).to_datum(), ql::stats_merge, limits, &conditions);
     }
-    ql::datum_object_builder_t result(std::move(stats)->as_object());
+    ql::datum_object_builder_t result(stats);
     result.add_warnings(conditions, limits);
-    response->response = std::move(result).to_counted();
+    response->response = std::move(result).to_datum();
 }
 
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const point_write_t &) {
@@ -419,10 +419,25 @@ bool test_rdb_env_t::instance_t::table_find(const name_string_t &name,
     }
 }
 
-bool test_rdb_env_t::instance_t::server_rename(
-        UNUSED const name_string_t &old_name, UNUSED const name_string_t &new_name,
-        UNUSED signal_t *local_interruptor, std::string *error_out) {
-    *error_out = "test_rdb_env_t::instance_t doesn't support renaming servers";
+bool test_rdb_env_t::instance_t::table_config(
+        UNUSED const boost::optional<name_string_t> &name,
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const ql::protob_t<const Backtrace> &bt,
+        UNUSED signal_t *local_interruptor,
+        UNUSED counted_t<ql::val_t> *resp_out,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support table_config()";
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::table_status(
+        UNUSED const boost::optional<name_string_t> &name,
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const ql::protob_t<const Backtrace> &bt,
+        UNUSED signal_t *local_interruptor,
+        UNUSED counted_t<ql::val_t> *resp_out,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support table_status()";
     return false;
 }
 
@@ -432,7 +447,7 @@ bool test_rdb_env_t::instance_t::table_reconfigure(
         UNUSED const table_generate_config_params_t &params,
         UNUSED bool dry_run,
         UNUSED signal_t *local_interruptor,
-        UNUSED counted_t<const ql::datum_t> *new_config_out,
+        UNUSED ql::datum_t *new_config_out,
         std::string *error_out) {
     *error_out = "test_rdb_env_t::instance_t doesn't support reconfigure()";
     return false;

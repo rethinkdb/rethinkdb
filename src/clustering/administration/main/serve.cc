@@ -270,7 +270,19 @@ bool do_serve(io_backender_t *io_backender,
                 directory_read_manager.get_root_view(),
                 &server_name_client);
 
-        //This is an annoying chicken and egg problem here
+        /* `real_reql_cluster_interface_t` needs access to the admin tables so that it
+        can return rows from the `table_status` and `table_config` artificial tables when
+        the user calls the corresponding porcelains. But `admin_artificial_tables_t`
+        needs access to the `real_reql_cluster_interface_t` because `table_config` needs
+        to be able to run distribution queries. The simplest solution is for them to have
+        references to each other. This is the place where we "close the loop". */
+        real_reql_cluster_interface.admin_tables = &admin_tables;
+
+        /* `rdb_context_t` needs access to the `reql_cluster_interface_t` so that it can
+        find tables and run meta-queries, but the `real_reql_cluster_interface_t` needs
+        access to the `rdb_context_t` so that it can construct instances of
+        `cluster_namespace_interface_t`. Again, we solve this problem by having a
+        circular reference. */
         rdb_ctx.cluster_interface = admin_tables.get_reql_cluster_interface();
 
         {

@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/shards.hpp"
 
+#include <utility>
+
 #include "errors.hpp"
 #include <boost/variant.hpp>
 
@@ -33,7 +35,7 @@ void dprint(const char *s, const T &) {
 }
 
 template<>
-void dprint(const char *s, const counted_t<const datum_t> &t) {
+void dprint(const char *s, const datum_t &t) {
     if (t.has()) {
         debugf("%s -> %s\n", s, t->print().c_str());
     } else {
@@ -52,7 +54,7 @@ private:
     virtual done_traversing_t operator()(env_t *env,
                                          groups_t *groups,
                                          const store_key_t &key,
-                                         const counted_t<const datum_t> &sindex_val) {
+                                         const datum_t &sindex_val) {
         for (auto it = groups->begin(); it != groups->end(); ++it) {
             auto pair = acc.insert(std::make_pair(it->first, default_val));
             auto t_it = pair.first;
@@ -67,11 +69,11 @@ private:
         return should_send_batch() ? done_traversing_t::YES : done_traversing_t::NO;
     }
     virtual bool accumulate(env_t *env,
-                            const counted_t<const datum_t> &el,
+                            const datum_t &el,
                             T *t,
                             const store_key_t &key,
                             // sindex_val may be NULL
-                            const counted_t<const datum_t> &sindex_val) = 0;
+                            const datum_t &sindex_val) = 0;
 
     virtual bool should_send_batch() = 0;
 
@@ -85,8 +87,8 @@ private:
                          const store_key_t &last_key,
                          const std::vector<result_t *> &results) {
         guarantee(acc.size() == 0);
-        std::map<counted_t<const datum_t>, std::vector<T *>, counted_datum_less_t>
-            vecs(counted_datum_less_t(env->reql_version()));
+        std::map<datum_t, std::vector<T *>, optional_datum_less_t>
+            vecs(optional_datum_less_t(env->reql_version()));
         for (auto res = results.begin(); res != results.end(); ++res) {
             guarantee(*res);
             grouped_t<T> *gres = boost::get<grouped_t<T> >(*res);
@@ -127,22 +129,22 @@ private:
         return batcher != NULL && batcher->should_send_batch();
     }
     virtual bool accumulate(env_t *,
-                            const counted_t<const datum_t> &el,
+                            const datum_t &el,
                             stream_t *stream,
                             const store_key_t &key,
                             // sindex_val may be NULL
-                            const counted_t<const datum_t> &sindex_val) {
+                            const datum_t &sindex_val) {
         if (batcher) batcher->note_el(el);
         // We don't bother storing the sindex if we aren't sorting (this is
         // purely a performance optimization).
-        counted_t<const datum_t> rget_sindex_val = (sorting == sorting_t::UNORDERED)
-            ? counted_t<const datum_t>()
+        datum_t rget_sindex_val = (sorting == sorting_t::UNORDERED)
+            ? datum_t()
             : sindex_val;
         stream->push_back(rget_item_t(store_key_t(key), rget_sindex_val, el));
         return true;
     }
 
-    virtual counted_t<const datum_t> unpack(stream_t *) {
+    virtual datum_t unpack(stream_t *) {
         r_sanity_check(false); // We never unpack a stream.
         unreachable();
     }
@@ -196,11 +198,11 @@ scoped_ptr_t<accumulator_t> make_append(const sorting_t &sorting, batcher_t *bat
     return make_scoped<append_t>(sorting, batcher);
 }
 
-bool is_grouped_data(const groups_t *gs, const counted_t<const ql::datum_t> &q) {
+bool is_grouped_data(const groups_t *gs, const ql::datum_t &q) {
     return gs->size() > 1 || q.has();
 }
 
-bool is_grouped_data(grouped_t<stream_t> *streams, const counted_t<const ql::datum_t> &q) {
+bool is_grouped_data(grouped_t<stream_t> *streams, const ql::datum_t &q) {
     return streams->size() > 1 || q.has();
 }
 
@@ -209,7 +211,7 @@ bool is_grouped_data(grouped_t<stream_t> *streams, const counted_t<const ql::dat
 class to_array_t : public eager_acc_t {
 public:
     explicit to_array_t(reql_version_t reql_version)
-        : groups(counted_datum_less_t(reql_version)), size(0) { }
+        : groups(optional_datum_less_t(reql_version)), size(0) { }
 private:
     virtual void operator()(env_t *env, groups_t *gs) {
         for (auto kv = gs->begin(); kv != gs->end(); ++kv) {
@@ -269,7 +271,7 @@ private:
         if (is_grouped) {
             counted_t<grouped_data_t> ret(new grouped_data_t());
             for (auto kv = groups.begin(); kv != groups.end(); ++kv) {
-                (*ret)[kv->first] = make_counted<const datum_t>(std::move(kv->second),
+                (*ret)[kv->first] = datum_t(std::move(kv->second),
                                                                limits);
             }
             return make_counted<val_t>(std::move(ret), bt);
@@ -278,7 +280,7 @@ private:
         } else {
             r_sanity_check(groups.size() == 1 && !groups.begin()->first.has());
             return make_counted<val_t>(
-                make_counted<const datum_t>(std::move(groups.begin()->second), limits),
+                datum_t(std::move(groups.begin()->second), limits),
                 bt);
         }
     }
@@ -342,7 +344,7 @@ private:
         acc->clear();
         return retval;
     }
-    virtual counted_t<const datum_t> unpack(T *t) = 0;
+    virtual datum_t unpack(T *t) = 0;
 
     virtual void add_res(env_t *env, result_t *res) {
         grouped_t<T> *acc = grouped_acc_t<T>::get_acc();
@@ -367,14 +369,14 @@ private:
     }
 
     virtual bool accumulate(env_t *env,
-                            const counted_t<const datum_t> &el,
+                            const datum_t &el,
                             T *t,
                             const store_key_t &,
-                            const counted_t<const datum_t> &) {
+                            const datum_t &) {
         return accumulate(env, el, t);
     }
     virtual bool accumulate(env_t *env,
-                            const counted_t<const datum_t> &el,
+                            const datum_t &el,
                             T *t) = 0;
 
     virtual void unshard_impl(env_t *env, T *out, const store_key_t &, const std::vector<T *> &ts) {
@@ -393,13 +395,13 @@ public:
 private:
     virtual bool uses_val() { return false; }
     virtual bool accumulate(env_t *,
-                            const counted_t<const datum_t> &,
+                            const datum_t &,
                             uint64_t *out) {
         *out += 1;
         return true;
     }
-    virtual counted_t<const datum_t> unpack(uint64_t *sz) {
-        return make_counted<const datum_t>(static_cast<double>(*sz));
+    virtual datum_t unpack(uint64_t *sz) {
+        return datum_t(static_cast<double>(*sz));
     }
     virtual void unshard_impl(env_t *, uint64_t *out, uint64_t *el) {
         *out += *el;
@@ -409,7 +411,7 @@ private:
 class acc_func_t {
 public:
     explicit acc_func_t(const counted_t<const func_t> &_f) : f(_f) { }
-    counted_t<const datum_t> operator()(env_t *env, const counted_t<const datum_t> &el) const {
+    datum_t operator()(env_t *env, const datum_t &el) const {
         return f.has() ? f->call(env, el)->as_datum() : el;
     }
 private:
@@ -424,7 +426,7 @@ protected:
           f(wf.compile_wire_func_or_null()),
           bt(wf.bt.get_bt()) { }
     virtual bool accumulate(env_t *env,
-                            const counted_t<const datum_t> &el,
+                            const datum_t &el,
                             T *out) {
         try {
             maybe_acc(env, el, out, f);
@@ -442,7 +444,7 @@ protected:
     }
 private:
     virtual void maybe_acc(env_t *env,
-                           const counted_t<const datum_t> &el,
+                           const datum_t &el,
                            T *out,
                            const acc_func_t &f) = 0;
 
@@ -456,13 +458,13 @@ public:
         : skip_terminal_t<double>(f, 0.0L) { }
 private:
     virtual void maybe_acc(env_t *env,
-                           const counted_t<const datum_t> &el,
+                           const datum_t &el,
                            double *out,
                            const acc_func_t &f) {
         *out += f(env, el)->as_num();
     }
-    virtual counted_t<const datum_t> unpack(double *d) {
-        return make_counted<const datum_t>(*d);
+    virtual datum_t unpack(double *d) {
+        return datum_t(*d);
     }
     virtual void unshard_impl(env_t *, double *out, double *el) {
         *out += *el;
@@ -476,19 +478,19 @@ public:
             f, std::make_pair(0.0L, 0ULL)) { }
 private:
     virtual void maybe_acc(env_t *env,
-                           const counted_t<const datum_t> &el,
+                           const datum_t &el,
                            std::pair<double, uint64_t> *out,
                            const acc_func_t &f) {
         out->first += f(env, el)->as_num();
         out->second += 1;
     }
-    virtual counted_t<const datum_t> unpack(
+    virtual datum_t unpack(
         std::pair<double, uint64_t> *p) {
         rcheck_datum(p->second != 0, base_exc_t::NON_EXISTENCE,
                      "Cannot take the average of an empty stream.  (If you passed "
                      "`avg` a field name, it may be that no elements of the stream "
                      "had that field.)");
-        return make_counted<const datum_t>(p->first / p->second);
+        return datum_t(p->first / p->second);
     }
     virtual void unshard_impl(env_t *,
                               std::pair<double, uint64_t> *out,
@@ -499,25 +501,25 @@ private:
 };
 
 optimizer_t::optimizer_t() { }
-optimizer_t::optimizer_t(const counted_t<const datum_t> &_row,
-                         const counted_t<const datum_t> &_val)
+optimizer_t::optimizer_t(const datum_t &_row,
+                         const datum_t &_val)
     : row(_row), val(_val) { }
 void optimizer_t::swap_if_other_better(
     optimizer_t &other, // NOLINT
     reql_version_t reql_version,
     bool (*beats)(reql_version_t reql_version,
-                  const counted_t<const datum_t> &val1,
-                  const counted_t<const datum_t> &val2)) {
+                  const datum_t &val1,
+                  const datum_t &val2)) {
     r_sanity_check(val.has() == row.has());
     r_sanity_check(other.val.has() == other.row.has());
     if (other.val.has()) {
         if (!val.has() || beats(reql_version, other.val, val)) {
-            row.swap(other.row);
-            val.swap(other.val);
+            std::swap(row, other.row);
+            std::swap(val, other.val);
         }
     }
 }
-counted_t<const datum_t> optimizer_t::unpack(const char *name) {
+datum_t optimizer_t::unpack(const char *name) {
     r_sanity_check(val.has() == row.has());
     rcheck_datum(
         row.has(), base_exc_t::NON_EXISTENCE,
@@ -530,15 +532,15 @@ counted_t<const datum_t> optimizer_t::unpack(const char *name) {
 }
 
 bool datum_lt(reql_version_t reql_version,
-              const counted_t<const datum_t> &val1,
-              const counted_t<const datum_t> &val2) {
+              const datum_t &val1,
+              const datum_t &val2) {
     r_sanity_check(val1.has() && val2.has());
     return val1->compare_lt(reql_version, *val2);
 }
 
 bool datum_gt(reql_version_t reql_version,
-              const counted_t<const datum_t> &val1,
-              const counted_t<const datum_t> &val2) {
+              const datum_t &val1,
+              const datum_t &val2) {
     r_sanity_check(val1.has() && val2.has());
     return val1->compare_gt(reql_version, *val2);
 }
@@ -548,20 +550,20 @@ public:
     optimizing_terminal_t(const skip_wire_func_t &f,
                           const char *_name,
                           bool (*_cmp)(reql_version_t,
-                                       const counted_t<const datum_t> &val1,
-                                       const counted_t<const datum_t> &val2))
+                                       const datum_t &val1,
+                                       const datum_t &val2))
         : skip_terminal_t<optimizer_t>(f, optimizer_t()),
           name(_name),
           cmp(_cmp) { }
 private:
     virtual void maybe_acc(env_t *env,
-                           const counted_t<const datum_t> &el,
+                           const datum_t &el,
                            optimizer_t *out,
                            const acc_func_t &f) {
         optimizer_t other(el, f(env, el));
         out->swap_if_other_better(other, env->reql_version(), cmp);
     }
-    virtual counted_t<const datum_t> unpack(optimizer_t *el) {
+    virtual datum_t unpack(optimizer_t *el) {
         return el->unpack(name);
     }
     virtual void unshard_impl(env_t *env, optimizer_t *out, optimizer_t *el) {
@@ -569,22 +571,22 @@ private:
     }
     const char *name;
     bool (*cmp)(reql_version_t,
-                const counted_t<const datum_t> &val1,
-                const counted_t<const datum_t> &val2);
+                const datum_t &val1,
+                const datum_t &val2);
 };
 
 const char *const empty_stream_msg =
     "Cannot reduce over an empty stream.";
 
-class reduce_terminal_t : public terminal_t<counted_t<const datum_t> > {
+class reduce_terminal_t : public terminal_t<datum_t> {
 public:
     explicit reduce_terminal_t(const reduce_wire_func_t &_f)
-        : terminal_t<counted_t<const datum_t> >(counted_t<const datum_t>()),
+        : terminal_t<datum_t>(datum_t()),
           f(_f.compile_wire_func()) { }
 private:
     virtual bool accumulate(env_t *env,
-                            const counted_t<const datum_t> &el,
-                            counted_t<const datum_t> *out) {
+                            const datum_t &el,
+                            datum_t *out) {
         try {
             *out = out->has() ? f->call(env, *out, el)->as_datum() : el;
             return true;
@@ -592,13 +594,13 @@ private:
             throw exc_t(e, f->backtrace().get(), 1);
         }
     }
-    virtual counted_t<const datum_t> unpack(counted_t<const datum_t> *el) {
+    virtual datum_t unpack(datum_t *el) {
         rcheck_target(f, base_exc_t::NON_EXISTENCE, el->has(), empty_stream_msg);
         return std::move(*el);
     }
     virtual void unshard_impl(env_t *env,
-                              counted_t<const datum_t> *out,
-                              counted_t<const datum_t> *el) {
+                              datum_t *out,
+                              datum_t *el) {
         if (el->has()) accumulate(env, *el, out);
     }
 
@@ -642,7 +644,7 @@ class ungrouped_op_t : public op_t {
 protected:
 private:
     virtual void operator()(
-        env_t *env, groups_t *groups, const counted_t<const datum_t> &sindex_val) {
+        env_t *env, groups_t *groups, const datum_t &sindex_val) {
         for (auto it = groups->begin(); it != groups->end();) {
             lst_transform(env, &it->second, sindex_val);
             if (it->second.size() == 0) {
@@ -654,7 +656,7 @@ private:
     }
     // sindex_val may be NULL.
     virtual void lst_transform(
-        env_t *env, datums_t *lst, const counted_t<const datum_t> &sindex_val) = 0;
+        env_t *env, datums_t *lst, const datum_t &sindex_val) = 0;
 };
 
 class group_trans_t : public op_t {
@@ -669,12 +671,12 @@ public:
 private:
     virtual void operator()(env_t *env,
                             groups_t *groups,
-                            const counted_t<const datum_t> &sindex_val) {
+                            const datum_t &sindex_val) {
         if (groups->size() == 0) return;
         r_sanity_check(groups->size() == 1 && !groups->begin()->first.has());
         datums_t *ds = &groups->begin()->second;
         for (auto el = ds->begin(); el != ds->end(); ++el) {
-            std::vector<counted_t<const datum_t> > arr;
+            std::vector<datum_t> arr;
             arr.reserve(funcs.size() + append_index);
             for (auto f = funcs.begin(); f != funcs.end(); ++f) {
                 try {
@@ -700,19 +702,18 @@ private:
             if (!multi) {
                 add(groups, std::move(arr), *el, env->limits());
             } else {
-                std::vector<std::vector<counted_t<const datum_t> > > perms(arr.size());
+                std::vector<std::vector<datum_t> > perms(arr.size());
                 for (size_t i = 0; i < arr.size(); ++i) {
                     if (arr[i]->get_type() != datum_t::R_ARRAY) {
                         perms[i].push_back(arr[i]);
                     } else {
-                        auto subarr = arr[i]->as_array();
-                        perms[i].reserve(subarr.size());
-                        for (auto it = subarr.begin(); it != subarr.end(); ++it) {
-                            perms[i].push_back(*it);
+                        perms[i].reserve(arr[i].arr_size());
+                        for (size_t j = 0; j < arr[i].arr_size(); ++j) {
+                            perms[i].push_back(arr[i].get(j));
                         }
                     }
                 }
-                std::vector<counted_t<const datum_t> > instance;
+                std::vector<datum_t> instance;
                 instance.reserve(perms.size());
                 add_perms(groups, &instance, &perms, 0, *el, env->limits());
                 r_sanity_check(instance.size() == 0);
@@ -723,31 +724,31 @@ private:
                 groups->size() <= env->limits().array_size_limit(),
                 strprintf("Too many groups (> %zu).", env->limits().array_size_limit()));
         }
-        size_t erased = groups->erase(counted_t<const datum_t>());
+        size_t erased = groups->erase(datum_t());
         r_sanity_check(erased == 1);
     }
 
     void add(groups_t *groups,
-             std::vector<counted_t<const datum_t> > &&arr,
-             const counted_t<const datum_t> &el,
+             std::vector<datum_t> &&arr,
+             const datum_t &el,
              const configured_limits_t &limits) {
-        counted_t<const datum_t> group = arr.size() == 1
+        datum_t group = arr.size() == 1
             ? std::move(arr[0])
-            : make_counted<const datum_t>(std::move(arr), limits);
+            : datum_t(std::move(arr), limits);
         r_sanity_check(group.has());
         (*groups)[group].push_back(el);
     }
 
     void add_perms(groups_t *groups,
-                   std::vector<counted_t<const datum_t> > *instance,
-                   std::vector<std::vector<counted_t<const datum_t> > > *arr,
+                   std::vector<datum_t> *instance,
+                   std::vector<std::vector<datum_t> > *arr,
                    size_t index,
-                   const counted_t<const datum_t> &el,
+                   const datum_t &el,
                    const configured_limits_t &limits) {
         r_sanity_check(index == instance->size());
         if (index >= arr->size()) {
             r_sanity_check(instance->size() == arr->size());
-            add(groups, std::vector<counted_t<const datum_t> >(*instance), el, limits);
+            add(groups, std::vector<datum_t>(*instance), el, limits);
         } else {
             auto vec = (*arr)[index];
             if (vec.size() != 0) {
@@ -775,7 +776,7 @@ public:
         : f(_f.compile_wire_func()) { }
 private:
     virtual void lst_transform(
-        env_t *env, datums_t *lst, const counted_t<const datum_t> &) {
+        env_t *env, datums_t *lst, const datum_t &) {
         try {
             for (auto it = lst->begin(); it != lst->end(); ++it) {
                 *it = f->call(env, *it)->as_datum();
@@ -797,7 +798,7 @@ public:
 private:
     // sindex_val may be NULL
     virtual void lst_transform(
-        env_t *, datums_t *lst, const counted_t<const datum_t> &sindex_val) {
+        env_t *, datums_t *lst, const datum_t &sindex_val) {
         auto it = lst->begin();
         auto loc = it;
         for (; it != lst->end(); ++it) {
@@ -806,7 +807,7 @@ private:
                 *it = sindex_val;
             }
             if (!last_val.has() || **it != *last_val) {
-                loc->swap(*it);
+                std::swap(*loc, *it);
                 last_val = *loc;
                 ++loc;
             }
@@ -814,7 +815,7 @@ private:
         lst->erase(loc, lst->end());
     }
     bool use_index;
-    counted_t<const datum_t> last_val;
+    datum_t last_val;
 };
 
 
@@ -827,13 +828,13 @@ public:
                       : counted_t<const func_t>()) { }
 private:
     virtual void lst_transform(
-        env_t *env, datums_t *lst, const counted_t<const datum_t> &) {
+        env_t *env, datums_t *lst, const datum_t &) {
         auto it = lst->begin();
         auto loc = it;
         try {
             for (it = lst->begin(); it != lst->end(); ++it) {
                 if (f->filter_call(env, *it, default_val)) {
-                    loc->swap(*it);
+                    std::swap(*loc, *it);
                     ++loc;
                 }
             }
@@ -851,7 +852,7 @@ public:
         : f(_f.compile_wire_func()) { }
 private:
     virtual void lst_transform(
-        env_t *env, datums_t *lst, const counted_t<const datum_t> &) {
+        env_t *env, datums_t *lst, const datum_t &) {
         datums_t new_lst;
         batchspec_t bs = batchspec_t::user(batch_type_t::TERMINAL, env);
         profile::sampler_t sampler("Evaluating CONCAT_MAP elements.", env->trace);
@@ -879,10 +880,10 @@ public:
     explicit zip_trans_t(const zip_wire_func_t &) {}
 private:
     virtual void lst_transform(env_t *, datums_t *lst,
-                               const counted_t<const datum_t> &) {
+                               const datum_t &) {
         for (auto it = lst->begin(); it != lst->end(); ++it) {
-            auto left = (*it)->get("left", NOTHROW);
-            auto right = (*it)->get("right", NOTHROW);
+            auto left = (*it)->get_field("left", NOTHROW);
+            auto right = (*it)->get_field("right", NOTHROW);
             rcheck_datum(left.has(), base_exc_t::GENERIC,
                    "ZIP can only be called on the result of a join.");
             *it = right.has() ? left->merge(right) : left;

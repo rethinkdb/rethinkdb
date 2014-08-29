@@ -26,7 +26,7 @@ on the effects of different choices of this parameter.*/
 extern const int GEO_INDEX_GOAL_GRID_CELLS;
 
 std::vector<std::string> compute_index_grid_keys(
-        const counted_t<const ql::datum_t> &key,
+        const ql::datum_t &key,
         int goal_cells);
 
 // TODO (daniel): Support compound indexes somehow.

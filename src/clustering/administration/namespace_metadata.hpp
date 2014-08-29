@@ -129,8 +129,8 @@ class namespace_semilattice_metadata_t {
 public:
     namespace_semilattice_metadata_t() { }
 
-    versioned_t<name_string_t> name;
-    versioned_t<database_id_t> database;
+    versioned_t<name_string_t> name;   // TODO maybe this belongs on table_config_t
+    versioned_t<database_id_t> database;   // TODO this should never actually change
     versioned_t<std::string> primary_key;   // TODO: This should never actually change
 
     versioned_t<table_replication_info_t> replication_info;

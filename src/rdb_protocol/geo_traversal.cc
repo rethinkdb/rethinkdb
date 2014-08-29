@@ -65,7 +65,7 @@ geo_intersecting_cb_t::geo_intersecting_cb_t(
                                         env->trace));
 }
 
-void geo_intersecting_cb_t::init_query(const counted_t<const ql::datum_t> &_query_geometry) {
+void geo_intersecting_cb_t::init_query(const ql::datum_t &_query_geometry) {
     query_geometry = _query_geometry;
     geo_index_traversal_helper_t::init_query(
         compute_index_grid_keys(_query_geometry, QUERYING_GOAL_GRID_CELLS));
@@ -97,7 +97,7 @@ void geo_intersecting_cb_t::on_candidate(
     }
 
     lazy_json_t row(static_cast<const rdb_value_t *>(value), parent);
-    counted_t<const ql::datum_t> val = row.get();
+    ql::datum_t val = row.get();
     slice->stats.pm_keys_read.record();
     slice->stats.pm_total_keys_read += 1;
 
@@ -113,14 +113,14 @@ void geo_intersecting_cb_t::on_candidate(
         // Post-filter the geometry based on an actual intersection test
         // with query_geometry
         ql::env_t sindex_env(env->interruptor, sindex.func_reql_version);
-        counted_t<const ql::datum_t> sindex_val =
+        ql::datum_t sindex_val =
             sindex.func->call(&sindex_env, val)->as_datum();
         if (sindex.multi == sindex_multi_bool_t::MULTI
             && sindex_val->get_type() == ql::datum_t::R_ARRAY) {
             boost::optional<uint64_t> tag = *ql::datum_t::extract_tag(store_key);
             guarantee(tag);
             sindex_val = sindex_val->get(*tag, ql::NOTHROW);
-            guarantee(sindex_val);
+            guarantee(sindex_val.has());
         }
         // TODO (daniel): This is a little inefficient because we re-parse
         //   the query_geometry for each test.
@@ -139,7 +139,7 @@ void geo_intersecting_cb_t::on_candidate(
             // This is relevant only for polygons and lines, since those can be
             // encountered multiple times in the index.
             if (already_processed.size() < MAX_PROCESSED_SET_SIZE
-                && sindex_val->get("type")->as_str().to_std() != "Point") {
+                && sindex_val->get_field("type")->as_str() != "Point") {
                 already_processed.insert(primary_key);
             }
         }
@@ -164,7 +164,7 @@ collect_all_geo_intersecting_cb_t::collect_all_geo_intersecting_cb_t(
         btree_slice_t *_slice,
         geo_sindex_data_t &&_sindex,
         ql::env_t *_env,
-        const counted_t<const ql::datum_t> &_query_geometry) :
+        const ql::datum_t &_query_geometry) :
     geo_intersecting_cb_t(_slice, std::move(_sindex), _env, &distinct_emitted),
     result_acc(_env->limits()) {
     init_query(_query_geometry);
@@ -181,20 +181,20 @@ void collect_all_geo_intersecting_cb_t::finish(
     if (error) {
         resp_out->results_or_error = error.get();
     } else {
-        resp_out->results_or_error = std::move(result_acc).to_counted();
+        resp_out->results_or_error = std::move(result_acc).to_datum();
     }
 }
 
 bool collect_all_geo_intersecting_cb_t::post_filter(
-        UNUSED const counted_t<const ql::datum_t> &sindex_val,
-        UNUSED const counted_t<const ql::datum_t> &val)
+        UNUSED const ql::datum_t &sindex_val,
+        UNUSED const ql::datum_t &val)
         THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t) {
     return true;
 }
 
 void collect_all_geo_intersecting_cb_t::emit_result(
-        UNUSED const counted_t<const ql::datum_t> &sindex_val,
-        const counted_t<const ql::datum_t> &val)
+        UNUSED const ql::datum_t &sindex_val,
+        const ql::datum_t &val)
         THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t) {
     result_acc.add(val);
 }
@@ -303,7 +303,7 @@ void nearest_traversal_cb_t::init_query_geometry() {
             state->center, state->current_inradius,
             NEAREST_NUM_VERTICES, state->reference_ellipsoid);
 
-        counted_t<const ql::datum_t> query_geometry =
+        ql::datum_t query_geometry =
             construct_geo_polygon(shell, holes, ql::configured_limits_t::unlimited);
         init_query(query_geometry);
     } catch (const geo_range_exception_t &e) {
@@ -320,8 +320,8 @@ void nearest_traversal_cb_t::init_query_geometry() {
 }
 
 bool nearest_traversal_cb_t::post_filter(
-        const counted_t<const ql::datum_t> &sindex_val,
-        UNUSED const counted_t<const ql::datum_t> &val)
+        const ql::datum_t &sindex_val,
+        UNUSED const ql::datum_t &val)
         THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t) {
 
     // Filter out results that are outside of the current inradius
@@ -332,8 +332,8 @@ bool nearest_traversal_cb_t::post_filter(
 }
 
 void nearest_traversal_cb_t::emit_result(
-        const counted_t<const ql::datum_t> &sindex_val,
-        const counted_t<const ql::datum_t> &val)
+        const ql::datum_t &sindex_val,
+        const ql::datum_t &val)
         THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t) {
     // TODO (daniel): Could we avoid re-computing the distance? We have already
     //   done it in post_filter().
@@ -350,8 +350,8 @@ void nearest_traversal_cb_t::emit_error(
 }
 
 bool nearest_pairs_less(
-        const std::pair<double, counted_t<const ql::datum_t> > &p1,
-        const std::pair<double, counted_t<const ql::datum_t> > &p2) {
+        const std::pair<double, ql::datum_t> &p1,
+        const std::pair<double, ql::datum_t> &p2) {
     // We only care about the distance, don't compare the actual data.
     return p1.first < p2.first;
 }

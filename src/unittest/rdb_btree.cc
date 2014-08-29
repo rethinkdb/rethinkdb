@@ -45,7 +45,7 @@ void insert_rows(int start, int finish, store_t *store) {
         std::string data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
         point_write_response_t response;
 
-        store_key_t pk(make_counted<const ql::datum_t>(static_cast<double>(i))->print_primary());
+        store_key_t pk(ql::datum_t(static_cast<double>(i))->print_primary());
         rdb_modification_report_t mod_report(pk);
         rdb_live_deletion_context_t deletion_context;
         rdb_set(pk,
@@ -230,12 +230,12 @@ void _check_keys_are_present(store_t *store,
         rdb_rget_slice(
             store->get_sindex_slice(sindex_uuid),
             rdb_protocol::sindex_key_range(
-                store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),
-                store_key_t(make_counted<const ql::datum_t>(ii)->print_primary())),
+                store_key_t(ql::datum_t(ii)->print_primary()),
+                store_key_t(ql::datum_t(ii)->print_primary())),
             sindex_sb.get(),
             &dummy_env, // env_t
             ql::batchspec_t::user(ql::batch_type_t::NORMAL,
-                                  counted_t<const ql::datum_t>()),
+                                  ql::datum_t()),
             std::vector<ql::transform_variant_t>(),
             boost::optional<ql::terminal_variant_t>(),
             sorting_t::ASCENDING,
@@ -307,12 +307,12 @@ void _check_keys_are_NOT_present(store_t *store,
         rdb_rget_slice(
             store->get_sindex_slice(sindex_uuid),
             rdb_protocol::sindex_key_range(
-                store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),
-                store_key_t(make_counted<const ql::datum_t>(ii)->print_primary())),
+                store_key_t(ql::datum_t(ii)->print_primary()),
+                store_key_t(ql::datum_t(ii)->print_primary())),
             sindex_sb.get(),
             &dummy_env, // env_t
             ql::batchspec_t::user(ql::batch_type_t::NORMAL,
-                                  counted_t<const ql::datum_t>()),
+                                  ql::datum_t()),
             std::vector<ql::transform_variant_t>(),
             boost::optional<ql::terminal_variant_t>(),
             sorting_t::ASCENDING,

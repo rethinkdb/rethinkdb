@@ -15,7 +15,7 @@ namespace unittest {
 
 struct make_sindex_read_t {
     static read_t make_sindex_read(
-            counted_t<const ql::datum_t> key, const std::string &id) {
+            ql::datum_t key, const std::string &id) {
         datum_range_t rng(key, key_range_t::closed, key, key_range_t::closed);
         return read_t(
             rget_read_t(
@@ -23,7 +23,7 @@ struct make_sindex_read_t {
                 std::map<std::string, ql::wire_func_t>(),
                 "",
                 ql::batchspec_t::user(ql::batch_type_t::NORMAL,
-                                      counted_t<const ql::datum_t>()),
+                                      ql::datum_t()),
                 std::vector<ql::transform_variant_t>(),
                 boost::optional<ql::terminal_variant_t>(),
                 sindex_rangespec_t(id, region_t(rng.to_sindex_keyrange()), rng),
@@ -33,7 +33,7 @@ struct make_sindex_read_t {
 };
 
 read_t make_sindex_read(
-        counted_t<const ql::datum_t> key, const std::string &id) {
+        ql::datum_t key, const std::string &id) {
     return make_sindex_read_t::make_sindex_read(key, id);
 }
 

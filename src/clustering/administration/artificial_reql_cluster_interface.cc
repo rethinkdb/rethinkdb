@@ -104,9 +104,28 @@ bool artificial_reql_cluster_interface_t::table_find(const name_string_t &name,
     return next->table_find(name, db, interruptor, table_out, error_out);
 }
 
-bool artificial_reql_cluster_interface_t::server_rename(const name_string_t &old_name,
-        const name_string_t &new_name, signal_t *interruptor, std::string *error_out) {
-    return next->server_rename(old_name, new_name, interruptor, error_out);
+bool artificial_reql_cluster_interface_t::table_config(
+        const boost::optional<name_string_t> &name, counted_t<const ql::db_t> db,
+        const ql::protob_t<const Backtrace> &bt, signal_t *interruptor,
+        counted_t<ql::val_t> *resp_out, std::string *error_out) {
+    if (db->name == database.str()) {
+        *error_out = strprintf("Database `%s` is special; you can't configure the "
+            "tables in it.", database.c_str());
+        return false;
+    }
+    return next->table_config(name, db, bt, interruptor, resp_out, error_out);
+}
+
+bool artificial_reql_cluster_interface_t::table_status(
+        const boost::optional<name_string_t> &name, counted_t<const ql::db_t> db,
+        const ql::protob_t<const Backtrace> &bt, signal_t *interruptor,
+        counted_t<ql::val_t> *resp_out, std::string *error_out) {
+    if (db->name == database.str()) {
+        *error_out = strprintf("Database `%s` is special; the system tables in it don't "
+            "have meaningful status information.", database.c_str());
+        return false;
+    }
+    return next->table_status(name, db, bt, interruptor, resp_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::table_reconfigure(
@@ -115,7 +134,7 @@ bool artificial_reql_cluster_interface_t::table_reconfigure(
         const table_generate_config_params_t &params,
         bool dry_run,
         signal_t *interruptor,
-        counted_t<const ql::datum_t> *new_config_out,
+        ql::datum_t *new_config_out,
         std::string *error_out) {
     if (db->name == database.str()) {
         *error_out = strprintf("Database `%s` is special; you can't configure the "

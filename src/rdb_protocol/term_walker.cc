@@ -42,7 +42,7 @@ public:
             if (!curtime.has()) {
                 curtime = pseudo::time_now();
             }
-            *t = r::expr(*curtime.get()).get();
+            *t = r::expr(curtime).get();
         }
 
         if (t->type() == Term::ASC || t->type() == Term::DESC) {
@@ -108,7 +108,6 @@ private:
         case Term::DB_DROP:
         case Term::TABLE_CREATE:
         case Term::TABLE_DROP:
-        case Term::SERVER_RENAME:
         case Term::RECONFIGURE:
         case Term::SYNC:
         case Term::INDEX_CREATE:
@@ -250,6 +249,8 @@ private:
         case Term::DECEMBER:
         case Term::DB_LIST:
         case Term::TABLE_LIST:
+        case Term::TABLE_CONFIG:
+        case Term::TABLE_STATUS:
         case Term::INDEX_LIST:
         case Term::INDEX_STATUS:
         case Term::GEOJSON:
@@ -370,7 +371,8 @@ private:
         case Term::TABLE_CREATE:
         case Term::TABLE_DROP:
         case Term::TABLE_LIST:
-        case Term::SERVER_RENAME:
+        case Term::TABLE_CONFIG:
+        case Term::TABLE_STATUS:
         case Term::RECONFIGURE:
         case Term::SYNC:
         case Term::INDEX_CREATE:
@@ -476,7 +478,7 @@ private:
     int depth;
     bool writes_legal;
     const Backtrace *const bt;
-    counted_t<const datum_t> curtime;
+    datum_t curtime;
 };
 
 void preprocess_term(Term *root) {

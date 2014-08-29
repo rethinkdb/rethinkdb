@@ -72,8 +72,9 @@ with driver.Metacluster() as metacluster:
     # Test to make sure that `dry_run` is respected; the config should only be stored in
     # the semilattices if `dry_run` is `False`.
     def get_config():
-        row = r.db("rethinkdb").table("table_config").get("test.foo").run(conn)
+        row = r.table_config('foo').run(conn)
         del row["name"]
+        del row["db"]
         del row["uuid"]
         return row
     prev_config = get_config()

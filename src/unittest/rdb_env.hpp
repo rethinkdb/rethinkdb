@@ -168,9 +168,14 @@ public:
         bool table_find(const name_string_t &name, counted_t<const ql::db_t> db,
                 signal_t *interruptor, scoped_ptr_t<base_table_t> *table_out,
                 std::string *error_out);
-
-        bool server_rename(const name_string_t &old_name, const name_string_t &new_name,
-            signal_t *interruptor, std::string *error_out);
+        bool table_config(const boost::optional<name_string_t> &name,
+                counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
+                signal_t *interruptor, counted_t<ql::val_t> *resp_out,
+                std::string *error_out);
+        bool table_status(const boost::optional<name_string_t> &name,
+                counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
+                signal_t *interruptor, counted_t<ql::val_t> *resp_out,
+                std::string *error_out);
 
         bool table_reconfigure(
             counted_t<const ql::db_t> db,
@@ -178,7 +183,7 @@ public:
             const table_generate_config_params_t &params,
             bool dry_run,
             signal_t *interruptor,
-            counted_t<const ql::datum_t> *new_config_out,
+            ql::datum_t *new_config_out,
             std::string *error_out);
 
     private:

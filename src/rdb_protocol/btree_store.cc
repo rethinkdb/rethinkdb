@@ -12,6 +12,7 @@
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "concurrency/wait_any.hpp"
+#include "containers/archive/buffer_stream.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/archive/versioned.hpp"
 #include "containers/disk_backed_queue.hpp"
@@ -131,12 +132,17 @@ store_t::store_t(serializer_t *serializer,
         get_secondary_indexes(&sindex_block, &sindexes);
 
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-            secondary_index_slices.insert(
-                    std::make_pair(it->second.id,
-                                   make_scoped<btree_slice_t>(cache.get(),
-                                                              &perfmon_collection,
-                                                              it->first.name,
-                                                              index_type_t::SECONDARY)));
+            // Deleted secondary indexes should not be added to the perfmons
+            perfmon_collection_t *pc =
+                it->first.being_deleted
+                ? NULL
+                : &perfmon_collection;
+            auto slice = make_scoped<btree_slice_t>(cache.get(),
+                                                    pc,
+                                                    it->first.name,
+                                                    index_type_t::SECONDARY);
+            secondary_index_slices.insert(std::make_pair(it->second.id,
+                                                         std::move(slice)));
         }
 
         update_outdated_sindex_list(&sindex_block);
@@ -907,6 +913,16 @@ void store_t::rename_sindex(
     guarantee(success);
     set_secondary_index(sindex_block, new_name, old_sindex);
 
+    // Rename the perfmons
+    guarantee(!old_name.being_deleted);
+    guarantee(!new_name.being_deleted);
+    auto slice_it = secondary_index_slices.find(old_sindex.id);
+    guarantee(slice_it != secondary_index_slices.end());
+    guarantee(slice_it->second.has());
+    slice_it->second->assert_thread();
+    slice_it->second->stats.rename(&perfmon_collection, new_name.name,
+                                   index_type_t::SECONDARY);
+
     if (index_report != NULL) {
         index_report->index_renamed(old_name.name, new_name.name);
     }
@@ -958,6 +974,14 @@ MUST_USE bool store_t::mark_secondary_index_deleted(
     const sindex_name_t sindex_del_name = compute_sindex_deletion_name(sindex.id);
     sindex.being_deleted = true;
     set_secondary_index(sindex_block, sindex_del_name, sindex);
+
+    // Hide the index from the perfmon collection
+    auto slice_it = secondary_index_slices.find(sindex.id);
+    guarantee(slice_it != secondary_index_slices.end());
+    guarantee(slice_it->second.has());
+    slice_it->second->assert_thread();
+    slice_it->second->stats.hide();
+
     return true;
 }
 
@@ -1239,7 +1263,7 @@ get_metainfo_internal(buf_lock_t *sb_buf,
 
         region_t region;
         {
-            inplace_vector_read_stream_t key(&i->first);
+            buffer_read_stream_t key(i->first.data(), i->first.size());
             archive_result_t res = deserialize_for_metainfo(&key, &region);
             guarantee_deserialization(res, "region");
         }

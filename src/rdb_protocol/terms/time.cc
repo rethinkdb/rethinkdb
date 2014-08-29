@@ -32,8 +32,8 @@ public:
 private:
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         return new_val(
-            make_counted<const datum_t>(
-                pseudo::time_to_iso8601(args->arg(env, 0)->as_ptype(pseudo::time_string))));
+            datum_t(datum_string_t(
+                pseudo::time_to_iso8601(args->arg(env, 0)->as_ptype(pseudo::time_string)))));
     }
     virtual const char *name() const { return "to_iso8601"; }
 };
@@ -57,7 +57,7 @@ public:
 private:
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         return new_val(
-            make_counted<const datum_t>(
+            datum_t(
                 pseudo::time_to_epoch_time(args->arg(env, 0)->as_ptype(pseudo::time_string))));
     }
     virtual const char *name() const { return "to_epoch_time"; }
@@ -96,9 +96,9 @@ public:
         : bounded_op_term_t(env, term, argspec_t(3)) { }
 private:
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<const datum_t> t = args->arg(env, 0)->as_ptype(pseudo::time_string);
-        counted_t<const datum_t> lb = args->arg(env, 1)->as_ptype(pseudo::time_string);
-        counted_t<const datum_t> rb = args->arg(env, 2)->as_ptype(pseudo::time_string);
+        datum_t t = args->arg(env, 0)->as_ptype(pseudo::time_string);
+        datum_t lb = args->arg(env, 1)->as_ptype(pseudo::time_string);
+        datum_t rb = args->arg(env, 2)->as_ptype(pseudo::time_string);
         int lcmp = pseudo::time_cmp(env->env->reql_version(), *lb, *t);
         int rcmp = pseudo::time_cmp(env->env->reql_version(), *t, *rb);
         return new_val_bool(!(lcmp > 0 || (lcmp == 0 && is_left_open(env, args))
@@ -148,7 +148,7 @@ public:
 private:
     counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         double d = pseudo::time_portion(args->arg(env, 0)->as_ptype(pseudo::time_string), component);
-        return new_val(make_counted<const datum_t>(d));
+        return new_val(datum_t(d));
     }
     virtual const char *name() const {
         switch (component) {
@@ -195,7 +195,7 @@ private:
             pseudo::make_time(year, month, day, hours, minutes, seconds, tz, this));
     }
     static std::string parse_tz(counted_t<val_t> v) {
-        counted_t<const datum_t> d = v->as_datum();
+        datum_t d = v->as_datum();
         return d->as_str().to_std();
     }
     virtual const char *name() const { return "time"; }

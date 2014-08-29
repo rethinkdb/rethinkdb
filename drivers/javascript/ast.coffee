@@ -276,6 +276,8 @@ class RDBVal extends TermBase
     tableCreate: aropt (tblName, opts) -> new TableCreate opts, @, tblName
     tableDrop: (args...) -> new TableDrop {}, @, args...
     tableList: (args...) -> new TableList {}, @, args...
+    tableConfig: (args...) -> new TableConfig {}, @, args...
+    tableStatus: (args...) -> new TableStatus {}, @, args...
 
     table: aropt (tblName, opts) -> new Table opts, @, tblName
 
@@ -901,9 +903,13 @@ class TableList extends RDBOp
     tt: protoTermType.TABLE_LIST
     mt: 'tableList'
 
-class ServerRename extends RDBOp
-    tt: protoTermType.SERVER_RENAME
-    st: 'serverRename'
+class TableConfig extends RDBOp
+    tt: protoTermType.TABLE_CONFIG
+    mt: 'tableConfig'
+
+class TableStatus extends RDBOp
+    tt: protoTermType.TABLE_STATUS
+    mt: 'tableStatus'
 
 class IndexCreate extends RDBOp
     tt: protoTermType.INDEX_CREATE
@@ -1211,8 +1217,8 @@ rethinkdb.dbList = (args...) -> new DbList {}, args...
 rethinkdb.tableCreate = aropt (tblName, opts) -> new TableCreate opts, tblName
 rethinkdb.tableDrop = (args...) -> new TableDrop {}, args...
 rethinkdb.tableList = (args...) -> new TableList {}, args...
-
-rethinkdb.serverRename = (args...) -> new ServerRename {}, args...
+rethinkdb.tableConfig = (args...) -> new TableConfig {}, args...
+rethinkdb.tableStatus = (args...) -> new TableStatus {}, args...
 
 rethinkdb.do = varar 1, null, (args...) ->
     new FunCall {}, funcWrap(args[-1..][0]), args[...-1]...

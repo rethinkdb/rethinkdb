@@ -105,7 +105,9 @@ counted_t<term_t> make_table_drop_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_table_list_term(
     compile_env_t *env, const protob_t<const Term> &term);
-counted_t<term_t> make_server_rename_term(
+counted_t<term_t> make_table_config_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_table_status_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_reconfigure_term(
     compile_env_t *env, const protob_t<const Term> &term);

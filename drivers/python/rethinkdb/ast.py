@@ -941,6 +941,12 @@ class DB(RqlTopLevelQuery):
     def table_list(self, *args):
         return TableList(self, *args)
 
+    def table_config(self, *args):
+        return TableConfig(self, *args)
+
+    def table_status(self, *args):
+        return TableStatus(self, *args)
+
     def table_create(self, *args, **kwargs):
         kwargs.setdefault('primary_key', ())
         kwargs.setdefault('datacenter', ())
@@ -1217,9 +1223,21 @@ class TableListTL(RqlTopLevelQuery):
     tt = pTerm.TABLE_LIST
     st = "table_list"
 
-class ServerRename(RqlTopLevelQuery):
-    tt = pTerm.SERVER_RENAME
-    st = "server_rename"
+class TableConfig(RqlMethodQuery):
+    tt = pTerm.TABLE_CONFIG
+    st = "table_config"
+
+class TableConfigTL(RqlTopLevelQuery):
+    tt = pTerm.TABLE_CONFIG
+    st = "table_config"
+
+class TableStatus(RqlMethodQuery):
+    tt = pTerm.TABLE_STATUS
+    st = "table_status"
+
+class TableStatusTL(RqlTopLevelQuery):
+    tt = pTerm.TABLE_STATUS
+    st = "table_status"
 
 class IndexCreate(RqlMethodQuery):
     tt = pTerm.INDEX_CREATE

@@ -49,34 +49,24 @@ std::set<name_string_t> server_name_client_t::get_servers_with_tag(
     return servers;
 }
 
-bool server_name_client_t::rename_server(const name_string_t &old_name,
-        const name_string_t &new_name, signal_t *interruptor, std::string *error_out) {
+bool server_name_client_t::rename_server(
+        const machine_id_t &server_id,
+        const name_string_t &server_name,
+        const name_string_t &new_name,
+        signal_t *interruptor,
+        std::string *error_out) {
 
     this->assert_thread();
 
     /* We can produce this error message for several different reasons, so it's stored in
     a local variable instead of typed out multiple times. */
     std::string lost_contact_message = strprintf("Cannot rename server `%s` because we "
-        "lost contact with it.", old_name.c_str());
-
-    /* Look up `old_name` and figure out which peer it corresponds to. */
-    machine_id_t machine_id = nil_uuid();
-    name_to_machine_id_map.apply_read(
-        [&](const std::map<name_string_t, machine_id_t> *map) {
-            auto it = map->find(old_name);
-            if (it != map->end()) {
-                machine_id = it->second;
-            }
-        });
-    if (machine_id == nil_uuid()) {
-        *error_out = strprintf("Server `%s` does not exist.", old_name.c_str());
-        return false;
-    }
+        "lost contact with it.", server_name.c_str());
 
     peer_id_t peer;
     machine_id_to_peer_id_map.apply_read(
         [&](const std::map<machine_id_t, peer_id_t> *map) {
-            auto it = map->find(machine_id);
+            auto it = map->find(server_id);
             if (it != map->end()) {
                 peer = it->second;
             }
@@ -86,7 +76,7 @@ bool server_name_client_t::rename_server(const name_string_t &old_name,
         return false;
     }
 
-    if (old_name == new_name) {
+    if (server_name == new_name) {
         /* This is a no-op */
         return true;
     }
@@ -97,7 +87,8 @@ bool server_name_client_t::rename_server(const name_string_t &old_name,
             new_name_in_use = (map->count(new_name) != 0);
         });
     if (new_name_in_use) {
-        *error_out = strprintf("Server `%s` already exists.", new_name.c_str());
+        *error_out = strprintf("Cannot rename server `%s` to `%s` because server `%s` "
+            "already exists.", server_name.c_str(), new_name.c_str(), new_name.c_str());
         return false;
     }
 

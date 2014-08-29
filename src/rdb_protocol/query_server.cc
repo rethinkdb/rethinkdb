@@ -56,7 +56,7 @@ bool rdb_query_server_t::run_query(const ql::protob_t<Query> &query,
     guarantee(client_ctx->interruptor != NULL);
     response_out->set_token(query->token());
 
-    counted_t<const ql::datum_t> noreply = static_optarg("noreply", query);
+    ql::datum_t noreply = static_optarg("noreply", query);
     bool response_needed = !(noreply.has() &&
          noreply->get_type() == ql::datum_t::type_t::R_BOOL &&
          noreply->as_bool());

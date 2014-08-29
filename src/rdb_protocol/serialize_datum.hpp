@@ -4,7 +4,7 @@
 #include "containers/archive/archive.hpp"
 #include "containers/archive/buffer_group_stream.hpp"
 #include "containers/counted.hpp"
-#include "containers/wire_string.hpp"
+#include "rdb_protocol/datum_string.hpp"
 
 namespace ql {
 
@@ -40,40 +40,36 @@ inline const serialization_result_t & operator |(const serialization_result_t &f
 // More stable versions of datum serialization, kept separate from the versioned
 // serialization functions.  Don't change these in a backwards-uncompatible way!  See
 // the FAQ at the end of this file.
-size_t datum_serialized_size(const counted_t<const datum_t> &datum);
-serialization_result_t datum_serialize(write_message_t *wm, const counted_t<const datum_t> &datum);
-archive_result_t datum_deserialize(read_stream_t *s, counted_t<const datum_t> *datum);
+size_t datum_serialized_size(const datum_t &datum);
+serialization_result_t datum_serialize(write_message_t *wm, const datum_t &datum);
+archive_result_t datum_deserialize(read_stream_t *s, datum_t *datum);
 
-size_t datum_serialized_size(const wire_string_t &s);
-serialization_result_t datum_serialize(write_message_t *wm, const wire_string_t &s);
+size_t datum_serialized_size(const datum_string_t &s);
+serialization_result_t datum_serialize(write_message_t *wm, const datum_string_t &s);
 
-// The deserialized value cannot be an empty scoped_ptr_t.  As with all deserialize
-// functions, the value of `*out` is left in an unspecified state, should
-// deserialization fail.
-MUST_USE archive_result_t datum_deserialize(read_stream_t *s,
-                                            scoped_ptr_t<wire_string_t> *out);
+MUST_USE archive_result_t datum_deserialize(read_stream_t *s, datum_string_t *out);
 
 // The versioned serialization functions.
 template <cluster_version_t W>
-size_t serialized_size(const counted_t<const datum_t> &datum) {
+size_t serialized_size(const datum_t &datum) {
     return datum_serialized_size(datum);
 }
 template <cluster_version_t W>
-void serialize(write_message_t *wm, const counted_t<const datum_t> &datum) {
+void serialize(write_message_t *wm, const datum_t &datum) {
     // ignore the datum_serialize result for in memory writes
     datum_serialize(wm, datum);
 }
 template <cluster_version_t W>
-archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) {
+archive_result_t deserialize(read_stream_t *s, datum_t *datum) {
     return datum_deserialize(s, datum);
 }
 
 template <cluster_version_t W>
 void serialize(write_message_t *wm,
-               const empty_ok_t<const counted_t<const datum_t> > &datum);
+               const empty_ok_t<const datum_t> &datum);
 template <cluster_version_t W>
 archive_result_t deserialize(read_stream_t *s,
-                             empty_ok_ref_t<counted_t<const datum_t> > datum);
+                             empty_ok_ref_t<datum_t> datum);
 
 }  // namespace ql
 
