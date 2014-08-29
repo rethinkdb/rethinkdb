@@ -216,21 +216,6 @@ struct rget_read_response_t {
 
 RDB_DECLARE_SERIALIZABLE(rget_read_response_t);
 
-struct intersecting_geo_read_response_t {
-    ql::result_t result;
-    bool truncated;
-    store_key_t last_key;
-
-    // Primary IDs to be ignored in future batches
-    std::set<store_key_t> ids_to_ignore;
-    // TODO! This is not how it's going to work. We need the primary key
-    //   next to each result in the stream.
-
-    intersecting_geo_read_response_t() : truncated(false) { }
-};
-
-RDB_DECLARE_SERIALIZABLE(intersecting_geo_read_response_t);
-
 struct nearest_geo_read_response_t {
     typedef std::pair<double, ql::datum_t> dist_pair_t;
     typedef std::vector<dist_pair_t> result_t;
@@ -310,7 +295,6 @@ RDB_SERIALIZE_OUTSIDE(changefeed_point_stamp_response_t);
 struct read_response_t {
     typedef boost::variant<point_read_response_t,
                            rget_read_response_t,
-                           intersecting_geo_read_response_t,
                            nearest_geo_read_response_t,
                            changefeed_subscribe_response_t,
                            changefeed_stamp_response_t,

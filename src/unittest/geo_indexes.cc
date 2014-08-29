@@ -325,8 +325,8 @@ std::vector<datum_t> perform_get_intersecting(
               osource->check_in("unittest::perform_get_intersecting(geo_indexes.cc"),
               &interruptor);
 
-    intersecting_geo_read_response_t *geo_response =
-        boost::get<intersecting_geo_read_response_t>(&response.response);
+    rget_read_response_t *geo_response =
+        boost::get<rget_read_response_t>(&response.response);
     if (geo_response == NULL) {
         ADD_FAILURE() << "got wrong type of result back";
         return std::vector<datum_t>();

@@ -1037,7 +1037,7 @@ void rdb_get_intersecting_slice(
         const boost::optional<ql::terminal_variant_t> &terminal,
         const key_range_t &pk_range,
         const sindex_disk_info_t &sindex_info,
-        intersecting_geo_read_response_t *response) {
+        rget_read_response_t *response) {
     guarantee(query_geometry.has());
 
     guarantee(sindex_info.geo == sindex_geo_bool_t::GEO);
@@ -1051,7 +1051,7 @@ void rdb_get_intersecting_slice(
         geo_sindex_data_t(pk_range, sindex_info.mapping, sindex_func_reql_version,
                           sindex_info.multi),
         query_geometry,
-        sindex_region.inner, // TODO! <---
+        sindex_region.inner,
         response);
     btree_concurrent_traversal(
         superblock, sindex_region.inner, &callback,
@@ -1092,11 +1092,10 @@ void rdb_get_nearest_slice(
                                   sindex_func_reql_version, sindex_info.multi),
                 ql_env,
                 &state);
-            bool done = btree_concurrent_traversal(
+            btree_concurrent_traversal(
                 superblock, key_range_t::universe(), &callback,
                 direction_t::FORWARD,
                 release_superblock_t::KEEP);
-            guarantee(done); // TODO! <---
             callback.finish(&partial_response);
         } catch (const geo_exception_t &e) {
             partial_response.results_or_error =

@@ -204,9 +204,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const intersecting_geo_read_t &geo_read) {
         ql::env_t ql_env(ctx, interruptor, geo_read.optargs, trace);
 
-        response->response = intersecting_geo_read_response_t();
-        intersecting_geo_read_response_t *res =
-            boost::get<intersecting_geo_read_response_t>(&response->response);
+        response->response = rget_read_response_t();
+        rget_read_response_t *res = boost::get<rget_read_response_t>(&response->response);
 
         sindex_disk_info_t sindex_info;
         uuid_u sindex_uuid;

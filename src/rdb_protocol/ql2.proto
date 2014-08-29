@@ -672,7 +672,7 @@ message Term {
         INTERSECTS = 163;        // PSEUDOTYPE(GEOMETRY), PSEUDOTYPE(GEOMETRY) -> BOOL
         INCLUDES = 164;          // PSEUDOTYPE(GEOMETRY), PSEUDOTYPE(GEOMETRY) -> BOOL
         CIRCLE = 165;            // PSEUDOTYPE(GEOMETRY), NUMBER {num_vertices:NUMBER, geo_system:STRING, unit:STRING, fill:BOOL} -> PSEUDOTYPE(GEOMETRY)
-        GET_INTERSECTING = 166;  // TABLE, PSEUDOTYPE(GEOMETRY) {index:!STRING} -> ARRAY
+        GET_INTERSECTING = 166;  // TABLE, PSEUDOTYPE(GEOMETRY) {index:!STRING} -> StreamSelection
         FILL = 167;              // PSEUDOTYPE(GEOMETRY) -> PSEUDOTYPE(GEOMETRY)
         GET_NEAREST = 168;       // TABLE, PSEUDOTYPE(GEOMETRY) {index:!STRING, max_results:NUM, max_dist:NUM, geo_system:STRING, unit:STRING} -> ARRAY
     }

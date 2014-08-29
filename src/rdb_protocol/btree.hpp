@@ -208,7 +208,7 @@ void rdb_get_intersecting_slice(
     const boost::optional<ql::terminal_variant_t> &terminal,
     const key_range_t &pk_range,
     const sindex_disk_info_t &sindex_info,
-    intersecting_geo_read_response_t *response);
+    rget_read_response_t *response);
 
 void rdb_get_nearest_slice(
     btree_slice_t *slice,

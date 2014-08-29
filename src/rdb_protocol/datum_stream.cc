@@ -25,7 +25,7 @@ T groups_to_batch(std::map<datum_t, T, optional_datum_less_t> *g) {
 
 
 // RANGE/READGEN STUFF
-reader_t::reader_t(
+rget_reader_t::rget_reader_t(
     const real_table_t &_table,
     bool _use_outdated,
     scoped_ptr_t<readgen_t> &&_readgen)
@@ -36,12 +36,12 @@ reader_t::reader_t(
       active_range(readgen->original_keyrange()),
       items_index(0) { }
 
-void reader_t::add_transformation(transform_variant_t &&tv) {
+void rget_reader_t::add_transformation(transform_variant_t &&tv) {
     r_sanity_check(!started);
     transforms.push_back(std::move(tv));
 }
 
-void reader_t::accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv) {
+void rget_reader_t::accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv) {
     r_sanity_check(!started);
     started = shards_exhausted = true;
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
@@ -50,7 +50,7 @@ void reader_t::accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t
     acc->add_res(env, &res);
 }
 
-void reader_t::accumulate_all(env_t *env, eager_acc_t *acc) {
+void rget_reader_t::accumulate_all(env_t *env, eager_acc_t *acc) {
     r_sanity_check(!started);
     started = true;
     batchspec_t batchspec = batchspec_t::all();
@@ -66,102 +66,7 @@ void reader_t::accumulate_all(env_t *env, eager_acc_t *acc) {
     acc->add_res(env, &resp.result);
 }
 
-rget_read_response_t reader_t::do_read(env_t *env, const read_t &read) {
-    read_response_t res;
-    table.read_with_profile(env, read, &res, use_outdated);
-    auto rget_res = boost::get<rget_read_response_t>(&res.response);
-    // TODO! Temporary hack. It's also insufficient, because we still
-    // have to do the distinct filtering. I should probably have a special reader_t for get_intersecting
-    rget_read_response_t geo_rget_res;
-    if (rget_res == NULL) {
-        auto geo_res = boost::get<intersecting_geo_read_response_t>(&res.response);
-        r_sanity_check(geo_res != NULL);
-        geo_rget_res.result = geo_res->result;
-        geo_rget_res.truncated = geo_res->truncated;
-        geo_rget_res.last_key = geo_res->last_key;
-        rget_res = &geo_rget_res;
-    }
-    // TODO! Also add a unit test that tests intersection batching btw!
-    r_sanity_check(rget_res != NULL);
-    if (auto e = boost::get<exc_t>(&rget_res->result)) {
-        throw *e;
-    }
-    return std::move(*rget_res);
-}
-
-std::vector<rget_item_t> reader_t::do_range_read(
-        env_t *env, const read_t &read) {
-    rget_read_response_t res = do_read(env, read);
-
-    // It's called `do_range_read`.  If we have more than one type of range
-    // read (which we might; rget_read_t should arguably be two types), this
-    // will have to be a visitor.
-    auto rr = boost::get<rget_read_t>(&read.read);
-    r_sanity_check(rr);
-    const key_range_t &rng = rr->sindex? rr->sindex->region.inner : rr->region.inner;
-
-    // We need to do some adjustments to the last considered key so that we
-    // update the range correctly in the case where we're reading a subportion
-    // of the total range.
-    store_key_t *key = &res.last_key;
-    if (*key == store_key_t::max() && !reversed(rr->sorting)) {
-        if (!rng.right.unbounded) {
-            *key = rng.right.key;
-            bool b = key->decrement();
-            r_sanity_check(b);
-        }
-    } else if (*key == store_key_t::min() && reversed(rr->sorting)) {
-        *key = rng.left;
-    }
-
-    shards_exhausted = readgen->update_range(&active_range, res.last_key);
-    grouped_t<stream_t> *gs = boost::get<grouped_t<stream_t> >(&res.result);
-
-    // groups_to_batch asserts that underlying_map has 0 or 1 elements, so it is
-    // correct to declare that the order doesn't matter.
-    return groups_to_batch(gs->get_underlying_map(grouped::order_doesnt_matter_t()));
-}
-
-bool reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
-    started = true;
-    if (items_index >= items.size() && !shards_exhausted) { // read some more
-        items_index = 0;
-        items = do_range_read(
-                env, readgen->next_read(active_range, transforms, batchspec));
-        // Everything below this point can handle `items` being empty (this is
-        // good hygiene anyway).
-        while (boost::optional<read_t> read = readgen->sindex_sort_read(
-                   active_range, items, transforms, batchspec)) {
-            std::vector<rget_item_t> new_items = do_range_read(env, *read);
-            if (new_items.size() == 0) {
-                break;
-            }
-
-            rcheck_datum(
-                (items.size() + new_items.size()) <= env->limits().array_size_limit(),
-                base_exc_t::GENERIC,
-                strprintf("Too many rows (> %zu) with the same "
-                          "truncated key for index `%s`.  "
-                          "Example value:\n%s\n"
-                          "Truncated key:\n%s",
-                          env->limits().array_size_limit(),
-                          readgen->sindex_name().c_str(),
-                          items[items.size() - 1].sindex_key->trunc_print().c_str(),
-                          key_to_debug_str(items[items.size() - 1].key).c_str()));
-
-            items.reserve(items.size() + new_items.size());
-            std::move(new_items.begin(), new_items.end(), std::back_inserter(items));
-        }
-        readgen->sindex_sort(&items);
-    }
-    if (items_index >= items.size()) {
-        shards_exhausted = true;
-    }
-    return items_index < items.size();
-}
-
-std::vector<datum_t>
-reader_t::next_batch(env_t *env, const batchspec_t &batchspec) {
+std::vector<datum_t> rget_reader_t::next_batch(env_t *env, const batchspec_t &batchspec) {
     started = true;
     if (!load_items(env, batchspec)) {
         return std::vector<datum_t>();
@@ -234,8 +139,114 @@ reader_t::next_batch(env_t *env, const batchspec_t &batchspec) {
     return res;
 }
 
-bool reader_t::is_finished() const {
+bool rget_reader_t::is_finished() const {
     return shards_exhausted && items_index >= items.size();
+}
+
+rget_read_response_t rget_reader_t::do_read(env_t *env, const read_t &read) {
+    read_response_t res;
+    table.read_with_profile(env, read, &res, use_outdated);
+    auto rget_res = boost::get<rget_read_response_t>(&res.response);
+    r_sanity_check(rget_res != NULL);
+    if (auto e = boost::get<exc_t>(&rget_res->result)) {
+        throw *e;
+    }
+    return std::move(*rget_res);
+}
+
+std::vector<rget_item_t> rget_reader_t::do_range_read(
+        env_t *env, const read_t &read) {
+    rget_read_response_t res = do_read(env, read);
+
+    // It's called `do_range_read`.  If we have more than one type of range
+    // read (which we might; rget_read_t should arguably be two types), this
+    // will have to be a visitor.
+    auto rr = boost::get<rget_read_t>(&read.read);
+    r_sanity_check(rr);
+    const key_range_t &rng = rr->sindex? rr->sindex->region.inner : rr->region.inner;
+
+    // We need to do some adjustments to the last considered key so that we
+    // update the range correctly in the case where we're reading a subportion
+    // of the total range.
+    store_key_t *key = &res.last_key;
+    if (*key == store_key_t::max() && !reversed(rr->sorting)) {
+        if (!rng.right.unbounded) {
+            *key = rng.right.key;
+            bool b = key->decrement();
+            r_sanity_check(b);
+        }
+    } else if (*key == store_key_t::min() && reversed(rr->sorting)) {
+        *key = rng.left;
+    }
+
+    shards_exhausted = readgen->update_range(&active_range, res.last_key);
+    grouped_t<stream_t> *gs = boost::get<grouped_t<stream_t> >(&res.result);
+
+    // groups_to_batch asserts that underlying_map has 0 or 1 elements, so it is
+    // correct to declare that the order doesn't matter.
+    return groups_to_batch(gs->get_underlying_map(grouped::order_doesnt_matter_t()));
+}
+
+bool rget_reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
+    started = true;
+    if (items_index >= items.size() && !shards_exhausted) { // read some more
+        items_index = 0;
+        items = do_range_read(
+                env, readgen->next_read(active_range, transforms, batchspec));
+        // Everything below this point can handle `items` being empty (this is
+        // good hygiene anyway).
+        while (boost::optional<read_t> read = readgen->sindex_sort_read(
+                   active_range, items, transforms, batchspec)) {
+            std::vector<rget_item_t> new_items = do_range_read(env, *read);
+            if (new_items.size() == 0) {
+                break;
+            }
+
+            rcheck_datum(
+                (items.size() + new_items.size()) <= env->limits().array_size_limit(),
+                base_exc_t::GENERIC,
+                strprintf("Too many rows (> %zu) with the same "
+                          "truncated key for index `%s`.  "
+                          "Example value:\n%s\n"
+                          "Truncated key:\n%s",
+                          env->limits().array_size_limit(),
+                          readgen->sindex_name().c_str(),
+                          items[items.size() - 1].sindex_key->trunc_print().c_str(),
+                          key_to_debug_str(items[items.size() - 1].key).c_str()));
+
+            items.reserve(items.size() + new_items.size());
+            std::move(new_items.begin(), new_items.end(), std::back_inserter(items));
+        }
+        readgen->sindex_sort(&items);
+    }
+    if (items_index >= items.size()) {
+        shards_exhausted = true;
+    }
+    return items_index < items.size();
+}
+
+intersecting_reader_t::intersecting_reader_t(
+    const real_table_t &_table,
+    bool _use_outdated,
+    scoped_ptr_t<readgen_t> &&_readgen)
+    : rget_reader_t(_table, _use_outdated, std::move(_readgen)) { }
+
+std::vector<rget_item_t> intersecting_reader_t::do_range_read(
+        env_t *env, const read_t &read) {
+    // TODO! Add a unit test that tests intersection batching btw!
+    std::vector<rget_item_t> unfiltered_result = rget_reader_t::do_range_read(env, read);
+    std::vector<rget_item_t> filtered_result;
+    filtered_result.reserve(unfiltered_result.size());
+    for (size_t i = 0; i < unfiltered_result.size(); ++i) {
+        // TODO! Is this really the right key? I hope it is. Check!
+        // TODO! Does this work for grouped streams?
+        // TODO! Does this work for transformed documents?
+        if (processed_pkeys.count(unfiltered_result[i].key) == 0) {
+            processed_pkeys.insert(unfiltered_result[i].key);
+            filtered_result.push_back(std::move(unfiltered_result[i]));
+        }
+    }
+    return filtered_result;
 }
 
 readgen_t::readgen_t(
@@ -713,38 +724,36 @@ datum_t eager_datum_stream_t::as_array(env_t *env) {
 
 // LAZY_DATUM_STREAM_T
 lazy_datum_stream_t::lazy_datum_stream_t(
-    const real_table_t &_table,
-    bool use_outdated,
-    scoped_ptr_t<readgen_t> &&readgen,
+    scoped_ptr_t<reader_t> &&_reader,
     const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(bt_src),
       current_batch_offset(0),
-      reader(_table, use_outdated, std::move(readgen)) { }
+      reader(std::move(_reader)) { }
 
 void lazy_datum_stream_t::add_transformation(transform_variant_t &&tv,
                                              const protob_t<const Backtrace> &bt) {
-    reader.add_transformation(std::move(tv));
+    reader->add_transformation(std::move(tv));
     update_bt(bt);
 }
 
 void lazy_datum_stream_t::accumulate(
     env_t *env, eager_acc_t *acc, const terminal_variant_t &tv) {
-    reader.accumulate(env, acc, tv);
+    reader->accumulate(env, acc, tv);
 }
 
 void lazy_datum_stream_t::accumulate_all(env_t *env, eager_acc_t *acc) {
-    reader.accumulate_all(env, acc);
+    reader->accumulate_all(env, acc);
 }
 
 std::vector<datum_t>
 lazy_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
     // Should never mix `next` with `next_batch`.
     r_sanity_check(current_batch_offset == 0 && current_batch.size() == 0);
-    return reader.next_batch(env, batchspec);
+    return reader->next_batch(env, batchspec);
 }
 
 bool lazy_datum_stream_t::is_exhausted() const {
-    return reader.is_finished() && batch_cache_exhausted();
+    return reader->is_finished() && batch_cache_exhausted();
 }
 bool lazy_datum_stream_t::is_cfeed() const {
     return false;

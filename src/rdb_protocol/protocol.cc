@@ -632,17 +632,7 @@ void rdb_r_unshard_visitor_t::operator()(const point_read_t &) {
 }
 
 void rdb_r_unshard_visitor_t::operator()(const intersecting_geo_read_t &query) {
-    unshard_range_batch<intersecting_geo_read_response_t>(query, sorting_t::UNORDERED);
-
-    // Merge the primary keys that have been processed
-    auto out = boost::get<intersecting_geo_read_response_t>(&response_out->response);
-    guarantee(out != NULL);
-    guarantee(out->ids_to_ignore.empty());
-    for (size_t i = 0; i < count; ++i) {
-        auto resp = boost::get<intersecting_geo_read_response_t>(&responses[i].response);
-        guarantee(resp);
-        out->ids_to_ignore.insert(resp->ids_to_ignore.begin(), resp->ids_to_ignore.end());
-    }
+    unshard_range_batch<rget_read_response_t>(query, sorting_t::UNORDERED);
 }
 
 void rdb_r_unshard_visitor_t::operator()(const nearest_geo_read_t &query) {
@@ -1171,9 +1161,6 @@ RDB_IMPL_SERIALIZABLE_1(point_read_response_t, data);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(point_read_response_t);
 RDB_IMPL_SERIALIZABLE_3(rget_read_response_t, result, truncated, last_key);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(rget_read_response_t);
-RDB_IMPL_SERIALIZABLE_4(
-        intersecting_geo_read_response_t, result, truncated, last_key, ids_to_ignore);
-INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(intersecting_geo_read_response_t);
 RDB_IMPL_SERIALIZABLE_1(nearest_geo_read_response_t, results_or_error);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(nearest_geo_read_response_t);
 RDB_IMPL_SERIALIZABLE_2(distribution_read_response_t, region, key_counts);

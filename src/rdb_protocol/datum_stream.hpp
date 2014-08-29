@@ -14,6 +14,7 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
+#include "containers/scoped.hpp"
 #include "rdb_protocol/context.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/real_table.hpp"
@@ -417,23 +418,36 @@ private:
 
 class reader_t {
 public:
-    explicit reader_t(
+    virtual ~reader_t() { }
+    virtual void add_transformation(transform_variant_t &&tv) = 0;
+    virtual void accumulate(env_t *env, eager_acc_t *acc,
+                            const terminal_variant_t &tv) = 0;
+    virtual void accumulate_all(env_t *env, eager_acc_t *acc) = 0;
+    virtual std::vector<datum_t> next_batch(env_t *env,
+                                            const batchspec_t &batchspec) = 0;
+    virtual bool is_finished() const = 0;
+};
+
+class rget_reader_t : public reader_t {
+public:
+    rget_reader_t(
         const real_table_t &_table,
         bool use_outdated,
         scoped_ptr_t<readgen_t> &&readgen);
-    void add_transformation(transform_variant_t &&tv);
-    void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
-    void accumulate_all(env_t *env, eager_acc_t *acc);
-    std::vector<datum_t>
-    next_batch(env_t *env, const batchspec_t &batchspec);
-    bool is_finished() const;
-private:
+    virtual void add_transformation(transform_variant_t &&tv);
+    virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
+    virtual void accumulate_all(env_t *env, eager_acc_t *acc);
+    virtual std::vector<datum_t> next_batch(env_t *env, const batchspec_t &batchspec);
+    virtual bool is_finished() const;
+
+protected:
     // Returns `true` if there's data in `items`.
     bool load_items(env_t *env, const batchspec_t &batchspec);
     rget_read_response_t do_read(env_t *env, const read_t &read);
-    std::vector<rget_item_t> do_range_read(
+    virtual std::vector<rget_item_t> do_range_read(
             env_t *env, const read_t &read);
 
+private:
     real_table_t table;
     const bool use_outdated;
     std::vector<transform_variant_t> transforms;
@@ -447,12 +461,28 @@ private:
     size_t items_index;
 };
 
+// We re-use most of rget_reader_t, but add filtering for duplicate documents in
+// the stream
+class intersecting_reader_t : public rget_reader_t {
+public:
+    intersecting_reader_t(
+        const real_table_t &_table,
+        bool use_outdated,
+        scoped_ptr_t<readgen_t> &&readgen);
+
+protected:
+    virtual std::vector<rget_item_t> do_range_read(
+            env_t *env, const read_t &read);
+
+private:
+    // To detect duplicates
+    std::set<store_key_t> processed_pkeys;
+};
+
 class lazy_datum_stream_t : public datum_stream_t {
 public:
     lazy_datum_stream_t(
-        const real_table_t &_table,
-        bool _use_outdated,
-        scoped_ptr_t<readgen_t> &&_readgen,
+        scoped_ptr_t<reader_t> &&_reader,
         const protob_t<const Backtrace> &bt_src);
 
     virtual bool is_array() { return false; }
@@ -477,7 +507,7 @@ private:
     size_t current_batch_offset;
     std::vector<datum_t> current_batch;
 
-    reader_t reader;
+    scoped_ptr_t<reader_t> reader;
 };
 
 } // namespace ql

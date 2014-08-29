@@ -128,9 +128,8 @@ private:
     scoped_ptr_t<profile::sampler_t> sampler;
 };
 
-// TODO! Update description
-// Simply accumulates all intersecting results in an array without any
-// post-filtering.
+// Simply accumulates all intersecting results in an rget_read_response_t batch
+// without any post-filtering.
 class collect_all_geo_intersecting_cb_t : public geo_intersecting_cb_t {
 public:
     collect_all_geo_intersecting_cb_t(
@@ -139,7 +138,7 @@ public:
             geo_sindex_data_t &&_sindex,
             const ql::datum_t &_query_geometry,
             const key_range_t &_sindex_range,
-            intersecting_geo_read_response_t *_resp_out);
+            rget_read_response_t *_resp_out);
 
     void finish() THROWS_ONLY(interrupted_exc_t);
 
@@ -161,7 +160,7 @@ protected:
 
 private:
     geo_job_data_t job;
-    intersecting_geo_read_response_t *response;
+    rget_read_response_t *response;
 
     std::set<store_key_t> distinct_emitted;
 };

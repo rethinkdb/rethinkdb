@@ -179,7 +179,7 @@ collect_all_geo_intersecting_cb_t::collect_all_geo_intersecting_cb_t(
         geo_sindex_data_t &&_sindex,
         const ql::datum_t &_query_geometry,
         const key_range_t &_sindex_range,
-        intersecting_geo_read_response_t *_resp_out)
+        rget_read_response_t *_resp_out)
     : geo_intersecting_cb_t(_slice, std::move(_sindex), _job.env, &distinct_emitted),
       job(std::move(_job)), response(_resp_out) {
     guarantee(response != NULL);
@@ -225,8 +225,6 @@ done_traversing_t collect_all_geo_intersecting_cb_t::emit_result(
 void collect_all_geo_intersecting_cb_t::emit_error(
         const ql::exc_t &_error)
         THROWS_ONLY(interrupted_exc_t) {
-    // TODO! Make sure This is the last thing that's called before we abort the
-    // traversal
     response->result = _error;
 }
 
