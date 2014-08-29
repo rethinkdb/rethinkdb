@@ -3,6 +3,59 @@
 # application. We should refactor this at some point, but I'm leaving
 # it as is for now.
 
+# Shorcut for the JavaScript driver
+$ ->
+    window.r = require('rethinkdb')
+    window.driver = new Driver
+
+class @Driver
+    # I don't want that thing in window
+    constructor: (args) ->
+        if window.location.port is ''
+            if window.location.protocol is 'https:'
+                port = 443
+            else
+                port = 80
+        else
+            port = parseInt window.location.port
+        @server =
+            host: window.location.hostname
+            port: port
+            protocol: if window.location.protocol is 'https:' then 'https' else 'http'
+            pathname: window.location.pathname
+
+        @hack_driver()
+    
+    # Hack the driver, remove .run() and private_run()
+    hack_driver: =>
+        TermBase = r.expr(1).constructor.__super__.constructor.__super__
+        if not TermBase.private_run?
+            that = @
+            TermBase.private_run = TermBase.run
+            TermBase.run = ->
+                throw new Error("You should remove .run() from your queries when using the Data Explorer.\nThe query will be built and sent by the Data Explorer itself.")
+
+    connect: (callback) ->
+        r.connect @server, callback
+
+
+    run: (query, callback) =>
+        @connect (error, result) ->
+            if error?
+                return callback error
+
+            query.private_run connection, callback
+
+    close: (conn) ->
+        conn.close {noreplyWait: false}
+
+    destroy: =>
+        @close_connection()
+
+
+###
+Old stuff below, we should eventually just remove everything...
+###
 
 modal_registry = []
 clear_modals = ->
@@ -214,8 +267,6 @@ collect_stat_data = ->
 # Define the server to which the javascript is going to connect to
 # Tweaking the value of server.host or server.port can trigger errors for testing
 $ ->
-    window.r = require('rethinkdb')
-
     render_loading()
     bind_dev_tools()
 
@@ -252,7 +303,3 @@ $ ->
 
     # Collect reql docs
     collect_reql_doc()
-
-    # Set namespace for the javascript driver
-    if rethinkdb?
-        window.r = rethinkdb

@@ -2506,7 +2506,9 @@ module 'DataExplorerView', ->
                         if (error)
                             @error_on_connect error
                         else
-                            rdb_query.private_run connection, {binaryFormat: "raw", timeFormat: "raw", profile: @state.options.profiler}, rdb_global_callback # @rdb_global_callback can be fired more than once
+                            rdb_query.private_run connection,
+                                {binaryFormat: "raw", timeFormat: "raw", profile: @state.options.profiler},
+                                rdb_global_callback # @rdb_global_callback can be fired more than once
                     , @id_execution, @error_on_connect
 
                     return true
@@ -3893,60 +3895,34 @@ module 'DataExplorerView', ->
                 is_at_bottom: 'true'
 
     class @DriverHandler
-        ping_time: 5*60*1000
-
+        # This class does a little more than window.Driver
         query_error_template: Handlebars.templates['dataexplorer-query_error-template']
 
         # I don't want that thing in window
         constructor: (args) ->
-            if window.location.port is ''
-                if window.location.protocol is 'https:'
-                    port = 443
-                else
-                    port = 80
-            else
-                port = parseInt window.location.port
-            @server =
-                host: window.location.hostname
-                port: port
-                protocol: if window.location.protocol is 'https:' then 'https' else 'http'
-                pathname: window.location.pathname
-
-            @hack_driver()
+            @driver = new Driver()
         
-        # Hack the driver, remove .run() and private_run()
-        hack_driver: =>
-            TermBase = r.expr(1).constructor.__super__.constructor.__super__
-            if not TermBase.private_run?
-                that = @
-                TermBase.private_run = TermBase.run
-                TermBase.run = ->
-                    throw that.query_error_template
-                        found_run: true
-
         close_connection: =>
             if @connection?.open is true
-                @connection.close {noreplyWait: false}
+                @driver.close @connection
                 @connection = null
 
         create_connection: (cb, id_execution, connection_cb) =>
+            @close_connection()
+
             that = @
             @id_execution = id_execution
 
-            try
-                ((_id_execution) =>
-                    r.connect @server, (error, connection) =>
-                        if _id_execution is @id_execution
-                            connection.removeAllListeners 'error' # See issue 1347
-                            connection.on 'error', connection_cb
-                            @connection = connection
-                            cb(error, connection)
-                        else
-                            connection.cancel()
-                )(id_execution)
-   
-            catch err
-                @on_fail(err)
+            ((_id_execution) =>
+                @driver.connect (error, connection) =>
+                    if _id_execution is @id_execution
+                        connection.removeAllListeners 'error' # See issue 1347
+                        connection.on 'error', connection_cb
+                        @connection = connection
+                        cb(error, connection)
+                    else
+                        @driver.close connection
+            )(id_execution)
 
         destroy: =>
             @close_connection()

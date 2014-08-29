@@ -487,13 +487,14 @@ class HttpConnection extends Connection
         @xhr = xhr # We allow only one query at a time per HTTP connection
 
     cancel: ->
-        @xhr.abort()
-        xhr = new XMLHttpRequest
-        xhr.open("POST", "#{@_url}close-connection?conn_id=#{@_connId}", true)
-        xhr.send()
-        @_url = null
-        @_connId = null
-        super()
+        if @_connId? # @conn_id is null is the connection was previously closed/cancel
+            @xhr.abort()
+            xhr = new XMLHttpRequest
+            xhr.open("POST", "#{@_url}close-connection?conn_id=#{@_connId}", true)
+            xhr.send()
+            @_url = null
+            @_connId = null
+            super()
 
     close: (varar 0, 2, (optsOrCallback, callback) ->
         if callback?
