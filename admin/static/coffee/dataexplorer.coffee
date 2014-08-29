@@ -3898,13 +3898,9 @@ module 'DataExplorerView', ->
         # This class does a little more than window.Driver
         query_error_template: Handlebars.templates['dataexplorer-query_error-template']
 
-        # I don't want that thing in window
-        constructor: (args) ->
-            @driver = new Driver()
-        
         close_connection: =>
             if @connection?.open is true
-                @driver.close @connection
+                driver.close @connection
                 @connection = null
 
         create_connection: (cb, id_execution, connection_cb) =>
@@ -3914,14 +3910,14 @@ module 'DataExplorerView', ->
             @id_execution = id_execution
 
             ((_id_execution) =>
-                @driver.connect (error, connection) =>
+                driver.connect (error, connection) =>
                     if _id_execution is @id_execution
                         connection.removeAllListeners 'error' # See issue 1347
                         connection.on 'error', connection_cb
                         @connection = connection
                         cb(error, connection)
                     else
-                        @driver.close connection
+                        driver.close connection
             )(id_execution)
 
         destroy: =>
