@@ -237,7 +237,6 @@ intersecting_reader_t::intersecting_reader_t(
     : rget_result_reader_t(_table, _use_outdated, std::move(_readgen)) { }
 
 void intersecting_reader_t::accumulate_all(env_t *env, eager_acc_t *acc) {
-    fprintf(stderr, "Reading all\n"); // TODO!
     r_sanity_check(!started);
     started = true;
     batchspec_t batchspec = batchspec_t::all();
@@ -266,7 +265,6 @@ bool intersecting_reader_t::load_items(env_t *env, const batchspec_t &batchspec)
             for (size_t i = 0; i < unfiltered_items.size(); ++i) {
                 r_sanity_check(unfiltered_items[i].key.size() > 0);
                 store_key_t pkey(ql::datum_t::extract_primary(unfiltered_items[i].key));
-                fprintf(stderr, "Key: %s\n", key_to_debug_str(pkey).c_str()); // TODO!
                 if (processed_pkeys.count(pkey) == 0) {
                     processed_pkeys.insert(pkey);
                     items.push_back(std::move(unfiltered_items[i]));
@@ -575,7 +573,6 @@ read_t intersecting_readgen_t::next_read(
     const key_range_t &active_range,
     const std::vector<transform_variant_t> &transforms,
     const batchspec_t &batchspec) const {
-    fprintf(stderr, "next_read\n"); // TODO!
     return read_t(next_read_impl(active_range, transforms, batchspec), profile);
 }
 
@@ -583,7 +580,6 @@ read_t intersecting_readgen_t::terminal_read(
     const std::vector<transform_variant_t> &transforms,
     const terminal_variant_t &_terminal,
     const batchspec_t &batchspec) const {
-    fprintf(stderr, "terminal_read\n"); // TODO!
     intersecting_geo_read_t read =
         next_read_impl(original_keyrange(), transforms, batchspec);
     read.terminal = _terminal;
