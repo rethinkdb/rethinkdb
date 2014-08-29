@@ -428,23 +428,25 @@ public:
     virtual bool is_finished() const = 0;
 };
 
-class rget_reader_t : public reader_t {
+// For reads that generate read_response_t results
+class rget_result_reader_t : public reader_t {
 public:
-    rget_reader_t(
+    rget_result_reader_t(
         const real_table_t &_table,
         bool use_outdated,
         scoped_ptr_t<readgen_t> &&readgen);
     virtual void add_transformation(transform_variant_t &&tv);
     virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
-    virtual void accumulate_all(env_t *env, eager_acc_t *acc);
+    // Overwrite this in an implementation
+    virtual void accumulate_all(env_t *env, eager_acc_t *acc) = 0;
     virtual std::vector<datum_t> next_batch(env_t *env, const batchspec_t &batchspec);
     virtual bool is_finished() const;
 
 protected:
     // Returns `true` if there's data in `items`.
-    virtual bool load_items(env_t *env, const batchspec_t &batchspec);
+    // Overwrite this in an implementation
+    virtual bool load_items(env_t *env, const batchspec_t &batchspec) = 0;
     rget_read_response_t do_read(env_t *env, const read_t &read);
-    std::vector<rget_item_t> do_range_read(env_t *env, const read_t &read);
 
     real_table_t table;
     const bool use_outdated;
@@ -459,19 +461,39 @@ protected:
     size_t items_index;
 };
 
-// We re-use most of rget_reader_t, but add filtering for duplicate documents in
-// the stream
-class intersecting_reader_t : public rget_reader_t {
+class rget_reader_t : public rget_result_reader_t {
+public:
+    rget_reader_t(
+        const real_table_t &_table,
+        bool use_outdated,
+        scoped_ptr_t<readgen_t> &&readgen);
+    virtual void accumulate_all(env_t *env, eager_acc_t *acc);
+
+protected:
+    // Returns `true` if there's data in `items`.
+    virtual bool load_items(env_t *env, const batchspec_t &batchspec);
+
+private:
+    std::vector<rget_item_t> do_range_read(env_t *env, const read_t &read);
+};
+
+// intersecting_reader_t performs filtering for duplicate documents in the stream,
+// assuming it is read in batches (otherwise that's not necessary, because the
+// shards will already provide distinct results).
+class intersecting_reader_t : public rget_result_reader_t {
 public:
     intersecting_reader_t(
         const real_table_t &_table,
         bool use_outdated,
         scoped_ptr_t<readgen_t> &&readgen);
+    virtual void accumulate_all(env_t *env, eager_acc_t *acc);
 
 protected:
     virtual bool load_items(env_t *env, const batchspec_t &batchspec);
 
 private:
+    std::vector<rget_item_t> do_intersecting_read(env_t *env, const read_t &read);
+
     // To detect duplicates
     std::set<store_key_t> processed_pkeys;
 };
