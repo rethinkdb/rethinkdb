@@ -442,12 +442,10 @@ public:
 
 protected:
     // Returns `true` if there's data in `items`.
-    bool load_items(env_t *env, const batchspec_t &batchspec);
+    virtual bool load_items(env_t *env, const batchspec_t &batchspec);
     rget_read_response_t do_read(env_t *env, const read_t &read);
-    virtual std::vector<rget_item_t> do_range_read(
-            env_t *env, const read_t &read);
+    std::vector<rget_item_t> do_range_read(env_t *env, const read_t &read);
 
-private:
     real_table_t table;
     const bool use_outdated;
     std::vector<transform_variant_t> transforms;
@@ -471,8 +469,7 @@ public:
         scoped_ptr_t<readgen_t> &&readgen);
 
 protected:
-    virtual std::vector<rget_item_t> do_range_read(
-            env_t *env, const read_t &read);
+    virtual bool load_items(env_t *env, const batchspec_t &batchspec);
 
 private:
     // To detect duplicates

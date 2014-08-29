@@ -231,22 +231,29 @@ intersecting_reader_t::intersecting_reader_t(
     scoped_ptr_t<readgen_t> &&_readgen)
     : rget_reader_t(_table, _use_outdated, std::move(_readgen)) { }
 
-std::vector<rget_item_t> intersecting_reader_t::do_range_read(
-        env_t *env, const read_t &read) {
-    // TODO! Add a unit test that tests intersection batching btw!
-    std::vector<rget_item_t> unfiltered_result = rget_reader_t::do_range_read(env, read);
-    std::vector<rget_item_t> filtered_result;
-    filtered_result.reserve(unfiltered_result.size());
-    for (size_t i = 0; i < unfiltered_result.size(); ++i) {
-        // TODO! Is this really the right key? I hope it is. Check!
-        // TODO! Does this work for grouped streams?
-        // TODO! Does this work for transformed documents?
-        if (processed_pkeys.count(unfiltered_result[i].key) == 0) {
-            processed_pkeys.insert(unfiltered_result[i].key);
-            filtered_result.push_back(std::move(unfiltered_result[i]));
+bool intersecting_reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
+    started = true;
+    while (items_index >= items.size() && !shards_exhausted) { // read some more
+        std::vector<rget_item_t> unfiltered_items = do_range_read(
+                env, readgen->next_read(active_range, transforms, batchspec));
+        if (unfiltered_items.empty()) {
+            shards_exhausted = true;
+        } else {
+            items_index = 0;
+            items.clear();
+            items.reserve(unfiltered_items.size());
+            for (size_t i = 0; i < unfiltered_items.size(); ++i) {
+                // TODO! Is this really the right key? I hope it is. Check!
+                // TODO! Does this work for grouped streams?
+                // TODO! Does this work for transformed documents?
+                if (processed_pkeys.count(unfiltered_items[i].key) == 0) {
+                    processed_pkeys.insert(unfiltered_items[i].key);
+                    items.push_back(std::move(unfiltered_items[i]));
+                }
+            }
         }
     }
-    return filtered_result;
+    return items_index < items.size();
 }
 
 readgen_t::readgen_t(
