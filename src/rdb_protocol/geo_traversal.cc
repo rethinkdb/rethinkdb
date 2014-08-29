@@ -145,9 +145,10 @@ done_traversing_t geo_intersecting_cb_t::on_candidate(
         //   the query_geometry for each test.
         if (geo_does_intersect(query_geometry, sindex_val)
             && post_filter(sindex_val, val)) {
-            if (distinct_emitted->size() > env->limits().array_size_limit()) {
+            if (distinct_emitted->size() >= env->limits().array_size_limit()) {
                 emit_error(ql::exc_t(ql::base_exc_t::GENERIC,
-                        "Result size limit exceeded (array size).", NULL));
+                        "Array size limit exceeded during geospatial index traversal.",
+                        NULL));
                 return done_traversing_t::YES;
             }
             distinct_emitted->insert(primary_key);

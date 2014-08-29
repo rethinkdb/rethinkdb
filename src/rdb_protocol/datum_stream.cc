@@ -266,6 +266,11 @@ bool intersecting_reader_t::load_items(env_t *env, const batchspec_t &batchspec)
                 r_sanity_check(unfiltered_items[i].key.size() > 0);
                 store_key_t pkey(ql::datum_t::extract_primary(unfiltered_items[i].key));
                 if (processed_pkeys.count(pkey) == 0) {
+                    if (processed_pkeys.size() >= env->limits().array_size_limit()) {
+                        throw ql::exc_t(ql::base_exc_t::GENERIC,
+                            "Array size limit exceeded during geospatial index "
+                            "traversal.", NULL);
+                    }
                     processed_pkeys.insert(pkey);
                     items.push_back(std::move(unfiltered_items[i]));
                 }
