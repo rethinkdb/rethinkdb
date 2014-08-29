@@ -340,7 +340,7 @@ scoped_ptr_t<S2Polygon> coordinates_to_s2polygon(const datum_t &coords) {
     scoped_ptr_t<S2Polygon> result(new S2Polygon());
     S2PolygonBuilder::EdgeList unused_edges;
     builder.AssemblePolygon(result.get(), &unused_edges);
-    if (!unused_edges.empty() || !result->IsValid()) {
+    if (!unused_edges.empty() || !result->IsValid(geo::S2Polygon::validate_loops_t::NO)) {
         throw geo_exception_t(
             "Some edges in GeoJSON polygon could not be used.  Are they intersecting?");
     }
