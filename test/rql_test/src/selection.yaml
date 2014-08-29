@@ -1,11 +1,8 @@
 desc: Tests that manipulation data in tables
+table_variable_name: tbl
 tests:
 
-    # Set up some data
-    - cd: r.db('test').table_create('test1')
-      ot: ({'created':1})
-      def: tbl = r.db('test').table('test1')
-
+    # Set up some more tables
     - cd: r.db('test').table_create('test2')
       ot: ({'created':1})
       def: tbl2 = r.db('test').table('test2')
@@ -107,19 +104,19 @@ tests:
       ot: err("RqlRuntimeError", 'Table name `%` invalid (Use A-Za-z0-9_ only).', [0])
 
     # Access a table from default db
-    - cd: r.table('test1').count()
+    - cd: tbl.count()
       ot: 100
 
     # Access a table using the `use_outdated` flag
     - py:
-        - r.table('test1', use_outdated=True).count()
-        - r.db('test').table('test1', use_outdated=True).count()
+        - r.table('test2', use_outdated=True).count()
+        - r.db('test').table('test2', use_outdated=True).count()
       js:
-        - r.table('test1', {useOutdated:true}).count()
-        - r.db('test').table('test1', {useOutdated:true}).count()
+        - r.table('test2', {useOutdated:true}).count()
+        - r.db('test').table('test2', {useOutdated:true}).count()
       rb:
-        - r.table('test1', {:use_outdated => true}).count()
-        - r.db('test').table('test1', {:use_outdated => true}).count()
+        - r.table('test2', {:use_outdated => true}).count()
+        - r.db('test').table('test2', {:use_outdated => true}).count()
       ot: 100
 
     - cd: tbl.get(20).count()
@@ -315,7 +312,7 @@ tests:
       ot: err('RqlRuntimeError', 'Expected type DATUM but found TABLE.', [0])
 
     # Clean up
-    - cd: r.db('test').table_list().for_each(r.db('test').table_drop(r.row))
-      rb: r.db('test').table_list().for_each{ |row| r.db('test').table_drop(row) }
-      ot: ({'dropped':4})
+    - cd: r.expr(['test2','test3','testpkey']).for_each(r.db('test').table_drop(r.row))
+      rb: r.expr(['test2','test3','testpkey']).for_each{ |row| r.db('test').table_drop(row) }
+      ot: ({'dropped':3})
 

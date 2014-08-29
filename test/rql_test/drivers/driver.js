@@ -502,6 +502,18 @@ function bag(list) {
 
 // Invoked by generated code to demonstrate expected error output
 function err(err_name, err_msg, err_frames) {
+    return err_predicate(
+        err_name, function(msg) { return (!err_msg || (err_msg == msg)); },
+        err_frames, err_name+"(\""+err_msg+"\")");
+}
+
+function err_regex(err_name, err_pat, err_frames) {
+    return err_predicate(
+        err_name, function(msg) { return (!err_pat || new RegExp(err_pat).test(msg)); },
+        err_frames, err_name + "(\""+err_pat+"\")");
+}
+
+function err_predicate(err_name, err_predicate, err_frames, desc) {
     var err_frames = null; // TODO: test for frames
     var fun = function(other) {
         if (!(other instanceof Error)) return false;
@@ -511,13 +523,13 @@ function err(err_name, err_msg, err_frames) {
         other.msg = other.msg.replace(/:\n([\r\n]|.)*/m, ".");
         other.msg = other.msg.replace(/\nFailed assertion([\r\n]|.)*/m, "");
 
-        if (err_msg && !(other.msg === err_msg)) return false;
+        if (!err_predicate(other.msg)) return false;
         if (err_frames && !(eq_test(other.frames, err_frames))) return false;
         return true;
     }
     fun.isErr = true;
     fun.toString = function() {
-        return err_name+"(\""+err_msg+"\")";
+        return desc;
     };
     return fun;
 }

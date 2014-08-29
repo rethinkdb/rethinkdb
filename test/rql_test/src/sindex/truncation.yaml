@@ -1,10 +1,6 @@
 desc: sindex truncation tests
+table_variable_name: tbl
 tests:
-
-  - rb: r.table_create('sindex_truncation')
-    ot: ({'created' => 1})
-
-  - def: tbl = r.table('sindex_truncation')
 
   - rb: tbl.index_create('a')
     ot: ({'created' => 1})
@@ -67,3 +63,9 @@ tests:
       rb: subrunner = class << runner; def run(*args); args[-1] = {batch_conf:{max_els:100, first_scaledown:1, max_size:1000000000000, max_dur:10000000000}}; self.orderby('a', index:'idi').run(*args).to_a.count; end; end
   - rb: runner
     ot: 303
+
+  - rb: tbl.index_drop('a')
+    ot: ({'dropped':1})
+  - rb: tbl.index_drop('idi')
+    ot: ({'dropped':1})
+

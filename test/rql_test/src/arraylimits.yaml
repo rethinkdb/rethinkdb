@@ -1,4 +1,5 @@
 desc: Tests array limit variations
+table_variable_name: tbl
 tests:
 
   # test simplistic array limits
@@ -42,11 +43,6 @@ tests:
       array_limit: '100001'
     ot: 100001
 
-  # Set up some data
-  - cd: r.db('test').table_create('test1')
-    ot: ({'created':1})
-    def: tbl = r.db('test').table('test1')
-
   # attempt to insert enormous array
   - cd: tbl.insert({'id':0, 'array':huge_l.append(1)})
     runopts:
@@ -66,6 +62,3 @@ tests:
       array_limit: '4'
     ot: ({'array':[1,2,3,4,5,6,7,8,9,10],'id':1})
 
-  # Clean up
-  - cd: r.db('test').table_drop('test1')
-    ot: ({'dropped':1})
