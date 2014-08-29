@@ -15,13 +15,15 @@
 #include <stdlib.h>
 #include <cstddef>
 
+namespace geo {
+
 #ifdef OS_EMBEDDED_QNX
 // NOTE(user):
 // The C++ standard says that <stdlib.h> declares both ::foo and std::foo
 // But this isn't done in QNX version 6.3.2 200709062316.
-using std::free;
-using std::malloc;
-using std::realloc;
+using ::std::free;
+using ::std::malloc;
+using ::std::realloc;
 #endif
 
 template <class C> class scoped_ptr;
@@ -205,7 +207,7 @@ class scoped_array {
 
   // Get one element of the current object.
   // Will assert() if there is no current object, or index i is negative.
-  C& operator[](std::ptrdiff_t i) const {
+  C& operator[](::std::ptrdiff_t i) const {
     assert(i >= 0);
     assert(array_ != NULL);
     return array_[i];
@@ -423,5 +425,7 @@ template<class C, class FP> inline
 bool operator!=(C* p, const scoped_ptr_malloc<C, FP>& b) {
   return p != b.get();
 }
+
+}  // namespace geo
 
 #endif  // BASE_SCOPED_PTR_H__

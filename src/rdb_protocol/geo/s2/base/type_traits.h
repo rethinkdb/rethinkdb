@@ -31,8 +31,11 @@
 
 #include "rdb_protocol/geo/s2/base/template_util.h"     // For true_type and false_type
 #include <utility>
-using std::pair;
-using std::make_pair;
+
+namespace geo {
+
+using ::std::pair;
+using ::std::make_pair;
                   // For pair
 
 namespace base {
@@ -281,5 +284,7 @@ struct is_convertible
 #endif
 
 } // Close namespace base
+
+}  // namespace geo
 
 #endif  // BASE_TYPE_TRAITS_H_

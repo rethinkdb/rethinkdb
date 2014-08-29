@@ -20,6 +20,8 @@
 
 #include "rdb_protocol/geo/s2/base/basictypes.h"
 
+namespace geo {
+
 // Just a namespace, not a real class
 class Varint {
  public:
@@ -98,8 +100,8 @@ class Varint {
   static int Length32NonInline(uint32 v);
 
   // EFFECTS    Appends the varint representation of "value" to "*s".
-  static void Append32(std::string* s, uint32 value);
-  static void Append64(std::string* s, uint64 value);
+  static void Append32(::std::string* s, uint32 value);
+  static void Append64(::std::string* s, uint64 value);
 
   // EFFECTS    Encodes a pair of values to "*s".  The encoding
   //            is done by weaving together 4 bit groups of
@@ -107,7 +109,7 @@ class Varint {
   //            encoding this value as a Varint64 value.  This means
   //            that if both a and b are small, both values can be
   //            encoded in a single byte.
-  static void EncodeTwo32Values(std::string* s, uint32 a, uint32 b);
+  static void EncodeTwo32Values(::std::string* s, uint32 a, uint32 b);
   static const char* DecodeTwo32Values(const char* ptr, uint32* a, uint32* b);
 
   // Decode and sum up a sequence of deltas until the sum >= goal.
@@ -140,8 +142,8 @@ class Varint {
   static const char* Skip32BackwardSlow(const char* ptr, const char* base);
   static const char* Skip64BackwardSlow(const char* ptr, const char* base);
 
-  static void Append32Slow(std::string* s, uint32 value);
-  static void Append64Slow(std::string* s, uint64 value);
+  static void Append32Slow(::std::string* s, uint32 value);
+  static void Append64Slow(::std::string* s, uint64 value);
 
   // Mapping from rightmost bit set to the number of bytes required
   static const char length32_bytes_required[33];
@@ -428,7 +430,7 @@ inline int Varint::Length32(uint32 v) {
 }
 #endif
 
-inline void Varint::Append32(std::string* s, uint32 value) {
+inline void Varint::Append32(::std::string* s, uint32 value) {
   // Inline the fast-path for single-character output, but fall back to the .cc
   // file for the full version. The size<capacity check is so the compiler can
   // optimize out the string resize code.
@@ -439,7 +441,7 @@ inline void Varint::Append32(std::string* s, uint32 value) {
   }
 }
 
-inline void Varint::Append64(std::string* s, uint64 value) {
+inline void Varint::Append64(::std::string* s, uint64 value) {
   // Inline the fast-path for single-character output, but fall back to the .cc
   // file for the full version. The size<capacity check is so the compiler can
   // optimize out the string resize code.
@@ -503,5 +505,7 @@ inline const char* Varint::FastDecodeDeltas(const char* ptr,
   *out = goal + sum;
   return ptr;
 }
+
+}  // namespace geo
 
 #endif /* _VARINT_H */

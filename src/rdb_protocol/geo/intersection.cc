@@ -10,6 +10,9 @@
 #include "rdb_protocol/geo/s2/s2polyline.h"
 #include "rdb_protocol/datum.hpp"
 
+using geo::S2Point;
+using geo::S2Polygon;
+using geo::S2Polyline;
 using ql::datum_t;
 
 template<class first_t>

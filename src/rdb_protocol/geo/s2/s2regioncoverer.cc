@@ -5,29 +5,27 @@
 #include <pthread.h>
 
 #include <algorithm>
-using std::min;
-using std::max;
-using std::swap;
-using std::reverse;
-
 #include <functional>
-using std::less;
-
 #include <unordered_set>
-using std::unordered_set;
-
 #include <queue>
-using std::priority_queue;
-
 #include <vector>
-using std::vector;
-
 
 #include "rdb_protocol/geo/s2/base/logging.h"
 #include "rdb_protocol/geo/s2/s2.h"
 #include "rdb_protocol/geo/s2/s2cap.h"
 #include "rdb_protocol/geo/s2/s2cellid.h"
 #include "rdb_protocol/geo/s2/s2cellunion.h"
+
+namespace geo {
+using ::std::min;
+using ::std::max;
+using ::std::swap;
+using ::std::reverse;
+using ::std::less;
+using ::std::unordered_set;
+using ::std::priority_queue;
+using ::std::vector;
+
 
 // Define storage for header file constants (the values are not needed here).
 int const S2RegionCoverer::kDefaultMaxCells;
@@ -323,7 +321,7 @@ void S2RegionCoverer::GetInteriorCellUnion(S2Region const& region,
 
 void S2RegionCoverer::FloodFill(
     S2Region const& region, S2CellId const& start, vector<S2CellId>* output) {
-  unordered_set<S2CellId, std::hash<S2CellId> > all;
+  unordered_set<S2CellId, ::std::hash<S2CellId> > all;
   vector<S2CellId> frontier;
   output->clear();
   all.insert(start);
@@ -350,3 +348,5 @@ void S2RegionCoverer::GetSimpleCovering(
     int level, vector<S2CellId>* output) {
   return FloodFill(region, S2CellId::FromPoint(start).parent(level), output);
 }
+
+}  // namespace geo

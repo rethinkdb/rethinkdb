@@ -7,23 +7,21 @@
 #define STRINGS_SPLIT_H_
 
 #include <string>
-
 #include <vector>
-using std::vector;
-
 #include <set>
-using std::set;
-using std::multiset;
-
 #include <utility>
-using std::pair;
-using std::make_pair;
-
 #include <unordered_map>
-using std::unordered_map;
-
 #include <unordered_set>
-using std::unordered_set;
+
+namespace geo {
+using ::std::vector;
+using ::std::set;
+using ::std::multiset;
+using ::std::pair;
+using ::std::make_pair;
+using ::std::unordered_map;
+using ::std::unordered_set;
+
 
 // ----------------------------------------------------------------------
 // SplitStringAllowEmpty()
@@ -38,7 +36,7 @@ using std::unordered_set;
 //
 //    If "full" is the empty string, yields an empty string as the only value.
 // ----------------------------------------------------------------------
-void SplitStringAllowEmpty(const std::string& full, const char* delim,
+void SplitStringAllowEmpty(const ::std::string& full, const char* delim,
                            vector<std::string>* res);
 void SplitStringToHashsetAllowEmpty(const std::string& full, const char* delim,
                                     unordered_set<std::string>* res);
@@ -155,5 +153,6 @@ bool SplitOneHexUint32Token(const char** source, const char* delim,
 bool SplitOneHexUint64Token(const char** source, const char* delim,
                             uint64* value);
 
+}  // namespace geo
 
 #endif  // STRINGS_SPLIT_H_

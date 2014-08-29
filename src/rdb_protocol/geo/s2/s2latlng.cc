@@ -4,6 +4,8 @@
 #include "rdb_protocol/geo/s2/strings/stringprintf.h"
 #include "rdb_protocol/geo/s2/s2latlng.h"
 
+namespace geo {
+
 S2LatLng S2LatLng::Normalized() const {
   // drem(x, 2 * M_PI) reduces its argument to the range [-M_PI, M_PI]
   // inclusive, which is what we want here.
@@ -57,15 +59,17 @@ S1Angle S2LatLng::GetDistance(S2LatLng const& o) const {
   return S1Angle::Radians(2 * atan2(sqrt(x), sqrt(max(0.0, 1.0 - x))));
 }
 
-std::string S2LatLng::ToStringInDegrees() const {
+::std::string S2LatLng::ToStringInDegrees() const {
   S2LatLng pt = Normalized();
   return StringPrintf("%f,%f", pt.lat().degrees(), pt.lng().degrees());
 }
 
-void S2LatLng::ToStringInDegrees(std::string* s) const {
+void S2LatLng::ToStringInDegrees(::std::string* s) const {
   *s = ToStringInDegrees();
 }
 
 ostream& operator<<(ostream& os, S2LatLng const& ll) {
   return os << "[" << ll.lat() << ", " << ll.lng() << "]";
 }
+
+}  // namespace geo

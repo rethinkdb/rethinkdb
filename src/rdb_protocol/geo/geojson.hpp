@@ -14,9 +14,12 @@
 #include "rdb_protocol/geo/s2/util/math/vector3.h"
 #include "rdb_protocol/datum.hpp"
 
+namespace geo {
 typedef Vector3_d S2Point;
 class S2Polyline;
 class S2Polygon;
+}
+
 namespace ql {
 class configured_limits_t;
 }
@@ -46,16 +49,16 @@ lat_lon_line_t extract_lat_lon_line(const ql::datum_t &geojson);
 lat_lon_line_t extract_lat_lon_shell(const ql::datum_t &geojson);
 
 /* These functions convert from a GeoJSON object to S2 types */
-scoped_ptr_t<S2Point> to_s2point(const ql::datum_t &geojson);
-scoped_ptr_t<S2Polyline> to_s2polyline(const ql::datum_t &geojson);
-scoped_ptr_t<S2Polygon> to_s2polygon(const ql::datum_t &geojson);
+scoped_ptr_t<geo::S2Point> to_s2point(const ql::datum_t &geojson);
+scoped_ptr_t<geo::S2Polyline> to_s2polyline(const ql::datum_t &geojson);
+scoped_ptr_t<geo::S2Polygon> to_s2polygon(const ql::datum_t &geojson);
 
 /* Helpers for visit_geojson() */
-scoped_ptr_t<S2Point> coordinates_to_s2point(
+scoped_ptr_t<geo::S2Point> coordinates_to_s2point(
         const ql::datum_t &coords);
-scoped_ptr_t<S2Polyline> coordinates_to_s2polyline(
+scoped_ptr_t<geo::S2Polyline> coordinates_to_s2polyline(
         const ql::datum_t &coords);
-scoped_ptr_t<S2Polygon> coordinates_to_s2polygon(
+scoped_ptr_t<geo::S2Polygon> coordinates_to_s2polygon(
         const ql::datum_t &coords);
 
 /* Performs conversion to an S2 type and calls the visitor, depending on the geometry
@@ -68,15 +71,15 @@ return_t visit_geojson(
     ql::datum_t coordinates = geojson->get_field("coordinates");
 
     if (type == "Point") {
-        scoped_ptr_t<S2Point> pt = coordinates_to_s2point(coordinates);
+        scoped_ptr_t<geo::S2Point> pt = coordinates_to_s2point(coordinates);
         rassert(pt.has());
         return visitor->on_point(*pt);
     } else if (type == "LineString") {
-        scoped_ptr_t<S2Polyline> l = coordinates_to_s2polyline(coordinates);
+        scoped_ptr_t<geo::S2Polyline> l = coordinates_to_s2polyline(coordinates);
         rassert(l.has());
         return visitor->on_line(*l);
     } else if (type == "Polygon") {
-        scoped_ptr_t<S2Polygon> poly = coordinates_to_s2polygon(coordinates);
+        scoped_ptr_t<geo::S2Polygon> poly = coordinates_to_s2polygon(coordinates);
         rassert(poly.has());
         return visitor->on_polygon(*poly);
     } else {
