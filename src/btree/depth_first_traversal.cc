@@ -116,8 +116,6 @@ void get_child_key_range(const internal_node_t *inode,
     if (child_index > 0) {
         const btree_internal_pair *left_neighbor =
             internal_node::get_pair_by_index(inode, child_index - 1);
-        // The key from the left neighbor provides an exclusive left bound.
-        // For key_range_t we have to make it inclusive.
         *left_excl_or_null_out = &left_neighbor->key;
     } else {
         *left_excl_or_null_out = parent_left_excl_or_null;
