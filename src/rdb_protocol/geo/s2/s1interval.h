@@ -12,9 +12,9 @@
 #include "utils.hpp"
 
 namespace geo {
-using ::std::ostream;
-using ::std::cout;
-using ::std::endl;
+using std::ostream;
+using std::cout;
+using std::endl;
 
 // An S1Interval represents a closed interval on a unit circle (also known
 // as a 1-dimensional sphere).  It is capable of representing the empty

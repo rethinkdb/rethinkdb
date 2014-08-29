@@ -13,10 +13,10 @@
 #include "rdb_protocol/geo/s2/s2cellid.h"
 
 namespace geo {
-using ::std::priority_queue;
-using ::std::pair;
-using ::std::make_pair;
-using ::std::vector;
+using std::priority_queue;
+using std::pair;
+using std::make_pair;
+using std::vector;
 
 class S2CellUnion;
 

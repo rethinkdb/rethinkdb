@@ -14,9 +14,9 @@
 #include "rdb_protocol/geo/s2/s2edgeutil.h"
 
 namespace geo {
-using ::std::set;
-using ::std::multiset;
-using ::std::vector;
+using std::set;
+using std::multiset;
+using std::vector;
 
 #ifdef NDEBUG
 const bool FLAGS_s2debug = false;

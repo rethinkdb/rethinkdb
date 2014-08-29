@@ -20,7 +20,7 @@
 #include "rdb_protocol/geo/s2/base/stringprintf.h"
 
 namespace geo {
-using ::std::vector;
+using std::vector;
 
 // This file formerly contained
 //   StringPrintf, SStringPrintf, StringAppendF, and StringAppendV.

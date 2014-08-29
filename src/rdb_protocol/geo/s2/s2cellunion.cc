@@ -14,11 +14,11 @@
 #include "rdb_protocol/geo/s2/s2latlngrect.h"
 
 namespace geo {
-using ::std::min;
-using ::std::max;
-using ::std::swap;
-using ::std::reverse;
-using ::std::vector;
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
+using std::vector;
 
 
 // Returns true if the vector of cell_ids is sorted.  Used only in

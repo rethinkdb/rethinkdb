@@ -7,10 +7,10 @@
 #include "rdb_protocol/geo/s2/base/logging.h"
 
 namespace geo {
-using ::std::min;
-using ::std::max;
-using ::std::swap;
-using ::std::reverse;
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
 
 bool S2EdgeUtil::SimpleCrossing(S2Point const& a, S2Point const& b,
                                 S2Point const& c, S2Point const& d) {

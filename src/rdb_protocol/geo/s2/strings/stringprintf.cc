@@ -10,7 +10,7 @@
 #include "rdb_protocol/geo/s2/base/logging.h"
 
 namespace geo {
-using ::std::vector;
+using std::vector;
 
 
 // Max arguments supported by StringPrintVector

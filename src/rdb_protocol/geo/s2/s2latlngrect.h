@@ -14,9 +14,9 @@
 #include "rdb_protocol/geo/s2/s2latlng.h"
 
 namespace geo {
-using ::std::ostream;
-using ::std::cout;
-using ::std::endl;
+using std::ostream;
+using std::cout;
+using std::endl;
 
 
 // An S2LatLngRect represents a closed latitude-longitude rectangle.  It is

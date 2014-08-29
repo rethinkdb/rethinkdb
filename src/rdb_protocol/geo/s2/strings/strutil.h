@@ -44,14 +44,14 @@
 #include "rdb_protocol/geo/s2/util/endian/endian.h"
 
 namespace geo {
-using ::std::less;
-using ::std::unordered_map;
-using ::std::unordered_set;
-using ::std::set;
-using ::std::multiset;
-using ::std::pair;
-using ::std::make_pair;
-using ::std::vector;
+using std::less;
+using std::unordered_map;
+using std::unordered_set;
+using std::set;
+using std::multiset;
+using std::pair;
+using std::make_pair;
+using std::vector;
 
 // A buffer size which is large enough for all the FastToBuffer functions, as
 // well as DoubleToBuffer and FloatToBuffer.  We define this here in case other

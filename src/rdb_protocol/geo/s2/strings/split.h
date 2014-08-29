@@ -14,13 +14,13 @@
 #include <unordered_set>
 
 namespace geo {
-using ::std::vector;
-using ::std::set;
-using ::std::multiset;
-using ::std::pair;
-using ::std::make_pair;
-using ::std::unordered_map;
-using ::std::unordered_set;
+using std::vector;
+using std::set;
+using std::multiset;
+using std::pair;
+using std::make_pair;
+using std::unordered_map;
+using std::unordered_set;
 
 
 // ----------------------------------------------------------------------
@@ -36,7 +36,7 @@ using ::std::unordered_set;
 //
 //    If "full" is the empty string, yields an empty string as the only value.
 // ----------------------------------------------------------------------
-void SplitStringAllowEmpty(const ::std::string& full, const char* delim,
+void SplitStringAllowEmpty(const std::string& full, const char* delim,
                            vector<std::string>* res);
 void SplitStringToHashsetAllowEmpty(const std::string& full, const char* delim,
                                     unordered_set<std::string>* res);

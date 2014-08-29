@@ -99,10 +99,10 @@ class LogMessage {
       logWRN("%s", str.str().c_str());
 #endif
   }
-  ::std::ostream& stream() { return str; }
+  std::ostream& stream() { return str; }
 
  protected:
-  ::std::stringstream str;
+  std::stringstream str;
  private:
   google_base::DateLogger pretty_date_;
   DISALLOW_COPY_AND_ASSIGN(LogMessage);

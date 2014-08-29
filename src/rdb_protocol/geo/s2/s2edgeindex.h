@@ -16,11 +16,11 @@
 #include "rdb_protocol/geo/s2/s2edgeutil.h"
 
 namespace geo {
-using ::std::map;
-using ::std::multimap;
-using ::std::pair;
-using ::std::make_pair;
-using ::std::vector;
+using std::map;
+using std::multimap;
+using std::pair;
+using std::make_pair;
+using std::vector;
 
 
 class S2Cell;

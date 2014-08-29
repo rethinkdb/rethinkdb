@@ -66,7 +66,7 @@ inline geo::uint32 CollapseZero(geo::uint32 bits) {
 
 }  // namespace
 
-size_t ::std::hash<geo::S2Point>::operator()(geo::S2Point const& p) const {
+size_t std::hash<geo::S2Point>::operator()(geo::S2Point const& p) const {
   // This function is significantly faster than calling HashTo32().
   geo::uint32 const* data = reinterpret_cast<geo::uint32 const*>(p.Data());
   DCHECK_EQ((6 * sizeof(*data)), sizeof(p));

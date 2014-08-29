@@ -20,21 +20,21 @@
 #include "rdb_protocol/geo/s2/util/math/matrix3x3-inl.h"
 
 namespace geo {
-using ::std::min;
-using ::std::max;
-using ::std::swap;
-using ::std::reverse;
-using ::std::unordered_map;
-using ::std::unordered_set;
-using ::std::setprecision;
-using ::std::ostream;
-using ::std::cout;
-using ::std::endl;
-using ::std::map;
-using ::std::multimap;
-using ::std::set;
-using ::std::multiset;
-using ::std::vector;
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
+using std::unordered_map;
+using std::unordered_set;
+using std::setprecision;
+using std::ostream;
+using std::cout;
+using std::endl;
+using std::map;
+using std::multimap;
+using std::set;
+using std::multiset;
+using std::vector;
 
 
 void S2PolygonBuilderOptions::set_undirected_edges(bool undirected_edges) {

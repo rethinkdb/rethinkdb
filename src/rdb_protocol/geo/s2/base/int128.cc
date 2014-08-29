@@ -9,9 +9,9 @@
 #include "rdb_protocol/geo/s2/base/integral_types.h"
 
 namespace geo {
-using ::std::ostream;
-using ::std::cout;
-using ::std::endl;
+using std::ostream;
+using std::cout;
+using std::endl;
 
 const uint128 kuint128max(static_cast<uint64>(GG_LONGLONG(0xFFFFFFFFFFFFFFFF)),
                           static_cast<uint64>(GG_LONGLONG(0xFFFFFFFFFFFFFFFF)));

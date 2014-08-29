@@ -13,14 +13,14 @@
 #include "rdb_protocol/geo/s2/base/logging.h"
 
 namespace geo {
-using ::std::min;
-using ::std::max;
-using ::std::swap;
-using ::std::reverse;
-using ::std::numeric_limits;
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
+using std::numeric_limits;
 
 #ifndef __APPLE__
-using ::std::signbit;
+using std::signbit;
 #endif
 
 

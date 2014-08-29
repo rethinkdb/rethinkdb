@@ -41,16 +41,16 @@
 #endif
 
 namespace geo {
-using ::std::min;
-using ::std::max;
-using ::std::swap;
-using ::std::reverse;
-using ::std::unordered_map;
-using ::std::unordered_set;
-using ::std::numeric_limits;
-using ::std::set;
-using ::std::multiset;
-using ::std::vector;
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
+using std::unordered_map;
+using std::unordered_set;
+using std::numeric_limits;
+using std::set;
+using std::multiset;
+using std::vector;
 
 
 // ----------------------------------------------------------------------

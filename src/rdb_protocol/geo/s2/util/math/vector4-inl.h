@@ -40,10 +40,10 @@
 #include "rdb_protocol/geo/s2/util/math/vector3.h"
 
 namespace geo {
-using ::std::min;
-using ::std::max;
-using ::std::swap;
-using ::std::reverse;
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
 
 template <typename VType>
 Vector4<VType>::Vector4() {

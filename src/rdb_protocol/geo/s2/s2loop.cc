@@ -18,16 +18,16 @@
 #include "utils.hpp"
 
 namespace geo {
-using ::std::min;
-using ::std::max;
-using ::std::swap;
-using ::std::reverse;
-using ::std::set;
-using ::std::multiset;
-using ::std::vector;
-using ::std::unordered_map;
-using ::std::pair;
-using ::std::make_pair;
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
+using std::set;
+using std::multiset;
+using std::vector;
+using std::unordered_map;
+using std::pair;
+using std::make_pair;
 
 
 
@@ -106,7 +106,7 @@ bool S2Loop::IsValid() const {
     }
   }
   // Loops are not allowed to have any duplicate vertices.
-  unordered_map<S2Point, int, ::std::hash<S2Point> > vmap;
+  unordered_map<S2Point, int, std::hash<S2Point> > vmap;
   for (int i = 0; i < num_vertices(); ++i) {
     if (!vmap.insert(make_pair(vertex(i), i)).second) {
       VLOG(2) << "Duplicate vertices: " << vmap[vertex(i)] << " and " << i;

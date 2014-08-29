@@ -102,8 +102,8 @@ class S2LatLng {
 
   // Export the latitude and longitude in degrees, separated by a comma.
   // e.g. "94.518000,150.300000"
-  ::std::string ToStringInDegrees() const;
-  void ToStringInDegrees(::std::string* s) const;
+  std::string ToStringInDegrees() const;
+  void ToStringInDegrees(std::string* s) const;
 
  private:
   // Internal constructor.

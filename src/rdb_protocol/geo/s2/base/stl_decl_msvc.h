@@ -18,39 +18,39 @@
 #include <string>
 
 #include <vector>
-using ::std::vector;
+using std::vector;
 
 #include <functional>
-using ::std::less;
+using std::less;
 
 #include <utility>
-using ::std::pair;
-using ::std::make_pair;
+using std::pair;
+using std::make_pair;
 
 #include <set>
-using ::std::set;
-using ::std::multiset;
+using std::set;
+using std::multiset;
 
 #include <list>
 #define slist list
 #include <algorithm>
-using ::std::min;
-using ::std::max;
-using ::std::swap;
-using ::std::reverse;
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
 
 #include <deque>
 #include <iostream>
-using ::std::ostream;
-using ::std::cout;
-using ::std::endl;
+using std::ostream;
+using std::cout;
+using std::endl;
 
 #include <map>
-using ::std::map;
-using ::std::multimap;
+using std::map;
+using std::multimap;
 
 #include <queue>
-using ::std::priority_queue;
+using std::priority_queue;
 
 #include <stack>
 

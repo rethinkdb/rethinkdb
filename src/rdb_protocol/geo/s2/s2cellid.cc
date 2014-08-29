@@ -17,12 +17,12 @@
 #include "rdb_protocol/geo/s2/util/math/vector2-inl.h"
 
 namespace geo {
-using ::std::min;
-using ::std::max;
-using ::std::swap;
-using ::std::reverse;
-using ::std::setprecision;
-using ::std::vector;
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
+using std::setprecision;
+using std::vector;
 
 
 // The following lookup tables are used to convert efficiently between an

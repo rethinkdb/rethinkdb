@@ -19,7 +19,7 @@
 #include "rdb_protocol/geo/s2/base/port.h"
 
 namespace geo {
-using ::std::vector;
+using std::vector;
 
 // Return a C++ string
 extern std::string StringPrintf(const char* format, ...)

@@ -34,8 +34,8 @@
 
 namespace geo {
 
-using ::std::pair;
-using ::std::make_pair;
+using std::pair;
+using std::make_pair;
                   // For pair
 
 namespace base {

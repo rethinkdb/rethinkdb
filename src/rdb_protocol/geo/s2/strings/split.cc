@@ -15,7 +15,7 @@
 #include "utils.hpp"
 
 namespace geo {
-using ::std::numeric_limits;
+using std::numeric_limits;
 
 namespace {
 // NOTE(user): we have to implement our own interator because

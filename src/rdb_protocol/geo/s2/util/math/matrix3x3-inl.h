@@ -27,9 +27,9 @@
 #include "rdb_protocol/geo/s2/base/logging.h"
 
 namespace geo {
-using ::std::ostream;
-using ::std::cout;
-using ::std::endl;
+using std::ostream;
+using std::cout;
+using std::endl;
 
 template <class VType>
 class Matrix3x3 {
@@ -548,7 +548,7 @@ class Matrix3x3 {
     return false;
   }
 
-  friend ::std::ostream &operator <<(::std::ostream &out, const Self &mb) {
+  friend std::ostream &operator <<(std::ostream &out, const Self &mb) {
     int i, j;
     for (i = 0; i < 3; i++) {
       if (i ==0) {

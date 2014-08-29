@@ -11,9 +11,9 @@
 #include "rdb_protocol/geo/s2/base/logging.h"
 
 namespace geo {
-using ::std::ostream;
-using ::std::cout;
-using ::std::endl;
+using std::ostream;
+using std::cout;
+using std::endl;
 
 // An unsigned 128-bit integer type. Thread-compatible.
 class uint128 {

@@ -18,10 +18,10 @@
 #include "rdb_protocol/geo/s2/util/math/vector2.h"
 
 namespace geo {
-using ::std::ostream;
-using ::std::cout;
-using ::std::endl;
-using ::std::vector;
+using std::ostream;
+using std::cout;
+using std::endl;
+using std::vector;
 
 class S2LatLng;
 
@@ -236,12 +236,12 @@ class S2CellId {
   // These methods guarantee that FromToken(ToToken(x)) == x even when
   // "x" is an invalid cell id.  All tokens are alphanumeric strings.
   // FromToken() returns S2CellId::None() for malformed inputs.
-  ::std::string ToToken() const;
-  static S2CellId FromToken(::std::string const& token);
+  std::string ToToken() const;
+  static S2CellId FromToken(std::string const& token);
 
   // Creates a debug human readable string. Used for << and available for direct
   // usage as well.
-  ::std::string ToString() const;
+  std::string ToString() const;
 
   // Return the four cells that are adjacent across the cell's four edges.
   // Neighbors are returned in the order defined by S2Cell::GetEdge.  All

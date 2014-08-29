@@ -13,10 +13,10 @@
 #include "rdb_protocol/geo/s2/util/math/mathutil.h"
 
 namespace geo {
-using ::std::min;
-using ::std::max;
-using ::std::swap;
-using ::std::reverse;
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
 
 
 static const unsigned char kCurrentEncodingVersionNumber = 1;

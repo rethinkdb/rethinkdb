@@ -65,14 +65,14 @@
 #include "rdb_protocol/geo/s2/s2regioncoverer.h"
 
 namespace geo {
-using ::std::min;
-using ::std::max;
-using ::std::swap;
-using ::std::reverse;
-using ::std::set;
-using ::std::multiset;
-using ::std::pair;
-using ::std::make_pair;
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
+using std::set;
+using std::multiset;
+using std::pair;
+using std::make_pair;
 
 
 

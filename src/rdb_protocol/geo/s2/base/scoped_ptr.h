@@ -21,9 +21,9 @@ namespace geo {
 // NOTE(user):
 // The C++ standard says that <stdlib.h> declares both ::foo and std::foo
 // But this isn't done in QNX version 6.3.2 200709062316.
-using ::std::free;
-using ::std::malloc;
-using ::std::realloc;
+using std::free;
+using std::malloc;
+using std::realloc;
 #endif
 
 template <class C> class scoped_ptr;
@@ -207,7 +207,7 @@ class scoped_array {
 
   // Get one element of the current object.
   // Will assert() if there is no current object, or index i is negative.
-  C& operator[](::std::ptrdiff_t i) const {
+  C& operator[](std::ptrdiff_t i) const {
     assert(i >= 0);
     assert(array_ != NULL);
     return array_[i];

@@ -15,10 +15,10 @@
 #include "rdb_protocol/geo/s2/util/endian/endian.h"
 
 namespace geo {
-using ::std::min;
-using ::std::max;
-using ::std::swap;
-using ::std::reverse;
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
         // for min
 
 /* Class for encoding data into a memory buffer */

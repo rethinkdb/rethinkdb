@@ -15,12 +15,12 @@
 #include "rdb_protocol/geo/s2/util/math/matrix3x3.h"
 
 namespace geo {
-using ::std::unordered_map;
-using ::std::set;
-using ::std::multiset;
-using ::std::pair;
-using ::std::make_pair;
-using ::std::vector;
+using std::unordered_map;
+using std::set;
+using std::multiset;
+using std::pair;
+using std::make_pair;
+using std::vector;
 
 
 class S2Loop;

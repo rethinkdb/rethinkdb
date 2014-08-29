@@ -349,7 +349,7 @@ Vector2<VType> Min(const Vector2<VType> &v1, const Vector2<VType> &v2) {
 }
 
 template <typename VType>
-::std::ostream &operator <<(::std::ostream &out, const Vector2<VType> &va) {
+std::ostream &operator <<(std::ostream &out, const Vector2<VType> &va) {
   out << "["
       << va[0] << ", "
       << va[1] << "]";

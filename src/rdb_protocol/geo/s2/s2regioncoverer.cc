@@ -17,14 +17,14 @@
 #include "rdb_protocol/geo/s2/s2cellunion.h"
 
 namespace geo {
-using ::std::min;
-using ::std::max;
-using ::std::swap;
-using ::std::reverse;
-using ::std::less;
-using ::std::unordered_set;
-using ::std::priority_queue;
-using ::std::vector;
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
+using std::less;
+using std::unordered_set;
+using std::priority_queue;
+using std::vector;
 
 
 // Define storage for header file constants (the values are not needed here).
@@ -321,7 +321,7 @@ void S2RegionCoverer::GetInteriorCellUnion(S2Region const& region,
 
 void S2RegionCoverer::FloodFill(
     S2Region const& region, S2CellId const& start, vector<S2CellId>* output) {
-  unordered_set<S2CellId, ::std::hash<S2CellId> > all;
+  unordered_set<S2CellId, std::hash<S2CellId> > all;
   vector<S2CellId> frontier;
   output->clear();
   all.insert(start);

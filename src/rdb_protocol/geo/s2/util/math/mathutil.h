@@ -16,11 +16,11 @@
 #include "rdb_protocol/geo/s2/util/math/mathlimits.h"
 
 namespace geo {
-using ::std::min;
-using ::std::max;
-using ::std::swap;
-using ::std::reverse;
-using ::std::vector;
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
+using std::vector;
 
 // Returns the sign of x:
 //   -1 if x < 0,
@@ -635,7 +635,7 @@ class MathUtil {
   // Returns the clamped value to be between low and high inclusively.
   template<typename T>
   static const T& Clamp(const T& low, const T& high, const T& value) {
-    return ::std::max(low, ::std::min(value, high));
+    return std::max(low, std::min(value, high));
   }
 
   // Clamps value to be between min and max inclusively.

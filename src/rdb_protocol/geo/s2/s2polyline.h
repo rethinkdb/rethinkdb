@@ -13,7 +13,7 @@
 #include "utils.hpp"
 
 namespace geo {
-using ::std::vector;
+using std::vector;
 
 class S1Angle;
 

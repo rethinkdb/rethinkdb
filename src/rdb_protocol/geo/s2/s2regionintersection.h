@@ -12,7 +12,7 @@
 #include "utils.hpp"
 
 namespace geo {
-using ::std::vector;
+using std::vector;
 
 class S2Cap;
 class S2Cell;

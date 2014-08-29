@@ -12,7 +12,7 @@
 #include "rdb_protocol/geo/s2/s2.h"
 
 namespace geo {
-using ::std::ostream;
+using std::ostream;
    // to forward declare ostream
 
 class S2LatLng;

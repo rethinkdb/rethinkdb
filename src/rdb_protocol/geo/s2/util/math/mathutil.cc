@@ -8,7 +8,7 @@
 #include "rdb_protocol/geo/s2/base/logging.h"
 
 namespace geo {
-using ::std::vector;
+using std::vector;
 
 MathUtil::QuadraticRootType MathUtil::DegenerateQuadraticRoots(
     long double b,

@@ -41,10 +41,10 @@
 #include "rdb_protocol/geo/s2/util/math/vector4.h"
 
 namespace geo {
-using ::std::min;
-using ::std::max;
-using ::std::swap;
-using ::std::reverse;
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
 
 
 template <typename VType>
@@ -416,7 +416,7 @@ Vector3<VType> Min(const Vector3<VType> &v1, const Vector3<VType> &v2) {
 }
 
 template <typename VType>
-::std::ostream &operator <<(::std::ostream &out, const Vector3<VType> &va) {
+std::ostream &operator <<(std::ostream &out, const Vector3<VType> &va) {
   out << "["
       << va[0] << ", "
       << va[1] << ", "

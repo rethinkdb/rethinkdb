@@ -8,9 +8,9 @@
 #include "rdb_protocol/geo/s2/s2latlng.h"
 
 namespace geo {
-using ::std::ostream;
-using ::std::cout;
-using ::std::endl;
+using std::ostream;
+using std::cout;
+using std::endl;
 
 S1Angle::S1Angle(S2Point const& x, S2Point const& y)
     : radians_(x.Angle(y)) {

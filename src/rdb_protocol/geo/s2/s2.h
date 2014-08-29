@@ -16,11 +16,11 @@
 #include "rdb_protocol/geo/s2/util/math/matrix3x3.h"
 
 namespace geo {
-using ::std::min;
-using ::std::max;
-using ::std::swap;
-using ::std::reverse;
-using ::std::unordered_map;
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
+using std::unordered_map;
   // To have template struct hash<T> defined
 
 // An S2Point represents a point on the unit sphere as a 3D vector.  Usually

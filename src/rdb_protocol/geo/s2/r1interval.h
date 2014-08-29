@@ -13,13 +13,13 @@
 #include "rdb_protocol/geo/s2/util/math/vector2-inl.h"
 
 namespace geo {
-using ::std::min;
-using ::std::max;
-using ::std::swap;
-using ::std::reverse;
-using ::std::ostream;
-using ::std::cout;
-using ::std::endl;
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
+using std::ostream;
+using std::cout;
+using std::endl;
 
 // An R1Interval represents a closed, bounded interval on the real line.
 // It is capable of representing the empty interval (containing no points)
