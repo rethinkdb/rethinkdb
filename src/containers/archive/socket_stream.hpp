@@ -17,7 +17,7 @@
  */
 
 class fd_watcher_t : public home_thread_mixin_debug_only_t {
-  public:
+public:
     fd_watcher_t() {}
     virtual ~fd_watcher_t() {}
 
@@ -38,14 +38,14 @@ class fd_watcher_t : public home_thread_mixin_debug_only_t {
     virtual MUST_USE bool wait_for_read(signal_t *interruptor) = 0;
     virtual MUST_USE bool wait_for_write(signal_t *interruptor) = 0;
 
-  private:
+private:
     DISABLE_COPYING(fd_watcher_t);
 };
 
 /* blocking_fd_watcher_t is the simplest fd_watcher_t: it doesn't wait for IO.
  */
 class blocking_fd_watcher_t : public fd_watcher_t {
-  public:
+public:
     blocking_fd_watcher_t();
 
     virtual bool is_read_open();
@@ -56,7 +56,7 @@ class blocking_fd_watcher_t : public fd_watcher_t {
     virtual MUST_USE bool wait_for_write(signal_t *interruptor);
     virtual void init_callback(linux_event_callback_t *cb);
 
-  private:
+private:
     bool read_open_, write_open_;
 };
 
@@ -64,9 +64,8 @@ class blocking_fd_watcher_t : public fd_watcher_t {
  * its corresponding fd use non-blocking I/O.
  */
 class linux_event_fd_watcher_t :
-    public fd_watcher_t, private linux_event_callback_t
-{
-  public:
+    public fd_watcher_t, private linux_event_callback_t {
+public:
     // does not take ownership of fd
     explicit linux_event_fd_watcher_t(fd_t fd);
     virtual ~linux_event_fd_watcher_t();
@@ -81,7 +80,7 @@ class linux_event_fd_watcher_t :
     virtual MUST_USE bool wait_for_read(signal_t *interruptor);
     virtual MUST_USE bool wait_for_write(signal_t *interruptor);
 
-  private:
+private:
     // True iff there is a waiting read/write operation. Used to ensure that we
     // are used in a single-threaded fashion.
     bool io_in_progress_;
@@ -102,9 +101,8 @@ class linux_event_fd_watcher_t :
 class socket_stream_t :
     public read_stream_t,
     public write_stream_t,
-    private linux_event_callback_t
-{
-  public:
+    private linux_event_callback_t {
+public:
     explicit socket_stream_t(fd_t fd, fd_watcher_t *watcher = NULL);
     virtual ~socket_stream_t();
 
@@ -119,7 +117,7 @@ class socket_stream_t :
     bool is_read_open() { return fd_watcher_->is_read_open(); }
     bool is_write_open() { return fd_watcher_->is_write_open(); }
 
-  private:
+private:
     void shutdown_read();
     void shutdown_write();
 

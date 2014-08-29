@@ -438,7 +438,7 @@ void query_server_t::handle(const http_req_t &req,
 
             // Check for noreply, which we don't support here, as it causes
             // problems with interruption
-            counted_t<const ql::datum_t> noreply = static_optarg("noreply", query);
+            ql::datum_t noreply = static_optarg("noreply", query);
             bool response_needed = !(noreply.has() &&
                                      noreply->get_type() == ql::datum_t::type_t::R_BOOL &&
                                      noreply->as_bool());

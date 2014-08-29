@@ -6,6 +6,8 @@
 #include "rdb_protocol/geo/s2/s2cell.h"
 #include "rdb_protocol/geo/s2/s2latlngrect.h"
 
+namespace geo {
+
 S2RegionIntersection::S2RegionIntersection() { }
 
 S2RegionIntersection::S2RegionIntersection(vector<S2Region*>* regions) {
@@ -82,3 +84,5 @@ bool S2RegionIntersection::MayIntersect(S2Cell const& cell) const {
   }
   return true;
 }
+
+}  // namespace geo

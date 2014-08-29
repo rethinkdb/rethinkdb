@@ -8,7 +8,7 @@
 
 namespace unittest {
 
-void test_datum_serialization(const counted_t<const ql::datum_t> datum) {
+void test_datum_serialization(const ql::datum_t datum) {
     string_stream_t write_stream;
     write_message_t wm;
     serialize<cluster_version_t::LATEST_OVERALL>(&wm, datum);
@@ -16,7 +16,7 @@ void test_datum_serialization(const counted_t<const ql::datum_t> datum) {
     ASSERT_EQ(0, write_res);
 
     string_read_stream_t read_stream(std::move(write_stream.str()), 0);
-    counted_t<const ql::datum_t> deserialized_datum;
+    ql::datum_t deserialized_datum;
     archive_result_t res
         = deserialize<cluster_version_t::LATEST_OVERALL>(&read_stream, &deserialized_datum);
     ASSERT_EQ(archive_result_t::SUCCESS, res);
@@ -48,13 +48,13 @@ TEST(DatumTest, NumericSerialization) {
                       6.02214179e23,
     };
 
-    std::vector<counted_t<const ql::datum_t> > vec;
+    std::vector<ql::datum_t> vec;
     for (size_t i = 0; i < sizeof(nums) / sizeof(nums[0]); ++i) {
-        auto const positive = make_counted<const ql::datum_t>(nums[i]);
+        auto const positive = ql::datum_t(nums[i]);
         vec.push_back(positive);
         test_datum_serialization(positive);
 
-        auto const negative = make_counted<const ql::datum_t>(-nums[i]);
+        auto const negative = ql::datum_t(-nums[i]);
         vec.push_back(negative);
         test_datum_serialization(negative);
     }
@@ -63,7 +63,7 @@ TEST(DatumTest, NumericSerialization) {
     // Make sure things don't get messed up with numbers serialized as part of a
     // larger entity (for example, if serialization wrote extra bytes that the test
     // above didn't detect).
-    test_datum_serialization(make_counted<ql::datum_t>(std::move(vec), limits));
+    test_datum_serialization(ql::datum_t(std::move(vec), limits));
 }
 
 

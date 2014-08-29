@@ -4,24 +4,24 @@
 #define UTIL_GEOMETRY_S2POLYGONBUILDER_H__
 
 #include <unordered_map>
-using std::unordered_map;
-
 #include <set>
-using std::set;
-using std::multiset;
-
 #include <utility>
-using std::pair;
-using std::make_pair;
-
 #include <vector>
-using std::vector;
 
 #include "rdb_protocol/geo/s2/base/basictypes.h"
 #include "rdb_protocol/geo/s2/base/scoped_ptr.h"
 #include "rdb_protocol/geo/s2/s2.h"
 #include "rdb_protocol/geo/s2/s1angle.h"
 #include "rdb_protocol/geo/s2/util/math/matrix3x3.h"
+
+namespace geo {
+using std::unordered_map;
+using std::set;
+using std::multiset;
+using std::pair;
+using std::make_pair;
+using std::vector;
+
 
 class S2Loop;
 class S2Polygon;
@@ -261,7 +261,7 @@ class S2PolygonBuilder {
   // current position to a new position, and also returns a spatial index
   // containing all of the vertices that do not need to be moved.
   class PointIndex;
-  typedef unordered_map<S2Point, S2Point> MergeMap;
+  typedef unordered_map<S2Point, S2Point, std::hash<S2Point> > MergeMap;
   void BuildMergeMap(PointIndex* index, MergeMap* merge_map);
 
   // Moves a set of vertices from old to new positions.
@@ -281,7 +281,7 @@ class S2PolygonBuilder {
   // once.  We could have also used a multiset<pair<S2Point, S2Point> >,
   // but this representation is a bit more convenient.
   typedef multiset<S2Point> VertexSet;
-  typedef unordered_map<S2Point, VertexSet> EdgeSet;
+  typedef unordered_map<S2Point, VertexSet, std::hash<S2Point> > EdgeSet;
   scoped_ptr<EdgeSet> edges_;
 
   // Unique collection of the starting (first) vertex of all edges,
@@ -305,5 +305,7 @@ inline S2PolygonBuilderOptions S2PolygonBuilderOptions::UNDIRECTED_UNION() {
   options.set_xor_edges(false);
   return options;
 }
+
+}  // namespace geo
 
 #endif  // UTIL_GEOMETRY_S2POLYGONBUILDER_H__

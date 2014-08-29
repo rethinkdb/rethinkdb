@@ -414,7 +414,7 @@ void cause_test_failure() {
 
 TEST(DiskConflictTest, MetaTest) {
     EXPECT_NONFATAL_FAILURE(cause_test_failure(), "Read returned wrong data.");
-};
+}
 
 TEST(DiskConflictTest, FillBufsFromSource) {
     // A 27-element array.

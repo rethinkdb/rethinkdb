@@ -83,22 +83,24 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
     //  the moment (since we are still in the constructor), so things should complete
     //  rather quickly.
     cond_t dummy_interruptor;
-    read_token_pair_t token_pair;
-    new_read_token_pair(&token_pair);
+    write_token_pair_t token_pair;
+    store_view_t::new_write_token_pair(&token_pair);
 
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
-    acquire_superblock_for_read(&token_pair.main_read_token, &txn,
-                                &superblock, &dummy_interruptor, false);
+    acquire_superblock_for_write(repli_timestamp_t::distant_past,
+                                 1,
+                                 write_durability_t::SOFT,
+                                 &token_pair,
+                                 &txn,
+                                 &superblock,
+                                 &dummy_interruptor);
 
     buf_lock_t sindex_block
-        = acquire_sindex_block_for_read(superblock->expose_buf(),
+        = acquire_sindex_block_for_write(superblock->expose_buf(),
                                         superblock->get_sindex_block_id());
 
     superblock.reset();
-
-    std::map<sindex_name_t, secondary_index_t> sindexes;
-    get_secondary_indexes(&sindex_block, &sindexes);
 
     struct sindex_clearer_t {
         static void clear(store_t *store,
@@ -123,15 +125,34 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
         }
     };
 
+    // Get the map of indexes and check if any were postconstructing
+    // Drop these and recreate them (see github issue #2925)
     std::set<sindex_name_t> sindexes_to_update;
-    for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-        if (it->second.being_deleted) {
-            // Finish deleting the index
-            coro_t::spawn_sometime(std::bind(&sindex_clearer_t::clear,
-                                             this, it->second, drainer.lock()));
-        } else if (!it->second.post_construction_complete) {
-            // Complete post constructing the index
-            sindexes_to_update.insert(it->first);
+    {
+        std::map<sindex_name_t, secondary_index_t> sindexes;
+        get_secondary_indexes(&sindex_block, &sindexes);
+        for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
+            if (!it->second.being_deleted && !it->second.post_construction_complete) {
+                bool success = mark_secondary_index_deleted(&sindex_block, it->first);
+                guarantee(success);
+
+                success = add_sindex(it->first, it->second.opaque_definition, &sindex_block);
+                guarantee(success);
+                sindexes_to_update.insert(it->first);
+            }
+        }
+    }
+
+    // Get the new map of indexes, now that we're deleting the old postconstructing ones
+    // Kick off coroutines to finish deleting all indexes that are being deleted
+    {
+        std::map<sindex_name_t, secondary_index_t> sindexes;
+        get_secondary_indexes(&sindex_block, &sindexes);
+        for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
+            if (it->second.being_deleted) {
+                coro_t::spawn_sometime(std::bind(&sindex_clearer_t::clear,
+                                                 this, it->second, drainer.lock()));
+            }
         }
     }
 
@@ -503,14 +524,14 @@ class func_replacer_t : public btree_batched_replacer_t {
 public:
     func_replacer_t(ql::env_t *_env, const ql::wire_func_t &wf, return_changes_t _return_changes)
         : env(_env), f(wf.compile_wire_func()), return_changes(_return_changes) { }
-    counted_t<const ql::datum_t> replace(
-        const counted_t<const ql::datum_t> &d, size_t) const {
+    ql::datum_t replace(
+        const ql::datum_t &d, size_t) const {
         return f->call(env, d, ql::LITERAL_OK)->as_datum();
     }
     return_changes_t should_return_changes() const { return return_changes; }
 private:
     ql::env_t *const env;
-    const counted_t<ql::func_t> f;
+    const counted_t<const ql::func_t> f;
     const return_changes_t return_changes;
 };
 
@@ -519,10 +540,10 @@ public:
     explicit datum_replacer_t(const batched_insert_t &bi)
         : datums(&bi.inserts), conflict_behavior(bi.conflict_behavior),
           pkey(bi.pkey), return_changes(bi.return_changes) { }
-    counted_t<const ql::datum_t> replace(const counted_t<const ql::datum_t> &d,
+    ql::datum_t replace(const ql::datum_t &d,
                                          size_t index) const {
         guarantee(index < datums->size());
-        counted_t<const ql::datum_t> newd = (*datums)[index];
+        ql::datum_t newd = (*datums)[index];
         if (d->get_type() == ql::datum_t::R_NULL) {
             return newd;
         } else if (conflict_behavior == conflict_behavior_t::REPLACE) {
@@ -539,7 +560,7 @@ public:
     }
     return_changes_t should_return_changes() const { return return_changes; }
 private:
-    const std::vector<counted_t<const ql::datum_t> > *const datums;
+    const std::vector<ql::datum_t> *const datums;
     const conflict_behavior_t conflict_behavior;
     const std::string pkey;
     const return_changes_t return_changes;
@@ -555,8 +576,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         response->response =
             rdb_batched_replace(
                 btree_info_t(btree, timestamp,
-                             &br.pkey),
-                superblock, br.keys, ql_env.limits, &replacer, &sindex_cb,
+                             datum_string_t(br.pkey)),
+                superblock, br.keys, ql_env.limits(), &replacer, &sindex_cb,
                 trace);
     }
 
@@ -568,12 +589,12 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         std::vector<store_key_t> keys;
         keys.reserve(bi.inserts.size());
         for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
-            keys.emplace_back((*it)->get(bi.pkey)->print_primary());
+            keys.emplace_back((*it)->get_field(datum_string_t(bi.pkey))->print_primary());
         }
         response->response =
             rdb_batched_replace(
                 btree_info_t(btree, timestamp,
-                             &bi.pkey),
+                             datum_string_t(bi.pkey)),
                 superblock, keys, bi.limits, &replacer, &sindex_cb,
                 trace);
     }

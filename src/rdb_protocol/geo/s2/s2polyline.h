@@ -4,7 +4,6 @@
 #define UTIL_GEOMETRY_S2POLYLINE_H__
 
 #include <vector>
-using std::vector;
 
 #include "rdb_protocol/geo/s2/base/logging.h"
 #include "rdb_protocol/geo/s2/base/macros.h"
@@ -12,6 +11,9 @@ using std::vector;
 #include "rdb_protocol/geo/s2/s2region.h"
 #include "rdb_protocol/geo/s2/s2latlngrect.h"
 #include "utils.hpp"
+
+namespace geo {
+using std::vector;
 
 class S1Angle;
 
@@ -191,5 +193,7 @@ class S2Polyline : public S2Region {
 
   DISALLOW_EVIL_CONSTRUCTORS(S2Polyline);
 };
+
+}  // namespace geo
 
 #endif  // UTIL_GEOMETRY_S2POLYLINE_H__

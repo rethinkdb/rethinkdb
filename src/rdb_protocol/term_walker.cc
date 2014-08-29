@@ -42,7 +42,7 @@ public:
             if (!curtime.has()) {
                 curtime = pseudo::time_now();
             }
-            *t = r::expr(*curtime.get()).get();
+            *t = r::expr(curtime).get();
         }
 
         if (t->type() == Term::ASC || t->type() == Term::DESC) {
@@ -118,6 +118,7 @@ private:
         case Term::DATUM:
         case Term::MAKE_ARRAY:
         case Term::MAKE_OBJ:
+        case Term::BINARY:
         case Term::VAR:
         case Term::JAVASCRIPT:
         case Term::HTTP:
@@ -171,6 +172,7 @@ private:
         case Term::MAX:
         case Term::UNION:
         case Term::NTH:
+        case Term::BRACKET:
         case Term::ARGS:
         case Term::LIMIT:
         case Term::SKIP:
@@ -260,6 +262,7 @@ private:
         case Term::GET_INTERSECTING:
         case Term::FILL:
         case Term::GET_NEAREST:
+        case Term::UUID:
             return false;
         default: unreachable();
         }
@@ -303,6 +306,7 @@ private:
         case Term::DATUM:
         case Term::MAKE_ARRAY:
         case Term::MAKE_OBJ:
+        case Term::BINARY:
         case Term::VAR:
         case Term::JAVASCRIPT:
         case Term::HTTP:
@@ -347,6 +351,7 @@ private:
         case Term::DISTINCT:
         case Term::UNION:
         case Term::NTH:
+        case Term::BRACKET:
         case Term::LIMIT:
         case Term::SKIP:
         case Term::ZIP:
@@ -441,6 +446,7 @@ private:
         case Term::GET_INTERSECTING:
         case Term::FILL:
         case Term::GET_NEAREST:
+        case Term::UUID:
             return false;
         default: unreachable();
         }
@@ -466,7 +472,7 @@ private:
     int depth;
     bool writes_legal;
     const Backtrace *const bt;
-    counted_t<const datum_t> curtime;
+    datum_t curtime;
 };
 
 void preprocess_term(Term *root) {

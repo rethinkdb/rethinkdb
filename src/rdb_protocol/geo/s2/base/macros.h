@@ -17,6 +17,8 @@
 // most google3 code doesn't have to work with type traits directly.
 #include "rdb_protocol/geo/s2/base/type_traits.h"
 
+namespace geo {
+
 // The swigged version of an abstract class must be concrete if any methods
 // return objects of the abstract type. We keep it abstract in C++ and
 // concrete for swig.
@@ -39,54 +41,7 @@
 // the expression is false, most compilers will issue a warning/error
 // containing the name of the variable.
 
-template <bool>
-struct CompileAssert {
-};
-
-#define COMPILE_ASSERT(expr, msg) \
-  typedef CompileAssert<(bool(expr))> msg[bool(expr) ? 1 : -1]
-
-// Implementation details of COMPILE_ASSERT:
-//
-// - COMPILE_ASSERT works by defining an array type that has -1
-//   elements (and thus is invalid) when the expression is false.
-//
-// - The simpler definition
-//
-//     #define COMPILE_ASSERT(expr, msg) typedef char msg[(expr) ? 1 : -1]
-//
-//   does not work, as gcc supports variable-length arrays whose sizes
-//   are determined at run-time (this is gcc's extension and not part
-//   of the C++ standard).  As a result, gcc fails to reject the
-//   following code with the simple definition:
-//
-//     int foo;
-//     COMPILE_ASSERT(foo, msg); // not supposed to compile as foo is
-//                               // not a compile-time constant.
-//
-// - By using the type CompileAssert<(bool(expr))>, we ensures that
-//   expr is a compile-time constant.  (Template arguments must be
-//   determined at compile-time.)
-//
-// - The outter parentheses in CompileAssert<(bool(expr))> are necessary
-//   to work around a bug in gcc 3.4.4 and 4.0.1.  If we had written
-//
-//     CompileAssert<bool(expr)>
-//
-//   instead, these compilers will refuse to compile
-//
-//     COMPILE_ASSERT(5 > 0, some_message);
-//
-//   (They seem to think the ">" in "5 > 0" marks the end of the
-//   template argument list.)
-//
-// - The array size is (bool(expr) ? 1 : -1), instead of simply
-//
-//     ((expr) ? 1 : -1).
-//
-//   This is to avoid running into a bug in MS VC 7.1, which
-//   causes ((0.0) ? 1 : -1) to incorrectly evaluate to 1.
-
+#define COMPILE_ASSERT(expr, msg) static_assert(expr, "msg")
 
 // A macro to disallow the copy constructor and operator= functions
 // This should be used in the private: declarations for a class
@@ -257,5 +212,7 @@ template <> struct ERROR_TYPE_MUST_BE_POD<true> { };
   enum { dummy_##TypeName                                                 \
            = sizeof(ERROR_TYPE_MUST_BE_POD<                               \
                       base::is_pod<TypeName>::value>) }
+
+}  // namespace geo
 
 #endif  // BASE_MACROS_H_

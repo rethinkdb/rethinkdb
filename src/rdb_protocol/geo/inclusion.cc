@@ -16,6 +16,10 @@
 
 using ql::datum_t;
 
+using geo::S2Point;
+using geo::S2Polygon;
+using geo::S2Polyline;
+
 class inclusion_tester_t : public s2_geo_visitor_t<bool> {
 public:
     explicit inclusion_tester_t(const S2Polygon *polygon) : polygon_(polygon) { }
@@ -34,7 +38,7 @@ private:
 };
 
 bool geo_does_include(const S2Polygon &polygon,
-                      const counted_t<const ql::datum_t> &g) {
+                      const ql::datum_t &g) {
     inclusion_tester_t tester(&polygon);
     return visit_geojson(&tester, g);
 }

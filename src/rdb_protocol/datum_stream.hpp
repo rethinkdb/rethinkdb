@@ -40,23 +40,22 @@ public:
 
     // stream -> stream (always eager)
     counted_t<datum_stream_t> slice(size_t l, size_t r);
-    counted_t<datum_stream_t> zip();
-    counted_t<datum_stream_t> indexes_of(counted_t<func_t> f);
+    counted_t<datum_stream_t> indexes_of(counted_t<const func_t> f);
     counted_t<datum_stream_t> ordered_distinct();
 
     // Returns false or NULL respectively if stream is lazy.
     virtual bool is_array() = 0;
-    virtual counted_t<const datum_t> as_array(env_t *env) = 0;
+    virtual datum_t as_array(env_t *env) = 0;
 
     bool is_grouped() { return grouped; }
 
     // Gets the next elements from the stream.  (Returns zero elements only when
     // the end of the stream has been reached.  Otherwise, returns at least one
     // element.)  (Wrapper around `next_batch_impl`.)
-    std::vector<counted_t<const datum_t> >
+    std::vector<datum_t>
     next_batch(env_t *env, const batchspec_t &batchspec);
     // Prefer `next_batch`.  Cannot be used in conjunction with `next_batch`.
-    virtual counted_t<const datum_t> next(env_t *env, const batchspec_t &batchspec);
+    virtual datum_t next(env_t *env, const batchspec_t &batchspec);
     virtual bool is_exhausted() const = 0;
     virtual bool is_cfeed() const = 0;
 
@@ -70,10 +69,10 @@ protected:
     explicit datum_stream_t(const protob_t<const Backtrace> &bt_src);
 
 private:
-    virtual std::vector<counted_t<const datum_t> >
+    virtual std::vector<datum_t>
     next_batch_impl(env_t *env, const batchspec_t &batchspec) = 0;
 
-    std::vector<counted_t<const datum_t> > batch_cache;
+    std::vector<datum_t> batch_cache;
     size_t batch_cache_index;
     bool grouped;
 };
@@ -82,7 +81,7 @@ class eager_datum_stream_t : public datum_stream_t {
 protected:
     explicit eager_datum_stream_t(const protob_t<const Backtrace> &bt)
         : datum_stream_t(bt) { }
-    virtual counted_t<const datum_t> as_array(env_t *env);
+    virtual datum_t as_array(env_t *env);
     bool ops_to_do() { return ops.size() != 0; }
 
 private:
@@ -100,9 +99,9 @@ private:
     virtual void accumulate_all(env_t *env, eager_acc_t *acc);
 
     done_t next_grouped_batch(env_t *env, const batchspec_t &bs, groups_t *out);
-    virtual std::vector<counted_t<const datum_t> >
+    virtual std::vector<datum_t>
     next_batch_impl(env_t *env, const batchspec_t &bs);
-    virtual std::vector<counted_t<const datum_t> >
+    virtual std::vector<datum_t>
     next_raw_batch(env_t *env, const batchspec_t &bs) = 0;
 
     std::vector<scoped_ptr_t<op_t> > ops;
@@ -114,10 +113,10 @@ protected:
         : eager_datum_stream_t(_source->backtrace()), source(_source) { }
 private:
     virtual bool is_array() { return source->is_array(); }
-    virtual counted_t<const datum_t> as_array(env_t *env) {
+    virtual datum_t as_array(env_t *env) {
         return source->is_array() && !source->is_grouped()
             ? eager_datum_stream_t::as_array(env)
-            : counted_t<const datum_t>();
+            : datum_t();
     }
     virtual bool is_exhausted() const {
         return source->is_exhausted() && batch_cache_exhausted();
@@ -132,13 +131,13 @@ protected:
 
 class indexes_of_datum_stream_t : public wrapper_datum_stream_t {
 public:
-    indexes_of_datum_stream_t(counted_t<func_t> _f, counted_t<datum_stream_t> _source);
+    indexes_of_datum_stream_t(counted_t<const func_t> _f, counted_t<datum_stream_t> _source);
 
 private:
-    std::vector<counted_t<const datum_t> >
+    std::vector<datum_t>
     next_raw_batch(env_t *env, const batchspec_t &batchspec);
 
-    counted_t<func_t> f;
+    counted_t<const func_t> f;
     int64_t index;
 };
 
@@ -146,51 +145,43 @@ class ordered_distinct_datum_stream_t : public wrapper_datum_stream_t {
 public:
     explicit ordered_distinct_datum_stream_t(counted_t<datum_stream_t> _source);
 private:
-    std::vector<counted_t<const datum_t> >
+    std::vector<datum_t>
     next_raw_batch(env_t *env, const batchspec_t &batchspec);
-    counted_t<const datum_t> last_val;
+    datum_t last_val;
 };
 
 class array_datum_stream_t : public eager_datum_stream_t {
 public:
-    array_datum_stream_t(counted_t<const datum_t> _arr,
+    array_datum_stream_t(datum_t _arr,
                          const protob_t<const Backtrace> &bt_src);
     virtual bool is_exhausted() const;
     virtual bool is_cfeed() const;
 
 private:
     virtual bool is_array();
-    virtual counted_t<const datum_t> as_array(env_t *env) {
+    virtual datum_t as_array(env_t *env) {
         return is_array()
             ? (ops_to_do() ? eager_datum_stream_t::as_array(env) : arr)
-            : counted_t<const datum_t>();
+            : datum_t();
     }
-    virtual std::vector<counted_t<const datum_t> >
+    virtual std::vector<datum_t>
     next_raw_batch(env_t *env, UNUSED const batchspec_t &batchspec);
-    counted_t<const datum_t> next(env_t *env, const batchspec_t &batchspec);
-    counted_t<const datum_t> next_arr_el();
+    datum_t next(env_t *env, const batchspec_t &batchspec);
+    datum_t next_arr_el();
 
     size_t index;
-    counted_t<const datum_t> arr;
+    datum_t arr;
 };
 
 class slice_datum_stream_t : public wrapper_datum_stream_t {
 public:
     slice_datum_stream_t(uint64_t left, uint64_t right, counted_t<datum_stream_t> src);
 private:
-    virtual std::vector<counted_t<const datum_t> >
+    virtual std::vector<datum_t>
     next_raw_batch(env_t *env, const batchspec_t &batchspec);
     virtual bool is_exhausted() const;
     virtual bool is_cfeed() const;
     uint64_t index, left, right;
-};
-
-class zip_datum_stream_t : public wrapper_datum_stream_t {
-public:
-    explicit zip_datum_stream_t(counted_t<datum_stream_t> src);
-private:
-    virtual std::vector<counted_t<const datum_t> >
-    next_raw_batch(env_t *env, const batchspec_t &batchspec);
 };
 
 class indexed_sort_datum_stream_t : public wrapper_datum_stream_t {
@@ -199,18 +190,18 @@ public:
         counted_t<datum_stream_t> stream, // Must be a table with a sorting applied.
         std::function<bool(env_t *,  // NOLINT(readability/casting)
                            profile::sampler_t *,
-                           const counted_t<const datum_t> &,
-                           const counted_t<const datum_t> &)> lt_cmp);
+                           const datum_t &,
+                           const datum_t &)> lt_cmp);
 private:
-virtual std::vector<counted_t<const datum_t> >
+virtual std::vector<datum_t>
 next_raw_batch(env_t *env, const batchspec_t &batchspec);
 
 std::function<bool(env_t *,  // NOLINT(readability/casting)
                    profile::sampler_t *,
-                   const counted_t<const datum_t> &,
-                   const counted_t<const datum_t> &)> lt_cmp;
+                   const datum_t &,
+                   const datum_t &)> lt_cmp;
 size_t index;
-std::vector<counted_t<const datum_t> > data;
+std::vector<datum_t> data;
 };
 
 class union_datum_stream_t : public datum_stream_t {
@@ -233,7 +224,7 @@ public:
     virtual void accumulate_all(env_t *env, eager_acc_t *acc);
 
     virtual bool is_array();
-    virtual counted_t<const datum_t> as_array(env_t *env);
+    virtual datum_t as_array(env_t *env);
     virtual bool is_exhausted() const;
     virtual bool is_cfeed() const;
 
@@ -241,7 +232,7 @@ private:
     virtual changefeed::keyspec_t get_spec() {
         rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on a union stream.");
     }
-    std::vector<counted_t<const datum_t> >
+    std::vector<datum_t >
     next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
     std::vector<counted_t<datum_stream_t> > streams;
@@ -383,7 +374,7 @@ public:
     void add_transformation(transform_variant_t &&tv);
     void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
     void accumulate_all(env_t *env, eager_acc_t *acc);
-    std::vector<counted_t<const datum_t> >
+    std::vector<datum_t>
     next_batch(env_t *env, const batchspec_t &batchspec);
     bool is_finished() const;
 
@@ -419,8 +410,8 @@ public:
         const protob_t<const Backtrace> &bt_src);
 
     virtual bool is_array() { return false; }
-    virtual counted_t<const datum_t> as_array(UNUSED env_t *env) {
-        return counted_t<const datum_t>();  // Cannot be converted implicitly.
+    virtual datum_t as_array(UNUSED env_t *env) {
+        return datum_t();  // Cannot be converted implicitly.
     }
 
     bool is_exhausted() const;
@@ -430,7 +421,7 @@ private:
         return changefeed::keyspec_t(reader.get_spec());
     }
 
-    std::vector<counted_t<const datum_t> >
+    std::vector<datum_t >
     next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
     virtual void add_transformation(transform_variant_t &&tv,
@@ -442,7 +433,7 @@ private:
     // things that are most easily written in terms of `next` that would
     // otherwise have to do this caching themselves.
     size_t current_batch_offset;
-    std::vector<counted_t<const datum_t> > current_batch;
+    std::vector<datum_t> current_batch;
 
     reader_t reader;
 };

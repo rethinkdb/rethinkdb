@@ -11,13 +11,15 @@
 #define _BASE_STRINGPRINTF_H
 
 #include <stdarg.h>
-#include <string>
 
+#include <string>
 #include <vector>
-using std::vector;
 
 #include "rdb_protocol/geo/s2/base/stl_decl.h"
 #include "rdb_protocol/geo/s2/base/port.h"
+
+namespace geo {
+using std::vector;
 
 // Return a C++ string
 extern std::string StringPrintf(const char* format, ...)
@@ -37,5 +39,7 @@ extern void StringAppendF(std::string* dst, const char* format, ...)
 // Lower-level routine that takes a va_list and appends to a specified
 // string.  All other routines are just convenience wrappers around it.
 extern void StringAppendV(std::string* dst, const char* format, va_list ap);
+
+}  // namespace geo
 
 #endif /* _BASE_STRINGPRINTF_H */

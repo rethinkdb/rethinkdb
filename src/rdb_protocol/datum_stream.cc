@@ -14,7 +14,7 @@
 namespace ql {
 
 template<class T>
-T groups_to_batch(std::map<counted_t<const datum_t>, T, counted_datum_less_t> *g) {
+T groups_to_batch(std::map<datum_t, T, optional_datum_less_t> *g) {
     if (g->size() == 0) {
         return T();
     } else {
@@ -126,13 +126,13 @@ bool reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
             }
 
             rcheck_datum(
-                (items.size() + new_items.size()) <= env->limits.array_size_limit(),
+                (items.size() + new_items.size()) <= env->limits().array_size_limit(),
                 base_exc_t::GENERIC,
                 strprintf("Too many rows (> %zu) with the same "
                           "truncated key for index `%s`.  "
                           "Example value:\n%s\n"
                           "Truncated key:\n%s",
-                          env->limits.array_size_limit(),
+                          env->limits().array_size_limit(),
                           readgen->sindex_name().c_str(),
                           items[items.size() - 1].sindex_key->trunc_print().c_str(),
                           key_to_debug_str(items[items.size() - 1].key).c_str()));
@@ -148,15 +148,15 @@ bool reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
     return items_index < items.size();
 }
 
-std::vector<counted_t<const datum_t> >
+std::vector<datum_t>
 reader_t::next_batch(env_t *env, const batchspec_t &batchspec) {
     started = true;
     if (!load_items(env, batchspec)) {
-        return std::vector<counted_t<const datum_t> >();
+        return std::vector<datum_t>();
     }
     r_sanity_check(items_index < items.size());
 
-    std::vector<counted_t<const datum_t> > res;
+    std::vector<datum_t> res;
     switch (batchspec.get_batch_type()) {
     case batch_type_t::NORMAL: // fallthru
     case batch_type_t::NORMAL_FIRST: // fallthru
@@ -167,7 +167,7 @@ reader_t::next_batch(env_t *env, const batchspec_t &batchspec) {
         }
     } break;
     case batch_type_t::SINDEX_CONSTANT: {
-        counted_t<const ql::datum_t> sindex = std::move(items[items_index].sindex_key);
+        ql::datum_t sindex = std::move(items[items_index].sindex_key);
         store_key_t key = std::move(items[items_index].key);
         res.push_back(std::move(items[items_index].data));
         items_index += 1;
@@ -189,10 +189,10 @@ reader_t::next_batch(env_t *env, const batchspec_t &batchspec) {
                 res.push_back(std::move(items[items_index].data));
 
                 rcheck_datum(
-                    res.size() <= env->limits.array_size_limit(), base_exc_t::GENERIC,
+                    res.size() <= env->limits().array_size_limit(), base_exc_t::GENERIC,
                     strprintf("Too many rows (> %zu) with the same value "
                               "for index `%s`:\n%s",
-                              env->limits.array_size_limit(),
+                              env->limits().array_size_limit(),
                               readgen->sindex_name().c_str(),
                               // This is safe because you can't have duplicate
                               // primary keys, so they will never exceed the
@@ -296,7 +296,7 @@ scoped_ptr_t<readgen_t> primary_readgen_t::make(
     sorting_t sorting) {
     return scoped_ptr_t<readgen_t>(
         new primary_readgen_t(
-            env->global_optargs.get_all_optargs(),
+            env->get_all_optargs(),
             std::move(table_name),
             range,
             env->profile(),
@@ -356,7 +356,7 @@ scoped_ptr_t<readgen_t> sindex_readgen_t::make(
     sorting_t sorting) {
     return scoped_ptr_t<readgen_t>(
         new sindex_readgen_t(
-            env->global_optargs.get_all_optargs(),
+            env->get_all_optargs(),
             std::move(table_name),
             sindex,
             range,
@@ -465,23 +465,20 @@ counted_t<val_t> datum_stream_t::run_terminal(
     env_t *env, const terminal_variant_t &tv) {
     scoped_ptr_t<eager_acc_t> acc(make_eager_terminal(tv));
     accumulate(env, acc.get(), tv);
-    return acc->finish_eager(backtrace(), is_grouped(), env->limits);
+    return acc->finish_eager(backtrace(), is_grouped(), env->limits());
 }
 
 counted_t<val_t> datum_stream_t::to_array(env_t *env) {
-    scoped_ptr_t<eager_acc_t> acc = make_to_array(env->reql_version);
+    scoped_ptr_t<eager_acc_t> acc = make_to_array(env->reql_version());
     accumulate_all(env, acc.get());
-    return acc->finish_eager(backtrace(), is_grouped(), env->limits);
+    return acc->finish_eager(backtrace(), is_grouped(), env->limits());
 }
 
 // DATUM_STREAM_T
 counted_t<datum_stream_t> datum_stream_t::slice(size_t l, size_t r) {
     return make_counted<slice_datum_stream_t>(l, r, this->counted_from_this());
 }
-counted_t<datum_stream_t> datum_stream_t::zip() {
-    return make_counted<zip_datum_stream_t>(this->counted_from_this());
-}
-counted_t<datum_stream_t> datum_stream_t::indexes_of(counted_t<func_t> f) {
+counted_t<datum_stream_t> datum_stream_t::indexes_of(counted_t<const func_t> f) {
     return make_counted<indexes_of_datum_stream_t>(f, counted_from_this());
 }
 counted_t<datum_stream_t> datum_stream_t::ordered_distinct() {
@@ -503,7 +500,7 @@ void datum_stream_t::check_not_grouped(const char *msg) {
     rcheck(!is_grouped(), base_exc_t::GENERIC, msg);
 }
 
-std::vector<counted_t<const datum_t> >
+std::vector<datum_t>
 datum_stream_t::next_batch(env_t *env, const batchspec_t &batchspec) {
     DEBUG_ONLY_CODE(env->do_eval_callback());
     if (env->interruptor->is_pulsed()) {
@@ -521,7 +518,7 @@ datum_stream_t::next_batch(env_t *env, const batchspec_t &batchspec) {
     }
 }
 
-counted_t<const datum_t> datum_stream_t::next(
+datum_t datum_stream_t::next(
     env_t *env, const batchspec_t &batchspec) {
 
     profile::starter_t("Reading element from datum stream.", env->trace);
@@ -529,16 +526,16 @@ counted_t<const datum_t> datum_stream_t::next(
         r_sanity_check(batch_cache_index == 0);
         batch_cache = next_batch(env, batchspec);
         if (batch_cache_index >= batch_cache.size()) {
-            return counted_t<const datum_t>();
+            return datum_t();
         }
     }
     r_sanity_check(batch_cache_index < batch_cache.size());
-    counted_t<const datum_t> d = std::move(batch_cache[batch_cache_index++]);
+    datum_t d = std::move(batch_cache[batch_cache_index++]);
     if (batch_cache_index >= batch_cache.size()) {
         // Free the vector as soon as we're done with it.  This also keeps the
         // assert in `next_batch` happy.
         batch_cache_index = 0;
-        std::vector<counted_t<const datum_t> > tmp;
+        std::vector<datum_t> tmp;
         tmp.swap(batch_cache);
     }
     return d;
@@ -558,13 +555,13 @@ eager_datum_stream_t::done_t eager_datum_stream_t::next_grouped_batch(
     env_t *env, const batchspec_t &bs, groups_t *out) {
     r_sanity_check(out->size() == 0);
     while (out->size() == 0) {
-        std::vector<counted_t<const datum_t> > v = next_raw_batch(env, bs);
+        std::vector<datum_t> v = next_raw_batch(env, bs);
         if (v.size() == 0) {
             return done_t::YES;
         }
-        (*out)[counted_t<const datum_t>()] = std::move(v);
+        (*out)[datum_t()] = std::move(v);
         for (auto it = ops.begin(); it != ops.end(); ++it) {
-            (**it)(env, out, counted_t<const datum_t>());
+            (**it)(env, out, datum_t());
         }
     }
     return done_t::NO;
@@ -575,14 +572,14 @@ void eager_datum_stream_t::accumulate(
     batchspec_t bs = batchspec_t::user(batch_type_t::TERMINAL, env);
     // I'm guessing reql_version doesn't matter here, but why think about it?  We use
     // th env's reql_version.
-    groups_t data(counted_datum_less_t(env->reql_version));
+    groups_t data(optional_datum_less_t(env->reql_version()));
     while (next_grouped_batch(env, bs, &data) == done_t::NO) {
         (*acc)(env, &data);
     }
 }
 
 void eager_datum_stream_t::accumulate_all(env_t *env, eager_acc_t *acc) {
-    groups_t data(counted_datum_less_t(env->reql_version));
+    groups_t data(optional_datum_less_t(env->reql_version()));
     done_t done = next_grouped_batch(env, batchspec_t::all(), &data);
     (*acc)(env, &data);
     if (done == done_t::NO) {
@@ -592,28 +589,28 @@ void eager_datum_stream_t::accumulate_all(env_t *env, eager_acc_t *acc) {
     }
 }
 
-std::vector<counted_t<const datum_t> >
+std::vector<datum_t>
 eager_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &bs) {
-    groups_t data(counted_datum_less_t(env->reql_version));
+    groups_t data(optional_datum_less_t(env->reql_version()));
     next_grouped_batch(env, bs, &data);
     return groups_to_batch(&data);
 }
 
-counted_t<const datum_t> eager_datum_stream_t::as_array(env_t *env) {
+datum_t eager_datum_stream_t::as_array(env_t *env) {
     if (is_grouped() || !is_array()) {
-        return counted_t<const datum_t>();
+        return datum_t();
     }
 
-    datum_array_builder_t arr(env->limits);
+    datum_array_builder_t arr(env->limits());
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
     {
         profile::sampler_t sampler("Evaluating stream eagerly.", env->trace);
-        while (counted_t<const datum_t> d = next(env, batchspec)) {
+        while (datum_t d = next(env, batchspec)) {
             arr.add(d);
             sampler.new_sample();
         }
     }
-    return std::move(arr).to_counted();
+    return std::move(arr).to_datum();
 }
 
 // LAZY_DATUM_STREAM_T
@@ -641,7 +638,7 @@ void lazy_datum_stream_t::accumulate_all(env_t *env, eager_acc_t *acc) {
     reader.accumulate_all(env, acc);
 }
 
-std::vector<counted_t<const datum_t> >
+std::vector<datum_t>
 lazy_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
     // Should never mix `next` with `next_batch`.
     r_sanity_check(current_batch_offset == 0 && current_batch.size() == 0);
@@ -655,31 +652,31 @@ bool lazy_datum_stream_t::is_cfeed() const {
     return false;
 }
 
-array_datum_stream_t::array_datum_stream_t(counted_t<const datum_t> _arr,
+array_datum_stream_t::array_datum_stream_t(datum_t _arr,
                                            const protob_t<const Backtrace> &bt_source)
     : eager_datum_stream_t(bt_source), index(0), arr(_arr) { }
 
-counted_t<const datum_t> array_datum_stream_t::next(env_t *env, const batchspec_t &bs) {
+datum_t array_datum_stream_t::next(env_t *env, const batchspec_t &bs) {
     return ops_to_do() ? datum_stream_t::next(env, bs) : next_arr_el();
 }
-counted_t<const datum_t> array_datum_stream_t::next_arr_el() {
-    return index < arr->size() ? arr->get(index++) : counted_t<const datum_t>();
+datum_t array_datum_stream_t::next_arr_el() {
+    return index < arr->arr_size() ? arr->get(index++) : datum_t();
 }
 
 bool array_datum_stream_t::is_exhausted() const {
-    return index >= arr->size();
+    return index >= arr->arr_size();
 }
 bool array_datum_stream_t::is_cfeed() const {
     return false;
 }
 
-std::vector<counted_t<const datum_t> >
+std::vector<datum_t>
 array_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
-    std::vector<counted_t<const datum_t> > v;
+    std::vector<datum_t> v;
     batcher_t batcher = batchspec.to_batcher();
 
     profile::sampler_t sampler("Fetching array elements.", env->trace);
-    while (counted_t<const datum_t> d = next_arr_el()) {
+    while (const datum_t d = next_arr_el()) {
         batcher.note_el(d);
         v.push_back(std::move(d));
         if (batcher.should_send_batch()) {
@@ -699,13 +696,13 @@ indexed_sort_datum_stream_t::indexed_sort_datum_stream_t(
     counted_t<datum_stream_t> stream,
     std::function<bool(env_t *,  // NOLINT(readability/casting)
                        profile::sampler_t *,
-                       const counted_t<const datum_t> &,
-                       const counted_t<const datum_t> &)> _lt_cmp)
+                       const datum_t &,
+                       const datum_t &)> _lt_cmp)
     : wrapper_datum_stream_t(stream), lt_cmp(_lt_cmp), index(0) { }
 
-std::vector<counted_t<const datum_t> >
+std::vector<datum_t>
 indexed_sort_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
-    std::vector<counted_t<const datum_t> > ret;
+    std::vector<datum_t> ret;
     batcher_t batcher = batchspec.to_batcher();
 
     profile::sampler_t sampler("Sorting by index.", env->trace);
@@ -738,12 +735,12 @@ indexed_sort_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batch
 ordered_distinct_datum_stream_t::ordered_distinct_datum_stream_t(
     counted_t<datum_stream_t> _source) : wrapper_datum_stream_t(_source) { }
 
-std::vector<counted_t<const datum_t> >
+std::vector<datum_t>
 ordered_distinct_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &bs) {
-    std::vector<counted_t<const datum_t> > ret;
+    std::vector<datum_t> ret;
     profile::sampler_t sampler("Ordered distinct.", env->trace);
     while (ret.size() == 0) {
-        std::vector<counted_t<const datum_t> > v = source->next_batch(env, bs);
+        std::vector<datum_t> v = source->next_batch(env, bs);
         if (v.size() == 0) break;
         for (auto &&el : v) {
             if (!last_val.has() || *last_val != *el) {
@@ -757,24 +754,24 @@ ordered_distinct_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &b
 }
 
 // INDEXES_OF_DATUM_STREAM_T
-indexes_of_datum_stream_t::indexes_of_datum_stream_t(counted_t<func_t> _f,
+indexes_of_datum_stream_t::indexes_of_datum_stream_t(counted_t<const func_t> _f,
                                                      counted_t<datum_stream_t> _source)
     : wrapper_datum_stream_t(_source), f(_f), index(0) {
     guarantee(f.has() && source.has());
 }
 
-std::vector<counted_t<const datum_t> >
+std::vector<datum_t>
 indexes_of_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &bs) {
-    std::vector<counted_t<const datum_t> > ret;
+    std::vector<datum_t> ret;
     profile::sampler_t sampler("Finding indexes_of eagerly.", env->trace);
     while (ret.size() == 0) {
-        std::vector<counted_t<const datum_t> > v = source->next_batch(env, bs);
+        std::vector<datum_t> v = source->next_batch(env, bs);
         if (v.size() == 0) {
             break;
         }
         for (auto it = v.begin(); it != v.end(); ++it, ++index) {
-            if (f->filter_call(env, *it, counted_t<func_t>())) {
-                ret.push_back(make_counted<datum_t>(static_cast<double>(index)));
+            if (f->filter_call(env, *it, counted_t<const func_t>())) {
+                ret.push_back(datum_t(static_cast<double>(index)));
             }
             sampler.new_sample();
         }
@@ -787,10 +784,10 @@ slice_datum_stream_t::slice_datum_stream_t(
     uint64_t _left, uint64_t _right, counted_t<datum_stream_t> _src)
     : wrapper_datum_stream_t(_src), index(0), left(_left), right(_right) { }
 
-std::vector<counted_t<const datum_t> >
+std::vector<datum_t>
 slice_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &_batchspec) {
     if (left >= right || index >= right) {
-        return std::vector<counted_t<const datum_t> >();
+        return std::vector<datum_t>();
     }
 
     const batchspec_t batchspec = _batchspec.with_at_most(right - index);
@@ -798,7 +795,7 @@ slice_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &_batchspec) 
     profile::sampler_t sampler("Slicing eagerly.", env->trace);
     while (index < left) {
         sampler.new_sample();
-        std::vector<counted_t<const datum_t> > v = source->next_batch(env, batchspec);
+        std::vector<datum_t> v = source->next_batch(env, batchspec);
         if (v.size() == 0) {
             return v;
         }
@@ -808,7 +805,7 @@ slice_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &_batchspec) 
             index = right;
         }
         if (index > left) {
-            std::vector<counted_t<const datum_t> > ret;
+            std::vector<datum_t> ret;
             ret.reserve(index - left);
             std::move(v.end() - (index - left), v.end(), std::back_inserter(ret));
             return ret;
@@ -817,7 +814,7 @@ slice_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &_batchspec) 
 
     while (index < right) {
         sampler.new_sample();
-        std::vector<counted_t<const datum_t> > v = source->next_batch(env, batchspec);
+        std::vector<datum_t> v = source->next_batch(env, batchspec);
         if (v.size() == 0) {
             break;
         }
@@ -828,7 +825,7 @@ slice_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &_batchspec) 
         return v;
     }
 
-    return std::vector<counted_t<const datum_t> >();
+    return std::vector<datum_t>();
 }
 
 bool slice_datum_stream_t::is_exhausted() const {
@@ -837,26 +834,6 @@ bool slice_datum_stream_t::is_exhausted() const {
 }
 bool slice_datum_stream_t::is_cfeed() const {
     return source->is_cfeed();
-}
-
-// ZIP_DATUM_STREAM_T
-zip_datum_stream_t::zip_datum_stream_t(counted_t<datum_stream_t> _src)
-    : wrapper_datum_stream_t(_src) { }
-
-std::vector<counted_t<const datum_t> >
-zip_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
-    std::vector<counted_t<const datum_t> > v = source->next_batch(env, batchspec);
-
-    profile::sampler_t sampler("Zipping eagerly.", env->trace);
-    for (auto it = v.begin(); it != v.end(); ++it) {
-        auto left = (*it)->get("left", NOTHROW);
-        auto right = (*it)->get("right", NOTHROW);
-        rcheck(left.has(), base_exc_t::GENERIC,
-               "ZIP can only be called on the result of a join.");
-        *it = right.has() ? left->merge(right) : left;
-        sampler.new_sample();
-    }
-    return v;
 }
 
 // UNION_DATUM_STREAM_T
@@ -890,20 +867,20 @@ bool union_datum_stream_t::is_array() {
     return true;
 }
 
-counted_t<const datum_t> union_datum_stream_t::as_array(env_t *env) {
+datum_t union_datum_stream_t::as_array(env_t *env) {
     if (!is_array()) {
-        return counted_t<const datum_t>();
+        return datum_t();
     }
-    datum_array_builder_t arr(env->limits);
+    datum_array_builder_t arr(env->limits());
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
     {
         profile::sampler_t sampler("Evaluating stream eagerly.", env->trace);
-        while (counted_t<const datum_t> d = next(env, batchspec)) {
+        while (const datum_t d = next(env, batchspec)) {
             arr.add(d);
             sampler.new_sample();
         }
     }
-    return std::move(arr).to_counted();
+    return std::move(arr).to_datum();
 }
 
 bool union_datum_stream_t::is_exhausted() const {
@@ -918,16 +895,16 @@ bool union_datum_stream_t::is_cfeed() const {
     return is_cfeed_union;
 }
 
-std::vector<counted_t<const datum_t> >
+std::vector<datum_t>
 union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
     for (; streams_index < streams.size(); ++streams_index) {
-        std::vector<counted_t<const datum_t> > batch
+        std::vector<datum_t> batch
             = streams[streams_index]->next_batch(env, batchspec);
         if (batch.size() != 0 || streams[streams_index]->is_cfeed()) {
             return batch;
         }
     }
-    return std::vector<counted_t<const datum_t> >();
+    return std::vector<datum_t>();
 }
 
 } // namespace ql

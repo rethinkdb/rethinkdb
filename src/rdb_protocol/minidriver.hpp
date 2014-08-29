@@ -72,7 +72,6 @@ public:
     explicit reql_t(const double val);
     explicit reql_t(const std::string &val);
     explicit reql_t(const datum_t &d);
-    explicit reql_t(const counted_t<const datum_t> &d);
     explicit reql_t(const Datum &d);
     explicit reql_t(const Term &t);
     explicit reql_t(std::vector<reql_t> &&val);
@@ -126,6 +125,7 @@ public:
     REQL_METHOD(concat_map, CONCATMAP)
     REQL_METHOD(operator [], GET_FIELD)
     REQL_METHOD(nth, NTH)
+    REQL_METHOD(bracket, BRACKET)
     REQL_METHOD(pluck, PLUCK)
     REQL_METHOD(has_fields, HAS_FIELDS)
     REQL_METHOD(coerce_to, COERCE_TO)
@@ -212,8 +212,8 @@ reql_t branch(Cond &&a, Then &&b, Else &&c) {
 reql_t var(pb::dummy_var_t var);
 reql_t var(const sym_t &var);
 
-} // namepsace r
+}  // namespace r
 
-} // namespace ql
+}  // namespace ql
 
-#endif // RDB_PROTOCOL_MINIDRIVER_HPP_
+#endif  // RDB_PROTOCOL_MINIDRIVER_HPP_

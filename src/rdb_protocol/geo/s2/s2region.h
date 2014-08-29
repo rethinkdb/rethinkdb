@@ -5,6 +5,8 @@
 
 #include "rdb_protocol/geo/s2/s2.h"
 
+namespace geo {
+
 class Decoder;
 class Encoder;
 
@@ -97,5 +99,7 @@ class S2Region {
   // The point 'p' is generally required to be unit length, although some
   // subtypes may relax this restriction.
 };
+
+}  // namespace geo
 
 #endif  // UTIL_GEOMETRY_S2REGION_H_

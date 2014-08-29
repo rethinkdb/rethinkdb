@@ -258,6 +258,7 @@ message Term {
         // Takes some javascript code and executes it.
         JAVASCRIPT   = 11; // STRING {timeout: !NUMBER} -> DATUM |
                            // STRING {timeout: !NUMBER} -> Function(*)
+        UUID = 169; // () -> DATUM
 
         // Takes an HTTP URL and gets it.  If the get succeeds and
         //  returns valid JSON, it is converted into a DATUM
@@ -388,6 +389,10 @@ message Term {
         UNION     = 44; // Sequence... -> Sequence
         // Get the Nth element of a sequence.
         NTH       = 45; // Sequence, NUMBER -> DATUM
+        // do NTH or GET_FIELD depending on target object
+        BRACKET            = 170; // Sequence | OBJECT, NUMBER | STRING -> DATUM
+        // OBSOLETE_GROUPED_MAPREDUCE = 46;
+        // OBSOLETE_GROUPBY = 47;
 
         INNER_JOIN         = 48; // Sequence, Sequence, Function(2) -> Sequence
         OUTER_JOIN         = 49; // Sequence, Sequence, Function(2) -> Sequence
@@ -656,7 +661,7 @@ message Term {
         ARGS = 154; // ARRAY -> SPECIAL (used to splice arguments)
 
         // BINARY is client-only at the moment, it is not supported on the server
-        // BINARY = 155; // STRING -> PSEUDOTYPE(BINARY)
+        BINARY = 155; // STRING -> PSEUDOTYPE(BINARY)
 
         GEOJSON = 157;           // OBJECT -> PSEUDOTYPE(GEOMETRY)
         TO_GEOJSON = 158;        // PSEUDOTYPE(GEOMETRY) -> OBJECT

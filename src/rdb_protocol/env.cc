@@ -15,7 +15,7 @@
 
 namespace ql {
 
-counted_t<const datum_t> static_optarg(const std::string &key, protob_t<Query> q) {
+datum_t static_optarg(const std::string &key, protob_t<Query> q) {
     // need to parse these to figure out what user wants; resulting
     // bootstrap problem is a headache.  Just use default.
     const configured_limits_t limits;
@@ -26,7 +26,7 @@ counted_t<const datum_t> static_optarg(const std::string &key, protob_t<Query> q
         }
     }
 
-    return counted_t<const datum_t>();
+    return datum_t();
 }
 
 wire_func_t construct_optarg_wire_func(const Term &val) {
@@ -36,7 +36,7 @@ wire_func_t construct_optarg_wire_func(const Term &val) {
     compile_env_t empty_compile_env((var_visibility_t()));
     counted_t<func_term_t> func_term
         = make_counted<func_term_t>(&empty_compile_env, arg);
-    counted_t<func_t> func = func_term->eval_to_func(var_scope_t());
+    counted_t<const func_t> func = func_term->eval_to_func(var_scope_t());
     return wire_func_t(func);
 }
 
@@ -79,23 +79,24 @@ global_optargs_t::global_optargs_t(std::map<std::string, wire_func_t> _optargs)
 bool global_optargs_t::has_optarg(const std::string &key) const {
     return optargs.count(key) > 0;
 }
-counted_t<val_t> global_optargs_t::get_optarg(env_t *env, const std::string &key){
-    if (!has_optarg(key)) {
+counted_t<val_t> global_optargs_t::get_optarg(env_t *env, const std::string &key) {
+    auto it = optargs.find(key);
+    if (it == optargs.end()) {
         return counted_t<val_t>();
     }
-    return optargs[key].compile_wire_func()->call(env);
+    return it->second.compile_wire_func()->call(env);
 }
 const std::map<std::string, wire_func_t> &global_optargs_t::get_all_optargs() const {
     return optargs;
 }
 
 void env_t::set_eval_callback(eval_callback_t *callback) {
-    eval_callback = callback;
+    eval_callback_ = callback;
 }
 
 void env_t::do_eval_callback() {
-    if (eval_callback != NULL) {
-        eval_callback->eval_callback();
+    if (eval_callback_ != NULL) {
+        eval_callback_->eval_callback();
     }
 }
 
@@ -104,29 +105,29 @@ profile_bool_t env_t::profile() const {
 }
 
 reql_cluster_interface_t *env_t::reql_cluster_interface() {
-    r_sanity_check(rdb_ctx != NULL);
-    return rdb_ctx->cluster_interface;
+    r_sanity_check(rdb_ctx_ != NULL);
+    return rdb_ctx_->cluster_interface;
 }
 
 std::string env_t::get_reql_http_proxy() {
-    r_sanity_check(rdb_ctx != NULL);
-    return rdb_ctx->reql_http_proxy;
+    r_sanity_check(rdb_ctx_ != NULL);
+    return rdb_ctx_->reql_http_proxy;
 }
 
 extproc_pool_t *env_t::get_extproc_pool() {
     assert_thread();
-    r_sanity_check(rdb_ctx != NULL);
-    r_sanity_check(rdb_ctx->extproc_pool != NULL);
-    return rdb_ctx->extproc_pool;
+    r_sanity_check(rdb_ctx_ != NULL);
+    r_sanity_check(rdb_ctx_->extproc_pool != NULL);
+    return rdb_ctx_->extproc_pool;
 }
 
 js_runner_t *env_t::get_js_runner() {
     assert_thread();
     extproc_pool_t *extproc_pool = get_extproc_pool();
-    if (!js_runner.connected()) {
-        js_runner.begin(extproc_pool, interruptor, limits);
+    if (!js_runner_.connected()) {
+        js_runner_.begin(extproc_pool, interruptor, limits());
     }
-    return &js_runner;
+    return &js_runner_;
 }
 
 scoped_ptr_t<profile::trace_t> maybe_make_profile_trace(profile_bool_t profile) {
@@ -138,34 +139,34 @@ scoped_ptr_t<profile::trace_t> maybe_make_profile_trace(profile_bool_t profile) 
 env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
              std::map<std::string, wire_func_t> optargs,
              profile::trace_t *_trace)
-    : evals_since_yield(0),
-      global_optargs(std::move(optargs)),
-      limits(from_optargs(ctx, _interruptor, &global_optargs)),
-      reql_version(reql_version_t::LATEST),
+    : global_optargs_(std::move(optargs)),
+      limits_(from_optargs(ctx, _interruptor, &global_optargs_)),
+      reql_version_(reql_version_t::LATEST),
       interruptor(_interruptor),
       trace(_trace),
-      rdb_ctx(ctx),
-      eval_callback(NULL) {
+      evals_since_yield_(0),
+      rdb_ctx_(ctx),
+      eval_callback_(NULL) {
     rassert(ctx != NULL);
     rassert(interruptor != NULL);
 }
 
 
 // Used in constructing the env for rdb_update_single_sindex and many unit tests.
-env_t::env_t(signal_t *_interruptor, reql_version_t _reql_version)
-    : evals_since_yield(0),
-      global_optargs(),
-      reql_version(_reql_version),
+env_t::env_t(signal_t *_interruptor, reql_version_t reql_version)
+    : global_optargs_(),
+      reql_version_(reql_version),
       interruptor(_interruptor),
       trace(NULL),
-      rdb_ctx(NULL),
-      eval_callback(NULL) {
+      evals_since_yield_(0),
+      rdb_ctx_(NULL),
+      eval_callback_(NULL) {
     rassert(interruptor != NULL);
 }
 
 profile_bool_t profile_bool_optarg(const protob_t<Query> &query) {
     rassert(query.has());
-    counted_t<const datum_t> profile_arg = static_optarg("profile", query);
+    datum_t profile_arg = static_optarg("profile", query);
     if (profile_arg.has() && profile_arg->get_type() == datum_t::type_t::R_BOOL &&
         profile_arg->as_bool()) {
         return profile_bool_t::PROFILE;
@@ -177,8 +178,8 @@ profile_bool_t profile_bool_optarg(const protob_t<Query> &query) {
 env_t::~env_t() { }
 
 void env_t::maybe_yield() {
-    if (++evals_since_yield > EVALS_BEFORE_YIELD) {
-        evals_since_yield = 0;
+    if (++evals_since_yield_ > EVALS_BEFORE_YIELD) {
+        evals_since_yield_ = 0;
         coro_t::yield();
     }
 }

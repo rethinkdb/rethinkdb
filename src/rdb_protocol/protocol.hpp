@@ -109,12 +109,12 @@ class sindex_readgen_t;
 
 struct backfill_atom_t {
     store_key_t key;
-    counted_t<const ql::datum_t> value;
+    ql::datum_t value;
     repli_timestamp_t recency;
 
     backfill_atom_t() { }
     backfill_atom_t(const store_key_t &_key,
-                    const counted_t<const ql::datum_t> &_value,
+                    const ql::datum_t &_value,
                     const repli_timestamp_t &_recency) :
         key(_key),
         value(_value),
@@ -162,9 +162,9 @@ struct single_sindex_status_t {
 RDB_DECLARE_SERIALIZABLE(rdb_protocol::single_sindex_status_t);
 
 struct point_read_response_t {
-    counted_t<const ql::datum_t> data;
+    ql::datum_t data;
     point_read_response_t() { }
-    explicit point_read_response_t(counted_t<const ql::datum_t> _data)
+    explicit point_read_response_t(ql::datum_t _data)
         : data(_data) { }
 };
 
@@ -182,11 +182,11 @@ struct rget_read_response_t {
 RDB_DECLARE_SERIALIZABLE(rget_read_response_t);
 
 struct intersecting_geo_read_response_t {
-    boost::variant<counted_t<const ql::datum_t>, ql::exc_t> results_or_error;
+    boost::variant<ql::datum_t, ql::exc_t> results_or_error;
 
     intersecting_geo_read_response_t() { }
     intersecting_geo_read_response_t(
-            const counted_t<const ql::datum_t> &_results)
+            const ql::datum_t &_results)
         : results_or_error(_results) { }
     intersecting_geo_read_response_t(
             const ql::exc_t &_error)
@@ -196,7 +196,7 @@ struct intersecting_geo_read_response_t {
 RDB_DECLARE_SERIALIZABLE(intersecting_geo_read_response_t);
 
 struct nearest_geo_read_response_t {
-    typedef std::pair<double, counted_t<const ql::datum_t> > dist_pair_t;
+    typedef std::pair<double, ql::datum_t> dist_pair_t;
     typedef std::vector<dist_pair_t> result_t;
     boost::variant<result_t, ql::exc_t> results_or_error;
 
@@ -266,7 +266,7 @@ struct changefeed_point_stamp_response_t {
     // different timestamps for each `server_t` because they're on different
     // machines and don't synchronize with each other.)
     std::pair<uuid_u, uint64_t> stamp;
-    counted_t<const ql::datum_t> initial_val;
+    ql::datum_t initial_val;
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 RDB_SERIALIZE_OUTSIDE(changefeed_point_stamp_response_t);
@@ -363,7 +363,7 @@ public:
     intersecting_geo_read_t() { }
 
     intersecting_geo_read_t(
-            const counted_t<const ql::datum_t> &_query_geometry,
+            const ql::datum_t &_query_geometry,
             const std::string &_table_name, const std::string &_sindex_id,
             const std::map<std::string, ql::wire_func_t> &_optargs)
         : optargs(_optargs),
@@ -374,7 +374,7 @@ public:
 
     std::map<std::string, ql::wire_func_t> optargs;
 
-    counted_t<const ql::datum_t> query_geometry; // Tested for intersection
+    ql::datum_t query_geometry; // Tested for intersection
 
     region_t region; // We need this even for sindex reads due to sharding.
     std::string table_name;
@@ -568,7 +568,7 @@ struct sync_response_t {
 
 RDB_DECLARE_SERIALIZABLE(sync_response_t);
 
-typedef counted_t<const ql::datum_t> batched_replace_response_t;
+typedef ql::datum_t batched_replace_response_t;
 
 struct write_response_t {
     boost::variant<batched_replace_response_t,
@@ -595,7 +595,7 @@ struct batched_replace_t {
     batched_replace_t(
             std::vector<store_key_t> &&_keys,
             const std::string &_pkey,
-            const counted_t<ql::func_t> &func,
+            const counted_t<const ql::func_t> &func,
             const std::map<std::string, ql::wire_func_t > &_optargs,
             return_changes_t _return_changes)
         : keys(std::move(_keys)), pkey(_pkey), f(func), optargs(_optargs),
@@ -614,7 +614,7 @@ RDB_DECLARE_SERIALIZABLE(batched_replace_t);
 struct batched_insert_t {
     batched_insert_t() { }
     batched_insert_t(
-            std::vector<counted_t<const ql::datum_t> > &&_inserts,
+            std::vector<ql::datum_t> &&_inserts,
             const std::string &_pkey, conflict_behavior_t _conflict_behavior,
             const ql::configured_limits_t &_limits,
             return_changes_t _return_changes)
@@ -628,10 +628,11 @@ struct batched_insert_t {
         // val.cc knows enough to report the write errors correctly while
         // still doing the other writes.
         for (auto it = inserts.begin(); it != inserts.end(); ++it) {
-            counted_t<const ql::datum_t> keyval = (*it)->get(pkey, ql::NOTHROW);
+            ql::datum_t keyval =
+                it->get_field(datum_string_t(pkey), ql::NOTHROW);
             r_sanity_check(keyval.has());
             try {
-                keyval->print_primary(); // ERROR CHECKING
+                keyval.print_primary(); // ERROR CHECKING
                 continue;
             } catch (const ql::base_exc_t &e) {
             }
@@ -639,7 +640,7 @@ struct batched_insert_t {
         }
 #endif // NDEBUG
     }
-    std::vector<counted_t<const ql::datum_t> > inserts;
+    std::vector<ql::datum_t> inserts;
     std::string pkey;
     conflict_behavior_t conflict_behavior;
     ql::configured_limits_t limits;
@@ -652,12 +653,12 @@ class point_write_t {
 public:
     point_write_t() { }
     point_write_t(const store_key_t& _key,
-                  counted_t<const ql::datum_t> _data,
+                  ql::datum_t _data,
                   bool _overwrite = true)
         : key(_key), data(_data), overwrite(_overwrite) { }
 
     store_key_t key;
-    counted_t<const ql::datum_t> data;
+    ql::datum_t data;
     bool overwrite;
 };
 

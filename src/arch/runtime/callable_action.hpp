@@ -1,6 +1,8 @@
 #ifndef ARCH_RUNTIME_CALLABLE_ACTION_HPP_
 #define ARCH_RUNTIME_CALLABLE_ACTION_HPP_
 
+#include <utility>
+
 #include "errors.hpp"
 
 /* The below classes may be used to create a generic callable object without
@@ -23,7 +25,8 @@ private:
 template<class Callable>
 class callable_action_instance_t : public callable_action_t {
 public:
-    explicit callable_action_instance_t(const Callable& callable) : callable_(callable) { }
+    explicit callable_action_instance_t(Callable &&callable)
+        : callable_(std::forward<Callable>(callable)) { }
 
     void run_action() { callable_(); }
 
@@ -37,7 +40,7 @@ public:
     ~callable_action_wrapper_t();
 
     template<class Callable>
-    void reset(const Callable& action)
+    void reset(Callable &&action)
     {
         rassert(action_ == NULL);
 
@@ -47,10 +50,12 @@ public:
 #endif
         // Allocate the action inside this object, if possible, or the heap otherwise
         if (sizeof(callable_action_instance_t<Callable>) > CALLABLE_CUTOFF_SIZE) {
-            action_ = new callable_action_instance_t<Callable>(action);
+            action_ = new callable_action_instance_t<Callable>(
+                    std::forward<Callable>(action));
             action_on_heap = true;
         } else {
-            action_ = new (action_data) callable_action_instance_t<Callable>(action);
+            action_ = new (action_data) callable_action_instance_t<Callable>(
+                    std::forward<Callable>(action));
             action_on_heap = false;
         }
 #ifdef __clang__

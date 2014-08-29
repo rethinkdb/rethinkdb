@@ -28,7 +28,7 @@ public:
         : op_term_t(env, t, argspec_t(0)), _constant(constant), _name(name) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *, args_t *, eval_flags_t) const {
-        return new_val(make_counted<const datum_t>(_constant));
+        return new_val(datum_t(_constant));
     }
     virtual const char *name() const { return _name; }
     const double _constant;
@@ -41,7 +41,7 @@ public:
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        datum_array_builder_t acc(env->env->limits);
+        datum_array_builder_t acc(env->env->limits());
         acc.reserve(args->num_args());
         {
             profile::sampler_t sampler("Evaluating elements in make_array.", env->env->trace);
@@ -50,7 +50,7 @@ private:
                 sampler.new_sample();
             }
         }
-        return new_val(std::move(acc).to_counted());
+        return new_val(std::move(acc).to_datum());
     }
     virtual const char *name() const { return "make_array"; }
 };
@@ -82,13 +82,14 @@ public:
         {
             profile::sampler_t sampler("Evaluating elements in make_obj.", env->env->trace);
             for (auto it = optargs.begin(); it != optargs.end(); ++it) {
-                bool dup = acc.add(it->first, it->second->eval(env, new_flags)->as_datum());
+                bool dup = acc.add(datum_string_t(it->first),
+                                   it->second->eval(env, new_flags)->as_datum());
                 rcheck(!dup, base_exc_t::GENERIC,
                        strprintf("Duplicate object key: %s.", it->first.c_str()));
                 sampler.new_sample();
             }
         }
-        return new_val(std::move(acc).to_counted());
+        return new_val(std::move(acc).to_datum());
     }
 
     bool is_deterministic() const {
@@ -106,6 +107,25 @@ private:
     DISABLE_COPYING(make_obj_term_t);
 };
 
+class binary_term_t : public op_term_t {
+public:
+    binary_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(1, 1)) { }
+private:
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        counted_t<val_t> arg = args->arg(env, 0);
+        datum_t datum_arg = arg->as_datum();
+
+        if (datum_arg->get_type() == datum_t::type_t::R_BINARY) {
+            return arg;
+        }
+
+        const datum_string_t &datum_str = datum_arg->as_str();
+        return new_val(datum_t::binary(datum_string_t(datum_str)));
+    }
+    virtual const char *name() const { return "binary"; }
+};
+
 counted_t<term_t> make_datum_term(const protob_t<const Term> &term,
                                   const configured_limits_t &limits) {
     return make_counted<datum_term_t>(term, limits);
@@ -119,6 +139,9 @@ counted_t<term_t> make_make_array_term(compile_env_t *env, const protob_t<const 
 }
 counted_t<term_t> make_make_obj_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<make_obj_term_t>(env, term);
+}
+counted_t<term_t> make_binary_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<binary_term_t>(env, term);
 }
 
 } // namespace ql

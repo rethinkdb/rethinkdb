@@ -10,7 +10,7 @@ enum class cluster_version_t {
     v1_13 = 0,
     v1_13_2 = 1,
     v1_14 = 2,
-    v1_15 = 4,
+    v1_15 = 3,
 
     // This is used in places where _something_ needs to change when a new cluster
     // version is created.  (Template instantiations, switches on version number,

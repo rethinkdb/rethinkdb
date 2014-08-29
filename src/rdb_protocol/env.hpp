@@ -24,8 +24,8 @@ class datum_t;
 class term_t;
 
 /* If and optarg with the given key is present and is of type DATUM it will be
- * returned. Otherwise an empty counted_t<const datum_t> will be returned. */
-counted_t<const datum_t> static_optarg(const std::string &key, protob_t<Query> q);
+ * returned. Otherwise an empty datum_t will be returned. */
+datum_t static_optarg(const std::string &key, protob_t<Query> q);
 
 std::map<std::string, wire_func_t> global_optargs(protob_t<Query> q);
 
@@ -62,9 +62,6 @@ public:
 
     ~env_t();
 
-    static const uint32_t EVALS_BEFORE_YIELD = 256;
-    uint32_t evals_since_yield;
-
     // Will yield after EVALS_BEFORE_YIELD calls
     void maybe_yield();
 
@@ -89,18 +86,32 @@ public:
     void do_eval_callback();
 
 
+    const std::map<std::string, wire_func_t> &get_all_optargs() const {
+        return global_optargs_.get_all_optargs();
+    }
+
+    counted_t<val_t> get_optarg(env_t *env, const std::string &key) {
+        return global_optargs_.get_optarg(env, key);
+    }
+
+    configured_limits_t limits() const { return limits_; }
+
+    reql_version_t reql_version() const { return reql_version_; }
+
+private:
     // The global optargs values passed to .run(...) in the Python, Ruby, and JS
     // drivers.
-    global_optargs_t global_optargs;
+    global_optargs_t global_optargs_;
 
     // User specified configuration limits; e.g. array size limits
-    const configured_limits_t limits;
+    const configured_limits_t limits_;
 
     // The version of ReQL behavior that we should use.  Normally this is
     // LATEST_DISK, but when evaluating secondary index functions, it could be an
     // earlier value.
-    const reql_version_t reql_version;
+    const reql_version_t reql_version_;
 
+public:
     // The interruptor signal while a query evaluates.
     signal_t *const interruptor;
 
@@ -110,11 +121,14 @@ public:
     profile_bool_t profile() const;
 
 private:
-    rdb_context_t *const rdb_ctx;
+    static const uint32_t EVALS_BEFORE_YIELD = 256;
+    uint32_t evals_since_yield_;
 
-    js_runner_t js_runner;
+    rdb_context_t *const rdb_ctx_;
 
-    eval_callback_t *eval_callback;
+    js_runner_t js_runner_;
+
+    eval_callback_t *eval_callback_;
 
     DISABLE_COPYING(env_t);
 };

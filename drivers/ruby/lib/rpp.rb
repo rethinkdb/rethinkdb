@@ -11,6 +11,31 @@ module RethinkDB
       (bt && bt[0] == el) ? bt[1..-1] : nil
     end
 
+    def self.pp_pseudotype(q, pt, bt)
+      if not pt.has_key?('$reql_type$')
+        return false
+      end
+
+      case pt['$reql_type$']
+      when 'TIME' then
+        if not (pt.has_key?('epoch_time') and pt.has_key?('timezone'))
+          return false
+        end
+        t = Time.at(pt['epoch_time'])
+        tz = pt['timezone']
+        t = (tz && tz != "" && tz != "Z") ? t.getlocal(tz) : t.utc
+        q.text("r.expr(#{t.inspect})")
+      when 'BINARY' then
+        if not (pt.has_key?('data'))
+          return false
+        end
+        q.text("<data>")
+      else return false
+      end
+
+      return true
+    end
+
     def self.pp_int_optargs(q, optargs, bt, pre_dot = false)
       q.text("r(") if pre_dot
       q.group(1, "{", "}") {
@@ -73,7 +98,7 @@ module RethinkDB
     end
 
     def self.can_prefix (name, args)
-      return !["db", "table", "funcall", "args", "branch"].include?(name)
+      return !["db", "table", "funcall", "args", "branch", "http", "binary"].include?(name)
     end
     def self.pp_int(q, term, bt, pre_dot=false)
       q.text("\x7", 0) if bt == []
@@ -82,7 +107,9 @@ module RethinkDB
       # PP.pp [:pp_int, term.to_json, bt]
       if term.class != Array
         if term.class == Hash
-          pp_int_optargs(q, term, bt, pre_dot)
+          if not pp_pseudotype(q, term, bt)
+            pp_int_optargs(q, term, bt, pre_dot)
+          end
         else
           pp_int_datum(q, term, pre_dot)
         end

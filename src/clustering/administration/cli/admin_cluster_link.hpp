@@ -138,7 +138,7 @@ private:
     void do_admin_set_replicas_internal(const namespace_id_t& ns_id,
                                         const datacenter_id_t& dc_id,
                                         int num_replicas,
-                                        std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > &ns_map);
+                                        std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > *ns_map);
 
     template <class T>
     void do_admin_set_name_internal(

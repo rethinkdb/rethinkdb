@@ -17,6 +17,8 @@
 
 #include "rdb_protocol/geo/s2/base/macros.h"
 
+namespace geo {
+
 
 // Use implicit_cast as a safe version of static_cast or const_cast
 // for upcasting in the type hierarchy (i.e. casting a pointer to Foo
@@ -160,7 +162,7 @@ template <class Dest, class Source>
 inline Dest bit_cast(const Source& source) {
   // Compile time assertion: sizeof(Dest) == sizeof(Source)
   // A compile error here means your Dest and Source have different sizes.
-  typedef char VerifySizesAreEqual [sizeof(Dest) == sizeof(Source) ? 1 : -1];
+  static_assert(sizeof(Dest) == sizeof(Source), "Sizes must be equal.");
 
   Dest dest;
   memcpy(&dest, &source, sizeof(dest));
@@ -392,5 +394,7 @@ inline Enum tight_enum_cast(int e_val) {
   }
   return static_cast<Enum>(e_val);
 }
+
+}  // namespace geo
 
 #endif  // BASE_CASTS_H_

@@ -14,6 +14,8 @@
 
 #include "rdb_protocol/geo/s2/base/port.h"
 
+namespace geo {
+
 // ----------------------------------------------------------------------
 // mix()
 //    The hash function I use is due to Bob Jenkins (see
@@ -148,6 +150,8 @@ static inline uint32 Google1At(const char *ptr2) {
 // TODO(user): find occurences of WORD_HASH and adjust the code to
 // use more meaningful concepts.
 # define WORD_HASH
+
+}  // namespace geo
 
 #endif  // UTIL_HASH_JENKINS_LOOKUP2_H__
 

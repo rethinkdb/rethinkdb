@@ -327,4 +327,4 @@ TEST(RDBInterrupt, DeleteOp) {
     }
 }
 
-}
+}  // namespace unittest

@@ -24,6 +24,8 @@
 #ifndef HTTP_JSON_CJSON_HPP_
 #define HTTP_JSON_CJSON_HPP_
 
+#include <cstddef>
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -84,6 +86,7 @@ extern cJSON *cJSON_CreateFalse();
 extern cJSON *cJSON_CreateBool(int b);
 extern cJSON *cJSON_CreateNumber(double num);
 extern cJSON *cJSON_CreateString(const char *string);
+extern cJSON *cJSON_CreateStringN(const char *string, size_t size);
 extern cJSON *cJSON_CreateArray();
 extern cJSON *cJSON_CreateObject();
 

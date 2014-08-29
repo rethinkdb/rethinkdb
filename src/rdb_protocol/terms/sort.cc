@@ -58,17 +58,17 @@ private:
     public:
         typedef bool result_type;
         explicit lt_cmp_t(
-            std::vector<std::pair<order_direction_t, counted_t<func_t> > > _comparisons)
+            std::vector<std::pair<order_direction_t, counted_t<const func_t> > > _comparisons)
             : comparisons(std::move(_comparisons)) { }
 
         bool operator()(env_t *env,
                         profile::sampler_t *sampler,
-                        counted_t<const datum_t> l,
-                        counted_t<const datum_t> r) const {
+                        datum_t l,
+                        datum_t r) const {
             sampler->new_sample();
             for (auto it = comparisons.begin(); it != comparisons.end(); ++it) {
-                counted_t<const datum_t> lval;
-                counted_t<const datum_t> rval;
+                datum_t lval;
+                datum_t rval;
                 try {
                     lval = it->second->call(env, l)->as_datum();
                 } catch (const base_exc_t &e) {
@@ -98,7 +98,7 @@ private:
                 if (*lval == *rval) {
                     continue;
                 }
-                return lval->compare_lt(env->reql_version, *rval) !=
+                return lval->compare_lt(env->reql_version(), *rval) !=
                     (it->first == DESC);
             }
 
@@ -106,13 +106,13 @@ private:
         }
 
     private:
-        const std::vector<std::pair<order_direction_t, counted_t<func_t> > >
+        const std::vector<std::pair<order_direction_t, counted_t<const func_t> > >
             comparisons;
     };
 
     virtual counted_t<val_t>
     eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        std::vector<std::pair<order_direction_t, counted_t<func_t> > > comparisons;
+        std::vector<std::pair<order_direction_t, counted_t<const func_t> > > comparisons;
         for (size_t i = 1; i < args->num_args(); ++i) {
             if (get_src()->args(i).type() == Term::DESC) {
                 comparisons.push_back(
@@ -177,22 +177,22 @@ private:
             }
             rcheck(!comparisons.empty(), base_exc_t::GENERIC,
                    "Must specify something to order by.");
-            std::vector<counted_t<const datum_t> > to_sort;
+            std::vector<datum_t> to_sort;
             batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
             for (;;) {
-                std::vector<counted_t<const datum_t> > data
+                std::vector<datum_t> data
                     = seq->next_batch(env->env, batchspec);
                 if (data.size() == 0) {
                     break;
                 }
                 std::move(data.begin(), data.end(), std::back_inserter(to_sort));
-                rcheck_array_size(to_sort, env->env->limits, base_exc_t::GENERIC);
+                rcheck_array_size(to_sort, env->env->limits(), base_exc_t::GENERIC);
             }
             profile::sampler_t sampler("Sorting in-memory.", env->env->trace);
             auto fn = boost::bind(lt_cmp, env->env, &sampler, _1, _2);
             std::stable_sort(to_sort.begin(), to_sort.end(), fn);
             seq = make_counted<array_datum_stream_t>(
-                make_counted<const datum_t>(std::move(to_sort), env->env->limits),
+                datum_t(std::move(to_sort), env->env->limits()),
                 backtrace());
         }
         return tbl_slice.has()
@@ -244,22 +244,21 @@ private:
             counted_t<datum_stream_t> s = v->as_seq(env->env);
             // The reql_version matters here, because we copy `results` into `toret`
             // in ascending order.
-            std::set<counted_t<const datum_t>, counted_datum_less_t>
-                results(counted_datum_less_t(env->env->reql_version));
+            std::set<datum_t, optional_datum_less_t>
+                results(optional_datum_less_t(env->env->reql_version()));
             batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
             {
                 profile::sampler_t sampler("Evaluating elements in distinct.",
                                            env->env->trace);
-                while (counted_t<const datum_t> d = s->next(env->env, batchspec)) {
+                while (datum_t d = s->next(env->env, batchspec)) {
                     results.insert(std::move(d));
-                    rcheck_array_size(results, env->env->limits, base_exc_t::GENERIC);
+                    rcheck_array_size(results, env->env->limits(), base_exc_t::GENERIC);
                     sampler.new_sample();
                 }
             }
-            std::vector<counted_t<const datum_t> > toret;
+            std::vector<datum_t> toret;
             std::move(results.begin(), results.end(), std::back_inserter(toret));
-            return new_val(make_counted<const datum_t>(std::move(toret),
-                                                       env->env->limits));
+            return new_val(datum_t(std::move(toret), env->env->limits()));
         }
     }
     virtual const char *name() const { return "distinct"; }

@@ -51,7 +51,7 @@ hasImplicit = (args) ->
 class TermBase
     showRunWarning: true
     constructor: ->
-        self = (ar (field) -> self.getField(field))
+        self = (ar (field) -> self.bracket(field))
         self.__proto__ = @.__proto__
         return self
 
@@ -73,7 +73,8 @@ class TermBase
                     callback = options
                     options = {}
                 else
-                    throw new err.RqlDriverError "Second argument to `run` cannot be a function is a third argument is provided."
+                    options new err.RqlDriverError("Second argument to `run` cannot be a function if a third argument is provided.")
+                    return
             # else we suppose that we have run(connection[, options][, callback])
         else if connection?.constructor is Object
             if @showRunWarning is true
@@ -88,11 +89,18 @@ class TermBase
         options = {} if not options?
 
         # Check if the arguments are valid types
-        for own key of options
-            unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'binaryFormat', 'batchConf', 'arrayLimit']
-                throw new err.RqlDriverError "Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>}."
-        if net.isConnection(connection) is false
-            throw new err.RqlDriverError "First argument to `run` must be an open connection."
+        try
+            for own key of options
+                unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'binaryFormat', 'batchConf', 'arrayLimit']
+                    throw new err.RqlDriverError "Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>}."
+            if net.isConnection(connection) is false
+                throw new err.RqlDriverError "First argument to `run` must be an open connection."
+        catch e
+            if typeof callback is 'function'
+                return callback(e)
+            else
+                return new Promise (resolve, reject) =>
+                    reject(e)
 
         if options.noreply is true or typeof callback is 'function'
             try
@@ -182,6 +190,7 @@ class RDBVal extends TermBase
     count: (args...) -> new Count {}, @, args.map(funcWrap)...
     union: (args...) -> new Union {}, @, args...
     nth: (args...) -> new Nth {}, @, args...
+    bracket: (args...) -> new Bracket {}, @, args...
     match: (args...) -> new Match {}, @, args...
     split: (args...) -> new Split {}, @, args.map(funcWrap)...
     upcase: (args...) -> new Upcase {}, @, args...
@@ -328,6 +337,8 @@ class RDBVal extends TermBase
     minutes: (args...) -> new Minutes {}, @, args...
     seconds: (args...) -> new Seconds {}, @, args...
 
+    uuid: (args...) -> new UUID {}, @, args...
+
     getIntersecting: aropt (g, opts) -> new GetIntersecting opts, @, g
     getNearest: aropt (g, opts) -> new GetNearest opts, @, g
 
@@ -429,10 +440,12 @@ class RDBOp extends RDBVal
             res.push(opts)
         res
 
+    # a class that extends RDBOp should have a property `st` or `mt` depending on
+    # how the term should be printed (see `compose` below)
     compose: (args, optargs) ->
         if @st
             return ['r.', @st, '(', intspallargs(args, optargs), ')']
-        else
+        else # @mt is defined
             if shouldWrap(@args[0])
                 args[0] = ['r(', args[0], ')']
             return [args[0], '.', @mt, '(', intspallargs(args[1..], optargs), ')']
@@ -503,25 +516,32 @@ class Json extends RDBOp
     tt: protoTermType.JSON
     st: 'json'
 
-class Binary extends RDBVal
-    args: []
-    optargs: {}
+class Binary extends RDBOp
+    tt: protoTermType.BINARY
+    st: 'binary'
 
     constructor: (data) ->
-        self = super()
-
-        if data instanceof Buffer
+        if data instanceof TermBase
+            self = super({}, data)
+        else if data instanceof Buffer
+            self = super()
             self.base64_data = data.toString("base64")
         else
-            throw new TypeError("Parameter to `r.binary` must be a Buffer object.")
+            throw new TypeError("Parameter to `r.binary` must be a Buffer object or RQL query.")
 
         return self
 
     compose: ->
-        return 'r.binary(<data>)'
+        if @args.length == 0
+            'r.binary(<data>)'
+        else
+            super
 
     build: ->
-        { '$reql_type$': 'BINARY', 'data': @base64_data }
+        if @args.length == 0
+            { '$reql_type$': 'BINARY', 'data': @base64_data }
+        else
+            super
 
 class Args extends RDBOp
     tt: protoTermType.ARGS
@@ -651,6 +671,10 @@ class Limit extends RDBOp
 
 class GetField extends RDBOp
     tt: protoTermType.GET_FIELD
+    mt: 'getField'
+
+class Bracket extends RDBOp
+    tt: protoTermType.BRACKET
     st: '(...)' # This is only used by the `undefined` argument checker
 
     compose: (args) -> [args[0], '(', args[1], ')']
@@ -1101,6 +1125,10 @@ class Fill extends RDBOp
     tt: protoTermType.FILL
     mt: 'fill'
 
+class UUID extends RDBOp
+    tt: protoTermType.UUID
+    st: 'uuid'
+
 
 # All top level exported functions
 
@@ -1240,6 +1268,8 @@ rethinkdb.polygon = (args...) -> new Polygon {}, args...
 rethinkdb.intersects = (args...) -> new Intersects {}, args...
 rethinkdb.distance = aropt (g1, g2, opts) -> new Distance opts, g1, g2
 rethinkdb.circle = aropt (cen, rad, opts) -> new Circle opts, cen, rad
+
+rethinkdb.uuid = (args...) -> new UUID {}, args...
 
 # Export all names defined on rethinkdb
 module.exports = rethinkdb

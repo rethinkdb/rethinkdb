@@ -218,24 +218,22 @@ public:
         }
         *out = "";
         while (true) {
-            int p = remaining_in_current_chunk - 1;
-            while (p > 0 && current_chunk[p - 1] != '\n') {
-                p--;
-            }
-            if (p == 0) {
-                *out = std::string(current_chunk.data(), remaining_in_current_chunk) + *out;
-                if (current_chunk_start != 0) {
-                    current_chunk_start -= chunk_size;
-                    int res = pread(fd.get(), current_chunk.data(), chunk_size, current_chunk_start);
-                    throw_unless(res == chunk_size, "could not read from file");
-                    remaining_in_current_chunk = chunk_size;
-                } else {
-                    remaining_in_current_chunk = 0;
+            for (int p = remaining_in_current_chunk - 1; p > 0; --p) {
+                if (current_chunk[p - 1] == '\n') {
+                    *out = std::string(current_chunk.data() + p, remaining_in_current_chunk - p) + *out;
+                    remaining_in_current_chunk = p;
                     return true;
                 }
+            }
+
+            *out = std::string(current_chunk.data(), remaining_in_current_chunk) + *out;
+            if (current_chunk_start != 0) {
+                current_chunk_start -= chunk_size;
+                int res = pread(fd.get(), current_chunk.data(), chunk_size, current_chunk_start);
+                throw_unless(res == chunk_size, "could not read from file");
+                remaining_in_current_chunk = chunk_size;
             } else {
-                *out = std::string(current_chunk.data() + p, remaining_in_current_chunk - p) + *out;
-                remaining_in_current_chunk = p;
+                remaining_in_current_chunk = 0;
                 return true;
             }
         }

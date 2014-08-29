@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_ARCHIVE_VECTOR_STREAM_HPP_
 #define CONTAINERS_ARCHIVE_VECTOR_STREAM_HPP_
 
@@ -15,7 +15,7 @@ public:
 
     const std::vector<char> &vector() { return vec_; }
 
-    void swap(std::vector<char> *other);  // NOLINT(build/include_what_you_use)
+    void swap(std::vector<char> *other);
 
     void reserve(size_t reserve_size);
 
@@ -32,7 +32,7 @@ public:
 
     virtual MUST_USE int64_t read(void *p, int64_t n);
 
-    void swap(std::vector<char> *other_vec, int64_t *other_pos);  // NOLINT(build/include_what_you_use)
+    void swap(std::vector<char> *other_vec, int64_t *other_pos);
 
 private:
     int64_t pos_;
@@ -40,25 +40,5 @@ private:
 
     DISABLE_COPYING(vector_read_stream_t);
 };
-
-// Like vector_read_stream_t, but takes a const vector pointer and doesn't
-// assume ownership of the data.
-class inplace_vector_read_stream_t : public read_stream_t {
-public:
-    explicit inplace_vector_read_stream_t(const std::vector<char> *vector,
-            int64_t offset = 0);
-    virtual ~inplace_vector_read_stream_t();
-
-    virtual MUST_USE int64_t read(void *p, int64_t n);
-
-    int64_t tell() const { return pos_; }
-
-private:
-    int64_t pos_;
-    const std::vector<char> *vec_;
-
-    DISABLE_COPYING(inplace_vector_read_stream_t);
-};
-
 
 #endif  // CONTAINERS_ARCHIVE_VECTOR_STREAM_HPP_

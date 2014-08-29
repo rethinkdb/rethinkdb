@@ -6,6 +6,8 @@
 #include "rdb_protocol/geo/s2/base/logging.h"
 #include "rdb_protocol/geo/s2/util/coding/coder.h"
 
+namespace geo {
+
 // An initialization value used when we are allowed to
 unsigned char Encoder::kEmptyBuffer = 0;
 
@@ -103,3 +105,5 @@ bool Decoder::get_varint64(uint64* v) {
     return true;
   }
 }
+
+}  // namespace geo

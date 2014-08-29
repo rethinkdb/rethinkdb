@@ -48,9 +48,9 @@ base_exc_t::type_t exc_type(const datum_t *d) {
         ? base_exc_t::NON_EXISTENCE
         : base_exc_t::GENERIC;
 }
-base_exc_t::type_t exc_type(const counted_t<const datum_t> &d) {
+base_exc_t::type_t exc_type(const datum_t &d) {
     r_sanity_check(d.has());
-    return exc_type(d.get());
+    return exc_type(&d);
 }
 base_exc_t::type_t exc_type(const val_t *v) {
     r_sanity_check(v);
@@ -85,6 +85,8 @@ void backtrace_t::fill_error(Response *res, Response_ResponseType type,
     error_msg.set_type(Datum::R_STR);
     error_msg.set_r_str(msg);
     res->set_type(type);
+    res->clear_response();
+    res->clear_profile();
     *res->add_response() = error_msg;
     fill_bt(res->mutable_backtrace());
 }

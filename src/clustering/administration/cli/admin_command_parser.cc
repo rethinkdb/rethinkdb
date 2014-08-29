@@ -747,18 +747,18 @@ admin_cluster_link_t *admin_command_parser_t::get_cluster() {
 
 
 admin_command_parser_t::command_info_t *
-admin_command_parser_t::find_command(const std::map<std::string,
-                                                    admin_command_parser_t::command_info_t *>& cmd_map,
-                                     const std::vector<std::string>& line,
-                                     size_t& index) {
+admin_command_parser_t::find_command(
+        const std::map<std::string, admin_command_parser_t::command_info_t *> &cmd_map,
+        const std::vector<std::string>& line,
+        size_t *index) {
     std::map<std::string, command_info_t *>::const_iterator i = cmd_map.find(line[0]);
 
     if (i == commands.end()) {
         return NULL;
     } else {
         // If any subcommands exist, either one is selected by the next substring, or we're at the final command
-        for (index = 1; index < line.size() && !i->second->subcommands.empty(); ++index) {
-            std::map<std::string, command_info_t *>::iterator temp = i->second->subcommands.find(line[index]);
+        for (*index = 1; *index < line.size() && !i->second->subcommands.empty(); ++*index) {
+            std::map<std::string, command_info_t *>::iterator temp = i->second->subcommands.find(line[*index]);
             if (temp == i->second->subcommands.end()) {
                 break;
             }
@@ -1102,7 +1102,7 @@ void admin_command_parser_t::parse_and_run_command(const std::vector<std::string
 
     try {
         size_t index;
-        info = find_command(commands, line, index);
+        info = find_command(commands, line, &index);
 
         if (info == NULL) {
             throw admin_parse_exc_t("unknown command: " + line[0]);

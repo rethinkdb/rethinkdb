@@ -124,9 +124,9 @@ private:
         counted_t<val_t> v0 = args->arg(env, 0);
         if (args->num_args() == 1) {
             if (v0->get_type().is_convertible(val_t::type_t::DATUM)) {
-                counted_t<const datum_t> d = v0->as_datum();
+                datum_t d = v0->as_datum();
                 if (d->get_type() == datum_t::R_BINARY) {
-                    return new_val(make_counted<const datum_t>(
+                    return new_val(datum_t(
                        safe_to_double(d->as_binary().size())));
                 }
             }
@@ -141,7 +141,7 @@ private:
                         backtrace());
                 return stream->run_terminal(env->env, count_wire_func_t());
             } else {
-                counted_t<func_t> f =
+                counted_t<const func_t> f =
                     new_eq_comparison_func(v1->as_datum(), backtrace());
                 counted_t<datum_stream_t> stream = v0->as_seq(env->env);
                 stream->add_transformation(
@@ -188,7 +188,7 @@ public:
         : grouped_seq_op_term_t(env, term, argspec_t(1, -1), optargspec_t({"index", "multi"})) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        std::vector<counted_t<func_t> > funcs;
+        std::vector<counted_t<const func_t> > funcs;
         funcs.reserve(args->num_args() - 1);
         for (size_t i = 1; i < args->num_args(); ++i) {
             funcs.push_back(args->arg(env, i)->as_func(GET_FIELD_SHORTCUT));
@@ -201,7 +201,7 @@ private:
             counted_t<table_t> tbl = args->arg(env, 0)->as_table();
             counted_t<table_slice_t> slice;
             if (index_str == tbl->get_pkey()) {
-                auto field = make_counted<const datum_t>(std::move(index_str));
+                auto field = index->as_datum();
                 funcs.push_back(new_get_field_func(field, backtrace()));
                 slice = make_counted<table_slice_t>(tbl, index_str);
             } else {
@@ -244,7 +244,7 @@ private:
         scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> v0 = args->arg(env, 0);
         counted_t<val_t> v1 = args->arg(env, 1, LITERAL_OK);
-        counted_t<func_t> f = v1->as_func(CONSTANT_SHORTCUT);
+        counted_t<const func_t> f = v1->as_func(CONSTANT_SHORTCUT);
         boost::optional<wire_func_t> defval;
         if (default_filter_term.has()) {
             defval = wire_func_t(default_filter_term->eval_to_func(env->scope));
@@ -299,8 +299,8 @@ private:
             // RSI: This needs to support extreme selections
             auto single_selection = v->as_single_selection();
             counted_t<table_t> tbl = single_selection->get_tbl();
-            counted_t<const datum_t> val = single_selection->get();
-            counted_t<const datum_t> key = val->get(tbl->get_pkey(), NOTHROW);
+            datum_t val = single_selection->get();
+            datum_t key = val->get(tbl->get_pkey(), NOTHROW);
             r_sanity_check(key.has());
 
             return new_val(
@@ -324,12 +324,12 @@ private:
     eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_slice_t> tbl_slice = args->arg(env, 0)->as_table_slice();
         bool left_open = is_left_open(env, args);
-        counted_t<const datum_t> lb = args->arg(env, 1)->as_datum();
+        datum_t lb = args->arg(env, 1)->as_datum();
         if (lb->get_type() == datum_t::R_NULL) {
             lb.reset();
         }
         bool right_open = is_right_open(env, args);
-        counted_t<const datum_t> rb = args->arg(env, 2)->as_datum();
+        datum_t rb = args->arg(env, 2)->as_datum();
         if (rb->get_type() == datum_t::R_NULL) {
             rb.reset();
         }
@@ -337,7 +337,7 @@ private:
         if (lb.has() && rb.has()) {
             // This reql_version will always be LATEST, because this function is not
             // deterministic, but whatever.
-            if (lb->compare_gt(env->env->reql_version, *rb) ||
+            if (lb->compare_gt(env->env->reql_version(), *rb) ||
                 ((left_open || right_open) && *lb == *rb)) {
                 counted_t<datum_stream_t> ds
                     =  make_counted<array_datum_stream_t>(datum_t::empty_array(),
@@ -389,7 +389,9 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        return new_val(env->env, args->arg(env, 0)->as_seq(env->env)->zip());
+        counted_t<datum_stream_t> stream = args->arg(env, 0)->as_seq(env->env);
+        stream->add_transformation(zip_wire_func_t(), backtrace());
+        return new_val(env->env, stream);
     }
     virtual const char *name() const { return "zip"; }
 };

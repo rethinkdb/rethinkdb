@@ -64,7 +64,7 @@ typedef std::vector<event_t> event_log_t;
 class trace_t {
 public:
     trace_t();
-    counted_t<const ql::datum_t> as_datum() const;
+    ql::datum_t as_datum() const;
     event_log_t extract_event_log() RVALUE_THIS;
 private:
     friend class starter_t;
@@ -152,7 +152,7 @@ private:
  * between samples you should call the new_sample method. Example:
  * {
  *     sampler_t sampler("Reduce elements", trace);
- *     counted_t<const datum_t> res = stream.next();
+ *     datum_t res = stream.next();
  *     sampler.new_sample();
  *
  *     while (auto v = stream.next()) {

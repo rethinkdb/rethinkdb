@@ -35,7 +35,6 @@ namespace ql {
 class base_exc_t;
 class batcher_t;
 class datum_stream_t;
-class datum_t;
 class env_t;
 class table_t;
 
@@ -44,10 +43,10 @@ namespace changefeed {
 struct msg_t {
     struct change_t {
         change_t();
-        explicit change_t(counted_t<const datum_t> _old_val,
-                          counted_t<const datum_t> _new_val);
+        explicit change_t(datum_t _old_val,
+                          datum_t _new_val);
         ~change_t();
-        counted_t<const datum_t> old_val, new_val;
+        datum_t old_val, new_val;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
     struct stop_t {
@@ -99,8 +98,8 @@ struct keyspec_t {
     };
     struct point_t {
         point_t() { }
-        explicit point_t(counted_t<const datum_t> _key) : key(std::move(_key)) { }
-        counted_t<const datum_t> key;
+        explicit point_t(datum_t _key) : key(std::move(_key)) { }
+        datum_t key;
     };
 
     keyspec_t(keyspec_t &&keyspec) = default;
@@ -224,10 +223,11 @@ private:
     // change under it.
     rwlock_t clients_lock;
 
-    // Clients send a message to this mailbox with their address when they want
-    // to unsubscribe.
-    mailbox_t<void(client_t::addr_t)> stop_mailbox;
     auto_drainer_t drainer;
+    // Clients send a message to this mailbox with their address when they want
+    // to unsubscribe.  The callback of this mailbox acquires the drainer, so it
+    // has to be destroyed first.
+    mailbox_t<void(client_t::addr_t)> stop_mailbox;
 };
 
 } // namespace changefeed

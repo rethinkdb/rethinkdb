@@ -22,6 +22,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::DATUM:              return make_datum_term(t, limits);
     case Term::MAKE_ARRAY:         return make_make_array_term(env, t);
     case Term::MAKE_OBJ:           return make_make_obj_term(env, t);
+    case Term::BINARY:             return make_binary_term(env, t);
     case Term::VAR:                return make_var_term(env, t);
     case Term::JAVASCRIPT:         return make_javascript_term(env, t);
     case Term::HTTP:               return make_http_term(env, t);
@@ -80,6 +81,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::MAX:                return make_max_term(env, t);
     case Term::UNION:              return make_union_term(env, t);
     case Term::NTH:                return make_nth_term(env, t);
+    case Term::BRACKET:            return make_bracket_term(env, t);
     case Term::LIMIT:              return make_limit_term(env, t);
     case Term::SKIP:               return make_skip_term(env, t);
     case Term::INNER_JOIN:         return make_inner_join_term(env, t);
@@ -181,6 +183,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::GET_INTERSECTING:   return make_get_intersecting_term(env, t);
     case Term::FILL:               return make_fill_term(env, t);
     case Term::GET_NEAREST:        return make_get_nearest_term(env, t);
+    case Term::UUID:               return make_uuid_term(env, t);
     default: unreachable();
     }
     unreachable();
@@ -240,7 +243,7 @@ void run(protob_t<Query> q,
             counted_t<val_t> val = root_term->eval(&scope_env);
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
                 res->set_type(Response::SUCCESS_ATOM);
-                counted_t<const datum_t> d = val->as_datum();
+                datum_t d = val->as_datum();
                 d->write_to_protobuf(res->add_response(), use_json);
                 if (trace.has()) {
                     trace->as_datum()->write_to_protobuf(
@@ -249,10 +252,9 @@ void run(protob_t<Query> q,
             } else if (counted_t<grouped_data_t> gd
                        = val->maybe_as_promiscuous_grouped_data(scope_env.env)) {
                 res->set_type(Response::SUCCESS_ATOM);
-                counted_t<const datum_t> d
-                    = to_datum_for_client_serialization(std::move(*gd),
-                                                        env.reql_version,
-                                                        env.limits);
+                datum_t d = to_datum_for_client_serialization(std::move(*gd),
+                                                              env.reql_version(),
+                                                              env.limits());
                 d->write_to_protobuf(res->add_response(), use_json);
                 if (env.trace != nullptr) {
                     env.trace->as_datum()->write_to_protobuf(
@@ -260,7 +262,7 @@ void run(protob_t<Query> q,
                 }
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
                 counted_t<datum_stream_t> seq = val->as_seq(&env);
-                if (counted_t<const datum_t> arr = seq->as_array(&env)) {
+                if (datum_t arr = seq->as_array(&env)) {
                     res->set_type(Response::SUCCESS_ATOM);
                     arr->write_to_protobuf(res->add_response(), use_json);
                     if (trace.has()) {
@@ -270,7 +272,7 @@ void run(protob_t<Query> q,
                 } else {
                     stream_cache->insert(token,
                                          use_json,
-                                         env.global_optargs.get_all_optargs(),
+                                         env.get_all_optargs(),
                                          profile,
                                          seq);
                     bool b = stream_cache->serve(token, res, interruptor);
@@ -403,6 +405,8 @@ counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) const {
         throw;
     }
 #endif // INSTRUMENT
+}
+
 }
 
 } // namespace ql

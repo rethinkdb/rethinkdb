@@ -104,7 +104,7 @@ void run_in_thread_pool_with_broadcaster(
 
 /* `PartialBackfill` backfills only in a specific sub-region. */
 
-counted_t<const ql::datum_t> generate_document(size_t value_padding_length, const std::string &value) {
+ql::datum_t generate_document(size_t value_padding_length, const std::string &value) {
     ql::configured_limits_t limits;
     // This is a kind of hacky way to add an object to a map but I'm not sure
     // anyone really cares.
@@ -217,7 +217,7 @@ void run_backfill_test(size_t value_padding_length,
         read_response_t response;
         broadcaster->get()->read(read, &response, &exiter, order_source->check_in("unittest::(rdb)run_partial_backfill_test").with_read_mode(), &non_interruptor);
         point_read_response_t get_result = boost::get<point_read_response_t>(response.response);
-        EXPECT_TRUE(get_result.data.get() != NULL);
+        EXPECT_TRUE(get_result.data.has());
         EXPECT_EQ(*generate_document(value_padding_length,
                                      it->second),
                   *get_result.data);

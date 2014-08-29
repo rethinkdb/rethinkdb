@@ -14,24 +14,24 @@ template<class T, class Less = std::less<T> >
 class priority_queue_t {
 public:
     struct entry_t {
-        public:
-            T data;
+    public:
+        T data;
 
         /* these 2 fields are accessed the our friend the priority_queue_t */
         friend class priority_queue_t<T, Less>;
-        private:
-            priority_queue_t<T, Less> *pq; /* !< the priority queue the data is registered in */
-            int index;                         /* the index withing the priority queue */
+    private:
+        priority_queue_t<T, Less> *pq; /* !< the priority queue the data is registered in */
+        int index;                         /* the index withing the priority queue */
 
-        public:
-            /* \brief update() should be called after a change is made to the data
-             * to preserve the order in the queue
-             */
-            void update();
-            bool operator< (const entry_t &b) {return Less(b.data, data);}
-            entry_t()
-                : pq(0), index(0)
-                {}
+    public:
+        /* \brief update() should be called after a change is made to the data
+         * to preserve the order in the queue
+         */
+        void update();
+        bool operator< (const entry_t &b) {return Less(b.data, data);}
+        entry_t()
+            : pq(0), index(0)
+        {}
     };
 private:
     std::deque<entry_t *> heap;

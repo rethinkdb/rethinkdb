@@ -17,6 +17,9 @@
 #include "unittest/gtest.hpp"
 #include "utils.hpp"
 
+using geo::S2LatLng;
+using geo::S2Point;
+using geo::S2Polygon;
 using ql::datum_t;
 
 namespace unittest {
@@ -24,10 +27,10 @@ namespace unittest {
 void test_in_ex_radius(
         const lat_lon_point_t c, double r, const ellipsoid_spec_t &e, rng_t *rng) {
     // We first generate the polygons we want to test against.
-    const counted_t<const datum_t> outer_polygon =
+    const datum_t outer_polygon =
         construct_geo_polygon(build_polygon_with_inradius_at_least(c, r, 8, e),
                               ql::configured_limits_t());
-    const counted_t<const datum_t> inner_polygon =
+    const datum_t inner_polygon =
         construct_geo_polygon(build_polygon_with_exradius_at_most(c, r, 8, e),
                               ql::configured_limits_t());
     scoped_ptr_t<S2Polygon> outer_s2polygon = to_s2polygon(outer_polygon);

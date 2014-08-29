@@ -164,8 +164,8 @@ msg_t::msg_t(stop_t &&_op) : op(std::move(_op)) { }
 msg_t::msg_t(change_t &&_op) : op(std::move(_op)) { }
 
 msg_t::change_t::change_t() { }
-msg_t::change_t::change_t(counted_t<const datum_t> _old_val,
-                          counted_t<const datum_t> _new_val)
+msg_t::change_t::change_t(datum_t _old_val,
+                          datum_t _new_val)
     : old_val(std::move(_old_val)), new_val(std::move(_new_val)) { }
 msg_t::change_t::~change_t() { }
 
@@ -180,13 +180,13 @@ enum class detach_t { NO, YES };
 class subscription_t : public home_thread_mixin_t {
 public:
     virtual ~subscription_t();
-    std::vector<counted_t<const datum_t> >
+    std::vector<datum_t>
     get_els(batcher_t *batcher, const signal_t *interruptor);
     virtual void add_el(
         const uuid_u &uuid,
         uint64_t stamp,
-        const counted_t<const datum_t> &pkey_val,
-        counted_t<const datum_t> d,
+        const datum_t &pkey_val,
+        datum_t d,
         const configured_limits_t &limits) = 0;
     virtual void start(env_t *env, namespace_interface_t *nif,
                        client_t::addr_t *addr) = 0;
@@ -206,7 +206,7 @@ protected:
     feed_t *feed;
 private:
     virtual bool has_el() = 0;
-    virtual counted_t<const datum_t> pop_el() = 0;
+    virtual datum_t pop_el() = 0;
     // Used to block on more changes.  NULL unless we're waiting.
     cond_t *cond;
     auto_drainer_t drainer;
@@ -224,9 +224,9 @@ public:
     ~feed_t();
 
     void add_point_sub(subscription_t *sub,
-                       const counted_t<const datum_t> &key) THROWS_NOTHING;
+                       const datum_t &key) THROWS_NOTHING;
     void del_point_sub(subscription_t *sub,
-                       const counted_t<const datum_t> &key) THROWS_NOTHING;
+                       const datum_t &key) THROWS_NOTHING;
 
     void add_range_sub(subscription_t *sub) THROWS_NOTHING;
     void del_range_sub(subscription_t *sub) THROWS_NOTHING;
@@ -234,7 +234,7 @@ public:
     void each_range_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
     void each_point_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
     void each_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
-    void on_point_sub(counted_t<const datum_t> key,
+    void on_point_sub(datum_t key,
                       const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
 
 
@@ -279,9 +279,9 @@ private:
     cond_t queues_ready;
 
     std::vector<std::set<subscription_t *> > range_subs;
-    std::map<counted_t<const datum_t>,
+    std::map<datum_t,
              std::vector<std::set<subscription_t *> >,
-             counted_datum_less_t> point_subs;
+             optional_datum_less_t> point_subs;
     rwlock_t range_subs_lock;
     rwlock_t point_subs_lock;
     int64_t num_subs;
@@ -294,7 +294,7 @@ private:
 class point_sub_t : public subscription_t {
 public:
     // Throws QL exceptions.
-    point_sub_t(feed_t *feed, counted_t<const datum_t> _key)
+    point_sub_t(feed_t *feed, datum_t _key)
         : subscription_t(feed), key(std::move(_key)), stamp(0) {
         feed->add_point_sub(this, key);
     }
@@ -329,8 +329,8 @@ public:
 private:
     virtual void add_el(const uuid_u &,
                         uint64_t d_stamp,
-                        const counted_t<const datum_t> &pkey_val,
-                        counted_t<const datum_t> d,
+                        const datum_t &pkey_val,
+                        datum_t d,
                         const configured_limits_t &) {
         assert_thread();
         rassert(*pkey_val == *key);
@@ -345,15 +345,15 @@ private:
         }
     }
     virtual bool has_el() { return el.has(); }
-    virtual counted_t<const datum_t> pop_el() {
+    virtual datum_t pop_el() {
         guarantee(has_el());
-        counted_t<const datum_t> ret;
-        ret.swap(el);
+        datum_t ret = el;
+        el.reset();
         return ret;
     }
-    counted_t<const datum_t> key;
+    datum_t key;
     uint64_t stamp;
-    counted_t<const datum_t> el;
+    datum_t el;
 };
 
 class range_sub_t : public subscription_t {
@@ -382,8 +382,8 @@ public:
 private:
     virtual void add_el(const uuid_u &uuid,
                         uint64_t stamp,
-                        const counted_t<const datum_t> &pkey_val,
-                        counted_t<const datum_t> d,
+                        const datum_t &pkey_val,
+                        datum_t d,
                         const configured_limits_t &limits) {
         if (spec.range.contains(reql_version_t::LATEST, pkey_val)) {
             // If we don't have start timestamps, we haven't started, and if we have
@@ -403,9 +403,9 @@ private:
         }
     }
     virtual bool has_el() { return els.size() != 0; }
-    virtual counted_t<const datum_t> pop_el() {
+    virtual datum_t pop_el() {
         guarantee(has_el());
-        counted_t<const datum_t> ret = std::move(els.front());
+        datum_t ret = std::move(els.front());
         els.pop_front();
         return ret;
     }
@@ -414,7 +414,7 @@ private:
     // our subscription.
     std::map<uuid_u, uint64_t> start_stamps;
     // The queue of changes we've accumulated since the last time we were read from.
-    std::deque<counted_t<const datum_t> > els;
+    std::deque<datum_t > els;
     keyspec_t::range_t spec;
 };
 
@@ -423,15 +423,15 @@ public:
     msg_visitor_t(feed_t *_feed, uuid_u _server_uuid, uint64_t _stamp)
         : feed(_feed), server_uuid(_server_uuid), stamp(_stamp) { }
     void operator()(const msg_t::change_t &change) const {
-        counted_t<const datum_t> null = datum_t::null();
+        datum_t null = datum_t::null();
         configured_limits_t default_limits;
-        std::map<std::string, counted_t<const datum_t> > obj{
-            {"new_val", change.new_val.has() ? change.new_val : null},
-            {"old_val", change.old_val.has() ? change.old_val : null}
+        std::map<datum_string_t, datum_t> obj{
+            {datum_string_t("new_val"), change.new_val.has() ? change.new_val : null},
+            {datum_string_t("old_val"), change.old_val.has() ? change.old_val : null}
         };
         auto val = change.new_val.has() ? change.new_val : change.old_val;
         r_sanity_check(val.has());
-        auto pkey_val = val->get(feed->pkey, NOTHROW);
+        auto pkey_val = val->get_field(datum_string_t(feed->pkey), NOTHROW);
         r_sanity_check(pkey_val.has());
 
         feed->each_range_sub(
@@ -440,7 +440,7 @@ public:
                       std::cref(server_uuid),
                       stamp,
                       std::cref(pkey_val),
-                      make_counted<const datum_t>(std::move(obj)),
+                      datum_t(std::move(obj)),
                       default_limits));
         feed->on_point_sub(
             pkey_val,
@@ -471,7 +471,7 @@ public:
     virtual bool is_array() { return false; }
     virtual bool is_exhausted() const { return false; }
     virtual bool is_cfeed() const { return true; }
-    virtual std::vector<counted_t<const datum_t> >
+    virtual std::vector<datum_t>
     next_raw_batch(env_t *env, const batchspec_t &bs) {
         rcheck(bs.get_batch_type() == batch_type_t::NORMAL
                || bs.get_batch_type() == batch_type_t::NORMAL_FIRST,
@@ -491,7 +491,7 @@ subscription_t::subscription_t(feed_t *_feed) : skipped(0), feed(_feed), cond(NU
 
 subscription_t::~subscription_t() { }
 
-std::vector<counted_t<const datum_t> >
+std::vector<datum_t>
 subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
     assert_thread();
     guarantee(cond == NULL); // Can't get while blocking.
@@ -512,27 +512,27 @@ subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
         } catch (const interrupted_exc_t &e) {
             cond = NULL;
             if (timer.is_pulsed()) {
-                return std::vector<counted_t<const datum_t> >();
+                return std::vector<datum_t>();
             }
             throw e;
         }
         guarantee(cond == NULL);
     }
 
-    std::vector<counted_t<const datum_t> > v;
+    std::vector<datum_t> v;
     if (exc) {
         std::rethrow_exception(exc);
     } else if (skipped != 0) {
         v.push_back(
-            make_counted<const datum_t>(
-                std::map<std::string, counted_t<const datum_t> >{
-                    {"error", make_counted<const datum_t>(
-                            strprintf("Changefeed cache over array size limit, "
-                                      "skipped %zu elements.", skipped))}}));
+            datum_t(
+                std::map<datum_string_t, datum_t>{
+                    {datum_string_t("error"), datum_t(
+                        datum_string_t(strprintf("Changefeed cache over array size limit, "
+                                                "skipped %zu elements.", skipped)))}}));
         skipped = 0;
     } else {
         while (has_el() && !batcher->should_send_batch()) {
-            counted_t<const datum_t> el = pop_el();
+            datum_t el = pop_el();
             batcher->note_el(el);
             v.push_back(std::move(el));
         }
@@ -581,7 +581,7 @@ INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(keyspec_t);
 
 // If this throws we might leak the increment to `num_subs`.
 void feed_t::add_point_sub(subscription_t *sub,
-                           const counted_t<const datum_t> &key) THROWS_NOTHING {
+                           const datum_t &key) THROWS_NOTHING {
     on_thread_t th(home_thread());
     guarantee(!detached);
     num_subs += 1;
@@ -599,7 +599,7 @@ void feed_t::add_point_sub(subscription_t *sub,
 
 // Can't throw because it's called in a destructor.
 void feed_t::del_point_sub(subscription_t *sub,
-                           const counted_t<const datum_t> &key) THROWS_NOTHING {
+                           const datum_t &key) THROWS_NOTHING {
     on_thread_t th(home_thread());
     {
         auto_drainer_t::lock_t lock(&drainer);
@@ -725,7 +725,7 @@ void feed_t::each_sub(const std::function<void(subscription_t *)> &f) THROWS_NOT
 }
 
 void feed_t::on_point_sub(
-    counted_t<const datum_t> key,
+    datum_t key,
     const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
     assert_thread();
     auto_drainer_t::lock_t lock(&drainer);
@@ -801,7 +801,7 @@ feed_t::feed_t(client_t *_client,
       /* We only use comparison in the point_subs map for equality purposes, not
          ordering -- and this isn't in a secondary index function.  Thus
          reql_version_t::LATEST is appropriate. */
-      point_subs(counted_datum_less_t(reql_version_t::LATEST)),
+      point_subs(optional_datum_less_t(reql_version_t::LATEST)),
       num_subs(0),
       detached(false) {
     read_t read(changefeed_subscribe_t(mailbox.get_address()),
@@ -964,7 +964,7 @@ client_t::new_feed(env_t *env,
 
 // class limit_sub_t : public subscription_t {
 
-//     std::map<uuid_u, std::map<store_key_t, counted_t<const datum_t> > >
+//     std::map<uuid_u, std::map<store_key_t, datum_t > >
 // }
 
 void client_t::maybe_remove_feed(const uuid_u &uuid) {

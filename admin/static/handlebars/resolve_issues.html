@@ -262,6 +262,29 @@
     </div>
 </script>
 
+<script id="resolve_issues-outdated_index_issue-template" type="text/x-handlebars-template">
+    <div class="issue {{#if critical }}critical{{/if}} name-conflict">
+        <div class="issue-header">
+            <p class="issue-type">Outdated indexes</p>
+            <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>
+        </div>
+        <hr />
+        <div class="issue-details">
+            <p>
+            This cluster contains outdated indexes that were created with a previous version of RethinkDB.<br/>
+                Use <code>rethinkdb index-rebuild</code> to apply the latest bug fixes and improvements.
+                See <a href="http://www.rethinkdb.com//docs/troubleshooting/#my-secondary-index-is-outdated">the troubleshooting page</a> for more details.
+            </p>
+
+            <ul>
+            {{#each namespaces}}
+            <li>The table <a href="#databases/{{db_id}}">{{db}}</a>.<a href="#tables/{{namespace_id}}">{{name}}</a> has {{count}} outdated {{pluralize_noun "index" count}}: {{comma_separated_simple indexes}}</li>
+            {{/each}}
+            </ul>
+        </div>
+    </div>
+</script>
+
 <script id="resolve_issues-port_conflict-template" type="text/x-handlebars-template">
     <div class="issue {{#if critical }}critical{{/if}} name-conflict">
         <div class="issue-header">

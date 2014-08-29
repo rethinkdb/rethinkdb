@@ -6,6 +6,7 @@ import collections
 import time
 import re
 import base64
+import binascii
 import json as py_json
 from threading import Lock
 
@@ -37,7 +38,7 @@ def expr(val, nesting_depth=20):
     '''
     if not isinstance(nesting_depth, int):
         raise RqlDriverError("Second argument to `r.expr` must be a number.")
-    
+
     if nesting_depth <= 0:
         raise RqlDriverError("Nesting depth limit exceeded")
 
@@ -329,19 +330,8 @@ class RqlQuery(object):
                 return Slice(self, index.start or 0, index.stop, bracket_operator=True)
             else:
                 return Slice(self, index.start or 0, -1, right_bound='closed', bracket_operator=True)
-        elif isinstance(index, int):
-            return Nth(self, index, bracket_operator=True)
-        elif isinstance(index, (str, unicode)):
-            return GetField(self, index, bracket_operator=True)
-        elif isinstance(index, RqlQuery):
-            raise RqlDriverError(
-                "Bracket operator called with a ReQL expression parameter.\n"+
-                "Dynamic typing is not supported in this syntax,\n"+
-                "use `.nth`, `.slice`, or `.get_field` instead.")
         else:
-            raise RqlDriverError(
-                "bracket operator called with an unsupported parameter type: %s.%s" %
-                (index.__class__.__module__, index.__class__.__name__))
+            return Bracket(self, index, bracket_operator=True)
 
     def __iter__(*args, **kwargs):
         raise RqlDriverError(
@@ -796,6 +786,9 @@ class Default(RqlMethodQuery):
 class ImplicitVar(RqlQuery):
     tt = pTerm.IMPLICIT_VAR
 
+    def __call__(self, *args, **kwargs):
+        raise TypeError("'r.row' is not callable, use 'r.row[...]' instead")
+
     def compose(self, args, optargs):
         return 'r.row'
 
@@ -903,6 +896,10 @@ class Limit(RqlMethodQuery):
 class GetField(RqlBracketQuery):
     tt = pTerm.GET_FIELD
     st = 'get_field'
+
+class Bracket(RqlBracketQuery):
+    tt = pTerm.BRACKET
+    st = 'bracket'
 
 class Contains(RqlMethodQuery):
     tt = pTerm.CONTAINS
@@ -1029,6 +1026,9 @@ class Table(RqlQuery):
     def get_nearest(self, *args, **kwargs):
         return GetNearest(self, *args, **kwargs)
 
+    def uuid(self, *args, **kwargs):
+        return UUID(self, *args, **kwargs)
+
     def compose(self, args, optargs):
         if isinstance(self.args[0], DB):
             return T(args[0], '.table(', T(*(args[1:]), intsp=', '), ')')
@@ -1050,6 +1050,10 @@ class GetIntersecting(RqlMethodQuery):
 class GetNearest(RqlMethodQuery):
     tt = pTerm.GET_NEAREST
     st = 'get_nearest'
+
+class UUID(RqlMethodQuery):
+    tt = pTerm.UUID
+    st = 'uuid'
 
 class Reduce(RqlMethodQuery):
     tt = pTerm.REDUCE
@@ -1295,33 +1299,47 @@ class RqlBinary(bytes):
     def __new__(cls, *args, **kwargs):
         return bytes.__new__(cls, *args, **kwargs)
 
+    def __repr__(self):
+        excerpt = binascii.hexlify(self[0:6]).decode('utf-8')
+        excerpt = ' '.join([excerpt[i:i+2] for i in xrange(0, len(excerpt), 2)])
+        excerpt = ', \'%s%s\'' % (excerpt, '...' if len(self) > 6 else '') if len(self) > 0 else ''
+        return "<binary, %d byte%s%s>" % (len(self), 's' if len(self) != 1 else '', excerpt)
+
 class Binary(RqlTopLevelQuery):
     # Note: this term isn't actually serialized, it should exist only in the client
-    tt = None
+    tt = pTerm.BINARY
     st = 'binary'
 
     def __init__(self, data):
         # We only allow 'bytes' objects to be serialized as binary
         # Python 2 - `bytes` is equivalent to `str`, either will be accepted
         # Python 3 - `unicode` is equivalent to `str`, neither will be accepted
-        if isinstance(data, unicode):
+        if isinstance(data, RqlQuery):
+            RqlTopLevelQuery.__init__(self, data)
+        elif isinstance(data, unicode):
             raise RqlDriverError("Cannot convert a unicode string to binary, " \
                                  "use `unicode.encode()` to specify the encoding.")
         elif not isinstance(data, bytes):
             raise RqlDriverError("Cannot convert %s to binary, convert the object " \
                                  "to a `bytes` object first." % type(data).__name__)
+        else:
+            self.base64_data = base64.b64encode(data)
 
-        self.base64_data = base64.b64encode(data)
-
-        # Kind of a hack to get around composing
-        self.args = []
-        self.optargs = {}
+            # Kind of a hack to get around composing
+            self.args = []
+            self.optargs = {}
 
     def compose(self, args, optargs):
-        return T('r.', self.st, '(bytes(<data>))')
-        
+        if len(self.args) == 0:
+            return T('r.', self.st, '(bytes(<data>))')
+        else:
+            return RqlTopLevelQuery.compose(self, args, optargs)
+
     def build(self):
-        return { '$reql_type$': 'BINARY', 'data': self.base64_data.decode('utf-8') }
+        if len(self.args) == 0:
+            return { '$reql_type$': 'BINARY', 'data': self.base64_data.decode('utf-8') }
+        else:
+            return RqlTopLevelQuery.build(self)
 
 class ToISO8601(RqlMethodQuery):
     tt = pTerm.TO_ISO8601

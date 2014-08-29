@@ -127,6 +127,4 @@ using msvchash::unordered_multiset;
 #define unordered_set set
 #endif
 
-using namespace std;
-
 #endif   /* #ifdef _STL_DECL_MSVC_H */

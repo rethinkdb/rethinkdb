@@ -10,6 +10,9 @@
 #include "rdb_protocol/geo/s2/s2polyline.h"
 #include "rdb_protocol/datum.hpp"
 
+using geo::S2Point;
+using geo::S2Polygon;
+using geo::S2Polyline;
 using ql::datum_t;
 
 template<class first_t>
@@ -33,7 +36,7 @@ private:
 
 class intersection_tester_t : public s2_geo_visitor_t<bool> {
 public:
-    explicit intersection_tester_t(const counted_t<const ql::datum_t> *other)
+    explicit intersection_tester_t(const ql::datum_t *other)
         : other_(other) { }
 
     bool on_point(const S2Point &point) {
@@ -50,11 +53,11 @@ public:
     }
 
 private:
-    const counted_t<const ql::datum_t> *other_;
+    const ql::datum_t *other_;
 };
 
-bool geo_does_intersect(const counted_t<const ql::datum_t> &g1,
-                        const counted_t<const ql::datum_t> &g2) {
+bool geo_does_intersect(const ql::datum_t &g1,
+                        const ql::datum_t &g2) {
     intersection_tester_t tester(&g2);
     return visit_geojson(&tester, g1);
 }
