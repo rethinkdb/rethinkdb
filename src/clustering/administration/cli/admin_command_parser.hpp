@@ -148,7 +148,7 @@ private:
 
     void do_admin_help(const command_data_t& data);
 
-    command_info_t *find_command(const std::map<std::string, command_info_t *>& cmd_map, const std::vector<std::string>& line, size_t& index);
+    command_info_t *find_command(const std::map<std::string, command_info_t *> &cmd_map, const std::vector<std::string> &line, size_t *index);
     command_data_t parse_command(command_info_t *info, const std::vector<std::string>& command_args);
     void run_command(const command_data_t& data);
 

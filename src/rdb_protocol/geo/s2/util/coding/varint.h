@@ -20,6 +20,8 @@
 
 #include "rdb_protocol/geo/s2/base/basictypes.h"
 
+namespace geo {
+
 // Just a namespace, not a real class
 class Varint {
  public:
@@ -503,5 +505,7 @@ inline const char* Varint::FastDecodeDeltas(const char* ptr,
   *out = goal + sum;
   return ptr;
 }
+
+}  // namespace geo
 
 #endif /* _VARINT_H */

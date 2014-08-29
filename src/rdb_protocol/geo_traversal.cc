@@ -22,6 +22,9 @@
 #include "rdb_protocol/lazy_json.hpp"
 #include "rdb_protocol/profile.hpp"
 
+using geo::S2Point;
+using geo::S2LatLng;
+
 // How many primary keys to keep in memory for avoiding processing the same
 // document multiple times (efficiency optimization).
 const size_t MAX_PROCESSED_SET_SIZE = 10000;

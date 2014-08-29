@@ -23,7 +23,7 @@ timer "rings". */
 
 class signal_timer_t : public signal_t, private timer_callback_t {
 public:
-    explicit signal_timer_t();
+    signal_timer_t();
     ~signal_timer_t();
 
     // Starts the timer, cannot be called if the timer is already running

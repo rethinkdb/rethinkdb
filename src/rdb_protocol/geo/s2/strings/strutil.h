@@ -13,27 +13,12 @@
 #define STRINGS_STRUTIL_H_
 
 #include <functional>
-using std::less;
-
 #include <unordered_map>
-using std::unordered_map;
-
 #include <unordered_set>
-using std::unordered_set;
-
 #include <set>
-using std::set;
-using std::multiset;
-
 #include <string>
-
 #include <utility>
-using std::pair;
-using std::make_pair;
-
 #include <vector>
-using std::vector;
-
 #include <string.h>
 #include <stdlib.h>
 
@@ -44,11 +29,6 @@ using std::vector;
 #include <strings.h>
 #endif
 #include <ctype.h>      // not needed, but removing it will break the build
-
-// A buffer size which is large enough for all the FastToBuffer functions, as
-// well as DoubleToBuffer and FloatToBuffer.  We define this here in case other
-// string headers depend on it.
-static const unsigned int kFastToBufferSize = 32;
 
 #include "rdb_protocol/geo/s2/base/basictypes.h"
 #include "rdb_protocol/geo/s2/base/logging.h"  // for CHECK
@@ -62,6 +42,21 @@ static const unsigned int kFastToBufferSize = 32;
 #include "rdb_protocol/geo/s2/base/stl_decl.h"
 #include "rdb_protocol/geo/s2/base/port.h"
 #include "rdb_protocol/geo/s2/util/endian/endian.h"
+
+namespace geo {
+using std::less;
+using std::unordered_map;
+using std::unordered_set;
+using std::set;
+using std::multiset;
+using std::pair;
+using std::make_pair;
+using std::vector;
+
+// A buffer size which is large enough for all the FastToBuffer functions, as
+// well as DoubleToBuffer and FloatToBuffer.  We define this here in case other
+// string headers depend on it.
+static const unsigned int kFastToBufferSize = 32;
 
 // ----------------------------------------------------------------------
 // FpToString()
@@ -217,5 +212,7 @@ inline uint64 ParseLeadingUDec64Value(const std::string& str, uint64 deflt) {
 // -------------------------------------------------------------------------
 bool DictionaryParse(const std::string& encoded_str,
                       vector<pair<std::string, std::string> >* items);
+
+}  // namespace geo
 
 #endif   /* #ifndef STRINGS_STRUTIL_H_ */

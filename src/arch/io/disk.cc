@@ -154,7 +154,7 @@ public:
         do_on_thread(home_thread(),
                      std::bind(&linux_disk_manager_t::submit_action_to_stack_stats, this,
                                a));
-    };
+    }
 
     void done(stats_diskmgr_t::action_t *a) {
         assert_thread();

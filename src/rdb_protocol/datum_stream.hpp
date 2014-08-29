@@ -429,9 +429,9 @@ public:
 };
 
 // For reads that generate read_response_t results
-class rget_result_reader_t : public reader_t {
+class rget_response_reader_t : public reader_t {
 public:
-    rget_result_reader_t(
+    rget_response_reader_t(
         const real_table_t &_table,
         bool use_outdated,
         scoped_ptr_t<readgen_t> &&readgen);
@@ -461,7 +461,7 @@ protected:
     size_t items_index;
 };
 
-class rget_reader_t : public rget_result_reader_t {
+class rget_reader_t : public rget_response_reader_t {
 public:
     rget_reader_t(
         const real_table_t &_table,
@@ -480,7 +480,7 @@ private:
 // intersecting_reader_t performs filtering for duplicate documents in the stream,
 // assuming it is read in batches (otherwise that's not necessary, because the
 // shards will already provide distinct results).
-class intersecting_reader_t : public rget_result_reader_t {
+class intersecting_reader_t : public rget_response_reader_t {
 public:
     intersecting_reader_t(
         const real_table_t &_table,

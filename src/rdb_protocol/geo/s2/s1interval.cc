@@ -4,6 +4,8 @@
 
 #include "rdb_protocol/geo/s2/base/logging.h"
 
+namespace geo {
+
 S1Interval S1Interval::FromPoint(double p) {
   if (p == -M_PI) p = M_PI;
   return S1Interval(p, p, ARGS_CHECKED);
@@ -248,3 +250,5 @@ bool S1Interval::ApproxEquals(S1Interval const& y, double max_error) const {
   return (fabs(drem(y.lo() - lo(), 2 * M_PI)) +
           fabs(drem(y.hi() - hi(), 2 * M_PI))) <= max_error;
 }
+
+}  // namespace geo

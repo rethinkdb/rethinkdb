@@ -17,6 +17,8 @@
 // most google3 code doesn't have to work with type traits directly.
 #include "rdb_protocol/geo/s2/base/type_traits.h"
 
+namespace geo {
+
 // The swigged version of an abstract class must be concrete if any methods
 // return objects of the abstract type. We keep it abstract in C++ and
 // concrete for swig.
@@ -210,5 +212,7 @@ template <> struct ERROR_TYPE_MUST_BE_POD<true> { };
   enum { dummy_##TypeName                                                 \
            = sizeof(ERROR_TYPE_MUST_BE_POD<                               \
                       base::is_pod<TypeName>::value>) }
+
+}  // namespace geo
 
 #endif  // BASE_MACROS_H_

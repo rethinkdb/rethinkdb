@@ -4,15 +4,17 @@
 #define UTIL_GEOMETRY_S1INTERVAL_H_
 
 #include <iostream>
-using std::ostream;
-using std::cout;
-using std::endl;
 
 #include <math.h>
 #include "rdb_protocol/geo/s2/base/basictypes.h"
 #include "rdb_protocol/geo/s2/base/logging.h"
 #include "rdb_protocol/geo/s2/util/math/vector2-inl.h"
 #include "utils.hpp"
+
+namespace geo {
+using std::ostream;
+using std::cout;
+using std::endl;
 
 // An S1Interval represents a closed interval on a unit circle (also known
 // as a 1-dimensional sphere).  It is capable of representing the empty
@@ -220,5 +222,7 @@ inline bool S1Interval::operator==(S1Interval const& y) const {
 inline ostream& operator<<(ostream& os, S1Interval const& x) {
   return os << "[" << x.lo() << ", " << x.hi() << "]";
 }
+
+}  // namespace geo
 
 #endif  // UTIL_GEOMETRY_S1INTERVAL_H_

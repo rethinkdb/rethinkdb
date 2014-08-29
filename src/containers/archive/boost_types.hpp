@@ -24,7 +24,7 @@ MUST_USE archive_result_t deserialize(UNUSED read_stream_t *s,
 
 
 #define ARCHIVE_VARIANT_SERIALIZE_VISITOR_METHOD(i)     \
-    void operator()(const T##i &x /* NOLINT */) {       \
+    void operator()(const T##i &x) {                    \
         uint8_t n = i;                                  \
         serialize<W>(this->wm, n);                      \
         serialize<W>(this->wm, x);                      \

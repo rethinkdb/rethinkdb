@@ -20,6 +20,8 @@
 #ifndef BASE_TEMPLATE_UTIL_H_
 #define BASE_TEMPLATE_UTIL_H_
 
+namespace geo {
+
 namespace base {
 
 // Types small_ and big_ are guaranteed such that sizeof(small_) <
@@ -94,5 +96,7 @@ struct or_ : public integral_constant<bool, (A::value || B::value)> {
 
 
 } // Close namespace base
+
+}  // namespace geo
 
 #endif  // BASE_TEMPLATE_UTIL_H_

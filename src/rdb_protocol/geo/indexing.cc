@@ -19,6 +19,11 @@
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/pseudo_geometry.hpp"
 
+using geo::S2CellId;
+using geo::S2Point;
+using geo::S2Polygon;
+using geo::S2Polyline;
+using geo::S2RegionCoverer;
 using ql::datum_t;
 
 // TODO (daniel): Consider making this configurable through an opt-arg
@@ -56,9 +61,9 @@ std::string s2cellid_to_key(S2CellId id) {
     // ordering as a string must be equivalent to the integer ordering of id.
     // FastHex64ToBuffer() generates a hex representation of id that fulfills this
     // property (it comes padded with leading '0's).
-    char buffer[kFastToBufferSize];
+    char buffer[geo::kFastToBufferSize];
     // "GC" = Geospatial Cell
-    return std::string("GC") + FastHex64ToBuffer(id.id(), buffer);
+    return std::string("GC") + geo::FastHex64ToBuffer(id.id(), buffer);
 }
 
 S2CellId key_to_s2cellid(const std::string &sid) {

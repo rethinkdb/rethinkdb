@@ -135,4 +135,4 @@ counted_t<term_t> make_split_term(compile_env_t *env,
     return make_counted<split_term_t>(env, term);
 }
 
-}
+}  // namespace ql

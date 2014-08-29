@@ -30,9 +30,8 @@ public:
 };
 
 stat_http_app_t::stat_http_app_t(mailbox_manager_t *_mbox_manager,
-                                 clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > >& _directory,
-                                 boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >& _semilattice
-                                 )
+                                 const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > &_directory,
+                                 const boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &_semilattice)
     : mbox_manager(_mbox_manager), directory(_directory), semilattice(_semilattice)
 { }
 

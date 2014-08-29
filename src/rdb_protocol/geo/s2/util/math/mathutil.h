@@ -9,17 +9,18 @@
 
 #include <math.h>
 #include <algorithm>
-using std::min;
-using std::max;
-using std::swap;
-using std::reverse;
-
 #include <vector>
-using std::vector;
 
 #include "rdb_protocol/geo/s2/base/basictypes.h"
 #include "rdb_protocol/geo/s2/base/logging.h"
 #include "rdb_protocol/geo/s2/util/math/mathlimits.h"
+
+namespace geo {
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
+using std::vector;
 
 // Returns the sign of x:
 //   -1 if x < 0,
@@ -710,5 +711,7 @@ bool MathUtil::WithinFractionOrMargin(const T x, const T y,
            (AbsDiff(x, y) <= Max(margin, fraction * Max(Abs(x), Abs(y))));
   }
 }
+
+}  // namespace geo
 
 #endif  // UTIL_MATH_MATHUTIL_H__

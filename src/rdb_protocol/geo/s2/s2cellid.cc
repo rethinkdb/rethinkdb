@@ -5,17 +5,8 @@
 #include <pthread.h>
 
 #include <algorithm>
-using std::min;
-using std::max;
-using std::swap;
-using std::reverse;
-
 #include <iomanip>
-using std::setprecision;
-
 #include <vector>
-using std::vector;
-
 
 #include "rdb_protocol/geo/s2/base/integral_types.h"
 #include "rdb_protocol/geo/s2/base/logging.h"
@@ -24,6 +15,15 @@ using std::vector;
 #include "rdb_protocol/geo/s2/s2latlng.h"
 #include "rdb_protocol/geo/s2/util/math/mathutil.h"
 #include "rdb_protocol/geo/s2/util/math/vector2-inl.h"
+
+namespace geo {
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
+using std::setprecision;
+using std::vector;
+
 
 // The following lookup tables are used to convert efficiently between an
 // (i,j) cell index and the corresponding position along the Hilbert curve.
@@ -518,3 +518,5 @@ std::string S2CellId::ToString() const {
 ostream& operator<<(ostream& os, S2CellId const& id) {
   return os << id.ToString();
 }
+
+}  // namespace geo

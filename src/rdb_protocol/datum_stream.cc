@@ -25,7 +25,7 @@ T groups_to_batch(std::map<datum_t, T, optional_datum_less_t> *g) {
 
 
 // RANGE/READGEN STUFF
-rget_result_reader_t::rget_result_reader_t(
+rget_response_reader_t::rget_response_reader_t(
     const real_table_t &_table,
     bool _use_outdated,
     scoped_ptr_t<readgen_t> &&_readgen)
@@ -36,13 +36,13 @@ rget_result_reader_t::rget_result_reader_t(
       active_range(readgen->original_keyrange()),
       items_index(0) { }
 
-void rget_result_reader_t::add_transformation(transform_variant_t &&tv) {
+void rget_response_reader_t::add_transformation(transform_variant_t &&tv) {
     r_sanity_check(!started);
     transforms.push_back(std::move(tv));
 }
 
-void rget_result_reader_t::accumulate(env_t *env, eager_acc_t *acc,
-                                      const terminal_variant_t &tv) {
+void rget_response_reader_t::accumulate(env_t *env, eager_acc_t *acc,
+                                        const terminal_variant_t &tv) {
     r_sanity_check(!started);
     started = shards_exhausted = true;
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
@@ -51,8 +51,8 @@ void rget_result_reader_t::accumulate(env_t *env, eager_acc_t *acc,
     acc->add_res(env, &res);
 }
 
-std::vector<datum_t> rget_result_reader_t::next_batch(env_t *env,
-                                                      const batchspec_t &batchspec) {
+std::vector<datum_t> rget_response_reader_t::next_batch(env_t *env,
+                                                        const batchspec_t &batchspec) {
     started = true;
     if (!load_items(env, batchspec)) {
         return std::vector<datum_t>();
@@ -125,11 +125,11 @@ std::vector<datum_t> rget_result_reader_t::next_batch(env_t *env,
     return res;
 }
 
-bool rget_result_reader_t::is_finished() const {
+bool rget_response_reader_t::is_finished() const {
     return shards_exhausted && items_index >= items.size();
 }
 
-rget_read_response_t rget_result_reader_t::do_read(env_t *env, const read_t &read) {
+rget_read_response_t rget_response_reader_t::do_read(env_t *env, const read_t &read) {
     read_response_t res;
     table.read_with_profile(env, read, &res, use_outdated);
     auto rget_res = boost::get<rget_read_response_t>(&res.response);
@@ -144,7 +144,7 @@ rget_reader_t::rget_reader_t(
     const real_table_t &_table,
     bool _use_outdated,
     scoped_ptr_t<readgen_t> &&_readgen)
-    : rget_result_reader_t(_table, _use_outdated, std::move(_readgen)) { }
+    : rget_response_reader_t(_table, _use_outdated, std::move(_readgen)) { }
 
 void rget_reader_t::accumulate_all(env_t *env, eager_acc_t *acc) {
     r_sanity_check(!started);
@@ -234,7 +234,7 @@ intersecting_reader_t::intersecting_reader_t(
     const real_table_t &_table,
     bool _use_outdated,
     scoped_ptr_t<readgen_t> &&_readgen)
-    : rget_result_reader_t(_table, _use_outdated, std::move(_readgen)) { }
+    : rget_response_reader_t(_table, _use_outdated, std::move(_readgen)) { }
 
 void intersecting_reader_t::accumulate_all(env_t *env, eager_acc_t *acc) {
     r_sanity_check(!started);

@@ -1,14 +1,16 @@
 // Copyright 2005 Google Inc. All Rights Reserved.
 
 #include <algorithm>
-using std::min;
-using std::max;
-using std::swap;
-using std::reverse;
 
 #include "rdb_protocol/geo/s2/s2edgeutil.h"
 
 #include "rdb_protocol/geo/s2/base/logging.h"
+
+namespace geo {
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
 
 bool S2EdgeUtil::SimpleCrossing(S2Point const& a, S2Point const& b,
                                 S2Point const& c, S2Point const& d) {
@@ -446,3 +448,5 @@ S2EdgeUtil::LongitudePruner::LongitudePruner(S1Interval const& interval,
                                              S2Point const& v0)
   : interval_(interval), lng0_(S2LatLng::Longitude(v0).radians()) {
 }
+
+}  // namespace geo

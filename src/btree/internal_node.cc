@@ -23,7 +23,7 @@ void delete_offset(internal_node_t *node, int index);
 void insert_offset(internal_node_t *node, uint16_t offset, int index);
 void make_last_pair_special(internal_node_t *node);
 bool is_equal(const btree_key_t *key1, const btree_key_t *key2);
-}  // namespace internal_node::impl
+}  // namespace impl
 
 void init(block_size_t block_size, internal_node_t *node) {
     node->magic = internal_node_t::expected_magic;
@@ -462,7 +462,7 @@ bool is_equal(const btree_key_t *key1, const btree_key_t *key2) {
     return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size) == 0;
 }
 
-}  // namespace internal_node::impl
+}  // namespace impl
 
 }  // namespace internal_node
 

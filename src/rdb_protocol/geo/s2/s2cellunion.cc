@@ -3,14 +3,7 @@
 #include "s2cellunion.h"
 
 #include <algorithm>
-using std::min;
-using std::max;
-using std::swap;
-using std::reverse;
-
 #include <vector>
-using std::vector;
-
 
 #include "rdb_protocol/geo/s2/base/integral_types.h"
 #include "rdb_protocol/geo/s2/base/logging.h"
@@ -19,6 +12,14 @@ using std::vector;
 #include "rdb_protocol/geo/s2/s2cell.h"
 #include "rdb_protocol/geo/s2/s2cellid.h"
 #include "rdb_protocol/geo/s2/s2latlngrect.h"
+
+namespace geo {
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
+using std::vector;
+
 
 // Returns true if the vector of cell_ids is sorted.  Used only in
 // DCHECKs.
@@ -452,3 +453,5 @@ bool S2CellUnion::MayIntersect(S2Cell const& cell) const {
 bool S2CellUnion::Contains(S2Point const& p) const {
   return Contains(S2CellId::FromPoint(p));
 }
+
+}  // namespace geo

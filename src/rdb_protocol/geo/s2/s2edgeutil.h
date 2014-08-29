@@ -8,6 +8,8 @@
 #include "rdb_protocol/geo/s2/s2.h"
 #include "rdb_protocol/geo/s2/s2latlngrect.h"
 
+namespace geo {
+
 class S2LatLngRect;
 
 // This class contains various utility functions related to edges.  It
@@ -332,5 +334,7 @@ inline bool S2EdgeUtil::LongitudePruner::Intersects(S2Point const& v1) {
   lng0_ = lng1;
   return result;
 }
+
+}  // namespace geo
 
 #endif  // UTIL_GEOMETRY_S2EDGEUTIL_H__

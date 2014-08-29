@@ -9,6 +9,8 @@
 #include "rdb_protocol/geo/s2/s2cell.h"
 #include "rdb_protocol/geo/s2/s2latlngrect.h"
 
+namespace geo {
+
 S2R2Rect S2R2Rect::FromCell(S2Cell const& cell) {
   // S2Cells have a more efficient GetSizeST() method than S2CellIds.
   double size = cell.GetSizeST();
@@ -150,3 +152,5 @@ bool S2R2Rect::MayIntersect(S2Cell const& cell) const {
 ostream& operator<<(ostream& os, S2R2Rect const& r) {
   return os << "[Lo" << r.lo() << ", Hi" << r.hi() << "]";
 }
+
+}  // namespace geo

@@ -10,6 +10,8 @@
 #include "rdb_protocol/geo/s2/util/math/vector2-inl.h"
 #include "utils.hpp"
 
+namespace geo {
+
 class S2CellId;
 class S2Cell;
 
@@ -202,5 +204,7 @@ inline bool S2R2Rect::operator==(S2R2Rect const& other) const {
 }
 
 ostream& operator<<(ostream& os, S2R2Rect const& r);
+
+}  // namespace geo
 
 #endif  // UTIL_GEOMETRY_S2R2RECT_H_
