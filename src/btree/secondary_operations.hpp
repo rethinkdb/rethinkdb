@@ -15,13 +15,12 @@
 class buf_lock_t;
 
 struct secondary_index_t {
-    explicit secondary_index_t()
+    secondary_index_t()
         : superblock(NULL_BLOCK_ID),
           post_construction_complete(false),
           being_deleted(false),
           /* TODO(2014-08): This generate_uuid() is weird. */
-          id(generate_uuid())
-    { }
+          id(generate_uuid()) { }
 
     /* A virtual superblock. */
     block_id_t superblock;

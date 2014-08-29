@@ -44,7 +44,7 @@ struct rank_wrapper {
 };
 rank_wrapper wrapper;
 int cmp(int t1, int t2) { return wrapper.rank[t1] - wrapper.rank[t2]; }
-}
+}  // namespace cJSON_type_ordering
 
 class char_star_cmp_functor {
 public:
@@ -156,4 +156,4 @@ int json_cmp(cJSON *l, cJSON *r) {
     unreachable();
 }
 
-} // namespace query_language
+}  // namespace query_language

@@ -648,13 +648,16 @@ region_t admin_cluster_link_t::find_shard_in_namespace(const namespace_semilatti
     throw admin_cluster_exc_t("could not find specified shard");
 }
 
-// TODO: WTF are these template parameters.
 template <class map_type, class value_type>
-void insert_pinning(map_type& region_map, const key_range_t& shard, value_type& value) {
+void insert_pinning(map_type *region_map,
+                    const key_range_t &shard,
+                    const value_type &value) {
     map_type new_map;
     bool shard_done = false;
 
-    for (typename map_type::iterator i = region_map.begin(); i != region_map.end(); ++i) {
+    for (typename map_type::const_iterator i = region_map->cbegin();
+         i != region_map->cend();
+         ++i) {
         // TODO: low level hash_region_t assertion.
         guarantee(i->first.beg == 0 && i->first.end == HASH_REGION_HASH_SIZE);
         if (i->first.inner.contains_key(shard.left)) {
@@ -681,7 +684,7 @@ void insert_pinning(map_type& region_map, const key_range_t& shard, value_type& 
         throw admin_cluster_exc_t("unexpected error, did not find the specified shard");
     }
 
-    region_map = new_map;
+    *region_map = std::move(new_map);
 }
 
 
@@ -810,11 +813,11 @@ void admin_cluster_link_t::do_admin_pin_shard_internal(const shard_input_t& shar
 
     // Set primary and secondaries - do this before posting any changes in case anything goes wrong
     if (set_primary) {
-        insert_pinning(ns->primary_pinnings.get_mutable(), shard.inner, primary);
+        insert_pinning(&ns->primary_pinnings.get_mutable(), shard.inner, primary);
         ns->primary_pinnings.upgrade_version(change_request_id);
     }
     if (set_secondary) {
-        insert_pinning(ns->secondary_pinnings.get_mutable(), shard.inner, secondaries);
+        insert_pinning(&ns->secondary_pinnings.get_mutable(), shard.inner, secondaries);
         ns->primary_pinnings.upgrade_version(change_request_id);
     }
 }
@@ -2291,12 +2294,12 @@ void admin_cluster_link_t::do_admin_set_name(const admin_command_parser_t::comma
     do_metadata_update(&cluster_metadata, &change_request);
 }
 
-void do_assign_string_to_name(name_string_t &assignee, const std::string& s) THROWS_ONLY(admin_cluster_exc_t) {
+name_string_t string_to_name(const std::string &s) THROWS_ONLY(admin_cluster_exc_t) {
     name_string_t ret;
     if (!ret.assign_value(s)) {
         throw admin_cluster_exc_t("invalid name: " + s);
     }
-    assignee = ret;
+    return ret;
 }
 
 
@@ -2307,7 +2310,7 @@ void admin_cluster_link_t::do_admin_set_name_internal(
         std::map<uuid_u, deletable_t<T> > *obj_map) {
     auto i = obj_map->find(id);
     if (i != obj_map->end() && !i->second.is_deleted() && !i->second.get_ref().name.in_conflict()) {
-        do_assign_string_to_name(i->second.get_mutable()->name.get_mutable(), name);
+        i->second.get_mutable()->name.get_mutable() = string_to_name(name);
         i->second.get_mutable()->name.upgrade_version(change_request_id);
     } else {
         throw admin_cluster_exc_t("unexpected error, object not found: " + uuid_to_str(id));
@@ -2476,7 +2479,7 @@ void admin_cluster_link_t::do_admin_set_replicas(const admin_command_parser_t::c
 
     if (ns_info->path[0] == "rdb_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t>::change_t change(&cluster_metadata.rdb_namespaces);
-        do_admin_set_replicas_internal(ns_info->uuid, dc_id, num_replicas, change.get()->namespaces);
+        do_admin_set_replicas_internal(ns_info->uuid, dc_id, num_replicas, &change.get()->namespaces);
 
     } else {
         throw admin_parse_exc_t(guarantee_param_0(data.params, "table") + " is not a table");  // TODO(sam): Check if this function body is copy/paste'd.
@@ -2489,10 +2492,10 @@ void admin_cluster_link_t::do_admin_set_replicas_internal(
         const namespace_id_t& ns_id,
         const datacenter_id_t& dc_id,
         int num_replicas,
-        std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > &ns_map) {
-    auto ns_iter = ns_map.find(ns_id);
+        std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > *ns_map) {
+    auto ns_iter = ns_map->find(ns_id);
 
-    if (ns_iter == ns_map.end()) {
+    if (ns_iter == ns_map->end()) {
         throw admin_parse_exc_t("unexpected error, table not found");
     } else if (ns_iter->second.is_deleted()) {
         throw admin_cluster_exc_t("unexpected error, table has been deleted");

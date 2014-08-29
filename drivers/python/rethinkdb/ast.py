@@ -786,6 +786,9 @@ class Default(RqlMethodQuery):
 class ImplicitVar(RqlQuery):
     tt = pTerm.IMPLICIT_VAR
 
+    def __call__(self, *args, **kwargs):
+        raise TypeError("'r.row' is not callable, use 'r.row[...]' instead")
+
     def compose(self, args, optargs):
         return 'r.row'
 

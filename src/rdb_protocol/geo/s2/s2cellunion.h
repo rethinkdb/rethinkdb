@@ -4,7 +4,6 @@
 #define UTIL_GEOMETRY_S2CELLUNION_H_
 
 #include <vector>
-using std::vector;
 
 #include "rdb_protocol/geo/s2/base/integral_types.h"
 #include "rdb_protocol/geo/s2/base/logging.h"
@@ -12,6 +11,9 @@ using std::vector;
 #include "rdb_protocol/geo/s2/s2region.h"
 #include "rdb_protocol/geo/s2/s2cellid.h"
 #include "utils.hpp"
+
+namespace geo {
+using std::vector;
 
 class S1Angle;
 class S2Cell;
@@ -204,5 +206,7 @@ class S2CellUnion : public S2Region {
 
 // Return true if two cell unions are identical.
 bool operator==(S2CellUnion const& x, S2CellUnion const& y);
+
+}  // namespace geo
 
 #endif  // UTIL_GEOMETRY_S2CELLUNION_H_

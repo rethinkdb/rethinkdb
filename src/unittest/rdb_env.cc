@@ -419,4 +419,4 @@ bool test_rdb_env_t::instance_t::table_find(const name_string_t &name,
     }
 }
 
-}
+}  // namespace unittest

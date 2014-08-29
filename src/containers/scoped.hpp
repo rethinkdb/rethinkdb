@@ -282,7 +282,7 @@ public:
     }
 
 private:
-    void swap(scoped_malloc_t &other) noexcept {  // NOLINT
+    void swap(scoped_malloc_t &other) noexcept {
         T *tmp = ptr_;
         ptr_ = other.ptr_;
         other.ptr_ = tmp;

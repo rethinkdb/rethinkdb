@@ -4,19 +4,19 @@
 #define UTIL_GEOMETRY_S2REGION_COVERER_H_
 
 #include <queue>
-using std::priority_queue;
-
 #include <utility>
-using std::pair;
-using std::make_pair;
-
 #include <vector>
-using std::vector;
 
 #include "rdb_protocol/geo/s2/base/macros.h"
 #include "rdb_protocol/geo/s2/base/scoped_ptr.h"
 #include "rdb_protocol/geo/s2/s2cell.h"
 #include "rdb_protocol/geo/s2/s2cellid.h"
+
+namespace geo {
+using std::priority_queue;
+using std::pair;
+using std::make_pair;
+using std::vector;
 
 class S2CellUnion;
 
@@ -205,5 +205,7 @@ class S2RegionCoverer {
 
   DISALLOW_EVIL_CONSTRUCTORS(S2RegionCoverer);
 };
+
+}  // namespace geo
 
 #endif  // UTIL_GEOMETRY_S2REGION_COVERER_H_

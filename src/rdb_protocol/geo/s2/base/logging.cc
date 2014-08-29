@@ -16,6 +16,8 @@
 
 #include "rdb_protocol/geo/s2/base/logging.h"
 
+namespace geo {
+
 namespace google_base {
 DateLogger::DateLogger() {
 #if defined(_MSC_VER)
@@ -36,3 +38,5 @@ const char *DateLogger::HumanDate() {
   return buffer_;
 }
 }  // namespace google_base
+
+}  // namespace geo

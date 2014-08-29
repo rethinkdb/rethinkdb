@@ -1,21 +1,10 @@
 // Copyright 2005 Google Inc. All Rights Reserved.
 
 #include <algorithm>
-using std::min;
-using std::max;
-using std::swap;
-using std::reverse;
-
 #include <unordered_map>
-using std::unordered_map;
-
+#include <unordered_set>
 #include <set>
-using std::set;
-using std::multiset;
-
 #include <vector>
-using std::vector;
-
 
 #include "rdb_protocol/geo/s2/s2polygon.h"
 
@@ -29,6 +18,17 @@ using std::vector;
 #include "rdb_protocol/geo/s2/s2polygonbuilder.h"
 #include "rdb_protocol/geo/s2/s2polyline.h"
 #include "utils.hpp"
+
+namespace geo {
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
+using std::unordered_map;
+using std::set;
+using std::multiset;
+using std::vector;
+
 
 #ifdef NDEBUG
 const bool FLAGS_s2debug = false;
@@ -111,18 +111,18 @@ S2Polygon::~S2Polygon() {
 
 typedef pair<S2Point, S2Point> S2PointPair;
 
-#include<unordered_set>
+}  // namespace geo
 
 namespace std {
-template<> struct hash<S2PointPair> {
-  size_t operator()(S2PointPair const& p) const {
-    hash<S2Point> h;
+template<> struct hash<geo::S2PointPair> {
+  size_t operator()(geo::S2PointPair const& p) const {
+    hash<geo::S2Point> h;
     return h(p.first) + (h(p.second) << 1);
   }
 };
 }
 
-
+namespace geo {
 
 bool S2Polygon::IsValid(const vector<S2Loop*>& loops) {
   // If a loop contains an edge AB, then no other loop may contain AB or BA.
@@ -1203,3 +1203,5 @@ S2Point S2Polygon::Project(S2Point const& point) const {
 
   return closest_point;
 }
+
+}  // namespace geo

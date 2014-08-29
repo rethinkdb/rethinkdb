@@ -7,6 +7,8 @@
 #include "rdb_protocol/geo/s2/s2cell.h"
 #include "rdb_protocol/geo/s2/s2latlngrect.h"
 
+namespace geo {
+
 static const unsigned char kCurrentEncodingVersionNumber = 1;
 
 S2PointRegion::~S2PointRegion() {
@@ -50,3 +52,5 @@ bool S2PointRegion::Decode(Decoder* decoder) {
 
   return decoder->avail() >= 0;
 }
+
+}  // namespace geo

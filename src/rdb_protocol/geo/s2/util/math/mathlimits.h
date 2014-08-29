@@ -20,6 +20,8 @@
 #include "rdb_protocol/geo/s2/base/basictypes.h"
 #include "utils.hpp"
 
+namespace geo {
+
 // ========================================================================= //
 
 // Useful integer and floating point limits and type traits.
@@ -236,5 +238,7 @@ DECL_FP_LIMITS(long double, LDBL)
 #undef DECL_FP_LIMIT_FUNCS
 
 // ========================================================================= //
+
+}  // namespace geo
 
 #endif  // UTIL_MATH_MATHLIMITS_H__

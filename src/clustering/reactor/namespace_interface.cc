@@ -87,7 +87,7 @@ void cluster_namespace_interface_t::dispatch_immediate_op(
     /* `how_to_make_token` and `how_to_run_query` have type pointer-to-
        member-function. */
     void (master_access_t::*how_to_make_token)(
-        fifo_enforcer_token_type *),  // NOLINT
+        fifo_enforcer_token_type *),
     void (master_access_t::*how_to_run_query)(
         const op_type &,
         op_response_type *,

@@ -91,7 +91,7 @@ public:
 
     void reset(T *other) {
         counted_t tmp(other);
-        swap(tmp);  // NOLINT
+        swap(tmp);
     }
 
     T *operator->() const {

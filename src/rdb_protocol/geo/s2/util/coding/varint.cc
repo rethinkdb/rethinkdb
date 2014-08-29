@@ -4,6 +4,8 @@
 
 #include "rdb_protocol/geo/s2/util/coding/varint.h"
 
+namespace geo {
+
 #ifndef COMPILER_MSVC
 const int Varint::kMax32;
 const int Varint::kMax64;
@@ -263,3 +265,5 @@ int Varint::Length64(uint64 v) {
   }
   return nb + Varint::Length32(tmp);
 }
+
+}  // namespace geo

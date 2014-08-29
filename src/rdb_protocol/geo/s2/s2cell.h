@@ -11,6 +11,8 @@
 #include "rdb_protocol/geo/s2/util/math/vector2.h"
 #include "utils.hpp"
 
+namespace geo {
+
 // An S2Cell is an S2Region object that represents a cell.  Unlike S2CellIds,
 // it supports efficient containment and intersection tests.  However, it is
 // also a more expensive representation (currently 48 bytes rather than 8).
@@ -140,5 +142,7 @@ inline int S2Cell::GetSizeIJ() const {
 inline double S2Cell::GetSizeST() const {
   return S2CellId::GetSizeST(level());
 }
+
+}  // namespace geo
 
 #endif  // UTIL_GEOMETRY_S2CELL_H_

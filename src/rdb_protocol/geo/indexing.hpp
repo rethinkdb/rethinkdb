@@ -69,13 +69,15 @@ protected:
 
 private:
     static bool cell_intersects_with_range(
-            const S2CellId c, const S2CellId left_min, const S2CellId right_max);
+            const geo::S2CellId c,
+            const geo::S2CellId left_min,
+            const geo::S2CellId right_max);
     bool any_query_cell_intersects(const btree_key_t *left_excl,
                                    const btree_key_t *right_incl);
-    bool any_query_cell_intersects(const S2CellId left_min,
-                                   const S2CellId right_max);
+    bool any_query_cell_intersects(const geo::S2CellId left_min,
+                                   const geo::S2CellId right_max);
 
-    std::vector<S2CellId> query_cells_;
+    std::vector<geo::S2CellId> query_cells_;
     bool abort_;
     bool is_initialized_;
 };
