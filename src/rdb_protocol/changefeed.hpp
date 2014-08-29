@@ -15,6 +15,7 @@
 #include "concurrency/rwlock.hpp"
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
+#include "btree/keys.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/datum.hpp"
@@ -86,6 +87,16 @@ struct keyspec_t {
         range_t(datum_range_t _range) : range(std::move(_range)) { }
         datum_range_t range;
     };
+    struct limit_t {
+        limit_t() { }
+        limit_t(range_t _range, std::string _sindex, sorting_t _sorting, size_t _limit)
+            : range(std::move(_range)), sindex(std::move(_sindex)),
+              sorting(_sorting), limit(_limit) { }
+        range_t range;
+        std::string sindex;
+        sorting_t sorting;
+        size_t limit;
+    };
     struct point_t {
         point_t() { }
         explicit point_t(counted_t<const datum_t> _key) : key(std::move(_key)) { }
@@ -94,6 +105,7 @@ struct keyspec_t {
 
     keyspec_t(keyspec_t &&keyspec) = default;
     explicit keyspec_t(range_t &&range) : spec(std::move(range)) { }
+    explicit keyspec_t(limit_t &&limit) : spec(std::move(limit)) { }
     explicit keyspec_t(point_t &&point) : spec(std::move(point)) { }
 
     // This needs to be copyable and assignable because it goes inside a
@@ -101,13 +113,14 @@ struct keyspec_t {
     keyspec_t(const keyspec_t &keyspec) = default;
     keyspec_t &operator=(const keyspec_t &) = default;
 
-    boost::variant<range_t, point_t> spec;
+    boost::variant<range_t, limit_t, point_t> spec;
 private:
     keyspec_t() { }
 };
 region_t keyspec_to_region(const keyspec_t &keyspec);
 
 RDB_DECLARE_SERIALIZABLE(keyspec_t::range_t);
+RDB_DECLARE_SERIALIZABLE(keyspec_t::limit_t);
 RDB_DECLARE_SERIALIZABLE(keyspec_t::point_t);
 RDB_DECLARE_SERIALIZABLE(keyspec_t);
 

@@ -939,8 +939,11 @@ client_t::new_feed(env_t *env,
 
             struct keyspec_visitor_t : public boost::static_visitor<subscription_t *> {
                 explicit keyspec_visitor_t(feed_t *_feed) : feed(_feed) { }
-                subscription_t * operator()(const keyspec_t::range_t &all) const {
-                    return new range_sub_t(feed, all);
+                subscription_t * operator()(const keyspec_t::range_t &range) const {
+                    return new range_sub_t(feed, range);
+                }
+                subscription_t * operator()(const keyspec_t::limit_t &limit) const {
+                    return new limit_sub_t(feed, limit_term_t);
                 }
                 subscription_t * operator()(const keyspec_t::point_t &point) const {
                     return new point_sub_t(feed, point.key);
@@ -958,6 +961,11 @@ client_t::new_feed(env_t *env,
                     table_name.c_str(), e.what());
     }
 }
+
+// class limit_sub_t : public subscription_t {
+
+//     std::map<uuid_u, std::map<store_key_t, counted_t<const datum_t> > >
+// }
 
 void client_t::maybe_remove_feed(const uuid_u &uuid) {
     assert_thread();
