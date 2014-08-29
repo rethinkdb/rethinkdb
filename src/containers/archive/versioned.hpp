@@ -15,7 +15,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(cluster_version_t, int8_t,
 
 class bogus_made_up_type_t;
 
-}  // namespace archive_details
+}  // namespace archive_internal
 
 // These are generally universal.  They must not have their behavior change -- except
 // if we remove some cluster_version_t value, in which case... maybe would fail on a

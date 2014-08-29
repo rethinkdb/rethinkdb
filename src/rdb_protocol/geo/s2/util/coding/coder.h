@@ -8,15 +8,18 @@
 #define UTIL_CODING_CODER_H__
 
 #include <algorithm>
+
+#include "rdb_protocol/geo/s2/util/coding/varint.h"
+#include "rdb_protocol/geo/s2/base/logging.h"
+#include "rdb_protocol/geo/s2/base/port.h"
+#include "rdb_protocol/geo/s2/util/endian/endian.h"
+
+namespace geo {
 using std::min;
 using std::max;
 using std::swap;
 using std::reverse;
         // for min
-#include "rdb_protocol/geo/s2/util/coding/varint.h"
-#include "rdb_protocol/geo/s2/base/logging.h"
-#include "rdb_protocol/geo/s2/base/port.h"
-#include "rdb_protocol/geo/s2/util/endian/endian.h"
 
 /* Class for encoding data into a memory buffer */
 class Encoder {
@@ -440,5 +443,7 @@ inline double Decoder::getdouble() {
   memcpy(&d, &v, sizeof(d));
   return d;
 }
+
+}  // namespace geo
 
 #endif  // UTIL_CODING_CODER_H__

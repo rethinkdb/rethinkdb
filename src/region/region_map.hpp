@@ -49,13 +49,17 @@ public:
         return join;
     }
 
-    const_iterator begin() const {
-        return regions_and_values.begin();
+    const_iterator cbegin() const {
+        return regions_and_values.cbegin();
     }
 
-    const_iterator end() const {
-        return regions_and_values.end();
+    const_iterator cend() const {
+        return regions_and_values.cend();
     }
+
+    const_iterator begin() const { return cbegin(); }
+
+    const_iterator end() const { return cend(); }
 
     iterator begin() {
         return regions_and_values.begin();

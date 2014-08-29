@@ -22,8 +22,10 @@
 #include "rdb_protocol/geo/s2/base/macros.h"
 #include "clustering/administration/logger.hpp"
 
+namespace geo {
+
 // Always-on checking
-#define CHECK(x)	if(x){}else LogMessageFatal(__FILE__, __LINE__).stream() << "Check failed: " #x
+#define CHECK(x)	if(x){}else ::geo::LogMessageFatal(__FILE__, __LINE__).stream() << "Check failed: " #x
 #define CHECK_LT(x, y)	CHECK((x) < (y))
 #define CHECK_GT(x, y)	CHECK((x) > (y))
 #define CHECK_LE(x, y)	CHECK((x) <= (y))
@@ -116,5 +118,7 @@ class LogMessageFatal : public LogMessage {
  private:
   DISALLOW_COPY_AND_ASSIGN(LogMessageFatal);
 };
+
+}  // namespace geo
 
 #endif  // BASE_LOGGING_H

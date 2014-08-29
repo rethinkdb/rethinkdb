@@ -4,12 +4,14 @@
 #define UTIL_GEOMETRY_S2LATLNG_H__
 
 #include <string>
-
 #include <ostream>
+
 #include "rdb_protocol/geo/s2/base/basictypes.h"
 #include "rdb_protocol/geo/s2/s1angle.h"
 #include "rdb_protocol/geo/s2/s2.h"
 #include "rdb_protocol/geo/s2/util/math/vector2-inl.h"
+
+namespace geo {
 
 // This class represents a point on the unit sphere as a pair
 // of latitude-longitude coordinates.  Like the rest of the "geometry"
@@ -185,5 +187,7 @@ inline S2LatLng operator*(S2LatLng const& a, double m) {
 }
 
 ostream& operator<<(ostream& os, S2LatLng const& ll);
+
+}  // namespace geo
 
 #endif  // UTIL_GEOMETRY_S2LATLNG_H__

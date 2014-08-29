@@ -24,6 +24,7 @@
 #include "unittest/gtest.hpp"
 #include "utils.hpp"
 
+using geo::S2Point;
 using ql::datum_t;
 
 namespace unittest {
