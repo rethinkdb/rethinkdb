@@ -15,6 +15,9 @@
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/terms/terms.hpp"
 
+using geo::S2Point;
+using geo::S2Polygon;
+
 namespace ql {
 
 /* A term type for geo queries. The only difference to op_term_t is that it catches

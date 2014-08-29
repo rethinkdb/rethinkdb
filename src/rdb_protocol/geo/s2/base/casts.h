@@ -17,6 +17,8 @@
 
 #include "rdb_protocol/geo/s2/base/macros.h"
 
+namespace geo {
+
 
 // Use implicit_cast as a safe version of static_cast or const_cast
 // for upcasting in the type hierarchy (i.e. casting a pointer to Foo
@@ -392,5 +394,7 @@ inline Enum tight_enum_cast(int e_val) {
   }
   return static_cast<Enum>(e_val);
 }
+
+}  // namespace geo
 
 #endif  // BASE_CASTS_H_

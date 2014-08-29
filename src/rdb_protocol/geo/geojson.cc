@@ -19,6 +19,14 @@
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/pseudo_geometry.hpp"
 
+using geo::S1Angle;
+using geo::S2Point;
+using geo::S2Polygon;
+using geo::S2PolygonBuilder;
+using geo::S2PolygonBuilderOptions;
+using geo::S2Polyline;
+using geo::S2LatLng;
+using geo::S2Loop;
 using ql::datum_t;
 using ql::datum_object_builder_t;
 using ql::configured_limits_t;

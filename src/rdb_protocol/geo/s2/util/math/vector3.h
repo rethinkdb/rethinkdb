@@ -10,11 +10,13 @@
 #define UTIL_MATH_VECTOR3_H__
 
 #include <iostream>
+
+#include "rdb_protocol/geo/s2/base/basictypes.h"
+
+namespace geo {
 using std::ostream;
 using std::cout;
 using std::endl;
-
-#include "rdb_protocol/geo/s2/base/basictypes.h"
 
 template <typename VType> class Vector3;
 // TODO(user): Look into creating conversion operators to remove the
@@ -178,12 +180,14 @@ Vector3<VType> Min(const Vector3<VType> &v1, const Vector3<VType> &v2);
 // debug printing
 template <typename VType>
 std::ostream &operator <<(std::ostream &out,
-                          const Vector3<VType> &va);
+                            const Vector3<VType> &va);
 
 // TODO(user): Declare extern templates for these types.
 typedef Vector3<uint8>  Vector3_b;
 typedef Vector3<int>    Vector3_i;
 typedef Vector3<float>  Vector3_f;
 typedef Vector3<double> Vector3_d;
+
+}  // namespace geo
 
 #endif  // UTIL_MATH_VECTOR3_H__

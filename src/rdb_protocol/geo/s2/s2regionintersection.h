@@ -4,13 +4,15 @@
 #define UTIL_GEOMETRY_S2REGIONINTERSECTION_H__
 
 #include <vector>
-using std::vector;
 
 #include "rdb_protocol/geo/s2/base/basictypes.h"
 #include "rdb_protocol/geo/s2/base/logging.h"
 #include "rdb_protocol/geo/s2/base/macros.h"
 #include "rdb_protocol/geo/s2/s2region.h"
 #include "utils.hpp"
+
+namespace geo {
+using std::vector;
 
 class S2Cap;
 class S2Cell;
@@ -66,5 +68,7 @@ class S2RegionIntersection : public S2Region {
 
   DISALLOW_EVIL_CONSTRUCTORS(S2RegionIntersection);
 };
+
+}  // namespace geo
 
 #endif  // UTIL_GEOMETRY_S2REGIONINTERSECTION_H__

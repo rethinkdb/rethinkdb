@@ -10,11 +10,13 @@
 #define UTIL_MATH_VECTOR2_H__
 
 #include <iostream>
+
+#include "rdb_protocol/geo/s2/base/basictypes.h"
+
+namespace geo {
 using std::ostream;
 using std::cout;
 using std::endl;
-
-#include "rdb_protocol/geo/s2/base/basictypes.h"
 
 template <typename VType> class Vector2;
 
@@ -178,12 +180,14 @@ Vector2<VType2> Min(const Vector2<VType2> &v1, const Vector2<VType2> &v2);
 // debug printing
 template <typename VType2>
 std::ostream &operator <<(std::ostream &out,
-                          const Vector2<VType2> &va);
+                            const Vector2<VType2> &va);
 
 // TODO(user): Declare extern templates for these types.
 typedef Vector2<uint8>  Vector2_b;
 typedef Vector2<int>    Vector2_i;
 typedef Vector2<float>  Vector2_f;
 typedef Vector2<double> Vector2_d;
+
+}  // namespace geo
 
 #endif  // UTIL_MATH_VECTOR2_H__

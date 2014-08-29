@@ -607,9 +607,8 @@ typedef unsigned int uint;
 // VC++ 6 and before ship without an ostream << operator for 64-bit ints
 #if (_MSC_VER <= 1200)
 #include <iosfwd>
-using std::ostream;
 
-inline ostream& operator<< (ostream& os, const unsigned __int64& num ) {
+inline ostream& operator<< (std::ostream& os, const unsigned __int64& num ) {
   // Fake operator; doesn't actually do anything.
   LOG(FATAL) << "64-bit ostream operator << not supported in VC++ 6";
   return os;
@@ -740,14 +739,9 @@ typedef void (*sig_t)(int);
 
 
 #include <utility>
-using std::pair;
-using std::make_pair;
-
 #include <vector>
-using std::vector;
 
-
-typedef vector<pair<const char*, const char*> > KeyValVec;
+typedef std::vector<std::pair<const char*, const char*> > KeyValVec;
 
 //
 // Really from <string.h>
@@ -855,6 +849,8 @@ struct PortableHashBase { };
 // These functions are provided for architectures that don't support
 // unaligned loads and stores.
 
+namespace geo {
+
 inline uint16 UNALIGNED_LOAD16(const void *p) {
   uint16 t;
   memcpy(&t, p, sizeof t);
@@ -885,6 +881,7 @@ inline void UNALIGNED_STORE64(void *p, uint64 v) {
   memcpy(p, &v, sizeof v);
 }
 
+}  // namespace geo
 #endif
 
 #ifdef _LP64
@@ -930,7 +927,6 @@ inline void UNALIGNED_STORE64(void *p, uint64 v) {
 
 #ifdef PTHREADS_REDHAT_WIN32
 #include <iosfwd>
-using std::ostream;
 
 #include <pthread.h>
 // pthread_t is not a simple integer or pointer on Win32

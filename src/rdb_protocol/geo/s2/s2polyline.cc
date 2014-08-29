@@ -1,11 +1,7 @@
 // Copyright 2005 Google Inc. All Rights Reserved.
 
 #include <set>
-using std::set;
-using std::multiset;
-
 #include <vector>
-using std::vector;
 
 #include "rdb_protocol/geo/s2/base/logging.h"
 #include "rdb_protocol/geo/s2/util/math/matrix3x3-inl.h"
@@ -16,6 +12,11 @@ using std::vector;
 #include "rdb_protocol/geo/s2/s2cell.h"
 #include "rdb_protocol/geo/s2/s2latlng.h"
 #include "rdb_protocol/geo/s2/s2edgeutil.h"
+
+namespace geo {
+using std::set;
+using std::multiset;
+using std::vector;
 
 #ifdef NDEBUG
 const bool FLAGS_s2debug = false;
@@ -465,12 +466,14 @@ struct SearchState {
 };
 }  // namespace
 
+}  // namespace geo
+
 namespace std {
 template<>
-struct less<SearchState> {
+struct less<geo::SearchState> {
   // This operator is needed for storing SearchStates in a set.  The ordering
   // chosen has no special meaning.
-  inline bool operator()(SearchState const& lhs, SearchState const& rhs) const {
+  inline bool operator()(geo::SearchState const& lhs, geo::SearchState const& rhs) const {
     if (lhs.i < rhs.i) return true;
     if (lhs.i > rhs.i) return false;
     if (lhs.j < rhs.j) return true;
@@ -479,6 +482,8 @@ struct less<SearchState> {
   }
 };
 }  // namespace std
+
+namespace geo {
 
 bool S2Polyline::NearlyCoversPolyline(S2Polyline const& covered,
                                       S1Angle const& max_error) const {
@@ -577,3 +582,5 @@ bool S2Polyline::NearlyCoversPolyline(S2Polyline const& covered,
   }
   return false;
 }
+
+}  // namespace geo

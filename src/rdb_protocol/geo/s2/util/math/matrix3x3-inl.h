@@ -19,16 +19,17 @@
 #ifndef UTIL_MATH_MATRIX3X3_INL_H__
 #define UTIL_MATH_MATRIX3X3_INL_H__
 #include <iostream>
-using std::ostream;
-using std::cout;
-using std::endl;
-
 
 #include "rdb_protocol/geo/s2/util/math/mathutil.h"
 #include "rdb_protocol/geo/s2/util/math/vector3-inl.h"
 #include "rdb_protocol/geo/s2/util/math/matrix3x3.h"
 #include "rdb_protocol/geo/s2/base/basictypes.h"
 #include "rdb_protocol/geo/s2/base/logging.h"
+
+namespace geo {
+using std::ostream;
+using std::cout;
+using std::endl;
 
 template <class VType>
 class Matrix3x3 {
@@ -572,5 +573,7 @@ class Matrix3x3 {
 // POD type even when T is a POD. Pretending that Matrix3x3<T> is a POD
 // probably won't cause immediate problems, but eventually this should be fixed.
 PROPAGATE_POD_FROM_TEMPLATE_ARGUMENT(Matrix3x3);
+
+}  // namespace geo
 
 #endif  // UTIL_MATH_MATRIX3X3_INL_H__

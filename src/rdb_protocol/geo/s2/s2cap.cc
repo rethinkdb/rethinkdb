@@ -7,6 +7,8 @@
 #include "rdb_protocol/geo/s2/s2cell.h"
 #include "rdb_protocol/geo/s2/s2latlngrect.h"
 
+namespace geo {
+
 namespace {
 
 // Multiply a positive number by this constant to ensure that the result
@@ -260,3 +262,4 @@ bool S2Cap::ApproxEquals(S2Cap const& other, double max_error) {
 ostream& operator<<(ostream& os, S2Cap const& cap) {
   return os << "[Axis=" << cap.axis() << ", Angle=" << cap.angle() << "]";
 }
+}  // namespace geo

@@ -9,6 +9,8 @@
 #include "rdb_protocol/geo/s2/s2region.h"
 #include "utils.hpp"
 
+namespace geo {
+
 // This class represents a spherical cap, i.e. a portion of a sphere cut off
 // by a plane.  The cap is defined by its axis and height.  This
 // representation has good numerical accuracy for very small caps (unlike the
@@ -172,5 +174,6 @@ inline S2Cap S2Cap::FromAxisArea(S2Point const& axis, double area) {
 }
 
 ostream& operator<<(ostream& os, S2Cap const& cap);
+}  // namespace geo
 
 #endif  // UTIL_GEOMETRY_S2CAP_H_

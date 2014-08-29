@@ -6,12 +6,14 @@
 #define BASE_INT128_H_
 
 #include <iostream>
-using std::ostream;
-using std::cout;
-using std::endl;
 
 #include "rdb_protocol/geo/s2/base/integral_types.h"
 #include "rdb_protocol/geo/s2/base/logging.h"
+
+namespace geo {
+using std::ostream;
+using std::cout;
+using std::endl;
 
 // An unsigned 128-bit integer type. Thread-compatible.
 class uint128 {
@@ -235,5 +237,7 @@ inline uint128 uint128::operator--() {
   *this -= 1;
   return *this;
 }
+
+}  // namespace geo
 
 #endif  // BASE_INT128_H_

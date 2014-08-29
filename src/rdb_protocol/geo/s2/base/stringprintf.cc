@@ -2,11 +2,14 @@
 
 #include <stdarg.h> // For va_list and related operations
 #include <stdio.h> // MSVC requires this for _vsnprintf
+
 #include <vector>
-using std::vector;
 
 #include "rdb_protocol/geo/s2/base/stringprintf.h"
 #include "rdb_protocol/geo/s2/base/logging.h"
+
+namespace geo {
+using std::vector;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
@@ -80,3 +83,5 @@ void StringAppendF(std::string* dst, const char* format, ...) {
   StringAppendV(dst, format, ap);
   va_end(ap);
 }
+
+}  // namespace geo

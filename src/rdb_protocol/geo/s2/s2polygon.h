@@ -4,12 +4,7 @@
 #define UTIL_GEOMETRY_S2POLYGON_H_
 
 #include <map>
-using std::map;
-using std::multimap;
-
 #include <vector>
-using std::vector;
-
 
 #include "rdb_protocol/geo/s2/base/basictypes.h"
 #include "rdb_protocol/geo/s2/base/macros.h"
@@ -17,6 +12,11 @@ using std::vector;
 #include "rdb_protocol/geo/s2/s2region.h"
 #include "rdb_protocol/geo/s2/s2loop.h"
 #include "rdb_protocol/geo/s2/s2polyline.h"
+
+namespace geo {
+using std::map;
+using std::multimap;
+using std::vector;
 
 class S2CellUnion;
 
@@ -306,5 +306,7 @@ class S2Polygon : public S2Region {
 
   DISALLOW_EVIL_CONSTRUCTORS(S2Polygon);
 };
+
+}  // namespace geo
 
 #endif  // UTIL_GEOMETRY_S2POLYGON_H_
