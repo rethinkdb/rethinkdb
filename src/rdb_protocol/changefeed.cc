@@ -182,8 +182,12 @@ public:
     virtual ~subscription_t();
     std::vector<counted_t<const datum_t> >
     get_els(batcher_t *batcher, const signal_t *interruptor);
-    virtual void add_el(const uuid_u &uuid, uint64_t stamp, counted_t<const datum_t> d,
-                        const configured_limits_t &limits) = 0;
+    virtual void add_el(
+        const uuid_u &uuid,
+        uint64_t stamp,
+        const counted_t<const datum_t> &pkey_val,
+        counted_t<const datum_t> d,
+        const configured_limits_t &limits) = 0;
     virtual void start(env_t *env, namespace_interface_t *nif,
                        client_t::addr_t *addr) = 0;
     void stop(const std::string &msg, detach_t should_detach);
@@ -323,16 +327,20 @@ public:
         }
     }
 private:
-    virtual void add_el(const uuid_u &, uint64_t d_stamp, counted_t<const datum_t> d,
+    virtual void add_el(const uuid_u &,
+                        uint64_t d_stamp,
+                        const counted_t<const datum_t> &pkey_val,
+                        counted_t<const datum_t> d,
                         const configured_limits_t &) {
         assert_thread();
+        rassert(*pkey_val == *key);
         // We use `>=` because we might have the same stamp as the start stamp
         // (the start stamp reads the stamp non-destructively on the shards).
         // We do ordering and duplicate checking in the layer above, so apart
         // from that we have a strict ordering.
         if (d_stamp >= stamp) {
             stamp = d_stamp;
-            el = d;
+            el = std::move(d);
             maybe_signal_cond();
         }
     }
@@ -372,21 +380,25 @@ public:
         guarantee(start_stamps.size() != 0);
     }
 private:
-    virtual void add_el(const uuid_u &uuid, uint64_t stamp, counted_t<const datum_t> d,
+    virtual void add_el(const uuid_u &uuid,
+                        uint64_t stamp,
+                        const counted_t<const datum_t> &pkey_val,
+                        counted_t<const datum_t> d,
                         const configured_limits_t &limits) {
-        // RSI: check whether in range.
-        // If we don't have start timestamps, we haven't started, and if we have
-        // exc, we've stopped.
-        if (start_stamps.size() != 0 && !exc) {
-            auto it = start_stamps.find(uuid);
-            guarantee(it != start_stamps.end());
-            if (stamp >= it->second) {
-                els.push_back(std::move(d));
-                if (els.size() > limits.array_size_limit()) {
-                    skipped += els.size();
-                    els.clear();
+        if (spec.range.contains(reql_version_t::LATEST, pkey_val)) {
+            // If we don't have start timestamps, we haven't started, and if we have
+            // exc, we've stopped.
+            if (start_stamps.size() != 0 && !exc) {
+                auto it = start_stamps.find(uuid);
+                guarantee(it != start_stamps.end());
+                if (stamp >= it->second) {
+                    els.push_back(std::move(d));
+                    if (els.size() > limits.array_size_limit()) {
+                        skipped += els.size();
+                        els.clear();
+                    }
+                    maybe_signal_cond();
                 }
-                maybe_signal_cond();
             }
         }
     }
@@ -417,23 +429,26 @@ public:
             {"new_val", change.new_val.has() ? change.new_val : null},
             {"old_val", change.old_val.has() ? change.old_val : null}
         };
-        auto d = make_counted<const datum_t>(std::move(obj));
+        auto val = change.new_val.has() ? change.new_val : change.old_val;
+        r_sanity_check(val.has());
+        auto pkey_val = val->get(feed->pkey, NOTHROW);
+        r_sanity_check(pkey_val.has());
+
         feed->each_range_sub(
             std::bind(&subscription_t::add_el,
                       ph::_1,
                       std::cref(server_uuid),
                       stamp,
-                      d, default_limits));
-        auto val = change.new_val.has() ? change.new_val : change.old_val;
-        r_sanity_check(val.has());
-        auto pkey_val = val->get(feed->pkey, NOTHROW);
-        r_sanity_check(pkey_val.has());
+                      std::cref(pkey_val),
+                      make_counted<const datum_t>(std::move(obj)),
+                      default_limits));
         feed->on_point_sub(
             pkey_val,
             std::bind(&subscription_t::add_el,
                       ph::_1,
                       std::cref(server_uuid),
                       stamp,
+                      std::cref(pkey_val),
                       change.new_val.has() ? change.new_val : datum_t::null(),
                       default_limits));
     }
@@ -884,11 +899,13 @@ client_t::client_t(
 }
 client_t::~client_t() { }
 
-// RSI: make `range_t` work.
 counted_t<datum_stream_t>
-client_t::new_feed(env_t *env, const namespace_id_t &uuid,
-        const protob_t<const Backtrace> &bt, const std::string &table_name,
-        const std::string &pkey, keyspec_t &&keyspec) {
+client_t::new_feed(env_t *env,
+                   const namespace_id_t &uuid,
+                   const protob_t<const Backtrace> &bt,
+                   const std::string &table_name,
+                   const std::string &pkey,
+                   keyspec_t &&keyspec) {
     try {
         scoped_ptr_t<subscription_t> sub;
         boost::variant<scoped_ptr_t<range_sub_t>, scoped_ptr_t<point_sub_t> > presub;
