@@ -440,10 +440,12 @@ class RDBOp extends RDBVal
             res.push(opts)
         res
 
+    # a class that extends RDBOp should have a property `st` or `mt` depending on
+    # how the term should be printed (see `compose` below)
     compose: (args, optargs) ->
         if @st
             return ['r.', @st, '(', intspallargs(args, optargs), ')']
-        else
+        else # @mt is defined
             if shouldWrap(@args[0])
                 args[0] = ['r(', args[0], ')']
             return [args[0], '.', @mt, '(', intspallargs(args[1..], optargs), ')']
