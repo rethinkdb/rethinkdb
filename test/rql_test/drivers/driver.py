@@ -370,8 +370,6 @@ def setup_table(table_variable_name):
         globals()[table_variable_name] = r.db("test").table("test")
     else:
         db, table = DB_AND_TABLE_NAME.split(".")
-        res = r.db(db).table(table).delete().run(driver.cpp_conn)
-        assert res["errors"] == 0
         globals()[table_variable_name] = r.db(db).table(table)
 
 def check_no_table_specified():
@@ -382,6 +380,13 @@ def teardown_table():
     if DB_AND_TABLE_NAME == "no_table_specified":
         res = r.db("test").table_drop("test").run(driver.cpp_conn)
         assert res == {"dropped": 1}
+    else:
+        db, table = DB_AND_TABLE_NAME.split(".")
+        res = r.db(db).table(table).delete().run(driver.cpp_conn)
+        assert res["errors"] == 0
+        res = r.db(db).table(table).index_list().for_each(
+            r.db(db).table(table).index_drop(r.row)).run(driver.cpp_conn)
+        assert "errors" not in res or res["errors"] == 0
 
 def define(expr):
     driver.define(expr)

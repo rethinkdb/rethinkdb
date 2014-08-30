@@ -428,17 +428,8 @@ function setup_table(name) {
                 });
             } else {
                 var parts = DB_AND_TABLE_NAME.split(".");
-                // erase any data left in the table from earlier tests
-                r.db(parts[0]).table(parts[1]).delete().run(cpp_conn, {}, function(err, res) {
-                    if (err) {
-                        unexpectedException("setup_table", err);
-                    }
-                    if (res.errors !== 0) {
-                        unexpectedException("setup_table", "error when deleting", res);
-                    }
-                    defines[name] = r.db(parts[0]).table(parts[1]);
-                    next();
-                });
+                defines[name] = r.db(parts[0]).table(parts[1]);
+                next();
             }
         } catch (err) {
             console.log("stack: " + String(err.stack));
@@ -471,7 +462,36 @@ function teardown_table() {
                 unexpectedException("teardown_table");
             }
         } else {
-            next();
+            var parts = DB_AND_TABLE_NAME.split(".");
+            try {
+                r.db(parts[0]).table(parts[1]).delete().run(cpp_conn, {}, function(err, res) {
+                    if (err) {
+                        unexpectedException("teardown_table", err);
+                    }
+                    if (res.errors !== 0) {
+                        unexpectedException("teardown_table", "error when deleting", res);
+                    }
+                    try {
+                        r.db(parts[0]).table(parts[1]).indexList().forEach(
+                                r.db(parts[0]).table(parts[1]).indexDrop(r.row))
+                            .run(cpp_conn, {}, function(err, res) {
+                                if (err) {
+                                    unexpectedException("teardown_table", err);
+                                }
+                                if (res.errors !== undefined && res.errors !== 0) {
+                                    unexpectedException("teardown_table", "error dropping indexes", res);
+                                }
+                                next();
+                        });
+                    } catch (err) {
+                        console.log("stack: " + String(err.stack));
+                        unexpectedException("teardown_table");
+                    }
+                });
+            } catch (err) {
+                console.log("stack: " + String(err.stack));
+                unexpectedException("teardown_table");
+            }
         }
     });
 }

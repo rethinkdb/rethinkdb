@@ -217,12 +217,13 @@ end
 
 def setup_table name
     if DB_AND_TABLE_NAME == "no_table_specified"
-        r.db("test").table_create("test").run($cpp_conn)
+        res = r.db("test").table_create("test").run($cpp_conn)
+        if res["created"] != 1
+            abort "Could not create table: #{res}"
+        end
         $defines.eval("#{name} = r.db('test').table('test')")
     else
         parts = DB_AND_TABLE_NAME.split('.')
-        # clear any pre-existing data from previous runs
-        r.db(parts.first).table(parts.last).delete().run($cpp_conn)
         $defines.eval("#{name} = r.db(\"#{parts.first}\").table(\"#{parts.last}\")")
     end
 end
@@ -235,7 +236,21 @@ end
 
 def teardown_table
     if DB_AND_TABLE_NAME == "no_table_specified"
-        r.db("test").table_drop("test").run($cpp_conn)
+        res = r.db("test").table_drop("test").run($cpp_conn)
+        if res["dropped"] != 1
+            abort "Could not drop table: #{res}"
+        end
+    else
+        parts = DB_AND_TABLE_NAME.split('.')
+        res = r.db(parts.first).table(parts.last).delete().run($cpp_conn)
+        if res["errors"] != 0
+            abort "Could not clear table: #{res}"
+        end
+        res = r.db(parts.first).table(parts.last).index_list().for_each{|row|
+            r.db(parts.first).table(parts.last).index_drop(row)}.run($cpp_conn)
+        if res.has_key?("errors") and res["errors"] != 0
+            abort "Could not drop indexes: #{res}"
+        end
     end
 end
 
