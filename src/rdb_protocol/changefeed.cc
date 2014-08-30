@@ -942,10 +942,8 @@ client_t::new_feed(env_t *env,
                 subscription_t *operator()(const keyspec_t::range_t &range) const {
                     return new range_sub_t(feed, range);
                 }
-                subscription_t *operator()(const keyspec_t::limit_t &/*limit*/) const {
-                    // RSI: limit_sub_t
-                    //return new limit_sub_t(feed, limit_term_t);
-                    return NULL;
+                subscription_t *operator()(const keyspec_t::limit_t &limit) const {
+                    return new limit_sub_t(feed, limit_term_t);
                 }
                 subscription_t *operator()(const keyspec_t::point_t &point) const {
                     return new point_sub_t(feed, point.key);
