@@ -52,7 +52,6 @@ bool common_table_artificial_table_backend_t::read_row(
 
 name_string_t common_table_artificial_table_backend_t::get_db_name(database_id_t db_id) {
     databases_semilattice_metadata_t dbs = database_sl_view->get();
-    /* RSI(reql_admin): This doesn't handle vector clock conflicts */
     if (dbs.databases.at(db_id).is_deleted()) {
         /* This can occur due to a race condition, if a new table is added to a database
         at the same time as it is being deleted. */

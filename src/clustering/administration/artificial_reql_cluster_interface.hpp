@@ -8,6 +8,7 @@
 
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/server_config.hpp"
+#include "clustering/administration/servers/server_status.hpp"
 #include "clustering/administration/tables/table_config.hpp"
 #include "clustering/administration/tables/table_status.hpp"
 #include "containers/name_string.hpp"
@@ -15,6 +16,8 @@
 #include "rdb_protocol/artificial_table/in_memory.hpp"
 #include "rdb_protocol/context.hpp"
 
+class auto_reconnector_t;
+class last_seen_tracker_t;
 class real_reql_cluster_interface_t;
 class server_name_client_t;
 
@@ -94,13 +97,16 @@ public:
                 cluster_semilattice_metadata_t> > _semilattice_view,
             clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
                 cluster_directory_metadata_t> > > _directory_view,
-            server_name_client_t *_name_client);
+            server_name_client_t *_name_client,
+            auto_reconnector_t *_auto_reconnector,
+            last_seen_tracker_t *_last_seen_tracker);
     reql_cluster_interface_t *get_reql_cluster_interface() {
         return reql_cluster_interface.get();
     }
 
     scoped_ptr_t<in_memory_artificial_table_backend_t> debug_scratch_backend;
     scoped_ptr_t<server_config_artificial_table_backend_t> server_config_backend;
+    scoped_ptr_t<server_status_artificial_table_backend_t> server_status_backend;
     scoped_ptr_t<table_config_artificial_table_backend_t> table_config_backend;
     scoped_ptr_t<table_status_artificial_table_backend_t> table_status_backend;
     scoped_ptr_t<artificial_reql_cluster_interface_t> reql_cluster_interface;

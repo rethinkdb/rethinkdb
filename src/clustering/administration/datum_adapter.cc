@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/datum_adapter.hpp"
 
+#include "rdb_protocol/pseudo_time.hpp"
+
 ql::datum_t convert_name_to_datum(
         const name_string_t &value) {
     return ql::datum_t(value.c_str());
@@ -41,6 +43,16 @@ bool convert_uuid_from_datum(
         return false;
     }
     return true;
+}
+
+ql::datum_t convert_port_to_datum(
+        port_t value) {
+    return ql::datum_t(static_cast<double>(value.value()));
+}
+
+ql::datum_t convert_time_to_datum(
+        time_t value) {
+    return ql::pseudo::make_time(value, "+00:00");
 }
 
 bool converter_from_datum_object_t::init(

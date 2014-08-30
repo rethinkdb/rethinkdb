@@ -22,12 +22,22 @@ public:
         const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &machine_id_translation_table,
         const boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &machine_metadata);
 
+    /* Returns the server's last known address, if it has ever been connected to us. */
+    boost::optional<peer_address_t> get_last_known_address(machine_id_t server) {
+        auto it = addresses.find(server);
+        if (it == addresses.end()) {
+            return boost::optional<peer_address_t>();
+        } else {
+            return boost::optional<peer_address_t>(it->second);
+        }
+    }
+
 private:
     void on_connect_or_disconnect();
 
     /* `try_reconnect()` runs in a coroutine. It automatically terminates
     itself if the peer reconnects. */
-    void try_reconnect(machine_id_t machine, peer_address_t last_known_address, auto_drainer_t::lock_t drainer);
+    void try_reconnect(machine_id_t machine, auto_drainer_t::lock_t drainer);
 
     void pulse_if_machine_declared_dead(machine_id_t machine, cond_t *c);
     void pulse_if_machine_reconnected(machine_id_t machine, cond_t *c);
@@ -37,9 +47,14 @@ private:
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > machine_id_translation_table;
     boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machine_metadata;
 
-    /* this is so that `on_connect_or_disconnect()` can find the machine ID and last
-    known address of a peer that just disconnected. */
-    std::map<peer_id_t, std::pair<machine_id_t, peer_address_t> > connected_peers;
+    /* `addresses` contains the last known address of every server we've ever seen,
+    unless it has been declared dead. */
+    std::map<machine_id_t, peer_address_t> addresses;
+
+    /* `server_ids` contains the server IDs of servers that are currently connected. We
+    detect connection and disconnection events by comparing this to the list of currently
+    connected servers we get from the `connectivity_cluster_t`. */
+    std::map<peer_id_t, machine_id_t> server_ids;
 
     auto_drainer_t drainer;
 

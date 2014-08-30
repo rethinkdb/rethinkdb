@@ -60,31 +60,48 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(cluster_directory_peer_type_t, int8_t, SER
 class cluster_directory_metadata_t {
 public:
 
-    cluster_directory_metadata_t() { }
+    cluster_directory_metadata_t() :
+        // these fields have no default constructor, so we have to fill them with some
+        // default value (that will never be used)
+        cluster_port(0),
+        reql_port(0)
+        { }
     cluster_directory_metadata_t(
-            machine_id_t mid,
-            peer_id_t pid,
+            machine_id_t _server_id,
+            peer_id_t _peer_id,
             uint64_t _cache_size,
-            const std::vector<std::string> &_ips,
+            time_t _time_started,
+            pid_t _pid,
+            port_t _cluster_port,
+            port_t _reql_port,
+            boost::optional<port_t> _http_admin_port,
             const get_stats_mailbox_address_t& _stats_mailbox,
             const outdated_index_issue_server_t::request_address_t& _outdated_indexes_mailbox,
             const log_server_business_card_t &lmb,
             const boost::optional<server_name_business_card_t> &nsbc,
             cluster_directory_peer_type_t _peer_type) :
-        machine_id(mid),
-        peer_id(pid),
+        machine_id(_server_id),
+        peer_id(_peer_id),
         cache_size(_cache_size),
-        ips(_ips),
+        time_started(_time_started),
+        pid(_pid),
+        cluster_port(_cluster_port),
+        reql_port(_reql_port),
+        http_admin_port(_http_admin_port),
         get_stats_mailbox_address(_stats_mailbox),
         get_outdated_indexes_mailbox(_outdated_indexes_mailbox),
         log_mailbox(lmb),
         server_name_business_card(nsbc),
         peer_type(_peer_type) { }
     /* Move constructor */
-    cluster_directory_metadata_t(cluster_directory_metadata_t &&other) {
+    cluster_directory_metadata_t(cluster_directory_metadata_t &&other) :
+        cluster_port(other.cluster_port), reql_port(other.reql_port)
+    {
         *this = std::move(other);
     }
-    cluster_directory_metadata_t(const cluster_directory_metadata_t &other) {
+    cluster_directory_metadata_t(const cluster_directory_metadata_t &other) :
+        cluster_port(other.cluster_port), reql_port(other.reql_port)
+    {
         *this = other;
     }
 
@@ -94,7 +111,11 @@ public:
         machine_id = other.machine_id;
         peer_id = other.peer_id;
         cache_size = other.cache_size;
-        ips = std::move(other.ips);
+        time_started = other.time_started;
+        pid = other.pid;
+        cluster_port = other.cluster_port;
+        reql_port = other.reql_port;
+        http_admin_port = other.http_admin_port;
         get_stats_mailbox_address = other.get_stats_mailbox_address;
         get_outdated_indexes_mailbox = other.get_outdated_indexes_mailbox;
         log_mailbox = other.log_mailbox;
@@ -112,7 +133,11 @@ public:
         machine_id = other.machine_id;
         peer_id = other.peer_id;
         cache_size = other.cache_size;
-        ips = other.ips;
+        time_started = other.time_started;
+        pid = other.pid;
+        cluster_port = other.cluster_port;
+        reql_port = other.reql_port;
+        http_admin_port = other.http_admin_port;
         get_stats_mailbox_address = other.get_stats_mailbox_address;
         get_outdated_indexes_mailbox = other.get_outdated_indexes_mailbox;
         log_mailbox = other.log_mailbox;
@@ -125,15 +150,16 @@ public:
 
     namespaces_directory_metadata_t rdb_namespaces;
 
-    /* Tell the other peers what our machine ID is */
     machine_id_t machine_id;
+
+    /* this is redundant, since a directory entry is always associatedd with a peer */
     peer_id_t peer_id;
 
-    /* Tell everyone how much cache we have */
     uint64_t cache_size;
-
-    /* To tell everyone what our ips are. */
-    std::vector<std::string> ips;
+    time_t time_started;
+    pid_t pid;
+    port_t cluster_port, reql_port;
+    boost::optional<port_t> http_admin_port;
 
     get_stats_mailbox_address_t get_stats_mailbox_address;
     outdated_index_issue_server_t::request_address_t get_outdated_indexes_mailbox;
