@@ -9,6 +9,9 @@
 #include "rdb_protocol/geo/s2/base/casts.h"
 #include "rdb_protocol/geo/s2/base/port.h"
 
+namespace geo {
+
+
 //
 // Google-specific types
 //
@@ -63,10 +66,12 @@ const Hash32 kIllegalHash32 = static_cast<Hash32>(4294967295UL);    // 2^32-1
 const Hash16 kIllegalHash16 = static_cast<Hash16>(65535U);          // 2^16-1
 const Hash8  kIllegalHash8 = static_cast<Hash8>(255);               // 2^8-1
 
+}  // namespace geo
 
 // Include docid.h at end because it needs the trait stuff.
 #include "rdb_protocol/geo/s2/base/docid.h"
 
+namespace geo {
 
 // MetatagId refers to metatag-id that we assign to
 // each metatag <name, value> pair..
@@ -99,5 +104,7 @@ enum { MLOCK_ALL = -1, MLOCK_NONE = 0 };
 namespace base {
 enum LinkerInitialized { LINKER_INITIALIZED };
 }
+
+}  // namespace geo
 
 #endif  // _BASICTYPES_H_

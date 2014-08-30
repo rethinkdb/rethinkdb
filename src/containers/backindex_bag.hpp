@@ -65,7 +65,7 @@ private:
 template <class T, size_t ELEMENTS_PER_SEGMENT = (1 << 10)>
 class backindex_bag_t {
 public:
-    explicit backindex_bag_t() { }
+    backindex_bag_t() { }
 
     ~backindex_bag_t() {
         // Another way to implement this would be to simply remove all its elements.

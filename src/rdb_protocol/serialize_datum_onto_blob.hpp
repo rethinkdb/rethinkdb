@@ -25,7 +25,7 @@ inline void datum_deserialize_from_group(const const_buffer_group_t *group,
     guarantee_deserialization(res, "datum_t (from a buffer group)");
     guarantee(stream.entire_stream_consumed(),
               "Corrupted value in storage (deserialization terminated early).");
-};
+}
 
 
 inline void datum_deserialize_from_blob(buf_parent_t parent, blob_t *blob,

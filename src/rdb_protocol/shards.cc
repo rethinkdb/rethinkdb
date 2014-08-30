@@ -505,17 +505,17 @@ optimizer_t::optimizer_t(const datum_t &_row,
                          const datum_t &_val)
     : row(_row), val(_val) { }
 void optimizer_t::swap_if_other_better(
-    optimizer_t &other, // NOLINT
+    optimizer_t *other,
     reql_version_t reql_version,
     bool (*beats)(reql_version_t reql_version,
                   const datum_t &val1,
                   const datum_t &val2)) {
     r_sanity_check(val.has() == row.has());
-    r_sanity_check(other.val.has() == other.row.has());
-    if (other.val.has()) {
-        if (!val.has() || beats(reql_version, other.val, val)) {
-            std::swap(row, other.row);
-            std::swap(val, other.val);
+    r_sanity_check(other->val.has() == other->row.has());
+    if (other->val.has()) {
+        if (!val.has() || beats(reql_version, other->val, val)) {
+            std::swap(row, other->row);
+            std::swap(val, other->val);
         }
     }
 }
@@ -561,13 +561,13 @@ private:
                            optimizer_t *out,
                            const acc_func_t &f) {
         optimizer_t other(el, f(env, el));
-        out->swap_if_other_better(other, env->reql_version(), cmp);
+        out->swap_if_other_better(&other, env->reql_version(), cmp);
     }
     virtual datum_t unpack(optimizer_t *el) {
         return el->unpack(name);
     }
     virtual void unshard_impl(env_t *env, optimizer_t *out, optimizer_t *el) {
-        out->swap_if_other_better(*el, env->reql_version(), cmp);
+        out->swap_if_other_better(el, env->reql_version(), cmp);
     }
     const char *name;
     bool (*cmp)(reql_version_t,
@@ -893,7 +893,7 @@ private:
 
 class transform_visitor_t : public boost::static_visitor<op_t *> {
 public:
-    explicit transform_visitor_t() { }
+    transform_visitor_t() { }
     op_t *operator()(const map_wire_func_t &f) const {
         return new map_trans_t(f);
     }

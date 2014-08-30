@@ -76,12 +76,18 @@ def print_progress(ratio):
     print("\r[%s%s] %3d%%" % (equals, spaces, percent), end='')
     sys.stdout.flush()
 
+def do_connect(options):
+    try:
+        return r.connect(options['host'], options['port'], auth_key=options['auth_key'])
+    except (r.RqlError, r.RqlDriverError) as ex:
+        raise RuntimeError("Error when connecting: %s" % ex.message)
+
 def new_connection(conn_store, options):
     # Check if the connection is up
     try:
         r.expr(0).run(conn_store[0])
     except:
-        conn_store[0] = r.connect(options["host"], options["port"])
+        conn_store[0] = do_connect(options)
     return conn_store[0]
 
 def get_table_outdated_indexes(conn, db, table):
@@ -141,7 +147,7 @@ def check_index_renamed(progress, conn, index):
                            (index['db'], index['table'], index['name']))
 
 def rebuild_indexes(options):
-    conn_store = [r.connect(options['host'], options['port'])]
+    conn_store = [do_connect(options)]
     conn_fn = lambda: new_connection(conn_store, options)
 
     indexes_to_build = rdb_call_wrapper(conn_fn, "get outdated indexes", get_outdated_indexes, options["tables"])

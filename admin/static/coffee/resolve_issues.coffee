@@ -220,9 +220,9 @@ module 'ResolveIssuesView', ->
             'UNSATISFIABLE_GOALS': Handlebars.templates['resolve_issues-unsatisfiable_goals-template']
             'MACHINE_GHOST': Handlebars.templates['resolve_issues-machine_ghost-template']
             'PORT_CONFLICT': Handlebars.templates['resolve_issues-port_conflict-template']
+            'OUTDATED_INDEX_ISSUE': Handlebars.templates['resolve_issues-outdated_index_issue-template']
 
         unknown_issue_template: Handlebars.templates['resolve_issues-unknown-template']
-
 
         render_machine_down: (_template) =>
             machine = machines.get(@model.get('victim'))
@@ -549,6 +549,38 @@ module 'ResolveIssuesView', ->
                 machine_id: @model.get('ghost')
             @.$el.html _template(json)
 
+
+        render_outdated_index_issue: (_template) ->
+            # render
+            namespaces_concerned = []
+            for namespace_id, indexes of @model.get('indexes')
+                namespaces_concerned.push
+                    db: databases.get(namespaces.get(namespace_id).get('database')).get 'name'
+                    name: namespaces.get(namespace_id).get('name')
+                    indexes: indexes
+                    count: indexes.length
+                    namespace_id: namespace_id
+                    db_id: namespaces.get(namespace_id).get 'database'
+
+            namespaces_concerned.sort (left, right) ->
+                if left.db < right.db
+                    return -1
+                else if left.db > right.db
+                    return 1
+                else
+                    if left.name < right.name
+                        return -1
+                    else if left.name > right.name
+                        return 1
+                return 0
+
+            json =
+                datetime: iso_date_from_unix_time @model.get('time')
+                critical: @model.get('critical')
+                description: @model.get('description')
+                namespaces: namespaces_concerned
+            @.$el.html _template(json)
+
         render_port_conflict: (_template) ->
             # render
             json =
@@ -584,6 +616,8 @@ module 'ResolveIssuesView', ->
                     @render_machine_ghost _template
                 when 'PORT_CONFLICT'
                     @render_port_conflict _template
+                when 'OUTDATED_INDEX_ISSUE'
+                    @render_outdated_index_issue _template
                 else
                     @render_unknown_issue @unknown_issue_template
 

@@ -3,36 +3,13 @@
 #include "rdb_protocol/geo/s2/s2polygonbuilder.h"
 
 #include <algorithm>
-using std::min;
-using std::max;
-using std::swap;
-using std::reverse;
-
 #include <unordered_map>
-using std::unordered_map;
-
 #include <unordered_set>
-using std::unordered_set;
-
 #include <iomanip>
-using std::setprecision;
-
 #include <iostream>
-using std::ostream;
-using std::cout;
-using std::endl;
-
 #include <map>
-using std::map;
-using std::multimap;
-
 #include <set>
-using std::set;
-using std::multiset;
-
 #include <vector>
-using std::vector;
-
 
 #include "rdb_protocol/geo/s2/base/logging.h"
 #include "rdb_protocol/geo/s2/base/macros.h"
@@ -41,6 +18,24 @@ using std::vector;
 #include "rdb_protocol/geo/s2/s2cellid.h"
 #include "rdb_protocol/geo/s2/s2polygon.h"
 #include "rdb_protocol/geo/s2/util/math/matrix3x3-inl.h"
+
+namespace geo {
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
+using std::unordered_map;
+using std::unordered_set;
+using std::setprecision;
+using std::ostream;
+using std::cout;
+using std::endl;
+using std::map;
+using std::multimap;
+using std::set;
+using std::multiset;
+using std::vector;
+
 
 void S2PolygonBuilderOptions::set_undirected_edges(bool undirected_edges) {
   undirected_edges_ = undirected_edges;
@@ -560,3 +555,5 @@ bool S2PolygonBuilder::AssemblePolygon(S2Polygon* polygon,
   polygon->Init(&loops);
   return success;
 }
+
+}  // namespace geo

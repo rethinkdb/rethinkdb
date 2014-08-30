@@ -115,6 +115,7 @@ private:
     struct data_distribution_t {
         data_distribution_t() : min(0.0), max(0.0), mean(0.0), stddev(0.0) { }
         double min, max;
+
         double mean, stddev;
     };
     struct per_execution_point_collected_report_t {

@@ -91,7 +91,7 @@ private:
     template <class op_type, class fifo_enforcer_token_type, class op_response_type>
     void dispatch_immediate_op(
             /* `how_to_make_token` and `how_to_run_query` have type pointer-to-member-function. */
-            void (master_access_t::*how_to_make_token)(fifo_enforcer_token_type *),  // NOLINT
+            void (master_access_t::*how_to_make_token)(fifo_enforcer_token_type *),
             void (master_access_t::*how_to_run_query)(const op_type &, op_response_type *response, order_token_t, fifo_enforcer_token_type *, signal_t *) THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t),
             const op_type &op,
             op_response_type *response,

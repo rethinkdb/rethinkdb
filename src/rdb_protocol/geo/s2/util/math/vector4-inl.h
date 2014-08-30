@@ -29,10 +29,6 @@
 #include "rdb_protocol/geo/s2/util/math/vector4.h"
 
 #include <algorithm>
-using std::min;
-using std::max;
-using std::swap;
-using std::reverse;
 
 #include <math.h>
 #include "rdb_protocol/geo/s2/base/basictypes.h"
@@ -42,6 +38,12 @@ using std::reverse;
 #include "rdb_protocol/geo/s2/util/math/mathutil.h"
 #include "rdb_protocol/geo/s2/util/math/vector2.h"
 #include "rdb_protocol/geo/s2/util/math/vector3.h"
+
+namespace geo {
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
 
 template <typename VType>
 Vector4<VType>::Vector4() {
@@ -428,5 +430,7 @@ std::ostream &operator <<(std::ostream &out, const Vector4<VType> &va) {
 // type even when T is a POD. Pretending that Vector4<T> is a POD probably
 // won't cause any immediate problems, but eventually this should be fixed.
 PROPAGATE_POD_FROM_TEMPLATE_ARGUMENT(Vector4);
+
+}  // namespace geo
 
 #endif  // UTIL_MATH_VECTOR4_INL_H__

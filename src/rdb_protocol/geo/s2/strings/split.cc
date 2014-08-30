@@ -4,8 +4,6 @@
 #include <unordered_set>
 #include <limits>
 #include <string>
-using std::numeric_limits;
-
 
 #include "rdb_protocol/geo/s2/base/integral_types.h"
 #include "rdb_protocol/geo/s2/base/logging.h"
@@ -15,6 +13,9 @@ using std::numeric_limits;
 #include "rdb_protocol/geo/s2/strings/strutil.h"
 #include "rdb_protocol/geo/s2/util/hash/hash_jenkins_lookup2.h"
 #include "utils.hpp"
+
+namespace geo {
+using std::numeric_limits;
 
 namespace {
 // NOTE(user): we have to implement our own interator because
@@ -330,3 +331,5 @@ DEFINE_SPLIT_ONE_NUMBER_TOKEN(DecimalInt64, int64, strto64_10)
 DEFINE_SPLIT_ONE_NUMBER_TOKEN(DecimalUint64, uint64, strtou64_10)
 DEFINE_SPLIT_ONE_NUMBER_TOKEN(HexUint32, uint32, strtou32_16)
 DEFINE_SPLIT_ONE_NUMBER_TOKEN(HexUint64, uint64, strtou64_16)
+
+}  // namespace geo

@@ -137,19 +137,19 @@ size_t curl_data_t::write_header(char *ptr, size_t size, size_t nmemb, void* ins
     return self->write_header_internal(ptr,
                                        multiply_with_overflow_check(size, nmemb,
                                                                     "write header"));
-};
+}
 
 size_t curl_data_t::write_body(char *ptr, size_t size, size_t nmemb, void* instance) {
     curl_data_t *self = static_cast<curl_data_t *>(instance);
     return self->write_body_internal(ptr,
                                      multiply_with_overflow_check(size, nmemb,
                                                                   "write body"));
-};
+}
 
 size_t curl_data_t::read(char *ptr, size_t size, size_t nmemb, void* instance) {
     curl_data_t *self = static_cast<curl_data_t *>(instance);
     return self->read_internal(ptr, multiply_with_overflow_check(size, nmemb, "read"));
-};
+}
 
 size_t curl_data_t::write_header_internal(char *ptr, size_t size) {
     header_data.append(ptr, size);

@@ -13,6 +13,8 @@
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"
 
+using geo::S2Polygon;
+
 namespace ql {
 namespace pseudo {
 

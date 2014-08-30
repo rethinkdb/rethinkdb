@@ -2,10 +2,14 @@
 
 #include "s2.h"
 
+#include <unordered_set>
+
 #include "rdb_protocol/geo/s2/base/integral_types.h"
 #include "rdb_protocol/geo/s2/base/logging.h"
 #include "rdb_protocol/geo/s2/util/math/matrix3x3-inl.h"
 #include "rdb_protocol/geo/s2/util/math/vector2-inl.h"
+
+namespace geo {
 
 // Define storage for header file constants (the values are not needed
 // here for integral constants).
@@ -17,11 +21,13 @@ double const S2::kMaxDetError = 0.8e-15;  // 14 * (2**-54)
 COMPILE_ASSERT(S2::kSwapMask == 0x01 && S2::kInvertMask == 0x02,
                masks_changed);
 
-#include<unordered_set>
+}  // namespace geo
+
+namespace {
 
 // The hash function due to Bob Jenkins (see
 // http://burtleburtle.net/bob/hash/index.html).
-static inline void mix(uint32& a, uint32& b, uint32& c) {     // 32bit version
+static inline void mix(geo::uint32& a, geo::uint32& b, geo::uint32& c) {     // 32bit version
   a -= b; a -= c; a ^= (c>>13);
   b -= c; b -= a; b ^= (a<<8);
   c -= a; c -= b; c ^= (b>>13);
@@ -33,7 +39,7 @@ static inline void mix(uint32& a, uint32& b, uint32& c) {     // 32bit version
   c -= a; c -= b; c ^= (b>>15);
 }
 
-inline uint32 CollapseZero(uint32 bits) {
+inline geo::uint32 CollapseZero(geo::uint32 bits) {
   // IEEE 754 has two representations for zero, positive zero and negative
   // zero.  These two values compare as equal, and therefore we need them to
   // hash to the same value.
@@ -58,16 +64,18 @@ inline uint32 CollapseZero(uint32 bits) {
   return bits & 0x7ffffffe;
 }
 
-size_t std::hash<S2Point>::operator()(S2Point const& p) const {
+}  // namespace
+
+size_t std::hash<geo::S2Point>::operator()(geo::S2Point const& p) const {
   // This function is significantly faster than calling HashTo32().
-  uint32 const* data = reinterpret_cast<uint32 const*>(p.Data());
+  geo::uint32 const* data = reinterpret_cast<geo::uint32 const*>(p.Data());
   DCHECK_EQ((6 * sizeof(*data)), sizeof(p));
 
   // We call CollapseZero() on every 32-bit chunk to avoid having endian
   // dependencies.
-  uint32 a = CollapseZero(data[0]);
-  uint32 b = CollapseZero(data[1]);
-  uint32 c = CollapseZero(data[2]) + 0x12b9b0a1UL;  // An arbitrary number
+  geo::uint32 a = CollapseZero(data[0]);
+  geo::uint32 b = CollapseZero(data[1]);
+  geo::uint32 c = CollapseZero(data[2]) + 0x12b9b0a1UL;  // An arbitrary number
   mix(a, b, c);
   a += CollapseZero(data[3]);
   b += CollapseZero(data[4]);
@@ -76,6 +84,7 @@ size_t std::hash<S2Point>::operator()(S2Point const& p) const {
   return c;
 }
 
+namespace geo {
 
 bool S2::IsUnitLength(S2Point const& p) {
 
@@ -159,6 +168,8 @@ int S2::RobustCCW(S2Point const& a, S2Point const& b, S2Point const& c) {
   return RobustCCW(a, b, c, a.CrossProd(b));
 }
 
+}  // namespace geo
+
 // Below we define two versions of ExpensiveCCW().  The first version uses
 // arbitrary-precision arithmetic (MPFloat) and the "simulation of simplicity"
 // technique.  It is completely robust (i.e., it returns consistent results
@@ -217,10 +228,13 @@ int S2::RobustCCW(S2Point const& a, S2Point const& b, S2Point const& c) {
 // specified).
 
 #include "rdb_protocol/geo/s2/util/math/mpfloat/mpfloat.h"
+namespace geo {
 typedef MPFloat<6300> ExactFloat;
+}
 
 #endif  // S2_USE_EXACTFLOAT
 
+namespace geo {
 typedef Vector3<ExactFloat> Vector3_xf;
 
 // The following function returns the sign of the determinant of three points
@@ -762,3 +776,5 @@ double const S2::kMaxEdgeAspect = (
 
 double const S2::kMaxDiagAspect = sqrt(3);                             // 1.732
 // This is true for all projections.
+
+}  // namespace geo

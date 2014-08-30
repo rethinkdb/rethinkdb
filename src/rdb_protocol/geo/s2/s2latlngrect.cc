@@ -1,10 +1,6 @@
 // Copyright 2005 Google Inc. All Rights Reserved.
 
 #include <algorithm>
-using std::min;
-using std::max;
-using std::swap;
-using std::reverse;
 
 
 #include "rdb_protocol/geo/s2/s2latlngrect.h"
@@ -15,6 +11,13 @@ using std::reverse;
 #include "rdb_protocol/geo/s2/s2cell.h"
 #include "rdb_protocol/geo/s2/s2edgeutil.h"
 #include "rdb_protocol/geo/s2/util/math/mathutil.h"
+
+namespace geo {
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
+
 
 static const unsigned char kCurrentEncodingVersionNumber = 1;
 
@@ -589,3 +592,4 @@ bool S2LatLngRect::ApproxEquals(S2LatLngRect const& other,
 ostream& operator<<(ostream& os, S2LatLngRect const& r) {
   return os << "[Lo" << r.lo() << ", Hi" << r.hi() << "]";
 }
+}  // namespace geo

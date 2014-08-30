@@ -11,14 +11,16 @@
 #define _STRINGS_STRINGPRINTF_H
 
 #include <stdarg.h>
-#include <string>
 
+#include <string>
 #include <vector>
-using std::vector;
 
 #include "rdb_protocol/geo/s2/base/stl_decl.h"
 #include "rdb_protocol/geo/s2/base/port.h"
 #include "rdb_protocol/geo/s2/base/stringprintf.h"
+
+namespace geo {
+using std::vector;
 
 // This file formerly contained
 //   StringPrintf, SStringPrintf, StringAppendF, and StringAppendV.
@@ -35,5 +37,8 @@ extern const size_t kStringPrintfVectorMaxArgs;
 // you don't know how many arguments you'll have at compile time.
 // StringPrintfVector will LOG(FATAL) if v.size() > kStringPrintfVectorMaxArgs
 extern std::string StringPrintfVector(const char* format, const vector<std::string>& v);
+
+}  // namespace geo
+
 
 #endif /* _STRINGS_STRINGPRINTF_H */

@@ -4,20 +4,24 @@
 #define UTIL_GEOMETRY_S2CELLID_H_
 
 #include <iostream>
-using std::ostream;
-using std::cout;
-using std::endl;
-
 #include <string>
-
 #include <vector>
-using std::vector;
+
+#ifndef SWIG
+#include <unordered_set>
+#endif
 
 #include "rdb_protocol/geo/s2/base/basictypes.h"
 #include "rdb_protocol/geo/s2/base/logging.h"
 #include "rdb_protocol/geo/s2/base/port.h"  // for HASH_NAMESPACE_DECLARATION_START
 #include "rdb_protocol/geo/s2/s2.h"
 #include "rdb_protocol/geo/s2/util/math/vector2.h"
+
+namespace geo {
+using std::ostream;
+using std::cout;
+using std::endl;
+using std::vector;
 
 class S2LatLng;
 
@@ -486,12 +490,13 @@ inline S2CellId S2CellId::End(int level) {
 
 ostream& operator<<(ostream& os, S2CellId const& id);
 
+}  // namespace geo
+
 #ifndef SWIG
-#include<unordered_set>
 
 namespace std {
-template<> struct hash<S2CellId> {
-  size_t operator()(S2CellId const& id) const {
+template<> struct hash<geo::S2CellId> {
+  size_t operator()(geo::S2CellId const& id) const {
     return static_cast<size_t>(id.id() >> 32) + static_cast<size_t>(id.id());
   }
 };

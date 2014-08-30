@@ -9,7 +9,10 @@
 #include "rdb_protocol/geo/lat_lon_types.hpp"
 #include "rdb_protocol/geo/s2/util/math/vector3.h"
 
+namespace geo {
 typedef Vector3_d S2Point;
+}
+
 class ellipsoid_spec_t;
 namespace ql {
 class datum_t;
@@ -20,7 +23,7 @@ class datum_t;
 double geodesic_distance(const lat_lon_point_t &p1,
                          const lat_lon_point_t &p2,
                          const ellipsoid_spec_t &e);
-double geodesic_distance(const S2Point &p,
+double geodesic_distance(const geo::S2Point &p,
                          const ql::datum_t &g,
                          const ellipsoid_spec_t &e);
 

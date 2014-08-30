@@ -35,7 +35,7 @@ public:
     void reloading_page(page_t *page);
 
     // Evicter will be unusable until initialize is called
-    explicit evicter_t();
+    evicter_t();
     ~evicter_t();
 
     void initialize(page_cache_t *page_cache,
