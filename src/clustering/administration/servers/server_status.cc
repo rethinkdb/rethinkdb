@@ -51,10 +51,10 @@ bool server_status_artificial_table_backend_t::read_row(
 
     if (boost::optional<peer_address_t> addrs =
             auto_reconnector->get_last_known_address(server_id)) {
-        builder.overwrite("hostname",
+        builder.overwrite("host",
             ql::datum_t(datum_string_t(addrs->primary_host().host())));
     } else {
-        builder.overwrite("hostname", ql::datum_t("<unknown>"));
+        builder.overwrite("host", ql::datum_t("<unknown>"));
     }
 
     boost::optional<peer_id_t> peer_id =
