@@ -350,10 +350,3 @@ tests:
   - cd: tbl2.index_wait("quux").nth(0).get_field('function').type_of()
     ot: ("PTYPE<BINARY>")
 
-  - cd: tbl2.index_drop('foo')
-    ot: ({'dropped':1})
-  - cd: tbl2.index_drop('bar')
-    ot: ({'dropped':1})
-  - cd: tbl2.index_drop('quux')
-    ot: ({'dropped':1})
-

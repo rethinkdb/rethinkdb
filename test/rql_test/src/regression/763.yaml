@@ -32,5 +32,3 @@ tests:
     - js: r.add(1)
       ot: 1
 
-    - js: tbl.indexDrop('a')
-      ot: ({'dropped':1})

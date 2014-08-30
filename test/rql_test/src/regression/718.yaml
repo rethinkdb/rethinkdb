@@ -5,6 +5,3 @@ tests:
   - rb: r(4).do{|x| tbl.index_create('718') {|row| row[:id] % x}}
     ot: ({'created':1})
 
-  - rb: tbl.index_drop('718')
-    ot: ({'dropped':1})
-

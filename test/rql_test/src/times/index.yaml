@@ -149,9 +149,3 @@ tests:
     js: tbl.get(oldtime)('id').typeOf()
     ot: ("PTYPE<TIME>")
 
-  # clean up
-  - cd: tbl.index_drop('a')
-    ot: ({'dropped':1})
-  - cd: tbl.index_drop('b')
-    ot: ({'dropped':1})
-

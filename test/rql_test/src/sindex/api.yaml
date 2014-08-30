@@ -1285,9 +1285,3 @@ tests:
     js: tbl.orderBy({'index':'mi'}).map(function(x) { return x('id'); })
     ot: ([0,0,0,1,1,1,2,3,3,3,4,4,4])
 
-    # clean up
-  - py: tbl.index_list().for_each(tbl.index_drop(r.row))
-    js: tbl.index_list().forEach(tbl.index_drop(r.row))
-    rb: tbl.index_list().for_each{|row| tbl.index_drop(row)}
-    ot: ({'dropped':12})
-

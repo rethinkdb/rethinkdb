@@ -29,4 +29,3 @@ tests:
     py: r.expr(ten_l).concat_map(lambda l:list(range(1,11))).concat_map(lambda l:list(range(1,11))).concat_map(lambda l:list(range(1,11))).concat_map(lambda l:list(range(1,11))).insert_at(0, [1]).count()
     rb: r.expr(ten_l).concat_map {|l| ten_l}.concat_map {|l| ten_l}.concat_map {|l| ten_l}.concat_map {|l| ten_l}.insert_at(0, [1]).count()
     ot: err("RqlRuntimeError", "Array over size limit `100000`.", [])
-

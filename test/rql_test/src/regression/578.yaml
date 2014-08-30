@@ -1,4 +1,4 @@
-desc: reject non-deterministic secondary indexes (#578)
+desc: Catch obvious sindex creation/dropping errors (#578)
 table_variable_name: tbl
 tests:
 

@@ -3,4 +3,3 @@ table_variable_name: tbl
 tests:
   - py: tbl.insert([True, True])
     ot: ({'first_error':'Expected type OBJECT but found BOOL.', 'skipped':0, 'deleted':0, 'unchanged':0, 'errors':2, 'replaced':0, 'inserted':0})
-

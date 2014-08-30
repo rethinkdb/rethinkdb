@@ -15,4 +15,3 @@ tests:
     runopts:
       array_limit: 500
     ot: err("RqlRuntimeError", "Grouped data over size limit `500`.  Try putting a reduction (like `.reduce` or `.count`) on the end.", [0])
-
