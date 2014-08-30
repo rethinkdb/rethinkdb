@@ -199,6 +199,13 @@ bool do_serve(io_backender_t *io_backender,
         }
         logINF("Listening for intracluster connections on port %d\n",
             connectivity_cluster_run->get_port());
+        /* If `serve_info.ports.port` was 0 then the actual port is not 0, so we need to
+        update the directory. */
+        our_root_directory_variable.apply_atomic_op(
+            [&](cluster_directory_metadata_t *md) -> bool {
+                md->cluster_port = connectivity_cluster_run->get_port();
+                return (md->cluster_port != serve_info.ports.port);
+            });
 
         auto_reconnector_t auto_reconnector(
             &connectivity_cluster,
@@ -330,6 +337,13 @@ bool do_serve(io_backender_t *io_backender,
                     &rdb_ctx);
                 logINF("Listening for client driver connections on port %d\n",
                        rdb_query_server.get_port());
+                /* If `serve_info.ports.reql_port` was zero then the OS assigned us a
+                port, so we need to update the directory. */
+                our_root_directory_variable.apply_atomic_op(
+                    [&](cluster_directory_metadata_t *md) -> bool {
+                        md->reql_port = rdb_query_server.get_port();
+                        return (md->reql_port != serve_info.ports.reql_port);
+                    });
 
                 scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t<cluster_semilattice_metadata_t> >
                     cluster_metadata_persister;
@@ -364,6 +378,14 @@ bool do_serve(io_backender_t *io_backender,
                                 serve_info.web_assets));
                         logINF("Listening for administrative HTTP connections on port %d\n",
                                admin_server_ptr->get_port());
+                        /* If `serve_info.ports.http_port` was zero then the OS assigned
+                        us a port, so we need to update the directory. */
+                        our_root_directory_variable.apply_atomic_op(
+                            [&](cluster_directory_metadata_t *md) -> bool {
+                                *md->http_admin_port = admin_server_ptr->get_port();
+                                return (*md->http_admin_port != \
+                                        serve_info.ports.http_port);
+                            });
                     }
 
                     const std::string addresses_string = serve_info.ports.get_addresses_string();
