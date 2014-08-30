@@ -41,10 +41,23 @@ class table_t;
 namespace changefeed {
 
 struct msg_t {
+    struct limit_start_t {
+        uuid_u sub;
+        std::vector<std::pair<store_key_t, datum_t> > start_data;
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+    // RSI: dedup with `change_t` for simple changes
+    struct limit_change_t {
+        std::map<std::string,
+                 std::pair<boost::optional<store_key_t>,
+                           std::map<uuid_u,
+                                    boost::optional<
+                                        std::pair<store_key_t, datum_t> > > > > new_vals;
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
     struct change_t {
         change_t();
-        explicit change_t(datum_t _old_val,
-                          datum_t _new_val);
+        change_t(datum_t _old_val, datum_t _new_val);
         ~change_t();
         datum_t old_val, new_val;
         RDB_DECLARE_ME_SERIALIZABLE;
@@ -68,9 +81,11 @@ struct msg_t {
     }
 
     // Starts with STOP to avoid doing work for default initialization.
-    boost::variant<stop_t, change_t> op;
+    boost::variant<stop_t, change_t, limit_start_t> op;
 };
 
+RDB_SERIALIZE_OUTSIDE(msg_t::limit_start_t);
+RDB_SERIALIZE_OUTSIDE(msg_t::limit_change_t);
 RDB_SERIALIZE_OUTSIDE(msg_t::change_t);
 RDB_DECLARE_SERIALIZABLE(msg_t::stop_t);
 RDB_DECLARE_SERIALIZABLE(msg_t);
@@ -144,9 +159,13 @@ public:
         );
     ~client_t();
     // Throws QL exceptions.
-    counted_t<datum_stream_t> new_feed(env_t *env, const namespace_id_t &table,
-        const protob_t<const Backtrace> &bt, const std::string &table_name,
-        const std::string &pkey, keyspec_t &&keyspec);
+    counted_t<datum_stream_t> new_feed(
+        env_t *env,
+        const namespace_id_t &table,
+        const protob_t<const Backtrace> &bt,
+        const std::string &table_name,
+        const std::string &pkey,
+        const keyspec_t &keyspec);
     void maybe_remove_feed(const namespace_id_t &uuid);
     scoped_ptr_t<feed_t> detach_feed(const namespace_id_t &uuid);
 private:

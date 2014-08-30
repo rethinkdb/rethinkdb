@@ -159,6 +159,7 @@ uuid_u server_t::get_uuid() {
     return uuid;
 }
 
+// RSI: move into header?
 msg_t::msg_t(msg_t &&msg) : op(std::move(msg.op)) { }
 msg_t::msg_t(stop_t &&_op) : op(std::move(_op)) { }
 msg_t::msg_t(change_t &&_op) : op(std::move(_op)) { }
@@ -170,8 +171,9 @@ msg_t::change_t::change_t(datum_t _old_val,
 msg_t::change_t::~change_t() { }
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(msg_t, op);
-RDB_IMPL_ME_SERIALIZABLE_2_SINCE_v1_13(
-    msg_t::change_t, empty_ok(old_val), empty_ok(new_val));
+RDB_IMPL_ME_SERIALIZABLE_3(
+    msg_t::change_t, empty_ok(old_val), empty_ok(new_val), limit_changes);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::change_t);
 RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(msg_t::stop_t);
 
 enum class detach_t { NO, YES };
@@ -223,10 +225,8 @@ public:
            signal_t *interruptor);
     ~feed_t();
 
-    void add_point_sub(subscription_t *sub,
-                       const datum_t &key) THROWS_NOTHING;
-    void del_point_sub(subscription_t *sub,
-                       const datum_t &key) THROWS_NOTHING;
+    void add_point_sub(subscription_t *sub, const datum_t &key) THROWS_NOTHING;
+    void del_point_sub(subscription_t *sub, const datum_t &key) THROWS_NOTHING;
 
     void add_range_sub(subscription_t *sub) THROWS_NOTHING;
     void del_range_sub(subscription_t *sub) THROWS_NOTHING;
@@ -359,7 +359,7 @@ private:
 class range_sub_t : public subscription_t {
 public:
     // Throws QL exceptions.
-    explicit range_sub_t(feed_t *feed, keyspec_t::range_t _spec)
+    range_sub_t(feed_t *feed, keyspec_t::range_t _spec)
         : subscription_t(feed), spec(std::move(_spec)) {
         feed->add_range_sub(this);
     }
@@ -371,9 +371,7 @@ public:
         read_response_t read_resp;
         nif->read(
             read_t(changefeed_stamp_t(*addr), profile_bool_t::DONT_PROFILE),
-            &read_resp,
-            order_token_t::ignore,
-            env->interruptor);
+            &read_resp, order_token_t::ignore, env->interruptor);
         auto resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
         guarantee(resp != NULL);
         start_stamps = std::move(resp->stamps);
@@ -414,9 +412,78 @@ private:
     // our subscription.
     std::map<uuid_u, uint64_t> start_stamps;
     // The queue of changes we've accumulated since the last time we were read from.
-    std::deque<datum_t > els;
+    std::deque<datum_t> els;
     keyspec_t::range_t spec;
 };
+
+
+class limit_sub_t : public subscription_t {
+public:
+    // Throws QL exceptions.
+    limit_sub_t(feed_t *feed, keyspec_t::limit_t _spec)
+        : subscription_t(feed), uuid(generate_uuid()), spec(std::move(_spec)) {
+        feed->add_limit_sub(this);
+    }
+    virtual ~limit_sub_t() {
+        destructor_cleanup(std::bind(&feed_t::del_limit_sub, feed, this));
+    }
+    virtual void start(env_t *env, namespace_interface_t *nif, client_t::addr_t *addr) {
+        assert_thread();
+        read_response_t read_resp;
+        nif->read(
+            read_t(changefeed_limit_subscribe_t(uuid, spec),
+                   profile_bool_t::DONT_PROFILE),
+            &read_resp, order_token_t::ignore, env->interruptor);
+        auto resp = boost::get<changefeed_limit_subscribe_response_t>(&read_resp);
+        guarantee(resp != NULL);
+    }
+private:
+    virtual void note_change(
+        const boost::optional<store_key_t> &old_key,
+        const boost::optional<std::pair<store_key_t, datum_t> > &new_val) {
+        datum_t old_send, new_send;
+        if (old_key) {
+            auto it = data.find(*old_key);
+            guarantee(it != data.end());
+            size_t erased = active_data.erase(it);
+            if (erased != 0) {
+                old_send = it->second;
+            }
+        }
+        if (new_val) {
+            auto res = data.insert(*new_val);
+            guarantee(res.second);
+            auto it = res.first;
+            if (it < *active_data.crbegin()) {
+                active_data.insert(it);
+                new_send = it->second;
+            }
+        }
+        if (!new_send.has() && active_data.size() != spec.limit) {
+            auto it = (*active_data.crbegin())++;
+            if (it != data.end()) {
+                active_data.insert(it);
+                new_send = it->second;
+            }
+        }
+        if (old_send.has() || new_send.has()) {
+            els.push_back(
+                datum_t(std::map {
+                    { datum_string_t("old_val"),
+                      old_send.has() ? old_send : datum_t::null() },
+                    { datum_string_t("new_val"),
+                      new_send.has() ? new_send : datum_t::null() } }));
+            maybe_signal_cond();
+        }
+    }
+    uuid_u uuid;
+    keyspec_t::limit_t spec;
+    // RSI: ordering
+    std::map<store_key_t, datum_t> data;
+    std::set<std::map<store_key_t, datum_t>::iterator> active_data;
+    std::deque<datum_t> els;
+};
+
 
 class msg_visitor_t : public boost::static_visitor<void> {
 public:
@@ -905,7 +972,7 @@ client_t::new_feed(env_t *env,
                    const protob_t<const Backtrace> &bt,
                    const std::string &table_name,
                    const std::string &pkey,
-                   keyspec_t &&keyspec) {
+                   const keyspec_t &keyspec) {
     try {
         scoped_ptr_t<subscription_t> sub;
         boost::variant<scoped_ptr_t<range_sub_t>, scoped_ptr_t<point_sub_t> > presub;
@@ -926,8 +993,8 @@ client_t::new_feed(env_t *env,
                 // users may share a feed_t, and this code path will
                 // only be run for the first one.  Rather than mess
                 // about, just use the defaults.
-                auto val = make_scoped<feed_t>(this, manager, access.get(), uuid,
-                                               pkey, &interruptor);
+                auto val = make_scoped<feed_t>(
+                    this, manager, access.get(), uuid, pkey, &interruptor);
                 feed_it = feeds.insert(std::make_pair(uuid, std::move(val))).first;
             }
 
@@ -943,7 +1010,7 @@ client_t::new_feed(env_t *env,
                     return new range_sub_t(feed, range);
                 }
                 subscription_t *operator()(const keyspec_t::limit_t &limit) const {
-                    return new limit_sub_t(feed, limit_term_t);
+                    return new limit_sub_t(feed, limit);
                 }
                 subscription_t *operator()(const keyspec_t::point_t &point) const {
                     return new point_sub_t(feed, point.key);
@@ -961,11 +1028,6 @@ client_t::new_feed(env_t *env,
                     table_name.c_str(), e.what());
     }
 }
-
-// class limit_sub_t : public subscription_t {
-
-//     std::map<uuid_u, std::map<store_key_t, datum_t > >
-// }
 
 void client_t::maybe_remove_feed(const uuid_u &uuid) {
     assert_thread();
