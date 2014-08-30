@@ -1768,17 +1768,17 @@ datum_t datum_array_builder_t::to_datum() RVALUE_THIS {
 datum_range_t::datum_range_t()
     : left_bound_type(key_range_t::none), right_bound_type(key_range_t::none) { }
 datum_range_t::datum_range_t(
-    counted_t<const ql::datum_t> _left_bound, key_range_t::bound_t _left_bound_type,
-    counted_t<const ql::datum_t> _right_bound, key_range_t::bound_t _right_bound_type)
+    datum_t _left_bound, key_range_t::bound_t _left_bound_type,
+    datum_t _right_bound, key_range_t::bound_t _right_bound_type)
     : left_bound(_left_bound), right_bound(_right_bound),
       left_bound_type(_left_bound_type), right_bound_type(_right_bound_type) { }
-datum_range_t::datum_range_t(counted_t<const ql::datum_t> val)
+datum_range_t::datum_range_t(datum_t val)
     : left_bound(val), right_bound(val),
       left_bound_type(key_range_t::closed), right_bound_type(key_range_t::closed) { }
 
 datum_range_t datum_range_t::universe()  {
-    return datum_range_t(counted_t<const ql::datum_t>(), key_range_t::open,
-                         counted_t<const ql::datum_t>(), key_range_t::open);
+    return datum_range_t(datum_t(), key_range_t::open,
+                         datum_t(), key_range_t::open);
 }
 bool datum_range_t::is_universe() const {
     return !left_bound.has() && !right_bound.has()
@@ -1786,7 +1786,7 @@ bool datum_range_t::is_universe() const {
 }
 
 bool datum_range_t::contains(reql_version_t reql_version,
-                             counted_t<const ql::datum_t> val) const {
+                             datum_t val) const {
     return (!left_bound.has()
             || left_bound->compare_lt(reql_version, *val)
             || (*left_bound == *val && left_bound_type == key_range_t::closed))

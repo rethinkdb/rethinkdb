@@ -26,7 +26,7 @@ public:
         return row.has() ? row : table->get_row(env, key);
     }
     virtual datum_t replace(
-        counted_t<func_t> f, bool nondet_ok,
+        counted_t<const func_t> f, bool nondet_ok,
         durability_requirement_t dur_req, return_changes_t return_changes) {
         std::vector<datum_t > keys{key};
         // We don't need to fetch the value for deterministic replacements.
@@ -62,11 +62,13 @@ public:
         }
     }
     virtual datum_t replace(
-        counted_t<func_t> f, bool nondet_ok,
+        counted_t<const func_t> f, bool nondet_ok,
         durability_requirement_t dur_req, return_changes_t return_changes) {
         std::vector<datum_t > vals{get()};
         std::vector<datum_t > keys{
-            vals[0]->get(get_tbl()->get_pkey(), NOTHROW)};
+            vals[0]->get_field(
+                datum_string_t(get_tbl()->get_pkey()),
+                NOTHROW)};
         r_sanity_check(keys[0].has());
         return slice->get_tbl()->batched_replace(
             env, vals, keys, f, nondet_ok, dur_req, return_changes);
@@ -85,7 +87,7 @@ counted_t<single_selection_t> single_selection_t::from_key(
 }
 counted_t<single_selection_t> single_selection_t::from_row(
     env_t *env, counted_t<table_t> table, datum_t row) {
-    datum_t d = row->get(table->get_pkey(), NOTHROW);
+    datum_t d = row->get_field(datum_string_t(table->get_pkey()), NOTHROW);
     r_sanity_check(d.has());
     return make_counted<get_selection_t>(
         env, std::move(table), std::move(d), std::move(row));

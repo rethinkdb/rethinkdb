@@ -22,7 +22,7 @@ private:
                                        eval_flags_t) const {
         counted_t<val_t> v = args->arg(env, 0);
         counted_t<val_t> idx = args->optarg(env, "index");
-        counted_t<func_t> func;
+        counted_t<const func_t> func;
         if (args->num_args() == 2) {
             func = args->arg(env, 1)->as_func(GET_FIELD_SHORTCUT);
         }
@@ -300,7 +300,7 @@ private:
             auto single_selection = v->as_single_selection();
             counted_t<table_t> tbl = single_selection->get_tbl();
             datum_t val = single_selection->get();
-            datum_t key = val->get(tbl->get_pkey(), NOTHROW);
+            datum_t key = val->get_field(datum_string_t(tbl->get_pkey()), NOTHROW);
             r_sanity_check(key.has());
 
             return new_val(

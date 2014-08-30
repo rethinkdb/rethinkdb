@@ -356,15 +356,15 @@ class datum_range_t {
 public:
     datum_range_t();
     datum_range_t(
-        counted_t<const ql::datum_t> left_bound,
+        datum_t left_bound,
         key_range_t::bound_t left_bound_type,
-        counted_t<const ql::datum_t> right_bound,
+        datum_t right_bound,
         key_range_t::bound_t right_bound_type);
     // Range that includes just one value.
-    explicit datum_range_t(counted_t<const ql::datum_t> val);
+    explicit datum_range_t(datum_t val);
     static datum_range_t universe();
 
-    bool contains(reql_version_t reql_version, counted_t<const ql::datum_t> val) const;
+    bool contains(reql_version_t reql_version, datum_t val) const;
     bool is_universe() const;
 
     RDB_DECLARE_ME_SERIALIZABLE;
@@ -380,7 +380,7 @@ private:
     key_range_t to_primary_keyrange() const;
     key_range_t to_sindex_keyrange() const;
 
-    counted_t<const ql::datum_t> left_bound, right_bound;
+    datum_t left_bound, right_bound;
     key_range_t::bound_t left_bound_type, right_bound_type;
 };
 RDB_SERIALIZE_OUTSIDE(datum_range_t);

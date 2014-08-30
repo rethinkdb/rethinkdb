@@ -407,6 +407,4 @@ counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) const {
 #endif // INSTRUMENT
 }
 
-}
-
 } // namespace ql

@@ -147,17 +147,17 @@ enum function_shortcut_t {
 class single_selection_t : public single_threaded_countable_t<single_selection_t> {
 public:
     static counted_t<single_selection_t> from_key(
-        env_t *env, counted_t<table_t> table, counted_t<const datum_t> key);
+        env_t *env, counted_t<table_t> table, datum_t key);
     static counted_t<single_selection_t> from_row(
-        env_t *env, counted_t<table_t> table, counted_t<const datum_t> key);
+        env_t *env, counted_t<table_t> table, datum_t key);
     static counted_t<single_selection_t> from_slice(
         env_t *env, counted_t<table_slice_t> table,
         protob_t<const Backtrace> bt, std::string err);
     virtual ~single_selection_t() = default;
 
-    virtual counted_t<const datum_t> get() = 0;
-    virtual counted_t<const datum_t> replace(
-        counted_t<func_t> f, bool nondet_ok,
+    virtual datum_t get() = 0;
+    virtual datum_t replace(
+        counted_t<const func_t> f, bool nondet_ok,
         durability_requirement_t dur_req, return_changes_t return_changes) = 0;
     virtual const counted_t<table_t> &get_tbl() = 0;
 protected:
@@ -220,7 +220,7 @@ public:
     val_t(counted_t<table_slice_t> _table_slice, protob_t<const Backtrace> bt);
     val_t(counted_t<selection_t> _selection, protob_t<const Backtrace> bt);
     val_t(counted_t<const db_t> _db, protob_t<const Backtrace> bt);
-    val_t(counted_t<func_t> _func, protob_t<const Backtrace> bt);
+    val_t(counted_t<const func_t> _func, protob_t<const Backtrace> bt);
     ~val_t();
 
     counted_t<const db_t> as_db() const;
