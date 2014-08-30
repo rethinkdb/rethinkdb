@@ -9,6 +9,8 @@
 #include "rdb_protocol/geo/s2/s2region.h"
 #include "utils.hpp"
 
+namespace geo {
+
 // An S2PointRegion is a region that contains a single point.  It is more
 // expensive than the raw S2Point type and is useful mainly for completeness.
 class S2PointRegion : public S2Region {
@@ -44,5 +46,7 @@ class S2PointRegion : public S2Region {
 S2PointRegion::S2PointRegion(S2Point const& point) : point_(point) {
   DCHECK(S2::IsUnitLength(point));
 }
+
+}  // namespace geo
 
 #endif  // UTIL_GEOMETRY_S2POINTREGION_H__

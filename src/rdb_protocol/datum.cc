@@ -1136,7 +1136,7 @@ datum_t::as_datum_stream(const protob_t<const Backtrace> &backtrace) const {
     default: unreachable();
     }
     unreachable();
-};
+}
 
 void datum_t::replace_field(const datum_string_t &key, datum_t val) {
     check_type(R_OBJECT);

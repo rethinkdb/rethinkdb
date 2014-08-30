@@ -25,7 +25,7 @@ T *get_front_of_list(const intrusive_list_t<T>& list) {
     return list.head();
 }
 
-}  // unlimited_fifo_queue
+}  // namespace unlimited_fifo_queue
 
 template<class value_t, class queue_t = std::list<value_t> >
 struct unlimited_fifo_queue_t : public passive_producer_t<value_t> {

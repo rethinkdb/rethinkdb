@@ -9,6 +9,8 @@
 #include "rdb_protocol/geo/s2/s2latlngrect.h"
 #include "rdb_protocol/geo/s2/util/math/vector2-inl.h"
 
+namespace geo {
+
 // Since S2Cells are copied by value, the following assertion is a reminder
 // not to add fields unnecessarily.  An S2Cell currently consists of 43 data
 // bytes, one vtable pointer, plus alignment overhead.  This works out to 48
@@ -221,3 +223,5 @@ bool S2Cell::Contains(S2Point const& p) const {
   return (u >= uv_[0][0] && u <= uv_[0][1] &&
           v >= uv_[1][0] && v <= uv_[1][1]);
 }
+
+}  // namespace geo

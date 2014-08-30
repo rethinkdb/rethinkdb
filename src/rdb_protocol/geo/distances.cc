@@ -24,56 +24,56 @@ double geodesic_distance(const lat_lon_point_t &p1,
     return dist;
 }
 
-double geodesic_distance(const S2Point &p,
+double geodesic_distance(const geo::S2Point &p,
                          const ql::datum_t &g,
                          const ellipsoid_spec_t &e) {
     class distance_estimator_t : public s2_geo_visitor_t<double> {
     public:
         distance_estimator_t(
-                lat_lon_point_t r, const S2Point &r_s2, const ellipsoid_spec_t &_e)
+                lat_lon_point_t r, const geo::S2Point &r_s2, const ellipsoid_spec_t &_e)
             : ref_(r), ref_s2_(r_s2), e_(_e) { }
-        double on_point(const S2Point &point) {
+        double on_point(const geo::S2Point &point) {
             lat_lon_point_t llpoint =
-                lat_lon_point_t(S2LatLng::Latitude(point).degrees(),
-                                S2LatLng::Longitude(point).degrees());
+                lat_lon_point_t(geo::S2LatLng::Latitude(point).degrees(),
+                                geo::S2LatLng::Longitude(point).degrees());
             return geodesic_distance(ref_, llpoint, e_);
         }
-        double on_line(const S2Polyline &line) {
+        double on_line(const geo::S2Polyline &line) {
             // This sometimes over-estimates large distances, because the
             // projection assumes spherical rather than ellipsoid geometry.
             int next_vertex;
-            S2Point prj = line.Project(ref_s2_, &next_vertex);
+            geo::S2Point prj = line.Project(ref_s2_, &next_vertex);
             if (prj == ref_s2_) {
                 // ref_ is on the line
                 return 0.0;
             } else {
                 lat_lon_point_t llprj =
-                    lat_lon_point_t(S2LatLng::Latitude(prj).degrees(),
-                                    S2LatLng::Longitude(prj).degrees());
+                    lat_lon_point_t(geo::S2LatLng::Latitude(prj).degrees(),
+                                    geo::S2LatLng::Longitude(prj).degrees());
                 return geodesic_distance(ref_, llprj, e_);
             }
         }
-        double on_polygon(const S2Polygon &polygon) {
+        double on_polygon(const geo::S2Polygon &polygon) {
             // This sometimes over-estimates large distances, because the
             // projection assumes spherical rather than ellipsoid geometry.
-            S2Point prj = polygon.Project(ref_s2_);
+            geo::S2Point prj = polygon.Project(ref_s2_);
             if (prj == ref_s2_) {
                 // ref_ is inside/on the polygon
                 return 0.0;
             } else {
                 lat_lon_point_t llprj =
-                    lat_lon_point_t(S2LatLng::Latitude(prj).degrees(),
-                                    S2LatLng::Longitude(prj).degrees());
+                    lat_lon_point_t(geo::S2LatLng::Latitude(prj).degrees(),
+                                    geo::S2LatLng::Longitude(prj).degrees());
                 return geodesic_distance(ref_, llprj, e_);
             }
         }
         lat_lon_point_t ref_;
-        const S2Point &ref_s2_;
+        const geo::S2Point &ref_s2_;
         const ellipsoid_spec_t &e_;
     };
     distance_estimator_t estimator(
-        lat_lon_point_t(S2LatLng::Latitude(p).degrees(),
-                        S2LatLng::Longitude(p).degrees()),
+            lat_lon_point_t(geo::S2LatLng::Latitude(p).degrees(),
+                            geo::S2LatLng::Longitude(p).degrees()),
         p, e);
     return visit_geojson(&estimator, g);
 }

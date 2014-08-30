@@ -42,7 +42,7 @@ public:
 };
 
 class extent_zone_t {
-    const size_t extent_size;
+    const uint64_t extent_size;
 
     size_t offset_to_id(int64_t extent) const {
         rassert(divides(extent_size, extent));
@@ -74,7 +74,7 @@ public:
         return held_extents_;
     }
 
-    extent_zone_t(file_t *_dbfile, size_t _extent_size)
+    extent_zone_t(file_t *_dbfile, uint64_t _extent_size)
         : extent_size(_extent_size), dbfile(_dbfile), held_extents_(0) {
         // (Avoid a bunch of reallocations by resize calls (avoiding O(n log n)
         // work on average).)

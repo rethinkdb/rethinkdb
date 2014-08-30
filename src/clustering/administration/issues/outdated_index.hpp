@@ -2,9 +2,9 @@
 #ifndef CLUSTERING_ADMINISTRATION_ISSUES_OUTDATED_INDEX_HPP_
 #define CLUSTERING_ADMINISTRATION_ISSUES_OUTDATED_INDEX_HPP_
 
+#include <list>
 #include <map>
 #include <set>
-#include <list>
 #include <string>
 
 #include "http/json.hpp"

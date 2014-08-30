@@ -4,20 +4,24 @@
 #define UTIL_GEOMETRY_S2_H_
 
 #include <algorithm>
-using std::min;
-using std::max;
-using std::swap;
-using std::reverse;
-
 #include <unordered_map>
-using std::unordered_map;
-  // To have template struct hash<T> defined
+#include <unordered_set>
+
+
 #include "rdb_protocol/geo/s2/base/basictypes.h"
 #include "rdb_protocol/geo/s2/base/logging.h"
 #include "rdb_protocol/geo/s2/base/macros.h"
 #include "rdb_protocol/geo/s2/base/port.h"  // for HASH_NAMESPACE_DECLARATION_START
 #include "rdb_protocol/geo/s2/util/math/vector3-inl.h"
 #include "rdb_protocol/geo/s2/util/math/matrix3x3.h"
+
+namespace geo {
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
+using std::unordered_map;
+  // To have template struct hash<T> defined
 
 // An S2Point represents a point on the unit sphere as a 3D vector.  Usually
 // points are normalized to be unit length, but some methods do not require
@@ -26,14 +30,15 @@ using std::unordered_map;
 // arithmetic expressions (e.g. (1-x)*p1 + x*p2).
 typedef Vector3_d S2Point;
 
-#include<unordered_set>
+}  // namespace geo
 
 namespace std {
-template<> struct hash<S2Point> {
-  size_t operator()(S2Point const& p) const;
+template<> struct hash<geo::S2Point> {
+  size_t operator()(geo::S2Point const& p) const;
 };
-}
+}  // namespace std
 
+namespace geo {
 
 // The S2 class is simply a namespace for constants and static utility
 // functions related to spherical geometry, such as area calculations and edge
@@ -833,5 +838,7 @@ template <int dim>
 int S2::Metric<dim>::GetClosestLevel(double value) const {
   return GetMinLevel((dim == 1 ? M_SQRT2 : 2) * value);
 }
+
+}  // namespace geo
 
 #endif  // UTIL_GEOMETRY_S2_H_

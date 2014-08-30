@@ -54,25 +54,26 @@
 #include "rdb_protocol/geo/s2/s2edgeindex.h"
 
 #include <algorithm>
-using std::min;
-using std::max;
-using std::swap;
-using std::reverse;
 
 #include <set>
-using std::set;
-using std::multiset;
-
 #include <utility>
-using std::pair;
-using std::make_pair;
-
 
 #include "rdb_protocol/geo/s2/base/logging.h"
 #include "rdb_protocol/geo/s2/s2cell.h"
 #include "rdb_protocol/geo/s2/s2edgeutil.h"
 #include "rdb_protocol/geo/s2/s2polyline.h"
 #include "rdb_protocol/geo/s2/s2regioncoverer.h"
+
+namespace geo {
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
+using std::set;
+using std::multiset;
+using std::pair;
+using std::make_pair;
+
 
 
 /*DEFINE_bool(always_recurse_on_children, false,
@@ -453,3 +454,5 @@ void S2EdgeIndex::Iterator::GetCandidates(S2Point const& a, S2Point const& b) {
     }
   }
 }
+
+}  // namespace geo

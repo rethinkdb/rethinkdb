@@ -54,7 +54,7 @@ void copy_full_action_buf(pool_diskmgr_action_t *dest, pool_diskmgr_action_t *so
     source->get_bufs(&source_vecs, &source_size);
 
     fill_bufs_from_source(dest_vecs, dest_size, source_vecs, source_size, offset_into_source);
-};
+}
 
 void conflict_resolving_diskmgr_t::submit(action_t *action) {
     action->conflict_count = 0;

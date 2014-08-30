@@ -3,12 +3,14 @@
 #include <math.h>
 #include <stdio.h>
 #include <iostream>
-using std::ostream;
-using std::cout;
-using std::endl;
 
 #include "rdb_protocol/geo/s2/s1angle.h"
 #include "rdb_protocol/geo/s2/s2latlng.h"
+
+namespace geo {
+using std::ostream;
+using std::cout;
+using std::endl;
 
 S1Angle::S1Angle(S2Point const& x, S2Point const& y)
     : radians_(x.Angle(y)) {
@@ -39,3 +41,4 @@ ostream& operator<<(ostream& os, S1Angle const& a) {
     return os << degrees;
   }
 }
+}  // namespace geo

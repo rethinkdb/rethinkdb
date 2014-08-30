@@ -453,5 +453,5 @@ bool test_rdb_env_t::instance_t::table_reconfigure(
     return false;
 }
 
-}
+}  // namespace unittest
 

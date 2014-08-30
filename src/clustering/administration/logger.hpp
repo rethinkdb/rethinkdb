@@ -69,9 +69,9 @@ private:
 void install_fallback_log_writer(const std::string &logfile_name);
 
 class thread_log_writer_disabler_t {
-    public:
-        thread_log_writer_disabler_t();
-        ~thread_log_writer_disabler_t();
+public:
+    thread_log_writer_disabler_t();
+    ~thread_log_writer_disabler_t();
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_LOGGER_HPP_ */

@@ -212,8 +212,8 @@ reql_t branch(Cond &&a, Then &&b, Else &&c) {
 reql_t var(pb::dummy_var_t var);
 reql_t var(const sym_t &var);
 
-} // namepsace r
+}  // namespace r
 
-} // namespace ql
+}  // namespace ql
 
-#endif // RDB_PROTOCOL_MINIDRIVER_HPP_
+#endif  // RDB_PROTOCOL_MINIDRIVER_HPP_

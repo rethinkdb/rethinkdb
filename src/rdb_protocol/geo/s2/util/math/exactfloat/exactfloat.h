@@ -105,6 +105,8 @@
 #include "rdb_protocol/geo/s2/base/logging.h"
 #include "rdb_protocol/geo/s2/base/integral_types.h"
 
+namespace geo {
+
 
 class ExactFloat {
  public:
@@ -599,5 +601,7 @@ inline ExactFloat ExactFloat::CopyWithSign(int sign) const {
   r.sign_ = sign;
   return r;
 }
+
+}  // namespace geo
 
 #endif  // UTIL_MATH_EXACTFLOAT_EXACTFLOAT_H_

@@ -13,6 +13,8 @@
 #include "rdb_protocol/geo/s2/base/port.h"
 #include "rdb_protocol/geo/s2/base/int128.h"
 
+namespace geo {
+
 inline uint64 gbswap_64(uint64 host_int) {
 #if defined(bswap_64)
   return bswap_64(host_int);
@@ -178,5 +180,7 @@ class LittleEndian {
 #define gntohs(x) ghtons(x)
 #define gntohll(x) ghtonll(x)
 #define ntohll(x) htonll(x)
+
+}  // namespace geo
 
 #endif  // UTIL_ENDIAN_ENDIAN_H_

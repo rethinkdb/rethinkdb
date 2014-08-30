@@ -57,7 +57,7 @@ public:
     optimizer_t(const datum_t &_row,
                 const datum_t &_val);
 
-    void swap_if_other_better(optimizer_t &other, // NOLINT
+    void swap_if_other_better(optimizer_t *other,
                               reql_version_t reql_version,
                               bool (*beats)(reql_version_t,
                                             const datum_t &val1,
@@ -175,7 +175,7 @@ public:
     // We assume v1_14 ordering.  We could get fancy and allow either v1_13 or v1_14
     // ordering, but usage of grouped_t inside of secondary index functions is the
     // only place where we'd want v1_13 ordering, so let's not bother.
-    explicit grouped_t() : m(optional_datum_less_t(reql_version_t::v1_14_is_latest)) { }
+    grouped_t() : m(optional_datum_less_t(reql_version_t::v1_14_is_latest)) { }
     virtual ~grouped_t() { } // See grouped_data_t below.
     template <cluster_version_t W>
     typename std::enable_if<W == cluster_version_t::CLUSTER, void>::type
@@ -232,7 +232,7 @@ public:
     void clear() { return m.clear(); }
     T &operator[](const datum_t &k) { return m[k]; }
 
-    void swap(grouped_t<T> &other) { m.swap(other.m); } // NOLINT
+    void swap(grouped_t<T> &other) { m.swap(other.m); }
     std::map<datum_t, T, optional_datum_less_t> *
     get_underlying_map(grouped::order_doesnt_matter_t) {
         return &m;
@@ -270,7 +270,7 @@ private:
 // them before iterating them.
 template <class T, class Callable>
 void iterate_ordered_by_version(reql_version_t reql_version,
-                                grouped_t<T> &grouped,
+                                grouped_t<T> &grouped,  // NOLINT(runtime/references)
                                 Callable &&callable) {
     std::map<datum_t, T, optional_datum_less_t> *m
         = grouped.get_underlying_map(grouped::order_doesnt_matter_t());
@@ -286,7 +286,7 @@ void iterate_ordered_by_version(reql_version_t reql_version,
         // works fine.
         std::sort(vec.begin(), vec.end(),
                   grouped_details::grouped_pair_compare_t<T>(reql_version));
-        for (std::pair<datum_t, T> &pair : vec) {  // NOLINT(runtime/references)
+        for (std::pair<datum_t, T> &pair : vec) {
             callable(pair.first, pair.second);
         }
     }
@@ -297,7 +297,7 @@ void iterate_ordered_by_version(reql_version_t reql_version,
 // `slow_atomic_countable_t` deletes our copy constructor, but boost variants
 // want us to have a copy constructor.
 class grouped_data_t : public grouped_t<datum_t>,
-                       public slow_atomic_countable_t<grouped_data_t> { }; // NOLINT
+                       public slow_atomic_countable_t<grouped_data_t> { };
 
 typedef boost::variant<
     grouped_t<uint64_t>, // Count.
