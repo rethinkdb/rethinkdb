@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "clustering/administration/servers/backend_common.hpp"
+#include "clustering/administration/servers/server_common.hpp"
 
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/servers/name_client.hpp"

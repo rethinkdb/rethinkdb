@@ -8,7 +8,7 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
-#include "clustering/administration/servers/backend_common.hpp"
+#include "clustering/administration/servers/server_common.hpp"
 #include "clustering/administration/servers/machine_metadata.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rpc/semilattice/view.hpp"

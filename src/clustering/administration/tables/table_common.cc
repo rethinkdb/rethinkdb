@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "clustering/administration/tables/backend_common.hpp"
+#include "clustering/administration/tables/table_common.hpp"
 
 #include "clustering/administration/datum_adapter.hpp"
 

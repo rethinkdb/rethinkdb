@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_TABLES_BACKEND_COMMON_HPP_
-#define CLUSTERING_ADMINISTRATION_TABLES_BACKEND_COMMON_HPP_
+#ifndef CLUSTERING_ADMINISTRATION_TABLES_TABLE_COMMON_HPP_
+#define CLUSTERING_ADMINISTRATION_TABLES_TABLE_COMMON_HPP_
 
 #include <string>
 #include <vector>
@@ -56,5 +56,5 @@ protected:
         databases_semilattice_metadata_t> > database_sl_view;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_TABLES_BACKEND_COMMON_HPP_ */
+#endif /* CLUSTERING_ADMINISTRATION_TABLES_TABLE_COMMON_HPP_ */
 

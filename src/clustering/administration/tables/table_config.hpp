@@ -10,7 +10,7 @@
 
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
-#include "clustering/administration/tables/backend_common.hpp"
+#include "clustering/administration/tables/table_common.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rpc/semilattice/view.hpp"

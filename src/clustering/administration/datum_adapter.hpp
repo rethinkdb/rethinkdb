@@ -26,7 +26,7 @@ bool convert_uuid_from_datum(
         std::string *error_out);
 
 ql::datum_t convert_port_to_datum(
-        port_t value);
+        int value);
 
 ql::datum_t convert_time_to_datum(
         time_t value);

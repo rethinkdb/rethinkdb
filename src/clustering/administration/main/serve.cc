@@ -149,11 +149,11 @@ bool do_serve(io_backender_t *io_backender,
             total_cache_size,
             time(NULL),
             getpid(),
-            port_t(serve_info.ports.port),
-            port_t(serve_info.ports.reql_port),
+            serve_info.ports.port,
+            serve_info.ports.reql_port,
             serve_info.ports.http_admin_is_disabled
-                ? boost::optional<port_t>()
-                : boost::optional<port_t>(port_t(serve_info.ports.http_port)),
+                ? boost::optional<int>()
+                : boost::optional<int>(serve_info.ports.http_port),
             stat_manager.get_address(),
             outdated_index_server.get_request_mailbox_address(),
             log_server.get_business_card(),

@@ -46,8 +46,8 @@ bool convert_uuid_from_datum(
 }
 
 ql::datum_t convert_port_to_datum(
-        port_t value) {
-    return ql::datum_t(static_cast<double>(value.value()));
+        int value) {
+    return ql::datum_t(static_cast<double>(value));
 }
 
 ql::datum_t convert_time_to_datum(
