@@ -108,6 +108,7 @@ reset_collections = () ->
 # Process updates from the server and apply the diffs to our view of the data.
 # Used by our version of Backbone.sync and POST / PUT responses for form actions
 apply_diffs = (updates) ->
+    # Temporary return to avoid breaking other views. This call should eventually be totally removed
     return
     if (not connection_status.get('contact_machine_id'))
         # TODO
