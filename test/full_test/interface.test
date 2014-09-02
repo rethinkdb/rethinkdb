@@ -1,5 +1,5 @@
 for interface_test_name in [
-        'detect_dead', 'log', 'progress', 'dead_machine_issues',
+        'detect_dead', 'log', 'progress', 'db_config', 'dead_machine_issues',
         'unsatisfiable_goals_issue', 'name_conflict_issue', 'net_corruption',
         'resources', 'large_branch_history', 'metadata_persistence', 'stat',
         'server_config', 'table_config', 'table_reconfigure']:
