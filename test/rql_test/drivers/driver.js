@@ -533,7 +533,7 @@ function bag(list) {
 // Invoked by generated code to demonstrate expected error output
 function err(err_name, err_msg, err_frames) {
     return err_predicate(
-        err_name, function(msg) { return (!err_msg || (err_msg == msg)); },
+        err_name, function(msg) { return (!err_msg || (err_msg === msg)); },
         err_frames, err_name+"(\""+err_msg+"\")");
 }
 
