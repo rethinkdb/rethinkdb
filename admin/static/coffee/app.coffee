@@ -3,7 +3,6 @@
 # application. We should refactor this at some point, but I'm leaving
 # it as is for now.
 
-# Shorcut for the JavaScript driver
 window.system_db = 'rethinkdb'
 
 $ ->
@@ -11,7 +10,6 @@ $ ->
     window.driver = new Driver
 
 class @Driver
-    # I don't want that thing in window
     constructor: (args) ->
         if window.location.port is ''
             if window.location.protocol is 'https:'
@@ -28,7 +26,9 @@ class @Driver
 
         @hack_driver()
     
-    # Hack the driver, remove .run() and private_run()
+    # Hack the driver: remove .run() and add private_run()
+    # We want run() to throw an error, in case a user write .run() in a query.
+    # We'll internally run a query with the method `private_run`
     hack_driver: =>
         TermBase = r.expr(1).constructor.__super__.constructor.__super__
         if not TermBase.private_run?
