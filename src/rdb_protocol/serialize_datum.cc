@@ -41,6 +41,15 @@ enum class datum_offset_size_t {
     U64BIT
 };
 
+// For efficiency reasons, we pre-compute the serialized sizes of the elements
+// of arrays and objects during serialization. This avoids recomputing them,
+// which in the worst-case could lead to quadratic serialization costs.
+// This is the data structure in which we store the sizes.
+struct size_tree_node_t {
+    size_t size;
+    std::vector<size_tree_node_t> child_sizes;
+};
+
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(datum_serialized_type_t, int8_t,
                                       datum_serialized_type_t::R_ARRAY,
                                       datum_serialized_type_t::BUF_R_OBJECT);
@@ -56,24 +65,47 @@ MUST_USE archive_result_t datum_deserialize(read_stream_t *s,
     return deserialize<cluster_version_t::LATEST_OVERALL>(s, type);
 }
 
-// This looks like it duplicates code of other deserialization functions.  It does.
-// Keeping this separate means that we don't have to worry about whether datum
-// serialization has changed from cluster version to cluster version.
+/* Forward definitions */
+size_t datum_serialized_size(const datum_t &datum,
+                             check_datum_serialization_errors_t check_errors,
+                             std::vector<size_tree_node_t> *child_sizes_out);
+serialization_result_t datum_serialize(
+        write_message_t *wm,
+        const datum_t &datum,
+        check_datum_serialization_errors_t check_errors,
+        const size_tree_node_t &precomputed_size);
 
+// Some of the following looks like it duplicates code of other deserialization
+// functions.  It does. Keeping this separate means that we don't have to worry
+// about whether datum serialization has changed from cluster version to cluster
+// version.
 
 /* Helper functions shared by datum_array_* and datum_object_* */
 
 // Keep in sync with offset_table_serialized_size
 void serialize_offset_table(write_message_t *wm,
-                            const std::vector<size_t> &elem_sizes,
+                            datum_t::type_t datum_type,
+                            const std::vector<size_tree_node_t> &elem_sizes,
                             datum_offset_size_t offset_size) {
+    rassert(datum_type == datum_t::R_OBJECT || datum_t::R_ARRAY);
+    const size_t num_elements =
+        datum_type == datum_t::R_OBJECT
+        ? elem_sizes.size() / 2
+        : elem_sizes.size();
+
+
     // num_elements
-    serialize_varint_uint64(wm, elem_sizes.size());
+    serialize_varint_uint64(wm, num_elements);
 
     // the offset table
     size_t next_offset = 0;
-    for (size_t i = 1; i < elem_sizes.size(); ++i) {
-        next_offset += elem_sizes[i-1];
+    for (size_t i = 1; i < num_elements; ++i) {
+        if (datum_type == datum_t::R_OBJECT) {
+            next_offset += elem_sizes[(i-1)*2].size; // The key
+            next_offset += elem_sizes[(i-1)*2+1].size; // The value
+        } else {
+            next_offset += elem_sizes[i-1].size;
+        }
         switch (offset_size) {
         case datum_offset_size_t::U8BIT:
             guarantee(next_offset <= std::numeric_limits<uint8_t>::max());
@@ -111,13 +143,10 @@ datum_offset_size_t get_offset_size_from_inner_size(uint64_t inner_size) {
     unreachable();
 }
 
-size_t read_inner_serialized_size_from_buf(const shared_buf_ref_t<char> &buf,
-                                           datum_offset_size_t *offset_size_out) {
-    rassert(offset_size_out != NULL);
+size_t read_inner_serialized_size_from_buf(const shared_buf_ref_t<char> &buf) {
     buffer_read_stream_t s(buf.get(), buf.get_safety_boundary());
     uint64_t sz = 0;
     guarantee_deserialization(deserialize_varint_uint64(&s, &sz), "datum buffer size");
-    *offset_size_out = get_offset_size_from_inner_size(sz);
     guarantee(sz <= std::numeric_limits<size_t>::max());
     return static_cast<size_t>(sz);
 }
@@ -168,47 +197,61 @@ size_t offset_table_serialized_size(size_t num_elements,
     }
 }
 
-
-// Keep in sync with datum_array_serialize.
+// Keep in sync with datum_object_serialize
+// Keep in sync with datum_array_serialize
 size_t datum_array_inner_serialized_size(
         const datum_t &datum,
-        check_datum_serialization_errors_t check_errors,
-        std::vector<size_t> *element_sizes_out,
+        const std::vector<size_tree_node_t> &child_sizes,
         datum_offset_size_t *offset_size_out) {
+
+    // The size of all (keys/)values
+    size_t elem_sz = 0;
+    for (size_t i = 0; i < child_sizes.size(); ++i) {
+        elem_sz += child_sizes[i].size;
+    }
+
+    // Plus the offset table size
+    const size_t num_offsets =
+        datum.get_type() == datum_t::R_OBJECT
+        ? datum.obj_size()
+        : datum.arr_size();
+    return elem_sz + offset_table_serialized_size(num_offsets,
+                                                  elem_sz,
+                                                  offset_size_out);
+}
+
+
+// Keep in sync with datum_array_serialize.
+size_t datum_array_serialized_size(const datum_t &datum,
+                                   check_datum_serialization_errors_t check_errors,
+                                   std::vector<size_tree_node_t> *element_sizes_out) {
+    size_t sz = 0;
 
     // Can we use an existing serialization?
     const shared_buf_ref_t<char> *existing_buf_ref = datum.get_buf_ref();
     if (existing_buf_ref != NULL
         && check_errors == check_datum_serialization_errors_t::NO) {
 
-        rassert(element_sizes_out == NULL);
-        return read_inner_serialized_size_from_buf(*existing_buf_ref, offset_size_out);
-    }
-
-    // The size of all elements
-    size_t elements_sz = 0;
-    if (element_sizes_out != NULL) {
-        rassert(element_sizes_out->empty());
-        element_sizes_out->reserve(datum.arr_size());
-    }
-    for (size_t i = 0; i < datum.arr_size(); ++i) {
-        auto elem = datum.get(i);
-        const size_t elem_size = datum_serialized_size(elem, check_errors);
-        if (element_sizes_out != NULL) {
-            element_sizes_out->push_back(elem_size);
+        // We don't initialize element_sizes_out, but that's ok. We don't need it
+        // if there already is a serialization.
+        sz += read_inner_serialized_size_from_buf(*existing_buf_ref);
+    } else {
+        std::vector<size_tree_node_t> elem_sizes;
+        elem_sizes.reserve(datum.arr_size());
+        for (size_t i = 0; i < datum.arr_size(); ++i) {
+            auto elem = datum.get(i);
+            size_tree_node_t elem_size;
+            elem_size.size = datum_serialized_size(elem, check_errors,
+                                                   &elem_size.child_sizes);
+            elem_sizes.push_back(std::move(elem_size));
         }
-        elements_sz += elem_size;
-    }
+        datum_offset_size_t offset_size;
+        sz += datum_array_inner_serialized_size(datum, elem_sizes, &offset_size);
 
-    return elements_sz + offset_table_serialized_size(datum.arr_size(),
-                                                      elements_sz,
-                                                      offset_size_out);
-}
-size_t datum_array_serialized_size(const datum_t &datum,
-                                   check_datum_serialization_errors_t check_errors) {
-    datum_offset_size_t offset_size;
-    size_t sz = datum_array_inner_serialized_size(datum, check_errors, NULL,
-                                                  &offset_size);
+        if (element_sizes_out != NULL) {
+            *element_sizes_out = std::move(elem_sizes);
+        }
+    }
 
     // The inner serialized size
     sz += varint_uint64_serialized_size(sz);
@@ -223,32 +266,34 @@ size_t datum_array_serialized_size(const datum_t &datum,
 serialization_result_t datum_array_serialize(
         write_message_t *wm,
         const datum_t &datum,
-        check_datum_serialization_errors_t check_errors) {
+        check_datum_serialization_errors_t check_errors,
+        const size_tree_node_t &precomputed_sizes) {
 
     // Can we use an existing serialization?
     const shared_buf_ref_t<char> *existing_buf_ref = datum.get_buf_ref();
     if (existing_buf_ref != NULL
         && check_errors == check_datum_serialization_errors_t::NO) {
 
-        size_t sz = datum_array_serialized_size(datum, check_errors);
-        wm->append(existing_buf_ref->get(), sz);
+        wm->append(existing_buf_ref->get(), precomputed_sizes.size);
         return serialization_result_t::SUCCESS;
     }
 
     // The inner serialized size
-    std::vector<size_t> element_sizes;
     datum_offset_size_t offset_size;
-    serialize_varint_uint64(
-        wm, datum_array_inner_serialized_size(datum, check_errors,
-                                              &element_sizes, &offset_size));
+    serialize_varint_uint64(wm,
+        datum_array_inner_serialized_size(datum, precomputed_sizes.child_sizes,
+                                          &offset_size));
 
-    serialize_offset_table(wm, element_sizes, offset_size);
+    serialize_offset_table(wm, datum.get_type(), precomputed_sizes.child_sizes,
+                           offset_size);
 
     // The elements
     serialization_result_t res = serialization_result_t::SUCCESS;
+    rassert(precomputed_sizes.child_sizes.size() == datum.arr_size());
     for (size_t i = 0; i < datum.arr_size(); ++i) {
         auto elem = datum.get(i);
-        res = res | datum_serialize(wm, elem, check_errors);
+        const size_tree_node_t &child_size = precomputed_sizes.child_sizes[i];
+        res = res | datum_serialize(wm, elem, check_errors, child_size);
     }
 
     return res;
@@ -276,47 +321,40 @@ datum_deserialize(read_stream_t *s, std::vector<datum_t> *v) {
     return archive_result_t::SUCCESS;
 }
 
-// Keep in sync with datum_object_serialize
-size_t datum_object_inner_serialized_size(
-        const datum_t &datum,
-        check_datum_serialization_errors_t check_errors,
-        std::vector<size_t> *pair_sizes_out,
-        datum_offset_size_t *offset_size_out) {
+// Keep in sync with datum_object_serialize.
+size_t datum_object_serialized_size(const datum_t &datum,
+                                    check_datum_serialization_errors_t check_errors,
+                                    std::vector<size_tree_node_t> *child_sizes_out) {
+    size_t sz = 0;
 
     // Can we use an existing serialization?
     const shared_buf_ref_t<char> *existing_buf_ref = datum.get_buf_ref();
     if (existing_buf_ref != NULL
         && check_errors == check_datum_serialization_errors_t::NO) {
 
-        rassert(pair_sizes_out == NULL);
-        return read_inner_serialized_size_from_buf(*existing_buf_ref, offset_size_out);
-    }
-
-    // The size of all pairs
-    size_t fields_sz = 0;
-    if (pair_sizes_out != NULL) {
-        rassert(pair_sizes_out->empty());
-        pair_sizes_out->reserve(datum.obj_size());
-    }
-    for (size_t i = 0; i < datum.obj_size(); ++i) {
-        auto pair = datum.get_pair(i);
-        const size_t pair_size = datum_serialized_size(pair.first)
-                                 + datum_serialized_size(pair.second, check_errors);
-        if (pair_sizes_out != NULL) {
-            pair_sizes_out->push_back(pair_size);
+        // We don't initialize element_sizes_out, but that's ok. We don't need it
+        // if there already is a serialization.
+        sz += read_inner_serialized_size_from_buf(*existing_buf_ref);
+    } else {
+        std::vector<size_tree_node_t> child_sizes;
+        child_sizes.reserve(datum.obj_size() * 2);
+        for (size_t i = 0; i < datum.obj_size(); ++i) {
+            auto pair = datum.get_pair(i);
+            size_tree_node_t key_size;
+            key_size.size = datum_serialized_size(pair.first);
+            size_tree_node_t val_size;
+            val_size.size = datum_serialized_size(pair.second, check_errors,
+                                                  &val_size.child_sizes);
+            child_sizes.push_back(std::move(key_size));
+            child_sizes.push_back(std::move(val_size));
         }
-        fields_sz += pair_size;
-    }
+        datum_offset_size_t offset_size;
+        sz += datum_array_inner_serialized_size(datum, child_sizes, &offset_size);
 
-    return fields_sz + offset_table_serialized_size(datum.obj_size(),
-                                                    fields_sz,
-                                                    offset_size_out);
-}
-size_t datum_object_serialized_size(const datum_t &datum,
-                                    check_datum_serialization_errors_t check_errors) {
-    datum_offset_size_t offset_size;
-    size_t sz = datum_object_inner_serialized_size(datum, check_errors, NULL,
-                                                   &offset_size);
+        if (child_sizes_out != NULL) {
+            *child_sizes_out = std::move(child_sizes);
+        }
+    }
 
     // The inner serialized size
     sz += varint_uint64_serialized_size(sz);
@@ -331,33 +369,35 @@ size_t datum_object_serialized_size(const datum_t &datum,
 serialization_result_t datum_object_serialize(
         write_message_t *wm,
         const datum_t &datum,
-        check_datum_serialization_errors_t check_errors) {
+        check_datum_serialization_errors_t check_errors,
+        const size_tree_node_t &precomputed_sizes) {
 
     // Can we use an existing serialization?
     const shared_buf_ref_t<char> *existing_buf_ref = datum.get_buf_ref();
     if (existing_buf_ref != NULL
         && check_errors == check_datum_serialization_errors_t::NO) {
 
-        size_t sz = datum_object_serialized_size(datum, check_errors);
-        wm->append(existing_buf_ref->get(), sz);
+        wm->append(existing_buf_ref->get(), precomputed_sizes.size);
         return serialization_result_t::SUCCESS;
     }
 
     // The inner serialized size
-    std::vector<size_t> pair_sizes;
     datum_offset_size_t offset_size;
     serialize_varint_uint64(wm,
-        datum_object_inner_serialized_size(datum, check_errors,
-                                           &pair_sizes, &offset_size));
+        datum_array_inner_serialized_size(datum, precomputed_sizes.child_sizes,
+                                          &offset_size));
 
-    serialize_offset_table(wm, pair_sizes, offset_size);
+    serialize_offset_table(wm, datum.get_type(), precomputed_sizes.child_sizes,
+                           offset_size);
 
     // The pairs
     serialization_result_t res = serialization_result_t::SUCCESS;
+    rassert(precomputed_sizes.child_sizes.size() == datum.obj_size() * 2);
     for (size_t i = 0; i < datum.obj_size(); ++i) {
         auto pair = datum.get_pair(i);
+        const size_tree_node_t &val_size = precomputed_sizes.child_sizes[i*2+1];
         res = res | datum_serialize(wm, pair.first);
-        res = res | datum_serialize(wm, pair.second, check_errors);
+        res = res | datum_serialize(wm, pair.second, check_errors, val_size);
     }
 
     return res;
@@ -392,15 +432,20 @@ MUST_USE archive_result_t datum_deserialize(
 }
 
 
-
-
 size_t datum_serialized_size(const datum_t &datum,
                              check_datum_serialization_errors_t check_errors) {
+    return datum_serialized_size(datum, check_errors, NULL);
+}
+
+size_t datum_serialized_size(const datum_t &datum,
+                             check_datum_serialization_errors_t check_errors,
+                             std::vector<size_tree_node_t> *child_sizes_out) {
+    rassert(child_sizes_out == NULL || child_sizes_out->empty());
     r_sanity_check(datum.has());
     size_t sz = 1; // 1 byte for the type
     switch (datum.get_type()) {
     case datum_t::R_ARRAY: {
-        sz += datum_array_serialized_size(datum, check_errors);
+        sz += datum_array_serialized_size(datum, check_errors, child_sizes_out);
     } break;
     case datum_t::R_BINARY: {
         sz += datum_serialized_size(datum.as_binary());
@@ -419,7 +464,7 @@ size_t datum_serialized_size(const datum_t &datum,
         }
     } break;
     case datum_t::R_OBJECT: {
-        sz += datum_object_serialized_size(datum, check_errors);
+        sz += datum_object_serialized_size(datum, check_errors, child_sizes_out);
     } break;
     case datum_t::R_STR: {
         sz += datum_serialized_size(datum.as_str());
@@ -430,10 +475,12 @@ size_t datum_serialized_size(const datum_t &datum,
     }
     return sz;
 }
+
 serialization_result_t datum_serialize(
         write_message_t *wm,
         const datum_t &datum,
-        check_datum_serialization_errors_t check_errors) {
+        check_datum_serialization_errors_t check_errors,
+        const size_tree_node_t &precomputed_size) {
     serialization_result_t res = serialization_result_t::SUCCESS;
     r_sanity_check(datum.has());
     switch (datum->get_type()) {
@@ -441,7 +488,7 @@ serialization_result_t datum_serialize(
         res = res | datum_serialize(wm, datum_serialized_type_t::BUF_R_ARRAY);
         if (datum.arr_size() > 100000)
             res = res | serialization_result_t::ARRAY_TOO_BIG;
-        res = res | datum_array_serialize(wm, datum, check_errors);
+        res = res | datum_array_serialize(wm, datum, check_errors, precomputed_size);
     } break;
     case datum_t::R_BINARY: {
         datum_serialize(wm, datum_serialized_type_t::R_BINARY);
@@ -478,7 +525,7 @@ serialization_result_t datum_serialize(
     } break;
     case datum_t::R_OBJECT: {
         res = res | datum_serialize(wm, datum_serialized_type_t::BUF_R_OBJECT);
-        res = res | datum_object_serialize(wm, datum, check_errors);
+        res = res | datum_object_serialize(wm, datum, check_errors, precomputed_size);
     } break;
     case datum_t::R_STR: {
         res = res | datum_serialize(wm, datum_serialized_type_t::R_STR);
@@ -491,6 +538,18 @@ serialization_result_t datum_serialize(
     }
     return res;
 }
+
+serialization_result_t datum_serialize(
+        write_message_t *wm,
+        const datum_t &datum,
+        check_datum_serialization_errors_t check_errors) {
+    // Precompute serialized sizes
+    size_tree_node_t size;
+    size.size = datum_serialized_size(datum, check_errors, &size.child_sizes);
+
+    return datum_serialize(wm, datum, check_errors, size);
+}
+
 archive_result_t datum_deserialize(read_stream_t *s, datum_t *datum) {
     // Datums on disk should always be read no matter how stupid big
     // they are; there's no way to fix the problem otherwise.
