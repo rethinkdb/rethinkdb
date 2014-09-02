@@ -490,7 +490,7 @@ function setup_table(table_variable_name, table_name) {
                 });
             } else {
                 var parts = DB_AND_TABLE_NAME.split(".");
-                defines[name] = r.db(parts[0]).table(parts[1]);
+                defines[table_variable_name] = r.db(parts[0]).table(parts[1]);
                 next();
             }
         } catch (err) {

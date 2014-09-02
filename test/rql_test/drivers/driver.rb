@@ -244,7 +244,7 @@ def setup_table table_variable_name, table_name
       $defines.eval("#{table_variable_name} = r.db('test').table('#{table_name}')")
     else
       parts = DB_AND_TABLE_NAME.split('.')
-      $defines.eval("#{name} = r.db(\"#{parts.first}\").table(\"#{parts.last}\")")
+      $defines.eval("#{table_variable_name} = r.db(\"#{parts.first}\").table(\"#{parts.last}\")")
   end
 end
 
