@@ -10,18 +10,40 @@
 namespace unittest {
 
 void test_datum_serialization(const ql::datum_t datum) {
-    string_stream_t write_stream;
-    write_message_t wm;
-    serialize<cluster_version_t::LATEST_OVERALL>(&wm, datum);
-    int write_res = send_write_message(&write_stream, &wm);
-    ASSERT_EQ(0, write_res);
-
-    string_read_stream_t read_stream(std::move(write_stream.str()), 0);
     ql::datum_t deserialized_datum;
-    archive_result_t res
-        = deserialize<cluster_version_t::LATEST_OVERALL>(&read_stream, &deserialized_datum);
-    ASSERT_EQ(archive_result_t::SUCCESS, res);
-    ASSERT_EQ(datum, deserialized_datum);
+    {
+        string_stream_t write_stream;
+        write_message_t wm;
+        serialize<cluster_version_t::LATEST_OVERALL>(&wm, datum);
+        int write_res = send_write_message(&write_stream, &wm);
+        ASSERT_EQ(0, write_res);
+
+        string_read_stream_t read_stream(std::move(write_stream.str()), 0);
+        archive_result_t res
+            = deserialize<cluster_version_t::LATEST_OVERALL>(&read_stream,
+                                                             &deserialized_datum);
+        ASSERT_EQ(archive_result_t::SUCCESS, res);
+        ASSERT_EQ(datum, deserialized_datum);
+    }
+
+    // Re-serialize the just deserialized datum a second time. This might use
+    // a different serialization routine, in case the deserialized datum is in
+    // a shared buffer representation.
+    {
+        string_stream_t write_stream;
+        write_message_t wm;
+        serialize<cluster_version_t::LATEST_OVERALL>(&wm, deserialized_datum);
+        int write_res = send_write_message(&write_stream, &wm);
+        ASSERT_EQ(0, write_res);
+
+        string_read_stream_t read_stream(std::move(write_stream.str()), 0);
+        ql::datum_t redeserialized_datum;
+        archive_result_t res
+            = deserialize<cluster_version_t::LATEST_OVERALL>(&read_stream,
+                                                             &redeserialized_datum);
+        ASSERT_EQ(archive_result_t::SUCCESS, res);
+        ASSERT_EQ(deserialized_datum, redeserialized_datum);
+    }
 }
 
 
