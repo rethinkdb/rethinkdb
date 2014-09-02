@@ -543,7 +543,7 @@ function err_regex(err_name, err_pat, err_frames) {
         err_frames, err_name + "(\""+err_pat+"\")");
 }
 
-function err_predicate(err_name, err_predicate, err_frames, desc) {
+function err_predicate(err_name, err_pred, err_frames, desc) {
     var err_frames = null; // TODO: test for frames
     var fun = function(other) {
         if (!(other instanceof Error)) return false;
@@ -553,7 +553,7 @@ function err_predicate(err_name, err_predicate, err_frames, desc) {
         other.msg = other.msg.replace(/:\n([\r\n]|.)*/m, ".");
         other.msg = other.msg.replace(/\nFailed assertion([\r\n]|.)*/m, "");
 
-        if (!err_predicate(other.msg)) return false;
+        if (!err_pred(other.msg)) return false;
         if (err_frames && !(eq_test(other.frames, err_frames))) return false;
         return true;
     }
