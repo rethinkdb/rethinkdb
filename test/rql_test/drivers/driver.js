@@ -169,6 +169,17 @@ function TRACE(){
     }
 }
 
+// `doExit` will later get set to something that performs cleanup
+var doExit = process.exit
+process.on('SIGINT', function() {
+    doExit(128+2);
+    })
+process.on('unexpectedException', function(err) {
+    console.log("Unexpected exception: " + String(err))
+    console.log("Stack is: " + String(err.stack))
+    doExit(1);
+    })
+
 // Connect first to cpp server
 r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
         
@@ -380,15 +391,12 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                 }
             } else {
                 // We've hit the end of our test list
-                // closing the connection will allow the
-                // event loop to quit naturally
-                cpp_conn.close();
-
                 if(failure_count != 0){
                     console.log("Failed " + failure_count + " tests");
-                    process.exit(1);
+                    doExit(1);
                 } else {
                     console.log("Passed all tests")
+                    doExit(0);
                 }
             }
         } catch (err) {
@@ -403,7 +411,7 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
 function unexpectedException(){
     console.log("Oops, this shouldn't have happened:");
     console.log.apply(console, arguments);
-    process.exit(1);
+    doExit(1)
 }
 
 // Invoked by generated code to add test and expected result
@@ -416,7 +424,11 @@ function test(testSrc, resSrc, name, runopts, testopts) {
 function setup_table(name) {
     tests.push(function(next, cpp_conn) {
         try {
-            function _teardownTable(next, cpp_conn) {
+            doExit = function (exit_code) {
+                console.log("cleaning up table...");
+                // Unregister handler to prevent recursive insanity if something fails
+                // while cleaning up
+                doExit = process.exit
                 if (DB_AND_TABLE_NAME === "no_table_specified") {
                     try {
                         r.db("test").tableDrop("test").run(cpp_conn, {}, function (err, res) {
@@ -426,7 +438,7 @@ function setup_table(name) {
                             if (res.dropped != 1) {
                                 unexpectedException("teardown_table", "table not dropped", res);
                             }
-                            next();
+                            process.exit(exit_code);
                         });
                     } catch (err) {
                         console.log("stack: " + String(err.stack));
@@ -452,7 +464,7 @@ function setup_table(name) {
                                         if (res.errors !== undefined && res.errors !== 0) {
                                             unexpectedException("teardown_table", "error dropping indexes", res);
                                         }
-                                        next();
+                                        process.exit(exit_code);
                                 });
                             } catch (err) {
                                 console.log("stack: " + String(err.stack));
@@ -465,7 +477,6 @@ function setup_table(name) {
                     }
                 }
             }
-            tests.push(_teardownTable)
             if (DB_AND_TABLE_NAME === "no_table_specified") {
                 r.db("test").tableCreate("test").run(cpp_conn, {}, function (err, res) {
                     if (err) {
