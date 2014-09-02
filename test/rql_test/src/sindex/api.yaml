@@ -26,10 +26,10 @@ tests:
     ot: ({'created':1})
 
   - cd: tbl.index_rename('rename-foo','rename-bar')
-    ot: err_regex('RqlRuntimeError','Index `rename-bar` already exists on table `[a-zA-Z0-9_]+.[a-zA-Z0-9]+`[.]',[])
+    ot: err_regex('RqlRuntimeError','Index `rename-bar` already exists on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]',[])
 
   - cd: tbl.index_rename('rename-fake','rename-stuff')
-    ot: err_regex('RqlRuntimeError','Index `rename-fake` does not exist on table `[a-zA-Z0-9_]+.[a-zA-Z0-9]+`[.]',[])
+    ot: err_regex('RqlRuntimeError','Index `rename-fake` does not exist on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]',[])
 
   - cd: tbl.index_rename('id','rename-stuff')
     ot: err('RqlRuntimeError','Index name conflict:'+' `id` is the name of the primary key.',[])
@@ -93,7 +93,7 @@ tests:
   - rb: tbl.index_create('ai') {|row| row[:a]}
     py: tbl.index_create('ai', r.row['a'])
     js: tbl.indexCreate('ai', r.row('a'))
-    ot: err_regex("RqlRuntimeError", "Index `ai` already exists on table `[a-zA-Z0-9_]+.[a-zA-Z0-9]+`[.]", [])
+    ot: err_regex("RqlRuntimeError", "Index `ai` already exists on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]", [])
   - rb: tbl.index_create('bi') {|row| row[:b]}
     py: tbl.index_create('bi', r.row['b'])
     js: tbl.indexCreate('bi', r.row('b'))
@@ -206,7 +206,7 @@ tests:
   - rb: tbl.get_all(0, :index => :fake)
     py: tbl.get_all(0, index='fake')
     js: tbl.getAll(0, {index:'fake'})
-    ot: err_regex("RqlRuntimeError", "Index `fake` was not found on table `[a-zA-Z0-9_]+.[a-zA-Z0-9]+`[.]", [])
+    ot: err_regex("RqlRuntimeError", "Index `fake` was not found on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]", [])
 
   - rb: tbl.get_all(0, :index => false)
     py: tbl.get_all(0, index=False)
@@ -296,7 +296,7 @@ tests:
   - rb: tbl.eq_join(:id, tbl, :index => :fake)
     py: tbl.eq_join('id', tbl, index='fake')
     js: tbl.eqJoin('id', tbl, {index:'fake'})
-    ot: err_regex("RqlRuntimeError", "Index `fake` was not found on table `[a-zA-Z0-9_]+.[a-zA-Z0-9]+`[.]", [])
+    ot: err_regex("RqlRuntimeError", "Index `fake` was not found on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]", [])
   - rb: tbl.eq_join(:id, tbl, :index => false)
     py: tbl.eq_join('id', tbl, index=False)
     js: tbl.eqJoin('id', tbl, {index:false})

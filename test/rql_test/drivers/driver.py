@@ -364,10 +364,10 @@ def test(query, expected, name, runopts=None, testopts=None):
     driver.run(query, expected, name, runopts, testopts)
 
 # Generated code must call either `setup_table()` or `check_no_table_specified()`
-def setup_table(table_variable_name):
+def setup_table(table_variable_name, table_name):
     def _teardown_table():
         if DB_AND_TABLE_NAME == "no_table_specified":
-            res = r.db("test").table_drop("test").run(driver.cpp_conn)
+            res = r.db("test").table_drop(table_name).run(driver.cpp_conn)
             assert res == {"dropped": 1}
         else:
             db, table = DB_AND_TABLE_NAME.split(".")
@@ -378,9 +378,9 @@ def setup_table(table_variable_name):
             assert "errors" not in res or res["errors"] == 0
     atexit.register(_teardown_table)
     if DB_AND_TABLE_NAME == "no_table_specified":
-        res = r.db("test").table_create("test").run(driver.cpp_conn)
+        res = r.db("test").table_create(table_name).run(driver.cpp_conn)
         assert res == {"created": 1}
-        globals()[table_variable_name] = r.db("test").table("test")
+        globals()[table_variable_name] = r.db("test").table(table_name)
     else:
         db, table = DB_AND_TABLE_NAME.split(".")
         globals()[table_variable_name] = r.db(db).table(table)

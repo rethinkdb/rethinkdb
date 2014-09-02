@@ -445,8 +445,12 @@ class TestGroup(object):
             # - set up table if necessary
             
             if "table_variable_name" in parsed_data:
-                outputFile.write(
-                    "setup_table(%r)\n\n" % parsed_data["table_variable_name"])
+                table_name = testName.replace(".","_").replace("/","_")
+                table_name += "_"
+                table_name += language.display_name.replace(" ","_").replace(".","_")
+                outputFile.write("setup_table(%s, %s)\n\n" % (
+                    language.langrepr(parsed_data["table_variable_name"]),
+                    language.langrepr(table_name)))
             else:
                 outputFile.write("check_no_table_specified()\n\n")
             

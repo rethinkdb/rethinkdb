@@ -421,7 +421,7 @@ function test(testSrc, resSrc, name, runopts, testopts) {
 }
 
 // Generated code must call either `setup_table()` or `check_no_table_specified()`
-function setup_table(name) {
+function setup_table(table_variable_name, table_name) {
     tests.push(function(next, cpp_conn) {
         try {
             doExit = function (exit_code) {
@@ -431,7 +431,7 @@ function setup_table(name) {
                 doExit = process.exit
                 if (DB_AND_TABLE_NAME === "no_table_specified") {
                     try {
-                        r.db("test").tableDrop("test").run(cpp_conn, {}, function (err, res) {
+                        r.db("test").tableDrop(table_name).run(cpp_conn, {}, function (err, res) {
                             if (err) {
                                 unexpectedException("teardown_table", err);
                             }
@@ -478,14 +478,14 @@ function setup_table(name) {
                 }
             }
             if (DB_AND_TABLE_NAME === "no_table_specified") {
-                r.db("test").tableCreate("test").run(cpp_conn, {}, function (err, res) {
+                r.db("test").tableCreate(table_name).run(cpp_conn, {}, function (err, res) {
                     if (err) {
                         unexpectedException("setup_table", err);
                     }
                     if (res.created != 1) {
                         unexpectedException("setup_table", "table not created", res);
                     }
-                    defines[name] = r.db("test").table("test");
+                    defines[table_variable_name] = r.db("test").table(table_name);
                     next();
                 });
             } else {
