@@ -322,14 +322,16 @@ scoped_ptr_t<S2Polygon> coordinates_to_s2polygon(const datum_t &coords) {
 
     // We use S2PolygonBuilder to automatically clean up identical edges and such
     S2PolygonBuilderOptions builder_opts = S2PolygonBuilderOptions::DIRECTED_XOR();
-    // We want validation... for now
-    // TODO (daniel): We probably don't have to run validation after every
-    //  loop we add. It would be enough to do it once at the end.
-    //  However currently AssemblePolygon() would terminate the process
-    //  if compiled in debug mode (FLAGS_s2debug) upon encountering an invalid
-    //  polygon.
-    //  Probably we can stop using FLAGS_s2debug once things have settled.
+    // We don't have to run validation after every loop we add. It's enough to do
+    // it once at the end.
+    // However AssemblePolygon() would terminate the process if compiled in
+    // debug mode (FLAGS_s2debug) upon encountering an invalid polygon, so we
+    // have to validate early.
+#ifndef NDEBUG
     builder_opts.set_validate(true);
+#else
+    builder_opts.set_validate(false);
+#endif
     S2PolygonBuilder builder(builder_opts);
     for (size_t i = 0; i < loops.size(); ++i) {
         builder.AddLoop(loops[i].get());
@@ -338,7 +340,7 @@ scoped_ptr_t<S2Polygon> coordinates_to_s2polygon(const datum_t &coords) {
     scoped_ptr_t<S2Polygon> result(new S2Polygon());
     S2PolygonBuilder::EdgeList unused_edges;
     builder.AssemblePolygon(result.get(), &unused_edges);
-    if (!unused_edges.empty()) {
+    if (!unused_edges.empty() || !result->IsValid(geo::S2Polygon::validate_loops_t::NO)) {
         throw geo_exception_t(
             "Some edges in GeoJSON polygon could not be used.  Are they intersecting?");
     }

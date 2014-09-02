@@ -165,10 +165,12 @@ bool S2Polygon::IsValid(const vector<S2Loop*>& loops) {
   return true;
 }
 
-bool S2Polygon::IsValid() const {
-  for (int i = 0; i < num_loops(); ++i) {
-    if (!loop(i)->IsValid()) {
-      return false;
+bool S2Polygon::IsValid(validate_loops_t validate_loops) const {
+  if (validate_loops == validate_loops_t::YES) {
+    for (int i = 0; i < num_loops(); ++i) {
+      if (!loop(i)->IsValid()) {
+        return false;
+      }
     }
   }
   return IsValid(loops_);

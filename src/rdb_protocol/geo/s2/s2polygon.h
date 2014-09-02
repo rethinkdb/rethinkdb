@@ -80,7 +80,8 @@ class S2Polygon : public S2Region {
   // Return true if this is a valid polygon.  Note that in debug mode,
   // validity is checked at polygon creation time, so IsValid() should always
   // return true.
-  bool IsValid() const;
+  enum class validate_loops_t {YES, NO};
+  bool IsValid(validate_loops_t validate_loops = validate_loops_t::YES) const;
 
   // DEPRECATED.
   bool IsValid(bool check_loops, int max_adjacent) const;
