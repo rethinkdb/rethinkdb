@@ -4,6 +4,8 @@
 # it as is for now.
 
 # Shorcut for the JavaScript driver
+window.system_db = 'rethinkdb'
+
 $ ->
     window.r = require('rethinkdb')
     window.driver = new Driver
@@ -40,11 +42,18 @@ class @Driver
 
 
     run: (query, callback) =>
-        @connect (error, result) ->
+        @connect (error, connection) ->
             if error?
                 return callback error
 
-            query.private_run connection, callback
+            query.private_run connection, (err, result) ->
+                if typeof result.toArray is 'function'
+                    result.toArray (err, result) ->
+                        callback(err, result)
+                        connection.close()
+                else
+                    callback(err, result)
+                    connection.close()
 
     close: (conn) ->
         conn.close {noreplyWait: false}
@@ -99,6 +108,7 @@ reset_collections = () ->
 # Process updates from the server and apply the diffs to our view of the data.
 # Used by our version of Backbone.sync and POST / PUT responses for form actions
 apply_diffs = (updates) ->
+    return
     if (not connection_status.get('contact_machine_id'))
         # TODO
         connection_status.set('contact_machine_id', "TODO")

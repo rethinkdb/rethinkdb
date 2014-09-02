@@ -1,6 +1,14 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 #Models for Backbone.js
 
+class Servers extends Backbone.Collection
+    model: Server
+    name: 'Servers'
+
+class Server extends Backbone.Model
+    foo: ->
+        return "bar"
+
 class Database extends Backbone.Model
     get_namespaces: =>
         namespaces_in_datacenter = []

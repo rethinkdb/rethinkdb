@@ -942,6 +942,116 @@ TODO: retire this
         ul.log-entries { margin-bottom: 5px; }
     }
 }
+/*
+    ----------------------------
+    Server list
+    ----------------------------
+*/
+#servers_container {
+    padding: 0;
+    h1.title {
+        font-family: @serif;
+        color: #4d535c;
+        font-size: 19px;
+        margin-bottom: 25px;
+    }
+
+    .servers_list {
+        padding: 12px 13px 12px 13px;
+        background: #fafafa;
+        .border-radius(0px 0px 4px 4px);
+    }
+
+    .server_view {
+        @bar_height: 44px;
+        height: @bar_height;
+        background: #FFF;
+        border: thin solid #cfcfcf;
+        .border-radius(3px);
+        margin-top: 12px;
+    
+        .box-shadow(~"0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.08)");
+
+        .checkbox-container {
+            float: left;
+
+            label {
+                display: inline;
+                margin: 14px;
+            }
+            input[type="checkbox"] { display: none; }
+
+            input[type="checkbox"] + label {
+                border: thin solid #cfcfcf;
+                .border-radius(3px);
+                padding: 7px;
+                display: inline-block;
+                position: relative;
+                &:active { .box-shadow(~"0 1px 2px rgba(0,0,0,0.05), inset 0 1px 3px rgba(0,0,0,0.1)"); }
+            }
+            input[type="checkbox"]:checked + label:after {
+                content: '\2714';
+                font-size: 15px;
+                position: absolute;
+                top: -2px;
+                left: 1px;
+                color: #7c7c7c;
+            }
+        }
+
+        .server-details { 
+            position: relative;
+            margin-left: 45px;
+
+            @border_padding: 20px;
+            @offset: 8px;
+            @line_height: @bar_height - @offset*2;
+
+            p {
+                margin: 0;
+                font-family: @sans;
+            }
+            .name, .quick_info, .status {
+                @offset: 8px;
+                position: absolute;
+                line-height: @line_height;
+                margin-top: @offset;
+                border-left: thin solid #e4e4e4;
+            }
+            .name {
+                background: @border_padding center no-repeat url('images/server-icon.png');
+                padding-left: 38px + @border_padding;
+                a { color: #0597d8; }
+                font-size: 16px;
+                font-weight: bold;
+                width: 400px;
+                height: @line_height;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .quick_info {
+                background: @border_padding center no-repeat url('images/graph-icon.png');
+                color: #626264;
+                padding-left: 30px + @border_padding;
+                left: 475px;
+            }
+            .status {
+                left: 725px;
+                padding-right: 20px;
+                color: #818181;
+                .label-success {
+                    background: @border_padding center no-repeat url('images/green-light_glow.png');
+                    padding-left: 23px + @border_padding;
+                }
+                .label-failure {
+                    background: @border_padding center no-repeat url('images/red-light_glow.png');
+                    padding-left: 23px + @border_padding;
+                }
+            }
+
+        }
+    }
+}
 
 
 /*
@@ -949,7 +1059,7 @@ TODO: retire this
     Server list and table list
     ----------------------------
 */
-#server-list, #table-list {
+#table-list {
     h1.title {
         font-family: @serif;
         color: #4d535c;
