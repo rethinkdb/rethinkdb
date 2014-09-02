@@ -6,8 +6,6 @@ class Servers extends Backbone.Collection
     name: 'Servers'
 
 class Server extends Backbone.Model
-    foo: ->
-        return "bar"
 
 class Database extends Backbone.Model
     get_namespaces: =>
