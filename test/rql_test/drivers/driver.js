@@ -412,9 +412,60 @@ function test(testSrc, resSrc, name, runopts, testopts) {
     tests.push([testSrc, resSrc, name, runopts, testopts])
 }
 
+// Generated code must call either `setup_table()` or `check_no_table_specified()`
 function setup_table(name) {
     tests.push(function(next, cpp_conn) {
         try {
+            function _teardownTable(next, cpp_conn) {
+                if (DB_AND_TABLE_NAME === "no_table_specified") {
+                    try {
+                        r.db("test").tableDrop("test").run(cpp_conn, {}, function (err, res) {
+                            if (err) {
+                                unexpectedException("teardown_table", err);
+                            }
+                            if (res.dropped != 1) {
+                                unexpectedException("teardown_table", "table not dropped", res);
+                            }
+                            next();
+                        });
+                    } catch (err) {
+                        console.log("stack: " + String(err.stack));
+                        unexpectedException("teardown_table");
+                    }
+                } else {
+                    var parts = DB_AND_TABLE_NAME.split(".");
+                    try {
+                        r.db(parts[0]).table(parts[1]).delete().run(cpp_conn, {}, function(err, res) {
+                            if (err) {
+                                unexpectedException("teardown_table", err);
+                            }
+                            if (res.errors !== 0) {
+                                unexpectedException("teardown_table", "error when deleting", res);
+                            }
+                            try {
+                                r.db(parts[0]).table(parts[1]).indexList().forEach(
+                                        r.db(parts[0]).table(parts[1]).indexDrop(r.row))
+                                    .run(cpp_conn, {}, function(err, res) {
+                                        if (err) {
+                                            unexpectedException("teardown_table", err);
+                                        }
+                                        if (res.errors !== undefined && res.errors !== 0) {
+                                            unexpectedException("teardown_table", "error dropping indexes", res);
+                                        }
+                                        next();
+                                });
+                            } catch (err) {
+                                console.log("stack: " + String(err.stack));
+                                unexpectedException("teardown_table");
+                            }
+                        });
+                    } catch (err) {
+                        console.log("stack: " + String(err.stack));
+                        unexpectedException("teardown_table");
+                    }
+                }
+            }
+            tests.push(_teardownTable)
             if (DB_AND_TABLE_NAME === "no_table_specified") {
                 r.db("test").tableCreate("test").run(cpp_conn, {}, function (err, res) {
                     if (err) {
@@ -442,58 +493,6 @@ function check_no_table_specified() {
     if (DB_AND_TABLE_NAME !== "no_table_specified") {
         unexpectedException("This test isn't meant to be run against a specific table")
     }
-}
-
-function teardown_table() {
-    tests.push(function(next, cpp_conn) {
-        if (DB_AND_TABLE_NAME === "no_table_specified") {
-            try {
-                r.db("test").tableDrop("test").run(cpp_conn, {}, function (err, res) {
-                    if (err) {
-                        unexpectedException("teardown_table", err);
-                    }
-                    if (res.dropped != 1) {
-                        unexpectedException("teardown_table", "table not dropped", res);
-                    }
-                    next();
-                });
-            } catch (err) {
-                console.log("stack: " + String(err.stack));
-                unexpectedException("teardown_table");
-            }
-        } else {
-            var parts = DB_AND_TABLE_NAME.split(".");
-            try {
-                r.db(parts[0]).table(parts[1]).delete().run(cpp_conn, {}, function(err, res) {
-                    if (err) {
-                        unexpectedException("teardown_table", err);
-                    }
-                    if (res.errors !== 0) {
-                        unexpectedException("teardown_table", "error when deleting", res);
-                    }
-                    try {
-                        r.db(parts[0]).table(parts[1]).indexList().forEach(
-                                r.db(parts[0]).table(parts[1]).indexDrop(r.row))
-                            .run(cpp_conn, {}, function(err, res) {
-                                if (err) {
-                                    unexpectedException("teardown_table", err);
-                                }
-                                if (res.errors !== undefined && res.errors !== 0) {
-                                    unexpectedException("teardown_table", "error dropping indexes", res);
-                                }
-                                next();
-                        });
-                    } catch (err) {
-                        console.log("stack: " + String(err.stack));
-                        unexpectedException("teardown_table");
-                    }
-                });
-            } catch (err) {
-                console.log("stack: " + String(err.stack));
-                unexpectedException("teardown_table");
-            }
-        }
-    });
 }
 
 // Invoked by generated code to define variables to used within

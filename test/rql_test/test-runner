@@ -457,11 +457,6 @@ class TestGroup(object):
             
             outputFile.write('\n\n')
             
-            # - tear down table if necessary
-            
-            if "table_variable_name" in parsed_data:
-                outputFile.write("teardown_table()\n\n")
-            
             # - add the footer
             
             outputFile.write('the_end()\n')

@@ -215,43 +215,43 @@ def test src, expected, name, opthash=nil, testopts=nil
   
 end
 
+# Generated code must call either `setup_table` or `check_no_table_specified`
 def setup_table name
+  at_exit do
     if DB_AND_TABLE_NAME == "no_table_specified"
-        res = r.db("test").table_create("test").run($cpp_conn)
-        if res["created"] != 1
-            abort "Could not create table: #{res}"
-        end
-        $defines.eval("#{name} = r.db('test').table('test')")
+      res = r.db("test").table_drop("test").run($cpp_conn)
+      if res["dropped"] != 1
+        abort "Could not drop table: #{res}"
+      end
     else
-        parts = DB_AND_TABLE_NAME.split('.')
-        $defines.eval("#{name} = r.db(\"#{parts.first}\").table(\"#{parts.last}\")")
+      parts = DB_AND_TABLE_NAME.split('.')
+      res = r.db(parts.first).table(parts.last).delete().run($cpp_conn)
+      if res["errors"] != 0
+        abort "Could not clear table: #{res}"
+      end
+      res = r.db(parts.first).table(parts.last).index_list().for_each{|row|
+        r.db(parts.first).table(parts.last).index_drop(row)}.run($cpp_conn)
+      if res.has_key?("errors") and res["errors"] != 0
+        abort "Could not drop indexes: #{res}"
+      end
     end
+  end
+  if DB_AND_TABLE_NAME == "no_table_specified"
+    res = r.db("test").table_create("test").run($cpp_conn)
+    if res["created"] != 1
+      abort "Could not create table: #{res}"
+    end
+      $defines.eval("#{name} = r.db('test').table('test')")
+    else
+      parts = DB_AND_TABLE_NAME.split('.')
+      $defines.eval("#{name} = r.db(\"#{parts.first}\").table(\"#{parts.last}\")")
+  end
 end
 
 def check_no_table_specified
-    if DB_AND_TABLE_NAME != "no_table_specified"
-        abort "This test isn't meant to be run against a specific table"
-    end
-end
-
-def teardown_table
-    if DB_AND_TABLE_NAME == "no_table_specified"
-        res = r.db("test").table_drop("test").run($cpp_conn)
-        if res["dropped"] != 1
-            abort "Could not drop table: #{res}"
-        end
-    else
-        parts = DB_AND_TABLE_NAME.split('.')
-        res = r.db(parts.first).table(parts.last).delete().run($cpp_conn)
-        if res["errors"] != 0
-            abort "Could not clear table: #{res}"
-        end
-        res = r.db(parts.first).table(parts.last).index_list().for_each{|row|
-            r.db(parts.first).table(parts.last).index_drop(row)}.run($cpp_conn)
-        if res.has_key?("errors") and res["errors"] != 0
-            abort "Could not drop indexes: #{res}"
-        end
-    end
+  if DB_AND_TABLE_NAME != "no_table_specified"
+    abort "This test isn't meant to be run against a specific table"
+  end
 end
 
 at_exit do

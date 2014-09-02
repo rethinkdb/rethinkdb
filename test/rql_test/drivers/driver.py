@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import collections, os, re, sys
+import atexit, collections, os, re, sys
 from datetime import datetime, tzinfo, timedelta
 
 try:
@@ -363,7 +363,20 @@ def test(query, expected, name, runopts=None, testopts=None):
         expected = None
     driver.run(query, expected, name, runopts, testopts)
 
+# Generated code must call either `setup_table()` or `check_no_table_specified()`
 def setup_table(table_variable_name):
+    def _teardown_table():
+        if DB_AND_TABLE_NAME == "no_table_specified":
+            res = r.db("test").table_drop("test").run(driver.cpp_conn)
+            assert res == {"dropped": 1}
+        else:
+            db, table = DB_AND_TABLE_NAME.split(".")
+            res = r.db(db).table(table).delete().run(driver.cpp_conn)
+            assert res["errors"] == 0
+            res = r.db(db).table(table).index_list().for_each(
+                r.db(db).table(table).index_drop(r.row)).run(driver.cpp_conn)
+            assert "errors" not in res or res["errors"] == 0
+    atexit.register(_teardown_table)
     if DB_AND_TABLE_NAME == "no_table_specified":
         res = r.db("test").table_create("test").run(driver.cpp_conn)
         assert res == {"created": 1}
@@ -375,18 +388,6 @@ def setup_table(table_variable_name):
 def check_no_table_specified():
     if DB_AND_TABLE_NAME != "no_table_specified":
         raise ValueError("This test isn't meant to be run against a specific table")
-
-def teardown_table():
-    if DB_AND_TABLE_NAME == "no_table_specified":
-        res = r.db("test").table_drop("test").run(driver.cpp_conn)
-        assert res == {"dropped": 1}
-    else:
-        db, table = DB_AND_TABLE_NAME.split(".")
-        res = r.db(db).table(table).delete().run(driver.cpp_conn)
-        assert res["errors"] == 0
-        res = r.db(db).table(table).index_list().for_each(
-            r.db(db).table(table).index_drop(r.row)).run(driver.cpp_conn)
-        assert "errors" not in res or res["errors"] == 0
 
 def define(expr):
     driver.define(expr)
