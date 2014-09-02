@@ -17,7 +17,6 @@ class BackboneCluster extends Backbone.Router
         'datacenters/:id': 'datacenter'
         'datacenters/:id/:tab': 'datacenter'
         'servers/:id': 'server'
-        'servers/:id/:tab': 'server'
         'dashboard': 'dashboard'
         'resolve_issues': 'resolve_issues'
         'logs': 'logs'
@@ -66,7 +65,7 @@ class BackboneCluster extends Backbone.Router
         @set_stats_call ''
         clear_modals()
         @current_view.destroy()
-        @current_view = new ServerView.ServersContainer
+        @current_view = new ServersView.ServersContainer
         @$container.html @current_view.render().el
 
     dashboard: ->
@@ -148,16 +147,11 @@ class BackboneCluster extends Backbone.Router
 
         @$container.html @current_view.render().el
 
-    server: (id, tab) ->
-        @set_stats_call 'ajax/stat?machine_whitelist='+id+'&filter=.*/serializers,proc,sys'
+    server: (id) ->
         log_router '/servers/' + id
         clear_modals()
-        machine = machines.get(id)
 
         @current_view.destroy()
-        if machine?
-            @current_view = new MachineView.Container model: machine
-        else
-            @current_view = new MachineView.NotFound id
+        @current_view = new ServerView.ServerContainer id
 
         @$container.html @current_view.render().el

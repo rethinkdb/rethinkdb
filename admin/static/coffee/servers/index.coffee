@@ -1,12 +1,12 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
-module 'ServerView', ->
+module 'ServersView', ->
     class @ServersContainer extends Backbone.View
         id: 'servers_container'
         template: Handlebars.templates['servers_container-template']
 
         initialize: =>
             @servers = new Servers
-            @servers_list = new ServerView.ServersListView
+            @servers_list = new ServersView.ServersListView
                 collection: @servers
 
             @fetch_servers()
@@ -53,14 +53,14 @@ module 'ServerView', ->
         initialize: =>
             @servers_view = []
             @collection.each (server) =>
-                view = new ServerView.ServerView
+                view = new ServersView.ServerView
                     model: server
 
                 @servers_view.push view
                 @$el.append view.render().$el
 
             @collection.on 'add', (server) =>
-                view = new ServerView.ServerView
+                view = new ServersView.ServerView
                     model: server
 
                 @servers_view.push view
