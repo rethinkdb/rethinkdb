@@ -682,13 +682,14 @@ archive_result_t datum_deserialize(read_stream_t *s, datum_t *datum) {
         if (bad(res)) {
             return res;
         }
-        if (ser_size > std::numeric_limits<size_t>::max()
-            || ser_size > static_cast<size_t>(std::numeric_limits<int64_t>::max())) {
+        const size_t ser_size_sz = varint_uint64_serialized_size(ser_size);
+        if (ser_size > std::numeric_limits<size_t>::max() - ser_size_sz
+            || ser_size > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())
+                          - ser_size_sz) {
             return archive_result_t::RANGE_ERROR;
         }
 
         // Then read the data into a shared_buf_t
-        size_t ser_size_sz = varint_uint64_serialized_size(ser_size);
         counted_t<shared_buf_t> buf = shared_buf_t::create(static_cast<size_t>(ser_size) + ser_size_sz);
         serialize_varint_uint64_into_buf(ser_size, reinterpret_cast<uint8_t *>(buf->data()));
         int64_t num_read = force_read(s, buf->data() + ser_size_sz, ser_size);
@@ -717,7 +718,7 @@ archive_result_t datum_deserialize(read_stream_t *s, datum_t *datum) {
 }
 
 datum_t datum_deserialize_from_buf(const shared_buf_ref_t<char> &buf, size_t at_offset) {
-    // Peak into the buffer to find out the type of the datum in there.
+    // Peek into the buffer to find out the type of the datum in there.
     // If it's a string, buf_object or buf_array, we just create a datum from a
     // child buf_ref and are done.
     // Otherwise we create a buffer_read_stream_t and deserialize the datum from
