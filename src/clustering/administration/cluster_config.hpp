@@ -23,7 +23,7 @@ class cluster_config_artificial_table_backend_t :
 {
 public:
     cluster_config_artificial_table_backend_t(
-            boost::shared_ptr< semilattice_readwrite_view_t<
+            boost::shared_ptr<semilattice_readwrite_view_t<
                 auth_semilattice_metadata_t> > _sl_view);
 
     std::string get_primary_key_name();

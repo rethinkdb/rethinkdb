@@ -6,8 +6,7 @@
 cluster_config_artificial_table_backend_t::cluster_config_artificial_table_backend_t(
         boost::shared_ptr< semilattice_readwrite_view_t<
             auth_semilattice_metadata_t> > _sl_view) :
-    auth_doc(_sl_view)
-{
+    auth_doc(_sl_view) {
     docs["auth"] = &auth_doc;
 }
 
