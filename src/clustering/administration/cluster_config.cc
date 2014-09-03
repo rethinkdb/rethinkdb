@@ -72,7 +72,7 @@ ql::datum_t convert_auth_key_to_datum(
     if (value.str().empty()) {
         return ql::datum_t::null();
     } else {
-        return ql::datum_t(datum_string_t(value.str()));
+        return ql::datum_t("<hidden>");
     }
 }
 
@@ -84,6 +84,15 @@ bool convert_auth_key_from_datum(
         *value_out = auth_key_t();
         return true;
     } else if (datum->get_type() == ql::datum_t::R_STR) {
+        if (datum->as_str() == "<hidden>") {
+            *error_out = "You're trying to write the string \"<hidden>\" to the "
+                "`auth_key` field of the `auth` document in `rethinkdb.cluster_config`. "
+                "\"<hidden>\" is what the `auth_key` field appears as if you try to "
+                "read the current auth key; RethinkDB won't show you the real auth key "
+                "for security reasons. To prevent confusion, RethinkDB won't let you "
+                "set the auth key to the string \"<hidden>\".";
+            return false;
+        }
         if (!value_out->assign_value(datum->as_str().to_std())) {
             if (datum->as_str().size() > static_cast<size_t>(auth_key_t::max_length)) {
                 *error_out = strprintf("The auth key should be at most %zu bytes long, "

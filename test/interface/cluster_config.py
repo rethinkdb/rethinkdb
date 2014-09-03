@@ -33,7 +33,7 @@ with driver.Metacluster() as metacluster:
     assert res["errors"] == 0
 
     rows = r.db("rethinkdb").table("cluster_config").run(conn)
-    assert rows == [{"id": "auth", "auth_key": "hunter2"}]
+    assert rows == [{"id": "auth", "auth_key": "<hidden>"}]
 
     try:
         r.connect("localhost", proc.driver_port)
@@ -43,6 +43,20 @@ with driver.Metacluster() as metacluster:
         raise ValueError("the change to the auth key doesn't seem to have worked")
 
     r.connect("localhost", proc.driver_port, auth_key="hunter2").close()
+
+    res = r.db("rethinkdb").table("cluster_config").get("auth") \
+           .update({"auth_key": None}).run(conn)
+    assert res["errors"] == 0
+
+    rows = r.db("rethinkdb").table("cluster_config").run(conn)
+    assert rows == [{"id": "auth", "auth_key": None}]
+
+    r.connect("localhost", proc.driver_port).close()
+
+    res = r.db("rethinkdb").table("cluster_config").get("auth") \
+           .update({"auth_key": "<hidden>"}).run(conn)
+    print res
+    assert res["errors"] == 1 and "<hidden>" in res["first_error"]
 
     cluster.check_and_stop()
 print "Done."
