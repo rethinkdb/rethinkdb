@@ -135,8 +135,7 @@ done_traversing_t geo_index_traversal_helper_t::handle_pair(
 
     const S2CellId key_cell = btree_key_to_s2cellid(keyvalue.key());
     if (any_query_cell_intersects(key_cell.range_min(), key_cell.range_max())) {
-        return on_candidate(keyvalue.key(), keyvalue.value(), keyvalue.expose_buf(),
-                            waiter);
+        return on_candidate(std::move(keyvalue), waiter);
     } else {
         return done_traversing_t::NO;
     }

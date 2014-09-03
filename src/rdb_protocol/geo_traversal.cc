@@ -89,15 +89,13 @@ void geo_intersecting_cb_t::init_query(const ql::datum_t &_query_geometry) {
 }
 
 done_traversing_t geo_intersecting_cb_t::on_candidate(
-        const btree_key_t *key,
-        const void *value,
-        buf_parent_t parent,
+        scoped_key_value_t &&keyvalue,
         concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t) {
     guarantee(query_geometry.has());
     sampler->new_sample();
 
-    store_key_t store_key(key);
+    store_key_t store_key(keyvalue.key());
     store_key_t primary_key(ql::datum_t::extract_primary(store_key));
     // Check if the primary key is in the range of the current slice
     if (!sindex.pkey_range.contains_key(primary_key)) {
@@ -113,10 +111,13 @@ done_traversing_t geo_intersecting_cb_t::on_candidate(
         return done_traversing_t::NO;
     }
 
-    lazy_json_t row(static_cast<const rdb_value_t *>(value), parent);
+    lazy_json_t row(static_cast<const rdb_value_t *>(keyvalue.value()),
+                    keyvalue.expose_buf());
     ql::datum_t val = row.get();
     slice->stats.pm_keys_read.record();
     slice->stats.pm_total_keys_read += 1;
+    guarantee(!row.references_parent());
+    keyvalue.reset();
 
     // Everything happens in key order after this.
     waiter.wait_interruptible();

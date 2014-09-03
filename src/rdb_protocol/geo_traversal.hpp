@@ -87,9 +87,7 @@ public:
     void init_query(const ql::datum_t &_query_geometry);
 
     done_traversing_t on_candidate(
-            const btree_key_t *key,
-            const void *value,
-            buf_parent_t parent,
+            scoped_key_value_t &&keyvalue,
             concurrent_traversal_fifo_enforcer_signal_t waiter)
             THROWS_ONLY(interrupted_exc_t);
 
