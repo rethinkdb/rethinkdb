@@ -613,6 +613,7 @@ void   cJSON_AddItemToArray(cJSON *array, cJSON *item) {
 }
 
 void   cJSON_AddItemToObject(cJSON *object,const char *string,cJSON *item) {if (!item) return; char *tmp = cJSON_strdup(string); if (item->string) cJSON_free(item->string);item->string=tmp;cJSON_AddItemToArray(object,item);}
+void   cJSON_AddItemToObjectN(cJSON *object,const char *string,size_t string_size,cJSON *item) {if (!item) return; char *tmp = cJSON_strdup(string, string_size); if (item->string) cJSON_free(item->string);item->string=tmp;cJSON_AddItemToArray(object,item);}
 
 void        cJSON_AddItemReferenceToArray(cJSON *array, cJSON *item)                                                {cJSON_AddItemToArray(array,create_reference(item));}
 void        cJSON_AddItemReferenceToObject(cJSON *object,const char *string,cJSON *item)        {cJSON_AddItemToObject(object,string,create_reference(item));}
