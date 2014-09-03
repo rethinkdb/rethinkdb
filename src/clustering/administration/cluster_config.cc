@@ -49,7 +49,7 @@ bool cluster_config_artificial_table_backend_t::write_row(
         signal_t *interruptor,
         std::string *error_out) {
     if (!new_value.has()) {
-        *error_out = "It's illegal to delete rows in the `rethinkdb.cluster_config` "
+        *error_out = "It's illegal to delete rows from the `rethinkdb.cluster_config` "
             "table.";
         return false;
     }
@@ -107,6 +107,7 @@ bool cluster_config_artificial_table_backend_t::auth_doc_t::read(
         UNUSED signal_t *interruptor,
         ql::datum_t *row_out,
         UNUSED std::string *error_out) {
+    on_thread_t thread_switcher(sl_view->home_thread());
     ql::datum_object_builder_t obj_builder;
     obj_builder.overwrite("id", ql::datum_t("auth"));
     obj_builder.overwrite("auth_key", convert_auth_key_to_datum(
@@ -142,9 +143,12 @@ bool cluster_config_artificial_table_backend_t::auth_doc_t::write(
         return false;
     }
 
-    auth_semilattice_metadata_t md = sl_view->get();
-    md.auth_key.set(auth_key);
-    sl_view->join(md);
+    {
+        on_thread_t thread_switcher(sl_view->home_thread());
+        auth_semilattice_metadata_t md = sl_view->get();
+        md.auth_key.set(auth_key);
+        sl_view->join(md);
+    }
 
     return true;
 }

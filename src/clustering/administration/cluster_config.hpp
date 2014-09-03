@@ -12,6 +12,12 @@
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rpc/semilattice/view.hpp"
 
+/* The `rethinkdb.cluster_config` table is a catch-all for settings that don't fit
+elsewhere but aren't complicated enough to deserve their own table. It has a fixed set of
+rows, each of which has a unique format and corresponds to a different setting.
+
+Right now the only row is `auth`, with the format `{"id": "auth", "auth_key": ...}`. */
+
 class cluster_config_artificial_table_backend_t :
     public artificial_table_backend_t
 {
@@ -37,12 +43,17 @@ public:
             std::string *error_out);
 
 private:
+    /* The abstract class `doc_t` represents a row in the `cluster_config` table. In the
+    future it will have more subclasses. We might eventually want to move it and its
+    subclasses out of this file. */
     class doc_t {
     public:
+        /* Computes the current value of the row, including the primary key. */
         virtual bool read(
                 signal_t *interruptor,
                 ql::datum_t *row_out,
                 std::string *error_out) = 0;
+        /* Applies a change to the row. */
         virtual bool write(
                 signal_t *interruptor,
                 const ql::datum_t &value,
