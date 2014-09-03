@@ -33,7 +33,7 @@ with driver.Metacluster() as metacluster:
     assert res["errors"] == 0
 
     rows = r.db("rethinkdb").table("cluster_config").run(conn)
-    assert rows == [{"id": "auth", "auth_key": "<hidden>"}]
+    assert rows == [{"id": "auth", "auth_key": {"hidden": True}}]
 
     try:
         r.connect("localhost", proc.driver_port)
@@ -53,10 +53,10 @@ with driver.Metacluster() as metacluster:
 
     r.connect("localhost", proc.driver_port).close()
 
+    # This is mostly to make sure the server doesn't crash in this case
     res = r.db("rethinkdb").table("cluster_config").get("auth") \
-           .update({"auth_key": "<hidden>"}).run(conn)
-    print res
-    assert res["errors"] == 1 and "<hidden>" in res["first_error"]
+           .update({"auth_key": {"hidden": True}}).run(conn)
+    assert res["errors"] == 1
 
     cluster.check_and_stop()
 print "Done."

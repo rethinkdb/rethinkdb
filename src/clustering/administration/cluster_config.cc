@@ -66,12 +66,18 @@ bool cluster_config_artificial_table_backend_t::write_row(
     return it->second->write(interruptor, new_value, error_out);
 }
 
+ql::datum_t make_hidden_auth_key_datum() {
+    ql::datum_object_builder_t builder;
+    builder.overwrite("hidden", ql::datum_t::boolean(true));
+    return std::move(builder).to_datum();
+}
+
 ql::datum_t convert_auth_key_to_datum(
         const auth_key_t &value) {
     if (value.str().empty()) {
         return ql::datum_t::null();
     } else {
-        return ql::datum_t("<hidden>");
+        return make_hidden_auth_key_datum();
     }
 }
 
@@ -83,15 +89,6 @@ bool convert_auth_key_from_datum(
         *value_out = auth_key_t();
         return true;
     } else if (datum->get_type() == ql::datum_t::R_STR) {
-        if (datum->as_str() == "<hidden>") {
-            *error_out = "You're trying to write the string \"<hidden>\" to the "
-                "`auth_key` field of the `auth` document in `rethinkdb.cluster_config`. "
-                "\"<hidden>\" is what the `auth_key` field appears as if you try to "
-                "read the current auth key; RethinkDB won't show you the real auth key "
-                "for security reasons. To prevent confusion, RethinkDB won't let you "
-                "set the auth key to the string \"<hidden>\".";
-            return false;
-        }
         if (!value_out->assign_value(datum->as_str().to_std())) {
             if (datum->as_str().size() > static_cast<size_t>(auth_key_t::max_length)) {
                 *error_out = strprintf("The auth key should be at most %zu bytes long, "
@@ -105,6 +102,13 @@ bool convert_auth_key_from_datum(
             return false;
         }
         return true;
+    } else if (datum == make_hidden_auth_key_datum()) {
+        *error_out = "You're trying to set the `auth_key` field in the `auth` document "
+            "of `rethinkdb.cluster_config` to {hidden: true}. {hidden: true} is a "
+            "special place-holder value that RethinkDB returns if you try to read the "
+            "auth key; RethinkDB won't show you the real auth key for security reasons. "
+            "So it doesn't make sense to try to set the auth key to {hidden: true}.";
+        return false;
     } else {
         *error_out = "Expected a string or null; got " + datum->print();
         return false;
