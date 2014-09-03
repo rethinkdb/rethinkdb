@@ -39,8 +39,10 @@ static size_t count_in_state(const std::vector<reactor_activity_entry_t> &status
 }
 
 ql::datum_t convert_director_status_to_datum(
+        const name_string_t &name,
         const std::vector<reactor_activity_entry_t> *status) {
     ql::datum_object_builder_t object_builder;
+    object_builder.overwrite("server", convert_name_to_datum(name));
     object_builder.overwrite("role", ql::datum_t("director"));
     const char *state;
     if (!status) {
@@ -68,8 +70,10 @@ ql::datum_t convert_director_status_to_datum(
 }
 
 ql::datum_t convert_replica_status_to_datum(
+        const name_string_t &name,
         const std::vector<reactor_activity_entry_t> *status) {
     ql::datum_object_builder_t object_builder;
+    object_builder.overwrite("server", convert_name_to_datum(name));
     object_builder.overwrite("role", ql::datum_t("replica"));
     const char *state;
     if (!status) {
@@ -102,8 +106,10 @@ ql::datum_t convert_replica_status_to_datum(
 }
 
 ql::datum_t convert_nothing_status_to_datum(
-         const std::vector<reactor_activity_entry_t> *status) {
+        const name_string_t &name,
+        const std::vector<reactor_activity_entry_t> *status) {
     ql::datum_object_builder_t object_builder;
+    object_builder.overwrite("server", convert_name_to_datum(name));
     object_builder.overwrite("role", ql::datum_t("nothing"));
     const char *state;
     if (!status) {
@@ -182,45 +188,48 @@ ql::datum_t convert_table_status_shard_to_datum(
         server_states.insert(std::make_pair(*name, server_state));
     }
 
-    ql::datum_object_builder_t object_builder;
+    ql::datum_array_builder_t array_builder(ql::configured_limits_t::unlimited);
+    std::set<name_string_t> already_handled;
 
     boost::optional<name_string_t> director_name =
         name_client->get_name_for_machine_id(chosen_director);
     if (director_name) {
-        object_builder.overwrite(director_name->c_str(),
-            convert_director_status_to_datum(
-                server_states.count(*director_name) == 1 ?
-                    &server_states[*director_name] : NULL));
+        array_builder.add(convert_director_status_to_datum(
+            *director_name,
+            server_states.count(*director_name) == 1 ?
+                &server_states[*director_name] : NULL));
+        already_handled.insert(*director_name);
     }
 
     for (const name_string_t &replica : shard.replica_names) {
-        if (object_builder.try_get(datum_string_t(replica.c_str())).has()) {
+        if (already_handled.count(replica) == 1) {
             /* Don't overwrite the director's entry */
             continue;
         }
-        object_builder.overwrite(replica.c_str(),
-            convert_replica_status_to_datum(
-                server_states.count(replica) == 1 ?
-                    &server_states[replica] : NULL));
+        array_builder.add(convert_replica_status_to_datum(
+            replica,
+            server_states.count(replica) == 1 ?
+                &server_states[replica] : NULL));
+        already_handled.insert(replica);
     }
 
     std::map<name_string_t, machine_id_t> other_names =
         name_client->get_name_to_machine_id_map()->get();
     for (auto it = other_names.begin(); it != other_names.end(); ++it) {
-        if (object_builder.try_get(datum_string_t(it->first.c_str())).has()) {
+        if (already_handled.count(it->first) == 1) {
             /* Don't overwrite a director or replica entry */
             continue;
         }
-        ql::datum_t entry =
-            convert_nothing_status_to_datum(
-                server_states.count(it->first) == 1 ?
-                    &server_states[it->first] : NULL);
+        ql::datum_t entry = convert_nothing_status_to_datum(
+            it->first,
+            server_states.count(it->first) == 1 ?
+                &server_states[it->first] : NULL);
         if (entry.has()) {
-            object_builder.overwrite(it->first.c_str(), entry);
+            array_builder.add(entry);
         }
     }
 
-    return std::move(object_builder).to_datum();
+    return std::move(array_builder).to_datum();
 }
 
 ql::datum_t convert_table_status_to_datum(
