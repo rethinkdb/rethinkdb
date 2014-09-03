@@ -16,10 +16,7 @@ runtime. They are stored in the semilattices and persisted across restarts.
 A server's name entry in the semilattices should only be modified by that server itself,
 although other servers may delete the entry if the server is being permanently removed;
 so all rename requests must be first sent to the `server_name_server_t` for the server
-being renamed.
-
-If two servers ever come to have the same name due to a race condition, one of the
-`server_name_server_t`s will automatically rename itself. */
+being renamed. */
 
 class server_name_server_t : public home_thread_mixin_t {
 public:
@@ -49,31 +46,22 @@ public:
     }
 
 private:
-    /* `rename_me()` renames the server unconditionally, without checking for conflicts.
-    It does not block. The `server_metadata_server_t` calls it internally, and the
-    `server_metadata_client_t` also calls it remotely through `rename_mailbox`. */
-    void rename_me(const name_string_t &new_name);
-
-    /* `on_rename_request()` is called in response to a rename request over the network
-    */
+    /* `on_rename_request()` is called in response to a rename request over the network.
+    It renames unconditionally, without checking for name collisions. */
     void on_rename_request(const name_string_t &new_name,
                            mailbox_t<void()>::address_t ack_addr);
-
-    /* `retag_me()` changes the server's tags. It does not block. */
-    void retag_me(const std::set<name_string_t> &new_tags);
 
     /* `on_retag_request()` is called in response to a tag change request over the
     network */
     void on_retag_request(const std::set<name_string_t> &new_tags,
                            mailbox_t<void()>::address_t ack_addr);
 
-    /* `on_semilattice_change()` checks if we have been deleted and also checks for name
-    conflicts. It does not block, but it may call `on_rename()`. */
+    /* `on_semilattice_change()` checks if we have been permanently removed. It does not
+    block. */
     void on_semilattice_change();
     
     mailbox_manager_t *mailbox_manager;
     machine_id_t my_machine_id;
-    time_t startup_time;
     name_string_t my_name;
     std::set<name_string_t> my_tags;
     cond_t permanently_removed_cond;

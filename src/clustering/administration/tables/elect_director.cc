@@ -14,7 +14,7 @@ std::vector<machine_id_t> table_elect_directors(
         for (const name_string_t &name : config.shards[i].director_names) {
             bool found = false;
             name_client->get_name_to_machine_id_map()->apply_read(
-                [&](const std::map<name_string_t, machine_id_t> *name_map) {
+                [&](const std::multimap<name_string_t, machine_id_t> *name_map) {
                     auto it = name_map->find(name);
                     if (it != name_map->end()) {
                         directors[i] = it->second;

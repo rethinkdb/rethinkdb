@@ -204,7 +204,10 @@ ql::datum_t convert_table_status_shard_to_datum(
                     &server_states[replica] : NULL));
     }
 
-    std::map<name_string_t, machine_id_t> other_names =
+    /* RSI(reql_admin): This silently drops servers if there's a name collision. But
+    we're planning to change the table structure so that it won't break horribly if
+    there's a name collision. */
+    std::multimap<name_string_t, machine_id_t> other_names =
         name_client->get_name_to_machine_id_map()->get();
     for (auto it = other_names.begin(); it != other_names.end(); ++it) {
         if (object_builder.try_get(datum_string_t(it->first.c_str())).has()) {

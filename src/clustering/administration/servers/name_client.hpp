@@ -21,28 +21,10 @@ public:
         boost::shared_ptr<semilattice_readwrite_view_t<machines_semilattice_metadata_t> >
             _semilattice_view);
 
-    /* This map contains all known servers, not counting permanently removed ones.
-
-    TODO: Currently, in the event of a name collision, this watchable will not update
-    until the name collision has been resolved. The name collision should be resolved
-    within a fraction of a second, but this behavior still has the potential to introduce
-    bugs. Consider changing it. */
-    clone_ptr_t<watchable_t<std::map<name_string_t, machine_id_t> > >
+    /* This map contains all known servers, not counting permanently removed ones. */
+    clone_ptr_t<watchable_t<std::multimap<name_string_t, machine_id_t> > >
     get_name_to_machine_id_map() {
         return name_to_machine_id_map.get_watchable();
-    }
-
-    /* This is equivalent to a lookup in `get_name_to_machine_id_map` */
-    boost::optional<machine_id_t> get_machine_id_for_name(const name_string_t &name) {
-        boost::optional<machine_id_t> out;
-        name_to_machine_id_map.apply_read(
-            [&](const std::map<name_string_t, machine_id_t> *map) {
-                auto it = map->find(name);
-                if (it != map->end()) {
-                    out = boost::optional<machine_id_t>(it->second);
-                }
-            });
-        return out;
     }
 
     /* The inverse of `get_name_to_machine_id_map()`. */
@@ -144,7 +126,8 @@ private:
 
     watchable_variable_t< std::map<machine_id_t, peer_id_t> > machine_id_to_peer_id_map;
     watchable_variable_t< std::map<peer_id_t, machine_id_t> > peer_id_to_machine_id_map;
-    watchable_variable_t< std::map<name_string_t, machine_id_t> > name_to_machine_id_map;
+    watchable_variable_t< std::multimap<name_string_t, machine_id_t> >
+        name_to_machine_id_map;
     watchable_variable_t< std::map<machine_id_t, name_string_t> > machine_id_to_name_map;
 
     watchable_t< change_tracking_map_t<peer_id_t,
