@@ -235,7 +235,7 @@ ql::datum_t convert_table_status_to_datum(
     builder.overwrite("db", convert_name_to_datum(db_name));
     builder.overwrite("uuid", convert_uuid_to_datum(uuid));
 
-    ql::datum_array_builder_t array_builder((ql::configured_limits_t()));
+    ql::datum_array_builder_t array_builder((ql::configured_limits_t::unlimited));
     for (size_t i = 0; i < repli_info.config.shards.size(); ++i) {
         array_builder.add(
             convert_table_status_shard_to_datum(

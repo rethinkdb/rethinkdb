@@ -28,7 +28,7 @@ template<class T>
 ql::datum_t convert_vector_to_datum(
         const std::function<ql::datum_t(const T&)> &conv,
         const std::vector<T> &vector) {
-    ql::datum_array_builder_t builder((ql::configured_limits_t()));
+    ql::datum_array_builder_t builder((ql::configured_limits_t::unlimited));
     builder.reserve(vector.size());
     for (const T &elem : vector) {
         builder.add(conv(elem));
@@ -59,7 +59,7 @@ template<class T>
 ql::datum_t convert_set_to_datum(
         const std::function<ql::datum_t(const T&)> &conv,
         const std::set<T> &set) {
-    ql::datum_array_builder_t builder((ql::configured_limits_t()));
+    ql::datum_array_builder_t builder((ql::configured_limits_t::unlimited));
     builder.reserve(set.size());
     for (const T &elem : set) {
         builder.add(conv(elem));
