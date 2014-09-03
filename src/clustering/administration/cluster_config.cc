@@ -104,10 +104,11 @@ bool convert_auth_key_from_datum(
         return true;
     } else if (datum == make_hidden_auth_key_datum()) {
         *error_out = "You're trying to set the `auth_key` field in the `auth` document "
-            "of `rethinkdb.cluster_config` to {hidden: true}. {hidden: true} is a "
+            "of `rethinkdb.cluster_config` to {hidden: true}. The `auth_key` field "
+            "can be set to a string, or `null` for no auth key. {hidden: true} is a "
             "special place-holder value that RethinkDB returns if you try to read the "
             "auth key; RethinkDB won't show you the real auth key for security reasons. "
-            "So it doesn't make sense to try to set the auth key to {hidden: true}.";
+            "Setting the auth key to {hidden: true} is not allowed.";
         return false;
     } else {
         *error_out = "Expected a string or null; got " + datum->print();
