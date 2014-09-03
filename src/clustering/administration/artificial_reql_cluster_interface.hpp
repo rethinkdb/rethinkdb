@@ -6,6 +6,7 @@
 #include <set>
 #include <string>
 
+#include "clustering/administration/cluster_config.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/server_config.hpp"
 #include "clustering/administration/tables/table_config.hpp"
@@ -92,6 +93,8 @@ public:
             real_reql_cluster_interface_t *_next_reql_cluster_interface,
             boost::shared_ptr< semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > _semilattice_view,
+            boost::shared_ptr< semilattice_readwrite_view_t<
+                auth_semilattice_metadata_t> > _auth_view,
             clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
                 cluster_directory_metadata_t> > > _directory_view,
             server_name_client_t *_name_client);
@@ -100,6 +103,7 @@ public:
     }
 
     scoped_ptr_t<in_memory_artificial_table_backend_t> debug_scratch_backend;
+    scoped_ptr_t<cluster_config_artificial_table_backend_t> cluster_config_backend;
     scoped_ptr_t<server_config_artificial_table_backend_t> server_config_backend;
     scoped_ptr_t<table_config_artificial_table_backend_t> table_config_backend;
     scoped_ptr_t<table_status_artificial_table_backend_t> table_status_backend;
