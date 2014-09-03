@@ -616,7 +616,8 @@ boost::optional<read_t> intersecting_readgen_t::sindex_sort_read(
 }
 
 void intersecting_readgen_t::sindex_sort(UNUSED std::vector<rget_item_t> *vec) const {
-    // Not supported on intersection queries
+    // No sorting required for intersection queries, since they don't
+    // support any specific ordering.
 }
 
 key_range_t intersecting_readgen_t::original_keyrange() const {

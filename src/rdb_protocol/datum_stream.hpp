@@ -470,6 +470,7 @@ public:
     virtual void accumulate_all(env_t *env, eager_acc_t *acc);
 
 protected:
+    // Loads new items into the `items` field of rget_response_reader_t.
     // Returns `true` if there's data in `items`.
     virtual bool load_items(env_t *env, const batchspec_t &batchspec);
 
@@ -489,6 +490,8 @@ public:
     virtual void accumulate_all(env_t *env, eager_acc_t *acc);
 
 protected:
+    // Loads new items into the `items` field of rget_response_reader_t.
+    // Returns `true` if there's data in `items`.
     virtual bool load_items(env_t *env, const batchspec_t &batchspec);
 
 private:
