@@ -1015,6 +1015,7 @@ void data_block_manager_t::run_gc(gc_state_t *gc_state) {
 
         if (state == state_shutting_down) {
             active_gcs.remove(gc_state);
+            delete gc_state;
             if (active_gcs.empty()) {
                 actually_shutdown();
             }
@@ -1023,6 +1024,7 @@ void data_block_manager_t::run_gc(gc_state_t *gc_state) {
     }
 
     active_gcs.remove(gc_state);
+    delete gc_state;
 }
 
 void data_block_manager_t::gc_one_extent(gc_state_t *gc_state) {
