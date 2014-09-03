@@ -204,29 +204,28 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const intersecting_geo_read_t &geo_read) {
         ql::env_t ql_env(ctx, interruptor, geo_read.optargs, trace);
 
-        response->response = intersecting_geo_read_response_t();
-        intersecting_geo_read_response_t *res =
-            boost::get<intersecting_geo_read_response_t>(&response->response);
+        response->response = rget_read_response_t();
+        rget_read_response_t *res = boost::get<rget_read_response_t>(&response->response);
 
         sindex_disk_info_t sindex_info;
         uuid_u sindex_uuid;
         scoped_ptr_t<real_superblock_t> sindex_sb;
         try {
             sindex_sb =
-                acquire_sindex_for_read(geo_read.table_name, geo_read.sindex_id,
+                acquire_sindex_for_read(geo_read.table_name, geo_read.sindex.id,
                 &sindex_info, &sindex_uuid);
         } catch (const ql::exc_t &e) {
-            res->results_or_error = e;
+            res->result = e;
             return;
         }
 
         if (sindex_info.geo != sindex_geo_bool_t::GEO) {
-            res->results_or_error = ql::exc_t(
+            res->result = ql::exc_t(
                 ql::base_exc_t::GENERIC,
                 strprintf(
                     "Index `%s` is not a geospatial index.  get_intersecting can only "
                     "be used with a geospatial index.",
-                    geo_read.sindex_id.c_str()),
+                    geo_read.sindex.id.c_str()),
                 NULL);
             return;
         }
@@ -234,8 +233,15 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         rdb_get_intersecting_slice(
             store->get_sindex_slice(sindex_uuid),
             geo_read.query_geometry,
-            sindex_sb.get(), &ql_env,
-            geo_read.region.inner, sindex_info, res);
+            geo_read.sindex.region,
+            sindex_sb.get(),
+            &ql_env,
+            geo_read.batchspec,
+            geo_read.transforms,
+            geo_read.terminal,
+            geo_read.region.inner,
+            sindex_info,
+            res);
     }
 
     void operator()(const nearest_geo_read_t &geo_read) {

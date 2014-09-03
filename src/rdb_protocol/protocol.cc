@@ -575,6 +575,10 @@ public:
     void operator()(const changefeed_point_stamp_t &);
 
 private:
+    // Shared by rget_read_t and intersecting_geo_read_t operators
+    template<class query_response_t, class query_t>
+    void unshard_range_batch(const query_t &q, sorting_t sorting);
+
     const profile_bool_t profile;
     read_response_t *const responses; // Cannibalized for efficiency.
     const size_t count;
@@ -627,24 +631,8 @@ void rdb_r_unshard_visitor_t::operator()(const point_read_t &) {
     *response_out = responses[0];
 }
 
-void rdb_r_unshard_visitor_t::operator()(const intersecting_geo_read_t &) {
-    ql::datum_array_builder_t combined_results(ql::configured_limits_t::unlimited);
-    for (size_t i = 0; i < count; ++i) {
-        auto res = boost::get<intersecting_geo_read_response_t>(&responses[i].response);
-        guarantee(res != NULL);
-        ql::exc_t *error = boost::get<ql::exc_t>(&res->results_or_error);
-        if (error != NULL) {
-            response_out->response = intersecting_geo_read_response_t(*error);
-            return;
-        }
-        auto results = boost::get<ql::datum_t>(&res->results_or_error);
-        guarantee(results != NULL);
-        for (size_t j = 0; j < results->arr_size(); ++j) {
-            combined_results.add(results->get(j));
-        }
-    }
-    response_out->response = intersecting_geo_read_response_t(
-        std::move(combined_results).to_datum());
+void rdb_r_unshard_visitor_t::operator()(const intersecting_geo_read_t &query) {
+    unshard_range_batch<rget_read_response_t>(query, sorting_t::UNORDERED);
 }
 
 void rdb_r_unshard_visitor_t::operator()(const nearest_geo_read_t &query) {
@@ -706,27 +694,30 @@ void rdb_r_unshard_visitor_t::operator()(const nearest_geo_read_t &query) {
 }
 
 void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
-    if (rg.transforms.size() != 0 || rg.terminal) {
+    unshard_range_batch<rget_read_response_t>(rg, rg.sorting);
+}
+
+template<class query_response_t, class query_t>
+void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t sorting) {
+    if (q.transforms.size() != 0 || q.terminal) {
         // This asserts that the optargs have been initialized.  (There is always a
         // 'db' optarg.)  We have the same assertion in rdb_read_visitor_t.
-        rassert(rg.optargs.size() != 0);
+        rassert(q.optargs.size() != 0);
     }
     scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
-    ql::env_t env(ctx, interruptor, rg.optargs, trace.get_or_null());
+    ql::env_t env(ctx, interruptor, q.optargs, trace.get_or_null());
 
     // Initialize response.
-    response_out->response = rget_read_response_t();
-    rget_read_response_t *out
-        = boost::get<rget_read_response_t>(&response_out->response);
+    response_out->response = query_response_t();
+    query_response_t *out = boost::get<query_response_t>(&response_out->response);
     out->truncated = false;
-    out->key_range = read_t(rg, profile_bool_t::DONT_PROFILE).get_region().inner;
 
     // Fill in `truncated` and `last_key`, get responses, abort if there's an error.
     std::vector<ql::result_t *> results(count);
     store_key_t *best = NULL;
-    key_le_t key_le(rg.sorting);
+    key_le_t key_le(sorting);
     for (size_t i = 0; i < count; ++i) {
-        auto resp = boost::get<rget_read_response_t>(&responses[i].response);
+        auto resp = boost::get<query_response_t>(&responses[i].response);
         guarantee(resp);
         if (resp->truncated) {
             out->truncated = true;
@@ -740,12 +731,12 @@ void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
         }
         results[i] = &resp->result;
     }
-    out->last_key = (best != NULL) ? std::move(*best) : key_max(rg.sorting);
+    out->last_key = (best != NULL) ? std::move(*best) : key_max(sorting);
 
     // Unshard and finish up.
-    scoped_ptr_t<ql::accumulator_t> acc(rg.terminal
-        ? ql::make_terminal(*rg.terminal)
-        : ql::make_append(rg.sorting, NULL));
+    scoped_ptr_t<ql::accumulator_t> acc(q.terminal
+        ? ql::make_terminal(*q.terminal)
+        : ql::make_append(sorting, NULL));
     acc->unshard(&env, out->last_key, results);
     acc->finish(&out->result);
 }
@@ -1168,10 +1159,8 @@ INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(rdb_protocol::single_sindex_status_t);
 
 RDB_IMPL_SERIALIZABLE_1(point_read_response_t, data);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(point_read_response_t);
-RDB_IMPL_SERIALIZABLE_4(rget_read_response_t, result, key_range, truncated, last_key);
+RDB_IMPL_SERIALIZABLE_3(rget_read_response_t, result, truncated, last_key);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(rget_read_response_t);
-RDB_IMPL_SERIALIZABLE_1(intersecting_geo_read_response_t, results_or_error);
-INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(intersecting_geo_read_response_t);
 RDB_IMPL_SERIALIZABLE_1(nearest_geo_read_response_t, results_or_error);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(nearest_geo_read_response_t);
 RDB_IMPL_SERIALIZABLE_2(distribution_read_response_t, region, key_counts);
@@ -1207,8 +1196,9 @@ RDB_IMPL_SERIALIZABLE_8(
         rget_read_t,
         region, optargs, table_name, batchspec, transforms, terminal, sindex, sorting);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(rget_read_t);
-RDB_MAKE_SERIALIZABLE_5(
-        intersecting_geo_read_t, optargs, query_geometry, region, table_name, sindex_id);
+RDB_MAKE_SERIALIZABLE_8(
+        intersecting_geo_read_t, region, optargs, table_name, batchspec, transforms,
+        terminal, sindex, query_geometry);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(intersecting_geo_read_t);
 RDB_IMPL_SERIALIZABLE_8(
         nearest_geo_read_t, optargs, center, max_dist, max_results, geo_system,

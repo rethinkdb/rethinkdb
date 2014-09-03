@@ -83,6 +83,18 @@ tests:
     py: tbl.get_intersecting(r.line([0,0], [10,10]), index='g').count()
     rb: tbl.get_intersecting(r.line([0,0], [10,10]), :index=>'g').count()
     ot: 3
+  - js: tbl.get_intersecting(r.point(0,0), {'index':'g'}).type_of()
+    py: tbl.get_intersecting(r.point(0,0), index='g').type_of()
+    rb: tbl.get_intersecting(r.point(0,0), :index=>'g').type_of()
+    ot: ("SELECTION<STREAM>")
+  - js: tbl.get_intersecting(r.point(0,0), {'index':'g'}).filter(true).type_of()
+    py: tbl.get_intersecting(r.point(0,0), index='g').filter(true).type_of()
+    rb: tbl.get_intersecting(r.point(0,0), :index=>'g').filter(true).type_of()
+    ot: ("SELECTION<STREAM>")
+  - js: tbl.get_intersecting(r.point(0,0), {'index':'g'}).map(r.row).type_of()
+    py: tbl.get_intersecting(r.point(0,0), index='g').map(r.row).type_of()
+    rb: tbl.get_intersecting(r.point(0,0), :index=>'g').map{|x|x}.type_of()
+    ot: ("STREAM")
 
   - js: tbl.get_intersecting(r.point(0,0), {'index':'m'}).count()
     py: tbl.get_intersecting(r.point(0,0), index='m').count()
