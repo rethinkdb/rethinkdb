@@ -56,7 +56,7 @@ def expr(val, nesting_depth=20):
         return MakeObj(obj)
     elif isinstance(val, collections.Callable):
         return Func(val)
-    elif isinstance(val, datetime.datetime) or isinstance(val, datetime.date):
+    elif isinstance(val, (datetime.datetime, datetime.date)):
         if not hasattr(val, 'tzinfo') or not val.tzinfo:
             raise RqlDriverError("""Cannot convert %s to ReQL time object
             without timezone information. You can add timezone information with
@@ -387,7 +387,7 @@ class RqlQuery(object):
         return ConcatMap(self, *[func_wrap(arg) for arg in args])
 
     def order_by(self, *args, **kwargs):
-        args = [arg if isinstance(arg, Asc) or isinstance(arg, Desc) else func_wrap(arg) for arg in args]
+        args = [arg if isinstance(arg, (Asc, Desc)) else func_wrap(arg) for arg in args]
         return OrderBy(self, *args, **kwargs)
 
     def between(self, *args, **kwargs):
@@ -508,7 +508,7 @@ class RqlQuery(object):
 # These classes define how nodes are printed by overloading `compose`
 
 def needs_wrap(arg):
-    return isinstance(arg, Datum) or isinstance(arg, MakeArray) or isinstance(arg, MakeObj)
+    return isinstance(arg, (Datum, MakeArray, MakeObj))
 
 class RqlBoolOperQuery(RqlQuery):
     def __init__(self, *args, **optargs):
