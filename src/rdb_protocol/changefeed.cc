@@ -171,10 +171,16 @@ msg_t::change_t::change_t(datum_t _old_val,
 msg_t::change_t::~change_t() { }
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(msg_t, op);
-RDB_IMPL_ME_SERIALIZABLE_3(
-    msg_t::change_t, empty_ok(old_val), empty_ok(new_val), limit_changes);
+RDB_IMPL_ME_SERIALIZABLE_2(msg_t::change_t, empty_ok(old_val), empty_ok(new_val));
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::change_t);
+RDB_IMPL_ME_SERIALIZABLE_2(msg_t::limit_start_t, sub, start_data);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::limit_start_t);
+RDB_IMPL_ME_SERIALIZABLE_1(msg_t::limit_change_t, data);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::limit_change_t);
 RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(msg_t::stop_t);
+
+RDB_IMPL_ME_SERIALIZABLE_4(keyspec_t::limit_t, range, sindex, sorting, limit);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::limit_t);
 
 enum class detach_t { NO, YES };
 
@@ -231,6 +237,9 @@ public:
     void add_range_sub(subscription_t *sub) THROWS_NOTHING;
     void del_range_sub(subscription_t *sub) THROWS_NOTHING;
 
+    void add_limit_sub(subscription_t *sub, const uuid_u &uuid) THROWS_NOTHING;
+    void del_limit_sub(subscription_t *sub, const uuid_u &uuid) THROWS_NOTHING;
+
     void each_range_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
     void each_point_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
     void each_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
@@ -243,6 +252,11 @@ public:
 
     const std::string pkey;
 private:
+    void add_sub_with_lock(
+        rwlock_t *rwlock, const std::function<void()> &f) THROWS_NOTHING;
+    void del_sub_with_lock(
+        rwlock_t *rwlock, const std::function<size_t()> &f) THROWS_NOTHING;
+
     void each_sub_in_vec(
         const std::vector<std::set<subscription_t *> > &vec,
         rwlock_in_line_t *spot,
@@ -278,12 +292,17 @@ private:
     std::map<uuid_u, scoped_ptr_t<queue_t> > queues;
     cond_t queues_ready;
 
-    std::vector<std::set<subscription_t *> > range_subs;
     std::map<datum_t,
              std::vector<std::set<subscription_t *> >,
              optional_datum_less_t> point_subs;
-    rwlock_t range_subs_lock;
     rwlock_t point_subs_lock;
+
+    std::vector<std::set<subscription_t *> > range_subs;
+    rwlock_t range_subs_lock;
+
+    std::map<uuid_u, std::vector<std::set<subscription_t *> > > limit_subs;
+    rwlock_t limit_subs_lock;
+
     int64_t num_subs;
 
     bool detached;
@@ -416,16 +435,15 @@ private:
     keyspec_t::range_t spec;
 };
 
-
 class limit_sub_t : public subscription_t {
 public:
     // Throws QL exceptions.
     limit_sub_t(feed_t *feed, keyspec_t::limit_t _spec)
         : subscription_t(feed), uuid(generate_uuid()), spec(std::move(_spec)) {
-        feed->add_limit_sub(this);
+        feed->add_limit_sub(this, uuid);
     }
     virtual ~limit_sub_t() {
-        destructor_cleanup(std::bind(&feed_t::del_limit_sub, feed, this));
+        destructor_cleanup(std::bind(&feed_t::del_limit_sub, feed, this, uuid));
     }
     virtual void start(env_t *env, namespace_interface_t *nif, client_t::addr_t *addr) {
         assert_thread();
@@ -447,6 +465,7 @@ private:
             guarantee(it != data.end());
             size_t erased = active_data.erase(it);
             if (erased != 0) {
+                // The old value was in the set.
                 old_send = it->second;
             }
         }
@@ -456,16 +475,35 @@ private:
             auto it = res.first;
             if (it < *active_data.crbegin()) {
                 active_data.insert(it);
+                // The new value is in the old set bounds (and thus in the set).
                 new_send = it->second;
             }
         }
-        if (!new_send.has() && active_data.size() != spec.limit) {
-            auto it = (*active_data.crbegin())++;
-            if (it != data.end()) {
+        if (active_data.size() > spec.limit) {
+            // The old value wasn't in the set, but the new value is, and a
+            // value has to leave the set to make room.
+            auto last = active_data.crbegin();
+            guarantee(new_send.has() && !old_send.has());
+            old_send = std::move(last->second);
+            active_data.erase(last);
+        } else if (active_data.size() < spec.limit) {
+            // The set is too small.
+            if (new_send.has()) {
+                // The set is too small because there aren't enough rows in the table.
+                guarantee(active_data.size() == data.size());
+            } else {
+                // The set is too small because the new value wasn't in the old
+                // set bounds, so we need to add the next best element.
+                guarantee(active_data.size() < data.size());
+                auto it = *active_data.crbegin();
+                ++it;
+                guarantee(it != data.end());
                 active_data.insert(it);
                 new_send = it->second;
             }
         }
+        guarantee(active_data.size() == spec.limit || active_data.size() == data.size());
+
         if (old_send.has() || new_send.has()) {
             els.push_back(
                 datum_t(std::map {
@@ -483,7 +521,6 @@ private:
     std::set<std::map<store_key_t, datum_t>::iterator> active_data;
     std::deque<datum_t> els;
 };
-
 
 class msg_visitor_t : public boost::static_visitor<void> {
 public:
@@ -646,47 +683,37 @@ INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::point_t);
 RDB_MAKE_SERIALIZABLE_1(keyspec_t, spec);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(keyspec_t);
 
-// If this throws we might leak the increment to `num_subs`.
-void feed_t::add_point_sub(subscription_t *sub,
-                           const datum_t &key) THROWS_NOTHING {
+void feed_t::add_sub_with_lock(
+    rwlock_t *rwlock, const std::function<void()> &f) THROWS_NOTHING {
     on_thread_t th(home_thread());
     guarantee(!detached);
     num_subs += 1;
     auto_drainer_t::lock_t lock(&drainer);
-    rwlock_in_line_t spot(&point_subs_lock, access_t::write);
-    spot.read_signal()->wait_lazily_unordered();
-    auto subvec_it = point_subs.find(key);
+    rwlock_in_line_t spot(rwlock, access_t::write);
+    // TODO: In some cases there's work we could do with just the read signal.
     spot.write_signal()->wait_lazily_unordered();
-    if (subvec_it == point_subs.end()) {
-        subvec_it = point_subs.insert(
-            std::make_pair(key, decltype(subvec_it->second)(get_num_threads()))).first;
-    }
-    (subvec_it->second)[sub->home_thread().threadnum].insert(sub);
+    f();
 }
 
-// Can't throw because it's called in a destructor.
-void feed_t::del_point_sub(subscription_t *sub,
-                           const datum_t &key) THROWS_NOTHING {
+template<class Map, class Key>
+void map_add_sub(const Map &map, const Key &key, subscription_t *sub) THROWS_NOTHING {
+    auto it = map.find(key);
+    if (it == map.end()) {
+        it = map.insert(std::make_pair(key, decltype(it->second)(get_num_threads())));
+    }
+    (it->second)[sub->home_thread().threadnum].insert(sub);
+}
+
+
+void feed_t::del_sub_with_lock(
+    rwlock_t *rwlock, const std::function<size_t()> &f) THROWS_NOTHING {
     on_thread_t th(home_thread());
     {
         auto_drainer_t::lock_t lock(&drainer);
-        rwlock_in_line_t spot(&point_subs_lock, access_t::write);
-        spot.read_signal()->wait_lazily_unordered();
-        auto subvec_it = point_subs.find(key);
-        guarantee(subvec_it != point_subs.end());
+        rwlock_in_line_t spot(rwlock, access_t::write);
         spot.write_signal()->wait_lazily_unordered();
-        size_t erased = (subvec_it->second)[sub->home_thread().threadnum].erase(sub);
+        size_t erased = f();
         guarantee(erased == 1);
-        // If there are no more subscribers, remove the key from the map.
-        auto it = subvec_it->second.begin();
-        for (; it != subvec_it->second.end(); ++it) {
-            if (it->size() != 0) {
-                break;
-            }
-        }
-        if (it == subvec_it->second.end()) {
-            point_subs.erase(subvec_it);
-        }
     }
     num_subs -= 1;
     if (num_subs == 0) {
@@ -694,35 +721,65 @@ void feed_t::del_point_sub(subscription_t *sub,
         // another subscriber might have already found the feed and subscribed.
         client->maybe_remove_feed(uuid);
     }
+}
+
+template<class Map, class Key>
+size_t map_del_sub(const Map &map, const Key &key, subscription_t *sub) THROWS_NOTHING {
+    auto subvec_it = map.find(key);
+    size_t erased = (subvec_it->second)[sub->home_thread().threadnum].erase(sub);
+    // If there are no more subscribers, remove the key from the map.
+    auto it = subvec_it->second.begin();
+    for (; it != subvec_it->second.end(); ++it) {
+        if (it->size() != 0) {
+            break;
+        }
+    }
+    if (it == subvec_it->second.end()) {
+        map.erase(subvec_it);
+    }
+    return erased;
+}
+
+// If this throws we might leak the increment to `num_subs`.
+void feed_t::add_point_sub(subscription_t *sub, const datum_t &key) THROWS_NOTHING {
+    add_sub_with_lock(&point_subs_lock, [this, sub, &key]() {
+            map_add_sub(point_subs, key, sub);
+        });
+}
+
+// Can't throw because it's called in a destructor.
+void feed_t::del_point_sub(subscription_t *sub, const datum_t &key) THROWS_NOTHING {
+    del_sub_with_lock(&point_subs_lock, [this, sub, &key]() {
+            return map_del_sub(point_subs, key, sub);
+        });
 }
 
 // If this throws we might leak the increment to `num_subs`.
 void feed_t::add_range_sub(subscription_t *sub) THROWS_NOTHING {
-    on_thread_t th(home_thread());
-    guarantee(!detached);
-    num_subs += 1;
-    auto_drainer_t::lock_t lock(&drainer);
-    rwlock_in_line_t spot(&range_subs_lock, access_t::write);
-    spot.write_signal()->wait_lazily_unordered();
-    range_subs[sub->home_thread().threadnum].insert(sub);
+    add_sub_with_lock(&range_subs_lock, [this, sub]() {
+            range_subs[sub->home_thread().threadnum].insert(sub);
+        });
 }
 
 // Can't throw because it's called in a destructor.
 void feed_t::del_range_sub(subscription_t *sub) THROWS_NOTHING {
-    on_thread_t th(home_thread());
-    {
-        auto_drainer_t::lock_t lock(&drainer);
-        rwlock_in_line_t spot(&range_subs_lock, access_t::write);
-        spot.write_signal()->wait_lazily_unordered();
-        size_t erased = range_subs[sub->home_thread().threadnum].erase(sub);
-        guarantee(erased == 1);
-    }
-    num_subs -= 1;
-    if (num_subs == 0) {
-        // It's possible that by the time we get the lock to remove the feed,
-        // another subscriber might have already found the feed and subscribed.
-        client->maybe_remove_feed(uuid);
-    }
+    del_sub_with_lock(&range_subs_lock, [this, sub]() {
+            return range_subs[sub->home_thread().threadnum].erase(sub);
+        });
+}
+
+// If this throws we might leak the increment to `num_subs`.
+void feed_t::add_limit_sub(subscription_t *sub, const uuid_u &uuid) THROWS_NOTHING {
+    add_sub_with_lock(&limit_subs_lock, [this, sub, &uuud]() {
+            map_add_sub(limit_subs, uuid, sub);
+        });
+}
+
+// Can't throw because it's called in a destructor.
+void feed_t::del_limit_sub(subscription_t *sub) THROWS_NOTHING {
+    del_sub_with_lock(&limit_subs_lock, [this, sub, &key]() {
+            return map_del_sub(limit_subs, key, sub);
+        });
 }
 
 void feed_t::each_sub_in_vec(

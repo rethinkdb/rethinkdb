@@ -1130,6 +1130,8 @@ RDB_IMPL_SERIALIZABLE_1(sindex_status_response_t, statuses);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_status_response_t);
 RDB_IMPL_SERIALIZABLE_2(changefeed_subscribe_response_t, server_uuids, addrs);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_subscribe_response_t);
+RDB_IMPL_SERIALIZABLE_0(changefeed_limit_subscribe_response_t);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_limit_subscribe_response_t);
 RDB_IMPL_SERIALIZABLE_1(changefeed_stamp_response_t, stamps);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_response_t);
 RDB_IMPL_ME_SERIALIZABLE_2(changefeed_point_stamp_response_t, stamp, initial_val);
@@ -1164,6 +1166,8 @@ RDB_IMPL_SERIALIZABLE_2(sindex_status_t, sindexes, region);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_status_t);
 RDB_IMPL_SERIALIZABLE_2(changefeed_subscribe_t, addr, region);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_subscribe_t);
+RDB_IMPL_SERIALIZABLE_2(changefeed_limit_subscribe_t, uuid, spec);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_limit_subscribe_t);
 
 RDB_IMPL_SERIALIZABLE_2(changefeed_stamp_t, addr, region);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_t);

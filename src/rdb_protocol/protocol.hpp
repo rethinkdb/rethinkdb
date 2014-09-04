@@ -260,6 +260,9 @@ struct changefeed_stamp_response_t {
 };
 RDB_DECLARE_SERIALIZABLE(changefeed_stamp_response_t);
 
+struct changefeed_limit_subscribe_response_t { };
+RDB_DECLARE_SERIALIZABLE(changefeed_limit_subscribe_response_t);
+
 struct changefeed_point_stamp_response_t {
     changefeed_point_stamp_response_t() { }
     // The `uuid_u` below is the uuid of the changefeed `server_t`.  (We have
@@ -455,8 +458,18 @@ public:
     ql::changefeed::client_t::addr_t addr;
     region_t region;
 };
-
 RDB_DECLARE_SERIALIZABLE(changefeed_subscribe_t);
+
+class changefeed_limit_subscribe_t {
+public:
+    changefeed_limit_subscribe_t() { }
+    explicit changefeed_limit_subscribe_t(
+        uuid_u _uuid, ql::changefeed::keyspec_t::limit_t _spec)
+        : uuid(std::move(_uuid)), spec(std::move(_spec)) { }
+    uuid_u uuid;
+    ql::changefeed::keyspec_t::limit_t spec;
+};
+RDB_DECLARE_SERIALIZABLE(changefeed_limit_subscribe_t);
 
 class changefeed_stamp_t {
 public:
@@ -486,6 +499,7 @@ struct read_t {
                            nearest_geo_read_t,
                            changefeed_subscribe_t,
                            changefeed_stamp_t,
+                           changefeed_limit_subscribe_t,
                            changefeed_point_stamp_t,
                            distribution_read_t,
                            sindex_list_t,

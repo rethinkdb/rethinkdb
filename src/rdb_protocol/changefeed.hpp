@@ -52,7 +52,7 @@ struct msg_t {
                  std::pair<boost::optional<store_key_t>,
                            std::map<uuid_u,
                                     boost::optional<
-                                        std::pair<store_key_t, datum_t> > > > > new_vals;
+                                        std::pair<store_key_t, datum_t> > > > > data;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
     struct change_t {
@@ -70,7 +70,7 @@ struct msg_t {
     explicit msg_t(stop_t &&op);
     explicit msg_t(change_t &&op);
 
-    // We need to define the copy constructor.  GCC 4.4 doesn't let use use `=
+    // We need to define the copy constructor.  GCC 4.4 doesn't let us use `=
     // default`, and SRH is uncomfortable violating the rule of 3, so we define
     // the destructor and assignment operator as well.
     msg_t(const msg_t &msg) : op(msg.op) { }
@@ -81,7 +81,7 @@ struct msg_t {
     }
 
     // Starts with STOP to avoid doing work for default initialization.
-    boost::variant<stop_t, change_t, limit_start_t> op;
+    boost::variant<stop_t, change_t, limit_start_t, limit_change_t> op;
 };
 
 RDB_SERIALIZE_OUTSIDE(msg_t::limit_start_t);
@@ -103,13 +103,15 @@ struct keyspec_t {
     };
     struct limit_t {
         limit_t() { }
-        limit_t(range_t _range, std::string _sindex, sorting_t _sorting, size_t _limit)
+        limit_t(datum_range_t _range, std::string _sindex,
+                sorting_t _sorting, size_t _limit)
             : range(std::move(_range)), sindex(std::move(_sindex)),
               sorting(_sorting), limit(_limit) { }
-        range_t range;
+        datum_range_t range;
         std::string sindex;
         sorting_t sorting;
         size_t limit;
+        RDB_DECLARE_ME_SERIALIZABLE;
     };
     struct point_t {
         point_t() { }
@@ -133,7 +135,7 @@ private:
 };
 region_t keyspec_to_region(const keyspec_t &keyspec);
 
-RDB_DECLARE_SERIALIZABLE(keyspec_t::range_t);
+RDB_SERIALIZE_OUTSIDE(keyspec_t::limit_t);
 RDB_DECLARE_SERIALIZABLE(keyspec_t::limit_t);
 RDB_DECLARE_SERIALIZABLE(keyspec_t::point_t);
 RDB_DECLARE_SERIALIZABLE(keyspec_t);
