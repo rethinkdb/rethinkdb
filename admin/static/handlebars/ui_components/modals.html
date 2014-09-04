@@ -60,11 +60,14 @@
   <div class="alert alert-error alert_modal_content" data-alert="alert">
       <a class="close" href="#">&times;</a>
     {{#if ajax_fail}}
-    Sorry, something went wrong with the ajax request. Please try again.
-    {{#if error}}<br/>Error {{error.status}}: {{error.responseText}}{{/if}}
+    Sorry, something went wrong with the request. Please try again.
+    {{#if error}}<br/>Error: <pre>{{error.message}}</pre>{{/if}}
     {{/if}}
     {{#if port_is_used}}
         <p>Sorry the port you have chosen is already used.<p>
+    {{/if}}
+    {{#if create_db_first}}
+        <p>You need to create a database before creating a table.<p>
     {{/if}}
     {{#if port_isnt_integer}}
         <p>Please enter an integer for the port.</p>
@@ -73,7 +76,7 @@
         <p>Please do not use an empty name for a database.</p>
     {{/if}}
      {{#if database_exists}}
-        <p>The chosen database's name is already being used. please choose another one.</p>
+        <p>The chosen database's name is already being used.<br/>Please choose another one.</p>
     {{/if}}
     {{#if namespace_is_empty}}
         <p>Please do not use an empty name for a table.</p>
@@ -105,3 +108,5 @@
     {{/if}}
   </div>
 </script>
+
+

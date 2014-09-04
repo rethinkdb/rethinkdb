@@ -36,6 +36,7 @@ COFFEE_SOURCES := $(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			resolve_issues.coffee \
 			log_view.coffee \
 			vis.coffee \
+			modals.coffee \
 			models.coffee \
 			navbar.coffee \
 			router.coffee \

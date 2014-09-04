@@ -5,29 +5,38 @@
 module 'TablesView', ->
     class @DatabasesContainer extends Backbone.View
         id: 'databases_container'
-        template: Handlebars.templates['databases_container-template']
+        template:
+            main: Handlebars.templates['databases_container-template']
+            alert_message: Handlebars.templates['alert_message-template']
+
         events:
             'click .add-database': 'add_database'
             'click .add-namespace': 'add_namespace'
             'click .remove-tables': 'delete_tables'
             'click .checkbox-container': 'update_delete_tables_button'
+            'click .close': 'remove_parent_alert'
 
         add_database: =>
             @add_database_dialog.render()
         add_namespace: =>
             @add_namespace_dialog.render()
-            $('#focus_namespace_name').focus()
+            @add_namespace_dialog.focus()
         delete_tables: (event) =>
             # Make sure the button isn't disabled, and pass the list of namespace UUIDs selected
             if not $(event.currentTarget).is ':disabled'
-                @remove_tables_dialog.render @get_selected_tables()
+                selected_tables = []
+                @$('.checkbox-table:checked').each () ->
+                    selected_tables.push
+                        table: $(@).data('table')
+                        database: $(@).data('database')
+                @remove_tables_dialog.render selected_tables
+
+        remove_parent_alert: (event) ->
+            event.preventDefault()
+            element = $(event.target).parent()
+            element.slideUp 'fast', -> element.remove()
 
         get_selected_tables: =>
-            result = []
-            @$('.checkbox-table:checked').each () ->
-                result.push
-                    table: $(@).data('table')
-                    database: $(@).data('database')
             result
 
         update_delete_tables_button: =>
@@ -46,23 +55,27 @@ module 'TablesView', ->
 
             @loading = true # TODO Render that
 
-            @add_database_dialog = new TablesView.AddDatabaseModal
-            @add_namespace_dialog = new TablesView.AddNamespaceModal @databases
-            @remove_tables_dialog = new TablesView.RemoveNamespaceModal
+            @add_database_dialog = new Modals.AddDatabaseModal @databases
+            @add_namespace_dialog = new Modals.AddNamespaceModal @databases
+            @remove_tables_dialog = new Modals.RemoveNamespaceModal
 
         render: =>
-            @$el.html @template({})
+            @$el.html @template.main({})
             @$('.databases_list').html @databases_list.render().$el
             @
+        render_message: (message) =>
+            @.$('#user-alert-space').append @template.alert_message
+                message: message
+
 
         fetch_servers: =>
             #TODO Replace later with server_status
             query = r.dbList().filter( (db) ->
                 db.ne('rethinkdb')
-            ).map (db) ->
+            ).orderBy(r.row).map (db) ->
                 db: db
                 id: db # TODO: Use db_config (when available) and remove this merge
-                tables: r.db('rethinkdb').table('table_status')
+                tables: r.db('rethinkdb').table('table_status').orderBy((table) -> table("name"))
                     .filter({db: db}).merge( (table) ->
                         shards: table('shards').map( (shard) ->
                             shard(shard.keys().nth(0))
@@ -82,21 +95,23 @@ module 'TablesView', ->
                 console.log error
                 console.log result
                 ###
+                if error
+                    #TODO
+                    console.log error
+                else
+                    @loading = false # TODO Move that outside the `if` statement?
+                    databases = {}
+                    for database, index in result
+                        @databases.add new Database(database), {merge: true}
+                        databases[database.id] = true
 
-                @loading = false
-
-                databases = {}
-                for database, index in result
-                    @databases.add new Database(database), {merge: true}
-                    databases[database.id] = true
-
-                # Clean  removed database
-                toDestroy = []
-                for database in @databases.models
-                    if databases[database.get('id')] isnt true
-                        toDestroy.push database
-                for database in toDestroy
-                    database.destroy()
+                    # Clean  removed database
+                    toDestroy = []
+                    for database in @databases.models
+                        if databases[database.get('id')] isnt true
+                            toDestroy.push database
+                    for database in toDestroy
+                        database.destroy()
 
         destroy: =>
             clearInterval @interval
@@ -104,6 +119,7 @@ module 'TablesView', ->
     class @DatabasesListView extends Backbone.View
         className: 'database_list'
         initialize: =>
+            # TODO Enforce order?
             @databases_view = []
             @collection.each (database) =>
                 view = new TablesView.DatabaseView
@@ -119,12 +135,28 @@ module 'TablesView', ->
                 @databases_view.push view
                 @$el.append view.render().$el
 
+            @collection.on 'remove', (database) =>
+                for view in @databases_view
+                    if view.model is database
+                        database.destroy()
+                        view.remove()
+                        break
+
         render: =>
             @
 
     class @DatabaseView extends Backbone.View
         className: 'database_container section'
         template: Handlebars.templates['database-template']
+        events:
+           'click button.remove-database': 'remove_database'
+
+        remove_database: =>
+            remove_database_dialog = new Modals.RemoveDatabaseModal
+            remove_database_dialog.render @model
+            remove_database_dialog.focus()
+
+
         initialize: =>
             @$el.html @template @model.toJSON()
 
@@ -150,8 +182,6 @@ module 'TablesView', ->
                 @$('.tables_container').append view.render().$el
 
         update_collection: =>
-            console.log 'update collection'
-
             to_destroy = []
             for table in @collection.models
                 found = false
@@ -161,11 +191,10 @@ module 'TablesView', ->
                         break
                 if found is false
                     to_destroy.push table
-            console.log to_destroy
+
             for table in to_destroy
                 for view in @tables_views
                     if view.model is table
-                        console.log 'remove'
                         view.remove()
                         break
                 table.destroy()
@@ -189,281 +218,6 @@ module 'TablesView', ->
             @$el.html @template @model.toJSON()
             @
 
-
-    class @AddDatabaseModal extends UIComponents.AbstractModal
-        template: Handlebars.templates['add_database-modal-template']
-        alert_tmpl: Handlebars.templates['added_database-alert-template']
-        error_template: Handlebars.templates['error_input-template']
-
-        class: 'add-database'
-
-        initialize: ->
-            log_initial '(initializing) modal dialog: add datacenter'
-            super
-
-        render: ->
-            log_render '(rendering) add datatabase dialog'
-            super
-                modal_title: "Add database"
-                btn_primary_text: "Add"
-            @.$('.focus_new_name').focus()
-
-        on_submit: ->
-            super
-            @formdata = form_data_as_object($('form', @$modal))
-
-            no_error = true
-            if @formdata.name is ''
-                no_error = false
-                $('.alert_modal').html @error_template
-                    database_is_empty: true
-            else if /^[a-zA-Z0-9_]+$/.test(@formdata.name) is false
-                no_error = false
-                $('.alert_modal').html @error_template
-                    special_char_detected: true
-                    type: 'database'
-            else
-                for database in databases.models
-                    if database.get('name') is @formdata.name
-                        no_error = false
-                        $('.alert_modal').html @error_template
-                            database_exists: true
-                        break
-            if no_error is true
-                driver.run r.dbCreate(@formdata.name), (err, result) =>
-                    if (err)
-                        @on_error(err)
-                    else
-                        if result?.created is 1
-                            @on_success()
-                        else
-                            @on_error(new Error("TODO"))
-            else
-                $('.alert_modal_content').slideDown 'fast'
-                @reset_buttons()
-
-        on_success: (response) =>
-            super
-            apply_to_collection(databases, response)
-
-            # Notify the user
-            for id, namespace of response
-                $('#user-alert-space').append @alert_tmpl
-                    name: namespace.name
-                    id: id
-
-    class @AddNamespaceModal extends UIComponents.AbstractModal
-        template: Handlebars.templates['add_namespace-modal-template']
-        alert_tmpl: Handlebars.templates['added_namespace-alert-template']
-        need_database_alert_template: Handlebars.templates['need_database-alert-template']
-        error_template: Handlebars.templates['error_input-template']
-        class: 'add-namespace'
-
-        initialize: (databases) =>
-            log_initial '(initializing) modal dialog: add namespace'
-            super
-            @databases = databases
-
-            @databases.on 'add', @check_if_can_create_table
-            @databases.on 'remove', @check_if_can_create_table
-            @databases.on 'reset', @check_if_can_create_table
-
-            @can_create_table_status = true
-            @delegateEvents()
-
-        show_advanced_settings: (event) =>
-            event.preventDefault()
-            that = @
-            @.$('.show_advanced_settings-link_container').fadeOut 'fast', ->
-                that.$('.hide_advanced_settings-link_container').fadeIn 'fast'
-            @.$('.advanced_settings').slideDown 'fast'
-
-        hide_advanced_settings: (event) =>
-            event.preventDefault()
-            that = @
-            @.$('.hide_advanced_settings-link_container').fadeOut 'fast', ->
-                that.$('.show_advanced_settings-link_container').fadeIn 'fast'
-            @.$('.advanced_settings').slideUp 'fast'
-
-        # Check if we have a database (if not, we cannot create a table)
-        check_if_can_create_table: =>
-            if @databases.length is 0
-                if @can_create_table_status
-                    @.$('.btn-primary').prop 'disabled', true
-                    @.$('.alert_modal').html 'You need to create a database before creating a table.'
-            else
-                if @can_create_table_status is false
-                    @.$('.alert_modal').empty()
-                    @.$('.btn-primary').prop 'disabled', false
-
-
-        render: =>
-            for datacenter in datacenters.models
-                datacenter.set 'num_machines', 0
-
-            for machine in machines.models
-                if machine.get('datacenter_uuid') isnt universe_datacenter.get('id')
-                    datacenters.get(machine.get('datacenter_uuid')).set 'num_machines',datacenter.get('num_machines')+1
-
-            ordered_datacenters = _.map(datacenters.models, (datacenter) ->
-                id: datacenter.get('id')
-                name: datacenter.get('name')
-                num_machines: datacenter.get('num_machines')
-            )
-            ordered_datacenters = ordered_datacenters.sort (a, b) ->
-                return b.num_machines-a.num_machines
-
-            slice_index = 0
-            for datacenter in ordered_datacenters
-                if datacenter.num_machines is 0
-                    break
-                slice_index++
-
-            ordered_datacenters = ordered_datacenters.slice 0, slice_index
-            ordered_datacenters.unshift
-                id: universe_datacenter.get('id')
-                name: universe_datacenter.get('name')
-
-            ordered_databases = @databases.map (d) ->
-                id: d.get('id')
-                db: d.get('db')
-
-            ordered_databases = _.sortBy ordered_databases, (d) -> d.name
-
-            super
-                modal_title: 'Add table'
-                btn_primary_text: 'Add'
-                datacenters: ordered_datacenters
-                all_datacenters: datacenters.length is ordered_datacenters.length
-                databases: ordered_databases
-
-            @check_if_can_create_table()
-            @.$('.show_advanced_settings-link').click @show_advanced_settings
-            @.$('.hide_advanced_settings-link').click @hide_advanced_settings
-
-        on_submit: =>
-            super
-
-            formdata = form_data_as_object($('form', @$modal))
-            # Check if data is safe
-            template_error = {}
-            input_error = false
-
-            # Need a name
-            if formdata.name is ''
-                input_error = true
-                template_error.namespace_is_empty = true
-            else if /^[a-zA-Z0-9_]+$/.test(formdata.name) is false
-                input_error = true
-                template_error.special_char_detected = true
-                template_error.type = 'table'
-            ###
-            else # And a name that doesn't exist
-                for namespace in namespaces.models
-                    if namespace.get('name') is formdata.name and namespace.get('database') is formdata.database
-                        input_error = true
-                        template_error.namespace_exists = true
-                        break
-            ###
-
-            # Need a database
-            ###
-            if not formdata.database? or formdata.database is ''
-                input_error = true
-                template_error.no_database = true
-            ###
-
-            if input_error is true
-                $('.alert_modal').html @error_template template_error
-                $('.alert_modal_content').slideDown 'fast'
-                @reset_buttons()
-            else
-                ack = {}
-                ack[universe_datacenter.get('id')] =
-                    expectation: 1
-                    hard_durability: if formdata.write_disk is 'yes' then true else false
-
-                driver.run r.db(formdata.database).tableCreate(formdata.name), (err, result) =>
-                    if (err)
-                        @on_error(err)
-                    else
-                        if result?.created is 1
-                            @on_success()
-                        else
-                            @on_error(new Error("TODO"))
-
-
-        on_success: (response) =>
-            super
-
-            apply_to_collection(namespaces, add_protocol_tag(response, "rdb"))
-            for id, namespace of response
-                $('#user-alert-space').append @alert_tmpl
-                    uuid: id
-                    name: namespace.name
-
-
-        on_destroy: =>
-            #TODO
-            @databases.off()
-
-    class @RemoveNamespaceModal extends UIComponents.AbstractModal
-        template: Handlebars.templates['remove_namespace-modal-template']
-        alert_tmpl: Handlebars.templates['removed_namespace-alert-template']
-        class: 'remove-namespace-dialog'
-
-        initialize: ->
-            log_initial '(initializing) modal dialog: remove namespace'
-            super
-
-        render: (tables_to_delete) =>
-            console.log 'tables_to_delete'
-            console.log tables_to_delete
-            @tables_to_delete = tables_to_delete
-
-            super
-                modal_title: 'Delete tables'
-                btn_primary_text: 'Delete'
-                namespaces: tables_to_delete
-
-            @.$('.btn-primary').focus()
-
-        on_submit: ->
-            super
-
-            query = r.expr(@tables_to_delete).forEach (table) ->
-                r.db(table("database")).tableDrop(table("table"))
-
-            driver.run query, (err, result) =>
-                if (err)
-                    @on_error(err)
-                else
-                    if result?.dropped is @tables_to_delete.length
-                        @on_success()
-                    else
-                        @on_error(new Error("TODO"))
-
-
-        on_success: (response) ->
-            #TODO Update data? Fire another query?
-
-            ###
-            $('#user-alert-space').append @alert_tmpl
-                deleted_namespaces: deleted_namespaces
-                num_deleted_namespaces: deleted_namespaces.length
-            ###
-
-            super
-
-        ton_error: =>
-            @.$('.error_answer').html @template_remove_error
-
-            if $('.error_answer').css('display') is 'none'
-                $('.error_answer').slideDown('fast')
-            else
-                $('.error_answer').css('display', 'none')
-                $('.error_answer').fadeIn()
-            remove_namespace_dialog.reset_buttons()
 
 module 'NamespacesView', ->
     # Show a list of databases
@@ -530,7 +284,7 @@ module 'NamespacesView', ->
             rename_modal.render()
 
         add_database: (event) =>
-            @add_database_dialog.render()
+            @add_database_dialog.render @databases
 
         add_namespace: (event) =>
             event.preventDefault()
