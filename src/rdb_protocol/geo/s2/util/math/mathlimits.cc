@@ -7,6 +7,8 @@
 
 #include "rdb_protocol/geo/s2/base/integral_types.h"
 
+namespace geo {
+
 // MSVC++ 2005 thinks the header declaration was a definition, and
 // erroneously flags these as a duplicate definition.
 #ifdef COMPILER_MSVC
@@ -80,3 +82,5 @@ DEF_FP_LIMITS(long double, LDBL);
 #undef DEF_UNSIGNED_INT_LIMITS
 #undef DEF_FP_LIMITS
 #undef DEF_PRECISION_LIMITS
+
+}  // namespace geo

@@ -36,6 +36,8 @@
 #include "rdb_protocol/geo/s2/base/port.h"
 #include "rdb_protocol/geo/s2/base/basictypes.h"
 
+namespace geo {
+
 // Adapter functions for handling overflow and errno.
 int32 strto32_adapter(const char *nptr, char **endptr, int base);
 uint32 strtou32_adapter(const char *nptr, char **endptr, int base);
@@ -88,5 +90,7 @@ inline int32 atoi32(const std::string &s) {
 inline int64 atoi64(const std::string &s) {
   return atoi64(s.c_str());
 }
+
+}  // namespace geo
 
 #endif  // BASE_STRTOINT_H_

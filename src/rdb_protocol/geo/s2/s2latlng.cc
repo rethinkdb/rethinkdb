@@ -4,6 +4,8 @@
 #include "rdb_protocol/geo/s2/strings/stringprintf.h"
 #include "rdb_protocol/geo/s2/s2latlng.h"
 
+namespace geo {
+
 S2LatLng S2LatLng::Normalized() const {
   // drem(x, 2 * M_PI) reduces its argument to the range [-M_PI, M_PI]
   // inclusive, which is what we want here.
@@ -69,3 +71,5 @@ void S2LatLng::ToStringInDegrees(std::string* s) const {
 ostream& operator<<(ostream& os, S2LatLng const& ll) {
   return os << "[" << ll.lat() << ", " << ll.lng() << "]";
 }
+
+}  // namespace geo

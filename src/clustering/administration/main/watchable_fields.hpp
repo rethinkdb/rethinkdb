@@ -92,7 +92,7 @@ public:
     explicit incremental_field_getter_t(inner_t outer_t::*f) :
         incremental_map_lens_t<peer_id_t, outer_t, inner_field_getter_t<inner_t, outer_t> >(
             inner_field_getter_t<inner_t, outer_t>(f)) {
-    };
+    }
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_MAIN_WATCHABLE_FIELDS_HPP_ */

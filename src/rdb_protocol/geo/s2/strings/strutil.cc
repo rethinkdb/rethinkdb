@@ -15,29 +15,13 @@
 #include <string.h>
 
 #include <algorithm>
-using std::min;
-using std::max;
-using std::swap;
-using std::reverse;
-
 #include <unordered_map>
-using std::unordered_map;
-
 #include <unordered_set>
-using std::unordered_set;
-
 #include <iterator>
 #include <limits>
-using std::numeric_limits;
-
 #include <set>
-using std::set;
-using std::multiset;
-
 #include <string>
-
 #include <vector>
-using std::vector;
 
 
 #include "errors.hpp"
@@ -55,6 +39,19 @@ using std::vector;
 #undef min
 #endif
 #endif
+
+namespace geo {
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
+using std::unordered_map;
+using std::unordered_set;
+using std::numeric_limits;
+using std::set;
+using std::multiset;
+using std::vector;
+
 
 // ----------------------------------------------------------------------
 // FpToString()
@@ -218,3 +215,5 @@ bool DictionaryParse(const std::string& encoded_str,
   }
   return true;
 }
+
+}  // namespace geo

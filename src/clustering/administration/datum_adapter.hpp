@@ -9,6 +9,15 @@
 #include "containers/name_string.hpp"
 #include "rdb_protocol/datum.hpp"
 
+/* Note that we generally use `ql::configured_limits_t::unlimited` when converting
+things to datum, rather than using a user-specified limit. This is mostly for consistency
+with reading from a B-tree; if a value read from the B-tree contains an array larger than
+the user-specified limit, then we don't throw an exception unless the user tries to grow
+the array. Since these functions are used to construct values that the user will "read",
+we use the same behavior here. This has the nice side effect that we don't have to worry
+about threading `configured_limits_t` through these functions, or about handling
+exceptions if the limit is violated. */
+
 ql::datum_t convert_name_to_datum(
         const name_string_t &value);
 bool convert_name_from_datum(
@@ -28,7 +37,7 @@ template<class T>
 ql::datum_t convert_vector_to_datum(
         const std::function<ql::datum_t(const T&)> &conv,
         const std::vector<T> &vector) {
-    ql::datum_array_builder_t builder((ql::configured_limits_t()));
+    ql::datum_array_builder_t builder((ql::configured_limits_t::unlimited));
     builder.reserve(vector.size());
     for (const T &elem : vector) {
         builder.add(conv(elem));
@@ -59,7 +68,7 @@ template<class T>
 ql::datum_t convert_set_to_datum(
         const std::function<ql::datum_t(const T&)> &conv,
         const std::set<T> &set) {
-    ql::datum_array_builder_t builder((ql::configured_limits_t()));
+    ql::datum_array_builder_t builder((ql::configured_limits_t::unlimited));
     builder.reserve(set.size());
     for (const T &elem : set) {
         builder.add(conv(elem));

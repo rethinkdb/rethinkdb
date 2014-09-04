@@ -10,6 +10,8 @@
 #ifndef BASE_INT_TYPES_H_
 #define BASE_INT_TYPES_H_
 
+namespace geo {
+
 // These typedefs are also defined in base/google.swig. In the
 // SWIG environment, we use those definitions and avoid duplicate
 // definitions here with an ifdef. The definitions should be the
@@ -103,5 +105,7 @@ static const  int32 kint32max  = (( int32) 0x7FFFFFFF);
 static const  int64 kint64min  = (( int64) GG_LONGLONG(0x8000000000000000));
 static const  int64 kint64max  = (( int64) GG_LONGLONG(0x7FFFFFFFFFFFFFFF));
 
+
+}  // namespace geo
 
 #endif  // BASE_INT_TYPES_H_

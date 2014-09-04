@@ -15,6 +15,8 @@
 #include <stdlib.h>
 #include <cstddef>
 
+namespace geo {
+
 #ifdef OS_EMBEDDED_QNX
 // NOTE(user):
 // The C++ standard says that <stdlib.h> declares both ::foo and std::foo
@@ -423,5 +425,7 @@ template<class C, class FP> inline
 bool operator!=(C* p, const scoped_ptr_malloc<C, FP>& b) {
   return p != b.get();
 }
+
+}  // namespace geo
 
 #endif  // BASE_SCOPED_PTR_H__

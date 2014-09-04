@@ -2,12 +2,16 @@
 
 #include <stdarg.h> // For va_list and related operations
 #include <stdio.h> // MSVC requires this for _vsnprintf
-#include <vector>
-using std::vector;
 
+#include <vector>
 #include <string>
+
 #include "rdb_protocol/geo/s2/strings/stringprintf.h"
 #include "rdb_protocol/geo/s2/base/logging.h"
+
+namespace geo {
+using std::vector;
+
 
 // Max arguments supported by StringPrintVector
 const size_t kStringPrintfVectorMaxArgs = 32;
@@ -50,3 +54,5 @@ std::string StringPrintfVector(const char* format, const vector<std::string>& v)
                       cstr[25], cstr[26], cstr[27], cstr[28], cstr[29],
                       cstr[30], cstr[31]);
 }
+
+}  // namespace geo

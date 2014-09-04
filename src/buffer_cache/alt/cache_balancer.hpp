@@ -15,7 +15,7 @@
 #include "containers/scoped.hpp"
 
 namespace alt {
-    class evicter_t;
+class evicter_t;
 }
 
 // Base class so we can have a dummy implementation for tests

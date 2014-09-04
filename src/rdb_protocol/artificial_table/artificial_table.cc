@@ -88,7 +88,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
     }
 
     /* Fetch the actual rows from the backend */
-    ql::datum_array_builder_t array_builder((ql::configured_limits_t()));
+    ql::datum_array_builder_t array_builder((ql::configured_limits_t::unlimited));
     for (auto key : keys) {
         ql::datum_t row;
         if (!checked_read_row(key, env->interruptor, &row, &error)) {

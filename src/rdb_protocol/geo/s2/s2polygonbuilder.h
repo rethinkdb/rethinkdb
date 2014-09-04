@@ -4,24 +4,24 @@
 #define UTIL_GEOMETRY_S2POLYGONBUILDER_H__
 
 #include <unordered_map>
-using std::unordered_map;
-
 #include <set>
-using std::set;
-using std::multiset;
-
 #include <utility>
-using std::pair;
-using std::make_pair;
-
 #include <vector>
-using std::vector;
 
 #include "rdb_protocol/geo/s2/base/basictypes.h"
 #include "rdb_protocol/geo/s2/base/scoped_ptr.h"
 #include "rdb_protocol/geo/s2/s2.h"
 #include "rdb_protocol/geo/s2/s1angle.h"
 #include "rdb_protocol/geo/s2/util/math/matrix3x3.h"
+
+namespace geo {
+using std::unordered_map;
+using std::set;
+using std::multiset;
+using std::pair;
+using std::make_pair;
+using std::vector;
+
 
 class S2Loop;
 class S2Polygon;
@@ -305,5 +305,7 @@ inline S2PolygonBuilderOptions S2PolygonBuilderOptions::UNDIRECTED_UNION() {
   options.set_xor_edges(false);
   return options;
 }
+
+}  // namespace geo
 
 #endif  // UTIL_GEOMETRY_S2POLYGONBUILDER_H__

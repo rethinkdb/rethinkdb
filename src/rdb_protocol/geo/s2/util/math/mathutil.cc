@@ -1,11 +1,14 @@
 // Copyright 2008 Google Inc. All Rights Reserved.
 
 #include "rdb_protocol/geo/s2/util/math/mathutil.h"
+
 #include <vector>
-using std::vector;
 
 #include "rdb_protocol/geo/s2/base/integral_types.h"
 #include "rdb_protocol/geo/s2/base/logging.h"
+
+namespace geo {
+using std::vector;
 
 MathUtil::QuadraticRootType MathUtil::DegenerateQuadraticRoots(
     long double b,
@@ -182,3 +185,5 @@ double MathUtil::LogCombinations(int n, int k) {
     return result;
   }
 }
+
+}  // namespace geo

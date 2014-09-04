@@ -1,25 +1,11 @@
 // Copyright 2005 Google Inc. All Rights Reserved.
 
 #include <algorithm>
-using std::min;
-using std::max;
-using std::swap;
-using std::reverse;
 
 #include <set>
-using std::set;
-using std::multiset;
-
 #include <vector>
-using std::vector;
-
 #include <unordered_map>
-using std::unordered_map;
-
 #include <utility>
-using std::pair;
-using std::make_pair;
-
 
 #include "rdb_protocol/geo/s2/s2loop.h"
 
@@ -30,6 +16,20 @@ using std::make_pair;
 #include "rdb_protocol/geo/s2/s2cell.h"
 #include "rdb_protocol/geo/s2/s2edgeindex.h"
 #include "utils.hpp"
+
+namespace geo {
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
+using std::set;
+using std::multiset;
+using std::vector;
+using std::unordered_map;
+using std::pair;
+using std::make_pair;
+
+
 
 static const unsigned char kCurrentEncodingVersionNumber = 1;
 
@@ -806,3 +806,5 @@ bool S2Loop::BoundaryNear(S2Loop const* b, double max_error) const {
   }
   return false;
 }
+
+}  // namespace geo

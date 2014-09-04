@@ -20,6 +20,9 @@
 
 #include "rdb_protocol/geo/s2/base/basictypes.h"
 
+namespace geo {
+
+
 #define DOCID_FORMAT "%llu"
 #define DOCID32BIT_FORMAT "%u"
 
@@ -156,6 +159,8 @@ inline uint64 operator*(const DocId& a, uint64 b) { return a.docid() * b; }
 // Required for indexdefs.h (really should be HitPosition, not uint64)
 inline uint64 operator+(uint64 a, const DocId& b) { return a + b.docid(); }
 
+}  // namespace geo
+
 // Required for hashing docids.  docservercache.cc needs to fingerprint them.
 #if !defined __SGI_STL_HASH_FUN_H       // taken from stl_decl.h
 HASH_NAMESPACE_DECLARATION_START
@@ -163,12 +168,14 @@ template <class Key> struct hash;
 HASH_NAMESPACE_DECLARATION_END
 #endif
 HASH_NAMESPACE_DECLARATION_START
-template<> struct hash<DocId> {
-  size_t operator()(const DocId& d) const {
+template<> struct hash<geo::DocId> {
+  size_t operator()(const geo::DocId& d) const {
     return static_cast<size_t>(d.docid());
   }
 };
 HASH_NAMESPACE_DECLARATION_END
+
+namespace geo {
 
 const DocId kMaxDocId = DocId(GG_ULONGLONG(0xFFFFFFFFFFFFFFFF));
 
@@ -282,11 +289,15 @@ inline uint64 operator*(const DocId32Bit& a, uint64 b)
 inline uint32 operator+(uint32 a, const DocId32Bit& b)
     { return a + b.docid(); }
 
+}  // namespace geo
+
 HASH_NAMESPACE_DECLARATION_START
-template<> struct hash<DocId32Bit> {
-  size_t operator()(const DocId32Bit& d) const { return d.docid(); }
+template<> struct hash<geo::DocId32Bit> {
+  size_t operator()(const geo::DocId32Bit& d) const { return d.docid(); }
 };
 HASH_NAMESPACE_DECLARATION_END
+
+namespace geo {
 
 #endif
 
@@ -337,5 +348,7 @@ inline DocId DocIdFromUrlfp(Fprint urlfp) {
 // For real time cache.  A higher value means more recent.
 typedef uint32 DocVersionIdVal;
 const DocVersionIdVal kIllegalDocVersionId = static_cast<DocVersionIdVal>(0);
+
+}  // namespace geo
 
 #endif  // BASE_DOCID_H_

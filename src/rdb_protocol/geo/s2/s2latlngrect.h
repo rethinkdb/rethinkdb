@@ -4,10 +4,6 @@
 #define UTIL_GEOMETRY_S2LATLNGRECT_H_
 
 #include <iostream>
-using std::ostream;
-using std::cout;
-using std::endl;
-
 
 #include "rdb_protocol/geo/s2/base/basictypes.h"
 #include "rdb_protocol/geo/s2/base/logging.h"
@@ -16,6 +12,12 @@ using std::endl;
 #include "rdb_protocol/geo/s2/s1interval.h"
 #include "rdb_protocol/geo/s2/s2region.h"
 #include "rdb_protocol/geo/s2/s2latlng.h"
+
+namespace geo {
+using std::ostream;
+using std::cout;
+using std::endl;
+
 
 // An S2LatLngRect represents a closed latitude-longitude rectangle.  It is
 // capable of representing the empty and full rectangles as well as
@@ -316,5 +318,7 @@ inline bool S2LatLngRect::operator!=(S2LatLngRect const& other) const {
 }
 
 ostream& operator<<(ostream& os, S2LatLngRect const& r);
+
+}  // namespace geo
 
 #endif  // UTIL_GEOMETRY_S2LATLNGRECT_H_

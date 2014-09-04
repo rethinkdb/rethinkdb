@@ -5,9 +5,12 @@
 //
 
 #include <errno.h>
+
 #include "rdb_protocol/geo/s2/base/port.h"
 #include "rdb_protocol/geo/s2/base/basictypes.h"
 #include "rdb_protocol/geo/s2/base/strtoint.h"
+
+namespace geo {
 
 // Replacement strto[u]l functions that have identical overflow and underflow
 // characteristics for both ILP-32 and LP-64 platforms, including errno
@@ -46,3 +49,5 @@ uint32 strtou32_adapter(const char *nptr, char **endptr, int base) {
     errno = saved_errno;
   return static_cast<uint32>(result);
 }
+
+}  // namespace geo

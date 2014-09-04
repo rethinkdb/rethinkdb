@@ -6,21 +6,23 @@
 #include <openssl/crypto.h>
 #include <math.h>
 #include <algorithm>
-using std::min;
-using std::max;
-using std::swap;
-using std::reverse;
-
 #include <limits>
-using std::numeric_limits;
 
 #include "errors.hpp"
 #include "rdb_protocol/geo/s2/base/integral_types.h"
 #include "rdb_protocol/geo/s2/base/logging.h"
 
+namespace geo {
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
+using std::numeric_limits;
+
 #ifndef __APPLE__
 using std::signbit;
 #endif
+
 
 // Define storage for constants.
 const int ExactFloat::kMinExp;
@@ -767,3 +769,5 @@ ExactFloat ExactFloat::Unimplemented() {
   return NaN();
 }
 #pragma GCC diagnostic pop
+
+}  // namespace geo

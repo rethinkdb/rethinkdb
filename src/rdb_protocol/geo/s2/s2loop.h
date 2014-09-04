@@ -4,12 +4,7 @@
 #define UTIL_GEOMETRY_S2LOOP_H__
 
 #include <map>
-using std::map;
-using std::multimap;
-
 #include <vector>
-using std::vector;
-
 
 #include "rdb_protocol/geo/s2/base/logging.h"
 #include "rdb_protocol/geo/s2/base/macros.h"
@@ -17,6 +12,12 @@ using std::vector;
 #include "rdb_protocol/geo/s2/s2region.h"
 #include "rdb_protocol/geo/s2/s2latlngrect.h"
 #include "rdb_protocol/geo/s2/s2edgeutil.h"
+
+namespace geo {
+using std::map;
+using std::multimap;
+using std::vector;
+
 
 class S2Loop;
 // Defined in the cc file. A helper class for AreBoundariesCrossing.
@@ -427,5 +428,7 @@ T S2Loop::GetSurfaceIntegral(T f_tri(S2Point const&, S2Point const&,
   }
   return sum;
 }
+
+}  // namespace geo
 
 #endif  // UTIL_GEOMETRY_S2LOOP_H__

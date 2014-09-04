@@ -37,7 +37,7 @@ cJSON *render_as_json(blueprint_role_t *target) {
     default:
         unreachable();
         break;
-    };
+    }
 }
 
 void apply_json_to(cJSON *change, blueprint_role_t *target) {

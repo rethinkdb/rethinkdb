@@ -5,6 +5,8 @@
 
 #include "rdb_protocol/geo/s2/base/basictypes.h"
 
+namespace geo {
+
 // ----------------------------------------------------------------------
 // ascii_isalpha()
 // ascii_isdigit()
@@ -91,5 +93,7 @@ extern const unsigned char kAsciiToLower[256];
 static inline char ascii_tolower(unsigned char c) { return static_cast<char>(kAsciiToLower[c]); }
 extern const unsigned char kAsciiToUpper[256];
 static inline char ascii_toupper(unsigned char c) { return static_cast<char>(kAsciiToUpper[c]); }
+
+}  // namespace geo
 
 #endif  // STRINGS_ASCII_CTYPE_H__

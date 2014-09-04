@@ -17,6 +17,9 @@
 #include "unittest/gtest.hpp"
 #include "utils.hpp"
 
+using geo::S2LatLng;
+using geo::S2Point;
+using geo::S2Polygon;
 using ql::datum_t;
 
 namespace unittest {

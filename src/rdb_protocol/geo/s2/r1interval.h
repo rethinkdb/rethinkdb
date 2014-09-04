@@ -6,19 +6,20 @@
 #include <math.h>
 
 #include <algorithm>
-using std::min;
-using std::max;
-using std::swap;
-using std::reverse;
-
 #include <iostream>
-using std::ostream;
-using std::cout;
-using std::endl;
 
 #include "rdb_protocol/geo/s2/base/basictypes.h"
 #include "rdb_protocol/geo/s2/base/logging.h"
 #include "rdb_protocol/geo/s2/util/math/vector2-inl.h"
+
+namespace geo {
+using std::min;
+using std::max;
+using std::swap;
+using std::reverse;
+using std::ostream;
+using std::cout;
+using std::endl;
 
 // An R1Interval represents a closed, bounded interval on the real line.
 // It is capable of representing the empty interval (containing no points)
@@ -182,5 +183,7 @@ DECLARE_POD(R1Interval);
 inline ostream& operator<<(ostream& os, R1Interval const& x) {
   return os << "[" << x.lo() << ", " << x.hi() << "]";
 }
+
+}  // namespace geo
 
 #endif  // UTIL_GEOMETRY_R1INTERVAL_H_
