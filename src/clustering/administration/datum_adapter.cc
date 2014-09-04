@@ -50,9 +50,9 @@ ql::datum_t convert_port_to_datum(
     return ql::datum_t(static_cast<double>(value));
 }
 
-ql::datum_t convert_time_to_datum(
-        time_t value) {
-    return ql::pseudo::make_time(value, "+00:00");
+ql::datum_t convert_microtime_to_datum(
+        microtime_t value) {
+    return ql::pseudo::make_time(value / 1.0e6, "+00:00");
 }
 
 bool converter_from_datum_object_t::init(

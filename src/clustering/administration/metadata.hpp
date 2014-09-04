@@ -65,7 +65,7 @@ public:
             machine_id_t _server_id,
             peer_id_t _peer_id,
             uint64_t _cache_size,
-            time_t _time_started,
+            microtime_t _time_started,
             pid_t _pid,
             uint16_t _cluster_port,
             uint16_t _reql_port,
@@ -147,7 +147,7 @@ public:
     peer_id_t peer_id;
 
     uint64_t cache_size;
-    time_t time_started;
+    microtime_t time_started;
     pid_t pid;
     int cluster_port, reql_port;
     boost::optional<int> http_admin_port;

@@ -22,24 +22,24 @@ public:
     /* Fetches the time the given server [dis]connected, on the assumption that it is
     currently [dis]connected. If the server was permanently removed, the behavior is
     undefined. */
-    time_t get_connected_time(const machine_id_t &server_id) {
+    microtime_t get_connected_time(const machine_id_t &server_id) {
         auto it = connected_times.find(server_id);
         if (it != connected_times.end()) {
             return it->second;
         } else {
             /* The server just connected, but we haven't noticed that it's here yet. So
             the connection time is now. */
-            return time(NULL);
+            return current_microtime();
         }
     }
-    time_t get_disconnected_time(const machine_id_t &server_id) {
+    microtime_t get_disconnected_time(const machine_id_t &server_id) {
         auto it = disconnected_times.find(server_id);
         if (it != disconnected_times.end()) {
             return it->second;
         } else {
             /* The server just disconnected, but we haven't noticed that it's gone yet.
             So the disconnection time is now. */
-            return time(NULL);
+            return current_microtime();
         }
     }
 
@@ -55,11 +55,11 @@ private:
 
     /* Machines are only present in this map if they are not connected but not
     declared dead. */
-    std::map<machine_id_t, time_t> disconnected_times;
+    std::map<machine_id_t, microtime_t> disconnected_times;
 
     /* Machines are only present in this map if they are connected and not declared
     dead. */
-    std::map<machine_id_t, time_t> connected_times;
+    std::map<machine_id_t, microtime_t> connected_times;
 
     DISABLE_COPYING(last_seen_tracker_t);
 };

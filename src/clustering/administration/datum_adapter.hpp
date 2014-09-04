@@ -8,6 +8,7 @@
 
 #include "containers/name_string.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "time.hpp"
 
 ql::datum_t convert_name_to_datum(
         const name_string_t &value);
@@ -27,8 +28,8 @@ bool convert_uuid_from_datum(
 ql::datum_t convert_port_to_datum(
         uint16_t value);
 
-ql::datum_t convert_time_to_datum(
-        time_t value);
+ql::datum_t convert_microtime_to_datum(
+        microtime_t value);
 
 template<class T>
 ql::datum_t convert_vector_to_datum(

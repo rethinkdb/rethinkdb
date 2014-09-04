@@ -34,13 +34,13 @@ void last_seen_tracker_t::update() {
                                                                   ++it) {
         if (!it->second.is_deleted() && visible.find(it->first) == visible.end()) {
             /* If it was already present, this will have no effect. */
-            disconnected_times.insert(std::make_pair(it->first, time(NULL)));
+            disconnected_times.insert(std::make_pair(it->first, current_microtime()));
         } else {
             disconnected_times.erase(it->first);
         }
         if (!it->second.is_deleted() && visible.find(it->first) != visible.end()) {
             /* If it was already present, this will have no effect. */
-            connected_times.insert(std::make_pair(it->first, time(NULL)));
+            connected_times.insert(std::make_pair(it->first, current_microtime()));
         } else {
             connected_times.erase(it->first);
         }

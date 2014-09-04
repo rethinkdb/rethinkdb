@@ -72,15 +72,19 @@ bool server_status_artificial_table_backend_t::read_row(
 
     if (directory) {
         builder.overwrite("time_started",
-            convert_time_to_datum(directory->time_started));
-        time_t connected_time = last_seen_tracker->get_connected_time(server_id);
-        builder.overwrite("time_connected", convert_time_to_datum(connected_time));
+            convert_microtime_to_datum(directory->time_started));
+        microtime_t connected_time =
+            last_seen_tracker->get_connected_time(server_id);
+        builder.overwrite("time_connected",
+            convert_microtime_to_datum(connected_time));
         builder.overwrite("time_disconnected", ql::datum_t::null());
     } else {
         builder.overwrite("time_started", ql::datum_t::null());
         builder.overwrite("time_connected", ql::datum_t::null());
-        time_t disconnected_time = last_seen_tracker->get_disconnected_time(server_id);
-        builder.overwrite("time_disconnected", convert_time_to_datum(disconnected_time));
+        microtime_t disconnected_time =
+            last_seen_tracker->get_disconnected_time(server_id);
+        builder.overwrite("time_disconnected",
+            convert_microtime_to_datum(disconnected_time));
     }
 
     if (directory) {
