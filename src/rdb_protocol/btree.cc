@@ -937,7 +937,7 @@ THROWS_ONLY(interrupted_exc_t) {
                 boost::optional<uint64_t> tag = *ql::datum_t::extract_tag(key);
                 guarantee(tag);
                 sindex_val = sindex_val.get(*tag, ql::NOTHROW);
-                guarantee(sindex_val);
+                guarantee(sindex_val.has());
             }
             if (!sindex->range.contains(sindex->func_reql_version, sindex_val)) {
                 return done_traversing_t::NO;
@@ -1434,7 +1434,7 @@ void rdb_update_single_sindex(
 
     superblock_t *super_block = sindex->super_block.get();
 
-    if (modification->info.deleted.first) {
+    if (modification->info.deleted.first.has()) {
         guarantee(!modification->info.deleted.second.empty());
         try {
             ql::datum_t deleted = modification->info.deleted.first;
@@ -1477,7 +1477,7 @@ void rdb_update_single_sindex(
     // This is so we don't race against any sindex erase about who is faster
     // (we with inserting new entries, or the erase with removing them).
     const bool sindex_is_being_deleted = sindex->sindex.being_deleted;
-    if (!sindex_is_being_deleted && modification->info.added.first) {
+    if (!sindex_is_being_deleted && modification->info.added.first.has()) {
         try {
             ql::datum_t added = modification->info.added.first;
 
@@ -1532,7 +1532,7 @@ void rdb_update_sindexes(const store_t::sindex_access_vector_t &sindexes,
 
     /* All of the sindex have been updated now it's time to actually clear the
      * deleted blob if it exists. */
-    if (modification->info.deleted.first) {
+    if (modification->info.deleted.first.has()) {
         deletion_context->post_deleter()->delete_value(buf_parent_t(txn),
                 modification->info.deleted.second.data());
     }

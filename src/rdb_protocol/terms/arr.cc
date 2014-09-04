@@ -569,7 +569,8 @@ private:
         {
             profile::sampler_t sampler("Evaluating elements in contains.",
                                        env->env->trace);
-            while (datum_t el = seq->next(env->env, batchspec)) {
+            datum_t el;
+            while (el = seq->next(env->env, batchspec), el.has()) {
                 for (auto it = required_els.begin(); it != required_els.end(); ++it) {
                     if (*it == el) {
                         std::swap(*it, required_els.back());

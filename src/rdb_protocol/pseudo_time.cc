@@ -398,7 +398,8 @@ time_t time_to_boost(datum_t d) {
     ptime_t t(date_t(1970, 1, 1));
     add_seconds_to_ptime(&t, raw_sec);
 
-    if (datum_t tz = d.get_field(timezone_key, NOTHROW)) {
+    const datum_t tz = d.get_field(timezone_key, NOTHROW);
+    if (tz.has()) {
         boost::local_time::time_zone_ptr zone(
             new boost::local_time::posix_time_zone(sanitize::tz(tz.as_str().to_std())));
         return time_t(t, zone);
@@ -422,7 +423,8 @@ std::string time_to_iso8601(datum_t d) {
                                year));
         std::ostringstream ss;
         ss.exceptions(std::ios_base::failbit);
-        if (datum_t tz = d.get_field(timezone_key, NOTHROW)) {
+        const datum_t tz = d.get_field(timezone_key, NOTHROW);
+        if (tz.has()) {
             ss.imbue(tz_format);
         } else {
             ss.imbue(no_tz_format);
@@ -528,7 +530,8 @@ void sanitize_time(datum_t *time) {
 
 datum_t time_tz(datum_t time) {
     r_sanity_check(time.is_ptype(time_string));
-    if (datum_t tz = time.get_field(timezone_key, NOTHROW)) {
+    const datum_t tz = time.get_field(timezone_key, NOTHROW);
+    if (tz.has()) {
         return tz;
     } else {
         return datum_t::null();

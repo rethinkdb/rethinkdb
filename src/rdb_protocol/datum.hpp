@@ -161,10 +161,10 @@ public:
 
     ~datum_t();
 
-    // Interface to mimic counted_t, to ease transition from counted_t<const datum_t>
+    // has() checks whether a datum is uninitialized. reset() make any datum
+    // uninitialized.
     bool has() const;
     void reset();
-    operator bool() const { return has(); }
 
     void write_to_protobuf(Datum *out, use_json_t use_json) const;
 

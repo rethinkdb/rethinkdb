@@ -155,7 +155,8 @@ datum_t project(datum_t datum,
         datum_object_builder_t res;
         if (pathspec.as_str() != NULL) {
             datum_string_t str(*pathspec.as_str());
-            if (datum_t val = datum.get_field(str, NOTHROW)) {
+            const datum_t val = datum.get_field(str, NOTHROW);
+            if (val.has()) {
                 res.overwrite(std::move(str), val);
             }
         } else if (const std::vector<pathspec_t> *vec = pathspec.as_vec()) {
@@ -168,7 +169,8 @@ datum_t project(datum_t datum,
             }
         } else if (const std::map<datum_string_t, pathspec_t> *map = pathspec.as_map()) {
             for (auto it = map->begin(); it != map->end(); ++it) {
-                if (datum_t val = datum.get_field(it->first, NOTHROW)) {
+                const datum_t val = datum.get_field(it->first, NOTHROW);
+                if (val.has()) {
                     try {
                         datum_t sub_result =
                             project(val, it->second, RECURSE, limits);
@@ -197,7 +199,8 @@ void unproject_helper(datum_object_builder_t *datum,
         }
     } else if (const std::map<datum_string_t, pathspec_t> *map = pathspec.as_map()) {
         for (auto it = map->begin(); it != map->end(); ++it) {
-            if (datum_t val = datum->try_get(it->first)) {
+            const datum_t val = datum->try_get(it->first);
+            if (val.has()) {
                 try {
                     datum_t sub_result =
                         unproject(val, it->second, RECURSE, limits);
@@ -248,7 +251,8 @@ bool contains(datum_t datum,
             }
         } else if (const std::map<datum_string_t, pathspec_t> *map = pathspec.as_map()) {
             for (auto it = map->begin(); it != map->end(); ++it) {
-                if (datum_t val = datum.get_field(it->first, NOTHROW)) {
+                const datum_t val = datum.get_field(it->first, NOTHROW);
+                if (val.has()) {
                     if (!(res &= contains(val, it->second))) {
                         return res;
                     }

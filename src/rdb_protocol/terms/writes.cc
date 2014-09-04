@@ -288,7 +288,8 @@ private:
             profile::sampler_t sampler("Evaluating elements in for each.",
                                        env->env->trace);
             counted_t<const func_t> f = args->arg(env, 1)->as_func(CONSTANT_SHORTCUT);
-            while (datum_t row = ds->next(env->env, batchspec)) {
+            datum_t row;
+            while (row = ds->next(env->env, batchspec), row.has()) {
                 counted_t<val_t> v = f->call(env->env, row);
                 try {
                     datum_t d = v->as_datum();

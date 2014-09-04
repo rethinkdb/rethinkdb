@@ -234,7 +234,8 @@ private:
                     = batchspec_t::user(batch_type_t::TERMINAL, env->env);
                 {
                     profile::sampler_t sampler("Coercing to object.", env->env->trace);
-                    while (auto pair = ds->next(env->env, batchspec)) {
+                    datum_t pair;
+                    while (pair = ds->next(env->env, batchspec), pair.has()) {
                         const datum_string_t &key = pair.get(0).as_str();
                         datum_t keyval = pair.get(1);
                         bool b = obj.add(key, keyval);

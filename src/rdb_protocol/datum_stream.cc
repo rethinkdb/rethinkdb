@@ -774,7 +774,8 @@ datum_t eager_datum_stream_t::as_array(env_t *env) {
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
     {
         profile::sampler_t sampler("Evaluating stream eagerly.", env->trace);
-        while (datum_t d = next(env, batchspec)) {
+        datum_t d;
+        while (d = next(env, batchspec), d.has()) {
             arr.add(d);
             sampler.new_sample();
         }
@@ -843,7 +844,8 @@ array_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
     batcher_t batcher = batchspec.to_batcher();
 
     profile::sampler_t sampler("Fetching array elements.", env->trace);
-    while (const datum_t d = next_arr_el()) {
+    datum_t d;
+    while (d = next_arr_el(), d.has()) {
         batcher.note_el(d);
         v.push_back(std::move(d));
         if (batcher.should_send_batch()) {
@@ -1042,7 +1044,8 @@ datum_t union_datum_stream_t::as_array(env_t *env) {
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
     {
         profile::sampler_t sampler("Evaluating stream eagerly.", env->trace);
-        while (const datum_t d = next(env, batchspec)) {
+        datum_t d;
+        while (d = next(env, batchspec), d.has()) {
             arr.add(d);
             sampler.new_sample();
         }

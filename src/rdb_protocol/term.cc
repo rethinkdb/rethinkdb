@@ -262,7 +262,8 @@ void run(protob_t<Query> q,
                 }
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
                 counted_t<datum_stream_t> seq = val->as_seq(&env);
-                if (datum_t arr = seq->as_array(&env)) {
+                const datum_t arr = seq->as_array(&env);
+                if (arr.has()) {
                     res->set_type(Response::SUCCESS_ATOM);
                     arr.write_to_protobuf(res->add_response(), use_json);
                     if (trace.has()) {
