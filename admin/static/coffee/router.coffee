@@ -10,7 +10,7 @@ class BackboneCluster extends Backbone.Router
         'databases': 'index_namespaces'
         'databases/:id': 'database'
         'databases/:id/:tab': 'database'
-        'tables': 'index_namespaces'
+        'tables': 'index_tables'
         'tables/:id': 'namespace'
         'tables/:id/:tab': 'namespace'
         'servers': 'index_servers'
@@ -50,6 +50,12 @@ class BackboneCluster extends Backbone.Router
         if url isnt ''
             stats_param.url = url
             collect_stat_data()
+
+    index_tables: ->
+        clear_modals()
+        @current_view.destroy()
+        @current_view = new TablesView.DatabasesContainer
+        @$container.html @current_view.render().el
 
     index_namespaces: (data) ->
         @set_stats_call ''

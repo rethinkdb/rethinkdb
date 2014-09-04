@@ -93,6 +93,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/rdb_cubism.v1.js");
     white_list.insert("/js/reql_docs.json");
     white_list.insert("/js/underscore-min.js");
+    white_list.insert("/js/underscore-min.map");
     white_list.insert("/js/xdate.js");
     white_list.insert("/js/handlebars.runtime-1.0.0.js");
     white_list.insert("/js/template.js");

@@ -7,27 +7,22 @@ class Servers extends Backbone.Collection
 
 class Server extends Backbone.Model
 
+class Tables extends Backbone.Collection
+    model: Table
+    name: 'Tables'
+    ###
+    initialize: (models, options) ->
+        @document = options.tables
+        super()
+    ###
+
+class Table extends Backbone.Model
+
+class Databases extends Backbone.Collection
+    model: Database
+    name: 'Databases'
+
 class Database extends Backbone.Model
-    get_namespaces: =>
-        namespaces_in_datacenter = []
-        for namespace in namespaces.models
-            if namespace.get('database') is @get('id')
-                namespaces_in_datacenter.push namespace
-
-        return namespaces_in_datacenter
-
-    get_stats_for_performance: =>
-        __s =
-            keys_read: 0
-            keys_set: 0
-        for namespace in namespaces.models
-            if namespace.get('database') is @get('id')
-                _s = namespace.get_stats()
-                if not _s?
-                    continue
-                __s.keys_read += _s.keys_read
-                __s.keys_set += _s.keys_set
-        return __s
 
 class Namespace extends Backbone.Model
     initialize: ->
@@ -412,10 +407,6 @@ class ComputedCluster extends Backbone.Model
 
 
 # Collections for Backbone.js
-class Databases extends Backbone.Collection
-    model: Database
-    name: 'Databases'
-
 
 class Namespaces extends Backbone.Collection
     model: Namespace

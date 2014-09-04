@@ -1,16 +1,43 @@
-<script id="database_list-template" type="text/x-handlebars-template">
-    <div id="table-list">
-        <div class="actions-bar">
-            <button class="btn add-database">+ Add Database</button>
-            <button class="btn add-namespace">+ Add Table</button>
-            <button class="btn for-multiple-elements remove-namespace" disabled="disabled">&ndash; Delete selected tables</button>
+<script id="databases_container-template" type="text/x-handlebars-template">
+    <div class="actions-bar">
+        <button class="btn add-database">+ Add Database</button>
+        <button class="btn add-namespace">+ Add Table</button>
+        <button class="btn for-multiple-elements remove-tables" disabled="disabled">&ndash; Delete selected tables</button>
+    </div>
+    <h1 class="title">Tables in the cluster</h1>
+    <div id="user-alert-space"></div>
+    <div class="alert user_alert_space-cannot_create_namespace">You need to create a database before creating a table.</div>
+    <div class="databases_list"></div>
+</script>
+
+<script id="database-template" type="text/x-handlebars-template">
+    <div class="header_container">
+        <div class="element-type">Database</div>
+        <h3 class="name"><a href="#databases/{{id}}">{{db}}</a></h3>
+        <div class="buttons">
+            <button class="btn remove-database" data-id={{id}}>Delete Database</a>
         </div>
-        <h1 class="title">Tables in the cluster</h1>
-        <div id="user-alert-space"></div>
-        <div class="alert user_alert_space-cannot_create_namespace">You need to create a database before creating a table.</div>
-        <div class="collapsible-list"></div>
+    </div>
+    <div class="tables_container element-list-container"></div>
+</script>
+
+<script id="table-template" type="text/x-handlebars-template">
+    <div class="checkbox-container">
+        <input type="checkbox" id="checkbox_table_list_{{id}}" class="checkbox-table"  data-database="{{db}}" data-table="{{name}}"></input><label for="checkbox_table_list_{{id}}"></label>    
+    </div>
+    <div class="element-details">
+        <p class="name"><a href="#tables/{{id}}">{{name}}</a></p>
+        <p class="quick_info">
+            {{shards}} {{pluralize_noun "shard" shards}}, {{replicas}} {{pluralize_noun "replica" replicas}}
+        </p>
+        <div class="status">
+            {{humanize_namespace_reachability reachability}}
+        </span>
     </div>
 </script>
+
+
+<!-- Old stuff below -->
 
 <script id="need_database-alert-template" type="text/x-handlebars-template">
 You need to create a database before creating a table.
@@ -81,7 +108,7 @@ You need to create a database before creating a table.
         <label for="primary_datacenter">Select a database</label>
         <select class="database" name="database">
             {{#each databases}}
-            <option value="{{this.id}}">{{this.name}}</option>
+            <option value="{{this.id}}">{{this.db}}</option>
             {{/each}}
         </select>
 
@@ -118,7 +145,7 @@ You need to create a database before creating a table.
     <h4>Are you sure you want to delete these tables:</h4>
     <ul class="namespace-list">
         {{#each namespaces}}
-        <li><a href="#tables/{{id}}">{{name}}</a></li>
+        <li><a href="#tables/TODO">{{database}}.{{table}}</a></li>
         {{/each}}
     </ul>
 </script>

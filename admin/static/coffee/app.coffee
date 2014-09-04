@@ -47,7 +47,7 @@ class @Driver
                 return callback error
 
             query.private_run connection, (err, result) ->
-                if typeof result.toArray is 'function'
+                if typeof result?.toArray is 'function'
                     result.toArray (err, result) ->
                         callback(err, result)
                         connection.close()
@@ -300,6 +300,7 @@ $ ->
     
     # Override the default Backbone.sync behavior to allow reading diff
     Backbone.sync = (method, model, success, error) ->
+        return 0
         if method is 'read'
             collect_server_data()
         else
