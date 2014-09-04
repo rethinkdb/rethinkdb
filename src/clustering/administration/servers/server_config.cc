@@ -3,6 +3,7 @@
 
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/servers/name_client.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 
 ql::datum_t convert_server_config_and_name_to_datum(
         const name_string_t &name,
@@ -73,7 +74,7 @@ bool server_config_artificial_table_backend_t::read_row(
         UNUSED signal_t *interruptor,
         ql::datum_t *row_out,
         UNUSED std::string *error_out) {
-    on_thread_t thread_switcher(servers_sl_view->home_thread());
+    on_thread_t thread_switcher(home_thread());
     machines_semilattice_metadata_t servers_sl = servers_sl_view->get();
     name_string_t server_name;
     machine_id_t server_id;
@@ -92,6 +93,8 @@ bool server_config_artificial_table_backend_t::write_row(
         ql::datum_t new_value,
         signal_t *interruptor,
         std::string *error_out) {
+    cross_thread_signal_t interruptor2(interruptor, home_thread());
+    on_thread_t thread_switcher(home_thread());
     machines_semilattice_metadata_t servers_sl = servers_sl_view->get();
     name_string_t server_name;
     machine_id_t server_id;
@@ -122,12 +125,12 @@ bool server_config_artificial_table_backend_t::write_row(
         "primary key is unchanged.");
     if (new_server_name != server_name) {
         if (!name_client->rename_server(server_id, server_name, new_server_name,
-                                        interruptor, error_out)) {
+                                        &interruptor2, error_out)) {
             return false;
         }
     }
     if (new_tags != server_sl->tags.get_ref()) {
-        if (!name_client->retag_server(server_id, server_name, new_tags, interruptor,
+        if (!name_client->retag_server(server_id, server_name, new_tags, &interruptor2,
                                        error_out)) {
             return false;
         }

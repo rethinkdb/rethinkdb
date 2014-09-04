@@ -6,7 +6,6 @@
 #include <string>
 #include <vector>
 
-#include "arch/address.hpp"
 #include "containers/name_string.hpp"
 #include "rdb_protocol/datum.hpp"
 
@@ -26,7 +25,7 @@ bool convert_uuid_from_datum(
         std::string *error_out);
 
 ql::datum_t convert_port_to_datum(
-        int value);
+        uint16_t value);
 
 ql::datum_t convert_time_to_datum(
         time_t value);

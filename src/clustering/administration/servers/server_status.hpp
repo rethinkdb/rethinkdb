@@ -37,7 +37,10 @@ public:
         common_server_artificial_table_backend_t(_servers_sl_view, _name_client),
         directory_view(_directory_view), table_sl_view(_table_sl_view),
         database_sl_view(_database_sl_view), auto_reconnector(_auto_reconnector),
-        last_seen_tracker(_last_seen_tracker) { }
+        last_seen_tracker(_last_seen_tracker) {
+        table_sl_view->assert_thread();
+        database_sl_view->assert_thread();
+    }
 
     bool read_row(
             ql::datum_t primary_key,

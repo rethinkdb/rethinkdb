@@ -12,6 +12,7 @@ bool common_server_artificial_table_backend_t::read_all_primary_keys(
         UNUSED signal_t *interruptor,
         std::vector<ql::datum_t> *keys_out,
         UNUSED std::string *error_out) {
+    on_thread_t thread_switcher(home_thread());
     keys_out->clear();
     name_client->get_machine_id_to_name_map()->apply_read(
         [&](const std::map<machine_id_t, name_string_t> *map) {
@@ -28,6 +29,7 @@ bool common_server_artificial_table_backend_t::lookup(
         name_string_t *name_out,
         machine_id_t *server_id_out,
         machine_semilattice_metadata_t **machine_out) {
+    assert_thread();
     std::string dummy_error;
     if (!convert_uuid_from_datum(primary_key, server_id_out, &dummy_error)) {
         return false;
@@ -37,7 +39,6 @@ bool common_server_artificial_table_backend_t::lookup(
         return false;
     }
     if (it->second.is_deleted()) {
-        /* This could happen due to a race condition */
         return false;
     }
     *machine_out = it->second.get_mutable();

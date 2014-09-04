@@ -6,8 +6,6 @@
 #include "clustering/administration/servers/last_seen_tracker.hpp"
 #include "clustering/administration/servers/name_client.hpp"
 
-namespace {
-
 bool directory_has_role_for_table(const reactor_business_card_t &business_card) {
     for (auto it = business_card.activities.begin();
               it != business_card.activities.end();
@@ -29,14 +27,12 @@ bool table_has_role_for_server(const name_string_t &name,
     return false;
 }
 
-}   /* anonymous namespace */
-
 bool server_status_artificial_table_backend_t::read_row(
         ql::datum_t primary_key,
         UNUSED signal_t *interruptor,
         ql::datum_t *row_out,
         UNUSED std::string *error_out) {
-    on_thread_t thread_switcher(servers_sl_view->home_thread());
+    on_thread_t thread_switcher(home_thread());
     machines_semilattice_metadata_t servers_sl = servers_sl_view->get();
     name_string_t server_name;
     machine_id_t server_id;
@@ -155,6 +151,7 @@ bool server_status_artificial_table_backend_t::write_row(
 
 name_string_t server_status_artificial_table_backend_t::get_db_name(
         database_id_t db_id) {
+    assert_thread();
     databases_semilattice_metadata_t dbs = database_sl_view->get();
     if (dbs.databases.at(db_id).is_deleted()) {
         /* This can occur due to a race condition, if a new table is added to a database

@@ -259,6 +259,7 @@ bool table_status_artificial_table_backend_t::read_row_impl(
         UNUSED signal_t *interruptor,
         ql::datum_t *row_out,
         UNUSED std::string *error_out) {
+    assert_thread();
     *row_out = convert_table_status_to_datum(
         table_name,
         db_name,

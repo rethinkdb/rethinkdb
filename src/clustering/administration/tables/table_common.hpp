@@ -26,7 +26,10 @@ public:
             boost::shared_ptr< semilattice_readwrite_view_t<
                 databases_semilattice_metadata_t> > _database_sl_view) :
         table_sl_view(_table_sl_view),
-        database_sl_view(_database_sl_view) { }
+        database_sl_view(_database_sl_view) {
+        table_sl_view->assert_thread();
+        database_sl_view->assert_thread();
+    }
 
     std::string get_primary_key_name();
     bool read_all_primary_keys(
@@ -40,6 +43,7 @@ public:
             std::string *error_out);
 
 protected:
+    /* This will always be called on the home thread */
     virtual bool read_row_impl(
             namespace_id_t table_id,
             name_string_t table_name,
@@ -48,6 +52,8 @@ protected:
             signal_t *interruptor,
             ql::datum_t *row_out,
             std::string *error_out) = 0;
+
+    /* This should only be called on the home thread */
     name_string_t get_db_name(database_id_t db_id);
 
     boost::shared_ptr< semilattice_readwrite_view_t<

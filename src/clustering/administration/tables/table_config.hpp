@@ -10,13 +10,13 @@
 
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
+#include "clustering/administration/servers/name_client.hpp"
 #include "clustering/administration/tables/table_common.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rpc/semilattice/view.hpp"
 
 class real_reql_cluster_interface_t;
-class server_name_client_t;
 
 /* This is publicly exposed so that it can be used to create the return value of
 `table.reconfigure()`. */

@@ -152,8 +152,8 @@ bool do_serve(io_backender_t *io_backender,
             serve_info.ports.port,
             serve_info.ports.reql_port,
             serve_info.ports.http_admin_is_disabled
-                ? boost::optional<int>()
-                : boost::optional<int>(serve_info.ports.http_port),
+                ? boost::optional<uint16_t>()
+                : boost::optional<uint16_t>(serve_info.ports.http_port),
             stat_manager.get_address(),
             outdated_index_server.get_request_mailbox_address(),
             log_server.get_business_card(),
@@ -383,8 +383,8 @@ bool do_serve(io_backender_t *io_backender,
                         our_root_directory_variable.apply_atomic_op(
                             [&](cluster_directory_metadata_t *md) -> bool {
                                 *md->http_admin_port = admin_server_ptr->get_port();
-                                return (*md->http_admin_port != \
-                                        serve_info.ports.http_port);
+                                return (*md->http_admin_port !=
+                                    serve_info.ports.http_port);
                             });
                     }
 
