@@ -317,8 +317,11 @@ unit: $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 
 $(PROTO_DIR)/%.pb.h $(PROTO_DIR)/%.pb.cc: $(SOURCE_DIR)/%.proto $(PROTOC_BIN_DEP) | $(PROTO_DIR)/.
 	$P PROTOC[CPP] $^
+
+#	# See issue #2965
+	+rm -f $(PROTO_DIR)/$*.pb.h $(PROTO_DIR)/$*.pb.cc
+
 	$(PROTOC) $(PROTOCFLAGS_CXX) --cpp_out $(PROTO_DIR) $<
-	touch $@
 
 rpc/semilattice/joins/macros.hpp: $(TOP)/scripts/generate_join_macros.py
 rpc/serialize_macros.hpp: $(TOP)/scripts/generate_serialize_macros.py

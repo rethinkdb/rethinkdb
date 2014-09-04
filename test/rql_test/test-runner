@@ -4,7 +4,7 @@
 
 from __future__ import print_function
 
-import atexit, collections, distutils.version, distutils.spawn, optparse, os, re, shutil, signal, stat, string, subprocess, sys, tempfile, time
+import atexit, collections, distutils.version, distutils.spawn, optparse, os, re, shutil, signal, stat, string, subprocess, sys, tempfile, time, traceback
 
 try:
     import yaml
@@ -367,7 +367,8 @@ class TestGroup(object):
     variableRegex = re.compile('^\s*(?P<quoteString>[\'\"]*)\s*(?P<variableName>[a-zA-Z][\w\[\]\{\}\'\"]*)\s*=\s*(?P<expression>[^=].+)$')
     
     @classmethod
-    def buildYamlTest(cls, testName, sourceFile, language, outputPath, shards=0):
+    def buildYamlTest(cls, testName, sourceFile, language, outputPath, shards=0,
+                      useSpecificTable = False):
     
         # -- input validation
         
@@ -440,6 +441,18 @@ class TestGroup(object):
             # - mark end of the header/driver
             
             outputFile.write('%s ========== End of common test functions ==========\n\n' % language.comment())
+            
+            # - set up table if necessary
+            
+            if "table_variable_name" in parsed_data:
+                table_name = testName.replace(".","_").replace("/","_")
+                table_name += "_"
+                table_name += language.display_name.replace(" ","_").replace(".","_")
+                outputFile.write("setup_table(%s, %s)\n\n" % (
+                    language.langrepr(parsed_data["table_variable_name"]),
+                    language.langrepr(table_name)))
+            else:
+                outputFile.write("check_no_table_specified()\n\n")
             
             # - add the body of the tests
             
@@ -770,6 +783,7 @@ def main():
     
     parser.add_option('-c', '--cluster-port', dest='cluster_port', default=None, type='int', help='cluster port of an already-running rethinkdb instance')
     parser.add_option('-d', '--driver-port', dest='driver_port', default=None, type='int', help='driver port of an already-running rethinkdb instance')
+    parser.add_option('-t', '--table', dest='table', default="no_table_specified", type='string', help='name of pre-existing table to run queries against.')
     
     parser.add_option('-v', '--verbse', dest='verbose', default=False, action='store_true', help='show in-progress messages from tests')
     
@@ -787,6 +801,13 @@ def main():
         
         if options.shards != 1:
             parser.error('The -c/--cluster-port and -d/--driver-port options can not be used with -s/--shards')
+    else:
+        if options.table != "no_table_specified":
+            parser.error('If you specify -t/--table, you must also specify -c/--cluster-port and -d/--driver-port')
+    
+    if options.table != "no_table_specified":
+        if options.table.count(".") != 1:
+            parser.error('Parameter to -t/--table should be of the form db.table')
     
     # - add filters
     
@@ -956,7 +977,8 @@ def main():
                 TestGroup.buildYamlTest(test.name, test.path, test.language, executablePath, shards=options.shards-1)
             except Exception as e:
                 failedTests.append("%s (%s)" % (test.name, test.language.display_name))
-                sys.stderr.write("Setup Failure: unable to create test executable for Yaml test %s:\n%s\n" % (test.name, str(e)))
+                sys.stderr.write("Setup Failure: unable to create test executable for Yaml test %s:\n" % test.name)
+                traceback.print_exc()
                 continue
             
             # - start the server
@@ -969,7 +991,7 @@ def main():
             
             # --
             
-            additionalArguments = ['UNUSED', str(servers.driver_port()), str(servers.cluster_port()), servers.executable()]
+            additionalArguments = ['UNUSED', str(servers.driver_port()), options.table, str(servers.cluster_port()), servers.executable()]
         
         if test.type == 'test':
             additionalArguments = [utils.latest_build_dir()]

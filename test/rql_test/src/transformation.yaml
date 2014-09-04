@@ -1,11 +1,8 @@
 desc: Tests that manipulation data in tables
+table_variable_name: tbl
 tests:
 
     # Set up some data
-    - cd: r.db('test').table_create('test1')
-      ot: ({'created':1})
-      def: tbl = r.db('test').table('test1')
-
     - cd: r.db('test').table_create('test2')
       ot: ({'created':1})
       def: tbl2 = r.db('test').table('test2')
@@ -544,8 +541,6 @@ tests:
       ot: ({'id':0})
 
     # Clean up
-    - cd: r.db('test').table_drop('test1')
-      ot: ({'dropped':1})
     - cd: r.db('test').table_drop('test2')
       ot: ({'dropped':1})
     - cd: r.db('test').table_drop('test3')

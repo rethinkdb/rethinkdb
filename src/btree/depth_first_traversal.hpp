@@ -54,6 +54,14 @@ public:
     /* Return value of `NO` indicates to keep going; `YES` indicates to stop
     traversing the tree. */
     virtual done_traversing_t handle_pair(scoped_key_value_t &&keyvalue) = 0;
+    /* Can be overloaded if you don't want to query a contiguous range of keys,
+    but only parts of it. Will be called before traversing into any child node.
+    Note: returning false here does not guarantee that a given range is never
+    encountered by handle_pair(). is_range_interesting() is just a pre-filter. */
+    virtual bool is_range_interesting(UNUSED const btree_key_t *left_excl_or_null,
+                                      UNUSED const btree_key_t *right_incl_or_null) {
+        return true;
+    }
     virtual profile::trace_t *get_trace() THROWS_NOTHING { return NULL; }
 protected:
     virtual ~depth_first_traversal_callback_t() { }

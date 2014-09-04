@@ -1,9 +1,8 @@
 desc: Regression tests for issue #309, using 'union' on an array and a stream doesn't seem to work
+table_variable_name: t
 tests:
 
     # Set up a stream
-    - cd: r.db('test').table_create('t309')
-      def: t = r.db('test').table('t309')
 
     - cd: t.insert([{'id':0}, {'id':1}])
 
@@ -14,5 +13,3 @@ tests:
     - cd: r.expr([2,3,4]).union(t)
       ot: bag([{'id':0}, {'id':1}, 2, 3, 4])
 
-    # clean up
-    - cd: r.db('test').table_drop('t309')

@@ -105,6 +105,7 @@ class env_t;
 class primary_readgen_t;
 class readgen_t;
 class sindex_readgen_t;
+class intersecting_readgen_t;
 } // namespace ql
 
 class datum_range_t {
@@ -130,6 +131,7 @@ private:
     friend class ql::readgen_t;
     friend class ql::primary_readgen_t;
     friend class ql::sindex_readgen_t;
+    friend class ql::intersecting_readgen_t;
     friend struct unittest::make_sindex_read_t;
 
     key_range_t to_primary_keyrange() const;
@@ -205,7 +207,6 @@ struct point_read_response_t {
 RDB_DECLARE_SERIALIZABLE(point_read_response_t);
 
 struct rget_read_response_t {
-    key_range_t key_range;
     ql::result_t result;
     bool truncated;
     store_key_t last_key;
@@ -214,20 +215,6 @@ struct rget_read_response_t {
 };
 
 RDB_DECLARE_SERIALIZABLE(rget_read_response_t);
-
-struct intersecting_geo_read_response_t {
-    boost::variant<ql::datum_t, ql::exc_t> results_or_error;
-
-    intersecting_geo_read_response_t() { }
-    intersecting_geo_read_response_t(
-            const ql::datum_t &_results)
-        : results_or_error(_results) { }
-    intersecting_geo_read_response_t(
-            const ql::exc_t &_error)
-        : results_or_error(_error) { }
-};
-
-RDB_DECLARE_SERIALIZABLE(intersecting_geo_read_response_t);
 
 struct nearest_geo_read_response_t {
     typedef std::pair<double, ql::datum_t> dist_pair_t;
@@ -308,7 +295,6 @@ RDB_SERIALIZE_OUTSIDE(changefeed_point_stamp_response_t);
 struct read_response_t {
     typedef boost::variant<point_read_response_t,
                            rget_read_response_t,
-                           intersecting_geo_read_response_t,
                            nearest_geo_read_response_t,
                            changefeed_subscribe_response_t,
                            changefeed_stamp_response_t,
@@ -394,26 +380,38 @@ RDB_DECLARE_SERIALIZABLE(rget_read_t);
 
 class intersecting_geo_read_t {
 public:
-    intersecting_geo_read_t() { }
+    intersecting_geo_read_t() : batchspec(ql::batchspec_t::empty()) { }
 
     intersecting_geo_read_t(
-            const ql::datum_t &_query_geometry,
-            const std::string &_table_name, const std::string &_sindex_id,
-            const std::map<std::string, ql::wire_func_t> &_optargs)
-        : optargs(_optargs),
-          query_geometry(_query_geometry),
-          region(region_t::universe()),
+            const region_t &_region,
+            const std::map<std::string, ql::wire_func_t> &_optargs,
+            const std::string &_table_name,
+            const ql::batchspec_t &_batchspec,
+            const std::vector<ql::transform_variant_t> &_transforms,
+            boost::optional<ql::terminal_variant_t> &&_terminal,
+            sindex_rangespec_t &&_sindex,
+            const ql::datum_t &_query_geometry)
+        : region(_region),
+          optargs(_optargs),
           table_name(_table_name),
-          sindex_id(_sindex_id) { }
+          batchspec(_batchspec),
+          transforms(_transforms),
+          terminal(std::move(_terminal)),
+          sindex(std::move(_sindex)),
+          query_geometry(_query_geometry) { }
 
+    region_t region; // Primary key range. We need this because of sharding.
     std::map<std::string, ql::wire_func_t> optargs;
+    std::string table_name;
+    ql::batchspec_t batchspec; // used to size batches
+
+    // We use these two for lazy maps, reductions, etc.
+    std::vector<ql::transform_variant_t> transforms;
+    boost::optional<ql::terminal_variant_t> terminal;
+
+    sindex_rangespec_t sindex;
 
     ql::datum_t query_geometry; // Tested for intersection
-
-    region_t region; // We need this even for sindex reads due to sharding.
-    std::string table_name;
-
-    std::string sindex_id;
 };
 RDB_DECLARE_SERIALIZABLE(intersecting_geo_read_t);
 
@@ -422,13 +420,14 @@ public:
     nearest_geo_read_t() { }
 
     nearest_geo_read_t(
+            const region_t &_region,
             lat_lon_point_t _center, double _max_dist, uint64_t _max_results,
             const ellipsoid_spec_t &_geo_system, const std::string &_table_name,
             const std::string &_sindex_id,
             const std::map<std::string, ql::wire_func_t> &_optargs)
         : optargs(_optargs), center(_center), max_dist(_max_dist),
           max_results(_max_results), geo_system(_geo_system),
-          region(region_t::universe()), table_name(_table_name),
+          region(_region), table_name(_table_name),
           sindex_id(_sindex_id) { }
 
     std::map<std::string, ql::wire_func_t> optargs;
