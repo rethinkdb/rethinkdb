@@ -452,7 +452,7 @@ int time_cmp(reql_version_t reql_version, const datum_t &x, const datum_t &y) {
     // We know that these are both nums, so the reql_version doesn't actually affect
     // anything (between v1_13 and v1_14_is_latest).  But it's safer not to have to
     // prove that, so we take it and pass it anyway.
-    return x.get_field(epoch_time_key)->cmp(reql_version, *y.get_field(epoch_time_key));
+    return x.get_field(epoch_time_key).cmp(reql_version, y.get_field(epoch_time_key));
 }
 
 double sanitize_epoch_sec(double d) {

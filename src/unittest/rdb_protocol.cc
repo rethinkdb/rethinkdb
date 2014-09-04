@@ -160,7 +160,7 @@ void run_get_set_test(namespace_interface_t *nsi, order_source_t *osource) {
         if (point_read_response_t *maybe_point_read_response = boost::get<point_read_response_t>(&response.response)) {
             ASSERT_TRUE(maybe_point_read_response->data.has());
             ASSERT_EQ(ql::datum_t(ql::datum_t::construct_null_t()),
-                      *maybe_point_read_response->data);
+                      maybe_point_read_response->data);
         } else {
             ADD_FAILURE() << "got wrong result back";
         }
@@ -304,7 +304,7 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
             auto stream = &streams->begin(ql::grouped::order_doesnt_matter_t())->second;
             ASSERT_TRUE(stream != NULL);
             ASSERT_EQ(1u, stream->size());
-            ASSERT_EQ(*ql::to_datum(data->get(), limits), *stream->at(0).data);
+            ASSERT_EQ(ql::to_datum(data->get(), limits), stream->at(0).data);
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }

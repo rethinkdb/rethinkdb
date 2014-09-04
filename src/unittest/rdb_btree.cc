@@ -252,7 +252,7 @@ void _check_keys_are_present(store_t *store,
 
         std::string expected_data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
         scoped_cJSON_t expected_value(cJSON_Parse(expected_data.c_str()));
-        ASSERT_EQ(*ql::to_datum(expected_value.get(), limits), *stream->front().data);
+        ASSERT_EQ(ql::to_datum(expected_value.get(), limits), stream->front().data);
     }
 }
 

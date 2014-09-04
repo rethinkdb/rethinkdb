@@ -800,14 +800,14 @@ void datum_t::rcheck_valid_replace(datum_t old_val,
                      pkey.to_std().c_str(), print().c_str()));
     if (old_val.has()) {
         datum_t old_pk = orig_key;
-        if (old_val->get_type() != R_NULL) {
-            old_pk = old_val->get_field(pkey, NOTHROW);
+        if (old_val.get_type() != R_NULL) {
+            old_pk = old_val.get_field(pkey, NOTHROW);
             r_sanity_check(old_pk.has());
         }
         if (old_pk.has()) {
-            rcheck(*old_pk == *pk, base_exc_t::GENERIC,
+            rcheck(old_pk == pk, base_exc_t::GENERIC,
                    strprintf("Primary key `%s` cannot be changed (`%s` -> `%s`).",
-                             pkey.to_std().c_str(), old_val->print().c_str(),
+                             pkey.to_std().c_str(), old_val.print().c_str(),
                              print().c_str()));
         }
     } else {

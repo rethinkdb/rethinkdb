@@ -80,7 +80,7 @@ std::vector<datum_t> rget_response_reader_t::next_batch(env_t *env,
             for (; items_index < items.size(); ++items_index) {
                 if (sindex.has()) {
                     r_sanity_check(items[items_index].sindex_key.has());
-                    if (*items[items_index].sindex_key != *sindex) {
+                    if (items[items_index].sindex_key != sindex) {
                         break; // batch is done
                     }
                 } else {
@@ -467,8 +467,8 @@ public:
         // v1.13 itself.  For that, we use the last_key value in the
         // rget_read_response_t.
         return reversed(sorting)
-            ? l.sindex_key->compare_gt(reql_version_t::LATEST, *r.sindex_key)
-            : l.sindex_key->compare_lt(reql_version_t::LATEST, *r.sindex_key);
+            ? l.sindex_key->compare_gt(reql_version_t::LATEST, r.sindex_key)
+            : l.sindex_key->compare_lt(reql_version_t::LATEST, r.sindex_key);
     }
 private:
     sorting_t sorting;
@@ -910,7 +910,7 @@ ordered_distinct_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &b
         std::vector<datum_t> v = source->next_batch(env, bs);
         if (v.size() == 0) break;
         for (auto &&el : v) {
-            if (!last_val.has() || *last_val != *el) {
+            if (!last_val.has() || last_val != el) {
                 last_val = el;
                 ret.push_back(std::move(el));
             }

@@ -95,10 +95,10 @@ private:
                     return false != (it->first == DESC);
                 }
                 // TODO(2014-08): use datum_t::cmp instead to be faster
-                if (*lval == *rval) {
+                if (lval == rval) {
                     continue;
                 }
-                return lval->compare_lt(env->reql_version(), *rval) !=
+                return lval->compare_lt(env->reql_version(), rval) !=
                     (it->first == DESC);
             }
 

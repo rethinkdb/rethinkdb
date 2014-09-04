@@ -167,8 +167,6 @@ public:
     void reset();
     datum_t *operator->() { return this; }
     const datum_t *operator->() const { return this; }
-    datum_t &operator*() { return *this; }
-    const datum_t &operator*() const { return *this; }
     operator bool() const { return has(); }
 
     void write_to_protobuf(Datum *out, use_json_t use_json) const;

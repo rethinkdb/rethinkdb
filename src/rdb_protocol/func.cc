@@ -224,7 +224,7 @@ bool func_term_t::is_deterministic() const {
 bool filter_match(datum_t predicate, datum_t value,
                   const rcheckable_t *parent) {
     if (predicate->is_ptype(pseudo::literal_string)) {
-        return *predicate->get_field(pseudo::value_key) == *value;
+        return predicate->get_field(pseudo::value_key) == value;
     } else {
         for (size_t i = 0; i < predicate.obj_size(); ++i) {
             auto pair = predicate.get_pair(i);

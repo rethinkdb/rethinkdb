@@ -73,11 +73,11 @@ bool datum_range_t::is_universe() const {
 bool datum_range_t::contains(reql_version_t reql_version,
                              ql::datum_t val) const {
     return (!left_bound.has()
-            || left_bound->compare_lt(reql_version, *val)
-            || (*left_bound == *val && left_bound_type == key_range_t::closed))
+            || left_bound->compare_lt(reql_version, val)
+            || (left_bound == val && left_bound_type == key_range_t::closed))
         && (!right_bound.has()
-            || right_bound->compare_gt(reql_version, *val)
-            || (*right_bound == *val && right_bound_type == key_range_t::closed));
+            || right_bound->compare_gt(reql_version, val)
+            || (right_bound == val && right_bound_type == key_range_t::closed));
 }
 
 key_range_t datum_range_t::to_primary_keyrange() const {

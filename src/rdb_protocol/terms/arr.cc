@@ -571,7 +571,7 @@ private:
                                        env->env->trace);
             while (datum_t el = seq->next(env->env, batchspec)) {
                 for (auto it = required_els.begin(); it != required_els.end(); ++it) {
-                    if (**it == *el) {
+                    if (*it == el) {
                         std::swap(*it, required_els.back());
                         required_els.pop_back();
                         break; // Bag semantics for contains.

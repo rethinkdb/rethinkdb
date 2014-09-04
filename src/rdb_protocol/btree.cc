@@ -255,7 +255,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             started_empty = false;
             old_val = get_data(kv_location.value_as<rdb_value_t>(),
                                buf_parent_t(&kv_location.buf));
-            guarantee(old_val->get_field(primary_key, ql::NOTHROW).has());
+            guarantee(old_val.get_field(primary_key, ql::NOTHROW).has());
         }
         guarantee(old_val.has());
         if (return_changes == return_changes_t::YES) {
@@ -268,26 +268,26 @@ batched_replace_response_t rdb_replace_and_return_superblock(
         if (return_changes == return_changes_t::YES) {
             resp.overwrite("changes", make_replacement_pair(old_val, new_val));
         }
-        if (new_val->get_type() == ql::datum_t::R_NULL) {
+        if (new_val.get_type() == ql::datum_t::R_NULL) {
             ended_empty = true;
-        } else if (new_val->get_type() == ql::datum_t::R_OBJECT) {
+        } else if (new_val.get_type() == ql::datum_t::R_OBJECT) {
             ended_empty = false;
-            new_val->rcheck_valid_replace(
+            new_val.rcheck_valid_replace(
                 old_val, ql::datum_t(), primary_key);
-            ql::datum_t pk = new_val->get_field(primary_key, ql::NOTHROW);
+            ql::datum_t pk = new_val.get_field(primary_key, ql::NOTHROW);
             rcheck_target(
                 new_val, ql::base_exc_t::GENERIC,
                 key.compare(store_key_t(pk->print_primary())) == 0,
                 (started_empty
                  ? strprintf("Primary key `%s` cannot be changed (null -> %s)",
-                             primary_key.to_std().c_str(), new_val->print().c_str())
+                             primary_key.to_std().c_str(), new_val.print().c_str())
                  : strprintf("Primary key `%s` cannot be changed (%s -> %s)",
                              primary_key.to_std().c_str(),
-                             old_val->print().c_str(), new_val->print().c_str())));
+                             old_val.print().c_str(), new_val.print().c_str())));
         } else {
             rfail_typed_target(
                 new_val, "Inserted value must be an OBJECT (got %s):\n%s",
-                new_val->get_type_name().c_str(), new_val->print().c_str());
+                new_val.get_type_name().c_str(), new_val.print().c_str());
         }
 
         // We use `conflict` below to store whether or not there was a key
@@ -302,7 +302,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
                 conflict = resp.add("skipped", ql::datum_t(1.0));
             } else {
                 conflict = resp.add("inserted", ql::datum_t(1.0));
-                r_sanity_check(new_val->get_field(primary_key, ql::NOTHROW).has());
+                r_sanity_check(new_val.get_field(primary_key, ql::NOTHROW).has());
                 ql::serialization_result_t res =
                     kv_location_set(&kv_location, *info.key, new_val,
                                     info.btree->timestamp, deletion_context,
@@ -331,13 +331,13 @@ batched_replace_response_t rdb_replace_and_return_superblock(
                 mod_info_out->deleted.first = old_val;
             } else {
                 r_sanity_check(
-                    *old_val->get_field(primary_key) == *new_val->get_field(primary_key));
-                if (*old_val == *new_val) {
+                    old_val.get_field(primary_key) == new_val.get_field(primary_key));
+                if (old_val == new_val) {
                     conflict = resp.add("unchanged",
                                          ql::datum_t(1.0));
                 } else {
                     conflict = resp.add("replaced", ql::datum_t(1.0));
-                    r_sanity_check(new_val->get_field(primary_key, ql::NOTHROW).has());
+                    r_sanity_check(new_val.get_field(primary_key, ql::NOTHROW).has());
                     ql::serialization_result_t res =
                         kv_location_set(&kv_location, *info.key, new_val,
                                         info.btree->timestamp, deletion_context,

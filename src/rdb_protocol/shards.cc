@@ -535,14 +535,14 @@ bool datum_lt(reql_version_t reql_version,
               const datum_t &val1,
               const datum_t &val2) {
     r_sanity_check(val1.has() && val2.has());
-    return val1->compare_lt(reql_version, *val2);
+    return val1->compare_lt(reql_version, val2);
 }
 
 bool datum_gt(reql_version_t reql_version,
               const datum_t &val1,
               const datum_t &val2) {
     r_sanity_check(val1.has() && val2.has());
-    return val1->compare_gt(reql_version, *val2);
+    return val1->compare_gt(reql_version, val2);
 }
 
 class optimizing_terminal_t : public skip_terminal_t<optimizer_t> {
@@ -806,7 +806,7 @@ private:
                 r_sanity_check(sindex_val.has());
                 *it = sindex_val;
             }
-            if (!last_val.has() || **it != *last_val) {
+            if (!last_val.has() || *it != last_val) {
                 std::swap(*loc, *it);
                 last_val = *loc;
                 ++loc;
