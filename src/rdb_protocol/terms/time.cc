@@ -196,7 +196,7 @@ private:
     }
     static std::string parse_tz(counted_t<val_t> v) {
         datum_t d = v->as_datum();
-        return d->as_str().to_std();
+        return d.as_str().to_std();
     }
     virtual const char *name() const { return "time"; }
 };

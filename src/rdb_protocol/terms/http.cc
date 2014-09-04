@@ -111,7 +111,7 @@ private:
 
 void check_url_params(const datum_t &params,
                       pb_rcheckable_t *val) {
-    if (params->get_type() == datum_t::R_OBJECT) {
+    if (params.get_type() == datum_t::R_OBJECT) {
         for (size_t i = 0; i < params.obj_size(); ++i) {
             auto pair = params.get_pair(i);
             if (pair.second.get_type() != datum_t::R_NUM &&
@@ -128,8 +128,8 @@ void check_url_params(const datum_t &params,
     } else {
         rfail_target(val, base_exc_t::GENERIC,
                      "Expected `params` to be an OBJECT, but found %s:\n%s",
-                     params->get_type_name().c_str(),
-                     params->print().c_str());
+                     params.get_type_name().c_str(),
+                     params.print().c_str());
     }
 }
 
@@ -177,11 +177,11 @@ void check_error_result(const http_result_t &res,
                                              opts.url.c_str(),
                                              res.error.c_str());
         if (res.header.has()) {
-            error_string.append("\nheader:\n" + res.header->print());
+            error_string.append("\nheader:\n" + res.header.print());
         }
 
         if (res.body.has()) {
-            error_string.append("\nbody:\n" + res.body->print());
+            error_string.append("\nbody:\n" + res.body.print());
         }
 
         // Any error coming back from the extproc may be due to the fragility of
@@ -257,7 +257,7 @@ http_datum_stream_t::next_page(env_t *env) {
     // the end of the stream
     more = apply_depaginate(env, res);
 
-    if (res.body->get_type() == datum_t::R_ARRAY) {
+    if (res.body.get_type() == datum_t::R_ARRAY) {
         std::vector<datum_t> res_arr;
         res_arr.reserve(res.body.arr_size());
         for (size_t i = 0; i < res.body.arr_size(); ++i) {
@@ -322,38 +322,38 @@ bool http_datum_stream_t::apply_depaginate(env_t *env, const http_result_t &res)
                                   http_method_to_str(opts.method).c_str(),
                                   opts.url.c_str(),
                                   ex.what(),
-                                  args[0]->print().c_str()),
+                                  args[0].print().c_str()),
                         ex.backtrace());
     }
 }
 
 bool http_datum_stream_t::apply_depage_url(datum_t new_url) {
     // NULL url indicates no further depagination
-    if (new_url->get_type() == datum_t::R_NULL) {
+    if (new_url.get_type() == datum_t::R_NULL) {
         return false;
-    } else if (new_url->get_type() != datum_t::R_STR) {
+    } else if (new_url.get_type() != datum_t::R_STR) {
         rfail(base_exc_t::GENERIC,
               "Expected `url` in OBJECT returned by `page` to be a "
               "STRING or NULL, but found %s.",
-              new_url->get_type_name().c_str());
+              new_url.get_type_name().c_str());
     }
-    opts.url.assign(new_url->as_str().to_std());
+    opts.url.assign(new_url.as_str().to_std());
     return true;
 }
 
 void http_datum_stream_t::apply_depage_params(datum_t new_params) {
     // Verify new params and merge with the old ones, new taking precedence
     check_url_params(new_params, this);
-    opts.url_params->merge(new_params);
+    opts.url_params.merge(new_params);
 }
 
 bool http_datum_stream_t::handle_depage_result(datum_t depage) {
-    if (depage->get_type() == datum_t::R_NULL ||
-        depage->get_type() == datum_t::R_STR) {
+    if (depage.get_type() == datum_t::R_NULL ||
+        depage.get_type() == datum_t::R_STR) {
         return apply_depage_url(depage);
-    } else if (depage->get_type() == datum_t::R_OBJECT) {
-        datum_t new_url = depage->get_field("url", NOTHROW);
-        datum_t new_params = depage->get_field("params", NOTHROW);
+    } else if (depage.get_type() == datum_t::R_OBJECT) {
+        datum_t new_url = depage.get_field("url", NOTHROW);
+        datum_t new_params = depage.get_field("params", NOTHROW);
         if (!new_url.has() && !new_params.has()) {
             rfail(base_exc_t::GENERIC,
                   "OBJECT returned by `page` must contain "
@@ -370,7 +370,7 @@ bool http_datum_stream_t::handle_depage_result(datum_t depage) {
     } else {
         rfail(base_exc_t::GENERIC,
               "Expected `page` to return an OBJECT, but found %s.",
-              depage->get_type_name().c_str());
+              depage.get_type_name().c_str());
     }
 
     return true;
@@ -470,11 +470,11 @@ void http_term_t::get_header(scope_env_t *env,
     counted_t<val_t> header = args->optarg(env, "header");
     if (header.has()) {
         datum_t datum_header = header->as_datum();
-        if (datum_header->get_type() == datum_t::R_OBJECT) {
+        if (datum_header.get_type() == datum_t::R_OBJECT) {
             for (size_t i = 0; i < datum_header.obj_size(); ++i) {
                 auto pair = datum_header.get_pair(i);
                 std::string str;
-                if (pair.second->get_type() == datum_t::R_STR) {
+                if (pair.second.get_type() == datum_t::R_STR) {
                     str = strprintf("%s: %s", pair.first.to_std().c_str(),
                                     pair.second.as_str().to_std().c_str());
                 } else if (pair.second.get_type() != datum_t::R_NULL) {
@@ -485,22 +485,22 @@ void http_term_t::get_header(scope_env_t *env,
                 verify_header_string(str, header.get());
                 header_out->push_back(str);
             }
-        } else if (datum_header->get_type() == datum_t::R_ARRAY) {
-            for (size_t i = 0; i < datum_header->arr_size(); ++i) {
-                datum_t line = datum_header->get(i);
-                if (line->get_type() != datum_t::R_STR) {
+        } else if (datum_header.get_type() == datum_t::R_ARRAY) {
+            for (size_t i = 0; i < datum_header.arr_size(); ++i) {
+                datum_t line = datum_header.get(i);
+                if (line.get_type() != datum_t::R_STR) {
                     rfail_target(header.get(), base_exc_t::GENERIC,
                         "Expected `header[%zu]` to be a STRING, but found %s.",
-                        i, line->get_type_name().c_str());
+                        i, line.get_type_name().c_str());
                 }
-                std::string str = line->as_str().to_std();
+                std::string str = line.as_str().to_std();
                 verify_header_string(str, header.get());
                 header_out->push_back(str);
             }
         } else {
             rfail_target(header.get(), base_exc_t::GENERIC,
                 "Expected `header` to be an ARRAY or OBJECT, but found %s.",
-                datum_header->get_type_name().c_str());
+                datum_header.get_type_name().c_str());
         }
     }
 }
@@ -536,16 +536,16 @@ void http_term_t::get_method(scope_env_t *env,
 std::string http_term_t::get_auth_item(const datum_t &datum,
                                        const std::string &name,
                                        const pb_rcheckable_t *auth) {
-    datum_t item = datum->get_field(datum_string_t(name), NOTHROW);
+    datum_t item = datum.get_field(datum_string_t(name), NOTHROW);
     if (!item.has()) {
         rfail_target(auth, base_exc_t::GENERIC,
                      "`auth.%s` not found in the auth object.", name.c_str());
-    } else if (item->get_type() != datum_t::R_STR) {
+    } else if (item.get_type() != datum_t::R_STR) {
         rfail_target(auth, base_exc_t::GENERIC,
                      "Expected `auth.%s` to be a STRING, but found %s.",
-                     name.c_str(), item->get_type_name().c_str());
+                     name.c_str(), item.get_type_name().c_str());
     }
-    return item->as_str().to_std();
+    return item.as_str().to_std();
 }
 
 // The `auth` optarg takes an object consisting of the following fields:
@@ -559,24 +559,24 @@ void http_term_t::get_auth(scope_env_t *env,
     counted_t<val_t> auth = args->optarg(env, "auth");
     if (auth.has()) {
         datum_t datum_auth = auth->as_datum();
-        if (datum_auth->get_type() != datum_t::R_OBJECT) {
+        if (datum_auth.get_type() != datum_t::R_OBJECT) {
             rfail_target(auth.get(), base_exc_t::GENERIC,
                          "Expected `auth` to be an OBJECT, but found %s.",
-                         datum_auth->get_type_name().c_str());
+                         datum_auth.get_type_name().c_str());
         }
 
         // Default to 'basic' if no type is specified
         std::string type;
         {
-            datum_t type_datum = datum_auth->get_field("type", NOTHROW);
+            datum_t type_datum = datum_auth.get_field("type", NOTHROW);
 
             if (type_datum.has()) {
-                if (type_datum->get_type() != datum_t::R_STR) {
+                if (type_datum.get_type() != datum_t::R_STR) {
                     rfail_target(auth.get(), base_exc_t::GENERIC,
                                  "Expected `auth.type` to be a STRING, but found %s.",
-                                 datum_auth->get_type_name().c_str());
+                                 datum_auth.get_type_name().c_str());
                 }
-                type.assign(type_datum->as_str().to_std());
+                type.assign(type_datum.as_str().to_std());
             } else {
                 type.assign("basic");
             }
@@ -600,18 +600,18 @@ std::string http_term_t::print_http_param(const datum_t &datum,
                                           const char *val_name,
                                           const char *key_name,
                                           const pb_rcheckable_t *val) {
-    if (datum->get_type() == datum_t::R_NUM) {
+    if (datum.get_type() == datum_t::R_NUM) {
         return strprintf("%" PR_RECONSTRUCTABLE_DOUBLE,
-                         datum->as_num());
-    } else if (datum->get_type() == datum_t::R_STR) {
-        return datum->as_str().to_std();
-    } else if (datum->get_type() == datum_t::R_NULL) {
+                         datum.as_num());
+    } else if (datum.get_type() == datum_t::R_STR) {
+        return datum.as_str().to_std();
+    } else if (datum.get_type() == datum_t::R_NULL) {
         return std::string();
     }
 
     rfail_target(val, base_exc_t::GENERIC,
                  "Expected `%s.%s` to be a NUMBER, STRING or NULL, but found %s.",
-                 val_name, key_name, datum->get_type_name().c_str());
+                 val_name, key_name, datum.get_type_name().c_str());
 }
 
 // The `data` optarg is used to pass in the data to be passed in the body of the
@@ -638,20 +638,20 @@ void http_term_t::get_data(
         if (method == http_method_t::PUT ||
             method == http_method_t::PATCH ||
             method == http_method_t::DELETE) {
-            if (datum_data->get_type() == datum_t::R_STR) {
-                data_out->assign(datum_data->as_str().to_std());
+            if (datum_data.get_type() == datum_t::R_STR) {
+                data_out->assign(datum_data.as_str().to_std());
             } else {
                 // Set the Content-Type to application/json - this may be overwritten
                 // later by the 'header' optarg
                 header_out->push_back("Content-Type: application/json");
-                data_out->assign(datum_data->print());
+                data_out->assign(datum_data.print());
             }
         } else if (method == http_method_t::POST) {
-            if (datum_data->get_type() == datum_t::R_STR) {
+            if (datum_data.get_type() == datum_t::R_STR) {
                 // Use the put data for this, as we assume the user does any
                 // encoding they need when they pass a string
-                data_out->assign(datum_data->as_str().to_std());
-            } else if (datum_data->get_type() == datum_t::R_OBJECT) {
+                data_out->assign(datum_data.as_str().to_std());
+            } else if (datum_data.get_type() == datum_t::R_OBJECT) {
                 for (size_t i = 0; i < datum_data.obj_size(); ++i) {
                     auto pair = datum_data.get_pair(i);
                     std::string val_str = print_http_param(pair.second,
@@ -663,7 +663,7 @@ void http_term_t::get_data(
             } else {
                 rfail_target(data.get(), base_exc_t::GENERIC,
                     "Expected `data` to be a STRING or OBJECT, but found %s.",
-                    datum_data->get_type_name().c_str());
+                    datum_data.get_type_name().c_str());
             }
         } else {
             rfail_target(this, base_exc_t::GENERIC,

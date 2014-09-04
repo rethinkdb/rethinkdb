@@ -98,7 +98,7 @@ private:
                 if (lval == rval) {
                     continue;
                 }
-                return lval->compare_lt(env->reql_version(), rval) !=
+                return lval.compare_lt(env->reql_version(), rval) !=
                     (it->first == DESC);
             }
 

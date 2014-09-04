@@ -394,13 +394,13 @@ void add_seconds_to_ptime(ptime_t *t, double raw_sec) {
 }
 
 time_t time_to_boost(datum_t d) {
-    double raw_sec = d->get_field(epoch_time_key)->as_num();
+    double raw_sec = d.get_field(epoch_time_key).as_num();
     ptime_t t(date_t(1970, 1, 1));
     add_seconds_to_ptime(&t, raw_sec);
 
-    if (datum_t tz = d->get_field(timezone_key, NOTHROW)) {
+    if (datum_t tz = d.get_field(timezone_key, NOTHROW)) {
         boost::local_time::time_zone_ptr zone(
-            new boost::local_time::posix_time_zone(sanitize::tz(tz->as_str().to_std())));
+            new boost::local_time::posix_time_zone(sanitize::tz(tz.as_str().to_std())));
         return time_t(t, zone);
     } else {
         return time_t(t, utc);
@@ -422,7 +422,7 @@ std::string time_to_iso8601(datum_t d) {
                                year));
         std::ostringstream ss;
         ss.exceptions(std::ios_base::failbit);
-        if (datum_t tz = d->get_field(timezone_key, NOTHROW)) {
+        if (datum_t tz = d.get_field(timezone_key, NOTHROW)) {
             ss.imbue(tz_format);
         } else {
             ss.imbue(no_tz_format);
@@ -436,7 +436,7 @@ std::string time_to_iso8601(datum_t d) {
 }
 
 double time_to_epoch_time(datum_t d) {
-    return d->get_field(epoch_time_key)->as_num();
+    return d.get_field(epoch_time_key).as_num();
 }
 
 datum_t time_now() {
@@ -527,8 +527,8 @@ void sanitize_time(datum_t *time) {
 }
 
 datum_t time_tz(datum_t time) {
-    r_sanity_check(time->is_ptype(time_string));
-    if (datum_t tz = time->get_field(timezone_key, NOTHROW)) {
+    r_sanity_check(time.is_ptype(time_string));
+    if (datum_t tz = time.get_field(timezone_key, NOTHROW)) {
         return tz;
     } else {
         return datum_t::null();
@@ -536,9 +536,9 @@ datum_t time_tz(datum_t time) {
 }
 
 datum_t time_in_tz(datum_t t, datum_t tz) {
-    r_sanity_check(t->is_ptype(time_string));
+    r_sanity_check(t.is_ptype(time_string));
     datum_object_builder_t t2(t);
-    std::string raw_new_tzs = tz->as_str().to_std();
+    std::string raw_new_tzs = tz.as_str().to_std();
     std::string new_tzs = sanitize::tz(raw_new_tzs);
     if (raw_new_tzs == new_tzs) {
         t2.overwrite(timezone_key, tz);
@@ -575,11 +575,11 @@ datum_t make_time(
 
 datum_t time_add(datum_t x, datum_t y) {
     datum_t time, duration;
-    if (x->is_ptype(time_string)) {
+    if (x.is_ptype(time_string)) {
         time = x;
         duration = y;
     } else {
-        r_sanity_check(y->is_ptype(time_string));
+        r_sanity_check(y.is_ptype(time_string));
         time = y;
         duration = x;
     }
@@ -587,25 +587,25 @@ datum_t time_add(datum_t x, datum_t y) {
     datum_object_builder_t res(time);
     res.overwrite(
         epoch_time_key,
-        datum_t(time->get_field(epoch_time_key)->as_num() +
-                              duration->as_num()));
+        datum_t(time.get_field(epoch_time_key).as_num() +
+                               duration.as_num()));
 
     return std::move(res).to_datum();
 }
 
 datum_t time_sub(datum_t time, datum_t time_or_duration) {
-    r_sanity_check(time->is_ptype(time_string));
+    r_sanity_check(time.is_ptype(time_string));
 
-    if (time_or_duration->is_ptype(time_string)) {
+    if (time_or_duration.is_ptype(time_string)) {
         return datum_t(sanitize_epoch_sec(
-            time->get_field(epoch_time_key)->as_num()
-            - time_or_duration->get_field(epoch_time_key)->as_num()));
+            time.get_field(epoch_time_key).as_num()
+            - time_or_duration.get_field(epoch_time_key).as_num()));
     } else {
         datum_object_builder_t res(time);
         res.overwrite(
             epoch_time_key,
-            datum_t(time->get_field(epoch_time_key)->as_num() -
-                                        time_or_duration->as_num()));
+            datum_t(time.get_field(epoch_time_key).as_num() -
+                    time_or_duration.as_num()));
         return std::move(res).to_datum();
     }
 }
@@ -626,7 +626,7 @@ double time_portion(datum_t time, time_component_t c) {
         case HOURS: return ptime.time_of_day().hours();
         case MINUTES: return ptime.time_of_day().minutes();
         case SECONDS: {
-            double frac = modf(time->get_field(epoch_time_key)->as_num(), &frac);
+            double frac = modf(time.get_field(epoch_time_key).as_num(), &frac);
             frac = round(frac * 1000) / 1000;
             return ptime.time_of_day().seconds() + frac;
         } break;
@@ -662,7 +662,7 @@ void time_to_str_key(const datum_t &d, std::string *str_out) {
     // We need to prepend "P" and append a character less than [a-zA-Z] so that
     // different pseudotypes sort correctly.
     str_out->append(std::string("P") + time_string + ":");
-    d.get_field(epoch_time_key)->num_to_str_key(str_out);
+    d.get_field(epoch_time_key).num_to_str_key(str_out);
 }
 
 } // namespace pseudo

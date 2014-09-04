@@ -162,7 +162,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
                 "value being inserted is neither an object nor an empty value");
         }
         guarantee(!err);
-        stats = stats->merge(std::move(resp).to_datum(), ql::stats_merge,
+        stats = stats.merge(std::move(resp).to_datum(), ql::stats_merge,
                             limits, &conditions);
     }
     ql::datum_object_builder_t result(std::move(stats));
@@ -176,7 +176,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
     ql::datum_t stats = ql::datum_t::empty_object();
     std::set<std::string> conditions;
     for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
-        store_key_t key((*it)->get_field(datum_string_t(bi.pkey))->print_primary());
+        store_key_t key((*it).get_field(datum_string_t(bi.pkey)).print_primary());
         ql::datum_object_builder_t resp;
         ql::datum_t old_val;
         if (data->find(key) != data->end()) {
@@ -211,7 +211,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
                 "value being inserted is neither an object nor an empty value");
         }
         guarantee(!err);
-        stats = stats->merge(std::move(resp).to_datum(), ql::stats_merge, limits, &conditions);
+        stats = stats.merge(std::move(resp).to_datum(), ql::stats_merge, limits, &conditions);
     }
     ql::datum_object_builder_t result(stats);
     result.add_warnings(conditions, limits);

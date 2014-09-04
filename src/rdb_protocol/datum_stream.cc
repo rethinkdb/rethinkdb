@@ -100,7 +100,7 @@ std::vector<datum_t> rget_response_reader_t::next_batch(env_t *env,
                               // This is safe because you can't have duplicate
                               // primary keys, so they will never exceed the
                               // array limit.
-                              sindex->trunc_print().c_str()));
+                              sindex.trunc_print().c_str()));
             }
             if (items_index >= items.size()) {
                 // If we consumed the whole batch without finding a new sindex,
@@ -216,7 +216,7 @@ bool rget_reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
                           "Truncated key:\n%s",
                           env->limits().array_size_limit(),
                           readgen->sindex_name().c_str(),
-                          items[items.size() - 1].sindex_key->trunc_print().c_str(),
+                          items[items.size() - 1].sindex_key.trunc_print().c_str(),
                           key_to_debug_str(items[items.size() - 1].key).c_str()));
 
             items.reserve(items.size() + new_items.size());
@@ -467,8 +467,8 @@ public:
         // v1.13 itself.  For that, we use the last_key value in the
         // rget_read_response_t.
         return reversed(sorting)
-            ? l.sindex_key->compare_gt(reql_version_t::LATEST, r.sindex_key)
-            : l.sindex_key->compare_lt(reql_version_t::LATEST, r.sindex_key);
+            ? l.sindex_key.compare_gt(reql_version_t::LATEST, r.sindex_key)
+            : l.sindex_key.compare_lt(reql_version_t::LATEST, r.sindex_key);
     }
 private:
     sorting_t sorting;
@@ -827,11 +827,11 @@ datum_t array_datum_stream_t::next(env_t *env, const batchspec_t &bs) {
     return ops_to_do() ? datum_stream_t::next(env, bs) : next_arr_el();
 }
 datum_t array_datum_stream_t::next_arr_el() {
-    return index < arr->arr_size() ? arr->get(index++) : datum_t();
+    return index < arr.arr_size() ? arr.get(index++) : datum_t();
 }
 
 bool array_datum_stream_t::is_exhausted() const {
-    return index >= arr->arr_size();
+    return index >= arr.arr_size();
 }
 bool array_datum_stream_t::is_cfeed() const {
     return false;

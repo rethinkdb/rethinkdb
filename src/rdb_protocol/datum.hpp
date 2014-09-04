@@ -162,11 +162,8 @@ public:
     ~datum_t();
 
     // Interface to mimic counted_t, to ease transition from counted_t<const datum_t>
-    // TODO: Phase these out.
     bool has() const;
     void reset();
-    datum_t *operator->() { return this; }
-    const datum_t *operator->() const { return this; }
     operator bool() const { return has(); }
 
     void write_to_protobuf(Datum *out, use_json_t use_json) const;

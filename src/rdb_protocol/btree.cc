@@ -276,8 +276,8 @@ batched_replace_response_t rdb_replace_and_return_superblock(
                 old_val, ql::datum_t(), primary_key);
             ql::datum_t pk = new_val.get_field(primary_key, ql::NOTHROW);
             rcheck_target(
-                new_val, ql::base_exc_t::GENERIC,
-                key.compare(store_key_t(pk->print_primary())) == 0,
+                &new_val, ql::base_exc_t::GENERIC,
+                key.compare(store_key_t(pk.print_primary())) == 0,
                 (started_empty
                  ? strprintf("Primary key `%s` cannot be changed (null -> %s)",
                              primary_key.to_std().c_str(), new_val.print().c_str())
@@ -286,7 +286,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
                              old_val.print().c_str(), new_val.print().c_str())));
         } else {
             rfail_typed_target(
-                new_val, "Inserted value must be an OBJECT (got %s):\n%s",
+                &new_val, "Inserted value must be an OBJECT (got %s):\n%s",
                 new_val.get_type_name().c_str(), new_val.print().c_str());
         }
 
@@ -309,7 +309,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
                                     mod_info_out);
                 switch (res) {
                 case ql::serialization_result_t::ARRAY_TOO_BIG:
-                    rfail_typed_target(new_val, "Array too large for disk writes"
+                    rfail_typed_target(&new_val, "Array too large for disk writes"
                                        " (limit 100,000 elements)");
                     unreachable();
                 case ql::serialization_result_t::SUCCESS:
@@ -344,7 +344,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
                                         mod_info_out);
                     switch (res) {
                     case ql::serialization_result_t::ARRAY_TOO_BIG:
-                        rfail_typed_target(new_val, "Array too large for disk writes"
+                        rfail_typed_target(&new_val, "Array too large for disk writes"
                                            " (limit 100,000 elements)");
                         unreachable();
                     case ql::serialization_result_t::SUCCESS:
@@ -409,7 +409,7 @@ void do_a_replace_from_batched_replace(
     ql::datum_t res = rdb_replace_and_return_superblock(
         info, &one_replace, &deletion_context, superblock_promise, &mod_report.info,
         trace);
-    *stats_out = (*stats_out)->merge(res, ql::stats_merge, limits, conditions);
+    *stats_out = (*stats_out).merge(res, ql::stats_merge, limits, conditions);
 
     // KSI: What is this for?  are we waiting to get in line to call on_mod_report?
     // I guess so.
@@ -512,7 +512,7 @@ void rdb_set(const store_key_t &key,
                             mod_info);
         switch (res) {
         case ql::serialization_result_t::ARRAY_TOO_BIG:
-            rfail_typed_target(data, "Array too large for disk writes"
+            rfail_typed_target(&data, "Array too large for disk writes"
                                " (limit 100,000 elements)");
             unreachable();
         case ql::serialization_result_t::SUCCESS:
@@ -933,10 +933,10 @@ THROWS_ONLY(interrupted_exc_t) {
             ql::env_t sindex_env(job.env->interruptor, sindex->func_reql_version);
             sindex_val = sindex->func->call(&sindex_env, val)->as_datum();
             if (sindex->multi == sindex_multi_bool_t::MULTI
-                && sindex_val->get_type() == ql::datum_t::R_ARRAY) {
+                && sindex_val.get_type() == ql::datum_t::R_ARRAY) {
                 boost::optional<uint64_t> tag = *ql::datum_t::extract_tag(key);
                 guarantee(tag);
-                sindex_val = sindex_val->get(*tag, ql::NOTHROW);
+                sindex_val = sindex_val.get(*tag, ql::NOTHROW);
                 guarantee(sindex_val);
             }
             if (!sindex->range.contains(sindex->func_reql_version, sindex_val)) {
@@ -1247,7 +1247,7 @@ std::vector<std::string> expand_geo_key(
     // Ignore non-geometry objects in geo indexes.
     // TODO (daniel): This needs to be changed once compound geo index
     // support gets added.
-    if (!key->is_ptype(ql::pseudo::geometry_string)) {
+    if (!key.is_ptype(ql::pseudo::geometry_string)) {
         return std::vector<std::string>();
     }
 
@@ -1296,9 +1296,9 @@ void compute_keys(const store_key_t &primary_key, ql::datum_t doc,
         index_info.mapping.compile_wire_func()->call(&sindex_env, doc)->as_datum();
 
     if (index_info.multi == sindex_multi_bool_t::MULTI
-        && index->get_type() == ql::datum_t::R_ARRAY) {
-        for (uint64_t i = 0; i < index->arr_size(); ++i) {
-            const ql::datum_t &skey = index->get(i, ql::THROW);
+        && index.get_type() == ql::datum_t::R_ARRAY) {
+        for (uint64_t i = 0; i < index.arr_size(); ++i) {
+            const ql::datum_t &skey = index.get(i, ql::THROW);
             if (index_info.geo == sindex_geo_bool_t::GEO) {
                 std::vector<std::string> geo_keys = expand_geo_key(reql_version,
                                                                    skey,
@@ -1308,9 +1308,9 @@ void compute_keys(const store_key_t &primary_key, ql::datum_t doc,
                     keys_out->push_back(store_key_t(*it));
                 }
             } else {
-                keys_out->push_back(store_key_t(skey->print_secondary(reql_version,
-                                                                      primary_key,
-                                                                      i)));
+                keys_out->push_back(store_key_t(skey.print_secondary(reql_version,
+                                                                     primary_key,
+                                                                     i)));
             }
         }
     } else {
@@ -1323,9 +1323,9 @@ void compute_keys(const store_key_t &primary_key, ql::datum_t doc,
                 keys_out->push_back(store_key_t(*it));
             }
         } else {
-            keys_out->push_back(store_key_t(index->print_secondary(reql_version,
-                                                                   primary_key,
-                                                                   boost::none)));
+            keys_out->push_back(store_key_t(index.print_secondary(reql_version,
+                                                                  primary_key,
+                                                                  boost::none)));
         }
     }
 }
