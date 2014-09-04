@@ -72,6 +72,14 @@ with driver.Metacluster() as metacluster:
                     return False
                 if any(doc["state"] != "ready" for doc in s_shard):
                     return False
+            if not s_row["ready_for_outdated_reads"]:
+                return False
+            if not s_row["ready_for_reads"]:
+                return False
+            if not s_row["ready_for_writes"]:
+                return False
+            if not s_row["ready_completely"]:
+                return False
         return True
 
     def check_tables_named(names):
