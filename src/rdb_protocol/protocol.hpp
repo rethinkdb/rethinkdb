@@ -280,6 +280,7 @@ struct read_response_t {
                            intersecting_geo_read_response_t,
                            nearest_geo_read_response_t,
                            changefeed_subscribe_response_t,
+                           changefeed_limit_subscribe_response_t,
                            changefeed_stamp_response_t,
                            changefeed_point_stamp_response_t,
                            distribution_read_response_t,
@@ -464,10 +465,17 @@ class changefeed_limit_subscribe_t {
 public:
     changefeed_limit_subscribe_t() { }
     explicit changefeed_limit_subscribe_t(
-        uuid_u _uuid, ql::changefeed::keyspec_t::limit_t _spec)
-        : uuid(std::move(_uuid)), spec(std::move(_spec)) { }
+        ql::changefeed::client_t::addr_t _addr,
+        uuid_u _uuid,
+        ql::changefeed::keyspec_t::limit_t _spec)
+        : addr(std::move(_addr)),
+          uuid(std::move(_uuid)),
+          spec(std::move(_spec)),
+          region(region_t::universe()) { }
+    ql::changefeed::client_t::addr_t addr;
     uuid_u uuid;
     ql::changefeed::keyspec_t::limit_t spec;
+    region_t region;
 };
 RDB_DECLARE_SERIALIZABLE(changefeed_limit_subscribe_t);
 

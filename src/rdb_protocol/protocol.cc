@@ -363,6 +363,10 @@ struct rdb_r_get_region_visitor : public boost::static_visitor<region_t> {
         return s.region;
     }
 
+    region_t operator()(const changefeed_limit_subscribe_t &s) const {
+        return s.region;
+    }
+
     region_t operator()(const changefeed_stamp_t &t) const {
         return t.region;
     }
@@ -415,6 +419,10 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     }
 
     bool operator()(const changefeed_subscribe_t &s) const {
+        return rangey_read(s);
+    }
+
+    bool operator()(const changefeed_limit_subscribe_t &s) const {
         return rangey_read(s);
     }
 
@@ -519,6 +527,7 @@ public:
     void operator()(const sindex_list_t &rg);
     void operator()(const sindex_status_t &rg);
     void operator()(const changefeed_subscribe_t &);
+    void operator()(const changefeed_limit_subscribe_t &);
     void operator()(const changefeed_stamp_t &);
     void operator()(const changefeed_point_stamp_t &);
 
@@ -545,6 +554,10 @@ void rdb_r_unshard_visitor_t::operator()(const changefeed_subscribe_t &) {
             out->server_uuids.insert(std::move(*it));
         }
     }
+}
+
+void rdb_r_unshard_visitor_t::operator()(const changefeed_limit_subscribe_t &) {
+    response_out->response = changefeed_limit_subscribe_response_t();
 }
 
 void rdb_r_unshard_visitor_t::operator()(const changefeed_stamp_t &) {
@@ -876,6 +889,10 @@ struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
         return s.region;
     }
 
+    region_t operator()(const changefeed_limit_subscribe_t &s) const {
+        return s.region;
+    }
+
     region_t operator()(const changefeed_stamp_t &t) const {
         return t.region;
     }
@@ -1166,7 +1183,7 @@ RDB_IMPL_SERIALIZABLE_2(sindex_status_t, sindexes, region);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_status_t);
 RDB_IMPL_SERIALIZABLE_2(changefeed_subscribe_t, addr, region);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_subscribe_t);
-RDB_IMPL_SERIALIZABLE_2(changefeed_limit_subscribe_t, uuid, spec);
+RDB_IMPL_SERIALIZABLE_4(changefeed_limit_subscribe_t, addr, uuid, spec, region);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_limit_subscribe_t);
 
 RDB_IMPL_SERIALIZABLE_2(changefeed_stamp_t, addr, region);

@@ -449,10 +449,11 @@ public:
         assert_thread();
         read_response_t read_resp;
         nif->read(
-            read_t(changefeed_limit_subscribe_t(uuid, spec),
+            read_t(changefeed_limit_subscribe_t(*addr, uuid, spec),
                    profile_bool_t::DONT_PROFILE),
             &read_resp, order_token_t::ignore, env->interruptor);
-        auto resp = boost::get<changefeed_limit_subscribe_response_t>(&read_resp);
+        auto resp = boost::get<changefeed_limit_subscribe_response_t>(
+            &read_resp.response);
         guarantee(resp != NULL);
     }
 private:
@@ -473,7 +474,7 @@ private:
             auto res = data.insert(*new_val);
             guarantee(res.second);
             auto it = res.first;
-            if (it < *active_data.crbegin()) {
+            if (it->first < (*active_data.crbegin())->first) {
                 active_data.insert(it);
                 // The new value is in the old set bounds (and thus in the set).
                 new_send = it->second;
@@ -482,7 +483,7 @@ private:
         if (active_data.size() > spec.limit) {
             // The old value wasn't in the set, but the new value is, and a
             // value has to leave the set to make room.
-            auto last = active_data.crbegin();
+            auto last = *active_data.crbegin();
             guarantee(new_send.has() && !old_send.has());
             old_send = std::move(last->second);
             active_data.erase(last);
@@ -506,7 +507,7 @@ private:
 
         if (old_send.has() || new_send.has()) {
             els.push_back(
-                datum_t(std::map {
+                datum_t(std::map<datum_string_t, datum_t> {
                     { datum_string_t("old_val"),
                       old_send.has() ? old_send : datum_t::null() },
                     { datum_string_t("new_val"),
@@ -769,16 +770,16 @@ void feed_t::del_range_sub(subscription_t *sub) THROWS_NOTHING {
 }
 
 // If this throws we might leak the increment to `num_subs`.
-void feed_t::add_limit_sub(subscription_t *sub, const uuid_u &uuid) THROWS_NOTHING {
-    add_sub_with_lock(&limit_subs_lock, [this, sub, &uuud]() {
-            map_add_sub(limit_subs, uuid, sub);
+void feed_t::add_limit_sub(subscription_t *sub, const uuid_u &sub_uuid) THROWS_NOTHING {
+    add_sub_with_lock(&limit_subs_lock, [this, sub, &sub_uuid]() {
+            map_add_sub(limit_subs, sub_uuid, sub);
         });
 }
 
 // Can't throw because it's called in a destructor.
-void feed_t::del_limit_sub(subscription_t *sub) THROWS_NOTHING {
-    del_sub_with_lock(&limit_subs_lock, [this, sub, &key]() {
-            return map_del_sub(limit_subs, key, sub);
+void feed_t::del_limit_sub(subscription_t *sub, const uuid_u &sub_uuid) THROWS_NOTHING {
+    del_sub_with_lock(&limit_subs_lock, [this, sub, &sub_uuid]() {
+            return map_del_sub(limit_subs, sub_uuid, sub);
         });
 }
 
@@ -921,11 +922,11 @@ feed_t::feed_t(client_t *_client,
       uuid(_uuid),
       manager(_manager),
       mailbox(manager, std::bind(&feed_t::mailbox_cb, this, ph::_1)),
-      range_subs(get_num_threads()),
       /* We only use comparison in the point_subs map for equality purposes, not
          ordering -- and this isn't in a secondary index function.  Thus
          reql_version_t::LATEST is appropriate. */
       point_subs(optional_datum_less_t(reql_version_t::LATEST)),
+      range_subs(get_num_threads()),
       num_subs(0),
       detached(false) {
     read_t read(changefeed_subscribe_t(mailbox.get_address()),
