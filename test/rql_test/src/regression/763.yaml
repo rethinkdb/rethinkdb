@@ -1,8 +1,6 @@
 desc: issue 763 check arg count for indexCreate in JS driver
+table_variable_name: tbl
 tests:
-    - js: r.tableCreate('foo')
-      def: tbl = r.table('foo')
-
     - js: tbl.indexCreate()
       ot: err("RqlDriverError", "Expected between 1 and 3 arguments but found 0.")
 
@@ -34,4 +32,3 @@ tests:
     - js: r.add(1)
       ot: 1
 
-    - js: r.tableDrop('foo')
