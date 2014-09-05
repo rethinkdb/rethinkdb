@@ -85,6 +85,11 @@ public:
         return failure_cond_->is_pulsed() ? done_traversing_t::YES : done_traversing_t::NO;
     }
 
+    virtual bool is_range_interesting(const btree_key_t *left_excl_or_null,
+                                      const btree_key_t *right_incl_or_null) {
+        return cb_->is_range_interesting(left_excl_or_null, right_incl_or_null);
+    }
+
     virtual profile::trace_t *get_trace() THROWS_NOTHING {
         return cb_->get_trace();
     }
@@ -144,13 +149,15 @@ void concurrent_traversal_fifo_enforcer_signal_t::wait_interruptible()
 
 bool btree_concurrent_traversal(superblock_t *superblock, const key_range_t &range,
                                 concurrent_traversal_callback_t *cb,
-                                direction_t direction) {
+                                direction_t direction,
+                                release_superblock_t release_superblock) {
     cond_t failure_cond;
     bool failure_seen;
     {
         concurrent_traversal_adapter_t adapter(cb, &failure_cond);
         failure_seen = !btree_depth_first_traversal(superblock,
-                                                    range, &adapter, direction);
+                                                    range, &adapter, direction,
+                                                    release_superblock);
     }
     // Now that adapter is destroyed, the operations that might have failed have all
     // drained.  (If we fail, we try to report it to btree_depth_first_traversal (to

@@ -67,6 +67,21 @@ class grouped_data_t;
 // A `datum_t` is basically a JSON value, with some special handling for
 // ReQL pseudo-types.
 class datum_t {
+private:
+    // Placed here so it's kept in sync with type_t. All enum values from
+    // type_t must appear in here.
+    enum class internal_type_t {
+        UNINITIALIZED,
+        R_ARRAY,
+        R_BINARY,
+        R_BOOL,
+        R_NULL,
+        R_NUM,
+        R_OBJECT,
+        R_STR,
+        BUF_R_ARRAY,
+        BUF_R_OBJECT
+    };
 public:
     // This ordering is important, because we use it to sort objects of
     // disparate type.  It should be alphabetical.
@@ -92,6 +107,12 @@ public:
     // Construct an uninitialized datum_t. This is to ease the transition from
     // counted_t<const datum_t>
     datum_t();
+
+    // Construct a datum_t from a shared buffer.
+    // type can be one of R_BINARY, R_STR, R_OBJECT or R_ARRAY. _buf_ref must point
+    // to the data buffer *without* the serialized type tag, but *with* the
+    // prefixed serialized size.
+    datum_t(type_t type, shared_buf_ref_t<char> &&buf_ref);
 
     // Strongly prefer datum_t::null().
     enum class construct_null_t { };
@@ -140,15 +161,10 @@ public:
 
     ~datum_t();
 
-    // Interface to mimic counted_t, to ease transition from counted_t<const datum_t>
-    // TODO: Phase these out.
+    // has() checks whether a datum is uninitialized. reset() makes any datum
+    // uninitialized.
     bool has() const;
     void reset();
-    datum_t *operator->() { return this; }
-    const datum_t *operator->() const { return this; }
-    datum_t &operator*() { return *this; }
-    const datum_t &operator*() const { return *this; }
-    operator bool() const { return has(); }
 
     void write_to_protobuf(Datum *out, use_json_t use_json) const;
 
@@ -270,16 +286,15 @@ public:
 
     static void check_str_validity(const datum_string_t &str);
 
+    // Used by serialization code. Returns a pointer to the buf_ref, if
+    // the datum is currently backed by one, or NULL otherwise.
+    const shared_buf_ref_t<char> *get_buf_ref() const;
+
 private:
     friend void pseudo::sanitize_time(datum_t *time);
     // Must only be used during pseudo type sanitization.
     // The key must already exist.
     void replace_field(const datum_string_t &key, datum_t val);
-
-    friend size_t datum_serialized_size(const datum_t &);
-    friend serialization_result_t datum_serialize(write_message_t *, const datum_t &);
-    const std::vector<std::pair<datum_string_t, datum_t> > &get_obj_vec() const;
-    const std::vector<datum_t> &get_arr_vec() const;
 
     static std::vector<std::pair<datum_string_t, datum_t> > to_sorted_vec(
             std::map<datum_string_t, datum_t> &&map);
@@ -326,10 +341,13 @@ private:
         explicit data_wrapper_t(std::vector<datum_t> &&array);
         explicit data_wrapper_t(
                 std::vector<std::pair<datum_string_t, datum_t> > &&object);
+        data_wrapper_t(type_t type, shared_buf_ref_t<char> &&_buf_ref);
 
         ~data_wrapper_t();
 
-        type_t type;
+        type_t get_type() const;
+        internal_type_t get_internal_type() const;
+
         union {
             bool r_bool;
             double r_num;
@@ -337,11 +355,14 @@ private:
             counted_t<countable_wrapper_t<std::vector<datum_t> > > r_array;
             counted_t<countable_wrapper_t<std::vector< //NOLINT(whitespace/operators)
                 std::pair<datum_string_t, datum_t> > > > r_object;
+            shared_buf_ref_t<char> buf_ref;
         };
     private:
         void assign_copy(const data_wrapper_t &copyee);
         void assign_move(data_wrapper_t &&movee) noexcept;
         void destruct();
+
+        internal_type_t internal_type;
     } data;
 
 public:

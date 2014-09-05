@@ -69,7 +69,7 @@ const std::string &real_table_t::get_pkey() {
 
 ql::datum_t real_table_t::read_row(ql::env_t *env,
         ql::datum_t pval, bool use_outdated) {
-    read_t read(point_read_t(store_key_t(pval->print_primary())), env->profile());
+    read_t read(point_read_t(store_key_t(pval.print_primary())), env->profile());
     read_response_t res;
     read_with_profile(env, read, &res, use_outdated);
     point_read_response_t *p_res = boost::get<point_read_response_t>(&res.response);
@@ -87,16 +87,18 @@ counted_t<ql::datum_stream_t> real_table_t::read_all(
         bool use_outdated) {
     if (sindex == get_pkey()) {
         return make_counted<ql::lazy_datum_stream_t>(
-            *this,
-            use_outdated,
-            ql::primary_readgen_t::make(env, table_name, range, sorting),
+            make_scoped<ql::rget_reader_t>(
+                *this,
+                use_outdated,
+                ql::primary_readgen_t::make(env, table_name, range, sorting)),
             bt);
     } else {
         return make_counted<ql::lazy_datum_stream_t>(
-            *this,
-            use_outdated,
-            ql::sindex_readgen_t::make(
-                env, table_name, sindex, range, sorting),
+            make_scoped<ql::rget_reader_t>(
+                *this,
+                use_outdated,
+                ql::sindex_readgen_t::make(
+                    env, table_name, sindex, range, sorting)),
             bt);
     }
 }
@@ -124,33 +126,13 @@ counted_t<ql::datum_stream_t> real_table_t::read_intersecting(
         bool use_outdated,
         const ql::datum_t &query_geometry) {
 
-    intersecting_geo_read_t geo_read(
-        query_geometry, table_name, sindex, env->get_all_optargs());
-    read_t read(geo_read, env->profile());
-    read_response_t res;
-    try {
-        if (use_outdated) {
-            namespace_access.get()->read_outdated(read, &res, env->interruptor);
-        } else {
-            namespace_access.get()->read(
-                read, &res, order_token_t::ignore, env->interruptor);
-        }
-    } catch (const cannot_perform_query_exc_t &ex) {
-        rfail_datum(ql::base_exc_t::GENERIC, "Cannot perform read: %s", ex.what());
-    }
-
-    intersecting_geo_read_response_t *g_res =
-        boost::get<intersecting_geo_read_response_t>(&res.response);
-    r_sanity_check(g_res);
-
-    ql::exc_t *error = boost::get<ql::exc_t>(&g_res->results_or_error);
-    if (error != NULL) {
-        throw *error;
-    }
-
-    auto *result = boost::get<ql::datum_t>(&g_res->results_or_error);
-    guarantee(result != NULL);
-    return make_counted<ql::array_datum_stream_t>(*result, bt);
+    return make_counted<ql::lazy_datum_stream_t>(
+        make_scoped<ql::intersecting_reader_t>(
+            *this,
+            use_outdated,
+            ql::intersecting_readgen_t::make(
+                env, table_name, sindex, query_geometry)),
+        bt);
 }
 
 counted_t<ql::datum_stream_t> real_table_t::read_nearest(
@@ -167,6 +149,7 @@ counted_t<ql::datum_stream_t> real_table_t::read_nearest(
         const ql::configured_limits_t &limits) {
 
     nearest_geo_read_t geo_read(
+        region_t::universe(),
         center, max_dist, max_results, geo_system, table_name, sindex,
         env->get_all_optargs());
     read_t read(geo_read, env->profile());
@@ -219,7 +202,7 @@ ql::datum_t real_table_t::write_batched_replace(ql::env_t *env,
     std::vector<store_key_t> store_keys;
     store_keys.reserve(keys.size());
     for (auto it = keys.begin(); it != keys.end(); it++) {
-        store_keys.push_back(store_key_t((*it)->print_primary()));
+        store_keys.push_back(store_key_t((*it).print_primary()));
     }
     batched_replace_t write(std::move(store_keys), pkey, func,
             env->get_all_optargs(), return_changes);

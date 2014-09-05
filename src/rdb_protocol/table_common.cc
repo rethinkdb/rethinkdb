@@ -33,14 +33,14 @@ ql::datum_t make_row_replacement_stats(
         bool *was_changed_out) {
     guarantee(old_row.has());
     bool started_empty;
-    if (old_row->get_type() == ql::datum_t::R_NULL) {
+    if (old_row.get_type() == ql::datum_t::R_NULL) {
         started_empty = true;
-    } else if (old_row->get_type() == ql::datum_t::R_OBJECT) {
+    } else if (old_row.get_type() == ql::datum_t::R_OBJECT) {
         started_empty = false;
 #ifndef NDEBUG
-        ql::datum_t old_row_pval = old_row->get_field(primary_key_name);
+        ql::datum_t old_row_pval = old_row.get_field(primary_key_name);
         rassert(old_row_pval.has());
-        rassert(store_key_t(old_row_pval->print_primary()) == primary_key_value);
+        rassert(store_key_t(old_row_pval.print_primary()) == primary_key_value);
 #endif
     } else {
         crash("old_row is invalid");
@@ -48,30 +48,30 @@ ql::datum_t make_row_replacement_stats(
     
     guarantee(new_row.has());
     bool ended_empty;
-    if (new_row->get_type() == ql::datum_t::R_NULL) {
+    if (new_row.get_type() == ql::datum_t::R_NULL) {
         ended_empty = true;
-    } else if (new_row->get_type() == ql::datum_t::R_OBJECT) {
+    } else if (new_row.get_type() == ql::datum_t::R_OBJECT) {
         ended_empty = false;
-        new_row->rcheck_valid_replace(
+        new_row.rcheck_valid_replace(
             old_row, ql::datum_t(), primary_key_name);
         ql::datum_t new_primary_key_value =
-            new_row->get_field(primary_key_name, ql::NOTHROW);
-        rcheck_target(new_row, ql::base_exc_t::GENERIC,
+            new_row.get_field(primary_key_name, ql::NOTHROW);
+        rcheck_target(&new_row, ql::base_exc_t::GENERIC,
             primary_key_value.compare(
-                store_key_t(new_primary_key_value->print_primary())) == 0,
+                store_key_t(new_primary_key_value.print_primary())) == 0,
             (started_empty
              ? strprintf("Primary key `%s` cannot be changed (null -> %s)",
-                         primary_key_name.to_std().c_str(), new_row->print().c_str())
+                         primary_key_name.to_std().c_str(), new_row.print().c_str())
              : strprintf("Primary key `%s` cannot be changed (%s -> %s)",
                          primary_key_name.to_std().c_str(),
-                         old_row->print().c_str(), new_row->print().c_str())));
+                         old_row.print().c_str(), new_row.print().c_str())));
     } else {
         rfail_typed_target(
-            new_row, "Inserted value must be an OBJECT (got %s):\n%s",
-            new_row->get_type_name().c_str(), new_row->print().c_str());
+            &new_row, "Inserted value must be an OBJECT (got %s):\n%s",
+            new_row.get_type_name().c_str(), new_row.print().c_str());
     }
 
-    *was_changed_out = *old_row != *new_row;
+    *was_changed_out = (old_row != new_row);
 
     ql::datum_object_builder_t resp;
     if (return_changes == return_changes_t::YES) {
@@ -128,17 +128,17 @@ ql::datum_t resolve_insert_conflict(
         ql::datum_t old_row,
         ql::datum_t insert_row,
         conflict_behavior_t conflict_behavior) {
-    if (old_row->get_type() == ql::datum_t::R_NULL) {
+    if (old_row.get_type() == ql::datum_t::R_NULL) {
         return insert_row;
     } else if (conflict_behavior == conflict_behavior_t::REPLACE) {
         return insert_row;
     } else if (conflict_behavior == conflict_behavior_t::UPDATE) {
-        return old_row->merge(insert_row);
+        return old_row.merge(insert_row);
     } else {
-        rfail_target(old_row, ql::base_exc_t::GENERIC,
+        rfail_target(&old_row, ql::base_exc_t::GENERIC,
                      "Duplicate primary key `%s`:\n%s\n%s",
-                     primary_key.c_str(), old_row->print().c_str(),
-                     insert_row->print().c_str());
+                     primary_key.c_str(), old_row.print().c_str(),
+                     insert_row.print().c_str());
     }
 }
 

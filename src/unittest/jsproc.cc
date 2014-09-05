@@ -71,16 +71,16 @@ SPAWNER_TEST(JSProc, LiteralNumber) {
     ql::datum_t result;
     run_datum_test("9467923", &result);
     ASSERT_TRUE(result.has());
-    ASSERT_TRUE(result->get_type() == ql::datum_t::R_NUM);
-    ASSERT_EQ(result->as_int(), 9467923);
+    ASSERT_TRUE(result.get_type() == ql::datum_t::R_NUM);
+    ASSERT_EQ(result.as_int(), 9467923);
 }
 
 SPAWNER_TEST(JSProc, LiteralString) {
     ql::datum_t result;
     run_datum_test("\"string data\"", &result);
     ASSERT_TRUE(result.has());
-    ASSERT_TRUE(result->get_type() == ql::datum_t::R_STR);
-    ASSERT_EQ(result->as_str(), "string data");
+    ASSERT_TRUE(result.get_type() == ql::datum_t::R_STR);
+    ASSERT_EQ(result.as_str(), "string data");
 }
 
 SPAWNER_TEST(JSProc, EvalAndCall) {
@@ -108,12 +108,11 @@ SPAWNER_TEST(JSProc, EvalAndCall) {
     ASSERT_TRUE(js_runner.connected());
 
     // Check results
-    ql::datum_t *res_datum =
-        boost::get<ql::datum_t>(&result);
+    ql::datum_t *res_datum = boost::get<ql::datum_t>(&result);
     ASSERT_TRUE(res_datum != NULL);
     ASSERT_TRUE(res_datum->has());
-    ASSERT_TRUE((*res_datum)->get_type() == ql::datum_t::R_NUM);
-    ASSERT_EQ((*res_datum)->as_int(), 10337);
+    ASSERT_TRUE(res_datum->get_type() == ql::datum_t::R_NUM);
+    ASSERT_EQ(res_datum->as_int(), 10337);
 }
 
 SPAWNER_TEST(JSProc, BrokenFunction) {

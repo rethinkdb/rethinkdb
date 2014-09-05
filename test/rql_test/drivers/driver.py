@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import collections, os, re, sys
+import atexit, collections, os, re, sys
 from datetime import datetime, tzinfo, timedelta
 
 try:
@@ -61,8 +61,9 @@ sys.path = stashedPath
 
 # JSPORT = int(sys.argv[1])
 CPPPORT = int(sys.argv[2])
-CLUSTER_PORT = int(sys.argv[3])
-BUILD = sys.argv[4]
+DB_AND_TABLE_NAME = sys.argv[3]
+CLUSTER_PORT = int(sys.argv[4])
+BUILD = sys.argv[5]
 
 # -- utilities --
 
@@ -344,7 +345,8 @@ class PyTestDriver:
 
 driver = PyTestDriver()
 
-# Emitted test code will consist of calls to this function
+# Emitted test code will consist of calls to these functions
+
 def test(query, expected, name, runopts=None, testopts=None):
     if runopts is None:
         runopts = {}
@@ -361,15 +363,38 @@ def test(query, expected, name, runopts=None, testopts=None):
         expected = None
     driver.run(query, expected, name, runopts, testopts)
 
-# Emitted test code can call this function to define variables
+# Generated code must call either `setup_table()` or `check_no_table_specified()`
+def setup_table(table_variable_name, table_name):
+    def _teardown_table():
+        if DB_AND_TABLE_NAME == "no_table_specified":
+            res = r.db("test").table_drop(table_name).run(driver.cpp_conn)
+            assert res == {"dropped": 1}
+        else:
+            db, table = DB_AND_TABLE_NAME.split(".")
+            res = r.db(db).table(table).delete().run(driver.cpp_conn)
+            assert res["errors"] == 0
+            res = r.db(db).table(table).index_list().for_each(
+                r.db(db).table(table).index_drop(r.row)).run(driver.cpp_conn)
+            assert "errors" not in res or res["errors"] == 0
+    atexit.register(_teardown_table)
+    if DB_AND_TABLE_NAME == "no_table_specified":
+        res = r.db("test").table_create(table_name).run(driver.cpp_conn)
+        assert res == {"created": 1}
+        globals()[table_variable_name] = r.db("test").table(table_name)
+    else:
+        db, table = DB_AND_TABLE_NAME.split(".")
+        globals()[table_variable_name] = r.db(db).table(table)
+
+def check_no_table_specified():
+    if DB_AND_TABLE_NAME != "no_table_specified":
+        raise ValueError("This test isn't meant to be run against a specific table")
+
 def define(expr):
     driver.define(expr)
 
-# Emitted test code can call this function to set bag equality on a list
 def bag(lst):
     return Bag(lst)
 
-# Emitted test code can call this function to indicate expected error output
 def err(err_type, err_msg=None, frames=None):
     return Err(err_type, err_msg, frames)
 

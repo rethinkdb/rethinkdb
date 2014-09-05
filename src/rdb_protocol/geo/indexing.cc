@@ -81,8 +81,8 @@ std::vector<std::string> compute_index_grid_keys(
         const ql::datum_t &key, int goal_cells) {
     rassert(key.has());
 
-    if (!key->is_ptype(ql::pseudo::geometry_string)) {
-        throw geo_exception_t("Expected geometry but found " + key->get_type_name() + ".");
+    if (!key.is_ptype(ql::pseudo::geometry_string)) {
+        throw geo_exception_t("Expected geometry but found " + key.get_type_name() + ".");
     }
     if (goal_cells <= 0) {
         throw geo_exception_t("goal_cells must be positive (and should be >= 4).");
@@ -102,12 +102,13 @@ std::vector<std::string> compute_index_grid_keys(
     return result;
 }
 
-geo_index_traversal_helper_t::geo_index_traversal_helper_t()
-    : abort_(false), is_initialized_(false) { }
+geo_index_traversal_helper_t::geo_index_traversal_helper_t(const signal_t *interruptor)
+    : is_initialized_(false), interruptor_(interruptor) { }
 
 geo_index_traversal_helper_t::geo_index_traversal_helper_t(
-        const std::vector<std::string> &query_grid_keys)
-    : abort_(false), is_initialized_(false) {
+        const std::vector<std::string> &query_grid_keys,
+        const signal_t *interruptor)
+    : is_initialized_(false), interruptor_(interruptor) {
     init_query(query_grid_keys);
 }
 
@@ -122,75 +123,44 @@ void geo_index_traversal_helper_t::init_query(
     is_initialized_ = true;
 }
 
-void geo_index_traversal_helper_t::process_a_leaf(buf_lock_t *leaf_node_buf,
-        const btree_key_t *left_exclusive_or_null,
-        const btree_key_t *right_inclusive_or_null,
-        signal_t *interruptor,
-        int *population_change_out) THROWS_ONLY(interrupted_exc_t) {
+done_traversing_t geo_index_traversal_helper_t::handle_pair(
+        scoped_key_value_t &&keyvalue,
+        concurrent_traversal_fifo_enforcer_signal_t waiter)
+        THROWS_ONLY(interrupted_exc_t) {
     guarantee(is_initialized_);
 
-    *population_change_out = 0;
-
-    if (interruptor->is_pulsed()) {
+    if (interruptor_->is_pulsed()) {
         throw interrupted_exc_t();
     }
 
-    if (!any_query_cell_intersects(left_exclusive_or_null, right_inclusive_or_null)) {
-        return;
-    }
-
-    buf_read_t read(leaf_node_buf);
-    const leaf_node_t *node = static_cast<const leaf_node_t *>(read.get_data_read());
-
-    for (auto it = leaf::begin(*node); it != leaf::end(*node); ++it) {
-        const btree_key_t *key = (*it).first;
-        if (abort_ || !key) {
-            break;
-        }
-
-        const S2CellId key_cell = btree_key_to_s2cellid(key);
-        if (any_query_cell_intersects(key_cell.range_min(), key_cell.range_max())) {
-            on_candidate(key, (*it).second, buf_parent_t(leaf_node_buf), interruptor);
-        }
+    const S2CellId key_cell = btree_key_to_s2cellid(keyvalue.key());
+    if (any_query_cell_intersects(key_cell.range_min(), key_cell.range_max())) {
+        return on_candidate(std::move(keyvalue), waiter);
+    } else {
+        return done_traversing_t::NO;
     }
 }
 
-void geo_index_traversal_helper_t::filter_interesting_children(
-        UNUSED buf_parent_t parent,
-        ranged_block_ids_t *ids_source,
-        interesting_children_callback_t *cb) {
+bool geo_index_traversal_helper_t::is_range_interesting(
+        const btree_key_t *left_excl_or_null,
+        const btree_key_t *right_incl_or_null) {
     guarantee(is_initialized_);
-
-    for (int i = 0, e = ids_source->num_block_ids(); i < e && !abort_; ++i) {
-        block_id_t block_id;
-        const btree_key_t *left, *right;
-        ids_source->get_block_id_and_bounding_interval(i, &block_id, &left, &right);
-
-        if (any_query_cell_intersects(left, right)) {
-            cb->receive_interesting_child(i);
-        }
-    }
-
-    cb->no_more_interesting_children();
-}
-
-void geo_index_traversal_helper_t::abort_traversal() {
-    abort_ = true;
+    // We ignore the fact that the left key is exclusive and not inclusive.
+    // In rare cases this costs us a little bit of efficiency because we consider
+    // one extra key, but it saves us some complexity.
+    return any_query_cell_intersects(left_excl_or_null, right_incl_or_null);
 }
 
 bool geo_index_traversal_helper_t::any_query_cell_intersects(
-        const btree_key_t *left_excl, const btree_key_t *right_incl) {
-    // We ignore the fact that left_excl is exclusive and not inclusive.
-    // In rare cases this costs us a little bit of efficiency, but saves us
-    // some complexity.
+        const btree_key_t *left_incl_or_null, const btree_key_t *right_incl_or_null) {
     S2CellId left_cell =
-        left_excl == NULL
+        left_incl_or_null == NULL
         ? S2CellId::FromFacePosLevel(0, 0, 0) // The smallest valid cell id
-        : btree_key_to_s2cellid(left_excl);
+        : btree_key_to_s2cellid(left_incl_or_null);
     S2CellId right_cell =
-        right_incl == NULL
+        right_incl_or_null == NULL
         ? S2CellId::FromFacePosLevel(5, 0, 0) // The largest valid cell id
-        : btree_key_to_s2cellid(right_incl);
+        : btree_key_to_s2cellid(right_incl_or_null);
 
     // Determine a S2CellId range that is a superset of what's intersecting
     // with anything stored in [left_cell, right_cell].

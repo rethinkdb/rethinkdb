@@ -29,7 +29,7 @@ public:
         on_thread_t thread_switcher(home_thread());
         keys_out->clear();
         for (auto it = data.begin(); it != data.end(); ++it) {
-            ql::datum_t key = it->second->get_field("id", ql::NOTHROW);
+            ql::datum_t key = it->second.get_field("id", ql::NOTHROW);
             guarantee(key.has());
             keys_out->push_back(key);
         }
@@ -43,7 +43,7 @@ public:
             UNUSED std::string *error_out) {
         random_delay(interruptor);
         on_thread_t thread_switcher(home_thread());
-        auto it = data.find(primary_key->print_primary());
+        auto it = data.find(primary_key.print_primary());
         if (it != data.end()) {
             *row_out = it->second;
         } else {
@@ -60,9 +60,9 @@ public:
         random_delay(interruptor);
         on_thread_t thread_switcher(home_thread());
         if (new_value.has()) {
-            data[primary_key->print_primary()] = new_value;
+            data[primary_key.print_primary()] = new_value;
         } else {
-            data.erase(primary_key->print_primary());
+            data.erase(primary_key.print_primary());
         }
         return true;
     }

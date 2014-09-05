@@ -303,7 +303,7 @@ public:
         nif->read(
             read_t(
                 changefeed_point_stamp_t(
-                    *addr, store_key_t(key->print_primary())),
+                    *addr, store_key_t(key.print_primary())),
                 profile_bool_t::DONT_PROFILE),
             &read_resp,
             order_token_t::ignore,
@@ -423,7 +423,7 @@ public:
                       d, default_limits));
         auto val = change.new_val.has() ? change.new_val : change.old_val;
         r_sanity_check(val.has());
-        auto pkey_val = val->get_field(datum_string_t(feed->pkey), NOTHROW);
+        auto pkey_val = val.get_field(datum_string_t(feed->pkey), NOTHROW);
         r_sanity_check(pkey_val.has());
         feed->on_point_sub(
             pkey_val,

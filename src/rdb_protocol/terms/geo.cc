@@ -13,6 +13,7 @@
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/pseudo_geometry.hpp"
 #include "rdb_protocol/term.hpp"
+#include "rdb_protocol/terms/obj_or_seq.hpp"
 #include "rdb_protocol/terms/terms.hpp"
 
 using geo::S2Point;
@@ -34,6 +35,24 @@ private:
             scope_env_t *env, args_t *args, eval_flags_t flags) const {
         try {
             return eval_geo(env, args, flags);
+        } catch (const geo_exception_t &e) {
+            rfail(base_exc_t::GENERIC, "%s", e.what());
+        }
+    }
+};
+
+class geo_obj_or_seq_op_term_t : public obj_or_seq_op_term_t {
+public:
+    geo_obj_or_seq_op_term_t(compile_env_t *env, protob_t<const Term> term,
+                             poly_type_t _poly_type, argspec_t argspec)
+        : obj_or_seq_op_term_t(env, term, _poly_type, argspec) { }
+private:
+    virtual counted_t<val_t> obj_eval_geo(
+            scope_env_t *env, args_t *args, counted_t<val_t> v0) const = 0;
+    counted_t<val_t> obj_eval(
+            scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
+        try {
+            return obj_eval_geo(env, args, v0);
         } catch (const geo_exception_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
         }
@@ -101,17 +120,17 @@ private:
 // Accepts either a geometry object of type Point, or an array with two coordinates.
 // We often want to support both.
 lat_lon_point_t parse_point_argument(const datum_t &point_datum) {
-    if (point_datum->is_ptype(pseudo::geometry_string)) {
+    if (point_datum.is_ptype(pseudo::geometry_string)) {
         // The argument is a point (should be at least, if not this will throw)
         return extract_lat_lon_point(point_datum);
     } else {
         // The argument must be a coordinate pair
-        rcheck_target(&point_datum, base_exc_t::GENERIC, point_datum->arr_size() == 2,
+        rcheck_target(&point_datum, base_exc_t::GENERIC, point_datum.arr_size() == 2,
             strprintf("Expected point coordinate pair.  "
                       "Got %zu element array instead of a 2 element one.",
-                      point_datum->arr_size()));
-        double lat = point_datum->get(0)->as_num();
-        double lon = point_datum->get(1)->as_num();
+                      point_datum.arr_size()));
+        double lat = point_datum.get(0).as_num();
+        double lon = point_datum.get(1).as_num();
         return lat_lon_point_t(lat, lon);
     }
 }
@@ -161,39 +180,37 @@ private:
     virtual const char *name() const { return "polygon"; }
 };
 
-class intersects_term_t : public geo_term_t {
+class intersects_term_t : public geo_obj_or_seq_op_term_t {
 public:
     intersects_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : geo_term_t(env, term, argspec_t(2)) { }
+        : geo_obj_or_seq_op_term_t(env, term, poly_type_t::FILTER, argspec_t(2)) { }
 private:
-    counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> g1 = args->arg(env, 0);
-        counted_t<val_t> g2 = args->arg(env, 1);
+    counted_t<val_t> obj_eval_geo(
+            scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
+        counted_t<val_t> other = args->arg(env, 1);
 
-        bool result = geo_does_intersect(g1->as_ptype(pseudo::geometry_string),
-                                         g2->as_ptype(pseudo::geometry_string));
+        bool result = geo_does_intersect(v0->as_ptype(pseudo::geometry_string),
+                                         other->as_ptype(pseudo::geometry_string));
 
-        return new_val(
-            datum_t(datum_t::construct_boolean_t(), result));
+        return new_val_bool(result);
     }
     virtual const char *name() const { return "intersects"; }
 };
 
-class includes_term_t : public geo_term_t {
+class includes_term_t : public geo_obj_or_seq_op_term_t {
 public:
     includes_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : geo_term_t(env, term, argspec_t(2)) { }
+        : geo_obj_or_seq_op_term_t(env, term, poly_type_t::FILTER, argspec_t(2)) { }
 private:
-    counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> polygon = args->arg(env, 0);
+    counted_t<val_t> obj_eval_geo(
+            scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
         counted_t<val_t> g = args->arg(env, 1);
 
         scoped_ptr_t<S2Polygon> s2polygon =
-            to_s2polygon(polygon->as_ptype(pseudo::geometry_string));
+            to_s2polygon(v0->as_ptype(pseudo::geometry_string));
         bool result = geo_does_include(*s2polygon, g->as_ptype(pseudo::geometry_string));
 
-        return new_val(
-            datum_t(datum_t::construct_boolean_t(), result));
+        return new_val_bool(result);
     }
     virtual const char *name() const { return "includes"; }
 };
@@ -201,11 +218,11 @@ private:
 ellipsoid_spec_t pick_reference_ellipsoid(scope_env_t *env, args_t *args) {
     counted_t<val_t> geo_system_arg = args->optarg(env, "geo_system");
     if (geo_system_arg.has()) {
-        if (geo_system_arg->as_datum()->get_type() == datum_t::R_OBJECT) {
+        if (geo_system_arg->as_datum().get_type() == datum_t::R_OBJECT) {
             // We expect a reference ellipsoid with parameters 'a' and 'f'.
             // (equator radius and the flattening)
-            double a = geo_system_arg->as_datum()->get_field("a")->as_num();
-            double f = geo_system_arg->as_datum()->get_field("f")->as_num();
+            double a = geo_system_arg->as_datum().get_field("a").as_num();
+            double f = geo_system_arg->as_datum().get_field("f").as_num();
             rcheck_target(geo_system_arg.get(), base_exc_t::GENERIC,
                           a > 0.0, "The equator radius `a` must be positive.");
             rcheck_target(geo_system_arg.get(), base_exc_t::GENERIC,
@@ -255,7 +272,7 @@ private:
         scoped_ptr_t<S2Point> p;
         datum_t g;
         const std::string g1_type =
-            g1_arg->as_ptype(pseudo::geometry_string)->get_field("type")->as_str().to_std();
+            g1_arg->as_ptype(pseudo::geometry_string).get_field("type").as_str().to_std();
         if (g1_type == "Point") {
             p = to_s2point(g1_arg->as_ptype(pseudo::geometry_string));
             g = g2_arg->as_ptype(pseudo::geometry_string);

@@ -1,11 +1,9 @@
 desc: Tests key sorting of all usable types in secondary indexes
+table_variable_name: tbl
 tests:
 
 
     # Test key sorting
-    - cd: r.db('test').table_create('regression_2774')
-      def: tbl = r.table('regression_2774')
-
     - def:
          py: binary_a = r.binary(b'')
          rb: binary_a = r.binary('')
@@ -83,5 +81,3 @@ tests:
       py: tbl.order_by(index='idx').map(r.row['id']).coerce_to('array')
       ot: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27]
 
-    - cd: r.db('test').table_drop('regression_2774')
-      ot: ({'dropped':1})

@@ -85,15 +85,15 @@ bool convert_auth_key_from_datum(
         ql::datum_t datum,
         auth_key_t *value_out,
         std::string *error_out) {
-    if (datum->get_type() == ql::datum_t::R_NULL) {
+    if (datum.get_type() == ql::datum_t::R_NULL) {
         *value_out = auth_key_t();
         return true;
-    } else if (datum->get_type() == ql::datum_t::R_STR) {
-        if (!value_out->assign_value(datum->as_str().to_std())) {
-            if (datum->as_str().size() > static_cast<size_t>(auth_key_t::max_length)) {
+    } else if (datum.get_type() == ql::datum_t::R_STR) {
+        if (!value_out->assign_value(datum.as_str().to_std())) {
+            if (datum.as_str().size() > static_cast<size_t>(auth_key_t::max_length)) {
                 *error_out = strprintf("The auth key should be at most %zu bytes long, "
                     "but your given key is %zu bytes.",
-                    static_cast<size_t>(auth_key_t::max_length), datum->as_str().size());
+                    static_cast<size_t>(auth_key_t::max_length), datum.as_str().size());
             } else {
                 /* Currently this can't happen, because length is the only reason to
                 invalidate an auth key. This is here for future-proofing. */
@@ -111,7 +111,7 @@ bool convert_auth_key_from_datum(
             "Setting the auth key to {hidden: true} is not allowed.";
         return false;
     } else {
-        *error_out = "Expected a string or null; got " + datum->print();
+        *error_out = "Expected a string or null; got " + datum.print();
         return false;
     }
 }

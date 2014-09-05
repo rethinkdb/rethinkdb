@@ -58,8 +58,8 @@ bool rdb_query_server_t::run_query(const ql::protob_t<Query> &query,
 
     ql::datum_t noreply = static_optarg("noreply", query);
     bool response_needed = !(noreply.has() &&
-         noreply->get_type() == ql::datum_t::type_t::R_BOOL &&
-         noreply->as_bool());
+         noreply.get_type() == ql::datum_t::type_t::R_BOOL &&
+         noreply.as_bool());
     try {
         scoped_ops_running_stat_t stat(&rdb_ctx->ql_ops_running);
         guarantee(rdb_ctx->cluster_interface);
