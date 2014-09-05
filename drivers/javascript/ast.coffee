@@ -270,6 +270,7 @@ class RDBVal extends TermBase
     intersects: (args...) -> new Intersects {}, @, args...
     includes: (args...) -> new Includes {}, @, args...
     fill: (args...) -> new Fill {}, @, args...
+    polygonSub: (args...) -> new PolygonSub {}, @, args...
 
     # Database operations
 
@@ -1124,6 +1125,10 @@ class GetNearest extends RDBOp
 class Fill extends RDBOp
     tt: protoTermType.FILL
     mt: 'fill'
+
+class PolygonSub extends RDBOp
+    tt: protoTermType.POLYGON_SUB
+    mt: 'polygonSub'
 
 class UUID extends RDBOp
     tt: protoTermType.UUID

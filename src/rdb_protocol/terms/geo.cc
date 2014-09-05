@@ -425,6 +425,53 @@ private:
     virtual const char *name() const { return "get_nearest"; }
 };
 
+class polygon_sub_term_t : public geo_term_t {
+public:
+    polygon_sub_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : geo_term_t(env, term, argspec_t(2)) { }
+private:
+    counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
+        const datum_t lhs = args->arg(env, 0)->as_ptype(pseudo::geometry_string);
+        const datum_t rhs = args->arg(env, 1)->as_ptype(pseudo::geometry_string);
+
+        rcheck_target(&rhs, base_exc_t::GENERIC,
+                      rhs.get_field("coordinates").arr_size() <= 1,
+                      "The second argument to `polygon_sub` must be a Polygon with "
+                      "only an outer shell.  This one has holes.");
+        rcheck_target(&lhs, base_exc_t::GENERIC,
+                      lhs.get_field("coordinates").arr_size() >= 1,
+                      "The first argument to `polygon_sub` is an empty polygon.  "
+                      "It must at least have an outer shell.");
+        {
+            scoped_ptr_t<S2Polygon> lhs_poly = to_s2polygon(lhs);
+            if (!geo_does_include(*lhs_poly, rhs)) {
+                throw geo_exception_t("The second argument to `polygon_sub` is not "
+                                      "contained in the first one.");
+            }
+        }
+
+        // Construct a polygon from lhs with rhs cut out
+        datum_object_builder_t result;
+        bool dup;
+        dup = result.add(datum_t::reql_type_string, datum_t(pseudo::geometry_string));
+        r_sanity_check(!dup);
+        dup = result.add("type", datum_t("Polygon"));
+        r_sanity_check(!dup);
+
+        datum_array_builder_t coordinates_builder(lhs.get_field("coordinates"),
+                                                  env->env->limits());
+        coordinates_builder.add(rhs.get_field("coordinates").get(0));
+        dup = result.add("coordinates", std::move(coordinates_builder).to_datum());
+        r_sanity_check(!dup);
+        datum_t result_datum = std::move(result).to_datum();
+        validate_geojson(result_datum);
+
+        return new_val(result_datum);
+    }
+    virtual const char *name() const { return "polygon_sub"; }
+};
+
+
 counted_t<term_t> make_geojson_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<geojson_term_t>(env, term);
 }
@@ -460,6 +507,9 @@ counted_t<term_t> make_fill_term(compile_env_t *env, const protob_t<const Term> 
 }
 counted_t<term_t> make_get_nearest_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<get_nearest_term_t>(env, term);
+}
+counted_t<term_t> make_polygon_sub_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<polygon_sub_term_t>(env, term);
 }
 
 } // namespace ql
