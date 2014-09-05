@@ -149,8 +149,8 @@ public:
     uint64_t cache_size;
     microtime_t time_started;
     pid_t pid;
-    int cluster_port, reql_port;
-    boost::optional<int> http_admin_port;
+    uint16_t cluster_port, reql_port;
+    boost::optional<uint16_t> http_admin_port;
 
     get_stats_mailbox_address_t get_stats_mailbox_address;
     outdated_index_issue_server_t::request_address_t get_outdated_indexes_mailbox;
