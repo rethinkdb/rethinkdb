@@ -161,7 +161,7 @@ public:
 
     ~datum_t();
 
-    // has() checks whether a datum is uninitialized. reset() make any datum
+    // has() checks whether a datum is uninitialized. reset() makes any datum
     // uninitialized.
     bool has() const;
     void reset();
