@@ -108,8 +108,8 @@ argvec_t arg_terms_t::start_eval(scope_env_t *env, eval_flags_t flags) const {
         if ((*it)->get_src()->type() == Term::ARGS) {
             counted_t<val_t> v = (*it)->eval(env, new_flags);
             datum_t d = v->as_datum();
-            for (size_t i = 0; i < d->arr_size(); ++i) {
-                args.push_back(make_counted<faux_term_t>(src, d->get(i)));
+            for (size_t i = 0; i < d.arr_size(); ++i) {
+                args.push_back(make_counted<faux_term_t>(src, d.get(i)));
             }
         } else {
             args.push_back(*it);

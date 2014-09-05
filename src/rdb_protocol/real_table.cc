@@ -69,7 +69,7 @@ const std::string &real_table_t::get_pkey() {
 
 ql::datum_t real_table_t::read_row(ql::env_t *env,
         ql::datum_t pval, bool use_outdated) {
-    read_t read(point_read_t(store_key_t(pval->print_primary())), env->profile());
+    read_t read(point_read_t(store_key_t(pval.print_primary())), env->profile());
     read_response_t res;
     read_with_profile(env, read, &res, use_outdated);
     point_read_response_t *p_res = boost::get<point_read_response_t>(&res.response);
@@ -202,7 +202,7 @@ ql::datum_t real_table_t::write_batched_replace(ql::env_t *env,
     std::vector<store_key_t> store_keys;
     store_keys.reserve(keys.size());
     for (auto it = keys.begin(); it != keys.end(); it++) {
-        store_keys.push_back(store_key_t((*it)->print_primary()));
+        store_keys.push_back(store_key_t((*it).print_primary()));
     }
     batched_replace_t write(std::move(store_keys), pkey, func,
             env->get_all_optargs(), return_changes);

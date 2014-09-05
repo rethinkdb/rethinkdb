@@ -240,7 +240,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             // Otherwise pass the entry with this key to the function.
             old_val = get_data(kv_location.value_as<rdb_value_t>(),
                                buf_parent_t(&kv_location.buf));
-            guarantee(old_val->get_field(primary_key, ql::NOTHROW).has());
+            guarantee(old_val.get_field(primary_key, ql::NOTHROW).has());
         }
         guarantee(old_val.has());
 
@@ -260,18 +260,18 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             }
 
             /* Now that the change has passed validation, write it to disk */
-            if (new_val->get_type() == ql::datum_t::R_NULL) {
+            if (new_val.get_type() == ql::datum_t::R_NULL) {
                 kv_location_delete(&kv_location, *info.key, info.btree->timestamp,
                                    deletion_context, mod_info_out);
             } else {
-                r_sanity_check(new_val->get_field(primary_key, ql::NOTHROW).has());
+                r_sanity_check(new_val.get_field(primary_key, ql::NOTHROW).has());
                 ql::serialization_result_t res =
                     kv_location_set(&kv_location, *info.key, new_val,
                                     info.btree->timestamp, deletion_context,
                                     mod_info_out);
                 switch (res) {
                     case ql::serialization_result_t::ARRAY_TOO_BIG:
-                        rfail_typed_target(new_val, "Array too large for disk writes"
+                        rfail_typed_target(&new_val, "Array too large for disk writes"
                                            " (limit 100,000 elements)");
                         unreachable();
                     case ql::serialization_result_t::SUCCESS:
@@ -282,13 +282,13 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             }
 
             /* Report the changes for sindex and change-feed purposes */
-            if (old_val->get_type() != ql::datum_t::R_NULL) {
+            if (old_val.get_type() != ql::datum_t::R_NULL) {
                 guarantee(!mod_info_out->deleted.second.empty());
                 mod_info_out->deleted.first = old_val;
             } else {
                 guarantee(mod_info_out->deleted.second.empty());
             }
-            if (new_val->get_type() != ql::datum_t::R_NULL) {
+            if (new_val.get_type() != ql::datum_t::R_NULL) {
                 guarantee(!mod_info_out->added.second.empty());
                 mod_info_out->added.first = new_val;
             } else {
@@ -348,7 +348,7 @@ void do_a_replace_from_batched_replace(
     ql::datum_t res = rdb_replace_and_return_superblock(
         info, &one_replace, &deletion_context, superblock_promise, &mod_report.info,
         trace);
-    *stats_out = (*stats_out)->merge(res, ql::stats_merge, limits, conditions);
+    *stats_out = (*stats_out).merge(res, ql::stats_merge, limits, conditions);
 
     // KSI: What is this for?  are we waiting to get in line to call on_mod_report?
     // I guess so.
@@ -451,7 +451,7 @@ void rdb_set(const store_key_t &key,
                             mod_info);
         switch (res) {
         case ql::serialization_result_t::ARRAY_TOO_BIG:
-            rfail_typed_target(data, "Array too large for disk writes"
+            rfail_typed_target(&data, "Array too large for disk writes"
                                " (limit 100,000 elements)");
             unreachable();
         case ql::serialization_result_t::SUCCESS:
@@ -872,11 +872,11 @@ THROWS_ONLY(interrupted_exc_t) {
             ql::env_t sindex_env(job.env->interruptor, sindex->func_reql_version);
             sindex_val = sindex->func->call(&sindex_env, val)->as_datum();
             if (sindex->multi == sindex_multi_bool_t::MULTI
-                && sindex_val->get_type() == ql::datum_t::R_ARRAY) {
+                && sindex_val.get_type() == ql::datum_t::R_ARRAY) {
                 boost::optional<uint64_t> tag = *ql::datum_t::extract_tag(key);
                 guarantee(tag);
-                sindex_val = sindex_val->get(*tag, ql::NOTHROW);
-                guarantee(sindex_val);
+                sindex_val = sindex_val.get(*tag, ql::NOTHROW);
+                guarantee(sindex_val.has());
             }
             if (!sindex->range.contains(sindex->func_reql_version, sindex_val)) {
                 return done_traversing_t::NO;
@@ -1186,7 +1186,7 @@ std::vector<std::string> expand_geo_key(
     // Ignore non-geometry objects in geo indexes.
     // TODO (daniel): This needs to be changed once compound geo index
     // support gets added.
-    if (!key->is_ptype(ql::pseudo::geometry_string)) {
+    if (!key.is_ptype(ql::pseudo::geometry_string)) {
         return std::vector<std::string>();
     }
 
@@ -1235,9 +1235,9 @@ void compute_keys(const store_key_t &primary_key, ql::datum_t doc,
         index_info.mapping.compile_wire_func()->call(&sindex_env, doc)->as_datum();
 
     if (index_info.multi == sindex_multi_bool_t::MULTI
-        && index->get_type() == ql::datum_t::R_ARRAY) {
-        for (uint64_t i = 0; i < index->arr_size(); ++i) {
-            const ql::datum_t &skey = index->get(i, ql::THROW);
+        && index.get_type() == ql::datum_t::R_ARRAY) {
+        for (uint64_t i = 0; i < index.arr_size(); ++i) {
+            const ql::datum_t &skey = index.get(i, ql::THROW);
             if (index_info.geo == sindex_geo_bool_t::GEO) {
                 std::vector<std::string> geo_keys = expand_geo_key(reql_version,
                                                                    skey,
@@ -1247,9 +1247,9 @@ void compute_keys(const store_key_t &primary_key, ql::datum_t doc,
                     keys_out->push_back(store_key_t(*it));
                 }
             } else {
-                keys_out->push_back(store_key_t(skey->print_secondary(reql_version,
-                                                                      primary_key,
-                                                                      i)));
+                keys_out->push_back(store_key_t(skey.print_secondary(reql_version,
+                                                                     primary_key,
+                                                                     i)));
             }
         }
     } else {
@@ -1262,9 +1262,9 @@ void compute_keys(const store_key_t &primary_key, ql::datum_t doc,
                 keys_out->push_back(store_key_t(*it));
             }
         } else {
-            keys_out->push_back(store_key_t(index->print_secondary(reql_version,
-                                                                   primary_key,
-                                                                   boost::none)));
+            keys_out->push_back(store_key_t(index.print_secondary(reql_version,
+                                                                  primary_key,
+                                                                  boost::none)));
         }
     }
 }
@@ -1373,7 +1373,7 @@ void rdb_update_single_sindex(
 
     superblock_t *super_block = sindex->super_block.get();
 
-    if (modification->info.deleted.first) {
+    if (modification->info.deleted.first.has()) {
         guarantee(!modification->info.deleted.second.empty());
         try {
             ql::datum_t deleted = modification->info.deleted.first;
@@ -1416,7 +1416,7 @@ void rdb_update_single_sindex(
     // This is so we don't race against any sindex erase about who is faster
     // (we with inserting new entries, or the erase with removing them).
     const bool sindex_is_being_deleted = sindex->sindex.being_deleted;
-    if (!sindex_is_being_deleted && modification->info.added.first) {
+    if (!sindex_is_being_deleted && modification->info.added.first.has()) {
         try {
             ql::datum_t added = modification->info.added.first;
 
@@ -1471,7 +1471,7 @@ void rdb_update_sindexes(const store_t::sindex_access_vector_t &sindexes,
 
     /* All of the sindex have been updated now it's time to actually clear the
      * deleted blob if it exists. */
-    if (modification->info.deleted.first) {
+    if (modification->info.deleted.first.has()) {
         deletion_context->post_deleter()->delete_value(buf_parent_t(txn),
                 modification->info.deleted.second.data());
     }

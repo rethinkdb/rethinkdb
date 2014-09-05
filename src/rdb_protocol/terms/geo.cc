@@ -120,17 +120,17 @@ private:
 // Accepts either a geometry object of type Point, or an array with two coordinates.
 // We often want to support both.
 lat_lon_point_t parse_point_argument(const datum_t &point_datum) {
-    if (point_datum->is_ptype(pseudo::geometry_string)) {
+    if (point_datum.is_ptype(pseudo::geometry_string)) {
         // The argument is a point (should be at least, if not this will throw)
         return extract_lat_lon_point(point_datum);
     } else {
         // The argument must be a coordinate pair
-        rcheck_target(&point_datum, base_exc_t::GENERIC, point_datum->arr_size() == 2,
+        rcheck_target(&point_datum, base_exc_t::GENERIC, point_datum.arr_size() == 2,
             strprintf("Expected point coordinate pair.  "
                       "Got %zu element array instead of a 2 element one.",
-                      point_datum->arr_size()));
-        double lat = point_datum->get(0)->as_num();
-        double lon = point_datum->get(1)->as_num();
+                      point_datum.arr_size()));
+        double lat = point_datum.get(0).as_num();
+        double lon = point_datum.get(1).as_num();
         return lat_lon_point_t(lat, lon);
     }
 }
@@ -218,11 +218,11 @@ private:
 ellipsoid_spec_t pick_reference_ellipsoid(scope_env_t *env, args_t *args) {
     counted_t<val_t> geo_system_arg = args->optarg(env, "geo_system");
     if (geo_system_arg.has()) {
-        if (geo_system_arg->as_datum()->get_type() == datum_t::R_OBJECT) {
+        if (geo_system_arg->as_datum().get_type() == datum_t::R_OBJECT) {
             // We expect a reference ellipsoid with parameters 'a' and 'f'.
             // (equator radius and the flattening)
-            double a = geo_system_arg->as_datum()->get_field("a")->as_num();
-            double f = geo_system_arg->as_datum()->get_field("f")->as_num();
+            double a = geo_system_arg->as_datum().get_field("a").as_num();
+            double f = geo_system_arg->as_datum().get_field("f").as_num();
             rcheck_target(geo_system_arg.get(), base_exc_t::GENERIC,
                           a > 0.0, "The equator radius `a` must be positive.");
             rcheck_target(geo_system_arg.get(), base_exc_t::GENERIC,
@@ -272,7 +272,7 @@ private:
         scoped_ptr_t<S2Point> p;
         datum_t g;
         const std::string g1_type =
-            g1_arg->as_ptype(pseudo::geometry_string)->get_field("type")->as_str().to_std();
+            g1_arg->as_ptype(pseudo::geometry_string).get_field("type").as_str().to_std();
         if (g1_type == "Point") {
             p = to_s2point(g1_arg->as_ptype(pseudo::geometry_string));
             g = g2_arg->as_ptype(pseudo::geometry_string);

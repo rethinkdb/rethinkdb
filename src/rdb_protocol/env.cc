@@ -167,8 +167,8 @@ env_t::env_t(signal_t *_interruptor, reql_version_t reql_version)
 profile_bool_t profile_bool_optarg(const protob_t<Query> &query) {
     rassert(query.has());
     datum_t profile_arg = static_optarg("profile", query);
-    if (profile_arg.has() && profile_arg->get_type() == datum_t::type_t::R_BOOL &&
-        profile_arg->as_bool()) {
+    if (profile_arg.has() && profile_arg.get_type() == datum_t::type_t::R_BOOL &&
+        profile_arg.as_bool()) {
         return profile_bool_t::PROFILE;
     } else {
         return profile_bool_t::DONT_PROFILE;

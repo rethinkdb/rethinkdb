@@ -31,7 +31,7 @@ public:
     bool operator()(const ql::datum_t &a,
                     const ql::datum_t &b) const {
         if (a.has()) {
-            return b.has() && a->compare_lt(reql_version_, *b);
+            return b.has() && a.compare_lt(reql_version_, b);
         } else {
             return b.has();
         }

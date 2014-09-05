@@ -107,7 +107,7 @@ std::string var_scope_t::print() const {
     } else if (implicit_depth == 1) {
         ret += "implicit: ";
         if (maybe_implicit.has()) {
-            ret += maybe_implicit->print();
+            ret += maybe_implicit.print();
         } else {
             ret += "(not stored)";
         }
@@ -118,7 +118,7 @@ std::string var_scope_t::print() const {
     for (auto it = vars.begin(); it != vars.end(); ++it) {
         ret += ", ";
         ret += strprintf("%" PRIi64 ": ", it->first.value);
-        ret += it->second->print();
+        ret += it->second.print();
     }
     ret += "]";
     return ret;

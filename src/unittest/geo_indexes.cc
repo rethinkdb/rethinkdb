@@ -381,7 +381,7 @@ void test_get_intersecting(const datum_t &query_geometry,
     // 3. Compare both results
     ASSERT_EQ(intersecting_res.size(), reference_res.size());
     for (size_t i = 0; i < intersecting_res.size() && i < reference_res.size(); ++i) {
-        ASSERT_EQ(*intersecting_res[i], *reference_res[i]);
+        ASSERT_EQ(intersecting_res[i], reference_res[i]);
     }
 }
 

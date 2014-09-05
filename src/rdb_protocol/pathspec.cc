@@ -61,16 +61,16 @@ pathspec_t::pathspec_t(const std::map<datum_string_t, pathspec_t> &_map,
 pathspec_t::pathspec_t(datum_t datum, const term_t *_creator)
     : creator(_creator)
 {
-    if (datum->get_type() == datum_t::R_STR) {
+    if (datum.get_type() == datum_t::R_STR) {
         type = STR;
-        str = new datum_string_t(datum->as_str());
-    } else if (datum->get_type() == datum_t::R_ARRAY) {
+        str = new datum_string_t(datum.as_str());
+    } else if (datum.get_type() == datum_t::R_ARRAY) {
         type = VEC;
         vec = new std::vector<pathspec_t>;
-        for (size_t i = 0; i < datum->arr_size(); ++i) {
-            vec->push_back(pathspec_t(datum->get(i), creator));
+        for (size_t i = 0; i < datum.arr_size(); ++i) {
+            vec->push_back(pathspec_t(datum.get(i), creator));
         }
-    } else if (datum->get_type() == datum_t::R_OBJECT) {
+    } else if (datum.get_type() == datum_t::R_OBJECT) {
         scoped_ptr_t<std::vector<pathspec_t> > local_vec(new std::vector<pathspec_t>);
         scoped_ptr_t<std::map<datum_string_t, pathspec_t> >
             local_map(new std::map<datum_string_t, pathspec_t>);
@@ -97,7 +97,7 @@ pathspec_t::pathspec_t(datum_t datum, const term_t *_creator)
         }
     } else {
         rfail_target(creator, base_exc_t::GENERIC, "Invalid path argument `%s`.",
-                datum->print().c_str());
+                datum.print().c_str());
     }
 
     if (type == VEC && vec->size() == 1) {
@@ -144,7 +144,7 @@ void pathspec_t::init_from(const pathspec_t &other) {
 datum_t project(datum_t datum,
                 const pathspec_t &pathspec, recurse_flag_t recurse,
                 const configured_limits_t &limits) {
-    if (datum->get_type() == datum_t::R_ARRAY && recurse == RECURSE) {
+    if (datum.get_type() == datum_t::R_ARRAY && recurse == RECURSE) {
         datum_array_builder_t res(limits);
         res.reserve(datum.arr_size());
         for (size_t i = 0; i < datum.arr_size(); ++i) {
@@ -155,7 +155,8 @@ datum_t project(datum_t datum,
         datum_object_builder_t res;
         if (pathspec.as_str() != NULL) {
             datum_string_t str(*pathspec.as_str());
-            if (datum_t val = datum->get_field(str, NOTHROW)) {
+            const datum_t val = datum.get_field(str, NOTHROW);
+            if (val.has()) {
                 res.overwrite(std::move(str), val);
             }
         } else if (const std::vector<pathspec_t> *vec = pathspec.as_vec()) {
@@ -168,7 +169,8 @@ datum_t project(datum_t datum,
             }
         } else if (const std::map<datum_string_t, pathspec_t> *map = pathspec.as_map()) {
             for (auto it = map->begin(); it != map->end(); ++it) {
-                if (datum_t val = datum->get_field(it->first, NOTHROW)) {
+                const datum_t val = datum.get_field(it->first, NOTHROW);
+                if (val.has()) {
                     try {
                         datum_t sub_result =
                             project(val, it->second, RECURSE, limits);
@@ -197,7 +199,8 @@ void unproject_helper(datum_object_builder_t *datum,
         }
     } else if (const std::map<datum_string_t, pathspec_t> *map = pathspec.as_map()) {
         for (auto it = map->begin(); it != map->end(); ++it) {
-            if (datum_t val = datum->try_get(it->first)) {
+            const datum_t val = datum->try_get(it->first);
+            if (val.has()) {
                 try {
                     datum_t sub_result =
                         unproject(val, it->second, RECURSE, limits);
@@ -216,7 +219,7 @@ void unproject_helper(datum_object_builder_t *datum,
 datum_t unproject(datum_t datum,
                   const pathspec_t &pathspec, recurse_flag_t recurse,
                   const configured_limits_t &limits) {
-    if (datum->get_type() == datum_t::R_ARRAY && recurse == RECURSE) {
+    if (datum.get_type() == datum_t::R_ARRAY && recurse == RECURSE) {
         datum_array_builder_t res(limits);
         res.reserve(datum.arr_size());
         for (size_t i = 0; i < datum.arr_size(); ++i) {
@@ -236,8 +239,8 @@ bool contains(datum_t datum,
     try {
         bool res = true;
         if (const datum_string_t *str = pathspec.as_str()) {
-            if (!(res &= (datum->get_field(*str, NOTHROW).has() &&
-                          datum->get_field(*str)->get_type() != datum_t::R_NULL))) {
+            if (!(res &= (datum.get_field(*str, NOTHROW).has() &&
+                          datum.get_field(*str).get_type() != datum_t::R_NULL))) {
                 return res;
             }
         } else if (const std::vector<pathspec_t> *vec = pathspec.as_vec()) {
@@ -248,7 +251,8 @@ bool contains(datum_t datum,
             }
         } else if (const std::map<datum_string_t, pathspec_t> *map = pathspec.as_map()) {
             for (auto it = map->begin(); it != map->end(); ++it) {
-                if (datum_t val = datum->get_field(it->first, NOTHROW)) {
+                const datum_t val = datum.get_field(it->first, NOTHROW);
+                if (val.has()) {
                     if (!(res &= contains(val, it->second))) {
                         return res;
                     }

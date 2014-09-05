@@ -35,7 +35,7 @@ private:
             v = args->arg(env, 0);
             if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
                 func_arg = v->as_datum();
-                if (func_arg->get_type() != datum_t::R_NULL) {
+                if (func_arg.get_type() != datum_t::R_NULL) {
                     return v;
                 }
             } else {
@@ -57,8 +57,8 @@ private:
             }
         }
         r_sanity_check(func_arg.has());
-        r_sanity_check(func_arg->get_type() == datum_t::R_NULL
-                       || func_arg->get_type() == datum_t::R_STR);
+        r_sanity_check(func_arg.get_type() == datum_t::R_NULL
+                       || func_arg.get_type() == datum_t::R_STR);
         try {
             counted_t<val_t> def = args->arg(env, 1);
             if (def->get_type().is_convertible(val_t::type_t::FUNC)) {
@@ -71,7 +71,7 @@ private:
                 if (err.has()) {
                     throw *err;
                 } else {
-                    r_sanity_check(func_arg->get_type() == datum_t::R_NULL);
+                    r_sanity_check(func_arg.get_type() == datum_t::R_NULL);
                     return v;
                 }
             } else {
