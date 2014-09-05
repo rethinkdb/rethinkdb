@@ -557,7 +557,13 @@ void rdb_r_unshard_visitor_t::operator()(const changefeed_subscribe_t &) {
 }
 
 void rdb_r_unshard_visitor_t::operator()(const changefeed_limit_subscribe_t &) {
-    response_out->response = changefeed_limit_subscribe_response_t();
+    int64_t shards = 0;
+    for (size_t i = 0; i < count; ++i) {
+        auto res = boost::get<changefeed_limit_subscribe_response_t>(
+            &responses[i].response);
+        shards += res->shards;
+    }
+    response_out->response = changefeed_limit_subscribe_response_t(shards);
 }
 
 void rdb_r_unshard_visitor_t::operator()(const changefeed_stamp_t &) {
@@ -1147,7 +1153,7 @@ RDB_IMPL_SERIALIZABLE_1(sindex_status_response_t, statuses);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_status_response_t);
 RDB_IMPL_SERIALIZABLE_2(changefeed_subscribe_response_t, server_uuids, addrs);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_subscribe_response_t);
-RDB_IMPL_SERIALIZABLE_0(changefeed_limit_subscribe_response_t);
+RDB_IMPL_SERIALIZABLE_1(changefeed_limit_subscribe_response_t, shards);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_limit_subscribe_response_t);
 RDB_IMPL_SERIALIZABLE_1(changefeed_stamp_response_t, stamps);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_response_t);

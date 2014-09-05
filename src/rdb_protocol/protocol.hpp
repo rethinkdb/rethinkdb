@@ -260,7 +260,11 @@ struct changefeed_stamp_response_t {
 };
 RDB_DECLARE_SERIALIZABLE(changefeed_stamp_response_t);
 
-struct changefeed_limit_subscribe_response_t { };
+struct changefeed_limit_subscribe_response_t {
+    changefeed_limit_subscribe_response_t() { }
+    changefeed_limit_subscribe_response_t(int64_t _shards) : shards(_shards) { }
+    int64_t shards;
+};
 RDB_DECLARE_SERIALIZABLE(changefeed_limit_subscribe_response_t);
 
 struct changefeed_point_stamp_response_t {

@@ -179,6 +179,9 @@ RDB_IMPL_ME_SERIALIZABLE_1(msg_t::limit_change_t, data);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::limit_change_t);
 RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(msg_t::stop_t);
 
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        sorting_t, int8_t,
+        sorting_t::UNORDERED, sorting_t::DESCENDING);
 RDB_IMPL_ME_SERIALIZABLE_4(keyspec_t::limit_t, range, sindex, sorting, limit);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::limit_t);
 
@@ -190,12 +193,6 @@ public:
     virtual ~subscription_t();
     std::vector<datum_t>
     get_els(batcher_t *batcher, const signal_t *interruptor);
-    virtual void add_el(
-        const uuid_u &uuid,
-        uint64_t stamp,
-        const datum_t &pkey_val,
-        datum_t d,
-        const configured_limits_t &limits) = 0;
     virtual void start(env_t *env, namespace_interface_t *nif,
                        client_t::addr_t *addr) = 0;
     void stop(const std::string &msg, detach_t should_detach);
@@ -221,6 +218,20 @@ private:
     DISABLE_COPYING(subscription_t);
 };
 
+class flat_sub_t : public subscription_t {
+public:
+    template<class... Args>
+    flat_sub_t(Args &&... args)
+        : subscription_t(std::forward<Args>(args)...) { }
+    virtual void add_el(
+        const uuid_u &uuid,
+        uint64_t stamp,
+        const datum_t &pkey_val,
+        datum_t d,
+        const configured_limits_t &limits) = 0;
+};
+
+class limit_sub_t;
 class feed_t : public home_thread_mixin_t, public slow_atomic_countable_t<feed_t> {
 public:
     feed_t(client_t *client,
@@ -231,20 +242,22 @@ public:
            signal_t *interruptor);
     ~feed_t();
 
-    void add_point_sub(subscription_t *sub, const datum_t &key) THROWS_NOTHING;
-    void del_point_sub(subscription_t *sub, const datum_t &key) THROWS_NOTHING;
+    void add_point_sub(flat_sub_t *sub, const datum_t &key) THROWS_NOTHING;
+    void del_point_sub(flat_sub_t *sub, const datum_t &key) THROWS_NOTHING;
 
-    void add_range_sub(subscription_t *sub) THROWS_NOTHING;
-    void del_range_sub(subscription_t *sub) THROWS_NOTHING;
+    void add_range_sub(flat_sub_t *sub) THROWS_NOTHING;
+    void del_range_sub(flat_sub_t *sub) THROWS_NOTHING;
 
-    void add_limit_sub(subscription_t *sub, const uuid_u &uuid) THROWS_NOTHING;
-    void del_limit_sub(subscription_t *sub, const uuid_u &uuid) THROWS_NOTHING;
+    void add_limit_sub(limit_sub_t *sub, const uuid_u &uuid) THROWS_NOTHING;
+    void del_limit_sub(limit_sub_t *sub, const uuid_u &uuid) THROWS_NOTHING;
 
-    void each_range_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
-    void each_point_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
-    void each_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
-    void on_point_sub(datum_t key,
-                      const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
+    void each_range_sub(const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING;
+    void each_point_sub(const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING;
+    void each_sub(const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING;
+    void on_point_sub(
+        datum_t key, const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING;
+    void on_limit_sub(
+        const uuid_u &uuid, const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING;
 
 
     bool can_be_removed();
@@ -257,15 +270,17 @@ private:
     void del_sub_with_lock(
         rwlock_t *rwlock, const std::function<size_t()> &f) THROWS_NOTHING;
 
+    template<class Sub>
     void each_sub_in_vec(
-        const std::vector<std::set<subscription_t *> > &vec,
+        const std::vector<std::set<Sub *> > &vec,
         rwlock_in_line_t *spot,
-        const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
-    void each_sub_in_vec_cb(const std::function<void(subscription_t *)> &f,
-                            const std::vector<std::set<subscription_t *> > &vec,
-                            const std::vector<int> &subscription_threads,
+        const std::function<void(Sub *)> &f) THROWS_NOTHING;
+    template<class Sub>
+    void each_sub_in_vec_cb(const std::function<void(Sub *)> &f,
+                            const std::vector<std::set<Sub *> > &vec,
+                            const std::vector<int> &sub_threads,
                             int i);
-    void each_point_sub_cb(const std::function<void(subscription_t *)> &f, int i);
+    void each_point_sub_cb(const std::function<void(flat_sub_t *)> &f, int i);
     void mailbox_cb(stamped_msg_t msg);
     void constructor_cb();
 
@@ -293,28 +308,26 @@ private:
     cond_t queues_ready;
 
     std::map<datum_t,
-             std::vector<std::set<subscription_t *> >,
+             std::vector<std::set<flat_sub_t *> >,
              optional_datum_less_t> point_subs;
     rwlock_t point_subs_lock;
 
-    std::vector<std::set<subscription_t *> > range_subs;
+    std::vector<std::set<flat_sub_t *> > range_subs;
     rwlock_t range_subs_lock;
 
-    std::map<uuid_u, std::vector<std::set<subscription_t *> > > limit_subs;
+    std::map<uuid_u, std::vector<std::set<limit_sub_t *> > > limit_subs;
     rwlock_t limit_subs_lock;
 
     int64_t num_subs;
-
     bool detached;
-
     auto_drainer_t drainer;
 };
 
-class point_sub_t : public subscription_t {
+class point_sub_t : public flat_sub_t {
 public:
     // Throws QL exceptions.
     point_sub_t(feed_t *feed, datum_t _key)
-        : subscription_t(feed), key(std::move(_key)), stamp(0) {
+        : flat_sub_t(feed), key(std::move(_key)), stamp(0) {
         feed->add_point_sub(this, key);
     }
     virtual ~point_sub_t() {
@@ -375,11 +388,11 @@ private:
     datum_t el;
 };
 
-class range_sub_t : public subscription_t {
+class range_sub_t : public flat_sub_t {
 public:
     // Throws QL exceptions.
     range_sub_t(feed_t *feed, keyspec_t::range_t _spec)
-        : subscription_t(feed), spec(std::move(_spec)) {
+        : flat_sub_t(feed), spec(std::move(_spec)) {
         feed->add_range_sub(this);
     }
     virtual ~range_sub_t() {
@@ -439,7 +452,13 @@ class limit_sub_t : public subscription_t {
 public:
     // Throws QL exceptions.
     limit_sub_t(feed_t *feed, keyspec_t::limit_t _spec)
-        : subscription_t(feed), uuid(generate_uuid()), spec(std::move(_spec)) {
+        : subscription_t(feed),
+          uuid(generate_uuid()),
+          need_init(-1),
+          spec(std::move(_spec)),
+          active_data([](const data_it_t &a, const data_it_t &b) {
+                  return a->first < b->first;
+              }) {
         feed->add_limit_sub(this, uuid);
     }
     virtual ~limit_sub_t() {
@@ -455,11 +474,44 @@ public:
         auto resp = boost::get<changefeed_limit_subscribe_response_t>(
             &read_resp.response);
         guarantee(resp != NULL);
+        guarantee(need_init == -1);
+        need_init = resp->shards;
+        guarantee(need_init > 0);
     }
-private:
+    virtual void init(const std::vector<std::pair<store_key_t, datum_t> > &start_data) {
+        guarantee(need_init > 0);
+        need_init -= 1;
+        for (auto &&pair : start_data) {
+            auto res = data.insert(pair);
+            guarantee(res.second);
+            auto it = res.first;
+            if (it->first < (*active_data.crbegin())->first) {
+                active_data.insert(it);
+            }
+            if (active_data.size() > spec.limit) {
+                active_data.erase(*active_data.crbegin());
+            }
+            guarantee(active_data.size() == spec.limit
+                      || (active_data.size() < spec.limit
+                          && active_data.size() == data.size()));
+        }
+
+        // When we later support not always returning the initial set, that
+        // logic should go here.
+        if (need_init == 0) {
+            for (auto &&it : active_data) {
+                els.push_back(
+                    datum_t(std::map<datum_string_t, datum_t> {
+                        { datum_string_t("old_val"), it->second },
+                        { datum_string_t("new_val"), it->second } }));
+                maybe_signal_cond();
+            }
+        }
+    };
     virtual void note_change(
         const boost::optional<store_key_t> &old_key,
         const boost::optional<std::pair<store_key_t, datum_t> > &new_val) {
+        // RSI: queue if `need_init`.
         datum_t old_send, new_send;
         if (old_key) {
             auto it = data.find(*old_key);
@@ -515,11 +567,23 @@ private:
             maybe_signal_cond();
         }
     }
+
+    virtual bool has_el() { return els.size() != 0; }
+    virtual datum_t pop_el() {
+        guarantee(has_el());
+        datum_t ret = std::move(els.front());
+        els.pop_front();
+        return ret;
+    }
+
     uuid_u uuid;
+    int64_t need_init;
     keyspec_t::limit_t spec;
     // RSI: ordering
     std::map<store_key_t, datum_t> data;
-    std::set<std::map<store_key_t, datum_t>::iterator> active_data;
+    typedef decltype(data)::iterator data_it_t;
+    typedef std::function<bool(const data_it_t &, const data_it_t &)> data_it_lt_t;
+    std::set<data_it_t, data_it_lt_t> active_data;
     std::deque<datum_t> els;
 };
 
@@ -527,6 +591,18 @@ class msg_visitor_t : public boost::static_visitor<void> {
 public:
     msg_visitor_t(feed_t *_feed, uuid_u _server_uuid, uint64_t _stamp)
         : feed(_feed), server_uuid(_server_uuid), stamp(_stamp) { }
+    void operator()(const msg_t::limit_start_t &msg) const {
+        feed->on_limit_sub(
+            msg.sub, [&msg](limit_sub_t *sub) { sub->init(msg.start_data); });
+    }
+    void operator()(const msg_t::limit_change_t &msg) const {
+        for (const auto &pair : msg.data) {
+            feed->on_limit_sub(pair.first,
+                [&pair](limit_sub_t *sub) {
+                    sub->note_change(pair.second.first, pair.second.second);
+                });
+        }
+    }
     void operator()(const msg_t::change_t &change) const {
         datum_t null = datum_t::null();
         configured_limits_t default_limits;
@@ -540,7 +616,7 @@ public:
         r_sanity_check(pkey_val.has());
 
         feed->each_range_sub(
-            std::bind(&subscription_t::add_el,
+            std::bind(&flat_sub_t::add_el,
                       ph::_1,
                       std::cref(server_uuid),
                       stamp,
@@ -549,7 +625,7 @@ public:
                       default_limits));
         feed->on_point_sub(
             pkey_val,
-            std::bind(&subscription_t::add_el,
+            std::bind(&flat_sub_t::add_el,
                       ph::_1,
                       std::cref(server_uuid),
                       stamp,
@@ -696,11 +772,12 @@ void feed_t::add_sub_with_lock(
     f();
 }
 
-template<class Map, class Key>
-void map_add_sub(const Map &map, const Key &key, subscription_t *sub) THROWS_NOTHING {
-    auto it = map.find(key);
-    if (it == map.end()) {
-        it = map.insert(std::make_pair(key, decltype(it->second)(get_num_threads())));
+template<class Map, class Key, class Sub>
+void map_add_sub(Map *map, const Key &key, Sub *sub) THROWS_NOTHING {
+    auto it = map->find(key);
+    if (it == map->end()) {
+        auto pair = std::make_pair(key, decltype(it->second)(get_num_threads()));
+        it = map->insert(std::move(pair)).first;
     }
     (it->second)[sub->home_thread().threadnum].insert(sub);
 }
@@ -724,9 +801,9 @@ void feed_t::del_sub_with_lock(
     }
 }
 
-template<class Map, class Key>
-size_t map_del_sub(const Map &map, const Key &key, subscription_t *sub) THROWS_NOTHING {
-    auto subvec_it = map.find(key);
+template<class Map, class Key, class Sub>
+size_t map_del_sub(Map *map, const Key &key, Sub *sub) THROWS_NOTHING {
+    auto subvec_it = map->find(key);
     size_t erased = (subvec_it->second)[sub->home_thread().threadnum].erase(sub);
     // If there are no more subscribers, remove the key from the map.
     auto it = subvec_it->second.begin();
@@ -736,57 +813,58 @@ size_t map_del_sub(const Map &map, const Key &key, subscription_t *sub) THROWS_N
         }
     }
     if (it == subvec_it->second.end()) {
-        map.erase(subvec_it);
+        map->erase(subvec_it);
     }
     return erased;
 }
 
 // If this throws we might leak the increment to `num_subs`.
-void feed_t::add_point_sub(subscription_t *sub, const datum_t &key) THROWS_NOTHING {
+void feed_t::add_point_sub(flat_sub_t *sub, const datum_t &key) THROWS_NOTHING {
     add_sub_with_lock(&point_subs_lock, [this, sub, &key]() {
-            map_add_sub(point_subs, key, sub);
+            map_add_sub(&point_subs, key, sub);
         });
 }
 
 // Can't throw because it's called in a destructor.
-void feed_t::del_point_sub(subscription_t *sub, const datum_t &key) THROWS_NOTHING {
+void feed_t::del_point_sub(flat_sub_t *sub, const datum_t &key) THROWS_NOTHING {
     del_sub_with_lock(&point_subs_lock, [this, sub, &key]() {
-            return map_del_sub(point_subs, key, sub);
+            return map_del_sub(&point_subs, key, sub);
         });
 }
 
 // If this throws we might leak the increment to `num_subs`.
-void feed_t::add_range_sub(subscription_t *sub) THROWS_NOTHING {
+void feed_t::add_range_sub(flat_sub_t *sub) THROWS_NOTHING {
     add_sub_with_lock(&range_subs_lock, [this, sub]() {
             range_subs[sub->home_thread().threadnum].insert(sub);
         });
 }
 
 // Can't throw because it's called in a destructor.
-void feed_t::del_range_sub(subscription_t *sub) THROWS_NOTHING {
+void feed_t::del_range_sub(flat_sub_t *sub) THROWS_NOTHING {
     del_sub_with_lock(&range_subs_lock, [this, sub]() {
             return range_subs[sub->home_thread().threadnum].erase(sub);
         });
 }
 
 // If this throws we might leak the increment to `num_subs`.
-void feed_t::add_limit_sub(subscription_t *sub, const uuid_u &sub_uuid) THROWS_NOTHING {
+void feed_t::add_limit_sub(limit_sub_t *sub, const uuid_u &sub_uuid) THROWS_NOTHING {
     add_sub_with_lock(&limit_subs_lock, [this, sub, &sub_uuid]() {
-            map_add_sub(limit_subs, sub_uuid, sub);
+            map_add_sub(&limit_subs, sub_uuid, sub);
         });
 }
 
 // Can't throw because it's called in a destructor.
-void feed_t::del_limit_sub(subscription_t *sub, const uuid_u &sub_uuid) THROWS_NOTHING {
+void feed_t::del_limit_sub(limit_sub_t *sub, const uuid_u &sub_uuid) THROWS_NOTHING {
     del_sub_with_lock(&limit_subs_lock, [this, sub, &sub_uuid]() {
-            return map_del_sub(limit_subs, sub_uuid, sub);
+            return map_del_sub(&limit_subs, sub_uuid, sub);
         });
 }
 
+template<class Sub>
 void feed_t::each_sub_in_vec(
-    const std::vector<std::set<subscription_t *> > &vec,
+    const std::vector<std::set<Sub *> > &vec,
     rwlock_in_line_t *spot,
-    const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
+    const std::function<void(Sub *)> &f) THROWS_NOTHING {
     assert_thread();
     auto_drainer_t::lock_t lock(&drainer);
     spot->read_signal()->wait_lazily_unordered();
@@ -798,7 +876,7 @@ void feed_t::each_sub_in_vec(
         }
     }
     pmap(subscription_threads.size(),
-         std::bind(&feed_t::each_sub_in_vec_cb,
+         std::bind(&feed_t::each_sub_in_vec_cb<Sub>,
                    this,
                    std::cref(f),
                    std::cref(vec),
@@ -806,26 +884,27 @@ void feed_t::each_sub_in_vec(
                    ph::_1));
 }
 
-void feed_t::each_sub_in_vec_cb(const std::function<void(subscription_t *)> &f,
-                                const std::vector<std::set<subscription_t *> > &vec,
+template<class Sub>
+void feed_t::each_sub_in_vec_cb(const std::function<void(Sub *)> &f,
+                                const std::vector<std::set<Sub *> > &vec,
                                 const std::vector<int> &subscription_threads,
                                 int i) {
     guarantee(vec[subscription_threads[i]].size() != 0);
     on_thread_t th((threadnum_t(subscription_threads[i])));
-    for (subscription_t *sub : vec[subscription_threads[i]]) {
+    for (Sub *sub : vec[subscription_threads[i]]) {
         f(sub);
     }
 }
 
 void feed_t::each_range_sub(
-    const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
+    const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING {
     assert_thread();
     rwlock_in_line_t spot(&range_subs_lock, access_t::read);
     each_sub_in_vec(range_subs, &spot, f);
 }
 
 void feed_t::each_point_sub(
-    const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
+    const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING {
     assert_thread();
     rwlock_in_line_t spot(&point_subs_lock, access_t::read);
     pmap(get_num_threads(),
@@ -835,23 +914,23 @@ void feed_t::each_point_sub(
                    ph::_1));
 }
 
-void feed_t::each_point_sub_cb(const std::function<void(subscription_t *)> &f, int i) {
+void feed_t::each_point_sub_cb(const std::function<void(flat_sub_t *)> &f, int i) {
     on_thread_t th((threadnum_t(i)));
     for (auto const &pair : point_subs) {
-        for (subscription_t *sub : pair.second[i]) {
+        for (flat_sub_t *sub : pair.second[i]) {
             f(sub);
         }
     }
 }
 
-void feed_t::each_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
+void feed_t::each_sub(const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING {
     each_range_sub(f);
     each_point_sub(f);
 }
 
 void feed_t::on_point_sub(
     datum_t key,
-    const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
+    const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING {
     assert_thread();
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&point_subs_lock, access_t::read);
@@ -860,6 +939,19 @@ void feed_t::on_point_sub(
     auto point_sub = point_subs.find(key);
     if (point_sub != point_subs.end()) {
         each_sub_in_vec(point_sub->second, &spot, f);
+    }
+}
+
+void feed_t::on_limit_sub(
+    const uuid_u &sub_uuid, const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING {
+    assert_thread();
+    auto_drainer_t::lock_t lock(&drainer);
+    rwlock_in_line_t spot(&limit_subs_lock, access_t::read);
+    spot.read_signal()->wait_lazily_unordered();
+
+    auto limit_sub = limit_subs.find(sub_uuid);
+    if (limit_sub != limit_subs.end()) {
+        each_sub_in_vec(limit_sub->second, &spot, f);
     }
 }
 

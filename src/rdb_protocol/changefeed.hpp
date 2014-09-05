@@ -46,13 +46,11 @@ struct msg_t {
         std::vector<std::pair<store_key_t, datum_t> > start_data;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
-    // RSI: dedup with `change_t` for simple changes
+    // RSI: dedup.
     struct limit_change_t {
-        std::map<std::string,
+        std::map<uuid_u,
                  std::pair<boost::optional<store_key_t>,
-                           std::map<uuid_u,
-                                    boost::optional<
-                                        std::pair<store_key_t, datum_t> > > > > data;
+                           boost::optional<std::pair<store_key_t, datum_t> > > > data;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
     struct change_t {
