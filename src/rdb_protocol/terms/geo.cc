@@ -91,15 +91,15 @@ private:
     virtual const char *name() const { return "geojson"; }
 };
 
-class to_geojson_term_t : public geo_term_t {
+// to_geojson doesn't actually perform any geometric calculations, nor does any
+// geometry validation. That's why it's derived from op_term_t rather than geo_term_t.
+// It's also deterministic.
+class to_geojson_term_t : public op_term_t {
 public:
     to_geojson_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : geo_term_t(env, term, argspec_t(1)) { }
+        : op_term_t(env, term, argspec_t(1)) { }
 private:
-    // One of the very few deterministic geo terms. Doesn't perform any floating
-    // point arithmetics.
-    bool is_deterministic() const { return op_term_t::is_deterministic(); }
-    counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
+    counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> v = args->arg(env, 0);
 
         datum_object_builder_t result(v->as_ptype(pseudo::geometry_string));

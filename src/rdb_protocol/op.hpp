@@ -125,9 +125,6 @@ protected:
     // a subclass).
     virtual void accumulate_captures(var_captures_t *captures) const;
 
-protected:
-    virtual bool is_deterministic() const;
-
 private:
     friend class args_t;
     // Tries to get an optional argument, returns `counted_t<val_t>()` if not found.
@@ -149,6 +146,8 @@ private:
                                        eval_flags_t eval_flags) const = 0;
     virtual bool can_be_grouped() const;
     virtual bool is_grouped_seq_op() const;
+
+    virtual bool is_deterministic() const;
 
     scoped_ptr_t<const arg_terms_t> arg_terms;
 
