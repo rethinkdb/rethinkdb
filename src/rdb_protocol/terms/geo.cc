@@ -29,6 +29,12 @@ public:
                const argspec_t &argspec, optargspec_t optargspec = optargspec_t({}))
         : op_term_t(env, term, argspec, optargspec) { }
 private:
+    // All geo terms are non-deterministic, because they typically depend on
+    // floating point results that might diverge between machines / compilers /
+    // libraries.
+    // Even seemingly harmless things such as r.line() are affected because they
+    // perform geometric validation.
+    bool is_deterministic() const { return false; }
     virtual counted_t<val_t> eval_geo(
             scope_env_t *env, args_t *args, eval_flags_t flags) const = 0;
     counted_t<val_t> eval_impl(
@@ -47,6 +53,8 @@ public:
                              poly_type_t _poly_type, argspec_t argspec)
         : obj_or_seq_op_term_t(env, term, _poly_type, argspec) { }
 private:
+    // See comment in geo_term_t about non-determinism
+    bool is_deterministic() const { return false; }
     virtual counted_t<val_t> obj_eval_geo(
             scope_env_t *env, args_t *args, counted_t<val_t> v0) const = 0;
     counted_t<val_t> obj_eval(
@@ -88,6 +96,9 @@ public:
     to_geojson_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : geo_term_t(env, term, argspec_t(1)) { }
 private:
+    // One of the very few deterministic geo terms. Doesn't perform any floating
+    // point arithmetics.
+    bool is_deterministic() const { return op_term_t::is_deterministic(); }
     counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> v = args->arg(env, 0);
 
