@@ -77,24 +77,16 @@ module 'TablesView', ->
                 id: db # TODO: Use db_config (when available) and remove this merge
                 tables: r.db('rethinkdb').table('table_status').orderBy((table) -> table("name"))
                     .filter({db: db}).merge( (table) ->
-                        shards: table('shards').map( (shard) ->
-                            shard(shard.keys().nth(0))
-                        ).filter({role: "director"}).count()
-                        replicas: table('shards').map( (shard) ->
-                            shard(shard.keys().nth(0))
-                        ).filter({role: "replica"}).count()
-                    ).without('shards').merge( (table) ->
-                        #TODO Remove merge when uuid is renamed id
+                        shards: table("shards").count()
+                        replicas: table("shards").nth(0).count()
+                    ).merge( (table) ->
                         id: table("uuid")
-                        reachability: "Live" #TODO Update with real data
                     )
 
             driver.run query, (error, result) =>
-                ###
                 console.log '---- err, result ---'
                 console.log error
                 console.log result
-                ###
                 if error
                     #TODO
                     console.log error
