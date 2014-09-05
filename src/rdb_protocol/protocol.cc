@@ -73,32 +73,32 @@ bool datum_range_t::is_universe() const {
 bool datum_range_t::contains(reql_version_t reql_version,
                              ql::datum_t val) const {
     return (!left_bound.has()
-            || left_bound->compare_lt(reql_version, *val)
-            || (*left_bound == *val && left_bound_type == key_range_t::closed))
+            || left_bound.compare_lt(reql_version, val)
+            || (left_bound == val && left_bound_type == key_range_t::closed))
         && (!right_bound.has()
-            || right_bound->compare_gt(reql_version, *val)
-            || (*right_bound == *val && right_bound_type == key_range_t::closed));
+            || right_bound.compare_gt(reql_version, val)
+            || (right_bound == val && right_bound_type == key_range_t::closed));
 }
 
 key_range_t datum_range_t::to_primary_keyrange() const {
     return key_range_t(
         left_bound_type,
         left_bound.has()
-            ? store_key_t(left_bound->print_primary())
+            ? store_key_t(left_bound.print_primary())
             : store_key_t::min(),
         right_bound_type,
         right_bound.has()
-            ? store_key_t(right_bound->print_primary())
+            ? store_key_t(right_bound.print_primary())
             : store_key_t::max());
 }
 
 key_range_t datum_range_t::to_sindex_keyrange() const {
     return rdb_protocol::sindex_key_range(
         left_bound.has()
-            ? store_key_t(left_bound->truncated_secondary())
+            ? store_key_t(left_bound.truncated_secondary())
             : store_key_t::min(),
         right_bound.has()
-            ? store_key_t(right_bound->truncated_secondary())
+            ? store_key_t(right_bound.truncated_secondary())
             : store_key_t::max());
 }
 
@@ -902,7 +902,7 @@ struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
         std::vector<store_key_t> keys;
         keys.reserve(bi.inserts.size());
         for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
-            keys.emplace_back((*it)->get_field(datum_string_t(bi.pkey))->print_primary());
+            keys.emplace_back((*it).get_field(datum_string_t(bi.pkey)).print_primary());
         }
         return region_from_keys(keys);
     }
@@ -983,7 +983,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
     bool operator()(const batched_insert_t &bi) const {
         std::vector<ql::datum_t> shard_inserts;
         for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
-            store_key_t key((*it)->get_field(datum_string_t(bi.pkey))->print_primary());
+            store_key_t key((*it).get_field(datum_string_t(bi.pkey)).print_primary());
             if (region_contains_key(*region, key)) {
                 shard_inserts.push_back(*it);
             }
@@ -1066,7 +1066,7 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
             const ql::datum_t *stats_i =
                 boost::get<ql::datum_t>(&responses[i].response);
             guarantee(stats_i != NULL);
-            stats = stats->merge(*stats_i, ql::stats_merge, *limits, &conditions);
+            stats = stats.merge(*stats_i, ql::stats_merge, *limits, &conditions);
         }
         ql::datum_object_builder_t result(stats);
         result.add_warnings(conditions, *limits);

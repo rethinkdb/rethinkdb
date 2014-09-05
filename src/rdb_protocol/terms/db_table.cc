@@ -339,7 +339,7 @@ private:
             for (size_t i = 1; i < args->num_args(); ++i) {
                 datum_t key = args->arg(env, i)->as_datum();
                 datum_t row = table->get_row(env->env, key);
-                if (row->get_type() != datum_t::R_NULL) {
+                if (row.get_type() != datum_t::R_NULL) {
                     arr.add(row);
                 }
             }

@@ -160,32 +160,32 @@ lat_lon_point_t position_to_lat_lon_point(const datum_t &position) {
 
     // GeoJSON positions are in order longitude, latitude, altitude
     double longitude, latitude;
-    longitude = position.get(0)->as_num();
-    latitude = position.get(1)->as_num();
+    longitude = position.get(0).as_num();
+    latitude = position.get(1).as_num();
 
     return lat_lon_point_t(latitude, longitude);
 }
 
 lat_lon_point_t extract_lat_lon_point(const datum_t &geojson) {
-    if (geojson->get_field("type")->as_str() != "Point") {
+    if (geojson.get_field("type").as_str() != "Point") {
         throw geo_exception_t(
             strprintf("Expected geometry of type `Point` but found `%s`.",
-                      geojson->get_field("type")->as_str().to_std().c_str()));
+                      geojson.get_field("type").as_str().to_std().c_str()));
     }
 
-    const datum_t &coordinates = geojson->get_field("coordinates");
+    const datum_t &coordinates = geojson.get_field("coordinates");
 
     return position_to_lat_lon_point(coordinates);
 }
 
 lat_lon_line_t extract_lat_lon_line(const ql::datum_t &geojson) {
-    if (geojson->get_field("type")->as_str() != "LineString") {
+    if (geojson.get_field("type").as_str() != "LineString") {
         throw geo_exception_t(
             strprintf("Expected geometry of type `LineString` but found `%s`.",
-                      geojson->get_field("type")->as_str().to_std().c_str()));
+                      geojson.get_field("type").as_str().to_std().c_str()));
     }
 
-    const datum_t &coordinates = geojson->get_field("coordinates");
+    const datum_t &coordinates = geojson.get_field("coordinates");
     lat_lon_line_t result;
     result.reserve(coordinates.arr_size());
     for (size_t i = 0; i < coordinates.arr_size(); ++i) {
@@ -196,13 +196,13 @@ lat_lon_line_t extract_lat_lon_line(const ql::datum_t &geojson) {
 }
 
 lat_lon_line_t extract_lat_lon_shell(const ql::datum_t &geojson) {
-    if (geojson->get_field("type")->as_str() != "Polygon") {
+    if (geojson.get_field("type").as_str() != "Polygon") {
         throw geo_exception_t(
             strprintf("Expected geometry of type `Polygon` but found `%s`.",
-                      geojson->get_field("type")->as_str().to_std().c_str()));
+                      geojson.get_field("type").as_str().to_std().c_str()));
     }
 
-    const datum_t &coordinates = geojson->get_field("coordinates");
+    const datum_t &coordinates = geojson.get_field("coordinates");
     if (coordinates.arr_size() < 1) {
         throw geo_exception_t("The polygon is empty. It must have at least "
                               "an outer shell.");
@@ -350,9 +350,9 @@ scoped_ptr_t<S2Polygon> coordinates_to_s2polygon(const datum_t &coords) {
 
 void ensure_no_crs(const ql::datum_t &geojson) {
     const ql::datum_t &crs_field =
-        geojson->get_field("crs", ql::throw_bool_t::NOTHROW);
+        geojson.get_field("crs", ql::throw_bool_t::NOTHROW);
     if (crs_field.has()) {
-        if (crs_field->get_type() != ql::datum_t::R_NULL) {
+        if (crs_field.get_type() != ql::datum_t::R_NULL) {
             throw geo_exception_t("Non-default coordinate reference systems "
                                   "are not supported in GeoJSON objects.  "
                                   "Make sure the `crs` field of the geometry is "
@@ -362,8 +362,8 @@ void ensure_no_crs(const ql::datum_t &geojson) {
 }
 
 scoped_ptr_t<S2Point> to_s2point(const ql::datum_t &geojson) {
-    const datum_string_t &type = geojson->get_field("type")->as_str();
-    datum_t coordinates = geojson->get_field("coordinates");
+    const datum_string_t &type = geojson.get_field("type").as_str();
+    datum_t coordinates = geojson.get_field("coordinates");
     if (type != "Point") {
         throw geo_exception_t(
             strprintf("Expected geometry of type `Point` but found `%s`.",
@@ -373,8 +373,8 @@ scoped_ptr_t<S2Point> to_s2point(const ql::datum_t &geojson) {
 }
 
 scoped_ptr_t<S2Polyline> to_s2polyline(const ql::datum_t &geojson) {
-    const datum_string_t &type = geojson->get_field("type")->as_str();
-    datum_t coordinates = geojson->get_field("coordinates");
+    const datum_string_t &type = geojson.get_field("type").as_str();
+    datum_t coordinates = geojson.get_field("coordinates");
     if (type != "LineString") {
         throw geo_exception_t(
             strprintf("Expected geometry of type `LineString` but found `%s`.",
@@ -384,8 +384,8 @@ scoped_ptr_t<S2Polyline> to_s2polyline(const ql::datum_t &geojson) {
 }
 
 scoped_ptr_t<S2Polygon> to_s2polygon(const ql::datum_t &geojson) {
-    const datum_string_t &type = geojson->get_field("type")->as_str();
-    datum_t coordinates = geojson->get_field("coordinates");
+    const datum_string_t &type = geojson.get_field("type").as_str();
+    datum_t coordinates = geojson.get_field("coordinates");
     if (type != "Polygon") {
         throw geo_exception_t(
             strprintf("Expected geometry of type `Polygon` but found `%s`.",

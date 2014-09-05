@@ -599,23 +599,23 @@ void datum_t::array_to_str_key(std::string *str_out) const {
         datum_t item = get(i, NOTHROW);
         r_sanity_check(item.has());
 
-        switch (item->get_type()) {
-        case R_NUM: item->num_to_str_key(str_out); break;
-        case R_STR: item->str_to_str_key(str_out); break;
-        case R_BINARY: item->binary_to_str_key(str_out); break;
-        case R_BOOL: item->bool_to_str_key(str_out); break;
-        case R_ARRAY: item->array_to_str_key(str_out); break;
+        switch (item.get_type()) {
+        case R_NUM: item.num_to_str_key(str_out); break;
+        case R_STR: item.str_to_str_key(str_out); break;
+        case R_BINARY: item.binary_to_str_key(str_out); break;
+        case R_BOOL: item.bool_to_str_key(str_out); break;
+        case R_ARRAY: item.array_to_str_key(str_out); break;
         case R_OBJECT:
-            if (item->is_ptype()) {
-                item->pt_to_str_key(str_out);
+            if (item.is_ptype()) {
+                item.pt_to_str_key(str_out);
                 break;
             }
             // fallthru
         case R_NULL:
-            item->type_error(
+            item.type_error(
                 strprintf("Array keys can only contain numbers, strings, bools, "
                           " pseudotypes, or arrays (got %s of type %s).",
-                          item->print().c_str(), item->get_type_name().c_str()));
+                          item.print().c_str(), item.get_type_name().c_str()));
             break;
         case UNINITIALIZED: // fallthru
         default:
@@ -704,7 +704,7 @@ datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
         datum_t val = get_field(pseudo::value_key, NOTHROW);
         if (val.has()) {
             bool encountered_literal;
-            val = val->drop_literals(&encountered_literal);
+            val = val.drop_literals(&encountered_literal);
             // Nested literals should have been caught on the higher QL levels.
             r_sanity_check(!encountered_literal);
         }
@@ -800,14 +800,14 @@ void datum_t::rcheck_valid_replace(datum_t old_val,
                      pkey.to_std().c_str(), print().c_str()));
     if (old_val.has()) {
         datum_t old_pk = orig_key;
-        if (old_val->get_type() != R_NULL) {
-            old_pk = old_val->get_field(pkey, NOTHROW);
+        if (old_val.get_type() != R_NULL) {
+            old_pk = old_val.get_field(pkey, NOTHROW);
             r_sanity_check(old_pk.has());
         }
         if (old_pk.has()) {
-            rcheck(*old_pk == *pk, base_exc_t::GENERIC,
+            rcheck(old_pk == pk, base_exc_t::GENERIC,
                    strprintf("Primary key `%s` cannot be changed (`%s` -> `%s`).",
-                             pkey.to_std().c_str(), old_val->print().c_str(),
+                             pkey.to_std().c_str(), old_val.print().c_str(),
                              print().c_str()));
         }
     } else {
@@ -1197,7 +1197,7 @@ cJSON *datum_t::as_json_raw() const {
         scoped_cJSON_t arr(cJSON_CreateArray());
         const size_t sz = arr_size();
         for (size_t i = 0; i < sz; ++i) {
-            arr.AddItemToArray(unchecked_get(i)->as_json_raw());
+            arr.AddItemToArray(unchecked_get(i).as_json_raw());
         }
         return arr.release();
     } break;
@@ -1284,7 +1284,7 @@ datum_t datum_t::merge(const datum_t &rhs) const {
                 // Since nested literal keywords are forbidden, this should be a no-op
                 // if `is_literal == true`.
                 bool encountered_literal;
-                val = val->drop_literals(&encountered_literal);
+                val = val.drop_literals(&encountered_literal);
                 r_sanity_check(!encountered_literal || !is_literal);
             }
             if (val.has()) {
@@ -1601,29 +1601,29 @@ datum_t stats_merge(UNUSED const datum_string_t &key,
                     datum_t r,
                     const configured_limits_t &limits,
                     std::set<std::string> *conditions) {
-    if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
-        return datum_t(l->as_num() + r->as_num());
-    } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
-        const size_t l_sz = l->arr_size();
-        const size_t r_sz = r->arr_size();
+    if (l.get_type() == datum_t::R_NUM && r.get_type() == datum_t::R_NUM) {
+        return datum_t(l.as_num() + r.as_num());
+    } else if (l.get_type() == datum_t::R_ARRAY && r.get_type() == datum_t::R_ARRAY) {
+        const size_t l_sz = l.arr_size();
+        const size_t r_sz = r.arr_size();
         if (l_sz + r_sz > limits.array_size_limit()) {
             conditions->insert(strprintf("Too many changes, array truncated to %ld.", limits.array_size_limit()));
             datum_array_builder_t arr(limits);
             size_t so_far = 0;
             for (size_t i = 0; i < l_sz && so_far < limits.array_size_limit(); ++i, ++so_far) {
-                arr.add(l->get(i));
+                arr.add(l.get(i));
             }
             for (size_t i = 0; i < r_sz && so_far < limits.array_size_limit(); ++i, ++so_far) {
-                arr.add(r->get(i));
+                arr.add(r.get(i));
             }
             return std::move(arr).to_datum();
         } else {
             datum_array_builder_t arr(limits);
             for (size_t i = 0; i < l_sz; ++i) {
-                arr.add(l->get(i));
+                arr.add(l.get(i));
             }
             for (size_t i = 0; i < r_sz; ++i) {
-                arr.add(r->get(i));
+                arr.add(r.get(i));
             }
             return std::move(arr).to_datum();
         }
@@ -1631,11 +1631,11 @@ datum_t stats_merge(UNUSED const datum_string_t &key,
 
     // Merging a string is left-preferential, which is just a no-op.
     rcheck_datum(
-        l->get_type() == datum_t::R_STR && r->get_type() == datum_t::R_STR,
+        l.get_type() == datum_t::R_STR && r.get_type() == datum_t::R_STR,
         base_exc_t::GENERIC,
         strprintf("Cannot merge statistics `%s` (type %s) and `%s` (type %s).",
-                  l->trunc_print().c_str(), l->get_type_name().c_str(),
-                  r->trunc_print().c_str(), r->get_type_name().c_str()));
+                  l.trunc_print().c_str(), l.get_type_name().c_str(),
+                  r.trunc_print().c_str(), r.get_type_name().c_str()));
     return l;
 }
 
@@ -1726,7 +1726,7 @@ void datum_object_builder_t::add_error(const char *msg) {
     // Insert or update the "errors" entry.
     {
         datum_t *errors_entry = &map[errors_field];
-        double ecount = (errors_entry->has() ? (*errors_entry)->as_num() : 0) + 1;
+        double ecount = (errors_entry->has() ? (*errors_entry).as_num() : 0) + 1;
         *errors_entry = datum_t(ecount);
     }
 

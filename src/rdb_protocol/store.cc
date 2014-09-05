@@ -550,17 +550,17 @@ public:
                                          size_t index) const {
         guarantee(index < datums->size());
         ql::datum_t newd = (*datums)[index];
-        if (d->get_type() == ql::datum_t::R_NULL) {
+        if (d.get_type() == ql::datum_t::R_NULL) {
             return newd;
         } else if (conflict_behavior == conflict_behavior_t::REPLACE) {
             return newd;
         } else if (conflict_behavior == conflict_behavior_t::UPDATE) {
-            return d->merge(newd);
+            return d.merge(newd);
         } else {
-            rfail_target(d, ql::base_exc_t::GENERIC,
+            rfail_target(&d, ql::base_exc_t::GENERIC,
                          "Duplicate primary key `%s`:\n%s\n%s",
-                         pkey.c_str(), d->print().c_str(),
-                         newd->print().c_str());
+                         pkey.c_str(), d.print().c_str(),
+                         newd.print().c_str());
         }
         unreachable();
     }
@@ -595,7 +595,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         std::vector<store_key_t> keys;
         keys.reserve(bi.inserts.size());
         for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
-            keys.emplace_back((*it)->get_field(datum_string_t(bi.pkey))->print_primary());
+            keys.emplace_back((*it).get_field(datum_string_t(bi.pkey)).print_primary());
         }
         response->response =
             rdb_batched_replace(

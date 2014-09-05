@@ -244,9 +244,9 @@ void run(protob_t<Query> q,
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
                 res->set_type(Response::SUCCESS_ATOM);
                 datum_t d = val->as_datum();
-                d->write_to_protobuf(res->add_response(), use_json);
+                d.write_to_protobuf(res->add_response(), use_json);
                 if (trace.has()) {
-                    trace->as_datum()->write_to_protobuf(
+                    trace->as_datum().write_to_protobuf(
                         res->mutable_profile(), use_json);
                 }
             } else if (counted_t<grouped_data_t> gd
@@ -255,18 +255,19 @@ void run(protob_t<Query> q,
                 datum_t d = to_datum_for_client_serialization(std::move(*gd),
                                                               env.reql_version(),
                                                               env.limits());
-                d->write_to_protobuf(res->add_response(), use_json);
+                d.write_to_protobuf(res->add_response(), use_json);
                 if (env.trace != nullptr) {
-                    env.trace->as_datum()->write_to_protobuf(
+                    env.trace->as_datum().write_to_protobuf(
                         res->mutable_profile(), use_json);
                 }
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
                 counted_t<datum_stream_t> seq = val->as_seq(&env);
-                if (datum_t arr = seq->as_array(&env)) {
+                const datum_t arr = seq->as_array(&env);
+                if (arr.has()) {
                     res->set_type(Response::SUCCESS_ATOM);
-                    arr->write_to_protobuf(res->add_response(), use_json);
+                    arr.write_to_protobuf(res->add_response(), use_json);
                     if (trace.has()) {
-                        trace->as_datum()->write_to_protobuf(
+                        trace->as_datum().write_to_protobuf(
                             res->mutable_profile(), use_json);
                     }
                 } else {

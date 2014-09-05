@@ -116,11 +116,11 @@ private:
         counted_t<val_t> arg = args->arg(env, 0);
         datum_t datum_arg = arg->as_datum();
 
-        if (datum_arg->get_type() == datum_t::type_t::R_BINARY) {
+        if (datum_arg.get_type() == datum_t::type_t::R_BINARY) {
             return arg;
         }
 
-        const datum_string_t &datum_str = datum_arg->as_str();
+        const datum_string_t &datum_str = datum_arg.as_str();
         return new_val(datum_t::binary(datum_string_t(datum_str)));
     }
     virtual const char *name() const { return "binary"; }

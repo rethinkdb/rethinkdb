@@ -51,9 +51,9 @@ counted_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
         d = v0->as_datum();
     }
 
-    if (d.has() && d->get_type() == datum_t::R_OBJECT) {
+    if (d.has() && d.get_type() == datum_t::R_OBJECT) {
         return helper();
-    } else if ((d.has() && d->get_type() == datum_t::R_ARRAY) ||
+    } else if ((d.has() && d.get_type() == datum_t::R_ARRAY) ||
                (!d.has()
                 && v0->get_type().is_convertible(val_t::type_t::SEQUENCE))) {
         // The above if statement is complicated because it produces better
@@ -113,7 +113,7 @@ public:
 private:
     virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
         datum_t obj = v0->as_datum();
-        r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
+        r_sanity_check(obj.get_type() == datum_t::R_OBJECT);
 
         const size_t n = args->num_args();
         std::vector<datum_t> paths;
@@ -134,7 +134,7 @@ public:
 private:
     virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
         datum_t obj = v0->as_datum();
-        r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
+        r_sanity_check(obj.get_type() == datum_t::R_OBJECT);
 
         std::vector<datum_t> paths;
         const size_t n = args->num_args();
@@ -187,10 +187,10 @@ private:
             // We branch here because compiling functions is expensive, and
             // `obj_eval` may be called many many times.
             if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
-                d = d->merge(v->as_datum());
+                d = d.merge(v->as_datum());
             } else {
                 auto f = v->as_func(CONSTANT_SHORTCUT);
-                d = d->merge(f->call(env->env, d, LITERAL_OK)->as_datum());
+                d = d.merge(f->call(env->env, d, LITERAL_OK)->as_datum());
             }
         }
         return new_val(d);
@@ -205,7 +205,7 @@ public:
 private:
     virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
         datum_t obj = v0->as_datum();
-        r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
+        r_sanity_check(obj.get_type() == datum_t::R_OBJECT);
 
         std::vector<datum_t> paths;
         const size_t n = args->num_args();
@@ -225,7 +225,7 @@ public:
         : obj_or_seq_op_term_t(env, term, SKIP_MAP, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
-        return new_val(v0->as_datum()->get_field(args->arg(env, 1)->as_str()));
+        return new_val(v0->as_datum().get_field(args->arg(env, 1)->as_str()));
     }
     virtual const char *name() const { return "get_field"; }
 };
@@ -251,7 +251,7 @@ private:
         datum_t d = v1->as_datum();
         r_sanity_check(d.has());
 
-        switch (d->get_type()) {
+        switch (d.get_type()) {
         case datum_t::R_NUM:
             return nth_term_impl(this, env, v0, v1);
         case datum_t::R_STR:
@@ -264,8 +264,8 @@ private:
         case datum_t::R_OBJECT:
         case datum_t::UNINITIALIZED:
         default:
-            d->type_error(strprintf("Expected NUMBER or STRING as second argument to `%s` but found %s.",
-                                 name(), d->get_type_name().c_str()));
+            d.type_error(strprintf("Expected NUMBER or STRING as second argument to `%s` but found %s.",
+                                   name(), d.get_type_name().c_str()));
             unreachable();
         }
     }

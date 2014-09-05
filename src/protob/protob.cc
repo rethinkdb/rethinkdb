@@ -440,8 +440,8 @@ void query_server_t::handle(const http_req_t &req,
             // problems with interruption
             ql::datum_t noreply = static_optarg("noreply", query);
             bool response_needed = !(noreply.has() &&
-                                     noreply->get_type() == ql::datum_t::type_t::R_BOOL &&
-                                     noreply->as_bool());
+                                     noreply.get_type() == ql::datum_t::type_t::R_BOOL &&
+                                     noreply.as_bool());
 
             if (!response_needed) {
                 *result = http_res_t(HTTP_BAD_REQUEST, "application/text",

@@ -67,8 +67,8 @@ template <class return_t>
 return_t visit_geojson(
         s2_geo_visitor_t<return_t> *visitor,
         const ql::datum_t &geojson) {
-    const datum_string_t &type = geojson->get_field("type")->as_str();
-    ql::datum_t coordinates = geojson->get_field("coordinates");
+    const datum_string_t &type = geojson.get_field("type").as_str();
+    ql::datum_t coordinates = geojson.get_field("coordinates");
 
     if (type == "Point") {
         scoped_ptr_t<geo::S2Point> pt = coordinates_to_s2point(coordinates);
