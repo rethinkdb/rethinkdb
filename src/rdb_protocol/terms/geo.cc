@@ -91,7 +91,7 @@ private:
     virtual const char *name() const { return "geojson"; }
 };
 
-// to_geojson doesn't actually perform any geometric calculations, nor does any
+// to_geojson doesn't actually perform any geometric calculations, nor does it do
 // geometry validation. That's why it's derived from op_term_t rather than geo_term_t.
 // It's also deterministic.
 class to_geojson_term_t : public op_term_t {
