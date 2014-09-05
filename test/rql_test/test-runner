@@ -785,7 +785,7 @@ def main():
     parser.add_option('-d', '--driver-port', dest='driver_port', default=None, type='int', help='driver port of an already-running rethinkdb instance')
     parser.add_option('-t', '--table', dest='table', default="no_table_specified", type='string', help='name of pre-existing table to run queries against.')
     
-    parser.add_option('-v', '--verbse', dest='verbose', default=False, action='store_true', help='show in-progress messages from tests')
+    parser.add_option('-v', '--verbose', dest='verbose', default=False, action='store_true', help='show in-progress messages from tests')
     
     options, args = parser.parse_args()
     
