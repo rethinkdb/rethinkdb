@@ -148,7 +148,7 @@ private:
         int start_subtype = 0;
         if (opaque_start_type.is_convertible(val_t::type_t::DATUM)) {
             start_supertype = val_t::type_t::DATUM;
-            start_subtype = val->as_datum()->get_type();
+            start_subtype = val->as_datum().get_type();
         }
         int start_type = merge_types(start_supertype, start_subtype);
 
@@ -168,15 +168,15 @@ private:
             // DATUM -> DATUM
             if (supertype(end_type) == val_t::type_t::DATUM) {
                 if (start_type == R_BINARY_TYPE && end_type == R_STR_TYPE) {
-                    return new_val(datum_t(d->as_binary()));
+                    return new_val(datum_t(d.as_binary()));
                 }
                 if (start_type == R_STR_TYPE && end_type == R_BINARY_TYPE) {
-                    return new_val(datum_t::binary(d->as_str()));
+                    return new_val(datum_t::binary(d.as_str()));
                 }
 
                 // DATUM -> STR
                 if (end_type == R_STR_TYPE) {
-                    return new_val(datum_t(datum_string_t(d->print())));
+                    return new_val(datum_t(datum_string_t(d.print())));
                 }
 
                 // OBJECT -> ARRAY
@@ -196,7 +196,7 @@ private:
 
                 // STR -> NUM
                 if (start_type == R_STR_TYPE && end_type == R_NUM_TYPE) {
-                    const datum_string_t &s = d->as_str();
+                    const datum_string_t &s = d.as_str();
                     double dbl;
                     char end; // Used to ensure that there's no trailing garbage.
                     if (sscanf(s.to_std().c_str(), "%lf%c", &dbl, &end) == 1) {
@@ -234,16 +234,17 @@ private:
                     = batchspec_t::user(batch_type_t::TERMINAL, env->env);
                 {
                     profile::sampler_t sampler("Coercing to object.", env->env->trace);
-                    while (auto pair = ds->next(env->env, batchspec)) {
-                        const datum_string_t &key = pair->get(0)->as_str();
-                        datum_t keyval = pair->get(1);
+                    datum_t pair;
+                    while (pair = ds->next(env->env, batchspec), pair.has()) {
+                        const datum_string_t &key = pair.get(0).as_str();
+                        datum_t keyval = pair.get(1);
                         bool b = obj.add(key, keyval);
                         rcheck(!b, base_exc_t::GENERIC,
                                strprintf("Duplicate key `%s` in coerced object.  "
                                          "(got `%s` and `%s` as values)",
                                          key.to_std().c_str(),
-                                         obj.at(key)->trunc_print().c_str(),
-                                         keyval->trunc_print().c_str()));
+                                         obj.at(key).trunc_print().c_str(),
+                                         keyval.trunc_print().c_str()));
                         sampler.new_sample();
                     }
                 }
@@ -287,7 +288,7 @@ private:
 int val_type(counted_t<val_t> v) {
     int t = v->get_type().raw_type * MAX_TYPE;
     if (t == DATUM_TYPE) {
-        t += v->as_datum()->get_type();
+        t += v->as_datum().get_type();
     } else if (t == SELECTION_TYPE) {
         if (v->sequence()->is_array()) {
             t += datum_t::R_ARRAY;
@@ -305,7 +306,7 @@ private:
         counted_t<val_t> v = args->arg(env, 0);
         if (v->get_type().raw_type == val_t::type_t::DATUM) {
             datum_t d = v->as_datum();
-            return new_val(datum_t(datum_string_t(d->get_type_name())));
+            return new_val(datum_t(datum_string_t(d.get_type_name())));
         } else if (v->get_type().raw_type == val_t::type_t::SEQUENCE
                    && v->as_seq(env->env)->is_grouped()) {
             return new_val(datum_t("GROUPED_STREAM"));
@@ -373,7 +374,7 @@ private:
         case R_BINARY_TYPE: // fallthru
             b |= info.add("count",
                           datum_t(
-                              safe_to_double(v->as_datum()->as_binary().size())));
+                              safe_to_double(v->as_datum().as_binary().size())));
 
         case R_NULL_TYPE:   // fallthru
         case R_BOOL_TYPE:   // fallthru
@@ -383,7 +384,7 @@ private:
         case R_OBJECT_TYPE: // fallthru
         case DATUM_TYPE: {
             b |= info.add("value",
-                          datum_t(datum_string_t(v->as_datum()->print())));
+                          datum_t(datum_string_t(v->as_datum().print())));
         } break;
 
         default: r_sanity_check(false);

@@ -255,7 +255,7 @@ public:
                     const std::pair<datum_t, T> &b) const {
         // We know the keys are different, this is only used in
         // iterate_ordered_by_version.
-        return a.first->compare_lt(reql_version, *b.first);
+        return a.first.compare_lt(reql_version, b.first);
     }
 
 private:

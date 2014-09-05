@@ -126,8 +126,8 @@ install-data:
 install-web: web-assets
 	$P INSTALL $(DESTDIR)$(web_res_dir)
 	install -m755 -d $(DESTDIR)$(web_res_dir)
-# This might break some ownership or permissions stuff.
-	cp -pRP $(WEB_ASSETS_BUILD_DIR)/* $(DESTDIR)$(web_res_dir)/
+	cd $(WEB_ASSETS_BUILD_DIR); find . -type d -exec install -m755 -d $(abspath $(DESTDIR))$(web_res_dir)/{} \;
+	cd $(WEB_ASSETS_BUILD_DIR); find . -type f -exec install -m644 {} $(abspath $(DESTDIR))$(web_res_dir)/{} \;
 
 .PHONY: install-docs
 install-docs:

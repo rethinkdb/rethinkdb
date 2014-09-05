@@ -64,6 +64,11 @@ public:
         return reinterpret_cast<const T *>(buf->data(offset));
     }
 
+    shared_buf_ref_t make_child(size_t relative_offset) const {
+        guarantee_in_boundary(relative_offset);
+        return shared_buf_ref_t(buf, offset + relative_offset);
+    }
+
     // Makes sure that the underlying shared buffer has space for at least
     // num_elements elements of type T.
     // This protects against reading into memory that doesn't belong to the

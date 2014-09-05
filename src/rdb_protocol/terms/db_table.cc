@@ -30,7 +30,7 @@ std::map<name_string_t, size_t> get_replica_counts(counted_t<val_t> arg) {
     r_sanity_check(arg.has());
     std::map<name_string_t, size_t> replica_counts;
     datum_t datum = arg->as_datum();
-    if (datum->get_type() == datum_t::R_OBJECT) {
+    if (datum.get_type() == datum_t::R_OBJECT) {
         for (size_t i = 0; i < datum.obj_size(); ++i) {
             std::pair<datum_string_t, datum_t> pair = datum.get_pair(i);
             name_string_t name;
@@ -47,14 +47,14 @@ std::map<name_string_t, size_t> get_replica_counts(counted_t<val_t> arg) {
                 strprintf("Integer too large: %" PRIi64, replicas));
             replica_counts.insert(std::make_pair(name, replicas2));
         }
-    } else if (datum->get_type() == datum_t::R_NUM) {
+    } else if (datum.get_type() == datum_t::R_NUM) {
         size_t replicas = arg->as_int<size_t>();
         replica_counts.insert(std::make_pair(
             name_string_t::guarantee_valid("default"), replicas));
     } else {
         rfail_target(arg.get(), base_exc_t::GENERIC,
             "Expected type OBJECT or NUMBER but found %s:\n%s",
-            datum->get_type_name().c_str(), datum->print().c_str());
+            datum.get_type_name().c_str(), datum.print().c_str());
     }
     return replica_counts;
 }
@@ -486,7 +486,7 @@ private:
             for (size_t i = 1; i < args->num_args(); ++i) {
                 datum_t key = args->arg(env, i)->as_datum();
                 datum_t row = table->get_row(env->env, key);
-                if (row->get_type() != datum_t::R_NULL) {
+                if (row.get_type() != datum_t::R_NULL) {
                     arr.add(row);
                 }
             }

@@ -14,6 +14,7 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
+#include "containers/scoped.hpp"
 #include "rdb_protocol/context.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/real_table.hpp"
@@ -240,14 +241,14 @@ public:
     explicit readgen_t(
         const std::map<std::string, wire_func_t> &global_optargs,
         std::string table_name,
-        const datum_range_t &original_datum_range,
         profile_bool_t profile,
         sorting_t sorting);
     virtual ~readgen_t() { }
-    read_t terminal_read(
+
+    virtual read_t terminal_read(
         const std::vector<transform_variant_t> &transform,
         const terminal_variant_t &_terminal,
-        const batchspec_t &batchspec) const;
+        const batchspec_t &batchspec) const = 0;
     // This has to be on `readgen_t` because we sort differently depending on
     // the kinds of reads we're doing.
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const = 0;
@@ -255,7 +256,7 @@ public:
     virtual read_t next_read(
         const key_range_t &active_range,
         const std::vector<transform_variant_t> &transform,
-        const batchspec_t &batchspec) const;
+        const batchspec_t &batchspec) const = 0;
     // This generates a read that will read as many rows as we need to be able
     // to do an sindex sort, or nothing if no such read is necessary.  Such a
     // read should only be necessary when we're ordering by a secondary index
@@ -275,24 +276,55 @@ public:
 protected:
     const std::map<std::string, wire_func_t> global_optargs;
     const std::string table_name;
-    const datum_range_t original_datum_range;
     const profile_bool_t profile;
     const sorting_t sorting;
+};
+
+class rget_readgen_t : public readgen_t {
+public:
+    explicit rget_readgen_t(
+        const std::map<std::string, wire_func_t> &global_optargs,
+        std::string table_name,
+        const datum_range_t &original_datum_range,
+        profile_bool_t profile,
+        sorting_t sorting);
+
+    virtual read_t terminal_read(
+        const std::vector<transform_variant_t> &transform,
+        const terminal_variant_t &_terminal,
+        const batchspec_t &batchspec) const;
+
+    virtual read_t next_read(
+        const key_range_t &active_range,
+        const std::vector<transform_variant_t> &transform,
+        const batchspec_t &batchspec) const;
 
 private:
     virtual rget_read_t next_read_impl(
         const key_range_t &active_range,
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const = 0;
+
+protected:
+    const datum_range_t original_datum_range;
 };
 
-class primary_readgen_t : public readgen_t {
+class primary_readgen_t : public rget_readgen_t {
 public:
     static scoped_ptr_t<readgen_t> make(
         env_t *env,
         std::string table_name,
         datum_range_t range = datum_range_t::universe(),
         sorting_t sorting = sorting_t::UNORDERED);
+
+    virtual boost::optional<read_t> sindex_sort_read(
+        const key_range_t &active_range,
+        const std::vector<rget_item_t> &items,
+        const std::vector<transform_variant_t> &transform,
+        const batchspec_t &batchspec) const;
+    virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
+    virtual key_range_t original_keyrange() const;
+    virtual std::string sindex_name() const; // Used for error checking.
 private:
     primary_readgen_t(const std::map<std::string, wire_func_t> &global_optargs,
                       std::string table_name,
@@ -303,6 +335,17 @@ private:
         const key_range_t &active_range,
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
+};
+
+class sindex_readgen_t : public rget_readgen_t {
+public:
+    static scoped_ptr_t<readgen_t> make(
+        env_t *env,
+        std::string table_name,
+        const std::string &sindex,
+        datum_range_t range = datum_range_t::universe(),
+        sorting_t sorting = sorting_t::UNORDERED);
+
     virtual boost::optional<read_t> sindex_sort_read(
         const key_range_t &active_range,
         const std::vector<rget_item_t> &items,
@@ -311,16 +354,6 @@ private:
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual key_range_t original_keyrange() const;
     virtual std::string sindex_name() const; // Used for error checking.
-};
-
-class sindex_readgen_t : public readgen_t {
-public:
-    static scoped_ptr_t<readgen_t> make(
-        env_t *env,
-        std::string table_name,
-        const std::string &sindex,
-        datum_range_t range = datum_range_t::universe(),
-        sorting_t sorting = sorting_t::UNORDERED);
 private:
     sindex_readgen_t(
         const std::map<std::string, wire_func_t> &global_optargs,
@@ -333,6 +366,29 @@ private:
         const key_range_t &active_range,
         const std::vector<transform_variant_t> &transform,
         const batchspec_t &batchspec) const;
+
+    const std::string sindex;
+};
+
+// For geospatial intersection queries
+class intersecting_readgen_t : public readgen_t {
+public:
+    static scoped_ptr_t<readgen_t> make(
+        env_t *env,
+        std::string table_name,
+        const std::string &sindex,
+        const datum_t &query_geometry);
+
+    virtual read_t terminal_read(
+        const std::vector<transform_variant_t> &transform,
+        const terminal_variant_t &_terminal,
+        const batchspec_t &batchspec) const;
+
+    virtual read_t next_read(
+        const key_range_t &active_range,
+        const std::vector<transform_variant_t> &transform,
+        const batchspec_t &batchspec) const;
+
     virtual boost::optional<read_t> sindex_sort_read(
         const key_range_t &active_range,
         const std::vector<rget_item_t> &items,
@@ -341,28 +397,56 @@ private:
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual key_range_t original_keyrange() const;
     virtual std::string sindex_name() const; // Used for error checking.
+private:
+    intersecting_readgen_t(
+        const std::map<std::string, wire_func_t> &global_optargs,
+        std::string table_name,
+        const std::string &sindex,
+        const datum_t &query_geometry,
+        profile_bool_t profile);
+
+    // Analogue to rget_readgen_t::next_read_impl(), but generates an intersecting
+    // geo read.
+    intersecting_geo_read_t next_read_impl(
+        const key_range_t &active_range,
+        const std::vector<transform_variant_t> &transforms,
+        const batchspec_t &batchspec) const;
 
     const std::string sindex;
+    const datum_t query_geometry;
 };
 
 class reader_t {
 public:
-    explicit reader_t(
+    virtual ~reader_t() { }
+    virtual void add_transformation(transform_variant_t &&tv) = 0;
+    virtual void accumulate(env_t *env, eager_acc_t *acc,
+                            const terminal_variant_t &tv) = 0;
+    virtual void accumulate_all(env_t *env, eager_acc_t *acc) = 0;
+    virtual std::vector<datum_t> next_batch(env_t *env,
+                                            const batchspec_t &batchspec) = 0;
+    virtual bool is_finished() const = 0;
+};
+
+// For reads that generate read_response_t results
+class rget_response_reader_t : public reader_t {
+public:
+    rget_response_reader_t(
         const real_table_t &_table,
         bool use_outdated,
         scoped_ptr_t<readgen_t> &&readgen);
-    void add_transformation(transform_variant_t &&tv);
-    void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
-    void accumulate_all(env_t *env, eager_acc_t *acc);
-    std::vector<datum_t>
-    next_batch(env_t *env, const batchspec_t &batchspec);
-    bool is_finished() const;
-private:
+    virtual void add_transformation(transform_variant_t &&tv);
+    virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
+    // Overwrite this in an implementation
+    virtual void accumulate_all(env_t *env, eager_acc_t *acc) = 0;
+    virtual std::vector<datum_t> next_batch(env_t *env, const batchspec_t &batchspec);
+    virtual bool is_finished() const;
+
+protected:
     // Returns `true` if there's data in `items`.
-    bool load_items(env_t *env, const batchspec_t &batchspec);
+    // Overwrite this in an implementation
+    virtual bool load_items(env_t *env, const batchspec_t &batchspec) = 0;
     rget_read_response_t do_read(env_t *env, const read_t &read);
-    std::vector<rget_item_t> do_range_read(
-            env_t *env, const read_t &read);
 
     real_table_t table;
     const bool use_outdated;
@@ -377,12 +461,50 @@ private:
     size_t items_index;
 };
 
+class rget_reader_t : public rget_response_reader_t {
+public:
+    rget_reader_t(
+        const real_table_t &_table,
+        bool use_outdated,
+        scoped_ptr_t<readgen_t> &&readgen);
+    virtual void accumulate_all(env_t *env, eager_acc_t *acc);
+
+protected:
+    // Loads new items into the `items` field of rget_response_reader_t.
+    // Returns `true` if there's data in `items`.
+    virtual bool load_items(env_t *env, const batchspec_t &batchspec);
+
+private:
+    std::vector<rget_item_t> do_range_read(env_t *env, const read_t &read);
+};
+
+// intersecting_reader_t performs filtering for duplicate documents in the stream,
+// assuming it is read in batches (otherwise that's not necessary, because the
+// shards will already provide distinct results).
+class intersecting_reader_t : public rget_response_reader_t {
+public:
+    intersecting_reader_t(
+        const real_table_t &_table,
+        bool use_outdated,
+        scoped_ptr_t<readgen_t> &&readgen);
+    virtual void accumulate_all(env_t *env, eager_acc_t *acc);
+
+protected:
+    // Loads new items into the `items` field of rget_response_reader_t.
+    // Returns `true` if there's data in `items`.
+    virtual bool load_items(env_t *env, const batchspec_t &batchspec);
+
+private:
+    std::vector<rget_item_t> do_intersecting_read(env_t *env, const read_t &read);
+
+    // To detect duplicates
+    std::set<store_key_t> processed_pkeys;
+};
+
 class lazy_datum_stream_t : public datum_stream_t {
 public:
     lazy_datum_stream_t(
-        const real_table_t &_table,
-        bool _use_outdated,
-        scoped_ptr_t<readgen_t> &&_readgen,
+        scoped_ptr_t<reader_t> &&_reader,
         const protob_t<const Backtrace> &bt_src);
 
     virtual bool is_array() { return false; }
@@ -407,7 +529,7 @@ private:
     size_t current_batch_offset;
     std::vector<datum_t> current_batch;
 
-    reader_t reader;
+    scoped_ptr_t<reader_t> reader;
 };
 
 } // namespace ql

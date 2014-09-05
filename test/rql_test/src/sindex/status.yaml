@@ -1,11 +1,9 @@
 desc: sindex status
+table_variable_name: tbl2
 tests:
 
 # Index status tests. These are separate because they require much bigger
 # tables and it would just be a pain to keep them together.
-
-  - cd: r.db('test').table_create('sindex_status')
-    def: tbl2 = r.table('sindex_status')
 
   - def: rows = [{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},
                  {},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},
@@ -352,4 +350,3 @@ tests:
   - cd: tbl2.index_wait("quux").nth(0).get_field('function').type_of()
     ot: ("PTYPE<BINARY>")
 
-  - cd: r.db('test').table_drop('sindex_status')

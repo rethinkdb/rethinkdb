@@ -406,6 +406,64 @@ class TestPrinting(TestCaseCompatible):
         self.assertEqual(str(r.db('db1').table('tbl1').map(lambda x: x)),
                             "r.db('db1').table('tbl1').map(lambda var_1: var_1)")
 
+# Another non-connection connection test. It's to test that get_intersecting()
+# batching works properly.
+class TestGetIntersectingBatching(TestWithConnection):
+    def runTest(self):
+        import random # importing here to avoid issue #2343
+
+        c = r.connect(port=self.port)
+
+        r.db('test').table_create('t1').run(c)
+        t1 = r.db('test').table('t1')
+
+        t1.index_create('geo', geo=True).run(c)
+        t1.index_wait('geo').run(c)
+
+        batch_size = 3
+        point_count = 500
+        poly_count = 500
+        get_tries = 10
+
+        # Insert a couple of random points, so we get a well distributed range of
+        # secondary keys. Also insert a couple of large-ish polygons, so we can
+        # test filtering of duplicates on the server.
+        rseed = random.getrandbits(64)
+        random.seed(rseed)
+        print("Random seed: " + str(rseed))
+        points = []
+        for i in range(0, point_count):
+            points.append({'geo':r.point(random.uniform(-90.0, 90.0), random.uniform(-180.0, 180.0))})
+        polygons = []
+        for i in range(0, poly_count):
+            # A fairly big circle, so it will cover a large range in the secondary index
+            polygons.append({'geo':r.circle([random.uniform(-90.0, 90.0), random.uniform(-180.0, 180.0)], 1000000)})
+        t1.insert(points).run(c)
+        t1.insert(polygons).run(c)
+
+        # Check that the results are actually lazy at least some of the time
+        # While the test is randomized, chances are extremely high to get a lazy result at least once.
+        seen_lazy = False
+
+        for i in range(0, get_tries):
+            query_circle = r.circle([random.uniform(-90.0, 90.0), random.uniform(-180.0, 180.0)], 8000000);
+            reference = t1.filter(r.row['geo'].intersects(query_circle)).coerce_to("ARRAY").run(c)
+            cursor = t1.get_intersecting(query_circle, index='geo').run(c, batch_conf={'max_els':batch_size})
+            if not cursor.end_flag:
+                seen_lazy = True
+
+            itr = iter(cursor)
+            while len(reference) > 0:
+                row = next(itr)
+                self.assertEqual(reference.count(row), 1)
+                reference.remove(row)
+            self.assertRaises(StopIteration, lambda: next(itr))
+            self.assertTrue(cursor.end_flag)
+
+        self.assertTrue(seen_lazy)
+
+        r.db('test').table_drop('t1').run(c)
+
 class TestBatching(TestWithConnection):
     def runTest(self):
         c = r.connect(port=self.port)
@@ -430,6 +488,7 @@ class TestBatching(TestWithConnection):
         self.assertEqual(next(itr)['id'], ids.pop())
         self.assertRaises(StopIteration, lambda: next(itr))
         self.assertTrue(cursor.end_flag)
+        r.db('test').table_drop('t1').run(c)
 
 class TestGroupWithTimeKey(TestWithConnection):
     def runTest(self):
@@ -468,6 +527,7 @@ if __name__ == '__main__':
     suite.addTest(loader.loadTestsFromTestCase(TestShutdown))
     suite.addTest(TestPrinting())
     suite.addTest(TestBatching())
+    suite.addTest(TestGetIntersectingBatching())
     suite.addTest(TestGroupWithTimeKey())
 
     res = unittest.TextTestRunner(verbosity=2).run(suite)
