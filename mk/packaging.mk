@@ -183,6 +183,9 @@ endif
 	    cp -pPR $(path)/. $(dir) $(newline) ))
 
 $(DIST_PACKAGE_TGZ): dist-dir
+	$P CHMOD $(DIST_DIR)
+	find $(DIST_DIR) -type f -exec chmod 644 {} \;
+	find $(DIST_DIR) -type d -exec chmod 755 {} \;
 	$P TAR $@ $(DIST_DIR)
 	cd $(dir $(DIST_DIR)) && tar zfc $(notdir $@) $(notdir $(DIST_DIR))
 
