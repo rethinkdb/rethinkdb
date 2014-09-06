@@ -345,9 +345,11 @@ module 'TableView', ->
         render_feedback: (args) =>
             if @$('.main_alert').css('display') is 'none'
                 @$('.alert_content').html @alert_message_template args
+                @$('.main_alert').slideDown 'fast'
             else
-                @$('.alert_content').append @alert_message_template args
-            @$('.main_alert').slideDown 'fast'
+                @$('.main_alert').fadeOut 'fast', =>
+                    @$('.alert_content').html @alert_message_template args
+                    @$('.main_alert').fadeIn 'fast'
             @$('.main_alert_error').slideUp 'fast'
 
         render: =>
