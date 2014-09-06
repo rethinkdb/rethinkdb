@@ -19,6 +19,7 @@ module 'TableView', ->
             @fetch_data()
             @interval = setInterval @fetch_data, 5000
 
+
         fetch_data: =>
             query = r.db(system_db).table('table_status').get(@id).do (table) ->
                 r.branch(
@@ -273,7 +274,10 @@ module 'TableView', ->
 
         initialize: (data) =>
             @indexes_view = []
+            @interval_progress = null
+
             @collection = data.collection
+            @model = data.model
 
             @adding_index = false
 
@@ -286,6 +290,49 @@ module 'TableView', ->
                     loading: @loading
                     adding_index: @adding_index
 
+        set_fetch_progress: (index) =>
+            if not @interval_progress?
+                @fetch_progress()
+                @interval_progress = setInterval @fetch_progress, 1000
+
+
+        fetch_progress: =>
+            if not @model.get('db')?
+                debugger
+            if not @model.get('name')?
+                debugger
+
+            fetch_for_progress = []
+            for index in @collection.models
+                if index.get('ready') isnt true
+                    fetch_for_progress.push index.get 'index'
+
+            if fetch_for_progress.length > 0
+                query = r.db(@model.get('db')).table(@model.get('name')).indexStatus(r.args(fetch_for_progress))
+                    .pluck('index', 'ready', 'blocks_processed', 'blocks_total')
+                    .merge( (index) => {
+                        id: index("index")
+                        db: @model.get("db")
+                        table: @model.get("name")
+                    })
+
+                driver.run query, (error, result) =>
+                    if error?
+                        # This can happen if the table is temporary unavailable. We log the error, and ignore it
+                        console.log "Error while fetching secondary indexes status"
+                        console.log error
+                    else
+                        all_ready = true
+                        for index in result
+                            if index.ready isnt true
+                                all_ready = false
+                            @collection.add new Index index, {merge: true}
+                        if all_ready is true
+                            clearInterval @interval_progress
+                            @interval_progress = null
+            else
+                clearInterval @interval_progress
+                @interval_progress = null
 
 
         set_collection: (collection) =>
@@ -387,27 +434,29 @@ module 'TableView', ->
             @$('.create_btn').prop 'disabled', 'disabled'
             @$('.cancel_btn').prop 'disabled', 'disabled'
 
-            index_name = $('.new_index_name').val()
-            query = r.db(@model.get('db')).table(@model.get('name')).indexCreate(index_name)
-            driver.run query, (error, result) =>
-                @$('.create_btn').prop 'disabled', false
-                @$('.cancel_btn').prop 'disabled', false
-                that = @
-                if error?
-                    @render_error
-                        create_fail: true
-                        message: error.msg.replace('\n', '<br/>')
-                else
-                    @collection.add new Index
-                        id: index_name
-                        index: index_name
-                        db: @model.get 'db'
-                        table: @model.get 'name'
-                    @render_feedback
-                        create_ok: true
-                        name: index_name
+            index_name = @$('.new_index_name').val()
+            ((index_name) =>
+                query = r.db(@model.get('db')).table(@model.get('name')).indexCreate(index_name)
+                driver.run query, (error, result) =>
+                    @$('.create_btn').prop 'disabled', false
+                    @$('.cancel_btn').prop 'disabled', false
+                    that = @
+                    if error?
+                        @render_error
+                            create_fail: true
+                            message: error.msg.replace('\n', '<br/>')
+                    else
+                        @collection.add new Index
+                            id: index_name
+                            index: index_name
+                            db: @model.get 'db'
+                            table: @model.get 'name'
+                        @render_feedback
+                            create_ok: true
+                            name: index_name
 
-                    @hide_add_index()
+                        @hide_add_index()
+            )(index_name)
 
         # Hide alert BUT do not remove it
         hide_alert: (event) ->
@@ -438,30 +487,10 @@ module 'TableView', ->
         initialize: (data) =>
             @container = data.container
 
-        ###
-        initialize: (index, container) =>
-            @name = index.index
-            @ready = index.ready
-            @progress_bar = null
-            @container = container
-            @$el.attr('data-name', @name)
-            @blocks_processed = index.blocks_processed
-            @blocks_total = index.blocks_total
-        ###
-
-        initialize: (data) =>
-            @container = data.container
-            @interval = null
-
             @model.on 'change:blocks_processed', @update
             @model.on 'change:ready', @update
-            #@model.on 'change:ready', @update
-            #@model.on 'change:blocks_processed', @update
-            #console.log @model
 
         update: (args) =>
-            console.log '----- update ----'
-
             if @model.get('ready') is false
                 @render_progress_bar()
             else
@@ -471,49 +500,19 @@ module 'TableView', ->
                     @render()
 
         render: =>
-            if @interval? and @model.get('ready') is true
-                clearInterval @interval
-                @interval = null
-            else if @model.get('ready') is false and not @interval?
-                @fetch_progress()
-                @interval = setInterval @fetch_progress, 1000
-
             @$el.html @template
                 is_empty: @model.get('name') is ''
                 name: @model.get 'index'
                 ready: @model.get 'ready'
 
             if @model.get('ready') is false
-                console.log 'calling render_progress_bar'
                 @render_progress_bar()
+                @container.set_fetch_progress()
             @
-
-        #TODO Move in container to group queries for multiple progress bars
-        fetch_progress: =>
-            query = r.db(@model.get('db')).table(@model.get('table')).indexStatus(@model.get('index'))
-                .pluck('index', 'ready', 'blocks_processed', 'blocks_total')
-                .merge( (index) => {
-                    id: index("index")
-                    db: @model.get("db")
-                    table: @model.get("table")
-                }).nth(0)
-
-            driver.run query, (error, result) =>
-                if error?
-                    #TODO: Not sure what to do here
-                    console.log "ERROR"
-                    console.log error
-                else
-                    @model.set result
-                    console.log @model.get 'blocks_processed'
-                    console.log @model.get 'blocks_total'
-
 
         render_progress_bar: =>
             blocks_processed = @model.get 'blocks_processed'
             blocks_total = @model.get 'blocks_total'
-
-            console.log '----- render progress bar ----'
 
             if @progress_bar?
                 if @model.get('ready') is true
@@ -530,10 +529,6 @@ module 'TableView', ->
                 @progress_bar = new UIComponents.OperationProgressBar @progress_template
                 @$('.progress_li').html @progress_bar.render(0, Infinity, {new_value: true, check: true}).$el
 
-            if not @interval?
-                @fetch_progress()
-                @interval = setInterval @fetch_progress, 1000
-
         # Show a confirmation before deleting a secondary index
         confirm_delete: (event) =>
             event.preventDefault()
@@ -546,7 +541,7 @@ module 'TableView', ->
                 if error?
                     @container.render_error
                         delete_fail: true
-                        message: err.msg.replace('\n', '<br/>')
+                        message: error.msg.replace('\n', '<br/>')
                 else if result.dropped is 1
                     @container.render_feedback
                         delete_ok: true
@@ -562,8 +557,6 @@ module 'TableView', ->
             @$('.alert_confirm_delete').slideUp 'fast'
 
         remove: =>
-            if @interval?
-                clearInterval @interval
             if @progress_bar?
                 @progress_bar.destroy()
             super()
