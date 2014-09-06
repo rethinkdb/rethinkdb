@@ -505,6 +505,9 @@ class RqlQuery(object):
     def fill(self, *args):
         return Fill(self, *args)
 
+    def polygon_sub(self, *args):
+        return PolygonSub(self, *args)
+
 # These classes define how nodes are printed by overloading `compose`
 
 def needs_wrap(arg):
@@ -1428,6 +1431,10 @@ class Circle(RqlMethodQuery):
 class Fill(RqlMethodQuery):
     tt = pTerm.FILL
     st = 'fill'
+
+class PolygonSub(RqlMethodQuery):
+    tt = pTerm.POLYGON_SUB
+    st = 'polygon_sub'
 
 # Returns True if IMPLICIT_VAR is found in the subquery
 def _ivar_scan(query):

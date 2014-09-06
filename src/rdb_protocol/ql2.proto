@@ -675,6 +675,7 @@ message Term {
         GET_INTERSECTING = 166;  // TABLE, PSEUDOTYPE(GEOMETRY) {index:!STRING} -> StreamSelection
         FILL = 167;              // PSEUDOTYPE(GEOMETRY) -> PSEUDOTYPE(GEOMETRY)
         GET_NEAREST = 168;       // TABLE, PSEUDOTYPE(GEOMETRY) {index:!STRING, max_results:NUM, max_dist:NUM, geo_system:STRING, unit:STRING} -> ARRAY
+        POLYGON_SUB = 171;       // PSEUDOTYPE(GEOMETRY), PSEUDOTYPE(GEOMETRY) -> PSEUDOTYPE(GEOMETRY)
     }
     optional TermType type = 1;
 

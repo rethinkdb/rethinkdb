@@ -139,6 +139,8 @@ counted_t<term_t> make_fill_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_get_nearest_term(
     compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_polygon_sub_term(
+    compile_env_t *env, const protob_t<const Term> &term);
 
 // js.cc
 counted_t<term_t> make_javascript_term(

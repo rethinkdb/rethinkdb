@@ -184,6 +184,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::FILL:               return make_fill_term(env, t);
     case Term::GET_NEAREST:        return make_get_nearest_term(env, t);
     case Term::UUID:               return make_uuid_term(env, t);
+    case Term::POLYGON_SUB:        return make_polygon_sub_term(env, t);
     default: unreachable();
     }
     unreachable();
