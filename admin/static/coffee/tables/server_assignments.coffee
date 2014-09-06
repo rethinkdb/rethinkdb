@@ -1,5 +1,5 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
-module 'NamespaceView', ->
+module 'TableView', ->
     class @ServerAssignments extends Backbone.View
         template: Handlebars.templates['namespace_view-server_assignments-template']
         popup_template: Handlebars.templates['popup_content-template']

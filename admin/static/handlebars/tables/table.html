@@ -32,14 +32,14 @@
     </div>
 </script>
 
-<script id="namespace_view_title-template" type="text/x-handlebars-template">
+<script id="table_title-template" type="text/x-handlebars-template">
     <h1 class="title">Table overview for {{db}}.{{name}}</h1>
 </script>
 
-<script id="namespace_view-profile-template" type="text/x-handlebars-template">
+<script id="table_profile-template" type="text/x-handlebars-template">
     <div class="summary">
         <div class="stat-row first">
-            <p class="availability"><span class="big">{{humanize_namespace_reachability reachability}}</span></p>
+            <p class="availability"><span class="big">{{humanize_namespace_reachability status}}</span></p>
         </div>
         <div class="stat-row">
             {{#if total_keys_available}}
@@ -49,13 +49,15 @@
             {{/if}}
         </div>
         <div class="stat-row">
-            <p class="masters"><span class="big">{{nashards}}/{{nshards}} </span> masters reachable</p>
+            <p class="masters"><span class="big">{{num_available_shards}}/{{num_shards}} </span> masters reachable</p>
         </div>
         <div class="stat-row">
-            <p class="replicas"><span class="big">{{nareplicas}}/{{nreplicas}} </span> replicas reachable</p>
+            <p class="replicas"><span class="big">{{num_available_replicas}}/{{num_replicas}} </span> replicas reachable</p>
         </div>
     </div>
 </script>
+
+
 
 
 <script id="namespace_view-secondary_indexes-template" type="text/x-handlebars-template">
@@ -73,9 +75,12 @@
         {{#if loading}}
         <p>Loading...</p>
         {{else}}
-        <ul class="list_secondary_indexes">
+        <ul class="list_meta">
             <li class="square_li no_index">No secondary indexes found.</li>
-
+        </ul>
+        <ul class="list_secondary_indexes">
+        </ul>
+        <ul class="list_meta">
             <li class="square_li input_li add_index_li"><input type="text" class="new_index_name" placeholder="name of the key" /><button class="btn cancel_btn">Cancel</button><button class="btn create_btn">Create</button></li>
         </ul>
         <div class="create_container"><a href="#" class="create_link">Create a new secondary index &rarr;</a></div>

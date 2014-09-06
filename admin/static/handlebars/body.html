@@ -36,6 +36,27 @@
     </div>
 </script>
 
+<script id="loading-template" type="text/x-handlebars-template">
+    <!-- TODO Improve style/content -->
+    Loading...
+</script>
+<script id="error-query-template" type="text/x-handlebars-template">
+    <div class="section">
+        <h2 class="title">Error</h1>
+        <p>The request to retrieve data failed. You can try to <a href="{{url}}">refresh</a>.</p>
+        <p>Error:</p>
+        {{#if error}}<pre>{{error}}</pre>{{/if}}
+    </div>
+</script>
+<script id="element_view-not_found-template" type="text/x-handlebars-template">
+    <div class="section">
+        <h2 class="title">Error</h1>
+        <p>{{capitalize type}} {{id}} could not be found.</p>
+        <p>You can try to <a href="/#{{type_url}}/{{id}}">refresh</a> or see a list of all <a href="/#{{type_all_url}}">{{pluralize_noun type 2}}</a>.</p>
+    </div>
+</script>
+
+
 <script id="has_update-template" type="text/x-handlebars-template">
     <a class="close" href="#">&times;</a>
     <p><strong>Update found:</strong> A new version of RethinkDB is available (version {{last_version}}): see the <a href="{{link_changelog}}" target="_blank" class="release_link">release announcement</a> for details.</p>
@@ -59,15 +80,6 @@
 <script id="is_disconnected_message-template" type="text/x-handlebars-template">
     Failed to reconnect. Trying again   
 </script>
-
-<script id="element_view-not_found-template" type="text/x-handlebars-template">
-    <div class="section">
-        <h2 class="title">Error</h1>
-        <p>{{capitalize type}} {{id}} could not be found.</p>
-        <p>You can try to <a href="/#{{type_url}}/{{id}}">refresh</a> or see a list of all <a href="/#{{type_all_url}}">{{pluralize_noun type 2}}</a>.</p>
-    </div>
-</script>
-
 
 
 <script id="options_view-template" type="text/x-handlebars-template">

@@ -1,7 +1,7 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 
 # Namespace view
-module 'NamespaceView', ->
+module 'TableView', ->
     class @Replicas extends Backbone.View
         className: 'namespace-replicas'
         template: Handlebars.templates['namespace_view-replica-template']
@@ -67,8 +67,8 @@ module 'NamespaceView', ->
                 num_replicas += @model.get('replica_affinities')[datacenter_id]
             @expected_num_replicas = num_replicas*num_shards # Stores the number of replicas we expect
 
-            @universe_replicas = new NamespaceView.DatacenterReplicas universe_datacenter.get('id'), @model
-            @primary_datacenter = new NamespaceView.PrimaryDatacenter model: @model
+            @universe_replicas = new TableView.DatacenterReplicas universe_datacenter.get('id'), @model
+            @primary_datacenter = new TableView.PrimaryDatacenter model: @model
 
             @render_status() # Render the status
 
@@ -291,7 +291,7 @@ module 'NamespaceView', ->
             @active_datacenter_id = datacenter_id
             @datacenter_id_shown = datacenter_id
             @datacenter_view.destroy() if @datacenter_view?
-            @datacenter_view = new NamespaceView.DatacenterReplicas @datacenter_id_shown, @model
+            @datacenter_view = new TableView.DatacenterReplicas @datacenter_id_shown, @model
 
             @.$('.datacenter_content').html @datacenter_view.render().$el
             @datacenter_view.is_modifiable @can_change_replicas
