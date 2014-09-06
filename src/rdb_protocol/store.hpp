@@ -260,13 +260,18 @@ public:
         THROWS_ONLY(sindex_not_ready_exc_t);
 
     struct sindex_access_t {
-        sindex_access_t(btree_slice_t *_btree, secondary_index_t _sindex,
+        sindex_access_t(btree_slice_t *_btree,
+                        sindex_name_t _name,
+                        secondary_index_t _sindex,
                         scoped_ptr_t<real_superblock_t> _super_block)
-            : btree(_btree), sindex(_sindex),
+            : btree(_btree),
+              name(std::move(_name)),
+              sindex(std::move(_sindex)),
               super_block(std::move(_super_block))
         { }
 
         btree_slice_t *btree;
+        sindex_name_t name;
         secondary_index_t sindex;
         scoped_ptr_t<real_superblock_t> super_block;
     };

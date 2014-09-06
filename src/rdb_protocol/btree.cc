@@ -848,9 +848,10 @@ public:
               boost::optional<rget_sindex_data_t> &&_sindex,
               const key_range_t &range);
 
-    virtual done_traversing_t handle_pair(scoped_key_value_t &&keyvalue,
-                               concurrent_traversal_fifo_enforcer_signal_t waiter)
-    THROWS_ONLY(interrupted_exc_t);
+    virtual done_traversing_t handle_pair(
+        scoped_key_value_t &&keyvalue,
+        concurrent_traversal_fifo_enforcer_signal_t waiter)
+        THROWS_ONLY(interrupted_exc_t);
     void finish() THROWS_ONLY(interrupted_exc_t);
 private:
     const rget_io_data_t io; // How do get data in/out.
@@ -887,9 +888,10 @@ void rget_cb_t::finish() THROWS_ONLY(interrupted_exc_t) {
 }
 
 // Handle a keyvalue pair.  Returns whether or not we're done early.
-done_traversing_t rget_cb_t::handle_pair(scoped_key_value_t &&keyvalue,
-                              concurrent_traversal_fifo_enforcer_signal_t waiter)
-THROWS_ONLY(interrupted_exc_t) {
+done_traversing_t rget_cb_t::handle_pair(
+    scoped_key_value_t &&keyvalue,
+    concurrent_traversal_fifo_enforcer_signal_t waiter)
+    THROWS_ONLY(interrupted_exc_t) {
     sampler->new_sample();
 
     if (bad_init || boost::get<ql::exc_t>(&io.response->result) != NULL) {
@@ -1428,6 +1430,13 @@ void rdb_update_single_sindex(
 
     superblock_t *super_block = sindex->super_block.get();
 
+    // RSI: handle primary key too.
+    std::map<uuid_u, ql::changefeed::limit_manager_t> empty_map;
+    const auto &limit_clients = store->changefeed_server->limit_clients;
+    auto it = limit_clients[sindex->name.name];
+    std::map<uuid_u, ql::changefeed::limit_manager_t> *limit_managers
+        = (it == limit_clients.end() ? empty_map : it->second);
+
     if (modification->info.deleted.first) {
         guarantee(!modification->info.deleted.second.empty());
         try {
@@ -1436,6 +1445,11 @@ void rdb_update_single_sindex(
             std::vector<store_key_t> keys;
 
             compute_keys(modification->primary_key, deleted, sindex_info, &keys);
+            for (const auto &key : keys) {
+                for (const auto &pair : *limit_managers) {
+                    pair.second->del(key);
+                }
+            }
 
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
@@ -1443,19 +1457,23 @@ void rdb_update_single_sindex(
                     keyvalue_location_t kv_location;
                     rdb_value_sizer_t sizer(super_block->cache()->max_block_size());
 
-
-                    find_keyvalue_location_for_write(&sizer,
-                                                     super_block,
-                                                     it->btree_key(),
-                                                     deletion_context->balancing_detacher(),
-                                                     &kv_location,
-                                                     &sindex->btree->stats,
-                                                     trace,
-                                                     &return_superblock_local);
+                    find_keyvalue_location_for_write(
+                        &sizer,
+                        super_block,
+                        it->btree_key(),
+                        deletion_context->balancing_detacher(),
+                        &kv_location,
+                        &sindex->btree->stats,
+                        trace,
+                        &return_superblock_local);
 
                     if (kv_location.value.has()) {
-                        kv_location_delete(&kv_location, *it,
-                            repli_timestamp_t::distant_past, deletion_context, NULL);
+                        kv_location_delete(
+                            &kv_location,
+                            *it,
+                            repli_timestamp_t::distant_past,
+                            deletion_context,
+                            NULL);
                     }
                     // The keyvalue location gets destroyed here.
                 }
@@ -1478,6 +1496,11 @@ void rdb_update_single_sindex(
             std::vector<store_key_t> keys;
 
             compute_keys(modification->primary_key, added, sindex_info, &keys);
+            for (const auto &key : keys) {
+                for (const auto &pair : *limit_managers) {
+                    pair.second->add(std::make_pair(key, added));
+                }
+            }
 
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
@@ -1485,14 +1508,15 @@ void rdb_update_single_sindex(
                     keyvalue_location_t kv_location;
 
                     rdb_value_sizer_t sizer(super_block->cache()->max_block_size());
-                    find_keyvalue_location_for_write(&sizer,
-                                                     super_block,
-                                                     it->btree_key(),
-                                                     deletion_context->balancing_detacher(),
-                                                     &kv_location,
-                                                     &sindex->btree->stats,
-                                                     trace,
-                                                     &return_superblock_local);
+                    find_keyvalue_location_for_write(
+                        &sizer,
+                        super_block,
+                        it->btree_key(),
+                        deletion_context->balancing_detacher(),
+                        &kv_location,
+                        &sindex->btree->stats,
+                        trace,
+                        &return_superblock_local);
 
                     ql::serialization_result_t res =
                         kv_location_set(&kv_location, *it,
@@ -1509,6 +1533,12 @@ void rdb_update_single_sindex(
             // Do nothing (we just drop the row from the index).
         }
     }
+
+    for (const auto &pair : *limit_managers) {
+        pair.second->commit(
+            [](const store_key_t &last_active, size_t n,
+               store_key_t *key_out, datum_t *row_out) {
+                rdb_rget_secondary_slice(//RSI: from here, use custom accumulator
 }
 
 void rdb_update_sindexes(const store_t::sindex_access_vector_t &sindexes,
@@ -1517,9 +1547,9 @@ void rdb_update_sindexes(const store_t::sindex_access_vector_t &sindexes,
     {
         auto_drainer_t drainer;
 
-        for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
+        for (const auto &sindex : sindexes) {
             coro_t::spawn_sometime(std::bind(
-                        &rdb_update_single_sindex, it->get(), deletion_context,
+                        &rdb_update_single_sindex, sindex.get(), deletion_context,
                         modification, auto_drainer_t::lock_t(&drainer)));
         }
     }

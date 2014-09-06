@@ -63,6 +63,14 @@ void server_t::add_client(const client_t::addr_t &addr, region_t region) {
     }
 }
 
+void server_t::add_limit_client(
+    const client_t::addr_t &addr,
+    const region_t &region,
+    const uuid_u &uuid,
+    const keyspec_t::limit_t &spec) {
+    // RSI: do
+}
+
 void server_t::add_client_cb(signal_t *stopped, client_t::addr_t addr) {
     auto_drainer_t::lock_t coro_lock(&drainer);
     {
@@ -116,7 +124,7 @@ void server_t::send_one_with_lock(
     send(manager, client->first, stamped_msg_t(uuid, stamp, std::move(msg)));
 }
 
-void server_t::send_all(msg_t msg, const store_key_t &key) {
+void server_t::send_all(const msg_t &msg, const store_key_t &key) {
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
@@ -448,6 +456,44 @@ private:
     keyspec_t::range_t spec;
 };
 
+void limit_manager_t::update(
+    const boost::optional<store_key_t> &old_key,
+    const boost::optional<std::pair<store_key_t, datum_t> > &new_val,
+    const std::function<bool(const store_key_t &last_active,
+                             store_key_t *key_out,
+                             datum_t *row_out)> &find_next) {
+    datum_t old_send, new_send;
+    if (old_key) {
+        auto it = data.find(*old_key);
+        if (it != data.end()) {
+            old_send = it->second;
+            data.erase(it);
+        }
+    }
+    if (new_val) {
+        const store_key_t &new_key = new_val->first;
+        // RSI: cmp
+        if (new_key < data.crbegin()->first) {
+            new_send = new_val->second;
+            data.insert(*new_val);
+        }
+    }
+    if (data.size() > spec.limit) {
+        guarantee(new_val.has() && !old_val.has());
+        auto it = data.crbegin();
+        old_send = it->second;
+        data.erase(it);
+        guarantee(data.size() == spec.limit);
+    } else if (data.size() < spec.limit) {
+        store_key_t key;
+        if (find_next(data.size() == 0 ? store_key_t::min() : data.crbegin()->first
+                      &key, &new_send)) {
+            data.insert(std::make_pair(std::move(key), new_send));
+        }
+    }
+
+}
+
 class limit_sub_t : public subscription_t {
 public:
     // Throws QL exceptions.
@@ -457,6 +503,7 @@ public:
           need_init(-1),
           spec(std::move(_spec)),
           active_data([](const data_it_t &a, const data_it_t &b) {
+                  // RSI: cmp
                   return a->first < b->first;
               }) {
         feed->add_limit_sub(this, uuid);
@@ -485,6 +532,7 @@ public:
             auto res = data.insert(pair);
             guarantee(res.second);
             auto it = res.first;
+            // RSI: cmp
             if (it->first < (*active_data.crbegin())->first) {
                 active_data.insert(it);
             }
@@ -526,6 +574,7 @@ public:
             auto res = data.insert(*new_val);
             guarantee(res.second);
             auto it = res.first;
+            // RSI: cmp
             if (it->first < (*active_data.crbegin())->first) {
                 active_data.insert(it);
                 // The new value is in the old set bounds (and thus in the set).

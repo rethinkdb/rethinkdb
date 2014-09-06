@@ -176,7 +176,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const changefeed_limit_subscribe_t &s) {
         guarantee(store->changefeed_server.has());
-        store->changefeed_server->add_limit_client(s.addr, s.uuid, s.spec, s.region);
+        store->changefeed_server->add_limit_client(s.addr, s.region, s.uuid, s.spec);
         response->response = changefeed_limit_subscribe_response_t(1);
     }
 

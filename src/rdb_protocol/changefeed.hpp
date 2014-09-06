@@ -194,6 +194,23 @@ private:
 
 typedef mailbox_addr_t<void(client_addr_t)> server_addr_t;
 
+class limit_manager_t {
+public:
+    limit_manager_t(keyspec_t _spec, decltype(data) &&start_data)
+        : spec(std::move(_spec)), data(std::move(start_data)) { }
+    void del(const store_key_t &key);
+    void add(std::pair<store_key_t, datum_t> al);
+    void commit(
+        const std::function<bool(const store_key_t &last_active,
+                                 size_t n,
+                                 store_key_t *key_out,
+                                 datum_t *row_out)> &find_next,
+        const std::function<void(const msg_t &msg)> send);
+private:
+    keyspec_t spec;
+    std::map<store_key_t, datum_t> data;
+};
+
 // There is one `server_t` per `store_t`, and it is used to send changes that
 // occur on that `store_t` to any subscribed `feed_t`s contained in a
 // `client_t`.
@@ -203,8 +220,13 @@ public:
     explicit server_t(mailbox_manager_t *_manager);
     ~server_t();
     void add_client(const client_t::addr_t &addr, region_t region);
+    void add_limit_client(
+        const client_t::addr_t &addr,
+        const region_t &region,
+        const uuid_u &uuid,
+        const keyspec_t::limit_t &spec);
     // `key` should be non-NULL if there is a key associated with the message.
-    void send_all(msg_t msg, const store_key_t &key);
+    void send_all(const msg_t &msg, const store_key_t &key);
     void stop_all();
     addr_t get_stop_addr();
     uint64_t get_stamp(const client_t::addr_t &addr);
@@ -223,6 +245,7 @@ private:
         scoped_ptr_t<cond_t> cond;
         uint64_t stamp;
         std::vector<region_t> regions;
+        std::map<std::string, std::map<uuid_u, limit_manager_t> > limit_clients;
     };
     std::map<client_t::addr_t, client_info_t> clients;
 
