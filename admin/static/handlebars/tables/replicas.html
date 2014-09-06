@@ -1,23 +1,33 @@
-<script id="namespace_view-replica-template" type="text/x-handlebars-template">
+<script id="replica-template" type="text/x-handlebars-template">
     <h2 class="title">Replication status</h2>
     <div class="alert alert-error cannot_change_replicas">
         Please resolve the cluster configuration conflict before changing replicas.
     </div>
 
-    <div class="progress_bar_container"></div>
     <div class="replica-status"></div>
     <h2 class="title">Replication settings</h2>
-    <div class="alert alert-error no_datacenter_found"><p>The primary datacenter of this table was not found. Please specify another primary datacenter (or Universe).</p></div>
-    <div class="alert alert-error ack_greater_than_replicas"></div>
-    <div class="cluster_container"></div>
-    <a href="#" class="toggle-mdc show-mdc">Show multi datacenter options &rarr;</a>
-    <a href="#" class="toggle-mdc hide-mdc">Hide multi datacenter options &rarr;</a>
-    <div class="mdc-options hidden">
-        <div class="row-fluid">
-            <div class="span3 tabbable tabs-left datacenters_list_container"></div>
-            <div class="span9 tab-content datacenter_content"></div>
+    <div class="alert alert-error settings_alert"></div>
+    <div class="cluster_container">
+        <div class="cluster-info replica_container">
+            <div class="status-alert alert"></div>
+            {{#if editable}}
+                <button class="cancel btn">&times;</button>
+                <button class="save update-replicas btn">Update</button>
+            {{else}}
+                <button class="edit btn">Edit</button>
+            {{/if}}
+            <div class="cluster-replicas">
+                {{#if editable}}
+                    <p>
+                        <input type="text" id="replicas_value" value="{{num_replicas_per_shard}}" class="inline_edit_input">
+                        <span class="caption">replicas</span>
+                    </p>
+                    <p class="max-value">max replicas: {{max_replicas}}</p>
+                {{else}}
+                    <p><span class="value">{{num_replicas_per_shard}}</span> <span class="caption">replicas per shard</p>
+                {{/if}}
+            </div>
         </div>
-        <div class="primary-dc"></div>
     </div>
 </script>
 
@@ -32,41 +42,6 @@
             <a href="#tables/{{namespace_id}}/{{id}}" data-datacenter_id="{{id}}" class="nav_datacenter">{{name}}</a>
         </div>
         {{/each}}
-    </div>
-</script>
-
-<script id="namespace_view-universe_replica-template" type="text/x-handlebars-template">
-    <div class="cluster-info replica_container">
-        <div class="replicas_acks-alert alert alert-error"></div>
-        <div class="status-alert alert"></div>
-        {{#if editable}}
-            <button class="cancel btn">&times;</button>
-            <button class="save update-replicas btn">Update</button>
-        {{else}}
-            <button class="edit btn">Edit</button>
-        {{/if}}
-        <div class="cluster-replicas">
-            {{#if editable}}
-                <p>
-                    <input type="text" id="replicas_value" value="{{replicas}}" class="inline_edit_input">
-                    <span class="caption">replicas</span>
-                </p>
-                <p class="max-value">max replicas: {{max_replicas}}</p>
-            {{else}}
-                <p><span class="value">{{replicas}}</span> <span class="caption">replicas</p>
-            {{/if}}
-        </div>
-        <div class="cluster-acks">
-            {{#if editable}}
-                <p>
-                    <input type="text" id="acks_value" value="{{acks}}" class="inline_edit_input">
-                    <span class="caption">write acks</span>
-                </p>
-                <p class="max-value">max acks: {{max_acks}}</p>
-            {{else}}
-                <p><span class="value">{{acks}}</span> <span class="caption">write acks</span></p>
-            {{/if}}
-        </div>
     </div>
 </script>
 
@@ -113,18 +88,19 @@
         </div>
     </div>
 </script>
-<script id="namespace_view-edit_datacenter_replica-alert_messages-template" type="text/x-handlebars-template">
-    {{#if need_replica_for_primary}}
-    You need to set at least one replica before making this datacenter primary.
-    {{/if}}
+<script id="replica-alert-template" type="text/x-handlebars-template">
     {{#if too_many_replicas}}
-    The number of replicas ({{num_replicas}}) cannot exceed the total number of servers ({{max_machines}}).
+    The number of replicas ({{num_replicas}}) cannot exceed the total number of servers ({{max_num_replicas}}).
+    {{/if}}
+    {{#if not_int}}
+    The number of replicas must be an integer.
     {{/if}}
     {{#if need_at_least_one_replica}}
-    The number of replicas must be at least one because {{name}} is the primary datacenter for this table.
+    The number of replicas must be at least one.
     {{/if}}
-    {{#if too_many_acks}}
-    The number of acks ({{num_acks}}) cannot exceed the total number of replicas ({{num_replicas}}).
+    {{#if server_error}}
+    The server could not update the replicas. Error:
+    <pre>{{error.msg}}</pre>
     {{/if}}
 </script>
 <script id="namespace_view-edit_datacenter_replica-replication_status-template" type="text/x-handlebars-template">
@@ -134,7 +110,7 @@
     <div class="close" href="#">&times;</div>
     <p>Replication complete</p>
 </script>
-
+MaMaMaMaMaMaMaMaMaMaMaMaMa
 <script id="namespace_view-edit_datacenter_replica-error-template" type="text/x-handlebars-template">
     <p>
     {{#each msg_errors}}

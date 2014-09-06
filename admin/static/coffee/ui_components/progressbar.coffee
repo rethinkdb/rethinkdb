@@ -3,14 +3,16 @@
 
 module 'UIComponents', ->
     # Progress bar that has different states
+    # TODO clean this class, it's messy
     class @OperationProgressBar extends Backbone.View
         # These are the possible states for the ProgressBar
         states: ['none', 'starting', 'processing', 'finished']
-        stage: 'none'
 
         # The initialize function takes one optional argument:
         #   - template: optional custom template
         initialize: (template) ->
+            @stage = 'none'
+
             if template?
                 @template = template
             else
@@ -107,6 +109,8 @@ module 'UIComponents', ->
 
             return @
        
+        get_stage: =>
+            @stage
         skip_to_processing: =>
             @stage = 'processing'
             if @timeout? # If there is a timeout, we have to clear it, we are not done yet

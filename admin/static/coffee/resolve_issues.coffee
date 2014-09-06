@@ -601,6 +601,7 @@ module 'ResolveIssuesView', ->
 
         render: ->
             _template = @templates[@model.get('type')]
+            return @
             switch @model.get('type')
                 when 'MACHINE_DOWN'
                     @render_machine_down _template

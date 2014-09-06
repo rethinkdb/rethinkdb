@@ -21,31 +21,42 @@ module 'TableView', ->
 
 
         fetch_data: =>
-            query = r.db(system_db).table('table_status').get(@id).do (table) ->
-                r.branch(
-                    table.eq(null),
-                    null,
-                    table.merge(
-                        num_shards: table("shards").count()
-                        num_available_shards: table("shards").concatMap( (shard) -> shard ).filter({role: "director", state: "ready"}).count()
-                        num_replicas: table("shards").concatMap( (shard) -> shard ).count()
-                        num_available_replicas: table("shards").concatMap( (shard) -> shard ).filter({state: "ready"}).count()
-                    ).do( (table) ->
-                        r.branch( # We must be sure that the table is ready before retrieving the indexes
-                            table("ready_completely"),
-                            table.merge({
-                                indexes: r.db(table("db")).table(table("name")).indexStatus()
-                                    .pluck('index', 'ready', 'blocks_processed', 'blocks_total')
-                                    .merge( (index) -> {
-                                        id: index("index")
-                                        db: table("db")
-                                        table: table("name")
-                                    }) # add an id for backbone
-                            }),
-                            table.merge({indexes: null})
+            ignore = (shard) -> shard('role').ne('nothing')
+            query =
+                r.db(system_db).table('server_config').count().do( (num_servers) =>
+                    r.db(system_db).table('table_status').get(@id).do( (table) ->
+                        r.branch(
+                            table.eq(null),
+                            null,
+                            table.merge(
+                                num_shards: table("shards").count()
+                                num_available_shards: table("shards").concatMap( (shard) -> shard ).filter({role: "director", state: "ready"}).count()
+                                num_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).count()
+                                num_available_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).filter({state: "ready"}).count()
+                                max_replicas: num_servers
+                                num_replicas_per_shard: table("shards").nth(0).filter(ignore).count()
+                            ).do( (table) ->
+                                r.branch( # We must be sure that the table is ready before retrieving the indexes
+                                    table("num_available_shards").eq(table("num_shards")),
+                                    table.merge({
+                                        indexes: r.db(table("db")).table(table("name")).indexStatus()
+                                            .pluck('index', 'ready', 'blocks_processed', 'blocks_total')
+                                            .merge( (index) -> {
+                                                id: index("index")
+                                                db: table("db")
+                                                table: table("name")
+                                            }) # add an id for backbone
+                                    }),
+                                    table.merge({indexes: null})
+                                )
+                            )
                         )
                     )
                 )
+            ###
+            # If we need the table to be ready before fetching indexes?
+            ###
+
             driver.run query, (error, result) =>
                 ###
                 console.log '---- err, result -----'
@@ -81,7 +92,7 @@ module 'TableView', ->
                                     @indexes.set _.map result.indexes, (index) -> new Index index
                                 else
                                     @indexes = new Indexes _.map result.indexes, (index) -> new Index index
-                                    @tablew_view.set_collection @collection
+                                    @tablew_view.set_collection @indexes
                                 delete result.indexes
                             @model.set result
 
@@ -92,7 +103,7 @@ module 'TableView', ->
         render: =>
             if @error?
                 @$el.html @template.error
-                    error: @error?.message 
+                    error: @error?.message
                     url: '#tables/'+@id
             else if @loading is true
                 @$el.html @template.loading()
@@ -131,8 +142,8 @@ module 'TableView', ->
             @secondary_indexes_view = new TableView.SecondaryIndexesView
                 collection: @collection
                 model: @model
+            @replicas = new TableView.Replicas({model: @model})
             ###
-            @replicas = new TableView.Replicas(model: @model)
             @shards = new TableView.Sharding(model: @model)
             @server_assignments = new TableView.ServerAssignments(model: @model)
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance,
@@ -159,10 +170,12 @@ module 'TableView', ->
 
             ###
             @.$('.performance-graph').html @performance_graph.render().$el
+            ###
 
             # Display the replicas
             @.$('.replication').html @replicas.render().el
 
+            ###
             # Display the shards
             @.$('.sharding').html @shards.render().el
 
@@ -319,7 +332,7 @@ module 'TableView', ->
                 driver.run query, (error, result) =>
                     if error?
                         # This can happen if the table is temporary unavailable. We log the error, and ignore it
-                        console.log "Error while fetching secondary indexes status"
+                        console.log "Nothing bad - Could not fetch secondary indexes statuses"
                         console.log error
                     else
                         all_ready = true
@@ -336,6 +349,7 @@ module 'TableView', ->
 
 
         set_collection: (collection) =>
+            console.log 'set collection'
             @collection = collection
             @hook()
 
