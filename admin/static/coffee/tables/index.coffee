@@ -50,8 +50,8 @@ module 'TablesView', ->
             @databases_list = new TablesView.DatabasesListView
                 collection: @databases
 
-            @fetch_servers()
-            @interval = setInterval @fetch_servers, 5000
+            @fetch_data()
+            @interval = setInterval @fetch_data, 5000
 
             @loading = true # TODO Render that
 
@@ -68,14 +68,13 @@ module 'TablesView', ->
                 message: message
 
 
-        fetch_servers: =>
-            #TODO Replace later with server_status
+        fetch_data: =>
             query = r.dbList().filter( (db) ->
                 db.ne('rethinkdb')
             ).orderBy(r.row).map (db) ->
                 db: db
                 id: db # TODO: Use db_config (when available) and remove this merge
-                tables: r.db('rethinkdb').table('table_status').orderBy((table) -> table("name"))
+                tables: r.db(system_db).table('table_status').orderBy((table) -> table("name"))
                     .filter({db: db}).merge( (table) ->
                         shards: table("shards").count()
                         replicas: table("shards").nth(0).count()
@@ -84,9 +83,6 @@ module 'TablesView', ->
                     )
 
             driver.run query, (error, result) =>
-                console.log '---- err, result ---'
-                console.log error
-                console.log result
                 if error
                     #TODO
                     console.log error

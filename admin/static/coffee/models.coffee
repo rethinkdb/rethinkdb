@@ -24,6 +24,14 @@ class Databases extends Backbone.Collection
 
 class Database extends Backbone.Model
 
+
+class Indexes extends Backbone.Collection
+    model: Index
+    name: 'Indexes'
+    comparator: 'index'
+
+class Index extends Backbone.Model
+
 class Namespace extends Backbone.Model
     initialize: ->
         # Add a computed shards property for convenience and metadata

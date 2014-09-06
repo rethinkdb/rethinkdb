@@ -1,6 +1,6 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 # Namespace view
-module 'NamespaceView', ->
+module 'TableView', ->
     # Hardcoded!
     MAX_SHARD_COUNT = 32
 

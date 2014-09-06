@@ -1,23 +1,116 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 # Namespace view
-module 'NamespaceView', ->
-    class @NotFound extends Backbone.View
-        template: Handlebars.templates['element_view-not_found-template']
-        initialize: (id) ->
-            @id = id
-        render: =>
-            @.$el.html @template
-                id: @id
-                type: 'table'
-                type_url: 'tables'
-                type_all_url: 'tables'
-            return @
 
-    # Container for the entire namespace view
-    class @Container extends Backbone.View
+module 'TableView', ->
+    class @TableContainer extends Backbone.View
+        template:
+            not_found: Handlebars.templates['element_view-not_found-template']
+            loading: Handlebars.templates['loading-template']
+            error: Handlebars.templates['error-query-template']
+        className: 'table-view'
+        initialize: (id) =>
+            @loading = true
+            @id = id
+
+            @model = null
+            @indexes = null
+            @table_view = null
+
+            @fetch_data()
+            @interval = setInterval @fetch_data, 5000
+
+        fetch_data: =>
+            query = r.db(system_db).table('table_status').get(@id).do (table) ->
+                r.branch(
+                    table.eq(null),
+                    null,
+                    table.merge(
+                        num_shards: table("shards").count()
+                        num_available_shards: table("shards").concatMap( (shard) -> shard ).filter({role: "director", state: "ready"}).count()
+                        num_replicas: table("shards").concatMap( (shard) -> shard ).count()
+                        num_available_replicas: table("shards").concatMap( (shard) -> shard ).filter({state: "ready"}).count()
+                    ).do( (table) ->
+                        r.branch( # We must be sure that the table is ready before retrieving the indexes
+                            table("ready_completely"),
+                            table.merge({
+                                indexes: r.db(table("db")).table(table("name")).indexStatus()
+                                    .pluck('index', 'ready', 'blocks_processed', 'blocks_total')
+                                    .merge( (index) -> {
+                                        id: index("index")
+                                        db: table("db")
+                                        table: table("name")
+                                    }) # add an id for backbone
+                            }),
+                            table.merge({indexes: null})
+                        )
+                    )
+                )
+            driver.run query, (error, result) =>
+                ###
+                console.log '---- err, result -----'
+                console.log error
+                console.log JSON.stringify(result, null, 2)
+                ###
+                if error?
+                    @error = error
+                    @render()
+                else
+                    @error = null
+                    if result is null
+                        if @loading is true
+                            @loading = false
+                            @render()
+                        else if @model isnt null
+                            @model = null
+                            @indexes = null
+                            @table_view = null
+                            @render()
+                    else
+                        if not @model?
+                            if result.indexes isnt null
+                                @indexes = new Indexes _.map result.indexes, (index) -> new Index index
+                                delete result.indexes
+                            @model = new Table result
+                            @table_view = new TableView.TableMainView
+                                model: @model
+                                collection: @indexes
+                        else # @model is defined
+                            if result.indexes isnt null
+                                if @indexes?
+                                    @indexes.set _.map result.indexes, (index) -> new Index index
+                                else
+                                    @indexes = new Indexes _.map result.indexes, (index) -> new Index index
+                                    @tablew_view.set_collection @collection
+                                delete result.indexes
+                            @model.set result
+
+                        if @loading is true
+                            @loading = false
+                            @render()
+
+        render: =>
+            if @error?
+                @$el.html @template.error
+                    error: @error?.message 
+                    url: '#tables/'+@id
+            else if @loading is true
+                @$el.html @template.loading()
+            else
+                if @table_view?
+                    @$el.html @table_view.render().$el
+                else # In this case, the query returned null, so the table was not found
+                    @$el.html @template.not_found
+                        id: @id
+                        type: 'table'
+                        type_url: 'tables'
+                        type_all_url: 'tables'
+            @
+
+    class @TableMainView extends Backbone.View
         className: 'namespace-view'
-        template: Handlebars.templates['namespace_view-container-template']
-        alert_tmpl: Handlebars.templates['modify_shards-alert-template']
+        template:
+            main: Handlebars.templates['namespace_view-container-template']
+            alert: Handlebars.templates['modify_shards-alert-template']
 
         events: ->
             'click .tab-link': 'change_route'
@@ -27,46 +120,34 @@ module 'NamespaceView', ->
             'click .operations .rename': 'rename_namespace'
             'click .operations .delete': 'delete_namespace'
 
-        initialize: ->
-            log_initial '(initializing) namespace view: container'
 
-            @model.load_key_distr()
+        initialize: (model, options) =>
+            #TODO Load distribution
 
             # Panels for namespace view
-            @title = new NamespaceView.Title(model: @model)
-            @profile = new NamespaceView.Profile(model: @model)
-            @replicas = new NamespaceView.Replicas(model: @model)
-            @secondary_indexes_view = new NamespaceView.SecondaryIndexesView(model: @model)
-            @shards = new NamespaceView.Sharding(model: @model)
-            @server_assignments = new NamespaceView.ServerAssignments(model: @model)
+            @title = new TableView.Title({model: @model})
+            @profile = new TableView.Profile({model: @model})
+            @secondary_indexes_view = new TableView.SecondaryIndexesView
+                collection: @collection
+                model: @model
+            ###
+            @replicas = new TableView.Replicas(model: @model)
+            @shards = new TableView.Sharding(model: @model)
+            @server_assignments = new TableView.ServerAssignments(model: @model)
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance,
                 width:  564             # width in pixels
                 height: 210             # height in pixels
                 seconds: 73             # num seconds to track
                 type: 'table'
             )
-
-            namespaces.on 'remove', @check_if_still_exists
-
-        check_if_still_exists: =>
-            exist = false
-            for namespace in namespaces.models
-                if namespace.get('id') is @model.get('id')
-                    exist = true
-                    break
-            if exist is false
-                window.router.navigate '#tables'
-                window.app.index_namespaces
-                    alert_message: "The table <a href=\"#tables/#{@model.get('id')}\">#{@model.get('name')}</a> could not be found and was probably deleted."
+            ###
 
         change_route: (event) =>
             # Because we are using bootstrap tab. We should remove them later. TODO
             window.router.navigate @.$(event.target).attr('href')
 
         render: =>
-            log_render '(rendering) namespace view: container'
-
-            @.$el.html @template
+            @.$el.html @template.main
                 namespace_id: @model.get 'id'
 
             # fill the title of this page
@@ -74,6 +155,8 @@ module 'NamespaceView', ->
 
             # Add the replica and shards views
             @.$('.profile').html @profile.render().$el
+
+            ###
             @.$('.performance-graph').html @performance_graph.render().$el
 
             # Display the replicas
@@ -85,6 +168,7 @@ module 'NamespaceView', ->
             # Display the server assignments
             @.$('.server-assignments').html @server_assignments.render().el
 
+            ###
             # Display the secondary indexes
             @.$('.secondary_indexes').html @secondary_indexes_view.render().el
 
@@ -113,7 +197,7 @@ module 'NamespaceView', ->
         # Delete operation
         delete_namespace: (event) ->
             event.preventDefault()
-            remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
+            remove_namespace_dialog = new TableView.RemoveNamespaceModal
             namespace_to_delete = @model
 
             remove_namespace_dialog.on_success = (response) =>
@@ -125,8 +209,8 @@ module 'NamespaceView', ->
             remove_namespace_dialog.render [@model]
 
         destroy: =>
-            namespaces.off 'remove', @check_if_still_exists
-            @model.clear_timeout()
+            clearInterval @interval
+
             @title.destroy()
             @profile.destroy()
             @replicas.destroy()
@@ -135,73 +219,42 @@ module 'NamespaceView', ->
             @performance_graph.destroy()
             @secondary_indexes_view.destroy()
 
-    # NamespaceView.Title
+    # TableView.Title
     class @Title extends Backbone.View
         className: 'namespace-info-view'
-        template: Handlebars.templates['namespace_view_title-template']
+        template: Handlebars.templates['table_title-template']
         initialize: ->
-            @name = @model.get('name')
-            @model.on 'change:name', @update
-
-        update: =>
-            if @name isnt @model.get('name')
-                @name = @model.get('name')
-                @render()
+            @listenTo @model, 'change:name', @render
 
         render: =>
             @.$el.html @template
-                name: @name
-                db: databases.get(@model.get('database')).get 'name'
-            return @
+                name: @model.get 'name'
+                db: @model.get 'db'
+            @
 
         destroy: =>
-            @model.off 'change:name', @update
+            @stopListening()
 
     # Profile view
     class @Profile extends Backbone.View
         className: 'namespace-profile'
-        template: Handlebars.templates['namespace_view-profile-template']
+        template: Handlebars.templates['table_profile-template']
 
         initialize: ->
-            # @model is a namespace.  somebody is supposed to pass model: namespace to the constructor.
-            @model.on 'all', @render
-            directory.on 'all', @render
-            progress_list.on 'all', @render
-            log_initial '(initializing) namespace view: replica'
-            @data = {}
+            @listenTo @model, 'change', @render
 
         render: =>
-            data = DataUtils.get_namespace_status(@model.get('id'))
-
-            #Compute the total number of keys
-            data.total_keys_available = false
-            if @model.get('key_distr')?
-                # we can't use 'total_keys' because we need to
-                # distinguish between zero and unavailable.
-                data.total_keys_available = true
-                data.total_keys = 0
-                for key of @model.get('key_distr')
-                    data.total_keys += parseInt @model.get('key_distr')[key]
-            if data.total_keys_available is true and data.total_keys? and data.total_keys is data.total_keys # Check for NaN, just in case
-                data.total_keys = DataUtils.approximate_count data.total_keys
-
-            data.stats_up_to_date = true
-            for machine in machines.models
-                if machine.get('stats')? and @model.get('id') of machine.get('stats') and machine.is_reachable
-                    if machine.get('stats_up_to_date') is false
-                        data.stats_up_to_date = false
-                        break
-
-            if not _.isEqual @data, data
-                @data = data
-                @.$el.html @template data
-
+            @$el.html @template
+                status: @model.get 'ready_completely'
+                total_keys: "TODO"
+                num_shards: @model.get 'num_shards'
+                num_available_shards: @model.get 'num_available_shards'
+                num_replicas: @model.get 'num_replicas'
+                num_available_replicas: @model.get 'num_available_replicas'
             return @
 
         destroy: =>
-            @model.off 'all', @render
-            directory.off 'all', @render
-            progress_list.off 'all', @render
+            @stopListening()
 
     class @SecondaryIndexesView extends Backbone.View
         template: Handlebars.templates['namespace_view-secondary_indexes-template']
@@ -218,121 +271,71 @@ module 'NamespaceView', ->
         normal_interval: 10*1000 # Retrieve secondary indexes every 10 seconds
         short_interval: 1000 # Interval when an index is being created
 
-        initialize: (args) =>
-            @model = args.model
-
-            @db = databases.get @model.get('database')
-            @update_info()
-
-            @db.on 'change:name', @update_info
-            @model.on 'change:name', @update_info
-
-            @indexes = {}
-            @indexes_count = 0
+        initialize: (data) =>
+            @indexes_view = []
+            @collection = data.collection
 
             @adding_index = false
-            @loading = true
 
-            @init_connection()
-
-        # Update table and database names
-        update_info: =>
-            @db_name = @db.get 'name'
-            @table = @model.get 'name'
-
-        # Create a connection and fetch secondary indexes
-        init_connection: (event) =>
-            if event?
-                event.preventDefault()
-
-            @loading = true
-            @driver_handler = new DataExplorerView.DriverHandler
-                container: @
-            @get_indexes()
-
-        # Callback if an error occurred when opening a connection (or if connection emits an error)
-        error_on_connect: (error) =>
-            @render_error
-                index_list_fail: true
-            @get_indexes_with_delay @error_interval
-
-        # Retrieve the indexes after `interval`
-        # `interval` is the time (in seconds) we wait before executing get_indexes
-        get_indexes_with_delay: (interval) =>
-            if @timeout?
-                clearTimeout @timeout
-            @timeout = setTimeout @get_indexes, interval
-
-        # Retrieve all the indexes of this table
-        get_indexes: =>
-            @driver_handler.create_connection (error, connection) =>
-                if (error)
-                    # There was an error when we opened the connection
-                    @error_on_connect error
-                else
-                    r.db(@db_name).table(@table).indexStatus().private_run connection, (err, result) =>
-                        @on_index_list err, result
-
-                        # We have a setTimeout here to give the driver some time to release the connection before we close it.
-                        setTimeout ->
-                            connection.close()
-                        , 0
-            , 0, @error_on_connect # @error_on_connect is the last argument of create_connection, and is executed if the connection emits an error
-
-
-        # Callback executed when we retrieve the list of indexes
-        on_index_list: (err, result, timer) =>
-            if @loading is true
+            if @collection?
                 @loading = false
-                @render()
-            if err?
-                @render_error
-                    index_list_fail: true
-                @get_indexes_with_delay @error_interval
+                @hook()
             else
-                @$('.main_alert_error').slideUp 'fast'
+                @loading = true
+                @$el.html @template
+                    loading: @loading
+                    adding_index: @adding_index
 
-                index_hash = {}
-                indexes_not_ready = 0
-                for index, i in result
-                    index_hash[index.index] = true
 
-                    if index.ready is false
-                        indexes_not_ready++
 
-                    if @indexes[index.index]?
-                        @indexes[index.index].update index
-                    else # new index
-                        position_new_index = -1
-                        for displayed_index of @indexes
-                            if displayed_index < index.index
-                                position_new_index++
+        set_collection: (collection) =>
+            @collection = collection
+            @hook()
 
-                        @indexes[index.index] = new NamespaceView.SecondaryIndexView index, @
-                
-                        if position_new_index is -1
-                            @$('.list_secondary_indexes').prepend @indexes[index.index].render().$el
-                        else
-                            @$('.index_container').eq(position_new_index).after @indexes[index.index].render().$el
+        hook: =>
+            @$el.html @template
+                loading: @loading
+                adding_index: @adding_index
 
-                # If some indexes are not ready, we want a more responsive progress bar
-                # so we refresh with a smaller interval (@short_interval)
-                if indexes_not_ready > 0
-                    @get_indexes_with_delay @short_interval
+            @loading = false
+
+            @collection.each (index) =>
+                view = new TableView.SecondaryIndexView
+                    model: index
+                    container: @
+                # The first time, the collection is sorted
+                @indexes_view.push view
+                @$('.list_secondary_indexes').append view.render().$el
+            if @collection.length isnt 0
+                @$('.no_index').hide()
+
+            @collection.on 'add', (index) =>
+                view = new TableView.SecondaryIndexView
+                    model: index
+                    container: @
+                @indexes_view.push view
+
+                position = @collection.indexOf index
+                if @collection.length is 1
+                    @$('.list_secondary_indexes').html view.render().$el
+                else if position is 0
+                    @$('.list_secondary_indexes').prepend view.render().$el
                 else
-                    @get_indexes_with_delay @normal_interval
+                    @$('.index_container').eq(position-1).after view.render().$el
 
-                count = 0
-                for name, index of @indexes
-                    if not index_hash[name]?
-                        @$('.index-'+name).remove()
-                        delete @indexes[name]
-                    else
-                        count++
-                if count is 0
+                @$('.no_index').hide()
+
+            @collection.on 'remove', (index) =>
+                for view in @indexes_view
+                    if view.model is index
+                        index.destroy()
+                        ((view) ->
+                            view.$el.slideUp 'fast', =>
+                                view.remove()
+                        )(view)
+                        break
+                if @collection.length is 0
                     @$('.no_index').show()
-                else
-                    @$('.no_index').hide()
 
         render_error: (args) =>
             @$('.alert_error_content').html @error_template args
@@ -340,59 +343,14 @@ module 'NamespaceView', ->
             @$('.main_alert').slideUp 'fast'
 
         render_feedback: (args) =>
-            @$('.alert_content').html @alert_message_template args
+            if @$('.main_alert').css('display') is 'none'
+                @$('.alert_content').html @alert_message_template args
+            else
+                @$('.alert_content').append @alert_message_template args
             @$('.main_alert').slideDown 'fast'
             @$('.main_alert_error').slideUp 'fast'
 
-        # Delete a secondary index
-        delete_index: (index) =>
-            #@driver_handler.close_connection()
-            @driver_handler.create_connection (error, connection) =>
-                if (error)
-                    @error_on_connect error
-                else
-                    r.db(@db_name).table(@table).indexDrop(index).private_run connection, (err, result) =>
-                        @on_drop err, result, index
-                        setTimeout ->
-                            connection.close()
-                        , 0
-
-
-            , @id_execution, @error_on_connect
-
-
-        remove_index: (index) =>
-            @$('.index_container[data-name="'+index+'"]').slideUp 200, ->
-                @remove()
-            delete @indexes[index]
-
-            count = 0
-            for key of @indexes
-                count++
-                break
-            if count is 0
-                @$('.no_index').hide()
-
-        # Callback for indexDrop()
-        on_drop: (err, result, index) =>
-            if err?
-                @render_error
-                    delete_fail: true
-                    message: err.msg.replace('\n', '<br/>')
-            else if result?.dropped isnt 1
-                @render_error
-                    delete_fail: true
-                    message: "Unknown error"
-            else
-                @remove_index index
-                @render_feedback
-                    delete_ok: true
-                    name: index
-
         render: =>
-            @$el.html @template
-                loading: @loading
-                adding_index: @adding_index
             return @
 
         # Show the form to add a secondary index
@@ -428,60 +386,26 @@ module 'NamespaceView', ->
             @$('.cancel_btn').prop 'disabled', 'disabled'
 
             index_name = $('.new_index_name').val()
-            #@driver_handler.close_connection()
-            @driver_handler.create_connection (error, connection) =>
-                if (error)
-                    @error_on_connect error
+            query = r.db(@model.get('db')).table(@model.get('name')).indexCreate(index_name)
+            driver.run query, (error, result) =>
+                @$('.create_btn').prop 'disabled', false
+                @$('.cancel_btn').prop 'disabled', false
+                that = @
+                if error?
+                    @render_error
+                        create_fail: true
+                        message: error.msg.replace('\n', '<br/>')
                 else
-                    r.db(@db_name).table(@table).indexCreate(index_name).private_run connection, (err, result) =>
-                        @on_create err, result, index_name, index_name
-                        # We need a setimeout to avoid running two queries on the same connection
-                        setTimeout ->
-                            connection.close()
-                        , 0
-
-            , 0, @error_on_connect
-
-
-        # Callback on indexCreate()
-        on_create: (err, result, index_name) =>
-            @$('.create_btn').prop 'disabled', false
-            @$('.cancel_btn').prop 'disabled', false
-            that = @
-            if err?
-                @render_error
-                    create_fail: true
-                    message: err.msg.replace('\n', '<br/>')
-            else
-                @$('.no_index').hide()
-                
-                position_new_index = -1
-                for displayed_index of @indexes
-                    if displayed_index < index_name
-                        position_new_index++
-
-                if not @indexes[index_name]?
-                    @indexes[index_name] = new NamespaceView.SecondaryIndexView
+                    @collection.add new Index
+                        id: index_name
                         index: index_name
-                        ready: false
-                        blocks_processed: 0
-                        blocks_total: Infinity
-                    , @
+                        db: @model.get 'db'
+                        table: @model.get 'name'
+                    @render_feedback
+                        create_ok: true
+                        name: index_name
 
-                    if position_new_index is -1
-                        @$('.list_secondary_indexes').prepend @indexes[index_name].render().$el
-                    else
-                        @$('.index_container').eq(position_new_index).after @indexes[index_name].render().$el
-
-
-                # We delay the call of 1 second to retrieve a better estimate of the total number of blocks
-                @get_indexes_with_delay @short_interval
-
-                @render_feedback
-                    create_ok: true
-                    name: index_name
-
-                @hide_add_index()
+                    @hide_add_index()
 
         # Hide alert BUT do not remove it
         hide_alert: (event) ->
@@ -509,6 +433,10 @@ module 'NamespaceView', ->
         tagName: 'li'
         className: 'index_container'
 
+        initialize: (data) =>
+            @container = data.container
+
+        ###
         initialize: (index, container) =>
             @name = index.index
             @ready = index.ready
@@ -517,40 +445,92 @@ module 'NamespaceView', ->
             @$el.attr('data-name', @name)
             @blocks_processed = index.blocks_processed
             @blocks_total = index.blocks_total
+        ###
 
+        initialize: (data) =>
+            @container = data.container
+            @interval = null
+
+            @model.on 'change:blocks_processed', @update
+            @model.on 'change:ready', @update
+            #@model.on 'change:ready', @update
+            #@model.on 'change:blocks_processed', @update
+            #console.log @model
 
         update: (args) =>
-            if args.ready is false
-                @blocks_processed = args.blocks_processed
-                @blocks_total = args.blocks_total
+            console.log '----- update ----'
+
+            if @model.get('ready') is false
                 @render_progress_bar()
             else
-                if @ready isnt args.ready
-                    @blocks_processed = @blocks_total
+                if @progress_bar?
                     @render_progress_bar()
-
-                @ready = args.ready
-
-            
+                else
+                    @render()
 
         render: =>
+            if @interval? and @model.get('ready') is true
+                clearInterval @interval
+                @interval = null
+            else if @model.get('ready') is false and not @interval?
+                @fetch_progress()
+                @interval = setInterval @fetch_progress, 1000
+
             @$el.html @template
-                is_empty: false
-                name: @name
-                ready: @ready
-            if @ready is false
+                is_empty: @model.get('name') is ''
+                name: @model.get 'index'
+                ready: @model.get 'ready'
+
+            if @model.get('ready') is false
+                console.log 'calling render_progress_bar'
                 @render_progress_bar()
             @
 
+        #TODO Move in container to group queries for multiple progress bars
+        fetch_progress: =>
+            query = r.db(@model.get('db')).table(@model.get('table')).indexStatus(@model.get('index'))
+                .pluck('index', 'ready', 'blocks_processed', 'blocks_total')
+                .merge( (index) => {
+                    id: index("index")
+                    db: @model.get("db")
+                    table: @model.get("table")
+                }).nth(0)
+
+            driver.run query, (error, result) =>
+                if error?
+                    #TODO: Not sure what to do here
+                    console.log "ERROR"
+                    console.log error
+                else
+                    @model.set result
+                    console.log @model.get 'blocks_processed'
+                    console.log @model.get 'blocks_total'
+
+
         render_progress_bar: =>
+            blocks_processed = @model.get 'blocks_processed'
+            blocks_total = @model.get 'blocks_total'
+
+            console.log '----- render progress bar ----'
+
             if @progress_bar?
-                @progress_bar.render @blocks_processed, @blocks_total,
-                    got_response: true
-                    check: true
-                    , => @render()
+                if @model.get('ready') is true
+                    @progress_bar.render 100, 100,
+                        got_response: true
+                        check: true
+                        , => @render()
+                else
+                    @progress_bar.render blocks_processed, blocks_total,
+                        got_response: true
+                        check: true
+                        , => @render()
             else
                 @progress_bar = new UIComponents.OperationProgressBar @progress_template
                 @$('.progress_li').html @progress_bar.render(0, Infinity, {new_value: true, check: true}).$el
+
+            if not @interval?
+                @fetch_progress()
+                @interval = setInterval @fetch_progress, 1000
 
         # Show a confirmation before deleting a secondary index
         confirm_delete: (event) =>
@@ -559,12 +539,29 @@ module 'NamespaceView', ->
 
         delete_index: =>
             @$('.btn').prop 'disabled', 'disabled'
-            @container.delete_index @name
+            query = r.db(@model.get('db')).table(@model.get('table')).indexDrop(@model.get('index'))
+            driver.run query, (error, result) =>
+                if error?
+                    @container.render_error
+                        delete_fail: true
+                        message: err.msg.replace('\n', '<br/>')
+                else if result.dropped is 1
+                    @container.render_feedback
+                        delete_ok: true
+                        name: @model.get('index')
+                    @model.destroy()
+                else
+                    @container.render_error
+                        delete_fail: true
+                        message: "Result was not {dropped: 1}"
 
         # Close to hide_alert, but the way to reach the alert is slightly different than with the x link
         cancel_delete: ->
             @$('.alert_confirm_delete').slideUp 'fast'
 
-        destroy: =>
+        remove: =>
+            if @interval?
+                clearInterval @interval
             if @progress_bar?
                 @progress_bar.destroy()
+            super()

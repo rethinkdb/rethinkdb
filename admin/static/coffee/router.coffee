@@ -7,12 +7,11 @@ Backbone.View.prototype.destroy = ->
 class BackboneCluster extends Backbone.Router
     routes:
         '': 'dashboard'
-        'databases': 'index_namespaces'
+        'databases': 'index_tables'
         'databases/:id': 'database'
         'databases/:id/:tab': 'database'
         'tables': 'index_tables'
-        'tables/:id': 'namespace'
-        'tables/:id/:tab': 'namespace'
+        'tables/:id': 'table'
         'servers': 'index_servers'
         'datacenters/:id': 'datacenter'
         'datacenters/:id/:tab': 'datacenter'
@@ -46,26 +45,13 @@ class BackboneCluster extends Backbone.Router
     render_navbar: -> $('#navbar-container').html @navbar.render().el
 
     set_stats_call: (url) =>
-        clearTimeout stats_param.timeout
-        if url isnt ''
-            stats_param.url = url
-            collect_stat_data()
+        return
 
     index_tables: ->
         clear_modals()
         @current_view.destroy()
         @current_view = new TablesView.DatabasesContainer
         @$container.html @current_view.render().el
-
-    index_namespaces: (data) ->
-        @set_stats_call ''
-        clear_modals()
-        @current_view.destroy()
-        @current_view = new NamespaceView.DatabaseList
-        if data?.alert_message?
-            @$container.html @current_view.render(data.alert_message).el
-        else
-            @$container.html @current_view.render().el
 
     index_servers: (data) ->
         @set_stats_call ''
@@ -136,8 +122,11 @@ class BackboneCluster extends Backbone.Router
 
         @$container.html @current_view.render().el
 
-        if namespace?
-            @current_view.shards.render_data_repartition()
+    table: (id) ->
+        clear_modals()
+        @current_view.destroy()
+        @current_view = new TableView.TableContainer id
+        @$container.html @current_view.render().el
 
     datacenter: (id, tab) ->
         @set_stats_call 'ajax/stat?filter=.*/serializers,proc,sys'
