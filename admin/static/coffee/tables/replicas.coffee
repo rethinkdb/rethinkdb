@@ -103,6 +103,7 @@ module 'TableView', ->
 
         fetch_progress: =>
             #Keep ignore in window?
+            #We also fetch shards
             ignore = (shard) -> shard('role').ne('nothing')
             query =
                 r.db(system_db).table('table_status').get(@model.get('uuid')).do( (table) ->
@@ -112,9 +113,12 @@ module 'TableView', ->
                         table.merge(
                             num_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).count()
                             num_available_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).filter({state: "ready"}).count()
+                            num_shards: table("shards").count()
+                            num_available_shards: table("shards").concatMap( (shard) -> shard ).filter({role: "director", state: "ready"}).count()
                         )
                     )
                 )
+
             driver.run query, (error, result) =>
                 if error?
                     # This can happen if the table is temporary unavailable. We log the error, and ignore it
@@ -152,6 +156,9 @@ module 'TableView', ->
                 editable: @editable
                 max_replicas: @model.get 'max_replicas'
                 num_replicas_per_shard: @model.get 'num_replicas_per_shard'
+
+            if @editable is true
+                @$('#replicas_value').select()
 
             @$('.replica-status').html @progress_bar.render(
                 @model.get('num_available_replicas'),

@@ -14,6 +14,7 @@ module 'TableView', ->
 
             @model = null
             @indexes = null
+            @distribution = null
             @table_view = null
 
             @fetch_data()
@@ -35,9 +36,13 @@ module 'TableView', ->
                                 num_available_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).filter({state: "ready"}).count()
                                 max_replicas: num_servers
                                 num_replicas_per_shard: table("shards").nth(0).filter(ignore).count()
+                                distribution: table('shards').indexesOf( () -> true ).map( (position) -> #TODO: Replace with the real API
+                                    num_keys: r.random(0, 300000).add(800000)
+                                    id: position
+                                )
                             ).do( (table) ->
                                 r.branch( # We must be sure that the table is ready before retrieving the indexes
-                                    table("num_available_shards").eq(table("num_shards")),
+                                    table("num_available_shards").eq(table("num_shards")), #TODO Is that a sufficient condition?
                                     table.merge({
                                         indexes: r.db(table("db")).table(table("name")).indexStatus()
                                             .pluck('index', 'ready', 'blocks_processed', 'blocks_total')
@@ -53,9 +58,6 @@ module 'TableView', ->
                         )
                     )
                 )
-            ###
-            # If we need the table to be ready before fetching indexes?
-            ###
 
             driver.run query, (error, result) =>
                 ###
@@ -64,6 +66,7 @@ module 'TableView', ->
                 console.log JSON.stringify(result, null, 2)
                 ###
                 if error?
+                    # TODO: We may want to render only if we failed to open a connection
                     @error = error
                     @render()
                 else
@@ -82,18 +85,28 @@ module 'TableView', ->
                             if result.indexes isnt null
                                 @indexes = new Indexes _.map result.indexes, (index) -> new Index index
                                 delete result.indexes
+
+                            @distribution = new Distribution _.map result.distribution, (shard) -> new Shard shard
+                            delete result.shards
+
                             @model = new Table result
                             @table_view = new TableView.TableMainView
                                 model: @model
-                                collection: @indexes
+                                indexes: @indexes
+                                distribution: @distribution
                         else # @model is defined
                             if result.indexes isnt null
                                 if @indexes?
                                     @indexes.set _.map result.indexes, (index) -> new Index index
                                 else
                                     @indexes = new Indexes _.map result.indexes, (index) -> new Index index
-                                    @tablew_view.set_collection @indexes
+                                    @table_view.set_indexes @indexes
                                 delete result.indexes
+
+                            @distribution.set _.map result.distribution, (shard) -> new Shard shard
+                            @distribution.trigger 'update'
+                            delete result.distrubtion
+
                             @model.set result
 
                         if @loading is true
@@ -125,7 +138,6 @@ module 'TableView', ->
             alert: Handlebars.templates['modify_shards-alert-template']
 
         events: ->
-            'click .tab-link': 'change_route'
             'click .close': 'close_alert'
             'click .change_shards-link': 'change_shards'
             # operations in the dropdown menu
@@ -133,18 +145,23 @@ module 'TableView', ->
             'click .operations .delete': 'delete_namespace'
 
 
-        initialize: (model, options) =>
+        initialize: (data, options) =>
+            @indexes = data.indexes
+            @distribution = data.distribution
+
             #TODO Load distribution
 
             # Panels for namespace view
             @title = new TableView.Title({model: @model})
             @profile = new TableView.Profile({model: @model})
             @secondary_indexes_view = new TableView.SecondaryIndexesView
-                collection: @collection
+                collection: @indexes
                 model: @model
             @replicas = new TableView.Replicas({model: @model})
+            @shards = new TableView.Sharding
+                collection: @distribution
+                model: @model
             ###
-            @shards = new TableView.Sharding(model: @model)
             @server_assignments = new TableView.ServerAssignments(model: @model)
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance,
                 width:  564             # width in pixels
@@ -154,37 +171,33 @@ module 'TableView', ->
             )
             ###
 
-        change_route: (event) =>
-            # Because we are using bootstrap tab. We should remove them later. TODO
-            window.router.navigate @.$(event.target).attr('href')
-
         render: =>
-            @.$el.html @template.main
+            @$el.html @template.main
                 namespace_id: @model.get 'id'
 
             # fill the title of this page
-            @.$('.main_title').html @title.render().$el
+            @$('.main_title').html @title.render().$el
 
             # Add the replica and shards views
-            @.$('.profile').html @profile.render().$el
+            @$('.profile').html @profile.render().$el
 
             ###
             @.$('.performance-graph').html @performance_graph.render().$el
             ###
 
             # Display the replicas
-            @.$('.replication').html @replicas.render().el
+            @$('.replication').html @replicas.render().el
+
+            # Display the shards
+            @$('.sharding').html @shards.render().el
 
             ###
-            # Display the shards
-            @.$('.sharding').html @shards.render().el
-
             # Display the server assignments
             @.$('.server-assignments').html @server_assignments.render().el
 
             ###
             # Display the secondary indexes
-            @.$('.secondary_indexes').html @secondary_indexes_view.render().el
+            @$('.secondary_indexes').html @secondary_indexes_view.render().el
 
 
             return @
@@ -348,9 +361,8 @@ module 'TableView', ->
                 @interval_progress = null
 
 
-        set_collection: (collection) =>
-            console.log 'set collection'
-            @collection = collection
+        set_indexes: (indexes) =>
+            @collection = indexes
             @hook()
 
         hook: =>
