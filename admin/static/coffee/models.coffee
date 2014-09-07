@@ -32,6 +32,12 @@ class Indexes extends Backbone.Collection
 
 class Index extends Backbone.Model
 
+class Distribution extends Backbone.Collection
+    model: Shard
+    name: 'Shards'
+
+class Shard extends Backbone.Model
+
 class Namespace extends Backbone.Model
     initialize: ->
         # Add a computed shards property for convenience and metadata

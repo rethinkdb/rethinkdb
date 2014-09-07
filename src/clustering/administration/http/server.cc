@@ -79,7 +79,8 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/jquery.color.js");
     white_list.insert("/js/backbone.js");
     white_list.insert("/js/cubism.v1.js");
-    white_list.insert("/js/d3.v2.min.js");
+    white_list.insert("/js/d3.v3.4.11.min.js");
+    white_list.insert("/js/highcharts.js");
     white_list.insert("/js/date-en-US.js");
     white_list.insert("/js/jquery-1.7.2.min.js");
     white_list.insert("/js/jquery.cookie.js");
