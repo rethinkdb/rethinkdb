@@ -2513,112 +2513,24 @@ TODO: retire this
                 width: 300px;
                 height: @element_height;
             }
-            .num-primaries {
-                right: 350px;
+            .primary {
+                right: 150px;
                 width: 145px;
                 padding-left: 30px;
                 background: left center no-repeat url('images/layers-icon.png');
             }
-            .num-secondaries {
-                right: 175px;
+            .secondary {
+                right: 150px;
                 width: 145px;
                 padding-left: 30px;
                 background: left center no-repeat url('images/grid-icon.png');
             }
-            .num-keys {
-                right: 0;
-                padding-left: 35px;
-                background: left center no-repeat url('images/bars-icon_server-assignments.png');
-            }
         }
-        .popup_container{
-            display: none;
-            width: 430px;
-            position: absolute;
-            top: 0px;
-            left: 0px;
-            z-index: 200;
-            padding: 10px 20px;
-            border: thin solid #cfcfcf;
-            background: #fff;
-            .inner_content{
-                max-height: 600px;
-                overflow: auto;
-            }
-            .close{
-                position: absolute;
-                top: 10px;
-                right: 10px;
-                color: #444;
-                font-size: 18px;
-                text-decoration: none;
-            }
-            .arrow_left{
-                position: absolute;
-                z-index: 201;
-                top: 60px;
-                left: -11px;
-                width: 0; 
-                height: 0; 
-                border-top: 10px solid transparent;
-                border-bottom: 10px solid transparent; 
-                border-right:10px solid #bbb; 
-            }
-            .arrow_left_overlay{
-                position: absolute;
-                z-index: 202;
-                top: 60px;
-                left: -10px; //TODO
-                width: 0; 
-                height: 0; 
-                border-top: 10px solid transparent;
-                border-bottom: 10px solid transparent; 
-                border-right:10px solid #fff; 
-            }
-            .arrow_right{
-                position: absolute;
-                z-index: 201;
-                top: 60px;
-                left: 471px;
-                width: 0; 
-                height: 0; 
-                border-top: 10px solid transparent;
-                border-bottom: 10px solid transparent; 
-                border-left:10px solid #bbb; 
-            }
-            .arrow_right_overlay{
-                position: absolute;
-                z-index: 202;
-                top: 60px;
-                left: 470px;
-                width: 0; 
-                height: 0; 
-                border-top: 10px solid transparent;
-                border-bottom: 10px solid transparent; 
-                border-left:10px solid #fff; 
-            }
-
-            h4{
-                font-family: @sans;
-                font-size: 16px;
-                margin: 15px 0px 10px 0px;
-                padding: 0px 20px 10px 20px;
-                border-bottom: 1px solid #999;
-                background: none;
-            }
-            .shards_list{
-                li{
-                    margin: 3px 0px 7px 20px;
-                    list-style: square;
-                    width: 400px;
-                    border-bottom: 1px solid #eee;
-                    .name {
-                        width: 180px;
-                        display: inline-block;
-                        padding: 0px 0px 4px 0px;
-                    }
-                }
-            }
+        .num-keys {
+            float: right;
+            margin-right: 183px;
+            padding-left: 35px;
+            background: left center no-repeat url('images/bars-icon_server-assignments.png');
         }
     }
     .section.replication {
