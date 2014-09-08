@@ -200,11 +200,15 @@ void rdb_rget_secondary_slice(
 void rdb_get_intersecting_slice(
     btree_slice_t *slice,
     const ql::datum_t &query_geometry,
+    const region_t &sindex_region,
     superblock_t *superblock,
     ql::env_t *ql_env,
+    const ql::batchspec_t &batchspec,
+    const std::vector<ql::transform_variant_t> &transforms,
+    const boost::optional<ql::terminal_variant_t> &terminal,
     const key_range_t &pk_range,
     const sindex_disk_info_t &sindex_info,
-    intersecting_geo_read_response_t *response);
+    rget_read_response_t *response);
 
 void rdb_get_nearest_slice(
     btree_slice_t *slice,

@@ -27,11 +27,11 @@ std::string mock_parse_read_response(const read_response_t &rr) {
         = boost::get<point_read_response_t>(&rr.response);
     guarantee(prr != NULL);
     guarantee(prr->data.has());
-    if (prr->data->get_type() == ql::datum_t::R_NULL) {
+    if (prr->data.get_type() == ql::datum_t::R_NULL) {
         // Behave like the old dummy_protocol_t.
         return "";
     }
-    return prr->data->get_field("value")->as_str().to_std();
+    return prr->data.get_field("value").as_str().to_std();
 }
 
 std::string mock_lookup(store_view_t *store, std::string key) {
@@ -338,7 +338,7 @@ std::string mock_store_t::values(std::string key) {
         // Behave like the old dummy_protocol_t.
         return "";
     }
-    return it->second.second->get_field("value")->as_str().to_std();
+    return it->second.second.get_field("value").as_str().to_std();
 }
 
 repli_timestamp_t mock_store_t::timestamps(std::string key) {

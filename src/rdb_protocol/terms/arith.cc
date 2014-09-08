@@ -37,31 +37,31 @@ public:
 
 private:
     datum_t add(datum_t lhs,
-                                 datum_t rhs,
-                                 const configured_limits_t &limits) const {
-        if (lhs->is_ptype(pseudo::time_string) ||
-            rhs->is_ptype(pseudo::time_string)) {
+                datum_t rhs,
+                const configured_limits_t &limits) const {
+        if (lhs.is_ptype(pseudo::time_string) ||
+            rhs.is_ptype(pseudo::time_string)) {
             return pseudo::time_add(lhs, rhs);
-        } else if (lhs->get_type() == datum_t::R_NUM) {
-            rhs->check_type(datum_t::R_NUM);
-            return datum_t(lhs->as_num() + rhs->as_num());
-        } else if (lhs->get_type() == datum_t::R_STR) {
-            rhs->check_type(datum_t::R_STR);
-            return datum_t(concat(lhs->as_str(), rhs->as_str()));
-        } else if (lhs->get_type() == datum_t::R_ARRAY) {
-            rhs->check_type(datum_t::R_ARRAY);
+        } else if (lhs.get_type() == datum_t::R_NUM) {
+            rhs.check_type(datum_t::R_NUM);
+            return datum_t(lhs.as_num() + rhs.as_num());
+        } else if (lhs.get_type() == datum_t::R_STR) {
+            rhs.check_type(datum_t::R_STR);
+            return datum_t(concat(lhs.as_str(), rhs.as_str()));
+        } else if (lhs.get_type() == datum_t::R_ARRAY) {
+            rhs.check_type(datum_t::R_ARRAY);
             datum_array_builder_t out(limits);
-            for (size_t i = 0; i < lhs->arr_size(); ++i) {
-                out.add(lhs->get(i));
+            for (size_t i = 0; i < lhs.arr_size(); ++i) {
+                out.add(lhs.get(i));
             }
-            for (size_t i = 0; i < rhs->arr_size(); ++i) {
-                out.add(rhs->get(i));
+            for (size_t i = 0; i < rhs.arr_size(); ++i) {
+                out.add(rhs.get(i));
             }
             return std::move(out).to_datum();
         } else {
             // If we get here lhs is neither number nor string
             // so we'll just error saying we expect a number
-            lhs->check_type(datum_t::R_NUM);
+            lhs.check_type(datum_t::R_NUM);
         }
         unreachable();
     }
@@ -69,55 +69,55 @@ private:
     datum_t sub(datum_t lhs,
                                  datum_t rhs,
                                  const configured_limits_t &limits) const {
-        if (lhs->is_ptype(pseudo::time_string)) {
+        if (lhs.is_ptype(pseudo::time_string)) {
             return pseudo::time_sub(lhs, rhs);
-        } else if (lhs->is_ptype(pseudo::geometry_string)) {
+        } else if (lhs.is_ptype(pseudo::geometry_string)) {
             try {
                 return pseudo::geo_sub(lhs, rhs, limits);
             } catch (const geo_exception_t &e) {
                 rfail(base_exc_t::GENERIC, "%s", e.what());
             }
         } else {
-            lhs->check_type(datum_t::R_NUM);
-            rhs->check_type(datum_t::R_NUM);
-            return datum_t(lhs->as_num() - rhs->as_num());
+            lhs.check_type(datum_t::R_NUM);
+            rhs.check_type(datum_t::R_NUM);
+            return datum_t(lhs.as_num() - rhs.as_num());
         }
     }
     datum_t mul(datum_t lhs,
                                  datum_t rhs,
                                  const configured_limits_t &limits) const {
-        if (lhs->get_type() == datum_t::R_ARRAY ||
-            rhs->get_type() == datum_t::R_ARRAY) {
+        if (lhs.get_type() == datum_t::R_ARRAY ||
+            rhs.get_type() == datum_t::R_ARRAY) {
             datum_t array =
-                (lhs->get_type() == datum_t::R_ARRAY ? lhs : rhs);
+                (lhs.get_type() == datum_t::R_ARRAY ? lhs : rhs);
             datum_t num =
-                (lhs->get_type() == datum_t::R_ARRAY ? rhs : lhs);
+                (lhs.get_type() == datum_t::R_ARRAY ? rhs : lhs);
 
             datum_array_builder_t out(limits);
-            const int64_t num_copies = num->as_int();
+            const int64_t num_copies = num.as_int();
             rcheck(num_copies >= 0, base_exc_t::GENERIC,
                    "Cannot multiply an ARRAY by a negative number.");
 
             for (int64_t j = 0; j < num_copies; ++j) {
-                for (size_t i = 0; i < array->arr_size(); ++i) {
-                    out.add(array->get(i));
+                for (size_t i = 0; i < array.arr_size(); ++i) {
+                    out.add(array.get(i));
                 }
             }
             return std::move(out).to_datum();
         } else {
-            lhs->check_type(datum_t::R_NUM);
-            rhs->check_type(datum_t::R_NUM);
-            return datum_t(lhs->as_num() * rhs->as_num());
+            lhs.check_type(datum_t::R_NUM);
+            rhs.check_type(datum_t::R_NUM);
+            return datum_t(lhs.as_num() * rhs.as_num());
         }
     }
     datum_t div(datum_t lhs,
                                  datum_t rhs,
                                  UNUSED const configured_limits_t &limits) const {
-        lhs->check_type(datum_t::R_NUM);
-        rhs->check_type(datum_t::R_NUM);
-        rcheck(rhs->as_num() != 0, base_exc_t::GENERIC, "Cannot divide by zero.");
+        lhs.check_type(datum_t::R_NUM);
+        rhs.check_type(datum_t::R_NUM);
+        rcheck(rhs.as_num() != 0, base_exc_t::GENERIC, "Cannot divide by zero.");
         // throws on non-finite values
-        return datum_t(lhs->as_num() / rhs->as_num());
+        return datum_t(lhs.as_num() / rhs.as_num());
     }
 
     const char *namestr;

@@ -6,6 +6,7 @@ $success_count = 0
 
 JSPORT = ARGV[0]
 CPPPORT = ARGV[1]
+DB_AND_TABLE_NAME = ARGV[2]
 
 # -- import the called-for rethinkdb module
 if ENV['RUBY_DRIVER_DIR']
@@ -212,6 +213,45 @@ def test src, expected, name, opthash=nil, testopts=nil
   end
   return check_result name, src, result, expected
   
+end
+
+# Generated code must call either `setup_table` or `check_no_table_specified`
+def setup_table table_variable_name, table_name
+  at_exit do
+    if DB_AND_TABLE_NAME == "no_table_specified"
+      res = r.db("test").table_drop(table_name).run($cpp_conn)
+      if res["dropped"] != 1
+        abort "Could not drop table: #{res}"
+      end
+    else
+      parts = DB_AND_TABLE_NAME.split('.')
+      res = r.db(parts.first).table(parts.last).delete().run($cpp_conn)
+      if res["errors"] != 0
+        abort "Could not clear table: #{res}"
+      end
+      res = r.db(parts.first).table(parts.last).index_list().for_each{|row|
+        r.db(parts.first).table(parts.last).index_drop(row)}.run($cpp_conn)
+      if res.has_key?("errors") and res["errors"] != 0
+        abort "Could not drop indexes: #{res}"
+      end
+    end
+  end
+  if DB_AND_TABLE_NAME == "no_table_specified"
+    res = r.db("test").table_create(table_name).run($cpp_conn)
+    if res["created"] != 1
+      abort "Could not create table: #{res}"
+    end
+      $defines.eval("#{table_variable_name} = r.db('test').table('#{table_name}')")
+    else
+      parts = DB_AND_TABLE_NAME.split('.')
+      $defines.eval("#{table_variable_name} = r.db(\"#{parts.first}\").table(\"#{parts.last}\")")
+  end
+end
+
+def check_no_table_specified
+  if DB_AND_TABLE_NAME != "no_table_specified"
+    abort "This test isn't meant to be run against a specific table"
+  end
 end
 
 at_exit do

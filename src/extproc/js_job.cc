@@ -634,14 +634,14 @@ ql::datum_t js_to_datum(const v8::Handle<v8::Value> &value,
 v8::Handle<v8::Value> js_from_datum(const ql::datum_t &datum,
                                     std::string *err_out) {
     guarantee(datum.has());
-    switch (datum->get_type()) {
+    switch (datum.get_type()) {
     case ql::datum_t::type_t::R_BINARY:
         // TODO: In order to support this, we need to link against a static version of
         // V8, which provides an ArrayBuffer API.
         err_out->assign("`r.binary` data cannot be used in `r.js`.");
         return v8::Handle<v8::Value>();
     case ql::datum_t::type_t::R_BOOL:
-        if (datum->as_bool()) {
+        if (datum.as_bool()) {
             return v8::True();
         } else {
             return v8::False();
@@ -649,9 +649,9 @@ v8::Handle<v8::Value> js_from_datum(const ql::datum_t &datum,
     case ql::datum_t::type_t::R_NULL:
         return v8::Null();
     case ql::datum_t::type_t::R_NUM:
-        return v8::Number::New(datum->as_num());
+        return v8::Number::New(datum.as_num());
     case ql::datum_t::type_t::R_STR:
-        return v8::String::New(datum->as_str().to_std().c_str());
+        return v8::String::New(datum.as_str().to_std().c_str());
     case ql::datum_t::type_t::R_ARRAY: {
         v8::Handle<v8::Array> array = v8::Array::New();
 
@@ -665,7 +665,7 @@ v8::Handle<v8::Value> js_from_datum(const ql::datum_t &datum,
         return array;
     }
     case ql::datum_t::type_t::R_OBJECT: {
-        if (datum->is_ptype(ql::pseudo::time_string)) {
+        if (datum.is_ptype(ql::pseudo::time_string)) {
             double epoch_time = ql::pseudo::time_to_epoch_time(datum);
             v8::Handle<v8::Value> date = v8::Date::New(epoch_time * 1000);
             return date;

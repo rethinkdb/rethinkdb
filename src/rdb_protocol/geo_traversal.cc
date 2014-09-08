@@ -6,6 +6,11 @@
 #include "errors.hpp"
 #include <boost/variant/get.hpp>
 
+#include "rdb_protocol/batching.hpp"
+#include "rdb_protocol/configured_limits.hpp"
+#include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/env.hpp"
+#include "rdb_protocol/func.hpp"
 #include "rdb_protocol/geo/distances.hpp"
 #include "rdb_protocol/geo/exceptions.hpp"
 #include "rdb_protocol/geo/geojson.hpp"
@@ -14,11 +19,6 @@
 #include "rdb_protocol/geo/primitives.hpp"
 #include "rdb_protocol/geo/s2/s2.h"
 #include "rdb_protocol/geo/s2/s2latlng.h"
-#include "rdb_protocol/batching.hpp"
-#include "rdb_protocol/configured_limits.hpp"
-#include "rdb_protocol/datum.hpp"
-#include "rdb_protocol/env.hpp"
-#include "rdb_protocol/func.hpp"
 #include "rdb_protocol/lazy_json.hpp"
 #include "rdb_protocol/profile.hpp"
 
@@ -51,13 +51,27 @@ const double NEAREST_GOAL_BATCH_SIZE = 100.0;
 const unsigned int NEAREST_NUM_VERTICES = 8;
 
 
+geo_job_data_t::geo_job_data_t(ql::env_t *_env, const ql::batchspec_t &batchspec,
+        const std::vector<ql::transform_variant_t> &_transforms,
+        const boost::optional<ql::terminal_variant_t> &_terminal)
+    : env(_env),
+      batcher(batchspec.to_batcher()),
+      accumulator(_terminal
+                  ? ql::make_terminal(*_terminal)
+                  : ql::make_append(sorting_t::UNORDERED, &batcher)) {
+    for (size_t i = 0; i < _transforms.size(); ++i) {
+        transformers.push_back(ql::make_op(_transforms[i]));
+    }
+    guarantee(transformers.size() == _transforms.size());
+}
+
 /* ----------- geo_intersecting_cb_t -----------*/
 geo_intersecting_cb_t::geo_intersecting_cb_t(
         btree_slice_t *_slice,
         geo_sindex_data_t &&_sindex,
         ql::env_t *_env,
         std::set<store_key_t> *_distinct_emitted_in_out)
-    : geo_index_traversal_helper_t(),
+    : geo_index_traversal_helper_t(_env->interruptor),
       slice(_slice),
       sindex(std::move(_sindex)),
       env(_env),
@@ -74,43 +88,46 @@ void geo_intersecting_cb_t::init_query(const ql::datum_t &_query_geometry) {
         compute_index_grid_keys(_query_geometry, QUERYING_GOAL_GRID_CELLS));
 }
 
-void geo_intersecting_cb_t::on_candidate(
-        const btree_key_t *key,
-        const void *value,
-        buf_parent_t parent,
-        UNUSED signal_t *interruptor)
+done_traversing_t geo_intersecting_cb_t::on_candidate(
+        scoped_key_value_t &&keyvalue,
+        concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t) {
     guarantee(query_geometry.has());
     sampler->new_sample();
 
-    store_key_t store_key(key);
+    store_key_t store_key(keyvalue.key());
     store_key_t primary_key(ql::datum_t::extract_primary(store_key));
     // Check if the primary key is in the range of the current slice
     if (!sindex.pkey_range.contains_key(primary_key)) {
-        return;
+        return done_traversing_t::NO;
     }
 
     // Check if this document has already been processed (lower bound).
     if (already_processed.count(primary_key) > 0) {
-        return;
+        return done_traversing_t::NO;
     }
     // Check if this document has already been emitted.
     if (distinct_emitted->count(primary_key) > 0) {
-        return;
+        return done_traversing_t::NO;
     }
 
-    lazy_json_t row(static_cast<const rdb_value_t *>(value), parent);
+    lazy_json_t row(static_cast<const rdb_value_t *>(keyvalue.value()),
+                    keyvalue.expose_buf());
     ql::datum_t val = row.get();
     slice->stats.pm_keys_read.record();
     slice->stats.pm_total_keys_read += 1;
+    guarantee(!row.references_parent());
+    keyvalue.reset();
 
-    // row.get() might have blocked, and another coroutine could have found the
-    // object in the meantime. Re-check distinct_emitted and then disallow
-    // blocking for the rest of this function.
+    // Everything happens in key order after this.
+    waiter.wait_interruptible();
+
+    // row.get() or waiter.wait_interruptible() might have blocked, and another
+    // coroutine could have found the document in the meantime. Re-check distinct_emitted,
+    // so we don't emit the same document twice.
     if (distinct_emitted->count(primary_key) > 0) {
-        return;
+        return done_traversing_t::NO;
     }
-    ASSERT_NO_CORO_WAITING;
 
     try {
         // Post-filter the geometry based on an actual intersection test
@@ -119,45 +136,43 @@ void geo_intersecting_cb_t::on_candidate(
         ql::datum_t sindex_val =
             sindex.func->call(&sindex_env, val)->as_datum();
         if (sindex.multi == sindex_multi_bool_t::MULTI
-            && sindex_val->get_type() == ql::datum_t::R_ARRAY) {
+            && sindex_val.get_type() == ql::datum_t::R_ARRAY) {
             boost::optional<uint64_t> tag = *ql::datum_t::extract_tag(store_key);
             guarantee(tag);
-            sindex_val = sindex_val->get(*tag, ql::NOTHROW);
+            sindex_val = sindex_val.get(*tag, ql::NOTHROW);
             guarantee(sindex_val.has());
         }
         // TODO (daniel): This is a little inefficient because we re-parse
         //   the query_geometry for each test.
         if (geo_does_intersect(query_geometry, sindex_val)
             && post_filter(sindex_val, val)) {
-            if (distinct_emitted->size() > env->limits().array_size_limit()) {
+            if (distinct_emitted->size() >= env->limits().array_size_limit()) {
                 emit_error(ql::exc_t(ql::base_exc_t::GENERIC,
-                        "Result size limit exceeded (array size).", NULL));
-                abort_traversal();
-                return;
+                        "Array size limit exceeded during geospatial index traversal.",
+                        NULL));
+                return done_traversing_t::YES;
             }
             distinct_emitted->insert(primary_key);
-            emit_result(sindex_val, val);
+            return emit_result(std::move(sindex_val), std::move(store_key), std::move(val));
         } else {
             // Mark the document as processed so we don't have to load it again.
             // This is relevant only for polygons and lines, since those can be
             // encountered multiple times in the index.
             if (already_processed.size() < MAX_PROCESSED_SET_SIZE
-                && sindex_val->get_field("type")->as_str() != "Point") {
+                && sindex_val.get_field("type").as_str() != "Point") {
                 already_processed.insert(primary_key);
             }
+            return done_traversing_t::NO;
         }
     } catch (const ql::exc_t &e) {
         emit_error(e);
-        abort_traversal();
-        return;
+        return done_traversing_t::YES;
     } catch (const geo_exception_t &e) {
         emit_error(ql::exc_t(ql::base_exc_t::GENERIC, e.what(), NULL));
-        abort_traversal();
-        return;
+        return done_traversing_t::YES;
     } catch (const ql::base_exc_t &e) {
         emit_error(ql::exc_t(e, NULL));
-        abort_traversal();
-        return;
+        return done_traversing_t::YES;
     }
 }
 
@@ -165,26 +180,22 @@ void geo_intersecting_cb_t::on_candidate(
 /* ----------- collect_all_geo_intersecting_cb_t -----------*/
 collect_all_geo_intersecting_cb_t::collect_all_geo_intersecting_cb_t(
         btree_slice_t *_slice,
+        geo_job_data_t &&_job,
         geo_sindex_data_t &&_sindex,
-        ql::env_t *_env,
-        const ql::datum_t &_query_geometry) :
-    geo_intersecting_cb_t(_slice, std::move(_sindex), _env, &distinct_emitted),
-    result_acc(_env->limits()) {
+        const ql::datum_t &_query_geometry,
+        const key_range_t &_sindex_range,
+        rget_read_response_t *_resp_out)
+    : geo_intersecting_cb_t(_slice, std::move(_sindex), _job.env, &distinct_emitted),
+      job(std::move(_job)), response(_resp_out) {
+    guarantee(response != NULL);
+    response->last_key = _sindex_range.left;
     init_query(_query_geometry);
-    // TODO (daniel): Consider making the traversal resumable, so we can
-    //    do it lazily.
-    //    Even if we cannot do that, it would be good if we could push down
-    //    transformations and terminals into the traversal so their work can
-    //    be distributed.
 }
 
-void collect_all_geo_intersecting_cb_t::finish(
-        intersecting_geo_read_response_t *resp_out) {
-    guarantee(resp_out != NULL);
-    if (error) {
-        resp_out->results_or_error = error.get();
-    } else {
-        resp_out->results_or_error = std::move(result_acc).to_datum();
+void collect_all_geo_intersecting_cb_t::finish() THROWS_ONLY(interrupted_exc_t) {
+    job.accumulator->finish(&response->result);
+    if (job.accumulator->should_send_batch()) {
+        response->truncated = true;
     }
 }
 
@@ -195,17 +206,31 @@ bool collect_all_geo_intersecting_cb_t::post_filter(
     return true;
 }
 
-void collect_all_geo_intersecting_cb_t::emit_result(
-        UNUSED const ql::datum_t &sindex_val,
-        const ql::datum_t &val)
+done_traversing_t collect_all_geo_intersecting_cb_t::emit_result(
+        ql::datum_t &&sindex_val,
+        store_key_t &&key,
+        ql::datum_t &&val)
         THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t) {
-    result_acc.add(val);
+    // Update the last considered key.
+    rassert(response->last_key <= key);
+    response->last_key = key;
+
+    ql::groups_t data(optional_datum_less_t(job.env->reql_version()));
+    data = {{ql::datum_t(), ql::datums_t{std::move(val)}}};
+
+    for (auto it = job.transformers.begin(); it != job.transformers.end(); ++it) {
+        (**it)(job.env, &data, sindex_val);
+    }
+    return (*job.accumulator)(job.env,
+                              &data,
+                              std::move(key),
+                              std::move(sindex_val)); // NULL if no sindex
 }
 
 void collect_all_geo_intersecting_cb_t::emit_error(
         const ql::exc_t &_error)
         THROWS_ONLY(interrupted_exc_t) {
-    error = _error;
+    response->result = _error;
 }
 
 
@@ -334,16 +359,19 @@ bool nearest_traversal_cb_t::post_filter(
     return dist <= state->current_inradius;
 }
 
-void nearest_traversal_cb_t::emit_result(
-        const ql::datum_t &sindex_val,
-        const ql::datum_t &val)
+done_traversing_t nearest_traversal_cb_t::emit_result(
+        ql::datum_t &&sindex_val,
+        UNUSED store_key_t &&key,
+        ql::datum_t &&val)
         THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t) {
     // TODO (daniel): Could we avoid re-computing the distance? We have already
     //   done it in post_filter().
     const S2Point s2center =
         S2LatLng::FromDegrees(state->center.first, state->center.second).ToPoint();
     const double dist = geodesic_distance(s2center, sindex_val, state->reference_ellipsoid);
-    result_acc.push_back(std::make_pair(dist, val));
+    result_acc.push_back(std::make_pair(dist, std::move(val)));
+
+    return done_traversing_t::NO;
 }
 
 void nearest_traversal_cb_t::emit_error(

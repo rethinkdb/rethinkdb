@@ -23,7 +23,7 @@ public:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
         datum_t name_datum = args->arg(env, 1)->as_datum();
-        std::string name = name_datum->as_str().to_std();
+        std::string name = name_datum.as_str().to_std();
         rcheck(name != table->get_pkey(),
                base_exc_t::GENERIC,
                strprintf("Index name conflict: `%s` is the name of the primary key.",
@@ -37,9 +37,9 @@ public:
             counted_t<val_t> v = args->arg(env, 2);
             if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
                 datum_t d = v->as_datum();
-                if (d->get_type() == datum_t::R_BINARY) {
-                    const char *data = d->as_binary().data();
-                    size_t sz = d->as_binary().size();
+                if (d.get_type() == datum_t::R_BINARY) {
+                    const char *data = d.as_binary().data();
+                    size_t sz = d.as_binary().size();
                     size_t prefix_sz = strlen(sindex_blob_prefix);
                     bool bad_prefix = (sz < prefix_sz);
                     for (size_t i = 0; !bad_prefix && i < prefix_sz; ++i) {
@@ -121,7 +121,7 @@ public:
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
-        std::string name = args->arg(env, 1)->as_datum()->as_str().to_std();
+        std::string name = args->arg(env, 1)->as_datum().as_str().to_std();
         bool success = table->sindex_drop(env->env, name);
         if (success) {
             datum_object_builder_t res;
@@ -172,8 +172,8 @@ int64_t initial_poll_ms = 50;
 int64_t max_poll_ms = 10000;
 
 bool all_ready(datum_t statuses) {
-    for (size_t i = 0; i < statuses->arr_size(); ++i) {
-        if (!statuses->get(i)->get_field("ready", NOTHROW)->as_bool()) {
+    for (size_t i = 0; i < statuses.arr_size(); ++i) {
+        if (!statuses.get(i).get_field("ready", NOTHROW).as_bool()) {
             return false;
         }
     }

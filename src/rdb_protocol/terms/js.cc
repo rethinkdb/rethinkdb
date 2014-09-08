@@ -32,7 +32,7 @@ private:
             }
         }
 
-        std::string source = args->arg(env, 0)->as_datum()->as_str().to_std();
+        std::string source = args->arg(env, 0)->as_datum().as_str().to_std();
 
         // JS runner configuration is limited to setting an execution timeout.
         js_runner_t::req_config_t config;

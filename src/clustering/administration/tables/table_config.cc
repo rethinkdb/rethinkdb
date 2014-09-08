@@ -35,9 +35,9 @@ bool convert_table_config_shard_from_datum(
     if (!converter.get("replicas", &replica_names_datum, error_out)) {
         return false;
     }
-    if (replica_names_datum->get_type() != ql::datum_t::R_ARRAY) {
+    if (replica_names_datum.get_type() != ql::datum_t::R_ARRAY) {
         *error_out = "In `replicas`: Expected an array, got " +
-            replica_names_datum->print();
+            replica_names_datum.print();
         return false;
     }
     if (!convert_set_from_datum<name_string_t>(

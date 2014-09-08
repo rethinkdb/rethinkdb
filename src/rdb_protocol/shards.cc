@@ -37,7 +37,7 @@ void dprint(const char *s, const T &) {
 template<>
 void dprint(const char *s, const datum_t &t) {
     if (t.has()) {
-        debugf("%s -> %s\n", s, t->print().c_str());
+        debugf("%s -> %s\n", s, t.print().c_str());
     } else {
         debugf("%s -> NULL\n", s);
     }
@@ -461,7 +461,7 @@ private:
                            const datum_t &el,
                            double *out,
                            const acc_func_t &f) {
-        *out += f(env, el)->as_num();
+        *out += f(env, el).as_num();
     }
     virtual datum_t unpack(double *d) {
         return datum_t(*d);
@@ -481,7 +481,7 @@ private:
                            const datum_t &el,
                            std::pair<double, uint64_t> *out,
                            const acc_func_t &f) {
-        out->first += f(env, el)->as_num();
+        out->first += f(env, el).as_num();
         out->second += 1;
     }
     virtual datum_t unpack(
@@ -535,14 +535,14 @@ bool datum_lt(reql_version_t reql_version,
               const datum_t &val1,
               const datum_t &val2) {
     r_sanity_check(val1.has() && val2.has());
-    return val1->compare_lt(reql_version, *val2);
+    return val1.compare_lt(reql_version, val2);
 }
 
 bool datum_gt(reql_version_t reql_version,
               const datum_t &val1,
               const datum_t &val2) {
     r_sanity_check(val1.has() && val2.has());
-    return val1->compare_gt(reql_version, *val2);
+    return val1.compare_gt(reql_version, val2);
 }
 
 class optimizing_terminal_t : public skip_terminal_t<optimizer_t> {
@@ -704,7 +704,7 @@ private:
             } else {
                 std::vector<std::vector<datum_t> > perms(arr.size());
                 for (size_t i = 0; i < arr.size(); ++i) {
-                    if (arr[i]->get_type() != datum_t::R_ARRAY) {
+                    if (arr[i].get_type() != datum_t::R_ARRAY) {
                         perms[i].push_back(arr[i]);
                     } else {
                         perms[i].reserve(arr[i].arr_size());
@@ -806,7 +806,7 @@ private:
                 r_sanity_check(sindex_val.has());
                 *it = sindex_val;
             }
-            if (!last_val.has() || **it != *last_val) {
+            if (!last_val.has() || *it != last_val) {
                 std::swap(*loc, *it);
                 last_val = *loc;
                 ++loc;
@@ -882,11 +882,11 @@ private:
     virtual void lst_transform(env_t *, datums_t *lst,
                                const datum_t &) {
         for (auto it = lst->begin(); it != lst->end(); ++it) {
-            auto left = (*it)->get_field("left", NOTHROW);
-            auto right = (*it)->get_field("right", NOTHROW);
+            auto left = (*it).get_field("left", NOTHROW);
+            auto right = (*it).get_field("right", NOTHROW);
             rcheck_datum(left.has(), base_exc_t::GENERIC,
                    "ZIP can only be called on the result of a join.");
-            *it = right.has() ? left->merge(right) : left;
+            *it = right.has() ? left.merge(right) : left;
         }
     }
 };

@@ -269,6 +269,7 @@ bool do_serve(io_backender_t *io_backender,
         admin_artificial_tables_t admin_tables(
                 &real_reql_cluster_interface,
                 semilattice_manager_cluster.get_root_view(),
+                semilattice_manager_auth.get_root_view(),
                 directory_read_manager.get_root_view(),
                 &server_name_client,
                 &auto_reconnector,

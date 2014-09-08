@@ -155,10 +155,10 @@ datum_string_t decode_base64_ptype(
     datum_string_t res;
     for (auto it = ptype.begin(); it != ptype.end(); ++it) {
         if (it->first == datum_t::reql_type_string) {
-            r_sanity_check(it->second->as_str() == binary_string);
+            r_sanity_check(it->second.as_str() == binary_string);
         } else if(it->first == data_key) {
             has_data = true;
-            res = decode_base64(it->second->as_str());
+            res = decode_base64(it->second.as_str());
         } else {
             rfail_datum(base_exc_t::GENERIC,
                         "Invalid binary pseudotype: illegal `%s` key.",
