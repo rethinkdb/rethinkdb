@@ -24,9 +24,10 @@ module 'TableView', ->
         fetch_data: =>
             #TODO Use table_config to retrieve the number of shards/replicas
             ignore = (shard) -> shard('role').ne('nothing')
+            this_id = @id
             query =
-                r.db(system_db).table('server_config').count().do( (num_servers) =>
-                    r.db(system_db).table('table_status').get(@id).do( (table) ->
+                r.db(system_db).table('server_config').count().do( (num_servers) ->
+                    r.db(system_db).table('table_status').get(this_id).do( (table) ->
                         r.branch(
                             table.eq(null),
                             null,
@@ -42,6 +43,17 @@ module 'TableView', ->
                                     num_keys: r.random(0, 300000).add(800000)
                                     id: position
                                 )
+                                shards_assignments: r.db(system_db).table('table_config').get(this_id)("shards").indexesOf( () -> true ).map (position) ->
+                                    id: position
+                                    director:
+                                        id: r.db(system_db).table('server_config').filter({name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("directors").nth(0)}).nth(0)("uuid")
+                                        name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("directors").nth(0)
+                                    replicas: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("replicas").filter( (replica) ->
+                                        replica.ne(r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("directors").nth(0))
+                                    ).map (name) ->
+                                        id: r.db(system_db).table('server_config').filter({name: name}).nth(0)("uuid")
+                                        name: name
+
                             ).do( (table) ->
                                 r.branch( # We must be sure that the table is ready before retrieving the indexes
                                     table("num_available_shards").eq(table("num_shards")), #TODO Is that a sufficient condition?
@@ -59,7 +71,7 @@ module 'TableView', ->
                             )
                         )
                     )
-                )
+                ).without('shards')
 
             driver.run query, (error, result) =>
                 ###
@@ -89,13 +101,17 @@ module 'TableView', ->
                                 delete result.indexes
 
                             @distribution = new Distribution _.map result.distribution, (shard) -> new Shard shard
-                            delete result.shards
+                            delete result.distribution
+
+                            @shards_assignments = new Distribution _.map result.shards_assignments, (shard) -> new Shard shard
+                            delete result.shards_assignments
 
                             @model = new Table result
                             @table_view = new TableView.TableMainView
                                 model: @model
                                 indexes: @indexes
                                 distribution: @distribution
+                                shards_assignments: @shards_assignments
                         else # @model is defined
                             if result.indexes isnt null
                                 if @indexes?
@@ -108,6 +124,10 @@ module 'TableView', ->
                             @distribution.set _.map result.distribution, (shard) -> new Shard shard
                             @distribution.trigger 'update'
                             delete result.distrubtion
+
+                            @shards_assignments.set _.map result.shards_assignments, (shard) -> new Shard shard
+                            @shards_assignments.trigger 'update'
+                            delete result.shards_assignments
 
                             @model.set result
 
@@ -150,21 +170,27 @@ module 'TableView', ->
         initialize: (data, options) =>
             @indexes = data.indexes
             @distribution = data.distribution
+            @shards_assignments = data.shards_assignments
 
             #TODO Load distribution
 
             # Panels for namespace view
-            @title = new TableView.Title({model: @model})
-            @profile = new TableView.Profile({model: @model})
+            @title = new TableView.Title
+                model: @model
+            @profile = new TableView.Profile
+                model: @model
             @secondary_indexes_view = new TableView.SecondaryIndexesView
                 collection: @indexes
                 model: @model
-            @replicas = new TableView.Replicas({model: @model})
+            @replicas = new TableView.Replicas
+                model: @model
             @shards = new TableView.Sharding
                 collection: @distribution
                 model: @model
+            @server_assignments = new TableView.ShardAssignments
+                model: @model
+                collection: @shards_assignments
             ###
-            @server_assignments = new TableView.ServerAssignments(model: @model)
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance,
                 width:  564             # width in pixels
                 height: 210             # height in pixels
@@ -193,11 +219,9 @@ module 'TableView', ->
             # Display the shards
             @$('.sharding').html @shards.render().el
 
-            ###
             # Display the server assignments
-            @.$('.server-assignments').html @server_assignments.render().el
+            @$('.server-assignments').html @server_assignments.render().el
 
-            ###
             # Display the secondary indexes
             @$('.secondary_indexes').html @secondary_indexes_view.render().el
 
