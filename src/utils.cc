@@ -157,7 +157,7 @@ std::string format_time(struct timespec time) {
     return std::string(buf.c_str());
 }
 
-struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_error) {
+bool parse_time(const std::string &str, struct timespec *out, std::string *errmsg_out) {
     struct tm t;
     struct timespec time;
     int res1 = sscanf(str.c_str(),
@@ -170,16 +170,19 @@ struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_erro
         &t.tm_sec,
         &time.tv_nsec);
     if (res1 != 7) {
-        throw std::runtime_error("badly formatted time");
+        *errmsg_out = "badly formatted time";
+        return false;
     }
     t.tm_year -= 1900;
     t.tm_mon -= 1;
     t.tm_isdst = -1;
     time.tv_sec = mktime(&t);
     if (time.tv_sec == -1) {
-        throw std::runtime_error("invalid time");
+        *errmsg_out = "invalid time";
+        return false;
     }
-    return time;
+    *out = time;
+    return true;
 }
 
 with_priority_t::with_priority_t(int priority) {

@@ -70,7 +70,9 @@ TEST(UtilsTest, Time) {
     struct timespec time = {1335301122, 1234};
     std::string formatted = format_time(time);
     EXPECT_EQ("2012-04-24T13:58:42.000001234", formatted);
-    struct timespec parsed = parse_time(formatted);
+    struct timespec parsed;
+    const char *errmsg = parse_time(formatted, &parsed);
+    ASSERT_EQ(nullptr, errmsg)
     EXPECT_EQ(time.tv_sec, parsed.tv_sec);
     EXPECT_EQ(time.tv_nsec, parsed.tv_nsec);
 
