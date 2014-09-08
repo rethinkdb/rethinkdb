@@ -5,7 +5,7 @@
 #include "http/json/json_adapter.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "stl_utils.hpp"
-#include "utils.hpp"
+#include "unittest/unittest_utils.hpp"
 
 using query_language::json_cmp;
 
