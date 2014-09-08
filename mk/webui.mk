@@ -32,7 +32,7 @@ COFFEE_SOURCES := $(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			servers/index.coffee servers/server.coffee servers/datacenter.coffee \
 			dashboard.coffee \
 			dataexplorer.coffee \
-			sidebar.coffee \
+			topbar.coffee \
 			resolve_issues.coffee \
 			log_view.coffee \
 			vis.coffee \
