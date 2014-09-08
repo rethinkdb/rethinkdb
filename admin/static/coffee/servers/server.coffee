@@ -23,7 +23,29 @@ module 'ServerView', ->
             @interval = setInterval @fetch_server, 5000
 
         fetch_server: =>
-            query = r.db(system_db).table('server_config').get(@id)
+            query = r.db(system_db).table('server_config').get(@id).do( (server) ->
+                r.branch(
+                    server.eq(null),
+                    null,
+                    server.merge( (server) ->
+                        responsabilities: r.db('rethinkdb').table('table_status').map( (table) ->
+                            table.merge( (table) ->
+                                shards: table("shards").indexesOf( () -> true ).map( (index) ->
+                                    table("shards").nth(index).merge({num_keys: "TODO", index: index}).filter( (replica) ->
+                                        replica('server').eq(server("name"))
+                                    )
+                                ).filter( (shard) ->
+                                    shard.isEmpty().not()
+                                ).map( (role) ->
+                                    role.nth(0)
+                                )
+                            )
+                        ).filter( (table) ->
+                            table("shards").isEmpty().not()
+                        )
+                    )
+                )
+            )
 
             driver.run query, (error, result) =>
                 # We should call render only once to avoid blowing all the sub views
@@ -59,10 +81,12 @@ module 'ServerView', ->
                     #TODO Handle ghost?
                     @$el.html @template @server
 
-                    @title = new ServerView.Title model: @server
+                    @title = new ServerView.Title
+                        model: @server
                     @$('.main_title').html @title.render().$el
 
-                    @profile = new ServerView.Profile model: @server
+                    @profile = new ServerView.Profile
+                        model: @server
                     @$('.profile').html @profile.render().$el
 
                     ###
@@ -76,7 +100,8 @@ module 'ServerView', ->
                     @.$('.performance-graph').html @performance_graph.render().$el
                     ###
 
-                    @data = new ServerView.Data model: @server
+                    @data = new ServerView.Data
+                        model: @server
                     @$('.server-data').html @data.render().$el
 
                     ###
@@ -92,6 +117,7 @@ module 'ServerView', ->
             clearInterval @interval
             @title.remove()
             @profile.remove()
+            @data.remove()
 
     class @Title extends Backbone.View
         className: 'machine-info-view'
@@ -145,55 +171,18 @@ module 'ServerView', ->
     # We shouldn't need @namespaces_with_listeners at that time, all the data should be
     # made available with a single query
     class @Data extends Backbone.View
-        template: Handlebars.templates['machine_view_data-template']
+        template: Handlebars.templates['server_data-template']
 
         initialize: =>
-            @namespaces_with_listeners = {}
-
-            namespaces.on 'change:blueprint', @render
-            namespaces.on 'change:key_distr', @render
-            namespaces.each (namespace) -> namespace.load_key_distr()
             @data = {}
+            @listenTo @model, 'change:responsabilities', @render
 
         render: =>
-            data_by_namespace = []
-                    
-            # Examine each namespace and collect info on its shards / attach listeners to count the number of keys
-            namespaces.each (namespace) =>
-                ns =
-                    name: namespace.get('name')
-                    id: namespace.get('id')
-                    shards: []
-                # Examine each machine's role for the namespace-- only consider namespaces that actually use this machine
-                for machine_id, peer_roles of namespace.get('blueprint').peers_roles
-                    if machine_id is @model.get('id')
-                        # Build up info on each shard present on this machine for this namespace
-                        for shard, role of peer_roles
-                            if role isnt 'role_nothing'
-                                keys = namespace.compute_shard_rows_approximation shard
-                                json_shard = $.parseJSON(shard)
-                                ns.shards.push
-                                    name: human_readable_shard shard
-                                    shard: human_readable_shard_obj shard
-                                    num_keys: keys
-                                    role: role
-                                    secondary: role is 'role_secondary'
-                                    primary: role is 'role_primary'
-
-                # Finished building, add it to the list (only if it has shards on this server)
-                data_by_namespace.push ns if ns.shards.length > 0
-
-            data =
-                has_data: data_by_namespace.length > 0
-                # Sort the tables alphabetically by name
-                tables: _.sortBy(data_by_namespace, (namespace) -> namespace.name)
-
-            if not _.isEqual data, @data
-                @data = data
-                @.$el.html @template @data
+            @.$el.html @template
+                has_data: @model.get('responsabilities').length > 0
+                tables: @model.get('responsabilities')
 
             return @
 
-        destroy: =>
-            namespaces.off 'change:blueprint', @render
-            namespaces.off 'change:key_distr', @render
+        remove: =>
+            @stopListening()

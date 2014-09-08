@@ -93,7 +93,7 @@
     </div>
 </script>
 
-<script id="machine_view_data-template" type="text/x-handlebars-template">
+<script id="server_data-template" type="text/x-handlebars-template">
     <h2 class="title">Data on this server</h2>
     {{#if has_data}}
     <ul class="tables">
@@ -101,21 +101,15 @@
             <li class="table parent">
                 <div class="tree-line"></div>
                 <div class="table-info parent-info">
-                    <p class="name">Table <a href="/#tables/{{id}}">{{name}}</a></p>
+                    <p class="name">Table <a href="/#tables/{{id}}">{{db}}.{{name}}</a></p>
                 </div>
                 <ul class="shards">
                     {{#each shards}}
                         <li class="shard child">
                             <div class="tree-node"></div>
                             <div class="shard-info child-info">
-                                <p class="name"><span class="highlight">{{shard.from}}</span> to <span class="highlight">{{shard.to}}</span></p>
-                                <p class="role"><span class="highlight">
-                                    {{#if primary}}
-                                        Primary
-                                    {{else}}{{#if secondary}}
-                                        Secondary
-                                    {{/if}}{{/if}}
-                                </span> Role</p>
+                                <p class="name"><span class="highlight">Shard {{index}}</span></p>
+                                <p class="role">Role <span class="highlight">{{role}}</span></p>
                                 <p class="num-keys">
                                     {{#if num_keys}}
                                         <span class="highlight">~{{num_keys}}</span> {{pluralize_noun "document" num_keys}}
