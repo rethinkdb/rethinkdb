@@ -19,6 +19,10 @@
 
 class extproc_pool_t;
 
+namespace re2 {
+class RE2;
+}
+
 namespace ql {
 class datum_t;
 class term_t;
@@ -45,6 +49,10 @@ private:
 profile_bool_t profile_bool_optarg(const protob_t<Query> &query);
 
 scoped_ptr_t<profile::trace_t> maybe_make_profile_trace(profile_bool_t profile);
+
+struct query_cache_t {
+    std::map<std::string, std::shared_ptr<re2::RE2> > regex_cache;
+};
 
 class env_t : public home_thread_mixin_t {
 public:
@@ -95,6 +103,8 @@ public:
     }
 
     configured_limits_t limits() const { return limits_; }
+    
+    query_cache_t & query_cache() { return cache_; }
 
     reql_version_t reql_version() const { return reql_version_; }
 
@@ -110,6 +120,9 @@ private:
     // LATEST_DISK, but when evaluating secondary index functions, it could be an
     // earlier value.
     const reql_version_t reql_version_;
+    
+    // query specific cache parameters; for example match regexes.
+    query_cache_t cache_;
 
 public:
     // The interruptor signal while a query evaluates.
