@@ -63,7 +63,6 @@ int randint(int n);
 uint64_t randuint64(uint64_t n);
 size_t randsize(size_t n);
 double randdouble();
-std::string rand_string(int len);
 
 bool begins_with_minus(const char *string);
 // strtoul() and strtoull() will for some reason not fail if the input begins

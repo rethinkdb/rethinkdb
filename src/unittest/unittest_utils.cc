@@ -13,6 +13,21 @@
 
 namespace unittest {
 
+std::string rand_string(int len) {
+    std::string res;
+
+    int seed = randint(RAND_MAX);
+
+    while (len --> 0) {
+        res.push_back((seed % 26) + 'A');
+        seed ^= seed >> 17;
+        seed += seed << 11;
+        seed ^= seed >> 29;
+    }
+
+    return res;
+}
+
 struct make_sindex_read_t {
     static read_t make_sindex_read(
             ql::datum_t key, const std::string &id) {
