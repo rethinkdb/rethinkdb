@@ -110,11 +110,11 @@ module 'TableView', ->
                 @chart.series[0].setData @collection.map((shard, index) -> shard.get('num_keys'))
                 @chart.xAxis[0].update({categories:@collection.map( (shard, index) -> "Shard #{index+1}")}, true)
 
-                if @pointPadding is null
-                    @pointPadding = pointPadding
-                else if @pointPadding isnt pointPadding
-                    @pointPadding = pointPadding
-                    @chart.series[0].update {pointPadding: pointPadding}
+            if @pointPadding is null
+                @pointPadding = pointPadding
+            else if @pointPadding isnt pointPadding
+                @pointPadding = pointPadding
+                @chart.series[0].update {pointPadding: pointPadding}
 
 
         remove: =>
@@ -181,7 +181,6 @@ module 'TableView', ->
                 @render_shards_error () =>
                     @$('.settings_alert').html @template.alert
                         need_at_least_one_shard: true
-                    @$('.settings_alert').fadeIn 'fast'
                 return 1
 
 
@@ -196,7 +195,6 @@ module 'TableView', ->
                         @$('.settings_alert').html @template.alert
                             server_error: true
                             error: error
-                        @$('.settings_alert').fadeIn 'fast'
                 else
                     @editable = false
 

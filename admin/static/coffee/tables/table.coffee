@@ -22,6 +22,7 @@ module 'TableView', ->
 
 
         fetch_data: =>
+            #TODO Use table_config to retrieve the number of shards/replicas
             ignore = (shard) -> shard('role').ne('nothing')
             query =
                 r.db(system_db).table('server_config').count().do( (num_servers) =>
@@ -32,6 +33,7 @@ module 'TableView', ->
                             table.merge(
                                 num_shards: table("shards").count()
                                 num_available_shards: table("shards").concatMap( (shard) -> shard ).filter({role: "director", state: "ready"}).count()
+                                num_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).count()
                                 num_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).count()
                                 num_available_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).filter({state: "ready"}).count()
                                 max_replicas: num_servers
