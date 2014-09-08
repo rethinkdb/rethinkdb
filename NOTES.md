@@ -1,3 +1,23 @@
+# Release 1.14.1 (Brazil)
+
+Released on 2014-09-09
+
+Bug fix update.
+
+* Fixed a bug that caused `rethinkdb index-rebuild` to fail with auth keys (#2970)
+* Changed `rethinkdb export` to specify `binary_format='raw'` to work with binary data correctly (#2964)
+* Fixed `rethinkdb import` to handle Unicode in CSV files (#2963)
+* Updated the Valgrind suppressions file to fix false "uninitialized value" warnings (#2961)
+* Fixed a bug that caused duplicate perfmons when recreating an index (#2951)
+* Fixed a bug that could cause `r.http` to crash when used with pagination and `coerce_to` (#2947)
+* Improved the printing of binary data in Python and Ruby REPLs (#2942)
+* Fixed a bug that could corrupt databases larger than 4GB on 32-bit systems (#2928)
+* Fixed permission issues with the web admin interface files (#2927)
+* Fixed a bug that caused a crash due to incorrect error handling in profile mode (#2718)
+* Fixed a bug that caused a crash when existing servers tried to connect to a new server with an unresolvable hostname (#2708)
+
+--
+
 # Release 1.14.0 (Brazil)
 
 Released on 2014-08-20
