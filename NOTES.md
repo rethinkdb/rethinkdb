@@ -13,7 +13,7 @@ Bug fix update.
 * Improved the printing of binary data in Python and Ruby REPLs (#2942)
 * Fixed a bug that could corrupt databases larger than 4GB on 32-bit systems (#2928)
 * Fixed permission issues with the web admin interface files (#2927)
-* Fixed a bug that caused a crash when a Response had both an error response and a profile or a success response (#2718)
+* Fixed a bug that caused a crash due to incorrect error handling in profile mode (#2718)
 * Fixed a bug that caused a crash when existing servers tried to connect to a new server with an unresolvable hostname (#2708)
 
 --
