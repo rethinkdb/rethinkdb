@@ -69,7 +69,7 @@ private:
                                    std::vector<std::string> *generated_keys_out,
                                    size_t *keys_skipped_out,
                                    datum_t *datum_out) {
-        if (!(*datum_out)->get_field(datum_string_t(tbl->get_pkey()), NOTHROW).has()) {
+        if (!(*datum_out).get_field(datum_string_t(tbl->get_pkey()), NOTHROW).has()) {
             std::string key = uuid_to_str(generate_uuid());
             datum_t keyd((datum_string_t(key)));
             {
@@ -77,7 +77,7 @@ private:
                 bool conflict = d.add(datum_string_t(tbl->get_pkey()), keyd);
                 r_sanity_check(!conflict);
                 std::set<std::string> conditions;
-                *datum_out = (*datum_out)->merge(std::move(d).to_datum(), pure_merge,
+                *datum_out = (*datum_out).merge(std::move(d).to_datum(), pure_merge,
                                                  limits, &conditions);
                 // we happen to know that pure_merge cannot ever generate warning
                 // conditions, because it shouldn't ever be run.
@@ -115,7 +115,7 @@ private:
         if (v1->get_type().is_convertible(val_t::type_t::DATUM)) {
             std::vector<datum_t> datums;
             datums.push_back(v1->as_datum());
-            if (datums[0]->get_type() == datum_t::R_OBJECT) {
+            if (datums[0].get_type() == datum_t::R_OBJECT) {
                 try {
                     maybe_generate_key(t, env->env->limits(), &generated_keys,
                                        &keys_skipped, &datums[0]);
@@ -126,7 +126,7 @@ private:
                 datum_t replace_stats = t->batched_insert(
                     env->env, std::move(datums), conflict_behavior,
                     durability_requirement, return_changes);
-                stats = stats->merge(replace_stats, stats_merge, env->env->limits(), &conditions);
+                stats = stats.merge(replace_stats, stats_merge, env->env->limits(), &conditions);
                 done = true;
             }
         }
@@ -154,7 +154,7 @@ private:
 
                 datum_t replace_stats = t->batched_insert(
                     env->env, std::move(datums), conflict_behavior, durability_requirement, return_changes);
-                stats = stats->merge(replace_stats, stats_merge, env->env->limits(), &conditions);
+                stats = stats.merge(replace_stats, stats_merge, env->env->limits(), &conditions);
             }
         }
 
@@ -168,7 +168,7 @@ private:
             UNUSED bool b = d.add("generated_keys",
                                   datum_t(std::move(genkeys),
                                                         env->env->limits()));
-            stats = stats->merge(std::move(d).to_datum(), pure_merge,
+            stats = stats.merge(std::move(d).to_datum(), pure_merge,
                                 env->env->limits(), &conditions);
         }
 
@@ -223,7 +223,7 @@ private:
             datum_t orig_key = v0->get_orig_key();
             if (!orig_key.has()) {
                 orig_key =
-                    orig_val->get_field(datum_string_t(tblrow.first->get_pkey()), NOTHROW);
+                    orig_val.get_field(datum_string_t(tblrow.first->get_pkey()), NOTHROW);
                 r_sanity_check(orig_key.has());
             }
 
@@ -234,7 +234,7 @@ private:
             datum_t replace_stats = tblrow.first->batched_replace(
                 env->env, vals, keys, f,
                 nondet_ok, durability_requirement, return_changes);
-            stats = stats->merge(replace_stats, stats_merge, env->env->limits(),
+            stats = stats.merge(replace_stats, stats_merge, env->env->limits(),
                                  &conditions);
         } else {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > tblrows
@@ -252,12 +252,12 @@ private:
                 std::vector<datum_t> keys;
                 keys.reserve(vals.size());
                 for (auto it = vals.begin(); it != vals.end(); ++it) {
-                    keys.push_back((*it)->get_field(datum_string_t(tbl->get_pkey())));
+                    keys.push_back((*it).get_field(datum_string_t(tbl->get_pkey())));
                 }
                 datum_t replace_stats = tbl->batched_replace(
                     env->env, vals, keys,
                     f, nondet_ok, durability_requirement, return_changes);
-                stats = stats->merge(replace_stats, stats_merge, env->env->limits(), &conditions);
+                stats = stats.merge(replace_stats, stats_merge, env->env->limits(), &conditions);
             }
         }
 
@@ -288,17 +288,18 @@ private:
             profile::sampler_t sampler("Evaluating elements in for each.",
                                        env->env->trace);
             counted_t<const func_t> f = args->arg(env, 1)->as_func(CONSTANT_SHORTCUT);
-            while (datum_t row = ds->next(env->env, batchspec)) {
+            datum_t row;
+            while (row = ds->next(env->env, batchspec), row.has()) {
                 counted_t<val_t> v = f->call(env->env, row);
                 try {
                     datum_t d = v->as_datum();
-                    if (d->get_type() == datum_t::R_OBJECT) {
-                        stats = stats->merge(d, stats_merge, env->env->limits(),
+                    if (d.get_type() == datum_t::R_OBJECT) {
+                        stats = stats.merge(d, stats_merge, env->env->limits(),
                                              &conditions);
                     } else {
-                        for (size_t i = 0; i < d->arr_size(); ++i) {
-                            stats = stats->merge(d->get(i), stats_merge, env->env->limits(),
-                                                 &conditions);
+                        for (size_t i = 0; i < d.arr_size(); ++i) {
+                            stats = stats.merge(d.get(i), stats_merge, env->env->limits(),
+                                                &conditions);
                         }
                     }
                 } catch (const exc_t &e) {

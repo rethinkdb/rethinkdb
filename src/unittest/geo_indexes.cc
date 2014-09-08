@@ -6,6 +6,9 @@
 #include "concurrency/fifo_checker.hpp"
 #include "containers/counted.hpp"
 #include "debug.hpp"
+#include "rdb_protocol/configured_limits.hpp"
+#include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/error.hpp"
 #include "rdb_protocol/geo/distances.hpp"
 #include "rdb_protocol/geo/ellipsoid.hpp"
 #include "rdb_protocol/geo/exceptions.hpp"
@@ -13,11 +16,9 @@
 #include "rdb_protocol/geo/lat_lon_types.hpp"
 #include "rdb_protocol/geo/intersection.hpp"
 #include "rdb_protocol/geo/primitives.hpp"
-#include "rdb_protocol/configured_limits.hpp"
-#include "rdb_protocol/datum.hpp"
-#include "rdb_protocol/error.hpp"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/shards.hpp"
 #include "stl_utils.hpp"
 #include "unittest/rdb_protocol.hpp"
 #include "unittest/unittest_utils.hpp"
@@ -191,8 +192,8 @@ std::vector<nearest_geo_read_response_t::dist_pair_t> perform_get_nearest(
 
     std::string table_name = "test_table"; // This is just used to print error messages
     std::string idx_name = "geo";
-    read_t read(nearest_geo_read_t(center, max_distance, max_results,
-                                   WGS84_ELLIPSOID, table_name, idx_name,
+    read_t read(nearest_geo_read_t(region_t::universe(), center, max_distance,
+                                   max_results, WGS84_ELLIPSOID, table_name, idx_name,
                                    std::map<std::string, ql::wire_func_t>()),
                 profile_bool_t::PROFILE);
     read_response_t response;
@@ -309,8 +310,14 @@ std::vector<datum_t> perform_get_intersecting(
 
     std::string table_name = "test_table"; // This is just used to print error messages
     std::string idx_name = "geo";
-    read_t read(intersecting_geo_read_t(query_geometry, table_name, idx_name,
-                                        std::map<std::string, ql::wire_func_t>()),
+    read_t read(intersecting_geo_read_t(region_t::universe(),
+                                        std::map<std::string, ql::wire_func_t>(),
+                                        table_name, ql::batchspec_t::all(),
+                                        std::vector<ql::transform_variant_t>(),
+                                        boost::optional<ql::terminal_variant_t>(),
+                                        sindex_rangespec_t(idx_name, region_t::universe(),
+                                                           datum_range_t::universe()),
+                                        query_geometry),
                 profile_bool_t::PROFILE);
     read_response_t response;
 
@@ -319,22 +326,27 @@ std::vector<datum_t> perform_get_intersecting(
               osource->check_in("unittest::perform_get_intersecting(geo_indexes.cc"),
               &interruptor);
 
-    intersecting_geo_read_response_t *geo_response =
-        boost::get<intersecting_geo_read_response_t>(&response.response);
+    rget_read_response_t *geo_response =
+        boost::get<rget_read_response_t>(&response.response);
     if (geo_response == NULL) {
         ADD_FAILURE() << "got wrong type of result back";
         return std::vector<datum_t>();
     }
-    if (boost::get<ql::exc_t>(&geo_response->results_or_error) != NULL) {
-        ADD_FAILURE() << boost::get<ql::exc_t>(&geo_response->results_or_error)->what();
+    if (boost::get<ql::exc_t>(&geo_response->result) != NULL) {
+        ADD_FAILURE() << boost::get<ql::exc_t>(&geo_response->result)->what();
         return std::vector<datum_t>();
     }
 
-    ql::datum_t result = boost::get<ql::datum_t>(geo_response->results_or_error);
+    auto result = boost::get<ql::grouped_t<ql::stream_t> >(&geo_response->result);
+    if (result == NULL) {
+        ADD_FAILURE() << "got wrong type of result back";
+        return std::vector<datum_t>();
+    }
+    const ql::stream_t &result_stream = (*result)[datum_t::null()];
     std::vector<datum_t> result_datum;
-    result_datum.reserve(result.arr_size());
-    for (size_t i = 0; i < result.arr_size(); ++i) {
-        result_datum.push_back(result.get(i));
+    result_datum.reserve(result_stream.size());
+    for (size_t i = 0; i < result_stream.size(); ++i) {
+        result_datum.push_back(result_stream[i].data);
     }
     return result_datum;
 }
@@ -369,7 +381,7 @@ void test_get_intersecting(const datum_t &query_geometry,
     // 3. Compare both results
     ASSERT_EQ(intersecting_res.size(), reference_res.size());
     for (size_t i = 0; i < intersecting_res.size() && i < reference_res.size(); ++i) {
-        ASSERT_EQ(*intersecting_res[i], *reference_res[i]);
+        ASSERT_EQ(intersecting_res[i], reference_res[i]);
     }
 }
 

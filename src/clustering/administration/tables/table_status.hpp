@@ -10,7 +10,7 @@
 
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
-#include "clustering/administration/tables/backend_common.hpp"
+#include "clustering/administration/tables/table_common.hpp"
 #include "concurrency/watchable.hpp"
 
 class server_name_client_t;

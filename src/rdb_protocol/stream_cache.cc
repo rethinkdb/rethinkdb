@@ -55,10 +55,10 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
                 batchspec_t::user(batch_type, &env));
         entry->has_sent_batch = true;
         for (auto d = ds.begin(); d != ds.end(); ++d) {
-            (*d)->write_to_protobuf(res->add_response(), entry->use_json);
+            d->write_to_protobuf(res->add_response(), entry->use_json);
         }
         if (trace.has()) {
-            trace->as_datum()->write_to_protobuf(
+            trace->as_datum().write_to_protobuf(
                 res->mutable_profile(), entry->use_json);
         }
     } catch (const std::exception &e) {

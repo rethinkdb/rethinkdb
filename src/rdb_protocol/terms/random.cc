@@ -42,7 +42,8 @@ public:
         batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
         {
             profile::sampler_t sampler("Sampling elements.", env->env->trace);
-            while (datum_t row = seq->next(env->env, batchspec)) {
+            datum_t row;
+            while (row = seq->next(env->env, batchspec), row.has()) {
                 element_number++;
                 if (result.size() < num) {
                     result.push_back(row);

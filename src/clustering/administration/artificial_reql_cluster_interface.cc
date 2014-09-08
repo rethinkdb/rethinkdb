@@ -149,14 +149,23 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         real_reql_cluster_interface_t *_next_reql_cluster_interface,
         boost::shared_ptr< semilattice_readwrite_view_t<
             cluster_semilattice_metadata_t> > _semilattice_view,
+        boost::shared_ptr< semilattice_readwrite_view_t<
+            auth_semilattice_metadata_t> > _auth_view,
         clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
             cluster_directory_metadata_t> > > _directory_view,
-        server_name_client_t *_name_client) {
+        server_name_client_t *_name_client,
+        auto_reconnector_t *_auto_reconnector,
+        last_seen_tracker_t *_last_seen_tracker) {
     std::map<name_string_t, artificial_table_backend_t*> backends;
 
     debug_scratch_backend.init(new in_memory_artificial_table_backend_t);
     backends[name_string_t::guarantee_valid("_debug_scratch")] =
         debug_scratch_backend.get();
+
+    cluster_config_backend.init(new cluster_config_artificial_table_backend_t(
+        _auth_view));
+    backends[name_string_t::guarantee_valid("cluster_config")] =
+        cluster_config_backend.get();
 
     server_config_backend.init(new server_config_artificial_table_backend_t(
         metadata_field(&cluster_semilattice_metadata_t::machines,
@@ -164,6 +173,20 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         _name_client));
     backends[name_string_t::guarantee_valid("server_config")] =
         server_config_backend.get();
+
+    server_status_backend.init(new server_status_artificial_table_backend_t(
+        metadata_field(&cluster_semilattice_metadata_t::machines,
+            _semilattice_view),
+        _name_client,
+        _directory_view,
+        metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
+            _semilattice_view),
+        metadata_field(&cluster_semilattice_metadata_t::databases,
+            _semilattice_view),
+        _auto_reconnector,
+        _last_seen_tracker));
+    backends[name_string_t::guarantee_valid("server_status")] =
+        server_status_backend.get();
 
     table_config_backend.init(new table_config_artificial_table_backend_t(
         metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,

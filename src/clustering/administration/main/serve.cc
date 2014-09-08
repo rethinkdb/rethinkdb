@@ -143,22 +143,27 @@ bool do_serve(io_backender_t *io_backender,
         // stat_manager mailbox address
         stat_manager_t stat_manager(&mailbox_manager);
 
-        scoped_ptr_t<cluster_directory_metadata_t> initial_directory(
-            new cluster_directory_metadata_t(
-                machine_id,
-                connectivity_cluster.get_me(),
-                total_cache_size,
-                get_ips(),
-                stat_manager.get_address(),
-                outdated_index_server.get_request_mailbox_address(),
-                log_server.get_business_card(),
-                i_am_a_server
-                    ? boost::make_optional(server_name_server->get_business_card())
-                    : boost::optional<server_name_business_card_t>(),
-                i_am_a_server ? SERVER_PEER : PROXY_PEER));
+        cluster_directory_metadata_t initial_directory(
+            machine_id,
+            connectivity_cluster.get_me(),
+            total_cache_size,
+            current_microtime(),
+            getpid(),
+            serve_info.ports.port,
+            serve_info.ports.reql_port,
+            serve_info.ports.http_admin_is_disabled
+                ? boost::optional<uint16_t>()
+                : boost::optional<uint16_t>(serve_info.ports.http_port),
+            stat_manager.get_address(),
+            outdated_index_server.get_request_mailbox_address(),
+            log_server.get_business_card(),
+            i_am_a_server
+                ? boost::make_optional(server_name_server->get_business_card())
+                : boost::optional<server_name_business_card_t>(),
+            i_am_a_server ? SERVER_PEER : PROXY_PEER);
 
         watchable_variable_t<cluster_directory_metadata_t>
-            our_root_directory_variable(*initial_directory);
+            our_root_directory_variable(initial_directory);
 
         directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(
             &connectivity_cluster, 'D', our_root_directory_variable.get_watchable());
@@ -184,16 +189,6 @@ bool do_serve(io_backender_t *io_backender,
                 serve_info.ports.canonical_addresses,
                 serve_info.ports.port,
                 serve_info.ports.client_port));
-
-            // Update the directory with the ip addresses that we are passing to peers
-            std::set<ip_and_port_t> ips = connectivity_cluster_run->get_ips();
-            initial_directory->ips.clear();
-            for (auto it = ips.begin(); it != ips.end(); ++it) {
-                initial_directory->ips.push_back(it->ip().to_string());
-            }
-
-            our_root_directory_variable.set_value(*initial_directory);
-            initial_directory.reset();
         } catch (const address_in_use_exc_t &ex) {
             throw address_in_use_exc_t(strprintf("Could not bind to cluster port: %s", ex.what()));
         }
@@ -204,6 +199,13 @@ bool do_serve(io_backender_t *io_backender,
         }
         logINF("Listening for intracluster connections on port %d\n",
             connectivity_cluster_run->get_port());
+        /* If `serve_info.ports.port` was 0 then the actual port is not 0, so we need to
+        update the directory. */
+        our_root_directory_variable.apply_atomic_op(
+            [&](cluster_directory_metadata_t *md) -> bool {
+                md->cluster_port = connectivity_cluster_run->get_port();
+                return (md->cluster_port != serve_info.ports.port);
+            });
 
         auto_reconnector_t auto_reconnector(
             &connectivity_cluster,
@@ -267,8 +269,11 @@ bool do_serve(io_backender_t *io_backender,
         admin_artificial_tables_t admin_tables(
                 &real_reql_cluster_interface,
                 semilattice_manager_cluster.get_root_view(),
+                semilattice_manager_auth.get_root_view(),
                 directory_read_manager.get_root_view(),
-                &server_name_client);
+                &server_name_client,
+                &auto_reconnector,
+                &admin_tracker.last_seen_tracker);
 
         /* `real_reql_cluster_interface_t` needs access to the admin tables so that it
         can return rows from the `table_status` and `table_config` artificial tables when
@@ -333,6 +338,13 @@ bool do_serve(io_backender_t *io_backender,
                     &rdb_ctx);
                 logINF("Listening for client driver connections on port %d\n",
                        rdb_query_server.get_port());
+                /* If `serve_info.ports.reql_port` was zero then the OS assigned us a
+                port, so we need to update the directory. */
+                our_root_directory_variable.apply_atomic_op(
+                    [&](cluster_directory_metadata_t *md) -> bool {
+                        md->reql_port = rdb_query_server.get_port();
+                        return (md->reql_port != serve_info.ports.reql_port);
+                    });
 
                 scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t<cluster_semilattice_metadata_t> >
                     cluster_metadata_persister;
@@ -367,6 +379,14 @@ bool do_serve(io_backender_t *io_backender,
                                 serve_info.web_assets));
                         logINF("Listening for administrative HTTP connections on port %d\n",
                                admin_server_ptr->get_port());
+                        /* If `serve_info.ports.http_port` was zero then the OS assigned
+                        us a port, so we need to update the directory. */
+                        our_root_directory_variable.apply_atomic_op(
+                            [&](cluster_directory_metadata_t *md) -> bool {
+                                *md->http_admin_port = admin_server_ptr->get_port();
+                                return (*md->http_admin_port !=
+                                    serve_info.ports.http_port);
+                            });
                     }
 
                     const std::string addresses_string = serve_info.ports.get_addresses_string();

@@ -1,10 +1,6 @@
 desc: sindex truncation tests
+table_variable_name: tbl
 tests:
-
-  - rb: r.table_create('sindex_truncation')
-    ot: ({'created' => 1})
-
-  - def: tbl = r.table('sindex_truncation')
 
   - rb: tbl.index_create('a')
     ot: ({'created' => 1})

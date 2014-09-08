@@ -4,10 +4,14 @@ from __future__ import print_function
 import signal
 
 import sys, os, datetime, time, json, traceback, csv
-import multiprocessing, multiprocessing.queues, subprocess, re, ctypes
+import multiprocessing, multiprocessing.queues, subprocess, re, ctypes, codecs
 from optparse import OptionParser
 from ._backup import *
 import rethinkdb as r
+
+# Used because of API differences in the csv module, taken from
+# http://python3porting.com/problems.html
+PY3 = sys.version > '3'
 
 try:
     import cPickle as pickle
@@ -429,6 +433,38 @@ def json_reader(task_queue, filename, db, table, fields, progress_info, exit_eve
     if len(object_buffers) > 0:
         task_queue.put((db, table, object_buffers))
 
+# Wrapper classes for the handling of unicode csv files
+# Taken from https://docs.python.org/2/library/csv.html
+class Utf8Recoder:
+    def __init__(self, f):
+        self.reader = codecs.getreader('utf-8')(f)
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        return self.reader.next().encode("utf-8")
+
+class Utf8CsvReader:
+    def __init__(self, f, **kwargs):
+        f = Utf8Recoder(f)
+        self.reader = csv.reader(f, **kwargs)
+        self.line_num = self.reader.line_num
+
+    def next(self):
+        row = self.reader.next()
+        self.line_num = self.reader.line_num
+        return [unicode(s, 'utf-8') for s in row]
+
+    def __iter__(self):
+        return self
+
+def open_csv_file(filename):
+    if PY3:
+        return open(filename, 'r', encoding='utf-8', newline='')
+    else:
+        return open(filename, 'r')
+
 def csv_reader(task_queue, filename, db, table, options, progress_info, exit_event):
     object_buffers = []
     buffer_sizes = []
@@ -436,15 +472,18 @@ def csv_reader(task_queue, filename, db, table, options, progress_info, exit_eve
     # Count the lines so we can report progress
     # TODO: this requires us to make two passes on csv files
     line_count = 0
-    with open(filename, "r") as file_in:
+    with open_csv_file(filename) as file_in:
         for i, l in enumerate(file_in):
             pass
         line_count = i + 1
 
     progress_info[1].value = line_count
 
-    with open(filename, "r") as file_in:
-        reader = csv.reader(file_in, delimiter=options["delimiter"])
+    with open_csv_file(filename) as file_in:
+        if PY3:
+            reader = csv.reader(file_in, delimiter=options["delimiter"])
+        else:
+            reader = Utf8CsvReader(file_in, delimiter=options["delimiter"])
 
         if not options["no_header"]:
             fields_in = next(reader)

@@ -77,6 +77,11 @@ public:
         guarantee(item);
         return cJSON_AddItemToObject(val, string, item);
     }
+    void AddItemToObject(const char *string, size_t string_size, cJSON *item) {
+        guarantee(string);
+        guarantee(item);
+        return cJSON_AddItemToObjectN(val, string, string_size, item);
+    }
 
     /* Remove/Detatch items from Arrays/Objects. Returns NULL if unsuccessful. */
     cJSON* DetachItemFromArray(int which) {

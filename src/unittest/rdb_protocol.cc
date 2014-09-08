@@ -160,7 +160,7 @@ void run_get_set_test(namespace_interface_t *nsi, order_source_t *osource) {
         if (point_read_response_t *maybe_point_read_response = boost::get<point_read_response_t>(&response.response)) {
             ASSERT_TRUE(maybe_point_read_response->data.has());
             ASSERT_EQ(ql::datum_t(ql::datum_t::construct_null_t()),
-                      *maybe_point_read_response->data);
+                      maybe_point_read_response->data);
         } else {
             ADD_FAILURE() << "got wrong result back";
         }
@@ -258,7 +258,7 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
     ql::configured_limits_t limits;
     ql::datum_t d
         = ql::to_datum(cJSON_slow_GetObjectItem(data->get(), "id"), limits);
-    store_key_t pk = store_key_t(d->print_primary());
+    store_key_t pk = store_key_t(d.print_primary());
     ql::datum_t sindex_key_literal = ql::datum_t(1.0);
 
     ASSERT_TRUE(data->get());
@@ -304,7 +304,7 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
             auto stream = &streams->begin(ql::grouped::order_doesnt_matter_t())->second;
             ASSERT_TRUE(stream != NULL);
             ASSERT_EQ(1u, stream->size());
-            ASSERT_EQ(*ql::to_datum(data->get(), limits), *stream->at(0).data);
+            ASSERT_EQ(ql::to_datum(data->get(), limits), stream->at(0).data);
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }
@@ -361,7 +361,7 @@ void populate_sindex(namespace_interface_t *nsi,
         ql::configured_limits_t limits;
         ql::datum_t d
             = ql::to_datum(cJSON_slow_GetObjectItem(data->get(), "id"), limits);
-        store_key_t pk = store_key_t(d->print_primary());
+        store_key_t pk = store_key_t(d.print_primary());
 
         /* Insert a piece of data (it will be indexed using the secondary
          * index). */
@@ -642,7 +642,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t *nsi, order_source_t *
             try {
                 pk = store_key_t(ql::to_datum(
                                      cJSON_slow_GetObjectItem(data->get(), "id"),
-                                     limits)->print_primary());
+                                     limits).print_primary());
             } catch (const ql::base_exc_t &ex) {
                 ASSERT_TRUE(id.length() >= rdb_protocol::MAX_PRIMARY_KEY_SIZE);
                 continue;
@@ -720,7 +720,7 @@ void run_sindex_missing_attr_test(namespace_interface_t *nsi, order_source_t *os
         new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0}")));
     store_key_t pk = store_key_t(ql::to_datum(
                                      cJSON_slow_GetObjectItem(data->get(), "id"),
-                                     limits)->print_primary());
+                                     limits).print_primary());
     ASSERT_TRUE(data->get());
     {
         /* Insert a piece of data (it will be indexed using the secondary

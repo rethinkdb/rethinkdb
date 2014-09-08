@@ -36,6 +36,15 @@ public:
                                concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t) = 0;
 
+    // Can be overloaded if you don't want to query a contiguous range of keys,
+    // but only parts of it. Will be called before traversing into any child node.
+    // Note: returning false here does not guarantee that a given range is never
+    // encountered by handle_pair(). is_range_interesting() is just a pre-filter.
+    virtual bool is_range_interesting(UNUSED const btree_key_t *left_excl_or_null,
+                                      UNUSED const btree_key_t *right_incl_or_null) {
+        return true;
+    };
+
     virtual profile::trace_t *get_trace() THROWS_NOTHING { return NULL; }
 
 protected:
@@ -46,7 +55,9 @@ private:
 
 bool btree_concurrent_traversal(superblock_t *superblock, const key_range_t &range,
                                 concurrent_traversal_callback_t *cb,
-                                direction_t direction);
+                                direction_t direction,
+                                release_superblock_t release_superblock
+                                    = release_superblock_t::RELEASE);
 
 
 

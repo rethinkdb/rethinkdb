@@ -20,6 +20,7 @@
 #include "rdb_protocol/pseudo_geometry.hpp"
 #include "rdb_protocol/pseudo_literal.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
+#include "rdb_protocol/serialize_datum.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "stl_utils.hpp"
 
@@ -65,36 +66,36 @@ datum_t::data_wrapper_t &datum_t::data_wrapper_t::operator=(
 }
 
 datum_t::data_wrapper_t::data_wrapper_t() :
-    type(UNINITIALIZED) { }
+    internal_type(internal_type_t::UNINITIALIZED) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_null_t) :
-    type(R_NULL) { }
+    internal_type(internal_type_t::R_NULL) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_boolean_t, bool _bool) :
-    type(R_BOOL), r_bool(_bool) { }
+    r_bool(_bool), internal_type(internal_type_t::R_BOOL) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_binary_t,
                                         datum_string_t _data) :
-    type(R_BINARY), r_str(std::move(_data)) { }
+    r_str(std::move(_data)), internal_type(internal_type_t::R_BINARY) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(double num) :
-    type(R_NUM), r_num(num) { }
+    r_num(num), internal_type(internal_type_t::R_NUM) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(datum_string_t str) :
-    type(R_STR), r_str(std::move(str)) { }
+    r_str(std::move(str)), internal_type(internal_type_t::R_STR) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(const char *cstr) :
-    type(R_STR), r_str(cstr) { }
+    r_str(cstr), internal_type(internal_type_t::R_STR) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(std::vector<datum_t> &&array) :
-    type(R_ARRAY),
-    r_array(new countable_wrapper_t<std::vector<datum_t> >(std::move(array))) { }
+    r_array(new countable_wrapper_t<std::vector<datum_t> >(std::move(array))),
+    internal_type(internal_type_t::R_ARRAY) { }
 
 datum_t::data_wrapper_t::data_wrapper_t(
         std::vector<std::pair<datum_string_t, datum_t> > &&object) :
-    type(R_OBJECT),
     r_object(new countable_wrapper_t<std::vector<std::pair<datum_string_t, datum_t> > >(
-        std::move(object))) {
+        std::move(object))),
+    internal_type(internal_type_t::R_OBJECT) {
 
 #ifndef NDEBUG
     auto key_cmp = [](const std::pair<datum_string_t, datum_t> &p1,
@@ -105,84 +106,156 @@ datum_t::data_wrapper_t::data_wrapper_t(
 #endif
 }
 
+datum_t::data_wrapper_t::data_wrapper_t(type_t type, shared_buf_ref_t<char> &&_buf_ref) {
+    switch (type) {
+    case R_BINARY: {
+        internal_type = internal_type_t::R_BINARY;
+        new(&r_str) datum_string_t(std::move(_buf_ref));
+    } break;
+    case R_ARRAY: {
+        internal_type = internal_type_t::BUF_R_ARRAY;
+        new(&buf_ref) shared_buf_ref_t<char>(std::move(_buf_ref));
+    } break;
+    case R_OBJECT: {
+        internal_type = internal_type_t::BUF_R_OBJECT;
+        new(&buf_ref) shared_buf_ref_t<char>(std::move(_buf_ref));
+    } break;
+    case R_STR: {
+        internal_type = internal_type_t::R_STR;
+        new(&r_str) datum_string_t(std::move(_buf_ref));
+    } break;
+    case UNINITIALIZED: // fallthru
+    case R_BOOL: // fallthru
+    case R_NULL: // fallthru
+    case R_NUM: // fallthru
+    default:
+        unreachable();
+    }
+}
+
 datum_t::data_wrapper_t::~data_wrapper_t() {
     destruct();
 }
 
+datum_t::type_t datum_t::data_wrapper_t::get_type() const {
+    switch (internal_type) {
+    case internal_type_t::UNINITIALIZED:
+        return type_t::UNINITIALIZED;
+    case internal_type_t::R_ARRAY:
+        return type_t::R_ARRAY;
+    case internal_type_t::R_BINARY:
+        return type_t::R_BINARY;
+    case internal_type_t::R_BOOL:
+        return type_t::R_BOOL;
+    case internal_type_t::R_NULL:
+        return type_t::R_NULL;
+    case internal_type_t::R_NUM:
+        return type_t::R_NUM;
+    case internal_type_t::R_OBJECT:
+        return type_t::R_OBJECT;
+    case internal_type_t::R_STR:
+        return type_t::R_STR;
+    case internal_type_t::BUF_R_ARRAY:
+        return type_t::R_ARRAY;
+    case internal_type_t::BUF_R_OBJECT:
+        return type_t::R_OBJECT;
+    default:
+        unreachable();
+    }
+}
+datum_t::internal_type_t datum_t::data_wrapper_t::get_internal_type() const {
+    return internal_type;
+}
+
 void datum_t::data_wrapper_t::destruct() {
-    switch (type) {
-    case UNINITIALIZED: // fallthru
-    case R_NULL: // fallthru
-    case R_BOOL: // fallthru
-    case R_NUM: break;
-    case R_BINARY: // fallthru
-    case R_STR: {
+    switch (internal_type) {
+    case internal_type_t::UNINITIALIZED: // fallthru
+    case internal_type_t::R_NULL: // fallthru
+    case internal_type_t::R_BOOL: // fallthru
+    case internal_type_t::R_NUM: break;
+    case internal_type_t::R_BINARY: // fallthru
+    case internal_type_t::R_STR: {
         r_str.~datum_string_t();
     } break;
-    case R_ARRAY: {
+    case internal_type_t::R_ARRAY: {
         r_array.~counted_t<countable_wrapper_t<std::vector<datum_t> > >();
     } break;
-    case R_OBJECT: {
+    case internal_type_t::R_OBJECT: {
         r_object.~counted_t<countable_wrapper_t<std::vector<std::pair<datum_string_t, datum_t> > > >();
+    } break;
+    case internal_type_t::BUF_R_ARRAY: // fallthru
+    case internal_type_t::BUF_R_OBJECT: {
+        buf_ref.~shared_buf_ref_t<char>();
     } break;
     default: unreachable();
     }
 }
 
 void datum_t::data_wrapper_t::assign_copy(const datum_t::data_wrapper_t &copyee) {
-    type = copyee.type;
-    switch (type) {
-    case UNINITIALIZED: // fallthru
-    case R_NULL: break;
-    case R_BOOL: {
+    internal_type = copyee.internal_type;
+    switch (internal_type) {
+    case internal_type_t::UNINITIALIZED: // fallthru
+    case internal_type_t::R_NULL: break;
+    case internal_type_t::R_BOOL: {
         r_bool = copyee.r_bool;
     } break;
-    case R_NUM: {
+    case internal_type_t::R_NUM: {
         r_num = copyee.r_num;
     } break;
-    case R_BINARY: // fallthru
-    case R_STR: {
+    case internal_type_t::R_BINARY: // fallthru
+    case internal_type_t::R_STR: {
         new(&r_str) datum_string_t(copyee.r_str);
     } break;
-    case R_ARRAY: {
+    case internal_type_t::R_ARRAY: {
         new(&r_array) counted_t<countable_wrapper_t<std::vector<datum_t> > >(copyee.r_array);
     } break;
-    case R_OBJECT: {
+    case internal_type_t::R_OBJECT: {
         new(&r_object) counted_t<countable_wrapper_t<std::vector<std::pair<datum_string_t, datum_t> > > >(
             copyee.r_object);
+    } break;
+    case internal_type_t::BUF_R_ARRAY: // fallthru
+    case internal_type_t::BUF_R_OBJECT: {
+        new(&buf_ref) shared_buf_ref_t<char>(copyee.buf_ref);
     } break;
     default: unreachable();
     }
 }
 
 void datum_t::data_wrapper_t::assign_move(datum_t::data_wrapper_t &&movee) noexcept {
-    type = movee.type;
-    switch (type) {
-    case UNINITIALIZED: // fallthru
-    case R_NULL: break;
-    case R_BOOL: {
+    internal_type = movee.internal_type;
+    switch (internal_type) {
+    case internal_type_t::UNINITIALIZED: // fallthru
+    case internal_type_t::R_NULL: break;
+    case internal_type_t::R_BOOL: {
         r_bool = movee.r_bool;
     } break;
-    case R_NUM: {
+    case internal_type_t::R_NUM: {
         r_num = movee.r_num;
     } break;
-    case R_BINARY: // fallthru
-    case R_STR: {
+    case internal_type_t::R_BINARY: // fallthru
+    case internal_type_t::R_STR: {
         new(&r_str) datum_string_t(std::move(movee.r_str));
     } break;
-    case R_ARRAY: {
+    case internal_type_t::R_ARRAY: {
         new(&r_array) counted_t<countable_wrapper_t<std::vector<datum_t> > >(
             std::move(movee.r_array));
     } break;
-    case R_OBJECT: {
+    case internal_type_t::R_OBJECT: {
         new(&r_object) counted_t<countable_wrapper_t<std::vector<std::pair<datum_string_t, datum_t> > > >(
             std::move(movee.r_object));
+    } break;
+    case internal_type_t::BUF_R_ARRAY: // fallthru
+    case internal_type_t::BUF_R_OBJECT: {
+        new(&buf_ref) shared_buf_ref_t<char>(std::move(movee.buf_ref));
     } break;
     default: unreachable();
     }
 }
 
 datum_t::datum_t() : data() { }
+
+datum_t::datum_t(type_t type, shared_buf_ref_t<char> &&buf_ref)
+    : data(type, std::move(buf_ref)) { }
 
 datum_t::datum_t(datum_t::construct_null_t dummy) : data(dummy) { }
 
@@ -239,16 +312,6 @@ std::vector<std::pair<datum_string_t, datum_t> > datum_t::to_sorted_vec(
     return sorted_vec;
 }
 
-const std::vector<std::pair<datum_string_t, datum_t> > &datum_t::get_obj_vec() const {
-    check_type(R_OBJECT);
-    return *data.r_object;
-}
-
-const std::vector<datum_t> &datum_t::get_arr_vec() const {
-    check_type(R_ARRAY);
-    return *data.r_array;
-}
-
 datum_t to_datum_for_client_serialization(grouped_data_t &&gd,
                                           reql_version_t reql_version,
                                           const configured_limits_t &limits) {
@@ -282,7 +345,7 @@ datum_t::~datum_t() {
 }
 
 bool datum_t::has() const {
-    return data.type != UNINITIALIZED;
+    return data.get_type() != UNINITIALIZED;
 }
 
 void datum_t::reset() {
@@ -369,7 +432,16 @@ void datum_t::check_str_validity(const datum_string_t &str) {
     ::ql::check_str_validity(str.data(), str.size());
 }
 
-datum_t::type_t datum_t::get_type() const { return data.type; }
+const shared_buf_ref_t<char> *datum_t::get_buf_ref() const {
+    if (data.get_internal_type() == internal_type_t::BUF_R_ARRAY
+        || data.get_internal_type() == internal_type_t::BUF_R_OBJECT) {
+        return &data.buf_ref;
+    } else {
+        return NULL;
+    }
+}
+
+datum_t::type_t datum_t::get_type() const { return data.get_type(); }
 
 bool datum_t::is_ptype() const {
     return get_type() == R_BINARY ||
@@ -522,27 +594,28 @@ void datum_t::array_to_str_key(std::string *str_out) const {
     r_sanity_check(get_type() == R_ARRAY);
     str_out->append("A");
 
-    for (size_t i = 0; i < arr_size() && str_out->size() < MAX_KEY_SIZE; ++i) {
+    const size_t sz = arr_size();
+    for (size_t i = 0; i < sz && str_out->size() < MAX_KEY_SIZE; ++i) {
         datum_t item = get(i, NOTHROW);
         r_sanity_check(item.has());
 
-        switch (item->get_type()) {
-        case R_NUM: item->num_to_str_key(str_out); break;
-        case R_STR: item->str_to_str_key(str_out); break;
-        case R_BINARY: item->binary_to_str_key(str_out); break;
-        case R_BOOL: item->bool_to_str_key(str_out); break;
-        case R_ARRAY: item->array_to_str_key(str_out); break;
+        switch (item.get_type()) {
+        case R_NUM: item.num_to_str_key(str_out); break;
+        case R_STR: item.str_to_str_key(str_out); break;
+        case R_BINARY: item.binary_to_str_key(str_out); break;
+        case R_BOOL: item.bool_to_str_key(str_out); break;
+        case R_ARRAY: item.array_to_str_key(str_out); break;
         case R_OBJECT:
-            if (item->is_ptype()) {
-                item->pt_to_str_key(str_out);
+            if (item.is_ptype()) {
+                item.pt_to_str_key(str_out);
                 break;
             }
             // fallthru
         case R_NULL:
-            item->type_error(
+            item.type_error(
                 strprintf("Array keys can only contain numbers, strings, bools, "
                           " pseudotypes, or arrays (got %s of type %s).",
-                          item->print().c_str(), item->get_type_name().c_str()));
+                          item.print().c_str(), item.get_type_name().c_str()));
             break;
         case UNINITIALIZED: // fallthru
         default:
@@ -598,6 +671,8 @@ void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
             return;
         }
         if (s == pseudo::binary_string) {
+            // Sanitization cannot be performed when loading from a shared buffer.
+            r_sanity_check(data.get_internal_type() == internal_type_t::R_OBJECT);
             // Clear the pseudotype data and convert it to binary data
             data = data_wrapper_t(construct_binary_t(),
                                   pseudo::decode_base64_ptype(*data.r_object));
@@ -629,7 +704,7 @@ datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
         datum_t val = get_field(pseudo::value_key, NOTHROW);
         if (val.has()) {
             bool encountered_literal;
-            val = val->drop_literals(&encountered_literal);
+            val = val.drop_literals(&encountered_literal);
             // Nested literals should have been caught on the higher QL levels.
             r_sanity_check(!encountered_literal);
         }
@@ -646,7 +721,8 @@ datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
     if (get_type() == R_OBJECT) {
         datum_object_builder_t builder;
 
-        for (size_t i = 0; i < obj_size(); ++i) {
+        const size_t sz = obj_size();
+        for (size_t i = 0; i < sz; ++i) {
             auto pair = unchecked_get_pair(i);
             bool encountered_literal;
             datum_t val = pair.second.drop_literals(&encountered_literal);
@@ -678,7 +754,8 @@ datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
     } else if (get_type() == R_ARRAY) {
         datum_array_builder_t builder(limits);
 
-        for (size_t i = 0; i < arr_size(); ++i) {
+        const size_t sz = arr_size();
+        for (size_t i = 0; i < sz; ++i) {
             bool encountered_literal;
             datum_t val = get(i).drop_literals(&encountered_literal);
 
@@ -723,14 +800,14 @@ void datum_t::rcheck_valid_replace(datum_t old_val,
                      pkey.to_std().c_str(), print().c_str()));
     if (old_val.has()) {
         datum_t old_pk = orig_key;
-        if (old_val->get_type() != R_NULL) {
-            old_pk = old_val->get_field(pkey, NOTHROW);
+        if (old_val.get_type() != R_NULL) {
+            old_pk = old_val.get_field(pkey, NOTHROW);
             r_sanity_check(old_pk.has());
         }
         if (old_pk.has()) {
-            rcheck(*old_pk == *pk, base_exc_t::GENERIC,
+            rcheck(old_pk == pk, base_exc_t::GENERIC,
                    strprintf("Primary key `%s` cannot be changed (`%s` -> `%s`).",
-                             pkey.to_std().c_str(), old_val->print().c_str(),
+                             pkey.to_std().c_str(), old_val.print().c_str(),
                              print().c_str()));
         }
     } else {
@@ -1021,11 +1098,16 @@ const datum_string_t &datum_t::as_str() const {
 
 size_t datum_t::arr_size() const {
     check_type(R_ARRAY);
-    return data.r_array->size();
+    if (data.get_internal_type() == internal_type_t::BUF_R_ARRAY) {
+        return datum_get_array_size(data.buf_ref);
+    } else {
+        r_sanity_check(data.get_internal_type() == internal_type_t::R_ARRAY);
+        return data.r_array->size();
+    }
 }
 
 datum_t datum_t::get(size_t index, throw_bool_t throw_bool) const {
-    // Calling `size()` here also makes sure this this is actually an R_ARRAY.
+    // Calling `arr_size()` here also makes sure this this is actually an R_ARRAY.
     const size_t array_size = arr_size();
     if (index < array_size) {
         return unchecked_get(index);
@@ -1037,22 +1119,39 @@ datum_t datum_t::get(size_t index, throw_bool_t throw_bool) const {
 }
 
 datum_t datum_t::unchecked_get(size_t index) const {
-    return (*data.r_array)[index];
+    if (data.get_internal_type() == internal_type_t::BUF_R_ARRAY) {
+        const size_t offset = datum_get_element_offset(data.buf_ref, index);
+        return datum_deserialize_from_buf(data.buf_ref, offset);
+    } else {
+        r_sanity_check(data.get_internal_type() == internal_type_t::R_ARRAY);
+        return (*data.r_array)[index];
+    }
 }
 
 size_t datum_t::obj_size() const {
     check_type(R_OBJECT);
-    return data.r_object->size();
+    if (data.get_internal_type() == internal_type_t::BUF_R_OBJECT) {
+        return datum_get_array_size(data.buf_ref);
+    } else {
+        r_sanity_check(data.get_internal_type() == internal_type_t::R_OBJECT);
+        return data.r_object->size();
+    }
 }
 
 std::pair<datum_string_t, datum_t> datum_t::get_pair(size_t index) const {
-    check_type(R_OBJECT);
+    // Calling `obj_size()` here also makes sure this this is actually an R_OBJECT.
     guarantee(index < obj_size());
     return unchecked_get_pair(index);
 }
 
 std::pair<datum_string_t, datum_t> datum_t::unchecked_get_pair(size_t index) const {
-    return (*data.r_object)[index];
+    if (data.get_internal_type() == internal_type_t::BUF_R_OBJECT) {
+        const size_t offset = datum_get_element_offset(data.buf_ref, index);
+        return datum_deserialize_pair_from_buf(data.buf_ref, offset);
+    } else {
+        r_sanity_check(data.get_internal_type() == internal_type_t::R_OBJECT);
+        return (*data.r_object)[index];
+    }
 }
 
 datum_t datum_t::get_field(const datum_string_t &key, throw_bool_t throw_bool) const {
@@ -1096,15 +1195,19 @@ cJSON *datum_t::as_json_raw() const {
     case R_STR: return cJSON_CreateStringN(as_str().data(), as_str().size());
     case R_ARRAY: {
         scoped_cJSON_t arr(cJSON_CreateArray());
-        for (size_t i = 0; i < arr_size(); ++i) {
-            arr.AddItemToArray(unchecked_get(i)->as_json_raw());
+        const size_t sz = arr_size();
+        for (size_t i = 0; i < sz; ++i) {
+            arr.AddItemToArray(unchecked_get(i).as_json_raw());
         }
         return arr.release();
     } break;
     case R_OBJECT: {
         scoped_cJSON_t obj(cJSON_CreateObject());
-        for (auto it = data.r_object->begin(); it != data.r_object->end(); ++it) {
-            obj.AddItemToObject(it->first.to_std().c_str(), it->second->as_json_raw());
+        const size_t sz = obj_size();
+        for (size_t i = 0; i < sz; ++i) {
+            auto pair = get_pair(i);
+            obj.AddItemToObject(pair.first.data(), pair.first.size(),
+                                pair.second.as_json_raw());
         }
         return obj.release();
     } break;
@@ -1141,6 +1244,9 @@ datum_t::as_datum_stream(const protob_t<const Backtrace> &backtrace) const {
 void datum_t::replace_field(const datum_string_t &key, datum_t val) {
     check_type(R_OBJECT);
     r_sanity_check(val.has());
+    // This function must only be used during sanitization, which is only performed
+    // when not loading from a shared buffer.
+    r_sanity_check(data.get_internal_type() == internal_type_t::R_OBJECT);
 
     auto key_cmp = [](const std::pair<datum_string_t, datum_t> &p1,
                       const datum_string_t &k2) -> bool {
@@ -1161,7 +1267,8 @@ datum_t datum_t::merge(const datum_t &rhs) const {
     }
 
     datum_object_builder_t d(*this);
-    for (size_t i = 0; i < rhs.obj_size(); ++i) {
+    const size_t rhs_sz = rhs.obj_size();
+    for (size_t i = 0; i < rhs_sz; ++i) {
         auto pair = rhs.unchecked_get_pair(i);
         datum_t sub_lhs = d.try_get(pair.first);
         bool is_literal = pair.second.is_ptype(pseudo::literal_string);
@@ -1177,7 +1284,7 @@ datum_t datum_t::merge(const datum_t &rhs) const {
                 // Since nested literal keywords are forbidden, this should be a no-op
                 // if `is_literal == true`.
                 bool encountered_literal;
-                val = val->drop_literals(&encountered_literal);
+                val = val.drop_literals(&encountered_literal);
                 r_sanity_check(!encountered_literal || !is_literal);
             }
             if (val.has()) {
@@ -1196,7 +1303,8 @@ datum_t datum_t::merge(const datum_t &rhs,
                        const configured_limits_t &limits,
                        std::set<std::string> *conditions_out) const {
     datum_object_builder_t d(*this);
-    for (size_t i = 0; i < rhs.obj_size(); ++i) {
+    const size_t rhs_sz = rhs.obj_size();
+    for (size_t i = 0; i < rhs_sz; ++i) {
         auto pair = rhs.unchecked_get_pair(i);
         datum_t left = get_field(pair.first, NOTHROW);
         if (left.has()) {
@@ -1232,13 +1340,15 @@ int datum_t::v1_13_cmp(const datum_t &rhs) const {
     case R_STR: return as_str().compare(rhs.as_str());
     case R_ARRAY: {
         size_t i;
-        for (i = 0; i < arr_size(); ++i) {
-            if (i >= rhs.arr_size()) return 1;
+        const size_t sz = arr_size();
+        const size_t rhs_sz = rhs.arr_size();
+        for (i = 0; i < sz; ++i) {
+            if (i >= rhs_sz) return 1;
             int cmpval = unchecked_get(i).v1_13_cmp(rhs.unchecked_get(i));
             if (cmpval != 0) return cmpval;
         }
-        guarantee(i <= rhs.arr_size());
-        return i == rhs.arr_size() ? 0 : -1;
+        guarantee(i <= rhs_sz);
+        return i == rhs_sz ? 0 : -1;
     } unreachable();
     case R_OBJECT: {
         if (is_ptype() && !pseudo_compares_as_obj()) {
@@ -1249,7 +1359,9 @@ int datum_t::v1_13_cmp(const datum_t &rhs) const {
         } else {
             size_t i = 0;
             size_t i2 = 0;
-            while (i < obj_size() && i2 < rhs.obj_size()) {
+            const size_t sz = obj_size();
+            const size_t rhs_sz = rhs.obj_size();
+            while (i < sz && i2 < rhs_sz) {
                 auto pair = unchecked_get_pair(i);
                 auto pair2 = rhs.unchecked_get_pair(i2);
                 int key_cmpval = pair.first.compare(pair2.first);
@@ -1263,8 +1375,8 @@ int datum_t::v1_13_cmp(const datum_t &rhs) const {
                 ++i;
                 ++i2;
             }
-            if (i != obj_size()) return 1;
-            if (i2 != rhs.obj_size()) return -1;
+            if (i != sz) return 1;
+            if (i2 != rhs_sz) return -1;
             return 0;
         }
     } unreachable();
@@ -1307,18 +1419,22 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
     case R_STR: return as_str().compare(rhs.as_str());
     case R_ARRAY: {
         size_t i;
-        for (i = 0; i < arr_size(); ++i) {
-            if (i >= rhs.arr_size()) return 1;
+        const size_t sz = arr_size();
+        const size_t rhs_sz = rhs.arr_size();
+        for (i = 0; i < sz; ++i) {
+            if (i >= rhs_sz) return 1;
             int cmpval = unchecked_get(i).modern_cmp(rhs.unchecked_get(i));
             if (cmpval != 0) return cmpval;
         }
-        guarantee(i <= rhs.arr_size());
-        return i == rhs.arr_size() ? 0 : -1;
+        guarantee(i <= rhs_sz);
+        return i == rhs_sz ? 0 : -1;
     } unreachable();
     case R_OBJECT: {
         size_t i = 0;
         size_t i2 = 0;
-        while (i < obj_size() && i2 < rhs.obj_size()) {
+        const size_t sz = obj_size();
+        const size_t rhs_sz = rhs.obj_size();
+        while (i < sz && i2 < rhs_sz) {
             auto pair = unchecked_get_pair(i);
             auto pair2 = rhs.unchecked_get_pair(i2);
             int key_cmpval = pair.first.compare(pair2.first);
@@ -1332,8 +1448,8 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
             ++i;
             ++i2;
         }
-        if (i != obj_size()) return 1;
-        if (i2 != rhs.obj_size()) return -1;
+        if (i != sz) return 1;
+        if (i2 != rhs_sz) return -1;
         return 0;
     } unreachable();
     case R_BINARY: // This should be handled by the ptype code above
@@ -1449,17 +1565,19 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
         } break;
         case R_ARRAY: {
             d->set_type(Datum::R_ARRAY);
-            for (size_t i = 0; i < data.r_array->size(); ++i) {
-                (*data.r_array)[i]->write_to_protobuf(d->add_r_array(), use_json);
+            const size_t sz = arr_size();
+            for (size_t i = 0; i < sz; ++i) {
+                get(i).write_to_protobuf(d->add_r_array(), use_json);
             }
         } break;
         case R_OBJECT: {
             d->set_type(Datum::R_OBJECT);
-            // We use rbegin and rend so that things print the way we expect.
-            for (auto it = data.r_object->rbegin(); it != data.r_object->rend(); ++it) {
+            // We use the opposite order so that things print the way we expect.
+            for (size_t i = obj_size(); i > 0; --i) {
                 Datum_AssocPair *ap = d->add_r_object();
-                ap->set_key(it->first.to_std());
-                it->second->write_to_protobuf(ap->mutable_val(), use_json);
+                auto pair = get_pair(i-1);
+                ap->set_key(pair.first.data(), pair.first.size());
+                pair.second.write_to_protobuf(ap->mutable_val(), use_json);
             }
         } break;
         case UNINITIALIZED: // fallthru
@@ -1483,27 +1601,29 @@ datum_t stats_merge(UNUSED const datum_string_t &key,
                     datum_t r,
                     const configured_limits_t &limits,
                     std::set<std::string> *conditions) {
-    if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
-        return datum_t(l->as_num() + r->as_num());
-    } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
-        if (l->arr_size() + r->arr_size() > limits.array_size_limit()) {
+    if (l.get_type() == datum_t::R_NUM && r.get_type() == datum_t::R_NUM) {
+        return datum_t(l.as_num() + r.as_num());
+    } else if (l.get_type() == datum_t::R_ARRAY && r.get_type() == datum_t::R_ARRAY) {
+        const size_t l_sz = l.arr_size();
+        const size_t r_sz = r.arr_size();
+        if (l_sz + r_sz > limits.array_size_limit()) {
             conditions->insert(strprintf("Too many changes, array truncated to %ld.", limits.array_size_limit()));
             datum_array_builder_t arr(limits);
             size_t so_far = 0;
-            for (size_t i = 0; i < l->arr_size() && so_far < limits.array_size_limit(); ++i, ++so_far) {
-                arr.add(l->get(i));
+            for (size_t i = 0; i < l_sz && so_far < limits.array_size_limit(); ++i, ++so_far) {
+                arr.add(l.get(i));
             }
-            for (size_t i = 0; i < r->arr_size() && so_far < limits.array_size_limit(); ++i, ++so_far) {
-                arr.add(r->get(i));
+            for (size_t i = 0; i < r_sz && so_far < limits.array_size_limit(); ++i, ++so_far) {
+                arr.add(r.get(i));
             }
             return std::move(arr).to_datum();
         } else {
             datum_array_builder_t arr(limits);
-            for (size_t i = 0; i < l->arr_size(); ++i) {
-                arr.add(l->get(i));
+            for (size_t i = 0; i < l_sz; ++i) {
+                arr.add(l.get(i));
             }
-            for (size_t i = 0; i < r->arr_size(); ++i) {
-                arr.add(r->get(i));
+            for (size_t i = 0; i < r_sz; ++i) {
+                arr.add(r.get(i));
             }
             return std::move(arr).to_datum();
         }
@@ -1511,16 +1631,17 @@ datum_t stats_merge(UNUSED const datum_string_t &key,
 
     // Merging a string is left-preferential, which is just a no-op.
     rcheck_datum(
-        l->get_type() == datum_t::R_STR && r->get_type() == datum_t::R_STR,
+        l.get_type() == datum_t::R_STR && r.get_type() == datum_t::R_STR,
         base_exc_t::GENERIC,
         strprintf("Cannot merge statistics `%s` (type %s) and `%s` (type %s).",
-                  l->trunc_print().c_str(), l->get_type_name().c_str(),
-                  r->trunc_print().c_str(), r->get_type_name().c_str()));
+                  l.trunc_print().c_str(), l.get_type_name().c_str(),
+                  r.trunc_print().c_str(), r.get_type_name().c_str()));
     return l;
 }
 
 datum_object_builder_t::datum_object_builder_t(const datum_t &copy_from) {
-    for (size_t i = 0; i < copy_from.obj_size(); ++i) {
+    const size_t copy_from_sz = copy_from.obj_size();
+    for (size_t i = 0; i < copy_from_sz; ++i) {
         map.insert(copy_from.get_pair(i));
     }
 }
@@ -1554,10 +1675,11 @@ void datum_object_builder_t::add_warning(const char *msg, const configured_limit
     datum_t *warnings_entry = &map[warnings_field];
     if (warnings_entry->has()) {
         // assume here that the warnings array will "always" be small.
-        for (size_t i = 0; i < warnings_entry->arr_size(); ++i) {
+        const size_t warnings_entry_sz = warnings_entry->arr_size();
+        for (size_t i = 0; i < warnings_entry_sz; ++i) {
             if (warnings_entry->get(i).as_str() == msg) return;
         }
-        rcheck_datum(warnings_entry->arr_size() + 1 <= limits.array_size_limit(),
+        rcheck_datum(warnings_entry_sz + 1 <= limits.array_size_limit(),
             base_exc_t::GENERIC,
             strprintf("Warnings would exceed array size limit %zu; increase it to see warnings", limits.array_size_limit()));
         datum_array_builder_t out(*warnings_entry, limits);
@@ -1581,7 +1703,8 @@ void datum_object_builder_t::add_warnings(const std::set<std::string> &msgs, con
         for (auto const & msg : msgs) {
             bool seen = false;
             // assume here that the warnings array will "always" be small.
-            for (size_t i = 0; i < warnings_entry->arr_size(); ++i) {
+            const size_t warnings_entry_sz = warnings_entry->arr_size();
+            for (size_t i = 0; i < warnings_entry_sz; ++i) {
                 if (warnings_entry->get(i).as_str() == msg.c_str()) {
                     seen = true;
                     break;
@@ -1603,7 +1726,7 @@ void datum_object_builder_t::add_error(const char *msg) {
     // Insert or update the "errors" entry.
     {
         datum_t *errors_entry = &map[errors_field];
-        double ecount = (errors_entry->has() ? (*errors_entry)->as_num() : 0) + 1;
+        double ecount = (errors_entry->has() ? (*errors_entry).as_num() : 0) + 1;
         *errors_entry = datum_t(ecount);
     }
 
@@ -1641,8 +1764,9 @@ datum_t datum_object_builder_t::to_datum(
 datum_array_builder_t::datum_array_builder_t(const datum_t &copy_from,
                                              const configured_limits_t &_limits)
     : limits(_limits) {
-    vector.reserve(copy_from.arr_size());
-    for (size_t i = 0; i < copy_from.arr_size(); ++i) {
+    const size_t copy_from_sz = copy_from.arr_size();
+    vector.reserve(copy_from_sz);
+    for (size_t i = 0; i < copy_from_sz; ++i) {
         vector.push_back(copy_from.get(i));
     }
     rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
@@ -1692,8 +1816,9 @@ void datum_array_builder_t::splice(reql_version_t reql_version, size_t index,
     // First copy the values into a vector so vector.insert() can know the number
     // of elements being inserted.
     std::vector<datum_t> arr;
-    arr.reserve(values.arr_size());
-    for (size_t i = 0; i < values.arr_size(); ++i) {
+    const size_t values_sz = values.arr_size();
+    arr.reserve(values_sz);
+    for (size_t i = 0; i < values_sz; ++i) {
         arr.push_back(values.get(i));
     }
     vector.insert(vector.begin() + index,

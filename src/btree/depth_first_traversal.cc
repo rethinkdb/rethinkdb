@@ -61,7 +61,9 @@ void scoped_key_value_t::reset() {
 bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
                                  const key_range_t &range,
                                  depth_first_traversal_callback_t *cb,
-                                 direction_t direction);
+                                 direction_t direction,
+                                 const btree_key_t *left_excl_or_null,
+                                 const btree_key_t *right_incl_or_null);
 
 bool btree_depth_first_traversal(superblock_t *superblock,
                                  const key_range_t &range,
@@ -93,14 +95,39 @@ bool btree_depth_first_traversal(superblock_t *superblock,
             root_block->read_acq_signal()->wait();
         }
         return btree_depth_first_traversal(std::move(root_block), range, cb,
-                                           direction);
+                                           direction, NULL, NULL);
+    }
+}
+
+void get_child_key_range(const internal_node_t *inode,
+                         int child_index,
+                         const btree_key_t *parent_left_excl_or_null,
+                         const btree_key_t *parent_right_incl_or_null,
+                         const btree_key_t **left_excl_or_null_out,
+                         const btree_key_t **right_incl_or_null_out) {
+    const btree_internal_pair *pair = internal_node::get_pair_by_index(inode, child_index);
+    if (child_index != inode->npairs - 1) {
+        rassert(child_index < inode->npairs - 1);
+        *right_incl_or_null_out = &pair->key;
+    } else {
+        *right_incl_or_null_out = parent_right_incl_or_null;
+    }
+
+    if (child_index > 0) {
+        const btree_internal_pair *left_neighbor =
+            internal_node::get_pair_by_index(inode, child_index - 1);
+        *left_excl_or_null_out = &left_neighbor->key;
+    } else {
+        *left_excl_or_null_out = parent_left_excl_or_null;
     }
 }
 
 bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
                                  const key_range_t &range,
                                  depth_first_traversal_callback_t *cb,
-                                 direction_t direction) {
+                                 direction_t direction,
+                                 const btree_key_t *left_excl_or_null,
+                                 const btree_key_t *right_incl_or_null) {
     auto read = make_counted<counted_buf_read_t>(block.get());
     const node_t *node = static_cast<const node_t *>(read->get_data_read());
     if (node::is_internal(node)) {
@@ -117,15 +144,27 @@ bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
         for (int i = 0; i < end_index - start_index; ++i) {
             int true_index = (direction == FORWARD ? start_index + i : (end_index - 1) - i);
             const btree_internal_pair *pair = internal_node::get_pair_by_index(inode, true_index);
-            counted_t<counted_buf_lock_t> lock;
-            {
-                profile::starter_t starter("Acquire block for read.", cb->get_trace());
-                lock = make_counted<counted_buf_lock_t>(block.get(), pair->lnode,
-                                                        access_t::read);
-            }
-            if (!btree_depth_first_traversal(std::move(lock),
-                                             range, cb, direction)) {
-                return false;
+
+            // Get the child key range
+            const btree_key_t *child_left_excl_or_null;
+            const btree_key_t *child_right_incl_or_null;
+            get_child_key_range(inode, true_index,
+                                left_excl_or_null, right_incl_or_null,
+                                &child_left_excl_or_null, &child_right_incl_or_null);
+
+            if (cb->is_range_interesting(child_left_excl_or_null, child_right_incl_or_null)) {
+                counted_t<counted_buf_lock_t> lock;
+                {
+                    profile::starter_t starter("Acquire block for read.", cb->get_trace());
+                    lock = make_counted<counted_buf_lock_t>(block.get(), pair->lnode,
+                                                            access_t::read);
+                }
+                if (!btree_depth_first_traversal(std::move(lock),
+                                                 range, cb, direction,
+                                                 child_left_excl_or_null,
+                                                 child_right_incl_or_null)) {
+                    return false;
+                }
             }
         }
         return true;

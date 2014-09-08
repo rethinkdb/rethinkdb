@@ -1,7 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "clustering/administration/tables/backend_common.hpp"
+#include "clustering/administration/tables/table_common.hpp"
 
 #include "clustering/administration/datum_adapter.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 
 std::string common_table_artificial_table_backend_t::get_primary_key_name() {
     return "uuid";
@@ -30,6 +31,7 @@ bool common_table_artificial_table_backend_t::read_row(
         signal_t *interruptor,
         ql::datum_t *row_out,
         std::string *error_out) {
+    cross_thread_signal_t interruptor2(interruptor, home_thread());
     on_thread_t thread_switcher(home_thread());
     cow_ptr_t<namespaces_semilattice_metadata_t> md = table_sl_view->get();
     namespace_id_t table_id;
@@ -47,12 +49,12 @@ bool common_table_artificial_table_backend_t::read_row(
     name_string_t table_name = it->second.get_ref().name.get_ref();
     name_string_t db_name = get_db_name(it->second.get_ref().database.get_ref());
     return read_row_impl(table_id, table_name, db_name, it->second.get_ref(),
-                         interruptor, row_out, error_out);
+                         &interruptor2, row_out, error_out);
 }
 
 name_string_t common_table_artificial_table_backend_t::get_db_name(database_id_t db_id) {
+    assert_thread();
     databases_semilattice_metadata_t dbs = database_sl_view->get();
-    /* RSI(reql_admin): This doesn't handle vector clock conflicts */
     if (dbs.databases.at(db_id).is_deleted()) {
         /* This can occur due to a race condition, if a new table is added to a database
         at the same time as it is being deleted. */

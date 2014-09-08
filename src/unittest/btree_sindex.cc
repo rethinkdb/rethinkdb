@@ -245,7 +245,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             rdb_get(key, store.get_sindex_slice(sindex_uuid),
                     sindex_super_block.get(), &response, NULL);
 
-            ASSERT_EQ(ql::datum_t(1.0), *response.data);
+            ASSERT_EQ(ql::datum_t(1.0), response.data);
         }
     }
 

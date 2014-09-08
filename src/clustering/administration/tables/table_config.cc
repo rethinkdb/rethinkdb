@@ -35,9 +35,9 @@ bool convert_table_config_shard_from_datum(
     if (!converter.get("replicas", &replica_names_datum, error_out)) {
         return false;
     }
-    if (replica_names_datum->get_type() != ql::datum_t::R_ARRAY) {
+    if (replica_names_datum.get_type() != ql::datum_t::R_ARRAY) {
         *error_out = "In `replicas`: Expected an array, got " +
-            replica_names_datum->print();
+            replica_names_datum.print();
         return false;
     }
     if (!convert_set_from_datum<name_string_t>(
@@ -197,6 +197,7 @@ bool table_config_artificial_table_backend_t::read_row_impl(
         UNUSED signal_t *interruptor,
         ql::datum_t *row_out,
         UNUSED std::string *error_out) {
+    assert_thread();
     *row_out = convert_table_config_and_name_to_datum(
         metadata.replication_info.get_ref().config,
         table_name, db_name, table_id);

@@ -8,6 +8,16 @@
 
 #include "containers/name_string.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "time.hpp"
+
+/* Note that we generally use `ql::configured_limits_t::unlimited` when converting
+things to datum, rather than using a user-specified limit. This is mostly for consistency
+with reading from a B-tree; if a value read from the B-tree contains an array larger than
+the user-specified limit, then we don't throw an exception unless the user tries to grow
+the array. Since these functions are used to construct values that the user will "read",
+we use the same behavior here. This has the nice side effect that we don't have to worry
+about threading `configured_limits_t` through these functions, or about handling
+exceptions if the limit is violated. */
 
 ql::datum_t convert_name_to_datum(
         const name_string_t &value);
@@ -24,11 +34,17 @@ bool convert_uuid_from_datum(
         uuid_u *value_out,
         std::string *error_out);
 
+ql::datum_t convert_port_to_datum(
+        uint16_t value);
+
+ql::datum_t convert_microtime_to_datum(
+        microtime_t value);
+
 template<class T>
 ql::datum_t convert_vector_to_datum(
         const std::function<ql::datum_t(const T&)> &conv,
         const std::vector<T> &vector) {
-    ql::datum_array_builder_t builder((ql::configured_limits_t()));
+    ql::datum_array_builder_t builder((ql::configured_limits_t::unlimited));
     builder.reserve(vector.size());
     for (const T &elem : vector) {
         builder.add(conv(elem));
@@ -42,13 +58,13 @@ bool convert_vector_from_datum(
         ql::datum_t datum,
         std::vector<T> *vector_out,
         std::string *error_out) {
-    if (datum->get_type() != ql::datum_t::R_ARRAY) {
-        *error_out = "Expected an array, got " + datum->print();
+    if (datum.get_type() != ql::datum_t::R_ARRAY) {
+        *error_out = "Expected an array, got " + datum.print();
         return false;
     }
-    vector_out->resize(datum->arr_size());
-    for (size_t i = 0; i < datum->arr_size(); ++i) {
-        if (!conv(datum->get(i), &(*vector_out)[i], error_out)) {
+    vector_out->resize(datum.arr_size());
+    for (size_t i = 0; i < datum.arr_size(); ++i) {
+        if (!conv(datum.get(i), &(*vector_out)[i], error_out)) {
             return false;
         }
     }
@@ -59,7 +75,7 @@ template<class T>
 ql::datum_t convert_set_to_datum(
         const std::function<ql::datum_t(const T&)> &conv,
         const std::set<T> &set) {
-    ql::datum_array_builder_t builder((ql::configured_limits_t()));
+    ql::datum_array_builder_t builder((ql::configured_limits_t::unlimited));
     builder.reserve(set.size());
     for (const T &elem : set) {
         builder.add(conv(elem));
@@ -74,19 +90,19 @@ bool convert_set_from_datum(
         ql::datum_t datum,
         std::set<T> *set_out,
         std::string *error_out) {
-    if (datum->get_type() != ql::datum_t::R_ARRAY) {
-        *error_out = "Expected an array, got " + datum->print();
+    if (datum.get_type() != ql::datum_t::R_ARRAY) {
+        *error_out = "Expected an array, got " + datum.print();
         return false;
     }
     set_out->clear();
-    for (size_t i = 0; i < datum->arr_size(); ++i) {
+    for (size_t i = 0; i < datum.arr_size(); ++i) {
         T value;
-        if (!conv(datum->get(i), &value, error_out)) {
+        if (!conv(datum.get(i), &value, error_out)) {
             return false;
         }
         auto res = set_out->insert(value);
         if (!allow_duplicates && !res.second) {
-            *error_out = datum->get(i)->print() + " was specified more than once.";
+            *error_out = datum.get(i).print() + " was specified more than once.";
             return false;
         }
     }

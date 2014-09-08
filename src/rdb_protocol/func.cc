@@ -223,18 +223,18 @@ bool func_term_t::is_deterministic() const {
  * the object which we check to make sure matches the predicate. */
 bool filter_match(datum_t predicate, datum_t value,
                   const rcheckable_t *parent) {
-    if (predicate->is_ptype(pseudo::literal_string)) {
-        return *predicate->get_field(pseudo::value_key) == *value;
+    if (predicate.is_ptype(pseudo::literal_string)) {
+        return predicate.get_field(pseudo::value_key) == value;
     } else {
         for (size_t i = 0; i < predicate.obj_size(); ++i) {
             auto pair = predicate.get_pair(i);
             r_sanity_check(pair.second.has());
-            datum_t elt = value->get_field(pair.first, NOTHROW);
+            datum_t elt = value.get_field(pair.first, NOTHROW);
             if (!elt.has()) {
                 rfail_target(parent, base_exc_t::NON_EXISTENCE,
                         "No attribute `%s` in object.", pair.first.to_std().c_str());
             } else if (pair.second.get_type() == datum_t::R_OBJECT &&
-                       elt->get_type() == datum_t::R_OBJECT) {
+                       elt.get_type() == datum_t::R_OBJECT) {
                 if (!filter_match(pair.second, elt, parent)) { return false; }
             } else if (elt != pair.second) {
                 return false;
@@ -246,12 +246,12 @@ bool filter_match(datum_t predicate, datum_t value,
 
 bool reql_func_t::filter_helper(env_t *env, datum_t arg) const {
     datum_t d = call(env, make_vector(arg), NO_FLAGS)->as_datum();
-    if (d->get_type() == datum_t::R_OBJECT &&
+    if (d.get_type() == datum_t::R_OBJECT &&
         (body->get_src()->type() == Term::MAKE_OBJ ||
          body->get_src()->type() == Term::DATUM)) {
         return filter_match(d, arg, this);
     } else {
-        return d->as_bool();
+        return d.as_bool();
     }
 }
 
@@ -276,7 +276,7 @@ std::string js_func_t::print_source() const {
 
 bool js_func_t::filter_helper(env_t *env, datum_t arg) const {
     datum_t d = call(env, make_vector(arg), NO_FLAGS)->as_datum();
-    return d->as_bool();
+    return d.as_bool();
 }
 
 bool func_t::filter_call(env_t *env, datum_t arg, counted_t<const func_t> default_filter_val) const {
@@ -373,8 +373,8 @@ counted_t<const func_t> new_eq_comparison_func(datum_t obj,
 
 counted_t<const func_t> new_page_func(datum_t method,
                                       const protob_t<const Backtrace> &bt_src) {
-    if (method->get_type() != datum_t::R_NULL) {
-        std::string name = method->as_str().to_std();
+    if (method.get_type() != datum_t::R_NULL) {
+        std::string name = method.as_str().to_std();
         if (name == "link-next") {
             pb::dummy_var_t info = pb::dummy_var_t::FUNC_PAGE;
             protob_t<Term> twrap =
