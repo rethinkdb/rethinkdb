@@ -38,6 +38,36 @@ class Distribution extends Backbone.Collection
 
 class Shard extends Backbone.Model
 
+class ShardAssignments extends Backbone.Collection
+    model: ShardAssignment
+    name: 'ShardAssignment'
+    comparator: (a, b) ->
+        if a.get('shard_id') < b.get('shard_id')
+            return -1
+        else if a.get('shard_id') > b.get('shard_id')
+            return 1
+        else
+            if a.get('start_shard') is true
+                return -1
+            else if b.get('start_shard') is true
+                return 1
+            else if a.get('end_shard') is true
+                return 1
+            else if b.get('end_shard') is true
+                return -1
+            else if a.get('director') is true and b.get('replica') is true
+                return -1
+            else if a.get('replica') is true and b.get('director') is true
+                return 1
+            else if a.get('replica') is true and  b.get('replica') is true
+                if a.get('replica_position') < b.get('replica_position')
+                    return -1
+                else if a.get('replica_position') > b.get('replica_position')
+                    return 1
+                return 0
+
+class ShardAssignment extends Backbone.Model
+
 class Namespace extends Backbone.Model
     initialize: ->
         # Add a computed shards property for convenience and metadata
@@ -58,7 +88,8 @@ class Namespace extends Backbone.Model
             if @regex.string.test(a) is true
                 a_new = a.slice(1)
             else if @regex.number.test(a) is true
-                s = a.slice(a.indexOf("%23")+3)
+                s =
+                    a.slice(a.indexOf("%23")+3)
                 if _.isNaN(parseFloat(s)) is false
                     a_new = parseFloat(s)
             else if @regex.date.test(a) is true

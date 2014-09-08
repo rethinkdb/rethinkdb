@@ -2392,11 +2392,26 @@ TODO: retire this
         }
     }
 
+    .assignments_list{
+        position: relative;
+    }
+    @element_height: 40px;
+    @square_bullet_width: 7px;
+    @node_margin: 15px + @square_bullet_width;
+
+    /* We flatten the views in table/table/assignments */
+    .tree-line {
+        position: absolute;
+        top: (@element_height / 2) - (@square_bullet_width / 2) + 1;
+        bottom: (@element_height / 2) - 1;
+        width: @square_bullet_width;
+        background-image: url('images/list-square-bullet.png'), url('images/list-vert-dash.png'); 
+        background-position: left top, ((@square_bullet_width / 2) - 1) center;
+        background-repeat: no-repeat, repeat-y;  
+    }
+
     .tree-view {
         overflow:hidden;
-        @element_height: 40px;
-        @square_bullet_width: 7px;
-        @node_margin: 15px + @square_bullet_width;
 
         ul, li {
             list-style-type: none;

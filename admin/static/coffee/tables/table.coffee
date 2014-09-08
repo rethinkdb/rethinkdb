@@ -103,7 +103,37 @@ module 'TableView', ->
                             @distribution = new Distribution _.map result.distribution, (shard) -> new Shard shard
                             delete result.distribution
 
-                            @shards_assignments = new Distribution _.map result.shards_assignments, (shard) -> new Shard shard
+
+                            # Flatten all shards assignments because it's less work than handling nested collections
+                            shards_assignments = []
+                            for shard in result.shards_assignments
+                                shards_assignments.push
+                                    id: "start_shard_#{shard.id}"
+                                    shard_id: shard.id
+                                    start_shard: true
+
+                                shards_assignments.push
+                                    id: "shard_director_#{shard.id}"
+                                    director: true
+                                    shard_id: shard.id
+                                    data: shard.director
+
+                                for replica, position in shard.replicas
+                                    shards_assignments.push
+                                        id: "shard_replica_#{shard.id}_#{position}"
+                                        replica: true
+                                        replica_position: position
+                                        shard_id: shard.id
+                                        data: replica
+
+                                shards_assignments.push
+                                    id: "end_shard_#{shard.id}"
+                                    shard_id: shard.id
+                                    end_shard: true
+
+
+                            @shards_assignments = new ShardAssignments _.map shards_assignments, (shard) ->
+                                new ShardAssignment shard
                             delete result.shards_assignments
 
                             @model = new Table result
@@ -125,8 +155,33 @@ module 'TableView', ->
                             @distribution.trigger 'update'
                             delete result.distrubtion
 
-                            @shards_assignments.set _.map result.shards_assignments, (shard) -> new Shard shard
-                            @shards_assignments.trigger 'update'
+                            shards_assignments = []
+                            for shard in result.shards_assignments
+                                shards_assignments.push
+                                    id: "start_shard_#{shard.id}"
+                                    shard_id: shard.id
+                                    start_shard: true
+
+                                shards_assignments.push
+                                    id: "shard_director_#{shard.id}"
+                                    director: true
+                                    shard_id: shard.id
+                                    data: shard
+
+                                for replica, position in shard.replicas
+                                    shards_assignments.push
+                                        id: "shard_replica_#{shard.id}_#{position}"
+                                        replica: true
+                                        replica_position: position
+                                        shard_id: shard.id
+                                        data: replica
+
+                                shards_assignments.push
+                                    id: "end_shard_#{shard.id}"
+                                    shard_id: shard.id
+                                    end_shard: true
+
+                            @shards_assignments.set _.map shards_assignments, (shard) -> new ShardAssignment shard
                             delete result.shards_assignments
 
                             @model.set result
@@ -187,7 +242,7 @@ module 'TableView', ->
             @shards = new TableView.Sharding
                 collection: @distribution
                 model: @model
-            @server_assignments = new TableView.ShardAssignments
+            @server_assignments = new TableView.ShardAssignmentsView
                 model: @model
                 collection: @shards_assignments
             ###
