@@ -20,7 +20,7 @@ public:
     // Possibly creates, then opens and locks the specified directory
     // Returns true if the directory was created, false otherwise
     directory_lock_t(const base_path_t &path, bool create, bool *created_out);
-    ~directory_lock_t();
+    ~directory_lock_t() noexcept(false);
 
     // Prevents deletion of the directory tree at destruction, if
     //  the directory was created in the constructor
@@ -37,6 +37,8 @@ private:
     scoped_fd_t directory_fd;
     bool created;
     bool initialize_done;
+
+    DISABLE_COPYING(directory_lock_t);
 };
 
 class directory_missing_exc_t : public std::exception {
