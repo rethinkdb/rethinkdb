@@ -490,18 +490,19 @@ std::string errno_string(int errsv) {
     return std::string(errstr);
 }
 
-int remove_directory_helper(const char *path, UNUSED const struct stat *ptr, UNUSED const int flag, UNUSED FTW *ftw) {
+int remove_directory_helper(const char *path, UNUSED const struct stat *ptr,
+                            UNUSED const int flag, UNUSED FTW *ftw) {
     int res = ::remove(path);
-    if (res != 0) {
-        throw remove_directory_exc_t(path, get_errno());
-    }
+    guarantee_err(res == 0, "Fatal error: failed to delete '%s'.", path);
     return 0;
 }
 
-void remove_directory_recursive(const char *path) THROWS_ONLY(remove_directory_exc_t) {
-    // max_openfd is ignored on OS X (which claims the parameter specifies the maximum traversal
-    // depth) and used by Linux to limit the number of file descriptors that are open (by opening
-    // and closing directories extra times if it needs to go deeper than that).
+void remove_directory_recursive(const char *path) {
+    // max_openfd is ignored on OS X (which claims the parameter
+    // specifies the maximum traversal depth) and used by Linux to
+    // limit the number of file descriptors that are open (by opening
+    // and closing directories extra times if it needs to go deeper
+    // than that).
     const int max_openfd = 128;
     int res = nftw(path, remove_directory_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
     guarantee_err(res == 0 || get_errno() == ENOENT, "Trouble while traversing and destroying temporary directory %s.", path);

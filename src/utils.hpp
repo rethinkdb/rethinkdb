@@ -6,7 +6,6 @@
 #include <stdlib.h>
 
 #include <functional>
-#include <stdexcept>
 #include <string>
 
 #include "errors.hpp"
@@ -203,24 +202,7 @@ private:
 
 void recreate_temporary_directory(const base_path_t& base_path);
 
-// This will be thrown by remove_directory_recursive if a file cannot be removed
-class remove_directory_exc_t : public std::exception {
-public:
-    remove_directory_exc_t(const std::string &path, int errsv) {
-        char buf[512];
-        info = strprintf("Fatal error: failed to delete file '%s': %s.",
-                         path.c_str(),
-                         errno_string_maybe_using_buffer(errsv, buf, sizeof(buf)));
-    }
-    ~remove_directory_exc_t() throw () { }
-    const char *what() const throw () {
-        return info.c_str();
-    }
-private:
-    std::string info;
-};
-
-void remove_directory_recursive(const char *path) THROWS_ONLY(remove_directory_exc_t);
+void remove_directory_recursive(const char *path);
 
 #define MSTR(x) stringify(x) // Stringify a macro
 #if defined __clang__
