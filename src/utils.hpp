@@ -222,9 +222,6 @@ private:
 
 void remove_directory_recursive(const char *path) THROWS_ONLY(remove_directory_exc_t);
 
-bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes);
-bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range_start, size_t size_in_bytes);
-
 #define MSTR(x) stringify(x) // Stringify a macro
 #if defined __clang__
 #define COMPILER "CLANG " __clang_version__
