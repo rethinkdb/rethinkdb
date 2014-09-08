@@ -42,7 +42,7 @@ bool common_table_artificial_table_backend_t::read_row(
         table_id = nil_uuid();
     }
     auto it = md->namespaces.find(table_id);
-    if (it == md->namespaces.end()) {
+    if (it == md->namespaces.end() || it->second.is_deleted()) {
         *row_out = ql::datum_t();
         return true;
     }
