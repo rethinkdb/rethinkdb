@@ -31,7 +31,7 @@ module 'ServerView', ->
                         responsabilities: r.db('rethinkdb').table('table_status').map( (table) ->
                             table.merge( (table) ->
                                 shards: table("shards").indexesOf( () -> true ).map( (index) ->
-                                    table("shards").nth(index).merge({num_keys: "TODO", index: index}).filter( (replica) ->
+                                    table("shards").nth(index).merge({num_keys: "TODO", index: index.add(1), num_shards: table("shards").count()}).filter( (replica) ->
                                         replica('server').eq(server("name"))
                                     )
                                 ).filter( (shard) ->
