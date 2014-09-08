@@ -135,6 +135,7 @@ information.
 Many thanks to external contributors from the RethinkDB community for helping
 us ship RethinkDB 1.14. In no particular order:
 
+* Sathyanarayanan Gunasekaran (@gsathya)
 * James Costian (@jamescostian)
 * Ed Rooth (@sym3tri)
 * Cole Gleason (@colegleason)
