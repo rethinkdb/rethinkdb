@@ -98,110 +98,43 @@
             </ul>
         </div>
     </div>
+</script>
 
-<!--
+
+<script id="dashboard_reachability-template" type="text/x-handlebars-template">
+    {{#if status_is_ok}}
+        <div class="status no-problems-detected">
+            <h3>Reachability</h3>
+            <p class="message"><span class="good">0</span> issues detected</p>
+            <p class="details"><span class="good">{{num_servers}}/{{num_servers}}</span> servers reachable</p>
+        </div>
+    {{else}}
+        <div class="status problems-detected">
+            <h3>Reachability</h3>
+            <p class="message"><span class="bad">{{num_servers_non_available}}</span> <a href="#" class="show_details">{{pluralize_noun "issue" num_servers_non_available}}</a> detected</p>
+            <p class="details"><span class="bad">{{num_servers_non_available}}/{{num_servers}}</span> <a href="#" class="show_details">servers</a> are down</p>
+
+        </div>
+    {{/if}}
     <div class="popup_container">
         <a class="close" href="#">&times;</a>
         <div class="arrow_left"></div>
         <div class="arrow_left_overlay"></div>
-
-        {{#if has_unsatisfiable_goals}}
-        <h4>List of tables with unsatisfiable goals</h4>
         <div class="inner_content">
+            <h4>List of servers not available</h4>
             <ul class="ul_first_level">
-                {{#each namespaces_with_unsatisfiable_goals}}
-                <li class="li_first_level">Table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>
+                {{#each servers_non_available}}
+                <li class="li_first_level">
+                    Server <a href="#servers/{{uuid}}">{{name}}</a>
                     <ul class="ul_second_level">
-                        {{#each datacenters_with_issues}}
                         <li class="li_second_level">
-                            Datacenter: <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a><br/>
-                            Number of replicas expected: {{num_replicas}}
+                            Last seen: {{time_disconnected}}
                         </li>
-                        {{/each}}
                     </ul>
                 </li>
                 {{/each}}
             </ul>
-
-            {{#if has_namespaces_down}}
-            <h4>List of replicas with issues</h4>
-            <ul class="ul_first_level">
-                {{#each namespaces_down}}
-                <li class="li_first_level">Table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>:
-                    <ul class="ul_second_level">
-                        {{#each namespaces_down}}
-                        <li class="li_second_level">
-                            Shard: {{shard}}<br/>
-                            Server: <a href="#servers/{{machine_id}}">{{machine_name}}</a><br/>
-                            Status/Goal: {{directory_status}} / {{blueprint_status}}
-                        </li>
-                        {{/each}}
-                    </ul>
-                </li>
-                {{/each}}
-            </ul>
-            {{/if}}
-            </div>
-        {{else}}
-            {{#if has_namespaces_down}}
-            <h4>List of replicas with issues</h4>
-            <div class="inner_content">
-                <ul class="ul_first_level">
-                    {{#each namespaces_down}}
-                    <li class="li_first_level">Table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>:
-                        <ul class="ul_second_level">
-                            {{#each namespaces_down}}
-                            <li class="li_second_level">
-                                Shard: {{shard}}<br/>
-                                Server: <a href="#servers/{{machine_id}}">{{machine_name}}</a><br/>
-                                Status/Goal: {{directory_status}} / {{blueprint_status}}
-                            </li>
-                            {{/each}}
-                        </ul>
-                    </li>
-                    {{/each}}
-                </ul>
-            </div>
-            {{else}}
-            <h4>List of replicas with issues</h4>
-                <div class="inner_content">
-                    All replicas are working and up to date.
-                </div>
-            {{/if}}
-        {{/if}}
-    </div>
--->
-</script>
-
-
-
-<script id="cluster_status-reachability_status-template" type="text/x-handlebars-template">
-    <h3>Reachability</h3>
-    {{#if has_machines_down}}
-    <p class="message"><span class="bad">{{num_machines_down}}</span> <a href="#" class="show_details">{{pluralize_noun "issue" num_machines_down}}</a> detected</p>
-    <p class="details"><span class="bad">{{num_machines_down}}/{{num_machines}}</span> <a href="#" class="show_details">servers</a> are down</p>
-    {{else}}
-    <p class="message"><span class="good">0</span> issues detected</p>
-    <p class="details"><span class="good">{{num_machines}}/{{num_machines}}</span> servers reachable</p>
-    {{/if}}
-</script>
-
-
-<script id="cluster_status-reachability-popup-template" type="text/x-handlebars-template">
-    <a class="close" href="#">&times;</a>
-    <div class="arrow_right"></div>
-    <div class="arrow_right_overlay"></div>
-    <div class="inner_content">
-        <h4>List of servers not available</h4>
-        {{#if has_machines_down}}
-        <ul class="ul_first_level">
-            {{#each machines_down}}
-            <li class="li_first_level">Server <a href="#servers/{{machine_id}}">{{machine_name}}</a></li>
-            {{/each}}
-        </ul>
-        {{else}}
-        All servers are available.
-        {{/if}}
+        </div>
     </div>
 </script>
 
