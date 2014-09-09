@@ -20,7 +20,8 @@ module 'DashboardView', ->
             query = r.do(
                 r.db(system_db).table('table_config').coerceTo("ARRAY"),
                 r.db(system_db).table('table_status').coerceTo("ARRAY"),
-                (table_config, table_status) ->
+                r.db(system_db).table('server_status').coerceTo("ARRAY"),
+                (table_config, table_status, server_status) ->
                     num_directors: table_config('shards').concatMap(identity)("directors").count()
                     num_available_directors: table_status('shards')
                         .concatMap(identity)
@@ -74,6 +75,10 @@ module 'DashboardView', ->
                         table("shards").isEmpty().not()
 
                     num_tables: table_config.count()
+                    num_servers: server_status.count()
+                    num_available_servers: server_status.filter({status: "available"}).count()
+                    servers_non_available: server_status.filter (server) ->
+                        server("status").ne("available")
             ).merge
                 num_non_available_tables: r.row("tables_with_directors_not_ready").count()
 
@@ -227,7 +232,7 @@ module 'DashboardView', ->
             $(window).off 'mouseup', @remove_popup()
 
     class @ClusterStatusRedundancy extends Backbone.View
-        className: 'cluster-status-availability '
+        className: 'cluster-status-redundancy'
 
         template: Handlebars.templates['dashboard_redundancy-template']
 
@@ -239,8 +244,70 @@ module 'DashboardView', ->
             # We could eventually properly create a collection from @model.get('shards')
             # But this is probably not worth the effort for now.
 
-            @listenTo @model, 'change:num_directors', @render
-            @listenTo @model, 'change:num_available_directors', @render
+            @listenTo @model, 'change:num_replicas', @render
+            @listenTo @model, 'change:num_available_replicas', @render
+
+            $(window).on 'mouseup', @hide_popup
+            @$el.on 'click', @stop_propagation
+
+
+            @display_popup = false
+            @margin = {}
+
+        stop_propagation: (event) ->
+            event.stopPropagation()
+
+        show_popup: (event) =>
+            if event?
+                event.preventDefault()
+
+                @margin.top = event.pageY-60-13
+                @margin.left = event.pageX+12
+
+            @$('.popup_container').show()
+            @$('.popup_container').css 'margin', @margin.top+'px 0px 0px '+@margin.left+'px'
+            @display_popup = true
+
+        hide_popup: (event) =>
+            @display_popup = false
+            @$('.popup_container').hide()
+
+        render: =>
+            #TODO: Do we have to handle unsatisfiable goals here?
+            @$el.html @template
+                status_is_ok: @model.get('num_available_replicas') is @model.get('num_replicas')
+                num_replicas: @model.get 'num_replicas'
+                num_available_replicas: @model.get 'num_available_replicas'
+                num_non_available_replicas: @model.get('num_replicas')-@model.get('num_available_replicas')
+                num_non_available_tables: @model.get 'num_non_available_tables'
+                num_tables: @model.get 'num_tables'
+                tables_with_replicas_not_ready: @model.get('tables_with_replicas_not_ready')
+
+            if @display_popup is true and @model.get('num_available_replicas') isnt @model.get('num_replicas')
+                # We re-display the pop up only if there are still issues
+                @show_popup()
+
+            @
+
+        remove: =>
+            @stopListeningTo()
+            $(window).off 'mouseup', @remove_popup()
+
+    class @ClusterStatusReachability extends Backbone.View
+        className: 'cluster-status-reachability '
+
+        template: Handlebars.templates['dashboard_reachability-template']
+
+        events:
+            'click .show_details': 'show_popup'
+            'click .close': 'hide_popup'
+
+        initialize: =>
+            # We could eventually properly create a collection from @model.get('shards')
+            # But this is probably not worth the effort for now.
+
+            @listenTo @model, 'change:num_servers', @render
+            @listenTo @model, 'change:num_available_servers', @render
 
             $(window).on 'mouseup', @hide_popup
             @$el.on 'click', @stop_propagation
@@ -269,15 +336,13 @@ module 'DashboardView', ->
 
         render: =>
             @$el.html @template
-                status_is_ok: @model.get('num_available_replicas') is @model.get('num_replicas')
-                num_replicas: @model.get 'num_replicas'
-                num_available_replicas: @model.get 'num_available_replicas'
-                num_non_available_replicas: @model.get('num_replicas')-@model.get('num_available_replicas')
-                num_non_available_tables: @model.get 'num_non_available_tables'
-                num_tables: @model.get 'num_tables'
-                tables_with_replicas_not_ready: @model.get('tables_with_replicas_not_ready')
+                status_is_ok: @model.get('num_available_servers') is @model.get('num_servers')
+                num_servers: @model.get 'num_servers'
+                num_servers_non_available: @model.get('num_servers')-@model.get('num_available_servers')
+                num_available_servers: @model.get 'num_available_servers'
+                servers_non_available: @model.get 'servers_non_available'
 
-            if @display_popup is true and @model.get('num_available_directors') isnt @model.get('num_directors')
+            if @display_popup is true and @model.get('num_available_servers') isnt @model.get('num_servers')
                 # We re-display the pop up only if there are still issues
                 @show_popup()
 
@@ -286,107 +351,6 @@ module 'DashboardView', ->
         remove: =>
             @stopListeningTo()
             $(window).off 'mouseup', @remove_popup()
-
-    class @ClusterStatusReachability extends Backbone.View
-        className: 'cluster-status-redundancy'
-
-        template: Handlebars.templates['cluster_status-container-template']
-        status_template: Handlebars.templates['cluster_status-reachability_status-template']
-        popup_template: Handlebars.templates['cluster_status-reachability-popup-template']
-
-        events:
-            'click .show_details': 'show_details'
-            'click .close': 'hide_details'
-
-        initialize: =>
-            @data = ''
-            directory.on 'all', @render_status
-            machines.on 'all', @render_status
-
-
-        compute_data: =>
-            # Look for machines down
-            machines_down = {}
-            for machine in machines.models
-                machines_down[machine.get('id')] = true
-
-            for machine in directory.models
-                if directory.get(machine.get('id'))? # Don't count ghosts
-                    machines_down[machine.get('id')] = false
-
-            machines_down_array = []
-            for machine_id of machines_down
-                if machines_down[machine_id] is false
-                    continue
-
-                machines_down_array.push
-                    machine_id: machine_id
-                    machine_name: machines.get(machine_id).get('name')
-
-            # Data for the template
-            data =
-                has_machines_down: machines_down_array.length > 0
-                num_machines_down: machines_down_array.length
-                num_machines: machines.length
-                machines_down: machines_down_array
-        
-            return data
-
-        render: =>
-            @.$el.html @template()
-            @render_status()
-
-        # So we don't blow avay the popup
-        render_status: =>
-            data = @compute_data()
-            if _.isEqual(@data, data) is false
-                @data = data
-                @.$('.status').html @status_template data
-                if data.has_machines_down is false
-                    @.$('.status').addClass 'no-problems-detected'
-                    @.$('.status').removeClass 'problems-detected'
-                else
-                    @.$('.status').addClass 'problems-detected'
-                    @.$('.status').removeClass 'no-problems-detected'
-
-                @.$('.popup_container').html @popup_template data
-
-            return @
-
-        # Clean the dom listeners
-        clean_dom_listeners: =>
-            if @link_clicked?
-                @link_clicked.off 'mouseup', @stop_propagation
-            @.$('.popup_container').off 'mouseup', @stop_propagation
-            $(window).off 'mouseup', @hide_details
-
-        # Show popup
-        show_details: (event) =>
-            event.preventDefault()
-            @clean_dom_listeners() # Remove the DOM listeners because we are going to add them later
-
-            @.$('.popup_container').show()
-            margin_top = event.pageY-60-13
-            margin_left= event.pageX-12-470
-            @.$('.popup_container').css 'margin', margin_top+'px 0px 0px '+margin_left+'px' # Set the popup next to the mouse
-
-
-            @.$('.popup_container').on 'mouseup', @stop_propagation
-            @link_clicked = @.$(event.target)
-            @link_clicked.on 'mouseup', @stop_propagation
-            $(window).on 'mouseup', @hide_details
-
-        stop_propagation: (event) ->
-            event.stopPropagation()
-
-        hide_details: (event) =>
-            @.$('.popup_container').hide()
-            @clean_dom_listeners()
-
-        destroy: =>
-            directory.off 'all', @render_status
-            machines.off 'all', @render_status
-            @clean_dom_listeners()
 
     class @ClusterStatusConsistency extends Backbone.View
         className: 'cluster-status-consistency'
