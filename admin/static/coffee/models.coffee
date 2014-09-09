@@ -10,11 +10,6 @@ class Server extends Backbone.Model
 class Tables extends Backbone.Collection
     model: Table
     name: 'Tables'
-    ###
-    initialize: (models, options) ->
-        @document = options.tables
-        super()
-    ###
 
 class Table extends Backbone.Model
 
@@ -23,7 +18,6 @@ class Databases extends Backbone.Collection
     name: 'Databases'
 
 class Database extends Backbone.Model
-
 
 class Indexes extends Backbone.Collection
     model: Index

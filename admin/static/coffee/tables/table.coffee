@@ -464,7 +464,9 @@ module 'TableView', ->
                 # The first time, the collection is sorted
                 @indexes_view.push view
                 @$('.list_secondary_indexes').append view.render().$el
-            if @collection.length isnt 0
+            if @collection.length is 0
+                @$('.no_index').show()
+            else
                 @$('.no_index').hide()
 
             @collection.on 'add', (index) =>

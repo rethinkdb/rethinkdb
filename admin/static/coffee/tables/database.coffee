@@ -15,9 +15,36 @@ module 'DatabaseView', ->
             @fetch_data()
             @interval = setInterval @fetch_data, 5000
 
-
         fetch_data: =>
-            query = r.db(system_db).table('db_config').get(@id)
+            query = r.do(
+                r.db(system_db).table('db_config').get(@id),
+                r.db(system_db).table('table_status').coerceTo("ARRAY"),
+                r.db(system_db).table('table_config').coerceTo("ARRAY"),
+                (database, table_status, table_config) ->
+                    database.merge
+                        num_tables: table_status.filter({db: database("name")}).count()
+                        num_available_tables: table_status.filter({db: database("name"), ready_completely: true}).count()
+                        num_shards: table_config.map( (table) -> table("shards").count() ).sum()
+                        num_replicas: table_config.concatMap( (table) ->
+                            table("shards").concatMap (shard) ->
+                                shard("replicas")
+                        ).count()
+                        num_servers: table_config.concatMap( (table) ->
+                            table("shards").concatMap (shard) ->
+                                shard("replicas")
+                        ).distinct().count()
+                        tables: table_status.map (table) ->
+                            db: table("db")
+                            name: table("name")
+                            num_shards: table("shards").count()
+                            num_replicas: table("shards").nth(0).filter( (shard) ->
+                                shard("role").ne("nothing")
+                            ).count()
+                            id: table("uuid")
+                            ready_completely: table("ready_completely")
+            ).merge
+                id: r.row 'uuid'
+
             driver.run query, (error, result) =>
                 console.log '---- err, result -----'
                 console.log error
@@ -38,10 +65,26 @@ module 'DatabaseView', ->
                             @table_view = null
                             @render()
                     else
-                        @model = new Database result
-                        @database_view = new DatabaseView.DatabaseMainView
-                            model: @model
-                        @$el.html @database_view.render().$el
+                        if @model?
+                            console.log 'updating previous models'
+
+                            @tables.set _.map result.tables, (table) ->
+                                new Table table
+                            delete result.tables
+
+                            @model.set result
+                        else
+                            console.log 'creating new model'
+
+                            @tables = new Tables _.map result.tables, (table) ->
+                                new Table table
+                            delete result.tables
+
+                            @model = new Database result
+                            @database_view = new DatabaseView.DatabaseMainView
+                                model: @model
+                                tables: @tables
+                            @$el.html @database_view.render().$el
         render: =>
             @
 
@@ -59,7 +102,6 @@ module 'DatabaseView', ->
             'click .operations .delete': 'delete_database'
 
         initialize: (data) =>
-            @model = data.model
             @tables = data.tables
 
             # Panels for database view
@@ -67,9 +109,10 @@ module 'DatabaseView', ->
                 model: @model
             @profile = new DatabaseView.Profile
                 model: @model
+            @tables_list = new DatabaseView.TablesListView
+                model: @model
+                collection: @tables
             ###
-            @namespace_list = new DatabaseView.NamespaceList
-                collection: @collection
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance,
                 width:  564             # width in pixels
                 height: 210             # height in pixels
@@ -80,7 +123,7 @@ module 'DatabaseView', ->
 
         # Function to render the view
         render: =>
-            @.$el.html @template()
+            @$el.html @template()
 
             # fill the title of this page
             @$('.main_title').html @title.render().$el
@@ -90,10 +133,10 @@ module 'DatabaseView', ->
 
             ###
             @$('.performance-graph').html @performance_graph.render().$el
-
-            # Add the namespace list
-            @$('.table-list').html @namespace_list.render().$el
             ###
+
+            # Add the tables list
+            @$('.table-list').html @tables_list.render().$el
 
             @
 
@@ -139,7 +182,7 @@ module 'DatabaseView', ->
 
         # Render the view for the title
         render: =>
-            @.$el.html @template
+            @$el.html @template
                 name: @model.get 'name'
             @
 
@@ -158,15 +201,13 @@ module 'DatabaseView', ->
             @listenTo @model, 'change:num_replicas', @render
 
         render: =>
-            data =
+            @.$el.html @template
                 num_tables: @model.get 'num_tables'
-                num_live_namespaces: 0  # Number of namespaces alived
+                num_available_tables: @model.get 'num_available_tables'
                 reachability: @model.get 'completely_ready'      # Status of the table
-                nshards: @model.get 'num_shards'
-                nreplicas: @model.get 'num_replicas'
-                ndatacenters: 0 #TODO Replace with something?
-                
-            @.$el.html @template data
+                num_shards: @model.get 'num_shards'
+                num_replicas: @model.get 'num_replicas'
+                num_servers: @model.get 'num_servers'
             @
 
         remove: =>
@@ -175,42 +216,72 @@ module 'DatabaseView', ->
     # The modal to remove a database, it extends UIComponents.AbstractModal
 
     # List of all the namespaces in the database
-    class @NamespaceList extends Backbone.View
+    class @TablesListView extends Backbone.View
         template: Handlebars.templates['database_view-namespace_list-template']
 
         # Bind some listeners
         initialize: =>
-            # We bind listeners on all table.
-            # TODO We should add a listeners only on namespaces in the databases
-            namespaces.on 'change:shards', @render
-            namespaces.on 'change:primary_pinnings', @render
-            namespaces.on 'change:secondary_pinnings', @render
-            namespaces.on 'change:replica_affinities', @render
-            @data = {}
+            @tables_views = []
+            @$el.html @template()
+
+            console.log @collection.length
+            @collection.each (table) =>
+                view = new DatabaseView.TableView
+                    model: table
+                # The first time, the collection is sorted
+                @tables_views.push view
+                @$('.tables').append view.render().$el
+
+            if @collection.length is 0
+                @$('.no_element').show()
+            else
+                @$('.no_element').hide()
+
+            @collection.on 'add', (table) =>
+                view = new DatabaseView.TableView
+                    model: table
+                @tables_views.push view
+
+                position = @collection.indexOf table
+                if @collection.length is 1
+                    @$('.tables').html view.render().$el
+                else if position is 0
+                    @$('.tables').prepend view.render().$el
+                else
+                    @$('.table_container').eq(position-1).after view.render().$el
+
+                @$('.no_element').hide()
+
+            @collection.on 'remove', (table) =>
+                for view in @tables_views
+                    if view.model is table
+                        table.destroy()
+                        ((view) ->
+                            view.$el.slideUp 'fast', =>
+                                view.remove()
+                        )(view)
+                        break
+                if @collection.length is 0
+                    @$('.no_element').show()
+
 
         render: =>
-            namespaces_in_db = []
-            # Collect info on namespaces in this database
-            namespaces.each (namespace) =>
-                if namespace.get('database') is @model.get('id')
-                    ns = _.extend DataUtils.get_namespace_status(namespace.get('id')),
-                        name: namespace.get 'name'
-                        id: namespace.get 'id'
-                    namespaces_in_db.push ns
+            @
 
-            data =
-                has_tables: namespaces_in_db.length > 0
-                tables: _.sortBy(namespaces_in_db, (namespace) -> namespace.name)
-            
-            # Render only if something has changed. @render is executed everytime someone change the shards on a table (even if not in the database)
-            if not @data isnt data
-                @data = data
-                @.$el.html @template @data
-            return @
+        remove: =>
+            @stopListening()
 
-        # Unbind listeners
-        destroy: =>
-            namespaces.off 'change:shards', @render
-            namespaces.off 'change:primary_pinnings', @render
-            namespaces.off 'change:secondary_pinnings', @render
-            namespaces.off 'change:replica_affinities', @render
+    class @TableView extends Backbone.View
+        template: Handlebars.templates['database-table_view-template']
+        className: "table_container"
+
+        initialize: =>
+            @listenTo @model, 'change', @render
+
+        render: =>
+            @$el.html @template @model.toJSON()
+            @
+
+        remove: =>
+            @stopListening()
+

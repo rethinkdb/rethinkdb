@@ -32,32 +32,28 @@
             <p class="tables"><span class="big">{{num_available_tables}}/{{num_tables}} </span> tables live</p>
         </div>
         <div class="stat-row">
-            <p class="masters"><span class="big">{{nshards}} </span> {{pluralize_noun "shard" nshards}}</p>
+            <p class="masters"><span class="big">{{num_shards}} </span> {{pluralize_noun "shard" num_shards}}</p>
         </div>
         <div class="stat-row">
-            <p class="replicas"><span class="big">{{nreplicas}} </span> {{pluralize_noun "replica" nreplicas}}</p>
+            <p class="replicas"><span class="big">{{num_replicas}} </span> {{pluralize_noun "replica" num_replicas}}</p>
         </div>
         <div class="stat-row">
-            <p class="datacenters"><span class="big">{{ndatacenters}} </span> {{pluralize_noun "datacenter" ndatacenters}}</p>
+            <p class="datacenters"><span class="big">{{num_servers}} </span> {{pluralize_noun "server" num_servers}}</p>
         </div>
     </div>
 </script>
 
 <script id="database_view-namespace_list-template" type="text/x-handlebars-template">
     <h2 class="title">Tables in this database</h2>
-    {{#if has_tables}}
-    <ul class="tables">
-        {{#each tables}}
-            <li class="table">
-                <p class="name"><a href="#tables/{{id}}">{{name}}</a></p>
-                <p class="info"><span class="highlight">{{nshards}}</span> {{pluralize_noun "shard" nshards}}, <span class="highlight">{{nreplicas}}</span> {{pluralize_noun "replica" nreplicas}}</p>
-                <p class="status">{{humanize_namespace_reachability reachability}}</p>
-            </li>
-        {{/each}}
-    </ul>
-    {{else}}
+    <ul class="tables"></ul>
     <div class="no_element">
         This database does not contain any tables.
     </div>
-    {{/if}}
+</script>
+<script id="database-table_view-template" type="text/x-handlebars-template">
+    <li class="table">
+        <p class="name"><a href="#tables/{{id}}">{{name}}</a></p>
+        <p class="info"><span class="highlight">{{num_shards}}</span> {{pluralize_noun "shard" num_shards}}, <span class="highlight">{{num_replicas}}</span> {{pluralize_noun "replica" num_replicas}}</p>
+        <p class="status">{{humanize_namespace_reachability ready_completely}}</p>
+    </li>
 </script>
