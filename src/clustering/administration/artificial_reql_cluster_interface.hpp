@@ -10,6 +10,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/server_config.hpp"
 #include "clustering/administration/servers/server_status.hpp"
+#include "clustering/administration/tables/db_config.hpp"
 #include "clustering/administration/tables/table_config.hpp"
 #include "clustering/administration/tables/table_status.hpp"
 #include "containers/name_string.hpp"
@@ -109,6 +110,7 @@ public:
 
     scoped_ptr_t<in_memory_artificial_table_backend_t> debug_scratch_backend;
     scoped_ptr_t<cluster_config_artificial_table_backend_t> cluster_config_backend;
+    scoped_ptr_t<db_config_artificial_table_backend_t> db_config_backend;
     scoped_ptr_t<server_config_artificial_table_backend_t> server_config_backend;
     scoped_ptr_t<server_status_artificial_table_backend_t> server_status_backend;
     scoped_ptr_t<table_config_artificial_table_backend_t> table_config_backend;

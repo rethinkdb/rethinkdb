@@ -14,36 +14,36 @@ the actual data or configuration. There is one subclass for each table like
 class artificial_table_backend_t : public home_thread_mixin_t {
 public:
     /* Notes:
-     1. If `set_row()` is called concurrently with `get_row()` or
-        `get_all_primary_keys()`, it is undefined whether the read will see the write or
+     1. `read_all_primary_keys()`, `read_row()`, and `write_row()` all return `false` and
+        set `*error_out` if an error occurs. Note that if a row is absent in
+        `read_row()`, this doesn't count as an error.
+     2. If `write_row()` is called concurrently with `read_row()` or
+        `read_all_primary_keys()`, it is undefined whether the read will see the write or
         not.
-     2. `get_primary_key_name()`, `read_all_primary_keys()`, `read_row()` and
-        `write_row()` can be called on any thread.
-     3. `get_publisher()` can only be called on the home thread. The return value will
-        always deliver notifications on that same thread.
-    */
+     3. `get_primary_key_name()`, `read_all_primary_keys()`, `read_row()` and
+        `write_row()` can be called on any thread. */
 
     /* Returns the name of the primary key for the table. The return value must not
     change. This must not block. */
     virtual std::string get_primary_key_name() = 0;
 
-    /* Returns the primary keys of all of the rows that exist. */
+    /* Sets `*keys_out` to the primary keys of all of the rows that exist. */
     virtual bool read_all_primary_keys(
         signal_t *interruptor,
         std::vector<ql::datum_t> *keys_out,
         std::string *error_out) = 0;
 
-    /* Returns the current value of the row, or an empty `counted_t` if no such row
-    exists. */
+    /* Sets `*row_out` to the current value of the row, or an empty `datum_t` if no such
+    row exists. */
     virtual bool read_row(
         ql::datum_t primary_key,
         signal_t *interruptor,
         ql::datum_t *row_out,
         std::string *error_out) = 0;
 
-    /* Called when the user issues a write command on the row. Calling `set_row()` on a
-    row that doesn't exist means an insertion; calling `set_row` with `new_value` an
-    empty `counted_t` means a deletion. */
+    /* Called when the user issues a write command on the row. Calling `write_row()` on a
+    row that doesn't exist means an insertion; calling `write_row` with `new_value` an
+    empty `datum_t` means a deletion. */
     virtual bool write_row(
         ql::datum_t primary_key,
         ql::datum_t new_value,

@@ -1,6 +1,7 @@
 for interface_test_name in [
         'artificial_table',
         'cluster_config',
+        'db_config',
         'dead_machine_issues',
         'detect_dead',
         'large_branch_history',

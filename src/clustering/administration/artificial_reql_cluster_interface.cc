@@ -167,6 +167,12 @@ admin_artificial_tables_t::admin_artificial_tables_t(
     backends[name_string_t::guarantee_valid("cluster_config")] =
         cluster_config_backend.get();
 
+    db_config_backend.init(new db_config_artificial_table_backend_t(
+        metadata_field(&cluster_semilattice_metadata_t::databases,
+            _semilattice_view)));
+    backends[name_string_t::guarantee_valid("db_config")] =
+        db_config_backend.get();
+
     server_config_backend.init(new server_config_artificial_table_backend_t(
         metadata_field(&cluster_semilattice_metadata_t::machines,
             _semilattice_view),
