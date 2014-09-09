@@ -19,7 +19,7 @@ module 'Modals', ->
             super
                 modal_title: "Add database"
                 btn_primary_text: "Add"
-            @.$('.focus_new_name').focus()
+            @$('.focus_new_name').focus()
 
         on_submit: =>
             super
@@ -160,8 +160,7 @@ module 'Modals', ->
 
         render: =>
             ordered_databases = @databases.map (d) ->
-                id: d.get('db') #TODO Fix when API is available
-                db: d.get('db')
+                name: d.get('name')
             ordered_databases = _.sortBy ordered_databases, (d) -> d.db
 
             super
@@ -181,8 +180,10 @@ module 'Modals', ->
             template_error = {}
             input_error = false
 
-            # Need a name
-            if @formdata.name is ''
+
+
+
+            if @formdata.name is '' # Need a name
                 input_error = true
                 template_error.namespace_is_empty = true
             else if /^[a-zA-Z0-9_]+$/.test(@formdata.name) is false
@@ -193,8 +194,13 @@ module 'Modals', ->
                 input_error = true
                 template_error.no_database = true
             else # And a name that doesn't exist
-                db = @databases.get(@formdata.database)
-                for table in db.get('tables')
+                database_used = null
+                for database in @databases.models
+                    if database.get('name') is @formdata.database
+                        database_used = database
+                        break
+
+                for table in database_used.get('tables')
                     if table.name is @formdata.name
                         input_error = true
                         template_error.namespace_exists = true
@@ -234,21 +240,18 @@ module 'Modals', ->
         template: Handlebars.templates['remove_namespace-modal-template']
         class: 'remove-namespace-dialog'
 
-        initialize: ->
-            log_initial '(initializing) modal dialog: remove namespace'
-            super
-
         render: (tables_to_delete) =>
             @tables_to_delete = tables_to_delete
 
             super
                 modal_title: 'Delete tables'
                 btn_primary_text: 'Delete'
-                namespaces: tables_to_delete
+                tables: tables_to_delete
+                single_delete: tables_to_delete.length is 1
 
-            @.$('.btn-primary').focus()
+            @$('.btn-primary').focus()
 
-        on_submit: ->
+        on_submit: =>
             super
 
             query = r.expr(@tables_to_delete).forEach (table) ->
@@ -264,7 +267,7 @@ module 'Modals', ->
                         @on_error(new Error("The value returned for `dropped` did not match the number of tables."))
 
 
-        on_success: (response) ->
+        on_success: (response) =>
             super
 
             # Build feedback message
@@ -274,9 +277,12 @@ module 'Modals', ->
                 if index < @tables_to_delete.length-1
                     message += ", "
             if @tables_to_delete.length is 1
-                message += + " was"
+                message += " was"
             else
                 message += " were"
             message += " successfully deleted."
 
+            if Backbone.history.fragment isnt 'tables'
+                window.router.navigate '#tables', {trigger: true}
             window.app.current_view.render_message message
+            @remove()

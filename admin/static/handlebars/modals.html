@@ -31,7 +31,7 @@
         <label for="primary_datacenter">Select a database</label>
         <select class="database" name="database">
             {{#each databases}}
-            <option value="{{this.id}}">{{this.db}}</option>
+            <option value="{{name}}">{{name}}</option>
             {{/each}}
         </select>
 
@@ -58,9 +58,13 @@
 <script id="remove_namespace-modal-template" type="text/x-handlebars-template">
     <div class="alert alert-error displayed_alert">Deleting a table will delete all its data. This action cannot be reversed.</div>
     <div class="alert alert-error error_answer"></div>
-    <h4>Are you sure you want to delete these tables:</h4>
+    {{#if single_delete}}
+        <h4>Are you sure you want to delete this table:</h4>
+    {{else}}
+        <h4>Are you sure you want to delete these tables:</h4>
+    {{/if}}
     <ul class="namespace-list">
-        {{#each namespaces}}
+        {{#each tables}}
         <li><a href="#tables/TODO">{{database}}.{{table}}</a></li>
         {{/each}}
     </ul>
