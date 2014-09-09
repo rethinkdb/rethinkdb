@@ -45,6 +45,15 @@ stores_lifetimer_t::~stores_lifetimer_t() {
     }
 }
 
+/* If the config refers to a server name for which there are multiple servers, we don't
+update the blueprint until the conflict is resolved. */
+class server_name_collision_exc_t : public std::exception {
+public:
+    const char *what() const throw () {
+        return "server name collision";
+    }
+};
+
 /* When constructing the blueprint, we want to generate fake peer IDs for unconnected
 machines, and generate fake machine IDs for names that don't resolve to a machine. This
 is a hack, but it ensures that we produce a blueprint that tricks the `reactor_t` into
@@ -63,10 +72,13 @@ public:
             name_client->get_name_to_machine_id_map()->get())
         { }
     machine_id_t name_to_machine_id(const name_string_t &name) {
+        if (name_to_machine_id_map.count(name) > 1) {
+            throw server_name_collision_exc_t();
+        }
         auto it = name_to_machine_id_map.find(name);
         if (it == name_to_machine_id_map.end()) {
             it = name_to_machine_id_map.insert(
-                std::make_pair(name, generate_uuid())).first;
+                std::make_pair(name, generate_uuid()));
         }
         return it->second;
     }
@@ -80,7 +92,7 @@ public:
     }
 private:
     std::map<machine_id_t, peer_id_t> machine_id_to_peer_id_map;
-    std::map<name_string_t, machine_id_t> name_to_machine_id_map;
+    std::multimap<name_string_t, machine_id_t> name_to_machine_id_map;
 };
 
 blueprint_t construct_blueprint(const table_replication_info_t &info,
@@ -335,7 +347,7 @@ reactor_driver_t::reactor_driver_t(
         boost::bind(&reactor_driver_t::on_change, this)),
       perfmon_collection_repo(_perfmon_collection_repo)
 {
-    watchable_t< std::map<name_string_t, machine_id_t> >::freeze_t
+    watchable_t< std::multimap<name_string_t, machine_id_t> >::freeze_t
         name_to_machine_id_freeze(
             server_name_client->get_name_to_machine_id_map());
     name_to_machine_id_subscription.reset(
@@ -453,7 +465,15 @@ void reactor_driver_t::on_change() {
             const table_replication_info_t *repli_info =
                 &it->second.get_ref().replication_info.get_ref();
 
-            blueprint_t bp = construct_blueprint(*repli_info, server_name_client);
+            blueprint_t bp;
+            try {
+                bp = construct_blueprint(*repli_info, server_name_client);
+            } catch (server_name_collision_exc_t) {
+                /* Leave the blueprint the way it was before. The user should fix their
+                name collision. This is a bit hacky and it might confuse the user, but
+                it's a safe option, and name collisions are rare. */
+                continue;
+            }
             guarantee(std_contains(bp.peers_roles,
                                    mbox_manager->get_connectivity_cluster()->get_me()));
 

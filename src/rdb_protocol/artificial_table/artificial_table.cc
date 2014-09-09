@@ -22,7 +22,7 @@ bool checked_read_row_from_backend(
     }
 #ifndef NDEBUG
     if (row_out->has()) {
-        ql::datum_t pval2 = (*row_out)->get_field(
+        ql::datum_t pval2 = row_out->get_field(
             datum_string_t(backend->get_primary_key_name()), ql::NOTHROW);
         rassert(pval2.has());
         rassert(pval2 == pval);
@@ -156,14 +156,14 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
             std::sort(keys.begin(), keys.end(),
                 [](const ql::datum_t &a,
                    const ql::datum_t &b) {
-                    return a->compare_lt(reql_version_t::LATEST, *b);
+                    return a.compare_lt(reql_version_t::LATEST, b);
                 });
             break;
         case sorting_t::DESCENDING:
             std::sort(keys.begin(), keys.end(),
                 [](const ql::datum_t &a,
                    const ql::datum_t &b) {
-                    return a->compare_gt(reql_version_t::LATEST, *b);
+                    return a.compare_gt(reql_version_t::LATEST, b);
                 });
             break;
         default:
@@ -265,7 +265,7 @@ ql::datum_t artificial_table_t::write_batched_insert(
     throttled_pmap(inserts.size(), [&] (int i) {
         try {
             ql::datum_t insert_row = inserts[i];
-            ql::datum_t key = insert_row->get_field(
+            ql::datum_t key = insert_row.get_field(
                 datum_string_t(primary_key), ql::NOTHROW);
             guarantee(key.has(), "write_batched_insert() shouldn't ever be called with "
                 "documents that lack a primary key.");
@@ -330,7 +330,7 @@ std::vector<std::string> artificial_table_t::sindex_list(UNUSED ql::env_t *env) 
 std::map<std::string, ql::datum_t> artificial_table_t::sindex_status(
         UNUSED ql::env_t *env, UNUSED const std::set<std::string> &sindexes) {
     return std::map<std::string, ql::datum_t>();
-}
+};
 
 void artificial_table_t::do_single_update(
         ql::env_t *env,
@@ -346,7 +346,7 @@ void artificial_table_t::do_single_update(
     if (!checked_read_row_from_backend(backend, pval, interruptor, &old_row, &error)) {
         ql::datum_object_builder_t builder;
         builder.add_error(error.c_str());
-        *stats_inout = (*stats_inout)->merge(
+        *stats_inout = (*stats_inout).merge(
             std::move(builder).to_datum(), ql::stats_merge, env->limits(),
             conditions_inout);
         return;
@@ -360,10 +360,10 @@ void artificial_table_t::do_single_update(
         ql::datum_t new_row = function(old_row);
         bool was_changed;
         resp = make_row_replacement_stats(
-            datum_string_t(primary_key), store_key_t(pval->print_primary()),
+            datum_string_t(primary_key), store_key_t(pval.print_primary()),
             old_row, new_row, return_changes, &was_changed);
         if (was_changed) {
-            if (new_row->get_type() == ql::datum_t::R_NULL) {
+            if (new_row.get_type() == ql::datum_t::R_NULL) {
                 new_row.reset();
             }
             if (!backend->write_row(pval, new_row, interruptor, &error)) {
@@ -374,7 +374,7 @@ void artificial_table_t::do_single_update(
         resp = make_row_replacement_error_stats(
             old_row, return_changes, e.what());
     }
-    *stats_inout = (*stats_inout)->merge(
+    *stats_inout = (*stats_inout).merge(
         resp, ql::stats_merge, env->limits(), conditions_inout);
 }
 

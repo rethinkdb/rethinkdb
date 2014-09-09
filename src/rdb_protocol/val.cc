@@ -52,8 +52,8 @@ datum_t table_t::batched_replace(
             datum_t new_val;
             try {
                 new_val = replacement_generator->call(env, vals[i])->as_datum();
-                new_val->rcheck_valid_replace(vals[i], keys[i],
-                                              datum_string_t(get_pkey()));
+                new_val.rcheck_valid_replace(vals[i], keys[i],
+                                             datum_string_t(get_pkey()));
                 r_sanity_check(new_val.has());
                 replacement_values.push_back(new_val);
             } catch (const base_exc_t &e) {
@@ -65,7 +65,7 @@ datum_t table_t::batched_replace(
             durability_requirement, return_changes);
         std::set<std::string> conditions;
         datum_t merged
-            = std::move(stats).to_datum()->merge(insert_stats, stats_merge,
+            = std::move(stats).to_datum().merge(insert_stats, stats_merge,
                                                  env->limits(), &conditions);
         datum_object_builder_t result(merged);
         result.add_warnings(conditions, env->limits());
@@ -90,11 +90,11 @@ datum_t table_t::batched_insert(
     for (auto it = insert_datums.begin(); it != insert_datums.end(); ++it) {
         try {
             datum_string_t pkey_w(get_pkey());
-            (*it)->rcheck_valid_replace(datum_t(),
-                                        datum_t(),
-                                        pkey_w);
-            const ql::datum_t &keyval = (*it)->get_field(pkey_w);
-            keyval->print_primary(); // does error checking
+            it->rcheck_valid_replace(datum_t(),
+                                     datum_t(),
+                                     pkey_w);
+            const ql::datum_t &keyval = (*it).get_field(pkey_w);
+            keyval.print_primary(); // does error checking
             valid_inserts.push_back(std::move(*it));
         } catch (const base_exc_t &e) {
             stats.add_error(e.what());
@@ -111,7 +111,7 @@ datum_t table_t::batched_insert(
             durability_requirement);
     std::set<std::string> conditions;
     datum_t merged
-        = std::move(stats).to_datum()->merge(insert_stats, stats_merge,
+        = std::move(stats).to_datum().merge(insert_stats, stats_merge,
                                              env->limits(), &conditions);
     datum_object_builder_t result(merged);
     result.add_warnings(conditions, env->limits());
@@ -458,7 +458,7 @@ counted_t<datum_stream_t> val_t::as_seq(env_t *env) {
     } else if (type.raw_type == type_t::TABLE) {
         return table->as_datum_stream(env, backtrace());
     } else if (type.raw_type == type_t::DATUM) {
-        return datum()->as_datum_stream(backtrace());
+        return datum().as_datum_stream(backtrace());
     }
     rcheck_literal_type(type_t::SEQUENCE);
     unreachable();
@@ -544,7 +544,7 @@ datum_t val_t::as_ptype(const std::string s) {
     try {
         datum_t d = as_datum();
         r_sanity_check(d.has());
-        d->rcheck_is_ptype(s);
+        d.rcheck_is_ptype(s);
         return d;
     } catch (const datum_exc_t &e) {
         rfail(e.get_type(), "%s", e.what());
@@ -555,7 +555,7 @@ bool val_t::as_bool() {
     try {
         datum_t d = as_datum();
         r_sanity_check(d.has());
-        return d->as_bool();
+        return d.as_bool();
     } catch (const datum_exc_t &e) {
         rfail(e.get_type(), "%s", e.what());
     }
@@ -564,7 +564,7 @@ double val_t::as_num() {
     try {
         datum_t d = as_datum();
         r_sanity_check(d.has());
-        return d->as_num();
+        return d.as_num();
     } catch (const datum_exc_t &e) {
         rfail(e.get_type(), "%s", e.what());
     }
@@ -573,7 +573,7 @@ int64_t val_t::as_int() {
     try {
         datum_t d = as_datum();
         r_sanity_check(d.has());
-        return d->as_int();
+        return d.as_int();
     } catch (const datum_exc_t &e) {
         rfail(e.get_type(), "%s", e.what());
     }
@@ -582,7 +582,7 @@ datum_string_t val_t::as_str() {
     try {
         datum_t d = as_datum();
         r_sanity_check(d.has());
-        return d->as_str();
+        return d.as_str();
     } catch (const datum_exc_t &e) {
         rfail(e.get_type(), "%s", e.what());
     }
@@ -597,7 +597,7 @@ void val_t::rcheck_literal_type(type_t::raw_type_t expected_raw_type) const {
 
 std::string val_t::print() const {
     if (get_type().is_convertible(type_t::DATUM)) {
-        return as_datum()->print();
+        return as_datum().print();
     } else if (get_type().is_convertible(type_t::DB)) {
         return strprintf("db(\"%s\")", as_db()->name.c_str());
     } else if (get_type().is_convertible(type_t::TABLE)) {
@@ -613,7 +613,7 @@ std::string val_t::print() const {
 
 std::string val_t::trunc_print() const {
     if (get_type().is_convertible(type_t::DATUM)) {
-        return as_datum()->trunc_print();
+        return as_datum().trunc_print();
     } else {
         std::string s = print();
         if (s.size() > datum_t::trunc_len) {

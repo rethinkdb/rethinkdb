@@ -218,9 +218,9 @@ void run_backfill_test(size_t value_padding_length,
         broadcaster->get()->read(read, &response, &exiter, order_source->check_in("unittest::(rdb)run_partial_backfill_test").with_read_mode(), &non_interruptor);
         point_read_response_t get_result = boost::get<point_read_response_t>(response.response);
         EXPECT_TRUE(get_result.data.has());
-        EXPECT_EQ(*generate_document(value_padding_length,
+        EXPECT_EQ(generate_document(value_padding_length,
                                      it->second),
-                  *get_result.data);
+                  get_result.data);
     }
 }
 
@@ -345,7 +345,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
         // Order doesn't matter because groups->size() is 1.
         auto result_stream = &groups->begin(ql::grouped::order_doesnt_matter_t())->second;
         ASSERT_EQ(1u, result_stream->size());
-        EXPECT_EQ(*generate_document(0, it->second), *result_stream->at(0).data);
+        EXPECT_EQ(generate_document(0, it->second), result_stream->at(0).data);
     }
 }
 

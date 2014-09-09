@@ -11,6 +11,7 @@ for interface_test_name in [
         'progress',
         'resources',
         'server_config',
+        'server_status',
         'stat',
         'table_config',
         'table_reconfigure',

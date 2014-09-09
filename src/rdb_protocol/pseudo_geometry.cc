@@ -23,23 +23,23 @@ const char *const geometry_string = "GEOMETRY";
 datum_t geo_sub(datum_t lhs,
                 datum_t rhs,
                 const configured_limits_t &limits) {
-    rcheck_target(&lhs, base_exc_t::GENERIC, lhs->is_ptype(geometry_string),
+    rcheck_target(&lhs, base_exc_t::GENERIC, lhs.is_ptype(geometry_string),
                   "Value must be of geometry type.");
-    rcheck_target(&rhs, base_exc_t::GENERIC, rhs->is_ptype(geometry_string),
+    rcheck_target(&rhs, base_exc_t::GENERIC, rhs.is_ptype(geometry_string),
                   "Value must be of geometry type.");
 
     rcheck_target(&rhs, base_exc_t::GENERIC,
-                  rhs->get_field("coordinates")->arr_size() <= 1,
+                  rhs.get_field("coordinates").arr_size() <= 1,
                   "The second argument to `sub` must be a Polygon with only an outer "
                   "shell.  This one has holes.");
 
     // Construct a polygon from lhs with rhs cut out
     rcheck_target(&lhs, base_exc_t::GENERIC,
-                  lhs->get_field("type")->as_str() == "Polygon",
+                  lhs.get_field("type").as_str() == "Polygon",
                   strprintf("The first argument to `sub` must be a Polygon.  Found `%s`.",
-                            lhs->get_field("type")->as_str().to_std().c_str()));
+                            lhs.get_field("type").as_str().to_std().c_str()));
     rcheck_target(&lhs, base_exc_t::GENERIC,
-                  lhs->get_field("coordinates")->arr_size() >= 1,
+                  lhs.get_field("coordinates").arr_size() >= 1,
                   "The first argument to `sub` is an empty polygon.  It must at least "
                   "have an outer shell.");
 

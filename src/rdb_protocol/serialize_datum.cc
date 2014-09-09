@@ -491,7 +491,7 @@ serialization_result_t datum_serialize(
     serialization_result_t res = serialization_result_t::SUCCESS;
 
     r_sanity_check(datum.has());
-    switch (datum->get_type()) {
+    switch (datum.get_type()) {
     case datum_t::R_ARRAY: {
         res = res | datum_serialize(wm, datum_serialized_type_t::BUF_R_ARRAY);
         if (datum.arr_size() > 100000)
@@ -500,19 +500,19 @@ serialization_result_t datum_serialize(
     } break;
     case datum_t::R_BINARY: {
         datum_serialize(wm, datum_serialized_type_t::R_BINARY);
-        const datum_string_t &value = datum->as_binary();
+        const datum_string_t &value = datum.as_binary();
         datum_serialize(wm, value);
     } break;
     case datum_t::R_BOOL: {
         res = res | datum_serialize(wm, datum_serialized_type_t::R_BOOL);
-        bool value = datum->as_bool();
+        bool value = datum.as_bool();
         serialize_universal(wm, value);
     } break;
     case datum_t::R_NULL: {
         res = res | datum_serialize(wm, datum_serialized_type_t::R_NULL);
     } break;
     case datum_t::R_NUM: {
-        double value = datum->as_num();
+        double value = datum.as_num();
         int64_t i;
         if (number_as_integer(value, &i)) {
             // We serialize the signed-zero double, -0.0, with INT_NEGATIVE.
@@ -537,7 +537,7 @@ serialization_result_t datum_serialize(
     } break;
     case datum_t::R_STR: {
         res = res | datum_serialize(wm, datum_serialized_type_t::R_STR);
-        const datum_string_t &value = datum->as_str();
+        const datum_string_t &value = datum.as_str();
         res = res | datum_serialize(wm, value);
     } break;
     case datum_t::UNINITIALIZED: // fallthru

@@ -80,7 +80,7 @@ std::vector<datum_t> rget_response_reader_t::next_batch(env_t *env,
             for (; items_index < items.size(); ++items_index) {
                 if (sindex.has()) {
                     r_sanity_check(items[items_index].sindex_key.has());
-                    if (*items[items_index].sindex_key != *sindex) {
+                    if (items[items_index].sindex_key != sindex) {
                         break; // batch is done
                     }
                 } else {
@@ -100,7 +100,7 @@ std::vector<datum_t> rget_response_reader_t::next_batch(env_t *env,
                               // This is safe because you can't have duplicate
                               // primary keys, so they will never exceed the
                               // array limit.
-                              sindex->trunc_print().c_str()));
+                              sindex.trunc_print().c_str()));
             }
             if (items_index >= items.size()) {
                 // If we consumed the whole batch without finding a new sindex,
@@ -216,7 +216,7 @@ bool rget_reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
                           "Truncated key:\n%s",
                           env->limits().array_size_limit(),
                           readgen->sindex_name().c_str(),
-                          items[items.size() - 1].sindex_key->trunc_print().c_str(),
+                          items[items.size() - 1].sindex_key.trunc_print().c_str(),
                           key_to_debug_str(items[items.size() - 1].key).c_str()));
 
             items.reserve(items.size() + new_items.size());
@@ -467,8 +467,8 @@ public:
         // v1.13 itself.  For that, we use the last_key value in the
         // rget_read_response_t.
         return reversed(sorting)
-            ? l.sindex_key->compare_gt(reql_version_t::LATEST, *r.sindex_key)
-            : l.sindex_key->compare_lt(reql_version_t::LATEST, *r.sindex_key);
+            ? l.sindex_key.compare_gt(reql_version_t::LATEST, r.sindex_key)
+            : l.sindex_key.compare_lt(reql_version_t::LATEST, r.sindex_key);
     }
 private:
     sorting_t sorting;
@@ -774,7 +774,8 @@ datum_t eager_datum_stream_t::as_array(env_t *env) {
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
     {
         profile::sampler_t sampler("Evaluating stream eagerly.", env->trace);
-        while (datum_t d = next(env, batchspec)) {
+        datum_t d;
+        while (d = next(env, batchspec), d.has()) {
             arr.add(d);
             sampler.new_sample();
         }
@@ -827,11 +828,11 @@ datum_t array_datum_stream_t::next(env_t *env, const batchspec_t &bs) {
     return ops_to_do() ? datum_stream_t::next(env, bs) : next_arr_el();
 }
 datum_t array_datum_stream_t::next_arr_el() {
-    return index < arr->arr_size() ? arr->get(index++) : datum_t();
+    return index < arr.arr_size() ? arr.get(index++) : datum_t();
 }
 
 bool array_datum_stream_t::is_exhausted() const {
-    return index >= arr->arr_size();
+    return index >= arr.arr_size();
 }
 bool array_datum_stream_t::is_cfeed() const {
     return false;
@@ -843,7 +844,8 @@ array_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
     batcher_t batcher = batchspec.to_batcher();
 
     profile::sampler_t sampler("Fetching array elements.", env->trace);
-    while (const datum_t d = next_arr_el()) {
+    datum_t d;
+    while (d = next_arr_el(), d.has()) {
         batcher.note_el(d);
         v.push_back(std::move(d));
         if (batcher.should_send_batch()) {
@@ -910,7 +912,7 @@ ordered_distinct_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &b
         std::vector<datum_t> v = source->next_batch(env, bs);
         if (v.size() == 0) break;
         for (auto &&el : v) {
-            if (!last_val.has() || *last_val != *el) {
+            if (!last_val.has() || last_val != el) {
                 last_val = el;
                 ret.push_back(std::move(el));
             }
@@ -1042,7 +1044,8 @@ datum_t union_datum_stream_t::as_array(env_t *env) {
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
     {
         profile::sampler_t sampler("Evaluating stream eagerly.", env->trace);
-        while (const datum_t d = next(env, batchspec)) {
+        datum_t d;
+        while (d = next(env, batchspec), d.has()) {
             arr.add(d);
             sampler.new_sample();
         }

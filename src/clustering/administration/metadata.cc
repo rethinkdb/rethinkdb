@@ -117,8 +117,9 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(auth_semilattice_metadata_t, auth_key);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(auth_semilattice_metadata_t, auth_key);
 RDB_IMPL_EQUALITY_COMPARABLE_1(auth_semilattice_metadata_t, auth_key);
 
-RDB_IMPL_SERIALIZABLE_11(cluster_directory_metadata_t,
-                         rdb_namespaces, machine_id, peer_id, cache_size, ips,
+RDB_IMPL_SERIALIZABLE_15(cluster_directory_metadata_t,
+                         rdb_namespaces, machine_id, peer_id, cache_size, time_started,
+                         pid, cluster_port, reql_port, http_admin_port,
                          get_stats_mailbox_address, get_outdated_indexes_mailbox,
                          log_mailbox, server_name_business_card, local_issues,
                          peer_type);
@@ -156,7 +157,6 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_metad
     res["machine_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<machine_id_t>(&target->machine_id)); // TODO: should be 'me'?
     res["peer_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<peer_id_t>(&target->peer_id));
     res["cache_size"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<uint64_t>(&target->cache_size));
-    res["ips"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<std::vector<std::string> >(&target->ips));
     res["peer_type"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<cluster_directory_peer_type_t>(&target->peer_type));
     return res;
 }

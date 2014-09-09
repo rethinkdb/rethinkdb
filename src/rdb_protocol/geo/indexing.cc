@@ -81,8 +81,8 @@ std::vector<std::string> compute_index_grid_keys(
         const ql::datum_t &key, int goal_cells) {
     rassert(key.has());
 
-    if (!key->is_ptype(ql::pseudo::geometry_string)) {
-        throw geo_exception_t("Expected geometry but found " + key->get_type_name() + ".");
+    if (!key.is_ptype(ql::pseudo::geometry_string)) {
+        throw geo_exception_t("Expected geometry but found " + key.get_type_name() + ".");
     }
     if (goal_cells <= 0) {
         throw geo_exception_t("goal_cells must be positive (and should be >= 4).");

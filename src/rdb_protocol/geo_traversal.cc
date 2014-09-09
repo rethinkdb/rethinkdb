@@ -136,10 +136,10 @@ done_traversing_t geo_intersecting_cb_t::on_candidate(
         ql::datum_t sindex_val =
             sindex.func->call(&sindex_env, val)->as_datum();
         if (sindex.multi == sindex_multi_bool_t::MULTI
-            && sindex_val->get_type() == ql::datum_t::R_ARRAY) {
+            && sindex_val.get_type() == ql::datum_t::R_ARRAY) {
             boost::optional<uint64_t> tag = *ql::datum_t::extract_tag(store_key);
             guarantee(tag);
-            sindex_val = sindex_val->get(*tag, ql::NOTHROW);
+            sindex_val = sindex_val.get(*tag, ql::NOTHROW);
             guarantee(sindex_val.has());
         }
         // TODO (daniel): This is a little inefficient because we re-parse
@@ -159,7 +159,7 @@ done_traversing_t geo_intersecting_cb_t::on_candidate(
             // This is relevant only for polygons and lines, since those can be
             // encountered multiple times in the index.
             if (already_processed.size() < MAX_PROCESSED_SET_SIZE
-                && sindex_val->get_field("type")->as_str() != "Point") {
+                && sindex_val.get_field("type").as_str() != "Point") {
                 already_processed.insert(primary_key);
             }
             return done_traversing_t::NO;

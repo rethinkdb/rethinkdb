@@ -20,17 +20,17 @@ protected:
         datum_t arr = args->arg(env, 0)->as_datum();
         datum_t new_el = args->arg(env, 1)->as_datum();
         datum_array_builder_t out(env->env->limits());
-        out.reserve(arr->arr_size() + 1);
+        out.reserve(arr.arr_size() + 1);
         if (which_pend == PRE) {
             // TODO: this is horrendously inefficient.
             out.add(new_el);
-            for (size_t i = 0; i < arr->arr_size(); ++i) {
-                out.add(arr->get(i));
+            for (size_t i = 0; i < arr.arr_size(); ++i) {
+                out.add(arr.get(i));
             }
         } else {
             // TODO: this is horrendously inefficient.
-            for (size_t i = 0; i < arr->arr_size(); ++i) {
-                out.add(arr->get(i));
+            for (size_t i = 0; i < arr.arr_size(); ++i) {
+                out.add(arr.get(i));
             }
             out.add(new_el);
         }
@@ -80,7 +80,7 @@ uint64_t canonicalize(const term_t *t, int64_t index, size_t size, bool *oob_out
 // needed because nth_term_impl may need to recurse over its contents to deal with
 // e.g. grouped data.
 counted_t<val_t> nth_term_direct_impl(const term_t *term, scope_env_t *env,
-                               counted_t<val_t> aggregate, counted_t<val_t> index) {
+                                      counted_t<val_t> aggregate, counted_t<val_t> index) {
     int32_t n = index->as_int<int32_t>();
     if (aggregate->get_type().is_convertible(val_t::type_t::DATUM)) {
         datum_t arr = aggregate->as_datum();
@@ -200,19 +200,19 @@ private:
                                  bool left_open, int64_t fake_l,
                                  bool right_open, int64_t fake_r) const {
         uint64_t real_l, real_r;
-        if (canon_helper(arr->arr_size(), left_open, fake_l, true, &real_l)) {
+        if (canon_helper(arr.arr_size(), left_open, fake_l, true, &real_l)) {
             real_l = 0;
         }
-        if (canon_helper(arr->arr_size(), right_open, fake_r, false, &real_r)) {
+        if (canon_helper(arr.arr_size(), right_open, fake_r, false, &real_r)) {
             return new_val(datum_t::empty_array());
         }
 
         datum_array_builder_t out(limits);
         for (uint64_t i = real_l; i < real_r; ++i) {
-            if (i >= arr->arr_size()) {
+            if (i >= arr.arr_size()) {
                 break;
             }
-            out.add(arr->get(i));
+            out.add(arr.get(i));
         }
         return new_val(std::move(out).to_datum());
     }
@@ -220,7 +220,7 @@ private:
     counted_t<val_t> slice_binary(datum_t binary,
                                   bool left_open, int64_t fake_l,
                                   bool right_open, int64_t fake_r) const {
-        const datum_string_t &data = binary->as_binary();
+        const datum_string_t &data = binary.as_binary();
         uint64_t real_l, real_r;
         if (canon_helper(data.size(), left_open, fake_l, true, &real_l)) {
             real_l = 0;
@@ -250,15 +250,15 @@ private:
 
         if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
             datum_t d = v->as_datum();
-            if (d->get_type() == datum_t::R_ARRAY) {
+            if (d.get_type() == datum_t::R_ARRAY) {
                 return slice_array(d, env->env->limits(), left_open, fake_l,
                                    right_open, fake_r);
-            } else if (d->get_type() == datum_t::R_BINARY) {
+            } else if (d.get_type() == datum_t::R_BINARY) {
                 return slice_binary(d, left_open, fake_l, right_open, fake_r);
             } else {
                 rfail_target(v, base_exc_t::GENERIC,
                              "Expected ARRAY or BINARY, but found %s.",
-                             d->get_type_name().c_str());
+                             d.get_type_name().c_str());
             }
         } else if (v->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
             counted_t<table_t> t;
@@ -334,9 +334,9 @@ private:
         std::set<datum_t, optional_datum_less_t>
             el_set(optional_datum_less_t(env->env->reql_version()));
         datum_array_builder_t out(env->env->limits());
-        for (size_t i = 0; i < arr->arr_size(); ++i) {
-            if (el_set.insert(arr->get(i)).second) {
-                out.add(arr->get(i));
+        for (size_t i = 0; i < arr.arr_size(); ++i) {
+            if (el_set.insert(arr.get(i)).second) {
+                out.add(arr.get(i));
             }
         }
         if (!std_contains(el_set, new_el)) {
@@ -362,14 +362,14 @@ private:
         std::set<datum_t, optional_datum_less_t> el_set(
             optional_datum_less_t(env->env->reql_version()));
         datum_array_builder_t out(env->env->limits());
-        for (size_t i = 0; i < arr1->arr_size(); ++i) {
-            if (el_set.insert(arr1->get(i)).second) {
-                out.add(arr1->get(i));
+        for (size_t i = 0; i < arr1.arr_size(); ++i) {
+            if (el_set.insert(arr1.get(i)).second) {
+                out.add(arr1.get(i));
             }
         }
-        for (size_t i = 0; i < arr2->arr_size(); ++i) {
-            if (el_set.insert(arr2->get(i)).second) {
-                out.add(arr2->get(i));
+        for (size_t i = 0; i < arr2.arr_size(); ++i) {
+            if (el_set.insert(arr2.get(i)).second) {
+                out.add(arr2.get(i));
             }
         }
 
@@ -392,13 +392,13 @@ private:
         std::set<datum_t, optional_datum_less_t>
             el_set(optional_datum_less_t(env->env->reql_version()));
         datum_array_builder_t out(env->env->limits());
-        for (size_t i = 0; i < arr1->arr_size(); ++i) {
-            el_set.insert(arr1->get(i));
+        for (size_t i = 0; i < arr1.arr_size(); ++i) {
+            el_set.insert(arr1.get(i));
         }
-        for (size_t i = 0; i < arr2->arr_size(); ++i) {
-            if (std_contains(el_set, arr2->get(i))) {
-                out.add(arr2->get(i));
-                el_set.erase(arr2->get(i));
+        for (size_t i = 0; i < arr2.arr_size(); ++i) {
+            if (std_contains(el_set, arr2.get(i))) {
+                out.add(arr2.get(i));
+                el_set.erase(arr2.get(i));
             }
         }
 
@@ -421,13 +421,13 @@ private:
         std::set<datum_t, optional_datum_less_t>
             el_set(optional_datum_less_t(env->env->reql_version()));
         datum_array_builder_t out(env->env->limits());
-        for (size_t i = 0; i < arr2->arr_size(); ++i) {
-            el_set.insert(arr2->get(i));
+        for (size_t i = 0; i < arr2.arr_size(); ++i) {
+            el_set.insert(arr2.get(i));
         }
-        for (size_t i = 0; i < arr1->arr_size(); ++i) {
-            if (!std_contains(el_set, arr1->get(i))) {
-                out.add(arr1->get(i));
-                el_set.insert(arr1->get(i));
+        for (size_t i = 0; i < arr1.arr_size(); ++i) {
+            if (!std_contains(el_set, arr1.get(i))) {
+                out.add(arr1.get(i));
+                el_set.insert(arr1.get(i));
             }
         }
 
@@ -457,9 +457,9 @@ public:
         datum_array_builder_t arr(args->arg(env, 0)->as_datum(), env->env->limits());
         size_t index;
         if (index_method_ == ELEMENTS) {
-            index = canonicalize(this, args->arg(env, 1)->as_datum()->as_int(), arr.size());
+            index = canonicalize(this, args->arg(env, 1)->as_datum().as_int(), arr.size());
         } else if (index_method_ == SPACES) {
-            index = canonicalize(this, args->arg(env, 1)->as_datum()->as_int(), arr.size() + 1);
+            index = canonicalize(this, args->arg(env, 1)->as_datum().as_int(), arr.size() + 1);
         } else {
             unreachable();
         }
@@ -509,7 +509,7 @@ private:
             array->erase(index);
         } else {
             int end_index =
-                canonicalize(this, args->arg(env, 2)->as_datum()->as_int(), array->size());
+                canonicalize(this, args->arg(env, 2)->as_datum().as_int(), array->size());
             array->erase_range(env->env->reql_version(), index, end_index);
         }
     }
@@ -569,9 +569,10 @@ private:
         {
             profile::sampler_t sampler("Evaluating elements in contains.",
                                        env->env->trace);
-            while (datum_t el = seq->next(env->env, batchspec)) {
+            datum_t el;
+            while (el = seq->next(env->env, batchspec), el.has()) {
                 for (auto it = required_els.begin(); it != required_els.end(); ++it) {
-                    if (**it == *el) {
+                    if (*it == el) {
                         std::swap(*it, required_els.back());
                         required_els.pop_back();
                         break; // Bag semantics for contains.
@@ -608,7 +609,7 @@ public:
                                        eval_flags_t eval_flags) const {
         counted_t<val_t> v0 = args->arg(env, 0, eval_flags);
         // If v0 is not an array, force a type error.
-        v0->as_datum()->check_type(datum_t::R_ARRAY);
+        v0->as_datum().check_type(datum_t::R_ARRAY);
         return v0;
     }
 private:

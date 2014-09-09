@@ -81,8 +81,8 @@ private:
         boost::optional<std::string> delim;
         if (args->num_args() > 1) {
             datum_t d = args->arg(env, 1)->as_datum();
-            if (d->get_type() != datum_t::R_NULL) {
-                delim = d->as_str().to_std();
+            if (d.get_type() != datum_t::R_NULL) {
+                delim = d.as_str().to_std();
             }
         }
 

@@ -996,8 +996,6 @@ class Table(RqlQuery):
         return IndexWait(self, *args)
 
     def reconfigure(self, *args, **kwargs):
-        kwargs.setdefault('director_tag', ())
-        kwargs.setdefault('dry_run', ())
         return Reconfigure(self, *args, **kwargs)
 
     def sync(self, *args):
