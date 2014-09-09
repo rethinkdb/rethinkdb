@@ -32,7 +32,7 @@ private:
         } else {
             regexp = search->second;
         }
-        guarantee(static_cast<bool>(regexp), "Regex object for %s wasn't initialized somehow!", re.c_str());
+        r_sanity_check(static_cast<bool>(regexp));
         // We add 1 to account for $0.
         int ngroups = regexp->NumberOfCapturingGroups() + 1;
         scoped_array_t<re2::StringPiece> groups(ngroups);
