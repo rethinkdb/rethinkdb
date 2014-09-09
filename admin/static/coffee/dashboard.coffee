@@ -49,8 +49,8 @@ module 'DashboardView', ->
                                 )
                                 position: position.add(1)
                                 num_shards: table("shards").count()
-                        ).filter( (shard) ->
-                            shard.contains (assignment) ->
+                        ).map( (shard) ->
+                            shard.filter (assignment) ->
                                 assignment("role").eq("director").and(assignment("state").ne("ready"))
                         ).concatMap identity
                     ).filter (table) ->
@@ -67,8 +67,8 @@ module 'DashboardView', ->
                                 )
                                 position: position.add(1)
                                 num_shards: table("shards").count()
-                        ).filter( (shard) ->
-                            shard.contains (assignment) ->
+                        ).map( (shard) ->
+                            shard.filter (assignment) ->
                                 assignment("role").eq("replica").and(assignment("state").ne("ready"))
                         ).concatMap identity
                     ).filter (table) ->
