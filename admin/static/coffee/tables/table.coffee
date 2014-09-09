@@ -176,11 +176,6 @@ module 'TableView', ->
                                         shard_id: shard.id
                                         data: replica
 
-                                shards_assignments.push
-                                    id: "end_shard_#{shard.id}"
-                                    shard_id: shard.id
-                                    end_shard: true
-
                             @shards_assignments.set _.map shards_assignments, (shard) -> new ShardAssignment shard
                             delete result.shards_assignments
 
