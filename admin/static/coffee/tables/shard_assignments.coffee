@@ -54,7 +54,13 @@ module 'TableView', ->
         template: Handlebars.templates['shard_assignment-template']
         className: 'assignment_container'
 
+        initialize: =>
+            @listenTo @model, 'change', @render
+
         render: =>
             @$el.html @template @model.toJSON()
             @
+
+        remove: =>
+            @stopListening()
 
