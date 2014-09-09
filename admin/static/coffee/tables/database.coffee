@@ -1,22 +1,53 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 # Database view
 module 'DatabaseView', ->
-    # Class in case the database is not found (propably a deleted database). Links to this view can be found in old logs.
-    class @NotFound extends Backbone.View
-        template: Handlebars.templates['element_view-not_found-template']
+    class @DatabaseContainer extends Backbone.View
+        template:
+            not_found: Handlebars.templates['element_view-not_found-template']
+            loading: Handlebars.templates['loading-template']
+            error: Handlebars.templates['error-query-template']
+        className: 'database-container'
         initialize: (id) =>
+            @loading = true
             @id = id
+            @model = null
 
+            @fetch_data()
+            @interval = setInterval @fetch_data, 5000
+
+
+        fetch_data: =>
+            query = r.db(system_db).table('db_config').get(@id)
+            driver.run query, (error, result) =>
+                console.log '---- err, result -----'
+                console.log error
+                console.log JSON.stringify(result, null, 2)
+                if error?
+                    # TODO: We may want to render only if we failed to open a connection
+                    @error = error
+                    @render()
+                else
+                    @error = null
+                    if result is null
+                        if @loading is true
+                            @loading = false
+                            @render()
+                        else if @model isnt null
+                            @model = null
+                            @indexes = null
+                            @table_view = null
+                            @render()
+                    else
+                        @model = new Database result
+                        @database_view = new DatabaseView.DatabaseMainView
+                            model: @model
+                        @$el.html @database_view.render().$el
         render: =>
-            @.$el.html @template
-                id: @id
-                type: 'database'
-                type_url: 'databases' # Use to build a url to a specific database
-                type_all_url: 'tables' # Use to build a url to the list of all databases
-            return @
+            @
+
 
     # Container for the entire database view
-    class @Container extends Backbone.View
+    class @DatabaseMainView extends Backbone.View
         className: 'database-view'
         template: Handlebars.templates['database_view-container-template']
         alert_tmpl: Handlebars.templates['modify_shards-alert-template']
@@ -27,52 +58,44 @@ module 'DatabaseView', ->
             'click .operations .rename': 'rename_database'
             'click .operations .delete': 'delete_database'
 
-        initialize: ->
-            log_initial '(initializing) database view: container'
+        initialize: (data) =>
+            @model = data.model
+            @tables = data.tables
 
             # Panels for database view
-            @title = new DatabaseView.Title model: @model
-            @profile = new DatabaseView.Profile model: @model
-            @namespace_list = new DatabaseView.NamespaceList model: @model
+            @title = new DatabaseView.Title
+                model: @model
+            @profile = new DatabaseView.Profile
+                model: @model
+            ###
+            @namespace_list = new DatabaseView.NamespaceList
+                collection: @collection
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance,
                 width:  564             # width in pixels
                 height: 210             # height in pixels
                 seconds: 73             # num seconds to track
                 type: 'database'
             )
-
-            databases.on 'remove', @check_if_still_exists
-
-        # If we were on this view and the database has been deleted somewhere else, we redirect the user to the list of databases
-        check_if_still_exists: =>
-            exist = false
-            for database in databases.models
-                if database.get('id') is @model.get('id')
-                    exist = true
-                    break
-            if exist is false
-                window.router.navigate '#tables'
-                window.app.index_namespaces
-                    alert_message: "The database <a href=\"#databases/#{@model.get('id')}\">#{@model.get('name')}</a> could not be found and was probably deleted."
+            ###
 
         # Function to render the view
         render: =>
-            log_render '(rendering) database view: container'
-
-            @.$el.html @template
-                database_id: @model.get 'id'
+            @.$el.html @template()
 
             # fill the title of this page
-            @.$('.main_title').html @title.render().$el
+            @$('.main_title').html @title.render().$el
 
             # Add the replica and shards views
-            @.$('.profile').html @profile.render().$el
-            @.$('.performance-graph').html @performance_graph.render().$el
+            @$('.profile').html @profile.render().$el
+
+            ###
+            @$('.performance-graph').html @performance_graph.render().$el
 
             # Add the namespace list
-            @.$('.table-list').html @namespace_list.render().$el
+            @$('.table-list').html @namespace_list.render().$el
+            ###
 
-            return @
+            @
 
         # Method to close an alert/warning/arror
         close_alert: (event) ->
@@ -82,99 +105,72 @@ module 'DatabaseView', ->
         # Create a modal to renane the database
         rename_database: (event) =>
             event.preventDefault()
-            rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'database'
-            rename_modal.render()
+            if @rename_modal?
+                @rename_modal.remove()
+            @rename_modal = new UIComponents.RenameItemModal
+                model: @model
+            @rename_modal.render()
 
         # Create a modal to delete the databse
         delete_database: (event) ->
             event.preventDefault()
-            remove_database_dialog = new DatabaseView.RemoveDatabaseModal
-            remove_database_dialog.render @model
 
-        # Remove listeners
-        destroy: =>
-            databases.off 'remove', @check_if_still_exists
-            @title.destroy()
-            @profile.destroy()
-            @performance_graph.destroy()
+            if @remove_database_dialog?
+                @remove_database_dialog.remove()
+            @remove_database_dialog = new Modals.RemoveDatabaseModal
+            @remove_database_dialog.render @model
+
+        remove: =>
+            @title.remove()
+            @profile.remove()
+            #@performance_graph.remove()
+            if @rename_modal?
+                @rename_modal.remove()
+            if @remove_database_dialog?
+                @remove_database_dialog.remove()
 
     # DatabaseView.Title
     class @Title extends Backbone.View
         className: 'database-info-view'
         template: Handlebars.templates['database_view_title-template']
 
-        # Bind listeners
         initialize: =>
-            @name = @model.get('name')
-            @model.on 'change:name', @update
-
-        # Update the title if the database has a new name
-        update: =>
-            if @name isnt @model.get('name')
-                @name = @model.get('name')
-                @render()
+            @listenTo @model, 'change:name', @render
 
         # Render the view for the title
         render: =>
             @.$el.html @template
-                name: @name
-            return @
+                name: @model.get 'name'
+            @
 
-        # Unbind listeners
-        destroy: =>
-            @model.off 'change:name', @update
+        remove: =>
+            @stopListening()
 
     # Profile view
     class @Profile extends Backbone.View
         className: 'database-profile'
         template: Handlebars.templates['database_view-profile-template']
         
-        # Bind listeners and initialize the data of this view
         initialize: =>
-            @data = {} # This will be used to know whether we need to rerender our view or not
-            namespaces.on 'all', @render # We listen to all namespaces since they can be moved while the user is on this view
+            @listenTo @model, 'change:num_tables', @render
+            @listenTo @model, 'change:num_available_tables', @render
+            @listenTo @model, 'change:num_shards', @render
+            @listenTo @model, 'change:num_replicas', @render
 
-        # Render the view
         render: =>
-            # Initialize the data for this view
             data =
-                num_namespaces: 0       # Number of namespaces
+                num_tables: @model.get 'num_tables'
                 num_live_namespaces: 0  # Number of namespaces alived
-                reachability: true      # Status of the table
-                nshards: 0              # Number of shards
-                nreplicas: 0            # Number of replicas (numbers of copies of each shards)
-                ndatacenters: 0         # Number of datacenter
-                #stats_up_to_date: true # Not display for now. We should put it back. Issue #1286
+                reachability: @model.get 'completely_ready'      # Status of the table
+                nshards: @model.get 'num_shards'
+                nreplicas: @model.get 'num_replicas'
+                ndatacenters: 0 #TODO Replace with something?
                 
-            datacenters_working = {}
-            # Compute the data for this view
-            for namespace in namespaces.models
-                if namespace.get('database') is @model.get('id')
-                    data.num_namespaces++
-                    namespace_status = DataUtils.get_namespace_status(namespace.get('id'))
-                    if namespace_status? and namespace_status.reachability is 'Live'
-                        data.num_live_namespaces++
-                    data.nshards += namespace_status.nshards
-                    data.nreplicas += namespace_status.nreplicas
+            @.$el.html @template data
+            @
 
-                    for datacenter_id of namespace.get('replica_affinities')
-                        # We don't count universe, and we add the datacenter only if it has at least one replica
-                        if datacenter_id isnt universe_datacenter.get('id') and (namespace.get('replica_affinities')[datacenter_id] > 0 or namespace.get('primary_uuid') is datacenter_id)
-                            datacenters_working[datacenter_id] = true
-
-            for datacenters_id of datacenters_working
-                data.ndatacenters++
-
-            # We update only if the data has changed
-            if not _.isEqual @data, data
-                @data = data
-                @.$el.html @template data
-
-            return @
-
-        # Unbind listeners
-        destroy: =>
-            namespaces.off 'all', @render
+        remove: =>
+            @stopListening()
 
     # The modal to remove a database, it extends UIComponents.AbstractModal
 

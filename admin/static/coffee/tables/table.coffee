@@ -82,6 +82,7 @@ module 'TableView', ->
                 ###
                 if error?
                     # TODO: We may want to render only if we failed to open a connection
+                    # TODO: Handle when the table is deleted
                     @error = error
                     @render()
                 else
