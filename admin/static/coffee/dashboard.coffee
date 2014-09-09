@@ -27,6 +27,12 @@ module 'DashboardView', ->
                         .concatMap(identity)
                         .filter({role: "director", state: "ready"})
                         .count()
+                    num_replicas: table_config('shards').concatMap(identity)("replicas").count()
+                    num_available_replicas: table_status('shards')
+                        .concatMap(identity)
+                        .concatMap(identity)
+                        .filter({role: "replica", state: "ready"})
+                        .count()
                     tables_with_directors_not_ready: table_status.merge( (table) ->
                         shards: table("shards").indexesOf( () -> true ).map( (position) ->
                             table("shards").nth(position).merge
@@ -35,9 +41,9 @@ module 'DashboardView', ->
                                     ".",
                                     table("name"),
                                     ".",
-                                    position.coerceTo("STRING")
+                                    position.add(1).coerceTo("STRING")
                                 )
-                                position: position
+                                position: position.add(1)
                                 num_shards: table("shards").count()
                         ).filter( (shard) ->
                             shard.contains (assignment) ->
@@ -45,9 +51,25 @@ module 'DashboardView', ->
                         ).concatMap identity
                     ).filter (table) ->
                         table("shards").isEmpty().not()
-                    tables_with_replicas_not_ready: table_status.filter (table) ->
-                        table("shards").contains (shard) ->
-                          shard("role").eq("replica").and(shard("state").ne("ready"))
+                    tables_with_replicas_not_ready: table_status.merge( (table) ->
+                        shards: table("shards").indexesOf( () -> true ).map( (position) ->
+                            table("shards").nth(position).merge
+                                id: r.add(
+                                    table("db"),
+                                    ".",
+                                    table("name"),
+                                    ".",
+                                    position.add(1).coerceTo("STRING")
+                                )
+                                position: position.add(1)
+                                num_shards: table("shards").count()
+                        ).filter( (shard) ->
+                            shard.contains (assignment) ->
+                                assignment("role").eq("replica").and(assignment("state").ne("ready"))
+                        ).concatMap identity
+                    ).filter (table) ->
+                        table("shards").isEmpty().not()
+
                     num_tables: table_config.count()
             ).merge
                 num_non_available_tables: r.row("tables_with_directors_not_ready").count()
@@ -141,8 +163,7 @@ module 'DashboardView', ->
     class @ClusterStatusAvailability extends Backbone.View
         className: 'cluster-status-availability '
 
-        template: Handlebars.templates['cluster_status-container-template']
-        popup_template: Handlebars.templates['cluster_status-availability-popup-template']
+        template: Handlebars.templates['dashboard_availability-template']
 
         events:
             'click .show_details': 'show_popup'
@@ -201,190 +222,65 @@ module 'DashboardView', ->
             $(window).off 'mouseup', @remove_popup()
 
     class @ClusterStatusRedundancy extends Backbone.View
-        className: 'cluster-status-redundancy'
+        className: 'cluster-status-availability '
 
-        template: Handlebars.templates['cluster_status-container-template']
-        status_template: Handlebars.templates['cluster_status-redundancy_status-template']
-        popup_template: Handlebars.templates['cluster_status-redundancy-popup-template']
+        template: Handlebars.templates['dashboard_redundancy-template']
 
         events:
-            'click .show_details': 'show_details'
-            'click .close': 'hide_details'
+            'click .show_details': 'show_popup'
+            'click .close': 'hide_popup'
 
         initialize: =>
-            @data = ''
-            directory.on 'all', @render_status
-            namespaces.on 'all', @render_status
+            # We could eventually properly create a collection from @model.get('shards')
+            # But this is probably not worth the effort for now.
 
-        convert_activity: (role) ->
-            switch role
-                when 'role_secondary' then return 'secondary_up_to_date'
-                when 'role_nothing' then return 'nothing'
-                when 'role_primary' then return 'primary'
+            @listenTo @model, 'change:num_directors', @render
+            @listenTo @model, 'change:num_available_directors', @render
 
-
-        compute_data: =>
-            num_replicas = 0
-            num_replicas_down = 0
-            namespaces_down = {}
-
-            # Look for primaries and secondaries (= not nothing) in the blueprint 
-            directory_by_namespaces = DataUtils.get_directory_activities_by_namespaces()
-            for namespace in namespaces.models
-                namespace_id = namespace.get('id')
-                blueprint = namespace.get('blueprint').peers_roles
-                for machine_id of blueprint
-                    machine_name = machine_name = machines.get(machine_id)?.get('name') #TODO check later if defined
-                    if not machine_name?
-                        machine_name = machine_id
-
-                    for shard of blueprint[machine_id]
-                        value = blueprint[machine_id][shard]
-                        if value isnt "role_nothing"
-                            num_replicas++
-
-                            # Check if directory matches
-                            if !(directory_by_namespaces?) or !(directory_by_namespaces[namespace_id]?) or !(directory_by_namespaces[namespace_id][machine_id]?)
-                                num_replicas_down++
-                                if not namespaces_down[namespace.get('id')]?
-                                    namespaces_down[namespace.get('id')] = []
-
-                                namespaces_down[namespace.get('id')].push
-                                    shard: human_readable_shard shard
-                                    namespace_id: namespace.get('id')
-                                    namespace_name: namespace.get('name')
-                                    machine_id: machine_id
-                                    machine_name: machine_name
-                                    blueprint_status: value
-                                    directory_status: 'Not found'
-                            else if directory_by_namespaces[namespace_id][machine_id][shard] != @convert_activity(value)
-                                num_replicas_down++
-                                if not namespaces_down[namespace.get('id')]?
-                                    namespaces_down[namespace.get('id')] = []
-
-                                namespaces_down[namespace.get('id')].push
-                                    shard: human_readable_shard shard
-                                    namespace_id: namespace.get('id')
-                                    namespace_name: namespace.get('name')
-                                    machine_id: machine_id
-                                    machine_name: machine_name
-                                    blueprint_status: value
-                                    directory_status: directory_by_namespaces[namespace_id][machine_id][shard]
-
-            # Check unsatisfiable goals
-            num_unsatisfiable_goals = 0
-            namespaces_with_unsatisfiable_goals = []
-            for issue in issues.models
-                if issue.get('type') is 'UNSATISFIABLE_GOALS'
-                    num_unsatisfiable_goals++
-                    datacenters_with_issues = []
-                    for datacenter_id of issue.get('replica_affinities')
-                        num_replicas = issue.get('replica_affinities')[datacenter_id]
-                        if issue.get('primary_datacenter') is datacenter_id
-                            num_replicas++
-                        if num_replicas > issue.get('actual_machines_in_datacenters')[datacenter_id]
-                            if datacenter_id is universe_datacenter.get('id')
-                                datacenter_name = universe_datacenter.get('name')
-                            else
-                                datacenter_name = datacenters.get(datacenter_id)?.get('name')
-                            datacenters_with_issues.push
-                                datacenter_id: datacenter_id
-                                datacenter_name: datacenter_name
-                                num_replicas: num_replicas
-                    namespaces_with_unsatisfiable_goals.push
-                        namespace_id: issue.get('namespace_id')
-                        namespace_name: namespaces.get(issue.get('namespace_id')).get('name')
-                        datacenters_with_issues: datacenters_with_issues
-                        
-            # Compute data for template
-            if num_replicas_down > 0
-                namespaces_down_array = []
-                for namespace_id, namespace_down of namespaces_down
-                    namespaces_down_array.push
-                        namespace_id: namespace_id
-                        namespace_name: namespaces.get(namespace_id).get('name')
-                        namespaces_down: namespace_down
-                data =
-                    status_is_ok: false
-                    num_namespaces_down: namespaces_down_array.length
-                    has_namespaces_down: namespaces_down_array.length>0
-                    num_namespaces: namespaces.length
-                    num_replicas: num_replicas
-                    num_replicas_down: num_replicas_down
-                    namespaces_down: (namespaces_down_array if namespaces_down_array.length > 0)
-                    has_unsatisfiable_goals: num_unsatisfiable_goals > 0
-                    num_unsatisfiable_goals: num_unsatisfiable_goals
-                    namespaces_with_unsatisfiable_goals: namespaces_with_unsatisfiable_goals
-                
-            else
-                data =
-                    status_is_ok: num_unsatisfiable_goals is 0
-                    num_replicas: num_replicas
-                    has_unsatisfiable_goals: num_unsatisfiable_goals > 0
-                    num_unsatisfiable_goals: num_unsatisfiable_goals
-                    namespaces_with_unsatisfiable_goals: namespaces_with_unsatisfiable_goals
-
-            return data
-
-        render: =>
-            @.$el.html @template()
-            @render_status()
-
-        # So we don't blow away the popup
-        render_status: =>
-            data = @compute_data()
-            if _.isEqual(@data, data) is false
-                @data = data
-                @.$('.status').html @status_template data
-                if data.status_is_ok is true
-                    @.$('.status').addClass 'no-problems-detected'
-                    @.$('.status').removeClass 'problems-detected'
-                else
-                    @.$('.status').addClass 'problems-detected'
-                    @.$('.status').removeClass 'no-problems-detected'
-
-                if data.status_is_ok is false
-                    @.$('.popup_container').html @popup_template data
-                else
-                    @.$('.popup_container').html @popup_template
-                        has_namespaces_down: false
+            $(window).on 'mouseup', @hide_popup
+            @$el.on 'click', @stop_propagation
 
 
-            return @
-
-        clean_dom_listeners: =>
-            if @link_clicked?
-                @link_clicked.off 'mouseup', @stop_propagation
-            @.$('.popup_container').off 'mouseup', @stop_propagation
-            $(window).off 'mouseup', @hide_details
-
-        show_details: (event) =>
-            event.preventDefault()
-            @clean_dom_listeners()
-
-            @.$('.popup_container').show()
-            margin_top = event.pageY-60-13
-            margin_left= event.pageX+12
-            @.$('.popup_container').css 'margin', margin_top+'px 0px 0px '+margin_left+'px'
-
-
-            @.$('.popup_container').on 'mouseup', @stop_propagation
-            @link_clicked = @.$(event.target)
-            @link_clicked.on 'mouseup', @stop_propagation
-
-            $(window).on 'mouseup', @hide_details
+            @display_popup = false
+            @margin = {}
 
         stop_propagation: (event) ->
             event.stopPropagation()
 
-        hide_details: (event) =>
-            @.$('.popup_container').hide()
-            @clean_dom_listeners()
+        show_popup: (event) =>
+            if event?
+                event.preventDefault()
 
-        destroy: =>
-            directory.off 'all', @render_status
-            namespaces.off 'all', @render_status
-            @clean_dom_listeners()
+                @margin.top = event.pageY-60-13
+                @margin.left = event.pageX+12
+
+            @$('.popup_container').show()
+            @$('.popup_container').css 'margin', @margin.top+'px 0px 0px '+@margin.left+'px'
+            @display_popup = true
+
+        hide_popup: (event) =>
+            @display_popup = false
+            @$('.popup_container').hide()
+
+        render: =>
+            @$el.html @template
+                status_is_ok: @model.get('num_available_replicas') is @model.get('num_replicas')
+                num_replicas: @model.get 'num_directors'
+                num_available_replicas: @model.get 'num_available_directors'
+                num_non_available_replicas: @model.get('num_directors')-@model.get('num_available_directors')
+                num_non_available_tables: @model.get 'num_non_available_tables'
+                num_tables: @model.get 'num_tables'
+                tables_with_replicas_not_ready: @model.get('tables_with_directors_not_ready')
+
+            if @display_popup is true and @model.get('num_available_directors') isnt @model.get('num_directors')
+                # We re-display the pop up only if there are still issues
+                @show_popup()
+
+            @
+
+        remove: =>
+            @stopListeningTo()
+            $(window).off 'mouseup', @remove_popup()
 
     class @ClusterStatusReachability extends Backbone.View
         className: 'cluster-status-redundancy'
