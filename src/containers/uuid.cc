@@ -6,7 +6,9 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <fcntl.h>
+
 #include <array>
+#include <stdexcept>
 
 #include "containers/printf_buffer.hpp"
 #include "utils.hpp"

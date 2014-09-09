@@ -157,7 +157,7 @@ std::string format_time(struct timespec time) {
     return std::string(buf.c_str());
 }
 
-struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_error) {
+bool parse_time(const std::string &str, struct timespec *out, std::string *errmsg_out) {
     struct tm t;
     struct timespec time;
     int res1 = sscanf(str.c_str(),
@@ -170,16 +170,19 @@ struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_erro
         &t.tm_sec,
         &time.tv_nsec);
     if (res1 != 7) {
-        throw std::runtime_error("badly formatted time");
+        *errmsg_out = "badly formatted time";
+        return false;
     }
     t.tm_year -= 1900;
     t.tm_mon -= 1;
     t.tm_isdst = -1;
     time.tv_sec = mktime(&t);
     if (time.tv_sec == -1) {
-        throw std::runtime_error("invalid time");
+        *errmsg_out = "invalid time";
+        return false;
     }
-    return time;
+    *out = time;
+    return true;
 }
 
 with_priority_t::with_priority_t(int priority) {
@@ -320,21 +323,6 @@ double randdouble() {
     uint64_t x = randuint64(1LL << 53);
     double res = x;
     return res / (1LL << 53);
-}
-
-std::string rand_string(int len) {
-    std::string res;
-
-    int seed = randint(RAND_MAX);
-
-    while (len --> 0) {
-        res.push_back((seed % 26) + 'A');
-        seed ^= seed >> 17;
-        seed += seed << 11;
-        seed ^= seed >> 29;
-    }
-
-    return res;
 }
 
 bool begins_with_minus(const char *string) {
@@ -502,18 +490,19 @@ std::string errno_string(int errsv) {
     return std::string(errstr);
 }
 
-int remove_directory_helper(const char *path, UNUSED const struct stat *ptr, UNUSED const int flag, UNUSED FTW *ftw) {
+int remove_directory_helper(const char *path, UNUSED const struct stat *ptr,
+                            UNUSED const int flag, UNUSED FTW *ftw) {
     int res = ::remove(path);
-    if (res != 0) {
-        throw remove_directory_exc_t(path, get_errno());
-    }
+    guarantee_err(res == 0, "Fatal error: failed to delete '%s'.", path);
     return 0;
 }
 
-void remove_directory_recursive(const char *path) THROWS_ONLY(remove_directory_exc_t) {
-    // max_openfd is ignored on OS X (which claims the parameter specifies the maximum traversal
-    // depth) and used by Linux to limit the number of file descriptors that are open (by opening
-    // and closing directories extra times if it needs to go deeper than that).
+void remove_directory_recursive(const char *path) {
+    // max_openfd is ignored on OS X (which claims the parameter
+    // specifies the maximum traversal depth) and used by Linux to
+    // limit the number of file descriptors that are open (by opening
+    // and closing directories extra times if it needs to go deeper
+    // than that).
     const int max_openfd = 128;
     int res = nftw(path, remove_directory_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
     guarantee_err(res == 0 || get_errno() == ENOENT, "Trouble while traversing and destroying temporary directory %s.", path);
@@ -551,18 +540,6 @@ void recreate_temporary_directory(const base_path_t& base_path) {
     // Call fsync() on the parent directory to guarantee that the newly
     // created directory's directory entry is persisted to disk.
     warn_fsync_parent_directory(path.c_str());
-}
-
-bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes) {
-    const uint8_t *p8 = static_cast<const uint8_t *>(p);
-    const uint8_t *range8 = static_cast<const uint8_t *>(range_start);
-    return range8 <= p8 && p8 < range8 + size_in_bytes;
-}
-
-bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range_start, size_t size_in_bytes) {
-    const uint8_t *p8 = static_cast<const uint8_t *>(p);
-    return ptr_in_byte_range(p, range_start, size_in_bytes) &&
-        (n_bytes == 0 || ptr_in_byte_range(p8 + n_bytes - 1, range_start, size_in_bytes));
 }
 
 // GCC and CLANG are smart enough to optimize out strlen(""), so this works.

@@ -6,7 +6,6 @@
 #include <stdlib.h>
 
 #include <functional>
-#include <stdexcept>
 #include <string>
 
 #include "errors.hpp"
@@ -63,7 +62,6 @@ int randint(int n);
 uint64_t randuint64(uint64_t n);
 size_t randsize(size_t n);
 double randdouble();
-std::string rand_string(int len);
 
 bool begins_with_minus(const char *string);
 // strtoul() and strtoull() will for some reason not fail if the input begins
@@ -88,7 +86,7 @@ const size_t formatted_time_length = 29;    // not including null
 void format_time(struct timespec time, printf_buffer_t *buf);
 std::string format_time(struct timespec time);
 
-struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_error);
+bool parse_time(const std::string &str, struct timespec *out, std::string *errmsg_out);
 
 /* Printing binary data to stderr in a nice format */
 void print_hd(const void *buf, size_t offset, size_t length);
@@ -204,27 +202,7 @@ private:
 
 void recreate_temporary_directory(const base_path_t& base_path);
 
-// This will be thrown by remove_directory_recursive if a file cannot be removed
-class remove_directory_exc_t : public std::exception {
-public:
-    remove_directory_exc_t(const std::string &path, int errsv) {
-        char buf[512];
-        info = strprintf("Fatal error: failed to delete file '%s': %s.",
-                         path.c_str(),
-                         errno_string_maybe_using_buffer(errsv, buf, sizeof(buf)));
-    }
-    ~remove_directory_exc_t() throw () { }
-    const char *what() const throw () {
-        return info.c_str();
-    }
-private:
-    std::string info;
-};
-
-void remove_directory_recursive(const char *path) THROWS_ONLY(remove_directory_exc_t);
-
-bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes);
-bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range_start, size_t size_in_bytes);
+void remove_directory_recursive(const char *path);
 
 #define MSTR(x) stringify(x) // Stringify a macro
 #if defined __clang__
