@@ -71,7 +71,8 @@ module 'TableView', ->
                             )
                         )
                     )
-                ).without('shards')
+                ).without('shards').merge
+                    id: r.row 'uuid'
 
             driver.run query, (error, result) =>
                 ###
@@ -213,8 +214,8 @@ module 'TableView', ->
             'click .close': 'close_alert'
             'click .change_shards-link': 'change_shards'
             # operations in the dropdown menu
-            'click .operations .rename': 'rename_namespace'
-            'click .operations .delete': 'delete_namespace'
+            'click .operations .rename': 'rename_table'
+            'click .operations .delete': 'delete_table'
 
 
         initialize: (data, options) =>
@@ -292,25 +293,28 @@ module 'TableView', ->
             $(event.currentTarget).parent().parent().slideUp('fast', -> $(this).remove())
 
         # Rename operation
-        rename_namespace: (event) =>
+        rename_table: (event) =>
             event.preventDefault()
-            rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'table'
-            rename_modal.render()
+            if @rename_modal?
+                @rename_modal.remove()
+            @rename_modal = new UIComponents.RenameItemModal
+                model: @model
+            @rename_modal.render()
 
         # Delete operation
-        delete_namespace: (event) ->
+        delete_table: (event) ->
             event.preventDefault()
-            if @remove_namespace_dialog
-                @remove_namespace_dialog.remove()
-            @remove_namespace_dialog = new Modals.RemoveNamespaceModal
+            if @remove_table_dialog?
+                @remove_table_dialog.remove()
+            @remove_table_dialog = new Modals.RemoveNamespaceModal
 
-            @remove_namespace_dialog.render [{
+            @remove_table_dialog.render [{
                 table: @model.get 'name'
                 database: @model.get 'db'
             }]
 
 
-        destroy: =>
+        remove: =>
             clearInterval @interval
 
             @title.remove()
@@ -321,8 +325,11 @@ module 'TableView', ->
             @performance_graph.remove()
             @secondary_indexes_view.remove()
 
-            if @remove_namespace_dialog
-                @remove_namespace_dialog.remove()
+            if @remove_table_dialog?
+                @remove_table_dialog.remove()
+
+            if @rename_modal?
+                @rename_modal.remove()
 
     # TableView.Title
     class @Title extends Backbone.View
@@ -342,7 +349,6 @@ module 'TableView', ->
 
     # Profile view
     class @Profile extends Backbone.View
-        className: 'namespace-profile'
         template: Handlebars.templates['table_profile-template']
 
         initialize: ->

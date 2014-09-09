@@ -9,10 +9,13 @@ module 'ServerView', ->
             'click .operations .rename': 'rename_server'
 
         rename_server: (event) =>
-            #TODO Update when table_rename will be implemented
             event.preventDefault()
-            rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'server'
-            rename_modal.render()
+
+            if @rename_modal?
+                @rename_modal.remove()
+            @rename_modal = new UIComponents.RenameItemModal
+                model: @server
+            @rename_modal.render()
 
         initialize: (id) =>
             @id = id
@@ -36,18 +39,18 @@ module 'ServerView', ->
                                     )
                                 ).filter( (shard) ->
                                     shard.isEmpty().not()
-                                ).map( (role) ->
-                                    role.nth(0)
-                                )
+                                ).concatMap( (roles) -> roles )
                             )
                         ).filter( (table) ->
                             table("shards").isEmpty().not()
                         ).coerceTo("ARRAY")
                     )
                 )
-            )
+            ).merge
+                id: r.row 'uuid'
 
             driver.run query, (error, result) =>
+                console.log JSON.stringify(result, null, 2)
                 # We should call render only once to avoid blowing all the sub views
                 if @loading is true
                     @loading = false
@@ -118,6 +121,9 @@ module 'ServerView', ->
             @title.remove()
             @profile.remove()
             @data.remove()
+            if @rename_modal?
+                @rename_modal.remove()
+
 
     class @Title extends Backbone.View
         className: 'machine-info-view'

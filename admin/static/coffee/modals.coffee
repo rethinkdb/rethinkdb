@@ -82,7 +82,7 @@ module 'Modals', ->
 
 
         on_submit: =>
-            if @$('.verification_name').val() isnt @database_to_delete.get('db')
+            if @$('.verification_name').val() isnt @database_to_delete.get('name')
                 if @.$('.mismatch_container').css('display') is 'none'
                     @.$('.mismatch_container').slideDown('fast')
                 else
@@ -93,7 +93,7 @@ module 'Modals', ->
 
             super
 
-            driver.run r.dbDrop(@database_to_delete.get('db')), (err, result) =>
+            driver.run r.dbDrop(@database_to_delete.get('name')), (err, result) =>
                 if (err)
                     @on_error(err)
                 else
@@ -110,7 +110,7 @@ module 'Modals', ->
                 # If he was on #tables, we are just refreshing
                 window.router.navigate '#tables'
 
-            window.app.current_view.render_message "The database #{@database_to_delete.get('db')} was successfully deleted."
+            window.app.current_view.render_message "The database #{@database_to_delete.get('name')} was successfully deleted."
 
     class @AddNamespaceModal extends UIComponents.AbstractModal
         template: Handlebars.templates['add_namespace-modal-template']

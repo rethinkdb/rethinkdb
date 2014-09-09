@@ -330,6 +330,15 @@ button.btn {
         cursor: pointer;
     }
     &.displayed_alert { display: block; } // a displayed alert is one that should be shown by default (helps with re-renders)
+
+    .server_error{
+        border-top: 1px solid #f99b9b;
+        margin-top: 6px;
+        padding-top: 6px;
+        white-space: pre-wrap;
+        font-size: 12px;
+    }
+
 }
 
 /*
@@ -2833,10 +2842,6 @@ TODO: retire this
                 margin: 0;
                 line-height: 20px;
             }
-            .server_error{
-                white-space: pre-wrap;
-                width: 300px;
-            }
         }
         .shard-graph {
             line { stroke: #dcdcdc; }
@@ -3328,3 +3333,4 @@ TODO: retire this
         }
     }
 }
+

@@ -159,148 +159,81 @@ module 'UIComponents', ->
         error_template: Handlebars.templates['error_input-template']
         class: 'rename-item-modal'
 
-        initialize: (uuid, type, on_success, options) ->
-            log_initial '(initializing) modal dialog: rename item'
-            @item_uuid = uuid
-            @item_type = type
-            @user_on_success = on_success
-            @options = options
-            super
-
-        get_item_object: ->
-            switch @item_type
-                when 'datacenter' then return datacenters.get(@item_uuid)
-                when 'table' then return namespaces.get(@item_uuid)
-                when 'server' then return machines.get(@item_uuid)
-                when 'database' then return databases.get(@item_uuid)
-                else return null
-
-        get_item_url: ->
-            switch @item_type
-                when 'datacenter' then return 'datacenters'
-                when 'table' then return namespaces.get(@item_uuid).get('protocol') + '_namespaces'
-                when 'server' then return 'machines'
-                when 'database' then return 'databases'
-                else return null
+        initialize: (model, options) =>
+            super()
+            if @model instanceof Table
+                @item_type = 'table'
+            else if @model instanceof Database
+                @item_type = 'database'
+            else if @model instanceof Server
+                @item_type = 'server'
 
         render: ->
-            log_render '(rendering) rename item dialog'
-
             super
                 type: @item_type
-                old_name: @get_item_object().get('name')
+                old_name: @model.get('name')
                 modal_title: 'Rename ' + @item_type
                 btn_primary_text: 'Rename'
 
-            $('#focus_new_name').focus()
+            @$('#focus_new_name').focus()
             
 
         on_submit: ->
             super
-            @old_name = @get_item_object().get('name')
+            @old_name = @model.get('name')
             @formdata = form_data_as_object($('form', @$modal))
 
             no_error = true
-            if @item_type is 'namespace'
-                if @formdata.new_name is ''
-                    no_error = false
-                    $('.alert_modal').html @error_template
-                        namespace_is_empty: true
-                else if /^[a-zA-Z0-9_]+$/.test(@formdata.new_name) is false
-                    no_error = false
-                    $('.alert_modal').html @error_template
-                        special_char_detected: true
-                        type: 'table'
-                else
-                    for namespace in namespaces.models
-                        if namespace.get('name') is @formdata.new_name and namespace.get('database') is @model.get('database')
-                            no_error = false
-                            $('.alert_modal').html @error_template
-                                namespace_exists: true
-                            break
+            if @formdata.new_name is ''
+                no_error = false
+                $('.alert_modal').html @error_template
+                    empty_name: true
+            else if /^[a-zA-Z0-9_]+$/.test(@formdata.new_name) is false
+                no_error = false
+                $('.alert_modal').html @error_template
+                    special_char_detected: true
+                    type: @item_type
 
-            if @item_type is 'database'
-                if @formdata.new_name is ''
-                    no_error = false
-                    $('.alert_modal').html @error_template
-                        database_is_empty: true
-                else if /^[a-zA-Z0-9_]+$/.test(@formdata.new_name) is false
-                    no_error = false
-                    $('.alert_modal').html @error_template
-                        special_char_detected: true
-                        type: 'database'
-                else
-                    for database in databases.models
-                        if database.get('name') is @formdata.new_name
-                            no_error = false
-                            $('.alert_modal').html @error_template
-                                database_exists: true
-                            break
-
-            if @item_type is 'datacenter'
-                if @formdata.new_name is ''
-                    no_error = false
-                    $('.alert_modal').html @error_template
-                        datacenter_is_empty: true
-                else if /^[a-zA-Z0-9_]+$/.test(@formdata.new_name) is false
-                    no_error = false
-                    $('.alert_modal').html @error_template
-                        special_char_detected: true
-                        type: 'datacenter'
-                else
-                    for datacenter in datacenters.models
-                        if datacenter.get('name').toLowerCase() is @formdata.new_name.toLowerCase()
-                            no_error = false
-                            $('.alert_modal').html @error_template
-                                datacenter_exists: true
-                            break
-
-            if @item_type is 'machine'
-                if @formdata.new_name is ''
-                    no_error = false
-                    $('.alert_modal').html @error_template
-                        machine_is_empty: true
-                else if /^[a-zA-Z0-9_]+$/.test(@formdata.new_name) is false
-                    no_error = false
-                    $('.alert_modal').html @error_template
-                        special_char_detected: true
-                        type: 'server'
-                else
-                    for machine in machines.models
-                        if machine.get('name').toLowerCase() is @formdata.new_name.toLowerCase()
-                            no_error = false
-                            template_error =
-                                machine_exists: true
-                            $('.alert_modal').html @error_template template_error
-                            break
-
+            # Check if already use
             if no_error is true
-                $.ajax
-                    processData: false
-                    url: "ajax/semilattice/" + @get_item_url() + "/#{@item_uuid}/name"
-                    type: 'POST'
-                    contentType: 'application/json'
-                    data: JSON.stringify(@formdata.new_name)
-                    success: @on_success
-                    error: @on_error
+                if @model instanceof Table
+                    query = r.db(system_db).table('table_config').get(@model.get('id')).update
+                        name: @formdata.new_name
+                else if @model instanceof Database
+                    query = r.db(system_db).table('db_config').get(@model.get('id')).update
+                        name: @formdata.new_name
+                else if @model instanceof Server
+                    query = r.db(system_db).table('server_config').get(@model.get('id')).update
+                        name: @formdata.new_name
+
+                driver.run query, (err, result) =>
+                    if err?
+                        @on_error err
+                    else if result?.first_error?
+                        @on_error new Error result.first_error
+                    else
+                        if result?.replaced is 1
+                            @on_success()
+                        else
+                            @on_error(new Error("The value returned for `replaced` was not 1."))
             else
                 $('.alert_modal_content').slideDown 'fast'
                 @reset_buttons()
 
         on_success: (response) ->
             super
-            # update proper model with the name
-            @get_item_object().set('name', @formdata.new_name)
+            old_name = @model.get 'name'
+            @model.set
+                name: @formdata.new_name
 
             # Unless an alerts should be suppressed, show an alert
-            if @options and not @options.hide_alert
+            if not @options?.hide_alert
                 # notify the user that we succeeded
                 $('#user-alert-space').html @alert_tmpl
                     type: @item_type
-                    old_name: @old_name
-                    new_name: @formdata.new_name
+                    old_name: old_name
+                    new_name: @model.get 'name'
 
             # Call custom success function
-            if @user_on_success?
-                @user_on_success response
-
+            if typeof @options?.on_success is 'function'
+                @options.on_success @model

@@ -87,7 +87,6 @@ module 'TablesView', ->
                     #TODO
                     console.log error
                 else
-                    console.log JSON.stringify(result, null, 2)
                     @loading = false # TODO Move that outside the `if` statement?
                     databases = {}
                     for database, index in result
@@ -102,7 +101,7 @@ module 'TablesView', ->
                     for database in toDestroy
                         database.destroy()
 
-        destroy: =>
+        remove: =>
             clearInterval @interval
 
     class @DatabasesListView extends Backbone.View

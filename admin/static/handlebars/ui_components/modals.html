@@ -50,7 +50,7 @@
     {{! Confirmation dialog alert }}
     <div class="alert displayed_alert" data-alert="alert">
         <a class="close" href="#">&times;</a>
-        <p>You successfully renamed {{type}} from <span class="name">{{old_name}}</span> to <span class="name">{{new_name}}</span>.</p>
+        <p>You successfully renamed {{type}} <span class="name">{{old_name}}</span> to <span class="name">{{new_name}}</span>.</p>
     </div>
 </script>
 
@@ -61,10 +61,7 @@
       <a class="close" href="#">&times;</a>
     {{#if ajax_fail}}
     Sorry, something went wrong with the request. Please try again.
-    {{#if error}}<br/>Error: <pre>{{error.message}}</pre>{{/if}}
-    {{/if}}
-    {{#if port_is_used}}
-        <p>Sorry the port you have chosen is already used.<p>
+    {{#if error}}<br/>Error: <pre class="server_error">{{error.message}}</pre>{{/if}}
     {{/if}}
     {{#if create_db_first}}
         <p>You need to create a database before creating a table.<p>
