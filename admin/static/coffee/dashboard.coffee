@@ -27,12 +27,28 @@ module 'DashboardView', ->
                         .concatMap(identity)
                         .filter({role: "director", state: "ready"})
                         .count()
-                    tables_with_directors_not_ready: table_status.filter (table) ->
-                        table("shards").contains (shard) ->
-                          shard("role").eq("director").and(shard("state").ne("ready"))
+                    tables_with_directors_not_ready: table_status.merge( (table) ->
+                        shards: table("shards").indexesOf( () -> true ).map( (position) ->
+                            table("shards").nth(position).merge
+                                id: r.add(
+                                    table("db"),
+                                    ".",
+                                    table("name"),
+                                    ".",
+                                    position.coerceTo("STRING")
+                                )
+                                position: position
+                                num_shards: table("shards").count()
+                        ).filter( (shard) ->
+                            shard.contains (assignment) ->
+                                assignment("role").eq("director").and(assignment("state").ne("ready"))
+                        ).concatMap identity
+                    ).filter (table) ->
+                        table("shards").isEmpty().not()
                     tables_with_replicas_not_ready: table_status.filter (table) ->
                         table("shards").contains (shard) ->
                           shard("role").eq("replica").and(shard("state").ne("ready"))
+                    num_tables: table_config.count()
             ).merge
                 num_non_available_tables: r.row("tables_with_directors_not_ready").count()
 
@@ -129,12 +145,40 @@ module 'DashboardView', ->
         popup_template: Handlebars.templates['cluster_status-availability-popup-template']
 
         events:
-            'click .show_details': 'show_details'
-            'click .close': 'hide_details'
+            'click .show_details': 'show_popup'
+            'click .close': 'hide_popup'
 
         initialize: =>
+            # We could eventually properly create a collection from @model.get('shards')
+            # But this is probably not worth the effort for now.
+
             @listenTo @model, 'change:num_directors', @render
             @listenTo @model, 'change:num_available_directors', @render
+
+            $(window).on 'mouseup', @hide_popup
+            @$el.on 'click', @stop_propagation
+
+
+            @display_popup = false
+            @margin = {}
+
+        stop_propagation: (event) ->
+            event.stopPropagation()
+
+        show_popup: (event) =>
+            if event?
+                event.preventDefault()
+
+                @margin.top = event.pageY-60-13
+                @margin.left = event.pageX+12
+
+            @$('.popup_container').show()
+            @$('.popup_container').css 'margin', @margin.top+'px 0px 0px '+@margin.left+'px'
+            @display_popup = true
+
+        hide_popup: (event) =>
+            @display_popup = false
+            @$('.popup_container').hide()
 
         render: =>
             @$el.html @template
@@ -142,31 +186,19 @@ module 'DashboardView', ->
                 num_directors: @model.get 'num_directors'
                 num_available_directors: @model.get 'num_available_directors'
                 num_non_available_directors: @model.get('num_directors')-@model.get('num_available_directors')
+                num_non_available_tables: @model.get 'num_non_available_tables'
+                num_tables: @model.get 'num_tables'
+                tables_with_directors_not_ready: @model.get('tables_with_directors_not_ready')
+
+            if @display_popup is true and @model.get('num_available_directors') isnt @model.get('num_directors')
+                # We re-display the pop up only if there are still issues
+                @show_popup()
+
             @
-
-        show_details: (event) =>
-            #TODO
-            ###
-            event.preventDefault()
-            @clean_dom_listeners()
-
-            @.$('.popup_container').show()
-            margin_top = event.pageY-60-13
-            margin_left= event.pageX+12
-            @.$('.popup_container').css 'margin', margin_top+'px 0px 0px '+margin_left+'px'
-
-            @link_clicked = @.$(event.target)
-            @link_clicked.on 'mouseup', @stop_propagation
-            @.$('.popup_container').on 'mouseup', @stop_propagation
-            $(window).on 'mouseup', @hide_details
-            ###
-
-        hide_details: (event) =>
-            @.$('.popup_container').hide()
-            @clean_dom_listeners()
 
         remove: =>
             @stopListeningTo()
+            $(window).off 'mouseup', @remove_popup()
 
     class @ClusterStatusRedundancy extends Backbone.View
         className: 'cluster-status-redundancy'
