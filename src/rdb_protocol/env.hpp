@@ -52,7 +52,7 @@ profile_bool_t profile_bool_optarg(const protob_t<Query> &query);
 scoped_ptr_t<profile::trace_t> maybe_make_profile_trace(profile_bool_t profile);
 
 struct query_cache_t {
-    query_cache_t(size_t cache_size) : regex_cache(cache_size) {}
+    explicit query_cache_t(size_t cache_size) : regex_cache(cache_size) {}
     lru_cache_t<std::string, std::shared_ptr<re2::RE2> > regex_cache;
 };
 
