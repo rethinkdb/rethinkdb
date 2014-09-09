@@ -42,7 +42,7 @@ module 'ServerView', ->
                             )
                         ).filter( (table) ->
                             table("shards").isEmpty().not()
-                        )
+                        ).coerceTo("ARRAY")
                     )
                 )
             )
