@@ -20,7 +20,7 @@ public:
     // Possibly creates, then opens and locks the specified directory
     // Returns true if the directory was created, false otherwise
     directory_lock_t(const base_path_t &path, bool create, bool *created_out);
-    ~directory_lock_t() noexcept(false);
+    ~directory_lock_t();
 
     // Prevents deletion of the directory tree at destruction, if
     //  the directory was created in the constructor
