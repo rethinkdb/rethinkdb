@@ -27,14 +27,14 @@ public:
     change. This must not block. */
     virtual std::string get_primary_key_name() = 0;
 
-    /* Returns the primary keys of all of the rows that exist. */
+    /* Sets `*keys_out` to the primary keys of all of the rows that exist. */
     virtual bool read_all_primary_keys(
         signal_t *interruptor,
         std::vector<ql::datum_t> *keys_out,
         std::string *error_out) = 0;
 
-    /* Returns the current value of the row, or an empty `datum_t` if no such row
-    exists. */
+    /* Sets `*row_out` to the current value of the row, or an empty `datum_t` if no such
+    row exists. */
     virtual bool read_row(
         ql::datum_t primary_key,
         signal_t *interruptor,
