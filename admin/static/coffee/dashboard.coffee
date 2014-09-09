@@ -27,12 +27,15 @@ module 'DashboardView', ->
                         .concatMap(identity)
                         .filter({role: "director", state: "ready"})
                         .count()
-                    num_replicas: table_config('shards').concatMap(identity)("replicas").count()
+                    num_replicas: table_config('shards').concatMap(identity)("replicas").concatMap(identity).count()
                     num_available_replicas: table_status('shards')
                         .concatMap(identity)
                         .concatMap(identity)
-                        .filter({role: "replica", state: "ready"})
-                        .count()
+                        .filter( (assignment) ->
+                            assignment("state").eq("ready").and(
+                                assignment("role").eq("replica").or(assignment("role").eq("director"))
+                            )
+                        ).count()
                     tables_with_directors_not_ready: table_status.merge( (table) ->
                         shards: table("shards").indexesOf( () -> true ).map( (position) ->
                             table("shards").nth(position).merge
@@ -75,9 +78,11 @@ module 'DashboardView', ->
                 num_non_available_tables: r.row("tables_with_directors_not_ready").count()
 
             driver.run query, (error, result) =>
+                ###
                 console.log '----- err, result ------'
                 console.log error
                 console.log result
+                ###
                 if error?
                     #TODO
                     console.log error
@@ -263,14 +268,18 @@ module 'DashboardView', ->
             @$('.popup_container').hide()
 
         render: =>
-            @$el.html @template
+            data =
                 status_is_ok: @model.get('num_available_replicas') is @model.get('num_replicas')
-                num_replicas: @model.get 'num_directors'
-                num_available_replicas: @model.get 'num_available_directors'
-                num_non_available_replicas: @model.get('num_directors')-@model.get('num_available_directors')
+                num_replicas: @model.get 'num_replicas'
+                num_available_replicas: @model.get 'num_available_replicas'
+                num_non_available_replicas: @model.get('num_replicas')-@model.get('num_available_replicas')
                 num_non_available_tables: @model.get 'num_non_available_tables'
                 num_tables: @model.get 'num_tables'
-                tables_with_replicas_not_ready: @model.get('tables_with_directors_not_ready')
+                tables_with_replicas_not_ready: @model.get('tables_with_replicas_not_ready')
+
+            console.log JSON.stringify data, null, 2
+
+            @$el.html @template data
 
             if @display_popup is true and @model.get('num_available_directors') isnt @model.get('num_directors')
                 # We re-display the pop up only if there are still issues
