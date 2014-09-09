@@ -11,8 +11,8 @@ class lru_cache_t {
 public:
     typedef K key_type;
     typedef V value_type;
-    typedef V& reference;
-    typedef const V& const_reference;
+    typedef V &reference;
+    typedef const V &const_reference;
     
     typedef std::pair<K, V> entry_pair_t;
     typedef std::list<entry_pair_t> cache_list_t;
@@ -54,7 +54,7 @@ public:
     size_t max_size() const { return _max; }
     bool empty() const { return cache_list_.empty(); }
     
-    V& operator[](const K& key) {
+    V &operator[](const K &key) {
         auto search = cache_map_.find(key);
         if (search != cache_map_.end()) {
             bump(search);
@@ -63,7 +63,7 @@ public:
             return insert(K(key));
         }
     }
-    V& operator[](K&& key) {
+    V &operator[](K &&key) {
         auto search = cache_map_.find(key);
         if (search != cache_map_.end()) {
             bump(search);
@@ -72,7 +72,7 @@ public:
             return insert(std::move(key));
         }
     }
-    iterator find(const K& key) {
+    iterator find(const K &key) {
         auto search = cache_map_.find(key);
         if (search != cache_map_.end()) {
             bump(search);
@@ -82,7 +82,7 @@ public:
         }
     }
 private:
-    V& insert(const K & key) {
+    V &insert(const K &key) {
         cache_list_.push_front(std::make_pair(key, V()));
         cache_map_[key] = cache_list_.begin();
         if (cache_list_.size() > _max) {
@@ -91,7 +91,7 @@ private:
         }
         return cache_list_.begin()->second;
     }
-    V& insert(K&& key) {
+    V &insert(K &&key) {
         cache_list_.push_front(std::make_pair(std::move(key), V()));
         cache_map_[key] = cache_list_.begin();
         if (cache_list_.size() > _max) {
