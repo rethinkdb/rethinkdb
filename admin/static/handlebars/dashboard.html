@@ -17,20 +17,18 @@
 </script>
 
 <script id="cluster_status-container-template" type="text/x-handlebars-template">
-    <div class="status"></div>
-    <div class="popup_container"></div>
-</script>
-
-<script id="cluster_status-availability_status-template" type="text/x-handlebars-template">
-    <h3>Availability</h3>
-    {{#if status_is_ok}}
-        <p class="message"><span class="good">0</span> issues detected</p>
-        <p class="details"><span class="good">{{num_masters}}/{{num_masters}}</span> masters are online</p>
+    <div class="status">
+        <h3>Availability</h3>
+        {{#if status_is_ok}}
+            <p class="message"><span class="good">0</span> issues detected</p>
+            <p class="details"><span class="good">{{num_directors}}/{{num_directors}}</span> masters are online</p>
+        </div>
+        {{else}}
+            <p class="message"><span class="bad">{{num_namespaces_down}}/{{num_namespaces}} </span> <a href="#" class="show_details">tables</a> are affected</p>
+            <p class="details"><span class="bad">{{num_non_available_directors}}/{{num_directors}}</span> <a href="#" class="show_details">masters</a> not available</p>
+        {{/if}}
     </div>
-    {{else}}
-        <p class="message"><span class="bad">{{num_namespaces_down}}/{{num_namespaces}} </span> <a href="#" class="show_details">tables</a> are affected</p>
-        <p class="details"><span class="bad">{{num_masters_down}}/{{num_masters}}</span> <a href="#" class="show_details">masters</a> not available</p>
-    {{/if}}
+    <div class="popup_container"></div>
 </script>
 
 <script id="cluster_status-availability-popup-template" type="text/x-handlebars-template">
@@ -44,7 +42,7 @@
                 {{#each namespaces_down}}
                 <li class="li_first_level">Table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>:
                 <ul class="ul_second_level">
-                    {{#each namespaces_down}}
+                    {{#each tables_with_directors_not_ready}}
                     <li class="li_second_level">
                         Shard: {{shard}}<br/>
                         Expected master: <a href="#servers/{{machine_id}}">{{machine_name}}</a><br/>

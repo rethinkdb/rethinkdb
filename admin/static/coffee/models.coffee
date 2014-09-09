@@ -68,6 +68,8 @@ class ShardAssignments extends Backbone.Collection
 
 class ShardAssignment extends Backbone.Model
 
+class Dashboard extends Backbone.Model
+
 class Namespace extends Backbone.Model
     initialize: ->
         # Add a computed shards property for convenience and metadata
