@@ -1,5 +1,6 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 # Extend Backbone View
+#TODO Remove
 Backbone.View.prototype.destroy = ->
     return
 
@@ -49,29 +50,27 @@ class BackboneCluster extends Backbone.Router
 
     index_tables: ->
         clear_modals()
-        @current_view.destroy()
+        @current_view.remove()
         @current_view = new TablesView.DatabasesContainer
         @$container.html @current_view.render().el
 
     index_servers: (data) ->
-        @set_stats_call ''
         clear_modals()
-        @current_view.destroy()
+        @current_view.remove()
         @current_view = new ServersView.ServersContainer
         @$container.html @current_view.render().el
 
     dashboard: ->
-        @set_stats_call 'ajax/stat?filter=.*/serializers,proc,sys'
         clear_modals()
-        @current_view.destroy()
-        @current_view = new DashboardView.Container
+        @current_view.remove()
+        @current_view = new DashboardView.DashboardContainer
         @$container.html @current_view.render().el
 
     resolve_issues: ->
         @set_stats_call ''
         log_router '/resolve_issues'
         clear_modals()
-        @current_view.destroy()
+        @current_view.remove()
         @current_view = new ResolveIssuesView.Container
         @$container.html @current_view.render().el
 
@@ -79,7 +78,7 @@ class BackboneCluster extends Backbone.Router
         @set_stats_call ''
         log_router '/logs'
         clear_modals()
-        @current_view.destroy()
+        @current_view.remove()
         @current_view = new LogView.Container
         @$container.html @current_view.render().el
 
@@ -87,7 +86,7 @@ class BackboneCluster extends Backbone.Router
         @set_stats_call ''
         log_router '/dataexplorer'
         clear_modals()
-        @current_view.destroy()
+        @current_view.remove()
         @current_view = new DataExplorerView.Container
             state: DataExplorerView.state
         @$container.html @current_view.render().el
@@ -102,7 +101,7 @@ class BackboneCluster extends Backbone.Router
         clear_modals()
         database = databases.get(id)
 
-        @current_view.destroy()
+        @current_view.remove()
         if database? then @current_view = new DatabaseView.Container model: database
         else @current_view = new DatabaseView.NotFound id
 
@@ -114,7 +113,7 @@ class BackboneCluster extends Backbone.Router
         clear_modals()
         namespace = namespaces.get(id)
 
-        @current_view.destroy()
+        @current_view.remove()
         if namespace?
             @current_view = new NamespaceView.Container model:namespace
         else
@@ -124,7 +123,7 @@ class BackboneCluster extends Backbone.Router
 
     table: (id) ->
         clear_modals()
-        @current_view.destroy()
+        @current_view.remove()
         @current_view = new TableView.TableContainer id
         @$container.html @current_view.render().el
 
@@ -134,7 +133,7 @@ class BackboneCluster extends Backbone.Router
         clear_modals()
         datacenter = datacenters.get(id)
 
-        @current_view.destroy()
+        @current_view.remove()
         if datacenter?
             @current_view = new DatacenterView.Container model: datacenter
         else
@@ -146,7 +145,7 @@ class BackboneCluster extends Backbone.Router
         log_router '/servers/' + id
         clear_modals()
 
-        @current_view.destroy()
+        @current_view.remove()
         @current_view = new ServerView.ServerContainer id
 
         @$container.html @current_view.render().el
