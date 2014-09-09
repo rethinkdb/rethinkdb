@@ -226,7 +226,7 @@ bool table_config_artificial_table_backend_t::write_row(
     }
     cow_ptr_t<namespaces_semilattice_metadata_t>::change_t md_change(&md);
     auto it = md_change.get()->namespaces.find(table_id);
-    if (it == md->namespaces.end()) {
+    if (it == md->namespaces.end() || it->second.is_deleted()) {
         *error_out = "It's illegal to insert into the `rethinkdb.table_config` table. "
             "To create a table, use `r.table_create()`.";
         return false;
