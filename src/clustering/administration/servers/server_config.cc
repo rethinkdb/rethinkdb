@@ -3,6 +3,7 @@
 
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/servers/name_client.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 
 ql::datum_t convert_server_config_and_name_to_datum(
         const name_string_t &name,
@@ -68,29 +69,12 @@ bool convert_server_config_and_name_from_datum(
     return true;
 }
 
-std::string server_config_artificial_table_backend_t::get_primary_key_name() {
-    return "uuid";
-}
-
-bool server_config_artificial_table_backend_t::read_all_primary_keys(
-        UNUSED signal_t *interruptor,
-        std::vector<ql::datum_t> *keys_out,
-        UNUSED std::string *error_out) {
-    keys_out->clear();
-    name_client->get_machine_id_to_name_map()->apply_read(
-        [&](const std::map<machine_id_t, name_string_t> *map) {
-            for (auto it = map->begin(); it != map->end(); ++it) {
-                keys_out->push_back(convert_uuid_to_datum(it->first));
-            }
-        });
-    return true;
-}
-
 bool server_config_artificial_table_backend_t::read_row(
         ql::datum_t primary_key,
         UNUSED signal_t *interruptor,
         ql::datum_t *row_out,
         UNUSED std::string *error_out) {
+    on_thread_t thread_switcher(home_thread());
     machines_semilattice_metadata_t servers_sl = servers_sl_view->get();
     name_string_t server_name;
     machine_id_t server_id;
@@ -109,6 +93,8 @@ bool server_config_artificial_table_backend_t::write_row(
         ql::datum_t new_value,
         signal_t *interruptor,
         std::string *error_out) {
+    cross_thread_signal_t interruptor2(interruptor, home_thread());
+    on_thread_t thread_switcher(home_thread());
     machines_semilattice_metadata_t servers_sl = servers_sl_view->get();
     name_string_t server_name;
     machine_id_t server_id;
@@ -139,46 +125,16 @@ bool server_config_artificial_table_backend_t::write_row(
         "primary key is unchanged.");
     if (new_server_name != server_name) {
         if (!name_client->rename_server(server_id, server_name, new_server_name,
-                                        interruptor, error_out)) {
+                                        &interruptor2, error_out)) {
             return false;
         }
     }
     if (new_tags != server_sl->tags.get_ref()) {
-        if (!name_client->retag_server(server_id, server_name, new_tags, interruptor,
+        if (!name_client->retag_server(server_id, server_name, new_tags, &interruptor2,
                                        error_out)) {
             return false;
         }
     }
-    return true;
-}
-
-bool server_config_artificial_table_backend_t::lookup(
-        ql::datum_t primary_key,
-        machines_semilattice_metadata_t *machines,
-        name_string_t *name_out,
-        machine_id_t *server_id_out,
-        machine_semilattice_metadata_t **machine_out) {
-    std::string dummy_error;
-    if (!convert_uuid_from_datum(primary_key, server_id_out, &dummy_error)) {
-        return false;
-    }
-    auto it = machines->machines.find(*server_id_out);
-    if (it == machines->machines.end()) {
-        return false;
-    }
-    if (it->second.is_deleted()) {
-        /* This could happen due to a race condition */
-        return false;
-    }
-    *machine_out = it->second.get_mutable();
-    boost::optional<name_string_t> res =
-        name_client->get_name_for_machine_id(*server_id_out);
-    if (!res) {
-        /* This is probably impossible, but it could conceivably be possible due to a
-        race condition */
-        return false;
-    }
-    *name_out = *res;
     return true;
 }
 

@@ -19,8 +19,28 @@ public:
             const boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &machines_view,
             const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &machine_id_map);
 
-    std::map<machine_id_t, time_t> get_last_seen_times() {
-        return last_seen;
+    /* Fetches the time the given server [dis]connected, on the assumption that it is
+    currently [dis]connected. If the server was permanently removed, the behavior is
+    undefined. */
+    microtime_t get_connected_time(const machine_id_t &server_id) {
+        auto it = connected_times.find(server_id);
+        if (it != connected_times.end()) {
+            return it->second;
+        } else {
+            /* The server just connected, but we haven't noticed that it's here yet. So
+            the connection time is now. */
+            return current_microtime();
+        }
+    }
+    microtime_t get_disconnected_time(const machine_id_t &server_id) {
+        auto it = disconnected_times.find(server_id);
+        if (it != disconnected_times.end()) {
+            return it->second;
+        } else {
+            /* The server just disconnected, but we haven't noticed that it's gone yet.
+            So the disconnection time is now. */
+            return current_microtime();
+        }
     }
 
 private:
@@ -35,7 +55,11 @@ private:
 
     /* Machines are only present in this map if they are not connected but not
     declared dead. */
-    std::map<machine_id_t, time_t> last_seen;
+    std::map<machine_id_t, microtime_t> disconnected_times;
+
+    /* Machines are only present in this map if they are connected and not declared
+    dead. */
+    std::map<machine_id_t, microtime_t> connected_times;
 
     DISABLE_COPYING(last_seen_tracker_t);
 };

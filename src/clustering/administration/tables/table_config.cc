@@ -197,6 +197,7 @@ bool table_config_artificial_table_backend_t::read_row_impl(
         UNUSED signal_t *interruptor,
         ql::datum_t *row_out,
         UNUSED std::string *error_out) {
+    assert_thread();
     *row_out = convert_table_config_and_name_to_datum(
         metadata.replication_info.get_ref().config,
         table_name, db_name, table_id);

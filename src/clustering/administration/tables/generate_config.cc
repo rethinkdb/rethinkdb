@@ -189,9 +189,11 @@ bool table_generate_config(
     }
 
     /* Fetch reactor information for all of the servers */
+    std::multimap<name_string_t, machine_id_t> name_to_machine_id_map =
+        name_client->get_name_to_machine_id_map()->get();
     std::map<name_string_t, cow_ptr_t<reactor_business_card_t> > directory_metadata;
     if (table_id != nil_uuid()) {
-        std::set<name_string_t> missing;
+        std::set<name_string_t> missing, colliding;
         directory_view->apply_read(
             [&](const change_tracking_map_t<peer_id_t,
                     namespaces_directory_metadata_t> *map) {
@@ -199,37 +201,47 @@ bool table_generate_config(
                           it != servers_with_tags.end();
                         ++it) {
                     for (auto jt = it->second.begin(); jt != it->second.end(); ++jt) {
-                        boost::optional<machine_id_t> machine_id =
-                            name_client->get_machine_id_for_name(*jt);
-                        if (!machine_id) {
+                        if (name_to_machine_id_map.count(*jt) > 1) {
+                            colliding.insert(*jt);
+                            continue;
+                        }
+                        auto kt = name_to_machine_id_map.find(*jt);
+                        if (kt == name_to_machine_id_map.end()) {
                             missing.insert(*jt);
                             continue;
                         }
+                        machine_id_t machine_id = kt->second;
                         boost::optional<peer_id_t> peer_id =
-                            name_client->get_peer_id_for_machine_id(*machine_id);
+                            name_client->get_peer_id_for_machine_id(machine_id);
                         if (!peer_id) {
                             missing.insert(*jt);
                             continue;
                         }
-                        auto kt = map->get_inner().find(*peer_id);
-                        if (kt == map->get_inner().end()) {
+                        auto lt = map->get_inner().find(*peer_id);
+                        if (lt == map->get_inner().end()) {
                             missing.insert(*jt);
                             continue;
                         }
-                        const namespaces_directory_metadata_t &peer_dir = kt->second;
-                        auto lt = peer_dir.reactor_bcards.find(table_id);
-                        if (lt == peer_dir.reactor_bcards.end()) {
+                        const namespaces_directory_metadata_t &peer_dir = lt->second;
+                        auto mt = peer_dir.reactor_bcards.find(table_id);
+                        if (mt == peer_dir.reactor_bcards.end()) {
                             /* don't raise an error in this case */
                             continue;
                         }
                         directory_metadata.insert(std::make_pair(
-                            *jt, lt->second.internal));
+                            *jt, mt->second.internal));
                     }
                 }
             });
         if (!missing.empty()) {
             *error_out = strprintf("Can't configure table because server `%s` is "
                 "missing", missing.begin()->c_str());
+            return false;
+        }
+        if (!colliding.empty()) {
+            *error_out = strprintf("Cannot configure table because multiple servers are "
+                "named `%s`. Fix this name collision and try again.",
+                colliding.begin()->c_str());
             return false;
         }
     }

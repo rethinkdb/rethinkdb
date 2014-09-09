@@ -8,6 +8,7 @@
 
 #include "containers/name_string.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "time.hpp"
 
 /* Note that we generally use `ql::configured_limits_t::unlimited` when converting
 things to datum, rather than using a user-specified limit. This is mostly for consistency
@@ -32,6 +33,12 @@ bool convert_uuid_from_datum(
         ql::datum_t datum,
         uuid_u *value_out,
         std::string *error_out);
+
+ql::datum_t convert_port_to_datum(
+        uint16_t value);
+
+ql::datum_t convert_microtime_to_datum(
+        microtime_t value);
 
 template<class T>
 ql::datum_t convert_vector_to_datum(

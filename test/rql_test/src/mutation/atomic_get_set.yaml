@@ -56,7 +56,7 @@ tests:
     - rb: tbl.replace({'x':1}, :return_changes => true).pluck('changes', 'first_error').do {|d| d.merge({:changes => d['changes'].order_by {|a| a['old_val']['id']}})}
       py: tbl.replace({'x':1}, return_changes=True).pluck('changes', 'first_error').do(lambda d:d.merge({'changes':d['changes'].order_by(lambda a:a['old_val']['id'])}))
       js: tbl.replace({'x':1}, {'return__changes':true}).pluck('changes', 'first__error').do(function(p){return p.merge({'changes':p('changes').orderBy(function(a){return a('old__val')('id')})})})
-      ot: ({'first_error':"Inserted object must have primary key `id`:\n{\n\t\"x\":\t1\n}", 'changes':[{'new_val':{'x':1},'old_val':{'id':0}}, {'new_val':{'x':1},'old_val':{'id':1}}]})
+      ot: ({'first_error':"Inserted object must have primary key `id`:\n{\n\t\"x\":\t1\n}", 'changes':[{'new_val':{'id':0},'old_val':{'id':0}}, {'new_val':{'id':1},'old_val':{'id':1}}]})
 
     - rb: tbl.foreach{|row| [tbl.get(0).update(nil, :return_changes => true), tbl.get(0).update(nil, :return_changes => true)]}.pluck('changes', 'first_error').do {|d| d.merge({:changes => d['changes'].order_by {|a| a['old_val']['id']}})}
       ot: ({'changes':[{'new_val':{'id':0}, 'old_val':{'id':0}},{'new_val':{'id':0}, 'old_val':{'id':0}},{'new_val':{'id':0}, 'old_val':{'id':0}},{'new_val':{'id':0}, 'old_val':{'id':0}}]})

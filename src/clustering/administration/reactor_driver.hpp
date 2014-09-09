@@ -142,7 +142,7 @@ private:
 
     semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> >
         ::subscription_t semilattice_subscription;
-    watchable_t< std::map<name_string_t, machine_id_t> >::subscription_t
+    watchable_t< std::multimap<name_string_t, machine_id_t> >::subscription_t
         name_to_machine_id_subscription;
     watchable_t< std::map<machine_id_t, peer_id_t> >::subscription_t
         machine_id_to_peer_id_subscription;
