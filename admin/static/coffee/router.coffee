@@ -6,6 +6,7 @@ Backbone.View.prototype.destroy = ->
 
 # Router for Backbone.js
 class BackboneCluster extends Backbone.Router
+    #TODO Add human readable routes
     routes:
         '': 'dashboard'
         'databases': 'index_tables'
