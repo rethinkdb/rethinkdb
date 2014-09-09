@@ -22,10 +22,6 @@ public:
             mailbox_t<void()>::address_t
         ) > retag_mailbox_t;
     retag_mailbox_t::address_t retag_addr;
-
-    /* The time when the server started up. Used for resolving name collisions; the
-    server that's been alive longer gets to keep the name. */
-    time_t startup_time;
 };
 
 RDB_DECLARE_SERIALIZABLE(server_name_business_card_t);

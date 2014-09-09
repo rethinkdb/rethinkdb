@@ -14,7 +14,7 @@ server_name_client_t::server_name_client_t(
     semilattice_view(_semilattice_view),
     machine_id_to_peer_id_map(std::map<machine_id_t, peer_id_t>()),
     peer_id_to_machine_id_map(std::map<peer_id_t, machine_id_t>()),
-    name_to_machine_id_map(std::map<name_string_t, machine_id_t>()),
+    name_to_machine_id_map(std::multimap<name_string_t, machine_id_t>()),
     machine_id_to_name_map(std::map<machine_id_t, name_string_t>()),
     directory_subs([this]() {
         this->recompute_machine_id_to_peer_id_map();
@@ -83,7 +83,7 @@ bool server_name_client_t::rename_server(
 
     bool new_name_in_use = false;
     name_to_machine_id_map.apply_read(
-        [&](const std::map<name_string_t, machine_id_t> *map) {
+        [&](const std::multimap<name_string_t, machine_id_t> *map) {
             new_name_in_use = (map->count(new_name) != 0);
         });
     if (new_name_in_use) {
@@ -188,13 +188,22 @@ bool server_name_client_t::permanently_remove_server(const name_string_t &name,
     assert_thread();
 
     machine_id_t machine_id = nil_uuid();
+    bool name_collision = false;
     name_to_machine_id_map.apply_read(
-        [&](const std::map<name_string_t, machine_id_t> *map) {
-            auto it = map->find(name);
-            if (it != map->end()) {
-                machine_id = it->second;
+        [&](const std::multimap<name_string_t, machine_id_t> *map) {
+            if (map->count(name) > 1) {
+                name_collision = true;
+            } else {
+                auto it = map->find(name);
+                if (it != map->end()) {
+                    machine_id = it->second;
+                }
             }
         });
+    if (name_collision) {
+        *error_out = strprintf("There are multiple servers called `%s`.", name.c_str());
+        return false;
+    }
     if (machine_id == nil_uuid()) {
         *error_out = strprintf("Server `%s` does not exist.", name.c_str());
         return false;
@@ -218,9 +227,8 @@ bool server_name_client_t::permanently_remove_server(const name_string_t &name,
 }
 
 void server_name_client_t::recompute_name_to_machine_id_map() {
-    std::map<name_string_t, machine_id_t> new_map_n2m;
+    std::multimap<name_string_t, machine_id_t> new_map_n2m;
     std::map<machine_id_t, name_string_t> new_map_m2n;
-    bool name_collision = false;
     machines_semilattice_metadata_t sl_metadata = semilattice_view->get();
     for (auto sl_it = sl_metadata.machines.begin();
               sl_it != sl_metadata.machines.end();
@@ -229,20 +237,14 @@ void server_name_client_t::recompute_name_to_machine_id_map() {
             continue;
         }
         name_string_t name = sl_it->second.get_ref().name.get_ref();
-        auto res = new_map_n2m.insert(std::make_pair(name, sl_it->first));
-        if (!res.second) {
-            name_collision = true;
-            break;
-        }
+        new_map_n2m.insert(std::make_pair(name, sl_it->first));
         auto res2 = new_map_m2n.insert(std::make_pair(sl_it->first, name));
         if (!res2.second) {
             crash("Two servers have the same machine ID.");
         }
     }
-    if (!name_collision) {
-        name_to_machine_id_map.set_value(new_map_n2m);
-        machine_id_to_name_map.set_value(new_map_m2n);
-    }
+    name_to_machine_id_map.set_value(new_map_n2m);
+    machine_id_to_name_map.set_value(new_map_m2n);
 }
 
 void server_name_client_t::recompute_machine_id_to_peer_id_map() {

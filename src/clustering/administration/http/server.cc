@@ -4,7 +4,6 @@
 #include "clustering/administration/http/cyanide.hpp"
 #include "clustering/administration/http/directory_app.hpp"
 #include "clustering/administration/http/issues_app.hpp"
-#include "clustering/administration/http/last_seen_app.hpp"
 #include "clustering/administration/http/log_app.hpp"
 #include "clustering/administration/http/progress_app.hpp"
 #include "clustering/administration/http/stat_app.hpp"
@@ -228,7 +227,6 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     directory_app.init(new directory_http_app_t(_directory_metadata));
     issues_app.init(new issues_http_app_t(&_admin_tracker->issue_aggregator));
     stat_app.init(new stat_http_app_t(mbox_manager, _directory_metadata, _cluster_semilattice_metadata));
-    last_seen_app.init(new last_seen_http_app_t(&_admin_tracker->last_seen_tracker));
     log_app.init(new log_http_app_t(mbox_manager,
         _directory_metadata->subview(&get_log_mailbox),
         _directory_metadata->subview(&get_machine_id)));
@@ -242,7 +240,6 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     ajax_routes["directory"] = directory_app.get();
     ajax_routes["issues"] = issues_app.get();
     ajax_routes["stat"] = stat_app.get();
-    ajax_routes["last_seen"] = last_seen_app.get();
     ajax_routes["log"] = log_app.get();
     ajax_routes["progress"] = progress_app.get();
     ajax_routes["reql"] = reql_app;
@@ -251,7 +248,6 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     std::map<std::string, http_json_app_t *> default_views;
     default_views["directory"] = directory_app.get();
     default_views["issues"] = issues_app.get();
-    default_views["last_seen"] = last_seen_app.get();
 
     combining_app.init(new combining_http_app_t(default_views));
 

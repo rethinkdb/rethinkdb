@@ -248,7 +248,10 @@ ql::datum_t convert_table_status_shard_to_datum(
         already_handled.insert(replica);
     }
 
-    std::map<name_string_t, machine_id_t> other_names =
+    /* RSI(reql_admin): This silently drops servers if there's a name collision. But
+    we're planning to change the table structure so that it won't break horribly if
+    there's a name collision. */
+    std::multimap<name_string_t, machine_id_t> other_names =
         name_client->get_name_to_machine_id_map()->get();
     bool is_unfinished = false;
     for (auto it = other_names.begin(); it != other_names.end(); ++it) {
@@ -341,6 +344,7 @@ bool table_status_artificial_table_backend_t::read_row_impl(
         UNUSED signal_t *interruptor,
         ql::datum_t *row_out,
         UNUSED std::string *error_out) {
+    assert_thread();
     *row_out = convert_table_status_to_datum(
         table_name,
         db_name,

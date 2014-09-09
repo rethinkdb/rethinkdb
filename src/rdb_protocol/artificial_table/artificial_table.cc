@@ -9,6 +9,28 @@
 /* Determines how many coroutines we spawn for a batched replace or insert. */
 static const int max_parallel_ops = 10;
 
+/* This is a wrapper around `backend->read_row()` that also performs sanity checking, to
+help catch bugs in the backend. */
+bool checked_read_row_from_backend(
+        artificial_table_backend_t *backend,
+        const ql::datum_t &pval,
+        signal_t *interruptor,
+        ql::datum_t *row_out,
+        std::string *error_out) {
+    if (!backend->read_row(pval, interruptor, row_out, error_out)) {
+        return false;
+    }
+#ifndef NDEBUG
+    if (row_out->has()) {
+        ql::datum_t pval2 = row_out->get_field(
+            datum_string_t(backend->get_primary_key_name()), ql::NOTHROW);
+        rassert(pval2.has());
+        rassert(pval2 == pval);
+    }
+#endif
+    return true;
+}
+
 artificial_table_t::artificial_table_t(artificial_table_backend_t *_backend) :
     backend(_backend), primary_key(backend->get_primary_key_name()) { }
 
@@ -20,7 +42,7 @@ ql::datum_t artificial_table_t::read_row(ql::env_t *env,
         ql::datum_t pval, UNUSED bool use_outdated) {
     ql::datum_t row;
     std::string error;
-    if (!checked_read_row(pval, env->interruptor, &row, &error)) {
+    if (!checked_read_row_from_backend(backend, pval, env->interruptor, &row, &error)) {
         throw ql::datum_exc_t(ql::base_exc_t::GENERIC, error);
     }
     if (!row.has()) {
@@ -28,6 +50,67 @@ ql::datum_t artificial_table_t::read_row(ql::env_t *env,
     }
     return row;
 }
+
+class artificial_table_datum_stream_t :
+    public ql::eager_datum_stream_t
+{
+public:
+    artificial_table_datum_stream_t(
+            const ql::protob_t<const Backtrace> &bt_source,
+            artificial_table_backend_t *_backend,
+            std::vector<ql::datum_t> &&_primary_keys) :
+        ql::eager_datum_stream_t(bt_source),
+        backend(_backend), primary_keys(std::move(_primary_keys)), index(0) { }
+private:
+    ql::datum_t next(ql::env_t *env, const ql::batchspec_t &bs) {
+        if (ops_to_do()) {
+            return datum_stream_t::next(env, bs);
+        }
+        return next_impl(env);
+    }
+
+    ql::datum_t next_impl(ql::env_t *env) {
+        ql::datum_t row;
+        while (index != primary_keys.size() && !row.has()) {
+            std::string error;
+            if (!checked_read_row_from_backend(backend, primary_keys[index],
+                    env->interruptor, &row, &error)) {
+                rfail_target(this, ql::base_exc_t::GENERIC, "%s", error.c_str());
+            }
+            /* `row` might still be uninitialized, if the row was deleted between when
+            the list of primary keys was generated and now. If this happens we will go
+            through the loop repeatedly looking for the next element that hasn't been
+            removed. */
+            ++index;
+        }
+        return row;
+    }
+
+    std::vector<ql::datum_t> next_raw_batch(ql::env_t *env, const ql::batchspec_t &bs) {
+        std::vector<ql::datum_t> v;
+        ql::batcher_t batcher = bs.to_batcher();
+        ql::datum_t d;
+        while (d = next_impl(env), d.has()) {
+            batcher.note_el(d);
+            v.push_back(std::move(d));
+            if (batcher.should_send_batch()) {
+                break;
+            }
+        }
+        return v;
+    }
+
+    bool is_exhausted() const {
+        return index == primary_keys.size();
+    }
+
+    bool is_cfeed() const { return false; }
+    bool is_array() { return false; }
+
+    artificial_table_backend_t *backend;
+    std::vector<ql::datum_t> primary_keys;
+    size_t index;
+};
 
 counted_t<ql::datum_stream_t> artificial_table_t::read_all(
         ql::env_t *env,
@@ -87,25 +170,8 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
             unreachable();
     }
 
-    /* Fetch the actual rows from the backend */
-    ql::datum_array_builder_t array_builder((ql::configured_limits_t::unlimited));
-    for (auto key : keys) {
-        ql::datum_t row;
-        if (!checked_read_row(key, env->interruptor, &row, &error)) {
-            throw ql::datum_exc_t(ql::base_exc_t::GENERIC, error);
-        }
-        if (!row.has()) {
-            /* This can happen due to a race condition, if the row disappears between our
-            call to `read_all_primary_keys()` and our call to `read_row()`. */
-            continue;
-        }
-        array_builder.add(row);
-    }
-
-    /* Build a `datum_stream_t` with the results */
-    return make_counted<ql::array_datum_stream_t>(
-        std::move(array_builder).to_datum(),
-        bt);
+    return make_counted<artificial_table_datum_stream_t>(
+        bt, backend, std::move(keys));
 }
 
 counted_t<ql::datum_stream_t> artificial_table_t::read_row_changes(
@@ -264,26 +330,7 @@ std::vector<std::string> artificial_table_t::sindex_list(UNUSED ql::env_t *env) 
 std::map<std::string, ql::datum_t> artificial_table_t::sindex_status(
         UNUSED ql::env_t *env, UNUSED const std::set<std::string> &sindexes) {
     return std::map<std::string, ql::datum_t>();
-}
-
-bool artificial_table_t::checked_read_row(
-        ql::datum_t pval,
-        signal_t *interruptor,
-        ql::datum_t *row_out,
-        std::string *error_out) {
-    if (!backend->read_row(pval, interruptor, row_out, error_out)) {
-        return false;
-    }
-#ifndef NDEBUG
-    if (row_out->has()) {
-        ql::datum_t pval2 = (*row_out).get_field(
-            datum_string_t(get_pkey()), ql::NOTHROW);
-        rassert(pval2.has());
-        rassert(pval2 == pval);
-    }
-#endif
-    return true;
-}
+};
 
 void artificial_table_t::do_single_update(
         ql::env_t *env,
@@ -296,7 +343,7 @@ void artificial_table_t::do_single_update(
         std::set<std::string> *conditions_inout) {
     std::string error;
     ql::datum_t old_row;
-    if (!checked_read_row(pval, interruptor, &old_row, &error)) {
+    if (!checked_read_row_from_backend(backend, pval, interruptor, &old_row, &error)) {
         ql::datum_object_builder_t builder;
         builder.add_error(error.c_str());
         *stats_inout = (*stats_inout).merge(

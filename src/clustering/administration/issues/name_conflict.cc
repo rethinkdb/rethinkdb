@@ -139,5 +139,9 @@ std::list<clone_ptr_t<global_issue_t> > name_conflict_issue_tracker_t::get_issue
     databases.file_away(metadata.databases.databases);
     databases.report("database", &issues);
 
+    name_map_t servers;
+    servers.file_away(metadata.machines.machines);
+    servers.report("server", &issues);
+
     return issues;
 }
