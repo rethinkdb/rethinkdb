@@ -85,7 +85,7 @@ module 'TableView', ->
                             error: error
                         @$('.settings_alert').fadeIn 'fast'
                 else
-                    @editable = false
+                    @toggle_edit()
 
                     # Triggers the start on the progress bar
                     @progress_bar.render(
@@ -98,6 +98,7 @@ module 'TableView', ->
                         num_replicas_per_shard: result.shards[0].directors.length # = new_num_replicas
                         num_replicas: @model.get("num_shards")*result.shards[0].directors.length
                         num_available_replicas: 0
+                        num_available_shards: 0
 
             return 0
 
