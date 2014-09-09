@@ -37,6 +37,10 @@ module 'TableView', ->
             progress_bar_info =
                 got_response: true
 
+            if @model.get('num_available_shards') < @model.get('num_shards')
+                if @progress_bar.get_stage() is 'none'
+                    @progress_bar.skip_to_processing() # if the stage is 'none', we skipt to processing
+
             @progress_bar.render(
                 @model.get('num_available_shards'),
                 @model.get('num_shards'),
@@ -196,19 +200,19 @@ module 'TableView', ->
                             server_error: true
                             error: error
                 else
-                    @editable = false
+                    @toggle_edit()
 
                     # Triggers the start on the progress bar
                     @container.progress_bar.render(
-                        @model.get('num_available_shards'),
-                        @model.get('num_shards'),
-                        {new_value: @model.get('num_shards')}
+                        0,
+                        result.shards[0].directors.length,
+                        {new_value: result.shards[0].directors.length}
                     )
 
                     @model.set
-                        num_replicas_per_shard: result.shards[0].directors.length # = new_num_shards
-                        num_replicas: @model.get("num_shards")*result.shards[0].directors.length
+                        num_available_shards: 0
                         num_available_replicas: 0
-
+                        num_replicas_per_shard: result.shards[0].directors.length
+                        num_replicas: @model.get("num_replicas_per_shard")*result.shards[0].directors.length
             return 0
 

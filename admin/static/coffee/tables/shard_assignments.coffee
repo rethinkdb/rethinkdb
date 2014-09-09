@@ -33,8 +33,6 @@ module 'TableView', ->
                     @$('.assignment_container').eq(position-1).after view.render().$el
 
             @listenTo @collection, 'remove', (assignment) =>
-                console.log 'remove'
-                console.log assignment
                 for view in @assignments_view
                     if view.model is assignment
                         assignment.destroy()
