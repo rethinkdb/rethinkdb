@@ -108,7 +108,7 @@ module 'Modals', ->
             else
                 # If the user was on a database view, we have to redirect him
                 # If he was on #tables, we are just refreshing
-                window.router.navigate '#tables'
+                window.router.navigate '#tables', {trigger: true}
 
             window.app.current_view.render_message "The database #{@database_to_delete.get('name')} was successfully deleted."
 
