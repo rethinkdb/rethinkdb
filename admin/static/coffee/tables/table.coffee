@@ -300,27 +300,29 @@ module 'TableView', ->
         # Delete operation
         delete_namespace: (event) ->
             event.preventDefault()
-            remove_namespace_dialog = new TableView.RemoveNamespaceModal
-            namespace_to_delete = @model
+            if @remove_namespace_dialog
+                @remove_namespace_dialog.remove()
+            @remove_namespace_dialog = new Modals.RemoveNamespaceModal
 
-            remove_namespace_dialog.on_success = (response) =>
-                window.router.navigate '#tables'
-                window.app.index_namespaces
-                    alert_message: "The table #{@model.get('name')} was successfully deleted."
-                namespaces.remove @model.get 'id'
+            @remove_namespace_dialog.render [{
+                table: @model.get 'name'
+                database: @model.get 'db'
+            }]
 
-            remove_namespace_dialog.render [@model]
 
         destroy: =>
             clearInterval @interval
 
-            @title.destroy()
-            @profile.destroy()
-            @replicas.destroy()
-            @shards.destroy()
-            @server_assignments.destroy()
-            @performance_graph.destroy()
-            @secondary_indexes_view.destroy()
+            @title.remove()
+            @profile.remove()
+            @replicas.remove()
+            @shards.remove()
+            @server_assignments.remove()
+            @performance_graph.remove()
+            @secondary_indexes_view.remove()
+
+            if @remove_namespace_dialog
+                @remove_namespace_dialog.remove()
 
     # TableView.Title
     class @Title extends Backbone.View
