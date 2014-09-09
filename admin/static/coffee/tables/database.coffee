@@ -46,9 +46,6 @@ module 'DatabaseView', ->
                 id: r.row 'uuid'
 
             driver.run query, (error, result) =>
-                console.log '---- err, result -----'
-                console.log error
-                console.log JSON.stringify(result, null, 2)
                 if error?
                     # TODO: We may want to render only if we failed to open a connection
                     @error = error
