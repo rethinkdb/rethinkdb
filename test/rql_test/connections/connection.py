@@ -75,6 +75,25 @@ class TestCaseCompatible(unittest.TestCase):
             self.assertTrue(re.search(regexp, str(e)), '%s did not raise the expected message "%s", but rather: %s' % (repr(callable_func), str(regexp), str(e)))
 
 class TestNoConnection(TestCaseCompatible):
+    
+    @staticmethod
+    def findOpenPort():
+        deadline = time.time() + 10
+        while time.time() < deadline:
+            useSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            useSocket.settimeout(.5)
+            try:
+                import random # importing here to avoid issue #2343
+                port = random.randint(49152, 65535)
+                useSocket.connect(('localhost', port))
+                useSocket.close()
+            except socket.timeout:
+                pass
+            except socket.error:
+                return port
+        raise Exception('Timed out looking for an open port')
+        
+    
     # No servers started yet so this should fail
     def test_connect(self):
         if not use_default_port:
@@ -85,9 +104,8 @@ class TestNoConnection(TestCaseCompatible):
             r.connect)
 
     def test_connect_port(self):
-        self.assertRaisesRegexp(
-            RqlDriverError, "Could not connect to localhost:11221.",
-            r.connect, port=11221)
+        port = self.findOpenPort()
+        self.assertRaisesRegexp(RqlDriverError, "Could not connect to localhost:%d." % port, r.connect, port=port)
 
     def test_connect_host(self):
         if not use_default_port:
@@ -96,11 +114,21 @@ class TestNoConnection(TestCaseCompatible):
         self.assertRaisesRegexp(
             RqlDriverError, "Could not connect to 0.0.0.0:28015.",
             r.connect, host="0.0.0.0")
-
+    
+    def test_connnect_timeout(self):
+        '''Test that we get a ReQL error if we connect to a non-responsive port'''
+        useSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        port = self.findOpenPort()
+        useSocket.bind(('localhost', port))
+        useSocket.listen(0)
+        try:
+            self.assertRaisesRegexp(RqlDriverError, "Timed out during handshake with localhost:%d." % port, r.connect, port=port)
+        finally:
+            useSocket.close()
+    
     def test_connect_host(self):
-        self.assertRaisesRegexp(
-            RqlDriverError, "Could not connect to 0.0.0.0:11221.",
-            r.connect, host="0.0.0.0", port=11221)
+        port = self.findOpenPort()
+        self.assertRaisesRegexp(RqlDriverError, "Could not connect to 0.0.0.0:%d." % port, r.connect, host="0.0.0.0", port=port)
 
     def test_empty_run(self):
         # Test the error message when we pass nothing to run and didn't call `repl`
