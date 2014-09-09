@@ -69,13 +69,13 @@ module 'TablesView', ->
 
 
         fetch_data: =>
-            query = r.dbList().filter( (db) ->
-                db.ne('rethinkdb')
+            query = r.db(system_db).table('db_config').filter( (db) ->
+                db("name").ne('rethinkdb')
             ).orderBy(r.row).map (db) ->
-                db: db
-                id: db # TODO: Use db_config (when available) and remove this merge
+                db: db("name")
+                id: db("uuid")
                 tables: r.db(system_db).table('table_status').orderBy((table) -> table("name"))
-                    .filter({db: db}).merge( (table) ->
+                    .filter({db: db("name")}).merge( (table) ->
                         shards: table("shards").count()
                         replicas: table("shards").nth(0).count()
                     ).merge( (table) ->
