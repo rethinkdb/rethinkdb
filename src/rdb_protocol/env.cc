@@ -13,6 +13,10 @@
 
 #include "debug.hpp"
 
+// This is a totally arbitrary constant limiting the size of the regex cache.  1000
+// was chosen out of a hat; if you have a good argument for it being something else
+// (apart from cache line concerns, which are irrelevant due to the implementation)
+// you're probably right.
 const size_t LRU_CACHE_SIZE = 1000;
 
 namespace ql {
