@@ -268,7 +268,7 @@ module 'DashboardView', ->
             @$('.popup_container').hide()
 
         render: =>
-            data =
+            @$el.html @template
                 status_is_ok: @model.get('num_available_replicas') is @model.get('num_replicas')
                 num_replicas: @model.get 'num_replicas'
                 num_available_replicas: @model.get 'num_available_replicas'
@@ -276,10 +276,6 @@ module 'DashboardView', ->
                 num_non_available_tables: @model.get 'num_non_available_tables'
                 num_tables: @model.get 'num_tables'
                 tables_with_replicas_not_ready: @model.get('tables_with_replicas_not_ready')
-
-            console.log JSON.stringify data, null, 2
-
-            @$el.html @template data
 
             if @display_popup is true and @model.get('num_available_directors') isnt @model.get('num_directors')
                 # We re-display the pop up only if there are still issues

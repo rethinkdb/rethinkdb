@@ -17,14 +17,18 @@
 </script>
 
 <script id="dashboard_availability-template" type="text/x-handlebars-template">
-    <h3>Availability</h3>
     {{#if status_is_ok}}
-        <p class="message"><span class="good">0</span> issues detected</p>
-        <p class="details"><span class="good">{{num_directors}}/{{num_directors}}</span> directors are online</p>
-    </div>
+        <div class="status no-problems-detected">
+            <h3>Availability</h3>
+            <p class="message"><span class="good">0</span> issues detected</p>
+            <p class="details"><span class="good">{{num_directors}}/{{num_directors}}</span> directors are online</p>
+        </div>
     {{else}}
-        <p class="message"><span class="bad">{{num_non_available_tables}}/{{num_tables}} </span> <a href="#" class="show_details">tables</a> are affected</p>
-        <p class="details"><span class="bad">{{num_non_available_directors}}/{{num_directors}}</span> <a href="#" class="show_details">directors</a> not available</p>
+        <div class="status problems-detected">
+            <h3>Availability</h3>
+            <p class="message"><span class="bad">{{num_non_available_tables}}/{{num_tables}} </span> <a href="#" class="show_details">tables</a> are affected</p>
+            <p class="details"><span class="bad">{{num_non_available_directors}}/{{num_directors}}</span> <a href="#" class="show_details">directors</a> not available</p>
+        </div>
     {{/if}}
     <div class="popup_container">
         <a class="close" href="#">&times;</a>
@@ -58,14 +62,18 @@
 
 
 <script id="dashboard_redundancy-template" type="text/x-handlebars-template">
-    <h3>Redundancy</h3>
     {{#if status_is_ok}}
-        <p class="message"><span class="good">0</span> issues detected</p>
-        <p class="details"><span class="good">{{num_replicas}}/{{num_replicas}}</span> replicas are online</p>
-    </div>
+        <div class="status no-problems-detected">
+            <h3>Redundancy</h3>
+            <p class="message"><span class="good">0</span> issues detected</p>
+            <p class="details"><span class="good">{{num_replicas}}/{{num_replicas}}</span> replicas are online</p>
+        </div>
     {{else}}
-        <p class="message"><span class="bad">{{num_non_available_replicas}}/{{num_tables}} </span> <a href="#" class="show_details">tables</a> are affected</p>
-        <p class="details"><span class="bad">{{num_non_available_replicas}}/{{num_replicas}}</span> <a href="#" class="show_details">replicas</a> are not ready</p>
+        <div class="status problems-detected">
+            <h3>Redundancy</h3>
+            <p class="message"><span class="bad">{{num_non_available_replicas}}/{{num_tables}} </span> <a href="#" class="show_details">tables</a> are affected</p>
+            <p class="details"><span class="bad">{{num_non_available_replicas}}/{{num_replicas}}</span> <a href="#" class="show_details">replicas</a> are not ready</p>
+        </div>
     {{/if}}
     <div class="popup_container">
         <a class="close" href="#">&times;</a>
