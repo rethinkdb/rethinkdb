@@ -6,6 +6,7 @@
 Please modify 'scripts/generate_rpc_templates.py' instead of modifying this file.*/
 
 #include <functional>
+#include <tuple>
 
 #include "containers/archive/versioned.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -30,48 +31,9 @@ public:
 
 private:
     friend void send(mailbox_manager_t *, mailbox_addr_t<void()>);
-    template <class a0_t>
+    template <class ...as_t>
     friend void send(mailbox_manager_t *,
-                     typename mailbox_t< void(a0_t) >::address_t, const a0_t&);
-    template <class a0_t, class a1_t>
-    friend void send(mailbox_manager_t *,
-                     typename mailbox_t< void(a0_t, a1_t) >::address_t, const a0_t&, const a1_t&);
-    template <class a0_t, class a1_t, class a2_t>
-    friend void send(mailbox_manager_t *,
-                     typename mailbox_t< void(a0_t, a1_t, a2_t) >::address_t, const a0_t&, const a1_t&, const a2_t&);
-    template <class a0_t, class a1_t, class a2_t, class a3_t>
-    friend void send(mailbox_manager_t *,
-                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&);
-    template <class a0_t, class a1_t, class a2_t, class a3_t, class a4_t>
-    friend void send(mailbox_manager_t *,
-                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&);
-    template <class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t>
-    friend void send(mailbox_manager_t *,
-                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&);
-    template <class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t>
-    friend void send(mailbox_manager_t *,
-                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&);
-    template <class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t>
-    friend void send(mailbox_manager_t *,
-                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&);
-    template <class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t>
-    friend void send(mailbox_manager_t *,
-                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&);
-    template <class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t>
-    friend void send(mailbox_manager_t *,
-                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&);
-    template <class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t>
-    friend void send(mailbox_manager_t *,
-                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&);
-    template <class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t>
-    friend void send(mailbox_manager_t *,
-                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&);
-    template <class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t, class a12_t>
-    friend void send(mailbox_manager_t *,
-                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&);
-    template <class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t, class a12_t, class a13_t>
-    friend void send(mailbox_manager_t *,
-                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t, a13_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&, const a13_t&);
+                     typename mailbox_t< void(as_t...) >::address_t, const as_t&...);
 
     raw_mailbox_t::address_t addr;
 };
@@ -84,11 +46,13 @@ class mailbox_t< void() > {
         void write(DEBUG_VAR cluster_version_t cluster_version, write_message_t *) {
             rassert(cluster_version == cluster_version_t::CLUSTER);
         }
+
 #ifdef ENABLE_MESSAGE_PROFILER
         const char *message_profiler_tag() const {
             return "mailbox<>";
         }
 #endif
+
     };
 
     class read_impl_t : public mailbox_read_callback_t {
@@ -136,922 +100,154 @@ void send(mailbox_manager_t *src,
 }
 
 
-template<class arg0_t>
-class mailbox_t< void(arg0_t) > {
-    class write_impl_t : public mailbox_write_callback_t {
-    private:
-        const arg0_t &arg0;
-    public:
-        explicit write_impl_t(const arg0_t& _arg0) :
-            arg0(_arg0)
-        { }
-        void write(DEBUG_VAR cluster_version_t cluster_version, write_message_t *wm) {
-            rassert(cluster_version == cluster_version_t::CLUSTER);
-            serialize<cluster_version_t::CLUSTER>(wm, arg0);
-        }
-#ifdef ENABLE_MESSAGE_PROFILER
-        const char *message_profiler_tag() const {
-            static const std::string tag = 
-                strprintf("mailbox<%s>", typeid(arg0_t).name());
-            return tag.c_str();
-        }
-#endif
-    };
+namespace mailbox_internal {
 
-    class read_impl_t : public mailbox_read_callback_t {
-    public:
-        explicit read_impl_t(mailbox_t< void(arg0_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, signal_t *interruptor) {
-            arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(interruptor, std::move(arg0));
-        }
-    private:
-        mailbox_t< void(arg0_t) > *parent;
-    };
-
-    read_impl_t reader;
-
-public:
-    typedef mailbox_addr_t< void(arg0_t) > address_t;
-
-    mailbox_t(mailbox_manager_t *manager,
-              const std::function< void(signal_t *, arg0_t)> &f) :
-        reader(this), fun(f), mailbox(manager, &reader)
-        { }
-
-    void begin_shutdown() {
-        mailbox.begin_shutdown();
-    }
-
-    address_t get_address() const {
-        address_t a;
-        a.addr = mailbox.get_address();
-        return a;
-    }
-
-private:
-    template<class a0_t>
-    friend void send(mailbox_manager_t*,
-                     typename mailbox_t< void(a0_t) >::address_t, const a0_t&);
-
-    std::function< void(signal_t *, arg0_t) > fun;
-    raw_mailbox_t mailbox;
-};
-
-template<class arg0_t>
-void send(mailbox_manager_t *src,
-          typename mailbox_t< void(arg0_t) >::address_t dest, const arg0_t &arg0) {
-    typename mailbox_t< void(arg0_t) >::write_impl_t writer(arg0);
-    send_write(src, dest.addr, &writer);
+template <class T>
+void _serialize(write_message_t *wm, const T& arg) {
+    serialize<cluster_version_t::CLUSTER>(wm, arg);
 }
 
-
-template<class arg0_t, class arg1_t>
-class mailbox_t< void(arg0_t, arg1_t) > {
-    class write_impl_t : public mailbox_write_callback_t {
-    private:
-        const arg0_t &arg0;
-        const arg1_t &arg1;
-    public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1) :
-            arg0(_arg0), arg1(_arg1)
-        { }
-        void write(DEBUG_VAR cluster_version_t cluster_version, write_message_t *wm) {
-            rassert(cluster_version == cluster_version_t::CLUSTER);
-            serialize<cluster_version_t::CLUSTER>(wm, arg0);
-            serialize<cluster_version_t::CLUSTER>(wm, arg1);
-        }
-#ifdef ENABLE_MESSAGE_PROFILER
-        const char *message_profiler_tag() const {
-            static const std::string tag = 
-                strprintf("mailbox<%s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name());
-            return tag.c_str();
-        }
-#endif
-    };
-
-    class read_impl_t : public mailbox_read_callback_t {
-    public:
-        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, signal_t *interruptor) {
-            arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(interruptor, std::move(arg0), std::move(arg1));
-        }
-    private:
-        mailbox_t< void(arg0_t, arg1_t) > *parent;
-    };
-
-    read_impl_t reader;
-
-public:
-    typedef mailbox_addr_t< void(arg0_t, arg1_t) > address_t;
-
-    mailbox_t(mailbox_manager_t *manager,
-              const std::function< void(signal_t *, arg0_t, arg1_t)> &f) :
-        reader(this), fun(f), mailbox(manager, &reader)
-        { }
-
-    void begin_shutdown() {
-        mailbox.begin_shutdown();
-    }
-
-    address_t get_address() const {
-        address_t a;
-        a.addr = mailbox.get_address();
-        return a;
-    }
-
-private:
-    template<class a0_t, class a1_t>
-    friend void send(mailbox_manager_t*,
-                     typename mailbox_t< void(a0_t, a1_t) >::address_t, const a0_t&, const a1_t&);
-
-    std::function< void(signal_t *, arg0_t, arg1_t) > fun;
-    raw_mailbox_t mailbox;
-};
-
-template<class arg0_t, class arg1_t>
-void send(mailbox_manager_t *src,
-          typename mailbox_t< void(arg0_t, arg1_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1) {
-    typename mailbox_t< void(arg0_t, arg1_t) >::write_impl_t writer(arg0, arg1);
-    send_write(src, dest.addr, &writer);
+template <class T, class ...Ts>
+void _serialize(write_message_t *wm, const T& arg, const Ts& ...args) {
+    serialize<cluster_version_t::CLUSTER>(wm, arg);
+    _serialize(wm, args...);
 }
 
-
-template<class arg0_t, class arg1_t, class arg2_t>
-class mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
-    class write_impl_t : public mailbox_write_callback_t {
-    private:
-        const arg0_t &arg0;
-        const arg1_t &arg1;
-        const arg2_t &arg2;
-    public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2) :
-            arg0(_arg0), arg1(_arg1), arg2(_arg2)
-        { }
-        void write(DEBUG_VAR cluster_version_t cluster_version, write_message_t *wm) {
-            rassert(cluster_version == cluster_version_t::CLUSTER);
-            serialize<cluster_version_t::CLUSTER>(wm, arg0);
-            serialize<cluster_version_t::CLUSTER>(wm, arg1);
-            serialize<cluster_version_t::CLUSTER>(wm, arg2);
-        }
-#ifdef ENABLE_MESSAGE_PROFILER
-        const char *message_profiler_tag() const {
-            static const std::string tag = 
-                strprintf("mailbox<%s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name());
-            return tag.c_str();
-        }
-#endif
-    };
-
-    class read_impl_t : public mailbox_read_callback_t {
-    public:
-        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, signal_t *interruptor) {
-            arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg2_t arg2;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg2);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(interruptor, std::move(arg0), std::move(arg1), std::move(arg2));
-        }
-    private:
-        mailbox_t< void(arg0_t, arg1_t, arg2_t) > *parent;
-    };
-
-    read_impl_t reader;
-
-public:
-    typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t) > address_t;
-
-    mailbox_t(mailbox_manager_t *manager,
-              const std::function< void(signal_t *, arg0_t, arg1_t, arg2_t)> &f) :
-        reader(this), fun(f), mailbox(manager, &reader)
-        { }
-
-    void begin_shutdown() {
-        mailbox.begin_shutdown();
-    }
-
-    address_t get_address() const {
-        address_t a;
-        a.addr = mailbox.get_address();
-        return a;
-    }
-
-private:
-    template<class a0_t, class a1_t, class a2_t>
-    friend void send(mailbox_manager_t*,
-                     typename mailbox_t< void(a0_t, a1_t, a2_t) >::address_t, const a0_t&, const a1_t&, const a2_t&);
-
-    std::function< void(signal_t *, arg0_t, arg1_t, arg2_t) > fun;
-    raw_mailbox_t mailbox;
-};
-
-template<class arg0_t, class arg1_t, class arg2_t>
-void send(mailbox_manager_t *src,
-          typename mailbox_t< void(arg0_t, arg1_t, arg2_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) {
-    typename mailbox_t< void(arg0_t, arg1_t, arg2_t) >::write_impl_t writer(arg0, arg1, arg2);
-    send_write(src, dest.addr, &writer);
+template <class T>
+archive_result_t _deserialize(read_stream_t *stream, T &arg) {
+    return deserialize<cluster_version_t::CLUSTER>(stream, &arg);
 }
 
-
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t>
-class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
-    class write_impl_t : public mailbox_write_callback_t {
-    private:
-        const arg0_t &arg0;
-        const arg1_t &arg1;
-        const arg2_t &arg2;
-        const arg3_t &arg3;
-    public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3) :
-            arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3)
-        { }
-        void write(DEBUG_VAR cluster_version_t cluster_version, write_message_t *wm) {
-            rassert(cluster_version == cluster_version_t::CLUSTER);
-            serialize<cluster_version_t::CLUSTER>(wm, arg0);
-            serialize<cluster_version_t::CLUSTER>(wm, arg1);
-            serialize<cluster_version_t::CLUSTER>(wm, arg2);
-            serialize<cluster_version_t::CLUSTER>(wm, arg3);
-        }
-#ifdef ENABLE_MESSAGE_PROFILER
-        const char *message_profiler_tag() const {
-            static const std::string tag = 
-                strprintf("mailbox<%s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name());
-            return tag.c_str();
-        }
-#endif
-    };
-
-    class read_impl_t : public mailbox_read_callback_t {
-    public:
-        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, signal_t *interruptor) {
-            arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg2_t arg2;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg2);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg3_t arg3;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg3);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(interruptor, std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3));
-        }
-    private:
-        mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > *parent;
-    };
-
-    read_impl_t reader;
-
-public:
-    typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > address_t;
-
-    mailbox_t(mailbox_manager_t *manager,
-              const std::function< void(signal_t *, arg0_t, arg1_t, arg2_t, arg3_t)> &f) :
-        reader(this), fun(f), mailbox(manager, &reader)
-        { }
-
-    void begin_shutdown() {
-        mailbox.begin_shutdown();
-    }
-
-    address_t get_address() const {
-        address_t a;
-        a.addr = mailbox.get_address();
-        return a;
-    }
-
-private:
-    template<class a0_t, class a1_t, class a2_t, class a3_t>
-    friend void send(mailbox_manager_t*,
-                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&);
-
-    std::function< void(signal_t *, arg0_t, arg1_t, arg2_t, arg3_t) > fun;
-    raw_mailbox_t mailbox;
-};
-
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t>
-void send(mailbox_manager_t *src,
-          typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) {
-    typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) >::write_impl_t writer(arg0, arg1, arg2, arg3);
-    send_write(src, dest.addr, &writer);
+template <class T, class ...Ts>
+archive_result_t _deserialize(read_stream_t *stream, T& arg, Ts& ...args) {
+    auto res = deserialize<cluster_version_t::CLUSTER>(stream, &arg);
+    if (bad(res)) return res;
+    return _deserialize(stream, args...);
 }
 
-
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
-class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
-    class write_impl_t : public mailbox_write_callback_t {
-    private:
-        const arg0_t &arg0;
-        const arg1_t &arg1;
-        const arg2_t &arg2;
-        const arg3_t &arg3;
-        const arg4_t &arg4;
-    public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4) :
-            arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4)
-        { }
-        void write(DEBUG_VAR cluster_version_t cluster_version, write_message_t *wm) {
-            rassert(cluster_version == cluster_version_t::CLUSTER);
-            serialize<cluster_version_t::CLUSTER>(wm, arg0);
-            serialize<cluster_version_t::CLUSTER>(wm, arg1);
-            serialize<cluster_version_t::CLUSTER>(wm, arg2);
-            serialize<cluster_version_t::CLUSTER>(wm, arg3);
-            serialize<cluster_version_t::CLUSTER>(wm, arg4);
-        }
-#ifdef ENABLE_MESSAGE_PROFILER
-        const char *message_profiler_tag() const {
-            static const std::string tag = 
-                strprintf("mailbox<%s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name());
-            return tag.c_str();
-        }
-#endif
-    };
-
-    class read_impl_t : public mailbox_read_callback_t {
-    public:
-        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, signal_t *interruptor) {
-            arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg2_t arg2;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg2);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg3_t arg3;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg3);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg4_t arg4;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg4);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(interruptor, std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4));
-        }
-    private:
-        mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > *parent;
-    };
-
-    read_impl_t reader;
-
-public:
-    typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > address_t;
-
-    mailbox_t(mailbox_manager_t *manager,
-              const std::function< void(signal_t *, arg0_t, arg1_t, arg2_t, arg3_t, arg4_t)> &f) :
-        reader(this), fun(f), mailbox(manager, &reader)
-        { }
-
-    void begin_shutdown() {
-        mailbox.begin_shutdown();
-    }
-
-    address_t get_address() const {
-        address_t a;
-        a.addr = mailbox.get_address();
-        return a;
-    }
-
-private:
-    template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t>
-    friend void send(mailbox_manager_t*,
-                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&);
-
-    std::function< void(signal_t *, arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > fun;
-    raw_mailbox_t mailbox;
+template <std::size_t ...Is>
+struct index_sequence{
 };
 
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
-void send(mailbox_manager_t *src,
-          typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) {
-    typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4);
-    send_write(src, dest.addr, &writer);
+template <size_t N, size_t... Is>
+struct index_seq_generator  {
+    typedef typename index_seq_generator<N-1,N-1,Is...>::type type;
+};
+
+template <size_t... Is>
+struct index_seq_generator<0, Is...>  {
+    typedef index_sequence<Is...> type;
+};
+
+template <size_t N>
+using make_index_sequence = typename index_seq_generator<N>::type;
+
+template <class... T>
+using index_sequence_for = make_index_sequence<sizeof...(T)>;
+
+template<typename ...Ts>
+constexpr bool has_many() {
+  return sizeof...(Ts) > 1;
 }
 
+template<bool>
+struct element_typeid;
 
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t>
-class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
-    class write_impl_t : public mailbox_write_callback_t {
-    private:
-        const arg0_t &arg0;
-        const arg1_t &arg1;
-        const arg2_t &arg2;
-        const arg3_t &arg3;
-        const arg4_t &arg4;
-        const arg5_t &arg5;
-    public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5) :
-            arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5)
-        { }
-        void write(DEBUG_VAR cluster_version_t cluster_version, write_message_t *wm) {
-            rassert(cluster_version == cluster_version_t::CLUSTER);
-            serialize<cluster_version_t::CLUSTER>(wm, arg0);
-            serialize<cluster_version_t::CLUSTER>(wm, arg1);
-            serialize<cluster_version_t::CLUSTER>(wm, arg2);
-            serialize<cluster_version_t::CLUSTER>(wm, arg3);
-            serialize<cluster_version_t::CLUSTER>(wm, arg4);
-            serialize<cluster_version_t::CLUSTER>(wm, arg5);
-        }
-#ifdef ENABLE_MESSAGE_PROFILER
-        const char *message_profiler_tag() const {
-            static const std::string tag = 
-                strprintf("mailbox<%s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name());
-            return tag.c_str();
-        }
-#endif
-    };
-
-    class read_impl_t : public mailbox_read_callback_t {
-    public:
-        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, signal_t *interruptor) {
-            arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg2_t arg2;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg2);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg3_t arg3;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg3);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg4_t arg4;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg4);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg5_t arg5;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg5);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(interruptor, std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5));
-        }
-    private:
-        mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > *parent;
-    };
-
-    read_impl_t reader;
-
-public:
-    typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > address_t;
-
-    mailbox_t(mailbox_manager_t *manager,
-              const std::function< void(signal_t *, arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t)> &f) :
-        reader(this), fun(f), mailbox(manager, &reader)
-        { }
-
-    void begin_shutdown() {
-        mailbox.begin_shutdown();
-    }
-
-    address_t get_address() const {
-        address_t a;
-        a.addr = mailbox.get_address();
-        return a;
-    }
-
-private:
-    template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t>
-    friend void send(mailbox_manager_t*,
-                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&);
-
-    std::function< void(signal_t *, arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > fun;
-    raw_mailbox_t mailbox;
+template<>
+struct element_typeid<false> {
+  template<typename T>
+  static std::string to_string() {
+    return strprintf("%s", typeid(T).name());
+  }
 };
 
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t>
-void send(mailbox_manager_t *src,
-          typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) {
-    typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5);
-    send_write(src, dest.addr, &writer);
+template<>
+struct element_typeid<true> {
+  template<typename T, typename ...Ts>
+  static std::string to_string() {
+    return strprintf("%s, ", typeid(T).name()) + element_typeid<has_many<Ts...>()>::template to_string<Ts...>();
+  }
+};
+
+template<typename ...Ts>
+std::string typeid_string() {
+    return element_typeid<has_many<Ts...>()>::template to_string<Ts...>();
 }
 
-
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t>
-class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > {
-    class write_impl_t : public mailbox_write_callback_t {
-    private:
-        const arg0_t &arg0;
-        const arg1_t &arg1;
-        const arg2_t &arg2;
-        const arg3_t &arg3;
-        const arg4_t &arg4;
-        const arg5_t &arg5;
-        const arg6_t &arg6;
-    public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6) :
-            arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6)
-        { }
-        void write(DEBUG_VAR cluster_version_t cluster_version, write_message_t *wm) {
-            rassert(cluster_version == cluster_version_t::CLUSTER);
-            serialize<cluster_version_t::CLUSTER>(wm, arg0);
-            serialize<cluster_version_t::CLUSTER>(wm, arg1);
-            serialize<cluster_version_t::CLUSTER>(wm, arg2);
-            serialize<cluster_version_t::CLUSTER>(wm, arg3);
-            serialize<cluster_version_t::CLUSTER>(wm, arg4);
-            serialize<cluster_version_t::CLUSTER>(wm, arg5);
-            serialize<cluster_version_t::CLUSTER>(wm, arg6);
-        }
-#ifdef ENABLE_MESSAGE_PROFILER
-        const char *message_profiler_tag() const {
-            static const std::string tag = 
-                strprintf("mailbox<%s, %s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name(), typeid(arg6_t).name());
-            return tag.c_str();
-        }
-#endif
-    };
-
-    class read_impl_t : public mailbox_read_callback_t {
-    public:
-        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, signal_t *interruptor) {
-            arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg2_t arg2;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg2);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg3_t arg3;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg3);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg4_t arg4;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg4);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg5_t arg5;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg5);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg6_t arg6;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg6);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(interruptor, std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5), std::move(arg6));
-        }
-    private:
-        mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > *parent;
-    };
-
-    read_impl_t reader;
-
-public:
-    typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > address_t;
-
-    mailbox_t(mailbox_manager_t *manager,
-              const std::function< void(signal_t *, arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t)> &f) :
-        reader(this), fun(f), mailbox(manager, &reader)
-        { }
-
-    void begin_shutdown() {
-        mailbox.begin_shutdown();
-    }
-
-    address_t get_address() const {
-        address_t a;
-        a.addr = mailbox.get_address();
-        return a;
-    }
-
-private:
-    template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t>
-    friend void send(mailbox_manager_t*,
-                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&);
-
-    std::function< void(signal_t *, arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > fun;
-    raw_mailbox_t mailbox;
-};
-
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t>
-void send(mailbox_manager_t *src,
-          typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) {
-    typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
-    send_write(src, dest.addr, &writer);
 }
 
-
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t>
-class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > {
-    class write_impl_t : public mailbox_write_callback_t {
-    private:
-        const arg0_t &arg0;
-        const arg1_t &arg1;
-        const arg2_t &arg2;
-        const arg3_t &arg3;
-        const arg4_t &arg4;
-        const arg5_t &arg5;
-        const arg6_t &arg6;
-        const arg7_t &arg7;
-    public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7) :
-            arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7)
-        { }
-        void write(DEBUG_VAR cluster_version_t cluster_version, write_message_t *wm) {
-            rassert(cluster_version == cluster_version_t::CLUSTER);
-            serialize<cluster_version_t::CLUSTER>(wm, arg0);
-            serialize<cluster_version_t::CLUSTER>(wm, arg1);
-            serialize<cluster_version_t::CLUSTER>(wm, arg2);
-            serialize<cluster_version_t::CLUSTER>(wm, arg3);
-            serialize<cluster_version_t::CLUSTER>(wm, arg4);
-            serialize<cluster_version_t::CLUSTER>(wm, arg5);
-            serialize<cluster_version_t::CLUSTER>(wm, arg6);
-            serialize<cluster_version_t::CLUSTER>(wm, arg7);
-        }
-#ifdef ENABLE_MESSAGE_PROFILER
-        const char *message_profiler_tag() const {
-            static const std::string tag = 
-                strprintf("mailbox<%s, %s, %s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name(), typeid(arg6_t).name(), typeid(arg7_t).name());
-            return tag.c_str();
-        }
-#endif
-    };
-
-    class read_impl_t : public mailbox_read_callback_t {
-    public:
-        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, signal_t *interruptor) {
-            arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg2_t arg2;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg2);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg3_t arg3;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg3);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg4_t arg4;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg4);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg5_t arg5;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg5);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg6_t arg6;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg6);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg7_t arg7;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg7);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(interruptor, std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5), std::move(arg6), std::move(arg7));
-        }
-    private:
-        mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > *parent;
-    };
-
-    read_impl_t reader;
-
-public:
-    typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > address_t;
-
-    mailbox_t(mailbox_manager_t *manager,
-              const std::function< void(signal_t *, arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t)> &f) :
-        reader(this), fun(f), mailbox(manager, &reader)
-        { }
-
-    void begin_shutdown() {
-        mailbox.begin_shutdown();
-    }
-
-    address_t get_address() const {
-        address_t a;
-        a.addr = mailbox.get_address();
-        return a;
-    }
-
-private:
-    template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t>
-    friend void send(mailbox_manager_t*,
-                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&);
-
-    std::function< void(signal_t *, arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > fun;
-    raw_mailbox_t mailbox;
-};
-
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t>
-void send(mailbox_manager_t *src,
-          typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) {
-    typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
-    send_write(src, dest.addr, &writer);
+template <class ...Ts, std::size_t ...Is>
+void tuple_serialize(write_message_t *wm, const std::tuple<Ts...> &tuple,
+                     mailbox_internal::index_sequence<Is...>)
+{
+    mailbox_internal::_serialize(wm, std::get<Is>(tuple)...);
 }
 
-
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t>
-class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > {
-    class write_impl_t : public mailbox_write_callback_t {
-    private:
-        const arg0_t &arg0;
-        const arg1_t &arg1;
-        const arg2_t &arg2;
-        const arg3_t &arg3;
-        const arg4_t &arg4;
-        const arg5_t &arg5;
-        const arg6_t &arg6;
-        const arg7_t &arg7;
-        const arg8_t &arg8;
-    public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8) :
-            arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8)
-        { }
-        void write(DEBUG_VAR cluster_version_t cluster_version, write_message_t *wm) {
-            rassert(cluster_version == cluster_version_t::CLUSTER);
-            serialize<cluster_version_t::CLUSTER>(wm, arg0);
-            serialize<cluster_version_t::CLUSTER>(wm, arg1);
-            serialize<cluster_version_t::CLUSTER>(wm, arg2);
-            serialize<cluster_version_t::CLUSTER>(wm, arg3);
-            serialize<cluster_version_t::CLUSTER>(wm, arg4);
-            serialize<cluster_version_t::CLUSTER>(wm, arg5);
-            serialize<cluster_version_t::CLUSTER>(wm, arg6);
-            serialize<cluster_version_t::CLUSTER>(wm, arg7);
-            serialize<cluster_version_t::CLUSTER>(wm, arg8);
-        }
-#ifdef ENABLE_MESSAGE_PROFILER
-        const char *message_profiler_tag() const {
-            static const std::string tag = 
-                strprintf("mailbox<%s, %s, %s, %s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name(), typeid(arg6_t).name(), typeid(arg7_t).name(), typeid(arg8_t).name());
-            return tag.c_str();
-        }
-#endif
-    };
-
-    class read_impl_t : public mailbox_read_callback_t {
-    public:
-        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, signal_t *interruptor) {
-            arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg2_t arg2;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg2);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg3_t arg3;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg3);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg4_t arg4;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg4);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg5_t arg5;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg5);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg6_t arg6;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg6);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg7_t arg7;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg7);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg8_t arg8;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg8);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(interruptor, std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5), std::move(arg6), std::move(arg7), std::move(arg8));
-        }
-    private:
-        mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > *parent;
-    };
-
-    read_impl_t reader;
-
-public:
-    typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > address_t;
-
-    mailbox_t(mailbox_manager_t *manager,
-              const std::function< void(signal_t *, arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t)> &f) :
-        reader(this), fun(f), mailbox(manager, &reader)
-        { }
-
-    void begin_shutdown() {
-        mailbox.begin_shutdown();
-    }
-
-    address_t get_address() const {
-        address_t a;
-        a.addr = mailbox.get_address();
-        return a;
-    }
-
-private:
-    template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t>
-    friend void send(mailbox_manager_t*,
-                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&);
-
-    std::function< void(signal_t *, arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > fun;
-    raw_mailbox_t mailbox;
-};
-
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t>
-void send(mailbox_manager_t *src,
-          typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) {
-    typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
-    send_write(src, dest.addr, &writer);
+template <class ...Ts, std::size_t ...Is>
+archive_result_t tuple_deserialize(read_stream_t *stream, std::tuple<Ts...> &tuple,
+                     mailbox_internal::index_sequence<Is...>)
+{
+   return mailbox_internal::_deserialize(stream, std::get<Is>(tuple)...);
 }
 
-
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t>
-class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > {
+template<class ...args_t>
+class mailbox_t< void(args_t...) > {
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        const arg0_t &arg0;
-        const arg1_t &arg1;
-        const arg2_t &arg2;
-        const arg3_t &arg3;
-        const arg4_t &arg4;
-        const arg5_t &arg5;
-        const arg6_t &arg6;
-        const arg7_t &arg7;
-        const arg8_t &arg8;
-        const arg9_t &arg9;
+        std::tuple<const args_t&...> args;
     public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9) :
-            arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9)
+        explicit write_impl_t(const args_t& ..._args) :
+            args(std::forward_as_tuple(_args...))
         { }
         void write(DEBUG_VAR cluster_version_t cluster_version, write_message_t *wm) {
             rassert(cluster_version == cluster_version_t::CLUSTER);
-            serialize<cluster_version_t::CLUSTER>(wm, arg0);
-            serialize<cluster_version_t::CLUSTER>(wm, arg1);
-            serialize<cluster_version_t::CLUSTER>(wm, arg2);
-            serialize<cluster_version_t::CLUSTER>(wm, arg3);
-            serialize<cluster_version_t::CLUSTER>(wm, arg4);
-            serialize<cluster_version_t::CLUSTER>(wm, arg5);
-            serialize<cluster_version_t::CLUSTER>(wm, arg6);
-            serialize<cluster_version_t::CLUSTER>(wm, arg7);
-            serialize<cluster_version_t::CLUSTER>(wm, arg8);
-            serialize<cluster_version_t::CLUSTER>(wm, arg9);
+            //std::apply(mailbox_internal::_serialize, std::tuple_cat(std::tie(wm), args));
+            tuple_serialize(wm, args, mailbox_internal::index_sequence_for<args_t...>{});
         }
+
 #ifdef ENABLE_MESSAGE_PROFILER
         const char *message_profiler_tag() const {
             static const std::string tag = 
-                strprintf("mailbox<%s, %s, %s, %s, %s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name(), typeid(arg6_t).name(), typeid(arg7_t).name(), typeid(arg8_t).name(), typeid(arg9_t).name());
+                strprintf("mailbox<%s>", mailbox_internal::typeid_string<args_t...>().c_str() );
             return tag.c_str();
         }
 #endif
+
     };
 
     class read_impl_t : public mailbox_read_callback_t {
+    private:
+        template <class ...Ts, std::size_t ...Is>
+        void call (std::tuple<Ts...> &tuple,  signal_t *interruptor,
+                             mailbox_internal::index_sequence<Is...>)
+        {
+           parent->fun(interruptor, std::get<Is>(tuple)...);
+        }
     public:
-        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > *_parent) : parent(_parent) { }
+        explicit read_impl_t(mailbox_t< void(args_t...) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream, signal_t *interruptor) {
-            arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
+            std::tuple<args_t...> args;
+            //auto res = std::appy(mailbox_internal::_deserialize,
+            //                     std::tuple_cat(std::tie(stream), args));
+            auto res = tuple_deserialize(stream, args,
+                                         mailbox_internal::index_sequence_for<args_t...>{});
             if (bad(res)) { throw fake_archive_exc_t(); }
-            arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg2_t arg2;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg2);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg3_t arg3;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg3);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg4_t arg4;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg4);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg5_t arg5;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg5);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg6_t arg6;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg6);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg7_t arg7;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg7);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg8_t arg8;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg8);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg9_t arg9;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg9);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(interruptor, std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5), std::move(arg6), std::move(arg7), std::move(arg8), std::move(arg9));
+            //std::appy(mailbox_t< void(args_t...) >::fun,
+                //std::tuple_cat(std::tie(parent, interruptor), args));
+            call(args, interruptor, mailbox_internal::index_sequence_for<args_t...>{});
         }
     private:
-        mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > *parent;
+        mailbox_t< void(args_t...) > *parent;
     };
 
     read_impl_t reader;
 
 public:
-    typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > address_t;
+    typedef mailbox_addr_t< void(args_t...) > address_t;
 
     mailbox_t(mailbox_manager_t *manager,
-              const std::function< void(signal_t *, arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t)> &f) :
-        reader(this), fun(f), mailbox(manager, &reader)
+              std::function< void(signal_t *, args_t...)> f) :
+        reader(this), fun(std::move(f)), mailbox(manager, &reader)
         { }
 
     void begin_shutdown() {
@@ -1065,536 +261,18 @@ public:
     }
 
 private:
-    template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t>
+    template<class ...as_t>
     friend void send(mailbox_manager_t*,
-                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&);
+                     typename mailbox_t< void(as_t...) >::address_t, const as_t&...);
 
-    std::function< void(signal_t *, arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > fun;
+    std::function< void(signal_t *, args_t...) > fun;
     raw_mailbox_t mailbox;
 };
 
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t>
+template<class ...args_t>
 void send(mailbox_manager_t *src,
-          typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9) {
-    typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
-    send_write(src, dest.addr, &writer);
-}
-
-
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t>
-class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > {
-    class write_impl_t : public mailbox_write_callback_t {
-    private:
-        const arg0_t &arg0;
-        const arg1_t &arg1;
-        const arg2_t &arg2;
-        const arg3_t &arg3;
-        const arg4_t &arg4;
-        const arg5_t &arg5;
-        const arg6_t &arg6;
-        const arg7_t &arg7;
-        const arg8_t &arg8;
-        const arg9_t &arg9;
-        const arg10_t &arg10;
-    public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9, const arg10_t& _arg10) :
-            arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9), arg10(_arg10)
-        { }
-        void write(DEBUG_VAR cluster_version_t cluster_version, write_message_t *wm) {
-            rassert(cluster_version == cluster_version_t::CLUSTER);
-            serialize<cluster_version_t::CLUSTER>(wm, arg0);
-            serialize<cluster_version_t::CLUSTER>(wm, arg1);
-            serialize<cluster_version_t::CLUSTER>(wm, arg2);
-            serialize<cluster_version_t::CLUSTER>(wm, arg3);
-            serialize<cluster_version_t::CLUSTER>(wm, arg4);
-            serialize<cluster_version_t::CLUSTER>(wm, arg5);
-            serialize<cluster_version_t::CLUSTER>(wm, arg6);
-            serialize<cluster_version_t::CLUSTER>(wm, arg7);
-            serialize<cluster_version_t::CLUSTER>(wm, arg8);
-            serialize<cluster_version_t::CLUSTER>(wm, arg9);
-            serialize<cluster_version_t::CLUSTER>(wm, arg10);
-        }
-#ifdef ENABLE_MESSAGE_PROFILER
-        const char *message_profiler_tag() const {
-            static const std::string tag = 
-                strprintf("mailbox<%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name(), typeid(arg6_t).name(), typeid(arg7_t).name(), typeid(arg8_t).name(), typeid(arg9_t).name(), typeid(arg10_t).name());
-            return tag.c_str();
-        }
-#endif
-    };
-
-    class read_impl_t : public mailbox_read_callback_t {
-    public:
-        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, signal_t *interruptor) {
-            arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg2_t arg2;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg2);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg3_t arg3;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg3);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg4_t arg4;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg4);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg5_t arg5;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg5);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg6_t arg6;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg6);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg7_t arg7;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg7);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg8_t arg8;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg8);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg9_t arg9;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg9);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg10_t arg10;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg10);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(interruptor, std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5), std::move(arg6), std::move(arg7), std::move(arg8), std::move(arg9), std::move(arg10));
-        }
-    private:
-        mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > *parent;
-    };
-
-    read_impl_t reader;
-
-public:
-    typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > address_t;
-
-    mailbox_t(mailbox_manager_t *manager,
-              const std::function< void(signal_t *, arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t)> &f) :
-        reader(this), fun(f), mailbox(manager, &reader)
-        { }
-
-    void begin_shutdown() {
-        mailbox.begin_shutdown();
-    }
-
-    address_t get_address() const {
-        address_t a;
-        a.addr = mailbox.get_address();
-        return a;
-    }
-
-private:
-    template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t>
-    friend void send(mailbox_manager_t*,
-                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&);
-
-    std::function< void(signal_t *, arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > fun;
-    raw_mailbox_t mailbox;
-};
-
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t>
-void send(mailbox_manager_t *src,
-          typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10) {
-    typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
-    send_write(src, dest.addr, &writer);
-}
-
-
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t>
-class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > {
-    class write_impl_t : public mailbox_write_callback_t {
-    private:
-        const arg0_t &arg0;
-        const arg1_t &arg1;
-        const arg2_t &arg2;
-        const arg3_t &arg3;
-        const arg4_t &arg4;
-        const arg5_t &arg5;
-        const arg6_t &arg6;
-        const arg7_t &arg7;
-        const arg8_t &arg8;
-        const arg9_t &arg9;
-        const arg10_t &arg10;
-        const arg11_t &arg11;
-    public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9, const arg10_t& _arg10, const arg11_t& _arg11) :
-            arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9), arg10(_arg10), arg11(_arg11)
-        { }
-        void write(DEBUG_VAR cluster_version_t cluster_version, write_message_t *wm) {
-            rassert(cluster_version == cluster_version_t::CLUSTER);
-            serialize<cluster_version_t::CLUSTER>(wm, arg0);
-            serialize<cluster_version_t::CLUSTER>(wm, arg1);
-            serialize<cluster_version_t::CLUSTER>(wm, arg2);
-            serialize<cluster_version_t::CLUSTER>(wm, arg3);
-            serialize<cluster_version_t::CLUSTER>(wm, arg4);
-            serialize<cluster_version_t::CLUSTER>(wm, arg5);
-            serialize<cluster_version_t::CLUSTER>(wm, arg6);
-            serialize<cluster_version_t::CLUSTER>(wm, arg7);
-            serialize<cluster_version_t::CLUSTER>(wm, arg8);
-            serialize<cluster_version_t::CLUSTER>(wm, arg9);
-            serialize<cluster_version_t::CLUSTER>(wm, arg10);
-            serialize<cluster_version_t::CLUSTER>(wm, arg11);
-        }
-#ifdef ENABLE_MESSAGE_PROFILER
-        const char *message_profiler_tag() const {
-            static const std::string tag = 
-                strprintf("mailbox<%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name(), typeid(arg6_t).name(), typeid(arg7_t).name(), typeid(arg8_t).name(), typeid(arg9_t).name(), typeid(arg10_t).name(), typeid(arg11_t).name());
-            return tag.c_str();
-        }
-#endif
-    };
-
-    class read_impl_t : public mailbox_read_callback_t {
-    public:
-        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, signal_t *interruptor) {
-            arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg2_t arg2;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg2);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg3_t arg3;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg3);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg4_t arg4;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg4);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg5_t arg5;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg5);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg6_t arg6;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg6);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg7_t arg7;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg7);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg8_t arg8;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg8);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg9_t arg9;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg9);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg10_t arg10;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg10);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg11_t arg11;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg11);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(interruptor, std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5), std::move(arg6), std::move(arg7), std::move(arg8), std::move(arg9), std::move(arg10), std::move(arg11));
-        }
-    private:
-        mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > *parent;
-    };
-
-    read_impl_t reader;
-
-public:
-    typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > address_t;
-
-    mailbox_t(mailbox_manager_t *manager,
-              const std::function< void(signal_t *, arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t)> &f) :
-        reader(this), fun(f), mailbox(manager, &reader)
-        { }
-
-    void begin_shutdown() {
-        mailbox.begin_shutdown();
-    }
-
-    address_t get_address() const {
-        address_t a;
-        a.addr = mailbox.get_address();
-        return a;
-    }
-
-private:
-    template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t>
-    friend void send(mailbox_manager_t*,
-                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&);
-
-    std::function< void(signal_t *, arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > fun;
-    raw_mailbox_t mailbox;
-};
-
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t>
-void send(mailbox_manager_t *src,
-          typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11) {
-    typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);
-    send_write(src, dest.addr, &writer);
-}
-
-
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t>
-class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > {
-    class write_impl_t : public mailbox_write_callback_t {
-    private:
-        const arg0_t &arg0;
-        const arg1_t &arg1;
-        const arg2_t &arg2;
-        const arg3_t &arg3;
-        const arg4_t &arg4;
-        const arg5_t &arg5;
-        const arg6_t &arg6;
-        const arg7_t &arg7;
-        const arg8_t &arg8;
-        const arg9_t &arg9;
-        const arg10_t &arg10;
-        const arg11_t &arg11;
-        const arg12_t &arg12;
-    public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9, const arg10_t& _arg10, const arg11_t& _arg11, const arg12_t& _arg12) :
-            arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9), arg10(_arg10), arg11(_arg11), arg12(_arg12)
-        { }
-        void write(DEBUG_VAR cluster_version_t cluster_version, write_message_t *wm) {
-            rassert(cluster_version == cluster_version_t::CLUSTER);
-            serialize<cluster_version_t::CLUSTER>(wm, arg0);
-            serialize<cluster_version_t::CLUSTER>(wm, arg1);
-            serialize<cluster_version_t::CLUSTER>(wm, arg2);
-            serialize<cluster_version_t::CLUSTER>(wm, arg3);
-            serialize<cluster_version_t::CLUSTER>(wm, arg4);
-            serialize<cluster_version_t::CLUSTER>(wm, arg5);
-            serialize<cluster_version_t::CLUSTER>(wm, arg6);
-            serialize<cluster_version_t::CLUSTER>(wm, arg7);
-            serialize<cluster_version_t::CLUSTER>(wm, arg8);
-            serialize<cluster_version_t::CLUSTER>(wm, arg9);
-            serialize<cluster_version_t::CLUSTER>(wm, arg10);
-            serialize<cluster_version_t::CLUSTER>(wm, arg11);
-            serialize<cluster_version_t::CLUSTER>(wm, arg12);
-        }
-#ifdef ENABLE_MESSAGE_PROFILER
-        const char *message_profiler_tag() const {
-            static const std::string tag = 
-                strprintf("mailbox<%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name(), typeid(arg6_t).name(), typeid(arg7_t).name(), typeid(arg8_t).name(), typeid(arg9_t).name(), typeid(arg10_t).name(), typeid(arg11_t).name(), typeid(arg12_t).name());
-            return tag.c_str();
-        }
-#endif
-    };
-
-    class read_impl_t : public mailbox_read_callback_t {
-    public:
-        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, signal_t *interruptor) {
-            arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg2_t arg2;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg2);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg3_t arg3;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg3);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg4_t arg4;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg4);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg5_t arg5;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg5);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg6_t arg6;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg6);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg7_t arg7;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg7);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg8_t arg8;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg8);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg9_t arg9;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg9);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg10_t arg10;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg10);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg11_t arg11;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg11);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg12_t arg12;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg12);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(interruptor, std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5), std::move(arg6), std::move(arg7), std::move(arg8), std::move(arg9), std::move(arg10), std::move(arg11), std::move(arg12));
-        }
-    private:
-        mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > *parent;
-    };
-
-    read_impl_t reader;
-
-public:
-    typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > address_t;
-
-    mailbox_t(mailbox_manager_t *manager,
-              const std::function< void(signal_t *, arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t)> &f) :
-        reader(this), fun(f), mailbox(manager, &reader)
-        { }
-
-    void begin_shutdown() {
-        mailbox.begin_shutdown();
-    }
-
-    address_t get_address() const {
-        address_t a;
-        a.addr = mailbox.get_address();
-        return a;
-    }
-
-private:
-    template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t, class a12_t>
-    friend void send(mailbox_manager_t*,
-                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&);
-
-    std::function< void(signal_t *, arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > fun;
-    raw_mailbox_t mailbox;
-};
-
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t>
-void send(mailbox_manager_t *src,
-          typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11, const arg12_t &arg12) {
-    typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
-    send_write(src, dest.addr, &writer);
-}
-
-
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t, class arg13_t>
-class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > {
-    class write_impl_t : public mailbox_write_callback_t {
-    private:
-        const arg0_t &arg0;
-        const arg1_t &arg1;
-        const arg2_t &arg2;
-        const arg3_t &arg3;
-        const arg4_t &arg4;
-        const arg5_t &arg5;
-        const arg6_t &arg6;
-        const arg7_t &arg7;
-        const arg8_t &arg8;
-        const arg9_t &arg9;
-        const arg10_t &arg10;
-        const arg11_t &arg11;
-        const arg12_t &arg12;
-        const arg13_t &arg13;
-    public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9, const arg10_t& _arg10, const arg11_t& _arg11, const arg12_t& _arg12, const arg13_t& _arg13) :
-            arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9), arg10(_arg10), arg11(_arg11), arg12(_arg12), arg13(_arg13)
-        { }
-        void write(DEBUG_VAR cluster_version_t cluster_version, write_message_t *wm) {
-            rassert(cluster_version == cluster_version_t::CLUSTER);
-            serialize<cluster_version_t::CLUSTER>(wm, arg0);
-            serialize<cluster_version_t::CLUSTER>(wm, arg1);
-            serialize<cluster_version_t::CLUSTER>(wm, arg2);
-            serialize<cluster_version_t::CLUSTER>(wm, arg3);
-            serialize<cluster_version_t::CLUSTER>(wm, arg4);
-            serialize<cluster_version_t::CLUSTER>(wm, arg5);
-            serialize<cluster_version_t::CLUSTER>(wm, arg6);
-            serialize<cluster_version_t::CLUSTER>(wm, arg7);
-            serialize<cluster_version_t::CLUSTER>(wm, arg8);
-            serialize<cluster_version_t::CLUSTER>(wm, arg9);
-            serialize<cluster_version_t::CLUSTER>(wm, arg10);
-            serialize<cluster_version_t::CLUSTER>(wm, arg11);
-            serialize<cluster_version_t::CLUSTER>(wm, arg12);
-            serialize<cluster_version_t::CLUSTER>(wm, arg13);
-        }
-#ifdef ENABLE_MESSAGE_PROFILER
-        const char *message_profiler_tag() const {
-            static const std::string tag = 
-                strprintf("mailbox<%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name(), typeid(arg6_t).name(), typeid(arg7_t).name(), typeid(arg8_t).name(), typeid(arg9_t).name(), typeid(arg10_t).name(), typeid(arg11_t).name(), typeid(arg12_t).name(), typeid(arg13_t).name());
-            return tag.c_str();
-        }
-#endif
-    };
-
-    class read_impl_t : public mailbox_read_callback_t {
-    public:
-        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, signal_t *interruptor) {
-            arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg2_t arg2;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg2);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg3_t arg3;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg3);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg4_t arg4;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg4);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg5_t arg5;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg5);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg6_t arg6;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg6);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg7_t arg7;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg7);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg8_t arg8;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg8);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg9_t arg9;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg9);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg10_t arg10;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg10);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg11_t arg11;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg11);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg12_t arg12;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg12);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            arg13_t arg13;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg13);
-            if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(interruptor, std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5), std::move(arg6), std::move(arg7), std::move(arg8), std::move(arg9), std::move(arg10), std::move(arg11), std::move(arg12), std::move(arg13));
-        }
-    private:
-        mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > *parent;
-    };
-
-    read_impl_t reader;
-
-public:
-    typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > address_t;
-
-    mailbox_t(mailbox_manager_t *manager,
-              const std::function< void(signal_t *, arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t)> &f) :
-        reader(this), fun(f), mailbox(manager, &reader)
-        { }
-
-    void begin_shutdown() {
-        mailbox.begin_shutdown();
-    }
-
-    address_t get_address() const {
-        address_t a;
-        a.addr = mailbox.get_address();
-        return a;
-    }
-
-private:
-    template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t, class a12_t, class a13_t>
-    friend void send(mailbox_manager_t*,
-                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t, a13_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&, const a13_t&);
-
-    std::function< void(signal_t *, arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > fun;
-    raw_mailbox_t mailbox;
-};
-
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t, class arg13_t>
-void send(mailbox_manager_t *src,
-          typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11, const arg12_t &arg12, const arg13_t &arg13) {
-    typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
+          typename mailbox_t< void(args_t...) >::address_t dest, const args_t& ...args) {
+    typename mailbox_t< void(args_t...) >::write_impl_t writer(args...);
     send_write(src, dest.addr, &writer);
 }
 
