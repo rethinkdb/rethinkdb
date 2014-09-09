@@ -90,7 +90,7 @@ bool db_config_artificial_table_backend_t::read_row(
         database_id = nil_uuid();
     }
     auto it = md.databases.find(database_id);
-    if (it == md.databases.end()) {
+    if (it == md.databases.end() || it->second.is_deleted()) {
         *row_out = ql::datum_t();
         return true;
     }
@@ -119,7 +119,7 @@ bool db_config_artificial_table_backend_t::write_row(
         database_id = nil_uuid();
     }
     auto it = md.databases.find(database_id);
-    if (it == md.databases.end()) {
+    if (it == md.databases.end() || it->second.is_deleted()) {
         *error_out = "It's illegal to insert into the `rethinkdb.db_config` table. "
             "To create a table, use `r.db_create()`.";
         return false;
