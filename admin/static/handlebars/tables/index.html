@@ -20,7 +20,6 @@
     </div>
 </script>
 
-
 <script id="database-template" type="text/x-handlebars-template">
     <div class="header_container">
         <div class="element-type">Database</div>
@@ -44,70 +43,5 @@
         <div class="status">
             {{humanize_namespace_reachability ready_completely}}
         </span>
-    </div>
-</script>
-
-
-<!-- Old stuff below -->
-
-<script id="need_database-alert-template" type="text/x-handlebars-template">
-You need to create a database before creating a table.
-</script>
-
-<script id="database_list_element-template" type="text/x-handlebars-template">
-    <div class="section">
-        <div class="header_container">
-            <div class="database summary"></div>
-        </div>
-        <div class="element-list-container"></div>
-    </div>
-</script>
-
-<script id="database_list_element-summary-template" type="text/x-handlebars-template">
-    <div class="element-type">Database</div>
-    <h3 class="name"><a href="#databases/{{id}}">{{name}}</a></h3>
-    <div class="buttons">
-        <!-- <button class="btn hide-tables expanded collapse-control" data-expanded="&ndash; Hide Tables" data-collapsed="+ Show Tables">&ndash; Hide Tables</a> -->
-        <button class="btn remove-database" data-id={{id}}>Delete Database</a>
-    </div>
-</script>
-
-<script id="namespace_list-template" type="text/x-handlebars-template">
-    <div class="list"></div>
-</script>
-
-<script id="namespace_list_element-template" type="text/x-handlebars-template">
-    <div class="checkbox-container">
-        <input type="checkbox" id="checkbox_table_list_{{id}}"></input><label for="checkbox_table_list_{{id}}"></label>    
-    </div>
-    <div class="element-details">
-        <p class="name"><a href="#tables/{{id}}">{{name}}</a></p>
-        <p class="quick_info">
-            {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}}
-        </p>
-        <div class="status">
-            {{humanize_namespace_reachability reachability}}
-        </span>
-    </div>
-</script>
-
-<script id="added_database-alert-template" type="text/x-handlebars-template">
-    <div class="alert displayed_alert">
-        <a class="close" href="#">&times;</a>
-        <p>You successfully added database <a href="#databases/{{id}}">{{name}}</a>.</p>
-    </div>
-</script>
-
-<script id="added_namespace-alert-template" type="text/x-handlebars-template">
-    <div class="alert displayed_alert">
-        <a class="close" href="#">&times;</a>
-        <p>You added table <span class="name">{{name}}</span>. You can now <a href="#tables/{{uuid}}">configure</a> it further.</p>
-    </div>
-</script>
-
-<script id="removed_namespace-alert-template" type="text/x-handlebars-template">
-    <div class="alert displayed_alert">
-        <a class="close" href="#">&times;</a>
-        <p>The {{pluralize_noun "table" num_deleted_namespaces}} <span class="name">{{comma_separated_simple deleted_namespaces}}</span> {{pluralize_verb_to_have num_deleted_namespaces}} been deleted.</p>
     </div>
 </script>
