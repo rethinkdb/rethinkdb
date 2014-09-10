@@ -5,6 +5,7 @@ module 'TablesView', ->
         id: 'databases_container'
         template:
             main: Handlebars.templates['databases_container-template']
+            error: Handlebars.templates['error-query-template']
             alert_message: Handlebars.templates['alert_message-template']
 
         events:
@@ -73,9 +74,8 @@ module 'TablesView', ->
             @
 
         render_message: (message) =>
-            @.$('#user-alert-space').append @template.alert_message
+            @$('#user-alert-space').append @template.alert_message
                 message: message
-
 
         fetch_data: =>
             query = r.db(system_db).table('db_config').filter( (db) ->
@@ -92,9 +92,12 @@ module 'TablesView', ->
                     )
 
             driver.run query, (error, result) =>
-                if error
-                    #TODO
-                    console.log error
+                if error?
+                    if @error?.msg isnt error.msg
+                        @error = error
+                        @$el.html @template.error
+                            url: '#tables'
+                            error: error.message
                 else
                     @loading = false # TODO Move that outside the `if` statement?
                     databases = {}
