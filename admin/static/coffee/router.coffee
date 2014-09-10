@@ -10,15 +10,25 @@ class BackboneCluster extends Backbone.Router
     routes:
         '': 'dashboard'
         'databases': 'index_tables'
+        'databases/': 'index_tables'
         'databases/:id': 'database'
+        'databases/:id/': 'database'
         'tables': 'index_tables'
+        'tables/': 'index_tables'
         'tables/:id': 'table'
+        'tables/:id/': 'table'
         'servers': 'index_servers'
+        'servers/': 'index_servers'
         'servers/:id': 'server'
+        'servers/:id/': 'server'
         'dashboard': 'dashboard'
+        'dashboard/': 'dashboard'
         'resolve_issues': 'resolve_issues'
+        'resolve_issues/': 'resolve_issues'
         'logs': 'logs'
+        'logs/': 'logs'
         'dataexplorer': 'dataexplorer'
+        'dataexplorer/': 'dataexplorer'
 
     initialize: (data) ->
         super
