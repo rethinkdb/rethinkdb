@@ -14,8 +14,6 @@ class BackboneCluster extends Backbone.Router
         'tables': 'index_tables'
         'tables/:id': 'table'
         'servers': 'index_servers'
-        'datacenters/:id': 'datacenter'
-        'datacenters/:id/:tab': 'datacenter'
         'servers/:id': 'server'
         'dashboard': 'dashboard'
         'resolve_issues': 'resolve_issues'
@@ -104,20 +102,6 @@ class BackboneCluster extends Backbone.Router
         clear_modals()
         @current_view.remove()
         @current_view = new TableView.TableContainer id
-        @$container.html @current_view.render().el
-
-    datacenter: (id, tab) ->
-        @set_stats_call 'ajax/stat?filter=.*/serializers,proc,sys'
-        log_router '/datacenters/' + id
-        clear_modals()
-        datacenter = datacenters.get(id)
-
-        @current_view.remove()
-        if datacenter?
-            @current_view = new DatacenterView.Container model: datacenter
-        else
-            @current_view = new DatacenterView.NotFound id
-
         @$container.html @current_view.render().el
 
     server: (id) ->
