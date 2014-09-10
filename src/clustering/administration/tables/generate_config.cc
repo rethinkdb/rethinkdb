@@ -209,7 +209,7 @@ void pick_best_pairings(
         const std::function<void(size_t, name_string_t)> &callback) {
     std::vector<size_t> shard_replicas(num_shards, 0);
     size_t total_replicas = 0;
-    while (total_replicas < num_shards*num_replicas) {
+    while (total_replicas < num_shards * num_replicas) {
         counted_t<countable_wrapper_t<server_pairings_t> > sp = *pairings.begin();
         pairings.erase(pairings.begin());
         auto it = sp->pairings.begin();
