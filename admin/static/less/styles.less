@@ -68,7 +68,7 @@ body:before {
 }
 #options_container{
     display: none;
-    position: absolute;
+    position: relative;
     width: 100%;
     background: #fafafa;
     border-bottom: 1px solid #ccc;
@@ -77,7 +77,6 @@ body:before {
     border-bottom: 2px solid #ddd;
 }
 .options_container_arrow_overlay{
-    display: none;
     position: absolute;
     z-index: 201;
     left: 50%;
@@ -90,12 +89,14 @@ body:before {
     border-bottom:10px solid #F6F0E3; 
 }
 .options_background{
-    position: relative;
+    width: 100%;
+    position: absolute;
     margin: 0px auto;
     text-shadow: none;
     padding: 0px;
     .title{
         width: 100%;
+        margin: 0px;
         background: #F6F0E3;
         border-top: 1px solid #F0E6D1;
         border-bottom: 1px solid #F0E6D1;
