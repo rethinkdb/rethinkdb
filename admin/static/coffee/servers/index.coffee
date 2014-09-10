@@ -45,8 +45,10 @@ module 'ServersView', ->
                 for server in toDestroy
                     server.destroy()
 
-        destroy: =>
+        remove: =>
             clearInterval @interval
+            @servers_list.remove()
+            super()
 
     class @ServersListView extends Backbone.View
         className: 'servers_view'
@@ -59,7 +61,7 @@ module 'ServersView', ->
                 @servers_view.push view
                 @$el.append view.render().$el
 
-            @collection.on 'add', (server) =>
+            @listenTo @collection, 'add', (server) =>
                 view = new ServersView.ServerView
                     model: server
 
@@ -76,10 +78,21 @@ module 'ServersView', ->
                 @$el.append server_view.render().$el
             @
 
+        remove: =>
+            @stopListening()
+            for view in @servers_view
+                view.remove()
+            super()
 
     class @ServerView extends Backbone.View
         className: 'server_view'
         template: Handlebars.templates['server-template']
+        initialize: =>
+            @listenTo @model, 'change', @render
+
         render: ->
             @$el.html @template @model.toJSON()
             @
+
+        remove: =>
+            @stopListening()
