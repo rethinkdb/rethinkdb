@@ -68,7 +68,7 @@ body:before {
 }
 #options_container{
     display: none;
-    position: relative;
+    position: absolute;
     width: 100%;
     background: #fafafa;
     border-bottom: 1px solid #ccc;
@@ -80,7 +80,7 @@ body:before {
     position: absolute;
     z-index: 201;
     left: 50%;
-    top: 51px;
+    top: -10px;
     width: 0; 
     height: 0; 
     margin: 1px 0px 0px 185px;
@@ -621,7 +621,7 @@ TODO: retire this
         background: url('images/status_panel-icon_3.png') no-repeat left center;
         &.error { background: url('images/status_panel-icon_3-error.png') no-repeat left center; }
     }
-    .datacenters-connected .panel {
+    .tables-available .panel {
         background: url('images/status_panel-icon_4.png') no-repeat left center;
         &.error { background: url('images/status_panel-icon_4-error.png') no-repeat left center; }
     }

@@ -287,3 +287,66 @@ module 'Modals', ->
                 window.router.navigate '#tables', {trigger: true}
             window.app.current_view.render_message message
             @remove()
+
+    class @RemoveServerModal extends UIComponents.AbstractModal
+        template: Handlebars.templates['declare_machine_dead-modal-template']
+        alert_tmpl: Handlebars.templates['resolve_issues-resolved-template']
+        template_issue_error: Handlebars.templates['fail_solve_issue-template']
+
+        class: 'declare-machine-dead'
+
+        initialize: ->
+            log_initial '(initializing) modal dialog: declare machine dead'
+            super @template
+
+        render: (_machine_to_kill) ->
+            log_render '(rendering) declare machine dead dialog'
+            @machine_to_kill = _machine_to_kill
+            super
+                machine_name: @machine_to_kill.get("name")
+                modal_title: "Permanently remove the server"
+                btn_primary_text: 'Remove'
+
+        on_submit: ->
+            super
+
+            if @$('.verification').val().toLowerCase() is 'remove'
+                $.ajax
+                    url: "ajax/semilattice/machines/#{@machine_to_kill.id}"
+                    type: 'DELETE'
+                    contentType: 'application/json'
+                    success: @on_success
+                    error: @on_error
+            else
+                @.$('.error_verification').slideDown 'fast'
+                @reset_buttons()
+
+        on_success_with_error: =>
+            @.$('.error_answer').html @template_issue_error
+
+            if @.$('.error_answer').css('display') is 'none'
+                @.$('.error_answer').slideDown('fast')
+            else
+                @.$('.error_answer').css('display', 'none')
+                @.$('.error_answer').fadeIn()
+            @reset_buttons()
+
+
+        on_success: (response) =>
+            if (response)
+                @on_success_with_error()
+                return
+
+            # notify the user that we succeeded
+            $('#issue-alerts').append @alert_tmpl
+                machine_dead:
+                    machine_name: @machine_to_kill.get("name")
+
+            # Grab the new set of issues (so we don't have to wait)
+            $.ajax
+                url: 'ajax/issues'
+                contentType: 'application/json'
+                success: =>
+                    set_issues()
+                    super
+

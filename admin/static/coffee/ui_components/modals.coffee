@@ -114,10 +114,6 @@ module 'UIComponents', ->
         template: Handlebars.templates['confirmation_dialog-template']
         class: 'confirmation-modal'
 
-        initialize: ->
-            log_initial '(initializing) modal dialog: confirmation'
-            super
-
         render: (message, _url, _data, _on_success) ->
             log_render '(rendering) add secondary dialog'
             @url = _url

@@ -6,53 +6,36 @@ module 'TopBar', ->
         template: Handlebars.templates['sidebar-container-template']
         template_dataexplorer: Handlebars.templates['sidebar-dataexplorer_container-template']
 
-        events: ->
-            'click .show-issues': 'toggle_showing_issues'
-            'click .hide-issues': 'toggle_showing_issues'
-            'click a.change-route': 'toggle_showing_issues'
-            'click #issue-alerts .alert .close': 'remove_parent_alert'
+        initialize: (data) =>
+            @model = data.model
+            @issues = data.issues
 
-        initialize: =>
-            @client_connectivity_status = new TopBar.ClientConnectionStatus()
-            @servers_connected = new TopBar.ServersConnected()
-            @datacenters_connected = new TopBar.DatacentersConnected()
-            @issues = new TopBar.Issues()
-            @issues_banner = new TopBar.IssuesBanner()
-            @all_issues = new ResolveIssuesView.Container
-
-            # whether we're currently showing the issue list expanded (@all_issues)
-            @showing_all_issues = false
-
-            # Watch as issues get removed / reset. If the size is zero, let's figure out what to show
-            ###
-            issues.on 'remove', @issues_being_resolved
-            issues.on 'reset', @issues_being_resolved
-            ###
+            @client_panel = new TopBar.ClientConnectionStatus
+                model: @model
+            @servers_panel = new TopBar.ServersConnected
+                model: @model
+            @tables_panel = new TopBar.TablesAvailable
+                model: @model
+            @issues_panel = new TopBar.Issues
+                model: @model
+            @issues_banner = new TopBar.IssuesBanner
+                model: @model
+                collection: @issues
+                container: @
 
         render: =>
-            @.$el.html @template({})
+            @$el.html @template({})
 
             # Render connectivity status
-            @.$('.client-connection-status').html @client_connectivity_status.render().el
-            @.$('.servers-connected').html @servers_connected.render().el
-            @.$('.datacenters-connected').html @datacenters_connected.render().el
+            @$('.client-connection-status').html @client_panel.render().el
+            @$('.servers-connected').html @servers_panel.render().el
+            @$('.tables-available').html @tables_panel.render().el
 
             # Render issue summary and issue banner
-            @.$('.issues').html @issues.render().el
-            @.$('.issues-banner').html @issues_banner.render().el
+            @$('.issues').html @issues_panel.render().el
+            @$('.issues-banner').html @issues_banner.render().el
 
-            @.$('.all-issues').html @all_issues.render().$el
-            return @
-
-        # Change the state of the issue banner and show / hide the issue list based on state
-        toggle_showing_issues: =>
-            @showing_all_issues = not @showing_all_issues
-            if @showing_all_issues
-                @.$('.all-issues').show()
-            else
-                @.$('.all-issues').hide()
-
-            @issues_banner.set_showing_issues @showing_all_issues
+            @
 
         remove_parent_alert: (event) =>
             element = $(event.target).parent()
@@ -61,22 +44,12 @@ module 'TopBar', ->
                 @issues_being_resolved()
                 @issues_banner.render()
 
-        # As issues get resolved, we need to make sure that we're showing the right elements
-        issues_being_resolved: =>
-            if issues.length is 0 and @.$('#issue-alerts').children().length is 0
-                @.$('.all-issues').hide()
-                @showing_all_issues = false
-                @issues_banner.set_showing_issues @showing_all_issues
-
-        destroy: =>
-            issues.off 'remove', @issues_being_resolved
-            issues.off 'reset', @issues_being_resolved
-            @client_connectivity_status.destroy()
-            @servers_connected.destroy()
-            @datacenters_connected.destroy()
-            @issues.destroy()
-            @issues_banner.destroy()
-            @all_issues.destroy()
+        remove: =>
+            @client_panel.remove()
+            @servers_panel.remove()
+            @tables_panel.remove()
+            @issues_panel.remove()
+            @issues_banner.remove()
 
     # TopBar.ClientConnectionStatus
     class @ClientConnectionStatus extends Backbone.View
@@ -84,91 +57,56 @@ module 'TopBar', ->
         template: Handlebars.templates['sidebar-client_connection_status-template']
 
         initialize: =>
-            @data = ''
+            @listenTo @model, 'change:me', @render
 
         render: =>
-            return @
-            data =
-                disconnected: connection_status.get('client_disconnected')
-                machine_name: (machines.get(connection_status.get('contact_machine_id')).get 'name' if connection_status.get('contact_machine_id')? and machines.get(connection_status.get('contact_machine_id'))?)
+            @$el.html @template
+                disconnected: false
+                me: @model.get 'me'
+            @
 
-            data_in_json = JSON.stringify data
-            if @data isnt data_in_json
-                @.$el.html @template data
-                @data = data_in_json
-
-            return @
-
+        remove: =>
+            @stopListening()
+            super()
 
     # TopBar.ServersConnected
     class @ServersConnected extends Backbone.View
         template: Handlebars.templates['sidebar-servers_connected-template']
 
         initialize: =>
-            # Rerender every time some relevant info changes
-            @data = ''
+            @listenTo @model, 'change:num_servers', @render
+            @listenTo @model, 'change:num_available_servers', @render
 
         render: =>
-            return @
-            servers_active = 0
-            for machine in directory.models
-                if directory.get(machine.get('id'))? # Clean ghost
-                    servers_active++
+            @$el.html @template
+                num_available_servers: @model.get 'num_available_servers'
+                num_servers: @model.get 'num_servers'
+                error: @model.get('num_available_servers') < @model.get 'num_servers'
+            @
 
-            data =
-                servers_active: servers_active
-                servers_total: machines.length
-                servers_not_reachable: servers_active < machines.length
-
-            data_in_json = JSON.stringify data
-            if @data isnt data_in_json
-                @.$el.html @template data
-                @data = data_in_json
-            return @
-
-        destroy: =>
-            # Rerender every time some relevant info changes
+        remove: =>
+            @stopListening()
+            super()
 
     # TopBar.DatacentersConnected
-    class @DatacentersConnected extends Backbone.View
-        template: Handlebars.templates['sidebar-datacenters_connected-template']
+    class @TablesAvailable extends Backbone.View
+        template: Handlebars.templates['sidebar-tables_available-template']
 
         initialize: =>
-            # Rerender every time some relevant info changes
-            @data = ''
+            @listenTo @model, 'change:num_tables', @render
+            @listenTo @model, 'change:num_available_tables', @render
 
-        compute_connectivity: =>
-            return {}
-            dc_visible = []
-            directory.each (m) =>
-                _m = machines.get(m.get('id'))
-                if _m and _m.get('datacenter_uuid') and _m.get('datacenter_uuid') isnt universe_datacenter.get('id')
-                    dc_visible.push _m.get('datacenter_uuid')
-            # Also add empty datacenters to visible -- we define them
-            # as reachable.
-            datacenters.each (dc) =>
-                if DataUtils.get_datacenter_machines(dc.get('id')).length is 0
-                    dc_visible.push dc.get('id')
-            dc_visible = _.uniq(dc_visible)
-            conn =
-                datacenters_active: dc_visible.length
-                datacenters_total: datacenters.models.length
-                datacenters_not_reachable: dc_visible.length < datacenters.length
-
-            return conn
 
         render: =>
-            data = @compute_connectivity()
-            data_in_json = JSON.stringify data
-            if @data isnt data_in_json
-                @.$el.html @template data
-                @data = data_in_json
-            return @
+            @$el.html @template
+                num_tables: @model.get 'num_tables'
+                num_available_tables: @model.get 'num_available_tables'
+                error: @model.get('num_available_tables') < @model.get 'num_tables'
+            @
 
-        destroy: =>
-            directory.off 'all', @render
-            machines.off 'all', @render
-            datacenters.off 'all', @render
+        remove: =>
+            @stopListening()
+            super()
 
     # TopBar.Issues
     # Issue count panel at the top
@@ -177,55 +115,78 @@ module 'TopBar', ->
         template: Handlebars.templates['sidebar-issues-template']
 
         initialize: =>
-            #issues.on 'all', @render
-            @issues_length = -1
+            @listenTo @model, 'change:num_issues', @render
 
         render: =>
-            return @
-            if issues.length isnt @issues_length
-                @.$el.html @template
-                    num_issues: issues.length
-                @issues_length = issues.length
+            @$el.html @template
+                num_issues: @model.get 'num_issues'
+            @
 
-            return @
-
-        destroy: =>
-            issues.off 'all', @render
+        remove: =>
+            @stopListening()
+            super()
 
     # TopBar.IssuesBanner
     class @IssuesBanner extends Backbone.View
         template: Handlebars.templates['sidebar-issues_banner-template']
         resolve_issues_route: '#resolve_issues'
+        
+        events:
+            'click .btn-resolve-issues': @toggle_display
 
-        initialize: =>
-            #issues.on 'all', @render
-            @showing_issues = false
-            @data = {}
+        initialize: (data) =>
+            @model = data.model
+            @collection = data.collection
+            @container = data.container
+
+            @show_resolve = true
+            @issues_view = []
+
+            @listenTo @model, 'change:num_issues', @render
+
+            @collection.each (issue) =>
+                view = new ResolveIssuesView.Issue
+                    model: issue
+                # The first time, the collection is sorted
+                @issues_view.push view
+                @$('.issues_list').append view.render().$el
+
+            @collection.on 'add', (index) =>
+                view = new ResolveIssuesView.Issue
+                    model: issue
+                @indexes_view.push view
+
+                position = @collection.indexOf issue
+                if @collection.length is 1
+                    @$('.issues_list').html view.render().$el
+                else if position is 0
+                    @$('.issues_list').prepend view.render().$el
+                else
+                    @$('.issue_container').eq(position-1).after view.render().$el
+
+            @collection.on 'remove', (index) =>
+                for view in @indexes_view
+                    if view.model is index
+                        index.destroy()
+                        ((view) ->
+                            view.$el.slideUp 'fast', =>
+                                view.remove()
+                        )(view)
+                        break
+
+        toggle_display: =>
+            @show_resolve = not @show_resolve
+            @container.toggle_display_issues()
+            @render()
 
         render: =>
-            return {}
-            data =
-                num_issues: issues.length
-                no_issues: issues.length is 0
-                show_banner: issues.length > 0 or $('#issue-alerts').children().length > 0
+            @$el.html @template
+                num_issues: @model.get 'num_issues'
+                no_issues: @model.get('num_issues') is 0
+                show_banner: @showing_issues
+                show_resolve: @show_resolve
+            @
 
-            if _.isEqual(data, @data) is false
-                @data = data
-                @.$el.html @template @data
-
-                # Preserve the state of the button (show or hide issues) between renders
-                @set_showing_issues(@showing_issues) if @showing_issues
-
-            return @
-
-        set_showing_issues: (showing) =>
-            @showing_issues = showing
-            if showing
-                @.$('.show-issues').hide()
-                @.$('.hide-issues').show()
-            else
-                @.$('.show-issues').show()
-                @.$('.hide-issues').hide()
-
-        destroy: =>
-            issues.off 'all', @render
+        remove: =>
+            @stopListening()
+            super()
