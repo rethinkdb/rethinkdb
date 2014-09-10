@@ -22,7 +22,7 @@ module 'TopBar', ->
                 source: (typeahead, query) =>
                     servers = _.map @servers.models, (server) ->
                         id: server.get('id')
-                        name: server.get('name') + ' (machine)'
+                        name: server.get('name') + ' (server)'
                         type: 'servers'
                     tables = _.map @tables.models, (table) ->
                         id: table.get('id')

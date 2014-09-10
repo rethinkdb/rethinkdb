@@ -469,7 +469,7 @@ module 'TableView', ->
             else
                 @$('.no_index').hide()
 
-            @collection.on 'add', (index) =>
+            @listenTo @collection, 'add', (index) =>
                 view = new TableView.SecondaryIndexView
                     model: index
                     container: @
@@ -485,7 +485,7 @@ module 'TableView', ->
 
                 @$('.no_index').hide()
 
-            @collection.on 'remove', (index) =>
+            @listenTo @collection, 'remove', (index) =>
                 for view in @indexes_view
                     if view.model is index
                         index.destroy()
@@ -578,13 +578,13 @@ module 'TableView', ->
             event.preventDefault()
             $(event.target).parent().slideUp 'fast'
         
-        destroy: =>
+        remove: =>
+            @stopListening()
             if @timeout?
                 clearTimeout @timeout
-            @db.off 'change:name', @update_info
-            @model.off 'change:name', @update_info
             for key, view of @indexes
                 view.destroy()
+            super()
 
     class @SecondaryIndexView extends Backbone.View
         template: Handlebars.templates['namespace_view-secondary_index-template']

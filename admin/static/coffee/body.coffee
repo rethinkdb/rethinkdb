@@ -13,11 +13,12 @@ module 'MainView', ->
             @tables = new Tables
             @servers = new Servers
             @issues = new Issues
+            @dashboard = new Dashboard
 
             @alert_update_view = new MainView.AlertUpdates
 
             @options_view = new MainView.OptionsView
-                container: @
+                alert_update_view: @alert_update_view
             @options_state = 'hidden'
 
             @navbar = new TopBar.NavBarView
@@ -28,6 +29,8 @@ module 'MainView', ->
                 container: @
 
             @topbar = new TopBar.Container
+                model: @dashboard
+                issues: @issues
 
         # Should be started after the view is injected in the DOM tree
         start_router: =>
@@ -43,26 +46,39 @@ module 'MainView', ->
                 tables: r.db(system_db).table('table_config').merge({id: r.row("uuid")}).pluck('db', 'name', 'id').coerceTo("ARRAY")
                 servers: r.db(system_db).table('server_config').merge({id: r.row("uuid")}).pluck('name', 'id').coerceTo("ARRAY")
                 issues: [] #TODO
+                num_issues: 0 #TODO
+                me: "TODO"
+                num_servers: r.db(system_db).table('server_config').count()
+                num_available_servers: r.db(system_db).table('server_status').filter( (server) ->
+                    server("status").eq("available")
+                ).count()
+                num_tables: r.db(system_db).table('table_config').count()
+                num_available_tables: r.db(system_db).table('table_status').filter( (server) ->
+                    server("ready_completely").eq(true)
+                ).count()
+
 
             driver.run query, (error, result) =>
+                ###
                 console.log error
                 console.log result
+                ###
 
                 if error?
                     #TODO
                 else
                     @loading = false # TODO Move that outside the `if` statement?
-                    if @model?
-                        #TODO
-                    else
-                        @model = new Dashboard result
+                    for database in result.databases
+                        @databases.add new Database(database), {merge: true}
+                        delete result.databases
+                    for table in result.tables
+                        @tables.add new Table(table), {merge: true}
+                        delete result.tables
+                    for server in result.servers
+                        @servers.add new Server(server), {merge: true}
+                        delete result.servers
 
-                        for database in result.databases
-                            @databases.add new Database(database), {merge: true}
-                        for table in result.tables
-                            @tables.add new Table(table), {merge: true}
-                        for server in result.servers
-                            @servers.add new Server(server), {merge: true}
+                    @dashboard.set result
 
 
         render: =>
@@ -97,12 +113,11 @@ module 'MainView', ->
         template: Handlebars.templates['options_view-template']
 
         events:
-            'click .close': 'toggle_options'
             'click label[for=updates_yes]': 'turn_updates_on'
             'click label[for=updates_no]': 'turn_updates_off'
 
         initialize: (data) =>
-            @container = data.container
+            @alert_update_view = data.alert_update_view
 
         render: =>
             @$el.html @template
@@ -110,27 +125,14 @@ module 'MainView', ->
                 version: window.VERSION
             @
 
-        # Hide the options view
-        hide: (event) =>
-            event.preventDefault()
-            @options_state = 'hidden'
-            @$('.options_container_arrow_overlay').hide()
-            @$el.slideUp 'fast', ->
-                $('#options_container').hide()
-            @$('.cog_icon').removeClass 'active'
-
-        # Show/hide the options view
-        toggle_options: (event) =>
-            event.preventDefault()
-
         turn_updates_on: (event) =>
             window.localStorage.check_updates = JSON.stringify true
             window.localStorage.removeItem('ignore_version')
-            window.alert_update_view.check()
+            @alert_update_view.check()
 
         turn_updates_off: (event) =>
             window.localStorage.check_updates = JSON.stringify false
-            window.alert_update_view.hide()
+            @alert_update_view.hide()
 
     class @AlertUpdates extends Backbone.View
         has_update_template: Handlebars.templates['has_update-template']

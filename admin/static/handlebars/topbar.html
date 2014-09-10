@@ -4,11 +4,10 @@
             <div class="span3 client-connection-status"></div>
             <div class="span3 issues"></div>
             <div class="span3 servers-connected"></div>
-            <div class="span3 datacenters-connected"></div>
+            <div class="span3 tables-available"></div>
         </div>
     </div>
     <div class="issues-banner"></div>
-    <div class="all-issues"></div>
 </script>
 
 <script id="sidebar-client_connection_status-template" type="text/x-handlebars-template">
@@ -17,7 +16,7 @@
         <h4>Disconnected</h4>
         {{else}}
         <h5>Connected to</h5>
-        <h4 title={{machine_name}}>{{machine_name}}</h4>
+        <h4>{{me}}</h4>
         {{/if}}
     </div>
 </script>
@@ -36,12 +35,15 @@
 
 <script id="sidebar-issues_banner-template" type="text/x-handlebars-template">
     {{#if show_banner}}
-    <div class="show-issues-banner {{#if no_issues}}no-issues{{/if}}">
+        <div class="show-issues-banner {{#if no_issues}}no-issues{{/if}}">
             <div class="gradient-overlay {{#if no_issues}}no-issues{{/if}}">
                 <div class="container">
                     {{#unless no_issues}}
-                        <button class="btn btn-resolve-issues show-issues">Resolve issues</button>
-                        <button class="btn btn-resolve-issues hide-issues">Hide issues</button>
+                        {{#if show_resolve}}
+                            <button class="btn btn-resolve-issues show-issues">Resolve issues</button>
+                        {{else}}
+                            <button class="btn btn-resolve-issues hide-issues">Hide issues</button>
+                        {{/if}}
                     {{/unless}}
                     {{#if no_issues}}
                         <p class="message">All issues have been successfully resolved.</p>
@@ -51,20 +53,26 @@
                 </div>
             </div>
         </div>
+        <div class="all-issues">
+            <div class="container">
+                <div id="issue-alerts"></div>
+                <div class="issues_list"></div>
+            </div>
+        </div>
     {{/if}}
 </script>
 
 <script id="sidebar-servers_connected-template" type="text/x-handlebars-template">
-    <div class="panel {{#if servers_not_reachable}}error{{/if}}">
+    <div class="panel {{#if error}}error{{/if}}">
         <h5>Servers</h5>
-        <h4>{{servers_active}}/{{servers_total}} reachable</h4>
+        <h4>{{num_available_servers}}/{{num_servers}} reachable</h4>
     </div>
 </script>
 
-<script id="sidebar-datacenters_connected-template" type="text/x-handlebars-template">
-    <div class="panel {{#if datacenters_not_reachable}}error{{/if}}">
-        <h5>Datacenters</h5>
-        <h4>{{datacenters_active}}/{{datacenters_total}} reachable</h4>
+<script id="sidebar-tables_available-template" type="text/x-handlebars-template">
+    <div class="panel {{#if error}}error{{/if}}">
+        <h5>Tables</h5>
+        <h4>{{num_available_tables}}/{{num_tables}} reachable</h4>
     </div>
 </script>
 
