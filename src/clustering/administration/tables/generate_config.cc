@@ -17,7 +17,7 @@ public:
     void maybe_yield(signal_t *interruptor) {
         ticks_t now = get_ticks();
         /* We yield every 10ms. */
-        if (now > t + secs_to_ticks(0.01)) {
+        if (now > t + secs_to_ticks(1) / 100) {
             coro_t::yield();
             t = now;
         }
