@@ -29,7 +29,7 @@ COFFEE_SOURCES := $(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			ui_components/modals.coffee ui_components/list.coffee ui_components/progressbar.coffee \
 			tables/database.coffee \
 			tables/index.coffee tables/replicas.coffee tables/shards.coffee tables/shard_assignments.coffee tables/table.coffee \
-			servers/index.coffee servers/server.coffee servers/datacenter.coffee \
+			servers/index.coffee servers/server.coffee \
 			dashboard.coffee \
 			dataexplorer.coffee \
 			topbar.coffee \
