@@ -104,6 +104,7 @@ module 'Modals', ->
 
         on_success: (response) =>
             if Backbone.history.fragment is 'tables'
+                @database_to_delete.destroy()
                 super()
             else
                 # If the user was on a database view, we have to redirect him
