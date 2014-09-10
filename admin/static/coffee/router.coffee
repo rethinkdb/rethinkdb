@@ -23,8 +23,6 @@ class BackboneCluster extends Backbone.Router
         'servers/:id/': 'server'
         'dashboard': 'dashboard'
         'dashboard/': 'dashboard'
-        'resolve_issues': 'resolve_issues'
-        'resolve_issues/': 'resolve_issues'
         'logs': 'logs'
         'logs/': 'logs'
         'dataexplorer': 'dataexplorer'
@@ -42,9 +40,6 @@ class BackboneCluster extends Backbone.Router
 
     update_active_tab: (route) =>
         @navbar.set_active_tab route
-
-    set_stats_call: (url) =>
-        return
 
     index_tables: ->
         clear_modals()
@@ -64,25 +59,14 @@ class BackboneCluster extends Backbone.Router
         @current_view = new DashboardView.DashboardContainer
         @container.html @current_view.render().el
 
-    resolve_issues: ->
-        @set_stats_call ''
-        log_router '/resolve_issues'
-        clear_modals()
-        @current_view.remove()
-        @current_view = new ResolveIssuesView.Container
-        @container.html @current_view.render().el
-
     logs: ->
-        @set_stats_call ''
-        log_router '/logs'
+        #TODO
         clear_modals()
         @current_view.remove()
         @current_view = new LogView.Container
         @container.html @current_view.render().el
 
     dataexplorer: ->
-        @set_stats_call ''
-        log_router '/dataexplorer'
         clear_modals()
         @current_view.remove()
         @current_view = new DataExplorerView.Container
