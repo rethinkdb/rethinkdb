@@ -20,28 +20,18 @@ class BackboneCluster extends Backbone.Router
         'logs': 'logs'
         'dataexplorer': 'dataexplorer'
 
-    initialize: ->
-        log_initial '(initializing) router'
+    initialize: (data) ->
         super
+        @navbar = data.navbar
         window.app = @
 
-        @$container = $('#cluster')
+        @container = $('#cluster')
         @current_view = new Backbone.View
 
-        # Add and render the sidebar (visible across all views)
-        @$sidebar = $('#sidebar')
-        @sidebar = new Sidebar.Container
-        @render_sidebar()
+        @bind 'route', @update_active_tab
 
-        # Render navbar for the first time
-        @navbar = new NavBarView
-        @render_navbar()
-
-        @.bind 'all', (route, router) ->
-            @navbar.set_active_tab route
-
-    render_sidebar: -> @$sidebar.html @sidebar.render().el
-    render_navbar: -> $('#navbar-container').html @navbar.render().el
+    update_active_tab: (route) =>
+        @navbar.set_active_tab route
 
     set_stats_call: (url) =>
         return
@@ -50,19 +40,19 @@ class BackboneCluster extends Backbone.Router
         clear_modals()
         @current_view.remove()
         @current_view = new TablesView.DatabasesContainer
-        @$container.html @current_view.render().el
+        @container.html @current_view.render().el
 
     index_servers: (data) ->
         clear_modals()
         @current_view.remove()
         @current_view = new ServersView.ServersContainer
-        @$container.html @current_view.render().el
+        @container.html @current_view.render().el
 
     dashboard: ->
         clear_modals()
         @current_view.remove()
         @current_view = new DashboardView.DashboardContainer
-        @$container.html @current_view.render().el
+        @container.html @current_view.render().el
 
     resolve_issues: ->
         @set_stats_call ''
@@ -70,7 +60,7 @@ class BackboneCluster extends Backbone.Router
         clear_modals()
         @current_view.remove()
         @current_view = new ResolveIssuesView.Container
-        @$container.html @current_view.render().el
+        @container.html @current_view.render().el
 
     logs: ->
         @set_stats_call ''
@@ -78,7 +68,7 @@ class BackboneCluster extends Backbone.Router
         clear_modals()
         @current_view.remove()
         @current_view = new LogView.Container
-        @$container.html @current_view.render().el
+        @container.html @current_view.render().el
 
     dataexplorer: ->
         @set_stats_call ''
@@ -87,7 +77,7 @@ class BackboneCluster extends Backbone.Router
         @current_view.remove()
         @current_view = new DataExplorerView.Container
             state: DataExplorerView.state
-        @$container.html @current_view.render().el
+        @container.html @current_view.render().el
         @current_view.init_after_dom_rendered() # Need to be called once the view is in the DOM tree
         @current_view.results_view.set_scrollbar() # In case we check the data explorer, leave and come back
 
@@ -96,13 +86,13 @@ class BackboneCluster extends Backbone.Router
         @current_view.remove()
         @current_view = new DatabaseView.DatabaseContainer id
 
-        @$container.html @current_view.render().el
+        @container.html @current_view.render().el
 
     table: (id) ->
         clear_modals()
         @current_view.remove()
         @current_view = new TableView.TableContainer id
-        @$container.html @current_view.render().el
+        @container.html @current_view.render().el
 
     server: (id) ->
         log_router '/servers/' + id
@@ -111,4 +101,4 @@ class BackboneCluster extends Backbone.Router
         @current_view.remove()
         @current_view = new ServerView.ServerContainer id
 
-        @$container.html @current_view.render().el
+        @container.html @current_view.render().el
