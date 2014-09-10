@@ -15,12 +15,17 @@ module 'MainView', ->
             @issues = new Issues
 
             @alert_update_view = new MainView.AlertUpdates
+
             @options_view = new MainView.OptionsView
+                container: @
+            @options_state = 'hidden'
+
             @navbar = new TopBar.NavBarView
                 databases: @databases
                 tables: @tables
                 servers: @servers
                 options_view: @options_view
+                container: @
 
             @topbar = new TopBar.Container
 
@@ -69,6 +74,19 @@ module 'MainView', ->
 
             @
 
+        hide_options: =>
+            @$('#options_container').slideUp 'fast'
+
+        toggle_options: (event) =>
+            event.preventDefault()
+
+            if @options_state is 'visible'
+                @options_state = 'hidden'
+                @hide_options event
+            else
+                @options_state = 'visible'
+                @$('#options_container').slideDown 'fast'
+
         remove: =>
             @alert_update_view.remove()
             @options_view.remove()
@@ -83,6 +101,9 @@ module 'MainView', ->
             'click label[for=updates_yes]': 'turn_updates_on'
             'click label[for=updates_no]': 'turn_updates_off'
 
+        initialize: (data) =>
+            @container = data.container
+
         render: =>
             @$el.html @template
                 check_update: if window.localStorage?.check_updates? then JSON.parse window.localStorage.check_updates else true
@@ -93,21 +114,14 @@ module 'MainView', ->
         hide: (event) =>
             event.preventDefault()
             @options_state = 'hidden'
-            $('.options_container_arrow_overlay').hide()
-            @main_container.slideUp 'fast', ->
-                $('.options_background').hide()
+            @$('.options_container_arrow_overlay').hide()
+            @$el.slideUp 'fast', ->
+                $('#options_container').hide()
             @$('.cog_icon').removeClass 'active'
 
         # Show/hide the options view
         toggle_options: (event) =>
             event.preventDefault()
-            if @options_state is 'visible'
-                @hide event
-            else
-                @options_state = 'visible'
-                $('.options_container_arrow_overlay').show()
-                @$el.slideDown 'fast'
-                @delegateEvents()
 
         turn_updates_on: (event) =>
             window.localStorage.check_updates = JSON.stringify true

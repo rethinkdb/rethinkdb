@@ -13,7 +13,7 @@ module 'TopBar', ->
             @tables = data.tables
             @servers = data.servers
 
-            @options_view = data.options_view
+            @container = data.container
 
             @options_state = 'hidden' # can be 'hidden' or 'visible'
 
@@ -75,4 +75,4 @@ module 'TopBar', ->
 
         update_cog_icon: (event) =>
             @$('.cog_icon').toggleClass 'active'
-            @options_view.toggle_options event
+            @container.toggle_options event

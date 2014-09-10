@@ -1,9 +1,7 @@
 <script id="body-structure-template" type="text/x-handlebars-template">
     <div id="sticky-wrap">
         <div id="navbar-container"></div>
-        <div class="options_container_arrow_overlay"></div>
-        <div id="options_container">
-        </div>
+        <div id="options_container"></div>
 
         <div id="topbar"></div>
         <div id="updates_container"> 
@@ -79,22 +77,25 @@
 
 
 <script id="options_view-template" type="text/x-handlebars-template">
-    <div class="title">
-        <div class="title_content">
-            <div class="version"><img src="images/db.png" class="layers" />RethinkDB {{version}}</div>
-            <span class="title_text">Web UI Settings</span>
-        </div>
-    </div>
-    <div class="options_content">
-        <div class="toggle-primary">
-            <div class="switch">
-                <input type="radio" class="switch-input" name="updates" value="yes" id="updates_yes" {{#if check_update}}checked{{/if}}>
-                <label for="updates_yes" class="switch-label switch-label-off">Yes</label>
-                <input type="radio" class="switch-input" name="updates" value="no" id="updates_no" {{#unless check_update}}checked{{/unless}}>
-                <label for="updates_no" class="switch-label switch-label-on">No</label>
-                <span class="switch-selection"></span>
+    <div class="options_container_arrow_overlay"></div>
+    <div class="options_data">
+        <div class="title">
+            <div class="title_content">
+                <div class="version"><img src="images/db.png" class="layers" />RethinkDB {{version}}</div>
+                <span class="title_text">Web UI Settings</span>
             </div>
         </div>
-        <div class="description">Automatically look for updates to RethinkDB</div>
+        <div class="options_content">
+            <div class="toggle-primary">
+                <div class="switch">
+                    <input type="radio" class="switch-input" name="updates" value="yes" id="updates_yes" {{#if check_update}}checked{{/if}}>
+                    <label for="updates_yes" class="switch-label switch-label-off">Yes</label>
+                    <input type="radio" class="switch-input" name="updates" value="no" id="updates_no" {{#unless check_update}}checked{{/unless}}>
+                    <label for="updates_no" class="switch-label switch-label-on">No</label>
+                    <span class="switch-selection"></span>
+                </div>
+            </div>
+            <div class="description">Automatically look for updates to RethinkDB</div>
+        </div>
     </div>
 </script>
