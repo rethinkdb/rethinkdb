@@ -33,6 +33,7 @@ with driver.Metacluster() as metacluster:
                             command_prefix = command_prefix,
                             extra_options = serve_options)
         for i in xrange(num_servers)]
+    server_names = ["s%d" % (i+1) for i in xrange(num_servers)]
     for p in procs:
         p.wait_until_started_up()
     cluster.check()
@@ -87,6 +88,8 @@ with driver.Metacluster() as metacluster:
                 # warning instead of failing the test.
                 print "WARNING: unevenly distributed replicas:", usages
 
+        return new_config
+
     for num_shards in [1, 2, num_servers-1, num_servers, num_servers+1, num_servers*2]:
         for num_replicas in [1, 2, num_servers-1, num_servers]:
             test_reconfigure(num_shards, {"default": num_replicas}, "default")
@@ -114,6 +117,50 @@ with driver.Metacluster() as metacluster:
     print "new_config_2", new_config_2
     print "prev_config", prev_config
     assert get_config() == new_config_2
+
+    # Test that we prefer servers that held our data before
+    for server in server_names:
+        r.table_config("foo") \
+         .update({"shards": [{"replicas": [server], "directors": [server]}]}).run(conn)
+        for i in xrange(10):
+            time.sleep(3)
+            if r.table_status("foo").run(conn)["ready_completely"]:
+                break
+        else:
+            raise ValueError("took too long to reconfigure")
+        new_config = test_reconfigure(2, {"default": 1}, "default")
+        if (new_config["shards"][0]["directors"] != [server] and
+                new_config["shards"][1]["directors"] != [server]):
+            raise ValueError("expected to prefer %r, instead got %r" % \
+                (server, new_config))
+
+    res = r.table_drop("foo").run(conn)
+    assert res == {"dropped": 1}
+
+    # Test that we prefer servers that aren't holding other tables' data. We do this by
+    # constructing a table "blocker", which we configure so it uses all but one server;
+    # then we create a table "probe", and assert that it resides on the one unused
+    # server.
+    res = r.table_create("blocker").run(conn)
+    assert res == {"created": 1}
+    for server in server_names:
+        res = r.table_config("blocker").update({"shards": [{
+            "replicas": [n for n in server_names if n != server],
+            "directors": [n for n in server_names if n != server][:1]
+            }]}).run(conn)
+        assert res["errors"] == 0
+        for i in xrange(10):
+            time.sleep(3)
+            if r.table_status("blocker").run(conn)["ready_completely"]:
+                break
+        else:
+            raise ValueError("took too long to reconfigure")
+        res = r.table_create("probe").run(conn)
+        assert res == {"created": 1}
+        probe_config = r.table_config("probe").run(conn)
+        assert probe_config["shards"][0]["replicas"] == [server]
+        res = r.table_drop("probe").run(conn)
+        assert res == {"dropped": 1}
 
     cluster.check_and_stop()
 print "Done."

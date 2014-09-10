@@ -338,8 +338,8 @@ bool table_generate_config(
         size_t num_in_tag = servers_with_tags.at(server_tag).size();
         if (num_in_tag < it->second) {
             *error_out = strprintf("You requested %zu replicas on servers with the tag "
-                "`%s`, but there are only %zu servers with the tag `%s`. It's impossible "
-                "to have more replicas of the data than there are servers.",
+                "`%s`, but there are only %zu servers with the tag `%s`. It's "
+                "impossible to have more replicas of the data than there are servers.",
                 it->second, server_tag.c_str(), num_in_tag, server_tag.c_str());
             return false;
         }
@@ -355,7 +355,7 @@ bool table_generate_config(
             for (size_t shard = 0; shard < params.num_shards; ++shard) {
                 pairing_t p;
                 p.shard = shard;
-                if (table_id == nil_uuid()) {
+                if (table_id != nil_uuid()) {
                     auto dir_it = directory_metadata.find(server);
                     if (dir_it == directory_metadata.end()) {
                         p.backfill_cost = 3.0;
