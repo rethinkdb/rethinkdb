@@ -1,70 +1,78 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 
-# navigation bar view. Not sure where it should go, putting it here
-# because it's global.
-class NavBarView extends Backbone.View
-    id: 'navbar'
-    className: 'container'
-    template: Handlebars.templates['navbar_view-template']
-    events:
-        'click .options_link': 'update_cog_icon'
+module 'TopBar', ->
+    class @NavBarView extends Backbone.View
+        id: 'navbar'
+        className: 'container'
+        template: Handlebars.templates['navbar_view-template']
+        events:
+            'click .options_link': 'update_cog_icon'
 
+        initialize: (data) =>
+            @databases = data.databases
+            @tables = data.tables
+            @servers = data.servers
 
-    initialize: =>
-        @first_render = true
-        @options_state = 'hidden' # can be 'hidden' or 'visible'
+            @options_view = data.options_view
 
-    init_typeahead: => # Has to be called after we have injected the template
-        @.$('input.search-box').typeahead
-            source: (typeahead, query) ->
-                _machines = _.map machines.models, (machine) ->
-                    uuid: machine.get('id')
-                    name: machine.get('name') + ' (machine)'
-                    type: 'servers'
-                _datacenters = _.map datacenters.models, (datacenter) ->
-                    uuid: datacenter.get('id')
-                    name: datacenter.get('name') + ' (datacenter)'
-                    type: 'datacenters'
-                _namespaces = _.map namespaces.models, (namespace) ->
-                    uuid: namespace.get('id')
-                    name: namespace.get('name') + ' (namespace)'
-                    type: 'tables'
-                _databases = _.map databases.models, (database) ->
-                    uuid: database.get('id')
-                    name: database.get('name') + ' (database)'
-                    type: 'databases'
-                return _machines.concat(_datacenters).concat(_namespaces).concat(_databases)
-            property: 'name'
-            onselect: (obj) ->
-                window.app.navigate('#' + obj.type + '/' + obj.uuid , { trigger: true })
+            @options_state = 'hidden' # can be 'hidden' or 'visible'
 
-    render: (route) =>
-        log_render '(rendering) NavBarView'
-        @.$el.html @template()
-        # set active tab
-        @set_active_tab route
+        init_typeahead: => # Has to be called after we have injected the template
+            @$('input.search-box').typeahead
+                source: (typeahead, query) =>
+                    servers = _.map @servers.models, (server) ->
+                        id: server.get('id')
+                        name: server.get('name') + ' (machine)'
+                        type: 'servers'
+                    tables = _.map @tables.models, (table) ->
+                        id: table.get('id')
+                        name: table.get('name') + ' (table)'
+                        type: 'tables'
+                    databases = _.map @databases.models, (database) ->
+                        id: database.get('id')
+                        name: database.get('name') + ' (database)'
+                        type: 'databases'
+                    return servers.concat(tables).concat(databases)
+                property: 'name'
+                onselect: (obj) ->
+                    window.app.navigate('#' + obj.type + '/' + obj.id , { trigger: true })
 
-        if @first_render is true
-            # Initialize typeahead
-            @init_typeahead()
-            @first_render = false
+        render: (route) =>
+            @$el.html @template()
+            @set_active_tab route
+            @
 
-        return @
+        set_active_tab: (route) =>
+            if route?
+                switch route
+                    when 'dashboard'
+                        @$('ul.nav-left li').removeClass('active')
+                        @$('li#nav-dashboard').addClass('active')
+                    when 'index_tables'
+                        @$('ul.nav-left li').removeClass('active')
+                        @$('li#nav-namespaces').addClass('active')
+                    when 'table'
+                        @$('ul.nav-left li').removeClass('active')
+                        @$('li#nav-namespaces').addClass('active')
+                    when 'database'
+                        @$('ul.nav-left li').removeClass('active')
+                        @$('li#nav-namespaces').addClass('active')
+                    when 'index_servers'
+                        @$('ul.nav-left li').removeClass('active')
+                        @$('li#nav-servers').addClass('active')
+                    when 'server'
+                        @$('ul.nav-left li').removeClass('active')
+                        @$('li#nav-servers').addClass('active')
+                    when 'datacenter'
+                        @$('ul.nav-left li').removeClass('active')
+                        @$('li#nav-servers').addClass('active')
+                    when 'dataexplorer'
+                        @$('ul.nav-left li').removeClass('active')
+                        @$('li#nav-dataexplorer').addClass('active')
+                    when 'logs'
+                        @$('ul.nav-left li').removeClass('active')
+                        @$('li#nav-logs').addClass('active')
 
-    set_active_tab: (route) =>
-        if route?
-            @.$('ul.nav-left li').removeClass('active')
-            switch route 
-                when 'route:dashboard'          then @.$('li#nav-dashboard').addClass('active')
-                when 'route:index_namespaces'   then @.$('li#nav-namespaces').addClass('active')
-                when 'route:namespace'          then @.$('li#nav-namespaces').addClass('active')
-                when 'route:database'           then @.$('li#nav-namespaces').addClass('active')
-                when 'route:index_servers'      then @.$('li#nav-servers').addClass('active')
-                when 'route:server'             then @.$('li#nav-servers').addClass('active')
-                when 'route:datacenter'         then @.$('li#nav-servers').addClass('active')
-                when 'route:dataexplorer'       then @.$('li#nav-dataexplorer').addClass('active')
-                when 'route:logs'               then @.$('li#nav-logs').addClass('active')
-
-    update_cog_icon: (event) =>
-        @$('.cog_icon').toggleClass 'active'
-        window.options_view.toggle_options event
+        update_cog_icon: (event) =>
+            @$('.cog_icon').toggleClass 'active'
+            @options_view.toggle_options event

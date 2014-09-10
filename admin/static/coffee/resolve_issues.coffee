@@ -9,11 +9,11 @@ module 'ResolveIssuesView', ->
         template: Handlebars.templates['resolve_issues-container-template']
 
         initialize: ->
-            @issue_list = new ResolveIssuesView.IssueList()
+            #@issue_list = new ResolveIssuesView.IssueList()
 
         render: =>
             @.$el.html @template()
-            @.$('.issue-list').html @issue_list.render().el
+            #@.$('.issue-list').html @issue_list.render().el
             return @
 
     class @IssueList extends UIComponents.AbstractList

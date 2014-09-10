@@ -24,7 +24,6 @@ BUILD_WEB_ASSETS := $(foreach a,$(WEB_ASSETS_RELATIVE),$(WEB_ASSETS_BUILD_DIR)/$
 # coffee script can't handle dependencies.
 COFFEE_SOURCES := $(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			util.coffee \
-			loading.coffee \
 			body.coffee \
 			ui_components/modals.coffee ui_components/list.coffee ui_components/progressbar.coffee \
 			tables/database.coffee \

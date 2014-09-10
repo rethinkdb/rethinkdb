@@ -66,6 +66,13 @@ class ShardAssignment extends Backbone.Model
 
 class Dashboard extends Backbone.Model
 
+class Issue extends Backbone.Model
+
+class Issues extends Backbone.Collection
+    model: Issue
+    name: 'Issues'
+    #comparator: 'date'
+
 class Namespace extends Backbone.Model
     initialize: ->
         # Add a computed shards property for convenience and metadata
@@ -410,7 +417,6 @@ class LogEntry extends Backbone.Model
     get_formatted_message: =>
         msg = @.get('message')
 
-class Issue extends Backbone.Model
 
 class IssueRedundancy extends Backbone.Model
 
@@ -463,9 +469,6 @@ class Machines extends Backbone.Collection
     model: Machine
     name: 'Machines'
 
-class Issues extends Backbone.Collection
-    model: Issue
-    url: 'ajax/issues'
 
 # We compare the directory and the blueprints to detect redundancy problems
 class IssuesRedundancy extends Backbone.Collection

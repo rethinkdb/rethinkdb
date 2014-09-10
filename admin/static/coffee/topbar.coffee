@@ -1,7 +1,6 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
-# Sidebar view
-module 'Sidebar', ->
-    # Sidebar.Container
+# TopBar view
+module 'TopBar', ->
     class @Container extends Backbone.View
         className: 'sidebar-container'
         template: Handlebars.templates['sidebar-container-template']
@@ -14,19 +13,21 @@ module 'Sidebar', ->
             'click #issue-alerts .alert .close': 'remove_parent_alert'
 
         initialize: =>
-            @client_connectivity_status = new Sidebar.ClientConnectionStatus()
-            @servers_connected = new Sidebar.ServersConnected()
-            @datacenters_connected = new Sidebar.DatacentersConnected()
-            @issues = new Sidebar.Issues()
-            @issues_banner = new Sidebar.IssuesBanner()
+            @client_connectivity_status = new TopBar.ClientConnectionStatus()
+            @servers_connected = new TopBar.ServersConnected()
+            @datacenters_connected = new TopBar.DatacentersConnected()
+            @issues = new TopBar.Issues()
+            @issues_banner = new TopBar.IssuesBanner()
             @all_issues = new ResolveIssuesView.Container
 
             # whether we're currently showing the issue list expanded (@all_issues)
             @showing_all_issues = false
 
             # Watch as issues get removed / reset. If the size is zero, let's figure out what to show
+            ###
             issues.on 'remove', @issues_being_resolved
             issues.on 'reset', @issues_being_resolved
+            ###
 
         render: =>
             @.$el.html @template({})
@@ -77,17 +78,16 @@ module 'Sidebar', ->
             @issues_banner.destroy()
             @all_issues.destroy()
 
-    # Sidebar.ClientConnectionStatus
+    # TopBar.ClientConnectionStatus
     class @ClientConnectionStatus extends Backbone.View
         className: 'client-connection-status'
         template: Handlebars.templates['sidebar-client_connection_status-template']
 
         initialize: =>
-            connection_status.on 'all', @render
-            machines.on 'all', @render
             @data = ''
 
         render: =>
+            return @
             data =
                 disconnected: connection_status.get('client_disconnected')
                 machine_name: (machines.get(connection_status.get('contact_machine_id')).get 'name' if connection_status.get('contact_machine_id')? and machines.get(connection_status.get('contact_machine_id'))?)
@@ -99,21 +99,17 @@ module 'Sidebar', ->
 
             return @
 
-        destroy: =>
-            connection_status.off 'all', @render
-            machines.off 'all', @render
 
-    # Sidebar.ServersConnected
+    # TopBar.ServersConnected
     class @ServersConnected extends Backbone.View
         template: Handlebars.templates['sidebar-servers_connected-template']
 
         initialize: =>
             # Rerender every time some relevant info changes
-            directory.on 'all', @render
-            machines.on 'all', @render
             @data = ''
 
         render: =>
+            return @
             servers_active = 0
             for machine in directory.models
                 if directory.get(machine.get('id'))? # Clean ghost
@@ -132,22 +128,17 @@ module 'Sidebar', ->
 
         destroy: =>
             # Rerender every time some relevant info changes
-            directory.off 'all', @render
-            machines.off 'all', @render
 
-    # Sidebar.DatacentersConnected
+    # TopBar.DatacentersConnected
     class @DatacentersConnected extends Backbone.View
         template: Handlebars.templates['sidebar-datacenters_connected-template']
 
         initialize: =>
             # Rerender every time some relevant info changes
-            directory.on 'all', @render
-            machines.on 'all', @render
-            datacenters.on 'all', @render
-
             @data = ''
 
         compute_connectivity: =>
+            return {}
             dc_visible = []
             directory.each (m) =>
                 _m = machines.get(m.get('id'))
@@ -179,17 +170,18 @@ module 'Sidebar', ->
             machines.off 'all', @render
             datacenters.off 'all', @render
 
-    # Sidebar.Issues
+    # TopBar.Issues
     # Issue count panel at the top
     class @Issues extends Backbone.View
         className: 'issues'
         template: Handlebars.templates['sidebar-issues-template']
 
         initialize: =>
-            issues.on 'all', @render
+            #issues.on 'all', @render
             @issues_length = -1
 
         render: =>
+            return @
             if issues.length isnt @issues_length
                 @.$el.html @template
                     num_issues: issues.length
@@ -200,17 +192,18 @@ module 'Sidebar', ->
         destroy: =>
             issues.off 'all', @render
 
-    # Sidebar.IssuesBanner
+    # TopBar.IssuesBanner
     class @IssuesBanner extends Backbone.View
         template: Handlebars.templates['sidebar-issues_banner-template']
         resolve_issues_route: '#resolve_issues'
 
         initialize: =>
-            issues.on 'all', @render
+            #issues.on 'all', @render
             @showing_issues = false
             @data = {}
 
         render: =>
+            return {}
             data =
                 num_issues: issues.length
                 no_issues: issues.length is 0

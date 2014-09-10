@@ -9,6 +9,12 @@ $ ->
     window.r = require('rethinkdb')
     window.driver = new Driver
 
+    main_view = new MainView.MainContainer()
+    $('body').html main_view.render().$el
+
+    main_view.start_router()
+
+
 class @Driver
     constructor: (args) ->
         if window.location.port is ''
@@ -219,10 +225,8 @@ error_load_reql_docs = ->
     console.log 'Could not load reql documentation'
 
 collections_ready = ->
+    return 0
     # Data is now ready, let's get rockin'!
-    render_body()
-    window.router = new BackboneCluster
-    Backbone.history.start()
 
 collect_reql_doc = ->
     $.ajax
@@ -293,7 +297,6 @@ collect_stat_data = ->
 # Define the server to which the javascript is going to connect to
 # Tweaking the value of server.host or server.port can trigger errors for testing
 $ ->
-    render_loading()
     bind_dev_tools()
 
     # Initializing the Backbone.js app
