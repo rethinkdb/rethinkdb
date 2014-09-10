@@ -195,14 +195,13 @@ class IsDisconnected extends Backbone.View
     template: Handlebars.templates['is_disconnected-template']
     message: Handlebars.templates['is_disconnected_message-template']
     initialize: =>
-        log_initial '(initializing) sidebar view:'
         @render()
 
     render: =>
-        @.$('#modal-dialog > .modal').css('z-index', '1')
-        @.$('.modal-backdrop').remove()
-        @.$el.append @template
-        @.$('.is_disconnected').modal
+        @$('#modal-dialog > .modal').css('z-index', '1')
+        @$('.modal-backdrop').remove()
+        @$el.append @template()
+        @$('.is_disconnected').modal
             'show': true
             'backdrop': 'static'
         @animate_loading()
