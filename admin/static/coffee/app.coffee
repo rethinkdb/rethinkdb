@@ -25,6 +25,8 @@ class @Driver
             pathname: window.location.pathname
 
         @hack_driver()
+
+        @state = 'ok'
     
     # Hack the driver: remove .run() and add private_run()
     # We want run() to throw an error, in case a user write .run() in a query.
@@ -42,18 +44,31 @@ class @Driver
 
 
     run: (query, callback) =>
-        @connect (error, connection) ->
+        #TODO Add a timeout?
+        @connect (error, connection) =>
             if error?
-                return callback error
-
-            query.private_run connection, (err, result) ->
-                if typeof result?.toArray is 'function'
-                    result.toArray (err, result) ->
-                        callback(err, result)
-                        connection.close()
+                # If we cannot open a connection, we blackout the whole interface
+                # And do not call the callback
+                if window.is_disconnected?
+                    if @state is 'ok'
+                        window.is_disconnected.display_fail()
                 else
-                    callback(err, result)
-                    connection.close()
+                    window.is_disconnected = new IsDisconnected
+                @state = 'fail'
+            else
+                if @state is 'fail'
+                    # Force refresh
+                    window.location.reload true
+                else
+                    @state = 'ok'
+                    query.private_run connection, (err, result) ->
+                        if typeof result?.toArray is 'function'
+                            result.toArray (err, result) ->
+                                callback(err, result)
+                                connection.close()
+                        else
+                            callback(err, result)
+                            connection.close()
 
     close: (conn) ->
         conn.close {noreplyWait: false}
