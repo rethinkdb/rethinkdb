@@ -1,14 +1,25 @@
 <script id="databases_container-template" type="text/x-handlebars-template">
     <div class="actions-bar">
-        <button class="btn add-database">+ Add Database</button>
-        <button class="btn add-namespace">+ Add Table</button>
+        <button class="btn add_database">+ Add Database</button>
+        <button class="btn add_table">+ Add Table</button>
         <button class="btn for-multiple-elements remove-tables" disabled="disabled">&ndash; Delete selected tables</button>
     </div>
     <h1 class="title">Tables in the cluster</h1>
     <div id="user-alert-space"></div>
-    <div class="alert user_alert_space-cannot_create_namespace">You need to create a database before creating a table.</div>
     <div class="databases_list"></div>
 </script>
+
+<script id="no_databases-template" type="text/x-handlebars-template">
+    <div class="no-databases">
+        <div class="alert displayed_alert">
+            You need to create a database before creating a table.
+        </div>
+        <div class="no_element display">
+            <div class="no_element_content">There are no databases in this cluster.</div>
+        </div>
+    </div>
+</script>
+
 
 <script id="database-template" type="text/x-handlebars-template">
     <div class="header_container">

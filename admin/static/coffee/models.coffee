@@ -10,12 +10,14 @@ class Server extends Backbone.Model
 class Tables extends Backbone.Collection
     model: Table
     name: 'Tables'
+    comparator: 'name'
 
 class Table extends Backbone.Model
 
 class Databases extends Backbone.Collection
     model: Database
     name: 'Databases'
+    comparator: 'name'
 
 class Database extends Backbone.Model
 
