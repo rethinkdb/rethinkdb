@@ -21,7 +21,7 @@ with driver.Metacluster() as metacluster:
     print "Spinning up %d processes..." % num_servers
     files = [driver.Files(metacluster,
                           log_path = "create-output-%d" % (i+1),
-                          machine_name = "server_%d" % (i+1),
+                          machine_name = "s%d" % (i+1),
                           server_tags = ["tag_%d" % (i+1)],
                           executable_path = executable_path,
                           command_prefix = command_prefix)
@@ -37,9 +37,9 @@ with driver.Metacluster() as metacluster:
         p.wait_until_started_up()
     cluster.check()
 
-    tag_table = {"default": ["server_%d" % (i+1) for i in xrange(num_servers)]}
+    tag_table = {"default": ["s%d" % (i+1) for i in xrange(num_servers)]}
     for i in xrange(num_servers):
-        tag_table["tag_%d" % (i+1)] = ["server_%d" % (i+1)]
+        tag_table["tag_%d" % (i+1)] = ["s%d" % (i+1)]
 
     print "Creating a table..."
     conn = r.connect("localhost", procs[0].driver_port)
@@ -62,14 +62,31 @@ with driver.Metacluster() as metacluster:
             director_tag = director_tag,
             dry_run = True).run(conn)
         print new_config
+
+        # Make sure new config follows all the rules
         assert len(new_config["shards"]) == num_shards
         for shard in new_config["shards"]:
-            for server in shard["directors"]:
-                assert server in tag_table[director_tag]
+            assert len(shard["directors"]) == 1
+            assert shard["directors"][0] in tag_table[director_tag]
             for tag, count in num_replicas.iteritems():
                 servers_in_tag = [s for s in shard["replicas"] if s in tag_table[tag]]
                 assert len(servers_in_tag) == count
             assert len(shard["replicas"]) == sum(num_replicas.values())
+        directors = set(shard["directors"][0] for shard in new_config["shards"])
+
+        # Make sure new config distributes replicas evenly when possible
+        assert len(directors) == min(num_shards, num_servers)
+        for tag, count in num_replicas.iteritems():
+            usages = {}
+            for shard in new_config["shards"]:
+                for replica in shard["replicas"]:
+                    usages[replica] = usages.get(replica, 0) + 1
+            if max(usages.values()) > min(usages.values()) + 1:
+                # The current algorithm will sometimes fail to distribute replicas
+                # evenly. See issue #3028. Since this is a known issue, we just print a
+                # warning instead of failing the test.
+                print "WARNING: unevenly distributed replicas:", usages
+
     for num_shards in [1, 2, num_servers-1, num_servers, num_servers+1, num_servers*2]:
         for num_replicas in [1, 2, num_servers-1, num_servers]:
             test_reconfigure(num_shards, {"default": num_replicas}, "default")
