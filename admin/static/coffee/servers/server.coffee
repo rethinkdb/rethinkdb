@@ -26,7 +26,7 @@ module 'ServerView', ->
             @interval = setInterval @fetch_server, 5000
 
         fetch_server: =>
-            query = r.db(system_db).table('server_config').get(@id).do( (server) ->
+            query = r.db(system_db).table('server_status').get(@id).do( (server) ->
                 r.branch(
                     server.eq(null),
                     null,
@@ -128,54 +128,37 @@ module 'ServerView', ->
     class @Title extends Backbone.View
         className: 'machine-info-view'
         template: Handlebars.templates['machine_view_title-template']
-        initialize: ->
-            @name = @model.get('name')
-            @listenTo @model, 'change:name', @update
-
-        update: =>
-            if @name isnt @model.get('name')
-                @name = @model.get('name')
-                @render()
+        initialize: =>
+            @listenTo @model, 'change:name', @render
 
         render: =>
-            @.$el.html @template
-                name: @name
-            return @
+            @$el.html @template
+                name: @model.get('name')
+            @
 
-        destroy: =>
-            @stopListeningobject()
+        remove: =>
+            @stopListening()
 
     class @Profile extends Backbone.View
         className: 'machine-info-view'
         template: Handlebars.templates['machine_view_profile-template']
         initialize: =>
-            @model.on 'change', @render
-            @data = {}
+            @listenTo @model, 'change', @render
 
         render: =>
-            #TODO Replace with real data when server_status is available
-            data =
-                main_ip: '127.0.0.1'
-                uptime: $.timeago(new Date())
-                assigned_to_datacenter: false
+            @$el.html @template
+                main_ip: @model.get 'host'
+                uptime: $.timeago(@model.get('time_started')).slice(0, -4)
+                num_shards: @model.get('responsabilities').length
                 reachability:
-                    reachable: true
-                    last_seen: $.timeago(new Date()) #TODO make sure this fit in the html block
+                    reachable: @model.get('status') is 'available'
+                    last_seen: $.timeago(@model.get('time_disconnected')).slice(0, -4) if @model.get('status') isnt 'available'
+            @
 
-            if not _.isEqual @data, data
-                @data = data
-                @.$el.html @template @data
-
-            return @
-
-        destroy: =>
-            directory.off 'all', @render
-            @model.off 'all', @render
+        remove: =>
+            @stopListening()
 
 
-    #TODO Fix when server_status will be available
-    # We shouldn't need @namespaces_with_listeners at that time, all the data should be
-    # made available with a single query
     class @Data extends Backbone.View
         template: Handlebars.templates['server_data-template']
 
@@ -184,7 +167,7 @@ module 'ServerView', ->
             @listenTo @model, 'change:responsabilities', @render
 
         render: =>
-            @.$el.html @template
+            @$el.html @template
                 has_data: @model.get('responsabilities').length > 0
                 tables: @model.get('responsabilities')
 
