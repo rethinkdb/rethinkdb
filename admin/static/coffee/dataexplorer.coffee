@@ -23,7 +23,6 @@ module 'DataExplorerView', ->
         #saved_data: {}
 
 
-
     class @Container extends Backbone.View
         id: 'dataexplorer'
         template: Handlebars.templates['dataexplorer_view-template']
@@ -514,6 +513,25 @@ module 'DataExplorerView', ->
             @keep_suggestions_on_blur = false
 
             @render()
+
+            @databases_available = {}
+            @fetch_data()
+            @interval = setInterval @fetch_data, 5000
+
+        fetch_data: =>
+            query = r.db(system_db).table('table_config')
+                .pluck('db', 'name')
+                .group('db')
+                .ungroup()
+                .map((group) -> [group("group"), group("reduction")("name").orderBy( (x) -> x )])
+                .coerceTo "OBJECT"
+            driver.run query, (error, result) =>
+                if error?
+                    # Nothing bad, we'll try again, let's just log the error
+                    console.log "Error: Could not fetch databases and tables"
+                    console.log error
+                else
+                    @databases_available = result
 
         handle_mousemove: (event) =>
             @results_view.handle_mousemove event
@@ -2300,11 +2318,11 @@ module 'DataExplorerView', ->
         extend_description: (fn) =>
             if fn is 'db(' or fn is 'dbDrop('
                 description = _.extend {}, @descriptions[fn]()
-                if databases.length is 0
+                if _.keys(@databases_available).length is 0
                     data =
                         no_database: true
                 else
-                    databases_available = databases.models.map (database) -> return database.get('name')
+                    databases_available = _.keys @databases_available
                     data =
                         no_database: false
                         databases_available: databases_available
@@ -2315,13 +2333,9 @@ module 'DataExplorerView', ->
                 database_used = @extract_database_used()
                 description = _.extend {}, @descriptions[fn]()
                 if database_used.error is false
-                    namespaces_available = []
-                    for namespace in namespaces.models
-                        if database_used.db_found is false or namespace.get('database') is database_used.id
-                            namespaces_available.push namespace.get('name')
                     data =
-                        namespaces_available: namespaces_available
-                        no_namespace: namespaces_available.length is 0
+                        namespaces_available: @databases_available[database_used.name]
+                        no_namespace: @databases_available[database_used.name].length is 0
 
                     if database_used.name?
                         data.database_name = database_used.name
@@ -2331,7 +2345,7 @@ module 'DataExplorerView', ->
 
                 description.description = @namespaces_suggestions_template(data) + description.description
 
-                @extra_suggestions= namespaces_available
+                @extra_suggestions = @databases_available[database_used.name]
             else
                 description = @descriptions[fn] @grouped_data
                 @extra_suggestions= null
@@ -2344,15 +2358,11 @@ module 'DataExplorerView', ->
             # We cannot have ".db(" in a db name
             last_db_position = query_before_cursor.lastIndexOf('.db(')
             if last_db_position is -1
-                for database in databases.models
-                    if database.get('name') is 'test'
-                        database_test_id = database.get('id')
-                        break
-                if database_test_id?
+                found = false
+                if @databases_available['test']?
                     return {
                         db_found: true
                         error: false
-                        id: database_test_id
                         name: 'test'
                     }
                 else
@@ -2370,18 +2380,17 @@ module 'DataExplorerView', ->
                         error: true
                     }
                 db_name = arg.slice 0, end_arg_position
-                for database in databases.models
-                    if database.get('name') is db_name
-                        return {
-                            db_found: true
-                            error: false
-                            id: database.get('id')
-                            name: db_name
-                        }
-                return {
-                    db_found: false
-                    error: true
-                }
+                if @databases_available[db_name]?
+                    return {
+                        db_found: true
+                        error: false
+                        name: db_name
+                    }
+                else
+                    return {
+                        db_found: false
+                        error: true
+                    }
 
         # Function triggered when the user click on 'more results'
         show_more_results: (event) =>
@@ -2825,10 +2834,10 @@ module 'DataExplorerView', ->
             @$('.option_icon').removeClass 'fullscreen'
             @$('.option_icon').addClass 'fullscreen_exit'
 
-        destroy: =>
-            @results_view.destroy()
-            @history_view.destroy()
-            @driver_handler.destroy()
+        remove: =>
+            @results_view.remove()
+            @history_view.remove()
+            @driver_handler.remove()
 
             @display_normal()
             $(window).off 'resize', @display_full
@@ -2836,7 +2845,9 @@ module 'DataExplorerView', ->
             $(document).unbind 'mouseup', @handle_mouseup
 
             clearTimeout @timeout_driver_connect
+            clearInterval @interval
             # We do not destroy the cursor, because the user might come back and use it.
+            super()
     
     class @SharedResultView extends Backbone.View
         template_json_tree:
@@ -3741,9 +3752,10 @@ module 'DataExplorerView', ->
 
 
 
-        destroy: =>
+        remove: =>
             $(window).unbind 'scroll'
             $(window).unbind 'resize'
+            super()
 
     class @OptionsView extends Backbone.View
         dataexplorer_options_template: Handlebars.templates['dataexplorer-options-template']
@@ -3920,5 +3932,5 @@ module 'DataExplorerView', ->
                         driver.close connection
             )(id_execution)
 
-        destroy: =>
+        remove: =>
             @close_connection()
