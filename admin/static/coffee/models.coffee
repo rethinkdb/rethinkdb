@@ -430,10 +430,6 @@ class ConnectionStatus extends Backbone.Model
 # This is a computed model for the cluster (mainly for stats right
 # now)
 class ComputedCluster extends Backbone.Model
-    initialize: ->
-        log_initial '(initializing) computed cluster model'
-        super
-
     get_stats: =>
         # Ops/sec stats
         __s =

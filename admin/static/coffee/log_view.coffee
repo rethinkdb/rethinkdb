@@ -23,8 +23,6 @@ module 'LogView', ->
             'click .update-log-entries': 'update_log_entries'
 
         initialize: ->
-            log_initial '(initializing) events view: container'
-
             if @options.route?
                 @route = @options.route
             if @options.type?
