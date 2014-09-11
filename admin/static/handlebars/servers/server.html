@@ -103,46 +103,6 @@
     {{/if}}
 </script>
 
-<script id="reason-set_secondary-need_replica-template" type="text/x-handlebars-template">
-    You need a replica to replace this master, please <a href="#tables/{{namespace_id}}/replication">increase</a> your number of replicas.
-</script>
-
-<script id="reason-set_nothing-set_secondary_first-template" type="text/x-handlebars-template">
-    First set this server as a secondary before removing all responsabilities.
-</script>
-
-<script id="reason-set_master-datacenter_not_primary-template" type="text/x-handlebars-template">
-    You have to <a href="#tables/{{namespace_id}}/replication">set</a> this server's datacenter as the primary one first.
-</script>
-
-
-<script id="reason-set_nothing-unsatisfiable_goals-template" type="text/x-handlebars-template">
-    <a href="#tables/{{namespace_id}}/replication">Lower</a> the number of replicas or <a href="#servers">add a server</a> in this datacenter to avoid unsatisfiable goals.
-</script>
-
-<script id="reason-set_primary-set_secondary_first-template" type="text/x-handlebars-template">
-    The server must be a secondary before becoming a master.
-</script>
-
-<script id="reason-set_primary-set_datecenter_as_primary-template" type="text/x-handlebars-template">
-    You have to <a href="#tables/{{namespace_id}}/replication">set</a> this server's datacenter as the primary one first.
-</script>
-
-<script id="reason-set_primary-no_datacenter-template" type="text/x-handlebars-template">
-    You have to <a href="#servers">assign</a> this server to a datacenter first.
-</script>
-
-<script id="reason-set_secondary-increase_replicas-template" type="text/x-handlebars-template">
-    You have to <a href="#tables/{{namespace_id}}/replication">increase</a> your number of replicas first.
-</script>
-
-<script id="alert-set_server-template" type="text/x-handlebars-template">
-    <div class="alert" data-alert="alert">
-        <a class="close" href="#">&times;</a>
-        <p>You successfully set this server as a {{role}} for the shard {{shard}} of the table {{namespace_name}}</p>
-    </div>
-</script>
-
 <script id="machine_view-recent_log_entry-template" type="text/x-handlebars-template">
     <div class="entry-metadata">
         <p class="datetime"><abbr class="timeago" title="{{timeago_timestamp}}">{{timeago_timestamp}}</abbr></p>
@@ -154,35 +114,4 @@
             <a href="#" class="json" rel="popover" data-content="<pre>{{json}}</pre>" data-title="JSON applied to server">examine JSON</a>
         {{/if}}
     </p>
-</script>
-
-<script id="outdated_data-template" type="text/x-handlebars-template">
-    <p>Sorry, we couldn't find any secondary up to date to replace this master.</p>
-</script>
-
-<script id="unassign-modal-template" type="text/x-handlebars-template">
-    {{#if has_warning}}
-    <div class="alert alert-error displayed_alert">
-        <h4>Warning</h4>
-        {{#if namespaces_with_critical_issue}}
-        <p>You have just one server left in this datacenter and this server is master for the {{pluralize_noun "table" num_namespaces_with_critical_issue}} {{links_to_namespaces_inline namespaces_with_critical_issue}}.<br/>
-        Moving this server will results in a loss of availability as long as a no server are added in <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a> or a new datacenter is set primary for {{pluralize_this num_namespaces_with_critical_issue}} {{pluralize_noun "table" num_namespaces_with_critical_issue}}.</a></p>
-        {{/if}}
-        {{#if namespaces_with_unsatisfiable_goals}}
-        <p>The number of replicas for {{pluralize_noun "table" num_namespaces_with_unsatisfiable_goals}} {{links_to_namespaces_inline namespaces_with_unsatisfiable_goals}} you require will be lower than the number of servers available in <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a>.<br/>
-        You can lower the number of replicas required or add a server in this datacenter to avoid creating unsatisfiable goals.</p>
-        {{/if}}
-    </div>
-    {{/if}}
-
-    <div class="alert displayed_alert">Removing this server from its datacenter will remove all its responsabilities.</div>
-    <div class="alert alert-error error_answer"></div>
-    <p>Are you sure you want to remove this server <a href="#servers/{{id}}">{{name}}</a> from its datacenter?</p>
-</script>
-
-<script id="unassign-alert-template" type="text/x-handlebars-template">
-    <div class="alert displayed_alert" data-alert="alert">
-        <a class="close" href="#">&times;</a>
-        <p>You removed this server from its datacenter</p>
-    </div>
 </script>

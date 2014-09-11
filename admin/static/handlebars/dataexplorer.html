@@ -107,19 +107,19 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
     </p>
     <div class="separation"></div>
 </script>
-<script id="dataexplorer-namespaces_suggestions-template" type="text/x-handlebars-template">
+<script id="dataexplorer-tables_suggestions-template" type="text/x-handlebars-template">
     <p>
     {{#if error}}
         The database specified in db() was not found.
     {{else}}
-        {{#if no_namespace}}
+        {{#if no_table}}
             {{#if database_name}}
                 No table found in {{database_name}}. Use tableCreate() to create a new table first.
             {{else}}
                 You need to create a database then a table first.
             {{/if}}
         {{else}}
-            List of tables{{#if database_name}} in {{database_name}}{{/if}}: <strong>{{comma_separated_simple namespaces_available}}</strong>
+            List of tables{{#if database_name}} in {{database_name}}{{/if}}: <strong>{{comma_separated_simple tables_available}}</strong>
         {{/if}}
     {{/if}}
     </p>

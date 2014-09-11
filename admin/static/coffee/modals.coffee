@@ -12,8 +12,6 @@ module 'Modals', ->
             super
             @databases = databases
 
-        focus: =>
-            @$('#focus_namespace_name').focus()
 
         render: =>
             super
@@ -77,7 +75,6 @@ module 'Modals', ->
                 modal_title: 'Delete database'
                 btn_primary_text: 'Delete'
 
-        focus: =>
             @$('.verification_name').focus()
 
 
@@ -113,11 +110,11 @@ module 'Modals', ->
 
             window.app.current_view.render_message "The database #{@database_to_delete.get('name')} was successfully deleted."
 
-    class @AddNamespaceModal extends UIComponents.AbstractModal
-        template: Handlebars.templates['add_namespace-modal-template']
+    class @AddTableModal extends UIComponents.AbstractModal
+        template: Handlebars.templates['add_table-modal-template']
         templates:
             error: Handlebars.templates['error_input-template']
-        class: 'add-namespace'
+        class: 'add-table'
 
         initialize: (databases) =>
             super
@@ -128,21 +125,17 @@ module 'Modals', ->
             @can_create_table_status = true
             @delegateEvents()
 
-        focus: =>
-            @$('#focus_namespace_name').focus()
 
         show_advanced_settings: (event) =>
             event.preventDefault()
-            that = @
-            @.$('.show_advanced_settings-link_container').fadeOut 'fast', ->
-                that.$('.hide_advanced_settings-link_container').fadeIn 'fast'
-            @.$('.advanced_settings').slideDown 'fast'
+            @$('.show_advanced_settings-link_container').fadeOut 'fast', =>
+                @$('.hide_advanced_settings-link_container').fadeIn 'fast'
+            @$('.advanced_settings').slideDown 'fast'
 
         hide_advanced_settings: (event) =>
             event.preventDefault()
-            that = @
-            @.$('.hide_advanced_settings-link_container').fadeOut 'fast', ->
-                that.$('.show_advanced_settings-link_container').fadeIn 'fast'
+            @.$('.hide_advanced_settings-link_container').fadeOut 'fast', =>
+                $('.show_advanced_settings-link_container').fadeIn 'fast'
             @.$('.advanced_settings').slideUp 'fast'
 
         # Check if we have a database (if not, we cannot create a table)
@@ -170,8 +163,10 @@ module 'Modals', ->
                 databases: ordered_databases
 
             @check_if_can_create_table()
-            @.$('.show_advanced_settings-link').click @show_advanced_settings
-            @.$('.hide_advanced_settings-link').click @hide_advanced_settings
+            @$('.show_advanced_settings-link').click @show_advanced_settings
+            @$('.hide_advanced_settings-link').click @hide_advanced_settings
+
+            @$('#focus_table_name').focus()
 
         on_submit: =>
             super
@@ -180,9 +175,6 @@ module 'Modals', ->
             # Check if data is safe
             template_error = {}
             input_error = false
-
-
-
 
             if @formdata.name is '' # Need a name
                 input_error = true
@@ -237,8 +229,8 @@ module 'Modals', ->
         destroy: =>
             @stopListening()
 
-    class @RemoveNamespaceModal extends UIComponents.AbstractModal
-        template: Handlebars.templates['remove_namespace-modal-template']
+    class @RemoveTableModal extends UIComponents.AbstractModal
+        template: Handlebars.templates['remove_table-modal-template']
         class: 'remove-namespace-dialog'
 
         render: (tables_to_delete) =>

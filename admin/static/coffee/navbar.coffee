@@ -50,13 +50,13 @@ module 'TopBar', ->
                         @$('li#nav-dashboard').addClass('active')
                     when 'index_tables'
                         @$('ul.nav-left li').removeClass('active')
-                        @$('li#nav-namespaces').addClass('active')
+                        @$('li#nav-tables').addClass('active')
                     when 'table'
                         @$('ul.nav-left li').removeClass('active')
-                        @$('li#nav-namespaces').addClass('active')
+                        @$('li#nav-tables').addClass('active')
                     when 'database'
                         @$('ul.nav-left li').removeClass('active')
-                        @$('li#nav-namespaces').addClass('active')
+                        @$('li#nav-tables').addClass('active')
                     when 'index_servers'
                         @$('ul.nav-left li').removeClass('active')
                         @$('li#nav-servers').addClass('active')

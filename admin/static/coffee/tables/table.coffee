@@ -306,7 +306,7 @@ module 'TableView', ->
             event.preventDefault()
             if @remove_table_dialog?
                 @remove_table_dialog.remove()
-            @remove_table_dialog = new Modals.RemoveNamespaceModal
+            @remove_table_dialog = new Modals.RemoveTableModal
 
             @remove_table_dialog.render [{
                 table: @model.get 'name'
