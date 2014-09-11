@@ -71,7 +71,12 @@ class Issue extends Backbone.Model
 class Issues extends Backbone.Collection
     model: Issue
     name: 'Issues'
-    #comparator: 'date'
+
+class Logs extends Backbone.Collection
+    model: Log
+    name: 'Logs'
+
+class Log extends Backbone.Model
 
 class Namespace extends Backbone.Model
     initialize: ->

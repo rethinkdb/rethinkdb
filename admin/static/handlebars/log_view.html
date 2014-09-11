@@ -1,12 +1,16 @@
-<script id="log-container-template" type="text/x-handlebars-template">
+<script id="logs_container-template" type="text/x-handlebars-template">
     <div id="log-view" class="section">
         <div class="header"><h2 class="title">Log entries</h2></div>
         <ul class="log-entries"></ul>
         <div class="any-more-log-entries no_element">
-            <p class="no-more-entries">No more log entries to show</p>
-            <p class="next-log-entries-container">
-                <a href="#" class='next-log-entries'>Older log entries &raquo;</a>
-            </p>
+            {{#if loading}}
+                <p>Loading...</p>
+            {{else}}
+                <p class="no-more-entries">No more log entries to show</p>
+                <p class="next-log-entries-container">
+                    <a href="#" class='next-log-entries'>Older log entries &raquo;</a>
+                </p>
+            {{/if}}
         </div>
     </div>
 </script>
