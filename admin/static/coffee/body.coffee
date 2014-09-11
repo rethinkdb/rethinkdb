@@ -3,6 +3,7 @@ module 'MainView', ->
     # Main container
     class @MainContainer extends Backbone.View
         template: Handlebars.templates['body-structure-template']
+        id: 'main_view'
         
         initialize: =>
             @loading = true
