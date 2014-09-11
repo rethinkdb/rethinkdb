@@ -354,128 +354,58 @@ module 'DashboardView', ->
 
     class @ClusterStatusConsistency extends Backbone.View
         className: 'cluster-status-consistency'
-
-        template: Handlebars.templates['cluster_status-container-template']
-        status_template: Handlebars.templates['cluster_status-consistency_status-template']
-        popup_template: Handlebars.templates['cluster_status-consistency-popup-template']
+        template: Handlebars.templates['cluster_status-consistency_status-template']
 
         events:
-            'click .show_details': 'show_details'
-            'click .close': 'hide_details'
+            'click .show_details': 'show_popup'
+            'click .close': 'hide_popup'
 
         initialize: =>
-            @data = ''
-            issues.on 'all', @render_status
+            # We could eventually properly create a collection from @model.get('shards')
+            # But this is probably not worth the effort for now.
 
-        compute_data: =>
-            # Looking for vclock conflict
-            conflicts = []
-            for issue in issues.models
-                if issue.get('type') is 'VCLOCK_CONFLICT'
-                    type = issue.get('object_type')
-                    switch type
-                        when 'namespace'
-                            type = 'table'
-                            if namespaces.get(issue.get('object_id'))?
-                                name = namespaces.get(issue.get('object_id')).get('name')
-                            else
-                                name = 'Not found table'
-                        when 'database'
-                            type = 'database'
-                            if databases.get(issue.get('object_id'))
-                                name = databases.get(issue.get('object_id')).get('name')
-                            else
-                                name = 'Not found database'
-                        when 'datacenter'
-                            type = 'datacenter'
-                            if issue.get('object_id') is universe_datacenter.get('id')
-                                name = universe_datacenter.get('name')
-                            else if datacenters.get(issue.get('object_id'))?
-                                name = datacenters.get(issue.get('object_id')).get('name')
-                            else
-                                name = 'Not found datacenter'
-                        when 'machine'
-                            type = 'server'
-                            if machines.get(issue.get('object_id'))
-                                name = machines.get(issue.get('object_id')).get('name')
-                            else
-                                name = 'Not found server'
+            @listenTo @model, 'change:num_servers', @render
+            @listenTo @model, 'change:num_available_servers', @render
 
-                    conflicts.push
-                        id: issue.get('object_id')
-                        type: type # Use this to generate url
-                        name: name
-                        field: issue.get('field')
+            $(window).on 'mouseup', @hide_popup
+            @$el.on 'click', @stop_propagation
 
-
-            types = {}
-            num_types_conflicts = 0
-            for conflict in conflicts
-                if not types[conflict.type]?
-                    types[conflict.type] = 1
-                    num_types_conflicts++
-                else
-                    types[conflict.type]++
-                
-            has_conflicts: conflicts.length > 0
-            conflicts: conflicts
-            has_multiple_types: num_types_conflicts > 1
-            num_types_conflicts:num_types_conflicts
-            types: (type if num_types_conflicts is 1)
-            type: (type if type?)
-            num_conflicts: conflicts.length
-            num_namespaces_conflicting: conflicts.length
-            num_namespaces: namespaces.length
-
-        render: =>
-            @.$el.html @template()
-            @render_status()
-
-        render_status: =>
-            data = @compute_data()
-            if _.isEqual(@data, data) is false
-                @.$('.status').html @status_template data
-                if data.has_conflicts is false
-                    @.$('.status').addClass 'no-problems-detected'
-                    @.$('.status').removeClass 'problems-detected'
-                else
-                    @.$('.status').addClass 'problems-detected'
-                    @.$('.status').removeClass 'no-problems-detected'
-
-                @.$('.popup_container').html @popup_template data
-            return @
-
-        clean_dom_listeners: =>
-            if @link_clicked?
-                @link_clicked.off 'mouseup', @stop_propagation
-            @.$('.popup_container').off 'mouseup', @stop_propagation
-            $(window).off 'mouseup', @hide_details
-
-        show_details: (event) =>
-            event.preventDefault()
-            @clean_dom_listeners()
-            @.$('.popup_container').show()
-            margin_top = event.pageY-60-13
-            margin_left= event.pageX-12-470
-            @.$('.popup_container').css 'margin', margin_top+'px 0px 0px '+margin_left+'px'
-
-
-            @.$('.popup_container').on 'mouseup', @stop_propagation
-            @link_clicked = @.$(event.target)
-            @link_clicked.on 'mouseup', @stop_propagation
-            $(window).on 'mouseup', @hide_details
+            @display_popup = false
+            @margin = {}
 
         stop_propagation: (event) ->
             event.stopPropagation()
 
-        hide_details: (event) =>
-            @.$('.popup_container').hide()
-            @clean_dom_listeners()
+        show_popup: (event) =>
+            if event?
+                event.preventDefault()
 
-        destroy: =>
-            issues.off 'all', @render_status
-            @clean_dom_listeners()
+                @margin.top = event.pageY-60-13
+                @margin.left = event.pageX+12
 
+            @$('.popup_container').show()
+            @$('.popup_container').css 'margin', @margin.top+'px 0px 0px '+@margin.left+'px'
+            @display_popup = true
+
+        hide_popup: (event) =>
+            @display_popup = false
+            @$('.popup_container').hide()
+
+        render: =>
+            @$el.html @template
+                has_conflicts: false
+                num_tables: 0
+
+            if @display_popup is true and @model.get('num_issues') > 0
+                # We re-display the pop up only if there are still issues
+                @show_popup()
+
+            @
+
+
+        remove: =>
+            @stopListeningTo()
+            $(window).off 'mouseup', @remove_popup()
 
     class @Logs extends Backbone.View
         className: 'log-entries'
