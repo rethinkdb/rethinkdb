@@ -20,7 +20,6 @@ module 'TablesView', ->
 
         add_table: =>
             @add_table_dialog.render()
-            @add_table_dialog.focus()
 
         delete_tables: (event) =>
             # Make sure the button isn't disabled, and pass the list of namespace UUIDs selected
@@ -65,8 +64,8 @@ module 'TablesView', ->
             @loading = true # TODO Render that
 
             @add_database_dialog = new Modals.AddDatabaseModal @databases
-            @add_table_dialog = new Modals.AddNamespaceModal @databases
-            @remove_tables_dialog = new Modals.RemoveNamespaceModal
+            @add_table_dialog = new Modals.AddTableModal @databases
+            @remove_tables_dialog = new Modals.RemoveTableModal
 
         render: =>
             @$el.html @template.main({})
@@ -191,9 +190,10 @@ module 'TablesView', ->
            'click button.remove-database': 'remove_database'
 
         remove_database: =>
-            remove_database_dialog = new Modals.RemoveDatabaseModal
-            remove_database_dialog.render @model
-            remove_database_dialog.focus()
+            if @remove_database_dialog?
+                @remove_database_dialog.remove()
+            @remove_database_dialog = new Modals.RemoveDatabaseModal
+            @remove_database_dialog.render @model
 
 
         initialize: =>
@@ -270,6 +270,8 @@ module 'TablesView', ->
             @stopListening()
             for view in @tables_views
                 view.remove()
+            if @remove_database_dialog?
+                @remove_database_dialog.remove()
             super()
 
     class @TableView extends Backbone.View

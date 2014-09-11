@@ -23,10 +23,10 @@
     </div>
 </script>
 
-<script id="add_namespace-modal-template" type="text/x-handlebars-template">
+<script id="add_table-modal-template" type="text/x-handlebars-template">
     <form class="form">
         <label for="name">Name</label>
-        <input class="xlarge" id="focus_namespace_name" name="name" size="30" type="text" />
+        <input class="xlarge" id="focus_table_name" name="name" size="30" type="text" />
 
         <label for="primary_datacenter">Select a database</label>
         <select class="database" name="database">
@@ -55,7 +55,7 @@
     </form>
 </script>
 
-<script id="remove_namespace-modal-template" type="text/x-handlebars-template">
+<script id="remove_table-modal-template" type="text/x-handlebars-template">
     <div class="alert alert-error displayed_alert">Deleting a table will delete all its data. This action cannot be reversed.</div>
     <div class="alert alert-error error_answer"></div>
     {{#if single_delete}}

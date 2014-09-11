@@ -32,7 +32,7 @@ module 'DataExplorerView', ->
         description_with_example_template: Handlebars.templates['dataexplorer-description_with_example-template']
         alert_connection_fail_template: Handlebars.templates['alert-connection_fail-template']
         databases_suggestions_template: Handlebars.templates['dataexplorer-databases_suggestions-template']
-        namespaces_suggestions_template: Handlebars.templates['dataexplorer-namespaces_suggestions-template']
+        tables_suggestions_template: Handlebars.templates['dataexplorer-tables_suggestions-template']
         reason_dataexplorer_broken_template: Handlebars.templates['dataexplorer-reason_broken-template']
         query_error_template: Handlebars.templates['dataexplorer-query_error-template']
 
@@ -2334,8 +2334,8 @@ module 'DataExplorerView', ->
                 description = _.extend {}, @descriptions[fn]()
                 if database_used.error is false
                     data =
-                        namespaces_available: @databases_available[database_used.name]
-                        no_namespace: @databases_available[database_used.name].length is 0
+                        tables_available: @databases_available[database_used.name]
+                        no_table: @databases_available[database_used.name].length is 0
 
                     if database_used.name?
                         data.database_name = database_used.name
@@ -2343,7 +2343,7 @@ module 'DataExplorerView', ->
                     data =
                         error: database_used.error
 
-                description.description = @namespaces_suggestions_template(data) + description.description
+                description.description = @tables_suggestions_template(data) + description.description
 
                 @extra_suggestions = @databases_available[database_used.name]
             else
