@@ -1,6 +1,108 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 # Log view
 module 'LogView', ->
+    class @LogsContainer extends Backbone.View
+        template:
+            main: Handlebars.templates['logs_container-template']
+            error: Handlebars.templates['error-query-template']
+            alert_message: Handlebars.templates['alert_message-template']
+
+        initialize: =>
+            @logs = new Logs()
+            @logs_list = new LogView.LogsListView
+                collection: @logs
+
+            @fetch_data()
+            @interval = setInterval @fetch_data, 5000
+
+        fetch_data: =>
+            query = r.expr([]) # TODO Replace with the logs table
+
+            driver.run query, (error, result) =>
+                if error?
+                    if @error?.msg isnt error.msg
+                        @error = error
+                        @$el.html @template.error
+                            url: '#tables'
+                            error: error.message
+                else
+                    @loading = false # TODO Move that outside the `if` statement?
+                    @render()
+
+                    for log, index in result
+                        @logs.add new Log(log), {merge: true}
+
+        render: =>
+            @$el.html @template.main
+                loading: @loading
+                adding_index: @adding_index
+
+            @$('.logs_list').html @logs_list.render().$el
+            @
+
+        remove: =>
+            clearInterval @interval
+            super()
+
+    class @LogsListView extends Backbone.View
+        initialize: =>
+            @logs_view = []
+
+            @collection.each (log) =>
+                view = new LogView.LogView
+                    model: log
+
+                # The first time, the collection is sorted
+                @logs_view.push view
+                @$('.logs_list').append view.render().$el
+
+            if @collection.length is 0
+                @$('.no_logs').show()
+            else
+                @$('.no_logs').hide()
+
+            @listenTo @collection, 'add', (log) =>
+                view = new LogView.LogView
+                    model: log
+                @logs_view.push view
+
+                position = @collection.indexOf log
+                if @collection.length is 1
+                    @$('.logs_list').html view.render().$el
+                else if position is 0
+                    @$('.logs_list').prepend view.render().$el
+                else
+                    @$('.log_container').eq(position-1).after view.render().$el
+
+                @$('.no_logs').hide()
+
+            @listenTo @collection, 'remove', (log) =>
+                for view in @logs_view
+                    if view.model is log
+                        log.destroy()
+                        ((view) ->
+                            view.$el.slideUp 'fast', =>
+                                view.remove()
+                        )(view)
+                        break
+                if @collection.length is 0
+                    @$('.no_log').show()
+
+    class @LogView extends Backbone.View
+        initialize: =>
+            @model.on 'change', @render
+
+        render: =>
+            @$el.html @template @model.toJSON()
+            @
+
+        remove: =>
+            @stopListening()
+            super()
+
+    ###
+    #    Old things below
+    ###
     # LogView.Container
     class @Container extends Backbone.View
         className: 'log-view'

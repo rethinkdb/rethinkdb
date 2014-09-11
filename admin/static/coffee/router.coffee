@@ -60,10 +60,9 @@ class BackboneCluster extends Backbone.Router
         @container.html @current_view.render().el
 
     logs: ->
-        #TODO
         clear_modals()
         @current_view.remove()
-        @current_view = new LogView.Container
+        @current_view = new LogView.LogsContainer
         @container.html @current_view.render().el
 
     dataexplorer: ->
@@ -79,7 +78,6 @@ class BackboneCluster extends Backbone.Router
         clear_modals()
         @current_view.remove()
         @current_view = new DatabaseView.DatabaseContainer id
-
         @container.html @current_view.render().el
 
     table: (id) ->
@@ -89,10 +87,7 @@ class BackboneCluster extends Backbone.Router
         @container.html @current_view.render().el
 
     server: (id) ->
-        log_router '/servers/' + id
         clear_modals()
-
         @current_view.remove()
         @current_view = new ServerView.ServerContainer id
-
         @container.html @current_view.render().el
