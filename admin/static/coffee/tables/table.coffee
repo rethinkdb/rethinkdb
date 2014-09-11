@@ -241,14 +241,18 @@ module 'TableView', ->
             @server_assignments = new TableView.ShardAssignmentsView
                 model: @model
                 collection: @shards_assignments
-            ###
-            @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance,
+
+            @performance_graph = new Vis.OpsPlot(@get_stats,
                 width:  564             # width in pixels
                 height: 210             # height in pixels
                 seconds: 73             # num seconds to track
                 type: 'table'
             )
-            ###
+
+        get_stats: =>
+            #TODO Replace with real data
+            keys_read: Math.floor(2000+Math.random()*1000)
+            keys_set: Math.floor(2000+Math.random()*1000)
 
         render: =>
             @$el.html @template.main
@@ -260,9 +264,7 @@ module 'TableView', ->
             # Add the replica and shards views
             @$('.profile').html @profile.render().$el
 
-            ###
-            @.$('.performance-graph').html @performance_graph.render().$el
-            ###
+            @$('.performance-graph').html @performance_graph.render().$el
 
             # Display the replicas
             @$('.replication').html @replicas.render().el
