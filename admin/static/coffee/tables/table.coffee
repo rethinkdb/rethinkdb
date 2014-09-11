@@ -22,7 +22,6 @@ module 'TableView', ->
 
 
         fetch_data: =>
-            #TODO Use table_config to retrieve the number of shards/replicas
             ignore = (shard) -> shard('role').ne('nothing')
             this_id = @id
             query =
