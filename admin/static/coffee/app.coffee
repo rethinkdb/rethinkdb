@@ -14,6 +14,15 @@ $ ->
 
     main_view.start_router()
 
+    Backbone.sync = (method, model, success, error) ->
+        return 0
+        if method is 'read'
+            collect_server_data()
+        else
+            Backbone.sync method, model, success, error
+
+
+
 
 class @Driver
     constructor: (args) ->
@@ -297,8 +306,6 @@ collect_stat_data = ->
 # Define the server to which the javascript is going to connect to
 # Tweaking the value of server.host or server.port can trigger errors for testing
 $ ->
-    bind_dev_tools()
-
     # Initializing the Backbone.js app
     window.datacenters = new Datacenters
     window.databases = new Databases
@@ -316,14 +323,6 @@ $ ->
         id: '00000000-0000-0000-0000-000000000000'
         name: 'Universe'
     
-    # Override the default Backbone.sync behavior to allow reading diff
-    Backbone.sync = (method, model, success, error) ->
-        return 0
-        if method is 'read'
-            collect_server_data()
-        else
-            Backbone.sync method, model, success, error
-
     # Collect the first time
     collect_server_data_once(true, collections_ready)
 

@@ -27,7 +27,6 @@ module 'Vis', ->
         template: Handlebars.templates['ops_plot_legend-template']
 
         initialize: (_read_metric, _write_metric, _context) =>
-            log_initial '(initializing) ops plot legend'
             @context = _context
             @reads = null
             @writes = null
@@ -38,7 +37,6 @@ module 'Vis', ->
                 @render()
 
         render: ->
-            log_render '(rendering) ops plot legend'
             @.$el.html @template
                 read_count: if @reads? then Vis.num_formatter(@reads) else 'N/A'
                 write_count: if @writes? then Vis.num_formatter(@writes) else 'N/A'
@@ -111,8 +109,6 @@ module 'Vis', ->
         #           of the plot). valid values include 'cluster',
         #           'datacenter', 'server', 'database', and 'table'
         initialize: (_stats_fn, options) ->
-            log_initial '(initializing) ops plot'
-
             if options?
                 # Kludgey way to override custom options given Slava's class variable approach.
                 # A sane options object for the entire class would have been preferable.

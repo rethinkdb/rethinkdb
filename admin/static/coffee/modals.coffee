@@ -296,11 +296,9 @@ module 'Modals', ->
         class: 'declare-machine-dead'
 
         initialize: ->
-            log_initial '(initializing) modal dialog: declare machine dead'
             super @template
 
         render: (_machine_to_kill) ->
-            log_render '(rendering) declare machine dead dialog'
             @machine_to_kill = _machine_to_kill
             super
                 machine_name: @machine_to_kill.get("name")
