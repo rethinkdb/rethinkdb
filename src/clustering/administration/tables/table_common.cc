@@ -2,6 +2,7 @@
 #include "clustering/administration/tables/table_common.hpp"
 
 #include "clustering/administration/datum_adapter.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 
 std::string common_table_artificial_table_backend_t::get_primary_key_name() {
@@ -62,5 +63,19 @@ name_string_t common_table_artificial_table_backend_t::get_db_name(database_id_t
     } else {
         return dbs.databases.at(db_id).get_ref().name.get_ref();
     }
+}
+
+bool common_table_artificial_table_backend_t::get_db_id(name_string_t db_name,
+        database_id_t *db_out, std::string *error_out) {
+    assert_thread();
+    databases_semilattice_metadata_t dbs = database_sl_view->get();
+    metadata_searcher_t<database_semilattice_metadata_t> searcher(&dbs.databases);
+    metadata_search_status_t status;
+    auto db_it = searcher.find_uniq(db_name, &status);
+    if (!check_metadata_status(status, "Database", db_name.str(), true, error_out)) {
+        return false;
+    }
+    *db_out = db_it->first;
+    return true;
 }
 

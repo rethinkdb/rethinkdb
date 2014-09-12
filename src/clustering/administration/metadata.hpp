@@ -193,6 +193,12 @@ enum metadata_search_status_t {
     METADATA_SUCCESS, METADATA_ERR_NONE, METADATA_ERR_MULTIPLE
 };
 
+bool check_metadata_status(metadata_search_status_t status,
+                           const char *entity_type,
+                           const std::string &entity_name,
+                           bool expect_present,
+                           std::string *error_out);
+
 /* A helper class to search through metadata in various ways.  Can be
    constructed from a pointer to the internal map of the metadata,
    e.g. `metadata.databases.databases`.  Look in rdb_protocol/query_language.cc
