@@ -72,11 +72,10 @@ private:
 
 class batchspec_t {
 public:
-    static batchspec_t user(batch_type_t batch_type,
-                            const datum_t &conf);
     static batchspec_t user(batch_type_t batch_type, env_t *env);
     static batchspec_t all(); // Gimme everything.
     static batchspec_t empty() { return batchspec_t(); }
+    static batchspec_t default_for(batch_type_t batch_type);
     batch_type_t get_batch_type() const { return batch_type; }
     batchspec_t with_new_batch_type(batch_type_t new_batch_type) const;
     batchspec_t with_at_most(uint64_t max_els) const;
