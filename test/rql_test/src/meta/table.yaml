@@ -133,13 +133,6 @@ tests:
       ot: {"inserted": 4}
 
     - cd: db.table('a').reconfigure(2, 1)
-      ot: >
-          err('RqlRuntimeError', 'You requested 2 shards, but there are only 1 servers
-          with the tag `default`. reconfigure() requires at least as many servers with
-          each tag as there are shards, so that it can distribute the shards across
-          servers instead of putting multiple shards on a single server. You can work
-          around this limitation by generating a configuration manually instead of using
-          reconfigure().', [])
 
     - cd: db.table('a').reconfigure(1, 2)
       ot: >
