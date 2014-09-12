@@ -1190,7 +1190,8 @@ module 'DataExplorerView', ->
 
             # The expensive operations are coming. If the query is too long, we just don't parse the query
             if @codemirror.getValue().length > @max_size_query
-                return false
+                # Return true or false will break the event propagation
+                return undefined
 
             query_before_cursor = @codemirror.getRange {line: 0, ch: 0}, @codemirror.getCursor()
             query_after_cursor = @codemirror.getRange @codemirror.getCursor(), {line:@codemirror.lineCount()+1, ch: 0}
