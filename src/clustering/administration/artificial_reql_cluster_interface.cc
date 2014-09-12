@@ -4,6 +4,7 @@
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/real_reql_cluster_interface.hpp"
+#include "clustering/administration/admin_tracker.hpp"
 #include "rdb_protocol/artificial_table/artificial_table.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
@@ -154,6 +155,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
             cluster_directory_metadata_t> > > _directory_view,
         server_name_client_t *_name_client,
+        admin_tracker_t *_admin_tracker,
         last_seen_tracker_t *_last_seen_tracker) {
     std::map<name_string_t, artificial_table_backend_t*> backends;
 
@@ -214,6 +216,11 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         _name_client));
     backends[name_string_t::guarantee_valid("table_status")] =
         table_status_backend.get();
+
+    issues_backend.init(new issues_artificial_table_backend_t(
+        *_admin_tracker));
+    backends[name_string_t::guarantee_valid("issues")] =
+        issues_backend.get();
 
     reql_cluster_interface.init(new artificial_reql_cluster_interface_t(
         name_string_t::guarantee_valid("rethinkdb"),

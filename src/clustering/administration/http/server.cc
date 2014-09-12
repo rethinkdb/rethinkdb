@@ -3,7 +3,6 @@
 
 #include "clustering/administration/http/cyanide.hpp"
 #include "clustering/administration/http/directory_app.hpp"
-#include "clustering/administration/http/issues_app.hpp"
 #include "clustering/administration/http/log_app.hpp"
 #include "clustering/administration/http/progress_app.hpp"
 #include "clustering/administration/http/stat_app.hpp"
@@ -39,7 +38,6 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
             _cluster_semilattice_metadata,
         clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata,
-        admin_tracker_t *_admin_tracker,
         http_app_t *reql_app,
         std::string path)
 {
@@ -223,7 +221,6 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     file_app.init(new file_http_app_t(white_list, path));
 
     directory_app.init(new directory_http_app_t(_directory_metadata));
-    issues_app.init(new issues_http_app_t(&_admin_tracker->issue_aggregator));
     stat_app.init(new stat_http_app_t(mbox_manager, _directory_metadata, _cluster_semilattice_metadata));
     log_app.init(new log_http_app_t(mbox_manager,
         _directory_metadata->subview(&get_log_mailbox),
@@ -236,7 +233,6 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
 
     std::map<std::string, http_app_t *> ajax_routes;
     ajax_routes["directory"] = directory_app.get();
-    ajax_routes["issues"] = issues_app.get();
     ajax_routes["stat"] = stat_app.get();
     ajax_routes["log"] = log_app.get();
     ajax_routes["progress"] = progress_app.get();
@@ -245,7 +241,6 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
 
     std::map<std::string, http_json_app_t *> default_views;
     default_views["directory"] = directory_app.get();
-    default_views["issues"] = issues_app.get();
 
     combining_app.init(new combining_http_app_t(default_views));
 

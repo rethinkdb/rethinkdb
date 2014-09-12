@@ -6,8 +6,6 @@
 #include <set>
 #include <string>
 
-#include "clustering/administration/admin_tracker.hpp"
-#include "clustering/administration/issue_subscription.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "http/http.hpp"
@@ -37,7 +35,6 @@ public:
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
             _cluster_semilattice_metadata,
         clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata,
-        admin_tracker_t *_admin_tracker,
         http_app_t *reql_app,
         std::string _path);
     ~administrative_http_server_manager_t();
@@ -47,7 +44,6 @@ private:
 
     scoped_ptr_t<file_http_app_t> file_app;
     scoped_ptr_t<directory_http_app_t> directory_app;
-    scoped_ptr_t<issues_http_app_t> issues_app;
     scoped_ptr_t<stat_http_app_t> stat_app;
     scoped_ptr_t<log_http_app_t> log_app;
     scoped_ptr_t<progress_app_t> progress_app;

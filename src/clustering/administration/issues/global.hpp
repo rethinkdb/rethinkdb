@@ -2,73 +2,73 @@
 #ifndef CLUSTERING_ADMINISTRATION_ISSUES_GLOBAL_HPP_
 #define CLUSTERING_ADMINISTRATION_ISSUES_GLOBAL_HPP_
 
-#include <list>
+#include <vector>
 #include <set>
 #include <string>
 
-#include "containers/clone_ptr.hpp"
-#include "http/json.hpp"
-#include "http/json/json_adapter.hpp"
+#include "containers/scoped.hpp"
+#include "rpc/semilattice/view.hpp"
+#include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/datum_string.hpp"
 
-class global_issue_t {
+class issue_multiplexer_t;
+class cluster_semilattice_metadata_t;
+
+class issue_t {
 public:
-    virtual std::string get_description() const = 0;
-    virtual cJSON *get_json_description() = 0;
+    explicit issue_t(const issue_id_t &_issue_id) : issue_id(_issue_id) { }
+    virtual ~issue_t() { }
 
-    virtual ~global_issue_t() { }
-    virtual global_issue_t *clone() const = 0;
+    // to_datum has to generate info and description data, which depends on the
+    // current cluster configuration
+    typedef cluster_semilattice_metadata_t metadata_t;
+    void to_datum(const metadata_t &metadata, ql::datum_t *datum_out) const;
 
-    global_issue_t() { }
+    virtual bool is_critical() const = 0;
+    virtual const datum_string_t &get_name() const = 0;
+    virtual issue_id_t get_id() const { return issue_id; }
 
-private:
-    DISABLE_COPYING(global_issue_t);
-};
-
-class global_issue_tracker_t {
-public:
-    virtual std::list<clone_ptr_t<global_issue_t> > get_issues() = 0;
-
-    global_issue_tracker_t() { }
+    static const std::string get_server_name(const metadata_t &metadata,
+                                             const machine_id_t &server_id);
 
 protected:
-    virtual ~global_issue_tracker_t() { }
-
+    virtual void build_info_and_description(const metadata_t &metadata,
+                                            ql::datum_t *info_out,
+                                            datum_string_t *desc_out) const = 0;
 private:
-    DISABLE_COPYING(global_issue_tracker_t);
+    const issue_id_t issue_id;
+    DISABLE_COPYING(issue_t);
 };
 
-class global_issue_aggregator_t : public global_issue_tracker_t {
+class issue_tracker_t {
 public:
-    class source_t {
-    public:
-        source_t(global_issue_aggregator_t *_parent, global_issue_tracker_t *_source) :
-            parent(_parent), source(_source) {
-            parent->sources.insert(this);
-        }
-        ~source_t() {
-            parent->sources.erase(this);
-        }
-    private:
-        friend class global_issue_aggregator_t;
-        global_issue_aggregator_t *parent;
-        global_issue_tracker_t *source;
-    };
+    explicit issue_tracker_t(issue_multiplexer_t *_parent);
+    virtual ~issue_tracker_t();
 
-    std::list<clone_ptr_t<global_issue_t> > get_issues() {
-        std::list<clone_ptr_t<global_issue_t> > all;
-        for (std::set<source_t *>::iterator it = sources.begin(); it != sources.end(); ++it) {
-            std::list<clone_ptr_t<global_issue_t> > from_source = (*it)->source->get_issues();
-            all.splice(all.end(), from_source);
-        }
-        return all;
-    }
-
-    global_issue_aggregator_t() { }
+    virtual std::vector<scoped_ptr_t<issue_t> > get_issues() const = 0;
 
 private:
-    std::set<source_t *> sources;
+    issue_multiplexer_t *parent;
+    DISABLE_COPYING(issue_tracker_t);
+};
 
-    DISABLE_COPYING(global_issue_aggregator_t);
+class issue_multiplexer_t : public home_thread_mixin_t {
+public:
+    issue_multiplexer_t(
+        boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
+            _cluster_sl_view);
+
+    void get_issue_ids(std::vector<ql::datum_t> *ids_out) const;
+    void get_issue(const issue_id_t &issue_id,
+                   ql::datum_t *row_out) const;
+
+private:
+    std::vector<scoped_ptr_t<issue_t> > all_issues() const;
+
+    friend class issue_tracker_t;
+    std::set<issue_tracker_t *> trackers;
+    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > cluster_sl_view;
+    DISABLE_COPYING(issue_multiplexer_t);
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_ISSUES_GLOBAL_HPP_ */

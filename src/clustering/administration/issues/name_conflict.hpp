@@ -1,51 +1,100 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_ISSUES_NAME_CONFLICT_HPP_
 #define CLUSTERING_ADMINISTRATION_ISSUES_NAME_CONFLICT_HPP_
 
-#include <list>
+#include <vector>
 #include <set>
 #include <string>
 
 #include "clustering/administration/issues/global.hpp"
-#include "clustering/administration/issues/json.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "http/json.hpp"
 #include "rpc/semilattice/view.hpp"
 
-template <class> class semilattice_read_view_t;
-
-class name_conflict_issue_t : public global_issue_t {
+// Base issue for all name conflicts (server, database, and table)
+class name_conflict_issue_t : public issue_t {
 public:
-    name_conflict_issue_t(
-            const std::string &_type,
-            const std::string &_contested_name,
-            const std::set<uuid_u> &_contestants);
+    name_conflict_issue_t(const issue_id_t &_issue_id,
+                          const name_string_t &_conflicted_name);
+    bool is_critical() const { return true; }
 
-    std::string get_description() const;
+protected:
+    template <typename map_t>
+    std::vector<uuid_u> get_conflicted_ids(const map_t &metadata) const;
 
-    cJSON *get_json_description();
-
-    name_conflict_issue_t *clone() const;
-
-    // TODO: Why is type not an enumeration?
-    // TODO: Why is every name conflict issue one of these things with "type"?
-    std::string type;
-    std::string contested_name;
-    std::set<uuid_u> contestants;
-
-private:
-    DISABLE_COPYING(name_conflict_issue_t);
+    const name_string_t conflicted_name;
+    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > metadata;
 };
 
-class name_conflict_issue_tracker_t : public global_issue_tracker_t {
+// Issue for server name conflicts
+class server_name_conflict_issue_t : public name_conflict_issue_t {
 public:
-    explicit name_conflict_issue_tracker_t(boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_view);
-    ~name_conflict_issue_tracker_t();
-
-    std::list<clone_ptr_t<global_issue_t> > get_issues();
+    explicit server_name_conflict_issue_t(const name_string_t &_conflicted_name);
+    const datum_string_t &get_name() const { return server_name_conflict_issue_type; }
 
 private:
-    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_view;
+    void build_info_and_description(const metadata_t &metadata,
+                                    ql::datum_t *info_out,
+                                    datum_string_t *desc_out) const;
+
+    static const datum_string_t server_name_conflict_issue_type;
+    static const issue_id_t base_issue_id;
+};
+
+// Issue for database name conflicts
+class db_name_conflict_issue_t : public name_conflict_issue_t {
+public:
+    explicit db_name_conflict_issue_t(const name_string_t &_conflicted_name);
+    const datum_string_t &get_name() const { return db_name_conflict_issue_type; }
+
+private:
+    void build_info_and_description(const metadata_t &metadata,
+                                    ql::datum_t *info_out,
+                                    datum_string_t *desc_out) const;
+
+    static const datum_string_t db_name_conflict_issue_type;
+    static const issue_id_t base_issue_id;
+};
+
+// Issue for table name conflicts
+class table_name_conflict_issue_t : public name_conflict_issue_t {
+public:
+    table_name_conflict_issue_t(const name_string_t &_conflicted_name,
+                                const database_id_t &_db_id);
+    const datum_string_t &get_name() const { return table_name_conflict_issue_type; }
+
+private:
+    void build_info_and_description(const metadata_t &metadata,
+                                    ql::datum_t *info_out,
+                                    datum_string_t *desc_out) const;
+
+    void build_description(const std::string &db_name,
+                           const std::vector<namespace_id_t> &ids,
+                           datum_string_t *desc_out) const;
+
+    void build_info(const std::string &db_name,
+                    const std::vector<namespace_id_t> &ids,
+                    ql::datum_t *info_out) const;
+
+    static const datum_string_t table_name_conflict_issue_type;
+    static const issue_id_t base_issue_id;
+    const database_id_t db_id;
+};
+
+class name_conflict_issue_tracker_t : public issue_tracker_t {
+public:
+    name_conflict_issue_tracker_t(
+        issue_multiplexer_t *_parent,
+        boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
+            _cluster_sl_view);
+
+    ~name_conflict_issue_tracker_t();
+
+    std::vector<scoped_ptr_t<issue_t> > get_issues() const;
+
+private:
+    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
+        cluster_sl_view;
 
     DISABLE_COPYING(name_conflict_issue_tracker_t);
 };

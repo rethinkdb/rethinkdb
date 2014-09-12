@@ -13,7 +13,7 @@
 
 #include "clustering/administration/issues/global.hpp"
 #include "clustering/administration/issues/local_to_global.hpp"
-#include "clustering/administration/issues/machine_down.hpp"
+#include "clustering/administration/issues/server.hpp"
 #include "clustering/administration/issues/name_conflict.hpp"
 #include "clustering/administration/issues/outdated_index.hpp"
 #include "clustering/administration/metadata.hpp"
@@ -21,23 +21,24 @@
 
 template <class> class watchable_t;
 
-struct admin_tracker_t {
+class admin_tracker_t {
+public:
     admin_tracker_t(
-        mailbox_manager_t *mailbox_manager,
         boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > cluster_view,
-        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > &directory_view);
+        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > &directory_view,
+        local_issue_aggregator_t *local_issue_aggregator);
 
     ~admin_tracker_t();
 
-    global_issue_aggregator_t issue_aggregator;
-    remote_issue_collector_t remote_issue_tracker;
-    global_issue_aggregator_t::source_t remote_issue_tracker_feed;
-    machine_down_issue_tracker_t machine_down_issue_tracker;
-    global_issue_aggregator_t::source_t machine_down_issue_tracker_feed;
+    issue_multiplexer_t issue_multiplexer;
+
+    // Global issues
+    remote_issue_tracker_t remote_issue_tracker;
     name_conflict_issue_tracker_t name_conflict_issue_tracker;
-    global_issue_aggregator_t::source_t name_conflict_issue_tracker_feed;
-    outdated_index_issue_client_t outdated_index_client;
-    global_issue_aggregator_t::source_t outdated_index_issue_tracker_feed;
+
+    // Local issues
+    server_issue_tracker_t server_issue_tracker;
+    outdated_index_issue_tracker_t outdated_index_tracker;
 
     last_seen_tracker_t last_seen_tracker;
 };

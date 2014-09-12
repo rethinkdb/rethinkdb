@@ -6,10 +6,12 @@
 #include <stdint.h>
 
 #include <string>
+#include <vector>
 
 #include "errors.hpp"
 
 class printf_buffer_t;
+class name_string_t;
 
 // uuid_t is defined on Darwin.  I have given up on what to name it.  Please
 // don't use guid_t, for it has a Windowsian connotation and we might run into
@@ -30,7 +32,36 @@ public:
 
     uint8_t *data() { return data_; }
     const uint8_t *data() const { return data_; }
+
+    // Generates a deterministic hash of the given arguments and returns a UUID for them
+    template<class... Args>
+    static uuid_u from_hash(const uuid_u &base, const Args&... args) {
+        return from_hash_internal(base, concat(args...));
+    }
 private:
+    // Terminal concat call
+    static std::string concat() { return std::string(""); }
+
+    template <typename T, typename... Args>
+    static std::string concat(const T& arg1, const Args&... args) {
+        return item_to_str(arg1) + concat(args...);
+    }
+
+    template <typename T>
+    static std::string item_to_str(const std::vector<T> &vec) {
+        std::string res;
+        for (auto const &item : vec) {
+            res += item_to_str(item);
+        }
+        return res;
+    }
+
+    static std::string item_to_str(const name_string_t &str);
+    static std::string item_to_str(const std::string &str);
+    static std::string item_to_str(const uuid_u &id);
+
+    static uuid_u from_hash_internal(const uuid_u &base, const std::string &name);
+
     uint8_t data_[kStaticSize];
 };
 
@@ -57,13 +88,13 @@ MUST_USE bool str_to_uuid(const std::string &str, uuid_u *out);
 
 bool is_uuid(const std::string& str);
 
-
 typedef uuid_u namespace_id_t;
 typedef uuid_u database_id_t;
 typedef uuid_u machine_id_t;
 typedef uuid_u backfill_session_id_t;
 typedef uuid_u branch_id_t;
 typedef uuid_u reactor_activity_id_t;
+typedef uuid_u issue_id_t;
 
 
 #endif  // CONTAINERS_UUID_HPP_

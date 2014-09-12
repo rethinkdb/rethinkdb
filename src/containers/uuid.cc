@@ -11,6 +11,7 @@
 #include <stdexcept>
 
 #include "containers/printf_buffer.hpp"
+#include "containers/name_string.hpp"
 #include "utils.hpp"
 #include "thread_local.hpp"
 
@@ -34,6 +35,45 @@ bool uuid_u::is_nil() const {
         if (data_[i] != 0) return false;
     }
     return true;
+}
+
+std::string uuid_u::item_to_str(const name_string_t &str) {
+    return item_to_str(str.str());
+}
+
+std::string uuid_u::item_to_str(const std::string &str) {
+    return 'S' + str + '\0';
+}
+
+std::string uuid_u::item_to_str(const uuid_u &id) {
+    return 'U' + std::string(reinterpret_cast<const char *>(id.data()),
+                             id.static_size()) + '\0';
+}
+
+// TODO: This should conform to RFC4122 section 4.3
+uuid_u uuid_u::from_hash_internal(const uuid_u &base,
+                                  const std::string &name) {
+    rassert(!base.is_unset() && !base.is_nil());
+
+    // TODO: Convert base to network byte order (not done because bleh)
+    // Concatenate base and name
+    std::string str = std::string(reinterpret_cast<const char *>(base.data()),
+                                  base.static_size()) + name;
+
+    // Compute SHA-1 of the concatenated string
+    uint8_t output_buffer[20];
+    sha1::calc(str.c_str(), str.length(), output_buffer);
+
+    // Set some bits to obey standard for version 4 UUIDs.
+    output_buffer[6] = ((output_buffer[6] & 0x0f) | 0x40);
+    output_buffer[8] = ((output_buffer[8] & 0x3f) | 0x80);
+
+    // Convert to host byte order (not done because we never put it in network byte order)
+
+    // Copy the beginning of the hash into our uuid
+    uuid_u uuid;
+    memcpy(uuid.data(), output_buffer, uuid_u::static_size());
+    return uuid;
 }
 
 bool operator==(const uuid_u& x, const uuid_u& y) {
