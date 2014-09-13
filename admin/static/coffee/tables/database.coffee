@@ -213,7 +213,7 @@ module 'DatabaseView', ->
             @listenTo @model, 'change:num_replicas', @render
 
         render: =>
-            @.$el.html @template
+            @$el.html @template
                 num_tables: @model.get 'num_tables'
                 num_available_tables: @model.get 'num_available_tables'
                 reachability: @model.get 'completely_ready'      # Status of the table
@@ -236,7 +236,6 @@ module 'DatabaseView', ->
             @tables_views = []
             @$el.html @template()
 
-            console.log @collection.length
             @collection.each (table) =>
                 view = new DatabaseView.TableView
                     model: table

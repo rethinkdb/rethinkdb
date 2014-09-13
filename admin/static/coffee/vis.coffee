@@ -36,15 +36,17 @@ module 'Vis', ->
                 @writes = _write_metric.valueAt(@context.size() - 1)
                 @render()
 
-        render: ->
-            @.$el.html @template
+        render: =>
+            @$el.html @template
                 read_count: if @reads? then Vis.num_formatter(@reads) else 'N/A'
                 write_count: if @writes? then Vis.num_formatter(@writes) else 'N/A'
-            return @
+            @
 
-        destroy: =>
+        remove: =>
             @context.stop()
-            @read_metric.on 'change' # We remove the listener.
+            #TODO?
+            #@read_metric.of()
+            super()
 
     class @OpsPlot extends Backbone.View
         className: 'ops-plot'
@@ -139,7 +141,7 @@ module 'Vis', ->
         render: =>
             log_render '(rendering) ops plot'
             # Render the plot container
-            @.$el.html @template
+            @$el.html @template
                 cluster:    @type is 'cluster'
                 datacenter: @type is 'datacenter'
                 server:     @type is 'server'
@@ -151,7 +153,7 @@ module 'Vis', ->
                 .height(@HEIGHT_IN_PIXELS)
                 .colors(["#983434","#729E51"])
                 .extent([0, @HEIGHT_IN_UNITS])
-            d3.select(@.$('.plot')[0]).call (div) =>
+            d3.select(@$('.plot')[0]).call (div) =>
                 div.data([[@read_stats, @write_stats]])
                 # Chart itself
                 @selection = div.append('div')
@@ -192,14 +194,16 @@ module 'Vis', ->
                         .tickSize(-(@WIDTH_IN_PIXELS + 35), 0, 0)
                         .tickFormat(""))
                 # Legend
-                @.$('.legend-container').html @legend.render().el
+                @$('.legend-container').html @legend.render().el
 
             return @
 
-        destroy: =>
+        remove: =>
             @sensible_plot.remove(@selection)
-            @context.on 'focus'
-            @legend.destroy()
+            #TODO?
+            #@context.off 'focus'
+            @legend.remove()
+            super()
 
     class @SizeBoundedCache
         constructor: (num_data_points, _stat) ->

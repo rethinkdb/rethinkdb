@@ -288,11 +288,11 @@ module 'TableView', ->
 
         change_shards: (event) =>
             event.preventDefault()
-            @.$('#namespace-sharding-link').tab('show')
+            @$('#namespace-sharding-link').tab('show')
 
         change_pinning: (event) =>
             event.preventDefault()
-            @.$('#namespace-pinning-link').tab('show')
+            @$('#namespace-pinning-link').tab('show')
             $(event.currentTarget).parent().parent().slideUp('fast', -> $(this).remove())
 
         # Rename operation
@@ -339,11 +339,11 @@ module 'TableView', ->
     class @Title extends Backbone.View
         className: 'namespace-info-view'
         template: Handlebars.templates['table_title-template']
-        initialize: ->
+        initialize: =>
             @listenTo @model, 'change:name', @render
 
         render: =>
-            @.$el.html @template
+            @$el.html @template
                 name: @model.get 'name'
                 db: @model.get 'db'
             @
@@ -356,7 +356,7 @@ module 'TableView', ->
     class @Profile extends Backbone.View
         template: Handlebars.templates['table_profile-template']
 
-        initialize: ->
+        initialize: =>
             @listenTo @model, 'change', @render
 
         render: =>
@@ -455,7 +455,6 @@ module 'TableView', ->
             @hook()
 
         hook: =>
-            console.log "HOOK SECONDARY INDEXES"
             @$el.html @template
                 loading: @loading
                 adding_index: @adding_index
@@ -475,7 +474,6 @@ module 'TableView', ->
                 @$('.no_index').hide()
 
             @listenTo @collection, 'add', (index) =>
-                console.log 'ADD'
                 view = new TableView.SecondaryIndexView
                     model: index
                     container: @
@@ -492,7 +490,6 @@ module 'TableView', ->
                 @$('.no_index').hide()
 
             @listenTo @collection, 'remove', (index) =>
-                console.log 'REMOVE'
                 for view in @indexes_view
                     if view.model is index
                         index.destroy()
@@ -588,10 +585,8 @@ module 'TableView', ->
         
         remove: =>
             @stopListening()
-            if @timeout?
-                clearTimeout @timeout
-            for key, view of @indexes
-                view.destroy()
+            for view of @indexes_view
+                view.remove()
             super()
 
     class @SecondaryIndexView extends Backbone.View

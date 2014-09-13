@@ -1,10 +1,5 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
-# Extend Backbone View
-#TODO Remove
-Backbone.View.prototype.destroy = ->
-    return
 
-# Router for Backbone.js
 class BackboneCluster extends Backbone.Router
     #TODO Add human readable routes
     routes:

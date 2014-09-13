@@ -101,7 +101,7 @@ module 'ServerView', ->
                         seconds: 73             # num seconds to track
                         type: 'server'
                     )
-                    @.$('.performance-graph').html @performance_graph.render().$el
+                    @$('.performance-graph').html @performance_graph.render().$el
                     ###
 
                     @data = new ServerView.Data
@@ -117,13 +117,14 @@ module 'ServerView', ->
                     ###
             @
 
-        destroy: =>
+        remove: =>
             clearInterval @interval
             @title.remove()
             @profile.remove()
             @data.remove()
             if @rename_modal?
                 @rename_modal.remove()
+            super()
 
 
     class @Title extends Backbone.View
@@ -139,6 +140,7 @@ module 'ServerView', ->
 
         remove: =>
             @stopListening()
+            super()
 
     class @Profile extends Backbone.View
         className: 'machine-info-view'
@@ -158,6 +160,7 @@ module 'ServerView', ->
 
         remove: =>
             @stopListening()
+            super()
 
 
     class @Data extends Backbone.View
@@ -176,3 +179,4 @@ module 'ServerView', ->
 
         remove: =>
             @stopListening()
+            super()
