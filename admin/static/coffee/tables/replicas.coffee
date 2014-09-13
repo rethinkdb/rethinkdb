@@ -77,7 +77,7 @@ module 'TableView', ->
                 r.db(system_db).table('table_config').get(@model.get('uuid'))('shards').count(),
                 new_num_replicas
             )
-            driver.run query, (error, result) =>
+            driver.run_once query, (error, result) =>
                 if error?
                     @render_replicas_error () =>
                         @$('.settings_alert').html @template.alert

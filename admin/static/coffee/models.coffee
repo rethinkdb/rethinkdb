@@ -78,6 +78,25 @@ class Logs extends Backbone.Collection
 
 class Log extends Backbone.Model
 
+class Stats extends Backbone.Model
+    initialize: (query) =>
+        @set
+            keys_read: 0
+            keys_set: 0
+
+        @timer = driver.run query, 1000, (error, result) =>
+            if error?
+                #TODO Display warning
+                console.log error
+            else
+                @set result
+
+    get_stats: =>
+        @toJSON()
+    destroy: =>
+        console.log 'destroy'
+        driver.stop_timer @timer
+        super()
 
 # This module contains utility functions that compute and massage
 # commonly used data.

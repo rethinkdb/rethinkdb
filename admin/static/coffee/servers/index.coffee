@@ -12,7 +12,6 @@ module 'ServersView', ->
                 collection: @servers
 
             @fetch_servers()
-            @interval = setInterval @fetch_servers, 5000
 
             @loading = true # TODO Render that
 
@@ -40,7 +39,7 @@ module 'ServersView', ->
                     reachable: true
                     last_seen: $.timeago(new Date())
             )
-            driver.run query, (error, result) =>
+            @timer = driver.run query, 5000, (error, result) =>
                 uuids = {}
                 for server, index in result
                     @servers.add new Server(server)
@@ -58,7 +57,7 @@ module 'ServersView', ->
                 @render()
 
         remove: =>
-            clearInterval @interval
+            driver.stop_timer @timer
             @servers_list.remove()
             super()
 

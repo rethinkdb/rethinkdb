@@ -44,6 +44,8 @@ class @Driver
         @hack_driver()
 
         @state = 'ok'
+        @timers = {}
+        @index = 0
     
     # Hack the driver: remove .run() and add private_run()
     # We want run() to throw an error, in case a user write .run() in a query.
@@ -59,9 +61,7 @@ class @Driver
     connect: (callback) ->
         r.connect @server, callback
 
-
-    run: (query, callback) =>
-        #TODO Add a timeout?
+    run_once: (query, callback) =>
         @connect (error, connection) =>
             if error?
                 # If we cannot open a connection, we blackout the whole interface
@@ -78,17 +78,56 @@ class @Driver
                     window.location.reload true
                 else
                     @state = 'ok'
-                    query.private_run connection, (err, result) ->
+                    query.private_run connection, (err, result) =>
                         if typeof result?.toArray is 'function'
                             result.toArray (err, result) ->
                                 callback(err, result)
-                                connection.close()
                         else
                             callback(err, result)
-                            connection.close()
 
-    close: (conn) ->
-        conn.close {noreplyWait: false}
+
+    run: (query, delay, callback) =>
+        @index++
+        @timers[@index] = {}
+        ( (index) =>
+            @connect (error, connection) =>
+                if error?
+                    # If we cannot open a connection, we blackout the whole interface
+                    # And do not call the callback
+                    if window.is_disconnected?
+                        if @state is 'ok'
+                            window.is_disconnected.display_fail()
+                    else
+                        window.is_disconnected = new IsDisconnected
+                    @state = 'fail'
+                else
+                    if @state is 'fail'
+                        # Force refresh
+                        window.location.reload true
+                    else
+                        @state = 'ok'
+                        if @timers[index]?
+                            @timers[index].connection = connection
+                            (fn = =>
+                                query.private_run connection, (err, result) =>
+                                    if typeof result?.toArray is 'function'
+                                        result.toArray (err, result) =>
+                                            callback(err, result)
+                                            if @timers[index]?
+                                                @timers[index].timeout = setTimeout fn, delay
+                                    else
+                                        callback(err, result)
+                                        if @timers[index]?
+                                            @timers[index].timeout = setTimeout fn, delay
+                            )()
+        )(@index)
+        @index
+
+    stop_timer: (timer) =>
+        clearTimeout @timers[timer].timeout
+        @timers[timer].connection.close {noreplyWait: false}
+        delete @timers[timer]
+
 
 ###
 Old stuff below, we should eventually just remove everything...

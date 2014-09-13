@@ -516,7 +516,6 @@ module 'DataExplorerView', ->
 
             @databases_available = {}
             @fetch_data()
-            @interval = setInterval @fetch_data, 5000
 
         fetch_data: =>
             query = r.db(system_db).table('table_config')
@@ -525,7 +524,7 @@ module 'DataExplorerView', ->
                 .ungroup()
                 .map((group) -> [group("group"), group("reduction")("name").orderBy( (x) -> x )])
                 .coerceTo "OBJECT"
-            driver.run query, (error, result) =>
+            @timer = driver.run query, 5000, (error, result) =>
                 if error?
                     # Nothing bad, we'll try again, let's just log the error
                     console.log "Error: Could not fetch databases and tables"
@@ -2845,7 +2844,7 @@ module 'DataExplorerView', ->
             $(document).unbind 'mouseup', @handle_mouseup
 
             clearTimeout @timeout_driver_connect
-            clearInterval @interval
+            driver.stop_timer @timer
             # We do not destroy the cursor, because the user might come back and use it.
             super()
     

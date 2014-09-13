@@ -47,7 +47,7 @@ module 'Modals', ->
                         break
 
             if error is null
-                driver.run r.dbCreate(@formdata.name), (err, result) =>
+                driver.run_once r.dbCreate(@formdata.name), (err, result) =>
                     if (err)
                         @on_error(err)
                     else
@@ -90,7 +90,7 @@ module 'Modals', ->
 
             super
 
-            driver.run r.dbDrop(@database_to_delete.get('name')), (err, result) =>
+            driver.run_once r.dbDrop(@database_to_delete.get('name')), (err, result) =>
                 if (err)
                     @on_error(err)
                 else
@@ -213,7 +213,7 @@ module 'Modals', ->
                     optarg.primaryKey = @formdata.primary_key
 
 
-                driver.run r.db(@formdata.database).tableCreate(@formdata.name, optarg), (err, result) =>
+                driver.run_once r.db(@formdata.database).tableCreate(@formdata.name, optarg), (err, result) =>
                     if (err)
                         @on_error(err)
                     else
@@ -251,7 +251,7 @@ module 'Modals', ->
             query = r.expr(@tables_to_delete).forEach (table) ->
                 r.db(table("database")).tableDrop(table("table"))
 
-            driver.run query, (err, result) =>
+            driver.run_once query, (err, result) =>
                 if (err)
                     @on_error(err)
                 else

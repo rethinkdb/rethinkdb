@@ -7,7 +7,6 @@ module 'MainView', ->
         
         initialize: =>
             @fetch_data()
-            @interval = setInterval @fetch_data, 5000
 
             @databases = new Databases
             @tables = new Tables
@@ -58,12 +57,7 @@ module 'MainView', ->
                 ).count()
 
 
-            driver.run query, (error, result) =>
-                ###
-                console.log error
-                console.log result
-                ###
-
+            @timer = driver.run query, 5000, (error, result) =>
                 if error?
                     #TODO
                 else
@@ -78,7 +72,6 @@ module 'MainView', ->
                         delete result.servers
 
                     @dashboard.set result
-
 
         render: =>
             @$el.html @template()
@@ -103,6 +96,7 @@ module 'MainView', ->
                 @$('#options_container').slideDown 'fast'
 
         remove: =>
+            driver.stop_timer @timer
             @alert_update_view.remove()
             @options_view.remove()
             @navbar.remove()

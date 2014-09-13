@@ -13,7 +13,6 @@ module 'DatabaseView', ->
             @model = null
 
             @fetch_data()
-            @interval = setInterval @fetch_data, 5000
 
         fetch_data: =>
             query = r.do(
@@ -45,7 +44,7 @@ module 'DatabaseView', ->
             ).merge
                 id: r.row 'uuid'
 
-            driver.run query, (error, result) =>
+            @timer = driver.run query, 5000, (error, result) =>
                 if error?
                     # TODO: We may want to render only if we failed to open a connection
                     @error = error
@@ -100,6 +99,11 @@ module 'DatabaseView', ->
             @
 
 
+        remove: =>
+            driver.stop_timer @timer
+            if @database_view?
+                @database_view.remove()
+            super()
 
     # Container for the entire database view
     class @DatabaseMainView extends Backbone.View
@@ -124,14 +128,17 @@ module 'DatabaseView', ->
             @tables_list = new DatabaseView.TablesListView
                 model: @model
                 collection: @tables
-            ###
-            @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance,
+
+            @stats = new Stats(r.expr(
+                keys_read: r.random(2000, 3000)
+                keys_set: r.random(1500, 2500)
+            ))
+            @performance_graph = new Vis.OpsPlot(@stats.get_stats,
                 width:  564             # width in pixels
                 height: 210             # height in pixels
                 seconds: 73             # num seconds to track
                 type: 'database'
             )
-            ###
 
         # Function to render the view
         render: =>
@@ -143,9 +150,7 @@ module 'DatabaseView', ->
             # Add the replica and shards views
             @$('.profile').html @profile.render().$el
 
-            ###
             @$('.performance-graph').html @performance_graph.render().$el
-            ###
 
             # Add the tables list
             @$('.table-list').html @tables_list.render().$el
@@ -183,6 +188,7 @@ module 'DatabaseView', ->
                 @rename_modal.remove()
             if @remove_database_dialog?
                 @remove_database_dialog.remove()
+            @stats.destroy()
 
     # DatabaseView.Title
     class @Title extends Backbone.View

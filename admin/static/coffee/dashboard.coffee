@@ -12,7 +12,6 @@ module 'DashboardView', ->
             @loading = true
 
             @fetch_data()
-            @interval = setInterval @fetch_data, 5000
 
         fetch_data: =>
             identity = (a) -> a
@@ -82,12 +81,7 @@ module 'DashboardView', ->
             ).merge
                 num_non_available_tables: r.row("tables_with_directors_not_ready").count()
 
-            driver.run query, (error, result) =>
-                ###
-                console.log '----- err, result ------'
-                console.log error
-                console.log result
-                ###
+            @timer = driver.run query, 5000, (error, result) =>
                 if error?
                     #TODO
                     console.log error
@@ -117,7 +111,9 @@ module 'DashboardView', ->
             @
 
         remove: =>
-            clearInterval @interval
+            driver.stop_timer @timer
+            if @dashboard_view
+                @dashboard_view.remove()
             super()
 
     class @DashboardMainView extends Backbone.View
@@ -137,14 +133,18 @@ module 'DashboardView', ->
             @cluster_status_consistency = new DashboardView.ClusterStatusConsistency
                 model: @model
 
-            ###
-            @cluster_performance = new Vis.OpsPlot(computed_cluster.get_stats,
+            @stats = new Stats(r.expr(
+                keys_read: r.random(2000, 3000)
+                keys_set: r.random(1500, 2500)
+            ))
+            @cluster_performance = new Vis.OpsPlot(@stats.get_stats,
                 width:  833             # width in pixels
                 height: 300             # height in pixels
                 seconds: 119            # num seconds to track
                 type: 'cluster'
             )
 
+            ###
             @logs = new DashboardView.Logs()
             ###
 
@@ -159,7 +159,7 @@ module 'DashboardView', ->
             @$('.reachability').html @cluster_status_reachability.render().$el
             @$('.consistency').html @cluster_status_consistency.render().$el
 
-            #@$('#cluster_performance_container').html @cluster_performance.render().$el
+            @$('#cluster_performance_container').html @cluster_performance.render().$el
             #@$('.recent-log-entries-container').html @logs.render().$el
 
             return @
@@ -170,7 +170,8 @@ module 'DashboardView', ->
             @cluster_status_reachability.remove()
             @cluster_status_consistency.remove()
             @cluster_performance.remove()
-            @logs.remove()
+            #@logs.remove()
+            @stats.destroy()
             super()
 
     class @ClusterStatusAvailability extends Backbone.View
@@ -231,7 +232,7 @@ module 'DashboardView', ->
             @
 
         remove: =>
-            @stopListeningTo()
+            @stopListening()
             $(window).off 'mouseup', @remove_popup
             super()
 
@@ -294,7 +295,7 @@ module 'DashboardView', ->
             @
 
         remove: =>
-            @stopListeningTo()
+            @stopListening()
             $(window).off 'mouseup', @remove_popup
             super()
 
@@ -354,7 +355,7 @@ module 'DashboardView', ->
             @
 
         remove: =>
-            @stopListeningTo()
+            @stopListening()
             $(window).off 'mouseup', @remove_popup
             super()
 
@@ -410,7 +411,7 @@ module 'DashboardView', ->
 
 
         remove: =>
-            @stopListeningTo()
+            @stopListening()
             $(window).off 'mouseup', @remove_popup
             super()
 
