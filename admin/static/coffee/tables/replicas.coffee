@@ -137,9 +137,10 @@ module 'TableView', ->
                     @interval = setInterval @fetch_progress, 1000
                 if @progress_bar.get_stage() is 'none'
                     @progress_bar.skip_to_processing() # if the stage is 'none', we skipt to processing
-            else
-                clearInterval @interval
-                @interval = null
+            else if @model.get('num_available_replicas') is @model.get('num_replicas')
+                if @interval?
+                    clearInterval @interval
+                    @interval = null
 
 
             progress_bar_info =

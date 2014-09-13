@@ -3,7 +3,9 @@
 module 'ServerView', ->
     class @ServerContainer extends Backbone.View
         not_found_template: Handlebars.templates['element_view-not_found-template']
-        template: Handlebars.templates['full_server-template']
+        template:
+            main: Handlebars.templates['full_server-template']
+            loading: Handlebars.templates['loading-template']
 
         events:
             'click .operations .rename': 'rename_server'
@@ -74,15 +76,14 @@ module 'ServerView', ->
 
         render: =>
             if @loading
-                @$el.html @template
-                    loading: @loading
-                    id: @id
+                @$el.html @template.loading
+                    page: "server"
             else
                 if @server is null
                     @$el.html @not_found_template
                 else
                     #TODO Handle ghost?
-                    @$el.html @template @server
+                    @$el.html @template.main @server
 
                     @title = new ServerView.Title
                         model: @server

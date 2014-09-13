@@ -2,7 +2,6 @@
     <div id="sticky-wrap">
         <div id="navbar-container"></div>
         <div id="options_container"></div>
-
         <div id="topbar"></div>
         <div id="updates_container"> 
         </div>
@@ -31,8 +30,10 @@
 </script>
 
 <script id="loading-template" type="text/x-handlebars-template">
-    <!-- TODO Improve style/content -->
-    Loading...
+    <h1 class="title">Loading {{page}}</h1>
+    <div class="section">
+        <p>Please wait</p>
+    <div>
 </script>
 
 <script id="error-query-template" type="text/x-handlebars-template">
