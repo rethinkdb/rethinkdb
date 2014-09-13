@@ -51,7 +51,6 @@ module 'ServerView', ->
                 id: r.row 'uuid'
 
             @timer = driver.run query, 5000, (error, result) =>
-                console.log JSON.stringify(result, null, 2)
                 # We should call render only once to avoid blowing all the sub views
                 if @loading is true
                     @loading = false
