@@ -139,9 +139,9 @@ module 'LogView', ->
             @set_interval = setInterval @check_for_new_updates, @interval_update_log
 
         render: =>
-            @.$el.html @template()
+            @$el.html @template()
             # Initially, hide the message indicating no more entries are available. This will change depending on the results of the @fetch_log_entries call
-            @.$('.no-more-entries').hide()
+            @$('.no-more-entries').hide()
 
             @fetch_log_entries
                 max_length: @max_log_entries
@@ -194,18 +194,18 @@ module 'LogView', ->
                         @current_logs.push entry
 
             if @current_logs.length <= @displayed_logs
-                @.$('.no-more-entries').show()
-                @.$('.next-log-entries').hide()
+                @$('.no-more-entries').show()
+                @$('.next-log-entries').hide()
             else
                 for i in [0..@max_log_entries-1]
                     if @current_logs[@displayed_logs]?
                         view = new LogView.LogEntry
                             model: @current_logs[@displayed_logs]
-                        @.$('.log-entries').append view.render(@compact).el
+                        @$('.log-entries').append view.render(@compact).el
                         @displayed_logs++
                     else
-                        @.$('.no-more-entries').show()
-                        @.$('.next-log-entries-container').hide()
+                        @$('.no-more-entries').show()
+                        @$('.next-log-entries-container').hide()
  
             @render_header()
 
@@ -231,7 +231,7 @@ module 'LogView', ->
                     @render_header()
 
         render_header: =>
-            @.$('.header').html @header_template
+            @$('.header').html @header_template
                 new_entries: @num_new_entries > 0
                 num_new_entries: @num_new_entries
                 too_many_new_entries: @num_new_entries > @max_log_entries
@@ -279,17 +279,18 @@ module 'LogView', ->
                     model: @current_logs[i]
                 rendered_view = $(view.render().el)
                 rendered_view.css('background-color','#F8EEB1')
-                @.$('.log-entries').prepend view.render().el
+                @$('.log-entries').prepend view.render().el
                 rendered_view.animate
                     backgroundColor: '#FFF'
                 , 2000
                 @displayed_logs++
 
             @render_header()
-            @.$('.header .alert').remove()
+            @$('.header .alert').remove()
 
-        destroy: =>
+        remove: =>
             clearInterval @set_interval
+            super()
 
     class @LogEntry extends Backbone.View
         className: 'log-entry'
@@ -329,9 +330,9 @@ module 'LogView', ->
 
         display_details: (event) =>
             event.preventDefault()
-            if @.$(event.target).html() is 'More details'
-                @.$(event.target).html 'Hide details'
-                @.$(event.target).parent().parent().next().next().slideDown 'fast'
+            if @$(event.target).html() is 'More details'
+                @$(event.target).html 'Hide details'
+                @$(event.target).parent().parent().next().next().slideDown 'fast'
                 
                 # Check if we can show other details
                 found_more_details_link = false
@@ -342,8 +343,8 @@ module 'LogView', ->
                 if found_more_details_link is false
                     $('.expand_all_link').html 'Hide all details'
             else
-                @.$(event.target).html 'More details'
-                @.$(event.target).parent().parent().next().next().slideUp 'fast'
+                @$(event.target).html 'More details'
+                @$(event.target).parent().parent().next().next().slideUp 'fast'
 
                 # Check if we can show other details
                 found_hide_details_link = false
@@ -373,10 +374,10 @@ module 'LogView', ->
                 datetime: new XDate(@model.get('timestamp')*1000).toString("HH:mm - MMMM dd, yyyy")
 
             if compact
-                @.$el.html @template_small json
-                @.$el.attr('class', @classNameSmall)
+                @$el.html @template_small json
+                @$el.attr('class', @classNameSmall)
             else
-                @.$el.html @template json
+                @$el.html @template json
             
             @delegateEvents()
             return @

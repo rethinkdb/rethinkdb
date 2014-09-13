@@ -88,7 +88,9 @@ module 'TableView', ->
 
         render_data_repartition: =>
             if not @collection?
-                return 1
+                return 0
+
+            $('.tooltip').remove()
 
             @$('.loading').slideUp 'fast'
             @$('.outdated_distribution').slideUp 'fast'
@@ -247,13 +249,8 @@ module 'TableView', ->
 
             rules.exit().remove()
 
-
-
-            ###
-            @chart.series[0].setData @collection.map((shard, index) -> shard.get('num_keys'))
-            @chart.xAxis[0].update({categories:@collection.map( (shard, index) -> "Shard #{index+1}")}, true)
-            ###
-
+            @$('rect').tooltip
+                trigger: 'hover'
 
         remove: =>
             @stopListening()

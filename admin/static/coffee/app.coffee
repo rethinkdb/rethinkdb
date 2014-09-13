@@ -90,10 +90,6 @@ class @Driver
     close: (conn) ->
         conn.close {noreplyWait: false}
 
-    destroy: =>
-        @close_connection()
-
-
 ###
 Old stuff below, we should eventually just remove everything...
 ###

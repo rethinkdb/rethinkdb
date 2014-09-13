@@ -105,7 +105,7 @@ module 'UIComponents', ->
                 data.current_value = "Unknown"
             if data.max_value isnt data.max_value
                 data.max_value = "Unknown"
-            @.$el.html @template data
+            @$el.html @template data
 
             return @
        

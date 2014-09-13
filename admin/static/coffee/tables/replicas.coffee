@@ -154,7 +154,7 @@ module 'TableView', ->
             return 1
 
         render: =>
-            @.$el.html @template.main
+            @$el.html @template.main
                 editable: @editable
                 max_replicas: @model.get 'max_replicas'
                 num_replicas_per_shard: @model.get 'num_replicas_per_shard'
