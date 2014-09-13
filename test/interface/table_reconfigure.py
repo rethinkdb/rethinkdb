@@ -67,13 +67,12 @@ with driver.Metacluster() as metacluster:
         # Make sure new config follows all the rules
         assert len(new_config["shards"]) == num_shards
         for shard in new_config["shards"]:
-            assert len(shard["directors"]) == 1
-            assert shard["directors"][0] in tag_table[director_tag]
+            assert shard["director"] in tag_table[director_tag]
             for tag, count in num_replicas.iteritems():
                 servers_in_tag = [s for s in shard["replicas"] if s in tag_table[tag]]
                 assert len(servers_in_tag) == count
             assert len(shard["replicas"]) == sum(num_replicas.values())
-        directors = set(shard["directors"][0] for shard in new_config["shards"])
+        directors = set(shard["director"] for shard in new_config["shards"])
 
         # Make sure new config distributes replicas evenly when possible
         assert len(directors) == min(num_shards, num_servers)
@@ -121,7 +120,7 @@ with driver.Metacluster() as metacluster:
     # Test that we prefer servers that held our data before
     for server in server_names:
         r.table_config("foo") \
-         .update({"shards": [{"replicas": [server], "directors": [server]}]}).run(conn)
+         .update({"shards": [{"replicas": [server], "director": server}]}).run(conn)
         for i in xrange(10):
             time.sleep(3)
             if r.table_status("foo").run(conn)["ready_completely"]:
@@ -129,8 +128,8 @@ with driver.Metacluster() as metacluster:
         else:
             raise ValueError("took too long to reconfigure")
         new_config = test_reconfigure(2, {"default": 1}, "default")
-        if (new_config["shards"][0]["directors"] != [server] and
-                new_config["shards"][1]["directors"] != [server]):
+        if (new_config["shards"][0]["director"] != server and
+                new_config["shards"][1]["director"] != server):
             raise ValueError("expected to prefer %r, instead got %r" % \
                 (server, new_config))
 
@@ -146,7 +145,7 @@ with driver.Metacluster() as metacluster:
     for server in server_names:
         res = r.table_config("blocker").update({"shards": [{
             "replicas": [n for n in server_names if n != server],
-            "directors": [n for n in server_names if n != server][:1]
+            "director": [n for n in server_names if n != server][0]
             }]}).run(conn)
         assert res["errors"] == 0
         for i in xrange(10):

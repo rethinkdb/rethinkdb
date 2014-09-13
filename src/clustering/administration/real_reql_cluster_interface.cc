@@ -5,7 +5,6 @@
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/servers/name_client.hpp"
-#include "clustering/administration/tables/elect_director.hpp"
 #include "clustering/administration/tables/generate_config.hpp"
 #include "clustering/administration/tables/split_points.hpp"
 #include "clustering/administration/tables/table_config.hpp"
@@ -285,9 +284,6 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
             return false;
         }
 
-        repli_info.chosen_directors =
-            table_elect_directors(repli_info.config, server_name_client);
-
         namespace_semilattice_metadata_t table_metadata;
         table_metadata.name = versioned_t<name_string_t>(name);
         table_metadata.database = versioned_t<database_id_t>(db->id);
@@ -504,8 +500,6 @@ bool real_reql_cluster_interface_t::table_reconfigure(
     }
 
     if (!dry_run) {
-        new_repli_info.chosen_directors =
-            table_elect_directors(new_repli_info.config, server_name_client);
         /* Commit the change */
         ns_metadata_it->second.get_mutable()->replication_info.set(new_repli_info);
         semilattice_root_view->join(metadata);

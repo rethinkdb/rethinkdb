@@ -3,7 +3,6 @@
 
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/metadata.hpp"
-#include "clustering/administration/tables/elect_director.hpp"
 #include "clustering/administration/tables/split_points.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 
@@ -15,9 +14,7 @@ ql::datum_t convert_table_config_shard_to_datum(
             &convert_name_to_datum,
             shard.replica_names));
 
-    builder.overwrite("directors", convert_vector_to_datum<name_string_t>(
-            &convert_name_to_datum,
-            shard.director_names));
+    builder.overwrite("director", convert_name_to_datum(shard.director_name));
 
     return std::move(builder).to_datum();
 }
@@ -56,23 +53,12 @@ bool convert_table_config_shard_from_datum(
         return false;
     }
 
-    ql::datum_t director_names_datum;
-    if (!converter.get("directors", &director_names_datum, error_out)) {
+    ql::datum_t director_name_datum;
+    if (!converter.get("director", &director_name_datum, error_out)) {
         return false;
     }
-    if (!convert_vector_from_datum<name_string_t>(
-            [] (ql::datum_t datum2, name_string_t *val2_out,
-                    std::string *error2_out) {
-                return convert_name_from_datum(datum2, "server name", val2_out,
-                    error2_out);
-            },
-            director_names_datum,
-            &shard_out->director_names, error_out)) {
-        *error_out = "In `directors`: " + *error_out;
-        return false;
-    }
-    if (shard_out->director_names.empty()) {
-        *error_out = "You must specify at least one director for each shard.";
+    if (!convert_name_from_datum(director_name_datum, "server name",
+            &shard_out->director_name, error_out)) {
         return false;
     }
 
@@ -80,19 +66,10 @@ bool convert_table_config_shard_from_datum(
         return false;
     }
 
-    std::set<name_string_t> director_names_seen;
-    for (const name_string_t &director : shard_out->director_names) {
-        if (shard_out->replica_names.count(director) != 1) {
-            *error_out = strprintf("Server `%s` appears in `directors` but not in "
-                "`replicas`.", director.c_str());
-            return false;
-        }
-        if (director_names_seen.count(director) != 0) {
-            *error_out = strprintf("In `directors`: Server `%s` appears multiple times.",
-                director.c_str());
-            return false;
-        }
-        director_names_seen.insert(director);
+    if (shard_out->replica_names.count(shard_out->director_name) != 1) {
+        *error_out = strprintf("Server `%s` is listed as `director` but does not appear "
+            "in `replicas`.", shard_out->director_name.c_str());
+        return false;
     }
 
     return true;
@@ -253,9 +230,6 @@ bool table_config_artificial_table_backend_t::write_row(
         *error_out = "It's illegal to change a table's `database` field.";
         return false;
     }
-
-    replication_info.chosen_directors =
-        table_elect_directors(replication_info.config, name_client);
 
     if (new_table_name != table_name) {
         /* Prevent name collisions if possible */
