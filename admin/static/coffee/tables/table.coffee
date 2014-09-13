@@ -550,7 +550,7 @@ module 'TableView', ->
             index_name = @$('.new_index_name').val()
             ((index_name) =>
                 query = r.db(@model.get('db')).table(@model.get('name')).indexCreate(index_name)
-                driver.run query, (error, result) =>
+                driver.run_once query, (error, result) =>
                     @$('.create_btn').prop 'disabled', false
                     @$('.cancel_btn').prop 'disabled', false
                     that = @
@@ -648,7 +648,7 @@ module 'TableView', ->
         delete_index: =>
             @$('.btn').prop 'disabled', 'disabled'
             query = r.db(@model.get('db')).table(@model.get('table')).indexDrop(@model.get('index'))
-            driver.run query, (error, result) =>
+            driver.run_once query, (error, result) =>
                 @$('.btn').prop 'disabled', false
                 if error?
                     @container.render_error
