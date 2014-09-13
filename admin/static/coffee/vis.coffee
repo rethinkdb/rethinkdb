@@ -139,7 +139,6 @@ module 'Vis', ->
             @legend = new Vis.OpsPlotLegend(@read_stats, @write_stats, @context)
 
         render: =>
-            log_render '(rendering) ops plot'
             # Render the plot container
             @$el.html @template
                 cluster:    @type is 'cluster'
@@ -200,8 +199,7 @@ module 'Vis', ->
 
         remove: =>
             @sensible_plot.remove(@selection)
-            #TODO?
-            #@context.off 'focus'
+            @context.stop()
             @legend.remove()
             super()
 

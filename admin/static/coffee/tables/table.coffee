@@ -18,7 +18,6 @@ module 'TableView', ->
             @table_view = null
 
             @fetch_data()
-            @interval = setInterval @fetch_data, 5000
 
         fetch_data: =>
             ignore = (shard) -> shard('role').ne('nothing')
@@ -72,7 +71,7 @@ module 'TableView', ->
                 ).without('shards').merge
                     id: r.row 'uuid'
 
-            driver.run query, (error, result) =>
+            @timer = driver.run query, 5000, (error, result) =>
                 ###
                 console.log '---- err, result -----'
                 console.log error
@@ -188,6 +187,7 @@ module 'TableView', ->
                         type_all_url: 'tables'
             @
         remove: =>
+            driver.stop_timer @timer
             @table_view.remove()
             super()
 
@@ -230,7 +230,11 @@ module 'TableView', ->
                 model: @model
                 collection: @shards_assignments
 
-            @performance_graph = new Vis.OpsPlot(@get_stats,
+            @stats = new Stats(r.expr(
+                keys_read: r.random(2000, 3000)
+                keys_set: r.random(1500, 2500)
+            ))
+            @performance_graph = new Vis.OpsPlot(@stats.get_stats,
                 width:  564             # width in pixels
                 height: 210             # height in pixels
                 seconds: 73             # num seconds to track
@@ -249,11 +253,6 @@ module 'TableView', ->
         set_assignments: (shards_assignments) =>
             @shards_assignments = shards_assignments
             @server_assignments.set_assignments @shards_assignments
-
-        get_stats: =>
-            #TODO Replace with real data
-            keys_read: Math.floor(2000+Math.random()*1000)
-            keys_set: Math.floor(2000+Math.random()*1000)
 
         render: =>
             @$el.html @template.main
@@ -333,6 +332,7 @@ module 'TableView', ->
 
             if @rename_modal?
                 @rename_modal.remove()
+            @stats.destroy()
             super()
 
     # TableView.Title
@@ -411,11 +411,6 @@ module 'TableView', ->
                 @interval_progress = setInterval @fetch_progress, 1000
 
         fetch_progress: =>
-            if not @model.get('db')?
-                debugger
-            if not @model.get('name')?
-                debugger
-
             fetch_for_progress = []
             for index in @collection.models
                 if index.get('ready') isnt true
@@ -430,7 +425,7 @@ module 'TableView', ->
                         table: @model.get("name")
                     })
 
-                driver.run query, (error, result) =>
+                driver.run_once query, (error, result) =>
                     if error?
                         # This can happen if the table is temporary unavailable. We log the error, and ignore it
                         console.log "Nothing bad - Could not fetch secondary indexes statuses"

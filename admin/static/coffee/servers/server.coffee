@@ -25,7 +25,6 @@ module 'ServerView', ->
             @server = null
 
             @fetch_server()
-            @interval = setInterval @fetch_server, 5000
 
         fetch_server: =>
             query = r.db(system_db).table('server_status').get(@id).do( (server) ->
@@ -51,7 +50,7 @@ module 'ServerView', ->
             ).merge
                 id: r.row 'uuid'
 
-            driver.run query, (error, result) =>
+            @timer = driver.run query, 5000, (error, result) =>
                 console.log JSON.stringify(result, null, 2)
                 # We should call render only once to avoid blowing all the sub views
                 if @loading is true
@@ -93,16 +92,17 @@ module 'ServerView', ->
                         model: @server
                     @$('.profile').html @profile.render().$el
 
-                    ###
-                    # TODO: Implement when stats will be available
-                    @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance,
+                    @stats = new Stats(r.expr(
+                        keys_read: r.random(2000, 3000)
+                        keys_set: r.random(1500, 2500)
+                    ))
+                    @performance_graph = new Vis.OpsPlot(@stats.get_stats,
                         width:  564             # width in pixels
                         height: 210             # height in pixels
                         seconds: 73             # num seconds to track
                         type: 'server'
                     )
                     @$('.performance-graph').html @performance_graph.render().$el
-                    ###
 
                     @data = new ServerView.Data
                         model: @server
@@ -118,12 +118,13 @@ module 'ServerView', ->
             @
 
         remove: =>
-            clearInterval @interval
+            driver.stop_timer @timer
             @title.remove()
             @profile.remove()
             @data.remove()
             if @rename_modal?
                 @rename_modal.remove()
+            @stats.destroy()
             super()
 
 

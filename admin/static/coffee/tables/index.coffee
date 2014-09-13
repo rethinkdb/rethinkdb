@@ -60,7 +60,6 @@ module 'TablesView', ->
                 container: @
 
             @fetch_data()
-            @interval = setInterval @fetch_data, 5000
 
             @loading = true # TODO Render that
 
@@ -95,7 +94,7 @@ module 'TablesView', ->
                         id: table("uuid")
                     )
 
-            driver.run query, (error, result) =>
+            @timer = driver.run query, 5000, (error, result) =>
                 if error?
                     if @error?.msg isnt error.msg
                         @error = error
@@ -119,7 +118,7 @@ module 'TablesView', ->
                     @render()
 
         remove: =>
-            clearInterval @interval
+            driver.stop_timer @timer
             @add_database_dialog.remove()
             @add_table_dialog.remove()
             @remove_tables_dialog.remove()

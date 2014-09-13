@@ -13,12 +13,11 @@ module 'LogView', ->
                 collection: @logs
 
             @fetch_data()
-            @interval = setInterval @fetch_data, 5000
 
         fetch_data: =>
             query = r.expr([]) # TODO Replace with the logs table
 
-            driver.run query, (error, result) =>
+            @timer = driver.run query, 5000, (error, result) =>
                 if error?
                     if @error?.msg isnt error.msg
                         @error = error
@@ -41,7 +40,7 @@ module 'LogView', ->
             @
 
         remove: =>
-            clearInterval @interval
+            driver.stop_timer @timer
             super()
 
     class @LogsListView extends Backbone.View

@@ -115,7 +115,6 @@ module 'UIComponents', ->
         class: 'confirmation-modal'
 
         render: (message, _url, _data, _on_success) ->
-            log_render '(rendering) add secondary dialog'
             @url = _url
             @data = _data
             @on_user_success = _on_success
