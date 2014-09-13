@@ -324,7 +324,7 @@ module 'TableView', ->
                 new_num_shards,
                 r.db(system_db).table('table_status').get(@model.get('uuid'))('shards').nth(0).filter(ignore).count()
             )
-            driver.run query, (error, result) =>
+            driver.run_once query, (error, result) =>
                 if error?
                     @render_shards_error () =>
                         @$('.settings_alert').html @template.alert
