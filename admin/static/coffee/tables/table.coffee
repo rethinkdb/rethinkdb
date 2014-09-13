@@ -20,7 +20,6 @@ module 'TableView', ->
             @fetch_data()
             @interval = setInterval @fetch_data, 5000
 
-
         fetch_data: =>
             ignore = (shard) -> shard('role').ne('nothing')
             this_id = @id
@@ -39,7 +38,7 @@ module 'TableView', ->
                                 max_replicas: num_servers
                                 num_replicas_per_shard: table("shards").nth(0).filter(ignore).count()
                                 distribution: table('shards').indexesOf( () -> true ).map( (position) -> #TODO: Replace with the real API
-                                    num_keys: r.random(0, 300000).add(800000)
+                                    num_keys: r.random(0, 300000).add(400000)
                                     id: position
                                 )
                                 shards_assignments: r.db(system_db).table('table_config').get(this_id)("shards").indexesOf( () -> true ).map (position) ->
@@ -91,20 +90,38 @@ module 'TableView', ->
                             @loading = false
                             @render()
                         else if @model isnt null
+                            #TODO Test
                             @model = null
                             @indexes = null
                             @table_view = null
                             @render()
                     else
-                        if not @model?
-                            if result.indexes isnt null
+                        @loading = false
+                        if result.indexes?
+                            if @indexes?
+                                @indexes.set _.map(result.indexes, (index) -> new Index index)
+                            else
                                 @indexes = new Indexes _.map result.indexes, (index) -> new Index index
-                                delete result.indexes
 
-                            @distribution = new Distribution _.map result.distribution, (shard) -> new Shard shard
-                            delete result.distribution
+                            @table_view?.set_indexes @indexes
+                            delete result.indexes
+                        else
+                            @indexes = null
+
+                        if result.distribution?
+                            if @distribution?
+                                @distribution.set _.map result.distribution, (shard) -> new Shard shard
+                                @distribution.trigger 'update'
+                            else
+                                @distribution = new Distribution _.map(result.distribution, (shard) -> new Shard shard)
+                                if @table_view?
+                                    @table_view.set_distribution @distribution
+                        else
+                            @distribution = null
+                        delete result.distribution
 
 
+                        if result.shards_assignments?
                             # Flatten all shards assignments because it's less work than handling nested collections
                             shards_assignments = []
                             for shard in result.shards_assignments
@@ -132,58 +149,24 @@ module 'TableView', ->
                                     shard_id: shard.id
                                     end_shard: true
 
+                            if @shards_assignments?
+                                @shards_assignments.set _.map shards_assignments, (shard) -> new ShardAssignment shard
+                            else
+                                @shards_assignments = new ShardAssignments _.map shards_assignments, (shard) -> new ShardAssignment shard
+                                if @table_view?
+                                    @table_view.set_assignments @shards_assignments
 
-                            @shards_assignments = new ShardAssignments _.map shards_assignments, (shard) ->
-                                new ShardAssignment shard
                             delete result.shards_assignments
 
+                        if @model?
+                            @model.set result
+                        else
                             @model = new Table result
                             @table_view = new TableView.TableMainView
                                 model: @model
                                 indexes: @indexes
                                 distribution: @distribution
                                 shards_assignments: @shards_assignments
-                        else # @model is defined
-                            if result.indexes isnt null
-                                if @indexes?
-                                    @indexes.set _.map result.indexes, (index) -> new Index index
-                                else
-                                    @indexes = new Indexes _.map result.indexes, (index) -> new Index index
-                                    @table_view.set_indexes @indexes
-                                delete result.indexes
-
-                            @distribution.set _.map result.distribution, (shard) -> new Shard shard
-                            @distribution.trigger 'update'
-                            delete result.distrubtion
-
-                            shards_assignments = []
-                            for shard in result.shards_assignments
-                                shards_assignments.push
-                                    id: "start_shard_#{shard.id}"
-                                    shard_id: shard.id
-                                    start_shard: true
-
-                                shards_assignments.push
-                                    id: "shard_director_#{shard.id}"
-                                    director: true
-                                    shard_id: shard.id
-                                    data: shard
-
-                                for replica, position in shard.replicas
-                                    shards_assignments.push
-                                        id: "shard_replica_#{shard.id}_#{position}"
-                                        replica: true
-                                        replica_position: position
-                                        shard_id: shard.id
-                                        data: replica
-
-                            @shards_assignments.set _.map shards_assignments, (shard) -> new ShardAssignment shard
-                            delete result.shards_assignments
-
-                            @model.set result
-
-                        if @loading is true
-                            @loading = false
                             @render()
 
         render: =>
@@ -192,7 +175,8 @@ module 'TableView', ->
                     error: @error?.message
                     url: '#tables/'+@id
             else if @loading is true
-                @$el.html @template.loading()
+                @$el.html @template.loading
+                    page: "table"
             else
                 if @table_view?
                     @$el.html @table_view.render().$el
@@ -203,6 +187,9 @@ module 'TableView', ->
                         type_url: 'tables'
                         type_all_url: 'tables'
             @
+        remove: =>
+            @table_view.remove()
+            super()
 
     class @TableMainView extends Backbone.View
         className: 'namespace-view'
@@ -230,6 +217,7 @@ module 'TableView', ->
                 model: @model
             @profile = new TableView.Profile
                 model: @model
+
             @secondary_indexes_view = new TableView.SecondaryIndexesView
                 collection: @indexes
                 model: @model
@@ -248,6 +236,19 @@ module 'TableView', ->
                 seconds: 73             # num seconds to track
                 type: 'table'
             )
+
+        set_indexes: (indexes) =>
+            if not @indexes?
+                @indexes = indexes
+                @secondary_indexes_view.set_indexes @indexes
+
+        set_distribution: (distribution) =>
+            @distribution = distribution
+            @shards.set_distribution @distribution
+
+        set_assignments: (shards_assignments) =>
+            @shards_assignments = shards_assignments
+            @server_assignments.set_assignments @shards_assignments
 
         get_stats: =>
             #TODO Replace with real data
@@ -332,6 +333,7 @@ module 'TableView', ->
 
             if @rename_modal?
                 @rename_modal.remove()
+            super()
 
     # TableView.Title
     class @Title extends Backbone.View
@@ -346,8 +348,9 @@ module 'TableView', ->
                 db: @model.get 'db'
             @
 
-        destroy: =>
+        remove: =>
             @stopListening()
+            super()
 
     # Profile view
     class @Profile extends Backbone.View
@@ -366,8 +369,9 @@ module 'TableView', ->
                 num_available_replicas: @model.get 'num_available_replicas'
             return @
 
-        destroy: =>
+        remove: =>
             @stopListening()
+            super()
 
     class @SecondaryIndexesView extends Backbone.View
         template: Handlebars.templates['namespace_view-secondary_indexes-template']
@@ -387,7 +391,6 @@ module 'TableView', ->
         initialize: (data) =>
             @indexes_view = []
             @interval_progress = null
-
             @collection = data.collection
             @model = data.model
 
@@ -406,7 +409,6 @@ module 'TableView', ->
             if not @interval_progress?
                 @fetch_progress()
                 @interval_progress = setInterval @fetch_progress, 1000
-
 
         fetch_progress: =>
             if not @model.get('db')?
@@ -448,10 +450,12 @@ module 'TableView', ->
 
 
         set_indexes: (indexes) =>
+            @loading = false
             @collection = indexes
             @hook()
 
         hook: =>
+            console.log "HOOK SECONDARY INDEXES"
             @$el.html @template
                 loading: @loading
                 adding_index: @adding_index
@@ -471,6 +475,7 @@ module 'TableView', ->
                 @$('.no_index').hide()
 
             @listenTo @collection, 'add', (index) =>
+                console.log 'ADD'
                 view = new TableView.SecondaryIndexView
                     model: index
                     container: @
@@ -487,12 +492,14 @@ module 'TableView', ->
                 @$('.no_index').hide()
 
             @listenTo @collection, 'remove', (index) =>
+                console.log 'REMOVE'
                 for view in @indexes_view
                     if view.model is index
                         index.destroy()
-                        ((view) ->
+                        ((view) =>
                             view.$el.slideUp 'fast', =>
                                 view.remove()
+                                @indexes_view.splice(@indexes_view.indexOf(view), 1)
                         )(view)
                         break
                 if @collection.length is 0
@@ -652,6 +659,7 @@ module 'TableView', ->
             @$('.btn').prop 'disabled', 'disabled'
             query = r.db(@model.get('db')).table(@model.get('table')).indexDrop(@model.get('index'))
             driver.run query, (error, result) =>
+                @$('.btn').prop 'disabled', false
                 if error?
                     @container.render_error
                         delete_fail: true

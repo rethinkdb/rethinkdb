@@ -5,47 +5,60 @@ module 'TableView', ->
 
         initialize: (data) =>
             @model = data.model
-            @collection = data.collection
+            if data.collection?
+                @loading = false
+                @collection = data.collection
+            else
+                @loading = true
             @assignments_view = []
 
+        set_assignments: (assignments) =>
+            @loading = false
+            @collection = assignments
+            @render()
+
         render: =>
-            @$el.html @template()
-            @collection.each (assignment) =>
-                view = new TableView.ShardAssignmentView
-                    model: assignment
-                    container: @
-                # The first time, the collection is sorted
-                @assignments_view.push view
-                @$('.assignments_list').append view.render().$el
+            @$el.html @template
+                loading: @loading
+            if @collection?
+                @collection.each (assignment) =>
+                    view = new TableView.ShardAssignmentView
+                        model: assignment
+                        container: @
+                    # The first time, the collection is sorted
+                    @assignments_view.push view
+                    @$('.assignments_list').append view.render().$el
 
-            @listenTo @collection, 'add', (assignment) =>
-                view = new TableView.ShardAssignmentView
-                    model: assignment
-                    container: @
-                @assignments_view.push view
+                @listenTo @collection, 'add', (assignment) =>
+                    view = new TableView.ShardAssignmentView
+                        model: assignment
+                        container: @
+                    @assignments_view.push view
 
-                position = @collection.indexOf assignment
-                if @collection.length is 1
-                    @$('.assignments_list').html view.render().$el
-                else if position is 0
-                    @$('.assignments_list').prepend view.render().$el
-                else
-                    @$('.assignment_container').eq(position-1).after view.render().$el
+                    position = @collection.indexOf assignment
+                    if @collection.length is 1
+                        @$('.assignments_list').html view.render().$el
+                    else if position is 0
+                        @$('.assignments_list').prepend view.render().$el
+                    else
+                        @$('.assignment_container').eq(position-1).after view.render().$el
 
-            @listenTo @collection, 'remove', (assignment) =>
-                for view in @assignments_view
-                    if view.model is assignment
-                        assignment.destroy()
-                        view.remove()
-                        break
+                @listenTo @collection, 'remove', (assignment) =>
+                    for view, position in @assignments_view
+                        if view.model is assignment
+                            assignment.destroy()
+                            view.remove()
+                            @assignments_view.splice position, 1
+                            break
             @
 
         remove: =>
-            @stopListeningTo()
+            @stopListening()
 
             for view in @assignments_view
-                assignment.destroy()
+                view.model.destroy()
                 view.remove()
+            super()
 
 
     class @ShardAssignmentView extends Backbone.View
@@ -61,4 +74,4 @@ module 'TableView', ->
 
         remove: =>
             @stopListening()
-
+            super()

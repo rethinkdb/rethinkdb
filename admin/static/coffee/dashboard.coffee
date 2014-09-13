@@ -110,13 +110,15 @@ module 'DashboardView', ->
                     error: @error?.message
                     url: '#'
             else if @loading is true
-                @$el.html @template.loading().$el
+                @$el.html @template.loading
+                    page: "dashboard"
             else
                 @$el.html @dashboard_view.render().$el
             @
 
         remove: =>
             clearInterval @interval
+            super()
 
     class @DashboardMainView extends Backbone.View
         template: Handlebars.templates['dashboard_view-template']
@@ -230,6 +232,7 @@ module 'DashboardView', ->
         remove: =>
             @stopListeningTo()
             $(window).off 'mouseup', @remove_popup()
+            super()
 
     class @ClusterStatusRedundancy extends Backbone.View
         className: 'cluster-status-redundancy'
@@ -292,6 +295,7 @@ module 'DashboardView', ->
         remove: =>
             @stopListeningTo()
             $(window).off 'mouseup', @remove_popup()
+            super()
 
     class @ClusterStatusReachability extends Backbone.View
         className: 'cluster-status-reachability '
@@ -351,6 +355,7 @@ module 'DashboardView', ->
         remove: =>
             @stopListeningTo()
             $(window).off 'mouseup', @remove_popup()
+            super()
 
     class @ClusterStatusConsistency extends Backbone.View
         className: 'cluster-status-consistency'
@@ -406,6 +411,7 @@ module 'DashboardView', ->
         remove: =>
             @stopListeningTo()
             $(window).off 'mouseup', @remove_popup()
+            super()
 
     class @Logs extends Backbone.View
         className: 'log-entries'

@@ -62,17 +62,14 @@ module 'DatabaseView', ->
                             @table_view = null
                             @render()
                     else
+                        @loading = false
                         if @model?
-                            console.log 'updating previous models'
-
                             @tables.set _.map result.tables, (table) ->
                                 new Table table
                             delete result.tables
 
                             @model.set result
                         else
-                            console.log 'creating new model'
-
                             @tables = new Tables _.map result.tables, (table) ->
                                 new Table table
                             delete result.tables
@@ -82,8 +79,26 @@ module 'DatabaseView', ->
                                 model: @model
                                 tables: @tables
                             @$el.html @database_view.render().$el
+                            @render()
         render: =>
+            if @error?
+                @$el.html @template.error
+                    error: @error?.message
+                    url: '#databases/'+@id
+            else if @loading is true
+                @$el.html @template.loading
+                    page: "database"
+            else
+                if @database_view?
+                    @$el.html @database_view.render().$el
+                else # In this case, the query returned null, so the table was not found
+                    @$el.html @template.not_found
+                        id: @id
+                        type: 'database'
+                        type_url: 'databases'
+                        type_all_url: 'databases'
             @
+
 
 
     # Container for the entire database view

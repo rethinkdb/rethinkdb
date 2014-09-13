@@ -2,7 +2,9 @@
 module 'ServersView', ->
     class @ServersContainer extends Backbone.View
         id: 'servers_container'
-        template: Handlebars.templates['servers_container-template']
+        template:
+            main: Handlebars.templates['servers_container-template']
+            loading: Handlebars.templates['loading-template']
 
         initialize: =>
             @servers = new Servers
@@ -16,8 +18,17 @@ module 'ServersView', ->
 
         render: =>
             @$el.html @template({})
-            @$('.servers_list').html @servers_list.render().$el
             return @
+
+        render: =>
+            if @loading is true
+                @$el.html @template.loading
+                    page: "servers"
+            else
+                @$el.html @template.main({})
+                @$('.servers_list').html @servers_list.render().$el
+            @
+
 
         fetch_servers: =>
             #TODO Replace later with server_status
@@ -30,8 +41,6 @@ module 'ServersView', ->
                     last_seen: $.timeago(new Date())
             )
             driver.run query, (error, result) =>
-                @loading = false
-
                 uuids = {}
                 for server, index in result
                     @servers.add new Server(server)
@@ -44,6 +53,9 @@ module 'ServersView', ->
                         toDestroy.push server
                 for server in toDestroy
                     server.destroy()
+
+                @loading = false
+                @render()
 
         remove: =>
             clearInterval @interval
