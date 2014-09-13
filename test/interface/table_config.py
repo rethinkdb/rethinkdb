@@ -44,8 +44,8 @@ with driver.Metacluster() as metacluster:
         return True
 
     def check_status_matches_config():
-        config = r.db("rethinkdb").table("table_config").run(conn)
-        status = r.db("rethinkdb").table("table_status").run(conn)
+        config = list(r.db("rethinkdb").table("table_config").run(conn))
+        status = list(r.db("rethinkdb").table("table_status").run(conn))
         uuids = set(row["uuid"] for row in config)
         if not (len(uuids) == len(config) == len(status)):
             return False
@@ -68,7 +68,7 @@ with driver.Metacluster() as metacluster:
                                if doc["role"] == "director"]
                 if len(s_directors) != 1:
                     return False
-                if s_directors != c_shard["director"]:
+                if s_directors[0] != c_shard["director"]:
                     return False
                 if any(doc["state"] != "ready" for doc in s_shard):
                     return False
@@ -83,7 +83,7 @@ with driver.Metacluster() as metacluster:
         return True
 
     def check_tables_named(names):
-        config = r.db("rethinkdb").table("table_config").run(conn)
+        config = list(r.db("rethinkdb").table("table_config").run(conn))
         if len(config) != len(names):
             return False
         for row in config:
@@ -99,8 +99,8 @@ with driver.Metacluster() as metacluster:
                 if time.time() > start_time + 10:
                     raise RuntimeError("Out of time")
         except:
-            config = r.db("rethinkdb").table("table_config").run(conn)
-            status = r.db("rethinkdb").table("table_status").run(conn)
+            config = list(r.db("rethinkdb").table("table_config").run(conn))
+            status = list(r.db("rethinkdb").table("table_status").run(conn))
             print "Something went wrong."
             print "config =", config
             print "status =", status
@@ -172,6 +172,34 @@ with driver.Metacluster() as metacluster:
     print "Testing that we can't rename a table so as to cause a name collision..."
     res = r.table_config("bar2").update({"name": "foo"}).run(conn)
     assert res["errors"] == 1
+
+    print "Testing that we can create a table through table_config..."
+    res = r.db("rethinkdb").table("table_config").insert({
+        "name": "baz",
+        "db": "test",
+        "primary_key": "frob",
+        "shards": [{"replicas": ["a"], "director": "a"}]
+        }).run(conn)
+    assert res["errors"] == 0, repr(res)
+    assert res["inserted"] == 1, repr(res)
+    assert "baz" in r.table_list().run(conn)
+    for i in xrange(10):
+        try:
+            r.table("baz").insert({}).run(conn)
+        except r.RqlRuntimeError:
+            time.sleep(1)
+        else:
+            break
+    else:
+        raise ValueError("Table took too long to become available")
+    rows = list(r.table("baz").run(conn))
+    assert len(rows) == 1 and list(rows[0].keys()) == ["frob"]
+
+    print "Testing that we can delete a table through table_config..."
+    res = r.table_config("baz").delete().run(conn)
+    assert res["errors"] == 0, repr(res)
+    assert res["deleted"] == 1, repr(res)
+    assert "baz" not in r.table_list().run(conn)
 
     cluster1.check_and_stop()
 print "Done."

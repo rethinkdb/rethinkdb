@@ -102,6 +102,7 @@ with driver.Metacluster() as metacluster:
         row = r.table_config('foo').run(conn)
         del row["name"]
         del row["db"]
+        del row["primary_key"]
         del row["uuid"]
         return row
     prev_config = get_config()

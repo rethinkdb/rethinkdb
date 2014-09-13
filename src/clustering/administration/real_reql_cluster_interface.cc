@@ -62,44 +62,6 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
     }
 }
 
-static bool check_metadata_status(metadata_search_status_t status,
-                                  const char *entity_type,
-                                  const std::string &entity_name,
-                                  bool expect_present,
-                                  std::string *error_out) {
-    switch (status) {
-        case METADATA_SUCCESS: {
-            if (expect_present) {
-                return true;
-            } else {
-                *error_out = strprintf("%s `%s` already exists.",
-                    entity_type, entity_name.c_str());
-                return false;
-            }
-        }
-        case METADATA_ERR_MULTIPLE: {
-            if (expect_present) {
-                *error_out = strprintf("%s `%s` is ambiguous; there are multiple "
-                    "entities with that name.", entity_type, entity_name.c_str());
-            } else {
-                *error_out = strprintf("%s `%s` already exists.",
-                    entity_type, entity_name.c_str());
-            }
-            return false;
-        }
-        case METADATA_ERR_NONE: {
-            if (expect_present) {
-                *error_out = strprintf("%s `%s` does not exist.",
-                    entity_type, entity_name.c_str());
-                return false;
-            } else {
-                return true;
-            }
-        default: unreachable();
-        }
-    }
-}
-
 bool real_reql_cluster_interface_t::db_create(const name_string_t &name,
         signal_t *interruptor, std::string *error_out) {
     guarantee(name != name_string_t::guarantee_valid("rethinkdb"),
