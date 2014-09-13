@@ -474,8 +474,14 @@ void reactor_driver_t::on_change() {
                 it's a safe option, and name collisions are rare. */
                 continue;
             }
-            guarantee(std_contains(bp.peers_roles,
-                                   mbox_manager->get_connectivity_cluster()->get_me()));
+            if (!std_contains(bp.peers_roles,
+                              mbox_manager->get_connectivity_cluster()->get_me())) {
+                /* This can occur because there is a brief period during startup where
+                our machine ID might not appear in `server_name_client`'s mapping of
+                machine IDs and peer IDs. We just ignore it; in a moment, the mapping
+                will be updated to include us and `on_change()` will run again. */
+                continue;
+            }
 
             /* Either construct a new reactor (if this is a namespace we
              * haven't seen before). Or send the new blueprint to the

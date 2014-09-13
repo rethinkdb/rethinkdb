@@ -80,11 +80,11 @@ module 'Modals', ->
 
         on_submit: =>
             if @$('.verification_name').val() isnt @database_to_delete.get('name')
-                if @.$('.mismatch_container').css('display') is 'none'
-                    @.$('.mismatch_container').slideDown('fast')
+                if @$('.mismatch_container').css('display') is 'none'
+                    @$('.mismatch_container').slideDown('fast')
                 else
-                    @.$('.mismatch_container').hide()
-                    @.$('.mismatch_container').fadeIn()
+                    @$('.mismatch_container').hide()
+                    @$('.mismatch_container').fadeIn()
                 @reset_buttons()
                 return true
 
@@ -134,22 +134,22 @@ module 'Modals', ->
 
         hide_advanced_settings: (event) =>
             event.preventDefault()
-            @.$('.hide_advanced_settings-link_container').fadeOut 'fast', =>
+            @$('.hide_advanced_settings-link_container').fadeOut 'fast', =>
                 $('.show_advanced_settings-link_container').fadeIn 'fast'
-            @.$('.advanced_settings').slideUp 'fast'
+            @$('.advanced_settings').slideUp 'fast'
 
         # Check if we have a database (if not, we cannot create a table)
         check_if_can_create_table: =>
             if @databases.length is 0
                 if @can_create_table_status
-                    @.$('.btn-primary').prop 'disabled', true
+                    @$('.btn-primary').prop 'disabled', true
                     @$('.alert_modal').html @templates.error
                         create_db_first: true
                     $('.alert_modal_content').slideDown 'fast'
             else
                 if @can_create_table_status is false
-                    @.$('.alert_modal').empty()
-                    @.$('.btn-primary').prop 'disabled', false
+                    @$('.alert_modal').empty()
+                    @$('.btn-primary').prop 'disabled', false
 
 
         render: =>
@@ -226,8 +226,9 @@ module 'Modals', ->
             super
             window.app.current_view.render_message "The table #{@formdata.database}.#{@formdata.name} was successfully created."
 
-        destroy: =>
+        remove: =>
             @stopListening()
+            super()
 
     class @RemoveTableModal extends UIComponents.AbstractModal
         template: Handlebars.templates['remove_table-modal-template']
@@ -308,17 +309,17 @@ module 'Modals', ->
                     success: @on_success
                     error: @on_error
             else
-                @.$('.error_verification').slideDown 'fast'
+                @$('.error_verification').slideDown 'fast'
                 @reset_buttons()
 
         on_success_with_error: =>
-            @.$('.error_answer').html @template_issue_error
+            @$('.error_answer').html @template_issue_error
 
-            if @.$('.error_answer').css('display') is 'none'
-                @.$('.error_answer').slideDown('fast')
+            if @$('.error_answer').css('display') is 'none'
+                @$('.error_answer').slideDown('fast')
             else
-                @.$('.error_answer').css('display', 'none')
-                @.$('.error_answer').fadeIn()
+                @$('.error_answer').css('display', 'none')
+                @$('.error_answer').fadeIn()
             @reset_buttons()
 
 

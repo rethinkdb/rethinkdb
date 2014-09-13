@@ -6,7 +6,6 @@ module 'MainView', ->
         id: 'main_view'
         
         initialize: =>
-            @loading = true
             @fetch_data()
             @interval = setInterval @fetch_data, 5000
 
@@ -68,7 +67,6 @@ module 'MainView', ->
                 if error?
                     #TODO
                 else
-                    @loading = false # TODO Move that outside the `if` statement?
                     for database in result.databases
                         @databases.add new Database(database), {merge: true}
                         delete result.databases
@@ -271,14 +269,14 @@ class IsDisconnected extends Backbone.View
         @animate_loading()
 
     animate_loading: =>
-        if @.$('.three_dots_connecting')
-            if @.$('.three_dots_connecting').html() is '...'
-                @.$('.three_dots_connecting').html ''
+        if @$('.three_dots_connecting')
+            if @$('.three_dots_connecting').html() is '...'
+                @$('.three_dots_connecting').html ''
             else
-                @.$('.three_dots_connecting').append '.'
+                @$('.three_dots_connecting').append '.'
             setTimeout(@animate_loading, 300)
 
     display_fail: =>
-        @.$('.animation_state').fadeOut 'slow', =>
+        @$('.animation_state').fadeOut 'slow', =>
             $('.reconnecting_state').html(@message)
             $('.animation_state').fadeIn('slow')

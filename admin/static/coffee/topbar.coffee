@@ -24,7 +24,7 @@ module 'TopBar', ->
                 container: @
 
         render: =>
-            @$el.html @template({})
+            @$el.html @template()
 
             # Render connectivity status
             @$('.client-connection-status').html @client_panel.render().el
@@ -50,6 +50,7 @@ module 'TopBar', ->
             @tables_panel.remove()
             @issues_panel.remove()
             @issues_banner.remove()
+            super()
 
     # TopBar.ClientConnectionStatus
     class @ClientConnectionStatus extends Backbone.View

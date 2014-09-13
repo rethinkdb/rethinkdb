@@ -1,8 +1,8 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
-# Dashboard: provides an overview and visualizations of the cluster
-# Dashboard View
+
 module 'DashboardView', ->
-    # Cluster.Container
+    # DashboardContainer is responsaible to retrieve all the data displayed
+    # on the dashboard.
     class @DashboardContainer extends Backbone.View
         template:
             loading: Handlebars.templates['loading-template']
@@ -110,13 +110,15 @@ module 'DashboardView', ->
                     error: @error?.message
                     url: '#'
             else if @loading is true
-                @$el.html @template.loading().$el
+                @$el.html @template.loading
+                    page: "dashboard"
             else
                 @$el.html @dashboard_view.render().$el
             @
 
         remove: =>
             clearInterval @interval
+            super()
 
     class @DashboardMainView extends Backbone.View
         template: Handlebars.templates['dashboard_view-template']
@@ -157,18 +159,19 @@ module 'DashboardView', ->
             @$('.reachability').html @cluster_status_reachability.render().$el
             @$('.consistency').html @cluster_status_consistency.render().$el
 
-            #@.$('#cluster_performance_container').html @cluster_performance.render().$el
-            #@.$('.recent-log-entries-container').html @logs.render().$el
+            #@$('#cluster_performance_container').html @cluster_performance.render().$el
+            #@$('.recent-log-entries-container').html @logs.render().$el
 
             return @
 
-        destroy: =>
-            @cluster_status_availability.destroy()
-            @cluster_status_redundancy.destroy()
-            @cluster_status_reachability.destroy()
-            @cluster_status_consistency.destroy()
-            @cluster_performance.destroy()
-            @logs.destroy()
+        remove: =>
+            @cluster_status_availability.remove()
+            @cluster_status_redundancy.remove()
+            @cluster_status_reachability.remove()
+            @cluster_status_consistency.remove()
+            @cluster_performance.remove()
+            @logs.remove()
+            super()
 
     class @ClusterStatusAvailability extends Backbone.View
         className: 'cluster-status-availability '
@@ -229,7 +232,8 @@ module 'DashboardView', ->
 
         remove: =>
             @stopListeningTo()
-            $(window).off 'mouseup', @remove_popup()
+            $(window).off 'mouseup', @remove_popup
+            super()
 
     class @ClusterStatusRedundancy extends Backbone.View
         className: 'cluster-status-redundancy'
@@ -291,7 +295,8 @@ module 'DashboardView', ->
 
         remove: =>
             @stopListeningTo()
-            $(window).off 'mouseup', @remove_popup()
+            $(window).off 'mouseup', @remove_popup
+            super()
 
     class @ClusterStatusReachability extends Backbone.View
         className: 'cluster-status-reachability '
@@ -350,7 +355,8 @@ module 'DashboardView', ->
 
         remove: =>
             @stopListeningTo()
-            $(window).off 'mouseup', @remove_popup()
+            $(window).off 'mouseup', @remove_popup
+            super()
 
     class @ClusterStatusConsistency extends Backbone.View
         className: 'cluster-status-consistency'
@@ -405,7 +411,8 @@ module 'DashboardView', ->
 
         remove: =>
             @stopListeningTo()
-            $(window).off 'mouseup', @remove_popup()
+            $(window).off 'mouseup', @remove_popup
+            super()
 
     class @Logs extends Backbone.View
         className: 'log-entries'
@@ -455,11 +462,12 @@ module 'DashboardView', ->
                 @min_timestamp = parseFloat(@log_entries[0].get('timestamp'))+1
 
         render: =>
-            @.$el.html ''
+            @$el.html ''
             for log in @log_entries
                 view = new LogView.LogEntry model: log
-                @.$el.append view.render(@compact_entries).$el
+                @$el.append view.render(@compact_entries).$el
             return @
 
-        destroy: =>
+        remove: =>
             clearInterval @interval
+            super()
