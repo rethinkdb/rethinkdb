@@ -252,6 +252,9 @@ class IsDisconnected extends Backbone.View
     message: Handlebars.templates['is_disconnected_message-template']
     initialize: =>
         @render()
+        setInterval ->
+            driver.run_once r.expr(1)
+        , 2000
 
     render: =>
         @$('#modal-dialog > .modal').css('z-index', '1')

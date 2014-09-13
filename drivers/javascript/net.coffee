@@ -524,9 +524,9 @@ class HttpConnection extends Connection
         buf.writeUInt32LE(token & 0xFFFFFFFF, 0)
         buf.writeUInt32LE(Math.floor(token / 0xFFFFFFFF), 4)
         buf.write(data, 8)
-        @write buf
+        @write buf, token
 
-    write: (chunk) ->
+    write: (chunk, token) ->
         xhr = new XMLHttpRequest
         xhr.open("POST", "#{@_url}?conn_id=#{@_connId}", true)
         xhr.responseType = "arraybuffer"
@@ -537,6 +537,9 @@ class HttpConnection extends Connection
 
                 buf = new Buffer(b for b in (new Uint8Array(xhr.response)))
                 @_data(buf)
+
+        xhr.onerror = (e) =>
+            @outstandingCallbacks[token].cb(new Error("This HTTP connection is not open"))
 
         # Convert the chunk from node buffer to ArrayBuffer
         array = new ArrayBuffer(chunk.length)
