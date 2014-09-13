@@ -342,6 +342,11 @@ button.btn {
         white-space: pre-wrap;
         font-size: 12px;
     }
+    &.global_loading{
+        width: 940px;
+        margin: 40px auto;
+        display: block;
+    }
 }
 .main_query_error{
     word-break: break-word;
@@ -2853,6 +2858,9 @@ TODO: retire this
             line { stroke: #dcdcdc; }
             .rect { fill: #9ad7f2; }
             text { fill: #a3a3a3; }
+            .shard-diagram{
+                display: none;
+            }
         }
     }
     .section.secondary_indexes{
@@ -3303,7 +3311,9 @@ TODO: retire this
     Updates
     ----------------------------
 */
-.updates_container{
+#updates_container{
+    width: 940px;
+    margin: 15px auto 0px auto;
     .settings{
         display: none;
         width: 895px;

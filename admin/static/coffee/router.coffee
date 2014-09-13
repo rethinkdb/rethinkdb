@@ -1,10 +1,5 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
-# Extend Backbone View
-#TODO Remove
-Backbone.View.prototype.destroy = ->
-    return
 
-# Router for Backbone.js
 class BackboneCluster extends Backbone.Router
     #TODO Add human readable routes
     routes:
@@ -45,32 +40,32 @@ class BackboneCluster extends Backbone.Router
         clear_modals()
         @current_view.remove()
         @current_view = new TablesView.DatabasesContainer
-        @container.html @current_view.render().el
+        @container.html @current_view.render().$el
 
     index_servers: (data) ->
         clear_modals()
         @current_view.remove()
         @current_view = new ServersView.ServersContainer
-        @container.html @current_view.render().el
+        @container.html @current_view.render().$el
 
     dashboard: ->
         clear_modals()
         @current_view.remove()
         @current_view = new DashboardView.DashboardContainer
-        @container.html @current_view.render().el
+        @container.html @current_view.render().$el
 
     logs: ->
         clear_modals()
         @current_view.remove()
         @current_view = new LogView.LogsContainer
-        @container.html @current_view.render().el
+        @container.html @current_view.render().$el
 
     dataexplorer: ->
         clear_modals()
         @current_view.remove()
         @current_view = new DataExplorerView.Container
             state: DataExplorerView.state
-        @container.html @current_view.render().el
+        @container.html @current_view.render().$el
         @current_view.init_after_dom_rendered() # Need to be called once the view is in the DOM tree
         @current_view.results_view.set_scrollbar() # In case we check the data explorer, leave and come back
 
@@ -78,16 +73,16 @@ class BackboneCluster extends Backbone.Router
         clear_modals()
         @current_view.remove()
         @current_view = new DatabaseView.DatabaseContainer id
-        @container.html @current_view.render().el
+        @container.html @current_view.render().$el
 
     table: (id) ->
         clear_modals()
         @current_view.remove()
         @current_view = new TableView.TableContainer id
-        @container.html @current_view.render().el
+        @container.html @current_view.render().$el
 
     server: (id) ->
         clear_modals()
         @current_view.remove()
         @current_view = new ServerView.ServerContainer id
-        @container.html @current_view.render().el
+        @container.html @current_view.render().$el

@@ -3,7 +3,9 @@
 module 'ServerView', ->
     class @ServerContainer extends Backbone.View
         not_found_template: Handlebars.templates['element_view-not_found-template']
-        template: Handlebars.templates['full_server-template']
+        template:
+            main: Handlebars.templates['full_server-template']
+            loading: Handlebars.templates['loading-template']
 
         events:
             'click .operations .rename': 'rename_server'
@@ -74,15 +76,14 @@ module 'ServerView', ->
 
         render: =>
             if @loading
-                @$el.html @template
-                    loading: @loading
-                    id: @id
+                @$el.html @template.loading
+                    page: "server"
             else
                 if @server is null
                     @$el.html @not_found_template
                 else
                     #TODO Handle ghost?
-                    @$el.html @template @server
+                    @$el.html @template.main @server
 
                     @title = new ServerView.Title
                         model: @server
@@ -100,7 +101,7 @@ module 'ServerView', ->
                         seconds: 73             # num seconds to track
                         type: 'server'
                     )
-                    @.$('.performance-graph').html @performance_graph.render().$el
+                    @$('.performance-graph').html @performance_graph.render().$el
                     ###
 
                     @data = new ServerView.Data
@@ -116,13 +117,14 @@ module 'ServerView', ->
                     ###
             @
 
-        destroy: =>
+        remove: =>
             clearInterval @interval
             @title.remove()
             @profile.remove()
             @data.remove()
             if @rename_modal?
                 @rename_modal.remove()
+            super()
 
 
     class @Title extends Backbone.View
@@ -138,6 +140,7 @@ module 'ServerView', ->
 
         remove: =>
             @stopListening()
+            super()
 
     class @Profile extends Backbone.View
         className: 'machine-info-view'
@@ -157,6 +160,7 @@ module 'ServerView', ->
 
         remove: =>
             @stopListening()
+            super()
 
 
     class @Data extends Backbone.View
@@ -175,3 +179,4 @@ module 'ServerView', ->
 
         remove: =>
             @stopListening()
+            super()

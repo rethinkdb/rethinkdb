@@ -5,6 +5,7 @@ module 'TablesView', ->
         id: 'databases_container'
         template:
             main: Handlebars.templates['databases_container-template']
+            loading: Handlebars.templates['loading-template']
             error: Handlebars.templates['error-query-template']
             alert_message: Handlebars.templates['alert_message-template']
 
@@ -68,8 +69,12 @@ module 'TablesView', ->
             @remove_tables_dialog = new Modals.RemoveTableModal
 
         render: =>
-            @$el.html @template.main({})
-            @$('.databases_list').html @databases_list.render().$el
+            if @loading is true
+                @$el.html @template.loading
+                    page: "tables"
+            else
+                @$el.html @template.main({})
+                @$('.databases_list').html @databases_list.render().$el
             @
 
         render_message: (message) =>
@@ -98,7 +103,6 @@ module 'TablesView', ->
                             url: '#tables'
                             error: error.message
                 else
-                    @loading = false # TODO Move that outside the `if` statement?
                     databases = {}
                     for database, index in result
                         @databases.add new Database(database), {merge: true}
@@ -111,6 +115,8 @@ module 'TablesView', ->
                             toDestroy.push database
                     for database in toDestroy
                         database.destroy()
+                    @loading = false
+                    @render()
 
         remove: =>
             clearInterval @interval
@@ -235,10 +241,11 @@ module 'TablesView', ->
                     @$('.no_element').remove()
 
             @listenTo @collection, 'remove', (table) =>
-                for view in @tables_views
+                for view, position in @tables_views
                     if view.model is table
                         table.destroy()
                         view.remove()
+                        @tables_views.splice position, 1
                         break
 
                 if @collection.length is 0

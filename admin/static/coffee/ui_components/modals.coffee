@@ -50,16 +50,16 @@ module 'UIComponents', ->
             @.delegateEvents()
 
             for btn in @custom_buttons
-                @.$('.custom_btn_placeholder').append("<button class='btn #{ btn.class_str }' data-loading-text='#{ btn.data_loading_text }'>#{ btn.main_text }</button>")
-                @.$('.custom_btn_placeholder > .' + btn.class_str).click (e) =>
+                @$('.custom_btn_placeholder').append("<button class='btn #{ btn.class_str }' data-loading-text='#{ btn.data_loading_text }'>#{ btn.main_text }</button>")
+                @$('.custom_btn_placeholder > .' + btn.class_str).click (e) =>
                     btn.on_click(e)
-                @.$('.custom_btn_placeholder > .' + btn.class_str).button()
+                @$('.custom_btn_placeholder > .' + btn.class_str).button()
 
             register_modal @
 
         hide_modal: =>
             @$modal.modal('hide') if @$modal?
-            @destroy()
+            @remove()
 
         cancel_modal: (e) ->
             @.hide_modal()
@@ -75,8 +75,8 @@ module 'UIComponents', ->
             @on_submit(event)
 
         reset_buttons: =>
-            @.$('.btn-primary').button('reset')
-            @.$('.cancel').button('reset')
+            @$('.btn-primary').button('reset')
+            @$('.cancel').button('reset')
 
         # This is meant to be called by the overriding class
         on_success: (response) =>
@@ -84,19 +84,19 @@ module 'UIComponents', ->
             clear_modals()
 
         on_submit: (event) =>
-            @.$('.btn-primary').button('loading')
-            @.$('.cancel').button('loading')
+            @$('.btn-primary').button('loading')
+            @$('.cancel').button('loading')
 
         on_error: (error) =>
-            @.$('.alert_modal').html @error_template
+            @$('.alert_modal').html @error_template
                 ajax_fail: true
                 error: (error if error? and error isnt '')
 
-            if @.$('.alert_modal_content').css('display') is 'none'
-                @.$('.alert_modal_content').slideDown('fast')
+            if @$('.alert_modal_content').css('display') is 'none'
+                @$('.alert_modal_content').slideDown('fast')
             else
-                @.$('.alert_modal_content').css('display', 'none')
-                @.$('.alert_modal_content').fadeIn()
+                @$('.alert_modal_content').css('display', 'none')
+                @$('.alert_modal_content').fadeIn()
             @reset_buttons()
 
         add_custom_button: (main_text, class_str, data_loading_text, on_click) =>
@@ -107,7 +107,7 @@ module 'UIComponents', ->
                 on_click: on_click
 
         find_custom_button: (class_str) =>
-            return @.$('.custom_btn_placeholder > .' + class_str)
+            return @$('.custom_btn_placeholder > .' + class_str)
 
     # This is for doing user confirmation easily
     class @ConfirmationDialogModal extends @AbstractModal
@@ -125,7 +125,7 @@ module 'UIComponents', ->
                 modal_title: 'Confirmation'
                 btn_secondary_text: 'No'
                 btn_primary_text: 'Yes'
-            @.$('.btn-primary').focus()
+            @$('.btn-primary').focus()
 
         on_submit: ->
             super
