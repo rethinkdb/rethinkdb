@@ -6,12 +6,14 @@
 window.system_db = 'rethinkdb'
 
 $ ->
+    # Load the driver
     window.r = require('rethinkdb')
     window.driver = new Driver
 
     main_view = new MainView.MainContainer()
     $('body').html main_view.render().$el
 
+    # We need to start the router after the main view is bound to the DOM
     main_view.start_router()
 
     Backbone.sync = (method, model, success, error) ->
@@ -23,7 +25,6 @@ $ ->
 
     # Collect reql docs
     collect_reql_doc()
-
 
 
 class @Driver
@@ -58,9 +59,11 @@ class @Driver
             TermBase.run = ->
                 throw new Error("You should remove .run() from your queries when using the Data Explorer.\nThe query will be built and sent by the Data Explorer itself.")
 
+    # Open a connection to the server
     connect: (callback) ->
         r.connect @server, callback
 
+    # Run a query once
     run_once: (query, callback) =>
         @connect (error, connection) =>
             if error?
@@ -86,9 +89,14 @@ class @Driver
                             callback(err, result)
 
 
-    run: (query, delay, callback) =>
-        @index++
-        @timers[@index] = {}
+    # Run the query every `delay` ms
+    # Returns a timeout number (to use with @stop_timer).
+    # If `index` is provided, `run` will its value as a timer
+    run: (query, delay, callback, index) =>
+        if not index?
+            @index++
+        index = @index
+        @timers[index] = {}
         ( (index) =>
             @connect (error, connection) =>
                 if error?
@@ -112,17 +120,24 @@ class @Driver
                                 query.private_run connection, (err, result) =>
                                     if typeof result?.toArray is 'function'
                                         result.toArray (err, result) =>
+                                            # This happens if people load the page with the back button
+                                            # In which case, we just restart the query
+                                            if err?.message is "This HTTP connection is not open"
+                                                return @run query, delay, callback, index
                                             callback(err, result)
                                             if @timers[index]?
                                                 @timers[index].timeout = setTimeout fn, delay
                                     else
+                                        if err?.message is "This HTTP connection is not open"
+                                            return @run query, delay, callback, index
                                         callback(err, result)
                                         if @timers[index]?
                                             @timers[index].timeout = setTimeout fn, delay
                             )()
-        )(@index)
-        @index
+        )(index)
+        index
 
+    # Stop the timer and close the connection
     stop_timer: (timer) =>
         clearTimeout @timers[timer].timeout
         @timers[timer].connection.close {noreplyWait: false}
