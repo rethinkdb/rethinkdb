@@ -117,22 +117,26 @@ class @Driver
                         if @timers[index]?
                             @timers[index].connection = connection
                             (fn = =>
-                                query.private_run connection, (err, result) =>
-                                    if typeof result?.toArray is 'function'
-                                        result.toArray (err, result) =>
-                                            # This happens if people load the page with the back button
-                                            # In which case, we just restart the query
+                                try
+                                    query.private_run connection, (err, result) =>
+                                        if typeof result?.toArray is 'function'
+                                            result.toArray (err, result) =>
+                                                # This happens if people load the page with the back button
+                                                # In which case, we just restart the query
+                                                if err?.message is "This HTTP connection is not open"
+                                                    return @run query, delay, callback, index
+                                                callback(err, result)
+                                                if @timers[index]?
+                                                    @timers[index].timeout = setTimeout fn, delay
+                                        else
                                             if err?.message is "This HTTP connection is not open"
                                                 return @run query, delay, callback, index
                                             callback(err, result)
                                             if @timers[index]?
                                                 @timers[index].timeout = setTimeout fn, delay
-                                    else
-                                        if err?.message is "This HTTP connection is not open"
-                                            return @run query, delay, callback, index
-                                        callback(err, result)
-                                        if @timers[index]?
-                                            @timers[index].timeout = setTimeout fn, delay
+                                catch err
+                                    console.log err
+                                    return @run query, delay, callback, index
                             )()
         )(index)
         index

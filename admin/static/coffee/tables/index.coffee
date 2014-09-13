@@ -283,7 +283,13 @@ module 'TablesView', ->
     class @TableView extends Backbone.View
         className: 'table_container'
         template: Handlebars.templates['table-template']
+        @initialize: =>
+            @listenTo @model, 'change', @render
 
         render: =>
             @$el.html @template @model.toJSON()
             @
+
+        remove: =>
+            @stopListening()
+            super()
