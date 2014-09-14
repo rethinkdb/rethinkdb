@@ -46,8 +46,8 @@ module 'UIComponents', ->
                 @$modal.remove()
 
             # Define @el to be the modal (the root of the view), make sure events perform on it
-            @.setElement @$modal
-            @.delegateEvents()
+            @setElement @$modal
+            @delegateEvents()
 
             for btn in @custom_buttons
                 @$('.custom_btn_placeholder').append("<button class='btn #{ btn.class_str }' data-loading-text='#{ btn.data_loading_text }'>#{ btn.main_text }</button>")
@@ -62,7 +62,7 @@ module 'UIComponents', ->
             @remove()
 
         cancel_modal: (e) ->
-            @.hide_modal()
+            @hide_modal()
             e.preventDefault()
 
         check_keypress_is_enter: (event) =>
@@ -107,7 +107,7 @@ module 'UIComponents', ->
                 on_click: on_click
 
         find_custom_button: (class_str) =>
-            return @$('.custom_btn_placeholder > .' + class_str)
+            @$('.custom_btn_placeholder > .' + class_str)
 
     # This is for doing user confirmation easily
     class @ConfirmationDialogModal extends @AbstractModal
