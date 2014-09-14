@@ -541,15 +541,14 @@ class HttpConnection extends Connection
         xhr.onerror = (e) =>
             @outstandingCallbacks[token].cb(new Error("This HTTP connection is not open"))
 
-        # Convert the chunk from node buffer to ArrayBuffer
-        array = new ArrayBuffer(chunk.length)
-        view = new Uint8Array(array)
+        # Convert the chunk from node buffer to an ArrayBufferView (Uint8Array)
+        # Passing an ArrayBuffer in xhr.send is deprecated
+        view = new Uint8Array(chunk.length)
         i = 0
         while i < chunk.length
             view[i] = chunk[i]
             i++
-
-        xhr.send array
+        xhr.send view
         @xhr = xhr # We allow only one query at a time per HTTP connection
 
 module.exports.isConnection = (connection) ->
