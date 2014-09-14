@@ -4,6 +4,7 @@ module 'DashboardView', ->
     # DashboardContainer is responsaible to retrieve all the data displayed
     # on the dashboard.
     class @DashboardContainer extends Backbone.View
+        id: 'dashboard_container'
         template:
             loading: Handlebars.templates['loading-template']
             error: Handlebars.templates['error-query-template']
@@ -118,7 +119,7 @@ module 'DashboardView', ->
 
     class @DashboardMainView extends Backbone.View
         template: Handlebars.templates['dashboard_view-template']
-        id: 'dashboard_container'
+        id: 'dashboard_main_view'
 
         events:
             'click .view-logs': 'show_all_logs'
