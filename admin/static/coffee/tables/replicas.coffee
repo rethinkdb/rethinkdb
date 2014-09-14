@@ -26,7 +26,7 @@ module 'TableView', ->
             @listenTo @model, 'change:num_available_replicas', @render_status
 
             @progress_bar = new UIComponents.OperationProgressBar @template.status
-            @interval = null
+            @timer = null
 
             window.foo = @
 
@@ -105,20 +105,6 @@ module 'TableView', ->
         fetch_progress: =>
             #Keep ignore in window?
             #We also fetch shards
-            ignore = (shard) -> shard('role').ne('nothing')
-            query =
-                r.db(system_db).table('table_status').get(@model.get('uuid')).do( (table) ->
-                    r.branch(
-                        table.eq(null),
-                        null,
-                        table.merge(
-                            num_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).count()
-                            num_available_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).filter({state: "ready"}).count()
-                            num_shards: table("shards").count()
-                            num_available_shards: table("shards").concatMap( (shard) -> shard ).filter({role: "director", state: "ready"}).count()
-                        )
-                    )
-                )
 
             driver.run query, (error, result) =>
                 if error?
@@ -133,14 +119,37 @@ module 'TableView', ->
         render_status: =>
             #TODO Handle backfilling when available on the API
             if @model.get('num_available_replicas') < @model.get('num_replicas')
-                if not @interval?
-                    @interval = setInterval @fetch_progress, 1000
+                if not @timer?
+                    ignore = (shard) -> shard('role').ne('nothing')
+                    query =
+                        r.db(system_db).table('table_status').get(@model.get('uuid')).do( (table) ->
+                            r.branch(
+                                table.eq(null),
+                                null,
+                                table.merge(
+                                    num_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).count()
+                                    num_available_replicas: table("shards").concatMap( (shard) -> shard ).filter(ignore).filter({state: "ready"}).count()
+                                    num_shards: table("shards").count()
+                                    num_available_shards: table("shards").concatMap( (shard) -> shard ).filter({role: "director", state: "ready"}).count()
+                                )
+                            )
+                        )
+
+                    @timer = driver.run query, 1000, (error, result) =>
+                        if error?
+                            # This can happen if the table is temporary unavailable. We log the error, and ignore it
+                            console.log "Nothing bad - Could not fetch replicas statuses"
+                            console.log error
+                        else
+                            @model.set result
+                            @render_status() # Force to refresh the progress bar
+
                 if @progress_bar.get_stage() is 'none'
                     @progress_bar.skip_to_processing() # if the stage is 'none', we skipt to processing
             else if @model.get('num_available_replicas') is @model.get('num_replicas')
-                if @interval?
-                    clearInterval @interval
-                    @interval = null
+                if @timer?
+                    driver.stop_timer @timer
+                    @timer = null
 
 
             progress_bar_info =
@@ -173,8 +182,8 @@ module 'TableView', ->
             return @
 
         remove: =>
-            if @interval
-                clearInterval @interval
-                @interval = null
+            if @timer
+                driver.stop_timer @timer
+                @timer = null
             @progress_bar.remove()
             super()
