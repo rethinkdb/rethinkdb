@@ -94,7 +94,6 @@ class Stats extends Backbone.Model
     get_stats: =>
         @toJSON()
     destroy: =>
-        console.log 'destroy'
         driver.stop_timer @timer
         super()
 
