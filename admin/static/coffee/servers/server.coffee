@@ -44,6 +44,8 @@ module 'ServerView', ->
                             )
                         ).filter( (table) ->
                             table("shards").isEmpty().not()
+                        ).merge( (table) ->
+                            id: table("uuid")
                         ).coerceTo("ARRAY")
                     )
                 )

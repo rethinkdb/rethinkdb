@@ -28,8 +28,8 @@ module 'TablesView', ->
                 selected_tables = []
                 @$('.checkbox-table:checked').each () ->
                     selected_tables.push
-                        table: $(@).data('table')
-                        database: $(@).data('database')
+                        table: JSON.parse $(@).data('table')
+                        database: JSON.parse $(@).data('database')
 
                 @remove_tables_dialog.render selected_tables
 
@@ -253,6 +253,7 @@ module 'TablesView', ->
                         container: "database"
 
         update_collection: =>
+            ###
             to_destroy = []
             for table in @collection.models
                 found = false
@@ -267,7 +268,9 @@ module 'TablesView', ->
                 table.destroy()
 
             for table in @model.get('tables')
-                @collection.add new Table table
+                @collection.set new Table table, {merge: true}
+            ###
+            @collection.set _.map(@model.get("tables"), (table) -> new Table(table)), {merge: true}
 
         render: =>
             @
@@ -287,7 +290,15 @@ module 'TablesView', ->
             @listenTo @model, 'change', @render
 
         render: =>
-            @$el.html @template @model.toJSON()
+            @$el.html @template#@model.toJSON()
+                id: @model.get 'id'
+                db_json: JSON.stringify @model.get('db')
+                name_json: JSON.stringify @model.get('name')
+                db: @model.get('db')
+                name: @model.get('name')
+                shards: @model.get 'shards'
+                replicas: @model.get 'replicas'
+                ready_completely: @model.get 'ready_completely'
             @
 
         remove: =>

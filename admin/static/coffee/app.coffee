@@ -63,6 +63,10 @@ class @Driver
     connect: (callback) ->
         r.connect @server, callback
 
+    # Close a connection
+    close: (conn) ->
+        conn.close()
+
     # Run a query once
     run_once: (query, callback) =>
         @connect (error, connection) =>

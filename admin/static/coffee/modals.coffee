@@ -249,7 +249,7 @@ module 'Modals', ->
             super
 
             query = r.expr(@tables_to_delete).forEach (table) ->
-                r.db(table("database")).tableDrop(table("table"))
+                r.db(table("database").coerceTo("STRING")).tableDrop(table("table").coerceTo("STRING"))
 
             driver.run_once query, (err, result) =>
                 if (err)
