@@ -50,7 +50,7 @@ module 'TableView', ->
                                     ).map (name) ->
                                         id: r.db(system_db).table('server_config').filter({name: name}).nth(0)("uuid")
                                         name: name
-
+                                id: table("uuid")
                             ).do( (table) ->
                                 r.branch( # We must be sure that the table is ready before retrieving the indexes
                                     table("num_available_shards").eq(table("num_shards")), #TODO Is that a sufficient condition?
@@ -65,11 +65,10 @@ module 'TableView', ->
                                     }),
                                     table.merge({indexes: null})
                                 )
-                            )
+                            ).without('shards')
                         )
                     )
-                ).without('shards').merge
-                    id: r.row 'uuid'
+                )
 
             @timer = driver.run query, 5000, (error, result) =>
                 ###
@@ -188,7 +187,7 @@ module 'TableView', ->
             @
         remove: =>
             driver.stop_timer @timer
-            @table_view.remove()
+            @table_view?.remove()
             super()
 
     class @TableMainView extends Backbone.View
