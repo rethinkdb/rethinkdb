@@ -199,6 +199,34 @@ bool check_metadata_status(metadata_search_status_t status,
                            bool expect_present,
                            std::string *error_out);
 
+template<class T>
+bool search_metadata_by_uuid(
+        std::map<uuid_u, deletable_t<T> > *map,
+        const uuid_u &uuid,
+        typename std::map<uuid_u, deletable_t<T> >::iterator *it_out) {
+    auto it = map->find(uuid);
+    if (it != map->end() && !it->second.is_deleted()) {
+        *it_out = it;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+template<class T>
+bool search_const_metadata_by_uuid(
+        const std::map<uuid_u, deletable_t<T> > *map,
+        const uuid_u &uuid,
+        typename std::map<uuid_u, deletable_t<T> >::const_iterator *it_out) {
+    auto it = map->find(uuid);
+    if (it != map->end() && !it->second.is_deleted()) {
+        *it_out = it;
+        return true;
+    } else {
+        return false;
+    }
+}
+
 /* A helper class to search through metadata in various ways.  Can be
    constructed from a pointer to the internal map of the metadata,
    e.g. `metadata.databases.databases`.  Look in rdb_protocol/query_language.cc
