@@ -1,3 +1,64 @@
+# Release 1.15.0 (Into the Wild)
+
+Released on 2014-09-17
+
+The highlights of this release are support for geospatial objects and queries and significant performance upgrades relating to datum serialization.
+
+There are no API-breaking changes in this release.
+
+## New features ##
+
+* ReQL
+  * Added geospatial support (#2571, #2847, #2851, #2854, #2859, #3003, #3011)
+  * Added `r.uuid` for generating unique IDs (#2063)
+  * Added a `BRACKET` term to the query language, to improve the bracket operator in client drivers (#1179)
+
+## Improvements ##
+
+* Server
+  * Removed the option for `datum_t` to be uninitialized (#2985)
+  * Permit `psuedo::literal_string` types from JSON (#2710)
+  * Replaced the `zip_datum_stream_t` type with a transformer function, improving performance (#2654)
+  * Replaced `std::map` for datum objects with a sorted vector of pairs, improving object deserialization performance (#2652)
+  * Reduced the level of pointer_indirection in `datum_t` (#2244)
+  * Replaced the internal data types used for `datum_t` with ones that can be efficiently serialized and deserialized (#1915)
+  * Removed the word "OPAQUE" from error messages (#972)
+* Testing
+  * Removed unneeded files from `test/common` (#2829)
+  * Changed all tests to run with `--cache-size` parameter (#2816)
+
+## Fixed bugs ##
+
+* Server
+  * Fixed a bug with reverse log reading (#2627)
+  * Fixed a bug where Makefile miscounted dependencies when `ql2.proto` was changed (#2965)
+  * Fixed a bug with improper encoding of the connection authorization key (#2952)
+* Testing
+  * Fixed the `polyglot/arity` test for Python 3.3/3.4 (#2940)
+  * Fixed an improper dictionary comparison in test drivers (#2887)
+  * Fixed a bug with false positives in the YAML Ruby test driver (#2844)
+  * Fixed an intermittent error with `atomic_get_set` in JavaScript tests (#2837)
+  * Fixed an uninitialized variable warning during building (#2977)
+* JavaScript driver
+  * Fixed a bug in the JavaScript driver that caused backtraces to not print properly (#2793)
+* Python driver
+  * Replaced `or isinstance` with a tuple of types (#2968)
+  * Removed unused `kwarg` assignments (#2969)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 1.14. In no particular order:
+
+* Sathyanarayanan Gunasekaran (@gsathya)
+* Adam Grandquist (@grandquista)
+* Colin Mattson(@cmattson)
+* Justas Brazauskas (@jutaz)
+* Matt Stith (@stith)
+* Dmitry Minkovsky (@dminkovsky)
+
+--
+
 # Release 1.14.1 (Brazil)
 
 Released on 2014-09-09
