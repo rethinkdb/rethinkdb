@@ -56,6 +56,11 @@ protected:
     /* This should only be called on the home thread */
     name_string_t get_db_name(database_id_t db_id);
 
+    /* This should only be called on the home thread. If the DB is not found or there is
+    a name collision, returns `false` and sets `*error_out`. */
+    bool get_db_id(name_string_t db_name, database_id_t *db_id_out,
+        std::string *error_out);
+
     boost::shared_ptr< semilattice_readwrite_view_t<
         cow_ptr_t<namespaces_semilattice_metadata_t> > > table_sl_view;
     boost::shared_ptr< semilattice_readwrite_view_t<
