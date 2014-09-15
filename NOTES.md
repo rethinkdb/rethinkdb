@@ -44,6 +44,8 @@ There are no API-breaking changes in this release.
 * Python driver
   * Replaced `or isinstance` with a tuple of types (#2968)
   * Removed unused `kwarg` assignments (#2969)
+* Ruby driver
+  * Fixed a bug where `default_db`, `host` and `port` were not exposed in the Connection object (#2849)
 
 ## Contributors ##
 
@@ -52,6 +54,7 @@ us ship RethinkDB 1.14. In no particular order:
 
 * Sathyanarayanan Gunasekaran (@gsathya)
 * Adam Grandquist (@grandquista)
+* Duane Johnson (@canadaduane)
 * Colin Mattson(@cmattson)
 * Justas Brazauskas (@jutaz)
 * Matt Stith (@stith)
