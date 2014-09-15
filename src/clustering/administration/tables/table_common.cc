@@ -42,15 +42,17 @@ bool common_table_artificial_table_backend_t::read_row(
         row. */
         table_id = nil_uuid();
     }
-    auto it = md->namespaces.find(table_id);
-    if (it == md->namespaces.end() || it->second.is_deleted()) {
+    std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >
+        ::const_iterator it;
+    if (search_const_metadata_by_uuid(&md->namespaces, table_id, &it)) {
+        name_string_t table_name = it->second.get_ref().name.get_ref();
+        name_string_t db_name = get_db_name(it->second.get_ref().database.get_ref());
+        return read_row_impl(table_id, table_name, db_name, it->second.get_ref(),
+                             &interruptor2, row_out, error_out);
+    } else {
         *row_out = ql::datum_t();
         return true;
     }
-    name_string_t table_name = it->second.get_ref().name.get_ref();
-    name_string_t db_name = get_db_name(it->second.get_ref().database.get_ref());
-    return read_row_impl(table_id, table_name, db_name, it->second.get_ref(),
-                         &interruptor2, row_out, error_out);
 }
 
 name_string_t common_table_artificial_table_backend_t::get_db_name(database_id_t db_id) {
