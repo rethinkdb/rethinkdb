@@ -23,9 +23,12 @@ There are no API-breaking changes in this release.
   * Reduced the level of pointer_indirection in `datum_t` (#2244)
   * Replaced the internal data types used for `datum_t` with ones that can be efficiently serialized and deserialized (#1915)
   * Removed the word "OPAQUE" from error messages (#972)
+  * Improved performance of `match` (#2196)
 * Testing
   * Removed unneeded files from `test/common` (#2829)
   * Changed all tests to run with `--cache-size` parameter (#2816)
+* Python driver
+  * Modified `r.row` to provide an error message on an attempt to call it like a function (#2960)
 
 ## Fixed bugs ##
 
@@ -33,12 +36,14 @@ There are no API-breaking changes in this release.
   * Fixed a bug with reverse log reading (#2627)
   * Fixed a bug where Makefile miscounted dependencies when `ql2.proto` was changed (#2965)
   * Fixed a bug with improper encoding of the connection authorization key (#2952)
+  * Improved error message when `literal` is used in an invalid context (#1600)
+  * Fixed an uninitialized variable warning during building (#2977)
 * Testing
   * Fixed the `polyglot/arity` test for Python 3.3/3.4 (#2940)
   * Fixed an improper dictionary comparison in test drivers (#2887)
   * Fixed a bug with false positives in the YAML Ruby test driver (#2844)
   * Fixed an intermittent error with `atomic_get_set` in JavaScript tests (#2837)
-  * Fixed an uninitialized variable warning during building (#2977)
+  * Fixed a bug preventing some tests from running in Emacs eshell (#2603)
 * JavaScript driver
   * Fixed a bug in the JavaScript driver that caused backtraces to not print properly (#2793)
 * Python driver
