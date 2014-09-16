@@ -88,8 +88,7 @@ void geo_intersecting_cb_t::init_query(const ql::datum_t &_query_geometry) {
         compute_index_grid_keys(_query_geometry, QUERYING_GOAL_GRID_CELLS));
 }
 
-done_traversing_t geo_intersecting_cb_t::on_candidate(
-        scoped_key_value_t &&keyvalue,
+done_traversing_t geo_intersecting_cb_t::on_candidate(scoped_key_value_t &&keyvalue,
         concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t) {
     guarantee(query_geometry.has());
