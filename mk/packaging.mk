@@ -54,7 +54,7 @@ DIST_CONFIGURE_DEFAULT_FETCH = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), --fetch 
 DIST_SUPPORT = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), $(SUPPORT_SRC_DIR)/$(pkg)_$($(pkg)_VERSION))
 
 DEB_BUILD_DEPENDS := g++, libboost-dev, libssl-dev, curl, m4, debhelper
-DEB_BUILD_DEPENDS += , fakeroot, python, libncurses5-dev, libcurl4-gnutls-dev
+DEB_BUILD_DEPENDS += , fakeroot, python, libncurses5-dev, libcurl4-openssl-dev, libssl-dev
 ifneq ($(shell echo $(UBUNTU_RELEASE) | grep '^[q-zQ-Z]'),)
   DEB_BUILD_DEPENDS += , nodejs-legacy
 endif
