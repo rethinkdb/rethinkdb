@@ -123,9 +123,9 @@ void geo_index_traversal_helper_t::init_query(
     is_initialized_ = true;
 }
 
-done_traversing_t geo_index_traversal_helper_t::handle_pair(
-        scoped_key_value_t &&keyvalue,
-        concurrent_traversal_fifo_enforcer_signal_t waiter)
+done_traversing_t
+geo_index_traversal_helper_t::handle_pair(scoped_key_value_t &&keyvalue,
+                                          concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t) {
     guarantee(is_initialized_);
 
