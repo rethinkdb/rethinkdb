@@ -204,7 +204,7 @@ read_args () {
     failed=false
 
     allow_fetch=false
-    force_paths='= '
+    force_paths='=|'
     can_show=false
     required=false
     arg_vars=$'\1\2'
@@ -278,7 +278,7 @@ read_args () {
             -*) die "Unknown option '$option'" ;;
             *) if contains "$all_deps" "$(lc $option)"; then
                  $has_arg
-                 force_paths="$force_paths $(lc $option)=$arg "
+                 force_paths="$force_paths|$(lc $option)=$arg|"
                elif contains "$allowed_arg_vars" "$option"; then
                  $has_arg
                  arg_vars="$arg_vars"$'\2'"$option"$'\1'"$arg"
@@ -521,20 +521,19 @@ check_cxx () {
     require "C++ Compiler"
     local force_CXX
     lookup "$force_paths" cxx force_CXX || :
-    local test_CXX="${force_CXX:-${CXX:-c++}}"
-    local full_CXX="$(which "$test_CXX" 2>/dev/null)"
-    if [[ ! -x "$full_CXX" ]]; then
+    CXX="${force_CXX:-${CXX:-}}"
+    if test -z "$CXX" || ! $CXX --version >/dev/null 2>&1; then
         if [[ -n "${force_CXX:-}" ]]; then
             error "unable to run $force_CXX"
             return
         fi
-        full_CXX=$(which g++ 2>/dev/null || which clang 2>/dev/null || which icc 2>/dev/null)
-        if [[ -z "$full_CXX" ]]; then
+        CXX=$(which c++ 2>/dev/null || which g++ 2>/dev/null || which clang 2>/dev/null || which icc 2>/dev/null)
+        if [[ -z "$CXX" ]]; then
             not_found CXX
             return
         fi
     fi
-    local description=$($full_CXX --version 2>/dev/null)$($full_CXX --help 2>/dev/null)
+    local description=$($CXX --version 2>/dev/null)$($CXX --help 2>/dev/null)
     local version_string=$(echo "$description" | extract_version_string)
     local type=$(echo "$description" | egrep -io 'gcc|g\+\+|clang|icc' | head -n 1)
     case "$(uc $type)" in
@@ -544,7 +543,7 @@ check_cxx () {
         ICC) min_version=$min_icc_version
              type=INTEL ;;
         *) show "unknown"
-           error "Could not determine C++ compiler type of $full_CXX (gcc, clang or icc is required)"
+           error "Could not determine C++ compiler type of $CXX (gcc, clang or icc is required)"
            return
     esac
     if [[ -z "$version_string" ]]; then
@@ -552,12 +551,12 @@ check_cxx () {
         error "Could not determine C++ compiler version (>= $(write_version $min_version) required)"
         return
     else
-        show "$(uc $type) $version_string ($full_CXX)"
+        show "$(uc $type) $version_string ($CXX)"
         test_version_ge $(uc $type) $(read_version "$version_string") $min_version || return
     fi
 
     var COMPILER "$(uc $type)"
-    var CXX "$full_CXX"
+    var CXX "$CXX"
 }
 
 # foo --version | extract_version_string
@@ -913,7 +912,7 @@ check_lib_compile () {
         code='int main(){ return 0; }'
     fi
     echo "$code" > "$bfile.cc"
-    if "$CXX" -std=gnu++0x ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$bfile.cc" $1 -o "$bfile.out" 1>"$bfile.log" 2>&1; then
+    if $CXX -std=gnu++0x ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$bfile.cc" $1 -o "$bfile.out" 1>"$bfile.log" 2>&1; then
         show "${1:-ok}"
         var_append $(uc $2)_LIBS "$1"
         var HAS_$(uc $2) 1
@@ -927,7 +926,7 @@ check_cross_compiling () {
     require "Cross-compiling"
     local bfile="$root/mk/gen/check_cross_compile"
     echo "int main(){ return 0; }" > "$bfile.cc"
-    if ! "$CXX" ${CXXFLAGS:-} ${LDFLAGS:-} "$bfile.cc" -o "$bfile.out" 1>"$bfile.log" 2>&1; then
+    if ! $CXX ${CXXFLAGS:-} ${LDFLAGS:-} "$bfile.cc" -o "$bfile.out" 1>"$bfile.log" 2>&1; then
         error_details=$(cat "$bfile.log")
         error "Failed to compile"
     else
@@ -999,7 +998,7 @@ test_protobuf () {
     local out
     if ! out=$(
             "$PROTOC" "$pbdir/test.proto" --cpp_out=. 2>&1 &&
-            "$CXX" "$pbdir/test.pb.cc" "$pbdir/main.cc" -I "$root" $PROTOBUF_LIBS $PTHREAD_LIBS $M_LIBS ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} -o "$pbdir/a.out" 2>&1)
+            $CXX "$pbdir/test.pb.cc" "$pbdir/main.cc" -I "$root" $PROTOBUF_LIBS $PTHREAD_LIBS $M_LIBS ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} -o "$pbdir/a.out" 2>&1)
     then
         error_details="$out"
         error "Unable to compile sample protobuf file. Try running ./configure with the --fetch protoc option"
@@ -1033,7 +1032,7 @@ int main() {
 }
 EOF
     if
-        "$CXX" ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$tmpfile.cc" \
+        $CXX ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$tmpfile.cc" \
             ${V8_LIBS:-} $PTHREAD_LIBS $M_LIBS $RT_LIBS -o "$tmpfile.out" 1>"$tmpfile.log" 2>&1;
     then
         boolvar V8_PRE_3_19 false
