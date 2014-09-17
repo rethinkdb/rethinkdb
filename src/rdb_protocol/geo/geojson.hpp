@@ -28,9 +28,7 @@ class configured_limits_t;
 /* These functions construct a GeoJSON object of the respective type.
 They also insert the correct $reql_type$ field into the output.
 They do not perform any validation. */
-ql::datum_t construct_geo_point(
-        const lat_lon_point_t &point,
-        const ql::configured_limits_t &limits);
+ql::datum_t construct_geo_point(const lat_lon_point_t &point);
 ql::datum_t construct_geo_line(
         const lat_lon_line_t &line,
         const ql::configured_limits_t &limits);

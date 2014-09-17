@@ -33,7 +33,7 @@ namespace unittest {
 datum_t generate_point(rng_t *rng) {
     double lat = rng->randdouble() * 180.0 - 90.0;
     double lon = rng->randdouble() * 360.0 - 180.0;
-    return construct_geo_point(lat_lon_point_t(lat, lon), ql::configured_limits_t());
+    return construct_geo_point(lat_lon_point_t(lat, lon));
 }
 
 datum_t generate_line(rng_t *rng) {
@@ -62,7 +62,7 @@ datum_t generate_line(rng_t *rng) {
     }
     try {
         datum_t res =
-            construct_geo_point(lat_lon_point_t(lat, lon), ql::configured_limits_t());
+            construct_geo_point(lat_lon_point_t(lat, lon));
         validate_geojson(res);
         return res;
     } catch (const geo_exception_t &e) {
@@ -232,7 +232,7 @@ std::vector<nearest_geo_read_response_t::dist_pair_t> emulate_get_nearest(
     std::vector<nearest_geo_read_response_t::dist_pair_t> result;
     result.reserve(data.size());
     ql::datum_t point_center =
-        construct_geo_point(center, ql::configured_limits_t());
+        construct_geo_point(center);
     scoped_ptr_t<S2Point> s2_center = to_s2point(point_center);
     for (size_t i = 0; i < data.size(); ++i) {
         nearest_geo_read_response_t::dist_pair_t entry(
