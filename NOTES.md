@@ -2,55 +2,72 @@
 
 Released on 2014-09-17
 
-The highlights of this release are support for geospatial objects and queries and significant performance upgrades relating to datum serialization.
+The highlights of this release are support for geospatial objects and queries
+and significant performance upgrades (up to 50x greater performance for some
+read operations) relating to datum serialization.
+
+To take advantage of the performance improvements, you will need to re-insert
+data into existing tables. A future release may add a "magic" command to do
+this, but you can take advantage of it now from the Data Explorer by adding a
+dummy field to a table and removing it.
+
+    r.table('tablename').update({dummy_field: true})
+    r.table('tablename').update(r.row.without('dummy_field'))
 
 There are no API-breaking changes in this release.
 
 ## New features ##
 
 * ReQL
-  * Added geospatial support (#2571, #2847, #2851, #2854, #2859, #3003, #3011)
+  * Added geospatial query and index support (#2571, #2847, #2851, #2854, #2859,
+    #3003, #3011)
   * Added `r.uuid` for generating unique IDs (#2063)
-  * Added a `BRACKET` term to the query language, to improve the bracket operator in client drivers (#1179)
+  * Added a `BRACKET` term to the query language, to improve the bracket
+    operator in client drivers (#1179)
 
 ## Improvements ##
 
 * Server
+  * Significantly improved performance of read operations by up to 50x by lazily
+    deserializing data (#1915, #2244, #2652)
   * Removed the option for `datum_t` to be uninitialized (#2985)
-  * Permit `psuedo::literal_string` types from JSON (#2710)
-  * Replaced the `zip_datum_stream_t` type with a transformer function, improving performance (#2654)
-  * Replaced `std::map` for datum objects with a sorted vector of pairs, improving object deserialization performance (#2652)
-  * Reduced the level of pointer_indirection in `datum_t` (#2244)
-  * Replaced the internal data types used for `datum_t` with ones that can be efficiently serialized and deserialized (#1915)
-  * Removed the word "OPAQUE" from error messages (#972)
-  * Improved performance of `match` (#2196)
+  * Improved the performance of `zip` by replacing the `zip_datum_stream_t` type
+    with a transformer function (#2654)
+  * Removed the word "OPAQUE" from error messages when the data in the selection
+    could not be printed (#972)
+  * Improved performance of `r.match` by adding regex caching and a framework
+    for generic query-based caches (#2196)
 * Testing
-  * Removed unneeded files from `test/common` (#2829)
+  * Removed unnecessary files from `test/common` (#2829)
   * Changed all tests to run with `--cache-size` parameter (#2816)
 * Python driver
-  * Modified `r.row` to provide an error message on an attempt to call it like a function (#2960)
+  * Modified `r.row` to provide an error message on an attempt to call it like a
+    function (#2960)
 
 ## Fixed bugs ##
 
+* ReQL
+  * Fixed a bug for `r.literal` corner cases (#2710)
+  * Improved error message when `r.literal` is used in an invalid context
+    (#1600)
 * Server
-  * Fixed a bug with reverse log reading (#2627)
-  * Fixed a bug where Makefile miscounted dependencies when `ql2.proto` was changed (#2965)
-  * Fixed a bug with improper encoding of the connection authorization key (#2952)
-  * Improved error message when `literal` is used in an invalid context (#1600)
-  * Fixed an uninitialized variable warning during building (#2977)
+  * Fixed a display bug with log entries in the web UI (#2627)
+  * Fixed a bug where Makefile miscounted dependencies when `ql2.proto` was
+    changed (#2965)
+  * Fixed a bug where the connection authorization key was improperly encoded
+    (#2952)
+  * Fixed an uninitialized variable warning during builds (#2977)
 * Testing
-  * Fixed the `polyglot/arity` test for Python 3.3/3.4 (#2940)
-  * Fixed an improper dictionary comparison in test drivers (#2887)
-  * Fixed a bug with false positives in the YAML Ruby test driver (#2844)
-  * Fixed an intermittent error with `atomic_get_set` in JavaScript tests (#2837)
-  * Fixed a bug preventing some tests from running in Emacs eshell (#2603)
+  * Fixed various bugs in tests (#2940, #2887, #2844, #2837, #2603, #2793)
 * JavaScript driver
-  * Fixed a bug in the JavaScript driver that caused backtraces to not print properly (#2793)
+  * Fixed a bug in the JavaScript driver that caused backtraces to not print
+    properly (#2793)
 * Python driver
   * Replaced `or isinstance` with a tuple of types (#2968)
   * Removed unused `kwarg` assignments (#2969)
 * Ruby driver
-  * Fixed a bug where `default_db`, `host` and `port` were not exposed in the Connection object (#2849)
+  * Fixed a bug where `default_db`, `host` and `port` were not exposed in the
+    Connection object (#2849)
 
 ## Contributors ##
 
