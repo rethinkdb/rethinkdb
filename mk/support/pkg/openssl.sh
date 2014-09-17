@@ -7,7 +7,11 @@ src_url="https://www.openssl.org/source/openssl-$version.tar.gz"
 pkg_configure () {
     # use shared instead of no-shared because curl's configure script
     # fails on some platforms if it can't find -lssl
-    in_dir "$build_dir" ./config shared --prefix="$(niceabspath "$install_dir")"
+    if [[ "$OS" = "Darwin" ]]; then
+        in_dir "$build_dir" ./Configure darwin64-x86_64-cc -shared --prefix="$(niceabspath "$install_dir")"
+    else
+        in_dir "$build_dir" ./config shared --prefix="$(niceabspath "$install_dir")"
+    fi
 }
 
 pkg_install () {
