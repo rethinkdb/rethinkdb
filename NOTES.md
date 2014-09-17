@@ -3,8 +3,11 @@
 Released on 2014-09-17
 
 The highlights of this release are support for geospatial objects and queries
-and significant performance upgrades (up to 50x greater performance for some
-read operations) relating to datum serialization.
+and significant performance upgrades relating to datum serialization (twice as
+fast for many analytical workloads). Read the [release blog post][1.15-blog]
+for more details.
+
+[1.15-blog]: http://rethinkdb.com/blog/1.15-release/
 
 To take advantage of the performance improvements, you will need to re-insert
 data into existing tables. A future release may add a "magic" command to do
@@ -28,13 +31,14 @@ There are no API-breaking changes in this release.
 ## Improvements ##
 
 * Server
-  * Significantly improved performance of read operations by up to 50x by lazily
-    deserializing data (#1915, #2244, #2652)
+  * Significantly improved performance of read operations by lazily
+    deserializing data: ~1.15x faster for simple queries, ~2x faster for many
+    analytical queries, and ~50x for count queries (#1915, #2244, #2652)
   * Removed the option for `datum_t` to be uninitialized (#2985)
   * Improved the performance of `zip` by replacing the `zip_datum_stream_t` type
     with a transformer function (#2654)
-  * Removed the word "OPAQUE" from error messages when the data in the selection
-    could not be printed (#972)
+  * Clarified error messages when the data in the selection could not be printed
+    (#972)
   * Improved performance of `r.match` by adding regex caching and a framework
     for generic query-based caches (#2196)
 * Testing
@@ -50,6 +54,11 @@ There are no API-breaking changes in this release.
   * Fixed a bug for `r.literal` corner cases (#2710)
   * Improved error message when `r.literal` is used in an invalid context
     (#1600)
+* Web UI
+  * Fixed a bug that caused selection in the query text area to become
+    unresponsive with large queries (#3043)
+  * Fixed a bug that caused "more data is available" to be displayed incorrectly
+    in certain cases (#3037)
 * Server
   * Fixed a display bug with log entries in the web UI (#2627)
   * Fixed a bug where Makefile miscounted dependencies when `ql2.proto` was
@@ -241,7 +250,6 @@ information.
 Many thanks to external contributors from the RethinkDB community for helping
 us ship RethinkDB 1.14. In no particular order:
 
-* Sathyanarayanan Gunasekaran (@gsathya)
 * James Costian (@jamescostian)
 * Ed Rooth (@sym3tri)
 * Cole Gleason (@colegleason)
