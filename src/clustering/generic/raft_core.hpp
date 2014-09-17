@@ -192,7 +192,7 @@ public:
     static raft_persistent_state_t make_initial(const state_t &s);
 
     /* `make_join()` returns a `raft_persistent_state_t` for a Raft member that will be
-    joining an already-established Raft clustter. */
+    joining an already-established Raft cluster. */
     static raft_persistent_state_t make_join();
 
     /* `current_term` and `voted_for` correspond to the variables with the same names in
@@ -258,22 +258,6 @@ public:
         `rejected` is returned if the member rejected the change. */
         raft_change_outcome_t *success_out) = 0;
 
-    /* `send_request_vote_rpc` corresponds to the "RequestVote RPC" described in Figure
-    2 of the Raft paper. */
-    virtual void send_request_vote_rpc(
-        const raft_member_id_t &dest,
-        /* `term`, `candidate_id`, `last_log_index`, and `last_log_term` correspond to
-        the parameters with the same names in the Raft paper. */
-        raft_term_t term,
-        const raft_member_id_t &candidate_id,
-        raft_log_index_t last_log_index,
-        raft_term_t last_log_term,
-        signal_t *interruptor,
-        /* `term_out` and `vote_granted_out` correspond to the `term` and `voteGranted`
-        parameters of the RPC reply in the Raft paper. */
-        raft_term_t *term_out,
-        bool *vote_granted_out) = 0;
-
     /* `send_install_snapshot_rpc` corresponds to the "InstallSnapshot RPC" described in
     Figure 13 of the Raft paper. */
     virtual void send_install_snapshot_rpc(
@@ -293,6 +277,22 @@ public:
         /* `term_out` corresponds to the `term` parameter of the RPC reply in the Raft
         paper. */
         raft_term_t *term_out) = 0;
+
+    /* `send_request_vote_rpc` corresponds to the "RequestVote RPC" described in Figure
+    2 of the Raft paper. */
+    virtual void send_request_vote_rpc(
+        const raft_member_id_t &dest,
+        /* `term`, `candidate_id`, `last_log_index`, and `last_log_term` correspond to
+        the parameters with the same names in the Raft paper. */
+        raft_term_t term,
+        const raft_member_id_t &candidate_id,
+        raft_log_index_t last_log_index,
+        raft_term_t last_log_term,
+        signal_t *interruptor,
+        /* `term_out` and `vote_granted_out` correspond to the `term` and `voteGranted`
+        parameters of the RPC reply in the Raft paper. */
+        raft_term_t *term_out,
+        bool *vote_granted_out) = 0;
 
     /* `write_persistent_state()` writes the state of the Raft member to stable storage.
     It does not return until the state is safely stored. The values stored with
@@ -343,14 +343,6 @@ public:
         signal_t *interruptor,
         raft_term_t *term_out,
         bool *success_out);
-    void on_request_vote_rpc(
-        raft_term_t term,
-        const raft_member_id_t &candidate_id,
-        raft_log_index_t last_log_index,
-        raft_term_t last_log_term,
-        signal_t *interruptor,
-        raft_term_t *term_out,
-        bool *vote_granted_out);
     void on_install_snapshot_rpc(
         raft_term_t term,
         const raft_member_id_t &leader_id,
@@ -359,6 +351,14 @@ public:
         const state_t &snapshot,
         signal_t *interruptor,
         raft_term_t *term_out);
+    void on_request_vote_rpc(
+        raft_term_t term,
+        const raft_member_id_t &candidate_id,
+        raft_log_index_t last_log_index,
+        raft_term_t last_log_term,
+        signal_t *interruptor,
+        raft_term_t *term_out,
+        bool *vote_granted_out);
 
     /* `on_member_disconnect()` notifies the `raft_member_t` that the connection to the
     given Raft member has been lost. This may be the trigger to start a new leader
@@ -385,41 +385,69 @@ private:
 
     /* `update_term` sets the term to `new_term` and resets all per-term variables. */
     void update_term(raft_term_t new_term,
-                     const mutex_t::acq_t *mutex_acq);
+                     const new_mutex_acq_t *mutex_acq);
 
     /* The Raft paper specifies actions we should take every time `commit_index` changes.
     These are encapsulated in `update_commit_index()`, which changes `commit_index` and
     also takes the relevant actions. */
     void update_commit_index(raft_log_index_t new_commit_index,
-                             const mutex_t::acq_t *mutex_acq);
+                             const new_mutex_acq_t *mutex_acq);
 
     /* `become_follower()` moves us from the `candidate` or `leader` state to `follower`
-    state. It blocks until `leader_coro()` exits. */
-    void become_follower(const mutex_t::acq_t *mutex_acq);
+    state. It kills `run_candidate_and_leader()` and blocks until it exits. */
+    void become_follower(const new_mutex_acq_t *mutex_acq);
 
     /* `become_candidate()` moves us from the `follower` state to the `candidate` state.
-    It spawns `leader_coro()`. */
-    void become_candidate(const mutex_t::acq_t *mutex_acq);
+    It spawns `run_candidate_and_leader()`.*/
+    void become_candidate(const new_mutex_acq_t *mutex_acq);
 
-    /* `leader_coro()` contains most of the candidate- and leader-specific logic. It runs
-    for as long as we are a candidate or leader. */
-    void leader_coro(
-        /* the `mutex_t::acq_t` used by `become_candidate()` */
-        const mutex_t::acq_t *mutex_acq_for_setup,
+    /* `run_candidate_and_leader()` contains most of the candidate- and leader-specific
+    logic. It runs in a separate coroutine for as long as we are a candidate or leader.
+    */
+    void run_candidate_and_leader(
+        /* the `new_mutex_acq_t` used by `become_candidate()` */
+        const new_mutex_acq_t *mutex_acq_for_setup,
         /* A condition variable to pulse when `mutex_acq` is no longer needed */
         cond_t *pulse_when_done_with_setup,
-        /* To make sure that `leader_coro` stops before the `raft_member_t` is destroyed
-        */
-        auto_drainer_t::lock_t keepalive);
+        /* To make sure that `run_candidate_and_leader` stops before the `raft_member_t`
+        is destroyed. This is also used by `become_follower()` to  */
+        auto_drainer_t::lock_t leader_keepalive);
+
+    /* `run_election()` is a helper function for `run_candidate_and_leader()`. It sends
+    out request-vote RPCs and wait for us to get enough votes. It blocks until we are
+    elected; the caller is responsible for detecting the case where another leader is
+    elected and also for detecting the case where the election times out. In either of
+    these cases, it should pulse `interruptor`. */
+    void run_election(
+        /* Note that `run_election()` may temporarily release `mutex_acq`, but it will
+        always be holding the lock when `run_election()` exits. */
+        scoped_ptr_t<new_mutex_acq_t> *mutex_acq,
+        signal_t *interruptor);
+
+    /* `run_updates()` is a helper function for `run_candidate_and_leader()`;
+    `run_candidate_and_leader()` spawns one in a new coroutine for each peer. It pushes
+    install-snapshot RPCs and/or append-entry RPCs out to the given peer until
+    `update_keepalive.get_drain_signal()` is pulsed. */
+    void run_updates(
+        const raft_member_id_t &peer,
+        raft_log_index_t initial_next_index,
+        raft_log_index_t *match_index,
+        auto_drainer_t::lock_t update_keepalive);
+
+    /* `note_term_as_leader()` is a helper function for `run_election()` and
+    `run_updates()`. If the given term is greater than the current term, it updates the
+    current term and interrupts `run_candidate_and_leader()`. It returns `true` if the
+    term was changed. */
+    bool note_term_as_leader(raft_term_t term, const new_mutex_acq_t *mutex_acq);
 
     /* Returns what the state machine would look like if every change in the log were
     applied. This is important for cluster configuration purposes, because we're supposed
     to respect cluster configuration changes as soon as they appear in the log, even if
     they're not committed yet. */
-    state_t get_state_including_log(const mutex_t::acq_t *mutex_acq);
+    state_t get_state_including_log(const mutex_assertion_t::acq_t *log_mutex_acq);
 
-    raft_member_id_t member_id;
-    raft_network_and_storage_interface_t *interface;
+    const raft_member_id_t member_id;
+    const raft_network_and_storage_interface_t *interface;
 
     /* A two-letter name was chosen for this variable because we end up writing `ps.*`
     constantly. */
@@ -433,7 +461,7 @@ private:
     the same names in Figure 2 of the Raft paper. */
     raft_log_index_t commit_index, last_applied;
 
-    /* Only `leader_coro()` should ever change `mode` */
+    /* Only `run_candidate_and_leader()` should ever change `mode` */
     mode_t mode;
 
     /* `this_term_leader_id` is the ID of the member that is leader during this term. If
@@ -441,16 +469,35 @@ private:
     redirect clients as described in Figure 2 and Section 8. This implementation also
     uses it in `on_member_disconnect()` to determine if we should start a new election.
     */
-    raft_member_id_t this_term_leader_id;
+    raft_member_id_t this_term_leader_id;   /* RSI set this when elected */
 
-    /* To reduce the likelihood of unexpected race conditions, we use this mutex to
-    guard almost all operations on the `raft_member_t`. */
-    mutex_t mutex;
+    /* This mutex ensures that operations don't interleave in confusing ways. Each RPC
+    acquires this mutex when it begins and releases it when it returns. Also, if
+    `run_candidate_and_leader()` is running, it holds this mutex when actively
+    manipulating state and releases it when waiting. */
+    new_mutex_t mutex;
 
-    /* This makes sure that `leader_coro()` stops when the `raft_member_t` is destroyed.
-    It's in a `scoped_ptr_t` so that `become_follower()` can destroy it to kill
-    `leader_coro()`. */
-    scoped_ptr_t<auto_drainer_t> drainer;
+    /* This mutex assertion controls writes to the Raft log and associated state.
+    Specifically, anything writing to `ps.log`, `ps.snapshot`, `state_machine`,
+    `commit_index`, or `last_applied` should hold this mutex assertion.
+    If we are follower, `on_append_entries_rpc()` and `on_install_snapshot_rpc()` acquire
+    this temporarily; if we are candidate or leader, `run_candidate_and_leader()` holds
+    this at all times. */
+    mutex_assertion_t log_mutex;
+
+    /* The leader coroutine sets this to a `cond_t` that it waits on.
+    `propose_change_if_leader()` and `update_commit_index()` pulse this whenever they add
+    changes to the log that can change the config. */
+    cond_t *pulse_on_config_change_added_to_log;
+
+    /* This makes sure that `run_candidate_and_leader()` stops when the `raft_member_t`
+    is destroyed. It's in a `scoped_ptr_t` so that `become_follower()` can destroy it to
+    kill `run_candidate_and_leader()`. */
+    scoped_ptr_t<auto_drainer_t> leader_drainer;
+
+    /* Occasionally we have to spawn miscellaneous coroutines. This makes sure that they
+    all get stopped before the `raft_member_t` is destroyed. */
+    auto_drainer_t drainer;
 };
 
 #endif /* CLUSTERING_GENERIC_RAFT_CORE_HPP_ */

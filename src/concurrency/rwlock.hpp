@@ -49,6 +49,10 @@ public:
 
     void reset();
 
+    void assert_is_for_lock(rwlock_t *lock) {
+        guarantee(lock_ == lock);
+    }
+
 private:
     friend class rwlock_t;
     rwlock_t *lock_;
@@ -65,6 +69,10 @@ public:
     // until the lock is acquired.
     rwlock_acq_t(rwlock_t *lock, access_t access);
     ~rwlock_acq_t();
+
+    void assert_is_holding(rwlock_t *lock) {
+        rwlock_in_line_t::assert_is_for_lock(lock);
+    }
 
 private:
     DISABLE_COPYING(rwlock_acq_t);
