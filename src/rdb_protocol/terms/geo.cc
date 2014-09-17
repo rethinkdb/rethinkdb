@@ -75,7 +75,6 @@ private:
     counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> v = args->arg(env, 0);
         datum_t geo_json = v->as_datum();
-        validate_geojson(geo_json);
 
         // Store the geo_json object inline, just add a $reql_type$ field
         datum_object_builder_t result(geo_json);
@@ -83,11 +82,56 @@ private:
                               datum_t(pseudo::geometry_string));
         rcheck(!dup, base_exc_t::GENERIC, "GeoJSON object already had a "
                                           "$reql_type$ field.");
+
+        datum_t coordinates = result.try_get(datum_string_t("coordinates"));
+        if (coordinates.get_type() == datum_t::type_t::R_ARRAY) {
+            result.overwrite("coordinates", convert_coordinates(coordinates,
+                                                                env->env->limits()));
+        }
+
         // Drop the `bbox` field in case it exists. We don't have any use for it.
         UNUSED bool had_bbox = result.delete_field("bbox");
 
-        return new_val(std::move(result).to_datum());
+        datum_t datum_result = std::move(result).to_datum();
+        validate_geojson(datum_result);
+        return new_val(datum_result);
     }
+
+    static const datum_t convert_coordinates(const datum_t &geojson,
+                                             const configured_limits_t &limits) {
+        if (geojson.get_type() != datum_t::type_t::R_ARRAY) {
+            return geojson;
+        }
+
+        if (geojson.arr_size() == 0) {
+            return datum_t(std::vector<datum_t>(), limits);
+        }
+
+        datum_t first_elem = geojson.get(0);
+        if (first_elem.get_type() == datum_t::type_t::R_ARRAY) {
+            datum_array_builder_t builder(limits);
+            for (size_t i = 0; i < geojson.arr_size(); ++i) {
+                builder.add(convert_coordinates(geojson.get(i), limits));
+            }
+            return std::move(builder).to_datum();
+        }
+
+        // At this point, we assume we are making a coordinate pair
+        // Being lenient here to allow validation later for more descriptive errors
+        datum_object_builder_t builder;
+        if (geojson.arr_size() >= 1) {
+            builder.overwrite(pseudo::geo_longitude_key, first_elem);
+        }
+        if (geojson.arr_size() >= 2) {
+            builder.overwrite(pseudo::geo_latitude_key, geojson.get(1));
+        }
+        if (geojson.arr_size() >= 3) {
+            // We don't actually use altitude, but this will be caught later
+            builder.overwrite("alt", geojson.get(1));
+        }
+        return std::move(builder).to_datum();
+    }
+
     virtual const char *name() const { return "geojson"; }
 };
 
@@ -105,8 +149,30 @@ private:
         datum_object_builder_t result(v->as_ptype(pseudo::geometry_string));
         bool success = result.delete_field(datum_t::reql_type_string);
         r_sanity_check(success);
+
+        // Convert internal coordinate objects into valid geojson [lat, long] arrays
+        datum_t coordinates = result.try_get(datum_string_t("coordinates"));
+        if (coordinates.get_type() != datum_t::type_t::R_NULL) {
+            result.overwrite("coordinates", convert_coordinates(coordinates,
+                                                                env->env->limits()));
+        }
         return new_val(std::move(result).to_datum());
     }
+
+    static datum_t convert_coordinates(const datum_t &internal,
+                                       const configured_limits_t &limits) {
+        datum_array_builder_t builder(limits);
+        if (internal.get_type() == datum_t::type_t::R_ARRAY) {
+            for (size_t i = 0; i < internal.arr_size(); ++i) {
+                builder.add(convert_coordinates(internal.get(i), limits));
+            }
+        } else {
+            builder.add(internal.get_field(pseudo::geo_longitude_key));
+            builder.add(internal.get_field(pseudo::geo_latitude_key));
+        }
+        return std::move(builder).to_datum();
+    }
+
     virtual const char *name() const { return "to_geojson"; }
 };
 
@@ -120,7 +186,7 @@ private:
         double lon = args->arg(env, 1)->as_num();
         lat_lon_point_t point(lat, lon);
 
-        const datum_t result = construct_geo_point(point, env->env->limits());
+        const datum_t result = construct_geo_point(point);
         validate_geojson(result);
 
         return new_val(result);
@@ -430,18 +496,24 @@ public:
     polygon_sub_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : geo_term_t(env, term, argspec_t(2)) { }
 private:
-    counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
-        const datum_t lhs = args->arg(env, 0)->as_ptype(pseudo::geometry_string);
-        const datum_t rhs = args->arg(env, 1)->as_ptype(pseudo::geometry_string);
+    const datum_t check_arg(counted_t<val_t> arg) const {
+        const datum_t res = arg->as_ptype(pseudo::geometry_string);
 
-        rcheck_target(&rhs, base_exc_t::GENERIC,
-                      rhs.get_field("coordinates").arr_size() <= 1,
-                      "The second argument to `polygon_sub` must be a Polygon with "
-                      "only an outer shell.  This one has holes.");
-        rcheck_target(&lhs, base_exc_t::GENERIC,
-                      lhs.get_field("coordinates").arr_size() >= 1,
-                      "The first argument to `polygon_sub` is an empty polygon.  "
-                      "It must at least have an outer shell.");
+        rcheck_target(arg.get(), base_exc_t::GENERIC,
+                      res.get_field("type").as_str() == "Polygon",
+                      strprintf("Expected a Polygon but found a %s.",
+                                res.get_field("type").as_str().to_std().c_str()));
+        rcheck_target(arg.get(), base_exc_t::GENERIC,
+                      res.get_field("coordinates").arr_size() <= 1,
+                      "Expected a Polygon with only an outer shell.  "
+                      "This one has holes.");
+        return res;
+    }
+
+    counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
+        const datum_t lhs = check_arg(args->arg(env, 0));
+        const datum_t rhs = check_arg(args->arg(env, 1));
+
         {
             scoped_ptr_t<S2Polygon> lhs_poly = to_s2polygon(lhs);
             if (!geo_does_include(*lhs_poly, rhs)) {

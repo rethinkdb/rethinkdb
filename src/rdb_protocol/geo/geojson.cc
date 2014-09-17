@@ -31,9 +31,7 @@ using ql::datum_t;
 using ql::datum_object_builder_t;
 using ql::configured_limits_t;
 
-ql::datum_t construct_geo_point(
-        const lat_lon_point_t &point,
-        const configured_limits_t &limits) {
+ql::datum_t construct_geo_point(const lat_lon_point_t &point) {
     datum_object_builder_t result;
     bool dup;
     dup = result.add(datum_t::reql_type_string,
@@ -42,39 +40,23 @@ ql::datum_t construct_geo_point(
     dup = result.add("type", datum_t("Point"));
     r_sanity_check(!dup);
 
-    std::vector<datum_t> coordinates;
-    coordinates.reserve(2);
-    // lat, long -> long, lat
-    coordinates.push_back(datum_t(point.second));
-    coordinates.push_back(datum_t(point.first));
-    dup = result.add("coordinates",
-        datum_t(std::move(coordinates), limits));
+    dup = result.add("coordinates", ql::pseudo::make_geo_coordinate(point));
     r_sanity_check(!dup);
 
     return std::move(result).to_datum();
 }
 
-std::vector<datum_t> construct_line_coordinates(
-        const lat_lon_line_t &line,
-        const configured_limits_t &limits) {
+std::vector<datum_t> construct_line_coordinates(const lat_lon_line_t &line) {
     std::vector<datum_t> coordinates;
     coordinates.reserve(line.size());
     for (size_t i = 0; i < line.size(); ++i) {
-        std::vector<datum_t> point;
-        point.reserve(2);
-        // lat, long -> long, lat
-        point.push_back(datum_t(line[i].second));
-        point.push_back(datum_t(line[i].first));
-        coordinates.push_back(datum_t(std::move(point), limits));
+        coordinates.push_back(ql::pseudo::make_geo_coordinate(line[i]));
     }
     return coordinates;
 }
 
-std::vector<datum_t> construct_loop_coordinates(
-        const lat_lon_line_t &line,
-        const configured_limits_t &limits) {
-    std::vector<datum_t> loop_coordinates =
-        construct_line_coordinates(line, limits);
+std::vector<datum_t> construct_loop_coordinates(const lat_lon_line_t &line) {
+    std::vector<datum_t> loop_coordinates = construct_line_coordinates(line);
     // Close the line
     if (line.size() >= 1 && line[0] != line[line.size()-1]) {
         rassert(!loop_coordinates.empty());
@@ -95,7 +77,7 @@ ql::datum_t construct_geo_line(
     r_sanity_check(!dup);
 
     dup = result.add("coordinates",
-        datum_t(construct_line_coordinates(line, limits), limits));
+        datum_t(construct_line_coordinates(line), limits));
     r_sanity_check(!dup);
 
     return std::move(result).to_datum();
@@ -122,12 +104,12 @@ ql::datum_t construct_geo_polygon(
 
     std::vector<datum_t> coordinates;
     std::vector<datum_t> shell_coordinates =
-        construct_loop_coordinates(shell, limits);
+        construct_loop_coordinates(shell);
     coordinates.push_back(
         datum_t(std::move(shell_coordinates), limits));
     for (size_t i = 0; i < holes.size(); ++i) {
         std::vector<datum_t> hole_coordinates =
-            construct_loop_coordinates(holes[i], limits);
+            construct_loop_coordinates(holes[i]);
         coordinates.push_back(
             datum_t(std::move(hole_coordinates), limits));
     }
@@ -142,28 +124,26 @@ ql::datum_t construct_geo_polygon(
 lat_lon_point_t position_to_lat_lon_point(const datum_t &position) {
     // This assumes the default spherical GeoJSON coordinate reference system,
     // with latitude and longitude given in degrees.
+    // Note that this does not implement the GeoJSON standard.  Instead of an array,
+    // we store latitude and longitude in an object.
 
-    const size_t arr_size = position.arr_size();
-    if (arr_size < 2) {
+    const size_t obj_size = position.obj_size();
+    if (obj_size < 2) {
         throw geo_exception_t(
             "Too few coordinates.  Need at least longitude and latitude.");
     }
-    if (arr_size > 3) {
+    if (obj_size > 3) {
         throw geo_exception_t(
             strprintf("Too many coordinates.  GeoJSON position should have no more than "
-                      "three coordinates, but got %zu.", arr_size));
+                      "three coordinates, but got %zu.", obj_size));
     }
-    if (arr_size == 3) {
+    if (obj_size == 3) {
         throw geo_exception_t("A third altitude coordinate in GeoJSON positions "
                               "was found, but is not supported.");
     }
 
-    // GeoJSON positions are in order longitude, latitude, altitude
-    double longitude, latitude;
-    longitude = position.get(0).as_num();
-    latitude = position.get(1).as_num();
-
-    return lat_lon_point_t(latitude, longitude);
+    return lat_lon_point_t(position.get_field(ql::pseudo::geo_latitude_key).as_num(),
+                           position.get_field(ql::pseudo::geo_longitude_key).as_num());
 }
 
 lat_lon_point_t extract_lat_lon_point(const datum_t &geojson) {
@@ -396,6 +376,7 @@ scoped_ptr_t<S2Polygon> to_s2polygon(const ql::datum_t &geojson) {
 
 void validate_geojson(const ql::datum_t &geojson) {
     // Note that `visit_geojson()` already performs the majority of validations.
+    // Also note that we provide coordinates in a different format from geojson
 
     ensure_no_crs(geojson);
 
