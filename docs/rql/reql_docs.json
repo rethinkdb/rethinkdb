@@ -56,7 +56,7 @@
   }, 
   "api/javascript/args/": {
     "body": "r.args(array) &rarr; special", 
-    "description": "<p><code>r.args</code> is a special term that's used to splice an array of arguments\ninto another term.  This is useful when you want to call a variadic\nterm such as <code>getAll</code> with a set of arguments produced at runtime.</p>\n<p>This is analagous to using <strong>apply</strong> in Javascript.</p>", 
+    "description": "<p><code>r.args</code> is a special term that's used to splice an array of arguments\ninto another term.  This is useful when you want to call a variadic\nterm such as <code>getAll</code> with a set of arguments produced at runtime.</p>\n<p>This is analagous to using <strong>apply</strong> in JavaScript.</p>", 
     "example": "<p><strong>Example:</strong> Get Alice and Bob from the table <code>people</code>.</p>\n<p><code>r.table('people').getAll('Alice', 'Bob').run(conn, callback)\n// or\nr.table('people').getAll(r.args(['Alice', 'Bob'])).run(conn, callback)</code></p>", 
     "io": [
       [
@@ -144,6 +144,19 @@
     ], 
     "name": "changes", 
     "url": "changes"
+  }, 
+  "api/javascript/circle/": {
+    "body": "r.circle([latitude, longitude], radius[, {numVertices: 32, geoSystem: 'WGS84', unit: 'm', fill: true}]) &rarr; geometryr.circle(point, radius[, {numVertices: 32, geoSystem: 'WGS84', unit: 'm', fill: true}]) &rarr; geometry", 
+    "description": "<p>Construct a circular line or polygon. A circle in RethinkDB is a polygon or line <em>approximating</em> a circle of a given radius around a given center, consisting of a specified number of vertices (default 32).</p>", 
+    "example": "<p><strong>Example:</strong> Define a circle.</p>\n<p><code>r.table('geo').insert({\n    id: 300,\n    name: 'Hayes Valley',\n    neighborhood: r.circle([37.779388,-122.423246], 1000)\n}).run(conn, callback);</code></p>", 
+    "io": [
+      [
+        "r", 
+        "geometry"
+      ]
+    ], 
+    "name": "circle", 
+    "url": "circle"
   }, 
   "api/javascript/close-cursor/": {
     "body": "cursor.close()", 
@@ -409,7 +422,7 @@
   "api/javascript/delete_at/": {
     "body": "array.deleteAt(index [,endIndex]) &rarr; array", 
     "description": "<p>Remove one or more elements from an array at a given index. Returns the modified array.</p>", 
-    "example": "<p><strong>Example:</strong> Delete the second element of an array.</p>\n<p>```</p>\n<blockquote>\n<p>r(['a','b','c','d','e','f']).deleteAt(1).run(conn, callback)</p>\n</blockquote>\n<p>['a', 'c', 'd', 'e', 'f']\n```</p>", 
+    "example": "<p><strong>Example:</strong> Delete the second element of an array.</p>\n<p><code>r(['a','b','c','d','e','f']).deleteAt(1).run(conn, callback)\n['a', 'c', 'd', 'e', 'f']</code></p>", 
     "io": [
       [
         "array", 
@@ -431,6 +444,19 @@
     ], 
     "name": "difference", 
     "url": "difference"
+  }, 
+  "api/javascript/distance/": {
+    "body": "geometry.distance(geometry[, {geoSystem: 'WGS84', unit: 'm'}]) &rarr; number", 
+    "description": "<p>Compute the distance between a point and another geometry object. At least one of the geometry objects specified must be a point.</p>", 
+    "example": "<p><strong>Example:</strong> Compute the distance between two points on the Earth in kilometers.</p>\n<p><code>var point1 = r.point(37.779388,-122.423246);\nvar point2 = r.point(32.719464,-117.220406);\nr.distance(point1, point2, {unit: 'km'}).run(conn, callback);\n// result returned to callback \n734.1252496021841</code></p>", 
+    "io": [
+      [
+        "geometry", 
+        "number"
+      ]
+    ], 
+    "name": "distance", 
+    "url": "distance"
   }, 
   "api/javascript/distinct/": {
     "body": "sequence.distinct() &rarr; arraytable.distinct() &rarr; streamtable.distinct({index: <indexname>}) &rarr; stream", 
@@ -477,7 +503,7 @@
   }, 
   "api/javascript/downcase/": {
     "body": "string.downcase() &rarr; string", 
-    "description": "<p>Downcases a string.</p>", 
+    "description": "<p>Lowercases a string.</p>", 
     "example": "<p><strong>Example:</strong></p>\n<p><code>r.expr(\"Sentence about LaTeX.\").downcase().run(conn, callback)</code></p>", 
     "io": [
       [
@@ -573,7 +599,7 @@
   "api/javascript/event_emitter-cursor/": {
     "body": "cursor.addListener(event, listener)cursor.on(event, listener)cursor.once(event, listener)cursor.removeListener(event, listener)cursor.removeAllListeners([event])cursor.setMaxListeners(n)cursor.listeners(event)cursor.emit(event, [arg1], [arg2], [...])", 
     "description": "<p>Cursors and feeds implement the same interface as <a href=\"http://nodejs.org/api/events.html#events_class_events_eventemitter\">EventEmitter</a>.</p>\n<p>There are a few things to know about this interface:</p>\n<ul>\n<li>Two events can be emitted, <code>data</code> and <code>error</code>.</li>\n<li>Once you start using the EventEmitter interface, the other commands like <code>next</code>,\n<code>toArray</code>, <code>each</code> will not be available anymore.</li>\n<li>The first time you call one of the EventEmitter's methods, the cursor or feed will\nemit data just after the I/O events callbacks and before <code>setTimeout</code> and <code>setInterval</code>\ncallbacks.</li>\n</ul>", 
-    "example": "<p><strong>Example:</strong> Broadcast all messages with <a href=\"http://socket.io\">socket.io</a>.</p>\n<p>```\nr.table(\"messages\").orderBy({index: \"date\"}).run(conn, function(err, cursor) {\n    if (err) {\n        // Handle error\n        return\n    }</p>\n<pre><code>cursor.on(\"error\", function(error) {\n    // Handle error\n})\ncursor.on(\"data\", function(message) {\n    socket.broadcast.emit(\"message\", message)\n})\n</code></pre>\n<p>});\n```</p>", 
+    "example": "<p><strong>Example:</strong> Broadcast all messages with <a href=\"http://socket.io\">socket.io</a>.</p>\n<p><code>r.table(\"messages\").orderBy({index: \"date\"}).run(conn, function(err, cursor) {\n    if (err) {\n        // Handle error\n        return\n    }\n    cursor.on(\"error\", function(error) {\n        // Handle error\n    })\n    cursor.on(\"data\", function(message) {\n        socket.broadcast.emit(\"message\", message)\n    })\n});</code></p>", 
     "io": [
       [
         "cursor", 
@@ -586,7 +612,7 @@
   "api/javascript/event_emitter/": {
     "body": "connection.addListener(event, listener)connection.on(event, listener)connection.once(event, listener)connection.removeListener(event, listener)connection.removeAllListeners([event])connection.setMaxListeners(n)connection.listeners(event)connection.emit(event, [arg1], [arg2], [...])", 
     "description": "<p>The connection object supports the event emitter interface so you can listen for\nchanges in connection state.</p>", 
-    "example": "<p><strong>Example:</strong> Monitor connection state with events 'connect', 'close', and 'error'.</p>\n<p>```\nr.connect({}, function(err, conn) {\n    if (err) throw err;</p>\n<pre><code>conn.addListener('error', function(e) {\n    processNetworkError(e);\n});\n\nconn.addListener('close', function() {\n    cleanup();\n});\n\nrunQueries(conn);\n</code></pre>\n<p>});</p>\n<p>```</p>", 
+    "example": "<p><strong>Example:</strong> Monitor connection state with events 'connect', 'close', and 'error'.</p>\n<p><code>r.connect({}, function(err, conn) {\n    if (err) throw err;\n    conn.addListener('error', function(e) {\n        processNetworkError(e);\n    });\n    conn.addListener('close', function() {\n        cleanup();\n    });\n    runQueries(conn);\n});</code></p>", 
     "io": [
       [
         "connection", 
@@ -608,6 +634,19 @@
     ], 
     "name": "expr", 
     "url": "expr"
+  }, 
+  "api/javascript/fill/": {
+    "body": "line.fill() &rarr; polygon", 
+    "description": "<p>Convert a Line object into a Polygon object. If the last point does not specify the same coordinates as the first point, <code>polygon</code> will close the polygon by connecting them.</p>", 
+    "example": "<p><strong>Example:</strong> Create a line object and then convert it to a polygon.</p>\n<p><code>r.table('geo').insert({\n    id: 201,\n    rectangle: r.line(\n        [37.779388,-122.423246],\n        [37.329898,-122.423246],\n        [37.329898,-121.886420],\n        [37.779388,-121.886420]\n    )\n}).run(conn, callback);\nr.table('geo').get(201).update({\n    rectangle: r.row('rectangle').fill()\n}).run(conn, callback);</code></p>", 
+    "io": [
+      [
+        "line", 
+        "polygon"
+      ]
+    ], 
+    "name": "fill", 
+    "url": "fill"
   }, 
   "api/javascript/filter/": {
     "body": "selection.filter(predicate[, {default: false}]) &rarr; selectionstream.filter(predicate[, {default: false}]) &rarr; streamarray.filter(predicate[, {default: false}]) &rarr; array", 
@@ -656,6 +695,19 @@
     "name": "ge", 
     "url": "ge"
   }, 
+  "api/javascript/geojson/": {
+    "body": "r.geojson(geojson) &rarr; geometry", 
+    "description": "<p>Convert a <a href=\"http://geojson.org\">GeoJSON</a> object to a ReQL geometry object.</p>", 
+    "example": "<p><strong>Example:</strong> Convert a GeoJSON object to a ReQL geometry object.</p>\n<p><code>var geoJson = {\n    'type': 'Point',\n    'coordinates': [ -122.423246, 37.779388 ]\n};\nr.table('geo').insert({\n    id: 'sfo',\n    name: 'San Francisco',\n    location: r.geojson(geoJson)\n}).run(conn, callback);</code></p>", 
+    "io": [
+      [
+        "r", 
+        "geometry"
+      ]
+    ], 
+    "name": "geojson", 
+    "url": "geojson"
+  }, 
   "api/javascript/get/": {
     "body": "table.get(key) &rarr; singleRowSelection", 
     "description": "<p>Get a document by primary key.</p>\n<p>If no document exists with that primary key, <code>get</code> will return <code>null</code>.</p>", 
@@ -672,7 +724,7 @@
   "api/javascript/get_all/": {
     "body": "table.getAll(key[, key2...], [, {index:'id'}]) &rarr; selection", 
     "description": "<p>Get all documents where the given value matches the value of the requested index.</p>", 
-    "example": "<p><strong>Example:</strong> Secondary index keys are not guaranteed to be unique so we cannot query via\n\"get\" when using a secondary index.</p>\n<p><code>r.table('marvel').getAll('man_of_steel', {index:'code_name'}).run(conn, callback)</code></p>", 
+    "example": "<p><strong>Example:</strong> Secondary index keys are not guaranteed to be unique so we cannot query via <a href=\"/api/javascript/get/\">get</a> when using a secondary index.</p>\n<p><code>r.table('marvel').getAll('man_of_steel', {index:'code_name'}).run(conn, callback)</code></p>", 
     "io": [
       [
         "table", 
@@ -702,6 +754,32 @@
     ], 
     "name": "()", 
     "url": "get_field"
+  }, 
+  "api/javascript/get_intersecting/": {
+    "body": "table.getIntersecting(geometry, {index: 'indexname'}) &rarr; selection<array>", 
+    "description": "<p>Get all documents where the given geometry object intersects the geometry object of the requested geospatial index.</p>", 
+    "example": "<p><strong>Example:</strong> Which of the locations in a list of parks intersect <code>circle1</code>?</p>\n<p><code>var circle1 = r.circle([32.719464,-117.220406], 10, {unit: 'mi'});\nr.table('parks').getIntersecting(circle1, {index: 'area'}).run(conn, callback);</code></p>", 
+    "io": [
+      [
+        "table", 
+        "array"
+      ]
+    ], 
+    "name": "getIntersecting", 
+    "url": "get_intersecting"
+  }, 
+  "api/javascript/get_nearest/": {
+    "body": "table.getNearest(point, {index: 'indexname'[, maxResults: 100, maxDist: 100000, unit: 'm', geoSystem: 'WGS84']}) &rarr; selection<array>", 
+    "description": "<p>Get all documents where the specified geospatial index is within a certain distance of the specified point (default 100 kilometers).</p>", 
+    "example": "<p><strong>Example:</strong> Return a list of enemy hideouts within 5000 meters of the secret base.</p>\n<p><code>var secretBase = r.point(37.777128,-122.422876);\nr.table('hideouts').getNearest(secretBase,\n    {index: 'location', maxDist: 5000}\n).run(conn, callback)</code></p>", 
+    "io": [
+      [
+        "table", 
+        "array"
+      ]
+    ], 
+    "name": "getNearest", 
+    "url": "get_nearest"
   }, 
   "api/javascript/group/": {
     "body": "sequence.group(fieldOrFunction..., [{index: \"indexName\"}) &rarr; grouped_stream", 
@@ -770,7 +848,7 @@
   "api/javascript/http/": {
     "body": "r.http(url [, options]) &rarr; value", 
     "description": "<p>Retrieve data from the specified URL over HTTP.  The return type depends on the <code>resultFormat</code> option, which checks the <code>Content-Type</code> of the response by default.</p>", 
-    "example": "<p><strong>Example:</strong> Perform a simple HTTP <code>GET</code> request, and store the result in a table.</p>\n<p><code>js\nr.table('posts').insert(r.http('httpbin.org/get')).run(conn, callback)</code></p>", 
+    "example": "<p><strong>Example:</strong> Perform a simple HTTP <code>GET</code> request, and store the result in a table.</p>\n<p><code>r.table('posts').insert(r.http('http://httpbin.org/get')).run(conn, callback)</code></p>", 
     "io": [
       [
         "r", 
@@ -796,6 +874,23 @@
     ], 
     "name": "inTimezone", 
     "url": "in_timezone"
+  }, 
+  "api/javascript/includes/": {
+    "body": "sequence.includes(geometry) &rarr; sequencegeometry.includes(geometry) &rarr; bool", 
+    "description": "<p>Tests whether a geometry object is completely contained within another. When applied to a sequence of geometry objects, <code>includes</code> acts as a <a href=\"/api/javascript/filter\">filter</a>, returning a sequence of objects from the sequence that include the argument.</p>", 
+    "example": "<p><strong>Example:</strong> Is <code>point2</code> included within a 2000-meter circle around <code>point1</code>?</p>\n<p><code>var point1 = r.point(32.719464,-117.220406);\nvar point2 = r.point(32.725186,-117.206201);\nr.circle(point1, 2000).includes(point2).run(conn, callback);\n// result returned to callback \ntrue</code></p>", 
+    "io": [
+      [
+        "geometry", 
+        "bool"
+      ], 
+      [
+        "sequence", 
+        "sequence"
+      ]
+    ], 
+    "name": "includes", 
+    "url": "includes"
   }, 
   "api/javascript/index_create/": {
     "body": "table.indexCreate(indexName[, indexFunction][, {multi: false}]) &rarr; object", 
@@ -952,6 +1047,23 @@
     "name": "insertAt", 
     "url": "insert_at"
   }, 
+  "api/javascript/intersects/": {
+    "body": "sequence.intersects(geometry) &rarr; sequencegeometry.intersects(geometry) &rarr; bool", 
+    "description": "<p>Tests whether two geometry objects intersect with one another. When applied to a sequence of geometry objects, <code>intersects</code> acts as a <a href=\"/api/javascript/filter\">filter</a>, returning a sequence of objects from the sequence that intersect with the argument.</p>", 
+    "example": "<p><strong>Example:</strong> Is <code>point2</code> within a 2000-meter circle around <code>point1</code>?</p>\n<p><code>var point1 = r.point(32.719464,-117.220406);\nvar point2 = r.point(32.725186,-117.206201);\nr.circle(point1, 2000).intersects(point2).run(conn, callback);\n// result returned to callback \ntrue</code></p>", 
+    "io": [
+      [
+        "geometry", 
+        "bool"
+      ], 
+      [
+        "sequence", 
+        "sequence"
+      ]
+    ], 
+    "name": "intersects", 
+    "url": "intersects"
+  }, 
   "api/javascript/is_empty/": {
     "body": "sequence.isEmpty() &rarr; bool", 
     "description": "<p>Test if a sequence is empty.</p>", 
@@ -981,7 +1093,7 @@
   "api/javascript/js/": {
     "body": "r.js(jsString[, {timeout: <number>}]) &rarr; value", 
     "description": "<p>Create a javascript expression.</p>", 
-    "example": "<p><strong>Example:</strong> Concatenate two strings using Javascript'</p>\n<p><code>r.js(\"'str1' + 'str2'\").run(conn, callback)</code></p>", 
+    "example": "<p><strong>Example:</strong> Concatenate two strings using JavaScript.</p>\n<p><code>r.js(\"'str1' + 'str2'\").run(conn, callback)</code></p>", 
     "io": [
       [
         "r", 
@@ -1050,6 +1162,19 @@
     ], 
     "name": "limit", 
     "url": "limit"
+  }, 
+  "api/javascript/line/": {
+    "body": "r.line([lat1, lon2], [lat2, lon2], ...) &rarr; liner.line(point1, point2, ...) &rarr; line", 
+    "description": "<p>Construct a geometry object of type Line. The line can be specified in one of two ways:</p>\n<ul>\n<li>Two or more two-item arrays, specifying latitude and longitude numbers of the line's vertices;</li>\n<li>Two or more <a href=\"/api/javascript/point\">Point</a> objects specifying the line's vertices.</li>\n</ul>", 
+    "example": "<p><strong>Example:</strong> Define a line.</p>\n<p><code>r.table('geo').insert({\n    id: 101,\n    route: r.line([37.779388,-122.423246], [37.329898,-121.886420])\n}).run(conn, callback);</code></p>", 
+    "io": [
+      [
+        "r", 
+        "line"
+      ]
+    ], 
+    "name": "line", 
+    "url": "line"
   }, 
   "api/javascript/literal/": {
     "body": "r.literal(object) &rarr; special", 
@@ -1376,6 +1501,45 @@
     ], 
     "name": "pluck", 
     "url": "pluck"
+  }, 
+  "api/javascript/point/": {
+    "body": "r.point(latitude, longitude) &rarr; point", 
+    "description": "<p>Construct a geometry object of type Point. The point is specified by two floating point numbers, the latitude (&minus;90 to 90) and longitude (&minus;180 to 180) of the point on a perfect sphere.</p>", 
+    "example": "<p><strong>Example:</strong> Define a point.</p>\n<p><code>r.table('geo').insert({\n    id: 1,\n    name: 'San Francisco',\n    location: r.point(37.779388,-122.423246)\n}).run(conn, callback);</code></p>", 
+    "io": [
+      [
+        "r", 
+        "point"
+      ]
+    ], 
+    "name": "point", 
+    "url": "point"
+  }, 
+  "api/javascript/polygon/": {
+    "body": "r.polygon([lat1, lon2], [lat2, lon2], ...) &rarr; polygonr.polygon(point1, point2, ...) &rarr; polygon", 
+    "description": "<p>Construct a geometry object of type Polygon. The Polygon can be specified in one of two ways:</p>\n<ul>\n<li>Three or more two-item arrays, specifying latitude and longitude numbers of the polygon's vertices;</li>\n<li>Three or more <a href=\"/api/javascript/point\">Point</a> objects specifying the polygon's vertices.</li>\n</ul>", 
+    "example": "<p><strong>Example:</strong> Define a polygon.</p>\n<p><code>r.table('geo').insert({\n    id: 101,\n    rectangle: r.polygon(\n        [37.779388,-122.423246],\n        [37.329898,-122.423246],\n        [37.329898,-121.886420],\n        [37.779388,-121.886420]\n    )\n}).run(conn, callback);</code></p>", 
+    "io": [
+      [
+        "r", 
+        "polygon"
+      ]
+    ], 
+    "name": "polygon", 
+    "url": "polygon"
+  }, 
+  "api/javascript/polygon_sub/": {
+    "body": "polygon1.polygonSub(polygon2) &rarr; polygon", 
+    "description": "<p>Use <code>polygon2</code> to \"punch out\" a hole in <code>polygon1</code>. <code>polygon2</code> must be completely contained within <code>polygon1</code> and must have no holes itself (it must not be the output of <code>polygonSub</code> itself).</p>", 
+    "example": "<p><strong>Example:</strong> Define a polygon with a hole punched in it.</p>\n<p><code>js\nvar outerPolygon = r.polygon(\n    [37.7,-122.4],\n    [37.3,-122.4],\n    [37.3,-121.8],\n    [37.7,-121.8]\n);\nvar innerPolygon = r.polygon(\n    [37.4,-122.3],\n    [37.6,-122.3],\n    [37.6,-122.0],\n    [37.4,-122.0]\n);\nouterPolygon.polygonSub(innerpolygon).run(conn, callback);</code></p>", 
+    "io": [
+      [
+        "polygon", 
+        "polygon"
+      ]
+    ], 
+    "name": "polygonSub", 
+    "url": "polygon_sub"
   }, 
   "api/javascript/prepend/": {
     "body": "array.prepend(value) &rarr; array", 
@@ -1801,6 +1965,19 @@
     "name": "toEpochTime", 
     "url": "to_epoch_time"
   }, 
+  "api/javascript/to_geojson/": {
+    "body": "geometry.toGeojson() &rarr; object", 
+    "description": "<p>Convert a ReQL geometry object to a <a href=\"http://geojson.org\">GeoJSON</a> object.</p>", 
+    "example": "<p><strong>Example:</strong> Convert a ReQL geometry object to a GeoJSON object.</p>\n<p><code>r.table(geo).get('sfo')('location').toGeojson.run(conn, callback);\n// result passed to callback\n{\n    'type': 'Point',\n    'coordinates': [ -122.423246, 37.779388 ]\n}</code></p>", 
+    "io": [
+      [
+        "geometry", 
+        "object"
+      ]
+    ], 
+    "name": "toGeojson", 
+    "url": "to_geojson"
+  }, 
   "api/javascript/to_iso8601/": {
     "body": "time.toISO8601() &rarr; string", 
     "description": "<p>Convert a time object to its iso 8601 format.</p>", 
@@ -1855,7 +2032,7 @@
   }, 
   "api/javascript/upcase/": {
     "body": "string.upcase() &rarr; string", 
-    "description": "<p>Upcases a string.</p>", 
+    "description": "<p>Uppercases a string.</p>", 
     "example": "<p><strong>Example:</strong></p>\n<p><code>r.expr(\"Sentence about LaTeX.\").upcase().run(conn, callback)</code></p>", 
     "io": [
       [
@@ -1899,6 +2076,19 @@
     ], 
     "name": "use", 
     "url": "use"
+  }, 
+  "api/javascript/uuid/": {
+    "body": "r.uuid(array) &rarr; string", 
+    "description": "<p>Return a UUID (universally unique identifier), a string that can be used as a unique ID.</p>", 
+    "example": "<p><strong>Example:</strong> Generate a UUID.</p>\n<p><code>r.uuid().run(conn, callback)\n// result returned to callback\n27961a0e-f4e8-4eb3-bf95-c5203e1d87b9</code></p>", 
+    "io": [
+      [
+        "r", 
+        "string"
+      ]
+    ], 
+    "name": "uuid", 
+    "url": "uuid"
   }, 
   "api/javascript/with_fields/": {
     "body": "sequence.withFields([selector1, selector2...]) &rarr; streamarray.withFields([selector1, selector2...]) &rarr; array", 
