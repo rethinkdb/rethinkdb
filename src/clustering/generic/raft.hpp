@@ -38,69 +38,6 @@ public:
     uint64_t timestamp;
 };
 
-/* Every member of the Raft cluster is identified by a UUID. The Raft paper uses integers
-for this purpose, but we use UUIDs because we have no reliable distributed way of
-assigning integers. */
-typedef uuid_u raft_member_id_t;
-
-/* `raft_term_t` and `raft_log_index_t` are typedefs to improve the readability of the
-implementation, by making it clearer what the meaning of a particular number is. */
-typedef uint64_t raft_term_t;
-typedef uint64_t raft_log_index_t;
-
-/* `raft_log_t` stores a collection of log entries that might not stretch all the way
-back to the beginning of time. There are two situations where this shows up in Raft:
-in an append-entries message, and in each server's local state. The Raft paper represents
-this as three separate variables, but grouping them together makes the implementation
-clearer. */
-template<class change_t>
-class raft_log_t {
-public:
-    /* In an append-entries message, `prev_log_index`, `prev_log_term`, and `entries`
-    corresponds to the parameters with the same names in the "AppendEntries RPC"
-    described in Figure 2 of the Raft paper.
-
-    In a server's local status, `prev_log_index` and `prev_log_term` correspond to the
-    "last included index" and "last included term" variables as described in Section 7.
-    `entries` corresponds to the `log` variable described in Figure 2. */
-
-    raft_log_index_t prev_log_index;
-    raft_term_t prev_log_term;
-    std::deque<std::pair<change_t, raft_term_t> > entries;
-
-    raft_log_index_t get_latest_index() const {
-        return prev_log_index + entries.size();
-    }
-    raft_term_t get_entry_term(raft_log_index_t index) const {
-        if (index < prev_log_index) {
-            crash("the log doesn't go back this far");
-        } else if (index == prev_log_index) {
-            return prev_log_term;
-        } else if (index <= get_latest_index()) {
-            return entries[index - prev_log_index - 1].second;
-        } else {
-            crash("the log doesn't go forward this far");
-        }
-    }
-    const std::pair<change_t, raft_term_t> &get_entry(raft_log_index_t index) const {
-        if (index <= prev_log_index) {
-            crash("the log doesn't go back this far");
-        } else if (index > get_latest_index()) {
-            crash("the log doesn't go forward this far");
-        } else {
-            return entries[index - prev_log_index - 1];
-        }
-    }
-    void delete_entries_from(raft_log_index_t index) {
-        if (index <= prev_log_index) {
-            crash("the log doesn't go back this far");
-        }
-        entries.erase(entries.begin() + index - prev_log_index - 1, entries.end());
-    }
-    void append(const std::pair<change_t, raft_term_t> &entry) {
-        entries.push_back(entry);
-    }
-}
 
 template<class state_t, class change_t>
 class raft_address_t {
