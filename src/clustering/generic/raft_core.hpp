@@ -238,25 +238,21 @@ public:
       * If the interruptor is pulsed, it throws `interrupted_exc_t`. The message may or
         may not have been sent. */
 
-    /* `send_append_entries_rpc` corresponds to the "AppendEntries RPC" described in
-    Figure 2 of the Raft paper. */
-    virtual void send_append_entries_rpc(
+    /* `send_request_vote_rpc` corresponds to the "RequestVote RPC" described in Figure
+    2 of the Raft paper. */
+    virtual void send_request_vote_rpc(
         const raft_member_id_t &dest,
-        /* `term`, `leader_id`, and `leader_commit` correspond to the parameters with the
-        same names in the Raft paper. `entries` corresponds to three of the paper's
-        variables: `prevLogIndex`, `prevLogTerm`, and `entries`. */
+        /* `term`, `candidate_id`, `last_log_index`, and `last_log_term` correspond to
+        the parameters with the same names in the Raft paper. */
         raft_term_t term,
-        const raft_member_id_t &leader_id,
-        const raft_log_t<change_t> &entries,
-        raft_log_index_t leader_commit,
+        const raft_member_id_t &candidate_id,
+        raft_log_index_t last_log_index,
+        raft_term_t last_log_term,
         signal_t *interruptor,
-        /* `term_out` corresponds to the `term` parameter of the RPC reply in the paper.
-        */
+        /* `term_out` and `vote_granted_out` correspond to the `term` and `voteGranted`
+        parameters of the RPC reply in the Raft paper. */
         raft_term_t *term_out,
-        /* `success_out` corresponds to the `success` parameter of the RPC reply in the
-        paper. `success` and `retry` correspond to `true` and `false` in the paper;
-        `rejected` is returned if the member rejected the change. */
-        raft_change_outcome_t *success_out) = 0;
+        bool *vote_granted_out) = 0;
 
     /* `send_install_snapshot_rpc` corresponds to the "InstallSnapshot RPC" described in
     Figure 13 of the Raft paper. */
@@ -278,21 +274,25 @@ public:
         paper. */
         raft_term_t *term_out) = 0;
 
-    /* `send_request_vote_rpc` corresponds to the "RequestVote RPC" described in Figure
-    2 of the Raft paper. */
-    virtual void send_request_vote_rpc(
+    /* `send_append_entries_rpc` corresponds to the "AppendEntries RPC" described in
+    Figure 2 of the Raft paper. */
+    virtual void send_append_entries_rpc(
         const raft_member_id_t &dest,
-        /* `term`, `candidate_id`, `last_log_index`, and `last_log_term` correspond to
-        the parameters with the same names in the Raft paper. */
+        /* `term`, `leader_id`, and `leader_commit` correspond to the parameters with the
+        same names in the Raft paper. `entries` corresponds to three of the paper's
+        variables: `prevLogIndex`, `prevLogTerm`, and `entries`. */
         raft_term_t term,
-        const raft_member_id_t &candidate_id,
-        raft_log_index_t last_log_index,
-        raft_term_t last_log_term,
+        const raft_member_id_t &leader_id,
+        const raft_log_t<change_t> &entries,
+        raft_log_index_t leader_commit,
         signal_t *interruptor,
-        /* `term_out` and `vote_granted_out` correspond to the `term` and `voteGranted`
-        parameters of the RPC reply in the Raft paper. */
+        /* `term_out` corresponds to the `term` parameter of the RPC reply in the paper.
+        */
         raft_term_t *term_out,
-        bool *vote_granted_out) = 0;
+        /* `success_out` corresponds to the `success` parameter of the RPC reply in the
+        paper. `success` and `retry` correspond to `true` and `false` in the paper;
+        `rejected` is returned if the member rejected the change. */
+        raft_change_outcome_t *success_out) = 0;
 
     /* `write_persistent_state()` writes the state of the Raft member to stable storage.
     It does not return until the state is safely stored. The values stored with
@@ -335,22 +335,6 @@ public:
 
     /* The `on_*_rpc()` methods are called when a Raft member calls a `send_*_rpc()`
     method on their `raft_network_and_storage_interface_t`. */
-    void on_append_entries_rpc(
-        raft_term_t term,
-        const raft_member_id_t &leader_id,
-        const raft_log_t<change_t> &entries,
-        raft_log_index_t leader_commit,
-        signal_t *interruptor,
-        raft_term_t *term_out,
-        bool *success_out);
-    void on_install_snapshot_rpc(
-        raft_term_t term,
-        const raft_member_id_t &leader_id,
-        raft_log_index_t last_included_index,
-        raft_term_t last_included_term,
-        const state_t &snapshot,
-        signal_t *interruptor,
-        raft_term_t *term_out);
     void on_request_vote_rpc(
         raft_term_t term,
         const raft_member_id_t &candidate_id,
@@ -359,6 +343,22 @@ public:
         signal_t *interruptor,
         raft_term_t *term_out,
         bool *vote_granted_out);
+    void on_install_snapshot_rpc(
+        raft_term_t term,
+        const raft_member_id_t &leader_id,
+        raft_log_index_t last_included_index,
+        raft_term_t last_included_term,
+        const state_t &snapshot,
+        signal_t *interruptor,
+        raft_term_t *term_out);
+    void on_append_entries_rpc(
+        raft_term_t term,
+        const raft_member_id_t &leader_id,
+        const raft_log_t<change_t> &entries,
+        raft_log_index_t leader_commit,
+        signal_t *interruptor,
+        raft_term_t *term_out,
+        bool *success_out);
 
     /* `on_member_disconnect()` notifies the `raft_member_t` that the connection to the
     given Raft member has been lost. This may be the trigger to start a new leader

@@ -24,129 +24,6 @@ private:
 }
 
 template<class state_t, class change_t>
-void raft_member_t<state_t, change_t>::on_append_entries_rpc(
-        raft_term_t term,
-        const raft_member_id_t &leader_id,
-        const raft_log_t<change_t> &entries,
-        raft_log_index_t leader_commit,
-        signal_t *interruptor,
-        raft_term_t *term_out,
-        raft_change_outcome_t *success_out) {
-    assert_thread();
-    new_mutex_acq_t mutex_acq(&mutex);
-
-    /* Raft paper, Figure 2: If RPC request or response contains term T > currentTerm:
-    set currentTerm = T, convert to follower */
-    if (term > ps.current_term) {
-        update_term(term, &mutex_acq);
-        if (mode != mode_t::follower) {
-            become_follower(&mutex_acq);
-        }
-        /* Continue processing the RPC as follower */
-    }
-
-    /* Raft paper, Figure 2: "Reply false if term < currentTerm (SE 5.1)"
-    Raft paper, Section 5.1: "If a server receives a request with a stale term number, it
-    rejects the request" */
-    if (term < ps.current_term) {
-        /* Raft paper, Figure 2: term should be set to "currentTerm, for leader to update
-        itself" */
-        *term_out = ps.current_term;
-        *success_out = raft_change_outcome_t::retry;
-        return;
-    }
-
-    guarantee(term == ps.current_term);   /* sanity check */
-
-    /* Raft paper, Section 5.2: "While waiting for votes, a candidate may receive an
-    AppendEntries RPC from another server claiming to be leader. If the leader's term
-    (included in its RPC) is at least as large as the candidate's current term, then the
-    candidate recognizes the leader as legitimate and returns to follower state. If the
-    term in the RPC is smaller than the candidate's current term, then the candidate
-    rejects the RPC and continues in candidate state." */
-    if (mode == mode_t::candidate) {
-        become_follower(&mutex_acq);
-    }
-
-    /* Raft paper, Section 5.2: "at most one candidate can win the election for a
-    particular term"
-    If we're leader, then we won the election, so it makes no sense for us to receive an
-    RPC from another member that thinks it's leader. */
-    guarantee(mode != mode_t::leader);
-
-    mutex_assertion_t::acq_t log_mutex_acq(&log_mutex);
-
-    /* See if all of the proposed changes are acceptable. This is not part of the
-    original Raft algorithm. We don't bother checking changes that are earlier than
-    `leader_commit` because they have already been committed, so our rejection cannot
-    make a difference (and it would cause the algorithm to lock up). */
-    for (raft_log_index_t i = min(entries.get_latest_index(), leader_commit) + 1;
-            i <= entries.get_latest_index();
-            ++i) {
-        if (!interface->consider_proposed_change(
-                entries.get_entry(i).first, interruptor)) {
-            /* If one of the changes is rejected, we bail out immediately and don't touch
-            anything, to minimize the probability of introducing a bug in the Raft
-            algorithm. */
-            *term_out = current_term;
-            *success_out = raft_change_outcome_t::rejected;
-            return;
-        }
-    }
-
-    /* Raft paper, Figure 2: "Reply false if log doesn't contain an entry at prevLogIndex
-    whose term matches prevLogTerm" */
-    if (entries.prev_log_index > ps.log.get_latest_index() ||
-            ps.log.get_entry_term(prev_log_index) != entries.prev_log_term) {
-        *term_out = current_term;
-        *success_out = raft_change_outcome_t::retry;
-        return;
-    }
-
-    /* Raft paper, Figure 2: "If an existing entry conflicts with a new one (same index
-    but different terms), delete the existing entry and all that follow it" */
-    for (raft_log_index_t i = entries.prev_log_index + 1;
-            i <= min(ps.log.get_latest_index(), entries.get_latest_index());
-            ++i) {
-        if (log.get_entry_term(i) != entries.get_entry_term(i)) {
-            log.delete_entries_from(i);
-            break;
-        }
-    }
-
-    /* Raft paper, Figure 2: "Append any new entries not already in the log" */
-    for (raft_log_index_t i = ps.log.get_latest_index() + 1;
-            i <= entries.get_latest_index();
-            ++i) {
-        ps.log.append(entries.get_entry(i));
-    }
-
-    /* Raft paper, Figure 2: "If leaderCommit > commitIndex, set commitIndex = min(
-    leaderCommit, index of last new entry)" */
-    while (leader_commit > commit_index) {
-        update_commit_index(min(leader_commit, entries.get_latest_index()), &mutex_acq);
-    }
-
-    /* Recall that `this_term_leader_id` is set to `nil_uuid()` if we haven't seen a
-    leader yet this term. */
-    if (this_term_leader_id.is_nil()) {
-        this_term_leader_id = leader_id;
-    } else {
-        /* Raft paper, Section 5.2: "at most one candidate can win the election for a
-        particular term" */
-        guarantee(this_term_leader_id == leader_id);
-    }
-
-    /* Raft paper, Figure 2: "Persistent state [is] updated on stable storage before
-    responding to RPCs" */
-    interface->write_persistent_state(ps, interruptor);
-
-    *term_out = current_term;
-    *success_out = raft_change_outcome_t::success;
-}
-
-
-template<class state_t, class change_t>
 void raft_member_t<state_t, change_t>::on_request_vote(
         raft_term_t term,
         const raft_member_id_t &candidate_id,
@@ -292,6 +169,128 @@ void raft_member_t<state_t, change_t>::on_install_snapshot(
     interface->write_persistent_state(ps, interruptor);
 
     *term_out = ps.current_term;
+}
+
+template<class state_t, class change_t>
+void raft_member_t<state_t, change_t>::on_append_entries_rpc(
+        raft_term_t term,
+        const raft_member_id_t &leader_id,
+        const raft_log_t<change_t> &entries,
+        raft_log_index_t leader_commit,
+        signal_t *interruptor,
+        raft_term_t *term_out,
+        raft_change_outcome_t *success_out) {
+    assert_thread();
+    new_mutex_acq_t mutex_acq(&mutex);
+
+    /* Raft paper, Figure 2: If RPC request or response contains term T > currentTerm:
+    set currentTerm = T, convert to follower */
+    if (term > ps.current_term) {
+        update_term(term, &mutex_acq);
+        if (mode != mode_t::follower) {
+            become_follower(&mutex_acq);
+        }
+        /* Continue processing the RPC as follower */
+    }
+
+    /* Raft paper, Figure 2: "Reply false if term < currentTerm (SE 5.1)"
+    Raft paper, Section 5.1: "If a server receives a request with a stale term number, it
+    rejects the request" */
+    if (term < ps.current_term) {
+        /* Raft paper, Figure 2: term should be set to "currentTerm, for leader to update
+        itself" */
+        *term_out = ps.current_term;
+        *success_out = raft_change_outcome_t::retry;
+        return;
+    }
+
+    guarantee(term == ps.current_term);   /* sanity check */
+
+    /* Raft paper, Section 5.2: "While waiting for votes, a candidate may receive an
+    AppendEntries RPC from another server claiming to be leader. If the leader's term
+    (included in its RPC) is at least as large as the candidate's current term, then the
+    candidate recognizes the leader as legitimate and returns to follower state. If the
+    term in the RPC is smaller than the candidate's current term, then the candidate
+    rejects the RPC and continues in candidate state." */
+    if (mode == mode_t::candidate) {
+        become_follower(&mutex_acq);
+    }
+
+    /* Raft paper, Section 5.2: "at most one candidate can win the election for a
+    particular term"
+    If we're leader, then we won the election, so it makes no sense for us to receive an
+    RPC from another member that thinks it's leader. */
+    guarantee(mode != mode_t::leader);
+
+    mutex_assertion_t::acq_t log_mutex_acq(&log_mutex);
+
+    /* See if all of the proposed changes are acceptable. This is not part of the
+    original Raft algorithm. We don't bother checking changes that are earlier than
+    `leader_commit` because they have already been committed, so our rejection cannot
+    make a difference (and it would cause the algorithm to lock up). */
+    for (raft_log_index_t i = min(entries.get_latest_index(), leader_commit) + 1;
+            i <= entries.get_latest_index();
+            ++i) {
+        if (!interface->consider_proposed_change(
+                entries.get_entry(i).first, interruptor)) {
+            /* If one of the changes is rejected, we bail out immediately and don't touch
+            anything, to minimize the probability of introducing a bug in the Raft
+            algorithm. */
+            *term_out = current_term;
+            *success_out = raft_change_outcome_t::rejected;
+            return;
+        }
+    }
+
+    /* Raft paper, Figure 2: "Reply false if log doesn't contain an entry at prevLogIndex
+    whose term matches prevLogTerm" */
+    if (entries.prev_log_index > ps.log.get_latest_index() ||
+            ps.log.get_entry_term(prev_log_index) != entries.prev_log_term) {
+        *term_out = current_term;
+        *success_out = raft_change_outcome_t::retry;
+        return;
+    }
+
+    /* Raft paper, Figure 2: "If an existing entry conflicts with a new one (same index
+    but different terms), delete the existing entry and all that follow it" */
+    for (raft_log_index_t i = entries.prev_log_index + 1;
+            i <= min(ps.log.get_latest_index(), entries.get_latest_index());
+            ++i) {
+        if (log.get_entry_term(i) != entries.get_entry_term(i)) {
+            log.delete_entries_from(i);
+            break;
+        }
+    }
+
+    /* Raft paper, Figure 2: "Append any new entries not already in the log" */
+    for (raft_log_index_t i = ps.log.get_latest_index() + 1;
+            i <= entries.get_latest_index();
+            ++i) {
+        ps.log.append(entries.get_entry(i));
+    }
+
+    /* Raft paper, Figure 2: "If leaderCommit > commitIndex, set commitIndex = min(
+    leaderCommit, index of last new entry)" */
+    while (leader_commit > commit_index) {
+        update_commit_index(min(leader_commit, entries.get_latest_index()), &mutex_acq);
+    }
+
+    /* Recall that `this_term_leader_id` is set to `nil_uuid()` if we haven't seen a
+    leader yet this term. */
+    if (this_term_leader_id.is_nil()) {
+        this_term_leader_id = leader_id;
+    } else {
+        /* Raft paper, Section 5.2: "at most one candidate can win the election for a
+        particular term" */
+        guarantee(this_term_leader_id == leader_id);
+    }
+
+    /* Raft paper, Figure 2: "Persistent state [is] updated on stable storage before
+    responding to RPCs" */
+    interface->write_persistent_state(ps, interruptor);
+
+    *term_out = current_term;
+    *success_out = raft_change_outcome_t::success;
 }
 
 template<class state_t, class change_t>
