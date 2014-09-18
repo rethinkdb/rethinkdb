@@ -51,37 +51,13 @@ batchspec_t::batchspec_t(
     r_sanity_check(max_dur >= 0);
 }
 
-batchspec_t batchspec_t::user(batch_type_t batch_type,
-                              const datum_t &conf) {
-    datum_t max_els_d, min_els_d, max_size_d, max_dur_d;
-    datum_t first_scaledown_d;
-    if (conf.has()) {
-        min_els_d = conf.get_field("min_els", NOTHROW);
-        max_els_d = conf.get_field("max_els", NOTHROW);
-        max_size_d = conf.get_field("max_size", NOTHROW);
-        first_scaledown_d = conf.get_field("first_scaledown", NOTHROW);
-        max_dur_d = conf.get_field("max_dur", NOTHROW);
-    }
-    int64_t max_els = max_els_d.has()
-                      ? max_els_d.as_int()
-                      : std::numeric_limits<decltype(batchspec_t().max_els)>::max();
-    int64_t min_els = min_els_d.has()
-                      ? min_els_d.as_int()
-                      : std::min<int64_t>(max_els, DEFAULT_MIN_ELS);
-    int64_t max_size = max_size_d.has() ? max_size_d.as_int() : DEFAULT_MAX_SIZE;
-    int64_t first_sd = first_scaledown_d.has()
-                       ? first_scaledown_d.as_int()
-                       : DEFAULT_FIRST_SCALEDOWN;
-    int64_t max_dur = max_dur_d.has() ? max_dur_d.as_int() : DEFAULT_MAX_DURATION;
-    // Protect the user in case they're a dork.  Normally we would do rfail and
-    // trigger exceptions, but due to NOTHROWs above this may not be safe.
-    min_els = std::min<int64_t>(min_els, max_els);
+batchspec_t batchspec_t::default_for(batch_type_t batch_type) {
     return batchspec_t(batch_type,
-                       min_els,
-                       max_els,
-                       max_size,
-                       first_sd,
-                       max_dur,
+                       DEFAULT_MIN_ELS,
+                       std::numeric_limits<decltype(batchspec_t().max_els)>::max(),
+                       DEFAULT_MAX_SIZE,
+                       DEFAULT_FIRST_SCALEDOWN,
+                       DEFAULT_MAX_DURATION,
                        current_microtime());
 }
 
@@ -95,9 +71,52 @@ batchspec_t batchspec_t::all() {
                        current_microtime());
 }
 
+static bool set_if_present(const char *argname, env_t *env, datum_t * dest) {
+    counted_t<val_t> v = env->get_optarg(env, argname);
+    if (v.has()) {
+        *dest = v->as_datum();
+        return true;
+    } else {
+        return false;
+    }
+}
+
 batchspec_t batchspec_t::user(batch_type_t batch_type, env_t *env) {
-    counted_t<val_t> v = env->get_optarg(env, "batch_conf");
-    return user(batch_type, v.has() ? v->as_datum() : datum_t());
+    const int64_t SECS_TO_USECS = 1000 * 1000;
+    datum_t max_els_d, min_els_d, max_size_d, max_dur_d;
+    datum_t first_scaledown_d;
+    
+    set_if_present("min_batch_rows", env, &min_els_d);
+    set_if_present("max_batch_rows", env, &max_els_d);
+    set_if_present("max_batch_bytes", env, &max_size_d);
+    // N.B.: the UI for this uses seconds as the unit, but batchspec_t is specified
+    // in microseconds, so a scaling operation will be necessary.
+    set_if_present("max_batch_seconds", env, &max_dur_d);
+    set_if_present("first_batch_scaledown_factor", env, &first_scaledown_d);
+    
+    int64_t max_els = max_els_d.has()
+                      ? max_els_d.as_int()
+                      : std::numeric_limits<decltype(batchspec_t().max_els)>::max();
+    int64_t min_els = min_els_d.has()
+                      ? min_els_d.as_int()
+                      : std::min<int64_t>(max_els, DEFAULT_MIN_ELS);
+    int64_t max_size = max_size_d.has() ? max_size_d.as_int() : DEFAULT_MAX_SIZE;
+    int64_t first_sd = first_scaledown_d.has()
+                       ? first_scaledown_d.as_int()
+                       : DEFAULT_FIRST_SCALEDOWN;
+    int64_t max_dur = max_dur_d.has()
+                       ? (max_dur_d.as_int() * SECS_TO_USECS)
+                       : DEFAULT_MAX_DURATION;
+    // Protect the user in case they're a dork.  Normally we would do rfail and
+    // trigger exceptions, but due to NOTHROWs above this may not be safe.
+    min_els = std::min<int64_t>(min_els, max_els);
+    return batchspec_t(batch_type,
+                       min_els,
+                       max_els,
+                       max_size,
+                       first_sd,
+                       max_dur,
+                       current_microtime());
 }
 
 batchspec_t batchspec_t::with_new_batch_type(batch_type_t new_batch_type) const {

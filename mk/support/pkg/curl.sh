@@ -23,6 +23,6 @@ pkg_depends () {
 pkg_link-flags () {
     local flags
     flags="`"$install_dir/bin/curl-config" --static-libs`"
-    flags=$(echo " $flags " | sed 's/ -lz \| -lidn \| -lgnutls / /')
+    flags=$(echo " $flags " | sed 's/ -lz / /' | sed 's/ -lidn / /' | sed 's/ -lgnutls / /')
     echo  $flags `pkg link-flags zlib z` `pkg link-flags libidn idn` `pkg link-flags gnutls gnutls`
 }
