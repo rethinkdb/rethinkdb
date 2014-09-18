@@ -1,6 +1,6 @@
-# Release 1.15.0 (Into the Wild)
+# Release 1.15.0 (Lawrence of Arabia)
 
-Released on 2014-09-17
+Released on 2014-09-18
 
 The highlights of this release are support for geospatial objects and queries
 and significant performance upgrades relating to datum serialization (twice as
