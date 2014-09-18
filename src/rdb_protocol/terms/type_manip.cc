@@ -236,7 +236,7 @@ private:
                     profile::sampler_t sampler("Coercing to object.", env->env->trace);
                     datum_t pair;
                     while (pair = ds->next(env->env, batchspec), pair.has()) {
-                        const datum_string_t &key = pair.get(0).as_str();
+                        datum_string_t key = pair.get(0).as_str();
                         datum_t keyval = pair.get(1);
                         bool b = obj.add(key, keyval);
                         rcheck(!b, base_exc_t::GENERIC,
