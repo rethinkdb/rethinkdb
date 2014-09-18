@@ -512,7 +512,7 @@ void datum_t::pt_to_str_key(std::string *str_out) const {
     } else if (get_reql_type() == pseudo::geometry_string) {
         rfail(base_exc_t::GENERIC,
               "Cannot use a geometry value as a key value in a primary or "
-              " non-geospatial secondary index.");
+              "non-geospatial secondary index.");
     } else {
         rfail(base_exc_t::GENERIC,
               "Cannot use pseudotype %s as a primary or secondary key value .",
