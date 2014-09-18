@@ -1,9 +1,9 @@
 desc: Test ReQL interface to geo indexes
 table_variable_name: tbl
 tests:
-  - def: rows = [{'id':0, 'g':r.point(10,10), 'm':[r.point(0,0),r.point(0,1),r.point(0,2)]},
+  - def: rows = [{'id':0, 'g':r.point(10,10), 'm':[r.point(0,0),r.point(1,0),r.point(2,0)]},
                  {'id':1, 'g':r.polygon([0,0], [0,1], [1,1], [1,0])},
-                 {'id':2, 'g':r.line([-1,0.000002], [1,-0.000001])}]
+                 {'id':2, 'g':r.line([0.000002,-1], [-0.000001,1])}]
 
   - cd: tbl.insert(rows)
     ot: ({'deleted':0,'inserted':3,'skipped':0,'errors':0,'replaced':0,'unchanged':0})
@@ -73,9 +73,9 @@ tests:
     py: tbl.get_intersecting(r.point(20,20), index='g').count()
     rb: tbl.get_intersecting(r.point(20,20), :index=>'g').count()
     ot: 0
-  - js: tbl.get_intersecting(r.polygon([0,0], [0,1], [1,1], [1,0]), {'index':'g'}).count()
-    py: tbl.get_intersecting(r.polygon([0,0], [0,1], [1,1], [1,0]), index='g').count()
-    rb: tbl.get_intersecting(r.polygon([0,0], [0,1], [1,1], [1,0]), :index=>'g').count()
+  - js: tbl.get_intersecting(r.polygon([0,0], [1,0], [1,1], [0,1]), {'index':'g'}).count()
+    py: tbl.get_intersecting(r.polygon([0,0], [1,0], [1,1], [0,1]), index='g').count()
+    rb: tbl.get_intersecting(r.polygon([0,0], [1,0], [1,1], [0,1]), :index=>'g').count()
     ot: 2
   - js: tbl.get_intersecting(r.line([0,0], [10,10]), {'index':'g'}).count()
     py: tbl.get_intersecting(r.line([0,0], [10,10]), index='g').count()
@@ -98,17 +98,17 @@ tests:
     py: tbl.get_intersecting(r.point(0,0), index='m').count()
     rb: tbl.get_intersecting(r.point(0,0), :index=>'m').count()
     ot: 1
-  - js: tbl.get_intersecting(r.point(0,1), {'index':'m'}).count()
-    py: tbl.get_intersecting(r.point(0,1), index='m').count()
-    rb: tbl.get_intersecting(r.point(0,1), :index=>'m').count()
+  - js: tbl.get_intersecting(r.point(1,0), {'index':'m'}).count()
+    py: tbl.get_intersecting(r.point(1,0), index='m').count()
+    rb: tbl.get_intersecting(r.point(1,0), :index=>'m').count()
     ot: 1
-  - js: tbl.get_intersecting(r.point(0,2), {'index':'m'}).count()
-    py: tbl.get_intersecting(r.point(0,2), index='m').count()
-    rb: tbl.get_intersecting(r.point(0,2), :index=>'m').count()
+  - js: tbl.get_intersecting(r.point(2,0), {'index':'m'}).count()
+    py: tbl.get_intersecting(r.point(2,0), index='m').count()
+    rb: tbl.get_intersecting(r.point(2,0), :index=>'m').count()
     ot: 1
-  - js: tbl.get_intersecting(r.point(0,3), {'index':'m'}).count()
-    py: tbl.get_intersecting(r.point(0,3), index='m').count()
-    rb: tbl.get_intersecting(r.point(0,3), :index=>'m').count()
+  - js: tbl.get_intersecting(r.point(3,0), {'index':'m'}).count()
+    py: tbl.get_intersecting(r.point(3,0), index='m').count()
+    rb: tbl.get_intersecting(r.point(3,0), :index=>'m').count()
     ot: 0
   # The document is only emitted a single time, despite having multiple matches.
   - js: tbl.get_intersecting(r.polygon([0,0], [0,1], [1,1], [1,0]), {'index':'m'}).count()
@@ -145,9 +145,9 @@ tests:
     py: tbl.get_nearest(r.point(0,0), index='g').pluck('dist', {'doc':'id'})
     rb: tbl.get_nearest(r.point(0,0), :index=>'g').pluck('dist', {'doc':'id'})
     ot: ([{'dist':0,'doc':{'id':1}},{'dist':0.055659745396754216,'doc':{'id':2}}])
-  - js: tbl.get_nearest(r.point(1,-0.000001), {'index':'g'}).pluck('dist', {'doc':'id'})
-    py: tbl.get_nearest(r.point(1,-0.000001), index='g').pluck('dist', {'doc':'id'})
-    rb: tbl.get_nearest(r.point(1,-0.000001), :index=>'g').pluck('dist', {'doc':'id'})
+  - js: tbl.get_nearest(r.point(-0.000001,1), {'index':'g'}).pluck('dist', {'doc':'id'})
+    py: tbl.get_nearest(r.point(-0.000001,1), index='g').pluck('dist', {'doc':'id'})
+    rb: tbl.get_nearest(r.point(-0.000001,1), :index=>'g').pluck('dist', {'doc':'id'})
     ot: ([{'dist':0,'doc':{'id':2}},{'dist':0.11130264976984369,'doc':{'id':1}}])
   - js: tbl.get_nearest(r.point(0,0), {'index':'g', 'max_dist':1565110}).pluck('dist', {'doc':'id'})
     py: tbl.get_nearest(r.point(0,0), index='g', max_dist=1565110).pluck('dist', {'doc':'id'})

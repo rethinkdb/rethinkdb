@@ -94,7 +94,7 @@ public:
         const std::string &sindex,
         const std::string &table_name,
         bool use_outdated,
-        lat_lon_point_t center,
+        lon_lat_point_t center,
         double max_dist,
         uint64_t max_results,
         const ellipsoid_spec_t &geo_system,

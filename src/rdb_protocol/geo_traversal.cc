@@ -15,7 +15,7 @@
 #include "rdb_protocol/geo/exceptions.hpp"
 #include "rdb_protocol/geo/geojson.hpp"
 #include "rdb_protocol/geo/intersection.hpp"
-#include "rdb_protocol/geo/lat_lon_types.hpp"
+#include "rdb_protocol/geo/lon_lat_types.hpp"
 #include "rdb_protocol/geo/primitives.hpp"
 #include "rdb_protocol/geo/s2/s2.h"
 #include "rdb_protocol/geo/s2/s2latlng.h"
@@ -235,7 +235,7 @@ void collect_all_geo_intersecting_cb_t::emit_error(
 
 /* ----------- nearest traversal -----------*/
 nearest_traversal_state_t::nearest_traversal_state_t(
-        const lat_lon_point_t &_center,
+        const lon_lat_point_t &_center,
         uint64_t _max_results,
         double _max_radius,
         const ellipsoid_spec_t &_reference_ellipsoid) :
@@ -317,7 +317,7 @@ void nearest_traversal_cb_t::init_query_geometry() {
     try {
         // 1. Construct a shape with an exradius of no more than state->processed_inradius.
         //    This is what we don't have to process again.
-        std::vector<lat_lon_line_t> holes;
+        std::vector<lon_lat_line_t> holes;
         if (state->processed_inradius > 0.0) {
             holes.push_back(build_polygon_with_exradius_at_most(
                 state->center, state->processed_inradius,
@@ -326,7 +326,7 @@ void nearest_traversal_cb_t::init_query_geometry() {
 
         // 2. Construct the outer shell, a shape with an inradius of at least
         //    state->current_inradius.
-        lat_lon_line_t shell = build_polygon_with_inradius_at_least(
+        lon_lat_line_t shell = build_polygon_with_inradius_at_least(
             state->center, state->current_inradius,
             NEAREST_NUM_VERTICES, state->reference_ellipsoid);
 
@@ -353,7 +353,7 @@ bool nearest_traversal_cb_t::post_filter(
 
     // Filter out results that are outside of the current inradius
     const S2Point s2center =
-        S2LatLng::FromDegrees(state->center.first, state->center.second).ToPoint();
+        S2LatLng::FromDegrees(state->center.latitude, state->center.longitude).ToPoint();
     const double dist = geodesic_distance(s2center, sindex_val, state->reference_ellipsoid);
     return dist <= state->current_inradius;
 }
@@ -366,7 +366,7 @@ done_traversing_t nearest_traversal_cb_t::emit_result(
     // TODO (daniel): Could we avoid re-computing the distance? We have already
     //   done it in post_filter().
     const S2Point s2center =
-        S2LatLng::FromDegrees(state->center.first, state->center.second).ToPoint();
+        S2LatLng::FromDegrees(state->center.latitude, state->center.longitude).ToPoint();
     const double dist = geodesic_distance(s2center, sindex_val, state->reference_ellipsoid);
     result_acc.push_back(std::make_pair(dist, std::move(val)));
 
