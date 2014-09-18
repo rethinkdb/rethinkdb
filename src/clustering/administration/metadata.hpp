@@ -108,7 +108,7 @@ public:
     peer_id_t peer_id;
 
     /* This group of fields are for showing in `rethinkdb.server_status` */
-    std::string version;
+    std::string version;   /* server version string, e.g. "rethinkdb 1.X.Y ..." */
     uint64_t cache_size;
     microtime_t time_started;
     int64_t pid;   /* really a `pid_t`, but we need a platform-independent type */
