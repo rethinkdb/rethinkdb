@@ -10,7 +10,7 @@
 #include "containers/counted.hpp"
 #include "rdb_protocol/datum_string.hpp"
 #include "rdb_protocol/geo/distances.hpp"
-#include "rdb_protocol/geo/lat_lon_types.hpp"
+#include "rdb_protocol/geo/lon_lat_types.hpp"
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/ql2.pb.h"
 
@@ -54,7 +54,7 @@ public:
             const pb_rcheckable_t *parent);
     datum_t get_nearest(
             env_t *env,
-            lat_lon_point_t center,
+            lon_lat_point_t center,
             double max_dist,
             uint64_t max_results,
             const ellipsoid_spec_t &geo_system,

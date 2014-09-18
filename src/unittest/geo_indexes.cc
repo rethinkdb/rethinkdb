@@ -13,7 +13,7 @@
 #include "rdb_protocol/geo/ellipsoid.hpp"
 #include "rdb_protocol/geo/exceptions.hpp"
 #include "rdb_protocol/geo/geojson.hpp"
-#include "rdb_protocol/geo/lat_lon_types.hpp"
+#include "rdb_protocol/geo/lon_lat_types.hpp"
 #include "rdb_protocol/geo/intersection.hpp"
 #include "rdb_protocol/geo/primitives.hpp"
 #include "rdb_protocol/minidriver.hpp"
@@ -33,17 +33,17 @@ namespace unittest {
 datum_t generate_point(rng_t *rng) {
     double lat = rng->randdouble() * 180.0 - 90.0;
     double lon = rng->randdouble() * 360.0 - 180.0;
-    return construct_geo_point(lat_lon_point_t(lat, lon), ql::configured_limits_t());
+    return construct_geo_point(lon_lat_point_t(lon, lat), ql::configured_limits_t());
 }
 
 datum_t generate_line(rng_t *rng) {
-    lat_lon_line_t l;
+    lon_lat_line_t l;
     size_t num_vertices = rng->randint(63) + 2;
     double granularity = rng->randdouble() * 0.1;
     // Pick a starting point
     double lat = rng->randdouble() * 180.0 - 90.0;
     double lon = rng->randdouble() * 360.0 - 180.0;
-    l.push_back(lat_lon_point_t(lat, lon));
+    l.push_back(lon_lat_point_t(lon, lat));
     for (size_t i = 0; i < num_vertices; ++i) {
         // Then continue from there with relatively small variations...
         lat += rng->randdouble() * 2.0 * granularity - granularity;
@@ -58,11 +58,11 @@ datum_t generate_line(rng_t *rng) {
             lon += 360.0;
         }
         lon += lat + rng->randdouble() * 2.0 * granularity - granularity;
-        l.push_back(lat_lon_point_t(lat, lon));
+        l.push_back(lon_lat_point_t(lon, lat));
     }
     try {
         datum_t res =
-            construct_geo_point(lat_lon_point_t(lat, lon), ql::configured_limits_t());
+            construct_geo_point(lon_lat_point_t(lon, lat), ql::configured_limits_t());
         validate_geojson(res);
         return res;
     } catch (const geo_exception_t &e) {
@@ -78,11 +78,11 @@ datum_t generate_polygon(rng_t *rng) {
     double lat = rng->randdouble() * 180.0 - 90.0;
     double lon = rng->randdouble() * 360.0 - 180.0;
     double r = rng->randdouble() * 1000.0; // Up to 1 km radius
-    lat_lon_line_t shell =
-        build_circle(lat_lon_point_t(lat, lon), r, num_vertices, WGS84_ELLIPSOID);
+    lon_lat_line_t shell =
+        build_circle(lon_lat_point_t(lon, lat), r, num_vertices, WGS84_ELLIPSOID);
 
     // And maybe 1 or 2 holes...
-    std::vector<lat_lon_line_t> holes;
+    std::vector<lon_lat_line_t> holes;
     size_t num_holes = rng->randint(3);
     for (size_t i = 0; i < num_holes; ++i) {
         // Just some heuristics. These will not always lead to valid polygons.
@@ -90,8 +90,8 @@ datum_t generate_polygon(rng_t *rng) {
         double hole_lat = lat + rng->randdouble() * r - (0.5 * r);
         double hole_lon = lon + rng->randdouble() * r - (0.5 * r);
         double hole_r = rng->randdouble() * (0.5 * r);
-        lat_lon_line_t hole =
-            build_circle(lat_lon_point_t(hole_lat, hole_lon), hole_r, hole_num_vertices,
+        lon_lat_line_t hole =
+            build_circle(lon_lat_point_t(hole_lon, hole_lat), hole_r, hole_num_vertices,
                          WGS84_ELLIPSOID);
         holes.push_back(hole);
     }
@@ -184,7 +184,7 @@ void prepare_namespace(namespace_interface_t *nsi,
 }
 
 std::vector<nearest_geo_read_response_t::dist_pair_t> perform_get_nearest(
-        lat_lon_point_t center,
+        lon_lat_point_t center,
         uint64_t max_results,
         double max_distance,
         namespace_interface_t *nsi,
@@ -224,7 +224,7 @@ bool nearest_pairs_less(
 }
 
 std::vector<nearest_geo_read_response_t::dist_pair_t> emulate_get_nearest(
-        lat_lon_point_t center,
+        lon_lat_point_t center,
         uint64_t max_results,
         double max_distance,
         const std::vector<datum_t> &data) {
@@ -254,7 +254,7 @@ std::vector<nearest_geo_read_response_t::dist_pair_t> emulate_get_nearest(
     return result;
 }
 
-void test_get_nearest(lat_lon_point_t center,
+void test_get_nearest(lon_lat_point_t center,
                       const std::vector<datum_t> &data,
                       namespace_interface_t *nsi,
                       order_source_t *osource) {
@@ -295,7 +295,7 @@ void run_get_nearest_test(namespace_interface_t *nsi, order_source_t *osource) {
         for (int i = 0; i < num_runs; ++i) {
             double lat = rng.randdouble() * 180.0 - 90.0;
             double lon = rng.randdouble() * 360.0 - 180.0;
-            test_get_nearest(lat_lon_point_t(lat, lon), data, nsi, osource);
+            test_get_nearest(lon_lat_point_t(lon, lat), data, nsi, osource);
         }
     } catch (const geo_exception_t &e) {
         debugf("Caught a geo exception: %s\n", e.what());

@@ -10,8 +10,8 @@
 #include "rdb_protocol/datum.hpp" // For PR_RECONSTRUCTABLE_DOUBLE
 
 
-lat_lon_line_t build_circle(
-        const lat_lon_point_t &center,
+lon_lat_line_t build_circle(
+        const lon_lat_point_t &center,
         double radius,
         unsigned int num_vertices,
         const ellipsoid_spec_t &e) {
@@ -29,12 +29,12 @@ lat_lon_line_t build_circle(
                       radius, max_radius));
     }
 
-    lat_lon_line_t result;
+    lon_lat_line_t result;
     result.reserve(num_vertices + 1);
 
     for (unsigned int i = 0; i < num_vertices; ++i) {
         double azimuth = -180.0 + (360.0 / num_vertices * i);
-        lat_lon_point_t v = geodesic_point_at_dist(center, radius, azimuth, e);
+        lon_lat_point_t v = geodesic_point_at_dist(center, radius, azimuth, e);
         result.push_back(v);
     }
 
@@ -49,8 +49,8 @@ lat_lon_line_t build_circle(
 /* WARNING: This function is used by nearest_traversal_cb_t::init_query_geometry()
  * and must provide some strict guarantees. Read the notes in that function before
  * modifying this. */
-lat_lon_line_t build_polygon_with_inradius_at_least(
-        const lat_lon_point_t &center,
+lon_lat_line_t build_polygon_with_inradius_at_least(
+        const lon_lat_point_t &center,
         double min_inradius,
         unsigned int num_vertices,
         const ellipsoid_spec_t &e) {
@@ -86,8 +86,8 @@ lat_lon_line_t build_polygon_with_inradius_at_least(
 /* WARNING: This function is used by nearest_traversal_cb_t::init_query_geometry()
  * and must provide some strict guarantees. Read the notes in that function before
  * modifying this. */
-lat_lon_line_t build_polygon_with_exradius_at_most(
-        const lat_lon_point_t &center,
+lon_lat_line_t build_polygon_with_exradius_at_most(
+        const lon_lat_point_t &center,
         double max_exradius,
         unsigned int num_vertices,
         const ellipsoid_spec_t &e) {

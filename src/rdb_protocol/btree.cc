@@ -1062,7 +1062,7 @@ void rdb_get_intersecting_slice(
 
 void rdb_get_nearest_slice(
     btree_slice_t *slice,
-    const lat_lon_point_t &center,
+    const lon_lat_point_t &center,
     double max_dist,
     uint64_t max_results,
     const ellipsoid_spec_t &geo_system,

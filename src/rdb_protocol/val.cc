@@ -278,7 +278,7 @@ counted_t<datum_stream_t> table_t::get_intersecting(
 
 datum_t table_t::get_nearest(
         env_t *env,
-        lat_lon_point_t center,
+        lon_lat_point_t center,
         double max_dist,
         uint64_t max_results,
         const ellipsoid_spec_t &geo_system,

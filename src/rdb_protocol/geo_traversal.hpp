@@ -19,7 +19,7 @@
 #include "rdb_protocol/geo/ellipsoid.hpp"
 #include "rdb_protocol/geo/exceptions.hpp"
 #include "rdb_protocol/geo/indexing.hpp"
-#include "rdb_protocol/geo/lat_lon_types.hpp"
+#include "rdb_protocol/geo/lon_lat_types.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/shards.hpp"
 
@@ -166,7 +166,7 @@ private:
 class nearest_traversal_state_t {
 public:
     nearest_traversal_state_t(
-            const lat_lon_point_t &_center,
+            const lon_lat_point_t &_center,
             uint64_t _max_results,
             double _max_radius,
             const ellipsoid_spec_t &_reference_ellipsoid);
@@ -185,7 +185,7 @@ private:
     double current_inradius;
 
     /* Constant data, initialized by the constructor */
-    const lat_lon_point_t center;
+    const lon_lat_point_t center;
     const uint64_t max_results;
     const double max_radius;
     const ellipsoid_spec_t reference_ellipsoid;

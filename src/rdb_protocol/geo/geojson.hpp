@@ -10,7 +10,7 @@
 #include "containers/scoped.hpp"
 #include "rdb_protocol/geo/exceptions.hpp"
 #include "rdb_protocol/geo/geo_visitor.hpp"
-#include "rdb_protocol/geo/lat_lon_types.hpp"
+#include "rdb_protocol/geo/lon_lat_types.hpp"
 #include "rdb_protocol/geo/s2/util/math/vector3.h"
 #include "rdb_protocol/datum.hpp"
 
@@ -29,24 +29,24 @@ class configured_limits_t;
 They also insert the correct $reql_type$ field into the output.
 They do not perform any validation. */
 ql::datum_t construct_geo_point(
-        const lat_lon_point_t &point,
+        const lon_lat_point_t &point,
         const ql::configured_limits_t &limits);
 ql::datum_t construct_geo_line(
-        const lat_lon_line_t &line,
+        const lon_lat_line_t &line,
         const ql::configured_limits_t &limits);
 // Closes the shell implicitly (i.e. connects the first point to the last point).
 ql::datum_t construct_geo_polygon(
-        const lat_lon_line_t &shell,
+        const lon_lat_line_t &shell,
         const ql::configured_limits_t &limits);
 ql::datum_t construct_geo_polygon(
-        const lat_lon_line_t &shell,
-        const std::vector<lat_lon_line_t> &holes,
+        const lon_lat_line_t &shell,
+        const std::vector<lon_lat_line_t> &holes,
         const ql::configured_limits_t &limits);
 
 /* These functions extract coordinates from GeoJSON objects */
-lat_lon_point_t extract_lat_lon_point(const ql::datum_t &geojson);
-lat_lon_line_t extract_lat_lon_line(const ql::datum_t &geojson);
-lat_lon_line_t extract_lat_lon_shell(const ql::datum_t &geojson);
+lon_lat_point_t extract_lon_lat_point(const ql::datum_t &geojson);
+lon_lat_line_t extract_lon_lat_line(const ql::datum_t &geojson);
+lon_lat_line_t extract_lon_lat_shell(const ql::datum_t &geojson);
 
 /* These functions convert from a GeoJSON object to S2 types */
 scoped_ptr_t<geo::S2Point> to_s2point(const ql::datum_t &geojson);

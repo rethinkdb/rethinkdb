@@ -16,7 +16,7 @@
 #include "containers/scoped.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/geo/distances.hpp"
-#include "rdb_protocol/geo/lat_lon_types.hpp"
+#include "rdb_protocol/geo/lon_lat_types.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/changes.hpp"
@@ -85,7 +85,7 @@ public:
         const std::string &sindex,
         const std::string &table_name,
         bool use_outdated,
-        lat_lon_point_t center,
+        lon_lat_point_t center,
         double max_dist,
         uint64_t max_results,
         const ellipsoid_spec_t &geo_system,
