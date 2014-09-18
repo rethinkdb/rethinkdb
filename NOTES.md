@@ -9,10 +9,10 @@ for more details.
 
 [1.15-blog]: http://rethinkdb.com/blog/1.15-release/
 
-To take advantage of the performance improvements, you will need to re-insert
-data into existing tables. A future release may add a "magic" command to do
-this, but you can take advantage of it now from the Data Explorer by adding a
-dummy field to a table and removing it.
+Only documents modified after upgrading to 1.15 will receive these performance
+gains. You may "upgrade" older documents by performing any write that modifies
+their contents. For example, you could add a dummy field to all the documents in
+a table and then remove it:
 
     r.table('tablename').update({dummy_field: true})
     r.table('tablename').replace(r.row.without('dummy_field'))
