@@ -15,7 +15,7 @@ this, but you can take advantage of it now from the Data Explorer by adding a
 dummy field to a table and removing it.
 
     r.table('tablename').update({dummy_field: true})
-    r.table('tablename').update(r.row.without('dummy_field'))
+    r.table('tablename').replace(r.row.without('dummy_field'))
 
 There are no API-breaking changes in this release.
 
