@@ -146,9 +146,9 @@
     "url": "changes"
   }, 
   "api/javascript/circle/": {
-    "body": "r.circle([latitude, longitude], radius[, {numVertices: 32, geoSystem: 'WGS84', unit: 'm', fill: true}]) &rarr; geometryr.circle(point, radius[, {numVertices: 32, geoSystem: 'WGS84', unit: 'm', fill: true}]) &rarr; geometry", 
+    "body": "r.circle([longitude, latitude], radius[, {numVertices: 32, geoSystem: 'WGS84', unit: 'm', fill: true}]) &rarr; geometryr.circle(point, radius[, {numVertices: 32, geoSystem: 'WGS84', unit: 'm', fill: true}]) &rarr; geometry", 
     "description": "<p>Construct a circular line or polygon. A circle in RethinkDB is a polygon or line <em>approximating</em> a circle of a given radius around a given center, consisting of a specified number of vertices (default 32).</p>", 
-    "example": "<p><strong>Example:</strong> Define a circle.</p>\n<pre><code>r.table('geo').insert({\n    id: 300,\n    name: 'Hayes Valley',\n    neighborhood: r.circle([37.779388,-122.423246], 1000)\n}).run(conn, callback);\n</code></pre>", 
+    "example": "<p><strong>Example:</strong> Define a circle.</p>\n<pre><code>r.table('geo').insert({\n    id: 300,\n    name: 'Hayes Valley',\n    neighborhood: r.circle([-122.423246,37.779388], 1000)\n}).run(conn, callback);\n</code></pre>", 
     "io": [
       [
         "r", 
@@ -422,7 +422,7 @@
   "api/javascript/delete_at/": {
     "body": "array.deleteAt(index [,endIndex]) &rarr; array", 
     "description": "<p>Remove one or more elements from an array at a given index. Returns the modified array.</p>", 
-    "example": "<p><strong>Example:</strong> Delete the second element of an array.</p>\n<pre><code>&gt; r(['a','b','c','d','e','f']).deleteAt(1).run(conn, callback)\n\n['a', 'c', 'd', 'e', 'f']\n</code></pre>", 
+    "example": "<p><strong>Example:</strong> Delete the second element of an array.</p>\n<pre><code>&gt; r(['a','b','c','d','e','f']).deleteAt(1).run(conn, callback)\n// result passed to callback\n['a', 'c', 'd', 'e', 'f']\n</code></pre>", 
     "io": [
       [
         "array", 
@@ -448,7 +448,7 @@
   "api/javascript/distance/": {
     "body": "geometry.distance(geometry[, {geoSystem: 'WGS84', unit: 'm'}]) &rarr; number", 
     "description": "<p>Compute the distance between a point and another geometry object. At least one of the geometry objects specified must be a point.</p>", 
-    "example": "<p><strong>Example:</strong> Compute the distance between two points on the Earth in kilometers.</p>\n<pre><code>var point1 = r.point(37.779388,-122.423246);\nvar point2 = r.point(32.719464,-117.220406);\nr.distance(point1, point2, {unit: 'km'}).run(conn, callback);\n// result returned to callback \n734.1252496021841\n</code></pre>", 
+    "example": "<p><strong>Example:</strong> Compute the distance between two points on the Earth in kilometers.</p>\n<pre><code>var point1 = r.point(-122.423246,37.779388);\nvar point2 = r.point(-117.220406,32.719464);\nr.distance(point1, point2, {unit: 'km'}).run(conn, callback);\n// result returned to callback \n734.1252496021841\n</code></pre>", 
     "io": [
       [
         "geometry", 
@@ -638,7 +638,7 @@
   "api/javascript/fill/": {
     "body": "line.fill() &rarr; polygon", 
     "description": "<p>Convert a Line object into a Polygon object. If the last point does not specify the same coordinates as the first point, <code>polygon</code> will close the polygon by connecting them.</p>", 
-    "example": "<p><strong>Example:</strong> Create a line object and then convert it to a polygon.</p>\n<pre><code>r.table('geo').insert({\n    id: 201,\n    rectangle: r.line(\n        [37.779388,-122.423246],\n        [37.329898,-122.423246],\n        [37.329898,-121.886420],\n        [37.779388,-121.886420]\n    )\n}).run(conn, callback);\n\nr.table('geo').get(201).update({\n    rectangle: r.row('rectangle').fill()\n}).run(conn, callback);\n</code></pre>", 
+    "example": "<p><strong>Example:</strong> Create a line object and then convert it to a polygon.</p>\n<pre><code>r.table('geo').insert({\n    id: 201,\n    rectangle: r.line(\n        [-122.423246,37.779388],\n        [-122.423246,37.329898],\n        [-121.886420,37.329898],\n        [-121.886420,37.779388]\n    )\n}).run(conn, callback);\n\nr.table('geo').get(201).update({\n    rectangle: r.row('rectangle').fill()\n}).run(conn, callback);\n</code></pre>", 
     "io": [
       [
         "line", 
@@ -758,7 +758,7 @@
   "api/javascript/get_intersecting/": {
     "body": "table.getIntersecting(geometry, {index: 'indexname'}) &rarr; selection<array>", 
     "description": "<p>Get all documents where the given geometry object intersects the geometry object of the requested geospatial index.</p>", 
-    "example": "<p><strong>Example:</strong> Which of the locations in a list of parks intersect <code>circle1</code>?</p>\n<pre><code>var circle1 = r.circle([32.719464,-117.220406], 10, {unit: 'mi'});\nr.table('parks').getIntersecting(circle1, {index: 'area'}).run(conn, callback);\n</code></pre>", 
+    "example": "<p><strong>Example:</strong> Which of the locations in a list of parks intersect <code>circle1</code>?</p>\n<pre><code>var circle1 = r.circle([-117.220406,32.719464], 10, {unit: 'mi'});\nr.table('parks').getIntersecting(circle1, {index: 'area'}).run(conn, callback);\n</code></pre>", 
     "io": [
       [
         "table", 
@@ -771,7 +771,7 @@
   "api/javascript/get_nearest/": {
     "body": "table.getNearest(point, {index: 'indexname'[, maxResults: 100, maxDist: 100000, unit: 'm', geoSystem: 'WGS84']}) &rarr; selection<array>", 
     "description": "<p>Get all documents where the specified geospatial index is within a certain distance of the specified point (default 100 kilometers).</p>", 
-    "example": "<p><strong>Example:</strong> Return a list of enemy hideouts within 5000 meters of the secret base.</p>\n<pre><code>var secretBase = r.point(37.777128,-122.422876);\nr.table('hideouts').getNearest(secretBase,\n    {index: 'location', maxDist: 5000}\n).run(conn, callback)\n</code></pre>", 
+    "example": "<p><strong>Example:</strong> Return a list of enemy hideouts within 5000 meters of the secret base.</p>\n<pre><code>var secretBase = r.point(-122.422876,37.777128);\nr.table('hideouts').getNearest(secretBase,\n    {index: 'location', maxDist: 5000}\n).run(conn, callback)\n</code></pre>", 
     "io": [
       [
         "table", 
@@ -878,7 +878,7 @@
   "api/javascript/includes/": {
     "body": "sequence.includes(geometry) &rarr; sequencegeometry.includes(geometry) &rarr; bool", 
     "description": "<p>Tests whether a geometry object is completely contained within another. When applied to a sequence of geometry objects, <code>includes</code> acts as a <a href=\"/api/javascript/filter\">filter</a>, returning a sequence of objects from the sequence that include the argument.</p>", 
-    "example": "<p><strong>Example:</strong> Is <code>point2</code> included within a 2000-meter circle around <code>point1</code>?</p>\n<pre><code>var point1 = r.point(32.719464,-117.220406);\nvar point2 = r.point(32.725186,-117.206201);\nr.circle(point1, 2000).includes(point2).run(conn, callback);\n// result returned to callback \ntrue\n</code></pre>", 
+    "example": "<p><strong>Example:</strong> Is <code>point2</code> included within a 2000-meter circle around <code>point1</code>?</p>\n<pre><code>var point1 = r.point(-117.220406,32.719464);\nvar point2 = r.point(-117.206201,32.725186);\nr.circle(point1, 2000).includes(point2).run(conn, callback);\n// result returned to callback \ntrue\n</code></pre>", 
     "io": [
       [
         "geometry", 
@@ -1050,7 +1050,7 @@
   "api/javascript/intersects/": {
     "body": "sequence.intersects(geometry) &rarr; sequencegeometry.intersects(geometry) &rarr; bool", 
     "description": "<p>Tests whether two geometry objects intersect with one another. When applied to a sequence of geometry objects, <code>intersects</code> acts as a <a href=\"/api/javascript/filter\">filter</a>, returning a sequence of objects from the sequence that intersect with the argument.</p>", 
-    "example": "<p><strong>Example:</strong> Is <code>point2</code> within a 2000-meter circle around <code>point1</code>?</p>\n<pre><code>var point1 = r.point(32.719464,-117.220406);\nvar point2 = r.point(32.725186,-117.206201);\nr.circle(point1, 2000).intersects(point2).run(conn, callback);\n// result returned to callback \ntrue\n</code></pre>", 
+    "example": "<p><strong>Example:</strong> Is <code>point2</code> within a 2000-meter circle around <code>point1</code>?</p>\n<pre><code>var point1 = r.point(-117.220406,32.719464);\nvar point2 = r.point(-117.206201,32.725186);\nr.circle(point1, 2000).intersects(point2).run(conn, callback);\n// result returned to callback \ntrue\n</code></pre>", 
     "io": [
       [
         "geometry", 
@@ -1164,9 +1164,9 @@
     "url": "limit"
   }, 
   "api/javascript/line/": {
-    "body": "r.line([lat1, lon2], [lat2, lon2], ...) &rarr; liner.line(point1, point2, ...) &rarr; line", 
-    "description": "<p>Construct a geometry object of type Line. The line can be specified in one of two ways:</p>\n<ul>\n<li>Two or more two-item arrays, specifying latitude and longitude numbers of the line's vertices;</li>\n<li>Two or more <a href=\"/api/javascript/point\">Point</a> objects specifying the line's vertices.</li>\n</ul>", 
-    "example": "<p><strong>Example:</strong> Define a line.</p>\n<pre><code>r.table('geo').insert({\n    id: 101,\n    route: r.line([37.779388,-122.423246], [37.329898,-121.886420])\n}).run(conn, callback);\n</code></pre>", 
+    "body": "r.line([lon1, lat1], [lon2, lat1], ...) &rarr; liner.line(point1, point2, ...) &rarr; line", 
+    "description": "<p>Construct a geometry object of type Line. The line can be specified in one of two ways:</p>\n<ul>\n<li>Two or more two-item arrays, specifying longitude and latitude numbers of the line's vertices;</li>\n<li>Two or more <a href=\"/api/javascript/point\">Point</a> objects specifying the line's vertices.</li>\n</ul>", 
+    "example": "<p><strong>Example:</strong> Define a line.</p>\n<pre><code>r.table('geo').insert({\n    id: 101,\n    route: r.line([-122.423246,37.779388], [-121.886420,37.329898])\n}).run(conn, callback);\n</code></pre>", 
     "io": [
       [
         "r", 
@@ -1503,9 +1503,9 @@
     "url": "pluck"
   }, 
   "api/javascript/point/": {
-    "body": "r.point(latitude, longitude) &rarr; point", 
-    "description": "<p>Construct a geometry object of type Point. The point is specified by two floating point numbers, the latitude (&minus;90 to 90) and longitude (&minus;180 to 180) of the point on a perfect sphere.</p>", 
-    "example": "<p><strong>Example:</strong> Define a point.</p>\n<pre><code>r.table('geo').insert({\n    id: 1,\n    name: 'San Francisco',\n    location: r.point(37.779388,-122.423246)\n}).run(conn, callback);\n</code></pre>", 
+    "body": "r.point(longitude, latitude) &rarr; point", 
+    "description": "<p>Construct a geometry object of type Point. The point is specified by two floating point numbers, the longitude (&minus;180 to 180) and the latitude (&minus;90 to 90) of the point on a perfect sphere.</p>", 
+    "example": "<p><strong>Example:</strong> Define a point.</p>\n<pre><code>r.table('geo').insert({\n    id: 1,\n    name: 'San Francisco',\n    location: r.point(-122.423246,37.779388)\n}).run(conn, callback);\n</code></pre>", 
     "io": [
       [
         "r", 
@@ -1516,9 +1516,9 @@
     "url": "point"
   }, 
   "api/javascript/polygon/": {
-    "body": "r.polygon([lat1, lon2], [lat2, lon2], ...) &rarr; polygonr.polygon(point1, point2, ...) &rarr; polygon", 
-    "description": "<p>Construct a geometry object of type Polygon. The Polygon can be specified in one of two ways:</p>\n<ul>\n<li>Three or more two-item arrays, specifying latitude and longitude numbers of the polygon's vertices;</li>\n<li>Three or more <a href=\"/api/javascript/point\">Point</a> objects specifying the polygon's vertices.</li>\n</ul>", 
-    "example": "<p><strong>Example:</strong> Define a polygon.</p>\n<pre><code>r.table('geo').insert({\n    id: 101,\n    rectangle: r.polygon(\n        [37.779388,-122.423246],\n        [37.329898,-122.423246],\n        [37.329898,-121.886420],\n        [37.779388,-121.886420]\n    )\n}).run(conn, callback);\n</code></pre>", 
+    "body": "r.polygon([lon1, lat1], [lon2, lat2], ...) &rarr; polygonr.polygon(point1, point2, ...) &rarr; polygon", 
+    "description": "<p>Construct a geometry object of type Polygon. The Polygon can be specified in one of two ways:</p>\n<ul>\n<li>Three or more two-item arrays, specifying longitude and latitude numbers of the polygon's vertices;</li>\n<li>Three or more <a href=\"/api/javascript/point\">Point</a> objects specifying the polygon's vertices.</li>\n</ul>", 
+    "example": "<p><strong>Example:</strong> Define a polygon.</p>\n<pre><code>r.table('geo').insert({\n    id: 101,\n    rectangle: r.polygon(\n        [-122.423246,37.779388],\n        [-122.423246,37.329898],\n        [-121.886420,37.329898],\n        [-121.886420,37.779388]\n    )\n}).run(conn, callback);\n</code></pre>", 
     "io": [
       [
         "r", 
@@ -1531,7 +1531,7 @@
   "api/javascript/polygon_sub/": {
     "body": "polygon1.polygonSub(polygon2) &rarr; polygon", 
     "description": "<p>Use <code>polygon2</code> to \"punch out\" a hole in <code>polygon1</code>. <code>polygon2</code> must be completely contained within <code>polygon1</code> and must have no holes itself (it must not be the output of <code>polygonSub</code> itself).</p>", 
-    "example": "<p><strong>Example:</strong> Define a polygon with a hole punched in it.</p>\n<p><code>js\nvar outerPolygon = r.polygon(\n    [37.7,-122.4],\n    [37.3,-122.4],\n    [37.3,-121.8],\n    [37.7,-121.8]\n);\nvar innerPolygon = r.polygon(\n    [37.4,-122.3],\n    [37.6,-122.3],\n    [37.6,-122.0],\n    [37.4,-122.0]\n);\nouterPolygon.polygonSub(innerpolygon).run(conn, callback);</code></p>", 
+    "example": "<p><strong>Example:</strong> Define a polygon with a hole punched in it.</p>\n<p><code>js\nvar outerPolygon = r.polygon(\n    [-122.4,37.7],\n    [-122.4,37.3],\n    [-121.8,37.3],\n    [-121.8,37.7]\n);\nvar innerPolygon = r.polygon(\n    [-122.3,37.4],\n    [-122.3,37.6],\n    [-122.0,37.6],\n    [-122.0,37.4]\n);\nouterPolygon.polygonSub(innerpolygon).run(conn, callback);</code></p>", 
     "io": [
       [
         "polygon", 
@@ -2148,7 +2148,7 @@
   "api/javascript/zip/": {
     "body": "stream.zip() &rarr; streamarray.zip() &rarr; array", 
     "description": "<p>Used to 'zip' up the result of a join by merging the 'right' fields into 'left' fields of each member of the sequence.</p>", 
-    "example": "<p><strong>Example:</strong> 'zips up' the sequence by merging the left and right fields produced by a join.</p>\n<p><code>r.table('marvel').eqJoin('main_dc_collaborator', r.table('dc'))\n    .zip().run(conn, callback)</code></p>", 
+    "example": "<p><strong>Example:</strong> 'zips up' the sequence by merging the left and right fields produced by a join.</p>\n<pre><code>r.table('marvel').eqJoin('main_dc_collaborator', r.table('dc'))\n    .zip().run(conn, callback)\n</code></pre>", 
     "io": [
       [
         "stream", 
