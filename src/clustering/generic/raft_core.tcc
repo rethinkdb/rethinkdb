@@ -295,7 +295,8 @@ void raft_member_t<state_t, change_t>::on_append_entries_rpc(
 
 template<class state_t, class change_t>
 void raft_member_t<state_t, change_t>::update_term(
-        raft_term_t new_term, const new_mutex_acq_t *mutex_acq) {
+        raft_term_t new_term,
+        const new_mutex_acq_t *mutex_acq) {
     mutex_acq->assert_is_holding(&mutex);
 
     guarantee(new_term > ps.current_term);
@@ -315,7 +316,8 @@ void raft_member_t<state_t, change_t>::update_term(
 
 template<class state_t, class change_t>
 void raft_member_t<state_t, change_t>::update_commit_index(
-        raft_log_index_t new_commit_index, const new_mutex_acq_t *mutex_acq) {
+        raft_log_index_t new_commit_index,
+        const new_mutex_acq_t *mutex_acq) {
     mutex_acq->assert_is_holding(&mutex);
 
     guarantee(new_commit_index > commit_index);
@@ -343,6 +345,34 @@ void raft_member_t<state_t, change_t>::update_commit_index(
     }
 
     /* RSI: Ensure that we flush to stable storage. */
+}
+
+template<class state_t, class change_t>
+void raft_member_t<state_t, change_t>::update_match_index(
+        std::map<raft_member_id_t, raft_log_index_t> *match_index,
+        raft_member_id_t key,
+        raft_log_index_t new_value,
+        const new_mutex_acq_t *mutex_acq) {
+    mutex_acq->assert_is_holding(&mutex);
+
+    auto it = match_index->find(key)
+    guarantee(it != match_index->end());
+    guarantee(it->second <= new_value);
+    it->second = new_value;
+
+    state_t state_for_config = get_state_including_log();
+
+    for (raft_log_index_t i = commit_index + 1; i <= ps.log.get_latest_index(); ++i) {
+        std::set<raft_member_id_t> approving_members;
+        for (auto const &pair : *match_index) {
+            if (pair.second >= i) {
+                approving_members.insert(pair.first);
+            }
+        }
+        if (state_for_config.is_quorum_for_change(
+                approving_members, ps.log.get_entry(i).first)) {
+        }
+    }
 }
 
 template<class state_t, class change_t>
@@ -441,7 +471,7 @@ void raft_member_t<state_t, change_t>::run_candidate_and_leader(
         while (true) {
             /* Raft paper, Section 6: "a server always uses the latest configuration in
             its log, regardless of whether the entry is committed" */
-            state_t state_for_config = get_state_including_log(&log_mutex_acq);
+            state_t state_for_config = get_state_including_log();
             std::set<raft_member_id_t> peers = state_for_config.get_all_members();
 
             /* Spawn or kill update coroutines to reflect changes in `state_for_config`
@@ -517,7 +547,7 @@ void raft_member_t<state_t, change_t>::run_election(
 
     /* Raft paper, Section 6: "a server always uses the latest configuration in
     its log, regardless of whether the entry is committed" */
-    state_t state_for_config = get_state_including_log(&log_mutex_acq);
+    state_t state_for_config = get_state_including_log();
 
     std::set<raft_member_id_t> votes_for_us;
     cond_t we_won_the_election;
@@ -632,10 +662,10 @@ void raft_member_t<state_t, change_t>::run_updates(
                 /* Make local copies of the RPC parameters before releasing the lock.
                 This is important because `send_install_snapshot_rpc()` takes some
                 parameters by reference, and the originals might change. */
-                raft_term_t local_term = ps.current_term;
-                raft_log_index_t local_last_included_index = ps.log.prev_log_index;
-                raft_term_t local_last_included_term = ps.log.prev_log_term;
-                state_t local_snapshot = ps.snapshot;
+                raft_term_t term_to_send = ps.current_term;
+                raft_log_index_t last_included_index_to_send = ps.log.prev_log_index;
+                raft_term_t last_included_term_to_send = ps.log.prev_log_term;
+                state_t snapshot_to_send = ps.snapshot;
 
                 raft_log_term_t reply_term;
                 {
@@ -643,11 +673,11 @@ void raft_member_t<state_t, change_t>::run_updates(
                     temporarily_release_new_mutex_acq_t mutex_unacq(&mutex, mutex_acq);
                     interface->send_install_snapshot_rpc(
                         peer,
-                        ps.current_term,
+                        term_to_send,
                         member_id,
-                        ps.log.prev_log_index,
-                        ps.log.prev_log_term,
-                        ps.snapshot,
+                        last_included_index_to_send,
+                        last_included_term_to_send,
+                        snapshot_to_send,
                         update_keepalive.get_drain_signal(),
                         &reply_term);
                 }
@@ -656,6 +686,7 @@ void raft_member_t<state_t, change_t>::run_updates(
                     `run_candidate_and_leader()` will be interrupted soon. */
                     return;
                 }
+
                 next_index = ps.log.prev_log_index + 1;
                 *match_index = ps.log.prev_log_index;
 
@@ -663,13 +694,46 @@ void raft_member_t<state_t, change_t>::run_updates(
                 /* The peer's log ends right where our log begins, or in the middle of
                 our log. Send an append-entries RPC. */
 
-                /* Make local copies of the RPC parameters before releasing the lock.
-                This is important because `send_append_entries_rpc()` takes some
-                parameters by reference, and the originals might change. */
-                raft_term_t local_term = ps.current_term;
-                raft_log_index_t local_last_included_index = ps.log.prev_log_index;
-                raft_term_t local_last_included_term = ps.log.prev_log_term;
-                state_t local_snapshot = ps.snapshot;
+                /* Just like above, copy everything we need to local variables before
+                releasing the lock */
+                raft_term_t term_to_send = ps.current_term;
+                raft_log_t<change_t> entries_to_send = ps.log;
+                if (next_index > ps.log.prev_log_index + 1) {
+                    entries_to_send.delete_entries_to(next_index - 1);
+                }
+                raft_log_index_t leader_commit_to_send = commit_index;
+                
+                raft_log_term_t reply_term;
+                bool reply_success;
+                {
+                    /* Release the lock while we block */
+                    temporarily_release_new_mutex_acq_t mutex_unacq(&mutex, mutex_acq);
+                    interface->send_append_entries_rpc(
+                        peer,
+                        term_to_send,
+                        member_id,
+                        entries_to_send,
+                        leader_commit_to_send,
+                        update_keepalive.get_drain_signal(),
+                        &reply_term,
+                        &reply_success);
+                }
+                if (note_term_as_leader(reply_term, mutex_acq.get())) {
+                    /* We got a reply with a higher term than our term.
+                    `run_candidate_and_leader()` will be interrupted soon. */
+                    return;
+                }
+
+                if (reply_success) {
+                    /* Raft paper, Figure 2: "If successful: update nextIndex and
+                    matchIndex for follower */
+                    next_index = entries_to_send.get_latest_index() + 1;
+                    *match_index = entries_to_send.get_latest_index();
+                } else {
+                    /* Raft paper, Section 5.3: "After a rejection, the leader decrements
+                    nextIndex and retries the AppendEntries RPC. */
+                    --next_index;
+                }
             }
         }
     } catch (interrupted_exc_t) {
@@ -708,8 +772,7 @@ bool raft_member_t<state_t, change_t>::note_term_as_leader(
 }
 
 template<class state_t, class change_t>
-state_t raft_member_t<state_t, change_t>::get_state_including_log(
-        const mutex_assertion_t::acq_t *log_mutex_acq) {
+state_t raft_member_t<state_t, change_t>::get_state_including_log() {
     log_mutex_acq->assert_is_holding(&log_mutex);
     state_t s = state_machine;
     for (raft_log_index_t i = last_applied+1; i <= ps.log.get_latest_index(); ++i) {

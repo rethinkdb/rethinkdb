@@ -232,8 +232,9 @@ public:
       * They send an RPC message to the Raft member indicated in the `dest` field.
       * The message will be delivered by calling the `on_*_rpc()` method on the
         `raft_member_t` in question.
-      * The method blocks until a response is received or the interruptor is pulsed. It
-        will retry the RPC as many times as necessary.
+      * `send_*_rpc()` will retry the RPC as many times as necessary. This means that
+        `on_*_rpc()` may be called multiple times for a single call to `send_*_rpc()`.
+      * `send_*_rpc()` blocks until a response is received or the interruptor is pulsed.
       * If a response is received, it stores the response in the `*_out` variables.
       * If the interruptor is pulsed, it throws `interrupted_exc_t`. The message may or
         may not have been sent. */
@@ -387,11 +388,20 @@ private:
     void update_term(raft_term_t new_term,
                      const new_mutex_acq_t *mutex_acq);
 
-    /* The Raft paper specifies actions we should take every time `commit_index` changes.
-    These are encapsulated in `update_commit_index()`, which changes `commit_index` and
-    also takes the relevant actions. */
+    /* When we change the commit index we have to also apply changes to the state
+    machine. `update_commit_index()` handles that automatically. */
     void update_commit_index(raft_log_index_t new_commit_index,
                              const new_mutex_acq_t *mutex_acq);
+
+    /* When we change `match_index` we might have to update `commit_index` as well.
+    `update_match_index()` handles that automatically. */
+    void update_match_index(
+        /* Since `match_index` lives on the stack of `run_candidate_and_leader()`, we
+        have to pass in a pointer. */
+        std::map<raft_member_id_t, raft_log_index_t> *match_index,
+        raft_member_id_t key,
+        raft_log_index_t new_value,
+        const new_mutex_acq_t *mutex_acq);
 
     /* `become_follower()` moves us from the `candidate` or `leader` state to `follower`
     state. It kills `run_candidate_and_leader()` and blocks until it exits. */
@@ -444,7 +454,7 @@ private:
     applied. This is important for cluster configuration purposes, because we're supposed
     to respect cluster configuration changes as soon as they appear in the log, even if
     they're not committed yet. */
-    state_t get_state_including_log(const mutex_assertion_t::acq_t *log_mutex_acq);
+    state_t get_state_including_log();
 
     const raft_member_id_t member_id;
     const raft_network_and_storage_interface_t *interface;
