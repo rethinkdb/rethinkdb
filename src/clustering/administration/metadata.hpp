@@ -64,9 +64,11 @@ public:
     cluster_directory_metadata_t(
             machine_id_t _server_id,
             peer_id_t _peer_id,
+            const std::string &_version,
             uint64_t _cache_size,
             microtime_t _time_started,
-            pid_t _pid,
+            int64_t _pid,
+            const std::string &_hostname,
             uint16_t _cluster_port,
             uint16_t _reql_port,
             boost::optional<uint16_t> _http_admin_port,
@@ -77,9 +79,11 @@ public:
             cluster_directory_peer_type_t _peer_type) :
         machine_id(_server_id),
         peer_id(_peer_id),
+        version(_version),
         cache_size(_cache_size),
         time_started(_time_started),
         pid(_pid),
+        hostname(_hostname),
         cluster_port(_cluster_port),
         reql_port(_reql_port),
         http_admin_port(_http_admin_port),
@@ -89,66 +93,26 @@ public:
         server_name_business_card(nsbc),
         peer_type(_peer_type) { }
     /* Move constructor */
-    cluster_directory_metadata_t(cluster_directory_metadata_t &&other) {
-        *this = std::move(other);
-    }
-    cluster_directory_metadata_t(const cluster_directory_metadata_t &other) {
-        *this = other;
-    }
-
-    /* Move assignment operator */
-    cluster_directory_metadata_t &operator=(cluster_directory_metadata_t &&other) {
-        rdb_namespaces = std::move(other.rdb_namespaces);
-        machine_id = other.machine_id;
-        peer_id = other.peer_id;
-        cache_size = other.cache_size;
-        time_started = other.time_started;
-        pid = other.pid;
-        cluster_port = other.cluster_port;
-        reql_port = other.reql_port;
-        http_admin_port = other.http_admin_port;
-        get_stats_mailbox_address = other.get_stats_mailbox_address;
-        get_outdated_indexes_mailbox = other.get_outdated_indexes_mailbox;
-        log_mailbox = other.log_mailbox;
-        server_name_business_card = other.server_name_business_card;
-        local_issues = std::move(other.local_issues);
-        peer_type = other.peer_type;
-
-        return *this;
-    }
-
-    /* Unfortunately having specified the move copy operator requires us to also specify the copy
-     * assignment operator explicitly. */
-    cluster_directory_metadata_t &operator=(const cluster_directory_metadata_t &other) {
-        rdb_namespaces = other.rdb_namespaces;
-        machine_id = other.machine_id;
-        peer_id = other.peer_id;
-        cache_size = other.cache_size;
-        time_started = other.time_started;
-        pid = other.pid;
-        cluster_port = other.cluster_port;
-        reql_port = other.reql_port;
-        http_admin_port = other.http_admin_port;
-        get_stats_mailbox_address = other.get_stats_mailbox_address;
-        get_outdated_indexes_mailbox = other.get_outdated_indexes_mailbox;
-        log_mailbox = other.log_mailbox;
-        server_name_business_card = other.server_name_business_card;
-        local_issues = other.local_issues;
-        peer_type = other.peer_type;
-
-        return *this;
-    }
+    cluster_directory_metadata_t(cluster_directory_metadata_t &&other) = default;
+    cluster_directory_metadata_t(const cluster_directory_metadata_t &other) = default;
+    cluster_directory_metadata_t &operator=(cluster_directory_metadata_t &&other)
+        = default;
+    cluster_directory_metadata_t &operator=(const cluster_directory_metadata_t &other)
+        = default;
 
     namespaces_directory_metadata_t rdb_namespaces;
 
     machine_id_t machine_id;
 
-    /* this is redundant, since a directory entry is always associatedd with a peer */
+    /* this is redundant, since a directory entry is always associated with a peer */
     peer_id_t peer_id;
 
+    /* This group of fields are for showing in `rethinkdb.server_status` */
+    std::string version;   /* server version string, e.g. "rethinkdb 1.X.Y ..." */
     uint64_t cache_size;
     microtime_t time_started;
-    pid_t pid;
+    int64_t pid;   /* really a `pid_t`, but we need a platform-independent type */
+    std::string hostname;
     uint16_t cluster_port, reql_port;
     boost::optional<uint16_t> http_admin_port;
 

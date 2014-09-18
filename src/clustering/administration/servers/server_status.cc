@@ -2,7 +2,6 @@
 #include "clustering/administration/servers/server_status.hpp"
 
 #include "clustering/administration/datum_adapter.hpp"
-#include "clustering/administration/servers/auto_reconnect.hpp"
 #include "clustering/administration/servers/last_seen_tracker.hpp"
 #include "clustering/administration/servers/name_client.hpp"
 
@@ -45,14 +44,6 @@ bool server_status_artificial_table_backend_t::read_row(
     builder.overwrite("name", convert_name_to_datum(server_name));
     builder.overwrite("uuid", convert_uuid_to_datum(server_id));
 
-    if (boost::optional<peer_address_t> addrs =
-            auto_reconnector->get_last_known_address(server_id)) {
-        builder.overwrite("host",
-            ql::datum_t(datum_string_t(addrs->primary_host().host())));
-    } else {
-        builder.overwrite("host", ql::datum_t("<unknown>"));
-    }
-
     boost::optional<peer_id_t> peer_id =
         name_client->get_peer_id_for_machine_id(server_id);
     boost::optional<cluster_directory_metadata_t> directory;
@@ -88,15 +79,20 @@ bool server_status_artificial_table_backend_t::read_row(
     }
 
     if (directory) {
+        builder.overwrite("version",
+            ql::datum_t(datum_string_t(directory->version)));
         builder.overwrite("cache_size_mb",
             ql::datum_t(static_cast<double>(directory->cache_size)/MEGABYTE));
         builder.overwrite("pid", ql::datum_t(static_cast<double>(directory->pid)));
     } else {
+        builder.overwrite("version", ql::datum_t::null());
         builder.overwrite("cache_size_mb", ql::datum_t::null());
         builder.overwrite("pid", ql::datum_t::null());
     }
 
     if (directory) {
+        builder.overwrite("hostname",
+            ql::datum_t(datum_string_t(directory->hostname)));
         builder.overwrite("cluster_port",
             convert_port_to_datum(directory->cluster_port));
         builder.overwrite("reql_port",
@@ -104,8 +100,9 @@ bool server_status_artificial_table_backend_t::read_row(
         builder.overwrite("http_admin_port",
             directory->http_admin_port
                 ? convert_port_to_datum(*directory->http_admin_port)
-                : ql::datum_t("no_http_admin"));
+                : ql::datum_t("<no http admin>"));
     } else {
+        builder.overwrite("hostname", ql::datum_t::null());
         builder.overwrite("cluster_port", ql::datum_t::null());
         builder.overwrite("reql_port", ql::datum_t::null());
         builder.overwrite("http_admin_port", ql::datum_t::null());
