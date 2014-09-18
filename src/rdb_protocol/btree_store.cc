@@ -321,7 +321,7 @@ void store_t::maybe_drop_all_sindexes(const binary_blob_t &zero_metainfo,
         ::get_secondary_indexes(&sindex_block, &sindexes);
 
         for (auto const &sindex : sindexes) {
-            if (!sindex->first.being_deleted) {
+            if (!sindex.first.being_deleted) {
                 bool success = drop_sindex(sindex.first, &sindex_block);
                 guarantee(success);
             }
