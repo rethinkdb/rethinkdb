@@ -476,7 +476,7 @@ class TestGetIntersectingBatching(TestWithConnection):
         for i in range(0, get_tries):
             query_circle = r.circle([random.uniform(-90.0, 90.0), random.uniform(-180.0, 180.0)], 8000000);
             reference = t1.filter(r.row['geo'].intersects(query_circle)).coerce_to("ARRAY").run(c)
-            cursor = t1.get_intersecting(query_circle, index='geo').run(c, batch_conf={'max_els':batch_size})
+            cursor = t1.get_intersecting(query_circle, index='geo').run(c, max_batch_rows=batch_size)
             if not cursor.end_flag:
                 seen_lazy = True
 
@@ -506,7 +506,7 @@ class TestBatching(TestWithConnection):
         ids = set(range(0, count))
 
         t1.insert([{'id':i} for i in ids]).run(c)
-        cursor = t1.run(c, batch_conf={'max_els':batch_size})
+        cursor = t1.run(c, max_batch_rows=batch_size)
 
         itr = iter(cursor)
         for i in xrange(0, count - 1):
