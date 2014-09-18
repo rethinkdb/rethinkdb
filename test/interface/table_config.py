@@ -39,7 +39,7 @@ with driver.Metacluster() as metacluster:
         for (e_shard, f_shard) in zip(expected, found):
             if set(e_shard["replicas"]) != set(f_shard["replicas"]):
                 return False
-            if e_shard["directors"] != f_shard["directors"]:
+            if e_shard["director"] != f_shard["director"]:
                 return False
         return True
 
@@ -68,7 +68,7 @@ with driver.Metacluster() as metacluster:
                                if doc["role"] == "director"]
                 if len(s_directors) != 1:
                     return False
-                if s_directors[0] not in c_shard["directors"]:
+                if s_directors[0] != c_shard["director"]:
                     return False
                 if any(doc["state"] != "ready" for doc in s_shard):
                     return False
@@ -99,8 +99,8 @@ with driver.Metacluster() as metacluster:
                 if time.time() > start_time + 10:
                     raise RuntimeError("Out of time")
         except:
-            config = r.db("rethinkdb").table("table_config").run(conn)
-            status = r.db("rethinkdb").table("table_status").run(conn)
+            config = list(r.db("rethinkdb").table("table_config").run(conn))
+            status = list(r.db("rethinkdb").table("table_status").run(conn))
             print "Something went wrong."
             print "config =", config
             print "status =", status
@@ -130,19 +130,19 @@ with driver.Metacluster() as metacluster:
         assert set(row["i"] for row in r.table("foo").run(conn)) == set(xrange(10))
         print "OK"
     test(
-        [{"replicas": ["a"], "directors": ["a"]}])
+        [{"replicas": ["a"], "director": "a"}])
     test(
-        [{"replicas": ["b"], "directors": ["b"]}])
+        [{"replicas": ["b"], "director": "b"}])
     test(
-        [{"replicas": ["a", "b"], "directors": ["a"]}])
+        [{"replicas": ["a", "b"], "director": "a"}])
     test(
-        [{"replicas": ["a"], "directors": ["a"]},
-         {"replicas": ["b"], "directors": ["b"]}])
+        [{"replicas": ["a"], "director": "a"},
+         {"replicas": ["b"], "director": "b"}])
     test(
-        [{"replicas": ["a", "b"], "directors": ["a"]},
-         {"replicas": ["a", "b"], "directors": ["b"]}])
+        [{"replicas": ["a", "b"], "director": "a"},
+         {"replicas": ["a", "b"], "director": "b"}])
     test(
-        [{"replicas": ["a"], "directors": ["a"]}])
+        [{"replicas": ["a"], "director": "a"}])
 
     print "Testing that table_config rejects invalid input..."
     def test_invalid(shards):
@@ -154,14 +154,14 @@ with driver.Metacluster() as metacluster:
     test_invalid([])
     test_invalid("this is a string")
     test_invalid(
-        [{"replicas": ["a"], "directors": ["b"], "extra_key": "extra_value"}])
+        [{"replicas": ["a"], "director": "a", "extra_key": "extra_value"}])
     test_invalid(
-        [{"replicas": [], "directors": []}])
+        [{"replicas": [], "director": None}])
     test_invalid(
-        [{"replicas": ["a"], "directors": []}])
+        [{"replicas": ["a"], "director": "b"}])
     test_invalid(
-        [{"replicas": ["a"], "directors": ["b"]},
-         {"replicas": ["b"], "directors": ["a"]}])
+        [{"replicas": ["a"], "director": "b"},
+         {"replicas": ["b"], "director": "a"}])
 
     print "Testing that we can rename tables through table_config..."
     res = r.table_config("bar").update({"name": "bar2"}).run(conn)
@@ -178,7 +178,7 @@ with driver.Metacluster() as metacluster:
         "name": "baz",
         "db": "test",
         "primary_key": "frob",
-        "shards": [{"replicas": ["a"], "directors": ["a"]}]
+        "shards": [{"replicas": ["a"], "director": "a"}]
         }).run(conn)
     assert res["errors"] == 0, repr(res)
     assert res["inserted"] == 1, repr(res)

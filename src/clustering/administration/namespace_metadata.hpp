@@ -68,7 +68,7 @@ public:
     class shard_t {
     public:
         std::set<name_string_t> replica_names;
-        std::vector<name_string_t> director_names;
+        name_string_t director_name;
     };
     std::vector<shard_t> shards;
 };
@@ -114,10 +114,6 @@ same vector clock as `chosen_directors`. */
 class table_replication_info_t {
 public:
     table_config_t config;
-
-    /* This contains the machine ID of the currently chosen director for the shard at the
-    corresponding position in the `shards` vector. */
-    std::vector<machine_id_t> chosen_directors;
 
     table_shard_scheme_t shard_scheme;
 };

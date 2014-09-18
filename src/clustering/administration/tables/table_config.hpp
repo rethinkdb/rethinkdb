@@ -55,7 +55,11 @@ public:
 
 private:
     real_reql_cluster_interface_t *reql_cluster_interface;
-    server_name_client_t *name_client;
+
+    /* RSI(reql_admin): This is currently unused, but if we switch to storing machine IDs
+    instead of names, it will be used again. So I don't want to tear it out when we're
+    just going to put it back in again. */
+    UNUSED server_name_client_t *name_client;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_TABLE_CONFIG_HPP_ */

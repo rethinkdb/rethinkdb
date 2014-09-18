@@ -97,7 +97,6 @@ private:
 
 blueprint_t construct_blueprint(const table_replication_info_t &info,
                                 server_name_client_t *name_client) {
-    rassert(info.config.shards.size() == info.chosen_directors.size());
     rassert(info.config.shards.size() ==
         static_cast<size_t>(info.shard_scheme.num_shards()));
 
@@ -107,10 +106,9 @@ blueprint_t construct_blueprint(const table_replication_info_t &info,
 
     /* Put the primaries in the blueprint */
     for (size_t i = 0; i < info.config.shards.size(); ++i) {
-        if (info.chosen_directors[i] == nil_uuid()) {
-            continue;
-        }
-        peer_id_t peer = trans.machine_id_to_peer_id(info.chosen_directors[i]);
+        machine_id_t machine_id =
+            trans.name_to_machine_id(info.config.shards[i].director_name);
+        peer_id_t peer = trans.machine_id_to_peer_id(machine_id);
         if (blueprint.peers_roles.count(peer) == 0) {
             blueprint.add_peer(peer);
         }
@@ -129,7 +127,7 @@ blueprint_t construct_blueprint(const table_replication_info_t &info,
             if (blueprint.peers_roles.count(peer) == 0) {
                 blueprint.add_peer(peer);
             }
-            if (machine_id != info.chosen_directors[i]) {
+            if (name != shard.director_name) {
                 blueprint.add_role(
                     peer,
                     hash_region_t<key_range_t>(info.shard_scheme.get_shard_range(i)),
