@@ -7,6 +7,7 @@
 #include "containers/name_string.hpp"
 #include "rdb_protocol/datum_string.hpp"
 #include "rdb_protocol/op.hpp"
+#include "rdb_protocol/pseudo_geometry.hpp"
 
 namespace ql {
 
@@ -319,6 +320,16 @@ public:
     get_all_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2, -1), optargspec_t({ "index" })) { }
 private:
+    datum_t get_key_arg(counted_t<val_t> arg) const {
+        datum_t datum_arg = arg->as_datum();
+
+        rcheck_target(arg, base_exc_t::GENERIC,
+                     !datum_arg.is_ptype(pseudo::geometry_string),
+                     "Cannot use a geospatial index with `get_all`.  "
+                     "Use `get_intersecting` instead.");
+        return datum_arg;
+    }
+
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
         counted_t<val_t> index = args->optarg(env, "index");
@@ -326,7 +337,7 @@ private:
         if (index && index_str != table->get_pkey()) {
             std::vector<counted_t<datum_stream_t> > streams;
             for (size_t i = 1; i < args->num_args(); ++i) {
-                datum_t key = args->arg(env, i)->as_datum();
+                datum_t key = get_key_arg(args->arg(env, i));
                 counted_t<datum_stream_t> seq =
                     table->get_all(env->env, key, index_str, backtrace());
                 streams.push_back(seq);
@@ -337,7 +348,7 @@ private:
         } else {
             datum_array_builder_t arr(env->env->limits());
             for (size_t i = 1; i < args->num_args(); ++i) {
-                datum_t key = args->arg(env, i)->as_datum();
+                datum_t key = get_key_arg(args->arg(env, i));
                 datum_t row = table->get_row(env->env, key);
                 if (row.get_type() != datum_t::R_NULL) {
                     arr.add(row);
