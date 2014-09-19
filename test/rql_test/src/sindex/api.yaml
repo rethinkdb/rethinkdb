@@ -208,6 +208,9 @@ tests:
     js: tbl.getAll(0, {index:'fake'})
     ot: err_regex("RqlRuntimeError", "Index `fake` was not found on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]", [])
 
+  - cd: tbl.get_all(r.point(0, 0))
+    ot: err("RqlRuntimeError", "Cannot use a geospatial index with `get_all`.  Use `get_intersecting` instead.", [])
+
   - rb: tbl.get_all(0, :index => false)
     py: tbl.get_all(0, index=False)
     js: tbl.getAll(0, {index:false})
