@@ -297,23 +297,25 @@ int val_type(counted_t<val_t> v) {
     return t;
 }
 
+datum_t typename_of(counted_t<val_t> v, scope_env_t *env) {
+    if (v->get_type().get_raw_type() == val_t::type_t::DATUM) {
+        datum_t d = v->as_datum();
+        return datum_t(datum_string_t(d.get_type_name()));
+    } else if (v->get_type().get_raw_type() == val_t::type_t::SEQUENCE
+               && v->as_seq(env->env)->is_grouped()) {
+        return datum_t(datum_string_t("GROUPED_STREAM"));
+    } else {
+        return datum_t(datum_string_t(get_name(val_type(v))));
+    }
+}
+
 class typeof_term_t : public op_term_t {
 public:
     typeof_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> v = args->arg(env, 0);
-        if (v->get_type().raw_type == val_t::type_t::DATUM) {
-            datum_t d = v->as_datum();
-            return new_val(datum_t(datum_string_t(d.get_type_name())));
-        } else if (v->get_type().raw_type == val_t::type_t::SEQUENCE
-                   && v->as_seq(env->env)->is_grouped()) {
-            return new_val(datum_t("GROUPED_STREAM"));
-        } else {
-            return new_val(
-                datum_t(datum_string_t(get_name(val_type(v)))));
-        }
+        return new_val(typename_of(args->arg(env, 0), env));
     }
     virtual const char *name() const { return "typeof"; }
     virtual bool can_be_grouped() const { return false; }
@@ -331,7 +333,7 @@ private:
     datum_t val_info(scope_env_t *env, counted_t<val_t> v) const {
         datum_object_builder_t info;
         int type = val_type(v);
-        bool b = info.add("type", datum_t(datum_string_t(get_name(type))));
+        bool b = info.add("type", typename_of(v, env));
 
         switch (type) {
         case DB_TYPE: {
