@@ -196,10 +196,18 @@ private:
             // We branch here because compiling functions is expensive, and
             // `obj_eval` may be called many many times.
             if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
-                d = d.merge(v->as_datum());
+                datum_t d0 = v->as_datum();
+                rcheck(!d0.is_ptype(), base_exc_t::GENERIC,
+                       strprintf("Cannot merge objects of type %s.",
+                                 d0.get_type_name().c_str()));
+                d = d.merge(d0);
             } else {
                 auto f = v->as_func(CONSTANT_SHORTCUT);
-                d = d.merge(f->call(env->env, d, LITERAL_OK)->as_datum());
+                datum_t d0 = f->call(env->env, d, LITERAL_OK)->as_datum();
+                rcheck(!d0.is_ptype(), base_exc_t::GENERIC,
+                       strprintf("Cannot merge objects of type %s.",
+                                 d0.get_type_name().c_str()));
+                d = d.merge(d0);
             }
         }
         return new_val(d);
