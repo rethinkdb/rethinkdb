@@ -19,3 +19,5 @@ tests:
     ot: err("RqlRuntimeError", "Cannot merge objects of type PTYPE<TIME>.")
   - cd: r.now().has_fields('epoch_time')
     ot: err("RqlRuntimeError", "Cannot determine keys of objects of type PTYPE<TIME>.")
+  - cd: r.object().has_fields(r.time(2014, 7, 7, 'Z'))
+    ot: err("RqlRuntimeError", "Invalid path argument `1404691200`.")
