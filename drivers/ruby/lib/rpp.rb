@@ -100,7 +100,10 @@ module RethinkDB
     def self.can_prefix (name, args)
       if (name == "table" ||
           name == "table_drop" ||
-          name == "table_create") && args[0][0] != Term::TermType::DB
+          name == "table_create") &&
+          (!args.is_a?(Array) ||
+               !args[0].is_a?(Array) ||
+               args[0][0] != Term::TermType::DB)
         return false
       else
         return !["db", "db_create", "db_drop", "json", "funcall", "args", "branch", "http",
