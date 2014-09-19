@@ -14,5 +14,8 @@ tests:
   - cd: r.now().merge({"foo":4})
     rb: r.now().merge({"foo"=>4})
     ot: err("RqlRuntimeError", "Cannot merge objects of type PTYPE<TIME>.")
+  - cd: r.expr({"foo":4}).merge(r.now())
+    rb: r.expr({"foo"=>4}).merge(r.now())
+    ot: err("RqlRuntimeError", "Cannot merge objects of type PTYPE<TIME>.")
   - cd: r.now().has_fields('epoch_time')
     ot: err("RqlRuntimeError", "Cannot determine keys of objects of type PTYPE<TIME>.")
