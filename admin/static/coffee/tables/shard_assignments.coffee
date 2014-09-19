@@ -41,13 +41,12 @@ module 'TableView', ->
                         added = false
                         for view, position in @assignments_view
                             if ShardAssignments.prototype.comparator(view.model, assignment) > 0
-
                                 added = true
                                 @assignments_view.splice position, 0, new_view
                                 if position is 0
                                     @$('.assignments_list').prepend new_view.render().$el
                                 else
-                                    @$('.assignments_container').eq(position-1).after new_view.render().$el
+                                    @$('.assignment_container').eq(position-1).after new_view.render().$el
                                 break
                         if added is false
                             @assignments_view.push new_view

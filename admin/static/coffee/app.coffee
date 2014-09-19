@@ -10,7 +10,7 @@ $ ->
     window.r = require('rethinkdb')
     window.driver = new Driver
 
-    main_view = new MainView.MainContainer()
+    window.main_view = new MainView.MainContainer()
     $('body').html main_view.render().$el
 
     # We need to start the router after the main view is bound to the DOM

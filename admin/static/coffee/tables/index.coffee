@@ -96,6 +96,7 @@ module 'TablesView', ->
                 databases: @databases
                 container: @
             @remove_tables_dialog = new Modals.RemoveTableModal
+                collection: @databases
 
         render: =>
             if @loading is true
@@ -171,10 +172,11 @@ module 'TablesView', ->
                     @container.display_add_table_button true
 
             @listenTo @collection, 'remove', (database) =>
-                for view in @databases_view
+                for view, position in @databases_view
                     if view.model is database
                         database.destroy()
                         view.remove()
+                        @databases_view.splice position, 1
                         break
 
                 if @collection.length is 0

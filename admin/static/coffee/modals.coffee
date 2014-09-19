@@ -47,14 +47,18 @@ module 'Modals', ->
                         break
 
             if error is null
-                driver.run_once r.dbCreate(@formdata.name), (err, result) =>
+                driver.run_once r.db(system_db).table("db_config").insert({name: @formdata.name}), (err, result) =>
                     if (err)
                         @on_error(err)
                     else
-                        if result?.created is 1
+                        if result.inserted is 1
+                            @databases.add new Database
+                                id: result.generated_keys[0]
+                                name: @formdata.name
+                                tables: []
                             @on_success()
                         else
-                            @on_error(new Error("The returned result was not `{created: 1}`"))
+                            @on_error(new Error(result.first_error or "Unknown error"))
             else
                 $('.alert_modal_content').slideDown 'fast'
                 @reset_buttons()
@@ -100,13 +104,13 @@ module 'Modals', ->
                         @on_error(new Error("The return result was not `{dropped: 1}`"))
 
         on_success: (response) =>
+            super()
             if Backbone.history.fragment is 'tables'
                 @database_to_delete.destroy()
-                super()
             else
                 # If the user was on a database view, we have to redirect him
                 # If he was on #tables, we are just refreshing
-                window.router.navigate '#tables', {trigger: true}
+                main_view.router.navigate '#tables', {trigger: true}
 
             window.app.current_view.render_message "The database #{@database_to_delete.get('name')} was successfully deleted."
 
@@ -247,7 +251,10 @@ module 'Modals', ->
                                     shards: 1
                                     replicas: 1
                                     ready_completely: "N/A"
+                                    id: result.generated_keys[0] #TODO Replace when uuid will be renamed id...
 
+                            # We suppose that after one second, the data will be available
+                            # So the yellow light will be replaced with a green one
                             setTimeout @container.fetch_data_once, 1000
 
                             @on_success()
@@ -280,17 +287,36 @@ module 'Modals', ->
         on_submit: =>
             super
 
-            query = r.expr(@tables_to_delete).forEach (table) ->
-                r.db(table("database").coerceTo("STRING")).tableDrop(table("table").coerceTo("STRING"))
+            query = r.db(system_db).table('table_config').filter( (table) =>
+                r.expr(@tables_to_delete).contains(
+                    database: table("db")
+                    table: table("name")
+                )
+            ).delete({returnChanges: true})
 
             driver.run_once query, (err, result) =>
                 if (err)
                     @on_error(err)
                 else
-                    if result?.dropped is @tables_to_delete.length
+                    if @collection? and result?.changes?
+                        for change in result.changes
+                            keep_going = true
+                            for database in @collection.models
+                                if keep_going is false
+                                    break
+
+                                if database.get('name') is change.old_val.db
+                                    for table, position in database.get('tables')
+                                        if table.name is change.old_val.name
+                                            database.set
+                                                tables: database.get('tables').slice(0, position).concat(database.get('tables').slice(position+1))
+                                            keep_going = false
+                                            break
+
+                    if result?.deleted is @tables_to_delete.length
                         @on_success()
                     else
-                        @on_error(new Error("The value returned for `dropped` did not match the number of tables."))
+                        @on_error(new Error("The value returned for `deleted` did not match the number of tables."))
 
 
         on_success: (response) =>
@@ -309,7 +335,7 @@ module 'Modals', ->
             message += " successfully deleted."
 
             if Backbone.history.fragment isnt 'tables'
-                window.router.navigate '#tables', {trigger: true}
+                main_view.router.navigate '#tables', {trigger: true}
             window.app.current_view.render_message message
             @remove()
 
