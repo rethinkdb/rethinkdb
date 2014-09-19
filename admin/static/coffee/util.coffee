@@ -79,8 +79,10 @@ Handlebars.registerHelper 'humanize_machine_reachability', (status) ->
 Handlebars.registerHelper 'humanize_namespace_reachability', (status) ->
     if status is true
         result = "<span class='label label-success'>Live</span>"
-    else
+    else if status is false
         result = "<span class='label label-failure'>Down</span>"
+    else
+        result = "<span class='label label-unknown'>?</span>"
     return new Handlebars.SafeString(result)
 
 

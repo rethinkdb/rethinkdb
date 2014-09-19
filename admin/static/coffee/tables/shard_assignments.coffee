@@ -30,18 +30,29 @@ module 'TableView', ->
                     @$('.assignments_list').append view.render().$el
 
                 @listenTo @collection, 'add', (assignment) =>
-                    view = new TableView.ShardAssignmentView
+                    new_view = new TableView.ShardAssignmentView
                         model: assignment
                         container: @
-                    @assignments_view.push view
 
-                    position = @collection.indexOf assignment
-                    if @collection.length is 1
-                        @$('.assignments_list').html view.render().$el
-                    else if position is 0
-                        @$('.assignments_list').prepend view.render().$el
+                    if @assignments_view.length is 0
+                        @assignments_view.push new_view
+                        @$('.assignments_list').html new_view.render().$el
                     else
-                        @$('.assignment_container').eq(position-1).after view.render().$el
+                        added = false
+                        for view, position in @assignments_view
+                            if ShardAssignments.prototype.comparator(view.model, assignment) > 0
+
+                                added = true
+                                @assignments_view.splice position, 0, new_view
+                                if position is 0
+                                    @$('.assignments_list').prepend new_view.render().$el
+                                else
+                                    @$('.assignments_container').eq(position-1).after new_view.render().$el
+                                break
+                        if added is false
+                            @assignments_view.push new_view
+                            @$('.assignments_list').append new_view.render().$el
+
 
                 @listenTo @collection, 'remove', (assignment) =>
                     for view, position in @assignments_view

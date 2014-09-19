@@ -116,9 +116,10 @@ module 'Modals', ->
             error: Handlebars.templates['error_input-template']
         class: 'add-table'
 
-        initialize: (databases) =>
+        initialize: (data) =>
             super
-            @databases = databases
+            @databases = data.databases
+            @container = data.container
 
             @listenTo @databases, 'all', @check_if_can_create_table
 
@@ -205,19 +206,50 @@ module 'Modals', ->
                 $('.alert_modal_content').slideDown 'fast'
                 @reset_buttons()
             else
-                optarg = {}
+                # TODO Add durability in the query when the API will be available
                 if @formdata.write_disk is 'yes'
-                    optarg.durability = 'soft'
+                    durability = 'soft'
+                else
+                    durability = 'hard'
 
                 if @formdata.primary_key isnt ''
-                    optarg.primaryKey = @formdata.primary_key
+                    primary_key = @formdata.primary_key
+                else
+                    primary_key = 'id'
 
 
-                driver.run_once r.db(@formdata.database).tableCreate(@formdata.name, optarg), (err, result) =>
+                query = r.db(system_db).table("server_status").filter({status: "available"}).coerceTo("ARRAY").do (servers) =>
+                    r.branch(
+                        servers.isEmpty(),
+                        r.error("No server is available"),
+                        servers.sample(1).nth(0)("name").do( (server) =>
+                            r.db(system_db).table("table_config").insert
+                                db: @formdata.database
+                                name: @formdata.name
+                                primary_key: primary_key
+                                shards: [
+                                    director: server
+                                    replicas: [server]
+                                ]
+                            ,
+                                returnChanges: true
+                        )
+                    )
+
+                driver.run_once query, (err, result) =>
                     if (err)
                         @on_error(err)
                     else
-                        if result?.created is 1
+                        if result?.errors is 0
+                            db = @databases.filter( (database) => database.get('name') is @formdata.database)[0]
+                            db.set
+                                tables: db.get('tables').concat _.extend result.changes[0].new_val,
+                                    shards: 1
+                                    replicas: 1
+                                    ready_completely: "N/A"
+
+                            setTimeout @container.fetch_data_once, 1000
+
                             @on_success()
                         else
                             @on_error(new Error("The returned result was not `{created: 1}`"))

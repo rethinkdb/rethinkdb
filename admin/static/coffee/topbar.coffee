@@ -152,6 +152,7 @@ module 'TopBar', ->
                 @issues_view.push view
                 @$('.issues_list').append view.render().$el
 
+            #TODO Order with views, not with the collection
             @collection.on 'add', (index) =>
                 view = new ResolveIssuesView.Issue
                     model: issue

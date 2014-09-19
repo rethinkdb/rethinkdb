@@ -989,7 +989,7 @@ TODO: retire this
         .border-radius(0px 0px 4px 4px);
     }
 
-    .server_view {
+    .server_container {
         @bar_height: 44px;
         height: @bar_height;
         background: #FFF;
@@ -1217,8 +1217,11 @@ TODO: retire this
                         background: @border_padding center no-repeat url('images/red-light_glow.png');
                         padding-left: 23px + @border_padding;
                     }
+                    .label-unknown {
+                        background: @border_padding center no-repeat url('images/yellow-light_glow.png');
+                        padding-left: 23px + @border_padding;
+                    }
                 }
-
             }
         }
     }
@@ -1367,7 +1370,6 @@ TODO: retire this
                         padding-left: 23px + @border_padding;
                     }
                 }
-
             }
         }
     }

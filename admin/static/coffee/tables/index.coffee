@@ -16,6 +16,21 @@ module 'TablesView', ->
             'click .checkbox-container': 'update_delete_tables_button'
             'click .close': 'remove_parent_alert'
 
+        query_callback: (error, result) =>
+            if error?
+                if @error?.msg isnt error.msg
+                    @error = error
+                    @$el.html @template.error
+                        url: '#tables'
+                        error: error.message
+            else
+                @databases.set _.map(_.sortBy(result, (db) -> db.name), (database) -> new Database(database)), {merge: true}
+                if @loading is true
+                    @loading = false
+                    @render()
+
+
+
         add_database: =>
             @add_database_dialog.render()
 
@@ -59,12 +74,27 @@ module 'TablesView', ->
                 collection: @databases
                 container: @
 
+            @query = r.db(system_db).table('db_config').filter( (db) ->
+                db("name").ne('rethinkdb')
+            ).map (db) ->
+                name: db("name")
+                id: db("uuid")
+                tables: r.db(system_db).table('table_status').orderBy((table) -> table("name"))
+                    .filter({db: db("name")}).merge( (table) ->
+                        shards: table("shards").count()
+                        replicas: table("shards").nth(0).count()
+                    ).merge( (table) ->
+                        id: table("uuid")
+                    )
+
             @fetch_data()
 
             @loading = true # TODO Render that
 
             @add_database_dialog = new Modals.AddDatabaseModal @databases
-            @add_table_dialog = new Modals.AddTableModal @databases
+            @add_table_dialog = new Modals.AddTableModal
+                databases: @databases
+                container: @
             @remove_tables_dialog = new Modals.RemoveTableModal
 
         render: =>
@@ -80,42 +110,11 @@ module 'TablesView', ->
             @$('#user-alert-space').append @template.alert_message
                 message: message
 
+        fetch_data_once: =>
+            @timer = driver.run_once @query, @query_callback
+
         fetch_data: =>
-            query = r.db(system_db).table('db_config').filter( (db) ->
-                db("name").ne('rethinkdb')
-            ).map (db) ->
-                name: db("name")
-                id: db("uuid")
-                tables: r.db(system_db).table('table_status').orderBy((table) -> table("name"))
-                    .filter({db: db("name")}).merge( (table) ->
-                        shards: table("shards").count()
-                        replicas: table("shards").nth(0).count()
-                    ).merge( (table) ->
-                        id: table("uuid")
-                    )
-
-            @timer = driver.run query, 5000, (error, result) =>
-                if error?
-                    if @error?.msg isnt error.msg
-                        @error = error
-                        @$el.html @template.error
-                            url: '#tables'
-                            error: error.message
-                else
-                    databases = {}
-                    for database, index in result
-                        @databases.add new Database(database), {merge: true}
-                        databases[database.id] = true
-
-                    # Clean  removed database
-                    toDestroy = []
-                    for database in @databases.models
-                        if databases[database.get('id')] isnt true
-                            toDestroy.push database
-                    for database in toDestroy
-                        database.destroy()
-                    @loading = false
-                    @render()
+            @timer = driver.run @query, 5000, @query_callback
 
         remove: =>
             driver.stop_timer @timer
@@ -146,21 +145,28 @@ module 'TablesView', ->
                 @container.display_add_table_button false
 
             @listenTo @collection, 'add', (database) =>
-                view = new TablesView.DatabaseView
+                new_view = new TablesView.DatabaseView
                     model: database
 
-                @databases_view.push view
-
-                # Keep the view sorted
-                position = @collection.indexOf database
-                if @collection.length is 1
-                    @$el.html view.render().$el
-                else if position is 0
-                    @$el.prepend view.render().$el
+                if @databases_view.length is 0
+                    @databases_view.push new_view
+                    @$el.html new_view.render().$el
                 else
-                    @$('.database_container').eq(position-1).after view.render().$el
+                    added = false
+                    for view, position in @databases_view
+                        if view.model.get('name') > database.get('name')
+                            added = true
+                            @databases_view.splice position, 0, new_view
+                            if position is 0
+                                @$el.prepend new_view.render().$el
+                            else
+                                @$('.database_container').eq(position-1).after new_view.render().$el
+                            break
+                    if added is false
+                        @databases_view.push new_view
+                        @$el.append new_view.render().$el
 
-                if @collection.length is 1
+                if @databases_view.length is 1
                     @$('.no-databases').remove()
                     @container.display_add_table_button true
 
@@ -223,21 +229,30 @@ module 'TablesView', ->
                     container: "database"
 
             @listenTo @collection, 'add', (table) =>
-                view = new TablesView.TableView
+                new_view = new TablesView.TableView
                     model: table
 
-                @tables_views.push view
-
-                position = @collection.indexOf table
-                if @collection.length is 1
-                    @$('.tables_container').html view.render().$el
-                else if position is 0
-                    @$('.tables_container').prepend view.render().$el
+                if @tables_views.length is 0
+                    @tables_views.push new_view
+                    @$('.tables_container').html new_view.render().$el
                 else
-                    @$('.table_container').eq(position-1).after view.render().$el
+                    added = false
+                    for view, position in @tables_views
+                        if view.model.get('name') > table.get('name')
+                            added = true
+                            @tables_views.splice position, 0, new_view
+                            if position is 0
+                                @$('.tables_container').prepend new_view.render().$el
+                            else
+                                @$('.table_container').eq(position-1).after new_view.render().$el
+                            break
+                    if added is false
+                        @tables_views.push new_view
+                        @$('.tables_container').append new_view.render().$el
 
-                if @collection.length is 1
+                if @tables_views.length is 1
                     @$('.no_element').remove()
+
 
             @listenTo @collection, 'remove', (table) =>
                 for view, position in @tables_views
@@ -253,23 +268,6 @@ module 'TablesView', ->
                         container: "database"
 
         update_collection: =>
-            ###
-            to_destroy = []
-            for table in @collection.models
-                found = false
-                for other_table in @model.get('tables')
-                    if other_table.id is table.get('id')
-                        found = true
-                        break
-                if found is false
-                    to_destroy.push table
-
-            for table in to_destroy
-                table.destroy()
-
-            for table in @model.get('tables')
-                @collection.set new Table table, {merge: true}
-            ###
             @collection.set _.map(@model.get("tables"), (table) -> new Table(table)), {merge: true}
 
         render: =>

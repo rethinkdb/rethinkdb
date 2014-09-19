@@ -95,8 +95,8 @@ module 'TableView', ->
                     )
 
                     @model.set
-                        num_replicas_per_shard: result.shards[0].directors.length # = new_num_replicas
-                        num_replicas: @model.get("num_shards")*result.shards[0].directors.length
+                        num_replicas_per_shard: result.shards[0].replicas.length # = new_num_replicas
+                        num_replicas: @model.get("num_shards")*result.shards[0].replicas.length
                         num_available_replicas: 0
                         num_available_shards: 0
 

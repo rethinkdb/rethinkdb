@@ -69,7 +69,7 @@ module 'DashboardView', ->
                                 num_shards: table("shards").count()
                         ).map( (shard) ->
                             shard.filter (assignment) ->
-                                assignment("role").eq("replica").and(assignment("state").ne("ready"))
+                                r.expr(["director", "replica"]).contains(assignment("role")).and(assignment("state").ne("ready"))
                         ).concatMap identity
                     ).filter (table) ->
                         table("shards").isEmpty().not()

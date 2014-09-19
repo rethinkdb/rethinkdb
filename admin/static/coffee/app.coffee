@@ -148,7 +148,7 @@ class @Driver
     # Stop the timer and close the connection
     stop_timer: (timer) =>
         clearTimeout @timers[timer]?.timeout
-        @timers[timer].connection?.close {noreplyWait: false}
+        @timers[timer]?.connection?.close {noreplyWait: false}
         delete @timers[timer]
 
 

@@ -65,24 +65,43 @@ module 'ServersView', ->
         className: 'servers_view'
         initialize: =>
             @servers_view = []
+
             @collection.each (server) =>
                 view = new ServersView.ServerView
                     model: server
-
                 @servers_view.push view
                 @$el.append view.render().$el
+
 
             @listenTo @collection, 'add', (server) =>
-                view = new ServersView.ServerView
+                new_view = new ServersView.ServerView
                     model: server
 
-                @servers_view.push view
-                @$el.append view.render().$el
+                if @servers_view.length is 0
+                    @servers_view.push new_view
+                    @$el.html new_view.render().$el
+                else
+                    added = false
+                    for view, position in @servers_view
+                        if view.model.get('name') > server.get('name')
+                            added = true
+                            @servers_view.splice position, 0, new_view
+                            if position is 0
+                                @$el.prepend new_view.render().$el
+                            else
+                                @$('.server_container').eq(position-1).after new_view.render().$el
+                            break
+                    if added is false
+                        @servers_view.push new_view
+                        @$el.append new_view.render().$el
 
-            ###
-            TODO: Implement this once table_status and remove_server is available
-            @collection.on 'remove', (server) =>
-            ###
+            #TODO Test when we can remove a server from the API
+            @listenTo @collection, 'remove', (server) =>
+                for view in @servers_view
+                    if view.model is server
+                        server.destroy()
+                        view.remove()
+                        break
 
         render: =>
             for server_view in @servers_view
@@ -96,7 +115,7 @@ module 'ServersView', ->
             super()
 
     class @ServerView extends Backbone.View
-        className: 'server_view'
+        className: 'server_container'
         template: Handlebars.templates['server-template']
         initialize: =>
             @listenTo @model, 'change', @render

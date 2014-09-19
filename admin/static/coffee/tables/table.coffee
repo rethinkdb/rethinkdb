@@ -41,7 +41,7 @@ module 'TableView', ->
                                     id: position
                                 )
                                 shards_assignments: r.db(system_db).table('table_config').get(this_id)("shards").indexesOf( () -> true ).map (position) ->
-                                    id: position
+                                    id: position.add(1)
                                     director:
                                         id: r.db(system_db).table('server_config').filter({name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("director")}).nth(0)("uuid")
                                         name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("director")
@@ -468,20 +468,30 @@ module 'TableView', ->
                 @$('.no_index').hide()
 
             @listenTo @collection, 'add', (index) =>
-                view = new TableView.SecondaryIndexView
+                new_view = new TableView.SecondaryIndexView
                     model: index
                     container: @
-                @indexes_view.push view
 
-                position = @collection.indexOf index
-                if @collection.length is 1
-                    @$('.list_secondary_indexes').html view.render().$el
-                else if position is 0
-                    @$('.list_secondary_indexes').prepend view.render().$el
+                if @indexes_view.length is 0
+                    @indexes_view.push new_view
+                    @$('.list_secondary_indexes').html new_view.render().$el
                 else
-                    @$('.index_container').eq(position-1).after view.render().$el
+                    added = false
+                    for view, position in @indexes_view
+                        if view.model.get('index') > index.get('index')
+                            added = true
+                            @indexes_view.splice position, 0, new_view
+                            if position is 0
+                                @$('.list_secondary_indexes').prepend new_view.render().$el
+                            else
+                                @$('.index_container').eq(position-1).after new_view.render().$el
+                            break
+                    if added is false
+                        @indexes_view.push new_view
+                        @$('.list_secondary_indexes').append new_view.render().$el
 
-                @$('.no_index').hide()
+                if @indexes_view.length is 1
+                    @$('.no_index').hide()
 
             @listenTo @collection, 'remove', (index) =>
                 for view in @indexes_view

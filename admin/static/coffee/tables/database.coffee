@@ -255,19 +255,29 @@ module 'DatabaseView', ->
                 @$('.no_element').hide()
 
             @collection.on 'add', (table) =>
-                view = new DatabaseView.TableView
+                new_view = new DatabaseView.TableView
                     model: table
-                @tables_views.push view
 
-                position = @collection.indexOf table
-                if @collection.length is 1
-                    @$('.tables').html view.render().$el
-                else if position is 0
-                    @$('.tables').prepend view.render().$el
+                if @tables_views.length is 0
+                    @tables_views.push new_view
+                    @$('.tables').html new_view.render().$el
                 else
-                    @$('.table_container').eq(position-1).after view.render().$el
+                    added = false
+                    for view, position in @tables_views
+                        if view.model.get('name') > table.get('name')
+                            added = true
+                            @tables_views.splice position, 0, new_view
+                            if position is 0
+                                @$('.tables').prepend new_view.render().$el
+                            else
+                                @$('.table_container').eq(position-1).after new_view.render().$el
+                            break
+                    if added is false
+                        @tables_views.push new_view
+                        @$('.tables').append new_view.render().$el
 
-                @$('.no_element').hide()
+                if @tables_views.length is 1
+                    @$('.no_element').hide()
 
             @collection.on 'remove', (table) =>
                 for view in @tables_views
@@ -278,7 +288,7 @@ module 'DatabaseView', ->
                                 view.remove()
                         )(view)
                         break
-                if @collection.length is 0
+                if @tables_views.length is 0
                     @$('.no_element').show()
 
 
