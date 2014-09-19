@@ -16,11 +16,6 @@ network and storage systems.
 
 This implementation differs from the Raft paper in several major ways:
 
-  * This implementation allows the Raft cluster members to reject proposed changes
-    according to an arbitrary criterion. A change cannot be committed unless a quorum of
-    Raft members accept it. If even a single member rejects the change, the
-    implementation is not guaranteed commit it, even if a quorum of members accept it.
-
   * This implementation allows different changes to require the approval of different
     subsets of the Raft cluster, instead of every change requiring the approval of more
     than half of the overall cluster.
@@ -53,43 +48,43 @@ move- constructable and assignable. In addition, they must have the following me
 which must be deterministic and side-effect-free unless otherwise noted:
 
     bool state_t::consider_change(const change_t &) const;
-
+    void state_t::apply_change(const change_t &);
+    
 `consider_change()` returns `true` if the change is valid for the state, and `false` if
 not. If the change is not valid for the state at the time that the leader receives it,
-the leader will not even attempt to apply it to the cluster.
-
-    void state_t::apply_change(const change_t &);
-
-`apply_change()` applies a change in place to the `state_t`, mutating it in place. The
-change is guaranteed to be valid for the state.
+the leader will not even attempt to apply it to the cluster. `apply_change()` applies a
+change in place to the `state_t`, mutating it in place. The change is guaranteed to be
+valid for the state.
 
     std::set<raft_member_id_t> state_t::get_all_members() const;
-
-`get_all_members()` returns a set of all the Raft members that need to receive updates.
-
     bool state_t::is_quorum_for_change(
         const std::set<raft_member_id_t> &members,
         const change_t &change) const;
+    bool state_t::is_quorum_for_all(const std::set<raft_member_id_t> &members) const;
 
+`get_all_members()` returns a set of all the Raft members that need to receive updates.
 `is_quorum_for_change()` returns `true` if `members` is a sufficient set of members to
 approve the given change. If `m1` and `m2` are disjoint sets, then
 `is_quorum_for_change(m1, c)` and `is_quorum_for_change(m2, c)` mustn't both return
-`true`. The change is guaranteed to be valid for the state.
-
-    bool state_t::is_quorum_for_all(const std::set<raft_member_id_t> &members) const;
-
- `is_quorum_for_all(m)` returns `true` if `is_quorum_for_change(m, c)` would return
-`true` for every `c`.
+`true`. The change is guaranteed to be valid for the state. `is_quorum_for_all(m)`
+returns `true` if `is_quorum_for_change(m, c)` would return `true` for every `c`. The
+parts of the `state_t` that are used to calculate the return values of these three
+methods constitute the state's "configuration"; any change that alters how the state
+responds to one of these methods is a configuration change.
 
     raft_change_type_t change_t::get_change_type() const;
-    change_t change_t::make_config_second_change() const;
+    bool state_t::in_config_change() const;
+    change_t state_t::make_config_second_change() const;
 
 `get_change_type()` returns `regular` for an ordinary `change_t`; `config_first` for a
-change that puts the cluster into a joint consensus state; and `config_second` for a
-change that takes the cluster out of a joint consensus state. Clients should not
-directly submit `config_second` changes; instead, the client should submit the
-`config_first` change and the leader will call `make_config_second_change()` to derive
-the corresponding `config_second` change. */
+change that puts the cluster into a joint consensus configuration; and `config_second`
+for a change that takes the cluster out of a joint consensus configuration. To change the
+configuration, a client sends a `config_first` change; after applying the change, the
+leader will call `make_config_second_change()` to derive the corresponding
+`config_second` change. The `state_t` can assume that `config_first` and `config_second`
+changes will always be applied in pairs and the pairs will never be interleaved.
+`in_config_change()` should return `true` if a `config_first` change has been applied but
+not a `config_second` change. */
 
 /* `raft_term_t` and `raft_log_index_t` are typedefs to improve the readability of the
 implementation, by making it clearer what the meaning of a particular number is. */
@@ -206,22 +201,6 @@ public:
     raft_log_t<change_t> log;
 };
 
-/* `raft_change_result_t` describes the outcome of proposing a change to the Raft
-cluster. In the original Raft algorithm, only the `success` and `retry` outcomes are
-possible, so this is represented as a boolean value instead. It means slightly different
-things in different contexts, which is why the description given here is somewhat vague.
-*/
-enum class raft_change_outcome_t {
-    /* The change happened. */
-    success,
-    /* The change did not happen because of a temporary condition; perhaps the leader
-    proposing the change is out of date. */
-    retry,
-    /* The change did not happen because one or more Raft members rejected the proposed
-    change. */
-    rejected
-};
-
 /* `raft_network_and_storage_interface_t` is the abstract class that the Raft
 implementation uses to send and receive messages over the network, and to store data to
 disk. */
@@ -291,9 +270,8 @@ public:
         */
         raft_term_t *term_out,
         /* `success_out` corresponds to the `success` parameter of the RPC reply in the
-        paper. `success` and `retry` correspond to `true` and `false` in the paper;
-        `rejected` is returned if the member rejected the change. */
-        raft_change_outcome_t *success_out) = 0;
+        paper. */
+        bool *success_out) = 0;
 
     /* `write_persistent_state()` writes the state of the Raft member to stable storage.
     It does not return until the state is safely stored. The values stored with
@@ -301,18 +279,6 @@ public:
     member is restarted. */
     virtual void write_persistent_state(
         const raft_persistent_state_t<state_t, change_t> &persistent_state,
-        signal_t *interruptor) = 0;
-
-    /* `consider_proposed_change()` returns `true` if the proposed change is OK and
-    `false` if it is not. The criterion for accepting or rejecting the proposed change
-    can be anything; it may be non-deterministic, have side-effects, etc. The Raft
-    cluster will not commit a change unless enough members return `true` in
-    `consider_proposed_change()` that `state.is_quorum_for_change()` returns `true` for
-    that set of members. In addition, if any member returns `false` for
-    `consider_proposed_change()`, the Raft cluster may (but is not required to) refuse
-    to commit that change. */
-    virtual bool consider_proposed_change(
-        const change_t &change,
         signal_t *interruptor) = 0;
 };
 
@@ -369,11 +335,16 @@ public:
         signal_t *interruptor);
 
     /* `propose_change_if_leader()` tries to perform the given change if this Raft member
-    is the leader. A return value of `success` means the change was committed. `retry`
-    means the change may or may not have been committed; either this member is not the
-    leader, or a temporary condition went wrong. `rejected` means the change may or may
-    not have been committed, because one or more members rejected it. */
-    raft_change_outcome_t propose_change_if_leader(
+    is the leader. Note that `change.get_change_type()` must be `regular`. A return value
+    of `true` means the change was accepted. `false` means the change might or might not
+    have been accepted; either something went wrong or we weren't the leader. */
+    bool propose_change_if_leader(
+        const change_t &change,
+        signal_t *interruptor);
+
+    /* `propose_config_change_if_leader()` is like `propose_change_if_leader()` except
+    that it is for changes where `change.get_change_type()` is `config_first`. */
+    bool propose_config_change_if_leader(
         const change_t &change,
         signal_t *interruptor);
 
@@ -441,7 +412,7 @@ private:
     void run_updates(
         const raft_member_id_t &peer,
         raft_log_index_t initial_next_index,
-        raft_log_index_t *match_index,
+        std::map<raft_member_id_t, raft_log_index_t> *match_index,
         auto_drainer_t::lock_t update_keepalive);
 
     /* `note_term_as_leader()` is a helper function for `run_election()` and
@@ -449,6 +420,13 @@ private:
     current term and interrupts `run_candidate_and_leader()`. It returns `true` if the
     term was changed. */
     bool note_term_as_leader(raft_term_t term, const new_mutex_acq_t *mutex_acq);
+
+    /* `propose_change_internal()` is a helper for `propose_change_if_leader()` and
+    `propose_config_change_if_leader()`. It adds a change to the log but then returns
+    immediately. */
+    void propose_change_internal(
+        const change_t &change,
+        const new_mutex_acq_t *mutex_acq);
 
     /* Returns what the state machine would look like if every change in the log were
     applied. This is important for cluster configuration purposes, because we're supposed
@@ -495,10 +473,10 @@ private:
     this at all times. */
     mutex_assertion_t log_mutex;
 
-    /* The leader coroutine sets this to a `cond_t` that it waits on.
-    `propose_change_if_leader()` and `update_commit_index()` pulse this whenever they add
-    changes to the log that can change the config. */
-    cond_t *pulse_on_config_change_added_to_log;
+    /* When we are leader, `proposal_watchers` is a set of conds that should be pulsed
+    every time `propose_change_if_leader()` is run. If we are not leader, this is empty
+    and unused. */
+    std::set<cond_t *> proposal_watchers;
 
     /* This makes sure that `run_candidate_and_leader()` stops when the `raft_member_t`
     is destroyed. It's in a `scoped_ptr_t` so that `become_follower()` can destroy it to
