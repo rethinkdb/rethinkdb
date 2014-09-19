@@ -52,7 +52,7 @@ public:
             const datum_t &query_geometry,
             const std::string &new_sindex_id,
             const pb_rcheckable_t *parent);
-    counted_t<datum_stream_t> get_nearest(
+    datum_t get_nearest(
             env_t *env,
             lat_lon_point_t center,
             double max_dist,

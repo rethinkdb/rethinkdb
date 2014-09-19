@@ -135,10 +135,9 @@ counted_t<ql::datum_stream_t> real_table_t::read_intersecting(
         bt);
 }
 
-counted_t<ql::datum_stream_t> real_table_t::read_nearest(
+ql::datum_t real_table_t::read_nearest(
         ql::env_t *env,
         const std::string &sindex,
-        const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name,
         bool use_outdated,
         lat_lon_point_t center,
@@ -191,8 +190,7 @@ counted_t<ql::datum_stream_t> real_table_t::read_nearest(
         r_sanity_check(!dup);
         formatted_result.add(std::move(one_result).to_datum());
     }
-    return make_counted<ql::array_datum_stream_t>(
-        std::move(formatted_result).to_datum(), bt);
+    return std::move(formatted_result).to_datum();
 }
 
 ql::datum_t real_table_t::write_batched_replace(ql::env_t *env,

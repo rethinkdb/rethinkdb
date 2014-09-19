@@ -89,10 +89,9 @@ public:
         const std::string &table_name,
         bool use_outdated,
         const ql::datum_t &query_geometry);
-    counted_t<ql::datum_stream_t> read_nearest(
+    ql::datum_t read_nearest(
         ql::env_t *env,
         const std::string &sindex,
-        const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name,
         bool use_outdated,
         lat_lon_point_t center,
