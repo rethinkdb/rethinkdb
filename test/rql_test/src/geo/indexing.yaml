@@ -168,4 +168,12 @@ tests:
   - py: tbl.get_nearest(r.point(0,0), index='g', max_dist=1, geo_system='unit_sphere').pluck('dist', {'doc':'id'})
     rb: tbl.get_nearest(r.point(0,0), :index=>'g', :max_dist=>1, :geo_system=>'unit_sphere').pluck('dist', {'doc':'id'})
     ot: ([{'dist':0, 'doc':{'id':1}}, {'dist':8.726646259990191e-09, 'doc':{'id':2}}, {'dist':0.24619691677893205, 'doc':{'id':0}}])
+  - js: tbl.get_nearest(r.point(0,0), {'index':'g'}).type_of()
+    py: tbl.get_nearest(r.point(0,0), index='g').type_of()
+    rb: tbl.get_nearest(r.point(0,0), :index=>'g').type_of()
+    ot: ("ARRAY")
+  - js: tbl.get_nearest(r.point(0,0), {'index':'g'}).map(r.row).type_of()
+    py: tbl.get_nearest(r.point(0,0), index='g').map(r.row).type_of()
+    rb: tbl.get_nearest(r.point(0,0), :index=>'g').map{|x|x}.type_of()
+    ot: ("ARRAY")
 
