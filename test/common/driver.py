@@ -34,23 +34,8 @@ def unblock_path(source_port, dest_port):
     conn.sendall("unblock %s %s\n" % (str(source_port), str(dest_port)))
     conn.close()
 
-def find_subpath(subpath):
-    paths = [subpath, "../" + subpath, "../../" + subpath, "../../../" + subpath]
-    if "RETHINKDB" in os.environ:
-        paths = [os.path.join(os.environ["RETHINKDB"], subpath)]
-    for path in paths:
-        if os.path.exists(path):
-            return path
-    raise RuntimeError("Can't find path %s.  Tried these paths: %s" % (subpath, paths))
-
-def find_rethinkdb_executable(mode = ""):
-    if mode == "":
-        build_dir = os.getenv('RETHINKDB_BUILD_DIR')
-        if build_dir:
-            return os.path.join(build_dir, 'rethinkdb')
-        else:
-            mode = 'debug'
-    return find_subpath("build/%s/rethinkdb" % mode)
+def find_rethinkdb_executable(mode=None):
+    return utils.latest_rethinkdb_executable(mode=mode)
 
 def cleanupMetaclusterFolder(path):
     if os.path.isdir(str(path)):
@@ -201,7 +186,7 @@ class Files(object):
     db_path = None
     machine_name = None
     
-    def __init__(self, metacluster, machine_name = None, db_path = None, log_path = None, executable_path = None, command_prefix=None):
+    def __init__(self, metacluster, machine_name=None, db_path=None, log_path=None, executable_path=None, command_prefix=None):
         assert isinstance(metacluster, Metacluster)
         assert not metacluster.closed
         assert machine_name is None or isinstance(machine_name, str)
@@ -213,6 +198,7 @@ class Files(object):
         if executable_path is None:
             executable_path = find_rethinkdb_executable()
         assert os.access(executable_path, os.X_OK), "no such executable: %r" % executable_path
+        self.executable_path = executable_path
 
         self.id_number = metacluster.get_new_unique_id()
 
@@ -228,7 +214,7 @@ class Files(object):
             self.machine_name = machine_name
 
         create_args = command_prefix + [
-            executable_path, "create",
+            self.executable_path, "create",
             "--directory", self.db_path,
             "--machine-name", self.machine_name]
 
@@ -236,10 +222,12 @@ class Files(object):
             print "setting log_path to /dev/null."
             log_path = "/dev/null"
         with open(log_path, "a") as log_file:
-            subprocess.check_call(create_args, stdout = log_file, stderr = log_file)
+            subprocess.check_call(create_args, stdout=log_file, stderr=log_file)
 
 class _Process(object):
     # Base class for Process & ProxyProcess. Do not instantiate directly.
+    
+    running = False
     
     cluster = None
     executable_path = None
@@ -268,7 +256,8 @@ class _Process(object):
         if executable_path is None:
             executable_path = find_rethinkdb_executable()
         assert os.access(executable_path, os.X_OK), "no such executable: %r" % executable_path
-
+        self.executable_path = executable_path
+        
         for other_cluster in cluster.metacluster.clusters:
             if other_cluster is not cluster:
                 other_cluster._block_process(self)
@@ -281,7 +270,7 @@ class _Process(object):
         # -
         
         try:
-            self.args = command_prefix + [executable_path] + options
+            self.args = command_prefix + [self.executable_path] + options
             for peer in cluster.processes:
                 if peer is not self:
                     # TODO(OSX) Why did we ever use socket.gethostname() and not localhost?
@@ -297,13 +286,14 @@ class _Process(object):
 
             if os.path.exists(self.logfile_path):
                 os.unlink(self.logfile_path)
-
-            print "Launching:"
-            print(self.args)
+            
+            self.log_file.write("Launching:\n%s\n" % str(self.args))
+            
             self.process = subprocess.Popen(self.args, stdout=self.log_file, stderr=self.log_file, preexec_fn=os.setpgrp)
             
             runningServers.append(self)
             self.process_group_id = self.process.pid
+            self.running = True
             
             self.read_ports_from_log()
 
@@ -370,6 +360,9 @@ class _Process(object):
         
         global runningServers
         
+        if self.running is False:
+            return
+        
         assert self.process is not None
         try:
             self.check()
@@ -389,15 +382,39 @@ class _Process(object):
                 runningServers.remove(self)
         finally:
             self.close()
-
+    
+    def kill(self):
+        '''Suddenly terminate the process ungracefully'''
+        
+        global runningServers
+        
+        assert self.process is not None
+        assert self.check() is None, 'When asked to kill a process it was already stopped!'
+        
+        try:
+            os.killpg(self.process_group_id, signal.SIGKILL)
+        except OSError:
+            pass
+        deadline = time.time() + 5
+        while time.time() < deadline:
+            if self.process.poll() is not None:
+                break
+        assert self.process.poll() is not None, 'timed out waiting for server to be killed'
+        self.running = False
+        if self in runningServers:
+            runningServers.remove(self)
+    
     def close(self):
-        """Kills the process, removes it from the cluster, and invalidates the
-        `Process` object. """
+        """Kills the process, removes it from the cluster, and invalidates the `Process` object. """
+        
+        global runningServers
+        
         if self.process.poll() is None:
             try:
                 os.killpg(self.process_group_id, signal.SIGKILL)
             except OSError:
                 pass
+        
         if self in runningServers:
             runningServers.remove(self)
         self.process = None
