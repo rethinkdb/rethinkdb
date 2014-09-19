@@ -45,7 +45,7 @@ void calculate_server_usage(
         for (const name_string_t &server : shard.replica_names) {
             (*usage)[server] += SECONDARY_USAGE_COST;
         }
-        (*usage)[shard.director_names[0]] += (PRIMARY_USAGE_COST - SECONDARY_USAGE_COST);
+        (*usage)[shard.director_name] += (PRIMARY_USAGE_COST - SECONDARY_USAGE_COST);
     }
 }
 
@@ -410,9 +410,9 @@ bool table_generate_config(
                 &yielder,
                 interruptor,
                 [&](size_t shard, const name_string_t &server) {
-                    guarantee(config_out->shards[shard].director_names.empty());
+                    guarantee(config_out->shards[shard].director_name.empty());
                     config_out->shards[shard].replica_names.insert(server);
-                    config_out->shards[shard].director_names.push_back(server);
+                    config_out->shards[shard].director_name = server;
                     /* We have to update `pairings` as directors are selected so that our
                     second call to `pick_best_pairings()` will take into account the
                     choices made in this round. */
@@ -450,7 +450,7 @@ bool table_generate_config(
 
     for (size_t shard = 0; shard < params.num_shards; ++shard) {
         guarantee(config_out->shards[shard].replica_names.size() == total_replicas);
-        guarantee(config_out->shards[shard].director_names.size() == 1);
+        guarantee(!config_out->shards[shard].director_name.empty());
     }
 
     return true;

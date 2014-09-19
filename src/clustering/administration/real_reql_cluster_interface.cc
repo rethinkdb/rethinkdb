@@ -5,7 +5,6 @@
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/servers/name_client.hpp"
-#include "clustering/administration/tables/elect_director.hpp"
 #include "clustering/administration/tables/generate_config.hpp"
 #include "clustering/administration/tables/split_points.hpp"
 #include "clustering/administration/tables/table_config.hpp"
@@ -60,44 +59,6 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
                 clone_ptr_t<semilattice_watchable_t<databases_semilattice_metadata_t> >
                     (new semilattice_watchable_t<databases_semilattice_metadata_t>(
                         metadata_field(&cluster_semilattice_metadata_t::databases, semilattice_root_view))), threadnum_t(thr)));
-    }
-}
-
-static bool check_metadata_status(metadata_search_status_t status,
-                                  const char *entity_type,
-                                  const std::string &entity_name,
-                                  bool expect_present,
-                                  std::string *error_out) {
-    switch (status) {
-        case METADATA_SUCCESS: {
-            if (expect_present) {
-                return true;
-            } else {
-                *error_out = strprintf("%s `%s` already exists.",
-                    entity_type, entity_name.c_str());
-                return false;
-            }
-        }
-        case METADATA_ERR_MULTIPLE: {
-            if (expect_present) {
-                *error_out = strprintf("%s `%s` is ambiguous; there are multiple "
-                    "entities with that name.", entity_type, entity_name.c_str());
-            } else {
-                *error_out = strprintf("%s `%s` already exists.",
-                    entity_type, entity_name.c_str());
-            }
-            return false;
-        }
-        case METADATA_ERR_NONE: {
-            if (expect_present) {
-                *error_out = strprintf("%s `%s` does not exist.",
-                    entity_type, entity_name.c_str());
-                return false;
-            } else {
-                return true;
-            }
-        default: unreachable();
-        }
     }
 }
 
@@ -284,9 +245,6 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
                 &repli_info.config, error_out)) {
             return false;
         }
-
-        repli_info.chosen_directors =
-            table_elect_directors(repli_info.config, server_name_client);
 
         namespace_semilattice_metadata_t table_metadata;
         table_metadata.name = versioned_t<name_string_t>(name);
@@ -504,8 +462,6 @@ bool real_reql_cluster_interface_t::table_reconfigure(
     }
 
     if (!dry_run) {
-        new_repli_info.chosen_directors =
-            table_elect_directors(new_repli_info.config, server_name_client);
         /* Commit the change */
         ns_metadata_it->second.get_mutable()->replication_info.set(new_repli_info);
         semilattice_root_view->join(metadata);

@@ -39,13 +39,13 @@ with driver.Metacluster() as metacluster:
         for (e_shard, f_shard) in zip(expected, found):
             if set(e_shard["replicas"]) != set(f_shard["replicas"]):
                 return False
-            if e_shard["directors"] != f_shard["directors"]:
+            if e_shard["director"] != f_shard["director"]:
                 return False
         return True
 
     def check_status_matches_config():
-        config = r.db("rethinkdb").table("table_config").run(conn)
-        status = r.db("rethinkdb").table("table_status").run(conn)
+        config = list(r.db("rethinkdb").table("table_config").run(conn))
+        status = list(r.db("rethinkdb").table("table_status").run(conn))
         uuids = set(row["uuid"] for row in config)
         if not (len(uuids) == len(config) == len(status)):
             return False
@@ -68,7 +68,7 @@ with driver.Metacluster() as metacluster:
                                if doc["role"] == "director"]
                 if len(s_directors) != 1:
                     return False
-                if s_directors[0] not in c_shard["directors"]:
+                if s_directors[0] != c_shard["director"]:
                     return False
                 if any(doc["state"] != "ready" for doc in s_shard):
                     return False
@@ -83,7 +83,7 @@ with driver.Metacluster() as metacluster:
         return True
 
     def check_tables_named(names):
-        config = r.db("rethinkdb").table("table_config").run(conn)
+        config = list(r.db("rethinkdb").table("table_config").run(conn))
         if len(config) != len(names):
             return False
         for row in config:
@@ -99,8 +99,8 @@ with driver.Metacluster() as metacluster:
                 if time.time() > start_time + 10:
                     raise RuntimeError("Out of time")
         except:
-            config = r.db("rethinkdb").table("table_config").run(conn)
-            status = r.db("rethinkdb").table("table_status").run(conn)
+            config = list(r.db("rethinkdb").table("table_config").run(conn))
+            status = list(r.db("rethinkdb").table("table_status").run(conn))
             print "Something went wrong."
             print "config =", config
             print "status =", status
@@ -130,19 +130,19 @@ with driver.Metacluster() as metacluster:
         assert set(row["i"] for row in r.table("foo").run(conn)) == set(xrange(10))
         print "OK"
     test(
-        [{"replicas": ["a"], "directors": ["a"]}])
+        [{"replicas": ["a"], "director": "a"}])
     test(
-        [{"replicas": ["b"], "directors": ["b"]}])
+        [{"replicas": ["b"], "director": "b"}])
     test(
-        [{"replicas": ["a", "b"], "directors": ["a"]}])
+        [{"replicas": ["a", "b"], "director": "a"}])
     test(
-        [{"replicas": ["a"], "directors": ["a"]},
-         {"replicas": ["b"], "directors": ["b"]}])
+        [{"replicas": ["a"], "director": "a"},
+         {"replicas": ["b"], "director": "b"}])
     test(
-        [{"replicas": ["a", "b"], "directors": ["a"]},
-         {"replicas": ["a", "b"], "directors": ["b"]}])
+        [{"replicas": ["a", "b"], "director": "a"},
+         {"replicas": ["a", "b"], "director": "b"}])
     test(
-        [{"replicas": ["a"], "directors": ["a"]}])
+        [{"replicas": ["a"], "director": "a"}])
 
     print "Testing that table_config rejects invalid input..."
     def test_invalid(shards):
@@ -154,14 +154,14 @@ with driver.Metacluster() as metacluster:
     test_invalid([])
     test_invalid("this is a string")
     test_invalid(
-        [{"replicas": ["a"], "directors": ["b"], "extra_key": "extra_value"}])
+        [{"replicas": ["a"], "director": "a", "extra_key": "extra_value"}])
     test_invalid(
-        [{"replicas": [], "directors": []}])
+        [{"replicas": [], "director": None}])
     test_invalid(
-        [{"replicas": ["a"], "directors": []}])
+        [{"replicas": ["a"], "director": "b"}])
     test_invalid(
-        [{"replicas": ["a"], "directors": ["b"]},
-         {"replicas": ["b"], "directors": ["a"]}])
+        [{"replicas": ["a"], "director": "b"},
+         {"replicas": ["b"], "director": "a"}])
 
     print "Testing that we can rename tables through table_config..."
     res = r.table_config("bar").update({"name": "bar2"}).run(conn)
@@ -172,6 +172,34 @@ with driver.Metacluster() as metacluster:
     print "Testing that we can't rename a table so as to cause a name collision..."
     res = r.table_config("bar2").update({"name": "foo"}).run(conn)
     assert res["errors"] == 1
+
+    print "Testing that we can create a table through table_config..."
+    res = r.db("rethinkdb").table("table_config").insert({
+        "name": "baz",
+        "db": "test",
+        "primary_key": "frob",
+        "shards": [{"replicas": ["a"], "director": "a"}]
+        }).run(conn)
+    assert res["errors"] == 0, repr(res)
+    assert res["inserted"] == 1, repr(res)
+    assert "baz" in r.table_list().run(conn)
+    for i in xrange(10):
+        try:
+            r.table("baz").insert({}).run(conn)
+        except r.RqlRuntimeError:
+            time.sleep(1)
+        else:
+            break
+    else:
+        raise ValueError("Table took too long to become available")
+    rows = list(r.table("baz").run(conn))
+    assert len(rows) == 1 and list(rows[0].keys()) == ["frob"]
+
+    print "Testing that we can delete a table through table_config..."
+    res = r.table_config("baz").delete().run(conn)
+    assert res["errors"] == 0, repr(res)
+    assert res["deleted"] == 1, repr(res)
+    assert "baz" not in r.table_list().run(conn)
 
     cluster1.check_and_stop()
 print "Done."

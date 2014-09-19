@@ -34,11 +34,8 @@ bool common_server_artificial_table_backend_t::lookup(
     if (!convert_uuid_from_datum(primary_key, server_id_out, &dummy_error)) {
         return false;
     }
-    auto it = machines->machines.find(*server_id_out);
-    if (it == machines->machines.end()) {
-        return false;
-    }
-    if (it->second.is_deleted()) {
+    std::map<machine_id_t, deletable_t<machine_semilattice_metadata_t> >::iterator it;
+    if (!search_metadata_by_uuid(&machines->machines, *server_id_out, &it)) {
         return false;
     }
     *machine_out = it->second.get_mutable();

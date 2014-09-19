@@ -154,7 +154,6 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
             cluster_directory_metadata_t> > > _directory_view,
         server_name_client_t *_name_client,
-        auto_reconnector_t *_auto_reconnector,
         last_seen_tracker_t *_last_seen_tracker) {
     std::map<name_string_t, artificial_table_backend_t*> backends;
 
@@ -189,7 +188,6 @@ admin_artificial_tables_t::admin_artificial_tables_t(
             _semilattice_view),
         metadata_field(&cluster_semilattice_metadata_t::databases,
             _semilattice_view),
-        _auto_reconnector,
         _last_seen_tracker));
     backends[name_string_t::guarantee_valid("server_status")] =
         server_status_backend.get();

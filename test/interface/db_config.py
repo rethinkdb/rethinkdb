@@ -25,11 +25,11 @@ with driver.Metacluster() as metacluster:
     cluster.check()
     conn = r.connect("localhost", proc.driver_port)
 
-    assert r.db("rethinkdb").table("db_config").run(conn) == []
+    assert list(r.db("rethinkdb").table("db_config").run(conn)) == []
     res = r.db_create("foo").run(conn)
     assert res == {"created":1}
 
-    rows = r.db("rethinkdb").table("db_config").run(conn)
+    rows = list(r.db("rethinkdb").table("db_config").run(conn))
     assert len(rows) == 1 and rows[0]["name"] == "foo"
     foo_uuid = rows[0]["uuid"]
     assert r.db("rethinkdb").table("db_config").get(foo_uuid).run(conn)["name"] == "foo"
@@ -38,13 +38,13 @@ with driver.Metacluster() as metacluster:
            .run(conn)
     assert res["replaced"] == 1
     assert res["errors"] == 0
-    rows = r.db("rethinkdb").table("db_config").run(conn)
+    rows = list(r.db("rethinkdb").table("db_config").run(conn))
     assert len(rows) == 1 and rows[0]["name"] == "foo2"
 
     res = r.db_create("bar").run(conn)
     assert res == {"created": 1}
 
-    rows = r.db("rethinkdb").table("db_config").run(conn)
+    rows = list(r.db("rethinkdb").table("db_config").run(conn))
     assert len(rows) == 2 and set(row["name"] for row in rows) == set(["foo2", "bar"])
     bar_uuid = [row["uuid"] for row in rows if row["name"] == "bar"][0]
 
@@ -52,6 +52,17 @@ with driver.Metacluster() as metacluster:
            .run(conn)
     # This would cause a name conflict, so it should fail
     assert res["errors"] == 1
+
+    res = r.db("rethinkdb").table("db_config").insert({"name": "baz"}).run(conn)
+    assert res["errors"] == 0
+    assert res["inserted"] == 1
+    assert "baz" in r.db_list().run(conn)
+    baz_uuid = res["generated_keys"][0]
+
+    res = r.db("rethinkdb").table("db_config").get(baz_uuid).delete().run(conn)
+    assert res["errors"] == 0
+    assert res["deleted"] == 1
+    assert "baz" not in r.db_list().run(conn)
 
     cluster.check_and_stop()
 print "Done."
