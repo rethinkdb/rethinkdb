@@ -22,7 +22,7 @@ module 'DashboardView', ->
                 r.db(system_db).table('table_status').coerceTo("ARRAY"),
                 r.db(system_db).table('server_status').coerceTo("ARRAY"),
                 (table_config, table_status, server_status) ->
-                    num_directors: table_config('shards').concatMap(identity)("directors").count()
+                    num_directors: table_config('shards').concatMap(identity)("director").count()
                     num_available_directors: table_status('shards')
                         .concatMap(identity)
                         .concatMap(identity)

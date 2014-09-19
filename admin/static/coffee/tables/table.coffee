@@ -43,10 +43,10 @@ module 'TableView', ->
                                 shards_assignments: r.db(system_db).table('table_config').get(this_id)("shards").indexesOf( () -> true ).map (position) ->
                                     id: position
                                     director:
-                                        id: r.db(system_db).table('server_config').filter({name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("directors").nth(0)}).nth(0)("uuid")
-                                        name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("directors").nth(0)
+                                        id: r.db(system_db).table('server_config').filter({name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("director")}).nth(0)("uuid")
+                                        name: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("director")
                                     replicas: r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("replicas").filter( (replica) ->
-                                        replica.ne(r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("directors").nth(0))
+                                        replica.ne(r.db(system_db).table('table_config').get(this_id)("shards").nth(position)("director"))
                                     ).map (name) ->
                                         id: r.db(system_db).table('server_config').filter({name: name}).nth(0)("uuid")
                                         name: name
@@ -579,7 +579,7 @@ module 'TableView', ->
         
         remove: =>
             @stopListening()
-            for view of @indexes_view
+            for view in @indexes_view
                 view.remove()
             super()
 
