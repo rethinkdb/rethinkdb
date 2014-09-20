@@ -201,7 +201,7 @@ module 'UIComponents', ->
                     query = r.db(system_db).table('server_config').get(@model.get('id')).update
                         name: @formdata.new_name
 
-                driver.run query, (err, result) =>
+                driver.run_once query, (err, result) =>
                     if err?
                         @on_error err
                     else if result?.first_error?

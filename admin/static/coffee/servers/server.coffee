@@ -8,6 +8,7 @@ module 'ServerView', ->
             loading: Handlebars.templates['loading-template']
 
         events:
+            'click .close': 'close_alert'
             'click .operations .rename': 'rename_server'
 
         rename_server: (event) =>
@@ -18,6 +19,11 @@ module 'ServerView', ->
             @rename_modal = new UIComponents.RenameItemModal
                 model: @server
             @rename_modal.render()
+
+        # Method to close an alert/warning/arror
+        close_alert: (event) ->
+            event.preventDefault()
+            $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
 
         initialize: (id) =>
             @id = id

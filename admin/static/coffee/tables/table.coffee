@@ -196,10 +196,9 @@ module 'TableView', ->
             main: Handlebars.templates['namespace_view-container-template']
             alert: Handlebars.templates['modify_shards-alert-template']
 
-        events: ->
+        events:
             'click .close': 'close_alert'
             'click .change_shards-link': 'change_shards'
-            # operations in the dropdown menu
             'click .operations .rename': 'rename_table'
             'click .operations .delete': 'delete_table'
 
@@ -277,8 +276,7 @@ module 'TableView', ->
             # Display the secondary indexes
             @$('.secondary_indexes').html @secondary_indexes_view.render().el
 
-
-            return @
+            @
 
         close_alert: (event) ->
             event.preventDefault()

@@ -32,7 +32,7 @@ module 'DatabaseView', ->
                             table("shards").concatMap (shard) ->
                                 shard("replicas")
                         ).distinct().count()
-                        tables: table_status.map (table) ->
+                        tables: table_status.filter({db: database("name")}).map (table) ->
                             db: table("db")
                             name: table("name")
                             num_shards: table("shards").count()
@@ -77,7 +77,6 @@ module 'DatabaseView', ->
                             @database_view = new DatabaseView.DatabaseMainView
                                 model: @model
                                 tables: @tables
-                            @$el.html @database_view.render().$el
                             @render()
         render: =>
             if @error?
@@ -111,9 +110,8 @@ module 'DatabaseView', ->
         template: Handlebars.templates['database_view-container-template']
         alert_tmpl: Handlebars.templates['modify_shards-alert-template']
 
-        events: ->
+        events:
             'click .close': 'close_alert'
-            # operations in the dropdown menu
             'click .operations .rename': 'rename_database'
             'click .operations .delete': 'delete_database'
 
@@ -164,6 +162,7 @@ module 'DatabaseView', ->
 
         # Create a modal to renane the database
         rename_database: (event) =>
+            console.log 'bar'
             event.preventDefault()
             if @rename_modal?
                 @rename_modal.remove()
@@ -173,6 +172,7 @@ module 'DatabaseView', ->
 
         # Create a modal to delete the databse
         delete_database: (event) ->
+            console.log 'foo'
             event.preventDefault()
 
             if @remove_database_dialog?
@@ -183,12 +183,13 @@ module 'DatabaseView', ->
         remove: =>
             @title.remove()
             @profile.remove()
-            #@performance_graph.remove()
+            @performance_graph.remove()
             if @rename_modal?
                 @rename_modal.remove()
             if @remove_database_dialog?
                 @remove_database_dialog.remove()
             @stats.destroy()
+            super()
 
     # DatabaseView.Title
     class @Title extends Backbone.View
