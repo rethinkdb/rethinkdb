@@ -63,6 +63,12 @@ public:
         }
         return (votes*2 > voting_members.size());
     }
+
+    /* Returns `true` if the given member can act as a leader. (Mostly this exists for
+    consistency with `raft_complex_config_t`.) */
+    bool is_valid_leader(const raft_member_id_t &member) const {
+        return voting_members.count(member) == 1;
+    }
 };
 
 /* `raft_complex_config_t` can represent either a `raft_config_t` or a joint consensus of
@@ -98,6 +104,13 @@ public:
         } else {
             return config.is_quorum(members);
         }
+    }
+
+    bool is_valid_leader(const raft_member_id_t &member) const {
+        /* Raft paper, Section 6: "Any server from either configuration may serve as
+        leader." */
+        return config.is_valid_leader(member) ||
+            (is_joint_consensus && new_config.is_valid_leader(member));
     }
 };
 
@@ -351,6 +364,10 @@ public:
         const raft_config_t &configuration,
         signal_t *interruptor);
 
+    /* `in_config_change()` returns `true` if we're current in the process of performing
+    a configuration change. It doesn't block. */
+    bool in_config_change();
+
     /* The `on_*_rpc()` methods are called when a Raft member calls a `send_*_rpc()`
     method on their `raft_network_and_storage_interface_t`. */
     void on_request_vote_rpc(
@@ -485,11 +502,12 @@ private:
         std::map<raft_member_id_t, raft_log_index_t> *match_indexes,
         auto_drainer_t::lock_t update_keepalive);
 
-    /* `leader_start_reconfiguration_second_phase()` is a helper function for
+    /* `leader_continue_reconfiguration()` is a helper function for
     `candidate_and_leader_coro()`. It checks if we have completed the first phase of a
-    configuration phase (by committing a joint consensus configuration) and if so, it
-    starts the second phase. */
-    void leader_start_reconfiguration_second_phase(
+    reconfiguration (by committing a joint consensus configuration) and if so, it starts
+    the second phase by committing the new configuration. It also checks if we have
+    completed the second phase and if so, it makes us step down. */
+    void leader_continue_reconfiguration(
         const new_mutex_acq_t *mutex_acq,
         signal_t *interruptor);
 

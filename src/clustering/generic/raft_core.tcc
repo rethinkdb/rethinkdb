@@ -75,6 +75,7 @@ bool raft_member_t<state_t, change_t>::propose_change_if_leader(
         signal_t *interruptor) {
     assert_thread();
     new_mutex_acq_t mutex_acq(&mutex);
+    check_invariants(&mutex_acq);
 
     if (mode != mode_t::leader) {
         return false;
@@ -94,6 +95,7 @@ bool raft_member_t<state_t, change_t>::propose_config_change_if_leader(
         signal_t *interruptor) {
     assert_thread();
     new_mutex_acq_t mutex_acq(&mutex);
+    check_invariants(&mutex_acq);
 
     if (mode != mode_t::leader) {
         return false;
@@ -107,6 +109,8 @@ bool raft_member_t<state_t, change_t>::propose_config_change_if_leader(
         changes. */
         return false;
     }
+    /* RSI: To be safe, we should also forbid config changes if the second phase of a
+    reconfiguration is in the log but we haven't committed it yet */
 
     raft_complex_config_t new_complex_config;
     new_complex_config.config = old_complex_config.config;
@@ -131,6 +135,7 @@ void raft_member_t<state_t, change_t>::on_request_vote(
         bool *vote_granted_out) {
     assert_thread();
     new_mutex_acq_t mutex_acq(&mutex);
+    check_invariants(&mutex_acq);
 
     /* Raft paper, Section 6: "Servers disregard RequestVote RPCs when they believe a
     current leader exists... Specifically, if a server receives a RequestVote RPC within
@@ -224,6 +229,7 @@ void raft_member_t<state_t, change_t>::on_install_snapshot(
         raft_term_t *term_out) {
     assert_thread();
     new_mutex_acq_t mutex_acq(&mutex);
+    check_invariants(&mutex_acq);
 
     /* Raft paper, Figure 2: If RPC request or response contains term T > currentTerm:
     set currentTerm = T, convert to follower */
@@ -326,6 +332,7 @@ void raft_member_t<state_t, change_t>::on_append_entries_rpc(
         bool *success_out) {
     assert_thread();
     new_mutex_acq_t mutex_acq(&mutex);
+    check_invariants(&mutex_acq);
 
     /* Raft paper, Figure 2: "If RPC request or response contains term T > currentTerm:
     set currentTerm = T, convert to follower" */
@@ -446,6 +453,7 @@ void raft_member_t<state_t, change_t>::on_watchdog_timer() {
         auto_drainer_t::lock_t keepalive(&drainer);
         coro_t::spawn_sometime([this, now, keepalive /* important to capture */]() {
             scoped_ptr_t<new_mutex_acq_t> mutex_acq(new new_mutex_acq_t(&mutex));
+            check_invariants(mutex_acq.get());
             /* Double-check that nothing has changed while the coroutine was spawning */
             if (mode != mode_t::follower) {
                 return;
@@ -453,9 +461,12 @@ void raft_member_t<state_t, change_t>::on_watchdog_timer() {
             if (last_heard_from_leader >= now - election_timeout_min_ms * 1000) {
                 return;
             }
-            /* If `ps.snapshot_configuration` is empty, we should assume that we are a
-            non-voting member, and not begin an election. */
+            /* If we're not a voting member, we shouldn't begin an election. If
+            `ps.snapshot_configuration` is empty, we assume we're not a voting member. */
             if (!static_cast<bool>(ps.snapshot_configuration)) {
+                return;
+            }
+            if (!get_configuration_ref().is_valid_leader(this_member_id)) {
                 return;
             }
             /* Begin an election */
@@ -604,6 +615,7 @@ void raft_member_t<state_t, change_t>::candidate_and_leader_coro(
     guarantee(mode == mode_t::follower);
     mutex_acq->assert_is_holding(&mutex);
     leader_keepalive.assert_is_holding(leader_drainer.get());
+    check_invariants(mutex_acq->get());
 
     /* Raft paper, Section 5.2: "To begin an election, a follower increments its current
     term and transitions to candidate state." */
@@ -703,18 +715,18 @@ void raft_member_t<state_t, change_t>::candidate_and_leader_coro(
 
             /* Check if there is a committed joint consensus configuration but no entry
             in the log for the second phase of the config change. If this is the case,
-            then we will add an entry. */
-            leader_start_reconfiguration_second_phase(
+            then we will add an entry. Also check if we have just committed a config in
+            which we are no longer leader, in which case we need to step down. */
+            leader_continue_reconfiguration(
                 mutex_acq.get(),
                 leader_keepalive.get_drain_signal());
-            
+
+            check_invariants(mutex_acq.get());
+
             /* Block until either a new entry is appended to the log or a new entry is
-            committed. If a new entry is appended to the log, it might be a new
-            configuration, so we need to re-run `leader_spawn_update_coros()` to reflect
-            the new configuration. If a new entry is committed, it might be the first
-            phase or a reconfiguration (i.e. a joint consensus), so we need to re-run
-            `leader_start_reconfiguration_second_phase()` to complete the
-            reconfiguration. */
+            committed. If a new entry is appended to the log, we might need to re-run
+            `leader_spawn_update_coros()`; if a new entry is committed, we might need to
+            re-run `leader_continue_reconfiguration()`. */
             {
                 cond_t cond;
                 set_insertion_sentry_t<cond_t *> cond_sentry(&change_watchers, &cond);
@@ -729,6 +741,8 @@ void raft_member_t<state_t, change_t>::candidate_and_leader_coro(
                 probably `candidate_or_leader_become_follower()` is holding the mutex. */
                 mutex_acq.init(new new_mutex_acq_t(&mutex));
             }
+
+            check_invariants(mutex_acq.get());
         }
 
     } catch (interrupted_exc_t) {
@@ -767,14 +781,14 @@ void raft_member_t<state_t, change_t>::candidate_run_election(
     /* Raft paper, Section 5.2: "[The candidate] issues RequestVote RPCs in
     parallel to each of the other servers in the cluster." */
     std::set<raft_member_id_t> peers = configuration.get_all_members();
-    auto_drainer_t request_vote_drainer;
+    scoped_ptr_t<auto_drainer_t> request_vote_drainer;
     for (const raft_member_id_t &peer : peers) {
         if (peer == this_member_id) {
             /* Don't request a vote from ourself */
             continue;
         }
 
-        auto_drainer_t::lock_t request_vote_keepalive(&request_vote_drainer);
+        auto_drainer_t::lock_t request_vote_keepalive(request_vote_drainer.get());
         coro_t::spawn_sometime([this, &configuration, &votes_for_us,
                 &we_won_the_election, &we_lost_the_election, peer,
                 request_vote_keepalive /* important to capture */]() {
@@ -810,6 +824,9 @@ void raft_member_t<state_t, change_t>::candidate_run_election(
                     }
 
                     new_mutex_acq_t mutex_acq(&mutex);
+                    /* We might soon be leader, but we shouldn't be leader quite yet */
+                    guarantee(mode == mode_t::candidate);
+                    check_invariants(mutex_acq.get());
 
                     if (candidate_or_leader_note_term(reply_term, &mutex_acq)) {
                         /* We got a response with a higher term than our current term.
@@ -854,6 +871,9 @@ void raft_member_t<state_t, change_t>::candidate_run_election(
     wait_interruptible(&we_won_the_election, interruptor);
 
     mutex_acq.init(new new_mutex_acq_t(&mutex));
+
+    /* Make sure that any ongoing request-vote coroutines stop */
+    request_vote_drainer.reset();
 
     mode = mode_t::leader;
 
@@ -925,6 +945,7 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
     guarantee(mode == mode_t::leader);
     guarantee(match_indexes->count(peer) == 1);
     scoped_ptr_t<new_mutex_acq_t> mutex_acq(new new_mutex_acq_t(&mutex));
+    check_invariants(mutex_acq.get());
     try {
         /* `next_index` corresponds to the entry for this peer in the `nextIndex` map
         described in Figure 2 of the Raft paper. */
@@ -1101,6 +1122,7 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
                 mutex_acq.reset();
                 wait_interruptible(&waiter, update_keepalive.get_drain_signal());
                 mutex_acq.init(new new_mutex_acq_t(&mutex));
+                check_invariants(mutex_acq.get());
 
                 if (heartbeat_timer.is_pulsed()) {
                     send_even_if_empty = true;
@@ -1115,12 +1137,13 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
 }
 
 template<class state_t, class change_t>
-void leader_start_reconfiguration_second_phase(
+void leader_continue_reconfiguration(
         const new_mutex_acq_t *mutex_acq,
         signal_t *interruptor) {
     mutex_acq->assert_is_holding(&mutex);
     guarantee(mode == mode_t::leader);
-    /* Check if we recently committed a joint consensus configuration */
+    /* Check if we recently committed a joint consensus configuration, or a configuration
+    in which we are no longer leader. */
     guarantee(static_cast<bool>(ps.snapshot_configuration));
     raft_complex_config_t committed_config = ps.snapshot_configuration;
     for (raft_log_index_t i = ps.log.prev_index + 1; i <= commit_index; ++i) {
@@ -1157,6 +1180,13 @@ void leader_start_reconfiguration_second_phase(
 
             leader_append_log_entry(new_entry, mutex_acq, interruptor);
         }
+    } else if (!committed_config.is_valid_leader(this_member_id)) {
+        /* Raft paper, Section 6: "...the leader steps down (returns to follower state)
+        once it has committed the C_new log entry."
+        `candidate_or_leader_note_term()` isn't designed for the purpose of making us
+        intentionally step down, but it contains all the right logic. This has a side
+        effect of incrementing `current_term`, but I don't think that's a problem. */
+        candidate_or_leader_note_term(ps.current_term + 1, mutex_acq);
     }
 }
 
@@ -1177,6 +1207,7 @@ bool raft_member_t<state_t, change_t>::candidate_or_leader_note_term(
         coro_t::spawn_sometime([this, local_current_term, term,
                 keepalive /* important to capture */]() {
             new_mutex_acq_t mutex_acq_2(&mutex);
+            check_invariants(&mutex_acq_2);
             /* Check that term hasn't already been updated between when
             `candidate_or_leader_note_term()` was called and when this coroutine ran */
             if (ps.current_term == local_current_term) {
@@ -1238,7 +1269,186 @@ const raft_complex_config_t &raft_member_t<state_t, change_t>::get_configuration
 template<class state_t, class change_t>
 void raft_member_t<state_t, change_t>::check_invariants(
         const new_mutex_acq_t *mutex_acq) {
-    /* RSI: Fill me in */
+    assert_thread();
+    mutex_acq->assert_is_holding(&mutex);
+
+    /* Some of these checks are copied directly from LogCabin's list of invariants. */
+
+    /* Checks related to being uninitialized */
+    if (!static_cast<bool>(ps.snapshot_state)) {
+        if (ps.current_term == 0) {
+            guarantee(ps.voted_for.is_nil(), "If current_term is 0, that should mean "
+                "we've never seen another peer, so we shouldn't have voted for anybody");
+        }
+        guarantee(!static_cast<bool>(ps.snapshot_configuration), "state and "
+            "configuration should be initialized together and propagated together");
+        guarantee(ps.log.prev_index == 0, "If we're uninitialized, we shouldn't have "
+            "committed any changes.");
+        guarantee(ps.log.entries.empty(), "If we're uninitialized, we shouldn't have "
+            "any log entries.");
+        guarantee(!static_cast<bool>(state_machine), "If we're uninitialized the state "
+            "machine shouldn't have done any transitions yet.");
+        guarantee(commit_index == 0, "If we're uninitialized we shouldn't have "
+            "committed any changes yet");
+        guarantee(last_applied == 0, "If we're uninitialized we shouldn't have applied "
+            "any changes yet");
+        guarantee(mode == mode_t::follower, "If we're uninitialized we shouldn't "
+            "participate in elections");
+        return;
+    }
+    guarantee(ps.current_term >= 1, "If we're initialized, we should have the initial "
+        "virtual term");
+    guarantee(static_cast<bool>(ps.snapshot_configuration, "state and configuration "
+        "should be initialized together and propagated together"));
+    guarantee(ps.log.prev_index >= 1, "If we're initialized, we should have the initial "
+        "virtual change");
+    guarantee(static_cast<bool>(state_machine), "If we're initialized, our state "
+        "machine should be initialized.");
+    guarantee(commit_index >= 1, "If we're initialized, we should have committed the "
+        "initial virtual change.");
+    guarantee(last_applied >= 1, "If we're initialized, we should have applied the "
+        "initial virtual change");
+
+    /* Checks related to the initial virtual term and initial virtual change */
+    if (ps.current_term == 1) {
+        guarantee(ps.voted_for.is_nil(), "If we're still in the initial virtual term, "
+            "nobody has started an election, so we shouldn't have voted for anybody.");
+        guarantee(ps.log.entries.empty(), "If we're still in the initial virtual term, "
+            "we shouldn't have any real log entries.");
+        guarantee(ps.log.prev_index == 1, "The log index of the initial virtual change "
+            "should be 1");
+        guarantee(commit_index == 1, "If we're still in the initial virtual term, we "
+            "shouldn't have committed anything but the initial virtual change.");
+        guarantee(last_applied == 1, "If we're still in the initial virtual term, we "
+            "shouldn't have applied anything but the initial virtual change.");
+        guarantee(mode == mode_t::follower, "If we're still in the initial virtual "
+            "term, there shouldn't have been an election, so we should be follower.");
+        guarantee(current_term_leader_id.is_nil(), "The initial virtual term shouldn't "
+            "have a leader.");
+    }
+    guarantee((ps.log.prev_index == 1) == (ps.log.prev_term == 1), "The initial virtual "
+        "change should be in the initial virtual term, but no other log entries should "
+        "be.");
+
+    /* Checks related to the log */
+    raft_term_t latest_term_in_log = ps.log.get_entry_term(ps.log.prev_index);
+    for (raft_log_index_t i = ps.log.prev_index; i <= ps.log.get_latest_index(); ++i) {
+        guarantee(ps.log.get_entry_ref(i).term > 1,
+            "There shouldn't be any real log entries in the initial virtual term.");
+        guarantee(ps.log.get_entry_ref(i).term >= latest_term_in_log,
+            "Terms of log entries should monotonically increase");
+        const raft_log_entry_t<change_t> &entry = ps.log.get_entry_ref(i);
+        latest_term_in_log = entry.term;
+
+        switch (entry.type) {
+        case raft_log_entry_t<change_t>::type_t::regular:
+            guarantee(static_cast<bool>(entry.change), "Regular log entries should "
+                "carry changes");
+            guarantee(!static_cast<bool>(entry.configuration), "Regular log entries "
+                "shouldn't carry configurations.");
+            break;
+        case raft_log_entry_t<change_t>::type_t::configuration:
+            guarantee(!static_cast<bool>(entry.change), "Configuration log entries "
+                "shouldn't carry changes");
+            guarantee(static_cast<bool>(entry.configuration), "Configuration log "
+                "entries should carry configurations.");
+            if (i > commit_index) {
+                if (entry.configuration->is_joint_consensus()) {
+                    ++num_joint_consensuses;
+                } else {
+                    ++num_regular_configurations;
+                }
+            }
+            break;
+        case raft_log_entry_t<change_t>::type_t::noop:
+            guarantee(!static_cast<bool>(entry.change), "Noop log entries shouldn't "
+                "carry changes");
+            guarantee(!static_cast<bool>(entry.configuration), "Noop log entries"
+                "shouldn't carry configurations.");
+            break;
+        default:
+            unreachable();
+        }
+    }
+    guarantee(latest_term_in_log <= ps.current_term, "There shouldn't be any log "
+        "entries with terms greater than current_term");
+
+    /* Checks related to reconfigurations */
+    raft_complex_config_t committed_config = ps.snapshot_config;
+    size_t uncommitted_config_1s = 0, uncommitted_config_2s = 0;
+    for (raft_log_index_t i = ps.log.prev_index; i <= ps.log.get_latest_index(); ++i) {
+        const raft_log_entry_t<change_t> &entry = ps.log.get_entry_ref(i);
+        if (entry.type != raft_log_entry_t<change_t>::type_t::configuration) {
+            continue;
+        }
+        if (i <= commit_index) {
+            committed_config = *entry.configuration;
+        } else {
+            if (entry.configuration->is_joint_consensus()) {
+                ++uncommitted_config_1s;
+            } else {
+                ++uncommitted_config_2s;
+            }
+        }
+    }
+    if (committed_config.is_joint_consensus()) {
+        guarantee(uncommitted_config_1s == 0, "We shouldn't have two overlapping "
+            "reconfigurations going on at once");
+        guarantee(uncommitted_config_2s <= 1, "We shouldn't have two overlapping "
+            "reconfigurations going on at once");
+    } else {
+        guarantee(uncommitted_config_1s <= 1, "We shouldn't have two overlapping "
+            "reconfigurations going on at once");
+        guarantee(uncommitted_config_2s == 0, "It's unsafe to go directly from a "
+            "non-joint-consensus configuration to a non-joint-consensus configuration");
+    }
+
+    /* Checks related to the state machine and commits */
+    guarantee(commit_index >= ps.log.prev_index, "All of the log entries in the "
+        "snapshot should be committed.");
+    guarantee(last_applied <= commit_index, "We shouldn't have applied any changes to "
+        "the state machine that weren't committed.");
+    guarantee(commit_index <= ps.log.get_latest_index(), "We shouldn't have committed "
+        "any entries that aren't in the log yet.");
+    /* These are properties that this implementation follows, but they aren't essential
+    to Raft, and it would be totally reasonable to change them for performance reasons or
+    something. */
+    guarantee(last_applied == commit_index, "The implementation is supposed to apply "
+        "changes to the state machine as soon as they're committed.");
+    guarantee(ps.log.prev_index == last_applied, "The implementation is supposed to "
+        "snapshot changes as soon as they're applied");
+
+    /* Checks related to the follower/candidate/leader roles */
+    guarantee((mode == mode_t::leader) == (current_term_leader_id == this_member_id),
+        "mode should say we're leader iff current_term_leader_id says we're leader");
+    if (latest_term_in_log == ps.current_term) {
+        guarantee(!current_term_leader_id.is_nil(), "If we have changes for the "
+            "current term, we should have a leader for the current term.");
+    }
+    guarantee(leader_drainer.has() == (mode == mode_t::follower),
+        "candidate_and_leader_coro() should be running unless we're a follower");
+    if (mode != mode_t::leader) {
+        guarantee(update_watchers.empty(), "We shouldn't be using `update_watchers` "
+            "unless we're a leader.");
+    }
+    switch (mode) {
+    case mode_t::follower:
+        break;
+    case mode_t::candidate:
+        guarantee(current_term_leader_id.is_nil(), "if we have a leader we shouldn't be "
+            "having an election");
+        guarantee(ps.voted_for == this_member_id, "if we're a candidate we should have "
+            "voted for ourself");
+        break;
+    case mode_t::leader:
+        guarantee(ps.voted_for == this_member_id, "if we're a leader we should have "
+            "voted for ourself");
+        guarantee(latest_term_in_log == ps.current_term, "if we're a leader we should "
+            "have put at least the initial noop entry in the log");
+        break;
+    default:
+        unreachable();
+    }
 }
 
 #endif /* CLUSTERING_GENERIC_RAFT_CORE_TCC_ */
