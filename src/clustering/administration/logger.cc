@@ -26,6 +26,7 @@ std::string format_log_level(log_level_t l) {
     switch (l) {
         case log_level_debug: return "debug";
         case log_level_info: return "info";
+        case log_level_notice: return "notice";
         case log_level_warn: return "warn";
         case log_level_error: return "error";
         default: unreachable();
@@ -57,7 +58,9 @@ std::string format_log_message(const log_message_t &m, bool for_console) {
                             m.uptime.tv_nsec / THOUSAND,
                             format_log_level(m.level).c_str());
     } else {
-        prepend = strprintf("%s: ", format_log_level(m.level).c_str());
+        if (m.level != log_level_info) {
+            prepend = strprintf("%s: ", format_log_level(m.level).c_str());
+        }
     }
     ssize_t prepend_length = prepend.length();
 
@@ -337,21 +340,37 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
     std::string formatted = format_log_message(msg);
     std::string console_formatted = format_log_message(msg, true);
 
-    flockfile(stderr);
+    FILE* write_stream = nullptr;
+    int fileno = -1;
+    switch (msg.level) {
+        case log_level_info:
+        case log_level_notice:
+            write_stream = stdout;
+            fileno = STDOUT_FILENO;
+            break;
+        case log_level_debug:
+        case log_level_warn:
+        case log_level_error:
+        default:
+            write_stream = stderr;
+            fileno = STDERR_FILENO;
+    }
 
-    ssize_t write_res = ::write(STDERR_FILENO, console_formatted.data(), console_formatted.length());
+    flockfile(write_stream);
+
+    ssize_t write_res = ::write(fileno, console_formatted.data(), console_formatted.length());
     if (write_res != static_cast<ssize_t>(console_formatted.length())) {
-        error_out->assign("cannot write to standard error: " + errno_string(get_errno()));
+        error_out->assign("cannot write to write stream: " + errno_string(get_errno()));
         return false;
     }
 
-    int res = fsync(STDERR_FILENO);
+    int res = fsync(fileno);
     if (res != 0 && !(get_errno() == EROFS || get_errno() == EINVAL)) {
-        error_out->assign("cannot flush stderr: " + errno_string(get_errno()));
+        error_out->assign("cannot flush output stream: " + errno_string(get_errno()));
         return false;
     }
 
-    funlockfile(stderr);
+    funlockfile(write_stream);
 
     if (fd.get() == INVALID_FD) {
         error_out->assign("cannot open or find log file");

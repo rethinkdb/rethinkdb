@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string>
 
-enum log_level_t { log_level_debug = 0, log_level_info = 1, log_level_warn, log_level_error };
+enum log_level_t { log_level_debug = 0, log_level_info = 1, log_level_notice, log_level_warn, log_level_error };
 
 /* These functions are implemented in `clustering/administration/logger.cc`.
 This header file exists so that anything can call them without having to include
