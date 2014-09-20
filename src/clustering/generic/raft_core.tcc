@@ -3,6 +3,73 @@
 #define CLUSTERING_GENERIC_RAFT_CORE_TCC_
 
 template<class state_t, class change_t>
+raft_persistent_state_t<state_t, change_t>
+raft_persistent_state_t<state_t, change_t>::make_initial(
+        const state_t &initial_state,
+        const raft_config_t &initial_config) {
+    raft_persistent_state_t<state_t, change_t> ps;
+    /* The Raft paper indicates that `current_term` should be initialized to 0 and the
+    first log index is 1. However, we initialize `current_term` to 1 and the first log
+    entry will have index 2. We reserve term 1 and log index 1 for a "virtual" log entry
+    that sets `initial_state` and `initial_configuration`. This ensures that when a
+    member joins the cluster with a state created by `make_join()`, the initial state
+    will be correctly transferred to it. In effect, we are constructing a
+    `raft_persistent_state_t` in which one change has already been committed. */
+    ps.current_term = 1;
+    ps.voted_for = nil_uuid();
+    ps.snapshot_state = boost::optional<state_t>(initial_state);
+    ps.snapshot_configuration =
+        boost::optional<raft_complex_config_t>(initial_configuration);
+    ps.log.prev_index = 1;
+    ps.log.prev_term = 1;
+    return ps;
+}
+
+template<class state_t, class change_t>
+raft_persistent_state_t<state_t, change_t>
+raft_persistent_state_t<state_t, change_t>::make_join() {
+    raft_persistent_state_t<state_t, change_t> ps;
+    /* Here we initialize `current_term` to 0 and the first log index to 1, as the Raft
+    paper says to. */
+    ps.current_term = 0;
+    ps.voted_for = nil_uuid();
+    ps.snapshot_state = boost::optional<state_t>();
+    ps.snapshot_configuration = boost::optional<raft_complex_config_t>();
+    ps.log.prev_index = 0;
+    /* We don't initialize `ps.log.prev_term`; it shouldn't ever be used. */
+    return ps;
+}
+
+template<class state_t, class change_t>
+raft_member_t<state_t, change_t>::raft_member_t(
+        const raft_member_id_t &_this_member_id,
+        raft_network_and_storage_interface_t *_interface,
+        const raft_persistent_state_t<state_t, change_t> &_persistent_state) :
+    this_member_id(_this_member_id),
+    interface(_interface),
+    ps(_persistent_state),
+    /* Restore state machine from snapshot */
+    state_machine(ps.snapshot_state),
+    /* We initialize `commit_index` and `last_applied` to the last commit that was stored
+    in the snapshot so they will be consistent with the state of the state machine. */
+    commit_index(ps.log.prev_index),
+    last_applied(ps.log.prev_index),
+    /* Raft paper, Section 5.2: "When servers start up, they begin as followers." */
+    mode(mode_t::follower),
+    current_term_leader_id(nil_uuid()),
+    /* Set this so we start an election if we don't hear from a leader within an election
+    timeout of when the constructor was called */
+    last_heard_from_leader(current_microtime()),
+    /* Setting the `watchdog_timer` to ring every `election_timeout_min_ms` means that
+    we'll start a new election after between 1 and 2 election timeouts have passed. This
+    is OK. */
+    watchdog_timer(election_timeout_min_ms, [this] () { this->on_watchdog_timer(); })
+{
+    new_mutex_acq_t mutex_acq(&mutex);
+    check_invariants(&mutex_acq);
+}
+
+template<class state_t, class change_t>
 bool raft_member_t<state_t, change_t>::propose_change_if_leader(
         const change_t &change,
         signal_t *interruptor) {
@@ -18,9 +85,7 @@ bool raft_member_t<state_t, change_t>::propose_change_if_leader(
     new_entry.change = boost::optional<change_t>(change);
     new_entry.term = ps.current_term;
 
-    leader_append_log_entry(new_entry, &mutex_acq);
-
-    /* RSI: Wait for change to be committed */
+    leader_append_log_entry(new_entry, &mutex_acq, interruptor);
 }
 
 template<class state_t, class change_t>
@@ -34,7 +99,7 @@ bool raft_member_t<state_t, change_t>::propose_config_change_if_leader(
         return false;
     }
 
-    raft_complex_config_t old_complex_config = get_configuration();
+    raft_complex_config_t old_complex_config = get_configuration_ref();
     if (old_complex_config.is_joint_consensus()) {
         /* We forbid starting a new config change before the old one is done. The Raft
         paper doesn't explicitly say anything about multiple interleaved configuration
@@ -52,10 +117,7 @@ bool raft_member_t<state_t, change_t>::propose_config_change_if_leader(
     new_entry.configuration = boost::optional<raft_complex_config_t>(new_complex_config);
     new_entry.term = ps.current_term;
 
-    leader_append_log_entry(new_entry, &mutex_acq);
-
-    /* RSI: Wait for change to be committed, and for the commit it spawned to be
-    committed too (maybe?) */
+    leader_append_log_entry(new_entry, &mutex_acq, interruptor);
 }
 
 template<class state_t, class change_t>
@@ -69,6 +131,20 @@ void raft_member_t<state_t, change_t>::on_request_vote(
         bool *vote_granted_out) {
     assert_thread();
     new_mutex_acq_t mutex_acq(&mutex);
+
+    /* Raft paper, Section 6: "Servers disregard RequestVote RPCs when they believe a
+    current leader exists... Specifically, if a server receives a RequestVote RPC within
+    the minimum election timeout of hearing from a current leader, it does not update its
+    term or grant its vote."
+    Note that if we are a leader, we disregard all RequestVote RPCs, because we
+    believe that a current leader (us) exists. */
+    if (mode == mode_t::leader ||
+            (mode == mode_t::follower && current_microtime() <
+                last_heard_from_leader + election_timeout_min_ms * 1000)) {
+        *term_out = ps.current_term;
+        *vote_granted_out = false;
+        return;
+    }
 
     /* Raft paper, Figure 2: If RPC request or response contains term T > currentTerm:
     set currentTerm = T, convert to follower */
@@ -88,11 +164,17 @@ void raft_member_t<state_t, change_t>::on_request_vote(
     }
 
     /* Sanity checks, not explicitly described in the Raft paper. */
-    guarantee(candidate_id != member_id, "We shouldn't be requesting a vote from "
+    guarantee(candidate_id != this_member_id, "We shouldn't be requesting a vote from "
         "ourself.");
     if (mode != mode_t::follower) {
-        guarantee(voted_for == member_id, "We should have voted for ourself already.");
+        guarantee(voted_for == this_member_id, "We should have voted for ourself "
+            "already.");
     }
+
+    /* Raft paper, Section 5.2: "A server remains in follower state as long as it
+    receives valid RPCs from a leader or candidate."
+    So candidate RPCs are sufficient to delay the watchdog timer. */
+    last_heard_from_leader = current_microtime();
 
     /* Raft paper, Figure 2: "If votedFor is null or candidateId, and candidate's log is
     at least as up-to-date as receiver's log, grant vote */
@@ -178,19 +260,25 @@ void raft_member_t<state_t, change_t>::on_install_snapshot(
     RPC from another member that thinks it's leader. */
     guarantee(mode != mode_t::leader);
 
+    /* Raft paper, Section 5.2: "A server remains in follower state as long as it
+    receives valid RPCs from a leader or candidate."
+    So we should make a note that we received an RPC. */
+    last_heard_from_leader = current_microtime();
+
     mutex_assertion_t::acq_t log_mutex_acq(&log_mutex);
 
     /* Raft paper, Figure 13: "Save snapshot file"
-    Remember that `log.prev_log_index` and `log.prev_log_term` correspond to the snapshot
+    Remember that `log.prev_index` and `log.prev_term` correspond to the snapshot
     metadata. */
-    ps.snapshot_state = snapshot_state;
-    ps.snapshot_configuration = snapshot_configuration;
-    ps.log.prev_log_index = last_included_index;
-    ps.log.prev_log_term = last_included_term;
+    ps.snapshot_state = boost::optional<state_t>(snapshot_state);
+    ps.snapshot_configuration =
+        boost::optional<raft_complex_config_t>(snapshot_configuration);
+    ps.log.prev_index = last_included_index;
+    ps.log.prev_term = last_included_term;
 
     /* Raft paper, Figure 13: "If existing log entry has same index and term as
     snapshot's last included entry, retain log entries following it and reply" */
-    if (last_included_index <= ps.log.prev_log_index) {
+    if (last_included_index <= ps.log.prev_index) {
         /* The proposed snapshot starts at or before our current snapshot. It's
         impossible to check if an existing log entry has the same index and term because
         the snapshot's last included entry is before our most recent entry. But if that's
@@ -207,17 +295,17 @@ void raft_member_t<state_t, change_t>::on_install_snapshot(
     ps.log.entries.clear();
 
     /* Raft paper, Figure 13: "Reset state machine using snapshot contents" */
-    state_machine = ps.snapshot;
-    commit_index = last_applied = ps.log.prev_log_index;
+    state_machine = ps.snapshot_state;
+    commit_index = last_applied = ps.log.prev_index;
 
-    /* Recall that `this_term_leader_id` is set to `nil_uuid()` if we haven't seen a
+    /* Recall that `current_term_leader_id` is set to `nil_uuid()` if we haven't seen a
     leader yet this term. */
-    if (this_term_leader_id.is_nil()) {
-        this_term_leader_id = leader_id;
+    if (current_term_leader_id.is_nil()) {
+        current_term_leader_id = leader_id;
     } else {
         /* Raft paper, Section 5.2: "at most one candidate can win the election for a
         particular term" */
-        guarantee(this_term_leader_id == leader_id);
+        guarantee(current_term_leader_id == leader_id);
     }
 
     /* Raft paper, Figure 2: "Persistent state [is] updated on stable storage before
@@ -276,12 +364,17 @@ void raft_member_t<state_t, change_t>::on_append_entries_rpc(
     RPC from another member that thinks it's leader. */
     guarantee(mode != mode_t::leader);
 
+    /* Raft paper, Section 5.2: "A server remains in follower state as long as it
+    receives valid RPCs from a leader or candidate."
+    So we should make a note that we received an RPC. */
+    last_heard_from_leader = current_microtime();
+
     mutex_assertion_t::acq_t log_mutex_acq(&log_mutex);
 
     /* Raft paper, Figure 2: "Reply false if log doesn't contain an entry at prevLogIndex
     whose term matches prevLogTerm" */
-    if (entries.prev_log_index > ps.log.get_latest_index() ||
-            ps.log.get_entry_term(prev_log_index) != entries.prev_log_term) {
+    if (entries.prev_index > ps.log.get_latest_index() ||
+            ps.log.get_entry_term(prev_index) != entries.prev_term) {
         *term_out = current_term;
         *success_out = false;
         return;
@@ -289,7 +382,7 @@ void raft_member_t<state_t, change_t>::on_append_entries_rpc(
 
     /* Raft paper, Figure 2: "If an existing entry conflicts with a new one (same index
     but different terms), delete the existing entry and all that follow it" */
-    for (raft_log_index_t i = entries.prev_log_index + 1;
+    for (raft_log_index_t i = entries.prev_index + 1;
             i <= min(ps.log.get_latest_index(), entries.get_latest_index());
             ++i) {
         if (log.get_entry_term(i) != entries.get_entry_term(i)) {
@@ -311,14 +404,14 @@ void raft_member_t<state_t, change_t>::on_append_entries_rpc(
         update_commit_index(min(leader_commit, entries.get_latest_index()), &mutex_acq);
     }
 
-    /* Recall that `this_term_leader_id` is set to `nil_uuid()` if we haven't seen a
+    /* Recall that `current_term_leader_id` is set to `nil_uuid()` if we haven't seen a
     leader yet this term. */
-    if (this_term_leader_id.is_nil()) {
-        this_term_leader_id = leader_id;
+    if (current_term_leader_id.is_nil()) {
+        current_term_leader_id = leader_id;
     } else {
         /* Raft paper, Section 5.2: "at most one candidate can win the election for a
         particular term" */
-        guarantee(this_term_leader_id == leader_id);
+        guarantee(current_term_leader_id == leader_id);
     }
 
     /* Raft paper, Figure 2: "Persistent state [is] updated on stable storage before
@@ -327,6 +420,53 @@ void raft_member_t<state_t, change_t>::on_append_entries_rpc(
 
     *term_out = current_term;
     *success_out = true;
+}
+
+template<class state_t, class change_t>
+void raft_member_t<state_t, change_t>::on_watchdog_timer() {
+    if (mode != mode_t::follower) {
+        /* If we're already a candidate or leader, there's no need for this. Candidates
+        have their own mechanism for retrying stuck elections. */
+        return;
+    }
+    microtime_t now = current_microtime();
+    if (last_heard_from_leader > now) {
+        /* System clock went in reverse. This is possible because `current_microtime()`
+        estimates wall-clock time, not real time. Reset `last_heard_from_leader` to
+        ensure that we'll still start an election in a reasonable amount of time if we
+        don't hear from a leader. */
+        last_heard_from_leader = now;
+        return;
+    }
+    /* Raft paper, Section 5.2: "If a follower receives no communication over a period of
+    time called the election timeout, then it assumes there is no viable leader and
+    begins an election to choose a new leader." */
+    if (last_heard_from_leader < now - election_timeout_min_ms * 1000) {
+        /* We shouldn't block in this callback, so we immediately spawn a coroutine */
+        auto_drainer_t::lock_t keepalive(&drainer);
+        coro_t::spawn_sometime([this, now, keepalive /* important to capture */]() {
+            scoped_ptr_t<new_mutex_acq_t> mutex_acq(new new_mutex_acq_t(&mutex));
+            /* Double-check that nothing has changed while the coroutine was spawning */
+            if (mode != mode_t::follower) {
+                return;
+            }
+            if (last_heard_from_leader >= now - election_timeout_min_ms * 1000) {
+                return;
+            }
+            /* If `ps.snapshot_configuration` is empty, we should assume that we are a
+            non-voting member, and not begin an election. */
+            if (!static_cast<bool>(ps.snapshot_configuration)) {
+                return;
+            }
+            /* Begin an election */
+            guarantee(!leader_drainer.has());
+            leader_drainer.init(new auto_drainer_t);
+            coro_t::spawn_sometime(boost::bind(
+                &raft_member_t<state_t, change_t>::candidate_and_leader_coro,
+                mutex_acq.release(),
+                auto_drainer_t::lock_t(leader_drainer.get())));
+        });
+    }
 }
 
 template<class state_t, class change_t>
@@ -343,11 +483,8 @@ void raft_member_t<state_t, change_t>::update_term(
     update `voted_for`. */
     ps.voted_for = nil_uuid();
 
-    /* The same logic applies to `this_term_leader_id`. */
-    this_term_leader_id = nil_uuid();
-
-    /* RSI: Ensure that we flush to stable storage, because we updated `ps.voted_for` and
-    `ps.current_term` */
+    /* The same logic applies to `current_term_leader_id`. */
+    current_term_leader_id = nil_uuid();
 }
 
 template<class state_t, class change_t>
@@ -365,7 +502,8 @@ void raft_member_t<state_t, change_t>::update_commit_index(
         ++last_applied;
         if (ps.log.get_entry_ref(last_applied).type ==
                 raft_log_entry_t<change_t>::type_t::regular) {
-            state_machine.apply_change(*ps.log.get_entry_ref(last_applied).change);
+            guarantee(static_cast<bool>(state_machine));
+            state_machine->apply_change(*ps.log.get_entry_ref(last_applied).change);
         }
     }
 
@@ -373,17 +511,19 @@ void raft_member_t<state_t, change_t>::update_commit_index(
     implementation currently snapshots after every change. If the `state_t` ever becomes
     large enough that flushing it to disk is expensive, we could delay snapshotting until
     many changes have accumulated. */
-    if (last_applied > ps.log.prev_log_index) {
+    if (last_applied > ps.log.prev_index) {
         ps.snapshot_state = state_machine;
-        for (raft_log_index_t i = ps.log.prev_log_index + 1; i <= last_applied; ++i) {
+        for (raft_log_index_t i = ps.log.prev_index + 1; i <= last_applied; ++i) {
             if (ps.log.get_entry_ref(i).type ==
                     raft_log_entry_T<change_t>::type_t::configuration) {
-                ps.snapshot_configuration = *ps.log.get_entry_ref(i).configuration;
+                ps.snapshot_configuration =
+                    boost::optional<raft_complex_config_t>(
+                        *ps.log.get_entry_ref(i).configuration);
             }
         } 
-        /* This automatically updates `ps.log.prev_log_index` and `ps.log.prev_log_term`,
-        which are equivalent to the "last included index" and "last included term"
-        described in Section 7 of the Raft paper. */
+        /* This automatically updates `ps.log.prev_index` and `ps.log.prev_term`, which
+        are equivalent to the "last included index" and "last included term" described in
+        Section 7 of the Raft paper. */
         ps.log.delete_entries_to(last_applied);
     }
 
@@ -396,19 +536,16 @@ void raft_member_t<state_t, change_t>::update_commit_index(
     for (cond_t *cond : update_watchers) {
         cond->pulse_if_not_already_pulsed();
     }
-
-    /* RSI: Ensure that we flush to stable storage. */
 }
-
-/* RSI: Ensure that we flush to stable storage whenever we make changes to ps, even
-outside of an RPC reply method. */
 
 template<class state_t, class change_t>
 void raft_member_t<state_t, change_t>::leader_update_match_index(
         std::map<raft_member_id_t, raft_log_index_t> *match_index,
         raft_member_id_t key,
         raft_log_index_t new_value,
-        const new_mutex_acq_t *mutex_acq) {
+        const new_mutex_acq_t *mutex_acq,
+        signal_t *interruptor) {
+    guarantee(mode == mode_t::leader);
     mutex_acq->assert_is_holding(&mutex);
 
     auto it = match_index->find(key)
@@ -416,7 +553,7 @@ void raft_member_t<state_t, change_t>::leader_update_match_index(
     guarantee(it->second <= new_value);
     it->second = new_value;
 
-    raft_complex_config_t configuration = get_configuration();
+    raft_complex_config_t configuration = get_configuration_ref();
 
     /* Raft paper, Figure 2: "If there exists an N such that N > commitIndex, a majority
     of matchIndex[i] >= N, and log[N].term == currentTerm: set commitIndex = N" */
@@ -441,6 +578,7 @@ void raft_member_t<state_t, change_t>::leader_update_match_index(
     }
     if (new_commit_index != commit_index) {
         update_commit_index(new_commit_index, mutex_acq);
+        interface->write_persistent_state(ps, interruptor);
     }
 }
 
@@ -459,48 +597,36 @@ void raft_member_t<state_t, change_t>::candidate_or_leader_become_follower(
 }
 
 template<class state_t, class change_t>
-void raft_member_t<state_t, change_t>::follower_become_candidate(
-        const new_mutex_acq_t *mutex_acq) {
-    mutex_acq->assert_is_holding(&mutex);
-    guarantee(mode == mode_t::follower);
-    guarantee(!leader_drainer.has());
-    leader_drainer.init(new auto_drainer_t);
-    cond_t pulse_when_done_with_setup;
-    coro_t::spawn_sometime(boost::bind(&raft_member_t::candidate_and_leader_coro, this,
-        mutex_acq,
-        &pulse_when_done_with_setup,
-        auto_drainer_t::lock_t(leader_drainer.get())));
-}
-
-template<class state_t, class change_t>
 void raft_member_t<state_t, change_t>::candidate_and_leader_coro(
-        const new_mutex_acq_t *mutex_acq_for_setup,
-        cond_t *pulse_when_done_with_setup,        
+        new_mutex_acq_t *mutex_acq_on_heap,
         auto_drainer_t::lock_t leader_keepalive) {
+    scoped_ptr_t<new_mutex_acq_t> mutex_acq(mutex_acq_on_heap);
     guarantee(mode == mode_t::follower);
-    keepalive.assert_is_holding(drainer.get());
-    mutex_acq_for_setup->assert_is_holding(&mutex);
+    mutex_acq->assert_is_holding(&mutex);
+    leader_keepalive.assert_is_holding(leader_drainer.get());
 
     /* Raft paper, Section 5.2: "To begin an election, a follower increments its current
     term and transitions to candidate state." */
-    update_term(ps.current_term + 1, mutex_acq_for_setup);
+    update_term(ps.current_term + 1, mutex_acq.get());
+    /* `update_term()` changed `ps`, but we don't need to flush to stable storage
+    immediately, because `candidate_run_election()` will do it. */
+
     mode = mode_t::candidate;
 
     /* While we're candidate or leader, we'll never update our log in response to an RPC.
     */
     mutex_assertion_t::acq_t log_mutex_acq(&log_mutex);
 
-    pulse_when_done_with_setup->pulse();   /* let `follower_become_candidate()` return */
-    mutex_acq_for_setup = NULL;
-    scoped_ptr_t<new_mutex_acq_t> mutex_acq(new new_mutex_acq_t(&mutex));
-
     /* This `try` block is to catch `interrupted_exc_t` */
     try {
         /* The first election won't necessarily succeed. So we loop until either we
         become leader or we are interrupted. */
         while (true) {
-            /* RSI: Randomize election timeouts */
-            signal_timer_t election_timeout(100);   /* RSI: tune this number */
+            signal_timer_t election_timeout(
+                /* Choose a random timeout between `election_timeout_min_ms` and
+                `election_timeout_max_ms`. */
+                election_timeout_min_ms +
+                    randuint64(election_timeout_max_ms - election_timeout_min_ms));
             election_timeout.start();
             try {
                 wait_any_t interruptor(
@@ -533,6 +659,15 @@ void raft_member_t<state_t, change_t>::candidate_and_leader_coro(
         /* We got elected. */
         guarantee(mode == mode_t::leader);
 
+        guarantee(current_term_leader_id.is_nil());
+        current_term_leader_id = this_member_id;
+
+        /* Raft paper, Section 5.3: "When a leader first comes to power, it initializes
+        all nextIndex values to the index just after the last one in its log"
+        It's important to do this before we append the no-op to the log, so that we
+        replicate the no-op on the first try instead of having to try twice. */
+        raft_log_index_t initial_next_index = ps.log.get_latest_index() + 1;
+
         /* Raft paper, Section 8: "[Raft has] each leader commit a blank no-op entry into
         the log at the start of its term."
         This is to ensure that we'll commit any entries that are possible to commit,
@@ -542,7 +677,8 @@ void raft_member_t<state_t, change_t>::candidate_and_leader_coro(
             raft_log_entry_t<change_t> new_entry;
             new_entry.type = raft_log_entry_t<change_t>::type_t::noop;
             new_entry.term = ps.current_term;
-            leader_append_log_entry(log_entry, mutex_acq.get());
+            leader_append_log_entry(log_entry, mutex_acq.get(),
+                leader_keepalive.get_drain_signal());
         }
 
         /* `match_indexes` corresponds to the `matchIndex` array described in Figure 2 of
@@ -559,12 +695,18 @@ void raft_member_t<state_t, change_t>::candidate_and_leader_coro(
             `leader_send_updates()` will then take care of sending append-entries RPCs to
             the other members of the cluster, including the initial empty append-entries
             RPC. */
-            leader_spawn_update_coros(&match_indexes, &update_drainers, mutex_acq.get());
+            leader_spawn_update_coros(
+                initial_next_index,
+                &match_indexes,
+                &update_drainers,
+                mutex_acq.get());
 
             /* Check if there is a committed joint consensus configuration but no entry
             in the log for the second phase of the config change. If this is the case,
             then we will add an entry. */
-            leader_start_reconfiguration_second_phase(mutex_acq.get());
+            leader_start_reconfiguration_second_phase(
+                mutex_acq.get(),
+                leader_keepalive.get_drain_signal());
             
             /* Block until either a new entry is appended to the log or a new entry is
             committed. If a new entry is appended to the log, it might be a new
@@ -604,26 +746,30 @@ void raft_member_t<state_t, change_t>::candidate_run_election(
     (*mutex_acq)->assert_is_holding(&mutex);
     guarantee(mode == mode_t::candidate);
 
-    raft_complex_config_t configuration = get_configuration();
+    raft_complex_config_t configuration = get_configuration_ref();
 
     std::set<raft_member_id_t> votes_for_us;
     cond_t we_won_the_election;
 
     /* Raft paper, Section 5.2: "It then votes for itself." */
-    ps.voted_for = member_id;
-    votes_for_us.insert(member_id);
+    ps.voted_for = this_member_id;
+    votes_for_us.insert(this_member_id);
     if (configuration.is_quorum(votes_for_us)) {
         /* In some degenerate cases, like if the cluster has only one node, then
         our own vote might be enough to be elected. */
         we_won_the_election.pulse();
     }
 
+    /* Flush to stable storage so we don't forget we voted for ourself. I'm not sure if
+    this is strictly necessary. */
+    interface->write_persistent_state(ps, leader_keepalive.get_drain_signal());
+
     /* Raft paper, Section 5.2: "[The candidate] issues RequestVote RPCs in
     parallel to each of the other servers in the cluster." */
     std::set<raft_member_id_t> peers = configuration.get_all_members();
     auto_drainer_t request_vote_drainer;
     for (const raft_member_id_t &peer : peers) {
-        if (peer == member_id) {
+        if (peer == this_member_id) {
             /* Don't request a vote from ourself */
             continue;
         }
@@ -636,32 +782,57 @@ void raft_member_t<state_t, change_t>::candidate_run_election(
                 /* Send the RPC and wait for a response */
                 raft_term_t reply_term;
                 bool reply_vote_granted;
-                interface->send_request_vote_rpc(
-                    peer,
-                    ps.current_term,
-                    member_id,
-                    ps.log.get_latest_index(),
-                    ps.log.get_entry_term(ps.log.get_latest_index()),
-                    request_vote_keepalive.get_drain_signal(),
-                    &reply_term,
-                    &reply_vote_granted);
 
-                new_mutex_acq_t mutex_acq(&mutex);
+                while (true) {
+                    /* Don't bother trying to send an RPC until the peer is connected */
+                    interface->get_connected_members()->run_until_satisfied(
+                        [&](const std::set<raft_member_id_t> &peers) {
+                            return peers.count(peer) == 1;
+                        }, request_vote_keepalive.get_drain_signal());
 
-                if (candidate_or_leader_note_term(reply_term, &mutex_acq)) {
-                    /* We got a response with a higher term than our current term.
-                    `candidate_and_leader_coro()` will be interrupted soon. */
-                    return;
-                }
-
-                if (vote_granted) {
-                    votes.insert(peer);
-                    /* Raft paper, Section 5.2: "A candidate wins an election if it
-                    receives votes from a majority of the servers in the full cluster for
-                    the same term." */
-                    if (configuration.is_quorum(votes)) {
-                        we_won_the_election->pulse_if_not_already_pulsed();
+                    /* It's safe to pass `ps.*` by reference to `send_request_vote_rpc()`
+                    because they can't change while we're in candidate state, and the
+                    only way for us to exit candidate state is for `request_vote_drainer`
+                    to be destroyed first. */
+                    bool ok = interface->send_request_vote_rpc(
+                        peer,
+                        ps.current_term,
+                        this_member_id,
+                        ps.log.get_latest_index(),
+                        ps.log.get_entry_term(ps.log.get_latest_index()),
+                        request_vote_keepalive.get_drain_signal(),
+                        &reply_term,
+                        &reply_vote_granted);
+                    if (!ok) {
+                        /* Raft paper, Section 5.1: "Servers retry RPCs if they do not
+                        receive a response in a timely manner" */
+                        continue;
                     }
+
+                    new_mutex_acq_t mutex_acq(&mutex);
+
+                    if (candidate_or_leader_note_term(reply_term, &mutex_acq)) {
+                        /* We got a response with a higher term than our current term.
+                        `candidate_and_leader_coro()` will be interrupted soon. */
+                        return;
+                    }
+
+                    if (vote_granted) {
+                        votes.insert(peer);
+                        /* Raft paper, Section 5.2: "A candidate wins an election if it
+                        receives votes from a majority of the servers in the full cluster
+                        for the same term." */
+                        if (configuration.is_quorum(votes)) {
+                            we_won_the_election->pulse_if_not_already_pulsed();
+                        }
+                        break;
+                    }
+
+                    /* If they didn't grant the vote, just keep pestering them until they
+                    do or we are interrupted. This is necessary because followers will
+                    temporarily reject votes if they have heard from a current leader
+                    recently, so they might reject a vote and then later accept it in the
+                    same term. */
                 }
 
             } catch (interrupted_exc_t) {
@@ -692,20 +863,24 @@ void raft_member_t<state_t, change_t>::candidate_run_election(
 
 template<class state_t, class change_t>
 void leader_spawn_update_coros(
+        raft_log_index_t initial_next_index,
         std::map<raft_member_id_t, raft_log_index_t> *match_indexes,
         std::map<raft_member_id_t, scoped_ptr_t<auto_drainer_t> > *update_drainers,
         const new_mutex_acq_t *mutex_acq) {
+    mutex_acq->assert_is_holding(&mutex);
+    guarantee(mode == mode_t::leader);
+
     /* Calculate the new configuration */
-    raft_complex_config_t configuration = get_configuration();
+    raft_complex_config_t configuration = get_configuration_ref();
     std::set<raft_member_id_t> peers = configuration.get_all_members();
 
     /* Spawn coroutines as necessary */
     for (const raft_member_id_t &peer : peers) {
-        if (peer == member_id) {
+        if (peer == this_member_id) {
             /* We don't need to send updates to ourself */
             continue;
         }
-        if (update_drainers.count(member_id) == 1) {
+        if (update_drainers.count(peer) == 1) {
             /* We already have a coroutine for this one */
             continue;
         }
@@ -717,10 +892,7 @@ void leader_spawn_update_coros(
         update_drainers.emplace(peer, std::move(update_drainer));
         coro_t::spawn_sometime(boost::bind(&raft_member_t::leader_send_updates, this,
             peer,
-            /* Raft paper, Section 5.3: "When a leader first comes to power, it
-            initializes all nextIndex values to the index just after the last one in its
-            log" */
-            ps.log.get_latest_index() + 1,
+            initial_next_index,
             &match_indexes,
             update_keepalive));
     }
@@ -749,39 +921,50 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
         raft_log_index_t initial_next_index,
         std::map<raft_member_id_t, raft_log_index_t> *match_indexes,
         auto_drainer_t::lock_t update_keepalive) {
+    guarantee(peer != this_member_id);
+    guarantee(mode == mode_t::leader);
+    guarantee(match_indexes->count(peer) == 1);
+    scoped_ptr_t<new_mutex_acq_t> mutex_acq(new new_mutex_acq_t(&mutex));
     try {
-        /* Raft paper, Figure 2: "Upon election: send initial empty AppendEntries RPCs
-        (heartbeat) to each server"
-        This implementation doesn't actually send regular heartbeats, because we rely on
-        the network layer to tell us when we've lost a connection. But we still send the
-        initial empty message. Note that we deviate slightly from the Raft paper in that
-        the initial message may not be an empty append-entries RPC. Because
-        `leader_send_updates()` runs in its own coroutine, it's possible that entries may
-        be appended to the log (or even committed, although this is unlikely) between
-        when we are elected as leader and when we go to send initial messages. So we
-        could send an append-entries RPC that isn't empty, or even an install-snapshot
-        RPC. This is OK because if our implementation is a candidate and receives an
-        install-snapshot RPC for the current term, it will revert to follower just as if
-        it had received an append-entries RPC. */
-        bool need_initial_message = true;
-
-        guarantee(peer != member_id);
-        guarantee(mode == mode_t::leader);
-
         /* `next_index` corresponds to the entry for this peer in the `nextIndex` map
         described in Figure 2 of the Raft paper. */
         raft_log_index_t next_index = initial_next_index;
 
         /* `member_commit_index` tracks the last value of `commit_index` we sent to the
-        member. It doesn't correspond to anything in the Raft paper. We use it to
-        determine when it's necessary to send an empty append-entries message to commit
-        a change on a member; the Raft paper solves this by always sending periodic
-        heartbeats, but we don't send periodic heartbeats. */
+        member. It doesn't correspond to anything in the Raft paper. This implementation
+        deviates from the Raft paper slightly in that when the leader commits a log
+        entry, it immediately sends an append-entries RPC so that clients can commit the
+        log entry too, instead of waiting for the next heartbeat to tell the clients it's
+        time to commit. This allows the latency of a transaction to be much shorter than
+        the heartbeat interval. */
         raft_log_index_t member_commit_index = 0;
 
-        scoped_ptr_t<new_mutex_acq_t> mutex_acq(new new_mutex_acq_t(&mutex));
+        /* Raft paper, Figure 2: "Upon election: send initial empty AppendEntries RPCs
+        (heartbeat) to each server"
+        Setting `send_even_if_empty` will ensure that we send an RPC immediately. */
+        bool send_even_if_empty = true;
+
+        /* This implementation deviates slightly from the Raft paper in that the initial
+        message may not be an empty append-entries RPC. Because `leader_send_updates()`
+        runs in its own coroutine, it's possible that entries may be appended to the log
+        (or even committed, although this is unlikely) between when we are elected as
+        leader and when we go to send initial messages. So we could send an
+        append-entries RPC that isn't empty, or even an install-snapshot RPC. This is OK
+        because if our implementation is a candidate and receives an install-snapshot RPC
+        for the current term, it will revert to follower just as if it had received an
+        append-entries RPC.
+
+        This is in a loop because after we send the initial RPC, we'll block until it's
+        time to send another update, and then go around the loop again. */
         while (true) {
-            if (next_index <= ps.log.prev_log_index) {
+            /* First, wait for the peer to be connected; there's no point in trying to
+            send an RPC if the peer isn't even connected. */
+            interface->get_connected_members()->run_until_satisfied(
+                [&](const std::set<raft_member_id_t> &peers) {
+                    return peers.count(peer) == 1;
+                }, update_keepalive.get_drain_signal());
+
+            if (next_index <= ps.log.prev_index) {
                 /* The peer's log ends before our log begins. So we have to send an
                 install-snapshot RPC instead of an append-entries RPC. */
 
@@ -789,18 +972,20 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
                 This is important because `send_install_snapshot_rpc()` takes some
                 parameters by reference, and the originals might change. */
                 raft_term_t term_to_send = ps.current_term;
-                raft_log_index_t last_included_index_to_send = ps.log.prev_log_index;
-                raft_term_t last_included_term_to_send = ps.log.prev_log_term;
-                state_t snapshot_state_to_send = ps.snapshot_state;
+                raft_log_index_t last_included_index_to_send = ps.log.prev_index;
+                raft_term_t last_included_term_to_send = ps.log.prev_term;
+                guarantee(static_cast<bool>(ps.snapshot_state));
+                state_t snapshot_state_to_send = *ps.snapshot_state;
+                guarantee(static_cast<bool>(ps.snapshot_configuration));
                 raft_complex_config_t snapshot_configuration_to_send =
-                    ps.snapshot_configuration;
+                    *ps.snapshot_configuration;
 
                 raft_log_term_t reply_term;
                 mutex_acq.reset();
-                interface->send_install_snapshot_rpc(
+                bool ok = interface->send_install_snapshot_rpc(
                     peer,
                     term_to_send,
-                    member_id,
+                    this_member_id,
                     last_included_index_to_send,
                     last_included_term_to_send,
                     snapshot_state_to_send,
@@ -808,6 +993,14 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
                     update_keepalive.get_drain_signal(),
                     &reply_term);
                 mutex_acq.init(new new_mutex_acq_t(&mutex));
+                if (!ok) {
+                    /* Raft paper, Section 5.1: "Servers retry RPCs if they do not
+                    receive a response in a timely manner"
+                    This implementation deviates from the Raft paper slightly in that we
+                    don't retry the exact same RPC necessarily. If the snapshot has been
+                    updated, we could send a newer snapshot on our next try. */
+                    continue;
+                }
 
                 if (candidate_or_leader_note_term(reply_term, mutex_acq.get())) {
                     /* We got a reply with a higher term than our term.
@@ -820,12 +1013,13 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
                     match_indexes,
                     peer,
                     last_included_index_to_send,
-                    mutex_acq.get());
-                need_initial_message = false;
+                    mutex_acq.get(),
+                    update_keepalive.get_drain_signal());
+                send_even_if_empty = false;
 
             } else if (next_index <= ps.log.get_latest_index() ||
                     member_commit_index < commit_index ||
-                    need_initial_message) {
+                    send_even_if_empty) {
                 /* The peer's log ends right where our log begins, or in the middle of
                 our log. Send an append-entries RPC. */
 
@@ -833,7 +1027,7 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
                 releasing the lock */
                 raft_term_t term_to_send = ps.current_term;
                 raft_log_t<change_t> entries_to_send = ps.log;
-                if (next_index > ps.log.prev_log_index + 1) {
+                if (next_index > ps.log.prev_index + 1) {
                     entries_to_send.delete_entries_to(next_index - 1);
                 }
                 raft_log_index_t leader_commit_to_send = commit_index;
@@ -841,16 +1035,26 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
                 raft_log_term_t reply_term;
                 bool reply_success;
                 mutex_acq.reset();
-                interface->send_append_entries_rpc(
+                bool ok = interface->send_append_entries_rpc(
                     peer,
                     term_to_send,
-                    member_id,
+                    this_member_id,
                     entries_to_send,
                     leader_commit_to_send,
                     update_keepalive.get_drain_signal(),
                     &reply_term,
                     &reply_success);
                 mutex_acq.init(new new_mutex_acq_t(&mutex));
+                if (!ok) {
+                    /* Raft paper, Section 5.1: "Servers retry RPCs if they do not
+                    receive a response in a timely manner"
+                    This implementation deviates from the Raft paper slightly in that we
+                    don't retry the exact same RPC necessarily. If more entries have been
+                    added to the log, the RPC we retry will include those new entries; or
+                    if the peer falls too far behind, we might send an install-snapshot
+                    RPC next time. */
+                    continue;
+                }
 
                 if (candidate_or_leader_note_term(reply_term, mutex_acq.get())) {
                     /* We got a reply with a higher term than our term.
@@ -867,7 +1071,8 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
                             match_indexes,
                             peer,
                             entries_to_send.get_latest_index(),
-                            mutex_acq.get());
+                            mutex_acq.get(),
+                            update_keepalive.get_drain_signal());
                     }
                     member_commit_index = leader_commit_to_send;
                 } else {
@@ -875,19 +1080,31 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
                     nextIndex and retries the AppendEntries RPC. */
                     --next_index;
                 }
-                need_initial_message = false;
+                send_even_if_empty = false;
 
             } else {
                 guarantee(next_index == ps.log.get_latest_index() + 1);
                 guarantee(member_commit_index == commit_index);
                 /* OK, the peer is completely up-to-date. Wait until either an entry is
-                appended to the log or our `commit_index` advances, and then go around
-                the loop again. */
+                appended to the log; our `commit_index` advances; or the heartbeat
+                interval elapses, and then go around the loop again. */
+
+                /* `cond` will be pulsed when an entry is appended to the log or our
+                `commit_index` advances. */
                 cond_t cond;
                 set_insertion_sentry_t<cond_t *> cond_sentry(&update_watchers, &cond);
+
+                signal_timer_t heartbeat_timer(heartbeat_interval_ms);
+                heartbeat_timer.start();
+
+                wait_any_t waiter(&cond, &heartbeat_timer);
                 mutex_acq.reset();
-                wait_interruptible(&cond, update_keepalive.get_drain_signal());
+                wait_interruptible(&waiter, update_keepalive.get_drain_signal());
                 mutex_acq.init(new new_mutex_acq_t(&mutex));
+
+                if (heartbeat_timer.is_pulsed()) {
+                    send_even_if_empty = true;
+                }
             }
         }
     } catch (interrupted_exc_t) {
@@ -899,10 +1116,14 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
 
 template<class state_t, class change_t>
 void leader_start_reconfiguration_second_phase(
-        const new_mutex_acq_t *mutex_acq) {
+        const new_mutex_acq_t *mutex_acq,
+        signal_t *interruptor) {
+    mutex_acq->assert_is_holding(&mutex);
+    guarantee(mode == mode_t::leader);
     /* Check if we recently committed a joint consensus configuration */
+    guarantee(static_cast<bool>(ps.snapshot_configuration));
     raft_complex_config_t committed_config = ps.snapshot_configuration;
-    for (raft_log_index_t i = ps.log.prev_log_index + 1; i <= commit_index; ++i) {
+    for (raft_log_index_t i = ps.log.prev_index + 1; i <= commit_index; ++i) {
         if (ps.log.get_entry_ref(i).type ==
                 raft_log_entry_t<change_t>::type_t::configuration) {
             committed_config = *ps.log.get_entry_ref(i).configuration;
@@ -934,7 +1155,7 @@ void leader_start_reconfiguration_second_phase(
             new_entry.configuration = boost::optional<raft_complex_config_t>(new_config);
             new_entry.term = ps.current_term;
 
-            leader_append_log_entry(new_entry, mutex_acq);
+            leader_append_log_entry(new_entry, mutex_acq, interruptor);
         }
     }
 }
@@ -943,6 +1164,7 @@ template<class state_t, class change_t>
 bool raft_member_t<state_t, change_t>::candidate_or_leader_note_term(
         raft_term_t term, const new_mutex_acq_t *mutex_acq) {
     mutex_acq->assert_is_holding(&mutex);
+    guarantee(mode != mode_t::follower);
     /* Raft paper, Figure 2: If RPC request or response contains term T > currentTerm:
     set currentTerm = T, convert to follower */
     if (term > ps.current_term) {
@@ -960,6 +1182,7 @@ bool raft_member_t<state_t, change_t>::candidate_or_leader_note_term(
             if (ps.current_term == local_current_term) {
                 this->update_term(term, &mutex_acq_2);
                 this->candidate_or_leader_become_follower(&mutex_acq_2);
+                interface->write_persistent_state(ps, keepalive.get_drain_signal());
             }
         });
         return true;
@@ -971,7 +1194,8 @@ bool raft_member_t<state_t, change_t>::candidate_or_leader_note_term(
 template<class state_t, class change_t>
 void raft_member_t<state_t, change_t>::leader_append_log_entry(
         const raft_log_entry_t<change_t> &log_entry,
-        const new_mutex_acq_t *mutex_acq) {
+        const new_mutex_acq_t *mutex_acq,
+        signal_t *interruptor) {
     mutex_acq->assert_is_holding(&mutex);
     guarantee(mode == mode_t::leader);
     guarantee(log_entry.term == ps.current_term);
@@ -979,6 +1203,8 @@ void raft_member_t<state_t, change_t>::leader_append_log_entry(
     /* Raft paper, Section 5.3: "The leader appends the command to its log as a new
     entry..." */
     ps.log.append(log_entry);
+
+    interface->write_persistent_state(ps, interruptor);
 
     /* Raft paper, Section 5.3: "...then issues AppendEntries RPCs in parallel to each of
     the other servers to replicate the entry."
@@ -992,11 +1218,14 @@ void raft_member_t<state_t, change_t>::leader_append_log_entry(
 }
 
 template<class state_t, class change_t>
-raft_complex_config_t raft_member_t<state_t, change_t>::get_configuration() {
+const raft_complex_config_t &raft_member_t<state_t, change_t>::get_configuration_ref() {
+    guarantee(static_cast<bool>(ps.snapshot_configuration), "We haven't been "
+        "initialized yet, so we should be a non-voting member; why are we calling "
+            "get_configuration_ref()?");
     /* Raft paper, Section 6: "a server always uses the latest configuration in its log,
     regardless of whether the entry is committed" */
-    raft_complex_config_t c = ps.snapshot_configuration;
-    for (raft_log_index_t i = ps.log.prev_log_index + 1;
+    raft_complex_config_t c = *ps.snapshot_configuration;
+    for (raft_log_index_t i = ps.log.prev_index + 1;
             i <= ps.log.get_latest_index(); ++i) {
         const raft_log_entry_t &entry = ps.log.get_entry_ref(i);
         if (entry.type == raft_log_entry_t<change_t>::type_t::configuration) {
@@ -1004,6 +1233,12 @@ raft_complex_config_t raft_member_t<state_t, change_t>::get_configuration() {
         }
     }
     return c;
+}
+
+template<class state_t, class change_t>
+void raft_member_t<state_t, change_t>::check_invariants(
+        const new_mutex_acq_t *mutex_acq) {
+    /* RSI: Fill me in */
 }
 
 #endif /* CLUSTERING_GENERIC_RAFT_CORE_TCC_ */

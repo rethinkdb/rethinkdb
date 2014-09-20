@@ -44,6 +44,8 @@ private:
 /* Construct a repeating_timer_t to start a repeating timer. It will call its function
 when the timer "rings". */
 
+/* `repeating_timer_callback_t` is deprecated; prefer passing a function to
+`repeating_timer_t`. */
 class repeating_timer_callback_t {
 public:
     virtual void on_ring() = 0;
@@ -53,13 +55,14 @@ protected:
 
 class repeating_timer_t : private timer_callback_t {
 public:
-    repeating_timer_t(int64_t frequency_ms, repeating_timer_callback_t *ringee);
+    repeating_timer_t(int64_t interval_ms, const std::function<void()> &ringee);
+    repeating_timer_t(int64_t interval_ms, repeating_timer_callback_t *ringee);
     ~repeating_timer_t();
 
 private:
     void on_timer();
     timer_token_t *timer;
-    repeating_timer_callback_t *ringee;
+    std::function<void()> ringee;
 
     DISABLE_COPYING(repeating_timer_t);
 };
