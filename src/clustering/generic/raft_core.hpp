@@ -14,77 +14,28 @@ network messages and write data to persistent storage. This both keeps this file
 as simple as possible and makes it easy to test the Raft algorithm using mocked-up
 network and storage systems.
 
-This implementation differs from the Raft paper in several major ways:
-
-  * This implementation allows different changes to require the approval of different
-    subsets of the Raft cluster, instead of every change requiring the approval of more
-    than half of the overall cluster.
+This implementation differs from the Raft paper in several ways:
 
   * The paper uses timeouts to detect when a cluster member is no longer available. This
     implementation assumes that the networking logic will tell it when a cluster member
     is no longer available. However, it still uses timeouts for leader election.
 
-There are a number of smaller differences as well, but they aren't important enough to
-list here.
+  * There are some other differences too small to list here.
+
+This implementation supports both log compaction and configuration changes.
 
 This implementation is templatized on two types, `state_t` and `change_t`. `change_t`
 describes the operations that are sent to the leader, replicated to the members of the
 cluster, and stored in the log. `state_t` is the piece of data that the Raft cluster is
 collectively managing.
 
-This implementation supports log compaction, as described in Section 7 of the Raft paper.
-The `state_t` is the type of a stored snapshot.
-
-This implementation supports configuration changes, as described in Section 6 of the Raft
-paper; but the details are slightly different. `state_t` is responsible for tracking the
-cluster configuration, including judging whether a set of nodes constitutes a quorum. To
-support configuration changes, `state_t` must be capable of expressing a joint consensus.
-The client submits a specially-tagged `change_t` that switches to a joint consensus, and
-then the leader automatically submits a second `change_t` to switchs to the new
-configuration.
-
 Both `state_t` and `change_t` must be default-constructable, destructable, and copy- and
-move- constructable and assignable. In addition, they must have the following methods,
-which must be deterministic and side-effect-free unless otherwise noted:
+move- constructable and assignable. In addition, `state_t` must support the following
+method:
 
-    bool state_t::consider_change(const change_t &) const;
     void state_t::apply_change(const change_t &);
     
-`consider_change()` returns `true` if the change is valid for the state, and `false` if
-not. If the change is not valid for the state at the time that the leader receives it,
-the leader will not even attempt to apply it to the cluster. `apply_change()` applies a
-change in place to the `state_t`, mutating it in place. The change is guaranteed to be
-valid for the state.
-
-    std::set<raft_member_id_t> state_t::get_all_members() const;
-    bool state_t::is_quorum_for_change(
-        const std::set<raft_member_id_t> &members,
-        const change_t &change) const;
-    bool state_t::is_quorum_for_all(const std::set<raft_member_id_t> &members) const;
-
-`get_all_members()` returns a set of all the Raft members that need to receive updates.
-`is_quorum_for_change()` returns `true` if `members` is a sufficient set of members to
-approve the given change. If `m1` and `m2` are disjoint sets, then
-`is_quorum_for_change(m1, c)` and `is_quorum_for_change(m2, c)` mustn't both return
-`true`. The change is guaranteed to be valid for the state. `is_quorum_for_all(m)`
-returns `true` if `is_quorum_for_change(m, c)` would return `true` for every `c`. The
-parts of the `state_t` that are used to calculate the return values of these three
-methods constitute the state's "configuration"; any change that alters how the state
-responds to one of these methods is a configuration change.
-
-    raft_change_type_t change_t::get_change_type() const;
-    bool state_t::in_config_change() const;
-    change_t state_t::make_config_second_change() const;
-
-`get_change_type()` returns `regular` for an ordinary `change_t`; `config_first` for a
-change that puts the cluster into a joint consensus configuration; and `config_second`
-for a change that takes the cluster out of a joint consensus configuration. To change the
-configuration, a client sends a `config_first` change; after applying the change, the
-leader will call `make_config_second_change()` to derive the corresponding
-`config_second` change. The `state_t` can assume that `config_first` and `config_second`
-changes will always be applied in pairs and the pairs will never be interleaved.
-`in_config_change()` should return `true` if a `config_first` change has been applied but
-not a `config_second` change. */
+`apply_change()` applies a change in place to the `state_t`, mutating it in place. */
 
 /* `raft_term_t` and `raft_log_index_t` are typedefs to improve the readability of the
 implementation, by making it clearer what the meaning of a particular number is. */
@@ -96,17 +47,87 @@ for this purpose, but we use UUIDs because we have no reliable distributed way o
 assigning integers. */
 typedef uuid_u raft_member_id_t;
 
-/* `raft_change_type_t` describes whether a given `change_t` has any effect on the
-Raft configuration. */
-enum class raft_change_type_t {
-    /* A `regular` change doesn't alter the Raft configuration in any way. */
-    regular,
-    /* A `config_first` change initiates a reconfiguration by putting the cluster into a
-    joint consensus state. */
-    config_first,
-    /* A `config_second` change ends a reconfiguration by taking the cluster back out of
-    the joint consensus state. */
-    config_second
+/* `raft_config_t` describes the set of members that are involved in the Raft cluster. */
+class raft_config_t {
+public:
+    /* Regular members of the Raft cluster go in `voting_members`. `non_voting_members`
+    is for members that should receive updates, but that don't count for voting purposes.
+    */
+    std::set<raft_member_id_t> voting_members, non_voting_members;
+
+    /* Returns a list of all members, voting and non-voting. */
+    std::set<raft_member_id_t> get_all_members() const {
+        std::set<raft_member_id_t> members;
+        members.insert(voting_members.begin(), voting_members.end());
+        members.insert(non_voting_members.begin(), non_voting_members.end());
+        return members;
+    }
+
+    /* Returns `true` if `members` constitutes a majority. */
+    bool is_quorum(const std::set<raft_member_id_t> &members) const {
+        size_t votes = 0;
+        for (const raft_member_id_t &m : members) {
+            votes += voting_members.count(m);
+        }
+        return (votes*2 > voting_members.size());
+    }
+};
+
+/* `raft_complex_config_t` can represent either a `raft_config_t` or a joint consensus of
+an old and a new `raft_config_t`. */
+class raft_complex_config_t {
+public:
+    /* For a regular configuration, `config` holds the configuration and `new_config` is
+    empty. For a joint consensus configuration, `config` holds the old configuration and
+    `new_config` holds the new configuration. */
+    raft_config_t config;
+    boost::optional<raft_config_t> new_config;
+
+    bool is_joint_consensus() const {
+        return static_cast<bool>(new_config);
+    }
+
+    std::set<raft_member_id_t> get_all_members() const {
+        std::set<raft_member_id_t> members = config.get_all_members();
+        if (is_joint_consensus) {
+            /* Raft paper, Section 6: "Log entries are replicated to all servers in both
+            configurations." */
+            std::set<raft_member_id_t> members2 = new_config->get_all_members();
+            members.insert(members2.begin(), members2.end());
+        }
+        return members;
+    }
+
+    bool is_quorum(const std::set<raft_member_id_t> &members) const {
+        /* Raft paper, Section 6: "Agreement (for elections and entry commitment)
+        requires separate majorities from both the old and new configurations." */
+        if (is_joint_consensus) {
+            return config.is_quorum(members) && new_config->is_quorum(members);
+        } else {
+            return config.is_quorum(members);
+        }
+    }
+};
+
+/* `raft_log_entry_t` describes an entry in the Raft log. */
+template<class change_t>
+class raft_log_entry_t {
+public:
+    enum class type_t {
+        /* A `regular` log entry is one with a `change_t`. */
+        regular,
+        /* A `configuration` log entry has a `raft_complex_config_t`. They are used to
+        change the cluster configuration. See Section 6 of the Raft paper. */
+        configuration,
+        /* A `noop` log entry does nothing and carries niether a `change_t` nor a
+        `raft_configuration_t`. See Section 8 of the Raft paper. */
+        noop
+    };
+
+    type_t type;
+    raft_term_t term;
+    boost::optional<change_t> change;
+    boost::optional<raft_complex_config_t> configuration;
 };
 
 /* `raft_log_t` stores a slice of the Raft log. There are two situations where this shows
@@ -124,9 +145,9 @@ public:
     "last included index" and "last included term" variables as described in Section 7.
     `entries` corresponds to the `log` variable described in Figure 2. */
 
-    raft_log_index_t prev_log_index;
+    raft_log_index_t prev_log_index;   /* RSI: rename these */
     raft_term_t prev_log_term;
-    std::deque<std::pair<change_t, raft_term_t> > entries;
+    std::deque<raft_log_entry_t<change_t> > entries;
 
     /* Return the latest index that is present in the log. If the log is empty, returns
     the index on which the log is based. */
@@ -142,12 +163,12 @@ public:
         if (index == prev_log_index) {
             return prev_log_term;
         } else {
-            return get_entry(index).second;
+            return get_entry(index).term;
         }
     }
 
     /* Returns the entry in the log at the given index. */
-    const std::pair<change_t, raft_term_t> &get_entry(raft_log_index_t index) const {
+    const raft_log_entry_t<change_t> &get_entry(raft_log_index_t index) const {
         guarantee(index > prev_log_index, "the log doesn't go back this far");
         guarantee(index <= get_latest_index(), "the log doesn't go forward this far");
         return entries[index - prev_log_index - 1];
@@ -171,7 +192,7 @@ public:
     }
 
     /* Appends the given entry ot the log. */
-    void append(const std::pair<change_t, raft_term_t> &entry) {
+    void append(const raft_log_entry_t<change_t> &entry) {
         entries.push_back(entry);
     }
 };
@@ -191,13 +212,15 @@ public:
     static raft_persistent_state_t make_join();
 
     /* `current_term` and `voted_for` correspond to the variables with the same names in
-    Figure 2 of the Raft paper. `snapshot` corresponds to the stored snapshotted state,
-    as described in Section 7. `log.prev_log_index` and `log.prev_log_term` correspond to
-    the "last included index" and "last included term" as described in Section 7.
-    `log.entries` corresponds to the `log` variable in Figure 2. */
+    Figure 2 of the Raft paper. `snapshot_state` and `snapshot_configuration` correspond
+    to the stored snapshotted state, as described in Section 7. `log.prev_log_index` and
+    `log.prev_log_term` correspond to the "last included index" and "last included term"
+    as described in Section 7. `log.entries` corresponds to the `log` variable in Figure
+    2. */
     raft_term_t current_term;
     raft_member_id_t voted_for;
-    state_t snapshot;
+    state_t snapshot_state;
+    raft_complex_config_t snapshot_configuration;
     raft_log_t<change_t> log;
 };
 
@@ -241,14 +264,15 @@ public:
         /* `term`, `leader_id`, `last_included_index`, and `last_included_term`
         correspond to the parameters with the same names in the Raft paper. In the Raft
         paper, the content of the snapshot is sent as a series of binary blobs, but we
-        don't want to do that; instead, we send a single `state_t` instance. So our
-        `snapshot` parameter replaces the `offset`, `data`, and `done` parameters of the
-        Raft paper. */
+        don't want to do that; instead, we send the `state_t` and `raft_configuration_t`
+        directly. So our `snapshot_state` and `snapshot_configuration` parameters replace
+        the `offset`, `data`, and `done` parameters of the Raft paper. */
         raft_term_t term,
         const raft_member_id_t &leader_id,
         raft_log_index_t last_included_index,
         raft_term_t last_included_term,
-        const state_t &snapshot,
+        const state_t &snapshot_state,
+        const raft_complex_config_t &snapshot_configuration,
         signal_t *interruptor,
         /* `term_out` corresponds to the `term` parameter of the RPC reply in the Raft
         paper. */
@@ -315,7 +339,8 @@ public:
         const raft_member_id_t &leader_id,
         raft_log_index_t last_included_index,
         raft_term_t last_included_term,
-        const state_t &snapshot,
+        const state_t &snapshot_state,
+        const raft_complex_config_t &snapshot_configuration,
         signal_t *interruptor,
         raft_term_t *term_out);
     void on_append_entries_rpc(
@@ -335,17 +360,17 @@ public:
         signal_t *interruptor);
 
     /* `propose_change_if_leader()` tries to perform the given change if this Raft member
-    is the leader. Note that `change.get_change_type()` must be `regular`. A return value
-    of `true` means the change was accepted. `false` means the change might or might not
-    have been accepted; either something went wrong or we weren't the leader. */
+    is the leader. A return value of `true` means the change was accepted. `false` means
+    the change might or might not have been accepted; either something went wrong or we
+    weren't the leader. */
     bool propose_change_if_leader(
         const change_t &change,
         signal_t *interruptor);
 
     /* `propose_config_change_if_leader()` is like `propose_change_if_leader()` except
-    that it is for changes where `change.get_change_type()` is `config_first`. */
+    that it proposes a reconfiguration instead of a `change_t`. */
     bool propose_config_change_if_leader(
-        const change_t &change,
+        const raft_config_t &configuration,
         signal_t *interruptor);
 
 private:
@@ -405,6 +430,17 @@ private:
         scoped_ptr_t<new_mutex_acq_t> *mutex_acq,
         signal_t *interruptor);
 
+    /* `run_spawn_update_coros()` is a helper function for `run_candidate_and_leader()`
+    that spawns or kills instances of `run_updates()` as necessary to ensure that there
+    is always one for each cluster member. */
+    void run_spawn_update_coros(
+        /* A map containing `matchIndex` for each connected peer, as described in Figure
+        2 of the Raft paper. This lives on the stack in `run_candidate_and_leader()`. */
+        std::map<raft_member_id_t, raft_log_index_t> *match_indexes,
+        /* A map containing an `auto_drainer_t` for each running update coroutine. */
+        std::map<raft_member_id_t, scoped_ptr_t<auto_drainer_t> > *update_drainers,
+        const new_mutex_acq_t *mutex_acq);
+
     /* `run_updates()` is a helper function for `run_candidate_and_leader()`;
     `run_candidate_and_leader()` spawns one in a new coroutine for each peer. It pushes
     install-snapshot RPCs and/or append-entry RPCs out to the given peer until
@@ -412,8 +448,15 @@ private:
     void run_updates(
         const raft_member_id_t &peer,
         raft_log_index_t initial_next_index,
-        std::map<raft_member_id_t, raft_log_index_t> *match_index,
+        std::map<raft_member_id_t, raft_log_index_t> *match_indexes,
         auto_drainer_t::lock_t update_keepalive);
+
+    /* `run_reconfiguration_second_phase()` is a helper function for
+    `run_candidate_and_leader()`. It checks if we have completed the first phase of a
+    configuration phase (by committing a joint consensus configuration) and if so, it
+    starts the second phase. */
+    void run_reconfiguration_second_phase(
+        const new_mutex_acq_t *mutex_acq);
 
     /* `note_term_as_leader()` is a helper function for `run_election()` and
     `run_updates()`. If the given term is greater than the current term, it updates the
@@ -422,17 +465,17 @@ private:
     bool note_term_as_leader(raft_term_t term, const new_mutex_acq_t *mutex_acq);
 
     /* `propose_change_internal()` is a helper for `propose_change_if_leader()` and
-    `propose_config_change_if_leader()`. It adds a change to the log but then returns
+    `propose_config_change_if_leader()`. It adds an entry to the log but then returns
     immediately. */
     void propose_change_internal(
-        const change_t &change,
+        const raft_log_entry_t<change_t> &log_entry,
         const new_mutex_acq_t *mutex_acq);
 
-    /* Returns what the state machine would look like if every change in the log were
-    applied. This is important for cluster configuration purposes, because we're supposed
-    to respect cluster configuration changes as soon as they appear in the log, even if
-    they're not committed yet. */
-    state_t get_state_including_log();
+    /* Returns the latest configuration that appears in the log or the snapshot. The
+    returned reference points to something in `ps`.
+    Raft paper, Section 6: "a server always uses the latest configuration in its log,
+    regardless of whether the entry is committed" */
+    const raft_complex_config_t &get_configuration();
 
     const raft_member_id_t member_id;
     const raft_network_and_storage_interface_t *interface;
@@ -473,10 +516,10 @@ private:
     this at all times. */
     mutex_assertion_t log_mutex;
 
-    /* When we are leader, `proposal_watchers` is a set of conds that should be pulsed
-    every time `propose_change_if_leader()` is run. If we are not leader, this is empty
-    and unused. */
-    std::set<cond_t *> proposal_watchers;
+    /* When we are leader, `update_watchers` is a set of conds that should be pulsed
+    every time we append something to the log or update `commit_index`. If we are not
+    leader, this is empty and unused. */
+    std::set<cond_t *> update_watchers;
 
     /* This makes sure that `run_candidate_and_leader()` stops when the `raft_member_t`
     is destroyed. It's in a `scoped_ptr_t` so that `become_follower()` can destroy it to
