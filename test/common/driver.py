@@ -1,4 +1,7 @@
 # Copyright 2010-2014 RethinkDB, all rights reserved.
+
+from __future__ import print_function
+
 import atexit, os, random, re, shutil, signal, socket, subprocess, sys, tempfile, time
 
 import utils
@@ -21,7 +24,7 @@ def block_path(source_port, dest_port):
     # some column width. `-o command` means that the output format should be to print the
     # command being run.
     if "resunder" not in subprocess.check_output(["ps", "-A", "-www", "-o", "command"]):
-        print >> sys.stderr, '\nPlease start resunder process in test/common/resunder.py (as root)\n'
+        sys.stderr.write('\nPlease start resunder process in test/common/resunder.py (as root)\n\n')
         assert False
     conn = socket.create_connection(("localhost", 46594))
     conn.sendall("block %s %s\n" % (str(source_port), str(dest_port)))
@@ -219,7 +222,7 @@ class Files(object):
             "--machine-name", self.machine_name]
 
         if log_path is None:
-            print "setting log_path to /dev/null."
+            print("setting log_path to /dev/null.")
             log_path = "/dev/null"
         with open(log_path, "a") as log_file:
             subprocess.check_call(create_args, stdout=log_file, stderr=log_file)
