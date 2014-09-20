@@ -18,7 +18,7 @@ bool raft_member_t<state_t, change_t>::propose_change_if_leader(
     new_entry.change = boost::optional<change_t>(change);
     new_entry.term = ps.current_term;
 
-    propose_change_internal(new_entry, &mutex_acq);
+    leader_append_log_entry(new_entry, &mutex_acq);
 
     /* RSI: Wait for change to be committed */
 }
@@ -52,7 +52,7 @@ bool raft_member_t<state_t, change_t>::propose_config_change_if_leader(
     new_entry.configuration = boost::optional<raft_complex_config_t>(new_complex_config);
     new_entry.term = ps.current_term;
 
-    propose_change_internal(new_entry, &mutex_acq);
+    leader_append_log_entry(new_entry, &mutex_acq);
 
     /* RSI: Wait for change to be committed, and for the commit it spawned to be
     committed too (maybe?) */
@@ -302,7 +302,7 @@ void raft_member_t<state_t, change_t>::on_append_entries_rpc(
     for (raft_log_index_t i = ps.log.get_latest_index() + 1;
             i <= entries.get_latest_index();
             ++i) {
-        ps.log.append(entries.get_entry(i));
+        ps.log.append(entries.get_entry_ref(i));
     }
 
     /* Raft paper, Figure 2: "If leaderCommit > commitIndex, set commitIndex = min(
@@ -363,9 +363,9 @@ void raft_member_t<state_t, change_t>::update_commit_index(
     log[lastApplied] to state machine" */
     while (last_applied < commit_index) {
         ++last_applied;
-        if (ps.log.get_entry(last_applied).type ==
+        if (ps.log.get_entry_ref(last_applied).type ==
                 raft_log_entry_t<change_t>::type_t::regular) {
-            state_machine.apply_change(*ps.log.get_entry(last_applied).change);
+            state_machine.apply_change(*ps.log.get_entry_ref(last_applied).change);
         }
     }
 
@@ -376,9 +376,9 @@ void raft_member_t<state_t, change_t>::update_commit_index(
     if (last_applied > ps.log.prev_log_index) {
         ps.snapshot_state = state_machine;
         for (raft_log_index_t i = ps.log.prev_log_index + 1; i <= last_applied; ++i) {
-            if (ps.log.get_entry(i).type ==
+            if (ps.log.get_entry_ref(i).type ==
                     raft_log_entry_T<change_t>::type_t::configuration) {
-                ps.snapshot_configuration = *ps.log.get_entry(i).configuration;
+                ps.snapshot_configuration = *ps.log.get_entry_ref(i).configuration;
             }
         } 
         /* This automatically updates `ps.log.prev_log_index` and `ps.log.prev_log_term`,
@@ -387,10 +387,11 @@ void raft_member_t<state_t, change_t>::update_commit_index(
         ps.log.delete_entries_to(last_applied);
     }
 
-    /* This wakes up instances of `run_update()`, which will push the updated commit
-    index to replicas if necessary. It also wakes up `candidate_and_leader_coro()`; if
-    we've committed a joint consensus, `candidate_and_leader_coro()` will put an entry in
-    the log for the second phase of the configuration change. */
+    /* This wakes up instances of `leader_send_updates()`, which will push the updated
+    commit index to replicas if necessary. It also wakes up
+    `candidate_and_leader_coro()`; if we've committed a joint consensus,
+    `candidate_and_leader_coro()` will put an entry in the log for the second phase of
+    the configuration change. */
     guarantee(mode == mode_t::leader || update_watchers.empty());
     for (cond_t *cond : update_watchers) {
         cond->pulse_if_not_already_pulsed();
@@ -531,6 +532,18 @@ void raft_member_t<state_t, change_t>::candidate_and_leader_coro(
 
         /* We got elected. */
         guarantee(mode == mode_t::leader);
+
+        /* Raft paper, Section 8: "[Raft has] each leader commit a blank no-op entry into
+        the log at the start of its term."
+        This is to ensure that we'll commit any entries that are possible to commit,
+        since we can't commit entries from earlier terms except by committing an entry
+        from our own term. */
+        {
+            raft_log_entry_t<change_t> new_entry;
+            new_entry.type = raft_log_entry_t<change_t>::type_t::noop;
+            new_entry.term = ps.current_term;
+            leader_append_log_entry(log_entry, mutex_acq.get());
+        }
 
         /* `match_indexes` corresponds to the `matchIndex` array described in Figure 2 of
         the Raft paper. */
@@ -887,18 +900,20 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
 template<class state_t, class change_t>
 void leader_start_reconfiguration_second_phase(
         const new_mutex_acq_t *mutex_acq) {
-    /* Calculate the latest committed configuration */
+    /* Check if we recently committed a joint consensus configuration */
     raft_complex_config_t committed_config = ps.snapshot_configuration;
     for (raft_log_index_t i = ps.log.prev_log_index + 1; i <= commit_index; ++i) {
-        if (ps.log.get_entry(i).type == raft_log_entry_t<change_t>::type_t::configuration) {
-            committed_config = *ps.log.get_entry(i).configuration;
+        if (ps.log.get_entry_ref(i).type ==
+                raft_log_entry_t<change_t>::type_t::configuration) {
+            committed_config = *ps.log.get_entry_ref(i).configuration;
         }
     }
-
     if (committed_config.is_joint_consensus()) {
+        /* OK, we recently committed a joint consensus configuration. Check if the second
+        phase of the reconfiguration isn't already in the log. */
         bool no_other_config = true;
         for (raft_log_index_t i = commit_index + 1; i <= ps.log.get_latest_index(); ++i) {
-            const raft_log_entry_t<change_t> &entry = ps.log.get_entry(i);
+            const raft_log_entry_t<change_t> &entry = ps.log.get_entry_ref(i);
             if (entry.type == raft_log_entry_t<change_t>::type_t::configuration) {
                 guarantee(!entry.configuration->is_joint_configuration());
                 no_other_config = false;
@@ -906,6 +921,8 @@ void leader_start_reconfiguration_second_phase(
             }
         }
         if (no_other_config) {
+            /* OK, the second phase of the reconfiguration isn't already in the log. */
+
             /* Raft paper, Section 6: "Once C_old,new has been committed... it is now
             safe for the leader to create a log entry describing C_new and replicate it
             to the cluster. */
@@ -914,10 +931,10 @@ void leader_start_reconfiguration_second_phase(
 
             raft_log_entry_t<change_t> new_entry;
             new_entry.type = raft_log_entry_t<change_t>::type_t::configuration;
-            new_entry.term = ps.current_term;
             new_entry.configuration = boost::optional<raft_complex_config_t>(new_config);
+            new_entry.term = ps.current_term;
 
-            propose_change_internal(new_entry, mutex_acq);
+            leader_append_log_entry(new_entry, mutex_acq);
         }
     }
 }
@@ -952,7 +969,7 @@ bool raft_member_t<state_t, change_t>::candidate_or_leader_note_term(
 }
 
 template<class state_t, class change_t>
-void raft_member_t<state_t, change_t>::propose_change_internal(
+void raft_member_t<state_t, change_t>::leader_append_log_entry(
         const raft_log_entry_t<change_t> &log_entry,
         const new_mutex_acq_t *mutex_acq) {
     mutex_acq->assert_is_holding(&mutex);
@@ -965,25 +982,28 @@ void raft_member_t<state_t, change_t>::propose_change_internal(
 
     /* Raft paper, Section 5.3: "...then issues AppendEntries RPCs in parallel to each of
     the other servers to replicate the entry."
-    This wakes up sleeping instances of `run_update()`, which will do the actual work of
-    sending append-entries RPCs. It also wakes up `candidate_and_leader_coro()`, which
-    will spawn or kill instances of `run_update()` as necessary if the configuration has
-    been changed. */
+    This wakes up sleeping instances of `leader_send_updates()`, which will do the actual
+    work of sending append-entries RPCs. It also wakes up `candidate_and_leader_coro()`,
+    which will spawn or kill instances of `leader_send_updates()` as necessary if the
+    configuration has been changed. */
     for (cond_t *c : proposal_watchers) {
         c->pulse_if_not_already_pulsed();
     }
 }
 
 template<class state_t, class change_t>
-state_t raft_member_t<state_t, change_t>::get_state_including_log() {
-    log_mutex_acq->assert_is_holding(&log_mutex);
-    state_t s = state_machine;
-    for (raft_log_index_t i = last_applied+1; i <= ps.log.get_latest_index(); ++i) {
-        guarantee(s.consider_change(ps.log.get_entry(i).first),
-            "We somehow got a change that's not valid for the state.");
-        s.apply_change(ps.log.get_entry(i).first);
+raft_complex_config_t raft_member_t<state_t, change_t>::get_configuration() {
+    /* Raft paper, Section 6: "a server always uses the latest configuration in its log,
+    regardless of whether the entry is committed" */
+    raft_complex_config_t c = ps.snapshot_configuration;
+    for (raft_log_index_t i = ps.log.prev_log_index + 1;
+            i <= ps.log.get_latest_index(); ++i) {
+        const raft_log_entry_t &entry = ps.log.get_entry_ref(i);
+        if (entry.type == raft_log_entry_t<change_t>::type_t::configuration) {
+            c = *entry.configuration;
+        }
     }
-    return s;
+    return c;
 }
 
 #endif /* CLUSTERING_GENERIC_RAFT_CORE_TCC_ */

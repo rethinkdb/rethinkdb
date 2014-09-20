@@ -2,11 +2,11 @@
 #ifndef CLUSTERING_GENERIC_RAFT_CORE_HPP_
 #define CLUSTERING_GENERIC_RAFT_CORE_HPP_
 
-/* This file implements a generalization of the Raft consensus algorithm, as described in
-the paper "In Search of an Understandable Consensus Algorithm (Extended Version)" (2014)
-by Diego Ongaro and John Ousterhout. Because of the complexity and subtlety of the Raft
-algorithm, this implementation follows the paper closely and refers back to it regularly.
-You are advised to have a copy of the paper on hand when reading or modifying this file.
+/* This file implements the Raft consensus algorithm, as described in the paper "In
+Search of an Understandable Consensus Algorithm (Extended Version)" (2014) by Diego
+Ongaro and John Ousterhout. Because of the complexity and subtlety of the Raft algorithm,
+we follow the paper closely and refer back to it regularly. You are advised to have a
+copy of the paper on hand when reading or modifying this file.
 
 This file only contains the basic Raft algorithm itself; it doesn't contain any
 networking or storage logic. Instead, it uses an abstract interface to send and receive
@@ -14,20 +14,17 @@ network messages and write data to persistent storage. This both keeps this file
 as simple as possible and makes it easy to test the Raft algorithm using mocked-up
 network and storage systems.
 
-This implementation differs from the Raft paper in several ways:
+This implementation differs from the Raft paper in some minor ways. Most notably, the
+Raft paper uses timeouts to detect when a server is no longer available, while this
+implementation expects the networking logic to notify us when a server is no longer
+available. However, this implementation still uses timeouts for leader election.
 
-  * The paper uses timeouts to detect when a cluster member is no longer available. This
-    implementation assumes that the networking logic will tell it when a cluster member
-    is no longer available. However, it still uses timeouts for leader election.
+We supports both log compaction and configuration changes.
 
-  * There are some other differences too small to list here.
-
-This implementation supports both log compaction and configuration changes.
-
-This implementation is templatized on two types, `state_t` and `change_t`. `change_t`
-describes the operations that are sent to the leader, replicated to the members of the
-cluster, and stored in the log. `state_t` is the piece of data that the Raft cluster is
-collectively managing.
+The classes in this file are templatized on two types, `state_t` and `change_t`.
+`state_t` describes the state of the Raft state machine, and `change_t` describes a
+potential transition on that state machine. So `change_t` is the type that is stored in
+the Raft log, whereas `state_t` is stored when taking a snapshot.
 
 Both `state_t` and `change_t` must be default-constructable, destructable, and copy- and
 move- constructable and assignable. In addition, `state_t` must support the following
@@ -38,7 +35,7 @@ method:
 `apply_change()` applies a change in place to the `state_t`, mutating it in place. */
 
 /* `raft_term_t` and `raft_log_index_t` are typedefs to improve the readability of the
-implementation, by making it clearer what the meaning of a particular number is. */
+code, by making it clearer what the meaning of a particular number is. */
 typedef uint64_t raft_term_t;
 typedef uint64_t raft_log_index_t;
 
@@ -133,7 +130,7 @@ public:
 /* `raft_log_t` stores a slice of the Raft log. There are two situations where this shows
 up in Raft: in an "AppendEntries RPC", and in each server's local state. The Raft paper
 represents this as three separate variables, but grouping them together makes the
-implementation clearer. */
+code clearer. */
 template<class change_t>
 class raft_log_t {
 public:
@@ -163,12 +160,12 @@ public:
         if (index == prev_log_index) {
             return prev_log_term;
         } else {
-            return get_entry(index).term;
+            return get_entry_ref(index).term;
         }
     }
 
     /* Returns the entry in the log at the given index. */
-    const raft_log_entry_t<change_t> &get_entry(raft_log_index_t index) const {
+    const raft_log_entry_t<change_t> &get_entry_ref(raft_log_index_t index) const {
         guarantee(index > prev_log_index, "the log doesn't go back this far");
         guarantee(index <= get_latest_index(), "the log doesn't go forward this far");
         return entries[index - prev_log_index - 1];
@@ -224,9 +221,8 @@ public:
     raft_log_t<change_t> log;
 };
 
-/* `raft_network_and_storage_interface_t` is the abstract class that the Raft
-implementation uses to send and receive messages over the network, and to store data to
-disk. */
+/* `raft_network_and_storage_interface_t` is the abstract class that the Raft code uses
+to send and receive messages over the network, and to store data to disk. */
 template<class state_t, class change_t>
 class raft_network_and_storage_interface_t {
 public:
@@ -468,17 +464,15 @@ private:
         raft_term_t term,
         const new_mutex_acq_t *mutex_acq);
 
-    /* `propose_change_internal()` is a helper for `propose_change_if_leader()` and
+    /* `leader_append_log_entry()` is a helper for `propose_change_if_leader()` and
     `propose_config_change_if_leader()`. It adds an entry to the log but then returns
     immediately. */
-    void propose_change_internal(
+    void leader_append_log_entry(
         const raft_log_entry_t<change_t> &log_entry,
         const new_mutex_acq_t *mutex_acq);
 
-    /* Returns the latest configuration that appears in the log or the snapshot. The
-    returned reference points to something in `ps`.
-    Raft paper, Section 6: "a server always uses the latest configuration in its log,
-    regardless of whether the entry is committed" */
+    /* Returns the configuration that we should use for determining if we have a quorum
+    or not. The returned returned reference points to something in `ps`. */
     const raft_complex_config_t &get_configuration();
 
     const raft_member_id_t member_id;
