@@ -20,9 +20,7 @@ $ ->
     Backbone.sync = (method, model, success, error) ->
         return 0
 
-
-    # Collect reql docs
-    collect_reql_doc()
+    DataExplorerView.Container.prototype.set_docs reql_docs
 
 class @Driver
     constructor: (args) ->
@@ -147,19 +145,3 @@ class @Driver
         clearTimeout @timers[timer]?.timeout
         @timers[timer]?.connection?.close {noreplyWait: false}
         delete @timers[timer]
-
-
-set_reql_docs = (data) ->
-    DataExplorerView.Container.prototype.set_docs data
-
-error_load_reql_docs = ->
-    #TODO Do we need to display a nice message?
-    console.log 'Could not load reql documentation'
-
-collect_reql_doc = ->
-    $.ajax
-        url: 'js/reql_docs.json?v='+window.VERSION
-        dataType: 'json'
-        contentType: 'application/json'
-        success: set_reql_docs
-        error: error_load_reql_docs
