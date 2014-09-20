@@ -15,6 +15,8 @@ module 'DashboardView', ->
             @fetch_data()
 
         fetch_data: =>
+            # We need to flatten a few sequences with identity
+            # So we store the function here to make the code a bit shorter
             identity = (a) -> a
 
             query = r.do(
