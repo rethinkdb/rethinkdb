@@ -391,78 +391,82 @@ private:
 
     /* When we change `match_index` we might have to update `commit_index` as well.
     `update_match_index()` handles that automatically. */
-    void update_match_index(
-        /* Since `match_index` lives on the stack of `run_candidate_and_leader()`, we
+    void leader_update_match_index(
+        /* Since `match_index` lives on the stack of `candidate_and_leader_coro()`, we
         have to pass in a pointer. */
         std::map<raft_member_id_t, raft_log_index_t> *match_index,
         raft_member_id_t key,
         raft_log_index_t new_value,
         const new_mutex_acq_t *mutex_acq);
 
-    /* `become_follower()` moves us from the `candidate` or `leader` state to `follower`
-    state. It kills `run_candidate_and_leader()` and blocks until it exits. */
-    void become_follower(const new_mutex_acq_t *mutex_acq);
+    /* `candidate_or_leader_become_follower()` moves us from the `candidate` or `leader`
+    state to `follower` state. It kills `candidate_and_leader_coro()` and blocks until it
+    exits. */
+    void candidate_or_leader_become_follower(const new_mutex_acq_t *mutex_acq);
 
-    /* `become_candidate()` moves us from the `follower` state to the `candidate` state.
-    It spawns `run_candidate_and_leader()`.*/
-    void become_candidate(const new_mutex_acq_t *mutex_acq);
+    /* `follower_become_candidate()` moves us from the `follower` state to the
+    `candidate` state. It spawns `candidate_and_leader_coro()`.*/
+    void follower_become_candidate(const new_mutex_acq_t *mutex_acq);
 
-    /* `run_candidate_and_leader()` contains most of the candidate- and leader-specific
+    /* `candidate_and_leader_coro()` contains most of the candidate- and leader-specific
     logic. It runs in a separate coroutine for as long as we are a candidate or leader.
     */
-    void run_candidate_and_leader(
-        /* the `new_mutex_acq_t` used by `become_candidate()` */
+    void candidate_and_leader_coro(
+        /* the `new_mutex_acq_t` used by `follower_become_candidate()` */
         const new_mutex_acq_t *mutex_acq_for_setup,
         /* A condition variable to pulse when `mutex_acq` is no longer needed */
         cond_t *pulse_when_done_with_setup,
-        /* To make sure that `run_candidate_and_leader` stops before the `raft_member_t`
-        is destroyed. This is also used by `become_follower()` to  */
+        /* To make sure that `candidate_and_leader_coro` stops before the `raft_member_t`
+        is destroyed. This is also used by `candidate_or_leader_become_follower()` to
+        interrupt `candidate_and_leader_coro()`. */
         auto_drainer_t::lock_t leader_keepalive);
 
-    /* `run_election()` is a helper function for `run_candidate_and_leader()`. It sends
-    out request-vote RPCs and wait for us to get enough votes. It blocks until we are
-    elected; the caller is responsible for detecting the case where another leader is
-    elected and also for detecting the case where the election times out. In either of
+    /* `candidate_run_election()` is a helper function for `candidate_and_leader_coro()`.
+    It sends out request-vote RPCs and wait for us to get enough votes. It blocks until
+    we are elected; the caller is responsible for detecting the case where another leader
+    is elected and also for detecting the case where the election times out. In either of
     these cases, it should pulse `interruptor`. */
-    void run_election(
-        /* Note that `run_election()` may temporarily release `mutex_acq`, but it will
-        always be holding the lock when `run_election()` exits. */
+    void candidate_run_election(
+        /* Note that `candidate_run_election()` may temporarily release `mutex_acq`, but
+        it will always be holding the lock when `run_election()` exits. */
         scoped_ptr_t<new_mutex_acq_t> *mutex_acq,
         signal_t *interruptor);
 
-    /* `run_spawn_update_coros()` is a helper function for `run_candidate_and_leader()`
-    that spawns or kills instances of `run_updates()` as necessary to ensure that there
-    is always one for each cluster member. */
-    void run_spawn_update_coros(
+    /* `leader_spawn_update_coros()` is a helper function for
+    `candidate_and_leader_coro()` that spawns or kills instances of `run_updates()` as
+    necessary to ensure that there is always one for each cluster member. */
+    void leader_spawn_update_coros(
         /* A map containing `matchIndex` for each connected peer, as described in Figure
-        2 of the Raft paper. This lives on the stack in `run_candidate_and_leader()`. */
+        2 of the Raft paper. This lives on the stack in `candidate_and_leader_coro()`. */
         std::map<raft_member_id_t, raft_log_index_t> *match_indexes,
         /* A map containing an `auto_drainer_t` for each running update coroutine. */
         std::map<raft_member_id_t, scoped_ptr_t<auto_drainer_t> > *update_drainers,
         const new_mutex_acq_t *mutex_acq);
 
-    /* `run_updates()` is a helper function for `run_candidate_and_leader()`;
-    `run_candidate_and_leader()` spawns one in a new coroutine for each peer. It pushes
+    /* `leader_send_updates()` is a helper function for `candidate_and_leader_coro()`;
+    `leader_spawn_update_coros()` spawns one in a new coroutine for each peer. It pushes
     install-snapshot RPCs and/or append-entry RPCs out to the given peer until
     `update_keepalive.get_drain_signal()` is pulsed. */
-    void run_updates(
+    void leader_send_updates(
         const raft_member_id_t &peer,
         raft_log_index_t initial_next_index,
         std::map<raft_member_id_t, raft_log_index_t> *match_indexes,
         auto_drainer_t::lock_t update_keepalive);
 
-    /* `run_reconfiguration_second_phase()` is a helper function for
-    `run_candidate_and_leader()`. It checks if we have completed the first phase of a
+    /* `leader_start_reconfiguration_second_phase()` is a helper function for
+    `candidate_and_leader_coro()`. It checks if we have completed the first phase of a
     configuration phase (by committing a joint consensus configuration) and if so, it
     starts the second phase. */
-    void run_reconfiguration_second_phase(
+    void leader_start_reconfiguration_second_phase(
         const new_mutex_acq_t *mutex_acq);
 
-    /* `note_term_as_leader()` is a helper function for `run_election()` and
-    `run_updates()`. If the given term is greater than the current term, it updates the
-    current term and interrupts `run_candidate_and_leader()`. It returns `true` if the
-    term was changed. */
-    bool note_term_as_leader(raft_term_t term, const new_mutex_acq_t *mutex_acq);
+    /* `candidate_or_leader_note_term()` is a helper function for
+    `candidate_run_election()` and `leader_send_updates()`. If the given term is greater
+    than the current term, it updates the current term and interrupts
+    `candidate_and_leader_coro()`. It returns `true` if the term was changed. */
+    bool candidate_or_leader_note_term(
+        raft_term_t term,
+        const new_mutex_acq_t *mutex_acq);
 
     /* `propose_change_internal()` is a helper for `propose_change_if_leader()` and
     `propose_config_change_if_leader()`. It adds an entry to the log but then returns
@@ -492,7 +496,7 @@ private:
     the same names in Figure 2 of the Raft paper. */
     raft_log_index_t commit_index, last_applied;
 
-    /* Only `run_candidate_and_leader()` should ever change `mode` */
+    /* Only `candidate_and_leader_coro()` should ever change `mode` */
     mode_t mode;
 
     /* `this_term_leader_id` is the ID of the member that is leader during this term. If
@@ -504,7 +508,7 @@ private:
 
     /* This mutex ensures that operations don't interleave in confusing ways. Each RPC
     acquires this mutex when it begins and releases it when it returns. Also, if
-    `run_candidate_and_leader()` is running, it holds this mutex when actively
+    `candidate_and_leader_coro()` is running, it holds this mutex when actively
     manipulating state and releases it when waiting. */
     new_mutex_t mutex;
 
@@ -512,7 +516,7 @@ private:
     Specifically, anything writing to `ps.log`, `ps.snapshot`, `state_machine`,
     `commit_index`, or `last_applied` should hold this mutex assertion.
     If we are follower, `on_append_entries_rpc()` and `on_install_snapshot_rpc()` acquire
-    this temporarily; if we are candidate or leader, `run_candidate_and_leader()` holds
+    this temporarily; if we are candidate or leader, `candidate_and_leader_coro()` holds
     this at all times. */
     mutex_assertion_t log_mutex;
 
@@ -521,9 +525,10 @@ private:
     leader, this is empty and unused. */
     std::set<cond_t *> update_watchers;
 
-    /* This makes sure that `run_candidate_and_leader()` stops when the `raft_member_t`
-    is destroyed. It's in a `scoped_ptr_t` so that `become_follower()` can destroy it to
-    kill `run_candidate_and_leader()`. */
+    /* This makes sure that `candidate_and_leader_coro()` stops when the `raft_member_t`
+    is destroyed. It's in a `scoped_ptr_t` so that
+    `candidate_or_leader_become_follower()` can destroy it to kill
+    `candidate_and_leader_coro()`. */
     scoped_ptr_t<auto_drainer_t> leader_drainer;
 
     /* Occasionally we have to spawn miscellaneous coroutines. This makes sure that they
