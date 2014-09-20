@@ -1,7 +1,8 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 
 class BackboneCluster extends Backbone.Router
-    #TODO Add human readable routes
+    # Routes can end with a slash too - This is useful is the user
+    # tries to manually edit the route
     routes:
         '': 'dashboard'
         'databases': 'index_tables'
@@ -26,6 +27,8 @@ class BackboneCluster extends Backbone.Router
     initialize: (data) ->
         super
         @navbar = data.navbar
+        # We bind the router to window.app to be able to have access to the root view
+        # ie. window.app.current_view
         window.app = @
 
         @container = $('#cluster')
@@ -33,35 +36,31 @@ class BackboneCluster extends Backbone.Router
 
         @bind 'route', @update_active_tab
 
+    # Highlight the link of the current view
     update_active_tab: (route) =>
         @navbar.set_active_tab route
 
     index_tables: ->
-        clear_modals()
         @current_view.remove()
         @current_view = new TablesView.DatabasesContainer
         @container.html @current_view.render().$el
 
     index_servers: (data) ->
-        clear_modals()
         @current_view.remove()
         @current_view = new ServersView.ServersContainer
         @container.html @current_view.render().$el
 
     dashboard: ->
-        clear_modals()
         @current_view.remove()
         @current_view = new DashboardView.DashboardContainer
         @container.html @current_view.render().$el
 
     logs: ->
-        clear_modals()
         @current_view.remove()
         @current_view = new LogView.LogsContainer
         @container.html @current_view.render().$el
 
     dataexplorer: ->
-        clear_modals()
         @current_view.remove()
         @current_view = new DataExplorerView.Container
             state: DataExplorerView.state
@@ -70,19 +69,16 @@ class BackboneCluster extends Backbone.Router
         @current_view.results_view.set_scrollbar() # In case we check the data explorer, leave and come back
 
     database: (id) ->
-        clear_modals()
         @current_view.remove()
         @current_view = new DatabaseView.DatabaseContainer id
         @container.html @current_view.render().$el
 
     table: (id) ->
-        clear_modals()
         @current_view.remove()
         @current_view = new TableView.TableContainer id
         @container.html @current_view.render().$el
 
     server: (id) ->
-        clear_modals()
         @current_view.remove()
         @current_view = new ServerView.ServerContainer id
         @container.html @current_view.render().$el

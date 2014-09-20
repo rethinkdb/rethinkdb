@@ -1,31 +1,28 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
-# This file contains all the good stuff we do to set up the
-# application. We should refactor this at some point, but I'm leaving
-# it as is for now.
 
+# The system database
 window.system_db = 'rethinkdb'
 
 $ ->
-    # Load the driver
+    # Load the raw driver
     window.r = require('rethinkdb')
+
+    # Create a driver - providing sugar on top of the raw driver
     window.driver = new Driver
 
     window.main_view = new MainView.MainContainer()
     $('body').html main_view.render().$el
+
 
     # We need to start the router after the main view is bound to the DOM
     main_view.start_router()
 
     Backbone.sync = (method, model, success, error) ->
         return 0
-        if method is 'read'
-            collect_server_data()
-        else
-            Backbone.sync method, model, success, error
+
 
     # Collect reql docs
     collect_reql_doc()
-
 
 class @Driver
     constructor: (args) ->
@@ -93,7 +90,7 @@ class @Driver
                             callback(err, result)
 
 
-    # Run the query every `delay` ms
+    # Run the query every `delay` ms - using setTimeout
     # Returns a timeout number (to use with @stop_timer).
     # If `index` is provided, `run` will its value as a timer
     run: (query, delay, callback, index) =>
@@ -151,16 +148,6 @@ class @Driver
         @timers[timer]?.connection?.close {noreplyWait: false}
         delete @timers[timer]
 
-
-###
-Old stuff below, we should eventually just remove everything...
-###
-
-modal_registry = []
-clear_modals = ->
-    modal.hide_modal() for modal in modal_registry
-    modal_registry = []
-register_modal = (modal) -> modal_registry.push(modal)
 
 set_reql_docs = (data) ->
     DataExplorerView.Container.prototype.set_docs data

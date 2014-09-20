@@ -55,11 +55,8 @@ module 'UIComponents', ->
                     btn.on_click(e)
                 @$('.custom_btn_placeholder > .' + btn.class_str).button()
 
-            register_modal @
-
         hide_modal: =>
             @$modal.modal('hide') if @$modal?
-            @remove()
 
         cancel_modal: (e) ->
             @hide_modal()
@@ -81,7 +78,7 @@ module 'UIComponents', ->
         # This is meant to be called by the overriding class
         on_success: (response) =>
             @reset_buttons()
-            clear_modals()
+            @remove()
 
         on_submit: (event) =>
             @$('.btn-primary').button('loading')
@@ -108,6 +105,10 @@ module 'UIComponents', ->
 
         find_custom_button: (class_str) =>
             @$('.custom_btn_placeholder > .' + class_str)
+
+        remove: =>
+            @hide_modal()
+            super()
 
     # This is for doing user confirmation easily
     class @ConfirmationDialogModal extends @AbstractModal
