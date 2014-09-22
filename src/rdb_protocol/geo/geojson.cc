@@ -342,7 +342,7 @@ void ensure_no_crs(const ql::datum_t &geojson) {
 }
 
 scoped_ptr_t<S2Point> to_s2point(const ql::datum_t &geojson) {
-    const datum_string_t &type = geojson.get_field("type").as_str();
+    datum_string_t type = geojson.get_field("type").as_str();
     datum_t coordinates = geojson.get_field("coordinates");
     if (type != "Point") {
         throw geo_exception_t(
@@ -353,7 +353,7 @@ scoped_ptr_t<S2Point> to_s2point(const ql::datum_t &geojson) {
 }
 
 scoped_ptr_t<S2Polyline> to_s2polyline(const ql::datum_t &geojson) {
-    const datum_string_t &type = geojson.get_field("type").as_str();
+    datum_string_t type = geojson.get_field("type").as_str();
     datum_t coordinates = geojson.get_field("coordinates");
     if (type != "LineString") {
         throw geo_exception_t(
@@ -364,7 +364,7 @@ scoped_ptr_t<S2Polyline> to_s2polyline(const ql::datum_t &geojson) {
 }
 
 scoped_ptr_t<S2Polygon> to_s2polygon(const ql::datum_t &geojson) {
-    const datum_string_t &type = geojson.get_field("type").as_str();
+    datum_string_t type = geojson.get_field("type").as_str();
     datum_t coordinates = geojson.get_field("coordinates");
     if (type != "Polygon") {
         throw geo_exception_t(
