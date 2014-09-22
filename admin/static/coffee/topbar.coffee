@@ -4,7 +4,6 @@ module 'TopBar', ->
     class @Container extends Backbone.View
         className: 'sidebar-container'
         template: Handlebars.templates['sidebar-container-template']
-        template_dataexplorer: Handlebars.templates['sidebar-dataexplorer_container-template']
 
         initialize: (data) =>
             @model = data.model

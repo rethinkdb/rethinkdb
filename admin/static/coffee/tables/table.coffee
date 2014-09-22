@@ -193,7 +193,7 @@ module 'TableView', ->
     class @TableMainView extends Backbone.View
         className: 'namespace-view'
         template:
-            main: Handlebars.templates['namespace_view-container-template']
+            main: Handlebars.templates['table_container-template']
             alert: Handlebars.templates['modify_shards-alert-template']
 
         events:
@@ -371,7 +371,7 @@ module 'TableView', ->
             super()
 
     class @SecondaryIndexesView extends Backbone.View
-        template: Handlebars.templates['namespace_view-secondary_indexes-template']
+        template: Handlebars.templates['table-secondary_indexes-template']
         alert_message_template: Handlebars.templates['secondary_indexes-alert_msg-template']
         error_template: Handlebars.templates['secondary_indexes-error-template']
         events:
@@ -592,7 +592,7 @@ module 'TableView', ->
             super()
 
     class @SecondaryIndexView extends Backbone.View
-        template: Handlebars.templates['namespace_view-secondary_index-template']
+        template: Handlebars.templates['table-secondary_index-template']
         progress_template: Handlebars.templates['simple_progressbar-template']
         events:
             'click .delete_link': 'confirm_delete'

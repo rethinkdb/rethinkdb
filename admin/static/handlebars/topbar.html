@@ -75,35 +75,3 @@
         <h4>{{num_available_tables}}/{{num_tables}} reachable</h4>
     </div>
 </script>
-
-<script id="sidebar-dataexplorer_container-template" type="text/x-handlebars-template">
-    <div class="section cluster-status">
-        <div class="issues"></div>
-    </div>
-    <div class="section last">
-        <h3>Quick queries</h3>
-        <h4>Previous queries</h4>
-        {{#if has_previous_queries}}
-        <ul class="queries_list">
-            {{#each previous_queries}}
-            <li class="constrained_li"><a href="#{{this}}" class="old_query" data-query="{{query}}">{{query_summary}}</a></li>
-            {{/each}}
-        </ul>
-        {{else}}
-        <p class="no_query">No previous queries.</p>
-        {{/if}}
-
-        {{#if has_namespaces}}
-        {{#each databases}}
-        <h4>{{name}}</h4>
-        <ul class="queries_list">
-            {{#each namespaces}}
-            <li class="constrained_li"><a href="#" data-database="{{database}}" data-name="{{name}}" class="namespace_query">{{name}}</a></li>
-            {{/each}}
-        </ul>
-        {{/each}}
-        {{else}}
-        <p class="no_query">There is no table available. <br />Start by <a href="#tables">creating one</a>.</p>
-        {{/if}}
-    </div>
-</script>

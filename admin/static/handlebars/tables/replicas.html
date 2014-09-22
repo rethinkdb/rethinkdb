@@ -31,63 +31,6 @@
     </div>
 </script>
 
-<script id="namespace_view-acks_greater_than_replicas-template" type="text/x-handlebars-template">
-    <p>The acks for the {{pluralize_noun "table" num_datacenters_with_issues}} {{links_to_datacenters_inline_for_replica datacenters_with_issues}} are greater than the number of replicas.</p>
-</script>
-
-<script id="namespace_view-replica-datacenters_list-template" type="text/x-handlebars-template">
-    <div class="datacenter_list_container">
-        {{#each datacenters}}
-        <div class="datacenter_tab {{#if active}} active {{/if}}{{#if is_universe}} universe{{/if}}">
-            <a href="#tables/{{namespace_id}}/{{id}}" data-datacenter_id="{{id}}" class="nav_datacenter">{{name}}</a>
-        </div>
-        {{/each}}
-    </div>
-</script>
-
-<script id="namespace_view-replica-no_datacenter-template" type="text/x-handlebars-template">
-    <div class="dc-info">
-        <p>You do not have any datacenters.<br/><a href="#servers">Create</a> a datacenter if you want to use this option.</p>
-    </div>
-</script>
-
-<script id="namespace_view-datacenter_replica-template" type="text/x-handlebars-template">
-    <div class="dc-info">
-        <p class="value">{{name}}</p>
-        <p class="caption">Datacenter</p>
-    </div>
-    <div class="dc-info replica_container">
-        <div class="replicas_acks-alert alert alert-error"></div>
-        {{#if editable}}
-            <button class="cancel btn">&times;</button>
-            <button class="save update-replicas btn">Update</button>
-        {{else}}
-            <button class="edit btn">Edit</button>
-        {{/if}}
-        <div class="replica_value">
-            {{#if editable}}
-                <input type="text" id="replicas_value" value="{{replicas}}" class="inline_edit_input">
-            {{else}}
-                <p class="value">{{replicas}}</p>
-            {{/if}}
-            <p class="caption">Replicas</p>
-            {{#if editable}}
-            <p class="max-value">max replicas: {{max_replicas}}</p>
-            {{/if}}
-        </div>
-        <div class="ack_value">
-            {{#if editable}}
-                <input type="text" id="acks_value" value="{{acks}}" class="inline_edit_input">
-            {{else}}
-                <p class="value">{{acks}}</p>
-            {{/if}}
-            <p class="caption">Write Acks</p>
-            {{#if editable}}
-            <p class="max-value">max acks: {{max_acks}}</p>
-            {{/if}}
-        </div>
-    </div>
-</script>
 <script id="replica-alert-template" type="text/x-handlebars-template">
     {{#if too_many_replicas}}
     The number of replicas ({{num_replicas}}) cannot exceed the total number of servers ({{max_num_replicas}}).
@@ -102,53 +45,6 @@
     The server could not update the replicas. Error:
     <pre class="server_error">{{error.msg}}</pre>
     {{/if}}
-</script>
-<script id="namespace_view-edit_datacenter_replica-replication_status-template" type="text/x-handlebars-template">
-    {{num_replicas_ready}}/{{num_replicas}} replicas up to date.
-</script>
-<script id="namespace_view-edit_datacenter_replica-replication_done-template" type="text/x-handlebars-template">
-    <div class="close" href="#">&times;</div>
-    <p>Replication complete</p>
-</script>
-MaMaMaMaMaMaMaMaMaMaMaMaMa
-<script id="namespace_view-edit_datacenter_replica-error-template" type="text/x-handlebars-template">
-    <p>
-    {{#each msg_errors}}
-     {{print_safe this}}<br/>
-    {{/each}}
-    </p>
-</script>
-
-<script id="namespace_view-edit_datacenter_replica-success-template" type="text/x-handlebars-template">
-    <div class="close" href="#">&times;</div>
-    <p>Changing replicas and acks...</p>
-</script>
-
-<script id="namespace_view-edit_datacenter_replica-ajax_error-template" type="text/x-handlebars-template">
-    <div class="close" href="#">&times;</div>
-    <p>Sorry, an AJAX error occurred. Please refresh and try again.</p>
-</script>
-
-<script id="need_replicas-template" type="text/x-handlebars-template">
-    <p>This datacenter needs at least one replica to become master.</p>
-</script>
-
-<script id="changed_primary_dc-replica-template" type="text/x-handlebars-template">
-    You successfully set this datacenter as primary.
-</script>
-
-<script id="modified_replica-alert-template" type="text/x-handlebars-template">
-  <div class="alert" data-alert="alert">
-    <a class="close" href="#">&times;</a>
-    <p>
-      You successfully changed
-      {{#if modified_replicas}} the number of replicas from {{old_replicas}} to {{new_replicas}}
-      {{#if modified_acks}} and{{/if}}
-      {{/if}}
-      {{#if modified_acks}} the number of acks from {{old_acks}} to {{new_acks}}{{/if}}
-      for datacenter <a href="/#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a>.
-    </p>
-  </div>
 </script>
 
 <script id="replica_status-template" type="text/x-handlebars-template">
@@ -183,54 +79,5 @@ MaMaMaMaMaMaMaMaMaMaMaMaMa
         </div>
     {{else}}
     <p><span class="big">{{current_value}}/{{max_value}}</span> {{pluralize_noun "replica" max_value}} available</p>
-    {{/if}}
-</script>
-
-<script id="namespace_view-primary_datacenter-template" type="text/x-handlebars-template">
-    <div class="toggle-primary">
-        <div class="switch">
-            <input type="radio" class="switch-input" name="view" value="primary-on" id="primary-on"{{#if force_on}} checked{{/if}}>
-            <label for="primary-on" class="switch-label switch-label-off">On</label>
-            <input type="radio" class="switch-input" name="view" value="primary-off" id="primary-off"{{#unless force_on}} checked{{/unless}}>
-            <label for="primary-off" class="switch-label switch-label-on">Off</label>
-            <span class="switch-selection"></span>
-        </div>
-        <p class="caption">Pin masters to a single datacenter</p>
-    </div>
-    <div class="content"></div>
-
-    <div class="alert alert-error">
-        <a class="close" href="#">&times;</a>
-        Sorry, something went wrong with the ajax request. Please try again.
-    </div>
-</script>
-
-<script id="namespace_view-primary_datacenter_content-template" type="text/x-handlebars-template">
-    {{#if show_primary}}
-    <button class="edit btn">Edit</button>
-    <p>Current datacenter used: <a href="#datacenters/{{primary_id}}">{{primary_name}}</a></p>
-    {{else}}
-    {{#if choose_primary}}
-        {{#if primary_isnt_universe}}
-        <p>Current datacenter used: <a href="#datacenters/{{primary_id}}">{{primary_name}}</a></p>
-        {{/if}}
-        <button class="cancel-change-primary btn">&times;</button>
-        <button class="save submit-change-primary btn">Change</button>
-        <select class="datacenter_uuid_list" name="datacenter_uuid_list">
-            {{#each datacenters}}
-            <option value="{{this.id}}"{{#if is_primary}} disabled="disabled"{{/if}}>{{this.name}}</option>
-            {{/each}}
-        </select>
-    {{else}}
-        {{#if confirm_off}}
-        <button class="cancel-confirm-off btn">&times;</button>
-        <button class="save submit-confirm-off btn">Confirm</button>
-        <p>Are you sure you want not to force masters in <a href="#datacenters/{{primary_id}}">{{primary_name}}</a>?</p>
-        {{else}}
-        <div class="alert alert-success displayed_alert">
-            You can pin the master of each shard for this table to a single datacenter-- designating it as the primary datacenter for this table.
-        </div>
-        {{/if}}
-        {{/if}}
     {{/if}}
 </script>

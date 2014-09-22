@@ -236,7 +236,7 @@ module 'DatabaseView', ->
 
     # List of all the namespaces in the database
     class @TablesListView extends Backbone.View
-        template: Handlebars.templates['database_view-namespace_list-template']
+        template: Handlebars.templates['database-table_list-template']
 
         # Bind some listeners
         initialize: =>

@@ -9,10 +9,6 @@ module 'TableView', ->
             status: Handlebars.templates['replica_status-template']
             alert: Handlebars.templates['replica-alert-template']
 
-        no_datacenter_template: Handlebars.templates['namespace_view-replica-no_datacenter-template']
-        datacenter_list_template: Handlebars.templates['namespace_view-replica-datacenters_list-template']
-        acks_greater_than_replicas_template: Handlebars.templates['namespace_view-acks_greater_than_replicas-template']
-
         events:
             'click .edit.btn': 'toggle_edit'
             'click .cancel.btn': 'toggle_edit'
@@ -27,8 +23,6 @@ module 'TableView', ->
 
             @progress_bar = new UIComponents.OperationProgressBar @template.status
             @timer = null
-
-            window.foo = @
 
         toggle_edit: =>
             @editable = not @editable
@@ -160,7 +154,6 @@ module 'TableView', ->
                 @model.get('num_replicas'),
                 progress_bar_info
             )
-            return 1
 
         render: =>
             @$el.html @template.main
@@ -178,8 +171,7 @@ module 'TableView', ->
             ).$el
 
             @render_status()
-
-            return @
+            @
 
         remove: =>
             if @timer

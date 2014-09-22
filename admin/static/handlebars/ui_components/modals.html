@@ -75,13 +75,13 @@
      {{#if database_exists}}
         <p>The chosen database's name is already being used.<br/>Please choose another one.</p>
     {{/if}}
-    {{#if namespace_is_empty}}
+    {{#if table_name_empty}}
         <p>Please do not use an empty name for a table.</p>
     {{/if}}
     {{#if no_database}}
         <p>You have to select a database.</p>
     {{/if}}
-    {{#if namespace_exists}}
+    {{#if table_exists}}
         <p>The chosen table is already being used. Please choose another one.</p>
     {{/if}}
     {{#if datacenter_is_empty}}

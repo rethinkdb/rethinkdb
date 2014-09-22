@@ -183,7 +183,7 @@ module 'Modals', ->
 
             if @formdata.name is '' # Need a name
                 input_error = true
-                template_error.namespace_is_empty = true
+                template_error.table_name_empty = true
             else if /^[a-zA-Z0-9_]+$/.test(@formdata.name) is false
                 input_error = true
                 template_error.special_char_detected = true
@@ -201,7 +201,7 @@ module 'Modals', ->
                 for table in database_used.get('tables')
                     if table.name is @formdata.name
                         input_error = true
-                        template_error.namespace_exists = true
+                        template_error.table_exists = true
                         break
 
 

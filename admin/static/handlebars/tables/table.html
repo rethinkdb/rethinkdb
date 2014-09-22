@@ -1,4 +1,4 @@
-<script id="namespace_view-container-template" type="text/x-handlebars-template">
+<script id="table_container-template" type="text/x-handlebars-template">
     <div id="table-view">
         <div class="operations">
             <div class="dropdown">
@@ -39,7 +39,7 @@
 <script id="table_profile-template" type="text/x-handlebars-template">
     <div class="summary">
         <div class="stat-row first">
-            <p class="availability"><span class="big">{{humanize_namespace_reachability status}}</span></p>
+            <p class="availability"><span class="big">{{humanize_table_reachability status}}</span></p>
         </div>
         <div class="stat-row">
             {{#if total_keys_available}}
@@ -60,7 +60,7 @@
 
 
 
-<script id="namespace_view-secondary_indexes-template" type="text/x-handlebars-template">
+<script id="table-secondary_indexes-template" type="text/x-handlebars-template">
     <h2 class="title">Secondary indexes</h2>
     <div class="alert main_alert">
         <a class="close_hide" href="#">&times;</a>
@@ -88,14 +88,14 @@
     </div>
 </script>
 
-<script id="namespace_view-secondary_indexes-content-template" type="text/x-handlebars-template">
+<script id="table-secondary_indexes-content-template" type="text/x-handlebars-template">
     {{#if error}}
         <div class="alert alert-error displayed_alert">
         </div>
     {{/if}}
 </script>
 
-<script id="namespace_view-secondary_index-template" type="text/x-handlebars-template">
+<script id="table-secondary_index-template" type="text/x-handlebars-template">
     <div class="square_li"><span class="name">{{#if is_empty}}<em>[empty string]</em>{{else}}{{name}}{{/if}}</span> — <a href="#" data-name="{{name}}" class="delete_link">delete</a></div>
     <div class="progress_li">
         {{#if ready}}Ready to use{{else}}building{{/if}} 

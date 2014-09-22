@@ -76,7 +76,7 @@ Handlebars.registerHelper 'humanize_machine_reachability', (status) ->
             result = "<span class='label label-failure'>Unreachable</span>"
     return new Handlebars.SafeString(result)
 
-Handlebars.registerHelper 'humanize_namespace_reachability', (status) ->
+Handlebars.registerHelper 'humanize_table_reachability', (status) ->
     if status is true
         result = "<span class='label label-success'>Live</span>"
     else if status is false

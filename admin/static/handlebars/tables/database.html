@@ -43,7 +43,7 @@
     </div>
 </script>
 
-<script id="database_view-namespace_list-template" type="text/x-handlebars-template">
+<script id="database-table_list-template" type="text/x-handlebars-template">
     <h2 class="title">Tables in this database</h2>
     <ul class="tables"></ul>
     <div class="no_element">
@@ -54,6 +54,6 @@
     <li class="table">
         <p class="name"><a href="#tables/{{id}}">{{name}}</a></p>
         <p class="info"><span class="highlight">{{num_shards}}</span> {{pluralize_noun "shard" num_shards}}, <span class="highlight">{{num_replicas}}</span> {{pluralize_noun "replica" num_replicas}}</p>
-        <p class="status">{{humanize_namespace_reachability ready_completely}}</p>
+        <p class="status">{{humanize_table_reachability ready_completely}}</p>
     </li>
 </script>
