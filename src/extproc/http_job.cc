@@ -207,6 +207,8 @@ bool http_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out)
     }
 
     http_result_t result;
+    result.header = ql::datum_t::null();
+    result.body = ql::datum_t::null();
 
     CURLcode curl_res = CURLE_OK;
     if (!curl_initialized) {
@@ -760,7 +762,9 @@ header_parser_singleton_t::parse(const std::string &header) {
             ql::datum_t(std::move(instance->link_headers));
     }
 
-    return ql::datum_t(std::move(instance->header_fields));
+    ql::datum_t parsed_header = ql::datum_t(std::move(instance->header_fields));
+    instance->header_fields.clear();
+    return parsed_header;
 }
 
 int header_parser_singleton_t::on_headers_complete(UNUSED http_parser *parser) {
