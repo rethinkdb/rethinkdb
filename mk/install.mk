@@ -68,7 +68,7 @@ endif
 .PHONY: install-binaries
 install-binaries: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	$P INSTALL $^ $(DESTDIR)$(bin_dir)
-	install -m755 -d $(DESTDIR)$(bin_dir)
+	umask 022 && install -m755 -d $(DESTDIR)$(bin_dir)
 	install -m755 $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(DESTDIR)$(FULL_SERVER_EXEC_NAME_VERSIONED)
 ifeq ($(STRIP_ON_INSTALL),1)
 	$P STRIP $(DESTDIR)$(FULL_SERVER_EXEC_NAME_VERSIONED)
@@ -88,7 +88,7 @@ $(BUILD_DIR)/assets/rethinkdb.1: $(ASSETS_DIR)/man/rethinkdb.1 | $(BUILD_DIR)/as
 .PHONY: install-manpages
 install-manpages: $(BUILD_DIR)/assets/rethinkdb.1.gz
 	$P INSTALL $^ $(DESTDIR)$(man1_dir)
-	install -m755 -d $(DESTDIR)$(man1_dir)
+	umask 022 && install -m755 -d $(DESTDIR)$(man1_dir)
 	install -m644 $< $(DESTDIR)$(man1_dir)/$(VERSIONED_PACKAGE_NAME).1.gz
 
 $(BUILD_DIR)/assets/rethinkdb.bash: $(ASSETS_DIR)/scripts/rethinkdb.bash | $(BUILD_DIR)/assets/.
@@ -99,40 +99,40 @@ $(BUILD_DIR)/assets/rethinkdb.bash: $(ASSETS_DIR)/scripts/rethinkdb.bash | $(BUI
 .PHONY: install-tools
 install-tools: $(BUILD_DIR)/assets/rethinkdb.bash
 	$P INSTALL $< $(DESTDIR)$(internal_bash_completion_dir) $(DESTDIR)$(bash_completion_dir)
-	install -m755 -d $(DESTDIR)$(internal_bash_completion_dir)
-	install -m755 -d $(DESTDIR)$(bash_completion_dir)
+	umask 022 && install -m755 -d $(DESTDIR)$(internal_bash_completion_dir)
+	umask 022 && install -m755 -d $(DESTDIR)$(bash_completion_dir)
 	install -m644 $(BUILD_DIR)/assets/rethinkdb.bash \
 	   $(DESTDIR)$(internal_bash_completion_dir)/$(SERVER_EXEC_NAME).bash
 	install -m644 $(BUILD_DIR)/assets/rethinkdb.bash \
            $(DESTDIR)$(bash_completion_dir)/$(SERVER_EXEC_NAME).bash
 	$P INSTALL $(INIT_SCRIPTS) $(DESTDIR)$(init_dir)
-	install -m755 -d $(DESTDIR)$(init_dir)
+	umask 022 && install -m755 -d $(DESTDIR)$(init_dir)
 	for s in $(INIT_SCRIPTS); do install -m755 "$$s" $(DESTDIR)$(init_dir)/$$(basename $$s); done
 
 .PHONY: install-config
 install-config:
 	$P INSTALL $(DESTDIR)$(conf_dir)/default.conf.sample
-	install -m755 -d $(DESTDIR)$(conf_dir)
-	install -m755 -d $(DESTDIR)$(conf_instance_dir)
+	umask 022 && install -m755 -d $(DESTDIR)$(conf_dir)
+	umask 022 && install -m755 -d $(DESTDIR)$(conf_instance_dir)
 	install -m644 $(ASSETS_DIR)/config/default.conf.sample $(DESTDIR)$(conf_dir)/default.conf.sample
 
 .PHONY: install-data
 install-data:
 	$P INSTALL $(DESTDIR)$(data_dir)/instances.d
-	install -m755 -d $(DESTDIR)$(data_dir)
-	install -m755 -d $(DESTDIR)$(data_dir)/instances.d
+	umask 022 && install -m755 -d $(DESTDIR)$(data_dir)
+	install -m755 $(DESTDIR)$(data_dir)/instances.d
 
 .PHONY: install-web
 install-web: web-assets
 	$P INSTALL $(DESTDIR)$(web_res_dir)
-	install -m755 -d $(DESTDIR)$(web_res_dir)
+	umask 022 && install -m755 -d $(DESTDIR)$(web_res_dir)
 	cd $(WEB_ASSETS_BUILD_DIR); find . -type d -exec install -m755 -d $(abspath $(DESTDIR))$(web_res_dir)/{} \;
 	cd $(WEB_ASSETS_BUILD_DIR); find . -type f -exec install -m644 {} $(abspath $(DESTDIR))$(web_res_dir)/{} \;
 
 .PHONY: install-docs
 install-docs:
 	$P INSTALL $(ASSETS_DIR)/docs/LICENSE $(DESTDIR)$(doc_dir)/copyright
-	install -m755 -d $(DESTDIR)$(doc_dir)
+	umask 022 && install -m755 -d $(DESTDIR)$(doc_dir)
 	install -m644 $(ASSETS_DIR)/docs/LICENSE $(DESTDIR)$(doc_dir)/copyright
 
 .PHONY: install
