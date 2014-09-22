@@ -371,10 +371,11 @@ public:
 
 private:
     // Only `readgen_t` and its subclasses should do anything fancy with a range.
-    // (Modulo unit tests.)
+    // (Modulo unit tests and changefeed weirdness.)
     friend class readgen_t;
     friend class primary_readgen_t;
     friend class sindex_readgen_t;
+    friend class rdb_write_visitor_t;
     friend struct ::unittest::make_sindex_read_t;
 
     key_range_t to_primary_keyrange() const;

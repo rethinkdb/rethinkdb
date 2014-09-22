@@ -40,6 +40,13 @@ class table_t;
 
 namespace changefeed {
 
+typedef std::function<std::vector<datum_t>(superblock_t *,
+                                           const datum_t &,
+                                           const std::string &,
+                                           const boost::optional<std::string> &,
+                                           size_t)> read_func_t;
+
+
 struct msg_t {
     struct limit_start_t {
         uuid_u sub;
@@ -196,19 +203,16 @@ typedef mailbox_addr_t<void(client_addr_t)> server_addr_t;
 
 class limit_manager_t {
 public:
-    limit_manager_t(keyspec_t _spec, decltype(data) &&start_data)
+    limit_manager_t(keyspec_t::limit_t _spec, decltype(data) &&start_data)
         : spec(std::move(_spec)), data(std::move(start_data)) { }
     void del(const store_key_t &key);
     void add(std::pair<store_key_t, datum_t> al);
     void commit(
-        const std::function<bool(const store_key_t &last_active,
-                                 size_t n,
-                                 store_key_t *key_out,
-                                 datum_t *row_out)> &find_next,
+        const read_func_t &read_func,
         const std::function<void(const msg_t &msg)> send);
 private:
-    keyspec_t spec;
-    std::map<store_key_t, datum_t> data;
+    keyspec_t::limit_t spec;
+    std::map<datum_t, datum_t> data;
 };
 
 // There is one `server_t` per `store_t`, and it is used to send changes that

@@ -13,17 +13,6 @@
 
 namespace ql {
 
-template<class T>
-T groups_to_batch(std::map<datum_t, T, optional_datum_less_t> *g) {
-    if (g->size() == 0) {
-        return T();
-    } else {
-        r_sanity_check(g->size() == 1 && !g->begin()->first.has());
-        return std::move(g->begin()->second);
-    }
-}
-
-
 // RANGE/READGEN STUFF
 reader_t::reader_t(
     const real_table_t &_table,

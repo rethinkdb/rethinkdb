@@ -398,6 +398,7 @@ void do_a_replace_from_batched_replace(
     promise_t<superblock_t *> *superblock_promise,
     rdb_modification_report_cb_t *sindex_cb,
     batched_replace_response_t *stats_out,
+    const ql::changefeed::read_func_t &cfeed_func,
     profile::trace_t *trace,
     std::set<std::string> *conditions)
 {
@@ -416,7 +417,10 @@ void do_a_replace_from_batched_replace(
 
     // JD: Looks like this is a do_a_replace_from_batched_replace specific thing.
     exiter.wait();
-    sindex_cb->on_mod_report(mod_report);
+
+    using ql::changefeed;
+    sindex_cb->on_mod_report(mod_report, cfeed_func);
+
 }
 
 batched_replace_response_t rdb_batched_replace(
@@ -426,6 +430,7 @@ batched_replace_response_t rdb_batched_replace(
     const ql::configured_limits_t &limits,
     const btree_batched_replacer_t *replacer,
     rdb_modification_report_cb_t *sindex_cb,
+    const ql::changefeed::read_func_t &cfeed_func,
     profile::trace_t *trace) {
 
     fifo_enforcer_source_t batched_replaces_fifo_source;
@@ -468,6 +473,7 @@ batched_replace_response_t rdb_batched_replace(
                     &superblock_promise,
                     sindex_cb,
                     &stats,
+                    std::cref(cfeed_func),
                     trace,
                     &conditions));
             current_superblock.init(superblock_promise.wait());
@@ -1197,7 +1203,8 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
 rdb_modification_report_cb_t::~rdb_modification_report_cb_t() { }
 
 void rdb_modification_report_cb_t::on_mod_report(
-    const rdb_modification_report_t &mod_report) {
+    const rdb_modification_report_t &mod_report,
+    const ql::changefeed::read_func_t &cfeed_func) {
     // debugf("%" PRIu64 "\n", timestamp.longtime);
     if (mod_report.info.deleted.first.has() || mod_report.info.added.first.has()) {
         // We spawn the sindex update in its own coroutine because we don't want to
@@ -1207,6 +1214,7 @@ void rdb_modification_report_cb_t::on_mod_report(
             std::bind(&rdb_modification_report_cb_t::on_mod_report_sub,
                       this,
                       mod_report,
+                      std::cref(cfeed_func),
                       &sindexes_updated_cond));
         if (store_->changefeed_server.has()) {
             store_->changefeed_server->send_all(
@@ -1223,6 +1231,7 @@ void rdb_modification_report_cb_t::on_mod_report(
 
 void rdb_modification_report_cb_t::on_mod_report_sub(
     const rdb_modification_report_t &mod_report,
+    const ql::changefeed::read_func_t &cfeed_func,
     cond_t *cond) {
     scoped_ptr_t<new_mutex_in_line_t> acq =
         store_->get_in_line_for_sindex_queue(sindex_block_);
@@ -1230,7 +1239,10 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
     store_->sindex_queue_push(mod_report, acq.get());
 
     rdb_live_deletion_context_t deletion_context;
-    rdb_update_sindexes(sindexes_, &mod_report, sindex_block_->txn(),
+    rdb_update_sindexes(sindexes_,
+                        &mod_report,
+                        &cfeed_func,
+                        sindex_block_->txn(),
                         &deletion_context);
     cond->pulse();
 }
@@ -1411,6 +1423,7 @@ void rdb_update_single_sindex(
         const store_t::sindex_access_t *sindex,
         const deletion_context_t *deletion_context,
         const rdb_modification_report_t *modification,
+        const ql::changefeed::read_func_t *cfeed_func,
         auto_drainer_t::lock_t) {
     // Note if you get this error it's likely that you've passed in a default
     // constructed mod_report. Don't do that.  Mod reports should always be passed
@@ -1535,22 +1548,26 @@ void rdb_update_single_sindex(
     }
 
     for (const auto &pair : *limit_managers) {
-        pair.second->commit(
-            [](const store_key_t &last_active, size_t n,
-               store_key_t *key_out, datum_t *row_out) {
-                rdb_rget_secondary_slice(//RSI: from here, use custom accumulator
+        pair.second->commit(cfeed_func);
+    }
 }
 
 void rdb_update_sindexes(const store_t::sindex_access_vector_t &sindexes,
                          const rdb_modification_report_t *modification,
+                         const ql::changefeed::read_func_t *cfeed_func,
                          txn_t *txn, const deletion_context_t *deletion_context) {
     {
         auto_drainer_t drainer;
 
         for (const auto &sindex : sindexes) {
-            coro_t::spawn_sometime(std::bind(
-                        &rdb_update_single_sindex, sindex.get(), deletion_context,
-                        modification, auto_drainer_t::lock_t(&drainer)));
+            coro_t::spawn_sometime(
+                std::bind(
+                    &rdb_update_single_sindex,
+                    sindex.get(),
+                    deletion_context,
+                    modification,
+                    cfeed_func,
+                    auto_drainer_t::lock_t(&drainer)));
         }
     }
 
