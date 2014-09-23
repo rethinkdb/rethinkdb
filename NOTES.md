@@ -1,6 +1,6 @@
 # Release 1.15.0 (Lawrence of Arabia)
 
-Released on 2014-09-18
+Released on 2014-09-23
 
 The highlights of this release are support for geospatial objects and queries
 and significant performance upgrades relating to datum serialization (twice as
@@ -47,6 +47,8 @@ There are no API-breaking changes in this release.
 * Python driver
   * Modified `r.row` to provide an error message on an attempt to call it like a
     function (#2960)
+* JavaScript driver
+  * Errors thrown by the driver now have a stack trace (#3087)
 
 ## Fixed bugs ##
 
