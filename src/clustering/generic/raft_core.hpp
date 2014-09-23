@@ -21,13 +21,12 @@ The classes in this file are templatized on two types, `state_t` and `change_t`.
 potential transition on that state machine. So `change_t` is the type that is stored in
 the Raft log, whereas `state_t` is stored when taking a snapshot.
 
-Both `state_t` and `change_t` must be default-constructable, destructable, and copy- and
-move- constructable and assignable. In addition, `state_t` must support the following
-method:
-
-    void state_t::apply_change(const change_t &);
-    
-`apply_change()` applies a change in place to the `state_t`, mutating it in place. */
+`state_t` and `change_t` must satisfy the following requirements:
+  * Both must be default-constructable, destructable, copy- and move-constructable, copy-
+    and move-assignable.
+  * Both must support the `==` and `!=` operators.
+  * `state_t` must have a method `void apply_change(const change_t &)` which applies the
+    change to the `state_t`, mutating it in place. */
 
 /* `raft_term_t` and `raft_log_index_t` are typedefs to improve the readability of the
 code, by making it clearer what the meaning of a particular number is. */
@@ -350,6 +349,34 @@ public:
     is undefined, the interrupted method call will not make invalid RPC calls or write
     invalid data to persistent storage.) */
 
+    /* `get_initialized_signal()` returns a signal that is pulsed if we have a valid
+    state. The only time it isn't pulsed is when we've just joined an existing Raft
+    cluster as a new member, and we haven't received the initial state yet. */
+    signal_t *get_initialized_signal() {
+        assert_thread();
+        return &initialized_cond;
+    }
+
+    /* `get_state_machine()` tracks the current state of the state machine. It's illegal
+    to call this before `get_initialized_signal()` is pulsed. */
+    clone_ptr_t<watchable_t<state_t> > get_state_machine() {
+        assert_thread();
+        guarantee(initialized_cond.is_pulsed());
+        return state_machine.get_watchable();
+    }
+
+    /* Returns the Raft member that this member thinks is the leader, or `nil_uuid()` if
+    this member doesn't know of any leader. */
+    raft_member_id_t get_leader() {
+        assert_thread();
+        return this_term_leader_id;
+    }
+
+    /* TODO: Eventually we'll want better APIs for proposing changes; in particular, it
+    would be nice to be able to know when one's change has been processed. However, we
+    should wait to get a better sense of how Raft will be used before investing effort
+    into better APIs. */
+
     /* `propose_change_if_leader()` tries to perform the given change if this Raft member
     is the leader. A return value of `true` means the change is being processed, but it
     hasn't necessarily been committed and won't necessarily ever be. `false` means we are
@@ -363,10 +390,6 @@ public:
     bool propose_config_change_if_leader(
         const raft_config_t &configuration,
         signal_t *interruptor);
-
-    /* `in_config_change()` returns `true` if we're current in the process of performing
-    a configuration change. It doesn't block. */
-    bool in_config_change();
 
     /* The `on_*_rpc()` methods are called when a Raft member calls a `send_*_rpc()`
     method on their `raft_network_and_storage_interface_t`. */
@@ -396,6 +419,13 @@ public:
         raft_term_t *term_out,
         bool *success_out);
 
+    /* `check_invariants()` asserts that the given collection of Raft cluster members are
+    in a valid, consistent state. This may block, because it needs to acquire each
+    member's mutex, but it will not modify anything. Since this requires direct access to
+    each member of the Raft cluster, it's only useful for testing. */
+    static void check_invariants(
+        const std::set<raft_member_t<state_t, change_t> *> members);
+
 private:
     enum class mode_t {
         follower,
@@ -417,6 +447,12 @@ private:
     /* Note: Methods prefixed with `follower_`, `candidate_`, or `leader_` are methods
     that are only used when in that state. This convention will hopefully make the code
     slightly clearer. */
+
+    /* Asserts that all of the invariants that can be checked locally hold true. This
+    doesn't block or modify anything. It should be safe to call it at any time (except
+    when in between modifying two variables that should remain consistent with each
+    other, of course) */
+    void check_invariants(const new_mutex_acq_t *mutex_acq);
 
     /* `on_watchdog_timer()` is called periodically. If we're a follower and we haven't
     heard from a leader within the election timeout, it starts a new election by spawning
@@ -531,12 +567,6 @@ private:
     or not. The returned returned reference points to something in `ps`. */
     const raft_complex_config_t &get_configuration_ref();
 
-    /* Asserts that all of the invariants that can be checked locally hold true. This
-    doesn't block or modify anything. It should be safe to call it at any time (except
-    when in between modifying two variables that should remain consistent with each
-    other, of course) */
-    void check_invariants(const new_mutex_acq_t *mutex_acq);
-
     /* The member ID of the member of the Raft cluster represented by this
     `raft_member_t`. */
     const raft_member_id_t this_member_id;
@@ -548,9 +578,15 @@ private:
     raft_persistent_state_t<state_t, change_t> ps;
 
     /* This `state_t` describes the current state of the "state machine" that the Raft
-    cluster is controlling. It will be empty for a non-voting member that hasn't received
-    its first snapshot yet. */
-    boost::optional<state_t> state_machine;
+    cluster is controlling. It will be meaningless for a non-voting member that hasn't
+    received its first snapshot yet. Together, `initialized_cond` and `state_machine`
+    are analogous to a `boost::optional<state_t>`, like that stored in
+    `ps.snapshot_state`. */
+    watchable_variable_t<state_t> state_machine;
+
+    /* `initialized_cond` is pulsed unless we are a non-voting member that hasn't
+    received its first snapshot yet. */
+    cond_t initialized_cond;
 
     /* `commit_index` and `last_applied` correspond to the volatile state variables with
     the same names in Figure 2 of the Raft paper. */
