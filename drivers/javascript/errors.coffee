@@ -3,6 +3,7 @@ class RqlDriverError extends Error
         @name = @constructor.name
         @msg = msg
         @message = msg
+        Error.captureStackTrace @, @
 
 class RqlServerError extends Error
     constructor: (msg, term, frames) ->
@@ -16,6 +17,7 @@ class RqlServerError extends Error
                 @message = "#{msg} in:\n#{RqlQueryPrinter::printQuery(term)}\n#{RqlQueryPrinter::printCarrots(term, frames)}"
         else
             @message = "#{msg}"
+        Error.captureStackTrace @, @
 
 class RqlRuntimeError extends RqlServerError
 
