@@ -100,6 +100,8 @@ bool raft_member_t<state_t, change_t>::propose_change_if_leader(
     new_entry.term = ps.current_term;
 
     leader_append_log_entry(new_entry, &mutex_acq, interruptor);
+
+    DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
     return true;
 }
 
@@ -136,6 +138,8 @@ bool raft_member_t<state_t, change_t>::propose_config_change_if_leader(
     new_entry.term = ps.current_term;
 
     leader_append_log_entry(new_entry, &mutex_acq, interruptor);
+
+    DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
     return true;
 }
 
@@ -180,6 +184,7 @@ void raft_member_t<state_t, change_t>::on_request_vote_rpc(
     if (term < ps.current_term) {
         *term_out = ps.current_term;
         *vote_granted_out = false;
+        DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
         return;
     }
 
@@ -204,6 +209,7 @@ void raft_member_t<state_t, change_t>::on_request_vote_rpc(
     if (!ps.voted_for.is_nil() && ps.voted_for != candidate_id) {
         *term_out = ps.current_term;
         *vote_granted_out = false;
+        DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
         return;
     }
 
@@ -219,6 +225,7 @@ void raft_member_t<state_t, change_t>::on_request_vote_rpc(
     if (!candidate_is_at_least_as_up_to_date) {
         *term_out = ps.current_term;
         *vote_granted_out = false;
+        DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
         return;
     }
 
@@ -230,6 +237,8 @@ void raft_member_t<state_t, change_t>::on_request_vote_rpc(
 
     *term_out = ps.current_term;
     *vote_granted_out = true;
+
+    DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 }
 
 template<class state_t, class change_t>
@@ -259,6 +268,7 @@ void raft_member_t<state_t, change_t>::on_install_snapshot_rpc(
     /* Raft paper, Figure 13: "Reply immediately if term < currentTerm" */
     if (term < ps.current_term) {
         *term_out = ps.current_term;
+        DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
         return;
     }
 
@@ -305,10 +315,12 @@ void raft_member_t<state_t, change_t>::on_install_snapshot_rpc(
         the snapshot's last included entry is before our most recent entry. But if that's
         the case, we don't need this snapshot, so we can safely ignore it. */
         *term_out = ps.current_term;
+        DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
         return;
     } else if (last_included_index <= ps.log.get_latest_index() &&
             ps.log.get_entry_term(last_included_index) == last_included_term) {
         *term_out = ps.current_term;
+        DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
         return;
     }
 
@@ -335,6 +347,8 @@ void raft_member_t<state_t, change_t>::on_install_snapshot_rpc(
     interface->write_persistent_state(ps, interruptor);
 
     *term_out = ps.current_term;
+
+    DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 }
 
 template<class state_t, class change_t>
@@ -368,6 +382,7 @@ void raft_member_t<state_t, change_t>::on_append_entries_rpc(
         itself" */
         *term_out = ps.current_term;
         *success_out = false;
+        DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
         return;
     }
 
@@ -400,6 +415,7 @@ void raft_member_t<state_t, change_t>::on_append_entries_rpc(
             ps.log.get_entry_term(entries.prev_index) != entries.prev_term) {
         *term_out = ps.current_term;
         *success_out = false;
+        DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
         return;
     }
 
@@ -445,6 +461,8 @@ void raft_member_t<state_t, change_t>::on_append_entries_rpc(
 
     *term_out = ps.current_term;
     *success_out = true;
+
+    DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 }
 
 template<class state_t, class change_t>
@@ -528,7 +546,8 @@ void raft_member_t<state_t, change_t>::check_invariants(
                 if (i == m->ps.log.prev_index) {
                     states.insert(std::make_pair(m, m->ps.snapshot_state));
                     configs.insert(std::make_pair(m, m->ps.snapshot_configuration));
-                } else if (i <= m->ps.log.get_latest_index()) {
+                } else if (i > m->ps.log.prev_index &&
+                        i <= m->ps.log.get_latest_index()) {
                     raft_log_entry_t<change_t> e = m->ps.log.get_entry_ref(i);
                     if (e.type == raft_log_entry_t<change_t>::type_t::regular) {
                         states.at(m)->apply_change(*e.change);
@@ -539,6 +558,8 @@ void raft_member_t<state_t, change_t>::check_invariants(
                 } else if (i == m->ps.log.get_latest_index() + 1) {
                     states.erase(m);
                     configs.erase(m);
+                } else {
+                    guarantee(states.count(m) == 0);
                 }
             }
             for (const auto &pair1 : states) {
@@ -561,6 +582,8 @@ void raft_member_t<state_t, change_t>::check_invariants(
         const new_mutex_acq_t *mutex_acq) {
     assert_thread();
     mutex_acq->assert_is_holding(&mutex);
+    debugf("%p check_invariants() begin\n", this);
+    debugf_in_dtor_t dtor("%p check_invariants() end\n", this);
 
     /* Some of these checks are copied directly from LogCabin's list of invariants. */
 
@@ -952,9 +975,6 @@ void raft_member_t<state_t, change_t>::candidate_and_leader_coro(
     mutex_acq->assert_is_holding(&mutex);
     leader_keepalive.assert_is_holding(leader_drainer.get());
 
-    debugf("candidate_and_leader_coro() begin\n");
-    debugf_in_dtor_t dtor("candidate_and_leader_coro() end\n");
-
     /* Raft paper, Section 5.2: "To begin an election, a follower increments its current
     term and transitions to candidate state." */
     update_term(ps.current_term + 1, mutex_acq.get());
@@ -997,7 +1017,8 @@ void raft_member_t<state_t, change_t>::candidate_and_leader_coro(
 
         /* We got elected. */
         guarantee(mode == mode_t::leader);
-        debugf("candidate_and_leader_coro() elected\n");
+        debugf("%p elected\n", this);
+        debugf_in_dtor_t dtor("%p unelected\n", this);
 
         guarantee(current_term_leader_id.is_nil());
         current_term_leader_id = this_member_id;
@@ -1062,8 +1083,6 @@ void raft_member_t<state_t, change_t>::candidate_and_leader_coro(
                 /* Release the mutex while blocking so that we can receive RPCs */
                 mutex_acq.reset();
 
-                debugf("candidate_and_leader_coro() wait_interruptible begin\n");
-                debugf_in_dtor_t("candidate_and_leader_coro() wait_interruptible end\n");
                 wait_interruptible(&cond, leader_keepalive.get_drain_signal());
 
                 /* Reacquire the mutex. Note that if `wait_interruptible()` throws
@@ -1091,8 +1110,6 @@ bool raft_member_t<state_t, change_t>::candidate_run_election(
         signal_t *interruptor) {
     (*mutex_acq)->assert_is_holding(&mutex);
     guarantee(mode == mode_t::candidate);
-    debugf("candidate_run_election() begin\n");
-    debugf_in_dtor_t dtor("candidate_run_election() end\n");
 
     raft_complex_config_t configuration = get_configuration_ref();
 
@@ -1126,8 +1143,6 @@ bool raft_member_t<state_t, change_t>::candidate_run_election(
         coro_t::spawn_sometime([this, &configuration, &votes_for_us,
                 &we_won_the_election, peer,
                 request_vote_keepalive /* important to capture */]() {
-            debugf("vote requestor begin\n");
-            debugf_in_dtor_t dtor2("vote requestor end\n");
             try {
                 /* Send the RPC and wait for a response */
                 raft_term_t reply_term;
@@ -1209,6 +1224,7 @@ bool raft_member_t<state_t, change_t>::candidate_run_election(
     wait_interruptible(&waiter, interruptor);
 
     mutex_acq->init(new new_mutex_acq_t(&mutex, interruptor));
+    DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 
     if (we_won_the_election.is_pulsed()) {
         /* Make sure that any ongoing request-vote coroutines stop, because they assert
@@ -1349,6 +1365,8 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
                 raft_complex_config_t snapshot_configuration_to_send =
                     *ps.snapshot_configuration;
 
+                DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
+
                 raft_term_t reply_term;
                 mutex_acq.reset();
                 bool ok = interface->send_install_snapshot_rpc(
@@ -1363,6 +1381,8 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
                     &reply_term);
                 mutex_acq.init(
                     new new_mutex_acq_t(&mutex, update_keepalive.get_drain_signal()));
+                DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
+
                 if (!ok) {
                     /* Raft paper, Section 5.1: "Servers retry RPCs if they do not
                     receive a response in a timely manner"
@@ -1401,9 +1421,10 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
                     entries_to_send.delete_entries_to(next_index - 1);
                 }
                 raft_log_index_t leader_commit_to_send = commit_index;
-                
+
                 raft_term_t reply_term;
                 bool reply_success;
+                DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
                 mutex_acq.reset();
                 bool ok = interface->send_append_entries_rpc(
                     peer,
@@ -1416,6 +1437,8 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
                     &reply_success);
                 mutex_acq.init(
                     new new_mutex_acq_t(&mutex, update_keepalive.get_drain_signal()));
+                DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
+
                 if (!ok) {
                     /* Raft paper, Section 5.1: "Servers retry RPCs if they do not
                     receive a response in a timely manner"
@@ -1466,6 +1489,8 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
                 set_insertion_sentry_t<cond_t *> cond_sentry(&update_watchers, &cond);
 
                 wait_any_t waiter(&cond, &heartbeat_timer);
+
+                DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
                 mutex_acq.reset();
                 wait_interruptible(&waiter, update_keepalive.get_drain_signal());
                 mutex_acq.init(
@@ -1565,6 +1590,7 @@ bool raft_member_t<state_t, change_t>::candidate_or_leader_note_term(
                     this->candidate_or_leader_become_follower(&mutex_acq_2);
                     interface->write_persistent_state(ps, keepalive.get_drain_signal());
                 }
+                DEBUG_ONLY_CODE(check_invariants(&mutex_acq_2));
             } catch (interrupted_exc_t) {
                 /* If `keepalive.get_drain_signal()` is pulsed, then the `raft_member_t`
                 is being destroyed, so it doesn't matter if we update our term; the
