@@ -116,13 +116,13 @@ build-deb: deb-src-dir
 install-osx: install-binaries install-web
 
 ifneq (Darwin,$(OS))
-  PRODUCT_BUILD = $(error MacOS package can only be built on that OS)
-else ifneq ("","$(findstring $(SIGNATURE_NAME),$(shell /usr/bin/security find-identity -p macappstore -v | /usr/bin/awk '/[:blank:]+[:digit:]+[:graph:][:blank:]/'))")
-  PRODUCT_BUILD = /usr/bin/productbuild --distribution $(OSX_PACKAGING_DIR)/Distribution.xml --package-path $(OSX_PACKAGE_DIR)/install/ $(OSX_PACKAGE_DIR)/dmg/rethinkdb-$(RETHINKDB_VERSION).pkg --sign "$(SIGNATURE_NAME)"
+  OSX_DMG_BUILD = $(error MacOS package can only be built on that OS)
+else ifneq ("","$(findstring $(OSX_SIGNATURE_NAME),$(shell /usr/bin/security find-identity -p macappstore -v | /usr/bin/awk '/[:blank:]+[:digit:]+[:graph:][:blank:]/'))")
+  OSX_DMG_BUILD = $(TOP)/packaging/osx/create_dmg.py --server-root "$(OSX_PACKAGE_DIR)/pkg" --ouptut-location "$(OSX_PACKAGE_DIR)/rethinkdb.dmg" --signing-name "$(OSX_SIGNATURE_NAME)"
 else ifeq ($(REQUIRE_SIGNED),1)
-  PRODUCT_BUILD = $(error Certificate not found: $(SIGNITURE_NAME))
+  OSX_DMG_BUILD = $(error Certificate not found: $(OSX_SIGNATURE_NAME))
 else
-  PRODUCT_BUILD = /usr/bin/productbuild --distribution $(OSX_PACKAGING_DIR)/Distribution.xml --package-path $(OSX_PACKAGE_DIR)/install/ $(OSX_PACKAGE_DIR)/dmg/rethinkdb-$(RETHINKDB_VERSION).pkg
+  OSX_DMG_BUILD = $(TOP)/packaging/osx/create_dmg.py --server-root "$(OSX_PACKAGE_DIR)/pkg" --ouptut-location "$(OSX_PACKAGE_DIR)/rethinkdb.dmg"
 endif
 
 .PHONY: build-osx
@@ -136,17 +136,8 @@ build-osx: install-osx
 				exit 1;; \
 			esac \
 		done
-	mkdir -p $(OSX_PACKAGE_DIR)/install
-	pkgbuild --root $(OSX_PACKAGE_DIR)/pkg --identifier rethinkdb $(OSX_PACKAGE_DIR)/install/rethinkdb.pkg
-	mkdir $(OSX_PACKAGE_DIR)/dmg
-	$(PRODUCT_BUILD)
-	
-# TODO: the PREFIX should not be hardcoded in the uninstall script 
-	cp $(OSX_PACKAGING_DIR)/uninstall-rethinkdb.sh $(OSX_PACKAGE_DIR)/dmg/uninstall-rethinkdb.sh
-	chmod +x $(OSX_PACKAGE_DIR)/dmg/uninstall-rethinkdb.sh
-	cp $(TOP)/NOTES.md $(OSX_PACKAGE_DIR)/dmg/
-	cp $(TOP)/COPYRIGHT $(OSX_PACKAGE_DIR)/dmg/
-	hdiutil create -volname RethinkDB-$(RETHINKDB_VERSION) -srcfolder $(OSX_PACKAGE_DIR)/dmg -ov $(OSX_PACKAGE_DIR)/rethinkdb.dmg
+	$P CREATE $(OSX_PACKAGE_DIR)/rethinkdb.dmg
+	$(OSX_DMG_BUILD)
 
 ##### Source distribution
 
