@@ -2,6 +2,20 @@
 #ifndef CLUSTERING_GENERIC_RAFT_CORE_HPP_
 #define CLUSTERING_GENERIC_RAFT_CORE_HPP_
 
+#include <deque>
+#include <set>
+#include <map>
+
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
+#include "concurrency/auto_drainer.hpp"
+#include "concurrency/new_mutex.hpp"
+#include "concurrency/signal.hpp"
+#include "concurrency/watchable.hpp"
+#include "containers/uuid.hpp"
+#include "time.hpp"
+
 /* This file implements the Raft consensus algorithm, as described in the paper "In
 Search of an Understandable Consensus Algorithm (Extended Version)" (2014) by Diego
 Ongaro and John Ousterhout. Because of the complexity and subtlety of the Raft algorithm,
@@ -68,6 +82,15 @@ public:
     bool is_valid_leader(const raft_member_id_t &member) const {
         return voting_members.count(member) == 1;
     }
+
+    /* The equality and inequality operators are mostly for debugging */
+    bool operator==(const raft_config_t &other) const {
+        return voting_members == other.voting_members &&
+            non_voting_members == other.non_voting_members;
+    }
+    bool operator!=(const raft_config_t &other) const {
+        return !(*this == other);
+    }
 };
 
 /* `raft_complex_config_t` can represent either a `raft_config_t` or a joint consensus of
@@ -86,7 +109,7 @@ public:
 
     std::set<raft_member_id_t> get_all_members() const {
         std::set<raft_member_id_t> members = config.get_all_members();
-        if (is_joint_consensus) {
+        if (is_joint_consensus()) {
             /* Raft paper, Section 6: "Log entries are replicated to all servers in both
             configurations." */
             std::set<raft_member_id_t> members2 = new_config->get_all_members();
@@ -98,7 +121,7 @@ public:
     bool is_quorum(const std::set<raft_member_id_t> &members) const {
         /* Raft paper, Section 6: "Agreement (for elections and entry commitment)
         requires separate majorities from both the old and new configurations." */
-        if (is_joint_consensus) {
+        if (is_joint_consensus()) {
             return config.is_quorum(members) && new_config->is_quorum(members);
         } else {
             return config.is_quorum(members);
@@ -109,7 +132,15 @@ public:
         /* Raft paper, Section 6: "Any server from either configuration may serve as
         leader." */
         return config.is_valid_leader(member) ||
-            (is_joint_consensus && new_config.is_valid_leader(member));
+            (is_joint_consensus() && new_config->is_valid_leader(member));
+    }
+
+    /* The equality and inequality operators are mostly for debugging */
+    bool operator==(const raft_complex_config_t &other) const {
+        return config == other.config && new_config == other.new_config;
+    }
+    bool operator!=(const raft_complex_config_t &other) const {
+        return !(*this == other);
     }
 };
 
@@ -329,18 +360,20 @@ public:
     virtual void write_persistent_state(
         const raft_persistent_state_t<state_t, change_t> &persistent_state,
         signal_t *interruptor) = 0;
+
+protected:
+    virtual ~raft_network_and_storage_interface_t() { }
 };
 
 /* `raft_member_t` is responsible for managing the activity of a single member of the
 Raft cluster. */
 template<class state_t, class change_t>
-class raft_member_t<state_t, change_t> :
-    public home_thread_mixin_debug_only_t
+class raft_member_t : public home_thread_mixin_debug_only_t
 {
 public:
     raft_member_t(
         const raft_member_id_t &this_member_id,
-        raft_network_and_storage_interface_t *interface,
+        raft_network_and_storage_interface_t<state_t, change_t> *interface,
         const raft_persistent_state_t<state_t, change_t> &persistent_state);
 
     /* Note that if a method on `raft_member_t` is interrupted, the `raft_member_t` will
@@ -369,7 +402,7 @@ public:
     this member doesn't know of any leader. */
     raft_member_id_t get_leader() {
         assert_thread();
-        return this_term_leader_id;
+        return current_term_leader_id;
     }
 
     /* TODO: Eventually we'll want better APIs for proposing changes; in particular, it
@@ -424,7 +457,7 @@ public:
     member's mutex, but it will not modify anything. Since this requires direct access to
     each member of the Raft cluster, it's only useful for testing. */
     static void check_invariants(
-        const std::set<raft_member_t<state_t, change_t> *> members);
+        const std::set<raft_member_t<state_t, change_t> *> &members);
 
 private:
     enum class mode_t {
@@ -571,21 +604,22 @@ private:
     `raft_member_t`. */
     const raft_member_id_t this_member_id;
 
-    const raft_network_and_storage_interface_t *interface;
+    raft_network_and_storage_interface_t<state_t, change_t> *const interface;
 
-    /* A two-letter name was chosen for this variable because we end up writing `ps.*`
-    constantly. */
+    /* This stores all of the state variables of the Raft member that need to be written
+    to stable storage when they change. We end up writing `ps.*` a lot, which is why the
+    name is so abbreviated. */
     raft_persistent_state_t<state_t, change_t> ps;
 
-    /* This `state_t` describes the current state of the "state machine" that the Raft
-    cluster is controlling. It will be meaningless for a non-voting member that hasn't
-    received its first snapshot yet. Together, `initialized_cond` and `state_machine`
-    are analogous to a `boost::optional<state_t>`, like that stored in
-    `ps.snapshot_state`. */
+    /* `state_machine` and `initialized_cond` together describe the "state machine" that
+    the Raft member is managing. If `initialized_cond` is unpulsed, then the state
+    machine is in the uninitialized state, and the contents of `state_machine` are
+    meaningless; if `initialized_cond` is pulsed, then the state machine is in an
+    initialized state, and `state_machine` stores that state. In the context of the
+    `raft_persistent_state_t` we represent this as a `boost::optional<state_t>`, but here
+    we want to store it in a form that is easier for users of `raft_member_t` to work
+    with. */
     watchable_variable_t<state_t> state_machine;
-
-    /* `initialized_cond` is pulsed unless we are a non-voting member that hasn't
-    received its first snapshot yet. */
     cond_t initialized_cond;
 
     /* `commit_index` and `last_applied` correspond to the volatile state variables with

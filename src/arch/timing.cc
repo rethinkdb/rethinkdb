@@ -73,8 +73,8 @@ repeating_timer_t::repeating_timer_t(
 
 repeating_timer_t::repeating_timer_t(
         int64_t interval_ms, repeating_timer_callback_t *_cb) :
-    ringee([_cb]() { cb->on_ring(); }) {
-    rassert(frequency_ms > 0);
+    ringee([_cb]() { _cb->on_ring(); }) {
+    rassert(interval_ms > 0);
     timer = add_timer(interval_ms, this);
 }
 

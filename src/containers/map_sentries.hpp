@@ -80,7 +80,7 @@ public:
     void reset() {
         if (set) {
             set->erase(it);
-            map = NULL;
+            set = NULL;
         }
     }
     void reset(std::set<obj_t> *s, const obj_t &obj) {

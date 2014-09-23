@@ -30,7 +30,6 @@ public:
             rassert(lock_ == m);
         }
     private:
-        friend class mutex_t::unacq_t;
         friend void swap(acq_t &, acq_t &);
         mutex_t *lock_;
         bool eager_;

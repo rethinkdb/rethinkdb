@@ -37,7 +37,7 @@ public:
         rwlock_in_line_.reset();
     }
 
-    void assert_is_for_lock(new_mutex_t *mutex) {
+    void assert_is_for_lock(const new_mutex_t *mutex) const {
         rwlock_in_line_.assert_is_for_lock(&mutex->rwlock_);
     }
 
@@ -54,7 +54,7 @@ public:
         acq_signal()->wait();
     }
 
-    void assert_is_holding(new_mutex_t *new_mutex) {
+    void assert_is_holding(const new_mutex_t *new_mutex) const {
         new_mutex_in_line_t::assert_is_for_lock(new_mutex);
     }
 

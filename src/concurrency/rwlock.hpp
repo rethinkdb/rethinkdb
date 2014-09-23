@@ -49,7 +49,7 @@ public:
 
     void reset();
 
-    void assert_is_for_lock(rwlock_t *lock) {
+    void assert_is_for_lock(const rwlock_t *lock) const {
         guarantee(lock_ == lock);
     }
 
