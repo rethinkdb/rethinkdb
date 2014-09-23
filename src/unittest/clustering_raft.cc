@@ -5,7 +5,6 @@
 
 #include "clustering/generic/raft_core.hpp"
 #include "clustering/generic/raft_core.tcc"
-#include "debug.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "unittest/unittest_utils.hpp"
 
@@ -68,7 +67,6 @@ public:
     }
 
     ~dummy_raft_cluster_t() {
-        debugf("~dummy_raft_cluster_t()\n");
         /* We could just let the destructors run, but then we'd have to worry about
         destructor order, so this is safer and clearer */
         for (const auto &pair : members) {
@@ -226,11 +224,20 @@ private:
                 raft_term_t last_log_term,
                 signal_t *interruptor,
                 raft_term_t *term_out, bool *vote_granted_out) {
-            return do_rpc(dest, [&](dummy_raft_member_t *other, signal_t *interruptor2) {
+            return do_rpc(dest,
+                [dest, term, candidate_id, last_log_index, last_log_term, term_out,
+                    vote_granted_out]
+                (dummy_raft_member_t *other, signal_t *interruptor2, bool *valid) {
+                    raft_term_t reply_term;
+                    bool reply_vote_granted;
                     other->on_request_vote_rpc(
                         term, candidate_id, last_log_index, last_log_term,
                         interruptor2,
-                        term_out, vote_granted_out);
+                        &reply_term, &reply_vote_granted);
+                    if (*valid) {
+                        *term_out = reply_term;
+                        *vote_granted_out = reply_vote_granted;
+                    }
                 }, interruptor);
         }
         bool send_install_snapshot_rpc(
@@ -240,12 +247,19 @@ private:
                 const raft_complex_config_t &snapshot_configuration,
                 signal_t *interruptor,
                 raft_term_t *term_out) {
-            return do_rpc(dest, [&](dummy_raft_member_t *other, signal_t *interruptor2) {
+            return do_rpc(dest,
+                [dest, term, leader_id, last_included_index, last_included_term,
+                 snapshot_state, snapshot_configuration, term_out]
+                (dummy_raft_member_t *other, signal_t *interruptor2, bool *valid) {
+                    raft_term_t reply_term;
                     other->on_install_snapshot_rpc(
                         term, leader_id, last_included_index, last_included_term,
                         snapshot_state, snapshot_configuration,
                         interruptor2,
-                        term_out);
+                        &reply_term);
+                    if (*valid) {
+                        *term_out = reply_term;
+                    }
                }, interruptor);
         }
         bool send_append_entries_rpc(
@@ -254,11 +268,19 @@ private:
                 raft_log_index_t leader_commit,
                 signal_t *interruptor,
                 raft_term_t *term_out, bool *success_out) {
-            return do_rpc(dest, [&](dummy_raft_member_t *other, signal_t *interruptor2) {
+            return do_rpc(dest,
+                [dest, term, leader_id, entries, leader_commit, term_out, success_out]
+                (dummy_raft_member_t *other, signal_t *interruptor2, bool *valid) {
+                    raft_term_t reply_term;
+                    bool reply_success;
                     other->on_append_entries_rpc(
                         term, leader_id, entries, leader_commit,
                         interruptor2,
-                        term_out, success_out);
+                        &reply_term, &reply_success);
+                    if (*valid) {
+                        *term_out = reply_term;
+                        *success_out = reply_success;
+                    }
                 }, interruptor);
         }
         clone_ptr_t<watchable_t<std::set<raft_member_id_t> > > get_connected_members() {
@@ -274,23 +296,43 @@ private:
         }
         bool do_rpc(
                 const raft_member_id_t &dest,
-                const std::function<void(dummy_raft_member_t *, signal_t *)> &fun,
+                const std::function<void(dummy_raft_member_t*, signal_t*, bool*)> &fun,
                 signal_t *interruptor) {
             block(interruptor);
-            member_info_t *other = parent->members.at(dest).get();
-            if (other->drainer.has()) {
-                auto_drainer_t::lock_t keepalive(other->drainer.get());
-                try {
-                    fun(other->member.get(), keepalive.get_drain_signal());
-                    block(keepalive.get_drain_signal());
-                } catch (interrupted_exc_t) {
-                    return false;
-                }
-                return true;
-            } else {
-                block(interruptor);
-                return false;
+            std::shared_ptr<bool> valid(new bool(true));
+            cond_t reply_cond;
+            bool reply_ok;
+            coro_t::spawn_sometime(
+                [this, dest, fun, valid, &reply_cond, &reply_ok] () {
+                    member_info_t *other = parent->members.at(dest).get();
+                    bool ok;
+                    if (other->drainer.has()) {
+                        auto_drainer_t::lock_t keepalive(other->drainer.get());
+                        try {
+                            block(keepalive.get_drain_signal());
+                            fun(other->member.get(),
+                                keepalive.get_drain_signal(),
+                                valid.get());
+                            block(keepalive.get_drain_signal());
+                            ok = true;
+                        } catch (interrupted_exc_t) {
+                            ok = false;
+                        }
+                    } else {
+                        ok = false;
+                    }
+                    if (*valid) {
+                        reply_ok = ok;
+                        reply_cond.pulse();
+                    }
+                });
+            try {
+                wait_interruptible(&reply_cond, interruptor);
+            } catch (interrupted_exc_t) {
+                *valid = false;
             }
+            block(interruptor);
+            return reply_ok;
         }
         void block(signal_t *interruptor) {
             if (randint(10) != 0) {
@@ -365,10 +407,49 @@ private:
     repeating_timer_t timer;
 };
 
+/* TODO: These unit tests are inadequate, in several ways:
+  * They use timeouts instead of getting a notification when the Raft cluster is ready.
+  * They should assert that transactions go through when the Raft cluster says it is
+    ready.
+  * They don't test configuration changes.
+It will be much easier to fix these issues once `raft_member_t` exposes a good
+user-facing API. So I don't want to implement real unit tests until after the user-facing
+API is overhauled. */
+
 TPTEST(ClusteringRaft, Basic) {
-    dummy_raft_cluster_t cluster(5, dummy_raft_state_t(), nullptr);
+    std::vector<raft_member_id_t> member_ids;
+    dummy_raft_cluster_t cluster(5, dummy_raft_state_t(), &member_ids);
     dummy_raft_traffic_generator_t traffic_generator(&cluster, 10);
     nap(5000);
+    cluster.run_on_member(member_ids[0], [](dummy_raft_member_t *member) {
+        /* Make sure at least some transactions got through */
+        dummy_raft_state_t state = member->get_state_machine()->get();
+        guarantee(state.state.size() > 100);
+    });
+}
+
+TPTEST(ClusteringRaft, Failover) {
+    std::vector<raft_member_id_t> member_ids;
+    dummy_raft_cluster_t cluster(5, dummy_raft_state_t(), &member_ids);
+    dummy_raft_traffic_generator_t traffic_generator(&cluster, 10);
+    nap(5000);
+    cluster.set_live(member_ids[0], dummy_raft_cluster_t::live_t::dead);
+    cluster.set_live(member_ids[1], dummy_raft_cluster_t::live_t::dead);
+    nap(5000);
+    cluster.set_live(member_ids[2], dummy_raft_cluster_t::live_t::dead);
+    cluster.set_live(member_ids[3], dummy_raft_cluster_t::live_t::dead);
+    cluster.set_live(member_ids[0], dummy_raft_cluster_t::live_t::alive);
+    cluster.set_live(member_ids[1], dummy_raft_cluster_t::live_t::alive);
+    nap(5000);
+    cluster.set_live(member_ids[4], dummy_raft_cluster_t::live_t::dead);
+    cluster.set_live(member_ids[2], dummy_raft_cluster_t::live_t::alive);
+    cluster.set_live(member_ids[3], dummy_raft_cluster_t::live_t::alive);
+    nap(5000);
+    cluster.run_on_member(member_ids[0], [](dummy_raft_member_t *member) {
+        /* Make sure at least some transactions got through */
+        dummy_raft_state_t state = member->get_state_machine()->get();
+        guarantee(state.state.size() > 100);
+    });
 }
 
 }   /* namespace unittest */

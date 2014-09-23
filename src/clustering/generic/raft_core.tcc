@@ -91,12 +91,8 @@ raft_member_t<state_t, change_t>::~raft_member_t() {
     /* Now that the destructor has been called, we can safely assume that our public
     methods will not be called. */
 
-    debugf("%p ~raft_member_t() begin\n", this);
-
     new_mutex_acq_t mutex_acq(&mutex);
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
-
-    debugf("%p ~raft_member_t() got mutex\n", this);
 
     /* Destroy `watchdog_timer` so that it doesn't start any new actions while we're
     cleaning up. */
@@ -106,17 +102,12 @@ raft_member_t<state_t, change_t>::~raft_member_t() {
     `candidate_and_leader_coro()`. */
     drainer.reset();
 
-    debugf("%p ~raft_member_t() reset drainer\n", this);
-
     /* Now kill `candidate_and_leader_coro()`, if it's running */
     if (mode != mode_t::follower) {
         candidate_or_leader_become_follower(&mutex_acq);
-        debugf("%p ~raft_member_t() became follower\n", this);
-        DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
     }
 
     /* All the coroutines have stopped, so we can start calling member destructors. */
-    debugf("%p ~raft_member_t() end\n", this);
 }
 
 template<class state_t, class change_t>
@@ -130,6 +121,14 @@ bool raft_member_t<state_t, change_t>::propose_change_if_leader(
     if (mode != mode_t::leader) {
         return false;
     }
+
+    /* TODO: We shouldn't allow changes to pile up on a leader that isn't capable of
+    getting them committed. In particular:
+      * If the number of uncommitted log entries is greater than a threshold, we should
+        not accept new changes.
+      * If we're not in contact with a majority of the cluster, we should not accept new
+        changes.
+    The same goes for configuration changes. */
 
     raft_log_entry_t<change_t> new_entry;
     new_entry.type = raft_log_entry_t<change_t>::type_t::regular;
@@ -154,16 +153,27 @@ bool raft_member_t<state_t, change_t>::propose_config_change_if_leader(
         return false;
     }
 
-    raft_complex_config_t old_complex_config = get_configuration_ref();
+    /* Calculate the latest committed configuration */
+    raft_complex_config_t old_complex_config = *ps.snapshot_configuration;
+    for (raft_log_index_t i = ps.log.prev_index + 1; i <= commit_index; ++i) {
+        if (ps.log.get_entry(i).type ==
+                raft_log_entry_t<change_t>::type_t::configuration) {
+            old_complex_config = *ps.log.get_entry(i).configuration;
+        }
+    }
+
+    /* We forbid starting a new config change before the old one is done. The Raft paper
+    doesn't explicitly say anything about multiple interleaved configuration changes; but
+    it's safer and simpler to forbid it. */
     if (old_complex_config.is_joint_consensus()) {
-        /* We forbid starting a new config change before the old one is done. The Raft
-        paper doesn't explicitly say anything about multiple interleaved configuration
-        changes; but it's safer and simpler to forbid multiple interleaved configuration
-        changes. */
         return false;
     }
-    /* RSI: To be safe, we should also forbid config changes if the second phase of a
-    reconfiguration is in the log but we haven't committed it yet */
+    for (raft_log_index_t i = commit_index + 1; i <= ps.log.get_latest_index(); ++i) {
+        if (ps.log.get_entry(i).type ==
+                raft_log_entry_t<change_t>::type_t::configuration) {
+            return false;
+        }
+    }
 
     raft_complex_config_t new_complex_config;
     new_complex_config.config = old_complex_config.config;
@@ -815,10 +825,9 @@ void raft_member_t<state_t, change_t>::check_invariants(
     /* Checks related to the follower/candidate/leader roles */
     guarantee((mode == mode_t::leader) == (current_term_leader_id == this_member_id),
         "mode should say we're leader iff current_term_leader_id says we're leader");
-    if (latest_term_in_log == ps.current_term && ps.current_term != 1) {
-        guarantee(!current_term_leader_id.is_nil(), "If we have changes for the "
-            "current term, we should have a leader for the current term.");
-    }
+    /* We could test that `current_term_leader_id` is non-nil if there are any changes in
+    the log for the current term. But this would be false immediately after startup, so
+    we'd need an extra flag to detect that, and that's more work than it's worth. */
     guarantee(leader_drainer.has() == (mode != mode_t::follower),
         "candidate_and_leader_coro() should be running unless we're a follower");
     if (mode != mode_t::leader) {
@@ -1088,8 +1097,6 @@ void raft_member_t<state_t, change_t>::candidate_and_leader_coro(
 
         /* We got elected. */
         guarantee(mode == mode_t::leader);
-        debugf("%p elected\n", this);
-        debugf_in_dtor_t dtor("%p unelected\n", this);
 
         guarantee(current_term_leader_id.is_nil());
         current_term_leader_id = this_member_id;
@@ -1413,10 +1420,15 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
 
             /* First, wait for the peer to be connected; there's no point in trying to
             send an RPC if the peer isn't even connected. */
+            DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
+            mutex_acq.reset();
             interface->get_connected_members()->run_until_satisfied(
                 [&](const std::set<raft_member_id_t> &peers) {
                     return peers.count(peer) == 1;
                 }, update_keepalive.get_drain_signal());
+            mutex_acq.init(
+                new new_mutex_acq_t(&mutex, update_keepalive.get_drain_signal()));
+            DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
 
             if (next_index <= ps.log.prev_index) {
                 /* The peer's log ends before our log begins. So we have to send an
@@ -1703,7 +1715,11 @@ const raft_complex_config_t &raft_member_t<state_t, change_t>::get_configuration
         "initialized yet, so we should be a non-voting member; why are we calling "
             "get_configuration_ref()?");
     /* Raft paper, Section 6: "a server always uses the latest configuration in its log,
-    regardless of whether the entry is committed" */
+    regardless of whether the entry is committed"
+    We recompute this on-the-fly every time it's needed. We could cache it, but we'd have
+    to be careful about invalidating the cache, so it's not worth doing unless there's a
+    good reason. The log will usually be very short so it shouldn't be a performance
+    issue. */
     const raft_complex_config_t *c = &*ps.snapshot_configuration;
     for (raft_log_index_t i = ps.log.prev_index + 1;
             i <= ps.log.get_latest_index(); ++i) {

@@ -14,7 +14,6 @@
 #include "concurrency/signal.hpp"
 #include "concurrency/watchable.hpp"
 #include "containers/uuid.hpp"
-#include "debug.hpp"
 #include "time.hpp"
 
 /* This file implements the Raft consensus algorithm, as described in the paper "In
@@ -401,17 +400,26 @@ public:
         return state_machine.get_watchable();
     }
 
+    /* TODO: These user-facing APIs are inadequate. We'll probably need:
+      * A way to block until a newly-created Raft cluster has elected a leader and is
+        ready for input.
+      * For queries initiated by the user, we'll want to be able to know if they
+        succeeded or failed. This should report "failed" if anything delays the query
+        significantly, such as if a new master is elected before the query is committed,
+        or if the master is no longer in contact with a majority.
+      * A way to observe the state of the Raft cluster before initiating a change.
+        Specifically, it would observe the "bleeding edge" state after everything in the
+        log has been applied, not the committed state. This way we can enforce rules for
+        what changes are allowed following what states.
+    But I don't want to implement anything until I have a better sense of how these APIs
+    will end up being used. So I'll revisit this later. */
+
     /* Returns the Raft member that this member thinks is the leader, or `nil_uuid()` if
     this member doesn't know of any leader. */
     raft_member_id_t get_leader() {
         assert_thread();
         return current_term_leader_id;
     }
-
-    /* TODO: Eventually we'll want better APIs for proposing changes; in particular, it
-    would be nice to be able to know when one's change has been processed. However, we
-    should wait to get a better sense of how Raft will be used before investing effort
-    into better APIs. */
 
     /* `propose_change_if_leader()` tries to perform the given change if this Raft member
     is the leader. A return value of `true` means the change is being processed, but it
@@ -475,6 +483,12 @@ private:
     periods of unavailability when a master dies. */
     static const int32_t election_timeout_min_ms = 1000,
                          election_timeout_max_ms = 2000;
+
+    /* TODO: We should probably deviate from the Raft paper by using the network layer's
+    disconnect detection instead of timeouts to detect a dead leader. This will make
+    elections much faster and also make us less sensitive to timing. However, this will
+    involve adding a new RPC, for a master to inform followers that it is stepping down.
+    */
 
     /* This is the amount of time the server waits between sending heartbeats. It should
     be much shorter than the election timeout. */
