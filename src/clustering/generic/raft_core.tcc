@@ -69,10 +69,14 @@ raft_member_t<state_t, change_t>::raft_member_t(
     /* Set this so we start an election if we don't hear from a leader within an election
     timeout of when the constructor was called */
     last_heard_from_leader(current_microtime()),
+    drainer(new auto_drainer_t),
     /* Setting the `watchdog_timer` to ring every `election_timeout_min_ms` means that
     we'll start a new election after between 1 and 2 election timeouts have passed. This
     is OK. */
-    watchdog_timer(election_timeout_min_ms, [this] () { this->on_watchdog_timer(); })
+    watchdog_timer(new repeating_timer_t(
+        election_timeout_min_ms,
+        [this] () { this->on_watchdog_timer(); }
+        ))
 {
     if (static_cast<bool>(ps.snapshot_state)) {
         initialized_cond.pulse();
@@ -80,6 +84,39 @@ raft_member_t<state_t, change_t>::raft_member_t(
 
     new_mutex_acq_t mutex_acq(&mutex);
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
+}
+
+template<class state_t, class change_t>
+raft_member_t<state_t, change_t>::~raft_member_t() {
+    /* Now that the destructor has been called, we can safely assume that our public
+    methods will not be called. */
+
+    debugf("%p ~raft_member_t() begin\n", this);
+
+    new_mutex_acq_t mutex_acq(&mutex);
+    DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
+
+    debugf("%p ~raft_member_t() got mutex\n", this);
+
+    /* Destroy `watchdog_timer` so that it doesn't start any new actions while we're
+    cleaning up. */
+    watchdog_timer.reset();
+
+    /* Destroy `drainer` to kill any miscellaneous coroutines that aren't related to
+    `candidate_and_leader_coro()`. */
+    drainer.reset();
+
+    debugf("%p ~raft_member_t() reset drainer\n", this);
+
+    /* Now kill `candidate_and_leader_coro()`, if it's running */
+    if (mode != mode_t::follower) {
+        candidate_or_leader_become_follower(&mutex_acq);
+        debugf("%p ~raft_member_t() became follower\n", this);
+        DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
+    }
+
+    /* All the coroutines have stopped, so we can start calling member destructors. */
+    debugf("%p ~raft_member_t() end\n", this);
 }
 
 template<class state_t, class change_t>
@@ -296,42 +333,6 @@ void raft_member_t<state_t, change_t>::on_install_snapshot_rpc(
     So we should make a note that we received an RPC. */
     last_heard_from_leader = current_microtime();
 
-    mutex_assertion_t::acq_t log_mutex_acq(&log_mutex);
-
-    /* Raft paper, Figure 13: "Save snapshot file"
-    Remember that `log.prev_index` and `log.prev_term` correspond to the snapshot
-    metadata. */
-    ps.snapshot_state = boost::optional<state_t>(snapshot_state);
-    ps.snapshot_configuration =
-        boost::optional<raft_complex_config_t>(snapshot_configuration);
-    ps.log.prev_index = last_included_index;
-    ps.log.prev_term = last_included_term;
-
-    /* Raft paper, Figure 13: "If existing log entry has same index and term as
-    snapshot's last included entry, retain log entries following it and reply" */
-    if (last_included_index <= ps.log.prev_index) {
-        /* The proposed snapshot starts at or before our current snapshot. It's
-        impossible to check if an existing log entry has the same index and term because
-        the snapshot's last included entry is before our most recent entry. But if that's
-        the case, we don't need this snapshot, so we can safely ignore it. */
-        *term_out = ps.current_term;
-        DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
-        return;
-    } else if (last_included_index <= ps.log.get_latest_index() &&
-            ps.log.get_entry_term(last_included_index) == last_included_term) {
-        *term_out = ps.current_term;
-        DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
-        return;
-    }
-
-    /* Raft paper, Figure 13: "Discard the entire log" */
-    ps.log.entries.clear();
-
-    /* Raft paper, Figure 13: "Reset state machine using snapshot contents" */
-    state_machine.set_value(*ps.snapshot_state);
-    initialized_cond.pulse_if_not_already_pulsed();
-    commit_index = last_applied = ps.log.prev_index;
-
     /* Recall that `current_term_leader_id` is set to `nil_uuid()` if we haven't seen a
     leader yet this term. */
     if (current_term_leader_id.is_nil()) {
@@ -340,6 +341,78 @@ void raft_member_t<state_t, change_t>::on_install_snapshot_rpc(
         /* Raft paper, Section 5.2: "at most one candidate can win the election for a
         particular term" */
         guarantee(current_term_leader_id == leader_id);
+    }
+
+    mutex_assertion_t::acq_t log_mutex_acq(&log_mutex);
+
+    /* Note that this implementation goes out of order compared to the Raft paper. The
+    Raft paper says that the first step should be to save the snapshot, which for us
+    would correspond to setting `ps.snapshot_state` and `ps.snapshot_configuration`. But
+    because we only store one snapshot at a time and require that snapshot to be right
+    before the start of the log, that doesn't make sense for us. Instaed, we save the
+    snapshot if and when we update the log. */
+
+    /* Raft paper, Figure 13: "If existing log entry has same index and term as
+    snapshot's last included entry, retain log entries following it and reply" */
+    if (last_included_index <= ps.log.prev_index) {
+        /* The proposed snapshot starts at or before our current snapshot. It's
+        impossible to check if an existing log entry has the same index and term because
+        the snapshot's last included entry is before our most recent entry. But if that's
+        the case, we don't need this snapshot, so we can safely ignore it. */
+        if (last_included_index == ps.log.prev_index) {
+            guarantee(last_included_term == ps.log.prev_term, "The entry we shapshotted "
+                "at was committed, so we shouldn't be receiving a different committed "
+                "entry at the same index.");
+        }
+        *term_out = ps.current_term;
+        DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
+        return;
+    } else if (last_included_index <= ps.log.get_latest_index() &&
+            ps.log.get_entry_term(last_included_index) == last_included_term) {
+        /* Raft paper, Section 7: "If ... the follower receives a snapshot that describes
+        a prefix of its log (due to retransmission or by mistake), then log entries
+        covered by the snapshot are deleted but entries following the snapshot are still
+        valid and must be retained. */
+        ps.log.delete_entries_to(last_included_index);
+
+        /* Raft paper, Figure 13: "Save snapshot file"
+        (We're going slightly out of order, as described above) */
+        ps.snapshot_state = boost::optional<state_t>(snapshot_state);
+        ps.snapshot_configuration =
+            boost::optional<raft_complex_config_t>(snapshot_configuration);
+        guarantee(ps.log.prev_index == last_included_index);
+        guarantee(ps.log.prev_term == last_included_term);
+
+        /* The "retain entries following it and reply" language in the paper seems to
+        imply that we should stop now. But it's pretty obvious that we should update the
+        state machine as well if the snapshot advances the committed index, so we don't
+        return yet. */
+    } else {
+        /* Raft paper, Figure 13: "Discard the entire log" */
+        ps.log.entries.clear();
+
+        /* Raft paper, Figure 13: "Save snapshot file"
+        (We're going slightly out of order, as described above) */
+        ps.snapshot_state = boost::optional<state_t>(snapshot_state);
+        ps.snapshot_configuration =
+            boost::optional<raft_complex_config_t>(snapshot_configuration);
+        ps.log.prev_index = last_included_index;
+        ps.log.prev_term = last_included_term;
+    }
+
+    /* Raft paper, Figure 13: "Reset state machine using snapshot contents"
+    This implementation doesn't update the state machine if the current state machine is
+    actually more up to date than the snapshot. The paper doesn't explicitly say to do
+    this; I assume this was an omission in the paper. */
+    if (ps.log.prev_index > last_applied) {
+        /* The snapshot state must be an initialized state; i.e. it's impossible for us
+        to ever receive the initial empty state in the form of a snapshot. */
+        state_machine.set_value(*ps.snapshot_state);
+        initialized_cond.pulse_if_not_already_pulsed();
+        last_applied = ps.log.prev_index;
+        /* It's hypothetically possible that `commit_index` could be greater than
+        `last_applied` */
+        commit_index = std::max(ps.log.prev_index, commit_index);
     }
 
     /* Raft paper, Figure 2: "Persistent state [is] updated on stable storage before
@@ -407,6 +480,16 @@ void raft_member_t<state_t, change_t>::on_append_entries_rpc(
     So we should make a note that we received an RPC. */
     last_heard_from_leader = current_microtime();
 
+    /* Recall that `current_term_leader_id` is set to `nil_uuid()` if we haven't seen a
+    leader yet this term. */
+    if (current_term_leader_id.is_nil()) {
+        current_term_leader_id = leader_id;
+    } else {
+        /* Raft paper, Section 5.2: "at most one candidate can win the election for a
+        particular term" */
+        guarantee(current_term_leader_id == leader_id);
+    }
+
     mutex_assertion_t::acq_t log_mutex_acq(&log_mutex);
 
     /* Raft paper, Figure 2: "Reply false if log doesn't contain an entry at prevLogIndex
@@ -443,16 +526,6 @@ void raft_member_t<state_t, change_t>::on_append_entries_rpc(
         update_commit_index(
             std::min(leader_commit, entries.get_latest_index()),
             &mutex_acq);
-    }
-
-    /* Recall that `current_term_leader_id` is set to `nil_uuid()` if we haven't seen a
-    leader yet this term. */
-    if (current_term_leader_id.is_nil()) {
-        current_term_leader_id = leader_id;
-    } else {
-        /* Raft paper, Section 5.2: "at most one candidate can win the election for a
-        particular term" */
-        guarantee(current_term_leader_id == leader_id);
     }
 
     /* Raft paper, Figure 2: "Persistent state [is] updated on stable storage before
@@ -582,8 +655,6 @@ void raft_member_t<state_t, change_t>::check_invariants(
         const new_mutex_acq_t *mutex_acq) {
     assert_thread();
     mutex_acq->assert_is_holding(&mutex);
-    debugf("%p check_invariants() begin\n", this);
-    debugf_in_dtor_t dtor("%p check_invariants() end\n", this);
 
     /* Some of these checks are copied directly from LogCabin's list of invariants. */
 
@@ -795,7 +866,7 @@ void raft_member_t<state_t, change_t>::on_watchdog_timer() {
     begins an election to choose a new leader." */
     if (last_heard_from_leader < now - election_timeout_min_ms * 1000) {
         /* We shouldn't block in this callback, so we immediately spawn a coroutine */
-        auto_drainer_t::lock_t keepalive(&drainer);
+        auto_drainer_t::lock_t keepalive(drainer.get());
         coro_t::spawn_sometime([this, now, keepalive /* important to capture */]() {
             try {
                 scoped_ptr_t<new_mutex_acq_t> mutex_acq(
@@ -1070,8 +1141,6 @@ void raft_member_t<state_t, change_t>::candidate_and_leader_coro(
                 mutex_acq.get(),
                 leader_keepalive.get_drain_signal());
 
-            DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
-
             /* Block until either a new entry is appended to the log or a new entry is
             committed. If a new entry is appended to the log, we might need to re-run
             `leader_spawn_update_coros()`; if a new entry is committed, we might need to
@@ -1081,6 +1150,7 @@ void raft_member_t<state_t, change_t>::candidate_and_leader_coro(
                 set_insertion_sentry_t<cond_t *> cond_sentry(&update_watchers, &cond);
 
                 /* Release the mutex while blocking so that we can receive RPCs */
+                DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
                 mutex_acq.reset();
 
                 wait_interruptible(&cond, leader_keepalive.get_drain_signal());
@@ -1090,9 +1160,8 @@ void raft_member_t<state_t, change_t>::candidate_and_leader_coro(
                 probably `candidate_or_leader_become_follower()` is holding the mutex. */
                 mutex_acq.init(
                     new new_mutex_acq_t(&mutex, leader_keepalive.get_drain_signal()));
+                DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
             }
-
-            DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
         }
 
     } catch (interrupted_exc_t) {
@@ -1176,9 +1245,9 @@ bool raft_member_t<state_t, change_t>::candidate_run_election(
 
                     new_mutex_acq_t mutex_acq_2(
                         &mutex, request_vote_keepalive.get_drain_signal());
+                    DEBUG_ONLY_CODE(check_invariants(&mutex_acq_2));
                     /* We might soon be leader, but we shouldn't be leader quite yet */
                     guarantee(mode == mode_t::candidate);
-                    DEBUG_ONLY_CODE(check_invariants(&mutex_acq_2));
 
                     if (candidate_or_leader_note_term(reply_term, &mutex_acq_2)) {
                         /* We got a response with a higher term than our current term.
@@ -1224,7 +1293,7 @@ bool raft_member_t<state_t, change_t>::candidate_run_election(
     wait_interruptible(&waiter, interruptor);
 
     mutex_acq->init(new new_mutex_acq_t(&mutex, interruptor));
-    DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
+    DEBUG_ONLY_CODE(check_invariants(mutex_acq->get()));
 
     if (we_won_the_election.is_pulsed()) {
         /* Make sure that any ongoing request-vote coroutines stop, because they assert
@@ -1365,9 +1434,8 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
                 raft_complex_config_t snapshot_configuration_to_send =
                     *ps.snapshot_configuration;
 
-                DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
-
                 raft_term_t reply_term;
+                DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
                 mutex_acq.reset();
                 bool ok = interface->send_install_snapshot_rpc(
                     peer,
@@ -1576,7 +1644,7 @@ bool raft_member_t<state_t, change_t>::candidate_or_leader_note_term(
         `candidate_or_leader_become_follower()` blocks until
         `candidate_and_leader_coro()` exits, so calling
         `candidate_or_leader_become_follower()` directly would cause a deadlock. */
-        auto_drainer_t::lock_t keepalive(&drainer);
+        auto_drainer_t::lock_t keepalive(drainer.get());
         coro_t::spawn_sometime([this, local_current_term, term,
                 keepalive /* important to capture */]() {
             try {

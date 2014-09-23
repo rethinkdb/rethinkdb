@@ -377,9 +377,7 @@ public:
         raft_network_and_storage_interface_t<state_t, change_t> *interface,
         const raft_persistent_state_t<state_t, change_t> &persistent_state);
 
-    ~raft_member_t() {
-        debugf("~raft_member_t()\n");
-    }
+    ~raft_member_t();
 
     /* Note that if a method on `raft_member_t` is interrupted, the `raft_member_t` will
     be left in an undefined internal state. Therefore, the destructor should be called
@@ -674,12 +672,13 @@ private:
     scoped_ptr_t<auto_drainer_t> leader_drainer;
 
     /* Occasionally we have to spawn miscellaneous coroutines. This makes sure that they
-    all get stopped before the `raft_member_t` is destroyed. */
-    auto_drainer_t drainer;
+    all get stopped before the `raft_member_t` is destroyed. It's in a `scoped_ptr_t` so
+    that the destructor can destroy it early. */
+    scoped_ptr_t<auto_drainer_t> drainer;
 
     /* This periodically calls `on_watchdog_timer()` to check if we need to start a new
-    election. */
-    repeating_timer_t watchdog_timer;
+    election. It's in a `scoped_ptr_t` so that the destructor can destroy it early. */
+    scoped_ptr_t<repeating_timer_t> watchdog_timer;
 };
 
 #endif /* CLUSTERING_GENERIC_RAFT_CORE_HPP_ */

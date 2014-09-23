@@ -69,6 +69,11 @@ public:
 
     ~dummy_raft_cluster_t() {
         debugf("~dummy_raft_cluster_t()\n");
+        /* We could just let the destructors run, but then we'd have to worry about
+        destructor order, so this is safer and clearer */
+        for (const auto &pair : members) {
+            set_live(pair.first, live_t::dead);
+        }
     }
 
     /* `join()` adds a new non-voting member to the cluster. The caller is responsible
