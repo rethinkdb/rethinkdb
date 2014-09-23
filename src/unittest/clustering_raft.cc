@@ -10,6 +10,9 @@
 
 namespace unittest {
 
+/* `dummy_raft_state_t` is meant to be used as the `state_t` parameter to
+`raft_member_t`, with the `change_t` parameter set to `uuid_u`. It just records all the
+changes it receives and their order. */
 class dummy_raft_state_t {
 public:
     std::vector<uuid_u> state;
@@ -218,6 +221,7 @@ private:
         member_info_t(member_info_t &&) = default;
         member_info_t &operator=(member_info_t &&) = default;
 
+        /* These are the methods for `raft_network_and_storage_interface_t`. */
         bool send_request_vote_rpc(
                 const raft_member_id_t &dest, raft_term_t term,
                 const raft_member_id_t &candidate_id, raft_log_index_t last_log_index,
@@ -227,7 +231,7 @@ private:
             return do_rpc(dest,
                 [dest, term, candidate_id, last_log_index, last_log_term, term_out,
                     vote_granted_out]
-                (dummy_raft_member_t *other, signal_t *interruptor2, bool *valid) {
+                (dummy_raft_member_t *other, signal_t *interruptor2, const bool *valid) {
                     raft_term_t reply_term;
                     bool reply_vote_granted;
                     other->on_request_vote_rpc(
@@ -250,7 +254,7 @@ private:
             return do_rpc(dest,
                 [dest, term, leader_id, last_included_index, last_included_term,
                  snapshot_state, snapshot_configuration, term_out]
-                (dummy_raft_member_t *other, signal_t *interruptor2, bool *valid) {
+                (dummy_raft_member_t *other, signal_t *interruptor2, const bool *valid) {
                     raft_term_t reply_term;
                     other->on_install_snapshot_rpc(
                         term, leader_id, last_included_index, last_included_term,
@@ -270,7 +274,7 @@ private:
                 raft_term_t *term_out, bool *success_out) {
             return do_rpc(dest,
                 [dest, term, leader_id, entries, leader_commit, term_out, success_out]
-                (dummy_raft_member_t *other, signal_t *interruptor2, bool *valid) {
+                (dummy_raft_member_t *other, signal_t *interruptor2, const bool *valid) {
                     raft_term_t reply_term;
                     bool reply_success;
                     other->on_append_entries_rpc(
@@ -294,10 +298,18 @@ private:
             stored_state = persistent_state;
             block(interruptor);
         }
+
+        /* `do_rpc()` is a helper for `send_*_rpc()`. */
         bool do_rpc(
                 const raft_member_id_t &dest,
-                const std::function<void(dummy_raft_member_t*, signal_t*, bool*)> &fun,
+                const std::function<void(
+                    dummy_raft_member_t *, signal_t *, const bool *)> &fun,
                 signal_t *interruptor) {
+            /* This is convoluted because if `interruptor` is pulsed, we want to return
+            immediately but we don't want to pulse the interruptor for `on_*_rpc()`. So
+            we have to spawn a separate coroutine for `on_*_rpc()`. We handle this by
+            allocating a `std::shared_ptr<bool>`; when we exit, we set it to `false`, so
+            the coroutine knows not to access any variables on our stack. */
             block(interruptor);
             std::shared_ptr<bool> valid(new bool(true));
             cond_t reply_cond;
@@ -334,6 +346,7 @@ private:
             block(interruptor);
             return reply_ok;
         }
+
         void block(signal_t *interruptor) {
             if (randint(10) != 0) {
                 coro_t::yield();
@@ -344,6 +357,7 @@ private:
                 wait_interruptible(&timer, interruptor);
             }
         }
+
         dummy_raft_cluster_t *parent;
         raft_member_id_t member_id;
         raft_persistent_state_t<dummy_raft_state_t, uuid_u> stored_state;
@@ -386,6 +400,8 @@ private:
     repeating_timer_t check_invariants_timer;
 };
 
+/* `dummy_raft_traffic_generator_t` tries to send operations to the given Raft cluster at
+a fixed rate. */
 class dummy_raft_traffic_generator_t {
 public:
     dummy_raft_traffic_generator_t(dummy_raft_cluster_t *_cluster, int ms) :
@@ -420,6 +436,8 @@ TPTEST(ClusteringRaft, Basic) {
     std::vector<raft_member_id_t> member_ids;
     dummy_raft_cluster_t cluster(5, dummy_raft_state_t(), &member_ids);
     dummy_raft_traffic_generator_t traffic_generator(&cluster, 10);
+    /* Election timeouts are 1000-2000ms, so we want to wait comfortably longer than
+    that. */
     nap(5000);
     cluster.run_on_member(member_ids[0], [](dummy_raft_member_t *member) {
         /* Make sure at least some transactions got through */

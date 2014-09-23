@@ -45,9 +45,16 @@ raft_persistent_state_t<state_t, change_t>::make_join() {
     ps.snapshot_state = boost::optional<state_t>();
     ps.snapshot_configuration = boost::optional<raft_complex_config_t>();
     ps.log.prev_index = 0;
-    /* We don't initialize `ps.log.prev_term`; it shouldn't ever be used. */
+    ps.log.prev_term = 0;
     return ps;
 }
+
+/* TODO: Under the current implementation, if many `raft_member_t`s are created at about
+the same time, the first election is likely to deadlock. This will make the unit tests
+take longer and increase the latency of things like table creation. We should add a way
+for the thing that creates the `raft_member_t`s to "hint" one of them to start an
+election right away, while the others wait until the election timeout has passed; this
+should make the election work correctly the first time in the typical case. */
 
 template<class state_t, class change_t>
 raft_member_t<state_t, change_t>::raft_member_t(
@@ -355,7 +362,7 @@ void raft_member_t<state_t, change_t>::on_install_snapshot_rpc(
 
     mutex_assertion_t::acq_t log_mutex_acq(&log_mutex);
 
-    /* Note that this implementation goes out of order compared to the Raft paper. The
+    /* This implementation deviates from the Raft paper in the order it does things. The
     Raft paper says that the first step should be to save the snapshot, which for us
     would correspond to setting `ps.snapshot_state` and `ps.snapshot_configuration`. But
     because we only store one snapshot at a time and require that snapshot to be right
@@ -393,10 +400,10 @@ void raft_member_t<state_t, change_t>::on_install_snapshot_rpc(
         guarantee(ps.log.prev_index == last_included_index);
         guarantee(ps.log.prev_term == last_included_term);
 
-        /* The "retain entries following it and reply" language in the paper seems to
-        imply that we should stop now. But it's pretty obvious that we should update the
-        state machine as well if the snapshot advances the committed index, so we don't
-        return yet. */
+        /* This implementation deviates from the Raft paper in that we may update the
+        state machine in this situation. The paper implies that we should reply without
+        updating the state machine in this case, but it's obviously safe to update the
+        committed index in this case, so we do that. */
     } else {
         /* Raft paper, Figure 13: "Discard the entire log" */
         ps.log.entries.clear();
@@ -411,9 +418,9 @@ void raft_member_t<state_t, change_t>::on_install_snapshot_rpc(
     }
 
     /* Raft paper, Figure 13: "Reset state machine using snapshot contents"
-    This implementation doesn't update the state machine if the current state machine is
-    actually more up to date than the snapshot. The paper doesn't explicitly say to do
-    this; I assume this was an omission in the paper. */
+    This conditional doesn't appear in the Raft paper. It will always be true if we
+    discarded the entire log, but it will sometimes be false if we only discarded part of
+    the log, which is why this implementation needs it. */
     if (ps.log.prev_index > last_applied) {
         /* The snapshot state must be an initialized state; i.e. it's impossible for us
         to ever receive the initial empty state in the form of a snapshot. */
@@ -895,7 +902,7 @@ void raft_member_t<state_t, change_t>::on_watchdog_timer() {
                 if (!static_cast<bool>(ps.snapshot_configuration)) {
                     return;
                 }
-                if (!get_configuration_ref().is_valid_leader(this_member_id)) {
+                if (!get_configuration().is_valid_leader(this_member_id)) {
                     return;
                 }
                 /* Begin an election */
@@ -958,7 +965,9 @@ void raft_member_t<state_t, change_t>::update_commit_index(
     /* Take a snapshot as described in Section 7. We can snapshot any time we like; this
     implementation currently snapshots after every change. If the `state_t` ever becomes
     large enough that flushing it to disk is expensive, we could delay snapshotting until
-    many changes have accumulated. */
+    many changes have accumulated. (We'd also have to add a mechanism to add entries to
+    the log on disk without rewriting the whole on-disk persistent state, or there
+    wouldn't be any performance benefits.) */
     if (last_applied > ps.log.prev_index) {
         state_machine.apply_read([&](const state_t *state) {
             ps.snapshot_state = *state;
@@ -1003,7 +1012,7 @@ void raft_member_t<state_t, change_t>::leader_update_match_index(
     guarantee(it->second <= new_value);
     it->second = new_value;
 
-    raft_complex_config_t configuration = get_configuration_ref();
+    raft_complex_config_t configuration = get_configuration();
 
     /* Raft paper, Figure 2: "If there exists an N such that N > commitIndex, a majority
     of matchIndex[i] >= N, and log[N].term == currentTerm: set commitIndex = N" */
@@ -1187,7 +1196,7 @@ bool raft_member_t<state_t, change_t>::candidate_run_election(
     (*mutex_acq)->assert_is_holding(&mutex);
     guarantee(mode == mode_t::candidate);
 
-    raft_complex_config_t configuration = get_configuration_ref();
+    raft_complex_config_t configuration = get_configuration();
 
     std::set<raft_member_id_t> votes_for_us;
     cond_t we_won_the_election;
@@ -1326,7 +1335,7 @@ void raft_member_t<state_t, change_t>::leader_spawn_update_coros(
     guarantee(mode == mode_t::leader);
 
     /* Calculate the new configuration */
-    raft_complex_config_t configuration = get_configuration_ref();
+    raft_complex_config_t configuration = get_configuration();
     std::set<raft_member_id_t> peers = configuration.get_all_members();
 
     /* Spawn coroutines as necessary */
@@ -1710,25 +1719,25 @@ void raft_member_t<state_t, change_t>::leader_append_log_entry(
 }
 
 template<class state_t, class change_t>
-const raft_complex_config_t &raft_member_t<state_t, change_t>::get_configuration_ref() {
+raft_complex_config_t raft_member_t<state_t, change_t>::get_configuration() {
     guarantee(static_cast<bool>(ps.snapshot_configuration), "We haven't been "
         "initialized yet, so we should be a non-voting member; why are we calling "
-            "get_configuration_ref()?");
+            "get_configuration()?");
     /* Raft paper, Section 6: "a server always uses the latest configuration in its log,
     regardless of whether the entry is committed"
     We recompute this on-the-fly every time it's needed. We could cache it, but we'd have
     to be careful about invalidating the cache, so it's not worth doing unless there's a
     good reason. The log will usually be very short so it shouldn't be a performance
     issue. */
-    const raft_complex_config_t *c = &*ps.snapshot_configuration;
+    raft_complex_config_t c = *ps.snapshot_configuration;
     for (raft_log_index_t i = ps.log.prev_index + 1;
             i <= ps.log.get_latest_index(); ++i) {
         const raft_log_entry_t<change_t> &entry = ps.log.get_entry_ref(i);
         if (entry.type == raft_log_entry_t<change_t>::type_t::configuration) {
-            c = &*entry.configuration;
+            c = *entry.configuration;
         }
     }
-    return *c;
+    return c;
 }
 
 #endif /* CLUSTERING_GENERIC_RAFT_CORE_TCC_ */

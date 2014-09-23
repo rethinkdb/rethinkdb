@@ -501,7 +501,8 @@ private:
     /* Asserts that all of the invariants that can be checked locally hold true. This
     doesn't block or modify anything. It should be safe to call it at any time (except
     when in between modifying two variables that should remain consistent with each
-    other, of course) */
+    other, of course). In general we call it whenever we acquire or release the mutex,
+    because we know that the variables should be consistent at those times. */
     void check_invariants(const new_mutex_acq_t *mutex_acq);
 
     /* `on_watchdog_timer()` is called periodically. If we're a follower and we haven't
@@ -618,8 +619,8 @@ private:
         signal_t *interruptor);
 
     /* Returns the configuration that we should use for determining if we have a quorum
-    or not. The returned returned reference points to something in `ps`. */
-    const raft_complex_config_t &get_configuration_ref();
+    or not. */
+    raft_complex_config_t get_configuration();
 
     /* The member ID of the member of the Raft cluster represented by this
     `raft_member_t`. */
@@ -663,7 +664,8 @@ private:
     /* This mutex ensures that operations don't interleave in confusing ways. Each RPC
     acquires this mutex when it begins and releases it when it returns. Also, if
     `candidate_and_leader_coro()` is running, it holds this mutex when actively
-    manipulating state and releases it when waiting. */
+    manipulating state and releases it when waiting. In general we don't hold the mutex
+    when responding to an interruptor. */
     new_mutex_t mutex;
 
     /* This mutex assertion controls writes to the Raft log and associated state.

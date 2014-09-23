@@ -55,7 +55,7 @@ public:
         wait_interruptible(acq_signal(), interruptor);
     }
 
-    new_mutex_acq_t(new_mutex_t *new_mutex) :
+    explicit new_mutex_acq_t(new_mutex_t *new_mutex) :
             new_mutex_in_line_t(new_mutex) {
         acq_signal()->wait();
     }
