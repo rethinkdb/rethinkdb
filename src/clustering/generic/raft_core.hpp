@@ -14,6 +14,7 @@
 #include "concurrency/signal.hpp"
 #include "concurrency/watchable.hpp"
 #include "containers/uuid.hpp"
+#include "debug.hpp"
 #include "time.hpp"
 
 /* This file implements the Raft consensus algorithm, as described in the paper "In
@@ -376,6 +377,10 @@ public:
         raft_network_and_storage_interface_t<state_t, change_t> *interface,
         const raft_persistent_state_t<state_t, change_t> &persistent_state);
 
+    ~raft_member_t() {
+        debugf("~raft_member_t()\n");
+    }
+
     /* Note that if a method on `raft_member_t` is interrupted, the `raft_member_t` will
     be left in an undefined internal state. Therefore, the destructor should be called
     after the interruptor has been pulsed. (However, even though the internal state
@@ -539,13 +544,17 @@ private:
 
     /* `candidate_run_election()` is a helper function for `candidate_and_leader_coro()`.
     It sends out request-vote RPCs and wait for us to get enough votes. It blocks until
-    we are elected; the caller is responsible for detecting the case where another leader
-    is elected and also for detecting the case where the election times out. In either of
-    these cases, it should pulse `interruptor`. */
-    void candidate_run_election(
+    we are elected or `cancel_signal` is pulsed. The caller is responsible for detecting
+    the case where another leader is elected and also for detecting the case where the
+    election times out, and pulsing `cancel_signal`. It returns `true` if we were
+    elected. */
+    bool candidate_run_election(
         /* Note that `candidate_run_election()` may temporarily release `mutex_acq`, but
-        it will always be holding the lock when `run_election()` exits. */
+        it will always be holding the lock when `run_election()` returns. But if
+        `interruptor` is pulsed it will throw `interrupted_exc_t` and not reacquire the
+        lock. */
         scoped_ptr_t<new_mutex_acq_t> *mutex_acq,
+        signal_t *cancel_signal,
         signal_t *interruptor);
 
     /* `leader_spawn_update_coros()` is a helper function for

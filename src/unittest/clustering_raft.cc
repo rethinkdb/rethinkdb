@@ -5,6 +5,7 @@
 
 #include "clustering/generic/raft_core.hpp"
 #include "clustering/generic/raft_core.tcc"
+#include "debug.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "unittest/unittest_utils.hpp"
 
@@ -43,10 +44,13 @@ public:
                 const dummy_raft_state_t &initial_state,
                 std::vector<raft_member_id_t> *member_ids_out) :
             alive_members(std::set<raft_member_id_t>()),
-            check_invariants_timer(100,
-                boost::bind(&dummy_raft_cluster_t::check_invariants,
-                            this,
-                            auto_drainer_t::lock_t(&drainer))) {
+            check_invariants_timer(100, [this]() {
+                coro_t::spawn_sometime(boost::bind(
+                    &dummy_raft_cluster_t::check_invariants,
+                    this,
+                    auto_drainer_t::lock_t(&drainer)));
+                })
+    {
         raft_config_t initial_config;
         for (size_t i = 0; i < num; ++i) {
             raft_member_id_t member_id = generate_uuid();
@@ -61,6 +65,10 @@ public:
                 raft_persistent_state_t<dummy_raft_state_t, uuid_u>::make_initial(
                     initial_state, initial_config));
         }
+    }
+
+    ~dummy_raft_cluster_t() {
+        debugf("~dummy_raft_cluster_t()\n");
     }
 
     /* `join()` adds a new non-voting member to the cluster. The caller is responsible

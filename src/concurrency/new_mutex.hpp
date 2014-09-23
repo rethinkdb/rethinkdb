@@ -1,6 +1,7 @@
 #ifndef CONCURRENCY_NEW_MUTEX_HPP_
 #define CONCURRENCY_NEW_MUTEX_HPP_
 
+#include "concurrency/interruptor.hpp"
 #include "concurrency/rwlock.hpp"
 
 // This is a mutex, following the usual semantics (seen in rwlock_t,
@@ -49,6 +50,11 @@ private:
 
 class new_mutex_acq_t : private new_mutex_in_line_t {
 public:
+    new_mutex_acq_t(new_mutex_t *new_mutex, signal_t *interruptor) :
+            new_mutex_in_line_t(new_mutex) {
+        wait_interruptible(acq_signal(), interruptor);
+    }
+
     new_mutex_acq_t(new_mutex_t *new_mutex) :
             new_mutex_in_line_t(new_mutex) {
         acq_signal()->wait();

@@ -87,7 +87,7 @@ bool raft_member_t<state_t, change_t>::propose_change_if_leader(
         const change_t &change,
         signal_t *interruptor) {
     assert_thread();
-    new_mutex_acq_t mutex_acq(&mutex);
+    new_mutex_acq_t mutex_acq(&mutex, interruptor);
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 
     if (mode != mode_t::leader) {
@@ -108,7 +108,7 @@ bool raft_member_t<state_t, change_t>::propose_config_change_if_leader(
         const raft_config_t &new_config,
         signal_t *interruptor) {
     assert_thread();
-    new_mutex_acq_t mutex_acq(&mutex);
+    new_mutex_acq_t mutex_acq(&mutex, interruptor);
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 
     if (mode != mode_t::leader) {
@@ -149,7 +149,7 @@ void raft_member_t<state_t, change_t>::on_request_vote_rpc(
         raft_term_t *term_out,
         bool *vote_granted_out) {
     assert_thread();
-    new_mutex_acq_t mutex_acq(&mutex);
+    new_mutex_acq_t mutex_acq(&mutex, interruptor);
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 
     /* Raft paper, Section 6: "Servers disregard RequestVote RPCs when they believe a
@@ -243,7 +243,7 @@ void raft_member_t<state_t, change_t>::on_install_snapshot_rpc(
         signal_t *interruptor,
         raft_term_t *term_out) {
     assert_thread();
-    new_mutex_acq_t mutex_acq(&mutex);
+    new_mutex_acq_t mutex_acq(&mutex, interruptor);
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 
     /* Raft paper, Figure 2: If RPC request or response contains term T > currentTerm:
@@ -347,7 +347,7 @@ void raft_member_t<state_t, change_t>::on_append_entries_rpc(
         raft_term_t *term_out,
         bool *success_out) {
     assert_thread();
-    new_mutex_acq_t mutex_acq(&mutex);
+    new_mutex_acq_t mutex_acq(&mutex, interruptor);
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 
     /* Raft paper, Figure 2: "If RPC request or response contains term T > currentTerm:
@@ -622,7 +622,9 @@ void raft_member_t<state_t, change_t>::check_invariants(
 
     /* Checks related to the log */
     raft_term_t latest_term_in_log = ps.log.get_entry_term(ps.log.prev_index);
-    for (raft_log_index_t i = ps.log.prev_index; i <= ps.log.get_latest_index(); ++i) {
+    for (raft_log_index_t i = ps.log.prev_index + 1;
+            i <= ps.log.get_latest_index();
+            ++i) {
         guarantee(ps.log.get_entry_ref(i).term > 1,
             "There shouldn't be any real log entries in the initial virtual term.");
         guarantee(ps.log.get_entry_ref(i).term >= latest_term_in_log,
@@ -659,7 +661,9 @@ void raft_member_t<state_t, change_t>::check_invariants(
     /* Checks related to reconfigurations */
     raft_complex_config_t committed_config = *ps.snapshot_configuration;
     size_t uncommitted_config_1s = 0, uncommitted_config_2s = 0;
-    for (raft_log_index_t i = ps.log.prev_index; i <= ps.log.get_latest_index(); ++i) {
+    for (raft_log_index_t i = ps.log.prev_index + 1;
+            i <= ps.log.get_latest_index();
+            ++i) {
         raft_log_entry_t<change_t> entry = ps.log.get_entry_ref(i);
         if (entry.type != raft_log_entry_t<change_t>::type_t::configuration) {
             continue;
@@ -717,11 +721,11 @@ void raft_member_t<state_t, change_t>::check_invariants(
     /* Checks related to the follower/candidate/leader roles */
     guarantee((mode == mode_t::leader) == (current_term_leader_id == this_member_id),
         "mode should say we're leader iff current_term_leader_id says we're leader");
-    if (latest_term_in_log == ps.current_term) {
+    if (latest_term_in_log == ps.current_term && ps.current_term != 1) {
         guarantee(!current_term_leader_id.is_nil(), "If we have changes for the "
             "current term, we should have a leader for the current term.");
     }
-    guarantee(leader_drainer.has() == (mode == mode_t::follower),
+    guarantee(leader_drainer.has() == (mode != mode_t::follower),
         "candidate_and_leader_coro() should be running unless we're a follower");
     if (mode != mode_t::leader) {
         guarantee(update_watchers.empty(), "We shouldn't be using `update_watchers` "
@@ -770,31 +774,39 @@ void raft_member_t<state_t, change_t>::on_watchdog_timer() {
         /* We shouldn't block in this callback, so we immediately spawn a coroutine */
         auto_drainer_t::lock_t keepalive(&drainer);
         coro_t::spawn_sometime([this, now, keepalive /* important to capture */]() {
-            scoped_ptr_t<new_mutex_acq_t> mutex_acq(new new_mutex_acq_t(&mutex));
-            DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
-            /* Double-check that nothing has changed while the coroutine was spawning */
-            if (mode != mode_t::follower) {
-                return;
+            try {
+                scoped_ptr_t<new_mutex_acq_t> mutex_acq(
+                    new new_mutex_acq_t(&mutex, keepalive.get_drain_signal()));
+                DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
+                /* Double-check that nothing has changed while the coroutine was
+                spawning. */
+                if (mode != mode_t::follower) {
+                    return;
+                }
+                if (last_heard_from_leader >= now - election_timeout_min_ms * 1000) {
+                    return;
+                }
+                /* If we're not a voting member, we shouldn't begin an election. If
+                `ps.snapshot_configuration` is empty, we assume we're not a voting
+                member. */
+                if (!static_cast<bool>(ps.snapshot_configuration)) {
+                    return;
+                }
+                if (!get_configuration_ref().is_valid_leader(this_member_id)) {
+                    return;
+                }
+                /* Begin an election */
+                guarantee(!leader_drainer.has());
+                leader_drainer.init(new auto_drainer_t);
+                coro_t::spawn_sometime(boost::bind(
+                    &raft_member_t<state_t, change_t>::candidate_and_leader_coro,
+                    this,
+                    mutex_acq.release(),
+                    auto_drainer_t::lock_t(leader_drainer.get())));
+            } catch (interrupted_exc_t) {
+                /* If `keepalive.get_drain_signal()` fires, the `raft_member_t` is being
+                destroyed, so don't start an election. */
             }
-            if (last_heard_from_leader >= now - election_timeout_min_ms * 1000) {
-                return;
-            }
-            /* If we're not a voting member, we shouldn't begin an election. If
-            `ps.snapshot_configuration` is empty, we assume we're not a voting member. */
-            if (!static_cast<bool>(ps.snapshot_configuration)) {
-                return;
-            }
-            if (!get_configuration_ref().is_valid_leader(this_member_id)) {
-                return;
-            }
-            /* Begin an election */
-            guarantee(!leader_drainer.has());
-            leader_drainer.init(new auto_drainer_t);
-            coro_t::spawn_sometime(boost::bind(
-                &raft_member_t<state_t, change_t>::candidate_and_leader_coro,
-                this,
-                mutex_acq.release(),
-                auto_drainer_t::lock_t(leader_drainer.get())));
         });
     }
 }
@@ -939,7 +951,9 @@ void raft_member_t<state_t, change_t>::candidate_and_leader_coro(
     guarantee(mode == mode_t::follower);
     mutex_acq->assert_is_holding(&mutex);
     leader_keepalive.assert_is_holding(leader_drainer.get());
-    DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
+
+    debugf("candidate_and_leader_coro() begin\n");
+    debugf_in_dtor_t dtor("candidate_and_leader_coro() end\n");
 
     /* Raft paper, Section 5.2: "To begin an election, a follower increments its current
     term and transitions to candidate state." */
@@ -964,36 +978,26 @@ void raft_member_t<state_t, change_t>::candidate_and_leader_coro(
                 `election_timeout_max_ms`. */
                 election_timeout_min_ms +
                     randuint64(election_timeout_max_ms - election_timeout_min_ms));
-            try {
-                wait_any_t interruptor(
-                    &election_timeout,
-                    leader_keepalive.get_drain_signal());
-                candidate_run_election(&mutex_acq, &interruptor);
-                /* If `candidate_run_election()` returns, then we won the election */
+            bool elected = candidate_run_election(&mutex_acq, &election_timeout,
+                leader_keepalive.get_drain_signal());
+            if (elected) {
                 guarantee(mode == mode_t::leader);
                 break;   /* exit the loop */
-            } catch (interrupted_exc_t) {
-                if (leader_keepalive.get_drain_signal()->is_pulsed()) {
-                    /* This can happen for two reasons. One is that the `raft_member_t`
-                    is being destroyed. The other is that another server established
-                    itself as leader so `candidate_or_leader_become_follower()` was
-                    called. In either case, we exit. */
-                    throw interrupted_exc_t();
-                } else {
-                    guarantee(election_timeout.is_pulsed());
-                    /* Raft paper, Section 5.2: "... if many followers become candidates
-                    at the same time, votes could be split so that no candidate obtains a
-                    majority. When this happens, each candidate will time out and start a
-                    new election by incrementing its term and initiating another round of
-                    RequestVote RPCs." */
-                    update_term(ps.current_term + 1, mutex_acq.get());
-                    /* Go around the `while`-loop again. */
-                }
+            } else {
+                guarantee(election_timeout.is_pulsed());
+                /* Raft paper, Section 5.2: "... if many followers become candidates at
+                the same time, votes could be split so that no candidate obtains a
+                majority. When this happens, each candidate will time out and start a new
+                election by incrementing its term and initiating another round of
+                RequestVote RPCs." */
+                update_term(ps.current_term + 1, mutex_acq.get());
+                /* Go around the `while`-loop again. */
             }
         }
 
         /* We got elected. */
         guarantee(mode == mode_t::leader);
+        debugf("candidate_and_leader_coro() elected\n");
 
         guarantee(current_term_leader_id.is_nil());
         current_term_leader_id = this_member_id;
@@ -1058,12 +1062,15 @@ void raft_member_t<state_t, change_t>::candidate_and_leader_coro(
                 /* Release the mutex while blocking so that we can receive RPCs */
                 mutex_acq.reset();
 
+                debugf("candidate_and_leader_coro() wait_interruptible begin\n");
+                debugf_in_dtor_t("candidate_and_leader_coro() wait_interruptible end\n");
                 wait_interruptible(&cond, leader_keepalive.get_drain_signal());
 
                 /* Reacquire the mutex. Note that if `wait_interruptible()` throws
                 `interrupted_exc_t`, we won't reacquire the mutex. This is by design;
                 probably `candidate_or_leader_become_follower()` is holding the mutex. */
-                mutex_acq.init(new new_mutex_acq_t(&mutex));
+                mutex_acq.init(
+                    new new_mutex_acq_t(&mutex, leader_keepalive.get_drain_signal()));
             }
 
             DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
@@ -1078,11 +1085,14 @@ void raft_member_t<state_t, change_t>::candidate_and_leader_coro(
 }
 
 template<class state_t, class change_t>
-void raft_member_t<state_t, change_t>::candidate_run_election(
+bool raft_member_t<state_t, change_t>::candidate_run_election(
         scoped_ptr_t<new_mutex_acq_t> *mutex_acq,
+        signal_t *cancel_signal,
         signal_t *interruptor) {
     (*mutex_acq)->assert_is_holding(&mutex);
     guarantee(mode == mode_t::candidate);
+    debugf("candidate_run_election() begin\n");
+    debugf_in_dtor_t dtor("candidate_run_election() end\n");
 
     raft_complex_config_t configuration = get_configuration_ref();
 
@@ -1105,7 +1115,7 @@ void raft_member_t<state_t, change_t>::candidate_run_election(
     /* Raft paper, Section 5.2: "[The candidate] issues RequestVote RPCs in parallel to
     each of the other servers in the cluster." */
     std::set<raft_member_id_t> peers = configuration.get_all_members();
-    scoped_ptr_t<auto_drainer_t> request_vote_drainer;
+    scoped_ptr_t<auto_drainer_t> request_vote_drainer(new auto_drainer_t);
     for (const raft_member_id_t &peer : peers) {
         if (peer == this_member_id) {
             /* Don't request a vote from ourself */
@@ -1116,6 +1126,8 @@ void raft_member_t<state_t, change_t>::candidate_run_election(
         coro_t::spawn_sometime([this, &configuration, &votes_for_us,
                 &we_won_the_election, peer,
                 request_vote_keepalive /* important to capture */]() {
+            debugf("vote requestor begin\n");
+            debugf_in_dtor_t dtor2("vote requestor end\n");
             try {
                 /* Send the RPC and wait for a response */
                 raft_term_t reply_term;
@@ -1147,7 +1159,8 @@ void raft_member_t<state_t, change_t>::candidate_run_election(
                         continue;
                     }
 
-                    new_mutex_acq_t mutex_acq_2(&mutex);
+                    new_mutex_acq_t mutex_acq_2(
+                        &mutex, request_vote_keepalive.get_drain_signal());
                     /* We might soon be leader, but we shouldn't be leader quite yet */
                     guarantee(mode == mode_t::candidate);
                     DEBUG_ONLY_CODE(check_invariants(&mutex_acq_2));
@@ -1192,17 +1205,23 @@ void raft_member_t<state_t, change_t>::candidate_run_election(
     things happens: (a) it wins the election, (b) another server establishes itself as
     leader, or (c) a period of time goes by with no winner."
     If (b) or (c) happens then `candidate_and_leader_coro()` will pulse `interruptor`. */
-    wait_interruptible(&we_won_the_election, interruptor);
+    wait_any_t waiter(&we_won_the_election, cancel_signal);
+    wait_interruptible(&waiter, interruptor);
 
-    mutex_acq->init(new new_mutex_acq_t(&mutex));
+    mutex_acq->init(new new_mutex_acq_t(&mutex, interruptor));
 
-    /* Make sure that any ongoing request-vote coroutines stop */
-    request_vote_drainer.reset();
-
-    mode = mode_t::leader;
-
+    if (we_won_the_election.is_pulsed()) {
+        /* Make sure that any ongoing request-vote coroutines stop, because they assert
+        `mode == mode_t::candidate`. */
+        request_vote_drainer.reset();
+        mode = mode_t::leader;
+        return true;
+    } else {
+        return false;
+    }
     /* Here `request_vote_drainer` is destroyed, so we won't exit until all of the
-    coroutines we spawned have stopped. */
+    coroutines we spawned have stopped, regardless of whether we won the election or not.
+    */
 }
 
 template<class state_t, class change_t>
@@ -1265,12 +1284,14 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
         raft_log_index_t initial_next_index,
         std::map<raft_member_id_t, raft_log_index_t> *match_indexes,
         auto_drainer_t::lock_t update_keepalive) {
-    guarantee(peer != this_member_id);
-    guarantee(mode == mode_t::leader);
-    guarantee(match_indexes->count(peer) == 1);
-    scoped_ptr_t<new_mutex_acq_t> mutex_acq(new new_mutex_acq_t(&mutex));
-    DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
     try {
+        guarantee(peer != this_member_id);
+        guarantee(mode == mode_t::leader);
+        guarantee(match_indexes->count(peer) == 1);
+        scoped_ptr_t<new_mutex_acq_t> mutex_acq(
+            new new_mutex_acq_t(&mutex, update_keepalive.get_drain_signal()));
+        DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
+
         /* `next_index` corresponds to the entry for this peer in the `nextIndex` map
         described in Figure 2 of the Raft paper. */
         raft_log_index_t next_index = initial_next_index;
@@ -1340,7 +1361,8 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
                     snapshot_configuration_to_send,
                     update_keepalive.get_drain_signal(),
                     &reply_term);
-                mutex_acq.init(new new_mutex_acq_t(&mutex));
+                mutex_acq.init(
+                    new new_mutex_acq_t(&mutex, update_keepalive.get_drain_signal()));
                 if (!ok) {
                     /* Raft paper, Section 5.1: "Servers retry RPCs if they do not
                     receive a response in a timely manner"
@@ -1392,7 +1414,8 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
                     update_keepalive.get_drain_signal(),
                     &reply_term,
                     &reply_success);
-                mutex_acq.init(new new_mutex_acq_t(&mutex));
+                mutex_acq.init(
+                    new new_mutex_acq_t(&mutex, update_keepalive.get_drain_signal()));
                 if (!ok) {
                     /* Raft paper, Section 5.1: "Servers retry RPCs if they do not
                     receive a response in a timely manner"
@@ -1445,7 +1468,8 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
                 wait_any_t waiter(&cond, &heartbeat_timer);
                 mutex_acq.reset();
                 wait_interruptible(&waiter, update_keepalive.get_drain_signal());
-                mutex_acq.init(new new_mutex_acq_t(&mutex));
+                mutex_acq.init(
+                    new new_mutex_acq_t(&mutex, update_keepalive.get_drain_signal()));
                 DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
 
                 if (heartbeat_timer.is_pulsed()) {
@@ -1530,14 +1554,21 @@ bool raft_member_t<state_t, change_t>::candidate_or_leader_note_term(
         auto_drainer_t::lock_t keepalive(&drainer);
         coro_t::spawn_sometime([this, local_current_term, term,
                 keepalive /* important to capture */]() {
-            new_mutex_acq_t mutex_acq_2(&mutex);
-            DEBUG_ONLY_CODE(check_invariants(&mutex_acq_2));
-            /* Check that term hasn't already been updated between when
-            `candidate_or_leader_note_term()` was called and when this coroutine ran */
-            if (ps.current_term == local_current_term) {
-                this->update_term(term, &mutex_acq_2);
-                this->candidate_or_leader_become_follower(&mutex_acq_2);
-                interface->write_persistent_state(ps, keepalive.get_drain_signal());
+            try {
+                new_mutex_acq_t mutex_acq_2(&mutex, keepalive.get_drain_signal());
+                DEBUG_ONLY_CODE(check_invariants(&mutex_acq_2));
+                /* Check that term hasn't already been updated between when
+                `candidate_or_leader_note_term()` was called and when this coroutine ran.
+                */
+                if (ps.current_term == local_current_term) {
+                    this->update_term(term, &mutex_acq_2);
+                    this->candidate_or_leader_become_follower(&mutex_acq_2);
+                    interface->write_persistent_state(ps, keepalive.get_drain_signal());
+                }
+            } catch (interrupted_exc_t) {
+                /* If `keepalive.get_drain_signal()` is pulsed, then the `raft_member_t`
+                is being destroyed, so it doesn't matter if we update our term; the
+                `candidate_or_leader_coro` will stop on its own. */
             }
         });
         return true;
