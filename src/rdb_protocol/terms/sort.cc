@@ -30,7 +30,7 @@ public:
     asc_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         return args->arg(env, 0);
     }
     virtual const char *name() const { return "asc"; }
@@ -41,7 +41,7 @@ public:
     desc_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         return args->arg(env, 0);
     }
     virtual const char *name() const { return "desc"; }
@@ -110,7 +110,7 @@ private:
             comparisons;
     };
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         std::vector<std::pair<order_direction_t, counted_t<const func_t> > > comparisons;
         for (size_t i = 1; i < args->num_args(); ++i) {
             if (get_src()->args(i).type() == Term::DESC) {
@@ -125,7 +125,7 @@ private:
 
         counted_t<table_t> tbl;
         counted_t<datum_stream_t> seq;
-        counted_t<val_t> v0 = args->arg(env, 0);
+        scoped_ptr_t<val_t> v0 = args->arg(env, 0);
         if (v0->get_type().is_convertible(val_t::type_t::TABLE)) {
             tbl = v0->as_table();
         } else if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
@@ -137,7 +137,7 @@ private:
             seq = v0->as_seq(env->env);
         }
 
-        counted_t<val_t> index = args->optarg(env, "index");
+        scoped_ptr_t<val_t> index = args->optarg(env, "index");
         if (seq.has() && seq->is_exhausted()){
             /* Do nothing for empty sequence */
             if (!index.has()) {
@@ -208,10 +208,10 @@ public:
     distinct_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1), optargspec_t({"index"})) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args,
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args,
                                        eval_flags_t) const {
-        counted_t<val_t> v = args->arg(env, 0);
-        counted_t<val_t> idx = args->optarg(env, "index");
+        scoped_ptr_t<val_t> v = args->arg(env, 0);
+        scoped_ptr_t<val_t> idx = args->optarg(env, "index");
         if (v->get_type().is_convertible(val_t::type_t::TABLE)) {
             counted_t<table_t> tbl = v->as_table();
             std::string idx_str = idx.has() ? idx->as_str().to_std() : tbl->get_pkey();

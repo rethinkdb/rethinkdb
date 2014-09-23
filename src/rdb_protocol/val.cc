@@ -539,7 +539,7 @@ counted_t<const db_t> val_t::as_db() const {
     return db();
 }
 
-datum_t val_t::as_ptype(const std::string s) {
+datum_t val_t::as_ptype(const std::string s) const {
     try {
         datum_t d = as_datum();
         r_sanity_check(d.has());
@@ -550,7 +550,7 @@ datum_t val_t::as_ptype(const std::string s) {
     }
 }
 
-bool val_t::as_bool() {
+bool val_t::as_bool() const {
     try {
         datum_t d = as_datum();
         r_sanity_check(d.has());
@@ -559,7 +559,7 @@ bool val_t::as_bool() {
         rfail(e.get_type(), "%s", e.what());
     }
 }
-double val_t::as_num() {
+double val_t::as_num() const {
     try {
         datum_t d = as_datum();
         r_sanity_check(d.has());
@@ -568,7 +568,7 @@ double val_t::as_num() {
         rfail(e.get_type(), "%s", e.what());
     }
 }
-int64_t val_t::as_int() {
+int64_t val_t::as_int() const {
     try {
         datum_t d = as_datum();
         r_sanity_check(d.has());
@@ -577,7 +577,7 @@ int64_t val_t::as_int() {
         rfail(e.get_type(), "%s", e.what());
     }
 }
-datum_string_t val_t::as_str() {
+datum_string_t val_t::as_str() const {
     try {
         datum_t d = as_datum();
         r_sanity_check(d.has());

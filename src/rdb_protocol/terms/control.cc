@@ -18,9 +18,9 @@ public:
     all_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         for (size_t i = 0; i < args->num_args(); ++i) {
-            counted_t<val_t> v = args->arg(env, i);
+            scoped_ptr_t<val_t> v = args->arg(env, i);
             if (!v->as_bool() || i == args->num_args() - 1) {
                 return v;
             }
@@ -35,9 +35,9 @@ public:
     any_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         for (size_t i = 0; i < args->num_args(); ++i) {
-            counted_t<val_t> v = args->arg(env, i);
+            scoped_ptr_t<val_t> v = args->arg(env, i);
             if (v->as_bool()) {
                 return v;
             }
@@ -51,7 +51,7 @@ class branch_term_t : public op_term_t {
 public:
     branch_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(3)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         bool b = args->arg(env, 0)->as_bool();
         return b ? args->arg(env, 1) : args->arg(env, 2);
     }
@@ -65,14 +65,14 @@ public:
         : op_term_t(env, term, argspec_t(1, -1),
           optargspec_t({"_SHORTCUT_", "_EVAL_FLAGS_"})) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         function_shortcut_t shortcut = CONSTANT_SHORTCUT;
         eval_flags_t flags = NO_FLAGS;
-        if (counted_t<val_t> v = args->optarg(env, "_SHORTCUT_")) {
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "_SHORTCUT_")) {
             shortcut = static_cast<function_shortcut_t>(v->as_num());
         }
 
-        if (counted_t<val_t> v = args->optarg(env, "_EVAL_FLAGS_")) {
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "_EVAL_FLAGS_")) {
             flags = static_cast<eval_flags_t>(v->as_num());
         }
 
@@ -98,7 +98,7 @@ private:
         if (args->num_args() == 1) {
             return f->call(env->env, flags);
         } else {
-            counted_t<val_t> arg1 = args->arg(env, 1, flags);
+            scoped_ptr_t<val_t> arg1 = args->arg(env, 1, flags);
             std::vector<datum_t> arg_datums(1);
             arg_datums.reserve(args->num_args() - 1);
             for (size_t i = 2; i < args->num_args(); ++i) {
@@ -117,7 +117,7 @@ private:
                     arg_datums[0] = kv->second;
                     (*out)[kv->first] = f->call(env->env, arg_datums, flags)->as_datum();
                 }
-                return make_counted<val_t>(out, backtrace());
+                return make_scoped<val_t>(out, backtrace());
             } else {
                 arg_datums[0] = arg1->as_datum();
                 return f->call(env->env, arg_datums, flags);

@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
 #include <string>
@@ -11,6 +11,7 @@
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/pseudo_literal.hpp"
 #include "rdb_protocol/minidriver.hpp"
+#include "rdb_protocol/terms/arr.hpp"
 #include "rdb_protocol/terms/obj_or_seq.hpp"
 
 namespace ql {
@@ -42,9 +43,10 @@ obj_or_seq_op_impl_t::obj_or_seq_op_impl_t(
     self->prop_bt(func.get());
 }
 
-counted_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
-        const term_t *target, scope_env_t *env, args_t *args, counted_t<val_t> v0,
-        std::function<counted_t<val_t>()> helper) const {
+scoped_ptr_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
+        const term_t *target, scope_env_t *env, args_t *args,
+        const scoped_ptr_t<val_t> &v0,
+        std::function<scoped_ptr_t<val_t>()> helper) const {
     datum_t d;
 
     if (v0->get_type().is_convertible(val_t::type_t::DATUM)) {
@@ -58,7 +60,7 @@ counted_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
                 && v0->get_type().is_convertible(val_t::type_t::SEQUENCE))) {
         // The above if statement is complicated because it produces better
         // error messages on e.g. strings.
-        if (counted_t<val_t> no_recurse = args->optarg(env, "_NO_RECURSE_")) {
+        if (scoped_ptr_t<val_t> no_recurse = args->optarg(env, "_NO_RECURSE_")) {
             rcheck_target(target, base_exc_t::GENERIC, no_recurse->as_bool() == false,
                    strprintf("Cannot perform %s on a sequence of sequences.",
                              target->name()));
@@ -99,9 +101,9 @@ obj_or_seq_op_term_t::obj_or_seq_op_term_t(compile_env_t *env, protob_t<const Te
       impl(this, _poly_type, term) {
 }
 
-counted_t<val_t> obj_or_seq_op_term_t::eval_impl(scope_env_t *env, args_t *args,
-                                                 eval_flags_t) const {
-    counted_t<val_t> v0 = args->arg(env, 0);
+scoped_ptr_t<val_t> obj_or_seq_op_term_t::eval_impl(scope_env_t *env, args_t *args,
+                                                    eval_flags_t) const {
+    scoped_ptr_t<val_t> v0 = args->arg(env, 0);
     return impl.eval_impl_dereferenced(this, env, args, v0,
                                        [&]{ return this->obj_eval(env, args, v0); });
 }
@@ -111,7 +113,7 @@ public:
     pluck_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
+    virtual scoped_ptr_t<val_t> obj_eval(scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
         datum_t obj = v0->as_datum();
         r_sanity_check(obj.get_type() == datum_t::R_OBJECT);
 
@@ -132,7 +134,7 @@ public:
     without_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
+    virtual scoped_ptr_t<val_t> obj_eval(scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
         datum_t obj = v0->as_datum();
         r_sanity_check(obj.get_type() == datum_t::R_OBJECT);
 
@@ -153,7 +155,7 @@ public:
     literal_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0, 1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t flags) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t flags) const {
         rcheck(flags & LITERAL_OK, base_exc_t::GENERIC,
                "Stray literal keyword found: literal is only legal inside of "
                "the object passed to merge or update and cannot nest inside "
@@ -179,10 +181,10 @@ public:
     merge_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1, LITERAL_OK)) { }
 private:
-    virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
+    virtual scoped_ptr_t<val_t> obj_eval(scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
         datum_t d = v0->as_datum();
         for (size_t i = 1; i < args->num_args(); ++i) {
-            counted_t<val_t> v = args->arg(env, i, LITERAL_OK);
+            scoped_ptr_t<val_t> v = args->arg(env, i, LITERAL_OK);
 
             // We branch here because compiling functions is expensive, and
             // `obj_eval` may be called many many times.
@@ -203,7 +205,7 @@ public:
     has_fields_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : obj_or_seq_op_term_t(env, term, FILTER, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
+    virtual scoped_ptr_t<val_t> obj_eval(scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
         datum_t obj = v0->as_datum();
         r_sanity_check(obj.get_type() == datum_t::R_OBJECT);
 
@@ -224,7 +226,7 @@ public:
     get_field_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : obj_or_seq_op_term_t(env, term, SKIP_MAP, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
+    virtual scoped_ptr_t<val_t> obj_eval(scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
         return new_val(v0->as_datum().get_field(args->arg(env, 1)->as_str()));
     }
     virtual const char *name() const { return "get_field"; }
@@ -234,26 +236,25 @@ counted_t<term_t> make_get_field_term(compile_env_t *env, const protob_t<const T
     return make_counted<get_field_term_t>(env, term);
 }
 
-counted_t<val_t> nth_term_impl(const term_t *, scope_env_t *, counted_t<val_t>, counted_t<val_t>);
-
 class bracket_term_t : public grouped_seq_op_term_t {
 public:
     bracket_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : grouped_seq_op_term_t(env, term, argspec_t(2), optargspec_t({"_NO_RECURSE_"})),
           impl(this, SKIP_MAP, term) {}
 private:
-    counted_t<val_t> obj_eval_dereferenced(counted_t<val_t> v0, counted_t<val_t> v1) const {
+    scoped_ptr_t<val_t> obj_eval_dereferenced(const scoped_ptr_t<val_t> &v0, const scoped_ptr_t<val_t> &v1) const {
         return new_val(v0->as_datum().get_field(v1->as_str()));
     }
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> v0 = args->arg(env, 0);
-        counted_t<val_t> v1 = args->arg(env, 1);
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> v0 = args->arg(env, 0);
+        scoped_ptr_t<val_t> v1 = args->arg(env, 1);
         datum_t d = v1->as_datum();
         r_sanity_check(d.has());
 
         switch (d.get_type()) {
-        case datum_t::R_NUM:
-            return nth_term_impl(this, env, v0, v1);
+        case datum_t::R_NUM: {
+            return nth_term_impl(this, env, std::move(v0), v1);
+        }
         case datum_t::R_STR:
             return impl.eval_impl_dereferenced(this, env, args, v0,
                                                [&]{ return this->obj_eval_dereferenced(v0, v1); });

@@ -8,14 +8,12 @@
 #include "rdb_protocol/datum_string.hpp"
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/pseudo_geometry.hpp"
+#include "rdb_protocol/terms/writes.hpp"
 
 namespace ql {
 
-durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
-                                                 const pb_rcheckable_t *target);
-
-name_string_t get_name(counted_t<val_t> val, const term_t *caller,
-        const char *type_str) {
+name_string_t get_name(const scoped_ptr_t<val_t> &val, const term_t *caller,
+                       const char *type_str) {
     r_sanity_check(val.has());
     const datum_string_t &raw_name = val->as_str();
     name_string_t name;
@@ -48,7 +46,7 @@ private:
     virtual std::string write_eval_impl(scope_env_t *env,
                                         args_t *args,
                                         eval_flags_t flags) const = 0;
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t flags) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t flags) const {
         std::string op = write_eval_impl(env, args, flags);
         datum_object_builder_t res;
         UNUSED bool b = res.add(datum_string_t(op), datum_t(1.0));
@@ -60,7 +58,7 @@ class db_term_t : public meta_op_term_t {
 public:
     db_term_t(compile_env_t *env, const protob_t<const Term> &term) : meta_op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         name_string_t db_name = get_name(args->arg(env, 0), this, "Database");
         counted_t<const db_t> db;
         std::string error;
@@ -113,7 +111,7 @@ private:
 
         /* Parse arguments */
         boost::optional<name_string_t> primary_dc;
-        if (counted_t<val_t> v = args->optarg(env, "datacenter")) {
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "datacenter")) {
             primary_dc.reset(get_name(v, this, "Table"));
         }
 
@@ -121,14 +119,14 @@ private:
             = is_hard(parse_durability_optarg(args->optarg(env, "durability"), this));
 
         std::string primary_key = "id";
-        if (counted_t<val_t> v = args->optarg(env, "primary_key")) {
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "primary_key")) {
             primary_key = v->as_str().to_std();
         }
 
         counted_t<const db_t> db;
         name_string_t tbl_name;
         if (args->num_args() == 1) {
-            counted_t<val_t> dbv = args->optarg(env, "db");
+            scoped_ptr_t<val_t> dbv = args->optarg(env, "db");
             r_sanity_check(dbv);
             db = dbv->as_db();
             tbl_name = get_name(args->arg(env, 0), this, "Table");
@@ -178,7 +176,7 @@ private:
         counted_t<const db_t> db;
         name_string_t tbl_name;
         if (args->num_args() == 1) {
-            counted_t<val_t> dbv = args->optarg(env, "db");
+            scoped_ptr_t<val_t> dbv = args->optarg(env, "db");
             r_sanity_check(dbv);
             db = dbv->as_db();
             tbl_name = get_name(args->arg(env, 0), this, "Table");
@@ -203,7 +201,7 @@ public:
     db_list_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         meta_op_term_t(env, term, argspec_t(0)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *, eval_flags_t) const {
         std::set<name_string_t> dbs;
         std::string error;
         if (!env->env->reql_cluster_interface()->db_list(
@@ -227,10 +225,10 @@ public:
     table_list_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         meta_op_term_t(env, term, argspec_t(0, 1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<const ql::db_t> db;
         if (args->num_args() == 0) {
-            counted_t<val_t> dbv = args->optarg(env, "db");
+            scoped_ptr_t<val_t> dbv = args->optarg(env, "db");
             r_sanity_check(dbv);
             db = dbv->as_db();
         } else {
@@ -274,13 +272,13 @@ public:
     table_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, 2), optargspec_t({ "use_outdated" })) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> t = args->optarg(env, "use_outdated");
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> t = args->optarg(env, "use_outdated");
         bool use_outdated = t ? t->as_bool() : false;
         counted_t<const db_t> db;
         name_string_t name;
         if (args->num_args() == 1) {
-            counted_t<val_t> dbv = args->optarg(env, "db");
+            scoped_ptr_t<val_t> dbv = args->optarg(env, "db");
             r_sanity_check(dbv.has());
             db = dbv->as_db();
             name = get_name(args->arg(env, 0), this, "Table");
@@ -306,7 +304,7 @@ class get_term_t : public op_term_t {
 public:
     get_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
         datum_t pkey = args->arg(env, 1)->as_datum();
         datum_t row = table->get_row(env->env, pkey);
@@ -320,7 +318,7 @@ public:
     get_all_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2, -1), optargspec_t({ "index" })) { }
 private:
-    datum_t get_key_arg(counted_t<val_t> arg) const {
+    datum_t get_key_arg(const scoped_ptr_t<val_t> &arg) const {
         datum_t datum_arg = arg->as_datum();
 
         rcheck_target(arg, base_exc_t::GENERIC,
@@ -330,9 +328,9 @@ private:
         return datum_arg;
     }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
-        counted_t<val_t> index = args->optarg(env, "index");
+        scoped_ptr_t<val_t> index = args->optarg(env, "index");
         std::string index_str = index ? index->as_str().to_std() : "";
         if (index && index_str != table->get_pkey()) {
             std::vector<counted_t<datum_stream_t> > streams;

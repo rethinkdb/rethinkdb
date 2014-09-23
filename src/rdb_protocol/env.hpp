@@ -41,7 +41,7 @@ public:
 
     bool has_optarg(const std::string &key) const;
     // returns NULL if no entry
-    counted_t<val_t> get_optarg(env_t *env, const std::string &key);
+    scoped_ptr_t<val_t> get_optarg(env_t *env, const std::string &key);
     const std::map<std::string, wire_func_t> &get_all_optargs() const;
 private:
     std::map<std::string, wire_func_t> optargs;
@@ -100,7 +100,7 @@ public:
         return global_optargs_.get_all_optargs();
     }
 
-    counted_t<val_t> get_optarg(env_t *env, const std::string &key) {
+    scoped_ptr_t<val_t> get_optarg(env_t *env, const std::string &key) {
         return global_optargs_.get_optarg(env, key);
     }
 

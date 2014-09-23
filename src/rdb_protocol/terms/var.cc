@@ -46,7 +46,7 @@ private:
     }
 
     sym_t varname;
-    virtual counted_t<val_t> term_eval(scope_env_t *env, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> term_eval(scope_env_t *env, eval_flags_t) const {
         return new_val(env->scope.lookup_var(varname));
     }
     virtual const char *name() const { return "var"; }
@@ -74,7 +74,7 @@ private:
         return true;
     }
 
-    virtual counted_t<val_t> term_eval(scope_env_t *env, UNUSED eval_flags_t flags) const {
+    virtual scoped_ptr_t<val_t> term_eval(scope_env_t *env, UNUSED eval_flags_t flags) const {
         return new_val(env->scope.lookup_implicit());
     }
     virtual const char *name() const { return "implicit_var"; }

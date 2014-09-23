@@ -18,8 +18,8 @@ protected:
     map_acc_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : grouped_seq_op_term_t(env, term, argspec_t(1, 2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args,
-                                       eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args,
+                                          eval_flags_t) const {
         return args->num_args() == 1
             ? args->arg(env, 0)->as_seq(env->env)->run_terminal(env->env, T(backtrace()))
             : args->arg(env, 0)->as_seq(env->env)->run_terminal(
@@ -61,9 +61,9 @@ public:
     count_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : grouped_seq_op_term_t(env, term, argspec_t(1, 2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args,
-                                       eval_flags_t) const {
-        counted_t<val_t> v0 = args->arg(env, 0);
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args,
+                                          eval_flags_t) const {
+        scoped_ptr_t<val_t> v0 = args->arg(env, 0);
         if (args->num_args() == 1) {
             if (v0->get_type().is_convertible(val_t::type_t::DATUM)) {
                 datum_t d = v0->as_datum();
@@ -75,7 +75,7 @@ private:
             return v0->as_seq(env->env)
                 ->run_terminal(env->env, count_wire_func_t());
         } else {
-            counted_t<val_t> v1 = args->arg(env, 1);
+            scoped_ptr_t<val_t> v1 = args->arg(env, 1);
             if (v1->get_type().is_convertible(val_t::type_t::FUNC)) {
                 counted_t<datum_stream_t> stream = v0->as_seq(env->env);
                 stream->add_transformation(
@@ -101,7 +101,7 @@ public:
     map_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : grouped_seq_op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<datum_stream_t> stream = args->arg(env, 0)->as_seq(env->env);
         stream->add_transformation(
                 map_wire_func_t(args->arg(env, 1)->as_func()), backtrace());
@@ -115,7 +115,7 @@ public:
     concatmap_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : grouped_seq_op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<datum_stream_t> stream = args->arg(env, 0)->as_seq(env->env);
         stream->add_transformation(
                 concatmap_wire_func_t(args->arg(env, 1)->as_func()), backtrace());
@@ -129,7 +129,7 @@ public:
     group_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : grouped_seq_op_term_t(env, term, argspec_t(1, -1), optargspec_t({"index", "multi"})) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         std::vector<counted_t<const func_t> > funcs;
         funcs.reserve(args->num_args() - 1);
         for (size_t i = 1; i < args->num_args(); ++i) {
@@ -138,7 +138,7 @@ private:
 
         counted_t<datum_stream_t> seq;
         bool append_index = false;
-        if (counted_t<val_t> index = args->optarg(env, "index")) {
+        if (scoped_ptr_t<val_t> index = args->optarg(env, "index")) {
             std::string index_str = index->as_str().to_std();
             counted_t<table_t> tbl = args->arg(env, 0)->as_table();
             if (index_str == tbl->get_pkey()) {
@@ -157,7 +157,7 @@ private:
                "Cannot group by nothing.");
 
         bool multi = false;
-        if (counted_t<val_t> multi_val = args->optarg(env, "multi")) {
+        if (scoped_ptr_t<val_t> multi_val = args->optarg(env, "multi")) {
             multi = multi_val->as_bool();
         }
 
@@ -178,9 +178,9 @@ public:
           default_filter_term(lazy_literal_optarg(env, "default")) { }
 
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> v0 = args->arg(env, 0);
-        counted_t<val_t> v1 = args->arg(env, 1, LITERAL_OK);
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> v0 = args->arg(env, 0);
+        scoped_ptr_t<val_t> v1 = args->arg(env, 1, LITERAL_OK);
         counted_t<const func_t> f = v1->as_func(CONSTANT_SHORTCUT);
         boost::optional<wire_func_t> defval;
         if (default_filter_term.has()) {
@@ -211,7 +211,7 @@ public:
     reduce_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         grouped_seq_op_term_t(env, term, argspec_t(2), optargspec_t({ "base" })) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         return args->arg(env, 0)->as_seq(env->env)->run_terminal(
             env->env, reduce_wire_func_t(args->arg(env, 1)->as_func()));
     }
@@ -223,9 +223,9 @@ public:
     changes_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(
+    virtual scoped_ptr_t<val_t> eval_impl(
         scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> v = args->arg(env, 0);
+        scoped_ptr_t<val_t> v = args->arg(env, 0);
         if (v->get_type().is_convertible(val_t::type_t::TABLE)) {
             counted_t<table_t> tbl = v->as_table();
             return new_val(env->env,
@@ -255,7 +255,7 @@ public:
     between_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : bounded_op_term_t(env, term, argspec_t(3), optargspec_t({"index"})) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> tbl = args->arg(env, 0)->as_table();
         bool left_open = is_left_open(env, args);
         datum_t lb = args->arg(env, 1)->as_datum();
@@ -280,7 +280,7 @@ private:
             }
         }
 
-        counted_t<val_t> sindex = args->optarg(env, "index");
+        scoped_ptr_t<val_t> sindex = args->optarg(env, "index");
         std::string sid = (sindex.has() ? sindex->as_str().to_std() : tbl->get_pkey());
 
         tbl->add_bounds(
@@ -300,7 +300,7 @@ public:
     union_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         std::vector<counted_t<datum_stream_t> > streams;
         for (size_t i = 0; i < args->num_args(); ++i) {
             streams.push_back(args->arg(env, i)->as_seq(env->env));
@@ -317,7 +317,7 @@ public:
     zip_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<datum_stream_t> stream = args->arg(env, 0)->as_seq(env->env);
         stream->add_transformation(zip_wire_func_t(), backtrace());
         return new_val(env->env, stream);
