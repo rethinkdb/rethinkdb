@@ -25,10 +25,12 @@ void vlog_internal(const char *src_file, int src_line, log_level_t level, const 
 #endif
 
 #define logINF(fmt, args...) log_internal(__FILE__, __LINE__, log_level_info, (fmt), ##args)
+#define logNTC(fmt, args...) log_internal(__FILE__, __LINE__, log_level_notice, (fmt), ##args)
 #define logWRN(fmt, args...) log_internal(__FILE__, __LINE__, log_level_warn, (fmt), ##args)
 #define logERR(fmt, args...) log_internal(__FILE__, __LINE__, log_level_error, (fmt), ##args)
 
 #define vlogINF(fmt, args) vlog_internal(__FILE__, __LINE__, log_level_info, (fmt), (args))
+#define vlogNTC(fmt, args) vlog_internal(__FILE__, __LINE__, log_level_notice, (fmt), (args))
 #define vlogWRN(fmt, args) vlog_internal(__FILE__, __LINE__, log_level_warn, (fmt), (args))
 #define vlogERR(fmt, args) vlog_internal(__FILE__, __LINE__, log_level_error, (fmt), (args))
 

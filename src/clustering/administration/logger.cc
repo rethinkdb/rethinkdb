@@ -344,6 +344,8 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
     int fileno = -1;
     switch (msg.level) {
         case log_level_info:
+            // no message on stdout/stderr
+            break;
         case log_level_notice:
             write_stream = stdout;
             fileno = STDOUT_FILENO;
@@ -351,26 +353,31 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
         case log_level_debug:
         case log_level_warn:
         case log_level_error:
-        default:
             write_stream = stderr;
             fileno = STDERR_FILENO;
+            break;
+        default:
+            unreachable();
     }
 
-    flockfile(write_stream);
+    if (msg.level != log_level_info) {
+        // Write to stdout/stderr for all log levels but info (#3040)
+        flockfile(write_stream);
 
-    ssize_t write_res = ::write(fileno, console_formatted.data(), console_formatted.length());
-    if (write_res != static_cast<ssize_t>(console_formatted.length())) {
-        error_out->assign("cannot write to write stream: " + errno_string(get_errno()));
-        return false;
+        ssize_t write_res = ::write(fileno, console_formatted.data(), console_formatted.length());
+        if (write_res != static_cast<ssize_t>(console_formatted.length())) {
+            error_out->assign("cannot write to stdout/stderr: " + errno_string(get_errno()));
+            return false;
+        }
+
+        int res = fsync(fileno);
+        if (res != 0 && !(get_errno() == EROFS || get_errno() == EINVAL)) {
+            error_out->assign("cannot flush stdout/stderr: " + errno_string(get_errno()));
+            return false;
+        }
+
+        funlockfile(write_stream);
     }
-
-    int res = fsync(fileno);
-    if (res != 0 && !(get_errno() == EROFS || get_errno() == EINVAL)) {
-        error_out->assign("cannot flush output stream: " + errno_string(get_errno()));
-        return false;
-    }
-
-    funlockfile(write_stream);
 
     if (fd.get() == INVALID_FD) {
         error_out->assign("cannot open or find log file");
