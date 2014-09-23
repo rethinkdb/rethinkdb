@@ -98,7 +98,18 @@ module RethinkDB
     end
 
     def self.can_prefix (name, args)
-      return !["db", "table", "funcall", "args", "branch", "http", "binary"].include?(name)
+      if (name == "table" ||
+          name == "table_drop" ||
+          name == "table_create") &&
+          (!args.is_a?(Array) ||
+               !args[0].is_a?(Array) ||
+               args[0][0] != Term::TermType::DB)
+        return false
+      else
+        return !["db", "db_create", "db_drop", "json", "funcall", "args", "branch", "http",
+          "binary", "javascript", "random", "time", "iso8601", "epoch_time", "now",
+          "geojson", "point", "circle", "line", "polygon", "asc", "desc", "literal" ].include?(name)
+      end
     end
     def self.pp_int(q, term, bt, pre_dot=false)
       q.text("\x7", 0) if bt == []

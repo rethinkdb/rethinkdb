@@ -1392,7 +1392,7 @@ class ToEpochTime(RqlMethodQuery):
     tt = pTerm.TO_EPOCH_TIME
     st = 'to_epoch_time'
 
-class GeoJson(RqlMethodQuery):
+class GeoJson(RqlTopLevelQuery):
     tt = pTerm.GEOJSON
     st = 'geojson'
 
@@ -1400,15 +1400,15 @@ class ToGeoJson(RqlMethodQuery):
     tt = pTerm.TO_GEOJSON
     st = 'to_geojson'
 
-class Point(RqlMethodQuery):
+class Point(RqlTopLevelQuery):
     tt = pTerm.POINT
     st = 'point'
 
-class Line(RqlMethodQuery):
+class Line(RqlTopLevelQuery):
     tt = pTerm.LINE
     st = 'line'
 
-class Polygon(RqlMethodQuery):
+class Polygon(RqlTopLevelQuery):
     tt = pTerm.POLYGON
     st = 'polygon'
 
@@ -1424,7 +1424,7 @@ class Includes(RqlMethodQuery):
     tt = pTerm.INCLUDES
     st = 'includes'
 
-class Circle(RqlMethodQuery):
+class Circle(RqlTopLevelQuery):
     tt = pTerm.CIRCLE
     st = 'circle'
 
