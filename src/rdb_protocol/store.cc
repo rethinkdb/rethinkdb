@@ -256,8 +256,6 @@ void do_read(ql::env_t *env,
     }
 }
 
-
-
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const changefeed_subscribe_t &s) {
@@ -270,6 +268,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         res->addrs.insert(store->changefeed_server->get_stop_addr());
     }
 
+    // RSI: limit unsubscribe
     void operator()(const changefeed_limit_subscribe_t &s) {
         guarantee(store->changefeed_server.has());
         store->changefeed_server->add_limit_client(s.addr, s.region, s.uuid, s.spec);

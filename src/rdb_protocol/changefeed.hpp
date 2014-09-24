@@ -142,7 +142,7 @@ struct keyspec_t {
         datum_t key;
     };
 
-    keyspec_t(keyspec_t &&keyspec) = default;
+    keyspec_t(keyspec_t &&keyspec) : spec(std::move(keyspec.spec)) { }
     explicit keyspec_t(range_t &&range) : spec(std::move(range)) { }
     explicit keyspec_t(limit_t &&limit) : spec(std::move(limit)) { }
     explicit keyspec_t(point_t &&point) : spec(std::move(point)) { }
@@ -223,16 +223,16 @@ class server_t;
 class limit_manager_t {
 public:
     limit_manager_t(
+        region_t _region,
         std::string _table,
-        std::string _sindex,
         server_t *_parent,
         client_t::addr_t _parent_client,
-                uuid_u _uuid,
+        uuid_u _uuid,
         keyspec_t::limit_t _spec,
         std::multimap<datum_t, datum_t, decltype(std::less<const datum_t &>())>
             &&start_data)
-        : table(std::move(_table)),
-          sindex(std::move(_sindex)),
+        : region(std::move(_region)),
+          table(std::move(_table)),
           parent(_parent),
           parent_client(std::move(_parent_client)),
           uuid(std::move(_uuid)),
@@ -252,7 +252,8 @@ public:
                : uuid < other.uuid);
     }
 
-    const std::string table, sindex;
+    const region_t region; // RSI: use this!
+    const std::string table;
 private:
     server_t *parent;
     client_t::addr_t parent_client;

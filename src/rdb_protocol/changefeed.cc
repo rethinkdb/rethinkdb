@@ -63,15 +63,36 @@ void server_t::add_client(const client_t::addr_t &addr, region_t region) {
     }
 }
 
-/*
 void server_t::add_limit_client(
     const client_t::addr_t &addr,
     const region_t &region,
+    const std::string &table,
     const uuid_u &client_uuid,
     const keyspec_t::limit_t &spec) {
-    // RSI: do
+
+    auto_drainer_t::lock_t lock(&drainer);
+    rwlock_in_line_t spot(&clients_lock, access_t::write);
+    spot.write_signal()->wait_lazily_unordered();
+    auto it = clients.find(addr);
+
+    // It's entirely possible the peer disconnected by the time we got here.
+    if (it) {
+        auto *vec = &it->second.limit_clients[spec.sindex];
+        vec->push_back(
+            std::make_pair(
+                spec.sindex,
+                limit_manager_t(
+                    region,
+                    table,
+                    this,
+                    it->first,
+                    client_uuid,
+                    spec,
+                    // RSI: read initial batch off disk
+                    // RSI: writes while reads happen?
+    }
 }
-*/
+
 
 void server_t::add_client_cb(signal_t *stopped, client_t::addr_t addr) {
     auto_drainer_t::lock_t coro_lock(&drainer);

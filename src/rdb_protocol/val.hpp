@@ -153,7 +153,7 @@ public:
     static counted_t<single_selection_t> from_slice(
         env_t *env, counted_t<table_slice_t> table,
         protob_t<const Backtrace> bt, std::string err);
-    virtual ~single_selection_t() = default;
+    virtual ~single_selection_t() { }
 
     virtual datum_t get() = 0;
     virtual datum_t replace(
