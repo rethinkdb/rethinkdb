@@ -270,8 +270,26 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
     // RSI: limit unsubscribe
     void operator()(const changefeed_limit_subscribe_t &s) {
+        ql::env_t ql_env(ctx, interruptor,
+                         std::map<std::string, ql::wire_func_t>(), trace);
+        rget_read_response_t resp;
+        rget_read_t read; // RSI: fill this in!!!
+        do_read(&ql_env, store, btree, superblock, read, &resp);
+        auto *stream = boost::get<ql::stream_t>(&resp.result);
+        guarantee(stream);
+        ql::changefeed::datum_map_t start_data( // RSI: sorting
+            [](const ql::datum_t &l, const ql::datum_t &r) { return l > r; });
+        for (const auto &item : *stream) {
+            if (start_data.size() == s.spec.limit) {
+                break;
+            }
+            start_data.insert(
+                std::make_pair(std::move(item.sindex_key), std::move(item.data)));
+        }
+
         guarantee(store->changefeed_server.has());
-        store->changefeed_server->add_limit_client(s.addr, s.region, s.uuid, s.spec);
+        store->changefeed_server->add_limit_client(
+            s.addr, s.region, s.table, s.uuid, s.spec, std::move(start_data));
         response->response = changefeed_limit_subscribe_response_t(1);
     }
 

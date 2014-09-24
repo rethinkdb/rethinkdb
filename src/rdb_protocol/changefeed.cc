@@ -68,7 +68,8 @@ void server_t::add_limit_client(
     const region_t &region,
     const std::string &table,
     const uuid_u &client_uuid,
-    const keyspec_t::limit_t &spec) {
+    const keyspec_t::limit_t &spec,
+    datum_map_t &&start_data) {
 
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::write);
@@ -76,20 +77,17 @@ void server_t::add_limit_client(
     auto it = clients.find(addr);
 
     // It's entirely possible the peer disconnected by the time we got here.
-    if (it) {
+    if (it != clients.end()) {
         auto *vec = &it->second.limit_clients[spec.sindex];
         vec->push_back(
-            std::make_pair(
-                spec.sindex,
-                limit_manager_t(
-                    region,
-                    table,
-                    this,
-                    it->first,
-                    client_uuid,
-                    spec,
-                    // RSI: read initial batch off disk
-                    // RSI: writes while reads happen?
+            make_scoped<limit_manager_t>(
+                region,
+                table,
+                this,
+                it->first,
+                client_uuid,
+                spec,
+                std::move(start_data)));
     }
 }
 
@@ -199,10 +197,10 @@ void server_t::foreach_limit(const std::string &sindex,
         auto it = client.second.limit_clients.find(sindex);
         if (it != client.second.limit_clients.end()) {
             for (auto &&lc : it->second) {
-                auto_drainer_t::lock_t lc_lock(&lc.drainer);
-                rwlock_in_line_t lc_spot(&lc.lock, access_t::write);
+                auto_drainer_t::lock_t lc_lock(&lc->drainer);
+                rwlock_in_line_t lc_spot(&lc->lock, access_t::write);
                 lc_spot.write_signal()->wait_lazily_unordered();
-                f(&lc);
+                f(lc.get());
             }
         }
     }
@@ -259,7 +257,7 @@ void limit_manager_t::commit(const pure_read_func_t &read_func) {
             datum_range_t(begin, key_range_t::bound_t::open, // RSI: sorting
                           datum_t(), key_range_t::bound_t::open),
             table,
-            sindex,
+            spec.sindex,
             spec.limit - data.size());
         for (auto it = s.begin(); it < s.end() && data.size() < spec.limit; ++it) {
             auto pair = std::make_pair(it->sindex_key, it->data);
@@ -313,7 +311,9 @@ public:
     virtual ~subscription_t();
     std::vector<datum_t>
     get_els(batcher_t *batcher, const signal_t *interruptor);
-    virtual void start(env_t *env, namespace_interface_t *nif,
+    virtual void start(env_t *env,
+                       std::string table,
+                       namespace_interface_t *nif,
                        client_t::addr_t *addr) = 0;
     void stop(const std::string &msg, detach_t should_detach);
 protected:
@@ -453,7 +453,10 @@ public:
     virtual ~point_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_point_sub, feed, this, key));
     }
-    virtual void start(env_t *env, namespace_interface_t *nif, client_t::addr_t *addr) {
+    virtual void start(env_t *env,
+                       std::string,
+                       namespace_interface_t *nif,
+                       client_t::addr_t *addr) {
         assert_thread();
         read_response_t read_resp;
         nif->read(
@@ -518,7 +521,10 @@ public:
     virtual ~range_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_range_sub, feed, this));
     }
-    virtual void start(env_t *env, namespace_interface_t *nif, client_t::addr_t *addr) {
+    virtual void start(env_t *env,
+                       std::string,
+                       namespace_interface_t *nif,
+                       client_t::addr_t *addr) {
         assert_thread();
         read_response_t read_resp;
         nif->read(
@@ -585,11 +591,14 @@ public:
     virtual ~limit_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_limit_sub, feed, this, uuid));
     }
-    virtual void start(env_t *env, namespace_interface_t *nif, client_t::addr_t *addr) {
+    virtual void start(env_t *env,
+                       std::string table,
+                       namespace_interface_t *nif,
+                       client_t::addr_t *addr) {
         assert_thread();
         read_response_t read_resp;
         nif->read(
-            read_t(changefeed_limit_subscribe_t(*addr, uuid, spec),
+            read_t(changefeed_limit_subscribe_t(*addr, uuid, spec, std::move(table)),
                    profile_bool_t::DONT_PROFILE),
             &read_resp, order_token_t::ignore, env->interruptor);
         auto resp = boost::get<changefeed_limit_subscribe_response_t>(
@@ -1286,7 +1295,7 @@ client_t::new_feed(env_t *env,
             sub.init(boost::apply_visitor(keyspec_visitor_t(feed), keyspec.spec));
         }
         namespace_interface_access_t access = namespace_source(uuid, env->interruptor);
-        sub->start(env, access.get(), &addr);
+        sub->start(env, table_name, access.get(), &addr);
         return make_counted<stream_t>(std::move(sub), bt);
     } catch (const cannot_perform_query_exc_t &e) {
         rfail_datum(base_exc_t::GENERIC,

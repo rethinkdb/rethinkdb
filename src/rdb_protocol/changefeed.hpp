@@ -219,6 +219,10 @@ private:
 
 typedef mailbox_addr_t<void(client_addr_t)> server_addr_t;
 
+typedef std::multimap<datum_t, datum_t,
+                      std::function<bool(const datum_t &, const datum_t &)> >
+    datum_map_t;
+
 class server_t;
 class limit_manager_t {
 public:
@@ -229,8 +233,7 @@ public:
         client_t::addr_t _parent_client,
         uuid_u _uuid,
         keyspec_t::limit_t _spec,
-        std::multimap<datum_t, datum_t, decltype(std::less<const datum_t &>())>
-            &&start_data)
+        datum_map_t &&start_data)
         : region(std::move(_region)),
           table(std::move(_table)),
           parent(_parent),
@@ -245,9 +248,9 @@ public:
     void add(datum_t key, datum_t val);
     void commit(const pure_read_func_t &read_func);
     bool operator<(const limit_manager_t &other) {
-        return (sindex < other.sindex)
+        return (spec.sindex < other.spec.sindex)
             ? true
-            : ((sindex > other.sindex)
+            : ((spec.sindex > other.spec.sindex)
                ? false
                : uuid < other.uuid);
     }
@@ -261,7 +264,7 @@ private:
     uuid_u uuid;
     keyspec_t::limit_t spec;
     // RSI: sorting
-    std::multimap<datum_t, datum_t, decltype(std::less<const datum_t &>())> data;
+    datum_map_t data;
 
     std::vector<std::pair<datum_t, datum_t> > added;
     std::vector<datum_t> deleted;
@@ -282,8 +285,10 @@ public:
     void add_limit_client(
         const client_t::addr_t &addr,
         const region_t &region,
+        const std::string &table,
         const uuid_u &client_uuid,
-        const keyspec_t::limit_t &spec);
+        const keyspec_t::limit_t &spec,
+        datum_map_t &&start_data);
     // `key` should be non-NULL if there is a key associated with the message.
     void send_all(const msg_t &msg, const store_key_t &key);
     void stop_all();
@@ -308,7 +313,8 @@ private:
         scoped_ptr_t<cond_t> cond;
         uint64_t stamp;
         std::vector<region_t> regions;
-        std::map<std::string, std::vector<limit_manager_t> > limit_clients;
+        std::map<std::string,
+                 std::vector<scoped_ptr_t<limit_manager_t> > > limit_clients;
     };
     std::map<client_t::addr_t, client_info_t> clients;
 

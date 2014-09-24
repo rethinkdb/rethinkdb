@@ -465,20 +465,24 @@ public:
 };
 RDB_DECLARE_SERIALIZABLE(changefeed_subscribe_t);
 
+// RSI: make sure this `read_t` has `use_snapshot` set to `false`.
 class changefeed_limit_subscribe_t {
 public:
     changefeed_limit_subscribe_t() { }
     explicit changefeed_limit_subscribe_t(
         ql::changefeed::client_t::addr_t _addr,
         uuid_u _uuid,
-        ql::changefeed::keyspec_t::limit_t _spec)
+        ql::changefeed::keyspec_t::limit_t _spec,
+        std::string _table)
         : addr(std::move(_addr)),
           uuid(std::move(_uuid)),
           spec(std::move(_spec)),
+          table(std::move(_table)),
           region(region_t::universe()) { }
     ql::changefeed::client_t::addr_t addr;
     uuid_u uuid;
     ql::changefeed::keyspec_t::limit_t spec;
+    std::string table;
     region_t region;
 };
 RDB_DECLARE_SERIALIZABLE(changefeed_limit_subscribe_t);
