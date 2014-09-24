@@ -160,7 +160,7 @@ tests:
   - js: tbl.get_nearest(r.point(0,0), {'index':'g', 'max_dist':10000000}).pluck('dist', {'doc':'id'})
     py: tbl.get_nearest(r.point(0,0), index='g', max_dist=10000000).pluck('dist', {'doc':'id'})
     rb: tbl.get_nearest(r.point(0,0), :index=>'g', :max_dist=>10000000).pluck('dist', {'doc':'id'})
-    ot: err('RqlRuntimeError', 'The distance has become too large for continuing the indexed nearest traversal.  Consider specifying a smaller `max_dist` parameter.  (Radius must be smaller than a quarter of the circumference along the minor axis of the reference ellipsoid.  Got 10968937.995244588703, but must be smaller than 9985163.1855612862855.)', [0])
+    ot: err('RqlRuntimeError', 'The distance has become too large for continuing the indexed nearest traversal.  Consider specifying a smaller `max_dist` parameter.  (Radius must be smaller than a quarter of the circumference along the minor axis of the reference ellipsoid.  Got 10968937.995244588703m, but must be smaller than 9985163.1855612862855m.)', [0])
   - js: tbl.get_nearest(r.point(0,0), {'index':'g', 'max_dist':1566, 'unit':'km'}).pluck('dist', {'doc':'id'})
     py: tbl.get_nearest(r.point(0,0), index='g', max_dist=1566, unit='km').pluck('dist', {'doc':'id'})
     rb: tbl.get_nearest(r.point(0,0), :index=>'g', :max_dist=>1566, :unit=>'km').pluck('dist', {'doc':'id'})
