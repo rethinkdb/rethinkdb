@@ -301,13 +301,16 @@ bool http_datum_stream_t::apply_depaginate(env_t *env, const http_result_t &res)
         return false;
     }
 
-    // Provide an empty OBJECT datum instead of any non-existent arguments
+    rassert(opts.url_params.has());
+    rassert(res.header.has());
+    rassert(res.body.has());
+
     datum_t empty
         = datum_t(std::map<datum_string_t, datum_t>());
     std::map<datum_string_t, datum_t> arg_obj
-        = { { datum_string_t("params"), opts.url_params.has() ? opts.url_params : empty },
-            { datum_string_t("header"), res.header.has() ? res.header : empty },
-            { datum_string_t("body"), res.body.has() ? res.body : empty } };
+        = { { datum_string_t("params"), opts.url_params },
+            { datum_string_t("header"), res.header },
+            { datum_string_t("body"), res.body } };
     std::vector<datum_t> args
         = { datum_t(std::move(arg_obj)) };
 
@@ -344,7 +347,7 @@ bool http_datum_stream_t::apply_depage_url(datum_t new_url) {
 void http_datum_stream_t::apply_depage_params(datum_t new_params) {
     // Verify new params and merge with the old ones, new taking precedence
     check_url_params(new_params, this);
-    opts.url_params.merge(new_params);
+    opts.url_params = opts.url_params.merge(new_params);
 }
 
 bool http_datum_stream_t::handle_depage_result(datum_t depage) {
