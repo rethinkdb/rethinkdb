@@ -2,7 +2,7 @@
 
 Released on 2014-09-23
 
-The highlights of this release are support for geospatial objects and queries
+The highlights of this release are support for geospatial objects and queries,
 and significant performance upgrades relating to datum serialization (twice as
 fast for many analytical workloads). Read the [release blog post][1.15-blog]
 for more details.
