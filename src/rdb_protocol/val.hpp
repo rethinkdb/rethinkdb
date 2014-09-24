@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_VAL_HPP_
 #define RDB_PROTOCOL_VAL_HPP_
 
@@ -15,7 +15,9 @@
 #include "rdb_protocol/ql2.pb.h"
 
 class ellipsoid_spec_t;
+
 namespace ql {
+
 class datum_t;
 class env_t;
 template <class> class protob_t;
@@ -135,7 +137,7 @@ enum function_shortcut_t {
 
 // A value is anything RQL can pass around -- a datum, a sequence, a function, a
 // selection, whatever.
-class val_t : public single_threaded_countable_t<val_t>, public pb_rcheckable_t {
+class val_t : public pb_rcheckable_t {
 public:
     // This type is intentionally opaque.  It is almost always an error to
     // compare two `val_t` types rather than testing whether one is convertible
