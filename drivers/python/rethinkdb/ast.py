@@ -596,6 +596,9 @@ class RqlTzinfo(datetime.tzinfo):
         self.offsetstr = offsetstr
         self.delta = datetime.timedelta(hours=hours, minutes=minutes)
 
+    def __getinitargs__(self):
+        return (self.offsetstr,)
+
     def __copy__(self):
         return RqlTzinfo(self.offsetstr)
 
