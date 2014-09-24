@@ -15,6 +15,7 @@ main () {
 
     root=$(dirname $0)/..
     export GIT_DIR="$root/.git"
+    export GIT_WORK_TREE="$root"
 
     try_files "${VERSION_FILE:-}" "$root/VERSION.OVERRIDE" "./VERSION"
 

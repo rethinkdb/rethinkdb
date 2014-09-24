@@ -24,8 +24,8 @@ lon_lat_line_t build_circle(
         throw geo_range_exception_t(
             strprintf("Radius must be smaller than a quarter of the circumference "
                       "along the minor axis of the reference ellipsoid.  "
-                      "Got %" PR_RECONSTRUCTABLE_DOUBLE ", but must be smaller "
-                      "than %" PR_RECONSTRUCTABLE_DOUBLE ".",
+                      "Got %" PR_RECONSTRUCTABLE_DOUBLE "m, but must be smaller "
+                      "than %" PR_RECONSTRUCTABLE_DOUBLE "m.",
                       radius, max_radius));
     }
 

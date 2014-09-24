@@ -119,8 +119,7 @@ install-config:
 .PHONY: install-data
 install-data:
 	$P INSTALL $(DESTDIR)$(data_dir)/instances.d
-	umask 022 && install -m755 -d $(DESTDIR)$(data_dir)
-	install -m755 $(DESTDIR)$(data_dir)/instances.d
+	umask 022 && install -m755 -d $(DESTDIR)$(data_dir)/instances.d
 
 .PHONY: install-web
 install-web: web-assets

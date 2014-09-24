@@ -32,3 +32,8 @@ generate_test(
     "$RETHINKDB/test/regression/issue_3038.test",
     name = '3038'
     )
+
+generate_test(
+    "$RETHINKDB/test/regression/issue_3051.test",
+    name = '3051'
+    )

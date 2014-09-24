@@ -1,0 +1,3 @@
+mac_alias: http://alastairs-place.net/projects/mac_alias
+
+This is version 1.0.0 with no changes.

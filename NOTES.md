@@ -16,7 +16,7 @@ Bug fix update.
 * Fixed a bug that caused a crash due to incorrect error handling in profile mode (#2718)
 * Fixed a bug that caused a crash when existing servers tried to connect to a new server with an unresolvable hostname (#2708)
 
---
+---
 
 # Release 1.14.0 (Brazil)
 
@@ -28,6 +28,10 @@ The highlights of this release are:
 * Seamless database migration
 * Support for Python 3
 
+Read the [release blog post][1.14-blog] for more details.
+
+[1.14-blog]: http://rethinkdb.com/blog/1.14-release/
+
 ## Compatibility ##
 
 ### Backwards-compatible changes ###
@@ -35,18 +39,19 @@ The highlights of this release are:
 Data files from RethinkDB versions 1.13.0 onward will be automatically
 migrated to version 1.14.x. As with any major release, back up your data files
 before performing the upgrade. If you are upgrading from a release earlier
-than 1.13.0, follow the migration instructions before upgrading:
+than 1.13.0, follow the [migration instructions][1.14-migration] before upgrading:
 
-http://rethinkdb.com/docs/migration/
+[1.14-migration]: http://rethinkdb.com/docs/migration/
 
 Secondary indexes now use a new format; old indexes will continue to work, but
 you should rebuild indexes after upgrading to 1.14.x. A warning about outdated
 indexes will be issued on startup.
 
 Indexes can be migrated to the new format with the `rethinkdb index-rebuild`
-utility. Consult the troubleshooting document for more information:
+utility. Consult the [troubleshooting document][1.14-outdated-index] for more
+information:
 
-http://rethinkdb.com/docs/troubleshooting#my-secondary-index-is-outdated
+[1.14-outdated-index]: http://rethinkdb.com/docs/troubleshooting/#my-secondary-index-is-outdated
 
 ### API-breaking changes ###
 
@@ -54,11 +59,12 @@ The `return_vals` optional argument for `insert`, `delete` and `update` has
 been changed to `return_changes`, and works with all write operations
 (previously, this only worked with single-document writes). The returned
 object is in a new format that is backwards-incompatible with previous
-versions. Consult the API documentation for these commands for details:
+versions. Consult the API documentation for [insert][1.14-insert], [delete][1.14-delete],
+and [update][1.14-update] for details:
 
-http://rethinkdb.com/api/javascript/insert  
-http://rethinkdb.com/api/javascript/delete  
-http://rethinkdb.com/api/javascript/update
+[1.14-insert]: http://rethinkdb.com/api/javascript/insert
+[1.14-delete]: http://rethinkdb.com/api/javascript/delete
+[1.14-update]: http://rethinkdb.com/api/javascript/update
 
 The `upsert` optional argument to `insert` has been replaced with `conflict`
 and new allowed values of `error`, `replace` or `update`. This is a
@@ -169,7 +175,7 @@ us ship RethinkDB 1.14. In no particular order:
 * Ayman Mackouly (@1N50MN14)
 * Adam Grandquist (@grandquista)
 
---
+---
 
 # Release 1.13.4 (My Name is Nobody)
 
@@ -188,7 +194,7 @@ Bug fix update.
 * Improved the error message when running into version incompatibilities (#2657)
 * Improved the garbage collection for `r.js` (#2642)
 
---
+---
 
 # Release 1.13.3 (My Name is Nobody)
 
@@ -201,7 +207,7 @@ Bug fix update.
 * Prepare for live cluster upgrades (#2563)
 * Fix a bug that could lead to inconsistent data (#2579)
 
---
+---
 
 # Release 1.13.1 (My Name is Nobody)
 
@@ -225,7 +231,7 @@ Bug fix update.
 * `default` now catches index out of bounds errors on streams (#1922)
 * Improved arity error messages in the JavaScript driver (#2449)
 
---
+---
 
 # Release 1.13.0 (My Name is Nobody)
 
@@ -235,16 +241,18 @@ The highlights of this release are the `r.http` command for external
 data access, change feed support via the new `changes` command, and
 full support for Node.js promises in the JavaScript driver.
 
-http://rethinkdb.com/blog/1.13-release/
+Read the [release blog post][1.13-blog] for more details.
+
+[1.13-blog]: http://rethinkdb.com/blog/1.13-release/
 
 ## Compatibility ##
 
 This release is not compatible with data files from earlier
 releases. If you have data you want to migrate from an older version
-of RethinkDB, please follow the migration instructions before
+of RethinkDB, please follow the [migration instructions][1.13-migration] before
 upgrading:
 
-http://rethinkdb.com/docs/migration/
+[1.13-migration]: http://rethinkdb.com/docs/migration/
 
 There are also some backwards incompatible changes in the JavaScript driver.
 
@@ -352,7 +360,7 @@ helping us ship RethinkDB 1.13. In no particular order:
 * Matthew Frazier (@leafstorm)
 * Masatoshi Ishida (@Masatoshi)
 
---
+---
 
 # Release 1.12.5 (The Wizard of Oz)
 
@@ -367,7 +375,7 @@ Bug fix update.
 * Python driver: improved the error message when a cursor's connection is closed (#2291)
 * Python driver: improved the implementation of cursors (#2364, #2337)
 
---
+---
 
 # Release 1.12.4 (The Wizard of Oz)
 
@@ -378,7 +386,7 @@ Bug fix update.
 * Fixed a bug that caused `Assertion failed: [page->is_disk_backed()]` errors (#2260)
 * Fixed a bug that caused incorrect query results and frequent server crashes under low memory conditions (#2237)
 
---
+---
 
 # Release 1.12.3 (The Wizard of Oz)
 
@@ -393,7 +401,7 @@ Bug fix update.
 * Failure to `fsync` a directory is now a warning instead of an error (#2255)
 * Packages are now available for Ubuntu 14.04, codename Trusty Tahr (#2101)
 
---
+---
 
 # Release 1.12.2 (The Wizard of Oz)
 
@@ -410,7 +418,7 @@ Bug fix update.
 * Updated the documentation (#2197)
 * Updated the sample config file (#2205)
 
---
+---
 
 # Release 1.12.1 (The Wizard of Oz)
 
@@ -427,7 +435,7 @@ Bug fix update.
 * Fixed some build failures (#2183, #2174)
 * Fixed the Centos i686 packages (#2176)
 
---
+---
 
 # Release 1.12.0 (The Wizard of Oz)
 
@@ -436,16 +444,18 @@ Released on 2014-03-26
 The highlights of this release are a simplified map/reduce, an
 experimental ARM port, and a new caching infrastructure.
 
-http://rethinkdb.com/blog/1.12-release/
+Read the [release blog post][1.12-blog] for more details.
+
+[1.12-blog]: http://rethinkdb.com/blog/1.12-release/
 
 ## Compatibility ##
 
 This release is not compatible with data files from earlier
 releases. If you have data you want to migrate from an older version
-of RethinkDB, please follow the migration instructions before
+of RethinkDB, please follow the [migration instructions][1.12-migration] before
 upgrading:
 
-http://rethinkdb.com/docs/migration/
+[1.12-migration]: http://rethinkdb.com/docs/migration/
 
 There are also some backwards incompatible changes in ReQL, the query
 language.
@@ -570,7 +580,7 @@ language.
 
 * Support for Ubuntu Raring has been dropped (#1924)
 
---
+---
 
 # Release 1.11.3 (Breakfast at Tiffany's)
 
@@ -594,7 +604,7 @@ Bug fix update.
 * Fix a bug with thread-local storage that caused a segfault on certain platforms (#1731)
 * `get` of a non-existent document followed by `replace` now works as documented (#1570)
 
---
+---
 
 # Release 1.11.2 (Breakfast at Tiffany's)
 
@@ -609,7 +619,7 @@ Bug fix update.
 * Fixed IPv6 issues with link-local addresses (#1694)
 * Add some support for Python 3 in the build scripts (#1709)
 
---
+---
 
 # Release 1.11.1 (Breakfast at Tiffany's)
 
@@ -621,7 +631,7 @@ Bug fix update.
 * RethinkDB now correctly sets the `ResponseType` field in responses to `STOP` queries (#1715)
 * Fixed a bug that caused RethinkDB to crash with a failed guarantee (#1691)
 
---
+---
 
 # Release 1.11.0 (Breakfast at Tiffany's)
 
@@ -629,6 +639,10 @@ Released on 2013-11-25
 
 This release introduces a new query profiler, an overhauled streaming infrastructure,
 and many enhancements that improve ease and robustness of operation.
+
+Read the [release blog post][1.11-blog] for more details.
+
+[1.11-blog]: http://rethinkdb.com/blog/1.11-release/
 
 ## New Features ##
 
@@ -705,7 +719,7 @@ and many enhancements that improve ease and robustness of operation.
   * Fixed how `termcap` is handled by `./configure` (#1622)
   * Generate a better version number when compiling from a shallow clone (#1636)
 
---
+---
 
 # Release 1.10.1 (Von Ryan's Express)
 
@@ -730,6 +744,10 @@ Bug fix update.
 # Release 1.10.0 (Von Ryan's Express)
 
 Released on 2013-09-26
+
+Read the [release blog post][1.10-blog] for more details.
+
+[1.10-blog]: http://rethinkdb.com/blog/1.10-release/
 
 ## New Features ##
 
@@ -760,11 +778,15 @@ Released on 2013-09-26
 * Fixed the error message when using `groupBy` with illegal pattern (#1460)
 * `default` is no longer unprintable in Python (#1476)
 
---
+---
 
 # Release 1.9.0 (Kagemusha)
 
 Released on 2013-09-09
+
+Read the [release blog post][1.9-blog] for more details.
+
+[1.9-blog]: http://rethinkdb.com/blog/1.9-release/
 
 Bug fix update.
 
@@ -784,7 +806,7 @@ Bug fix update.
 * CLI
   * `rethinkdb import` now works with Python 2.6 (#1349)
 
---
+---
 
 # Release 1.8.1 (High Noon)
 
@@ -798,13 +820,17 @@ Bug fix update.
 * The web UI now correctly positions `SVGRectElement` (#1314)
 * Fixed a bug that caused a crash when using `filter` with a non-deterministic value (#1299)
 
---
+---
 
 # Release 1.8.0 (High Noon)
 
 Released on 2013-08-14
 
 This release introduces date and time support, a new syntax for querying nested objects and 8x improvement in disk usage.
+
+Read the [release blog post][1.8-blog] for more details.
+
+[1.8-blog]: http://rethinkdb.com/blog/1.8-release/
 
 ## New Features ##
 
@@ -889,7 +915,7 @@ This release introduces date and time support, a new syntax for querying nested 
 * Build
   * Fixed bugs that caused make to not rebuild certain files or build files it should not (#1162, #1215, #1216, #1229, #1230, #1272)
 
---
+---
 
 # Release 1.7.3 (Nights of Cabiria)
 
@@ -899,7 +925,7 @@ Bug fix update.
 
 * RethinkDB no longer fails to create the data directory when using `--daemon` (#1191)
 
---
+---
 
 # Release 1.7.2 (Nights of Cabiria)
 
@@ -929,7 +955,7 @@ Bug fix update.
 * The init script now creates folders with the correct permissions (#1069)
 * Client drivers now time out if the connection handshake takes too long (#1033)
 
---
+---
 
 # Release 1.7.1 (Nights of Cabiria)
 
@@ -940,13 +966,18 @@ Bug fix update.
 * Fixed a bug causing `rethinkdb import` to crash on single files
 * Added options to `rethinkdb import` for custom CSV separators and no headers (#1112)
 
---
+---
 
 # Release 1.7.0 (Nights of Cabiria)
 
 Released on 2013-07-03
 
 This release introduces hot backup, atomic set and get operations, significant insert performance improvements, nested document syntax, and native binaries for CentOS / RHEL.
+
+Read the [release blog post][1.7-blog] for more details.
+
+[1.7-blog]: http://rethinkdb.com/blog/1.7-release/
+
 
 ## New Features ##
 
@@ -993,7 +1024,7 @@ This release introduces hot backup, atomic set and get operations, significant i
 * Tests
   * ReQL tests no longer leave zombie processes (#1055)
 
---
+---
 
 # Release 1.6.1 (Fargo)
 
@@ -1011,13 +1042,17 @@ Released on 2013-06-19
 * Fixed compilation failures with gcc 4.4 (#1011)
 * Fixed problems with resolving a conflicted auth_key (#1024)
 
---
+---
 
 # Release 1.6.0 (Fargo)
 
 Released on 2013-06-13
 
 This release introduces basic access control, regular expression matching, new array operations, random sampling, better error handling, and many bug fixes.
+
+Read the [release blog post][1.6-blog] for more details.
+
+[1.6-blog]: http://rethinkdb.com/blog/1.6-release/
 
 ## New Features ##
 
@@ -1094,7 +1129,7 @@ This release introduces basic access control, regular expression matching, new a
   * Check for versions of LESS that are known to work (#956)
   * Removed bitrotted MOCK_CACHE_CHECK option (#804)
 
---
+---
 
 # Release 1.5.2 (Le Gras de Ouate)
 
@@ -1109,7 +1144,7 @@ Bug fix update.
 * Fix #817: Fix a crash caused by adding a secondary index while under load
 * Fix #831: Some invalid queries no longer cause a crash
 
---
+---
 
 # Release 1.5.1 (The Grad You Ate) #
 
@@ -1124,11 +1159,15 @@ Bug fix update.
 
 ---
 
-# Release 1.5.0 (The Graduate) #
+# Release 1.5.0 (The Graduate)
 
 Released on 2013-05-16
 
 This release introduces secondary indexes, stability and performance enhancements and many bug fixes.
+
+Read the [release blog post][1.5-blog] for more details.
+
+[1.5-blog]: http://rethinkdb.com/blog/1.5-release/
 
 ## New Features ##
 
@@ -1322,7 +1361,7 @@ Bug fix update:
 
 ---
 
-# Release 1.4 (Some Like It Hot) #
+# Release 1.4.0 (Some Like It Hot)
 
 Relased on 2013-03-18.
 
@@ -1354,7 +1393,7 @@ Released on 2012-12-20.
 
 ---
 
-# Release 1.3.0 (Metropolis) #
+# Release 1.3.0 (Metropolis)
 
 Released on 2012-12-20.
 
@@ -1430,7 +1469,7 @@ Released on 2012-11-09.
 
 ---
 
-# Release 1.2.0 (Rashomon) #
+# Release 1.2.0 (Rashomon)
 
 Released on 2012-11-09.
 
