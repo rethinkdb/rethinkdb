@@ -37,6 +37,8 @@ private:
     scoped_fd_t directory_fd;
     bool created;
     bool initialize_done;
+
+    DISABLE_COPYING(directory_lock_t);
 };
 
 class directory_missing_exc_t : public std::exception {

@@ -1,0 +1,112 @@
+#!/usr/bin/env python
+# Copyright 2014 RethinkDB, all rights reserved.
+
+# issue-url: https://github.com/rethinkdb/rethinkdb/issues/3038
+# issue-description: when a master suddenly dies changefeed requests to that server are not cleaned up correctly
+
+import os, subprocess, sys, tempfile, threading, time
+
+try:
+	import Queue
+except NameError:
+	import queue as Queue
+
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.path.pardir, 'common'))
+import driver, http_admin, utils
+
+r = utils.import_python_driver()
+
+# == constants
+
+databaseName = 'test'
+tableName = os.path.splitext(os.path.basename(__file__))[0]
+
+splitPoint = 'Nc0a4640000000000#2610'
+records = 5000
+
+# == start up two joined servers
+
+serverALog = tempfile.NamedTemporaryFile()
+serverA = driver.Process(log_path=serverALog.name)
+serverBLog = tempfile.NamedTemporaryFile()
+serverB = driver.Process(cluster=serverA.cluster, log_path=serverBLog.name)
+
+# == create a table, populate, and shard it
+
+connA = r.connect(host=serverA.host, port=serverA.driver_port)
+
+if databaseName not in r.db_list().run(connA):
+	r.db_create(databaseName).run(connA)
+r.db(databaseName).table_create(tableName).run(connA)
+
+step = 1000
+for startPoint in range(1, records, step):
+	r.db(databaseName).table(tableName).insert([{'id': x} for x in range(startPoint, startPoint + step)]).run(connA)
+
+adminConn = http_admin.ClusterAccess([(serverA.host, serverA.http_port)])
+adminConn.add_table_shard(tableName, splitPoint) # ToDo: replace this with proper commands
+
+# == pin the shards
+
+machines = adminConn.machines.values()
+
+command = [
+	serverA.executable_path, 'admin', '--join', '%s:%d' % (serverA.host, serverA.cluster_port),
+	'pin', 'shard', '%s.%s' % (databaseName, tableName), '-%s' % splitPoint.replace('#', r'\23'), '--master', machines[0].name
+]
+subprocess.check_call(command, stdout=tempfile.TemporaryFile(), stderr=subprocess.STDOUT)
+
+command = [
+	serverA.executable_path, 'admin', '--join', '%s:%d' % (serverA.host, serverA.cluster_port),
+	'pin', 'shard', '%s.%s' % (databaseName, tableName), '%s-' % splitPoint.replace('#', r'\23'), '--master', machines[1].name
+]
+subprocess.check_call(command, stdout=tempfile.TemporaryFile(), stderr=subprocess.STDOUT)
+
+# == wait for the table to be available
+
+time.sleep(5) # longer than I like, but some servers are taking this long
+adminConn.wait_until_blueprint_satisfied(tableName)
+
+deadline = time.time() + 30
+while time.time() < deadline: # ToDo: use the table_wait command when available
+	try:
+		r.db(databaseName).table(tableName).get(1).run(connA)
+		r.db(databaseName).table(tableName).get(records).run(connA)
+		break
+	except r.errors.RqlRuntimeError as e:
+		time.sleep(.1)
+if time.time() > deadline:
+	sys.stderr.write('Failure: Timed out waiting for the table to be available!\n')
+	sys.exit(1)
+
+# == open a changefeed
+
+changefeed = r.db(databaseName).table(tableName).changes().run(connA)
+
+# == kill the second server
+
+serverB.kill()
+
+# == pull something from the changefeed
+
+try:
+	for x in changefeed:
+		break
+	sys.stderr.write('Failure: did not get a failure on the changefeed as expected!\n')
+	sys.exit(1)
+except r.errors.RqlRuntimeError:
+	pass
+
+# == check that the first server can close gracefully
+
+try:
+	serverA.check_and_stop()
+except RuntimeError as e:
+	sys.stderr.write('Failure: server did not close cleanly: %s\n' % str(e))
+	print('========= Stdout/Stderr: =========')
+	serverALog.seek(0)
+	sys.stdout.write(serverALog.read())
+	print('\n=========')
+	sys.exit(1)
+
+print('Completed Successfully')

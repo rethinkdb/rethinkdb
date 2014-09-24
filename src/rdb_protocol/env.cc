@@ -13,6 +13,12 @@
 
 #include "debug.hpp"
 
+// This is a totally arbitrary constant limiting the size of the regex cache.  1000
+// was chosen out of a hat; if you have a good argument for it being something else
+// (apart from cache line concerns, which are irrelevant due to the implementation)
+// you're probably right.
+const size_t LRU_CACHE_SIZE = 1000;
+
 namespace ql {
 
 datum_t static_optarg(const std::string &key, protob_t<Query> q) {
@@ -142,6 +148,7 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
     : global_optargs_(std::move(optargs)),
       limits_(from_optargs(ctx, _interruptor, &global_optargs_)),
       reql_version_(reql_version_t::LATEST),
+      cache_(LRU_CACHE_SIZE),
       interruptor(_interruptor),
       trace(_trace),
       evals_since_yield_(0),
@@ -156,6 +163,7 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
 env_t::env_t(signal_t *_interruptor, reql_version_t reql_version)
     : global_optargs_(),
       reql_version_(reql_version),
+      cache_(LRU_CACHE_SIZE),
       interruptor(_interruptor),
       trace(NULL),
       evals_since_yield_(0),

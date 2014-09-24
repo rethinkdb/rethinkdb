@@ -1,5 +1,17 @@
 # Copyright 2010-2014 RethinkDB, all rights reserved.
 
+import sys
+
+try:
+    unicode
+    def convertForPrint(inputString):
+        if type(inputString) == unicode:
+            return inputString.encode(sys.stdout.encoding or 'utf-8', 'replace')
+        else:
+            return str(inputString)
+except NameError:
+    def convertForPrint(inputString):
+        return inputString
 try:
     {}.iteritems
     dict_items = lambda d: d.iteritems()
@@ -13,7 +25,7 @@ class RqlError(Exception):
         self.query_printer = QueryPrinter(term, self.frames)
 
     def __str__(self):
-        return self.__class__.__name__ + ": " + self.message + " in:\n" + self.query_printer.print_query() + '\n' + self.query_printer.print_carrots()
+        return convertForPrint(self.__class__.__name__ + ": " + self.message + " in:\n" + self.query_printer.print_query() + '\n' + self.query_printer.print_carrots())
 
     def __repr__(self):
         return self.__class__.__name__ + "(" + repr(self.message) + ")"
@@ -26,14 +38,14 @@ class RqlCompileError(RqlError):
 
 class RqlRuntimeError(RqlError):
     def __str__(self):
-        return self.message + " in:\n" + self.query_printer.print_query() + '\n' + self.query_printer.print_carrots()
+        return convertForPrint(self.message + " in:\n" + self.query_printer.print_query() + '\n' + self.query_printer.print_carrots())
 
 class RqlDriverError(Exception):
     def __init__(self, message):
         self.message = message
 
     def __str__(self):
-        return self.message
+        return convertForPrint(self.message)
 
 class QueryPrinter(object):
     def __init__(self, root, frames=[]):

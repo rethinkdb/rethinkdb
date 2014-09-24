@@ -1,0 +1,7 @@
+desc: Use pseudotype name properly in `info`
+tests:
+  - cd: r.point(0, 1).type_of()
+    ot: ("PTYPE<GEOMETRY>")
+  - cd: r.point(0, 1).info()['type']
+    js: r.point(0, 1).info()('type')
+    ot: ("PTYPE<GEOMETRY>")

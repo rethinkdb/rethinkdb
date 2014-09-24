@@ -7,7 +7,7 @@
 #include "rdb_protocol/geo/exceptions.hpp"
 #include "rdb_protocol/geo/geojson.hpp"
 #include "rdb_protocol/geo/intersection.hpp"
-#include "rdb_protocol/geo/lat_lon_types.hpp"
+#include "rdb_protocol/geo/lon_lat_types.hpp"
 #include "rdb_protocol/geo/primitives.hpp"
 #include "rdb_protocol/geo/s2/s2.h"
 #include "rdb_protocol/geo/s2/s2latlng.h"
@@ -25,7 +25,7 @@ using ql::datum_t;
 namespace unittest {
 
 void test_in_ex_radius(
-        const lat_lon_point_t c, double r, const ellipsoid_spec_t &e, rng_t *rng) {
+        const lon_lat_point_t c, double r, const ellipsoid_spec_t &e, rng_t *rng) {
     // We first generate the polygons we want to test against.
     const datum_t outer_polygon =
         construct_geo_polygon(build_polygon_with_inradius_at_least(c, r, 8, e),
@@ -42,10 +42,10 @@ void test_in_ex_radius(
     // b) do not intersect with inner_polygon
     for (int i = 0; i < 1000; ++i) {
         double azimuth = rng->randdouble() * 360.0 - 180.0;
-        lat_lon_point_t test_point =
+        lon_lat_point_t test_point =
             geodesic_point_at_dist(c, r, azimuth, e);
         S2Point test_s2point =
-            S2LatLng::FromDegrees(test_point.first, test_point.second).ToPoint();
+            S2LatLng::FromDegrees(test_point.latitude, test_point.longitude).ToPoint();
         ASSERT_TRUE(geo_does_intersect(test_s2point, *outer_s2polygon));
         ASSERT_FALSE(geo_does_intersect(test_s2point, *inner_s2polygon));
     }
@@ -54,14 +54,14 @@ void test_in_ex_radius(
 void test_in_ex_radius(double r, const ellipsoid_spec_t &e, rng_t *rng) {
     // Test different positions:
     // At a pole
-    test_in_ex_radius(lat_lon_point_t(90.0, 0.0), r, e, rng);
+    test_in_ex_radius(lon_lat_point_t(0.0, 90.0), r, e, rng);
     // On the equator
-    test_in_ex_radius(lat_lon_point_t(0.0, 0.0), r, e, rng);
+    test_in_ex_radius(lon_lat_point_t(0.0, 0.0), r, e, rng);
     // At 10 random positions
     for (int i = 0; i < 10; ++i) {
         double lat = rng->randdouble() * 180.0 - 90.0;
         double lon = rng->randdouble() * 360.0 - 180.0;
-        test_in_ex_radius(lat_lon_point_t(lat, lon), r, e, rng);
+        test_in_ex_radius(lon_lat_point_t(lon, lat), r, e, rng);
     }
 }
 

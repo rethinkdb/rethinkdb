@@ -148,7 +148,7 @@ private:
                                                r::optarg("right", v)))))));
 
     }
-    virtual const char *name() const { return "inner_join"; }
+    virtual const char *name() const { return "eq_join"; }
 };
 
 class delete_term_t : public rewrite_term_t {

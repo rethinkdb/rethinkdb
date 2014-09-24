@@ -1,0 +1,2 @@
+
+generate_test("$RETHINKDB/test/changefeeds/changefeeds.test", name="changefeeds")

@@ -1,0 +1,10 @@
+desc: Test empty polygon special cases
+tests:
+    - cd: r.polygon([0,0], [0,10], [10, 10], [10, 0]).polygon_sub(r.polygon([0,0], [0,10], [10, 10], [10, 0])).intersects(r.point(0,0))
+      ot: (false)
+    - cd: r.polygon([0,0], [0,10], [10, 10], [10, 0]).polygon_sub(r.polygon([0,0], [0,10], [10, 10], [10, 0])).intersects(r.polygon([0,0], [0,10], [10, 10], [10, 0]))
+      ot: (false)
+    - cd: r.polygon([0,0], [0,10], [10, 10], [10, 0]).polygon_sub(r.polygon([0,0], [0,10], [10, 10], [10, 0])).intersects(r.line([0,0], [0,10]))
+      ot: (false)
+    - cd: r.polygon([0,0], [0,10], [10, 10], [10, 0]).intersects(r.polygon([0,0], [0,10], [10, 10], [10, 0]).polygon_sub(r.polygon([0,0], [0,10], [10, 10], [10, 0])))
+      ot: (false)

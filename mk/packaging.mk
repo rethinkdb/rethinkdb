@@ -54,7 +54,7 @@ DIST_CONFIGURE_DEFAULT_FETCH = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), --fetch 
 DIST_SUPPORT = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), $(SUPPORT_SRC_DIR)/$(pkg)_$($(pkg)_VERSION))
 
 DEB_BUILD_DEPENDS := g++, libboost-dev, libssl-dev, curl, m4, debhelper
-DEB_BUILD_DEPENDS += , fakeroot, python, libncurses5-dev, libcurl4-gnutls-dev
+DEB_BUILD_DEPENDS += , fakeroot, python, libncurses5-dev, libcurl4-openssl-dev, libssl-dev
 ifneq ($(shell echo $(UBUNTU_RELEASE) | grep '^[q-zQ-Z]'),)
   DEB_BUILD_DEPENDS += , nodejs-legacy
 endif
@@ -116,29 +116,28 @@ build-deb: deb-src-dir
 install-osx: install-binaries install-web
 
 ifneq (Darwin,$(OS))
-  PRODUCT_BUILD = $(error MacOS package can only be built on that OS)
-else ifneq ("","$(findstring $(SIGNATURE_NAME),$(shell /usr/bin/security find-identity -p macappstore -v | /usr/bin/awk '/[:blank:]+[:digit:]+[:graph:][:blank:]/'))")
-  PRODUCT_BUILD = /usr/bin/productbuild --distribution $(OSX_PACKAGING_DIR)/Distribution.xml --package-path $(OSX_PACKAGE_DIR)/install/ $(OSX_PACKAGE_DIR)/dmg/rethinkdb-$(RETHINKDB_VERSION).pkg --sign "$(SIGNATURE_NAME)"
+  OSX_DMG_BUILD = $(error MacOS package can only be built on that OS)
+else ifneq ("","$(findstring $(OSX_SIGNATURE_NAME),$(shell /usr/bin/security find-identity -p macappstore -v | /usr/bin/awk '/[:blank:]+[:digit:]+[:graph:][:blank:]/'))")
+  OSX_DMG_BUILD = $(TOP)/packaging/osx/create_dmg.py --server-root "$(OSX_PACKAGE_DIR)/pkg" --ouptut-location "$(OSX_PACKAGE_DIR)/rethinkdb.dmg" --signing-name "$(OSX_SIGNATURE_NAME)"
 else ifeq ($(REQUIRE_SIGNED),1)
-  PRODUCT_BUILD = $(error Certificate not found: $(SIGNITURE_NAME))
+  OSX_DMG_BUILD = $(error Certificate not found: $(OSX_SIGNATURE_NAME))
 else
-  PRODUCT_BUILD = /usr/bin/productbuild --distribution $(OSX_PACKAGING_DIR)/Distribution.xml --package-path $(OSX_PACKAGE_DIR)/install/ $(OSX_PACKAGE_DIR)/dmg/rethinkdb-$(RETHINKDB_VERSION).pkg
+  OSX_DMG_BUILD = $(TOP)/packaging/osx/create_dmg.py --server-root "$(OSX_PACKAGE_DIR)/pkg" --ouptut-location "$(OSX_PACKAGE_DIR)/rethinkdb.dmg"
 endif
 
 .PHONY: build-osx
 build-osx: DESTDIR = $(OSX_PACKAGE_DIR)/pkg
 build-osx: SPLIT_SYMBOLS = 1
 build-osx: install-osx
-	mkdir -p $(OSX_PACKAGE_DIR)/install
-	pkgbuild --root $(OSX_PACKAGE_DIR)/pkg --identifier rethinkdb $(OSX_PACKAGE_DIR)/install/rethinkdb.pkg
-	mkdir $(OSX_PACKAGE_DIR)/dmg
-	$(PRODUCT_BUILD)
-# TODO: the PREFIX should not be hardcoded in the uninstall script 
-	cp $(OSX_PACKAGING_DIR)/uninstall-rethinkdb.sh $(OSX_PACKAGE_DIR)/dmg/uninstall-rethinkdb.sh
-	chmod +x $(OSX_PACKAGE_DIR)/dmg/uninstall-rethinkdb.sh
-	cp $(TOP)/NOTES.md $(OSX_PACKAGE_DIR)/dmg/
-	cp $(TOP)/COPYRIGHT $(OSX_PACKAGE_DIR)/dmg/
-	hdiutil create -volname RethinkDB-$(RETHINKDB_VERSION) -srcfolder $(OSX_PACKAGE_DIR)/dmg -ov $(OSX_PACKAGE_DIR)/rethinkdb.dmg
+	set -e; /usr/bin/otool -L $(OSX_PACKAGE_DIR)/pkg/$(FULL_SERVER_EXEC_NAME) | \
+		awk '/^\t/ { sub(/ \(.+\)/, ""); print }' | while read LINE; do \
+			case "$$LINE" in $(BUILD_DIR_ABS)/*) \
+				echo '***' rethinkdb binary links to non-system dylib: $$LINE; \
+				exit 1;; \
+			esac \
+		done
+	$P CREATE $(OSX_PACKAGE_DIR)/rethinkdb.dmg
+	$(OSX_DMG_BUILD)
 
 ##### Source distribution
 
@@ -183,9 +182,6 @@ endif
 	    cp -pPR $(path)/. $(dir) $(newline) ))
 
 $(DIST_PACKAGE_TGZ): dist-dir
-	$P CHMOD $(DIST_DIR)
-	find $(DIST_DIR) -type f -exec chmod 644 {} \;
-	find $(DIST_DIR) -type d -exec chmod 755 {} \;
 	$P TAR $@ $(DIST_DIR)
 	cd $(dir $(DIST_DIR)) && tar zfc $(notdir $@) $(notdir $(DIST_DIR))
 

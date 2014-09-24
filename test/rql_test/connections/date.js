@@ -144,5 +144,16 @@ describe('Javascript date pseudotype conversion', function(){
             done()
         });
     }));
-});
 
+    it("Errors should have a stack trace", withConnection(function(done, conn){
+        try {
+            r.epochTime(undefined)
+            done(new Error("Was expecting an error"))
+        }
+        catch(err) {
+            assert(err.stack);
+            done()
+        }
+    }));
+
+});

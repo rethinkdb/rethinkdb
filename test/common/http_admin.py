@@ -153,16 +153,19 @@ class Table(object):
             for uuid, count in self.replica_affinities.iteritems():
                 shards += uuid + "=" + str(count) + ", "
         return "Table(name:%s, primary:%s, affinities:%sprimary pinnings:%s, secondary_pinnings:%s, shard boundaries:%s, blueprint:NYI, database:%s)" % (self.name, self.primary_uuid, affinities, self.primary_pinnings, self.secondary_pinnings, self.shards, self.database_uuid)
-
+    
+    def shard_ranges(self):
+        results = []
+        lastSplitPoint = ""
+        for splitPoint in [x if isinstance(x, int) else urllib.quote(x) for x in self.shards]:
+            results.append([lastSplitPoint, splitPoint])
+            lastSplitPoint = splitPoint
+        results.append([lastSplitPoint, None])
+        return results
+        
     def shards_to_json(self):
         # Build the ridiculously formatted shard data
-        shard_json = []
-        last_split = u""
-        for split in self.shards:
-            shard_json.append(json.dumps([urllib.quote(last_split), urllib.quote(split)]))
-            last_split = split
-        shard_json.append(json.dumps([urllib.quote(last_split), None]))
-        return shard_json
+        return [json.dumps(x) for x in self.shard_ranges()]
 
     def parse_shards(self, shards):
         # Build the ridiculously formatted shard data

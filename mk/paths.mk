@@ -64,6 +64,7 @@ ifeq ($(BUILD_DIR),)
 
   BUILD_DIR := $(subst $(space),_,$(BUILD_DIR))
 endif
+BUILD_DIR_ABS = $(realpath $(BUILD_DIR))
 
 GDB_FUNCTIONS_NAME := rethinkdb-gdb.py
 

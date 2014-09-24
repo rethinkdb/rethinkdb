@@ -6,7 +6,6 @@
 #include "rdb_protocol/geo/exceptions.hpp"
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
-#include "rdb_protocol/pseudo_geometry.hpp"
 
 namespace ql {
 
@@ -67,16 +66,10 @@ private:
     }
 
     datum_t sub(datum_t lhs,
-                                 datum_t rhs,
-                                 const configured_limits_t &limits) const {
+                datum_t rhs,
+                UNUSED const configured_limits_t &limits) const {
         if (lhs.is_ptype(pseudo::time_string)) {
             return pseudo::time_sub(lhs, rhs);
-        } else if (lhs.is_ptype(pseudo::geometry_string)) {
-            try {
-                return pseudo::geo_sub(lhs, rhs, limits);
-            } catch (const geo_exception_t &e) {
-                rfail(base_exc_t::GENERIC, "%s", e.what());
-            }
         } else {
             lhs.check_type(datum_t::R_NUM);
             rhs.check_type(datum_t::R_NUM);
@@ -84,8 +77,8 @@ private:
         }
     }
     datum_t mul(datum_t lhs,
-                                 datum_t rhs,
-                                 const configured_limits_t &limits) const {
+                datum_t rhs,
+                const configured_limits_t &limits) const {
         if (lhs.get_type() == datum_t::R_ARRAY ||
             rhs.get_type() == datum_t::R_ARRAY) {
             datum_t array =
@@ -111,8 +104,8 @@ private:
         }
     }
     datum_t div(datum_t lhs,
-                                 datum_t rhs,
-                                 UNUSED const configured_limits_t &limits) const {
+                datum_t rhs,
+                UNUSED const configured_limits_t &limits) const {
         lhs.check_type(datum_t::R_NUM);
         rhs.check_type(datum_t::R_NUM);
         rcheck(rhs.as_num() != 0, base_exc_t::GENERIC, "Cannot divide by zero.");
@@ -122,8 +115,8 @@ private:
 
     const char *namestr;
     datum_t (arith_term_t::*op)(datum_t lhs,
-                                                 datum_t rhs,
-                                                 const configured_limits_t &limits) const;
+                                datum_t rhs,
+                                const configured_limits_t &limits) const;
 };
 
 class mod_term_t : public op_term_t {

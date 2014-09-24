@@ -74,7 +74,7 @@ $sources = empties.map{|e|
   } + seq12s.map{|ab| [ab, ab.union(e), e.union(ab)]}
 }.flatten
 
-$batch_confs = [{}, {batch_conf: {max_els: 3}}]
+$batch_confs = [{}, {max_batch_rows: 3}]
 
 $slow = nil
 

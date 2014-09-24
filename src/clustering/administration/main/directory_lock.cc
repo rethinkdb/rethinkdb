@@ -1,3 +1,5 @@
+#include "clustering/administration/main/directory_lock.hpp"
+
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -5,8 +7,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include <stdexcept>
+
 #include "arch/io/disk.hpp"
-#include "clustering/administration/main/directory_lock.hpp"
 
 bool check_existence(const base_path_t& base_path) {
     return 0 == access(base_path.path().c_str(), F_OK);

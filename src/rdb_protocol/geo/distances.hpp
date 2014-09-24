@@ -6,7 +6,7 @@
 #include <utility>
 
 #include "containers/counted.hpp"
-#include "rdb_protocol/geo/lat_lon_types.hpp"
+#include "rdb_protocol/geo/lon_lat_types.hpp"
 #include "rdb_protocol/geo/s2/util/math/vector3.h"
 
 namespace geo {
@@ -20,8 +20,8 @@ class datum_t;
 
 // Returns the ellipsoidal distance between p1 and p2 on e (in meters).
 // (solves the inverse geodesic problem)
-double geodesic_distance(const lat_lon_point_t &p1,
-                         const lat_lon_point_t &p2,
+double geodesic_distance(const lon_lat_point_t &p1,
+                         const lon_lat_point_t &p2,
                          const ellipsoid_spec_t &e);
 double geodesic_distance(const geo::S2Point &p,
                          const ql::datum_t &g,
@@ -30,7 +30,7 @@ double geodesic_distance(const geo::S2Point &p,
 // Returns a point at distance `dist` (in meters) of `p` in direction `azimuth`
 // (in degrees between -180 and 180)
 // (solves the direct geodesic problem)
-lat_lon_point_t geodesic_point_at_dist(const lat_lon_point_t &p,
+lon_lat_point_t geodesic_point_at_dist(const lon_lat_point_t &p,
                                        double dist,
                                        double azimuth,
                                        const ellipsoid_spec_t &e);

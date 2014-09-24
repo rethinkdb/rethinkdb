@@ -266,6 +266,7 @@ private:
         case Term::FILL:
         case Term::GET_NEAREST:
         case Term::UUID:
+        case Term::POLYGON_SUB:
             return false;
         default: unreachable();
         }
@@ -453,6 +454,7 @@ private:
         case Term::FILL:
         case Term::GET_NEAREST:
         case Term::UUID:
+        case Term::POLYGON_SUB:
             return false;
         default: unreachable();
         }

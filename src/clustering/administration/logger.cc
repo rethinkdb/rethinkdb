@@ -133,7 +133,14 @@ log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_e
     p++;
     if (*p) throw std::runtime_error("cannot parse log message (8)");
 
-    struct timespec timestamp = parse_time(std::string(start_timestamp, end_timestamp - start_timestamp));
+    struct timespec timestamp;
+    {
+        std::string errmsg;
+        if (!parse_time(std::string(start_timestamp, end_timestamp - start_timestamp),
+                        &timestamp, &errmsg)) {
+            throw std::runtime_error(errmsg);
+        }
+    }
     struct timespec uptime;
 
     {
