@@ -207,7 +207,11 @@ void post_construct_and_drain_queue(
                     viewer(&mod_report);
                 mod_queue->pop(&viewer);
                 rdb_post_construction_deletion_context_t deletion_context;
-                rdb_update_sindexes(sindexes, &mod_report, queue_txn.get(),
+                rdb_update_sindexes(store,
+                                    sindexes,
+                                    &mod_report,
+                                    &ql::changefeed::no_read_func_needed,
+                                    queue_txn.get(),
                                     &deletion_context);
                 ++current_chunk_size;
             }

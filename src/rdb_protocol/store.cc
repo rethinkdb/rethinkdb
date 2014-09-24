@@ -9,6 +9,7 @@
 #include "containers/archive/vector_stream.hpp"
 #include "containers/cow_ptr.hpp"
 #include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 
@@ -162,6 +163,101 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
     }
 }
 
+scoped_ptr_t<real_superblock_t> acquire_sindex_for_read(
+    store_t *store,
+    superblock_t *superblock,
+    const std::string &table_name,
+    const std::string &sindex_id,
+    sindex_disk_info_t *sindex_info_out,
+    uuid_u *sindex_uuid_out) {
+    rassert(sindex_info_out != NULL);
+    rassert(sindex_uuid_out != NULL);
+
+    scoped_ptr_t<real_superblock_t> sindex_sb;
+    std::vector<char> sindex_mapping_data;
+
+    uuid_u sindex_uuid;
+    try {
+        bool found = store->acquire_sindex_superblock_for_read(
+            sindex_name_t(sindex_id),
+            table_name,
+            superblock,
+            &sindex_sb,
+            &sindex_mapping_data,
+            &sindex_uuid);
+        if (!found) {
+            throw ql::exc_t(
+                ql::base_exc_t::GENERIC,
+                strprintf("Index `%s` was not found on table `%s`.",
+                          sindex_id.c_str(), table_name.c_str()),
+                NULL);
+        }
+    } catch (const sindex_not_ready_exc_t &e) {
+        throw ql::exc_t(
+            ql::base_exc_t::GENERIC, e.what(), NULL);
+    }
+
+    try {
+        deserialize_sindex_info(sindex_mapping_data, sindex_info_out);
+    } catch (const archive_exc_t &e) {
+        crash("%s", e.what());
+    }
+
+    *sindex_uuid_out = sindex_uuid;
+    return std::move(sindex_sb);
+}
+
+void do_read(ql::env_t *env,
+             store_t *store,
+             btree_slice_t *btree,
+             superblock_t *superblock,
+             const rget_read_t &rget,
+             rget_read_response_t *res) {
+    if (!rget.sindex) {
+        // Normal rget
+        rdb_rget_slice(btree, rget.region.inner, superblock,
+                       env, rget.batchspec, rget.transforms, rget.terminal,
+                       rget.sorting, res);
+    } else {
+        sindex_disk_info_t sindex_info;
+        uuid_u sindex_uuid;
+        scoped_ptr_t<real_superblock_t> sindex_sb;
+        try {
+            sindex_sb =
+                acquire_sindex_for_read(
+                    store,
+                    superblock,
+                    rget.table_name,
+                    rget.sindex->id,
+                    &sindex_info,
+                    &sindex_uuid);
+        } catch (const ql::exc_t &e) {
+            res->result = e;
+            return;
+        }
+
+        if (sindex_info.geo == sindex_geo_bool_t::GEO) {
+            res->result = ql::exc_t(
+                ql::base_exc_t::GENERIC,
+                strprintf(
+                    "Index `%s` is a geospatial index.  Only get_nearest and "
+                    "get_intersecting can use a geospatial index.",
+                    rget.sindex->id.c_str()),
+                NULL);
+            return;
+        }
+
+        rdb_rget_secondary_slice(
+            store->get_sindex_slice(sindex_uuid),
+            rget.sindex->original_range, rget.sindex->region,
+            sindex_sb.get(), env, rget.batchspec, rget.transforms,
+            rget.terminal, rget.region.inner, rget.sorting,
+            sindex_info, res);
+    }
+}
+
+
+
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const changefeed_subscribe_t &s) {
@@ -219,7 +315,11 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         scoped_ptr_t<real_superblock_t> sindex_sb;
         try {
             sindex_sb =
-                acquire_sindex_for_read(geo_read.table_name, geo_read.sindex_id,
+                acquire_sindex_for_read(
+                    store,
+                    superblock,
+                    geo_read.table_name,
+                    geo_read.sindex_id,
                 &sindex_info, &sindex_uuid);
         } catch (const ql::exc_t &e) {
             res->results_or_error = e;
@@ -256,7 +356,11 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         scoped_ptr_t<real_superblock_t> sindex_sb;
         try {
             sindex_sb =
-                acquire_sindex_for_read(geo_read.table_name, geo_read.sindex_id,
+                acquire_sindex_for_read(
+                    store,
+                    superblock,
+                    geo_read.table_name,
+                    geo_read.sindex_id,
                 &sindex_info, &sindex_uuid);
         } catch (const ql::exc_t &e) {
             res->results_or_error = e;
@@ -276,48 +380,15 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
         rdb_get_nearest_slice(
             store->get_sindex_slice(sindex_uuid),
-            geo_read.center, geo_read.max_dist, geo_read.max_results, geo_read.geo_system,
-            sindex_sb.get(), &ql_env,
-            geo_read.region.inner, sindex_info, res);
-    }
-
-    void do_read(const rget_read_t &rget, rget_read_response_t *res) {
-        if (!rget.sindex) {
-            // Normal rget
-            rdb_rget_slice(btree, rget.region.inner, superblock,
-                           &ql_env, rget.batchspec, rget.transforms, rget.terminal,
-                           rget.sorting, res);
-        } else {
-            sindex_disk_info_t sindex_info;
-            uuid_u sindex_uuid;
-            scoped_ptr_t<real_superblock_t> sindex_sb;
-            try {
-                sindex_sb =
-                    acquire_sindex_for_read(rget.table_name, rget.sindex->id,
-                    &sindex_info, &sindex_uuid);
-            } catch (const ql::exc_t &e) {
-                res->result = e;
-                return;
-            }
-
-            if (sindex_info.geo == sindex_geo_bool_t::GEO) {
-                res->result = ql::exc_t(
-                    ql::base_exc_t::GENERIC,
-                    strprintf(
-                        "Index `%s` is a geospatial index.  Only get_nearest and "
-                        "get_intersecting can use a geospatial index.",
-                        rget.sindex->id.c_str()),
-                    NULL);
-                return;
-            }
-
-            rdb_rget_secondary_slice(
-                store->get_sindex_slice(sindex_uuid),
-                rget.sindex->original_range, rget.sindex->region,
-                sindex_sb.get(), &ql_env, rget.batchspec, rget.transforms,
-                rget.terminal, rget.region.inner, rget.sorting,
-                sindex_info, res);
-        }
+            geo_read.center,
+            geo_read.max_dist,
+            geo_read.max_results,
+            geo_read.geo_system,
+            sindex_sb.get(),
+            &ql_env,
+            geo_read.region.inner,
+            sindex_info,
+            res);
     }
 
     void operator()(const rget_read_t &rget) {
@@ -333,7 +404,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         response->response = rget_read_response_t();
         rget_read_response_t *res =
             boost::get<rget_read_response_t>(&response->response);
-        do_read(rget, res);
+        do_read(&ql_env, store, btree, superblock, rget, res);
     }
 
     void operator()(const distribution_read_t &dg) {
@@ -445,52 +516,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         btree(_btree),
         store(_store),
         superblock(_superblock),
-        trace(_trace)
-    {
-    }
+        trace(_trace) { }
 
 private:
-    scoped_ptr_t<real_superblock_t> acquire_sindex_for_read(
-            const std::string &table_name,
-            const std::string &sindex_id,
-            sindex_disk_info_t *sindex_info_out,
-            uuid_u *sindex_uuid_out) {
-        rassert(sindex_info_out != NULL);
-        rassert(sindex_uuid_out != NULL);
-
-        scoped_ptr_t<real_superblock_t> sindex_sb;
-        std::vector<char> sindex_mapping_data;
-
-        uuid_u sindex_uuid;
-        try {
-            bool found = store->acquire_sindex_superblock_for_read(
-                sindex_name_t(sindex_id),
-                table_name,
-                superblock,
-                &sindex_sb,
-                &sindex_mapping_data,
-                &sindex_uuid);
-            if (!found) {
-                throw ql::exc_t(
-                    ql::base_exc_t::GENERIC,
-                    strprintf("Index `%s` was not found on table `%s`.",
-                              sindex_id.c_str(), table_name.c_str()),
-                    NULL);
-            }
-        } catch (const sindex_not_ready_exc_t &e) {
-            throw ql::exc_t(
-                ql::base_exc_t::GENERIC, e.what(), NULL);
-        }
-
-        try {
-            deserialize_sindex_info(sindex_mapping_data, sindex_info_out);
-        } catch (const archive_exc_t &e) {
-            crash("%s", e.what());
-        }
-
-        *sindex_uuid_out = sindex_uuid;
-        return std::move(sindex_sb);
-    }
 
     read_response_t *const response;
     rdb_context_t *const ctx;
@@ -576,35 +604,44 @@ private:
 };
 
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
+    ql::changefeed::read_func_t cfeed_func(ql::env_t *env) {
+        return [this, env](
+            superblock_t *locked_superblock,
+            const ql::datum_range_t &active,
+            const std::string &table_name,
+            const boost::optional<std::string> &sindex,
+            size_t n) {
+            // This isn't actually used for anything, we just want to make
+            // absolutely sure that our caller still has a lock on the
+            // superblock.
+            guarantee(locked_superblock == superblock->get());
+            rget_read_response_t resp;
+            rget_read_t read;
+            // RSI: does the plain `region_t` constructor make sense?
+            read.region = region_t(
+                // RSI: oversharding? vvv
+                sindex ? ql::datum_range_t::universe().to_primary_keyrange()
+                       : active.to_primary_keyrange());
+            read.table_name = table_name;
+            read.batchspec = ql::batchspec_t::all().with_at_most(n); // RSI: reliable?
+            if (sindex) {
+                read.sindex = sindex_rangespec_t(
+                    *sindex, region_t(active.to_sindex_keyrange()), active);
+            }
+            read.sorting = sorting_t::ASCENDING; // RSI: sorting
+            do_read(env, store, btree, superblock->get(), read, &resp);
+            return groups_to_batch(
+                boost::get<ql::grouped_t<ql::stream_t> >(resp.result)
+                    .get_underlying_map(ql::grouped::order_doesnt_matter_t()));
+        };
+    }
+
     void operator()(const batched_replace_t &br) {
         ql::env_t ql_env(ctx, interruptor, br.optargs, trace);
         rdb_modification_report_cb_t sindex_cb(
             store, &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));
         func_replacer_t replacer(&ql_env, br.f, br.return_changes);
-
-        ql::changefeed::read_func_t cfeed_func =
-            [this](superblock_t *locked_superblock,
-                   const datum_range_t &active,
-                   const std::string &table_name,
-                   const boost::optional<std::string> sindex &,
-                   size_t n) {
-            guarantee(locked_superblock == superblock);
-            rget_read_response_t resp;
-            rget_read_t read;
-            read.region = sindex
-                ? datum_range_t::universe().to_primary_keyrange() // RSI: oversharding?
-                : active.to_primary_keyrange();
-            read.table_name = table_name;
-            read.batchspec = batchspec_t::all().with_at_most(n); // RSI: rely on this?
-            if (sindex) {
-                read.sindex = sindex_rangespec_t(
-                    *sindex, active.to_secondary_keyrange(), active);
-            }
-            read.sorting = sorting_t::ASCENDING; // RSI: sorting
-            do_read(read, &resp);
-            return groups_to_batch(boost::get<grouped_t<stream_t> >(&resp.result));
-        };
 
         response->response =
             rdb_batched_replace(
@@ -614,11 +651,15 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                 ql_env.limits(),
                 &replacer,
                 &sindex_cb,
-                cfeed_func,
+                cfeed_func(&ql_env),
                 trace);
     }
 
     void operator()(const batched_insert_t &bi) {
+        ql::env_t ql_env(ctx,
+                         interruptor,
+                         std::map<std::string, ql::wire_func_t>(),
+                         trace);
         rdb_modification_report_cb_t sindex_cb(
             store, &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));
@@ -631,9 +672,13 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         }
         response->response =
             rdb_batched_replace(
-                btree_info_t(btree, timestamp,
-                             datum_string_t(bi.pkey)),
-                superblock, keys, bi.limits, &replacer, &sindex_cb,
+                btree_info_t(btree, timestamp, datum_string_t(bi.pkey)),
+                superblock,
+                keys,
+                bi.limits,
+                &replacer,
+                &sindex_cb,
+                cfeed_func(&ql_env),
                 trace);
     }
 

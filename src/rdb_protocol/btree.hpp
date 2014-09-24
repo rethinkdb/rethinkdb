@@ -110,6 +110,7 @@ batched_replace_response_t rdb_batched_replace(
     const ql::configured_limits_t &limits,
     const btree_batched_replacer_t *replacer,
     rdb_modification_report_cb_t *sindex_cb,
+    const ql::changefeed::read_func_t &cfeed_func,
     profile::trace_t *trace);
 
 void rdb_set(const store_key_t &key, ql::datum_t data,
@@ -308,12 +309,15 @@ public:
             buf_lock_t *sindex_block,
             auto_drainer_t::lock_t lock);
 
-    void on_mod_report(const rdb_modification_report_t &mod_report);
+    void on_mod_report(const rdb_modification_report_t &mod_report,
+                       const ql::changefeed::read_func_t &cfeed_func);
 
     ~rdb_modification_report_cb_t();
 
 private:
-    void on_mod_report_sub(const rdb_modification_report_t &, cond_t *);
+    void on_mod_report_sub(const rdb_modification_report_t &,
+                           const ql::changefeed::read_func_t &,
+                           cond_t *);
 
     /* Fields initialized by the constructor. */
     auto_drainer_t::lock_t lock_;
@@ -325,8 +329,10 @@ private:
 };
 
 void rdb_update_sindexes(
+    store_t *store,
         const store_t::sindex_access_vector_t &sindexes,
         const rdb_modification_report_t *modification,
+        const ql::changefeed::read_func_t *cfeed_func,
         txn_t *txn,
         const deletion_context_t *deletion_context);
 

@@ -62,7 +62,12 @@ void insert_rows(int start, int finish, store_t *store) {
             store->acquire_post_constructed_sindex_superblocks_for_write(
                      &sindex_block,
                      &sindexes);
-            rdb_update_sindexes(sindexes, &mod_report, txn.get(), &deletion_context);
+            rdb_update_sindexes(store,
+                                sindexes,
+                                &mod_report,
+                                &ql::changefeed::no_read_func_needed,
+                                txn.get(),
+                                &deletion_context);
 
             scoped_ptr_t<new_mutex_in_line_t> acq =
                 store->get_in_line_for_sindex_queue(&sindex_block);

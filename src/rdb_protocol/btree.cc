@@ -418,9 +418,7 @@ void do_a_replace_from_batched_replace(
     // JD: Looks like this is a do_a_replace_from_batched_replace specific thing.
     exiter.wait();
 
-    using ql::changefeed;
     sindex_cb->on_mod_report(mod_report, cfeed_func);
-
 }
 
 batched_replace_response_t rdb_batched_replace(
@@ -1239,7 +1237,8 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
     store_->sindex_queue_push(mod_report, acq.get());
 
     rdb_live_deletion_context_t deletion_context;
-    rdb_update_sindexes(sindexes_,
+    rdb_update_sindexes(store_,
+                        sindexes_,
                         &mod_report,
                         &cfeed_func,
                         sindex_block_->txn(),
@@ -1418,8 +1417,21 @@ void deserialize_sindex_info(const std::vector<char> &data,
               "An sindex description was incompletely deserialized.");
 }
 
+void foreach_datum(const ql::datum_t &datum,
+                   const sindex_disk_info_t &info,
+                   std::function<void(const ql::datum_t &)> f) {
+    if (info.multi != sindex_multi_bool_t::MULTI) {
+        f(datum);
+    } else {
+        for (uint64_t i = 0; i < datum->arr_size(); ++i) {
+            f(datum->get(i, ql::THROW));
+        }
+    }
+}
+
 /* Used below by rdb_update_sindexes. */
 void rdb_update_single_sindex(
+        store_t *store,
         const store_t::sindex_access_t *sindex,
         const deletion_context_t *deletion_context,
         const rdb_modification_report_t *modification,
@@ -1444,11 +1456,7 @@ void rdb_update_single_sindex(
     superblock_t *super_block = sindex->super_block.get();
 
     // RSI: handle primary key too.
-    std::map<uuid_u, ql::changefeed::limit_manager_t> empty_map;
-    const auto &limit_clients = store->changefeed_server->limit_clients;
-    auto it = limit_clients[sindex->name.name];
-    std::map<uuid_u, ql::changefeed::limit_manager_t> *limit_managers
-        = (it == limit_clients.end() ? empty_map : it->second);
+    ql::changefeed::server_t *server = store->changefeed_server.get();
 
     if (modification->info.deleted.first) {
         guarantee(!modification->info.deleted.second.empty());
@@ -1458,11 +1466,11 @@ void rdb_update_single_sindex(
             std::vector<store_key_t> keys;
 
             compute_keys(modification->primary_key, deleted, sindex_info, &keys);
-            for (const auto &key : keys) {
-                for (const auto &pair : *limit_managers) {
-                    pair.second->del(key);
-                }
-            }
+            foreach_datum(deleted, sindex_info,
+                [&](const ql::datum_t &datum) {
+                    server->foreach_limit(sindex->name.name,
+                        [&](ql::changefeed::limit_manager_t *lm) { lm->del(datum); });
+                });
 
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
@@ -1509,11 +1517,11 @@ void rdb_update_single_sindex(
             std::vector<store_key_t> keys;
 
             compute_keys(modification->primary_key, added, sindex_info, &keys);
-            for (const auto &key : keys) {
-                for (const auto &pair : *limit_managers) {
-                    pair.second->add(std::make_pair(key, added));
-                }
-            }
+            foreach_datum(added, sindex_info,
+                [&](const ql::datum_t &datum) {
+                    server->foreach_limit(sindex->name.name,
+                        [&](ql::changefeed::limit_manager_t *lm) { lm->add(datum); });
+                });
 
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
@@ -1547,12 +1555,13 @@ void rdb_update_single_sindex(
         }
     }
 
-    for (const auto &pair : *limit_managers) {
-        pair.second->commit(cfeed_func);
-    }
+    server->foreach_limit(
+        sindex->name.name,
+        [&](ql::changefeed::limit_manager_t *lm) { lm->commit(*cfeed_func); });
 }
 
-void rdb_update_sindexes(const store_t::sindex_access_vector_t &sindexes,
+void rdb_update_sindexes(store_t *store,
+                         const store_t::sindex_access_vector_t &sindexes,
                          const rdb_modification_report_t *modification,
                          const ql::changefeed::read_func_t *cfeed_func,
                          txn_t *txn, const deletion_context_t *deletion_context) {
@@ -1563,6 +1572,7 @@ void rdb_update_sindexes(const store_t::sindex_access_vector_t &sindexes,
             coro_t::spawn_sometime(
                 std::bind(
                     &rdb_update_single_sindex,
+                    store,
                     sindex.get(),
                     deletion_context,
                     modification,
@@ -1677,7 +1687,12 @@ public:
                     std::vector<char>(rdb_value->value_ref(),
                         rdb_value->value_ref() + rdb_value->inline_size(block_size)));
 
-            rdb_update_sindexes(sindexes, &mod_report, wtxn.get(), &deletion_context);
+            rdb_update_sindexes(store_,
+                                sindexes,
+                                &mod_report,
+                                &ql::changefeed::no_read_func_needed,
+                                wtxn.get(),
+                                &deletion_context);
             store_->btree->stats.pm_keys_set.record();
             store_->btree->stats.pm_total_keys_set += 1;
 

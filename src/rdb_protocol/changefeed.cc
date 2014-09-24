@@ -63,13 +63,15 @@ void server_t::add_client(const client_t::addr_t &addr, region_t region) {
     }
 }
 
+/*
 void server_t::add_limit_client(
     const client_t::addr_t &addr,
     const region_t &region,
-    const uuid_u &uuid,
+    const uuid_u &client_uuid,
     const keyspec_t::limit_t &spec) {
     // RSI: do
 }
+*/
 
 void server_t::add_client_cb(signal_t *stopped, client_t::addr_t addr) {
     auto_drainer_t::lock_t coro_lock(&drainer);
@@ -165,6 +167,106 @@ uint64_t server_t::get_stamp(const client_t::addr_t &addr) {
 
 uuid_u server_t::get_uuid() {
     return uuid;
+}
+
+void server_t::foreach_limit(const std::string &sindex,
+                             std::function<void(limit_manager_t *)> f) {
+    auto_drainer_t::lock_t lock(&drainer);
+    rwlock_in_line_t spot(&clients_lock, access_t::read);
+    spot.read_signal()->wait_lazily_unordered();
+    for (auto &&client : clients) {
+        auto it = client.second.limit_clients.find(sindex);
+        if (it != client.second.limit_clients.end()) {
+            for (auto &&lc : it->second) {
+                auto_drainer_t::lock_t lc_lock(&lc.drainer);
+                rwlock_in_line_t lc_spot(&lc.lock, access_t::write);
+                lc_spot.write_signal()->wait_lazily_unordered();
+                f(&lc);
+            }
+        }
+    }
+}
+
+void limit_manager_t::add(datum_t key, datum_t val) {
+    added.push_back(std::make_pair(key, val));
+}
+
+void limit_manager_t::del(datum_t key) {
+    deleted.push_back(key);
+}
+
+size_t erase1(std::multiset<datum_t> *ms, const datum_t &d) {
+    auto it = ms->find(d);
+    if (it != ms->end()) {
+        ms->erase(it);
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+void limit_manager_t::commit(const pure_read_func_t &read_func) {
+    std::multimap<datum_t, datum_t> real_added, real_deleted;
+    for (const auto &pair : added) {
+        data.insert(pair);
+        real_added.insert(pair);
+    }
+    for (auto &&d : deleted) {
+        auto add_it = real_added.find(d);
+        if (add_it != real_added.end()) {
+            real_added.erase(add_it);
+            auto it = data.find(d);
+            guarantee(it != data.end());
+            data.erase(it);
+        } else {
+            auto it = data.find(d);
+            if (it != data.end()) {
+                real_deleted.insert(*it);
+                data.erase(it);
+            }
+        }
+    }
+    while (data.size() > spec.limit) {
+        auto it = data.begin();
+        real_deleted.insert(std::move(*it));
+        data.erase(it);
+    }
+    if (data.size() < spec.limit) {
+        auto it = data.begin();
+        datum_t begin = (it == data.end()) ? datum_t() : it->first;
+        stream_t s = read_func(
+            superblock,
+            datum_range_t(begin, key_range_t::bound_t::open, // RSI: sorting
+                          datum_t(), key_range_t::bound_t::open),
+            table_name,
+            sindex,
+            spec.limit - data.size());
+        for (auto it = s.begin(); it < s.end() && data.size() < spec.limit; ++it) {
+            auto pair = std::make_pair(it->sindex_key, it->data);
+            data.insert(pair);
+            real_added.insert(pair);
+        }
+    }
+    auto add_it = real_added.begin();
+    auto del_it = real_deleted.begin();
+    while (add_it != real_added.end() || del_it != real_deleted.end()) {
+        msg_t::limit_change_t msg;
+        msg.sub = uuid;
+        if (del_it != real_deleted.end()) {
+            msg.old_key = del_it->first;
+            ++del_it;
+        }
+        if (add_it != real_added.end()) {
+            msg.new_val = *add_it;
+            ++add_it;
+        }
+        auto_drainer_lock_t lock(&parent->drainer);
+        auto it = parent->clients.find(parent_client);
+        guarantee(it != parent->clients.end());
+        parent->send_one_with_lock(lock, &*it, msg_t(msg));
+    }
+    added.clear();
+    deleted.clear();
 }
 
 // RSI: move into header?
@@ -455,44 +557,6 @@ private:
     std::deque<datum_t> els;
     keyspec_t::range_t spec;
 };
-
-void limit_manager_t::update(
-    const boost::optional<store_key_t> &old_key,
-    const boost::optional<std::pair<store_key_t, datum_t> > &new_val,
-    const std::function<bool(const store_key_t &last_active,
-                             store_key_t *key_out,
-                             datum_t *row_out)> &find_next) {
-    datum_t old_send, new_send;
-    if (old_key) {
-        auto it = data.find(*old_key);
-        if (it != data.end()) {
-            old_send = it->second;
-            data.erase(it);
-        }
-    }
-    if (new_val) {
-        const store_key_t &new_key = new_val->first;
-        // RSI: cmp
-        if (new_key < data.crbegin()->first) {
-            new_send = new_val->second;
-            data.insert(*new_val);
-        }
-    }
-    if (data.size() > spec.limit) {
-        guarantee(new_val.has() && !old_val.has());
-        auto it = data.crbegin();
-        old_send = it->second;
-        data.erase(it);
-        guarantee(data.size() == spec.limit);
-    } else if (data.size() < spec.limit) {
-        store_key_t key;
-        if (find_next(data.size() == 0 ? store_key_t::min() : data.crbegin()->first
-                      &key, &new_send)) {
-            data.insert(std::make_pair(std::move(key), new_send));
-        }
-    }
-
-}
 
 class limit_sub_t : public subscription_t {
 public:

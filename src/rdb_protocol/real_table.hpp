@@ -12,10 +12,12 @@
 
 const char *const sindex_blob_prefix = "$reql_index_function$";
 
+namespace ql {
 class datum_range_t;
-namespace ql { namespace changefeed {
+namespace changefeed {
 class client_t;
-} }
+}
+}
 
 /* `real_table_t` is a concrete subclass of `base_table_t` that routes its queries across
 the network via the clustering logic to a B-tree. The administration logic is responsible

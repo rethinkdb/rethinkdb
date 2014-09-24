@@ -492,7 +492,12 @@ void store_t::update_sindexes(
 
         rdb_live_deletion_context_t deletion_context;
         for (size_t i = 0; i < mod_reports.size(); ++i) {
-            rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
+            rdb_update_sindexes(this,
+                                sindexes,
+                                &mod_reports[i],
+                                &ql::changefeed::no_read_func_needed,
+                                txn,
+                                &deletion_context);
         }
     }
 
@@ -1128,7 +1133,9 @@ bool store_t::acquire_sindex_superblocks_for_write(
 
         sindex_sbs_out->push_back(
                 make_scoped<sindex_access_t>(
-                        get_sindex_slice(it->second.id), it->second,
+                        get_sindex_slice(it->second.id),
+                        it->first,
+                        it->second,
                         make_scoped<real_superblock_t>(std::move(superblock_lock))));
     }
 
@@ -1160,7 +1167,9 @@ bool store_t::acquire_sindex_superblocks_for_write(
 
         sindex_sbs_out->push_back(
                 make_scoped<sindex_access_t>(
-                        get_sindex_slice(it->second.id), it->second,
+                        get_sindex_slice(it->second.id),
+                        it->first,
+                        it->second,
                         make_scoped<real_superblock_t>(std::move(superblock_lock))));
     }
 

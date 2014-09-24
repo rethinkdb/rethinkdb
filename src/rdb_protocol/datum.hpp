@@ -369,17 +369,11 @@ public:
 
     RDB_DECLARE_ME_SERIALIZABLE;
 
-private:
-    // Only `readgen_t` and its subclasses should do anything fancy with a range.
-    // (Modulo unit tests and changefeed weirdness.)
-    friend class readgen_t;
-    friend class primary_readgen_t;
-    friend class sindex_readgen_t;
-    friend class rdb_write_visitor_t;
-    friend struct ::unittest::make_sindex_read_t;
-
+    // Make sure you know what you're doing if you call these, and think about
+    // truncated sindexes.
     key_range_t to_primary_keyrange() const;
     key_range_t to_sindex_keyrange() const;
+private:
 
     datum_t left_bound, right_bound;
     key_range_t::bound_t left_bound_type, right_bound_type;
