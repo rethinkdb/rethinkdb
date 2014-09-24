@@ -8,6 +8,8 @@
 
 <options customize="never" allow-external-scripts="no" rootVolumeOnly="yes" />
 
+<background file="installer_background.png" mime-type="image/png" alignment="topleft" scaling="none" />
+
 <installation-check script="(function(){
   if(system.sysctl('hw.machine') != 'x86_64'){
     my.result.type = 'Fatal';
@@ -27,9 +29,9 @@
   <line choice="choice0"/>
 </choices-outline>
 <choice id="choice0" visible="false">
-  <pkg-ref id="rethinkdb"/>
+  <pkg-ref id="rethinkdb_server"/>
 </choice>
-<pkg-ref id="rethinkdb" version="1.0" auth="Root">rethinkdb.pkg</pkg-ref>
+<pkg-ref id="rethinkdb_server" version="1.0" auth="Root">rethinkdb_server.pkg</pkg-ref>
 
 <license language="en" mime-type="text/rtf"><![CDATA[{\rtf1\ansi\ansicpg1252\cocoartf1187\cocoasubrtf340
 {\fonttbl\f0\fnil\fcharset0 AndaleMono;}

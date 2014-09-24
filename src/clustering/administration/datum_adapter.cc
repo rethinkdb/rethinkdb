@@ -3,6 +3,23 @@
 
 #include "rdb_protocol/pseudo_time.hpp"
 
+ql::datum_t convert_string_to_datum(
+        const std::string &value) {
+    return ql::datum_t(datum_string_t(value));
+}
+
+bool convert_string_from_datum(
+        const ql::datum_t &datum,
+        std::string *value_out,
+        std::string *error_out) {
+    if (datum.get_type() != ql::datum_t::R_STR) {
+        *error_out = "Expected a string; got " + datum.print();
+        return false;
+    }
+    *value_out = datum.as_str().to_std();
+    return true;
+}
+
 ql::datum_t convert_name_to_datum(
         const name_string_t &value) {
     return ql::datum_t(value.c_str());

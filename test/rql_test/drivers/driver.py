@@ -357,8 +357,8 @@ def test(query, expected, name, runopts=None, testopts=None):
     if testopts is None:
         testopts = {}
     
-    if 'batch_conf' not in runopts:
-        runopts['batch_conf'] = {'max_els': 3}
+    if 'max_batch_rows' not in runopts:
+        runopts['max_batch_rows'] = 3
     if expected == '':
         expected = None
     driver.run(query, expected, name, runopts, testopts)

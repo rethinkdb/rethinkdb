@@ -45,13 +45,13 @@ RDB_IMPL_EQUALITY_COMPARABLE_1(machines_semilattice_metadata_t, machines);
 RDB_IMPL_ME_SERIALIZABLE_2_SINCE_v1_13(ack_expectation_t, expectation_, hard_durability_);
 
 RDB_IMPL_SERIALIZABLE_2(table_config_t::shard_t,
-                        replica_names, director_names);
+                        replica_names, director_name);
 template void serialize<cluster_version_t::v1_15_is_latest>(
             write_message_t *, const table_config_t::shard_t &);
 template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
             read_stream_t *, table_config_t::shard_t *);
 RDB_IMPL_EQUALITY_COMPARABLE_2(table_config_t::shard_t,
-                               replica_names, director_names);
+                               replica_names, director_name);
 
 RDB_IMPL_SERIALIZABLE_1(table_config_t, shards);
 template void serialize<cluster_version_t::v1_15_is_latest>(
@@ -67,14 +67,14 @@ template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
             read_stream_t *, table_shard_scheme_t *);
 RDB_IMPL_EQUALITY_COMPARABLE_1(table_shard_scheme_t, split_points);
 
-RDB_IMPL_SERIALIZABLE_3(table_replication_info_t,
-                        config, chosen_directors, shard_scheme);
+RDB_IMPL_SERIALIZABLE_2(table_replication_info_t,
+                        config, shard_scheme);
 template void serialize<cluster_version_t::v1_15_is_latest>(
             write_message_t *, const table_replication_info_t &);
 template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
             read_stream_t *, table_replication_info_t *);
-RDB_IMPL_EQUALITY_COMPARABLE_3(table_replication_info_t,
-                               config, chosen_directors, shard_scheme);
+RDB_IMPL_EQUALITY_COMPARABLE_2(table_replication_info_t,
+                               config, shard_scheme);
 
 RDB_IMPL_SERIALIZABLE_4(namespace_semilattice_metadata_t,
                         name, database, primary_key, replication_info);
@@ -117,9 +117,10 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(auth_semilattice_metadata_t, auth_key);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(auth_semilattice_metadata_t, auth_key);
 RDB_IMPL_EQUALITY_COMPARABLE_1(auth_semilattice_metadata_t, auth_key);
 
-RDB_IMPL_SERIALIZABLE_15(cluster_directory_metadata_t,
-                         rdb_namespaces, machine_id, peer_id, cache_size, time_started,
-                         pid, cluster_port, reql_port, http_admin_port,
+RDB_IMPL_SERIALIZABLE_17(cluster_directory_metadata_t,
+                         rdb_namespaces, machine_id, peer_id, version, cache_size,
+                         time_started, pid, hostname, cluster_port, reql_port,
+                         http_admin_port,
                          get_stats_mailbox_address, get_outdated_indexes_mailbox,
                          log_mailbox, server_name_business_card, local_issues,
                          peer_type);
@@ -206,3 +207,40 @@ void apply_json_to(cJSON *change, namespaces_directory_metadata_t *target) {
     apply_as_directory(change, target);
 }
 
+bool check_metadata_status(metadata_search_status_t status,
+                           const char *entity_type,
+                           const std::string &entity_name,
+                           bool expect_present,
+                           std::string *error_out) {
+    switch (status) {
+        case METADATA_SUCCESS: {
+            if (expect_present) {
+                return true;
+            } else {
+                *error_out = strprintf("%s `%s` already exists.",
+                    entity_type, entity_name.c_str());
+                return false;
+            }
+        }
+        case METADATA_ERR_MULTIPLE: {
+            if (expect_present) {
+                *error_out = strprintf("%s `%s` is ambiguous; there are multiple "
+                    "entities with that name.", entity_type, entity_name.c_str());
+            } else {
+                *error_out = strprintf("%s `%s` already exists.",
+                    entity_type, entity_name.c_str());
+            }
+            return false;
+        }
+        case METADATA_ERR_NONE: {
+            if (expect_present) {
+                *error_out = strprintf("%s `%s` does not exist.",
+                    entity_type, entity_name.c_str());
+                return false;
+            } else {
+                return true;
+            }
+        default: unreachable();
+        }
+    }
+}

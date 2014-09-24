@@ -13,6 +13,21 @@
 
 namespace unittest {
 
+std::string rand_string(int len) {
+    std::string res;
+
+    int seed = randint(RAND_MAX);
+
+    while (len --> 0) {
+        res.push_back((seed % 26) + 'A');
+        seed ^= seed >> 17;
+        seed += seed << 11;
+        seed ^= seed >> 29;
+    }
+
+    return res;
+}
+
 struct make_sindex_read_t {
     static read_t make_sindex_read(
             ql::datum_t key, const std::string &id) {
@@ -22,8 +37,7 @@ struct make_sindex_read_t {
                 region_t::universe(),
                 std::map<std::string, ql::wire_func_t>(),
                 "",
-                ql::batchspec_t::user(ql::batch_type_t::NORMAL,
-                                      ql::datum_t()),
+                ql::batchspec_t::default_for(ql::batch_type_t::NORMAL),
                 std::vector<ql::transform_variant_t>(),
                 boost::optional<ql::terminal_variant_t>(),
                 sindex_rangespec_t(id, region_t(rng.to_sindex_keyrange()), rng),

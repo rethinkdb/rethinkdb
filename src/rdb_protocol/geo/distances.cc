@@ -11,15 +11,15 @@
 #include "rdb_protocol/geo/s2/s2polygon.h"
 #include "rdb_protocol/geo/s2/s2polyline.h"
 
-double geodesic_distance(const lat_lon_point_t &p1,
-                         const lat_lon_point_t &p2,
+double geodesic_distance(const lon_lat_point_t &p1,
+                         const lon_lat_point_t &p2,
                          const ellipsoid_spec_t &e) {
     // Use Karney's algorithm
     struct geod_geodesic g;
     geod_init(&g, e.equator_radius(), e.flattening());
 
     double dist;
-    geod_inverse(&g, p1.first, p1.second, p2.first, p2.second, &dist, NULL, NULL);
+    geod_inverse(&g, p1.latitude, p1.longitude, p2.latitude, p2.longitude, &dist, NULL, NULL);
 
     return dist;
 }
@@ -30,12 +30,12 @@ double geodesic_distance(const geo::S2Point &p,
     class distance_estimator_t : public s2_geo_visitor_t<double> {
     public:
         distance_estimator_t(
-                lat_lon_point_t r, const geo::S2Point &r_s2, const ellipsoid_spec_t &_e)
+                lon_lat_point_t r, const geo::S2Point &r_s2, const ellipsoid_spec_t &_e)
             : ref_(r), ref_s2_(r_s2), e_(_e) { }
         double on_point(const geo::S2Point &point) {
-            lat_lon_point_t llpoint =
-                lat_lon_point_t(geo::S2LatLng::Latitude(point).degrees(),
-                                geo::S2LatLng::Longitude(point).degrees());
+            lon_lat_point_t llpoint =
+                lon_lat_point_t(geo::S2LatLng::Longitude(point).degrees(),
+                                geo::S2LatLng::Latitude(point).degrees());
             return geodesic_distance(ref_, llpoint, e_);
         }
         double on_line(const geo::S2Polyline &line) {
@@ -47,9 +47,9 @@ double geodesic_distance(const geo::S2Point &p,
                 // ref_ is on the line
                 return 0.0;
             } else {
-                lat_lon_point_t llprj =
-                    lat_lon_point_t(geo::S2LatLng::Latitude(prj).degrees(),
-                                    geo::S2LatLng::Longitude(prj).degrees());
+                lon_lat_point_t llprj =
+                    lon_lat_point_t(geo::S2LatLng::Longitude(prj).degrees(),
+                                    geo::S2LatLng::Latitude(prj).degrees());
                 return geodesic_distance(ref_, llprj, e_);
             }
         }
@@ -61,24 +61,24 @@ double geodesic_distance(const geo::S2Point &p,
                 // ref_ is inside/on the polygon
                 return 0.0;
             } else {
-                lat_lon_point_t llprj =
-                    lat_lon_point_t(geo::S2LatLng::Latitude(prj).degrees(),
-                                    geo::S2LatLng::Longitude(prj).degrees());
+                lon_lat_point_t llprj =
+                    lon_lat_point_t(geo::S2LatLng::Longitude(prj).degrees(),
+                                    geo::S2LatLng::Latitude(prj).degrees());
                 return geodesic_distance(ref_, llprj, e_);
             }
         }
-        lat_lon_point_t ref_;
+        lon_lat_point_t ref_;
         const geo::S2Point &ref_s2_;
         const ellipsoid_spec_t &e_;
     };
     distance_estimator_t estimator(
-            lat_lon_point_t(geo::S2LatLng::Latitude(p).degrees(),
-                            geo::S2LatLng::Longitude(p).degrees()),
+            lon_lat_point_t(geo::S2LatLng::Longitude(p).degrees(),
+                            geo::S2LatLng::Latitude(p).degrees()),
         p, e);
     return visit_geojson(&estimator, g);
 }
 
-lat_lon_point_t geodesic_point_at_dist(const lat_lon_point_t &p,
+lon_lat_point_t geodesic_point_at_dist(const lon_lat_point_t &p,
                                        double dist,
                                        double azimuth,
                                        const ellipsoid_spec_t &e) {
@@ -87,9 +87,9 @@ lat_lon_point_t geodesic_point_at_dist(const lat_lon_point_t &p,
     geod_init(&g, e.equator_radius(), e.flattening());
 
     double lat, lon;
-    geod_direct(&g, p.first, p.second, azimuth, dist, &lat, &lon, NULL);
+    geod_direct(&g, p.latitude, p.longitude, azimuth, dist, &lat, &lon, NULL);
 
-    return lat_lon_point_t(lat, lon);
+    return lon_lat_point_t(lon, lat);
 }
 
 dist_unit_t parse_dist_unit(const std::string &s) {

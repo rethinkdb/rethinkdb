@@ -13,6 +13,8 @@
 
 namespace unittest {
 
+std::string rand_string(int len);
+
 serializer_filepath_t make_unittest_filepaths(const std::string &permanent_path,
                                               const std::string &temporary_path);
 

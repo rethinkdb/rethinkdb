@@ -19,6 +19,13 @@ we use the same behavior here. This has the nice side effect that we don't have 
 about threading `configured_limits_t` through these functions, or about handling
 exceptions if the limit is violated. */
 
+ql::datum_t convert_string_to_datum(
+        const std::string &value);
+bool convert_string_from_datum(
+        const ql::datum_t &datum,
+        std::string *value_out,
+        std::string *error_out);
+
 ql::datum_t convert_name_to_datum(
         const name_string_t &value);
 bool convert_name_from_datum(

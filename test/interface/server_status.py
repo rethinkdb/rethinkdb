@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Copyright 2010-2014 RethinkDB, all rights reserved.
-import sys, os, time, datetime
+import sys, os, time, datetime, socket
 sys.path.append(os.path.abspath(os.path.join(
     os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils
@@ -57,13 +57,15 @@ with driver.Metacluster() as metacluster:
 
     assert st["status"] == "available"
 
-    assert isinstance(st["host"], basestring)
+    assert isinstance(st["version"], basestring)
+    assert st["version"].startswith("rethinkdb")
 
     assert st["pid"] == process1.process.pid
 
     assert isinstance(st["cache_size_mb"], int)
     assert st["cache_size_mb"] < 1024*100
 
+    assert st["hostname"] == socket.gethostname()
     assert st["reql_port"] == process1.driver_port
     assert st["cluster_port"] == process1.cluster_port
     assert st["http_admin_port"] == process1.http_port

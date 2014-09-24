@@ -15,18 +15,28 @@ public:
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         std::string str = args->arg(env, 0)->as_str().to_std();
-        RE2 regexp(args->arg(env, 1)->as_str().to_std(), RE2::Quiet);
-        if (!regexp.ok()) {
-            rfail(base_exc_t::GENERIC,
-                  "Error in regexp `%s` (portion `%s`): %s",
-                  regexp.pattern().c_str(),
-                  regexp.error_arg().c_str(),
-                  regexp.error().c_str());
+        std::string re = args->arg(env, 1)->as_str().to_std();
+        std::shared_ptr<re2::RE2> regexp;
+        query_cache_t & cache = env->env->query_cache();
+        auto search = cache.regex_cache.find(re);
+        if (search == cache.regex_cache.end()) {
+            regexp.reset(new re2::RE2(re, re2::RE2::Quiet));
+            if (!regexp->ok()) {
+                rfail(base_exc_t::GENERIC,
+                      "Error in regexp `%s` (portion `%s`): %s",
+                      regexp->pattern().c_str(),
+                      regexp->error_arg().c_str(),
+                      regexp->error().c_str());
+            }
+            cache.regex_cache[re] = regexp;
+        } else {
+            regexp = search->second;
         }
+        r_sanity_check(static_cast<bool>(regexp));
         // We add 1 to account for $0.
-        int ngroups = regexp.NumberOfCapturingGroups() + 1;
+        int ngroups = regexp->NumberOfCapturingGroups() + 1;
         scoped_array_t<re2::StringPiece> groups(ngroups);
-        if (regexp.Match(str, 0, str.size(), RE2::UNANCHORED, groups.data(), ngroups)) {
+        if (regexp->Match(str, 0, str.size(), re2::RE2::UNANCHORED, groups.data(), ngroups)) {
             datum_object_builder_t match;
             // We use `b` to store whether or not we got a conflict when writing
             // to an object.  This should never happen here because we aren't

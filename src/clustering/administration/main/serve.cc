@@ -146,9 +146,11 @@ bool do_serve(io_backender_t *io_backender,
         cluster_directory_metadata_t initial_directory(
             machine_id,
             connectivity_cluster.get_me(),
+            RETHINKDB_VERSION_STR,
             total_cache_size,
             current_microtime(),
             getpid(),
+            str_gethostname(),
             serve_info.ports.port,
             serve_info.ports.reql_port,
             serve_info.ports.http_admin_is_disabled
@@ -272,7 +274,6 @@ bool do_serve(io_backender_t *io_backender,
                 semilattice_manager_auth.get_root_view(),
                 directory_read_manager.get_root_view(),
                 &server_name_client,
-                &auto_reconnector,
                 &admin_tracker.last_seen_tracker);
 
         /* `real_reql_cluster_interface_t` needs access to the admin tables so that it

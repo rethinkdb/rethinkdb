@@ -32,7 +32,7 @@ using ql::datum_object_builder_t;
 using ql::configured_limits_t;
 
 ql::datum_t construct_geo_point(
-        const lat_lon_point_t &point,
+        const lon_lat_point_t &point,
         const configured_limits_t &limits) {
     datum_object_builder_t result;
     bool dup;
@@ -44,9 +44,8 @@ ql::datum_t construct_geo_point(
 
     std::vector<datum_t> coordinates;
     coordinates.reserve(2);
-    // lat, long -> long, lat
-    coordinates.push_back(datum_t(point.second));
-    coordinates.push_back(datum_t(point.first));
+    coordinates.push_back(datum_t(point.longitude));
+    coordinates.push_back(datum_t(point.latitude));
     dup = result.add("coordinates",
         datum_t(std::move(coordinates), limits));
     r_sanity_check(!dup);
@@ -55,23 +54,22 @@ ql::datum_t construct_geo_point(
 }
 
 std::vector<datum_t> construct_line_coordinates(
-        const lat_lon_line_t &line,
+        const lon_lat_line_t &line,
         const configured_limits_t &limits) {
     std::vector<datum_t> coordinates;
     coordinates.reserve(line.size());
     for (size_t i = 0; i < line.size(); ++i) {
         std::vector<datum_t> point;
         point.reserve(2);
-        // lat, long -> long, lat
-        point.push_back(datum_t(line[i].second));
-        point.push_back(datum_t(line[i].first));
+        point.push_back(datum_t(line[i].longitude));
+        point.push_back(datum_t(line[i].latitude));
         coordinates.push_back(datum_t(std::move(point), limits));
     }
     return coordinates;
 }
 
 std::vector<datum_t> construct_loop_coordinates(
-        const lat_lon_line_t &line,
+        const lon_lat_line_t &line,
         const configured_limits_t &limits) {
     std::vector<datum_t> loop_coordinates =
         construct_line_coordinates(line, limits);
@@ -84,7 +82,7 @@ std::vector<datum_t> construct_loop_coordinates(
 }
 
 ql::datum_t construct_geo_line(
-        const lat_lon_line_t &line,
+        const lon_lat_line_t &line,
         const configured_limits_t &limits) {
     datum_object_builder_t result;
     bool dup;
@@ -102,15 +100,15 @@ ql::datum_t construct_geo_line(
 }
 
 ql::datum_t construct_geo_polygon(
-        const lat_lon_line_t &shell,
+        const lon_lat_line_t &shell,
         const configured_limits_t &limits) {
-    std::vector<lat_lon_line_t> holes;
+    std::vector<lon_lat_line_t> holes;
     return construct_geo_polygon(shell, holes, limits);
 }
 
 ql::datum_t construct_geo_polygon(
-        const lat_lon_line_t &shell,
-        const std::vector<lat_lon_line_t> &holes,
+        const lon_lat_line_t &shell,
+        const std::vector<lon_lat_line_t> &holes,
         const configured_limits_t &limits) {
     datum_object_builder_t result;
     bool dup;
@@ -139,7 +137,7 @@ ql::datum_t construct_geo_polygon(
 }
 
 // Parses a GeoJSON "Position" array
-lat_lon_point_t position_to_lat_lon_point(const datum_t &position) {
+lon_lat_point_t position_to_lon_lat_point(const datum_t &position) {
     // This assumes the default spherical GeoJSON coordinate reference system,
     // with latitude and longitude given in degrees.
 
@@ -159,14 +157,13 @@ lat_lon_point_t position_to_lat_lon_point(const datum_t &position) {
     }
 
     // GeoJSON positions are in order longitude, latitude, altitude
-    double longitude, latitude;
-    longitude = position.get(0).as_num();
-    latitude = position.get(1).as_num();
+    double lon = position.get(0).as_num();
+    double lat = position.get(1).as_num();
 
-    return lat_lon_point_t(latitude, longitude);
+    return lon_lat_point_t(lon, lat);
 }
 
-lat_lon_point_t extract_lat_lon_point(const datum_t &geojson) {
+lon_lat_point_t extract_lon_lat_point(const datum_t &geojson) {
     if (geojson.get_field("type").as_str() != "Point") {
         throw geo_exception_t(
             strprintf("Expected geometry of type `Point` but found `%s`.",
@@ -175,10 +172,10 @@ lat_lon_point_t extract_lat_lon_point(const datum_t &geojson) {
 
     const datum_t &coordinates = geojson.get_field("coordinates");
 
-    return position_to_lat_lon_point(coordinates);
+    return position_to_lon_lat_point(coordinates);
 }
 
-lat_lon_line_t extract_lat_lon_line(const ql::datum_t &geojson) {
+lon_lat_line_t extract_lon_lat_line(const ql::datum_t &geojson) {
     if (geojson.get_field("type").as_str() != "LineString") {
         throw geo_exception_t(
             strprintf("Expected geometry of type `LineString` but found `%s`.",
@@ -186,16 +183,16 @@ lat_lon_line_t extract_lat_lon_line(const ql::datum_t &geojson) {
     }
 
     const datum_t &coordinates = geojson.get_field("coordinates");
-    lat_lon_line_t result;
+    lon_lat_line_t result;
     result.reserve(coordinates.arr_size());
     for (size_t i = 0; i < coordinates.arr_size(); ++i) {
-        result.push_back(position_to_lat_lon_point(coordinates.get(i)));
+        result.push_back(position_to_lon_lat_point(coordinates.get(i)));
     }
 
     return result;
 }
 
-lat_lon_line_t extract_lat_lon_shell(const ql::datum_t &geojson) {
+lon_lat_line_t extract_lon_lat_shell(const ql::datum_t &geojson) {
     if (geojson.get_field("type").as_str() != "Polygon") {
         throw geo_exception_t(
             strprintf("Expected geometry of type `Polygon` but found `%s`.",
@@ -208,10 +205,10 @@ lat_lon_line_t extract_lat_lon_shell(const ql::datum_t &geojson) {
                               "an outer shell.");
     }
     const datum_t ring_coordinates = coordinates.get(0);
-    lat_lon_line_t result;
+    lon_lat_line_t result;
     result.reserve(ring_coordinates.arr_size());
     for (size_t i = 0; i < ring_coordinates.arr_size(); ++i) {
-        result.push_back(position_to_lat_lon_point(ring_coordinates.get(i)));
+        result.push_back(position_to_lon_lat_point(ring_coordinates.get(i)));
     }
 
     return result;
@@ -219,24 +216,24 @@ lat_lon_line_t extract_lat_lon_shell(const ql::datum_t &geojson) {
 
 // Parses a GeoJSON "Position" array
 S2Point position_to_s2point(const datum_t &position) {
-    lat_lon_point_t p = position_to_lat_lon_point(position);
+    lon_lat_point_t p = position_to_lon_lat_point(position);
 
     // Range checks (or S2 will terminate the process in debug mode).
-    if(p.second < -180.0 || p.second > 180.0) {
+    if(p.longitude < -180.0 || p.longitude > 180.0) {
         throw geo_range_exception_t(
             strprintf("Longitude must be between -180 and 180.  "
-                      "Got %" PR_RECONSTRUCTABLE_DOUBLE ".", p.second));
+                      "Got %" PR_RECONSTRUCTABLE_DOUBLE ".", p.longitude));
     }
-    if (p.second == 180.0) {
-        p.second = -180.0;
+    if (p.longitude == 180.0) {
+        p.longitude = -180.0;
     }
-    if(p.first < -90.0 || p.first > 90.0) {
+    if(p.latitude < -90.0 || p.latitude > 90.0) {
         throw geo_range_exception_t(
             strprintf("Latitude must be between -90 and 90.  "
-                      "Got %" PR_RECONSTRUCTABLE_DOUBLE ".", p.first));
+                      "Got %" PR_RECONSTRUCTABLE_DOUBLE ".", p.latitude));
     }
 
-    S2LatLng lat_lng(S1Angle::Degrees(p.first), S1Angle::Degrees(p.second));
+    S2LatLng lat_lng(S1Angle::Degrees(p.latitude), S1Angle::Degrees(p.longitude));
     return lat_lng.ToPoint();
 }
 
@@ -362,7 +359,7 @@ void ensure_no_crs(const ql::datum_t &geojson) {
 }
 
 scoped_ptr_t<S2Point> to_s2point(const ql::datum_t &geojson) {
-    const datum_string_t &type = geojson.get_field("type").as_str();
+    datum_string_t type = geojson.get_field("type").as_str();
     datum_t coordinates = geojson.get_field("coordinates");
     if (type != "Point") {
         throw geo_exception_t(
@@ -373,7 +370,7 @@ scoped_ptr_t<S2Point> to_s2point(const ql::datum_t &geojson) {
 }
 
 scoped_ptr_t<S2Polyline> to_s2polyline(const ql::datum_t &geojson) {
-    const datum_string_t &type = geojson.get_field("type").as_str();
+    datum_string_t type = geojson.get_field("type").as_str();
     datum_t coordinates = geojson.get_field("coordinates");
     if (type != "LineString") {
         throw geo_exception_t(
@@ -384,7 +381,7 @@ scoped_ptr_t<S2Polyline> to_s2polyline(const ql::datum_t &geojson) {
 }
 
 scoped_ptr_t<S2Polygon> to_s2polygon(const ql::datum_t &geojson) {
-    const datum_string_t &type = geojson.get_field("type").as_str();
+    datum_string_t type = geojson.get_field("type").as_str();
     datum_t coordinates = geojson.get_field("coordinates");
     if (type != "Polygon") {
         throw geo_exception_t(

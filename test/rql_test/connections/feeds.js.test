@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import os, sys, subprocess
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, "common"))
-import utils
+import utils, driver
 
 if not os.path.isdir('run'):
     os.makedirs('run')
@@ -12,4 +14,23 @@ if len(sys.argv) > 1:
     buildDir = sys.argv[1]
 os.environ['BUILD_DIR'] = buildDir
 
-sys.exit(subprocess.call(['python', os.path.join(os.path.dirname(__file__), 'feeds_test.py'), buildDir, 'js']))
+# get a group of 4 connected servers
+
+servers = []
+cluster = None
+for i in range(4):
+    server = driver.Process(cluster=cluster)
+    cluster = server.cluster
+    servers.append(server)
+
+r = utils.import_python_driver()
+server = servers[0]
+conn = r.connect(server.host, server.driver_port)
+
+if not 'test' in r.db_list().run(conn):
+    r.db_create('test').run(conn)
+if not 'test' in r.db('test').table_list().run(conn):
+    r.db('test').table_create('test').run(conn)
+
+print("Running JS feeds")
+sys.exit(subprocess.call([os.environ.get('INTERPRETER_PATH', 'node'), os.path.join(os.path.dirname(__file__), 'feeds.js'), str(server.driver_port)]))

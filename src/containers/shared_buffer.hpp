@@ -80,6 +80,7 @@ public:
     }
     // An upper bound on the number of elements that can be read from this buf ref
     size_t get_safety_boundary() const {
+        rassert(buf.has());
         rassert(buf->size() >= offset);
         return (buf->size() - offset) / sizeof(T);
     }

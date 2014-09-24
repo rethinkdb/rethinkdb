@@ -20,7 +20,7 @@
 #include "btree/secondary_operations.hpp"
 #include "concurrency/cond_var.hpp"
 #include "rdb_protocol/geo/ellipsoid.hpp"
-#include "rdb_protocol/geo/lat_lon_types.hpp"
+#include "rdb_protocol/geo/lon_lat_types.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/changefeed.hpp"
@@ -421,7 +421,7 @@ public:
 
     nearest_geo_read_t(
             const region_t &_region,
-            lat_lon_point_t _center, double _max_dist, uint64_t _max_results,
+            lon_lat_point_t _center, double _max_dist, uint64_t _max_results,
             const ellipsoid_spec_t &_geo_system, const std::string &_table_name,
             const std::string &_sindex_id,
             const std::map<std::string, ql::wire_func_t> &_optargs)
@@ -432,7 +432,7 @@ public:
 
     std::map<std::string, ql::wire_func_t> optargs;
 
-    lat_lon_point_t center;
+    lon_lat_point_t center;
     double max_dist;
     uint64_t max_results;
     ellipsoid_spec_t geo_system;
