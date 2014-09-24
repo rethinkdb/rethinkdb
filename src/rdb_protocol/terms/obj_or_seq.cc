@@ -17,7 +17,7 @@ namespace ql {
 
 obj_or_seq_op_impl_t::obj_or_seq_op_impl_t(
         const term_t *self, poly_type_t _poly_type, protob_t<const Term> term)
-    : poly_type(_poly_type), func(make_counted_term()) {
+    : poly_type(_poly_type), func(make_counted_term()), parent(self) {
     auto varnum = pb::dummy_var_t::OBJORSEQ_VARNUM;
 
     // body is a new reql expression similar to term except that the first argument
@@ -52,6 +52,9 @@ counted_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
     }
 
     if (d.has() && d.get_type() == datum_t::R_OBJECT) {
+        rcheck_target(parent, base_exc_t::GENERIC, !d.is_ptype(),
+               strprintf("Cannot call `%s` on objects of type `%s`.", parent->name(),
+                         d.get_type_name().c_str()));
         return helper();
     } else if ((d.has() && d.get_type() == datum_t::R_ARRAY) ||
                (!d.has()
@@ -114,9 +117,7 @@ private:
     virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
         datum_t obj = v0->as_datum();
         r_sanity_check(obj.get_type() == datum_t::R_OBJECT);
-        rcheck(!obj.is_ptype(), base_exc_t::GENERIC,
-               strprintf("Cannot use `pluck` on objects of type %s.",
-                         obj.get_type_name().c_str()));
+        r_sanity_check(!obj.is_ptype());
 
         const size_t n = args->num_args();
         std::vector<datum_t> paths;
@@ -138,9 +139,7 @@ private:
     virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
         datum_t obj = v0->as_datum();
         r_sanity_check(obj.get_type() == datum_t::R_OBJECT);
-        rcheck(!obj.is_ptype(), base_exc_t::GENERIC,
-               strprintf("Cannot use `without` on objects of type %s.",
-                         obj.get_type_name().c_str()));
+        r_sanity_check(!obj.is_ptype());
 
         std::vector<datum_t> paths;
         const size_t n = args->num_args();
@@ -187,9 +186,7 @@ public:
 private:
     virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
         datum_t d = v0->as_datum();
-        rcheck(!d.is_ptype(), base_exc_t::GENERIC,
-               strprintf("Cannot merge objects of type %s.",
-                         d.get_type_name().c_str()));
+        r_sanity_check(!d.is_ptype());
         for (size_t i = 1; i < args->num_args(); ++i) {
             counted_t<val_t> v = args->arg(env, i, LITERAL_OK);
 
@@ -198,14 +195,14 @@ private:
             if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
                 datum_t d0 = v->as_datum();
                 rcheck(!d0.is_ptype(), base_exc_t::GENERIC,
-                       strprintf("Cannot merge objects of type %s.",
+                       strprintf("Cannot merge objects of type `%s`.",
                                  d0.get_type_name().c_str()));
                 d = d.merge(d0);
             } else {
                 auto f = v->as_func(CONSTANT_SHORTCUT);
                 datum_t d0 = f->call(env->env, d, LITERAL_OK)->as_datum();
                 rcheck(!d0.is_ptype(), base_exc_t::GENERIC,
-                       strprintf("Cannot merge objects of type %s.",
+                       strprintf("Cannot merge objects of type `%s`.",
                                  d0.get_type_name().c_str()));
                 d = d.merge(d0);
             }
@@ -223,10 +220,7 @@ private:
     virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
         datum_t obj = v0->as_datum();
         r_sanity_check(obj.get_type() == datum_t::R_OBJECT);
-        rcheck(!obj.is_ptype(), base_exc_t::GENERIC,
-               strprintf("Cannot determine keys of objects of type %s.",
-                         obj.get_type_name().c_str()));
-
+        r_sanity_check(!obj.is_ptype());
         std::vector<datum_t> paths;
         const size_t n = args->num_args();
         paths.reserve(n - 1);
@@ -246,9 +240,7 @@ public:
 private:
     virtual counted_t<val_t> obj_eval(scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
         datum_t d = v0->as_datum();
-        rcheck(!d.is_ptype(), base_exc_t::GENERIC,
-               strprintf("Cannot retrieve fields of objects of type %s.",
-                         d.get_type_name().c_str()));
+        r_sanity_check(!d.is_ptype());
         return new_val(d.get_field(args->arg(env, 1)->as_str()));
     }
     virtual const char *name() const { return "get_field"; }
@@ -268,9 +260,7 @@ public:
 private:
     counted_t<val_t> obj_eval_dereferenced(counted_t<val_t> v0, counted_t<val_t> v1) const {
         datum_t d = v0->as_datum();
-        rcheck(!d.is_ptype(), base_exc_t::GENERIC,
-               strprintf("Cannot retrieve fields of objects of type %s.",
-                         d.get_type_name().c_str()));
+        r_sanity_check(!d.is_ptype());
         return new_val(d.get_field(v1->as_str()));
     }
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {

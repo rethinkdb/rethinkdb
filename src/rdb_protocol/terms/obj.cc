@@ -14,7 +14,7 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         datum_t d = args->arg(env, 0)->as_datum();
         rcheck(!d.is_ptype(), base_exc_t::GENERIC,
-               strprintf("Cannot get key list on objects of type %s.",
+               strprintf("Cannot call `%s` on objects of type `%s`.", name(),
                          d.get_type_name().c_str()));
 
         std::vector<datum_t> arr;
