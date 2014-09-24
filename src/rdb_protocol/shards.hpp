@@ -175,7 +175,7 @@ public:
     // We assume v1_14 ordering.  We could get fancy and allow either v1_13 or v1_14
     // ordering, but usage of grouped_t inside of secondary index functions is the
     // only place where we'd want v1_13 ordering, so let's not bother.
-    grouped_t() : m(optional_datum_less_t(reql_version_t::v1_14_is_latest)) { }
+    grouped_t() : m(optional_datum_less_t(reql_version_t::v1_16_is_latest)) { }
     virtual ~grouped_t() { } // See grouped_data_t below.
     template <cluster_version_t W>
     typename std::enable_if<W == cluster_version_t::CLUSTER, void>::type

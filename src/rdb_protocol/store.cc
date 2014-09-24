@@ -28,8 +28,11 @@ reql_version_t update_sindex_last_compatible_version(secondary_index_t *sindex,
     case reql_version_t::v1_13:
         res = reql_version_t::v1_13;
         break;
-    case reql_version_t::v1_14:
+    case reql_version_t::v1_14: // v1_15 is the same as v1_14
         res = reql_version_t::v1_14;
+        break;
+    case reql_version_t::v1_16_is_latest:
+        res = reql_version_t::v1_16;
         break;
     default:
         unreachable();
