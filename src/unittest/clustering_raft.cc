@@ -385,9 +385,9 @@ private:
         std::set<dummy_raft_member_t *> member_ptrs;
         std::vector<scoped_ptr_t<rwlock_acq_t> > rwlock_acqs;
         for (auto &pair : members) {
+            rwlock_acqs.push_back(scoped_ptr_t<rwlock_acq_t>(
+                new rwlock_acq_t(&pair.second->lock, access_t::read)));
             if (pair.second->member.has()) {
-                rwlock_acqs.push_back(scoped_ptr_t<rwlock_acq_t>(
-                    new rwlock_acq_t(&pair.second->lock, access_t::read)));
                 member_ptrs.insert(pair.second->member.get());
             }
         }
