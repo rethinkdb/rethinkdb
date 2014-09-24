@@ -1,7 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#include "unittest/gtest.hpp"
-
 #include <map>
+
+#include "unittest/gtest.hpp"
 
 #include "clustering/generic/raft_core.hpp"
 #include "clustering/generic/raft_core.tcc"
