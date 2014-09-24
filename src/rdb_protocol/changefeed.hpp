@@ -68,10 +68,10 @@ static read_func_t no_read_func_needed = &no_read_func_needed_f;
 struct msg_t {
     struct limit_start_t {
         uuid_u sub;
-        std::vector<std::pair<store_key_t, datum_t> > start_data;
+        // RSI: send this!
+        std::vector<std::pair<datum_t, datum_t> > start_data;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
-    // RSI: dedup.
     struct limit_change_t {
         uuid_u sub;
         boost::optional<datum_t> old_key;

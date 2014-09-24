@@ -1286,9 +1286,10 @@ std::vector<std::string> expand_geo_key(
     }
 }
 
-void compute_keys(const store_key_t &primary_key, ql::datum_t doc,
+void compute_keys(const store_key_t &primary_key,
+                  ql::datum_t doc,
                   const sindex_disk_info_t &index_info,
-                  std::vector<store_key_t> *keys_out) {
+                  std::vector<std::pair<store_key_t, ql::datum_t> > *keys_out) {
     guarantee(keys_out->empty());
 
     const reql_version_t reql_version =
@@ -1312,12 +1313,15 @@ void compute_keys(const store_key_t &primary_key, ql::datum_t doc,
                                                                    primary_key,
                                                                    i);
                 for (auto it = geo_keys.begin(); it != geo_keys.end(); ++it) {
-                    keys_out->push_back(store_key_t(*it));
+                    keys_out->push_back(std::make_pair(store_key_t(*it), skey));
                 }
             } else {
-                keys_out->push_back(store_key_t(skey->print_secondary(reql_version,
-                                                                      primary_key,
-                                                                      i)));
+                keys_out->push_back(
+                    std::make_pair(
+                        store_key_t(
+                            skey->print_secondary(
+                                reql_version, primary_key, i)),
+                        skey));
             }
         }
     } else {
@@ -1327,12 +1331,15 @@ void compute_keys(const store_key_t &primary_key, ql::datum_t doc,
                                                                primary_key,
                                                                boost::none);
             for (auto it = geo_keys.begin(); it != geo_keys.end(); ++it) {
-                keys_out->push_back(store_key_t(*it));
+                keys_out->push_back(std::make_pair(store_key_t(*it), index));
             }
         } else {
-            keys_out->push_back(store_key_t(index->print_secondary(reql_version,
-                                                                   primary_key,
-                                                                   boost::none)));
+            keys_out->push_back(
+                std::make_pair(
+                    store_key_t(
+                        index->print_secondary(
+                            reql_version, primary_key, boost::none)),
+                    index));
         }
     }
 }
@@ -1417,18 +1424,6 @@ void deserialize_sindex_info(const std::vector<char> &data,
               "An sindex description was incompletely deserialized.");
 }
 
-void foreach_datum(const ql::datum_t &datum,
-                   const sindex_disk_info_t &info,
-                   std::function<void(const ql::datum_t &)> f) {
-    if (info.multi != sindex_multi_bool_t::MULTI) {
-        f(datum);
-    } else {
-        for (uint64_t i = 0; i < datum->arr_size(); ++i) {
-            f(datum->get(i, ql::THROW));
-        }
-    }
-}
-
 /* Used below by rdb_update_sindexes. */
 void rdb_update_single_sindex(
         store_t *store,
@@ -1463,13 +1458,15 @@ void rdb_update_single_sindex(
         try {
             ql::datum_t deleted = modification->info.deleted.first;
 
-            std::vector<store_key_t> keys;
+            std::vector<std::pair<store_key_t, ql::datum_t> > keys;
 
             compute_keys(modification->primary_key, deleted, sindex_info, &keys);
-            foreach_datum(deleted, sindex_info,
-                [&](const ql::datum_t &datum) {
-                    server->foreach_limit(sindex->name.name,
-                        [&](ql::changefeed::limit_manager_t *lm) { lm->del(datum); });
+            server->foreach_limit(
+                sindex->name.name,
+                [&](ql::changefeed::limit_manager_t *lm) {
+                    for (const auto &pair :keys) {
+                        lm->del(pair.second);
+                    }
                 });
 
             for (auto it = keys.begin(); it != keys.end(); ++it) {
@@ -1481,7 +1478,7 @@ void rdb_update_single_sindex(
                     find_keyvalue_location_for_write(
                         &sizer,
                         superblock,
-                        it->btree_key(),
+                        it->first.btree_key(),
                         deletion_context->balancing_detacher(),
                         &kv_location,
                         &sindex->btree->stats,
@@ -1491,7 +1488,7 @@ void rdb_update_single_sindex(
                     if (kv_location.value.has()) {
                         kv_location_delete(
                             &kv_location,
-                            *it,
+                            it->first,
                             repli_timestamp_t::distant_past,
                             deletion_context,
                             NULL);
@@ -1514,15 +1511,16 @@ void rdb_update_single_sindex(
         try {
             ql::datum_t added = modification->info.added.first;
 
-            std::vector<store_key_t> keys;
+            std::vector<std::pair<store_key_t, ql::datum_t> > keys;
 
             compute_keys(modification->primary_key, added, sindex_info, &keys);
-            foreach_datum(added, sindex_info,
-                [&](const ql::datum_t &datum) {
-                    server->foreach_limit(sindex->name.name,
-                        [&](ql::changefeed::limit_manager_t *lm) { lm->add(datum); });
+            server->foreach_limit(
+                sindex->name.name,
+                [&](ql::changefeed::limit_manager_t *lm) {
+                    for (const auto &pair :keys) {
+                        lm->add(pair.second, added);
+                    }
                 });
-
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
                 {
@@ -1532,7 +1530,7 @@ void rdb_update_single_sindex(
                     find_keyvalue_location_for_write(
                         &sizer,
                         superblock,
-                        it->btree_key(),
+                        it->first.btree_key(),
                         deletion_context->balancing_detacher(),
                         &kv_location,
                         &sindex->btree->stats,
@@ -1540,7 +1538,7 @@ void rdb_update_single_sindex(
                         &return_superblock_local);
 
                     ql::serialization_result_t res =
-                        kv_location_set(&kv_location, *it,
+                        kv_location_set(&kv_location, it->first,
                                         modification->info.added.second,
                                         repli_timestamp_t::distant_past,
                                         deletion_context);
@@ -1555,6 +1553,7 @@ void rdb_update_single_sindex(
         }
     }
 
+    using namespace std::placeholders;
     server->foreach_limit(
         sindex->name.name,
         [&](ql::changefeed::limit_manager_t *lm) {

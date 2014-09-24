@@ -578,13 +578,11 @@ public:
         need_init = resp->shards;
         guarantee(need_init > 0);
     }
-    virtual void init(const std::vector<std::pair<store_key_t, datum_t> > &start_data) {
+    virtual void init(const std::vector<std::pair<datum_t, datum_t> > &start_data) {
         guarantee(need_init > 0);
         need_init -= 1;
-        for (auto &&pair : start_data) {
-            auto res = data.insert(pair);
-            guarantee(res.second);
-            auto it = res.first;
+        for (const auto &pair : start_data) {
+            auto it = data.insert(pair);
             // RSI: cmp
             if (it->first < (*active_data.crbegin())->first) {
                 active_data.insert(it);
@@ -610,8 +608,8 @@ public:
         }
     };
     virtual void note_change(
-        const boost::optional<store_key_t> &old_key,
-        const boost::optional<std::pair<store_key_t, datum_t> > &new_val) {
+        const boost::optional<datum_t> &old_key,
+        const boost::optional<std::pair<datum_t, datum_t> > &new_val) {
         // RSI: queue if `need_init`.
         datum_t old_send, new_send;
         if (old_key) {
@@ -624,9 +622,7 @@ public:
             }
         }
         if (new_val) {
-            auto res = data.insert(*new_val);
-            guarantee(res.second);
-            auto it = res.first;
+            auto it = data.insert(*new_val);
             // RSI: cmp
             if (it->first < (*active_data.crbegin())->first) {
                 active_data.insert(it);
@@ -682,7 +678,7 @@ public:
     int64_t need_init;
     keyspec_t::limit_t spec;
     // RSI: ordering
-    std::map<store_key_t, datum_t> data;
+    std::multimap<datum_t, datum_t> data;
     typedef decltype(data)::iterator data_it_t;
     typedef std::function<bool(const data_it_t &, const data_it_t &)> data_it_lt_t;
     std::set<data_it_t, data_it_lt_t> active_data;
