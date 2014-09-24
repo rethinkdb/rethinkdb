@@ -28,7 +28,7 @@ network messages and write data to persistent storage. This both keeps this file
 as simple as possible and makes it easy to test the Raft algorithm using mocked-up
 network and storage systems.
 
-We supports both log compaction and configuration changes.
+We support both log compaction and configuration changes.
 
 The classes in this file are templatized on two types, `state_t` and `change_t`.
 `state_t` describes the state of the Raft state machine, and `change_t` describes a
@@ -176,11 +176,11 @@ public:
     parameters that Figure 2 of the Raft paper calls `prevLogIndex` and `prevLogTerm`,
     and `entries` corresponds to the parameter that the Raft paper calls `entries`.
 
-    In a server's local status, `prev_index` and `prev_term` correspond to the "last
+    In a server's local state, `prev_index` and `prev_term` correspond to the "last
     included index" and "last included term" variables as described in Section 7.
     `entries` corresponds to the `log` variable described in Figure 2. */
 
-    raft_log_index_t prev_index;   /* RSI: rename these */
+    raft_log_index_t prev_index;
     raft_term_t prev_term;
     std::deque<raft_log_entry_t<change_t> > entries;
 
