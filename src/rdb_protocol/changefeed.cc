@@ -232,13 +232,12 @@ void limit_manager_t::commit(const pure_read_func_t &read_func) {
         data.erase(it);
     }
     if (data.size() < spec.limit) {
-        auto it = data.begin();
-        datum_t begin = (it == data.end()) ? datum_t() : it->first;
+        auto data_it = data.begin();
+        datum_t begin = (data_it == data.end()) ? datum_t() : data_it->first;
         stream_t s = read_func(
-            superblock,
             datum_range_t(begin, key_range_t::bound_t::open, // RSI: sorting
                           datum_t(), key_range_t::bound_t::open),
-            table_name,
+            table,
             sindex,
             spec.limit - data.size());
         for (auto it = s.begin(); it < s.end() && data.size() < spec.limit; ++it) {
@@ -260,32 +259,22 @@ void limit_manager_t::commit(const pure_read_func_t &read_func) {
             msg.new_val = *add_it;
             ++add_it;
         }
-        auto_drainer_lock_t lock(&parent->drainer);
+        auto_drainer_t::lock_t drain_lock(&parent->drainer);
         auto it = parent->clients.find(parent_client);
         guarantee(it != parent->clients.end());
-        parent->send_one_with_lock(lock, &*it, msg_t(msg));
+        parent->send_one_with_lock(drain_lock, &*it, msg_t(msg));
     }
     added.clear();
     deleted.clear();
 }
 
-// RSI: move into header?
-msg_t::msg_t(msg_t &&msg) : op(std::move(msg.op)) { }
-msg_t::msg_t(stop_t &&_op) : op(std::move(_op)) { }
-msg_t::msg_t(change_t &&_op) : op(std::move(_op)) { }
-
-msg_t::change_t::change_t() { }
-msg_t::change_t::change_t(datum_t _old_val,
-                          datum_t _new_val)
-    : old_val(std::move(_old_val)), new_val(std::move(_new_val)) { }
-msg_t::change_t::~change_t() { }
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(msg_t, op);
 RDB_IMPL_ME_SERIALIZABLE_2(msg_t::change_t, empty_ok(old_val), empty_ok(new_val));
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::change_t);
 RDB_IMPL_ME_SERIALIZABLE_2(msg_t::limit_start_t, sub, start_data);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::limit_start_t);
-RDB_IMPL_ME_SERIALIZABLE_1(msg_t::limit_change_t, data);
+RDB_IMPL_ME_SERIALIZABLE_3(msg_t::limit_change_t, sub, old_key, new_val);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::limit_change_t);
 RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(msg_t::stop_t);
 
@@ -709,12 +698,9 @@ public:
             msg.sub, [&msg](limit_sub_t *sub) { sub->init(msg.start_data); });
     }
     void operator()(const msg_t::limit_change_t &msg) const {
-        for (const auto &pair : msg.data) {
-            feed->on_limit_sub(pair.first,
-                [&pair](limit_sub_t *sub) {
-                    sub->note_change(pair.second.first, pair.second.second);
-                });
-        }
+        feed->on_limit_sub(
+            msg.sub,
+            [&msg](limit_sub_t *sub) { sub->note_change(msg.old_key, msg.new_val); });
     }
     void operator()(const msg_t::change_t &change) const {
         datum_t null = datum_t::null();

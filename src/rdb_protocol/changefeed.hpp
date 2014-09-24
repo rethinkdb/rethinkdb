@@ -79,19 +79,19 @@ struct msg_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
     struct change_t {
-        change_t();
-        change_t(datum_t _old_val, datum_t _new_val);
-        ~change_t();
+        change_t() { };
+        change_t(datum_t _old_val, datum_t _new_val)
+            : old_val(std::move(_old_val)), new_val(std::move(_new_val)) { }
+        ~change_t() { }
         datum_t old_val, new_val;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
-    struct stop_t {
-    };
+    struct stop_t { };
 
     msg_t() { }
-    msg_t(msg_t &&msg);
-    explicit msg_t(stop_t &&op);
-    explicit msg_t(change_t &&op);
+    msg_t(msg_t &&msg) : op(std::move(msg.op)) { }
+    template<class T>
+    explicit msg_t(T &&_op) : op(std::move(_op)) { }
 
     // We need to define the copy constructor.  GCC 4.4 doesn't let us use `=
     // default`, and SRH is uncomfortable violating the rule of 3, so we define
@@ -223,6 +223,7 @@ class server_t;
 class limit_manager_t {
 public:
     limit_manager_t(
+        std::string _table,
         std::string _sindex,
         server_t *_parent,
         client_t::addr_t _parent_client,
@@ -230,7 +231,8 @@ public:
         keyspec_t::limit_t _spec,
         std::multimap<datum_t, datum_t, decltype(std::less<const datum_t &>())>
             &&start_data)
-        : sindex(std::move(_sindex)),
+        : table(std::move(_table)),
+          sindex(std::move(_sindex)),
           parent(_parent),
           parent_client(std::move(_parent_client)),
           uuid(std::move(_uuid)),
@@ -250,7 +252,7 @@ public:
                : uuid < other.uuid);
     }
 
-    const std::string sindex;
+    const std::string table, sindex;
 private:
     server_t *parent;
     client_t::addr_t parent_client;

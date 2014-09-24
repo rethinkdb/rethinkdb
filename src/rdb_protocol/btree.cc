@@ -694,7 +694,7 @@ void spawn_sindex_erase_ranges(
     for (auto it = sindex_access->begin(); it != sindex_access->end(); ++it) {
         coro_t::spawn_sometime(std::bind(
                     &sindex_erase_range,
-                    key_range, (*it)->super_block.get(),
+                    key_range, (*it)->superblock.get(),
                     auto_drainer_t::lock_t(drainer), interruptor,
                     release_superblock, deleter));
     }
@@ -1453,7 +1453,7 @@ void rdb_update_single_sindex(
     // secondary index updates.
     profile::trace_t *const trace = nullptr;
 
-    superblock_t *super_block = sindex->super_block.get();
+    superblock_t *superblock = sindex->superblock.get();
 
     // RSI: handle primary key too.
     ql::changefeed::server_t *server = store->changefeed_server.get();
@@ -1476,11 +1476,11 @@ void rdb_update_single_sindex(
                 promise_t<superblock_t *> return_superblock_local;
                 {
                     keyvalue_location_t kv_location;
-                    rdb_value_sizer_t sizer(super_block->cache()->max_block_size());
+                    rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
 
                     find_keyvalue_location_for_write(
                         &sizer,
-                        super_block,
+                        superblock,
                         it->btree_key(),
                         deletion_context->balancing_detacher(),
                         &kv_location,
@@ -1498,7 +1498,7 @@ void rdb_update_single_sindex(
                     }
                     // The keyvalue location gets destroyed here.
                 }
-                super_block = return_superblock_local.wait();
+                superblock = return_superblock_local.wait();
             }
         } catch (const ql::base_exc_t &) {
             // Do nothing (it wasn't actually in the index).
@@ -1528,10 +1528,10 @@ void rdb_update_single_sindex(
                 {
                     keyvalue_location_t kv_location;
 
-                    rdb_value_sizer_t sizer(super_block->cache()->max_block_size());
+                    rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
                     find_keyvalue_location_for_write(
                         &sizer,
-                        super_block,
+                        superblock,
                         it->btree_key(),
                         deletion_context->balancing_detacher(),
                         &kv_location,
@@ -1548,7 +1548,7 @@ void rdb_update_single_sindex(
                     guarantee(!bad(res));
                     // The keyvalue location gets destroyed here.
                 }
-                super_block = return_superblock_local.wait();
+                superblock = return_superblock_local.wait();
             }
         } catch (const ql::base_exc_t &) {
             // Do nothing (we just drop the row from the index).
@@ -1557,7 +1557,9 @@ void rdb_update_single_sindex(
 
     server->foreach_limit(
         sindex->name.name,
-        [&](ql::changefeed::limit_manager_t *lm) { lm->commit(*cfeed_func); });
+        [&](ql::changefeed::limit_manager_t *lm) {
+            lm->commit(std::bind(*cfeed_func, superblock, _1, _2, _3, _4));
+        });
 }
 
 void rdb_update_sindexes(store_t *store,
