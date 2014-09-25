@@ -12,7 +12,21 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        datum_t d = args->arg(env, 0)->as_datum();
+        counted_t<val_t> v = args->arg(env, 0);
+        datum_t d = v->as_datum();
+        switch (env->env->reql_version()) {
+        case reql_version_t::v1_13:
+        case reql_version_t::v1_14: // v1_15 is the same as v1_14
+            break;
+        case reql_version_t::v1_16_is_latest:
+            rcheck_target(v, base_exc_t::GENERIC,
+                   d.has() && d.get_type() == datum_t::R_OBJECT && !d.is_ptype(),
+                   strprintf("Cannot call `%s` on objects of type `%s`.", name(),
+                             d.get_type_name().c_str()));
+            break;
+        default:
+            unreachable();
+        }
 
         std::vector<datum_t> arr;
         arr.reserve(d.obj_size());

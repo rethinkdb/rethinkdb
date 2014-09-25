@@ -31,6 +31,7 @@ public:
 private:
     poly_type_t poly_type;
     protob_t<Term> func;
+    const term_t *parent;
 
     DISABLE_COPYING(obj_or_seq_op_impl_t);
 };
