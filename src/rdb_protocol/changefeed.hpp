@@ -123,18 +123,22 @@ typedef mailbox_addr_t<void(stamped_msg_t)> client_addr_t;
 struct keyspec_t {
     struct range_t {
         range_t() { }
-        range_t(datum_range_t _range) : range(std::move(_range)) { }
+        range_t(std::string _sindex,
+                sorting_t _sorting,
+                datum_range_t _range)
+            : sindex(std::move(_sindex)),
+              sorting(_sorting),
+              range(std::move(_range)) { }
+        std::string sindex;
+        sorting_t sorting;
         datum_range_t range;
     };
     struct limit_t {
         limit_t() { }
-        limit_t(datum_range_t _range, std::string _sindex,
-                sorting_t _sorting, size_t _limit)
-            : range(std::move(_range)), sindex(std::move(_sindex)),
-              sorting(_sorting), limit(_limit) { }
-        datum_range_t range;
-        std::string sindex;
-        sorting_t sorting;
+        limit_t(range_t _range, size_t _limit)
+            : range(std::move(_range)), limit(_limit) { }
+        // RSI: use this range in the range.
+        range_t range;
         size_t limit;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -145,9 +149,8 @@ struct keyspec_t {
     };
 
     keyspec_t(keyspec_t &&keyspec) : spec(std::move(keyspec.spec)) { }
-    explicit keyspec_t(range_t &&range) : spec(std::move(range)) { }
-    explicit keyspec_t(limit_t &&limit) : spec(std::move(limit)) { }
-    explicit keyspec_t(point_t &&point) : spec(std::move(point)) { }
+    template<class T>
+    explicit keyspec_t(T &&t) : spec(std::move(t)) { }
 
     // This needs to be copyable and assignable because it goes inside a
     // `changefeed_stamp_t`, which goes inside a variant.
@@ -244,11 +247,8 @@ public:
     void add(datum_t key, datum_t val);
     void commit(const pure_read_func_t &read_func);
     bool operator<(const limit_manager_t &other) {
-        return (spec.sindex < other.spec.sindex)
-            ? true
-            : ((spec.sindex > other.spec.sindex)
-               ? false
-               : uuid < other.uuid);
+        const std::string &s1 = spec.range.sindex, &s2 = other.spec.range.sindex;
+        return (s1 < s2) ? true : ((s1 > s2) ? false : (uuid < other.uuid));
     }
 
     const region_t region; // RSI: use this!

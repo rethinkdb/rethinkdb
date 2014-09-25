@@ -78,7 +78,7 @@ void server_t::add_limit_client(
 
     // It's entirely possible the peer disconnected by the time we got here.
     if (it != clients.end()) {
-        auto *vec = &it->second.limit_clients[spec.sindex];
+        auto *vec = &it->second.limit_clients[spec.range.sindex];
         auto lm = make_scoped<limit_manager_t>(
             region,
             table,
@@ -287,7 +287,7 @@ void limit_manager_t::commit(const pure_read_func_t &read_func) {
             datum_range_t(begin, key_range_t::bound_t::open, // RSI: sorting
                           datum_t(), key_range_t::bound_t::open),
             table,
-            spec.sindex,
+            spec.range.sindex,
             spec.limit - data.size());
         for (auto it = s.begin(); it < s.end() && data.size() < spec.limit; ++it) {
             auto pair = std::make_pair(it->sindex_key, it->data);
@@ -323,12 +323,6 @@ INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::limit_start_t);
 RDB_IMPL_ME_SERIALIZABLE_3(msg_t::limit_change_t, sub, old_key, new_val);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(msg_t::limit_change_t);
 RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(msg_t::stop_t);
-
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
-        sorting_t, int8_t,
-        sorting_t::UNORDERED, sorting_t::DESCENDING);
-RDB_IMPL_ME_SERIALIZABLE_4(keyspec_t::limit_t, range, sindex, sorting, limit);
-INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::limit_t);
 
 enum class detach_t { NO, YES };
 
@@ -622,6 +616,7 @@ public:
                        std::string table,
                        namespace_interface_t *nif,
                        client_t::addr_t *addr) {
+        debugf("Starting!\n");
         assert_thread();
         read_response_t read_resp;
         nif->read(
@@ -905,10 +900,19 @@ void subscription_t::destructor_cleanup(std::function<void()> del_sub) THROWS_NO
     }
 }
 
-RDB_MAKE_SERIALIZABLE_0(keyspec_t::range_t);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        sorting_t, int8_t,
+        sorting_t::UNORDERED, sorting_t::DESCENDING);
+
+RDB_MAKE_SERIALIZABLE_3(keyspec_t::range_t, sindex, sorting, range);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::range_t);
+
+RDB_IMPL_ME_SERIALIZABLE_2(keyspec_t::limit_t, range, limit);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::limit_t);
+
 RDB_MAKE_SERIALIZABLE_1(keyspec_t::point_t, key);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::point_t);
+
 RDB_MAKE_SERIALIZABLE_1(keyspec_t, spec);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(keyspec_t);
 

@@ -84,11 +84,12 @@ protected:
     virtual datum_t as_array(env_t *env);
     bool ops_to_do() { return ops.size() != 0; }
 
-private:
+protected:
     virtual changefeed::keyspec_t get_spec() {
         rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on an eager stream.");
     }
 
+private:
     enum class done_t { YES, NO };
 
     virtual bool is_array() = 0;
@@ -177,6 +178,7 @@ class slice_datum_stream_t : public wrapper_datum_stream_t {
 public:
     slice_datum_stream_t(uint64_t left, uint64_t right, counted_t<datum_stream_t> src);
 private:
+    virtual changefeed::keyspec_t get_spec();
     virtual std::vector<datum_t>
     next_raw_batch(env_t *env, const batchspec_t &batchspec);
     virtual bool is_exhausted() const;
@@ -275,15 +277,17 @@ public:
         const batchspec_t &batchspec) const = 0;
 
     virtual key_range_t original_keyrange() const = 0;
-    virtual std::string sindex_name() const = 0; // Used for error checking.
+    virtual std::string sindex_name() const = 0;
 
     // Returns `true` if there is no more to read.
     bool update_range(key_range_t *active_range,
                       const store_key_t &last_key) const;
 
     changefeed::keyspec_t::range_t get_spec() const {
-        // RSI: transforms?
-        return changefeed::keyspec_t::range_t(original_datum_range);
+        // TODO: include transforms in the spec when we support other changefeed
+        // types.
+        return changefeed::keyspec_t::range_t(
+            sindex_name(), sorting, original_datum_range);
     }
 protected:
     const std::map<std::string, wire_func_t> global_optargs;

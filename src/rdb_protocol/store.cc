@@ -313,10 +313,10 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             superblock,
             ql::datum_range_t::universe(),
             s.table,
-            s.spec.sindex,
+            s.spec.range.sindex,
             s.spec.limit);
-        ql::changefeed::datum_map_t start_data( // RSI: sorting
-            [](const ql::datum_t &l, const ql::datum_t &r) { return l > r; });
+        // RSI: sorting
+        ql::changefeed::datum_map_t start_data((std::greater<const ql::datum_t &>()));
         for (const auto &item : stream) {
             if (start_data.size() == s.spec.limit) {
                 break;

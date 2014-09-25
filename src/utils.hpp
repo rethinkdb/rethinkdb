@@ -10,6 +10,7 @@
 #include <string>
 
 #include "errors.hpp"
+#include "debug.hpp"
 #include "config/args.hpp"
 
 class printf_buffer_t;

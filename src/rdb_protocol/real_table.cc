@@ -115,6 +115,7 @@ counted_t<ql::datum_stream_t> real_table_t::read_changes(
     ql::changefeed::keyspec_t &&spec,
     const ql::protob_t<const Backtrace> &bt,
     const std::string &table_name) {
+    debugf("read_changes\n");
     return changefeed_client->new_feed(
         env,
         uuid,
