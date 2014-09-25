@@ -21,8 +21,10 @@ enum poly_type_t {
 
 class obj_or_seq_op_impl_t {
 public:
-    obj_or_seq_op_impl_t(const term_t *self, poly_type_t _poly_type,
-                         protob_t<const Term> term, const std::set<std::string> &acceptable_ptypes);
+    obj_or_seq_op_impl_t(const term_t *self,
+                         poly_type_t _poly_type,
+                         protob_t<const Term> term,
+                         std::set<std::string> &&_acceptable_ptypes);
 
     scoped_ptr_t<val_t> eval_impl_dereferenced(const term_t *target, scope_env_t *env,
                                                args_t *args,
@@ -33,7 +35,7 @@ private:
     poly_type_t poly_type;
     protob_t<Term> func;
     const term_t *parent;
-    const std::set<std::string> &acceptable_ptypes;
+    const std::set<std::string> acceptable_ptypes;
 
     DISABLE_COPYING(obj_or_seq_op_impl_t);
 };
@@ -47,9 +49,6 @@ public:
                          poly_type_t _poly_type, argspec_t argspec);
     obj_or_seq_op_term_t(compile_env_t *env, protob_t<const Term> term,
                          poly_type_t _poly_type, argspec_t argspec,
-                         const std::set<std::string> &ptypes);
-    obj_or_seq_op_term_t(compile_env_t *env, protob_t<const Term> term,
-                         poly_type_t _poly_type, argspec_t argspec,
                          std::set<std::string> &&ptypes);
 
 private:
@@ -59,7 +58,6 @@ private:
 
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const;
 
-    const std::set<std::string> acceptable_ptypes;
     obj_or_seq_op_impl_t impl;
 };
 

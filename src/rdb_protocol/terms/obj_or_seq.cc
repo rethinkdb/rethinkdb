@@ -18,9 +18,9 @@ namespace ql {
 
 obj_or_seq_op_impl_t::obj_or_seq_op_impl_t(
         const term_t *self, poly_type_t _poly_type, protob_t<const Term> term,
-        const std::set<std::string> &_ptypes)
+        std::set<std::string> &&_acceptable_ptypes)
     : poly_type(_poly_type), func(make_counted_term()), parent(self),
-      acceptable_ptypes(_ptypes) {
+      acceptable_ptypes(std::move(_acceptable_ptypes)) {
     auto varnum = pb::dummy_var_t::OBJORSEQ_VARNUM;
 
     // body is a new reql expression similar to term except that the first argument
@@ -115,24 +115,14 @@ scoped_ptr_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
 obj_or_seq_op_term_t::obj_or_seq_op_term_t(compile_env_t *env, protob_t<const Term> term,
                                            poly_type_t _poly_type, argspec_t argspec)
     : grouped_seq_op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_"})),
-      acceptable_ptypes(),
-      impl(this, _poly_type, term, acceptable_ptypes) {
+      impl(this, _poly_type, term, std::set<std::string>()) {
 }
 
 obj_or_seq_op_term_t::obj_or_seq_op_term_t(compile_env_t *env, protob_t<const Term> term,
                                            poly_type_t _poly_type, argspec_t argspec,
-                                           const std::set<std::string> &ptypes)
+                                           std::set<std::string> &&ptypes)
     : grouped_seq_op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_"})),
-      acceptable_ptypes(ptypes),
-      impl(this, _poly_type, term, acceptable_ptypes) {
-}
-
-obj_or_seq_op_term_t::obj_or_seq_op_term_t(compile_env_t *env, protob_t<const Term> term,
-                                           poly_type_t _poly_type, argspec_t argspec,
-                                           std::set<std::string> &&_ptypes)
-    : grouped_seq_op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_"})),
-      acceptable_ptypes(_ptypes),
-      impl(this, _poly_type, term, acceptable_ptypes) {
+      impl(this, _poly_type, term, std::move(ptypes)) {
 }
 
 scoped_ptr_t<val_t> obj_or_seq_op_term_t::eval_impl(scope_env_t *env, args_t *args,
@@ -202,8 +192,7 @@ private:
         }
 
         r_sanity_check(!clobber);
-        std::set<std::string> permissible_ptypes;
-        permissible_ptypes.insert(pseudo::literal_string);
+        std::set<std::string> permissible_ptypes { pseudo::literal_string };
         return new_val(std::move(res).to_datum(permissible_ptypes));
     }
     virtual const char *name() const { return "literal"; }
@@ -306,8 +295,7 @@ class bracket_term_t : public grouped_seq_op_term_t {
 public:
     bracket_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : grouped_seq_op_term_t(env, term, argspec_t(2), optargspec_t({"_NO_RECURSE_"})),
-          acceptable_ptypes(),
-          impl(this, SKIP_MAP, term, acceptable_ptypes) {}
+          impl(this, SKIP_MAP, term, std::set<std::string>()) {}
 private:
     scoped_ptr_t<val_t> obj_eval_dereferenced(const scoped_ptr_t<val_t> &v0, const scoped_ptr_t<val_t> &v1) const {
         datum_t d = v0->as_datum();
@@ -343,7 +331,6 @@ private:
     // I reimplement it here for clarity.
     virtual bool is_grouped_seq_op() const { return true; }
 
-    const std::set<std::string> acceptable_ptypes;
     obj_or_seq_op_impl_t impl;
 };
 
