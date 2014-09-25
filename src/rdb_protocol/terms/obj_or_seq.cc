@@ -57,7 +57,7 @@ counted_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
         case reql_version_t::v1_14: // v1_15 is the same as v1_14
             break;
         case reql_version_t::v1_16_is_latest:    
-            rcheck_target(target, base_exc_t::GENERIC, !d.is_ptype(),
+            rcheck_target(v0, base_exc_t::GENERIC, !d.is_ptype(),
                    strprintf("Cannot call `%s` on objects of type `%s`.", parent->name(),
                              d.get_type_name().c_str()));
             break;
