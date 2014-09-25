@@ -256,6 +256,42 @@ void do_read(ql::env_t *env,
     }
 }
 
+ql::changefeed::read_func_t cfeed_func(
+    superblock_t *superblock,
+    store_t *store,
+    btree_slice_t *btree,
+    ql::env_t *env) {
+    return [superblock, store, btree, env](
+        superblock_t *locked_superblock,
+        const ql::datum_range_t &active,
+        const std::string &table_name,
+        const boost::optional<std::string> &sindex,
+        size_t n) {
+        // This isn't actually used for anything, we just want to make
+        // absolutely sure that our caller still has a lock on the
+        // superblock.
+        guarantee(locked_superblock == superblock);
+        rget_read_response_t resp;
+        rget_read_t read;
+        // RSI: does the plain `region_t` constructor make sense?
+        read.region = region_t(
+            // RSI: oversharding? vvv
+            sindex ? ql::datum_range_t::universe().to_primary_keyrange()
+            : active.to_primary_keyrange());
+        read.table_name = table_name;
+        read.batchspec = ql::batchspec_t::all().with_at_most(n); // RSI: reliable?
+        if (sindex) {
+            read.sindex = sindex_rangespec_t(
+                *sindex, region_t(active.to_sindex_keyrange()), active);
+        }
+        read.sorting = sorting_t::ASCENDING; // RSI: sorting
+        do_read(env, store, btree, locked_superblock, read, &resp);
+        return groups_to_batch(
+            boost::get<ql::grouped_t<ql::stream_t> >(resp.result)
+            .get_underlying_map(ql::grouped::order_doesnt_matter_t()));
+    };
+}
+
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const changefeed_subscribe_t &s) {
@@ -273,13 +309,15 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         ql::env_t ql_env(ctx, interruptor,
                          std::map<std::string, ql::wire_func_t>(), trace);
         rget_read_response_t resp;
-        rget_read_t read; // RSI: fill this in!!!
-        do_read(&ql_env, store, btree, superblock, read, &resp);
-        auto *stream = boost::get<ql::stream_t>(&resp.result);
-        guarantee(stream);
+        ql::stream_t stream = cfeed_func(superblock, store, btree, &ql_env)(
+            superblock,
+            ql::datum_range_t::universe(),
+            s.table,
+            s.spec.sindex,
+            s.spec.limit);
         ql::changefeed::datum_map_t start_data( // RSI: sorting
             [](const ql::datum_t &l, const ql::datum_t &r) { return l > r; });
-        for (const auto &item : *stream) {
+        for (const auto &item : stream) {
             if (start_data.size() == s.spec.limit) {
                 break;
             }
@@ -621,38 +659,6 @@ private:
 };
 
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
-    ql::changefeed::read_func_t cfeed_func(ql::env_t *env) {
-        return [this, env](
-            superblock_t *locked_superblock,
-            const ql::datum_range_t &active,
-            const std::string &table_name,
-            const boost::optional<std::string> &sindex,
-            size_t n) {
-            // This isn't actually used for anything, we just want to make
-            // absolutely sure that our caller still has a lock on the
-            // superblock.
-            guarantee(locked_superblock == superblock->get());
-            rget_read_response_t resp;
-            rget_read_t read;
-            // RSI: does the plain `region_t` constructor make sense?
-            read.region = region_t(
-                // RSI: oversharding? vvv
-                sindex ? ql::datum_range_t::universe().to_primary_keyrange()
-                       : active.to_primary_keyrange());
-            read.table_name = table_name;
-            read.batchspec = ql::batchspec_t::all().with_at_most(n); // RSI: reliable?
-            if (sindex) {
-                read.sindex = sindex_rangespec_t(
-                    *sindex, region_t(active.to_sindex_keyrange()), active);
-            }
-            read.sorting = sorting_t::ASCENDING; // RSI: sorting
-            do_read(env, store, btree, superblock->get(), read, &resp);
-            return groups_to_batch(
-                boost::get<ql::grouped_t<ql::stream_t> >(resp.result)
-                    .get_underlying_map(ql::grouped::order_doesnt_matter_t()));
-        };
-    }
-
     void operator()(const batched_replace_t &br) {
         ql::env_t ql_env(ctx, interruptor, br.optargs, trace);
         rdb_modification_report_cb_t sindex_cb(
@@ -668,7 +674,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                 ql_env.limits(),
                 &replacer,
                 &sindex_cb,
-                cfeed_func(&ql_env),
+                cfeed_func(superblock->get(), store, btree, &ql_env),
                 trace);
     }
 
@@ -695,7 +701,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                 bi.limits,
                 &replacer,
                 &sindex_cb,
-                cfeed_func(&ql_env),
+                cfeed_func(superblock->get(), store, btree, &ql_env),
                 trace);
     }
 
