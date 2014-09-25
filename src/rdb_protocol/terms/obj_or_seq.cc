@@ -57,7 +57,7 @@ counted_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
         case reql_version_t::v1_14: // v1_15 is the same as v1_14
             break;
         case reql_version_t::v1_16_is_latest:    
-            rcheck_target(parent, base_exc_t::GENERIC, !d.is_ptype(),
+            rcheck_target(target, base_exc_t::GENERIC, !d.is_ptype(),
                    strprintf("Cannot call `%s` on objects of type `%s`.", parent->name(),
                              d.get_type_name().c_str()));
             break;
@@ -205,7 +205,8 @@ private:
                 case reql_version_t::v1_14: // v1_15 is the same as v1_14
                     break;
                 case reql_version_t::v1_16_is_latest:
-                    rcheck(!d0.is_ptype(), base_exc_t::GENERIC,
+                    rcheck_target(v, base_exc_t::GENERIC,
+                           d0.has() && d0.get_type() == datum_t::R_OBJECT && !d0.is_ptype(),
                            strprintf("Cannot merge objects of type `%s`.",
                                      d0.get_type_name().c_str()));
                     break;
@@ -221,7 +222,8 @@ private:
                 case reql_version_t::v1_14: // v1_15 is the same as v1_14
                     break;
                 case reql_version_t::v1_16_is_latest:    
-                    rcheck(!d0.is_ptype(), base_exc_t::GENERIC,
+                    rcheck_target(v, base_exc_t::GENERIC,
+                           d0.has() && d0.get_type() == datum_t::R_OBJECT && !d0.is_ptype(),
                            strprintf("Cannot merge objects of type `%s`.",
                                      d0.get_type_name().c_str()));
                     break;
