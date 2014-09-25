@@ -602,6 +602,7 @@ public:
         : subscription_t(feed),
           uuid(generate_uuid()),
           need_init(-1),
+          got_init(0),
           spec(std::move(_spec)),
           active_data([](const data_it_t &a, const data_it_t &b) {
                   // RSI: cmp
@@ -612,6 +613,24 @@ public:
     virtual ~limit_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_limit_sub, feed, this, uuid));
     }
+
+    void maybe_send_start_msg() {
+        debugf("need_init: %ld, got_init: %ld\n", need_init, got_init);
+        if (need_init == got_init) {
+            // When we later support not always returning the initial set, that
+            // logic should go here.
+            if (need_init == got_init) {
+                for (auto &&it : active_data) {
+                    els.push_back(
+                        datum_t(std::map<datum_string_t, datum_t> {
+                                { datum_string_t("old_val"), it->second },
+                                    { datum_string_t("new_val"), it->second } }));
+                    maybe_signal_cond();
+                }
+            }
+        }
+    }
+
     virtual void start(env_t *env,
                        std::string table,
                        namespace_interface_t *nif,
@@ -627,12 +646,15 @@ public:
             &read_resp.response);
         guarantee(resp != NULL);
         guarantee(need_init == -1);
+        debugf("need_init: %zu\n", resp->shards);
         need_init = resp->shards;
         guarantee(need_init > 0);
+        maybe_send_start_msg();
     }
+
     virtual void init(const std::vector<std::pair<datum_t, datum_t> > &start_data) {
-        guarantee(need_init > 0);
-        need_init -= 1;
+        got_init += 1;
+        debugf("start_data: %zu\n", start_data.size());
         for (const auto &pair : start_data) {
             auto it = data.insert(pair);
             // RSI: cmp
@@ -646,18 +668,7 @@ public:
                       || (active_data.size() < spec.limit
                           && active_data.size() == data.size()));
         }
-
-        // When we later support not always returning the initial set, that
-        // logic should go here.
-        if (need_init == 0) {
-            for (auto &&it : active_data) {
-                els.push_back(
-                    datum_t(std::map<datum_string_t, datum_t> {
-                        { datum_string_t("old_val"), it->second },
-                        { datum_string_t("new_val"), it->second } }));
-                maybe_signal_cond();
-            }
-        }
+        maybe_send_start_msg();
     };
     virtual void note_change(
         const boost::optional<datum_t> &old_key,
@@ -727,7 +738,7 @@ public:
     }
 
     uuid_u uuid;
-    int64_t need_init;
+    int64_t need_init, got_init;
     keyspec_t::limit_t spec;
     // RSI: ordering
     std::multimap<datum_t, datum_t> data;
