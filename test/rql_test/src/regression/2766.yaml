@@ -21,3 +21,5 @@ tests:
     ot: err("RqlRuntimeError", "Cannot call `has_fields` on objects of type `PTYPE<TIME>`.")
   - cd: r.object().has_fields(r.time(2014, 7, 7, 'Z'))
     ot: err("RqlRuntimeError", "Invalid path argument `1404691200`.")
+  - cd: r.expr(1).keys()
+    ot: err("RqlRuntimeError", "Cannot call `keys` on objects of type `NUMBER`.")
