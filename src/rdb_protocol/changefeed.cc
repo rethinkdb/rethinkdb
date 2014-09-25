@@ -624,7 +624,7 @@ public:
                     els.push_back(
                         datum_t(std::map<datum_string_t, datum_t> {
                                 { datum_string_t("old_val"), it->second },
-                                    { datum_string_t("new_val"), it->second } }));
+                                { datum_string_t("new_val"), it->second } }));
                     maybe_signal_cond();
                 }
             }
@@ -656,11 +656,12 @@ public:
         got_init += 1;
         debugf("start_data: %zu\n", start_data.size());
         for (const auto &pair : start_data) {
+            debugf("%s\n%s\n",
+                   pair.first.print().c_str(),
+                   pair.second.print().c_str());
             auto it = data.insert(pair);
             // RSI: cmp
-            if (it->first < (*active_data.crbegin())->first) {
-                active_data.insert(it);
-            }
+            active_data.insert(it);
             if (active_data.size() > spec.limit) {
                 active_data.erase(*active_data.crbegin());
             }
@@ -670,6 +671,7 @@ public:
         }
         maybe_send_start_msg();
     };
+
     virtual void note_change(
         const boost::optional<datum_t> &old_key,
         const boost::optional<std::pair<datum_t, datum_t> > &new_val) {
