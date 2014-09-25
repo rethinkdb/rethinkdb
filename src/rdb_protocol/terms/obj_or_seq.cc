@@ -222,35 +222,39 @@ private:
             // `obj_eval` may be called many many times.
             if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
                 datum_t d0 = v->as_datum();
-                switch (env->env->reql_version()) {
-                case reql_version_t::v1_13:
-                case reql_version_t::v1_14: // v1_15 is the same as v1_14
-                    break;
-                case reql_version_t::v1_16_is_latest:
-                    rcheck_target(v, base_exc_t::GENERIC,
-                           d0.has() && d0.get_type() == datum_t::R_OBJECT && !d0.is_ptype(),
-                           strprintf("Cannot merge objects of type `%s`.",
-                                     d0.get_type_name().c_str()));
-                    break;
-                default:
-                    unreachable();
+                if (d0.get_type() == datum_t::R_OBJECT) {
+                    switch (env->env->reql_version()) {
+                    case reql_version_t::v1_13:
+                    case reql_version_t::v1_14: // v1_15 is the same as v1_14
+                        break;
+                    case reql_version_t::v1_16_is_latest:
+                        rcheck_target(v, base_exc_t::GENERIC,
+                               !d0.is_ptype() || d0.is_ptype("LITERAL"),
+                               strprintf("Cannot merge objects of type `%s`.",
+                                         d0.get_type_name().c_str()));
+                        break;
+                    default:
+                        unreachable();
+                    }
                 }
                 d = d.merge(d0);
             } else {
                 auto f = v->as_func(CONSTANT_SHORTCUT);
                 datum_t d0 = f->call(env->env, d, LITERAL_OK)->as_datum();
-                switch (env->env->reql_version()) {    
-                case reql_version_t::v1_13:
-                case reql_version_t::v1_14: // v1_15 is the same as v1_14
-                    break;
-                case reql_version_t::v1_16_is_latest:    
-                    rcheck_target(v, base_exc_t::GENERIC,
-                           d0.has() && d0.get_type() == datum_t::R_OBJECT && !d0.is_ptype(),
-                           strprintf("Cannot merge objects of type `%s`.",
-                                     d0.get_type_name().c_str()));
-                    break;
-                default:
-                    unreachable();
+                if (d0.get_type() == datum_t::R_OBJECT) {
+                    switch (env->env->reql_version()) {
+                    case reql_version_t::v1_13:
+                    case reql_version_t::v1_14: // v1_15 is the same as v1_14
+                        break;
+                    case reql_version_t::v1_16_is_latest:
+                        rcheck_target(v, base_exc_t::GENERIC,
+                               !d0.is_ptype() || d0.is_ptype("LITERAL"),
+                               strprintf("Cannot merge objects of type `%s`.",
+                                         d0.get_type_name().c_str()));
+                        break;
+                    default:
+                        unreachable();
+                    }
                 }
                 d = d.merge(d0);
             }
