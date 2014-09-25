@@ -67,6 +67,9 @@ static read_func_t no_read_func_needed = &no_read_func_needed_f;
 
 struct msg_t {
     struct limit_start_t {
+        limit_start_t() { };
+        limit_start_t(uuid_u _sub, std::vector<std::pair<datum_t, datum_t> > _start_data)
+            : sub(std::move(_sub)), start_data(std::move(_start_data)) { }
         uuid_u sub;
         // RSI: send this!
         std::vector<std::pair<datum_t, datum_t> > start_data;
@@ -82,7 +85,6 @@ struct msg_t {
         change_t() { };
         change_t(datum_t _old_val, datum_t _new_val)
             : old_val(std::move(_old_val)), new_val(std::move(_new_val)) { }
-        ~change_t() { }
         datum_t old_val, new_val;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -226,6 +228,9 @@ typedef std::multimap<datum_t, datum_t,
 class server_t;
 class limit_manager_t {
 public:
+    // Make sure you have a lock in the `server_t` (e.g. the lock provided by
+    // `foreach_limit`) before calling the constructor or any of the member
+    // functions.
     limit_manager_t(
         region_t _region,
         std::string _table,
@@ -233,17 +238,8 @@ public:
         client_t::addr_t _parent_client,
         uuid_u _uuid,
         keyspec_t::limit_t _spec,
-        datum_map_t &&start_data)
-        : region(std::move(_region)),
-          table(std::move(_table)),
-          parent(_parent),
-          parent_client(std::move(_parent_client)),
-          uuid(std::move(_uuid)),
-          spec(std::move(_spec)),
-          data(std::move(start_data)) { }
+        datum_map_t &&start_data);
 
-    // Make sure you have a lock (e.g. the lock provided by `foreach_limit`)
-    // before calling these.
     void del(datum_t key);
     void add(datum_t key, datum_t val);
     void commit(const pure_read_func_t &read_func);
@@ -258,6 +254,8 @@ public:
     const region_t region; // RSI: use this!
     const std::string table;
 private:
+    void send(msg_t &&msg);
+
     server_t *parent;
     client_t::addr_t parent_client;
 

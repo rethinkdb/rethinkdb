@@ -73,24 +73,24 @@ void server_t::add_limit_client(
 
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::write);
-    spot.write_signal()->wait_lazily_unordered();
+    spot.read_signal()->wait_lazily_unordered();
     auto it = clients.find(addr);
 
     // It's entirely possible the peer disconnected by the time we got here.
     if (it != clients.end()) {
         auto *vec = &it->second.limit_clients[spec.sindex];
-        vec->push_back(
-            make_scoped<limit_manager_t>(
-                region,
-                table,
-                this,
-                it->first,
-                client_uuid,
-                spec,
-                std::move(start_data)));
+        auto lm = make_scoped<limit_manager_t>(
+            region,
+            table,
+            this,
+            it->first,
+            client_uuid,
+            spec,
+            std::move(start_data));
+        spot.write_signal()->wait_lazily_unordered();
+        vec->push_back(std::move(lm));
     }
 }
-
 
 void server_t::add_client_cb(signal_t *stopped, client_t::addr_t addr) {
     auto_drainer_t::lock_t coro_lock(&drainer);
@@ -206,6 +206,36 @@ void server_t::foreach_limit(const std::string &sindex,
     }
 }
 
+void limit_manager_t::send(msg_t &&msg) {
+    auto_drainer_t::lock_t drain_lock(&parent->drainer);
+    auto it = parent->clients.find(parent_client);
+    guarantee(it != parent->clients.end());
+    parent->send_one_with_lock(drain_lock, &*it, std::move(msg));
+}
+
+limit_manager_t::limit_manager_t(
+    region_t _region,
+    std::string _table,
+    server_t *_parent,
+    client_t::addr_t _parent_client,
+    uuid_u _uuid,
+    keyspec_t::limit_t _spec,
+    datum_map_t &&start_data)
+    : region(std::move(_region)),
+      table(std::move(_table)),
+      parent(_parent),
+      parent_client(std::move(_parent_client)),
+      uuid(std::move(_uuid)),
+      spec(std::move(_spec)),
+      data(std::move(start_data)) {
+    std::vector<std::pair<datum_t, datum_t> > v;
+    for (const auto &pair : data) {
+        v.push_back(pair);
+    }
+    send(msg_t(msg_t::limit_start_t(uuid, std::move(v))));
+}
+
+
 void limit_manager_t::add(datum_t key, datum_t val) {
     added.push_back(std::make_pair(key, val));
 }
@@ -278,10 +308,7 @@ void limit_manager_t::commit(const pure_read_func_t &read_func) {
             msg.new_val = *add_it;
             ++add_it;
         }
-        auto_drainer_t::lock_t drain_lock(&parent->drainer);
-        auto it = parent->clients.find(parent_client);
-        guarantee(it != parent->clients.end());
-        parent->send_one_with_lock(drain_lock, &*it, msg_t(msg));
+        send(msg_t(std::move(msg)));
     }
     added.clear();
     deleted.clear();
