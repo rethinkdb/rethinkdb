@@ -302,7 +302,8 @@ class bracket_term_t : public grouped_seq_op_term_t {
 public:
     bracket_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : grouped_seq_op_term_t(env, term, argspec_t(2), optargspec_t({"_NO_RECURSE_"})),
-          impl(this, SKIP_MAP, term, std::set<std::string>{}) {}
+          acceptable_ptypes(),
+          impl(this, SKIP_MAP, term, acceptable_ptypes) {}
 private:
     counted_t<val_t> obj_eval_dereferenced(counted_t<val_t> v0, counted_t<val_t> v1) const {
         datum_t d = v0->as_datum();
@@ -337,6 +338,7 @@ private:
     // I reimplement it here for clarity.
     virtual bool is_grouped_seq_op() const { return true; }
 
+    const std::set<std::string> acceptable_ptypes;
     obj_or_seq_op_impl_t impl;
 };
 
