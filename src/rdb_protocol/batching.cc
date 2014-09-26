@@ -72,7 +72,7 @@ batchspec_t batchspec_t::all() {
 }
 
 static bool set_if_present(const char *argname, env_t *env, datum_t * dest) {
-    counted_t<val_t> v = env->get_optarg(env, argname);
+    scoped_ptr_t<val_t> v = env->get_optarg(env, argname);
     if (v.has()) {
         *dest = v->as_datum();
         return true;

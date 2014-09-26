@@ -35,9 +35,9 @@ private:
     // Even seemingly harmless things such as r.line() are affected because they
     // perform geometric validation.
     bool is_deterministic() const { return false; }
-    virtual counted_t<val_t> eval_geo(
+    virtual scoped_ptr_t<val_t> eval_geo(
             scope_env_t *env, args_t *args, eval_flags_t flags) const = 0;
-    counted_t<val_t> eval_impl(
+    scoped_ptr_t<val_t> eval_impl(
             scope_env_t *env, args_t *args, eval_flags_t flags) const {
         try {
             return eval_geo(env, args, flags);
@@ -55,10 +55,10 @@ public:
 private:
     // See comment in geo_term_t about non-determinism
     bool is_deterministic() const { return false; }
-    virtual counted_t<val_t> obj_eval_geo(
-            scope_env_t *env, args_t *args, counted_t<val_t> v0) const = 0;
-    counted_t<val_t> obj_eval(
-            scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
+    virtual scoped_ptr_t<val_t> obj_eval_geo(
+            scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const = 0;
+    scoped_ptr_t<val_t> obj_eval(
+            scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
         try {
             return obj_eval_geo(env, args, v0);
         } catch (const geo_exception_t &e) {
@@ -72,8 +72,8 @@ public:
     geojson_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : geo_term_t(env, term, argspec_t(1)) { }
 private:
-    counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> v = args->arg(env, 0);
+    scoped_ptr_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> v = args->arg(env, 0);
         datum_t geo_json = v->as_datum();
         validate_geojson(geo_json);
 
@@ -99,8 +99,8 @@ public:
     to_geojson_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> v = args->arg(env, 0);
+    scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> v = args->arg(env, 0);
 
         datum_object_builder_t result(v->as_ptype(pseudo::geometry_string));
         bool success = result.delete_field(datum_t::reql_type_string);
@@ -115,7 +115,7 @@ public:
     point_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : geo_term_t(env, term, argspec_t(2)) { }
 private:
-    counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
+    scoped_ptr_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
         double lon = args->arg(env, 0)->as_num();
         double lat = args->arg(env, 1)->as_num();
         lon_lat_point_t point(lon, lat);
@@ -151,7 +151,7 @@ lon_lat_line_t parse_line_from_args(scope_env_t *env, args_t *args) {
     lon_lat_line_t line;
     line.reserve(args->num_args());
     for (size_t i = 0; i < args->num_args(); ++i) {
-        counted_t<const val_t> point_arg = args->arg(env, i);
+        scoped_ptr_t<const val_t> point_arg = args->arg(env, i);
         const datum_t &point_datum = point_arg->as_datum();
         line.push_back(parse_point_argument(point_datum));
     }
@@ -164,7 +164,7 @@ public:
     line_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : geo_term_t(env, term, argspec_t(2, -1)) { }
 private:
-    counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
+    scoped_ptr_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
         const lon_lat_line_t line = parse_line_from_args(env, args);
 
         const datum_t result = construct_geo_line(line, env->env->limits());
@@ -180,7 +180,7 @@ public:
     polygon_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : geo_term_t(env, term, argspec_t(3, -1)) { }
 private:
-    counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
+    scoped_ptr_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
         const lon_lat_line_t shell = parse_line_from_args(env, args);
 
         const datum_t result = construct_geo_polygon(shell, env->env->limits());
@@ -196,9 +196,9 @@ public:
     intersects_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : geo_obj_or_seq_op_term_t(env, term, poly_type_t::FILTER, argspec_t(2)) { }
 private:
-    counted_t<val_t> obj_eval_geo(
-            scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
-        counted_t<val_t> other = args->arg(env, 1);
+    scoped_ptr_t<val_t> obj_eval_geo(
+            scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
+        scoped_ptr_t<val_t> other = args->arg(env, 1);
 
         bool result = geo_does_intersect(v0->as_ptype(pseudo::geometry_string),
                                          other->as_ptype(pseudo::geometry_string));
@@ -213,9 +213,9 @@ public:
     includes_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : geo_obj_or_seq_op_term_t(env, term, poly_type_t::FILTER, argspec_t(2)) { }
 private:
-    counted_t<val_t> obj_eval_geo(
-            scope_env_t *env, args_t *args, counted_t<val_t> v0) const {
-        counted_t<val_t> g = args->arg(env, 1);
+    scoped_ptr_t<val_t> obj_eval_geo(
+            scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
+        scoped_ptr_t<val_t> g = args->arg(env, 1);
 
         scoped_ptr_t<S2Polygon> s2polygon =
             to_s2polygon(v0->as_ptype(pseudo::geometry_string));
@@ -227,7 +227,7 @@ private:
 };
 
 ellipsoid_spec_t pick_reference_ellipsoid(scope_env_t *env, args_t *args) {
-    counted_t<val_t> geo_system_arg = args->optarg(env, "geo_system");
+    scoped_ptr_t<val_t> geo_system_arg = args->optarg(env, "geo_system");
     if (geo_system_arg.has()) {
         if (geo_system_arg->as_datum().get_type() == datum_t::R_OBJECT) {
             // We expect a reference ellipsoid with parameters 'a' and 'f'.
@@ -258,7 +258,7 @@ ellipsoid_spec_t pick_reference_ellipsoid(scope_env_t *env, args_t *args) {
 }
 
 dist_unit_t pick_dist_unit(scope_env_t *env, args_t *args) {
-    counted_t<val_t> geo_system_arg = args->optarg(env, "unit");
+    scoped_ptr_t<val_t> geo_system_arg = args->optarg(env, "unit");
     if (geo_system_arg.has()) {
         return parse_dist_unit(geo_system_arg->as_str().to_std());
     } else {
@@ -271,9 +271,9 @@ public:
     distance_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : geo_term_t(env, term, argspec_t(2), optargspec_t({"geo_system", "unit"})) { }
 private:
-    counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> g1_arg = args->arg(env, 0);
-        counted_t<val_t> g2_arg = args->arg(env, 1);
+    scoped_ptr_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> g1_arg = args->arg(env, 0);
+        scoped_ptr_t<val_t> g2_arg = args->arg(env, 1);
 
         ellipsoid_spec_t reference_ellipsoid = pick_reference_ellipsoid(env, args);
         dist_unit_t result_unit = pick_dist_unit(env, args);
@@ -306,16 +306,16 @@ public:
         : geo_term_t(env, term, argspec_t(2),
           optargspec_t({"geo_system", "unit", "fill", "num_vertices"})) { }
 private:
-    counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> center_arg = args->arg(env, 0);
-        counted_t<val_t> radius_arg = args->arg(env, 1);
+    scoped_ptr_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> center_arg = args->arg(env, 0);
+        scoped_ptr_t<val_t> radius_arg = args->arg(env, 1);
 
-        counted_t<val_t> fill_arg = args->optarg(env, "fill");
+        scoped_ptr_t<val_t> fill_arg = args->optarg(env, "fill");
         bool fill = true;
         if (fill_arg.has()) {
             fill = fill_arg->as_bool();
         }
-        counted_t<val_t> num_vertices_arg = args->optarg(env, "num_vertices");
+        scoped_ptr_t<val_t> num_vertices_arg = args->optarg(env, "num_vertices");
         unsigned int num_vertices = 32;
         if (num_vertices_arg.has()) {
             num_vertices = num_vertices_arg->as_int<unsigned int>();
@@ -349,10 +349,10 @@ public:
     get_intersecting_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : geo_term_t(env, term, argspec_t(2), optargspec_t({ "index" })) { }
 private:
-    counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
+    scoped_ptr_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
-        counted_t<val_t> query_arg = args->arg(env, 1);
-        counted_t<val_t> index = args->optarg(env, "index");
+        scoped_ptr_t<val_t> query_arg = args->arg(env, 1);
+        scoped_ptr_t<val_t> index = args->optarg(env, "index");
         if (!index.has()) {
             rfail(base_exc_t::GENERIC, "get_intersecting requires an index argument.");
         }
@@ -371,8 +371,8 @@ public:
     fill_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : geo_term_t(env, term, argspec_t(1)) { }
 private:
-    counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> l_arg = args->arg(env, 0);
+    scoped_ptr_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> l_arg = args->arg(env, 0);
         const lon_lat_line_t shell =
             extract_lon_lat_line(l_arg->as_ptype(pseudo::geometry_string));
 
@@ -390,10 +390,10 @@ public:
         : geo_term_t(env, term, argspec_t(2),
           optargspec_t({ "index", "max_results", "max_dist", "geo_system", "unit" })) { }
 private:
-    counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
+    scoped_ptr_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
-        counted_t<val_t> center_arg = args->arg(env, 1);
-        counted_t<val_t> index = args->optarg(env, "index");
+        scoped_ptr_t<val_t> center_arg = args->arg(env, 1);
+        scoped_ptr_t<val_t> index = args->optarg(env, "index");
         if (!index.has()) {
             rfail(base_exc_t::GENERIC, "get_nearest requires an index argument.");
         }
@@ -401,7 +401,7 @@ private:
         lon_lat_point_t center = parse_point_argument(center_arg->as_datum());
         ellipsoid_spec_t reference_ellipsoid = pick_reference_ellipsoid(env, args);
         dist_unit_t dist_unit = pick_dist_unit(env, args);
-        counted_t<val_t> max_dist_arg = args->optarg(env, "max_dist");
+        scoped_ptr_t<val_t> max_dist_arg = args->optarg(env, "max_dist");
         double max_dist = 100000; // Default: 100 km
         if (max_dist_arg.has()) {
             max_dist =
@@ -409,7 +409,7 @@ private:
             rcheck_target(max_dist_arg, base_exc_t::GENERIC, max_dist > 0.0,
                           "max_dist must be positive.");
         }
-        counted_t<val_t> max_results_arg = args->optarg(env, "max_results");
+        scoped_ptr_t<val_t> max_results_arg = args->optarg(env, "max_results");
         int64_t max_results = 100; // Default: 100 results
         if (max_results_arg.has()) {
             max_results = max_results_arg->as_int();
@@ -430,7 +430,7 @@ public:
     polygon_sub_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : geo_term_t(env, term, argspec_t(2)) { }
 private:
-    const datum_t check_arg(counted_t<val_t> arg) const {
+    const datum_t check_arg(scoped_ptr_t<val_t> arg) const {
         const datum_t res = arg->as_ptype(pseudo::geometry_string);
 
         rcheck_target(arg.get(), base_exc_t::GENERIC,
@@ -444,7 +444,7 @@ private:
         return res;
     }
 
-    counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
+    scoped_ptr_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
         const datum_t lhs = check_arg(args->arg(env, 0));
         const datum_t rhs = check_arg(args->arg(env, 1));
 

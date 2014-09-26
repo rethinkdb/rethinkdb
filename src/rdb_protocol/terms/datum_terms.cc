@@ -10,15 +10,15 @@ namespace ql {
 class datum_term_t : public term_t {
 public:
     datum_term_t(protob_t<const Term> t, const configured_limits_t &limits)
-        : term_t(t), raw_val(new_val(to_datum(&t->datum(), limits))) { }
+        : term_t(t), datum(to_datum(&t->datum(), limits)) { }
 private:
     virtual void accumulate_captures(var_captures_t *) const { /* do nothing */ }
     virtual bool is_deterministic() const { return true; }
-    virtual counted_t<val_t> term_eval(scope_env_t *, eval_flags_t) const {
-        return raw_val;
+    virtual scoped_ptr_t<val_t> term_eval(scope_env_t *, eval_flags_t) const {
+        return new_val(datum);
     }
     virtual const char *name() const { return "datum"; }
-    counted_t<val_t> raw_val;
+    datum_t datum;
 };
 
 class constant_term_t : public op_term_t {
@@ -27,7 +27,7 @@ public:
                     double constant, const char *name)
         : op_term_t(env, t, argspec_t(0)), _constant(constant), _name(name) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *, args_t *, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *, args_t *, eval_flags_t) const {
         return new_val(datum_t(_constant));
     }
     virtual const char *name() const { return _name; }
@@ -40,7 +40,7 @@ public:
     make_array_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         datum_array_builder_t acc(env->env->limits());
         acc.reserve(args->num_args());
         {
@@ -75,7 +75,7 @@ public:
         }
     }
 
-    counted_t<val_t> term_eval(scope_env_t *env, eval_flags_t flags) const {
+    scoped_ptr_t<val_t> term_eval(scope_env_t *env, eval_flags_t flags) const {
         bool literal_ok = flags & LITERAL_OK;
         eval_flags_t new_flags = literal_ok ? LITERAL_OK : NO_FLAGS;
         datum_object_builder_t acc;
@@ -112,8 +112,8 @@ public:
     binary_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, 1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> arg = args->arg(env, 0);
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> arg = args->arg(env, 0);
         datum_t datum_arg = arg->as_datum();
 
         if (datum_arg.get_type() == datum_t::type_t::R_BINARY) {

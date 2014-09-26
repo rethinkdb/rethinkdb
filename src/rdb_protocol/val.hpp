@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_VAL_HPP_
 #define RDB_PROTOCOL_VAL_HPP_
 
@@ -15,7 +15,9 @@
 #include "rdb_protocol/ql2.pb.h"
 
 class ellipsoid_spec_t;
+
 namespace ql {
+
 class datum_t;
 class env_t;
 template <class> class protob_t;
@@ -135,7 +137,7 @@ enum function_shortcut_t {
 
 // A value is anything RQL can pass around -- a datum, a sequence, a function, a
 // selection, whatever.
-class val_t : public single_threaded_countable_t<val_t>, public pb_rcheckable_t {
+class val_t : public pb_rcheckable_t {
 public:
     // This type is intentionally opaque.  It is almost always an error to
     // compare two `val_t` types rather than testing whether one is convertible
@@ -165,7 +167,7 @@ public:
     private:
         friend class coerce_term_t;
         friend class typeof_term_t;
-        friend int val_type(counted_t<val_t> v);
+        friend int val_type(const scoped_ptr_t<val_t> &v);
         raw_type_t raw_type;
     };
     type_t get_type() const;
@@ -209,11 +211,11 @@ public:
     counted_t<grouped_data_t> maybe_as_promiscuous_grouped_data(env_t *env);
 
     datum_t as_datum() const; // prefer the 4 below
-    datum_t as_ptype(const std::string s = "");
-    bool as_bool();
-    double as_num();
+    datum_t as_ptype(const std::string s = "") const;
+    bool as_bool() const;
+    double as_num() const;
     template<class T>
-    T as_int() {
+    T as_int() const {
         int64_t i = as_int();
         T t = static_cast<T>(i);
         rcheck(static_cast<int64_t>(t) == i,
@@ -221,8 +223,8 @@ public:
                strprintf("Integer too large: %" PRIi64, i));
         return t;
     }
-    int64_t as_int();
-    datum_string_t as_str();
+    int64_t as_int() const;
+    datum_string_t as_str() const;
 
     std::string print() const;
     std::string trunc_print() const;
@@ -230,7 +232,7 @@ public:
     datum_t get_orig_key() const;
 
 private:
-    friend int val_type(counted_t<val_t> v); // type_manip version
+    friend int val_type(const scoped_ptr_t<val_t> &v); // type_manip version
     void rcheck_literal_type(type_t::raw_type_t expected_raw_type) const;
 
     type_t type;

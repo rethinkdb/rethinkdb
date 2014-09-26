@@ -11,8 +11,8 @@ public:
     keys_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> v = args->arg(env, 0);
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> v = args->arg(env, 0);
         datum_t d = v->as_datum();
         switch (env->env->reql_version()) {
         case reql_version_t::v1_13:
@@ -44,7 +44,7 @@ public:
     object_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         rcheck(args->num_args() % 2 == 0,
                base_exc_t::GENERIC,
                strprintf("OBJECT expects an even number of arguments (but found %zu).",

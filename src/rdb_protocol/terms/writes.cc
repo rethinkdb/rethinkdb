@@ -30,7 +30,7 @@ datum_t new_stats_object() {
     return std::move(stats).to_datum();
 }
 
-conflict_behavior_t parse_conflict_optarg(counted_t<val_t> arg,
+conflict_behavior_t parse_conflict_optarg(const scoped_ptr_t<val_t> &arg,
                                           const pb_rcheckable_t *target) {
     if (!arg.has()) { return conflict_behavior_t::ERROR; }
     const datum_string_t &str = arg->as_str();
@@ -44,7 +44,7 @@ conflict_behavior_t parse_conflict_optarg(counted_t<val_t> arg,
                  str.to_std().c_str());
 }
 
-durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
+durability_requirement_t parse_durability_optarg(const scoped_ptr_t<val_t> &arg,
                                                  const pb_rcheckable_t *target) {
     if (!arg.has()) { return DURABILITY_REQUIREMENT_DEFAULT; }
     const datum_string_t &str = arg->as_str();
@@ -91,13 +91,13 @@ private:
         }
     }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> t = args->arg(env, 0)->as_table();
         return_changes_t return_changes = return_changes_t::NO;
-        if (counted_t<val_t> v = args->optarg(env, "return_changes")) {
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "return_changes")) {
             return_changes = v->as_bool() ? return_changes_t::YES : return_changes_t::NO;
         }
-        if (counted_t<val_t> v = args->optarg(env, "return_vals")) {
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "return_vals")) {
             rfail(base_exc_t::GENERIC, "return_vals renamed to return_changes");
         }
 
@@ -111,7 +111,7 @@ private:
         std::vector<std::string> generated_keys;
         std::set<std::string> conditions;
         size_t keys_skipped = 0;
-        counted_t<val_t> v1 = args->arg(env, 1);
+        scoped_ptr_t<val_t> v1 = args->arg(env, 1);
         if (v1->get_type().is_convertible(val_t::type_t::DATUM)) {
             std::vector<datum_t> datums;
             datums.push_back(v1->as_datum());
@@ -192,16 +192,16 @@ public:
                     optargspec_t({"non_atomic", "durability", "return_vals", "return_changes"})) { }
 
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         bool nondet_ok = false;
-        if (counted_t<val_t> v = args->optarg(env, "non_atomic")) {
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "non_atomic")) {
             nondet_ok = v->as_bool();
         }
         return_changes_t return_changes = return_changes_t::NO;
-        if (counted_t<val_t> v = args->optarg(env, "return_changes")) {
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "return_changes")) {
             return_changes = v->as_bool() ? return_changes_t::YES : return_changes_t::NO;
         }
-        if (counted_t<val_t> v = args->optarg(env, "return_vals")) {
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "return_vals")) {
             rfail(base_exc_t::GENERIC, "return_vals renamed to return_changes");
         }
 
@@ -213,7 +213,7 @@ private:
             f->assert_deterministic("Maybe you want to use the non_atomic flag?");
         }
 
-        counted_t<val_t> v0 = args->arg(env, 0);
+        scoped_ptr_t<val_t> v0 = args->arg(env, 0);
         datum_t stats = new_stats_object();
         std::set<std::string> conditions;
         if (v0->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
@@ -277,7 +277,7 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         const char *fail_msg = "FOREACH expects one or more basic write queries.";
 
         counted_t<datum_stream_t> ds = args->arg(env, 0)->as_seq(env->env);
@@ -290,7 +290,7 @@ private:
             counted_t<const func_t> f = args->arg(env, 1)->as_func(CONSTANT_SHORTCUT);
             datum_t row;
             while (row = ds->next(env->env, batchspec), row.has()) {
-                counted_t<val_t> v = f->call(env->env, row);
+                scoped_ptr_t<val_t> v = f->call(env->env, row);
                 try {
                     datum_t d = v->as_datum();
                     if (d.get_type() == datum_t::R_OBJECT) {

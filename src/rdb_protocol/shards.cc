@@ -265,7 +265,7 @@ private:
         }
     }
 
-    virtual counted_t<val_t> finish_eager(protob_t<const Backtrace> bt,
+    virtual scoped_ptr_t<val_t> finish_eager(protob_t<const Backtrace> bt,
                                           bool is_grouped,
                                           const configured_limits_t &limits) {
         if (is_grouped) {
@@ -274,12 +274,12 @@ private:
                 (*ret)[kv->first] = datum_t(std::move(kv->second),
                                                                limits);
             }
-            return make_counted<val_t>(std::move(ret), bt);
+            return make_scoped<val_t>(std::move(ret), bt);
         } else if (groups.size() == 0) {
-            return make_counted<val_t>(datum_t::empty_array(), bt);
+            return make_scoped<val_t>(datum_t::empty_array(), bt);
         } else {
             r_sanity_check(groups.size() == 1 && !groups.begin()->first.has());
-            return make_counted<val_t>(
+            return make_scoped<val_t>(
                 datum_t(std::move(groups.begin()->second), limits),
                 bt);
         }
@@ -315,13 +315,13 @@ private:
         groups->clear();
     }
 
-    virtual counted_t<val_t> finish_eager(protob_t<const Backtrace> bt,
+    virtual scoped_ptr_t<val_t> finish_eager(protob_t<const Backtrace> bt,
                                           bool is_grouped,
                                           UNUSED const configured_limits_t &limits) {
         accumulator_t::mark_finished();
         grouped_t<T> *acc = grouped_acc_t<T>::get_acc();
         const T *default_val = grouped_acc_t<T>::get_default_val();
-        counted_t<val_t> retval;
+        scoped_ptr_t<val_t> retval;
         if (is_grouped) {
             counted_t<grouped_data_t> ret(new grouped_data_t());
             // The order of `acc` doesn't matter here because we're putting stuff
@@ -331,15 +331,15 @@ private:
                  ++kv) {
                 ret->insert(std::make_pair(kv->first, unpack(&kv->second)));
             }
-            retval = make_counted<val_t>(std::move(ret), bt);
+            retval = make_scoped<val_t>(std::move(ret), bt);
         } else if (acc->size() == 0) {
             T t(*default_val);
-            retval = make_counted<val_t>(unpack(&t), bt);
+            retval = make_scoped<val_t>(unpack(&t), bt);
         } else {
             // Order doesnt' matter here because the size is 1.
             r_sanity_check(acc->size() == 1 &&
                            !acc->begin(grouped::order_doesnt_matter_t())->first.has());
-            retval = make_counted<val_t>(unpack(&acc->begin(grouped::order_doesnt_matter_t())->second), bt);
+            retval = make_scoped<val_t>(unpack(&acc->begin(grouped::order_doesnt_matter_t())->second), bt);
         }
         acc->clear();
         return retval;
