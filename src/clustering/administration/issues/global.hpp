@@ -14,6 +14,7 @@
 class issue_multiplexer_t;
 class cluster_semilattice_metadata_t;
 
+
 class issue_t {
 public:
     explicit issue_t(const issue_id_t &_issue_id) : issue_id(_issue_id) { }
@@ -31,11 +32,38 @@ public:
     static const std::string get_server_name(const metadata_t &metadata,
                                              const machine_id_t &server_id);
 
+    // Utility function for generating deterministic UUIDs via a hash of the args
+    template<class... Args>
+    static uuid_u from_hash(const uuid_u &base, const Args&... args) {
+        return uuid_u::from_hash(base, concat(args...));
+    }
+
 protected:
     virtual void build_info_and_description(const metadata_t &metadata,
                                             ql::datum_t *info_out,
                                             datum_string_t *desc_out) const = 0;
 private:
+    // Terminal concat call
+    static std::string concat() { return std::string(""); }
+
+    template <typename T, typename... Args>
+    static std::string concat(const T& arg1, const Args&... args) {
+        return item_to_str(arg1) + concat(args...);
+    }
+
+    template <typename T>
+    static std::string item_to_str(const std::vector<T> &vec) {
+        std::string res;
+        for (auto const &item : vec) {
+            res += item_to_str(item);
+        }
+        return res;
+    }
+
+    static std::string item_to_str(const name_string_t &str);
+    static std::string item_to_str(const std::string &str);
+    static std::string item_to_str(const uuid_u &id);
+
     const issue_id_t issue_id;
     DISABLE_COPYING(issue_t);
 };

@@ -62,7 +62,7 @@ void build_server_db_description(const std::string &type,
 }
 
 server_name_conflict_issue_t::server_name_conflict_issue_t(const name_string_t &_conflicted_name) :
-    name_conflict_issue_t(issue_id_t::from_hash(base_issue_id, _conflicted_name),
+    name_conflict_issue_t(from_hash(base_issue_id, _conflicted_name),
                           _conflicted_name) { }
 
 void server_name_conflict_issue_t::build_info_and_description(const metadata_t &metadata,
@@ -74,7 +74,7 @@ void server_name_conflict_issue_t::build_info_and_description(const metadata_t &
 }
 
 db_name_conflict_issue_t::db_name_conflict_issue_t(const name_string_t &_conflicted_name) :
-    name_conflict_issue_t(issue_id_t::from_hash(base_issue_id, _conflicted_name),
+    name_conflict_issue_t(from_hash(base_issue_id, _conflicted_name),
                           _conflicted_name) { }
 
 void db_name_conflict_issue_t::build_info_and_description(const metadata_t &metadata,
@@ -87,8 +87,7 @@ void db_name_conflict_issue_t::build_info_and_description(const metadata_t &meta
 
 table_name_conflict_issue_t::table_name_conflict_issue_t(const name_string_t &_conflicted_name,
                                                          const database_id_t &_db_id) :
-    name_conflict_issue_t(issue_id_t::from_hash(base_issue_id,
-                                            _db_id, _conflicted_name),
+    name_conflict_issue_t(from_hash(base_issue_id, _db_id, _conflicted_name),
                           _conflicted_name),
     db_id(_db_id) { }
 

@@ -9,7 +9,7 @@ const uuid_u log_write_issue_t::base_issue_id =
 
 log_write_issue_t::log_write_issue_t(const std::string &_message,
                                      const std::vector<machine_id_t> &_affected_servers) :
-    issue_t(uuid_u::from_hash(base_issue_id, _affected_servers, _message)),
+    issue_t(from_hash(base_issue_id, _affected_servers, _message)),
     message(_message),
     affected_servers(_affected_servers) { }
 

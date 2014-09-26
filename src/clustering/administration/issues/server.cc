@@ -57,7 +57,7 @@ std::string servers_to_string(const std::vector<std::string> &server_names) {
 
 server_down_issue_t::server_down_issue_t(const machine_id_t &_down_server_id,
                                          const std::vector<machine_id_t> &_affected_server_ids) :
-    issue_t(uuid_u::from_hash(base_issue_id, _down_server_id)),
+    issue_t(from_hash(base_issue_id, _down_server_id)),
     down_server_id(_down_server_id),
     affected_server_ids(_affected_server_ids) { }
 
@@ -75,7 +75,7 @@ void server_down_issue_t::build_info_and_description(const metadata_t &metadata,
 
 server_ghost_issue_t::server_ghost_issue_t(const machine_id_t &_ghost_server_id,
                                            const std::vector<machine_id_t> &_affected_server_ids) :
-    issue_t(issue_id_t::from_hash(base_issue_id, _ghost_server_id)),
+    issue_t(from_hash(base_issue_id, _ghost_server_id)),
     ghost_server_id(_ghost_server_id),
     affected_server_ids(_affected_server_ids) { }
 

@@ -29,6 +29,18 @@ const std::string issue_t::get_server_name(const issue_t::metadata_t &metadata,
     return machine_it->second.get_ref().name.get_ref().str();
 }
 
+std::string issue_t::item_to_str(const name_string_t &str) {
+    return item_to_str(str.str());
+}
+
+std::string issue_t::item_to_str(const std::string &str) {
+    return 'S' + str + '\0';
+}
+
+std::string issue_t::item_to_str(const uuid_u &id) {
+    return 'U' + std::string(reinterpret_cast<const char *>(id.data()),
+                             id.static_size()) + '\0';
+}
 
 issue_tracker_t::issue_tracker_t(issue_multiplexer_t *_parent) : parent(_parent) {
     parent->assert_thread();

@@ -34,35 +34,9 @@ public:
     uint8_t *data() { return data_; }
     const uint8_t *data() const { return data_; }
 
-    // Generates a deterministic hash of the given arguments and returns a UUID for them
-    template<class... Args>
-    static uuid_u from_hash(const uuid_u &base, const Args&... args) {
-        return from_hash_internal(base, concat(args...));
-    }
+    static uuid_u from_hash(const uuid_u &base, const std::string &name);
+
 private:
-    // Terminal concat call
-    static std::string concat() { return std::string(""); }
-
-    template <typename T, typename... Args>
-    static std::string concat(const T& arg1, const Args&... args) {
-        return item_to_str(arg1) + concat(args...);
-    }
-
-    template <typename T>
-    static std::string item_to_str(const std::vector<T> &vec) {
-        std::string res;
-        for (auto const &item : vec) {
-            res += item_to_str(item);
-        }
-        return res;
-    }
-
-    static std::string item_to_str(const name_string_t &str);
-    static std::string item_to_str(const std::string &str);
-    static std::string item_to_str(const uuid_u &id);
-
-    static uuid_u from_hash_internal(const uuid_u &base, const std::string &name);
-
     uint8_t data_[kStaticSize];
 };
 

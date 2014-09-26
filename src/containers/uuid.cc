@@ -37,23 +37,10 @@ bool uuid_u::is_nil() const {
     return true;
 }
 
-std::string uuid_u::item_to_str(const name_string_t &str) {
-    return item_to_str(str.str());
-}
-
-std::string uuid_u::item_to_str(const std::string &str) {
-    return 'S' + str + '\0';
-}
-
-std::string uuid_u::item_to_str(const uuid_u &id) {
-    return 'U' + std::string(reinterpret_cast<const char *>(id.data()),
-                             id.static_size()) + '\0';
-}
-
 // This conforms to RFC4122 section 4.3 with the exception that we do not
 // conver byte order, because the data is kept in network byte order already
-uuid_u uuid_u::from_hash_internal(const uuid_u &base,
-                                  const std::string &name) {
+uuid_u uuid_u::from_hash(const uuid_u &base,
+                         const std::string &name) {
     rassert(!base.is_unset() && !base.is_nil());
 
     // Concatenate base and name
