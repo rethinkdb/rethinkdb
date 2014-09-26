@@ -174,6 +174,11 @@ admin_artificial_tables_t::admin_artificial_tables_t(
     backends[name_string_t::guarantee_valid("db_config")] =
         db_config_backend.get();
 
+    issues_backend.init(new issues_artificial_table_backend_t(
+        *_admin_tracker));
+    backends[name_string_t::guarantee_valid("issues")] =
+        issues_backend.get();
+
     server_config_backend.init(new server_config_artificial_table_backend_t(
         metadata_field(&cluster_semilattice_metadata_t::machines,
             _semilattice_view),
@@ -216,11 +221,6 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         _name_client));
     backends[name_string_t::guarantee_valid("table_status")] =
         table_status_backend.get();
-
-    issues_backend.init(new issues_artificial_table_backend_t(
-        *_admin_tracker));
-    backends[name_string_t::guarantee_valid("issues")] =
-        issues_backend.get();
 
     reql_cluster_interface.init(new artificial_reql_cluster_interface_t(
         name_string_t::guarantee_valid("rethinkdb"),
