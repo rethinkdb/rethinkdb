@@ -23,7 +23,6 @@ protected:
     std::vector<uuid_u> get_conflicted_ids(const map_t &metadata) const;
 
     const name_string_t conflicted_name;
-    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > metadata;
 };
 
 // Issue for server name conflicts
