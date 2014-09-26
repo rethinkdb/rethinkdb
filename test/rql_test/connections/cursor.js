@@ -2,8 +2,6 @@
 // Tests the driver cursor API
 /////
 
-var path = require('path');
-
 process.on('uncaughtException', function(err) {
     console.log(err);
     if (err.stack) {
@@ -14,11 +12,7 @@ process.on('uncaughtException', function(err) {
     process.exit(1)
 });
 
-// -- load rethinkdb from the proper location
-
-var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
-
-// --
+var r = require('../../../build/packages/js/rethinkdb');
 
 var assertNoError = function(err) {
     if (err) {

@@ -8,10 +8,11 @@ JSPORT = ARGV[0]
 CPPPORT = ARGV[1]
 DB_AND_TABLE_NAME = ARGV[2]
 
-# -- import the rethinkdb module
-expectedDriverPath = ''
+# -- import the called-for rethinkdb module
 if ENV['RUBY_DRIVER_DIR']
-  expectedDriverPath = ENV['RUBY_DRIVER_DIR']
+  $LOAD_PATH.unshift ENV['RUBY_DRIVER_DIR']
+  require 'rethinkdb'
+  $LOAD_PATH.shift
 else
   # look for the source directory
   targetPath = File.expand_path(File.dirname(__FILE__))
@@ -21,26 +22,15 @@ else
       unless system("make -C " + sourceDir)
         abort "Unable to build the ruby driver at: " + sourceDir
       end
-      expectedDriverPath = File.join(sourceDir, 'lib')
+      $LOAD_PATH.unshift(File.join(sourceDir, 'lib'))
+      require 'rethinkdb'
+      $LOAD_PATH.shift
       break
     end
     targetPath = File.dirname(targetPath)
   end
 end
-if Dir.exists?(expectedDriverPath)
-  $LOAD_PATH.unshift expectedDriverPath
-  require 'rethinkdb'
-  $LOAD_PATH.shift
-  extend RethinkDB::Shortcuts
-  
-  actualDirverPath = File.dirname(r.method(:connect).source_location[0])
-  if actualDirverPath != expectedDriverPath
-    abort "Wrong Ruby driver loaded, expected from: " + expectedDriverPath + " but got :" + actualDirverPath
-  end
-else
-  abort "Unable to locate the Ruby driver"
-end
-
+extend RethinkDB::Shortcuts
 
 def show x
   if x.class == Err

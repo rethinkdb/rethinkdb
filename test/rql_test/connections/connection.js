@@ -2,18 +2,13 @@
 // Tests the driver API for making connections and excercising the networking code
 /////
 
-var assert = require('assert');
-var path = require('path');
 var fs = require('fs');
 var spawn = require('child_process').spawn
 
-// -- load rethinkdb from the proper location
+var assert = require('assert');
 
-var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
-
-// --
-
-var build_dir = process.env.BUILD_DIR || '../../../build/debug' // - ToDo: replace this
+var r = require('../../../build/packages/js/rethinkdb');
+var build_dir = process.env.BUILD_DIR || '../../../build/debug'
 var testDefault = process.env.TEST_DEFAULT_PORT == "1"
 
 var port = null;

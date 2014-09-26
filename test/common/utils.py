@@ -8,8 +8,8 @@ import test_exceptions
 
 driverPaths = {
     'javascript': {'extension':'js', 'relDriverPath':'build/packages/js', 'relSourcePath':'drivers/javascript'},
-    'python': {'extension':'py', 'relDriverPath':'build/drivers/python/rethinkdb', 'relSourcePath':'drivers/python'},
-    'ruby': {'extension':'rb', 'relDriverPath':'build/drivers/ruby/lib', 'relSourcePath':'drivers/ruby'}
+    'python': {'extension':'js', 'relDriverPath':'build/drivers/python/rethinkdb', 'relSourcePath':'drivers/python'},
+    'ruby': {'extension':'js', 'relDriverPath':'build/drivers/ruby/lib', 'relSourcePath':'drivers/ruby'}
 }
 
 # --
@@ -37,17 +37,20 @@ def project_root_dir():
     
     return os.path.realpath(masterBuildDir)
 
-def find_rethinkdb_executable(mode=None):
+def latest_rethinkdb_executable(mode=None):
     return os.path.join(latest_build_dir(check_executable=True, mode=mode), 'rethinkdb')
 
 def latest_build_dir(check_executable=True, mode=None):
     '''Look for the most recently built version of this project'''
     
     masterBuildDir = os.path.join(project_root_dir(), 'build')
+    activeMode = ['release', 'debug']
     if mode in (None, ''):
-        mode = ['release', 'debug']
+        pass 
     elif not hasattr(mode, '__iter__'):
-        mode = [str(mode)]
+        activeMode = [str(mode)]
+    else:
+        activeMode = mode
     
     if not os.path.isdir(masterBuildDir):
         raise test_exceptions.NotBuiltException(detail='no version of this project have yet been built')
@@ -58,7 +61,7 @@ def latest_build_dir(check_executable=True, mode=None):
     canidateMtime   = None
     for name in os.listdir(masterBuildDir):
         path = os.path.join(masterBuildDir, name)
-        if os.path.isdir(path) and any(map(lambda x: name.startswith(x + '_') or name.lower() == x, mode)):
+        if os.path.isdir(path) and any(map(lambda x: name.startswith(x + '_') or name.lower() == x, activeMode)):
             if check_executable == True:
                 if not os.path.isfile(os.path.join(path, 'rethinkdb')):
                     continue
@@ -72,22 +75,6 @@ def latest_build_dir(check_executable=True, mode=None):
         raise test_exceptions.NotBuiltException(detail='no version of this project have yet been built')
     else:
         return canidatePath
-
-def rethinkdb_binary_path(buildDir=None):
-    '''Return the path to the rethinkdb executable to use'''
-    
-    path = None
-    if buildDir is not None:
-        path = os.path.realpath(os.path.join(buildDir, 'rethinkdb'))
-    if os.getenv('RETHINKDB_BUILD_DIR') is not None:
-        path = os.path.realpath(os.path.join(os.getenv('RETHINKDB_BUILD_DIR'), 'rethinkdb'))
-    else:
-        path = os.path.join(latest_build_dir(check_executable=True), 'rethinkdb')
-    
-    if not os.path.isfile(path):
-        raise test_exceptions.TestingFrameworkException(detail='There was not a binary at the expected path: %s' % str(path))
-    
-    return path
 
 def build_in_folder(targetFolder, waitNotification=None, notificationTimeout=2, buildOptions=None):
     '''Call `make -C` on a folder to build it. If waitNotification is given wait notificationTimeout seconds and then print the notificaiton'''
@@ -176,10 +163,6 @@ def import_python_driver(targetDir=None):
     
     keptPaths = sys.path[:]
     try:
-        # remove any references to the driver in sys.modules to avoid getting cached versions
-        for moduleName in [x for x in sys.modules if str(x) == 'rethinkdb' or str(x).startswith('rethinkdb.')]:
-            sys.modules.pop(moduleName)
-        
         moduleFile, pathname, desc = imp.find_module('rethinkdb', [os.path.dirname(driverDir)])
         driverModule = imp.load_module('rethinkdb', moduleFile, pathname, desc)
         if moduleFile is not None:

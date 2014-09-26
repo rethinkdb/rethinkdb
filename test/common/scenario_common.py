@@ -1,9 +1,7 @@
-# Copyright 2010-2014 RethinkDB, all rights reserved.
-
-import random, shlex
-
+# Copyright 2010-2012 RethinkDB, all rights reserved.
+import shlex, random
 from vcoptparse import *
-import driver, http_admin, workload_runner, utils
+import driver, http_admin, workload_runner
 
 def prepare_option_parser_mode_flags(opt_parser):
     opt_parser["valgrind"] = BoolFlag("--valgrind")
@@ -32,7 +30,7 @@ def parse_mode_flags(parsed_opts):
     else:
         command_prefix = []
 
-    return utils.find_rethinkdb_executable(mode=mode), command_prefix, shlex.split(parsed_opts["serve-flags"])
+    return driver.find_rethinkdb_executable(mode), command_prefix, shlex.split(parsed_opts["serve-flags"])
 
 def prepare_table_for_workload(http, **kwargs):
     db = http.add_database(name = "test")
