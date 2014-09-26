@@ -166,9 +166,10 @@ void find_duplicates(const map_t &data,
     }
 }
 
-template <typename map_t>
-void find_table_duplicates(const map_t &data,
-                           std::vector<scoped_ptr_t<issue_t> > *issues_out) {
+
+void find_table_duplicates(
+        const namespaces_semilattice_metadata_t::namespace_map_t &data,
+        std::vector<scoped_ptr_t<issue_t> > *issues_out) {
     std::set<std::pair<database_id_t, name_string_t> > seen_names;
     std::set<std::pair<database_id_t, name_string_t> > conflicted_names;
     for (auto const &it : data) {
