@@ -60,8 +60,7 @@ private:
     void write_blocking(const log_message_t &msg, std::string *error_out, bool *ok_out);
     void tail_blocking(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out, bool *ok_out);
     mutex_t write_mutex;
-    log_write_issue_tracker_t *issue_tracker;
-    scoped_ptr_t<log_write_issue_tracker_t::entry_t> issue_entry;
+    log_write_issue_tracker_t *log_write_issue_tracker;
 
     DISABLE_COPYING(thread_pool_log_writer_t);
 };

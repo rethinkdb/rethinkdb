@@ -32,33 +32,23 @@ void log_write_issue_t::build_info_and_description(const metadata_t &metadata,
 }
 
 log_write_issue_tracker_t::log_write_issue_tracker_t(local_issue_aggregator_t *_parent) :
-    local_issue_tracker_t(_parent),
-    active_entry(NULL) { }
+    local_issue_tracker_t(_parent) { }
 
-log_write_issue_tracker_t::~log_write_issue_tracker_t() {
-    guarantee(active_entry == NULL);
+void log_write_issue_tracker_t::report_success() {
+    assert_thread();
+    if (error_message) {
+        error_message.reset();
+        update(std::vector<local_issue_t>());
+    }
 }
 
-log_write_issue_tracker_t::entry_t::entry_t(log_write_issue_tracker_t *_parent) :
-        parent(_parent) {
-    parent->assert_thread();
-    guarantee(parent->active_entry == NULL);
-    parent->active_entry = this;
-}
+void log_write_issue_tracker_t::report_error(const std::string &message) {
+    assert_thread();
+    if (!error_message || error_message.get() != message) {
+        error_message = message;
 
-log_write_issue_tracker_t::entry_t::~entry_t() {
-    parent->assert_thread();
-    guarantee(parent->active_entry == this);
-    parent->active_entry = NULL;
-}
-
-void log_write_issue_tracker_t::entry_t::set_message(const std::string &_message) {
-    parent->assert_thread();
-    if (message != _message) {
-        message = _message;
-
-        std::vector<local_issue_t> issues; // There can be only one log write issue
-        issues.push_back(local_issue_t::make_log_write_issue(message));
-        parent->update(issues);
+        std::vector<local_issue_t> issues;
+        issues.push_back(local_issue_t::make_log_write_issue(error_message.get()));
+        update(issues);
     }
 }

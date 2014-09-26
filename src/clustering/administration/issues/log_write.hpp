@@ -38,22 +38,12 @@ class log_write_issue_tracker_t :
     public home_thread_mixin_t {
 public:
     explicit log_write_issue_tracker_t(local_issue_aggregator_t *_parent);
-    ~log_write_issue_tracker_t();
 
-    class entry_t {
-    public:
-        explicit entry_t(log_write_issue_tracker_t *_parent);
-        ~entry_t();
-
-        void set_message(const std::string &_message);
-
-    private:
-        log_write_issue_tracker_t *parent;
-        std::string message;
-    };
+    void report_success();
+    void report_error(const std::string &message);
 
 private:
-    entry_t *active_entry;
+    boost::optional<std::string> error_message;
     DISABLE_COPYING(log_write_issue_tracker_t);
 };
 
