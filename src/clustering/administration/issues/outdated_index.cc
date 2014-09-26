@@ -61,8 +61,8 @@ void outdated_index_issue_t::build_info(const metadata_t &metadata,
     ql::datum_object_builder_t builder;
     ql::datum_array_builder_t tables(ql::configured_limits_t::unlimited);
     for (auto const &table : indexes) {
-        std::string table_name("<unknown>");
-        std::string db_name("<unknown>");
+        std::string table_name("__deleted_table__");
+        std::string db_name("__deleted_database__");
         uuid_u db_id = nil_uuid();
 
         // Get the table name and db_id

@@ -95,13 +95,10 @@ table_name_conflict_issue_t::table_name_conflict_issue_t(const name_string_t &_c
 void table_name_conflict_issue_t::build_info_and_description(const metadata_t &metadata,
                                                              ql::datum_t *info_out,
                                                              datum_string_t *desc_out) const {
-    std::string db_name;
+    std::string db_name("__deleted_database__");
     auto const db_it = metadata.databases.databases.find(db_id);
-    if (db_it == metadata.databases.databases.end()) {
-        db_name = "<unknown>";
-    } else if (db_it->second.is_deleted()) {
-        db_name = "<deleted>";
-    } else {
+    if (db_it != metadata.databases.databases.end() &&
+        !db_it->second.is_deleted()) {
         db_name = db_it->second.get_ref().name.get_ref().str();
     }
     std::vector<namespace_id_t> ids =

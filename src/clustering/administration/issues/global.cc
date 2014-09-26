@@ -24,7 +24,7 @@ const std::string issue_t::get_server_name(const issue_t::metadata_t &metadata,
     auto machine_it = metadata.machines.machines.find(server_id);
     if (machine_it == metadata.machines.machines.end() ||
         machine_it->second.is_deleted()) {
-        return std::string("<deleted>");
+        return std::string("__deleted_server__");
     }
     return machine_it->second.get_ref().name.get_ref().str();
 }
