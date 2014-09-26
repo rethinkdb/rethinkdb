@@ -50,12 +50,12 @@ std::string uuid_u::item_to_str(const uuid_u &id) {
                              id.static_size()) + '\0';
 }
 
-// TODO: This should conform to RFC4122 section 4.3
+// This conforms to RFC4122 section 4.3 with the exception that we do not
+// conver byte order, because the data is kept in network byte order already
 uuid_u uuid_u::from_hash_internal(const uuid_u &base,
                                   const std::string &name) {
     rassert(!base.is_unset() && !base.is_nil());
 
-    // TODO: Convert base to network byte order (not done because bleh)
     // Concatenate base and name
     std::string str = std::string(reinterpret_cast<const char *>(base.data()),
                                   base.static_size()) + name;
@@ -64,11 +64,9 @@ uuid_u uuid_u::from_hash_internal(const uuid_u &base,
     uint8_t output_buffer[20];
     sha1::calc(str.c_str(), str.length(), output_buffer);
 
-    // Set some bits to obey standard for version 4 UUIDs.
-    output_buffer[6] = ((output_buffer[6] & 0x0f) | 0x40);
+    // Set some bits to obey standard for version 5 UUIDs.
+    output_buffer[6] = ((output_buffer[6] & 0x0f) | 0x50);
     output_buffer[8] = ((output_buffer[8] & 0x3f) | 0x80);
-
-    // Convert to host byte order (not done because we never put it in network byte order)
 
     // Copy the beginning of the hash into our uuid
     uuid_u uuid;

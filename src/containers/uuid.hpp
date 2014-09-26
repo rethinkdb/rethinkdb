@@ -16,6 +16,7 @@ class name_string_t;
 // uuid_t is defined on Darwin.  I have given up on what to name it.  Please
 // don't use guid_t, for it has a Windowsian connotation and we might run into
 // the same sort of problem from that.
+// UUIDs are kept in network byte order at all times.
 class uuid_u {
 public:
     uuid_u();
