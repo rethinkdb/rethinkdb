@@ -87,7 +87,7 @@ ssize_t pool_diskmgr_t::action_t::vectored_read_write(iovec *vecs,
     return pwritev(fd, vecs, vecs_to_use, real_offset);
 #else
     guarantee(vecs_len == 1);
-    guarantee(off_part == 0);
+    guarantee(partial_offset == 0);
     if (type == ACTION_READ) {
         return pread(fd, vecs[0].iov_base, vecs[0].iov_len, real_offset);
     }
