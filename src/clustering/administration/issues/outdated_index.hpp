@@ -25,7 +25,8 @@ private:
                                     ql::datum_t *info_out,
                                     datum_string_t *desc_out) const;
 
-    void build_description(datum_string_t *desc_out) const;
+    void build_description(const ql::datum_t &info,
+                           datum_string_t *desc_out) const;
 
     void build_info(const metadata_t &metadata,
                     ql::datum_t *info_out) const;

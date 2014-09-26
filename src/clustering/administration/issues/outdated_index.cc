@@ -32,21 +32,27 @@ void outdated_index_issue_t::build_info_and_description(const metadata_t &metada
                                                         ql::datum_t *info_out,
                                                         datum_string_t *desc_out) const {
     build_info(metadata, info_out);
-    build_description(desc_out);
+    build_description(*info_out, desc_out);
 }
 
-void outdated_index_issue_t::build_description(datum_string_t *desc_out) const {
+void outdated_index_issue_t::build_description(const ql::datum_t &info,
+                                               datum_string_t *desc_out) const {
     std::string index_table;
-    for (auto it : indexes) {
+    for (size_t i = 0; i < info.arr_size(); ++i) {
+        ql::datum_t table_info = info.get(i);
+        ql::datum_t indexes = table_info.get_field("indexes");
+
         std::string index_str;
-        for (auto jt = it.second.begin(); jt != it.second.end(); ++jt) {
+        for (size_t j = 0; j < indexes.arr_size(); ++j) {
             index_str += strprintf("%s`%s`",
-                                   jt == it.second.begin() ? "" : ", ", jt->c_str());
+                                   j == 0 ? "" : ", ",
+                                   indexes.get(j).as_str().to_std().c_str());
         }
 
-        // TODO: use table names rather than UUIDs here
-        index_table += strprintf("\nFor table %s: %s.",
-                                 uuid_to_str(it.first).c_str(), index_str.c_str());
+        index_table += strprintf("\nFor table %s.%s: %s.",
+                                 table_info.get_field("db").as_str().to_std().c_str(),
+                                 table_info.get_field("table").as_str().to_std().c_str(),
+                                 index_str.c_str());
     }
 
     *desc_out = datum_string_t(strprintf(
@@ -54,8 +60,7 @@ void outdated_index_issue_t::build_description(datum_string_t *desc_out) const {
         "query language which contained some bugs.  These should be remade to avoid "
         "relying on broken behavior.  See "
         "http://www.rethinkdb.com/docs/troubleshooting/#my-secondary-index-is-outdated "
-        "for details.\n"
-        "%s", index_table.c_str()));
+        "for details.%s", index_table.c_str()));
 }
 
 void outdated_index_issue_t::build_info(const metadata_t &metadata,
@@ -63,22 +68,23 @@ void outdated_index_issue_t::build_info(const metadata_t &metadata,
     ql::datum_object_builder_t builder;
     ql::datum_array_builder_t tables(ql::configured_limits_t::unlimited);
     for (auto const &table : indexes) {
-        std::string table_name("__deleted_table__");
-        std::string db_name("__deleted_database__");
-        uuid_u db_id = nil_uuid();
+        namespaces_semilattice_metadata_t::namespace_map_t::const_iterator table_it;
+        databases_semilattice_metadata_t::database_map_t::const_iterator db_it;
 
-        // Get the table name and db_id
-        auto const table_it = metadata.rdb_namespaces->namespaces.find(table.first);
-        if (table_it != metadata.rdb_namespaces->namespaces.end() &&
-            !table_it->second.is_deleted()) {
-            table_name = table_it->second.get_ref().name.get_ref().str();
-            db_id = table_it->second.get_ref().database.get_ref();
+        // If we can't find the table, skip it
+        if (!search_const_metadata_by_uuid(&metadata.rdb_namespaces.get()->namespaces,
+                                           table.first, &table_it)) {
+            continue;
         }
 
+        std::string table_name = table_it->second.get_ref().name.get_ref().str();
+        std::string db_name("__deleted_database__");
+        database_id_t db_id = table_it->second.get_ref().database.get_ref();
+
         // Get the database name
-        auto const db_it = metadata.databases.databases.find(db_id);
-        if (db_it != metadata.databases.databases.end() &&
-            !db_it->second.is_deleted()) {
+        if (search_const_metadata_by_uuid(&metadata.databases.databases,
+                                          table_it->second.get_ref().database.get_ref(),
+                                          &db_it)) {
             db_name = db_it->second.get_ref().name.get_ref().str();
         }
 
