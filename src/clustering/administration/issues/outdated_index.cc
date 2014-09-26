@@ -40,20 +40,22 @@ void outdated_index_issue_t::build_description(datum_string_t *desc_out) const {
     for (auto it : indexes) {
         std::string index_str;
         for (auto jt = it.second.begin(); jt != it.second.end(); ++jt) {
-            index_str += strprintf("%s%s",
+            index_str += strprintf("%s`%s`",
                                    jt == it.second.begin() ? "" : ", ", jt->c_str());
         }
 
-        index_table += strprintf("\n%s\t%s",
+        // TODO: use table names rather than UUIDs here
+        index_table += strprintf("\nFor table %s: %s.",
                                  uuid_to_str(it.first).c_str(), index_str.c_str());
     }
 
-    // TODO: use table names rather than UUIDs here
     *desc_out = datum_string_t(strprintf(
         "The cluster contains indexes that were created with a previous version of the "
         "query language which contained some bugs.  These should be remade to avoid "
-        "relying on broken behavior.  See <url> for details.\n"
-        "\tTable                               \tIndexes%s", index_table.c_str()));
+        "relying on broken behavior.  See "
+        "http://www.rethinkdb.com/docs/troubleshooting/#my-secondary-index-is-outdated "
+        "for details.\n"
+        "%s", index_table.c_str()));
 }
 
 void outdated_index_issue_t::build_info(const metadata_t &metadata,
