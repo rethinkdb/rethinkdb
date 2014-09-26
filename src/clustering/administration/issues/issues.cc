@@ -15,6 +15,7 @@ std::string issues_artificial_table_backend_t::get_primary_key_name() {
 bool issues_artificial_table_backend_t::read_all_primary_keys(UNUSED signal_t *interruptor,
                                                               std::vector<ql::datum_t> *keys_out,
                                                               UNUSED std::string *error_out) {
+    on_thread_t rethreader(home_thread());
     admin_tracker.issue_multiplexer.get_issue_ids(keys_out);
     return true;
 }
@@ -23,6 +24,7 @@ bool issues_artificial_table_backend_t::read_row(ql::datum_t primary_key,
                                                  UNUSED signal_t *interruptor,
                                                  ql::datum_t *row_out,
                                                  UNUSED std::string *error_out) {
+    on_thread_t rethreader(home_thread());
     uuid_u issue_id;
     std::string dummy_error;
     if (!convert_uuid_from_datum(primary_key, &issue_id, &dummy_error)) {
