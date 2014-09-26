@@ -258,21 +258,22 @@ void do_read(ql::env_t *env,
     }
 }
 
+// RSI: pick up here.  `cfeed_func` is passed either a superblock_t * or a
+// real_superblock_t * (meaning an sindex).  When called in an sindex in
+// `rdb_update_single_sindex`, we already have a lock on the sindex, and don't
+// need to do all the work in `do_read`.  So, change that.
 ql::changefeed::read_func_t cfeed_func(
-    superblock_t *superblock,
     store_t *store,
     btree_slice_t *btree,
     ql::env_t *env) {
-    return [superblock, store, btree, env](
-        superblock_t *locked_superblock,
+    return [store, btree, env](
+        // Note that this may be an sindex superblock rather than the superblock
+        // from the visitor that calls `cfeed_func`.
+        superblock_t *,
         const ql::datum_range_t &active,
         const std::string &table_name,
         const boost::optional<std::string> &sindex,
         size_t n) {
-        // This isn't actually used for anything, we just want to make
-        // absolutely sure that our caller still has a lock on the
-        // superblock.
-        guarantee(locked_superblock == superblock);
         rget_read_response_t resp;
         rget_read_t read;
         // RSI: does the plain `region_t` constructor make sense?
@@ -287,10 +288,16 @@ ql::changefeed::read_func_t cfeed_func(
                 *sindex, region_t(active.to_sindex_keyrange()), active);
         }
         read.sorting = sorting_t::ASCENDING; // RSI: sorting
-        do_read(env, store, btree, locked_superblock, read, &resp);
+        do_read(env, store, btree, superblock, read, &resp);
+        auto *gs = boost::get<ql::grouped_t<ql::stream_t> >(&resp.result);
+        if (gs == NULL) {
+            auto *exc = boost::get<ql::exc_t>(&resp.result);
+            guarantee(exc != NULL);
+            // RSI: error cases?  (Fuck me...)
+            throw *exc;
+        }
         return groups_to_batch(
-            boost::get<ql::grouped_t<ql::stream_t> >(resp.result)
-            .get_underlying_map(ql::grouped::order_doesnt_matter_t()));
+            gs->get_underlying_map(ql::grouped::order_doesnt_matter_t()));
     };
 }
 
@@ -311,7 +318,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         ql::env_t ql_env(ctx, interruptor,
                          std::map<std::string, ql::wire_func_t>(), trace);
         rget_read_response_t resp;
-        ql::stream_t stream = cfeed_func(superblock, store, btree, &ql_env)(
+        ql::stream_t stream = cfeed_func(store, btree, &ql_env)(
             superblock,
             ql::datum_range_t::universe(),
             s.table,
@@ -676,7 +683,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                 ql_env.limits(),
                 &replacer,
                 &sindex_cb,
-                cfeed_func(superblock->get(), store, btree, &ql_env),
+                cfeed_func(store, btree, &ql_env),
                 trace);
     }
 
@@ -703,7 +710,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                 bi.limits,
                 &replacer,
                 &sindex_cb,
-                cfeed_func(superblock->get(), store, btree, &ql_env),
+                cfeed_func(store, btree, &ql_env),
                 trace);
     }
 

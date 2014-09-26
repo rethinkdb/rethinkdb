@@ -307,7 +307,7 @@ typedef boost::variant<
     grouped_t<std::pair<double, uint64_t> >, // Avg.
     grouped_t<ql::datum_t>, // Reduce (may be NULL)
     grouped_t<optimizer_t>, // min, max
-    grouped_t<stream_t>, // No terminal.,
+    grouped_t<stream_t>, // No terminal.
     exc_t // Don't re-order (we don't want this to initialize to an error.)
     > result_t;
 
