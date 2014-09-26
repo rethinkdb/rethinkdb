@@ -17,8 +17,10 @@
 namespace ql {
 
 obj_or_seq_op_impl_t::obj_or_seq_op_impl_t(
-        const term_t *self, poly_type_t _poly_type, protob_t<const Term> term)
-    : poly_type(_poly_type), func(make_counted_term()) {
+        const term_t *self, poly_type_t _poly_type, protob_t<const Term> term,
+        const std::set<std::string> &_ptypes)
+    : poly_type(_poly_type), func(make_counted_term()), parent(self),
+      acceptable_ptypes(_ptypes) {
     auto varnum = pb::dummy_var_t::OBJORSEQ_VARNUM;
 
     // body is a new reql expression similar to term except that the first argument
@@ -54,6 +56,21 @@ scoped_ptr_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
     }
 
     if (d.has() && d.get_type() == datum_t::R_OBJECT) {
+        switch (env->env->reql_version()) {    
+        case reql_version_t::v1_13:
+        case reql_version_t::v1_14: // v1_15 is the same as v1_14
+            break;
+        case reql_version_t::v1_16_is_latest:
+            if (d.is_ptype() &&
+                acceptable_ptypes.find(d.get_reql_type()) == acceptable_ptypes.end()) {
+                rfail_target(v0, base_exc_t::GENERIC,
+                             "Cannot call `%s` on objects of type `%s`.",
+                             parent->name(), d.get_type_name().c_str());
+            }
+            break;
+        default:
+            unreachable();
+        }
         return helper();
     } else if ((d.has() && d.get_type() == datum_t::R_ARRAY) ||
                (!d.has()
@@ -98,7 +115,24 @@ scoped_ptr_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
 obj_or_seq_op_term_t::obj_or_seq_op_term_t(compile_env_t *env, protob_t<const Term> term,
                                            poly_type_t _poly_type, argspec_t argspec)
     : grouped_seq_op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_"})),
-      impl(this, _poly_type, term) {
+      acceptable_ptypes(),
+      impl(this, _poly_type, term, acceptable_ptypes) {
+}
+
+obj_or_seq_op_term_t::obj_or_seq_op_term_t(compile_env_t *env, protob_t<const Term> term,
+                                           poly_type_t _poly_type, argspec_t argspec,
+                                           const std::set<std::string> &ptypes)
+    : grouped_seq_op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_"})),
+      acceptable_ptypes(ptypes),
+      impl(this, _poly_type, term, acceptable_ptypes) {
+}
+
+obj_or_seq_op_term_t::obj_or_seq_op_term_t(compile_env_t *env, protob_t<const Term> term,
+                                           poly_type_t _poly_type, argspec_t argspec,
+                                           std::set<std::string> &&_ptypes)
+    : grouped_seq_op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_"})),
+      acceptable_ptypes(_ptypes),
+      impl(this, _poly_type, term, acceptable_ptypes) {
 }
 
 scoped_ptr_t<val_t> obj_or_seq_op_term_t::eval_impl(scope_env_t *env, args_t *args,
@@ -189,10 +223,42 @@ private:
             // We branch here because compiling functions is expensive, and
             // `obj_eval` may be called many many times.
             if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
-                d = d.merge(v->as_datum());
+                datum_t d0 = v->as_datum();
+                if (d0.get_type() == datum_t::R_OBJECT) {
+                    switch (env->env->reql_version()) {
+                    case reql_version_t::v1_13:
+                    case reql_version_t::v1_14: // v1_15 is the same as v1_14
+                        break;
+                    case reql_version_t::v1_16_is_latest:
+                        rcheck_target(v, base_exc_t::GENERIC,
+                               !d0.is_ptype() || d0.is_ptype("LITERAL"),
+                               strprintf("Cannot merge objects of type `%s`.",
+                                         d0.get_type_name().c_str()));
+                        break;
+                    default:
+                        unreachable();
+                    }
+                }
+                d = d.merge(d0);
             } else {
                 auto f = v->as_func(CONSTANT_SHORTCUT);
-                d = d.merge(f->call(env->env, d, LITERAL_OK)->as_datum());
+                datum_t d0 = f->call(env->env, d, LITERAL_OK)->as_datum();
+                if (d0.get_type() == datum_t::R_OBJECT) {
+                    switch (env->env->reql_version()) {
+                    case reql_version_t::v1_13:
+                    case reql_version_t::v1_14: // v1_15 is the same as v1_14
+                        break;
+                    case reql_version_t::v1_16_is_latest:
+                        rcheck_target(v, base_exc_t::GENERIC,
+                               !d0.is_ptype() || d0.is_ptype("LITERAL"),
+                               strprintf("Cannot merge objects of type `%s`.",
+                                         d0.get_type_name().c_str()));
+                        break;
+                    default:
+                        unreachable();
+                    }
+                }
+                d = d.merge(d0);
             }
         }
         return new_val(d);
@@ -208,7 +274,6 @@ private:
     virtual scoped_ptr_t<val_t> obj_eval(scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
         datum_t obj = v0->as_datum();
         r_sanity_check(obj.get_type() == datum_t::R_OBJECT);
-
         std::vector<datum_t> paths;
         const size_t n = args->num_args();
         paths.reserve(n - 1);
@@ -227,7 +292,8 @@ public:
         : obj_or_seq_op_term_t(env, term, SKIP_MAP, argspec_t(2)) { }
 private:
     virtual scoped_ptr_t<val_t> obj_eval(scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
-        return new_val(v0->as_datum().get_field(args->arg(env, 1)->as_str()));
+        datum_t d = v0->as_datum();
+        return new_val(d.get_field(args->arg(env, 1)->as_str()));
     }
     virtual const char *name() const { return "get_field"; }
 };
@@ -240,10 +306,12 @@ class bracket_term_t : public grouped_seq_op_term_t {
 public:
     bracket_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : grouped_seq_op_term_t(env, term, argspec_t(2), optargspec_t({"_NO_RECURSE_"})),
-          impl(this, SKIP_MAP, term) {}
+          acceptable_ptypes(),
+          impl(this, SKIP_MAP, term, acceptable_ptypes) {}
 private:
     scoped_ptr_t<val_t> obj_eval_dereferenced(const scoped_ptr_t<val_t> &v0, const scoped_ptr_t<val_t> &v1) const {
-        return new_val(v0->as_datum().get_field(v1->as_str()));
+        datum_t d = v0->as_datum();
+        return new_val(d.get_field(v1->as_str()));
     }
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         scoped_ptr_t<val_t> v0 = args->arg(env, 0);
@@ -275,6 +343,7 @@ private:
     // I reimplement it here for clarity.
     virtual bool is_grouped_seq_op() const { return true; }
 
+    const std::set<std::string> acceptable_ptypes;
     obj_or_seq_op_impl_t impl;
 };
 

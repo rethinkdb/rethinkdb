@@ -112,6 +112,12 @@ private:
     iovec buf_and_count;
     int64_t offset;
 
+    // Helper functions for vectored reads/writes
+    static size_t advance_vector(iovec **vecs, size_t *count, size_t bytes_done);
+    ssize_t vectored_read_write(iovec *vecs, size_t vecs_len, int64_t partial_offset);
+    void copy_vectors(scoped_array_t<iovec> *vectors_out);
+    int64_t perform_read_write(iovec *vecs, size_t count);
+
     int64_t io_result;
 
     void run();

@@ -926,7 +926,8 @@ std::string datum_t::print_secondary(reql_version_t reql_version,
     switch (reql_version) {
     case reql_version_t::v1_13:
         break;
-    case reql_version_t::v1_14_is_latest:
+    case reql_version_t::v1_14: // v1_15 is the same as v1_14
+    case reql_version_t::v1_16_is_latest:
         secondary_key_string.append(1, '\x00');
         break;
     default:
@@ -1390,7 +1391,8 @@ int datum_t::cmp(reql_version_t reql_version, const datum_t &rhs) const {
     switch (reql_version) {
     case reql_version_t::v1_13:
         return v1_13_cmp(rhs);
-    case reql_version_t::v1_14_is_latest:
+    case reql_version_t::v1_14: // v1_15 is the same as v1_14
+    case reql_version_t::v1_16_is_latest:
         return modern_cmp(rhs);
     default:
         unreachable();
@@ -1404,7 +1406,7 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
         if (get_reql_type() != rhs.get_reql_type()) {
             return derived_cmp(get_reql_type(), rhs.get_reql_type());
         }
-        return pseudo_cmp(reql_version_t::v1_14_is_latest, rhs);
+        return pseudo_cmp(reql_version_t::v1_16_is_latest, rhs);
     } else if (lhs_ptype || rhs_ptype) {
         return derived_cmp(get_type_name(), rhs.get_type_name());
     }
@@ -1798,7 +1800,8 @@ void datum_array_builder_t::insert(reql_version_t reql_version, size_t index,
     switch (reql_version) {
     case reql_version_t::v1_13:
         break;
-    case reql_version_t::v1_14_is_latest:
+    case reql_version_t::v1_14: // v1_15 is the same as v1_14
+    case reql_version_t::v1_16_is_latest:
         rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
         break;
     default:
@@ -1828,7 +1831,8 @@ void datum_array_builder_t::splice(reql_version_t reql_version, size_t index,
     switch (reql_version) {
     case reql_version_t::v1_13:
         break;
-    case reql_version_t::v1_14_is_latest:
+    case reql_version_t::v1_14: // v1_15 is the same as v1_14
+    case reql_version_t::v1_16_is_latest:
         rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
         break;
     default:
@@ -1849,7 +1853,8 @@ void datum_array_builder_t::erase_range(reql_version_t reql_version,
                      strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
                                start, vector.size()));
         break;
-    case reql_version_t::v1_14_is_latest:
+    case reql_version_t::v1_14: // v1_15 is the same as v1_14
+    case reql_version_t::v1_16_is_latest:
         rcheck_datum(start <= vector.size(),
                      base_exc_t::NON_EXISTENCE,
                      strprintf("Index `%zu` out of bounds for array of size: `%zu`.",

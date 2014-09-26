@@ -51,7 +51,7 @@ class geo_obj_or_seq_op_term_t : public obj_or_seq_op_term_t {
 public:
     geo_obj_or_seq_op_term_t(compile_env_t *env, protob_t<const Term> term,
                              poly_type_t _poly_type, argspec_t argspec)
-        : obj_or_seq_op_term_t(env, term, _poly_type, argspec) { }
+        : obj_or_seq_op_term_t(env, term, _poly_type, argspec, std::set<std::string>{"GEOMETRY"}) { }
 private:
     // See comment in geo_term_t about non-determinism
     bool is_deterministic() const { return false; }
