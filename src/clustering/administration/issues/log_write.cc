@@ -1,5 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/issues/log_write.hpp"
+#include "clustering/administration/datum_adapter.hpp"
 
 const datum_string_t log_write_issue_t::log_write_issue_type =
     datum_string_t("log_write_error");
@@ -20,12 +21,9 @@ void log_write_issue_t::build_info_and_description(const metadata_t &metadata,
 
     std::string server_name = get_server_name(metadata, affected_servers[0]);
     ql::datum_object_builder_t builder;
-    builder.overwrite(datum_string_t("server"),
-                      ql::datum_t(datum_string_t(server_name)));
-    builder.overwrite(datum_string_t("server_id"),
-                      ql::datum_t(datum_string_t(uuid_to_str(affected_servers[0]))));
-    builder.overwrite(datum_string_t("message"),
-                      ql::datum_t(datum_string_t(message)));
+    builder.overwrite("server", convert_string_to_datum(server_name));
+    builder.overwrite("server_id", convert_uuid_to_datum(affected_servers[0]));
+    builder.overwrite("message", convert_string_to_datum(message));
     *info_out = std::move(builder).to_datum();
 
     *desc_out = datum_string_t(strprintf("Server %s encountered an error while writing "

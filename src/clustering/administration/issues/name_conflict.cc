@@ -1,5 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/issues/name_conflict.hpp"
+#include "clustering/administration/datum_adapter.hpp"
 #include "rdb_protocol/configured_limits.hpp"
 
 const datum_string_t server_name_conflict_issue_t::server_name_conflict_issue_type =
@@ -40,10 +41,10 @@ void build_server_db_info(const name_string_t &name,
     ql::datum_object_builder_t builder;
     ql::datum_array_builder_t ids_builder(ql::configured_limits_t::unlimited);
     for (auto const &id : ids) {
-        ids_builder.add(ql::datum_t(datum_string_t(uuid_to_str(id))));
+        ids_builder.add(convert_uuid_to_datum(id));
     }
-    builder.overwrite(datum_string_t("name"), ql::datum_t(datum_string_t(name.str())));
-    builder.overwrite(datum_string_t("ids"), std::move(ids_builder).to_datum());
+    builder.overwrite("name", convert_name_to_datum(name));
+    builder.overwrite("ids", std::move(ids_builder).to_datum());
     *info_out = std::move(builder).to_datum();
 }
 
@@ -130,18 +131,14 @@ void table_name_conflict_issue_t::build_info(const std::string &db_name,
                                              ql::datum_t *info_out) const {
     ql::datum_array_builder_t ids_builder(ql::configured_limits_t::unlimited);
     for (auto const &id : ids) {
-        ids_builder.add(ql::datum_t(datum_string_t(uuid_to_str(id))));
+        ids_builder.add(convert_uuid_to_datum(id));
     }
 
     ql::datum_object_builder_t builder;
-    builder.overwrite(datum_string_t("name"),
-                      ql::datum_t(datum_string_t(conflicted_name.c_str())));
-    builder.overwrite(datum_string_t("db_name"),
-                      ql::datum_t(datum_string_t(db_name)));
-    builder.overwrite(datum_string_t("db_id"),
-                      ql::datum_t(datum_string_t(uuid_to_str(db_id))));
-    builder.overwrite(datum_string_t("ids"),
-                      std::move(ids_builder).to_datum());
+    builder.overwrite("name", convert_name_to_datum(conflicted_name));
+    builder.overwrite("db_name", convert_string_to_datum(db_name));
+    builder.overwrite("db_id", convert_uuid_to_datum(db_id));
+    builder.overwrite("ids", std::move(ids_builder).to_datum());
     *info_out = std::move(builder).to_datum();
 }
 

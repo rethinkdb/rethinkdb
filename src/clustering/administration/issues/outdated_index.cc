@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/issues/outdated_index.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "clustering/administration/datum_adapter.hpp"
 #include "rdb_protocol/configured_limits.hpp"
 
 const datum_string_t outdated_index_issue_t::outdated_index_issue_type =
@@ -80,18 +81,14 @@ void outdated_index_issue_t::build_info(const metadata_t &metadata,
         }
 
         ql::datum_object_builder_t item;
-        item.overwrite("table",
-                       ql::datum_t(datum_string_t(table_name)));
-        item.overwrite("table_id",
-                       ql::datum_t(datum_string_t(uuid_to_str(table.first))));
-        item.overwrite("db",
-                       ql::datum_t(datum_string_t(db_name)));
-        item.overwrite("db_id",
-                       ql::datum_t(datum_string_t(uuid_to_str(db_id))));
+        item.overwrite("table", convert_string_to_datum(table_name));
+        item.overwrite("table_id", convert_uuid_to_datum(table.first));
+        item.overwrite("db", convert_string_to_datum(db_name));
+        item.overwrite("db_id", convert_uuid_to_datum(db_id));
 
         ql::datum_array_builder_t index_list(ql::configured_limits_t::unlimited);
         for (auto const &index : table.second) {
-            index_list.add(ql::datum_t(datum_string_t(index)));
+            index_list.add(convert_string_to_datum(index));
         }
         item.overwrite("indexes", std::move(index_list).to_datum());
 

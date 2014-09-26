@@ -10,7 +10,7 @@ void issue_t::to_datum(const metadata_t &metadata,
     build_info_and_description(metadata, &info, &description);
 
     ql::datum_object_builder_t builder;
-    builder.overwrite("id", ql::datum_t(uuid_to_str(issue_id).c_str()));
+    builder.overwrite("id", convert_uuid_to_datum(issue_id));
     builder.overwrite("type", ql::datum_t(get_name()));
     builder.overwrite("critical", ql::datum_t::boolean(is_critical()));
     builder.overwrite("time", ql::pseudo::time_now());

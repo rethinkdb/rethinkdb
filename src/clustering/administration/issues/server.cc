@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/issues/server.hpp"
 #include "clustering/administration/servers/machine_id_to_peer_id.hpp"
+#include "clustering/administration/datum_adapter.hpp"
 
 const datum_string_t server_down_issue_t::server_down_issue_type =
     datum_string_t("server_down");
@@ -22,20 +23,16 @@ void build_info(const std::string &server_name,
     ql::datum_array_builder_t server_id_array(ql::configured_limits_t::unlimited);
 
     for (auto s : affected_server_names) {
-        server_array.add(ql::datum_t(datum_string_t(s)));
+        server_array.add(convert_string_to_datum(s));
     }
     for (auto s : affected_server_ids) {
-        server_id_array.add(ql::datum_t(datum_string_t(uuid_to_str(s))));
+        server_id_array.add(convert_uuid_to_datum(s));
     }
 
-    builder.overwrite(datum_string_t("server"),
-                      ql::datum_t(datum_string_t(server_name)));
-    builder.overwrite(datum_string_t("server_id"),
-                      ql::datum_t(datum_string_t(uuid_to_str(server_id))));
-    builder.overwrite(datum_string_t("affected_servers"),
-                      std::move(server_array).to_datum());
-    builder.overwrite(datum_string_t("affected_server_ids"),
-                      std::move(server_id_array).to_datum());
+    builder.overwrite("server", convert_string_to_datum(server_name));
+    builder.overwrite("server_id", convert_uuid_to_datum(server_id));
+    builder.overwrite("affected_servers", std::move(server_array).to_datum());
+    builder.overwrite("affected_server_ids", std::move(server_id_array).to_datum());
 
     *info_out = std::move(builder).to_datum();
 }
