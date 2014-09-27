@@ -41,7 +41,7 @@ public:
         return new_val(datum_t(datum_string_t(json.PrintUnformatted())));
     }
 
-    virtual const char *name() const { return "json"; }
+    virtual const char *name() const { return "to_json"; }
 };
 
 counted_t<term_t> make_json_term(compile_env_t *env, const protob_t<const Term> &term) {
