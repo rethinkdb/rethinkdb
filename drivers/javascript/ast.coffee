@@ -518,10 +518,6 @@ class Json extends RDBOp
     tt: protoTermType.JSON
     st: 'json'
 
-class ToJson extends RDBOp
-    tt: protoTermType.TO_JSON
-    st: 'toJson'
-
 class Binary extends RDBOp
     tt: protoTermType.BINARY
     st: 'binary'
@@ -785,6 +781,10 @@ class Union extends RDBOp
 class Nth extends RDBOp
     tt: protoTermType.NTH
     mt: 'nth'
+
+class ToJson extends RDBOp
+    tt: protoTermType.TO_JSON
+    mt: 'toJson'
 
 class Match extends RDBOp
     tt: protoTermType.MATCH
