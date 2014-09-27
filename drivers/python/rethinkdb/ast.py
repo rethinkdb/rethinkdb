@@ -1092,6 +1092,10 @@ class Match(RqlMethodQuery):
     tt = pTerm.MATCH
     st = 'match'
 
+class ToJson(RqlTopLevelQuery):
+    tt = pTerm.TO_JSON
+    st = 'to_json'
+
 class Split(RqlMethodQuery):
     tt = pTerm.SPLIT
     st = 'split'
@@ -1269,10 +1273,6 @@ class Sample(RqlMethodQuery):
 class Json(RqlTopLevelQuery):
     tt = pTerm.JSON
     st = 'json'
-
-class ToJson(RqlTopLevelQuery):
-    tt = pTerm.TO_JSON
-    st = 'to_json'
 
 class Args(RqlTopLevelQuery):
     tt = pTerm.ARGS
