@@ -1609,7 +1609,7 @@ datum_t stats_merge(UNUSED const datum_string_t &key,
         const size_t l_sz = l.arr_size();
         const size_t r_sz = r.arr_size();
         if (l_sz + r_sz > limits.array_size_limit()) {
-            conditions->insert(strprintf("Too many changes, array truncated to %ld.", limits.array_size_limit()));
+            conditions->insert(strprintf("Too many changes, array truncated to %zu.", limits.array_size_limit()));
             datum_array_builder_t arr(limits);
             size_t so_far = 0;
             for (size_t i = 0; i < l_sz && so_far < limits.array_size_limit(); ++i, ++so_far) {
