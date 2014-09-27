@@ -193,8 +193,8 @@ describe('Javascript connection API', function(){
         it("close twice and reconnect", withConnection(function(done, c){
             testSimpleQuery(c, function(){
                 assert.doesNotThrow(function(){
-                    c.close();
-                    c.close();
+                    c.close({noreplyWait: false})
+                    c.close({noreplyWait: false})
                     c.reconnect(function(err, c){
                         assertNull(err);
                         testSimpleQuery(c, done);
@@ -379,8 +379,6 @@ describe('Javascript connection API', function(){
         it("Extra argument", withConnection(function(done, c){
             r.expr(1).run(c, givesError("RqlDriverError", "Second argument to `run` cannot be a function if a third argument is provided.", done), 1)
         }));
-
-
     });
 });
 

@@ -148,6 +148,7 @@ class Connection extends events.EventEmitter
                         cb new err.RqlDriverError "Unknown response type"
         else
             # Unexpected token
+            # SHould we really emit an error here? What if the token was deleted by `connection.close`?
             @emit 'error', new err.RqlDriverError "Unexpected token #{token}."
 
     close: (varar 0, 2, (optsOrCallback, callback) ->
@@ -172,35 +173,26 @@ class Connection extends events.EventEmitter
 
         noreplyWait = ((not opts.noreplyWait?) or opts.noreplyWait) and @open
 
-        if typeof cb is 'function'
-            wrappedCb = (args...) =>
+        new Promise( (resolve, reject) =>
+            wrappedCb = (err, result) =>
                 @open = false
-                if cb?
-                    cb(args...)
+                if err?
+                    reject err
+                else
+                    resolve result
 
             if noreplyWait
                 @noreplyWait(wrappedCb)
             else
                 wrappedCb()
-        else
-            new Promise (resolve, reject) =>
-                wrappedCb = (err, result) =>
-                    @open = false
-                    if err?
-                        reject err
-                    else
-                        resolve result
-
-                @noreplyWait(wrappedCb)
+        ).nodeify cb
     )
 
     noreplyWait: varar 0, 1, (callback) ->
         unless @open
-            if typeof callback is 'function'
-                return callback(new err.RqlDriverError "Connection is closed.")
-            else
-                return new Promise (resolve, reject) ->
-                    reject(new err.RqlDriverError "Connection is closed.")
+            return new Promise( (resolve, reject) ->
+                reject(new err.RqlDriverError "Connection is closed.")
+            ).nodeify callback
 
         # Assign token
         token = @nextToken++
@@ -211,18 +203,15 @@ class Connection extends events.EventEmitter
         query.token = token
 
         # Save callback
-        if typeof callback is 'function'
-            @outstandingCallbacks[token] = {cb:callback, root:null, opts:null}
+        new Promise( (resolve, reject) =>
+            wrappedCb = (err, result) ->
+                if (err)
+                    reject(err)
+                else
+                    resolve(result)
+            @outstandingCallbacks[token] = {cb:wrappedCb, root:null, opts:null}
             @_sendQuery(query)
-        else
-            new Promise (resolve, reject) =>
-                callback = (err, result) ->
-                    if (err)
-                        reject(err)
-                    else
-                        resolve(result)
-                @outstandingCallbacks[token] = {cb:callback, root:null, opts:null}
-                @_sendQuery(query)
+        ).nodeify callback
 
     cancel: ar () ->
         @outstandingCallbacks = {}
@@ -241,28 +230,16 @@ class Connection extends events.EventEmitter
                 opts = {}
             cb = callback
 
-        if typeof cb is 'function'
+        new Promise( (resolve, reject) =>
             closeCb = (err) =>
-                if err?
-                    cb(err)
-                else
-                    constructCb = => @constructor.call(@, {host:@host, port:@port}, cb)
-                    setTimeout(constructCb, 0)
-            @close(opts, closeCb)
-        else
-            new Promise (resolve, reject) =>
-                closeCb = (err) =>
+                @rawSocket = null # The rawSocket has been closed
+                @constructor.call @, {host:@host, port:@port}, (err, conn) ->
                     if err?
                         reject err
                     else
-                        constructCb = =>
-                            @constructor.call @, {host:@host, port:@port}, (err, conn) ->
-                                if err?
-                                    reject err
-                                else
-                                    resolve conn
-                        setTimeout(constructCb, 0)
-                @close(opts, closeCb)
+                        resolve conn
+            @close(opts, closeCb)
+        ).nodeify cb
     )
 
     use: ar (db) ->
@@ -357,9 +334,6 @@ class TcpConnection extends Connection
 
         super(host, callback)
 
-        if @rawSocket?
-            @close({noreplyWait: false})
-
         @rawSocket = net.connect @port, @host
         @rawSocket.setNoDelay()
 
@@ -431,26 +405,20 @@ class TcpConnection extends Connection
         else
             opts = {}
 
-
-        if typeof cb is 'function'
-            wrappedCb = (args...) =>
+        new Promise( (resolve, reject) =>
+            wrappedCb = (error, result) =>
                 @rawSocket.end()
-                if cb?
-                    cb(args...)
+                # Close all the outstanding queries with an error
+                for token, callback of @outstandingCallbacks
+                    callback.cb(new err.RqlDriverError "Connection is closed.")
+                    delete @outstandingCallbacks[token]
 
-            # This would simply be super(opts, wrappedCb), if we were not in the varar
-            # anonymous function
+                if error?
+                    reject error
+                else
+                    resolve result
             TcpConnection.__super__.close.call(@, opts, wrappedCb)
-        else
-            new Promise (resolve, reject) =>
-                wrappedCb = (err, result) =>
-                    @rawSocket.end()
-                    if err?
-                        reject err
-                    else
-                        resolve result
-                TcpConnection.__super__.close.call(@, opts, wrappedCb)
-
+        ).nodeify cb
     )
 
     cancel: () ->
@@ -571,22 +539,19 @@ module.exports.connect = varar 0, 2, (hostOrCallback, callback) ->
     else
         host = hostOrCallback
 
-    create_connection = (host, callback) =>
-        if TcpConnection.isAvailable()
-            new TcpConnection host, callback
-        else if HttpConnection.isAvailable()
-            new HttpConnection host, callback
-        else
-            throw new err.RqlDriverError "Neither TCP nor HTTP avaiable in this environment"
+    new Promise( (resolve, reject) ->
+        create_connection = (host, callback) =>
+            if TcpConnection.isAvailable()
+                new TcpConnection host, callback
+            else if HttpConnection.isAvailable()
+                new HttpConnection host, callback
+            else
+                throw new err.RqlDriverError "Neither TCP nor HTTP avaiable in this environment"
 
-
-    if typeof callback is 'function'
-        create_connection(host, callback)
-    else
-        p = new Promise (resolve, reject) ->
-            callback = (err, result) ->
-                if (err)
-                    reject(err)
-                else
-                    resolve(result)
-            create_connection(host, callback)
+        wrappedCb = (err, result) ->
+            if (err)
+                reject(err)
+            else
+                resolve(result)
+        create_connection(host, wrappedCb)
+    ).nodeify callback

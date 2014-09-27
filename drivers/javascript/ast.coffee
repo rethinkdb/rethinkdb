@@ -96,34 +96,31 @@ class TermBase
             if net.isConnection(connection) is false
                 throw new err.RqlDriverError "First argument to `run` must be an open connection."
         catch e
-            if typeof callback is 'function'
-                return callback(e)
-            else
-                return new Promise (resolve, reject) =>
-                    reject(e)
+            return new Promise( (resolve, reject) =>
+                reject(e)
+            ).nodeify callback
 
-        if options.noreply is true or typeof callback is 'function'
+        # if `noreply` is `true`, the callback will be immediately called without error
+        # so we do not have to worry about bluebird complaining about errors not being
+        # caught
+        new Promise( (resolve, reject) =>
+            wrappedCb = (err, result) ->
+                if err?
+                    console.log 'reject'
+                    reject(err)
+                else
+                    resolve(result)
+
             try
-                connection._start @, callback, options
+                connection._start @, wrappedCb, options
             catch e
                 # It was decided that, if we can, we prefer to invoke the callback
                 # with any errors rather than throw them as normal exceptions.
                 # Thus we catch errors here and invoke the callback instead of
                 # letting the error bubble up.
-                if typeof(callback) is 'function'
-                    callback(e)
-        else
-            new Promise (resolve, reject) =>
-                callback = (err, result) ->
-                    if err?
-                        reject(err)
-                    else
-                        resolve(result)
+                wrappedCb(e)
 
-                try
-                    connection._start @, callback, options
-                catch e
-                    callback(e)
+        ).nodeify callback
 
     toString: -> err.printQuery(@)
 
