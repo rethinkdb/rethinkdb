@@ -208,6 +208,7 @@ private:
         case Term::OBJECT:
         case Term::WITH_FIELDS:
         case Term::JSON:
+        case Term::TO_JSON:
         case Term::ISO8601:
         case Term::TO_ISO8601:
         case Term::EPOCH_TIME:
@@ -397,6 +398,7 @@ private:
         case Term::OBJECT:
         case Term::WITH_FIELDS:
         case Term::JSON:
+        case Term::TO_JSON:
         case Term::ISO8601:
         case Term::TO_ISO8601:
         case Term::EPOCH_TIME:
