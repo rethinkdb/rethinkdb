@@ -1092,7 +1092,7 @@ class Match(RqlMethodQuery):
     tt = pTerm.MATCH
     st = 'match'
 
-class ToJson(RqlTopLevelQuery):
+class ToJson(RqlMethodQuery):
     tt = pTerm.TO_JSON
     st = 'to_json'
 
