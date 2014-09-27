@@ -335,6 +335,9 @@ class RqlQuery(object):
     def nth(self, *args):
         return Nth(self, *args)
 
+    def to_json(self, *args):
+        return ToJson(self, *args)
+
     def match(self, *args):
         return Match(self, *args)
 
@@ -1266,6 +1269,10 @@ class Sample(RqlMethodQuery):
 class Json(RqlTopLevelQuery):
     tt = pTerm.JSON
     st = 'json'
+
+class ToJson(RqlTopLevelQuery):
+    tt = pTerm.TO_JSON
+    st = 'to_json'
 
 class Args(RqlTopLevelQuery):
     tt = pTerm.ARGS
