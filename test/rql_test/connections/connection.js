@@ -190,11 +190,23 @@ describe('Javascript connection API', function(){
 
         // TODO: test default port
 
+        it("close twice (synchronously) and reconnect", withConnection(function(done, c){
+            testSimpleQuery(c, function(){
+                assert.doesNotThrow(function(){
+                    c.close({noreplyWait: false});
+                    c.close({noreplyWait: false});
+                    c.reconnect(function(err, c){
+                        assertNull(err);
+                        testSimpleQuery(c, done);
+                    });
+                });
+            });
+        }));
         it("close twice and reconnect", withConnection(function(done, c){
             testSimpleQuery(c, function(){
                 assert.doesNotThrow(function(){
-                    c.close({noreplyWait: false})
-                    c.close({noreplyWait: false})
+                    c.close();
+                    c.close();
                     c.reconnect(function(err, c){
                         assertNull(err);
                         testSimpleQuery(c, done);

@@ -232,6 +232,7 @@ class Connection extends events.EventEmitter
 
         new Promise( (resolve, reject) =>
             closeCb = (err) =>
+                @rawSocket.removeAllListeners()
                 @rawSocket = null # The rawSocket has been closed
                 @constructor.call @, {host:@host, port:@port}, (err, conn) ->
                     if err?
@@ -387,7 +388,9 @@ class TcpConnection extends Connection
 
         @rawSocket.on 'error', (args...) => @emit 'error', args...
 
-        @rawSocket.on 'close', => @open = false; @emit 'close', {noreplyWait: false}
+        @rawSocket.on 'close', =>
+            @open = false
+            @emit 'close', {noreplyWait: false}
 
         # In case the raw socket timesout, we close it and re-emit the event for the user
         @rawSocket.on 'timeout', => @open = false; @emit 'timeout'
@@ -407,16 +410,14 @@ class TcpConnection extends Connection
 
         new Promise( (resolve, reject) =>
             wrappedCb = (error, result) =>
-                @rawSocket.end()
-                # Close all the outstanding queries with an error
-                for token, callback of @outstandingCallbacks
-                    callback.cb(new err.RqlDriverError "Connection is closed.")
-                    delete @outstandingCallbacks[token]
+                @rawSocket.once "close", =>
+                    if error?
+                        reject error
+                    else
+                        resolve result
 
-                if error?
-                    reject error
-                else
-                    resolve result
+                @rawSocket.end()
+
             TcpConnection.__super__.close.call(@, opts, wrappedCb)
         ).nodeify cb
     )
