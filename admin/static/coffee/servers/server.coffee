@@ -157,9 +157,12 @@ module 'ServerView', ->
             @listenTo @model, 'change', @render
 
         render: =>
+            # TODO Try with a release/clean version
+            version = @model.get('version').split(' ')[1].split('-')[0]
             @$el.html @template
                 main_ip: @model.get 'host'
                 uptime: $.timeago(@model.get('time_started')).slice(0, -4)
+                version: version
                 num_shards: @model.get('responsabilities').length
                 reachability:
                     reachable: @model.get('status') is 'available'
