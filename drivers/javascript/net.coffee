@@ -148,7 +148,6 @@ class Connection extends events.EventEmitter
                         cb new err.RqlDriverError "Unknown response type"
         else
             # Unexpected token
-            # SHould we really emit an error here? What if the token was deleted by `connection.close`?
             @emit 'error', new err.RqlDriverError "Unexpected token #{token}."
 
     close: (varar 0, 2, (optsOrCallback, callback) ->
