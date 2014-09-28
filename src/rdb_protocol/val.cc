@@ -278,9 +278,9 @@ counted_t<datum_stream_t> table_t::get_intersecting(
         query_geometry);
 }
 
-counted_t<datum_stream_t> table_t::get_nearest(
+datum_t table_t::get_nearest(
         env_t *env,
-        lat_lon_point_t center,
+        lon_lat_point_t center,
         double max_dist,
         uint64_t max_results,
         const ellipsoid_spec_t &geo_system,
@@ -299,7 +299,6 @@ counted_t<datum_stream_t> table_t::get_nearest(
     return table->read_nearest(
         env,
         *sindex_id,
-        parent->backtrace(),
         display_name(),
         use_outdated,
         center,

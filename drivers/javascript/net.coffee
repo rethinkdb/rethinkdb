@@ -296,8 +296,20 @@ class Connection extends events.EventEmitter
         if opts.durability?
             query.global_optargs['durability'] = r.expr(opts.durability).build()
 
-        if opts.batchConf?
-            query.global_optargs['batch_conf'] = r.expr(opts.batchConf).build()
+        if opts.minBatchRows?
+            query.global_optargs['min_batch_rows'] = r.expr(opts.minBatchRows).build()
+
+        if opts.maxBatchRows?
+            query.global_optargs['max_batch_rows'] = r.expr(opts.maxBatchRows).build()
+
+        if opts.minBatchBytes?
+            query.global_optargs['min_batch_bytes'] = r.expr(opts.minBatchBytes).build()
+
+        if opts.maxBatchSeconds?
+            query.global_optargs['max_batch_seconds'] = r.expr(opts.maxBatchSeconds).build()
+
+        if opts.firstBatchScaledownFactor?
+            query.global_optargs['first_batch_scaledown_factor'] = r.expr(opts.firstBatchScaledownFactor).build()
 
         if opts.arrayLimit?
             query.global_optargs['array_limit'] = r.expr(opts.arrayLimit).build()

@@ -93,12 +93,34 @@ public:
         server_name_business_card(nsbc),
         peer_type(_peer_type) { }
     /* Move constructor */
-    cluster_directory_metadata_t(cluster_directory_metadata_t &&other) = default;
-    cluster_directory_metadata_t(const cluster_directory_metadata_t &other) = default;
-    cluster_directory_metadata_t &operator=(cluster_directory_metadata_t &&other)
+    cluster_directory_metadata_t(const cluster_directory_metadata_t &) = default;
+    cluster_directory_metadata_t &operator=(const cluster_directory_metadata_t &)
         = default;
-    cluster_directory_metadata_t &operator=(const cluster_directory_metadata_t &other)
-        = default;
+    cluster_directory_metadata_t(cluster_directory_metadata_t &&other) {
+        *this = std::move(other);
+    }
+    cluster_directory_metadata_t &operator=(cluster_directory_metadata_t &&other) {
+        /* We have to define this manually instead of using `= default` because older
+        versions of `boost::optional` don't support moving */
+        rdb_namespaces = std::move(other.rdb_namespaces);
+        machine_id = other.machine_id;
+        peer_id = other.peer_id;
+        version = std::move(other.version);
+        cache_size = other.cache_size;
+        time_started = other.time_started;
+        pid = other.pid;
+        hostname = std::move(other.hostname);
+        cluster_port = other.cluster_port;
+        reql_port = other.reql_port;
+        http_admin_port = other.http_admin_port;
+        get_stats_mailbox_address = other.get_stats_mailbox_address;
+        get_outdated_indexes_mailbox = other.get_outdated_indexes_mailbox;
+        log_mailbox = other.log_mailbox;
+        server_name_business_card = other.server_name_business_card;
+        local_issues = std::move(other.local_issues);
+        peer_type = other.peer_type;
+        return *this;
+    }
 
     namespaces_directory_metadata_t rdb_namespaces;
 

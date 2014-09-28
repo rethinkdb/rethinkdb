@@ -37,10 +37,20 @@ def project_root_dir():
     
     return os.path.realpath(masterBuildDir)
 
-def latest_build_dir(check_executable=True):
+def latest_rethinkdb_executable(mode=None):
+    return os.path.join(latest_build_dir(check_executable=True, mode=mode), 'rethinkdb')
+
+def latest_build_dir(check_executable=True, mode=None):
     '''Look for the most recently built version of this project'''
     
     masterBuildDir = os.path.join(project_root_dir(), 'build')
+    activeMode = ['release', 'debug']
+    if mode in (None, ''):
+        pass 
+    elif not hasattr(mode, '__iter__'):
+        activeMode = [str(mode)]
+    else:
+        activeMode = mode
     
     if not os.path.isdir(masterBuildDir):
         raise test_exceptions.NotBuiltException(detail='no version of this project have yet been built')
@@ -51,7 +61,7 @@ def latest_build_dir(check_executable=True):
     canidateMtime   = None
     for name in os.listdir(masterBuildDir):
         path = os.path.join(masterBuildDir, name)
-        if os.path.isdir(path) and (name in ('release', 'debug') or name.startswith('debug_') or name.startswith('release_')):
+        if os.path.isdir(path) and any(map(lambda x: name.startswith(x + '_') or name.lower() == x, activeMode)):
             if check_executable == True:
                 if not os.path.isfile(os.path.join(path, 'rethinkdb')):
                     continue

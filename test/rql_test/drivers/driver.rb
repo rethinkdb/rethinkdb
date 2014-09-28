@@ -169,11 +169,11 @@ end
 def test src, expected, name, opthash=nil, testopts=nil
   if opthash
     $opthash = Hash[opthash.map{|k,v| [k, eval(v, $defines)]}]
-    if !$opthash[:batch_conf]
-      $opthash[:batch_conf] = {max_els: 3}
+    if !$opthash[:max_batch_rows]
+      $opthash[:max_batch_rows] = 3
     end
   else
-    $opthash = {batch_conf: {max_els: 3}}
+    $opthash = {max_batch_rows: 3}
   end
   $test_count += 1
   

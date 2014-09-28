@@ -70,6 +70,7 @@ class Cursor(object):
         self.outstanding_requests = 0
         self.end_flag = False
         self.connection_closed = False
+        self.it = iter(self._it())
 
     def _extend(self, response):
         self.end_flag = response.type != pResponse.SUCCESS_PARTIAL and \
@@ -79,7 +80,7 @@ class Cursor(object):
         if len(self.responses) == 1 and not self.end_flag:
             self.conn._async_continue_cursor(self)
 
-    def __iter__(self):
+    def _it(self):
         while True:
             if len(self.responses) == 0 and self.connection_closed:
                 raise RqlDriverError("Connection closed, cannot read cursor")
@@ -101,6 +102,15 @@ class Cursor(object):
             del self.responses[0]
             for item in response_data:
                 yield item
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        return next(self.it)
+
+    def __next__(self):
+        return next(self.it)
 
     def close(self):
         if not self.end_flag:

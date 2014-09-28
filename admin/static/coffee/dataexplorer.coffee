@@ -311,8 +311,9 @@ module 'DataExplorerView', ->
         suggestions: {} # Suggestions[state] = function for this state
 
         types:
-            value: ['number', 'bool', 'string', 'array', 'object', 'time', 'binary']
-            any: ['number', 'bool', 'string', 'array', 'object', 'stream', 'selection', 'table', 'db', 'r', 'error', 'binary']
+            value: ['number', 'bool', 'string', 'array', 'object', 'time', 'binary', 'line', 'point', 'polygon']
+            any: ['number', 'bool', 'string', 'array', 'object', 'stream', 'selection', 'table', 'db', 'r', 'error', 'binary', 'line', 'point', 'polygon']
+            geometry: ['line', 'point', 'polygon']
             sequence: ['table', 'selection', 'stream', 'array']
             grouped_stream: ['stream', 'array']
 
@@ -1207,7 +1208,8 @@ module 'DataExplorerView', ->
 
             # The expensive operations are coming. If the query is too long, we just don't parse the query
             if @codemirror.getValue().length > @max_size_query
-                return false
+                # Return true or false will break the event propagation
+                return undefined
 
             query_before_cursor = @codemirror.getRange {line: 0, ch: 0}, @codemirror.getCursor()
             query_after_cursor = @codemirror.getRange @codemirror.getCursor(), {line:@codemirror.lineCount()+1, ch: 0}
@@ -2615,6 +2617,7 @@ module 'DataExplorerView', ->
                         if @current_results.length < @limit # We display @limit results per page, if we don't have enough, we keep requesting more
                             @current_results.push data
                             @state.cursor.next get_result_callback
+                            @extra_row = undefined # We don't know if there's an extra row yet, reset its value to undefined
                         else if @current_results.length is @limit # If we've reached the limit of results we can show, we still want to know if there are more results available
                             @extra_row = data # We requested an extra row, but won't display it on the current page, so we need to save it for later (when the user wants to show more results)
                             get_result_callback() # Display results

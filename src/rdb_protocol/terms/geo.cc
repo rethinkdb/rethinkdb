@@ -116,9 +116,9 @@ public:
         : geo_term_t(env, term, argspec_t(2)) { }
 private:
     counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
-        double lat = args->arg(env, 0)->as_num();
-        double lon = args->arg(env, 1)->as_num();
-        lat_lon_point_t point(lat, lon);
+        double lon = args->arg(env, 0)->as_num();
+        double lat = args->arg(env, 1)->as_num();
+        lon_lat_point_t point(lon, lat);
 
         const datum_t result = construct_geo_point(point, env->env->limits());
         validate_geojson(result);
@@ -130,25 +130,25 @@ private:
 
 // Accepts either a geometry object of type Point, or an array with two coordinates.
 // We often want to support both.
-lat_lon_point_t parse_point_argument(const datum_t &point_datum) {
+lon_lat_point_t parse_point_argument(const datum_t &point_datum) {
     if (point_datum.is_ptype(pseudo::geometry_string)) {
         // The argument is a point (should be at least, if not this will throw)
-        return extract_lat_lon_point(point_datum);
+        return extract_lon_lat_point(point_datum);
     } else {
         // The argument must be a coordinate pair
         rcheck_target(&point_datum, base_exc_t::GENERIC, point_datum.arr_size() == 2,
             strprintf("Expected point coordinate pair.  "
                       "Got %zu element array instead of a 2 element one.",
                       point_datum.arr_size()));
-        double lat = point_datum.get(0).as_num();
-        double lon = point_datum.get(1).as_num();
-        return lat_lon_point_t(lat, lon);
+        double lon = point_datum.get(0).as_num();
+        double lat = point_datum.get(1).as_num();
+        return lon_lat_point_t(lon, lat);
     }
 }
 
 // Used by line_term_t and polygon_term_t
-lat_lon_line_t parse_line_from_args(scope_env_t *env, args_t *args) {
-    lat_lon_line_t line;
+lon_lat_line_t parse_line_from_args(scope_env_t *env, args_t *args) {
+    lon_lat_line_t line;
     line.reserve(args->num_args());
     for (size_t i = 0; i < args->num_args(); ++i) {
         counted_t<const val_t> point_arg = args->arg(env, i);
@@ -165,7 +165,7 @@ public:
         : geo_term_t(env, term, argspec_t(2, -1)) { }
 private:
     counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
-        const lat_lon_line_t line = parse_line_from_args(env, args);
+        const lon_lat_line_t line = parse_line_from_args(env, args);
 
         const datum_t result = construct_geo_line(line, env->env->limits());
         validate_geojson(result);
@@ -181,7 +181,7 @@ public:
         : geo_term_t(env, term, argspec_t(3, -1)) { }
 private:
     counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
-        const lat_lon_line_t shell = parse_line_from_args(env, args);
+        const lon_lat_line_t shell = parse_line_from_args(env, args);
 
         const datum_t result = construct_geo_polygon(shell, env->env->limits());
         validate_geojson(result);
@@ -326,11 +326,11 @@ private:
         ellipsoid_spec_t reference_ellipsoid = pick_reference_ellipsoid(env, args);
         dist_unit_t radius_unit = pick_dist_unit(env, args);
 
-        lat_lon_point_t center = parse_point_argument(center_arg->as_datum());
+        lon_lat_point_t center = parse_point_argument(center_arg->as_datum());
         double radius = radius_arg->as_num();
         radius = convert_dist_unit(radius, radius_unit, dist_unit_t::M);
 
-        const lat_lon_line_t circle =
+        const lon_lat_line_t circle =
             build_circle(center, radius, num_vertices, reference_ellipsoid);
 
         const datum_t result =
@@ -373,8 +373,8 @@ public:
 private:
     counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<val_t> l_arg = args->arg(env, 0);
-        const lat_lon_line_t shell =
-            extract_lat_lon_line(l_arg->as_ptype(pseudo::geometry_string));
+        const lon_lat_line_t shell =
+            extract_lon_lat_line(l_arg->as_ptype(pseudo::geometry_string));
 
         const datum_t result = construct_geo_polygon(shell, env->env->limits());
         validate_geojson(result);
@@ -398,7 +398,7 @@ private:
             rfail(base_exc_t::GENERIC, "get_nearest requires an index argument.");
         }
         std::string index_str = index->as_str().to_std();
-        lat_lon_point_t center = parse_point_argument(center_arg->as_datum());
+        lon_lat_point_t center = parse_point_argument(center_arg->as_datum());
         ellipsoid_spec_t reference_ellipsoid = pick_reference_ellipsoid(env, args);
         dist_unit_t dist_unit = pick_dist_unit(env, args);
         counted_t<val_t> max_dist_arg = args->optarg(env, "max_dist");
@@ -417,10 +417,10 @@ private:
                           "max_results must be positive.");
         }
 
-        counted_t<datum_stream_t> stream = table->get_nearest(
+        datum_t results = table->get_nearest(
                 env->env, center, max_dist, max_results, reference_ellipsoid,
                 dist_unit, index_str, this, env->env->limits());
-        return new_val(stream, table);
+        return new_val(results);
     }
     virtual const char *name() const { return "get_nearest"; }
 };
@@ -430,18 +430,24 @@ public:
     polygon_sub_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : geo_term_t(env, term, argspec_t(2)) { }
 private:
-    counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
-        const datum_t lhs = args->arg(env, 0)->as_ptype(pseudo::geometry_string);
-        const datum_t rhs = args->arg(env, 1)->as_ptype(pseudo::geometry_string);
+    const datum_t check_arg(counted_t<val_t> arg) const {
+        const datum_t res = arg->as_ptype(pseudo::geometry_string);
 
-        rcheck_target(&rhs, base_exc_t::GENERIC,
-                      rhs.get_field("coordinates").arr_size() <= 1,
-                      "The second argument to `polygon_sub` must be a Polygon with "
-                      "only an outer shell.  This one has holes.");
-        rcheck_target(&lhs, base_exc_t::GENERIC,
-                      lhs.get_field("coordinates").arr_size() >= 1,
-                      "The first argument to `polygon_sub` is an empty polygon.  "
-                      "It must at least have an outer shell.");
+        rcheck_target(arg.get(), base_exc_t::GENERIC,
+                      res.get_field("type").as_str() == "Polygon",
+                      strprintf("Expected a Polygon but found a %s.",
+                                res.get_field("type").as_str().to_std().c_str()));
+        rcheck_target(arg.get(), base_exc_t::GENERIC,
+                      res.get_field("coordinates").arr_size() <= 1,
+                      "Expected a Polygon with only an outer shell.  "
+                      "This one has holes.");
+        return res;
+    }
+
+    counted_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
+        const datum_t lhs = check_arg(args->arg(env, 0));
+        const datum_t rhs = check_arg(args->arg(env, 1));
+
         {
             scoped_ptr_t<S2Polygon> lhs_poly = to_s2polygon(lhs);
             if (!geo_does_include(*lhs_poly, rhs)) {

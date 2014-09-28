@@ -206,13 +206,12 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_intersecting(
         error_message_index_not_found(sindex, table_name).c_str());
 }
 
-counted_t<ql::datum_stream_t> artificial_table_t::read_nearest(
+ql::datum_t artificial_table_t::read_nearest(
         UNUSED ql::env_t *env,
         const std::string &sindex,
-        UNUSED const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name,
         UNUSED bool use_outdated,
-        UNUSED lat_lon_point_t center,
+        UNUSED lon_lat_point_t center,
         UNUSED double max_dist,
         UNUSED uint64_t max_results,
         UNUSED const ellipsoid_spec_t &geo_system,

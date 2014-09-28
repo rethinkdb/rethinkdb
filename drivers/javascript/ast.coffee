@@ -1101,7 +1101,7 @@ class Time extends RDBOp
 
 class Geojson extends RDBOp
     tt: protoTermType.GEOJSON
-    mt: 'geojson'
+    st: 'geojson'
 
 class ToGeojson extends RDBOp
     tt: protoTermType.TO_GEOJSON
@@ -1109,15 +1109,15 @@ class ToGeojson extends RDBOp
 
 class Point extends RDBOp
     tt: protoTermType.POINT
-    mt: 'point'
+    st: 'point'
 
 class Line extends RDBOp
     tt: protoTermType.LINE
-    mt: 'line'
+    st: 'line'
 
 class Polygon extends RDBOp
     tt: protoTermType.POLYGON
-    mt: 'polygon'
+    st: 'polygon'
 
 class Distance extends RDBOp
     tt: protoTermType.DISTANCE
@@ -1133,7 +1133,7 @@ class Includes extends RDBOp
 
 class Circle extends RDBOp
     tt: protoTermType.CIRCLE
-    mt: 'circle'
+    st: 'circle'
 
 class GetIntersecting extends RDBOp
     tt: protoTermType.GET_INTERSECTING
