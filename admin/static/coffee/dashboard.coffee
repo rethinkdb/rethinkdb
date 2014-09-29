@@ -215,6 +215,7 @@ module 'DashboardView', ->
             @display_popup = true
 
         hide_popup: (event) =>
+            event.preventDefault()
             @display_popup = false
             @$('.popup_container').hide()
 
@@ -277,6 +278,7 @@ module 'DashboardView', ->
             @display_popup = true
 
         hide_popup: (event) =>
+            event.preventDefault()
             @display_popup = false
             @$('.popup_container').hide()
 
@@ -340,6 +342,7 @@ module 'DashboardView', ->
             @display_popup = true
 
         hide_popup: (event) =>
+            event.preventDefault()
             @display_popup = false
             @$('.popup_container').hide()
 
@@ -398,6 +401,7 @@ module 'DashboardView', ->
             @display_popup = true
 
         hide_popup: (event) =>
+            event.preventDefault()
             @display_popup = false
             @$('.popup_container').hide()
 
