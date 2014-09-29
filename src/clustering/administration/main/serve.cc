@@ -357,7 +357,12 @@ bool do_serve(io_backender_t *io_backender,
                         }
                     }
 
-                    logINF("Server ready\n");
+                    machines_semilattice_metadata_t::machine_map_t::const_iterator
+                        machine_it = cluster_metadata.machines.machines.find(machine_id);
+                    guarantee(machine_it != cluster_metadata.machines.machines.end());
+                    logINF("Server ready, \"%s\" %s\n",
+                        machine_it->second.get_ref().name.get().c_str(),
+                        uuid_to_str(machine_id).c_str());
 
                     stop_cond->wait_lazily_unordered();
 
