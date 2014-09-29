@@ -89,7 +89,7 @@ class TermBase
         options = {} if not options?
 
         if callback? and typeof callback isnt 'function'
-            return Promise.reject(new err.RqlDriverError("If provided, the callback must be a function. Please use `run(connection[, options], callback])"))
+            return Promise.reject(new err.RqlDriverError("If provided, the callback must be a function. Please use `run(connection[, options][, callback])"))
 
         # Check if the arguments are valid types
         for own key of options
