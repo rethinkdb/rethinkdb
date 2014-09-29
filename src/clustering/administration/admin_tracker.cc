@@ -23,8 +23,8 @@ admin_tracker_t::admin_tracker_t(
             incremental_field_getter_t<machine_id_t, cluster_directory_metadata_t>(
                 &cluster_directory_metadata_t::machine_id))),
 
-    name_conflict_issue_tracker(&issue_multiplexer,
-                                cluster_view),
+    name_collision_issue_tracker(&issue_multiplexer,
+                                 cluster_view),
 
     server_issue_tracker(
         local_issue_aggregator,

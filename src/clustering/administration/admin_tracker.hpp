@@ -14,7 +14,7 @@
 #include "clustering/administration/issues/global.hpp"
 #include "clustering/administration/issues/local_to_global.hpp"
 #include "clustering/administration/issues/server.hpp"
-#include "clustering/administration/issues/name_conflict.hpp"
+#include "clustering/administration/issues/name_collision.hpp"
 #include "clustering/administration/issues/outdated_index.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/last_seen_tracker.hpp"
@@ -34,7 +34,7 @@ public:
 
     // Global issues
     remote_issue_tracker_t remote_issue_tracker;
-    name_conflict_issue_tracker_t name_conflict_issue_tracker;
+    name_collision_issue_tracker_t name_collision_issue_tracker;
 
     // Local issues
     server_issue_tracker_t server_issue_tracker;
