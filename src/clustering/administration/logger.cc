@@ -47,6 +47,9 @@ log_level_t parse_log_level(const std::string &s) THROWS_ONLY(std::runtime_error
 }
 
 std::string format_log_message(const log_message_t &m, bool for_console) {
+    // never write an info level message to console
+    guarantee(!(for_console && m.level == log_level_info));
+
     std::string message = m.message;
     std::string message_reformatted;
 
@@ -58,7 +61,8 @@ std::string format_log_message(const log_message_t &m, bool for_console) {
                             m.uptime.tv_nsec / THOUSAND,
                             format_log_level(m.level).c_str());
     } else {
-        if (m.level != log_level_info) {
+        if (m.level != log_level_info &&
+                m.level != log_level_notice) {
             prepend = strprintf("%s: ", format_log_level(m.level).c_str());
         }
     }
@@ -370,8 +374,8 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
             return false;
         }
 
-        int res = fsync(fileno);
-        if (res != 0 && !(get_errno() == EROFS || get_errno() == EINVAL)) {
+        int fsync_res = fsync(fileno);
+        if (fsync_res != 0 && !(get_errno() == EROFS || get_errno() == EINVAL)) {
             error_out->assign("cannot flush stdout/stderr: " + errno_string(get_errno()));
             return false;
         }
@@ -384,20 +388,20 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
         return false;
     }
 
-    res = fcntl(fd.get(), F_SETLKW, &filelock);
-    if (res != 0) {
+    int fcntl_res = fcntl(fd.get(), F_SETLKW, &filelock);
+    if (fcntl_res != 0) {
         error_out->assign("cannot lock log file: " + errno_string(get_errno()));
         return false;
     }
 
-    write_res = ::write(fd.get(), formatted.data(), formatted.length());
+    ssize_t write_res = ::write(fd.get(), formatted.data(), formatted.length());
     if (write_res != static_cast<ssize_t>(formatted.length())) {
         error_out->assign("cannot write to log file: " + errno_string(get_errno()));
         return false;
     }
 
-    res = fcntl(fd.get(), F_SETLK, &fileunlock);
-    if (res != 0) {
+    fcntl_res = fcntl(fd.get(), F_SETLK, &fileunlock);
+    if (fcntl_res != 0) {
         error_out->assign("cannot unlock log file: " + errno_string(get_errno()));
         return false;
     }
