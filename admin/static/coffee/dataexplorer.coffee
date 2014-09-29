@@ -338,11 +338,17 @@ module 'DataExplorerView', ->
         # Once we are done moving the doc, we could generate a .js in the makefile file with the data so we don't have to do an ajax request+all this stuff
         set_doc_description: (command, tag, suggestions) =>
             if command['body']?
-                dont_need_parenthesis = not (new RegExp(tag+'\\(')).test(command['body'])
-                if dont_need_parenthesis
-                    full_tag = tag # Here full_tag is just the name of the tag
+                # The body of `getField` uses `()` and not `getField()`
+                # so we manually set the variables dont_need_parenthesis and full_tag
+                if tag is 'getField'
+                    dont_need_parenthesis = false
+                    full_tag = tag+'('
                 else
-                    full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
+                    dont_need_parenthesis = not (new RegExp(tag+'\\(')).test(command['body'])
+                    if dont_need_parenthesis
+                        full_tag = tag # Here full_tag is just the name of the tag
+                    else
+                        full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
 
                 @descriptions[full_tag] = (grouped_data) =>
                     name: tag
@@ -375,7 +381,6 @@ module 'DataExplorerView', ->
 
 
         # All the commands we are going to ignore
-        # TODO update the set of ignored commands for 1.4
         ignored_commands:
             'connect': true
             'close': true
@@ -396,7 +401,12 @@ module 'DataExplorerView', ->
                 if tag of @ignored_commands
                     continue
                 if tag is '()' # The parentheses will be added later
+                    # Add `(attr)`
                     tag = ''
+                    @set_doc_description command, tag, @suggestions
+
+                    # Add `getField(sttr)`
+                    tag = 'getField'
                 @set_doc_description command, tag, @suggestions
 
             relations = data['types']
