@@ -73,8 +73,8 @@ class TermBase
                     callback = options
                     options = {}
                 else
-                    options new err.RqlDriverError("Second argument to `run` cannot be a function if a third argument is provided.")
-                    return
+                    #options is a function here
+                    return Promise.reject(new err.RqlDriverError("Second argument to `run` cannot be a function if a third argument is provided.")).nodeify options
             # else we suppose that we have run(connection[, options][, callback])
         else if connection?.constructor is Object
             if @showRunWarning is true
@@ -87,6 +87,9 @@ class TermBase
             delete options["connection"]
 
         options = {} if not options?
+
+        if callback? and typeof callback isnt 'function'
+            return Promise.reject(new err.RqlDriverError("If provided, the callback must be a function. Please use `run(connection[, options], callback])"))
 
         # Check if the arguments are valid types
         for own key of options
