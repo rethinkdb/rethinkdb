@@ -393,7 +393,7 @@ describe('Javascript connection API', function(){
         }));
 
         it("Callback must be a function", withConnection(function(done, c){
-            r.expr(1).run(c, {}, "not_a_function").error(givesError("RqlDriverError", "If provided, the callback must be a function. Please use `run(connection[, options], callback])", done))
+            r.expr(1).run(c, {}, "not_a_function").error(givesError("RqlDriverError", "If provided, the callback must be a function. Please use `run(connection[, options][, callback])", done))
         }));
     });
 });
