@@ -165,7 +165,6 @@ module 'ServerView', ->
                 collection: @collection
 
         render: =>
-            console.log 'render main view'
             #TODO Handle ghost?
             @$el.html @template.main()
 
