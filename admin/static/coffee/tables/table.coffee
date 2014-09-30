@@ -228,10 +228,12 @@ module 'TableView', ->
                 model: @model
                 collection: @shards_assignments
 
-            @stats = new Stats(r.expr(
+            @stats = new Stats
+            @stats_timer = driver.run r.expr(
                 keys_read: r.random(2000, 3000)
                 keys_set: r.random(1500, 2500)
-            ))
+            ), 1000, @stats.on_result
+
             @performance_graph = new Vis.OpsPlot(@stats.get_stats,
                 width:  564             # width in pixels
                 height: 210             # height in pixels
@@ -314,8 +316,6 @@ module 'TableView', ->
 
 
         remove: =>
-            clearInterval @interval
-
             @title.remove()
             @profile.remove()
             @replicas.remove()
@@ -324,12 +324,13 @@ module 'TableView', ->
             @performance_graph.remove()
             @secondary_indexes_view.remove()
 
+            driver.stop_timer @stats_timer
+
             if @remove_table_dialog?
                 @remove_table_dialog.remove()
 
             if @rename_modal?
                 @rename_modal.remove()
-            @stats.destroy()
             super()
 
     # TableView.Title

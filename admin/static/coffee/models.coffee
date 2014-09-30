@@ -84,18 +84,16 @@ class Stats extends Backbone.Model
             keys_read: 0
             keys_set: 0
 
-        @timer = driver.run query, 1000, (error, result) =>
-            if error?
-                #TODO Display warning
-                console.log error
-            else
-                @set result
+    on_result: (err, result) =>
+        if err?
+            #TODO: Display warning? Can stats still timeout?
+            console.log err
+        else
+            @set result
+
 
     get_stats: =>
         @toJSON()
-    destroy: =>
-        driver.stop_timer @timer
-        super()
 
 # This module contains utility functions that compute and massage
 # commonly used data.

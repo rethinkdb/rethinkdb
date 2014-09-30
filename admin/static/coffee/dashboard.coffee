@@ -136,10 +136,12 @@ module 'DashboardView', ->
             @cluster_status_consistency = new DashboardView.ClusterStatusConsistency
                 model: @model
 
-            @stats = new Stats(r.expr(
+            @stats = new Stats
+            @stats_timer = driver.run r.expr(
                 keys_read: r.random(2000, 3000)
                 keys_set: r.random(1500, 2500)
-            ))
+            ), 1000, @stats.on_result
+
             @cluster_performance = new Vis.OpsPlot(@stats.get_stats,
                 width:  833             # width in pixels
                 height: 300             # height in pixels
@@ -168,13 +170,14 @@ module 'DashboardView', ->
             return @
 
         remove: =>
+            driver.stop_timer @stats_timer
+
             @cluster_status_availability.remove()
             @cluster_status_redundancy.remove()
             @cluster_status_reachability.remove()
             @cluster_status_consistency.remove()
             @cluster_performance.remove()
             #@logs.remove()
-            @stats.destroy()
             super()
 
     class @ClusterStatusAvailability extends Backbone.View

@@ -127,10 +127,12 @@ module 'DatabaseView', ->
                 model: @model
                 collection: @tables
 
-            @stats = new Stats(r.expr(
+            @stats = new Stats
+            @stats_timer = driver.run r.expr(
                 keys_read: r.random(2000, 3000)
                 keys_set: r.random(1500, 2500)
-            ))
+            ), 1000, @stats.on_result
+
             @performance_graph = new Vis.OpsPlot(@stats.get_stats,
                 width:  564             # width in pixels
                 height: 210             # height in pixels
@@ -181,6 +183,7 @@ module 'DatabaseView', ->
             @remove_database_dialog.render @model
 
         remove: =>
+            driver.stop_timer @stats_timer
             @title.remove()
             @profile.remove()
             @performance_graph.remove()
@@ -188,7 +191,6 @@ module 'DatabaseView', ->
                 @rename_modal.remove()
             if @remove_database_dialog?
                 @remove_database_dialog.remove()
-            @stats.destroy()
             super()
 
     # DatabaseView.Title

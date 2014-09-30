@@ -99,10 +99,12 @@ module 'ServerView', ->
                         model: @server
                     @$('.profile').html @profile.render().$el
 
-                    @stats = new Stats(r.expr(
+                    @stats = new Stats
+                    @stats_timer = driver.run r.expr(
                         keys_read: r.random(2000, 3000)
                         keys_set: r.random(1500, 2500)
-                    ))
+                    ), 1000, @stats.on_result
+
                     @performance_graph = new Vis.OpsPlot(@stats.get_stats,
                         width:  564             # width in pixels
                         height: 210             # height in pixels
@@ -126,12 +128,12 @@ module 'ServerView', ->
 
         remove: =>
             driver.stop_timer @timer
+            driver.stop_timer @stats_timer
             @title.remove()
             @profile.remove()
             @data.remove()
             if @rename_modal?
                 @rename_modal.remove()
-            @stats.destroy()
             super()
 
 
