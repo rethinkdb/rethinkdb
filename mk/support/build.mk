@@ -67,6 +67,10 @@ fetch-$2: $(SUPPORT_SRC_DIR)/$2_$3
 build-$2: build-$2_$3
 clean-$2: clean-$2_$3
 
+.PHONY: shrinkwrap-$2
+shrinkwrap-$2:
+	$(PKG_SCRIPT) shrinkwrap $2
+
 # Depend on node for fetching node packages
 $(SUPPORT_SRC_DIR)/$2_$3: | $(foreach dep, $(filter node,$($2_DEPENDS)), $(SUPPORT_BUILD_DIR)/$(dep)_$($(dep)_VERSION)/install.witness)
 
