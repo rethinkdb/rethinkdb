@@ -28,3 +28,29 @@ tests:
 
     - cd: r.json(text).to_json()
       ot: sorted
+
+    - cd: r.time(2014,9,11, 'Z')
+      runopts:
+        time_format: "'raw'"
+      ot: ({'timezone':'+00:00','$reql_type$':'TIME','epoch_time':1410393600})
+
+    - cd: r.time(2014,9,11, 'Z').to_json()
+      ot: ('{"$reql_type$":"TIME","epoch_time":1410393600,"timezone":"+00:00"}')
+
+    - cd: r.point(0,0)
+      ot: ({'$reql_type$':'GEOMETRY','coordinates':[0,0],'type':'Point'})
+
+    - cd: r.point(0,0).to_json()
+      ot: ('{"$reql_type$":"GEOMETRY","coordinates":[0,0],"type":"Point"}')
+
+    - def:
+        cd: s = "\x66\x6f\x6f"
+        py: s = b'\x66\x6f\x6f'
+    - def:
+        rb: s.force_encoding('BINARY')
+        js: s = Buffer(s, 'binary')
+    - cd: r.binary(s)
+      ot: (s)
+
+    - cd: r.expr("foo").coerce_to("binary").to_json()
+      ot: ('{"$reql_type$":"BINARY","data":"Zm9v"}')
