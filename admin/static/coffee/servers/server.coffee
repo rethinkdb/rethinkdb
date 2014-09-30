@@ -135,7 +135,6 @@ module 'ServerView', ->
                 model: @model
 
         render: =>
-            console.log 'render'
             #TODO Handle ghost?
             @$el.html @template.main()
 
