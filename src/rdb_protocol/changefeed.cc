@@ -230,6 +230,8 @@ limit_manager_t::limit_manager_t(
       data(std::move(start_data)) {
     std::vector<std::pair<datum_t, datum_t> > v;
     for (const auto &pair : data) {
+        guarantee(pair.first.has());
+        guarantee(pair.second.has());
         v.push_back(pair);
     }
     send(msg_t(msg_t::limit_start_t(uuid, std::move(v))));
@@ -678,7 +680,13 @@ public:
             &read_resp, order_token_t::ignore, env->interruptor);
         auto resp = boost::get<changefeed_limit_subscribe_response_t>(
             &read_resp.response);
-        guarantee(resp != NULL);
+        if (resp == NULL) {
+            auto err_resp = boost::get<rget_read_response_t>(&read_resp.response);
+            guarantee(err_resp != NULL);
+            auto err = boost::get<exc_t>(&err_resp->result);
+            guarantee(err != NULL);
+            throw *err;
+        }
         guarantee(need_init == -1);
         debugf("need_init: %zu\n", resp->shards);
         need_init = resp->shards;

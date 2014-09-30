@@ -565,6 +565,10 @@ void rdb_r_unshard_visitor_t::operator()(const changefeed_limit_subscribe_t &) {
     for (size_t i = 0; i < count; ++i) {
         auto res = boost::get<changefeed_limit_subscribe_response_t>(
             &responses[i].response);
+        if (res == NULL) {
+            response_out->response = std::move(responses[i].response);
+            return;
+        }
         shards += res->shards;
     }
     response_out->response = changefeed_limit_subscribe_response_t(shards);

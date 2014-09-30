@@ -280,6 +280,10 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             rget.region = region_t::universe();
             rget.table_name = s.table;
             rget.batchspec = ql::batchspec_t::all().with_at_most(s.spec.limit);
+            rget.sindex = sindex_rangespec_t(
+                s.spec.range.sindex,
+                region_t::universe(), // RSI: is this OK?
+                ql::datum_range_t::universe());
             // RSI: rget.terminal for truncation!
             rget.sorting = s.spec.range.sorting;
             do_read(&env, store, btree, superblock, rget, &resp);
@@ -304,6 +308,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         // RSI: sorting
         ql::changefeed::datum_map_t start_data((std::greater<const ql::datum_t &>()));
         for (const auto &item : stream) {
+            guarantee(item.sindex_key.has());
+            guarantee(item.data.has());
             if (start_data.size() == s.spec.limit) {
                 break;
             }
