@@ -7,10 +7,10 @@
 #include "arch/io/network.hpp"
 #include "arch/os_signal.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
-#include "clustering/administration/admin_tracker.hpp"
 #include "clustering/administration/artificial_reql_cluster_interface.hpp"
 #include "clustering/administration/http/server.hpp"
 #include "clustering/administration/issues/local.hpp"
+#include "clustering/administration/issues/server.hpp"
 #include "clustering/administration/logger.hpp"
 #include "clustering/administration/main/file_based_svs_by_namespace.hpp"
 #include "clustering/administration/main/initial_join.hpp"
@@ -86,8 +86,7 @@ bool do_serve(io_backender_t *io_backender,
         extproc_pool_t extproc_pool(get_num_threads());
 
         local_issue_aggregator_t local_issue_aggregator;
-        log_write_issue_tracker_t
-            log_write_issue_tracker(&local_issue_aggregator);
+        log_write_issue_tracker_t log_write_issue_tracker(&local_issue_aggregator);
 
         thread_pool_log_writer_t log_writer(&log_write_issue_tracker);
 
@@ -176,9 +175,12 @@ bool do_serve(io_backender_t *io_backender,
             metadata_field(&cluster_semilattice_metadata_t::machines,
                            semilattice_manager_cluster.get_root_view()));
 
-        admin_tracker_t admin_tracker(semilattice_manager_cluster.get_root_view(),
-                                      directory_read_manager.get_root_view(),
-                                      &local_issue_aggregator);
+        server_issue_tracker_t server_issue_tracker(
+            &local_issue_aggregator,
+            semilattice_manager_cluster.get_root_view(),
+            directory_read_manager.get_root_view()->incremental_subview(
+                incremental_field_getter_t<machine_id_t, cluster_directory_metadata_t>(
+                    &cluster_directory_metadata_t::machine_id)));
 
         scoped_ptr_t<connectivity_cluster_t::run_t> connectivity_cluster_run;
 
@@ -271,9 +273,7 @@ bool do_serve(io_backender_t *io_backender,
                 semilattice_manager_cluster.get_root_view(),
                 semilattice_manager_auth.get_root_view(),
                 directory_read_manager.get_root_view(),
-                &server_name_client,
-                &admin_tracker,
-                &admin_tracker.last_seen_tracker);
+                &server_name_client);
 
         /* `real_reql_cluster_interface_t` needs access to the admin tables so that it
         can return rows from the `table_status` and `table_config` artificial tables when
@@ -309,7 +309,7 @@ bool do_serve(io_backender_t *io_backender,
             if (i_am_a_server) {
                 rdb_svs_source.init(new file_based_svs_by_namespace_t(
                     io_backender, cache_balancer.get(), base_path,
-                    &admin_tracker.outdated_index_tracker));
+                    &local_issue_aggregator));
                 rdb_reactor_driver.init(new reactor_driver_t(
                         base_path,
                         io_backender,

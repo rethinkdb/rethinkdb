@@ -6,7 +6,7 @@
 #include <set>
 #include <string>
 
-#include "clustering/administration/issues/global.hpp"
+#include "clustering/administration/issues/issue.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "http/json.hpp"
 #include "rpc/semilattice/view.hpp"
@@ -83,7 +83,6 @@ private:
 class name_collision_issue_tracker_t : public issue_tracker_t {
 public:
     name_collision_issue_tracker_t(
-        issue_multiplexer_t *_parent,
         boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
             _cluster_sl_view);
 

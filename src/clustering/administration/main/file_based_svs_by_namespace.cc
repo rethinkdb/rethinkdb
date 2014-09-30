@@ -141,7 +141,7 @@ file_based_svs_by_namespace_t::get_svs(
         store_args_t store_args(io_backender_, base_path_,
                                 namespace_id, balancer_,
                                 serializers_perfmon_collection, ctx,
-                                outdated_index_tracker, namespace_id);
+                                &outdated_index_tracker, namespace_id);
         filepath_file_opener_t file_opener(serializer_filepath, io_backender_);
         if (res == 0) {
             // TODO: Could we handle failure when loading the serializer?  Right

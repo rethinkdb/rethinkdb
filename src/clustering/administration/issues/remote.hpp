@@ -1,10 +1,10 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_TO_GLOBAL_HPP_
-#define CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_TO_GLOBAL_HPP_
+#ifndef CLUSTERING_ADMINISTRATION_ISSUES_REMOTE_HPP_
+#define CLUSTERING_ADMINISTRATION_ISSUES_REMOTE_HPP_
 
 #include <vector>
 
-#include "clustering/administration/issues/global.hpp"
+#include "clustering/administration/issues/issue.hpp"
 #include "clustering/administration/issues/local.hpp"
 #include "containers/uuid.hpp"
 #include "clustering/administration/servers/machine_metadata.hpp"
@@ -15,13 +15,12 @@
 class remote_issue_tracker_t : public issue_tracker_t {
 public:
     remote_issue_tracker_t(
-            issue_multiplexer_t *_parent,
-            const clone_ptr_t<watchable_t<
-                change_tracking_map_t<peer_id_t, std::vector<local_issue_t> > > >
-                    &_issues_view,
-            const clone_ptr_t<watchable_t<
-                change_tracking_map_t<peer_id_t, machine_id_t> > >
-                    &_machine_id_translation_table);
+        const clone_ptr_t<watchable_t<
+            change_tracking_map_t<peer_id_t, std::vector<local_issue_t> > > >
+                &_issues_view,
+        const clone_ptr_t<watchable_t<
+            change_tracking_map_t<peer_id_t, machine_id_t> > >
+                &_machine_id_translation_table);
 
     std::vector<scoped_ptr_t<issue_t> > get_issues() const;
 
@@ -43,4 +42,4 @@ private:
     DISABLE_COPYING(remote_issue_tracker_t);
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_TO_GLOBAL_HPP_ */
+#endif /* CLUSTERING_ADMINISTRATION_ISSUES_REMOTE_HPP_ */

@@ -1,14 +1,12 @@
-#include "clustering/administration/issues/local_to_global.hpp"
+#include "clustering/administration/issues/remote.hpp"
 
 remote_issue_tracker_t::remote_issue_tracker_t(
-        issue_multiplexer_t *_parent,
         const clone_ptr_t<watchable_t<
             change_tracking_map_t<peer_id_t, std::vector<local_issue_t> > > >
                 &_issues_view,
         const clone_ptr_t<watchable_t<
             change_tracking_map_t<peer_id_t, machine_id_t> > >
                 &_machine_id_translation_table) :
-    issue_tracker_t(_parent),
     issues_view(_issues_view),
     machine_id_translation_table(_machine_id_translation_table) { }
 

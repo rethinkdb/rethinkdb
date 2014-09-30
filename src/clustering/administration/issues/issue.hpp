@@ -1,6 +1,6 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_ISSUES_GLOBAL_HPP_
-#define CLUSTERING_ADMINISTRATION_ISSUES_GLOBAL_HPP_
+#ifndef CLUSTERING_ADMINISTRATION_ISSUES_ISSUE_HPP_
+#define CLUSTERING_ADMINISTRATION_ISSUES_ISSUE_HPP_
 
 #include <vector>
 #include <set>
@@ -13,7 +13,6 @@
 
 class issue_multiplexer_t;
 class cluster_semilattice_metadata_t;
-
 
 class issue_t {
 public:
@@ -70,33 +69,11 @@ private:
 
 class issue_tracker_t {
 public:
-    explicit issue_tracker_t(issue_multiplexer_t *_parent);
-    virtual ~issue_tracker_t();
-
+    issue_tracker_t() { }
+    virtual ~issue_tracker_t() { }
     virtual std::vector<scoped_ptr_t<issue_t> > get_issues() const = 0;
-
 private:
-    issue_multiplexer_t *parent;
     DISABLE_COPYING(issue_tracker_t);
 };
 
-class issue_multiplexer_t : public home_thread_mixin_t {
-public:
-    issue_multiplexer_t(
-        boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
-            _cluster_sl_view);
-
-    void get_issue_ids(std::vector<ql::datum_t> *ids_out) const;
-    void get_issue(const issue_id_t &issue_id,
-                   ql::datum_t *row_out) const;
-
-private:
-    std::vector<scoped_ptr_t<issue_t> > all_issues() const;
-
-    friend class issue_tracker_t;
-    std::set<issue_tracker_t *> trackers;
-    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > cluster_sl_view;
-    DISABLE_COPYING(issue_multiplexer_t);
-};
-
-#endif /* CLUSTERING_ADMINISTRATION_ISSUES_GLOBAL_HPP_ */
+#endif /* CLUSTERING_ADMINISTRATION_ISSUES_ISSUE_HPP_ */

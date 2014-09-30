@@ -13,14 +13,12 @@
 #include "clustering/administration/tables/db_config.hpp"
 #include "clustering/administration/tables/table_config.hpp"
 #include "clustering/administration/tables/table_status.hpp"
-#include "clustering/administration/issues/issues.hpp"
+#include "clustering/administration/issues/issues_backend.hpp"
 #include "containers/name_string.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rdb_protocol/artificial_table/in_memory.hpp"
 #include "rdb_protocol/context.hpp"
 
-class admin_tracker_t;
-class last_seen_tracker_t;
 class real_reql_cluster_interface_t;
 class server_name_client_t;
 
@@ -102,9 +100,7 @@ public:
                 auth_semilattice_metadata_t> > _auth_view,
             clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
                 cluster_directory_metadata_t> > > _directory_view,
-            server_name_client_t *_name_client,
-            admin_tracker_t *_admin_tracker,
-            last_seen_tracker_t *_last_seen_tracker);
+            server_name_client_t *_name_client);
     reql_cluster_interface_t *get_reql_cluster_interface() {
         return reql_cluster_interface.get();
     }

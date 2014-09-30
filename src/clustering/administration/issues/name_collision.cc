@@ -139,10 +139,8 @@ void table_name_collision_issue_t::build_info(const std::string &db_name,
 }
 
 name_collision_issue_tracker_t::name_collision_issue_tracker_t(
-            issue_multiplexer_t *_parent,
             boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
                 _cluster_sl_view) :
-    issue_tracker_t(_parent),
     cluster_sl_view(_cluster_sl_view) { }
 
 name_collision_issue_tracker_t::~name_collision_issue_tracker_t() { }

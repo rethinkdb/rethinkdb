@@ -1,4 +1,4 @@
-#include "clustering/administration/issues/global.hpp"
+#include "clustering/administration/issues/issue.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/datum_adapter.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
@@ -40,56 +40,4 @@ std::string issue_t::item_to_str(const std::string &str) {
 std::string issue_t::item_to_str(const uuid_u &id) {
     return 'U' + std::string(reinterpret_cast<const char *>(id.data()),
                              id.static_size()) + '\0';
-}
-
-issue_tracker_t::issue_tracker_t(issue_multiplexer_t *_parent) : parent(_parent) {
-    parent->assert_thread();
-    parent->trackers.insert(this);
-}
-
-issue_tracker_t::~issue_tracker_t() {
-    parent->assert_thread();
-    parent->trackers.erase(this);
-}
-
-issue_multiplexer_t::issue_multiplexer_t(
-        boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
-            _cluster_sl_view) :
-    cluster_sl_view(_cluster_sl_view) { }
-
-std::vector<scoped_ptr_t<issue_t> > issue_multiplexer_t::all_issues() const {
-    std::vector<scoped_ptr_t<issue_t> > all_issues;
-
-    for (auto const &tracker : trackers) {
-        std::vector<scoped_ptr_t<issue_t> > issues = tracker->get_issues(); 
-        std::move(issues.begin(), issues.end(), std::back_inserter(all_issues));
-    }
-
-    return all_issues;
-}
-
-void issue_multiplexer_t::get_issue_ids(std::vector<ql::datum_t> *ids_out) const {
-    assert_thread();
-    ids_out->clear();
-
-    std::vector<scoped_ptr_t<issue_t> > issues = all_issues(); 
-
-    for (auto const &issue : issues) {
-        ids_out->push_back(convert_uuid_to_datum(issue->get_id()));
-    }
-}
-
-void issue_multiplexer_t::get_issue(const uuid_u &issue_id,
-                                    ql::datum_t *row_out) const {
-    assert_thread();
-    std::vector<scoped_ptr_t<issue_t> > issues = all_issues();
-
-    for (auto const &issue : issues) {
-        if (issue->get_id() == issue_id) {
-            issue->to_datum(cluster_sl_view->get(), row_out);
-            return;
-        }
-    }
-
-    *row_out = ql::datum_t();
 }

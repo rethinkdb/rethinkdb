@@ -5,7 +5,7 @@
 #include <vector>
 #include <string>
 
-#include "clustering/administration/issues/global.hpp"
+#include "clustering/administration/issues/issue.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "rpc/semilattice/view.hpp"
 

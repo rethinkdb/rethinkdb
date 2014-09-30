@@ -10,7 +10,7 @@
 #include "containers/incremental_lenses.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rdb_protocol/store.hpp"
-#include "clustering/administration/issues/global.hpp"
+#include "clustering/administration/issues/issue.hpp"
 #include "clustering/administration/issues/local.hpp"
 
 class log_write_issue_t : public issue_t {

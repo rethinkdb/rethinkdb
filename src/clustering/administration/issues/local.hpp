@@ -8,7 +8,7 @@
 #include "errors.hpp"
 #include <boost/variant.hpp>
 
-#include "clustering/administration/issues/global.hpp"
+#include "clustering/administration/issues/issue.hpp"
 #include "concurrency/watchable.hpp"
 #include "containers/clone_ptr.hpp"
 #include "rpc/semilattice/joins/macros.hpp"

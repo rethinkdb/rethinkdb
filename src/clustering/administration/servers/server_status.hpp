@@ -11,10 +11,10 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/server_common.hpp"
 #include "clustering/administration/servers/machine_metadata.hpp"
+#include "clustering/administration/servers/last_seen_tracker.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rpc/semilattice/view.hpp"
 
-class last_seen_tracker_t;
 class server_name_client_t;
 
 class server_status_artificial_table_backend_t :
@@ -30,15 +30,7 @@ public:
             boost::shared_ptr< semilattice_readwrite_view_t<
                 cow_ptr_t<namespaces_semilattice_metadata_t> > > _table_sl_view,
             boost::shared_ptr< semilattice_readwrite_view_t<
-                databases_semilattice_metadata_t> > _database_sl_view,
-            last_seen_tracker_t *_last_seen_tracker) :
-        common_server_artificial_table_backend_t(_servers_sl_view, _name_client),
-        directory_view(_directory_view), table_sl_view(_table_sl_view),
-        database_sl_view(_database_sl_view),
-        last_seen_tracker(_last_seen_tracker) {
-        table_sl_view->assert_thread();
-        database_sl_view->assert_thread();
-    }
+                databases_semilattice_metadata_t> > _database_sl_view);
 
     bool read_row(
             ql::datum_t primary_key,
@@ -61,7 +53,7 @@ private:
         cow_ptr_t<namespaces_semilattice_metadata_t> > > table_sl_view;
     boost::shared_ptr< semilattice_readwrite_view_t<
         databases_semilattice_metadata_t> > database_sl_view;
-    last_seen_tracker_t *last_seen_tracker;
+    last_seen_tracker_t last_seen_tracker;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_SERVERS_SERVER_STATUS_HPP_ */
