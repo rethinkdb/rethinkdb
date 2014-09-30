@@ -71,7 +71,9 @@ public:
     }
     int get_type(const std::string &s, const rcheckable_t *caller) const {
         std::map<std::string, int>::const_iterator it = map.find(s);
-        rcheck_target(caller, base_exc_t::GENERIC, it != map.end(),
+        rcheck_target(caller,
+                      it != map.end(),
+                      base_exc_t::GENERIC,
                       strprintf("Unknown Type: %s", s.c_str()));
         return it->second;
     }

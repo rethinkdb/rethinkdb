@@ -275,15 +275,17 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             new_val.rcheck_valid_replace(
                 old_val, ql::datum_t(), primary_key);
             ql::datum_t pk = new_val.get_field(primary_key, ql::NOTHROW);
-            rcheck_target(
-                &new_val, ql::base_exc_t::GENERIC,
-                key.compare(store_key_t(pk.print_primary())) == 0,
-                (started_empty
-                 ? strprintf("Primary key `%s` cannot be changed (null -> %s)",
-                             primary_key.to_std().c_str(), new_val.print().c_str())
-                 : strprintf("Primary key `%s` cannot be changed (%s -> %s)",
-                             primary_key.to_std().c_str(),
-                             old_val.print().c_str(), new_val.print().c_str())));
+            rcheck_target(&new_val,
+                          key.compare(store_key_t(pk.print_primary())) == 0,
+                          ql::base_exc_t::GENERIC,
+                          (started_empty
+                           ? strprintf("Primary key `%s` cannot be changed (null -> %s)",
+                                       primary_key.to_std().c_str(),
+                                       new_val.print().c_str())
+                           : strprintf("Primary key `%s` cannot be changed (%s -> %s)",
+                                       primary_key.to_std().c_str(),
+                                       old_val.print().c_str(),
+                                       new_val.print().c_str())));
         } else {
             rfail_typed_target(
                 &new_val, "Inserted value must be an OBJECT (got %s):\n%s",

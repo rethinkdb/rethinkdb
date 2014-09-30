@@ -595,7 +595,7 @@ private:
         }
     }
     virtual datum_t unpack(datum_t *el) {
-        rcheck_target(f, base_exc_t::NON_EXISTENCE, el->has(), empty_stream_msg);
+        rcheck_target(f, el->has(), base_exc_t::NON_EXISTENCE, empty_stream_msg);
         return std::move(*el);
     }
     virtual void unshard_impl(env_t *env,
@@ -719,10 +719,11 @@ private:
                 r_sanity_check(instance.size() == 0);
             }
 
-            rcheck_src(
-                bt.get(), base_exc_t::GENERIC,
-                groups->size() <= env->limits().array_size_limit(),
-                strprintf("Too many groups (> %zu).", env->limits().array_size_limit()));
+            rcheck_src(bt.get(),
+                       groups->size() <= env->limits().array_size_limit(),
+                       base_exc_t::GENERIC,
+                       strprintf("Too many groups (> %zu).",
+                                 env->limits().array_size_limit()));
         }
         size_t erased = groups->erase(datum_t());
         r_sanity_check(erased == 1);
