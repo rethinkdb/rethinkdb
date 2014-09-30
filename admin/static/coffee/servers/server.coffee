@@ -2,28 +2,10 @@
 # Machine view
 module 'ServerView', ->
     class @ServerContainer extends Backbone.View
-        not_found_template: Handlebars.templates['element_view-not_found-template']
         template:
-            main: Handlebars.templates['full_server-template']
             loading: Handlebars.templates['loading-template']
-
-        events:
-            'click .close': 'close_alert'
-            'click .operations .rename': 'rename_server'
-
-        rename_server: (event) =>
-            event.preventDefault()
-
-            if @rename_modal?
-                @rename_modal.remove()
-            @rename_modal = new UIComponents.RenameItemModal
-                model: @server
-            @rename_modal.render()
-
-        # Method to close an alert/warning/arror
-        close_alert: (event) ->
-            event.preventDefault()
-            $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
+            error: Handlebars.templates['error-query-template']
+            not_found: Handlebars.templates['element_view-not_found-template']
 
         initialize: (id) =>
             @id = id
@@ -60,82 +42,122 @@ module 'ServerView', ->
 
             @timer = driver.run query, 5000, (error, result) =>
                 # We should call render only once to avoid blowing all the sub views
-                if @loading is true
-                    @loading = false
-                    if result is null
-                        @render()
-                    else
-                        @server = new Server result
-                        @render()
+                if error?
+                    @error = error
+                    @render()
                 else
-                    if @server is null
-                        if result isnt null
-                            @server = new Server result
+                    @error = null
+                    if result is null
+                        if @loading is true
+                            @loading = false
+                            @render()
+                        else if @model isnt null
+                            #TODO Test
+                            @server = null
                             @render()
                     else
-                        if result is null
-                            @server = null
+                        @loading = false
+                        if not @server?
+                            @server = new Server result
+                            @server_view = new ServerView.ServerMainView
+                                model: @server
                             @render()
                         else
                             @server.set result
 
-
         render: =>
-            if @loading
+            if @error?
+                @$el.html @template.error
+                    error: @error?.message
+                    url: '#servers/'+@id
+            else if @loading is true
                 @$el.html @template.loading
                     page: "server"
             else
-                if @server is null
-                    @$el.html @not_found_template
-                else
-                    #TODO Handle ghost?
-                    @$el.html @template.main @server
-
-                    @title = new ServerView.Title
-                        model: @server
-                    @$('.main_title').html @title.render().$el
-
-                    @profile = new ServerView.Profile
-                        model: @server
-                    @$('.profile').html @profile.render().$el
-
-                    @stats = new Stats
-                    @stats_timer = driver.run r.expr(
-                        keys_read: r.random(2000, 3000)
-                        keys_set: r.random(1500, 2500)
-                    ), 1000, @stats.on_result
-
-                    @performance_graph = new Vis.OpsPlot(@stats.get_stats,
-                        width:  564             # width in pixels
-                        height: 210             # height in pixels
-                        seconds: 73             # num seconds to track
+                if @server_view?
+                    @$el.html @server_view.render().$el
+                else # In this case, the query returned null, so the server
+                    @$el.html @template.not_found
+                        id: @id
                         type: 'server'
-                    )
-                    @$('.performance-graph').html @performance_graph.render().$el
-
-                    @data = new ServerView.Data
-                        model: @server
-                    @$('.server-data').html @data.render().$el
-
-                    ###
-                    # TODO: Implement when logs will be available
-                    @logs = new LogView.Container
-                        route: "ajax/log/"+@model.get('id')+"?"
-                        type: 'machine'
-                    @$('.recent-log-entries').html @logs.render().$el
-                    ###
+                        type_url: 'servers'
+                        type_all_url: 'servers'
             @
 
         remove: =>
             driver.stop_timer @timer
+            @server_view?.remove()
+            super()
+
+    class @ServerMainView extends Backbone.View
+        template:
+            main: Handlebars.templates['full_server-template']
+
+        events:
+            'click .close': 'close_alert'
+            'click .operations .rename': 'rename_server'
+
+        rename_server: (event) =>
+            event.preventDefault()
+
+            if @rename_modal?
+                @rename_modal.remove()
+            @rename_modal = new UIComponents.RenameItemModal
+                model: @model
+            @rename_modal.render()
+
+        # Method to close an alert/warning/arror
+        close_alert: (event) ->
+            event.preventDefault()
+            $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
+
+        initialize: =>
+            @title = new ServerView.Title
+                model: @model
+
+            @profile = new ServerView.Profile
+                model: @model
+
+            @stats = new Stats
+            @stats_timer = driver.run r.expr(
+                keys_read: r.random(2000, 3000)
+                keys_set: r.random(1500, 2500)
+            ), 1000, @stats.on_result
+
+            @performance_graph = new Vis.OpsPlot(@stats.get_stats,
+                width:  564             # width in pixels
+                height: 210             # height in pixels
+                seconds: 73             # num seconds to track
+                type: 'server'
+            )
+
+            @data = new ServerView.Data
+                model: @model
+
+        render: =>
+            console.log 'render'
+            #TODO Handle ghost?
+            @$el.html @template.main()
+
+            @$('.main_title').html @title.render().$el
+            @$('.profile').html @profile.render().$el
+            @$('.performance-graph').html @performance_graph.render().$el
+            @$('.server-data').html @data.render().$el
+
+            # TODO: Implement when logs will be available
+            #@logs = new LogView.Container
+            #    route: "ajax/log/"+@model.get('id')+"?"
+            #    type: 'machine'
+            #@$('.recent-log-entries').html @logs.render().$el
+            @
+
+        remove: =>
             driver.stop_timer @stats_timer
             @title.remove()
             @profile.remove()
             @data.remove()
             if @rename_modal?
                 @rename_modal.remove()
-            super()
-
 
     class @Title extends Backbone.View
         className: 'machine-info-view'
@@ -162,7 +184,7 @@ module 'ServerView', ->
             # TODO Try with a release/clean version
             version = @model.get('version').split(' ')[1].split('-')[0]
             @$el.html @template
-                main_ip: @model.get 'host'
+                main_ip: @model.get 'hostname'
                 uptime: $.timeago(@model.get('time_started')).slice(0, -4)
                 version: version
                 num_shards: @model.get('responsabilities').length
