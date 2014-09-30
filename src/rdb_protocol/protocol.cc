@@ -210,7 +210,7 @@ void post_construct_and_drain_queue(
                 rdb_update_sindexes(store,
                                     sindexes,
                                     &mod_report,
-                                    &ql::changefeed::no_read_func_needed,
+                                    NULL, // RSI: is this a bad idea?
                                     queue_txn.get(),
                                     &deletion_context);
                 ++current_chunk_size;

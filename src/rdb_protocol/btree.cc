@@ -1555,7 +1555,7 @@ void rdb_update_single_sindex(
         sindex->name.name,
         [&](ql::changefeed::limit_manager_t *lm) {
             lm->commit(ql::changefeed::sindex_ref_t{
-                    env, store, sindex->btree, superblock, sindex_info});
+                    env, store, sindex->btree, superblock, &sindex_info});
         });
 }
 
@@ -1689,7 +1689,7 @@ public:
             rdb_update_sindexes(store_,
                                 sindexes,
                                 &mod_report,
-                                &ql::changefeed::no_read_func_needed,
+                                NULL, // RSI: is this a bad idea?
                                 wtxn.get(),
                                 &deletion_context);
             store_->btree->stats.pm_keys_set.record();

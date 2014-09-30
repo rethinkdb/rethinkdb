@@ -276,8 +276,29 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         ql::stream_t stream;
         {
             rget_read_response_t resp;
-            rget_read_t read;
+            rget_read_t rget;
+            rget.region = region_t::universe();
+            rget.table_name = s.table;
+            rget.batchspec = ql::batchspec_t::all().with_at_most(s.spec.limit);
+            // RSI: rget.terminal for truncation!
+            rget.sorting = s.spec.range.sorting;
             do_read(&env, store, btree, superblock, rget, &resp);
+            auto *gs = boost::get<ql::grouped_t<ql::stream_t> >(&resp.result);
+            if (gs == NULL) {
+                auto *exc = boost::get<ql::exc_t>(&resp.result);
+                guarantee(exc != NULL);
+                response->response = resp;
+                return;
+            }
+            stream = groups_to_batch(
+                gs->get_underlying_map(ql::grouped::order_doesnt_matter_t()));
+            std::sort(stream.begin(), stream.end(),
+                      [](const ql::rget_item_t &a, const ql::rget_item_t &b) {
+                          return a.sindex_key < b.sindex_key;
+                      });
+            if (stream.size() > s.spec.limit) {
+                stream.resize(s.spec.limit);
+            }
         }
         rget_read_response_t resp;
         // RSI: sorting
@@ -639,7 +660,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                 ql_env.limits(),
                 &replacer,
                 &sindex_cb,
-                cfeed_func(store, btree, &ql_env),
+                &ql_env,
                 trace);
     }
 
@@ -666,7 +687,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                 bi.limits,
                 &replacer,
                 &sindex_cb,
-                cfeed_func(store, btree, &ql_env),
+                &ql_env,
                 trace);
     }
 
