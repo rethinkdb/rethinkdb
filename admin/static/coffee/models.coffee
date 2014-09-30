@@ -64,6 +64,33 @@ class ShardAssignments extends Backbone.Collection
 
 class ShardAssignment extends Backbone.Model
 
+class Responsabilities extends Backbone.Collection
+    model: Responsability
+    name: 'Responsability'
+    comparator: (a, b) ->
+        if a.get('db') < b.get('db')
+            return -1
+        else if a.get('db') > b.get('db')
+            return 1
+        else
+            if a.get('table') < b.get('table')
+                return -1
+            else if a.get('table') > b.get('table')
+                return 1
+            else
+                if a.get('is_table') is true
+                    return -1
+                else if b.get('is_table') is true
+                    return 1
+                else if a.get('index') < b.get('index')
+                    return -1
+                else if a.get('index') > b.get('index')
+                    return 1
+                else
+                    return 0
+
+class Responsability extends Backbone.Model
+
 class Dashboard extends Backbone.Model
 
 class Issue extends Backbone.Model

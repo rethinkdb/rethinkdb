@@ -57,10 +57,39 @@ module 'ServerView', ->
                             @render()
                     else
                         @loading = false
+
+                        responsabilities = []
+                        for table in result.responsabilities
+                            responsabilities.push new Responsability
+                                type: "table"
+                                is_table: true
+                                db: table.db
+                                table: table.name
+                                id: table.db+"."+table.name
+
+                            for shard in table.shards
+                                responsabilities.push new Responsability
+                                    is_shard: true
+                                    db: table.db
+                                    table: table.name
+                                    index: shard.index
+                                    num_shards: shard.num_shards
+                                    role: shard.role
+                                    num_keys: shard.num_keys
+                                    id: table.db+"."+table.name+"."+shard.index
+
+                        if not @responsabilities?
+                            @responsabilities = new Responsabilities responsabilities
+                        else
+                            @responsabilities.set responsabilities
+                        delete result.responsabilities
+
                         if not @server?
                             @server = new Server result
                             @server_view = new ServerView.ServerMainView
                                 model: @server
+                                collection: @responsabilities
+
                             @render()
                         else
                             @server.set result
@@ -117,6 +146,7 @@ module 'ServerView', ->
 
             @profile = new ServerView.Profile
                 model: @model
+                collection: @collection
 
             @stats = new Stats
             @stats_timer = driver.run r.expr(
@@ -131,17 +161,18 @@ module 'ServerView', ->
                 type: 'server'
             )
 
-            @data = new ServerView.Data
-                model: @model
+            @responsabilities = new ServerView.ResponsabilitiesList
+                collection: @collection
 
         render: =>
+            console.log 'render main view'
             #TODO Handle ghost?
             @$el.html @template.main()
 
             @$('.main_title').html @title.render().$el
             @$('.profile').html @profile.render().$el
             @$('.performance-graph').html @performance_graph.render().$el
-            @$('.server-data').html @data.render().$el
+            @$('.responsabilities').html @responsabilities.render().$el
 
             # TODO: Implement when logs will be available
             #@logs = new LogView.Container
@@ -154,7 +185,7 @@ module 'ServerView', ->
             driver.stop_timer @stats_timer
             @title.remove()
             @profile.remove()
-            @data.remove()
+            @responsabilities.remove()
             if @rename_modal?
                 @rename_modal.remove()
 
@@ -178,6 +209,8 @@ module 'ServerView', ->
         template: Handlebars.templates['machine_view_profile-template']
         initialize: =>
             @listenTo @model, 'change', @render
+            @listenTo @collection, 'add', @render
+            @listenTo @collection, 'remove', @render
 
         render: =>
             # TODO Try with a release/clean version
@@ -186,7 +219,7 @@ module 'ServerView', ->
                 main_ip: @model.get 'hostname'
                 uptime: $.timeago(@model.get('time_started')).slice(0, -4)
                 version: version
-                num_shards: @model.get('responsabilities').length
+                num_shards: @collection.length
                 reachability:
                     reachable: @model.get('status') is 'available'
                     last_seen: $.timeago(@model.get('time_disconnected')).slice(0, -4) if @model.get('status') isnt 'available'
@@ -197,19 +230,84 @@ module 'ServerView', ->
             super()
 
 
-    class @Data extends Backbone.View
-        template: Handlebars.templates['server_data-template']
+    class @ResponsabilitiesList extends Backbone.View
+        template: Handlebars.templates['responsabilities-template']
 
         initialize: =>
-            @data = {}
-            @listenTo @model, 'change:responsabilities', @render
+            @responsabilities_view = []
+
+            @$el.html @template
+
+            @collection.each (responsability) =>
+                view = new ServerView.ResponsabilityView
+                    model: responsability
+                    container: @
+                # The first time, the collection is sorted
+                @responsabilities_view.push view
+                @$('.responsabilities_list').append view.render().$el
+
+            if @responsabilities_view.length > 0
+                @$('.no_element').hide()
+
+            @listenTo @collection, 'add', (responsability) =>
+                new_view = new ServerView.ResponsabilityView
+                    model: responsability
+                    container: @
+
+                if @responsabilities_view.length is 0
+                    @responsabilities_view.push new_view
+                    @$('.responsabilities_list').html new_view.render().$el
+                else
+                    added = false
+                    for view, position in @responsabilities_view
+                        if Responsabilities.prototype.comparator(view.model, responsability) > 0
+                            added = true
+                            @responsabilities_view.splice position, 0, new_view
+                            if position is 0
+                                @$('.responsabilities_list').prepend new_view.render().$el
+                            else
+                                @$('.responsability_container').eq(position-1).after new_view.render().$el
+                            break
+                    if added is false
+                        @responsabilities_view.push new_view
+                        @$('.responsabilities_list').append new_view.render().$el
+
+                if @responsabilities_view.length > 0
+                    @$('.no_element').hide()
+
+            @listenTo @collection, 'remove', (responsability) =>
+                for view, position in @responsabilities_view
+                    if view.model is responsability
+                        responsability.destroy()
+                        view.remove()
+                        @responsabilities_view.splice position, 1
+                        break
+
+                if @responsabilities_view.length is 0
+                    @$('.no_element').show()
+
+
 
         render: =>
-            @$el.html @template
-                has_data: @model.get('responsabilities').length > 0
-                tables: @model.get('responsabilities')
+            @
 
-            return @
+        remove: =>
+            @stopListening()
+            for view in @responsabilities_view
+                view.model.destroy()
+                view.remove()
+            super()
+
+
+    class @ResponsabilityView extends Backbone.View
+        template: Handlebars.templates['responsability-template']
+
+        initialize: =>
+            @listenTo @model, 'change', @render
+
+        render: =>
+            @$el.html @template @model.toJSON()
+            @
 
         remove: =>
             @stopListening()

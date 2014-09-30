@@ -25,7 +25,7 @@
                 <div class="span8 performance-graph"></div>
             </div>
         </div>
-        <div class="section server-data tree-view"></div>
+        <div class="section responsabilities tree-view"></div>
         <div class="recent-log-entries"></div>
     </div>
 </script>
@@ -65,41 +65,42 @@
     </div>
 </script>
 
-<script id="server_data-template" type="text/x-handlebars-template">
+<script id="responsabilities-template" type="text/x-handlebars-template">
     <h2 class="title">Data on this server</h2>
-    {{#if has_data}}
-    <ul class="tables">
-        {{#each tables}}
-            <li class="table parent">
-                <div class="tree-line"></div>
-                <div class="table-info parent-info">
-                    <p class="name">Table <a href="/#tables/{{id}}">{{db}}.{{name}}</a></p>
-                </div>
-                <ul class="shards">
-                    {{#each shards}}
-                        <li class="shard child">
-                            <div class="tree-node"></div>
-                            <div class="shard-info child-info">
-                                <p class="name"><span class="highlight">Shard {{index}}/{{num_shards}}</span></p>
-                                <p class="role">Role <span class="highlight">{{role}}</span></p>
-                                <p class="num-keys">
-                                    {{#if num_keys}}
-                                        <span class="highlight">~{{num_keys}}</span> {{pluralize_noun "document" num_keys}}
-                                    {{else}}
-                                        <span class="highlight">N/A</span> documents  
-                                    {{/if}}
-                                </p>
-                            </div>
-                        </li>
-                    {{/each}}
-                </ul>
-            </li>
-        {{/each}}
+    <ul class="responsabilities_list">
+        <li class="tree-line"></li>
     </ul>
-    {{else}}
     <div class="no_element">
         This server does not have any data.
     </div>
+</script>
+
+<script id="responsability-template" type="text/x-handlebars-template">
+    {{#if is_table}}
+        <li class="table parent">
+            <div class="tree-line"></div>
+            <div class="table-info parent-info">
+                <p class="name">Table <a href="/#tables/{{id}}">{{db}}.{{table}}</a></p>
+            </div>
+        </li>
+        <ul class="shards">
+        </ul>
+    {{/if}}
+    {{#if is_shard}}
+        <li class="shard child">
+            <div class="tree-node"></div>
+            <div class="shard-info child-info">
+                <p class="name"><span class="highlight">Shard {{index}}/{{num_shards}}</span></p>
+                <p class="role">Role <span class="highlight">{{role}}</span></p>
+                <p class="num-keys">
+                    {{#if num_keys}}
+                        <span class="highlight">~{{num_keys}}</span> {{pluralize_noun "document" num_keys}}
+                    {{else}}
+                        <span class="highlight">N/A</span> documents  
+                    {{/if}}
+                </p>
+            </div>
+        </li>
     {{/if}}
 </script>
 
