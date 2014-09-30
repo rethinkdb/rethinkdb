@@ -13,10 +13,10 @@
 #include "errors.hpp"
 #include <boost/variant.hpp>
 
+#include "btree/keys.hpp"
 #include "concurrency/rwlock.hpp"
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
-#include "btree/keys.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/datum.hpp"
@@ -28,9 +28,11 @@
 #include "rpc/serialize_macros.hpp"
 
 class auto_drainer_t;
+class btree_slice_t;
 class mailbox_manager_t;
 class namespace_interface_access_t;
 class superblock_t;
+struct sindex_disk_info_t;
 struct rdb_modification_report_t;
 
 namespace ql {
@@ -42,28 +44,6 @@ class env_t;
 class table_t;
 
 namespace changefeed {
-
-typedef std::function<stream_t(superblock_t *superblock,
-                               const datum_range_t &active_range,
-                               const std::string &table_name,
-                               const std::string &sindex,
-                               size_t n)> read_func_t;
-
-typedef std::function<stream_t(const datum_range_t &active_range,
-                               const std::string &table_name,
-                               const std::string &sindex,
-                               size_t n)> pure_read_func_t;
-
-// RSI: should this ever be used?
-static stream_t no_read_func_needed_f(superblock_t *,
-                                      const datum_range_t &,
-                                      const std::string &,
-                                      const boost::optional<std::string> &,
-                                      size_t) {
-    guarantee(false);
-    unreachable();
-}
-static read_func_t no_read_func_needed = &no_read_func_needed_f;
 
 struct msg_t {
     struct limit_start_t {
@@ -228,6 +208,14 @@ typedef std::multimap<datum_t, datum_t,
                       std::function<bool(const datum_t &, const datum_t &)> >
     datum_map_t;
 
+struct sindex_ref_t {
+    env_t *env;
+    store_t *store;
+    btree_slice_t *btree;
+    superblock_t *superblock;
+    const sindex_disk_info_t *sindex_info;
+};
+
 class server_t;
 class limit_manager_t {
 public:
@@ -245,7 +233,7 @@ public:
 
     void del(datum_t key);
     void add(datum_t key, datum_t val);
-    void commit(const pure_read_func_t &read_func);
+    void commit(const sindex_ref_t &sindex_ref);
     bool operator<(const limit_manager_t &other) {
         const std::string &s1 = spec.range.sindex, &s2 = other.spec.range.sindex;
         return (s1 < s2) ? true : ((s1 > s2) ? false : (uuid < other.uuid));
@@ -254,6 +242,7 @@ public:
     const region_t region; // RSI: use this!
     const std::string table;
 private:
+    stream_t read_more(const sindex_ref_t &ref, const datum_t &start, size_t n);
     void send(msg_t &&msg);
 
     server_t *parent;

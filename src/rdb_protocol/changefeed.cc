@@ -254,7 +254,45 @@ size_t erase1(std::multiset<datum_t> *ms, const datum_t &d) {
     }
 }
 
-void limit_manager_t::commit(const pure_read_func_t &read_func) {
+// RSI: sorting
+stream_t limit_manager_t::read_more(
+    const sindex_ref_t &ref, const datum_t &start, size_t n) {
+    rget_read_response_t resp;
+    auto srange = datum_range_t(
+        start, key_range_t::bound_t::open, datum_t(), key_range_t::bound_t::open);
+    rdb_rget_secondary_slice(
+        ref.btree,
+        srange,
+        region_t(srange.to_sindex_keyrange()), // RSI: does this work?
+        ref.superblock,
+        ref.env,
+        batchspec_t::all().with_at_most(n), // RSI: ACC_TERMINAL
+        std::vector<transform_variant_t>(),
+        boost::optional<terminal_variant_t>(), // RSI: ACC_TERMINAL,
+        datum_range_t::universe().to_primary_keyrange(), // RSI: use restricted range
+        spec.range.sorting,
+        *ref.sindex_info,
+        &resp);
+    auto *gs = boost::get<ql::grouped_t<ql::stream_t> >(&resp.result);
+    if (gs == NULL) {
+        auto *exc = boost::get<ql::exc_t>(&resp.result);
+        guarantee(exc != NULL);
+        rassert(exc == NULL); // RSI: remove
+        return stream_t();
+    }
+    stream_t stream = groups_to_batch(
+        gs->get_underlying_map(ql::grouped::order_doesnt_matter_t()));
+    std::sort(stream.begin(), stream.end(),
+              [](const rget_item_t &a, const rget_item_t &b) {
+                  return a.sindex_key < b.sindex_key;
+              });
+    if (stream.size() > n) {
+        stream.resize(n);
+    }
+    return std::move(stream);
+}
+
+void limit_manager_t::commit(const sindex_ref_t &sindex_ref) {
     std::multimap<datum_t, datum_t> real_added, real_deleted;
     for (const auto &pair : added) {
         data.insert(pair);
@@ -283,14 +321,10 @@ void limit_manager_t::commit(const pure_read_func_t &read_func) {
     if (data.size() < spec.limit) {
         auto data_it = data.begin();
         datum_t begin = (data_it == data.end()) ? datum_t() : data_it->first;
-        stream_t s = read_func(
-            datum_range_t(begin, key_range_t::bound_t::open, // RSI: sorting
-                          datum_t(), key_range_t::bound_t::open),
-            table,
-            spec.range.sindex,
-            spec.limit - data.size());
-        for (auto it = s.begin(); it < s.end() && data.size() < spec.limit; ++it) {
-            auto pair = std::make_pair(it->sindex_key, it->data);
+        stream_t s = read_more(sindex_ref, begin, spec.limit - data.size());
+        guarantee(s.size() <= spec.limit - data.size());
+        for (const auto &item : s) {
+            auto pair = std::make_pair(item.sindex_key, item.data);
             data.insert(pair);
             real_added.insert(pair);
         }

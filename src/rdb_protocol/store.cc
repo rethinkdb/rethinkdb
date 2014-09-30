@@ -258,49 +258,6 @@ void do_read(ql::env_t *env,
     }
 }
 
-// RSI: pick up here.  `cfeed_func` is passed either a superblock_t * or a
-// real_superblock_t * (meaning an sindex).  When called in an sindex in
-// `rdb_update_single_sindex`, we already have a lock on the sindex, and don't
-// need to do all the work in `do_read`.  So, change that.
-ql::changefeed::read_func_t cfeed_func(
-    store_t *store,
-    btree_slice_t *btree,
-    ql::env_t *env) {
-    return [store, btree, env](
-        // Note that this may be an sindex superblock rather than the superblock
-        // from the visitor that calls `cfeed_func`.
-        superblock_t *,
-        const ql::datum_range_t &active,
-        const std::string &table_name,
-        const boost::optional<std::string> &sindex,
-        size_t n) {
-        rget_read_response_t resp;
-        rget_read_t read;
-        // RSI: does the plain `region_t` constructor make sense?
-        read.region = region_t(
-            // RSI: oversharding? vvv
-            sindex ? ql::datum_range_t::universe().to_primary_keyrange()
-            : active.to_primary_keyrange());
-        read.table_name = table_name;
-        read.batchspec = ql::batchspec_t::all().with_at_most(n); // RSI: reliable?
-        if (sindex) {
-            read.sindex = sindex_rangespec_t(
-                *sindex, region_t(active.to_sindex_keyrange()), active);
-        }
-        read.sorting = sorting_t::ASCENDING; // RSI: sorting
-        do_read(env, store, btree, superblock, read, &resp);
-        auto *gs = boost::get<ql::grouped_t<ql::stream_t> >(&resp.result);
-        if (gs == NULL) {
-            auto *exc = boost::get<ql::exc_t>(&resp.result);
-            guarantee(exc != NULL);
-            // RSI: error cases?  (Fuck me...)
-            throw *exc;
-        }
-        return groups_to_batch(
-            gs->get_underlying_map(ql::grouped::order_doesnt_matter_t()));
-    };
-}
-
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const changefeed_subscribe_t &s) {
@@ -315,15 +272,14 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
     // RSI: limit unsubscribe
     void operator()(const changefeed_limit_subscribe_t &s) {
-        ql::env_t ql_env(ctx, interruptor,
-                         std::map<std::string, ql::wire_func_t>(), trace);
+        ql::env_t env(ctx, interruptor, std::map<std::string, ql::wire_func_t>(), trace);
+        ql::stream_t stream;
+        {
+            rget_read_response_t resp;
+            rget_read_t read;
+            do_read(&env, store, btree, superblock, rget, &resp);
+        }
         rget_read_response_t resp;
-        ql::stream_t stream = cfeed_func(store, btree, &ql_env)(
-            superblock,
-            ql::datum_range_t::universe(),
-            s.table,
-            s.spec.range.sindex,
-            s.spec.limit);
         // RSI: sorting
         ql::changefeed::datum_map_t start_data((std::greater<const ql::datum_t &>()));
         for (const auto &item : stream) {

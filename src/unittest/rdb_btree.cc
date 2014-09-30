@@ -65,7 +65,7 @@ void insert_rows(int start, int finish, store_t *store) {
             rdb_update_sindexes(store,
                                 sindexes,
                                 &mod_report,
-                                &ql::changefeed::no_read_func_needed,
+                                NULL, // RSI: is this dumb?
                                 txn.get(),
                                 &deletion_context);
 

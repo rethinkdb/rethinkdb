@@ -495,7 +495,7 @@ void store_t::update_sindexes(
             rdb_update_sindexes(this,
                                 sindexes,
                                 &mod_reports[i],
-                                &ql::changefeed::no_read_func_needed,
+                                NULL, // RSI: is this dumb?
                                 txn,
                                 &deletion_context);
         }
