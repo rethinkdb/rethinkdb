@@ -13,7 +13,6 @@
         <li class="datacenter parent">
             <div class="datacenter-info parent-info">
                 <p class="name">
-                    <span>Shard {{shard_id}}</span>
                     <span class="num-keys">
                         {{#if keys_ready}}
                             <span class="highlight">~{{num_keys}}</span> {{pluralize_noun "document" num_keys}}
@@ -21,6 +20,7 @@
                             <span class="highlight">N/A</span> documents  
                         {{/if}}
                     </span>
+                    <span>Shard {{shard_id}}</span>
                 </p>
             </div>
         </li>
