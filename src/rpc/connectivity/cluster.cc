@@ -461,7 +461,7 @@ public:
             intervals_since_last_read_done++;
         }
     }
-    void write(cluster_version_t, write_stream_t *) {
+    void write(write_stream_t *) {
         /* Do nothing. The cluster will end up sending just the tag 'H' with no message
         attached, which will trigger `keepalive_read()` on the remote machine. */
     }
@@ -1198,11 +1198,6 @@ void connectivity_cluster_t::send_message(connection_t *connection,
                                      cluster_send_message_write_callback_t *callback) {
     // We could be on _any_ thread.
 
-    // At some point we'll have to look up the cluster version based on not a peer
-    // (right?) but rather, a _connection id_.  (The peer could get upgraded and then
-    // reconnect.)
-    const cluster_version_t cluster_version = cluster_version_t::CLUSTER;
-
     /* We currently write the message to a vector_stream_t, then
        serialize that as a string. It's horribly inefficient, of course. */
     // TODO: If we don't do it this way, we (or the caller) will need
@@ -1212,7 +1207,7 @@ void connectivity_cluster_t::send_message(connection_t *connection,
     buffer.reserve(1024);
     {
         ASSERT_FINITE_CORO_WAITING;
-        callback->write(cluster_version, &buffer);
+        callback->write(&buffer);
     }
 
 #ifdef CLUSTER_MESSAGE_DEBUGGING
