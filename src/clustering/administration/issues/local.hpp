@@ -8,12 +8,12 @@
 #include "errors.hpp"
 #include <boost/variant.hpp>
 
+#include "time.hpp"
 #include "clustering/administration/issues/issue.hpp"
 #include "concurrency/watchable.hpp"
 #include "containers/clone_ptr.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/serialize_macros.hpp"
-#include "rdb_protocol/datum.hpp"
 
 // Every local issue should have the following:
 //  - an entry in the local_issue_t::issue_data variant
@@ -40,7 +40,7 @@ struct local_issue_t {
     void to_issue(const std::vector<machine_id_t> &affected_servers,
                   scoped_ptr_t<issue_t> *issue_out) const;
 
-    ql::datum_t issue_time;
+    microtime_t issue_time;
     boost::variant<server_down_data_t,
                    server_ghost_data_t,
                    outdated_index_data_t,

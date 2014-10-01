@@ -5,7 +5,6 @@
 #include <boost/variant/get.hpp>
 
 #include "utils.hpp"
-#include "rdb_protocol/pseudo_time.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "clustering/administration/issues/server.hpp"
@@ -41,7 +40,7 @@ local_issue_t local_issue_t::make_server_down_issue(const machine_id_t &server_i
     server_down_data_t data;
     data.server_id = server_id;
     server_down_issue.issue_data = data;
-    server_down_issue.issue_time = ql::pseudo::time_now();
+    server_down_issue.issue_time = current_microtime();
     return server_down_issue;
 }
 
@@ -50,7 +49,7 @@ local_issue_t local_issue_t::make_server_ghost_issue(const machine_id_t &server_
     server_ghost_data_t data;
     data.server_id = server_id;
     server_ghost_issue.issue_data = data;
-    server_ghost_issue.issue_time = ql::pseudo::time_now();
+    server_ghost_issue.issue_time = current_microtime();
     return server_ghost_issue;
 }
 
@@ -59,7 +58,7 @@ local_issue_t local_issue_t::make_outdated_index_issue(const outdated_index_map_
     outdated_index_data_t data;
     data.indexes = indexes;
     outdated_index_issue.issue_data = data;
-    outdated_index_issue.issue_time = ql::pseudo::time_now();
+    outdated_index_issue.issue_time = current_microtime();
     return outdated_index_issue;
 }
 
@@ -68,7 +67,7 @@ local_issue_t local_issue_t::make_log_write_issue(const std::string &message) {
     log_write_data_t data;
     data.message = message;
     log_write_issue.issue_data = data;
-    log_write_issue.issue_time = ql::pseudo::time_now();
+    log_write_issue.issue_time = current_microtime();
     return log_write_issue;
 }
 
