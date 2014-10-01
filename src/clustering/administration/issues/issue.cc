@@ -1,7 +1,6 @@
 #include "clustering/administration/issues/issue.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/datum_adapter.hpp"
-#include "rdb_protocol/pseudo_time.hpp"
 
 void issue_t::to_datum(const metadata_t &metadata,
                        ql::datum_t *datum_out) const {
@@ -11,7 +10,6 @@ void issue_t::to_datum(const metadata_t &metadata,
     builder.overwrite("id", convert_uuid_to_datum(issue_id));
     builder.overwrite("type", ql::datum_t(get_name()));
     builder.overwrite("critical", ql::datum_t::boolean(is_critical()));
-    builder.overwrite("time", ql::pseudo::time_now());
     builder.overwrite("description", ql::datum_t(build_description(info)));
     builder.overwrite("info", info);
     *datum_out = std::move(builder).to_datum();
