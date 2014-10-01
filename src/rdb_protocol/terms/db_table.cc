@@ -18,9 +18,12 @@ name_string_t get_name(const scoped_ptr_t<val_t> &val, const term_t *caller,
     const datum_string_t &raw_name = val->as_str();
     name_string_t name;
     bool assignment_successful = name.assign_value(raw_name);
-    rcheck_target(caller, base_exc_t::GENERIC, assignment_successful,
+    rcheck_target(caller,
+                  assignment_successful,
+                  base_exc_t::GENERIC,
                   strprintf("%s name `%s` invalid (%s).",
-                            type_str, raw_name.to_std().c_str(),
+                            type_str,
+                            raw_name.to_std().c_str(),
                             name_string_t::valid_char_msg));
     return name;
 }
@@ -321,10 +324,11 @@ private:
     datum_t get_key_arg(const scoped_ptr_t<val_t> &arg) const {
         datum_t datum_arg = arg->as_datum();
 
-        rcheck_target(arg, base_exc_t::GENERIC,
-                     !datum_arg.is_ptype(pseudo::geometry_string),
-                     "Cannot use a geospatial index with `get_all`.  "
-                     "Use `get_intersecting` instead.");
+        rcheck_target(arg,
+                      !datum_arg.is_ptype(pseudo::geometry_string),
+                      base_exc_t::GENERIC,
+                      "Cannot use a geospatial index with `get_all`. "
+                      "Use `get_intersecting` instead.");
         return datum_arg;
     }
 

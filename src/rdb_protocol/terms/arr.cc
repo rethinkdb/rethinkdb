@@ -97,7 +97,9 @@ scoped_ptr_t<val_t> nth_term_direct_impl(const term_t *term, scope_env_t *env,
         } else {
             s = aggregate->as_seq(env->env);
         }
-        rcheck_target(term, base_exc_t::GENERIC, n >= -1,
+        rcheck_target(term,
+                      n >= -1,
+                      base_exc_t::GENERIC,
                       strprintf("Cannot use an index < -1 (%d) on a stream.", n));
 
         batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
@@ -112,8 +114,10 @@ scoped_ptr_t<val_t> nth_term_direct_impl(const term_t *term, scope_env_t *env,
                 sampler.new_sample();
                 datum_t d = s->next(env->env, batchspec);
                 if (!d.has()) {
-                    rcheck_target(term, base_exc_t::NON_EXISTENCE, n == -1 && last_d.has(),
-                           strprintf("Index out of bounds: %d", n));
+                    rcheck_target(term,
+                                  n == -1 && last_d.has(),
+                                  base_exc_t::NON_EXISTENCE,
+                                  strprintf("Index out of bounds: %d", n));
                     return tbl.has() ? term->new_val(last_d, tbl) : term->new_val(last_d);
                 }
                 if (i == n) {

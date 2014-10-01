@@ -78,9 +78,11 @@ scoped_ptr_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
         // The above if statement is complicated because it produces better
         // error messages on e.g. strings.
         if (scoped_ptr_t<val_t> no_recurse = args->optarg(env, "_NO_RECURSE_")) {
-            rcheck_target(target, base_exc_t::GENERIC, no_recurse->as_bool() == false,
-                   strprintf("Cannot perform %s on a sequence of sequences.",
-                             target->name()));
+            rcheck_target(target,
+                          no_recurse->as_bool() == false,
+                          base_exc_t::GENERIC,
+                          strprintf("Cannot perform %s on a sequence of sequences.",
+                                    target->name()));
         }
 
         compile_env_t compile_env(env->scope.compute_visibility());
@@ -219,10 +221,11 @@ private:
                     case reql_version_t::v1_14: // v1_15 is the same as v1_14
                         break;
                     case reql_version_t::v1_16_is_latest:
-                        rcheck_target(v, base_exc_t::GENERIC,
-                               !d0.is_ptype() || d0.is_ptype("LITERAL"),
-                               strprintf("Cannot merge objects of type `%s`.",
-                                         d0.get_type_name().c_str()));
+                        rcheck_target(v,
+                                      !d0.is_ptype() || d0.is_ptype("LITERAL"),
+                                      base_exc_t::GENERIC,
+                                      strprintf("Cannot merge objects of type `%s`.",
+                                                d0.get_type_name().c_str()));
                         break;
                     default:
                         unreachable();
@@ -238,10 +241,11 @@ private:
                     case reql_version_t::v1_14: // v1_15 is the same as v1_14
                         break;
                     case reql_version_t::v1_16_is_latest:
-                        rcheck_target(v, base_exc_t::GENERIC,
-                               !d0.is_ptype() || d0.is_ptype("LITERAL"),
-                               strprintf("Cannot merge objects of type `%s`.",
-                                         d0.get_type_name().c_str()));
+                        rcheck_target(v,
+                                      !d0.is_ptype() || d0.is_ptype("LITERAL"),
+                                      base_exc_t::GENERIC,
+                                      strprintf("Cannot merge objects of type `%s`.",
+                                                d0.get_type_name().c_str()));
                         break;
                     default:
                         unreachable();

@@ -136,10 +136,12 @@ lon_lat_point_t parse_point_argument(const datum_t &point_datum) {
         return extract_lon_lat_point(point_datum);
     } else {
         // The argument must be a coordinate pair
-        rcheck_target(&point_datum, base_exc_t::GENERIC, point_datum.arr_size() == 2,
-            strprintf("Expected point coordinate pair.  "
-                      "Got %zu element array instead of a 2 element one.",
-                      point_datum.arr_size()));
+        rcheck_target(&point_datum,
+                      point_datum.arr_size() == 2,
+                      base_exc_t::GENERIC,
+                      strprintf("Expected point coordinate pair.  "
+                                "Got %zu element array instead of a 2 element one.",
+                                point_datum.arr_size()));
         double lon = point_datum.get(0).as_num();
         double lat = point_datum.get(1).as_num();
         return lon_lat_point_t(lon, lat);
@@ -234,10 +236,13 @@ ellipsoid_spec_t pick_reference_ellipsoid(scope_env_t *env, args_t *args) {
             // (equator radius and the flattening)
             double a = geo_system_arg->as_datum().get_field("a").as_num();
             double f = geo_system_arg->as_datum().get_field("f").as_num();
-            rcheck_target(geo_system_arg.get(), base_exc_t::GENERIC,
-                          a > 0.0, "The equator radius `a` must be positive.");
-            rcheck_target(geo_system_arg.get(), base_exc_t::GENERIC,
+            rcheck_target(geo_system_arg.get(),
+                          a > 0.0,
+                          base_exc_t::GENERIC,
+                          "The equator radius `a` must be positive.");
+            rcheck_target(geo_system_arg.get(),
                           f >= 0.0 && f < 1.0,
+                          base_exc_t::GENERIC,
                           "The flattening `f` must be in the range [0, 1).");
             return ellipsoid_spec_t(a, f);
         } else {
@@ -319,7 +324,9 @@ private:
         unsigned int num_vertices = 32;
         if (num_vertices_arg.has()) {
             num_vertices = num_vertices_arg->as_int<unsigned int>();
-            rcheck_target(num_vertices_arg.get(), base_exc_t::GENERIC, num_vertices > 0,
+            rcheck_target(num_vertices_arg.get(),
+                          num_vertices > 0,
+                          base_exc_t::GENERIC,
                           "num_vertices must be positive.");
         }
 
@@ -406,14 +413,18 @@ private:
         if (max_dist_arg.has()) {
             max_dist =
                 convert_dist_unit(max_dist_arg->as_num(), dist_unit, dist_unit_t::M);
-            rcheck_target(max_dist_arg, base_exc_t::GENERIC, max_dist > 0.0,
+            rcheck_target(max_dist_arg,
+                          max_dist > 0.0,
+                          base_exc_t::GENERIC,
                           "max_dist must be positive.");
         }
         scoped_ptr_t<val_t> max_results_arg = args->optarg(env, "max_results");
         int64_t max_results = 100; // Default: 100 results
         if (max_results_arg.has()) {
             max_results = max_results_arg->as_int();
-            rcheck_target(max_results_arg, base_exc_t::GENERIC, max_results > 0,
+            rcheck_target(max_results_arg,
+                          max_results > 0,
+                          base_exc_t::GENERIC,
                           "max_results must be positive.");
         }
 
@@ -433,12 +444,14 @@ private:
     const datum_t check_arg(scoped_ptr_t<val_t> arg) const {
         const datum_t res = arg->as_ptype(pseudo::geometry_string);
 
-        rcheck_target(arg.get(), base_exc_t::GENERIC,
+        rcheck_target(arg.get(),
                       res.get_field("type").as_str() == "Polygon",
+                      base_exc_t::GENERIC,
                       strprintf("Expected a Polygon but found a %s.",
                                 res.get_field("type").as_str().to_std().c_str()));
-        rcheck_target(arg.get(), base_exc_t::GENERIC,
+        rcheck_target(arg.get(),
                       res.get_field("coordinates").arr_size() <= 1,
+                      base_exc_t::GENERIC,
                       "Expected a Polygon with only an outer shell.  "
                       "This one has holes.");
         return res;

@@ -392,7 +392,7 @@ counted_t<const func_t> new_page_func(datum_t method,
         } else {
             std::string msg = strprintf("`page` method '%s' not recognized, "
                                         "only 'link-next' is available.", name.c_str());
-            rcheck_src(bt_src.get(), base_exc_t::GENERIC, false, msg);
+            rcheck_src(bt_src.get(), false, base_exc_t::GENERIC, msg);
         }
     }
     return counted_t<const func_t>();

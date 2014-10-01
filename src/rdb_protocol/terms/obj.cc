@@ -19,10 +19,12 @@ private:
         case reql_version_t::v1_14: // v1_15 is the same as v1_14
             break;
         case reql_version_t::v1_16_is_latest:
-            rcheck_target(v, base_exc_t::GENERIC,
-                   d.has() && d.get_type() == datum_t::R_OBJECT && !d.is_ptype(),
-                   strprintf("Cannot call `%s` on objects of type `%s`.", name(),
-                             d.get_type_name().c_str()));
+            rcheck_target(v,
+                          d.has() && d.get_type() == datum_t::R_OBJECT && !d.is_ptype(),
+                          base_exc_t::GENERIC,
+                          strprintf("Cannot call `%s` on objects of type `%s`.",
+                                    name(),
+                                    d.get_type_name().c_str()));
             break;
         default:
             unreachable();
