@@ -28,43 +28,7 @@ outdated_index_issue_t::outdated_index_issue_t(
     issue_t(base_issue_id),
     indexes(_indexes) { }
 
-void outdated_index_issue_t::build_info_and_description(const metadata_t &metadata,
-                                                        ql::datum_t *info_out,
-                                                        datum_string_t *desc_out) const {
-    build_info(metadata, info_out);
-    build_description(*info_out, desc_out);
-}
-
-void outdated_index_issue_t::build_description(const ql::datum_t &info,
-                                               datum_string_t *desc_out) const {
-    std::string index_table;
-    for (size_t i = 0; i < info.arr_size(); ++i) {
-        ql::datum_t table_info = info.get(i);
-        ql::datum_t indexes = table_info.get_field("indexes");
-
-        std::string index_str;
-        for (size_t j = 0; j < indexes.arr_size(); ++j) {
-            index_str += strprintf("%s`%s`",
-                                   j == 0 ? "" : ", ",
-                                   indexes.get(j).as_str().to_std().c_str());
-        }
-
-        index_table += strprintf("\nFor table %s.%s: %s.",
-                                 table_info.get_field("db").as_str().to_std().c_str(),
-                                 table_info.get_field("table").as_str().to_std().c_str(),
-                                 index_str.c_str());
-    }
-
-    *desc_out = datum_string_t(strprintf(
-        "The cluster contains indexes that were created with a previous version of the "
-        "query language which contained some bugs.  These should be remade to avoid "
-        "relying on broken behavior.  See "
-        "http://www.rethinkdb.com/docs/troubleshooting/#my-secondary-index-is-outdated "
-        "for details.%s", index_table.c_str()));
-}
-
-void outdated_index_issue_t::build_info(const metadata_t &metadata,
-                                        ql::datum_t *info_out) const {
+ql::datum_t outdated_index_issue_t::build_info(const metadata_t &metadata) const {
     ql::datum_object_builder_t builder;
     ql::datum_array_builder_t tables(ql::configured_limits_t::unlimited);
     for (auto const &table : indexes) {
@@ -103,7 +67,34 @@ void outdated_index_issue_t::build_info(const metadata_t &metadata,
         tables.add(std::move(item).to_datum());
     }
     builder.overwrite("tables", std::move(tables).to_datum());
-    *info_out = std::move(builder).to_datum();
+    return std::move(builder).to_datum();
+}
+
+datum_string_t outdated_index_issue_t::build_description(const ql::datum_t &info) const {
+    std::string index_table;
+    for (size_t i = 0; i < info.arr_size(); ++i) {
+        ql::datum_t table_info = info.get(i);
+        ql::datum_t indexes = table_info.get_field("indexes");
+
+        std::string index_str;
+        for (size_t j = 0; j < indexes.arr_size(); ++j) {
+            index_str += strprintf("%s`%s`",
+                                   j == 0 ? "" : ", ",
+                                   indexes.get(j).as_str().to_std().c_str());
+        }
+
+        index_table += strprintf("\nFor table %s.%s: %s.",
+                                 table_info.get_field("db").as_str().to_std().c_str(),
+                                 table_info.get_field("table").as_str().to_std().c_str(),
+                                 index_str.c_str());
+    }
+
+    return datum_string_t(strprintf(
+        "The cluster contains indexes that were created with a previous version of the "
+        "query language which contained some bugs.  These should be remade to avoid "
+        "relying on broken behavior.  See "
+        "http://www.rethinkdb.com/docs/troubleshooting/#my-secondary-index-is-outdated "
+        "for details.%s", index_table.c_str()));
 }
 
 class outdated_index_report_impl_t :

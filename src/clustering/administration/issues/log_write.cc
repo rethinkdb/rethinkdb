@@ -13,9 +13,7 @@ log_write_issue_t::log_write_issue_t(const std::string &_message,
     message(_message),
     affected_servers(_affected_servers) { }
 
-void log_write_issue_t::build_info_and_description(const metadata_t &metadata,
-                                                   ql::datum_t *info_out,
-                                                   datum_string_t *desc_out) const {
+ql::datum_t log_write_issue_t::build_info(const metadata_t &metadata) const {
     // There should be no issue reduction performed on log write issues
     rassert(affected_servers.size() == 1);
 
@@ -24,11 +22,14 @@ void log_write_issue_t::build_info_and_description(const metadata_t &metadata,
     builder.overwrite("server", convert_string_to_datum(server_name));
     builder.overwrite("server_id", convert_uuid_to_datum(affected_servers[0]));
     builder.overwrite("message", convert_string_to_datum(message));
-    *info_out = std::move(builder).to_datum();
+    return std::move(builder).to_datum();
+}
 
-    *desc_out = datum_string_t(strprintf("Server %s encountered an error while writing "
-                                         "to its log file: %s.",
-                                         server_name.c_str(), message.c_str()));
+datum_string_t log_write_issue_t::build_description(const ql::datum_t &info) const {
+    return datum_string_t(strprintf(
+        "Server %s encountered an error while writing to its log file: %s.",
+        info.get_field("server").as_str().to_std().c_str(),
+        info.get_field("message").as_str().to_std().c_str()));
 }
 
 log_write_issue_tracker_t::log_write_issue_tracker_t(local_issue_aggregator_t *_parent) :

@@ -13,11 +13,11 @@ const datum_string_t server_ghost_issue_t::server_ghost_issue_type =
 const uuid_u server_ghost_issue_t::base_issue_id =
     str_to_uuid("193df26a-eac7-4373-bf0a-12bbc0b869ed");
 
-void build_info(const std::string &server_name,
-                const machine_id_t &server_id,
-                const std::vector<std::string> &affected_server_names,
-                const std::vector<machine_id_t> &affected_server_ids,
-                ql::datum_t *info_out) {
+ql::datum_t build_server_issue_info(
+        const std::string &server_name,
+        const machine_id_t &server_id,
+        const std::vector<std::string> &affected_server_names,
+        const std::vector<machine_id_t> &affected_server_ids) {
     ql::datum_object_builder_t builder;
     ql::datum_array_builder_t server_array(ql::configured_limits_t::unlimited);
     ql::datum_array_builder_t server_id_array(ql::configured_limits_t::unlimited);
@@ -34,7 +34,7 @@ void build_info(const std::string &server_name,
     builder.overwrite("affected_servers", std::move(server_array).to_datum());
     builder.overwrite("affected_server_ids", std::move(server_id_array).to_datum());
 
-    *info_out = std::move(builder).to_datum();
+    return std::move(builder).to_datum();
 }
 
 std::vector<std::string> look_up_servers(const issue_t::metadata_t &metadata,
@@ -47,10 +47,12 @@ std::vector<std::string> look_up_servers(const issue_t::metadata_t &metadata,
     return res;
 }
 
-std::string servers_to_string(const std::vector<std::string> &server_names) {
+std::string servers_to_string(const ql::datum_t &server_names) {
     std::string res;
-    for (auto name : server_names) {
-        res.append(strprintf("%s%s", res.empty() ? "" : ", ", name.c_str()));
+    for (size_t i = 0; i < server_names.arr_size(); ++i) {
+        res.append(strprintf("%s%s",
+                             res.empty() ? "" : ", ",
+                             server_names.get(i).as_str().to_std().c_str()));
     }
     return res;
 }
@@ -61,16 +63,22 @@ server_down_issue_t::server_down_issue_t(const machine_id_t &_down_server_id,
     down_server_id(_down_server_id),
     affected_server_ids(_affected_server_ids) { }
 
-void server_down_issue_t::build_info_and_description(const metadata_t &metadata,
-                                                     ql::datum_t *info_out,
-                                                     datum_string_t *desc_out) const {
+ql::datum_t server_down_issue_t::build_info(const metadata_t &metadata) const {
     const std::string name = get_server_name(metadata, down_server_id);
     const std::vector<std::string> affected_server_names =
         look_up_servers(metadata, affected_server_ids);
-    build_info(name, down_server_id, affected_server_names, affected_server_ids, info_out);
-    *desc_out = datum_string_t(strprintf("Server %s is inaccessible from %s%s.",
-        name.c_str(), affected_server_ids.size() == 1 ? "" : "these servers: ",
-        servers_to_string(affected_server_names).c_str()));
+    return build_server_issue_info(name,
+                                   down_server_id,
+                                   affected_server_names,
+                                   affected_server_ids);
+}
+
+datum_string_t server_down_issue_t::build_description(const ql::datum_t &info) const {
+    return datum_string_t(strprintf(
+        "Server %s is inaccessible from %s%s.",
+        info.get_field("server").as_str().to_std().c_str(),
+        affected_server_ids.size() == 1 ? "" : "these servers: ",
+        servers_to_string(info.get_field("server_ids")).c_str()));
 }
 
 server_ghost_issue_t::server_ghost_issue_t(const machine_id_t &_ghost_server_id,
@@ -79,17 +87,22 @@ server_ghost_issue_t::server_ghost_issue_t(const machine_id_t &_ghost_server_id,
     ghost_server_id(_ghost_server_id),
     affected_server_ids(_affected_server_ids) { }
 
-void server_ghost_issue_t::build_info_and_description(const metadata_t &metadata,
-                                                      ql::datum_t *info_out,
-                                                      datum_string_t *desc_out) const {
+ql::datum_t server_ghost_issue_t::build_info(const metadata_t &metadata) const {
     const std::string name = get_server_name(metadata, ghost_server_id);
     const std::vector<std::string> affected_server_names =
         look_up_servers(metadata, affected_server_ids);
-    build_info(name, ghost_server_id, affected_server_names, affected_server_ids, info_out);
-    *desc_out = datum_string_t(strprintf("Server %s was declared dead, but is still "
-        "connected to %s%s.",
-        name.c_str(), affected_server_ids.size() == 1 ? "" : "these servers: ",
-        servers_to_string(affected_server_names).c_str()));
+    return build_server_issue_info(name,
+                                   ghost_server_id,
+                                   affected_server_names,
+                                   affected_server_ids);
+}
+
+datum_string_t server_ghost_issue_t::build_description(const ql::datum_t &info) const {
+    return datum_string_t(strprintf(
+        "Server %s was declared dead, but is still connected to %s%s.",
+        info.get_field("server").as_str().to_std().c_str(),
+        affected_server_ids.size() == 1 ? "" : "these servers: ",
+        servers_to_string(info.get_field("server_ids")).c_str()));
 }
 
 server_issue_tracker_t::server_issue_tracker_t(

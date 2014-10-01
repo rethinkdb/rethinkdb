@@ -17,9 +17,8 @@ public:
     bool is_critical() const { return true; }
 
 private:
-    void build_info_and_description(const metadata_t &metadata,
-                                    ql::datum_t *info_out,
-                                    datum_string_t *desc_out) const;
+    ql::datum_t build_info(const metadata_t &metadata) const;
+    datum_string_t build_description(const ql::datum_t &info) const;
 
     static const datum_string_t server_down_issue_type;
     static const issue_id_t base_issue_id;
@@ -35,9 +34,8 @@ public:
     bool is_critical() const { return false; }
 
 private:
-    void build_info_and_description(const metadata_t &metadata,
-                                    ql::datum_t *info_out,
-                                    datum_string_t *desc_out) const;
+    ql::datum_t build_info(const metadata_t &metadata) const;
+    datum_string_t build_description(const ql::datum_t &info) const;
 
     static const datum_string_t server_ghost_issue_type;
     static const issue_id_t base_issue_id;

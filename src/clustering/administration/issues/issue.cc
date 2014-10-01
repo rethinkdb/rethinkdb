@@ -5,16 +5,14 @@
 
 void issue_t::to_datum(const metadata_t &metadata,
                        ql::datum_t *datum_out) const {
-    ql::datum_t info;
-    datum_string_t description;
-    build_info_and_description(metadata, &info, &description);
+    ql::datum_t info = build_info(metadata);
 
     ql::datum_object_builder_t builder;
     builder.overwrite("id", convert_uuid_to_datum(issue_id));
     builder.overwrite("type", ql::datum_t(get_name()));
     builder.overwrite("critical", ql::datum_t::boolean(is_critical()));
     builder.overwrite("time", ql::pseudo::time_now());
-    builder.overwrite("description", ql::datum_t(description));
+    builder.overwrite("description", ql::datum_t(build_description(info)));
     builder.overwrite("info", info);
     *datum_out = std::move(builder).to_datum();
 }

@@ -15,26 +15,26 @@
 class name_collision_issue_t : public issue_t {
 public:
     name_collision_issue_t(const issue_id_t &_issue_id,
-                          const name_string_t &_name);
+                           const name_string_t &_name,
+                           const std::vector<uuid_u> &_collided_ids);
     bool is_critical() const { return true; }
 
 protected:
-    template <typename map_t>
-    std::vector<uuid_u> get_ids(const map_t &metadata) const;
-
     const name_string_t name;
+    const std::vector<uuid_u> &collided_ids;
 };
 
 // Issue for server name collisions
 class server_name_collision_issue_t : public name_collision_issue_t {
 public:
-    explicit server_name_collision_issue_t(const name_string_t &_name);
+    explicit server_name_collision_issue_t(
+        const name_string_t &_name,
+        const std::vector<machine_id_t> &_collided_ids);
     const datum_string_t &get_name() const { return server_name_collision_issue_type; }
 
 private:
-    void build_info_and_description(const metadata_t &metadata,
-                                    ql::datum_t *info_out,
-                                    datum_string_t *desc_out) const;
+    ql::datum_t build_info(const metadata_t &metadata) const;
+    datum_string_t build_description(const ql::datum_t &info) const;
 
     static const datum_string_t server_name_collision_issue_type;
     static const issue_id_t base_issue_id;
@@ -43,13 +43,14 @@ private:
 // Issue for database name collisions
 class db_name_collision_issue_t : public name_collision_issue_t {
 public:
-    explicit db_name_collision_issue_t(const name_string_t &_name);
+    explicit db_name_collision_issue_t(
+        const name_string_t &_name,
+        const std::vector<machine_id_t> &_collided_ids);
     const datum_string_t &get_name() const { return db_name_collision_issue_type; }
 
 private:
-    void build_info_and_description(const metadata_t &metadata,
-                                    ql::datum_t *info_out,
-                                    datum_string_t *desc_out) const;
+    ql::datum_t build_info(const metadata_t &metadata) const;
+    datum_string_t build_description(const ql::datum_t &info) const;
 
     static const datum_string_t db_name_collision_issue_type;
     static const issue_id_t base_issue_id;
@@ -58,22 +59,15 @@ private:
 // Issue for table name collisions
 class table_name_collision_issue_t : public name_collision_issue_t {
 public:
-    table_name_collision_issue_t(const name_string_t &_name,
-                                const database_id_t &_db_id);
+    table_name_collision_issue_t(
+        const name_string_t &_name,
+        const database_id_t &_db_id,
+        const std::vector<machine_id_t> &_collided_ids);
     const datum_string_t &get_name() const { return table_name_collision_issue_type; }
 
 private:
-    void build_info_and_description(const metadata_t &metadata,
-                                    ql::datum_t *info_out,
-                                    datum_string_t *desc_out) const;
-
-    void build_description(const std::string &db_name,
-                           const std::vector<namespace_id_t> &ids,
-                           datum_string_t *desc_out) const;
-
-    void build_info(const std::string &db_name,
-                    const std::vector<namespace_id_t> &ids,
-                    ql::datum_t *info_out) const;
+    ql::datum_t build_info(const metadata_t &metadata) const;
+    datum_string_t build_description(const ql::datum_t &info) const;
 
     static const datum_string_t table_name_collision_issue_type;
     static const issue_id_t base_issue_id;
