@@ -237,6 +237,11 @@ public:
     // alphabetically by type name.
     int cmp(reql_version_t reql_version, const datum_t &rhs) const;
 
+    template<class T>
+    bool operator<(const T &t) {
+        static_assert(sizeof(t) == 0, "Use `cmp`.");
+    }
+
     // Modern datum_t::cmp implementation, for reql_version_t::v1_14 and later.
     // Called by cmp, ==, !=.
     int modern_cmp(const datum_t &rhs) const;

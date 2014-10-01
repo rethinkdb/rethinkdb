@@ -17,6 +17,17 @@ namespace ql {
 
 namespace changefeed {
 
+template<class M, class T>
+size_t erase1(M *ms, const T &t) {
+    auto it = ms->find(t);
+    if (it != ms->end()) {
+        ms->erase(it);
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
 server_t::server_t(mailbox_manager_t *_manager)
     : uuid(generate_uuid()),
       manager(_manager),
@@ -239,21 +250,13 @@ limit_manager_t::limit_manager_t(
 
 
 void limit_manager_t::add(datum_t key, datum_t val) {
+    debugf("%p add <%s,%s>\n", this, key.print().c_str(), val.print().c_str());
     added.push_back(std::make_pair(key, val));
 }
 
 void limit_manager_t::del(datum_t key) {
+    debugf("%p add %s\n", this, key.print().c_str());
     deleted.push_back(key);
-}
-
-size_t erase1(std::multiset<datum_t> *ms, const datum_t &d) {
-    auto it = ms->find(d);
-    if (it != ms->end()) {
-        ms->erase(it);
-        return 1;
-    } else {
-        return 0;
-    }
 }
 
 // RSI: sorting
@@ -295,6 +298,8 @@ stream_t limit_manager_t::read_more(
 }
 
 void limit_manager_t::commit(const sindex_ref_t &sindex_ref) {
+    debugf("\n**********************************************************************\n");
+    debugf("COMMIT (added %zu, deleted %zu)\n", added.size(), deleted.size());
     std::multimap<datum_t, datum_t> real_added, real_deleted;
     for (const auto &pair : added) {
         data.insert(pair);
@@ -344,10 +349,12 @@ void limit_manager_t::commit(const sindex_ref_t &sindex_ref) {
             msg.new_val = *add_it;
             ++add_it;
         }
+        debugf("sending...\n");
         send(msg_t(std::move(msg)));
     }
     added.clear();
     deleted.clear();
+    debugf("\n**********************************************************************\n");
 }
 
 
@@ -640,9 +647,13 @@ public:
           need_init(-1),
           got_init(0),
           spec(std::move(_spec)),
-          active_data([](const data_it_t &a, const data_it_t &b) {
+          lt([](const datum_t &lhs, const datum_t &rhs) {
+                  return lhs.cmp(reql_version_t::LATEST, rhs) > 0;
+              }),
+          data(lt),
+          active_data([this](const data_it_t &a, const data_it_t &b) {
                   // RSI: cmp
-                  return a->first < b->first;
+                  return lt(a->first, b->first);
               }) {
         feed->add_limit_sub(this, uuid);
     }
@@ -705,7 +716,19 @@ public:
             // RSI: cmp
             active_data.insert(it);
             if (active_data.size() > spec.limit) {
-                active_data.erase(*active_data.crbegin());
+                debugf("\nXXX\nsnapshot:\n");
+                auto old_ft = active_data.begin();
+                for (auto ft = active_data.begin(); ft != active_data.end(); ++ft) {
+                    debugf("lt(%s, %s) = %d\n",
+                           (*old_ft)->first.print().c_str(),
+                           (*ft)->first.print().c_str(),
+                           lt((*old_ft)->first, (*ft)->first));
+                    debugf("%s\n", (*ft)->first.print().c_str());
+                    old_ft = ft;
+                }
+                debugf("erasing %s\n", (*active_data.begin())->first.print().c_str());
+                size_t erased = erase1(&active_data, *active_data.begin());
+                guarantee(erased == 1);
             }
             guarantee(active_data.size() == spec.limit
                       || (active_data.size() < spec.limit
@@ -717,21 +740,39 @@ public:
     virtual void note_change(
         const boost::optional<datum_t> &old_key,
         const boost::optional<std::pair<datum_t, datum_t> > &new_val) {
+        debugf("%p note_change:\nold_key: %s\nnew_val: %s\n",
+               this,
+               old_key ? old_key->print().c_str() : "NONE",
+               new_val
+               ? strprintf("<%s,%s>",
+                           (*new_val).first.print().c_str(),
+                           (*new_val).second.print().c_str()).c_str()
+               : "NONE");
         // RSI: queue if `need_init`.
         datum_t old_send, new_send;
         if (old_key) {
             auto it = data.find(*old_key);
             guarantee(it != data.end());
-            size_t erased = active_data.erase(it);
+            size_t erased = erase1(&active_data, it);
+            debugf("Erased %zu\n", erased);
             if (erased != 0) {
                 // The old value was in the set.
                 old_send = it->second;
             }
         }
         if (new_val) {
+            debugf("new_val...\n");
             auto it = data.insert(*new_val);
             // RSI: cmp
-            if (it->first < (*active_data.crbegin())->first) {
+            datum_t a = it->first;
+            datum_t b = (*active_data.begin())->first;
+            bool l = lt(a, b);
+            debugf("cmp %s < %s = %d\n", a.print().c_str(), b.print().c_str(), l);
+            debugf("%s %s\n",
+                   (*active_data.begin())->first.print().c_str(),
+                   (*active_data.crbegin())->first.print().c_str());
+            if (l) {
+                debugf("new_val active!\n");
                 active_data.insert(it);
                 // The new value is in the old set bounds (and thus in the set).
                 new_send = it->second;
@@ -740,23 +781,26 @@ public:
         if (active_data.size() > spec.limit) {
             // The old value wasn't in the set, but the new value is, and a
             // value has to leave the set to make room.
-            auto last = *active_data.crbegin();
+            auto last = *active_data.begin();
             guarantee(new_send.has() && !old_send.has());
             old_send = std::move(last->second);
-            active_data.erase(last);
+            erase1(&active_data, last);
         } else if (active_data.size() < spec.limit) {
             // The set is too small.
             if (new_send.has()) {
                 // The set is too small because there aren't enough rows in the table.
                 guarantee(active_data.size() == data.size());
             } else {
+                debugf("Plan omega.\n");
                 // The set is too small because the new value wasn't in the old
                 // set bounds, so we need to add the next best element.
                 guarantee(active_data.size() < data.size());
-                auto it = *active_data.crbegin();
+                auto it = *active_data.begin();
                 ++it;
                 guarantee(it != data.end());
+                debugf("%zu\n", active_data.size());
                 active_data.insert(it);
+                debugf("%zu\n", active_data.size());
                 new_send = it->second;
             }
         }
@@ -781,14 +825,19 @@ public:
         return ret;
     }
 
+
     uuid_u uuid;
     int64_t need_init, got_init;
     keyspec_t::limit_t spec;
     // RSI: ordering
-    std::multimap<datum_t, datum_t> data;
+
+    std::function<bool(const datum_t &, const datum_t &)> lt;
+
+    std::multimap<datum_t, datum_t, decltype(lt)> data;
     typedef decltype(data)::iterator data_it_t;
     typedef std::function<bool(const data_it_t &, const data_it_t &)> data_it_lt_t;
-    std::set<data_it_t, data_it_lt_t> active_data;
+
+    std::multiset<data_it_t, data_it_lt_t> active_data;
     std::deque<datum_t> els;
 };
 
