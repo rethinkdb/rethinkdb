@@ -61,8 +61,7 @@ std::string format_log_message(const log_message_t &m, bool for_console) {
                             m.uptime.tv_nsec / THOUSAND,
                             format_log_level(m.level).c_str());
     } else {
-        if (m.level != log_level_info &&
-                m.level != log_level_notice) {
+        if (m.level != log_level_info && m.level != log_level_notice) {
             prepend = strprintf("%s: ", format_log_level(m.level).c_str());
         }
     }

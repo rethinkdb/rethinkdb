@@ -98,7 +98,7 @@ bool do_serve(io_backender_t *io_backender,
             auth_metadata = auth_metadata_file->read_metadata();
         }
 #ifndef NDEBUG
-        logINF("Our machine ID is %s", uuid_to_str(machine_id).c_str());
+        logNTC("Our machine ID is %s", uuid_to_str(machine_id).c_str());
 #endif
 
         connectivity_cluster_t connectivity_cluster;
@@ -322,7 +322,7 @@ bool do_serve(io_backender_t *io_backender,
                 {
                     scoped_ptr_t<administrative_http_server_manager_t> admin_server_ptr;
                     if (serve_info.ports.http_admin_is_disabled) {
-                        logINF("Administrative HTTP connections are disabled.\n");
+                        logNTC("Administrative HTTP connections are disabled.\n");
                     } else {
                         // TODO: Pardon me what, but is this how we fail here?
                         guarantee(serve_info.ports.http_port < 65536);
@@ -345,7 +345,7 @@ bool do_serve(io_backender_t *io_backender,
                     }
 
                     const std::string addresses_string = serve_info.ports.get_addresses_string();
-                    logINF("Listening on addresses: %s\n", addresses_string.c_str());
+                    logNTC("Listening on addresses: %s\n", addresses_string.c_str());
 
                     if (!serve_info.ports.is_bind_all()) {
                         logINF("To fully expose RethinkDB on the network, bind to all addresses");
@@ -369,7 +369,7 @@ bool do_serve(io_backender_t *io_backender,
                     } else {
                         machine_name = machine_it->second.get_ref().name.get().str();
                     }
-                    logINF("Server ready, \"%s\" %s\n",
+                    logNTC("Server ready, \"%s\" %s\n",
                            machine_name.c_str(),
                            uuid_to_str(machine_id).c_str());
 
@@ -397,13 +397,13 @@ bool do_serve(io_backender_t *io_backender,
                     auth_metadata_persister->stop_and_flush(&non_interruptor);
                 }
 
-                logINF("Shutting down client connections...\n");
+                logNTC("Shutting down client connections...\n");
             }
-            logINF("All client connections closed.\n");
+            logNTC("All client connections closed.\n");
 
-            logINF("Shutting down storage engine... (This may take a while if you had a lot of unflushed data in the writeback cache.)\n");
+            logNTC("Shutting down storage engine... (This may take a while if you had a lot of unflushed data in the writeback cache.)\n");
         }
-        logINF("Storage engine shut down.\n");
+        logNTC("Storage engine shut down.\n");
 
     } catch (const address_in_use_exc_t &ex) {
         logERR("%s.\n", ex.what());

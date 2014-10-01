@@ -710,7 +710,7 @@ void run_rethinkdb_create(const base_path_t &base_path,
                                                                         get_auth_metadata_filename(base_path),
                                                                         &auth_perfmon_collection,
                                                                         auth_semilattice_metadata_t());
-        logINF("Our machine ID: %s\n", uuid_to_str(our_machine_id).c_str());
+        logNTC("Our machine ID: %s\n", uuid_to_str(our_machine_id).c_str());
         logINF("Created directory '%s' and a metadata file inside it.\n", base_path.path().c_str());
         *result_out = true;
     } catch (const metadata_persistence::file_in_use_exc_t &ex) {
@@ -782,8 +782,8 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                          const cluster_semilattice_metadata_t *cluster_metadata,
                          directory_lock_t *data_directory_lock,
                          bool *const result_out) {
-    logINF("Running %s...\n", RETHINKDB_VERSION_STR);
-    logINF("Running on %s", uname_msr().c_str());
+    logNTC("Running %s...\n", RETHINKDB_VERSION_STR);
+    logNTC("Running on %s", uname_msr().c_str());
     os_signal_cond_t sigint_cond;
 
     logINF("Using cache size of %" PRIu64 " MB",
