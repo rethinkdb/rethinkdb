@@ -129,7 +129,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::IS_EMPTY:           return make_is_empty_term(env, t);
     case Term::DEFAULT:            return make_default_term(env, t);
     case Term::JSON:               return make_json_term(env, t);
-    case Term::TO_JSON:            return make_to_json_term(env, t);
+    case Term::TO_JSON_STRING:     return make_to_json_string_term(env, t);
     case Term::ISO8601:            return make_iso8601_term(env, t);
     case Term::TO_ISO8601:         return make_to_iso8601_term(env, t);
     case Term::EPOCH_TIME:         return make_epoch_time_term(env, t);

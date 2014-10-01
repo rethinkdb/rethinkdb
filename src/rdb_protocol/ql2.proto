@@ -572,7 +572,10 @@ message Term {
         // datum.
         JSON = 98; // STRING -> DATUM
         // Returns the datum as a JSON string.
-        TO_JSON = 172; // DATUM -> STRING
+        // N.B.: we would really prefer this be named TO_JSON and that exists as
+        // an alias in Python and JavaScript drivers; however it conflicts with the
+        // standard `to_json` method defined by Ruby's standard json library.
+        TO_JSON_STRING = 172; // DATUM -> STRING
 
         // Parses its first arguments as an ISO 8601 time and returns it as a
         // datum.
