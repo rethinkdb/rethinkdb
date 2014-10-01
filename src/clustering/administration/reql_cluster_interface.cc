@@ -245,7 +245,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
                 my_machine_id, db->id, dc_id, name, primary_key);
         std::map<datacenter_id_t, ack_expectation_t> *ack_map =
                 &table.ack_expectations.get_mutable();
-        for (auto pair : *ack_map) {
+        for (auto &pair : *ack_map) {
             pair.second = ack_expectation_t(pair.second.expectation(), hard_durability);
         }
         table.ack_expectations.upgrade_version(my_machine_id);
