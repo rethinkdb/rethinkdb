@@ -34,15 +34,16 @@ datum_string_t log_write_issue_t::build_description(const ql::datum_t &info) con
     std::string servers_string;
     for (size_t i = 0; i < servers.arr_size(); ++i) {
         servers_string += strprintf("%s%s",
-            servers_string.empty() ? "" : i == servers.arr_size() - 1 ? ", and " : ", ",
+            servers_string.empty() ? "" : ", ",
             servers.get(i).as_str().to_std().c_str());
     }
 
     return datum_string_t(strprintf(
-        "Server%s %s encountered an error while writing to its log file: %s.",
+        "The following server%s encountered an error ('%s') while "
+        "writing log statements: %s.",
         servers.arr_size() == 1 ? "" : "s",
-        servers_string.c_str(),
-        info.get_field("message").as_str().to_std().c_str()));
+        info.get_field("message").as_str().to_std().c_str(),
+        servers_string.c_str()));
 }
 
 log_write_issue_tracker_t::log_write_issue_tracker_t(local_issue_aggregator_t *_parent) :
