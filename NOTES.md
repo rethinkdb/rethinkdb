@@ -1,3 +1,17 @@
+# Release 1.15.1 (Lawrence of Arabia)
+
+Released on 2014-10-x
+
+Bug fix update.
+
+* Fixed a bug that caused tables to always be created with hard durability, regardless of the `durability` option (#3128)
+* Fixed a bug that caused HTTPS access with `r.http` to fail under OS X (#3112)
+* Fixed a bug in the Python driver that caused pickling/unpickling of time objects to fail (#3024)
+* Changed the data explorer autocomplete to not override Ctrl+Tab on Firefox (#2959)
+* Fixed packaging/installation issues on Debian (#3125, #3107)
+
+---
+
 # Release 1.15.0 (Lawrence of Arabia)
 
 Released on 2014-09-23
@@ -93,7 +107,7 @@ us ship RethinkDB 1.15. In no particular order:
 * Matt Stith (@stith)
 * Dmitry Minkovsky (@dminkovsky)
 
---
+---
 
 # Release 1.14.1 (Brazil)
 
