@@ -87,7 +87,7 @@ void log_write_issue_tracker_t::combine(
         if (combined_it == combined_issues.end()) {
             combined_issues.insert(std::make_pair(issue.message, &issue));
         } else {
-            rassert(issue.affected_server_ids.size() == 0);
+            rassert(issue.affected_server_ids.size() == 1);
             combined_it->second->add_server(issue.affected_server_ids[0]);
         }
     }
