@@ -26,7 +26,7 @@ public:
 
     virtual bool is_critical() const = 0;
     virtual const datum_string_t &get_name() const = 0;
-    virtual issue_id_t get_id() const { return issue_id; }
+    issue_id_t get_id() const { return issue_id; }
 
     static const std::string get_server_name(const metadata_t &metadata,
                                              const machine_id_t &server_id);
