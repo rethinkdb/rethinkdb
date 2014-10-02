@@ -124,7 +124,7 @@ with driver.Metacluster() as metacluster:
     def test(shards):
         print "Reconfiguring:", shards
         res = r.table_config("foo").update({"shards": shards}).run(conn)
-        assert res["errors"] == 0
+        assert res["errors"] == 0, repr(res)
         wait_until(lambda: check_foo_config_matches(shards))
         wait_until(check_status_matches_config)
         assert set(row["i"] for row in r.table("foo").run(conn)) == set(xrange(10))

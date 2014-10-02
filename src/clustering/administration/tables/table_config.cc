@@ -6,21 +6,63 @@
 #include "clustering/administration/tables/split_points.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 
+bool lookup_server(
+        name_string_t name,
+        server_name_client_t *name_client,
+        machine_id_t *machine_id_out,
+        std::string *error_out) {
+    bool ok;
+    name_client->get_name_to_machine_id_map()->apply_read(
+        [&](const std::multimap<name_string_t, machine_id_t> *map) {
+            if (map->count(name) == 0) {
+                *error_out = strprintf("Server `%s` does not exist.", name.c_str());
+                ok = false;
+            } else if (map->count(name) > 1) {
+                *error_out = strprintf("Server `%s` is ambiguous; there are multiple "
+                    "servers with that name.", name.c_str());
+                ok = false;
+            } else {
+                *machine_id_out = map->find(name)->second;
+                ok = true;
+            }
+        });
+    return ok;
+}
+
 ql::datum_t convert_table_config_shard_to_datum(
-        const table_config_t::shard_t &shard) {
+        const table_config_t::shard_t &shard,
+        server_name_client_t *name_client) {
     ql::datum_object_builder_t builder;
 
-    builder.overwrite("replicas", convert_set_to_datum<name_string_t>(
-            &convert_name_to_datum,
-            shard.replica_names));
+    ql::datum_array_builder_t replicas_builder(ql::configured_limits_t::unlimited);
+    for (const machine_id_t &replica : shard.replicas) {
+        boost::optional<name_string_t> name =
+            name_client->get_name_for_machine_id(replica);
+        /* If a machine in the config was declared dead, then just omit it from here.
+        Consumers of the `table_config_t` will ignore entries for machines that have
+        been declared dead, for consistency. */
+        if (static_cast<bool>(name)) {
+            replicas_builder.add(convert_name_to_datum(*name));
+        }
+    }
+    builder.overwrite("replicas", std::move(replicas_builder).to_datum());
 
-    builder.overwrite("director", convert_name_to_datum(shard.director_name));
+    boost::optional<name_string_t> director_name =
+        name_client->get_name_for_machine_id(shard.director);
+    if (static_cast<bool>(director_name)) {
+        builder.overwrite("director", convert_name_to_datum(*director_name));
+    } else {
+        /* If the previous director was declared dead, just display `null`. The user will
+        have to change this to a new machine before the table will come back online. */
+        builder.overwrite("director", ql::datum_t::null());
+    }
 
     return std::move(builder).to_datum();
 }
 
 bool convert_table_config_shard_from_datum(
         ql::datum_t datum,
+        server_name_client_t *name_client,
         table_config_t::shard_t *shard_out,
         std::string *error_out) {
     converter_from_datum_object_t converter;
@@ -37,18 +79,27 @@ bool convert_table_config_shard_from_datum(
             replica_names_datum.print();
         return false;
     }
-    if (!convert_set_from_datum<name_string_t>(
-            [] (ql::datum_t datum2, name_string_t *val2_out,
-                    std::string *error2_out) {
-                return convert_name_from_datum(datum2, "server name", val2_out,
-                    error2_out);
-            },
-            false,   /* raise an error if a server appears twice */
-            replica_names_datum, &shard_out->replica_names, error_out)) {
-        *error_out = "In `replicas`: " + *error_out;
-        return false;
+    shard_out->replicas.clear();
+    for (size_t i = 0; i < replica_names_datum.arr_size(); ++i) {
+        name_string_t name;
+        if (!convert_name_from_datum(replica_names_datum.get(i), "server name", &name,
+                error_out)) {
+            *error_out = "In `replicas`: " + *error_out;
+            return false;
+        }
+        machine_id_t machine_id;
+        if (!lookup_server(name, name_client, &machine_id, error_out)) {
+            *error_out = "In `replicas`: " + *error_out;
+            return false;
+        }
+        auto pair = shard_out->replicas.insert(machine_id);
+        if (!pair.second) {
+            *error_out = strprintf("In `replicas`: Server `%s` is listed more than "
+                "once.", name.c_str());
+            return false;
+        }
     }
-    if (shard_out->replica_names.empty()) {
+    if (shard_out->replicas.empty()) {
         *error_out = "You must specify at least one replica for each shard.";
         return false;
     }
@@ -57,18 +108,33 @@ bool convert_table_config_shard_from_datum(
     if (!converter.get("director", &director_name_datum, error_out)) {
         return false;
     }
-    if (!convert_name_from_datum(director_name_datum, "server name",
-            &shard_out->director_name, error_out)) {
-        return false;
+    if (director_name_datum.get_type() == ql::datum_t::R_NULL) {
+        /* There's never a good reason for the user to intentionally set the director to
+        `null`; setting the director to `null` will ensure that the table cannot accept
+        queries. We allow it because if the director is declared dead, it will appear to
+        the user as `null`; and we want to allow the user to do things like
+        `r.table_config("foo").update({"name": "bar"})` even when the director is in that
+        state. */
+        shard_out->director = nil_uuid();
+    } else {
+        name_string_t director_name;
+        if (!convert_name_from_datum(director_name_datum, "server name", &director_name,
+                error_out)) {
+            *error_out = "In `director`: " + *error_out;
+            return false;
+        }
+        if (!lookup_server(director_name, name_client, &shard_out->director, error_out)) {
+            *error_out = "In `director`: " + *error_out;
+            return false;
+        }
+        if (shard_out->replicas.count(shard_out->director) != 1) {
+            *error_out = strprintf("Server `%s` is listed as `director` but does not "
+                "appear in `replicas`.", director_name.c_str());
+            return false;
+        }
     }
 
     if (!converter.check_no_extra_keys(error_out)) {
-        return false;
-    }
-
-    if (shard_out->replica_names.count(shard_out->director_name) != 1) {
-        *error_out = strprintf("Server `%s` is listed as `director` but does not appear "
-            "in `replicas`.", shard_out->director_name.c_str());
         return false;
     }
 
@@ -79,11 +145,14 @@ bool convert_table_config_shard_from_datum(
 publicly exposed so it can be used to create the return value of `table.reconfigure()`.
 */
 ql::datum_t convert_table_config_to_datum(
-        const table_config_t &config) {
+        const table_config_t &config,
+        server_name_client_t *name_client) {
     ql::datum_object_builder_t builder;
     builder.overwrite("shards",
         convert_vector_to_datum<table_config_t::shard_t>(
-            &convert_table_config_shard_to_datum,
+            [&](const table_config_t::shard_t &shard) {
+                return convert_table_config_shard_to_datum(shard, name_client);
+            },
             config.shards));
     return std::move(builder).to_datum();
 }
@@ -93,8 +162,9 @@ ql::datum_t convert_table_config_and_name_to_datum(
         name_string_t table_name,
         name_string_t db_name,
         namespace_id_t uuid,
-        const std::string &primary_key) {
-    ql::datum_t start = convert_table_config_to_datum(config);
+        const std::string &primary_key,
+        server_name_client_t *name_client) {
+    ql::datum_t start = convert_table_config_to_datum(config, name_client);
     ql::datum_object_builder_t builder(start);
     builder.overwrite("name", convert_name_to_datum(table_name));
     builder.overwrite("db", convert_name_to_datum(db_name));
@@ -105,6 +175,7 @@ ql::datum_t convert_table_config_and_name_to_datum(
 
 bool convert_table_config_and_name_from_datum(
         ql::datum_t datum,
+        server_name_client_t *name_client,
         name_string_t *table_name_out,
         name_string_t *db_name_out,
         namespace_id_t *uuid_out,
@@ -161,8 +232,14 @@ bool convert_table_config_and_name_from_datum(
         return false;
     }
     if (!convert_vector_from_datum<table_config_t::shard_t>(
-            &convert_table_config_shard_from_datum, shards_datum,
-            &config_out->shards, error_out)) {
+            [&](ql::datum_t shard_datum, table_config_t::shard_t *shard_out,
+                    std::string *error_out_2) {
+                return convert_table_config_shard_from_datum(
+                    shard_datum, name_client, shard_out, error_out_2);
+            },
+            shards_datum,
+            &config_out->shards,
+            error_out)) {
         *error_out = "In `shards`: " + *error_out;
         return false;
     }
@@ -188,8 +265,8 @@ bool table_config_artificial_table_backend_t::read_row_impl(
         UNUSED std::string *error_out) {
     assert_thread();
     *row_out = convert_table_config_and_name_to_datum(
-        metadata.replication_info.get_ref().config,
-        table_name, db_name, table_id, metadata.primary_key.get_ref());
+        metadata.replication_info.get_ref().config, table_name, db_name, table_id,
+        metadata.primary_key.get_ref(), name_client);
     return true;
 }
 
@@ -230,7 +307,7 @@ bool table_config_artificial_table_backend_t::write_row(
         name_string_t new_db_name;
         namespace_id_t new_table_id;
         std::string new_primary_key;
-        if (!convert_table_config_and_name_from_datum(new_value,
+        if (!convert_table_config_and_name_from_datum(new_value, name_client,
                 &new_table_name, &new_db_name, &new_table_id,
                 &replication_info.config, &new_primary_key, error_out)) {
             *error_out = "The change you're trying to make to "

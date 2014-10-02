@@ -67,8 +67,8 @@ class table_config_t {
 public:
     class shard_t {
     public:
-        std::set<name_string_t> replica_names;
-        name_string_t director_name;
+        std::set<machine_id_t> replicas;
+        machine_id_t director;
     };
     std::vector<shard_t> shards;
 };

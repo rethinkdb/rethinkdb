@@ -32,9 +32,9 @@ server_name_client_t::server_name_client_t(
     recompute_name_to_machine_id_map();
 }
 
-std::set<name_string_t> server_name_client_t::get_servers_with_tag(
+std::set<machine_id_t> server_name_client_t::get_servers_with_tag(
         const name_string_t &tag) {
-    std::set<name_string_t> servers;
+    std::set<machine_id_t> servers;
     machines_semilattice_metadata_t md = semilattice_view->get();
     for (auto it = md.machines.begin();
               it != md.machines.end();
@@ -43,7 +43,7 @@ std::set<name_string_t> server_name_client_t::get_servers_with_tag(
             continue;
         }
         if (it->second.get_ref().tags.get_ref().count(tag) == 1) {
-            servers.insert(it->second.get_ref().name.get_ref());
+            servers.insert(it->first);
         }
     }
     return servers;
