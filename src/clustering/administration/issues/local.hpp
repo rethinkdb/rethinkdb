@@ -17,7 +17,7 @@ class local_issues_t;
 class local_issue_t : public issue_t {
 public:
     local_issue_t();
-    local_issue_t(const issue_id_t &id);
+    explicit local_issue_t(const issue_id_t &id);
     virtual ~local_issue_t();
 
     void add_server(const machine_id_t &server);
