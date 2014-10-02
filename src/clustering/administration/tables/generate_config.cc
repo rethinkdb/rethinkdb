@@ -398,6 +398,7 @@ bool table_generate_config(
                 &yielder,
                 interruptor,
                 [&](size_t shard, const machine_id_t &server) {
+                    guarantee(config_out->shards[shard].director.is_unset());
                     config_out->shards[shard].replicas.insert(server);
                     config_out->shards[shard].director = server;
                     /* We have to update `pairings` as directors are selected so that our
@@ -436,6 +437,7 @@ bool table_generate_config(
     }
 
     for (size_t shard = 0; shard < params.num_shards; ++shard) {
+        guarantee(!config_out->shards[shard].director.is_unset());
         guarantee(config_out->shards[shard].replicas.size() == total_replicas);
     }
 
