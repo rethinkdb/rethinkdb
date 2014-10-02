@@ -8,7 +8,9 @@ Bug fix update.
 * Fixed a bug that caused HTTPS access with `r.http` to fail under OS X (#3112)
 * Fixed a bug in the Python driver that caused pickling/unpickling of time objects to fail (#3024)
 * Changed the data explorer autocomplete to not override Ctrl+Tab on Firefox (#2959)
-* Fixed packaging/installation issues on Debian (#3125, #3107)
+* Fixed a bug that caused a crash when a non-directory file was specified as RethinkDB's startup directory (#3036)
+* Added native packages for Debian (#3125, #3107)
+* Fixed a compilation error on ARM CPUs (#3116)
 
 ---
 
