@@ -47,18 +47,19 @@ namespace changefeed {
 
 struct msg_t {
     struct limit_start_t {
-        limit_start_t() { };
-        limit_start_t(uuid_u _sub, std::vector<std::pair<datum_t, datum_t> > _start_data)
-            : sub(std::move(_sub)), start_data(std::move(_start_data)) { }
         uuid_u sub;
-        // RSI: send this!
-        std::vector<std::pair<datum_t, datum_t> > start_data;
+        std::vector<std::pair<store_key_t, std::pair<datum_t, datum_t> > > start_data;
+
+        limit_start_t() { };
+        limit_start_t(uuid_u _sub, decltype(start_data) _start_data)
+            : sub(std::move(_sub)), start_data(std::move(_start_data)) { }
+
         RDB_DECLARE_ME_SERIALIZABLE;
     };
     struct limit_change_t {
         uuid_u sub;
-        boost::optional<datum_t> old_key;
-        boost::optional<std::pair<datum_t, datum_t> > new_val;
+        boost::optional<store_key_t> old_key;
+        boost::optional<std::pair<store_key_t, std::pair<datum_t, datum_t> > > new_val;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
     struct change_t {
@@ -204,9 +205,78 @@ private:
 
 typedef mailbox_addr_t<void(client_addr_t)> server_addr_t;
 
-typedef std::multimap<datum_t, datum_t,
-                      std::function<bool(const datum_t &, const datum_t &)> >
-    datum_map_t;
+template<class Id, class Key, class Val, class Lt>
+class index_queue_t {
+    std::map<Id, std::pair<Key, Val> > data;
+    std::multimap<Key, typename decltype(data)::iterator, Lt> index;
+public:
+    index_queue_t(Lt lt) : index(std::move(lt)) { }
+
+    typedef typename decltype(data)::iterator iterator;
+
+    std::pair<iterator, bool>
+    insert(std::pair<store_key_t, std::pair<datum_t, datum_t> > pair) {
+        return insert(std::move(pair.first),
+                      std::move(pair.second.first),
+                      std::move(pair.second.second));
+    }
+    std::pair<iterator, bool> insert(Id i, Key k, Val v) {
+        std::pair<iterator, bool> p = data.insert(
+            std::make_pair(std::move(i), std::make_pair(k, std::move(v))));
+        if (p.second) { // inserted
+            index.insert(std::make_pair(std::move(k), p.first));
+        } else {
+            guarantee(k == p.first->second.first);
+        }
+        guarantee(data.size() == index.size());
+        return p;
+    }
+
+    size_t size() {
+        guarantee(data.size() == index.size());
+        return data.size();
+    }
+
+    iterator begin() { return data.begin(); }
+    iterator end() { return data.end(); }
+    void erase(const iterator &it) {
+        guarantee(it != data.end());
+        auto ft = index.find(it->second.first);
+        guarantee(ft != index.end());
+        index.erase(ft);
+        data.erase(it);
+        guarantee(data.size() == index.size());
+    }
+
+    iterator find_id(const Id &i) {
+        return data.find(i);
+    }
+    bool del_id(const Id &i) {
+        auto it = data.find(i);
+        if (it == data.end()) {
+            return false;
+        } else {
+            erase(it);
+            return true;
+        }
+    }
+    iterator top() {
+        return size() == 0 ? end() : *index.begin();
+    }
+    std::vector<Id> truncate(size_t n) {
+        std::vector<Id> ret;
+        while (index.size() > n) {
+            ret.push_back(index.begin()->second->first);
+            data.erase(index.begin()->second);
+            index.erase(index.begin());
+        }
+        guarantee(data.size() == index.size());
+        return ret;
+    }
+};
+
+typedef index_queue_t<store_key_t, datum_t, datum_t,
+                      std::function<bool(const datum_t &, const datum_t &)> > lqueue_t;
 
 struct sindex_ref_t {
     env_t *env;
@@ -229,10 +299,11 @@ public:
         client_t::addr_t _parent_client,
         uuid_u _uuid,
         keyspec_t::limit_t _spec,
-        datum_map_t &&start_data);
+        std::function<bool(const datum_t &, const datum_t &)> _lt,
+        stream_t &&start_data);
 
-    void del(datum_t key);
-    void add(datum_t key, datum_t val);
+    void add(store_key_t id, datum_t key, datum_t val);
+    void del(store_key_t id);
     void commit(const sindex_ref_t &sindex_ref);
     bool operator<(const limit_manager_t &other) {
         const std::string &s1 = spec.range.sindex, &s2 = other.spec.range.sindex;
@@ -251,10 +322,11 @@ private:
     uuid_u uuid;
     keyspec_t::limit_t spec;
     // RSI: sorting
-    datum_map_t data;
+    std::function<bool(const datum_t &, const datum_t &)> lt;
+    lqueue_t lqueue;
 
-    std::vector<std::pair<datum_t, datum_t> > added;
-    std::vector<datum_t> deleted;
+    std::vector<std::pair<store_key_t, std::pair<datum_t, datum_t> > > added;
+    std::vector<store_key_t> deleted;
 public:
     rwlock_t lock;
     auto_drainer_t drainer;
@@ -275,7 +347,8 @@ public:
         const std::string &table,
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
-        datum_map_t &&start_data);
+        std::function<bool(const datum_t &, const datum_t &)> lt,
+        stream_t &&start_data);
     // `key` should be non-NULL if there is a key associated with the message.
     void send_all(const msg_t &msg, const store_key_t &key);
     void stop_all();

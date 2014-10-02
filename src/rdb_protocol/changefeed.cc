@@ -80,7 +80,8 @@ void server_t::add_limit_client(
     const std::string &table,
     const uuid_u &client_uuid,
     const keyspec_t::limit_t &spec,
-    datum_map_t &&start_data) {
+    std::function<bool(const datum_t &, const datum_t &)> lt,
+    stream_t &&stream) {
 
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::write);
@@ -97,7 +98,8 @@ void server_t::add_limit_client(
             it->first,
             client_uuid,
             spec,
-            std::move(start_data));
+            std::move(lt),
+            std::move(stream));
         spot.write_signal()->wait_lazily_unordered();
         vec->push_back(std::move(lm));
     }
@@ -231,37 +233,51 @@ limit_manager_t::limit_manager_t(
     client_t::addr_t _parent_client,
     uuid_u _uuid,
     keyspec_t::limit_t _spec,
-    datum_map_t &&start_data)
+    std::function<bool(const datum_t &, const datum_t &)> _lt,
+    stream_t &&stream)
     : region(std::move(_region)),
       table(std::move(_table)),
       parent(_parent),
       parent_client(std::move(_parent_client)),
       uuid(std::move(_uuid)),
       spec(std::move(_spec)),
-      data(std::move(start_data)) {
-    std::vector<std::pair<datum_t, datum_t> > v;
-    for (const auto &pair : data) {
-        guarantee(pair.first.has());
-        guarantee(pair.second.has());
+      lt(std::move(_lt)),
+      lqueue(lt) {
+    for (auto &&item : stream) {
+        lqueue.insert(std::move(item.key),
+                      std::move(item.sindex_key),
+                      std::move(item.data));
+    }
+
+    std::vector<std::pair<store_key_t, std::pair<datum_t, datum_t> > > v;
+    for (const auto &pair : lqueue) {
+        guarantee(pair.second.first.has());
+        guarantee(pair.second.second.has());
         v.push_back(pair);
     }
     send(msg_t(msg_t::limit_start_t(uuid, std::move(v))));
 }
 
 
-void limit_manager_t::add(datum_t key, datum_t val) {
-    debugf("%p add <%s,%s>\n", this, key.print().c_str(), val.print().c_str());
-    added.push_back(std::make_pair(key, val));
+void limit_manager_t::add(store_key_t id, datum_t key, datum_t val) {
+    debugf("%p add %s <%s,%s>\n",
+           this,
+           key_to_debug_str(id).c_str(),
+           key.print().c_str(),
+           val.print().c_str());
+    added.push_back(
+        std::make_pair(std::move(id), std::make_pair(std::move(key), std::move(val))));
 }
 
-void limit_manager_t::del(datum_t key) {
-    debugf("%p add %s\n", this, key.print().c_str());
-    deleted.push_back(key);
+void limit_manager_t::del(store_key_t id) {
+    debugf("%p add %s\n", this, key_to_debug_str(id).c_str());
+    deleted.push_back(std::move(id));
 }
 
 // RSI: sorting
 stream_t limit_manager_t::read_more(
     const sindex_ref_t &ref, const datum_t &start, size_t n) {
+    debugf("~~ READ_MORE\n");
     rget_read_response_t resp;
     auto srange = datum_range_t(
         start, key_range_t::bound_t::open, datum_t(), key_range_t::bound_t::open);
@@ -277,7 +293,8 @@ stream_t limit_manager_t::read_more(
         datum_range_t::universe().to_primary_keyrange(), // RSI: use restricted range
         spec.range.sorting,
         *ref.sindex_info,
-        &resp);
+        &resp,
+        release_superblock_t::KEEP);
     auto *gs = boost::get<ql::grouped_t<ql::stream_t> >(&resp.result);
     if (gs == NULL) {
         auto *exc = boost::get<ql::exc_t>(&resp.result);
@@ -297,52 +314,54 @@ stream_t limit_manager_t::read_more(
     return std::move(stream);
 }
 
+// RSI: Pick up here.  Make `real_added` and `real_deleted` not cancel each
+// other out the same way (the value might have changed).
 void limit_manager_t::commit(const sindex_ref_t &sindex_ref) {
     debugf("\n**********************************************************************\n");
     debugf("COMMIT (added %zu, deleted %zu)\n", added.size(), deleted.size());
-    std::multimap<datum_t, datum_t> real_added, real_deleted;
+    // RSI: this map needs unique keys after all.
+    lqueue_t real_added(lt);
+    std::vector<store_key_t> real_deleted;
     for (const auto &pair : added) {
-        data.insert(pair);
+        lqueue.insert(pair.first, pair.second.first, pair.second.second);
         real_added.insert(pair);
     }
-    for (auto &&d : deleted) {
-        auto add_it = real_added.find(d);
-        if (add_it != real_added.end()) {
-            real_added.erase(add_it);
-            auto it = data.find(d);
-            guarantee(it != data.end());
-            data.erase(it);
-        } else {
-            auto it = data.find(d);
-            if (it != data.end()) {
-                real_deleted.insert(*it);
-                data.erase(it);
-            }
+    for (auto &&id : deleted) {
+        bool real_added_deleted = real_added.del_id(id);
+        bool data_deleted = lqueue.del_id(id);
+        if (real_added_deleted) {
+            guarantee(data_deleted);
+        } else if (data_deleted) {
+            real_deleted.push_back(std::move(id));
         }
     }
-    while (data.size() > spec.limit) {
-        auto it = data.begin();
-        real_deleted.insert(std::move(*it));
-        data.erase(it);
-    }
-    if (data.size() < spec.limit) {
-        auto data_it = data.begin();
-        datum_t begin = (data_it == data.end()) ? datum_t() : data_it->first;
-        stream_t s = read_more(sindex_ref, begin, spec.limit - data.size());
-        guarantee(s.size() <= spec.limit - data.size());
+    debugf("real_added %zu, real_deleted %zu\n", real_added.size(), real_deleted.size());
+    std::vector<store_key_t> truncated = lqueue.truncate(spec.limit);
+    std::move(truncated.begin(), truncated.end(), std::back_inserter(real_deleted));
+    debugf("real_added %zu, real_deleted %zu\n",
+           real_added.size(), real_deleted.size());
+    if (lqueue.size() < spec.limit) {
+        debugf("Expanding data...\n");
+        auto data_it = lqueue.begin();
+        datum_t begin = (data_it == lqueue.end()) ? datum_t() : data_it->second.first;
+        // RSI: need a closed bound and duplicate removal to handle truncated
+        // sindexes.
+        stream_t s = read_more(sindex_ref, begin, spec.limit - lqueue.size());
+        guarantee(s.size() <= spec.limit - lqueue.size());
         for (const auto &item : s) {
-            auto pair = std::make_pair(item.sindex_key, item.data);
-            data.insert(pair);
-            real_added.insert(pair);
+            lqueue.insert(item.key, item.sindex_key, item.data);
+            real_added.insert(item.key, item.sindex_key, item.data);
         }
     }
+    debugf("real_added %zu, real_deleted %zu\n",
+           real_added.size(), real_deleted.size());
     auto add_it = real_added.begin();
     auto del_it = real_deleted.begin();
     while (add_it != real_added.end() || del_it != real_deleted.end()) {
         msg_t::limit_change_t msg;
         msg.sub = uuid;
         if (del_it != real_deleted.end()) {
-            msg.old_key = del_it->first;
+            msg.old_key = *del_it;
             ++del_it;
         }
         if (add_it != real_added.end()) {
@@ -650,10 +669,10 @@ public:
           lt([](const datum_t &lhs, const datum_t &rhs) {
                   return lhs.cmp(reql_version_t::LATEST, rhs) > 0;
               }),
-          data(lt),
+          lqueue(lt),
           active_data([this](const data_it_t &a, const data_it_t &b) {
                   // RSI: cmp
-                  return lt(a->first, b->first);
+                  return lt(a->second.first, b->second.first);
               }) {
         feed->add_limit_sub(this, uuid);
     }
@@ -670,8 +689,8 @@ public:
                 for (auto &&it : active_data) {
                     els.push_back(
                         datum_t(std::map<datum_string_t, datum_t> {
-                                { datum_string_t("old_val"), it->second },
-                                { datum_string_t("new_val"), it->second } }));
+                                { datum_string_t("old_val"), it->second.second },
+                                { datum_string_t("new_val"), it->second.second } }));
                     maybe_signal_cond();
                 }
             }
@@ -705,14 +724,17 @@ public:
         maybe_send_start_msg();
     }
 
-    virtual void init(const std::vector<std::pair<datum_t, datum_t> > &start_data) {
+    void init(
+        const std::vector<std::pair<store_key_t, std::pair<datum_t, datum_t> > >
+            &start_data) {
         got_init += 1;
         debugf("start_data: %zu\n", start_data.size());
         for (const auto &pair : start_data) {
-            debugf("%s\n%s\n",
-                   pair.first.print().c_str(),
-                   pair.second.print().c_str());
-            auto it = data.insert(pair);
+            debugf("%s\n%s\n%s\n",
+                   key_to_debug_str(pair.first).c_str(),
+                   pair.second.first.print().c_str(),
+                   pair.second.second.print().c_str());
+            auto it = lqueue.insert(pair).first;
             // RSI: cmp
             active_data.insert(it);
             if (active_data.size() > spec.limit) {
@@ -720,62 +742,65 @@ public:
                 auto old_ft = active_data.begin();
                 for (auto ft = active_data.begin(); ft != active_data.end(); ++ft) {
                     debugf("lt(%s, %s) = %d\n",
-                           (*old_ft)->first.print().c_str(),
-                           (*ft)->first.print().c_str(),
-                           lt((*old_ft)->first, (*ft)->first));
-                    debugf("%s\n", (*ft)->first.print().c_str());
+                           (*old_ft)->second.first.print().c_str(),
+                           (*ft)->second.first.print().c_str(),
+                           lt((*old_ft)->second.first, (*ft)->second.first));
+                    debugf("%s\n", (*ft)->second.first.print().c_str());
                     old_ft = ft;
                 }
-                debugf("erasing %s\n", (*active_data.begin())->first.print().c_str());
+                debugf("erasing %s\n",
+                       (*active_data.begin())->second.first.print().c_str());
                 size_t erased = erase1(&active_data, *active_data.begin());
                 guarantee(erased == 1);
             }
             guarantee(active_data.size() == spec.limit
                       || (active_data.size() < spec.limit
-                          && active_data.size() == data.size()));
+                          && active_data.size() == lqueue.size()));
         }
         maybe_send_start_msg();
     };
 
     virtual void note_change(
-        const boost::optional<datum_t> &old_key,
-        const boost::optional<std::pair<datum_t, datum_t> > &new_val) {
+        const boost::optional<store_key_t> &old_key,
+        const boost::optional<std::pair<store_key_t, std::pair<datum_t, datum_t> > >
+            &new_val) {
         debugf("%p note_change:\nold_key: %s\nnew_val: %s\n",
                this,
-               old_key ? old_key->print().c_str() : "NONE",
+               old_key ? key_to_debug_str(*old_key).c_str() : "NONE",
                new_val
-               ? strprintf("<%s,%s>",
-                           (*new_val).first.print().c_str(),
-                           (*new_val).second.print().c_str()).c_str()
+               ? strprintf("%s <%s,%s>",
+                           key_to_debug_str((*new_val).first).c_str(),
+                           (*new_val).second.first.print().c_str(),
+                           (*new_val).second.second.print().c_str()).c_str()
                : "NONE");
         // RSI: queue if `need_init`.
         datum_t old_send, new_send;
         if (old_key) {
-            auto it = data.find(*old_key);
-            guarantee(it != data.end());
+            auto it = lqueue.find_id(*old_key);
+            guarantee(it != lqueue.end());
             size_t erased = erase1(&active_data, it);
             debugf("Erased %zu\n", erased);
             if (erased != 0) {
                 // The old value was in the set.
-                old_send = it->second;
+                old_send = it->second.second;
             }
         }
         if (new_val) {
             debugf("new_val...\n");
-            auto it = data.insert(*new_val);
+            auto it = lqueue.insert(*new_val).first;
             // RSI: cmp
-            datum_t a = it->first;
-            datum_t b = (*active_data.begin())->first;
-            bool l = lt(a, b);
+            datum_t a = it->second.first;
+            datum_t b = (*active_data.begin())->second.first;
+            bool l = !lt(a, b);
             debugf("cmp %s < %s = %d\n", a.print().c_str(), b.print().c_str(), l);
             debugf("%s %s\n",
-                   (*active_data.begin())->first.print().c_str(),
-                   (*active_data.crbegin())->first.print().c_str());
+                   (*active_data.begin())->second.first.print().c_str(),
+                   (*active_data.crbegin())->second.first.print().c_str());
             if (l) {
                 debugf("new_val active!\n");
                 active_data.insert(it);
                 // The new value is in the old set bounds (and thus in the set).
-                new_send = it->second;
+                new_send = it->second.second;
             }
         }
         if (active_data.size() > spec.limit) {
@@ -783,28 +808,29 @@ public:
             // value has to leave the set to make room.
             auto last = *active_data.begin();
             guarantee(new_send.has() && !old_send.has());
-            old_send = std::move(last->second);
+            old_send = std::move(last->second.second);
             erase1(&active_data, last);
         } else if (active_data.size() < spec.limit) {
             // The set is too small.
             if (new_send.has()) {
                 // The set is too small because there aren't enough rows in the table.
-                guarantee(active_data.size() == data.size());
+                guarantee(active_data.size() == lqueue.size());
             } else {
                 debugf("Plan omega.\n");
                 // The set is too small because the new value wasn't in the old
                 // set bounds, so we need to add the next best element.
-                guarantee(active_data.size() < data.size());
+                guarantee(active_data.size() < lqueue.size());
                 auto it = *active_data.begin();
                 ++it;
-                guarantee(it != data.end());
+                guarantee(it != lqueue.end());
                 debugf("%zu\n", active_data.size());
                 active_data.insert(it);
                 debugf("%zu\n", active_data.size());
-                new_send = it->second;
+                new_send = it->second.second;
             }
         }
-        guarantee(active_data.size() == spec.limit || active_data.size() == data.size());
+        guarantee(active_data.size() == spec.limit
+                  || active_data.size() == lqueue.size());
 
         if (old_send.has() || new_send.has()) {
             els.push_back(
@@ -833,11 +859,11 @@ public:
 
     std::function<bool(const datum_t &, const datum_t &)> lt;
 
-    std::multimap<datum_t, datum_t, decltype(lt)> data;
-    typedef decltype(data)::iterator data_it_t;
+    lqueue_t lqueue;
+    typedef decltype(lqueue)::iterator data_it_t;
     typedef std::function<bool(const data_it_t &, const data_it_t &)> data_it_lt_t;
-
     std::multiset<data_it_t, data_it_lt_t> active_data;
+
     std::deque<datum_t> els;
 };
 

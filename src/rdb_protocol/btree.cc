@@ -986,7 +986,8 @@ void rdb_rget_slice(
         const std::vector<transform_variant_t> &transforms,
         const boost::optional<terminal_variant_t> &terminal,
         sorting_t sorting,
-        rget_read_response_t *response) {
+        rget_read_response_t *response,
+        release_superblock_t release_superblock) {
 
     r_sanity_check(boost::get<ql::exc_t>(&response->result) == NULL);
     profile::starter_t starter("Do range scan on primary index.", ql_env->trace);
@@ -995,8 +996,9 @@ void rdb_rget_slice(
         job_data_t(ql_env, batchspec, transforms, terminal, sorting),
         boost::optional<rget_sindex_data_t>(),
         range);
-    btree_concurrent_traversal(superblock, range, &callback,
-                               (!reversed(sorting) ? FORWARD : BACKWARD));
+    btree_concurrent_traversal(
+        superblock, range, &callback, (!reversed(sorting) ? FORWARD : BACKWARD),
+        release_superblock);
     callback.finish();
 }
 
@@ -1012,7 +1014,8 @@ void rdb_rget_secondary_slice(
         const key_range_t &pk_range,
         sorting_t sorting,
         const sindex_disk_info_t &sindex_info,
-        rget_read_response_t *response) {
+        rget_read_response_t *response,
+        release_superblock_t release_superblock) {
 
     r_sanity_check(boost::get<ql::exc_t>(&response->result) == NULL);
     guarantee(sindex_info.geo == sindex_geo_bool_t::REGULAR);
@@ -1027,8 +1030,11 @@ void rdb_rget_secondary_slice(
                            sindex_info.mapping, sindex_info.multi),
         sindex_region.inner);
     btree_concurrent_traversal(
-        superblock, sindex_region.inner, &callback,
-        (!reversed(sorting) ? FORWARD : BACKWARD));
+        superblock,
+        sindex_region.inner,
+        &callback,
+        (!reversed(sorting) ? FORWARD : BACKWARD),
+        release_superblock);
     callback.finish();
 }
 
@@ -1429,6 +1435,7 @@ void rdb_update_single_sindex(
         const rdb_modification_report_t *modification,
         ql::env_t *env,
         auto_drainer_t::lock_t) {
+    debugf("~~~ RDB_UPDATE_SINGLE_SINDEX\n");
     // Note if you get this error it's likely that you've passed in a default
     // constructed mod_report. Don't do that.  Mod reports should always be passed
     // to a function as an output parameter before they're passed to this
@@ -1462,7 +1469,7 @@ void rdb_update_single_sindex(
                 sindex->name.name,
                 [&](ql::changefeed::limit_manager_t *lm) {
                     for (const auto &pair :keys) {
-                        lm->del(pair.second);
+                        lm->del(pair.first);
                     }
                 });
 
@@ -1515,7 +1522,7 @@ void rdb_update_single_sindex(
                 sindex->name.name,
                 [&](ql::changefeed::limit_manager_t *lm) {
                     for (const auto &pair :keys) {
-                        lm->add(pair.second, added);
+                        lm->add(pair.first, pair.second, added);
                     }
                 });
             for (auto it = keys.begin(); it != keys.end(); ++it) {

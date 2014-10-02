@@ -219,7 +219,7 @@ void do_read(ql::env_t *env,
         // Normal rget
         rdb_rget_slice(btree, rget.region.inner, superblock,
                        env, rget.batchspec, rget.transforms, rget.terminal,
-                       rget.sorting, res);
+                       rget.sorting, res, release_superblock_t::RELEASE);
     } else {
         sindex_disk_info_t sindex_info;
         uuid_u sindex_uuid;
@@ -254,7 +254,7 @@ void do_read(ql::env_t *env,
             rget.sindex->original_range, rget.sindex->region,
             sindex_sb.get(), env, rget.batchspec, rget.transforms,
             rget.terminal, rget.region.inner, rget.sorting,
-            sindex_info, res);
+            sindex_info, res, release_superblock_t::RELEASE);
     }
 }
 
@@ -306,20 +306,18 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         }
         rget_read_response_t resp;
         // RSI: sorting
-        ql::changefeed::datum_map_t start_data((std::greater<const ql::datum_t &>()));
-        for (const auto &item : stream) {
-            guarantee(item.sindex_key.has());
-            guarantee(item.data.has());
-            if (start_data.size() == s.spec.limit) {
-                break;
-            }
-            start_data.insert(
-                std::make_pair(std::move(item.sindex_key), std::move(item.data)));
+        auto lt = [](const ql::datum_t &a, const ql::datum_t &b) {
+            return a.cmp(reql_version_t::LATEST, b) > 0;
+        };
+
+        // RSI: sort by datum rather than key.
+        if (stream.size() > s.spec.limit) {
+            stream.resize(s.spec.limit);
         }
 
         guarantee(store->changefeed_server.has());
         store->changefeed_server->add_limit_client(
-            s.addr, s.region, s.table, s.uuid, s.spec, std::move(start_data));
+            s.addr, s.region, s.table, s.uuid, s.spec, lt, std::move(stream));
         response->response = changefeed_limit_subscribe_response_t(1);
     }
 

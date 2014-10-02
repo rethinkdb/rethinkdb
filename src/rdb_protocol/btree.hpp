@@ -181,7 +181,8 @@ void rdb_rget_slice(
     const std::vector<ql::transform_variant_t> &transforms,
     const boost::optional<ql::terminal_variant_t> &terminal,
     sorting_t sorting,
-    rget_read_response_t *response);
+    rget_read_response_t *response,
+    release_superblock_t release_superblock);
 
 void rdb_rget_secondary_slice(
     btree_slice_t *slice,
@@ -195,7 +196,8 @@ void rdb_rget_secondary_slice(
     const key_range_t &pk_range,
     sorting_t sorting,
     const sindex_disk_info_t &sindex_info,
-    rget_read_response_t *response);
+    rget_read_response_t *response,
+    release_superblock_t release_superblock);
 
 void rdb_get_intersecting_slice(
     btree_slice_t *slice,

@@ -244,7 +244,8 @@ void _check_keys_are_present(store_t *store,
             std::vector<ql::transform_variant_t>(),
             boost::optional<ql::terminal_variant_t>(),
             sorting_t::ASCENDING,
-            &res);
+            &res,
+            release_superblock_t::RELEASE);
 
         auto groups = boost::get<ql::grouped_t<ql::stream_t> >(&res.result);
         ASSERT_TRUE(groups != NULL);
@@ -321,7 +322,8 @@ void _check_keys_are_NOT_present(store_t *store,
             std::vector<ql::transform_variant_t>(),
             boost::optional<ql::terminal_variant_t>(),
             sorting_t::ASCENDING,
-            &res);
+            &res,
+            release_superblock_t::RELEASE);
 
         auto groups = boost::get<ql::grouped_t<ql::stream_t> >(&res.result);
         ASSERT_TRUE(groups != NULL);
