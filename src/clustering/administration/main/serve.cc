@@ -86,9 +86,8 @@ bool do_serve(io_backender_t *io_backender,
         extproc_pool_t extproc_pool(get_num_threads());
 
         local_issue_aggregator_t local_issue_aggregator;
-        log_write_issue_tracker_t log_write_issue_tracker(&local_issue_aggregator);
 
-        thread_pool_log_writer_t log_writer(&log_write_issue_tracker);
+        thread_pool_log_writer_t log_writer(&local_issue_aggregator);
 
         cluster_semilattice_metadata_t cluster_metadata;
         auth_semilattice_metadata_t auth_metadata;

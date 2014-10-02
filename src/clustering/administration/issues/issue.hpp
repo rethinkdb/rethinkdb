@@ -11,6 +11,7 @@
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/datum_string.hpp"
 
+class name_string_t;
 class issue_multiplexer_t;
 class cluster_semilattice_metadata_t;
 

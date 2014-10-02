@@ -6,12 +6,10 @@
 #include <stdint.h>
 
 #include <string>
-#include <vector>
 
 #include "errors.hpp"
 
 class printf_buffer_t;
-class name_string_t;
 
 // uuid_t is defined on Darwin.  I have given up on what to name it.  Please
 // don't use guid_t, for it has a Windowsian connotation and we might run into
