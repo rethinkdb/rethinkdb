@@ -78,7 +78,7 @@ datum_string_t server_down_issue_t::build_description(const ql::datum_t &info) c
         "Server %s is inaccessible from %s%s.",
         info.get_field("server").as_str().to_std().c_str(),
         affected_server_ids.size() == 1 ? "" : "these servers: ",
-        servers_to_string(info.get_field("server_ids")).c_str()));
+        servers_to_string(info.get_field("affected_server_ids")).c_str()));
 }
 
 server_ghost_issue_t::server_ghost_issue_t() { }
@@ -102,7 +102,7 @@ datum_string_t server_ghost_issue_t::build_description(const ql::datum_t &info) 
         "Server %s was declared dead, but is still connected to %s%s.",
         info.get_field("server").as_str().to_std().c_str(),
         affected_server_ids.size() == 1 ? "" : "these servers: ",
-        servers_to_string(info.get_field("server_ids")).c_str()));
+        servers_to_string(info.get_field("affected_server_ids")).c_str()));
 }
 
 server_issue_tracker_t::server_issue_tracker_t(

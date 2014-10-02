@@ -21,7 +21,7 @@ public:
 
 protected:
     const name_string_t name;
-    const std::vector<uuid_u> &collided_ids;
+    const std::vector<uuid_u> collided_ids;
 };
 
 // Issue for server name collisions
