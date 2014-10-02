@@ -121,8 +121,6 @@ server_issue_tracker_t::server_issue_tracker_t(
     recompute();   
 }
 
-server_issue_tracker_t::~server_issue_tracker_t() { }
-
 bool server_issue_tracker_t::update_callback(
         const std::vector<machine_id_t> &down_servers,
         const std::vector<machine_id_t> &ghost_servers,
@@ -136,6 +134,16 @@ bool server_issue_tracker_t::update_callback(
         local_issues->server_ghost_issues.push_back(server_ghost_issue_t(server));
     }
     return true;
+}
+
+server_issue_tracker_t::~server_issue_tracker_t() {
+    // Clear any outstanding down/ghost issues
+    std::vector<machine_id_t> down_servers;
+    std::vector<machine_id_t> ghost_servers;
+    update_issues(std::bind(&server_issue_tracker_t::update_callback,
+                            std::cref(down_servers),
+                            std::cref(ghost_servers),
+                            ph::_1));
 }
 
 void server_issue_tracker_t::recompute() {

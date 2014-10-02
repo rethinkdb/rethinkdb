@@ -49,6 +49,11 @@ datum_string_t log_write_issue_t::build_description(const ql::datum_t &info) con
 log_write_issue_tracker_t::log_write_issue_tracker_t(local_issue_aggregator_t *_parent) :
     local_issue_tracker_t(_parent) { }
 
+log_write_issue_tracker_t::~log_write_issue_tracker_t() {
+    // Clear any log write issue
+    report_success();
+}
+
 bool log_write_issue_tracker_t::update_callback(
         const boost::optional<std::string> &message,
         local_issues_t *local_issues) {

@@ -157,8 +157,6 @@ outdated_index_issue_tracker_t::outdated_index_issue_tracker_t(
     local_issue_tracker_t(_parent),
     update_pool(1, &update_queue, this) { }
 
-outdated_index_issue_tracker_t::~outdated_index_issue_tracker_t() { }
-
 outdated_index_report_t *outdated_index_issue_tracker_t::create_report(
         const namespace_id_t &ns_id) {
     outdated_index_report_impl_t *new_report = new outdated_index_report_impl_t(this, ns_id);
@@ -192,6 +190,13 @@ bool outdated_index_issue_tracker_t::update_callback(
         local_issues->outdated_index_issues.push_back(outdated_index_issue_t(indexes));
     }
     return true;
+}
+
+outdated_index_issue_tracker_t::~outdated_index_issue_tracker_t() {
+    outdated_index_issue_t::index_map_t dummy_map;
+    update_issues(std::bind(&outdated_index_issue_tracker_t::update_callback,
+                            std::cref(dummy_map),
+                            ph::_1));
 }
 
 void outdated_index_issue_tracker_t::coro_pool_callback(
