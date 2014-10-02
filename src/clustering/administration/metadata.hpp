@@ -163,7 +163,7 @@ public:
     cluster_directory_peer_type_t peer_type;
 };
 
-RDB_DECLARE_SERIALIZABLE(cluster_directory_metadata_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(cluster_directory_metadata_t);
 
 // ctx-less json adapter for directory_echo_wrapper_t
 template <class T>

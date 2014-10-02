@@ -18,15 +18,14 @@ static const int64_t DEFAULT_MAX_DURATION = 500 * 1000;
 static const int64_t DIVISOR_SCALING_FACTOR = 8;
 static const int64_t SCALE_CONSTANT = 8;
 
-RDB_IMPL_SERIALIZABLE_7(batchspec_t,
-                        batch_type,
-                        min_els,
-                        max_els,
-                        max_size,
-                        first_scaledown_factor,
-                        max_dur,
-                        start_time);
-INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(batchspec_t);
+RDB_IMPL_SERIALIZABLE_7_FOR_CLUSTER(batchspec_t,
+                                    batch_type,
+                                    min_els,
+                                    max_els,
+                                    max_size,
+                                    first_scaledown_factor,
+                                    max_dur,
+                                    start_time);
 
 batchspec_t::batchspec_t(
     batch_type_t _batch_type,

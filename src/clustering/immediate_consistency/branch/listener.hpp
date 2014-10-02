@@ -267,7 +267,7 @@ private:
     DISABLE_COPYING(listener_t);
 };
 
-RDB_DECLARE_SERIALIZABLE(listener_t::write_queue_entry_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(listener_t::write_queue_entry_t);
 
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_LISTENER_HPP_ */
