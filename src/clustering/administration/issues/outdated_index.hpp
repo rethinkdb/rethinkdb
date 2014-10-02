@@ -6,6 +6,7 @@
 #include <set>
 #include <string>
 
+#include "clustering/administration/issues/local_issue_aggregator.hpp"
 #include "rdb_protocol/store.hpp"
 #include "clustering/administration/issues/local.hpp"
 #include "concurrency/queue/single_value_producer.hpp"
@@ -13,21 +14,6 @@
 #include "concurrency/one_per_thread.hpp"
 
 template <class> class semilattice_read_view_t;
-
-class outdated_index_issue_t : public issue_t {
-public:
-    explicit outdated_index_issue_t(const local_issue_t::outdated_index_map_t &indexes);
-    const datum_string_t &get_name() const { return outdated_index_issue_type; }
-    bool is_critical() const { return false; }
-
-private:
-    ql::datum_t build_info(const metadata_t &metadata) const;
-    datum_string_t build_description(const ql::datum_t &info) const;
-
-    static const datum_string_t outdated_index_issue_type;
-    static const uuid_u base_issue_id;
-    const local_issue_t::outdated_index_map_t indexes;
-};
 
 class outdated_index_report_impl_t;
 class outdated_index_dummy_value_t { };
@@ -46,17 +32,23 @@ public:
 
     outdated_index_report_t *create_report(const namespace_id_t &ns_id);
 
+    static void combine(local_issues_t *local_issues,
+                        std::vector<scoped_ptr_t<issue_t> > *issues_out);
+
 private:
     friend class outdated_index_report_impl_t;
     void recompute();
     void destroy_report(outdated_index_report_impl_t *report);
+
+    static bool update_callback(const outdated_index_issue_t::index_map_t &indexes,
+                                local_issues_t *local_issues);
 
     void log_outdated_indexes(namespace_id_t ns_id,
                               std::set<std::string> indexes,
                               auto_drainer_t::lock_t keepalive);
 
     std::set<namespace_id_t> logged_namespaces;
-    one_per_thread_t<local_issue_t::outdated_index_map_t> outdated_indexes;
+    one_per_thread_t<outdated_index_issue_t::index_map_t> outdated_indexes;
     one_per_thread_t<std::set<outdated_index_report_impl_t *> > index_reports;
 
     // Coro pool to handle updates of the local issue

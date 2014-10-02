@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_ISSUES_ISSUE_HPP_
 #define CLUSTERING_ADMINISTRATION_ISSUES_ISSUE_HPP_
 
@@ -37,6 +37,8 @@ public:
         return uuid_u::from_hash(base, concat(args...));
     }
 
+    issue_id_t issue_id;
+
 protected:
     virtual ql::datum_t build_info(const metadata_t &metadata) const = 0;
     virtual datum_string_t build_description(const ql::datum_t &info) const = 0;
@@ -62,9 +64,6 @@ private:
     static std::string item_to_str(const name_string_t &str);
     static std::string item_to_str(const std::string &str);
     static std::string item_to_str(const uuid_u &id);
-
-    const issue_id_t issue_id;
-    DISABLE_COPYING(issue_t);
 };
 
 class issue_tracker_t {

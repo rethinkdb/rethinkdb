@@ -12,7 +12,7 @@ issues_artificial_table_backend_t::issues_artificial_table_backend_t(
     cluster_sl_view(_cluster_sl_view),
     remote_issue_tracker(
         directory_view->incremental_subview(
-            incremental_field_getter_t<std::vector<local_issue_t>,
+            incremental_field_getter_t<local_issues_t,
                                        cluster_directory_metadata_t>(
                 &cluster_directory_metadata_t::local_issues)),
         directory_view->incremental_subview(

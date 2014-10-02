@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_ISSUES_REMOTE_HPP_
 #define CLUSTERING_ADMINISTRATION_ISSUES_REMOTE_HPP_
 
@@ -16,7 +16,7 @@ class remote_issue_tracker_t : public issue_tracker_t {
 public:
     remote_issue_tracker_t(
         const clone_ptr_t<watchable_t<
-            change_tracking_map_t<peer_id_t, std::vector<local_issue_t> > > >
+            change_tracking_map_t<peer_id_t, local_issues_t> > >
                 &_issues_view,
         const clone_ptr_t<watchable_t<
             change_tracking_map_t<peer_id_t, machine_id_t> > >
@@ -25,16 +25,7 @@ public:
     std::vector<scoped_ptr_t<issue_t> > get_issues() const;
 
 private:
-    struct local_issue_with_server_t {
-        local_issue_t issue;
-        std::vector<machine_id_t> affected_servers;
-    };
-
-    template <typename issue_type>
-    static void reduce_identical_issues(std::vector<local_issue_with_server_t> *issues);
-    static void reduce_outdated_index_issues(std::vector<local_issue_with_server_t> *issues);
-
-    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, std::vector<local_issue_t> > > >
+    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, local_issues_t> > >
         issues_view;
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > >
         machine_id_translation_table;

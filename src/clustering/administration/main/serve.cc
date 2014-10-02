@@ -216,7 +216,7 @@ bool do_serve(io_backender_t *io_backender,
                 incremental_field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
             metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()));
 
-        field_copier_t<std::vector<local_issue_t>, cluster_directory_metadata_t> copy_local_issues_to_cluster(
+        field_copier_t<local_issues_t, cluster_directory_metadata_t> copy_local_issues_to_cluster(
             &cluster_directory_metadata_t::local_issues,
             local_issue_aggregator.get_issues_watchable(),
             &our_root_directory_variable);

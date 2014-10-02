@@ -5,43 +5,10 @@
 #include <vector>
 #include <string>
 
-#include "clustering/administration/issues/issue.hpp"
+#include "clustering/administration/issues/local_issue_aggregator.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "rpc/semilattice/view.hpp"
-
-class server_down_issue_t : public issue_t {
-public:
-    explicit server_down_issue_t(const machine_id_t &_down_server_id,
-                                 const std::vector<machine_id_t> &_affected_server_ids);
-    const datum_string_t &get_name() const { return server_down_issue_type; }
-    bool is_critical() const { return true; }
-
-private:
-    ql::datum_t build_info(const metadata_t &metadata) const;
-    datum_string_t build_description(const ql::datum_t &info) const;
-
-    static const datum_string_t server_down_issue_type;
-    static const issue_id_t base_issue_id;
-    const machine_id_t down_server_id;
-    const std::vector<machine_id_t> affected_server_ids;
-};
-
-class server_ghost_issue_t : public issue_t {
-public:
-    explicit server_ghost_issue_t(const machine_id_t &_ghost_server_id,
-                                  const std::vector<machine_id_t> &_affected_server_ids);
-    const datum_string_t &get_name() const { return server_ghost_issue_type; }
-    bool is_critical() const { return false; }
-
-private:
-    ql::datum_t build_info(const metadata_t &metadata) const;
-    datum_string_t build_description(const ql::datum_t &info) const;
-
-    static const datum_string_t server_ghost_issue_type;
-    static const issue_id_t base_issue_id;
-    const machine_id_t ghost_server_id;
-    const std::vector<machine_id_t> affected_server_ids;
-};
+#include "containers/incremental_lenses.hpp"
 
 class server_issue_tracker_t : public local_issue_tracker_t {
 public:
@@ -53,7 +20,13 @@ public:
             &_machine_to_peer);
     ~server_issue_tracker_t();
 
+    static void combine(local_issues_t *local_issues,
+                        std::vector<scoped_ptr_t<issue_t> > *issues_out);
+
 private:
+    static bool update_callback(const std::vector<machine_id_t> &down_servers,
+                                const std::vector<machine_id_t> &ghost_servers,
+                                local_issues_t *local_issues);
     void recompute();
 
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >

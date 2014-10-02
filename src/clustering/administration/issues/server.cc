@@ -41,7 +41,7 @@ std::vector<std::string> look_up_servers(const issue_t::metadata_t &metadata,
                                          const std::vector<machine_id_t> &servers) {
     std::vector<std::string> res;
     res.reserve(servers.size());
-    for (auto server : servers) {
+    for (auto const &server : servers) {
         res.push_back(issue_t::get_server_name(metadata, server));
     }
     return res;
@@ -57,11 +57,11 @@ std::string servers_to_string(const ql::datum_t &server_names) {
     return res;
 }
 
-server_down_issue_t::server_down_issue_t(const machine_id_t &_down_server_id,
-                                         const std::vector<machine_id_t> &_affected_server_ids) :
-    issue_t(from_hash(base_issue_id, _down_server_id)),
-    down_server_id(_down_server_id),
-    affected_server_ids(_affected_server_ids) { }
+server_down_issue_t::server_down_issue_t() { }
+
+server_down_issue_t::server_down_issue_t(const machine_id_t &_down_server_id) :
+    local_issue_t(from_hash(base_issue_id, _down_server_id)),
+    down_server_id(_down_server_id) { }
 
 ql::datum_t server_down_issue_t::build_info(const metadata_t &metadata) const {
     const std::string name = get_server_name(metadata, down_server_id);
@@ -81,11 +81,11 @@ datum_string_t server_down_issue_t::build_description(const ql::datum_t &info) c
         servers_to_string(info.get_field("server_ids")).c_str()));
 }
 
-server_ghost_issue_t::server_ghost_issue_t(const machine_id_t &_ghost_server_id,
-                                           const std::vector<machine_id_t> &_affected_server_ids) :
-    issue_t(from_hash(base_issue_id, _ghost_server_id)),
-    ghost_server_id(_ghost_server_id),
-    affected_server_ids(_affected_server_ids) { }
+server_ghost_issue_t::server_ghost_issue_t() { }
+
+server_ghost_issue_t::server_ghost_issue_t(const machine_id_t &_ghost_server_id) :
+    local_issue_t(from_hash(base_issue_id, _ghost_server_id)),
+    ghost_server_id(_ghost_server_id) { }
 
 ql::datum_t server_ghost_issue_t::build_info(const metadata_t &metadata) const {
     const std::string name = get_server_name(metadata, ghost_server_id);
@@ -123,16 +123,86 @@ server_issue_tracker_t::server_issue_tracker_t(
 
 server_issue_tracker_t::~server_issue_tracker_t() { }
 
+bool server_issue_tracker_t::update_callback(
+        const std::vector<machine_id_t> &down_servers,
+        const std::vector<machine_id_t> &ghost_servers,
+        local_issues_t *local_issues) {
+    local_issues->server_down_issues.clear();
+    local_issues->server_ghost_issues.clear();
+    for (auto const &server : down_servers) {
+        local_issues->server_down_issues.push_back(server_down_issue_t(server));
+    }
+    for (auto const &server : ghost_servers) {
+        local_issues->server_ghost_issues.push_back(server_ghost_issue_t(server));
+    }
+    return true;
+}
+
 void server_issue_tracker_t::recompute() {
-    std::vector<local_issue_t> res;
+    std::vector<machine_id_t> down_servers;
+    std::vector<machine_id_t> ghost_servers;
+
     cluster_semilattice_metadata_t metadata = cluster_sl_view->get();
     for (auto const &machine : metadata.machines.machines) {
         peer_id_t peer = machine_id_to_peer_id(machine.first, machine_to_peer->get().get_inner());
         if (!machine.second.is_deleted() && peer.is_nil()) {
-            res.push_back(local_issue_t::make_server_down_issue(machine.first));
+            down_servers.push_back(machine.first);
         } else if (machine.second.is_deleted() && !peer.is_nil()) {
-            res.push_back(local_issue_t::make_server_ghost_issue(machine.first));
+            ghost_servers.push_back(machine.first);
         }
     }
-    update(res);
+
+    update_issues(std::bind(&server_issue_tracker_t::update_callback,
+                            std::cref(down_servers),
+                            std::cref(ghost_servers),
+                            ph::_1));
+}
+
+void server_issue_tracker_t::combine(
+        local_issues_t *local_issues,
+        std::vector<scoped_ptr_t<issue_t> > *issues_out) {
+    // Combine down issues
+    {
+        std::map<machine_id_t, server_down_issue_t*> combined_down_issues;
+        for (auto &down_issue : local_issues->server_down_issues) {
+            auto combined_it = combined_down_issues.find(down_issue.down_server_id);
+            if (combined_it == combined_down_issues.end()) {
+                combined_down_issues.insert(std::make_pair(
+                    down_issue.down_server_id,
+                    &down_issue));
+            } else {
+                rassert(down_issue.affected_server_ids.size() == 0);
+                combined_it->second->add_server(down_issue.affected_server_ids[0]);
+            }
+        }
+
+
+        for (auto const &it : combined_down_issues) {
+            issues_out->push_back(scoped_ptr_t<issue_t>(
+                new server_down_issue_t(*it.second)));
+        }
+    }
+
+    // Combine ghost issues
+    {
+        std::map<machine_id_t, server_ghost_issue_t*> combined_ghost_issues;
+        for (auto &ghost_issue : local_issues->server_ghost_issues) {
+            auto combined_it = combined_ghost_issues.find(ghost_issue.ghost_server_id);
+            if (combined_it == combined_ghost_issues.end()) {
+                combined_ghost_issues.insert(std::make_pair(
+                    ghost_issue.ghost_server_id,
+                    &ghost_issue));
+            } else {
+                rassert(ghost_issue.affected_server_ids.size() == 0);
+                combined_it->second->add_server(ghost_issue.affected_server_ids[0]);
+            }
+        }
+
+
+        for (auto const &it : combined_ghost_issues) {
+            issues_out->push_back(scoped_ptr_t<issue_t>(
+                new server_ghost_issue_t(*it.second)));
+        }
+    }
+
 }

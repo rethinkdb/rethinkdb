@@ -9,7 +9,7 @@
 
 // TODO: Probably some of these headers could be moved to the .cc.
 #include "clustering/administration/database_metadata.hpp"
-#include "clustering/administration/issues/local.hpp"
+#include "clustering/administration/issues/local_issue_aggregator.hpp"
 #include "clustering/administration/log_transfer.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/administration/servers/machine_metadata.hpp"
@@ -136,7 +136,7 @@ public:
     get_stats_mailbox_address_t get_stats_mailbox_address;
     log_server_business_card_t log_mailbox;
     boost::optional<server_name_business_card_t> server_name_business_card;
-    std::vector<local_issue_t> local_issues;
+    local_issues_t local_issues;
     cluster_directory_peer_type_t peer_type;
 };
 
