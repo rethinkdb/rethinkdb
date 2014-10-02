@@ -73,8 +73,8 @@ class TermBase
                     callback = options
                     options = {}
                 else
-                    options new err.RqlDriverError("Second argument to `run` cannot be a function if a third argument is provided.")
-                    return
+                    #options is a function here
+                    return Promise.reject(new err.RqlDriverError("Second argument to `run` cannot be a function if a third argument is provided.")).nodeify options
             # else we suppose that we have run(connection[, options][, callback])
         else if connection?.constructor is Object
             if @showRunWarning is true
@@ -88,42 +88,38 @@ class TermBase
 
         options = {} if not options?
 
-        # Check if the arguments are valid types
-        try
-            for own key of options
-                unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'binaryFormat', 'batchConf', 'arrayLimit']
-                    throw new err.RqlDriverError "Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>}."
-            if net.isConnection(connection) is false
-                throw new err.RqlDriverError "First argument to `run` must be an open connection."
-        catch e
-            if typeof callback is 'function'
-                return callback(e)
-            else
-                return new Promise (resolve, reject) =>
-                    reject(e)
+        if callback? and typeof callback isnt 'function'
+            return Promise.reject(new err.RqlDriverError("If provided, the callback must be a function. Please use `run(connection[, options][, callback])"))
 
-        if options.noreply is true or typeof callback is 'function'
+        # Check if the arguments are valid types
+        for own key of options
+            unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'binaryFormat', 'batchConf', 'arrayLimit']
+                return Promise.reject(new err.RqlDriverError("Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>}."))
+                    .nodeify callback
+        if net.isConnection(connection) is false
+            return Promise.reject(new err.RqlDriverError("First argument to `run` must be an open connection.")).nodeify callback
+
+        # if `noreply` is `true`, the callback will be immediately called without error
+        # so we do not have to worry about bluebird complaining about errors not being
+        # caught
+        new Promise( (resolve, reject) =>
+            wrappedCb = (err, result) ->
+                if err?
+                    console.log 'reject'
+                    reject(err)
+                else
+                    resolve(result)
+
             try
-                connection._start @, callback, options
+                connection._start @, wrappedCb, options
             catch e
                 # It was decided that, if we can, we prefer to invoke the callback
                 # with any errors rather than throw them as normal exceptions.
                 # Thus we catch errors here and invoke the callback instead of
                 # letting the error bubble up.
-                if typeof(callback) is 'function'
-                    callback(e)
-        else
-            new Promise (resolve, reject) =>
-                callback = (err, result) ->
-                    if err?
-                        reject(err)
-                    else
-                        resolve(result)
+                wrappedCb(e)
 
-                try
-                    connection._start @, callback, options
-                catch e
-                    callback(e)
+        ).nodeify callback
 
     toString: -> err.printQuery(@)
 
