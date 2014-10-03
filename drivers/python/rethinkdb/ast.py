@@ -335,6 +335,9 @@ class RqlQuery(object):
     def nth(self, *args):
         return Nth(self, *args)
 
+    def to_json(self, *args):
+        return ToJsonString(self, *args)
+
     def to_json_string(self, *args):
         return ToJsonString(self, *args)
 

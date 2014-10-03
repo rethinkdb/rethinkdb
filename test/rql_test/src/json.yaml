@@ -19,7 +19,15 @@ tests:
     - cd: r.json("[1,2,3]").to_json_string()
       ot: ('[1,2,3]')
 
+    - js: r.json("[1,2,3]").toJSON()
+      py: r.json("[1,2,3]").to_json()
+      ot: ('[1,2,3]')
+
     - cd: r.json("{\"foo\":4}").to_json_string()
+      ot: ('{"foo":4}')
+
+    - js: r.json("{\"foo\":4}").toJSON()
+      py: r.json("{\"foo\":4}").to_json()
       ot: ('{"foo":4}')
 
     # stress test: data is from http://www.mockaroo.com/
