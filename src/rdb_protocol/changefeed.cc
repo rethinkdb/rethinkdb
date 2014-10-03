@@ -244,9 +244,10 @@ limit_manager_t::limit_manager_t(
       lt(std::move(_lt)),
       lqueue(lt) {
     for (auto &&item : stream) {
-        lqueue.insert(std::move(item.key),
-                      std::move(item.sindex_key),
-                      std::move(item.data));
+        bool inserted = lqueue.insert(std::move(item.key),
+                                      std::move(item.sindex_key),
+                                      std::move(item.data)).second;
+        guarantee(inserted);
     }
 
     std::vector<std::pair<store_key_t, std::pair<datum_t, datum_t> > > v;
@@ -314,31 +315,35 @@ stream_t limit_manager_t::read_more(
     return std::move(stream);
 }
 
-// RSI: Pick up here.  Make `real_added` and `real_deleted` not cancel each
-// other out the same way (the value might have changed).
 void limit_manager_t::commit(const sindex_ref_t &sindex_ref) {
     debugf("\n**********************************************************************\n");
     debugf("COMMIT (added %zu, deleted %zu)\n", added.size(), deleted.size());
     // RSI: this map needs unique keys after all.
     lqueue_t real_added(lt);
-    std::vector<store_key_t> real_deleted;
-    for (const auto &pair : added) {
-        lqueue.insert(pair.first, pair.second.first, pair.second.second);
-        real_added.insert(pair);
-    }
+    std::set<store_key_t> real_deleted;
     for (auto &&id : deleted) {
-        bool real_added_deleted = real_added.del_id(id);
         bool data_deleted = lqueue.del_id(id);
-        if (real_added_deleted) {
-            guarantee(data_deleted);
-        } else if (data_deleted) {
-            real_deleted.push_back(std::move(id));
+        if (data_deleted) {
+            bool inserted = real_deleted.insert(std::move(id)).second;
+            guarantee(inserted);
         }
     }
+    deleted.clear();
+    for (const auto &pair : added) {
+        bool inserted = lqueue.insert(pair).second;
+        guarantee(inserted);
+        inserted = real_added.insert(pair).second;
+        guarantee(inserted);
+    }
+    added.clear();
+
     debugf("real_added %zu, real_deleted %zu\n", real_added.size(), real_deleted.size());
     std::vector<store_key_t> truncated = lqueue.truncate(spec.limit);
-    std::move(truncated.begin(), truncated.end(), std::back_inserter(real_deleted));
-    debugf("real_added %zu, real_deleted %zu\n",
+    for (auto &&id : truncated) {
+        bool inserted = real_deleted.insert(std::move(id)).second;
+        guarantee(inserted);
+    }
+    debugf("2 real_added %zu, real_deleted %zu\n",
            real_added.size(), real_deleted.size());
     if (lqueue.size() < spec.limit) {
         debugf("Expanding data...\n");
@@ -349,30 +354,40 @@ void limit_manager_t::commit(const sindex_ref_t &sindex_ref) {
         stream_t s = read_more(sindex_ref, begin, spec.limit - lqueue.size());
         guarantee(s.size() <= spec.limit - lqueue.size());
         for (const auto &item : s) {
-            lqueue.insert(item.key, item.sindex_key, item.data);
-            real_added.insert(item.key, item.sindex_key, item.data);
+            bool ins = lqueue.insert(item.key, item.sindex_key, item.data).second;
+            guarantee(ins);
+            size_t erased = real_deleted.erase(item.key);
+            if (erased == 0) {
+                ins = real_added.insert(item.key, item.sindex_key, item.data).second;
+                guarantee(ins);
+            }
         }
     }
-    debugf("real_added %zu, real_deleted %zu\n",
+    debugf("3 real_added %zu, real_deleted %zu\n",
            real_added.size(), real_deleted.size());
-    auto add_it = real_added.begin();
-    auto del_it = real_deleted.begin();
-    while (add_it != real_added.end() || del_it != real_deleted.end()) {
+    for (const auto &id : real_deleted) {
         msg_t::limit_change_t msg;
         msg.sub = uuid;
-        if (del_it != real_deleted.end()) {
-            msg.old_key = *del_it;
-            ++del_it;
+        msg.old_key = id;
+        auto it = real_added.find_id(id);
+        if (it != real_added.end()) {
+            msg.new_val = std::move(*it);
+            real_added.erase(it);
         }
-        if (add_it != real_added.end()) {
-            msg.new_val = *add_it;
-            ++add_it;
-        }
-        debugf("sending...\n");
         send(msg_t(std::move(msg)));
     }
-    added.clear();
-    deleted.clear();
+    real_deleted.clear();
+    debugf("4 real_added %zu, real_deleted %zu\n",
+           real_added.size(), real_deleted.size());
+    for (auto &&pair : real_added) {
+        msg_t::limit_change_t msg;
+        msg.sub = uuid;
+        msg.new_val = std::move(pair);
+        send(msg_t(std::move(msg)));
+    }
+    real_added.clear();
+    debugf("5 real_added %zu, real_deleted %zu\n",
+           real_added.size(), real_deleted.size());
     debugf("\n**********************************************************************\n");
 }
 
@@ -667,12 +682,16 @@ public:
           got_init(0),
           spec(std::move(_spec)),
           lt([](const datum_t &lhs, const datum_t &rhs) {
+                  // RSI: cmp
                   return lhs.cmp(reql_version_t::LATEST, rhs) > 0;
               }),
           lqueue(lt),
           active_data([this](const data_it_t &a, const data_it_t &b) {
-                  // RSI: cmp
-                  return lt(a->second.first, b->second.first);
+                  return lt(a->second.first, b->second.first)
+                      ? true
+                      : (lt(b->second.first, a->second.first)
+                         ? false
+                         : a->first < b->first);
               }) {
         feed->add_limit_sub(this, uuid);
     }
@@ -784,10 +803,13 @@ public:
                 // The old value was in the set.
                 old_send = it->second.second;
             }
+            lqueue.erase(it);
         }
         if (new_val) {
             debugf("new_val...\n");
-            auto it = lqueue.insert(*new_val).first;
+            auto pair = lqueue.insert(*new_val);
+            auto it = pair.first;
+            guarantee(pair.second);
             // RSI: cmp
             datum_t a = it->second.first;
             datum_t b = (*active_data.begin())->second.first;
@@ -808,7 +830,8 @@ public:
             // value has to leave the set to make room.
             auto last = *active_data.begin();
             guarantee(new_send.has() && !old_send.has());
-            old_send = std::move(last->second.second);
+            debugf("___foo___: %s\n", last->second.second.print().c_str());
+            old_send = last->second.second;
             erase1(&active_data, last);
         } else if (active_data.size() < spec.limit) {
             // The set is too small.
@@ -833,12 +856,16 @@ public:
                   || active_data.size() == lqueue.size());
 
         if (old_send.has() || new_send.has()) {
-            els.push_back(
+            datum_t d =
                 datum_t(std::map<datum_string_t, datum_t> {
                     { datum_string_t("old_val"),
                       old_send.has() ? old_send : datum_t::null() },
                     { datum_string_t("new_val"),
-                      new_send.has() ? new_send : datum_t::null() } }));
+                      new_send.has() ? new_send : datum_t::null() } });
+            debugf("___old_send___: %s\n", old_send.print().c_str());
+            debugf("___new_send___: %s\n", new_send.print().c_str());
+            debugf("___d___: %s\n", d.print().c_str());
+            els.push_back(d);
             maybe_signal_cond();
         }
     }
@@ -862,7 +889,7 @@ public:
     lqueue_t lqueue;
     typedef decltype(lqueue)::iterator data_it_t;
     typedef std::function<bool(const data_it_t &, const data_it_t &)> data_it_lt_t;
-    std::multiset<data_it_t, data_it_lt_t> active_data;
+    std::set<data_it_t, data_it_lt_t> active_data;
 
     std::deque<datum_t> els;
 };
@@ -985,12 +1012,14 @@ subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
             datum_t(
                 std::map<datum_string_t, datum_t>{
                     {datum_string_t("error"), datum_t(
-                        datum_string_t(strprintf("Changefeed cache over array size limit, "
-                                                "skipped %zu elements.", skipped)))}}));
+                            datum_string_t(
+                                strprintf("Changefeed cache over array size limit, "
+                                          "skipped %zu elements.", skipped)))}}));
         skipped = 0;
     } else {
         while (has_el() && !batcher->should_send_batch()) {
             datum_t el = pop_el();
+            debugf("___EL___: %s\n", el.print().c_str());
             batcher->note_el(el);
             v.push_back(std::move(el));
         }

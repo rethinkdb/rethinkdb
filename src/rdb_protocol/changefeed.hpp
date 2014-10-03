@@ -207,20 +207,36 @@ typedef mailbox_addr_t<void(client_addr_t)> server_addr_t;
 
 template<class Id, class Key, class Val, class Lt>
 class index_queue_t {
+private:
     std::map<Id, std::pair<Key, Val> > data;
-    std::multimap<Key, typename decltype(data)::iterator, Lt> index;
 public:
-    index_queue_t(Lt lt) : index(std::move(lt)) { }
-
     typedef typename decltype(data)::iterator iterator;
+private:
+    // RSI: std::set<iterator>
+    std::set<std::pair<Key, iterator>,
+             std::function<bool(const std::pair<Key, iterator> &,
+                                const std::pair<Key, iterator> &)> > index;
+public:
 
-    std::pair<iterator, bool>
+
+    index_queue_t(Lt lt)
+        : index(
+            [lt](const std::pair<Key, iterator> &a, const std::pair<Key, iterator> &b) {
+                return lt(a.first, b.first)
+                    ? true
+                    : (lt(b.first, a.first)
+                       ? false
+                       : a.second->first < b.second->first);
+            }) { }
+
+
+    MUST_USE std::pair<iterator, bool>
     insert(std::pair<store_key_t, std::pair<datum_t, datum_t> > pair) {
         return insert(std::move(pair.first),
                       std::move(pair.second.first),
                       std::move(pair.second.second));
     }
-    std::pair<iterator, bool> insert(Id i, Key k, Val v) {
+    MUST_USE std::pair<iterator, bool> insert(Id i, Key k, Val v) {
         std::pair<iterator, bool> p = data.insert(
             std::make_pair(std::move(i), std::make_pair(k, std::move(v))));
         if (p.second) { // inserted
@@ -241,17 +257,22 @@ public:
     iterator end() { return data.end(); }
     void erase(const iterator &it) {
         guarantee(it != data.end());
-        auto ft = index.find(it->second.first);
+        auto ft = index.find(std::make_pair(it->second.first, it));
         guarantee(ft != index.end());
         index.erase(ft);
         data.erase(it);
+        guarantee(data.size() == index.size());
+    }
+    void clear() {
+        data.clear();
+        index.clear();
         guarantee(data.size() == index.size());
     }
 
     iterator find_id(const Id &i) {
         return data.find(i);
     }
-    bool del_id(const Id &i) {
+    MUST_USE bool del_id(const Id &i) {
         auto it = data.find(i);
         if (it == data.end()) {
             return false;
