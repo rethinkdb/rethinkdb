@@ -11,6 +11,7 @@ Bug fix update.
 * Fixed a bug that caused a crash when a non-directory file was specified as RethinkDB's startup directory (#3036)
 * Added native packages for Debian (#3125, #3107)
 * Fixed a compilation error on ARM CPUs (#3116)
+* Support building with Protobuf 2.6.0 (#3137)
 
 ---
 
