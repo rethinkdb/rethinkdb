@@ -233,7 +233,8 @@ class Connection extends events.EventEmitter
             closeCb = (err) =>
                 @rawSocket.removeAllListeners()
                 @rawSocket = null # The rawSocket has been closed
-                @constructor.call @, {host:@host, port:@port}, (err, conn) ->
+                @constructor.call @, {host:@host, port:@port
+                                      timeout:@timeout, authKey:@authKey}, (err, conn) ->
                     if err?
                         reject err
                     else
