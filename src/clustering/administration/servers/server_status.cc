@@ -16,10 +16,10 @@ bool directory_has_role_for_table(const reactor_business_card_t &business_card) 
     return false;
 }
 
-bool table_has_role_for_server(const name_string_t &name,
+bool table_has_role_for_server(const machine_id_t &server,
                                const table_config_t &table_config) {
     for (const table_config_t::shard_t &shard : table_config.shards) {
-        if (shard.replica_names.count(name) == 1) {
+        if (shard.replicas.count(server) == 1) {
             return true;
         }
     }
@@ -116,7 +116,7 @@ bool server_status_artificial_table_backend_t::read_row(
             if (it->second.is_deleted()) {
                 continue;
             }
-            bool in_config = table_has_role_for_server(server_name,
+            bool in_config = table_has_role_for_server(server_id,
                 it->second.get_ref().replication_info.get_ref().config);
             auto directory_it = directory->rdb_namespaces.reactor_bcards.find(it->first);
             bool in_directory =

@@ -45,13 +45,13 @@ RDB_IMPL_EQUALITY_COMPARABLE_1(machines_semilattice_metadata_t, machines);
 RDB_IMPL_ME_SERIALIZABLE_2_SINCE_v1_13(ack_expectation_t, expectation_, hard_durability_);
 
 RDB_IMPL_SERIALIZABLE_2(table_config_t::shard_t,
-                        replica_names, director_name);
+                        replicas, director);
 template void serialize<cluster_version_t::v1_15_is_latest>(
             write_message_t *, const table_config_t::shard_t &);
 template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
             read_stream_t *, table_config_t::shard_t *);
 RDB_IMPL_EQUALITY_COMPARABLE_2(table_config_t::shard_t,
-                               replica_names, director_name);
+                               replicas, director);
 
 RDB_IMPL_SERIALIZABLE_1(table_config_t, shards);
 template void serialize<cluster_version_t::v1_15_is_latest>(

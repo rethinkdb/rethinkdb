@@ -14,6 +14,7 @@ class server_name_client_t;
 /* Suggests a `table_config_t` for the table. This is the brains behind
 `table.reconfigure()`. */
 bool table_generate_config(
+        /* This is used to look up server names for error messages. */
         server_name_client_t *name_client,
         /* The UUID of the table being reconfigured. This can be `nil_uuid()`. */
         namespace_id_t table_id,
@@ -23,7 +24,7 @@ bool table_generate_config(
             namespaces_directory_metadata_t> > > directory_view,
         /* Compute this by calling `calculate_server_usage()` on the table configs for
         all of the other tables */
-        const std::map<name_string_t, int> &server_usage,
+        const std::map<machine_id_t, int> &server_usage,
 
         /* `table_generate_config()` will validate `params`, so there's no need for the
         caller to do so. */
@@ -39,7 +40,7 @@ bool table_generate_config(
 `config` to the map `usage_inout`. */
 void calculate_server_usage(
         const table_config_t &config,
-        std::map<name_string_t, int> *server_usage_inout);
+        std::map<machine_id_t, int> *server_usage_inout);
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_GENERATE_CONFIG_HPP_ */
 

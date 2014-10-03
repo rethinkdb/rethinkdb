@@ -120,8 +120,10 @@ with driver.Metacluster() as metacluster:
 
     # Test that we prefer servers that held our data before
     for server in server_names:
-        r.table_config("foo") \
-         .update({"shards": [{"replicas": [server], "director": server}]}).run(conn)
+        res = r.table_config("foo") \
+               .update({"shards": [{"replicas": [server], "director": server}]}) \
+               .run(conn)
+        assert res["errors"] == 0, repr(res)
         for i in xrange(10):
             time.sleep(3)
             if r.table_status("foo").run(conn)["ready_completely"]:

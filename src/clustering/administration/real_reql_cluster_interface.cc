@@ -222,7 +222,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         repli_info.shard_scheme = table_shard_scheme_t::one_shard();
 
         /* Construct a configuration for the new namespace */
-        std::map<name_string_t, int> server_usage;
+        std::map<machine_id_t, int> server_usage;
         for (auto it = ns_change.get()->namespaces.begin();
                   it != ns_change.get()->namespaces.end();
                 ++it) {
@@ -417,7 +417,7 @@ bool real_reql_cluster_interface_t::table_reconfigure(
     if (!check_metadata_status(status, "Table", db->name + "." + name.str(), true,
             error_out)) return false;
 
-    std::map<name_string_t, int> server_usage;
+    std::map<machine_id_t, int> server_usage;
     for (auto it = ns_searcher.find_next(ns_searcher.begin());
               it != ns_searcher.end();
               it = ns_searcher.find_next(++it)) {
@@ -467,7 +467,8 @@ bool real_reql_cluster_interface_t::table_reconfigure(
         semilattice_root_view->join(metadata);
     }
 
-    *new_config_out = convert_table_config_to_datum(new_repli_info.config);
+    *new_config_out = convert_table_config_to_datum(
+        new_repli_info.config, server_name_client);
 
     return true;
 }
