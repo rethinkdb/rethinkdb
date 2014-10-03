@@ -315,6 +315,9 @@ stream_t limit_manager_t::read_more(
     return std::move(stream);
 }
 
+// RSI: pick up here
+// * Use primary key rather than store key.
+// * name `lt` `gt` and switch ordering of PRIMARY KEY ONLY.
 void limit_manager_t::commit(const sindex_ref_t &sindex_ref) {
     debugf("\n**********************************************************************\n");
     debugf("COMMIT (added %zu, deleted %zu)\n", added.size(), deleted.size());
@@ -811,14 +814,22 @@ public:
             auto it = pair.first;
             guarantee(pair.second);
             // RSI: cmp
-            datum_t a = it->second.first;
-            datum_t b = (*active_data.begin())->second.first;
-            bool l = !lt(a, b);
-            debugf("cmp %s < %s = %d\n", a.print().c_str(), b.print().c_str(), l);
-            debugf("%s %s\n",
-                   (*active_data.begin())->second.first.print().c_str(),
-                   (*active_data.crbegin())->second.first.print().c_str());
-            if (l) {
+            bool insert;
+            if (active_data.size() == 0) {
+                debugf("no cmp (empty active_data)\n");
+                insert = true;
+            } else {
+                datum_t a = it->second.first;
+                guarantee(active_data.size() != 0);
+                datum_t b = (*active_data.begin())->second.first;
+                insert = !lt(a, b);
+                debugf("cmp %s < %s = %d\n",
+                       a.print().c_str(), b.print().c_str(), insert);
+                debugf("%s %s\n",
+                       (*active_data.begin())->second.first.print().c_str(),
+                       (*active_data.crbegin())->second.first.print().c_str());
+            }
+            if (insert) {
                 debugf("new_val active!\n");
                 active_data.insert(it);
                 // The new value is in the old set bounds (and thus in the set).
@@ -838,11 +849,10 @@ public:
             if (new_send.has()) {
                 // The set is too small because there aren't enough rows in the table.
                 guarantee(active_data.size() == lqueue.size());
-            } else {
-                debugf("Plan omega.\n");
+            } else if (active_data.size() < lqueue.size()) {
                 // The set is too small because the new value wasn't in the old
                 // set bounds, so we need to add the next best element.
-                guarantee(active_data.size() < lqueue.size());
+                debugf("Plan omega.\n");
                 auto it = *active_data.begin();
                 ++it;
                 guarantee(it != lqueue.end());
@@ -850,6 +860,8 @@ public:
                 active_data.insert(it);
                 debugf("%zu\n", active_data.size());
                 new_send = it->second.second;
+            } else {
+                debugf("Plan what?\n");
             }
         }
         guarantee(active_data.size() == spec.limit
