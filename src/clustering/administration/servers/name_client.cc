@@ -278,7 +278,23 @@ void server_name_client_t::recompute_machine_id_to_peer_id_map() {
                     dir_it->first, dir_it->second.machine_id));
             }
     });
-    machine_id_to_peer_id_map.set_value(new_map_m2p);
-    peer_id_to_machine_id_map.set_value(new_map_p2m);
+    machine_id_to_peer_id_map.apply_atomic_op(
+        [&](std::map<machine_id_t, peer_id_t> *map) -> bool {
+            if (*map == new_map_m2p) {
+                return false;
+            } else {
+                *map = new_map_m2p;
+                return true;
+            }
+        });
+    peer_id_to_machine_id_map.apply_atomic_op(
+        [&](std::map<peer_id_t, machine_id_t> *map) -> bool {
+            if (*map == new_map_p2m) {
+                return false;
+            } else {
+                *map = new_map_p2m;
+                return true;
+            }
+        });
 }
 
