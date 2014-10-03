@@ -275,6 +275,74 @@ public:
     raft_log_t<change_t> log;
 };
 
+/* `raft_request_vote_rpc_t` describes the parameters to the "RequestVote RPC" described
+in Figure 2 of the Raft paper. */
+class raft_request_vote_rpc_t {
+public:
+    /* `term`, `candidate_id`, `last_log_index`, and `last_log_term` correspond to the
+    parameters with the same names in the Raft paper. */
+    raft_term_t term;
+    raft_member_id_t candidate_id;
+    raft_log_index_t last_log_index;
+    raft_term_t last_log_term;
+};
+
+/* `raft_request_vote_reply_t` describes the information returned from the "RequestVote
+RPC" described in Figure 2 of the Raft paper. */
+class raft_request_vote_reply_t {
+public:
+    raft_term_t term;
+    bool vote_granted;
+};
+
+/* `raft_install_snapshot_rpc_t` describes the parameters of the "InstallSnapshot RPC"
+described in Figure 13 of the Raft paper. */
+template<class state_t, class change_t>
+class raft_install_snapshot_rpc_t {
+public:
+    /* `term`, `leader_id`, `last_included_index`, and `last_included_term`
+    correspond to the parameters with the same names in the Raft paper. In the Raft
+    paper, the content of the snapshot is sent as a series of binary blobs, but we don't
+    want to do that; instead, we send the `state_t` and `raft_configuration_t` directly.
+    So our `snapshot_state` and `snapshot_configuration` parameters replace the `offset`,
+    `data`, and `done` parameters of the Raft paper. */
+    raft_term_t term;
+    raft_member_id_t leader_id;
+    raft_log_index_t last_included_index;
+    raft_term_t last_included_term;
+    state_t snapshot_state;
+    raft_complex_config_t snapshot_configuration;
+};
+
+/* `raft_install_snapshot_reply_t` describes in the information returned from the
+"InstallSnapshot RPC" described in Figure 13 of the Raft paper. */
+class raft_install_snapshot_reply_t {
+public:
+    raft_term_t term;
+};
+
+/* `raft_append_entries_rpc_t` describes the parameters of the "AppendEntries RPC"
+described in Figure 2 of the Raft paper. */
+template<class change_t>
+class raft_append_entries_rpc_t {
+public:
+    /* `term`, `leader_id`, and `leader_commit` correspond to the parameters with the
+    same names in the Raft paper. `entries` corresponds to three of the paper's
+    variables: `prevLogIndex`, `prevLogTerm`, and `entries`. */
+    raft_term_t term;
+    raft_member_id_t leader_id;
+    raft_log_t<change_t> entries;
+    raft_log_index_t leader_commit;
+};
+
+/* `raft_append_entries_reply_t` describes the information returned from the
+"AppendEntries RPC" described in Figure 2 of the Raft paper. */
+class raft_append_entries_reply_t {
+public:
+    raft_term_t term;
+    bool success;
+};
+
 /* `raft_network_and_storage_interface_t` is the abstract class that the Raft code uses
 to send and receive messages over the network, and to store data to disk. */
 template<class state_t, class change_t>
@@ -292,61 +360,23 @@ public:
       * If the interruptor is pulsed, it throws `interrupted_exc_t`. The RPC may or may
         may not have been delivered. */
 
-    /* `send_request_vote_rpc` corresponds to the "RequestVote RPC" described in Figure
-    2 of the Raft paper. */
     virtual bool send_request_vote_rpc(
         const raft_member_id_t &dest,
-        /* `term`, `candidate_id`, `last_log_index`, and `last_log_term` correspond to
-        the parameters with the same names in the Raft paper. */
-        raft_term_t term,
-        const raft_member_id_t &candidate_id,
-        raft_log_index_t last_log_index,
-        raft_term_t last_log_term,
+        const raft_request_vote_rpc_t &params,
         signal_t *interruptor,
-        /* `term_out` and `vote_granted_out` correspond to the `term` and `voteGranted`
-        parameters of the RPC reply in the Raft paper. */
-        raft_term_t *term_out,
-        bool *vote_granted_out) = 0;
+        raft_request_vote_reply_t *reply_out) = 0;
 
-    /* `send_install_snapshot_rpc` corresponds to the "InstallSnapshot RPC" described in
-    Figure 13 of the Raft paper. */
     virtual bool send_install_snapshot_rpc(
         const raft_member_id_t &dest,
-        /* `term`, `leader_id`, `last_included_index`, and `last_included_term`
-        correspond to the parameters with the same names in the Raft paper. In the Raft
-        paper, the content of the snapshot is sent as a series of binary blobs, but we
-        don't want to do that; instead, we send the `state_t` and `raft_configuration_t`
-        directly. So our `snapshot_state` and `snapshot_configuration` parameters replace
-        the `offset`, `data`, and `done` parameters of the Raft paper. */
-        raft_term_t term,
-        const raft_member_id_t &leader_id,
-        raft_log_index_t last_included_index,
-        raft_term_t last_included_term,
-        const state_t &snapshot_state,
-        const raft_complex_config_t &snapshot_configuration,
+        const raft_install_snapshot_rpc_t<state_t, change_t> &params,
         signal_t *interruptor,
-        /* `term_out` corresponds to the `term` parameter of the RPC reply in the Raft
-        paper. */
-        raft_term_t *term_out) = 0;
+        raft_install_snapshot_reply_t *reply_out) = 0;
 
-    /* `send_append_entries_rpc` corresponds to the "AppendEntries RPC" described in
-    Figure 2 of the Raft paper. */
     virtual bool send_append_entries_rpc(
         const raft_member_id_t &dest,
-        /* `term`, `leader_id`, and `leader_commit` correspond to the parameters with the
-        same names in the Raft paper. `entries` corresponds to three of the paper's
-        variables: `prevLogIndex`, `prevLogTerm`, and `entries`. */
-        raft_term_t term,
-        const raft_member_id_t &leader_id,
-        const raft_log_t<change_t> &entries,
-        raft_log_index_t leader_commit,
+        const raft_append_entries_rpc_t<change_t> &params,
         signal_t *interruptor,
-        /* `term_out` corresponds to the `term` parameter of the RPC reply in the paper.
-        */
-        raft_term_t *term_out,
-        /* `success_out` corresponds to the `success` parameter of the RPC reply in the
-        paper. */
-        bool *success_out) = 0;
+        raft_append_entries_reply_t *reply_out) = 0;
 
     /* `get_connected_members()` returns the set of all Raft members for which an RPC is
     likely to succeed. */
@@ -438,30 +468,17 @@ public:
     /* The `on_*_rpc()` methods are called when a Raft member calls a `send_*_rpc()`
     method on their `raft_network_and_storage_interface_t`. */
     void on_request_vote_rpc(
-        raft_term_t term,
-        const raft_member_id_t &candidate_id,
-        raft_log_index_t last_log_index,
-        raft_term_t last_log_term,
+        const raft_request_vote_rpc_t &rpc,
         signal_t *interruptor,
-        raft_term_t *term_out,
-        bool *vote_granted_out);
+        raft_request_vote_reply_t *reply_out);
     void on_install_snapshot_rpc(
-        raft_term_t term,
-        const raft_member_id_t &leader_id,
-        raft_log_index_t last_included_index,
-        raft_term_t last_included_term,
-        const state_t &snapshot_state,
-        const raft_complex_config_t &snapshot_configuration,
+        const raft_install_snapshot_rpc_t<state_t, change_t> &rpc,
         signal_t *interruptor,
-        raft_term_t *term_out);
+        raft_install_snapshot_reply_t *reply_out);
     void on_append_entries_rpc(
-        raft_term_t term,
-        const raft_member_id_t &leader_id,
-        const raft_log_t<change_t> &entries,
-        raft_log_index_t leader_commit,
+        const raft_append_entries_rpc_t<change_t> &rpc,
         signal_t *interruptor,
-        raft_term_t *term_out,
-        bool *success_out);
+        raft_append_entries_reply_t *reply_out);
 
     /* `check_invariants()` asserts that the given collection of Raft cluster members are
     in a valid, consistent state. This may block, because it needs to acquire each
