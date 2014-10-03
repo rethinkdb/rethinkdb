@@ -157,7 +157,7 @@ counted_t<term_t> make_http_term(
 // json.cc
 counted_t<term_t> make_json_term(
     compile_env_t *env, const protob_t<const Term> &term);
-counted_t<term_t> make_to_json_term(
+counted_t<term_t> make_to_json_string_term(
     compile_env_t *env, const protob_t<const Term> &term);
 
 // match.cc

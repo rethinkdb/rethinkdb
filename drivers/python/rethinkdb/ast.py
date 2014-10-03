@@ -336,7 +336,10 @@ class RqlQuery(object):
         return Nth(self, *args)
 
     def to_json(self, *args):
-        return ToJson(self, *args)
+        return ToJsonString(self, *args)
+
+    def to_json_string(self, *args):
+        return ToJsonString(self, *args)
 
     def match(self, *args):
         return Match(self, *args)
@@ -1092,9 +1095,9 @@ class Match(RqlMethodQuery):
     tt = pTerm.MATCH
     st = 'match'
 
-class ToJson(RqlMethodQuery):
-    tt = pTerm.TO_JSON
-    st = 'to_json'
+class ToJsonString(RqlMethodQuery):
+    tt = pTerm.TO_JSON_STRING
+    st = 'to_json_string'
 
 class Split(RqlMethodQuery):
     tt = pTerm.SPLIT
