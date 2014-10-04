@@ -23,7 +23,7 @@ we follow the paper closely and refer back to it regularly. You are advised to h
 copy of the paper on hand when reading or modifying this file.
 
 This file only contains the basic Raft algorithm itself; it doesn't contain any
-networking or storage logic. Instead, it uses an abstract interface to send and receive
+networking or storage logic. Instead, it uses abstract interfaces to send and receive
 network messages and write data to persistent storage. This both keeps this file as
 as simple as possible and makes it easy to test the Raft algorithm using mocked-up
 network and storage systems.
@@ -275,6 +275,27 @@ public:
     raft_log_t<change_t> log;
 };
 
+/* `raft_storage_interface_t` is an abstract class that `raft_member_t` uses to store
+data on disk. */
+template<class state_t, class change_t>
+class raft_storage_interface_t {
+public:
+    /* `write_persistent_state()` writes the state of the Raft member to stable storage.
+    It does not return until the state is safely stored. The values stored with
+    `write_state()` will be passed to the `raft_member_t` constructor when the Raft
+    member is restarted. */
+    virtual void write_persistent_state(
+        const raft_persistent_state_t<state_t, change_t> &persistent_state,
+        signal_t *interruptor) = 0;
+
+    /* If writing the state becomes a performance bottleneck, we could implement a
+    variant that only rewrites part of the state. In particular, we often need to append
+    a few entries to the log but don't need to make any other changes. */
+
+protected:
+    virtual ~raft_storage_interface_t() { }
+};
+
 /* `raft_request_vote_rpc_t` describes the parameters to the "RequestVote RPC" described
 in Figure 2 of the Raft paper. */
 class raft_request_vote_rpc_t {
@@ -297,7 +318,7 @@ public:
 
 /* `raft_install_snapshot_rpc_t` describes the parameters of the "InstallSnapshot RPC"
 described in Figure 13 of the Raft paper. */
-template<class state_t, class change_t>
+template<class state_t>
 class raft_install_snapshot_rpc_t {
 public:
     /* `term`, `leader_id`, `last_included_index`, and `last_included_term`
@@ -343,10 +364,10 @@ public:
     bool success;
 };
 
-/* `raft_network_and_storage_interface_t` is the abstract class that the Raft code uses
-to send and receive messages over the network, and to store data to disk. */
+/* `raft_network_interface_t` is the abstract class that `raft_member_t` uses to send
+messages over the network. */
 template<class state_t, class change_t>
-class raft_network_and_storage_interface_t {
+class raft_network_interface_t {
 public:
     /* The `send_*_rpc()` methods all follow these rules:
       * They send an RPC message to the Raft member indicated in the `dest` field.
@@ -368,7 +389,7 @@ public:
 
     virtual bool send_install_snapshot_rpc(
         const raft_member_id_t &dest,
-        const raft_install_snapshot_rpc_t<state_t, change_t> &params,
+        const raft_install_snapshot_rpc_t<state_t> &params,
         signal_t *interruptor,
         raft_install_snapshot_reply_t *reply_out) = 0;
 
@@ -383,16 +404,8 @@ public:
     virtual clone_ptr_t<watchable_t<std::set<raft_member_id_t> > >
         get_connected_members() = 0;
 
-    /* `write_persistent_state()` writes the state of the Raft member to stable storage.
-    It does not return until the state is safely stored. The values stored with
-    `write_state()` will be passed to the `raft_member_t` constructor when the Raft
-    member is restarted. */
-    virtual void write_persistent_state(
-        const raft_persistent_state_t<state_t, change_t> &persistent_state,
-        signal_t *interruptor) = 0;
-
 protected:
-    virtual ~raft_network_and_storage_interface_t() { }
+    virtual ~raft_network_interface_t() { }
 };
 
 /* `raft_member_t` is responsible for managing the activity of a single member of the
@@ -403,7 +416,8 @@ class raft_member_t : public home_thread_mixin_debug_only_t
 public:
     raft_member_t(
         const raft_member_id_t &this_member_id,
-        raft_network_and_storage_interface_t<state_t, change_t> *interface,
+        raft_storage_interface_t<state_t, change_t> *storage,
+        raft_network_interface_t<state_t, change_t> *network,
         const raft_persistent_state_t<state_t, change_t> &persistent_state);
 
     ~raft_member_t();
@@ -472,7 +486,7 @@ public:
         signal_t *interruptor,
         raft_request_vote_reply_t *reply_out);
     void on_install_snapshot_rpc(
-        const raft_install_snapshot_rpc_t<state_t, change_t> &rpc,
+        const raft_install_snapshot_rpc_t<state_t> &rpc,
         signal_t *interruptor,
         raft_install_snapshot_reply_t *reply_out);
     void on_append_entries_rpc(
@@ -643,7 +657,8 @@ private:
     `raft_member_t`. */
     const raft_member_id_t this_member_id;
 
-    raft_network_and_storage_interface_t<state_t, change_t> *const interface;
+    raft_storage_interface_t<state_t, change_t> *const storage;
+    raft_network_interface_t<state_t, change_t> *const network;
 
     /* This stores all of the state variables of the Raft member that need to be written
     to stable storage when they change. We end up writing `ps.*` a lot, which is why the

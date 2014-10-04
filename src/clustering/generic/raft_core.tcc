@@ -59,10 +59,12 @@ should make the election work correctly the first time in the typical case. */
 template<class state_t, class change_t>
 raft_member_t<state_t, change_t>::raft_member_t(
         const raft_member_id_t &_this_member_id,
-        raft_network_and_storage_interface_t<state_t, change_t> *_interface,
+        raft_storage_interface_t<state_t, change_t> *_storage,
+        raft_network_interface_t<state_t, change_t> *_network,
         const raft_persistent_state_t<state_t, change_t> &_persistent_state) :
     this_member_id(_this_member_id),
-    interface(_interface),
+    storage(_storage),
+    network(_network),
     ps(_persistent_state),
     /* Restore state machine from snapshot */
     state_machine(static_cast<bool>(ps.snapshot_state) ? *ps.snapshot_state : state_t()),
@@ -283,7 +285,7 @@ void raft_member_t<state_t, change_t>::on_request_vote_rpc(
 
     /* Raft paper, Figure 2: "Persistent state [is] updated on stable storage before
     responding to RPCs" */
-    interface->write_persistent_state(ps, interruptor);
+    storage->write_persistent_state(ps, interruptor);
 
     reply_out->term = ps.current_term;
     reply_out->vote_granted = true;
@@ -293,7 +295,7 @@ void raft_member_t<state_t, change_t>::on_request_vote_rpc(
 
 template<class state_t, class change_t>
 void raft_member_t<state_t, change_t>::on_install_snapshot_rpc(
-        const raft_install_snapshot_rpc_t<state_t, change_t> &rpc,
+        const raft_install_snapshot_rpc_t<state_t> &rpc,
         signal_t *interruptor,
         raft_install_snapshot_reply_t *reply_out) {
     assert_thread();
@@ -425,7 +427,7 @@ void raft_member_t<state_t, change_t>::on_install_snapshot_rpc(
 
     /* Raft paper, Figure 2: "Persistent state [is] updated on stable storage before
     responding to RPCs" */
-    interface->write_persistent_state(ps, interruptor);
+    storage->write_persistent_state(ps, interruptor);
 
     reply_out->term = ps.current_term;
 
@@ -534,7 +536,7 @@ void raft_member_t<state_t, change_t>::on_append_entries_rpc(
 
     /* Raft paper, Figure 2: "Persistent state [is] updated on stable storage before
     responding to RPCs" */
-    interface->write_persistent_state(ps, interruptor);
+    storage->write_persistent_state(ps, interruptor);
 
     reply_out->term = ps.current_term;
     reply_out->success = true;
@@ -1024,7 +1026,7 @@ void raft_member_t<state_t, change_t>::leader_update_match_index(
     }
     if (new_commit_index != commit_index) {
         update_commit_index(new_commit_index, mutex_acq);
-        interface->write_persistent_state(ps, interruptor);
+        storage->write_persistent_state(ps, interruptor);
     }
 }
 
@@ -1199,7 +1201,7 @@ bool raft_member_t<state_t, change_t>::candidate_run_election(
 
     /* Flush to stable storage so we don't forget we voted for ourself. I'm not sure if
     this is strictly necessary. */
-    interface->write_persistent_state(ps, interruptor);
+    storage->write_persistent_state(ps, interruptor);
 
     /* Raft paper, Section 5.2: "[The candidate] issues RequestVote RPCs in parallel to
     each of the other servers in the cluster." */
@@ -1218,7 +1220,7 @@ bool raft_member_t<state_t, change_t>::candidate_run_election(
             try {
                 while (true) {
                     /* Don't bother trying to send an RPC until the peer is connected */
-                    interface->get_connected_members()->run_until_satisfied(
+                    network->get_connected_members()->run_until_satisfied(
                         [&](const std::set<raft_member_id_t> &connected) {
                             return connected.count(peer) == 1;
                         }, request_vote_keepalive.get_drain_signal());
@@ -1233,7 +1235,7 @@ bool raft_member_t<state_t, change_t>::candidate_run_election(
                     rpc.last_log_term = ps.log.get_entry_term(ps.log.get_latest_index());
 
                     raft_request_vote_reply_t reply;
-                    bool ok = interface->send_request_vote_rpc(
+                    bool ok = network->send_request_vote_rpc(
                         peer, rpc, request_vote_keepalive.get_drain_signal(), &reply);
 
                     if (!ok) {
@@ -1414,7 +1416,7 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
             send an RPC if the peer isn't even connected. */
             DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
             mutex_acq.reset();
-            interface->get_connected_members()->run_until_satisfied(
+            network->get_connected_members()->run_until_satisfied(
                 [&](const std::set<raft_member_id_t> &peers) {
                     return peers.count(peer) == 1;
                 }, update_keepalive.get_drain_signal());
@@ -1426,7 +1428,7 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
                 /* The peer's log ends before our log begins. So we have to send an
                 install-snapshot RPC instead of an append-entries RPC. */
 
-                raft_install_snapshot_rpc_t<state_t, change_t> rpc;
+                raft_install_snapshot_rpc_t<state_t> rpc;
                 rpc.term = ps.current_term;
                 rpc.leader_id = this_member_id;
                 rpc.last_included_index = ps.log.prev_index;
@@ -1439,7 +1441,7 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
                 raft_install_snapshot_reply_t reply;
                 DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
                 mutex_acq.reset();
-                bool ok = interface->send_install_snapshot_rpc(
+                bool ok = network->send_install_snapshot_rpc(
                     peer, rpc, update_keepalive.get_drain_signal(), &reply);
                 mutex_acq.init(
                     new new_mutex_acq_t(&mutex, update_keepalive.get_drain_signal()));
@@ -1487,7 +1489,7 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
                 raft_append_entries_reply_t reply;
                 DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
                 mutex_acq.reset();
-                bool ok = interface->send_append_entries_rpc(
+                bool ok = network->send_append_entries_rpc(
                     peer, rpc, update_keepalive.get_drain_signal(), &reply);
                 mutex_acq.init(
                     new new_mutex_acq_t(&mutex, update_keepalive.get_drain_signal()));
@@ -1642,7 +1644,7 @@ bool raft_member_t<state_t, change_t>::candidate_or_leader_note_term(
                 if (ps.current_term == local_current_term) {
                     this->update_term(term, &mutex_acq_2);
                     this->candidate_or_leader_become_follower(&mutex_acq_2);
-                    interface->write_persistent_state(ps, keepalive.get_drain_signal());
+                    storage->write_persistent_state(ps, keepalive.get_drain_signal());
                 }
                 DEBUG_ONLY_CODE(check_invariants(&mutex_acq_2));
             } catch (interrupted_exc_t) {
@@ -1670,7 +1672,7 @@ void raft_member_t<state_t, change_t>::leader_append_log_entry(
     entry..." */
     ps.log.append(log_entry);
 
-    interface->write_persistent_state(ps, interruptor);
+    storage->write_persistent_state(ps, interruptor);
 
     /* Raft paper, Section 5.3: "...then issues AppendEntries RPCs in parallel to each of
     the other servers to replicate the entry."

@@ -107,7 +107,7 @@ public:
             }
             if (!i->member.has() && live != live_t::dead) {
                 i->member.init(new dummy_raft_member_t(
-                    member_id, i, i->stored_state));
+                    member_id, i, i, i->stored_state));
             }
         }
         if (!i->drainer.has() && live == live_t::alive) {
@@ -215,7 +215,8 @@ public:
 
 private:
     class member_info_t :
-        public raft_network_and_storage_interface_t<dummy_raft_state_t, uuid_u> {
+        public raft_storage_interface_t<dummy_raft_state_t, uuid_u>,
+        public raft_network_interface_t<dummy_raft_state_t, uuid_u> {
     public:
         member_info_t() { }
         member_info_t(member_info_t &&) = default;
@@ -232,7 +233,7 @@ private:
         }
         bool send_install_snapshot_rpc(
                 const raft_member_id_t &dest,
-                const raft_install_snapshot_rpc_t<dummy_raft_state_t, uuid_u> &rpc,
+                const raft_install_snapshot_rpc_t<dummy_raft_state_t> &rpc,
                 signal_t *interruptor,
                 raft_install_snapshot_reply_t *reply_out) {
             return do_rpc(dest, rpc, &dummy_raft_member_t::on_install_snapshot_rpc,
