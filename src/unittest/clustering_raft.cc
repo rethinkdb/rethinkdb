@@ -15,8 +15,9 @@ namespace unittest {
 changes it receives and their order. */
 class dummy_raft_state_t {
 public:
+    typedef uuid_u change_t;
     std::vector<uuid_u> state;
-    void apply_change(const uuid_u &uuid) {
+    void apply_change(const change_t &uuid) {
         state.push_back(uuid);
     }
     bool operator==(const dummy_raft_state_t &other) const {
@@ -27,7 +28,7 @@ public:
     }
 };
 
-typedef raft_member_t<dummy_raft_state_t, uuid_u> dummy_raft_member_t;
+typedef raft_member_t<dummy_raft_state_t> dummy_raft_member_t;
 
 /* `dummy_raft_cluster_t` manages a collection of `dummy_raft_member_t`s. It handles
 passing RPCs between them, and it can simulate crashes and netsplits. It periodically
@@ -64,7 +65,7 @@ public:
         for (const raft_member_id_t &member_id : initial_config.voting_members) {
             add_member(
                 member_id,
-                raft_persistent_state_t<dummy_raft_state_t, uuid_u>::make_initial(
+                raft_persistent_state_t<dummy_raft_state_t>::make_initial(
                     initial_state, initial_config));
         }
     }
@@ -83,7 +84,7 @@ public:
         raft_member_id_t member_id = generate_uuid();
         add_member(
             member_id,
-            raft_persistent_state_t<dummy_raft_state_t, uuid_u>::make_join());
+            raft_persistent_state_t<dummy_raft_state_t>::make_join());
         return member_id;
     }
 
@@ -107,7 +108,7 @@ public:
             }
             if (!i->member.has() && live != live_t::dead) {
                 i->member.init(new dummy_raft_member_t(
-                    member_id, i, i->stored_state));
+                    member_id, i, i, i->stored_state));
             }
         }
         if (!i->drainer.has() && live == live_t::alive) {
@@ -215,7 +216,8 @@ public:
 
 private:
     class member_info_t :
-        public raft_network_and_storage_interface_t<dummy_raft_state_t, uuid_u> {
+        public raft_storage_interface_t<dummy_raft_state_t>,
+        public raft_network_interface_t<dummy_raft_state_t> {
     public:
         member_info_t() { }
         member_info_t(member_info_t &&) = default;
@@ -232,7 +234,7 @@ private:
         }
         bool send_install_snapshot_rpc(
                 const raft_member_id_t &dest,
-                const raft_install_snapshot_rpc_t<dummy_raft_state_t, uuid_u> &rpc,
+                const raft_install_snapshot_rpc_t<dummy_raft_state_t> &rpc,
                 signal_t *interruptor,
                 raft_install_snapshot_reply_t *reply_out) {
             return do_rpc(dest, rpc, &dummy_raft_member_t::on_install_snapshot_rpc,
@@ -240,7 +242,7 @@ private:
         }
         bool send_append_entries_rpc(
                 const raft_member_id_t &dest,
-                const raft_append_entries_rpc_t<uuid_u> &rpc,
+                const raft_append_entries_rpc_t<dummy_raft_state_t> &rpc,
                 signal_t *interruptor,
                 raft_append_entries_reply_t *reply_out) {
             return do_rpc(dest, rpc, &dummy_raft_member_t::on_append_entries_rpc,
@@ -250,7 +252,7 @@ private:
             return parent->alive_members.get_watchable();
         }
         void write_persistent_state(
-                const raft_persistent_state_t<dummy_raft_state_t, uuid_u> &
+                const raft_persistent_state_t<dummy_raft_state_t> &
                     persistent_state,
                 signal_t *interruptor) {
             block(interruptor);
@@ -319,7 +321,7 @@ private:
 
         dummy_raft_cluster_t *parent;
         raft_member_id_t member_id;
-        raft_persistent_state_t<dummy_raft_state_t, uuid_u> stored_state;
+        raft_persistent_state_t<dummy_raft_state_t> stored_state;
         /* If the member is alive, `member` and `drainer` are set. If the member is
         isolated, `member` is set but `drainer` is empty. If the member is dead, both are
         empty. `lock` should be acquired in read mode to access `member` in any way, and
@@ -331,7 +333,7 @@ private:
 
     void add_member(
             const raft_member_id_t &member_id,
-            raft_persistent_state_t<dummy_raft_state_t, uuid_u> initial_state) {
+            raft_persistent_state_t<dummy_raft_state_t> initial_state) {
         scoped_ptr_t<member_info_t> i(new member_info_t);
         i->parent = this;
         i->member_id = member_id;

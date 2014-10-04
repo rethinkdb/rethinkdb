@@ -10,12 +10,12 @@
 #include "arch/runtime/coroutines.hpp"
 #include "containers/map_sentries.hpp"
 
-template<class state_t, class change_t>
-raft_persistent_state_t<state_t, change_t>
-raft_persistent_state_t<state_t, change_t>::make_initial(
+template<class state_t>
+raft_persistent_state_t<state_t>
+raft_persistent_state_t<state_t>::make_initial(
         const state_t &initial_state,
         const raft_config_t &initial_config) {
-    raft_persistent_state_t<state_t, change_t> ps;
+    raft_persistent_state_t<state_t> ps;
     /* The Raft paper indicates that `current_term` should be initialized to 0 and the
     first log index is 1. However, we initialize `current_term` to 1 and the first log
     entry will have index 2. We reserve term 1 and log index 1 for a "virtual" log entry
@@ -34,10 +34,10 @@ raft_persistent_state_t<state_t, change_t>::make_initial(
     return ps;
 }
 
-template<class state_t, class change_t>
-raft_persistent_state_t<state_t, change_t>
-raft_persistent_state_t<state_t, change_t>::make_join() {
-    raft_persistent_state_t<state_t, change_t> ps;
+template<class state_t>
+raft_persistent_state_t<state_t>
+raft_persistent_state_t<state_t>::make_join() {
+    raft_persistent_state_t<state_t> ps;
     /* Here we initialize `current_term` to 0 and the first log index to 1, as the Raft
     paper says to. */
     ps.current_term = 0;
@@ -56,13 +56,15 @@ for the thing that creates the `raft_member_t`s to "hint" one of them to start a
 election right away, while the others wait until the election timeout has passed; this
 should make the election work correctly the first time in the typical case. */
 
-template<class state_t, class change_t>
-raft_member_t<state_t, change_t>::raft_member_t(
+template<class state_t>
+raft_member_t<state_t>::raft_member_t(
         const raft_member_id_t &_this_member_id,
-        raft_network_and_storage_interface_t<state_t, change_t> *_interface,
-        const raft_persistent_state_t<state_t, change_t> &_persistent_state) :
+        raft_storage_interface_t<state_t> *_storage,
+        raft_network_interface_t<state_t> *_network,
+        const raft_persistent_state_t<state_t> &_persistent_state) :
     this_member_id(_this_member_id),
-    interface(_interface),
+    storage(_storage),
+    network(_network),
     ps(_persistent_state),
     /* Restore state machine from snapshot */
     state_machine(static_cast<bool>(ps.snapshot_state) ? *ps.snapshot_state : state_t()),
@@ -93,8 +95,8 @@ raft_member_t<state_t, change_t>::raft_member_t(
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 }
 
-template<class state_t, class change_t>
-raft_member_t<state_t, change_t>::~raft_member_t() {
+template<class state_t>
+raft_member_t<state_t>::~raft_member_t() {
     /* Now that the destructor has been called, we can safely assume that our public
     methods will not be called. */
 
@@ -117,9 +119,9 @@ raft_member_t<state_t, change_t>::~raft_member_t() {
     /* All the coroutines have stopped, so we can start calling member destructors. */
 }
 
-template<class state_t, class change_t>
-bool raft_member_t<state_t, change_t>::propose_change_if_leader(
-        const change_t &change,
+template<class state_t>
+bool raft_member_t<state_t>::propose_change_if_leader(
+        const typename state_t::change_t &change,
         signal_t *interruptor) {
     assert_thread();
     new_mutex_acq_t mutex_acq(&mutex, interruptor);
@@ -137,9 +139,9 @@ bool raft_member_t<state_t, change_t>::propose_change_if_leader(
         changes.
     The same goes for configuration changes. */
 
-    raft_log_entry_t<change_t> new_entry;
-    new_entry.type = raft_log_entry_t<change_t>::type_t::regular;
-    new_entry.change = boost::optional<change_t>(change);
+    raft_log_entry_t<state_t> new_entry;
+    new_entry.type = raft_log_entry_t<state_t>::type_t::regular;
+    new_entry.change = boost::optional<typename state_t::change_t>(change);
     new_entry.term = ps.current_term;
 
     leader_append_log_entry(new_entry, &mutex_acq, interruptor);
@@ -148,8 +150,8 @@ bool raft_member_t<state_t, change_t>::propose_change_if_leader(
     return true;
 }
 
-template<class state_t, class change_t>
-bool raft_member_t<state_t, change_t>::propose_config_change_if_leader(
+template<class state_t>
+bool raft_member_t<state_t>::propose_config_change_if_leader(
         const raft_config_t &new_config,
         signal_t *interruptor) {
     assert_thread();
@@ -164,7 +166,7 @@ bool raft_member_t<state_t, change_t>::propose_config_change_if_leader(
     raft_complex_config_t old_complex_config = *ps.snapshot_configuration;
     for (raft_log_index_t i = ps.log.prev_index + 1; i <= commit_index; ++i) {
         if (ps.log.get_entry(i).type ==
-                raft_log_entry_t<change_t>::type_t::configuration) {
+                raft_log_entry_t<state_t>::type_t::configuration) {
             old_complex_config = *ps.log.get_entry(i).configuration;
         }
     }
@@ -177,7 +179,7 @@ bool raft_member_t<state_t, change_t>::propose_config_change_if_leader(
     }
     for (raft_log_index_t i = commit_index + 1; i <= ps.log.get_latest_index(); ++i) {
         if (ps.log.get_entry(i).type ==
-                raft_log_entry_t<change_t>::type_t::configuration) {
+                raft_log_entry_t<state_t>::type_t::configuration) {
             return false;
         }
     }
@@ -186,8 +188,8 @@ bool raft_member_t<state_t, change_t>::propose_config_change_if_leader(
     new_complex_config.config = old_complex_config.config;
     new_complex_config.new_config = boost::optional<raft_config_t>(new_config);
 
-    raft_log_entry_t<change_t> new_entry;
-    new_entry.type = raft_log_entry_t<change_t>::type_t::configuration;
+    raft_log_entry_t<state_t> new_entry;
+    new_entry.type = raft_log_entry_t<state_t>::type_t::configuration;
     new_entry.configuration = boost::optional<raft_complex_config_t>(new_complex_config);
     new_entry.term = ps.current_term;
 
@@ -197,8 +199,8 @@ bool raft_member_t<state_t, change_t>::propose_config_change_if_leader(
     return true;
 }
 
-template<class state_t, class change_t>
-void raft_member_t<state_t, change_t>::on_request_vote_rpc(
+template<class state_t>
+void raft_member_t<state_t>::on_request_vote_rpc(
         const raft_request_vote_rpc_t &rpc,
         signal_t *interruptor,
         raft_request_vote_reply_t *reply_out) {
@@ -283,7 +285,7 @@ void raft_member_t<state_t, change_t>::on_request_vote_rpc(
 
     /* Raft paper, Figure 2: "Persistent state [is] updated on stable storage before
     responding to RPCs" */
-    interface->write_persistent_state(ps, interruptor);
+    storage->write_persistent_state(ps, interruptor);
 
     reply_out->term = ps.current_term;
     reply_out->vote_granted = true;
@@ -291,9 +293,9 @@ void raft_member_t<state_t, change_t>::on_request_vote_rpc(
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 }
 
-template<class state_t, class change_t>
-void raft_member_t<state_t, change_t>::on_install_snapshot_rpc(
-        const raft_install_snapshot_rpc_t<state_t, change_t> &rpc,
+template<class state_t>
+void raft_member_t<state_t>::on_install_snapshot_rpc(
+        const raft_install_snapshot_rpc_t<state_t> &rpc,
         signal_t *interruptor,
         raft_install_snapshot_reply_t *reply_out) {
     assert_thread();
@@ -425,16 +427,16 @@ void raft_member_t<state_t, change_t>::on_install_snapshot_rpc(
 
     /* Raft paper, Figure 2: "Persistent state [is] updated on stable storage before
     responding to RPCs" */
-    interface->write_persistent_state(ps, interruptor);
+    storage->write_persistent_state(ps, interruptor);
 
     reply_out->term = ps.current_term;
 
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 }
 
-template<class state_t, class change_t>
-void raft_member_t<state_t, change_t>::on_append_entries_rpc(
-        const raft_append_entries_rpc_t<change_t> &rpc,
+template<class state_t>
+void raft_member_t<state_t>::on_append_entries_rpc(
+        const raft_append_entries_rpc_t<state_t> &rpc,
         signal_t *interruptor,
         raft_append_entries_reply_t *reply_out) {
     assert_thread();
@@ -534,7 +536,7 @@ void raft_member_t<state_t, change_t>::on_append_entries_rpc(
 
     /* Raft paper, Figure 2: "Persistent state [is] updated on stable storage before
     responding to RPCs" */
-    interface->write_persistent_state(ps, interruptor);
+    storage->write_persistent_state(ps, interruptor);
 
     reply_out->term = ps.current_term;
     reply_out->success = true;
@@ -542,9 +544,9 @@ void raft_member_t<state_t, change_t>::on_append_entries_rpc(
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 }
 
-template<class state_t, class change_t>
-void raft_member_t<state_t, change_t>::check_invariants(
-        const std::set<raft_member_t<state_t, change_t> *> &members) {
+template<class state_t>
+void raft_member_t<state_t>::check_invariants(
+        const std::set<raft_member_t<state_t> *> &members) {
     /* We acquire each member's mutex to ensure we don't catch them in invalid states */
     std::vector<scoped_ptr_t<new_mutex_acq_t> > mutex_acqs;
     for (auto member : members) {
@@ -583,8 +585,8 @@ void raft_member_t<state_t, change_t>::check_invariants(
                         i <= std::min(m1->ps.log.get_latest_index(),
                                       m2->ps.log.get_latest_index());
                         ++i) {
-                    raft_log_entry_t<change_t> e1 = m1->ps.log.get_entry_ref(i);
-                    raft_log_entry_t<change_t> e2 = m2->ps.log.get_entry_ref(i);
+                    raft_log_entry_t<state_t> e1 = m1->ps.log.get_entry_ref(i);
+                    raft_log_entry_t<state_t> e2 = m2->ps.log.get_entry_ref(i);
                     if (e1.term == e2.term) {
                         guarantee(e1.type == e2.type,
                             "Log matching property violated");
@@ -609,8 +611,8 @@ void raft_member_t<state_t, change_t>::check_invariants(
         /* Raft paper, Figure 3: "State Machine Safety: if a server has applied a log
         entry at a given index to its state machine, no other server will ever apply a
         different log entry for the same index. */
-        std::map<raft_member_t<state_t, change_t> *, boost::optional<state_t> > states;
-        std::map<raft_member_t<state_t, change_t> *,
+        std::map<raft_member_t<state_t> *, boost::optional<state_t> > states;
+        std::map<raft_member_t<state_t> *,
             boost::optional<raft_complex_config_t> > configs;
         raft_log_index_t start = std::numeric_limits<raft_log_index_t>::max(),
                          end = std::numeric_limits<raft_log_index_t>::min();
@@ -625,11 +627,11 @@ void raft_member_t<state_t, change_t>::check_invariants(
                     configs.insert(std::make_pair(m, m->ps.snapshot_configuration));
                 } else if (i > m->ps.log.prev_index &&
                         i <= m->ps.log.get_latest_index()) {
-                    raft_log_entry_t<change_t> e = m->ps.log.get_entry_ref(i);
-                    if (e.type == raft_log_entry_t<change_t>::type_t::regular) {
+                    raft_log_entry_t<state_t> e = m->ps.log.get_entry_ref(i);
+                    if (e.type == raft_log_entry_t<state_t>::type_t::regular) {
                         states.at(m)->apply_change(*e.change);
                     } else if (e.type ==
-                            raft_log_entry_t<change_t>::type_t::configuration) {
+                            raft_log_entry_t<state_t>::type_t::configuration) {
                         configs.at(m) = *e.configuration;
                     }
                 } else if (i == m->ps.log.get_latest_index() + 1) {
@@ -654,8 +656,8 @@ void raft_member_t<state_t, change_t>::check_invariants(
     }
 }
 
-template<class state_t, class change_t>
-void raft_member_t<state_t, change_t>::check_invariants(
+template<class state_t>
+void raft_member_t<state_t>::check_invariants(
         const new_mutex_acq_t *mutex_acq) {
     assert_thread();
     mutex_acq->assert_is_holding(&mutex);
@@ -727,23 +729,23 @@ void raft_member_t<state_t, change_t>::check_invariants(
             "There shouldn't be any real log entries in the initial virtual term.");
         guarantee(ps.log.get_entry_ref(i).term >= latest_term_in_log,
             "Terms of log entries should monotonically increase");
-        raft_log_entry_t<change_t> entry = ps.log.get_entry_ref(i);
+        raft_log_entry_t<state_t> entry = ps.log.get_entry_ref(i);
         latest_term_in_log = entry.term;
 
         switch (entry.type) {
-        case raft_log_entry_t<change_t>::type_t::regular:
+        case raft_log_entry_t<state_t>::type_t::regular:
             guarantee(static_cast<bool>(entry.change), "Regular log entries should "
                 "carry changes");
             guarantee(!static_cast<bool>(entry.configuration), "Regular log entries "
                 "shouldn't carry configurations.");
             break;
-        case raft_log_entry_t<change_t>::type_t::configuration:
+        case raft_log_entry_t<state_t>::type_t::configuration:
             guarantee(!static_cast<bool>(entry.change), "Configuration log entries "
                 "shouldn't carry changes");
             guarantee(static_cast<bool>(entry.configuration), "Configuration log "
                 "entries should carry configurations.");
             break;
-        case raft_log_entry_t<change_t>::type_t::noop:
+        case raft_log_entry_t<state_t>::type_t::noop:
             guarantee(!static_cast<bool>(entry.change), "Noop log entries shouldn't "
                 "carry changes");
             guarantee(!static_cast<bool>(entry.configuration), "Noop log entries"
@@ -762,8 +764,8 @@ void raft_member_t<state_t, change_t>::check_invariants(
     for (raft_log_index_t i = ps.log.prev_index + 1;
             i <= ps.log.get_latest_index();
             ++i) {
-        raft_log_entry_t<change_t> entry = ps.log.get_entry_ref(i);
-        if (entry.type != raft_log_entry_t<change_t>::type_t::configuration) {
+        raft_log_entry_t<state_t> entry = ps.log.get_entry_ref(i);
+        if (entry.type != raft_log_entry_t<state_t>::type_t::configuration) {
             continue;
         }
         if (i <= commit_index) {
@@ -798,8 +800,8 @@ void raft_member_t<state_t, change_t>::check_invariants(
     {
         state_t st = *ps.snapshot_state;
         for (raft_log_index_t i = ps.log.prev_index+1; i <= last_applied; ++i) {
-            raft_log_entry_t<change_t> entry = ps.log.get_entry_ref(i);
-            if (entry.type == raft_log_entry_t<change_t>::type_t::regular) {
+            raft_log_entry_t<state_t> entry = ps.log.get_entry_ref(i);
+            if (entry.type == raft_log_entry_t<state_t>::type_t::regular) {
                 st.apply_change(*entry.change);
             }
         }
@@ -848,8 +850,8 @@ void raft_member_t<state_t, change_t>::check_invariants(
     }
 }
 
-template<class state_t, class change_t>
-void raft_member_t<state_t, change_t>::on_watchdog_timer() {
+template<class state_t>
+void raft_member_t<state_t>::on_watchdog_timer() {
     if (mode != mode_t::follower) {
         /* If we're already a candidate or leader, there's no need for this. Candidates
         have their own mechanism for retrying stuck elections. */
@@ -896,7 +898,7 @@ void raft_member_t<state_t, change_t>::on_watchdog_timer() {
                 guarantee(!leader_drainer.has());
                 leader_drainer.init(new auto_drainer_t);
                 coro_t::spawn_sometime(boost::bind(
-                    &raft_member_t<state_t, change_t>::candidate_and_leader_coro,
+                    &raft_member_t<state_t>::candidate_and_leader_coro,
                     this,
                     mutex_acq.release(),
                     auto_drainer_t::lock_t(leader_drainer.get())));
@@ -908,8 +910,8 @@ void raft_member_t<state_t, change_t>::on_watchdog_timer() {
     }
 }
 
-template<class state_t, class change_t>
-void raft_member_t<state_t, change_t>::update_term(
+template<class state_t>
+void raft_member_t<state_t>::update_term(
         raft_term_t new_term,
         const new_mutex_acq_t *mutex_acq) {
     mutex_acq->assert_is_holding(&mutex);
@@ -926,8 +928,8 @@ void raft_member_t<state_t, change_t>::update_term(
     current_term_leader_id = nil_uuid();
 }
 
-template<class state_t, class change_t>
-void raft_member_t<state_t, change_t>::update_commit_index(
+template<class state_t>
+void raft_member_t<state_t>::update_commit_index(
         raft_log_index_t new_commit_index,
         const new_mutex_acq_t *mutex_acq) {
     mutex_acq->assert_is_holding(&mutex);
@@ -940,7 +942,7 @@ void raft_member_t<state_t, change_t>::update_commit_index(
     while (last_applied < commit_index) {
         ++last_applied;
         if (ps.log.get_entry_ref(last_applied).type ==
-                raft_log_entry_t<change_t>::type_t::regular) {
+                raft_log_entry_t<state_t>::type_t::regular) {
             guarantee(initialized_cond.is_pulsed());
             state_machine.apply_atomic_op([&](state_t *state) -> bool {
                 state->apply_change(*ps.log.get_entry_ref(last_applied).change);
@@ -961,7 +963,7 @@ void raft_member_t<state_t, change_t>::update_commit_index(
         });
         for (raft_log_index_t i = ps.log.prev_index + 1; i <= last_applied; ++i) {
             if (ps.log.get_entry_ref(i).type ==
-                    raft_log_entry_t<change_t>::type_t::configuration) {
+                    raft_log_entry_t<state_t>::type_t::configuration) {
                 ps.snapshot_configuration =
                     boost::optional<raft_complex_config_t>(
                         *ps.log.get_entry_ref(i).configuration);
@@ -984,8 +986,8 @@ void raft_member_t<state_t, change_t>::update_commit_index(
     }
 }
 
-template<class state_t, class change_t>
-void raft_member_t<state_t, change_t>::leader_update_match_index(
+template<class state_t>
+void raft_member_t<state_t>::leader_update_match_index(
         std::map<raft_member_id_t, raft_log_index_t> *match_index,
         raft_member_id_t key,
         raft_log_index_t new_value,
@@ -1024,12 +1026,12 @@ void raft_member_t<state_t, change_t>::leader_update_match_index(
     }
     if (new_commit_index != commit_index) {
         update_commit_index(new_commit_index, mutex_acq);
-        interface->write_persistent_state(ps, interruptor);
+        storage->write_persistent_state(ps, interruptor);
     }
 }
 
-template<class state_t, class change_t>
-void raft_member_t<state_t, change_t>::candidate_or_leader_become_follower(
+template<class state_t>
+void raft_member_t<state_t>::candidate_or_leader_become_follower(
         const new_mutex_acq_t *mutex_acq) {
     mutex_acq->assert_is_holding(&mutex);
     guarantee(mode == mode_t::candidate || mode == mode_t::leader);
@@ -1042,8 +1044,8 @@ void raft_member_t<state_t, change_t>::candidate_or_leader_become_follower(
     guarantee(mode == mode_t::follower);
 }
 
-template<class state_t, class change_t>
-void raft_member_t<state_t, change_t>::candidate_and_leader_coro(
+template<class state_t>
+void raft_member_t<state_t>::candidate_and_leader_coro(
         new_mutex_acq_t *mutex_acq_on_heap,
         auto_drainer_t::lock_t leader_keepalive) {
     scoped_ptr_t<new_mutex_acq_t> mutex_acq(mutex_acq_on_heap);
@@ -1109,8 +1111,8 @@ void raft_member_t<state_t, change_t>::candidate_and_leader_coro(
         since we can't commit entries from earlier terms except by committing an entry
         from our own term. */
         {
-            raft_log_entry_t<change_t> new_entry;
-            new_entry.type = raft_log_entry_t<change_t>::type_t::noop;
+            raft_log_entry_t<state_t> new_entry;
+            new_entry.type = raft_log_entry_t<state_t>::type_t::noop;
             new_entry.term = ps.current_term;
             leader_append_log_entry(new_entry, mutex_acq.get(),
                 leader_keepalive.get_drain_signal());
@@ -1175,8 +1177,8 @@ void raft_member_t<state_t, change_t>::candidate_and_leader_coro(
     mode = mode_t::follower;
 }
 
-template<class state_t, class change_t>
-bool raft_member_t<state_t, change_t>::candidate_run_election(
+template<class state_t>
+bool raft_member_t<state_t>::candidate_run_election(
         scoped_ptr_t<new_mutex_acq_t> *mutex_acq,
         signal_t *cancel_signal,
         signal_t *interruptor) {
@@ -1199,7 +1201,7 @@ bool raft_member_t<state_t, change_t>::candidate_run_election(
 
     /* Flush to stable storage so we don't forget we voted for ourself. I'm not sure if
     this is strictly necessary. */
-    interface->write_persistent_state(ps, interruptor);
+    storage->write_persistent_state(ps, interruptor);
 
     /* Raft paper, Section 5.2: "[The candidate] issues RequestVote RPCs in parallel to
     each of the other servers in the cluster." */
@@ -1218,7 +1220,7 @@ bool raft_member_t<state_t, change_t>::candidate_run_election(
             try {
                 while (true) {
                     /* Don't bother trying to send an RPC until the peer is connected */
-                    interface->get_connected_members()->run_until_satisfied(
+                    network->get_connected_members()->run_until_satisfied(
                         [&](const std::set<raft_member_id_t> &connected) {
                             return connected.count(peer) == 1;
                         }, request_vote_keepalive.get_drain_signal());
@@ -1233,7 +1235,7 @@ bool raft_member_t<state_t, change_t>::candidate_run_election(
                     rpc.last_log_term = ps.log.get_entry_term(ps.log.get_latest_index());
 
                     raft_request_vote_reply_t reply;
-                    bool ok = interface->send_request_vote_rpc(
+                    bool ok = network->send_request_vote_rpc(
                         peer, rpc, request_vote_keepalive.get_drain_signal(), &reply);
 
                     if (!ok) {
@@ -1308,8 +1310,8 @@ bool raft_member_t<state_t, change_t>::candidate_run_election(
     */
 }
 
-template<class state_t, class change_t>
-void raft_member_t<state_t, change_t>::leader_spawn_update_coros(
+template<class state_t>
+void raft_member_t<state_t>::leader_spawn_update_coros(
         raft_log_index_t initial_next_index,
         std::map<raft_member_id_t, raft_log_index_t> *match_indexes,
         std::map<raft_member_id_t, scoped_ptr_t<auto_drainer_t> > *update_drainers,
@@ -1362,8 +1364,8 @@ void raft_member_t<state_t, change_t>::leader_spawn_update_coros(
     }
 }
 
-template<class state_t, class change_t>
-void raft_member_t<state_t, change_t>::leader_send_updates(
+template<class state_t>
+void raft_member_t<state_t>::leader_send_updates(
         const raft_member_id_t &peer,
         raft_log_index_t initial_next_index,
         std::map<raft_member_id_t, raft_log_index_t> *match_indexes,
@@ -1414,7 +1416,7 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
             send an RPC if the peer isn't even connected. */
             DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
             mutex_acq.reset();
-            interface->get_connected_members()->run_until_satisfied(
+            network->get_connected_members()->run_until_satisfied(
                 [&](const std::set<raft_member_id_t> &peers) {
                     return peers.count(peer) == 1;
                 }, update_keepalive.get_drain_signal());
@@ -1426,7 +1428,7 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
                 /* The peer's log ends before our log begins. So we have to send an
                 install-snapshot RPC instead of an append-entries RPC. */
 
-                raft_install_snapshot_rpc_t<state_t, change_t> rpc;
+                raft_install_snapshot_rpc_t<state_t> rpc;
                 rpc.term = ps.current_term;
                 rpc.leader_id = this_member_id;
                 rpc.last_included_index = ps.log.prev_index;
@@ -1439,7 +1441,7 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
                 raft_install_snapshot_reply_t reply;
                 DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
                 mutex_acq.reset();
-                bool ok = interface->send_install_snapshot_rpc(
+                bool ok = network->send_install_snapshot_rpc(
                     peer, rpc, update_keepalive.get_drain_signal(), &reply);
                 mutex_acq.init(
                     new new_mutex_acq_t(&mutex, update_keepalive.get_drain_signal()));
@@ -1475,7 +1477,7 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
                 /* The peer's log ends right where our log begins, or in the middle of
                 our log. Send an append-entries RPC. */
 
-                raft_append_entries_rpc_t<change_t> rpc;
+                raft_append_entries_rpc_t<state_t> rpc;
                 rpc.term = ps.current_term;
                 rpc.leader_id = this_member_id;
                 rpc.entries = ps.log;
@@ -1487,7 +1489,7 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
                 raft_append_entries_reply_t reply;
                 DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
                 mutex_acq.reset();
-                bool ok = interface->send_append_entries_rpc(
+                bool ok = network->send_append_entries_rpc(
                     peer, rpc, update_keepalive.get_drain_signal(), &reply);
                 mutex_acq.init(
                     new new_mutex_acq_t(&mutex, update_keepalive.get_drain_signal()));
@@ -1563,8 +1565,8 @@ void raft_member_t<state_t, change_t>::leader_send_updates(
     }
 }
 
-template<class state_t, class change_t>
-void raft_member_t<state_t, change_t>::leader_continue_reconfiguration(
+template<class state_t>
+void raft_member_t<state_t>::leader_continue_reconfiguration(
         const new_mutex_acq_t *mutex_acq,
         signal_t *interruptor) {
     mutex_acq->assert_is_holding(&mutex);
@@ -1575,7 +1577,7 @@ void raft_member_t<state_t, change_t>::leader_continue_reconfiguration(
     raft_complex_config_t committed_config = *ps.snapshot_configuration;
     for (raft_log_index_t i = ps.log.prev_index + 1; i <= commit_index; ++i) {
         if (ps.log.get_entry_ref(i).type ==
-                raft_log_entry_t<change_t>::type_t::configuration) {
+                raft_log_entry_t<state_t>::type_t::configuration) {
             committed_config = *ps.log.get_entry_ref(i).configuration;
         }
     }
@@ -1584,8 +1586,8 @@ void raft_member_t<state_t, change_t>::leader_continue_reconfiguration(
         phase of the reconfiguration isn't already in the log. */
         bool no_other_config = true;
         for (raft_log_index_t i = commit_index + 1; i <= ps.log.get_latest_index(); ++i) {
-            const raft_log_entry_t<change_t> &entry = ps.log.get_entry_ref(i);
-            if (entry.type == raft_log_entry_t<change_t>::type_t::configuration) {
+            const raft_log_entry_t<state_t> &entry = ps.log.get_entry_ref(i);
+            if (entry.type == raft_log_entry_t<state_t>::type_t::configuration) {
                 guarantee(!entry.configuration->is_joint_consensus());
                 no_other_config = false;
                 break;
@@ -1600,8 +1602,8 @@ void raft_member_t<state_t, change_t>::leader_continue_reconfiguration(
             raft_complex_config_t new_config;
             new_config.config = *committed_config.new_config;
 
-            raft_log_entry_t<change_t> new_entry;
-            new_entry.type = raft_log_entry_t<change_t>::type_t::configuration;
+            raft_log_entry_t<state_t> new_entry;
+            new_entry.type = raft_log_entry_t<state_t>::type_t::configuration;
             new_entry.configuration = boost::optional<raft_complex_config_t>(new_config);
             new_entry.term = ps.current_term;
 
@@ -1617,8 +1619,8 @@ void raft_member_t<state_t, change_t>::leader_continue_reconfiguration(
     }
 }
 
-template<class state_t, class change_t>
-bool raft_member_t<state_t, change_t>::candidate_or_leader_note_term(
+template<class state_t>
+bool raft_member_t<state_t>::candidate_or_leader_note_term(
         raft_term_t term, const new_mutex_acq_t *mutex_acq) {
     mutex_acq->assert_is_holding(&mutex);
     guarantee(mode != mode_t::follower);
@@ -1642,7 +1644,7 @@ bool raft_member_t<state_t, change_t>::candidate_or_leader_note_term(
                 if (ps.current_term == local_current_term) {
                     this->update_term(term, &mutex_acq_2);
                     this->candidate_or_leader_become_follower(&mutex_acq_2);
-                    interface->write_persistent_state(ps, keepalive.get_drain_signal());
+                    storage->write_persistent_state(ps, keepalive.get_drain_signal());
                 }
                 DEBUG_ONLY_CODE(check_invariants(&mutex_acq_2));
             } catch (interrupted_exc_t) {
@@ -1657,9 +1659,9 @@ bool raft_member_t<state_t, change_t>::candidate_or_leader_note_term(
     }
 }
 
-template<class state_t, class change_t>
-void raft_member_t<state_t, change_t>::leader_append_log_entry(
-        const raft_log_entry_t<change_t> &log_entry,
+template<class state_t>
+void raft_member_t<state_t>::leader_append_log_entry(
+        const raft_log_entry_t<state_t> &log_entry,
         const new_mutex_acq_t *mutex_acq,
         signal_t *interruptor) {
     mutex_acq->assert_is_holding(&mutex);
@@ -1670,7 +1672,7 @@ void raft_member_t<state_t, change_t>::leader_append_log_entry(
     entry..." */
     ps.log.append(log_entry);
 
-    interface->write_persistent_state(ps, interruptor);
+    storage->write_persistent_state(ps, interruptor);
 
     /* Raft paper, Section 5.3: "...then issues AppendEntries RPCs in parallel to each of
     the other servers to replicate the entry."
@@ -1683,8 +1685,8 @@ void raft_member_t<state_t, change_t>::leader_append_log_entry(
     }
 }
 
-template<class state_t, class change_t>
-raft_complex_config_t raft_member_t<state_t, change_t>::get_configuration() {
+template<class state_t>
+raft_complex_config_t raft_member_t<state_t>::get_configuration() {
     guarantee(static_cast<bool>(ps.snapshot_configuration), "We haven't been "
         "initialized yet, so we should be a non-voting member; why are we calling "
             "get_configuration()?");
@@ -1697,8 +1699,8 @@ raft_complex_config_t raft_member_t<state_t, change_t>::get_configuration() {
     raft_complex_config_t c = *ps.snapshot_configuration;
     for (raft_log_index_t i = ps.log.prev_index + 1;
             i <= ps.log.get_latest_index(); ++i) {
-        const raft_log_entry_t<change_t> &entry = ps.log.get_entry_ref(i);
-        if (entry.type == raft_log_entry_t<change_t>::type_t::configuration) {
+        const raft_log_entry_t<state_t> &entry = ps.log.get_entry_ref(i);
+        if (entry.type == raft_log_entry_t<state_t>::type_t::configuration) {
             c = *entry.configuration;
         }
     }
