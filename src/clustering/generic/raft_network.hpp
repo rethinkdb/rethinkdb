@@ -6,7 +6,7 @@
 The core logic for the Raft protocol is in `raft_core.hpp`, not here. This just adds a
 networking layer over `raft_core.hpp`. */
 
-template<class state_t, class change_t>
+template<class state_t>
 class raft_business_card_t {
 public:
     typedef mailbox_t<void(
@@ -14,11 +14,11 @@ public:
         mailbox_t<void(raft_request_vote_reply_t)>::address_t
         )> request_vote_mailbox_t;
     typedef mailbox_t<void(
-        raft_install_snapshot_rpc_t<state_t, change_t>,
+        raft_install_snapshot_rpc_t<state_t>,
         mailbox_t<void(raft_install_snapshot_reply_t)>::address_t
         )> install_snapshot_mailbox_t;
     typedef mailbox_t<void(
-        raft_append_entries_rpc_t<change_t>,
+        raft_append_entries_rpc_t<state_t>,
         mailbox_t<void(raft_append_entries_reply_t)>::address_t
         )> append_entries_mailbox_t;
 
@@ -27,11 +27,15 @@ public:
     typename append_entries_mailbox_t::address_t append_entries;
 };
 
-template<class state_t, class change_t>
+template<class state_t>
 class raft_networked_member_t {
 public:
     raft_networked_member_t(
         const raft_member_id_t &this_member_id,
+        mailbox_manager_t *mailbox_manager,
+        clone_ptr_t<watchable_t<std::map<raft_member_id_t, 
+        raft_storage_interface_t<state_t> *storage,
+        
     /* The `send_*_rpc()`, `get_connected_members()`, and `write_persistent_state()`
     methods implement the `raft_network_and_storage_interface_t` interface. */
     bool send_request_vote_rpc(
