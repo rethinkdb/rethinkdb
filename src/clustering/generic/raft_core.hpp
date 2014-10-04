@@ -540,8 +540,8 @@ private:
                              const new_mutex_acq_t *mutex_acq);
 
     /* When we change `match_index` we might have to update `commit_index` as well.
-    `update_match_index()` handles that automatically. It may flush persistent state to
-    stable storage before it returns. */
+    `leader_update_match_index()` handles that automatically. It may flush persistent
+    state to stable storage before it returns. */
     void leader_update_match_index(
         /* Since `match_index` lives on the stack of `candidate_and_leader_coro()`, we
         have to pass in a pointer. */
