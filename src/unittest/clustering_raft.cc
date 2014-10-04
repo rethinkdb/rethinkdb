@@ -223,69 +223,28 @@ private:
 
         /* These are the methods for `raft_network_and_storage_interface_t`. */
         bool send_request_vote_rpc(
-                const raft_member_id_t &dest, raft_term_t term,
-                const raft_member_id_t &candidate_id, raft_log_index_t last_log_index,
-                raft_term_t last_log_term,
+                const raft_member_id_t &dest,
+                const raft_request_vote_rpc_t &rpc,
                 signal_t *interruptor,
-                raft_term_t *term_out, bool *vote_granted_out) {
-            return do_rpc(dest,
-                [dest, term, candidate_id, last_log_index, last_log_term, term_out,
-                    vote_granted_out]
-                (dummy_raft_member_t *other, signal_t *interruptor2, const bool *valid) {
-                    raft_term_t reply_term;
-                    bool reply_vote_granted;
-                    other->on_request_vote_rpc(
-                        term, candidate_id, last_log_index, last_log_term,
-                        interruptor2,
-                        &reply_term, &reply_vote_granted);
-                    if (*valid) {
-                        *term_out = reply_term;
-                        *vote_granted_out = reply_vote_granted;
-                    }
-                }, interruptor);
+                raft_request_vote_reply_t *reply_out) {
+            return do_rpc(dest, rpc, &dummy_raft_member_t::on_request_vote_rpc,
+                interruptor, reply_out);
         }
         bool send_install_snapshot_rpc(
-                const raft_member_id_t &dest, raft_term_t term,
-                const raft_member_id_t &leader_id, raft_log_index_t last_included_index,
-                raft_term_t last_included_term, const dummy_raft_state_t &snapshot_state,
-                const raft_complex_config_t &snapshot_configuration,
+                const raft_member_id_t &dest,
+                const raft_install_snapshot_rpc_t<dummy_raft_state_t, uuid_u> &rpc,
                 signal_t *interruptor,
-                raft_term_t *term_out) {
-            return do_rpc(dest,
-                [dest, term, leader_id, last_included_index, last_included_term,
-                 snapshot_state, snapshot_configuration, term_out]
-                (dummy_raft_member_t *other, signal_t *interruptor2, const bool *valid) {
-                    raft_term_t reply_term;
-                    other->on_install_snapshot_rpc(
-                        term, leader_id, last_included_index, last_included_term,
-                        snapshot_state, snapshot_configuration,
-                        interruptor2,
-                        &reply_term);
-                    if (*valid) {
-                        *term_out = reply_term;
-                    }
-               }, interruptor);
+                raft_install_snapshot_reply_t *reply_out) {
+            return do_rpc(dest, rpc, &dummy_raft_member_t::on_install_snapshot_rpc,
+                interruptor, reply_out);
         }
         bool send_append_entries_rpc(
-                const raft_member_id_t &dest, raft_term_t term,
-                const raft_member_id_t &leader_id, const raft_log_t<uuid_u> &entries,
-                raft_log_index_t leader_commit,
+                const raft_member_id_t &dest,
+                const raft_append_entries_rpc_t<uuid_u> &rpc,
                 signal_t *interruptor,
-                raft_term_t *term_out, bool *success_out) {
-            return do_rpc(dest,
-                [dest, term, leader_id, entries, leader_commit, term_out, success_out]
-                (dummy_raft_member_t *other, signal_t *interruptor2, const bool *valid) {
-                    raft_term_t reply_term;
-                    bool reply_success;
-                    other->on_append_entries_rpc(
-                        term, leader_id, entries, leader_commit,
-                        interruptor2,
-                        &reply_term, &reply_success);
-                    if (*valid) {
-                        *term_out = reply_term;
-                        *success_out = reply_success;
-                    }
-                }, interruptor);
+                raft_append_entries_reply_t *reply_out) {
+            return do_rpc(dest, rpc, &dummy_raft_member_t::on_append_entries_rpc,
+                interruptor, reply_out);
         }
         clone_ptr_t<watchable_t<std::set<raft_member_id_t> > > get_connected_members() {
             return parent->alive_members.get_watchable();
@@ -300,51 +259,51 @@ private:
         }
 
         /* `do_rpc()` is a helper for `send_*_rpc()`. */
+        template<class rpc_t, class reply_t>
         bool do_rpc(
                 const raft_member_id_t &dest,
-                const std::function<void(
-                    dummy_raft_member_t *, signal_t *, const bool *)> &fun,
-                signal_t *interruptor) {
+                const rpc_t &rpc,
+                void (dummy_raft_member_t::*call)(const rpc_t &, signal_t *, reply_t *),
+                signal_t *interruptor,
+                reply_t *reply_out) {
             /* This is convoluted because if `interruptor` is pulsed, we want to return
             immediately but we don't want to pulse the interruptor for `on_*_rpc()`. So
-            we have to spawn a separate coroutine for `on_*_rpc()`. We handle this by
-            allocating a `std::shared_ptr<bool>`; when we exit, we set it to `false`, so
-            the coroutine knows not to access any variables on our stack. */
+            we have to spawn a separate coroutine for `on_*_rpc()`. The coroutine
+            communicates with `do_rpc()` through `reply_info_t`, which is stored on the
+            heap so it remains valid even if `do_rpc()` is interrupted. */
+            class reply_info_t {
+            public:
+                cond_t done;
+                bool ok;
+                reply_t reply;
+            };
+            std::shared_ptr<reply_info_t> reply_info(new reply_info_t);
             block(interruptor);
-            std::shared_ptr<bool> valid(new bool(true));
-            cond_t reply_cond;
-            bool reply_ok;
             coro_t::spawn_sometime(
-                [this, dest, fun, valid, &reply_cond, &reply_ok] () {
+                [this, dest, rpc, call, reply_info] () {
                     member_info_t *other = parent->members.at(dest).get();
-                    bool ok;
                     if (other->drainer.has()) {
                         auto_drainer_t::lock_t keepalive(other->drainer.get());
                         try {
                             block(keepalive.get_drain_signal());
-                            fun(other->member.get(),
-                                keepalive.get_drain_signal(),
-                                valid.get());
+                            (other->member.get()->*call)(
+                                rpc, keepalive.get_drain_signal(), &reply_info->reply);
                             block(keepalive.get_drain_signal());
-                            ok = true;
+                            reply_info->ok = true;
                         } catch (interrupted_exc_t) {
-                            ok = false;
+                            reply_info->ok = false;
                         }
                     } else {
-                        ok = false;
+                        reply_info->ok = false;
                     }
-                    if (*valid) {
-                        reply_ok = ok;
-                        reply_cond.pulse();
-                    }
+                    reply_info->done.pulse();
                 });
-            try {
-                wait_interruptible(&reply_cond, interruptor);
-            } catch (interrupted_exc_t) {
-                *valid = false;
-            }
+            wait_interruptible(&reply_info->done, interruptor);
             block(interruptor);
-            return reply_ok;
+            if (reply_info->ok) {
+                *reply_out = reply_info->reply;
+            }
+            return reply_info->ok;
         }
 
         void block(signal_t *interruptor) {
