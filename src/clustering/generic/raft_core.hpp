@@ -30,12 +30,12 @@ network and storage systems.
 
 We support both log compaction and configuration changes.
 
-The classes in this file are templatized on two types, `state_t` and `change_t`.
-`state_t` describes the state of the Raft state machine, and `change_t` describes a
-potential transition on that state machine. So `change_t` is the type that is stored in
-the Raft log, whereas `state_t` is stored when taking a snapshot.
+The classes in this file are templatized on a types called `state_t`, which represents
+the state machine that the Raft cluster manages. Operations on the state machine are
+represented by a member type `state_t::change_t`. So `state_t::change_t` is the type that
+is stored in the Raft log, and `state_t` is stored when taking a snapshot.
 
-`state_t` and `change_t` must satisfy the following requirements:
+`state_t` and `state_t::change_t` must satisfy the following requirements:
   * Both must be default-constructable, destructable, copy- and move-constructable, copy-
     and move-assignable.
   * Both must support the `==` and `!=` operators.
@@ -145,7 +145,7 @@ public:
 };
 
 /* `raft_log_entry_t` describes an entry in the Raft log. */
-template<class change_t>
+template<class state_t>
 class raft_log_entry_t {
 public:
     enum class type_t {
@@ -161,7 +161,7 @@ public:
 
     type_t type;
     raft_term_t term;
-    boost::optional<change_t> change;
+    boost::optional<typename state_t::change_t> change;
     boost::optional<raft_complex_config_t> configuration;
 };
 
@@ -169,7 +169,7 @@ public:
 up in Raft: in an "AppendEntries RPC", and in each server's local state. The Raft paper
 represents this as three separate variables, but grouping them together makes the
 code clearer. */
-template<class change_t>
+template<class state_t>
 class raft_log_t {
 public:
     /* In an append-entries message, `prev_index` and `prev_term` correspond to the
@@ -182,7 +182,7 @@ public:
 
     raft_log_index_t prev_index;
     raft_term_t prev_term;
-    std::deque<raft_log_entry_t<change_t> > entries;
+    std::deque<raft_log_entry_t<state_t> > entries;
 
     /* Return the latest index that is present in the log. If the log is empty, returns
     the index on which the log is based. */
@@ -203,7 +203,7 @@ public:
     }
 
     /* Returns the entry in the log at the given index. */
-    const raft_log_entry_t<change_t> &get_entry_ref(raft_log_index_t index) const {
+    const raft_log_entry_t<state_t> &get_entry_ref(raft_log_index_t index) const {
         guarantee(index > prev_index, "the log doesn't go back this far");
         guarantee(index <= get_latest_index(), "the log doesn't go forward this far");
         return entries[index - prev_index - 1];
@@ -227,14 +227,14 @@ public:
     }
 
     /* Appends the given entry ot the log. */
-    void append(const raft_log_entry_t<change_t> &entry) {
+    void append(const raft_log_entry_t<state_t> &entry) {
         entries.push_back(entry);
     }
 };
 
 /* `raft_persistent_state_t` describes the information that each member of the Raft
 cluster persists to stable storage. */
-template<class state_t, class change_t>
+template<class state_t>
 class raft_persistent_state_t {
 public:
     /* `make_initial(s)` returns a `raft_persistent_state_t` for a member of a new Raft
@@ -272,12 +272,12 @@ public:
     /* `log.prev_index` and `log.prev_term` correspond to the "last included index" and
     "last included term" as described in Section 7. `log.entries` corresponds to the
     `log` variable in Figure 2. */
-    raft_log_t<change_t> log;
+    raft_log_t<state_t> log;
 };
 
 /* `raft_storage_interface_t` is an abstract class that `raft_member_t` uses to store
 data on disk. */
-template<class state_t, class change_t>
+template<class state_t>
 class raft_storage_interface_t {
 public:
     /* `write_persistent_state()` writes the state of the Raft member to stable storage.
@@ -285,7 +285,7 @@ public:
     `write_state()` will be passed to the `raft_member_t` constructor when the Raft
     member is restarted. */
     virtual void write_persistent_state(
-        const raft_persistent_state_t<state_t, change_t> &persistent_state,
+        const raft_persistent_state_t<state_t> &persistent_state,
         signal_t *interruptor) = 0;
 
     /* If writing the state becomes a performance bottleneck, we could implement a
@@ -344,7 +344,7 @@ public:
 
 /* `raft_append_entries_rpc_t` describes the parameters of the "AppendEntries RPC"
 described in Figure 2 of the Raft paper. */
-template<class change_t>
+template<class state_t>
 class raft_append_entries_rpc_t {
 public:
     /* `term`, `leader_id`, and `leader_commit` correspond to the parameters with the
@@ -352,7 +352,7 @@ public:
     variables: `prevLogIndex`, `prevLogTerm`, and `entries`. */
     raft_term_t term;
     raft_member_id_t leader_id;
-    raft_log_t<change_t> entries;
+    raft_log_t<state_t> entries;
     raft_log_index_t leader_commit;
 };
 
@@ -366,7 +366,7 @@ public:
 
 /* `raft_network_interface_t` is the abstract class that `raft_member_t` uses to send
 messages over the network. */
-template<class state_t, class change_t>
+template<class state_t>
 class raft_network_interface_t {
 public:
     /* The `send_*_rpc()` methods all follow these rules:
@@ -395,7 +395,7 @@ public:
 
     virtual bool send_append_entries_rpc(
         const raft_member_id_t &dest,
-        const raft_append_entries_rpc_t<change_t> &params,
+        const raft_append_entries_rpc_t<state_t> &params,
         signal_t *interruptor,
         raft_append_entries_reply_t *reply_out) = 0;
 
@@ -410,15 +410,15 @@ protected:
 
 /* `raft_member_t` is responsible for managing the activity of a single member of the
 Raft cluster. */
-template<class state_t, class change_t>
+template<class state_t>
 class raft_member_t : public home_thread_mixin_debug_only_t
 {
 public:
     raft_member_t(
         const raft_member_id_t &this_member_id,
-        raft_storage_interface_t<state_t, change_t> *storage,
-        raft_network_interface_t<state_t, change_t> *network,
-        const raft_persistent_state_t<state_t, change_t> &persistent_state);
+        raft_storage_interface_t<state_t> *storage,
+        raft_network_interface_t<state_t> *network,
+        const raft_persistent_state_t<state_t> &persistent_state);
 
     ~raft_member_t();
 
@@ -470,7 +470,7 @@ public:
     hasn't necessarily been committed and won't necessarily ever be. `false` means we are
     not the leader or something went wrong. */
     bool propose_change_if_leader(
-        const change_t &change,
+        const typename state_t::change_t &change,
         signal_t *interruptor);
 
     /* `propose_config_change_if_leader()` is like `propose_change_if_leader()` except
@@ -490,7 +490,7 @@ public:
         signal_t *interruptor,
         raft_install_snapshot_reply_t *reply_out);
     void on_append_entries_rpc(
-        const raft_append_entries_rpc_t<change_t> &rpc,
+        const raft_append_entries_rpc_t<state_t> &rpc,
         signal_t *interruptor,
         raft_append_entries_reply_t *reply_out);
 
@@ -499,7 +499,7 @@ public:
     member's mutex, but it will not modify anything. Since this requires direct access to
     each member of the Raft cluster, it's only useful for testing. */
     static void check_invariants(
-        const std::set<raft_member_t<state_t, change_t> *> &members);
+        const std::set<raft_member_t<state_t> *> &members);
 
 private:
     enum class mode_t {
@@ -645,7 +645,7 @@ private:
     `propose_config_change_if_leader()`. It adds an entry to the log but doesn't wait for
     the entry to be committed. It flushes persistent state to stable storage. */
     void leader_append_log_entry(
-        const raft_log_entry_t<change_t> &log_entry,
+        const raft_log_entry_t<state_t> &log_entry,
         const new_mutex_acq_t *mutex_acq,
         signal_t *interruptor);
 
@@ -657,13 +657,13 @@ private:
     `raft_member_t`. */
     const raft_member_id_t this_member_id;
 
-    raft_storage_interface_t<state_t, change_t> *const storage;
-    raft_network_interface_t<state_t, change_t> *const network;
+    raft_storage_interface_t<state_t> *const storage;
+    raft_network_interface_t<state_t> *const network;
 
     /* This stores all of the state variables of the Raft member that need to be written
     to stable storage when they change. We end up writing `ps.*` a lot, which is why the
     name is so abbreviated. */
-    raft_persistent_state_t<state_t, change_t> ps;
+    raft_persistent_state_t<state_t> ps;
 
     /* `state_machine` and `initialized_cond` together describe the "state machine" that
     the Raft member is managing. If `initialized_cond` is unpulsed, then the state
