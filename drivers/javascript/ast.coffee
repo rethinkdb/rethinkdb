@@ -756,11 +756,11 @@ class Filter extends RDBOp
     mt: 'filter'
 
 class ConcatMap extends RDBOp
-    tt: protoTermType.CONCATMAP
+    tt: protoTermType.CONCAT_MAP
     mt: 'concatMap'
 
 class OrderBy extends RDBOp
-    tt: protoTermType.ORDERBY
+    tt: protoTermType.ORDER_BY
     mt: 'orderBy'
 
 class Distinct extends RDBOp
@@ -848,7 +848,7 @@ class Ungroup extends RDBOp
     mt: 'ungroup'
 
 class TypeOf extends RDBOp
-    tt: protoTermType.TYPEOF
+    tt: protoTermType.TYPE_OF
     mt: 'typeOf'
 
 class Info extends RDBOp
@@ -928,7 +928,7 @@ class Sync extends RDBOp
     mt: 'sync'
 
 class FunCall extends RDBOp
-    tt: protoTermType.FUNCALL
+    tt: protoTermType.FUN_CALL
     st: 'do' # This is only used by the `undefined` argument checker
 
     compose: (args) ->
@@ -956,7 +956,7 @@ class All extends RDBOp
     mt: 'and'
 
 class ForEach extends RDBOp
-    tt: protoTermType.FOREACH
+    tt: protoTermType.FOR_EACH
     mt: 'forEach'
 
 class Func extends RDBOp
@@ -1081,11 +1081,11 @@ class Time extends RDBOp
     st: 'time'
 
 class Geojson extends RDBOp
-    tt: protoTermType.GEOJSON
+    tt: protoTermType.GEO_JSON
     st: 'geojson'
 
 class ToGeojson extends RDBOp
-    tt: protoTermType.TO_GEOJSON
+    tt: protoTermType.TO_GEO_JSON
     mt: 'toGeojson'
 
 class Point extends RDBOp

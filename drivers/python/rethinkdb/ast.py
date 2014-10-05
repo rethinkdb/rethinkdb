@@ -947,7 +947,7 @@ class DB(RqlTopLevelQuery):
         return Table(self, *args, **kwargs)
 
 class FunCall(RqlQuery):
-    tt = pTerm.FUNCALL
+    tt = pTerm.FUN_CALL
 
     # This object should be constructed with arguments first, and the function itself as
     # the last parameter.  This makes it easier for the places where this object is
@@ -1068,11 +1068,11 @@ class Filter(RqlMethodQuery):
     st = 'filter'
 
 class ConcatMap(RqlMethodQuery):
-    tt = pTerm.CONCATMAP
+    tt = pTerm.CONCAT_MAP
     st = 'concat_map'
 
 class OrderBy(RqlMethodQuery):
-    tt = pTerm.ORDERBY
+    tt = pTerm.ORDER_BY
     st = 'order_by'
 
 class Distinct(RqlMethodQuery):
@@ -1148,7 +1148,7 @@ class Ungroup(RqlMethodQuery):
     st = 'ungroup'
 
 class TypeOf(RqlMethodQuery):
-    tt = pTerm.TYPEOF
+    tt = pTerm.TYPE_OF
     st = 'type_of'
 
 class Update(RqlMethodQuery):
@@ -1246,7 +1246,7 @@ class All(RqlBoolOperQuery):
     st_infix = "&"
 
 class ForEach(RqlMethodQuery):
-    tt = pTerm.FOREACH
+    tt = pTerm.FOR_EACH
     st = 'for_each'
 
 class Info(RqlMethodQuery):
@@ -1406,11 +1406,11 @@ class ToEpochTime(RqlMethodQuery):
     st = 'to_epoch_time'
 
 class GeoJson(RqlTopLevelQuery):
-    tt = pTerm.GEOJSON
+    tt = pTerm.GEO_JSON
     st = 'geojson'
 
 class ToGeoJson(RqlMethodQuery):
-    tt = pTerm.TO_GEOJSON
+    tt = pTerm.TO_GEO_JSON
     st = 'to_geojson'
 
 class Point(RqlTopLevelQuery):
