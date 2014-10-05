@@ -44,16 +44,6 @@ def expr(val, nesting_depth=20):
 
     if isinstance(val, RqlQuery):
         return val
-    elif isinstance(val, list):
-        val = [expr(v, nesting_depth - 1) for v in val]
-        return MakeArray(*val)
-    elif isinstance(val, dict):
-        # MakeObj doesn't take the dict as a keyword args to avoid
-        # conflicting with the `self` parameter.
-        obj = {}
-        for k, v in dict_items(val):
-            obj[k] = expr(v, nesting_depth - 1)
-        return MakeObj(obj)
     elif isinstance(val, collections.Callable):
         return Func(val)
     elif isinstance(val, (datetime.datetime, datetime.date)):
@@ -71,6 +61,16 @@ def expr(val, nesting_depth=20):
         return Datum(val)
     elif isinstance(val, bytes):
         return Binary(val)
+    elif isinstance(val, collections.Mapping):
+        # MakeObj doesn't take the dict as a keyword args to avoid
+        # conflicting with the `self` parameter.
+        obj = {}
+        for k, v in dict_items(val):
+            obj[k] = expr(v, nesting_depth - 1)
+        return MakeObj(obj)
+    elif isinstance(val, collections.Iterable):
+        val = [expr(v, nesting_depth - 1) for v in val]
+        return MakeArray(*val)
     else:
         return Datum(val)
 
