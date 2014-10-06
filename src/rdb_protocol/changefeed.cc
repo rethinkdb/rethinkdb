@@ -244,13 +244,14 @@ limit_manager_t::limit_manager_t(
       lt(std::move(_lt)),
       lqueue(lt) {
     for (auto &&item : stream) {
-        bool inserted = lqueue.insert(std::move(item.key),
-                                      std::move(item.sindex_key),
-                                      std::move(item.data)).second;
+        bool inserted = lqueue.insert(
+            std::move(datum_t::extract_primary(key_to_unescaped_str(item.key))),
+            std::move(item.sindex_key),
+            std::move(item.data)).second;
         guarantee(inserted);
     }
 
-    std::vector<std::pair<store_key_t, std::pair<datum_t, datum_t> > > v;
+    std::vector<std::pair<std::string, std::pair<datum_t, datum_t> > > v;
     for (const auto &pair : lqueue) {
         guarantee(pair.second.first.has());
         guarantee(pair.second.second.has());
@@ -260,18 +261,18 @@ limit_manager_t::limit_manager_t(
 }
 
 
-void limit_manager_t::add(store_key_t id, datum_t key, datum_t val) {
+void limit_manager_t::add(std::string id, datum_t key, datum_t val) {
     debugf("%p add %s <%s,%s>\n",
            this,
-           key_to_debug_str(id).c_str(),
+           id.c_str(),
            key.print().c_str(),
            val.print().c_str());
     added.push_back(
         std::make_pair(std::move(id), std::make_pair(std::move(key), std::move(val))));
 }
 
-void limit_manager_t::del(store_key_t id) {
-    debugf("%p add %s\n", this, key_to_debug_str(id).c_str());
+void limit_manager_t::del(std::string id) {
+    debugf("%p add %s\n", this, id.c_str());
     deleted.push_back(std::move(id));
 }
 
@@ -323,7 +324,7 @@ void limit_manager_t::commit(const sindex_ref_t &sindex_ref) {
     debugf("COMMIT (added %zu, deleted %zu)\n", added.size(), deleted.size());
     // RSI: this map needs unique keys after all.
     lqueue_t real_added(lt);
-    std::set<store_key_t> real_deleted;
+    std::set<std::string> real_deleted;
     for (auto &&id : deleted) {
         bool data_deleted = lqueue.del_id(id);
         if (data_deleted) {
@@ -341,7 +342,7 @@ void limit_manager_t::commit(const sindex_ref_t &sindex_ref) {
     added.clear();
 
     debugf("real_added %zu, real_deleted %zu\n", real_added.size(), real_deleted.size());
-    std::vector<store_key_t> truncated = lqueue.truncate(spec.limit);
+    std::vector<std::string> truncated = lqueue.truncate(spec.limit);
     for (auto &&id : truncated) {
         bool inserted = real_deleted.insert(std::move(id)).second;
         guarantee(inserted);
@@ -357,11 +358,12 @@ void limit_manager_t::commit(const sindex_ref_t &sindex_ref) {
         stream_t s = read_more(sindex_ref, begin, spec.limit - lqueue.size());
         guarantee(s.size() <= spec.limit - lqueue.size());
         for (const auto &item : s) {
-            bool ins = lqueue.insert(item.key, item.sindex_key, item.data).second;
+            auto str = datum_t::extract_primary(key_to_debug_str(item.key));
+            bool ins = lqueue.insert(str, item.sindex_key, item.data).second;
             guarantee(ins);
-            size_t erased = real_deleted.erase(item.key);
+            size_t erased = real_deleted.erase(str);
             if (erased == 0) {
-                ins = real_added.insert(item.key, item.sindex_key, item.data).second;
+                ins = real_added.insert(str, item.sindex_key, item.data).second;
                 guarantee(ins);
             }
         }
@@ -747,13 +749,13 @@ public:
     }
 
     void init(
-        const std::vector<std::pair<store_key_t, std::pair<datum_t, datum_t> > >
+        const std::vector<std::pair<std::string, std::pair<datum_t, datum_t> > >
             &start_data) {
         got_init += 1;
         debugf("start_data: %zu\n", start_data.size());
         for (const auto &pair : start_data) {
             debugf("%s\n%s\n%s\n",
-                   key_to_debug_str(pair.first).c_str(),
+                   pair.first.c_str(),
                    pair.second.first.print().c_str(),
                    pair.second.second.print().c_str());
             auto it = lqueue.insert(pair).first;
@@ -783,15 +785,15 @@ public:
     };
 
     virtual void note_change(
-        const boost::optional<store_key_t> &old_key,
-        const boost::optional<std::pair<store_key_t, std::pair<datum_t, datum_t> > >
+        const boost::optional<std::string> &old_key,
+        const boost::optional<std::pair<std::string, std::pair<datum_t, datum_t> > >
             &new_val) {
         debugf("%p note_change:\nold_key: %s\nnew_val: %s\n",
                this,
-               old_key ? key_to_debug_str(*old_key).c_str() : "NONE",
+               old_key ? (*old_key).c_str() : "NONE",
                new_val
                ? strprintf("%s <%s,%s>",
-                           key_to_debug_str((*new_val).first).c_str(),
+                           (*new_val).first.c_str(),
                            (*new_val).second.first.print().c_str(),
                            (*new_val).second.second.print().c_str()).c_str()
                : "NONE");
@@ -854,8 +856,10 @@ public:
                 // set bounds, so we need to add the next best element.
                 debugf("Plan omega.\n");
                 auto it = *active_data.begin();
-                ++it;
-                guarantee(it != lqueue.end());
+                guarantee(it != lqueue.begin());
+                --it;
+                //                ++it;
+                //                guarantee(it != lqueue.end());
                 debugf("%zu\n", active_data.size());
                 active_data.insert(it);
                 debugf("%zu\n", active_data.size());

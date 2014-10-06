@@ -48,7 +48,7 @@ namespace changefeed {
 struct msg_t {
     struct limit_start_t {
         uuid_u sub;
-        std::vector<std::pair<store_key_t, std::pair<datum_t, datum_t> > > start_data;
+        std::vector<std::pair<std::string, std::pair<datum_t, datum_t> > > start_data;
 
         limit_start_t() { };
         limit_start_t(uuid_u _sub, decltype(start_data) _start_data)
@@ -58,8 +58,8 @@ struct msg_t {
     };
     struct limit_change_t {
         uuid_u sub;
-        boost::optional<store_key_t> old_key;
-        boost::optional<std::pair<store_key_t, std::pair<datum_t, datum_t> > > new_val;
+        boost::optional<std::string> old_key;
+        boost::optional<std::pair<std::string, std::pair<datum_t, datum_t> > > new_val;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
     struct change_t {
@@ -231,7 +231,7 @@ public:
 
 
     MUST_USE std::pair<iterator, bool>
-    insert(std::pair<store_key_t, std::pair<datum_t, datum_t> > pair) {
+    insert(std::pair<std::string, std::pair<datum_t, datum_t> > pair) {
         return insert(std::move(pair.first),
                       std::move(pair.second.first),
                       std::move(pair.second.second));
@@ -296,7 +296,7 @@ public:
     }
 };
 
-typedef index_queue_t<store_key_t, datum_t, datum_t,
+typedef index_queue_t<std::string, datum_t, datum_t,
                       std::function<bool(const datum_t &, const datum_t &)> > lqueue_t;
 
 struct sindex_ref_t {
@@ -323,8 +323,8 @@ public:
         std::function<bool(const datum_t &, const datum_t &)> _lt,
         stream_t &&start_data);
 
-    void add(store_key_t id, datum_t key, datum_t val);
-    void del(store_key_t id);
+    void add(std::string id, datum_t key, datum_t val);
+    void del(std::string id);
     void commit(const sindex_ref_t &sindex_ref);
     bool operator<(const limit_manager_t &other) {
         const std::string &s1 = spec.range.sindex, &s2 = other.spec.range.sindex;
@@ -346,8 +346,8 @@ private:
     std::function<bool(const datum_t &, const datum_t &)> lt;
     lqueue_t lqueue;
 
-    std::vector<std::pair<store_key_t, std::pair<datum_t, datum_t> > > added;
-    std::vector<store_key_t> deleted;
+    std::vector<std::pair<std::string, std::pair<datum_t, datum_t> > > added;
+    std::vector<std::string> deleted;
 public:
     rwlock_t lock;
     auto_drainer_t drainer;

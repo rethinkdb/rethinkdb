@@ -1469,7 +1469,8 @@ void rdb_update_single_sindex(
                 sindex->name.name,
                 [&](ql::changefeed::limit_manager_t *lm) {
                     for (const auto &pair :keys) {
-                        lm->del(pair.first);
+                        lm->del(ql::datum_t::extract_primary(
+                                    key_to_unescaped_str(pair.first)));;
                     }
                 });
 
@@ -1522,7 +1523,10 @@ void rdb_update_single_sindex(
                 sindex->name.name,
                 [&](ql::changefeed::limit_manager_t *lm) {
                     for (const auto &pair :keys) {
-                        lm->add(pair.first, pair.second, added);
+                        lm->add(ql::datum_t::extract_primary(
+                                    key_to_unescaped_str(pair.first)),
+                                pair.second,
+                                added);
                     }
                 });
             for (auto it = keys.begin(); it != keys.end(); ++it) {
