@@ -54,23 +54,23 @@ log_write_issue_tracker_t::~log_write_issue_tracker_t() {
     report_success();
 }
 
-bool log_write_issue_tracker_t::update_callback(
-        const boost::optional<std::string> &message,
-        local_issues_t *local_issues) {
-    local_issues->log_write_issues.clear();
-    if (message) {
-        local_issues->log_write_issues.push_back(log_write_issue_t(message.get()));
-    }
-    return true;
+void log_write_issue_tracker_t::do_update() {
+    update_issues(
+        [&](local_issues_t *local_issues) -> bool {
+            local_issues->log_write_issues.clear();
+            if (error_message) {
+                local_issues->log_write_issues.push_back(
+                    log_write_issue_t(error_message.get()));
+            }
+            return true;
+        });
 }
 
 void log_write_issue_tracker_t::report_success() {
     assert_thread();
     if (error_message) {
         error_message.reset();
-        update_issues(std::bind(&log_write_issue_tracker_t::update_callback,
-                                std::cref(error_message),
-                                ph::_1));
+        do_update();
     }
 }
 
@@ -78,9 +78,7 @@ void log_write_issue_tracker_t::report_error(const std::string &message) {
     assert_thread();
     if (!error_message || error_message.get() != message) {
         error_message = message;
-        update_issues(std::bind(&log_write_issue_tracker_t::update_callback,
-                                std::cref(error_message),
-                                ph::_1));
+        do_update();
     }
 }
 

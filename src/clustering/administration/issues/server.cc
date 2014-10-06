@@ -121,29 +121,14 @@ server_issue_tracker_t::server_issue_tracker_t(
     recompute();   
 }
 
-bool server_issue_tracker_t::update_callback(
-        const std::vector<machine_id_t> &down_servers,
-        const std::vector<machine_id_t> &ghost_servers,
-        local_issues_t *local_issues) {
-    local_issues->server_down_issues.clear();
-    local_issues->server_ghost_issues.clear();
-    for (auto const &server : down_servers) {
-        local_issues->server_down_issues.push_back(server_down_issue_t(server));
-    }
-    for (auto const &server : ghost_servers) {
-        local_issues->server_ghost_issues.push_back(server_ghost_issue_t(server));
-    }
-    return true;
-}
-
 server_issue_tracker_t::~server_issue_tracker_t() {
     // Clear any outstanding down/ghost issues
-    std::vector<machine_id_t> down_servers;
-    std::vector<machine_id_t> ghost_servers;
-    update_issues(std::bind(&server_issue_tracker_t::update_callback,
-                            std::cref(down_servers),
-                            std::cref(ghost_servers),
-                            ph::_1));
+    update_issues(
+        [] (local_issues_t *local_issues) -> bool {
+            local_issues->server_down_issues.clear();
+            local_issues->server_ghost_issues.clear();
+            return true;
+        });
 }
 
 void server_issue_tracker_t::recompute() {
@@ -152,7 +137,8 @@ void server_issue_tracker_t::recompute() {
 
     cluster_semilattice_metadata_t metadata = cluster_sl_view->get();
     for (auto const &machine : metadata.machines.machines) {
-        peer_id_t peer = machine_id_to_peer_id(machine.first, machine_to_peer->get().get_inner());
+        peer_id_t peer = machine_id_to_peer_id(machine.first,
+                                               machine_to_peer->get().get_inner());
         if (!machine.second.is_deleted() && peer.is_nil()) {
             down_servers.push_back(machine.first);
         } else if (machine.second.is_deleted() && !peer.is_nil()) {
@@ -160,10 +146,20 @@ void server_issue_tracker_t::recompute() {
         }
     }
 
-    update_issues(std::bind(&server_issue_tracker_t::update_callback,
-                            std::cref(down_servers),
-                            std::cref(ghost_servers),
-                            ph::_1));
+    update_issues(
+        [&] (local_issues_t *local_issues) -> bool {
+            local_issues->server_down_issues.clear();
+            local_issues->server_ghost_issues.clear();
+            for (auto const &server : down_servers) {
+                local_issues->server_down_issues.push_back(
+                    server_down_issue_t(server));
+            }
+            for (auto const &server : ghost_servers) {
+                local_issues->server_ghost_issues.push_back(
+                    server_ghost_issue_t(server));
+            }
+            return true;
+        });
 }
 
 void server_issue_tracker_t::combine(

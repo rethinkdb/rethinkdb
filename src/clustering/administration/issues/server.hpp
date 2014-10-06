@@ -24,9 +24,6 @@ public:
                         std::vector<scoped_ptr_t<issue_t> > *issues_out);
 
 private:
-    static bool update_callback(const std::vector<machine_id_t> &down_servers,
-                                const std::vector<machine_id_t> &ghost_servers,
-                                local_issues_t *local_issues);
     void recompute();
 
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >

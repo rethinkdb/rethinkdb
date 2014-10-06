@@ -23,8 +23,7 @@ public:
                         std::vector<scoped_ptr_t<issue_t> > *issues_out);
 
 private:
-    static bool update_callback(const boost::optional<std::string> &message,
-                                local_issues_t *local_issues);
+    void do_update();
 
     boost::optional<std::string> error_message;
     DISABLE_COPYING(log_write_issue_tracker_t);

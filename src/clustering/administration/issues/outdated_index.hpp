@@ -40,9 +40,6 @@ private:
     void recompute();
     void destroy_report(outdated_index_report_impl_t *report);
 
-    static bool update_callback(const outdated_index_issue_t::index_map_t &indexes,
-                                local_issues_t *local_issues);
-
     void log_outdated_indexes(namespace_id_t ns_id,
                               std::set<std::string> indexes,
                               auto_drainer_t::lock_t keepalive);
