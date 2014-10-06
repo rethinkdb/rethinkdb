@@ -19,11 +19,10 @@ class outdated_index_report_impl_t;
 class outdated_index_dummy_value_t { };
 
 class outdated_index_issue_tracker_t :
-    public local_issue_tracker_t,
     public coro_pool_callback_t<outdated_index_dummy_value_t>,
     public home_thread_mixin_t {
 public:
-    explicit outdated_index_issue_tracker_t(local_issue_aggregator_t *_parent);
+    explicit outdated_index_issue_tracker_t(local_issue_aggregator_t *parent);
     ~outdated_index_issue_tracker_t();
 
     // Returns the set of strings for a given namespace that may be filled
@@ -44,6 +43,9 @@ private:
                               std::set<std::string> indexes,
                               auto_drainer_t::lock_t keepalive);
 
+    watchable_variable_t<std::vector<outdated_index_issue_t> > issues;
+    local_issue_aggregator_t::subscription_t<outdated_index_issue_t> subs;
+
     std::set<namespace_id_t> logged_namespaces;
     one_per_thread_t<outdated_index_issue_t::index_map_t> outdated_indexes;
     one_per_thread_t<std::set<outdated_index_report_impl_t *> > index_reports;
@@ -54,7 +56,6 @@ private:
 
     single_value_producer_t<outdated_index_dummy_value_t> update_queue;
     coro_pool_t<outdated_index_dummy_value_t> update_pool;
-
     DISABLE_COPYING(outdated_index_issue_tracker_t);
 };
 

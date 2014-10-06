@@ -46,8 +46,9 @@ datum_string_t log_write_issue_t::build_description(const ql::datum_t &info) con
         servers_string.c_str()));
 }
 
-log_write_issue_tracker_t::log_write_issue_tracker_t(local_issue_aggregator_t *_parent) :
-    local_issue_tracker_t(_parent) { }
+log_write_issue_tracker_t::log_write_issue_tracker_t(local_issue_aggregator_t *parent) :
+    issues(std::vector<log_write_issue_t>()),
+    subs(parent, issues.get_watchable(), &local_issues_t::log_write_issues) { }
 
 log_write_issue_tracker_t::~log_write_issue_tracker_t() {
     // Clear any log write issue
@@ -55,12 +56,11 @@ log_write_issue_tracker_t::~log_write_issue_tracker_t() {
 }
 
 void log_write_issue_tracker_t::do_update() {
-    update_issues(
-        [&](local_issues_t *local_issues) -> bool {
-            local_issues->log_write_issues.clear();
+    issues.apply_atomic_op(
+        [&](std::vector<log_write_issue_t> *local_issues) -> bool {
+            local_issues->clear();
             if (error_message) {
-                local_issues->log_write_issues.push_back(
-                    log_write_issue_t(error_message.get()));
+                local_issues->push_back(log_write_issue_t(error_message.get()));
             }
             return true;
         });

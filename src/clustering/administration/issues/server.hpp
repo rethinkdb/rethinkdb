@@ -10,10 +10,10 @@
 #include "rpc/semilattice/view.hpp"
 #include "containers/incremental_lenses.hpp"
 
-class server_issue_tracker_t : public local_issue_tracker_t {
+class server_issue_tracker_t {
 public:
     server_issue_tracker_t(
-        local_issue_aggregator_t *_parent,
+        local_issue_aggregator_t *parent,
         boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
             _cluster_sl_view,
         const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > >
@@ -26,13 +26,17 @@ public:
 private:
     void recompute();
 
+    watchable_variable_t<std::vector<server_down_issue_t> > down_issues;
+    watchable_variable_t<std::vector<server_ghost_issue_t> > ghost_issues;
+    local_issue_aggregator_t::subscription_t<server_down_issue_t> down_subs;
+    local_issue_aggregator_t::subscription_t<server_ghost_issue_t> ghost_subs;
+
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
         cluster_sl_view;
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > >
         machine_to_peer;
     watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> >::subscription_t
         machine_to_peer_subs;
-
     DISABLE_COPYING(server_issue_tracker_t);
 };
 

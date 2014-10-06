@@ -106,12 +106,15 @@ datum_string_t server_ghost_issue_t::build_description(const ql::datum_t &info) 
 }
 
 server_issue_tracker_t::server_issue_tracker_t(
-            local_issue_aggregator_t *_parent,
+            local_issue_aggregator_t *parent,
             boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
                 _cluster_sl_view,
             const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > >
                 &_machine_to_peer) :
-        local_issue_tracker_t(_parent),
+        down_issues(std::vector<server_down_issue_t>()),
+        ghost_issues(std::vector<server_ghost_issue_t>()),
+        down_subs(parent, down_issues.get_watchable(), &local_issues_t::server_down_issues),
+        ghost_subs(parent, ghost_issues.get_watchable(), &local_issues_t::server_ghost_issues),
         cluster_sl_view(_cluster_sl_view),
         machine_to_peer(_machine_to_peer),
         machine_to_peer_subs(std::bind(&server_issue_tracker_t::recompute, this)) {
@@ -123,10 +126,14 @@ server_issue_tracker_t::server_issue_tracker_t(
 
 server_issue_tracker_t::~server_issue_tracker_t() {
     // Clear any outstanding down/ghost issues
-    update_issues(
-        [] (local_issues_t *local_issues) -> bool {
-            local_issues->server_down_issues.clear();
-            local_issues->server_ghost_issues.clear();
+    down_issues.apply_atomic_op(
+        [] (std::vector<server_down_issue_t> *issues) -> bool {
+            issues->clear();
+            return true;
+        });
+    ghost_issues.apply_atomic_op(
+        [] (std::vector<server_ghost_issue_t> *issues) -> bool {
+            issues->clear();
             return true;
         });
 }
@@ -146,17 +153,19 @@ void server_issue_tracker_t::recompute() {
         }
     }
 
-    update_issues(
-        [&] (local_issues_t *local_issues) -> bool {
-            local_issues->server_down_issues.clear();
-            local_issues->server_ghost_issues.clear();
+    down_issues.apply_atomic_op(
+        [&] (std::vector<server_down_issue_t> *issues) -> bool {
+            issues->clear();
             for (auto const &server : down_servers) {
-                local_issues->server_down_issues.push_back(
-                    server_down_issue_t(server));
+                issues->push_back(server_down_issue_t(server));
             }
+            return true;
+        });
+    ghost_issues.apply_atomic_op(
+        [&] (std::vector<server_ghost_issue_t> *issues) -> bool {
+            issues->clear();
             for (auto const &server : ghost_servers) {
-                local_issues->server_ghost_issues.push_back(
-                    server_ghost_issue_t(server));
+                issues->push_back(server_ghost_issue_t(server));
             }
             return true;
         });

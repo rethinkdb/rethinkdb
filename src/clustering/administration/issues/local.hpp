@@ -25,18 +25,4 @@ public:
     std::vector<machine_id_t> affected_server_ids;
 };
 
-class local_issue_tracker_t {
-public:
-    explicit local_issue_tracker_t(local_issue_aggregator_t *_parent);
-
-protected:
-    // This is a little wonky, but enforces the interface we want.
-    // The update_fn argument takes a pointer to the existing local_issues
-    // and should modify it appropriately
-    void update_issues(std::function<bool(local_issues_t*)> update_fn);
-
-private:
-    local_issue_aggregator_t *parent;
-};
-
 #endif /* CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_HPP_ */

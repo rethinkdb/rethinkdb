@@ -16,9 +16,3 @@ void local_issue_t::add_server(const machine_id_t &server) {
     affected_server_ids.push_back(server);
 }
 
-local_issue_tracker_t::local_issue_tracker_t(local_issue_aggregator_t *_parent) : parent(_parent) { }
-
-void local_issue_tracker_t::update_issues(std::function<bool(local_issues_t*)> update_fn) {
-    parent->assert_thread();
-    parent->issues_watchable.apply_atomic_op(update_fn);
-}

@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "clustering/administration/issues/local.hpp"
+#include "clustering/administration/main/watchable_fields.hpp"
 #include "concurrency/watchable.hpp"
 #include "containers/clone_ptr.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
@@ -116,11 +117,19 @@ public:
 
     clone_ptr_t<watchable_t<local_issues_t> > get_issues_watchable();
 
+    template <typename local_t>
+    class subscription_t {
+    public:
+        subscription_t(local_issue_aggregator_t *parent,
+                       const clone_ptr_t<watchable_t<std::vector<local_t> > > &source,
+                       std::vector<local_t> local_issues_t::*field) :
+            copier(field, source, &parent->issues_watchable) { }
+    private:
+        field_copier_t<std::vector<local_t>, local_issues_t> copier;
+    };
+
 private:
-    friend class local_issue_tracker_t;
-
     watchable_variable_t<local_issues_t> issues_watchable;
-
     DISABLE_COPYING(local_issue_aggregator_t);
 };
 

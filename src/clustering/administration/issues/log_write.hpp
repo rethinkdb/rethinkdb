@@ -10,10 +10,9 @@
 #include "rdb_protocol/store.hpp"
 
 class log_write_issue_tracker_t :
-    public local_issue_tracker_t,
     public home_thread_mixin_t {
 public:
-    explicit log_write_issue_tracker_t(local_issue_aggregator_t *_parent);
+    explicit log_write_issue_tracker_t(local_issue_aggregator_t *parent);
     ~log_write_issue_tracker_t();
 
     void report_success();
@@ -26,6 +25,9 @@ private:
     void do_update();
 
     boost::optional<std::string> error_message;
+
+    watchable_variable_t<std::vector<log_write_issue_t> > issues;
+    local_issue_aggregator_t::subscription_t<log_write_issue_t> subs;
     DISABLE_COPYING(log_write_issue_tracker_t);
 };
 

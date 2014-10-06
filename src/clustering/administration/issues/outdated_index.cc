@@ -153,8 +153,9 @@ private:
 };
 
 outdated_index_issue_tracker_t::outdated_index_issue_tracker_t(
-        local_issue_aggregator_t *_parent) :
-    local_issue_tracker_t(_parent),
+        local_issue_aggregator_t *parent) :
+    issues(std::vector<outdated_index_issue_t>()),
+    subs(parent, issues.get_watchable(), &local_issues_t::outdated_index_issues),
     update_pool(1, &update_queue, this) { }
 
 outdated_index_report_t *outdated_index_issue_tracker_t::create_report(
@@ -181,9 +182,9 @@ void outdated_index_issue_tracker_t::recompute() {
 }
 
 outdated_index_issue_tracker_t::~outdated_index_issue_tracker_t() {
-    update_issues(
-        [] (local_issues_t *local_issues) -> bool {
-            local_issues->outdated_index_issues.clear();
+    issues.apply_atomic_op(
+        [] (std::vector<outdated_index_issue_t> *local_issues) -> bool {
+            local_issues->clear();
             return true;
         });
 }
@@ -199,12 +200,11 @@ void outdated_index_issue_tracker_t::coro_pool_callback(
                                       ph::_1));
 
     outdated_index_issue_t::index_map_t merged_map = merge_maps(all_maps);
-    update_issues(
-        [&] (local_issues_t *local_issues) -> bool {
-            local_issues->outdated_index_issues.clear();
+    issues.apply_atomic_op(
+        [&] (std::vector<outdated_index_issue_t> *local_issues) -> bool {
+            local_issues->clear();
             if (!merged_map.empty()) {
-                local_issues->outdated_index_issues.push_back(
-                    outdated_index_issue_t(merged_map));
+                local_issues->push_back(outdated_index_issue_t(merged_map));
             }
             return true;
         });
