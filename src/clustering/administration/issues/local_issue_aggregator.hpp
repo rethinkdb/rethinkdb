@@ -11,6 +11,14 @@
 #include "rpc/serialize_macros.hpp"
 
 // All local issue types are declared here to avoid circular dependencies
+// This is because local issue trackers require definitions for the metadata,
+// but the metadata requires definitions of all local issue types.
+//
+// Every local issue type should have the following:
+//  - an issue_t subclass defined in this file
+//  - an entry in the local_issues_t for that issue_t subclass
+//  - handling in remote_issue_tracker_t
+//  - a combine() method in the issue tracker
 class log_write_issue_t : public local_issue_t {
 public:
     log_write_issue_t();
@@ -92,9 +100,6 @@ private:
 RDB_DECLARE_SERIALIZABLE(server_ghost_issue_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(server_ghost_issue_t);
 
-// Every local issue type should have the following:
-//  - an entry in the local_issues_t
-//  - a local_issue_t::make_*_issue function for the local issue type
 struct local_issues_t {
     std::vector<log_write_issue_t> log_write_issues;
     std::vector<server_down_issue_t> server_down_issues;
