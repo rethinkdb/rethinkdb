@@ -124,6 +124,9 @@ def info(*args):
 def binary(data):
     return Binary(data)
 
+def range(*args):
+    return Range(*args)
+
 def time(*args):
     return Time(*args)
 

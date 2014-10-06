@@ -245,6 +245,8 @@ counted_t<term_t> make_union_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_zip_term(
     compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_range_term(
+    compile_env_t *env, const protob_t<const Term> &term);
 
 // sindex.cc
 counted_t<term_t> make_sindex_create_term(

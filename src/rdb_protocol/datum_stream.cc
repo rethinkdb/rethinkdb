@@ -1077,4 +1077,38 @@ union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
     return std::vector<datum_t>();
 }
 
+// RANGE_DATUM_STREAM_T
+range_datum_stream_t::range_datum_stream_t(int64_t _start, int64_t _stop,
+                                           const protob_t<const Backtrace> &bt_source)
+    : eager_datum_stream_t(bt_source), start(_start), stop(_stop) { }
+
+std::vector<datum_t>
+range_datum_stream_t::next_raw_batch(env_t *, const batchspec_t &batchspec) {
+    std::vector<datum_t> v;
+    batcher_t batcher = batchspec.to_batcher();
+
+    datum_t d;
+    while (!is_exhausted()) {
+        d = datum_t(safe_to_double(start++));
+        batcher.note_el(d);
+        v.push_back(std::move(d));
+        if (batcher.should_send_batch()) {
+            break;
+        }
+    }
+    return v;
+}
+
+bool range_datum_stream_t::is_array() {
+    return false;
+}
+
+bool range_datum_stream_t::is_exhausted() const {
+    return start >= stop;
+}
+
+bool range_datum_stream_t::is_cfeed() const {
+    return false;
+}
+
 } // namespace ql

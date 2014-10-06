@@ -1,0 +1,31 @@
+desc: Tests RQL range generation
+tests:
+    - cd: r.range().type_of()
+      ot: "'STREAM'"
+
+    - cd: r.range().limit(4)
+      ot: [0, 1, 2, 3]
+
+    - cd: r.range(4)
+      ot: [0, 1, 2, 3]
+
+    - cd: r.range(2, 5)
+      ot: [2, 3, 4]
+
+    - cd: r.range(0)
+      ot: []
+
+    - cd: r.range(5, 2)
+      ot: []
+
+    - cd: r.range(-5, -2)
+      ot: [-5, -4, -3]
+
+    - cd: r.range(-5, 2)
+      ot: [-5, -4, -3, -2, -1, 0, 1]
+
+    - cd: r.range(2, 5, 8)
+      ot: err("RqlCompileError", "Expected between 0 and 2 arguments but found 3.", [])
+
+    - cd: r.range(0.5)
+      ot: err_regex("RqlRuntimeError", "Number not an integer. 0\.5", [])

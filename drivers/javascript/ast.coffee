@@ -839,6 +839,10 @@ class Zip extends RDBOp
     tt: protoTermType.ZIP
     mt: 'zip'
 
+class Range extends RDBOp
+    tt: protoTermType.RANGE
+    mt: 'range'
+
 class CoerceTo extends RDBOp
     tt: protoTermType.COERCE_TO
     mt: 'coerceTo'
@@ -1277,6 +1281,8 @@ rethinkdb.distance = aropt (g1, g2, opts) -> new Distance opts, g1, g2
 rethinkdb.circle = aropt (cen, rad, opts) -> new Circle opts, cen, rad
 
 rethinkdb.uuid = (args...) -> new UUID {}, args...
+
+rethinkdb.range = (args...) -> new Range {}, args...
 
 # Export all names defined on rethinkdb
 module.exports = rethinkdb

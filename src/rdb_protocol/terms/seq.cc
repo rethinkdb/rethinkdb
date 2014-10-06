@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
+#include <limits>
 #include <string>
 #include <utility>
 #include <vector>
@@ -325,6 +326,31 @@ private:
     virtual const char *name() const { return "zip"; }
 };
 
+class range_term_t : public op_term_t {
+public:
+    range_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(0, 2)) { }
+private:
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        int64_t start = 0;
+        int64_t stop = std::numeric_limits<int64_t>::max();
+
+        if (args->num_args() == 0) {
+            // Use default bounds
+        } else if (args->num_args() == 1) {
+            stop = args->arg(env, 0)->as_int();
+        } else {
+            r_sanity_check(args->num_args() == 2);
+            start = args->arg(env, 0)->as_int();
+            stop = args->arg(env, 1)->as_int();
+        }
+
+        return new_val(env->env, make_counted<range_datum_stream_t>(
+            start, stop, backtrace()));
+    }
+    virtual const char *name() const { return "range"; }
+};
+
 counted_t<term_t> make_between_term(
     compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<between_term_t>(env, term);
@@ -380,6 +406,11 @@ counted_t<term_t> make_union_term(
 counted_t<term_t> make_zip_term(
     compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<zip_term_t>(env, term);
+}
+
+counted_t<term_t> make_range_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<range_term_t>(env, term);
 }
 
 } // namespace ql

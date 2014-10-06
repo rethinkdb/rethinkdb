@@ -399,6 +399,9 @@ message Term {
         // An inner-join that does an equality comparison on two attributes.
         EQ_JOIN            = 50; // Sequence, !STRING, Sequence, {index:!STRING} -> Sequence
         ZIP                = 72; // Sequence -> Sequence
+        RANGE              = 173; // -> Sequence                        [0, +inf)
+                                  // NUMBER -> Sequence                 [0, a)
+                                  // NUMBER, NUMBER -> Sequence         [a, b)
 
         // Array Ops
         // Insert an element in to an array at a given index.
