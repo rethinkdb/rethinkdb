@@ -9,6 +9,7 @@ Please modify 'scripts/generate_serialize_macros.py' instead of modifying this f
 
 #include "containers/archive/archive.hpp"
 #include "containers/archive/versioned.hpp"
+#include "errors.hpp"
 #include "version.hpp"
 
 /* The purpose of these macros is to make it easier to serialize and
@@ -56,6 +57,7 @@ namespace helper {
     void serialize(write_message_t *, const type_t &) { \
         static_assert(helper::always_false<W>::value, \
                       "This type is only serializable for cluster."); \
+        unreachable(); \
     }; \
     template <> \
     void serialize<cluster_version_t::CLUSTER>( \
@@ -64,6 +66,7 @@ namespace helper {
     archive_result_t deserialize(read_stream_t *, type_t *) { \
         static_assert(helper::always_false<W>::value, \
                       "This type is only deserializable for cluster."); \
+        unreachable(); \
     }; \
     template <> \
     archive_result_t deserialize<cluster_version_t::CLUSTER>( \

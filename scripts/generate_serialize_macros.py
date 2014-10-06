@@ -152,6 +152,7 @@ if __name__ == "__main__":
 
     print "#include \"containers/archive/archive.hpp\""
     print "#include \"containers/archive/versioned.hpp\""
+    print "#include \"errors.hpp\""
     print "#include \"version.hpp\""
     print
 
@@ -202,6 +203,7 @@ macros that should not be used inside of class bodies. */
     print "    void serialize(write_message_t *, const type_t &) { \\"
     print "        static_assert(helper::always_false<W>::value, \\"
     print "                      \"This type is only serializable for cluster.\"); \\"
+    print "        unreachable(); \\"
     print "    }; \\"
     print "    template <> \\"
     print "    void serialize<cluster_version_t::CLUSTER>( \\"
@@ -210,6 +212,7 @@ macros that should not be used inside of class bodies. */
     print "    archive_result_t deserialize(read_stream_t *, type_t *) { \\"
     print "        static_assert(helper::always_false<W>::value, \\"
     print "                      \"This type is only deserializable for cluster.\"); \\"
+    print "        unreachable(); \\"
     print "    }; \\"
     print "    template <> \\"
     print "    archive_result_t deserialize<cluster_version_t::CLUSTER>( \\"
