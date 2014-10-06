@@ -180,7 +180,12 @@ We use dummy "extern int" declarations to force a compile error in
 macros that should not be used inside of class bodies. */
     """.strip()
     print "namespace helper {"
-    print "    // Required for the reason described here, http://www.boost.org/doc/libs/1_56_0/doc/html/boost_staticassert.html#boost_staticassert.templates"
+    print "    /* When a `static_assert` is used within a templated class or function,"
+    print "     * but does not depend on any template parameters the C++ compiler is free"
+    print "     * to evaluate the assert even before instantiating that template. This"
+    print "     * helper class allows a `static_assert(false, ...)` to depend on the"
+    print "     * `cluster_version_t` template parameter."
+    print "     * Also see http://stackoverflow.com/a/14637534. */"
     print "    template <cluster_version_t W>"
     print "    struct always_false"
     print "        : std::false_type { };"
