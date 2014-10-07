@@ -2,14 +2,23 @@
 #ifndef CONCURRENCY_WATCHABLE_MAP_HPP_
 #define CONCURRENCY_WATCHABLE_MAP_HPP_
 
+#include <functional>
+#include <map>
+
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
+#include "concurrency/signal.hpp"
+#include "concurrency/pubsub.hpp"
+#include "containers/map_sentries.hpp"
+#include "utils.hpp"
+
 /* `watchable_map_t` is like `watchable_t` except specialized for holding a map in which
 the keys usually update independently. If the map contains N keys, it takes O(log(N))
 time to propagate an update for that key, as opposed to a `watchable_t<std::map>`, which
 would take O(N) time.
 
-`watchable_map_t` also makes some design decisions differently than `watchable_t`. In
-particular, `watchable_map_t` doesn't support subviews. (They were a bad idea in the
-first place.) */
+`watchable_map_t` also makes some design decisions differently than `watchable_t`.  */
 
 template<class key_t, class value_t>
 class watchable_map_t : public home_thread_mixin_t {
@@ -32,7 +41,7 @@ public:
     private:
         typename publisher_t<std::function<void(const key_t &, const value_t *)> >
             ::subscription_t subscription;
-        DISABLE_COPYING(watchable_map_all_subs_t);
+        DISABLE_COPYING(all_subs_t);
     };
 
     /* `key_subs_t` registers for notifications whenever a specific key in the map
@@ -51,7 +60,7 @@ public:
 
     private:
         multimap_insertion_sentry_t<key_t, std::function<void(const value_t *)> > sentry;
-        DISABLE_COPYING(watchable_map_key_subs_t);
+        DISABLE_COPYING(key_subs_t);
     };
 
     /* Returns all of the key-value pairs in the map. */
@@ -70,6 +79,9 @@ public:
         const std::function<void(const value_t *)> &) = 0;
 
 protected:
+    watchable_map_t() { }
+    virtual ~watchable_map_t() { }
+
     /* Subclasses should call `notify_change()` any time that they alter values. */
     void notify_change(
         const key_t &key,
@@ -77,6 +89,8 @@ protected:
         rwi_lock_assertion_t::write_acq_t *write_acq);
 
 private:
+    virtual rwi_lock_assertion_t *get_rwi_lock() = 0;
+
     publisher_controller_t<std::function<void(const key_t &, const value_t *)> >
         all_subs_publisher;
     std::multimap<key_t, std::function<void(const value_t *)> > key_subs_map;
@@ -108,6 +122,10 @@ public:
     void delete_key(const key_t &key);
 
 private:
+    rwi_lock_assertion_t *get_rwi_lock() {
+        return &rwi_lock;
+    }
+
     std::map<key_t, value_t> map;
     rwi_lock_assertion_t rwi_lock;
 };
