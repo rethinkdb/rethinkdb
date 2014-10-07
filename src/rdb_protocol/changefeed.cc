@@ -344,8 +344,13 @@ void limit_manager_t::commit(const sindex_ref_t &sindex_ref) {
     debugf("real_added %zu, real_deleted %zu\n", real_added.size(), real_deleted.size());
     std::vector<std::string> truncated = lqueue.truncate(spec.limit);
     for (auto &&id : truncated) {
-        bool inserted = real_deleted.insert(std::move(id)).second;
-        guarantee(inserted);
+        auto it = real_added.find_id(id);
+        if (it != real_added.end()) {
+            real_added.erase(it);
+        } else {
+            bool inserted = real_deleted.insert(std::move(id)).second;
+            guarantee(inserted);
+        }
     }
     debugf("2 real_added %zu, real_deleted %zu\n",
            real_added.size(), real_deleted.size());
@@ -356,9 +361,10 @@ void limit_manager_t::commit(const sindex_ref_t &sindex_ref) {
         // RSI: need a closed bound and duplicate removal to handle truncated
         // sindexes.
         stream_t s = read_more(sindex_ref, begin, spec.limit - lqueue.size());
+        debugf("got %zu\n", s.size());
         guarantee(s.size() <= spec.limit - lqueue.size());
         for (const auto &item : s) {
-            auto str = datum_t::extract_primary(key_to_debug_str(item.key));
+            auto str = datum_t::extract_primary(key_to_unescaped_str(item.key));
             bool ins = lqueue.insert(str, item.sindex_key, item.data).second;
             guarantee(ins);
             size_t erased = real_deleted.erase(str);
