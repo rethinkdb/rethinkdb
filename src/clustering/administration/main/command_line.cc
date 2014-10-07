@@ -805,7 +805,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
     }
 
 
-    logINF("Loading data from directory %s\n", base_path.path().c_str());
+    logNTC("Loading data from directory %s\n", base_path.path().c_str());
 
     io_backender_t io_backender(direct_io_mode, max_concurrent_io_requests);
 
@@ -878,7 +878,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
                             NULL, NULL, data_directory_lock,
                             result_out);
     } else {
-        logINF("Initializing directory %s\n", base_path.path().c_str());
+        logNTC("Initializing directory %s\n", base_path.path().c_str());
 
         machine_id_t our_machine_id = generate_uuid();
 

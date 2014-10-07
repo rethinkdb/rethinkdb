@@ -49,7 +49,7 @@ void network_logger_t::on_change() {
                         if (jt != _semilattice.machines.end()) {
                             if (parent->connected_servers.count(it->second.machine_id) == 0) {
                                 parent->connected_servers.insert(it->second.machine_id);
-                                logINF("Connected to server %s", parent->pretty_print_machine(it->second.machine_id).c_str());
+                                logNTC("Connected to server %s", parent->pretty_print_machine(it->second.machine_id).c_str());
                             }
                         }
                         break;
@@ -57,7 +57,7 @@ void network_logger_t::on_change() {
                     case PROXY_PEER: {
                         _proxies_seen->insert(it->first);
                         if (parent->connected_proxies.count(it->first)) {
-                            logINF("Connected to proxy %s", uuid_to_str(it->first.get_uuid()).c_str());
+                            logNTC("Connected to proxy %s", uuid_to_str(it->first.get_uuid()).c_str());
                         }
                         break;
                     }

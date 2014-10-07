@@ -187,7 +187,7 @@ bool do_serve(io_backender_t *io_backender,
         if (serve_info.ports.port != 0) {
             guarantee(serve_info.ports.port == connectivity_cluster_run->get_port());
         }
-        logINF("Listening for intracluster connections on port %d\n",
+        logNTC("Listening for intracluster connections on port %d\n",
             connectivity_cluster_run->get_port());
 
         auto_reconnector_t auto_reconnector(
@@ -302,7 +302,7 @@ bool do_serve(io_backender_t *io_backender,
                     serve_info.ports.local_addresses,
                     serve_info.ports.reql_port,
                     &rdb_ctx);
-                logINF("Listening for client driver connections on port %d\n",
+                logNTC("Listening for client driver connections on port %d\n",
                        rdb_query_server.get_port());
 
                 scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t<cluster_semilattice_metadata_t> >
@@ -340,7 +340,7 @@ bool do_serve(io_backender_t *io_backender,
                                 rdb_query_server.get_http_app(),
                                 machine_id,
                                 serve_info.web_assets));
-                        logINF("Listening for administrative HTTP connections on port %d\n",
+                        logNTC("Listening for administrative HTTP connections on port %d\n",
                                admin_server_ptr->get_port());
                     }
 
@@ -348,12 +348,12 @@ bool do_serve(io_backender_t *io_backender,
                     logNTC("Listening on addresses: %s\n", addresses_string.c_str());
 
                     if (!serve_info.ports.is_bind_all()) {
-                        logINF("To fully expose RethinkDB on the network, bind to all addresses");
+                        logNTC("To fully expose RethinkDB on the network, bind to all addresses");
                         if(serve_info.config_file) {
-                            logINF("by adding `bind=all' to the config file (%s).",
+                            logNTC("by adding `bind=all' to the config file (%s).",
                                    (*serve_info.config_file).c_str());
                         } else {
-                            logINF("by running rethinkdb with the `--bind all` command line option.");
+                            logNTC("by running rethinkdb with the `--bind all` command line option.");
                         }
                     }
 
