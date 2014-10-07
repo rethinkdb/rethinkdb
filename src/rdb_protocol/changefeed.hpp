@@ -209,24 +209,21 @@ template<class Id, class Key, class Val, class Lt>
 class index_queue_t {
 private:
     std::map<Id, std::pair<Key, Val> > data;
+    typedef typename decltype(data)::iterator diterator;
+    std::set<diterator,
+             std::function<bool(const diterator &, const diterator &)> > index;
 public:
-    typedef typename decltype(data)::iterator iterator;
-private:
-    // RSI: std::set<iterator>
-    std::set<std::pair<Key, iterator>,
-             std::function<bool(const std::pair<Key, iterator> &,
-                                const std::pair<Key, iterator> &)> > index;
-public:
-
+    typedef typename decltype(index)::iterator iterator;
 
     index_queue_t(Lt lt)
         : index(
-            [lt](const std::pair<Key, iterator> &a, const std::pair<Key, iterator> &b) {
-                return lt(a.first, b.first)
+            [lt](const diterator &a, const diterator &b) {
+                return lt(a->second.first, b->second.first)
                     ? true
-                    : (lt(b.first, a.first)
+                    : (lt(b->second.first, a->second.first)
                        ? false
-                       : a.second->first < b.second->first);
+                       // RSI: cmp
+                       : a->first < b->first);
             }) { }
 
 
@@ -237,15 +234,20 @@ public:
                       std::move(pair.second.second));
     }
     MUST_USE std::pair<iterator, bool> insert(Id i, Key k, Val v) {
-        std::pair<iterator, bool> p = data.insert(
-            std::make_pair(std::move(i), std::make_pair(k, std::move(v))));
+        std::pair<diterator, bool> p = data.insert(
+            std::make_pair(std::move(i), std::make_pair(std::move(k), std::move(v))));
+        iterator it;
         if (p.second) { // inserted
-            index.insert(std::make_pair(std::move(k), p.first));
+            auto pair = index.insert(p.first);
+            guarantee(pair.second);
+            it = pair.first;
         } else {
             guarantee(k == p.first->second.first);
+            it = index.find(p.first);
+            guarantee(it != index.end());
         }
         guarantee(data.size() == index.size());
-        return p;
+        return std::make_pair(it, p.second);
     }
 
     size_t size() {
@@ -253,11 +255,15 @@ public:
         return data.size();
     }
 
-    iterator begin() { return data.begin(); }
-    iterator end() { return data.end(); }
-    void erase(const iterator &it) {
+    iterator begin() { return index.begin(); }
+    iterator end() { return index.end(); }
+    void erase(const iterator &raw_it) {
+        guarantee(raw_it != index.end());
+        erase(*raw_it);
+    }
+    void erase(const diterator &it) {
         guarantee(it != data.end());
-        auto ft = index.find(std::make_pair(it->second.first, it));
+        auto ft = index.find(it);
         guarantee(ft != index.end());
         index.erase(ft);
         data.erase(it);
@@ -270,7 +276,8 @@ public:
     }
 
     iterator find_id(const Id &i) {
-        return data.find(i);
+        auto dit = data.find(i);
+        return dit == data.end() ? index.end() : index.find(dit);
     }
     MUST_USE bool del_id(const Id &i) {
         auto it = data.find(i);
@@ -287,8 +294,8 @@ public:
     std::vector<Id> truncate(size_t n) {
         std::vector<Id> ret;
         while (index.size() > n) {
-            ret.push_back(index.begin()->second->first);
-            data.erase(index.begin()->second);
+            ret.push_back((*index.begin())->first);
+            data.erase(*index.begin());
             index.erase(index.begin());
         }
         guarantee(data.size() == index.size());
