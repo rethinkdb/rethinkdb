@@ -107,7 +107,7 @@ ql::datum_t table_name_collision_issue_t::build_info(const metadata_t &metadata)
 
     ql::datum_object_builder_t builder;
     builder.overwrite("name", convert_name_to_datum(name));
-    builder.overwrite("db_name", convert_string_to_datum(db_name));
+    builder.overwrite("db", convert_string_to_datum(db_name));
     builder.overwrite("db_id", convert_uuid_to_datum(db_id));
     builder.overwrite("ids", std::move(ids_builder).to_datum());
     return std::move(builder).to_datum();
@@ -123,7 +123,7 @@ datum_string_t table_name_collision_issue_t::build_description(const ql::datum_t
 
     return datum_string_t(strprintf(
         "The following tables in database '%s' are all named '%s': %s.",
-        info.get_field("db_name").as_str().to_std().c_str(),
+        info.get_field("db").as_str().to_std().c_str(),
         name.c_str(),
         ids_str.c_str()));
 }

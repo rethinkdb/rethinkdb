@@ -74,8 +74,9 @@ ql::datum_t outdated_index_issue_t::build_info(const metadata_t &metadata) const
 
 datum_string_t outdated_index_issue_t::build_description(const ql::datum_t &info) const {
     std::string index_table;
-    for (size_t i = 0; i < info.arr_size(); ++i) {
-        ql::datum_t table_info = info.get(i);
+    ql::datum_t tables = info.get_field("tables");
+    for (size_t i = 0; i < tables.arr_size(); ++i) {
+        ql::datum_t table_info = tables.get(i);
         ql::datum_t indexes = table_info.get_field("indexes");
 
         std::string index_str;

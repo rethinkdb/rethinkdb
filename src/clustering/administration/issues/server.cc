@@ -50,7 +50,7 @@ std::vector<std::string> look_up_servers(const issue_t::metadata_t &metadata,
 std::string servers_to_string(const ql::datum_t &server_names) {
     std::string res;
     for (size_t i = 0; i < server_names.arr_size(); ++i) {
-        res.append(strprintf("%s%s",
+        res.append(strprintf("%s'%s'",
                              res.empty() ? "" : ", ",
                              server_names.get(i).as_str().to_std().c_str()));
     }
@@ -75,10 +75,10 @@ ql::datum_t server_down_issue_t::build_info(const metadata_t &metadata) const {
 
 datum_string_t server_down_issue_t::build_description(const ql::datum_t &info) const {
     return datum_string_t(strprintf(
-        "Server %s is inaccessible from %s%s.",
+        "Server '%s' is inaccessible from %s%s.",
         info.get_field("server").as_str().to_std().c_str(),
         affected_server_ids.size() == 1 ? "" : "these servers: ",
-        servers_to_string(info.get_field("affected_server_ids")).c_str()));
+        servers_to_string(info.get_field("affected_servers")).c_str()));
 }
 
 server_ghost_issue_t::server_ghost_issue_t() { }
@@ -99,10 +99,10 @@ ql::datum_t server_ghost_issue_t::build_info(const metadata_t &metadata) const {
 
 datum_string_t server_ghost_issue_t::build_description(const ql::datum_t &info) const {
     return datum_string_t(strprintf(
-        "Server %s was declared dead, but is still connected to %s%s.",
+        "Server '%s' was declared dead, but is still connected to %s%s.",
         info.get_field("server").as_str().to_std().c_str(),
         affected_server_ids.size() == 1 ? "" : "these servers: ",
-        servers_to_string(info.get_field("affected_server_ids")).c_str()));
+        servers_to_string(info.get_field("affected_servers")).c_str()));
 }
 
 server_issue_tracker_t::server_issue_tracker_t(
@@ -116,6 +116,7 @@ server_issue_tracker_t::server_issue_tracker_t(
         down_subs(parent, down_issues.get_watchable(), &local_issues_t::server_down_issues),
         ghost_subs(parent, ghost_issues.get_watchable(), &local_issues_t::server_ghost_issues),
         cluster_sl_view(_cluster_sl_view),
+        cluster_sl_subs(std::bind(&server_issue_tracker_t::recompute, this), cluster_sl_view),
         machine_to_peer(_machine_to_peer),
         machine_to_peer_subs(std::bind(&server_issue_tracker_t::recompute, this)) {
     watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> >::freeze_t
