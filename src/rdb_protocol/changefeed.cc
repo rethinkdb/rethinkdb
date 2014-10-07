@@ -317,7 +317,7 @@ stream_t limit_manager_t::read_more(
 }
 
 // RSI: pick up here
-// * Use primary key rather than store key.
+// * Fix big insert crash (added and then removed again).
 // * name `lt` `gt` and switch ordering of PRIMARY KEY ONLY.
 void limit_manager_t::commit(const sindex_ref_t &sindex_ref) {
     debugf("\n**********************************************************************\n");
@@ -379,6 +379,7 @@ void limit_manager_t::commit(const sindex_ref_t &sindex_ref) {
             msg.new_val = std::move(**it);
             real_added.erase(it);
         }
+        debugf("DEL send %s\n", msg.print().c_str());
         send(msg_t(std::move(msg)));
     }
     real_deleted.clear();
@@ -388,6 +389,7 @@ void limit_manager_t::commit(const sindex_ref_t &sindex_ref) {
         msg_t::limit_change_t msg;
         msg.sub = uuid;
         msg.new_val = std::move(*it);
+        debugf("ADD send %s\n", msg.print().c_str());
         send(msg_t(std::move(msg)));
     }
     real_added.clear();
@@ -687,6 +689,7 @@ public:
           got_init(0),
           spec(std::move(_spec)),
           lt([](const datum_t &lhs, const datum_t &rhs) {
+                  // RSI: cmp
                   return lhs.cmp(reql_version_t::LATEST, rhs) > 0;
               }),
           lqueue(lt),
@@ -797,6 +800,18 @@ public:
                            (*new_val).second.first.print().c_str(),
                            (*new_val).second.second.print().c_str()).c_str()
                : "NONE");
+
+        std::string s;
+        for (const auto &jt : active_data) {
+            s += (*jt)->first + " ";
+        }
+        debugf("active %s\n", s.c_str());
+        s = "";
+        for (const auto &jt : lqueue) {
+            s += jt->first + " ";
+        }
+        debugf("lqueue %s\n", s.c_str());
+
         // RSI: queue if `need_init`.
         datum_t old_send, new_send;
         if (old_key) {
@@ -856,17 +871,6 @@ public:
                 // set bounds, so we need to add the next best element.
                 debugf("Plan omega.\n");
                 auto it = *active_data.begin();
-
-                std::string s;
-                for (const auto &jt : active_data) {
-                    s += (*jt)->second.first.print();
-                }
-                debugf("active %s\n", s.c_str());
-                s = "";
-                for (const auto &jt : lqueue) {
-                    s += jt->second.first.print();
-                }
-                debugf("lqueue %s\n", s.c_str());
 
                 guarantee(it != lqueue.begin());
                 --it;

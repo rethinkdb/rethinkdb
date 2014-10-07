@@ -60,6 +60,21 @@ struct msg_t {
         uuid_u sub;
         boost::optional<std::string> old_key;
         boost::optional<std::pair<std::string, std::pair<datum_t, datum_t> > > new_val;
+        std::string print() {
+            std::string s;
+            s = strprintf("\n| sub: %s\n", uuid_to_str(sub).c_str());
+            s += strprintf("| old_key: %s\n",
+                           old_key ? (*old_key).c_str() : "NONE");;
+            s += strprintf(
+                "| new_val: %s\n",
+                new_val ? strprintf("%s <%s, %s>",
+                                    (*new_val).first.c_str(),
+                                    (*new_val).second.first.print().c_str(),
+                                    (*new_val).second.second.print().c_str()).c_str()
+                        : "NONE");
+            return s;
+        }
+
         RDB_DECLARE_ME_SERIALIZABLE;
     };
     struct change_t {
