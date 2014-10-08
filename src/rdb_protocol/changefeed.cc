@@ -221,7 +221,9 @@ void server_t::foreach_limit(const std::string &sindex,
 
 limit_order_t::limit_order_t(sorting_t _sorting)
     : sorting(std::move(_sorting)) {
-    r_sanity_check(sorting != sorting_t::UNORDERED);
+    rcheck_toplevel(
+        sorting != sorting_t::UNORDERED, base_exc_t::GENERIC,
+        "Cannot get changes on the first elements of an unordered stream.");
 }
 
 bool limit_order_t::operator()(const datum_t &a, const datum_t &b) const {
