@@ -75,7 +75,9 @@ reactor_t::reactor_t(
         mailbox_manager_t *mm,
         backfill_throttler_t *backfill_throttler_,
         ack_checker_t *ack_checker_,
-        clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > > > rd,
+        watchable_map_t<
+            peer_id_t, 
+            directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > *rd,
         branch_history_manager_t *bhm,
         clone_ptr_t<watchable_t<blueprint_t> > b,
         multistore_ptr_t *_underlying_svs,
@@ -90,9 +92,7 @@ reactor_t::reactor_t(
     backfill_throttler(backfill_throttler_),
     ack_checker(ack_checker_),
     directory_echo_writer(mailbox_manager, cow_ptr_t<reactor_business_card_t>()),
-    directory_echo_mirror(mailbox_manager, rd->incremental_subview<
-        change_tracking_map_t<peer_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > (
-            collapse_optionals_in_map_t<peer_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >())),
+    directory_echo_mirror(mailbox_manager, rd),
     branch_history_manager(bhm),
     blueprint_watchable(b),
     underlying_svs(_underlying_svs),
@@ -275,9 +275,12 @@ void reactor_t::run_role(
              * correct assumption. The below line waits until the bcard shows
              * up in the directory thus make sure that the bcard is in the
              * directory before the be_role functions get called. */
-            directory_echo_mirror.get_internal()->run_until_satisfied(
-                boost::bind(&we_see_our_bcard, _1, get_me()), &wait_any,
-                REACTOR_RUN_UNTIL_SATISFIED_NAP);
+            directory_echo_mirror.get_internal()->run_key_until_satisfied(
+                me,
+                [](const cow_ptr_t<reactor_business_card_t> *maybe_bcard) {
+                    return (maybe_bcard != nullptr);
+                },
+                &wait_any);
             // guarantee(CLUSTER_CPU_SHARDING_FACTOR == svs_subview.num_stores());
 
             pmap(svs_subview.num_stores(), boost::bind(&reactor_t::run_cpu_sharded_role, this, _1, role, region, &svs_subview, &wait_any, &role->abort_roles));

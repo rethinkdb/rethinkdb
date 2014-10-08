@@ -26,7 +26,10 @@ public:
             mailbox_manager_t *mailbox_manager,
             backfill_throttler_t *backfill_throttler,
             ack_checker_t *ack_checker,
-            clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > > > reactor_directory,
+            watchable_map_t<
+                peer_id,
+                directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> >
+                > *reactor_directory,
             branch_history_manager_t *branch_history_manager,
             clone_ptr_t<watchable_t<blueprint_t> > blueprint_watchable,
             multistore_ptr_t *_underlying_svs,
@@ -183,31 +186,29 @@ private:
     DISABLE_COPYING(reactor_t);
 };
 
-
-// TODO: This could easily be an incremental lens. It doesn't seem overly critical for
-// performance though, so let's belay that until it turns out to be necessary.
-template<class activity_t>
-boost::optional<boost::optional<activity_t> > extract_activity_from_reactor_bcard(const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &bcards, peer_id_t p_id, const reactor_activity_id_t &ra_id) {
-    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> >::const_iterator it = bcards.get_inner().find(p_id);
-    if (it == bcards.get_inner().end()) {
-        return boost::optional<boost::optional<activity_t> >();
-    }
-    reactor_business_card_t::activity_map_t::const_iterator jt = it->second->activities.find(ra_id);
-    if (jt == it->second->activities.end()) {
-        return boost::optional<boost::optional<activity_t> >(boost::optional<activity_t>());
-    }
-    try {
-        return boost::optional<boost::optional<activity_t> >(boost::optional<activity_t>(boost::get<activity_t>(jt->second.activity)));
-    } catch (const boost::bad_get &) {
-        crash("Tried to get an activity of an unexpected type! It is assumed "
-            "the person calling this function knows the type of the activity "
-            "they will be getting back.\n");
-    }
-}
-
 template <class activity_t>
 clone_ptr_t<watchable_t<boost::optional<boost::optional<activity_t> > > > reactor_t::get_directory_entry_view(peer_id_t p_id, const reactor_activity_id_t &ra_id) {
-    return directory_echo_mirror.get_internal()->subview(std::bind(&extract_activity_from_reactor_bcard<activity_t>, ph::_1, p_id, ra_id));
+    return get_watchable_for_key(directory_echo_mirror.get_internal(), p_id)->subview(
+        [ra_id](const boost::optional<cow_ptr_t<reactor_business_card_t> > &bcard) {
+            if (!static_cast<bool>(maybe_bcard)) {
+                return boost::optional<boost::optional<activity_t> >();
+            }
+            reactor_business_card_t::activity_map_t::const_iterator jt =
+                (*maybe_bcard)->activities.find(ra_id);
+            if (jt == it->second->activities.end()) {
+                return boost::optional<boost::optional<activity_t> >(
+                    boost::optional<activity_t>());
+            }
+            try {
+                return boost::optional<boost::optional<activity_t> >(
+                    boost::optional<activity_t>(
+                        boost::get<activity_t>(jt->second.activity)));
+            } catch (const boost::bad_get &) {
+                crash("Tried to get an activity of an unexpected type! It is assumed "
+                    "the person calling this function knows the type of the activity "
+                    "they will be getting back.\n");
+            }
+        });
 }
 
 

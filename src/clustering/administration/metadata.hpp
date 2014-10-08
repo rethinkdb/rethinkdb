@@ -102,7 +102,6 @@ public:
     cluster_directory_metadata_t &operator=(cluster_directory_metadata_t &&other) {
         /* We have to define this manually instead of using `= default` because older
         versions of `boost::optional` don't support moving */
-        rdb_namespaces = std::move(other.rdb_namespaces);
         machine_id = other.machine_id;
         peer_id = other.peer_id;
         version = std::move(other.version);
@@ -121,8 +120,6 @@ public:
         peer_type = other.peer_type;
         return *this;
     }
-
-    namespaces_directory_metadata_t rdb_namespaces;
 
     machine_id_t machine_id;
 
@@ -222,7 +219,7 @@ bool search_const_metadata_by_uuid(
      `const_metadata_searcher_t` for const maps
      and `metadata_searcher_t` for non-const maps. */
 template<class T, class metamap_t, class iterator_t>
-class generic_metadata_searcher_t {
+class generic_metadata_searcher_t {m
 public:
     typedef iterator_t iterator;
     iterator begin() {return map->begin();}

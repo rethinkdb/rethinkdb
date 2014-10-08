@@ -5,12 +5,12 @@ template<class key_t, class value_t>
 watchable_map_t<key_t, value_t>::all_subs_t::all_subs_t(
         watchable_map_t<key_t, value_t> *map,
         const std::function<void(const key_t &key, const value_t *maybe_value)> &cb,
-        const std::function<void(const std::map<key_t, value_t> &)> &initial_cb) :
+        bool initial_call) :
         subscription(cb) {
     rwi_lock_assertion_t::read_acq_t acq(map->get_rwi_lock());
     subscription.reset(map->all_subs_publisher.get_publisher());
-    if (static_cast<bool>(initial_cb)) {
-        map->read_all(initial_cb);
+    if (initial_call) {
+        map->read_all(cb);
     }
 }
 
@@ -27,11 +27,29 @@ watchable_map_t<key_t, value_t>::key_subs_t::key_subs_t(
 }
 
 template<class key_t, class value_t>
+template<class callable_t>
+void watchable_map_t<key_t, value_t>::run_key_until_satisfied(
+        const key_t &key,
+        const callable_t &fun,
+        signal_t *interruptor) {
+    assert_thread();
+    cond_t ok;
+    key_subs_t subs(this, key,
+        [&](const value_t *new_value) {
+            if (fun(new_value)) {
+                ok.pulse();
+            }
+        }, true);
+    wait_interruptible(&ok, interruptor);
+}
+
+template<class key_t, class value_t>
 void watchable_map_t<key_t, value_t>::notify_change(
         const key_t &key,
         const value_t *new_value,
-        rwi_lock_assertion_t::write_acq_t *write_acq) {
-    write_acq->assert_is_holding(get_rwi_lock());
+        rwi_lock_assertion_t::write_acq_t *acq) {
+    ASSERT_FINITE_CORO_WAITING;
+    acq->assert_is_holding(get_rwi_lock());
     all_subs_publisher.publish(
         [&](const std::function<void(const key_t &, const value_t *)> &callback) {
             callback(key, new_value);
@@ -60,8 +78,10 @@ boost::optional<value_t> watchable_map_var_t<key_t, value_t>::get_key(const key_
 
 template<class key_t, class value_t>
 void watchable_map_var_t<key_t, value_t>::read_all(
-        const std::function<void(const std::map<key_t, value_t> &)> &fun) {
-    fun(map);
+        const std::function<void(const key_t &, const value_t *> &)> &fun) {
+    for (const auto &pair : map) {
+        fun(pair.first, &pair.second);
+    }
 }
 
 template<class key_t, class value_t>

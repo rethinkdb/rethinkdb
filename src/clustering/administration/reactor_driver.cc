@@ -156,7 +156,13 @@ blueprint_t construct_blueprint(const table_replication_info_t &info,
 /* This is in part because these types aren't copyable so they can't go in
  * a std::pair. This class is used to hold a reactor and a watchable that
  * it's watching. */
-class watchable_and_reactor_t : private ack_checker_t {
+class watchable_and_reactor_t :
+        private ack_checker_t,
+        private watchable_map_transform_t<
+            std::pair<peer_id_t, namespace_id_t>,
+            namespace_directory_metadata_t,
+            peer_id_t,
+            namespace_directory_metadata_t> {
 public:
     watchable_and_reactor_t(const base_path_t &_base_path,
                             io_backender_t *io_backender,
@@ -165,6 +171,7 @@ public:
                             const blueprint_t &bp,
                             svs_by_namespace_t *svs_by_namespace,
                             rdb_context_t *_ctx) :
+        watchable_map_transform_t(parent->directory_view),
         base_path(_base_path),
         watchable(bp),
         ctx(_ctx),
@@ -183,11 +190,9 @@ public:
         /* XXX the order in which the perform the operations is important and
          * will cause bugs if any changes are made. */
 
-        /* First we destroy the subscription, this is because anytime this
-         * subscription receives a notification it propagates it to the reactor
-         * which we are about to destroy. If this line were after the reactory
-         * destruction we would get segfaults in on_change. */
-        reactor_directory_subscription_.reset();
+        /* We have to destroy `directory_exporter_` before `reactor_` because
+        `directory_exporter_` is subscribed to a `watchable_t` that `reactor_` owns. */
+        directory_exporter_.reset();
 
         /* Destroy the reactor. (Dun dun duhnnnn...). Next we destroy the
          * reactor. We need to do this before we remove the reactor bcard. This
@@ -197,8 +202,7 @@ public:
         reactor_.reset();
 
         /* Finally we remove the reactor bcard. */
-        parent_->set_reactor_directory_entry(namespace_id_,
-            boost::optional<reactor_driver_t::reactor_directory_entry_t>());
+        parent_->watchable_var.delete_key(namespace_id_);
     }
 
     bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) const {
@@ -214,25 +218,24 @@ public:
     }
 
 private:
-    typedef boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >
-        extract_reactor_directory_per_peer_result_type;
-
-    extract_reactor_directory_per_peer_result_type extract_reactor_directory_per_peer(
-        const namespaces_directory_metadata_t &nss) {
-
-        auto it = nss.reactor_bcards.find(namespace_id_);
-        if (it == nss.reactor_bcards.end()) {
-            return boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >();
+    bool key_1_to_2(const std::pair<peer_id_t, namespace_id_t> &key1,
+                    peer_id_t *key2_out) {
+        if (key1.second == namespace_id_) {
+            *key2_out = key1.first;
+            return true;
         } else {
-            return boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >(it->second);
+            return false;
         }
     }
 
-    void on_change_reactor_directory() {
-        // Tell our parent, the reactor driver, that this reactor's directory
-        // has changed, and what its new value is:
-        parent_->set_reactor_directory_entry(namespace_id_,
-            boost::make_optional(reactor_->get_reactor_directory()->get()));
+    void key_2_to_1(peer_id_t key2, std::pair<peer_id_t, namespace_id_t> *key1_out) {
+        key1_out->first = key2;
+        key1_out->second = namespace_id_;
+    }
+
+    void value_1_to_2(const namespace_directory_entry_t *value1,
+                      const namespace_directory_entry_t **value2_out) {
+        *value2_out = value1;
     }
 
     void initialize_reactor(io_backender_t *io_backender) {
@@ -243,35 +246,27 @@ private:
         // TODO: We probably shouldn't have to pass in this perfmon collection.
         svs_by_namespace_->get_svs(serializers_collection, namespace_id_, &stores_lifetimer_, &svs_, ctx);
 
-        auto const extract_reactor_directory_per_peer_fun =
-            boost::bind(&watchable_and_reactor_t::extract_reactor_directory_per_peer,
-                        this, _1);
-        incremental_map_lens_t<peer_id_t,
-                               namespaces_directory_metadata_t,
-                               typeof extract_reactor_directory_per_peer_fun>
-            extract_reactor_directory(extract_reactor_directory_per_peer_fun);
-
         reactor_.init(new reactor_t(
             base_path,
             io_backender,
             parent_->mbox_manager,
             &parent_->backfill_throttler,
             this,
-            parent_->directory_view->incremental_subview(extract_reactor_directory),
+            this,
             parent_->branch_history_manager,
             watchable.get_watchable(),
             svs_.get(), namespace_collection, ctx));
 
-        {
-            watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >::freeze_t reactor_directory_freeze(reactor_->get_reactor_directory());
-            reactor_directory_subscription_.init(
-                new watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >::subscription_t(
-                    boost::bind(&watchable_and_reactor_t::on_change_reactor_directory, this),
-                    reactor_->get_reactor_directory(), &reactor_directory_freeze));
-
-            parent_->set_reactor_directory_entry(namespace_id_,
-                boost::make_optional(reactor_->get_reactor_directory()->get()));
-        }
+        directory_exporter_.init(
+            new watchable_map_entry_copier_t<
+                    namespace_id_t, namespace_directory_metadata_t>(
+                &parent_->watchable_var,
+                namespace_id_,
+                reactor_->get_reactor_directory(),
+                /* `directory_exporter_` shouldn't immediately remove the directory entry
+                when it's deleted; see note in `~watchable_and_reactor_t()`. */
+                false
+            ));
 
         reactor_has_been_initialized_.pulse();
     }
@@ -294,7 +289,8 @@ private:
     scoped_ptr_t<multistore_ptr_t> svs_;
     scoped_ptr_t<reactor_t> reactor_;
 
-    scoped_ptr_t<watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >::subscription_t> reactor_directory_subscription_;
+    scoped_ptr_t<watchable_map_entry_copier_t<
+        namespace_id_t, namespace_directory_entry_t> > directory_exporter_;
 
     DISABLE_COPYING(watchable_and_reactor_t);
 };
@@ -350,67 +346,6 @@ reactor_driver_t::reactor_driver_t(
 reactor_driver_t::~reactor_driver_t() {
     /* This must be defined in the `.cc` file because the full definition of
     `watchable_and_reactor_t` is not available in the `.hpp` file. */
-}
-
-void reactor_driver_t::set_reactor_directory_entry(
-    const namespace_id_t reactor_namespace,
-    const boost::optional<reactor_directory_entry_t> &new_value) {
-
-    // Just stash the change for now. If necessary, we spawn a coroutine that takes
-    // care of eventually committing the changes to `watchable_variable`.
-    // This allows us to combine multiple reactor directory changes into a single
-    // update of the watchable_variable, which significantly reduces the overhead
-    // of metadata operations that affect multiple reactors (such as resharding)
-    // in large clusters.
-    const bool must_initiate_commit = changed_reactor_directories.empty();
-    changed_reactor_directories[reactor_namespace] = new_value;
-
-    if (must_initiate_commit) {
-        coro_t::spawn_sometime(
-            boost::bind(&reactor_driver_t::commit_directory_changes,
-                        this,
-                        auto_drainer_t::lock_t(&directory_change_drainer)));
-    }
-}
-
-void reactor_driver_t::commit_directory_changes(auto_drainer_t::lock_t lock) {
-    // Delay the commit for a moment in anticipation that more changes come in
-    lock.assert_is_holding(&directory_change_drainer);
-    try {
-        // The nap time of 200 ms was determined experimentally as follows:
-        // In the specific test, a 200 ms nap provided a high speed up when
-        // resharding a table in a cluster of 64 nodes. Higher values improved the
-        // efficiency of the operation only marginally, while unnecessarily slowing
-        // down directory changes in smaller clusters.
-        nap(200, lock.get_drain_signal());
-    } catch (const interrupted_exc_t &e) {
-    }
-    lock.assert_is_holding(&directory_change_drainer);
-
-    DEBUG_VAR mutex_assertion_t::acq_t acq(&watchable_variable_lock);
-
-    watchable_variable.apply_atomic_op(std::bind(&apply_directory_changes,
-                                                 &changed_reactor_directories,
-                                                 std::placeholders::_1));
-}
-
-bool reactor_driver_t::apply_directory_changes(
-    std::map<namespace_id_t, boost::optional<reactor_directory_entry_t> >
-        *_changed_reactor_directories,
-    namespaces_directory_metadata_t *directory) {
-
-    for (auto it = _changed_reactor_directories->begin();
-         it != _changed_reactor_directories->end();
-         ++it) {
-        // it->second is a boost::optional<reactor_directory_entry_t>
-        if (it->second) {
-            directory->reactor_bcards[it->first] = it->second.get();
-        } else {
-            directory->reactor_bcards.erase(it->first);
-        }
-    }
-    _changed_reactor_directories->clear();
-    return true;
 }
 
 void reactor_driver_t::delete_reactor_data(

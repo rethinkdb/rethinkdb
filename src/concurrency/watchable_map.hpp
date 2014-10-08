@@ -18,7 +18,12 @@ the keys usually update independently. If the map contains N keys, it takes O(lo
 time to propagate an update for that key, as opposed to a `watchable_t<std::map>`, which
 would take O(N) time.
 
-`watchable_map_t` also makes some design decisions differently than `watchable_t`.  */
+Note that `watchable_map_t` doesn't make any guarantees about update ordering. The values
+visible in the `watchable_map_t` are guaranteed to quickly converge to the correct value,
+but they could do so in any order. In addition, if a value is changed and then quickly
+changed back, it's possible that no notification will be sent. (The current
+implementation will always deliver notifications in this case, but there's no guarantee.)
+*/
 
 template<class key_t, class value_t>
 class watchable_map_t : public home_thread_mixin_t {
@@ -29,14 +34,12 @@ public:
     public:
         /* Starts watching for changes to the given map. When a change occurs to a key,
         `cb` will be called with the key and a pointer to the new value, or `nullptr` if
-        the key was deleted. If `initial_cb` is provided, the `all_subs_t` constructor
-        will call it with the value of the map at the time that the subscription starts.
-        This can be used to read the current value and then subscribe to new changes in a
-        way that is safe from race conditions. */
+        the key was deleted. If `initial_call` is `true`, then `cb` will be called once
+        for each key-value pair in the map at the time the `all_subs_t` is created. */
         all_subs_t(
             watchable_map_t<key_t, value_t> *map,
-            const std::function<void(const key_t &key, const value_t *maybe_value)> &cb,
-            const std::function<void(const std::map<key_t, value_t> &)> &initial_cb);
+            const std::function<void(const key_t &, const value_t *)> &cb,
+            bool initial_call = true);
 
     private:
         typename publisher_t<std::function<void(const key_t &, const value_t *)> >
@@ -63,20 +66,34 @@ public:
         DISABLE_COPYING(key_subs_t);
     };
 
-    /* Returns all of the key-value pairs in the map. */
+    /* Returns all of the key-value pairs in the map. This needs to copy all of the keys
+    and values in the map, so it's likely to be slow. */
     virtual std::map<key_t, value_t> get_all() = 0;
 
     /* Looks up a single key-value pair in the map. Returns the value if found, or an
-    empty `boost::optional` if not. */
+    empty `boost::optional` if not. This needs to copy the value, so it's likely to be
+    slow. */
     virtual boost::optional<value_t> get_key(const key_t &key) = 0;
 
     /* `read_all()` and `read_key()` are like `get_all()` and `get_key()`, except that
     they avoid copying. */
     virtual void read_all(
-        const std::function<void(const std::map<key_t, value_t> &)> &) = 0;
+        /* This function will be called once for each key-value pair in the map. The
+        `const value_t *` will always be non-NULL; it's a pointer for consistency with
+        other functions in this class. */
+        const std::function<void(const key_t &, const value_t *)> &) = 0;
     virtual void read_key(
         const key_t &key,
         const std::function<void(const value_t *)> &) = 0;
+
+    /* `run_key_until_satisfied()` repeatedly calls `fun()` on a `const value_t *`
+    representing the current value of `key` until `fun` returns `true` or `interruptor`
+    is pulsed. It's efficient because it only retries `fun` when the value changes. */
+    template<class callable_t>
+    void run_key_until_satisfied(
+        const key_t &key,
+        const callable_t &fun,
+        signal_t *interruptor);
 
 protected:
     watchable_map_t() { }
@@ -86,7 +103,7 @@ protected:
     void notify_change(
         const key_t &key,
         const value_t *new_value,
-        rwi_lock_assertion_t::write_acq_t *write_acq);
+        rwi_lock_assertion_t::write_acq_t *acq);
 
 private:
     virtual rwi_lock_assertion_t *get_rwi_lock() = 0;
@@ -103,7 +120,7 @@ class watchable_map_var_t : public watchable_map_t<key_t, value_t> {
 public:
     std::map<key_t, value_t> get_all();
     boost::optional<value_t> get_key(const key_t &key);
-    void read_all(const std::function<void(const std::map<key_t, value_t> &)> &);
+    void read_all(const std::function<void(const key_t &, const value_t &)> &);
     void read_key(const key_t &key, const std::function<void(const value_t *)> &);
 
     /* `set_all()` removes all of the key-value pairs from the map and replaces them with
