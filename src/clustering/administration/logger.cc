@@ -341,7 +341,6 @@ void fallback_log_writer_t::install(const std::string &logfile_name) {
 
 bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_out) {
     std::string formatted = format_log_message(msg);
-    std::string console_formatted = format_log_message(msg, true);
 
     FILE* write_stream = nullptr;
     int fileno = -1;
@@ -365,6 +364,7 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
 
     if (msg.level != log_level_info) {
         // Write to stdout/stderr for all log levels but info (#3040)
+        std::string console_formatted = format_log_message(msg, true);
         flockfile(write_stream);
 
         ssize_t write_res = ::write(fileno, console_formatted.data(), console_formatted.length());
