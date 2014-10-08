@@ -57,7 +57,7 @@ def expr(val, nesting_depth=20):
         return ISO8601(val.isoformat())
     elif isinstance(val, RqlBinary):
         return Binary(val)
-    elif isinstance(val, str):
+    elif isinstance(val, (str, unicode)):
         return Datum(val)
     elif isinstance(val, bytes):
         return Binary(val)
