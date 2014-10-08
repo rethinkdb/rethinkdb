@@ -587,7 +587,7 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
     // Make sure that all specified addresses were found
     for (std::set<ip_address_t>::iterator i = set_filter.begin(); i != set_filter.end(); ++i) {
         if (result.find(*i) == result.end()) {
-            std::string errmsg = strprintf("could not find bind ip address '%s'", i->to_string().c_str());
+            std::string errmsg = strprintf("Could not find bind ip address '%s'", i->to_string().c_str());
             if (i->is_ipv6_link_local()) {
                 errmsg += strprintf(", this is an IPv6 link-local address, make sure the scope is correct");
             }
@@ -596,7 +596,7 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
     }
 
     if (result.empty()) {
-        throw address_lookup_exc_t("no local addresses found to bind to");
+        throw address_lookup_exc_t("No local addresses found to bind to.");
     }
 
     // If we will use all local addresses, return an empty set, which is how tcp_listener_t does it
@@ -1057,7 +1057,7 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
     options::help_section_t help("Network options");
     options_out->push_back(options::option_t(options::names_t("--bind"),
                                              options::OPTIONAL_REPEAT));
-    help.add("--bind {all | addr}", "add the address of a local interface to listen on when accepting connections; loopback addresses are enabled by default");
+    help.add("--bind {all | addr}", "add the address of a local interface to listen on when accepting connections; if not specified, 127.0.0.1 and ::1 will be used");
 
     options_out->push_back(options::option_t(options::names_t("--cluster-port"),
                                              options::OPTIONAL,

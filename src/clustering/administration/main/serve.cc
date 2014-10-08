@@ -345,7 +345,9 @@ bool do_serve(io_backender_t *io_backender,
                     }
 
                     const std::string addresses_string = serve_info.ports.get_addresses_string();
-                    logINF("Listening on addresses: %s\n", addresses_string.c_str());
+                    logINF("Listening on address%s: %s\n",
+                           serve_info.ports.local_addresses.size() == 1 ? "" : "es",
+                           addresses_string.c_str());
 
                     if (!serve_info.ports.is_bind_all()) {
                         logINF("To fully expose RethinkDB on the network, bind to all addresses");
