@@ -236,16 +236,24 @@ private:
 
 class range_datum_stream_t : public eager_datum_stream_t {
 public:
-    range_datum_stream_t(int64_t, int64_t, const protob_t<const Backtrace> &);
+    range_datum_stream_t(bool is_infite,
+                         int64_t _start,
+                         int64_t _stop,
+                         const protob_t<const Backtrace> &);
 
     virtual std::vector<datum_t>
     next_raw_batch(env_t *, const batchspec_t &batchspec);
 
-    virtual bool is_array();
+    virtual bool is_array() {
+        return false;
+    }
     virtual bool is_exhausted() const;
-    virtual bool is_cfeed() const;
+    virtual bool is_cfeed() const {
+        return false;
+    }
 
 private:
+    bool is_infinite;
     int64_t start, stop;
 };
 

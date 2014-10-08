@@ -27,5 +27,21 @@ tests:
     - cd: r.range(2, 5, 8)
       ot: err("RqlCompileError", "Expected between 0 and 2 arguments but found 3.", [])
 
+    - cd: r.range("foo")
+      ot: err("RqlRuntimeError", "Expected type NUMBER but found STRING.", [])
+
+      # Using 9007199254740994 instead of 9007199254740993 due to #2157
+    - cd: r.range(9007199254740994)
+      ot: err_regex("RqlRuntimeError", "Number not an integer \\(>2\\^53\\). 9007199254740994", [])
+
+    - cd: r.range(-9007199254740994)
+      ot: err_regex("RqlRuntimeError", "Number not an integer \\(<-2\\^53\\). -9007199254740994", [])
+
     - cd: r.range(0.5)
-      ot: err_regex("RqlRuntimeError", "Number not an integer. 0\.5", [])
+      ot: err_regex("RqlRuntimeError", "Number not an integer. 0\\.5", [])
+
+    - cd: r.range().count()
+      ot: err("RqlRuntimeError", "Cannot call a terminal (`reduce`, `count`, etc.) on an infinite stream.", [])
+
+    - cd: r.range(4).count()
+      ot: 4

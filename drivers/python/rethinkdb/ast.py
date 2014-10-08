@@ -1331,7 +1331,7 @@ class Binary(RqlTopLevelQuery):
 
 class Range(RqlTopLevelQuery):
     tt = pTerm.RANGE
-    ss = 'range'
+    st = 'range'
 
 class ToISO8601(RqlMethodQuery):
     tt = pTerm.TO_ISO8601

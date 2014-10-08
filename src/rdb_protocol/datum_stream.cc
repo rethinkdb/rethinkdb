@@ -1,6 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/datum_stream.hpp"
 
+#include <cmath>
 #include <map>
 
 #include "rdb_protocol/batching.hpp"
@@ -1078,20 +1079,41 @@ union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
 }
 
 // RANGE_DATUM_STREAM_T
-range_datum_stream_t::range_datum_stream_t(int64_t _start, int64_t _stop,
+range_datum_stream_t::range_datum_stream_t(bool _is_infinite,
+                                           int64_t _start,
+                                           int64_t _stop,
                                            const protob_t<const Backtrace> &bt_source)
-    : eager_datum_stream_t(bt_source), start(_start), stop(_stop) { }
+    : eager_datum_stream_t(bt_source),
+      is_infinite(_is_infinite),
+      start(_start),
+      stop(_stop) { }
 
 std::vector<datum_t>
 range_datum_stream_t::next_raw_batch(env_t *, const batchspec_t &batchspec) {
-    std::vector<datum_t> v;
-    batcher_t batcher = batchspec.to_batcher();
+    rcheck(!is_infinite
+           || batchspec.get_batch_type() == batch_type_t::NORMAL
+           || batchspec.get_batch_type() == batch_type_t::NORMAL_FIRST,
+           base_exc_t::GENERIC,
+           "Cannot call a terminal (`reduce`, `count`, etc.) on an infinite stream.");
 
-    datum_t d;
+    std::vector<datum_t> v;
+    // 500 is picked out of a hat for latency, primarily in the Data Explorer. If you
+    // think strongly it should be something else you're probably right.
+    batcher_t batcher = batchspec.with_at_most(500).to_batcher();
+
     while (!is_exhausted()) {
-        d = datum_t(safe_to_double(start++));
-        batcher.note_el(d);
-        v.push_back(std::move(d));
+        double next = safe_to_double(start++);
+        // `safe_to_double` returns NaN on error, which signals that `start` is larger
+        // than 2^53 indicating we've reached the end of our infinite stream. This must
+        // be checked before creating a `datum_t` as that does a similar check on
+        // construction.
+        // isfinite is a macro on OS X in math.h, so we can't just use std::isfinite.
+        using namespace std;  // isfinite is a macro on OS X, so we can't just say std::isfinite.
+        rcheck(isfinite(next), base_exc_t::GENERIC,
+               "`r.range()` out of safe double bounds.");
+
+        v.emplace_back(next);
+        batcher.note_el(v.back());
         if (batcher.should_send_batch()) {
             break;
         }
@@ -1099,16 +1121,8 @@ range_datum_stream_t::next_raw_batch(env_t *, const batchspec_t &batchspec) {
     return v;
 }
 
-bool range_datum_stream_t::is_array() {
-    return false;
-}
-
 bool range_datum_stream_t::is_exhausted() const {
-    return start >= stop;
-}
-
-bool range_datum_stream_t::is_cfeed() const {
-    return false;
+    return !is_infinite && start >= stop;
 }
 
 } // namespace ql

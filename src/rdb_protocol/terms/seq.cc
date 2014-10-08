@@ -1,7 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
-#include <limits>
 #include <string>
 #include <utility>
 #include <vector>
@@ -332,11 +331,11 @@ public:
         : op_term_t(env, term, argspec_t(0, 2)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        int64_t start = 0;
-        int64_t stop = std::numeric_limits<int64_t>::max();
+        bool is_infinite = false;
+        int64_t start = 0, stop = 0;
 
         if (args->num_args() == 0) {
-            // Use default bounds
+            is_infinite = true;
         } else if (args->num_args() == 1) {
             stop = args->arg(env, 0)->as_int();
         } else {
@@ -346,7 +345,7 @@ private:
         }
 
         return new_val(env->env, make_counted<range_datum_stream_t>(
-            start, stop, backtrace()));
+            is_infinite, start, stop, backtrace()));
     }
     virtual const char *name() const { return "range"; }
 };

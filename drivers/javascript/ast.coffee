@@ -841,7 +841,7 @@ class Zip extends RDBOp
 
 class Range extends RDBOp
     tt: protoTermType.RANGE
-    mt: 'range'
+    st: 'range'
 
 class CoerceTo extends RDBOp
     tt: protoTermType.COERCE_TO
