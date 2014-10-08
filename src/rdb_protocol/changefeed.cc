@@ -309,8 +309,18 @@ stream_t limit_manager_t::read_more(
     const sindex_ref_t &ref, const datum_t &start, size_t n) {
     debugf("~~ READ_MORE\n");
     rget_read_response_t resp;
-    auto srange = datum_range_t(
-        start, key_range_t::bound_t::open, datum_t(), key_range_t::bound_t::open);
+    datum_range_t srange;
+    auto open = key_range_t::bound_t::open;
+    switch (spec.range.sorting) {
+    case sorting_t::ASCENDING:
+        srange = datum_range_t(start, open, datum_t(), open);
+        break;
+    case sorting_t::DESCENDING:
+        srange = datum_range_t(datum_t(), open, start, open);
+        break;
+    case sorting_t::UNORDERED: // fallthru
+    default: unreachable();
+    }
     rdb_rget_secondary_slice(
         ref.btree,
         srange,
