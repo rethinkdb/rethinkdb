@@ -16,3 +16,8 @@ void tracking_allocator<T, Allocator>::deallocate(T* region, size_t n) {
     parent->credit(sizeof(T) * n);
     this->original.deallocate(region, n);
 }
+
+template <class T, class Allocator>
+size_t tracking_allocator<T, Allocator>::max_size() {
+    return parent->left();
+}

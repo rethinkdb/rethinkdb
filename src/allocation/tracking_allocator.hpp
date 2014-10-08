@@ -24,6 +24,8 @@ public:
 
     virtual bool operator == (const rethinkdb_allocator<T, Allocator> &other) = 0;
     bool operator != (const rethinkdb_allocator<T, Allocator> &other) { return !(*this == other); }
+
+    virtual size_t max_size() = 0;
 protected:
     enum class allocator_types {
         UNBOUNDED,
@@ -55,6 +57,8 @@ public:
         else
             return false;
     }
+
+    virtual size_t max_size();
 private:
     tracking_allocator_factory *parent;
 };
@@ -79,6 +83,7 @@ public:
         else
             return false;
     }
+    virtual size_t max_size() { return std::numeric_limits<size_t>::max(); }
 };
 
 class tracking_allocator_factory {
@@ -99,6 +104,9 @@ public:
     }
     void credit(size_t bytes) {
         available += bytes;
+    }
+    size_t left() {
+        return available;
     }
 private:
     size_t available;
