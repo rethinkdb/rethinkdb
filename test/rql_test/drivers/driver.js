@@ -58,7 +58,7 @@ function eq_test(one, two, compOpts) {
         return false;
     
     } else if (parseFloat(one) === one && parseFloat(two) === two) {
-        if ('precision' in compOpts && parseFloat(compOpts['precision']) === compOpts['precision']) {
+        if (compOpts && 'precision' in compOpts && parseFloat(compOpts['precision']) === compOpts['precision']) {
             return Math.abs(one - two) <= compOpts['precision'];
         } else {
             return one === two;

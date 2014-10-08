@@ -11,6 +11,14 @@ try:
 	xrange
 except NameError:
 	xrange = range
+try:
+    long
+except NameError:
+    long = int
+try:
+    izip_longest = itertools.izip_longest
+except AttributeError:
+    izip_longest = itertools.zip_longest
 
 # -- timezone objects
 
@@ -97,8 +105,8 @@ class Lst:
         if not hasattr(other, '__iter__'):
             return False
 
-        for otherItem, selfItem in itertools.izip_longest(other, self.lst):
-            if None in (otherItem, selfItem):
+        for otherItem, selfItem in izip_longest(other, self.lst, fillvalue=self.__class__):
+            if self.__class__ in (otherItem, selfItem):
                 return False # mistmatched lengths
             if not eq(selfItem, **self.kwargs)(otherItem):
                 return False
@@ -230,22 +238,25 @@ class Uuid:
     def __repr__(self):
         return "uuid()"
 
-class Int:
-    def __init__(self, i, **kwargs):
-        self.i = i
-
-    def __eq__(self, thing):
-        return isinstance(thing, int) and self.i == thing
-
-class Float:
-    def __init__(self, f, precision=0.0, **kwargs):
-        self.f = f
+class Number:
+    def __init__(self, value, precision=0.0, explicit_type=None, **kwargs):
+        if explicit_type is not None:
+            if not isinstance(value, explicit_type):
+                raise ValueError('Number with an explicit type (%s) got an incorrect value: %s' % (str(explicit_type), str(value)))
+        elif not isinstance(value, (float, int, long)):
+            raise ValueError('Number got a non-numeric value: %s (%s)' % (str(value), type(value)))
+        self.value = value
         self.precision = precision
+        self.explicit_type = explicit_type
 
     def __eq__(self, other):
-        if not isinstance(other, float):
+        testType = self.explicit_type or (float, int, long)
+        if not isinstance(other, testType):
             return False
-        return abs(self.f - other) <= self.precision
+        return abs(self.value - other) <= self.precision
+    
+    def __repr__(self):
+        return "%s: %s" % (type(self.value).__name__, str(self.value))
 
 # -- Curried output test functions --
 
@@ -257,8 +268,8 @@ def eq(exp, **kwargs):
         exp = Lst(exp, **kwargs)
     elif isinstance(exp, dict):
         exp = Dct(exp, **kwargs)
-    elif isinstance(exp, float):
-        exp = Float(exp, **kwargs)
+    elif isinstance(exp, (float, int, long)):
+        exp = Number(exp, **kwargs)
     
     return lambda val: val == exp
 
@@ -418,11 +429,11 @@ def uuid():
 def shard(table_name):
     test_util.shard_table(CLUSTER_PORT, BUILD, table_name)
 
-def int_cmp(i):
-    return Int(i)
+def int_cmp(expected_value):
+    return Number(expected_value, explicit_type=(int, long))
 
-def float_cmp(f):
-    return Float(f)
+def float_cmp(expected_value):
+    return Number(expected_value, explicit_type=float)
 
 def the_end():
     global failure_count
