@@ -318,8 +318,16 @@ public:
     }
 };
 
-typedef index_queue_t<std::string, datum_t, datum_t,
-                      std::function<bool(const datum_t &, const datum_t &)> > lqueue_t;
+class limit_order_t {
+public:
+    limit_order_t(sorting_t _sorting);
+    bool operator()(const datum_t &, const datum_t &) const;
+    bool operator()(const std::string &, const std::string &) const;
+private:
+    const sorting_t sorting;
+};
+
+typedef index_queue_t<std::string, datum_t, datum_t, limit_order_t> lqueue_t;
 
 struct sindex_ref_t {
     env_t *env;
@@ -342,7 +350,7 @@ public:
         client_t::addr_t _parent_client,
         uuid_u _uuid,
         keyspec_t::limit_t _spec,
-        std::function<bool(const datum_t &, const datum_t &)> _lt,
+        limit_order_t _lt,
         stream_t &&start_data);
 
     void add(std::string id, datum_t key, datum_t val);
@@ -365,7 +373,7 @@ private:
     uuid_u uuid;
     keyspec_t::limit_t spec;
     // RSI: sorting
-    std::function<bool(const datum_t &, const datum_t &)> lt;
+    limit_order_t lt;
     lqueue_t lqueue;
 
     std::vector<std::pair<std::string, std::pair<datum_t, datum_t> > > added;
@@ -390,7 +398,7 @@ public:
         const std::string &table,
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
-        std::function<bool(const datum_t &, const datum_t &)> lt,
+        limit_order_t lt,
         stream_t &&start_data);
     // `key` should be non-NULL if there is a key associated with the message.
     void send_all(const msg_t &msg, const store_key_t &key);

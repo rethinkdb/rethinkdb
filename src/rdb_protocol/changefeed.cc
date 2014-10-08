@@ -80,7 +80,7 @@ void server_t::add_limit_client(
     const std::string &table,
     const uuid_u &client_uuid,
     const keyspec_t::limit_t &spec,
-    std::function<bool(const datum_t &, const datum_t &)> lt,
+    limit_order_t lt,
     stream_t &&stream) {
 
     auto_drainer_t::lock_t lock(&drainer);
@@ -219,6 +219,32 @@ void server_t::foreach_limit(const std::string &sindex,
     }
 }
 
+limit_order_t::limit_order_t(sorting_t _sorting)
+    : sorting(std::move(_sorting)) {
+    r_sanity_check(sorting != sorting_t::UNORDERED);
+}
+
+bool limit_order_t::operator()(const datum_t &a, const datum_t &b) const {
+    int cmp = a.cmp(reql_version_t::LATEST, b);
+    switch (sorting) {
+    case sorting_t::ASCENDING: return cmp > 0;
+    case sorting_t::DESCENDING: return cmp < 0;
+    case sorting_t::UNORDERED: // fallthru
+    default: unreachable();
+    }
+    unreachable();
+}
+
+bool limit_order_t::operator()(const std::string &a, const std::string &b) const {
+    switch (sorting) {
+    case sorting_t::ASCENDING: return a > b;
+    case sorting_t::DESCENDING: return a < b;
+    case sorting_t::UNORDERED: // fallthru
+    default: unreachable();
+    }
+    unreachable();
+}
+
 void limit_manager_t::send(msg_t &&msg) {
     auto_drainer_t::lock_t drain_lock(&parent->drainer);
     auto it = parent->clients.find(parent_client);
@@ -233,7 +259,7 @@ limit_manager_t::limit_manager_t(
     client_t::addr_t _parent_client,
     uuid_u _uuid,
     keyspec_t::limit_t _spec,
-    std::function<bool(const datum_t &, const datum_t &)> _lt,
+    limit_order_t _lt,
     stream_t &&stream)
     : region(std::move(_region)),
       table(std::move(_table)),
@@ -694,18 +720,14 @@ public:
           need_init(-1),
           got_init(0),
           spec(std::move(_spec)),
-          lt([](const datum_t &lhs, const datum_t &rhs) {
-                  // RSI: cmp
-                  return lhs.cmp(reql_version_t::LATEST, rhs) > 0;
-              }),
+          lt(limit_order_t(spec.range.sorting)),
           lqueue(lt),
           active_data([this](const data_it_t &a, const data_it_t &b) {
                   return lt((*a)->second.first, (*b)->second.first)
                       ? true
                       : (lt((*b)->second.first, (*a)->second.first)
                          ? false
-                         // RSI: cmp
-                         : (*a)->first < (*b)->first);
+                         : lt((*a)->first, (*b)->first));
               }) {
         feed->add_limit_sub(this, uuid);
     }
@@ -920,10 +942,8 @@ public:
     uuid_u uuid;
     int64_t need_init, got_init;
     keyspec_t::limit_t spec;
-    // RSI: ordering
 
-    std::function<bool(const datum_t &, const datum_t &)> lt;
-
+    limit_order_t lt;
     lqueue_t lqueue;
     typedef decltype(lqueue)::iterator data_it_t;
     typedef std::function<bool(const data_it_t &, const data_it_t &)> data_it_lt_t;

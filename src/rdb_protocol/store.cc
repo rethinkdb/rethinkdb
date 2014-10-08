@@ -305,10 +305,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             }
         }
         rget_read_response_t resp;
-        // RSI: sorting
-        auto lt = [](const ql::datum_t &a, const ql::datum_t &b) {
-            return a.cmp(reql_version_t::LATEST, b) > 0;
-        };
 
         // RSI: sort by datum rather than key.
         if (stream.size() > s.spec.limit) {
@@ -316,6 +312,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         }
 
         guarantee(store->changefeed_server.has());
+        auto lt = ql::changefeed::limit_order_t(s.spec.range.sorting);
         store->changefeed_server->add_limit_client(
             s.addr, s.region, s.table, s.uuid, s.spec, lt, std::move(stream));
         response->response = changefeed_limit_subscribe_response_t(1);
