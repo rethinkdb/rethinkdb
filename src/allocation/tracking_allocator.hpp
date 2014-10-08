@@ -156,16 +156,18 @@ private:
     size_t available;
 };
 
+<<<<<<< HEAD
 template <class T, class Allocator>
 tracking_allocator<T, Allocator>
 allocator_for(Allocator original, std::shared_ptr<tracking_allocator_factory> factory) {
     return tracking_allocator<T, Allocator>(original, factory);
 }
 
-template <class T>
-tracking_allocator<T, std::allocator<T> >
-allocator(std::shared_ptr<tracking_allocator_factory> factory) {
-    return tracking_allocator<T, std::allocator<T>>(std::allocator<T>(), factory);
+template <class T, class Allocator, class... Args>
+T* make(Allocator &alloc, Args&&... args) {
+    T* result = std::allocator_traits<Allocator>::allocate(alloc, 1);
+    std::allocator_traits<Allocator>::construct(alloc, result, std::forward<Args>(args)...);
+    return result;
 }
 
 #endif /* TRACKING_ALLOCATOR_HPP_ */
