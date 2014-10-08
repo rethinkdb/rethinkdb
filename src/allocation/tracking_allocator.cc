@@ -5,7 +5,7 @@
 
 template <class T, class Allocator>
 T* tracking_allocator<T, Allocator>::allocate(size_t n) {
-    if (parent->debit(n))
+    if (parent->debit(sizeof(T) * n))
         return this->original.allocate(n);
     else
         rfail_toplevel(ql::base_exc_t::GENERIC, "Failed to allocate memory; exceeded allocation threshold");
@@ -13,6 +13,6 @@ T* tracking_allocator<T, Allocator>::allocate(size_t n) {
 
 template <class T, class Allocator>
 void tracking_allocator<T, Allocator>::deallocate(T* region, size_t n) {
-    parent->credit(n);
+    parent->credit(sizeof(T) * n);
     this->original.deallocate(region, n);
 }
