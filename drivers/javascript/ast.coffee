@@ -1081,11 +1081,11 @@ class Time extends RDBOp
     st: 'time'
 
 class Geojson extends RDBOp
-    tt: protoTermType.GEO_JSON
+    tt: protoTermType.GEOJSON
     st: 'geojson'
 
 class ToGeojson extends RDBOp
-    tt: protoTermType.TO_GEO_JSON
+    tt: protoTermType.TO_GEOJSON
     mt: 'toGeojson'
 
 class Point extends RDBOp

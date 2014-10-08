@@ -1406,11 +1406,11 @@ class ToEpochTime(RqlMethodQuery):
     st = 'to_epoch_time'
 
 class GeoJson(RqlTopLevelQuery):
-    tt = pTerm.GEO_JSON
+    tt = pTerm.GEOJSON
     st = 'geojson'
 
 class ToGeoJson(RqlMethodQuery):
-    tt = pTerm.TO_GEO_JSON
+    tt = pTerm.TO_GEOJSON
     st = 'to_geojson'
 
 class Point(RqlTopLevelQuery):
