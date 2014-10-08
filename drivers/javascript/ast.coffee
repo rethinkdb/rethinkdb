@@ -928,7 +928,7 @@ class Sync extends RDBOp
     mt: 'sync'
 
 class FunCall extends RDBOp
-    tt: protoTermType.FUN_CALL
+    tt: protoTermType.FUNCALL
     st: 'do' # This is only used by the `undefined` argument checker
 
     compose: (args) ->

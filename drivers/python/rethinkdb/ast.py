@@ -947,7 +947,7 @@ class DB(RqlTopLevelQuery):
         return Table(self, *args, **kwargs)
 
 class FunCall(RqlQuery):
-    tt = pTerm.FUN_CALL
+    tt = pTerm.FUNCALL
 
     # This object should be constructed with arguments first, and the function itself as
     # the last parameter.  This makes it easier for the places where this object is

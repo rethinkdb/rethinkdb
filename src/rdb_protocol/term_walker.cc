@@ -187,7 +187,7 @@ private:
         case Term::COERCE_TO:
         case Term::UNGROUP:
         case Term::TYPE_OF:
-        case Term::FUN_CALL:
+        case Term::FUNCALL:
         case Term::BRANCH:
         case Term::ANY:
         case Term::ALL:
@@ -377,7 +377,7 @@ private:
         case Term::INDEX_STATUS:
         case Term::INDEX_WAIT:
         case Term::INDEX_RENAME:
-        case Term::FUN_CALL:
+        case Term::FUNCALL:
         case Term::BRANCH:
         case Term::ANY:
         case Term::ALL:

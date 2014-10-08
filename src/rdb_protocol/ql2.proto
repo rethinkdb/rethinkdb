@@ -482,7 +482,7 @@ message Term {
 
         // * Control Operators
         // Calls a function on data
-        FUN_CALL  = 64; // Function(*), DATUM... -> DATUM
+        FUNCALL  = 64; // Function(*), DATUM... -> DATUM
         // Executes its first argument, and returns its second argument if it
         // got [true] or its third argument if it got [false] (like an `if`
         // statement).

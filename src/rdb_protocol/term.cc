@@ -112,7 +112,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::INDEX_STATUS:       return make_sindex_status_term(env, t);
     case Term::INDEX_WAIT:         return make_sindex_wait_term(env, t);
     case Term::INDEX_RENAME:       return make_sindex_rename_term(env, t);
-    case Term::FUN_CALL:            return make_funcall_term(env, t);
+    case Term::FUNCALL:            return make_funcall_term(env, t);
     case Term::BRANCH:             return make_branch_term(env, t);
     case Term::ANY:                return make_any_term(env, t);
     case Term::ALL:                return make_all_term(env, t);

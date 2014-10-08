@@ -147,7 +147,7 @@ module RethinkDB
         pp_int_args(q, args, bt, pre_dot)
         q.text("\x7", 0) if bt == []
         return
-      elsif type == Term::TermType::FUN_CALL
+      elsif type == Term::TermType::FUNCALL
         func = (args[0][0] == Term::TermType::FUNC) ? args[0] : nil
         if args.size == 2
           pp_int(q, args[1], bt_consume(bt, 1), pre_dot)

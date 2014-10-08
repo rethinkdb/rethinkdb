@@ -114,7 +114,7 @@ public:
     REQL_METHOD(operator +, ADD)
     REQL_METHOD(operator /, DIV)
     REQL_METHOD(operator ==, EQ)
-    REQL_METHOD(operator (), FUN_CALL)
+    REQL_METHOD(operator (), FUNCALL)
     REQL_METHOD(operator >, GT)
     REQL_METHOD(operator <, LT)
     REQL_METHOD(operator >=, GE)
