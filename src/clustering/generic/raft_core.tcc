@@ -876,7 +876,7 @@ void raft_member_t<state_t>::on_watchdog_timer() {
             try {
                 scoped_ptr_t<new_mutex_acq_t> mutex_acq(
                     new new_mutex_acq_t(&mutex, keepalive.get_drain_signal()));
-                DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
+                DEBUG_ONLY_CODE(this->check_invariants(mutex_acq.get()));
                 /* Double-check that nothing has changed while the coroutine was
                 spawning. */
                 if (mode != mode_t::follower) {
@@ -891,7 +891,7 @@ void raft_member_t<state_t>::on_watchdog_timer() {
                 if (!static_cast<bool>(ps.snapshot_configuration)) {
                     return;
                 }
-                if (!get_configuration().is_valid_leader(this_member_id)) {
+                if (!this->get_configuration().is_valid_leader(this_member_id)) {
                     return;
                 }
                 /* Begin an election */
@@ -1246,11 +1246,11 @@ bool raft_member_t<state_t>::candidate_run_election(
 
                     new_mutex_acq_t mutex_acq_2(
                         &mutex, request_vote_keepalive.get_drain_signal());
-                    DEBUG_ONLY_CODE(check_invariants(&mutex_acq_2));
+                    DEBUG_ONLY_CODE(this->check_invariants(&mutex_acq_2));
                     /* We might soon be leader, but we shouldn't be leader quite yet */
                     guarantee(mode == mode_t::candidate);
 
-                    if (candidate_or_leader_note_term(reply.term, &mutex_acq_2)) {
+                    if (this->candidate_or_leader_note_term(reply.term, &mutex_acq_2)) {
                         /* We got a response with a higher term than our current term.
                         `candidate_and_leader_coro()` will be interrupted soon. */
                         return;
@@ -1338,7 +1338,7 @@ void raft_member_t<state_t>::leader_spawn_update_coros(
 
         scoped_ptr_t<auto_drainer_t> update_drainer(new auto_drainer_t);
         auto_drainer_t::lock_t update_keepalive(update_drainer.get());
-        update_drainers->insert(std::make_pair(peer, std::move(update_drainer)));
+        (*update_drainers)[peer] = std::move(update_drainer);
         coro_t::spawn_sometime(boost::bind(&raft_member_t::leader_send_updates, this,
             peer,
             initial_next_index,
@@ -1637,7 +1637,7 @@ bool raft_member_t<state_t>::candidate_or_leader_note_term(
                 keepalive /* important to capture */]() {
             try {
                 new_mutex_acq_t mutex_acq_2(&mutex, keepalive.get_drain_signal());
-                DEBUG_ONLY_CODE(check_invariants(&mutex_acq_2));
+                DEBUG_ONLY_CODE(this->check_invariants(&mutex_acq_2));
                 /* Check that term hasn't already been updated between when
                 `candidate_or_leader_note_term()` was called and when this coroutine ran.
                 */
@@ -1646,7 +1646,7 @@ bool raft_member_t<state_t>::candidate_or_leader_note_term(
                     this->candidate_or_leader_become_follower(&mutex_acq_2);
                     storage->write_persistent_state(ps, keepalive.get_drain_signal());
                 }
-                DEBUG_ONLY_CODE(check_invariants(&mutex_acq_2));
+                DEBUG_ONLY_CODE(this->check_invariants(&mutex_acq_2));
             } catch (interrupted_exc_t) {
                 /* If `keepalive.get_drain_signal()` is pulsed, then the `raft_member_t`
                 is being destroyed, so it doesn't matter if we update our term; the
