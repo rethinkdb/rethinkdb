@@ -421,6 +421,74 @@ void do_a_replace_from_batched_replace(
     sindex_cb->on_mod_report(mod_report, env);
 }
 
+// This class is a little bit complicated because sometimes the calls to
+// `do_a_replace_from_batched_replace` requires doing more work that involves
+// re-aquiring the superblock, but this happens long after the superblock could
+// normally be released, so we don't want to just hold onto it for the whole time.
+class superblock_queue_t {
+public:
+    typedef std::function<void(
+        superblock_t *,
+        promise_t<superblock_t *> *,
+        superblock_queue_t *,
+        auto_drainer_t::lock_t)> func_t;
+    class caller_t : public single_threaded_countable_t<caller_t> {
+    public:
+        caller_t(func_t _f, superblock_queue_t *_parent)
+            : f(std::move(_f)), parent(_parent), lock(&parent->lock, access_t::read) {
+            lock.read_signal()->wait_lazily_unordered();
+        }
+        void operator()() {
+            {
+                rwlock_in_line_t spot(&parent->promise_lock, access_t::write);
+                spot.write_signal()->wait_lazily_unordered();
+                superblock_t *sb = parent->promise->wait();
+                guarantee(sb == parent->superblock.get());
+                auto new_promise = make_scoped<promise_t<superblock_t *> >();
+                parent->promise.swap(new_promise);
+            }
+            f(parent->superblock.get(), parent->promise.get(), parent, drainer.lock());
+        }
+    private:
+        func_t f;
+        superblock_queue_t *parent;
+        rwlock_in_line_t lock;
+        auto_drainer_t drainer; // RSI: is this necessary?
+    };
+
+    superblock_queue_t(scoped_ptr_t<superblock_t> &&_superblock)
+        : superblock(std::move(_superblock)),
+          pool(8 /*max concurrent jobs*/, &queue, &callback) { }
+    ~superblock_queue_t() {
+        rwlock_in_line_t spot(&lock, access_t::write);
+        // Make sure all the `caller_t`s are out of the queue.
+        spot.write_signal()->wait_lazily_unordered();
+        guarantee(queue.size() == 0);
+    }
+    void add(func_t f) {
+        queue.push(make_counted<caller_t>(std::move(f), this));
+    }
+private:
+
+    scoped_ptr_t<superblock_t> superblock;
+    scoped_ptr_t<promise_t<superblock_t *> > promise;
+    rwlock_t promise_lock;
+
+    // These use `counted_t`s because `coro_pool_t` insists on copying.
+    struct callback_t : public coro_pool_callback_t<counted_t<caller_t> > {
+        virtual void coro_pool_callback(counted_t<caller_t> caller, signal_t *) {
+            (*caller)();
+        }
+    } callback;
+    unlimited_fifo_queue_t<counted_t<caller_t> > queue;
+    coro_pool_t<counted_t<caller_t> > pool;
+    // We use an rwlock rather than an auto drainer and acquire the write signal
+    // in the destructor because we need for `caller_t`s in the `queue` to be
+    // able to add more `caller_t`s to the `queue` which further delay
+    // destruction.
+    rwlock_t lock;
+};
+
 batched_replace_response_t rdb_batched_replace(
     const btree_info_t &info,
     scoped_ptr_t<superblock_t> *superblock,

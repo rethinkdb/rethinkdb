@@ -277,7 +277,7 @@ public:
         const batchspec_t &batchspec) const = 0;
 
     virtual key_range_t original_keyrange() const = 0;
-    virtual std::string sindex_name() const = 0;
+    virtual boost::optional<std::string> sindex_name() const = 0;
 
     // Returns `true` if there is no more to read.
     bool update_range(key_range_t *active_range,
@@ -327,7 +327,7 @@ private:
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual key_range_t original_keyrange() const;
-    virtual std::string sindex_name() const; // Used for error checking.
+    virtual boost::optional<std::string> sindex_name() const;
 };
 
 class sindex_readgen_t : public readgen_t {
@@ -357,7 +357,7 @@ private:
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual key_range_t original_keyrange() const;
-    virtual std::string sindex_name() const; // Used for error checking.
+    virtual boost::optional<std::string> sindex_name() const;
 
     const std::string sindex;
 };

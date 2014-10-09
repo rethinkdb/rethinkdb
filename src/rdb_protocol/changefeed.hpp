@@ -119,13 +119,13 @@ typedef mailbox_addr_t<void(stamped_msg_t)> client_addr_t;
 struct keyspec_t {
     struct range_t {
         range_t() { }
-        range_t(std::string _sindex,
+        range_t(boost::optional<std::string> _sindex,
                 sorting_t _sorting,
                 datum_range_t _range)
             : sindex(std::move(_sindex)),
               sorting(_sorting),
               range(std::move(_range)) { }
-        std::string sindex;
+        boost::optional<std::string> sindex;
         sorting_t sorting;
         datum_range_t range;
     };
@@ -356,13 +356,15 @@ public:
     void add(std::string id, datum_t key, datum_t val);
     void del(std::string id);
     void commit(const sindex_ref_t &sindex_ref);
-    bool operator<(const limit_manager_t &other) {
-        const std::string &s1 = spec.range.sindex, &s2 = other.spec.range.sindex;
-        return (s1 < s2) ? true : ((s1 > s2) ? false : (uuid < other.uuid));
-    }
+    // RSI: remove
+    // bool operator<(const limit_manager_t &lm) {
+    //     const boost::optional<std::string>
+    //         &s1 = spec.range.sindex, &s2 = lm.spec.range.sindex;
+    //     return (opt_lt(s1, s2) ? true : (opt_lt(s2, s1) ? false : uuid < lm.uuid);
+    // }
 
     const region_t region; // RSI: use this!
-    const std::string table;
+    const std::string table; // RSI: removable?
 private:
     stream_t read_more(const sindex_ref_t &ref, const datum_t &start, size_t n);
     void send(msg_t &&msg);
@@ -421,11 +423,17 @@ private:
     mailbox_manager_t *const manager;
 
     struct client_info_t {
+        client_info_t();
         scoped_ptr_t<cond_t> cond;
         uint64_t stamp;
         std::vector<region_t> regions;
-        std::map<std::string,
-                 std::vector<scoped_ptr_t<limit_manager_t> > > limit_clients;
+        std::map<boost::optional<std::string>,
+                 std::vector<scoped_ptr_t<limit_manager_t> >,
+                 // Be careful not to remove this, since optionals are
+                 // convertible to bool.
+                 std::function<
+                     bool(const boost::optional<std::string> &,
+                          const boost::optional<std::string> &)> > limit_clients;
     };
     std::map<client_t::addr_t, client_info_t> clients;
 

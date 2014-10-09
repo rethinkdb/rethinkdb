@@ -3,6 +3,7 @@
 
 #include <map>
 
+#include "boost_utils.hpp"
 #include "rdb_protocol/batching.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
@@ -122,7 +123,7 @@ bool reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
                           "Example value:\n%s\n"
                           "Truncated key:\n%s",
                           env->limits().array_size_limit(),
-                          readgen->sindex_name().c_str(),
+                          opt_or(readgen->sindex_name(), "").c_str(),
                           items[items.size() - 1].sindex_key->trunc_print().c_str(),
                           key_to_debug_str(items[items.size() - 1].key).c_str()));
 
@@ -182,7 +183,7 @@ reader_t::next_batch(env_t *env, const batchspec_t &batchspec) {
                     strprintf("Too many rows (> %zu) with the same value "
                               "for index `%s`:\n%s",
                               env->limits().array_size_limit(),
-                              readgen->sindex_name().c_str(),
+                              opt_or(readgen->sindex_name(), "").c_str(),
                               // This is safe because you can't have duplicate
                               // primary keys, so they will never exceed the
                               // array limit.
@@ -323,8 +324,8 @@ key_range_t primary_readgen_t::original_keyrange() const {
     return original_datum_range.to_primary_keyrange();
 }
 
-std::string primary_readgen_t::sindex_name() const {
-    return "";
+boost::optional<std::string> primary_readgen_t::sindex_name() const {
+    return boost::optional<std::string>();
 }
 
 sindex_readgen_t::sindex_readgen_t(
@@ -446,7 +447,7 @@ key_range_t sindex_readgen_t::original_keyrange() const {
     return original_datum_range.to_sindex_keyrange();
 }
 
-std::string sindex_readgen_t::sindex_name() const {
+boost::optional<std::string> sindex_readgen_t::sindex_name() const {
     return sindex;
 }
 

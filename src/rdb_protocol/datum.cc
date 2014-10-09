@@ -866,7 +866,7 @@ struct components_t {
 };
 
 void parse_secondary(const std::string &key,
-                     components_t *components) {
+                     components_t *components) THROWS_NOTHING {
     uint8_t start_of_tag = key[key.size() - 1],
             start_of_primary = key[key.size() - 2];
 

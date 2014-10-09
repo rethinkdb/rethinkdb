@@ -2,6 +2,7 @@
 
 #include <queue>
 
+#include "boost_utils.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/interruptor.hpp"
 #include "containers/archive/boost_types.hpp"
@@ -27,6 +28,9 @@ size_t erase1(M *ms, const T &t) {
         return 0;
     }
 }
+
+server_t::client_info_t::client_info_t()
+    : limit_clients(&opt_lt<std::string>) { }
 
 server_t::server_t(mailbox_manager_t *_manager)
     : uuid(generate_uuid()),
@@ -272,10 +276,33 @@ limit_manager_t::limit_manager_t(
       lt(std::move(_lt)),
       lqueue(lt) {
     for (auto &&item : stream) {
-        bool inserted = lqueue.insert(
-            std::move(datum_t::extract_primary(key_to_unescaped_str(item.key))),
-            std::move(item.sindex_key),
-            std::move(item.data)).second;
+        auto keystr = key_to_unescaped_str(item.key);
+        bool inserted;
+        if (spec.range.sindex) {
+            inserted = lqueue.insert(
+                datum_t::extract_primary(keystr),
+                std::move(item.sindex_key),
+                std::move(item.data)).second;
+        } else {
+            // We use the escaped key to construct a `datum_t` that sorts
+            // correctly.  An alternative, equally valid strategy would be to
+            // keep track of the primary key and reconstruct it from
+            // `item.data`.
+            std::string escaped_key;
+            escaped_key.reserve(keystr.size() + 10);
+            for (const auto &c : keystr) {
+                if (c == 0 || c == 1) {
+                    escaped_key.push_back(1);
+                    escaped_key.push_back(c+1);
+                } else {
+                    escaped_key.push_back(c);
+                }
+            }
+            inserted = lqueue.insert(
+                keystr,
+                datum_t(datum_string_t(std::move(escaped_key))),
+                std::move(item.data)).second;
+        }
         guarantee(inserted);
     }
 
@@ -1545,6 +1572,7 @@ client_t::new_feed(env_t *env,
                     return new range_sub_t(feed, range);
                 }
                 subscription_t *operator()(const keyspec_t::limit_t &limit) const {
+                    debugf("limit index `%s`\n", opt_or(limit.range.sindex, "").c_str());
                     return new limit_sub_t(feed, limit);
                 }
                 subscription_t *operator()(const keyspec_t::point_t &point) const {
