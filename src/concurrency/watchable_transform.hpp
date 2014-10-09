@@ -2,6 +2,7 @@
 #ifndef CONCURRENCY_WATCHABLE_TRANSFORM_HPP_
 #define CONCURRENCY_WATCHABLE_TRANSFORM_HPP_
 
+#include "concurrency/auto_drainer.hpp"
 #include "concurrency/watchable.hpp"
 #include "concurrency/watchable_map.hpp"
 
@@ -90,6 +91,26 @@ private:
     key_t key;
     clone_ptr_t<watchable_t<value_t> > value;
     bool remove_when_done;
+    typename watchable_t<value_t>::subscription_t subs;
+};
+
+/* `watchable_buffer_t` merges changes to the input watchable if they occur in quick
+succession, so that it generates fewer change events. This can be important for
+performance. */
+template<class value_t>
+class watchable_buffer_t {
+public:
+    watchable_buffer_t(clone_ptr_t<watchable_t<value_t> > input, int64_t delay);
+    clone_ptr_t<watchable_t<value_t> > get_output() {
+        return output.get_watchable();
+    }
+private:
+    void notify();
+    clone_ptr_t<watchable_t<value_t> > input;
+    int64_t delay;
+    bool coro_running;
+    watchable_variable_t<value_t> output;
+    auto_drainer_t drainer;
     typename watchable_t<value_t>::subscription_t subs;
 };
 

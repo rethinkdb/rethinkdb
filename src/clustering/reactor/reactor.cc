@@ -14,60 +14,11 @@
 #include "containers/scoped.hpp"
 #include "stl_utils.hpp"
 
-template<class key_t, class value_t>
-struct collapse_optionals_in_map_t {
-    collapse_optionals_in_map_t() { }
-    collapse_optionals_in_map_t(const collapse_optionals_in_map_t &) { }
-    collapse_optionals_in_map_t &operator=(const collapse_optionals_in_map_t &) {
-        subscription.reset();
-        return *this;
-    }
-    bool operator()(
-            const change_tracking_map_t<key_t, boost::optional<value_t> > &map,
-            change_tracking_map_t<key_t, value_t> *current_out) {
-        guarantee(current_out != NULL);
-
-        bool do_init = false;
-        if (!subscription.has() || !subscription->is_valid(map)) {
-            subscription = map.subscribe();
-            do_init = true;
-        }
-        guarantee(current_out->get_current_version() != 0 || do_init);
-
-        bool anything_changed = false;
-        std::set<key_t> keys_to_update;
-        current_out->begin_version();
-        if (do_init) {
-            current_out->clear();
-            for (auto it = map.get_inner().begin(); it != map.get_inner().end(); ++it) {
-                keys_to_update.insert(it->first);
-            }
-            anything_changed = true;
-        } else {
-            keys_to_update = subscription->get_changed_keys(map);
-        }
-        for (auto it = keys_to_update.begin(); it != keys_to_update.end(); it++) {
-            auto existing_it = current_out->get_inner().find(*it);
-            auto jt = map.get_inner().find(*it);
-            if (jt != map.get_inner().end() && jt->second) {
-                // Check if the new value is actually different from the old one
-                bool has_changed = existing_it == current_out->get_inner().end()
-                    || !(existing_it->second == jt->second.get());
-                if (has_changed) {
-                    current_out->set_value(*it, jt->second.get());
-                    anything_changed = true;
-                }
-            } else if (existing_it != current_out->get_inner().end()) {
-                current_out->delete_value(*it);
-                anything_changed = true;
-            }
-        }
-        return anything_changed;
-    }
-private:
-    scoped_ptr_t<typename change_tracking_map_t<key_t, boost::optional<value_t> >::subscription_t>
-        subscription;
-};
+/* The nap time of 200 ms was determined experimentally as follows: In the specific test,
+a 200 ms nap provided a high speed up when resharding a table in a cluster of 64 nodes.
+Higher values improved the efficiency of the operation only marginally, while
+unnecessarily slowing down directory changes in smaller clusters. */
+constexpr int64_t directory_buffer_nap = 200;
 
 reactor_t::reactor_t(
         const base_path_t& _base_path,
@@ -92,6 +43,7 @@ reactor_t::reactor_t(
     backfill_throttler(backfill_throttler_),
     ack_checker(ack_checker_),
     directory_echo_writer(mailbox_manager, cow_ptr_t<reactor_business_card_t>()),
+    directory_buffer(directory_echo_writer.get_watchable(), directory_buffer_nap),
     directory_echo_mirror(mailbox_manager, rd),
     branch_history_manager(bhm),
     blueprint_watchable(b),
@@ -108,8 +60,9 @@ reactor_t::reactor_t(
     }
 }
 
-clone_ptr_t<watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > reactor_t::get_reactor_directory() {
-    return directory_echo_writer.get_watchable();
+clone_ptr_t<watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > >
+reactor_t::get_reactor_directory() {
+    return directory_buffer.get_output();
 }
 
 reactor_t::directory_entry_t::directory_entry_t(reactor_t *_parent, region_t _region)

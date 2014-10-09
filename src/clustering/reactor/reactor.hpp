@@ -197,6 +197,8 @@ private:
     ack_checker_t *ack_checker;
 
     directory_echo_writer_t<cow_ptr_t<reactor_business_card_t> > directory_echo_writer;
+    watchable_buffer_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >
+        directory_buffer;
     directory_echo_mirror_t<cow_ptr_t<reactor_business_card_t> > directory_echo_mirror;
     branch_history_manager_t *branch_history_manager;
 

@@ -4,6 +4,7 @@
 
 #include <map>
 
+#include "arch/runtime/coroutines.hpp"
 #include "concurrency/watchable_map.hpp"
 #include "concurrency/watchable_transform.hpp"
 #include "containers/scoped.hpp"

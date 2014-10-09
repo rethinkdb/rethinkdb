@@ -1,7 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "concurrency/watchable_transform.hpp"
 
-#include "debug.hpp"
 #include "stl_utils.hpp"
 
 template<class key1_t, class value1_t, class key2_t, class value2_t>
@@ -152,6 +151,44 @@ template<class key_t, class value_t>
 watchable_map_entry_copier_t<key_t, value_t>::~watchable_map_entry_copier_t() {
     if (remove_when_done) {
         map->delete_key(key);
+    }
+}
+
+template<class value_t>
+watchable_buffer_t<value_t>::watchable_buffer_t(
+            clone_ptr_t<watchable_t<value_t> > _input,
+            int64_t _delay) :
+        input(_input),
+        delay(_delay),
+        coro_running(false),
+        output(value_t()),
+        subs(std::bind(&watchable_buffer_t::notify, this)) {
+    typename watchable_t<value_t>::freeze_t freeze(input);
+    subs.reset(input, &freeze);
+    output.set_value(input->get());
+}
+
+template<class value_t>
+void watchable_buffer_t<value_t>::notify() {
+    if (!coro_running) {
+        coro_running = true;
+        auto_drainer_t::lock_t keepalive(&drainer);
+        coro_t::spawn_sometime([this, keepalive]() {
+            signal_timer_t timer;
+            timer.start(delay);
+            try {
+                wait_interruptible(&timer, keepalive.get_drain_signal());
+            } catch (interrupted_exc_t) {
+                /* We're being destroyed. The latest updates won't get delivered but
+                that's OK. */
+                return;
+            }
+            /* It's important that we set `coro_running` to `false` before delivering the
+            update, so that if `output.set_value()` somehow causes `notify` to be called
+            again, the new update will still get delivered eventually. */
+            coro_running = false;
+            output.set_value(input->get());
+        });
     }
 }
 
