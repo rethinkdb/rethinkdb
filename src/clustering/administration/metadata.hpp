@@ -219,7 +219,7 @@ bool search_const_metadata_by_uuid(
      `const_metadata_searcher_t` for const maps
      and `metadata_searcher_t` for non-const maps. */
 template<class T, class metamap_t, class iterator_t>
-class generic_metadata_searcher_t {m
+class generic_metadata_searcher_t {
 public:
     typedef iterator_t iterator;
     iterator begin() {return map->begin();}

@@ -11,6 +11,7 @@
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/one_per_thread.hpp"
 #include "concurrency/watchable.hpp"
+#include "concurrency/watchable_map.hpp"
 #include "containers/scoped.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "containers/incremental_lenses.hpp"
@@ -24,6 +25,11 @@ public:
             connectivity_cluster_t::message_tag_t tag) THROWS_NOTHING;
     ~directory_read_manager_t() THROWS_NOTHING;
 
+    watchable_map_t<peer_id_t, metadata_t> *get_root_map_view() {
+        return &map_variable;
+    }
+
+    /* This is deprecated. Use `get_root_map_view()` instead. */
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, metadata_t> > >
     get_root_view() THROWS_NOTHING {
         return variable.get_watchable();
@@ -66,6 +72,7 @@ private:
             THROWS_NOTHING;
 
     watchable_variable_t<change_tracking_map_t<peer_id_t, metadata_t> > variable;
+    watchable_map_var_t<peer_id_t, metadata_t> map_variable;
 
     class connection_info_t {
     public:

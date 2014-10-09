@@ -4,6 +4,8 @@
 #include <functional>
 #include <map>
 
+#include "debug.hpp"
+
 template<class internal_t>
 directory_echo_writer_t<internal_t>::our_value_change_t::our_value_change_t(directory_echo_writer_t *p) :
         parent(p), lock_acq(&parent->value_lock), buffer(parent->value_watchable.get_watchable()->get().internal) { }
@@ -66,9 +68,10 @@ template<class internal_t>
 directory_echo_mirror_t<internal_t>::directory_echo_mirror_t(
         mailbox_manager_t *mm,
         watchable_map_t<peer_id_t, directory_echo_wrapper_t<internal_t> > *p) :
-    watchable_map_transform_t(p),
+    watchable_map_transform_t<peer_id_t, directory_echo_wrapper_t<internal_t>,
+                              peer_id_t, internal_t>(p),
     mailbox_manager(mm), peers(p),
-    subs(inner,
+    subs(p,
         [this](const peer_id_t &peer,
                const directory_echo_wrapper_t<internal_t> *wrapper) {
             this->on_change(peer, wrapper);
@@ -77,8 +80,11 @@ directory_echo_mirror_t<internal_t>::directory_echo_mirror_t(
 
 template<class internal_t>
 void directory_echo_mirror_t<internal_t>::on_change(
-        const peer_id_t &peer, directory_echo_wrapper_t<internal_t> *wrapper) {
+        const peer_id_t &peer, const directory_echo_wrapper_t<internal_t> *wrapper) {
     if (wrapper != nullptr) {
+        debugf("DEM %s has %zu entries\n",
+            uuid_to_str(peer.get_uuid()).substr(0,10).c_str(),
+            wrapper->internal->activities.size());
         int version = wrapper->version;
         auto it = last_seen.find(peer);
         if (it == last_seen.end() || it->second < version) {
@@ -93,6 +99,7 @@ void directory_echo_mirror_t<internal_t>::on_change(
                 ));
         }
     } else {
+        debugf("DEM %s is gone\n", uuid_to_str(peer.get_uuid()).substr(0,10).c_str());
         /* Erase `_last_seen` table entries for now-disconnected peers. This serves two
         purposes:
         1. It saves space if many peers connect and disconnect (this is not very
@@ -123,8 +130,10 @@ template class directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> >;
 template class directory_echo_writer_t<cow_ptr_t<reactor_business_card_t> >;
 template class directory_echo_mirror_t<cow_ptr_t<reactor_business_card_t> >;
 
+/* 
 #include <string>  // NOLINT(build/include_order)
 
 template class directory_echo_wrapper_t<std::string>;
 template class directory_echo_writer_t<std::string>;
 template class directory_echo_mirror_t<std::string>;
+*/

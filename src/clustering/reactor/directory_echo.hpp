@@ -4,7 +4,8 @@
 
 #include <map>
 
-#include "concurrency/watchable.hpp"
+#include "concurrency/watchable_map.hpp"
+#include "concurrency/watchable_transform.hpp"
 #include "containers/scoped.hpp"
 #include "containers/incremental_lenses.hpp"
 #include "rpc/mailbox/typed.hpp"
@@ -105,7 +106,7 @@ public:
     We can do that by checking the version numbers to see if they have changed
     and thereby detect the spurious event. */
     watchable_map_t<peer_id_t, internal_t> *get_internal() {
-        return this
+        return this;
     }
 
 private:
@@ -113,15 +114,17 @@ private:
         *out = in;
         return true;
     }
-    void key_2_to_1(const peer_id_t &in, peer_id_t *out) {
+    bool key_2_to_1(const peer_id_t &in, peer_id_t *out) {
         *out = in;
+        return true;
     }
     void value_1_to_2(const directory_echo_wrapper_t<internal_t> *in,
                       const internal_t **out) {
         *out = &in->internal;
     }
 
-    void on_change(const peer_id_t &peer, directory_echo_wrapper_t<internal_t> *wrapper);
+    void on_change(const peer_id_t &peer,
+                   const directory_echo_wrapper_t<internal_t> *wrapper);
     void ack_version(
             mailbox_t<void(peer_id_t, directory_echo_version_t)>::address_t peer,
             directory_echo_version_t version, auto_drainer_t::lock_t);

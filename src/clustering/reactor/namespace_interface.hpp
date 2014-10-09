@@ -36,7 +36,7 @@ public:
             mailbox_manager_t *mm,
             const std::map<namespace_id_t, std::map<key_range_t, machine_id_t> >
                 *region_to_primary_maps_,
-            watchable_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > *dv,
+            watchable_map_t<peer_id_t, namespace_directory_metadata_t> *dv,
             const namespace_id_t &namespace_id_,
             rdb_context_t *);
 
@@ -129,20 +129,20 @@ private:
         THROWS_NOTHING;
 
     void update_registrant(const peer_id_t &peer,
-                           const cow_ptr_t<reactor_business_card_t> *bcard);
+                           const namespace_directory_metadata_t *bcard);
 
     static boost::optional<boost::optional<master_business_card_t> >
     extract_master_business_card(
-        const boost::optional<cow_ptr_t<reactor_business_card_t> > &bcard,
+        const boost::optional<namespace_directory_metadata_t> &bcard,
         const reactor_activity_id_t &activity_id);
     static boost::optional<boost::optional<direct_reader_business_card_t> > 
     extract_direct_reader_business_card_from_primary(
-        const boost::optional<cow_ptr_t<reactor_business_card_t> > &bcard,
+        const boost::optional<namespace_directory_metadata_t> &bcard,
         const reactor_activity_id_t &activity_id);
 
     static boost::optional<boost::optional<direct_reader_business_card_t> > 
     extract_direct_reader_business_card_from_secondary(
-        const boost::optional<cow_ptr_t<reactor_business_card_t> > &bcard,
+        const boost::optional<namespace_directory_metadata_t> &bcard,
         const reactor_activity_id_t &activity_id);
 
     void relationship_coroutine(peer_id_t peer_id, reactor_activity_id_t activity_id,
@@ -152,7 +152,7 @@ private:
     mailbox_manager_t *mailbox_manager;
     const std::map<namespace_id_t, std::map<key_range_t, machine_id_t> >
         *region_to_primary_maps;
-    watchable_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > *directory_view;
+    watchable_map_t<peer_id_t, namespace_directory_metadata_t> *directory_view;
     namespace_id_t namespace_id;
     rdb_context_t *ctx;
 
@@ -172,7 +172,7 @@ private:
 
     auto_drainer_t relationship_coroutine_auto_drainer;
 
-    watchable_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> >::all_subs_t subs;
+    watchable_map_t<peer_id_t, namespace_directory_metadata_t>::all_subs_t subs;
 
     DISABLE_COPYING(cluster_namespace_interface_t);
 };

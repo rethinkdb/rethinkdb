@@ -1,6 +1,9 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "concurrency/watchable_map.hpp"
 
+#include "concurrency/cond_var.hpp"
+#include "concurrency/interruptor.hpp"
+
 template<class key_t, class value_t>
 watchable_map_t<key_t, value_t>::all_subs_t::all_subs_t(
         watchable_map_t<key_t, value_t> *map,
@@ -44,6 +47,30 @@ void watchable_map_t<key_t, value_t>::run_key_until_satisfied(
 }
 
 template<class key_t, class value_t>
+template<class callable_t>
+void watchable_map_t<key_t, value_t>::run_all_until_satisfied(
+        const callable_t &fun,
+        signal_t *interruptor) {
+    assert_thread();
+    cond_t *notify = nullptr;
+    all_subs_t subs(this,
+        [&notify](const key_t &, const value_t *) {
+            if (notify != nullptr) {
+                notify->pulse_if_not_already_pulsed();
+            }
+        },
+        false);
+    while (true) {
+        cond_t cond;
+        assignment_sentry_t<cond_t *> sentry(&notify, &cond);
+        if (fun(this)) {
+            return;
+        }
+        wait_interruptible(&cond, interruptor);
+    }
+}
+
+template<class key_t, class value_t>
 void watchable_map_t<key_t, value_t>::notify_change(
         const key_t &key,
         const value_t *new_value,
@@ -78,7 +105,7 @@ boost::optional<value_t> watchable_map_var_t<key_t, value_t>::get_key(const key_
 
 template<class key_t, class value_t>
 void watchable_map_var_t<key_t, value_t>::read_all(
-        const std::function<void(const key_t &, const value_t *> &)> &fun) {
+        const std::function<void(const key_t &, const value_t *)> &fun) {
     for (const auto &pair : map) {
         fun(pair.first, &pair.second);
     }

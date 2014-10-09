@@ -31,6 +31,8 @@
 #include "extproc/extproc_pool.hpp"
 #include "rdb_protocol/query_server.hpp"
 #include "rpc/connectivity/cluster.hpp"
+#include "rpc/directory/map_read_manager.hpp"
+#include "rpc/directory/map_write_manager.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
@@ -267,7 +269,7 @@ bool do_serve(io_backender_t *io_backender,
         real_reql_cluster_interface_t real_reql_cluster_interface(
                 &mailbox_manager,
                 semilattice_manager_cluster.get_root_view(),
-                directory_read_manager.get_root_view(),
+                reactor_directory_read_manager.get_root_view(),
                 &rdb_ctx,
                 &server_name_client);
 
@@ -276,6 +278,7 @@ bool do_serve(io_backender_t *io_backender,
                 semilattice_manager_cluster.get_root_view(),
                 semilattice_manager_auth.get_root_view(),
                 directory_read_manager.get_root_view(),
+                reactor_directory_read_manager.get_root_view(),
                 &server_name_client,
                 &admin_tracker.last_seen_tracker);
 

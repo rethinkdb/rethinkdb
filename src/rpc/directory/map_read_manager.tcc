@@ -8,6 +8,7 @@
 #include <boost/bind.hpp>
 
 #include "containers/archive/boost_types.hpp"
+#include "debug.hpp"
 
 template<class key_t, class value_t>
 directory_map_read_manager_t<key_t, value_t>::directory_map_read_manager_t(
@@ -102,16 +103,16 @@ void directory_map_read_manager_t<key_t, value_t>::do_update(
         /* Remove the entry in `timestamps` and also any entries that we made in
         `map_var`, because the peer is disconnected, so we shouldn't show its entries. */
         timestamps.erase(peer_id);
+        std::set<std::pair<peer_id_t, key_t> > to_erase;
         map_var.read_all(
-            [&](const std::map<std::pair<peer_id_t, key_t>, value_t> &map) {
-                for (auto it = map.begin(); it != map.end();) {
-                    auto jt = it;
-                    ++it;
-                    if (jt->first.first == peer_id) {
-                        map_var.delete_key(jt->first);
-                    }
+            [&](const std::pair<peer_id_t, key_t> &k, const value_t *) {
+                if (k.first == peer_id) {
+                    to_erase.insert(k);
                 }
             });
+        for (const auto &k : to_erase) {
+            map_var.delete_key(k);
+        }
     }
 }
 

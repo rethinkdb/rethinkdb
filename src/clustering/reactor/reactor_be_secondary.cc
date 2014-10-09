@@ -15,44 +15,38 @@
 bool reactor_t::find_broadcaster_in_directory(
         const region_t &region,
         const blueprint_t &bp,
-        const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &_reactor_directory,
+        watchable_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > *directory,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > *broadcaster_out) {
-    /* This helps us detect if we have multiple broadcasters. */
-    bool found_broadcaster = false;
+    int num_broadcasters = 0;
 
     typedef reactor_business_card_t rb_t;
-    typedef std::map<peer_id_t, cow_ptr_t<rb_t> > reactor_directory_t;
 
-    for (blueprint_t::role_map_t::const_iterator it  = bp.peers_roles.begin();
-         it != bp.peers_roles.end();
-         ++it) {
-        reactor_directory_t::const_iterator p_it = _reactor_directory.get_inner().find(it->first);
-        if (p_it != _reactor_directory.get_inner().end()) {
-            for (rb_t::activity_map_t::const_iterator a_it  = p_it->second->activities.begin();
-                 a_it != p_it->second->activities.end();
-                 ++a_it) {
+    for (auto it = bp.peers_roles.begin(); it != bp.peers_roles.end(); ++it) {
+        directory->read_key(it->first,
+                [&](const cow_ptr_t<reactor_business_card_t> *bcard) {
+            if (bcard == nullptr) {
+                /* This peer isn't connected or lacks a reactor. That's OK; we just look
+                elsewhere for the broadcaster. */
+                return;
+            }
+            for (auto a_it = (*bcard)->activities.begin();
+                    a_it != (*bcard)->activities.end();
+                    ++a_it) {
                 if (a_it->second.region == region) {
                     if (boost::get<rb_t::primary_t>(&a_it->second.activity)) {
-                        if (!found_broadcaster) {
-                            //This is the first viable broadcaster we've found
-                            //so we set the output variable.
-                            *broadcaster_out = get_directory_entry_view<rb_t::primary_t>(it->first, a_it->first)->
-                                subview(&reactor_t::extract_broadcaster_from_reactor_business_card_primary);
-
-                            found_broadcaster = true;
-                        } else {
-                            return false;
-                        }
+                        ++num_broadcasters;
+                        *broadcaster_out =
+                            get_directory_entry_view<rb_t::primary_t>(
+                                it->first, a_it->first)->
+                            subview(&reactor_t::
+                                extract_broadcaster_from_reactor_business_card_primary);
                     }
                 }
             }
-        } else {
-            //this peer isn't connected or lacks a reactor, that's fine we can
-            //just look else where for the broadcaster
-        }
+        });
     }
 
-    return found_broadcaster;
+    return (num_broadcasters == 1);
 }
 
 boost::optional<boost::optional<replier_business_card_t> > extract_replier_from_reactor_business_card_primary(
@@ -89,7 +83,7 @@ bool reactor_t::find_replier_in_directory(
         const region_t &region,
         const branch_id_t &b_id,
         const blueprint_t &bp,
-        const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &_reactor_directory,
+        watchable_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > *directory,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t> > > > *replier_out,
         peer_id_t *peer_id_out,
         reactor_activity_id_t *activity_id_out) {
@@ -100,14 +94,17 @@ bool reactor_t::find_replier_in_directory(
     typedef reactor_business_card_t rb_t;
     typedef std::map<peer_id_t, cow_ptr_t<rb_t> > reactor_directory_t;
 
-    for (blueprint_t::role_map_t::const_iterator it = bp.peers_roles.begin();
-         it != bp.peers_roles.end();
-         ++it) {
-        reactor_directory_t::const_iterator p_it = _reactor_directory.get_inner().find(it->first);
-        if (p_it != _reactor_directory.get_inner().end()) {
-            for (rb_t::activity_map_t::const_iterator a_it = p_it->second->activities.begin();
-                 a_it != p_it->second->activities.end();
-                 ++a_it) {
+    for (auto it = bp.peers_roles.begin(); it != bp.peers_roles.end(); ++it) {
+        directory->read_key(it->first,
+                [&](const cow_ptr_t<reactor_business_card_t> *bcard) {
+            if (bcard == nullptr) {
+                /* This peer isn't connected or lacks a reactor. That's OK; we just look
+                elsewhere for the replier. */
+                return;
+            }
+            for (auto a_it = (*bcard)->activities.begin();
+                    a_it != (*bcard)->activities.end();
+                    ++a_it) {
                 if (a_it->second.region == region) {
                     if (const rb_t::primary_t *primary = boost::get<rb_t::primary_t>(&a_it->second.activity)) {
                         if (primary->replier && primary->broadcaster.branch_id == b_id) {
@@ -126,10 +123,7 @@ bool reactor_t::find_replier_in_directory(
                     }
                 }
             }
-        } else {
-            //this peer isn't connected or lacks a reactor, that's fine we can
-            //just look else where for the broadcaster
-        }
+        });
     }
 
     if (backfill_candidates.empty()) {

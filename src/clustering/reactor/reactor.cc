@@ -276,7 +276,7 @@ void reactor_t::run_role(
              * up in the directory thus make sure that the bcard is in the
              * directory before the be_role functions get called. */
             directory_echo_mirror.get_internal()->run_key_until_satisfied(
-                me,
+                get_me(),
                 [](const cow_ptr_t<reactor_business_card_t> *maybe_bcard) {
                     return (maybe_bcard != nullptr);
                 },

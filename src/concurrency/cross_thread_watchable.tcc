@@ -67,7 +67,7 @@ void cross_thread_watchable_map_var_t<key_t, value_t>::ferry_changes(
         auto_drainer_t::lock_t keepalive) {
     guarantee(get_thread_id() == input_thread);
     while (true) {
-        std::map<key_t, value_t> changes;
+        std::map<key_t, boost::optional<value_t> > changes;
         {
             mutex_assertion_t::acq_t acq(&lock);
             guarantee(coro_running);

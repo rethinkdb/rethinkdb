@@ -12,7 +12,7 @@ cluster_namespace_interface_t::cluster_namespace_interface_t(
         mailbox_manager_t *mm,
         const std::map<namespace_id_t, std::map<key_range_t, machine_id_t> >
             *region_to_primary_maps_,
-        watchable_map_t<namespace_id_t, cow_ptr_t<reactor_business_card_t> > *dv,
+        watchable_map_t<peer_id_t, namespace_directory_metadata_t> *dv,
         const namespace_id_t &namespace_id_,
         rdb_context_t *_ctx)
     : mailbox_manager(mm),
@@ -23,7 +23,7 @@ cluster_namespace_interface_t::cluster_namespace_interface_t(
       start_count(0),
       starting_up(true),
       subs(directory_view,
-        [this](const peer_id_t &peer, const cow_ptr_t<reactor_business_card_t> *bcard) {
+        [this](const peer_id_t &peer, const namespace_directory_metadata_t *bcard) {
             update_registrant(peer, bcard);
         }, true) {
     rassert(ctx != NULL);
@@ -310,12 +310,12 @@ void cluster_namespace_interface_t::perform_outdated_read(
 }
 
 void cluster_namespace_interface_t::update_registrant(
-        const peer_id_t &peer, const cow_ptr_t<reactor_business_card_t> *bcard) {
+        const peer_id_t &peer, const namespace_directory_metadata_t *bcard) {
     if (bcard == nullptr) {
         return;
     }
-    for (auto amit = (*bcard)->activities.begin();
-            amit != (*bcard)->activities.end();
+    for (auto amit = bcard->internal->activities.begin();
+            amit != bcard->internal->activities.end();
             ++amit) {
         bool has_anything_useful;
         bool is_primary;
@@ -363,14 +363,14 @@ void cluster_namespace_interface_t::update_registrant(
 
 boost::optional<boost::optional<master_business_card_t> >
 cluster_namespace_interface_t:: extract_master_business_card(
-        const boost::optional<cow_ptr_t<reactor_business_card_t> > &bcard,
+        const boost::optional<namespace_directory_metadata_t> &bcard,
         const reactor_activity_id_t &activity_id) {
     boost::optional<boost::optional<master_business_card_t> > ret;
     if (static_cast<bool>(bcard)) {
         ret = boost::optional<master_business_card_t>();
         reactor_business_card_t::activity_map_t::const_iterator jt =
-            (*bcard)->activities.find(activity_id);
-        if (jt != it->second->activities.end()) {
+            bcard->internal->activities.find(activity_id);
+        if (jt != bcard->internal->activities.end()) {
             if (const reactor_business_card_details::primary_t *primary_record =
                 boost::get<reactor_business_card_details::primary_t>(&jt->second.activity)) {
                 if (primary_record->master) {
@@ -384,14 +384,14 @@ cluster_namespace_interface_t:: extract_master_business_card(
 
 boost::optional<boost::optional<direct_reader_business_card_t> >
 cluster_namespace_interface_t::extract_direct_reader_business_card_from_primary(
-        const boost::optional<cow_ptr_t<reactor_business_card_t> > &bcard,
+        const boost::optional<namespace_directory_metadata_t> &bcard,
         const reactor_activity_id_t &activity_id) {
     boost::optional<boost::optional<direct_reader_business_card_t> > ret;
     if (static_cast<bool>(bcard)) {
         ret = boost::optional<direct_reader_business_card_t>();
         reactor_business_card_t::activity_map_t::const_iterator jt =
-            (*bcard)->activities.find(activity_id);
-        if (jt != it->second->activities.end()) {
+            bcard->internal->activities.find(activity_id);
+        if (jt != bcard->internal->activities.end()) {
             if (const reactor_business_card_details::primary_t *primary_record =
                 boost::get<reactor_business_card_details::primary_t>(&jt->second.activity)) {
                 if (primary_record->direct_reader) {
@@ -405,14 +405,14 @@ cluster_namespace_interface_t::extract_direct_reader_business_card_from_primary(
 
 boost::optional<boost::optional<direct_reader_business_card_t> >
 cluster_namespace_interface_t::extract_direct_reader_business_card_from_secondary(
-        const boost::optional<cow_ptr_t<reactor_business_card_t> > &bcard,
+        const boost::optional<namespace_directory_metadata_t> &bcard,
         const reactor_activity_id_t &activity_id) {
     boost::optional<boost::optional<direct_reader_business_card_t> > ret;
     if (static_cast<bool>(bcard)) {
         ret = boost::optional<direct_reader_business_card_t>();
         reactor_business_card_t::activity_map_t::const_iterator jt =
-            (*bcard)->activities.find(activity_id);
-        if (jt != it->second->activities.end()) {
+            bcard->internal->activities.find(activity_id);
+        if (jt != bcard->internal->activities.end()) {
             if (const reactor_business_card_details::secondary_up_to_date_t *secondary_up_to_date_record =
                 boost::get<reactor_business_card_details::secondary_up_to_date_t>(&jt->second.activity)) {
                 ret.get() = secondary_up_to_date_record->direct_reader;
@@ -530,7 +530,7 @@ void cluster_namespace_interface_t::relationship_coroutine(peer_id_t peer_id, re
     // ourselves as handled.
     if (!lock.get_drain_signal()->is_pulsed()) {
         directory_view->read_key(peer_id,
-            [&](const cow_ptr_t<reactor_business_card_t> *bcard) {
+            [&](const namespace_directory_metadata_t *bcard) {
                 update_registrant(peer_id, bcard);
             });
     }

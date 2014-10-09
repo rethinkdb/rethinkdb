@@ -165,42 +165,39 @@ ql::datum_t convert_table_status_shard_to_datum(
         namespace_id_t uuid,
         key_range_t range,
         const table_config_t::shard_t &shard,
-        const change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> &dir,
+        watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
+                        namespace_directory_metadata_t> *dir,
         server_name_client_t *name_client,
         table_readiness_t *readiness_out) {
     /* `server_states` will contain one entry per connected server. That entry will be a
     vector with the current state of each hash-shard on the server whose key range
     matches the expected range. */
     std::map<machine_id_t, std::vector<reactor_activity_entry_t> > server_states;
-    for (auto it = dir.get_inner().begin(); it != dir.get_inner().end(); ++it) {
-
-        /* Translate peer ID to machine ID */
-        boost::optional<machine_id_t> machine_id =
-            name_client->get_machine_id_for_peer_id(it->first);
-        if (!machine_id) {
-            /* This can occur as a race condition if the peer has just connected or just
-            disconnected */
-            continue;
-        }
-
-        /* Extract activity from reactor business card. `server_state` may be left empty
-        if the reactor doesn't have a business card for this table, or if no entry has
-        the same region as the target region. */
-        std::vector<reactor_activity_entry_t> server_state;
-        auto jt = it->second.reactor_bcards.find(uuid);
-        if (jt != it->second.reactor_bcards.end()) {
-            cow_ptr_t<reactor_business_card_t> bcard = jt->second.internal;
-            for (auto kt = bcard->activities.begin();
-                      kt != bcard->activities.end();
-                    ++kt) {
-                if (kt->second.region.inner == range) {
-                    server_state.push_back(kt->second);
+    dir->read_all(
+        [&](const std::pair<peer_id_t, namespace_id_t> &key,
+                const namespace_directory_metadata_t *value) {
+            if (key.second != uuid) {
+                return;
+            }
+            /* Translate peer ID to machine ID */
+            boost::optional<machine_id_t> machine_id =
+                name_client->get_machine_id_for_peer_id(key.first);
+            if (!static_cast<bool>(machine_id)) {
+                /* This can occur as a race condition if the peer has just connected or just
+                disconnected */
+                return;
+            }
+            /* Extract activity from reactor business card. `server_state` may be left
+            empty if the reactor doesn't have a business card for this table, or if no
+            entry has the same region as the target region. */
+            std::vector<reactor_activity_entry_t> server_state;
+            for (const auto &pair : value->internal->activities) {
+                if (pair.second.region.inner == range) {
+                    server_state.push_back(pair.second);
                 }
             }
-        }
-
-        server_states.insert(std::make_pair(*machine_id, server_state));
-    }
+            server_states[*machine_id] = std::move(server_state);
+        });
 
     ql::datum_array_builder_t array_builder(ql::configured_limits_t::unlimited);
     std::set<machine_id_t> already_handled;
@@ -298,7 +295,8 @@ ql::datum_t convert_table_status_to_datum(
         name_string_t db_name,
         namespace_id_t uuid,
         const table_replication_info_t &repli_info,
-        const change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> &dir,
+        watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
+                        namespace_directory_metadata_t> *dir,
         server_name_client_t *name_client) {
     ql::datum_object_builder_t builder;
     builder.overwrite("name", convert_name_to_datum(table_name));
@@ -347,7 +345,7 @@ bool table_status_artificial_table_backend_t::read_row_impl(
         db_name,
         table_id,
         metadata.replication_info.get_ref(),
-        directory_view->get(),
+        directory_view,
         name_client);
     return true;
 }

@@ -31,9 +31,8 @@ directory_map_write_manager_t<key_t, value_t>::directory_map_write_manager_t(
                     pair.first, pair.second, this_keepalive, key));
             }
         },
-        /* We don't need to examine the initial value because there are initially no
-        connections. */
-        nullptr),
+        /* `on_connections_change()` will take care of sending initial messages */
+        false),
     connections_subs(
         [this]() {
             this->on_connections_change();
@@ -41,8 +40,8 @@ directory_map_write_manager_t<key_t, value_t>::directory_map_write_manager_t(
 {
     typename watchable_t<connectivity_cluster_t::connection_map_t>::freeze_t
         connections_freeze(connectivity_cluster->get_connections());
-    guarantee(connectivity_cluster->get_connections()->get().empty());
     connections_subs.reset(connectivity_cluster->get_connections(), &connections_freeze);
+    on_connections_change();
 }
 
 template<class key_t, class value_t>
@@ -55,13 +54,10 @@ void directory_map_write_manager_t<key_t, value_t>::on_connections_change() {
         if (last_connections.count(connection) == 0) {
             last_connections.insert(std::make_pair(connection, connection_keepalive));
             auto_drainer_t::lock_t this_keepalive(&drainer);
-            value->read_all([&](const std::map<key_t, value_t> &initial) {
-                for (const auto &kv_pair : initial) {
-                    coro_t::spawn_sometime(boost::bind(
-                        &directory_map_write_manager_t::send_update, this,
-                        connection, connection_keepalive, this_keepalive,
-                        kv_pair.first));
-                }
+            value->read_all([&](const key_t &key, const value_t *) {
+                coro_t::spawn_sometime(boost::bind(
+                    &directory_map_write_manager_t::send_update, this,
+                    connection, connection_keepalive, this_keepalive, key));
             });
         }
     }

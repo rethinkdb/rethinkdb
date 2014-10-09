@@ -1,7 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "concurrency/watchable_transform.hpp"
 
-
 template<class key1_t, class value1_t, class key2_t, class value2_t>
 watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::watchable_map_transform_t(
         watchable_map_t<key1_t, value1_t> *_inner) :
@@ -13,7 +12,8 @@ watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::watchable_map_tra
             if (key_1_to_2(key1, &key2)) {
                 const value2_t *value2;
                 value_1_to_2(value1, &value2);
-                notify_change(key2, value2, &write_acq);
+                watchable_map_t<key2_t, value2_t>::
+                    notify_change(key2, value2, &write_acq);
             }
         }, false)
     { }
@@ -22,7 +22,7 @@ template<class key1_t, class value1_t, class key2_t, class value2_t>
 std::map<key2_t, value2_t>
 watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::get_all() {
     std::map<key2_t, value2_t> map2;
-    read_all([&](const key2_t &key2, const value2_t &value2) {
+    read_all([&](const key2_t &key2, const value2_t *value2) {
         auto pair = map2.insert(std::make_pair(key2, *value2));
         guarantee(pair.second, "key_1_to_2 created collision");
     });
@@ -49,14 +49,14 @@ watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::get_key(
 template<class key1_t, class value1_t, class key2_t, class value2_t>
 void watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::read_all(
         const std::function<void(const key2_t &, const value2_t *)> &cb) {
-    inner->read_all([&](const key1_t &key1, const value1_t &value1) {
+    inner->read_all([&](const key1_t &key1, const value1_t *value1) {
         key2_t key2;
         if (key_1_to_2(key1, &key2)) {
             const value2_t *value2;
-            value_1_to_2(&value1, &value2);
+            value_1_to_2(value1, &value2);
             cb(key2, value2);
         }
-    }
+    });
 }
 
 template<class key1_t, class value1_t, class key2_t, class value2_t>
@@ -75,7 +75,9 @@ void watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::read_key(
     });
 }
 
-rwi_lock_assertion_t *get_rwi_lock() {
+template<class key1_t, class value1_t, class key2_t, class value2_t>
+rwi_lock_assertion_t *
+watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::get_rwi_lock() {
     return &rwi_lock;
 }
 
@@ -83,7 +85,7 @@ template<class key_t, class value_t>
 clone_ptr_t<watchable_t<boost::optional<value_t> > > get_watchable_for_key(
         watchable_map_t<key_t, value_t> *map,
         const key_t &key) {
-    class w_t : public watchable_t<value_t> {
+    class w_t : public watchable_t<boost::optional<value_t> > {
     public:
         w_t(watchable_map_t<key_t, value_t> *_map, const key_t &_key) :
             map(_map), key(_key),
@@ -94,29 +96,53 @@ clone_ptr_t<watchable_t<boost::optional<value_t> > > get_watchable_for_key(
                 },
                 false)
             { }
-        watchable_t *clone() const {
+        w_t *clone() const {
             return new w_t(map, key);
         }
         boost::optional<value_t> get() {
             return map->get_key(key);
         }
-        void apply_read(const std::function<void(const value_t *)> &read) {
+        void apply_read(
+                const std::function<void(const boost::optional<value_t> *)> &read) {
             boost::optional<value_t> value = get();
             read(&value);
         }
         publisher_t<std::function<void()> > *get_publisher() {
-            return &publisher;
+            return publisher.get_publisher();
         }
         rwi_lock_assertion_t *get_rwi_lock_assertion() {
             return &rwi_lock;
         }
     private:
-        publisher_t<std::function<void()> > publisher;
+        publisher_controller_t<std::function<void()> > publisher;
         rwi_lock_assertion_t rwi_lock;
         watchable_map_t<key_t, value_t> *map;
         const key_t &key;
-        watchable_map_t<key_t, value_t>::key_subs_t subs;
+        typename watchable_map_t<key_t, value_t>::key_subs_t subs;
     };
     return clone_ptr_t<watchable_t<boost::optional<value_t> > >(new w_t(map, key));
+}
+
+template<class key_t, class value_t>
+watchable_map_entry_copier_t<key_t, value_t>::watchable_map_entry_copier_t(
+        watchable_map_var_t<key_t, value_t> *_map,
+        const key_t &_key,
+        clone_ptr_t<watchable_t<value_t> > _value,
+        bool _remove_when_done) :
+    map(_map), key(_key), value(_value), remove_when_done(_remove_when_done),
+    subs([this]() {
+        map->set_key_no_equals(key, value->get());
+    })
+{
+    typename watchable_t<value_t>::freeze_t freeze(value);
+    map->set_key_no_equals(key, value->get());
+    subs.reset(value, &freeze);
+}
+
+template<class key_t, class value_t>
+watchable_map_entry_copier_t<key_t, value_t>::~watchable_map_entry_copier_t() {
+    if (remove_when_done) {
+        map->delete_key(key);
+    }
 }
 

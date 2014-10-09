@@ -48,7 +48,7 @@ public:
 private:
     rwi_lock_assertion_t *get_rwi_lock();
     watchable_map_t<key1_t, value1_t> *inner;
-    watchable_map_t<key1_t, value1_t>::all_subs_t all_subs;
+    typename watchable_map_t<key1_t, value1_t>::all_subs_t all_subs;
     rwi_lock_assertion_t rwi_lock;
 };
 
@@ -68,18 +68,23 @@ template<class key_t, class value_t>
 class watchable_map_entry_copier_t {
 public:
     watchable_map_entry_copier_t(
-        watchable_map_t<key_t, value_t> *map,
+        watchable_map_var_t<key_t, value_t> *map,
         const key_t &key,
         clone_ptr_t<watchable_t<value_t> > value,
+        /* If `remove_when_done` is `true`, the `watchable_map_entry_copier_t` will
+        remove the entry in its destructor.
+        TODO: Remove this parameter; it should always be `true`. Right now it exists to
+        support one use case in `reactor_driver.cc`, and that use case should be changed
+        to not use this behavior after we implement Raft. */
         bool remove_when_done = true);
     ~watchable_map_entry_copier_t();
 
 private:
-    watchable_map_t<key_t, value_t> *map;
+    watchable_map_var_t<key_t, value_t> *map;
     key_t key;
     clone_ptr_t<watchable_t<value_t> > value;
     bool remove_when_done;
-    watchable_t<value_t>::subscription_t subs;
+    typename watchable_t<value_t>::subscription_t subs;
 };
 
 #include "concurrency/watchable_transform.tcc"

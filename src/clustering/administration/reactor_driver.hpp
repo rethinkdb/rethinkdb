@@ -86,7 +86,7 @@ public:
     ~reactor_driver_t();
 
     watchable_map_t<namespace_id_t, namespace_directory_metadata_t> *get_watchable() {
-        return watchable_var.get_watchable();
+        return &watchable_var;
     }
 
 private:

@@ -198,7 +198,9 @@ public:
          * reactor. We need to do this before we remove the reactor bcard. This
          * is because there exists parts of the be_[role] (be_primary,
          * be_secondary etc.) function which assume that the reactors own bcard
-         * will be in place for their duration. */
+         * will be in place for their duration.
+        TODO: We should make the reactor not make that assumption. This might be easier
+        after we implement Raft. */
         reactor_.reset();
 
         /* Finally we remove the reactor bcard. */
@@ -228,13 +230,15 @@ private:
         }
     }
 
-    void key_2_to_1(peer_id_t key2, std::pair<peer_id_t, namespace_id_t> *key1_out) {
+    bool key_2_to_1(const peer_id_t &key2,
+                    std::pair<peer_id_t, namespace_id_t> *key1_out) {
         key1_out->first = key2;
         key1_out->second = namespace_id_;
+        return true;
     }
 
-    void value_1_to_2(const namespace_directory_entry_t *value1,
-                      const namespace_directory_entry_t **value2_out) {
+    void value_1_to_2(const namespace_directory_metadata_t *value1,
+                      const namespace_directory_metadata_t **value2_out) {
         *value2_out = value1;
     }
 
@@ -290,7 +294,7 @@ private:
     scoped_ptr_t<reactor_t> reactor_;
 
     scoped_ptr_t<watchable_map_entry_copier_t<
-        namespace_id_t, namespace_directory_entry_t> > directory_exporter_;
+        namespace_id_t, namespace_directory_metadata_t> > directory_exporter_;
 
     DISABLE_COPYING(watchable_and_reactor_t);
 };
@@ -299,8 +303,10 @@ reactor_driver_t::reactor_driver_t(
     const base_path_t &_base_path,
     io_backender_t *_io_backender,
     mailbox_manager_t *_mbox_manager,
-    const clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
-        namespaces_directory_metadata_t> > > &_directory_view,
+    watchable_map_t<
+        std::pair<peer_id_t, namespace_id_t>,
+        namespace_directory_metadata_t
+        > *_directory_view,
     branch_history_manager_t *_branch_history_manager,
     boost::shared_ptr< semilattice_readwrite_view_t< cow_ptr_t<
         namespaces_semilattice_metadata_t> > > _namespaces_view,
@@ -319,7 +325,6 @@ reactor_driver_t::reactor_driver_t(
       we_were_permanently_removed(_we_were_permanently_removed),
       ctx(_ctx),
       svs_by_namespace(_svs_by_namespace),
-      watchable_variable(namespaces_directory_metadata_t()),
       semilattice_subscription(
         boost::bind(&reactor_driver_t::on_change, this), namespaces_view),
       name_to_machine_id_subscription(

@@ -3,6 +3,7 @@
 #define CONCURRENCY_CROSS_THREAD_WATCHABLE_HPP_
 
 #include "concurrency/watchable.hpp"
+#include "concurrency/watchable_map.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/queue/single_value_producer.hpp"
 #include "concurrency/coro_pool.hpp"
@@ -152,7 +153,7 @@ private:
 
     auto_drainer_t drainer;
     typename watchable_map_t<key_t, value_t>::all_subs_t subs;
-}
+};
 
 #include "concurrency/cross_thread_watchable.tcc"
 

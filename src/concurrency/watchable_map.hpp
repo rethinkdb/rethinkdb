@@ -95,6 +95,14 @@ public:
         const callable_t &fun,
         signal_t *interruptor);
 
+    /* `run_all_until_satisfied()` repeatedly calls `fun()` with `this` until `fun`
+    returns `true` or `interruptor` is pulsed. It's efficient because it only retries
+    `fun` when a key has changed. */
+    template<class callable_t>
+    void run_all_until_satisfied(
+        const callable_t &fun,
+        signal_t *interruptor);
+
 protected:
     watchable_map_t() { }
     virtual ~watchable_map_t() { }
@@ -104,6 +112,11 @@ protected:
         const key_t &key,
         const value_t *new_value,
         rwi_lock_assertion_t::write_acq_t *acq);
+
+    void rethread(threadnum_t new_thread) {
+        home_thread_mixin_t::real_home_thread = new_thread;
+        all_subs_publisher.rethread(new_thread);
+    }
 
 private:
     virtual rwi_lock_assertion_t *get_rwi_lock() = 0;
@@ -120,7 +133,7 @@ class watchable_map_var_t : public watchable_map_t<key_t, value_t> {
 public:
     std::map<key_t, value_t> get_all();
     boost::optional<value_t> get_key(const key_t &key);
-    void read_all(const std::function<void(const key_t &, const value_t &)> &);
+    void read_all(const std::function<void(const key_t &, const value_t *)> &);
     void read_key(const key_t &key, const std::function<void(const value_t *)> &);
 
     /* `set_all()` removes all of the key-value pairs from the map and replaces them with
@@ -137,6 +150,11 @@ public:
 
     /* `delete_key()` removes `key` from the map if it was present before. */
     void delete_key(const key_t &key);
+
+    void rethread(threadnum_t new_thread) {
+        watchable_map_t<key_t, value_t>::rethread(new_thread);
+        rwi_lock.rethread(new_thread);
+    }
 
 private:
     rwi_lock_assertion_t *get_rwi_lock() {
