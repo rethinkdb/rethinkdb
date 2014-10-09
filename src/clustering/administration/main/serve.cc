@@ -7,10 +7,10 @@
 #include "arch/io/network.hpp"
 #include "arch/os_signal.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
-#include "clustering/administration/admin_tracker.hpp"
 #include "clustering/administration/artificial_reql_cluster_interface.hpp"
 #include "clustering/administration/http/server.hpp"
 #include "clustering/administration/issues/local.hpp"
+#include "clustering/administration/issues/server.hpp"
 #include "clustering/administration/logger.hpp"
 #include "clustering/administration/main/file_based_svs_by_namespace.hpp"
 #include "clustering/administration/main/initial_join.hpp"
@@ -87,9 +87,9 @@ bool do_serve(io_backender_t *io_backender,
     try {
         extproc_pool_t extproc_pool(get_num_threads());
 
-        local_issue_tracker_t local_issue_tracker;
+        local_issue_aggregator_t local_issue_aggregator;
 
-        thread_pool_log_writer_t log_writer(&local_issue_tracker);
+        thread_pool_log_writer_t log_writer(&local_issue_aggregator);
 
         cluster_semilattice_metadata_t cluster_metadata;
         auth_semilattice_metadata_t auth_metadata;
@@ -102,6 +102,7 @@ bool do_serve(io_backender_t *io_backender,
         if (auth_metadata_file != NULL) {
             auth_metadata = auth_metadata_file->read_metadata();
         }
+
 #ifndef NDEBUG
         logINF("Our machine ID is %s", uuid_to_str(machine_id).c_str());
 #endif
@@ -141,8 +142,6 @@ bool do_serve(io_backender_t *io_backender,
                 &cluster_semilattice_metadata_t::machines,
                 semilattice_manager_cluster.get_root_view()));
 
-        outdated_index_issue_server_t outdated_index_server(&mailbox_manager);
-
         // Initialize the stat manager before the directory manager so that we
         // could initialize the cluster directory metadata with the proper
         // stat_manager mailbox address
@@ -162,7 +161,6 @@ bool do_serve(io_backender_t *io_backender,
                 ? boost::optional<uint16_t>()
                 : boost::optional<uint16_t>(serve_info.ports.http_port),
             stat_manager.get_address(),
-            outdated_index_server.get_request_mailbox_address(),
             log_server.get_business_card(),
             i_am_a_server
                 ? boost::make_optional(server_name_server->get_business_card())
@@ -181,11 +179,12 @@ bool do_serve(io_backender_t *io_backender,
             metadata_field(&cluster_semilattice_metadata_t::machines,
                            semilattice_manager_cluster.get_root_view()));
 
-        admin_tracker_t admin_tracker(&mailbox_manager,
-                                      semilattice_manager_cluster.get_root_view(),
-                                      directory_read_manager.get_root_view());
-
-        outdated_index_server.attach_local_client(&admin_tracker.outdated_index_client);
+        server_issue_tracker_t server_issue_tracker(
+            &local_issue_aggregator,
+            semilattice_manager_cluster.get_root_view(),
+            directory_read_manager.get_root_view()->incremental_subview(
+                incremental_field_getter_t<machine_id_t, cluster_directory_metadata_t>(
+                    &cluster_directory_metadata_t::machine_id)));
 
         scoped_ptr_t<connectivity_cluster_t::run_t> connectivity_cluster_run;
 
@@ -221,9 +220,9 @@ bool do_serve(io_backender_t *io_backender,
                 incremental_field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
             metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()));
 
-        field_copier_t<std::list<local_issue_t>, cluster_directory_metadata_t> copy_local_issues_to_cluster(
+        field_copier_t<local_issues_t, cluster_directory_metadata_t> copy_local_issues_to_cluster(
             &cluster_directory_metadata_t::local_issues,
-            local_issue_tracker.get_issues_watchable(),
+            local_issue_aggregator.get_issues_watchable(),
             &our_root_directory_variable);
 
         perfmon_collection_t proc_stats_collection;
@@ -279,8 +278,7 @@ bool do_serve(io_backender_t *io_backender,
                 semilattice_manager_auth.get_root_view(),
                 directory_read_manager.get_root_view(),
                 reactor_directory_read_manager.get_root_view(),
-                &server_name_client,
-                &admin_tracker.last_seen_tracker);
+                &server_name_client);
 
         /* `real_reql_cluster_interface_t` needs access to the admin tables so that it
         can return rows from the `table_status` and `table_config` artificial tables when
@@ -317,7 +315,7 @@ bool do_serve(io_backender_t *io_backender,
             if (i_am_a_server) {
                 rdb_svs_source.init(new file_based_svs_by_namespace_t(
                     io_backender, cache_balancer.get(), base_path,
-                    &admin_tracker.outdated_index_client));
+                    &local_issue_aggregator));
                 rdb_reactor_driver.init(new reactor_driver_t(
                         base_path,
                         io_backender,
@@ -381,7 +379,6 @@ bool do_serve(io_backender_t *io_backender,
                                 &mailbox_manager,
                                 semilattice_manager_cluster.get_root_view(),
                                 directory_read_manager.get_root_view(),
-                                &admin_tracker,
                                 rdb_query_server.get_http_app(),
                                 serve_info.web_assets));
                         logINF("Listening for administrative HTTP connections on port %d\n",

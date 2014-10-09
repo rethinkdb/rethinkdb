@@ -393,7 +393,8 @@ TLS_with_init(thread_pool_log_writer_t *, global_log_writer, NULL);
 TLS_with_init(auto_drainer_t *, global_log_drainer, NULL);
 TLS_with_init(int, log_writer_block, 0);
 
-thread_pool_log_writer_t::thread_pool_log_writer_t(local_issue_tracker_t *it) : issue_tracker(it) {
+thread_pool_log_writer_t::thread_pool_log_writer_t(local_issue_aggregator_t *local_issue_aggregator) :
+        log_write_issue_tracker(local_issue_aggregator) {
     pmap(get_num_threads(), boost::bind(&thread_pool_log_writer_t::install_on_thread, this, _1));
 }
 
@@ -451,13 +452,9 @@ void thread_pool_log_writer_t::write(const log_message_t &lm) {
     bool ok;
     thread_pool_t::run_in_blocker_pool(boost::bind(&thread_pool_log_writer_t::write_blocking, this, lm, &error_message, &ok));
     if (ok) {
-        issue.reset();
+        log_write_issue_tracker.report_success();
     } else {
-        if (!issue.has()) {
-            issue.init(new local_issue_tracker_t::entry_t(
-                issue_tracker,
-                local_issue_t("LOGFILE_WRITE_ERROR", true, error_message)));
-        }
+        log_write_issue_tracker.report_error(error_message);
     }
 }
 
