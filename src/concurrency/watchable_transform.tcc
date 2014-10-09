@@ -12,14 +12,14 @@ watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::watchable_map_tra
         [this](const key1_t &key1, const value1_t *value1) {
             rwi_lock_assertion_t::write_acq_t write_acq(&rwi_lock);
             key2_t key2;
-            if (key_1_to_2(key1, &key2)) {
+            if (this->key_1_to_2(key1, &key2)) {
                 if (value1 != nullptr) {
                     const value2_t *value2;
-                    value_1_to_2(value1, &value2);
+                    this->value_1_to_2(value1, &value2);
                     guarantee(value2 != nullptr);
-                    do_notify_change(key2, value2, &write_acq);
+                    this->do_notify_change(key2, value2, &write_acq);
                 } else {
-                    do_notify_change(key2, nullptr, &write_acq);
+                    this->do_notify_change(key2, nullptr, &write_acq);
                 }
             }
         }, false)
@@ -46,7 +46,7 @@ watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::get_key(
     inner->read_key(key1, [&](const value1_t *value1) {
         if (value1 != nullptr) {
             const value2_t *value2;
-            value_1_to_2(value1, &value2);
+            this->value_1_to_2(value1, &value2);
             guarantee(value2 != nullptr);
             res = boost::optional<value2_t>(*value2);
         }
@@ -59,9 +59,9 @@ void watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::read_all(
         const std::function<void(const key2_t &, const value2_t *)> &cb) {
     inner->read_all([&](const key1_t &key1, const value1_t *value1) {
         key2_t key2;
-        if (key_1_to_2(key1, &key2)) {
+        if (this->key_1_to_2(key1, &key2)) {
             const value2_t *value2;
-            value_1_to_2(value1, &value2);
+            this->value_1_to_2(value1, &value2);
             cb(key2, value2);
         }
     });
@@ -75,7 +75,7 @@ void watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::read_key(
     inner->read_key(key1, [&](const value1_t *value1) {
         if (value1 != nullptr) {
             const value2_t *value2;
-            value_1_to_2(value1, &value2);
+            this->value_1_to_2(value1, &value2);
             guarantee(value2 != nullptr);
             cb(value2);
         } else {

@@ -23,7 +23,7 @@ directory_map_write_manager_t<key_t, value_t>::directory_map_write_manager_t(
     semaphore(MAX_OUTSTANDING_DIRECTORY_WRITES),
     value_subs(value,
         [this](const key_t &key, const value_t *) {
-            ++timestamp;
+            ++this->timestamp;
             auto_drainer_t::lock_t this_keepalive(&drainer);
             for (const auto &pair : last_connections) {
                 coro_t::spawn_sometime(boost::bind(
