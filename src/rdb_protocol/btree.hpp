@@ -304,6 +304,7 @@ void deserialize_sindex_info(const std::vector<char> &data,
 
 /* An rdb_modification_cb_t is passed to BTree operations and allows them to
  * modify the secondary while they perform an operation. */
+class superblock_queue_t;
 class rdb_modification_report_cb_t {
 public:
     rdb_modification_report_cb_t(
@@ -311,7 +312,8 @@ public:
             buf_lock_t *sindex_block,
             auto_drainer_t::lock_t lock);
 
-    void on_mod_report(const rdb_modification_report_t &mod_report, ql::env_t *env);
+    void on_mod_report(const rdb_modification_report_t &mod_report,
+                       superblock_queue_t *queue, ql::env_t *env);
 
     ~rdb_modification_report_cb_t();
 

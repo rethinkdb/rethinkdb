@@ -258,6 +258,25 @@ void limit_manager_t::send(msg_t &&msg) {
     parent->send_one_with_lock(drain_lock, &*it, std::move(msg));
 }
 
+datum_t key_to_datum(std::string key) {
+    // We use the escaped key to construct a `datum_t` that sorts
+    // correctly.  An alternative, equally valid strategy would be to
+    // keep track of the primary key and reconstruct it from
+    // `item.data`.
+    std::string escaped_key;
+    escaped_key.reserve(key.size() + 10);
+    for (const auto &c : key) {
+        if (c == 0 || c == 1) {
+            escaped_key.push_back(1);
+            escaped_key.push_back(c+1);
+        } else {
+            escaped_key.push_back(c);
+        }
+    }
+    return datum_t(datum_string_t(escaped_key));
+}
+
+
 limit_manager_t::limit_manager_t(
     region_t _region,
     std::string _table,
@@ -284,24 +303,8 @@ limit_manager_t::limit_manager_t(
                 std::move(item.sindex_key),
                 std::move(item.data)).second;
         } else {
-            // We use the escaped key to construct a `datum_t` that sorts
-            // correctly.  An alternative, equally valid strategy would be to
-            // keep track of the primary key and reconstruct it from
-            // `item.data`.
-            std::string escaped_key;
-            escaped_key.reserve(keystr.size() + 10);
-            for (const auto &c : keystr) {
-                if (c == 0 || c == 1) {
-                    escaped_key.push_back(1);
-                    escaped_key.push_back(c+1);
-                } else {
-                    escaped_key.push_back(c);
-                }
-            }
             inserted = lqueue.insert(
-                keystr,
-                datum_t(datum_string_t(std::move(escaped_key))),
-                std::move(item.data)).second;
+                keystr, key_to_datum(keystr), std::move(item.data)).second;
         }
         guarantee(inserted);
     }
@@ -331,63 +334,134 @@ void limit_manager_t::del(std::string id) {
     deleted.push_back(std::move(id));
 }
 
+typedef std::vector<std::pair<std::string, std::pair<datum_t, datum_t> > > lvec_t;
+struct ref_visitor_t : public boost::static_visitor<lvec_t> {
+    lvec_t operator()(const primary_ref_t &ref) {
+        rget_read_response_t resp;
+        key_range_t range;
+        auto open = key_range_t::open;
+        switch (sorting) {
+        case sorting_t::ASCENDING: {
+            auto kstart = start ? store_key_t((**start)->first) : store_key_t::min();
+            range = key_range_t(open, kstart, open, store_key_t::max());
+        } break;
+        case sorting_t::DESCENDING: {
+            auto kstart = start ? store_key_t((**start)->first) : store_key_t::max();
+            range = key_range_t(open, store_key_t::min(), open, kstart);
+        } break;
+        case sorting_t::UNORDERED: // fallthru
+        default: unreachable();
+        }
+        rdb_rget_slice(
+            ref.btree,
+            range,
+            ref.superblock,
+            ref.env,
+            batchspec_t::all().with_at_most(n),
+            std::vector<transform_variant_t>(),
+            boost::optional<terminal_variant_t>(),
+            sorting,
+            &resp,
+            release_superblock_t::RELEASE);
+        auto *gs = boost::get<ql::grouped_t<ql::stream_t> >(&resp.result);
+        if (gs == NULL) {
+            auto *exc = boost::get<ql::exc_t>(&resp.result);
+            guarantee(exc != NULL);
+            rassert(exc == NULL); // RSI: remove
+            return stream_t();
+        }
+        stream_t stream = groups_to_batch(
+            gs->get_underlying_map(ql::grouped::order_doesnt_matter_t()));
+        guarantee(stream.size() <= n);
+        lvec_t lvec;
+        for (auto &&item : stream) {
+            std::string keystr = key_to_unescaped_str(item.key);
+            lvec.push_back(
+                std::make_pair(
+                    keystr,
+                    std::make_pair(key_to_datum(keystr), std::move(item.data))));
+        }
+        return lvec;
+    }
+
+    lvec_t operator()(const sindex_ref_t &ref) {
+        rget_read_response_t resp;
+        datum_range_t srange;
+        auto open = key_range_t::bound_t::open;
+        datum_t dstart = start ? start->second.first : datum_t();
+        switch (sorting) {
+        case sorting_t::ASCENDING:
+            srange = datum_range_t(dstart, open, datum_t(), open);
+            break;
+        case sorting_t::DESCENDING:
+            srange = datum_range_t(datum_t(), open, dstart, open);
+            break;
+        case sorting_t::UNORDERED: // fallthru
+        default: unreachable();
+        }
+        rdb_rget_secondary_slice(
+            ref.btree,
+            srange,
+            region_t(srange.to_sindex_keyrange()), // RSI: does this work?
+            ref.superblock,
+            ref.env,
+            batchspec_t::all().with_at_most(n), // RSI: ACC_TERMINAL
+            std::vector<transform_variant_t>(),
+            boost::optional<terminal_variant_t>(), // RSI: ACC_TERMINAL,
+            datum_range_t::universe().to_primary_keyrange(), // RSI: use restricted range
+            sorting,
+            *ref.sindex_info,
+            &resp,
+            release_superblock_t::KEEP);
+        auto *gs = boost::get<ql::grouped_t<ql::stream_t> >(&resp.result);
+        if (gs == NULL) {
+            auto *exc = boost::get<ql::exc_t>(&resp.result);
+            guarantee(exc != NULL);
+            rassert(exc == NULL); // RSI: remove
+            return stream_t();
+        }
+        stream_t stream = groups_to_batch(
+            gs->get_underlying_map(ql::grouped::order_doesnt_matter_t()));
+        std::sort(stream.begin(), stream.end(),
+                  [](const rget_item_t &a, const rget_item_t &b) {
+                      return a.sindex_key < b.sindex_key;
+                  });
+        if (stream.size() > n) {
+            stream.resize(n);
+        }
+        lvec_t lvec;
+        for (auto &&item : stream) {
+            lvec.push_back(
+                std::make_pair(
+                    datum_t::extract_primary(key_to_unescaped_str(item.key)),
+                    std::make_pair(std::move(item.sindex_key), std::move(item.data))));
+        }
+        return lvec;
+    }
+
+    sorting_t sorting;
+    boost::optional<lqueue_t::iterator> start;
+    size_t n;
+};
+
 // RSI: sorting
-stream_t limit_manager_t::read_more(
-    const sindex_ref_t &ref, const datum_t &start, size_t n) {
+lvec_t limit_manager_t::read_more(
+    const boost::variant<primary_ref_t, sindex_ref_t> &ref,
+    sorting_t sorting,
+    boost::optional<lqueue_t::iterator> start,
+    size_t n) {
     debugf("~~ READ_MORE\n");
-    rget_read_response_t resp;
-    datum_range_t srange;
-    auto open = key_range_t::bound_t::open;
-    switch (spec.range.sorting) {
-    case sorting_t::ASCENDING:
-        srange = datum_range_t(start, open, datum_t(), open);
-        break;
-    case sorting_t::DESCENDING:
-        srange = datum_range_t(datum_t(), open, start, open);
-        break;
-    case sorting_t::UNORDERED: // fallthru
-    default: unreachable();
-    }
-    rdb_rget_secondary_slice(
-        ref.btree,
-        srange,
-        region_t(srange.to_sindex_keyrange()), // RSI: does this work?
-        ref.superblock,
-        ref.env,
-        batchspec_t::all().with_at_most(n), // RSI: ACC_TERMINAL
-        std::vector<transform_variant_t>(),
-        boost::optional<terminal_variant_t>(), // RSI: ACC_TERMINAL,
-        datum_range_t::universe().to_primary_keyrange(), // RSI: use restricted range
-        spec.range.sorting,
-        *ref.sindex_info,
-        &resp,
-        release_superblock_t::KEEP);
-    auto *gs = boost::get<ql::grouped_t<ql::stream_t> >(&resp.result);
-    if (gs == NULL) {
-        auto *exc = boost::get<ql::exc_t>(&resp.result);
-        guarantee(exc != NULL);
-        rassert(exc == NULL); // RSI: remove
-        return stream_t();
-    }
-    stream_t stream = groups_to_batch(
-        gs->get_underlying_map(ql::grouped::order_doesnt_matter_t()));
-    std::sort(stream.begin(), stream.end(),
-              [](const rget_item_t &a, const rget_item_t &b) {
-                  return a.sindex_key < b.sindex_key;
-              });
-    if (stream.size() > n) {
-        stream.resize(n);
-    }
-    return std::move(stream);
+    ref_visitor_t visitor{sorting, start, n};
+    return boost::apply_visitor(visitor, ref);
 }
 
 // RSI: pick up here
 // * Fix big insert crash (added and then removed again).
 // * name `lt` `gt` and switch ordering of PRIMARY KEY ONLY.
-void limit_manager_t::commit(const sindex_ref_t &sindex_ref) {
+void limit_manager_t::commit(
+    const boost::optional<primary_ref_t, sindex_ref_t> &sindex_ref) {
     debugf("\n**********************************************************************\n");
     debugf("COMMIT (added %zu, deleted %zu)\n", added.size(), deleted.size());
-    // RSI: this map needs unique keys after all.
     lqueue_t real_added(lt);
     std::set<std::string> real_deleted;
     for (auto &&id : deleted) {
@@ -425,19 +499,31 @@ void limit_manager_t::commit(const sindex_ref_t &sindex_ref) {
         datum_t begin = (data_it == lqueue.end()) ? datum_t() : (*data_it)->second.first;
         // RSI: need a closed bound and duplicate removal to handle truncated
         // sindexes.
-        stream_t s = read_more(sindex_ref, begin, spec.limit - lqueue.size());
+        lvec_t s = read_more(
+            sindex_ref,
+            spec.range.sorting,
+            data_it == lqueue.end() ? boost::none : data_it,
+            spec.limit - lqueue.size());
         debugf("got %zu\n", s.size());
         guarantee(s.size() <= spec.limit - lqueue.size());
-        for (const auto &item : s) {
-            auto str = datum_t::extract_primary(key_to_unescaped_str(item.key));
-            bool ins = lqueue.insert(str, item.sindex_key, item.data).second;
+        for (auto &&pair : s) {
+            bool ins = lqueue.insert(pair);
             guarantee(ins);
-            size_t erased = real_deleted.erase(str);
+            size_t erased = real_deleted.erase(pair.first);
             if (erased == 0) {
-                ins = real_added.insert(str, item.sindex_key, item.data).second;
+                ins = real_added.insert(pair).second;
                 guarantee(ins);
             }
         }
+    }
+    if (auto p = boost::get<primary_ref_t>(&sindex_ref)) {
+        // RSI: strongly consider changing the functions called by
+        // `superblock_queue_t` to use a rwlock rather than a promise for this
+        // so that read operations like `ref_visitor_t` don't block out writes.
+        // (On the other hand, those read operations are rare, so maybe it isn't
+        // worth the refactoring effort.)
+        debugf("Releasing superblock.");
+        p->promise->pulse(p->superblock);
     }
     debugf("3 real_added %zu, real_deleted %zu\n",
            real_added.size(), real_deleted.size());

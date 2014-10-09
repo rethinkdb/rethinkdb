@@ -388,39 +388,6 @@ private:
     const size_t index;
 };
 
-void do_a_replace_from_batched_replace(
-    auto_drainer_t::lock_t,
-    fifo_enforcer_sink_t *batched_replaces_fifo_sink,
-    const fifo_enforcer_write_token_t &batched_replaces_fifo_token,
-    const btree_loc_info_t &info,
-    const one_replace_t one_replace,
-    const ql::configured_limits_t &limits,
-    promise_t<superblock_t *> *superblock_promise,
-    rdb_modification_report_cb_t *sindex_cb,
-    batched_replace_response_t *stats_out,
-    ql::env_t *env,
-    profile::trace_t *trace,
-    std::set<std::string> *conditions)
-{
-    fifo_enforcer_sink_t::exit_write_t exiter(
-        batched_replaces_fifo_sink, batched_replaces_fifo_token);
-
-    rdb_live_deletion_context_t deletion_context;
-    rdb_modification_report_t mod_report(*info.key);
-    ql::datum_t res = rdb_replace_and_return_superblock(
-        info, &one_replace, &deletion_context, superblock_promise, &mod_report.info,
-        trace);
-    *stats_out = (*stats_out)->merge(res, ql::stats_merge, limits, conditions);
-
-    // KSI: What is this for?  are we waiting to get in line to call on_mod_report?
-    // I guess so.
-
-    // JD: Looks like this is a do_a_replace_from_batched_replace specific thing.
-    exiter.wait();
-
-    sindex_cb->on_mod_report(mod_report, env);
-}
-
 // This class is a little bit complicated because sometimes the calls to
 // `do_a_replace_from_batched_replace` requires doing more work that involves
 // re-aquiring the superblock, but this happens long after the superblock could
@@ -457,7 +424,10 @@ public:
 
     superblock_queue_t(scoped_ptr_t<superblock_t> &&_superblock)
         : superblock(std::move(_superblock)),
-          pool(8 /*max concurrent jobs*/, &queue, &callback) { }
+          pool(8 /*max concurrent jobs*/, &queue, &callback) {
+        promise.init(new promise_t<superblock_t *>());
+        promise->pulse(superblock.get());
+    }
     ~superblock_queue_t() {
         rwlock_in_line_t spot(&lock, access_t::write);
         // Make sure all the `caller_t`s are out of the queue.
@@ -488,6 +458,40 @@ private:
     rwlock_t lock;
 };
 
+void do_a_replace_from_batched_replace(
+    auto_drainer_t::lock_t,
+    fifo_enforcer_sink_t *batched_replaces_fifo_sink,
+    const fifo_enforcer_write_token_t &batched_replaces_fifo_token,
+    const btree_loc_info_t &info,
+    const one_replace_t one_replace,
+    const ql::configured_limits_t &limits,
+    promise_t<superblock_t *> *superblock_promise,
+    superblock_queue_t *queue,
+    rdb_modification_report_cb_t *sindex_cb,
+    batched_replace_response_t *stats_out,
+    ql::env_t *env,
+    profile::trace_t *trace,
+    std::set<std::string> *conditions)
+{
+    fifo_enforcer_sink_t::exit_write_t exiter(
+        batched_replaces_fifo_sink, batched_replaces_fifo_token);
+
+    rdb_live_deletion_context_t deletion_context;
+    rdb_modification_report_t mod_report(*info.key);
+    ql::datum_t res = rdb_replace_and_return_superblock(
+        info, &one_replace, &deletion_context, superblock_promise, &mod_report.info,
+        trace);
+    *stats_out = (*stats_out)->merge(res, ql::stats_merge, limits, conditions);
+
+    // KSI: What is this for?  are we waiting to get in line to call on_mod_report?
+    // I guess so.
+
+    // JD: Looks like this is a do_a_replace_from_batched_replace specific thing.
+    exiter.wait();
+
+    sindex_cb->on_mod_report(mod_report, queue, env);
+}
+
 batched_replace_response_t rdb_batched_replace(
     const btree_info_t &info,
     scoped_ptr_t<superblock_t> *superblock,
@@ -498,8 +502,8 @@ batched_replace_response_t rdb_batched_replace(
     ql::env_t *env,
     profile::trace_t *trace) {
 
-    fifo_enforcer_source_t batched_replaces_fifo_source;
-    fifo_enforcer_sink_t batched_replaces_fifo_sink;
+    fifo_enforcer_source_t source;
+    fifo_enforcer_sink_t sink;
 
     ql::datum_t stats = ql::datum_t::empty_object();
 
@@ -511,19 +515,22 @@ batched_replace_response_t rdb_batched_replace(
         superblock_queue_t queue(std::move(*superblock));
         for (size_t i = 0; i < keys.size(); ++i) {
             queue.push(
-                [&](superblock_t *cb_superblock,
+                [&source, &sink, &info, &keys, &limits, &conditions, &stats, &queue,
+                 replacer, sindex_cb, env, trace, i](
+                    superblock_t *cb_superblock,
                     promise_t<superblock_t *> *promise,
                     auto_drainer_t::lock_t lock) {
                     do_a_replace_from_batched_replace(
                         lock,
-                        &batched_replaces_fifo_sink,
-                        batched_replaces_fifo_source.enter_write(),
+                        &sink,
+                        source.enter_write(),
 
                         btree_loc_info_t(&info, cb_superblock, &keys[i]),
                         one_replace_t(replacer, i),
                         limits,
 
                         promise,
+                        &queue,
                         sindex_cb,
                         &stats,
                         env,
@@ -532,7 +539,7 @@ batched_replace_response_t rdb_batched_replace(
                 });
         }
     }
-    // RSI: pick up hre.  Test superblock queue, change
+    // RSI: pick up here.  Test superblock queue, change
     // `do_a_replace_from_batched_replace` to do a pkey read using the queue
     // when it needs to read more rows.
 
@@ -1265,7 +1272,9 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
 rdb_modification_report_cb_t::~rdb_modification_report_cb_t() { }
 
 void rdb_modification_report_cb_t::on_mod_report(
-    const rdb_modification_report_t &mod_report, ql::env_t *env) {
+    const rdb_modification_report_t &mod_report,
+    superblock_queue_t *queue,
+    ql::env_t *env) {
     // debugf("%" PRIu64 "\n", timestamp.longtime);
     if (mod_report.info.deleted.first.has() || mod_report.info.added.first.has()) {
         // We spawn the sindex update in its own coroutine because we don't want to
@@ -1284,6 +1293,22 @@ void rdb_modification_report_cb_t::on_mod_report(
                         mod_report.info.deleted.first,
                         mod_report.info.added.first)),
                 mod_report.primary_key);
+
+            ql::changefeed::server_t *server = store->changefeed_server.get();
+            server->foreach_limit(
+                boost::optional<std::string>(),
+                [&](ql::changefeed::limit_mamanger_t *lm) {
+                    queue->push(
+                        [lm](superblock_t *superblock.
+                             promise_t<superblock_t *> *promise,
+                             auto_drainer_t::lock_t) {
+                            lm->commit(ql::changefeed::primary_ref_t{
+                                    superblock, promise});
+                        });
+                });
+        } else {
+            guarantee(false); // RSI: can this ever trigger?  If so, check what
+                              // `on_mod_report_sub` does if this is empty.
         }
 
         sindexes_updated_cond.wait_lazily_unordered();

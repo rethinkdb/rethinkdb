@@ -621,8 +621,7 @@ public:
     explicit datum_replacer_t(const batched_insert_t &bi)
         : datums(&bi.inserts), conflict_behavior(bi.conflict_behavior),
           pkey(bi.pkey), return_changes(bi.return_changes) { }
-    ql::datum_t replace(const ql::datum_t &d,
-                                         size_t index) const {
+    ql::datum_t replace(const ql::datum_t &d, size_t index) const {
         guarantee(index < datums->size());
         ql::datum_t newd = (*datums)[index];
         if (d->get_type() == ql::datum_t::R_NULL) {

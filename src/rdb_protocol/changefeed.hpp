@@ -14,6 +14,7 @@
 #include <boost/variant.hpp>
 
 #include "btree/keys.hpp"
+#include "concurrency/promise.hpp"
 #include "concurrency/rwlock.hpp"
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
@@ -329,6 +330,11 @@ private:
 
 typedef index_queue_t<std::string, datum_t, datum_t, limit_order_t> lqueue_t;
 
+struct primary_ref_t {
+    superblock_t *superblock;
+    promise_t<superblock_t *> *promise;
+};
+
 struct sindex_ref_t {
     env_t *env;
     store_t *store;
@@ -366,7 +372,10 @@ public:
     const region_t region; // RSI: use this!
     const std::string table; // RSI: removable?
 private:
-    stream_t read_more(const sindex_ref_t &ref, const datum_t &start, size_t n);
+    stream_t read_more(const boost::variant<primary_ref_t, sindex_ref_t> &ref,
+                       sorting_t sorting,
+                       const boost::optional<lqueue_t::iterator> &start,
+                       size_t n);
     void send(msg_t &&msg);
 
     server_t *parent;
