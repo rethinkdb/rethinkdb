@@ -36,7 +36,13 @@ public:
             server_name_client_t *_name_client) :
         common_table_artificial_table_backend_t(_table_sl_view, _database_sl_view),
         reql_cluster_interface(_reql_cluster_interface),
-        name_client(_name_client) { }
+        name_client(_name_client)
+    {
+        /* If we don't have this, then Clang complains about `name_client` being private
+        but unused. But we can't mark `name_client` unused because GCC doesn't support
+        the "unused" attribute on members. */
+        (void)name_client;
+    }
 
     bool read_row_impl(
             namespace_id_t table_id,
@@ -59,7 +65,7 @@ private:
     /* RSI(reql_admin): This is currently unused, but if we switch to storing machine IDs
     instead of names, it will be used again. So I don't want to tear it out when we're
     just going to put it back in again. */
-    UNUSED server_name_client_t *name_client;
+    server_name_client_t *name_client;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_TABLE_CONFIG_HPP_ */
