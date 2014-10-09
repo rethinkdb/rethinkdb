@@ -430,7 +430,6 @@ public:
     typedef std::function<void(
         superblock_t *,
         promise_t<superblock_t *> *,
-        superblock_queue_t *,
         auto_drainer_t::lock_t)> func_t;
     class caller_t : public single_threaded_countable_t<caller_t> {
     public:
@@ -447,7 +446,7 @@ public:
                 auto new_promise = make_scoped<promise_t<superblock_t *> >();
                 parent->promise.swap(new_promise);
             }
-            f(parent->superblock.get(), parent->promise.get(), parent, drainer.lock());
+            f(parent->superblock.get(), parent->promise.get(), drainer.lock());
         }
     private:
         func_t f;
@@ -465,7 +464,7 @@ public:
         spot.write_signal()->wait_lazily_unordered();
         guarantee(queue.size() == 0);
     }
-    void add(func_t f) {
+    void push(func_t f) {
         queue.push(make_counted<caller_t>(std::move(f), this));
     }
 private:
@@ -509,42 +508,33 @@ batched_replace_response_t rdb_batched_replace(
     // We have to drain write operations before destructing everything above us,
     // because the coroutines being drained use them.
     {
-        unlimited_fifo_queue_t<std::function<void()> > coro_queue;
-        struct callback_t : public coro_pool_callback_t<std::function<void()> > {
-            virtual void coro_pool_callback(std::function<void()> f, signal_t *) {
-                f();
-            }
-        } callback;
-        const size_t MAX_CONCURRENT_REPLACES = 8;
-        coro_pool_t<std::function<void()> > coro_pool(
-            MAX_CONCURRENT_REPLACES, &coro_queue, &callback);
-        auto_drainer_t drainer;
-        // Note the destructor ordering: We release the superblock before draining
-        // on all the write operations.
-        scoped_ptr_t<superblock_t> current_superblock(superblock->release());
+        superblock_queue_t queue(std::move(*superblock));
         for (size_t i = 0; i < keys.size(); ++i) {
-            // Pass out the point_replace_response_t.
-            promise_t<superblock_t *> superblock_promise;
-            coro_queue.push(
-                std::bind(
-                    &do_a_replace_from_batched_replace,
-                    auto_drainer_t::lock_t(&drainer),
-                    &batched_replaces_fifo_sink,
-                    batched_replaces_fifo_source.enter_write(),
+            queue.push(
+                [&](superblock_t *cb_superblock,
+                    promise_t<superblock_t *> *promise,
+                    auto_drainer_t::lock_t lock) {
+                    do_a_replace_from_batched_replace(
+                        lock,
+                        &batched_replaces_fifo_sink,
+                        batched_replaces_fifo_source.enter_write(),
 
-                    btree_loc_info_t(&info, current_superblock.release(), &keys[i]),
-                    one_replace_t(replacer, i),
-                    limits,
+                        btree_loc_info_t(&info, cb_superblock, &keys[i]),
+                        one_replace_t(replacer, i),
+                        limits,
 
-                    &superblock_promise,
-                    sindex_cb,
-                    &stats,
-                    env,
-                    trace,
-                    &conditions));
-            current_superblock.init(superblock_promise.wait());
+                        promise,
+                        sindex_cb,
+                        &stats,
+                        env,
+                        trace,
+                        &conditions);
+                });
         }
-    } // Make sure the drainer is destructed before the return statement.
+    }
+    // RSI: pick up hre.  Test superblock queue, change
+    // `do_a_replace_from_batched_replace` to do a pkey read using the queue
+    // when it needs to read more rows.
 
     ql::datum_object_builder_t out(stats);
     out.add_warnings(conditions, limits);
