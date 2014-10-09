@@ -1110,7 +1110,7 @@ range_datum_stream_t::next_raw_batch(env_t *, const batchspec_t &batchspec) {
         // isfinite is a macro on OS X in math.h, so we can't just use std::isfinite.
         using namespace std;  // isfinite is a macro on OS X, so we can't just say std::isfinite.
         rcheck(isfinite(next), base_exc_t::GENERIC,
-               "`r.range()` out of safe double bounds.");
+               "`range` out of safe double bounds.");
 
         v.emplace_back(next);
         batcher.note_el(v.back());
