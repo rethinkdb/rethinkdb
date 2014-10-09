@@ -71,7 +71,9 @@ public:
     }
     int get_type(const std::string &s, const rcheckable_t *caller) const {
         std::map<std::string, int>::const_iterator it = map.find(s);
-        rcheck_target(caller, base_exc_t::GENERIC, it != map.end(),
+        rcheck_target(caller,
+                      it != map.end(),
+                      base_exc_t::GENERIC,
                       strprintf("Unknown Type: %s", s.c_str()));
         return it->second;
     }
@@ -141,8 +143,8 @@ public:
     coerce_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> val = args->arg(env, 0);
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> val = args->arg(env, 0);
         val_t::type_t opaque_start_type = val->get_type();
         int start_supertype = opaque_start_type.raw_type;
         int start_subtype = 0;
@@ -263,7 +265,7 @@ public:
     ungroup_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<grouped_data_t> groups
             = args->arg(env, 0)->as_promiscuous_grouped_data(env->env);
         std::vector<datum_t> v;
@@ -285,7 +287,7 @@ private:
     virtual bool can_be_grouped() const { return false; }
 };
 
-int val_type(counted_t<val_t> v) {
+int val_type(const scoped_ptr_t<val_t> &v) {
     int t = v->get_type().raw_type * MAX_TYPE;
     if (t == DATUM_TYPE) {
         t += v->as_datum().get_type();
@@ -297,7 +299,7 @@ int val_type(counted_t<val_t> v) {
     return t;
 }
 
-datum_t typename_of(counted_t<val_t> v, scope_env_t *env) {
+datum_t typename_of(const scoped_ptr_t<val_t> &v, scope_env_t *env) {
     if (v->get_type().get_raw_type() == val_t::type_t::DATUM) {
         datum_t d = v->as_datum();
         return datum_t(datum_string_t(d.get_type_name()));
@@ -314,7 +316,7 @@ public:
     typeof_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         return new_val(typename_of(args->arg(env, 0), env));
     }
     virtual const char *name() const { return "typeof"; }
@@ -326,11 +328,11 @@ public:
     info_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         return new_val(val_info(env, args->arg(env, 0)));
     }
 
-    datum_t val_info(scope_env_t *env, counted_t<val_t> v) const {
+    datum_t val_info(scope_env_t *env, scoped_ptr_t<val_t> v) const {
         datum_object_builder_t info;
         int type = val_type(v);
         bool b = info.add("type", typename_of(v, env));

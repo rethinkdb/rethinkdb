@@ -171,8 +171,9 @@ datum_t table_t::sindex_status(env_t *env,
 }
 
 MUST_USE bool table_t::sync(env_t *env, const rcheckable_t *parent) {
-    rcheck_target(parent, base_exc_t::GENERIC,
+    rcheck_target(parent,
                   bounds.is_universe() && sorting == sorting_t::UNORDERED,
+                  base_exc_t::GENERIC,
                   "sync can only be applied directly to a table.");
     // In order to get the guarantees that we expect from a user-facing command,
     // we always have to use hard durability in combination with sync.
@@ -198,7 +199,9 @@ counted_t<datum_stream_t> table_t::get_all(
         datum_t value,
         const std::string &get_all_sindex_id,
         const protob_t<const Backtrace> &bt) {
-    rcheck_src(bt.get(), base_exc_t::GENERIC, !sindex_id,
+    rcheck_src(bt.get(),
+               !sindex_id,
+               base_exc_t::GENERIC,
                "Cannot chain get_all and other indexed operations.");
     r_sanity_check(sorting == sorting_t::UNORDERED);
     r_sanity_check(bounds.is_universe());
@@ -216,12 +219,17 @@ void table_t::add_sorting(const std::string &new_sindex_id, sorting_t _sorting,
                           const rcheckable_t *parent) {
     r_sanity_check(_sorting != sorting_t::UNORDERED);
 
-    rcheck_target(parent, base_exc_t::GENERIC, sorting == sorting_t::UNORDERED,
-            "Cannot apply 2 indexed orderings to the same TABLE.");
-    rcheck_target(parent, base_exc_t::GENERIC, !sindex_id || *sindex_id == new_sindex_id,
-            strprintf(
-                "Cannot use 2 indexes in the same operation. Trying to use %s and %s",
-                sindex_id->c_str(), new_sindex_id.c_str()));
+    rcheck_target(parent,
+                  sorting == sorting_t::UNORDERED,
+                  base_exc_t::GENERIC,
+                  "Cannot apply 2 indexed orderings to the same TABLE.");
+    rcheck_target(parent,
+                  !sindex_id || *sindex_id == new_sindex_id,
+                  base_exc_t::GENERIC,
+                  strprintf("Cannot use 2 indexes in the same operation.  "
+                            "Trying to use %s and %s",
+                            sindex_id->c_str(),
+                            new_sindex_id.c_str()));
 
     sindex_id = new_sindex_id;
     sorting = _sorting;
@@ -230,16 +238,20 @@ void table_t::add_sorting(const std::string &new_sindex_id, sorting_t _sorting,
 void table_t::add_bounds(datum_range_t &&new_bounds, const std::string &new_sindex_id,
                          const rcheckable_t *parent) {
     if (sindex_id) {
-        rcheck_target(
-            parent, base_exc_t::GENERIC, *sindex_id == new_sindex_id,
-            strprintf(
-                "Cannot use 2 indexes in the same operation.  Trying to use %s and %s.",
-                sindex_id->c_str(), new_sindex_id.c_str()));
+        rcheck_target(parent,
+                      *sindex_id == new_sindex_id,
+                      base_exc_t::GENERIC,
+                      strprintf("Cannot use 2 indexes in the same operation.  "
+                                "Trying to use %s and %s.",
+                                sindex_id->c_str(),
+                                new_sindex_id.c_str()));
     } else {
         sindex_id = new_sindex_id;
     }
 
-    rcheck_target(parent, base_exc_t::GENERIC, bounds.is_universe(),
+    rcheck_target(parent,
+                  bounds.is_universe(),
+                  base_exc_t::GENERIC,
                   "Cannot chain multiple betweens to the same table.");
     bounds = std::move(new_bounds);
 }
@@ -261,9 +273,13 @@ counted_t<datum_stream_t> table_t::get_intersecting(
         const datum_t &query_geometry,
         const std::string &new_sindex_id,
         const pb_rcheckable_t *parent) {
-    rcheck_target(parent, base_exc_t::GENERIC, !sindex_id,
+    rcheck_target(parent,
+                  !sindex_id,
+                  base_exc_t::GENERIC,
                   "Cannot chain get_intersecting with other indexed operations.");
-    rcheck_target(parent, base_exc_t::GENERIC, new_sindex_id != get_pkey(),
+    rcheck_target(parent,
+                  new_sindex_id != get_pkey(),
+                  base_exc_t::GENERIC,
                   "get_intersecting cannot use the primary index.");
     sindex_id = new_sindex_id;
     r_sanity_check(sorting == sorting_t::UNORDERED);
@@ -288,9 +304,13 @@ datum_t table_t::get_nearest(
         const std::string &new_sindex_id,
         const pb_rcheckable_t *parent,
         const configured_limits_t &limits) {
-    rcheck_target(parent, base_exc_t::GENERIC, !sindex_id,
+    rcheck_target(parent,
+                  !sindex_id,
+                  base_exc_t::GENERIC,
                   "Cannot chain get_nearest with other indexed operations.");
-    rcheck_target(parent, base_exc_t::GENERIC, new_sindex_id != get_pkey(),
+    rcheck_target(parent,
+                  new_sindex_id != get_pkey(),
+                  base_exc_t::GENERIC,
                   "get_nearest cannot use the primary index.");
     sindex_id = new_sindex_id;
     r_sanity_check(sorting == sorting_t::UNORDERED);
@@ -541,7 +561,7 @@ counted_t<const db_t> val_t::as_db() const {
     return db();
 }
 
-datum_t val_t::as_ptype(const std::string s) {
+datum_t val_t::as_ptype(const std::string s) const {
     try {
         datum_t d = as_datum();
         r_sanity_check(d.has());
@@ -552,7 +572,7 @@ datum_t val_t::as_ptype(const std::string s) {
     }
 }
 
-bool val_t::as_bool() {
+bool val_t::as_bool() const {
     try {
         datum_t d = as_datum();
         r_sanity_check(d.has());
@@ -561,7 +581,7 @@ bool val_t::as_bool() {
         rfail(e.get_type(), "%s", e.what());
     }
 }
-double val_t::as_num() {
+double val_t::as_num() const {
     try {
         datum_t d = as_datum();
         r_sanity_check(d.has());
@@ -570,7 +590,7 @@ double val_t::as_num() {
         rfail(e.get_type(), "%s", e.what());
     }
 }
-int64_t val_t::as_int() {
+int64_t val_t::as_int() const {
     try {
         datum_t d = as_datum();
         r_sanity_check(d.has());
@@ -579,7 +599,7 @@ int64_t val_t::as_int() {
         rfail(e.get_type(), "%s", e.what());
     }
 }
-datum_string_t val_t::as_str() {
+datum_string_t val_t::as_str() const {
     try {
         datum_t d = as_datum();
         r_sanity_check(d.has());

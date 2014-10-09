@@ -132,6 +132,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::IS_EMPTY:           return make_is_empty_term(env, t);
     case Term::DEFAULT:            return make_default_term(env, t);
     case Term::JSON:               return make_json_term(env, t);
+    case Term::TO_JSON_STRING:     return make_to_json_string_term(env, t);
     case Term::ISO8601:            return make_iso8601_term(env, t);
     case Term::TO_ISO8601:         return make_to_iso8601_term(env, t);
     case Term::EPOCH_TIME:         return make_epoch_time_term(env, t);
@@ -244,7 +245,7 @@ void run(protob_t<Query> q,
 
         try {
             scope_env_t scope_env(&env, var_scope_t());
-            counted_t<val_t> val = root_term->eval(&scope_env);
+            scoped_ptr_t<val_t> val = root_term->eval(&scope_env);
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
                 res->set_type(Response::SUCCESS_ATOM);
                 datum_t d = val->as_datum();
@@ -379,7 +380,7 @@ void term_t::prop_bt(Term *t) const {
     propagate_backtrace(t, &get_src()->GetExtension(ql2::extension::backtrace));
 }
 
-counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) const {
+scoped_ptr_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) const {
     // This is basically a hook for unit tests to change things mid-query
     profile::starter_t starter(strprintf("Evaluating %s.", name()), env->env->trace);
     DEBUG_ONLY_CODE(env->env->do_eval_callback());
@@ -392,7 +393,7 @@ counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) const {
 
     try {
         try {
-            counted_t<val_t> ret = term_eval(env, eval_flags);
+            scoped_ptr_t<val_t> ret = term_eval(env, eval_flags);
             DEC_DEPTH;
             DBG("%s returned %s\n", name(), ret->print().c_str());
             return ret;
@@ -408,38 +409,38 @@ counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) const {
     }
 }
 
-counted_t<val_t> term_t::new_val(datum_t d) const {
-    return make_counted<val_t>(d, backtrace());
+scoped_ptr_t<val_t> term_t::new_val(datum_t d) const {
+    return make_scoped<val_t>(d, backtrace());
 }
-counted_t<val_t> term_t::new_val(datum_t d,
-                                 counted_t<table_t> t) const {
-    return make_counted<val_t>(d, t, backtrace());
-}
-
-counted_t<val_t> term_t::new_val(datum_t d,
-                                 datum_t orig_key,
-                                 counted_t<table_t> t) const {
-    return make_counted<val_t>(d, orig_key, t, backtrace());
+scoped_ptr_t<val_t> term_t::new_val(datum_t d,
+                                    counted_t<table_t> t) const {
+    return make_scoped<val_t>(d, t, backtrace());
 }
 
-counted_t<val_t> term_t::new_val(env_t *env,
-                                 counted_t<datum_stream_t> s) const {
-    return make_counted<val_t>(env, s, backtrace());
+scoped_ptr_t<val_t> term_t::new_val(datum_t d,
+                                    datum_t orig_key,
+                                    counted_t<table_t> t) const {
+    return make_scoped<val_t>(d, orig_key, t, backtrace());
 }
-counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s,
-                                 counted_t<table_t> d) const {
-    return make_counted<val_t>(d, s, backtrace());
+
+scoped_ptr_t<val_t> term_t::new_val(env_t *env,
+                                    counted_t<datum_stream_t> s) const {
+    return make_scoped<val_t>(env, s, backtrace());
 }
-counted_t<val_t> term_t::new_val(counted_t<const db_t> db) const {
-    return make_counted<val_t>(db, backtrace());
+scoped_ptr_t<val_t> term_t::new_val(counted_t<datum_stream_t> s,
+                                    counted_t<table_t> d) const {
+    return make_scoped<val_t>(d, s, backtrace());
 }
-counted_t<val_t> term_t::new_val(counted_t<table_t> t) const {
-    return make_counted<val_t>(t, backtrace());
+scoped_ptr_t<val_t> term_t::new_val(counted_t<const db_t> db) const {
+    return make_scoped<val_t>(db, backtrace());
 }
-counted_t<val_t> term_t::new_val(counted_t<const func_t> f) const {
-    return make_counted<val_t>(f, backtrace());
+scoped_ptr_t<val_t> term_t::new_val(counted_t<table_t> t) const {
+    return make_scoped<val_t>(t, backtrace());
 }
-counted_t<val_t> term_t::new_val_bool(bool b) const {
+scoped_ptr_t<val_t> term_t::new_val(counted_t<const func_t> f) const {
+    return make_scoped<val_t>(f, backtrace());
+}
+scoped_ptr_t<val_t> term_t::new_val_bool(bool b) const {
     return new_val(datum_t::boolean(b));
 }
 

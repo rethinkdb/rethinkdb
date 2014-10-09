@@ -101,7 +101,8 @@ private:
 RDB_DECLARE_SERIALIZABLE(server_ghost_issue_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(server_ghost_issue_t);
 
-struct local_issues_t {
+class local_issues_t {
+public:
     std::vector<log_write_issue_t> log_write_issues;
     std::vector<server_down_issue_t> server_down_issues;
     std::vector<server_ghost_issue_t> server_ghost_issues;

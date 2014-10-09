@@ -65,7 +65,7 @@ public:
         subwriter(_subwriter) { }
     virtual ~raw_mailbox_writer_t() { }
 
-    void write(cluster_version_t cluster_version, write_stream_t *stream) {
+    void write(write_stream_t *stream) {
         write_message_t wm;
         // Right now, we serialize this length/thread/mailbox information the same
         // way irrespective of version. (Serialization methods for primitive types
@@ -76,7 +76,7 @@ public:
         serialize_universal(&wm, dest_mailbox_id);
         uint64_t prefix_length = static_cast<uint64_t>(wm.size());
 
-        subwriter->write(cluster_version, &wm);
+        subwriter->write(cluster_version_t::CLUSTER, &wm);
 
         // Prepend the message length.
         // TODO: It would be more efficient if we could make this part of `msg`.

@@ -32,7 +32,7 @@ void file_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t
         debug_print_quoted_string(&resource_buffer,
                                   reinterpret_cast<const uint8_t *>(resource.data()),
                                   resource.length());
-        logINF("Someone asked for the nonwhitelisted file %s.  If this should be "
+        logNTC("Someone asked for the nonwhitelisted file %s.  If this should be "
                "accessible, add it to the whitelist.", resource_buffer.c_str());
         *result = http_res_t(HTTP_FORBIDDEN);
         return;
@@ -63,7 +63,7 @@ void file_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t
     thread_pool_t::run_in_blocker_pool(boost::bind(&file_http_app_t::handle_blocking, this, filename, result));
 
     if (result->code == 404) {
-        logINF("File %s was requested and is on the whitelist but we didn't find it in the directory.", (asset_dir + filename).c_str());
+        logNTC("File %s was requested and is on the whitelist but we didn't find it in the directory.", (asset_dir + filename).c_str());
     }
 }
 

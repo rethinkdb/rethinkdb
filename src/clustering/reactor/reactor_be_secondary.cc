@@ -249,7 +249,7 @@ void reactor_t::be_secondary(region_t region, store_view_t *svs, const clone_ptr
                                     backfill_throttler, ct_broadcaster.get_watchable(),
                                     branch_history_manager, svs,
                                     ct_location_to_backfill_from.get_watchable(),
-                                    backfill_session_id, &regions_perfmon_collection,
+                                    backfill_session_id, &region_perfmon_collection,
                                     &ct_interruptor, &order_source);
 
                 /* This gives others access to our services, in particular once

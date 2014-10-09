@@ -16,7 +16,7 @@ public:
     sample_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 
-    counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         int64_t num_int = args->arg(env, 1)->as_int();
         rcheck(num_int >= 0,
                base_exc_t::GENERIC,
@@ -25,7 +25,7 @@ public:
         const size_t num = num_int;
         counted_t<table_t> t;
         counted_t<datum_stream_t> seq;
-        counted_t<val_t> v = args->arg(env, 0);
+        scoped_ptr_t<val_t> v = args->arg(env, 0);
 
         if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > t_seq
@@ -99,8 +99,8 @@ private:
         return res;
     }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> use_float_arg = args->optarg(env, "float");
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> use_float_arg = args->optarg(env, "float");
         bool use_float = use_float_arg ? use_float_arg->as_bool() : args->num_args() == 0;
 
         if (use_float) {

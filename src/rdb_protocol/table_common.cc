@@ -56,9 +56,10 @@ ql::datum_t make_row_replacement_stats(
             old_row, ql::datum_t(), primary_key_name);
         ql::datum_t new_primary_key_value =
             new_row.get_field(primary_key_name, ql::NOTHROW);
-        rcheck_target(&new_row, ql::base_exc_t::GENERIC,
+        rcheck_target(&new_row,
             primary_key_value.compare(
                 store_key_t(new_primary_key_value.print_primary())) == 0,
+            ql::base_exc_t::GENERIC,
             (started_empty
              ? strprintf("Primary key `%s` cannot be changed (null -> %s)",
                          primary_key_name.to_std().c_str(), new_row.print().c_str())

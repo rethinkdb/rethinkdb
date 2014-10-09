@@ -44,16 +44,6 @@ def expr(val, nesting_depth=20):
 
     if isinstance(val, RqlQuery):
         return val
-    elif isinstance(val, list):
-        val = [expr(v, nesting_depth - 1) for v in val]
-        return MakeArray(*val)
-    elif isinstance(val, dict):
-        # MakeObj doesn't take the dict as a keyword args to avoid
-        # conflicting with the `self` parameter.
-        obj = {}
-        for k, v in dict_items(val):
-            obj[k] = expr(v, nesting_depth - 1)
-        return MakeObj(obj)
     elif isinstance(val, collections.Callable):
         return Func(val)
     elif isinstance(val, (datetime.datetime, datetime.date)):
@@ -67,10 +57,20 @@ def expr(val, nesting_depth=20):
         return ISO8601(val.isoformat())
     elif isinstance(val, RqlBinary):
         return Binary(val)
-    elif isinstance(val, str):
+    elif isinstance(val, (str, unicode)):
         return Datum(val)
     elif isinstance(val, bytes):
         return Binary(val)
+    elif isinstance(val, collections.Mapping):
+        # MakeObj doesn't take the dict as a keyword args to avoid
+        # conflicting with the `self` parameter.
+        obj = {}
+        for k, v in dict_items(val):
+            obj[k] = expr(v, nesting_depth - 1)
+        return MakeObj(obj)
+    elif isinstance(val, collections.Iterable):
+        val = [expr(v, nesting_depth - 1) for v in val]
+        return MakeArray(*val)
     else:
         return Datum(val)
 
@@ -335,6 +335,12 @@ class RqlQuery(object):
     def nth(self, *args):
         return Nth(self, *args)
 
+    def to_json(self, *args):
+        return ToJsonString(self, *args)
+
+    def to_json_string(self, *args):
+        return ToJsonString(self, *args)
+
     def match(self, *args):
         return Match(self, *args)
 
@@ -595,6 +601,9 @@ class RqlTzinfo(datetime.tzinfo):
 
         self.offsetstr = offsetstr
         self.delta = datetime.timedelta(hours=hours, minutes=minutes)
+
+    def __getinitargs__(self):
+        return (self.offsetstr,)
 
     def __copy__(self):
         return RqlTzinfo(self.offsetstr)
@@ -1094,6 +1103,10 @@ class Nth(RqlBracketQuery):
 class Match(RqlMethodQuery):
     tt = pTerm.MATCH
     st = 'match'
+
+class ToJsonString(RqlMethodQuery):
+    tt = pTerm.TO_JSON_STRING
+    st = 'to_json_string'
 
 class Split(RqlMethodQuery):
     tt = pTerm.SPLIT

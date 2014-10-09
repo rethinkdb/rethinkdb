@@ -110,13 +110,13 @@ public:
     metadata_writer_t(const metadata_t &_md, metadata_version_t _mdv) :
         md(_md), mdv(_mdv) { }
 
-    void write(cluster_version_t cluster_version, write_stream_t *stream) {
+    void write(write_stream_t *stream) {
         write_message_t wm;
         // All cluster versions so far use a uint8_t code.
         uint8_t code = message_code_metadata;
         serialize_universal(&wm, code);
-        serialize_for_version(cluster_version, &wm, md);
-        serialize_for_version(cluster_version, &wm, mdv);
+        serialize<cluster_version_t::CLUSTER>(&wm, md);
+        serialize<cluster_version_t::CLUSTER>(&wm, mdv);
         int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
@@ -133,12 +133,12 @@ public:
     explicit sync_from_query_writer_t(sync_from_query_id_t _query_id) :
         query_id(_query_id) { }
 
-    void write(cluster_version_t cluster_version, write_stream_t *stream) {
+    void write(write_stream_t *stream) {
         write_message_t wm;
         // All cluster versions so far use a uint8_t code.
         uint8_t code = message_code_sync_from_query;
         serialize_universal(&wm, code);
-        serialize_for_version(cluster_version, &wm, query_id);
+        serialize<cluster_version_t::CLUSTER>(&wm, query_id);
         int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
@@ -154,13 +154,13 @@ public:
     sync_from_reply_writer_t(sync_from_query_id_t _query_id, metadata_version_t _version) :
         query_id(_query_id), version(_version) { }
 
-    void write(cluster_version_t cluster_version, write_stream_t *stream) {
+    void write(write_stream_t *stream) {
         write_message_t wm;
         // All cluster versions so far use a uint8_t code.
         uint8_t code = message_code_sync_from_reply;
         serialize_universal(&wm, code);
-        serialize_for_version(cluster_version, &wm, query_id);
-        serialize_for_version(cluster_version, &wm, version);
+        serialize<cluster_version_t::CLUSTER>(&wm, query_id);
+        serialize<cluster_version_t::CLUSTER>(&wm, version);
         int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
@@ -177,13 +177,13 @@ public:
     sync_to_query_writer_t(sync_to_query_id_t _query_id, metadata_version_t _version) :
         query_id(_query_id), version(_version) { }
 
-    void write(cluster_version_t cluster_version, write_stream_t *stream) {
+    void write(write_stream_t *stream) {
         write_message_t wm;
         // All cluster versions so far use a uint8_t code.
         uint8_t code = message_code_sync_to_query;
         serialize_universal(&wm, code);
-        serialize_for_version(cluster_version, &wm, query_id);
-        serialize_for_version(cluster_version, &wm, version);
+        serialize<cluster_version_t::CLUSTER>(&wm, query_id);
+        serialize<cluster_version_t::CLUSTER>(&wm, version);
         int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
@@ -200,12 +200,12 @@ public:
     explicit sync_to_reply_writer_t(sync_to_query_id_t _query_id) :
         query_id(_query_id) { }
 
-    void write(cluster_version_t cluster_version, write_stream_t *stream) {
+    void write(write_stream_t *stream) {
         write_message_t wm;
         // All cluster versions so far use a uint8_t code.
         uint8_t code = message_code_sync_to_reply;
         serialize_universal(&wm, code);
-        serialize_for_version(cluster_version, &wm, query_id);
+        serialize<cluster_version_t::CLUSTER>(&wm, query_id);
         int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }

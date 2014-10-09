@@ -77,13 +77,13 @@ datum_string_t outdated_index_issue_t::build_description(const ql::datum_t &info
     ql::datum_t tables = info.get_field("tables");
     for (size_t i = 0; i < tables.arr_size(); ++i) {
         ql::datum_t table_info = tables.get(i);
-        ql::datum_t indexes = table_info.get_field("indexes");
+        ql::datum_t indexes_ = table_info.get_field("indexes");
 
         std::string index_str;
-        for (size_t j = 0; j < indexes.arr_size(); ++j) {
+        for (size_t j = 0; j < indexes_.arr_size(); ++j) {
             index_str += strprintf("%s`%s`",
                                    j == 0 ? "" : ", ",
-                                   indexes.get(j).as_str().to_std().c_str());
+                                   indexes_.get(j).as_str().to_std().c_str());
         }
 
         index_table += strprintf("\nFor table %s.%s: %s.",

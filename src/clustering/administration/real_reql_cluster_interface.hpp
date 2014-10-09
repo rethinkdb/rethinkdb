@@ -59,11 +59,11 @@ public:
             std::string *error_out);
     bool table_config(const boost::optional<name_string_t> &name,
             counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
-            signal_t *interruptor, counted_t<ql::val_t> *resp_out,
+            signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
     bool table_status(const boost::optional<name_string_t> &name,
             counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
-            signal_t *interruptor, counted_t<ql::val_t> *resp_out,
+            signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
 
     bool table_reconfigure(
@@ -111,7 +111,7 @@ private:
     bool table_config_or_status(artificial_table_backend_t *backend,
             const char *backend_name, const boost::optional<name_string_t> &name,
             counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
-            signal_t *interruptor, counted_t<ql::val_t> *resp_out,
+            signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
 
     DISABLE_COPYING(real_reql_cluster_interface_t);

@@ -117,14 +117,23 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(auth_semilattice_metadata_t, auth_key);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(auth_semilattice_metadata_t, auth_key);
 RDB_IMPL_EQUALITY_COMPARABLE_1(auth_semilattice_metadata_t, auth_key);
 
-RDB_IMPL_SERIALIZABLE_16(cluster_directory_metadata_t,
-                         rdb_namespaces, machine_id, peer_id, version, cache_size,
-                         time_started, pid, hostname, cluster_port, reql_port,
-                         http_admin_port,
-                         get_stats_mailbox_address,
-                         log_mailbox, server_name_business_card, local_issues,
-                         peer_type);
-INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(cluster_directory_metadata_t);
+RDB_IMPL_SERIALIZABLE_16_FOR_CLUSTER(cluster_directory_metadata_t,
+     rdb_namespaces,
+     machine_id,
+     peer_id,
+     version,
+     cache_size,
+     time_started,
+     pid,
+     hostname,
+     cluster_port,
+     reql_port,
+     http_admin_port,
+     get_stats_mailbox_address,
+     log_mailbox,
+     server_name_business_card,
+     local_issues,
+     peer_type);
 
 bool ack_expectation_t::operator==(ack_expectation_t other) const {
     return expectation_ == other.expectation_ && hard_durability_ == other.hard_durability_;

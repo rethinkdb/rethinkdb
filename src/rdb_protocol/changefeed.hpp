@@ -102,9 +102,9 @@ private:
 };
 region_t keyspec_to_region(const keyspec_t &keyspec);
 
-RDB_DECLARE_SERIALIZABLE(keyspec_t::all_t);
-RDB_DECLARE_SERIALIZABLE(keyspec_t::point_t);
-RDB_DECLARE_SERIALIZABLE(keyspec_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::all_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::point_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t);
 
 // The `client_t` exists on the machine handling the changefeed query, in the
 // `rdb_context_t`.  When a query subscribes to the changes on a table, it

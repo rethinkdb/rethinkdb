@@ -8,26 +8,27 @@
 #include "rdb_protocol/datum_string.hpp"
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/pseudo_geometry.hpp"
+#include "rdb_protocol/terms/writes.hpp"
 
 namespace ql {
 
-durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
-                                                 const pb_rcheckable_t *target);
-
-name_string_t get_name(counted_t<val_t> val, const term_t *caller,
-        const char *type_str) {
+name_string_t get_name(const scoped_ptr_t<val_t> &val, const term_t *caller,
+                       const char *type_str) {
     r_sanity_check(val.has());
     const datum_string_t &raw_name = val->as_str();
     name_string_t name;
     bool assignment_successful = name.assign_value(raw_name);
-    rcheck_target(caller, base_exc_t::GENERIC, assignment_successful,
+    rcheck_target(caller,
+                  assignment_successful,
+                  base_exc_t::GENERIC,
                   strprintf("%s name `%s` invalid (%s).",
-                            type_str, raw_name.to_std().c_str(),
+                            type_str,
+                            raw_name.to_std().c_str(),
                             name_string_t::valid_char_msg));
     return name;
 }
 
-std::map<name_string_t, size_t> get_replica_counts(counted_t<val_t> arg) {
+std::map<name_string_t, size_t> get_replica_counts(scoped_ptr_t<val_t> arg) {
     r_sanity_check(arg.has());
     std::map<name_string_t, size_t> replica_counts;
     datum_t datum = arg->as_datum();
@@ -36,16 +37,15 @@ std::map<name_string_t, size_t> get_replica_counts(counted_t<val_t> arg) {
             std::pair<datum_string_t, datum_t> pair = datum.get_pair(i);
             name_string_t name;
             bool assignment_successful = name.assign_value(pair.first);
-            rcheck_target(arg.get(), base_exc_t::GENERIC, assignment_successful,
+            rcheck_target(arg.get(), assignment_successful, base_exc_t::GENERIC,
                 strprintf("Server tag name `%s` invalid (%s).",
                           pair.first.to_std().c_str(), name_string_t::valid_char_msg));
             int64_t replicas = checked_convert_to_int(arg.get(), pair.second.as_num());
-            rcheck_target(arg.get(), base_exc_t::GENERIC,
-                replicas >= 0, "Can't have a negative number of replicas");
+            rcheck_target(arg.get(), replicas >= 0,
+                base_exc_t::GENERIC, "Can't have a negative number of replicas");
             size_t replicas2 = static_cast<size_t>(replicas);
-            rcheck_target(arg.get(), base_exc_t::GENERIC,
-                static_cast<int64_t>(replicas2) == replicas,
-                strprintf("Integer too large: %" PRIi64, replicas));
+            rcheck_target(arg.get(), static_cast<int64_t>(replicas2) == replicas,
+                base_exc_t::GENERIC, strprintf("Integer too large: %" PRIi64, replicas));
             replica_counts.insert(std::make_pair(name, replicas2));
         }
     } else if (datum.get_type() == datum_t::R_NUM) {
@@ -81,7 +81,7 @@ private:
     virtual std::string write_eval_impl(scope_env_t *env,
                                         args_t *args,
                                         eval_flags_t flags) const = 0;
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t flags) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t flags) const {
         std::string op = write_eval_impl(env, args, flags);
         datum_object_builder_t res;
         UNUSED bool b = res.add(datum_string_t(op), datum_t(1.0));
@@ -93,7 +93,7 @@ class db_term_t : public meta_op_term_t {
 public:
     db_term_t(compile_env_t *env, const protob_t<const Term> &term) : meta_op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         name_string_t db_name = get_name(args->arg(env, 0), this, "Database");
         counted_t<const db_t> db;
         std::string error;
@@ -146,7 +146,7 @@ private:
 
         /* Parse arguments */
         boost::optional<name_string_t> primary_dc;
-        if (counted_t<val_t> v = args->optarg(env, "datacenter")) {
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "datacenter")) {
             primary_dc.reset(get_name(v, this, "Table"));
         }
 
@@ -154,14 +154,14 @@ private:
             = is_hard(parse_durability_optarg(args->optarg(env, "durability"), this));
 
         std::string primary_key = "id";
-        if (counted_t<val_t> v = args->optarg(env, "primary_key")) {
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "primary_key")) {
             primary_key = v->as_str().to_std();
         }
 
         counted_t<const db_t> db;
         name_string_t tbl_name;
         if (args->num_args() == 1) {
-            counted_t<val_t> dbv = args->optarg(env, "db");
+            scoped_ptr_t<val_t> dbv = args->optarg(env, "db");
             r_sanity_check(dbv);
             db = dbv->as_db();
             tbl_name = get_name(args->arg(env, 0), this, "Table");
@@ -211,7 +211,7 @@ private:
         counted_t<const db_t> db;
         name_string_t tbl_name;
         if (args->num_args() == 1) {
-            counted_t<val_t> dbv = args->optarg(env, "db");
+            scoped_ptr_t<val_t> dbv = args->optarg(env, "db");
             r_sanity_check(dbv);
             db = dbv->as_db();
             tbl_name = get_name(args->arg(env, 0), this, "Table");
@@ -236,7 +236,7 @@ public:
     db_list_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         meta_op_term_t(env, term, argspec_t(0)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *, eval_flags_t) const {
         std::set<name_string_t> dbs;
         std::string error;
         if (!env->env->reql_cluster_interface()->db_list(
@@ -260,10 +260,10 @@ public:
     table_list_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         meta_op_term_t(env, term, argspec_t(0, 1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<const ql::db_t> db;
         if (args->num_args() == 0) {
-            counted_t<val_t> dbv = args->optarg(env, "db");
+            scoped_ptr_t<val_t> dbv = args->optarg(env, "db");
             r_sanity_check(dbv);
             db = dbv->as_db();
         } else {
@@ -295,11 +295,11 @@ protected:
     virtual bool impl(scope_env_t *env,
                       const boost::optional<name_string_t> name,
                       counted_t<const db_t> db,
-                      counted_t<val_t> *resp_out,
+                      scoped_ptr_t<val_t> *resp_out,
                       std::string *error_out) const = 0;
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> v0, v1;
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> v0, v1;
         if (args->num_args() > 0) {
             v0 = args->arg(env, 0);
         }
@@ -313,7 +313,7 @@ private:
         if (db_arg_present) {
             db = v0->as_db();
         } else {
-            counted_t<val_t> dbv = args->optarg(env, "db");
+            scoped_ptr_t<val_t> dbv = args->optarg(env, "db");
             r_sanity_check(dbv);
             db = dbv->as_db();
         }
@@ -325,7 +325,7 @@ private:
         }
 
         std::string error;
-        counted_t<val_t> resp;
+        scoped_ptr_t<val_t> resp;
         if (!impl(env, name, db, &resp, &error)) {
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
@@ -339,7 +339,7 @@ public:
         table_config_or_status_term_t(env, term) { }
 private:
     bool impl(scope_env_t *env, const boost::optional<name_string_t> name,
-            counted_t<const db_t> db, counted_t<val_t> *resp_out,
+            counted_t<const db_t> db, scoped_ptr_t<val_t> *resp_out,
             std::string *error_out) const {
         return env->env->reql_cluster_interface()->table_config(name, db, backtrace(),
             env->env->interruptor, resp_out, error_out);
@@ -353,7 +353,7 @@ public:
         table_config_or_status_term_t(env, term) { }
 private:
     bool impl(scope_env_t *env, const boost::optional<name_string_t> name,
-            counted_t<const db_t> db, counted_t<val_t> *resp_out,
+            counted_t<const db_t> db, scoped_ptr_t<val_t> *resp_out,
             std::string *error_out) const {
         return env->env->reql_cluster_interface()->table_status(name, db, backtrace(),
             env->env->interruptor, resp_out, error_out);
@@ -367,7 +367,7 @@ public:
         meta_op_term_t(env, term, argspec_t(3),
             optargspec_t({"director_tag", "dry_run"})) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t)
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t)
             const {
         /* Parse parameters */
         /* RSI(reql_admin): Make sure the user didn't call `.between()` or `.order_by()`
@@ -376,13 +376,13 @@ private:
         table_generate_config_params_t config_params;
         config_params.num_shards = args->arg(env, 1)->as_int<int>();
         config_params.num_replicas = get_replica_counts(args->arg(env, 2));
-        if (counted_t<val_t> v = args->optarg(env, "director_tag")) {
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "director_tag")) {
             config_params.director_tag = get_name(v, this, "Server tag");
         } else {
             config_params.director_tag = name_string_t::guarantee_valid("default");
         }
         bool dry_run = false;
-        if (counted_t<val_t> v = args->optarg(env, "dry_run")) {
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "dry_run")) {
             dry_run = v->as_bool();
         }
         /* Perform the operation */
@@ -421,13 +421,13 @@ public:
     table_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, 2), optargspec_t({ "use_outdated" })) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<val_t> t = args->optarg(env, "use_outdated");
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> t = args->optarg(env, "use_outdated");
         bool use_outdated = t ? t->as_bool() : false;
         counted_t<const db_t> db;
         name_string_t name;
         if (args->num_args() == 1) {
-            counted_t<val_t> dbv = args->optarg(env, "db");
+            scoped_ptr_t<val_t> dbv = args->optarg(env, "db");
             r_sanity_check(dbv.has());
             db = dbv->as_db();
             name = get_name(args->arg(env, 0), this, "Table");
@@ -453,7 +453,7 @@ class get_term_t : public op_term_t {
 public:
     get_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
         datum_t pkey = args->arg(env, 1)->as_datum();
         datum_t row = table->get_row(env->env, pkey);
@@ -467,19 +467,20 @@ public:
     get_all_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2, -1), optargspec_t({ "index" })) { }
 private:
-    datum_t get_key_arg(counted_t<val_t> arg) const {
+    datum_t get_key_arg(const scoped_ptr_t<val_t> &arg) const {
         datum_t datum_arg = arg->as_datum();
 
-        rcheck_target(arg, base_exc_t::GENERIC,
-                     !datum_arg.is_ptype(pseudo::geometry_string),
-                     "Cannot use a geospatial index with `get_all`.  "
-                     "Use `get_intersecting` instead.");
+        rcheck_target(arg,
+                      !datum_arg.is_ptype(pseudo::geometry_string),
+                      base_exc_t::GENERIC,
+                      "Cannot use a geospatial index with `get_all`. "
+                      "Use `get_intersecting` instead.");
         return datum_arg;
     }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
-        counted_t<val_t> index = args->optarg(env, "index");
+        scoped_ptr_t<val_t> index = args->optarg(env, "index");
         std::string index_str = index ? index->as_str().to_std() : "";
         if (index && index_str != table->get_pkey()) {
             std::vector<counted_t<datum_stream_t> > streams;

@@ -464,18 +464,18 @@ message Term {
         // the given database; with no argument, returns the config for
         // all tables in the database. (You may omit the first argument
         // to use the default database.)
-        TABLE_CONFIG  = 172; // Database -> StreamSelection |
+        TABLE_CONFIG  = 173; // Database -> StreamSelection |
                              // Database, String -> SingleSelection |
                              // -> StreamSelection |
                              // String -> SingleSelection
         // Like TABLE_CONFIG, except it returns the row in
         // `table_status` instead of `table_config`.
-        TABLE_STATUS  = 173; // Database -> StreamSelection |
+        TABLE_STATUS  = 174; // Database -> StreamSelection |
                              // Database, String -> SingleSelection |
                              // -> StreamSelection |
                              // String -> SingleSelection
         // Generates a new config for the given table.
-        RECONFIGURE   = 174; // Table, NUMBER, OBJECT, {director_tag:STRING, dry_run:BOOLEAN} -> OBJECT
+        RECONFIGURE   = 175; // Table, NUMBER, OBJECT, {director_tag:STRING, dry_run:BOOLEAN} -> OBJECT
 
         // Ensures that previously issued soft-durability writes are complete and
         // written to disk.
@@ -589,6 +589,11 @@ message Term {
         // Parses its first argument as a json string and returns it as a
         // datum.
         JSON = 98; // STRING -> DATUM
+        // Returns the datum as a JSON string.
+        // N.B.: we would really prefer this be named TO_JSON and that exists as
+        // an alias in Python and JavaScript drivers; however it conflicts with the
+        // standard `to_json` method defined by Ruby's standard json library.
+        TO_JSON_STRING = 172; // DATUM -> STRING
 
         // Parses its first arguments as an ISO 8601 time and returns it as a
         // datum.

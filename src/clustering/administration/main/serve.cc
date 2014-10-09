@@ -102,7 +102,7 @@ bool do_serve(io_backender_t *io_backender,
         }
 
 #ifndef NDEBUG
-        logINF("Our machine ID is %s", uuid_to_str(machine_id).c_str());
+        logNTC("Our machine ID is %s", uuid_to_str(machine_id).c_str());
 #endif
 
         connectivity_cluster_t connectivity_cluster;
@@ -198,7 +198,7 @@ bool do_serve(io_backender_t *io_backender,
         if (serve_info.ports.port != 0) {
             guarantee(serve_info.ports.port == connectivity_cluster_run->get_port());
         }
-        logINF("Listening for intracluster connections on port %d\n",
+        logNTC("Listening for intracluster connections on port %d\n",
             connectivity_cluster_run->get_port());
         /* If `serve_info.ports.port` was 0 then the actual port is not 0, so we need to
         update the directory. */
@@ -335,7 +335,7 @@ bool do_serve(io_backender_t *io_backender,
                     serve_info.ports.local_addresses,
                     serve_info.ports.reql_port,
                     &rdb_ctx);
-                logINF("Listening for client driver connections on port %d\n",
+                logNTC("Listening for client driver connections on port %d\n",
                        rdb_query_server.get_port());
                 /* If `serve_info.ports.reql_port` was zero then the OS assigned us a
                 port, so we need to update the directory. */
@@ -362,7 +362,7 @@ bool do_serve(io_backender_t *io_backender,
                 {
                     scoped_ptr_t<administrative_http_server_manager_t> admin_server_ptr;
                     if (serve_info.ports.http_admin_is_disabled) {
-                        logINF("Administrative HTTP connections are disabled.\n");
+                        logNTC("Administrative HTTP connections are disabled.\n");
                     } else {
                         // TODO: Pardon me what, but is this how we fail here?
                         guarantee(serve_info.ports.http_port < 65536);
@@ -375,7 +375,7 @@ bool do_serve(io_backender_t *io_backender,
                                 directory_read_manager.get_root_view(),
                                 rdb_query_server.get_http_app(),
                                 serve_info.web_assets));
-                        logINF("Listening for administrative HTTP connections on port %d\n",
+                        logNTC("Listening for administrative HTTP connections on port %d\n",
                                admin_server_ptr->get_port());
                         /* If `serve_info.ports.http_port` was zero then the OS assigned
                         us a port, so we need to update the directory. */
@@ -388,32 +388,46 @@ bool do_serve(io_backender_t *io_backender,
                     }
 
                     const std::string addresses_string = serve_info.ports.get_addresses_string();
-                    logINF("Listening on addresses: %s\n", addresses_string.c_str());
+                    logNTC("Listening on address%s: %s\n",
+                           serve_info.ports.local_addresses.size() == 1 ? "" : "es",
+                           addresses_string.c_str());
 
                     if (!serve_info.ports.is_bind_all()) {
-                        logINF("To fully expose RethinkDB on the network, bind to all addresses");
+                        logNTC("To fully expose RethinkDB on the network, bind to all addresses");
                         if(serve_info.config_file) {
-                            logINF("by adding `bind=all' to the config file (%s).",
+                            logNTC("by adding `bind=all' to the config file (%s).",
                                    (*serve_info.config_file).c_str());
                         } else {
-                            logINF("by running rethinkdb with the `--bind all` command line option.");
+                            logNTC("by running rethinkdb with the `--bind all` command line option.");
                         }
                     }
 
-                    logINF("Server ready\n");
+                    // TODO: This duplicates part of network_logger_t::pretty_print_machine, refactor
+                    machines_semilattice_metadata_t::machine_map_t::const_iterator
+                        machine_it = cluster_metadata.machines.machines.find(machine_id);
+                    guarantee(machine_it != cluster_metadata.machines.machines.end());
+                    std::string machine_name;
+                    if (machine_it->second.is_deleted()) {
+                        machine_name = "<ghost machine>";
+                    } else {
+                        machine_name = machine_it->second.get_ref().name.get_ref().str();
+                    }
+                    logNTC("Server ready, \"%s\" %s\n",
+                           machine_name.c_str(),
+                           uuid_to_str(machine_id).c_str());
 
                     stop_cond->wait_lazily_unordered();
 
 
                     if (stop_cond->get_source_signo() == SIGINT) {
-                        logINF("Server got SIGINT from pid %d, uid %d; shutting down...\n",
+                        logNTC("Server got SIGINT from pid %d, uid %d; shutting down...\n",
                                stop_cond->get_source_pid(), stop_cond->get_source_uid());
                     } else if (stop_cond->get_source_signo() == SIGTERM) {
-                        logINF("Server got SIGTERM from pid %d, uid %d; shutting down...\n",
+                        logNTC("Server got SIGTERM from pid %d, uid %d; shutting down...\n",
                                stop_cond->get_source_pid(), stop_cond->get_source_uid());
 
                     } else {
-                        logINF("Server got signal %d from pid %d, uid %d; shutting down...\n",
+                        logNTC("Server got signal %d from pid %d, uid %d; shutting down...\n",
                                stop_cond->get_source_signo(),
                                stop_cond->get_source_pid(), stop_cond->get_source_uid());
                     }
@@ -426,13 +440,13 @@ bool do_serve(io_backender_t *io_backender,
                     auth_metadata_persister->stop_and_flush(&non_interruptor);
                 }
 
-                logINF("Shutting down client connections...\n");
+                logNTC("Shutting down client connections...\n");
             }
-            logINF("All client connections closed.\n");
+            logNTC("All client connections closed.\n");
 
-            logINF("Shutting down storage engine... (This may take a while if you had a lot of unflushed data in the writeback cache.)\n");
+            logNTC("Shutting down storage engine... (This may take a while if you had a lot of unflushed data in the writeback cache.)\n");
         }
-        logINF("Storage engine shut down.\n");
+        logNTC("Storage engine shut down.\n");
 
     } catch (const address_in_use_exc_t &ex) {
         logERR("%s.\n", ex.what());

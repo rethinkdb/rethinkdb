@@ -554,12 +554,9 @@ void subscription_t::destructor_cleanup(std::function<void()> del_sub) THROWS_NO
     }
 }
 
-RDB_MAKE_SERIALIZABLE_0(keyspec_t::all_t);
-INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::all_t);
-RDB_MAKE_SERIALIZABLE_1(keyspec_t::point_t, key);
-INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::point_t);
-RDB_MAKE_SERIALIZABLE_1(keyspec_t, spec);
-INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(keyspec_t);
+RDB_MAKE_SERIALIZABLE_0_FOR_CLUSTER(keyspec_t::all_t);
+RDB_MAKE_SERIALIZABLE_1_FOR_CLUSTER(keyspec_t::point_t, key);
+RDB_MAKE_SERIALIZABLE_1_FOR_CLUSTER(keyspec_t, spec);
 
 // If this throws we might leak the increment to `num_subs`.
 void feed_t::add_point_sub(subscription_t *sub,
