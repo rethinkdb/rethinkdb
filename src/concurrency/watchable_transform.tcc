@@ -17,11 +17,9 @@ watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::watchable_map_tra
                     const value2_t *value2;
                     value_1_to_2(value1, &value2);
                     guarantee(value2 != nullptr);
-                    watchable_map_t<key2_t, value2_t>::
-                        notify_change(key2, value2, &write_acq);
+                    do_notify_change(key2, value2, &write_acq);
                 } else {
-                    watchable_map_t<key2_t, value2_t>::
-                        notify_change(key2, nullptr, &write_acq);
+                    do_notify_change(key2, nullptr, &write_acq);
                 }
             }
         }, false)

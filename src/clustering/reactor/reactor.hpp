@@ -217,7 +217,9 @@ private:
 template <class activity_t>
 clone_ptr_t<watchable_t<boost::optional<boost::optional<activity_t> > > > reactor_t::get_directory_entry_view(peer_id_t p_id, const reactor_activity_id_t &ra_id) {
     return get_watchable_for_key(directory_echo_mirror.get_internal(), p_id)->subview(
-        [this, p_id, ra_id](const boost::optional<cow_ptr_t<reactor_business_card_t> > &bcard) {
+        [this, p_id, ra_id]
+        (const boost::optional<cow_ptr_t<reactor_business_card_t> > &bcard)
+        -> boost::optional<boost::optional<activity_t> > {
             if (!static_cast<bool>(bcard)) {
                 return boost::optional<boost::optional<activity_t> >();
             }

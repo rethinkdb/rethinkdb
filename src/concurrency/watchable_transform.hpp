@@ -46,6 +46,12 @@ public:
     void read_key(const key2_t &key, const std::function<void(const value2_t *)> &);
 
 private:
+    /* This method exists to work around a bug in GCC. See GCC issue 61148. */
+    void do_notify_change(const key2_t &key, const value2_t *value,
+            rwi_lock_assertion_t::write_acq_t *acq) {
+        watchable_map_t<key2_t, value2_t>::notify_change(key, value, acq);
+    }
+
     rwi_lock_assertion_t *get_rwi_lock();
     watchable_map_t<key1_t, value1_t> *inner;
     typename watchable_map_t<key1_t, value1_t>::all_subs_t all_subs;

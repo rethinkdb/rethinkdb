@@ -92,7 +92,6 @@ bool reactor_t::find_replier_in_directory(
     std::vector<reactor_activity_id_t> activity_ids;
 
     typedef reactor_business_card_t rb_t;
-    typedef std::map<peer_id_t, cow_ptr_t<rb_t> > reactor_directory_t;
 
     for (auto it = bp.peers_roles.begin(); it != bp.peers_roles.end(); ++it) {
         directory->read_key(it->first,
