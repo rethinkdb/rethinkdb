@@ -1,6 +1,9 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "concurrency/watchable_transform.hpp"
 
+#include "debug.hpp"
+#include "stl_utils.hpp"
+
 template<class key1_t, class value1_t, class key2_t, class value2_t>
 watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::watchable_map_transform_t(
         watchable_map_t<key1_t, value1_t> *_inner) :
@@ -10,10 +13,16 @@ watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::watchable_map_tra
             rwi_lock_assertion_t::write_acq_t write_acq(&rwi_lock);
             key2_t key2;
             if (key_1_to_2(key1, &key2)) {
-                const value2_t *value2;
-                value_1_to_2(value1, &value2);
-                watchable_map_t<key2_t, value2_t>::
-                    notify_change(key2, value2, &write_acq);
+                if (value1 != nullptr) {
+                    const value2_t *value2;
+                    value_1_to_2(value1, &value2);
+                    guarantee(value2 != nullptr);
+                    watchable_map_t<key2_t, value2_t>::
+                        notify_change(key2, value2, &write_acq);
+                } else {
+                    watchable_map_t<key2_t, value2_t>::
+                        notify_change(key2, nullptr, &write_acq);
+                }
             }
         }, false)
     { }
@@ -40,6 +49,7 @@ watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::get_key(
         if (value1 != nullptr) {
             const value2_t *value2;
             value_1_to_2(value1, &value2);
+            guarantee(value2 != nullptr);
             res = boost::optional<value2_t>(*value2);
         }
     });
@@ -68,6 +78,7 @@ void watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::read_key(
         if (value1 != nullptr) {
             const value2_t *value2;
             value_1_to_2(value1, &value2);
+            guarantee(value2 != nullptr);
             cb(value2);
         } else {
             cb(nullptr);
@@ -117,7 +128,7 @@ clone_ptr_t<watchable_t<boost::optional<value_t> > > get_watchable_for_key(
         publisher_controller_t<std::function<void()> > publisher;
         rwi_lock_assertion_t rwi_lock;
         watchable_map_t<key_t, value_t> *map;
-        const key_t &key;
+        key_t key;
         typename watchable_map_t<key_t, value_t>::key_subs_t subs;
     };
     return clone_ptr_t<watchable_t<boost::optional<value_t> > >(new w_t(map, key));

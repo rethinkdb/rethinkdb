@@ -82,9 +82,6 @@ template<class internal_t>
 void directory_echo_mirror_t<internal_t>::on_change(
         const peer_id_t &peer, const directory_echo_wrapper_t<internal_t> *wrapper) {
     if (wrapper != nullptr) {
-        debugf("DEM %s has %zu entries\n",
-            uuid_to_str(peer.get_uuid()).substr(0,10).c_str(),
-            wrapper->internal->activities.size());
         int version = wrapper->version;
         auto it = last_seen.find(peer);
         if (it == last_seen.end() || it->second < version) {
@@ -99,7 +96,6 @@ void directory_echo_mirror_t<internal_t>::on_change(
                 ));
         }
     } else {
-        debugf("DEM %s is gone\n", uuid_to_str(peer.get_uuid()).substr(0,10).c_str());
         /* Erase `_last_seen` table entries for now-disconnected peers. This serves two
         purposes:
         1. It saves space if many peers connect and disconnect (this is not very

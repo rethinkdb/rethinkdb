@@ -141,17 +141,21 @@ bool reactor_t::is_safe_for_us_to_be_primary(
             continue;
         }
 
-        bool ok;
+        bool its_not_safe = false;
         directory->read_key(peer, [&](const cow_ptr_t<reactor_business_card_t> *value) {
             if (value == nullptr) {
                 /* Peer is not connected */
-                ok = false;
+                its_not_safe = true;
                 return;
             }
-            ok = is_safe_for_us_to_be_primary_helper(peer, **value, region,
-                &res, branch_history_to_merge_out, merge_branch_history_out);
+            is_safe_for_us_to_be_primary_helper(peer, **value, region, &res,
+                branch_history_to_merge_out, merge_branch_history_out,
+                &its_not_safe);
         });
-        if (!ok) {
+        if (*merge_branch_history_out) {
+            return true;
+        }
+        if (its_not_safe) {
             return false;
         }
     }
@@ -172,13 +176,14 @@ bool reactor_t::is_safe_for_us_to_be_primary(
     return true;
 }
 
-bool reactor_t::is_safe_for_us_to_be_primary_helper(
+void reactor_t::is_safe_for_us_to_be_primary_helper(
         const peer_id_t &peer,
         const reactor_business_card_t &bcard,
         const region_t &region,
         best_backfiller_map_t *res,
         branch_history_t *branch_history_to_merge_out,
-        bool *merge_branch_history_out) {
+        bool *merge_branch_history_out,
+        bool *its_not_safe_out) {
     typedef reactor_business_card_t rb_t;
     std::vector<region_t> regions;
     for (auto it = bcard.activities.begin(); it != bcard.activities.end(); ++it) {
@@ -195,7 +200,7 @@ bool reactor_t::is_safe_for_us_to_be_primary_helper(
                         if (!std_contains(known_branchs, bt->first)) {
                             *branch_history_to_merge_out = bh;
                             *merge_branch_history_out = true;
-                            return true;
+                            return;
                         }
                     }
 
@@ -215,7 +220,7 @@ bool reactor_t::is_safe_for_us_to_be_primary_helper(
                         if (!std_contains(known_branchs, bt->first)) {
                             *branch_history_to_merge_out = bh;
                             *merge_branch_history_out = true;
-                            return true;
+                            return;
                         }
                     }
 
@@ -231,10 +236,12 @@ bool reactor_t::is_safe_for_us_to_be_primary_helper(
                 } else if (boost::get<rb_t::nothing_when_done_erasing_t>(&it->second.activity)) {
                     //Everything's fine this peer cannot obstruct us so we shall proceed
                 } else {
-                    return false;
+                    *its_not_safe_out = true;
+                    return;
                 }
             } catch (const divergent_data_exc_t &) {
-                return false;
+                *its_not_safe_out = true;
+                return;
             }
         }
     }
@@ -245,9 +252,11 @@ bool reactor_t::is_safe_for_us_to_be_primary_helper(
 
     switch (join_result) {
     case REGION_JOIN_OK:
-        return (join == region);
+        *its_not_safe_out = (join != region);
+        return;
     case REGION_JOIN_BAD_REGION:
-        return false;
+        *its_not_safe_out = true;
+        return;
     case REGION_JOIN_BAD_JOIN:
         crash("Overlapping activities in directory, this can only happen due to programmer error.\n");
     default:
@@ -304,9 +313,6 @@ void do_backfill(
 
 bool check_that_we_see_our_broadcaster(
         const boost::optional<boost::optional<broadcaster_business_card_t> > &b) {
-    debugf("check_that_we_see_our_broadcaster %d %d\n",
-        static_cast<int>(static_cast<bool>(b)),
-        static_cast<int>(static_cast<bool>(b) && static_cast<bool>(*b)));
     return static_cast<bool>(b) && static_cast<bool>(*b);
 }
 
@@ -418,8 +424,6 @@ bool reactor_t::attempt_backfill_from_peers(directory_entry_t *directory_entry,
 
 void reactor_t::be_primary(region_t region, store_view_t *svs, const clone_ptr_t<watchable_t<blueprint_t> > &blueprint, signal_t *interruptor) THROWS_NOTHING {
     try {
-        debugf("be_primary()\n");
-
         //Tell everyone that we're looking to become the primary
         directory_entry_t directory_entry(this, region);
 
@@ -431,16 +435,10 @@ void reactor_t::be_primary(region_t region, store_view_t *svs, const clone_ptr_t
         /* block until all peers have acked `directory_entry` */
         wait_for_directory_acks(version_to_wait_on, interruptor);
 
-        debugf("be_primary() got acks\n");
-
         /* In this loop we repeatedly attempt to find peers to backfill from
          * and then perform the backfill. We exit the loop either when we get
          * interrupted or we have backfilled the most up to date data. */
         while (!attempt_backfill_from_peers(&directory_entry, &order_source, region, svs, blueprint, interruptor)) { }
-
-        debugf("be_primary() got backfill\n");
-
-        debugf("be_primary() see %zu peers\n", directory_echo_mirror.get_internal()->get_all().size());
 
         // TODO: Don't use local stack variable.
         std::string region_name = strprintf("be_primary_%p", &region);
@@ -455,8 +453,6 @@ void reactor_t::be_primary(region_t region, store_view_t *svs, const clone_ptr_t
                                   &region_perfmon_collection, &order_source,
                                   &ct_interruptor);
 
-        debugf("be_primary() constructed broadcaster\n");
-
         on_thread_t th2(this->home_thread());
 
         directory_entry.set(reactor_business_card_t::primary_t(broadcaster.get_business_card()));
@@ -468,13 +464,9 @@ void reactor_t::be_primary(region_t region, store_view_t *svs, const clone_ptr_t
         /* listener_t expects broadcaster to be visible in the directory at the
          * time that it's constructed. It might take some time to propogate to
          * ourselves after we've put it in the directory. */
-        debugf("be_primary() our peer id %s\n", uuid_to_str(get_me().get_uuid()).substr(0,10).c_str());
-        debugf("be_primary() R.A.ID %s\n", uuid_to_str(directory_entry.get_reactor_activity_id()).substr(0,10).c_str());
         broadcaster_business_card->run_until_satisfied(
             &check_that_we_see_our_broadcaster, interruptor,
             REACTOR_RUN_UNTIL_SATISFIED_NAP);
-
-        debugf("be_primary() see own broadcaster\n");
 
         cross_thread_watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > ct_broadcaster_business_card(broadcaster_business_card, svs->home_thread());
 
@@ -484,8 +476,6 @@ void reactor_t::be_primary(region_t region, store_view_t *svs, const clone_ptr_t
         master_t master(mailbox_manager, ack_checker, region, &broadcaster);
         direct_reader_t direct_reader(mailbox_manager, svs);
 
-        debugf("be_primary() constructed stuff\n");
-
         on_thread_t th4(this->home_thread());
 
         directory_entry.update_without_changing_id(
@@ -494,8 +484,6 @@ void reactor_t::be_primary(region_t region, store_view_t *svs, const clone_ptr_t
                 replier.get_business_card(),
                 master.get_business_card(),
                 direct_reader.get_business_card()));
-
-        debugf("be_primary() waiting\n");
 
         interruptor->wait_lazily_unordered();
 

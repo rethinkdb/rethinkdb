@@ -58,6 +58,9 @@ bool reactor_t::is_safe_for_us_to_be_nothing(
             }
             ok = found;
         });
+        if (!ok) {
+            return false;
+        }
     }
 
     return true;

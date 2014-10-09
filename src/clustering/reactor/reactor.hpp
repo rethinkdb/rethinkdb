@@ -129,13 +129,14 @@ private:
         branch_history_t *branch_history_to_merge_out,
         bool *should_merge_metadata);
 
-    bool is_safe_for_us_to_be_primary_helper(
+    void is_safe_for_us_to_be_primary_helper(
         const peer_id_t &peer,
         const reactor_business_card_t &bcard,
         const region_t &region,
         best_backfiller_map_t *best_backfiller_out,
         branch_history_t *branch_history_to_merge_out,
-        bool *merge_branch_history_out);
+        bool *merge_branch_history_out,
+        bool *its_not_safe_out);
 
     static backfill_candidate_t make_backfill_candidate_from_version_range(const version_range_t &b);
 
@@ -218,24 +219,15 @@ clone_ptr_t<watchable_t<boost::optional<boost::optional<activity_t> > > > reacto
     return get_watchable_for_key(directory_echo_mirror.get_internal(), p_id)->subview(
         [this, p_id, ra_id](const boost::optional<cow_ptr_t<reactor_business_card_t> > &bcard) {
             if (!static_cast<bool>(bcard)) {
-                debugf("%p %s %s get_directory_entry_view() no such peer\n", this,
-                    uuid_to_str(p_id.get_uuid()).substr(0,10).c_str(),
-                    uuid_to_str(ra_id).substr(0,10).c_str());
                 return boost::optional<boost::optional<activity_t> >();
             }
             reactor_business_card_t::activity_map_t::const_iterator jt =
                 (*bcard)->activities.find(ra_id);
             if (jt == (*bcard)->activities.end()) {
-                debugf("%p %s %s get_directory_entry_view() no such activity\n", this,
-                    uuid_to_str(p_id.get_uuid()).substr(0,10).c_str(),
-                    uuid_to_str(ra_id).substr(0,10).c_str());
                 return boost::optional<boost::optional<activity_t> >(
                     boost::optional<activity_t>());
             }
             try {
-                debugf("%p %s %s get_directory_entry_view() found\n", this,
-                    uuid_to_str(p_id.get_uuid()).substr(0,10).c_str(),
-                    uuid_to_str(ra_id).substr(0,10).c_str());
                 return boost::optional<boost::optional<activity_t> >(
                     boost::optional<activity_t>(
                         boost::get<activity_t>(jt->second.activity)));

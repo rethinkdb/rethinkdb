@@ -124,9 +124,6 @@ void directory_read_manager_t<metadata_t>::handle_connection(
             map->set_value(connection->get_peer_id(), *new_value);
             return true;
         });
-    debugf("%s -> %s init\n",
-        uuid_to_str(connection->get_peer_id().get_uuid()).c_str(),
-        uuid_to_str(get_connectivity_cluster()->get_me().get_uuid()).c_str());
     map_variable.set_key_no_equals(connection->get_peer_id(), std::move(*new_value));
 
     {
@@ -174,9 +171,6 @@ void directory_read_manager_t<metadata_t>::handle_connection(
             map->delete_value(connection->get_peer_id());
             return true;
         });
-    debugf("%s -> %s delete\n",
-        uuid_to_str(connection->get_peer_id().get_uuid()).c_str(),
-        uuid_to_str(get_connectivity_cluster()->get_me().get_uuid()).c_str());
     map_variable.delete_key(connection->get_peer_id());
 }
 
@@ -247,9 +241,6 @@ void directory_read_manager_t<metadata_t>::propagate_update(
                 map->set_value(connection->get_peer_id(), *new_value);
                 return true;
             });
-        debugf("%s -> %s update\n",
-            uuid_to_str(connection->get_peer_id().get_uuid()).c_str(),
-            uuid_to_str(get_connectivity_cluster()->get_me().get_uuid()).c_str());
         map_variable.set_key_no_equals(connection->get_peer_id(), std::move(*new_value));
 
     } catch (interrupted_exc_t) {
