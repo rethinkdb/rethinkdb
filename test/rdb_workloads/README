@@ -1,8 +1,7 @@
-stress: a stressful tool
-
-Running the stress client now involves two steps:
- - the table is populated
- - stress clients are then run
+Running the stress client involves three steps:
+ - setting up the table and indexes
+ - populating it with data
+ - run stress clients to generate the test load
 
 Workloads to select can be found in the 'stress_workloads' subdirectory.
 Some workloads take parameters in environment variables:
@@ -26,9 +25,15 @@ Below are example bash scripts for both table setup and running the stress clien
 ----------------------------------------------------------
 #!/usr/bin/env bash
 # Table population
+# Before you run this, create a table with secondary indexes as follows (JS code):
+#   r.tableCreate("stress")
+#   r.table("stress").indexCreate("datetime")
+#   r.table("stress").indexCreate("customer_id")
+#   r.table("stress").indexCreate("compound", function(x) { return r.expr([x('customer_id'), x('datetime')]); } )
+#   r.table("stress").indexWait("datetime", "customer_id", "compound")
 
-X_STRESS_SCRIPT=./x_stress
-HOST_PORT=newton:59435
+X_STRESS_SCRIPT=./stress
+HOST_PORT=localhost:28015
 DB_TABLE=test.stress
 X_OPTIONS="--host $HOST_PORT --table $DB_TABLE"
 
@@ -37,22 +42,22 @@ export X_MAX_KEY_FILE=$DB_TABLE.max_key
 
 rm $X_MAX_KEY_FILE
 
-# This script should create the table and any secondary indexes
-./setup_table.py $HOST_PORT $DB_TABLE
+# The total number of documents inserted
+OP_COUNT=100000
 
-$X_STRESS_SCRIPT $X_OPTIONS --clients 64 --ops-per-sec 4000 -w x_write > populate.out
+$X_STRESS_SCRIPT $X_OPTIONS --clients 128 -w x_write --op-count $OP_COUNT > populate.out
 
 -----------------------------------------------------------
 #!/usr/bin/env bash
 # Stress test, runs 'workload x' from issue #1369
 
-X_STRESS_SCRIPT=./x_stress
-HOST_PORT=newton:59435
+X_STRESS_SCRIPT=./stress
+HOST_PORT=localhost:28015
 DB_TABLE=test.stress
 X_OPTIONS="--host $HOST_PORT --table $DB_TABLE"
 
 export X_MAX_KEY_FILE=$DB_TABLE.max_key
-export X_END_DATE=2013-09-03
+export X_END_DATE=`date +%Y-%m-%d`
 export X_DATE_INTERVAL="1 day"
 
 echo "Running traffic..."
@@ -64,4 +69,3 @@ $X_STRESS_SCRIPT $X_OPTIONS --ops-per-conn 1 --clients 8 --ops-per-sec 10 -w x_g
 $X_STRESS_SCRIPT $X_OPTIONS --ops-per-conn 0 --clients 2 --ops-per-sec 2 -w x_connect > x_connect.out &
 
 wait
-
