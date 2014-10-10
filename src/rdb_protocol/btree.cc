@@ -401,8 +401,18 @@ public:
     class caller_t : public single_threaded_countable_t<caller_t> {
     public:
         caller_t(func_t _f, superblock_queue_t *_parent)
-            : f(std::move(_f)), parent(_parent), lock(&parent->lock, access_t::read) {
-            lock.read_signal()->wait_lazily_unordered();
+            : f(std::move(_f)), parent(_parent) {
+            debugf("caller_t()\n");
+            parent->running += 1;
+        }
+        ~caller_t() {
+            debugf("~caller_t()\n");
+            parent->running -= 1;
+            if (parent->running == 0 && parent->drainer_cond != NULL) {
+                debugf("maybe draining\n");
+                parent->drainer_cond->pulse();
+                parent->drainer_cond = NULL;
+            }
         }
         void operator()() {
             {
@@ -418,20 +428,29 @@ public:
     private:
         func_t f;
         superblock_queue_t *parent;
-        rwlock_in_line_t lock;
         auto_drainer_t drainer; // RSI: is this necessary?
     };
 
     superblock_queue_t(scoped_ptr_t<superblock_t> &&_superblock)
         : superblock(std::move(_superblock)),
-          pool(8 /*max concurrent jobs*/, &queue, &callback) {
+          pool(8 /*max concurrent jobs*/, &queue, &callback),
+          running(0),
+          drainer_cond(NULL) {
         promise.init(new promise_t<superblock_t *>());
         promise->pulse(superblock.get());
     }
     ~superblock_queue_t() {
-        rwlock_in_line_t spot(&lock, access_t::write);
-        // Make sure all the `caller_t`s are out of the queue.
-        spot.write_signal()->wait_lazily_unordered();
+        if (running != 0) {
+            debugf("waiting\n");
+            cond_t drain;
+            drainer_cond = &drain;
+            drain.wait_lazily_unordered();
+        }
+        // It's OK for a job to add another job, but it's **not** OK for a job
+        // to spawn a coroutine (or something) that later adds another job.
+        // I.e., when running hits 0, it's there for good.
+        guarantee(running == 0);
+        debugf("done waiting\n");
         guarantee(queue.size() == 0);
     }
     void push(func_t f) {
@@ -451,11 +470,11 @@ private:
     } callback;
     unlimited_fifo_queue_t<counted_t<caller_t> > queue;
     coro_pool_t<counted_t<caller_t> > pool;
-    // We use an rwlock rather than an auto drainer and acquire the write signal
-    // in the destructor because we need for `caller_t`s in the `queue` to be
-    // able to add more `caller_t`s to the `queue` which further delay
-    // destruction.
-    rwlock_t lock;
+
+    // We use this rather than an auto drainer because we need to be able to add
+    // more tasks while "draining".
+    size_t running;
+    cond_t *drainer_cond;
 };
 
 void do_a_replace_from_batched_replace(
@@ -1272,36 +1291,45 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
 rdb_modification_report_cb_t::~rdb_modification_report_cb_t() { }
 
 void rdb_modification_report_cb_t::on_mod_report(
-    const rdb_modification_report_t &mod_report,
+    const rdb_modification_report_t &report,
     btree_slice_t *btree,
     superblock_queue_t *queue,
     ql::env_t *env) {
     // debugf("%" PRIu64 "\n", timestamp.longtime);
-    if (mod_report.info.deleted.first.has() || mod_report.info.added.first.has()) {
+    if (report.info.deleted.first.has() || report.info.added.first.has()) {
         // We spawn the sindex update in its own coroutine because we don't want to
         // hold the sindex update for the changefeed update or vice-versa.
         cond_t sindexes_updated_cond;
         coro_t::spawn_now_dangerously(
             std::bind(&rdb_modification_report_cb_t::on_mod_report_sub,
-                      this,
-                      mod_report,
-                      env,
-                      &sindexes_updated_cond));
+                      this, report, env, &sindexes_updated_cond));
         if (store_->changefeed_server.has()) {
             store_->changefeed_server->send_all(
                 ql::changefeed::msg_t(
                     ql::changefeed::msg_t::change_t(
-                        mod_report.info.deleted.first,
-                        mod_report.info.added.first)),
-                mod_report.primary_key);
+                        report.info.deleted.first,
+                        report.info.added.first)),
+                report.primary_key);
 
+            debugf("PKEY commit\n");
             store_->changefeed_server->foreach_limit(
                 boost::optional<std::string>(),
                 [&](ql::changefeed::limit_manager_t *lm) {
+                    debugf("1 pkey commit\n");
                     queue->push(
-                        [lm, env, btree](superblock_t *superblock,
-                                         promise_t<superblock_t *> *promise,
-                                         auto_drainer_t::lock_t) {
+                        [lm, env, btree, report](
+                            superblock_t *superblock,
+                            promise_t<superblock_t *> *promise,
+                            auto_drainer_t::lock_t) {
+                            debugf("2 pkey commit\n");
+                            std::string str = key_to_unescaped_str(report.primary_key);
+                            ql::datum_t dstr = ql::key_to_datum(str);
+                            if (report.info.deleted.first) {
+                                lm->del(str);
+                            }
+                            if (report.info.added.first) {
+                                lm->add(str, dstr, report.info.added.first);
+                            }
                             lm->commit(ql::changefeed::primary_ref_t{
                                     env, btree, superblock, promise});
                         });

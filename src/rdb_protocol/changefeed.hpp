@@ -44,6 +44,8 @@ class datum_stream_t;
 class env_t;
 class table_t;
 
+datum_t key_to_datum(std::string key);
+
 namespace changefeed {
 
 struct msg_t {

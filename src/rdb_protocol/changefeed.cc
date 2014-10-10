@@ -16,6 +16,24 @@
 
 namespace ql {
 
+datum_t key_to_datum(std::string key) {
+    // We use the escaped key to construct a `datum_t` that sorts
+    // correctly.  An alternative, equally valid strategy would be to
+    // keep track of the primary key and reconstruct it from
+    // `item.data`.
+    std::string escaped_key;
+    escaped_key.reserve(key.size() + 10);
+    for (const auto &c : key) {
+        if (c == 0 || c == 1) {
+            escaped_key.push_back(1);
+            escaped_key.push_back(c+1);
+        } else {
+            escaped_key.push_back(c);
+        }
+    }
+    return datum_t(datum_string_t(escaped_key));
+}
+
 namespace changefeed {
 
 template<class M, class T>
@@ -257,25 +275,6 @@ void limit_manager_t::send(msg_t &&msg) {
     guarantee(it != parent->clients.end());
     parent->send_one_with_lock(drain_lock, &*it, std::move(msg));
 }
-
-datum_t key_to_datum(std::string key) {
-    // We use the escaped key to construct a `datum_t` that sorts
-    // correctly.  An alternative, equally valid strategy would be to
-    // keep track of the primary key and reconstruct it from
-    // `item.data`.
-    std::string escaped_key;
-    escaped_key.reserve(key.size() + 10);
-    for (const auto &c : key) {
-        if (c == 0 || c == 1) {
-            escaped_key.push_back(1);
-            escaped_key.push_back(c+1);
-        } else {
-            escaped_key.push_back(c);
-        }
-    }
-    return datum_t(datum_string_t(escaped_key));
-}
-
 
 limit_manager_t::limit_manager_t(
     region_t _region,
@@ -534,7 +533,7 @@ void limit_manager_t::commit(
         // so that read operations like `ref_visitor_t` don't block out writes.
         // (On the other hand, those read operations are rare, so maybe it isn't
         // worth the refactoring effort.)
-        debugf("Releasing superblock.");
+        debugf("Releasing superblock.\n");
         p->promise->pulse(p->superblock);
     }
     debugf("3 real_added %zu, real_deleted %zu\n",
