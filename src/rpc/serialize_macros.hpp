@@ -35,16 +35,18 @@ functions explicitly for a certain version.
 We use dummy "extern int" declarations to force a compile error in
 macros that should not be used inside of class bodies. */
 namespace helper {
-    /* When a `static_assert` is used within a templated class or function,
-     * but does not depend on any template parameters the C++ compiler is free
-     * to evaluate the assert even before instantiating that template. This
-     * helper class allows a `static_assert(false, ...)` to depend on the
-     * `cluster_version_t` template parameter.
-     * Also see http://stackoverflow.com/a/14637534. */
-    template <cluster_version_t W>
-    struct always_false
-        : std::false_type { };
-}
+
+/* When a `static_assert` is used within a templated class or function,
+ * but does not depend on any template parameters the C++ compiler is free
+ * to evaluate the assert even before instantiating that template. This
+ * helper class allows a `static_assert(false, ...)` to depend on the
+ * `cluster_version_t` template parameter.
+ * Also see http://stackoverflow.com/a/14637534. */
+template <cluster_version_t W>
+struct always_false
+    : std::false_type { };
+
+} // namespace helper
 
 #define RDB_DECLARE_SERIALIZABLE(type_t) \
     template <cluster_version_t W> \
@@ -58,7 +60,7 @@ namespace helper {
         static_assert(helper::always_false<W>::value, \
                       "This type is only serializable for cluster."); \
         unreachable(); \
-    }; \
+    } \
     template <> \
     void serialize<cluster_version_t::CLUSTER>( \
         write_message_t *, const type_t &); \
@@ -67,7 +69,7 @@ namespace helper {
         static_assert(helper::always_false<W>::value, \
                       "This type is only deserializable for cluster."); \
         unreachable(); \
-    }; \
+    } \
     template <> \
     archive_result_t deserialize<cluster_version_t::CLUSTER>( \
         read_stream_t *s, type_t *thing)
