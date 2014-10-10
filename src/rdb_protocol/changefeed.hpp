@@ -331,17 +331,21 @@ private:
 typedef index_queue_t<std::string, datum_t, datum_t, limit_order_t> lqueue_t;
 
 struct primary_ref_t {
+    env_t *env;
+    btree_slice_t *btree;
     superblock_t *superblock;
     promise_t<superblock_t *> *promise;
 };
 
 struct sindex_ref_t {
     env_t *env;
-    store_t *store;
+    store_t *store; // RSI: is this used?
     btree_slice_t *btree;
     superblock_t *superblock;
     const sindex_disk_info_t *sindex_info;
 };
+
+typedef std::vector<std::pair<std::string, std::pair<datum_t, datum_t> > > lvec_t;
 
 class server_t;
 class limit_manager_t {
@@ -361,7 +365,7 @@ public:
 
     void add(std::string id, datum_t key, datum_t val);
     void del(std::string id);
-    void commit(const sindex_ref_t &sindex_ref);
+    void commit(const boost::variant<primary_ref_t, sindex_ref_t> &sindex_ref);
     // RSI: remove
     // bool operator<(const limit_manager_t &lm) {
     //     const boost::optional<std::string>
@@ -372,10 +376,10 @@ public:
     const region_t region; // RSI: use this!
     const std::string table; // RSI: removable?
 private:
-    stream_t read_more(const boost::variant<primary_ref_t, sindex_ref_t> &ref,
-                       sorting_t sorting,
-                       const boost::optional<lqueue_t::iterator> &start,
-                       size_t n);
+    lvec_t read_more(const boost::variant<primary_ref_t, sindex_ref_t> &ref,
+                     sorting_t sorting,
+                     const boost::optional<lqueue_t::iterator> &start,
+                     size_t n);
     void send(msg_t &&msg);
 
     server_t *parent;
@@ -419,7 +423,8 @@ public:
     uuid_u get_uuid();
     // `f` will be called with a read lock on `clients` and a write lock on the
     // limit manager.
-    void foreach_limit(const std::string &s, std::function<void(limit_manager_t *)> f);
+    void foreach_limit(const boost::optional<std::string> &s,
+                       std::function<void(limit_manager_t *)> f);
 private:
     friend class limit_manager_t;
     void stop_mailbox_cb(client_t::addr_t addr);

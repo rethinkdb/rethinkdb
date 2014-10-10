@@ -205,7 +205,7 @@ uuid_u server_t::get_uuid() {
     return uuid;
 }
 
-void server_t::foreach_limit(const std::string &sindex,
+void server_t::foreach_limit(const boost::optional<std::string> &sindex,
                              std::function<void(limit_manager_t *)> f) {
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::read);
@@ -334,8 +334,13 @@ void limit_manager_t::del(std::string id) {
     deleted.push_back(std::move(id));
 }
 
-typedef std::vector<std::pair<std::string, std::pair<datum_t, datum_t> > > lvec_t;
-struct ref_visitor_t : public boost::static_visitor<lvec_t> {
+class ref_visitor_t : public boost::static_visitor<lvec_t> {
+public:
+    ref_visitor_t(sorting_t _sorting,
+                  boost::optional<lqueue_t::iterator> _start,
+                  size_t _n)
+        : sorting(_sorting), start(std::move(_start)), n(_n) { }
+
     lvec_t operator()(const primary_ref_t &ref) {
         rget_read_response_t resp;
         key_range_t range;
@@ -368,7 +373,7 @@ struct ref_visitor_t : public boost::static_visitor<lvec_t> {
             auto *exc = boost::get<ql::exc_t>(&resp.result);
             guarantee(exc != NULL);
             rassert(exc == NULL); // RSI: remove
-            return stream_t();
+            return lvec_t();
         }
         stream_t stream = groups_to_batch(
             gs->get_underlying_map(ql::grouped::order_doesnt_matter_t()));
@@ -388,7 +393,7 @@ struct ref_visitor_t : public boost::static_visitor<lvec_t> {
         rget_read_response_t resp;
         datum_range_t srange;
         auto open = key_range_t::bound_t::open;
-        datum_t dstart = start ? start->second.first : datum_t();
+        datum_t dstart = start ? (**start)->second.first : datum_t();
         switch (sorting) {
         case sorting_t::ASCENDING:
             srange = datum_range_t(dstart, open, datum_t(), open);
@@ -418,7 +423,7 @@ struct ref_visitor_t : public boost::static_visitor<lvec_t> {
             auto *exc = boost::get<ql::exc_t>(&resp.result);
             guarantee(exc != NULL);
             rassert(exc == NULL); // RSI: remove
-            return stream_t();
+            return lvec_t();
         }
         stream_t stream = groups_to_batch(
             gs->get_underlying_map(ql::grouped::order_doesnt_matter_t()));
@@ -439,6 +444,7 @@ struct ref_visitor_t : public boost::static_visitor<lvec_t> {
         return lvec;
     }
 
+private:
     sorting_t sorting;
     boost::optional<lqueue_t::iterator> start;
     size_t n;
@@ -448,7 +454,7 @@ struct ref_visitor_t : public boost::static_visitor<lvec_t> {
 lvec_t limit_manager_t::read_more(
     const boost::variant<primary_ref_t, sindex_ref_t> &ref,
     sorting_t sorting,
-    boost::optional<lqueue_t::iterator> start,
+    const boost::optional<lqueue_t::iterator> &start,
     size_t n) {
     debugf("~~ READ_MORE\n");
     ref_visitor_t visitor{sorting, start, n};
@@ -458,8 +464,10 @@ lvec_t limit_manager_t::read_more(
 // RSI: pick up here
 // * Fix big insert crash (added and then removed again).
 // * name `lt` `gt` and switch ordering of PRIMARY KEY ONLY.
+// RSI: do we need to include the tag in the conflict resolution in addition to
+// the primary key?
 void limit_manager_t::commit(
-    const boost::optional<primary_ref_t, sindex_ref_t> &sindex_ref) {
+    const boost::variant<primary_ref_t, sindex_ref_t> &sindex_ref) {
     debugf("\n**********************************************************************\n");
     debugf("COMMIT (added %zu, deleted %zu)\n", added.size(), deleted.size());
     lqueue_t real_added(lt);
@@ -499,15 +507,19 @@ void limit_manager_t::commit(
         datum_t begin = (data_it == lqueue.end()) ? datum_t() : (*data_it)->second.first;
         // RSI: need a closed bound and duplicate removal to handle truncated
         // sindexes.
+        boost::optional<lqueue_t::iterator> start;
+        if (data_it != lqueue.end()) {
+            start = data_it;
+        }
         lvec_t s = read_more(
             sindex_ref,
             spec.range.sorting,
-            data_it == lqueue.end() ? boost::none : data_it,
+            start,
             spec.limit - lqueue.size());
         debugf("got %zu\n", s.size());
         guarantee(s.size() <= spec.limit - lqueue.size());
         for (auto &&pair : s) {
-            bool ins = lqueue.insert(pair);
+            bool ins = lqueue.insert(pair).second;
             guarantee(ins);
             size_t erased = real_deleted.erase(pair.first);
             if (erased == 0) {

@@ -313,7 +313,9 @@ public:
             auto_drainer_t::lock_t lock);
 
     void on_mod_report(const rdb_modification_report_t &mod_report,
-                       superblock_queue_t *queue, ql::env_t *env);
+                       btree_slice_t *btree,
+                       superblock_queue_t *queue,
+                       ql::env_t *env);
 
     ~rdb_modification_report_cb_t();
 

@@ -489,7 +489,7 @@ void do_a_replace_from_batched_replace(
     // JD: Looks like this is a do_a_replace_from_batched_replace specific thing.
     exiter.wait();
 
-    sindex_cb->on_mod_report(mod_report, queue, env);
+    sindex_cb->on_mod_report(mod_report, info.btree->slice, queue, env);
 }
 
 batched_replace_response_t rdb_batched_replace(
@@ -1273,6 +1273,7 @@ rdb_modification_report_cb_t::~rdb_modification_report_cb_t() { }
 
 void rdb_modification_report_cb_t::on_mod_report(
     const rdb_modification_report_t &mod_report,
+    btree_slice_t *btree,
     superblock_queue_t *queue,
     ql::env_t *env) {
     // debugf("%" PRIu64 "\n", timestamp.longtime);
@@ -1294,16 +1295,15 @@ void rdb_modification_report_cb_t::on_mod_report(
                         mod_report.info.added.first)),
                 mod_report.primary_key);
 
-            ql::changefeed::server_t *server = store->changefeed_server.get();
-            server->foreach_limit(
+            store_->changefeed_server->foreach_limit(
                 boost::optional<std::string>(),
-                [&](ql::changefeed::limit_mamanger_t *lm) {
+                [&](ql::changefeed::limit_manager_t *lm) {
                     queue->push(
-                        [lm](superblock_t *superblock.
-                             promise_t<superblock_t *> *promise,
-                             auto_drainer_t::lock_t) {
+                        [lm, env, btree](superblock_t *superblock,
+                                         promise_t<superblock_t *> *promise,
+                                         auto_drainer_t::lock_t) {
                             lm->commit(ql::changefeed::primary_ref_t{
-                                    superblock, promise});
+                                    env, btree, superblock, promise});
                         });
                 });
         } else {
