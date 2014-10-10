@@ -123,7 +123,7 @@ class Connection(object):
         self.host = host
         self.next_token = 1
         self.db = db
-        self.auth_key = self.auth_key.encode('ascii')
+        self.auth_key = auth_key.encode('ascii')
         self.timeout = timeout
         self.cursor_cache = { }
 
