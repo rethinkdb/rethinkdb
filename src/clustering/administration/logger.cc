@@ -38,6 +38,8 @@ log_level_t parse_log_level(const std::string &s) THROWS_ONLY(std::runtime_error
         return log_level_debug;
     else if (s == "info")
         return log_level_info;
+    else if (s == "notice")
+        return log_level_notice;
     else if (s == "warn")
         return log_level_warn;
     else if (s == "error")
