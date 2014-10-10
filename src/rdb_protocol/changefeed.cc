@@ -366,7 +366,7 @@ public:
             boost::optional<terminal_variant_t>(),
             sorting,
             &resp,
-            release_superblock_t::RELEASE);
+            release_superblock_t::KEEP);
         auto *gs = boost::get<ql::grouped_t<ql::stream_t> >(&resp.result);
         if (gs == NULL) {
             auto *exc = boost::get<ql::exc_t>(&resp.result);
@@ -533,6 +533,7 @@ void limit_manager_t::commit(
         // so that read operations like `ref_visitor_t` don't block out writes.
         // (On the other hand, those read operations are rare, so maybe it isn't
         // worth the refactoring effort.)
+        // Actually, that would make the ordering more sane.  Do that.
         debugf("Releasing superblock.\n");
         p->promise->pulse(p->superblock);
     }
