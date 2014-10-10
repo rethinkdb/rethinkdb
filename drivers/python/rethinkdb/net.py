@@ -123,7 +123,7 @@ class Connection(object):
         self.host = host
         self.next_token = 1
         self.db = db
-        self.auth_key = auth_key
+        self.auth_key = self.auth_key.encode('ascii')
         self.timeout = timeout
         self.cursor_cache = { }
 
@@ -152,9 +152,11 @@ class Connection(object):
         except Exception as err:
             raise RqlDriverError("Could not connect to %s:%s. Error: %s" % (self.host, self.port, err))
 
-        self._sock_sendall(struct.pack("<L", p.VersionDummy.Version.V0_3))
-        self._sock_sendall(struct.pack("<L", len(self.auth_key)) + str.encode(self.auth_key, 'ascii'))
-        self._sock_sendall(struct.pack("<L", p.VersionDummy.Protocol.JSON))
+        self._sock_sendall(
+            struct.pack(
+                "<2L", p.VersionDummy.Version.V0_3, len(self.auth_key)
+            ) + self.auth_key +
+            struct.pack("<L", p.VersionDummy.Protocol.JSON))
 
         # Read out the response from the server, which will be a null-terminated string
         response = b""
