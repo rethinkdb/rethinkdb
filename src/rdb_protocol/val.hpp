@@ -99,7 +99,7 @@ public:
         const datum_range_t &bounds,
         sorting_t sorting);
 
-    scoped_ptr_t<base_table_t> table;
+    scoped_ptr_t<base_table_t> tbl;
 
 private:
     friend class distinct_term_t;
@@ -129,8 +129,10 @@ public:
     counted_t<table_slice_t> with_bounds(std::string idx, datum_range_t bounds);
     const counted_t<table_t> &get_tbl() const { return tbl; }
     const std::string &get_idx() const { return idx; }
+    ql::changefeed::keyspec_t::range_t get_spec();
 private:
     const counted_t<table_t> tbl;
+    // RSI: make this use boost::optional
     const std::string idx;
     const sorting_t sorting;
     const datum_range_t bounds;
@@ -147,19 +149,22 @@ enum function_shortcut_t {
 class single_selection_t : public single_threaded_countable_t<single_selection_t> {
 public:
     static counted_t<single_selection_t> from_key(
-        env_t *env, counted_t<table_t> table, datum_t key);
+        env_t *env, protob_t<const Backtrace> bt,
+        counted_t<table_t> table, datum_t key);
     static counted_t<single_selection_t> from_row(
-        env_t *env, counted_t<table_t> table, datum_t key);
+        env_t *env, protob_t<const Backtrace> bt,
+        counted_t<table_t> table, datum_t row);
     static counted_t<single_selection_t> from_slice(
-        env_t *env, counted_t<table_slice_t> table,
-        protob_t<const Backtrace> bt, std::string err);
+        env_t *env, protob_t<const Backtrace> bt,
+        counted_t<table_slice_t> table, std::string err);
     virtual ~single_selection_t() { }
 
     virtual datum_t get() = 0;
+    virtual counted_t<datum_stream_t> read_changes() = 0;
     virtual datum_t replace(
         counted_t<const func_t> f, bool nondet_ok,
         durability_requirement_t dur_req, return_changes_t return_changes) = 0;
-    virtual const counted_t<table_t> &get_tbl() = 0;
+    virtual const counted_t<table_t> &get_tbl() = 0; // RSI: remove?
 protected:
     single_selection_t() = default;
 };

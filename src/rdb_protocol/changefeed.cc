@@ -539,11 +539,28 @@ void limit_manager_t::commit(
     }
     debugf("3 real_added %zu, real_deleted %zu\n",
            real_added.size(), real_deleted.size());
-    for (const auto &id : real_deleted) {
+    std::set<std::string> remaining_deleted;
+    for (auto &&id : real_deleted) {
+        auto it = real_added.find_id(id);
+        if (it != real_added.end()) {
+            msg_t::limit_change_t msg;
+            msg.sub = uuid;
+            msg.old_key = id;
+            msg.new_val = std::move(**it);
+            real_added.erase(it);
+            debugf("PAIR send %s\n", msg.print().c_str());
+            send(msg_t(std::move(msg)));
+        } else {
+            remaining_deleted.insert(std::move(id));
+        }
+    }
+    real_deleted.clear();
+
+    for (const auto &id : remaining_deleted) {
         msg_t::limit_change_t msg;
         msg.sub = uuid;
         msg.old_key = id;
-        auto it = real_added.find_id(id);
+        auto it = real_added.begin();
         if (it != real_added.end()) {
             msg.new_val = std::move(**it);
             real_added.erase(it);
@@ -551,7 +568,7 @@ void limit_manager_t::commit(
         debugf("DEL send %s\n", msg.print().c_str());
         send(msg_t(std::move(msg)));
     }
-    real_deleted.clear();
+
     debugf("4 real_added %zu, real_deleted %zu\n",
            real_added.size(), real_deleted.size());
     for (auto &&it : real_added) {
@@ -995,11 +1012,10 @@ public:
             auto pair = lqueue.insert(*new_val);
             auto it = pair.first;
             guarantee(pair.second);
-            // RSI: cmp
             bool insert;
             if (active_data.size() == 0) {
                 debugf("no cmp (empty active_data)\n");
-                insert = true;
+                insert = false;
             } else {
                 datum_t a = (*it)->second.first;
                 guarantee(active_data.size() != 0);
@@ -1035,7 +1051,9 @@ public:
                 // The set is too small because the new value wasn't in the old
                 // set bounds, so we need to add the next best element.
                 debugf("Plan omega.\n");
-                auto it = *active_data.begin();
+                auto it = active_data.size() == 0
+                    ? lqueue.end()
+                    : *active_data.begin();
 
                 guarantee(it != lqueue.begin());
                 --it;

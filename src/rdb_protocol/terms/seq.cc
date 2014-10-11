@@ -89,8 +89,8 @@ private:
         counted_t<table_slice_t> slice(new table_slice_t(tbl, idx_str, sorting()));
         return term_t::new_val(single_selection_t::from_slice(
             env,
-            slice,
             term_t::backtrace(),
+            slice,
             strprintf("`%s` found no entries in the specified index.",
                       this->name())));
     }
@@ -279,6 +279,7 @@ private:
     virtual const char *name() const { return "reduce"; }
 };
 
+// RSI: implement ranges!
 class changes_term_t : public op_term_t {
 public:
     changes_term_t(compile_env_t *env, const protob_t<const Term> &term)
@@ -293,20 +294,11 @@ private:
             counted_t<datum_stream_t> seq = selection->seq;
             return new_val(
                 env->env,
-                tbl->table->read_changes(
+                tbl->tbl->read_changes(
                     env->env, seq->get_spec(), backtrace(), tbl->display_name()));
         } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
-            // RSI: This needs to support extreme selections
-            auto single_selection = v->as_single_selection();
-            counted_t<table_t> tbl = single_selection->get_tbl();
-            datum_t val = single_selection->get();
-            datum_t key = val->get_field(datum_string_t(tbl->get_pkey()), NOTHROW);
-            r_sanity_check(key.has());
-
             return new_val(
-                env->env,
-                tbl->table->read_row_changes(
-                    env->env, key, backtrace(), tbl->display_name()));
+                env->env, v->as_single_selection()->read_changes());
         }
         auto selection = v->as_selection(env->env);
         rfail(base_exc_t::GENERIC,

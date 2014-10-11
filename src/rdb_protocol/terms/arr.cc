@@ -118,12 +118,13 @@ counted_t<val_t> nth_term_direct_impl(const term_t *term,
                         strprintf("Index out of bounds: %d", n));
                     return tbl.has()
                         ? term->new_val(single_selection_t::from_row(
-                                            env->env, tbl, last_d))
+                                            env->env, term->backtrace(), tbl, last_d))
                         : term->new_val(last_d);
                 }
                 if (i == n) {
                     return tbl.has()
-                        ? term->new_val(single_selection_t::from_row(env->env, tbl, d))
+                        ? term->new_val(single_selection_t::from_row(
+                                            env->env, term->backtrace(), tbl, d))
                         : term->new_val(d);
                 }
                 last_d = d;

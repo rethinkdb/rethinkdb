@@ -14,16 +14,21 @@ namespace ql {
 class get_selection_t : public single_selection_t {
 public:
     get_selection_t(env_t *_env,
-                    counted_t<table_t> _table,
+                    protob_t<const Backtrace> _bt,
+                    counted_t<table_t> _tbl,
                     datum_t _key,
                     datum_t _row = datum_t())
         : env(_env),
-          table(std::move(_table)),
+          bt(std::move(_bt)),
+          tbl(std::move(_tbl)),
           key(std::move(_key)),
           row(std::move(_row)) { }
     // RSI: prevent double reads?
     virtual datum_t get() {
-        return row.has() ? row : table->get_row(env, key);
+        return row.has() ? row : tbl->get_row(env, key);
+    }
+    virtual counted_t<datum_stream_t> read_changes() {
+        return tbl->tbl->read_row_changes(env, key, bt, tbl->display_name());
     }
     virtual datum_t replace(
         counted_t<const func_t> f, bool nondet_ok,
@@ -32,25 +37,39 @@ public:
         // We don't need to fetch the value for deterministic replacements.
         std::vector<datum_t > vals{
             f->is_deterministic() ? datum_t() : get()};
-        return table->batched_replace(
+        return tbl->batched_replace(
             env, vals, keys, f, nondet_ok, dur_req, return_changes);
     }
-    virtual const counted_t<table_t> &get_tbl() { return table; }
+    virtual const counted_t<table_t> &get_tbl() { return tbl; }
 private:
     env_t *env;
-    counted_t<table_t> table;
+    protob_t<const Backtrace> bt;
+    counted_t<table_t> tbl;
     datum_t key, row;
 };
+
+namespace es_helper {
+// RSI: static per thread
+map_wire_func_t map_wire_func() {
+    auto x = pb::dummy_var_t::EXTREME_SELECTION_ROW;
+    r::reql_t map = r::fun(x, r::expr(x)["new_val"]);
+    compile_env_t compile_env((var_visibility_t()));
+    func_term_t func_term(&compile_env, map.release_counted());
+    var_scope_t var_scope;
+    counted_t<const func_t> f = func_term.eval_to_func(var_scope);
+    return map_wire_func_t(f);
+}
+} // es_helper
 
 class extreme_selection_t : public single_selection_t {
 public:
     extreme_selection_t(env_t *_env,
-                        counted_t<table_slice_t> _slice,
                         protob_t<const Backtrace> _bt,
+                        counted_t<table_slice_t> _slice,
                         std::string _err)
         : env(_env),
-          slice(std::move(_slice)),
           bt(std::move(_bt)),
+          slice(std::move(_slice)),
           err(std::move(_err)) { }
     virtual datum_t get() {
         batchspec_t batchspec = batchspec_t::all().with_at_most(1);
@@ -60,6 +79,14 @@ public:
         } else {
             rfail_src(bt.get(), base_exc_t::GENERIC, "%s", err.c_str());
         }
+    }
+    virtual counted_t<datum_stream_t> read_changes() {
+        auto spec = ql::changefeed::keyspec_t(
+            ql::changefeed::keyspec_t::limit_t(slice->get_spec(), 1));
+        auto s = slice->get_tbl()->tbl->read_changes(
+            env, std::move(spec), bt, slice->get_tbl()->display_name());
+        s->add_transformation(transform_variant_t(es_helper::map_wire_func()), bt);
+        return s;
     }
     virtual datum_t replace(
         counted_t<const func_t> f, bool nondet_ok,
@@ -76,27 +103,30 @@ public:
     virtual const counted_t<table_t> &get_tbl() { return slice->get_tbl(); }
 private:
     env_t *env;
-    counted_t<table_slice_t> slice;
     protob_t<const Backtrace> bt;
+    counted_t<table_slice_t> slice;
     std::string err;
 };
 
 counted_t<single_selection_t> single_selection_t::from_key(
-    env_t *env, counted_t<table_t> table, datum_t key) {
-    return make_counted<get_selection_t>(env, std::move(table), std::move(key));
+    env_t *env, protob_t<const Backtrace> bt,
+    counted_t<table_t> table, datum_t key) {
+    return make_counted<get_selection_t>(
+        env, std::move(bt), std::move(table), std::move(key));
 }
 counted_t<single_selection_t> single_selection_t::from_row(
-    env_t *env, counted_t<table_t> table, datum_t row) {
+    env_t *env, protob_t<const Backtrace> bt,
+    counted_t<table_t> table, datum_t row) {
     datum_t d = row->get_field(datum_string_t(table->get_pkey()), NOTHROW);
     r_sanity_check(d.has());
     return make_counted<get_selection_t>(
-        env, std::move(table), std::move(d), std::move(row));
+        env, std::move(bt), std::move(table), std::move(d), std::move(row));
 }
 counted_t<single_selection_t> single_selection_t::from_slice(
-    env_t *env, counted_t<table_slice_t> table,
-    protob_t<const Backtrace> bt, std::string err) {
+    env_t *env, protob_t<const Backtrace> bt,
+    counted_t<table_slice_t> table, std::string err) {
     return make_counted<extreme_selection_t>(
-        env, std::move(table), std::move(bt), std::move(err));
+        env, std::move(bt), std::move(table), std::move(err));
 }
 
 table_slice_t::table_slice_t(counted_t<table_t> _tbl, std::string _idx,
@@ -131,7 +161,17 @@ table_slice_t::with_bounds(std::string _idx, datum_range_t _bounds) {
     rcheck(idx_legal, base_exc_t::GENERIC,
            strprintf("Cannot call BETWEEN on index `%s` after ordering on index `%s`.",
                      _idx.c_str(), idx.c_str()));
-    return make_counted<table_slice_t>(tbl, std::move(_idx), sorting, std::move(_bounds));
+    return make_counted<table_slice_t>(
+        tbl, std::move(_idx), sorting, std::move(_bounds));
+}
+
+// RSI: missing table name in error for missing index in changefeed subscribe.
+ql::changefeed::keyspec_t::range_t table_slice_t::get_spec() {
+    boost::optional<std::string> opt_idx;
+    if (idx != "" && idx != tbl->get_pkey()) {
+        opt_idx = idx;
+    }
+    return ql::changefeed::keyspec_t::range_t(opt_idx, sorting, bounds);
 }
 
 counted_t<datum_stream_t> table_t::as_seq(
@@ -140,16 +180,16 @@ counted_t<datum_stream_t> table_t::as_seq(
     const protob_t<const Backtrace> &bt,
     const datum_range_t &bounds,
     sorting_t sorting) {
-    return table->read_all(env, idx, bt, display_name(), bounds, sorting, use_outdated);
+    return tbl->read_all(env, idx, bt, display_name(), bounds, sorting, use_outdated);
 }
 
-table_t::table_t(scoped_ptr_t<base_table_t> &&_table,
+table_t::table_t(scoped_ptr_t<base_table_t> &&_tbl,
                  counted_t<const db_t> _db, const std::string &_name,
                  bool _use_outdated, const protob_t<const Backtrace> &backtrace)
     : pb_rcheckable_t(backtrace),
       db(_db),
       name(_name),
-      table(std::move(_table)),
+      tbl(std::move(_tbl)),
       use_outdated(_use_outdated)
 { }
 
@@ -202,7 +242,7 @@ datum_t table_t::batched_replace(
         result.add_warnings(conditions, env->limits());
         return std::move(result).to_datum();
     } else {
-        return table->write_batched_replace(
+        return tbl->write_batched_replace(
             env, keys, replacement_generator, return_changes,
             durability_requirement);
     }
@@ -237,7 +277,7 @@ datum_t table_t::batched_insert(
     }
 
     datum_t insert_stats =
-        table->write_batched_insert(
+        tbl->write_batched_insert(
             env, std::move(valid_inserts), conflict_behavior, return_changes,
             durability_requirement);
     std::set<std::string> conditions;
@@ -255,22 +295,22 @@ MUST_USE bool table_t::sindex_create(env_t *env,
                                      sindex_multi_bool_t multi,
                                      sindex_geo_bool_t geo) {
     index_func->assert_deterministic("Index functions must be deterministic.");
-    return table->sindex_create(env, id, index_func, multi, geo);
+    return tbl->sindex_create(env, id, index_func, multi, geo);
 }
 
 MUST_USE bool table_t::sindex_drop(env_t *env, const std::string &id) {
-    return table->sindex_drop(env, id);
+    return tbl->sindex_drop(env, id);
 }
 
 MUST_USE sindex_rename_result_t table_t::sindex_rename(env_t *env,
                                                        const std::string &old_name,
                                                        const std::string &new_name,
                                                        bool overwrite) {
-    return table->sindex_rename(env, old_name, new_name, overwrite);
+    return tbl->sindex_rename(env, old_name, new_name, overwrite);
 }
 
 datum_t table_t::sindex_list(env_t *env) {
-    std::vector<std::string> sindexes = table->sindex_list(env);
+    std::vector<std::string> sindexes = tbl->sindex_list(env);
     std::vector<datum_t> array;
     array.reserve(sindexes.size());
     for (std::vector<std::string>::const_iterator it = sindexes.begin();
@@ -282,7 +322,7 @@ datum_t table_t::sindex_list(env_t *env) {
 
 datum_t table_t::sindex_status(env_t *env,
         std::set<std::string> sindexes) {
-    std::map<std::string, datum_t> statuses = table->sindex_status(env, sindexes);
+    std::map<std::string, datum_t> statuses = tbl->sindex_status(env, sindexes);
     std::vector<datum_t> array;
     for (auto it = statuses.begin(); it != statuses.end(); ++it) {
         r_sanity_check(std_contains(sindexes, it->first) || sindexes.empty());
@@ -307,16 +347,16 @@ MUST_USE bool table_t::sync(env_t *env) {
 
 MUST_USE bool table_t::sync_depending_on_durability(env_t *env,
                 durability_requirement_t durability_requirement) {
-    return table->write_sync_depending_on_durability(
+    return tbl->write_sync_depending_on_durability(
         env, durability_requirement);
 }
 
 const std::string &table_t::get_pkey() {
-    return table->get_pkey();
+    return tbl->get_pkey();
 }
 
 datum_t table_t::get_row(env_t *env, datum_t pval) {
-    return table->read_row(env, pval, use_outdated);
+    return tbl->read_row(env, pval, use_outdated);
 }
 
 counted_t<datum_stream_t> table_t::get_all(
@@ -324,7 +364,7 @@ counted_t<datum_stream_t> table_t::get_all(
         datum_t value,
         const std::string &get_all_sindex_id,
         const protob_t<const Backtrace> &bt) {
-    return table->read_all(
+    return tbl->read_all(
         env,
         get_all_sindex_id,
         bt,
@@ -339,7 +379,7 @@ counted_t<datum_stream_t> table_t::get_intersecting(
         const datum_t &query_geometry,
         const std::string &new_sindex_id,
         const pb_rcheckable_t *parent) {
-    return table->read_intersecting(
+    return tbl->read_intersecting(
         env,
         new_sindex_id,
         parent->backtrace(),
@@ -358,7 +398,7 @@ counted_t<datum_stream_t> table_t::get_nearest(
         const std::string &new_sindex_id,
         const pb_rcheckable_t *parent,
         const configured_limits_t &limits) {
-    return table->read_nearest(
+    return tbl->read_nearest(
         env,
         new_sindex_id,
         parent->backtrace(),
