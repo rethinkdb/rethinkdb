@@ -376,7 +376,7 @@ bool do_serve(io_backender_t *io_backender,
                                machine_name.c_str(),
                                uuid_to_str(machine_id).c_str());
                     } else {
-                        logNTC("Proxy ready, %s\n", uuid_to_str(machine_id).c_str());
+                        logNTC("Proxy ready");
                     }
 
                     stop_cond->wait_lazily_unordered();
