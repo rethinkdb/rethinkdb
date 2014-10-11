@@ -51,6 +51,9 @@ private:
 
     const id_t mailbox_id;
 
+    /* `callback` will be set to `nullptr` after `begin_shutdown()` is called. This is
+    both a way of ensuring that no new callbacks are spawned and of making sure that
+    the destructor won't call `begin_shutdown()` again. */
     mailbox_read_callback_t *callback;
 
     auto_drainer_t drainer;
