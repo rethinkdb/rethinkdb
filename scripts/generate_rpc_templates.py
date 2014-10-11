@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
+# Copyright 2010-2014 RethinkDB, all rights reserved.
 import sys
 
 """This script is used to generate the mailbox templates in
@@ -57,15 +57,14 @@ def generate_async_message_template(nargs):
     print "    public:"
     print "        explicit read_impl_t(%s *_parent) : parent(_parent) { }" % mailbox_t_str
     if nargs == 0:
-        print "        void read(DEBUG_VAR cluster_version_t cluster_version, UNUSED read_stream_t *stream) {"
+        print "        void read(UNUSED read_stream_t *stream, signal_t *interruptor) {"
     else:
-        print "        void read(DEBUG_VAR cluster_version_t cluster_version, read_stream_t *stream) {"
-    print "            rassert(cluster_version == cluster_version_t::CLUSTER);"
+        print "        void read(read_stream_t *stream, signal_t *interruptor) {"
     for i in xrange(nargs):
         print "            arg%d_t arg%d;" % (i, i)
         print "            %sres = deserialize<cluster_version_t::CLUSTER>(stream, &arg%d);" % ("archive_result_t " if i == 0 else "", i)
         print "            if (bad(res)) { throw fake_archive_exc_t(); }"
-    print "            parent->fun(%s);" % csep("std::move(arg#)")
+    print "            parent->fun(interruptor%s);" % cpre("std::move(arg#)")
     print "        }"
     print "    private:"
     print "        %s *parent;" % mailbox_t_str
@@ -77,9 +76,13 @@ def generate_async_message_template(nargs):
     print "    typedef mailbox_addr_t< void(%s) > address_t;" % csep("arg#_t")
     print
     print "    mailbox_t(mailbox_manager_t *manager,"
-    print "              const std::function< void(%s)> &f) :" % csep("arg#_t")
+    print "              const std::function< void(signal_t *%s)> &f) :" % cpre("arg#_t")
     print "        reader(this), fun(f), mailbox(manager, &reader)"
     print "        { }"
+    print
+    print "    void begin_shutdown() {"
+    print "        mailbox.begin_shutdown();"
+    print "    }"
     print
     print "    address_t get_address() const {"
     print "        address_t a;"
@@ -95,7 +98,7 @@ def generate_async_message_template(nargs):
         print "    friend void send(mailbox_manager_t*,"
         print "                     typename mailbox_t< void(%s) >::address_t%s);" % (csep("a#_t"), cpre("const a#_t&"))
     print
-    print "    std::function< void(%s) > fun;" % csep("arg#_t")
+    print "    std::function< void(signal_t *%s) > fun;" % cpre("arg#_t")
     print "    raw_mailbox_t mailbox;"
     print "};"
     print

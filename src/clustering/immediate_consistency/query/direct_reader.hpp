@@ -23,6 +23,7 @@ public:
 
 private:
     void on_read(
+            signal_t *interruptor,
             const read_t &,
             const mailbox_addr_t<void(read_response_t)> &);
 
@@ -30,7 +31,6 @@ private:
     store_view_t *svs;
 
     order_source_t order_source;  // TODO: order_token_t::ignore
-    auto_drainer_t drainer;
 
     direct_reader_business_card_t::read_mailbox_t read_mailbox;
 };

@@ -60,6 +60,8 @@ public:
         guarantee(draining.is_pulsed());
     }
 
+    void begin_draining();
+
     void drain();
 
     void rethread(threadnum_t new_thread) {
@@ -74,7 +76,7 @@ private:
 
     cond_t draining;
     int refcount;
-    coro_t *when_done;
+    cond_t drained;
 };
 
 /* For example, here's a toy class to handle TCP connections:

@@ -174,7 +174,7 @@ public:
     uint64_t get_stamp(const client_t::addr_t &addr);
     uuid_u get_uuid();
 private:
-    void stop_mailbox_cb(client_t::addr_t addr);
+    void stop_mailbox_cb(signal_t *interruptor, client_t::addr_t addr);
     void add_client_cb(signal_t *stopped, client_t::addr_t addr);
 
     // The UUID of the server, used so that `feed_t`s can enforce on ordering on
