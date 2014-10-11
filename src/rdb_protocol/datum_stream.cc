@@ -1,7 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/datum_stream.hpp"
 
-#include <cmath>
 #include <map>
 
 #include "rdb_protocol/batching.hpp"
@@ -9,6 +8,7 @@
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/val.hpp"
+#include "utils.hpp"
 
 #include "debug.hpp"
 
@@ -1107,9 +1107,7 @@ range_datum_stream_t::next_raw_batch(env_t *, const batchspec_t &batchspec) {
         // than 2^53 indicating we've reached the end of our infinite stream. This must
         // be checked before creating a `datum_t` as that does a similar check on
         // construction.
-        // isfinite is a macro on OS X in math.h, so we can't just use std::isfinite.
-        using namespace std;  // isfinite is a macro on OS X, so we can't just say std::isfinite.
-        rcheck(isfinite(next), base_exc_t::GENERIC,
+        rcheck(risfinite(next), base_exc_t::GENERIC,
                "`range` out of safe double bounds.");
 
         v.emplace_back(next);
