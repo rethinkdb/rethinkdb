@@ -257,8 +257,14 @@ void mailbox_manager_t::mailbox_read_coroutine(
         try {
             raw_mailbox_t *mbox = mailbox_tables.get()->find_mailbox(dest_mailbox_id);
             if (mbox != NULL) {
-                auto_drainer_t::lock_t keepalive(&mbox->drainer);
-                mbox->callback->read(&stream, keepalive.get_drain_signal());
+                try {
+                    auto_drainer_t::lock_t keepalive(&mbox->drainer);
+                    mbox->callback->read(&stream, keepalive.get_drain_signal());
+                } catch (interrupted_exc_t) {
+                    /* Do nothing. It's no longer safe to access `mbox` (because the
+                    destructor is running) but otherwise we don't need to take any
+                    special action. */
+                }
             }
         } catch (const fake_archive_exc_t &e) {
             // Set a flag and handle the exception later.
