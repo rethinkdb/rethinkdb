@@ -657,7 +657,7 @@ template<class state_t>
 void raft_member_t<state_t>::check_invariants(
         const new_mutex_acq_t *mutex_acq) {
     assert_thread();
-    mutex_acq->assert_is_holding(&mutex);
+    mutex_acq->guarantee_is_holding(&mutex);
 
     /* Some of these checks are copied directly from LogCabin's list of invariants. */
 
@@ -911,7 +911,7 @@ template<class state_t>
 void raft_member_t<state_t>::update_term(
         raft_term_t new_term,
         const new_mutex_acq_t *mutex_acq) {
-    mutex_acq->assert_is_holding(&mutex);
+    mutex_acq->guarantee_is_holding(&mutex);
 
     guarantee(new_term > ps.current_term);
     ps.current_term = new_term;
@@ -929,7 +929,7 @@ template<class state_t>
 void raft_member_t<state_t>::update_commit_index(
         raft_log_index_t new_commit_index,
         const new_mutex_acq_t *mutex_acq) {
-    mutex_acq->assert_is_holding(&mutex);
+    mutex_acq->guarantee_is_holding(&mutex);
 
     guarantee(new_commit_index > commit_index);
     commit_index = new_commit_index;
@@ -991,7 +991,7 @@ void raft_member_t<state_t>::leader_update_match_index(
         const new_mutex_acq_t *mutex_acq,
         signal_t *interruptor) {
     guarantee(mode == mode_t::leader);
-    mutex_acq->assert_is_holding(&mutex);
+    mutex_acq->guarantee_is_holding(&mutex);
 
     auto it = match_index->find(key);
     guarantee(it != match_index->end());
@@ -1030,7 +1030,7 @@ void raft_member_t<state_t>::leader_update_match_index(
 template<class state_t>
 void raft_member_t<state_t>::candidate_or_leader_become_follower(
         const new_mutex_acq_t *mutex_acq) {
-    mutex_acq->assert_is_holding(&mutex);
+    mutex_acq->guarantee_is_holding(&mutex);
     guarantee(mode == mode_t::candidate || mode == mode_t::leader);
     guarantee(leader_drainer.has());
 
@@ -1047,7 +1047,7 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
         auto_drainer_t::lock_t leader_keepalive) {
     scoped_ptr_t<new_mutex_acq_t> mutex_acq(mutex_acq_on_heap);
     guarantee(mode == mode_t::follower);
-    mutex_acq->assert_is_holding(&mutex);
+    mutex_acq->guarantee_is_holding(&mutex);
     leader_keepalive.assert_is_holding(leader_drainer.get());
 
     /* Raft paper, Section 5.2: "To begin an election, a follower increments its current
@@ -1179,7 +1179,7 @@ bool raft_member_t<state_t>::candidate_run_election(
         scoped_ptr_t<new_mutex_acq_t> *mutex_acq,
         signal_t *cancel_signal,
         signal_t *interruptor) {
-    (*mutex_acq)->assert_is_holding(&mutex);
+    (*mutex_acq)->guarantee_is_holding(&mutex);
     guarantee(mode == mode_t::candidate);
 
     raft_complex_config_t configuration = get_configuration();
@@ -1313,7 +1313,7 @@ void raft_member_t<state_t>::leader_spawn_update_coros(
         std::map<raft_member_id_t, raft_log_index_t> *match_indexes,
         std::map<raft_member_id_t, scoped_ptr_t<auto_drainer_t> > *update_drainers,
         const new_mutex_acq_t *mutex_acq) {
-    mutex_acq->assert_is_holding(&mutex);
+    mutex_acq->guarantee_is_holding(&mutex);
     guarantee(mode == mode_t::leader);
 
     /* Calculate the new configuration */
@@ -1566,7 +1566,7 @@ template<class state_t>
 void raft_member_t<state_t>::leader_continue_reconfiguration(
         const new_mutex_acq_t *mutex_acq,
         signal_t *interruptor) {
-    mutex_acq->assert_is_holding(&mutex);
+    mutex_acq->guarantee_is_holding(&mutex);
     guarantee(mode == mode_t::leader);
     /* Check if we recently committed a joint consensus configuration, or a configuration
     in which we are no longer leader. */
@@ -1619,7 +1619,7 @@ void raft_member_t<state_t>::leader_continue_reconfiguration(
 template<class state_t>
 bool raft_member_t<state_t>::candidate_or_leader_note_term(
         raft_term_t term, const new_mutex_acq_t *mutex_acq) {
-    mutex_acq->assert_is_holding(&mutex);
+    mutex_acq->guarantee_is_holding(&mutex);
     guarantee(mode != mode_t::follower);
     /* Raft paper, Figure 2: If RPC request or response contains term T > currentTerm:
     set currentTerm = T, convert to follower */
@@ -1661,7 +1661,7 @@ void raft_member_t<state_t>::leader_append_log_entry(
         const raft_log_entry_t<state_t> &log_entry,
         const new_mutex_acq_t *mutex_acq,
         signal_t *interruptor) {
-    mutex_acq->assert_is_holding(&mutex);
+    mutex_acq->guarantee_is_holding(&mutex);
     guarantee(mode == mode_t::leader);
     guarantee(log_entry.term == ps.current_term);
 

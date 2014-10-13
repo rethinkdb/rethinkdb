@@ -49,7 +49,7 @@ public:
 
     void reset();
 
-    void assert_is_for_lock(const rwlock_t *lock) const {
+    void guarantee_is_for_lock(const rwlock_t *lock) const {
         guarantee(lock_ == lock);
     }
 
@@ -70,8 +70,8 @@ public:
     rwlock_acq_t(rwlock_t *lock, access_t access);
     ~rwlock_acq_t();
 
-    void assert_is_holding(rwlock_t *lock) {
-        rwlock_in_line_t::assert_is_for_lock(lock);
+    void guarantee_is_holding(rwlock_t *lock) {
+        rwlock_in_line_t::guarantee_is_for_lock(lock);
     }
 
 private:
