@@ -558,9 +558,6 @@ batched_replace_response_t rdb_batched_replace(
                 });
         }
     }
-    // RSI: pick up here.  Test superblock queue, change
-    // `do_a_replace_from_batched_replace` to do a pkey read using the queue
-    // when it needs to read more rows.
 
     ql::datum_object_builder_t out(stats);
     out.add_warnings(conditions, limits);
@@ -1316,23 +1313,28 @@ void rdb_modification_report_cb_t::on_mod_report(
                 boost::optional<std::string>(),
                 [&](ql::changefeed::limit_manager_t *lm) {
                     debugf("1 pkey commit\n");
-                    queue->push(
-                        [lm, env, btree, report](
-                            superblock_t *superblock,
-                            promise_t<superblock_t *> *promise,
-                            auto_drainer_t::lock_t) {
-                            debugf("2 pkey commit\n");
-                            std::string str = key_to_unescaped_str(report.primary_key);
-                            ql::datum_t dstr = ql::key_to_datum(str);
-                            if (report.info.deleted.first) {
-                                lm->del(str);
-                            }
-                            if (report.info.added.first) {
-                                lm->add(str, dstr, report.info.added.first);
-                            }
-                            lm->commit(ql::changefeed::primary_ref_t{
-                                    env, btree, superblock, promise});
-                        });
+                    if (!lm->drainer.is_draining()) {
+                        auto lock = lm->drainer.lock();
+                        queue->push(
+                            [lm, env, btree, report, lock](
+                                superblock_t *superblock,
+                                promise_t<superblock_t *> *promise,
+                                auto_drainer_t::lock_t) {
+                                debugf("2 pkey commit\n");
+                                std::string str = key_to_unescaped_str(
+                                    report.primary_key);
+                                ql::datum_t dstr = ql::key_to_datum(str);
+                                if (report.info.deleted.first) {
+                                    lm->del(str);
+                                }
+                                if (report.info.added.first) {
+                                    lm->add(str, dstr, report.info.added.first);
+                                }
+                                lm->commit(ql::changefeed::primary_ref_t{
+                                        env, btree, superblock, promise});
+                                lock.assert_is_holding(&lm->drainer);
+                            });
+                    }
                 });
         } else {
             guarantee(false); // RSI: can this ever trigger?  If so, check what

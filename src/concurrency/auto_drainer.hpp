@@ -53,11 +53,15 @@ public:
     lock_t lock();
 
     void assert_not_draining() {
-        guarantee(!draining.is_pulsed());
+        guarantee(!is_draining());
     }
 
     void assert_draining() {
-        guarantee(draining.is_pulsed());
+        guarantee(is_draining());
+    }
+
+    bool is_draining() {
+        return draining.is_pulsed();
     }
 
     void drain();
