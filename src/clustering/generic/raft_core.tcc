@@ -4,9 +4,6 @@
 
 #include "clustering/generic/raft_core.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/runtime/coroutines.hpp"
 #include "containers/map_sentries.hpp"
 
@@ -897,7 +894,7 @@ void raft_member_t<state_t>::on_watchdog_timer() {
                 /* Begin an election */
                 guarantee(!leader_drainer.has());
                 leader_drainer.init(new auto_drainer_t);
-                coro_t::spawn_sometime(boost::bind(
+                coro_t::spawn_sometime(std::bind(
                     &raft_member_t<state_t>::candidate_and_leader_coro,
                     this,
                     mutex_acq.release(),
@@ -1339,7 +1336,7 @@ void raft_member_t<state_t>::leader_spawn_update_coros(
         scoped_ptr_t<auto_drainer_t> update_drainer(new auto_drainer_t);
         auto_drainer_t::lock_t update_keepalive(update_drainer.get());
         (*update_drainers)[peer] = std::move(update_drainer);
-        coro_t::spawn_sometime(boost::bind(&raft_member_t::leader_send_updates, this,
+        coro_t::spawn_sometime(std::bind(&raft_member_t::leader_send_updates, this,
             peer,
             initial_next_index,
             match_indexes,

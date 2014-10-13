@@ -48,7 +48,7 @@ public:
                 std::vector<raft_member_id_t> *member_ids_out) :
             alive_members(std::set<raft_member_id_t>()),
             check_invariants_timer(100, [this]() {
-                coro_t::spawn_sometime(boost::bind(
+                coro_t::spawn_sometime(std::bind(
                     &dummy_raft_cluster_t::check_invariants,
                     this,
                     auto_drainer_t::lock_t(&drainer)));
@@ -368,7 +368,7 @@ public:
     dummy_raft_traffic_generator_t(dummy_raft_cluster_t *_cluster, int ms) :
         cluster(_cluster),
         timer(ms, [this]() {
-            coro_t::spawn_sometime(boost::bind(
+            coro_t::spawn_sometime(std::bind(
                 &dummy_raft_traffic_generator_t::do_change, this,
                 auto_drainer_t::lock_t(&drainer)));
             })
