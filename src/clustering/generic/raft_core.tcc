@@ -55,7 +55,7 @@ should make the election work correctly the first time in the typical case. */
 
 template<class state_t>
 raft_member_t<state_t>::raft_member_t(
-        const raft_member_id_t &_this_member_id,
+        const machine_id_t &_this_member_id,
         raft_storage_interface_t<state_t> *_storage,
         raft_network_interface_t<state_t> *_network,
         const raft_persistent_state_t<state_t> &_persistent_state) :
@@ -985,8 +985,8 @@ void raft_member_t<state_t>::update_commit_index(
 
 template<class state_t>
 void raft_member_t<state_t>::leader_update_match_index(
-        std::map<raft_member_id_t, raft_log_index_t> *match_index,
-        raft_member_id_t key,
+        std::map<machine_id_t, raft_log_index_t> *match_index,
+        machine_id_t key,
         raft_log_index_t new_value,
         const new_mutex_acq_t *mutex_acq,
         signal_t *interruptor) {
@@ -1007,7 +1007,7 @@ void raft_member_t<state_t>::leader_update_match_index(
         if (ps.log.get_entry_term(i) != ps.current_term) {
             continue;
         }
-        std::set<raft_member_id_t> approving_members;
+        std::set<machine_id_t> approving_members;
         for (auto const &pair : *match_index) {
             if (pair.second >= i) {
                 approving_members.insert(pair.first);
@@ -1117,11 +1117,11 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
 
         /* `match_indexes` corresponds to the `matchIndex` array described in Figure 2 of
         the Raft paper. */
-        std::map<raft_member_id_t, raft_log_index_t> match_indexes;
+        std::map<machine_id_t, raft_log_index_t> match_indexes;
 
         /* `update_drainers` contains an `auto_drainer_t` for each running instance of
         `leader_send_updates()`. */
-        std::map<raft_member_id_t, scoped_ptr_t<auto_drainer_t> > update_drainers;
+        std::map<machine_id_t, scoped_ptr_t<auto_drainer_t> > update_drainers;
 
         while (true) {
 
@@ -1184,7 +1184,7 @@ bool raft_member_t<state_t>::candidate_run_election(
 
     raft_complex_config_t configuration = get_configuration();
 
-    std::set<raft_member_id_t> votes_for_us;
+    std::set<machine_id_t> votes_for_us;
     cond_t we_won_the_election;
 
     /* Raft paper, Section 5.2: "It then votes for itself." */
@@ -1202,9 +1202,9 @@ bool raft_member_t<state_t>::candidate_run_election(
 
     /* Raft paper, Section 5.2: "[The candidate] issues RequestVote RPCs in parallel to
     each of the other servers in the cluster." */
-    std::set<raft_member_id_t> peers = configuration.get_all_members();
+    std::set<machine_id_t> peers = configuration.get_all_members();
     scoped_ptr_t<auto_drainer_t> request_vote_drainer(new auto_drainer_t);
-    for (const raft_member_id_t &peer : peers) {
+    for (const machine_id_t &peer : peers) {
         if (peer == this_member_id) {
             /* Don't request a vote from ourself */
             continue;
@@ -1218,7 +1218,7 @@ bool raft_member_t<state_t>::candidate_run_election(
                 while (true) {
                     /* Don't bother trying to send an RPC until the peer is connected */
                     network->get_connected_members()->run_until_satisfied(
-                        [&](const std::set<raft_member_id_t> &connected) {
+                        [&](const std::set<machine_id_t> &connected) {
                             return connected.count(peer) == 1;
                         }, request_vote_keepalive.get_drain_signal());
 
@@ -1310,18 +1310,18 @@ bool raft_member_t<state_t>::candidate_run_election(
 template<class state_t>
 void raft_member_t<state_t>::leader_spawn_update_coros(
         raft_log_index_t initial_next_index,
-        std::map<raft_member_id_t, raft_log_index_t> *match_indexes,
-        std::map<raft_member_id_t, scoped_ptr_t<auto_drainer_t> > *update_drainers,
+        std::map<machine_id_t, raft_log_index_t> *match_indexes,
+        std::map<machine_id_t, scoped_ptr_t<auto_drainer_t> > *update_drainers,
         const new_mutex_acq_t *mutex_acq) {
     mutex_acq->guarantee_is_holding(&mutex);
     guarantee(mode == mode_t::leader);
 
     /* Calculate the new configuration */
     raft_complex_config_t configuration = get_configuration();
-    std::set<raft_member_id_t> peers = configuration.get_all_members();
+    std::set<machine_id_t> peers = configuration.get_all_members();
 
     /* Spawn coroutines as necessary */
-    for (const raft_member_id_t &peer : peers) {
+    for (const machine_id_t &peer : peers) {
         if (peer == this_member_id) {
             /* We don't need to send updates to ourself */
             continue;
@@ -1346,7 +1346,7 @@ void raft_member_t<state_t>::leader_spawn_update_coros(
     /* Kill coroutines as necessary */
     for (auto it = update_drainers->begin(); it != update_drainers->end();
             ++it) {
-        raft_member_id_t peer = it->first;
+        machine_id_t peer = it->first;
         if (peers.count(peer) == 1) {
             /* `peer` is still a member of the cluster, so the coroutine should stay
             alive */
@@ -1363,9 +1363,9 @@ void raft_member_t<state_t>::leader_spawn_update_coros(
 
 template<class state_t>
 void raft_member_t<state_t>::leader_send_updates(
-        const raft_member_id_t &peer,
+        const machine_id_t &peer,
         raft_log_index_t initial_next_index,
-        std::map<raft_member_id_t, raft_log_index_t> *match_indexes,
+        std::map<machine_id_t, raft_log_index_t> *match_indexes,
         auto_drainer_t::lock_t update_keepalive) {
     try {
         guarantee(peer != this_member_id);
@@ -1414,7 +1414,7 @@ void raft_member_t<state_t>::leader_send_updates(
             DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
             mutex_acq.reset();
             network->get_connected_members()->run_until_satisfied(
-                [&](const std::set<raft_member_id_t> &peers) {
+                [&](const std::set<machine_id_t> &peers) {
                     return peers.count(peer) == 1;
                 }, update_keepalive.get_drain_signal());
             mutex_acq.init(
