@@ -149,10 +149,12 @@ template<class state_t>
 class raft_log_entry_t {
 public:
     enum class type_t {
-        /* A `regular` log entry is one with a `change_t`. */
+        /* A `regular` log entry is one with a `change_t`. So if `type` is `regular`,
+        then `change` has a value but `configuration` is empty. */
         regular,
         /* A `configuration` log entry has a `raft_complex_config_t`. They are used to
-        change the cluster configuration. See Section 6 of the Raft paper. */
+        change the cluster configuration. See Section 6 of the Raft paper. So if `type`
+        is `configuration`, then `configuration` has a value but `change` is empty. */
         configuration,
         /* A `noop` log entry does nothing and carries niether a `change_t` nor a
         `raft_configuration_t`. See Section 8 of the Raft paper. */
@@ -161,6 +163,8 @@ public:
 
     type_t type;
     raft_term_t term;
+    /* Whether `change` and `configuration` are empty or not depends on the value of
+    `type`. */
     boost::optional<typename state_t::change_t> change;
     boost::optional<raft_complex_config_t> configuration;
 };
