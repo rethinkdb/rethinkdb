@@ -546,7 +546,7 @@ void raft_member_t<state_t>::check_invariants(
         const std::set<raft_member_t<state_t> *> &members) {
     /* We acquire each member's mutex to ensure we don't catch them in invalid states */
     std::vector<scoped_ptr_t<new_mutex_acq_t> > mutex_acqs;
-    for (auto member : members) {
+    for (raft_member_t<state_t> *member : members) {
         scoped_ptr_t<new_mutex_acq_t> mutex_acq(new new_mutex_acq_t(&member->mutex));
         /* Check each member's invariants individually */
         member->check_invariants(mutex_acq.get());
@@ -557,7 +557,7 @@ void raft_member_t<state_t>::check_invariants(
         /* Raft paper, Figure 3: "Election Safety: at most one leader can be elected in
         a given term" */
         std::set<raft_term_t> claimed;
-        for (auto member : members) {
+        for (raft_member_t<state_t> *member : members) {
             if (member->mode == mode_t::leader) {
                 auto pair = claimed.insert(member->ps.current_term);
                 guarantee(pair.second, "At most one leader can be elected in a given "
@@ -574,8 +574,8 @@ void raft_member_t<state_t>::check_invariants(
         /* Raft paper, Figure 3: "Log Matching: if two logs contain an entry with the
         same index and term, then the logs are identical in all entries up through the
         given index." */
-        for (auto m1 : members) {
-            for (auto m2 : members) {
+        for (raft_member_t<state_t> *m1 : members) {
+            for (raft_member_t<state_t> *m2 : members) {
                 bool match_so_far = true;
                 for (raft_log_index_t i = std::max(m1->ps.log.prev_index + 1,
                                                    m2->ps.log.prev_index + 1);
@@ -613,12 +613,12 @@ void raft_member_t<state_t>::check_invariants(
             boost::optional<raft_complex_config_t> > configs;
         raft_log_index_t start = std::numeric_limits<raft_log_index_t>::max(),
                          end = std::numeric_limits<raft_log_index_t>::min();
-        for (auto m : members) {
+        for (raft_member_t<state_t> *m : members) {
             start = std::min(start, m->ps.log.prev_index);
             end = std::max(end, m->commit_index);
         }
         for (raft_log_index_t i = start; i <= end; ++i) {
-            for (auto m : members) {
+            for (raft_member_t<state_t> *m : members) {
                 if (i == m->ps.log.prev_index) {
                     states.insert(std::make_pair(m, m->ps.snapshot_state));
                     configs.insert(std::make_pair(m, m->ps.snapshot_configuration));
