@@ -74,7 +74,7 @@ public:
         for (const raft_member_id_t &m : members) {
             votes += voting_members.count(m);
         }
-        return (votes*2 > voting_members.size());
+        return (votes * 2 > voting_members.size());
     }
 
     /* Returns `true` if the given member can act as a leader. (Mostly this exists for
