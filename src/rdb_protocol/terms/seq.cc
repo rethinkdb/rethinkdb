@@ -279,7 +279,19 @@ private:
     virtual const char *name() const { return "reduce"; }
 };
 
-// RSI: implement ranges!
+struct rcheck_spec_visitor_t : public pb_rcheckable_t,
+                               public boost::static_visitor<void> {
+    template<class... Args>
+    rcheck_spec_visitor_t(Args &&... args)
+        : pb_rcheckable_t(std::forward<Args...>(args)...) { }
+    void operator()(const changefeed::keyspec_t::range_t &range) const {
+        rcheck(range.range.is_universe(), base_exc_t::GENERIC,
+               "Cannot call `changes` on a range.");
+    }
+    void operator()(const changefeed::keyspec_t::limit_t &) const { }
+    void operator()(const changefeed::keyspec_t::point_t &) const { }
+};
+
 class changes_term_t : public op_term_t {
 public:
     changes_term_t(compile_env_t *env, const protob_t<const Term> &term)
@@ -292,10 +304,12 @@ private:
             counted_t<selection_t> selection = v->as_selection(env->env);
             counted_t<table_t> tbl = selection->table;
             counted_t<datum_stream_t> seq = selection->seq;
+            auto spec = seq->get_spec();
+            boost::apply_visitor(rcheck_spec_visitor_t(backtrace()), spec.spec);
             return new_val(
                 env->env,
                 tbl->tbl->read_changes(
-                    env->env, seq->get_spec(), backtrace(), tbl->display_name()));
+                    env->env, std::move(spec), backtrace(), tbl->display_name()));
         } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             return new_val(
                 env->env, v->as_single_selection()->read_changes());
