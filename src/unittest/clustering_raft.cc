@@ -45,10 +45,10 @@ public:
     dummy_raft_cluster_t(
                 size_t num,
                 const dummy_raft_state_t &initial_state,
-                std::vector<raft_member_id_t> *member_ids_out) :
-            alive_members(std::set<raft_member_id_t>()),
+                std::vector<machine_id_t> *member_ids_out) :
+            alive_members(std::set<machine_id_t>()),
             check_invariants_timer(100, [this]() {
-                coro_t::spawn_sometime(boost::bind(
+                coro_t::spawn_sometime(std::bind(
                     &dummy_raft_cluster_t::check_invariants,
                     this,
                     auto_drainer_t::lock_t(&drainer)));
@@ -56,13 +56,13 @@ public:
     {
         raft_config_t initial_config;
         for (size_t i = 0; i < num; ++i) {
-            raft_member_id_t member_id = generate_uuid();
+            machine_id_t member_id = generate_uuid();
             if (member_ids_out) {
                 member_ids_out->push_back(member_id);
             }
             initial_config.voting_members.insert(member_id);
         }
-        for (const raft_member_id_t &member_id : initial_config.voting_members) {
+        for (const machine_id_t &member_id : initial_config.voting_members) {
             add_member(
                 member_id,
                 raft_persistent_state_t<dummy_raft_state_t>::make_initial(
@@ -80,8 +80,8 @@ public:
 
     /* `join()` adds a new non-voting member to the cluster. The caller is responsible
     for running a Raft transaction to modify the config to include the new member. */
-    raft_member_id_t join() {
-        raft_member_id_t member_id = generate_uuid();
+    machine_id_t join() {
+        machine_id_t member_id = generate_uuid();
         add_member(
             member_id,
             raft_persistent_state_t<dummy_raft_state_t>::make_join());
@@ -89,11 +89,11 @@ public:
     }
 
     /* `set_live()` puts the given member into the given state. */
-    void set_live(const raft_member_id_t &member_id, live_t live) {
+    void set_live(const machine_id_t &member_id, live_t live) {
         member_info_t *i = members.at(member_id).get();
         if (i->drainer.has() && live != live_t::alive) {
             alive_members.apply_atomic_op(
-                [&](std::set<raft_member_id_t> *alive_set) -> bool {
+                [&](std::set<machine_id_t> *alive_set) -> bool {
                     alive_set->erase(member_id);
                     return true;
                 });
@@ -114,7 +114,7 @@ public:
         if (!i->drainer.has() && live == live_t::alive) {
             i->drainer.init(new auto_drainer_t);
             alive_members.apply_atomic_op(
-                [&](std::set<raft_member_id_t> *alive_set) -> bool {
+                [&](std::set<machine_id_t> *alive_set) -> bool {
                     alive_set->insert(member_id);
                     return true;
                 });
@@ -125,7 +125,7 @@ public:
     to find the leader of the Raft cluster and performing an operation on it. */
     void try_change(const uuid_u &change) {
         /* Search for a node that is alive */
-        raft_member_id_t leader = nil_uuid();
+        machine_id_t leader = nil_uuid();
         for (const auto &pair : members) {
             if (pair.second->drainer.has()) {
                 leader = pair.first;
@@ -137,7 +137,7 @@ public:
             if (leader.is_nil()) {
                 return;
             }
-            raft_member_id_t new_leader;
+            machine_id_t new_leader;
             run_on_member(leader, [&](dummy_raft_member_t *member) {
                     if (member == nullptr) {
                         new_leader = nil_uuid();
@@ -167,7 +167,7 @@ public:
     when a majority of the cluster is alive, and don't bring nodes up or down while this
     function is running. */
     void wait_for_commit(const uuid_u &change) {
-        raft_member_id_t chosen = nil_uuid();
+        machine_id_t chosen = nil_uuid();
         for (const auto &pair : members) {
             if (pair.second->drainer.has()) {
                 chosen = pair.first;
@@ -192,8 +192,8 @@ public:
 
     /* `get_all_member_ids()` returns the member IDs of all the members of the cluster,
     alive or dead.  */
-    std::set<raft_member_id_t> get_all_member_ids() {
-        std::set<raft_member_id_t> member_ids;
+    std::set<machine_id_t> get_all_member_ids() {
+        std::set<machine_id_t> member_ids;
         for (const auto &pair : members) {
             member_ids.insert(pair.first);
         }
@@ -203,7 +203,7 @@ public:
     /* `run_on_member()` calls the given function for the `dummy_raft_member_t *` with
     the given ID. If the member is currently dead, it calls the function with a NULL
     pointer. */
-    void run_on_member(const raft_member_id_t &member_id,
+    void run_on_member(const machine_id_t &member_id,
                        const std::function<void(dummy_raft_member_t *)> &fun) {
         member_info_t *i = members.at(member_id).get();
         rwlock_acq_t acq(&i->lock, access_t::read);
@@ -223,73 +223,34 @@ private:
         member_info_t(member_info_t &&) = default;
         member_info_t &operator=(member_info_t &&) = default;
 
-        /* These are the methods for `raft_network_and_storage_interface_t`. */
-        bool send_request_vote_rpc(
-                const raft_member_id_t &dest,
-                const raft_request_vote_rpc_t &rpc,
+        /* These are the methods for `raft_{network,storage}_interface_t`. */
+        bool send_rpc(
+                const machine_id_t &dest,
+                const raft_rpc_request_t<dummy_raft_state_t> &request,
                 signal_t *interruptor,
-                raft_request_vote_reply_t *reply_out) {
-            return do_rpc(dest, rpc, &dummy_raft_member_t::on_request_vote_rpc,
-                interruptor, reply_out);
-        }
-        bool send_install_snapshot_rpc(
-                const raft_member_id_t &dest,
-                const raft_install_snapshot_rpc_t<dummy_raft_state_t> &rpc,
-                signal_t *interruptor,
-                raft_install_snapshot_reply_t *reply_out) {
-            return do_rpc(dest, rpc, &dummy_raft_member_t::on_install_snapshot_rpc,
-                interruptor, reply_out);
-        }
-        bool send_append_entries_rpc(
-                const raft_member_id_t &dest,
-                const raft_append_entries_rpc_t<dummy_raft_state_t> &rpc,
-                signal_t *interruptor,
-                raft_append_entries_reply_t *reply_out) {
-            return do_rpc(dest, rpc, &dummy_raft_member_t::on_append_entries_rpc,
-                interruptor, reply_out);
-        }
-        clone_ptr_t<watchable_t<std::set<raft_member_id_t> > > get_connected_members() {
-            return parent->alive_members.get_watchable();
-        }
-        void write_persistent_state(
-                const raft_persistent_state_t<dummy_raft_state_t> &
-                    persistent_state,
-                signal_t *interruptor) {
-            block(interruptor);
-            stored_state = persistent_state;
-            block(interruptor);
-        }
-
-        /* `do_rpc()` is a helper for `send_*_rpc()`. */
-        template<class rpc_t, class reply_t>
-        bool do_rpc(
-                const raft_member_id_t &dest,
-                const rpc_t &rpc,
-                void (dummy_raft_member_t::*call)(const rpc_t &, signal_t *, reply_t *),
-                signal_t *interruptor,
-                reply_t *reply_out) {
+                raft_rpc_reply_t *reply_out) {
             /* This is convoluted because if `interruptor` is pulsed, we want to return
-            immediately but we don't want to pulse the interruptor for `on_*_rpc()`. So
-            we have to spawn a separate coroutine for `on_*_rpc()`. The coroutine
-            communicates with `do_rpc()` through `reply_info_t`, which is stored on the
-            heap so it remains valid even if `do_rpc()` is interrupted. */
+            immediately but we don't want to pulse the interruptor for `on_rpc()`. So we
+            have to spawn a separate coroutine for `on_rpc()`. The coroutine communicates
+            with `send_rpc()` through `reply_info_t`, which is stored on the heap so it
+            remains valid even if `send_rpc()` is interrupted. */
             class reply_info_t {
             public:
                 cond_t done;
                 bool ok;
-                reply_t reply;
+                raft_rpc_reply_t reply;
             };
             std::shared_ptr<reply_info_t> reply_info(new reply_info_t);
             block(interruptor);
             coro_t::spawn_sometime(
-                [this, dest, rpc, call, reply_info] () {
+                [this, dest, request, reply_info] () {
                     member_info_t *other = parent->members.at(dest).get();
                     if (other->drainer.has()) {
                         auto_drainer_t::lock_t keepalive(other->drainer.get());
                         try {
                             block(keepalive.get_drain_signal());
-                            (other->member.get()->*call)(
-                                rpc, keepalive.get_drain_signal(), &reply_info->reply);
+                            other->member->on_rpc(request, keepalive.get_drain_signal(),
+                                &reply_info->reply);
                             block(keepalive.get_drain_signal());
                             reply_info->ok = true;
                         } catch (interrupted_exc_t) {
@@ -307,7 +268,17 @@ private:
             }
             return reply_info->ok;
         }
-
+        clone_ptr_t<watchable_t<std::set<machine_id_t> > > get_connected_members() {
+            return parent->alive_members.get_watchable();
+        }
+        void write_persistent_state(
+                const raft_persistent_state_t<dummy_raft_state_t> &
+                    persistent_state,
+                signal_t *interruptor) {
+            block(interruptor);
+            stored_state = persistent_state;
+            block(interruptor);
+        }
         void block(signal_t *interruptor) {
             if (randint(10) != 0) {
                 coro_t::yield();
@@ -320,7 +291,7 @@ private:
         }
 
         dummy_raft_cluster_t *parent;
-        raft_member_id_t member_id;
+        machine_id_t member_id;
         raft_persistent_state_t<dummy_raft_state_t> stored_state;
         /* If the member is alive, `member` and `drainer` are set. If the member is
         isolated, `member` is set but `drainer` is empty. If the member is dead, both are
@@ -332,7 +303,7 @@ private:
     };
 
     void add_member(
-            const raft_member_id_t &member_id,
+            const machine_id_t &member_id,
             raft_persistent_state_t<dummy_raft_state_t> initial_state) {
         scoped_ptr_t<member_info_t> i(new member_info_t);
         i->parent = this;
@@ -355,8 +326,8 @@ private:
         dummy_raft_member_t::check_invariants(member_ptrs);
     }
 
-    std::map<raft_member_id_t, scoped_ptr_t<member_info_t> > members;
-    watchable_variable_t<std::set<raft_member_id_t> > alive_members;
+    std::map<machine_id_t, scoped_ptr_t<member_info_t> > members;
+    watchable_variable_t<std::set<machine_id_t> > alive_members;
     auto_drainer_t drainer;
     repeating_timer_t check_invariants_timer;
 };
@@ -368,7 +339,7 @@ public:
     dummy_raft_traffic_generator_t(dummy_raft_cluster_t *_cluster, int ms) :
         cluster(_cluster),
         timer(ms, [this]() {
-            coro_t::spawn_sometime(boost::bind(
+            coro_t::spawn_sometime(std::bind(
                 &dummy_raft_traffic_generator_t::do_change, this,
                 auto_drainer_t::lock_t(&drainer)));
             })
@@ -394,7 +365,7 @@ user-facing API. So I don't want to implement real unit tests until after the us
 API is overhauled. */
 
 TPTEST(ClusteringRaft, Basic) {
-    std::vector<raft_member_id_t> member_ids;
+    std::vector<machine_id_t> member_ids;
     dummy_raft_cluster_t cluster(5, dummy_raft_state_t(), &member_ids);
     dummy_raft_traffic_generator_t traffic_generator(&cluster, 10);
     /* Election timeouts are 1000-2000ms, so we want to wait comfortably longer than
@@ -408,7 +379,7 @@ TPTEST(ClusteringRaft, Basic) {
 }
 
 TPTEST(ClusteringRaft, Failover) {
-    std::vector<raft_member_id_t> member_ids;
+    std::vector<machine_id_t> member_ids;
     dummy_raft_cluster_t cluster(5, dummy_raft_state_t(), &member_ids);
     dummy_raft_traffic_generator_t traffic_generator(&cluster, 10);
     nap(5000);
