@@ -395,9 +395,7 @@ private:
 class superblock_queue_t {
 public:
     typedef std::function<void(
-        superblock_t *,
-        promise_t<superblock_t *> *,
-        auto_drainer_t::lock_t)> func_t;
+        superblock_t *, promise_t<superblock_t *> *)> func_t;
     class caller_t : public single_threaded_countable_t<caller_t> {
     public:
         caller_t(func_t _f, superblock_queue_t *_parent)
@@ -423,12 +421,11 @@ public:
                 auto new_promise = make_scoped<promise_t<superblock_t *> >();
                 parent->promise.swap(new_promise);
             }
-            f(parent->superblock.get(), parent->promise.get(), drainer.lock());
+            f(parent->superblock.get(), parent->promise.get());
         }
     private:
         func_t f;
         superblock_queue_t *parent;
-        auto_drainer_t drainer; // RSI: is this necessary?
     };
 
     superblock_queue_t(scoped_ptr_t<superblock_t> &&_superblock)
@@ -478,7 +475,6 @@ private:
 };
 
 void do_a_replace_from_batched_replace(
-    auto_drainer_t::lock_t,
     fifo_enforcer_sink_t *batched_replaces_fifo_sink,
     const fifo_enforcer_write_token_t &batched_replaces_fifo_token,
     const btree_loc_info_t &info,
@@ -537,10 +533,8 @@ batched_replace_response_t rdb_batched_replace(
                 [&source, &sink, &info, &keys, &limits, &conditions, &stats, &queue,
                  replacer, sindex_cb, env, trace, i](
                     superblock_t *cb_superblock,
-                    promise_t<superblock_t *> *promise,
-                    auto_drainer_t::lock_t lock) {
+                    promise_t<superblock_t *> *promise) {
                     do_a_replace_from_batched_replace(
-                        lock,
                         &sink,
                         source.enter_write(),
 
@@ -1300,46 +1294,41 @@ void rdb_modification_report_cb_t::on_mod_report(
         coro_t::spawn_now_dangerously(
             std::bind(&rdb_modification_report_cb_t::on_mod_report_sub,
                       this, report, env, &sindexes_updated_cond));
-        if (store_->changefeed_server.has()) {
-            store_->changefeed_server->send_all(
-                ql::changefeed::msg_t(
-                    ql::changefeed::msg_t::change_t(
-                        report.info.deleted.first,
-                        report.info.added.first)),
-                report.primary_key);
+        guarantee(store_->changefeed_server.has());
+        store_->changefeed_server->send_all(
+            ql::changefeed::msg_t(
+                ql::changefeed::msg_t::change_t(
+                    report.info.deleted.first,
+                    report.info.added.first)),
+            report.primary_key);
 
-            debugf("PKEY commit\n");
-            store_->changefeed_server->foreach_limit(
-                boost::optional<std::string>(),
-                [&](ql::changefeed::limit_manager_t *lm) {
-                    debugf("1 pkey commit\n");
-                    if (!lm->drainer.is_draining()) {
-                        auto lock = lm->drainer.lock();
-                        queue->push(
-                            [lm, env, btree, report, lock](
-                                superblock_t *superblock,
-                                promise_t<superblock_t *> *promise,
-                                auto_drainer_t::lock_t) {
-                                debugf("2 pkey commit\n");
-                                std::string str = key_to_unescaped_str(
-                                    report.primary_key);
-                                ql::datum_t dstr = ql::key_to_datum(str);
-                                if (report.info.deleted.first) {
-                                    lm->del(str);
-                                }
-                                if (report.info.added.first) {
-                                    lm->add(str, dstr, report.info.added.first);
-                                }
-                                lm->commit(ql::changefeed::primary_ref_t{
-                                        env, btree, superblock, promise});
-                                lock.assert_is_holding(&lm->drainer);
-                            });
-                    }
-                });
-        } else {
-            guarantee(false); // RSI: can this ever trigger?  If so, check what
-                              // `on_mod_report_sub` does if this is empty.
-        }
+        debugf("PKEY commit\n");
+        store_->changefeed_server->foreach_limit(
+            boost::optional<std::string>(),
+            [&](ql::changefeed::limit_manager_t *lm) {
+                debugf("1 pkey commit\n");
+                if (!lm->drainer.is_draining()) {
+                    auto lock = lm->drainer.lock();
+                    queue->push(
+                        [lm, env, btree, report, lock](
+                            superblock_t *superblock,
+                            promise_t<superblock_t *> *promise) {
+                            debugf("2 pkey commit\n");
+                            std::string str = key_to_unescaped_str(
+                                report.primary_key);
+                            ql::datum_t dstr = ql::key_to_datum(str);
+                            if (report.info.deleted.first) {
+                                lm->del(str);
+                            }
+                            if (report.info.added.first) {
+                                lm->add(str, dstr, report.info.added.first);
+                            }
+                            lm->commit(ql::changefeed::primary_ref_t{
+                                    env, btree, superblock, promise});
+                            lock.assert_is_holding(&lm->drainer);
+                        });
+                }
+            });
 
         sindexes_updated_cond.wait_lazily_unordered();
     }
@@ -1567,7 +1556,6 @@ void rdb_update_single_sindex(
 
     superblock_t *superblock = sindex->superblock.get();
 
-    // RSI: handle primary key too.
     ql::changefeed::server_t *server = store->changefeed_server.get();
 
     if (modification->info.deleted.first) {
@@ -1773,8 +1761,9 @@ public:
                     const block_id_t sindex_block_id = superblock->get_sindex_block_id();
 
                     buf_lock_t sindex_block
-                        = store_->acquire_sindex_block_for_write(superblock->expose_buf(),
-                                                                 sindex_block_id);
+                        = store_->acquire_sindex_block_for_write(
+                            superblock->expose_buf(),
+                            sindex_block_id);
 
                     superblock.reset();
 
@@ -1813,7 +1802,7 @@ public:
             rdb_update_sindexes(store_,
                                 sindexes,
                                 &mod_report,
-                                NULL, // RSI: is this a bad idea?
+                                NULL, // We happen not to need an `env_t` in this case.
                                 wtxn.get(),
                                 &deletion_context);
             store_->btree->stats.pm_keys_set.record();

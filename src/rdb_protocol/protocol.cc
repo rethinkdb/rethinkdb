@@ -210,7 +210,7 @@ void post_construct_and_drain_queue(
                 rdb_update_sindexes(store,
                                     sindexes,
                                     &mod_report,
-                                    NULL, // RSI: is this a bad idea?
+                                    NULL, // We don't need an `env_t` in this case.
                                     queue_txn.get(),
                                     &deletion_context);
                 ++current_chunk_size;
