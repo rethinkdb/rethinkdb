@@ -256,6 +256,9 @@ public:
     until it has received a snapshot. */
     static raft_persistent_state_t make_join();
 
+private:
+    template<class state2_t> friend class raft_member_t;
+
     /* `current_term` and `voted_for` correspond to the variables with the same names in
     Figure 2 of the Raft paper. */
     raft_term_t current_term;
