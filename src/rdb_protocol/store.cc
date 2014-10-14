@@ -298,25 +298,19 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             }
             stream = groups_to_batch(
                 gs->get_underlying_map(ql::grouped::order_doesnt_matter_t()));
-            std::sort(stream.begin(), stream.end(),
-                      [](const ql::rget_item_t &a, const ql::rget_item_t &b) {
-                          return a.sindex_key < b.sindex_key;
-                      });
-            if (stream.size() > s.spec.limit) {
-                stream.resize(s.spec.limit);
-            }
         }
-        rget_read_response_t resp;
-
-        // RSI: sort by datum rather than key.
+        auto gt = ql::changefeed::limit_order_t(s.spec.range.sorting);
+        std::sort(stream.begin(), stream.end(),
+                  [gt](const ql::rget_item_t &a, const ql::rget_item_t &b) {
+                      return gt(b.sindex_key, a.sindex_key); // Ordering is intentional.
+                  });
         if (stream.size() > s.spec.limit) {
             stream.resize(s.spec.limit);
         }
 
         guarantee(store->changefeed_server.has());
-        auto lt = ql::changefeed::limit_order_t(s.spec.range.sorting);
         store->changefeed_server->add_limit_client(
-            s.addr, s.region, s.table, s.uuid, s.spec, lt, std::move(stream));
+            s.addr, s.region, s.table, s.uuid, s.spec, gt, std::move(stream));
         response->response = changefeed_limit_subscribe_response_t(1);
     }
 

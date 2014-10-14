@@ -283,7 +283,7 @@ limit_manager_t::limit_manager_t(
     client_t::addr_t _parent_client,
     uuid_u _uuid,
     keyspec_t::limit_t _spec,
-    limit_order_t _lt,
+    limit_order_t _gt,
     stream_t &&stream)
     : region(std::move(_region)),
       table(std::move(_table)),
@@ -291,8 +291,8 @@ limit_manager_t::limit_manager_t(
       parent_client(std::move(_parent_client)),
       uuid(std::move(_uuid)),
       spec(std::move(_spec)),
-      lt(std::move(_lt)),
-      lqueue(lt) {
+      gt(std::move(_gt)),
+      lqueue(gt) {
     for (auto &&item : stream) {
         auto keystr = key_to_unescaped_str(item.key);
         bool inserted;
@@ -469,7 +469,7 @@ void limit_manager_t::commit(
     const boost::variant<primary_ref_t, sindex_ref_t> &sindex_ref) {
     debugf("\n**********************************************************************\n");
     debugf("COMMIT (added %zu, deleted %zu)\n", added.size(), deleted.size());
-    lqueue_t real_added(lt);
+    lqueue_t real_added(gt);
     std::set<std::string> real_deleted;
     for (auto &&id : deleted) {
         bool data_deleted = lqueue.del_id(id);
@@ -874,14 +874,14 @@ public:
           need_init(-1),
           got_init(0),
           spec(std::move(_spec)),
-          lt(limit_order_t(spec.range.sorting)),
-          lqueue(lt),
+          gt(limit_order_t(spec.range.sorting)),
+          lqueue(gt),
           active_data([this](const data_it_t &a, const data_it_t &b) {
-                  return lt((*a)->second.first, (*b)->second.first)
+                  return gt((*a)->second.first, (*b)->second.first)
                       ? true
-                      : (lt((*b)->second.first, (*a)->second.first)
+                      : (gt((*b)->second.first, (*a)->second.first)
                          ? false
-                         : lt((*a)->first, (*b)->first));
+                         : gt((*a)->first, (*b)->first));
               }) {
         feed->add_limit_sub(this, uuid);
     }
@@ -950,10 +950,10 @@ public:
                 debugf("\nXXX\nsnapshot:\n");
                 auto old_ft = active_data.begin();
                 for (auto ft = active_data.begin(); ft != active_data.end(); ++ft) {
-                    debugf("lt(%s, %s) = %d\n",
+                    debugf("gt(%s, %s) = %d\n",
                            (**old_ft)->second.first.print().c_str(),
                            (**ft)->second.first.print().c_str(),
-                           lt((**old_ft)->second.first, (**ft)->second.first));
+                           gt((**old_ft)->second.first, (**ft)->second.first));
                     debugf("%s\n", (**ft)->second.first.print().c_str());
                     old_ft = ft;
                 }
@@ -1020,7 +1020,7 @@ public:
                 datum_t a = (*it)->second.first;
                 guarantee(active_data.size() != 0);
                 datum_t b = (**active_data.begin())->second.first;
-                insert = !lt(a, b);
+                insert = !gt(a, b);
                 debugf("cmp %s < %s = %d\n",
                        a.print().c_str(), b.print().c_str(), insert);
                 debugf("%s %s\n",
@@ -1098,7 +1098,7 @@ public:
     int64_t need_init, got_init;
     keyspec_t::limit_t spec;
 
-    limit_order_t lt;
+    limit_order_t gt;
     lqueue_t lqueue;
     typedef decltype(lqueue)::iterator data_it_t;
     typedef std::function<bool(const data_it_t &, const data_it_t &)> data_it_lt_t;

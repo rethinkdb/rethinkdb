@@ -223,7 +223,7 @@ private:
 
 typedef mailbox_addr_t<void(client_addr_t)> server_addr_t;
 
-template<class Id, class Key, class Val, class Lt>
+template<class Id, class Key, class Val, class Gt>
 class index_queue_t {
 private:
     std::map<Id, std::pair<Key, Val> > data;
@@ -233,12 +233,11 @@ private:
 public:
     typedef typename decltype(index)::iterator iterator;
 
-    index_queue_t(Lt lt)
-        : index(
-            [lt](const diterator &a, const diterator &b) {
-                return lt(a->second.first, b->second.first)
+    index_queue_t(Gt gt)
+        : index([gt](const diterator &a, const diterator &b) {
+                return gt(a->second.first, b->second.first)
                     ? true
-                    : (lt(b->second.first, a->second.first)
+                    : (gt(b->second.first, a->second.first)
                        ? false
                        // RSI: cmp
                        : a->first < b->first);
@@ -390,7 +389,7 @@ private:
     uuid_u uuid;
     keyspec_t::limit_t spec;
     // RSI: sorting
-    limit_order_t lt;
+    limit_order_t gt;
     lqueue_t lqueue;
 
     std::vector<std::pair<std::string, std::pair<datum_t, datum_t> > > added;

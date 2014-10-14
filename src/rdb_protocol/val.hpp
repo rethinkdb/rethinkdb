@@ -132,7 +132,8 @@ public:
     ql::changefeed::keyspec_t::range_t get_spec();
 private:
     const counted_t<table_t> tbl;
-    // RSI: make this use boost::optional
+    // TODO: make this use boost::optional<std::string> for consistency with the
+    // rest of the code.
     const std::string idx;
     const sorting_t sorting;
     const datum_range_t bounds;
