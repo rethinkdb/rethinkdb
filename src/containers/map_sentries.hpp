@@ -17,6 +17,8 @@ public:
     ~map_insertion_sentry_t() {
         reset();
     }
+    map_insertion_sentry_t(const map_insertion_sentry_t &) = delete;
+    map_insertion_sentry_t &operator=(const map_insertion_sentry_t &) = delete;
     void reset() {
         if (map) {
             map->erase(it);
@@ -49,6 +51,8 @@ public:
     ~multimap_insertion_sentry_t() {
         reset();
     }
+    multimap_insertion_sentry_t(const multimap_insertion_sentry_t &) = delete;
+    multimap_insertion_sentry_t &operator=(const multimap_insertion_sentry_t &) = delete;
     void reset() {
         if (map) {
             map->erase(it);
@@ -77,6 +81,8 @@ public:
     ~set_insertion_sentry_t() {
         reset();
     }
+    set_insertion_sentry_t(const set_insertion_sentry_t &) = delete;
+    set_insertion_sentry_t &operator=(const set_insertion_sentry_t &) = delete;
     void reset() {
         if (set) {
             set->erase(it);
