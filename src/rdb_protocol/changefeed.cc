@@ -944,7 +944,6 @@ public:
                    pair.second.first.print().c_str(),
                    pair.second.second.print().c_str());
             auto it = lqueue.insert(pair).first;
-            // RSI: cmp
             active_data.insert(it);
             if (active_data.size() > spec.limit) {
                 debugf("\nXXX\nsnapshot:\n");
