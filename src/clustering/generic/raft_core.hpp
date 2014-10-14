@@ -8,6 +8,7 @@
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
+#include <boost/variant.hpp>
 
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/new_mutex.hpp"
@@ -300,72 +301,90 @@ protected:
     virtual ~raft_storage_interface_t() { }
 };
 
-/* `raft_request_vote_rpc_t` describes the parameters to the "RequestVote RPC" described
-in Figure 2 of the Raft paper. */
-class raft_request_vote_rpc_t {
-public:
-    /* `term`, `candidate_id`, `last_log_index`, and `last_log_term` correspond to the
-    parameters with the same names in the Raft paper. */
-    raft_term_t term;
-    machine_id_t candidate_id;
-    raft_log_index_t last_log_index;
-    raft_term_t last_log_term;
-};
-
-/* `raft_request_vote_reply_t` describes the information returned from the "RequestVote
-RPC" described in Figure 2 of the Raft paper. */
-class raft_request_vote_reply_t {
-public:
-    raft_term_t term;
-    bool vote_granted;
-};
-
-/* `raft_install_snapshot_rpc_t` describes the parameters of the "InstallSnapshot RPC"
-described in Figure 13 of the Raft paper. */
+/* `raft_rpc_request_t` describes a request that one Raft member sends over the network
+to another Raft member. It actually can describe one of three request types,
+corresponding to the three RPCs in the Raft paper, but they're bundled together into one
+type for the convenience of code that uses Raft. */
 template<class state_t>
-class raft_install_snapshot_rpc_t {
-public:
-    /* `term`, `leader_id`, `last_included_index`, and `last_included_term`
-    correspond to the parameters with the same names in the Raft paper. In the Raft
-    paper, the content of the snapshot is sent as a series of binary blobs, but we don't
-    want to do that; instead, we send the `state_t` and `raft_configuration_t` directly.
-    So our `snapshot_state` and `snapshot_configuration` parameters replace the `offset`,
-    `data`, and `done` parameters of the Raft paper. */
-    raft_term_t term;
-    machine_id_t leader_id;
-    raft_log_index_t last_included_index;
-    raft_term_t last_included_term;
-    state_t snapshot_state;
-    raft_complex_config_t snapshot_configuration;
+class raft_rpc_request_t {
+private:
+    template<class state2_t> friend class raft_member_t;
+
+    /* `request_vote_t` describes the parameters to the "RequestVote RPC" described
+    in Figure 2 of the Raft paper. */
+    class request_vote_t {
+    public:
+        /* `term`, `candidate_id`, `last_log_index`, and `last_log_term` correspond to
+        the parameters with the same names in the Raft paper. */
+        raft_term_t term;
+        machine_id_t candidate_id;
+        raft_log_index_t last_log_index;
+        raft_term_t last_log_term;
+    };
+
+    /* `install_snapshot_t` describes the parameters of the "InstallSnapshot RPC"
+    described in Figure 13 of the Raft paper. */
+    class install_snapshot_t {
+    public:
+        /* `term`, `leader_id`, `last_included_index`, and `last_included_term`
+        correspond to the parameters with the same names in the Raft paper. In the Raft
+        paper, the content of the snapshot is sent as a series of binary blobs, but we
+        don't want to do that; instead, we send the `state_t` and `raft_configuration_t`
+        directly. So our `snapshot_state` and `snapshot_configuration` parameters replace
+        the `offset`, `data`, and `done` parameters of the Raft paper. */
+        raft_term_t term;
+        machine_id_t leader_id;
+        raft_log_index_t last_included_index;
+        raft_term_t last_included_term;
+        state_t snapshot_state;
+        raft_complex_config_t snapshot_configuration;
+    };
+
+    /* `append_entries_t` describes the parameters of the "AppendEntries RPC" described
+    in Figure 2 of the Raft paper. */
+    class append_entries_t {
+    public:
+        /* `term`, `leader_id`, and `leader_commit` correspond to the parameters with the
+        same names in the Raft paper. `entries` corresponds to three of the paper's
+        variables: `prevLogIndex`, `prevLogTerm`, and `entries`. */
+        raft_term_t term;
+        machine_id_t leader_id;
+        raft_log_t<state_t> entries;
+        raft_log_index_t leader_commit;
+    };
+
+    boost::variant<request_vote_t, install_snapshot_t, append_entries_t> request;
 };
 
-/* `raft_install_snapshot_reply_t` describes in the information returned from the
-"InstallSnapshot RPC" described in Figure 13 of the Raft paper. */
-class raft_install_snapshot_reply_t {
-public:
-    raft_term_t term;
-};
+/* `raft_rpc_reply_t` describes the reply to a `raft_rpc_request_t`. */
+class raft_rpc_reply_t {
+private:
+    template<class state2_t> friend class raft_member_t;
 
-/* `raft_append_entries_rpc_t` describes the parameters of the "AppendEntries RPC"
-described in Figure 2 of the Raft paper. */
-template<class state_t>
-class raft_append_entries_rpc_t {
-public:
-    /* `term`, `leader_id`, and `leader_commit` correspond to the parameters with the
-    same names in the Raft paper. `entries` corresponds to three of the paper's
-    variables: `prevLogIndex`, `prevLogTerm`, and `entries`. */
-    raft_term_t term;
-    machine_id_t leader_id;
-    raft_log_t<state_t> entries;
-    raft_log_index_t leader_commit;
-};
+    /* `request_vote_t` describes the information returned from the "RequestVote
+    RPC" described in Figure 2 of the Raft paper. */
+    class request_vote_t {
+    public:
+        raft_term_t term;
+        bool vote_granted;
+    };
 
-/* `raft_append_entries_reply_t` describes the information returned from the
-"AppendEntries RPC" described in Figure 2 of the Raft paper. */
-class raft_append_entries_reply_t {
-public:
-    raft_term_t term;
-    bool success;
+    /* `install_snapshot_t` describes in the information returned from the
+    "InstallSnapshot RPC" described in Figure 13 of the Raft paper. */
+    class install_snapshot_t {
+    public:
+        raft_term_t term;
+    };
+
+    /* `append_entries_t` describes the information returned from the
+    "AppendEntries RPC" described in Figure 2 of the Raft paper. */
+    class append_entries_t {
+    public:
+        raft_term_t term;
+        bool success;
+    };
+
+    boost::variant<request_vote_t, install_snapshot_t, append_entries_t> reply;
 };
 
 /* `raft_network_interface_t` is the abstract class that `raft_member_t` uses to send
@@ -373,35 +392,21 @@ messages over the network. */
 template<class state_t>
 class raft_network_interface_t {
 public:
-    /* The `send_*_rpc()` methods all follow these rules:
-      * They send an RPC message to the Raft member indicated in the `dest` field.
-      * The message will be delivered by calling the `on_*_rpc()` method on the
-        `raft_member_t` in question.
-      * If the RPC is delivered successfully, `send_*_rpc()` will return `true`, and the
-        results will be stored in the `*_out` variables.
-      * If something goes wrong, `send_*_rpc()` will return `false`. The RPC may or may
-        not have been delivered. The caller should wait until the Raft member is present
-        in `get_connected_members()` before trying again.
+    /* `send_rpc()` sends a message to the Raft member indicated in the `dest` field. The
+    message will be delivered by calling the `on_rpc()` method on the `raft_member_t` in
+    question.
+      * If the RPC is delivered successfully, `send_rpc()` will return `true`, and
+        the reply will be stored in `*reply_out`.
+      * If something goes wrong, `send_rpc()` will return `false`. The RPC may or may not
+        have been delivered in this case. The caller should wait until the Raft member is
+        present in `get_connected_members()` before trying again.
       * If the interruptor is pulsed, it throws `interrupted_exc_t`. The RPC may or may
-        may not have been delivered. */
-
-    virtual bool send_request_vote_rpc(
+        not have been delivered. */
+    virtual bool send_rpc(
         const machine_id_t &dest,
-        const raft_request_vote_rpc_t &params,
+        const raft_rpc_request_t<state_t> &request,
         signal_t *interruptor,
-        raft_request_vote_reply_t *reply_out) = 0;
-
-    virtual bool send_install_snapshot_rpc(
-        const machine_id_t &dest,
-        const raft_install_snapshot_rpc_t<state_t> &params,
-        signal_t *interruptor,
-        raft_install_snapshot_reply_t *reply_out) = 0;
-
-    virtual bool send_append_entries_rpc(
-        const machine_id_t &dest,
-        const raft_append_entries_rpc_t<state_t> &params,
-        signal_t *interruptor,
-        raft_append_entries_reply_t *reply_out) = 0;
+        raft_rpc_reply_t *reply_out) = 0;
 
     /* `get_connected_members()` returns the set of all Raft members for which an RPC is
     likely to succeed. */
@@ -483,20 +488,12 @@ public:
         const raft_config_t &configuration,
         signal_t *interruptor);
 
-    /* The `on_*_rpc()` methods are called when a Raft member calls a `send_*_rpc()`
-    method on their `raft_network_and_storage_interface_t`. */
-    void on_request_vote_rpc(
-        const raft_request_vote_rpc_t &rpc,
+    /* When a Raft member calls `send_rpc()` on its `raft_network_interface_t`, the RPC
+    is sent across the network and delivered by calling `on_rpc()` at its destination. */
+    void on_rpc(
+        const raft_rpc_request_t<state_t> &request,
         signal_t *interruptor,
-        raft_request_vote_reply_t *reply_out);
-    void on_install_snapshot_rpc(
-        const raft_install_snapshot_rpc_t<state_t> &rpc,
-        signal_t *interruptor,
-        raft_install_snapshot_reply_t *reply_out);
-    void on_append_entries_rpc(
-        const raft_append_entries_rpc_t<state_t> &rpc,
-        signal_t *interruptor,
-        raft_append_entries_reply_t *reply_out);
+        raft_rpc_reply_t *reply_out);
 
     /* `check_invariants()` asserts that the given collection of Raft cluster members are
     in a valid, consistent state. This may block, because it needs to acquire each
@@ -532,6 +529,21 @@ private:
     /* Note: Methods prefixed with `follower_`, `candidate_`, or `leader_` are methods
     that are only used when in that state. This convention will hopefully make the code
     slightly clearer. */
+
+    /* `on_rpc()` calls one of these three methods depending on what type of RPC it
+    received. */
+    void on_request_vote_rpc(
+        const typename raft_rpc_request_t<state_t>::request_vote_t &rpc,
+        signal_t *interruptor,
+        raft_rpc_reply_t::request_vote_t *reply_out);
+    void on_install_snapshot_rpc(
+        const typename raft_rpc_request_t<state_t>::install_snapshot_t &rpc,
+        signal_t *interruptor,
+        raft_rpc_reply_t::install_snapshot_t *reply_out);
+    void on_append_entries_rpc(
+        const typename raft_rpc_request_t<state_t>::append_entries_t &rpc,
+        signal_t *interruptor,
+        raft_rpc_reply_t::append_entries_t *reply_out);
 
     /* Asserts that all of the invariants that can be checked locally hold true. This
     doesn't block or modify anything. It should be safe to call it at any time (except
