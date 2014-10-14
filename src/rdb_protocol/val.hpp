@@ -165,7 +165,7 @@ public:
     virtual datum_t replace(
         counted_t<const func_t> f, bool nondet_ok,
         durability_requirement_t dur_req, return_changes_t return_changes) = 0;
-    virtual const counted_t<table_t> &get_tbl() = 0; // RSI: remove?
+    virtual const counted_t<table_t> &get_tbl() = 0;
 protected:
     single_selection_t() = default;
 };

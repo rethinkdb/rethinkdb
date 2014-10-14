@@ -1205,7 +1205,7 @@ INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_t);
 RDB_IMPL_SERIALIZABLE_2(changefeed_point_stamp_t, addr, key);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_point_stamp_t);
 
-RDB_IMPL_SERIALIZABLE_2(read_t, read, profile);
+RDB_IMPL_SERIALIZABLE_3(read_t, read, profile, use_snapshot);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(read_t);
 
 RDB_IMPL_SERIALIZABLE_1(point_write_response_t, result);

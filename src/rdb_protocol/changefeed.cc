@@ -371,7 +371,9 @@ public:
         if (gs == NULL) {
             auto *exc = boost::get<ql::exc_t>(&resp.result);
             guarantee(exc != NULL);
-            rassert(exc == NULL); // RSI: remove
+            // I *think* that the only way this can happen is if somehow an
+            // operation using the reference gets run after e.g. resharding starts.
+            rassert(exc == NULL);
             return lvec_t();
         }
         stream_t stream = groups_to_batch(
@@ -421,7 +423,9 @@ public:
         if (gs == NULL) {
             auto *exc = boost::get<ql::exc_t>(&resp.result);
             guarantee(exc != NULL);
-            rassert(exc == NULL); // RSI: remove
+            // I *think* that the only way this can happen is if somehow an
+            // operation using the reference gets run after e.g. resharding starts.
+            rassert(exc == NULL);
             return lvec_t();
         }
         stream_t stream = groups_to_batch(
@@ -449,7 +453,6 @@ private:
     size_t n;
 };
 
-// RSI: sorting
 lvec_t limit_manager_t::read_more(
     const boost::variant<primary_ref_t, sindex_ref_t> &ref,
     sorting_t sorting,
@@ -460,9 +463,6 @@ lvec_t limit_manager_t::read_more(
     return boost::apply_visitor(visitor, ref);
 }
 
-// RSI: pick up here
-// * Fix big insert crash (added and then removed again).
-// * name `lt` `gt` and switch ordering of PRIMARY KEY ONLY.
 // RSI: do we need to include the tag in the conflict resolution in addition to
 // the primary key?
 void limit_manager_t::commit(

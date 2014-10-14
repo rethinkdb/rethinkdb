@@ -465,7 +465,6 @@ public:
 };
 RDB_DECLARE_SERIALIZABLE(changefeed_subscribe_t);
 
-// RSI: make sure this `read_t` has `use_snapshot` set to `false`.
 class changefeed_limit_subscribe_t {
 public:
     changefeed_limit_subscribe_t() { }
@@ -539,8 +538,9 @@ struct read_t {
     read_t(T &&_read, profile_bool_t _profile)
         : read(std::forward<T>(_read)), profile(_profile) { }
 
-
-    // Only use snapshotting if we're doing a range get.
+    // Only use snapshotting if we're doing a range get.  If you change this,
+    // make sure to think hard about locking for changefeed operations,
+    // especially `changefeed_limit_subscribe_t`.
     bool use_snapshot() const THROWS_NOTHING { return boost::get<rget_read_t>(&read); }
 
     // Returns true if this read should be sent to every replica.
