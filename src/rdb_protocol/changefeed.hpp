@@ -354,9 +354,9 @@ public:
     limit_manager_t(
         region_t _region,
         std::string _table,
+        uuid_u _uuid,
         server_t *_parent,
         client_t::addr_t _parent_client,
-        uuid_u _uuid,
         keyspec_t::limit_t _spec,
         limit_order_t _lt,
         stream_t &&start_data);
@@ -367,6 +367,7 @@ public:
 
     const region_t region; // TODO: use this when ranges are supported.
     const std::string table;
+    const uuid_u uuid;
 private:
     lvec_t read_more(const boost::variant<primary_ref_t, sindex_ref_t> &ref,
                      sorting_t sorting,
@@ -377,7 +378,6 @@ private:
     server_t *parent;
     client_t::addr_t parent_client;
 
-    uuid_u uuid;
     keyspec_t::limit_t spec;
     limit_order_t gt;
     lqueue_t lqueue;
@@ -395,6 +395,8 @@ public:
 class server_t {
 public:
     typedef server_addr_t addr_t;
+    typedef mailbox_addr_t<void(client_t::addr_t, boost::optional<std::string>, uuid_u)>
+        limit_addr_t;
     explicit server_t(mailbox_manager_t *_manager);
     ~server_t();
     void add_client(const client_t::addr_t &addr, region_t region);
@@ -410,6 +412,7 @@ public:
     void send_all(const msg_t &msg, const store_key_t &key);
     void stop_all();
     addr_t get_stop_addr();
+    limit_addr_t get_limit_stop_addr();
     uint64_t get_stamp(const client_t::addr_t &addr);
     uuid_u get_uuid();
     // `f` will be called with a read lock on `clients` and a write lock on the
@@ -419,6 +422,9 @@ public:
 private:
     friend class limit_manager_t;
     void stop_mailbox_cb(client_t::addr_t addr);
+    void limit_stop_mailbox_cb(client_t::addr_t addr,
+                               boost::optional<std::string> sindex,
+                               uuid_u uuid);
     void add_client_cb(signal_t *stopped, client_t::addr_t addr);
 
     // The UUID of the server, used so that `feed_t`s can enforce on ordering on
@@ -439,6 +445,7 @@ private:
                  std::function<
                      bool(const boost::optional<std::string> &,
                           const boost::optional<std::string> &)> > limit_clients;
+        scoped_ptr_t<rwlock_t> limit_clients_lock;
     };
     std::map<client_t::addr_t, client_info_t> clients;
 
@@ -463,6 +470,10 @@ private:
     // to unsubscribe.  The callback of this mailbox acquires the drainer, so it
     // has to be destroyed first.
     mailbox_t<void(client_t::addr_t)> stop_mailbox;
+    // Clients send a message to this mailbox to unsubscribe a particular limit
+    // changefeed.
+    mailbox_t<void(client_t::addr_t, boost::optional<std::string>, uuid_u)>
+        limit_stop_mailbox;
 };
 
 } // namespace changefeed

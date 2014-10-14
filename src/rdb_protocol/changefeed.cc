@@ -48,12 +48,15 @@ size_t erase1(M *ms, const T &t) {
 }
 
 server_t::client_info_t::client_info_t()
-    : limit_clients(&opt_lt<std::string>) { }
+    : limit_clients(&opt_lt<std::string>),
+      limit_clients_lock(new rwlock_t()) { }
 
 server_t::server_t(mailbox_manager_t *_manager)
     : uuid(generate_uuid()),
       manager(_manager),
-      stop_mailbox(manager, std::bind(&server_t::stop_mailbox_cb, this, ph::_1)) { }
+      stop_mailbox(manager, std::bind(&server_t::stop_mailbox_cb, this, ph::_1)),
+      limit_stop_mailbox(manager, std::bind(&server_t::limit_stop_mailbox_cb,
+                                            this, ph::_1, ph::_2, ph::_3)) { }
 
 server_t::~server_t() { }
 
@@ -70,11 +73,50 @@ void server_t::stop_mailbox_cb(client_t::addr_t addr) {
     }
 }
 
+void server_t::limit_stop_mailbox_cb(client_t::addr_t addr,
+                                     boost::optional<std::string> sindex,
+                                     uuid_u limit_uuid) {
+    debugf("limit_stop_mailbox_cb\n");
+    scoped_ptr_t<limit_manager_t> outer_lm;
+    auto_drainer_t::lock_t lock(&drainer);
+    rwlock_in_line_t spot(&clients_lock, access_t::read);
+    spot.read_signal()->wait_lazily_unordered();
+    auto it = clients.find(addr);
+    // The client might have already been removed from e.g. a peer disconnect or
+    // drainer destruction.  (Also, if we have multiple shards per btree this
+    // will be called twice, and the second time it should be a no-op.)
+    if (it != clients.end()) {
+        // It's OK not to have a drainer here because we're still holding a read
+        // lock on `clients_lock`.
+        rwlock_in_line_t lspot(it->second.limit_clients_lock.get(), access_t::write);
+        lspot.read_signal()->wait_lazily_unordered();
+        auto vec_it = it->second.limit_clients.find(sindex);
+        if (vec_it != it->second.limit_clients.end()) {
+            for (auto &&lm : vec_it->second) {
+                guarantee(lm.has());
+                if (lm->uuid == limit_uuid) {
+                    lspot.write_signal()->wait_lazily_unordered();
+                    std::swap(lm, vec_it->second.back());
+                    // No need to hold onto the lock while we're freeing the
+                    // limit manager.
+                    std::swap(outer_lm, vec_it->second.back());
+                    debugf("DEL_LIMIT_CLIENT %p\n", outer_lm.get());
+                    vec_it->second.pop_back();
+                    if (vec_it->second.size() == 0) {
+                        it->second.limit_clients.erase(vec_it);
+                    }
+                    return;
+                }
+            }
+        }
+    }
+}
+
 void server_t::add_client(const client_t::addr_t &addr, region_t region) {
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::write);
     spot.write_signal()->wait_lazily_unordered();
-    auto info = &clients[addr];
+    client_info_t *info = &clients[addr];
 
     // We do this regardless of whether there's already an entry for this
     // address, because we might be subscribed to multiple regions if we're
@@ -104,25 +146,27 @@ void server_t::add_limit_client(
     const keyspec_t::limit_t &spec,
     limit_order_t lt,
     stream_t &&stream) {
-
     auto_drainer_t::lock_t lock(&drainer);
-    rwlock_in_line_t spot(&clients_lock, access_t::write);
+    rwlock_in_line_t spot(&clients_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
     auto it = clients.find(addr);
 
     // It's entirely possible the peer disconnected by the time we got here.
     if (it != clients.end()) {
+        rwlock_in_line_t lspot(it->second.limit_clients_lock.get(), access_t::write);
+        lspot.read_signal()->wait_lazily_unordered();
         auto *vec = &it->second.limit_clients[spec.range.sindex];
         auto lm = make_scoped<limit_manager_t>(
             region,
             table,
+            client_uuid,
             this,
             it->first,
-            client_uuid,
             spec,
             std::move(lt),
             std::move(stream));
-        spot.write_signal()->wait_lazily_unordered();
+        debugf("ADD_LIMIT_CLIENT %p\n", lm.get());
+        lspot.write_signal()->wait_lazily_unordered();
         vec->push_back(std::move(lm));
     }
 }
@@ -138,8 +182,8 @@ void server_t::add_client_cb(signal_t *stopped, client_t::addr_t addr) {
     rwlock_in_line_t coro_spot(&clients_lock, access_t::write);
     coro_spot.read_signal()->wait_lazily_unordered();
     auto it = clients.find(addr);
+    // We can be removed more than once safely (e.g. in the case of oversharding).
     if (it != clients.end()) {
-        // We can be removed more than once safely (e.g. in the case of oversharding).
         send_one_with_lock(coro_lock, &*it, msg_t(msg_t::stop_t()));
     }
     coro_spot.write_signal()->wait_lazily_unordered();
@@ -206,6 +250,10 @@ server_t::addr_t server_t::get_stop_addr() {
     return stop_mailbox.get_address();
 }
 
+server_t::limit_addr_t server_t::get_limit_stop_addr() {
+    return limit_stop_mailbox.get_address();
+}
+
 uint64_t server_t::get_stamp(const client_t::addr_t &addr) {
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::read);
@@ -229,6 +277,10 @@ void server_t::foreach_limit(const boost::optional<std::string> &sindex,
     rwlock_in_line_t spot(&clients_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
     for (auto &&client : clients) {
+        // We don't need a drainer lock here because we're still holding a read
+        // lock on `clients_lock`.
+        rwlock_in_line_t lspot(client.second.limit_clients_lock.get(), access_t::read);
+        spot.read_signal()->wait_lazily_unordered();
         auto it = client.second.limit_clients.find(sindex);
         if (it != client.second.limit_clients.end()) {
             for (auto &&lc : it->second) {
@@ -279,17 +331,17 @@ void limit_manager_t::send(msg_t &&msg) {
 limit_manager_t::limit_manager_t(
     region_t _region,
     std::string _table,
+    uuid_u _uuid,
     server_t *_parent,
     client_t::addr_t _parent_client,
-    uuid_u _uuid,
     keyspec_t::limit_t _spec,
     limit_order_t _gt,
     stream_t &&stream)
     : region(std::move(_region)),
       table(std::move(_table)),
+      uuid(std::move(_uuid)),
       parent(_parent),
       parent_client(std::move(_parent_client)),
-      uuid(std::move(_uuid)),
       spec(std::move(_spec)),
       gt(std::move(_gt)),
       lqueue(gt) {
@@ -886,6 +938,7 @@ public:
         feed->add_limit_sub(this, uuid);
     }
     virtual ~limit_sub_t() {
+        debugf("~limit_sub_t\n");
         destructor_cleanup(std::bind(&feed_t::del_limit_sub, feed, this, uuid));
     }
 
@@ -929,6 +982,7 @@ public:
         guarantee(need_init == -1);
         debugf("need_init: %zu\n", resp->shards);
         need_init = resp->shards;
+        stop_addrs = std::move(resp->limit_addrs);
         guarantee(need_init > 0);
         maybe_send_start_msg();
     }
@@ -1104,6 +1158,7 @@ public:
     std::set<data_it_t, data_it_lt_t> active_data;
 
     std::deque<datum_t> els;
+    std::vector<server_t::limit_addr_t> stop_addrs;
 };
 
 class msg_visitor_t : public boost::static_visitor<void> {
@@ -1264,8 +1319,10 @@ void subscription_t::destructor_cleanup(std::function<void()> del_sub) THROWS_NO
     // This error is only sent if we're getting destroyed while blocking.
     stop("Subscription destroyed (shutting down?).", detach_t::NO);
     if (feed != NULL) {
+        debugf("destructor_cleanup del_sub\n");
         del_sub();
     } else {
+        debugf("destructor_cleanup guarantee\n");
         // We only get here if we were detached.
         guarantee(exc);
     }
@@ -1382,7 +1439,14 @@ void feed_t::add_limit_sub(limit_sub_t *sub, const uuid_u &sub_uuid) THROWS_NOTH
 
 // Can't throw because it's called in a destructor.
 void feed_t::del_limit_sub(limit_sub_t *sub, const uuid_u &sub_uuid) THROWS_NOTHING {
+    debugf("del_limit_sub\n");
     del_sub_with_lock(&limit_subs_lock, [this, sub, &sub_uuid]() {
+            debugf("del_sub_with_lock %zu\n", sub->stop_addrs.size());
+            for (const auto &addr : sub->stop_addrs) {
+                debugf("sending...\n");
+                send(manager, addr,
+                     mailbox.get_address(), sub->spec.range.sindex, sub->uuid);
+            }
             return map_del_sub(&limit_subs, sub_uuid, sub);
         });
 }

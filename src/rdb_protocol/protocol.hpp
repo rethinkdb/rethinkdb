@@ -261,9 +261,13 @@ struct changefeed_stamp_response_t {
 RDB_DECLARE_SERIALIZABLE(changefeed_stamp_response_t);
 
 struct changefeed_limit_subscribe_response_t {
-    changefeed_limit_subscribe_response_t() { }
-    changefeed_limit_subscribe_response_t(int64_t _shards) : shards(_shards) { }
     int64_t shards;
+    std::vector<ql::changefeed::server_t::limit_addr_t> limit_addrs;
+
+    changefeed_limit_subscribe_response_t() { }
+    changefeed_limit_subscribe_response_t(
+        int64_t _shards, decltype(limit_addrs) _limit_addrs)
+        : shards(_shards), limit_addrs(std::move(_limit_addrs)) { }
 };
 RDB_DECLARE_SERIALIZABLE(changefeed_limit_subscribe_response_t);
 
@@ -436,15 +440,13 @@ public:
 
 RDB_DECLARE_SERIALIZABLE(distribution_read_t);
 
-class sindex_list_t {
-public:
+struct sindex_list_t {
     sindex_list_t() { }
 };
 
 RDB_DECLARE_SERIALIZABLE(sindex_list_t);
 
-class sindex_status_t {
-public:
+struct sindex_status_t {
     sindex_status_t() { }
     explicit sindex_status_t(const std::set<std::string> &_sindexes)
         : sindexes(_sindexes), region(region_t::universe())
@@ -455,8 +457,7 @@ public:
 
 RDB_DECLARE_SERIALIZABLE(sindex_status_t);
 
-class changefeed_subscribe_t {
-public:
+struct changefeed_subscribe_t {
     changefeed_subscribe_t() { }
     explicit changefeed_subscribe_t(ql::changefeed::client_t::addr_t _addr)
         : addr(_addr), region(region_t::universe()) { }
@@ -465,8 +466,7 @@ public:
 };
 RDB_DECLARE_SERIALIZABLE(changefeed_subscribe_t);
 
-class changefeed_limit_subscribe_t {
-public:
+struct changefeed_limit_subscribe_t {
     changefeed_limit_subscribe_t() { }
     explicit changefeed_limit_subscribe_t(
         ql::changefeed::client_t::addr_t _addr,
@@ -486,8 +486,7 @@ public:
 };
 RDB_DECLARE_SERIALIZABLE(changefeed_limit_subscribe_t);
 
-class changefeed_stamp_t {
-public:
+struct changefeed_stamp_t {
     changefeed_stamp_t() : region(region_t::universe()) { }
     explicit changefeed_stamp_t(ql::changefeed::client_t::addr_t _addr)
         : addr(std::move(_addr)), region(region_t::universe()) { }
@@ -497,8 +496,7 @@ public:
 RDB_DECLARE_SERIALIZABLE(changefeed_stamp_t);
 
 // This is a separate class because it needs to shard and unshard differently.
-class changefeed_point_stamp_t {
-public:
+struct changefeed_point_stamp_t {
     changefeed_point_stamp_t() { }
     explicit changefeed_point_stamp_t(ql::changefeed::client_t::addr_t _addr,
                                       store_key_t &&_key)

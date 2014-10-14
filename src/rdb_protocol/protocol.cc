@@ -562,16 +562,23 @@ void rdb_r_unshard_visitor_t::operator()(const changefeed_subscribe_t &) {
 
 void rdb_r_unshard_visitor_t::operator()(const changefeed_limit_subscribe_t &) {
     int64_t shards = 0;
+    std::vector<ql::changefeed::server_t::limit_addr_t> limit_addrs;
     for (size_t i = 0; i < count; ++i) {
         auto res = boost::get<changefeed_limit_subscribe_response_t>(
             &responses[i].response);
         if (res == NULL) {
             response_out->response = std::move(responses[i].response);
             return;
+        } else {
+            shards += res->shards;
+            std::move(res->limit_addrs.begin(), res->limit_addrs.end(),
+                      std::back_inserter(limit_addrs));
+            debugf("%zu %zu\n", res->limit_addrs.size(), limit_addrs.size());
         }
-        shards += res->shards;
     }
-    response_out->response = changefeed_limit_subscribe_response_t(shards);
+    guarantee(count != 0);
+    response_out->response =
+        changefeed_limit_subscribe_response_t(shards, std::move(limit_addrs));
 }
 
 void rdb_r_unshard_visitor_t::operator()(const changefeed_stamp_t &) {
@@ -1161,7 +1168,7 @@ RDB_IMPL_SERIALIZABLE_1(sindex_status_response_t, statuses);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_status_response_t);
 RDB_IMPL_SERIALIZABLE_2(changefeed_subscribe_response_t, server_uuids, addrs);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_subscribe_response_t);
-RDB_IMPL_SERIALIZABLE_1(changefeed_limit_subscribe_response_t, shards);
+RDB_IMPL_SERIALIZABLE_2(changefeed_limit_subscribe_response_t, shards, limit_addrs);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_limit_subscribe_response_t);
 RDB_IMPL_SERIALIZABLE_1(changefeed_stamp_response_t, stamps);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_response_t);
@@ -1205,7 +1212,7 @@ INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_t);
 RDB_IMPL_SERIALIZABLE_2(changefeed_point_stamp_t, addr, key);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_point_stamp_t);
 
-RDB_IMPL_SERIALIZABLE_3(read_t, read, profile, use_snapshot);
+RDB_IMPL_SERIALIZABLE_2(read_t, read, profile);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(read_t);
 
 RDB_IMPL_SERIALIZABLE_1(point_write_response_t, result);

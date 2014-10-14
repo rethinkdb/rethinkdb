@@ -311,7 +311,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         guarantee(store->changefeed_server.has());
         store->changefeed_server->add_limit_client(
             s.addr, s.region, s.table, s.uuid, s.spec, gt, std::move(stream));
-        response->response = changefeed_limit_subscribe_response_t(1);
+        auto addr = store->changefeed_server->get_limit_stop_addr();
+        std::vector<decltype(addr)> vec{addr};
+        response->response = changefeed_limit_subscribe_response_t(1, std::move(vec));
     }
 
     void operator()(const changefeed_stamp_t &s) {
