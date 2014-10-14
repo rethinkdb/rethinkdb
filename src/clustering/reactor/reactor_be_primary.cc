@@ -290,7 +290,7 @@ void do_backfill(
 
 bool check_that_we_see_our_broadcaster(const boost::optional<boost::optional<broadcaster_business_card_t> > &maybe_a_business_card) {
     guarantee(maybe_a_business_card, "Not connected to ourselves\n");
-    return maybe_a_business_card.get();
+    return static_cast<bool>(maybe_a_business_card.get());
 }
 
 bool reactor_t::attempt_backfill_from_peers(directory_entry_t *directory_entry,
