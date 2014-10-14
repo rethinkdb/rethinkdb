@@ -365,6 +365,8 @@ message Term {
         BETWEEN   = 36; // StreamSelection, DATUM, DATUM, {index:!STRING, right_bound:STRING, left_bound:STRING} -> StreamSelection
         REDUCE    = 37; // Sequence, Function(2) -> DATUM
         MAP       = 38; // Sequence, Function(1) -> Sequence
+                        // The arity of the function should be 
+                        // Sequence..., Function(sizeof...(Sequence)) -> Sequence
 
         // Filter a sequence with either a function or a shortcut
         // object (see API docs for details).  The body of FILTER is

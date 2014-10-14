@@ -8,10 +8,11 @@
 #include <vector>
 
 #include "containers/counted.hpp"
+#include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/datum_string.hpp"
 #include "rdb_protocol/geo/distances.hpp"
 #include "rdb_protocol/geo/lon_lat_types.hpp"
-#include "rdb_protocol/datum_stream.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/ql2.pb.h"
 
 class ellipsoid_spec_t;

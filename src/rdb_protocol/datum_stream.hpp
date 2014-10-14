@@ -16,6 +16,7 @@
 
 #include "containers/scoped.hpp"
 #include "rdb_protocol/context.hpp"
+#include "rdb_protocol/func.hpp"
 #include "rdb_protocol/math_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/real_table.hpp"
@@ -255,6 +256,29 @@ public:
 private:
     bool is_infinite;
     int64_t start, stop;
+};
+
+class map_datum_stream_t : public eager_datum_stream_t {
+public:
+    map_datum_stream_t(std::vector<counted_t<datum_stream_t> > &&_streams,
+                       counted_t<const func_t> &&_func,
+                       const protob_t<const Backtrace> &bt_src);
+
+    virtual std::vector<datum_t>
+    next_raw_batch(env_t *env, const batchspec_t &batchspec);
+
+    virtual bool is_array() {
+        return is_array_map;
+    }
+    virtual bool is_exhausted() const;
+    virtual bool is_cfeed() const {
+        return is_cfeed_map;
+    }
+
+private:
+    std::vector<counted_t<datum_stream_t> > streams;
+    counted_t<const func_t> func;
+    bool is_array_map, is_cfeed_map;
 };
 
 // This class generates the `read_t`s used in range reads.  It's used by

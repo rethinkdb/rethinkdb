@@ -77,6 +77,7 @@ public:
         env_t *env,
         const std::vector<datum_t> &args,
         eval_flags_t eval_flags) const;
+
     bool is_deterministic() const;
 
     std::string print_source() const;
