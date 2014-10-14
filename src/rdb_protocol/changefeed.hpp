@@ -136,7 +136,6 @@ struct keyspec_t {
         limit_t() { }
         limit_t(range_t _range, size_t _limit)
             : range(std::move(_range)), limit(_limit) { }
-        // RSI: use this range in the range.
         range_t range;
         size_t limit;
         RDB_DECLARE_ME_SERIALIZABLE;
@@ -239,8 +238,7 @@ public:
                     ? true
                     : (gt(b->second.first, a->second.first)
                        ? false
-                       // RSI: cmp
-                       : a->first < b->first);
+                       : gt(a->first, b->first));
             }) { }
 
 
@@ -340,7 +338,6 @@ struct primary_ref_t {
 
 struct sindex_ref_t {
     env_t *env;
-    store_t *store; // RSI: is this used?
     btree_slice_t *btree;
     superblock_t *superblock;
     const sindex_disk_info_t *sindex_info;
@@ -367,15 +364,9 @@ public:
     void add(std::string id, datum_t key, datum_t val);
     void del(std::string id);
     void commit(const boost::variant<primary_ref_t, sindex_ref_t> &sindex_ref);
-    // RSI: remove
-    // bool operator<(const limit_manager_t &lm) {
-    //     const boost::optional<std::string>
-    //         &s1 = spec.range.sindex, &s2 = lm.spec.range.sindex;
-    //     return (opt_lt(s1, s2) ? true : (opt_lt(s2, s1) ? false : uuid < lm.uuid);
-    // }
 
-    const region_t region; // RSI: use this!
-    const std::string table; // RSI: removable?
+    const region_t region; // TODO: use this when ranges are supported.
+    const std::string table;
 private:
     lvec_t read_more(const boost::variant<primary_ref_t, sindex_ref_t> &ref,
                      sorting_t sorting,
@@ -388,7 +379,6 @@ private:
 
     uuid_u uuid;
     keyspec_t::limit_t spec;
-    // RSI: sorting
     limit_order_t gt;
     lqueue_t lqueue;
 

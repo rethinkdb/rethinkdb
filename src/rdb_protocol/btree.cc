@@ -1667,7 +1667,7 @@ void rdb_update_single_sindex(
         sindex->name.name,
         [&](ql::changefeed::limit_manager_t *lm) {
             lm->commit(ql::changefeed::sindex_ref_t{
-                    env, store, sindex->btree, superblock, &sindex_info});
+                    env, sindex->btree, superblock, &sindex_info});
         });
 }
 

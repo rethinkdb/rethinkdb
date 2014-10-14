@@ -495,7 +495,7 @@ void store_t::update_sindexes(
             rdb_update_sindexes(this,
                                 sindexes,
                                 &mod_reports[i],
-                                NULL, // RSI: is this dumb?
+                                NULL, // This `env_t` is never used in this case.
                                 txn,
                                 &deletion_context);
         }
