@@ -1127,11 +1127,11 @@ bool range_datum_stream_t::is_exhausted() const {
 map_datum_stream_t::map_datum_stream_t(std::vector<counted_t<datum_stream_t> > &&_streams,
                                        counted_t<const func_t> &&_func,
                                        const protob_t<const Backtrace> &bt_src)
-    : eager_datum_stream_t(bt_src), streams(_streams), func(_func),
+    : eager_datum_stream_t(bt_src), streams(std::move(_streams)), func(std::move(_func)),
       is_array_map(true), is_cfeed_map(false) {
     for (const auto &stream : streams) {
         is_array_map &= stream->is_array();
-        is_cfeed_map ^= stream->is_cfeed();
+        is_cfeed_map |= stream->is_cfeed();
     }
 }
 

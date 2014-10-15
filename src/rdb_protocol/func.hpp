@@ -7,11 +7,12 @@
 #include <utility>
 #include <vector>
 
-#include "errors.hpp"
+#include <boost/optional.hpp>
 #include <boost/variant/static_visitor.hpp>
 
 #include "containers/counted.hpp"
 #include "containers/uuid.hpp"
+#include "errors.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/sym.hpp"
@@ -32,6 +33,8 @@ public:
         env_t *env,
         const std::vector<datum_t> &args,
         eval_flags_t eval_flags = NO_FLAGS) const = 0;
+
+    virtual boost::optional<size_t> arity() const = 0;
 
     virtual bool is_deterministic() const = 0;
 
@@ -78,6 +81,8 @@ public:
         const std::vector<datum_t> &args,
         eval_flags_t eval_flags) const;
 
+    boost::optional<size_t> arity() const;
+
     bool is_deterministic() const;
 
     std::string print_source() const;
@@ -112,6 +117,8 @@ public:
     scoped_ptr_t<val_t> call(env_t *env,
                              const std::vector<datum_t> &args,
                              eval_flags_t eval_flags) const;
+
+    boost::optional<size_t> arity() const;
 
     bool is_deterministic() const;
 

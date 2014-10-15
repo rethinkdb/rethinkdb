@@ -36,12 +36,12 @@ tests:
     - js: r.expr([1]).map(function(x, y){return [x, y]})
       py: r.expr([1]).map(lambda x, y:(x, y))
       rb: r.map(r.expr([1])){|x, y| [x, y]}
-      ot: err("RqlRuntimeError", "Expected 2 arguments but found 1.", [])
+      ot: err("RqlRuntimeError", "The function passed to `map` expects 2 arguments, but 1 sequence was found.", [])
 
     - js: r.expr([1]).map(r.expr([1]), function(x){return [x]})
       py: r.expr([1]).map(r.expr([1]), lambda x:(x,))
       rb: r.map(r.expr([1]), r.expr([1])){|x| [x]}
-      ot: err("RqlRuntimeError", "Expected 1 argument but found 2.", [])
+      ot: err("RqlRuntimeError", "The function passed to `map` expects 1 argument, but 2 sequences were found.", [])
 
     # Length
     - js: r.range().map(r.expr([]), function(x, y){return [x, y]})
@@ -73,3 +73,9 @@ tests:
       py: r.range().map(r.expr(1), lambda x, y:(x, y))
       rb: r.map(r.range(), r.expr(1)){|x, y| [x, y]}
       ot: err("RqlRuntimeError", "Cannot convert NUMBER to SEQUENCE", [])
+
+    # Range interaction
+    - js: r.range().map(r.range(), function(x, y){return [x, y]}).count()
+      py: r.range().map(r.range(), lambda x, y:(x, y)).count()
+      rb: r.map(r.range(), r.range()){|x, y| [x, y]}.count()
+      ot: err("RqlRuntimeError", "Cannot call a terminal (`reduce`, `count`, etc.) on an infinite stream.", [])
