@@ -10,7 +10,7 @@
 
 cluster_namespace_interface_t::cluster_namespace_interface_t(
         mailbox_manager_t *mm,
-        const std::map<namespace_id_t, std::map<key_range_t, machine_id_t> >
+        const std::map<namespace_id_t, std::map<key_range_t, server_id_t> >
             *region_to_primary_maps_,
         watchable_map_t<peer_id_t, namespace_directory_metadata_t> *dv,
         const namespace_id_t &namespace_id_,
@@ -128,7 +128,7 @@ void cluster_namespace_interface_t::dispatch_immediate_op(
                         // Throw a more specific error if possible
                         throw cannot_perform_query_exc_t("Master for shard " +
                                                          key_range_to_string(it->first.inner) +
-                                                         " not available (machine " +
+                                                         " not available (server " +
                                                          mid + " is not ready)");
                     }
                 }

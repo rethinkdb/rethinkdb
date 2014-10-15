@@ -29,7 +29,7 @@ class server_name_collision_issue_t : public name_collision_issue_t {
 public:
     explicit server_name_collision_issue_t(
         const name_string_t &_name,
-        const std::vector<machine_id_t> &_collided_ids);
+        const std::vector<server_id_t> &_collided_ids);
     const datum_string_t &get_name() const { return server_name_collision_issue_type; }
 
 private:
@@ -45,7 +45,7 @@ class db_name_collision_issue_t : public name_collision_issue_t {
 public:
     explicit db_name_collision_issue_t(
         const name_string_t &_name,
-        const std::vector<machine_id_t> &_collided_ids);
+        const std::vector<server_id_t> &_collided_ids);
     const datum_string_t &get_name() const { return db_name_collision_issue_type; }
 
 private:
@@ -62,7 +62,7 @@ public:
     table_name_collision_issue_t(
         const name_string_t &_name,
         const database_id_t &_db_id,
-        const std::vector<machine_id_t> &_collided_ids);
+        const std::vector<server_id_t> &_collided_ids);
     const datum_string_t &get_name() const { return table_name_collision_issue_type; }
 
 private:

@@ -57,7 +57,7 @@ private:
                     namespace_directory_metadata_t> *directory;
     rdb_context_t *ctx;
 
-    one_per_thread_t<std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > >
+    one_per_thread_t<std::map<namespace_id_t, std::map<key_range_t, server_id_t> > >
         region_to_primary_maps;
 
     one_per_thread_t<namespace_cache_t> namespace_caches;

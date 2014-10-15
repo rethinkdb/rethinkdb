@@ -5,11 +5,11 @@
 #include <map>
 #include <utility>
 
-#include "clustering/administration/servers/machine_metadata.hpp"
+#include "clustering/administration/servers/server_metadata.hpp"
 #include "rpc/connectivity/peer_id.hpp"
 
-inline peer_id_t machine_id_to_peer_id(const machine_id_t &input, const std::map<peer_id_t, machine_id_t> &translation_table) {
-    for (std::map<peer_id_t, machine_id_t>::const_iterator it = translation_table.begin(); it != translation_table.end(); ++it) {
+inline peer_id_t server_id_to_peer_id(const server_id_t &input, const std::map<peer_id_t, server_id_t> &translation_table) {
+    for (std::map<peer_id_t, server_id_t>::const_iterator it = translation_table.begin(); it != translation_table.end(); ++it) {
         if (it->second == input) {
             return it->first;
         }

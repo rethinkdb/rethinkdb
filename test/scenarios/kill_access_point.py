@@ -14,40 +14,40 @@ with driver.Metacluster() as metacluster:
     print "Starting cluster..."
     cluster = driver.Cluster(metacluster)
     executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
-    database_machine_files = driver.Files(metacluster, db_path = "db-database", log_path = "create-db-database-output",
+    database_server_files = driver.Files(metacluster, db_path = "db-database", log_path = "create-db-database-output",
                                           executable_path = executable_path, command_prefix = command_prefix)
-    database_machine = driver.Process(cluster, database_machine_files, log_path = "serve-output-database",
+    database_server = driver.Process(cluster, database_server_files, log_path = "serve-output-database",
         executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    access_machine_files = driver.Files(metacluster, db_path = "db-access", log_path = "create-db-access-output",
+    access_server_files = driver.Files(metacluster, db_path = "db-access", log_path = "create-db-access-output",
                                         executable_path = executable_path, command_prefix = command_prefix)
-    access_machine = driver.Process(cluster, access_machine_files, log_path = "serve-output-access",
+    access_server = driver.Process(cluster, access_server_files, log_path = "serve-output-access",
         executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    database_machine.wait_until_started_up
-    access_machine.wait_until_started_up()
+    database_server.wait_until_started_up
+    access_server.wait_until_started_up()
 
     print "Creating table..."
-    http = http_admin.ClusterAccess([("localhost", database_machine.http_port)])
+    http = http_admin.ClusterAccess([("localhost", database_server.http_port)])
     database_dc = http.add_datacenter()
-    http.move_server_to_datacenter(database_machine.files.machine_name, database_dc)
+    http.move_server_to_datacenter(database_server.files.server_name, database_dc)
     other_dc = http.add_datacenter()
-    http.move_server_to_datacenter(access_machine.files.machine_name, other_dc)
+    http.move_server_to_datacenter(access_server.files.server_name, other_dc)
     ns = scenario_common.prepare_table_for_workload(http, primary = database_dc)
     http.wait_until_blueprint_satisfied(ns)
     cluster.check()
     http.check_no_issues()
 
-    workload_ports = scenario_common.get_workload_ports(ns, [access_machine])
+    workload_ports = scenario_common.get_workload_ports(ns, [access_server])
     with workload_runner.ContinuousWorkload(opts["workload"], workload_ports) as workload:
         workload.start()
         print "Running workload for 10 seconds..."
         time.sleep(10)
         cluster.check()
         http.check_no_issues()
-        print "Killing the access machine..."
-        access_machine.close()
+        print "Killing the access server..."
+        access_server.close()
         # Don't bother stopping the workload, just exit and it will get killed
 
-    http.declare_machine_dead(access_machine.files.machine_name)
+    http.declare_server_dead(access_server.files.server_name)
     http.check_no_issues()
-    database_machine.check()
-    print "The other machine dosn't seem to have crashed."
+    database_server.check()
+    print "The other server dosn't seem to have crashed."

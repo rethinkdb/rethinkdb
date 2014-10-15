@@ -266,7 +266,7 @@ void reactor_t::wait_for_directory_acks(directory_echo_version_t version_to_wait
         /* This function waits for acks from all the peers mentioned in the
         blueprint. If the blueprint changes while we're waiting for acks, we
         restart from the top. This is important because otherwise we might
-        deadlock. For example, if we were waiting for a machine to come back up
+        deadlock. For example, if we were waiting for a server to come back up
         and then it was declared dead, our interruptor might not be pulsed but
         the `ack_waiter_t` would never be pulsed so we would get stuck. */
         cond_t blueprint_changed;

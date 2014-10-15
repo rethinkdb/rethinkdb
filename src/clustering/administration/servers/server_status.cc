@@ -16,7 +16,7 @@ bool directory_has_role_for_table(const reactor_business_card_t &business_card) 
     return false;
 }
 
-bool table_has_role_for_server(const machine_id_t &server,
+bool table_has_role_for_server(const server_id_t &server,
                                const table_config_t &table_config) {
     for (const table_config_t::shard_t &shard : table_config.shards) {
         if (shard.replicas.count(server) == 1) {
@@ -27,7 +27,7 @@ bool table_has_role_for_server(const machine_id_t &server,
 }
 
 server_status_artificial_table_backend_t::server_status_artificial_table_backend_t(
-    boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> >
+    boost::shared_ptr<semilattice_read_view_t<servers_semilattice_metadata_t> >
         _servers_sl_view,
     server_name_client_t *_name_client,
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
@@ -42,8 +42,8 @@ server_status_artificial_table_backend_t::server_status_artificial_table_backend
     last_seen_tracker(
         _servers_sl_view,
         _directory_view->incremental_subview(
-            incremental_field_getter_t<machine_id_t, cluster_directory_metadata_t>(
-                                    &cluster_directory_metadata_t::machine_id)))
+            incremental_field_getter_t<server_id_t, cluster_directory_metadata_t>(
+                                    &cluster_directory_metadata_t::server_id)))
 {
     table_sl_view->assert_thread();
     database_sl_view->assert_thread();
@@ -51,8 +51,8 @@ server_status_artificial_table_backend_t::server_status_artificial_table_backend
 
 bool server_status_artificial_table_backend_t::format_row(
         name_string_t const & server_name,
-        machine_id_t const & server_id,
-        UNUSED machine_semilattice_metadata_t const & machine,
+        server_id_t const & server_id,
+        UNUSED server_semilattice_metadata_t const & server,
         ql::datum_t *row_out,
         UNUSED std::string *error_out) {
     ql::datum_object_builder_t builder;
@@ -60,7 +60,7 @@ bool server_status_artificial_table_backend_t::format_row(
     builder.overwrite("id", convert_uuid_to_datum(server_id));
 
     boost::optional<peer_id_t> peer_id =
-        name_client->get_peer_id_for_machine_id(server_id);
+        name_client->get_peer_id_for_server_id(server_id);
     boost::optional<cluster_directory_metadata_t> directory;
     directory_view->apply_read(
         [&](const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> *dv) {

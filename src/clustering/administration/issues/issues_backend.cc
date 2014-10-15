@@ -16,9 +16,9 @@ issues_artificial_table_backend_t::issues_artificial_table_backend_t(
                                        cluster_directory_metadata_t>(
                 &cluster_directory_metadata_t::local_issues)),
         directory_view->incremental_subview(
-            incremental_field_getter_t<machine_id_t,
+            incremental_field_getter_t<server_id_t,
                                        cluster_directory_metadata_t>(
-                &cluster_directory_metadata_t::machine_id))),
+                &cluster_directory_metadata_t::server_id))),
     name_collision_issue_tracker(cluster_sl_view)
 {
     trackers.insert(&remote_issue_tracker);

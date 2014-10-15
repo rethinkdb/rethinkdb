@@ -64,50 +64,50 @@ std::map<B, A> invert_bijection_map(const std::map<A, B> &bijection) {
     return inverted;
 }
 
-cJSON *stat_http_app_t::prepare_machine_info(const std::vector<machine_id_t> &not_replied) {
-    scoped_cJSON_t machines(cJSON_CreateObject());
+cJSON *stat_http_app_t::prepare_server_info(const std::vector<server_id_t> &not_replied) {
+    scoped_cJSON_t servers(cJSON_CreateObject());
 
     scoped_cJSON_t all_known(cJSON_CreateArray());
     scoped_cJSON_t dead(cJSON_CreateArray());
     scoped_cJSON_t ghosts(cJSON_CreateArray());
     scoped_cJSON_t timed_out(cJSON_CreateArray());
 
-    std::map<peer_id_t, machine_id_t> peer_id_to_machine_id(directory->incremental_subview(
-            incremental_field_getter_t<machine_id_t, cluster_directory_metadata_t>(
-                &cluster_directory_metadata_t::machine_id
+    std::map<peer_id_t, server_id_t> peer_id_to_server_id(directory->incremental_subview(
+            incremental_field_getter_t<server_id_t, cluster_directory_metadata_t>(
+                &cluster_directory_metadata_t::server_id
             ))->get().get_inner());
-    std::map<machine_id_t, peer_id_t> machine_id_to_peer_id(invert_bijection_map(peer_id_to_machine_id));
+    std::map<server_id_t, peer_id_t> server_id_to_peer_id(invert_bijection_map(peer_id_to_server_id));
 
-    machines_semilattice_metadata_t::machine_map_t machines_ids = semilattice->get().machines.machines;
-    for (machines_semilattice_metadata_t::machine_map_t::const_iterator it = machines_ids.begin(); it != machines_ids.end(); it++) {
-        const machine_id_t &machine_id = it->first;
-        bool peer_exists = machine_id_to_peer_id.count(machine_id) != 0;
+    servers_semilattice_metadata_t::server_map_t servers_ids = semilattice->get().servers.servers;
+    for (auto it = servers_ids.begin(); it != servers_ids.end(); it++) {
+        const server_id_t &server_id = it->first;
+        bool peer_exists = server_id_to_peer_id.count(server_id) != 0;
 
         if (!it->second.is_deleted() && !peer_exists) {
-            // machine is dead
-            cJSON_AddItemToArray(dead.get(), cJSON_CreateString(uuid_to_str(machine_id).c_str()));
+            // server is dead
+            cJSON_AddItemToArray(dead.get(), cJSON_CreateString(uuid_to_str(server_id).c_str()));
         } else if (it->second.is_deleted() && peer_exists) {
-            // machine is a ghost
-            cJSON_AddItemToArray(ghosts.get(), cJSON_CreateString(uuid_to_str(machine_id).c_str()));
+            // server is a ghost
+            cJSON_AddItemToArray(ghosts.get(), cJSON_CreateString(uuid_to_str(server_id).c_str()));
         }
-        cJSON_AddItemToArray(all_known.get(), cJSON_CreateString(uuid_to_str(machine_id).c_str()));
+        cJSON_AddItemToArray(all_known.get(), cJSON_CreateString(uuid_to_str(server_id).c_str()));
     }
 
-    for (std::vector<machine_id_t>::const_iterator it = not_replied.begin(); it != not_replied.end(); ++it) {
+    for (std::vector<server_id_t>::const_iterator it = not_replied.begin(); it != not_replied.end(); ++it) {
         cJSON_AddItemToArray(timed_out.get(), cJSON_CreateString(uuid_to_str(*it).c_str()));
     }
 
-    cJSON_AddItemToObject(machines.get(), "known", all_known.release());
-    cJSON_AddItemToObject(machines.get(), "dead", dead.release());
-    cJSON_AddItemToObject(machines.get(), "ghosts", ghosts.release());
-    cJSON_AddItemToObject(machines.get(), "timed_out", timed_out.release());
-    return machines.release();
+    cJSON_AddItemToObject(servers.get(), "known", all_known.release());
+    cJSON_AddItemToObject(servers.get(), "dead", dead.release());
+    cJSON_AddItemToObject(servers.get(), "ghosts", ghosts.release());
+    cJSON_AddItemToObject(servers.get(), "timed_out", timed_out.release());
+    return servers.release();
 }
 
 boost::optional<http_res_t> parse_query_params(
     const http_req_t &req,
     std::set<std::string> *filter_paths,
-    std::set<std::string> *machine_whitelist,
+    std::set<std::string> *server_whitelist,
     uint64_t *timeout) {
 
     typedef boost::escaped_list_separator<char> separator_t;
@@ -126,9 +126,9 @@ boost::optional<http_res_t> parse_query_params(
                 return boost::optional<http_res_t>(http_error_res(
                     "Invalid timeout value: "+it->second));
             }
-        } else if (it->first == "filter" || it->first == "machine_whitelist") {
+        } else if (it->first == "filter" || it->first == "server_whitelist") {
             std::set<std::string> *out_set =
-                (it->first == "filter" ? filter_paths : machine_whitelist);
+                (it->first == "filter" ? filter_paths : server_whitelist);
             try {
                 tokenizer_t t(it->second, commas);
                 for (tokenizer_t::const_iterator s = t.begin(); s != t.end(); ++s) {
@@ -154,7 +154,7 @@ void stat_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t
         return;
     }
     std::set<std::string> filter_paths;
-    std::set<std::string> machine_whitelist;
+    std::set<std::string> server_whitelist;
 #ifndef VALGRIND
     uint64_t timeout = DEFAULT_STAT_REQ_TIMEOUT_MS;
 #else
@@ -165,7 +165,7 @@ void stat_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t
         return;
     }
     boost::optional<http_res_t> maybe_error_res =
-        parse_query_params(req, &filter_paths, &machine_whitelist, &timeout);
+        parse_query_params(req, &filter_paths, &server_whitelist, &timeout);
     if (maybe_error_res) {
         *result = *maybe_error_res;
         return;
@@ -175,9 +175,9 @@ void stat_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t
 
     peers_to_metadata_t peers_to_metadata = directory->get().get_inner();
 
-    std::map<machine_id_t, scoped_ptr_t<stats_request_record_t> > stats_promises;
+    std::map<server_id_t, scoped_ptr_t<stats_request_record_t> > stats_promises;
 
-    /* If a machine has disconnected, or the mailbox for the
+    /* If a server has disconnected, or the mailbox for the
      * get_stat function  has gone out of existence we'll never get a response.
      * Thus we need to have a time out.
      */
@@ -187,19 +187,19 @@ void stat_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t
     for (peers_to_metadata_t::iterator it  = peers_to_metadata.begin();
                                        it != peers_to_metadata.end();
                                        ++it) {
-        machine_id_t machine = it->second.machine_id; //due to boost bug with not accepting const keys for insert
-        if (!machine_whitelist.empty() && // If we have a whitelist, follow it.
-            machine_whitelist.find(uuid_to_str(machine)) == machine_whitelist.end()) {
+        server_id_t server = it->second.server_id; //due to boost bug with not accepting const keys for insert
+        if (!server_whitelist.empty() && // If we have a whitelist, follow it.
+            server_whitelist.find(uuid_to_str(server)) == server_whitelist.end()) {
             continue;
         }
         stats_request_record_t *req_record = new stats_request_record_t(mbox_manager);
-        stats_promises.insert(std::make_pair(machine, scoped_ptr_t<stats_request_record_t>(req_record)));
+        stats_promises.insert(std::make_pair(server, scoped_ptr_t<stats_request_record_t>(req_record)));
         send(mbox_manager, it->second.get_stats_mailbox_address, req_record->response_mailbox.get_address(), filter_paths);
     }
 
-    std::vector<machine_id_t> not_replied;
+    std::vector<server_id_t> not_replied;
     for (auto it = stats_promises.begin(); it != stats_promises.end(); ++it) {
-        machine_id_t machine = it->first;
+        server_id_t server = it->first;
 
         const signal_t * stats_ready = it->second->stats.get_ready_signal();
         wait_any_t waiter(&timer, stats_ready, interruptor);
@@ -208,16 +208,16 @@ void stat_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t
         if (stats_ready->is_pulsed()) {
             perfmon_result_t stats = it->second->stats.wait();
             if (stats.get_map_size() != 0) {
-                body.AddItemToObject(uuid_to_str(machine).c_str(), render_as_json(&stats));
+                body.AddItemToObject(uuid_to_str(server).c_str(), render_as_json(&stats));
             }
         } else if (interruptor->is_pulsed()) {
             throw interrupted_exc_t();
         } else {
-            not_replied.push_back(machine);
+            not_replied.push_back(server);
         }
     }
 
-    cJSON_AddItemToObject(body.get(), "machines", prepare_machine_info(not_replied));
+    cJSON_AddItemToObject(body.get(), "servers", prepare_server_info(not_replied));
 
     http_json_res(body.get(), result);
 }

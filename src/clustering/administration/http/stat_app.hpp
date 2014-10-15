@@ -22,7 +22,7 @@ public:
 private:
     typedef std::map<peer_id_t, cluster_directory_metadata_t> peers_to_metadata_t;
 
-    cJSON *prepare_machine_info(const std::vector<machine_id_t> &not_replied);
+    cJSON *prepare_server_info(const std::vector<server_id_t> &not_replied);
 
 private:
     mailbox_manager_t *mbox_manager;

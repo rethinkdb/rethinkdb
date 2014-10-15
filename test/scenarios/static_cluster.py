@@ -35,8 +35,8 @@ with driver.Metacluster() as metacluster:
     print "Creating table..."
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in processes])
     dc = http.add_datacenter()
-    for machine_id in http.machines:
-        http.move_server_to_datacenter(machine_id, dc)
+    for server_id in http.servers:
+        http.move_server_to_datacenter(server_id, dc)
     ns = scenario_common.prepare_table_for_workload(http, primary = dc)
     for i in xrange(opts["num-shards"] - 1):
         http.add_table_shard(ns, chr(ord('a') + 26 * i // opts["num-shards"]))

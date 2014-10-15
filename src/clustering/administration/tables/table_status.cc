@@ -124,7 +124,7 @@ ql::datum_t convert_nothing_status_to_datum(
     const char *state;
     if (!status) {
         state = "missing";
-        /* Don't display all the tables as unfinished just because one machine is missing
+        /* Don't display all the tables as unfinished just because one server is missing
         */
         *is_unfinished_out = false;
     } else if (!check_complete_set(*status)) {
@@ -133,7 +133,7 @@ ql::datum_t convert_nothing_status_to_datum(
         size_t tally = count_in_state<nothing_t>(*status);
         if (tally == status->size()) {
             *is_unfinished_out = false;
-            /* This machine shouldn't even appear in the map */
+            /* This server shouldn't even appear in the map */
             return ql::datum_t();
         } else {
             tally += count_in_state<nothing_when_done_erasing_t>(*status);
@@ -172,17 +172,17 @@ ql::datum_t convert_table_status_shard_to_datum(
     /* `server_states` will contain one entry per connected server. That entry will be a
     vector with the current state of each hash-shard on the server whose key range
     matches the expected range. */
-    std::map<machine_id_t, std::vector<reactor_activity_entry_t> > server_states;
+    std::map<server_id_t, std::vector<reactor_activity_entry_t> > server_states;
     dir->read_all(
         [&](const std::pair<peer_id_t, namespace_id_t> &key,
                 const namespace_directory_metadata_t *value) {
             if (key.second != id) {
                 return;
             }
-            /* Translate peer ID to machine ID */
-            boost::optional<machine_id_t> machine_id =
-                name_client->get_machine_id_for_peer_id(key.first);
-            if (!static_cast<bool>(machine_id)) {
+            /* Translate peer ID to server ID */
+            boost::optional<server_id_t> server_id =
+                name_client->get_server_id_for_peer_id(key.first);
+            if (!static_cast<bool>(server_id)) {
                 /* This can occur as a race condition if the peer has just connected or just
                 disconnected */
                 return;
@@ -196,15 +196,15 @@ ql::datum_t convert_table_status_shard_to_datum(
                     server_state.push_back(pair.second);
                 }
             }
-            server_states[*machine_id] = std::move(server_state);
+            server_states[*server_id] = std::move(server_state);
         });
 
     ql::datum_array_builder_t array_builder(ql::configured_limits_t::unlimited);
-    std::set<machine_id_t> already_handled;
+    std::set<server_id_t> already_handled;
 
     bool has_director = false;
     boost::optional<name_string_t> director_name =
-        name_client->get_name_for_machine_id(shard.director);
+        name_client->get_name_for_server_id(shard.director);
     if (static_cast<bool>(director_name)) {
         array_builder.add(convert_director_status_to_datum(
             *director_name,
@@ -219,13 +219,13 @@ ql::datum_t convert_table_status_shard_to_datum(
 
     bool has_outdated_reader = false;
     bool is_unfinished = false;
-    for (const machine_id_t &replica : shard.replicas) {
+    for (const server_id_t &replica : shard.replicas) {
         if (already_handled.count(replica) == 1) {
             /* Don't overwrite the director's entry */
             continue;
         }
         boost::optional<name_string_t> replica_name =
-            name_client->get_name_for_machine_id(replica);
+            name_client->get_name_for_server_id(replica);
         if (!static_cast<bool>(replica_name)) {
             /* Replica was permanently removed. It won't show up in `table_config`. So
             we act as if it wasn't in `shard.replicas`. */
@@ -247,8 +247,8 @@ ql::datum_t convert_table_status_shard_to_datum(
         already_handled.insert(replica);
     }
 
-    std::multimap<name_string_t, machine_id_t> other_names =
-        name_client->get_name_to_machine_id_map()->get();
+    std::multimap<name_string_t, server_id_t> other_names =
+        name_client->get_name_to_server_id_map()->get();
     for (auto it = other_names.begin(); it != other_names.end(); ++it) {
         if (already_handled.count(it->second) == 1) {
             /* Don't overwrite a director or replica entry */

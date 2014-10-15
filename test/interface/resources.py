@@ -29,7 +29,7 @@ with driver.Metacluster() as metacluster:
         assert(e.status == 403)
     time.sleep(2)
     print "Trying to access its log..."
-    log = access.get_log(access.machines.keys()[0], max_length = 100)
+    log = access.get_log(access.servers.keys()[0], max_length = 100)
     print "Log is %d lines" % len(log)
     assert any('nonwhitelisted' in entry['message'] for entry in log)
     cluster.check_and_stop()

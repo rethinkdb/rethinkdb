@@ -13,12 +13,12 @@ with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
     executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Spinning up two processes..."
-    prince_hamlet_files = driver.Files(metacluster, machine_name = "PrinceHamlet", db_path = "prince-hamlet-db",
+    prince_hamlet_files = driver.Files(metacluster, server_name = "PrinceHamlet", db_path = "prince-hamlet-db",
                                        log_path = "prince-hamlet-create-output",
                                        executable_path = executable_path, command_prefix = command_prefix)
     prince_hamlet = driver.Process(cluster, prince_hamlet_files, log_path = "prince-hamlet-log",
         executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    king_hamlet_files = driver.Files(metacluster, machine_name = "KingHamlet", db_path = "king-hamlet-db",
+    king_hamlet_files = driver.Files(metacluster, server_name = "KingHamlet", db_path = "king-hamlet-db",
                                      log_path = "king-hamlet-create-output",
                                      executable_path = executable_path, command_prefix = command_prefix)
     king_hamlet = driver.Process(cluster, king_hamlet_files, log_path = "king-hamlet-log",
@@ -37,7 +37,7 @@ with driver.Metacluster() as metacluster:
     assert len(issues) == 1
     assert issues[0]["type"] == "MACHINE_DOWN"
     print "Declaring it dead..."
-    access.declare_machine_dead(issues[0]["victim"])
+    access.declare_server_dead(issues[0]["victim"])
     time.sleep(1)
     cluster.check()
     print "Checking that the issue is gone..."

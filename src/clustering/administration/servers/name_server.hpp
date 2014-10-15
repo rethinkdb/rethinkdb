@@ -22,10 +22,10 @@ class server_name_server_t : public home_thread_mixin_t {
 public:
     server_name_server_t(
         mailbox_manager_t *_mailbox_manager,
-        machine_id_t _my_machine_id,
+        server_id_t _my_server_id,
         clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
             cluster_directory_metadata_t> > > _directory_view,
-        boost::shared_ptr<semilattice_readwrite_view_t<machines_semilattice_metadata_t> >
+        boost::shared_ptr<semilattice_readwrite_view_t<servers_semilattice_metadata_t> >
             _semilattice_view
         );
 
@@ -63,19 +63,19 @@ private:
     void on_semilattice_change();
 
     mailbox_manager_t *mailbox_manager;
-    machine_id_t my_machine_id;
+    server_id_t my_server_id;
     name_string_t my_name;
     std::set<name_string_t> my_tags;
     cond_t permanently_removed_cond;
 
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
         cluster_directory_metadata_t> > > directory_view;
-    boost::shared_ptr<semilattice_readwrite_view_t<machines_semilattice_metadata_t> >
+    boost::shared_ptr<semilattice_readwrite_view_t<servers_semilattice_metadata_t> >
         semilattice_view;
 
     server_name_business_card_t::rename_mailbox_t rename_mailbox;
     server_name_business_card_t::retag_mailbox_t retag_mailbox;
-    semilattice_readwrite_view_t<machines_semilattice_metadata_t>::subscription_t
+    semilattice_readwrite_view_t<servers_semilattice_metadata_t>::subscription_t
         semilattice_subs;
 };
 

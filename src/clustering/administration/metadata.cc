@@ -2,7 +2,7 @@
 #include "clustering/administration/metadata.hpp"
 
 #include "clustering/administration/database_metadata.hpp"
-#include "clustering/administration/servers/machine_metadata.hpp"
+#include "clustering/administration/servers/server_metadata.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/cow_ptr_type.hpp"
@@ -26,21 +26,21 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(databases_semilattice_metadata_t, databases)
 RDB_IMPL_SEMILATTICE_JOINABLE_1(databases_semilattice_metadata_t, databases);
 RDB_IMPL_EQUALITY_COMPARABLE_1(databases_semilattice_metadata_t, databases);
 
-RDB_IMPL_SERIALIZABLE_2(machine_semilattice_metadata_t, name, tags);
+RDB_IMPL_SERIALIZABLE_2(server_semilattice_metadata_t, name, tags);
 template void serialize<cluster_version_t::v1_15_is_latest>(
-            write_message_t *, const machine_semilattice_metadata_t &);
+            write_message_t *, const server_semilattice_metadata_t &);
 template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
-            read_stream_t *, machine_semilattice_metadata_t *);
-RDB_IMPL_SEMILATTICE_JOINABLE_2(machine_semilattice_metadata_t, name, tags);
-RDB_IMPL_EQUALITY_COMPARABLE_2(machine_semilattice_metadata_t, name, tags);
+            read_stream_t *, server_semilattice_metadata_t *);
+RDB_IMPL_SEMILATTICE_JOINABLE_2(server_semilattice_metadata_t, name, tags);
+RDB_IMPL_EQUALITY_COMPARABLE_2(server_semilattice_metadata_t, name, tags);
 
-RDB_IMPL_SERIALIZABLE_1(machines_semilattice_metadata_t, machines);
+RDB_IMPL_SERIALIZABLE_1(servers_semilattice_metadata_t, servers);
 template void serialize<cluster_version_t::v1_15_is_latest>(
-            write_message_t *, const machines_semilattice_metadata_t &);
+            write_message_t *, const servers_semilattice_metadata_t &);
 template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
-            read_stream_t *, machines_semilattice_metadata_t *);
-RDB_IMPL_SEMILATTICE_JOINABLE_1(machines_semilattice_metadata_t, machines);
-RDB_IMPL_EQUALITY_COMPARABLE_1(machines_semilattice_metadata_t, machines);
+            read_stream_t *, servers_semilattice_metadata_t *);
+RDB_IMPL_SEMILATTICE_JOINABLE_1(servers_semilattice_metadata_t, servers);
+RDB_IMPL_EQUALITY_COMPARABLE_1(servers_semilattice_metadata_t, servers);
 
 RDB_IMPL_ME_SERIALIZABLE_2_SINCE_v1_13(ack_expectation_t, expectation_, hard_durability_);
 
@@ -100,22 +100,22 @@ RDB_IMPL_EQUALITY_COMPARABLE_1(namespaces_semilattice_metadata_t, namespaces);
 
 RDB_IMPL_SERIALIZABLE_3(
         cluster_semilattice_metadata_t,
-        rdb_namespaces, machines, databases);
+        rdb_namespaces, servers, databases);
 template void serialize<cluster_version_t::v1_15_is_latest>(
             write_message_t *, const cluster_semilattice_metadata_t &);
 template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
             read_stream_t *, cluster_semilattice_metadata_t *);
 RDB_IMPL_SEMILATTICE_JOINABLE_3(cluster_semilattice_metadata_t,
-                                rdb_namespaces, machines, databases);
+                                rdb_namespaces, servers, databases);
 RDB_IMPL_EQUALITY_COMPARABLE_3(cluster_semilattice_metadata_t,
-                               rdb_namespaces, machines, databases);
+                               rdb_namespaces, servers, databases);
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(auth_semilattice_metadata_t, auth_key);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(auth_semilattice_metadata_t, auth_key);
 RDB_IMPL_EQUALITY_COMPARABLE_1(auth_semilattice_metadata_t, auth_key);
 
 RDB_IMPL_SERIALIZABLE_15_FOR_CLUSTER(cluster_directory_metadata_t,
-     machine_id,
+     server_id,
      peer_id,
      version,
      cache_size,
@@ -159,7 +159,7 @@ void apply_json_to(cJSON *change, ack_expectation_t *target) {
 // ctx-less json adapter concept for cluster_directory_metadata_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_metadata_t *target) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["machine_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<machine_id_t>(&target->machine_id)); // TODO: should be 'me'?
+    res["server_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<server_id_t>(&target->server_id)); // TODO: should be 'me'?
     res["peer_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<peer_id_t>(&target->peer_id));
     res["cache_size"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<uint64_t>(&target->cache_size));
     res["peer_type"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<cluster_directory_peer_type_t>(&target->peer_type));

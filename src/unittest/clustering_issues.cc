@@ -17,7 +17,7 @@ class issues_environment_t {
 public:
     issues_environment_t();
 
-    machine_id_t local_server_id;
+    server_id_t local_server_id;
 
     dummy_semilattice_controller_t<cluster_semilattice_metadata_t> cluster_metadata;
 
@@ -34,9 +34,9 @@ public:
     field_copier_t<local_issues_t, cluster_directory_metadata_t> local_issue_copier;
 };
 
-cluster_directory_metadata_t default_directory_entry(const machine_id_t &server_id) {
+cluster_directory_metadata_t default_directory_entry(const server_id_t &server_id) {
     cluster_directory_metadata_t entry;
-    entry.machine_id = server_id;
+    entry.server_id = server_id;
     entry.peer_id = peer_id_t(generate_uuid());
     entry.version = RETHINKDB_VERSION_STR;
     entry.cache_size = 0;
@@ -57,21 +57,21 @@ void mark_id_deleted(T *map, const uuid_u &id) {
     id_it->second.mark_deleted();
 }
 
-machine_id_t add_server(issues_environment_t *env, const std::string &name) {
+server_id_t add_server(issues_environment_t *env, const std::string &name) {
     auto view = env->cluster_metadata.get_view();
     cluster_semilattice_metadata_t metadata = view->get();
-    machine_id_t new_machine_id = generate_uuid();
-    machine_semilattice_metadata_t new_machine;
-    new_machine.name.set(name_string_t::guarantee_valid(name.c_str()));
-    *metadata.machines.machines[new_machine_id].get_mutable() = new_machine;
+    server_id_t new_server_id = generate_uuid();
+    server_semilattice_metadata_t new_server;
+    new_server.name.set(name_string_t::guarantee_valid(name.c_str()));
+    *metadata.servers.servers[new_server_id].get_mutable() = new_server;
     view->join(metadata);
-    return new_machine_id;
+    return new_server_id;
 }
 
-void delete_server(issues_environment_t *env, const machine_id_t &id) {
+void delete_server(issues_environment_t *env, const server_id_t &id) {
     auto view = env->cluster_metadata.get_view();
     cluster_semilattice_metadata_t metadata = view->get();
-    mark_id_deleted(&metadata.machines.machines, id);
+    mark_id_deleted(&metadata.servers.servers, id);
     view->join(metadata);
 }
 
@@ -134,9 +134,9 @@ issues_environment_t::issues_environment_t() :
     server_issue_tracker(&local_issue_aggregator,
                          cluster_metadata.get_view(),
                          directory_metadata.get_view()->incremental_subview(
-                             incremental_field_getter_t<machine_id_t,
+                             incremental_field_getter_t<server_id_t,
                                                         cluster_directory_metadata_t>(
-                                 &cluster_directory_metadata_t::machine_id))),
+                                 &cluster_directory_metadata_t::server_id))),
     log_write_issue_tracker(&local_issue_aggregator),
     outdated_index_issue_tracker(&local_issue_aggregator),
     local_issue_copier(&cluster_directory_metadata_t::local_issues,
@@ -146,9 +146,9 @@ issues_environment_t::issues_environment_t() :
     // Add an entry for us into the cluster semilattice metadata
     auto view = cluster_metadata.get_view();
     cluster_semilattice_metadata_t metadata = view->get();
-    machine_semilattice_metadata_t new_machine;
-    new_machine.name.set(name_string_t::guarantee_valid("self"));
-    *metadata.machines.machines[local_server_id].get_mutable() = new_machine;
+    server_semilattice_metadata_t new_server;
+    new_server.name.set(name_string_t::guarantee_valid("self"));
+    *metadata.servers.servers[local_server_id].get_mutable() = new_server;
     view->join(metadata);
 }
 
@@ -180,7 +180,7 @@ TPTEST(ClusteringIssues, ServerDown) {
 
     // Set up error case
     std::string down_server_name("downer");
-    machine_id_t down_server_id = add_server(&env, down_server_name);
+    server_id_t down_server_id = add_server(&env, down_server_name);
 
     let_stuff_happen();
     ql::datum_t issue;
@@ -214,7 +214,7 @@ TPTEST(ClusteringIssues, ServerGhost) {
 
     // Set up error case
     std::string deleted_server_name("del");
-    machine_id_t deleted_server_id = add_server(&env, deleted_server_name);
+    server_id_t deleted_server_id = add_server(&env, deleted_server_name);
     delete_server(&env, deleted_server_id);
 
     peer_id_t ghost_peer_id = peer_id_t(generate_uuid());
@@ -402,8 +402,8 @@ TPTEST(ClusteringIssues, ServerNameCollision) {
 
     // Set up error case
     std::string collided_name("nyx");
-    machine_id_t server1 = add_server(&env, collided_name);
-    machine_id_t server2 = add_server(&env, collided_name);
+    server_id_t server1 = add_server(&env, collided_name);
+    server_id_t server2 = add_server(&env, collided_name);
 
     peer_id_t server1_peer = peer_id_t(generate_uuid());
     peer_id_t server2_peer = peer_id_t(generate_uuid());

@@ -36,9 +36,9 @@ private:
     DISABLE_COPYING(ack_checker_t);
 };
 
-/* Each shard has a `broadcaster_t` on its primary machine. Each machine sends
+/* Each shard has a `broadcaster_t` on its primary server. Each server sends
 queries via `cluster_namespace_interface_t` over the network to the `master_t`
-on the primary machine, which forwards the queries to the `broadcaster_t`. From
+on the primary server, which forwards the queries to the `broadcaster_t`. From
 there, the `broadcaster_t` distributes them to one or more `listener_t`s.
 
 When the `broadcaster_t` is first created, it generates a new unique branch ID.
@@ -125,7 +125,7 @@ private:
     `pick_a_readable_dispatchee()` to do the picking. You must hold
     `dispatchee_mutex` and pass in `proof` of the mutex acquisition. (A
     dispatchee is "readable" if a `replier_t` exists for it on the remote
-    machine.) */
+    server.) */
     void pick_a_readable_dispatchee(
         dispatchee_t **dispatchee_out, mutex_assertion_t::acq_t *proof,
         auto_drainer_t::lock_t *lock_out) THROWS_ONLY(cannot_perform_query_exc_t);

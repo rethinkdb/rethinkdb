@@ -26,7 +26,7 @@ with driver.Metacluster() as metacluster:
     print "Creating table..."
     http1 = http_admin.ClusterAccess([("localhost", process1.http_port)])
     dc = http1.add_datacenter()
-    http1.move_server_to_datacenter(files1.machine_name, dc)
+    http1.move_server_to_datacenter(files1.server_name, dc)
     ns = scenario_common.prepare_table_for_workload(http1, primary = dc)
     http1.wait_until_blueprint_satisfied(ns)
     rdb_workload_common.wait_for_table(host='localhost', port=process1.driver_port, table=ns.name)
@@ -41,7 +41,7 @@ with driver.Metacluster() as metacluster:
         executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
     process2.wait_until_started_up()
     http1.update_cluster_data(3)
-    http1.move_server_to_datacenter(files2.machine_name, dc)
+    http1.move_server_to_datacenter(files2.server_name, dc)
     http1.set_table_affinities(ns, {dc: 1})
     http1.check_no_issues()
 
@@ -53,7 +53,7 @@ with driver.Metacluster() as metacluster:
     print "Shutting down old server..."
     process1.check_and_stop()
     http2 = http_admin.ClusterAccess([("localhost", process2.http_port)])
-    http2.declare_machine_dead(files1.machine_name)
+    http2.declare_server_dead(files1.server_name)
     http2.set_table_affinities(ns.name, {dc.name: 0})
     http2.check_no_issues()
     http2.wait_until_blueprint_satisfied(ns.name)

@@ -17,7 +17,7 @@ with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
     executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Spinning up a process..."
-    files = driver.Files(metacluster, log_path = "create-output", machine_name = "a",
+    files = driver.Files(metacluster, log_path = "create-output", server_name = "a",
                          executable_path = executable_path, command_prefix = command_prefix)
     proc = driver.Process(cluster, files, log_path = "serve-output",
         executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)

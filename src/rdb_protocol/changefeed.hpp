@@ -106,7 +106,7 @@ RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::all_t);
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::point_t);
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t);
 
-// The `client_t` exists on the machine handling the changefeed query, in the
+// The `client_t` exists on the server handling the changefeed query, in the
 // `rdb_context_t`.  When a query subscribes to the changes on a table, it
 // should call `new_feed`.  The `client_t` will give it back a stream of rows.
 // The `client_t` does this by maintaining an internal map from table UUIDs to

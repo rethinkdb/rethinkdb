@@ -34,13 +34,13 @@ with driver.Metacluster() as metacluster:
     print "Creating namespace..."
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in [process1, process2]])
     dc = http.add_datacenter()
-    http.move_server_to_datacenter(process1.files.machine_name, dc)
-    http.move_server_to_datacenter(process2.files.machine_name, dc)
+    http.move_server_to_datacenter(process1.files.server_name, dc)
+    http.move_server_to_datacenter(process2.files.server_name, dc)
     db = http.add_database()
     ns = http.add_table(primary = dc,
                         affinities = {dc: 1}, ack_expectations = {dc: 2}, database=db.name)
     http.do_query("POST", "/ajax/semilattice/rdb_namespaces/%s/primary_pinnings" % ns.uuid,
-        {"[\"\",null]": http.find_machine(process1.files.machine_name).uuid})
+        {"[\"\",null]": http.find_server(process1.files.server_name).uuid})
     http.wait_until_blueprint_satisfied(ns)
     cluster.check()
     http.check_no_issues()
@@ -66,7 +66,7 @@ with driver.Metacluster() as metacluster:
     print "Changing the primary..."
     http.do_query(
         "POST", "/ajax/semilattice/rdb_namespaces/%s/primary_pinnings" % ns.uuid,
-        {"[\"\",null]": http.find_machine(process2.files.machine_name).uuid}
+        {"[\"\",null]": http.find_server(process2.files.server_name).uuid}
     )
 
     time.sleep(1)
@@ -74,7 +74,7 @@ with driver.Metacluster() as metacluster:
     print "Changing it back..."
     http.do_query(
         "POST", "/ajax/semilattice/rdb_namespaces/%s/primary_pinnings" % ns.uuid,
-        {"[\"\",null]": http.find_machine(process1.files.machine_name).uuid}
+        {"[\"\",null]": http.find_server(process1.files.server_name).uuid}
     )
 
     print "Waiting for it to take effect..."

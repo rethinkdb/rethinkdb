@@ -179,14 +179,14 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         issues_backend.get();
 
     server_config_backend.init(new server_config_artificial_table_backend_t(
-        metadata_field(&cluster_semilattice_metadata_t::machines,
+        metadata_field(&cluster_semilattice_metadata_t::servers,
             _semilattice_view),
         _name_client));
     backends[name_string_t::guarantee_valid("server_config")] =
         server_config_backend.get();
 
     server_status_backend.init(new server_status_artificial_table_backend_t(
-        metadata_field(&cluster_semilattice_metadata_t::machines,
+        metadata_field(&cluster_semilattice_metadata_t::servers,
             _semilattice_view),
         _name_client,
         _directory_view,

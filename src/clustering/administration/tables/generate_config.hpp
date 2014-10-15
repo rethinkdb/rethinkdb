@@ -24,7 +24,7 @@ bool table_generate_config(
                         namespace_directory_metadata_t> *directory_view,
         /* Compute this by calling `calculate_server_usage()` on the table configs for
         all of the other tables */
-        const std::map<machine_id_t, int> &server_usage,
+        const std::map<server_id_t, int> &server_usage,
 
         /* `table_generate_config()` will validate `params`, so there's no need for the
         caller to do so. */
@@ -40,7 +40,7 @@ bool table_generate_config(
 `config` to the map `usage_inout`. */
 void calculate_server_usage(
         const table_config_t &config,
-        std::map<machine_id_t, int> *server_usage_inout);
+        std::map<server_id_t, int> *server_usage_inout);
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_GENERATE_CONFIG_HPP_ */
 

@@ -29,7 +29,7 @@ struct auth_metadata_superblock_t {
 struct cluster_metadata_superblock_t {
     block_magic_t magic;
 
-    machine_id_t machine_id;
+    server_id_t server_id;
 
     static const int METADATA_BLOB_MAXREFLEN = 1500;
     char metadata_blob[METADATA_BLOB_MAXREFLEN];
@@ -378,7 +378,7 @@ cluster_persistent_file_t::cluster_persistent_file_t(io_backender_t *io_backende
 cluster_persistent_file_t::cluster_persistent_file_t(io_backender_t *io_backender,
                                                      const serializer_filepath_t &filename,
                                                      perfmon_collection_t *perfmon_parent,
-                                                     const machine_id_t &machine_id,
+                                                     const server_id_t &server_id,
                                                      const cluster_semilattice_metadata_t &initial_metadata) :
     persistent_file_t<cluster_semilattice_metadata_t>(io_backender, filename, perfmon_parent, true) {
 
@@ -392,7 +392,7 @@ cluster_persistent_file_t::cluster_persistent_file_t(io_backender_t *io_backende
 
     memset(sb, 0, get_cache_block_size().value());
     sb->magic = cluster_metadata_magic_t<cluster_version_t::LATEST_DISK>::value;
-    sb->machine_id = machine_id;
+    sb->server_id = server_id;
     write_metadata_blob<cluster_version_t::LATEST_DISK>(
             buf_parent_t(&superblock), sb, initial_metadata);
     write_branch_history_blob<cluster_version_t::LATEST_DISK>(
@@ -434,7 +434,7 @@ void cluster_persistent_file_t::update_metadata(const cluster_semilattice_metada
             buf_parent_t(&superblock), sb, metadata);
 }
 
-machine_id_t cluster_persistent_file_t::read_machine_id() {
+server_id_t cluster_persistent_file_t::read_server_id() {
     object_buffer_t<txn_t> txn;
     get_read_transaction(&txn);
     buf_lock_t superblock(buf_parent_t(txn.get()), SUPERBLOCK_ID,
@@ -442,7 +442,7 @@ machine_id_t cluster_persistent_file_t::read_machine_id() {
     buf_read_t sb_read(&superblock);
     const cluster_metadata_superblock_t *sb
         = static_cast<const cluster_metadata_superblock_t *>(sb_read.get_data_read());
-    return sb->machine_id;
+    return sb->server_id;
 }
 
 class cluster_persistent_file_t::persistent_branch_history_manager_t : public branch_history_manager_t {

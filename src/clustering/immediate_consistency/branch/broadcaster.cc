@@ -313,7 +313,7 @@ public:
     auto_drainer_t::lock_t local_listener_keepalive;
 
     /* This is used to enforce that operations are performed on the
-       destination machine in the same order that we send them, even if the
+       destination server in the same order that we send them, even if the
        network layer reorders the messages. */
     fifo_enforcer_source_t fifo_source;
 

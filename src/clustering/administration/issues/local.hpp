@@ -20,9 +20,9 @@ public:
     explicit local_issue_t(const issue_id_t &id);
     virtual ~local_issue_t();
 
-    void add_server(const machine_id_t &server);
+    void add_server(const server_id_t &server);
 
-    std::vector<machine_id_t> affected_server_ids;
+    std::vector<server_id_t> affected_server_ids;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_HPP_ */

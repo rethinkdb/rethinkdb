@@ -26,8 +26,8 @@ with driver.Metacluster() as metacluster:
     print "Creating namespace..."
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in [process1, process2]])
     dc = http.add_datacenter()
-    http.move_server_to_datacenter(process1.files.machine_name, dc)
-    http.move_server_to_datacenter(process2.files.machine_name, dc)
+    http.move_server_to_datacenter(process1.files.server_name, dc)
+    http.move_server_to_datacenter(process2.files.server_name, dc)
     db = http.add_database()
     ns = http.add_table(primary = dc,
                         affinities = {dc: 1}, ack_expectations = {dc: 2}, database=db.name)

@@ -30,7 +30,7 @@ public:
     issue_id_t get_id() const { return issue_id; }
 
     static const std::string get_server_name(const metadata_t &metadata,
-                                             const machine_id_t &server_id);
+                                             const server_id_t &server_id);
 
     // Utility function for generating deterministic UUIDs via a hash of the args
     template<class... Args>

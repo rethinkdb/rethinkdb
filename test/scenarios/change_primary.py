@@ -29,9 +29,9 @@ with driver.Metacluster() as metacluster:
     print "Creating table..."
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in [process1, process2]])
     dc1 = http.add_datacenter()
-    http.move_server_to_datacenter(process1.files.machine_name, dc1)
+    http.move_server_to_datacenter(process1.files.server_name, dc1)
     dc2 = http.add_datacenter()
-    http.move_server_to_datacenter(process2.files.machine_name, dc2)
+    http.move_server_to_datacenter(process2.files.server_name, dc2)
     ns = scenario_common.prepare_table_for_workload(http, primary = dc1, affinities = {dc1: 0, dc2: 1})
     http.wait_until_blueprint_satisfied(ns)
     cluster.check()

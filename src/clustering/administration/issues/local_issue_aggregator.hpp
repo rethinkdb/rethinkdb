@@ -64,12 +64,12 @@ RDB_DECLARE_EQUALITY_COMPARABLE(outdated_index_issue_t);
 class server_down_issue_t : public local_issue_t {
 public:
     server_down_issue_t();
-    explicit server_down_issue_t(const machine_id_t &_down_server_id);
+    explicit server_down_issue_t(const server_id_t &_down_server_id);
 
     const datum_string_t &get_name() const { return server_down_issue_type; }
     bool is_critical() const { return true; }
 
-    machine_id_t down_server_id;
+    server_id_t down_server_id;
 private:
     ql::datum_t build_info(const metadata_t &metadata) const;
     datum_string_t build_description(const ql::datum_t &info) const;
@@ -84,12 +84,12 @@ RDB_DECLARE_EQUALITY_COMPARABLE(server_down_issue_t);
 class server_ghost_issue_t : public local_issue_t {
 public:
     server_ghost_issue_t();
-    explicit server_ghost_issue_t(const machine_id_t &_ghost_server_id);
+    explicit server_ghost_issue_t(const server_id_t &_ghost_server_id);
 
     const datum_string_t &get_name() const { return server_ghost_issue_type; }
     bool is_critical() const { return false; }
 
-    machine_id_t ghost_server_id;
+    server_id_t ghost_server_id;
 private:
     ql::datum_t build_info(const metadata_t &metadata) const;
     datum_string_t build_description(const ql::datum_t &info) const;

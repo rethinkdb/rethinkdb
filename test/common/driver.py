@@ -187,11 +187,11 @@ class Files(object):
     the process, and then start a new `Process` on the same `Files`. """
 
     db_path = None
-    machine_name = None
+    server_name = None
 
     def __init__(self,
             metacluster,
-            machine_name=None,
+            server_name=None,
             server_tags=None,
             db_path=None,
             log_path=None,
@@ -199,7 +199,7 @@ class Files(object):
             command_prefix=None):
         assert isinstance(metacluster, Metacluster)
         assert not metacluster.closed
-        assert machine_name is None or isinstance(machine_name, str)
+        assert server_name is None or isinstance(server_name, str)
         assert db_path is None or isinstance(db_path, str)
 
         if server_tags is None:
@@ -221,15 +221,15 @@ class Files(object):
             assert not os.path.exists(db_path)
             self.db_path = db_path
 
-        if machine_name is None:
-            self.machine_name = "node_%d" % self.id_number
+        if server_name is None:
+            self.server_name = "node_%d" % self.id_number
         else:
-            self.machine_name = machine_name
+            self.server_name = server_name
 
         create_args = command_prefix + [
             self.executable_path, "create",
             "--directory", self.db_path,
-            "--machine-name", self.machine_name]
+            "--server-name", self.server_name]
         for tag in server_tags:
             create_args.extend(["--server-tag", tag])
 

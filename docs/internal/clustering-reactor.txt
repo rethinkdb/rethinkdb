@@ -93,7 +93,7 @@ For all active broadcaster+master+listener+repliers:
 
     On condition:
         Blueprint does not designate us primary for that shard
-        Something would react on this machine if we stopped
+        Something would react on this server if we stopped
     Do:
         Stop the broadcaster+master+listener+replier
 

@@ -9,7 +9,7 @@
 #include <boost/shared_ptr.hpp>
 
 #include "clustering/administration/servers/server_common.hpp"
-#include "clustering/administration/servers/machine_metadata.hpp"
+#include "clustering/administration/servers/server_metadata.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rpc/semilattice/view.hpp"
 
@@ -21,7 +21,7 @@ class server_config_artificial_table_backend_t :
 public:
     server_config_artificial_table_backend_t(
             boost::shared_ptr< semilattice_read_view_t<
-                machines_semilattice_metadata_t> > _servers_sl_view,
+                servers_semilattice_metadata_t> > _servers_sl_view,
             server_name_client_t *_name_client) :
         common_server_artificial_table_backend_t(_servers_sl_view, _name_client) { }
 
@@ -35,8 +35,8 @@ public:
 private:
     bool format_row(
             name_string_t const & name,
-            machine_id_t const & machine_id,
-            machine_semilattice_metadata_t const & machine,
+            server_id_t const & server_id,
+            server_semilattice_metadata_t const & server,
             ql::datum_t *row_out,
             std::string *error_out);
 };

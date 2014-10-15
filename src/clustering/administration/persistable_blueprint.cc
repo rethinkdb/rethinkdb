@@ -10,11 +10,11 @@
 #include "region/region_json_adapter.hpp"
 #include "stl_utils.hpp"
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(persistable_blueprint_t, machines_roles);
+RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(persistable_blueprint_t, servers_roles);
 
 void debug_print(printf_buffer_t *buf, const persistable_blueprint_t &x) {
-    buf->appendf("persistable_blueprint{machines_roles=");
-    debug_print(buf, x.machines_roles);
+    buf->appendf("persistable_blueprint{servers_roles=");
+    debug_print(buf, x.servers_roles);
     buf->appendf("}");
 }
 
@@ -58,7 +58,7 @@ void apply_json_to(cJSON *change, blueprint_role_t *target) {
 
 json_adapter_if_t::json_adapter_map_t get_json_subfields(persistable_blueprint_t *target) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["peers_roles"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<persistable_blueprint_t::role_map_t>(&target->machines_roles));
+    res["peers_roles"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<persistable_blueprint_t::role_map_t>(&target->servers_roles));
     return  res;
 }
 

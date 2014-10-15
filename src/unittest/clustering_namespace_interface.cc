@@ -19,7 +19,7 @@ namespace unittest {
 TPTEST(ClusteringNamespaceInterface, MissingMaster) {
     /* Set up a cluster so mailboxes can be created */
     simple_mailbox_cluster_t cluster;
-    std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > region_to_primary_maps;
+    std::map<namespace_id_t, std::map<key_range_t, server_id_t> > region_to_primary_maps;
 
     /* Set up a reactor directory with no reactors in it */
     watchable_map_var_t<peer_id_t, namespace_directory_metadata_t> directory;

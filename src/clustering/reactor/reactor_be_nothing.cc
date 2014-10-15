@@ -119,7 +119,7 @@ void reactor_t::be_nothing(region_t region,
              */
             wait_for_directory_acks(version_to_wait_on, interruptor);
 
-            /* Make sure we don't go down and delete the data on our machine
+            /* Make sure we don't go down and delete the data on our server
              * before every who needs a copy has it. */
             run_until_satisfied_2(
                 directory_echo_mirror.get_internal(),

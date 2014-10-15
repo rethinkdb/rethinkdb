@@ -93,10 +93,10 @@ bool do_serve(io_backender_t *io_backender,
 
         cluster_semilattice_metadata_t cluster_metadata;
         auth_semilattice_metadata_t auth_metadata;
-        machine_id_t machine_id = generate_uuid();
+        server_id_t server_id = generate_uuid();
 
         if (cluster_metadata_file != NULL) {
-            machine_id = cluster_metadata_file->read_machine_id();
+            server_id = cluster_metadata_file->read_server_id();
             cluster_metadata = cluster_metadata_file->read_metadata();
         }
         if (auth_metadata_file != NULL) {
@@ -104,7 +104,7 @@ bool do_serve(io_backender_t *io_backender,
         }
 
 #ifndef NDEBUG
-        logNTC("Our machine ID is %s", uuid_to_str(machine_id).c_str());
+        logNTC("Our server ID is %s", uuid_to_str(server_id).c_str());
 #endif
 
         connectivity_cluster_t connectivity_cluster;
@@ -129,17 +129,17 @@ bool do_serve(io_backender_t *io_backender,
         if (i_am_a_server) {
             server_name_server.init(new server_name_server_t(
                 &mailbox_manager,
-                machine_id,
+                server_id,
                 directory_read_manager.get_root_view(),
                 metadata_field(
-                    &cluster_semilattice_metadata_t::machines,
+                    &cluster_semilattice_metadata_t::servers,
                     semilattice_manager_cluster.get_root_view())));
         }
 
         server_name_client_t server_name_client(&mailbox_manager,
             directory_read_manager.get_root_view(),
             metadata_field(
-                &cluster_semilattice_metadata_t::machines,
+                &cluster_semilattice_metadata_t::servers,
                 semilattice_manager_cluster.get_root_view()));
 
         // Initialize the stat manager before the directory manager so that we
@@ -148,7 +148,7 @@ bool do_serve(io_backender_t *io_backender,
         stat_manager_t stat_manager(&mailbox_manager);
 
         cluster_directory_metadata_t initial_directory(
-            machine_id,
+            server_id,
             connectivity_cluster.get_me(),
             RETHINKDB_VERSION_STR,
             total_cache_size,
@@ -176,15 +176,15 @@ bool do_serve(io_backender_t *io_backender,
         network_logger_t network_logger(
             connectivity_cluster.get_me(),
             directory_read_manager.get_root_view(),
-            metadata_field(&cluster_semilattice_metadata_t::machines,
+            metadata_field(&cluster_semilattice_metadata_t::servers,
                            semilattice_manager_cluster.get_root_view()));
 
         server_issue_tracker_t server_issue_tracker(
             &local_issue_aggregator,
             semilattice_manager_cluster.get_root_view(),
             directory_read_manager.get_root_view()->incremental_subview(
-                incremental_field_getter_t<machine_id_t, cluster_directory_metadata_t>(
-                    &cluster_directory_metadata_t::machine_id)));
+                incremental_field_getter_t<server_id_t, cluster_directory_metadata_t>(
+                    &cluster_directory_metadata_t::server_id)));
 
         scoped_ptr_t<connectivity_cluster_t::run_t> connectivity_cluster_run;
 
@@ -217,8 +217,8 @@ bool do_serve(io_backender_t *io_backender,
             &connectivity_cluster,
             connectivity_cluster_run.get(),
             directory_read_manager.get_root_view()->incremental_subview(
-                incremental_field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
-            metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()));
+                incremental_field_getter_t<server_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::server_id)),
+            metadata_field(&cluster_semilattice_metadata_t::servers, semilattice_manager_cluster.get_root_view()));
 
         field_copier_t<local_issues_t, cluster_directory_metadata_t> copy_local_issues_to_cluster(
             &cluster_directory_metadata_t::local_issues,
@@ -409,20 +409,20 @@ bool do_serve(io_backender_t *io_backender,
                     }
 
                     if (i_am_a_server) {
-                        // TODO: This duplicates part of network_logger_t::pretty_print_machine, refactor
-                        machines_semilattice_metadata_t::machine_map_t::const_iterator
-                            machine_it = cluster_metadata.machines.machines.find(machine_id);
-                        guarantee(machine_it != cluster_metadata.machines.machines.end());
-                        std::string machine_name;
-                        if (machine_it->second.is_deleted()) {
-                            machine_name = "<ghost machine>";
+                        // TODO: This duplicates part of network_logger_t::pretty_print_server, refactor
+                        servers_semilattice_metadata_t::server_map_t::const_iterator
+                            server_it = cluster_metadata.servers.servers.find(server_id);
+                        guarantee(server_it != cluster_metadata.servers.servers.end());
+                        std::string server_name;
+                        if (server_it->second.is_deleted()) {
+                            server_name = "__deleted_server__";
                         } else {
-                            machine_name =
-                                machine_it->second.get_ref().name.get_ref().str();
+                            server_name =
+                                server_it->second.get_ref().name.get_ref().str();
                         }
                         logNTC("Server ready, \"%s\" %s\n",
-                               machine_name.c_str(),
-                               uuid_to_str(machine_id).c_str());
+                               server_name.c_str(),
+                               uuid_to_str(server_id).c_str());
                     } else {
                         logNTC("Proxy ready");
                     }

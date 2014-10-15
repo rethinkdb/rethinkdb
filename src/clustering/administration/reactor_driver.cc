@@ -10,7 +10,7 @@
 
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
-#include "clustering/administration/servers/machine_id_to_peer_id.hpp"
+#include "clustering/administration/servers/server_id_to_peer_id.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/reactor.hpp"
@@ -55,28 +55,28 @@ public:
 };
 
 /* When constructing the blueprint, we want to generate fake peer IDs for unconnected
-machines. This is a hack, but it ensures that we produce a blueprint that tricks the
+servers. This is a hack, but it ensures that we produce a blueprint that tricks the
 `reactor_t` into doing what we want it to. `blueprint_name_translator_t` takes care of
 automatically generating and keeping track of the fakes.
 
-TODO: This is pretty hacky. Eventually the `reactor_t` will deal with machine IDs
+TODO: This is pretty hacky. Eventually the `reactor_t` will deal with server IDs
 directly. */
 class blueprint_id_translator_t {
 public:
     explicit blueprint_id_translator_t(server_name_client_t *name_client) :
-        machine_id_to_peer_id_map(
-            name_client->get_machine_id_to_peer_id_map()->get())
+        server_id_to_peer_id_map(
+            name_client->get_server_id_to_peer_id_map()->get())
         { }
-    peer_id_t machine_id_to_peer_id(const machine_id_t &machine_id) {
-        auto it = machine_id_to_peer_id_map.find(machine_id);
-        if (it == machine_id_to_peer_id_map.end()) {
-            it = machine_id_to_peer_id_map.insert(
-                std::make_pair(machine_id, peer_id_t(generate_uuid()))).first;
+    peer_id_t server_id_to_peer_id(const server_id_t &server_id) {
+        auto it = server_id_to_peer_id_map.find(server_id);
+        if (it == server_id_to_peer_id_map.end()) {
+            it = server_id_to_peer_id_map.insert(
+                std::make_pair(server_id, peer_id_t(generate_uuid()))).first;
         }
         return it->second;
     }
 private:
-    std::map<machine_id_t, peer_id_t> machine_id_to_peer_id_map;
+    std::map<server_id_t, peer_id_t> server_id_to_peer_id_map;
 };
 
 blueprint_t construct_blueprint(const table_replication_info_t &info,
@@ -90,7 +90,7 @@ blueprint_t construct_blueprint(const table_replication_info_t &info,
 
     /* Put the primaries in the blueprint */
     for (size_t i = 0; i < info.config.shards.size(); ++i) {
-        peer_id_t peer = trans.machine_id_to_peer_id(info.config.shards[i].director);
+        peer_id_t peer = trans.server_id_to_peer_id(info.config.shards[i].director);
         if (blueprint.peers_roles.count(peer) == 0) {
             blueprint.add_peer(peer);
         }
@@ -103,14 +103,14 @@ blueprint_t construct_blueprint(const table_replication_info_t &info,
     /* Put the secondaries in the blueprint */
     for (size_t i = 0; i < info.config.shards.size(); ++i) {
         const table_config_t::shard_t &shard = info.config.shards[i];
-        for (const machine_id_t &server : shard.replicas) {
-            if (!static_cast<bool>(name_client->get_name_for_machine_id(server))) {
+        for (const server_id_t &server : shard.replicas) {
+            if (!static_cast<bool>(name_client->get_name_for_server_id(server))) {
                 /* The server was permanently removed. It won't appear in the list of
                 replicas shown in `table_config` or `table_status`. Act as though we
                 never saw it. */
                 continue;
             }
-            peer_id_t peer = trans.machine_id_to_peer_id(server);
+            peer_id_t peer = trans.server_id_to_peer_id(server);
             if (blueprint.peers_roles.count(peer) == 0) {
                 blueprint.add_peer(peer);
             }
@@ -125,12 +125,12 @@ blueprint_t construct_blueprint(const table_replication_info_t &info,
 
     /* Make sure that every known peer appears in the blueprint in some form, so that the
     reactor doesn't proceed without approval of every known peer */
-    std::map<machine_id_t, peer_id_t> machine_id_to_peer_id_map =
-        name_client->get_machine_id_to_peer_id_map()->get();
-    for (auto it = machine_id_to_peer_id_map.begin();
-              it != machine_id_to_peer_id_map.end();
+    std::map<server_id_t, peer_id_t> server_id_to_peer_id_map =
+        name_client->get_server_id_to_peer_id_map()->get();
+    for (auto it = server_id_to_peer_id_map.begin();
+              it != server_id_to_peer_id_map.end();
             ++it) {
-        peer_id_t peer = trans.machine_id_to_peer_id(it->first);
+        peer_id_t peer = trans.server_id_to_peer_id(it->first);
         if (blueprint.peers_roles.count(peer) == 0) {
             blueprint.add_peer(peer);
         }
@@ -327,24 +327,24 @@ reactor_driver_t::reactor_driver_t(
       svs_by_namespace(_svs_by_namespace),
       semilattice_subscription(
         boost::bind(&reactor_driver_t::on_change, this), namespaces_view),
-      name_to_machine_id_subscription(
+      name_to_server_id_subscription(
         boost::bind(&reactor_driver_t::on_change, this)),
-      machine_id_to_peer_id_subscription(
+      server_id_to_peer_id_subscription(
         boost::bind(&reactor_driver_t::on_change, this)),
       perfmon_collection_repo(_perfmon_collection_repo)
 {
-    watchable_t< std::multimap<name_string_t, machine_id_t> >::freeze_t
-        name_to_machine_id_freeze(
-            server_name_client->get_name_to_machine_id_map());
-    name_to_machine_id_subscription.reset(
-        server_name_client->get_name_to_machine_id_map(),
-        &name_to_machine_id_freeze);
-    watchable_t< std::map<machine_id_t, peer_id_t> >::freeze_t
-        machine_id_to_peer_id_freeze(
-            server_name_client->get_machine_id_to_peer_id_map());
-    machine_id_to_peer_id_subscription.reset(
-        server_name_client->get_machine_id_to_peer_id_map(),
-        &machine_id_to_peer_id_freeze);
+    watchable_t< std::multimap<name_string_t, server_id_t> >::freeze_t
+        name_to_server_id_freeze(
+            server_name_client->get_name_to_server_id_map());
+    name_to_server_id_subscription.reset(
+        server_name_client->get_name_to_server_id_map(),
+        &name_to_server_id_freeze);
+    watchable_t< std::map<server_id_t, peer_id_t> >::freeze_t
+        server_id_to_peer_id_freeze(
+            server_name_client->get_server_id_to_peer_id_map());
+    server_id_to_peer_id_subscription.reset(
+        server_name_client->get_server_id_to_peer_id_map(),
+        &server_id_to_peer_id_freeze);
     on_change();
 }
 
@@ -402,8 +402,8 @@ void reactor_driver_t::on_change() {
             if (!std_contains(bp.peers_roles,
                               mbox_manager->get_connectivity_cluster()->get_me())) {
                 /* This can occur because there is a brief period during startup where
-                our machine ID might not appear in `server_name_client`'s mapping of
-                machine IDs and peer IDs. We just ignore it; in a moment, the mapping
+                our server ID might not appear in `server_name_client`'s mapping of
+                server IDs and peer IDs. We just ignore it; in a moment, the mapping
                 will be updated to include us and `on_change()` will run again. */
                 continue;
             }

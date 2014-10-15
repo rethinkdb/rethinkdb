@@ -22,10 +22,10 @@ std::map<peer_id_t, log_server_business_card_t> get_log_mailbox(const change_tra
     return out;
 }
 
-std::map<peer_id_t, machine_id_t> get_machine_id(const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> &md) {
-    std::map<peer_id_t, machine_id_t> out;
+std::map<peer_id_t, server_id_t> get_server_id(const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> &md) {
+    std::map<peer_id_t, server_id_t> out;
     for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator it = md.get_inner().begin(); it != md.get_inner().end(); it++) {
-        out.insert(std::make_pair(it->first, it->second.machine_id));
+        out.insert(std::make_pair(it->first, it->second.server_id));
     }
     return out;
 }
@@ -46,7 +46,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     stat_app.init(new stat_http_app_t(mbox_manager, _directory_metadata, _cluster_semilattice_metadata));
     log_app.init(new log_http_app_t(mbox_manager,
         _directory_metadata->subview(&get_log_mailbox),
-        _directory_metadata->subview(&get_machine_id)));
+        _directory_metadata->subview(&get_server_id)));
 
 #ifndef NDEBUG
     cyanide_app.init(new cyanide_http_app_t);
