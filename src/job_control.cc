@@ -19,6 +19,7 @@ job_desc_t::job_desc_t(std::string const & _description,
       start_time(_start_time)
 {
 }
+RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(job_desc_t, description, uuid, start_time);
 
 job_sentry_t::job_sentry_t(std::string const & description)
     : job_description(description, generate_uuid(), current_microtime())

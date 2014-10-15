@@ -6,7 +6,9 @@
 #include <vector>
 
 #include "concurrency/cond_var.hpp"
+#include "containers/archive/stl_types.hpp"
 #include "containers/uuid.hpp"
+#include "rpc/serialize_macros.hpp"
 #include "time.hpp"
 
 class job_desc_t
@@ -18,6 +20,7 @@ public:
     uuid_u uuid;
     microtime_t start_time;
 };
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(job_desc_t);
 
 class job_sentry_t
 {
