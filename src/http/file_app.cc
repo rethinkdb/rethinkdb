@@ -2,7 +2,6 @@
 
 #include <time.h>
 
-#include <map>
 #include <string>
 
 #include "errors.hpp"
@@ -15,8 +14,7 @@
 #include "logger.hpp"
 #include "stl_utils.hpp"
 #include "time.hpp"
-
-extern std::map<std::string, const std::pair<const char *, size_t> > static_web_assets;
+#include "http/web_assets.hpp"
 
 file_http_app_t::file_http_app_t(std::string _asset_dir)
     : asset_dir(_asset_dir)
