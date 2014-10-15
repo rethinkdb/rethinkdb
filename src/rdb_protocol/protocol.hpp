@@ -195,7 +195,7 @@ struct single_sindex_status_t {
 
 } // namespace rdb_protocol
 
-RDB_DECLARE_SERIALIZABLE(rdb_protocol::single_sindex_status_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(rdb_protocol::single_sindex_status_t);
 
 struct point_read_response_t {
     ql::datum_t data;
@@ -204,7 +204,7 @@ struct point_read_response_t {
         : data(_data) { }
 };
 
-RDB_DECLARE_SERIALIZABLE(point_read_response_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(point_read_response_t);
 
 struct rget_read_response_t {
     ql::result_t result;
@@ -214,7 +214,7 @@ struct rget_read_response_t {
     rget_read_response_t() : truncated(false) { }
 };
 
-RDB_DECLARE_SERIALIZABLE(rget_read_response_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(rget_read_response_t);
 
 struct nearest_geo_read_response_t {
     typedef std::pair<double, ql::datum_t> dist_pair_t;
@@ -232,7 +232,7 @@ struct nearest_geo_read_response_t {
         : results_or_error(_error) { }
 };
 
-RDB_DECLARE_SERIALIZABLE(nearest_geo_read_response_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(nearest_geo_read_response_t);
 
 void scale_down_distribution(size_t result_limit, std::map<store_key_t, int64_t> *key_counts);
 
@@ -247,14 +247,14 @@ struct distribution_read_response_t {
     std::map<store_key_t, int64_t> key_counts;
 };
 
-RDB_DECLARE_SERIALIZABLE(distribution_read_response_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(distribution_read_response_t);
 
 struct sindex_list_response_t {
     sindex_list_response_t() { }
     std::vector<std::string> sindexes;
 };
 
-RDB_DECLARE_SERIALIZABLE(sindex_list_response_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_list_response_t);
 
 struct sindex_status_response_t {
     sindex_status_response_t()
@@ -262,7 +262,7 @@ struct sindex_status_response_t {
     std::map<std::string, rdb_protocol::single_sindex_status_t> statuses;
 };
 
-RDB_DECLARE_SERIALIZABLE(sindex_status_response_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_status_response_t);
 
 struct changefeed_subscribe_response_t {
     changefeed_subscribe_response_t() { }
@@ -270,7 +270,7 @@ struct changefeed_subscribe_response_t {
     std::set<ql::changefeed::server_t::addr_t> addrs;
 };
 
-RDB_DECLARE_SERIALIZABLE(changefeed_subscribe_response_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(changefeed_subscribe_response_t);
 
 struct changefeed_stamp_response_t {
     changefeed_stamp_response_t() { }
@@ -279,7 +279,7 @@ struct changefeed_stamp_response_t {
     // machines and don't synchronize with each other.)
     std::map<uuid_u, uint64_t> stamps;
 };
-RDB_DECLARE_SERIALIZABLE(changefeed_stamp_response_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_response_t);
 
 struct changefeed_point_stamp_response_t {
     changefeed_point_stamp_response_t() { }
@@ -311,7 +311,7 @@ struct read_response_t {
         : response(r) { }
 };
 
-RDB_DECLARE_SERIALIZABLE(read_response_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(read_response_t);
 
 class point_read_t {
 public:
@@ -321,7 +321,7 @@ public:
     store_key_t key;
 };
 
-RDB_DECLARE_SERIALIZABLE(point_read_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(point_read_t);
 
 struct sindex_rangespec_t {
     sindex_rangespec_t() { }
@@ -337,7 +337,7 @@ struct sindex_rangespec_t {
     datum_range_t original_range; // For dealing with truncation.
 };
 
-RDB_DECLARE_SERIALIZABLE(sindex_rangespec_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_rangespec_t);
 
 class rget_read_t {
 public:
@@ -376,7 +376,7 @@ public:
 
     sorting_t sorting; // Optional sorting info (UNORDERED means no sorting).
 };
-RDB_DECLARE_SERIALIZABLE(rget_read_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(rget_read_t);
 
 class intersecting_geo_read_t {
 public:
@@ -413,7 +413,7 @@ public:
 
     ql::datum_t query_geometry; // Tested for intersection
 };
-RDB_DECLARE_SERIALIZABLE(intersecting_geo_read_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(intersecting_geo_read_t);
 
 class nearest_geo_read_t {
 public:
@@ -442,7 +442,7 @@ public:
 
     std::string sindex_id;
 };
-RDB_DECLARE_SERIALIZABLE(nearest_geo_read_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(nearest_geo_read_t);
 
 class distribution_read_t {
 public:
@@ -459,14 +459,14 @@ public:
     region_t region;
 };
 
-RDB_DECLARE_SERIALIZABLE(distribution_read_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(distribution_read_t);
 
 class sindex_list_t {
 public:
     sindex_list_t() { }
 };
 
-RDB_DECLARE_SERIALIZABLE(sindex_list_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_list_t);
 
 class sindex_status_t {
 public:
@@ -478,7 +478,7 @@ public:
     region_t region;
 };
 
-RDB_DECLARE_SERIALIZABLE(sindex_status_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_status_t);
 
 class changefeed_subscribe_t {
 public:
@@ -489,7 +489,7 @@ public:
     region_t region;
 };
 
-RDB_DECLARE_SERIALIZABLE(changefeed_subscribe_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(changefeed_subscribe_t);
 
 class changefeed_stamp_t {
 public:
@@ -499,7 +499,7 @@ public:
     ql::changefeed::client_t::addr_t addr;
     region_t region;
 };
-RDB_DECLARE_SERIALIZABLE(changefeed_stamp_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_t);
 
 // This is a separate class because it needs to shard and unshard differently.
 class changefeed_point_stamp_t {
@@ -511,6 +511,7 @@ public:
     ql::changefeed::client_t::addr_t addr;
     store_key_t key;
 };
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(changefeed_point_stamp_t);
 
 struct read_t {
     typedef boost::variant<point_read_t,
@@ -550,7 +551,7 @@ struct read_t {
     bool all_read() const THROWS_NOTHING { return boost::get<sindex_status_t>(&read); }
 };
 
-RDB_DECLARE_SERIALIZABLE(read_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(read_t);
 
 
 struct point_write_response_t {
@@ -562,7 +563,7 @@ struct point_write_response_t {
     { }
 };
 
-RDB_DECLARE_SERIALIZABLE(point_write_response_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(point_write_response_t);
 
 struct point_delete_response_t {
     point_delete_result_t result;
@@ -572,7 +573,7 @@ struct point_delete_response_t {
     { }
 };
 
-RDB_DECLARE_SERIALIZABLE(point_delete_response_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(point_delete_response_t);
 
 // TODO we're reusing the enums from row writes and reads to avoid name
 // shadowing. Nothing really wrong with this but maybe they could have a
@@ -581,25 +582,25 @@ struct sindex_create_response_t {
     bool success;
 };
 
-RDB_DECLARE_SERIALIZABLE(sindex_create_response_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_create_response_t);
 
 struct sindex_drop_response_t {
     bool success;
 };
 
-RDB_DECLARE_SERIALIZABLE(sindex_drop_response_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_drop_response_t);
 
 struct sindex_rename_response_t {
     sindex_rename_result_t result;
 };
 
-RDB_DECLARE_SERIALIZABLE(sindex_rename_response_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_rename_response_t);
 
 struct sync_response_t {
     // sync always succeeds
 };
 
-RDB_DECLARE_SERIALIZABLE(sync_response_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sync_response_t);
 
 typedef ql::datum_t batched_replace_response_t;
 
@@ -621,7 +622,7 @@ struct write_response_t {
     explicit write_response_t(const T &t) : response(t) { }
 };
 
-RDB_DECLARE_SERIALIZABLE(write_response_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(write_response_t);
 
 struct batched_replace_t {
     batched_replace_t() { }
@@ -642,7 +643,7 @@ struct batched_replace_t {
     return_changes_t return_changes;
 };
 
-RDB_DECLARE_SERIALIZABLE(batched_replace_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(batched_replace_t);
 
 struct batched_insert_t {
     batched_insert_t() { }
@@ -680,7 +681,7 @@ struct batched_insert_t {
     return_changes_t return_changes;
 };
 
-RDB_DECLARE_SERIALIZABLE(batched_insert_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(batched_insert_t);
 
 class point_write_t {
 public:
@@ -724,7 +725,7 @@ public:
     sindex_geo_bool_t geo;
 };
 
-RDB_DECLARE_SERIALIZABLE(sindex_create_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_create_t);
 
 class sindex_drop_t {
 public:
@@ -756,7 +757,7 @@ public:
     region_t region;
 };
 
-RDB_DECLARE_SERIALIZABLE(sindex_rename_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_rename_t);
 
 class sync_t {
 public:
@@ -819,7 +820,7 @@ struct write_t {
           limits(_limits) { }
 };
 
-RDB_DECLARE_SERIALIZABLE(write_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(write_t);
 
 
 struct backfill_chunk_t {
@@ -874,11 +875,11 @@ struct backfill_chunk_t {
     repli_timestamp_t get_btree_repli_timestamp() const THROWS_NOTHING;
 };
 
-RDB_DECLARE_SERIALIZABLE(backfill_chunk_t::delete_key_t);
-RDB_DECLARE_SERIALIZABLE(backfill_chunk_t::delete_range_t);
-RDB_DECLARE_SERIALIZABLE(backfill_chunk_t::key_value_pairs_t);
-RDB_DECLARE_SERIALIZABLE(backfill_chunk_t::sindexes_t);
-RDB_DECLARE_SERIALIZABLE(backfill_chunk_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t::delete_key_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t::delete_range_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t::key_value_pairs_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t::sindexes_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t);
 
 
 class store_t;

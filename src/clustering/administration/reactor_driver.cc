@@ -55,33 +55,18 @@ public:
 };
 
 /* When constructing the blueprint, we want to generate fake peer IDs for unconnected
-machines, and generate fake machine IDs for names that don't resolve to a machine. This
-is a hack, but it ensures that we produce a blueprint that tricks the `reactor_t` into
-doing what we want it to. `blueprint_name_translator_t` takes care of automatically
-generating and keeping track of the fakes.
+machines. This is a hack, but it ensures that we produce a blueprint that tricks the
+`reactor_t` into doing what we want it to. `blueprint_name_translator_t` takes care of
+automatically generating and keeping track of the fakes.
 
-TODO: This is pretty hacky. Maybe we should modify `blueprint_t` so that it has a flag
-preventing the `reactor_t` from proceeding. Then we could set that flag if a peer is
-missing, instead of inserting a fake entry in the blueprint. */
-class blueprint_name_translator_t {
+TODO: This is pretty hacky. Eventually the `reactor_t` will deal with machine IDs
+directly. */
+class blueprint_id_translator_t {
 public:
-    explicit blueprint_name_translator_t(server_name_client_t *name_client) :
+    explicit blueprint_id_translator_t(server_name_client_t *name_client) :
         machine_id_to_peer_id_map(
-            name_client->get_machine_id_to_peer_id_map()->get()),
-        name_to_machine_id_map(
-            name_client->get_name_to_machine_id_map()->get())
+            name_client->get_machine_id_to_peer_id_map()->get())
         { }
-    machine_id_t name_to_machine_id(const name_string_t &name) {
-        if (name_to_machine_id_map.count(name) > 1) {
-            throw server_name_collision_exc_t();
-        }
-        auto it = name_to_machine_id_map.find(name);
-        if (it == name_to_machine_id_map.end()) {
-            it = name_to_machine_id_map.insert(
-                std::make_pair(name, generate_uuid()));
-        }
-        return it->second;
-    }
     peer_id_t machine_id_to_peer_id(const machine_id_t &machine_id) {
         auto it = machine_id_to_peer_id_map.find(machine_id);
         if (it == machine_id_to_peer_id_map.end()) {
@@ -92,7 +77,6 @@ public:
     }
 private:
     std::map<machine_id_t, peer_id_t> machine_id_to_peer_id_map;
-    std::multimap<name_string_t, machine_id_t> name_to_machine_id_map;
 };
 
 blueprint_t construct_blueprint(const table_replication_info_t &info,
@@ -100,15 +84,13 @@ blueprint_t construct_blueprint(const table_replication_info_t &info,
     rassert(info.config.shards.size() ==
         static_cast<size_t>(info.shard_scheme.num_shards()));
 
-    blueprint_name_translator_t trans(name_client);
+    blueprint_id_translator_t trans(name_client);
 
     blueprint_t blueprint;
 
     /* Put the primaries in the blueprint */
     for (size_t i = 0; i < info.config.shards.size(); ++i) {
-        machine_id_t machine_id =
-            trans.name_to_machine_id(info.config.shards[i].director_name);
-        peer_id_t peer = trans.machine_id_to_peer_id(machine_id);
+        peer_id_t peer = trans.machine_id_to_peer_id(info.config.shards[i].director);
         if (blueprint.peers_roles.count(peer) == 0) {
             blueprint.add_peer(peer);
         }
@@ -121,13 +103,18 @@ blueprint_t construct_blueprint(const table_replication_info_t &info,
     /* Put the secondaries in the blueprint */
     for (size_t i = 0; i < info.config.shards.size(); ++i) {
         const table_config_t::shard_t &shard = info.config.shards[i];
-        for (const name_string_t &name : shard.replica_names) {
-            machine_id_t machine_id = trans.name_to_machine_id(name);
-            peer_id_t peer = trans.machine_id_to_peer_id(machine_id);
+        for (const machine_id_t &server : shard.replicas) {
+            if (!static_cast<bool>(name_client->get_name_for_machine_id(server))) {
+                /* The server was permanently removed. It won't appear in the list of
+                replicas shown in `table_config` or `table_status`. Act as though we
+                never saw it. */
+                continue;
+            }
+            peer_id_t peer = trans.machine_id_to_peer_id(server);
             if (blueprint.peers_roles.count(peer) == 0) {
                 blueprint.add_peer(peer);
             }
-            if (name != shard.director_name) {
+            if (server != shard.director) {
                 blueprint.add_role(
                     peer,
                     hash_region_t<key_range_t>(info.shard_scheme.get_shard_range(i)),

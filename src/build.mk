@@ -335,28 +335,36 @@ rethinkdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 
 RETHINKDB_DEPENDENCIES_LIBS := $(TCMALLOC_MINIMAL_LIBS_DEP) $(V8_LIBS_DEP) $(PROTOBUF_LIBS_DEP) $(RE2_LIBS_DEP) $(Z_LIBS_DEP) $(CURL_LIBS_DEP) $(CRYPTO_LIBS_DEP)
 
+MAYBE_CHECK_TCMALLOC =
+ifeq (0,$(NO_TCMALLOC)) # if we link to tcmalloc
+  ifeq ($(filter -l%, $(value TCMALLOC_MINIMAL_LIBS)),) # and it's not dynamic
+    MAYBE_CHECK_TCMALLOC = objdump -T $@ | c++filt | grep -q 'tcmalloc::\|google_malloc' ||
+    MAYBE_CHECK_TCMALLOC += (echo "Failed to link in TCMalloc. You may have to run ./configure with the --without-tcmalloc flag." >&2 && false)
+  endif
+endif
+
+ifneq (1,$(SYMBOLS))
+  ifeq (1,$(SPLIT_SYMBOLS))
+    $(error Conflicting build flags: SYMBOLS=0 and SPLIT_SYMBOLS=1)
+  endif
+endif
+
 $(BUILD_DIR)/$(SERVER_EXEC_NAME): $(SERVER_EXEC_OBJS) | $(BUILD_DIR)/. $(RETHINKDB_DEPENDENCIES_LIBS)
 	$P LD $@
 	$(RT_CXX) $(SERVER_EXEC_OBJS) $(RT_LDFLAGS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(LD_OUTPUT_FILTER)
-ifeq ($(NO_TCMALLOC),0) # if we link to tcmalloc
-ifeq ($(filter -l%, $(value TCMALLOC_MINIMAL_LIBS)),) # and it's not dynamic
-# TODO: c++filt may not be installed
-	@objdump -T $(BUILD_DIR)/$(SERVER_EXEC_NAME) | c++filt | grep -q 'tcmalloc::\|google_malloc' || \
-		(echo "    Failed to link in TCMalloc. You may have to run ./configure with the --without-tcmalloc flag." && \
-		false)
-endif
-endif
+	$(MAYBE_CHECK_TCMALLOC)
+
 ifeq (1,$(SPLIT_SYMBOLS))
-ifeq (Darwin,$(OS))
+  ifeq (Darwin,$(OS))
 	$P STRIP $@.dSYM
 	cd $(BUILD_DIR) && dsymutil --out=$(notdir $@.dSYM) $(notdir $@)
 	strip $@
-else
+  else
 	$P STRIP $@.debug
 	objcopy --only-keep-debug $@ $@.debug
 	objcopy --strip-debug $@
 	cd $(BUILD_DIR) && objcopy --add-gnu-debuglink=$(notdir $@.debug) $(notdir $@)
-endif
+  endif
 endif
 
 # The unittests use gtest, which uses macros that expand into switch statements which don't contain

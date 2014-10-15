@@ -18,15 +18,14 @@ static const int64_t DEFAULT_MAX_DURATION = 500 * 1000;
 static const int64_t DIVISOR_SCALING_FACTOR = 8;
 static const int64_t SCALE_CONSTANT = 8;
 
-RDB_IMPL_SERIALIZABLE_7(batchspec_t,
-                        batch_type,
-                        min_els,
-                        max_els,
-                        max_size,
-                        first_scaledown_factor,
-                        max_dur,
-                        start_time);
-INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(batchspec_t);
+RDB_IMPL_SERIALIZABLE_7_FOR_CLUSTER(batchspec_t,
+                                    batch_type,
+                                    min_els,
+                                    max_els,
+                                    max_size,
+                                    first_scaledown_factor,
+                                    max_dur,
+                                    start_time);
 
 batchspec_t::batchspec_t(
     batch_type_t _batch_type,
@@ -72,7 +71,7 @@ batchspec_t batchspec_t::all() {
 }
 
 static bool set_if_present(const char *argname, env_t *env, datum_t * dest) {
-    counted_t<val_t> v = env->get_optarg(env, argname);
+    scoped_ptr_t<val_t> v = env->get_optarg(env, argname);
     if (v.has()) {
         *dest = v->as_datum();
         return true;

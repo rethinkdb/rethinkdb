@@ -6,7 +6,12 @@ src_url=http://curl.haxx.se/download/curl-$version.tar.bz2
 pkg_configure () {
     local prefix
     prefix="$(niceabspath "$install_dir")"
-    in_dir "$build_dir" ./configure --prefix="$prefix" --without-gnutls --with-ssl --without-librtmp --disable-ldap --disable-shared
+    local ssl_command
+    ssl_command="--with-ssl"
+    if [[ "$OS" = "Darwin" ]]; then
+        sslCommand="--with-darwinssl --without-ssl"
+    fi
+    in_dir "$build_dir" ./configure --prefix="$prefix" --without-gnutls $ssl_command --without-librtmp --disable-ldap --disable-shared
 }
 
 pkg_install-include () {

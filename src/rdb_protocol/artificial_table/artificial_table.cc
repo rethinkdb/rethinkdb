@@ -330,7 +330,7 @@ std::vector<std::string> artificial_table_t::sindex_list(UNUSED ql::env_t *env) 
 std::map<std::string, ql::datum_t> artificial_table_t::sindex_status(
         UNUSED ql::env_t *env, UNUSED const std::set<std::string> &sindexes) {
     return std::map<std::string, ql::datum_t>();
-};
+}
 
 void artificial_table_t::do_single_update(
         ql::env_t *env,

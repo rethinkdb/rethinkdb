@@ -630,14 +630,14 @@ std::string intersecting_readgen_t::sindex_name() const {
     return sindex;
 }
 
-counted_t<val_t> datum_stream_t::run_terminal(
+scoped_ptr_t<val_t> datum_stream_t::run_terminal(
     env_t *env, const terminal_variant_t &tv) {
     scoped_ptr_t<eager_acc_t> acc(make_eager_terminal(tv));
     accumulate(env, acc.get(), tv);
     return acc->finish_eager(backtrace(), is_grouped(), env->limits());
 }
 
-counted_t<val_t> datum_stream_t::to_array(env_t *env) {
+scoped_ptr_t<val_t> datum_stream_t::to_array(env_t *env) {
     scoped_ptr_t<eager_acc_t> acc = make_to_array(env->reql_version());
     accumulate_all(env, acc.get());
     return acc->finish_eager(backtrace(), is_grouped(), env->limits());

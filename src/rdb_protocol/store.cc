@@ -24,17 +24,7 @@ reql_version_t update_sindex_last_compatible_version(secondary_index_t *sindex,
     sindex_disk_info_t sindex_info;
     deserialize_sindex_info(sindex->opaque_definition, &sindex_info);
 
-    reql_version_t res;
-    switch (sindex_info.mapping_version_info.original_reql_version) {
-    case reql_version_t::v1_13:
-        res = reql_version_t::v1_13;
-        break;
-    case reql_version_t::v1_14:
-        res = reql_version_t::v1_14;
-        break;
-    default:
-        unreachable();
-    }
+    reql_version_t res = sindex_info.mapping_version_info.original_reql_version;
 
     if (sindex_info.mapping_version_info.latest_checked_reql_version
         != reql_version_t::LATEST) {

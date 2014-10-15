@@ -1271,7 +1271,7 @@ void compute_keys(const store_key_t &primary_key, ql::datum_t doc,
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         reql_version_t, int8_t,
-        reql_version_t::v1_13, reql_version_t::v1_14_is_latest);
+        reql_version_t::v1_13, reql_version_t::v1_16_is_latest);
 
 void serialize_sindex_info(write_message_t *wm,
                            const sindex_disk_info_t &info) {

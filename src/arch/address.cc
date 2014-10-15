@@ -109,15 +109,16 @@ std::set<ip_address_t> hostname_to_ips(const std::string &host) {
     return ips;
 }
 
-bool check_address_filter(ip_address_t addr, const std::set<ip_address_t> &filter) {
-    // The filter is a whitelist, loopback addresses are always whitelisted
-    return filter.find(addr) != filter.end() || addr.is_loopback();
-}
-
-std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
+std::set<ip_address_t> get_local_ips(std::set<ip_address_t> filter,
                                      bool get_all) {
     std::set<ip_address_t> all_ips;
     std::set<ip_address_t> filtered_ips;
+
+    // If nothing is specified, default to 127.0.0.1 and ::1
+    if (filter.empty() && !get_all) {
+        filter.insert(ip_address_t("127.0.0.1"));
+        filter.insert(ip_address_t("::1"));
+    }
 
     try {
         all_ips = hostname_to_ips(str_gethostname());
@@ -153,9 +154,9 @@ std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
     freeifaddrs(addrs);
 
     // Remove any addresses that don't fit the filter
-    for (auto it = all_ips.begin(); it != all_ips.end(); ++it) {
-        if (get_all || check_address_filter(*it, filter)) {
-            filtered_ips.insert(*it);
+    for (auto const &ip : all_ips) {
+        if (get_all || filter.find(ip) != filter.end()) {
+            filtered_ips.insert(ip);
         }
     }
 

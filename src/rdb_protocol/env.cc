@@ -85,10 +85,10 @@ global_optargs_t::global_optargs_t(std::map<std::string, wire_func_t> _optargs)
 bool global_optargs_t::has_optarg(const std::string &key) const {
     return optargs.count(key) > 0;
 }
-counted_t<val_t> global_optargs_t::get_optarg(env_t *env, const std::string &key) {
+scoped_ptr_t<val_t> global_optargs_t::get_optarg(env_t *env, const std::string &key) {
     auto it = optargs.find(key);
     if (it == optargs.end()) {
-        return counted_t<val_t>();
+        return scoped_ptr_t<val_t>();
     }
     return it->second.compile_wire_func()->call(env);
 }

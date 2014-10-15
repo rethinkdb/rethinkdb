@@ -96,13 +96,13 @@ public:
         initial_value(_initial_value), metadata_fifo_state(_metadata_fifo_state) { }
     ~initialization_writer_t() { }
 
-    void write(cluster_version_t cluster_version, write_stream_t *stream) {
+    void write(write_stream_t *stream) {
         write_message_t wm;
         // All cluster versions use a uint8_t code.
         const uint8_t code = 'I';
         serialize_universal(&wm, code);
-        serialize_for_version(cluster_version, &wm, initial_value);
-        serialize_for_version(cluster_version, &wm, metadata_fifo_state);
+        serialize<cluster_version_t::CLUSTER>(&wm, initial_value);
+        serialize<cluster_version_t::CLUSTER>(&wm, metadata_fifo_state);
         int res = send_write_message(stream, &wm);
         if (res) {
             throw fake_archive_exc_t();
@@ -123,13 +123,13 @@ public:
         new_value(_new_value), metadata_fifo_token(_metadata_fifo_token) { }
     ~update_writer_t() { }
 
-    void write(cluster_version_t cluster_version, write_stream_t *stream) {
+    void write(write_stream_t *stream) {
         write_message_t wm;
         // All cluster versions use a uint8_t code.
         const uint8_t code = 'U';
         serialize_universal(&wm, code);
-        serialize_for_version(cluster_version, &wm, new_value);
-        serialize_for_version(cluster_version, &wm, metadata_fifo_token);
+        serialize<cluster_version_t::CLUSTER>(&wm, new_value);
+        serialize<cluster_version_t::CLUSTER>(&wm, metadata_fifo_token);
         int res = send_write_message(stream, &wm);
         if (res) {
             throw fake_archive_exc_t();

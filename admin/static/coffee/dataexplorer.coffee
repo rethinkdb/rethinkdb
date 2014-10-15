@@ -975,7 +975,7 @@ module 'DataExplorerView', ->
                                 @codemirror.indentLine cursor.line+1, 'smart'
                                 @codemirror.setCursor cursor
                                 return false
-                else if event.which is 9  or (event.type is 'keydown' and ((event.ctrlKey is true or event.metaKey is true) and event.which is 32) and (@$('.suggestion_description').css('display') is 'none' and @$('.suggestion_name_list').css('display') is 'none'))
+                else if (event.which is 9 and event.ctrlKey is false)  or (event.type is 'keydown' and ((event.ctrlKey is true or event.metaKey is true) and event.which is 32) and (@$('.suggestion_description').css('display') is 'none' and @.$('.suggestion_name_list').css('display') is 'none'))
                     # If the user just hit tab, we are going to show the suggestions if they are hidden
                     # or if they suggestions are already shown, we are going to cycle through them.
                     #

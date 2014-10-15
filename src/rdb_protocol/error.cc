@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/error.hpp"
 
 #include "backtrace.hpp"
@@ -60,7 +60,7 @@ base_exc_t::type_t exc_type(const val_t *v) {
         return base_exc_t::GENERIC;
     }
 }
-base_exc_t::type_t exc_type(const counted_t<val_t> &v) {
+base_exc_t::type_t exc_type(const scoped_ptr_t<val_t> &v) {
     r_sanity_check(v.has());
     return exc_type(v.get());
 }

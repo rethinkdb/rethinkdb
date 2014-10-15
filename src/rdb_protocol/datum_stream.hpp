@@ -35,8 +35,8 @@ public:
     void add_grouping(transform_variant_t &&tv,
                       const protob_t<const Backtrace> &bt);
 
-    counted_t<val_t> run_terminal(env_t *env, const terminal_variant_t &tv);
-    counted_t<val_t> to_array(env_t *env);
+    scoped_ptr_t<val_t> run_terminal(env_t *env, const terminal_variant_t &tv);
+    scoped_ptr_t<val_t> to_array(env_t *env);
 
     // stream -> stream (always eager)
     counted_t<datum_stream_t> slice(size_t l, size_t r);
