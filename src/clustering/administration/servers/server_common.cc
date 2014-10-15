@@ -5,7 +5,7 @@
 #include "clustering/administration/servers/name_client.hpp"
 
 std::string common_server_artificial_table_backend_t::get_primary_key_name() {
-    return "uuid";
+    return "id";
 }
 
 bool common_server_artificial_table_backend_t::read_all_rows_as_vector(

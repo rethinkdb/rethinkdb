@@ -25,12 +25,12 @@ bool convert_server_config_and_name_from_datum(
         return false;
     }
 
-    ql::datum_t uuid_datum;
-    if (!converter.get("uuid", &uuid_datum, error_out)) {
+    ql::datum_t id_datum;
+    if (!converter.get("id", &id_datum, error_out)) {
         return false;
     }
-    if (!convert_uuid_from_datum(uuid_datum, machine_id_out, error_out)) {
-        *error_out = "In `uuid`: " + *error_out;
+    if (!convert_uuid_from_datum(id_datum, machine_id_out, error_out)) {
+        *error_out = "In `id`: " + *error_out;
         return false;
     }
 

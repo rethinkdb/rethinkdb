@@ -162,7 +162,7 @@ enum class table_readiness_t {
 };
 
 ql::datum_t convert_table_status_shard_to_datum(
-        namespace_id_t uuid,
+        namespace_id_t id,
         key_range_t range,
         const table_config_t::shard_t &shard,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
@@ -176,7 +176,7 @@ ql::datum_t convert_table_status_shard_to_datum(
     dir->read_all(
         [&](const std::pair<peer_id_t, namespace_id_t> &key,
                 const namespace_directory_metadata_t *value) {
-            if (key.second != uuid) {
+            if (key.second != id) {
                 return;
             }
             /* Translate peer ID to machine ID */
@@ -293,7 +293,7 @@ ql::datum_t convert_table_status_shard_to_datum(
 ql::datum_t convert_table_status_to_datum(
         name_string_t table_name,
         name_string_t db_name,
-        namespace_id_t uuid,
+        namespace_id_t id,
         const table_replication_info_t &repli_info,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                         namespace_directory_metadata_t> *dir,
@@ -301,7 +301,7 @@ ql::datum_t convert_table_status_to_datum(
     ql::datum_object_builder_t builder;
     builder.overwrite("name", convert_name_to_datum(table_name));
     builder.overwrite("db", convert_name_to_datum(db_name));
-    builder.overwrite("uuid", convert_uuid_to_datum(uuid));
+    builder.overwrite("id", convert_uuid_to_datum(id));
 
     table_readiness_t readiness = table_readiness_t::finished;
     ql::datum_array_builder_t array_builder((ql::configured_limits_t::unlimited));
@@ -309,7 +309,7 @@ ql::datum_t convert_table_status_to_datum(
         table_readiness_t this_shard_readiness;
         array_builder.add(
             convert_table_status_shard_to_datum(
-                uuid,
+                id,
                 repli_info.shard_scheme.get_shard_range(i),
                 repli_info.config.shards[i],
                 dir,

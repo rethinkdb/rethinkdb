@@ -57,7 +57,7 @@ bool server_status_artificial_table_backend_t::format_row(
         UNUSED std::string *error_out) {
     ql::datum_object_builder_t builder;
     builder.overwrite("name", convert_name_to_datum(server_name));
-    builder.overwrite("uuid", convert_uuid_to_datum(server_id));
+    builder.overwrite("id", convert_uuid_to_datum(server_id));
 
     boost::optional<peer_id_t> peer_id =
         name_client->get_peer_id_for_machine_id(server_id);

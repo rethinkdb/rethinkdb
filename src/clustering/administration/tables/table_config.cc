@@ -171,7 +171,7 @@ bool table_config_artificial_table_backend_t::format_row(
     ql::datum_object_builder_t builder(start);
     builder.overwrite("name", convert_name_to_datum(table_name));
     builder.overwrite("db", convert_name_to_datum(db_name));
-    builder.overwrite("uuid", convert_uuid_to_datum(table_id));
+    builder.overwrite("id", convert_uuid_to_datum(table_id));
     builder.overwrite(
         "primary_key", convert_string_to_datum(metadata.primary_key.get_ref()));
     *row_out = std::move(builder).to_datum();
@@ -184,11 +184,11 @@ bool convert_table_config_and_name_from_datum(
         server_name_client_t *name_client,
         name_string_t *table_name_out,
         name_string_t *db_name_out,
-        namespace_id_t *uuid_out,
+        namespace_id_t *id_out,
         table_config_t *config_out,
         std::string *primary_key_out,
         std::string *error_out) {
-    /* In practice, the input will always be an object and the `uuid` field will always
+    /* In practice, the input will always be an object and the `id` field will always
     be valid, because `artificial_table_t` will check those thing before passing the
     row to `table_config_artificial_table_backend_t`. But we check them anyway for
     consistency. */
@@ -215,12 +215,12 @@ bool convert_table_config_and_name_from_datum(
         return false;
     }
 
-    ql::datum_t uuid_datum;
-    if (!converter.get("uuid", &uuid_datum, error_out)) {
+    ql::datum_t id_datum;
+    if (!converter.get("id", &id_datum, error_out)) {
         return false;
     }
-    if (!convert_uuid_from_datum(uuid_datum, uuid_out, error_out)) {
-        *error_out = "In `uuid`: " + *error_out;
+    if (!convert_uuid_from_datum(id_datum, id_out, error_out)) {
+        *error_out = "In `id`: " + *error_out;
         return false;
     }
 
