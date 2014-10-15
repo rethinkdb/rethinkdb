@@ -11,6 +11,7 @@
 
 #include "errors.hpp"
 #include "concurrency/cache_line_padded.hpp"
+#include "utils.hpp"
 
 /*
  * We have to make sure that access to thread local storage (TLS) is only performed
@@ -67,6 +68,10 @@
         return TLS_ ## name;                                            \
     }                                                                   \
                                                                         \
+    NOINLINE type & TLS_get_ref_ ## name () {                           \
+        return TLS_ ## name;                                            \
+    }                                                                   \
+                                                                        \
     NOINLINE void TLS_set_ ## name (type const &val) {                  \
         TLS_ ## name = val;                                             \
     }
@@ -77,6 +82,10 @@
         TLS_ ## name(MAX_THREADS, cache_line_padded_t<type>(initial));  \
                                                                         \
     type TLS_get_ ## name () {                                          \
+        return TLS_ ## name[get_thread_id().threadnum].value;           \
+    }                                                                   \
+                                                                        \
+    type & TLS_get_ref_ ## name () {                                    \
         return TLS_ ## name[get_thread_id().threadnum].value;           \
     }                                                                   \
                                                                         \
@@ -94,6 +103,10 @@
         return TLS_ ## name;                                            \
     }                                                                   \
                                                                         \
+    NOINLINE type & TLS_get_ref_ ## name () {                           \
+        return TLS_ ## name;                                            \
+    }                                                                   \
+                                                                        \
     NOINLINE void TLS_set_ ## name (type const &val) {                  \
         TLS_ ## name = val;                                             \
     }
@@ -103,6 +116,10 @@
     static cache_line_padded_t<type> TLS_ ## name[MAX_THREADS];         \
                                                                         \
     type TLS_get_ ## name () {                                          \
+        return TLS_ ## name[get_thread_id().threadnum].value;           \
+    }                                                                   \
+                                                                        \
+    type & TLS_get_ref_ ## name () {                                    \
         return TLS_ ## name[get_thread_id().threadnum].value;           \
     }                                                                   \
                                                                         \
