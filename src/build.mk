@@ -378,8 +378,7 @@ $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME): | $(BUILD_DIR)/.
 	$P CP $@
 	cp $(SCRIPTS_DIR)/$(GDB_FUNCTIONS_NAME) $@
 
-.PRECIOUS: $(BUILD_DIR)/web_assets/web_assets.cc
-$(BUILD_DIR)/web_assets/web_assets.cc: $(TOP)/scripts/compile-web-assets.py | $(WEB_ASSETS_BUILD_DIR) $(BUILD_DIR)/web_assets/.
+$(BUILD_DIR)/web_assets/web_assets.cc: $(TOP)/scripts/compile-web-assets.py | $(WEB_ASSETS_BUILD_DIR)/. $(BUILD_DIR)/web_assets/.
 	$P GENERATE
 	$(TOP)/scripts/compile-web-assets.py $(WEB_ASSETS_BUILD_DIR) > $@
 

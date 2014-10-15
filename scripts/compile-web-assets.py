@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import print_function, division
 
@@ -43,12 +43,13 @@ def write_assets(asset_root, assets):
 
         print('    { ' + encode('/' + asset) + ', {', end='')
 
-        data = open(os.path.join(asset_root, asset)).read()
+        data = open(os.path.join(asset_root, asset), "rb").read()
         position = 0 # track the position to keep lines short
         trigraph = 0 # track consecutive question marks to avoid writing trigraphs
         prev_e = None # track the previous character to avoid tacking on hex digits
 
         for c in data:
+            c = byte(c)
 
             if position == 0:
                 # start a new line
@@ -57,13 +58,13 @@ def write_assets(asset_root, assets):
                 trigraph = 0
                 prev_e = None
 
-            if trigraph >= 2 and c in "=/'()!<>-":
+            if trigraph >= 2 and c in b"=/'()!<>-":
                 # split a trigraph
                 print('" "', end='')
                 prev_e = None
                 position += 3
                 trigraph = 0
-            elif c == '?':
+            elif c == b'?':
                 # count the amount of question marks
                 trigraph += 1
             else:
@@ -74,7 +75,7 @@ def write_assets(asset_root, assets):
             print(e, end='')
             position += len(e)
 
-            if position > 82 or c == '\n':
+            if position > 82 or c == b'\n':
                 # end a line if it gets too long and on newlines
                 print('"', end='')
                 position = 0
@@ -89,23 +90,42 @@ def write_assets(asset_root, assets):
 def encode(string):
     return ''.join(
         ['"'] +
-        [encode_char(c) for c in string]
+        [encode_char(byte(c)) for c in string.encode('utf-8')]
         + ['"']
     )
 
+c_escapes = {
+    b'\a': '\\a',
+    b'\b': '\\b',
+    b'\f': '\\f',
+    b'\n': '\\n',
+    b'\r': '\\r',
+    b'\t': '\\t',
+    b'\v': '\\v',
+    b'\\': '\\\\',
+    b'"': '\\"',
+}
+
+# The input character c should be a single character bytes
+# The return value is an ascii-compatible unicode string
 def encode_char(c, previous=None):
-    avoid_hex = previous and previous[0] == '\\' and previous[1] in 'x0'
+    avoid_hex = previous and previous[0] == '\\' and previous[1] in 'x01234567'
     n = ord(c)
-    if c == '\n':
-        return '\\n'
-    if c == '\0':
-        return '\\0'
-    if c in '\\"':
-        return '\\' + c
-    elif 32 <= n and n < 127 and not (avoid_hex and c in '01234567890abcdefABCDEF'):
-        return c
+    if c in c_escapes:
+        return c_escapes[c]
+    if n < 8:
+        return '\\' + str(n)
+    elif 32 <= n and n < 127 and not (avoid_hex and c in b'01234567890abcdefABCDEF'):
+        return c.decode('ascii')
     else:
-        return '\\x' + "%02x" % n
+        return '\\x%x' % n
+
+if sys.version < '3':
+    def byte(b):
+        return b
+else:
+    def byte(b):
+        return bytes([b])
 
 if __name__ == "__main__":
     main()
