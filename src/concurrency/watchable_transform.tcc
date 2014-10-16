@@ -40,7 +40,9 @@ boost::optional<value2_t>
 watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::get_key(
         const key2_t &key2) {
     key1_t key1;
-    key_2_to_1(key2, &key1);
+    if (!key_2_to_1(key2, &key1)) {
+        return boost::optional<value2_t>();
+    }
     boost::optional<value2_t> res;
     inner->read_key(key1, [&](const value1_t *value1) {
         if (value1 != nullptr) {
@@ -70,7 +72,10 @@ template<class key1_t, class value1_t, class key2_t, class value2_t>
 void watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::read_key(
         const key2_t &key2, const std::function<void(const value2_t *)> &cb) {
     key1_t key1;
-    key_2_to_1(key2, &key1);
+    if (!key_2_to_1(key2, &key1)) {
+        cb(nullptr);
+        return;
+    }
     inner->read_key(key1, [&](const value1_t *value1) {
         if (value1 != nullptr) {
             const value2_t *value2;
