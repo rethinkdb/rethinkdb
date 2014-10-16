@@ -19,8 +19,7 @@ pseudo-tables. Subclasses should implement `read_row()` and `write_row()`, in te
 `lookup()`. */
 
 class common_server_artificial_table_backend_t :
-    public artificial_table_backend_t
-{
+    public artificial_table_backend_t {
 public:
     common_server_artificial_table_backend_t(
             boost::shared_ptr< semilattice_read_view_t<
@@ -33,12 +32,18 @@ public:
     }
 
     std::string get_primary_key_name();
-    bool read_all_primary_keys(
+    bool read_all_rows_as_vector(
             signal_t *interruptor,
             std::vector<ql::datum_t> *keys_out,
             std::string *error_out);
 
 protected:
+    virtual bool format_row(name_string_t const & name,
+                            machine_id_t const & machine_id,
+                            machine_semilattice_metadata_t const & machine,
+                            datum_t *row_out,
+                            std::string *error_out) = 0;
+
     /* `lookup()` returns `true` if it finds a row corresponding to the given
     `primary_key` and `false` if it does not find a row. It never produces an error. It
     should only be called on the home thread. */

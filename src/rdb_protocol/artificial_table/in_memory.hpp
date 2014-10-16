@@ -21,17 +21,15 @@ public:
         return "id";
     }
 
-    bool read_all_primary_keys(
+    bool read_all_rows_as_vector(
             signal_t *interruptor,
-            std::vector<ql::datum_t> *keys_out,
+            std::vector<ql::datum_t> *rows_out,
             UNUSED std::string *error_out) {
         random_delay(interruptor);
         on_thread_t thread_switcher(home_thread());
-        keys_out->clear();
-        for (auto it = data.begin(); it != data.end(); ++it) {
-            ql::datum_t key = it->second.get_field("id", ql::NOTHROW);
-            guarantee(key.has());
-            keys_out->push_back(key);
+        rows_out->clear();
+        for (auto const &item : data) {
+            rows_out->push_back(item.second);
         }
         return true;
     }
