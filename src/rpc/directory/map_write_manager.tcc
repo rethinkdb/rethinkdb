@@ -9,8 +9,6 @@
 
 #include "containers/archive/boost_types.hpp"
 
-#define MAX_OUTSTANDING_DIRECTORY_WRITES 4
-
 template<class key_t, class value_t>
 directory_map_write_manager_t<key_t, value_t>::directory_map_write_manager_t(
         connectivity_cluster_t *_connectivity_cluster,
@@ -20,15 +18,14 @@ directory_map_write_manager_t<key_t, value_t>::directory_map_write_manager_t(
     message_tag(_message_tag),
     value(_value),
     timestamp(0),
-    semaphore(MAX_OUTSTANDING_DIRECTORY_WRITES),
     value_subs(value,
         [this](const key_t &key, const value_t *) {
             ++this->timestamp;
-            auto_drainer_t::lock_t this_keepalive(&drainer);
-            for (const auto &pair : last_connections) {
-                coro_t::spawn_sometime(boost::bind(
-                    &directory_map_write_manager_t::send_update, this,
-                    pair.first, pair.second, this_keepalive, key));
+            for (auto &pair : conns) {
+                pair.second.dirty_keys.insert(key);
+                if (pair.second.pulse_on_dirty != nullptr) {
+                    pair.second.pulse_on_dirty->pulse_if_not_already_pulsed();
+                }
             }
         },
         /* `on_connections_change()` will take care of sending initial messages */
@@ -42,31 +39,6 @@ directory_map_write_manager_t<key_t, value_t>::directory_map_write_manager_t(
         connections_freeze(connectivity_cluster->get_connections());
     connections_subs.reset(connectivity_cluster->get_connections(), &connections_freeze);
     on_connections_change();
-}
-
-template<class key_t, class value_t>
-void directory_map_write_manager_t<key_t, value_t>::on_connections_change() {
-    connectivity_cluster_t::connection_map_t current_connections =
-        connectivity_cluster->get_connections()->get();
-    for (auto pair : current_connections) {
-        connectivity_cluster_t::connection_t *connection = pair.second.first;
-        auto_drainer_t::lock_t connection_keepalive = pair.second.second;
-        if (last_connections.count(connection) == 0) {
-            last_connections.insert(std::make_pair(connection, connection_keepalive));
-            auto_drainer_t::lock_t this_keepalive(&drainer);
-            value->read_all([&](const key_t &key, const value_t *) {
-                coro_t::spawn_sometime(boost::bind(
-                    &directory_map_write_manager_t::send_update, this,
-                    connection, connection_keepalive, this_keepalive, key));
-            });
-        }
-    }
-    for (auto next = last_connections.begin(); next != last_connections.end();) {
-        auto pair = next++;
-        if (current_connections.count(pair->first->get_peer_id()) == 0) {
-            last_connections.erase(pair->first);
-        }
-    }
 }
 
 template<class key_t, class value_t>
@@ -94,23 +66,64 @@ private:
 };
 
 template<class key_t, class value_t>
-void directory_map_write_manager_t<key_t, value_t>::send_update(
+void directory_map_write_manager_t<key_t, value_t>::on_connections_change() {
+    connectivity_cluster_t::connection_map_t current_connections =
+        connectivity_cluster->get_connections()->get();
+    for (auto pair : current_connections) {
+        auto res = conns.insert(std::make_pair(pair.second.first, conn_info_t()));
+        if (res.second) {
+            value->read_all([&](const key_t &key, const value_t *) {
+                res.first->second.dirty_keys.insert(key);
+            });
+            coro_t::spawn_sometime(std::bind(
+                &directory_map_write_manager_t::stream_to_conn, this,
+                pair.second.first, pair.second.second, drainer.lock(), res.first));
+        }
+    }
+}
+
+template<class key_t, class value_t>
+void directory_map_write_manager_t<key_t, value_t>::stream_to_conn(
         connectivity_cluster_t::connection_t *connection,
         auto_drainer_t::lock_t connection_keepalive,
         auto_drainer_t::lock_t this_keepalive,
-        const key_t &key) {
-    wait_any_t interruptor(
-        connection_keepalive.get_drain_signal(),
-        this_keepalive.get_drain_signal());
+        typename std::map<connectivity_cluster_t::connection_t *, conn_info_t>::iterator
+            conns_entry) {
     try {
-        new_semaphore_acq_t acq(&semaphore, 1);
-        wait_interruptible(acq.acquisition_signal(), &interruptor);
-        update_writer_t writer(timestamp, key, value->get_key(key));
-        connectivity_cluster->send_message(
-            connection, connection_keepalive, message_tag, &writer);
-    } catch (interrupted_exc_t) {
-        /* Do nothing. The connection was closed, or we're shutting down. */
+        wait_any_t interruptor(
+            connection_keepalive.get_drain_signal(),
+            this_keepalive.get_drain_signal());
+        while (true) {
+            /* Wait until there is at least one dirty key. */
+            if (conns_entry->second.dirty_keys.empty()) {
+                cond_t pulse_on_dirty;
+                assignment_sentry_t<cond_t *> cond_sentry(
+                    &conns_entry->second.pulse_on_dirty,
+                    &pulse_on_dirty);
+                wait_interruptible(&pulse_on_dirty, &interruptor);
+            }
+
+            /* Copy all dirty keys to a local variable, then iterate over that variable.
+            The naive approach would be to always send the first dirty key in
+            `conns_entry` until there are no dirty keys left; but that has starvation
+            issues. */
+            std::set<key_t> dirty_keys;
+            std::swap(dirty_keys, conns_entry->second.dirty_keys);
+            for (const key_t &key : dirty_keys) {
+                /* If the key changed again since we copied `dirty_keys`, we'll be
+                sending the newest value, because we didn't copy the value at the same
+                time as we copied `dirty_keys`. So it's OK to remove the key from
+                `dirty_keys` to prevent sending a redundant message. */
+                conns_entry->second.dirty_keys.erase(key);
+                update_writer_t writer(timestamp, key, value->get_key(key));
+                connectivity_cluster->send_message(
+                    connection, connection_keepalive, message_tag, &writer);
+            }
+        }
+    } catch (const interrupted_exc_t &) {
+        /* OK, we broke out of the loop */
     }
+    conns.erase(conns_entry);
 }
 
 #endif /* RPC_DIRECTORY_MAP_WRITE_MANAGER_TCC_ */

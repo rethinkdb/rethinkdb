@@ -16,25 +16,38 @@ public:
         watchable_map_t<key_t, value_t> *value);
 
 private:
+    /* For each connection, we have an instance of `conn_info_t` in `conns` and a
+    corresponding `stream_to_conn()` coroutine. `on_connections_change()` is responsible
+    for creating the `conn_info_t` and spawning the coroutine; the coroutine is
+    responsible for stopping itself and removing the `conn_info_t`. The coroutine's job
+    is to check for keys marked as dirty in `dirty_keys` and send those key-value pairs
+    over the network. */
+
     class update_writer_t;
 
+    class conn_info_t {
+    public:
+        conn_info_t() : pulse_on_dirty(nullptr) { }
+        /* Whenever a key-value pair changes, the key will be inserted into `dirty_keys`
+        and `pulse_on_dirty` will be pulsed if it is non-null. */
+        std::set<key_t> dirty_keys;
+        cond_t *pulse_on_dirty;
+    };
+
     void on_connections_change();
-    void send_update(
+    void stream_to_conn(
         connectivity_cluster_t::connection_t *connection,
         auto_drainer_t::lock_t connection_keepalive,
         auto_drainer_t::lock_t this_keepalive,
-        const key_t &key);
+        typename std::map<connectivity_cluster_t::connection_t *, conn_info_t>::iterator
+            conns_entry);
 
     connectivity_cluster_t *connectivity_cluster;
     connectivity_cluster_t::message_tag_t message_tag;
     watchable_map_t<key_t, value_t> *value;
 
-    std::map<connectivity_cluster_t::connection_t *, auto_drainer_t::lock_t>
-        last_connections;
+    std::map<connectivity_cluster_t::connection_t *, conn_info_t> conns;
     uint64_t timestamp;
-
-    /* Any time we want to write to the network, we acquire this first. */
-    new_semaphore_t semaphore;
 
     /* Destructor order is important here. First we must destroy the subscriptions, so
     that they don't initiate any new coroutines that would need to lock `drainer`. Then
