@@ -1,12 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/reactor/table_driver.hpp"
 
-table_driver_business_card_t table_driver_t::get_table_driver_business_card() {
-    table_driver_business_card_t b;
-    b.control = control_mailbox.get_address();
-    return b;
-}
-
 table_driver_t::table_driver_t(
         mailbox_manager_t *_mailbox_manager,
         watchable_map_t<peer_id_t, table_driver_business_card_t>
@@ -27,6 +21,12 @@ table_driver_t::table_driver_t(
     }
 }
 
+table_driver_business_card_t table_driver_t::get_table_driver_business_card() {
+    table_driver_business_card_t b;
+    b.control = control_mailbox.get_address();
+    return b;
+}
+
 void table_driver_t::on_table_directory_change(
         const std::pair<peer_id_t, namespace_id_t> &key,
         const table_business_card_t *value) {
@@ -45,7 +45,8 @@ void table_driver_t::on_table_directory_change(
             tab_it->second.peers.delete_key(key.first);
         }
     }
-    /* Send a control message to the peer if appropriate */
+    /* Send a control message to the peer if their new state warrants a control message
+    */
     maybe_send_control(key.second, peer.first);
 }
 
