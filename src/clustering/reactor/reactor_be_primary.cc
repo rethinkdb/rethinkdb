@@ -141,18 +141,19 @@ bool reactor_t::is_safe_for_us_to_be_primary(
             continue;
         }
 
-        bool its_not_safe = false;
+        bool its_not_safe, merge_branch_history;
         directory->read_key(peer, [&](const cow_ptr_t<reactor_business_card_t> *value) {
             if (value == nullptr) {
                 /* Peer is not connected */
                 its_not_safe = true;
+                merge_branch_history = false;
                 return;
             }
             is_safe_for_us_to_be_primary_helper(peer, **value, region, &res,
-                branch_history_to_merge_out, merge_branch_history_out,
-                &its_not_safe);
+                branch_history_to_merge_out, &merge_branch_history, &its_not_safe);
         });
-        if (*merge_branch_history_out) {
+        if (merge_branch_history) {
+            *merge_branch_history_out = true;
             return true;
         }
         if (its_not_safe) {
@@ -200,6 +201,7 @@ void reactor_t::is_safe_for_us_to_be_primary_helper(
                         if (!std_contains(known_branchs, bt->first)) {
                             *branch_history_to_merge_out = bh;
                             *merge_branch_history_out = true;
+                            *its_not_safe_out = false;
                             return;
                         }
                     }
@@ -220,6 +222,7 @@ void reactor_t::is_safe_for_us_to_be_primary_helper(
                         if (!std_contains(known_branchs, bt->first)) {
                             *branch_history_to_merge_out = bh;
                             *merge_branch_history_out = true;
+                            *its_not_safe_out = false;
                             return;
                         }
                     }
@@ -236,10 +239,12 @@ void reactor_t::is_safe_for_us_to_be_primary_helper(
                 } else if (boost::get<rb_t::nothing_when_done_erasing_t>(&it->second.activity)) {
                     //Everything's fine this peer cannot obstruct us so we shall proceed
                 } else {
+                    *merge_branch_history_out = false;
                     *its_not_safe_out = true;
                     return;
                 }
             } catch (const divergent_data_exc_t &) {
+                *merge_branch_history_out = false;
                 *its_not_safe_out = true;
                 return;
             }
@@ -252,9 +257,11 @@ void reactor_t::is_safe_for_us_to_be_primary_helper(
 
     switch (join_result) {
     case REGION_JOIN_OK:
+        *merge_branch_history_out = false;
         *its_not_safe_out = (join != region);
         return;
     case REGION_JOIN_BAD_REGION:
+        *merge_branch_history_out = false;
         *its_not_safe_out = true;
         return;
     case REGION_JOIN_BAD_JOIN:
