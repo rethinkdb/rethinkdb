@@ -52,7 +52,7 @@ void file_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t
         return;
     }
 
-    const std::pair<const char *, size_t> &resource_data = it->second;
+    const std::string &resource_data = it->second;
 
     time_t expires;
 #ifndef NDEBUG
@@ -94,7 +94,7 @@ void file_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t
     result->add_header_line("Content-Type", mimetype);
 
     if (asset_dir.empty()) {
-        result->body.assign(resource_data.first, resource_data.second);
+        result->body.assign(resource_data.begin(), resource_data.end());
         result->code = 200;
     } else {
         thread_pool_t::run_in_blocker_pool(boost::bind(&file_http_app_t::handle_blocking, this, filename, result));
