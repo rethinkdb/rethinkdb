@@ -40,10 +40,8 @@ void file_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t
         filename = resource;
     }
 
-    std::pair<const char *, size_t> resource_data;
-    try {
-        resource_data = static_web_assets.at(filename);
-    } catch (std::out_of_range) {
+    auto it = static_web_assets.find(filename);
+    if (it == static_web_assets.end()) {
         printf_buffer_t resource_buffer;
         debug_print_quoted_string(&resource_buffer,
                                   reinterpret_cast<const uint8_t *>(resource.data()),
@@ -53,6 +51,8 @@ void file_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t
         *result = http_res_t(HTTP_FORBIDDEN);
         return;
     }
+
+    const std::pair<const char *, size_t> &resource_data = it->second;
 
     time_t expires;
 #ifndef NDEBUG
