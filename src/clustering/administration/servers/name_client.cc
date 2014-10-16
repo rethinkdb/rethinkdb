@@ -111,7 +111,9 @@ bool server_name_client_t::rename_server(
     cond_t got_reply;
     mailbox_t<void()> ack_mailbox(
         mailbox_manager,
-        [&]() { got_reply.pulse(); }); // NOLINT whitespace/newline
+        [&](UNUSED signal_t *interruptor2) {
+            got_reply.pulse();
+        });
     disconnect_watcher_t disconnect_watcher(mailbox_manager, rename_addr.get_peer());
     send(mailbox_manager, rename_addr, new_name, ack_mailbox.get_address());
     wait_any_t waiter(&got_reply, &disconnect_watcher);
@@ -169,7 +171,9 @@ bool server_name_client_t::retag_server(
     cond_t got_reply;
     mailbox_t<void()> ack_mailbox(
         mailbox_manager,
-        [&]() { got_reply.pulse(); }); // NOLINT whitespace/newline
+        [&](UNUSED signal_t *interruptor2) {
+            got_reply.pulse();
+        });
     disconnect_watcher_t disconnect_watcher(mailbox_manager, retag_addr.get_peer());
     send(mailbox_manager, retag_addr, new_tags, ack_mailbox.get_address());
     wait_any_t waiter(&got_reply, &disconnect_watcher);

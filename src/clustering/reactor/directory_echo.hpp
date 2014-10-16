@@ -74,13 +74,12 @@ public:
     }
 
 private:
-    void on_ack(peer_id_t peer, directory_echo_version_t version, auto_drainer_t::lock_t);
+    void on_ack(signal_t *interruptor, peer_id_t peer, directory_echo_version_t version);
 
     std::map<peer_id_t, directory_echo_version_t> last_acked;
     std::map<peer_id_t, std::multimap<directory_echo_version_t, ack_waiter_t *> > waiters;
     mutex_assertion_t ack_lock;
 
-    auto_drainer_t drainer;
     mailbox_t<void(peer_id_t, directory_echo_version_t)> ack_mailbox;
 
     watchable_variable_t<directory_echo_wrapper_t<internal_t> > value_watchable;

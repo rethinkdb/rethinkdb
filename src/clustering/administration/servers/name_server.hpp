@@ -48,18 +48,20 @@ public:
 private:
     /* `on_rename_request()` is called in response to a rename request over the network.
     It renames unconditionally, without checking for name collisions. */
-    void on_rename_request(const name_string_t &new_name,
+    void on_rename_request(signal_t *interruptor,
+                           const name_string_t &new_name,
                            mailbox_t<void()>::address_t ack_addr);
 
     /* `on_retag_request()` is called in response to a tag change request over the
     network */
-    void on_retag_request(const std::set<name_string_t> &new_tags,
-                           mailbox_t<void()>::address_t ack_addr);
+    void on_retag_request(signal_t *interruptor,
+                          const std::set<name_string_t> &new_tags,
+                          mailbox_t<void()>::address_t ack_addr);
 
     /* `on_semilattice_change()` checks if we have been permanently removed. It does not
     block. */
     void on_semilattice_change();
-    
+
     mailbox_manager_t *mailbox_manager;
     machine_id_t my_machine_id;
     name_string_t my_name;
@@ -70,8 +72,6 @@ private:
         cluster_directory_metadata_t> > > directory_view;
     boost::shared_ptr<semilattice_readwrite_view_t<machines_semilattice_metadata_t> >
         semilattice_view;
-
-    auto_drainer_t drainer;
 
     server_name_business_card_t::rename_mailbox_t rename_mailbox;
     server_name_business_card_t::retag_mailbox_t retag_mailbox;

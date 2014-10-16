@@ -39,7 +39,8 @@ void *rmalloc(size_t size);
 /* Calls `realloc()` and checks its return value to crash if the allocation fails. */
 void *rrealloc(void *ptr, size_t size);
 
-
+/* Forwards to the isfinite macro, or std::isfinite. */
+bool risfinite(double);
 
 
 class rng_t {

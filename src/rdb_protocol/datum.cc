@@ -265,9 +265,7 @@ datum_t::datum_t(construct_binary_t dummy, datum_string_t _data)
     : data(dummy, std::move(_data)) { }
 
 datum_t::datum_t(double _num) : data(_num) {
-    // isfinite is a macro on OS X in math.h, so we can't just say std::isfinite.
-    using namespace std; // NOLINT(build/namespaces) due to platform variation
-    rcheck(isfinite(data.r_num), base_exc_t::GENERIC,
+    rcheck(risfinite(data.r_num), base_exc_t::GENERIC,
            strprintf("Non-finite number: %" PR_RECONSTRUCTABLE_DOUBLE, data.r_num));
 }
 

@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "utils.hpp"
 
+#include <math.h>
 #include <ftw.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -224,6 +225,12 @@ void *rrealloc(void *ptr, size_t size) {
         crash_oom();
     }
     return res;
+}
+
+bool risfinite(double arg) {
+    // isfinite is a macro on OS X in math.h, so we can't just say std::isfinite.
+    using namespace std; // NOLINT(build/namespaces) due to platform variation
+    return isfinite(arg);
 }
 
 rng_t::rng_t(int seed) {

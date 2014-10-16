@@ -20,12 +20,12 @@ namespace changefeed {
 server_t::server_t(mailbox_manager_t *_manager)
     : uuid(generate_uuid()),
       manager(_manager),
-      stop_mailbox(manager, std::bind(&server_t::stop_mailbox_cb, this, ph::_1)) { }
+      stop_mailbox(manager,
+        std::bind(&server_t::stop_mailbox_cb, this, ph::_1, ph::_2)) { }
 
 server_t::~server_t() { }
 
-void server_t::stop_mailbox_cb(client_t::addr_t addr) {
-    auto_drainer_t::lock_t lock(&drainer);
+void server_t::stop_mailbox_cb(signal_t *, client_t::addr_t addr) {
     rwlock_in_line_t spot(&clients_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
     auto it = clients.find(addr);
@@ -248,7 +248,7 @@ private:
                             const std::vector<int> &subscription_threads,
                             int i);
     void each_point_sub_cb(const std::function<void(subscription_t *)> &f, int i);
-    void mailbox_cb(stamped_msg_t msg);
+    void mailbox_cb(signal_t *interruptor, stamped_msg_t msg);
     void constructor_cb();
 
     client_t *client;
@@ -725,12 +725,13 @@ client_t::addr_t feed_t::get_addr() const {
     return mailbox.get_address();
 }
 
-void feed_t::mailbox_cb(stamped_msg_t msg) {
+void feed_t::mailbox_cb(signal_t *, stamped_msg_t msg) {
     // We stop receiving messages when detached (we're only receiving
     // messages because we haven't managed to get a message to the
     // stop mailboxes for some of the masters yet).  This also stops
     // us from trying to handle a message while waiting on the auto
-    // drainer.
+    // drainer. Because we acquire the auto drainer, we don't pay any
+    // attention to the mailbox's signal.
     if (!detached) {
         auto_drainer_t::lock_t lock(&drainer);
 
@@ -775,7 +776,7 @@ feed_t::feed_t(client_t *_client,
       client(_client),
       uuid(_uuid),
       manager(_manager),
-      mailbox(manager, std::bind(&feed_t::mailbox_cb, this, ph::_1)),
+      mailbox(manager, std::bind(&feed_t::mailbox_cb, this, ph::_1, ph::_2)),
       table_subs(get_num_threads()),
       /* We only use comparison in the point_subs map for equality purposes, not
          ordering -- and this isn't in a secondary index function.  Thus

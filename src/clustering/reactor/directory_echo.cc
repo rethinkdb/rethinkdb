@@ -37,14 +37,16 @@ template<class internal_t>
 directory_echo_writer_t<internal_t>::directory_echo_writer_t(
         mailbox_manager_t *mm,
         const internal_t &initial) :
-    ack_mailbox(mm, std::bind(&directory_echo_writer_t<internal_t>::on_ack, this, ph::_1, ph::_2, auto_drainer_t::lock_t(&drainer))),
+    ack_mailbox(mm, std::bind(&directory_echo_writer_t<internal_t>::on_ack, this, ph::_1, ph::_2, ph::_3)),
     value_watchable(directory_echo_wrapper_t<internal_t>(initial, 0, ack_mailbox.get_address())),
     version(0)
     { }
 
 template<class internal_t>
-void directory_echo_writer_t<internal_t>::on_ack(peer_id_t peer, directory_echo_version_t _version, auto_drainer_t::lock_t lock) {
-    lock.assert_is_holding(&drainer);
+void directory_echo_writer_t<internal_t>::on_ack(
+        UNUSED signal_t *interruptor, 
+        peer_id_t peer,
+        directory_echo_version_t _version) {
     DEBUG_VAR mutex_assertion_t::acq_t acq(&ack_lock);
     std::map<peer_id_t, directory_echo_version_t>::iterator it = last_acked.find(peer);
     if (it == last_acked.end() || it->second < _version) {

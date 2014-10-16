@@ -8,6 +8,7 @@
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/val.hpp"
+#include "utils.hpp"
 
 #include "debug.hpp"
 
@@ -1075,6 +1076,51 @@ union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
         }
     }
     return std::vector<datum_t>();
+}
+
+// RANGE_DATUM_STREAM_T
+range_datum_stream_t::range_datum_stream_t(bool _is_infinite,
+                                           int64_t _start,
+                                           int64_t _stop,
+                                           const protob_t<const Backtrace> &bt_source)
+    : eager_datum_stream_t(bt_source),
+      is_infinite(_is_infinite),
+      start(_start),
+      stop(_stop) { }
+
+std::vector<datum_t>
+range_datum_stream_t::next_raw_batch(env_t *, const batchspec_t &batchspec) {
+    rcheck(!is_infinite
+           || batchspec.get_batch_type() == batch_type_t::NORMAL
+           || batchspec.get_batch_type() == batch_type_t::NORMAL_FIRST,
+           base_exc_t::GENERIC,
+           "Cannot call a terminal (`reduce`, `count`, etc.) on an infinite stream.");
+
+    std::vector<datum_t> v;
+    // 500 is picked out of a hat for latency, primarily in the Data Explorer. If you
+    // think strongly it should be something else you're probably right.
+    batcher_t batcher = batchspec.with_at_most(500).to_batcher();
+
+    while (!is_exhausted()) {
+        double next = safe_to_double(start++);
+        // `safe_to_double` returns NaN on error, which signals that `start` is larger
+        // than 2^53 indicating we've reached the end of our infinite stream. This must
+        // be checked before creating a `datum_t` as that does a similar check on
+        // construction.
+        rcheck(risfinite(next), base_exc_t::GENERIC,
+               "`range` out of safe double bounds.");
+
+        v.emplace_back(next);
+        batcher.note_el(v.back());
+        if (batcher.should_send_batch()) {
+            break;
+        }
+    }
+    return v;
+}
+
+bool range_datum_stream_t::is_exhausted() const {
+    return !is_infinite && start >= stop;
 }
 
 } // namespace ql
