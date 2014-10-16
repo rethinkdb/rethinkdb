@@ -270,7 +270,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         res->addrs.insert(store->changefeed_server->get_stop_addr());
     }
 
-    // RSI: limit unsubscribe
     void operator()(const changefeed_limit_subscribe_t &s) {
         ql::env_t env(ctx, interruptor, std::map<std::string, ql::wire_func_t>(), trace);
         ql::stream_t stream;
@@ -283,7 +282,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             if (s.spec.range.sindex) {
                 rget.sindex = sindex_rangespec_t(
                     *s.spec.range.sindex,
-                    region_t::universe(), // RSI: is this OK (oversharding)?
+                    s.region,
                     ql::datum_range_t::universe());
             }
             // RSI: rget.terminal for truncation!

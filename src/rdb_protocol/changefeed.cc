@@ -272,6 +272,7 @@ uuid_u server_t::get_uuid() {
 }
 
 void server_t::foreach_limit(const boost::optional<std::string> &sindex,
+                             const store_key_t &pkey,
                              std::function<void(limit_manager_t *)> f) {
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::read);
@@ -284,10 +285,13 @@ void server_t::foreach_limit(const boost::optional<std::string> &sindex,
         auto it = client.second.limit_clients.find(sindex);
         if (it != client.second.limit_clients.end()) {
             for (auto &&lc : it->second) {
-                auto_drainer_t::lock_t lc_lock(&lc->drainer);
-                rwlock_in_line_t lc_spot(&lc->lock, access_t::write);
-                lc_spot.write_signal()->wait_lazily_unordered();
-                f(lc.get());
+                guarantee(lc.has());
+                if (lc->region.inner.contains_key(pkey)) {
+                    auto_drainer_t::lock_t lc_lock(&lc->drainer);
+                    rwlock_in_line_t lc_spot(&lc->lock, access_t::write);
+                    lc_spot.write_signal()->wait_lazily_unordered();
+                    f(lc.get());
+                }
             }
         }
     }
@@ -387,10 +391,14 @@ void limit_manager_t::del(std::string id) {
 
 class ref_visitor_t : public boost::static_visitor<lvec_t> {
 public:
-    ref_visitor_t(sorting_t _sorting,
+    ref_visitor_t(key_range_t _pk_range,
+                  sorting_t _sorting,
                   boost::optional<lqueue_t::iterator> _start,
                   size_t _n)
-        : sorting(_sorting), start(std::move(_start)), n(_n) { }
+        : pk_range(std::move(_pk_range)),
+          sorting(_sorting),
+          start(std::move(_start)),
+          n(_n) { }
 
     lvec_t operator()(const primary_ref_t &ref) {
         rget_read_response_t resp;
@@ -466,7 +474,7 @@ public:
             batchspec_t::all().with_at_most(n), // RSI: ACC_TERMINAL
             std::vector<transform_variant_t>(),
             boost::optional<terminal_variant_t>(), // RSI: ACC_TERMINAL,
-            datum_range_t::universe().to_primary_keyrange(), // RSI: use restricted range
+            pk_range,
             sorting,
             *ref.sindex_info,
             &resp,
@@ -500,6 +508,7 @@ public:
     }
 
 private:
+    key_range_t pk_range;
     sorting_t sorting;
     boost::optional<lqueue_t::iterator> start;
     size_t n;
@@ -511,7 +520,7 @@ lvec_t limit_manager_t::read_more(
     const boost::optional<lqueue_t::iterator> &start,
     size_t n) {
     debugf("~~ READ_MORE\n");
-    ref_visitor_t visitor{sorting, start, n};
+    ref_visitor_t visitor(region.inner, sorting, start, n);
     return boost::apply_visitor(visitor, ref);
 }
 

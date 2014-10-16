@@ -1305,6 +1305,7 @@ void rdb_modification_report_cb_t::on_mod_report(
         debugf("PKEY commit\n");
         store_->changefeed_server->foreach_limit(
             boost::optional<std::string>(),
+            report.primary_key,
             [&](ql::changefeed::limit_manager_t *lm) {
                 debugf("1 pkey commit\n");
                 if (!lm->drainer.is_draining()) {
@@ -1568,6 +1569,7 @@ void rdb_update_single_sindex(
             compute_keys(modification->primary_key, deleted, sindex_info, &keys);
             server->foreach_limit(
                 sindex->name.name,
+                modification->primary_key,
                 [&](ql::changefeed::limit_manager_t *lm) {
                     for (const auto &pair :keys) {
                         lm->del(ql::datum_t::extract_primary(
@@ -1622,6 +1624,7 @@ void rdb_update_single_sindex(
             compute_keys(modification->primary_key, added, sindex_info, &keys);
             server->foreach_limit(
                 sindex->name.name,
+                modification->primary_key,
                 [&](ql::changefeed::limit_manager_t *lm) {
                     for (const auto &pair :keys) {
                         lm->add(ql::datum_t::extract_primary(
@@ -1665,6 +1668,7 @@ void rdb_update_single_sindex(
     using namespace std::placeholders;
     server->foreach_limit(
         sindex->name.name,
+        modification->primary_key,
         [&](ql::changefeed::limit_manager_t *lm) {
             lm->commit(ql::changefeed::sindex_ref_t{
                     env, sindex->btree, superblock, &sindex_info});

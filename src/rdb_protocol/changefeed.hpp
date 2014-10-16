@@ -418,6 +418,7 @@ public:
     // `f` will be called with a read lock on `clients` and a write lock on the
     // limit manager.
     void foreach_limit(const boost::optional<std::string> &s,
+                       const store_key_t &pkey,
                        std::function<void(limit_manager_t *)> f);
 private:
     friend class limit_manager_t;
