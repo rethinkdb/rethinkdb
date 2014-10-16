@@ -260,7 +260,7 @@ void mailbox_manager_t::mailbox_read_coroutine(
                 try {
                     auto_drainer_t::lock_t keepalive(&mbox->drainer);
                     mbox->callback->read(&stream, keepalive.get_drain_signal());
-                } catch (interrupted_exc_t) {
+                } catch (const interrupted_exc_t &) {
                     /* Do nothing. It's no longer safe to access `mbox` (because the
                     destructor is running) but otherwise we don't need to take any
                     special action. */
