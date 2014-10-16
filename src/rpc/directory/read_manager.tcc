@@ -7,8 +7,6 @@
 #include <map>
 #include <utility>
 
-#include "debug.hpp"
-
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/wait_any.hpp"
 #include "config/args.hpp"

@@ -8,7 +8,6 @@
 #include <boost/bind.hpp>
 
 #include "containers/archive/boost_types.hpp"
-#include "debug.hpp"
 
 template<class key_t, class value_t>
 directory_map_read_manager_t<key_t, value_t>::directory_map_read_manager_t(

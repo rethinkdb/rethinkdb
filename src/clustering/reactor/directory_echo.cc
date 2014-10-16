@@ -4,8 +4,6 @@
 #include <functional>
 #include <map>
 
-#include "debug.hpp"
-
 template<class internal_t>
 directory_echo_writer_t<internal_t>::our_value_change_t::our_value_change_t(directory_echo_writer_t *p) :
         parent(p), lock_acq(&parent->value_lock), buffer(parent->value_watchable.get_watchable()->get().internal) { }
@@ -126,10 +124,3 @@ template class directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> >;
 template class directory_echo_writer_t<cow_ptr_t<reactor_business_card_t> >;
 template class directory_echo_mirror_t<cow_ptr_t<reactor_business_card_t> >;
 
-/* 
-#include <string>  // NOLINT(build/include_order)
-
-template class directory_echo_wrapper_t<std::string>;
-template class directory_echo_writer_t<std::string>;
-template class directory_echo_mirror_t<std::string>;
-*/
