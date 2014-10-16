@@ -202,10 +202,6 @@ void reactor_t::run_cpu_sharded_role(
     }
 }
 
-bool we_see_our_bcard(const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &bcards, peer_id_t me) {
-    return std_contains(bcards.get_inner(), me);
-}
-
 void reactor_t::run_role(
         region_t region,
         current_role_t *role,

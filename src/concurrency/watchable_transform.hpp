@@ -15,7 +15,7 @@ function of the content of another `watchable_map_t`. */
 template<class key1_t, class value1_t, class key2_t, class value2_t>
 class watchable_map_transform_t : public watchable_map_t<key2_t, value2_t> {
 public:
-    watchable_map_transform_t(watchable_map_t<key1_t, value1_t> *inner);
+    explicit watchable_map_transform_t(watchable_map_t<key1_t, value1_t> *inner);
 
     /* `key_1_to_2` converts a key in the input watchable into the corresponding key for
     the output watchable. It can return `false` to indicate that the key should be
