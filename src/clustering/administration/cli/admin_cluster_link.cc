@@ -1190,7 +1190,8 @@ void admin_cluster_link_t::list_pinnings_internal(const persistable_blueprint_t&
 struct admin_stats_request_t {
     explicit admin_stats_request_t(mailbox_manager_t *mailbox_manager) :
         response_mailbox(mailbox_manager,
-                         std::bind(&promise_t<perfmon_result_t>::pulse, &stats_promise, ph::_1)) { }
+            [this](signal_t *, const perfmon_result_t &s) { stats_promise.pulse(s); })
+        { }
     promise_t<perfmon_result_t> stats_promise;
     mailbox_t<void(perfmon_result_t)> response_mailbox;
 };

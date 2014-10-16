@@ -85,11 +85,11 @@ listener_t::listener_t(const base_path_t &base_path,
     write_queue_semaphore_(SEMAPHORE_NO_LIMIT,
         WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
     write_mailbox_(mailbox_manager_,
-        std::bind(&listener_t::on_write, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5)),
+        std::bind(&listener_t::on_write, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6)),
     writeread_mailbox_(mailbox_manager_,
-        std::bind(&listener_t::on_writeread, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6)),
+        std::bind(&listener_t::on_writeread, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7)),
     read_mailbox_(mailbox_manager_,
-        std::bind(&listener_t::on_read, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5))
+        std::bind(&listener_t::on_read, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6))
 {
     boost::optional<boost::optional<broadcaster_business_card_t> > business_card =
         broadcaster_metadata->get();
@@ -156,7 +156,7 @@ listener_t::listener_t(const base_path_t &base_path,
         cond_t backfiller_is_up_to_date;
         mailbox_t<void()> ack_mbox(
             mailbox_manager_,
-            std::bind(&cond_t::pulse, &backfiller_is_up_to_date));
+            [&](signal_t *) { backfiller_is_up_to_date.pulse(); });
 
         resource_access_t<replier_business_card_t> replier_access(replier);
         send(mailbox_manager_, replier_access.access().synchronize_mailbox, streaming_begin_point, ack_mbox.get_address());
@@ -260,11 +260,11 @@ listener_t::listener_t(const base_path_t &base_path,
     write_queue_semaphore_(WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY,
         WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
     write_mailbox_(mailbox_manager_,
-        std::bind(&listener_t::on_write, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5)),
+        std::bind(&listener_t::on_write, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6)),
     writeread_mailbox_(mailbox_manager_,
-        std::bind(&listener_t::on_writeread, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6)),
+        std::bind(&listener_t::on_writeread, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7)),
     read_mailbox_(mailbox_manager_,
-        std::bind(&listener_t::on_read, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5))
+        std::bind(&listener_t::on_read, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6))
 {
     branch_birth_certificate_t this_branch_history;
     {
@@ -323,7 +323,13 @@ listener_t::listener_t(const base_path_t &base_path,
             WRITE_QUEUE_CORO_POOL_SIZE, &write_queue_, write_queue_coro_pool_callback_.get()));
 }
 
-listener_t::~listener_t() { }
+listener_t::~listener_t() {
+    /* Shut down all three in parallel so we don't have to wait for each one's coroutines
+    to stop before we start stopping the next one's coroutines */
+    write_mailbox_.begin_shutdown();
+    writeread_mailbox_.begin_shutdown();
+    read_mailbox_.begin_shutdown();
+}
 
 signal_t *listener_t::get_broadcaster_lost_signal() {
     return registrant_->get_failed_signal();
@@ -355,28 +361,21 @@ listener_t::get_registrar_from_broadcaster_bcard(const boost::optional<boost::op
     }
 }
 
-
-/* `listener_intro_t` represents the introduction we expect to get from the
-   broadcaster if all goes well. */
-class intro_receiver_t : public signal_t {
-public:
-    listener_intro_t intro;
-    void fill(listener_intro_t _intro) {
-        guarantee(!is_pulsed());
-        intro = _intro;
-        pulse();
-    }
-};
-
 void listener_t::try_start_receiving_writes(
         clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, broadcaster_lost_exc_t)
 {
-    intro_receiver_t intro_receiver;
+    /* `listener_intro_t` represents the introduction we expect to get from the
+   broadcaster if all goes well. */
+    listener_intro_t intro;
+    cond_t got_intro;
     listener_business_card_t::intro_mailbox_t
         intro_mailbox(mailbox_manager_,
-                      std::bind(&intro_receiver_t::fill, &intro_receiver, ph::_1));
+            [&](signal_t *, const listener_intro_t &i) {
+                intro = i;
+                got_intro.pulse();
+            });
 
     try {
         registrant_.init(new registrant_t<listener_business_card_t>(
@@ -387,27 +386,27 @@ void listener_t::try_start_receiving_writes(
         throw broadcaster_lost_exc_t();
     }
 
-    wait_any_t waiter(&intro_receiver, registrant_->get_failed_signal());
+    wait_any_t waiter(&got_intro, registrant_->get_failed_signal());
     wait_interruptible(&waiter, interruptor);   /* May throw `interrupted_exc_t` */
 
     if (registrant_->get_failed_signal()->is_pulsed()) {
         throw broadcaster_lost_exc_t();
     } else {
-        guarantee(intro_receiver.is_pulsed());
-        registration_done_cond_.pulse(intro_receiver.intro);
+        guarantee(got_intro.is_pulsed());
+        registration_done_cond_.pulse(intro);
     }
 }
 
-void listener_t::on_write(const write_t &write,
+void listener_t::on_write(
+        signal_t *interruptor,        
+        const write_t &write,
         transition_timestamp_t transition_timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void()> ack_addr)
         THROWS_NOTHING {
     try {
-        cond_t dummy_interruptor;
-        local_write(write, transition_timestamp, order_token, fifo_token,
-                    &dummy_interruptor);
+        local_write(write, transition_timestamp, order_token, fifo_token, interruptor);
         send(mailbox_manager_, ack_addr);
     } catch (const interrupted_exc_t &) {
         /* pass */
@@ -475,7 +474,9 @@ void listener_t::perform_enqueued_write(const write_queue_entry_t &qe,
         interruptor);
 }
 
-void listener_t::on_writeread(const write_t &write,
+void listener_t::on_writeread(
+        signal_t *interruptor,        
+        const write_t &write,
         transition_timestamp_t transition_timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
@@ -483,10 +484,9 @@ void listener_t::on_writeread(const write_t &write,
         write_durability_t durability)
         THROWS_NOTHING {
     try {
-        cond_t dummy_interruptor;
         write_response_t response = local_writeread(write, transition_timestamp,
                                                     order_token, fifo_token,
-                                                    durability, &dummy_interruptor);
+                                                    durability, interruptor);
         send(mailbox_manager_, ack_addr, response);
     } catch (const interrupted_exc_t &) {
         /* pass */
@@ -547,16 +547,17 @@ write_response_t listener_t::local_writeread(const write_t &write,
     return response;
 }
 
-void listener_t::on_read(const read_t &read,
+void listener_t::on_read(
+        signal_t *interruptor,
+        const read_t &read,
         state_timestamp_t expected_timestamp,
         order_token_t order_token,
         fifo_enforcer_read_token_t fifo_token,
         mailbox_addr_t<void(read_response_t)> ack_addr)
         THROWS_NOTHING {
     try {
-        cond_t dummy_interruptor;
         read_response_t response = local_read(read, expected_timestamp, order_token,
-                                              fifo_token, &dummy_interruptor);
+                                              fifo_token, interruptor);
         send(mailbox_manager_, ack_addr, response);
     } catch (const interrupted_exc_t &) {
         /* pass */

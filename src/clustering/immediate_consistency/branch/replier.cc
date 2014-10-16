@@ -16,7 +16,7 @@ replier_t::replier_t(listener_t *li,
                                    this,
                                    ph::_1,
                                    ph::_2,
-                                   auto_drainer_t::lock_t(&drainer_))),
+                                   ph::_3)),
 
     /* Start serving backfills */
     backfiller_(mailbox_manager_,
@@ -55,9 +55,12 @@ replier_business_card_t replier_t::get_business_card() {
     return replier_business_card_t(synchronize_mailbox_.get_address(), backfiller_.get_business_card());
 }
 
-void replier_t::on_synchronize(state_timestamp_t timestamp, mailbox_addr_t<void()> ack_mbox, auto_drainer_t::lock_t keepalive) {
+void replier_t::on_synchronize(
+        signal_t *interruptor,
+        state_timestamp_t timestamp,
+        mailbox_addr_t<void()> ack_mbox) {
     try {
-        listener_->wait_for_version(timestamp, keepalive.get_drain_signal());
+        listener_->wait_for_version(timestamp, interruptor);
         send(mailbox_manager_, ack_mbox);
     } catch (const interrupted_exc_t &) {
     }

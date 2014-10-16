@@ -48,7 +48,7 @@ public:
     request_address_t get_request_mailbox_address() const;
 
 private:
-    void handle_request(result_address_t result_address);
+    void handle_request(signal_t *interruptor, result_address_t result_address);
 
     mailbox_manager_t *mailbox_manager;
     request_mailbox_t request_mailbox;

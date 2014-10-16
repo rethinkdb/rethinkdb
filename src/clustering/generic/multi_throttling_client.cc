@@ -47,13 +47,15 @@ multi_throttling_client_t<request_type, inner_client_business_card_type>::multi_
     free_tickets(0),
     to_relinquish(0),
     give_tickets_mailbox(mailbox_manager,
-        std::bind(&multi_throttling_client_t::on_give_tickets, this, ph::_1)),
+        std::bind(&multi_throttling_client_t::on_give_tickets, this, ph::_1, ph::_2)),
     reclaim_tickets_mailbox(mailbox_manager,
-        std::bind(&multi_throttling_client_t::on_reclaim_tickets, this, ph::_1))
+        std::bind(&multi_throttling_client_t::on_reclaim_tickets, this, ph::_1, ph::_2))
 {
     mailbox_t<void(server_business_card_t)> intro_mailbox(
         mailbox_manager,
-        std::bind(&promise_t<server_business_card_t>::pulse, &intro_promise, ph::_1));
+        [&](signal_t *, const server_business_card_t &bc) {
+            intro_promise.pulse(bc);
+        });
 
     {
         const client_business_card_t client_business_card(inner_client_business_card,
@@ -116,7 +118,8 @@ boost::optional<boost::optional<registrar_business_card_t<typename multi_throttl
 }
 
 template <class request_type, class inner_client_business_card_type>
-void multi_throttling_client_t<request_type, inner_client_business_card_type>::on_give_tickets(int count) {
+void multi_throttling_client_t<request_type, inner_client_business_card_type>::
+        on_give_tickets(UNUSED signal_t *interruptor, int count) {
     free_tickets += count;
     pump_free_tickets();
 }
@@ -137,7 +140,8 @@ void multi_throttling_client_t<request_type, inner_client_business_card_type>::p
 }
 
 template <class request_type, class inner_client_business_card_type>
-void multi_throttling_client_t<request_type, inner_client_business_card_type>::on_reclaim_tickets(int count) {
+void multi_throttling_client_t<request_type, inner_client_business_card_type>::
+        on_reclaim_tickets(UNUSED signal_t *interruptor, int count) {
     /* We must try out best to relinquish as many tickets as the server asked us
        to. Otherwise the target tickets can drift increasingly far away
        from the actual tickets we have.

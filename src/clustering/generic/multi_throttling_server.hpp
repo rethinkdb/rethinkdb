@@ -64,9 +64,9 @@ private:
             drainer(new auto_drainer_t),
 
             request_mailbox(new mailbox_t<void(request_type)>(parent->mailbox_manager,
-                std::bind(&client_t::on_request, this, ph::_1))),
+                std::bind(&client_t::on_request, this, ph::_1, ph::_2))),
             relinquish_tickets_mailbox(new mailbox_t<void(int)>(parent->mailbox_manager,
-                std::bind(&client_t::on_relinquish_tickets, this, ph::_1)))
+                std::bind(&client_t::on_relinquish_tickets, this, ph::_1, ph::_2)))
         {
             send(parent->mailbox_manager, client_bc.intro_addr,
                  server_business_card_t(request_mailbox->get_address(),
@@ -121,15 +121,14 @@ private:
         }
 
     private:
-        void on_request(const request_type &request) {
+        void on_request(signal_t *interruptor, const request_type &request) {
             guarantee(held_tickets > 0);
             held_tickets--;
             in_use_tickets++;
 
-            auto_drainer_t::lock_t keepalive(drainer.get());
             requests_since_last_qps_sample++;
             try {
-                registrant.perform_request(request, keepalive.get_drain_signal());
+                registrant.perform_request(request, interruptor);
             } catch (const interrupted_exc_t &) {
                 /* ignore */
             }
@@ -137,7 +136,7 @@ private:
             parent->return_tickets(1);
         }
 
-        void on_relinquish_tickets(int tickets) {
+        void on_relinquish_tickets(UNUSED signal_t *interruptor, int tickets) {
             held_tickets -= tickets;
             parent->return_tickets(tickets);
         }
@@ -172,7 +171,6 @@ private:
         registrant_type registrant;
 
         scoped_ptr_t<auto_drainer_t> drainer;
-
         scoped_ptr_t<mailbox_t<void(request_type)> > request_mailbox;
         scoped_ptr_t<mailbox_t<void(int)> > relinquish_tickets_mailbox;
     };
