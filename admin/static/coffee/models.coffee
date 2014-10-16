@@ -64,9 +64,9 @@ class ShardAssignments extends Backbone.Collection
 
 class ShardAssignment extends Backbone.Model
 
-class Responsabilities extends Backbone.Collection
-    model: Responsability
-    name: 'Responsability'
+class Responsibilities extends Backbone.Collection
+    model: Responsibility
+    name: 'Responsibility'
     comparator: (a, b) ->
         if a.get('db') < b.get('db')
             return -1
@@ -89,7 +89,7 @@ class Responsabilities extends Backbone.Collection
                 else
                     return 0
 
-class Responsability extends Backbone.Model
+class Responsibility extends Backbone.Model
 
 class Dashboard extends Backbone.Model
 

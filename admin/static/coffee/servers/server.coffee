@@ -20,7 +20,7 @@ module 'ServerView', ->
                     server.eq(null),
                     null,
                     server.merge( (server) ->
-                        responsabilities: r.db('rethinkdb').table('table_status').map( (table) ->
+                        responsibilities: r.db('rethinkdb').table('table_status').map( (table) ->
                             table.merge( (table) ->
                                 shards: table("shards").indexesOf( () -> true ).map( (index) ->
                                     table("shards").nth(index).merge({num_keys: "TODO", index: index.add(1), num_shards: table("shards").count()}).filter( (replica) ->
@@ -58,9 +58,9 @@ module 'ServerView', ->
                     else
                         @loading = false
 
-                        responsabilities = []
-                        for table in result.responsabilities
-                            responsabilities.push new Responsability
+                        responsibilities = []
+                        for table in result.responsibilities
+                            responsibilities.push new Responsibility
                                 type: "table"
                                 is_table: true
                                 db: table.db
@@ -68,7 +68,7 @@ module 'ServerView', ->
                                 id: table.db+"."+table.name
 
                             for shard in table.shards
-                                responsabilities.push new Responsability
+                                responsibilities.push new Responsibility
                                     is_shard: true
                                     db: table.db
                                     table: table.name
@@ -78,17 +78,17 @@ module 'ServerView', ->
                                     num_keys: shard.num_keys
                                     id: table.db+"."+table.name+"."+shard.index
 
-                        if not @responsabilities?
-                            @responsabilities = new Responsabilities responsabilities
+                        if not @responsibilities?
+                            @responsibilities = new Responsibilities responsibilities
                         else
-                            @responsabilities.set responsabilities
-                        delete result.responsabilities
+                            @responsibilities.set responsibilities
+                        delete result.responsibilities
 
                         if not @server?
                             @server = new Server result
                             @server_view = new ServerView.ServerMainView
                                 model: @server
-                                collection: @responsabilities
+                                collection: @responsibilities
 
                             @render()
                         else
@@ -161,7 +161,7 @@ module 'ServerView', ->
                 type: 'server'
             )
 
-            @responsabilities = new ServerView.ResponsabilitiesList
+            @responsibilities = new ServerView.ResponsibilitiesList
                 collection: @collection
 
         render: =>
@@ -171,7 +171,7 @@ module 'ServerView', ->
             @$('.main_title').html @title.render().$el
             @$('.profile').html @profile.render().$el
             @$('.performance-graph').html @performance_graph.render().$el
-            @$('.responsabilities').html @responsabilities.render().$el
+            @$('.responsibilities').html @responsibilities.render().$el
 
             # TODO: Implement when logs will be available
             #@logs = new LogView.Container
@@ -184,7 +184,7 @@ module 'ServerView', ->
             driver.stop_timer @stats_timer
             @title.remove()
             @profile.remove()
-            @responsabilities.remove()
+            @responsibilities.remove()
             if @rename_modal?
                 @rename_modal.remove()
 
@@ -229,60 +229,60 @@ module 'ServerView', ->
             super()
 
 
-    class @ResponsabilitiesList extends Backbone.View
-        template: Handlebars.templates['responsabilities-template']
+    class @ResponsibilitiesList extends Backbone.View
+        template: Handlebars.templates['responsibilities-template']
 
         initialize: =>
-            @responsabilities_view = []
+            @responsibilities_view = []
 
             @$el.html @template
 
-            @collection.each (responsability) =>
-                view = new ServerView.ResponsabilityView
-                    model: responsability
+            @collection.each (responsibility) =>
+                view = new ServerView.ResponsibilityView
+                    model: responsibility
                     container: @
                 # The first time, the collection is sorted
-                @responsabilities_view.push view
-                @$('.responsabilities_list').append view.render().$el
+                @responsibilities_view.push view
+                @$('.responsibilities_list').append view.render().$el
 
-            if @responsabilities_view.length > 0
+            if @responsibilities_view.length > 0
                 @$('.no_element').hide()
 
-            @listenTo @collection, 'add', (responsability) =>
-                new_view = new ServerView.ResponsabilityView
-                    model: responsability
+            @listenTo @collection, 'add', (responsibility) =>
+                new_view = new ServerView.ResponsibilityView
+                    model: responsibility
                     container: @
 
-                if @responsabilities_view.length is 0
-                    @responsabilities_view.push new_view
-                    @$('.responsabilities_list').html new_view.render().$el
+                if @responsibilities_view.length is 0
+                    @responsibilities_view.push new_view
+                    @$('.responsibilities_list').html new_view.render().$el
                 else
                     added = false
-                    for view, position in @responsabilities_view
-                        if Responsabilities.prototype.comparator(view.model, responsability) > 0
+                    for view, position in @responsibilities_view
+                        if Responsibilities.prototype.comparator(view.model, responsibility) > 0
                             added = true
-                            @responsabilities_view.splice position, 0, new_view
+                            @responsibilities_view.splice position, 0, new_view
                             if position is 0
-                                @$('.responsabilities_list').prepend new_view.render().$el
+                                @$('.responsibilities_list').prepend new_view.render().$el
                             else
-                                @$('.responsability_container').eq(position-1).after new_view.render().$el
+                                @$('.responsibility_container').eq(position-1).after new_view.render().$el
                             break
                     if added is false
-                        @responsabilities_view.push new_view
-                        @$('.responsabilities_list').append new_view.render().$el
+                        @responsibilities_view.push new_view
+                        @$('.responsibilities_list').append new_view.render().$el
 
-                if @responsabilities_view.length > 0
+                if @responsibilities_view.length > 0
                     @$('.no_element').hide()
 
-            @listenTo @collection, 'remove', (responsability) =>
-                for view, position in @responsabilities_view
-                    if view.model is responsability
-                        responsability.destroy()
+            @listenTo @collection, 'remove', (responsibility) =>
+                for view, position in @responsibilities_view
+                    if view.model is responsibility
+                        responsibility.destroy()
                         view.remove()
-                        @responsabilities_view.splice position, 1
+                        @responsibilities_view.splice position, 1
                         break
 
-                if @responsabilities_view.length is 0
+                if @responsibilities_view.length is 0
                     @$('.no_element').show()
 
 
@@ -292,14 +292,14 @@ module 'ServerView', ->
 
         remove: =>
             @stopListening()
-            for view in @responsabilities_view
+            for view in @responsibilities_view
                 view.model.destroy()
                 view.remove()
             super()
 
 
-    class @ResponsabilityView extends Backbone.View
-        template: Handlebars.templates['responsability-template']
+    class @ResponsibilityView extends Backbone.View
+        template: Handlebars.templates['responsibility-template']
 
         initialize: =>
             @listenTo @model, 'change', @render

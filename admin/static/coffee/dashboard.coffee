@@ -1,7 +1,7 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 
 module 'DashboardView', ->
-    # DashboardContainer is responsaible to retrieve all the data displayed
+    # DashboardContainer is responsible to retrieve all the data displayed
     # on the dashboard.
     class @DashboardContainer extends Backbone.View
         id: 'dashboard_container'
