@@ -57,12 +57,19 @@ public:
     bool table_find(const name_string_t &name, counted_t<const ql::db_t> db,
             signal_t *interruptor, scoped_ptr_t<base_table_t> *table_out,
             std::string *error_out);
-    bool table_config(const boost::optional<name_string_t> &name,
-            counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
+    bool table_config(counted_t<const ql::db_t> db,
+            const std::vector<name_string_t> &tables,
+            const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
-    bool table_status(const boost::optional<name_string_t> &name,
-            counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
+    bool table_status(counted_t<const ql::db_t> db,
+            const std::vector<name_string_t> &tables,
+            const ql::protob_t<const Backtrace> &bt,
+            signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
+            std::string *error_out);
+    bool table_wait(counted_t<const ql::db_t> db,
+            const std::vector<name_string_t> &tables,
+            const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
 
@@ -109,8 +116,9 @@ private:
     void get_databases_metadata(databases_semilattice_metadata_t *out);
 
     bool table_config_or_status(artificial_table_backend_t *backend,
-            const char *backend_name, const boost::optional<name_string_t> &name,
-            counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
+            const char *backend_name, counted_t<const ql::db_t> db,
+            const std::vector<name_string_t> &tables,
+            const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
 

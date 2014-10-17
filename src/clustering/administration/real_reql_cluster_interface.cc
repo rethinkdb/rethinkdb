@@ -370,23 +370,37 @@ bool real_reql_cluster_interface_t::table_find(const name_string_t &name,
 }
 
 bool real_reql_cluster_interface_t::table_config(
-        const boost::optional<name_string_t> &name,
-        counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
+        counted_t<const ql::db_t> db,
+        const std::vector<name_string_t> &tables,
+        const ql::protob_t<const Backtrace> &bt,
         signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
         std::string *error_out) {
     return table_config_or_status(
         admin_tables->table_config_backend.get(), "table_config",
-        name, db, bt, interruptor, resp_out, error_out);
+        db, tables, bt, interruptor, resp_out, error_out);
 }
 
 bool real_reql_cluster_interface_t::table_status(
-        const boost::optional<name_string_t> &name,
-        counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
+        counted_t<const ql::db_t> db,
+        const std::vector<name_string_t> &tables,
+        const ql::protob_t<const Backtrace> &bt,
         signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
         std::string *error_out) {
     return table_config_or_status(
         admin_tables->table_status_backend.get(), "table_status",
-        name, db, bt, interruptor, resp_out, error_out);
+        db, tables, bt, interruptor, resp_out, error_out);
+}
+
+bool real_reql_cluster_interface_t::table_wait(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const std::vector<name_string_t> &tables,
+        UNUSED const ql::protob_t<const Backtrace> &bt,
+        UNUSED signal_t *interruptor,
+        UNUSED scoped_ptr_t<ql::val_t> *resp_out,
+        UNUSED std::string *error_out) {
+    // TODO: implement this
+    error_out->assign("unimplemented");
+    return false;
 }
 
 bool real_reql_cluster_interface_t::table_reconfigure(
@@ -520,7 +534,8 @@ void real_reql_cluster_interface_t::get_databases_metadata(
 
 bool real_reql_cluster_interface_t::table_config_or_status(
         artificial_table_backend_t *backend, const char *backend_name,
-        const boost::optional<name_string_t> &name, counted_t<const ql::db_t> db,
+        counted_t<const ql::db_t> db,
+        const std::vector<name_string_t> &tables,
         const ql::protob_t<const Backtrace> &bt,
         signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
         std::string *error_out) {
@@ -533,11 +548,12 @@ bool real_reql_cluster_interface_t::table_config_or_status(
         = get_namespaces_metadata();
     const_metadata_searcher_t<namespace_semilattice_metadata_t>
         ns_searcher(&namespaces_metadata.get()->namespaces);
-    if (name) {
-        namespace_predicate_t pred(&*name, &db->id);
+    if (tables.size() > 0) {
+        // TODO: search for all the tables
+        namespace_predicate_t pred(&tables[0], &db->id);
         metadata_search_status_t status;
         auto ns_metadata_it = ns_searcher.find_uniq(pred, &status);
-        if (!check_metadata_status(status, "Table", db->name + "." + name->str(), true,
+        if (!check_metadata_status(status, "Table", db->name + "." + tables[0].str(), true,
                 error_out)) return false;
         guarantee(!ns_metadata_it->second.is_deleted());
         ql::datum_t pkey = convert_uuid_to_datum(ns_metadata_it->first);

@@ -479,6 +479,8 @@ message Term {
                              // Database, String -> SingleSelection |
                              // -> StreamSelection |
                              // String -> SingleSelection
+        // Waits for table(s) to be fully ready for read/write operations
+        TABLE_WAIT    = 177; // Database[, String...] -> ARRAY
         // Generates a new config for the given table.
         RECONFIGURE   = 176; // Table, NUMBER, OBJECT, {director_tag:STRING, dry_run:BOOLEAN} -> OBJECT
 
