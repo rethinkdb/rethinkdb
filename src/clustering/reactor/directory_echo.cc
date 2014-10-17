@@ -11,9 +11,9 @@ directory_echo_writer_t<internal_t>::our_value_change_t::our_value_change_t(dire
 template <class internal_t>
 directory_echo_version_t directory_echo_writer_t<internal_t>::our_value_change_t::commit() {
     parent->version++;
-    parent->value_watchable.set_value(directory_echo_wrapper_t<internal_t>(buffer,
-                                                                           parent->version,
-                                                                           parent->ack_mailbox.get_address()));
+    parent->value_watchable.set_value_no_equals(
+        directory_echo_wrapper_t<internal_t>(
+            buffer, parent->version, parent->ack_mailbox.get_address()));
     return parent->version;
 }
 
