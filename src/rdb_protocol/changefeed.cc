@@ -493,9 +493,10 @@ public:
         }
         stream_t stream = groups_to_batch(
             gs->get_underlying_map(ql::grouped::order_doesnt_matter_t()));
+        auto gt = ql::changefeed::limit_order_t(sorting);
         std::sort(stream.begin(), stream.end(),
-                  [](const rget_item_t &a, const rget_item_t &b) {
-                      return a.sindex_key < b.sindex_key;
+                  [gt](const rget_item_t &a, const rget_item_t &b) {
+                      return gt(b.sindex_key, a.sindex_key); // Ordering is intentional.
                   });
         if (stream.size() > n) {
             stream.resize(n);
