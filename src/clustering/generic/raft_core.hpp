@@ -48,10 +48,12 @@ code, by making it clearer what the meaning of a particular number is. */
 typedef uint64_t raft_term_t;
 typedef uint64_t raft_log_index_t;
 
-/* Every member of the Raft cluster is identified by a `machine_id_t`. The Raft paper
+/* Every member of the Raft cluster is identified by a `raft_member_id_t`. The Raft paper
 uses integers for this purpose, but we use UUIDs because we have no reliable distributed
-way of assigning integers, but we've already assigned a `machine_id_t` to each server in
-the cluster. */
+way of assigning integers. Note that `raft_member_id_t` is not a `machine_id_t` or a
+`peer_id_t`. If a single server leaves a Raft cluter and then joins again, it will use a
+different `raft_member_id_t` the second time. */
+typedef uuid_u raft_member_id_t;
 
 /* `raft_config_t` describes the set of members that are involved in the Raft cluster. */
 class raft_config_t {
@@ -59,20 +61,20 @@ public:
     /* Regular members of the Raft cluster go in `voting_members`. `non_voting_members`
     is for members that should receive updates, but that don't count for voting purposes.
     */
-    std::set<machine_id_t> voting_members, non_voting_members;
+    std::set<raft_member_id_t> voting_members, non_voting_members;
 
     /* Returns a list of all members, voting and non-voting. */
-    std::set<machine_id_t> get_all_members() const {
-        std::set<machine_id_t> members;
+    std::set<raft_member_id_t> get_all_members() const {
+        std::set<raft_member_id_t> members;
         members.insert(voting_members.begin(), voting_members.end());
         members.insert(non_voting_members.begin(), non_voting_members.end());
         return members;
     }
 
     /* Returns `true` if `members` constitutes a majority. */
-    bool is_quorum(const std::set<machine_id_t> &members) const {
+    bool is_quorum(const std::set<raft_member_id_t> &members) const {
         size_t votes = 0;
-        for (const machine_id_t &m : members) {
+        for (const raft_member_id_t &m : members) {
             votes += voting_members.count(m);
         }
         return (votes * 2 > voting_members.size());
@@ -80,7 +82,7 @@ public:
 
     /* Returns `true` if the given member can act as a leader. (Mostly this exists for
     consistency with `raft_complex_config_t`.) */
-    bool is_valid_leader(const machine_id_t &member) const {
+    bool is_valid_leader(const raft_member_id_t &member) const {
         return voting_members.count(member) == 1;
     }
 
@@ -108,18 +110,18 @@ public:
         return static_cast<bool>(new_config);
     }
 
-    std::set<machine_id_t> get_all_members() const {
-        std::set<machine_id_t> members = config.get_all_members();
+    std::set<raft_member_id_t> get_all_members() const {
+        std::set<raft_member_id_t> members = config.get_all_members();
         if (is_joint_consensus()) {
             /* Raft paper, Section 6: "Log entries are replicated to all servers in both
             configurations." */
-            std::set<machine_id_t> members2 = new_config->get_all_members();
+            std::set<raft_member_id_t> members2 = new_config->get_all_members();
             members.insert(members2.begin(), members2.end());
         }
         return members;
     }
 
-    bool is_quorum(const std::set<machine_id_t> &members) const {
+    bool is_quorum(const std::set<raft_member_id_t> &members) const {
         /* Raft paper, Section 6: "Agreement (for elections and entry commitment)
         requires separate majorities from both the old and new configurations." */
         if (is_joint_consensus()) {
@@ -129,7 +131,7 @@ public:
         }
     }
 
-    bool is_valid_leader(const machine_id_t &member) const {
+    bool is_valid_leader(const raft_member_id_t &member) const {
         /* Raft paper, Section 6: "Any server from either configuration may serve as
         leader." */
         return config.is_valid_leader(member) ||
@@ -265,7 +267,7 @@ private:
     /* `current_term` and `voted_for` correspond to the variables with the same names in
     Figure 2 of the Raft paper. */
     raft_term_t current_term;
-    machine_id_t voted_for;
+    raft_member_id_t voted_for;
 
     /* `snapshot_state` corresponds to the stored snapshotted state, as described in
     Section 7. An empty `boost::optional<state_t>()` is the initial state of the Raft
@@ -323,7 +325,7 @@ private:
         /* `term`, `candidate_id`, `last_log_index`, and `last_log_term` correspond to
         the parameters with the same names in the Raft paper. */
         raft_term_t term;
-        machine_id_t candidate_id;
+        raft_member_id_t candidate_id;
         raft_log_index_t last_log_index;
         raft_term_t last_log_term;
     };
@@ -339,7 +341,7 @@ private:
         directly. So our `snapshot_state` and `snapshot_configuration` parameters replace
         the `offset`, `data`, and `done` parameters of the Raft paper. */
         raft_term_t term;
-        machine_id_t leader_id;
+        raft_member_id_t leader_id;
         raft_log_index_t last_included_index;
         raft_term_t last_included_term;
         state_t snapshot_state;
@@ -354,7 +356,7 @@ private:
         same names in the Raft paper. `entries` corresponds to three of the paper's
         variables: `prevLogIndex`, `prevLogTerm`, and `entries`. */
         raft_term_t term;
-        machine_id_t leader_id;
+        raft_member_id_t leader_id;
         raft_log_t<state_t> entries;
         raft_log_index_t leader_commit;
     };
@@ -409,14 +411,14 @@ public:
       * If the interruptor is pulsed, it throws `interrupted_exc_t`. The RPC may or may
         not have been delivered. */
     virtual bool send_rpc(
-        const machine_id_t &dest,
+        const raft_member_id_t &dest,
         const raft_rpc_request_t<state_t> &request,
         signal_t *interruptor,
         raft_rpc_reply_t *reply_out) = 0;
 
     /* `get_connected_members()` returns the set of all Raft members for which an RPC is
     likely to succeed. */
-    virtual clone_ptr_t<watchable_t<std::set<machine_id_t> > >
+    virtual clone_ptr_t<watchable_t<std::set<raft_member_id_t> > >
         get_connected_members() = 0;
 
 protected:
@@ -430,7 +432,7 @@ class raft_member_t : public home_thread_mixin_debug_only_t
 {
 public:
     raft_member_t(
-        const machine_id_t &this_member_id,
+        const raft_member_id_t &this_member_id,
         raft_storage_interface_t<state_t> *storage,
         raft_network_interface_t<state_t> *network,
         const raft_persistent_state_t<state_t> &persistent_state);
@@ -480,7 +482,7 @@ public:
 
     /* Returns the Raft member that this member thinks is the leader, or `nil_uuid()` if
     this member doesn't know of any leader. */
-    machine_id_t get_leader() {
+    raft_member_id_t get_leader() {
         assert_thread();
         return current_term_leader_id;
     }
@@ -586,8 +588,8 @@ private:
     void leader_update_match_index(
         /* Since `match_index` lives on the stack of `candidate_and_leader_coro()`, we
         have to pass in a pointer. */
-        std::map<machine_id_t, raft_log_index_t> *match_index,
-        machine_id_t key,
+        std::map<raft_member_id_t, raft_log_index_t> *match_index,
+        raft_member_id_t key,
         raft_log_index_t new_value,
         const new_mutex_acq_t *mutex_acq,
         signal_t *interruptor);
@@ -636,9 +638,9 @@ private:
         raft_log_index_t initial_next_index,
         /* A map containing `matchIndex` for each connected peer, as described in Figure
         2 of the Raft paper. This lives on the stack in `candidate_and_leader_coro()`. */
-        std::map<machine_id_t, raft_log_index_t> *match_indexes,
+        std::map<raft_member_id_t, raft_log_index_t> *match_indexes,
         /* A map containing an `auto_drainer_t` for each running update coroutine. */
-        std::map<machine_id_t, scoped_ptr_t<auto_drainer_t> > *update_drainers,
+        std::map<raft_member_id_t, scoped_ptr_t<auto_drainer_t> > *update_drainers,
         const new_mutex_acq_t *mutex_acq);
 
     /* `leader_send_updates()` is a helper function for `candidate_and_leader_coro()`;
@@ -646,9 +648,9 @@ private:
     install-snapshot RPCs and/or append-entry RPCs out to the given peer until
     `update_keepalive.get_drain_signal()` is pulsed. */
     void leader_send_updates(
-        const machine_id_t &peer,
+        const raft_member_id_t &peer,
         raft_log_index_t initial_next_index,
-        std::map<machine_id_t, raft_log_index_t> *match_indexes,
+        std::map<raft_member_id_t, raft_log_index_t> *match_indexes,
         auto_drainer_t::lock_t update_keepalive);
 
     /* `leader_continue_reconfiguration()` is a helper function for
@@ -682,7 +684,7 @@ private:
 
     /* The member ID of the member of the Raft cluster represented by this
     `raft_member_t`. */
-    const machine_id_t this_member_id;
+    const raft_member_id_t this_member_id;
 
     raft_storage_interface_t<state_t> *const storage;
     raft_network_interface_t<state_t> *const network;
@@ -713,7 +715,7 @@ private:
     /* `current_term_leader_id` is the ID of the member that is leader during this term.
     If we haven't seen any node acting as leader this term, it's `nil_uuid()`. We use it
     to redirect clients as described in Figure 2 and Section 8. */
-    machine_id_t current_term_leader_id;
+    raft_member_id_t current_term_leader_id;
 
     /* `last_heard_from_leader` is the time that we last heard from a leader or
     candidate. `on_watchdog_timer()` consults it to see if we should start an election.
