@@ -394,23 +394,13 @@ void initialize_logfile(const std::map<std::string, options::values_t> &opts,
     install_fallback_log_writer(filename);
 }
 
-std::string get_web_path(boost::optional<std::string> web_static_directory, char **argv) {
-    // We check first for a run-time option, then check the home of the binary,
-    // and then we check in the install location if such a location was provided
-    // at compile time.
+std::string get_web_path(boost::optional<std::string> web_static_directory) {
     path_t result;
+
     if (web_static_directory) {
         result = parse_as_path(*web_static_directory);
     } else {
-        result = parse_as_path(argv[0]);
-        result.nodes.pop_back();
-        result.nodes.push_back(WEB_ASSETS_DIR_NAME);
-#ifdef WEBRESDIR
-        std::string chkdir(WEBRESDIR);
-        if ((access(render_as_path(result).c_str(), F_OK)) && (!access(chkdir.c_str(), F_OK))) {
-            result = parse_as_path(chkdir);
-        }
-#endif  // WEBRESDIR
+        return std::string();
     }
 
     // Make sure we return an absolute path
@@ -425,10 +415,10 @@ std::string get_web_path(boost::optional<std::string> web_static_directory, char
     return abs_path.path();
 }
 
-std::string get_web_path(const std::map<std::string, options::values_t> &opts, char **argv) {
+std::string get_web_path(const std::map<std::string, options::values_t> &opts) {
     if (!exists_option(opts, "--no-http-admin")) {
         boost::optional<std::string> web_static_directory = get_optional_option(opts, "--web-static-directory");
-        return get_web_path(web_static_directory, argv);
+        return get_web_path(web_static_directory);
     }
     return std::string();
 }
@@ -1426,7 +1416,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
         service_address_ports_t address_ports = get_service_address_ports(opts);
 
-        std::string web_path = get_web_path(opts, argv);
+        std::string web_path = get_web_path(opts);
 
         int num_workers;
         if (!parse_cores_option(opts, &num_workers)) {
@@ -1568,7 +1558,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         base_path_t base_path(".");
         initialize_logfile(opts, base_path);
 
-        std::string web_path = get_web_path(opts, argv);
+        std::string web_path = get_web_path(opts);
         const int num_workers = get_cpu_count();
 
         if (check_pid_file(opts) != EXIT_SUCCESS) {
@@ -1694,7 +1684,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
         const service_address_ports_t address_ports = get_service_address_ports(opts);
 
-        std::string web_path = get_web_path(opts, argv);
+        std::string web_path = get_web_path(opts);
 
         int num_workers;
         if (!parse_cores_option(opts, &num_workers)) {
