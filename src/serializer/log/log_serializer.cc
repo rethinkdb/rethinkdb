@@ -965,11 +965,20 @@ void counted_add_ref(ls_block_token_pointee_t *p) {
     rassert(res > 0);
 }
 
+void counted_set_deleter(ls_block_token_pointee_t *p,
+                         std::function<void(ls_block_token_pointee_t*)> &&d) {
+    p->deleter = d;
+}
+
 void counted_release(ls_block_token_pointee_t *p) {
     struct destroyer_t : public linux_thread_message_t {
         void on_thread_switch() {
             rassert(p->ref_count_ == 0);
             p->do_destroy();
+            if (p->deleter)
+                p->deleter(p);
+            else
+                delete p;
             delete this;
         }
         ls_block_token_pointee_t *p;
@@ -980,6 +989,10 @@ void counted_release(ls_block_token_pointee_t *p) {
     if (res == 0) {
         if (get_thread_id() == p->serializer_->home_thread()) {
             p->do_destroy();
+            if (p->deleter)
+                p->deleter(p);
+            else
+                delete p;
         } else {
             destroyer_t *destroyer = new destroyer_t;
             destroyer->p = p;

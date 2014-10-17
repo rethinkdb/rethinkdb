@@ -11,9 +11,12 @@ struct data_buffer_t {
 private:
     intptr_t ref_count_;
     size_t size_;
+    mutable std::function<void(data_buffer_t*)> deleter;
     char bytes_[];
 
     friend void counted_add_ref(data_buffer_t *buffer);
+    friend void counted_set_deleter(data_buffer_t *buffer,
+                                    std::function<void(data_buffer_t*)> &&d);
     friend void counted_release(data_buffer_t *buffer);
 
     DISABLE_COPYING(data_buffer_t);
@@ -36,11 +39,18 @@ inline void counted_add_ref(data_buffer_t *buffer) {
     rassert(res > 0);
 }
 
+inline void counted_set_deleter(data_buffer_t *buffer,
+                                std::function<void(data_buffer_t*)> &&d) {
+    buffer->deleter = std::move(d);
+}
+
+// TODO: move this to using deleters directly
 inline void counted_release(data_buffer_t *buffer) {
     const intptr_t res = __sync_sub_and_fetch(&buffer->ref_count_, 1);
     rassert(res >= 0);
     if (res == 0) {
         data_buffer_t::destroy(buffer);
+        // buffer->deleter(buffer);
     }
 }
 

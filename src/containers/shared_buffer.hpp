@@ -27,10 +27,13 @@ private:
     // and C++ doesn't guarantee any specific field memory layout under inheritance
     // (as far as I know).
     friend void counted_add_ref(const shared_buf_t *p);
+    friend void counted_set_deleter(const shared_buf_t *p,
+                                    std::function<void(shared_buf_t*)> &&d);
     friend void counted_release(const shared_buf_t *p);
     friend intptr_t counted_use_count(const shared_buf_t *p);
 
     mutable intptr_t refcount_;
+    mutable std::function<void(shared_buf_t*)> deleter;
 
     // The size of data_, for boundary checking.
     size_t size_;
@@ -96,11 +99,17 @@ inline void counted_add_ref(const shared_buf_t *p) {
     rassert(res > 0);
 }
 
+inline void counted_set_deleter(const shared_buf_t *p,
+                                std::function<void(shared_buf_t*)> &&d) {
+    p->deleter = std::move(d);
+}
+
 inline void counted_release(const shared_buf_t *p) {
     intptr_t res = __sync_sub_and_fetch(&p->refcount_, 1);
     rassert(res >= 0);
     if (res == 0) {
-        delete const_cast<shared_buf_t *>(p);
+        if (p->deleter) p->deleter(const_cast<shared_buf_t *>(p));
+        else delete const_cast<shared_buf_t *>(p);
     }
 }
 

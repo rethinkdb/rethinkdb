@@ -127,6 +127,8 @@ private:
     friend class dbm_read_ahead_fsm_t;  // For read-ahead tokens.
 
     friend void counted_add_ref(ls_block_token_pointee_t *p);
+    friend void counted_set_deleter(ls_block_token_pointee_t *p,
+                                    std::function<void(ls_block_token_pointee_t*)> &&d);
     friend void counted_release(ls_block_token_pointee_t *p);
 
     ls_block_token_pointee_t(log_serializer_t *serializer,
@@ -135,6 +137,7 @@ private:
 
     log_serializer_t *serializer_;
     intptr_t ref_count_;
+    mutable std::function<void(ls_block_token_pointee_t*)> deleter;
 
     // The block's size.
     block_size_t block_size_;
@@ -151,6 +154,8 @@ void debug_print(printf_buffer_t *buf,
                  const counted_t<ls_block_token_pointee_t> &token);
 
 void counted_add_ref(ls_block_token_pointee_t *p);
+void counted_set_deleter(ls_block_token_pointee_t *p,
+                         std::function<void(ls_block_token_pointee_t*)> &&d);
 void counted_release(ls_block_token_pointee_t *p);
 
 template <>
@@ -218,26 +223,36 @@ struct scs_block_token_t {
     scs_block_info_t info;      // invariant: info.state != scs_block_info_t::state_deleted
     counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token;
 
-    template <class T>
-    friend void counted_add_ref(scs_block_token_t<T> *p);
-    template <class T>
-    friend void counted_release(scs_block_token_t<T> *p);
+    friend void counted_add_ref<T>(scs_block_token_t<T> *p);
+    friend void counted_set_deleter<T>(scs_block_token_t<T> *p,
+                                       std::function<void(scs_block_token_t<T>*)> &&d);
+    friend void counted_release<T>(scs_block_token_t<T> *p);
 private:
     intptr_t ref_count_;
+    mutable std::function<void(scs_block_token_t<T>*) deleter;
 };
 
-template <class inner_serializer_t>
-void counted_add_ref(scs_block_token_t<inner_serializer_t> *p) {
+template <class T>
+void counted_add_ref(scs_block_token_t<T> *p) {
     DEBUG_VAR const intptr_t res = __sync_add_and_fetch(&p->ref_count_, 1);
     rassert(res > 0);
 }
 
-template <class inner_serializer_t>
-void counted_release(scs_block_token_t<inner_serializer_t> *p) {
+template <class T>
+void counted_set_deleter(scs_block_token_t<T> *p,
+                         std::function<void(scs_block_token_t<T>*)> &&d) {
+    p->deleter = std::move(d);
+}
+
+template <class T>
+void counted_release(scs_block_token_t<T> *p) {
     const intptr_t res = __sync_sub_and_fetch(&p->ref_count_, 1);
     rassert(res >= 0);
     if (res == 0) {
-        delete p;
+        if (p->deleter)
+            p->deleter(p);
+        else
+            delete p;
     }
 }
 

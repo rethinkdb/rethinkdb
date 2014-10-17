@@ -19,7 +19,7 @@ void debug_print(printf_buffer_t *buf, const counted_t<data_buffer_t>& ptr) {
 }
 
 counted_t<data_buffer_t> data_buffer_t::create(int64_t size) {
-    static_assert(sizeof(data_buffer_t) == sizeof(ref_count_) + sizeof(size_),
+    static_assert(sizeof(data_buffer_t) == sizeof(ref_count_) + sizeof(size_) + sizeof(deleter),
                   "data_buffer_t is not a packed struct type");
 
     rassert(size >= 0 && static_cast<uint64_t>(size) <= SIZE_MAX - sizeof(data_buffer_t));
