@@ -132,9 +132,14 @@ template <class T, class Alloc, class... Args>
 counted_t<T> make_counted(std::allocator_arg_t, const Alloc &a, Args &&... args) {
     typedef std::allocator_traits<Alloc> traits;
     T* result = traits::allocate(a, 1);
-    traits::construct(a, result, std::forward<Args>(args)...);
-    counted_set_deleter(result, [a](T* region) { traits::deallocate(region, 1); });
-    return counted_t<T>(result);
+    try {
+        traits::construct(a, result, std::forward<Args>(args)...);
+        counted_set_deleter(result, [a](T* region) { traits::deallocate(region, 1); });
+        return counted_t<T>(result);
+    } catch (...) {
+        traits::deallocate(result, 1);
+        throw;
+    }
 }
 
 template <class> class single_threaded_countable_t;
