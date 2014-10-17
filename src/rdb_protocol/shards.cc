@@ -124,7 +124,7 @@ public:
     append_t(sorting_t _sorting, batcher_t *_batcher)
         : grouped_acc_t<stream_t>(stream_t()),
           sorting(_sorting), key_le(sorting), batcher(_batcher) { }
-private:
+protected:
     virtual bool should_send_batch() {
         return batcher != NULL && batcher->should_send_batch();
     }
@@ -196,6 +196,67 @@ private:
 
 scoped_ptr_t<accumulator_t> make_append(const sorting_t &sorting, batcher_t *batcher) {
     return make_scoped<append_t>(sorting, batcher);
+}
+
+// This has to inherit from `eager_acc_t` so it can be produced in the terminal
+// visitor, but if you try to use it as an eager accumulator you'll get a
+// runtime error.
+class limit_append_t : public append_t, public eager_acc_t {
+public:
+    limit_append_t(size_t n, sorting_t sorting)
+        : append_t(sorting, &batcher),
+          seen_distinct_sindex(false),
+          batcher(batchspec_t::all().with_at_most(n).to_batcher()) { }
+private:
+    virtual void operator()(env_t *, groups_t *) {
+        guarantee(false); // Don't use this as an eager accumulator.
+    }
+    virtual void add_res(env_t *, result_t *) {
+        guarantee(false); // Don't use this as an eager accumulator.
+    }
+    virtual counted_t<val_t> finish_eager(
+        protob_t<const Backtrace>, bool, const ql::configured_limits_t &) {
+        guarantee(false); // Don't use this as an eager accumulator.
+        unreachable();
+    }
+
+    virtual bool should_send_batch() {
+        return append_t::should_send_batch() && seen_distinct_sindex;
+    }
+    virtual bool accumulate(env_t *env,
+                            const datum_t &el,
+                            stream_t *stream,
+                            const store_key_t &key,
+                            // sindex_val may be NULL
+                            const datum_t &sindex_val) {
+        bool ret = append_t::accumulate(env, el, stream, key, sindex_val);
+        guarantee(stream->size() > 0);
+        rget_item_t *last = &stream->back();
+        if (start_sindex) {
+            std::string cur =
+                datum_t::extract_secondary(key_to_unescaped_str(last->key));
+            if (cur != *start_sindex) {
+                seen_distinct_sindex = true;
+            }
+        } else {
+            if (append_t::should_send_batch()) {
+                if (datum_t::key_is_truncated(last->key)) {
+                    start_sindex =
+                        datum_t::extract_secondary(key_to_unescaped_str(last->key));
+                } else {
+                    seen_distinct_sindex = true;
+                }
+            }
+        }
+        return ret;
+    }
+    boost::optional<std::string> start_sindex;
+    bool seen_distinct_sindex;
+    batcher_t batcher;
+};
+
+scoped_ptr_t<accumulator_t> make_limit_append(size_t n, sorting_t sorting) {
+    return make_scoped<limit_append_t>(n, sorting);
 }
 
 bool is_grouped_data(const groups_t *gs, const ql::datum_t &q) {
@@ -628,6 +689,9 @@ public:
     T *operator()(const reduce_wire_func_t &f) const {
         return new reduce_terminal_t(f);
     }
+    T *operator()(const limit_read_t &lr) const {
+        return new limit_append_t(lr.n, lr.sorting);
+    }
 };
 
 scoped_ptr_t<accumulator_t> make_terminal(const terminal_variant_t &t) {
@@ -919,5 +983,12 @@ scoped_ptr_t<op_t> make_op(const transform_variant_t &tv) {
 }
 
 RDB_IMPL_ME_SERIALIZABLE_3_SINCE_v1_13(rget_item_t, key, empty_ok(sindex_key), data);
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        sorting_t, int8_t,
+        sorting_t::UNORDERED, sorting_t::DESCENDING);
+RDB_IMPL_SERIALIZABLE_2(limit_read_t, n, sorting);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(limit_read_t);
+
 
 } // namespace ql

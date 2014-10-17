@@ -12,6 +12,7 @@
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
+#include "rdb_protocol/shards.hpp"
 
 void store_t::note_reshard() {
     if (changefeed_server.has()) {
@@ -278,7 +279,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             rget_read_t rget;
             rget.region = region_t::universe();
             rget.table_name = s.table;
-            rget.batchspec = ql::batchspec_t::all().with_at_most(s.spec.limit);
+            rget.batchspec = ql::batchspec_t::all(); // Terminal takes care of stopping.
+            rget.terminal = ql::limit_read_t{s.spec.limit, s.spec.range.sorting};
             if (s.spec.range.sindex) {
                 rget.sindex = sindex_rangespec_t(
                     *s.spec.range.sindex,

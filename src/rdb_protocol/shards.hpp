@@ -319,12 +319,19 @@ typedef boost::variant<map_wire_func_t,
                        zip_wire_func_t
                        > transform_variant_t;
 
+struct limit_read_t {
+    size_t n;
+    sorting_t sorting;
+};
+RDB_DECLARE_SERIALIZABLE(limit_read_t);
+
 typedef boost::variant<count_wire_func_t,
                        sum_wire_func_t,
                        avg_wire_func_t,
                        min_wire_func_t,
                        max_wire_func_t,
-                       reduce_wire_func_t
+                       reduce_wire_func_t,
+                       limit_read_t
                        > terminal_variant_t;
 
 class op_t {
@@ -373,11 +380,10 @@ public:
 
 scoped_ptr_t<accumulator_t> make_append(const sorting_t &sorting, batcher_t *batcher);
 //                                                        NULL if unsharding ^^^^^^^
+scoped_ptr_t<accumulator_t> make_limit_append(size_t n, sorting_t sorting);
 scoped_ptr_t<accumulator_t> make_terminal(const terminal_variant_t &t);
-
 scoped_ptr_t<eager_acc_t> make_to_array(reql_version_t reql_version);
 scoped_ptr_t<eager_acc_t> make_eager_terminal(const terminal_variant_t &t);
-
 scoped_ptr_t<op_t> make_op(const transform_variant_t &tv);
 
 } // namespace ql

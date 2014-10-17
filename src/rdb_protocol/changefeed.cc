@@ -468,12 +468,13 @@ public:
         rdb_rget_secondary_slice(
             ref.btree,
             srange,
-            region_t(srange.to_sindex_keyrange()), // RSI: does this work?
+            region_t(srange.to_sindex_keyrange()),
             ref.superblock,
             ref.env,
-            batchspec_t::all().with_at_most(n), // RSI: ACC_TERMINAL
+            // RSI: check we don't always read everything.
+            batchspec_t::all(), // Terminal takes care of early termination
             std::vector<transform_variant_t>(),
-            boost::optional<terminal_variant_t>(), // RSI: ACC_TERMINAL,
+            boost::optional<terminal_variant_t>(limit_read_t{n, sorting}),
             pk_range,
             sorting,
             *ref.sindex_info,
@@ -1056,7 +1057,6 @@ public:
         }
         debugf("lqueue %s\n", s.c_str());
 
-        // RSI: queue if `need_init`.
         datum_t old_send, new_send;
         if (old_key) {
             auto it = lqueue.find_id(*old_key);
@@ -1142,7 +1142,15 @@ public:
             debugf("___old_send___: %s\n", old_send.print().c_str());
             debugf("___new_send___: %s\n", new_send.print().c_str());
             debugf("___d___: %s\n", d.print().c_str());
-            els.push_back(d);
+            if (need_init != got_init) {
+                debugf("queueing...\n");
+                queued_els.push_back(d);
+            } else {
+                debugf("non-queueing...\n");
+                std::move(queued_els.begin(), queued_els.end(), std::back_inserter(els));
+                queued_els.clear();
+                els.push_back(d);
+            }
             maybe_signal_cond();
         }
     }
@@ -1166,7 +1174,7 @@ public:
     typedef std::function<bool(const data_it_t &, const data_it_t &)> data_it_lt_t;
     std::set<data_it_t, data_it_lt_t> active_data;
 
-    std::deque<datum_t> els;
+    std::deque<datum_t> queued_els, els;
     std::vector<server_t::limit_addr_t> stop_addrs;
 };
 
