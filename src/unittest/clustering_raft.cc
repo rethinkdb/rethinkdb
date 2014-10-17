@@ -77,13 +77,22 @@ public:
         }
     }
 
-    /* `join()` adds a new non-voting member to the cluster. The caller is responsible
-    for running a Raft transaction to modify the config to include the new member. */
+    /* `join()` adds a new member to the cluster. The caller is responsible for running a
+    Raft transaction to modify the config to include the new member. */
     raft_member_id_t join() {
+        raft_persistent_state_t<dummy_raft_state_t> init_state;
+        bool found_init_state = false;
+        for (const auto &pair : members) {
+            if (pair.second->drainer.has()) {
+                init_state = pair.second->member->get_state_for_init();
+                found_init_state = true;
+                break;
+            }
+        }
+        guarantee(found_init_state, "Can't add a new node to a cluster with no living "
+            "members.");
         raft_member_id_t member_id = generate_uuid();
-        add_member(
-            member_id,
-            raft_persistent_state_t<dummy_raft_state_t>::make_join());
+        add_member(member_id, init_state);
         return member_id;
     }
 

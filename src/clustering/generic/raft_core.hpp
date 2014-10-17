@@ -245,22 +245,13 @@ cluster persists to stable storage. */
 template<class state_t>
 class raft_persistent_state_t {
 public:
-    /* `make_initial(s)` returns a `raft_persistent_state_t` for a member of a new Raft
+    /* `make_initial()` returns a `raft_persistent_state_t` for a member of a new Raft
     instance with starting state `initial_state` and configuration `initial_config`. The
     caller must ensure that every member of the new Raft cluster starts with the same
     values for these variables. */
     static raft_persistent_state_t make_initial(
         const state_t &initial_state,
         const raft_config_t &initial_config);
-
-    /* `make_join()` returns a `raft_persistent_state_t` for a Raft member that will be
-    joining an already-established Raft cluster. A Raft member initialized this way
-    should be added to the cluster as a non-voting member, and not made a voting member
-    until it has received a snapshot.
-
-    TODO: This might end up being unused, because `raft_member_t::get_state_for_init()`
-    will probably be better. Consider removing this. */
-    static raft_persistent_state_t make_join();
 
 private:
     template<class state2_t> friend class raft_member_t;
@@ -271,17 +262,12 @@ private:
     raft_member_id_t voted_for;
 
     /* `snapshot_state` corresponds to the stored snapshotted state, as described in
-    Section 7. An empty `boost::optional<state_t>()` is the initial state of the Raft
-    cluster, although in practice it will be initialized almost immediately. */
-    boost::optional<state_t> snapshot_state;
+    Section 7. */
+    state_t snapshot_state;
 
     /* `snapshot_configuration` corresponds to the stored snapshotted configuration, as
-    described in Section 7. This implementation deviates from the Raft paper in that we
-    allow non-voting members to not know the cluster configuration until they receive
-    their first snapshot. This should be safe because they are non-voting members. If a
-    `raft_member_t` sees that its `snapshot_configuration` is empty, it assumes that it
-    is a non-voting member and will never try to become leader. */
-    boost::optional<raft_complex_config_t> snapshot_configuration;
+    described in Section 7. */
+    raft_complex_config_t snapshot_configuration;
 
     /* `log.prev_index` and `log.prev_term` correspond to the "last included index" and
     "last included term" as described in Section 7. `log.entries` corresponds to the
@@ -449,25 +435,14 @@ public:
     is undefined, the interrupted method call will not make invalid RPC calls or write
     invalid data to persistent storage.) */
 
-    /* `get_initialized_signal()` returns a signal that is pulsed if we have a valid
-    state. The only time it isn't pulsed is when we've just joined an existing Raft
-    cluster as a new member, and we haven't received the initial state yet. */
-    signal_t *get_initialized_signal() {
-        assert_thread();
-        return &initialized_cond;
-    }
-
-    /* `get_state_machine()` tracks the current state of the state machine. It's illegal
-    to call this before `get_initialized_signal()` is pulsed. */
+    /* `get_state_machine()` tracks the current state of the state machine. */
     clone_ptr_t<watchable_t<state_t> > get_state_machine() {
         assert_thread();
-        guarantee(initialized_cond.is_pulsed());
         return state_machine.get_watchable();
     }
 
-    /* `get_state_to_initialize_peer()` returns a `raft_persistent_state_t` that could be
-    used to initialize a new member of the cluster instead of
-    `raft_persistent_state_t::make_join()`. */
+    /* `get_state_for_init()` returns a `raft_persistent_state_t` that could be used to
+    initialize a new member joining the Raft cluster. */
     raft_persistent_state_t<state_t> get_state_for_init();
 
     /* TODO: These user-facing APIs are inadequate. We'll probably need:
@@ -698,16 +673,9 @@ private:
     name is so abbreviated. */
     raft_persistent_state_t<state_t> ps;
 
-    /* `state_machine` and `initialized_cond` together describe the "state machine" that
-    the Raft member is managing. If `initialized_cond` is unpulsed, then the state
-    machine is in the uninitialized state, and the contents of `state_machine` are
-    meaningless; if `initialized_cond` is pulsed, then the state machine is in an
-    initialized state, and `state_machine` stores that state. In the context of the
-    `raft_persistent_state_t` we represent this as a `boost::optional<state_t>`, but here
-    we want to store it in a form that is easier for users of `raft_member_t` to work
-    with. */
+    /* `state_machine` describes the state machine that the Raft member is managing.
+    Changes will not be applied to it until they are committed. */
     watchable_variable_t<state_t> state_machine;
-    cond_t initialized_cond;
 
     /* `commit_index` and `last_applied` correspond to the volatile state variables with
     the same names in Figure 2 of the Raft paper. */
