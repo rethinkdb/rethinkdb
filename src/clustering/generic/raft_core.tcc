@@ -1255,11 +1255,11 @@ bool raft_member_t<state_t>::candidate_run_election(
                 request_vote_keepalive /* important to capture */]() {
             try {
                 while (true) {
-                    /* Don't bother trying to send an RPC until the peer is connected */
-                    network->get_connected_members()->run_until_satisfied(
-                        [&](const std::set<raft_member_id_t> &connected) {
-                            return connected.count(peer) == 1;
-                        }, request_vote_keepalive.get_drain_signal());
+                    /* Don't bother trying to send an RPC until the peer is present in
+                    `get_connected_members()`. */
+                    network->get_connected_members()->run_key_until_satisfied(peer,
+                        [](const std::nullptr_t *x) { return x != nullptr; },
+                        request_vote_keepalive.get_drain_signal());
 
                     /* We're not holding the lock, but it's still safe to access these
                     member variables because they can't change while we're in candidate
@@ -1456,14 +1456,13 @@ void raft_member_t<state_t>::leader_send_updates(
             signal_timer_t heartbeat_timer;
             heartbeat_timer.start(heartbeat_interval_ms);
 
-            /* First, wait for the peer to be connected; there's no point in trying to
-            send an RPC if the peer isn't even connected. */
+            /* Don't bother trying to send an RPC until the peer is present in
+            `get_connected_members()`. */
             DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
             mutex_acq.reset();
-            network->get_connected_members()->run_until_satisfied(
-                [&](const std::set<raft_member_id_t> &peers) {
-                    return peers.count(peer) == 1;
-                }, update_keepalive.get_drain_signal());
+            network->get_connected_members()->run_key_until_satisfied(peer,
+                [](const std::nullptr_t *x) { return x != nullptr; },
+                update_keepalive.get_drain_signal());
             mutex_acq.init(
                 new new_mutex_acq_t(&mutex, update_keepalive.get_drain_signal()));
             DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));

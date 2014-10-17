@@ -46,7 +46,6 @@ public:
                 size_t num,
                 const dummy_raft_state_t &initial_state,
                 std::vector<raft_member_id_t> *member_ids_out) :
-            alive_members(std::set<raft_member_id_t>()),
             check_invariants_timer(100, [this]() {
                 coro_t::spawn_sometime(std::bind(
                     &dummy_raft_cluster_t::check_invariants,
@@ -92,11 +91,7 @@ public:
     void set_live(const raft_member_id_t &member_id, live_t live) {
         member_info_t *i = members.at(member_id).get();
         if (i->drainer.has() && live != live_t::alive) {
-            alive_members.apply_atomic_op(
-                [&](std::set<raft_member_id_t> *alive_set) -> bool {
-                    alive_set->erase(member_id);
-                    return true;
-                });
+            alive_members.delete_key(member_id);
             scoped_ptr_t<auto_drainer_t> dummy;
             std::swap(i->drainer, dummy);
             dummy.reset();
@@ -113,11 +108,7 @@ public:
         }
         if (!i->drainer.has() && live == live_t::alive) {
             i->drainer.init(new auto_drainer_t);
-            alive_members.apply_atomic_op(
-                [&](std::set<raft_member_id_t> *alive_set) -> bool {
-                    alive_set->insert(member_id);
-                    return true;
-                });
+            alive_members.set_key(member_id, nullptr);
         }
     }
 
@@ -268,8 +259,8 @@ private:
             }
             return reply_info->ok;
         }
-        clone_ptr_t<watchable_t<std::set<raft_member_id_t> > > get_connected_members() {
-            return parent->alive_members.get_watchable();
+        watchable_map_var_t<raft_member_id_t, std::nullptr_t> get_connected_members() {
+            return &parent->alive_members;
         }
         void write_persistent_state(
                 const raft_persistent_state_t<dummy_raft_state_t> &
@@ -327,7 +318,7 @@ private:
     }
 
     std::map<raft_member_id_t, scoped_ptr_t<member_info_t> > members;
-    watchable_variable_t<std::set<raft_member_id_t> > alive_members;
+    watchable_map_var_t<raft_member_id_t, std::nullptr_t> alive_members;
     auto_drainer_t drainer;
     repeating_timer_t check_invariants_timer;
 };

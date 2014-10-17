@@ -14,6 +14,7 @@
 #include "concurrency/new_mutex.hpp"
 #include "concurrency/signal.hpp"
 #include "concurrency/watchable.hpp"
+#include "concurrency/watchable_map.hpp"
 #include "containers/uuid.hpp"
 #include "time.hpp"
 
@@ -417,9 +418,12 @@ public:
         raft_rpc_reply_t *reply_out) = 0;
 
     /* `get_connected_members()` returns the set of all Raft members for which an RPC is
-    likely to succeed. */
-    virtual clone_ptr_t<watchable_t<std::set<raft_member_id_t> > >
-        get_connected_members() = 0;
+    likely to succeed. The values in the map should always be `nullptr`; the only reason
+    it's a map at all is that we don't have a `watchable_set_t` type. `std::nullptr_t`
+    was chosen because it has exactly one legal value (`nullptr`) and it's already
+    defined. */
+    virtual watchable_map_t<raft_member_id_t, std::nullptr_t>
+        *get_connected_members() = 0;
 
 protected:
     virtual ~raft_network_interface_t() { }
