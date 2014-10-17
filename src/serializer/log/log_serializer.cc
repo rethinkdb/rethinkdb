@@ -975,10 +975,11 @@ void counted_release(ls_block_token_pointee_t *p) {
         void on_thread_switch() {
             rassert(p->ref_count_ == 0);
             p->do_destroy();
-            if (p->deleter)
+            if (p->deleter) {
                 p->deleter(p);
-            else
+            } else {
                 delete p;
+            }
             delete this;
         }
         ls_block_token_pointee_t *p;
@@ -989,10 +990,11 @@ void counted_release(ls_block_token_pointee_t *p) {
     if (res == 0) {
         if (get_thread_id() == p->serializer_->home_thread()) {
             p->do_destroy();
-            if (p->deleter)
+            if (p->deleter) {
                 p->deleter(p);
-            else
+            } else {
                 delete p;
+            }
         } else {
             destroyer_t *destroyer = new destroyer_t;
             destroyer->p = p;

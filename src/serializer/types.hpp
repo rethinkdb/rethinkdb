@@ -229,7 +229,7 @@ struct scs_block_token_t {
     friend void counted_release<T>(scs_block_token_t<T> *p);
 private:
     intptr_t ref_count_;
-    mutable std::function<void(scs_block_token_t<T>*) deleter;
+    mutable std::function<void(scs_block_token_t<T>*)> deleter;
 };
 
 template <class T>
@@ -249,10 +249,11 @@ void counted_release(scs_block_token_t<T> *p) {
     const intptr_t res = __sync_sub_and_fetch(&p->ref_count_, 1);
     rassert(res >= 0);
     if (res == 0) {
-        if (p->deleter)
+        if (p->deleter) {
             p->deleter(p);
-        else
+        } else {
             delete p;
+        }
     }
 }
 

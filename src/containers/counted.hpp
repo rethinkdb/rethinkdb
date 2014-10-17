@@ -198,11 +198,12 @@ inline void counted_release(const single_threaded_countable_t<T> *p) {
     rassert(p->refcount_ > 0);
     --p->refcount_;
     if (p->refcount_ == 0) {
-        T* realptr = static_cast<T *>(const_cast<single_threaded_countable_t<T> *>(p));
-        if (p->deleter)
+        T *realptr = static_cast<T *>(const_cast<single_threaded_countable_t<T> *>(p));
+        if (p->deleter) {
             p->deleter(realptr);
-        else
+        } else {
             delete realptr;
+        }
     }
 }
 
@@ -276,10 +277,11 @@ inline void counted_release(const slow_atomic_countable_t<T> *p) {
     rassert(res >= 0);
     if (res == 0) {
         T *realptr = static_cast<T *>(const_cast<slow_atomic_countable_t<T> *>(p));
-        if (p->deleter)
+        if (p->deleter) {
             p->deleter(realptr);
-        else
+        } else {
             delete realptr;
+        }
     }
 }
 
