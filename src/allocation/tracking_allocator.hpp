@@ -7,6 +7,11 @@
 
 class tracking_allocator_factory_t;
 
+enum class allocator_types_t {
+    UNBOUNDED,
+    TRACKING,
+};
+
 // Base class for our allocators.
 //
 // We need this, because the allocator used forms part of the type for types like
@@ -38,10 +43,6 @@ public:
 
     virtual size_t max_size() const = 0;
 
-    enum class allocator_types_t {
-        UNBOUNDED,
-        TRACKING,
-    };
     virtual allocator_types_t type() const = 0;
 
     // function interface
@@ -77,19 +78,19 @@ public:
     bool operator !=(const tracking_allocator_t<T, Allocator> &other) const {
         return parent.lock() != other.parent.lock();
     }
-    virtual bool operator ==(const rethinkdb_allocator_t<T, Allocator> &other) const
-    {
-        if (other.type() == rethinkdb_allocator_t<T, Allocator>::allocator_types_t::TRACKING)
+    virtual bool operator ==(const rethinkdb_allocator_t<T, Allocator> &other) const {
+        if (other.type() == allocator_types_t::TRACKING) {
             return parent.lock() ==
-                static_cast<tracking_allocator_t<T, Allocator> &>
-                (const_cast<rethinkdb_allocator_t<T, Allocator> &>(other)).parent.lock();
-        else
+                static_cast<const tracking_allocator_t<T, Allocator> &>(other)
+                .parent.lock();
+        } else {
             return false;
+        }
     }
 
     virtual size_t max_size() const;
-    virtual typename rethinkdb_allocator_t<T, Allocator>::allocator_types_t type() const {
-        return rethinkdb_allocator_t<T, Allocator>::allocator_types_t::TRACKING;
+    virtual typename allocator_types_t type() const {
+        return allocator_types_t::TRACKING;
     }
 
     std::weak_ptr<tracking_allocator_factory_t> parent;
@@ -129,8 +130,8 @@ public:
             return false;
     }
     virtual size_t max_size() const { return std::numeric_limits<size_t>::max(); }
-    virtual typename rethinkdb_allocator_t<T, Allocator>::allocator_types_t type() const {
-        return rethinkdb_allocator_t<T, Allocator>::allocator_types_t::UNBOUNDED;
+    virtual typename allocator_types_t type() const {
+        return allocator_types_t::UNBOUNDED;
     }
 };
 
