@@ -203,10 +203,12 @@ scoped_ptr_t<accumulator_t> make_append(const sorting_t &sorting, batcher_t *bat
 // runtime error.
 class limit_append_t : public append_t, public eager_acc_t {
 public:
-    limit_append_t(size_t n, sorting_t sorting)
+    limit_append_t(size_t _n, sorting_t sorting)
         : append_t(sorting, &batcher),
           seen_distinct_sindex(false),
-          batcher(batchspec_t::all().with_at_most(n).to_batcher()) { }
+          seen(0),
+          n(_n),
+          batcher(batchspec_t::all().to_batcher()) { }
 private:
     virtual void operator()(env_t *, groups_t *) {
         guarantee(false); // Don't use this as an eager accumulator.
@@ -221,7 +223,8 @@ private:
     }
 
     virtual bool should_send_batch() {
-        return append_t::should_send_batch() && seen_distinct_sindex;
+        debugf("should_send_batch %zu %zu %d\n", seen, n, seen_distinct_sindex);
+        return seen >= n && seen_distinct_sindex;
     }
     virtual bool accumulate(env_t *env,
                             const datum_t &el,
@@ -230,20 +233,33 @@ private:
                             // sindex_val may be NULL
                             const datum_t &sindex_val) {
         bool ret = append_t::accumulate(env, el, stream, key, sindex_val);
+        seen += 1;
         guarantee(stream->size() > 0);
+        debugf("ARBITRARY %zu vs. %zu\n", n, stream->size());
+        debugf("foofoofoo %s\n", el.print().c_str());
         rget_item_t *last = &stream->back();
         if (start_sindex) {
+            debugf("a\n");
             std::string cur =
                 datum_t::extract_secondary(key_to_unescaped_str(last->key));
-            if (cur != *start_sindex) {
+            // We need to do this because the truncated sindex keys might be
+            // different sizes depending on the length of the primary key.
+            // (Also, I hate literally everything about or on-disk key format.)
+            size_t minlen = std::min(cur.size(), (*start_sindex).size());
+            if (cur.compare(0, minlen, *start_sindex, 0, minlen) != 0) {
+                debugf("aa\n");
                 seen_distinct_sindex = true;
             }
         } else {
-            if (append_t::should_send_batch()) {
+            debugf("b\n");
+            if (seen >= n) {
+                debugf("ba\n");
                 if (datum_t::key_is_truncated(last->key)) {
+                    debugf("baa\n");
                     start_sindex =
                         datum_t::extract_secondary(key_to_unescaped_str(last->key));
                 } else {
+                    debugf("bab\n");
                     seen_distinct_sindex = true;
                 }
             }
@@ -252,6 +268,7 @@ private:
     }
     boost::optional<std::string> start_sindex;
     bool seen_distinct_sindex;
+    size_t seen, n;
     batcher_t batcher;
 };
 

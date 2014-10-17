@@ -81,5 +81,7 @@ private:
     DISABLE_COPYING(debug_timer_t);
 };
 
+std::string strip_as(std::string s);
+
 #endif  // DEBUG_HPP_
 

@@ -349,6 +349,7 @@ limit_manager_t::limit_manager_t(
       spec(std::move(_spec)),
       gt(std::move(_gt)),
       lqueue(gt) {
+    debugf("limit_manager_t::limit_manager_t %zu\n", stream.size());
     for (auto &&item : stream) {
         auto keystr = key_to_unescaped_str(item.key);
         bool inserted;
@@ -371,6 +372,7 @@ limit_manager_t::limit_manager_t(
         v.push_back(*pair);
     }
     send(msg_t(msg_t::limit_start_t(uuid, std::move(v))));
+    debugf("lqueue: %zu (%p)\n", lqueue.size(), this);
 }
 
 
@@ -530,7 +532,8 @@ lvec_t limit_manager_t::read_more(
 void limit_manager_t::commit(
     const boost::variant<primary_ref_t, sindex_ref_t> &sindex_ref) {
     debugf("\n**********************************************************************\n");
-    debugf("COMMIT (added %zu, deleted %zu)\n", added.size(), deleted.size());
+    debugf("COMMIT (added %zu, deleted %zu) | %zu (%p)\n",
+           added.size(), deleted.size(), lqueue.size(), this);
     lqueue_t real_added(gt);
     std::set<std::string> real_deleted;
     for (auto &&id : deleted) {
@@ -549,7 +552,8 @@ void limit_manager_t::commit(
     }
     added.clear();
 
-    debugf("real_added %zu, real_deleted %zu\n", real_added.size(), real_deleted.size());
+    debugf("a real_added %zu, real_deleted %zu | %zu\n",
+           real_added.size(), real_deleted.size(), lqueue.size());
     std::vector<std::string> truncated = lqueue.truncate(spec.limit);
     for (auto &&id : truncated) {
         auto it = real_added.find_id(id);
@@ -560,7 +564,7 @@ void limit_manager_t::commit(
             guarantee(inserted);
         }
     }
-    debugf("2 real_added %zu, real_deleted %zu\n",
+    debugf("b real_added %zu, real_deleted %zu\n",
            real_added.size(), real_deleted.size());
     if (lqueue.size() < spec.limit) {
         debugf("Expanding data...\n");
@@ -572,6 +576,8 @@ void limit_manager_t::commit(
         if (data_it != lqueue.end()) {
             start = data_it;
         }
+        debugf("Reading %zu - %zu = %zu\n",
+               spec.limit, lqueue.size(), spec.limit - lqueue.size());
         lvec_t s = read_more(
             sindex_ref,
             spec.range.sorting,
@@ -599,7 +605,7 @@ void limit_manager_t::commit(
         debugf("Releasing superblock.\n");
         p->promise->pulse(p->superblock);
     }
-    debugf("3 real_added %zu, real_deleted %zu\n",
+    debugf("c real_added %zu, real_deleted %zu\n",
            real_added.size(), real_deleted.size());
     std::set<std::string> remaining_deleted;
     for (auto &&id : real_deleted) {
@@ -631,7 +637,7 @@ void limit_manager_t::commit(
         send(msg_t(std::move(msg)));
     }
 
-    debugf("4 real_added %zu, real_deleted %zu\n",
+    debugf("d real_added %zu, real_deleted %zu\n",
            real_added.size(), real_deleted.size());
     for (auto &&it : real_added) {
         msg_t::limit_change_t msg;
@@ -641,7 +647,7 @@ void limit_manager_t::commit(
         send(msg_t(std::move(msg)));
     }
     real_added.clear();
-    debugf("5 real_added %zu, real_deleted %zu\n",
+    debugf("e real_added %zu, real_deleted %zu\n",
            real_added.size(), real_deleted.size());
     debugf("\n**********************************************************************\n");
 }

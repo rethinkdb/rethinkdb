@@ -277,14 +277,14 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         {
             rget_read_response_t resp;
             rget_read_t rget;
-            rget.region = region_t::universe();
+            rget.region = s.region;
             rget.table_name = s.table;
             rget.batchspec = ql::batchspec_t::all(); // Terminal takes care of stopping.
             rget.terminal = ql::limit_read_t{s.spec.limit, s.spec.range.sorting};
             if (s.spec.range.sindex) {
                 rget.sindex = sindex_rangespec_t(
                     *s.spec.range.sindex,
-                    s.region,
+                    region_t(ql::datum_range_t::universe().to_sindex_keyrange()),
                     ql::datum_range_t::universe());
             }
             // RSI: rget.terminal for truncation!
@@ -305,9 +305,17 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                   [gt](const ql::rget_item_t &a, const ql::rget_item_t &b) {
                       return gt(b.sindex_key, a.sindex_key); // Ordering is intentional.
                   });
+        std::string s2;
+        for (const auto &item : stream) {
+            s2 += "IDS " + strip_as(item.sindex_key.print()) + "\n";
+        }
         if (stream.size() > s.spec.limit) {
             stream.resize(s.spec.limit);
         }
+        for (const auto &item : stream) {
+            s2 += "REAL_IDS " + strip_as(item.sindex_key.print()) + "\n";
+        }
+        debugf("%s\n", s2.c_str());
 
         guarantee(store->changefeed_server.has());
         store->changefeed_server->add_limit_client(
