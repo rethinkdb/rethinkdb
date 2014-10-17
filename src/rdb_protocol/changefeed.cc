@@ -473,7 +473,6 @@ public:
             region_t(srange.to_sindex_keyrange()),
             ref.superblock,
             ref.env,
-            // RSI: check we don't always read everything.
             batchspec_t::all(), // Terminal takes care of early termination
             std::vector<transform_variant_t>(),
             boost::optional<terminal_variant_t>(limit_read_t{n, sorting}),

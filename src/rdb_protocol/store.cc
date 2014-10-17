@@ -287,7 +287,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                     region_t(ql::datum_range_t::universe().to_sindex_keyrange()),
                     ql::datum_range_t::universe());
             }
-            // RSI: rget.terminal for truncation!
             rget.sorting = s.spec.range.sorting;
             do_read(&env, store, btree, superblock, rget, &resp);
             auto *gs = boost::get<ql::grouped_t<ql::stream_t> >(&resp.result);
