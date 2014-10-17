@@ -117,6 +117,17 @@ raft_member_t<state_t>::~raft_member_t() {
 }
 
 template<class state_t>
+raft_persistent_state_t<state_t> raft_member_t<state_t>::get_state_for_init() {
+    /* This implementation deviates from the Raft paper in that we initialize new peers
+    joining the cluster by copying the log, snapshot, etc. from an existing peer, instead
+    of starting the new peer with a blank state. */
+    raft_persistent_state_t<state_t> ps_copy = ps;
+    /* Clear `voted_for` since the newly-joining peer will not have voted for anything */
+    ps_copy.voted_for = nil_uuid();
+    return ps_copy;
+}
+
+template<class state_t>
 bool raft_member_t<state_t>::propose_change_if_leader(
         const typename state_t::change_t &change,
         signal_t *interruptor) {

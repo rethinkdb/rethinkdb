@@ -253,7 +253,10 @@ public:
     /* `make_join()` returns a `raft_persistent_state_t` for a Raft member that will be
     joining an already-established Raft cluster. A Raft member initialized this way
     should be added to the cluster as a non-voting member, and not made a voting member
-    until it has received a snapshot. */
+    until it has received a snapshot.
+
+    TODO: This might end up being unused, because `raft_member_t::get_state_for_init()`
+    will probably be better. Consider removing this. */
     static raft_persistent_state_t make_join();
 
 private:
@@ -455,6 +458,11 @@ public:
         guarantee(initialized_cond.is_pulsed());
         return state_machine.get_watchable();
     }
+
+    /* `get_state_to_initialize_peer()` returns a `raft_persistent_state_t` that could be
+    used to initialize a new member of the cluster instead of
+    `raft_persistent_state_t::make_join()`. */
+    raft_persistent_state_t<state_t> get_state_for_init();
 
     /* TODO: These user-facing APIs are inadequate. We'll probably need:
       * A way to block until a newly-created Raft cluster has elected a leader and is
