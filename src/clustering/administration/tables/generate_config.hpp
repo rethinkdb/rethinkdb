@@ -20,8 +20,8 @@ bool table_generate_config(
         namespace_id_t table_id,
         /* This is used to determine where the table's data is currently stored and
         prioritize keeping it there. If `table_id` is `nil_uuid()`, this can be NULL. */
-        clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
-            namespaces_directory_metadata_t> > > directory_view,
+        watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
+                        namespace_directory_metadata_t> *directory_view,
         /* Compute this by calling `calculate_server_usage()` on the table configs for
         all of the other tables */
         const std::map<machine_id_t, int> &server_usage,

@@ -31,6 +31,8 @@
 #include "extproc/extproc_pool.hpp"
 #include "rdb_protocol/query_server.hpp"
 #include "rpc/connectivity/cluster.hpp"
+#include "rpc/directory/map_read_manager.hpp"
+#include "rpc/directory/map_write_manager.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
@@ -115,8 +117,11 @@ bool do_serve(io_backender_t *io_backender,
         semilattice_manager_t<auth_semilattice_metadata_t>
             semilattice_manager_auth(&connectivity_cluster, 'A', auth_metadata);
 
-        directory_read_manager_t<cluster_directory_metadata_t> directory_read_manager(
-            &connectivity_cluster, 'D');
+        directory_read_manager_t<cluster_directory_metadata_t>
+            directory_read_manager(&connectivity_cluster, 'D');
+
+        directory_map_read_manager_t<namespace_id_t, namespace_directory_metadata_t>
+            reactor_directory_read_manager(&connectivity_cluster, 'R');
 
         log_server_t log_server(&mailbox_manager, &log_writer);
 
@@ -263,7 +268,7 @@ bool do_serve(io_backender_t *io_backender,
         real_reql_cluster_interface_t real_reql_cluster_interface(
                 &mailbox_manager,
                 semilattice_manager_cluster.get_root_view(),
-                directory_read_manager.get_root_view(),
+                reactor_directory_read_manager.get_root_view(),
                 &rdb_ctx,
                 &server_name_client);
 
@@ -272,6 +277,7 @@ bool do_serve(io_backender_t *io_backender,
                 semilattice_manager_cluster.get_root_view(),
                 semilattice_manager_auth.get_root_view(),
                 directory_read_manager.get_root_view(),
+                reactor_directory_read_manager.get_root_view(),
                 &server_name_client);
 
         /* `real_reql_cluster_interface_t` needs access to the admin tables so that it
@@ -302,8 +308,9 @@ bool do_serve(io_backender_t *io_backender,
             // RDB
             scoped_ptr_t<file_based_svs_by_namespace_t> rdb_svs_source;
             scoped_ptr_t<reactor_driver_t> rdb_reactor_driver;
-            scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t, cluster_directory_metadata_t> >
-                rdb_reactor_directory_copier;
+            scoped_ptr_t<directory_map_write_manager_t<
+                namespace_id_t, namespace_directory_metadata_t> >
+                reactor_directory_write_manager;
 
             if (i_am_a_server) {
                 rdb_svs_source.init(new file_based_svs_by_namespace_t(
@@ -313,9 +320,7 @@ bool do_serve(io_backender_t *io_backender,
                         base_path,
                         io_backender,
                         &mailbox_manager,
-                        directory_read_manager.get_root_view()->incremental_subview(
-                            incremental_field_getter_t<namespaces_directory_metadata_t,
-                                                       cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
+                        reactor_directory_read_manager.get_root_view(),
                         cluster_metadata_file->get_rdb_branch_history_manager(),
                         metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
                                        semilattice_manager_cluster.get_root_view()),
@@ -324,10 +329,11 @@ bool do_serve(io_backender_t *io_backender,
                         rdb_svs_source.get(),
                         &perfmon_repo,
                         &rdb_ctx));
-                rdb_reactor_directory_copier.init(new field_copier_t<namespaces_directory_metadata_t, cluster_directory_metadata_t>(
-                    &cluster_directory_metadata_t::rdb_namespaces,
-                    rdb_reactor_driver->get_watchable(),
-                    &our_root_directory_variable));
+                reactor_directory_write_manager.init(
+                    new directory_map_write_manager_t<
+                            namespace_id_t, namespace_directory_metadata_t>(
+                        &connectivity_cluster, 'R', rdb_reactor_driver->get_watchable()
+                    ));
             }
 
             {

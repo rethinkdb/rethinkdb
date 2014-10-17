@@ -14,44 +14,51 @@
 /* Returns true if every peer listed as a primary for this shard in the
  * blueprint has activity primary_t and every peer listed as a secondary has
  * activity secondary_up_to_date_t. */
-bool reactor_t::is_safe_for_us_to_be_nothing(const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &_reactor_directory, const blueprint_t &blueprint,
-                                             const region_t &region)
+bool reactor_t::is_safe_for_us_to_be_nothing(
+        watchable_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > *directory,
+        const blueprint_t &blueprint,
+        const region_t &region)
 {
     /* Iterator through the peers the blueprint claims we should be able to
      * see. */
     for (std::map<peer_id_t, std::map<region_t, blueprint_role_t> >::const_iterator p_it = blueprint.peers_roles.begin();
          p_it != blueprint.peers_roles.end();
          ++p_it) {
-        std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> >::const_iterator bcard_it = _reactor_directory.get_inner().find(p_it->first);
-        if (bcard_it == _reactor_directory.get_inner().end()) {
-            //The peer is down or has no reactor
-            return false;
-        }
-
-        std::map<region_t, blueprint_role_t>::const_iterator r_it = p_it->second.find(drop_cpu_sharding(region));
-        guarantee(r_it != p_it->second.end(), "Invalid blueprint issued, different peers have different sharding schemes.\n");
-
-        /* Whether or not we found a directory entry for this peer */
-        bool found = false;
-        for (reactor_business_card_t::activity_map_t::const_iterator it = bcard_it->second->activities.begin();
-             it != bcard_it->second->activities.end();
-             ++it) {
-            if (it->second.region == region) {
-                if (r_it->second == blueprint_role_primary) {
-                    if (!boost::get<reactor_business_card_t::primary_t>(&it->second.activity)) {
-                        return false;
-                    }
-                } else if (r_it->second == blueprint_role_secondary) {
-                    if (!boost::get<reactor_business_card_t::secondary_up_to_date_t>(&it->second.activity)) {
-                        return false;
-                    }
-                }
-                found = true;
-                break;
+        std::map<region_t, blueprint_role_t>::const_iterator r_it =
+            p_it->second.find(drop_cpu_sharding(region));
+        guarantee(r_it != p_it->second.end(), "Invalid blueprint issued, different "
+            "peers have different sharding schemes.\n");
+        bool ok;
+        directory->read_key(p_it->first,
+                [&](const cow_ptr_t<reactor_business_card_t> *bcard) {
+            if (bcard == nullptr) {
+                ok = false;
+                return;
             }
-        }
-
-        if (!found) {
+            /* Whether or not we found a directory entry for this peer */
+            bool found = false;
+            for (auto it = (*bcard)->activities.begin();
+                    it != (*bcard)->activities.end();
+                    ++it) {
+                if (it->second.region == region) {
+                    if (r_it->second == blueprint_role_primary) {
+                        if (!boost::get<reactor_business_card_t::primary_t>(&it->second.activity)) {
+                            ok = false;
+                            return;
+                        }
+                    } else if (r_it->second == blueprint_role_secondary) {
+                        if (!boost::get<reactor_business_card_t::secondary_up_to_date_t>(&it->second.activity)) {
+                            ok = false;
+                            return;
+                        }
+                    }
+                    found = true;
+                    break;
+                }
+            }
+            ok = found;
+        });
+        if (!ok) {
             return false;
         }
     }

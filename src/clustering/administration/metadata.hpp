@@ -98,7 +98,6 @@ public:
     cluster_directory_metadata_t &operator=(cluster_directory_metadata_t &&other) {
         /* We have to define this manually instead of using `= default` because older
         versions of `boost::optional` don't support moving */
-        rdb_namespaces = std::move(other.rdb_namespaces);
         machine_id = other.machine_id;
         peer_id = other.peer_id;
         version = std::move(other.version);
@@ -116,8 +115,6 @@ public:
         peer_type = other.peer_type;
         return *this;
     }
-
-    namespaces_directory_metadata_t rdb_namespaces;
 
     machine_id_t machine_id;
 

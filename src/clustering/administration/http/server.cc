@@ -4,7 +4,6 @@
 #include "clustering/administration/http/cyanide.hpp"
 #include "clustering/administration/http/directory_app.hpp"
 #include "clustering/administration/http/log_app.hpp"
-#include "clustering/administration/http/progress_app.hpp"
 #include "clustering/administration/http/stat_app.hpp"
 #include "clustering/administration/http/combining_app.hpp"
 #include "http/file_app.hpp"
@@ -225,7 +224,6 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     log_app.init(new log_http_app_t(mbox_manager,
         _directory_metadata->subview(&get_log_mailbox),
         _directory_metadata->subview(&get_machine_id)));
-    progress_app.init(new progress_app_t(_directory_metadata, mbox_manager));
 
 #ifndef NDEBUG
     cyanide_app.init(new cyanide_http_app_t);
@@ -235,7 +233,6 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     ajax_routes["directory"] = directory_app.get();
     ajax_routes["stat"] = stat_app.get();
     ajax_routes["log"] = log_app.get();
-    ajax_routes["progress"] = progress_app.get();
     ajax_routes["reql"] = reql_app;
     DEBUG_ONLY_CODE(ajax_routes["cyanide"] = cyanide_app.get());
 
