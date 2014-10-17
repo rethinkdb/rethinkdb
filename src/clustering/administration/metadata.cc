@@ -45,13 +45,13 @@ RDB_IMPL_EQUALITY_COMPARABLE_1(machines_semilattice_metadata_t, machines);
 RDB_IMPL_ME_SERIALIZABLE_2_SINCE_v1_13(ack_expectation_t, expectation_, hard_durability_);
 
 RDB_IMPL_SERIALIZABLE_2(table_config_t::shard_t,
-                        replica_names, director_name);
+                        replicas, director);
 template void serialize<cluster_version_t::v1_15_is_latest>(
             write_message_t *, const table_config_t::shard_t &);
 template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
             read_stream_t *, table_config_t::shard_t *);
 RDB_IMPL_EQUALITY_COMPARABLE_2(table_config_t::shard_t,
-                               replica_names, director_name);
+                               replicas, director);
 
 RDB_IMPL_SERIALIZABLE_1(table_config_t, shards);
 template void serialize<cluster_version_t::v1_15_is_latest>(
@@ -98,9 +98,6 @@ template archive_result_t deserialize<cluster_version_t::v1_15_is_latest>(
 RDB_IMPL_SEMILATTICE_JOINABLE_1(namespaces_semilattice_metadata_t, namespaces);
 RDB_IMPL_EQUALITY_COMPARABLE_1(namespaces_semilattice_metadata_t, namespaces);
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(namespaces_directory_metadata_t, reactor_bcards);
-RDB_IMPL_EQUALITY_COMPARABLE_1(namespaces_directory_metadata_t, reactor_bcards);
-
 RDB_IMPL_SERIALIZABLE_3(
         cluster_semilattice_metadata_t,
         rdb_namespaces, machines, databases);
@@ -117,14 +114,22 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(auth_semilattice_metadata_t, auth_key);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(auth_semilattice_metadata_t, auth_key);
 RDB_IMPL_EQUALITY_COMPARABLE_1(auth_semilattice_metadata_t, auth_key);
 
-RDB_IMPL_SERIALIZABLE_17(cluster_directory_metadata_t,
-                         rdb_namespaces, machine_id, peer_id, version, cache_size,
-                         time_started, pid, hostname, cluster_port, reql_port,
-                         http_admin_port,
-                         get_stats_mailbox_address, get_outdated_indexes_mailbox,
-                         log_mailbox, server_name_business_card, local_issues,
-                         peer_type);
-INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(cluster_directory_metadata_t);
+RDB_IMPL_SERIALIZABLE_15_FOR_CLUSTER(cluster_directory_metadata_t,
+     machine_id,
+     peer_id,
+     version,
+     cache_size,
+     time_started,
+     pid,
+     hostname,
+     cluster_port,
+     reql_port,
+     http_admin_port,
+     get_stats_mailbox_address,
+     log_mailbox,
+     server_name_business_card,
+     local_issues,
+     peer_type);
 
 bool ack_expectation_t::operator==(ack_expectation_t other) const {
     return expectation_ == other.expectation_ && hard_durability_ == other.hard_durability_;
@@ -154,7 +159,6 @@ void apply_json_to(cJSON *change, ack_expectation_t *target) {
 // ctx-less json adapter concept for cluster_directory_metadata_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_metadata_t *target) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["rdb_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<namespaces_directory_metadata_t>(&target->rdb_namespaces));
     res["machine_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<machine_id_t>(&target->machine_id)); // TODO: should be 'me'?
     res["peer_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<peer_id_t>(&target->peer_id));
     res["cache_size"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<uint64_t>(&target->cache_size));
@@ -191,21 +195,6 @@ cJSON *render_as_json(cluster_directory_peer_type_t *peer_type) {
 }
 
 void apply_json_to(cJSON *, cluster_directory_peer_type_t *) { }
-
-// ctx-less json adapter concept for namespaces_directory_metadata_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(namespaces_directory_metadata_t *target) {
-    json_adapter_if_t::json_adapter_map_t res;
-    res["reactor_bcards"] = boost::shared_ptr<json_adapter_if_t>(new json_read_only_adapter_t<std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > >(&target->reactor_bcards));
-    return res;
-}
-
-cJSON *render_as_json(namespaces_directory_metadata_t *target) {
-    return render_as_directory(target);
-}
-
-void apply_json_to(cJSON *change, namespaces_directory_metadata_t *target) {
-    apply_as_directory(change, target);
-}
 
 bool check_metadata_status(metadata_search_status_t status,
                            const char *entity_type,

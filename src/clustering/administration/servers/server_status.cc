@@ -2,8 +2,8 @@
 #include "clustering/administration/servers/server_status.hpp"
 
 #include "clustering/administration/datum_adapter.hpp"
-#include "clustering/administration/servers/last_seen_tracker.hpp"
 #include "clustering/administration/servers/name_client.hpp"
+#include "clustering/administration/main/watchable_fields.hpp"
 
 bool directory_has_role_for_table(const reactor_business_card_t &business_card) {
     for (auto it = business_card.activities.begin();
@@ -16,14 +16,37 @@ bool directory_has_role_for_table(const reactor_business_card_t &business_card) 
     return false;
 }
 
-bool table_has_role_for_server(const name_string_t &name,
+bool table_has_role_for_server(const machine_id_t &server,
                                const table_config_t &table_config) {
     for (const table_config_t::shard_t &shard : table_config.shards) {
-        if (shard.replica_names.count(name) == 1) {
+        if (shard.replicas.count(server) == 1) {
             return true;
         }
     }
     return false;
+}
+
+server_status_artificial_table_backend_t::server_status_artificial_table_backend_t(
+    boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> >
+        _servers_sl_view,
+    server_name_client_t *_name_client,
+    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
+        cluster_directory_metadata_t> > > _directory_view,
+    boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<
+        namespaces_semilattice_metadata_t> > > _table_sl_view,
+    boost::shared_ptr<semilattice_readwrite_view_t<databases_semilattice_metadata_t> >
+        _database_sl_view) :
+    common_server_artificial_table_backend_t(_servers_sl_view, _name_client),
+    directory_view(_directory_view), table_sl_view(_table_sl_view),
+    database_sl_view(_database_sl_view),
+    last_seen_tracker(
+        _servers_sl_view,
+        _directory_view->incremental_subview(
+            incremental_field_getter_t<machine_id_t, cluster_directory_metadata_t>(
+                                    &cluster_directory_metadata_t::machine_id)))
+{
+    table_sl_view->assert_thread();
+    database_sl_view->assert_thread();
 }
 
 bool server_status_artificial_table_backend_t::read_row(
@@ -65,7 +88,7 @@ bool server_status_artificial_table_backend_t::read_row(
         builder.overwrite("time_started",
             convert_microtime_to_datum(directory->time_started));
         microtime_t connected_time =
-            last_seen_tracker->get_connected_time(server_id);
+            last_seen_tracker.get_connected_time(server_id);
         builder.overwrite("time_connected",
             convert_microtime_to_datum(connected_time));
         builder.overwrite("time_disconnected", ql::datum_t::null());
@@ -73,7 +96,7 @@ bool server_status_artificial_table_backend_t::read_row(
         builder.overwrite("time_started", ql::datum_t::null());
         builder.overwrite("time_connected", ql::datum_t::null());
         microtime_t disconnected_time =
-            last_seen_tracker->get_disconnected_time(server_id);
+            last_seen_tracker.get_disconnected_time(server_id);
         builder.overwrite("time_disconnected",
             convert_microtime_to_datum(disconnected_time));
     }
@@ -106,35 +129,6 @@ bool server_status_artificial_table_backend_t::read_row(
         builder.overwrite("cluster_port", ql::datum_t::null());
         builder.overwrite("reql_port", ql::datum_t::null());
         builder.overwrite("http_admin_port", ql::datum_t::null());
-    }
-
-    if (directory) {
-        cow_ptr_t<namespaces_semilattice_metadata_t> sl = table_sl_view->get();
-        databases_semilattice_metadata_t dbs = database_sl_view->get();
-        ql::datum_array_builder_t array_builder(ql::configured_limits_t::unlimited);
-        for (auto it = sl->namespaces.begin(); it != sl->namespaces.end(); ++it) {
-            if (it->second.is_deleted()) {
-                continue;
-            }
-            bool in_config = table_has_role_for_server(server_name,
-                it->second.get_ref().replication_info.get_ref().config);
-            auto directory_it = directory->rdb_namespaces.reactor_bcards.find(it->first);
-            bool in_directory =
-                (directory_it != directory->rdb_namespaces.reactor_bcards.end()) &&
-                directory_has_role_for_table(*directory_it->second.internal.get());
-            if (!in_config && !in_directory) {
-                continue;
-            }
-            name_string_t table_name = it->second.get_ref().name.get_ref();
-            name_string_t db_name = get_db_name(it->second.get_ref().database.get_ref());
-            ql::datum_object_builder_t pair_builder;
-            pair_builder.overwrite("db", convert_name_to_datum(db_name));
-            pair_builder.overwrite("table", convert_name_to_datum(table_name));
-            array_builder.add(std::move(pair_builder).to_datum());
-        }
-        builder.overwrite("tables", std::move(array_builder).to_datum());
-    } else {
-        builder.overwrite("tables", ql::datum_t::null());
     }
 
     *row_out = std::move(builder).to_datum();

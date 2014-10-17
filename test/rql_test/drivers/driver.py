@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import atexit, collections, os, re, sys
+import atexit, itertools, os, re, sys
 from datetime import datetime, tzinfo, timedelta
 
 try:
@@ -11,6 +11,14 @@ try:
 	xrange
 except NameError:
 	xrange = range
+try:
+    long
+except NameError:
+    long = int
+try:
+    izip_longest = itertools.izip_longest
+except AttributeError:
+    izip_longest = itertools.zip_longest
 
 # -- timezone objects
 
@@ -89,21 +97,19 @@ def check_pp(src, query):
     #    print("Printed query: %s", composed)
 
 class Lst:
-    def __init__(self, lst):
+    def __init__(self, lst, **kwargs):
         self.lst = lst
+        self.kwargs = kwargs
 
     def __eq__(self, other):
         if not hasattr(other, '__iter__'):
             return False
 
-        i = 0
-        for row in other:
-            if i >= len(self.lst) or (self.lst[i] != row):
+        for otherItem, selfItem in izip_longest(other, self.lst, fillvalue=self.__class__):
+            if self.__class__ in (otherItem, selfItem):
+                return False # mistmatched lengths
+            if not eq(selfItem, **self.kwargs)(otherItem):
                 return False
-            i += 1
-
-        if i != len(self.lst):
-            return False
 
         return True
 
@@ -111,8 +117,9 @@ class Lst:
         return repr(self.lst)
 
 class Bag(Lst):
-    def __init__(self, lst):
+    def __init__(self, lst, **kwargs):
         self.lst = sorted(lst, key=lambda x: repr(x))
+        self.kwargs = kwargs
 
     def __eq__(self, other):
         if not hasattr(other, '__iter__'):
@@ -124,15 +131,16 @@ class Bag(Lst):
             return False
 
         for a, b in zip(self.lst, other):
-            if a != b:
+            if not eq(a, **self.kwargs)(b):
                 return False
 
         return True
 
 class Dct:
-    def __init__(self, dct):
+    def __init__(self, dct, **kwargs):
         assert isinstance(dct, dict)
         self.dct = dct
+        self.kwargs = kwargs
 
     def __eq__(self, other):
         if not isinstance(other, dict):
@@ -149,7 +157,7 @@ class Dct:
                 # Remove additional error info that creeps in in debug mode
                 val = re.sub("(?ms)\nFailed assertion:.*", "", val)
             other[key] = val
-            if not self.dct[key] == other[key]:
+            if not eq(self.dct[key], **self.kwargs)(other[key]):
                 return False
         return True
     
@@ -160,7 +168,7 @@ class Dct:
         return repr(self.dct)
 
 class Err:
-    def __init__(self, err_type=None, err_msg=None, err_frames=None, regex=False):
+    def __init__(self, err_type=None, err_msg=None, err_frames=None, regex=False, **kwargs):
         self.etyp = err_type
         self.emsg = err_msg
         self.frames = None # err_frames # TODO: test frames
@@ -198,9 +206,10 @@ class Err:
 
 
 class Arr:
-    def __init__(self, length, thing=None):
+    def __init__(self, length, thing=None, **kwargs):
         self.length = length
         self.thing = thing
+        self.kwargs = kwargs
 
     def __eq__(self, arr):
         if not isinstance(arr, list):
@@ -212,12 +221,15 @@ class Arr:
         if self.thing is None:
             return True
 
-        return all([v == self.thing for v in arr])
+        return all([eq(v, **self.kwargs)(self.thing) for v in arr])
 
     def __repr__(self):
         return "arr(%d, %s)" % (self.length, repr(self.thing))
 
 class Uuid:
+    def __init__(self, **kwargs):
+        pass
+    
     def __eq__(self, thing):
         if not isinstance(thing, (str, unicode)):
             return False
@@ -226,37 +238,40 @@ class Uuid:
     def __repr__(self):
         return "uuid()"
 
-class Int:
-    def __init__(self, i):
-        self.i = i
+class Number:
+    def __init__(self, value, precision=0.0, explicit_type=None, **kwargs):
+        if explicit_type is not None:
+            if not isinstance(value, explicit_type):
+                raise ValueError('Number with an explicit type (%s) got an incorrect value: %s' % (str(explicit_type), str(value)))
+        elif not isinstance(value, (float, int, long)):
+            raise ValueError('Number got a non-numeric value: %s (%s)' % (str(value), type(value)))
+        self.value = value
+        self.precision = precision
+        self.explicit_type = explicit_type
 
-    def __eq__(self, thing):
-        return isinstance(thing, int) and (self.i == thing)
-
-class Float:
-    def __init__(self, f):
-        self.f = f
-
-    def __eq__(self, thing):
-        return isinstance(thing, float) and (self.f == thing)
+    def __eq__(self, other):
+        testType = self.explicit_type or (float, int, long)
+        if not isinstance(other, testType):
+            return False
+        return abs(self.value - other) <= self.precision
+    
+    def __repr__(self):
+        return "%s: %s" % (type(self.value).__name__, str(self.value))
 
 # -- Curried output test functions --
 
-def eq(exp):
+def eq(exp, **kwargs):
     if exp == ():
         return lambda x: True
 
     if isinstance(exp, list):
-        exp = Lst(exp)
+        exp = Lst(exp, **kwargs)
     elif isinstance(exp, dict):
-        exp = Dct(exp)
-
-    def sub(val):
-        if not (val == exp):
-            return False
-        else:
-            return True
-    return sub
+        exp = Dct(exp, **kwargs)
+    elif isinstance(exp, (float, int, long)):
+        exp = Number(exp, **kwargs)
+    
+    return lambda val: val == exp
 
 class PyTestDriver:
     
@@ -285,6 +300,10 @@ class PyTestDriver:
         else:
             runopts = {"profile": True}
         
+        compOptions = {}
+        if 'precision' in testopts:
+            compOptions['precision'] = testopts['precision']
+        
         conn = None
         if 'new-connection' in testopts and testopts['new-connection'] is True:
             conn = self.connect()
@@ -311,7 +330,7 @@ class PyTestDriver:
             except Exception as err:
                 if not isinstance(exp_val, Err):
                     print_test_failure(name, src, "Error eval'ing test src:\n\t%s" % repr(err))
-                elif not eq(exp_val)(err):
+                elif not eq(exp_val, **compOptions)(err):
                     print_test_failure(name, src, "Error eval'ing test src not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" % (repr(err), repr(exp_val)))
     
                 return # Can't continue with this test if there is no test query
@@ -338,9 +357,9 @@ class PyTestDriver:
         if isinstance(result, Exception):
             if not isinstance(exp_val, Err):
                 print_test_failure(name, src, "Error running test on CPP server:\n\t%s %s" % (repr(result), str(result)))
-            elif not eq(exp_val)(result):
+            elif not eq(exp_val, **compOptions)(result):
                 print_test_failure(name, src, "Error running test on CPP server not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" % (repr(result), repr(exp_val)))
-        elif not eq(exp_val)(result):
+        elif not eq(exp_val, **compOptions)(result):
             print_test_failure(name, src, "CPP result is not equal to expected result:\n\tVALUE: %s\n\tEXPECTED: %s" % (repr(result), repr(exp_val)))
 
 driver = PyTestDriver()
@@ -410,11 +429,11 @@ def uuid():
 def shard(table_name):
     test_util.shard_table(CLUSTER_PORT, BUILD, table_name)
 
-def int_cmp(i):
-    return Int(i)
+def int_cmp(expected_value):
+    return Number(expected_value, explicit_type=(int, long))
 
-def float_cmp(f):
-    return Float(f)
+def float_cmp(expected_value):
+    return Number(expected_value, explicit_type=float)
 
 def the_end():
     global failure_count

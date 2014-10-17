@@ -21,14 +21,14 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
         mailbox_manager_t *_mailbox_manager,
         boost::shared_ptr<
             semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattices,
-        clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
-            cluster_directory_metadata_t> > > _directory,
+        watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
+                        namespace_directory_metadata_t> *_directory_root_view,
         rdb_context_t *_rdb_context,
         server_name_client_t *_server_name_client
         ) :
     mailbox_manager(_mailbox_manager),
     semilattice_root_view(_semilattices),
-    directory_root_view(_directory),
+    directory_root_view(_directory_root_view),
     cross_thread_namespace_watchables(get_num_threads()),
     cross_thread_database_watchables(get_num_threads()),
     rdb_context(_rdb_context),
@@ -36,10 +36,7 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
         mailbox_manager,
         metadata_field(
             &cluster_semilattice_metadata_t::rdb_namespaces, semilattice_root_view),
-        directory_root_view->incremental_subview(
-            incremental_field_getter_t<namespaces_directory_metadata_t,
-                                       cluster_directory_metadata_t>(
-                &cluster_directory_metadata_t::rdb_namespaces)),
+        directory_root_view,
         rdb_context),
     changefeed_client(mailbox_manager,
         [this](const namespace_id_t &id, signal_t *interruptor) {
@@ -222,7 +219,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         repli_info.shard_scheme = table_shard_scheme_t::one_shard();
 
         /* Construct a configuration for the new namespace */
-        std::map<name_string_t, int> server_usage;
+        std::map<machine_id_t, int> server_usage;
         for (auto it = ns_change.get()->namespaces.begin();
                   it != ns_change.get()->namespaces.end();
                 ++it) {
@@ -232,15 +229,13 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
             calculate_server_usage(
                 it->second.get_ref().replication_info.get_ref().config, &server_usage);
         }
-        clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
-            namespaces_directory_metadata_t> > > dummy_directory;
         /* RSI(reql_admin): These should be passed by the user. */
         table_generate_config_params_t config_params;
         config_params.num_shards = 1;
         config_params.num_replicas[name_string_t::guarantee_valid("default")] = 1;
         config_params.director_tag = name_string_t::guarantee_valid("default");
         if (!table_generate_config(
-                server_name_client, nil_uuid(), dummy_directory, server_usage,
+                server_name_client, nil_uuid(), nullptr, server_usage,
                 config_params, repli_info.shard_scheme, &interruptor2,
                 &repli_info.config, error_out)) {
             return false;
@@ -377,7 +372,8 @@ bool real_reql_cluster_interface_t::table_find(const name_string_t &name,
 bool real_reql_cluster_interface_t::table_config(
         const boost::optional<name_string_t> &name,
         counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
-        signal_t *interruptor, counted_t<ql::val_t> *resp_out, std::string *error_out) {
+        signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
+        std::string *error_out) {
     return table_config_or_status(
         admin_tables->table_config_backend.get(), "table_config",
         name, db, bt, interruptor, resp_out, error_out);
@@ -386,7 +382,8 @@ bool real_reql_cluster_interface_t::table_config(
 bool real_reql_cluster_interface_t::table_status(
         const boost::optional<name_string_t> &name,
         counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
-        signal_t *interruptor, counted_t<ql::val_t> *resp_out, std::string *error_out) {
+        signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
+        std::string *error_out) {
     return table_config_or_status(
         admin_tables->table_status_backend.get(), "table_status",
         name, db, bt, interruptor, resp_out, error_out);
@@ -417,7 +414,7 @@ bool real_reql_cluster_interface_t::table_reconfigure(
     if (!check_metadata_status(status, "Table", db->name + "." + name.str(), true,
             error_out)) return false;
 
-    std::map<name_string_t, int> server_usage;
+    std::map<machine_id_t, int> server_usage;
     for (auto it = ns_searcher.find_next(ns_searcher.begin());
               it != ns_searcher.end();
               it = ns_searcher.find_next(++it)) {
@@ -448,10 +445,7 @@ bool real_reql_cluster_interface_t::table_reconfigure(
     if (!table_generate_config(
             server_name_client,
             ns_metadata_it->first,
-            directory_root_view->incremental_subview(
-                incremental_field_getter_t<namespaces_directory_metadata_t,
-                                           cluster_directory_metadata_t>
-                    (&cluster_directory_metadata_t::rdb_namespaces)),
+            directory_root_view,
             server_usage,
             params,
             new_repli_info.shard_scheme,
@@ -467,7 +461,8 @@ bool real_reql_cluster_interface_t::table_reconfigure(
         semilattice_root_view->join(metadata);
     }
 
-    *new_config_out = convert_table_config_to_datum(new_repli_info.config);
+    *new_config_out = convert_table_config_to_datum(
+        new_repli_info.config, server_name_client);
 
     return true;
 }
@@ -527,7 +522,8 @@ bool real_reql_cluster_interface_t::table_config_or_status(
         artificial_table_backend_t *backend, const char *backend_name,
         const boost::optional<name_string_t> &name, counted_t<const ql::db_t> db,
         const ql::protob_t<const Backtrace> &bt,
-        signal_t *interruptor, counted_t<ql::val_t> *resp_out, std::string *error_out) {
+        signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
+        std::string *error_out) {
     guarantee(db->name != "rethinkdb",
         "real_reql_cluster_interface_t should never get queries for system tables");
     counted_t<ql::table_t> table = make_counted<ql::table_t>(
@@ -549,7 +545,7 @@ bool real_reql_cluster_interface_t::table_config_or_status(
         if (!backend->read_row(pkey, interruptor, &row, error_out)) {
             return false;
         }
-        *resp_out = make_counted<ql::val_t>(row, pkey, table, bt);
+        resp_out->init(new ql::val_t(row, pkey, table, bt));
         return true;
     } else {
         ql::datum_array_builder_t array_builder(ql::configured_limits_t::unlimited);
@@ -566,7 +562,7 @@ bool real_reql_cluster_interface_t::table_config_or_status(
         }
         counted_t<ql::datum_stream_t> stream = make_counted<ql::array_datum_stream_t>(
             std::move(array_builder).to_datum(), bt);
-        *resp_out = make_counted<ql::val_t>(table, stream, bt);
+        resp_out->init(new ql::val_t(table, stream, bt));
         return true;
     }
 }

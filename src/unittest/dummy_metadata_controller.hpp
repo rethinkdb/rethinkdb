@@ -7,6 +7,7 @@
 
 #include "arch/timing.hpp"
 #include "rpc/semilattice/view.hpp"
+#include "concurrency/mutex.hpp"
 
 /* `dummy_semilattice_controller_t` exposes a `semilattice_readwrite_view_t`
 (via the `get_view()` method) which isn't hooked up to any other nodes in the

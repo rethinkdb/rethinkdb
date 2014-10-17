@@ -2,7 +2,6 @@
 #ifndef CLUSTERING_ADMINISTRATION_METADATA_HPP_
 #define CLUSTERING_ADMINISTRATION_METADATA_HPP_
 
-#include <list>
 #include <map>
 #include <string>
 #include <vector>
@@ -10,8 +9,7 @@
 
 // TODO: Probably some of these headers could be moved to the .cc.
 #include "clustering/administration/database_metadata.hpp"
-#include "clustering/administration/issues/local.hpp"
-#include "clustering/administration/issues/outdated_index.hpp"
+#include "clustering/administration/issues/local_issue_aggregator.hpp"
 #include "clustering/administration/log_transfer.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/administration/servers/machine_metadata.hpp"
@@ -73,7 +71,6 @@ public:
             uint16_t _reql_port,
             boost::optional<uint16_t> _http_admin_port,
             const get_stats_mailbox_address_t& _stats_mailbox,
-            const outdated_index_issue_server_t::request_address_t& _outdated_indexes_mailbox,
             const log_server_business_card_t &lmb,
             const boost::optional<server_name_business_card_t> &nsbc,
             cluster_directory_peer_type_t _peer_type) :
@@ -88,7 +85,6 @@ public:
         reql_port(_reql_port),
         http_admin_port(_http_admin_port),
         get_stats_mailbox_address(_stats_mailbox),
-        get_outdated_indexes_mailbox(_outdated_indexes_mailbox),
         log_mailbox(lmb),
         server_name_business_card(nsbc),
         peer_type(_peer_type) { }
@@ -102,7 +98,6 @@ public:
     cluster_directory_metadata_t &operator=(cluster_directory_metadata_t &&other) {
         /* We have to define this manually instead of using `= default` because older
         versions of `boost::optional` don't support moving */
-        rdb_namespaces = std::move(other.rdb_namespaces);
         machine_id = other.machine_id;
         peer_id = other.peer_id;
         version = std::move(other.version);
@@ -114,15 +109,12 @@ public:
         reql_port = other.reql_port;
         http_admin_port = other.http_admin_port;
         get_stats_mailbox_address = other.get_stats_mailbox_address;
-        get_outdated_indexes_mailbox = other.get_outdated_indexes_mailbox;
         log_mailbox = other.log_mailbox;
         server_name_business_card = other.server_name_business_card;
         local_issues = std::move(other.local_issues);
         peer_type = other.peer_type;
         return *this;
     }
-
-    namespaces_directory_metadata_t rdb_namespaces;
 
     machine_id_t machine_id;
 
@@ -139,14 +131,13 @@ public:
     boost::optional<uint16_t> http_admin_port;
 
     get_stats_mailbox_address_t get_stats_mailbox_address;
-    outdated_index_issue_server_t::request_address_t get_outdated_indexes_mailbox;
     log_server_business_card_t log_mailbox;
     boost::optional<server_name_business_card_t> server_name_business_card;
-    std::list<local_issue_t> local_issues;
+    local_issues_t local_issues;
     cluster_directory_peer_type_t peer_type;
 };
 
-RDB_DECLARE_SERIALIZABLE(cluster_directory_metadata_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(cluster_directory_metadata_t);
 
 // ctx-less json adapter for directory_echo_wrapper_t
 template <class T>

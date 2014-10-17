@@ -17,7 +17,7 @@ public:
         : op_term_t(env, term, argspec_t(0)) { }
 
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *, args_t *, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *, args_t *, eval_flags_t) const {
         return new_val(datum_t(datum_string_t(uuid_to_str(generate_uuid()))));
     }
     virtual const char *name() const { return "uuid"; }

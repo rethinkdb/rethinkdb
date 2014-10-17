@@ -16,6 +16,7 @@
 
 #include "containers/scoped.hpp"
 #include "rdb_protocol/context.hpp"
+#include "rdb_protocol/math_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/real_table.hpp"
 #include "rdb_protocol/shards.hpp"
@@ -35,8 +36,8 @@ public:
     void add_grouping(transform_variant_t &&tv,
                       const protob_t<const Backtrace> &bt);
 
-    counted_t<val_t> run_terminal(env_t *env, const terminal_variant_t &tv);
-    counted_t<val_t> to_array(env_t *env);
+    scoped_ptr_t<val_t> run_terminal(env_t *env, const terminal_variant_t &tv);
+    scoped_ptr_t<val_t> to_array(env_t *env);
 
     // stream -> stream (always eager)
     counted_t<datum_stream_t> slice(size_t l, size_t r);
@@ -231,6 +232,29 @@ private:
     std::vector<counted_t<datum_stream_t> > streams;
     size_t streams_index;
     bool is_cfeed_union;
+};
+
+class range_datum_stream_t : public eager_datum_stream_t {
+public:
+    range_datum_stream_t(bool is_infite,
+                         int64_t _start,
+                         int64_t _stop,
+                         const protob_t<const Backtrace> &);
+
+    virtual std::vector<datum_t>
+    next_raw_batch(env_t *, const batchspec_t &batchspec);
+
+    virtual bool is_array() {
+        return false;
+    }
+    virtual bool is_exhausted() const;
+    virtual bool is_cfeed() const {
+        return false;
+    }
+
+private:
+    bool is_infinite;
+    int64_t start, stop;
 };
 
 // This class generates the `read_t`s used in range reads.  It's used by

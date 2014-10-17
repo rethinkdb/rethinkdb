@@ -10,11 +10,11 @@
 #include <vector>
 
 #include "arch/io/io_utils.hpp"
-#include "clustering/administration/issues/local.hpp"
 #include "containers/scoped.hpp"
 #include "logger.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "utils.hpp"
+#include "clustering/administration/issues/log_write.hpp"
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(log_level_t, int, log_level_debug, log_level_error);
 RDB_DECLARE_SERIALIZABLE(struct timespec);
@@ -45,7 +45,7 @@ void vlog_internal(const char *src_file, int src_line, log_level_t level, const 
 
 class thread_pool_log_writer_t : public home_thread_mixin_t {
 public:
-    explicit thread_pool_log_writer_t(local_issue_tracker_t *issue_tracker);
+    explicit thread_pool_log_writer_t(local_issue_aggregator_t *local_issue_aggregator);
     ~thread_pool_log_writer_t();
 
     std::vector<log_message_t> tail(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, signal_t *interruptor) THROWS_ONLY(std::runtime_error, interrupted_exc_t);
@@ -58,10 +58,16 @@ private:
     void uninstall_on_thread(int i);
     void write(const log_message_t &msg);
     void write_blocking(const log_message_t &msg, std::string *error_out, bool *ok_out);
-    void tail_blocking(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out, bool *ok_out);
+    void tail_blocking(int max_lines,
+                       struct timespec min_timestamp,
+                       struct timespec max_timestamp,
+                       volatile bool *cancel,
+                       std::vector<log_message_t> *messages_out,
+                       std::string *error_out,
+                       bool *ok_out);
+
     mutex_t write_mutex;
-    local_issue_tracker_t *issue_tracker;
-    scoped_ptr_t<local_issue_tracker_t::entry_t> issue;
+    log_write_issue_tracker_t log_write_issue_tracker;
 
     DISABLE_COPYING(thread_pool_log_writer_t);
 };

@@ -193,6 +193,18 @@ describe('Javascript connection API', function(){
         it("close twice and reconnect", withConnection(function(done, c){
             testSimpleQuery(c, function(){
                 assert.doesNotThrow(function(){
+                    c.close({noreplyWait: false});
+                    c.close({noreplyWait: false});
+                    c.reconnect(function(err, c){
+                        assertNull(err);
+                        testSimpleQuery(c, done);
+                    });
+                });
+            });
+        }));
+        it("close twice (synchronously) and reconnect", withConnection(function(done, c){
+            testSimpleQuery(c, function(){
+                assert.doesNotThrow(function(){
                     c.close();
                     c.close();
                     c.reconnect(function(err, c){
@@ -380,7 +392,9 @@ describe('Javascript connection API', function(){
             r.expr(1).run(c, givesError("RqlDriverError", "Second argument to `run` cannot be a function if a third argument is provided.", done), 1)
         }));
 
-
+        it("Callback must be a function", withConnection(function(done, c){
+            r.expr(1).run(c, {}, "not_a_function").error(givesError("RqlDriverError", "If provided, the callback must be a function. Please use `run(connection[, options][, callback])", done))
+        }));
     });
 });
 

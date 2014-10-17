@@ -10,13 +10,15 @@ usage () {
 defaults () {
     ssh_only_group=ssh-only
     ami_group=rethinkdb-cluster
-    base_ami=ami-e7582d8e # Ubuntu precise amd64 ebs
     ssh_control_path='~/.ssh/master-%l-%r@%h:%p'
     ssh_user=ubuntu
     setup_files=$(dirname "$0")/build-ami-files
     ami_name=rethinkdb
     ami_description="RethinkDB"
     ssh_key_name=
+
+    # See http://cloud-images.ubuntu.com/locator/ec2/ for a list of official Ubuntu AMI
+    base_ami=ami-8caa1ce4 # Ubuntu Trusty 14.04 amd64 ebs 20140927
 }
 
 parseopts () {

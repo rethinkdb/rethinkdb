@@ -32,9 +32,9 @@ server_name_client_t::server_name_client_t(
     recompute_name_to_machine_id_map();
 }
 
-std::set<name_string_t> server_name_client_t::get_servers_with_tag(
+std::set<machine_id_t> server_name_client_t::get_servers_with_tag(
         const name_string_t &tag) {
-    std::set<name_string_t> servers;
+    std::set<machine_id_t> servers;
     machines_semilattice_metadata_t md = semilattice_view->get();
     for (auto it = md.machines.begin();
               it != md.machines.end();
@@ -43,7 +43,7 @@ std::set<name_string_t> server_name_client_t::get_servers_with_tag(
             continue;
         }
         if (it->second.get_ref().tags.get_ref().count(tag) == 1) {
-            servers.insert(it->second.get_ref().name.get_ref());
+            servers.insert(it->first);
         }
     }
     return servers;
@@ -111,7 +111,9 @@ bool server_name_client_t::rename_server(
     cond_t got_reply;
     mailbox_t<void()> ack_mailbox(
         mailbox_manager,
-        [&]() { got_reply.pulse(); }); // NOLINT whitespace/newline
+        [&](UNUSED signal_t *interruptor2) {
+            got_reply.pulse();
+        });
     disconnect_watcher_t disconnect_watcher(mailbox_manager, rename_addr.get_peer());
     send(mailbox_manager, rename_addr, new_name, ack_mailbox.get_address());
     wait_any_t waiter(&got_reply, &disconnect_watcher);
@@ -169,7 +171,9 @@ bool server_name_client_t::retag_server(
     cond_t got_reply;
     mailbox_t<void()> ack_mailbox(
         mailbox_manager,
-        [&]() { got_reply.pulse(); }); // NOLINT whitespace/newline
+        [&](UNUSED signal_t *interruptor2) {
+            got_reply.pulse();
+        });
     disconnect_watcher_t disconnect_watcher(mailbox_manager, retag_addr.get_peer());
     send(mailbox_manager, retag_addr, new_tags, ack_mailbox.get_address());
     wait_any_t waiter(&got_reply, &disconnect_watcher);
@@ -278,7 +282,23 @@ void server_name_client_t::recompute_machine_id_to_peer_id_map() {
                     dir_it->first, dir_it->second.machine_id));
             }
     });
-    machine_id_to_peer_id_map.set_value(new_map_m2p);
-    peer_id_to_machine_id_map.set_value(new_map_p2m);
+    machine_id_to_peer_id_map.apply_atomic_op(
+        [&](std::map<machine_id_t, peer_id_t> *map) -> bool {
+            if (*map == new_map_m2p) {
+                return false;
+            } else {
+                *map = new_map_m2p;
+                return true;
+            }
+        });
+    peer_id_to_machine_id_map.apply_atomic_op(
+        [&](std::map<peer_id_t, machine_id_t> *map) -> bool {
+            if (*map == new_map_p2m) {
+                return false;
+            } else {
+                *map = new_map_p2m;
+                return true;
+            }
+        });
 }
 

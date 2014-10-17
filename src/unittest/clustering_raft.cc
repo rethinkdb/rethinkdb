@@ -259,7 +259,7 @@ private:
             }
             return reply_info->ok;
         }
-        watchable_map_var_t<raft_member_id_t, std::nullptr_t> get_connected_members() {
+        watchable_map_var_t<raft_member_id_t, std::nullptr_t> *get_connected_members() {
             return &parent->alive_members;
         }
         void write_persistent_state(

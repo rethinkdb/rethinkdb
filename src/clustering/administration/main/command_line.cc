@@ -586,7 +586,7 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
     // Make sure that all specified addresses were found
     for (std::set<ip_address_t>::iterator i = set_filter.begin(); i != set_filter.end(); ++i) {
         if (result.find(*i) == result.end()) {
-            std::string errmsg = strprintf("could not find bind ip address '%s'", i->to_string().c_str());
+            std::string errmsg = strprintf("Could not find bind ip address '%s'", i->to_string().c_str());
             if (i->is_ipv6_link_local()) {
                 errmsg += strprintf(", this is an IPv6 link-local address, make sure the scope is correct");
             }
@@ -595,7 +595,7 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
     }
 
     if (result.empty()) {
-        throw address_lookup_exc_t("no local addresses found to bind to");
+        throw address_lookup_exc_t("No local addresses found to bind to.");
     }
 
     // If we will use all local addresses, return an empty set, which is how tcp_listener_t does it
@@ -712,11 +712,11 @@ void run_rethinkdb_create(const base_path_t &base_path,
                                                                         get_auth_metadata_filename(base_path),
                                                                         &auth_perfmon_collection,
                                                                         auth_semilattice_metadata_t());
-        logINF("Our machine ID: %s\n", uuid_to_str(our_machine_id).c_str());
+        logNTC("Our machine ID: %s\n", uuid_to_str(our_machine_id).c_str());
         logINF("Created directory '%s' and a metadata file inside it.\n", base_path.path().c_str());
         *result_out = true;
     } catch (const metadata_persistence::file_in_use_exc_t &ex) {
-        logINF("Directory '%s' is in use by another rethinkdb process.\n", base_path.path().c_str());
+        logNTC("Directory '%s' is in use by another rethinkdb process.\n", base_path.path().c_str());
         *result_out = false;
     }
 }
@@ -743,8 +743,8 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                          const cluster_semilattice_metadata_t *cluster_metadata,
                          directory_lock_t *data_directory_lock,
                          bool *const result_out) {
-    logINF("Running %s...\n", RETHINKDB_VERSION_STR);
-    logINF("Running on %s", uname_msr().c_str());
+    logNTC("Running %s...\n", RETHINKDB_VERSION_STR);
+    logNTC("Running on %s", uname_msr().c_str());
     os_signal_cond_t sigint_cond;
 
     logINF("Using cache size of %" PRIu64 " MB",
@@ -766,7 +766,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
     }
 
 
-    logINF("Loading data from directory %s\n", base_path.path().c_str());
+    logNTC("Loading data from directory %s\n", base_path.path().c_str());
 
     io_backender_t io_backender(direct_io_mode, max_concurrent_io_requests);
 
@@ -816,7 +816,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                             &sigint_cond);
 
     } catch (const metadata_persistence::file_in_use_exc_t &ex) {
-        logINF("Directory '%s' is in use by another rethinkdb process.\n", base_path.path().c_str());
+        logNTC("Directory '%s' is in use by another rethinkdb process.\n", base_path.path().c_str());
         *result_out = false;
     } catch (const host_lookup_exc_t &ex) {
         logERR("%s\n", ex.what());
@@ -840,7 +840,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
                             NULL, NULL, data_directory_lock,
                             result_out);
     } else {
-        logINF("Initializing directory %s\n", base_path.path().c_str());
+        logNTC("Initializing directory %s\n", base_path.path().c_str());
 
         machine_id_t our_machine_id = generate_uuid();
 
@@ -1044,7 +1044,7 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
     options::help_section_t help("Network options");
     options_out->push_back(options::option_t(options::names_t("--bind"),
                                              options::OPTIONAL_REPEAT));
-    help.add("--bind {all | addr}", "add the address of a local interface to listen on when accepting connections; loopback addresses are enabled by default");
+    help.add("--bind {all | addr}", "add the address of a local interface to listen on when accepting connections; if not specified, 127.0.0.1 and ::1 will be used");
 
     options_out->push_back(options::option_t(options::names_t("--cluster-port"),
                                              options::OPTIONAL,

@@ -265,9 +265,7 @@ datum_t::datum_t(construct_binary_t dummy, datum_string_t _data)
     : data(dummy, std::move(_data)) { }
 
 datum_t::datum_t(double _num) : data(_num) {
-    // isfinite is a macro on OS X in math.h, so we can't just say std::isfinite.
-    using namespace std; // NOLINT(build/namespaces) due to platform variation
-    rcheck(isfinite(data.r_num), base_exc_t::GENERIC,
+    rcheck(risfinite(data.r_num), base_exc_t::GENERIC,
            strprintf("Non-finite number: %" PR_RECONSTRUCTABLE_DOUBLE, data.r_num));
 }
 
@@ -926,7 +924,8 @@ std::string datum_t::print_secondary(reql_version_t reql_version,
     switch (reql_version) {
     case reql_version_t::v1_13:
         break;
-    case reql_version_t::v1_14_is_latest:
+    case reql_version_t::v1_14: // v1_15 is the same as v1_14
+    case reql_version_t::v1_16_is_latest:
         secondary_key_string.append(1, '\x00');
         break;
     default:
@@ -1390,7 +1389,8 @@ int datum_t::cmp(reql_version_t reql_version, const datum_t &rhs) const {
     switch (reql_version) {
     case reql_version_t::v1_13:
         return v1_13_cmp(rhs);
-    case reql_version_t::v1_14_is_latest:
+    case reql_version_t::v1_14: // v1_15 is the same as v1_14
+    case reql_version_t::v1_16_is_latest:
         return modern_cmp(rhs);
     default:
         unreachable();
@@ -1404,7 +1404,7 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
         if (get_reql_type() != rhs.get_reql_type()) {
             return derived_cmp(get_reql_type(), rhs.get_reql_type());
         }
-        return pseudo_cmp(reql_version_t::v1_14_is_latest, rhs);
+        return pseudo_cmp(reql_version_t::v1_16_is_latest, rhs);
     } else if (lhs_ptype || rhs_ptype) {
         return derived_cmp(get_type_name(), rhs.get_type_name());
     }
@@ -1607,7 +1607,7 @@ datum_t stats_merge(UNUSED const datum_string_t &key,
         const size_t l_sz = l.arr_size();
         const size_t r_sz = r.arr_size();
         if (l_sz + r_sz > limits.array_size_limit()) {
-            conditions->insert(strprintf("Too many changes, array truncated to %ld.", limits.array_size_limit()));
+            conditions->insert(strprintf("Too many changes, array truncated to %zu.", limits.array_size_limit()));
             datum_array_builder_t arr(limits);
             size_t so_far = 0;
             for (size_t i = 0; i < l_sz && so_far < limits.array_size_limit(); ++i, ++so_far) {
@@ -1798,7 +1798,8 @@ void datum_array_builder_t::insert(reql_version_t reql_version, size_t index,
     switch (reql_version) {
     case reql_version_t::v1_13:
         break;
-    case reql_version_t::v1_14_is_latest:
+    case reql_version_t::v1_14: // v1_15 is the same as v1_14
+    case reql_version_t::v1_16_is_latest:
         rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
         break;
     default:
@@ -1828,7 +1829,8 @@ void datum_array_builder_t::splice(reql_version_t reql_version, size_t index,
     switch (reql_version) {
     case reql_version_t::v1_13:
         break;
-    case reql_version_t::v1_14_is_latest:
+    case reql_version_t::v1_14: // v1_15 is the same as v1_14
+    case reql_version_t::v1_16_is_latest:
         rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
         break;
     default:
@@ -1849,7 +1851,8 @@ void datum_array_builder_t::erase_range(reql_version_t reql_version,
                      strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
                                start, vector.size()));
         break;
-    case reql_version_t::v1_14_is_latest:
+    case reql_version_t::v1_14: // v1_15 is the same as v1_14
+    case reql_version_t::v1_16_is_latest:
         rcheck_datum(start <= vector.size(),
                      base_exc_t::NON_EXISTENCE,
                      strprintf("Index `%zu` out of bounds for array of size: `%zu`.",

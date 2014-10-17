@@ -30,20 +30,20 @@ public:
     virtual ~term_t();
 
     virtual const char *name() const = 0;
-    counted_t<val_t> eval(scope_env_t *env, eval_flags_t eval_flags = NO_FLAGS) const;
+    scoped_ptr_t<val_t> eval(scope_env_t *env, eval_flags_t eval_flags = NO_FLAGS) const;
 
     // Allocates a new value in the current environment.
-    counted_t<val_t> new_val(datum_t d) const;
-    counted_t<val_t> new_val(datum_t d, counted_t<table_t> t) const;
-    counted_t<val_t> new_val(datum_t d,
-                             datum_t orig_key,
-                             counted_t<table_t> t) const;
-    counted_t<val_t> new_val(env_t *env, counted_t<datum_stream_t> s) const;
-    counted_t<val_t> new_val(counted_t<datum_stream_t> s, counted_t<table_t> t) const;
-    counted_t<val_t> new_val(counted_t<const db_t> db) const;
-    counted_t<val_t> new_val(counted_t<table_t> t) const;
-    counted_t<val_t> new_val(counted_t<const func_t> f) const;
-    counted_t<val_t> new_val_bool(bool b) const;
+    scoped_ptr_t<val_t> new_val(datum_t d) const;
+    scoped_ptr_t<val_t> new_val(datum_t d, counted_t<table_t> t) const;
+    scoped_ptr_t<val_t> new_val(datum_t d,
+                                datum_t orig_key,
+                                counted_t<table_t> t) const;
+    scoped_ptr_t<val_t> new_val(env_t *env, counted_t<datum_stream_t> s) const;
+    scoped_ptr_t<val_t> new_val(counted_t<datum_stream_t> s, counted_t<table_t> t) const;
+    scoped_ptr_t<val_t> new_val(counted_t<const db_t> db) const;
+    scoped_ptr_t<val_t> new_val(counted_t<table_t> t) const;
+    scoped_ptr_t<val_t> new_val(counted_t<const func_t> f) const;
+    scoped_ptr_t<val_t> new_val_bool(bool b) const;
 
     virtual bool is_deterministic() const = 0;
 
@@ -53,7 +53,7 @@ public:
     virtual void accumulate_captures(var_captures_t *captures) const = 0;
 
 private:
-    virtual counted_t<val_t> term_eval(scope_env_t *env, eval_flags_t) const = 0;
+    virtual scoped_ptr_t<val_t> term_eval(scope_env_t *env, eval_flags_t) const = 0;
     protob_t<const Term> src;
 
     DISABLE_COPYING(term_t);

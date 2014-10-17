@@ -21,7 +21,8 @@ class real_reql_cluster_interface_t;
 /* This is publicly exposed so that it can be used to create the return value of
 `table.reconfigure()`. */
 ql::datum_t convert_table_config_to_datum(
-        const table_config_t &config);
+        const table_config_t &config,
+        server_name_client_t *name_client);
 
 class table_config_artificial_table_backend_t :
     public common_table_artificial_table_backend_t
@@ -37,12 +38,7 @@ public:
         common_table_artificial_table_backend_t(_table_sl_view, _database_sl_view),
         reql_cluster_interface(_reql_cluster_interface),
         name_client(_name_client)
-    {
-        /* If we don't have this, then Clang complains about `name_client` being private
-        but unused. But we can't mark `name_client` unused because GCC doesn't support
-        the "unused" attribute on members. */
-        (void)name_client;
-    }
+        { }
 
     bool read_row_impl(
             namespace_id_t table_id,
@@ -61,10 +57,6 @@ public:
 
 private:
     real_reql_cluster_interface_t *reql_cluster_interface;
-
-    /* RSI(reql_admin): This is currently unused, but if we switch to storing machine IDs
-    instead of names, it will be used again. So I don't want to tear it out when we're
-    just going to put it back in again. */
     server_name_client_t *name_client;
 };
 

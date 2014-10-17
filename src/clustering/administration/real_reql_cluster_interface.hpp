@@ -28,8 +28,8 @@ public:
             mailbox_manager_t *mailbox_manager,
             boost::shared_ptr< semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > semilattices,
-            clone_ptr_t< watchable_t< change_tracking_map_t<
-                peer_id_t, cluster_directory_metadata_t> > > directory,
+            watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
+                namespace_directory_metadata_t> *directory_root_view,
             rdb_context_t *rdb_context,
             server_name_client_t *server_name_client
             );
@@ -59,11 +59,11 @@ public:
             std::string *error_out);
     bool table_config(const boost::optional<name_string_t> &name,
             counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
-            signal_t *interruptor, counted_t<ql::val_t> *resp_out,
+            signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
     bool table_status(const boost::optional<name_string_t> &name,
             counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
-            signal_t *interruptor, counted_t<ql::val_t> *resp_out,
+            signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
 
     bool table_reconfigure(
@@ -89,8 +89,8 @@ private:
     mailbox_manager_t *mailbox_manager;
     boost::shared_ptr< semilattice_readwrite_view_t<
         cluster_semilattice_metadata_t> > semilattice_root_view;
-    clone_ptr_t< watchable_t< change_tracking_map_t<
-        peer_id_t, cluster_directory_metadata_t> > > directory_root_view;
+    watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
+                    namespace_directory_metadata_t> *directory_root_view;
     scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t< cow_ptr_t<
         namespaces_semilattice_metadata_t> > > > cross_thread_namespace_watchables;
     scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t<
@@ -111,7 +111,7 @@ private:
     bool table_config_or_status(artificial_table_backend_t *backend,
             const char *backend_name, const boost::optional<name_string_t> &name,
             counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
-            signal_t *interruptor, counted_t<ql::val_t> *resp_out,
+            signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
 
     DISABLE_COPYING(real_reql_cluster_interface_t);

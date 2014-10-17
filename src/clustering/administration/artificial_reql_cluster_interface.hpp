@@ -13,12 +13,12 @@
 #include "clustering/administration/tables/db_config.hpp"
 #include "clustering/administration/tables/table_config.hpp"
 #include "clustering/administration/tables/table_status.hpp"
+#include "clustering/administration/issues/issues_backend.hpp"
 #include "containers/name_string.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rdb_protocol/artificial_table/in_memory.hpp"
 #include "rdb_protocol/context.hpp"
 
-class last_seen_tracker_t;
 class real_reql_cluster_interface_t;
 class server_name_client_t;
 
@@ -65,11 +65,11 @@ public:
             std::string *error_out);
     bool table_config(const boost::optional<name_string_t> &name,
             counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
-            signal_t *interruptor, counted_t<ql::val_t> *resp_out,
+            signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
     bool table_status(const boost::optional<name_string_t> &name,
             counted_t<const ql::db_t> db, const ql::protob_t<const Backtrace> &bt,
-            signal_t *interruptor, counted_t<ql::val_t> *resp_out,
+            signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
 
     bool table_reconfigure(
@@ -100,15 +100,18 @@ public:
                 auth_semilattice_metadata_t> > _auth_view,
             clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
                 cluster_directory_metadata_t> > > _directory_view,
-            server_name_client_t *_name_client,
-            last_seen_tracker_t *_last_seen_tracker);
+            watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
+                            namespace_directory_metadata_t> *_reactor_directory_view,
+            server_name_client_t *_name_client);
     reql_cluster_interface_t *get_reql_cluster_interface() {
         return reql_cluster_interface.get();
     }
 
     scoped_ptr_t<in_memory_artificial_table_backend_t> debug_scratch_backend;
+
     scoped_ptr_t<cluster_config_artificial_table_backend_t> cluster_config_backend;
     scoped_ptr_t<db_config_artificial_table_backend_t> db_config_backend;
+    scoped_ptr_t<issues_artificial_table_backend_t> issues_backend;
     scoped_ptr_t<server_config_artificial_table_backend_t> server_config_backend;
     scoped_ptr_t<server_status_artificial_table_backend_t> server_status_backend;
     scoped_ptr_t<table_config_artificial_table_backend_t> table_config_backend;

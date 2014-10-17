@@ -241,9 +241,9 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
     client_context_t client_ctx(rdb_ctx, ql::reject_cfeeds_t::NO, &interruptor);
 
     std::string init_error;
-    int32_t client_magic_number = -1;
 
     try {
+        int32_t client_magic_number;
         conn->read(&client_magic_number, sizeof(client_magic_number), &interruptor);
 
         // With version 0_2 and up, the client drivers specifies the authorization key
@@ -288,8 +288,6 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
     } catch (const tcp_conn_write_closed_exc_t &) {
         return;
     }
-
-    guarantee(client_magic_number != -1);
 
     try {
         if (!init_error.empty()) {

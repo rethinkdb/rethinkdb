@@ -40,7 +40,7 @@ public:
         public:
             explicit writer_t(int _data) : data(_data) { }
             virtual ~writer_t() { }
-            void write(cluster_version_t, write_stream_t *stream) {
+            void write(write_stream_t *stream) {
                 write_message_t wm;
                 serialize<cluster_version_t::CLUSTER>(&wm, data);
                 int res = send_write_message(stream, &wm);
@@ -404,7 +404,7 @@ public:
             public cluster_send_message_write_callback_t {
         public:
             virtual ~dump_spectrum_writer_t() { }
-            void write(cluster_version_t, write_stream_t *stream) {
+            void write(write_stream_t *stream) {
                 char spectrum[CHAR_MAX - CHAR_MIN + 1];
                 for (int i = CHAR_MIN; i <= CHAR_MAX; i++) {
                     spectrum[i - CHAR_MIN] = i;

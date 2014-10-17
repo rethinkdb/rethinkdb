@@ -30,8 +30,9 @@ class cluster_message_handler_t;
 class cluster_send_message_write_callback_t {
 public:
     virtual ~cluster_send_message_write_callback_t() { }
-    virtual void write(cluster_version_t cluster_version,
-                       write_stream_t *stream) = 0;
+    // write() doesn't take a version argument because the version is always
+    // cluster_version_t::CLUSTER for cluster messages.
+    virtual void write(write_stream_t *stream) = 0;
 };
 
 /* `connectivity_cluster_t` is responsible for establishing connections with other

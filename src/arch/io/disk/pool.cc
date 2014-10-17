@@ -47,6 +47,101 @@ pool_diskmgr_t::~pool_diskmgr_t() {
     source->available->unset_callback();
 }
 
+// Advance the vector, while respecting the device block size alignment for direct I/O
+size_t pool_diskmgr_t::action_t::advance_vector(iovec **vecs,
+                                                size_t *count,
+                                                size_t bytes_done) {
+    // Note: if somehow the read/write call returns a result unaligned with 
+    // DEVICE_BLOCK_SIZE, there will probably be an error when we try again with the
+    // advanced vector.
+    size_t bytes_to_advance = bytes_done;
+
+    while (bytes_to_advance > 0) {
+        rassert(*count > 0);
+        size_t cur_done = std::min((*vecs)->iov_len, bytes_to_advance);
+        bytes_to_advance -= cur_done;
+        (*vecs)->iov_len -= cur_done;
+        (*vecs)->iov_base = static_cast<char *>((*vecs)->iov_base) + cur_done;
+
+        while (*count > 0 && (*vecs)->iov_len == 0) {
+            ++(*vecs);
+            --(*count);
+        }
+    }
+
+    return bytes_done;
+}
+
+ssize_t pool_diskmgr_t::action_t::vectored_read_write(iovec *vecs,
+                                                      size_t vecs_len,
+                                                      int64_t partial_offset) {
+    int64_t real_offset = offset + partial_offset;
+#ifndef USE_WRITEV
+#error "USE_WRITEV not defined.  Did you include pool.hpp?"
+#elif USE_WRITEV
+    size_t vecs_to_use = std::min<size_t>(vecs_len, IOV_MAX);
+    if (type == ACTION_READ) {
+        return preadv(fd, vecs, vecs_to_use, real_offset);
+    }
+    rassert(type == ACTION_WRITE);
+    return pwritev(fd, vecs, vecs_to_use, real_offset);
+#else
+    guarantee(vecs_len == 1);
+    guarantee(partial_offset == 0);
+    if (type == ACTION_READ) {
+        return pread(fd, vecs[0].iov_base, vecs[0].iov_len, real_offset);
+    }
+    rassert(type == ACTION_WRITE);
+    return pwrite(fd, vecs[0].iov_base, vecs[0].iov_len, real_offset);
+#endif
+}
+
+void pool_diskmgr_t::action_t::copy_vectors(scoped_array_t<iovec> *vectors_out) {
+    iovec *vectors;
+    size_t count;
+    get_bufs(&vectors, &count);
+    vectors_out->init(count);
+
+    for (size_t i = 0; i < count; ++i) {
+        (*vectors_out)[i] = vectors[i];
+    }
+}
+
+int64_t pool_diskmgr_t::action_t::perform_read_write(iovec *vecs,
+                                                     size_t vecs_len) {
+    ssize_t res = 0;
+    int64_t partial_offset = 0;
+
+    int64_t total_bytes = 0;
+    for (size_t i = 0; i < vecs_len; ++i) {
+        total_bytes += vecs[i].iov_len;
+    }
+
+    while (vecs_len > 0 && partial_offset < total_bytes) {
+        do {
+            res = vectored_read_write(vecs, vecs_len, partial_offset);
+        } while (res == -1 && get_errno() == EINTR);
+
+        if (res == -1) {
+            return -get_errno();
+        } else if (res == 0 && type == ACTION_WRITE) {
+            // This happens when running out of disk space.
+            // The errno in that case is 0 and doesn't tell us about the
+            // real reason for the failed i/o.
+            // We set the io_result to be -ENOSPC and print an error stating
+            // what actually happened.
+            logERR("Failed I/O: vectored write of %" PRIi64 " bytes stopped after "
+                   "%" PRIi64 " bytes. Assuming we ran out of disk space.",
+                   total_bytes, partial_offset);
+            return -ENOSPC;
+        }
+
+        // Advance the vector in DEVICE_BLOCK_SIZE chunks and update our offset
+        partial_offset += advance_vector(&vecs, &vecs_len, res);
+    }
+    return total_bytes;
+}
+
 void pool_diskmgr_t::action_t::run() {
     if (wrap_in_datasyncs) {
         int errcode = perform_datasync(fd);
@@ -72,75 +167,10 @@ void pool_diskmgr_t::action_t::run() {
     } break;
     case ACTION_READ:
     case ACTION_WRITE: {
-        ssize_t sum = 0;
-
-        iovec *vecs;
-        size_t vecs_len;
-        get_bufs(&vecs, &vecs_len);
-#ifndef USE_WRITEV
-#error "USE_WRITEV not defined.  Did you include pool.hpp?"
-#elif USE_WRITEV
-        const size_t vecs_increment = IOV_MAX;
-        size_t len;
-        int64_t partial_offset = offset;
-        for (size_t i = 0; i < vecs_len; i += len) {
-            len = std::min(vecs_increment, vecs_len - i);
-            ssize_t res;
-            do {
-                if (type == ACTION_READ) {
-                    res = preadv(fd, vecs + i, len, partial_offset);
-                } else {
-                    rassert(type == ACTION_WRITE);
-                    res = pwritev(fd, vecs + i, len, partial_offset);
-                }
-            } while (res == -1 && get_errno() == EINTR);
-
-            if (res == -1) {
-                io_result = -get_errno();
-                return;
-            }
-
-            int64_t lensum = 0;
-            for (size_t j = i; j < i + len; ++j) {
-                lensum += vecs[j].iov_len;
-            }
-            if (lensum != res && type == ACTION_WRITE) {
-                // This happens when running out of disk space.
-                // The errno in that case is 0 and doesn't tell us about the
-                // real reason for the failed i/o.
-                // We set the io_result to be -ENOSPC and print an error stating
-                // what actually happened.
-                io_result = -ENOSPC;
-                logERR("Failed I/O: lensum (%" PRIi64 ") != res (%zd)."
-                       " Assuming we ran out of disk space.", lensum, res);
-                return;
-            }
-            guarantee(lensum == res);
-
-            partial_offset += lensum;
-            sum += res;
-        }
-#else  // USE_WRITEV
-        guarantee(vecs_len == 1);
-        ssize_t res;
-        do {
-            if (type == ACTION_READ) {
-                res = pread(fd, vecs[0].iov_base, vecs[0].iov_len, offset);
-            } else {
-                rassert(type == ACTION_WRITE);
-                res = pwrite(fd, vecs[0].iov_base, vecs[0].iov_len, offset);
-            }
-        } while (res == -1 && get_errno() == EINTR);
-
-        if (res == -1) {
-            io_result = -get_errno();
-            return;
-        }
-
-        sum = res;
-#endif  // USE_WRITEV
-
-        io_result = sum;
+        // Copy the io vectors because perform_read_write will modify them
+        scoped_array_t<iovec> vectors;
+        copy_vectors(&vectors);
+        io_result = perform_read_write(vectors.data(), vectors.size());
     } break;
     default:
         unreachable("Unknown I/O action");
