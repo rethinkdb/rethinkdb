@@ -70,9 +70,9 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::REDUCE:             return make_reduce_term(env, t);
     case Term::MAP:                return make_map_term(env, t);
     case Term::FILTER:             return make_filter_term(env, t);
-    case Term::CONCATMAP:          return make_concatmap_term(env, t);
+    case Term::CONCAT_MAP:          return make_concatmap_term(env, t);
     case Term::GROUP:              return make_group_term(env, t);
-    case Term::ORDERBY:            return make_orderby_term(env, t);
+    case Term::ORDER_BY:            return make_orderby_term(env, t);
     case Term::DISTINCT:           return make_distinct_term(env, t);
     case Term::COUNT:              return make_count_term(env, t);
     case Term::SUM:                return make_sum_term(env, t);
@@ -95,7 +95,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::SPLICE_AT:          return make_splice_at_term(env, t);
     case Term::COERCE_TO:          return make_coerce_term(env, t);
     case Term::UNGROUP:            return make_ungroup_term(env, t);
-    case Term::TYPEOF:             return make_typeof_term(env, t);
+    case Term::TYPE_OF:             return make_typeof_term(env, t);
     case Term::UPDATE:             return make_update_term(env, t);
     case Term::DELETE:             return make_delete_term(env, t);
     case Term::REPLACE:            return make_replace_term(env, t);
@@ -117,7 +117,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::BRANCH:             return make_branch_term(env, t);
     case Term::ANY:                return make_any_term(env, t);
     case Term::ALL:                return make_all_term(env, t);
-    case Term::FOREACH:            return make_foreach_term(env, t);
+    case Term::FOR_EACH:            return make_foreach_term(env, t);
     case Term::FUNC:               return make_counted<func_term_t>(env, t);
     case Term::ASC:                return make_asc_term(env, t);
     case Term::DESC:               return make_desc_term(env, t);

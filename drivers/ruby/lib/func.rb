@@ -56,11 +56,11 @@ module RethinkDB
       :mod => :%,
       :any => [:"|", :or],
       :all => [:"&", :and],
-      :orderby => :order_by,
-      :concatmap => :concat_map,
-      :foreach => :for_each,
+      :order_by => :orderby,
+      :concat_map => :concatmap,
+      :for_each => :foreach,
       :javascript => :js,
-      :typeof => :type_of
+      :type_of => :typeof
     }
 
     termtypes = Term::TermType.constants.map{ |c| c.to_sym }

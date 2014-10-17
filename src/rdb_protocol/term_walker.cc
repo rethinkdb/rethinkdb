@@ -47,9 +47,9 @@ public:
 
         if (t->type() == Term::ASC || t->type() == Term::DESC) {
             rcheck_src(&t->GetExtension(ql2::extension::backtrace),
-                       parent && parent->type() == Term::ORDERBY,
+                       parent && parent->type() == Term::ORDER_BY,
                        base_exc_t::GENERIC,
-                       strprintf("%s may only be used as an argument to ORDERBY.",
+                       strprintf("%s may only be used as an argument to ORDER_BY.",
                                  (t->type() == Term::ASC ? "ASC" : "DESC")));
         }
 
@@ -58,7 +58,7 @@ public:
                    writes_still_legal || !term_is_write_or_meta(t),
                    base_exc_t::GENERIC,
                    strprintf("Cannot nest writes or meta ops in stream operations.  "
-                             "Use FOREACH instead."));
+                             "Use FOR_EACH instead."));
         val_pusher_t<bool> writes_legal_pusher(&writes_legal, writes_still_legal);
 
         term_recurse(t, &term_walker_t::walk);
@@ -161,9 +161,9 @@ private:
         case Term::REDUCE:
         case Term::MAP:
         case Term::FILTER:
-        case Term::CONCATMAP:
+        case Term::CONCAT_MAP:
         case Term::GROUP:
-        case Term::ORDERBY:
+        case Term::ORDER_BY:
         case Term::DISTINCT:
         case Term::COUNT:
         case Term::SUM:
@@ -187,12 +187,12 @@ private:
         case Term::SPLICE_AT:
         case Term::COERCE_TO:
         case Term::UNGROUP:
-        case Term::TYPEOF:
+        case Term::TYPE_OF:
         case Term::FUNCALL:
         case Term::BRANCH:
         case Term::ANY:
         case Term::ALL:
-        case Term::FOREACH:
+        case Term::FOR_EACH:
         case Term::FUNC:
         case Term::ASC:
         case Term::DESC:
@@ -290,7 +290,7 @@ private:
         case Term::REDUCE:
         case Term::MAP:
         case Term::FILTER:
-        case Term::CONCATMAP:
+        case Term::CONCAT_MAP:
         case Term::GROUP:
         case Term::INNER_JOIN:
         case Term::OUTER_JOIN:
@@ -350,7 +350,7 @@ private:
         case Term::LITERAL:
         case Term::BETWEEN:
         case Term::CHANGES:
-        case Term::ORDERBY:
+        case Term::ORDER_BY:
         case Term::DISTINCT:
         case Term::UNION:
         case Term::NTH:
@@ -365,7 +365,7 @@ private:
         case Term::SPLICE_AT:
         case Term::COERCE_TO:
         case Term::UNGROUP:
-        case Term::TYPEOF:
+        case Term::TYPE_OF:
         case Term::DB_CREATE:
         case Term::DB_DROP:
         case Term::DB_LIST:
@@ -383,7 +383,7 @@ private:
         case Term::BRANCH:
         case Term::ANY:
         case Term::ALL:
-        case Term::FOREACH:
+        case Term::FOR_EACH:
         case Term::FUNC:
         case Term::ASC:
         case Term::DESC:

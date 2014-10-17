@@ -756,11 +756,11 @@ class Filter extends RDBOp
     mt: 'filter'
 
 class ConcatMap extends RDBOp
-    tt: protoTermType.CONCATMAP
+    tt: protoTermType.CONCAT_MAP
     mt: 'concatMap'
 
 class OrderBy extends RDBOp
-    tt: protoTermType.ORDERBY
+    tt: protoTermType.ORDER_BY
     mt: 'orderBy'
 
 class Distinct extends RDBOp
@@ -852,7 +852,7 @@ class Ungroup extends RDBOp
     mt: 'ungroup'
 
 class TypeOf extends RDBOp
-    tt: protoTermType.TYPEOF
+    tt: protoTermType.TYPE_OF
     mt: 'typeOf'
 
 class Info extends RDBOp
@@ -960,7 +960,7 @@ class All extends RDBOp
     mt: 'and'
 
 class ForEach extends RDBOp
-    tt: protoTermType.FOREACH
+    tt: protoTermType.FOR_EACH
     mt: 'forEach'
 
 class Func extends RDBOp
