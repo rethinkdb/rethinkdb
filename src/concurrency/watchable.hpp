@@ -194,6 +194,13 @@ public:
         read(&value);
     }
 
+    /* This returns a const reference to the current value. The caller is responsible for
+    ensuring that nothing calls `set_value()` or `apply_atomic_op()` while this reference
+    exists. */
+    const value_t &get_ref() {
+        return value;
+    }
+
 private:
     class w_t : public watchable_t<value_t> {
     public:

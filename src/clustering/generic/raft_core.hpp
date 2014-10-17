@@ -154,23 +154,22 @@ class raft_log_entry_t {
 public:
     enum class type_t {
         /* A `regular` log entry is one with a `change_t`. So if `type` is `regular`,
-        then `change` has a value but `configuration` is empty. */
+        then `change` has a value but `config` is empty. */
         regular,
-        /* A `configuration` log entry has a `raft_complex_config_t`. They are used to
-        change the cluster configuration. See Section 6 of the Raft paper. So if `type`
-        is `configuration`, then `configuration` has a value but `change` is empty. */
-        configuration,
+        /* A `config` log entry has a `raft_complex_config_t`. They are used to change
+        the cluster configuration. See Section 6 of the Raft paper. So if `type` is
+        `config`, then `config` has a value but `change` is empty. */
+        config,
         /* A `noop` log entry does nothing and carries niether a `change_t` nor a
-        `raft_configuration_t`. See Section 8 of the Raft paper. */
+        `raft_complex_config_t`. See Section 8 of the Raft paper. */
         noop
     };
 
     type_t type;
     raft_term_t term;
-    /* Whether `change` and `configuration` are empty or not depends on the value of
-    `type`. */
+    /* Whether `change` and `config` are empty or not depends on the value of `type`. */
     boost::optional<typename state_t::change_t> change;
-    boost::optional<raft_complex_config_t> configuration;
+    boost::optional<raft_complex_config_t> config;
 };
 
 /* `raft_log_t` stores a slice of the Raft log. There are two situations where this shows
@@ -265,9 +264,9 @@ private:
     Section 7. */
     state_t snapshot_state;
 
-    /* `snapshot_configuration` corresponds to the stored snapshotted configuration, as
+    /* `snapshot_config` corresponds to the stored snapshotted configuration, as
     described in Section 7. */
-    raft_complex_config_t snapshot_configuration;
+    raft_complex_config_t snapshot_config;
 
     /* `log.prev_index` and `log.prev_term` correspond to the "last included index" and
     "last included term" as described in Section 7. `log.entries` corresponds to the
@@ -324,15 +323,15 @@ private:
         /* `term`, `leader_id`, `last_included_index`, and `last_included_term`
         correspond to the parameters with the same names in the Raft paper. In the Raft
         paper, the content of the snapshot is sent as a series of binary blobs, but we
-        don't want to do that; instead, we send the `state_t` and `raft_configuration_t`
-        directly. So our `snapshot_state` and `snapshot_configuration` parameters replace
-        the `offset`, `data`, and `done` parameters of the Raft paper. */
+        don't want to do that; instead, we send the `state_t` and `raft_complex_config_t`
+        directly. So our `snapshot_state` and `snapshot_config` parameters replace the
+        `offset`, `data`, and `done` parameters of the Raft paper. */
         raft_term_t term;
         raft_member_id_t leader_id;
         raft_log_index_t last_included_index;
         raft_term_t last_included_term;
         state_t snapshot_state;
-        raft_complex_config_t snapshot_configuration;
+        raft_complex_config_t snapshot_config;
     };
 
     /* `append_entries_t` describes the parameters of the "AppendEntries RPC" described
@@ -435,10 +434,24 @@ public:
     is undefined, the interrupted method call will not make invalid RPC calls or write
     invalid data to persistent storage.) */
 
-    /* `get_state_machine()` tracks the current state of the state machine. */
-    clone_ptr_t<watchable_t<state_t> > get_state_machine() {
+    /* `state_and_config_t` describes the Raft cluster's current state, configuration,
+    and log index all in the same struct. The reason for putting them in the same struct
+    is so that they can be stored in a `watchable_t` and kept in sync. */
+    class state_and_config_t {
+    public:
+        state_and_config_t(raft_log_index_t _log_index, const state_t &_state,
+                           const raft_complex_config_t &_config) :
+            log_index(_log_index), state(_state), config(_config) { }
+        raft_log_index_t log_index;
+        state_t state;
+        raft_complex_config_t config;
+    };
+
+    /* `get_committed_state()` describes the state of the Raft cluster after all
+    committed log entries have been applied. */
+    clone_ptr_t<watchable_t<state_and_config_t> > get_committed_state() {
         assert_thread();
-        return state_machine.get_watchable();
+        return committed_state.get_watchable();
     }
 
     /* `get_state_for_init()` returns a `raft_persistent_state_t` that could be used to
@@ -477,7 +490,7 @@ public:
     /* `propose_config_change_if_leader()` is like `propose_change_if_leader()` except
     that it proposes a reconfiguration instead of a `change_t`. */
     bool propose_config_change_if_leader(
-        const raft_config_t &configuration,
+        const raft_config_t &config,
         signal_t *interruptor);
 
     /* When a Raft member calls `send_rpc()` on its `raft_network_interface_t`, the RPC
@@ -548,6 +561,14 @@ private:
     heard from a leader within the election timeout, it starts a new election by spawning
     `candidate_and_leader_coro()`. */
     void on_watchdog_timer();
+
+    /* `apply_log_entries()` updates `state_and_config` with the entries from `log` with
+    indexes `first <= index <= last`. */
+    static void apply_log_entries(
+        state_and_config_t *state_and_config,
+        const raft_log_t<state_t> &log,
+        raft_log_index_t first,
+        raft_log_index_t last);
 
     /* `update_term()` sets the term to `new_term` and resets all per-term variables. It
     assumes that its caller will flush persistent state to stable storage eventually
@@ -673,13 +694,13 @@ private:
     name is so abbreviated. */
     raft_persistent_state_t<state_t> ps;
 
-    /* `state_machine` describes the state machine that the Raft member is managing.
-    Changes will not be applied to it until they are committed. */
-    watchable_variable_t<state_t> state_machine;
-
-    /* `commit_index` and `last_applied` correspond to the volatile state variables with
-    the same names in Figure 2 of the Raft paper. */
-    raft_log_index_t commit_index, last_applied;
+    /* `committed_state` describes the state after all committed log entries have been
+    applied. The `state` field of `committed_state` is equivalent to the "state machine"
+    in the Raft paper. The `log_index` field is equal to the `lastApplied` and
+    `commitIndex` variables in Figure 2 of the Raft paper. This implementation deviates
+    from the Raft paper in that the paper allows `lastApplied` to lag behind
+    `commitIndex`, but we require them to be equal at all times. */
+    watchable_variable_t<state_and_config_t> committed_state;
 
     /* Only `candidate_and_leader_coro()` should ever change `mode` */
     mode_t mode;
@@ -702,8 +723,9 @@ private:
     new_mutex_t mutex;
 
     /* This mutex assertion controls writes to the Raft log and associated state.
-    Specifically, anything writing to `ps.log`, `ps.snapshot`, `state_machine`,
-    `commit_index`, or `last_applied` should hold this mutex assertion.
+    Specifically, anything writing to `ps.log`, `ps.snapshot`, `committed_state`,
+    `committed_config`, `commit_index`, or `last_applied` should hold this mutex
+    assertion.
     If we are follower, `on_append_entries_rpc()` and `on_install_snapshot_rpc()` acquire
     this temporarily; if we are candidate or leader, `candidate_and_leader_coro()` holds
     this at all times. */

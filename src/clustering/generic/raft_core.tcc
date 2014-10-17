@@ -20,7 +20,7 @@ raft_persistent_state_t<state_t>::make_initial(
     ps.snapshot_state = initial_state;
     raft_complex_config_t complex_config;
     complex_config.config = initial_config;
-    ps.snapshot_configuration = complex_config;
+    ps.snapshot_config = complex_config;
     ps.log.prev_index = 0;
     ps.log.prev_term = 0;
     return ps;
@@ -43,12 +43,11 @@ raft_member_t<state_t>::raft_member_t(
     storage(_storage),
     network(_network),
     ps(_persistent_state),
-    /* Restore state machine from snapshot */
-    state_machine(ps.snapshot_state),
-    /* We initialize `commit_index` and `last_applied` to the last commit that was stored
-    in the snapshot so they will be consistent with the state of the state machine. */
-    commit_index(ps.log.prev_index),
-    last_applied(ps.log.prev_index),
+    /* Restore state machine from snapshot. */
+    committed_state(state_and_config_t(
+        ps.log.prev_index,
+        ps.snapshot_state,
+        ps.snapshot_config)),
     /* Raft paper, Section 5.2: "When servers start up, they begin as followers." */
     mode(mode_t::follower),
     current_term_leader_id(nil_uuid()),
@@ -146,38 +145,35 @@ bool raft_member_t<state_t>::propose_config_change_if_leader(
         return false;
     }
 
-    /* Calculate the latest committed configuration */
-    raft_complex_config_t old_complex_config = ps.snapshot_configuration;
-    for (raft_log_index_t i = ps.log.prev_index + 1; i <= commit_index; ++i) {
-        if (ps.log.get_entry(i).type ==
-                raft_log_entry_t<state_t>::type_t::configuration) {
-            old_complex_config = *ps.log.get_entry(i).configuration;
-        }
-    }
-
     /* We forbid starting a new config change before the old one is done. The Raft paper
     doesn't explicitly say anything about multiple interleaved configuration changes; but
     it's safer and simpler to forbid it. */
-    if (old_complex_config.is_joint_consensus()) {
+    if (committed_state.get_ref().config.is_joint_consensus()) {
         return false;
     }
-    for (raft_log_index_t i = commit_index + 1; i <= ps.log.get_latest_index(); ++i) {
+    for (raft_log_index_t i = committed_state.get_ref().log_index + 1;
+            i <= ps.log.get_latest_index(); ++i) {
         if (ps.log.get_entry(i).type ==
-                raft_log_entry_t<state_t>::type_t::configuration) {
+                raft_log_entry_t<state_t>::type_t::config) {
             return false;
         }
     }
 
+    /* Raft paper, Section 6: "... the cluster first switches to a [joint consensus
+    configuration]" */
     raft_complex_config_t new_complex_config;
-    new_complex_config.config = old_complex_config.config;
+    new_complex_config.config = committed_state.get_ref().config.config;
     new_complex_config.new_config = boost::optional<raft_config_t>(new_config);
 
     raft_log_entry_t<state_t> new_entry;
-    new_entry.type = raft_log_entry_t<state_t>::type_t::configuration;
-    new_entry.configuration = boost::optional<raft_complex_config_t>(new_complex_config);
+    new_entry.type = raft_log_entry_t<state_t>::type_t::config;
+    new_entry.config = boost::optional<raft_complex_config_t>(new_complex_config);
     new_entry.term = ps.current_term;
 
     leader_append_log_entry(new_entry, &mutex_acq, interruptor);
+
+    /* When the joint consensus is committed, `leader_continue_reconfiguration()` will
+    take care of initiating the second step of the reconfiguration. */
 
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
     return true;
@@ -257,7 +253,7 @@ void raft_member_t<state_t>::check_invariants(
                             "Log matching property violated");
                         guarantee(e1.change == e2.change,
                             "Log matching property violated");
-                        guarantee(e1.configuration == e2.configuration,
+                        guarantee(e1.config == e2.config,
                             "Log matching property violated");
                         guarantee(match_so_far,
                             "Log matching property violated");
@@ -272,49 +268,21 @@ void raft_member_t<state_t>::check_invariants(
     /* It's impractical to test the Leader Completeness property because we snapshot log
     entries so quickly that the test would in practice be a no-op. */
 
-    {
-        /* Raft paper, Figure 3: "State Machine Safety: if a server has applied a log
-        entry at a given index to its state machine, no other server will ever apply a
-        different log entry for the same index. */
-        std::map<raft_member_t<state_t> *, state_t> states;
-        std::map<raft_member_t<state_t> *, raft_complex_config_t> configs;
-        raft_log_index_t start = std::numeric_limits<raft_log_index_t>::max(),
-                         end = std::numeric_limits<raft_log_index_t>::min();
-        for (raft_member_t<state_t> *m : members) {
-            start = std::min(start, m->ps.log.prev_index);
-            end = std::max(end, m->commit_index);
-        }
-        for (raft_log_index_t i = start; i <= end; ++i) {
-            for (raft_member_t<state_t> *m : members) {
-                if (i == m->ps.log.prev_index) {
-                    states.insert(std::make_pair(m, m->ps.snapshot_state));
-                    configs.insert(std::make_pair(m, m->ps.snapshot_configuration));
-                } else if (i > m->ps.log.prev_index &&
-                        i <= m->ps.log.get_latest_index()) {
-                    raft_log_entry_t<state_t> e = m->ps.log.get_entry_ref(i);
-                    if (e.type == raft_log_entry_t<state_t>::type_t::regular) {
-                        states.at(m).apply_change(*e.change);
-                    } else if (e.type ==
-                            raft_log_entry_t<state_t>::type_t::configuration) {
-                        configs.at(m) = *e.configuration;
-                    }
-                } else if (i == m->ps.log.get_latest_index() + 1) {
-                    states.erase(m);
-                    configs.erase(m);
-                } else {
-                    guarantee(states.count(m) == 0);
-                }
+    /* Raft paper, Figure 3: "State Machine Safety: if a server has applied a log entry
+    at a given index to its state machine, no other server will ever apply a different
+    log entry for the same index."
+    Since we snapshot log entries immediately, in practice the part of this that's worth
+    testing is that if two members have the same snapshot index then they will have the
+    same snapshot contents. */
+    for (raft_member_t<state_t> *m1 : members) {
+        for (raft_member_t<state_t> *m2 : members) {
+            if (m1 <= m2) {
+                /* Don't make unnecessary checks */
+                continue;
             }
-            for (const auto &pair1 : states) {
-                for (const auto &pair2 : states) {
-                    if (pair1.first == pair2.first) {
-                        continue;
-                    }
-                    guarantee(pair1.second == pair2.second, "Two Raft members' state "
-                        "machines don't match.");
-                    guarantee(configs.at(pair1.first) == configs.at(pair2.first), "Two "
-                        "Raft members' configurations don't match.");
-                }
+            if (m1->ps.log.prev_index == m2->ps.log.prev_index) {
+                guarantee(m1->ps.snapshot_state == m2->ps.snapshot_state);
+                guarantee(m1->ps.snapshot_config == m2->ps.snapshot_config);
             }
         }
     }
@@ -478,10 +446,10 @@ void raft_member_t<state_t>::on_install_snapshot_rpc(
 
     /* This implementation deviates from the Raft paper in the order it does things. The
     Raft paper says that the first step should be to save the snapshot, which for us
-    would correspond to setting `ps.snapshot_state` and `ps.snapshot_configuration`. But
-    because we only store one snapshot at a time and require that snapshot to be right
-    before the start of the log, that doesn't make sense for us. Instaed, we save the
-    snapshot if and when we update the log. */
+    would correspond to setting `ps.snapshot_state` and `ps.snapshot_config`. But because
+    we only store one snapshot at a time and require that snapshot to be right before the
+    start of the log, that doesn't make sense for us. Instead, we save the snapshot if
+    and when we update the log. */
 
     /* Raft paper, Figure 13: "If existing log entry has same index and term as
     snapshot's last included entry, retain log entries following it and reply" */
@@ -510,7 +478,7 @@ void raft_member_t<state_t>::on_install_snapshot_rpc(
         /* Raft paper, Figure 13: "Save snapshot file"
         (We're going slightly out of order, as described above) */
         ps.snapshot_state = request.snapshot_state;
-        ps.snapshot_configuration = request.snapshot_configuration;
+        ps.snapshot_config = request.snapshot_config;
         guarantee(ps.log.prev_index == request.last_included_index);
         guarantee(ps.log.prev_term == request.last_included_term);
 
@@ -525,22 +493,25 @@ void raft_member_t<state_t>::on_install_snapshot_rpc(
         /* Raft paper, Figure 13: "Save snapshot file"
         (We're going slightly out of order, as described above) */
         ps.snapshot_state = request.snapshot_state;
-        ps.snapshot_configuration = request.snapshot_configuration;
+        ps.snapshot_config = request.snapshot_config;
         ps.log.prev_index = request.last_included_index;
         ps.log.prev_term = request.last_included_term;
     }
 
-    /* Raft paper, Figure 13: "Reset state machine using snapshot contents"
-    This conditional doesn't appear in the Raft paper. It will always be true if we
-    discarded the entire log, but it will sometimes be false if we only discarded part of
-    the log, which is why this implementation needs it. */
-    if (ps.log.prev_index > last_applied) {
-        state_machine.set_value(ps.snapshot_state);
-        last_applied = ps.log.prev_index;
-        /* It's hypothetically possible that `commit_index` could be greater than
-        `last_applied` */
-        commit_index = std::max(ps.log.prev_index, commit_index);
-    }
+    /* Raft paper, Figure 13: "Reset state machine using snapshot contents" */
+    committed_state.apply_atomic_op([&](state_and_config_t *state_and_config) -> bool {
+        /* This conditional doesn't appear in the Raft paper. It will always be true if
+        we discarded the entire log, but it will sometimes be false if we only discarded
+        part of the log, which is why this implementation needs it. */
+        if (request.last_included_index > state_and_config->log_index) {
+            state_and_config->log_index = request.last_included_index;
+            state_and_config->state = ps.snapshot_state;
+            state_and_config->config = ps.snapshot_config;
+            return true;
+        } else {
+            return false;
+        }
+    });
 
     /* Raft paper, Figure 2: "Persistent state [is] updated on stable storage before
     responding to RPCs" */
@@ -646,7 +617,7 @@ void raft_member_t<state_t>::on_append_entries_rpc(
 
     /* Raft paper, Figure 2: "If leaderCommit > commitIndex, set commitIndex = min(
     leaderCommit, index of last new entry)" */
-    if (request.leader_commit > commit_index) {
+    if (request.leader_commit > committed_state.get_ref().log_index) {
         update_commit_index(
             std::min(request.leader_commit, request.entries.get_latest_index()),
             &mutex_acq);
@@ -667,6 +638,8 @@ void raft_member_t<state_t>::check_invariants(
         const new_mutex_acq_t *mutex_acq) {
     assert_thread();
     mutex_acq->guarantee_is_holding(&mutex);
+
+    raft_log_index_t commit_index = committed_state.get_ref().log_index;
 
     /* Some of these checks are copied directly from LogCabin's list of invariants. */
 
@@ -701,19 +674,19 @@ void raft_member_t<state_t>::check_invariants(
         case raft_log_entry_t<state_t>::type_t::regular:
             guarantee(static_cast<bool>(entry.change), "Regular log entries should "
                 "carry changes");
-            guarantee(!static_cast<bool>(entry.configuration), "Regular log entries "
-                "shouldn't carry configurations.");
+            guarantee(!static_cast<bool>(entry.config), "Regular log entries shouldn't "
+                "carry configurations.");
             break;
-        case raft_log_entry_t<state_t>::type_t::configuration:
+        case raft_log_entry_t<state_t>::type_t::config:
             guarantee(!static_cast<bool>(entry.change), "Configuration log entries "
                 "shouldn't carry changes");
-            guarantee(static_cast<bool>(entry.configuration), "Configuration log "
-                "entries should carry configurations.");
+            guarantee(static_cast<bool>(entry.config), "Configuration log entries "
+                "should carry configurations.");
             break;
         case raft_log_entry_t<state_t>::type_t::noop:
             guarantee(!static_cast<bool>(entry.change), "Noop log entries shouldn't "
                 "carry changes");
-            guarantee(!static_cast<bool>(entry.configuration), "Noop log entries"
+            guarantee(!static_cast<bool>(entry.config), "Noop log entries"
                 "shouldn't carry configurations.");
             break;
         default:
@@ -724,26 +697,18 @@ void raft_member_t<state_t>::check_invariants(
         "entries with terms greater than current_term");
 
     /* Checks related to reconfigurations */
-    raft_complex_config_t committed_config = ps.snapshot_configuration;
     size_t uncommitted_config_1s = 0, uncommitted_config_2s = 0;
-    for (raft_log_index_t i = ps.log.prev_index + 1;
-            i <= ps.log.get_latest_index();
-            ++i) {
+    for (raft_log_index_t i = commit_index + 1; i <= ps.log.get_latest_index(); ++i) {
         raft_log_entry_t<state_t> entry = ps.log.get_entry_ref(i);
-        if (entry.type != raft_log_entry_t<state_t>::type_t::configuration) {
-            continue;
-        }
-        if (i <= commit_index) {
-            committed_config = *entry.configuration;
-        } else {
-            if (entry.configuration->is_joint_consensus()) {
+        if (entry.type == raft_log_entry_t<state_t>::type_t::config) {
+            if (entry.config->is_joint_consensus()) {
                 ++uncommitted_config_1s;
             } else {
                 ++uncommitted_config_2s;
             }
         }
     }
-    if (committed_config.is_joint_consensus()) {
+    if (committed_state.get_ref().config.is_joint_consensus()) {
         guarantee(uncommitted_config_1s == 0, "We shouldn't have two overlapping "
             "reconfigurations going on at once");
         guarantee(uncommitted_config_2s <= 1, "We shouldn't have two overlapping "
@@ -758,29 +723,23 @@ void raft_member_t<state_t>::check_invariants(
     /* Checks related to the state machine and commits */
     guarantee(commit_index >= ps.log.prev_index, "All of the log entries in the "
         "snapshot should be committed.");
-    guarantee(last_applied <= commit_index, "We shouldn't have applied any changes to "
-        "the state machine that weren't committed.");
     guarantee(commit_index <= ps.log.get_latest_index(), "We shouldn't have committed "
         "any entries that aren't in the log yet.");
     {
-        state_t st = ps.snapshot_state;
-        for (raft_log_index_t i = ps.log.prev_index+1; i <= last_applied; ++i) {
-            raft_log_entry_t<state_t> entry = ps.log.get_entry_ref(i);
-            if (entry.type == raft_log_entry_t<state_t>::type_t::regular) {
-                st.apply_change(*entry.change);
-            }
-        }
-        state_machine.apply_read([&](const state_t *state) {
-            guarantee(st == *state, "State machine should be equal to snapshot with log "
-                "entries applied.");
-        });
+        state_and_config_t s(ps.log.prev_index, ps.snapshot_state, ps.snapshot_config);
+        apply_log_entries(&s, ps.log, ps.log.prev_index + 1, commit_index);
+        guarantee(s.state == committed_state.get_ref().state, "State machine should be "
+            "equal to snapshot with log entries applied.");
+        guarantee(s.config == committed_state.get_ref().config, "Config stored with "
+            "state machine should be equal to snapshot with log entries applied.");
+        guarantee(s.log_index == committed_state.get_ref().log_index, "Applying the log "
+            "entries up to commit_index to the snapshot should cause its log_index to "
+            "be equal to commit_index.");
     }
-    /* These are properties that this implementation follows, but they aren't essential
-    to Raft, and it would be totally reasonable to change them for performance reasons or
+    /* This is a properties that this implementation follows, but it isn't essential
+    to Raft, and it would be totally reasonable to change it for performance reasons or
     something. */
-    guarantee(last_applied == commit_index, "The implementation is supposed to apply "
-        "changes to the state machine as soon as they're committed.");
-    guarantee(ps.log.prev_index == last_applied, "The implementation is supposed to "
+    guarantee(ps.log.prev_index == commit_index, "This implementation is supposed to "
         "snapshot changes as soon as they're applied");
 
     /* Checks related to the follower/candidate/leader roles */
@@ -870,6 +829,30 @@ void raft_member_t<state_t>::on_watchdog_timer() {
 }
 
 template<class state_t>
+void raft_member_t<state_t>::apply_log_entries(
+        state_and_config_t *state_and_config,
+        const raft_log_t<state_t> &log,
+        raft_log_index_t first,
+        raft_log_index_t last) {
+    guarantee(state_and_config->log_index + 1 == first);
+    for (raft_log_index_t i = first; i <= last; ++i) {
+        const raft_log_entry_t<state_t> &e = log.get_entry_ref(i);
+        switch (e.type) {
+            case raft_log_entry_t<state_t>::type_t::regular:
+                state_and_config->state.apply_change(*e.change);
+                break;
+            case raft_log_entry_t<state_t>::type_t::config:
+                state_and_config->config = *e.config;
+                break;
+            case raft_log_entry_t<state_t>::type_t::noop:
+                break;
+            default: unreachable();
+        }
+        ++state_and_config->log_index;
+    }
+}
+
+template<class state_t>
 void raft_member_t<state_t>::update_term(
         raft_term_t new_term,
         const new_mutex_acq_t *mutex_acq) {
@@ -893,21 +876,15 @@ void raft_member_t<state_t>::update_commit_index(
         const new_mutex_acq_t *mutex_acq) {
     mutex_acq->guarantee_is_holding(&mutex);
 
-    guarantee(new_commit_index > commit_index);
-    commit_index = new_commit_index;
+    guarantee(new_commit_index > committed_state.get_ref().log_index);
 
     /* Raft paper, Figure 2: "If commitIndex > lastApplied: increment lastApplied, apply
     log[lastApplied] to state machine" */
-    while (last_applied < commit_index) {
-        ++last_applied;
-        if (ps.log.get_entry_ref(last_applied).type ==
-                raft_log_entry_t<state_t>::type_t::regular) {
-            state_machine.apply_atomic_op([&](state_t *state) -> bool {
-                state->apply_change(*ps.log.get_entry_ref(last_applied).change);
-                return true;
-            });
-        }
-    }
+    committed_state.apply_atomic_op([&](state_and_config_t *state_and_config) -> bool {
+        raft_member_t<state_t>::apply_log_entries(state_and_config, ps.log,
+            state_and_config->log_index + 1, new_commit_index);
+        return true;
+    });
 
     /* Take a snapshot as described in Section 7. We can snapshot any time we like; this
     implementation currently snapshots after every change. If the `state_t` ever becomes
@@ -915,21 +892,12 @@ void raft_member_t<state_t>::update_commit_index(
     many changes have accumulated. (We'd also have to add a mechanism to add entries to
     the log on disk without rewriting the whole on-disk persistent state, or there
     wouldn't be any performance benefits.) */
-    if (last_applied > ps.log.prev_index) {
-        state_machine.apply_read([&](const state_t *state) {
-            ps.snapshot_state = *state;
-        });
-        for (raft_log_index_t i = ps.log.prev_index + 1; i <= last_applied; ++i) {
-            if (ps.log.get_entry_ref(i).type ==
-                    raft_log_entry_t<state_t>::type_t::configuration) {
-                ps.snapshot_configuration = *ps.log.get_entry_ref(i).configuration;
-            }
-        } 
-        /* This automatically updates `ps.log.prev_index` and `ps.log.prev_term`, which
-        are equivalent to the "last included index" and "last included term" described in
-        Section 7 of the Raft paper. */
-        ps.log.delete_entries_to(last_applied);
-    }
+    ps.snapshot_state = committed_state.get_ref().state;
+    ps.snapshot_config = committed_state.get_ref().config;
+    /* This automatically updates `ps.log.prev_index` and `ps.log.prev_term`,
+    which are equivalent to the "last included index" and "last included term"
+    described in Section 7 of the Raft paper. */
+    ps.log.delete_entries_to(committed_state.get_ref().log_index);
 
     /* This wakes up instances of `leader_send_updates()`, which will push the updated
     commit index to replicas if necessary. It also wakes up
@@ -957,30 +925,32 @@ void raft_member_t<state_t>::leader_update_match_index(
     guarantee(it->second <= new_value);
     it->second = new_value;
 
-    raft_complex_config_t configuration = get_configuration();
+    raft_complex_config_t config = get_configuration();
 
     /* Raft paper, Figure 2: "If there exists an N such that N > commitIndex, a majority
     of matchIndex[i] >= N, and log[N].term == currentTerm: set commitIndex = N" */
-    raft_log_index_t new_commit_index = commit_index;
-    for (raft_log_index_t i = commit_index + 1; i <= ps.log.get_latest_index(); ++i) {
-        if (ps.log.get_entry_term(i) != ps.current_term) {
+    raft_log_index_t old_commit_index = committed_state.get_ref().log_index;
+    raft_log_index_t new_commit_index = old_commit_index;
+    for (raft_log_index_t n = old_commit_index + 1;
+            n <= ps.log.get_latest_index(); ++n) {
+        if (ps.log.get_entry_term(n) != ps.current_term) {
             continue;
         }
         std::set<raft_member_id_t> approving_members;
         for (auto const &pair : *match_index) {
-            if (pair.second >= i) {
+            if (pair.second >= n) {
                 approving_members.insert(pair.first);
             }
         }
-        if (configuration.is_quorum(approving_members)) {
-            new_commit_index = i;
+        if (config.is_quorum(approving_members)) {
+            new_commit_index = n;
         } else {
             /* If this log entry isn't approved, no later log entry can possibly be
             approved either */
             break;
         }
     }
-    if (new_commit_index != commit_index) {
+    if (new_commit_index != old_commit_index) {
         update_commit_index(new_commit_index, mutex_acq);
         storage->write_persistent_state(ps, interruptor);
     }
@@ -1141,7 +1111,7 @@ bool raft_member_t<state_t>::candidate_run_election(
     (*mutex_acq)->guarantee_is_holding(&mutex);
     guarantee(mode == mode_t::candidate);
 
-    raft_complex_config_t configuration = get_configuration();
+    raft_complex_config_t config = get_configuration();
 
     std::set<raft_member_id_t> votes_for_us;
     cond_t we_won_the_election;
@@ -1149,7 +1119,7 @@ bool raft_member_t<state_t>::candidate_run_election(
     /* Raft paper, Section 5.2: "It then votes for itself." */
     ps.voted_for = this_member_id;
     votes_for_us.insert(this_member_id);
-    if (configuration.is_quorum(votes_for_us)) {
+    if (config.is_quorum(votes_for_us)) {
         /* In some degenerate cases, like if the cluster has only one node, then
         our own vote might be enough to be elected. */
         we_won_the_election.pulse();
@@ -1161,7 +1131,7 @@ bool raft_member_t<state_t>::candidate_run_election(
 
     /* Raft paper, Section 5.2: "[The candidate] issues RequestVote RPCs in parallel to
     each of the other servers in the cluster." */
-    std::set<raft_member_id_t> peers = configuration.get_all_members();
+    std::set<raft_member_id_t> peers = config.get_all_members();
     scoped_ptr_t<auto_drainer_t> request_vote_drainer(new auto_drainer_t);
     for (const raft_member_id_t &peer : peers) {
         if (peer == this_member_id) {
@@ -1170,7 +1140,7 @@ bool raft_member_t<state_t>::candidate_run_election(
         }
 
         auto_drainer_t::lock_t request_vote_keepalive(request_vote_drainer.get());
-        coro_t::spawn_sometime([this, &configuration, &votes_for_us,
+        coro_t::spawn_sometime([this, &config, &votes_for_us,
                 &we_won_the_election, peer,
                 request_vote_keepalive /* important to capture */]() {
             try {
@@ -1225,7 +1195,7 @@ bool raft_member_t<state_t>::candidate_run_election(
                         /* Raft paper, Section 5.2: "A candidate wins an election if it
                         receives votes from a majority of the servers in the full cluster
                         for the same term." */
-                        if (configuration.is_quorum(votes_for_us)) {
+                        if (config.is_quorum(votes_for_us)) {
                             we_won_the_election.pulse_if_not_already_pulsed();
                         }
                         break;
@@ -1284,8 +1254,8 @@ void raft_member_t<state_t>::leader_spawn_update_coros(
     guarantee(mode == mode_t::leader);
 
     /* Calculate the new configuration */
-    raft_complex_config_t configuration = get_configuration();
-    std::set<raft_member_id_t> peers = configuration.get_all_members();
+    raft_complex_config_t config = get_configuration();
+    std::set<raft_member_id_t> peers = config.get_all_members();
 
     /* Spawn coroutines as necessary */
     for (const raft_member_id_t &peer : peers) {
@@ -1396,8 +1366,12 @@ void raft_member_t<state_t>::leader_send_updates(
                 request.leader_id = this_member_id;
                 request.last_included_index = ps.log.prev_index;
                 request.last_included_term = ps.log.prev_term;
+                /* TODO: Maybe we should send `committed_state` instead of the snapshot.
+                Under the current implementation, they will always be the same; but if we
+                were to allow the snapshot to lag behind the committed state, sending
+                `committed_state` would help the follower catch up faster. */
                 request.snapshot_state = ps.snapshot_state;
-                request.snapshot_configuration = ps.snapshot_configuration;
+                request.snapshot_config = ps.snapshot_config;
                 raft_rpc_request_t<state_t> request_wrapper;
                 request_wrapper.request = request;
 
@@ -1440,7 +1414,7 @@ void raft_member_t<state_t>::leader_send_updates(
                 send_even_if_empty = false;
 
             } else if (next_index <= ps.log.get_latest_index() ||
-                    member_commit_index < commit_index ||
+                    member_commit_index < committed_state.get_ref().log_index ||
                     send_even_if_empty) {
                 /* The peer's log ends right where our log begins, or in the middle of
                 our log. Send an append-entries RPC. */
@@ -1452,7 +1426,7 @@ void raft_member_t<state_t>::leader_send_updates(
                 if (next_index > ps.log.prev_index + 1) {
                     request.entries.delete_entries_to(next_index - 1);
                 }
-                request.leader_commit = commit_index;
+                request.leader_commit = committed_state.get_ref().log_index;
                 raft_rpc_request_t<state_t> request_wrapper;
                 request_wrapper.request = request;
 
@@ -1509,7 +1483,7 @@ void raft_member_t<state_t>::leader_send_updates(
 
             } else {
                 guarantee(next_index == ps.log.get_latest_index() + 1);
-                guarantee(member_commit_index == commit_index);
+                guarantee(member_commit_index == committed_state.get_ref().log_index);
                 /* OK, the peer is completely up-to-date. Wait until either an entry is
                 appended to the log; our `commit_index` advances; or the heartbeat
                 interval elapses, and then go around the loop again. */
@@ -1548,21 +1522,15 @@ void raft_member_t<state_t>::leader_continue_reconfiguration(
     guarantee(mode == mode_t::leader);
     /* Check if we recently committed a joint consensus configuration, or a configuration
     in which we are no longer leader. */
-    raft_complex_config_t committed_config = ps.snapshot_configuration;
-    for (raft_log_index_t i = ps.log.prev_index + 1; i <= commit_index; ++i) {
-        if (ps.log.get_entry_ref(i).type ==
-                raft_log_entry_t<state_t>::type_t::configuration) {
-            committed_config = *ps.log.get_entry_ref(i).configuration;
-        }
-    }
-    if (committed_config.is_joint_consensus()) {
+    if (committed_state.get_ref().config.is_joint_consensus()) {
         /* OK, we recently committed a joint consensus configuration. Check if the second
         phase of the reconfiguration isn't already in the log. */
         bool no_other_config = true;
-        for (raft_log_index_t i = commit_index + 1; i <= ps.log.get_latest_index(); ++i) {
+        for (raft_log_index_t i = committed_state.get_ref().log_index + 1;
+                i <= ps.log.get_latest_index(); ++i) {
             const raft_log_entry_t<state_t> &entry = ps.log.get_entry_ref(i);
-            if (entry.type == raft_log_entry_t<state_t>::type_t::configuration) {
-                guarantee(!entry.configuration->is_joint_consensus());
+            if (entry.type == raft_log_entry_t<state_t>::type_t::config) {
+                guarantee(!entry.config->is_joint_consensus());
                 no_other_config = false;
                 break;
             }
@@ -1574,16 +1542,16 @@ void raft_member_t<state_t>::leader_continue_reconfiguration(
             safe for the leader to create a log entry describing C_new and replicate it
             to the cluster. */
             raft_complex_config_t new_config;
-            new_config.config = *committed_config.new_config;
+            new_config.config = *committed_state.get_ref().config.new_config;
 
             raft_log_entry_t<state_t> new_entry;
-            new_entry.type = raft_log_entry_t<state_t>::type_t::configuration;
-            new_entry.configuration = boost::optional<raft_complex_config_t>(new_config);
+            new_entry.type = raft_log_entry_t<state_t>::type_t::config;
+            new_entry.config = boost::optional<raft_complex_config_t>(new_config);
             new_entry.term = ps.current_term;
 
             leader_append_log_entry(new_entry, mutex_acq, interruptor);
         }
-    } else if (!committed_config.is_valid_leader(this_member_id)) {
+    } else if (!committed_state.get_ref().config.is_valid_leader(this_member_id)) {
         /* Raft paper, Section 6: "...the leader steps down (returns to follower state)
         once it has committed the C_new log entry."
         `candidate_or_leader_note_term()` isn't designed for the purpose of making us
@@ -1672,12 +1640,12 @@ raft_complex_config_t raft_member_t<state_t>::get_configuration() {
     to be careful about invalidating the cache, so it's not worth doing unless there's a
     good reason. The log will usually be very short so it shouldn't be a performance
     issue. */
-    raft_complex_config_t c = ps.snapshot_configuration;
+    raft_complex_config_t c = ps.snapshot_config;
     for (raft_log_index_t i = ps.log.prev_index + 1;
             i <= ps.log.get_latest_index(); ++i) {
         const raft_log_entry_t<state_t> &entry = ps.log.get_entry_ref(i);
-        if (entry.type == raft_log_entry_t<state_t>::type_t::configuration) {
-            c = *entry.configuration;
+        if (entry.type == raft_log_entry_t<state_t>::type_t::config) {
+            c = *entry.config;
         }
     }
     return c;

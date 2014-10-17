@@ -178,9 +178,9 @@ public:
                 guarantee(member != nullptr, "wait_for_commit() lost contact with "
                     "member");
                 cond_t non_interruptor;
-                member->get_state_machine()->run_until_satisfied(
-                    [&](const dummy_raft_state_t &state) {
-                        for (const uuid_u &c : state.state) {
+                member->get_committed_state()->run_until_satisfied(
+                    [&](const dummy_raft_member_t::state_and_config_t &s) {
+                        for (const uuid_u &c : s.state.state) {
                             if (c == change) {
                                 return true;
                             }
@@ -373,7 +373,7 @@ TPTEST(ClusteringRaft, Basic) {
     nap(5000);
     cluster.run_on_member(member_ids[0], [](dummy_raft_member_t *member) {
         /* Make sure at least some transactions got through */
-        dummy_raft_state_t state = member->get_state_machine()->get();
+        dummy_raft_state_t state = member->get_committed_state()->get().state;
         guarantee(state.state.size() > 100);
     });
 }
@@ -397,7 +397,7 @@ TPTEST(ClusteringRaft, Failover) {
     nap(5000);
     cluster.run_on_member(member_ids[0], [](dummy_raft_member_t *member) {
         /* Make sure at least some transactions got through */
-        dummy_raft_state_t state = member->get_state_machine()->get();
+        dummy_raft_state_t state = member->get_committed_state()->get().state;
         guarantee(state.state.size() > 100);
     });
 }
