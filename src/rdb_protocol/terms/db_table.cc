@@ -287,14 +287,14 @@ private:
     virtual const char *name() const { return "table_list"; }
 };
 
-class table_config_or_status_term_t : public meta_op_term_t {
+class table_meta_read_term_t : public meta_op_term_t {
 public:
-    table_config_or_status_term_t(compile_env_t *env, const protob_t<const Term> &term) :
+    table_meta_read_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         meta_op_term_t(env, term, argspec_t(0, 2)) { }
 protected:
     virtual bool impl(scope_env_t *env,
                       counted_t<const db_t> db,
-                      const std::vector<name_string_t> &tables,
+                      const std::set<name_string_t> &tables,
                       scoped_ptr_t<val_t> *resp_out,
                       std::string *error_out) const = 0;
 private:
@@ -306,7 +306,7 @@ private:
 
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<const db_t> db;
-        std::vector<name_string_t> tables;
+        std::set<name_string_t> tables;
 
         if (args->num_args() > 0) {
             for (size_t i = 0; i < args->num_args(); ++i) {
@@ -314,7 +314,7 @@ private:
                 if (i == 0 && arg->get_type().is_convertible(val_t::type_t::DB)) {
                     db = arg->as_db();
                 } else {
-                    tables.push_back(get_name(arg, this, "Table"));
+                    tables.insert(get_name(arg, this, "Table"));
                 }
             }
         }
@@ -332,14 +332,14 @@ private:
     }
 };
 
-class table_config_term_t : public table_config_or_status_term_t {
+class table_config_term_t : public table_meta_read_term_t {
 public:
     table_config_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        table_config_or_status_term_t(env, term) { }
+        table_meta_read_term_t(env, term) { }
 private:
     bool impl(scope_env_t *env, 
               counted_t<const db_t> db,
-              const std::vector<name_string_t> &tables,
+              const std::set<name_string_t> &tables,
               scoped_ptr_t<val_t> *resp_out,
               std::string *error_out) const {
         return env->env->reql_cluster_interface()->table_config(
@@ -348,14 +348,14 @@ private:
     virtual const char *name() const { return "table_config"; }
 };
 
-class table_status_term_t : public table_config_or_status_term_t {
+class table_status_term_t : public table_meta_read_term_t {
 public:
     table_status_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        table_config_or_status_term_t(env, term) { }
+        table_meta_read_term_t(env, term) { }
 private:
     bool impl(scope_env_t *env, 
               counted_t<const db_t> db,
-              const std::vector<name_string_t> &tables,
+              const std::set<name_string_t> &tables,
               scoped_ptr_t<val_t> *resp_out,
               std::string *error_out) const {
         return env->env->reql_cluster_interface()->table_status(
@@ -364,14 +364,14 @@ private:
     virtual const char *name() const { return "table_status"; }
 };
 
-class table_wait_term_t : public table_config_or_status_term_t {
+class table_wait_term_t : public table_meta_read_term_t {
 public:
     table_wait_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        table_config_or_status_term_t(env, term) { }
+        table_meta_read_term_t(env, term) { }
 private:
     bool impl(scope_env_t *env, 
               counted_t<const db_t> db,
-              const std::vector<name_string_t> &tables,
+              const std::set<name_string_t> &tables,
               scoped_ptr_t<val_t> *resp_out,
               std::string *error_out) const {
         return env->env->reql_cluster_interface()->table_wait(

@@ -58,17 +58,17 @@ public:
             signal_t *interruptor, scoped_ptr_t<base_table_t> *table_out,
             std::string *error_out);
     bool table_config(counted_t<const ql::db_t> db,
-            const std::vector<name_string_t> &tables,
+            const std::set<name_string_t> &tables,
             const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
     bool table_status(counted_t<const ql::db_t> db,
-            const std::vector<name_string_t> &tables,
+            const std::set<name_string_t> &tables,
             const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
     bool table_wait(counted_t<const ql::db_t> db,
-            const std::vector<name_string_t> &tables,
+            const std::set<name_string_t> &tables,
             const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
@@ -115,9 +115,15 @@ private:
     // This could soooo be optimized if you don't want to copy the whole thing.
     void get_databases_metadata(databases_semilattice_metadata_t *out);
 
-    bool table_config_or_status(artificial_table_backend_t *backend,
-            const char *backend_name, counted_t<const ql::db_t> db,
-            const std::vector<name_string_t> &tables,
+    bool get_table_ids_for_query(
+            counted_t<const ql::db_t> db,
+            const std::set<name_string_t> &table_names,
+            std::set<namespace_id_t> *table_ids_out,
+            std::string *error_out);
+
+    bool table_meta_read(artificial_table_backend_t *backend,
+            const char *backend_name,
+            const std::set<namespace_id_t> &table_ids,
             const ql::protob_t<const Backtrace> &bt,
             signal_t *interruptor, scoped_ptr_t<ql::val_t> *resp_out,
             std::string *error_out);
