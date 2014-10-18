@@ -15,6 +15,8 @@
 #include <stdlib.h>
 #include <cstddef>
 
+#include "utils.hpp"
+
 namespace geo {
 
 template <class C> class scoped_ptr;
