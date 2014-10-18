@@ -502,7 +502,21 @@ private:
     } table_directory;
 
     bool do_check(watchable_map_t<peer_id_t, namespace_directory_metadata_t> *dir) {
-        return false;
+        std::vector<region_t> regions;
+        dir->read_all(
+            [&](const peer_id_t &, const namespace_directory_metadata_t *metadata) {
+                for (auto const &it : metadata->internal->activities) {
+                    const reactor_business_card_t::primary_t *primary =
+                        boost::get<reactor_business_card_t::primary_t>(&it.second.activity);
+                    if (primary != NULL && primary->master) {
+                        regions.push_back(primary->master.get().region);
+                    }
+                }
+            });
+
+        region_t whole;
+        region_join_result_t res = region_join(regions, &whole);
+        return (res == REGION_JOIN_OK && whole == region_t::universe());
     }
 };
 
