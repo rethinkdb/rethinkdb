@@ -89,7 +89,7 @@ public:
     }
 
     virtual size_t max_size() const;
-    virtual typename allocator_types_t type() const {
+    virtual allocator_types_t type() const {
         return allocator_types_t::TRACKING;
     }
 
@@ -130,7 +130,7 @@ public:
             return false;
     }
     virtual size_t max_size() const { return std::numeric_limits<size_t>::max(); }
-    virtual typename allocator_types_t type() const {
+    virtual allocator_types_t type() const {
         return allocator_types_t::UNBOUNDED;
     }
 };
