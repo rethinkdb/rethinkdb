@@ -137,7 +137,6 @@ class S2RegionCoverer {
   struct Candidate {
     S2Cell cell;
     bool is_terminal;        // Cell should not be expanded further.
-    int num_children;        // Number of children that intersect the region.
     std::vector<Candidate*> children;  // Size may be 0, 4, 16, or 64 elements.
   };
 
