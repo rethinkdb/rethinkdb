@@ -454,6 +454,13 @@ public:
         return committed_state.get_watchable();
     }
 
+    /* `get_latest_state()` describes the state of the Raft cluster if every log entry,
+    including uncommitted entries, has been applied. */
+    clone_ptr_t<watchable_t<state_and_config_t> > get_latest_state() {
+        assert_thread();
+        return latest_state.get_watchable();
+    }
+
     /* `get_state_for_init()` returns a `raft_persistent_state_t` that could be used to
     initialize a new member joining the Raft cluster. */
     raft_persistent_state_t<state_t> get_state_for_init();
@@ -678,10 +685,6 @@ private:
         const new_mutex_acq_t *mutex_acq,
         signal_t *interruptor);
 
-    /* Returns the configuration that we should use for determining if we have a quorum
-    or not. */
-    raft_complex_config_t get_configuration();
-
     /* The member ID of the member of the Raft cluster represented by this
     `raft_member_t`. */
     const raft_member_id_t this_member_id;
@@ -701,6 +704,13 @@ private:
     from the Raft paper in that the paper allows `lastApplied` to lag behind
     `commitIndex`, but we require them to be equal at all times. */
     watchable_variable_t<state_and_config_t> committed_state;
+
+    /* `latest_state` describes the state after all log entries, not only committed ones,
+    have been applied. This is publicly exposed to the user, and it's also useful because
+    "a server always uses the latest configuration in its log, regardless of whether the
+    entry is committed" (Raft paper, Section 6). Whenever `ps.log` is modified,
+    `latest_state` must be updated to keep in sync. */
+    watchable_variable_t<state_and_config_t> latest_state;
 
     /* Only `candidate_and_leader_coro()` should ever change `mode` */
     mode_t mode;

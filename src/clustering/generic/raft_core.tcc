@@ -48,6 +48,8 @@ raft_member_t<state_t>::raft_member_t(
         ps.log.prev_index,
         ps.snapshot_state,
         ps.snapshot_config)),
+    /* We'll update `latest_state` with the contents of the log shortly */
+    latest_state(committed_state.get_ref()),
     /* Raft paper, Section 5.2: "When servers start up, they begin as followers." */
     mode(mode_t::follower),
     current_term_leader_id(nil_uuid()),
@@ -64,6 +66,11 @@ raft_member_t<state_t>::raft_member_t(
         ))
 {
     new_mutex_acq_t mutex_acq(&mutex);
+    /* Finish initializing `latest_state` */
+    latest_state.apply_atomic_op([&](state_and_config_t *s) -> bool {
+        apply_log_entries(s, ps.log, s->log_index + 1, ps.log.get_latest_index());
+        return !ps.log.entries.empty();
+    });
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 }
 
@@ -148,15 +155,9 @@ bool raft_member_t<state_t>::propose_config_change_if_leader(
     /* We forbid starting a new config change before the old one is done. The Raft paper
     doesn't explicitly say anything about multiple interleaved configuration changes; but
     it's safer and simpler to forbid it. */
-    if (committed_state.get_ref().config.is_joint_consensus()) {
+    if (committed_state.get_ref().config.is_joint_consensus() ||
+            latest_state.get_ref().config.is_joint_consensus()) {
         return false;
-    }
-    for (raft_log_index_t i = committed_state.get_ref().log_index + 1;
-            i <= ps.log.get_latest_index(); ++i) {
-        if (ps.log.get_entry(i).type ==
-                raft_log_entry_t<state_t>::type_t::config) {
-            return false;
-        }
     }
 
     /* Raft paper, Section 6: "... the cluster first switches to a [joint consensus
@@ -496,6 +497,10 @@ void raft_member_t<state_t>::on_install_snapshot_rpc(
         ps.snapshot_config = request.snapshot_config;
         ps.log.prev_index = request.last_included_index;
         ps.log.prev_term = request.last_included_term;
+
+        /* Because we modified `ps.log`, we need to update `latest_state` */
+        latest_state.set_value(state_and_config_t(
+            ps.log.prev_index, ps.snapshot_state, ps.snapshot_config));
     }
 
     /* Raft paper, Figure 13: "Reset state machine using snapshot contents" */
@@ -599,11 +604,13 @@ void raft_member_t<state_t>::on_append_entries_rpc(
 
     /* Raft paper, Figure 2: "If an existing entry conflicts with a new one (same index
     but different terms), delete the existing entry and all that follow it" */
+    bool conflict = false;
     for (raft_log_index_t i = request.entries.prev_index + 1;
             i <= std::min(ps.log.get_latest_index(), request.entries.get_latest_index());
             ++i) {
         if (ps.log.get_entry_term(i) != request.entries.get_entry_term(i)) {
             ps.log.delete_entries_from(i);
+            conflict = true;
             break;
         }
     }
@@ -614,6 +621,18 @@ void raft_member_t<state_t>::on_append_entries_rpc(
             ++i) {
         ps.log.append(request.entries.get_entry_ref(i));
     }
+
+    /* Because we modified `ps.log`, we need to update `latest_state`. */
+    latest_state.apply_atomic_op([&](state_and_config_t *s) -> bool {
+        if (conflict) {
+            /* We deleted some log entries and then appended some. Since we have no way
+            of reverting a log entry on a `state_and_config_t`, we have to rewind to the
+            last committed state and then apply log entries from there. */
+            *s = committed_state.get_ref();
+        }
+        apply_log_entries(s, ps.log, s->log_index + 1, ps.log.get_latest_index());
+        return true;
+    });
 
     /* Raft paper, Figure 2: "If leaderCommit > commitIndex, set commitIndex = min(
     leaderCommit, index of last new entry)" */
@@ -735,6 +754,10 @@ void raft_member_t<state_t>::check_invariants(
         guarantee(s.log_index == committed_state.get_ref().log_index, "Applying the log "
             "entries up to commit_index to the snapshot should cause its log_index to "
             "be equal to commit_index.");
+        apply_log_entries(&s, ps.log, commit_index + 1, ps.log.get_latest_index());
+        guarantee(s.state == latest_state.get_ref().state);
+        guarantee(s.config == latest_state.get_ref().config);
+        guarantee(s.log_index == latest_state.get_ref().log_index);
     }
     /* This is a properties that this implementation follows, but it isn't essential
     to Raft, and it would be totally reasonable to change it for performance reasons or
@@ -809,7 +832,7 @@ void raft_member_t<state_t>::on_watchdog_timer() {
                 if (last_heard_from_leader >= now - election_timeout_min_ms * 1000) {
                     return;
                 }
-                if (!this->get_configuration().is_valid_leader(this_member_id)) {
+                if (!latest_state.get_ref().config.is_valid_leader(this_member_id)) {
                     return;
                 }
                 /* Begin an election */
@@ -881,7 +904,7 @@ void raft_member_t<state_t>::update_commit_index(
     /* Raft paper, Figure 2: "If commitIndex > lastApplied: increment lastApplied, apply
     log[lastApplied] to state machine" */
     committed_state.apply_atomic_op([&](state_and_config_t *state_and_config) -> bool {
-        raft_member_t<state_t>::apply_log_entries(state_and_config, ps.log,
+        apply_log_entries(state_and_config, ps.log,
             state_and_config->log_index + 1, new_commit_index);
         return true;
     });
@@ -925,8 +948,6 @@ void raft_member_t<state_t>::leader_update_match_index(
     guarantee(it->second <= new_value);
     it->second = new_value;
 
-    raft_complex_config_t config = get_configuration();
-
     /* Raft paper, Figure 2: "If there exists an N such that N > commitIndex, a majority
     of matchIndex[i] >= N, and log[N].term == currentTerm: set commitIndex = N" */
     raft_log_index_t old_commit_index = committed_state.get_ref().log_index;
@@ -942,7 +963,7 @@ void raft_member_t<state_t>::leader_update_match_index(
                 approving_members.insert(pair.first);
             }
         }
-        if (config.is_quorum(approving_members)) {
+        if (latest_state.get_ref().config.is_quorum(approving_members)) {
             new_commit_index = n;
         } else {
             /* If this log entry isn't approved, no later log entry can possibly be
@@ -1111,15 +1132,13 @@ bool raft_member_t<state_t>::candidate_run_election(
     (*mutex_acq)->guarantee_is_holding(&mutex);
     guarantee(mode == mode_t::candidate);
 
-    raft_complex_config_t config = get_configuration();
-
     std::set<raft_member_id_t> votes_for_us;
     cond_t we_won_the_election;
 
     /* Raft paper, Section 5.2: "It then votes for itself." */
     ps.voted_for = this_member_id;
     votes_for_us.insert(this_member_id);
-    if (config.is_quorum(votes_for_us)) {
+    if (latest_state.get_ref().config.is_quorum(votes_for_us)) {
         /* In some degenerate cases, like if the cluster has only one node, then
         our own vote might be enough to be elected. */
         we_won_the_election.pulse();
@@ -1131,7 +1150,7 @@ bool raft_member_t<state_t>::candidate_run_election(
 
     /* Raft paper, Section 5.2: "[The candidate] issues RequestVote RPCs in parallel to
     each of the other servers in the cluster." */
-    std::set<raft_member_id_t> peers = config.get_all_members();
+    std::set<raft_member_id_t> peers = latest_state.get_ref().config.get_all_members();
     scoped_ptr_t<auto_drainer_t> request_vote_drainer(new auto_drainer_t);
     for (const raft_member_id_t &peer : peers) {
         if (peer == this_member_id) {
@@ -1140,8 +1159,7 @@ bool raft_member_t<state_t>::candidate_run_election(
         }
 
         auto_drainer_t::lock_t request_vote_keepalive(request_vote_drainer.get());
-        coro_t::spawn_sometime([this, &config, &votes_for_us,
-                &we_won_the_election, peer,
+        coro_t::spawn_sometime([this, &votes_for_us, &we_won_the_election, peer,
                 request_vote_keepalive /* important to capture */]() {
             try {
                 while (true) {
@@ -1195,7 +1213,7 @@ bool raft_member_t<state_t>::candidate_run_election(
                         /* Raft paper, Section 5.2: "A candidate wins an election if it
                         receives votes from a majority of the servers in the full cluster
                         for the same term." */
-                        if (config.is_quorum(votes_for_us)) {
+                        if (latest_state.get_ref().config.is_quorum(votes_for_us)) {
                             we_won_the_election.pulse_if_not_already_pulsed();
                         }
                         break;
@@ -1254,8 +1272,7 @@ void raft_member_t<state_t>::leader_spawn_update_coros(
     guarantee(mode == mode_t::leader);
 
     /* Calculate the new configuration */
-    raft_complex_config_t config = get_configuration();
-    std::set<raft_member_id_t> peers = config.get_all_members();
+    std::set<raft_member_id_t> peers = latest_state.get_ref().config.get_all_members();
 
     /* Spawn coroutines as necessary */
     for (const raft_member_id_t &peer : peers) {
@@ -1522,43 +1539,32 @@ void raft_member_t<state_t>::leader_continue_reconfiguration(
     guarantee(mode == mode_t::leader);
     /* Check if we recently committed a joint consensus configuration, or a configuration
     in which we are no longer leader. */
-    if (committed_state.get_ref().config.is_joint_consensus()) {
-        /* OK, we recently committed a joint consensus configuration. Check if the second
-        phase of the reconfiguration isn't already in the log. */
-        bool no_other_config = true;
-        for (raft_log_index_t i = committed_state.get_ref().log_index + 1;
-                i <= ps.log.get_latest_index(); ++i) {
-            const raft_log_entry_t<state_t> &entry = ps.log.get_entry_ref(i);
-            if (entry.type == raft_log_entry_t<state_t>::type_t::config) {
-                guarantee(!entry.config->is_joint_consensus());
-                no_other_config = false;
-                break;
-            }
-        }
-        if (no_other_config) {
-            /* OK, the second phase of the reconfiguration isn't already in the log. */
-
-            /* Raft paper, Section 6: "Once C_old,new has been committed... it is now
-            safe for the leader to create a log entry describing C_new and replicate it
-            to the cluster. */
-            raft_complex_config_t new_config;
-            new_config.config = *committed_state.get_ref().config.new_config;
-
-            raft_log_entry_t<state_t> new_entry;
-            new_entry.type = raft_log_entry_t<state_t>::type_t::config;
-            new_entry.config = boost::optional<raft_complex_config_t>(new_config);
-            new_entry.term = ps.current_term;
-
-            leader_append_log_entry(new_entry, mutex_acq, interruptor);
-        }
-    } else if (!committed_state.get_ref().config.is_valid_leader(this_member_id)) {
+    if (!committed_state.get_ref().config.is_valid_leader(this_member_id)) {
         /* Raft paper, Section 6: "...the leader steps down (returns to follower state)
         once it has committed the C_new log entry."
         `candidate_or_leader_note_term()` isn't designed for the purpose of making us
         intentionally step down, but it contains all the right logic. This has a side
         effect of incrementing `current_term`, but I don't think that's a problem. */
         candidate_or_leader_note_term(ps.current_term + 1, mutex_acq);
-    }
+    } else if (committed_state.get_ref().config.is_joint_consensus() &&
+            latest_state.get_ref().config.is_joint_consensus()) {
+        /* OK, we recently committed a joint consensus configuration, but we haven't yet
+        appended the second part of the reconfiguration to the log (or else
+        `latest_state` wouldn't be a joint consensus). */
+
+        /* Raft paper, Section 6: "Once C_old,new has been committed... it is now safe
+        for the leader to create a log entry describing C_new and replicate it to the
+        cluster. */
+        raft_complex_config_t new_config;
+        new_config.config = *committed_state.get_ref().config.new_config;
+
+        raft_log_entry_t<state_t> new_entry;
+        new_entry.type = raft_log_entry_t<state_t>::type_t::config;
+        new_entry.config = boost::optional<raft_complex_config_t>(new_config);
+        new_entry.term = ps.current_term;
+
+        leader_append_log_entry(new_entry, mutex_acq, interruptor);
+    } 
 }
 
 template<class state_t>
@@ -1614,6 +1620,13 @@ void raft_member_t<state_t>::leader_append_log_entry(
     entry..." */
     ps.log.append(log_entry);
 
+    /* Because we modified `ps.log`, we have to update `latest_state` */
+    latest_state.apply_atomic_op([&](state_and_config_t *s) -> bool {
+        guarantee(s->log_index + 1 == ps.log.get_latest_index());
+        apply_log_entries(s, ps.log, s->log_index + 1, s->log_index + 1);
+        return true;
+    });
+
     /* Note that we are holding the lock while we write the persistent state to disk.
     This might eventually become a performance problem. But currently it is important for
     correctness; if we released the lock before we finished writing the persistent state,
@@ -1630,25 +1643,6 @@ void raft_member_t<state_t>::leader_append_log_entry(
     for (cond_t *c : update_watchers) {
         c->pulse_if_not_already_pulsed();
     }
-}
-
-template<class state_t>
-raft_complex_config_t raft_member_t<state_t>::get_configuration() {
-    /* Raft paper, Section 6: "a server always uses the latest configuration in its log,
-    regardless of whether the entry is committed"
-    We recompute this on-the-fly every time it's needed. We could cache it, but we'd have
-    to be careful about invalidating the cache, so it's not worth doing unless there's a
-    good reason. The log will usually be very short so it shouldn't be a performance
-    issue. */
-    raft_complex_config_t c = ps.snapshot_config;
-    for (raft_log_index_t i = ps.log.prev_index + 1;
-            i <= ps.log.get_latest_index(); ++i) {
-        const raft_log_entry_t<state_t> &entry = ps.log.get_entry_ref(i);
-        if (entry.type == raft_log_entry_t<state_t>::type_t::config) {
-            c = *entry.config;
-        }
-    }
-    return c;
 }
 
 #endif /* CLUSTERING_GENERIC_RAFT_CORE_TCC_ */
