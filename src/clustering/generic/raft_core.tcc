@@ -56,14 +56,26 @@ raft_member_t<state_t>::raft_member_t(
     /* Set this so we start an election if we don't hear from a leader within an election
     timeout of when the constructor was called */
     last_heard_from_leader(current_microtime()),
+    /* These must be false initially because we're a follower. */
+    readiness_for_change(false),
+    readiness_for_config_change(false),
     drainer(new auto_drainer_t),
     /* Setting the `watchdog_timer` to ring every `election_timeout_min_ms` means that
     we'll start a new election after between 1 and 2 election timeouts have passed. This
     is OK. */
     watchdog_timer(new repeating_timer_t(
         election_timeout_min_ms,
-        [this] () { this->on_watchdog_timer(); }
-        ))
+        [this]() { this->on_watchdog_timer(); }
+        )),
+    connected_members_subs(
+        new watchable_map_t<raft_member_id_t, std::nullptr_t>::all_subs_t(
+            network->get_connected_members(),
+            [this](const raft_member_id_t &, const std::nullptr_t *) {
+                update_readiness_for_change();
+            },
+            /* There's no point in running `update_readiness_for_change()` now; we can't
+            be ready for change because we're a follower. */
+            false))
 {
     new_mutex_acq_t mutex_acq(&mutex);
     /* Finish initializing `latest_state` */
@@ -110,24 +122,17 @@ raft_persistent_state_t<state_t> raft_member_t<state_t>::get_state_for_init() {
 }
 
 template<class state_t>
-bool raft_member_t<state_t>::propose_change_if_leader(
+bool raft_member_t<state_t>::propose_change(
         const typename state_t::change_t &change,
         signal_t *interruptor) {
     assert_thread();
     new_mutex_acq_t mutex_acq(&mutex, interruptor);
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 
-    if (mode != mode_t::leader) {
+    if (!readiness_for_change.get_ref()) {
         return false;
     }
-
-    /* TODO: We shouldn't allow changes to pile up on a leader that isn't capable of
-    getting them committed. In particular:
-      * If the number of uncommitted log entries is greater than a threshold, we should
-        not accept new changes.
-      * If we're not in contact with a majority of the cluster, we should not accept new
-        changes.
-    The same goes for configuration changes. */
+    guarantee(mode == mode_t::leader);
 
     raft_log_entry_t<state_t> new_entry;
     new_entry.type = raft_log_entry_t<state_t>::type_t::regular;
@@ -141,24 +146,19 @@ bool raft_member_t<state_t>::propose_change_if_leader(
 }
 
 template<class state_t>
-bool raft_member_t<state_t>::propose_config_change_if_leader(
+bool raft_member_t<state_t>::propose_config_change(
         const raft_config_t &new_config,
         signal_t *interruptor) {
     assert_thread();
     new_mutex_acq_t mutex_acq(&mutex, interruptor);
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 
-    if (mode != mode_t::leader) {
+    if (readiness_for_config_change.get_ref()) {
         return false;
     }
-
-    /* We forbid starting a new config change before the old one is done. The Raft paper
-    doesn't explicitly say anything about multiple interleaved configuration changes; but
-    it's safer and simpler to forbid it. */
-    if (committed_state.get_ref().config.is_joint_consensus() ||
-            latest_state.get_ref().config.is_joint_consensus()) {
-        return false;
-    }
+    guarantee(mode == mode_t::leader);
+    guarantee(!committed_state.get_ref().config.is_joint_consensus());
+    guarantee(!latest_state.get_ref().config.is_joint_consensus());
 
     /* Raft paper, Section 6: "... the cluster first switches to a [joint consensus
     configuration]" */
@@ -172,6 +172,11 @@ bool raft_member_t<state_t>::propose_config_change_if_leader(
     new_entry.term = ps.current_term;
 
     leader_append_log_entry(new_entry, &mutex_acq, interruptor);
+
+    /* Now that we've put a config entry into the log, we'll have to flip
+    `readiness_for_config_change` */
+    update_readiness_for_change();
+    guarantee(!readiness_for_config_change.get_ref());
 
     /* When the joint consensus is committed, `leader_continue_reconfiguration()` will
     take care of initiating the second step of the reconfiguration. */
@@ -931,6 +936,10 @@ void raft_member_t<state_t>::update_commit_index(
     for (cond_t *cond : update_watchers) {
         cond->pulse_if_not_already_pulsed();
     }
+
+    /* If we just committed the second step of a config change, then we might need to
+    flip `readiness_for_config_change` */
+    update_readiness_for_change();
 }
 
 template<class state_t>
@@ -975,6 +984,29 @@ void raft_member_t<state_t>::leader_update_match_index(
         update_commit_index(new_commit_index, mutex_acq);
         storage->write_persistent_state(ps, interruptor);
     }
+}
+
+template<class state_t>
+void raft_member_t<state_t>::update_readiness_for_change() {
+    /* We're ready for changes if we're the leader and in contact with a majority of the
+    cluster. We're ready for config changes if the above conditions are true plus we're
+    also not in the middle of a config change. */
+    if (mode == mode_t::leader) {
+        std::set<raft_member_id_t> peers;
+        network->get_connected_members()->read_all(
+            [&](const raft_member_id_t &member_id, const std::nullptr_t *) {
+                peers.insert(member_id);
+            });
+        if (latest_state.get_ref().config.is_quorum(peers)) {
+            readiness_for_change.set_value(true);
+            readiness_for_config_change.set_value(
+                !committed_state.get_ref().config.is_joint_consensus() &&
+                !latest_state.get_ref().config.is_joint_consensus());
+            return;
+        }
+    }
+    readiness_for_change.set_value(false);
+    readiness_for_config_change.set_value(false);
 }
 
 template<class state_t>
@@ -1045,6 +1077,10 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
 
         guarantee(current_term_leader_id.is_nil());
         current_term_leader_id = this_member_id;
+
+        /* Now that `mode` has switched to `mode_leader`, we might need to flip
+        `readiness_for_change`. */
+        update_readiness_for_change();
 
         /* Raft paper, Section 5.3: "When a leader first comes to power, it initializes
         all nextIndex values to the index just after the last one in its log"
@@ -1122,6 +1158,10 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
     }
 
     mode = mode_t::follower;
+
+    /* Now that `mode` has switched to `mode_leader`, we might need to flip
+    `readiness_for_change`. */
+    update_readiness_for_change();
 }
 
 template<class state_t>

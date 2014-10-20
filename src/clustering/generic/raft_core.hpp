@@ -466,8 +466,6 @@ public:
     raft_persistent_state_t<state_t> get_state_for_init();
 
     /* TODO: These user-facing APIs are inadequate. We'll probably need:
-      * A way to block until a newly-created Raft cluster has elected a leader and is
-        ready for input.
       * For queries initiated by the user, we'll want to be able to know if they
         succeeded or failed. This should report "failed" if anything delays the query
         significantly, such as if a new master is elected before the query is committed,
@@ -479,26 +477,33 @@ public:
     But I don't want to implement anything until I have a better sense of how these APIs
     will end up being used. So I'll revisit this later. */
 
-    /* Returns the Raft member that this member thinks is the leader, or `nil_uuid()` if
-    this member doesn't know of any leader. */
-    raft_member_id_t get_leader() {
-        assert_thread();
-        return current_term_leader_id;
-    }
-
-    /* `propose_change_if_leader()` tries to perform the given change if this Raft member
-    is the leader. A return value of `true` means the change is being processed, but it
-    hasn't necessarily been committed and won't necessarily ever be. `false` means we are
-    not the leader or something went wrong. */
-    bool propose_change_if_leader(
+    /* `propose_change()` tries to apply a `change_t` to the cluster. It will fail if
+    this cluster member isn't the leader, or it is the leader but can't contact a quorum
+    of followers. If it fails, the change may or may not eventually be applied. Use
+    `get_readiness_for_change()` to determine which cluster member is ready to accept
+    changes. */
+    bool propose_change(
         const typename state_t::change_t &change,
         signal_t *interruptor);
 
-    /* `propose_config_change_if_leader()` is like `propose_change_if_leader()` except
-    that it proposes a reconfiguration instead of a `change_t`. */
-    bool propose_config_change_if_leader(
-        const raft_config_t &config,
+    /* This `watchable_t<bool>` indicates if this member is ready to accept changes
+    through `propose_change()`. */
+    clone_ptr_t<watchable_t<bool> > get_readiness_for_change() {
+        return readiness_for_change.get_watchable();
+    }
+
+    /* `propose_config_change()` tries to change the cluster's configuration. It will
+    fail if this cluster member isn't the leader; it is the leader but can't contact a
+    quorum of followers; or there is a reconfiguration currently in progress. */
+    bool propose_config_change(
+        const raft_config_t &new_config,
         signal_t *interruptor);
+
+    /* This `watchable_t<bool>` indicates if this member is ready to accept changes
+    through `propose_config_change()`. */
+    clone_ptr_t<watchable_t<bool> > get_readiness_for_config_change() {
+        return readiness_for_config_change.get_watchable();
+    }
 
     /* When a Raft member calls `send_rpc()` on its `raft_network_interface_t`, the RPC
     is sent across the network and delivered by calling `on_rpc()` at its destination. */
@@ -600,6 +605,11 @@ private:
         raft_log_index_t new_value,
         const new_mutex_acq_t *mutex_acq,
         signal_t *interruptor);
+
+    /* `update_readiness_for_change()` should be called whenever any of the variables
+    that are used to compute `readiness_for_change` or `readiness_for_config_change` are
+    modified. */
+    void update_readiness_for_change();
 
     /* `candidate_or_leader_become_follower()` moves us from the `candidate` or `leader`
     state to `follower` state. It kills `candidate_and_leader_coro()` and blocks until it
@@ -725,6 +735,14 @@ private:
     */
     microtime_t last_heard_from_leader;
 
+    /* `readiness_for_change` and `readiness_for_config_change` track whether this member
+    is ready to accept changes. A member is ready for changes if it is leader and in
+    contact with a quorum of followers; it is ready for config changes if those
+    conditions are met and it is also not currently in a reconfiguration. Whenever any of
+    those variables changes, `update_readiness_for_change()` must be called. */
+    watchable_variable_t<bool> readiness_for_change;
+    watchable_variable_t<bool> readiness_for_config_change;
+
     /* This mutex ensures that operations don't interleave in confusing ways. Each RPC
     acquires this mutex when it begins and releases it when it returns. Also, if
     `candidate_and_leader_coro()` is running, it holds this mutex when actively
@@ -760,6 +778,11 @@ private:
     /* This periodically calls `on_watchdog_timer()` to check if we need to start a new
     election. It's in a `scoped_ptr_t` so that the destructor can destroy it early. */
     scoped_ptr_t<repeating_timer_t> watchdog_timer;
+
+    /* This calls `update_readiness_for_change()` whenever a peer connects or
+    disconnects. */
+    scoped_ptr_t<watchable_map_t<raft_member_id_t, std::nullptr_t>::all_subs_t>
+        connected_members_subs;
 };
 
 #endif /* CLUSTERING_GENERIC_RAFT_CORE_HPP_ */

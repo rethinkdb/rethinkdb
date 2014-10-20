@@ -121,46 +121,24 @@ public:
         }
     }
 
-    /* Tries to perform the given change, using an algorithm that mimics a client trying
-    to find the leader of the Raft cluster and performing an operation on it. */
-    void try_change(const uuid_u &change) {
-        /* Search for a node that is alive */
-        raft_member_id_t leader = nil_uuid();
-        for (const auto &pair : members) {
-            if (pair.second->drainer.has()) {
-                leader = pair.first;
-            }
-        }
-        /* Follow redirects until we find a node that identifies itself as leader */
-        size_t max_redirects = 2;
-        while (true) {
-            if (leader.is_nil()) {
-                return;
-            }
-            raft_member_id_t new_leader;
-            run_on_member(leader, [&](dummy_raft_member_t *member) {
-                    if (member == nullptr) {
-                        new_leader = nil_uuid();
-                    } else {
-                        new_leader = member->get_leader();
-                    }
-                });
-            if (leader == new_leader) {
-                break;
-            } else if (max_redirects == 0) {
-                return;
-            } else {
-                leader = new_leader;
-                --max_redirects;
-            }
-        }
-        /* Try to run our change on that leader */
-        run_on_member(leader, [&](dummy_raft_member_t *member) {
-                if (member != nullptr) {
+    /* Tries to perform the given change, by first waiting for a cluster member to
+    indicate that it is ready for changes, and then performing the change on that member.
+    */
+    void try_change(const uuid_u &change, signal_t *interruptor) {
+        const int max_time = 10000, delay = 10;
+        for (int time = 0; time < max_time; time += delay) {
+            for (const auto &pair : members) {
+                if (pair.second->drainer.has() &&
+                        pair.second->member->get_readiness_for_change()->get()) {
                     cond_t non_interruptor;
-                    member->propose_change_if_leader(change, &non_interruptor);
+                    pair.second->member->propose_change(change, &non_interruptor);
+                    return;
                 }
-            });
+            }
+            signal_timer_t timer;
+            timer.start(delay);
+            wait_interruptible(&timer, interruptor);
+        }
     }
 
     /* Blocks until the cluster commits the given change. Call this function at a time
@@ -346,9 +324,13 @@ public:
         { }
     
 private:
-    void do_change(UNUSED auto_drainer_t::lock_t keepalive) {
-        uuid_u change = generate_uuid();
-        cluster->try_change(change);
+    void do_change(auto_drainer_t::lock_t keepalive) {
+        try {
+            uuid_u change = generate_uuid();
+            cluster->try_change(change, keepalive.get_drain_signal());
+        } catch (const interrupted_exc_t &) {
+            /* We're shutting down. No action is necessary. */
+        }
     }
     dummy_raft_cluster_t *cluster;
     auto_drainer_t drainer;
