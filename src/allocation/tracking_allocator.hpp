@@ -36,8 +36,8 @@ public:
         traits::deallocate(*this, ptr, 1);
     }
 
-    virtual bool operator ==(const rethinkdb_allocator_t<T, Allocator> &other) const = 0;
-    bool operator !=(const rethinkdb_allocator_t<T, Allocator> &other) const {
+    virtual bool operator==(const rethinkdb_allocator_t<T, Allocator> &other) const = 0;
+    bool operator!=(const rethinkdb_allocator_t<T, Allocator> &other) const {
         return !(*this == other);
     }
 
@@ -72,13 +72,13 @@ public:
     virtual T* allocate(size_t n, const void *hint);
     virtual void deallocate(T* region, size_t n);
 
-    bool operator ==(const tracking_allocator_t<T, Allocator> &other) const {
+    bool operator==(const tracking_allocator_t<T, Allocator> &other) const {
         return parent.lock() == other.parent.lock();
     }
-    bool operator !=(const tracking_allocator_t<T, Allocator> &other) const {
+    bool operator!=(const tracking_allocator_t<T, Allocator> &other) const {
         return parent.lock() != other.parent.lock();
     }
-    virtual bool operator ==(const rethinkdb_allocator_t<T, Allocator> &other) const {
+    virtual bool operator==(const rethinkdb_allocator_t<T, Allocator> &other) const {
         if (other.type() == allocator_types_t::TRACKING) {
             return parent.lock() ==
                 static_cast<const tracking_allocator_t<T, Allocator> &>(other)
@@ -119,9 +119,9 @@ public:
         this->original.deallocate(region, n);
     }
 
-    bool operator ==(const tracking_allocator_t<T, Allocator> &) const { return true; }
-    bool operator !=(const tracking_allocator_t<T, Allocator> &) const { return false; }
-    virtual bool operator ==(const rethinkdb_allocator_t<T, Allocator> &other) const
+    bool operator==(const tracking_allocator_t<T, Allocator> &) const { return true; }
+    bool operator!=(const tracking_allocator_t<T, Allocator> &) const { return false; }
+    virtual bool operator==(const rethinkdb_allocator_t<T, Allocator> &other) const
     {
         if (other.type()
             == rethinkdb_allocator_t<T, Allocator>::allocator_types::UNBOUNDED)
