@@ -44,7 +44,9 @@ inline void counted_set_deleter(data_buffer_t *buffer,
     buffer->deleter = std::move(d);
 }
 
-// TODO: move this to using deleters directly
+// TODO: data_buffer_t has always done strange things with its own
+// memory management; it would be cleaner to move to using deleters
+// directly and lose data_buffer_t::destroy.
 inline void counted_release(data_buffer_t *buffer) {
     const intptr_t res = __sync_sub_and_fetch(&buffer->ref_count_, 1);
     rassert(res >= 0);
