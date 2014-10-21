@@ -121,25 +121,45 @@ public:
         }
     }
 
-    /* Tries to perform the given change, by first waiting for a cluster member to
-    indicate that it is ready for changes, and then performing the change on that member.
-    */
-    void try_change(const uuid_u &change, signal_t *interruptor) {
-        const int max_time = 10000, delay = 10;
-        for (int time = 0; time < max_time; time += delay) {
+    /* Blocks until it finds a cluster member which is advertising itself as ready for
+    changes, then returns that member's ID. */
+    raft_member_id_t find_leader(signal_t *interruptor) {
+        while (true) {
             for (const auto &pair : members) {
                 if (pair.second->drainer.has() &&
                         pair.second->member->get_readiness_for_change()->get()) {
-                    cond_t non_interruptor;
-                    pair.second->member->propose_change(
-                        change, interruptor, &non_interruptor);
-                    return;
+                    return pair.first;
                 }
             }
             signal_timer_t timer;
-            timer.start(delay);
+            timer.start(10);
             wait_interruptible(&timer, interruptor);
         }
+    }
+
+    raft_member_id_t find_leader(int timeout) {
+        signal_timer_t timer;
+        timer.start(timeout);
+        try {
+            return find_leader(&timer);
+        } catch (const interrupted_exc_t &) {
+            ASSERT_FAILURE() << "find_leader() timed out";
+        }
+    }
+
+    /* Tries to perform the given change, by first waiting for a cluster member to
+    indicate that it is ready for changes, and then performing the change on that member.
+    */
+    bool try_change(raft_member_id_t id, const uuid_u &change,
+            signal_t *interruptor) {
+        bool res;
+        run_on_member(id, [&](dummy_raft_member_t *member) {
+            if (member != nullptr) {
+                res = member.propose_change(change, interruptor);
+            } else {
+                res = false;
+            });
+        return res;
     }
 
     /* `get_all_member_ids()` returns the member IDs of all the members of the cluster,
@@ -296,63 +316,81 @@ public:
                 auto_drainer_t::lock_t(&drainer)));
             })
         { }
-    
+
+    size_t get_num_changes() {
+        return committed_changes.size();
+    }
+
+    void check_changes_present(const dummy_raft_state_t &state) {
+        std::set<uuid_u> all_changes;
+        for (const uuid_u &change : state.state) {
+            all_changes.insert(change);
+        }
+        for (const uuid_u &change : committed_changes) {
+            ASSERT_TRUE(all_changes.count(change) == 1);
+        }
+    }
+
 private:
     void do_change(auto_drainer_t::lock_t keepalive) {
         try {
             uuid_u change = generate_uuid();
-            cluster->try_change(change, keepalive.get_drain_signal());
+            raft_member_id_t leader = cluster->find_leader(keepalive.get_drain_signal());
+            bool ok = cluster->try_change(leader, change, keepalive.get_drain_signal());
+            if (ok) {
+                committed_changes.insert(change);
+            }
         } catch (const interrupted_exc_t &) {
             /* We're shutting down. No action is necessary. */
         }
     }
+    std::set<uuid_u> committed_changes;
     dummy_raft_cluster_t *cluster;
     auto_drainer_t drainer;
     repeating_timer_t timer;
 };
 
-/* TODO: These unit tests are inadequate, in several ways:
-  * They use timeouts instead of getting a notification when the Raft cluster is ready.
-  * They should assert that transactions go through when the Raft cluster says it is
-    ready.
-  * They don't test configuration changes.
-It will be much easier to fix these issues once `raft_member_t` exposes a good
-user-facing API. So I don't want to implement real unit tests until after the user-facing
-API is overhauled. */
-
 TPTEST(ClusteringRaft, Basic) {
-    std::vector<raft_member_id_t> member_ids;
-    dummy_raft_cluster_t cluster(5, dummy_raft_state_t(), &member_ids);
+    /* Spin up a Raft cluster and wait for it to elect a leader */
+    dummy_raft_cluster_t cluster(5, dummy_raft_state_t(), nullptr);
+    raft_member_id_t leader = cluster.find_leader(10000);
+
+    /* Generate traffic against the cluster for 3 seconds */
     dummy_raft_traffic_generator_t traffic_generator(&cluster, 10);
-    /* Election timeouts are 1000-2000ms, so we want to wait comfortably longer than
-    that. */
-    nap(5000);
-    cluster.run_on_member(member_ids[0], [](dummy_raft_member_t *member) {
-        /* Make sure at least some transactions got through */
+    cond_t non_interruptor;
+    nap(2000, &non_interruptor);
+
+    /* Make sure that at least 100 changes got through */
+    ASSERT_GT(traffic_generator.get_num_changes(), 100);
+    cluster.run_on_member(leader, [](dummy_raft_member_t *member) {
         dummy_raft_state_t state = member->get_committed_state()->get().state;
-        guarantee(state.state.size() > 100);
+        trafffic_generator.check_changes_present(state);
     });
 }
 
 TPTEST(ClusteringRaft, Failover) {
     std::vector<raft_member_id_t> member_ids;
     dummy_raft_cluster_t cluster(5, dummy_raft_state_t(), &member_ids);
+    cluster.find_leader(10000);
     dummy_raft_traffic_generator_t traffic_generator(&cluster, 10);
-    nap(5000);
+    nap(1000);
     cluster.set_live(member_ids[0], dummy_raft_cluster_t::live_t::dead);
     cluster.set_live(member_ids[1], dummy_raft_cluster_t::live_t::dead);
-    nap(5000);
+    cluster.find_leader(10000);
+    nap(1000);
     cluster.set_live(member_ids[2], dummy_raft_cluster_t::live_t::dead);
     cluster.set_live(member_ids[3], dummy_raft_cluster_t::live_t::dead);
     cluster.set_live(member_ids[0], dummy_raft_cluster_t::live_t::alive);
     cluster.set_live(member_ids[1], dummy_raft_cluster_t::live_t::alive);
-    nap(5000);
+    cluster.find_leader(10000);
+    nap(1000);
     cluster.set_live(member_ids[4], dummy_raft_cluster_t::live_t::dead);
     cluster.set_live(member_ids[2], dummy_raft_cluster_t::live_t::alive);
     cluster.set_live(member_ids[3], dummy_raft_cluster_t::live_t::alive);
-    nap(5000);
-    cluster.run_on_member(member_ids[0], [](dummy_raft_member_t *member) {
-        /* Make sure at least some transactions got through */
+    raft_member_id_t leader = cluster.find_leader(10000);
+    nap(1000);
+    ASSERT_GT(traffic_generator.get_num_changes(), 
+    cluster.run_on_member(leader, [](dummy_raft_member_t *member) {
         dummy_raft_state_t state = member->get_committed_state()->get().state;
         guarantee(state.state.size() > 100);
     });
