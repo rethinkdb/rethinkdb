@@ -376,9 +376,9 @@ message Term {
         FILTER    = 39; // Sequence, Function(1), {default:DATUM} -> Sequence |
                         // Sequence, OBJECT, {default:DATUM} -> Sequence
         // Map a function over a sequence and then concatenate the results together.
-        CONCATMAP = 40; // Sequence, Function(1) -> Sequence
+        CONCAT_MAP = 40; // Sequence, Function(1) -> Sequence
         // Order a sequence based on one or more attributes.
-        ORDERBY   = 41; // Sequence, (!STRING | Ordering)... -> Sequence
+        ORDER_BY   = 41; // Sequence, (!STRING | Ordering)... -> Sequence
         // Get all distinct elements of a sequence (like `uniq`).
         DISTINCT  = 42; // Sequence -> Sequence
         // Count the number of elements in a sequence, or only the elements that match
@@ -419,8 +419,8 @@ message Term {
         // If you previously used `stream_to_array`, you should use this instead
         // with the type "array".
         COERCE_TO = 51; // Top, STRING -> Top
-        // Returns the named type of a datum (e.g. TYPEOF(true) = "BOOL")
-        TYPEOF = 52; // Top -> STRING
+        // Returns the named type of a datum (e.g. TYPE_OF(true) = "BOOL")
+        TYPE_OF = 52; // Top -> STRING
 
         // * Write Ops (the OBJECTs contain data about number of errors etc.)
         // Updates all the rows in a selection.  Calls its Function with the row
@@ -498,7 +498,7 @@ message Term {
         ALL     = 67; // BOOL... -> BOOL
         // Calls its Function with each entry in the sequence
         // and executes the array of terms that Function returns.
-        FOREACH = 68; // Sequence, Function(1) -> OBJECT
+        FOR_EACH = 68; // Sequence, Function(1) -> OBJECT
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////// Special Terms

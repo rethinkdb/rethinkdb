@@ -278,7 +278,7 @@ public:
 
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        const char *fail_msg = "FOREACH expects one or more basic write queries.";
+        const char *fail_msg = "FOR_EACH expects one or more basic write queries.";
 
         counted_t<datum_stream_t> ds = args->arg(env, 0)->as_seq(env->env);
         datum_t stats = datum_t::empty_object();
