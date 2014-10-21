@@ -22,25 +22,10 @@ WEB_ASSETS_RELATIVE := cluster-min.js cluster.css index.html js fonts images fav
 BUILD_WEB_ASSETS := $(foreach a,$(WEB_ASSETS_RELATIVE),$(WEB_ASSETS_BUILD_DIR)/$(a))
 
 # coffee script can't handle dependencies.
-COFFEE_SOURCES := $(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
-			util.coffee \
-			body.coffee \
-			ui_components/modals.coffee ui_components/progressbar.coffee \
-			tables/database.coffee \
-			tables/index.coffee tables/replicas.coffee tables/shards.coffee tables/shard_assignments.coffee tables/table.coffee \
-			servers/index.coffee servers/server.coffee \
-			dashboard.coffee \
-			dataexplorer.coffee \
-			topbar.coffee \
-			resolve_issues.coffee \
-			log_view.coffee \
-			vis.coffee \
-			modals.coffee \
-			models.coffee \
-			navbar.coffee \
-			router.coffee \
-			app.coffee)
-COFFEE_VERSION_FILE :=  $(WEB_ASSETS_OBJ_DIR)/version.coffee
+COFFEE_SOURCE_DIR := $(WEB_SOURCE_DIR)/static/coffee
+COFFEE_SOURCES := $(wildcard $(COFFEE_SOURCE_DIR)/**/*.coffee) $(wildcard $(COFFEE_SOURCE_DIR)/*.coffee)
+COFFEE_COMPILED_JS := $(patsubst $(COFFEE_SOURCE_DIR)/%.coffee, $(WEB_ASSETS_OBJ_DIR)/%.js, $(COFFEE_SOURCES))
+JS_VERSION_FILE := $(WEB_ASSETS_OBJ_DIR)/version.js
 LESS_SOURCES := $(shell find $(WEB_SOURCE_DIR)/static/less -name '*.less')
 LESS_MAIN := $(WEB_SOURCE_DIR)/static/less/styles.less
 CLUSTER_HTML := $(WEB_SOURCE_DIR)/templates/cluster.html
@@ -63,16 +48,17 @@ $(WEB_ASSETS_BUILD_DIR)/js/template.js: $(HANDLEBAR_HTML_FILES) $(HANDLEBARS_BIN
 	$P HANDLEBARS $@
 	env TC_HANDLEBARS_EXE=$(HANDLEBARS) $(TOP)/scripts/build_handlebars_templates.py $(WEB_SOURCE_DIR)/static/handlebars $(BUILD_DIR) $(WEB_ASSETS_BUILD_DIR)/js
 
-$(COFFEE_VERSION_FILE): | $(WEB_ASSETS_OBJ_DIR)/.
-	echo "window.VERSION = '$(RETHINKDB_VERSION)'" > $@
-
-$(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee: $(COFFEE_VERSION_FILE) $(COFFEE_SOURCES) | $(WEB_ASSETS_OBJ_DIR)/.
+$(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(JS_VERSION_FILE) $(COFFEE_COMPILED_JS) | $(WEB_ASSETS_BUILD_DIR)/.
 	$P CONCAT $@
-	cat $+ > $@
+	cat $^ > $@
 
-$(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee $(COFFEE_BIN_DEP) | $(WEB_ASSETS_BUILD_DIR)/.
+$(JS_VERSION_FILE): | $(WEB_ASSETS_OBJ_DIR)/.
+	echo "window.VERSION = '$(RETHINKDB_VERSION)';" > $@
+
+$(WEB_ASSETS_OBJ_DIR)/%.js: $(COFFEE_SOURCE_DIR)/%.coffee $(COFFEE_BIN_DEP) | $(WEB_ASSETS_OBJ_DIR)/.
 	$P COFFEE $@
-	$(COFFEE) -bp --stdio < $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee > $@
+	mkdir -p $(@D)
+	$(COFFEE) --bare --print --stdio < $< > $@
 
 $(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_MAIN) $(LESSC_BIN_DEP) | $(WEB_ASSETS_BUILD_DIR)/.
 	$P LESSC $@
