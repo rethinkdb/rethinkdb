@@ -257,37 +257,15 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
 
         semilattice_root_view->join(metadata);
         metadata = semilattice_root_view->get();
+
+        wait_for_metadata_to_propagate(metadata, &interruptor2);
+
+        std::string error;
+        UNUSED bool wait_res = table_wait(db, std::set<name_string_t>({name}),
+                                          ql::make_counted_backtrace(), &interruptor2, NULL, &error);
+        rassert(wait_res, "Failed to wait for table readiness: %s", error.c_str());
     }
     wait_for_metadata_to_propagate(metadata, interruptor);
-
-    /* The following is an ugly hack, but it's probably what we want. It takes about a
-    third of a second for the new namespace to get to the point where we can do
-    reads/writes on it. We don't want to return until that has happened, so we try to do
-    a read every `poll_ms` milliseconds until one succeeds, then return. */
-    namespace_interface_access_t access =
-        namespace_repo.get_namespace_interface(namespace_id, interruptor);
-    const int poll_ms = 20;
-    for (;;) {
-        if (test_for_rdb_table_readiness(access.get(), interruptor)) {
-            break;
-        }
-        /* Confirm that the namespace hasn't been deleted. If it's deleted, then
-        `test_for_rdb_table_readiness` will never return `true`. */
-        bool is_deleted;
-        cross_thread_namespace_watchables[get_thread_id().threadnum]->apply_read(
-            [&](const cow_ptr_t<namespaces_semilattice_metadata_t> *ns_md) {
-                guarantee((*ns_md)->namespaces.count(namespace_id) == 1);
-                is_deleted = (*ns_md)->namespaces.at(namespace_id).is_deleted();
-            }
-            );
-        if (is_deleted) {
-            break;
-        }
-        signal_timer_t timer;
-        timer.start(poll_ms);
-        wait_interruptible(&timer, interruptor);
-    }
-
     return true;
 }
 
@@ -438,10 +416,14 @@ bool real_reql_cluster_interface_t::table_status(
 
 class table_waiter_t {
 public:
-    table_waiter_t(watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
+    table_waiter_t(const namespace_id_t &_table_id,
+                   watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
                                    namespace_directory_metadata_t> *directory,
-                   namespace_id_t table_id) :
-        table_directory(directory, table_id) { }
+                   cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t> >
+                       *_namespaces_watchable) :
+        table_id(_table_id),
+        table_directory(directory, table_id),
+        namespaces_watchable(_namespaces_watchable) { }
 
     enum class waited_t {
         WAITED,
@@ -464,6 +446,37 @@ public:
     }
 
 private:
+    bool do_check(watchable_map_t<peer_id_t, namespace_directory_metadata_t> *dir) {
+        // First make sure the table was not deleted
+        bool is_deleted;
+        namespaces_watchable->apply_read(
+            [&](const cow_ptr_t<namespaces_semilattice_metadata_t> *ns_md) {
+                guarantee((*ns_md)->namespaces.count(table_id) == 1);
+                is_deleted = (*ns_md)->namespaces.at(table_id).is_deleted();
+            });
+        if (is_deleted) {
+            return true;
+        }
+
+        std::vector<region_t> regions;
+        dir->read_all(
+            [&](const peer_id_t &, const namespace_directory_metadata_t *metadata) {
+                for (auto const &it : metadata->internal->activities) {
+                    const reactor_business_card_t::primary_t *primary =
+                        boost::get<reactor_business_card_t::primary_t>(&it.second.activity);
+                    if (primary != NULL && primary->master) {
+                        regions.push_back(primary->master.get().region);
+                    }
+                }
+            });
+
+        region_t whole;
+        region_join_result_t res = region_join(regions, &whole);
+        return (res == REGION_JOIN_OK && whole == region_t::universe());
+    }
+
+    namespace_id_t table_id;
+
     // TODO: this is copy/pasta from namespace_interface_repository_t - consolidate?
     class table_directory_t :
         public watchable_map_transform_t<
@@ -501,23 +514,8 @@ private:
         namespace_id_t nid;
     } table_directory;
 
-    bool do_check(watchable_map_t<peer_id_t, namespace_directory_metadata_t> *dir) {
-        std::vector<region_t> regions;
-        dir->read_all(
-            [&](const peer_id_t &, const namespace_directory_metadata_t *metadata) {
-                for (auto const &it : metadata->internal->activities) {
-                    const reactor_business_card_t::primary_t *primary =
-                        boost::get<reactor_business_card_t::primary_t>(&it.second.activity);
-                    if (primary != NULL && primary->master) {
-                        regions.push_back(primary->master.get().region);
-                    }
-                }
-            });
-
-        region_t whole;
-        region_join_result_t res = region_join(regions, &whole);
-        return (res == REGION_JOIN_OK && whole == region_t::universe());
-    }
+    cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t> >
+        *namespaces_watchable;
 };
 
 bool real_reql_cluster_interface_t::table_wait(
@@ -535,7 +533,8 @@ bool real_reql_cluster_interface_t::table_wait(
     std::vector<scoped_ptr_t<table_waiter_t> > waiters;
     for (auto const &id : table_ids) {
         waiters.push_back(scoped_ptr_t<table_waiter_t>(
-            new table_waiter_t(directory_root_view, id)));
+            new table_waiter_t(id, directory_root_view,
+                cross_thread_namespace_watchables[get_thread_id().threadnum].get())));
     }
 
     // Loop until all tables are ready
@@ -546,7 +545,7 @@ bool real_reql_cluster_interface_t::table_wait(
             immediate = immediate && (res == table_waiter_t::waited_t::IMMEDIATE);
         }
 
-        if (!immediate) {
+        if (!immediate && waiters.size() > 1) {
             // Do a second pass to make sure no tables changed while we were waiting
             bool redo = false;
             for (auto const &w : waiters) {
@@ -562,6 +561,10 @@ bool real_reql_cluster_interface_t::table_wait(
         }
         break;
     } 
+
+    if (resp_out == NULL) {
+        return true;
+    }
 
     return table_meta_read(
         admin_tables->table_status_backend.get(), "table_wait",

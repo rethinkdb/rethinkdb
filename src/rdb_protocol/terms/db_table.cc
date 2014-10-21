@@ -290,7 +290,7 @@ private:
 class table_meta_read_term_t : public meta_op_term_t {
 public:
     table_meta_read_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        meta_op_term_t(env, term, argspec_t(0, 2)) { }
+        meta_op_term_t(env, term, argspec_t(0, -1)) { }
 protected:
     virtual bool impl(scope_env_t *env,
                       counted_t<const db_t> db,

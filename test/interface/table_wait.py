@@ -19,6 +19,8 @@ tables = ["table1", "table2", "table3"]
 def create_tables(conn):
     r.db_create(db).run(conn)
     r.expr(tables).for_each(r.db(db).table_create(r.row)).run(conn)
+    print "statuses: %s" % str(r.db(db).table_status(r.args(tables)).run(conn))
+    r.expr(tables).for_each(r.db(db).table(r.row).insert(r.range(200).map(lambda i: {'id':i}))).run(conn)
     r.db(db).table_list().for_each(r.db(db).table(r.row).reconfigure(2, 2)).run(conn)
 
 def check_table_states(conn, ready):
