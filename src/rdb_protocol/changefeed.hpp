@@ -321,6 +321,7 @@ public:
 class limit_order_t {
 public:
     limit_order_t(sorting_t _sorting);
+    bool operator()(const store_key_t &, const store_key_t &) const;
     bool operator()(const datum_t &, const datum_t &) const;
     bool operator()(const std::string &, const std::string &) const;
 private:

@@ -305,6 +305,56 @@ limit_order_t::limit_order_t(sorting_t _sorting)
         "Cannot get changes on the first elements of an unordered stream.");
 }
 
+// Produes a primary key + tag pair, mangled so that it sorts correctly and can
+// be safely stored in a datum.
+std::string key_to_mangled_primary(store_key_t store_key, bool is_primary) {
+    std::string s, raw_str = key_to_unescaped_str(store_key);
+    components_t components;
+    if (is_primary) {
+        components.primary = raw_str; // No tag.
+    } else {
+        components = datum_t::extract_all(raw_str);
+    }
+    debugf("primary: %s\n", components.primary.c_str());
+    for (auto c : components.primary) {
+        // We escape 0 because we don't support null bytes, 1 because we use it
+        // to delineate the start of the tag, and 2 because it's the escape
+        // character.
+        if (c == 0 || c == 1 || c == 2) {
+            s.push_back(2);
+            s.push_back(c+2);
+        } else {
+            s.push_back(c);
+        }
+    }
+    s.push_back(1); // Append regardless of whether there's a tag.
+    if (components.tag_num) {
+        uint64_t u = *components.tag_num;
+        // Shamelessly stolen from datum.cc.
+        s += strprintf("%.*" PRIx64, static_cast<int>(sizeof(uint64_t) * 2), u);
+    }
+    debugf("MANGLE: %s\n", s.c_str());
+    return s;
+}
+
+bool limit_order_t::operator()(const store_key_t &a, const store_key_t &b) const {
+    guarantee(!(a.sindex_key.has() ^ b.sindex_key.has()));
+    if (a.sindex_key.has()) {
+        int cmp = a.cmp(reql_version_t::LATEST, b);
+        switch (sorting) {
+        case sorting_t::ASCENDING: return cmp > 0;
+        case sorting_t::DESCENDING: return cmp < 0;
+        case sorting_t::UNORDERED:
+            return (*this)(key_to_mangled_primary(a.key, false),
+                           key_to_mangled_primary(b.key, false));
+        default: unreachable();
+        }
+    } else {
+        return (*this)(key_to_mangled_primary(a.key, true),
+                       key_to_mangled_primary(b.key, true));
+    }
+}
+
 bool limit_order_t::operator()(const datum_t &a, const datum_t &b) const {
     int cmp = a.cmp(reql_version_t::LATEST, b);
     switch (sorting) {
@@ -374,38 +424,6 @@ limit_manager_t::limit_manager_t(
     }
     send(msg_t(msg_t::limit_start_t(uuid, std::move(v))));
     debugf("lqueue: %zu (%p)\n", lqueue.size(), this);
-}
-
-// Produes a primary key + tag pair, mangled so that it sorts correctly and can
-// be safely stored in a datum.
-std::string key_to_mangled_primary(store_key_t store_key, bool is_primary) {
-    std::string s, raw_str = key_to_unescaped_str(store_key);
-    components_t components;
-    if (is_primary) {
-        components.primary = raw_str; // No tag.
-    } else {
-        components = datum_t::extract_all(raw_str);
-    }
-    debugf("primary: %s\n", components.primary.c_str());
-    for (auto c : components.primary) {
-        // We escape 0 because we don't support null bytes, 1 because we use it
-        // to delineate the start of the tag, and 2 because it's the escape
-        // character.
-        if (c == 0 || c == 1 || c == 2) {
-            s.push_back(2);
-            s.push_back(c+2);
-        } else {
-            s.push_back(c);
-        }
-    }
-    s.push_back(1); // Append regardless of whether there's a tag.
-    if (components.tag_num) {
-        uint64_t u = *components.tag_num;
-        // Shamelessly stolen from datum.cc.
-        s += strprintf("%.*" PRIx64, static_cast<int>(sizeof(uint64_t) * 2), u);
-    }
-    debugf("MANGLE: %s\n", s.c_str());
-    return s;
 }
 
 void limit_manager_t::add(store_key_t sk, bool is_primary, datum_t key, datum_t val) {

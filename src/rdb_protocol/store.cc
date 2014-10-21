@@ -299,10 +299,15 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             stream = groups_to_batch(
                 gs->get_underlying_map(ql::grouped::order_doesnt_matter_t()));
         }
+        // RSI: make this not return a `stream_t`, make it pull out the bits and
+        // return a proper pair etc, because that's the only way to sort it
+        // correctly.
         auto gt = ql::changefeed::limit_order_t(s.spec.range.sorting);
         std::sort(stream.begin(), stream.end(),
                   [gt](const ql::rget_item_t &a, const ql::rget_item_t &b) {
-                      return gt(b.sindex_key, a.sindex_key); // Ordering is intentional.
+                      guarantee(!(b.sindex_key.has() ^ a.sindex_key.has()));
+                      // Ordering is intentional.
+                      return gt(b.sindex_key.has(), a.sindex_key);
                   });
         std::string s2;
         for (const auto &item : stream) {
