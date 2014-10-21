@@ -7,12 +7,12 @@
 #include <utility>
 #include <vector>
 
+#include "errors.hpp"
 #include <boost/optional.hpp>
 #include <boost/variant/static_visitor.hpp>
 
 #include "containers/counted.hpp"
 #include "containers/uuid.hpp"
-#include "errors.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/sym.hpp"
