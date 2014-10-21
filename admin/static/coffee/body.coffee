@@ -44,8 +44,8 @@ module 'MainView', ->
                 databases: r.db(system_db).table('db_config').merge({id: r.row("uuid")}).pluck('name', 'id').coerceTo("ARRAY")
                 tables: r.db(system_db).table('table_config').merge({id: r.row("uuid")}).pluck('db', 'name', 'id').coerceTo("ARRAY")
                 servers: r.db(system_db).table('server_config').merge({id: r.row("uuid")}).pluck('name', 'id').coerceTo("ARRAY")
-                issues: [] #TODO
-                num_issues: 0 #TODO
+                issues: r.db(system_db).table('issues').coerceTo("ARRAY")
+                num_issues: r.db(system_db).table('issues').count()
                 me: "TODO"
                 num_servers: r.db(system_db).table('server_config').count()
                 num_available_servers: r.db(system_db).table('server_status').filter( (server) ->
@@ -70,6 +70,8 @@ module 'MainView', ->
                     for server in result.servers
                         @servers.add new Server(server), {merge: true}
                         delete result.servers
+                    @issues.set(result.issues)
+                    delete result.issues
 
                     @dashboard.set result
 

@@ -21,9 +21,27 @@ WEB_ASSETS_OBJ_DIR := $(BUILD_DIR)/webobj
 WEB_ASSETS_RELATIVE := cluster-min.js cluster.css index.html js fonts images favicon.ico js/rethinkdb.js js/template.js
 BUILD_WEB_ASSETS := $(foreach a,$(WEB_ASSETS_RELATIVE),$(WEB_ASSETS_BUILD_DIR)/$(a))
 
-# coffee script can't handle dependencies.
 COFFEE_SOURCE_DIR := $(WEB_SOURCE_DIR)/static/coffee
-COFFEE_SOURCES := $(wildcard $(COFFEE_SOURCE_DIR)/**/*.coffee) $(wildcard $(COFFEE_SOURCE_DIR)/*.coffee)
+# since we don't use requirejs or anything, we list out the dependencies here explicitly in order
+# this means you should use $+ instead of $^ for rules with $(COFFEE_SOURCES) as dependencies since it preserves order!
+COFFEE_SOURCES := $(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
+                       util.coffee \
+                       body.coffee \
+                       ui_components/modals.coffee ui_components/progressbar.coffee \
+                       tables/database.coffee \
+                       tables/index.coffee tables/replicas.coffee tables/shards.coffee tables/shard_assignments.coffee tables/table.coffee \
+                       servers/index.coffee servers/server.coffee \
+                       dashboard.coffee \
+                       dataexplorer.coffee \
+                       topbar.coffee \
+                       resolve_issues.coffee \
+                       log_view.coffee \
+                       vis.coffee \
+                       modals.coffee \
+                       models.coffee \
+                       navbar.coffee \
+                       router.coffee \
+                       app.coffee)
 COFFEE_COMPILED_JS := $(patsubst $(COFFEE_SOURCE_DIR)/%.coffee, $(WEB_ASSETS_OBJ_DIR)/%.js, $(COFFEE_SOURCES))
 JS_VERSION_FILE := $(WEB_ASSETS_OBJ_DIR)/version.js
 LESS_SOURCES := $(shell find $(WEB_SOURCE_DIR)/static/less -name '*.less')
@@ -50,7 +68,7 @@ $(WEB_ASSETS_BUILD_DIR)/js/template.js: $(HANDLEBAR_HTML_FILES) $(HANDLEBARS_BIN
 
 $(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(JS_VERSION_FILE) $(COFFEE_COMPILED_JS) | $(WEB_ASSETS_BUILD_DIR)/.
 	$P CONCAT $@
-	cat $^ > $@
+	cat $+ > $@
 
 $(JS_VERSION_FILE): | $(WEB_ASSETS_OBJ_DIR)/.
 	echo "window.VERSION = '$(RETHINKDB_VERSION)';" > $@

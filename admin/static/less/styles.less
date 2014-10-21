@@ -668,7 +668,8 @@ TODO: retire this
                 float: right;
                 margin-left: 20px;
                 margin-top: (@bar_height - 31px)/2;
-                &.hide-issues { display: none;}
+                &.hide-issues {
+                }
             }
 
             // Hack required for the css arrow-- we need to hide the bottom half of the arrow, so fill it in with a gradient overlay
@@ -2264,7 +2265,7 @@ TODO: retire this
             }
 
             p {
-                position: absolute;
+                //position: absolute;
                 text-overflow: ellipsis;
                 overflow: hidden;
                 margin: 0;
@@ -2274,15 +2275,19 @@ TODO: retire this
 
                 &.issue-type {
                     background: 7px center no-repeat url('images/resolve_issue-danger_icon.png');
+                    //position: absolute;
                     padding-left: 35px;
+                    width: 30%;
+                    display: inline-block;
                     color: #e65b54; // text color + color overlay
                     font-weight: bold;
                     text-shadow: 0 1px 0 #fff; // drop shadow
                 }
 
                 &.message {
-                    right: 375px;
-                    width: 310px;
+                    //position: absolute;
+                    width: 40%;
+                    display: inline-block;
                     @icon_width: 30px;
                     @icon_padding: 20px;
                     background: @icon_padding center no-repeat url('images/resolve_issue-message_icon.png');
@@ -2292,7 +2297,8 @@ TODO: retire this
 
                 &.datetime {
                     right: 155px;
-                    width: 175px;
+                    display: none;
+                    width: 0;
                     @icon_width: 30px;
                     @icon_padding: 20px;
                     background: @icon_padding center no-repeat url('images/resolve_issue-clock_icon.png');

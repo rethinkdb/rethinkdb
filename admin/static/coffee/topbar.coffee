@@ -1,4 +1,3 @@
-# Copyright 2010-2012 RethinkDB, all rights reserved.
 # TopBar view
 module 'TopBar', ->
     class @Container extends Backbone.View
@@ -132,43 +131,33 @@ module 'TopBar', ->
         resolve_issues_route: '#resolve_issues'
         
         events:
-            'click .btn-resolve-issues': @toggle_display
+            'click .btn-resolve-issues': 'toggle_display'
 
         initialize: (data) =>
             @model = data.model
             @collection = data.collection
             @container = data.container
-
-            @show_resolve = true
             @issues_view = []
+            @show_resolve = true
 
             @listenTo @model, 'change:num_issues', @render
 
             @collection.each (issue) =>
-                view = new ResolveIssuesView.Issue
-                    model: issue
+                view = new ResolveIssuesView.Issue(model: issue)
                 # The first time, the collection is sorted
                 @issues_view.push view
                 @$('.issues_list').append view.render().$el
 
-            #TODO Order with views, not with the collection
-            @collection.on 'add', (index) =>
-                view = new ResolveIssuesView.Issue
-                    model: issue
-                @indexes_view.push view
+            @collection.on 'add', (issue) =>
+                view = new ResolveIssuesView.Issue(model: issue)
+                @issues_view.push view
+                @$('.issues_list').append(view.render().$el)
+                @render()
 
-                position = @collection.indexOf issue
-                if @collection.length is 1
-                    @$('.issues_list').html view.render().$el
-                else if position is 0
-                    @$('.issues_list').prepend view.render().$el
-                else
-                    @$('.issue_container').eq(position-1).after view.render().$el
-
-            @collection.on 'remove', (index) =>
-                for view in @indexes_view
-                    if view.model is index
-                        index.destroy()
+            @collection.on 'remove', (issue) =>
+                for view in @issues_view
+                    if view.model is issue
+                        issue.destroy()
                         ((view) ->
                             view.$el.slideUp 'fast', =>
                                 view.remove()
@@ -177,17 +166,26 @@ module 'TopBar', ->
 
         toggle_display: =>
             @show_resolve = not @show_resolve
-            @container.toggle_display_issues()
-            @render()
+            if @show_resolve
+                @$('.all-issues').slideUp 300, "swing"
+            else
+                @$('.all-issues').slideDown 300, "swing"
+            btn = @$('.btn-resolve-issues')
+                .toggleClass('show-issues')
+                .toggleClass('hide-issues')
+                .text(if @show_resolve then 'Resolve issues' else 'Hide issues')
 
         render: =>
             @$el.html @template
                 num_issues: @model.get 'num_issues'
                 no_issues: @model.get('num_issues') is 0
-                show_banner: @showing_issues
+                show_banner: @model.get('num_issues') > 0
                 show_resolve: @show_resolve
+            @issues_view.forEach (issue_view) =>
+                @$('.issues_list').append issue_view.render().$el
             @
 
         remove: =>
+            @issues_view.each (view) -> view.remove()
             @stopListening()
             super()

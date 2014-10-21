@@ -40,6 +40,7 @@ Handlebars.registerHelper 'links_to_datacenters_inline_for_replica', (datacenter
 
 # Helpers for pluralization of nouns and verbs
 Handlebars.registerHelper 'pluralize_noun', (noun, num, capitalize) ->
+    return 'NOUN_NULL' unless noun?
     ends_with_y = noun.substr(-1) is 'y'
     if num is 1
         result = noun
@@ -60,10 +61,18 @@ Handlebars.registerHelper 'pluralize_verb_to_have', (num) -> if num is 1 then 'h
 Handlebars.registerHelper 'pluralize_verb', (verb, num) -> if num is 1 then verb+'s' else verb
 #
 # Helpers for capitalization
-Handlebars.registerHelper 'capitalize', (str) -> str.charAt(0).toUpperCase() + str.slice(1)
+Handlebars.registerHelper 'capitalize', (str) ->
+    if str?
+        str.charAt(0).toUpperCase() + str.slice(1)
+    else
+        "NULL"
 
 # Helpers for shortening uuids
-Handlebars.registerHelper 'humanize_uuid', (str) -> str.substr(0, 6)
+Handlebars.registerHelper 'humanize_uuid', (str) ->
+    if str?
+        str.substr(0, 6)
+    else
+        "NULL"
 
 # Helpers for printing reachability
 Handlebars.registerHelper 'humanize_machine_reachability', (status) ->

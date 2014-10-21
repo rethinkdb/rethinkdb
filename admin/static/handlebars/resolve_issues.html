@@ -85,55 +85,47 @@
     </div>
 </script>
 
-<script id="resolve_issues-machine_down-template" type="text/x-handlebars-template">
+<script id="resolve_issues-server_down-template" type="text/x-handlebars-template">
     <div class="issue {{#if critical }}critical{{/if}}">
         <div class="issue-header">
             <button class="btn btn-danger solve-issue">Permanently remove</button>
             <p class="issue-type">Server down</p>
-            <p class="message">{{name}} is unreachable</p>
-            <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>
+            <p class="message">{{info.server}} is inaccessible</p>
+            {{!-- Uncomment this when the time attribute is re-added
+            <p class="datetime"><abbr class="timeago" title="{{time}}">{{time}}</abbr></p>
+            --}}
         </div>
         <hr />
         <div class="issue-details">
-            {{#if no_responsibilities}}
-                <p>This server has no master or replica responsibilities.</p>
-            {{else}}
-                {{#if masters}}
-                <p>This server is responsible for the following shards:</p>
-                <ul>
-                    {{#each masters}}
-                        <li>Table <a class="change-route" href="#tables/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
-                    {{/each}}
-                </ul>
-                {{/if}}
-
-                {{#if replicas}}
-                <p>This server is a secondary for the following shards:</p>
-                <ul>
-                    {{#each replicas}}
-                        <li>Table <a class="change-route" href="#tables/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
-                    {{/each}}
-                </ul>
-                {{/if}}
-            {{/if}}
+          <p>{{description}}</p>
+          <p>Affected servers:</p>
+          <ul>
+            {{#each info.affected_servers}}
+            <li>{{this}}</li>
+            {{/each}}
+          </ul>
+          {{!-- Used to have master/shard/replica info here, 
+                but there's none in the issues table --}}
         </div>
     </div>
 </script>
 
-<script id="resolve_issues-name_conflict-template" type="text/x-handlebars-template">
+<script id="resolve_issues-name_collision-template" type="text/x-handlebars-template">
     <div class="issue {{#if critical }}critical{{/if}} name-conflict">
         <div class="issue-header">
-            <p class="issue-type">Name conflict</p>
-            <p class="message">{{name}} is used by more than one {{type}}</p>
-            <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>
+            <p class="issue-type">{{capitalize collisionType}} name conflict</p>
+            <p class="message">'{{info.name}}' is the name of more than one {{collisionType}}</p>
+            {{!--<p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>--}}
         </div>
         <hr />
         <div class="issue-details">
-            <p>{{capitalize type}} with the name {{name}}:</p>
+            <p>{{pluralize_noun collisionType info.ids.length true}} with the name {{info.name}}:</p>
             <ul>
-                {{#each contestants}}
-                <li><a class="change-route" href="#{{pluralize_noun type 2}}/{{uuid}}"><span class="uuid">{{humanize_uuid uuid}}</span></a>
-                (<a id="rename_{{uuid}}" href="#{{pluralize_noun type 2}}/{{uuid}}">rename</a>)</li>
+                {{#each info.ids}}
+                <li><a class="change-route" href="#{{pluralize_noun type 2}}/{{uuid}}"><span class="uuid">{{humanize_uuid this}}</span></a>
+                <a id="rename_{{uuid}}" href="#{{pluralize_noun type 2}}/{{uuid}}">
+                  rename</a>
+                </li>
                 {{/each}}
             </ul>
         </div>
@@ -145,12 +137,17 @@
         <div class="issue-header">
             <button class="btn btn-danger solve-issue">Permanently remove</button>
             <p class="issue-type">Cannot write logs</p>
-            <p class="message">File cannot be written on server <a class="change-route" href="/#servers/{{machine_uuid}}">{{machine_name}}</a></p>
-            <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>
+            <p class="message">File cannot be written on server <a class="change-route" href="/#servers/{{info.server_ids.[0]}}">{{info.servers.[0]}}</a></p>
+            {{!--<p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>--}}
         </div>
         <hr />
         <div class="issue-details">
-            <p>Log file is inaccessible on server <a class="change-route" href="/#servers/{{machine_uuid}}">{{machine_name}}</a>. Please resolve the issue on the server, or permanently remove it from the cluster.<p> </div>
+          <p>Log file is inaccessible on server
+            <a class="change-route"
+               href="/#servers/{{info.server_ids.[0]}}">
+              {{info.servers.[0]}}</a>.
+            Please resolve the issue on the server, or permanently remove it from the cluster.<p>
+        </div>
     </div>
 </script>
 
@@ -236,22 +233,23 @@
     </div>
 </script>
 
-<script id="resolve_issues-machine_ghost-template" type="text/x-handlebars-template">
+<script id="resolve_issues-server_ghost-template" type="text/x-handlebars-template">
     <div class="issue {{#if critical }}critical{{/if}} name-conflict">
         <div class="issue-header">
-            <p class="issue-type">Zombie server</p>
-            <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>
+            <p class="issue-type">Ghost server</p>
+            <p class="message">{{info.server}} has returned from the dead!</p>
+            {{!-- <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p> --}}
         </div>
         <hr />
         <div class="issue-details">
-            <p>A server was permanently removed, but is now connected to the cluster.</p>
-            <p class="description">Server's id: <a class="change-route" href="#servers/{{machine_id}}">{{machine_id}}</a></p>
-            <p>Please manually remove it (e.g. by killing the RethinkDB process on the server).</p>
+          <p>{{description}}</p>
+          <p class="description">Server's id: <a class="change-route" href="#servers/{{info.server_id}}">{{info.server_id}}</a></p>
+          <p>Please manually remove it (e.g. by killing the RethinkDB process on the server).</p>
         </div>
     </div>
 </script>
 
-<script id="resolve_issues-outdated_index_issue-template" type="text/x-handlebars-template">
+<script id="resolve_issues-outdated_index-template" type="text/x-handlebars-template">
     <div class="issue {{#if critical }}critical{{/if}} name-conflict">
         <div class="issue-header">
             <p class="issue-type">Outdated indexes</p>
@@ -266,8 +264,8 @@
             </p>
 
             <ul>
-            {{#each namespaces}}
-            <li>The table <a href="#databases/{{db_id}}">{{db}}</a>.<a href="#tables/{{namespace_id}}">{{name}}</a> has {{count}} outdated {{pluralize_noun "index" count}}: {{comma_separated_simple indexes}}</li>
+            {{#each info.tables}}
+            <li>The table <a href="#databases/{{db_id}}">{{db}}</a>.<a href="#tables/{{table_id}}">{{table}}</a> has {{indexes.length}} outdated {{pluralize_noun "index" indexes.length}}: {{comma_separated_simple indexes}}</li>
             {{/each}}
             </ul>
         </div>
@@ -295,12 +293,12 @@
         <div class="issue-header">
             <p class="issue-type">Unknown issue</p>
             <p class="message">{{issue_type}}</p>
-            <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>
+            {{!--<p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>--}}
         </div>
         <hr />
         <div class="issue-details">
             <p>An unknown issue was sent by the server. Please contact support.</p>
-            <p>Raw data: </p><pre>{{raw_data}}</pre>
+            <p>Raw data: </p><pre>{{description}}</pre>
         </div>
     </div>
 </script>
