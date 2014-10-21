@@ -49,7 +49,7 @@ tests:
     ot: ({'type':'SELECTION<STREAM>',
           'table':{'type':'TABLE','name':'t469','db':{'type':'DB','name':'d469'},
                    'primary_key':'id', 'indexes':['x']}})
-  - rb: r.db('d469').table('t469').map{1}.info
+  - rb: r.db('d469').table('t469').map{|x| 1}.info
     py: r.db('d469').table('t469').map(lambda x:1).info()
     js: r.db('d469').table('t469').map(function(x) { return 1; }).info()
     ot: ({'type':'STREAM'})
