@@ -778,10 +778,6 @@ void raft_member_t<state_t>::check_invariants(
     we'd need an extra flag to detect that, and that's more work than it's worth. */
     guarantee(leader_drainer.has() == (mode != mode_t::follower),
         "candidate_and_leader_coro() should be running unless we're a follower");
-    if (mode != mode_t::leader) {
-        guarantee(update_watchers.empty(), "We shouldn't be using `update_watchers` "
-            "unless we're a leader.");
-    }
     switch (mode) {
     case mode_t::follower:
         break;
@@ -904,10 +900,17 @@ void raft_member_t<state_t>::update_commit_index(
         const new_mutex_acq_t *mutex_acq) {
     mutex_acq->guarantee_is_holding(&mutex);
 
-    guarantee(new_commit_index > committed_state.get_ref().log_index);
+    raft_log_index_t old_commit_index = committed_state.get_ref().log_index;
+    guarantee(new_commit_index > old_commit_index);
 
     /* Raft paper, Figure 2: "If commitIndex > lastApplied: increment lastApplied, apply
-    log[lastApplied] to state machine" */
+    log[lastApplied] to state machine"
+    If we are leader, updating `committed_state` will trigger several events:
+      * It will notify any running instances of `leader_send_updates()` to send the new
+        commit index to the followers.
+      * If the newly-committed state is a joint consensus state, it will wake
+        `candidate_and_leader_coro()` to start the second phase of the reconfiguration.
+    */
     committed_state.apply_atomic_op([&](state_and_config_t *state_and_config) -> bool {
         apply_log_entries(state_and_config, ps.log,
             state_and_config->log_index + 1, new_commit_index);
@@ -926,16 +929,6 @@ void raft_member_t<state_t>::update_commit_index(
     which are equivalent to the "last included index" and "last included term"
     described in Section 7 of the Raft paper. */
     ps.log.delete_entries_to(committed_state.get_ref().log_index);
-
-    /* This wakes up instances of `leader_send_updates()`, which will push the updated
-    commit index to replicas if necessary. It also wakes up
-    `candidate_and_leader_coro()`; if we've committed a joint consensus,
-    `candidate_and_leader_coro()` will put an entry in the log for the second phase of
-    the configuration change. */
-    guarantee(mode == mode_t::leader || update_watchers.empty());
-    for (cond_t *cond : update_watchers) {
-        cond->pulse_if_not_already_pulsed();
-    }
 
     /* If we just committed the second step of a config change, then we might need to
     flip `readiness_for_config_change` */
@@ -1134,14 +1127,34 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
             `leader_spawn_update_coros()`; if a new entry is committed, we might need to
             re-run `leader_continue_reconfiguration()`. */
             {
-                cond_t cond;
-                set_insertion_sentry_t<cond_t *> cond_sentry(&update_watchers, &cond);
+                raft_log_index_t latest_log_index = latest_state.get_ref().log_index;
 
                 /* Release the mutex while blocking so that we can receive RPCs */
                 DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
                 mutex_acq.reset();
 
-                wait_interruptible(&cond, leader_keepalive.get_drain_signal());
+                run_until_satisfied_2(
+                    committed_state.get_watchable(),
+                    latest_state.get_watchable(),
+                    [&](const state_and_config_t &cs, const state_and_config_t &ls)
+                            -> bool {
+                        if (cs.config.is_joint_consensus() &&
+                                ls.config.is_joint_consensus()) {
+                            /* The fact that `cs.config` is a joint consensus indicates
+                            that we recently committed a joint consensus configuration.
+                            The fact that `ls.config` is a joint consensus means that we
+                            haven't put the second phase of the reconfiguration into the
+                            log yet. So we should do that now. */
+                            return true;
+                        }
+                        if (ls.log_index > latest_log_index) {
+                            /* Something new was appended to the log. We should go check
+                            if it was a configuration change. */
+                            return true;
+                        }
+                        return false;
+                    },
+                    leader_keepalive.get_drain_signal());
 
                 /* Reacquire the mutex. Note that if `wait_interruptible()` throws
                 `interrupted_exc_t`, we won't reacquire the mutex. This is by design;
@@ -1542,25 +1555,29 @@ void raft_member_t<state_t>::leader_send_updates(
                 guarantee(next_index == ps.log.get_latest_index() + 1);
                 guarantee(member_commit_index == committed_state.get_ref().log_index);
                 /* OK, the peer is completely up-to-date. Wait until either an entry is
-                appended to the log; our `commit_index` advances; or the heartbeat
-                interval elapses, and then go around the loop again. */
-
-                /* `cond` will be pulsed when an entry is appended to the log or our
-                `commit_index` advances. */
-                cond_t cond;
-                set_insertion_sentry_t<cond_t *> cond_sentry(&update_watchers, &cond);
-
-                wait_any_t waiter(&cond, &heartbeat_timer);
+                appended to the log; our commit index advances; or the heartbeat interval
+                elapses, and then go around the loop again. */
 
                 DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
                 mutex_acq.reset();
-                wait_interruptible(&waiter, update_keepalive.get_drain_signal());
-                mutex_acq.init(
-                    new new_mutex_acq_t(&mutex, update_keepalive.get_drain_signal()));
-                DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
 
-                if (heartbeat_timer.is_pulsed()) {
-                    send_even_if_empty = true;
+                wait_any_t waiter(&heartbeat_timer, update_keepalive.get_drain_signal());
+                try {
+                    run_until_satisfied_2(
+                        committed_state.get_watchable(),
+                        latest_state.get_watchable(),
+                        [&](const state_and_config_t &cs, const state_and_config_t &ls) {
+                            return cs.log_index > member_commit_index ||
+                                ls.log_index > next_index;
+                        },
+                        &waiter);
+                } catch (const interrupted_exc_t &) {
+                    if (update_keepalive.get_drain_signal()->is_pulsed()) {
+                        throw;
+                    } else {
+                        guarantee(heartbeat_timer.is_pulsed());
+                        send_even_if_empty = true;
+                    }
                 }
             }
         }
@@ -1660,7 +1677,12 @@ void raft_member_t<state_t>::leader_append_log_entry(
     entry..." */
     ps.log.append(log_entry);
 
-    /* Because we modified `ps.log`, we have to update `latest_state` */
+    /* Raft paper, Section 5.3: "...then issues AppendEntries RPCs in parallel to each of
+    the other servers to replicate the entry."
+    Because we modified `ps.log`, we have to update `latest_state`. But this will also
+    have the side-effect of notifying anything that's waiting on `latest_state`; in
+    particular, instances of `leader_send_updates()` will wait on `latest_state` so they
+    can be notified when there are new log entries to send to the followers. */
     latest_state.apply_atomic_op([&](state_and_config_t *s) -> bool {
         guarantee(s->log_index + 1 == ps.log.get_latest_index());
         apply_log_entries(s, ps.log, s->log_index + 1, s->log_index + 1);
@@ -1673,16 +1695,6 @@ void raft_member_t<state_t>::leader_append_log_entry(
     it's possible that we could send an AppendEntries RPC for log entries that were not
     on our disk yet, and it's not obvious whether that is safe. */
     storage->write_persistent_state(ps, interruptor);
-
-    /* Raft paper, Section 5.3: "...then issues AppendEntries RPCs in parallel to each of
-    the other servers to replicate the entry."
-    This wakes up sleeping instances of `leader_send_updates()`, which will do the actual
-    work of sending append-entries RPCs. It also wakes up `candidate_and_leader_coro()`,
-    which will spawn or kill instances of `leader_send_updates()` as necessary if the
-    configuration has been changed. */
-    for (cond_t *c : update_watchers) {
-        c->pulse_if_not_already_pulsed();
-    }
 }
 
 #endif /* CLUSTERING_GENERIC_RAFT_CORE_TCC_ */

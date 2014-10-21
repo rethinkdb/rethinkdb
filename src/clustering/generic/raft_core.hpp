@@ -759,11 +759,6 @@ private:
     this at all times. */
     mutex_assertion_t log_mutex;
 
-    /* When we are leader, `update_watchers` is a set of conds that should be pulsed
-    every time we append something to the log or update `commit_index`. If we are not
-    leader, this is empty and unused. */
-    std::set<cond_t *> update_watchers;
-
     /* This makes sure that `candidate_and_leader_coro()` stops when the `raft_member_t`
     is destroyed. It's in a `scoped_ptr_t` so that
     `candidate_or_leader_become_follower()` can destroy it to kill
