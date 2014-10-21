@@ -100,6 +100,8 @@ public:
                 auth_semilattice_metadata_t> > _auth_view,
             clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
                 cluster_directory_metadata_t> > > _directory_view,
+            watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
+                            namespace_directory_metadata_t> *_reactor_directory_view,
             server_name_client_t *_name_client);
     reql_cluster_interface_t *get_reql_cluster_interface() {
         return reql_cluster_interface.get();

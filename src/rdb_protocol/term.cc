@@ -88,6 +88,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::OUTER_JOIN:         return make_outer_join_term(env, t);
     case Term::EQ_JOIN:            return make_eq_join_term(env, t);
     case Term::ZIP:                return make_zip_term(env, t);
+    case Term::RANGE:              return make_range_term(env, t);
     case Term::INSERT_AT:          return make_insert_at_term(env, t);
     case Term::DELETE_AT:          return make_delete_at_term(env, t);
     case Term::CHANGE_AT:          return make_change_at_term(env, t);

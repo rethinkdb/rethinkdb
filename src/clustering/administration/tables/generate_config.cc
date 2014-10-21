@@ -231,8 +231,8 @@ void pick_best_pairings(
 bool table_generate_config(
         server_name_client_t *name_client,
         namespace_id_t table_id,
-        clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
-            namespaces_directory_metadata_t> > > directory_view,
+        watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
+                        namespace_directory_metadata_t> *directory_view,
         const std::map<machine_id_t, int> &server_usage,
 
         const table_generate_config_params_t &params,
@@ -272,36 +272,27 @@ bool table_generate_config(
     std::map<machine_id_t, cow_ptr_t<reactor_business_card_t> > directory_metadata;
     if (table_id != nil_uuid()) {
         std::set<machine_id_t> missing;
-        directory_view->apply_read(
-            [&](const change_tracking_map_t<peer_id_t,
-                    namespaces_directory_metadata_t> *map) {
-                for (auto it = servers_with_tags.begin();
-                          it != servers_with_tags.end();
-                        ++it) {
-                    for (auto jt = it->second.begin(); jt != it->second.end(); ++jt) {
-                        machine_id_t machine_id = *jt;
-                        boost::optional<peer_id_t> peer_id =
-                            name_client->get_peer_id_for_machine_id(machine_id);
-                        if (!peer_id) {
-                            missing.insert(machine_id);
-                            continue;
-                        }
-                        auto kt = map->get_inner().find(*peer_id);
-                        if (kt == map->get_inner().end()) {
-                            missing.insert(machine_id);
-                            continue;
-                        }
-                        const namespaces_directory_metadata_t &peer_dir = kt->second;
-                        auto lt = peer_dir.reactor_bcards.find(table_id);
-                        if (lt == peer_dir.reactor_bcards.end()) {
-                            /* don't raise an error in this case */
-                            continue;
-                        }
-                        directory_metadata.insert(std::make_pair(
-                            machine_id, lt->second.internal));
-                    }
+        for (auto it = servers_with_tags.begin();
+                  it != servers_with_tags.end();
+                ++it) {
+            for (auto jt = it->second.begin(); jt != it->second.end(); ++jt) {
+                machine_id_t machine_id = *jt;
+                boost::optional<peer_id_t> peer_id =
+                    name_client->get_peer_id_for_machine_id(machine_id);
+                if (!static_cast<bool>(peer_id)) {
+                    missing.insert(machine_id);
+                    continue;
                 }
-            });
+                directory_view->read_key(std::make_pair(*peer_id, table_id),
+                    [&](const namespace_directory_metadata_t *metadata) {
+                        if (metadata != nullptr) {
+                            directory_metadata[machine_id] = metadata->internal;
+                        } else {
+                            missing.insert(machine_id);
+                        }
+                    });
+            }
+        }
         if (!missing.empty()) {
             *error_out = strprintf("Can't configure table because server `%s` is "
                 "missing", server_names.at(*missing.begin()).c_str());

@@ -18,7 +18,6 @@ class directory_http_app_t;
 class issues_http_app_t;
 class stat_http_app_t;
 class log_http_app_t;
-class progress_app_t;
 class stat_manager_t;
 class cyanide_http_app_t;
 class combining_http_app_t;
@@ -46,7 +45,6 @@ private:
     scoped_ptr_t<directory_http_app_t> directory_app;
     scoped_ptr_t<stat_http_app_t> stat_app;
     scoped_ptr_t<log_http_app_t> log_app;
-    scoped_ptr_t<progress_app_t> progress_app;
     scoped_ptr_t<combining_http_app_t> combining_app;
 #ifndef NDEBUG
     scoped_ptr_t<cyanide_http_app_t> cyanide_app;

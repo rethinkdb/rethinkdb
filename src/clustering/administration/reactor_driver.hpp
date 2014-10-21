@@ -70,8 +70,10 @@ public:
         const base_path_t &base_path,
          io_backender_t *io_backender,
          mailbox_manager_t *mbox_manager,
-         const clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
-            namespaces_directory_metadata_t> > > &directory_view,
+         watchable_map_t<
+            std::pair<peer_id_t, namespace_id_t>,
+            namespace_directory_metadata_t
+            > *directory_view,
          branch_history_manager_t *branch_history_manager,
          boost::shared_ptr< semilattice_readwrite_view_t< cow_ptr_t<
             namespaces_semilattice_metadata_t> > > namespaces_view,
@@ -83,8 +85,8 @@ public:
 
     ~reactor_driver_t();
 
-    clone_ptr_t<watchable_t<namespaces_directory_metadata_t> > get_watchable() {
-        return watchable_variable.get_watchable();
+    watchable_map_t<namespace_id_t, namespace_directory_metadata_t> *get_watchable() {
+        return &watchable_var;
     }
 
 private:
@@ -99,21 +101,14 @@ private:
             watchable_and_reactor_t *thing_to_delete,
             namespace_id_t namespace_id);
     void on_change();
-    void set_reactor_directory_entry(
-        const namespace_id_t reactor_namespace,
-        const boost::optional<reactor_directory_entry_t> &new_value);
-    void commit_directory_changes(auto_drainer_t::lock_t lock);
-    // This function is passed by `commit_directory_changes()` into the
-    // `apply_read()` method of the directory watchable
-    static bool apply_directory_changes(
-        std::map<namespace_id_t, boost::optional<reactor_directory_entry_t> >
-            *_changed_reactor_directories,
-        namespaces_directory_metadata_t *directory);
 
     const base_path_t base_path;
     io_backender_t *const io_backender;
     mailbox_manager_t *const mbox_manager;
-    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > > directory_view;
+    watchable_map_t<
+        std::pair<peer_id_t, namespace_id_t>,
+        namespace_directory_metadata_t
+        > *directory_view;
     branch_history_manager_t *branch_history_manager;
     boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > namespaces_view;
     server_name_client_t *server_name_client;
@@ -122,19 +117,7 @@ private:
     svs_by_namespace_t *const svs_by_namespace;
     backfill_throttler_t backfill_throttler;
 
-    watchable_variable_t<namespaces_directory_metadata_t> watchable_variable;
-    mutex_assertion_t watchable_variable_lock;
-
-    // `changed_reactor_directories` collects reactor directory entries that
-    // have changed since the last execution of commit_directory_changes().
-    // This is a performance optimization, as it allows us to aggregate
-    // multiple directory changes into a single commit.
-    // If the optional is none, that means that the entry should be deleted.
-    std::map<namespace_id_t, boost::optional<reactor_directory_entry_t> >
-        changed_reactor_directories;
-    // We need a separate drainer for this because it must stay alive
-    // until after reactor_data is destructed.
-    auto_drainer_t directory_change_drainer;
+    watchable_map_var_t<namespace_id_t, namespace_directory_metadata_t> watchable_var;
 
     reactor_map_t reactor_data;
 

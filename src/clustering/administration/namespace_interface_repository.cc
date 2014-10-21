@@ -48,13 +48,16 @@ public:
     cond_t *pulse_when_ref_count_becomes_nonzero;
 };
 
-namespace_repo_t::namespace_repo_t(mailbox_manager_t *_mailbox_manager,
-                                   const boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > &semilattice_view,
-                                   clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > > _namespaces_directory_metadata,
-                                   rdb_context_t *_ctx)
+namespace_repo_t::namespace_repo_t(
+        mailbox_manager_t *_mailbox_manager,
+        const boost::shared_ptr<semilattice_read_view_t<
+            cow_ptr_t<namespaces_semilattice_metadata_t> > > &semilattice_view,
+        watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
+                        namespace_directory_metadata_t> *_directory,
+        rdb_context_t *_ctx)
     : mailbox_manager(_mailbox_manager),
       namespaces_view(semilattice_view),
-      namespaces_directory_metadata(_namespaces_directory_metadata),
+      directory(_directory),
       ctx(_ctx),
       namespaces_subscription(boost::bind(&namespace_repo_t::on_namespaces_change, this, drainer.lock()))
 {
@@ -62,24 +65,6 @@ namespace_repo_t::namespace_repo_t(mailbox_manager_t *_mailbox_manager,
 }
 
 namespace_repo_t::~namespace_repo_t() { }
-
-std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > get_reactor_business_cards(
-        const change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> &ns_directory_metadata, const namespace_id_t &n_id) {
-    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > res;
-    for (std::map<peer_id_t, namespaces_directory_metadata_t>::const_iterator it  = ns_directory_metadata.get_inner().begin();
-         it != ns_directory_metadata.get_inner().end();
-         ++it) {
-        namespaces_directory_metadata_t::reactor_bcards_map_t::const_iterator jt =
-            it->second.reactor_bcards.find(n_id);
-        if (jt != it->second.reactor_bcards.end()) {
-            res[it->first] = jt->second.internal;
-        } else {
-            res[it->first] = cow_ptr_t<reactor_business_card_t>();
-        }
-    }
-
-    return res;
-}
 
 void copy_region_maps_to_thread(
         const std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > &from,
@@ -135,9 +120,43 @@ void namespace_repo_t::create_and_destroy_namespace_interface(
     switch back. In destruction we need to do the reverse. Fortunately RAII works really
     nicely here. */
     on_thread_t switch_to_home_thread(home_thread());
-    clone_ptr_t<watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > > > subview =
-        namespaces_directory_metadata->subview(boost::bind(&get_reactor_business_cards, _1, namespace_id));
-    cross_thread_watchable_variable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > > cross_thread_watchable(subview, thread);
+    class picker_watchable_map_t :
+        public watchable_map_transform_t<
+            std::pair<peer_id_t, namespace_id_t>,
+            namespace_directory_metadata_t,
+            peer_id_t,
+            namespace_directory_metadata_t>
+    {
+    public:
+        picker_watchable_map_t(
+                watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
+                                namespace_directory_metadata_t> *_directory,
+                namespace_id_t _namespace_id) :
+            watchable_map_transform_t(_directory),
+            nid(_namespace_id) { }
+        bool key_1_to_2(const std::pair<peer_id_t, namespace_id_t> &key1,
+                        peer_id_t *key2_out) {
+            if (key1.second == nid) {
+                *key2_out = key1.first;
+                return true;
+            } else {
+                return false;
+            }
+        }
+        void value_1_to_2(const namespace_directory_metadata_t *value1,
+                          const namespace_directory_metadata_t **value2_out) {
+            *value2_out = value1;
+        }
+        bool key_2_to_1(const peer_id_t &key2,
+                        std::pair<peer_id_t, namespace_id_t> *key1_out) {
+            key1_out->first = key2;
+            key1_out->second = nid;
+            return true;
+        }
+        namespace_id_t nid;
+    } picker(directory, namespace_id);
+    cross_thread_watchable_map_var_t<peer_id_t, namespace_directory_metadata_t>
+        cross_thread_watchable(&picker, thread);
     on_thread_t switch_back(thread);
 
     cluster_namespace_interface_t namespace_interface(

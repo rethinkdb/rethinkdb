@@ -111,7 +111,9 @@ bool server_name_client_t::rename_server(
     cond_t got_reply;
     mailbox_t<void()> ack_mailbox(
         mailbox_manager,
-        [&]() { got_reply.pulse(); }); // NOLINT whitespace/newline
+        [&](UNUSED signal_t *interruptor2) {
+            got_reply.pulse();
+        });
     disconnect_watcher_t disconnect_watcher(mailbox_manager, rename_addr.get_peer());
     send(mailbox_manager, rename_addr, new_name, ack_mailbox.get_address());
     wait_any_t waiter(&got_reply, &disconnect_watcher);
@@ -169,7 +171,9 @@ bool server_name_client_t::retag_server(
     cond_t got_reply;
     mailbox_t<void()> ack_mailbox(
         mailbox_manager,
-        [&]() { got_reply.pulse(); }); // NOLINT whitespace/newline
+        [&](UNUSED signal_t *interruptor2) {
+            got_reply.pulse();
+        });
     disconnect_watcher_t disconnect_watcher(mailbox_manager, retag_addr.get_peer());
     send(mailbox_manager, retag_addr, new_tags, ack_mailbox.get_address());
     wait_any_t waiter(&got_reply, &disconnect_watcher);
@@ -278,23 +282,7 @@ void server_name_client_t::recompute_machine_id_to_peer_id_map() {
                     dir_it->first, dir_it->second.machine_id));
             }
     });
-    machine_id_to_peer_id_map.apply_atomic_op(
-        [&](std::map<machine_id_t, peer_id_t> *map) -> bool {
-            if (*map == new_map_m2p) {
-                return false;
-            } else {
-                *map = new_map_m2p;
-                return true;
-            }
-        });
-    peer_id_to_machine_id_map.apply_atomic_op(
-        [&](std::map<peer_id_t, machine_id_t> *map) -> bool {
-            if (*map == new_map_p2m) {
-                return false;
-            } else {
-                *map = new_map_p2m;
-                return true;
-            }
-        });
+    machine_id_to_peer_id_map.set_value(new_map_m2p);
+    peer_id_to_machine_id_map.set_value(new_map_p2m);
 }
 

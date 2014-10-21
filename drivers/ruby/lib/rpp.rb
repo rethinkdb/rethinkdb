@@ -108,7 +108,8 @@ module RethinkDB
       else
         return !["db", "db_create", "db_drop", "json", "funcall", "args", "branch", "http",
           "binary", "javascript", "random", "time", "iso8601", "epoch_time", "now",
-          "geojson", "point", "circle", "line", "polygon", "asc", "desc", "literal" ].include?(name)
+          "geojson", "point", "circle", "line", "polygon", "asc", "desc", "literal",
+          "range"].include?(name)
       end
     end
     def self.pp_int(q, term, bt, pre_dot=false)

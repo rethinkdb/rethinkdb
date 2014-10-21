@@ -119,9 +119,10 @@ void directory_read_manager_t<metadata_t>::handle_connection(
     variable.apply_atomic_op(
         [&](change_tracking_map_t<peer_id_t, metadata_t> *map) -> bool {
             map->begin_version();
-            map->set_value(connection->get_peer_id(), std::move(*new_value));
+            map->set_value(connection->get_peer_id(), *new_value);
             return true;
         });
+    map_variable.set_key_no_equals(connection->get_peer_id(), std::move(*new_value));
 
     {
         fifo_enforcer_sink_t fifo_sink(metadata_fifo_state);
@@ -168,6 +169,7 @@ void directory_read_manager_t<metadata_t>::handle_connection(
             map->delete_value(connection->get_peer_id());
             return true;
         });
+    map_variable.delete_key(connection->get_peer_id());
 }
 
 template<class metadata_t>
@@ -234,9 +236,10 @@ void directory_read_manager_t<metadata_t>::propagate_update(
         variable.apply_atomic_op(
             [&](change_tracking_map_t<peer_id_t, metadata_t> *map) -> bool {
                 map->begin_version();
-                map->set_value(connection->get_peer_id(), std::move(*new_value));
+                map->set_value(connection->get_peer_id(), *new_value);
                 return true;
             });
+        map_variable.set_key_no_equals(connection->get_peer_id(), std::move(*new_value));
 
     } catch (interrupted_exc_t) {
         /* This can only occur if we are shutting down or the connection was lost. In

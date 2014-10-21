@@ -1358,6 +1358,10 @@ class Binary(RqlTopLevelQuery):
         else:
             return RqlTopLevelQuery.build(self)
 
+class Range(RqlTopLevelQuery):
+    tt = pTerm.RANGE
+    st = 'range'
+
 class ToISO8601(RqlMethodQuery):
     tt = pTerm.TO_ISO8601
     st = 'to_iso8601'

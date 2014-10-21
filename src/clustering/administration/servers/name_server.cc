@@ -13,21 +13,13 @@ server_name_server_t::server_name_server_t(
     directory_view(_directory_view),
     semilattice_view(_semilattice_view),
     rename_mailbox(mailbox_manager,
-        [this](const name_string_t &name, const mailbox_t<void()>::address_t &addr) {
-            this->on_rename_request(name, addr);
-        }),
+        std::bind(&server_name_server_t::on_rename_request, this,
+            ph::_1, ph::_2, ph::_3)),
     retag_mailbox(mailbox_manager,
-        [this](const std::set<name_string_t> &tags,
-               const mailbox_t<void()>::address_t &addr) {
-            this->on_retag_request(tags, addr);
-        }),
+        std::bind(&server_name_server_t::on_retag_request, this,
+            ph::_1, ph::_2, ph::_3)),
     semilattice_subs([this]() {
-        /* We have to call `on_semilattice_change()` in a coroutine because it might
-        make changes to the semilattices. */
-        auto_drainer_t::lock_t keepalive(&drainer);
-        coro_t::spawn_sometime([this, keepalive /* important to capture */]() {
-            this->on_semilattice_change();
-            });
+        on_semilattice_change();
         })
 {
     /* Find our entry in the machines semilattice map and determine our current name from
@@ -52,7 +44,8 @@ server_name_business_card_t server_name_server_t::get_business_card() {
     return bcard;
 }
 
-void server_name_server_t::on_rename_request(const name_string_t &new_name,
+void server_name_server_t::on_rename_request(UNUSED signal_t *interruptor,
+                                             const name_string_t &new_name,
                                              mailbox_t<void()>::address_t ack_addr) {
     if (!permanently_removed_cond.is_pulsed() && new_name != my_name) {
         logINF("Changed server's name from `%s` to `%s`.",
@@ -68,13 +61,11 @@ void server_name_server_t::on_rename_request(const name_string_t &new_name,
     }
 
     /* Send an acknowledgement to the server that initiated the request */
-    auto_drainer_t::lock_t keepalive(&drainer);
-    coro_t::spawn_sometime([this, keepalive /* important to capture */, ack_addr]() {
-        send(this->mailbox_manager, ack_addr);
-    });
+    send(mailbox_manager, ack_addr);
 }
 
-void server_name_server_t::on_retag_request(const std::set<name_string_t> &new_tags,
+void server_name_server_t::on_retag_request(UNUSED signal_t *interruptor,
+                                            const std::set<name_string_t> &new_tags,
                                             mailbox_t<void()>::address_t ack_addr) {
     if (!permanently_removed_cond.is_pulsed() && new_tags != my_tags) {
         std::string tag_str;
@@ -100,10 +91,7 @@ void server_name_server_t::on_retag_request(const std::set<name_string_t> &new_t
     }
 
     /* Send an acknowledgement to the server that initiated the request */
-    auto_drainer_t::lock_t keepalive(&drainer);
-    coro_t::spawn_sometime([this, keepalive /* important to capture */, ack_addr]() {
-        send(this->mailbox_manager, ack_addr);
-    });
+    send(mailbox_manager, ack_addr);
 }
 
 void server_name_server_t::on_semilattice_change() {

@@ -13,10 +13,8 @@
 
 /* raw_mailbox_t */
 
-const int raw_mailbox_t::address_t::ANY_THREAD = -1;
-
 raw_mailbox_t::address_t::address_t() :
-    peer(peer_id_t()), thread(ANY_THREAD), mailbox_id(0) { }
+    peer(peer_id_t()), thread(-1), mailbox_id(0) { }
 
 raw_mailbox_t::address_t::address_t(const address_t &a) :
     peer(a.peer), thread(a.thread), mailbox_id(a.mailbox_id) { }
@@ -38,12 +36,22 @@ raw_mailbox_t::raw_mailbox_t(mailbox_manager_t *m, mailbox_read_callback_t *_cal
     manager(m),
     mailbox_id(manager->register_mailbox(this)),
     callback(_callback) {
-    // Do nothing
+    guarantee(callback != nullptr);
 }
 
 raw_mailbox_t::~raw_mailbox_t() {
     assert_thread();
+    if (callback != nullptr) {
+        begin_shutdown();
+    }
+}
+
+void raw_mailbox_t::begin_shutdown() {
+    assert_thread();
+    guarantee(callback != nullptr);
+    callback = nullptr;
     manager->unregister_mailbox(mailbox_id);
+    drainer.begin_draining();
 }
 
 raw_mailbox_t::address_t raw_mailbox_t::get_address() const {
@@ -171,11 +179,6 @@ void mailbox_manager_t::on_local_message(
 
     mailbox_header_t mbox_header;
     read_mailbox_header(&stream, &mbox_header);
-    if (mbox_header.dest_thread == raw_mailbox_t::address_t::ANY_THREAD) {
-        // TODO: this will just run the callback on the current thread, maybe do
-        // some load balancing, instead
-        mbox_header.dest_thread = get_thread_id().threadnum;
-    }
 
     std::vector<char> stream_data;
     int64_t stream_data_offset = 0;
@@ -205,9 +208,6 @@ void mailbox_manager_t::on_message(connectivity_cluster_t::connection_t *connect
                                    read_stream_t *stream) {
     mailbox_header_t mbox_header;
     read_mailbox_header(stream, &mbox_header);
-    if (mbox_header.dest_thread == raw_mailbox_t::address_t::ANY_THREAD) {
-        mbox_header.dest_thread = get_thread_id().threadnum;
-    }
 
     // Read the data from the read stream, so it can be deallocated before we continue
     // in a coroutine
@@ -257,7 +257,14 @@ void mailbox_manager_t::mailbox_read_coroutine(
         try {
             raw_mailbox_t *mbox = mailbox_tables.get()->find_mailbox(dest_mailbox_id);
             if (mbox != NULL) {
-                mbox->callback->read(cluster_version_t::CLUSTER, &stream);
+                try {
+                    auto_drainer_t::lock_t keepalive(&mbox->drainer);
+                    mbox->callback->read(&stream, keepalive.get_drain_signal());
+                } catch (const interrupted_exc_t &) {
+                    /* Do nothing. It's no longer safe to access `mbox` (because the
+                    destructor is running) but otherwise we don't need to take any
+                    special action. */
+                }
             }
         } catch (const fake_archive_exc_t &e) {
             // Set a flag and handle the exception later.

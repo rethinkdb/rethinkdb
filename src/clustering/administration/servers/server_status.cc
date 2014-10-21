@@ -131,35 +131,6 @@ bool server_status_artificial_table_backend_t::read_row(
         builder.overwrite("http_admin_port", ql::datum_t::null());
     }
 
-    if (directory) {
-        cow_ptr_t<namespaces_semilattice_metadata_t> sl = table_sl_view->get();
-        databases_semilattice_metadata_t dbs = database_sl_view->get();
-        ql::datum_array_builder_t array_builder(ql::configured_limits_t::unlimited);
-        for (auto it = sl->namespaces.begin(); it != sl->namespaces.end(); ++it) {
-            if (it->second.is_deleted()) {
-                continue;
-            }
-            bool in_config = table_has_role_for_server(server_id,
-                it->second.get_ref().replication_info.get_ref().config);
-            auto directory_it = directory->rdb_namespaces.reactor_bcards.find(it->first);
-            bool in_directory =
-                (directory_it != directory->rdb_namespaces.reactor_bcards.end()) &&
-                directory_has_role_for_table(*directory_it->second.internal.get());
-            if (!in_config && !in_directory) {
-                continue;
-            }
-            name_string_t table_name = it->second.get_ref().name.get_ref();
-            name_string_t db_name = get_db_name(it->second.get_ref().database.get_ref());
-            ql::datum_object_builder_t pair_builder;
-            pair_builder.overwrite("db", convert_name_to_datum(db_name));
-            pair_builder.overwrite("table", convert_name_to_datum(table_name));
-            array_builder.add(std::move(pair_builder).to_datum());
-        }
-        builder.overwrite("tables", std::move(array_builder).to_datum());
-    } else {
-        builder.overwrite("tables", ql::datum_t::null());
-    }
-
     *row_out = std::move(builder).to_datum();
     return true;
 }

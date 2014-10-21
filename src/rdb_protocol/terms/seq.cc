@@ -325,6 +325,31 @@ private:
     virtual const char *name() const { return "zip"; }
 };
 
+class range_term_t : public op_term_t {
+public:
+    range_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(0, 2)) { }
+private:
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        bool is_infinite = false;
+        int64_t start = 0, stop = 0;
+
+        if (args->num_args() == 0) {
+            is_infinite = true;
+        } else if (args->num_args() == 1) {
+            stop = args->arg(env, 0)->as_int();
+        } else {
+            r_sanity_check(args->num_args() == 2);
+            start = args->arg(env, 0)->as_int();
+            stop = args->arg(env, 1)->as_int();
+        }
+
+        return new_val(env->env, make_counted<range_datum_stream_t>(
+            is_infinite, start, stop, backtrace()));
+    }
+    virtual const char *name() const { return "range"; }
+};
+
 counted_t<term_t> make_between_term(
     compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<between_term_t>(env, term);
@@ -380,6 +405,11 @@ counted_t<term_t> make_union_term(
 counted_t<term_t> make_zip_term(
     compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<zip_term_t>(env, term);
+}
+
+counted_t<term_t> make_range_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<range_term_t>(env, term);
 }
 
 } // namespace ql

@@ -148,43 +148,6 @@ RDB_DECLARE_SERIALIZABLE(namespaces_semilattice_metadata_t);
 RDB_DECLARE_SEMILATTICE_JOINABLE(namespaces_semilattice_metadata_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(namespaces_semilattice_metadata_t);
 
-
-class namespaces_directory_metadata_t {
-public:
-    namespaces_directory_metadata_t() { }
-    namespaces_directory_metadata_t(const namespaces_directory_metadata_t &other) {
-        *this = other;
-    }
-    namespaces_directory_metadata_t(namespaces_directory_metadata_t &&other) {
-        *this = std::move(other);
-    }
-    namespaces_directory_metadata_t &operator=(const namespaces_directory_metadata_t &other) {
-        reactor_bcards = other.reactor_bcards;
-        return *this;
-    }
-    namespaces_directory_metadata_t &operator=(namespaces_directory_metadata_t &&other) {
-        reactor_bcards = std::move(other.reactor_bcards);
-        return *this;
-    }
-
-    /* This used to say `reactor_business_card_t` instead of
-    `cow_ptr_t<reactor_business_card_t>`, but that
-    was extremely slow because the size of the data structure grew linearly with
-    the number of tables and so copying it became a major cost. Using a
-    `boost::shared_ptr` instead makes it significantly faster. */
-    typedef std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > reactor_bcards_map_t;
-
-    reactor_bcards_map_t reactor_bcards;
-};
-
-RDB_DECLARE_SERIALIZABLE(namespaces_directory_metadata_t);
-RDB_DECLARE_EQUALITY_COMPARABLE(namespaces_directory_metadata_t);
-
-// ctx-less json adapter concept for namespaces_directory_metadata_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(namespaces_directory_metadata_t *target);
-
-cJSON *render_as_json(namespaces_directory_metadata_t *target);
-
-void apply_json_to(cJSON *change, namespaces_directory_metadata_t *target);
+typedef directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > namespace_directory_metadata_t;
 
 #endif /* CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP_ */

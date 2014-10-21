@@ -65,8 +65,8 @@ def err_regex(type, message, backtrace=[])
   Err.new(type, message, backtrace, true)
 end
 
-def eq_test(one, two, testopts={})
-  return cmp_test(one, two, testopts) == 0
+def eq_test(expected, result, testopts={})
+  return cmp_test(expected, result, testopts) == 0
 end
 
 class Number
@@ -100,111 +100,114 @@ def float_cmp(value)
   return Number.new(value)
 end
 
-def cmp_test(one, two, testopts={})
-  if two.object_id == NoError.object_id
-    return -1 if one.class == Err
+def cmp_test(expected, result, testopts={})
+  if expected.object_id == NoError.object_id
+    return -1 if result.class == Err
     return 0
   end
   
-  if one.nil? and two.nil?
+  if expected.nil? and result.nil?
     return 0
-  elsif one.nil?
+  elsif result.nil?
     return 1
-  elsif two.nil?
+  elsif expected.nil?
     return -1
   end
   
-  if two.object_id == AnyUUID.object_id
-    return -1 if not one.kind_of? String
-    return 0 if one.match /[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}/
+  if expected.object_id == AnyUUID.object_id
+    return -1 if not result.kind_of? String
+    return 0 if result.match /[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}/
     return 1
   end
 
-  if one.class == String then
-    one = one.sub(/\nFailed assertion:(.|\n)*/, "")
+  if result.class == String then
+    result = result.sub(/\nFailed assertion:(.|\n)*/, "")
   end
 
-  case "#{two.class}"
+  case "#{expected.class}"
   when "Err"
-    if one.kind_of? Exception
-      one = Err.new("#{one.class}".sub(/^RethinkDB::/,""), one.message, false)
+    if result.kind_of? Exception
+      result = Err.new("#{result.class}".sub(/^RethinkDB::/,""), result.message, false)
     end
-    cmp = one.class.name <=> two.class.name
+    cmp = result.class.name <=> expected.class.name
     return cmp if cmp != 0
-    if not two.regex
-      one_msg = one.message.sub(/:\n(.|\n)*|:$/, ".")
-      [one.type, one_msg] <=> [two.type, two.message]
+    if not expected.regex
+      result_msg = result.message.sub(/:\n(.|\n)*|:$/, ".")
+      [result.type, result_msg] <=> [expected.type, expected.message]
     else
-      if (Regexp.compile two.type) =~ one.type and
-          (Regexp.compile two.message) =~ one.message
+      if (Regexp.compile expected.type) =~ result.type and
+          (Regexp.compile expected.message) =~ result.message
         return 0
       end
       return -1
     end
 
   when "Array"
-    if one.respond_to? :to_a
-      one = one.to_a
+    if result.respond_to? :to_a
+      result = result.to_a
     end
-    cmp = one.class.name <=> two.class.name
+    cmp = result.class.name <=> expected.class.name
     return cmp if cmp != 0
-    cmp = one.length <=> two.length
+    cmp = result.length <=> expected.length
     return cmp if cmp != 0
-    one.zip(two) { |pair|
+    expected.zip(result) { |pair|
       cmp = cmp_test(pair[0], pair[1], testopts)
       return cmp if cmp != 0
     }
     return 0
 
   when "Hash"
-    cmp = one.class.name <=> two.class.name
+    cmp = result.class.name <=> expected.class.name
     return cmp if cmp != 0
-    one = Hash[ one.map{ |k,v| [k.to_s, v] } ]
-    two = Hash[ two.map{ |k,v| [k.to_s, v] } ]
-    cmp = one.keys.sort <=> two.keys.sort
+    result = Hash[ result.map{ |k,v| [k.to_s, v] } ]
+    expected = Hash[ expected.map{ |k,v| [k.to_s, v] } ]
+    cmp = result.keys.sort <=> expected.keys.sort
     return cmp if cmp != 0
-    one.each_key { |key|
-      cmp = cmp_test(one[key], two[key], testopts)
+    expected.each_key { |key|
+      cmp = cmp_test(expected[key], result[key], testopts)
       return cmp if cmp != 0
     }
     return 0
 
   when "Bag"
-    return cmp_test(one.sort{ |a, b| cmp_test(a, b, testopts) },
-                    two.items.sort{ |a, b| cmp_test(a, b, testopts) }, testopts)
+    return cmp_test(
+      expected.items.sort{ |a, b| cmp_test(a, b, testopts) },
+      result.sort{ |a, b| cmp_test(a, b, testopts) },
+      testopts
+    )
   
   when "Float", "Fixnum", "Number"
-    if not (one.kind_of? Float or one.kind_of? Fixnum)
-      cmp = one.class.name <=> two.class.name
+    if not (result.kind_of? Float or result.kind_of? Fixnum)
+      cmp = result.class.name <=> expected.class.name
       return cmp if cmp != 0
     end
     
-    if two.kind_of?(Number)
-      if not one.kind_of?(two.requiredType)
-        cmp = one.class.name <=> two.class.name
+    if expected.kind_of?(Number)
+      if not result.kind_of?(expected.requiredType)
+        cmp = result.class.name <=> expected.class.name
         return cmp if cmp != 0 else -1
       end
-      two = two.value
+      expected = expected.value
     end
     
     if testopts.has_key?(:precision)
-      diff = one - two
+      diff = result - expected
       if (diff).abs < testopts[:precision]
         return 0
       else
         return diff <=> 0
       end
     else
-      return one <=> two
+      return result <=> expected
     end
   
   else
     begin
-      cmp = one <=> two
+      cmp = result <=> expected
       return cmp if cmp != nil
-      return one.class.name <=> two.class.name
+      return result.class.name <=> expected.class.name
     rescue
-      return one.class.name <=> two.class.name
+      return result.class.name <=> expected.class.name
     end
   end
 end
@@ -310,7 +313,7 @@ at_exit do
   puts "Ruby: #{$success_count} of #{$test_count} tests passed. #{$test_count - $success_count} tests failed."
 end
 
-def check_result(name, src, res, expected, testopts={})
+def check_result(name, src, result, expected, testopts={})
   sucessfulTest = true
   begin
     if expected && expected != ''
@@ -328,13 +331,13 @@ def check_result(name, src, res, expected, testopts={})
   end
   if sucessfulTest
     begin
-      if ! eq_test(res, expected, testopts)
-        fail_test name, src, res, expected
+      if ! eq_test(expected, result, testopts)
+        fail_test(name, src, result, expected)
         sucessfulTest = false
       end
     rescue Exception => e
       sucessfulTest = false
-      puts "#{name}: Error: #{e} when comparing #{show res} and #{show expected}"
+      puts "#{name}: Error: #{e} when comparing #{show result} and #{show expected}"
     end
   end
   if sucessfulTest

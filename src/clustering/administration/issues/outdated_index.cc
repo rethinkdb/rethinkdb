@@ -195,6 +195,7 @@ void outdated_index_issue_tracker_t::coro_pool_callback(
         UNUSED signal_t *interruptor) {
     // Collect outdated indexes by table id from all threads
     std::vector<outdated_index_issue_t::index_map_t> all_maps(get_num_threads());
+
     pmap(get_num_threads(), std::bind(&copy_thread_map,
                                       &outdated_indexes,
                                       &all_maps,

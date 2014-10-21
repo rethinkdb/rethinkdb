@@ -210,9 +210,9 @@ public:
                                  &background_write_caller),
         controller(c),
         upgrade_mailbox(controller->mailbox_manager,
-            boost::bind(&dispatchee_t::upgrade, this, _1, _2, auto_drainer_t::lock_t(&drainer))),
+            boost::bind(&dispatchee_t::upgrade, this, _1, _2, _3)),
         downgrade_mailbox(controller->mailbox_manager,
-            boost::bind(&dispatchee_t::downgrade, this, _1, auto_drainer_t::lock_t(&drainer)))
+            boost::bind(&dispatchee_t::downgrade, this, _1, _2))
     {
         controller->assert_thread();
         controller->sanity_check();
@@ -272,9 +272,9 @@ private:
     }
 
     /* `upgrade()` and `downgrade()` are mailbox callbacks. */
-    void upgrade(listener_business_card_t::writeread_mailbox_t::address_t wrm,
-                 listener_business_card_t::read_mailbox_t::address_t rm,
-                 auto_drainer_t::lock_t)
+    void upgrade(UNUSED signal_t *interruptor,
+                 listener_business_card_t::writeread_mailbox_t::address_t wrm,
+                 listener_business_card_t::read_mailbox_t::address_t rm)
             THROWS_NOTHING {
         DEBUG_VAR mutex_assertion_t::acq_t acq(&controller->mutex);
         ASSERT_FINITE_CORO_WAITING;
@@ -286,7 +286,8 @@ private:
         controller->refresh_readable_dispatchees_as_set();
     }
 
-    void downgrade(mailbox_addr_t<void()> ack_addr, auto_drainer_t::lock_t) THROWS_NOTHING {
+    void downgrade(UNUSED signal_t *interruptor,
+                   mailbox_addr_t<void()> ack_addr) THROWS_NOTHING {
         {
             DEBUG_VAR mutex_assertion_t::acq_t acq(&controller->mutex);
             ASSERT_FINITE_CORO_WAITING;
@@ -333,8 +334,8 @@ public:
 private:
     coro_pool_t<std::function<void()> > background_write_workers;
     broadcaster_t *controller;
-    auto_drainer_t drainer;
 
+    auto_drainer_t drainer;
     listener_business_card_t::upgrade_mailbox_t upgrade_mailbox;
     listener_business_card_t::downgrade_mailbox_t downgrade_mailbox;
 
@@ -373,19 +374,13 @@ void broadcaster_t::listener_write(
         cond_t ack_cond;
         mailbox_t<void()> ack_mailbox(
             mailbox_manager,
-            std::bind(&cond_t::pulse, &ack_cond));
+            [&](signal_t *) { ack_cond.pulse(); });
 
         send(mailbox_manager, mirror->write_mailbox,
              w, ts, order_token, token, ack_mailbox.get_address());
 
         wait_interruptible(&ack_cond, interruptor);
     }
-}
-
-template <class response_t>
-void store_listener_response(response_t *result_out, const response_t &result_in, cond_t *done) {
-    *result_out = result_in;
-    done->pulse();
 }
 
 void broadcaster_t::listener_read(
@@ -402,7 +397,10 @@ void broadcaster_t::listener_read(
         cond_t resp_cond;
         mailbox_t<void(read_response_t)> resp_mailbox(
             mailbox_manager,
-            std::bind(&store_listener_response<read_response_t>, response, ph::_1, &resp_cond));
+            [&](signal_t *, const read_response_t &resp) {
+                *response = resp;
+                resp_cond.pulse();
+            });
 
         send(mailbox_manager, mirror->read_mailbox,
              r, ts, order_token, token, resp_mailbox.get_address());
@@ -589,8 +587,10 @@ void broadcaster_t::background_writeread(
             cond_t response_cond;
             mailbox_t<void(write_response_t)> response_mailbox(
                 mailbox_manager,
-                boost::bind(&store_listener_response<write_response_t>, &response, _1,
-                            &response_cond));
+                [&](signal_t *, const write_response_t &resp) {
+                    response = resp;
+                    response_cond.pulse();
+                });
 
             send(mailbox_manager, mirror->writeread_mailbox, write_ref.get()->write,
                  write_ref.get()->timestamp, order_token, token,
