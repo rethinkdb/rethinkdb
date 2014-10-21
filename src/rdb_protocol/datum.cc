@@ -859,12 +859,6 @@ std::string datum_t::print_secondary(reql_version_t reql_version,
     return compose_secondary(secondary_key_string, primary_key, tag_num);
 }
 
-struct components_t {
-    std::string secondary;
-    std::string primary;
-    boost::optional<uint64_t> tag_num;
-};
-
 void parse_secondary(const std::string &key,
                      components_t *components) THROWS_NOTHING {
     uint8_t start_of_tag = key[key.size() - 1],
@@ -882,6 +876,12 @@ void parse_secondary(const std::string &key,
 #endif
         components->tag_num = *reinterpret_cast<const uint64_t *>(tag_str.data());
     }
+}
+
+components_t datum_t::extract_all(const std::string &str) {
+    components_t components;
+    parse_secondary(str, &components);
+    return components;
 }
 
 std::string datum_t::extract_primary(const std::string &secondary) {

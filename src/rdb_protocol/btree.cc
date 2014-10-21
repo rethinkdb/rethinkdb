@@ -1319,10 +1319,14 @@ void rdb_modification_report_cb_t::on_mod_report(
                                 report.primary_key);
                             ql::datum_t dstr = ql::key_to_datum(str);
                             if (report.info.deleted.first) {
-                                lm->del(str);
+                                lm->del(report.primary_key, true);
                             }
                             if (report.info.added.first) {
-                                lm->add(str, dstr, report.info.added.first);
+                                // The conflicting null values are resolved by
+                                // the primary key.
+                                // RSI: test that!
+                                lm->add(report.primary_key, true,
+                                        ql::datum_t::null(), report.info.added.first);
                             }
                             lm->commit(ql::changefeed::primary_ref_t{
                                     env, btree, superblock, promise});
@@ -1572,8 +1576,7 @@ void rdb_update_single_sindex(
                 modification->primary_key,
                 [&](ql::changefeed::limit_manager_t *lm) {
                     for (const auto &pair :keys) {
-                        lm->del(ql::datum_t::extract_primary(
-                                    key_to_unescaped_str(pair.first)));;
+                        lm->del(pair.first, false);
                     }
                 });
 
@@ -1627,10 +1630,7 @@ void rdb_update_single_sindex(
                 modification->primary_key,
                 [&](ql::changefeed::limit_manager_t *lm) {
                     for (const auto &pair :keys) {
-                        lm->add(ql::datum_t::extract_primary(
-                                    key_to_unescaped_str(pair.first)),
-                                pair.second,
-                                added);
+                        lm->add(pair.first, false, pair.second, added);
                     }
                 });
             for (auto it = keys.begin(); it != keys.end(); ++it) {

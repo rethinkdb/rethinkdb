@@ -68,6 +68,12 @@ enum class use_json_t { NO = 0, YES = 1 };
 
 class grouped_data_t;
 
+struct components_t {
+    std::string secondary;
+    std::string primary;
+    boost::optional<uint64_t> tag_num;
+};
+
 // A `datum_t` is basically a JSON value, with some special handling for
 // ReQL pseudo-types.
 class datum_t {
@@ -185,6 +191,7 @@ public:
     static boost::optional<uint64_t> extract_tag(
             const std::string &secondary_and_primary);
     static boost::optional<uint64_t> extract_tag(const store_key_t &key);
+    static components_t extract_all(const std::string &secondary_and_primary);
     store_key_t truncated_secondary() const;
     void check_type(type_t desired, const char *msg = NULL) const;
     void type_error(const std::string &msg) const NORETURN;

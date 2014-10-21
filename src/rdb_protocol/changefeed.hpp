@@ -361,8 +361,8 @@ public:
         limit_order_t _lt,
         stream_t &&start_data);
 
-    void add(std::string id, datum_t key, datum_t val);
-    void del(std::string id);
+    void add(store_key_t sk, bool is_primary, datum_t key, datum_t val);
+    void del(store_key_t sk, bool is_primary);
     void commit(const boost::variant<primary_ref_t, sindex_ref_t> &sindex_ref);
 
     const region_t region; // TODO: use this when ranges are supported.

@@ -16,6 +16,7 @@
 
 namespace ql {
 
+// RSI: remove
 datum_t key_to_datum(std::string key) {
     // We use the escaped key to construct a `datum_t` that sorts
     // correctly.  An alternative, equally valid strategy would be to
@@ -375,20 +376,52 @@ limit_manager_t::limit_manager_t(
     debugf("lqueue: %zu (%p)\n", lqueue.size(), this);
 }
 
+// Produes a primary key + tag pair, mangled so that it sorts correctly and can
+// be safely stored in a datum.
+std::string key_to_mangled_primary(store_key_t store_key, bool is_primary) {
+    std::string s, raw_str = key_to_unescaped_str(store_key);
+    components_t components;
+    if (is_primary) {
+        components.primary = raw_str; // No tag.
+    } else {
+        components = datum_t::extract_all(raw_str);
+    }
+    debugf("primary: %s\n", components.primary.c_str());
+    for (auto c : components.primary) {
+        // We escape 0 because we don't support null bytes, 1 because we use it
+        // to delineate the start of the tag, and 2 because it's the escape
+        // character.
+        if (c == 0 || c == 1 || c == 2) {
+            s.push_back(2);
+            s.push_back(c+2);
+        } else {
+            s.push_back(c);
+        }
+    }
+    s.push_back(1); // Append regardless of whether there's a tag.
+    if (components.tag_num) {
+        uint64_t u = *components.tag_num;
+        // Shamelessly stolen from datum.cc.
+        s += strprintf("%.*" PRIx64, static_cast<int>(sizeof(uint64_t) * 2), u);
+    }
+    debugf("MANGLE: %s\n", s.c_str());
+    return s;
+}
 
-void limit_manager_t::add(std::string id, datum_t key, datum_t val) {
+void limit_manager_t::add(store_key_t sk, bool is_primary, datum_t key, datum_t val) {
     debugf("%p add %s <%s,%s>\n",
            this,
-           id.c_str(),
+           key_to_mangled_primary(sk, is_primary).c_str(),
            key.print().c_str(),
            val.print().c_str());
     added.push_back(
-        std::make_pair(std::move(id), std::make_pair(std::move(key), std::move(val))));
+        std::make_pair(key_to_mangled_primary(sk, is_primary),
+                       std::make_pair(std::move(key), std::move(val))));
 }
 
-void limit_manager_t::del(std::string id) {
-    debugf("%p add %s\n", this, id.c_str());
-    deleted.push_back(std::move(id));
+void limit_manager_t::del(store_key_t sk, bool is_primary) {
+    debugf("%p add %s\n", this, key_to_mangled_primary(sk, is_primary).c_str());
+    deleted.push_back(key_to_mangled_primary(sk, is_primary));
 }
 
 class ref_visitor_t : public boost::static_visitor<lvec_t> {
@@ -404,16 +437,20 @@ public:
 
     lvec_t operator()(const primary_ref_t &ref) {
         rget_read_response_t resp;
-        key_range_t range;
-        auto open = key_range_t::open;
+        key_range_t range = pk_range;
         switch (sorting) {
         case sorting_t::ASCENDING: {
-            auto kstart = start ? store_key_t((**start)->first) : store_key_t::min();
-            range = key_range_t(open, kstart, open, store_key_t::max());
+            if (start) {
+                store_key_t new_start((**start)->first);
+                new_start.increment(); // open bound
+                range.left = new_start;
+            }
         } break;
         case sorting_t::DESCENDING: {
-            auto kstart = start ? store_key_t((**start)->first) : store_key_t::max();
-            range = key_range_t(open, store_key_t::min(), open, kstart);
+            if (start) {
+                range.right = key_range_t::right_bound_t(
+                    store_key_t((**start)->first)); // right bound is open by default
+            }
         } break;
         case sorting_t::UNORDERED: // fallthru
         default: unreachable();
