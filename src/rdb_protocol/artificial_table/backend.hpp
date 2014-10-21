@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/datum_stream.hpp"
 
 /* `artificial_table_backend_t` is the interface that `artificial_table_t` uses to access
 the actual data or configuration. There is one subclass for each table like
@@ -40,7 +41,7 @@ public:
         const datum_range_t &range,
         sorting_t sorting,
         signal_t *interruptor,
-        counted_t<datum_stream> *rows_out,
+        counted_t<ql::datum_stream_t> *rows_out,
         std::string *error_out);
 
     virtual bool read_all_rows_as_vector(

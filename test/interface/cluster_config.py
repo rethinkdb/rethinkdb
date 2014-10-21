@@ -25,14 +25,14 @@ with driver.Metacluster() as metacluster:
     cluster.check()
     conn = r.connect("localhost", proc.driver_port)
 
-    rows = r.db("rethinkdb").table("cluster_config").run(conn)
+    rows = list(r.db("rethinkdb").table("cluster_config").run(conn))
     assert rows == [{"id": "auth", "auth_key": None}]
 
     res = r.db("rethinkdb").table("cluster_config").get("auth") \
            .update({"auth_key": "hunter2"}).run(conn)
     assert res["errors"] == 0
 
-    rows = r.db("rethinkdb").table("cluster_config").run(conn)
+    rows = list(r.db("rethinkdb").table("cluster_config").run(conn))
     assert rows == [{"id": "auth", "auth_key": {"hidden": True}}]
 
     try:
@@ -48,7 +48,7 @@ with driver.Metacluster() as metacluster:
            .update({"auth_key": None}).run(conn)
     assert res["errors"] == 0
 
-    rows = r.db("rethinkdb").table("cluster_config").run(conn)
+    rows = list(r.db("rethinkdb").table("cluster_config").run(conn))
     assert rows == [{"id": "auth", "auth_key": None}]
 
     r.connect("localhost", proc.driver_port).close()

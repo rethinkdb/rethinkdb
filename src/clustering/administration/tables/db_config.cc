@@ -57,12 +57,12 @@ std::string db_config_artificial_table_backend_t::get_primary_key_name() {
     return "uuid";
 }
 
-bool db_config_artificial_table_backend_t::read_all_primary_keys(
+bool db_config_artificial_table_backend_t::read_all_rows_as_vector(
         UNUSED signal_t *interruptor,
-        std::vector<ql::datum_t> *keys_out,
+        std::vector<ql::datum_t> *rows_out,
         UNUSED std::string *error_out) {
     on_thread_t thread_switcher(home_thread());
-    keys_out->clear();
+    rows_out->clear();
     databases_semilattice_metadata_t md = database_sl_view->get();
     for (auto it = md.databases.begin();
               it != md.databases.end();
@@ -70,7 +70,9 @@ bool db_config_artificial_table_backend_t::read_all_primary_keys(
         if (it->second.is_deleted()) {
             continue;
         }
-        keys_out->push_back(convert_uuid_to_datum(it->first));
+
+        name_string_t db_name = it->second.get_ref().name.get_ref();
+        rows_out->push_back(convert_db_config_and_name_to_datum(db_name, it->first));
     }
     return true;
 }

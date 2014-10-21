@@ -9,12 +9,13 @@ std::string common_table_artificial_table_backend_t::get_primary_key_name() {
     return "uuid";
 }
 
-bool common_table_artificial_table_backend_t::read_all_primary_keys(
-        UNUSED signal_t *interruptor,
-        std::vector<ql::datum_t> *keys_out,
-        UNUSED std::string *error_out) {
+bool common_table_artificial_table_backend_t::read_all_rows_as_vector(
+        signal_t *interruptor,
+        std::vector<ql::datum_t> *rows_out,
+        std::string *error_out) {
+    cross_thread_signal_t interruptor2(interruptor, home_thread());
     on_thread_t thread_switcher(home_thread());
-    keys_out->clear();
+    rows_out->clear();
     cow_ptr_t<namespaces_semilattice_metadata_t> md = table_sl_view->get();
     for (auto it = md->namespaces.begin();
               it != md->namespaces.end();
@@ -22,7 +23,15 @@ bool common_table_artificial_table_backend_t::read_all_primary_keys(
         if (it->second.is_deleted()) {
             continue;
         }
-        keys_out->push_back(convert_uuid_to_datum(it->first));
+
+        name_string_t table_name = it->second.get_ref().name.get_ref();
+        name_string_t db_name = get_db_name(it->second.get_ref().database.get_ref());
+        ql::datum_t row;
+        if (!format_row(it->first, table_name, db_name, it->second.get_ref(),
+                        &interruptor2, &row, error_out)) {
+            return false;
+        }
+        rows_out->push_back(row);
     }
     return true;
 }
@@ -47,8 +56,8 @@ bool common_table_artificial_table_backend_t::read_row(
     if (search_const_metadata_by_uuid(&md->namespaces, table_id, &it)) {
         name_string_t table_name = it->second.get_ref().name.get_ref();
         name_string_t db_name = get_db_name(it->second.get_ref().database.get_ref());
-        return read_row_impl(table_id, table_name, db_name, it->second.get_ref(),
-                             &interruptor2, row_out, error_out);
+        return format_row(table_id, table_name, db_name, it->second.get_ref(),
+                          &interruptor2, row_out, error_out);
     } else {
         *row_out = ql::datum_t();
         return true;

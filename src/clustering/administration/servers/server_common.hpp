@@ -12,6 +12,7 @@
 #include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/administration/servers/name_client.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
+#include "rdb_protocol/datum.hpp"
 #include "rpc/semilattice/view.hpp"
 
 /* This is a base class for the `rethinkdb.server_config` and `rethinkdb.server_status`
@@ -32,16 +33,23 @@ public:
     }
 
     std::string get_primary_key_name();
+
     bool read_all_rows_as_vector(
             signal_t *interruptor,
-            std::vector<ql::datum_t> *keys_out,
+            std::vector<ql::datum_t> *rows_out,
+            std::string *error_out);
+
+    bool read_row(
+            ql::datum_t primary_key,
+            signal_t *interruptor,
+            ql::datum_t *row_out,
             std::string *error_out);
 
 protected:
     virtual bool format_row(name_string_t const & name,
                             machine_id_t const & machine_id,
                             machine_semilattice_metadata_t const & machine,
-                            datum_t *row_out,
+                            ql::datum_t *row_out,
                             std::string *error_out) = 0;
 
     /* `lookup()` returns `true` if it finds a row corresponding to the given

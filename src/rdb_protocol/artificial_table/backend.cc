@@ -1,3 +1,7 @@
+#include "backend.hpp"
+
+#include "rdb_protocol/datum_stream.hpp"
+
 class artificial_table_datum_stream_t :
     public ql::eager_datum_stream_t
 {
@@ -15,7 +19,7 @@ private:
         return next_impl(env);
     }
 
-    ql::datum_t next_impl(ql::env_t *env) {
+    ql::datum_t next_impl(ql::env_t *) {
         if (index < rows.size()) {
             return std::move(rows[index++]);
         } else {
@@ -53,11 +57,11 @@ bool artificial_table_backend_t::read_all_rows_as_stream(
         const datum_range_t &range,
         sorting_t sorting,
         signal_t *interruptor,
-        counted_t<datum_stream> *rows_out,
+        counted_t<ql::datum_stream_t> *rows_out,
         std::string *error_out) {
     /* Fetch the rows from the backend */
     std::vector<ql::datum_t> rows;
-    if (!backend->read_all_rows_as_vector(interruptor, &rows, error_out)) {
+    if (!read_all_rows_as_vector(interruptor, &rows, error_out)) {
         return false;
     }
 
@@ -67,13 +71,13 @@ bool artificial_table_backend_t::read_all_rows_as_stream(
     if (!range.is_universe()) {
         std::vector<ql::datum_t> temp;
         for (const ql::datum_t &row : rows) {
-            ql::datum_t key = row.get_field(primary_key, NOTHROW);
+            ql::datum_t key = row.get_field(primary_key.c_str(), ql::NOTHROW);
             guarantee(key.has());
             if (range.contains(reql_version_t::LATEST, key)) {
-                temp.push_back(key);
+                temp.push_back(row);
             }
         }
-        keys = std::move(temp);
+        rows = std::move(temp);
     }
 
     /* Apply sorting */
@@ -84,15 +88,15 @@ bool artificial_table_backend_t::read_all_rows_as_stream(
         case sorting_t::DESCENDING:
             /* It's OK to use `std::sort()` instead of `std::stable_sort()` here because
             primary keys need to be unique. If we were to support secondary indexes on
-            artificial tables, we would need to ensure that `read_all_primary_keys()`
+            artificial tables, we would need to ensure that `read_all_rows_as_vector()`
             returns the keys in a deterministic order and then we would need to use a
             `std::stable_sort()` here. */
-            std::sort(keys.begin(), keys.end(),
+            std::sort(rows.begin(), rows.end(),
                 [&](const ql::datum_t &a, const ql::datum_t &b) {
-                    datum_t a_key = a.get_field(primary_key, NOTHROW);
-                    datum_t b_key = b.get_field(primary_key, NOTHROW);
+                    ql::datum_t a_key = a.get_field(primary_key.c_str(), ql::NOTHROW);
+                    ql::datum_t b_key = b.get_field(primary_key.c_str(), ql::NOTHROW);
                     guarantee(a_key.has() && b_key.has());
-                    if (sorting == ASCENDING) {
+                    if (sorting == sorting_t::ASCENDING) {
                         return a_key.compare_lt(reql_version_t::LATEST, b_key);
                     } else {
                         return a_key.compare_gt(reql_version_t::LATEST, b_key);

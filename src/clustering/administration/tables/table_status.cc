@@ -299,6 +299,7 @@ ql::datum_t convert_table_status_to_datum(
                         namespace_directory_metadata_t> *dir,
         server_name_client_t *name_client) {
     ql::datum_object_builder_t builder;
+
     builder.overwrite("name", convert_name_to_datum(table_name));
     builder.overwrite("db", convert_name_to_datum(db_name));
     builder.overwrite("uuid", convert_uuid_to_datum(uuid));
@@ -331,7 +332,7 @@ ql::datum_t convert_table_status_to_datum(
     return std::move(builder).to_datum();
 }
 
-bool table_status_artificial_table_backend_t::read_row_impl(
+bool table_status_artificial_table_backend_t::format_row(
         namespace_id_t table_id,
         name_string_t table_name,
         name_string_t db_name,

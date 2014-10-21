@@ -28,9 +28,9 @@ public:
 
     std::string get_primary_key_name();
 
-    bool read_all_primary_keys(signal_t *interruptor,
-                               std::vector<ql::datum_t> *keys_out,
-                               std::string *error_out);
+    bool read_all_rows_as_vector(signal_t *interruptor,
+                                 std::vector<ql::datum_t> *rows_out,
+                                 std::string *error_out);
 
     bool read_row(ql::datum_t primary_key,
                   signal_t *interruptor,

@@ -5,18 +5,6 @@
 #include "clustering/administration/servers/name_client.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 
-ql::datum_t convert_server_config_and_name_to_datum(
-        const name_string_t &name,
-        const machine_id_t &machine_id,
-        std::set<name_string_t> tags) {
-    ql::datum_object_builder_t builder;
-    builder.overwrite("name", convert_name_to_datum(name));
-    builder.overwrite("uuid", convert_uuid_to_datum(machine_id));
-    builder.overwrite("tags", convert_set_to_datum<name_string_t>(
-            &convert_name_to_datum, tags));
-    return std::move(builder).to_datum();
-}
-
 bool convert_server_config_and_name_from_datum(
         ql::datum_t datum,
         name_string_t *name_out,
@@ -69,22 +57,21 @@ bool convert_server_config_and_name_from_datum(
     return true;
 }
 
-bool server_config_artificial_table_backend_t::read_row(
-        ql::datum_t primary_key,
-        UNUSED signal_t *interruptor,
+bool server_config_artificial_table_backend_t::format_row(
+        name_string_t const & server_name,
+        machine_id_t const & server_id,
+        machine_semilattice_metadata_t const & server_sl,
         ql::datum_t *row_out,
         UNUSED std::string *error_out) {
-    on_thread_t thread_switcher(home_thread());
-    machines_semilattice_metadata_t servers_sl = servers_sl_view->get();
-    name_string_t server_name;
-    machine_id_t server_id;
-    machine_semilattice_metadata_t *server_sl;
-    if (!lookup(primary_key, &servers_sl, &server_name, &server_id, &server_sl)) {
-        *row_out = ql::datum_t();
-        return true;
-    }
-    *row_out = convert_server_config_and_name_to_datum(
-        server_name, server_id, server_sl->tags.get_ref());
+    ql::datum_object_builder_t builder;
+
+    builder.overwrite("name", convert_name_to_datum(server_name));
+    builder.overwrite("uuid", convert_uuid_to_datum(server_id));
+    builder.overwrite("tags", convert_set_to_datum<name_string_t>(
+            &convert_name_to_datum, server_sl.tags.get_ref()));
+
+    *row_out = std::move(builder).to_datum();
+
     return true;
 }
 

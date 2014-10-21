@@ -14,7 +14,7 @@
 #include "rpc/semilattice/view.hpp"
 
 /* This is a base class for the `rethinkdb.table_config` and `rethinkdb.table_status`
-pseudo-tables. Subclasses should implement `read_row_impl()` and `write_row()`. */
+pseudo-tables. Subclasses should implement `format_row()` and `write_row()`. */
 
 class common_table_artificial_table_backend_t :
     public artificial_table_backend_t
@@ -32,10 +32,12 @@ public:
     }
 
     std::string get_primary_key_name();
-    bool read_all_primary_keys(
+
+    bool read_all_rows_as_vector(
             signal_t *interruptor,
-            std::vector<ql::datum_t> *keys_out,
+            std::vector<ql::datum_t> *rows_out,
             std::string *error_out);
+
     bool read_row(
             ql::datum_t primary_key,
             signal_t *interruptor,
@@ -44,7 +46,7 @@ public:
 
 protected:
     /* This will always be called on the home thread */
-    virtual bool read_row_impl(
+    virtual bool format_row(
             namespace_id_t table_id,
             name_string_t table_name,
             name_string_t db_name,

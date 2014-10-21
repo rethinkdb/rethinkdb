@@ -26,8 +26,8 @@ bool common_server_artificial_table_backend_t::read_all_rows_as_vector(
                 if (!search_metadata_by_uuid(&servers_sl.machines, it->first, &sl_it)) {
                     continue;
                 }
-                if (!format_row(it->second, it->first, &servers_sl,
-                                sl_it->second.get_ref(), &row, error_out) {
+                if (!format_row(it->second, it->first, sl_it->second.get_ref(),
+                                &row, error_out)) {
                     result = false;
                     return;
                 }
