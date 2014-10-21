@@ -1579,6 +1579,10 @@ void raft_member_t<state_t>::leader_send_updates(
                         send_even_if_empty = true;
                     }
                 }
+
+                mutex_acq.init(
+                    new new_mutex_acq_t(&mutex, update_keepalive.get_drain_signal()));
+                DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
             }
         }
     } catch (interrupted_exc_t) {
