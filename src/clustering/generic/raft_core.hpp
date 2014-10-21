@@ -466,25 +466,31 @@ public:
     raft_persistent_state_t<state_t> get_state_for_init();
 
     /* TODO: These user-facing APIs are inadequate. We'll probably need:
-      * For queries initiated by the user, we'll want to be able to know if they
-        succeeded or failed. This should report "failed" if anything delays the query
-        significantly, such as if a new master is elected before the query is committed,
-        or if the master is no longer in contact with a majority.
       * A way to observe the state of the Raft cluster before initiating a change.
         Specifically, it would observe the "bleeding edge" state after everything in the
         log has been applied, not the committed state. This way we can enforce rules for
-        what changes are allowed following what states.
-    But I don't want to implement anything until I have a better sense of how these APIs
-    will end up being used. So I'll revisit this later. */
+        what changes are allowed following what states. */
 
-    /* `propose_change()` tries to apply a `change_t` to the cluster. It will fail if
-    this cluster member isn't the leader, or it is the leader but can't contact a quorum
-    of followers. If it fails, the change may or may not eventually be applied. Use
-    `get_readiness_for_change()` to determine which cluster member is ready to accept
-    changes. */
+    /* `propose_change()` tries to apply a `change_t` to the cluster. It will block until
+    the change has been applied or something goes wrong. It will return `true` if the
+    change was applied and `false` if something went wrong; in the latter case, the
+    change may or may not eventually be applied.
+
+    Before calling `propose_change()`, first search for a cluster member for which
+    `get_readiness_for_change()` returns `true`. In general there will be only one such
+    member, since `get_readiness_for_change()` will return `false` for a non-leader node.
+    If you call `propose_change()` when `get_readiness_for_change()` is `false`, then
+    `propose_change()` will return `false`.
+
+    `propose_change()` takes two interruptors. The "hard" interruptor will definitely
+    interrupt it but may leave the `raft_member_t` in an invalid state, so only pulse it
+    if you are about to destroy the `raft_member_t`. The "soft" interruptor will only
+    interrupt the waiting phase of `propose_change()`, but it will leave the
+    `raft_member_t` in a valid state. */
     bool propose_change(
         const typename state_t::change_t &change,
-        signal_t *interruptor);
+        signal_t *soft_interruptor,
+        signal_t *hard_interruptor);
 
     /* This `watchable_t<bool>` indicates if this member is ready to accept changes
     through `propose_change()`. */
@@ -492,12 +498,15 @@ public:
         return readiness_for_change.get_watchable();
     }
 
-    /* `propose_config_change()` tries to change the cluster's configuration. It will
-    fail if this cluster member isn't the leader; it is the leader but can't contact a
-    quorum of followers; or there is a reconfiguration currently in progress. */
+    /* `propose_config_change()` is like `propose_change()` but for reconfiguring the
+    cluster. Note that it will fail (and `get_readiness_for_config_change()` will return
+    false) if there is already a config change in progress. So you should watch
+    `get_readiness_for_config_change()` to see when it's safe to start the next config
+    change. */
     bool propose_config_change(
         const raft_config_t &new_config,
-        signal_t *interruptor);
+        signal_t *soft_interruptor,
+        signal_t *hard_interruptor);
 
     /* This `watchable_t<bool>` indicates if this member is ready to accept changes
     through `propose_config_change()`. */
@@ -690,7 +699,7 @@ private:
     /* `leader_append_log_entry()` is a helper for `propose_change_if_leader()` and
     `propose_config_change_if_leader()`. It adds an entry to the log but doesn't wait for
     the entry to be committed. It flushes persistent state to stable storage. */
-    void leader_append_log_entry(
+    raft_log_index_t leader_append_log_entry(
         const raft_log_entry_t<state_t> &log_entry,
         const new_mutex_acq_t *mutex_acq,
         signal_t *interruptor);
@@ -742,6 +751,12 @@ private:
     those variables changes, `update_readiness_for_change()` must be called. */
     watchable_variable_t<bool> readiness_for_change;
     watchable_variable_t<bool> readiness_for_config_change;
+
+    /* When `propose_change()` and `propose_config_change()` are running, they insert a
+    `cond_t *` into `lost_readiness_waiters`. If we stop being master or lose contact
+    with a majority of the cluster nodes, then all of the conds in
+    `lost_readiness_waiters` will be pulsed. */
+    std::set<cond_t *> lost_readiness_waiters;
 
     /* This mutex ensures that operations don't interleave in confusing ways. Each RPC
     acquires this mutex when it begins and releases it when it returns. Also, if

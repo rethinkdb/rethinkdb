@@ -131,7 +131,8 @@ public:
                 if (pair.second->drainer.has() &&
                         pair.second->member->get_readiness_for_change()->get()) {
                     cond_t non_interruptor;
-                    pair.second->member->propose_change(change, &non_interruptor);
+                    pair.second->member->propose_change(
+                        change, interruptor, &non_interruptor);
                     return;
                 }
             }
@@ -139,33 +140,6 @@ public:
             timer.start(delay);
             wait_interruptible(&timer, interruptor);
         }
-    }
-
-    /* Blocks until the cluster commits the given change. Call this function at a time
-    when a majority of the cluster is alive, and don't bring nodes up or down while this
-    function is running. */
-    void wait_for_commit(const uuid_u &change) {
-        raft_member_id_t chosen = nil_uuid();
-        for (const auto &pair : members) {
-            if (pair.second->drainer.has()) {
-                chosen = pair.first;
-            }
-        }
-        guarantee(!chosen.is_nil(), "wait_for_commit() couldn't find a living member");
-        run_on_member(chosen, [&](dummy_raft_member_t *member) {
-                guarantee(member != nullptr, "wait_for_commit() lost contact with "
-                    "member");
-                cond_t non_interruptor;
-                member->get_committed_state()->run_until_satisfied(
-                    [&](const dummy_raft_member_t::state_and_config_t &s) {
-                        for (const uuid_u &c : s.state.state) {
-                            if (c == change) {
-                                return true;
-                            }
-                        }
-                        return false;
-                    }, &non_interruptor);
-            });
     }
 
     /* `get_all_member_ids()` returns the member IDs of all the members of the cluster,
