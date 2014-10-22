@@ -1321,7 +1321,6 @@ void rdb_modification_report_cb_t::on_mod_report(
                             if (report.info.added.first) {
                                 // The conflicting null values are resolved by
                                 // the primary key.
-                                // RSI: test that!
                                 lm->add(report.primary_key, is_primary_t::YES,
                                         ql::datum_t::null(), report.info.added.first);
                             }
