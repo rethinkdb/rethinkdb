@@ -565,7 +565,7 @@ void raft_member_t<state_t>::on_install_snapshot_rpc(
         ps.log.prev_term = request.last_included_term;
 
         /* Because we modified `ps.log`, we need to update `latest_state` */
-        latest_state.set_value(state_and_config_t(
+        latest_state.set_value_no_equals(state_and_config_t(
             ps.log.prev_index, ps.snapshot_state, ps.snapshot_config));
     }
 

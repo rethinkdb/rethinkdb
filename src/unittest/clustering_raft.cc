@@ -143,22 +143,22 @@ public:
         try {
             return find_leader(&timer);
         } catch (const interrupted_exc_t &) {
-            ASSERT_FAILURE() << "find_leader() timed out";
+            crash("find_leader() timed out");
         }
     }
 
-    /* Tries to perform the given change, by first waiting for a cluster member to
-    indicate that it is ready for changes, and then performing the change on that member.
-    */
+    /* Tries to perform the given change on the member with the given ID. */
     bool try_change(raft_member_id_t id, const uuid_u &change,
             signal_t *interruptor) {
         bool res;
         run_on_member(id, [&](dummy_raft_member_t *member) {
             if (member != nullptr) {
-                res = member.propose_change(change, interruptor);
+                cond_t non_interruptor;
+                res = member->propose_change(change, interruptor, &non_interruptor);
             } else {
                 res = false;
-            });
+            }
+        });
         return res;
     }
 
@@ -350,49 +350,50 @@ private:
     repeating_timer_t timer;
 };
 
+void do_writes(dummy_raft_cluster_t *cluster, raft_member_id_t leader, int ms, int expect) {
+    dummy_raft_traffic_generator_t traffic_generator(cluster, 10);
+    cond_t non_interruptor;
+    nap(ms, &non_interruptor);
+    ASSERT_LT(expect, traffic_generator.get_num_changes());
+    cluster->run_on_member(leader, [&](dummy_raft_member_t *member) {
+        dummy_raft_state_t state = member->get_committed_state()->get().state;
+        traffic_generator.check_changes_present(state);
+    });
+}
+
 TPTEST(ClusteringRaft, Basic) {
     /* Spin up a Raft cluster and wait for it to elect a leader */
     dummy_raft_cluster_t cluster(5, dummy_raft_state_t(), nullptr);
-    raft_member_id_t leader = cluster.find_leader(10000);
-
-    /* Generate traffic against the cluster for 3 seconds */
-    dummy_raft_traffic_generator_t traffic_generator(&cluster, 10);
-    cond_t non_interruptor;
-    nap(2000, &non_interruptor);
-
-    /* Make sure that at least 100 changes got through */
-    ASSERT_GT(traffic_generator.get_num_changes(), 100);
-    cluster.run_on_member(leader, [](dummy_raft_member_t *member) {
-        dummy_raft_state_t state = member->get_committed_state()->get().state;
-        trafffic_generator.check_changes_present(state);
-    });
+    raft_member_id_t leader = cluster.find_leader(60000);
+    /* Do some writes and check the result */
+    do_writes(&cluster, leader, 2000, 100);
 }
 
 TPTEST(ClusteringRaft, Failover) {
     std::vector<raft_member_id_t> member_ids;
-    dummy_raft_cluster_t cluster(5, dummy_raft_state_t(), &member_ids);
-    cluster.find_leader(10000);
+    dummy_raft_cluster_t cluster(3, dummy_raft_state_t(), &member_ids);
     dummy_raft_traffic_generator_t traffic_generator(&cluster, 10);
-    nap(1000);
+    raft_member_id_t leader = cluster.find_leader(60000);
+    do_writes(&cluster, leader, 2000, 100);
     cluster.set_live(member_ids[0], dummy_raft_cluster_t::live_t::dead);
     cluster.set_live(member_ids[1], dummy_raft_cluster_t::live_t::dead);
-    cluster.find_leader(10000);
-    nap(1000);
+    leader = cluster.find_leader(60000);
+    do_writes(&cluster, leader, 2000, 100);
     cluster.set_live(member_ids[2], dummy_raft_cluster_t::live_t::dead);
     cluster.set_live(member_ids[3], dummy_raft_cluster_t::live_t::dead);
     cluster.set_live(member_ids[0], dummy_raft_cluster_t::live_t::alive);
     cluster.set_live(member_ids[1], dummy_raft_cluster_t::live_t::alive);
-    cluster.find_leader(10000);
-    nap(1000);
+    leader = cluster.find_leader(60000);
+    do_writes(&cluster, leader, 2000, 100);
     cluster.set_live(member_ids[4], dummy_raft_cluster_t::live_t::dead);
     cluster.set_live(member_ids[2], dummy_raft_cluster_t::live_t::alive);
     cluster.set_live(member_ids[3], dummy_raft_cluster_t::live_t::alive);
-    raft_member_id_t leader = cluster.find_leader(10000);
-    nap(1000);
-    ASSERT_GT(traffic_generator.get_num_changes(), 
-    cluster.run_on_member(leader, [](dummy_raft_member_t *member) {
+    leader = cluster.find_leader(60000);
+    do_writes(&cluster, leader, 2000, 100);
+    ASSERT_LT(100, traffic_generator.get_num_changes());
+    cluster.run_on_member(leader, [&](dummy_raft_member_t *member) {
         dummy_raft_state_t state = member->get_committed_state()->get().state;
-        guarantee(state.state.size() > 100);
+        traffic_generator.check_changes_present(state);
     });
 }
 
