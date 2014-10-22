@@ -1,0 +1,34 @@
+
+    <div class="status">
+        <h3>Consistency</h3>
+        {{#if has_conflicts}}
+        <p class="message"><span class="bad">{{num_conflicts}}</span> <a href="#" class="show_details">{{pluralize_noun "issue" num_conflicts}}</a> detected</p>
+        {{#if has_multiple_types}}
+        <p class="details"><span class="bad">{{num_types_conflicts}}</span> <a href="#" class="show_details">{{pluralize_noun "conflict type" num_types_conflicts}}</a> </p>
+        {{else}}
+        <p class="details"><span class="bad">{{num_conflicts}}</span> {{pluralize_noun type num_conflicts}} {{pluralize_verb_to_have num_conflicts}} conflicts</p>
+        {{/if}}
+        {{else}}
+        <p class="message"><span class="good">0</span> issues detected</p>
+        <p class="details"><span class="good">{{num_tables}}/{{num_tables}}</span> tables are consistent</p>
+        {{/if}}
+    </div>
+    <div class="popup_container">
+        <a class="close" href="#">&times;</a>
+        <div class="arrow_right"></div>
+        <div class="arrow_right_overlay"></div>
+        <div class="inner_content">
+            <h4>List of conflicts</h4>
+            {{#if has_conflicts}}
+            <ul class="ul_first_level">
+                {{#each conflicts}}
+                <li class="li_first_level">{{capitalize type}} <a href="#{{type}}s/{{id}}">{{name}}</a> has a conflict for the field {{field}}</li>
+                {{/each}}
+            </ul>
+            {{else}}
+            No conflicts detected.
+            {{/if}}
+            <a href="#resolve_issues" class="resolve_issues_link">Resolve issues</a>
+        </div>
+    </div>
+

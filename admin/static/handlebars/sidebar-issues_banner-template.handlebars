@@ -1,0 +1,28 @@
+{{#if show_banner}}
+    <div class="show-issues-banner {{#if no_issues}}no-issues{{/if}}">
+        <div class="gradient-overlay {{#if no_issues}}no-issues{{/if}}">
+            <div class="container">
+                {{#unless no_issues}}
+                    {{#if show_resolve}}
+                        <button class="btn btn-resolve-issues show-issues">Resolve issues</button>
+                    {{else}}
+                        <button class="btn btn-resolve-issues hide-issues">Hide issues</button>
+                    {{/if}}
+                {{/unless}}
+                {{#if no_issues}}
+                    <p class="message">All issues have been successfully resolved.</p>
+                {{else}}
+                    <p class="message"><strong>{{num_issues}} {{pluralize_noun "issue" num_issues}}</strong> {{pluralize_verb "need" num_issues}} to be resolved</p>
+                {{/if}}
+            </div>
+        </div>
+    </div>
+    <div class="all-issues" id="resolve-issues">
+        <div class="container">
+            <div id="issue-alerts"></div>
+            <div class="issues_list"></div>
+        </div>
+    </div>
+{{/if}}
+
+

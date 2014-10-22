@@ -1,0 +1,14 @@
+
+    <div class="checkbox-container">
+        <input type="checkbox" id="checkbox_table_list_{{id}}" class="checkbox-table"  data-database="{{db_json}}" data-table="{{name_json}}"></input><label for="checkbox_table_list_{{id}}"></label>    
+    </div>
+    <div class="element-details">
+        <p class="name"><a href="#tables/{{id}}">{{name}}</a></p>
+        <p class="quick_info">
+            {{shards}} {{pluralize_noun "shard" shards}}, {{replicas}} {{pluralize_noun "replica" replicas}}
+        </p>
+        <div class="status">
+            {{humanize_table_reachability ready_completely}}
+        </span>
+    </div>
+

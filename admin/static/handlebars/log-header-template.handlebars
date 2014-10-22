@@ -1,0 +1,24 @@
+
+    {{#if logs_for.general}}
+        <h2 class="title">Log entries{{#if has_logs}} <small>from {{from_date}} to {{to_date}}</small>{{/if}}</h2>
+    {{/if}}
+    {{#if logs_for.machine}}
+        <h2 class="title">Logs on this server{{#if has_logs}} <small>from {{from_date}} to {{to_date}}</small>{{/if}}</h2>
+    {{/if}}
+    {{#if logs_for.datacenter}}
+        <h2 class="title">Logs on this datacenter{{#if has_logs}} <small>from {{from_date}} to {{to_date}}</small>{{/if}}</h2>
+    {{/if}}
+    {{#if new_entries}}
+        <div class="alert displayed_alert">
+            <a href="#" class="close">×</a>
+            {{#if too_many_new_entries}}
+                <p>More than {{max_log_entries}} new log entries have been reported.<br/>
+                <a class="update-log-entries" href="#">Reload logs</a></p>
+            {{else}}
+                <p>{{num_new_entries}} new log {{pluralize_noun "entry" num_new_entries}} {{pluralize_verb_to_have num_new_entries}} just been reported.<br/>
+                <a class="update-log-entries" href="#">Update entries</a></p>
+            {{/if}}
+        </div>
+    {{/if}}
+
+

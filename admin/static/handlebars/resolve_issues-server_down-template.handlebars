@@ -1,0 +1,25 @@
+
+    <div class="issue {{#if critical }}critical{{/if}}">
+        <div class="issue-header">
+            <button class="btn btn-danger solve-issue">Permanently remove</button>
+            <p class="issue-type">Server down</p>
+            <p class="message">{{info.server}} is inaccessible</p>
+            {{!-- Uncomment this when the time attribute is re-added
+            <p class="datetime"><abbr class="timeago" title="{{time}}">{{time}}</abbr></p>
+            --}}
+        </div>
+        <hr />
+        <div class="issue-details">
+          <p>{{description}}</p>
+          <p>Affected servers:</p>
+          <ul>
+            {{#each info.affected_servers}}
+            <li>{{this}}</li>
+            {{/each}}
+          </ul>
+          {{!-- Used to have master/shard/replica info here, 
+                but there's none in the issues table --}}
+        </div>
+    </div>
+
+

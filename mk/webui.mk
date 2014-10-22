@@ -53,18 +53,38 @@ IMAGES_EXTERNAL_DIR := $(WEB_SOURCE_DIR)/static/images
 FAVICON := $(WEB_SOURCE_DIR)/favicon.ico
 
 
-HANDLEBAR_HTML_FILES := $(shell find $(WEB_SOURCE_DIR)/static/handlebars -name \*.html)
+HANDLEBARS_SOURCE_DIR := $(WEB_SOURCE_DIR)/static/handlebars
+HANDLEBARS_OBJ_DIR := $(WEB_ASSETS_OBJ_DIR)/handlebars
+HANDLEBARS_SOURCES := $(shell find $(HANDLEBARS_SOURCE_DIR) -name \*.handlebars)
+HANDLEBARS_FUNCTIONS := $(patsubst $(HANDLEBARS_SOURCE_DIR)/%.handlebars, $(HANDLEBARS_OBJ_DIR)/%.js, $(HANDLEBARS_SOURCES))
+# handlebars optimizes the templates a bit if it knows these helpers are available. Not adding new helpers to this
+# variable isn't catastrophic, just a tiny bit slower on re-renders
+HANDLEBARS_KNOWN_HELPERS := if unless each capitalize pluralize-noun humanize_uuid comma_separated links_to_machines \
+	comma_separated_simple pluralize_verb pluralize_verb_to_have
 
 .PHONY: web-assets
 web-assets: $(BUILD_WEB_ASSETS) | $(BUILD_DIR)/.
+
+.PHONY: clean-webobj
+clean-webobj:
+	rm -rf $(WEB_ASSETS_OBJ_DIR)
 
 $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js: $(JS_BUILD_DIR)/rethinkdb.js | $(WEB_ASSETS_BUILD_DIR)/js/.
 	$P CP
 	cp -pRP $< $@
 
-$(WEB_ASSETS_BUILD_DIR)/js/template.js: $(HANDLEBAR_HTML_FILES) $(HANDLEBARS_BIN_DEP) $(TOP)/scripts/build_handlebars_templates.py | $(WEB_ASSETS_BUILD_DIR)/js/.
-	$P HANDLEBARS $@
-	env TC_HANDLEBARS_EXE=$(HANDLEBARS) $(TOP)/scripts/build_handlebars_templates.py $(WEB_SOURCE_DIR)/static/handlebars $(BUILD_DIR) $(WEB_ASSETS_BUILD_DIR)/js
+$(WEB_ASSETS_BUILD_DIR)/js/template.js: $(HANDLEBARS_FUNCTIONS)
+	$P CONCAT $(@F)
+	cat $+ > $@
+
+$(HANDLEBARS_OBJ_DIR)/%.handlebars: $(HANDLEBARS_SOURCE_DIR)/%.handlebars | $(WEB_ASSETS_OBJ_DIR)/.
+	$P SQUEEZE $(@F)
+	mkdir -p $(@D)
+	tr -s '[:space:]' < $^ > $@
+
+$(HANDLEBARS_OBJ_DIR)/%.js: $(HANDLEBARS_OBJ_DIR)/%.handlebars | $(WEB_ASSETS_OBJ_DIR)/.
+	$P HANDLEBARS $(@F)
+	$(HANDLEBARS) -m $(addprefix -k , $(HANDLEBARS_KNOWN_HELPERS)) $^ > $@
 
 $(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(JS_VERSION_FILE) $(COFFEE_COMPILED_JS) | $(WEB_ASSETS_BUILD_DIR)/.
 	$P CONCAT $@

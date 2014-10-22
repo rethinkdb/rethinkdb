@@ -1,0 +1,51 @@
+
+  <div class="alert alert-error alert_modal_content" data-alert="alert">
+      <a class="close" href="#">&times;</a>
+    {{#if ajax_fail}}
+    Sorry, something went wrong with the request. Please try again.
+    {{#if error}}<br/>Error: <pre class="server_error">{{error.message}}</pre>{{/if}}
+    {{/if}}
+    {{#if create_db_first}}
+        <p>You need to create a database before creating a table.<p>
+    {{/if}}
+    {{#if port_isnt_integer}}
+        <p>Please enter an integer for the port.</p>
+    {{/if}}
+    {{#if database_is_empty}}
+        <p>Please do not use an empty name for a database.</p>
+    {{/if}}
+     {{#if database_exists}}
+        <p>The chosen database's name is already being used.<br/>Please choose another one.</p>
+    {{/if}}
+    {{#if table_name_empty}}
+        <p>Please do not use an empty name for a table.</p>
+    {{/if}}
+    {{#if no_database}}
+        <p>You have to select a database.</p>
+    {{/if}}
+    {{#if table_exists}}
+        <p>The chosen table is already being used. Please choose another one.</p>
+    {{/if}}
+    {{#if datacenter_is_empty}}
+        <p>Please do not use an empty name for a datacenter.</p>
+    {{/if}}
+    {{#if datacenter_exists}}
+        <p>The chosen datacenter's name is already being used. please choose another one.</p>
+    {{/if}}
+    {{#if machine_is_empty}}
+        <p>Please do not use an empty name for a server.</p>
+    {{/if}}
+    {{#if machine_exists}}
+        <p>The chosen server's name is already being used. please choose another one.</p>
+    {{/if}}
+    {{#if special_char_detected}}
+    <p>You can only use alphanumeric characters and underscores for a {{type}}'s name.</p>
+    {{/if}}
+    {{#if fail_create_secondary_index}}
+    <p>The secondary index could not be created. Message returned by the driver:<br/>
+    {{message}}</p>
+    {{/if}}
+  </div>
+
+
+

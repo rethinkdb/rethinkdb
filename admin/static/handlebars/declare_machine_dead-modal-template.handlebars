@@ -1,0 +1,40 @@
+
+    <div class="alert alert-error error_answer"></div>
+
+
+    <p class="first_question"><strong>How can service availability be restored?</strong></p>
+
+    <p>
+        To restore service availability, this server either needs to rejoin
+        the cluster or be permanently removed.
+    </p>
+
+    <p><strong>What does removing a server do?</strong></p>
+
+    <p>The server will be dropped from the cluster, service availability
+        will resume, and its data will be destroyed to maintain cluster
+        integrity.
+    </p>
+
+    <hr>
+
+    <div class="input">
+        <h3>
+            Are you sure you want to permanently remove <strong>{{machine_name}}</strong>?
+        </h3>
+
+        <div class="alert alert-error displayed_alert">
+            <strong>Warning:</strong> Removing this server will destroy its
+            data, proceed with caution.
+        </div>
+
+        <p>
+            <div class="error_verification">
+                Please type "remove" to confirm
+            </div>
+        </p>
+        <input class="verification" name="name" placeholder='Type "remove" to confirm' size="30" type="text" autocomplete="off" />
+    </div>
+
+
+

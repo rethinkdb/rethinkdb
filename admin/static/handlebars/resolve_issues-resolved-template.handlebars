@@ -1,0 +1,18 @@
+
+    <div class="alert" data-alert="alert">
+        <a class="close" href="#">&times;</a>
+        {{#if name_conflict}}
+            <p>You successfully solved the name conflict.</p>
+        {{/if}}
+        {{#if machine_dead}}
+            <p>You successfully removed the server <span class="name">{{machine_name}}</span>.</p>
+        {{/if}}
+        {{#if vclock_conflict}}
+            <p>You successfully resolved the configuration value to <span class="name">{{final_value}}</span>.</p>
+        {{/if}}
+        {{#if unsatisfiable_goals}}
+        <p>You successfully solved {{#unless can_be_solved}}a part of{{/unless}} the unsatisfiable goals issue.</p>
+        {{/if}}
+    </div>
+
+

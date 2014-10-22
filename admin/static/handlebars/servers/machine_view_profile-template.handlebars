@@ -1,0 +1,19 @@
+
+    <div class="summary">
+        <div class="stat-row first">
+            <p class="availability"><span class="big">{{humanize_machine_reachability reachability}}</span></p>
+        </div>
+        <div class="stat-row">
+            <p class="datacenter">
+                <span class="big">{{version}}</span> version
+            </p>
+        </div>
+        <div class="stat-row">
+            <p class="uptime"><span class="big">{{uptime}} </span>uptime</p>
+        </div>
+        <div class="stat-row">
+            <p class="ips"><span class="big">{{#if main_ip}}{{main_ip}}{{else}}N/A{{/if}} </span>hostname</p>
+        </div>
+    </div>
+
+

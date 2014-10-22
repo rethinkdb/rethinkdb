@@ -1,0 +1,19 @@
+
+    <div class="issue {{#if critical }}critical{{/if}} name-conflict">
+        <div class="issue-header">
+            <p class="issue-type">Cluster configuration conflict</p>
+            <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>
+        </div>
+        <hr />
+        <div class="issue-details">
+            <p>This issue is caused by making changes to the cluster configuration on both sides of an intermittent network connection.</p>
+            <p>The {{field}} of {{object_type}} <a href="#{{object_type_url}}/{{object_id}}">{{#if name_contest}}{{humanize_uuid object_id}}{{else}}{{object_name}}{{/if}}</a> has the following conflicting values:</h4>
+            <ul>
+                {{#each contestants}}
+                    <li>{{value}} (<a id="resolve_{{contestant_id}}" href="#">use this value</a>)</li>
+                {{/each}}
+            </ul>
+        </div>
+    </div>
+
+

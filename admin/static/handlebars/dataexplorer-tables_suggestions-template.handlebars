@@ -1,0 +1,19 @@
+
+    <p>
+    {{#if error}}
+        The database specified in db() was not found.
+    {{else}}
+        {{#if no_table}}
+            {{#if database_name}}
+                No table found in {{database_name}}. Use tableCreate() to create a new table first.
+            {{else}}
+                You need to create a database then a table first.
+            {{/if}}
+        {{else}}
+            List of tables{{#if database_name}} in {{database_name}}{{/if}}: <strong>{{comma_separated_simple tables_available}}</strong>
+        {{/if}}
+    {{/if}}
+    </p>
+    <div class="separation"></div>
+
+

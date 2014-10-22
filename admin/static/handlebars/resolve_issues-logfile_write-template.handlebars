@@ -1,0 +1,19 @@
+
+    <div class="issue {{#if critical }}critical{{/if}} name-conflict">
+        <div class="issue-header">
+            <button class="btn btn-danger solve-issue">Permanently remove</button>
+            <p class="issue-type">Cannot write logs</p>
+            <p class="message">File cannot be written on server <a class="change-route" href="/#servers/{{info.server_ids.[0]}}">{{info.servers.[0]}}</a></p>
+            {{!--<p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>--}}
+        </div>
+        <hr />
+        <div class="issue-details">
+          <p>Log file is inaccessible on server
+            <a class="change-route"
+               href="/#servers/{{info.server_ids.[0]}}">
+              {{info.servers.[0]}}</a>.
+            Please resolve the issue on the server, or permanently remove it from the cluster.<p>
+        </div>
+    </div>
+
+

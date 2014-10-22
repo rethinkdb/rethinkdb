@@ -1,0 +1,20 @@
+
+    <div class="alert alert-error error_answer"></div>
+    <p>Are you sure you want to lower the number of replicas for table <a class="change-route" href="#tables/{{namespace_id}}">{{namespace_name}}</a> in the following datacenters or in the whole cluster:</p>
+    <ul>
+        {{#each datacenters_with_issues}}
+        <li>
+        {{#if is_universe}}
+        Whole cluster
+        {{else}}
+        <a class="change-route" href="#datacenters/{{this.datacenter_id}}">{{this.datacenter_name}}</a> from
+        {{/if}}
+            <strong>{{this.num_replicas}}</strong> to <strong>{{num_machines}}</strong>
+                {{#if this.change_ack}}
+                <br /><strong>Warning</strong>: The number of acks will be lowered too.
+                {{/if}}
+            </li>
+        {{/each}}
+    </ul>
+
+
