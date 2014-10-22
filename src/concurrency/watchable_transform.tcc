@@ -170,7 +170,7 @@ watchable_buffer_t<value_t>::watchable_buffer_t(
         subs(std::bind(&watchable_buffer_t::notify, this)) {
     typename watchable_t<value_t>::freeze_t freeze(input);
     subs.reset(input, &freeze);
-    output.set_value(input->get());
+    output.set_value_no_equals(input->get());
 }
 
 template<class value_t>
@@ -189,10 +189,10 @@ void watchable_buffer_t<value_t>::notify() {
                 return;
             }
             /* It's important that we set `coro_running` to `false` before delivering the
-            update, so that if `output.set_value()` somehow causes `notify` to be called
-            again, the new update will still get delivered eventually. */
+            update, so that if `output.set_value_no_equals()` somehow causes `notify` to
+            be called again, the new update will still get delivered eventually. */
             coro_running = false;
-            output.set_value(input->get());
+            output.set_value_no_equals(input->get());
         });
     }
 }

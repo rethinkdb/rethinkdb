@@ -185,7 +185,7 @@ void server_issue_tracker_t::combine(
                     down_issue.down_server_id,
                     &down_issue));
             } else {
-                rassert(down_issue.affected_server_ids.size() == 0);
+                rassert(down_issue.affected_server_ids.size() == 1);
                 combined_it->second->add_server(down_issue.affected_server_ids[0]);
             }
         }
@@ -207,7 +207,7 @@ void server_issue_tracker_t::combine(
                     ghost_issue.ghost_server_id,
                     &ghost_issue));
             } else {
-                rassert(ghost_issue.affected_server_ids.size() == 0);
+                rassert(ghost_issue.affected_server_ids.size() == 1);
                 combined_it->second->add_server(ghost_issue.affected_server_ids[0]);
             }
         }

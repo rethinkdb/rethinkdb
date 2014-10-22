@@ -437,10 +437,10 @@ class TestGetIntersectingBatching(TestWithConnection):
         random.seed(rseed)
         print("Random seed: " + str(rseed))
         points = []
-        for i in range(0, point_count):
+        for i in xrange(0, point_count):
             points.append({'geo':r.point(random.uniform(-180.0, 180.0), random.uniform(-90.0, 90.0))})
         polygons = []
-        for i in range(0, poly_count):
+        for i in xrange(0, poly_count):
             # A fairly big circle, so it will cover a large range in the secondary index
             polygons.append({'geo':r.circle([random.uniform(-180.0, 180.0), random.uniform(-90.0, 90.0)], 1000000)})
         t1.insert(points).run(c)
@@ -450,7 +450,7 @@ class TestGetIntersectingBatching(TestWithConnection):
         # While the test is randomized, chances are extremely high to get a lazy result at least once.
         seen_lazy = False
 
-        for i in range(0, get_tries):
+        for i in xrange(0, get_tries):
             query_circle = r.circle([random.uniform(-180.0, 180.0), random.uniform(-90.0, 90.0)], 8000000);
             reference = t1.filter(r.row['geo'].intersects(query_circle)).coerce_to("ARRAY").run(c)
             cursor = t1.get_intersecting(query_circle, index='geo').run(c, max_batch_rows=batch_size)
@@ -480,7 +480,7 @@ class TestBatching(TestWithConnection):
         batch_size = 3
         count = 500
 
-        ids = set(range(0, count))
+        ids = set(xrange(0, count))
 
         t1.insert([{'id':i} for i in ids]).run(c)
         cursor = t1.run(c, max_batch_rows=batch_size)

@@ -74,6 +74,10 @@ scoped_ptr_t<val_t> reql_func_t::call(env_t *env,
     }
 }
 
+boost::optional<size_t> reql_func_t::arity() const {
+    return arg_names.size();
+}
+
 bool reql_func_t::is_deterministic() const {
     return body->is_deterministic();
 }
@@ -118,6 +122,10 @@ scoped_ptr_t<val_t> js_func_t::call(
         rfail(e.get_type(), "%s", e.what());
         unreachable();
     }
+}
+
+boost::optional<size_t> js_func_t::arity() const {
+    return boost::none;
 }
 
 bool js_func_t::is_deterministic() const {
