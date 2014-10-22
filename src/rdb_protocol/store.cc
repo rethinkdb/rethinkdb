@@ -299,31 +299,16 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             stream = groups_to_batch(
                 gs->get_underlying_map(ql::grouped::order_doesnt_matter_t()));
         }
-        // RSI: make this not return a `stream_t`, make it pull out the bits and
-        // return a proper pair etc, because that's the only way to sort it
-        // correctly.
-        auto gt = ql::changefeed::limit_order_t(s.spec.range.sorting);
-        std::sort(stream.begin(), stream.end(),
-                  [gt](const ql::rget_item_t &a, const ql::rget_item_t &b) {
-                      guarantee(!(b.sindex_key.has() ^ a.sindex_key.has()));
-                      // Ordering is intentional.
-                      return gt(b.sindex_key.has(), a.sindex_key);
-                  });
-        std::string s2;
-        for (const auto &item : stream) {
-            s2 += "IDS " + strip_as(item.sindex_key.print()) + "\n";
-        }
-        if (stream.size() > s.spec.limit) {
-            stream.resize(s.spec.limit);
-        }
-        for (const auto &item : stream) {
-            s2 += "REAL_IDS " + strip_as(item.sindex_key.print()) + "\n";
-        }
-        debugf("%s\n", s2.c_str());
+        auto lvec = ql::changefeed::mangle_sort_truncate_stream(
+            std::move(stream),
+            s.spec.range.sindex ? is_primary_t::NO : is_primary_t::YES,
+            s.spec.range.sorting,
+            s.spec.limit);
 
         guarantee(store->changefeed_server.has());
         store->changefeed_server->add_limit_client(
-            s.addr, s.region, s.table, s.uuid, s.spec, gt, std::move(stream));
+            s.addr, s.region, s.table, s.uuid, s.spec,
+            ql::changefeed::limit_order_t(s.spec.range.sorting), std::move(lvec));
         auto addr = store->changefeed_server->get_limit_stop_addr();
         std::vector<decltype(addr)> vec{addr};
         response->response = changefeed_limit_subscribe_response_t(1, std::move(vec));

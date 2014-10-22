@@ -36,6 +36,8 @@ class superblock_t;
 struct sindex_disk_info_t;
 struct rdb_modification_report_t;
 
+enum class is_primary_t { NO, YES };
+
 namespace ql {
 
 class base_exc_t;
@@ -48,10 +50,16 @@ datum_t key_to_datum(std::string key);
 
 namespace changefeed {
 
+typedef std::pair<std::string, std::pair<datum_t, datum_t> > lvec_item_t;
+typedef std::vector<lvec_item_t> lvec_t;
+
+lvec_t mangle_sort_truncate_stream(
+    stream_t &&stream, is_primary_t is_primary, sorting_t sorting, size_t n);
+
 struct msg_t {
     struct limit_start_t {
         uuid_u sub;
-        std::vector<std::pair<std::string, std::pair<datum_t, datum_t> > > start_data;
+        lvec_t start_data;
 
         limit_start_t() { };
         limit_start_t(uuid_u _sub, decltype(start_data) _start_data)
@@ -321,7 +329,7 @@ public:
 class limit_order_t {
 public:
     limit_order_t(sorting_t _sorting);
-    bool operator()(const store_key_t &, const store_key_t &) const;
+    bool operator()(const lvec_item_t &, const lvec_item_t &) const;
     bool operator()(const datum_t &, const datum_t &) const;
     bool operator()(const std::string &, const std::string &) const;
 private:
@@ -344,8 +352,6 @@ struct sindex_ref_t {
     const sindex_disk_info_t *sindex_info;
 };
 
-typedef std::vector<std::pair<std::string, std::pair<datum_t, datum_t> > > lvec_t;
-
 class server_t;
 class limit_manager_t {
 public:
@@ -360,10 +366,10 @@ public:
         client_t::addr_t _parent_client,
         keyspec_t::limit_t _spec,
         limit_order_t _lt,
-        stream_t &&start_data);
+        lvec_t &&lvec);
 
-    void add(store_key_t sk, bool is_primary, datum_t key, datum_t val);
-    void del(store_key_t sk, bool is_primary);
+    void add(store_key_t sk, is_primary_t is_primary, datum_t key, datum_t val);
+    void del(store_key_t sk, is_primary_t is_primary);
     void commit(const boost::variant<primary_ref_t, sindex_ref_t> &sindex_ref);
 
     const region_t region; // TODO: use this when ranges are supported.
@@ -408,7 +414,7 @@ public:
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
         limit_order_t lt,
-        stream_t &&start_data);
+        lvec_t &&start_data);
     // `key` should be non-NULL if there is a key associated with the message.
     void send_all(const msg_t &msg, const store_key_t &key);
     void stop_all();

@@ -146,7 +146,7 @@ void server_t::add_limit_client(
     const uuid_u &client_uuid,
     const keyspec_t::limit_t &spec,
     limit_order_t lt,
-    stream_t &&stream) {
+    lvec_t &&lvec) {
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
@@ -165,7 +165,7 @@ void server_t::add_limit_client(
             it->first,
             spec,
             std::move(lt),
-            std::move(stream));
+            std::move(lvec));
         debugf("ADD_LIMIT_CLIENT %p\n", lm.get());
         lspot.write_signal()->wait_lazily_unordered();
         vec->push_back(std::move(lm));
@@ -307,10 +307,10 @@ limit_order_t::limit_order_t(sorting_t _sorting)
 
 // Produes a primary key + tag pair, mangled so that it sorts correctly and can
 // be safely stored in a datum.
-std::string key_to_mangled_primary(store_key_t store_key, bool is_primary) {
+std::string key_to_mangled_primary(store_key_t store_key, is_primary_t is_primary) {
     std::string s, raw_str = key_to_unescaped_str(store_key);
     components_t components;
-    if (is_primary) {
+    if (is_primary == is_primary_t::YES) {
         components.primary = raw_str; // No tag.
     } else {
         components = datum_t::extract_all(raw_str);
@@ -337,22 +337,54 @@ std::string key_to_mangled_primary(store_key_t store_key, bool is_primary) {
     return s;
 }
 
-bool limit_order_t::operator()(const store_key_t &a, const store_key_t &b) const {
-    guarantee(!(a.sindex_key.has() ^ b.sindex_key.has()));
-    if (a.sindex_key.has()) {
-        int cmp = a.cmp(reql_version_t::LATEST, b);
-        switch (sorting) {
-        case sorting_t::ASCENDING: return cmp > 0;
-        case sorting_t::DESCENDING: return cmp < 0;
-        case sorting_t::UNORDERED:
-            return (*this)(key_to_mangled_primary(a.key, false),
-                           key_to_mangled_primary(b.key, false));
-        default: unreachable();
-        }
-    } else {
-        return (*this)(key_to_mangled_primary(a.key, true),
-                       key_to_mangled_primary(b.key, true));
+sorting_t flip(sorting_t sorting) {
+    switch (sorting) {
+    case sorting_t::ASCENDING: return sorting_t::DESCENDING;
+    case sorting_t::DESCENDING: return sorting_t::ASCENDING;
+    case sorting_t::UNORDERED: // fallthru
+    default: unreachable();
     }
+    unreachable();
+}
+
+lvec_t mangle_sort_truncate_stream(
+    stream_t &&stream, is_primary_t is_primary, sorting_t sorting, size_t n) {
+    lvec_t vec;
+    vec.reserve(stream.size());
+    for (auto &&item : stream) {
+        guarantee(is_primary ==
+                  (item.sindex_key.has() ? is_primary_t::NO : is_primary_t::YES));
+        vec.push_back(
+            std::make_pair(
+                key_to_mangled_primary(item.key, is_primary),
+                std::make_pair(
+                    is_primary == is_primary_t::YES ? datum_t::null() : item.sindex_key,
+                    item.data)));
+    }
+    // We only need to sort to resolve truncated sindexes.
+    if (is_primary == is_primary_t::NO) {
+        // Note that we flip the sorting.  This is intentional, because we want to
+        // drop the "highest" elements even though we usually use the sorting to put
+        // the lowest elements at the back.
+        std::sort(vec.begin(), vec.end(), limit_order_t(flip(sorting)));
+    }
+    if (vec.size() > n) {
+        vec.resize(n);
+    }
+    return vec;
+}
+
+bool limit_order_t::operator()(const lvec_item_t &a, const lvec_item_t &b) const {
+    int cmp = a.second.first.cmp(reql_version_t::LATEST, b.second.first);
+    switch (sorting) {
+    case sorting_t::ASCENDING:
+        return cmp > 0 ? true : ((cmp < 0) ? false : (*this)(a.first, b.first));
+    case sorting_t::DESCENDING:
+        return cmp < 0 ? true : ((cmp > 0) ? false : (*this)(a.first, b.first));
+    case sorting_t::UNORDERED: // fallthru
+    default: unreachable();
+    }
+    unreachable();
 }
 
 bool limit_order_t::operator()(const datum_t &a, const datum_t &b) const {
@@ -391,7 +423,7 @@ limit_manager_t::limit_manager_t(
     client_t::addr_t _parent_client,
     keyspec_t::limit_t _spec,
     limit_order_t _gt,
-    stream_t &&stream)
+    lvec_t &&lvec)
     : region(std::move(_region)),
       table(std::move(_table)),
       uuid(std::move(_uuid)),
@@ -400,33 +432,18 @@ limit_manager_t::limit_manager_t(
       spec(std::move(_spec)),
       gt(std::move(_gt)),
       lqueue(gt) {
-    debugf("limit_manager_t::limit_manager_t %zu\n", stream.size());
-    for (auto &&item : stream) {
-        auto keystr = key_to_unescaped_str(item.key);
-        bool inserted;
-        if (spec.range.sindex) {
-            inserted = lqueue.insert(
-                datum_t::extract_primary(keystr),
-                std::move(item.sindex_key),
-                std::move(item.data)).second;
-        } else {
-            inserted = lqueue.insert(
-                keystr, key_to_datum(keystr), std::move(item.data)).second;
-        }
+    debugf("limit_manager_t::limit_manager_t %zu\n", lvec.size());
+    guarantee(lqueue.size() == 0);
+    for (const auto &pair : lvec) {
+        bool inserted = lqueue.insert(pair).second;
         guarantee(inserted);
     }
-
-    std::vector<std::pair<std::string, std::pair<datum_t, datum_t> > > v;
-    for (const auto &pair : lqueue) {
-        guarantee(pair->second.first.has());
-        guarantee(pair->second.second.has());
-        v.push_back(*pair);
-    }
-    send(msg_t(msg_t::limit_start_t(uuid, std::move(v))));
+    send(msg_t(msg_t::limit_start_t(uuid, std::move(lvec))));
     debugf("lqueue: %zu (%p)\n", lqueue.size(), this);
 }
 
-void limit_manager_t::add(store_key_t sk, bool is_primary, datum_t key, datum_t val) {
+void limit_manager_t::add(
+    store_key_t sk, is_primary_t is_primary, datum_t key, datum_t val) {
     debugf("%p add %s <%s,%s>\n",
            this,
            key_to_mangled_primary(sk, is_primary).c_str(),
@@ -437,7 +454,7 @@ void limit_manager_t::add(store_key_t sk, bool is_primary, datum_t key, datum_t 
                        std::make_pair(std::move(key), std::move(val))));
 }
 
-void limit_manager_t::del(store_key_t sk, bool is_primary) {
+void limit_manager_t::del(store_key_t sk, is_primary_t is_primary) {
     debugf("%p add %s\n", this, key_to_mangled_primary(sk, is_primary).c_str());
     deleted.push_back(key_to_mangled_primary(sk, is_primary));
 }
@@ -496,14 +513,8 @@ public:
         stream_t stream = groups_to_batch(
             gs->get_underlying_map(ql::grouped::order_doesnt_matter_t()));
         guarantee(stream.size() <= n);
-        lvec_t lvec;
-        for (auto &&item : stream) {
-            std::string keystr = key_to_unescaped_str(item.key);
-            lvec.push_back(
-                std::make_pair(
-                    keystr,
-                    std::make_pair(key_to_datum(keystr), std::move(item.data))));
-        }
+        lvec_t lvec = mangle_sort_truncate_stream(
+            std::move(stream), is_primary_t::YES, sorting, n);
         return lvec;
     }
 
@@ -547,21 +558,8 @@ public:
         }
         stream_t stream = groups_to_batch(
             gs->get_underlying_map(ql::grouped::order_doesnt_matter_t()));
-        auto gt = ql::changefeed::limit_order_t(sorting);
-        std::sort(stream.begin(), stream.end(),
-                  [gt](const rget_item_t &a, const rget_item_t &b) {
-                      return gt(b.sindex_key, a.sindex_key); // Ordering is intentional.
-                  });
-        if (stream.size() > n) {
-            stream.resize(n);
-        }
-        lvec_t lvec;
-        for (auto &&item : stream) {
-            lvec.push_back(
-                std::make_pair(
-                    datum_t::extract_primary(key_to_unescaped_str(item.key)),
-                    std::make_pair(std::move(item.sindex_key), std::move(item.data))));
-        }
+        lvec_t lvec = mangle_sort_truncate_stream(
+            std::move(stream), is_primary_t::NO, sorting, n);
         return lvec;
     }
 
