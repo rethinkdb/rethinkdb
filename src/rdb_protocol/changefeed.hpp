@@ -46,11 +46,10 @@ class datum_stream_t;
 class env_t;
 class table_t;
 
-datum_t key_to_datum(std::string key);
-
 namespace changefeed {
 
 typedef std::pair<std::string, std::pair<datum_t, datum_t> > lvec_item_t;
+typedef std::pair<const std::string, std::pair<datum_t, datum_t> > lqueue_item_t;
 typedef std::vector<lvec_item_t> lvec_t;
 
 lvec_t mangle_sort_truncate_stream(
@@ -330,9 +329,17 @@ class limit_order_t {
 public:
     limit_order_t(sorting_t _sorting);
     bool operator()(const lvec_item_t &, const lvec_item_t &) const;
+    bool operator()(const lqueue_item_t &, const lqueue_item_t &) const;
     bool operator()(const datum_t &, const datum_t &) const;
     bool operator()(const std::string &, const std::string &) const;
+    template<class T>
+    bool operator()(const T &a, const T &b) const {
+        return (*this)(*a, *b);
+    }
 private:
+    bool subop(
+        const std::string &a_str, const std::pair<datum_t, datum_t> &a_pair,
+        const std::string &b_str, const std::pair<datum_t, datum_t> &b_pair) const;
     const sorting_t sorting;
 };
 

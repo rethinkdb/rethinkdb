@@ -1204,7 +1204,7 @@ RDB_IMPL_SERIALIZABLE_2(sindex_status_t, sindexes, region);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(sindex_status_t);
 RDB_IMPL_SERIALIZABLE_2(changefeed_subscribe_t, addr, region);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_subscribe_t);
-RDB_IMPL_SERIALIZABLE_4(changefeed_limit_subscribe_t, addr, uuid, spec, region);
+RDB_IMPL_SERIALIZABLE_5(changefeed_limit_subscribe_t, addr, uuid, spec, table, region);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(changefeed_limit_subscribe_t);
 
 RDB_IMPL_SERIALIZABLE_2(changefeed_stamp_t, addr, region);

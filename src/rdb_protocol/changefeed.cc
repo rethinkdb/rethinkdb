@@ -16,25 +16,6 @@
 
 namespace ql {
 
-// RSI: remove
-datum_t key_to_datum(std::string key) {
-    // We use the escaped key to construct a `datum_t` that sorts
-    // correctly.  An alternative, equally valid strategy would be to
-    // keep track of the primary key and reconstruct it from
-    // `item.data`.
-    std::string escaped_key;
-    escaped_key.reserve(key.size() + 10);
-    for (const auto &c : key) {
-        if (c == 0 || c == 1) {
-            escaped_key.push_back(1);
-            escaped_key.push_back(c+1);
-        } else {
-            escaped_key.push_back(c);
-        }
-    }
-    return datum_t(datum_string_t(escaped_key));
-}
-
 namespace changefeed {
 
 template<class M, class T>
@@ -374,21 +355,33 @@ lvec_t mangle_sort_truncate_stream(
     return vec;
 }
 
-bool limit_order_t::operator()(const lvec_item_t &a, const lvec_item_t &b) const {
-    int cmp = a.second.first.cmp(reql_version_t::LATEST, b.second.first);
+bool limit_order_t::subop(
+    const std::string &a_str, const std::pair<datum_t, datum_t> &a_pair,
+    const std::string &b_str, const std::pair<datum_t, datum_t> &b_pair) const {
+    int cmp = a_pair.first.cmp(reql_version_t::LATEST, b_pair.first);
+    debugf("lvec %d cmp %d\n", sorting == sorting_t::ASCENDING, cmp);
     switch (sorting) {
     case sorting_t::ASCENDING:
-        return cmp > 0 ? true : ((cmp < 0) ? false : (*this)(a.first, b.first));
+        return cmp > 0 ? true : ((cmp < 0) ? false : (*this)(a_str, b_str));
     case sorting_t::DESCENDING:
-        return cmp < 0 ? true : ((cmp > 0) ? false : (*this)(a.first, b.first));
+        return cmp < 0 ? true : ((cmp > 0) ? false : (*this)(a_str, b_str));
     case sorting_t::UNORDERED: // fallthru
     default: unreachable();
     }
     unreachable();
 }
 
+bool limit_order_t::operator()(const lvec_item_t &a, const lvec_item_t &b) const {
+    return subop(a.first, a.second, b.first, b.second);
+}
+
+bool limit_order_t::operator()(const lqueue_item_t &a, const lqueue_item_t &b) const {
+    return subop(a.first, a.second, b.first, b.second);
+}
+
 bool limit_order_t::operator()(const datum_t &a, const datum_t &b) const {
     int cmp = a.cmp(reql_version_t::LATEST, b);
+    debugf("datum %d cmp %d\n", sorting == sorting_t::ASCENDING, cmp);
     switch (sorting) {
     case sorting_t::ASCENDING: return cmp > 0;
     case sorting_t::DESCENDING: return cmp < 0;
@@ -399,6 +392,8 @@ bool limit_order_t::operator()(const datum_t &a, const datum_t &b) const {
 }
 
 bool limit_order_t::operator()(const std::string &a, const std::string &b) const {
+    debugf("str %s %s\n", a.c_str(), b.c_str());
+    debugf("str %d lt %d\n", sorting == sorting_t::ASCENDING, a < b);
     switch (sorting) {
     case sorting_t::ASCENDING: return a > b;
     case sorting_t::DESCENDING: return a < b;
@@ -580,8 +575,6 @@ lvec_t limit_manager_t::read_more(
     return boost::apply_visitor(visitor, ref);
 }
 
-// RSI: do we need to include the tag in the conflict resolution in addition to
-// the primary key?
 void limit_manager_t::commit(
     const boost::variant<primary_ref_t, sindex_ref_t> &sindex_ref) {
     debugf("\n**********************************************************************\n");
@@ -623,8 +616,6 @@ void limit_manager_t::commit(
         debugf("Expanding data...\n");
         auto data_it = lqueue.begin();
         datum_t begin = (data_it == lqueue.end()) ? datum_t() : (*data_it)->second.first;
-        // RSI: need a closed bound and duplicate removal to handle truncated
-        // sindexes.
         boost::optional<lqueue_t::iterator> start;
         if (data_it != lqueue.end()) {
             start = data_it;
@@ -997,13 +988,7 @@ public:
           spec(std::move(_spec)),
           gt(limit_order_t(spec.range.sorting)),
           lqueue(gt),
-          active_data([this](const data_it_t &a, const data_it_t &b) {
-                  return gt((*a)->second.first, (*b)->second.first)
-                      ? true
-                      : (gt((*b)->second.first, (*a)->second.first)
-                         ? false
-                         : gt((*a)->first, (*b)->first));
-              }) {
+          active_data(gt) {
         feed->add_limit_sub(this, uuid);
     }
     virtual ~limit_sub_t() {
@@ -1116,7 +1101,7 @@ public:
         }
         debugf("lqueue %s\n", s.c_str());
 
-        datum_t old_send, new_send;
+        boost::optional<lvec_item_t> old_send, new_send;
         if (old_key) {
             auto it = lqueue.find_id(*old_key);
             guarantee(it != lqueue.end());
@@ -1124,7 +1109,7 @@ public:
             debugf("Erased %zu\n", erased);
             if (erased != 0) {
                 // The old value was in the set.
-                old_send = (*it)->second.second;
+                old_send = **it;
             }
             lqueue.erase(it);
         }
@@ -1152,20 +1137,20 @@ public:
                 debugf("new_val active!\n");
                 active_data.insert(it);
                 // The new value is in the old set bounds (and thus in the set).
-                new_send = (*it)->second.second;
+                new_send = **it;
             }
         }
         if (active_data.size() > spec.limit) {
             // The old value wasn't in the set, but the new value is, and a
             // value has to leave the set to make room.
             auto last = *active_data.begin();
-            guarantee(new_send.has() && !old_send.has());
+            guarantee(new_send && !old_send);
             debugf("___foo___: %s\n", (*last)->second.second.print().c_str());
-            old_send = (*last)->second.second;
+            old_send = **last;
             erase1(&active_data, last);
         } else if (active_data.size() < spec.limit) {
             // The set is too small.
-            if (new_send.has()) {
+            if (new_send) {
                 // The set is too small because there aren't enough rows in the table.
                 guarantee(active_data.size() == lqueue.size());
             } else if (active_data.size() < lqueue.size()) {
@@ -1178,12 +1163,10 @@ public:
 
                 guarantee(it != lqueue.begin());
                 --it;
-                //                ++it;
-                //                guarantee(it != lqueue.end());
                 debugf("%zu\n", active_data.size());
                 active_data.insert(it);
                 debugf("%zu\n", active_data.size());
-                new_send = (*it)->second.second;
+                new_send = **it;
             } else {
                 debugf("Plan what?\n");
             }
@@ -1191,15 +1174,26 @@ public:
         guarantee(active_data.size() == spec.limit
                   || active_data.size() == lqueue.size());
 
-        if (old_send.has() || new_send.has()) {
+        if ((old_send || new_send)
+            && ((*old_send).first != ((*new_send).first))) {
             datum_t d =
                 datum_t(std::map<datum_string_t, datum_t> {
                     { datum_string_t("old_val"),
-                      old_send.has() ? old_send : datum_t::null() },
+                      old_send ? (*old_send).second.second : datum_t::null() },
                     { datum_string_t("new_val"),
-                      new_send.has() ? new_send : datum_t::null() } });
-            debugf("___old_send___: %s\n", old_send.print().c_str());
-            debugf("___new_send___: %s\n", new_send.print().c_str());
+                      new_send ? (*new_send).second.second : datum_t::null() } });
+            if (old_send) {
+                debugf("___old_send___: %s\n",
+                       (*old_send).second.second.print().c_str());
+            } else {
+                debugf("___no_old_send___\n");
+            }
+            if (new_send) {
+                debugf("___new_send___: %s\n",
+                       (*new_send).second.second.print().c_str());
+            } else {
+                debugf("___no_new_send___\n");
+            }
             debugf("___d___: %s\n", d.print().c_str());
             if (need_init != got_init) {
                 debugf("queueing...\n");

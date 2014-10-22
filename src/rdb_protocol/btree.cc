@@ -1315,9 +1315,6 @@ void rdb_modification_report_cb_t::on_mod_report(
                             superblock_t *superblock,
                             promise_t<superblock_t *> *promise) {
                             debugf("2 pkey commit\n");
-                            std::string str = key_to_unescaped_str(
-                                report.primary_key);
-                            ql::datum_t dstr = ql::key_to_datum(str);
                             if (report.info.deleted.first) {
                                 lm->del(report.primary_key, is_primary_t::YES);
                             }

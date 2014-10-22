@@ -23,7 +23,6 @@ public:
           tbl(std::move(_tbl)),
           key(std::move(_key)),
           row(std::move(_row)) { }
-    // RSI: prevent double reads?
     virtual datum_t get() {
         return row.has() ? row : tbl->get_row(env, key);
     }
@@ -49,15 +48,19 @@ private:
 };
 
 namespace es_helper {
-// RSI: static per thread
+// We don't want to be recomputing this all the time.
+__thread map_wire_func_t *fptr = NULL;
 map_wire_func_t map_wire_func() {
-    auto x = pb::dummy_var_t::EXTREME_SELECTION_ROW;
-    r::reql_t map = r::fun(x, r::expr(x)["new_val"]);
-    compile_env_t compile_env((var_visibility_t()));
-    func_term_t func_term(&compile_env, map.release_counted());
-    var_scope_t var_scope;
-    counted_t<const func_t> f = func_term.eval_to_func(var_scope);
-    return map_wire_func_t(f);
+    if (fptr == NULL) {
+        auto x = pb::dummy_var_t::EXTREME_SELECTION_ROW;
+        r::reql_t map = r::fun(x, r::expr(x)["new_val"]);
+        compile_env_t compile_env((var_visibility_t()));
+        func_term_t func_term(&compile_env, map.release_counted());
+        var_scope_t var_scope;
+        counted_t<const func_t> f = func_term.eval_to_func(var_scope);
+        fptr = new map_wire_func_t(f);
+    }
+    return *fptr;
 }
 } // es_helper
 
@@ -165,7 +168,6 @@ table_slice_t::with_bounds(std::string _idx, datum_range_t _bounds) {
         tbl, std::move(_idx), sorting, std::move(_bounds));
 }
 
-// RSI: missing table name in error for missing index in changefeed subscribe.
 ql::changefeed::keyspec_t::range_t table_slice_t::get_spec() {
     boost::optional<std::string> opt_idx;
     if (idx != "" && idx != tbl->get_pkey()) {
