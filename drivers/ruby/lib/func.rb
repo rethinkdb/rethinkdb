@@ -32,6 +32,7 @@ module RethinkDB
       :slice => -1,
       :during => -1,
       :orderby => -1,
+      :order_by => -1,
       :group => -1,
       :iso8601 => -1,
       :index_create => -1,
