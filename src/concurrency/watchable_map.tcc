@@ -88,6 +88,11 @@ void watchable_map_t<key_t, value_t>::notify_change(
     }
 }
 
+template <class key_t, class value_t>
+watchable_map_var_t<key_t, value_t>::watchable_map_var_t(
+        std::map<key_t, value_t> &&source) :
+    map(std::move(source)) { }
+
 template<class key_t, class value_t>
 std::map<key_t, value_t> watchable_map_var_t<key_t, value_t>::get_all() {
     return map;
@@ -106,6 +111,7 @@ boost::optional<value_t> watchable_map_var_t<key_t, value_t>::get_key(const key_
 template<class key_t, class value_t>
 void watchable_map_var_t<key_t, value_t>::read_all(
         const std::function<void(const key_t &, const value_t *)> &fun) {
+    ASSERT_FINITE_CORO_WAITING;
     for (const auto &pair : map) {
         fun(pair.first, &pair.second);
     }
@@ -115,6 +121,7 @@ template<class key_t, class value_t>
 void watchable_map_var_t<key_t, value_t>::read_key(
         const key_t &key,
         const std::function<void(const value_t *)> &fun) {
+    ASSERT_FINITE_CORO_WAITING;
     auto it = map.find(key);
     if (it == map.end()) {
         fun(nullptr);

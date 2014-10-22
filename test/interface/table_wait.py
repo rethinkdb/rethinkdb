@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Copyright 2010-2014 RethinkDB, all rights reserved.
-import sys, os, time, traceback
+import sys, os, time, traceback, multiprocessing
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils
 from vcoptparse import *
@@ -19,12 +19,12 @@ tables = ["table1", "table2", "table3"]
 def create_tables(conn):
     r.db_create(db).run(conn)
     r.expr(tables).for_each(r.db(db).table_create(r.row)).run(conn)
-    print "statuses: %s" % str(r.db(db).table_status(r.args(tables)).run(conn))
     r.expr(tables).for_each(r.db(db).table(r.row).insert(r.range(200).map(lambda i: {'id':i}))).run(conn)
     r.db(db).table_list().for_each(r.db(db).table(r.row).reconfigure(2, 2)).run(conn)
 
 def check_table_states(conn, ready):
-    statuses = r.db(db).table_config(r.args(tables)).run(conn)
+    statuses = r.db(db).table_status(r.args(tables)).run(conn)
+    print "statuses: %s" % str(statuses)
     return all(map(lambda s: (s['ready_for_writes'] == ready), statuses))
 
 def wait_for_table_states(conn, ready):
@@ -46,7 +46,7 @@ def spawn_table_wait(port, tbls):
 
     sync_event = multiprocessing.Event()
     wait_proc = multiprocessing.Process(target=do_table_wait, args=(port, tbls, sync_event))
-    write_proc = multiprocessing.Process(target=do_port_write, args=(port, tbls, sync_event))
+    write_proc = multiprocessing.Process(target=do_post_write, args=(port, tbls, sync_event))
     wait_proc.start()
     write_proc.start()
     return wait_proc

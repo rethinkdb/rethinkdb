@@ -131,6 +131,9 @@ private:
 template<class key_t, class value_t>
 class watchable_map_var_t : public watchable_map_t<key_t, value_t> {
 public:
+    watchable_map_var_t() { };
+    watchable_map_var_t(std::map<key_t, value_t> &&source);
+
     std::map<key_t, value_t> get_all();
     boost::optional<value_t> get_key(const key_t &key);
     void read_all(const std::function<void(const key_t &, const value_t *)> &);
