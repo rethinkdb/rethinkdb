@@ -11,12 +11,10 @@ opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+    _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Spinning up a process..."
-    files = driver.Files(metacluster, db_path = "db", log_path = "create-output",
-                         executable_path = executable_path, command_prefix = command_prefix)
-    process = driver.Process(cluster, files, log_path = "log",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
+    files = driver.Files(metacluster, db_path="db", console_output="create-output", command_prefix=command_prefix)
+    process = driver.Process(cluster, files, console_output="log", command_prefix=command_prefix, extra_options=serve_options)
     process.wait_until_started_up()
     cluster.check()
     access = http_admin.ClusterAccess([("localhost", process.http_port)])
@@ -26,8 +24,8 @@ with driver.Metacluster() as metacluster:
     database = access.add_database(name="Germany")
     access.move_server_to_datacenter(next(iter(access.machines)), datacenter)
     database = access.add_database("test")
-    namespace1 = access.add_table(primary = datacenter, database = database, name = "John_Jacob_Jingleheimer_Schmidt")
-    namespace2 = access.add_table(primary = datacenter, database = database, name = "John_Jacob_Jingleheimer_Schmidt")
+    namespace1 = access.add_table(primary=datacenter, database=database, name="John_Jacob_Jingleheimer_Schmidt")
+    namespace2 = access.add_table(primary=datacenter, database=database, name="John_Jacob_Jingleheimer_Schmidt")
     time.sleep(1)
     cluster.check()
     print "Checking that there is an issue about this..."

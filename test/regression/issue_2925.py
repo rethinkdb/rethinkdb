@@ -71,8 +71,8 @@ def check_data(conn):
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
     print("Starting server...")
-    files = driver.Files(metacluster, db_path="db", log_path="create-output")
-    process = driver.Process(cluster, files, log_path="serve-output")
+    files = driver.Files(metacluster, db_path="db", console_output="create-output")
+    process = driver.Process(cluster, files, console_output="serve-output")
 
     process.wait_until_started_up()
 
@@ -112,7 +112,7 @@ with driver.Metacluster() as metacluster:
     # Restart the process
     time.sleep(1)
     print("Restarting the server...")
-    process = driver.Process(cluster, files, log_path="serve-output")
+    process = driver.Process(cluster, files, console_output="serve-output")
     process.wait_until_started_up()
 
     conn = r.connect(process.host, process.driver_port, db=db_name)

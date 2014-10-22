@@ -13,15 +13,11 @@ opts = op.parse(sys.argv)
 with driver.Metacluster() as metacluster:
     print "Starting cluster..."
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
-    database_machine_files = driver.Files(metacluster, db_path = "db-database", log_path = "create-db-database-output",
-                                          executable_path = executable_path, command_prefix = command_prefix)
-    database_machine = driver.Process(cluster, database_machine_files, log_path = "serve-output-database",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    access_machine_files = driver.Files(metacluster, db_path = "db-access", log_path = "create-db-access-output",
-                                        executable_path = executable_path, command_prefix = command_prefix)
-    access_machine = driver.Process(cluster, access_machine_files, log_path = "serve-output-access",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
+    _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+    database_machine_files = driver.Files(metacluster, db_path="db-database", console_output="create-db-database-output", command_prefix=command_prefix)
+    database_machine = driver.Process(cluster, database_machine_files, console_output="serve-output-database", command_prefix=command_prefix, extra_options=serve_options)
+    access_machine_files = driver.Files(metacluster, db_path="db-access", console_output="create-db-access-output", command_prefix=command_prefix)
+    access_machine = driver.Process(cluster, access_machine_files, console_output="serve-output-access", command_prefix=command_prefix, extra_options=serve_options)
     database_machine.wait_until_started_up
     access_machine.wait_until_started_up()
 
@@ -31,7 +27,7 @@ with driver.Metacluster() as metacluster:
     http.move_server_to_datacenter(database_machine.files.machine_name, database_dc)
     other_dc = http.add_datacenter()
     http.move_server_to_datacenter(access_machine.files.machine_name, other_dc)
-    ns = scenario_common.prepare_table_for_workload(http, primary = database_dc)
+    ns = scenario_common.prepare_table_for_workload(http, primary=database_dc)
     http.wait_until_blueprint_satisfied(ns)
     cluster.check()
     http.check_no_issues()

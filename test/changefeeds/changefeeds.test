@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import collections, itertools, os, random, re, subprocess, sys, tempfile, threading, time, unittest, urllib2
+import collections, itertools, os, re, subprocess, sys, tempfile, threading, time, unittest, urllib2
 
 lock = threading.Lock()
 
@@ -162,7 +162,7 @@ class ChangefeedsTest_Base(unittest.TestCase):
 		cluster = None
 		for i in range (cls.serversToStart):
 			logfile = tempfile.NamedTemporaryFile()
-			server = driver.Process(cluster=cluster, log_path=logfile.name)
+			server = driver.Process(cluster=cluster, console_output=logfile.name)
 			server.wait_until_started_up()
 			cluster = server.cluster
 			connection =  r.connect(host=server.host, port=server.driver_port)

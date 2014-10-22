@@ -186,7 +186,7 @@ class Files(object):
     db_path = None
     machine_name = None
     
-    def __init__(self, metacluster, machine_name=None, db_path=None, log_path=None, executable_path=None, command_prefix=None):
+    def __init__(self, metacluster, machine_name=None, db_path=None, console_output=None, executable_path=None, command_prefix=None):
         assert isinstance(metacluster, Metacluster)
         assert not metacluster.closed
         assert machine_name is None or isinstance(machine_name, str)
@@ -218,11 +218,11 @@ class Files(object):
             "--directory", self.db_path,
             "--machine-name", self.machine_name]
 
-        if log_path is None:
-            print("setting log_path to /dev/null.")
-            log_path = "/dev/null"
-        with open(log_path, "a") as log_file:
-            subprocess.check_call(create_args, stdout=log_file, stderr=log_file)
+        if console_output is None:
+            print("setting console_output to /dev/null.")
+            console_output = "/dev/null"
+        with open(console_output, "a") as console_file:
+            subprocess.check_call(create_args, stdout=console_file, stderr=console_file)
 
 class _Process(object):
     # Base class for Process & ProxyProcess. Do not instantiate directly.
@@ -242,7 +242,7 @@ class _Process(object):
     
     process_group_id = None
     
-    def __init__(self, cluster, options, log_path=None, executable_path=None, command_prefix=None):
+    def __init__(self, cluster, options, console_output=None, executable_path=None, command_prefix=None):
         global runningServers
         
         assert isinstance(cluster, Cluster)
@@ -278,18 +278,18 @@ class _Process(object):
                     self.args.append("--join")
                     self.args.append("localhost" + ":" + str(peer.cluster_port))
 
-            self.log_path = log_path
-            if self.log_path is None:
-                self.log_file = sys.stdout
+            self.console_output = console_output
+            if self.console_output is None:
+                self.console_file = sys.stdout
             else:
-                self.log_file = open(self.log_path, "a")
+                self.console_file = open(self.console_output, "a")
 
             if os.path.exists(self.logfile_path):
                 os.unlink(self.logfile_path)
             
-            self.log_file.write("Launching:\n%s\n" % str(self.args))
+            self.console_file.write("Launching:\n%s\n" % str(self.args))
             
-            self.process = subprocess.Popen(self.args, stdout=self.log_file, stderr=self.log_file, preexec_fn=os.setpgrp)
+            self.process = subprocess.Popen(self.args, stdout=self.console_file, stderr=self.console_file, preexec_fn=os.setpgrp)
             
             runningServers.append(self)
             self.process_group_id = self.process.pid
@@ -419,8 +419,8 @@ class _Process(object):
             runningServers.remove(self)
         self.process = None
 
-        if self.log_path is not None:
-            self.log_file.close()
+        if self.console_output is not None:
+            self.console_file.close()
 
         # `self.cluster` might be `None` if we crash in the middle of
         # `move_processes()`.
@@ -436,7 +436,7 @@ class Process(_Process):
     """A `Process` object represents a running RethinkDB server. It cannot be
     restarted; stop it and then create a new one instead. """
 
-    def __init__(self, cluster=None, files=None, log_path=None, executable_path=None, command_prefix=None, extra_options=None):
+    def __init__(self, cluster=None, files=None, console_output=None, executable_path=None, command_prefix=None, extra_options=None):
         
         if cluster is None:
             cluster = Cluster()
@@ -444,7 +444,7 @@ class Process(_Process):
         assert cluster.metacluster is not None
         
         if files is None:
-            files = Files(metacluster=cluster.metacluster, log_path=log_path, executable_path=executable_path, command_prefix=command_prefix)
+            files = Files(metacluster=cluster.metacluster, console_output=console_output, executable_path=executable_path, command_prefix=command_prefix)
         assert isinstance(files, Files)
         
         if command_prefix is None:
@@ -470,13 +470,13 @@ class Process(_Process):
                    "--http-port", "0"
                    ] + extra_options
 
-        _Process.__init__(self, cluster, options, log_path=log_path, executable_path=executable_path, command_prefix=command_prefix)
+        _Process.__init__(self, cluster, options, console_output=console_output, executable_path=executable_path, command_prefix=command_prefix)
 
 class ProxyProcess(_Process):
     """A `ProxyProcess` object represents a running RethinkDB proxy. It cannot be
     restarted; stop it and then create a new one instead. """
 
-    def __init__(self, cluster, logfile_path, log_path=None, executable_path=None, command_prefix=None, extra_options=None):
+    def __init__(self, cluster, logfile_path, console_output=None, executable_path=None, command_prefix=None, extra_options=None):
         assert isinstance(cluster, Cluster)
         assert cluster.metacluster is not None
 
@@ -500,7 +500,7 @@ class ProxyProcess(_Process):
                    "--client-port", str(self.local_cluster_port)
                    ] + extra_options
 
-        _Process.__init__(self, cluster, options, log_path=log_path, executable_path=executable_path, command_prefix=command_prefix)
+        _Process.__init__(self, cluster, options, console_output=console_output, executable_path=executable_path, command_prefix=command_prefix)
 
 if __name__ == "__main__":
     with Metacluster() as mc:

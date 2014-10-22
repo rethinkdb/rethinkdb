@@ -39,14 +39,13 @@ candidate_shard_boundaries = set(alphanum).union([x + "9" for x in alphanum]).un
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+    _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Starting cluster..."
-    processes = [driver.Process(cluster,
-                                driver.Files(metacluster, db_path = "db-%d" % i, log_path = "create-output-%d" % i,
-                                             executable_path = executable_path, command_prefix = command_prefix),
-                                log_path = "serve-output-%d" % i,
-                                executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-                 for i in xrange(opts["num-nodes"])]
+    processes = [driver.Process(
+    		cluster,
+			driver.Files(metacluster, db_path="db-%d" % i, console_output="create-output-%d" % i, command_prefix=command_prefix),
+			console_output="serve-output-%d" % i, command_prefix=command_prefix, extra_options=serve_options)
+		for i in xrange(opts["num-nodes"])]
     for process in processes:
         process.wait_until_started_up()
 
@@ -61,6 +60,7 @@ with driver.Metacluster() as metacluster:
     ns = scenario_common.prepare_table_for_workload(http, primary = primary_dc,
         affinities = {primary_dc.uuid: 1, secondary_dc.uuid: 1})
     shard_boundaries = set(random.sample(candidate_shard_boundaries, opts["sequence"].initial))
+    
     print "Split points are:", list(shard_boundaries)
     http.change_table_shards(ns, adds = list(shard_boundaries))
     http.wait_until_blueprint_satisfied(ns)
@@ -76,9 +76,9 @@ with driver.Metacluster() as metacluster:
             adds = set(random.sample(candidate_shard_boundaries - shard_boundaries, num_adds))
             removes = set(random.sample(shard_boundaries, num_removes))
             print "Splitting at", list(adds), "and merging at", list(removes)
-            http.change_table_shards(ns, adds = list(adds), removes = list(removes))
+            http.change_table_shards(ns, adds=list(adds), removes=list(removes))
             shard_boundaries = (shard_boundaries - removes) | adds
-            http.wait_until_blueprint_satisfied(ns, timeout = 3600)
+            http.wait_until_blueprint_satisfied(ns, timeout=3600)
             cluster.check()
             http.check_no_issues()
         workload.run_after()

@@ -27,9 +27,9 @@ records = 5000
 # == start up two joined servers
 
 serverALog = tempfile.NamedTemporaryFile()
-serverA = driver.Process(log_path=serverALog.name)
+serverA = driver.Process(console_output=serverALog.name)
 serverBLog = tempfile.NamedTemporaryFile()
-serverB = driver.Process(cluster=serverA.cluster, log_path=serverBLog.name)
+serverB = driver.Process(cluster=serverA.cluster, console_output=serverBLog.name)
 
 # == create a table, populate, and shard it
 

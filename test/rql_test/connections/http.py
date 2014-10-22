@@ -22,7 +22,7 @@ class TestHttpTerm(unittest.TestCase):
                 self._server.driver_port = int(sys.argv[1])
             except Exception:
                 self.__class__._server_log = tempfile.NamedTemporaryFile()
-                self.__class__._server = driver.Process(log_path=self._server_log.name)
+                self.__class__._server = driver.Process(console_output=self._server_log.name)
                 self.__class__.conn = self._server.driver_port
             
             self.__class__.conn = r.connect('localhost', self._server.driver_port)

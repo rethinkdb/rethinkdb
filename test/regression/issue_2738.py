@@ -13,13 +13,11 @@ opts = op.parse(sys.argv)
 with driver.Metacluster() as metacluster:
     print "Starting cluster..."
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
-    files1 = driver.Files(metacluster, db_path = "db-1", log_path = "create-output-1", executable_path = executable_path, command_prefix = command_prefix)
-    files2 = driver.Files(metacluster, db_path = "db-2", log_path = "create-output-2", executable_path = executable_path, command_prefix = command_prefix)
-    process1 = driver.Process(cluster, files1, log_path = "serve-output-1",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    process2 = driver.Process(cluster, files2, log_path = "serve-output-2",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
+    _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+    files1 = driver.Files(metacluster, db_path="db-1", console_output="create-output-1", command_prefix=command_prefix)
+    files2 = driver.Files(metacluster, db_path="db-2", console_output="create-output-2", command_prefix=command_prefix)
+    process1 = driver.Process(cluster, files1, console_output="serve-output-1", command_prefix=command_prefix, extra_options=serve_options)
+    process2 = driver.Process(cluster, files2, console_output="serve-output-2", command_prefix=command_prefix, extra_options=serve_options)
     process1.wait_until_started_up()
     process2.wait_until_started_up()
 
@@ -29,8 +27,7 @@ with driver.Metacluster() as metacluster:
     http.move_server_to_datacenter(process1.files.machine_name, dc)
     http.move_server_to_datacenter(process2.files.machine_name, dc)
     db = http.add_database()
-    ns = http.add_table(primary = dc,
-                        affinities = {dc: 1}, ack_expectations = {dc: 2}, database=db.name)
+    ns = http.add_table(primary=dc, affinities={dc: 1}, ack_expectations={dc: 2}, database=db.name)
     http.wait_until_blueprint_satisfied(ns)
     cluster.check()
     http.check_no_issues();

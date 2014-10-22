@@ -19,7 +19,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pat
 import driver, utils
 
 logFile = tempfile.NamedTemporaryFile()
-server = driver.Process(log_path=logFile.name)
+server = driver.Process(console_output=logFile.name)
 
 r = utils.import_python_driver()
 conn = r.connect(server.host, server.driver_port)
