@@ -203,9 +203,10 @@ scoped_ptr_t<accumulator_t> make_append(const sorting_t &sorting, batcher_t *bat
 // runtime error.
 class limit_append_t : public append_t, public eager_acc_t {
 public:
-    limit_append_t(size_t _n, sorting_t sorting)
+    limit_append_t(is_primary_t _is_primary, size_t _n, sorting_t sorting)
         : append_t(sorting, &batcher),
-          seen_distinct_sindex(false),
+          is_primary(_is_primary),
+          seen_distinct(false),
           seen(0),
           n(_n),
           batcher(batchspec_t::all().to_batcher()) { }
@@ -223,8 +224,8 @@ private:
     }
 
     virtual bool should_send_batch() {
-        debugf("should_send_batch %zu %zu %d\n", seen, n, seen_distinct_sindex);
-        return seen >= n && seen_distinct_sindex;
+        debugf("should_send_batch %zu %zu %d\n", seen, n, seen_distinct);
+        return seen >= n && seen_distinct;
     }
     virtual bool accumulate(env_t *env,
                             const datum_t &el,
@@ -234,47 +235,50 @@ private:
                             const datum_t &sindex_val) {
         bool ret = append_t::accumulate(env, el, stream, key, sindex_val);
         seen += 1;
-        guarantee(stream->size() > 0);
-        debugf("ARBITRARY %zu vs. %zu\n", n, stream->size());
-        debugf("foofoofoo %s\n", el.print().c_str());
-        rget_item_t *last = &stream->back();
-        if (start_sindex) {
-            debugf("a\n");
-            std::string cur =
-                datum_t::extract_secondary(key_to_unescaped_str(last->key));
-            // We need to do this because the truncated sindex keys might be
-            // different sizes depending on the length of the primary key.
-            // (Also, I hate literally everything about or on-disk key format.)
-            size_t minlen = std::min(cur.size(), (*start_sindex).size());
-            if (cur.compare(0, minlen, *start_sindex, 0, minlen) != 0) {
-                debugf("aa\n");
-                seen_distinct_sindex = true;
+        if (is_primary == is_primary_t::YES) {
+            if (seen >= n) {
+                seen_distinct = true;
             }
         } else {
-            debugf("b\n");
-            if (seen >= n) {
-                debugf("ba\n");
-                if (datum_t::key_is_truncated(last->key)) {
-                    debugf("baa\n");
-                    start_sindex =
-                        datum_t::extract_secondary(key_to_unescaped_str(last->key));
-                } else {
-                    debugf("bab\n");
-                    seen_distinct_sindex = true;
+            guarantee(stream->size() > 0);
+            debugf("ARBITRARY %zu vs. %zu\n", n, stream->size());
+            debugf("foofoofoo %s\n", el.print().c_str());
+            rget_item_t *last = &stream->back();
+            if (start_sindex) {
+                debugf("a\n");
+                std::string cur =
+                    datum_t::extract_secondary(key_to_unescaped_str(last->key));
+                // We need to do this because the truncated sindex keys might be
+                // different sizes depending on the length of the primary key.
+                // (Also, I hate literally everything about or on-disk key format.)
+                size_t minlen = std::min(cur.size(), (*start_sindex).size());
+                if (cur.compare(0, minlen, *start_sindex, 0, minlen) != 0) {
+                    debugf("aa\n");
+                    seen_distinct = true;
+                }
+            } else {
+                debugf("b\n");
+                if (seen >= n) {
+                    debugf("ba\n");
+                    if (datum_t::key_is_truncated(last->key)) {
+                        debugf("baa\n");
+                        start_sindex =
+                            datum_t::extract_secondary(key_to_unescaped_str(last->key));
+                    } else {
+                        debugf("bab\n");
+                        seen_distinct = true;
+                    }
                 }
             }
         }
         return ret;
     }
     boost::optional<std::string> start_sindex;
-    bool seen_distinct_sindex;
+    is_primary_t is_primary;
+    bool seen_distinct;
     size_t seen, n;
     batcher_t batcher;
 };
-
-scoped_ptr_t<accumulator_t> make_limit_append(size_t n, sorting_t sorting) {
-    return make_scoped<limit_append_t>(n, sorting);
-}
 
 bool is_grouped_data(const groups_t *gs, const ql::datum_t &q) {
     return gs->size() > 1 || q.has();
@@ -707,7 +711,7 @@ public:
         return new reduce_terminal_t(f);
     }
     T *operator()(const limit_read_t &lr) const {
-        return new limit_append_t(lr.n, lr.sorting);
+        return new limit_append_t(lr.is_primary, lr.n, lr.sorting);
     }
 };
 

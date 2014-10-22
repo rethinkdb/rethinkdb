@@ -19,6 +19,8 @@
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/wire_func.hpp"
 
+enum class is_primary_t { NO, YES };
+
 namespace ql {
 
 template<class T>
@@ -320,6 +322,7 @@ typedef boost::variant<map_wire_func_t,
                        > transform_variant_t;
 
 struct limit_read_t {
+    is_primary_t is_primary;
     size_t n;
     sorting_t sorting;
 };

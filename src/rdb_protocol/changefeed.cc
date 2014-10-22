@@ -536,7 +536,8 @@ public:
             ref.env,
             batchspec_t::all(), // Terminal takes care of early termination
             std::vector<transform_variant_t>(),
-            boost::optional<terminal_variant_t>(limit_read_t{n, sorting}),
+            boost::optional<terminal_variant_t>(limit_read_t{
+                    is_primary_t::NO, n, sorting}),
             pk_range,
             sorting,
             *ref.sindex_info,
@@ -640,12 +641,6 @@ void limit_manager_t::commit(
         }
     }
     if (auto p = boost::get<primary_ref_t>(&sindex_ref)) {
-        // RSI: strongly consider changing the functions called by
-        // `superblock_queue_t` to use a rwlock rather than a promise for this
-        // so that read operations like `ref_visitor_t` don't block out writes.
-        // (On the other hand, those read operations are rare, so maybe it isn't
-        // worth the refactoring effort.)
-        // Actually, that would make the ordering more sane.  Do that.
         debugf("Releasing superblock.\n");
         p->promise->pulse(p->superblock);
     }

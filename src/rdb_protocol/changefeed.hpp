@@ -36,8 +36,6 @@ class superblock_t;
 struct sindex_disk_info_t;
 struct rdb_modification_report_t;
 
-enum class is_primary_t { NO, YES };
-
 namespace ql {
 
 class base_exc_t;

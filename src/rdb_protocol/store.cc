@@ -280,12 +280,16 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             rget.region = s.region;
             rget.table_name = s.table;
             rget.batchspec = ql::batchspec_t::all(); // Terminal takes care of stopping.
-            rget.terminal = ql::limit_read_t{s.spec.limit, s.spec.range.sorting};
             if (s.spec.range.sindex) {
+                rget.terminal = ql::limit_read_t{
+                    is_primary_t::NO, s.spec.limit, s.spec.range.sorting};
                 rget.sindex = sindex_rangespec_t(
                     *s.spec.range.sindex,
                     region_t(ql::datum_range_t::universe().to_sindex_keyrange()),
                     ql::datum_range_t::universe());
+            } else {
+                rget.terminal = ql::limit_read_t{
+                    is_primary_t::YES, s.spec.limit, s.spec.range.sorting};
             }
             rget.sorting = s.spec.range.sorting;
             do_read(&env, store, btree, superblock, rget, &resp);
