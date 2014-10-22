@@ -525,6 +525,13 @@ bool real_reql_cluster_interface_t::table_wait(
         signal_t *interruptor,
         scoped_ptr_t<ql::val_t> *resp_out,
         std::string *error_out) {
+    threadnum_t query_thread = get_thread_id();
+    on_thread_t thread_switcher(directory_root_view->home_thread());
+    cross_thread_watchable_map_var_t<std::pair<peer_id_t, namespace_id_t>,
+        namespace_directory_metadata_t>
+            cross_thread_directory_watchable(directory_root_view, query_thread);
+
+    on_thread_t thread_reswitcher(query_thread);
     std::set<namespace_id_t> table_ids;
     if (!get_table_ids_for_query(db, tables, &table_ids, error_out)) {
         return false;
@@ -533,7 +540,7 @@ bool real_reql_cluster_interface_t::table_wait(
     std::vector<scoped_ptr_t<table_waiter_t> > waiters;
     for (auto const &id : table_ids) {
         waiters.push_back(scoped_ptr_t<table_waiter_t>(
-            new table_waiter_t(id, directory_root_view,
+            new table_waiter_t(id, cross_thread_directory_watchable.get_watchable(),
                 cross_thread_namespace_watchables[get_thread_id().threadnum].get())));
     }
 
@@ -562,13 +569,13 @@ bool real_reql_cluster_interface_t::table_wait(
         break;
     } 
 
-    if (resp_out == NULL) {
-        return true;
+    bool res = true;
+    if (resp_out != NULL) {
+        res = table_meta_read(
+            admin_tables->table_status_backend.get(), "table_wait",
+            table_ids, bt, interruptor, resp_out, error_out);
     }
-
-    return table_meta_read(
-        admin_tables->table_status_backend.get(), "table_wait",
-        table_ids, bt, interruptor, resp_out, error_out);
+    return res;
 }
 
 bool real_reql_cluster_interface_t::table_reconfigure(

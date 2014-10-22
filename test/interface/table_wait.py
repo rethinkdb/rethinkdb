@@ -35,14 +35,15 @@ def spawn_table_wait(port, tbls):
     def do_table_wait(port, tbls, done_event):
         conn = r.connect("localhost", port)
         try:
-            r.db(db).table_wait(r.args(tbls)).run(conn)
+            status = r.db(db).table_wait(r.args(tbls)).run(conn)
+            print status
         finally:
             done_event.set()
 
     def do_post_write(port, tbls, start_event):
         conn = r.connect("localhost", port)
         start_event.wait()
-        r.expr(tbls).foreach(r.db(db).table(r.row).insert({})).run(conn)
+        r.expr(tbls).for_each(r.db(db).table(r.row).insert({})).run(conn)
 
     sync_event = multiprocessing.Event()
     wait_proc = multiprocessing.Process(target=do_table_wait, args=(port, tbls, sync_event))
