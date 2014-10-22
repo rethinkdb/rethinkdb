@@ -128,7 +128,7 @@ private:
 
     friend void counted_add_ref(ls_block_token_pointee_t *p);
     friend void counted_set_deleter(ls_block_token_pointee_t *p,
-                                    std::function<void(ls_block_token_pointee_t*)> &&d);
+                                    std::unique_ptr<deallocator_base_t> &&d);
     friend void counted_release(ls_block_token_pointee_t *p);
 
     ls_block_token_pointee_t(log_serializer_t *serializer,
@@ -137,7 +137,7 @@ private:
 
     log_serializer_t *serializer_;
     intptr_t ref_count_;
-    mutable std::function<void(ls_block_token_pointee_t*)> deleter;
+    std::unique_ptr<deallocator_base_t> deleter_;
 
     // The block's size.
     block_size_t block_size_;
@@ -155,7 +155,7 @@ void debug_print(printf_buffer_t *buf,
 
 void counted_add_ref(ls_block_token_pointee_t *p);
 void counted_set_deleter(ls_block_token_pointee_t *p,
-                         std::function<void(ls_block_token_pointee_t*)> &&d);
+                         std::unique_ptr<deallocator_base_t> &&d);
 void counted_release(ls_block_token_pointee_t *p);
 
 template <>
@@ -225,11 +225,11 @@ struct scs_block_token_t {
 
     friend void counted_add_ref<T>(scs_block_token_t<T> *p);
     friend void counted_set_deleter<T>(scs_block_token_t<T> *p,
-                                       std::function<void(scs_block_token_t<T>*)> &&d);
+                                       std::unique_ptr<deallocator_base_t> &&d);
     friend void counted_release<T>(scs_block_token_t<T> *p);
 private:
     intptr_t ref_count_;
-    mutable std::function<void(scs_block_token_t<T>*)> deleter;
+    std::unique_ptr<deallocator_base_t> deleter_;
 };
 
 template <class T>
@@ -240,8 +240,8 @@ void counted_add_ref(scs_block_token_t<T> *p) {
 
 template <class T>
 void counted_set_deleter(scs_block_token_t<T> *p,
-                         std::function<void(scs_block_token_t<T>*)> &&d) {
-    p->deleter = std::move(d);
+                         std::unique_ptr<deallocator_base_t> &&d) {
+    p->deleter_ = std::move(d);
 }
 
 template <class T>
@@ -249,8 +249,8 @@ void counted_release(scs_block_token_t<T> *p) {
     const intptr_t res = __sync_sub_and_fetch(&p->ref_count_, 1);
     rassert(res >= 0);
     if (res == 0) {
-        if (p->deleter) {
-            p->deleter(p);
+        if (p->deleter_) {
+            p->deleter_->deallocate();
         } else {
             delete p;
         }

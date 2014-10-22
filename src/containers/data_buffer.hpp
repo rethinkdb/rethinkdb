@@ -11,12 +11,12 @@ struct data_buffer_t {
 private:
     intptr_t ref_count_;
     size_t size_;
-    mutable std::function<void(data_buffer_t*)> deleter;
+    std::unique_ptr<deallocator_base_t> deleter;
     char bytes_[];
 
     friend void counted_add_ref(data_buffer_t *buffer);
     friend void counted_set_deleter(data_buffer_t *buffer,
-                                    std::function<void(data_buffer_t*)> &&d);
+                                    std::unique_ptr<deallocator_base_t> &&d);
     friend void counted_release(data_buffer_t *buffer);
 
     DISABLE_COPYING(data_buffer_t);
@@ -40,7 +40,7 @@ inline void counted_add_ref(data_buffer_t *buffer) {
 }
 
 inline void counted_set_deleter(data_buffer_t *buffer,
-                                std::function<void(data_buffer_t*)> &&d) {
+                                std::unique_ptr<deallocator_base_t> &&d) {
     buffer->deleter = std::move(d);
 }
 
