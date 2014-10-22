@@ -78,13 +78,12 @@ $(WEB_ASSETS_BUILD_DIR)/js/template.js: $(HANDLEBARS_FUNCTIONS)
 	cat $+ > $@
 
 $(HANDLEBARS_OBJ_DIR)/%.handlebars: $(HANDLEBARS_SOURCE_DIR)/%.handlebars | $(WEB_ASSETS_OBJ_DIR)/.
-	$P SQUEEZE $(@F)
 	mkdir -p $(@D)
 	tr -s '[:space:]' < $^ > $@
 
 $(HANDLEBARS_OBJ_DIR)/%.js: $(HANDLEBARS_OBJ_DIR)/%.handlebars | $(WEB_ASSETS_OBJ_DIR)/.
 	$P HANDLEBARS $(@F)
-	$(HANDLEBARS) -m $(addprefix -k , $(HANDLEBARS_KNOWN_HELPERS)) $^ > $@
+	handlebars -m $(addprefix -k , $(HANDLEBARS_KNOWN_HELPERS)) $^ > $@
 
 $(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(JS_VERSION_FILE) $(COFFEE_COMPILED_JS) | $(WEB_ASSETS_BUILD_DIR)/.
 	$P CONCAT $@
