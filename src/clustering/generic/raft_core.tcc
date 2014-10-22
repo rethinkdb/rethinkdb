@@ -7,6 +7,8 @@
 #include "arch/runtime/coroutines.hpp"
 #include "containers/map_sentries.hpp"
 
+#include "debug.hpp"
+
 template<class state_t>
 raft_persistent_state_t<state_t>
 raft_persistent_state_t<state_t>::make_initial(
@@ -55,6 +57,7 @@ raft_member_t<state_t>::raft_member_t(
     current_term_leader_id(nil_uuid()),
     /* Set this so we start an election if we don't hear from a leader within an election
     timeout of when the constructor was called */
+    last_heard_from_candidate(current_microtime()),
     last_heard_from_leader(current_microtime()),
     /* These must be false initially because we're a follower. */
     readiness_for_change(false),
@@ -139,6 +142,7 @@ bool raft_member_t<state_t>::propose_change(
         DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 
         if (!readiness_for_change.get_ref()) {
+            debugf("propose_change() not ready\n");
             return false;
         }
         guarantee(mode == mode_t::leader);
@@ -164,13 +168,16 @@ bool raft_member_t<state_t>::propose_change(
             &waiter);
     } catch (const interrupted_exc_t &) {
         if (soft_interruptor->is_pulsed() || hard_interruptor->is_pulsed()) {
+            debugf("propose_change() interrupted\n");
             throw;
         } else {
             guarantee(lost_readiness.is_pulsed());
             /* Something went wrong before we could commit the entry. */
+            debugf("propose_change() lost readiness\n");
             return false;
         }
     }
+    // debugf("propose_change() success\n");
     return true;
 }
 
@@ -373,6 +380,7 @@ void raft_member_t<state_t>::on_request_vote_rpc(
     if (mode == mode_t::leader ||
             (mode == mode_t::follower && current_microtime() <
                 last_heard_from_leader + election_timeout_min_ms * 1000)) {
+        debugf("%s disregarding RequestVote RPC\n", uuid_to_str(this_member_id).substr(0,4).c_str());
         reply_out->term = ps.current_term;
         reply_out->vote_granted = false;
         return;
@@ -407,7 +415,7 @@ void raft_member_t<state_t>::on_request_vote_rpc(
     /* Raft paper, Section 5.2: "A server remains in follower state as long as it
     receives valid RPCs from a leader or candidate."
     So candidate RPCs are sufficient to delay the watchdog timer. */
-    last_heard_from_leader = current_microtime();
+    last_heard_from_candidate = current_microtime();
 
     /* Raft paper, Figure 2: "If votedFor is null or candidateId, and candidate's log is
     at least as up-to-date as receiver's log, grant vote */
@@ -867,18 +875,19 @@ void raft_member_t<state_t>::on_watchdog_timer() {
         return;
     }
     microtime_t now = current_microtime();
-    if (last_heard_from_leader > now) {
+    microtime_t last_heard = std::max(last_heard_from_leader, last_heard_from_candidate);
+    if (last_heard > now) {
         /* System clock went in reverse. This is possible because `current_microtime()`
-        estimates wall-clock time, not real time. Reset `last_heard_from_leader` to
-        ensure that we'll still start an election in a reasonable amount of time if we
-        don't hear from a leader. */
-        last_heard_from_leader = now;
+        estimates wall-clock time, not real time. Reset `last_heard_from_*` to ensure
+        that we'll still start an election in a reasonable amount of time if we don't
+        hear from a leader. */
+        last_heard_from_leader = last_heard_from_candidate = now;
         return;
     }
     /* Raft paper, Section 5.2: "If a follower receives no communication over a period of
     time called the election timeout, then it assumes there is no viable leader and
     begins an election to choose a new leader." */
-    if (last_heard_from_leader < now - election_timeout_min_ms * 1000) {
+    if (last_heard < now - election_timeout_min_ms * 1000) {
         /* We shouldn't block in this callback, so we immediately spawn a coroutine */
         auto_drainer_t::lock_t keepalive(drainer.get());
         coro_t::spawn_sometime([this, now, keepalive /* important to capture */]() {
@@ -891,7 +900,9 @@ void raft_member_t<state_t>::on_watchdog_timer() {
                 if (mode != mode_t::follower) {
                     return;
                 }
-                if (last_heard_from_leader >= now - election_timeout_min_ms * 1000) {
+                microtime_t last_heard_2 =
+                    std::max(last_heard_from_leader, last_heard_from_candidate);
+                if (last_heard_2 >= now - election_timeout_min_ms * 1000) {
                     return;
                 }
                 if (!latest_state.get_ref().config.is_valid_leader(this_member_id)) {
@@ -1089,6 +1100,8 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
     mutex_acq->guarantee_is_holding(&mutex);
     leader_keepalive.assert_is_holding(leader_drainer.get());
 
+    debugf("%s begin first election\n", uuid_to_str(this_member_id).substr(0,4).c_str());
+
     /* Raft paper, Section 5.2: "To begin an election, a follower increments its current
     term and transitions to candidate state." */
     update_term(ps.current_term + 1, mutex_acq.get());
@@ -1126,8 +1139,11 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
                 RequestVote RPCs." */
                 update_term(ps.current_term + 1, mutex_acq.get());
                 /* Go around the `while`-loop again. */
+                debugf("%s election timeout\n", uuid_to_str(this_member_id).substr(0,4).c_str());
             }
         }
+
+        debugf("%s elected\n", uuid_to_str(this_member_id).substr(0,4).c_str());
 
         /* We got elected. */
         guarantee(mode == mode_t::leader);
@@ -1340,7 +1356,12 @@ bool raft_member_t<state_t>::candidate_run_election(
                     do or we are interrupted. This is necessary because followers will
                     temporarily reject votes if they have heard from a current leader
                     recently, so they might reject a vote and then later accept it in the
-                    same term. */
+                    same term. But before we retry, we wait a bit, to avoid putting too
+                    much traffic on the network. */
+                    signal_timer_t rate_limiter;
+                    rate_limiter.start(heartbeat_interval_ms);
+                    wait_interruptible(&rate_limiter,
+                        request_vote_keepalive.get_drain_signal());
                 }
 
             } catch (interrupted_exc_t) {

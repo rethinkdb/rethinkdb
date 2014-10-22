@@ -739,10 +739,12 @@ private:
     to redirect clients as described in Figure 2 and Section 8. */
     raft_member_id_t current_term_leader_id;
 
-    /* `last_heard_from_leader` is the time that we last heard from a leader or
-    candidate. `on_watchdog_timer()` consults it to see if we should start an election.
-    */
-    microtime_t last_heard_from_leader;
+    /* `last_heard_from_candidate` and `last_heard_from_leader` are the times we last
+    received a message from a candidate or leader. When `on_watchdog_timer()` is deciding
+    whether or not to start a new election, it uses the later of the two. The reason they
+    are separate is because `on_request_vote_rpc()` should only disregard RPCs if it
+    hasn't heard from a leader recently, even if it has heard from a candidate. */
+    microtime_t last_heard_from_candidate, last_heard_from_leader;
 
     /* `readiness_for_change` and `readiness_for_config_change` track whether this member
     is ready to accept changes. A member is ready for changes if it is leader and in
