@@ -81,30 +81,23 @@ bool artificial_table_backend_t::read_all_rows_as_stream(
     }
 
     /* Apply sorting */
-    switch (sorting) {
-        case sorting_t::UNORDERED:
-            break;
-        case sorting_t::ASCENDING:
-        case sorting_t::DESCENDING:
-            /* It's OK to use `std::sort()` instead of `std::stable_sort()` here because
-            primary keys need to be unique. If we were to support secondary indexes on
-            artificial tables, we would need to ensure that `read_all_rows_as_vector()`
-            returns the keys in a deterministic order and then we would need to use a
-            `std::stable_sort()` here. */
-            std::sort(rows.begin(), rows.end(),
-                [&](const ql::datum_t &a, const ql::datum_t &b) {
-                    ql::datum_t a_key = a.get_field(primary_key.c_str(), ql::NOTHROW);
-                    ql::datum_t b_key = b.get_field(primary_key.c_str(), ql::NOTHROW);
-                    guarantee(a_key.has() && b_key.has());
-                    if (sorting == sorting_t::ASCENDING) {
-                        return a_key.compare_lt(reql_version_t::LATEST, b_key);
-                    } else {
-                        return a_key.compare_gt(reql_version_t::LATEST, b_key);
-                    }
-                });
-            break;
-        default:
-            unreachable();
+    if (sorting != sorting_t::UNORDERED) {
+        /* It's OK to use `std::sort()` instead of `std::stable_sort()` here because
+        primary keys need to be unique. If we were to support secondary indexes on
+        artificial tables, we would need to ensure that `read_all_rows_as_vector()`
+        returns the keys in a deterministic order and then we would need to use a
+        `std::stable_sort()` here. */
+        std::sort(rows.begin(), rows.end(),
+            [&](const ql::datum_t &a, const ql::datum_t &b) {
+                ql::datum_t a_key = a.get_field(primary_key.c_str(), ql::NOTHROW);
+                ql::datum_t b_key = b.get_field(primary_key.c_str(), ql::NOTHROW);
+                guarantee(a_key.has() && b_key.has());
+                if (sorting == sorting_t::ASCENDING) {
+                    return a_key.compare_lt(reql_version_t::LATEST, b_key);
+                } else {
+                    return a_key.compare_gt(reql_version_t::LATEST, b_key);
+                }
+            });
     }
 
     *rows_out = make_counted<artificial_table_datum_stream_t>(bt, std::move(rows));

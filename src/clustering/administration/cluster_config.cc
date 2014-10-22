@@ -20,8 +20,8 @@ bool cluster_config_artificial_table_backend_t::read_all_rows_as_vector(
         std::string *error_out) {
     rows_out->clear();
 
-    ql::datum_t row;
     for (auto it = docs.begin(); it != docs.end(); ++it) {
+        ql::datum_t row;
         if (!it->second->read(interruptor, &row, error_out)) {
             return false;
         }

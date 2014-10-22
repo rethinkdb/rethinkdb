@@ -156,14 +156,6 @@ ql::datum_t convert_table_config_to_datum(
     return std::move(builder).to_datum();
 }
 
-/* ql::datum_t convert_table_config_and_name_to_datum(
-        const table_config_t &config,
-        name_string_t table_name,
-        name_string_t db_name,
-        namespace_id_t uuid,
-        const std::string &primary_key,
-        server_name_client_t *name_client) { */
-
 bool table_config_artificial_table_backend_t::format_row(
         namespace_id_t table_id,
         name_string_t table_name,
@@ -180,7 +172,8 @@ bool table_config_artificial_table_backend_t::format_row(
     builder.overwrite("name", convert_name_to_datum(table_name));
     builder.overwrite("db", convert_name_to_datum(db_name));
     builder.overwrite("uuid", convert_uuid_to_datum(table_id));
-    builder.overwrite("primary_key", convert_string_to_datum(metadata.primary_key.get_ref()));
+    builder.overwrite(
+        "primary_key", convert_string_to_datum(metadata.primary_key.get_ref()));
     *row_out = std::move(builder).to_datum();
 
     return true;

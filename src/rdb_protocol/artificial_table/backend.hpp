@@ -33,9 +33,10 @@ public:
        other, but not both. The `artificial_table_t` will only ever call
        `read_all_rows_as_stream()`; the default implementation of
        `read_all_rows_as_stream()` calls `read_all_rows_as_vector()`, while the default
-       implementation of `read_all_row_as_vector()` crashes. The default implementation
-       of `read_all_rows_as_stream()` will also take care of the filtering and sorting.
-       So it will work correctly no matter which one the subclass overrides. */
+       implementation of `read_all_row_as_vector()` crashes. So it will work correctly
+       no matter which one the subclass overrides. The default implemention of
+       `read_all_rows_as_stream()` will also take care of the filtering and sorting,
+       which you must handle yourself when overriding it. */
     virtual bool read_all_rows_as_stream(
         const ql::protob_t<const Backtrace> &bt,
         const datum_range_t &range,

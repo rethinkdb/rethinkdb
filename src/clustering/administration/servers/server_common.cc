@@ -34,7 +34,7 @@ bool common_server_artificial_table_backend_t::read_all_rows_as_vector(
                 rows_out->push_back(row);
             }
         });
-    return true;
+    return result;
 }
 
 bool common_server_artificial_table_backend_t::read_row(
