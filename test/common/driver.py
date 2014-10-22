@@ -37,9 +37,6 @@ def unblock_path(source_port, dest_port):
     conn.sendall("unblock %s %s\n" % (str(source_port), str(dest_port)))
     conn.close()
 
-def find_rethinkdb_executable(mode=None):
-    return utils.latest_rethinkdb_executable(mode=mode)
-
 def cleanupMetaclusterFolder(path):
     if os.path.isdir(str(path)):
         try:
@@ -199,7 +196,7 @@ class Files(object):
             command_prefix = []
         
         if executable_path is None:
-            executable_path = find_rethinkdb_executable()
+            executable_path = utils.find_rethinkdb_executable()
         assert os.access(executable_path, os.X_OK), "no such executable: %r" % executable_path
         self.executable_path = executable_path
 
@@ -257,7 +254,7 @@ class _Process(object):
             command_prefix = []
         
         if executable_path is None:
-            executable_path = find_rethinkdb_executable()
+            executable_path = utils.find_rethinkdb_executable()
         assert os.access(executable_path, os.X_OK), "no such executable: %r" % executable_path
         self.executable_path = executable_path
         
@@ -312,7 +309,7 @@ class _Process(object):
             self.cluster = cluster
             self.cluster.processes.add(self)
 
-    def wait_until_started_up(self, timeout = 30):
+    def wait_until_started_up(self, timeout=30):
         time_limit = time.time() + timeout
         while time.time() < time_limit:
             self.check()
@@ -328,7 +325,7 @@ class _Process(object):
         else:
             raise RuntimeError("Process was not responding to HTTP traffic within %d seconds." % timeout)
 
-    def read_ports_from_log(self, timeout = 30):
+    def read_ports_from_log(self, timeout=30):
         time_limit = time.time() + timeout
         while time.time() < time_limit:
             self.check()
@@ -479,7 +476,7 @@ class ProxyProcess(_Process):
     """A `ProxyProcess` object represents a running RethinkDB proxy. It cannot be
     restarted; stop it and then create a new one instead. """
 
-    def __init__(self, cluster, logfile_path, log_path = None, executable_path = None, command_prefix=None, extra_options=None):
+    def __init__(self, cluster, logfile_path, log_path=None, executable_path=None, command_prefix=None, extra_options=None):
         assert isinstance(cluster, Cluster)
         assert cluster.metacluster is not None
 

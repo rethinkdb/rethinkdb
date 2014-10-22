@@ -1,18 +1,18 @@
-###
-# Tests the driver cursor API
-###
+#!/usr/bin/env python
+
+'''Tests the driver cursor API'''
 
 from __future__ import print_function
 
-import unittest
-from os import getenv
-from sys import path, argv, exit
-path.insert(0, "../../drivers/python")
+import os, sys, unittest
 
-import rethinkdb as r
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'common')))
+import utils
 
-num_rows = int(argv[2])
-port = int(argv[1])
+r = utils.import_python_driver()
+
+num_rows = int(sys.argv[2])
+port = int(sys.argv[1])
 
 class TestCursor(unittest.TestCase):
 
@@ -43,4 +43,4 @@ if __name__ == '__main__':
     res = unittest.TextTestRunner(verbosity=2).run(suite)
 
     if not res.wasSuccessful():
-        exit(1)
+        sys.exit(1)

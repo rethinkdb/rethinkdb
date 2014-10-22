@@ -1,28 +1,10 @@
 #!/usr/bin/env ruby
 
-# -- import the called-for rethinkdb module
-if ENV['RUBY_DRIVER_DIR']
-  $LOAD_PATH.unshift ENV['RUBY_DRIVER_DIR']
-  require 'rethinkdb'
-  $LOAD_PATH.shift
-else
-  # look for the source directory
-  targetPath = File.expand_path(File.dirname(__FILE__))
-  while targetPath != File::Separator
-    sourceDir = File.join(targetPath, 'drivers', 'ruby')
-    if File.directory?(sourceDir)
-      unless system("make -C " + sourceDir)
-        abort "Unable to build the ruby driver at: " + sourceDir
-      end
-      $LOAD_PATH.unshift(File.join(sourceDir, 'lib'))
-      require 'rethinkdb'
-      $LOAD_PATH.shift
-      break
-    end
-    targetPath = File.dirname(targetPath)
-  end
-end
-extend RethinkDB::Shortcuts
+# -- import the rethinkdb driver
+
+require_relative '../importRethinkDB.rb'
+
+# --
 
 $port = ARGV[0].to_i
 $c = r.connect(:host => 'localhost', :port => $port).repl
@@ -37,7 +19,7 @@ def expect_error(query, err_type, err_info)
     begin
         res = query.run()
     rescue err_type => ex
-        if ex.message.lines[0].rstrip != err_info
+        if ex.message.lines.first.rstrip != err_info
             raise
         end
         return

@@ -2,8 +2,14 @@
 // Tests for feeds
 /////
 
-var r = require('../../../build/packages/js/rethinkdb');
 var assert = require('assert');
+var path = require('path');
+
+// -- load rethinkdb from the proper location
+
+var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
+
+// --
 
 var port = parseInt(process.argv[2], 10);
 var idValue = Math.floor(Math.random()*1000);

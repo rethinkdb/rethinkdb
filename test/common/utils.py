@@ -8,8 +8,8 @@ import test_exceptions
 
 driverPaths = {
     'javascript': {'extension':'js', 'relDriverPath':'build/packages/js', 'relSourcePath':'drivers/javascript'},
-    'python': {'extension':'js', 'relDriverPath':'build/drivers/python/rethinkdb', 'relSourcePath':'drivers/python'},
-    'ruby': {'extension':'js', 'relDriverPath':'build/drivers/ruby/lib', 'relSourcePath':'drivers/ruby'}
+    'python': {'extension':'py', 'relDriverPath':'build/drivers/python/rethinkdb', 'relSourcePath':'drivers/python'},
+    'ruby': {'extension':'rb', 'relDriverPath':'build/drivers/ruby/lib', 'relSourcePath':'drivers/ruby'}
 }
 
 # --
@@ -37,44 +37,49 @@ def project_root_dir():
     
     return os.path.realpath(masterBuildDir)
 
-def latest_rethinkdb_executable(mode=None):
+def find_rethinkdb_executable(mode=None):
     return os.path.join(latest_build_dir(check_executable=True, mode=mode), 'rethinkdb')
 
 def latest_build_dir(check_executable=True, mode=None):
     '''Look for the most recently built version of this project'''
     
-    masterBuildDir = os.path.join(project_root_dir(), 'build')
-    activeMode = ['release', 'debug']
-    if mode in (None, ''):
-        pass 
-    elif not hasattr(mode, '__iter__'):
-        activeMode = [str(mode)]
+    canidatePath = None
+    
+    if os.getenv('RETHINKDB_BUILD_DIR') is not None:
+        canidatePath = os.path.realpath(os.getenv('RETHINKDB_BUILD_DIR'))
+    
     else:
-        activeMode = mode
+        masterBuildDir = os.path.join(project_root_dir(), 'build')
+        if not os.path.isdir(masterBuildDir):
+            raise test_exceptions.NotBuiltException(detail='no version of this project has yet been built')
+        
+        if mode in (None, ''):
+            mode = ['release', 'debug']
+        elif not hasattr(mode, '__iter__'):
+            mode = [str(mode)]
+        
+        # -- find the build directory with the most recent mtime
+        
+        canidateMtime = None
+        for name in os.listdir(masterBuildDir):
+            path = os.path.join(masterBuildDir, name)
+            if os.path.isdir(path) and any(map(lambda x: name.startswith(x + '_') or name.lower() == x, mode)):
+                if check_executable == True:
+                    if not os.path.isfile(os.path.join(path, 'rethinkdb')):
+                        continue
+                
+                mtime = os.path.getmtime(path)
+                if canidateMtime is None or mtime > canidateMtime:
+                    canidateMtime = mtime
+                    canidatePath = path
+        
+        if canidatePath is None:
+            raise test_exceptions.NotBuiltException(detail='no built version of the server could be found')
     
-    if not os.path.isdir(masterBuildDir):
-        raise test_exceptions.NotBuiltException(detail='no version of this project have yet been built')
+    if canidatePath is None or (check_executable is True and not os.access(os.path.join(canidatePath, 'rethinkdb'), os.X_OK)):
+        raise test_exceptions.NotBuiltException(detail='the rethinkdb server executable was not present/runable in: %s' % canidatePath)
     
-    # -- find the build directory with the most recent mtime
-    
-    canidatePath    = None
-    canidateMtime   = None
-    for name in os.listdir(masterBuildDir):
-        path = os.path.join(masterBuildDir, name)
-        if os.path.isdir(path) and any(map(lambda x: name.startswith(x + '_') or name.lower() == x, activeMode)):
-            if check_executable == True:
-                if not os.path.isfile(os.path.join(path, 'rethinkdb')):
-                    continue
-            
-            mtime = os.path.getmtime(path)
-            if canidateMtime is None or mtime > canidateMtime:
-                canidateMtime = mtime
-                canidatePath = path
-    
-    if canidatePath is None:
-        raise test_exceptions.NotBuiltException(detail='no version of this project have yet been built')
-    else:
-        return canidatePath
+    return canidatePath
 
 def build_in_folder(targetFolder, waitNotification=None, notificationTimeout=2, buildOptions=None):
     '''Call `make -C` on a folder to build it. If waitNotification is given wait notificationTimeout seconds and then print the notificaiton'''

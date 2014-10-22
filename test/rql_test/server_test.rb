@@ -3,40 +3,11 @@
 require 'test/unit'
 require 'pp'
 
-importFilePath = ''
-if ENV['RUBY_DRIVER_DIR']
-  if File.file?(File.join(ENV['RUBY_DRIVER_DIR'], 'rethinkdb.rb'))
-    importFilePath = File.join(ENV['RUBY_DRIVER_DIR'], 'rethinkdb.rb')
-  elsif File.file?(File.join(ENV['RUBY_DRIVER_DIR'], 'lib', 'rethinkdb.rb'))
-    importFilePath = File.join(ENV['RUBY_DRIVER_DIR'], 'lib', 'rethinkdb.rb')
-  else 
-    abort('The Ruby driver was not where it was expected based on RUBY_DRIVER_DIR: ' + ENV['RUBY_DRIVER_DIR'])
-  end
-  $LOAD_PATH.unshift File.dirname(importFilePath)
-  require File.join(importFilePath)
-  $LOAD_PATH.shift
-else
-  projectDir = File.dirname(File.dirname(File.dirname(File.expand_path(__FILE__))))
-  
-  ['build', ''].each do |pathPrefix|
-    dirPath = File.join(projectDir, pathPrefix, 'drivers', 'ruby', 'lib')
-    if File.file?(File.join(dirPath, 'rethinkdb.rb')) && File.file?(File.join(dirPath, 'ql2.pb.rb'))
-      importFilePath = File.join(dirPath, 'rethinkdb.rb')
-      break
-    end
-  end
-  
-  # import or fail
-  if importFilePath == ''
-    abort('Could not find a built ruby driver. Please build it.')
-  end
-  
-  $LOAD_PATH.unshift File.dirname(importFilePath)
-  require File.join(importFilePath)
-  $LOAD_PATH.shift
-end
-puts('RethinkDB driver loaded from: ' + File.dirname(importFilePath))
-include RethinkDB::Shortcuts
+# -- import the rethinkdb driver
+
+require_relative './importRethinkDB.rb'
+
+# --
 
 $port ||= ARGV[0].to_i
 ARGV.clear

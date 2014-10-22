@@ -8,29 +8,11 @@ JSPORT = ARGV[0]
 CPPPORT = ARGV[1]
 DB_AND_TABLE_NAME = ARGV[2]
 
-# -- import the called-for rethinkdb module
-if ENV['RUBY_DRIVER_DIR']
-  $LOAD_PATH.unshift ENV['RUBY_DRIVER_DIR']
-  require 'rethinkdb'
-  $LOAD_PATH.shift
-else
-  # look for the source directory
-  targetPath = File.expand_path(File.dirname(__FILE__))
-  while targetPath != File::Separator
-    sourceDir = File.join(targetPath, 'drivers', 'ruby')
-    if File.directory?(sourceDir)
-      unless system("make -C " + sourceDir)
-        abort "Unable to build the ruby driver at: " + sourceDir
-      end
-      $LOAD_PATH.unshift(File.join(sourceDir, 'lib'))
-      require 'rethinkdb'
-      $LOAD_PATH.shift
-      break
-    end
-    targetPath = File.dirname(targetPath)
-  end
-end
-extend RethinkDB::Shortcuts
+# -- import the rethinkdb driver
+
+require_relative '../importRethinkDB.rb'
+
+# --
 
 def show x
   if x.class == Err
