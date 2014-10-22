@@ -6,8 +6,8 @@ import driver, scenario_common, utils
 from vcoptparse import *
 r = utils.import_python_driver()
 
-"""The `interface.table_config` test checks that the special `rethinkdb.table_config` and
-`rethinkdb.table_status` tables behave as expected."""
+"""The `interface.table_wait` test checks that waiting for a table returns when
+the table is available for writing."""
 
 op = OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
@@ -24,7 +24,6 @@ def create_tables(conn):
 
 def check_table_states(conn, ready):
     statuses = r.db(db).table_status(r.args(tables)).run(conn)
-    print "statuses: %s" % str(statuses)
     return all(map(lambda s: (s['ready_for_writes'] == ready), statuses))
 
 def wait_for_table_states(conn, ready):
@@ -35,8 +34,7 @@ def spawn_table_wait(port, tbls):
     def do_table_wait(port, tbls, done_event):
         conn = r.connect("localhost", port)
         try:
-            status = r.db(db).table_wait(r.args(tbls)).run(conn)
-            print status
+            r.db(db).table_wait(r.args(tbls)).run(conn)
         finally:
             done_event.set()
 
@@ -50,7 +48,7 @@ def spawn_table_wait(port, tbls):
     write_proc = multiprocessing.Process(target=do_post_write, args=(port, tbls, sync_event))
     wait_proc.start()
     write_proc.start()
-    return wait_proc
+    return write_proc
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
@@ -70,6 +68,7 @@ with driver.Metacluster() as metacluster:
 
     conn = r.connect("localhost", proc1.driver_port)
 
+    print "Creating %d tables..." % len(tables)
     create_tables(conn)
 
     print "Killing second server..."
@@ -80,10 +79,18 @@ with driver.Metacluster() as metacluster:
                      spawn_table_wait(proc1.driver_port, [tables[1], tables[2]]), # Wait for two tables
                      spawn_table_wait(proc1.driver_port, []) ]                    # Wait for all tables
 
+    # Wait some time to make sure the wait doesn't return early
+    waiter_procs[0].join(15)
+    if not all(map(lambda w: w.is_alive(), waiter_procs)):
+        print "Wait returned while a server was still down."
+        exit(1)
+
     print "Restarting second server..."
     proc2 = driver.Process(cluster, files2, log_path = "serve-output-2",
         executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
+    proc2.wait_until_started_up()
 
+    print "Waiting for table readiness..."
     map(lambda w: w.join(), waiter_procs)
     if not check_table_states(conn, ready=True):
         print "`table_wait` returned, but not all tables are ready"
