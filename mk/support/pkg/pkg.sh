@@ -208,8 +208,15 @@ in_dir () {
 
 # Load a package and set related variables
 load_pkg () {
-    pkg=$1
+    pkg=${1%%_*}
+    local requested_version="${1#*_}"
     include "$pkg.sh"
+
+    if [[ "$requested_version" != "$1" ]] && [[ "$requested_version" != "$version" ]]; then
+        echo "Error: Version mismatch. Asked for ${pkg}_$requested_version but only $version is available" >&2
+        echo "Error: Please re-run ./configure" >&2
+        exit 1
+    fi
 
     src_dir=$(niceabspath "$external_dir/$pkg""_$version")
     install_dir=$(niceabspath "$root_build_dir/external/$pkg""_$version")
