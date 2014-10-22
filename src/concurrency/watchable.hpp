@@ -179,6 +179,14 @@ public:
 
     void set_value(const value_t &_value) {
         DEBUG_VAR rwi_lock_assertion_t::write_acq_t acquisition(&rwi_lock_assertion);
+        if (value != _value) {
+            value = _value;
+            publisher_controller.publish(&call_function);
+        }
+    }
+
+    void set_value_no_equals(const value_t &_value) {
+        DEBUG_VAR rwi_lock_assertion_t::write_acq_t acquisition(&rwi_lock_assertion);
         value = _value;
         publisher_controller.publish(&call_function);
     }

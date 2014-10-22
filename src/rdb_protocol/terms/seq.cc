@@ -99,13 +99,36 @@ private:
 class map_term_t : public grouped_seq_op_term_t {
 public:
     map_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : grouped_seq_op_term_t(env, term, argspec_t(2)) { }
+        : grouped_seq_op_term_t(env, term, argspec_t(2, -1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<datum_stream_t> stream = args->arg(env, 0)->as_seq(env->env);
-        stream->add_transformation(
-                map_wire_func_t(args->arg(env, 1)->as_func()), backtrace());
-        return new_val(env->env, stream);
+        std::vector<counted_t<datum_stream_t> > streams;
+        streams.reserve(args->num_args() - 1);
+        for (size_t i = 0; i < args->num_args() - 1; ++i) {
+            streams.push_back(args->arg(env, i)->as_seq(env->env));
+        }
+
+        counted_t<const func_t> func =
+            args->arg(env, args->num_args() - 1)->as_func();
+        boost::optional<std::size_t> func_arity = func->arity();
+        if (!!func_arity) {
+            rcheck(func_arity.get() == args->num_args() - 1,
+                   base_exc_t::GENERIC,
+                   strprintf("The function passed to `map` expects %zu argument%s, "
+                             "but %zu sequence%s found.",
+                             func_arity.get(), (func_arity.get() == 1 ? "" : "s"),
+                             args->num_args() - 1, (args->num_args() == 2 ? " was" : "s were")));
+        }
+
+        if (args->num_args() == 2) {
+            streams.front()->add_transformation(
+                    map_wire_func_t(std::move(func)), backtrace());
+            return new_val(env->env, streams.front());
+        } else {
+            counted_t<datum_stream_t> map_stream = make_counted<map_datum_stream_t>(
+                std::move(streams), std::move(func), backtrace());
+            return new_val(env->env, map_stream);
+        }
     }
     virtual const char *name() const { return "map"; }
 };

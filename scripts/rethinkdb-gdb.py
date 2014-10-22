@@ -523,6 +523,13 @@ class StdStringPrinter:
         # encountered.
         ptr = self.val['_M_dataplus']['_M_p']
         realtype = type.unqualified().strip_typedefs()
+        try:                    # clang thinks std::string is std::basic_string<char>
+            realtype.template_argument(1)
+        except RuntimeError:
+            basetype = str(realtype.template_argument(0))
+            realtype = gdb.lookup_type(("std::basic_string<%s, std::char_traits" +
+                                        "<%s>, std::allocator<%s> >")
+                                       % (basetype, basetype, basetype))
         reptype = gdb.lookup_type(str(realtype) + '::_Rep').pointer()
         header = ptr.cast(reptype) - 1
         len = header.dereference()['_M_length']
@@ -633,7 +640,7 @@ def lookup_function (val):
     # Get the unqualified type, stripped of typedefs.
     type = type.unqualified ().strip_typedefs ()
 
-    # Get the type name.    
+    # Get the type name.
     typename = type.tag
 
     if typename == None:
@@ -645,7 +652,7 @@ def lookup_function (val):
     for function in pretty_printers_dict:
         if function.match (typename):
             return pretty_printers_dict[function] (val)
-        
+
     # Cannot find a pretty printer.  Return None.
 
     return None
